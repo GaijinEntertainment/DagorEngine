@@ -10,18 +10,18 @@ def test_matrix_op(t : T?) {
     t |> run("fuzz *") @@(t : T?) {
         var fake <- Faker()
         fuzz() {
-            var m1 = fake |> random_float3x3
-            var m2 = fake |> random_float3x3
+            let m1 = fake |> random_float3x3
+            let m2 = fake |> random_float3x3
             t |> accept(m1 * m2)
         }
         fuzz() {
-            var m1 = fake |> random_float3x4
-            var m2 = fake |> random_float3x4
+            let m1 = fake |> random_float3x4
+            let m2 = fake |> random_float3x4
             t |> accept(m1 * m2)
         }
         fuzz() {
-            var m1 = fake |> random_float4x4
-            var m2 = fake |> random_float4x4
+            let m1 = fake |> random_float4x4
+            let m2 = fake |> random_float4x4
             t |> accept(m1 * m2)
         }
     }
@@ -29,18 +29,18 @@ def test_matrix_op(t : T?) {
     t |> run("fuzz ==") @@(t : T?) {
         var fake <- Faker()
         fuzz() {
-            var m1 = fake |> random_float3x3
-            var m2 = fake |> random_float3x3
+            let m1 = fake |> random_float3x3
+            let m2 = fake |> random_float3x3
             t |> accept(m1 == m2)
         }
         fuzz() {
-            var m1 = fake |> random_float3x4
-            var m2 = fake |> random_float3x4
+            let m1 = fake |> random_float3x4
+            let m2 = fake |> random_float3x4
             t |> accept(m1 == m2)
         }
         fuzz() {
-            var m1 = fake |> random_float4x4
-            var m2 = fake |> random_float4x4
+            let m1 = fake |> random_float4x4
+            let m2 = fake |> random_float4x4
             t |> accept(m1 == m2)
         }
     }
@@ -48,25 +48,25 @@ def test_matrix_op(t : T?) {
     t |> run("fuzz !=") @@(t : T?) {
         var fake <- Faker()
         fuzz() {
-            var m1 = fake |> random_float3x3
-            var m2 = fake |> random_float3x3
+            let m1 = fake |> random_float3x3
+            let m2 = fake |> random_float3x3
             t |> accept(m1 != m2)
         }
         fuzz() {
-            var m1 = fake |> random_float3x4
-            var m2 = fake |> random_float3x4
+            let m1 = fake |> random_float3x4
+            let m2 = fake |> random_float3x4
             t |> accept(m1 != m2)
         }
         fuzz() {
-            var m1 = fake |> random_float4x4
-            var m2 = fake |> random_float4x4
+            let m1 = fake |> random_float4x4
+            let m2 = fake |> random_float4x4
             t |> accept(m1 != m2)
         }
     }
 }
 
 [test]
-def test_matrix_manip(t : T?) {
+def test_matrix_manip(t : T?) { // nolint:STYLE038 one flat fuzz arm per math entry point under test
     t |> run("fuzz translation") @@(t : T?) {
         var fake <- Faker()
         fuzz() {

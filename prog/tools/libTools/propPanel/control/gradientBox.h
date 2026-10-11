@@ -106,8 +106,9 @@ public:
       mW > 0 ? min((int)mW, (int)floorf(ImGui::GetContentRegionAvail().x)) : (int)floorf(ImGui::GetContentRegionAvail().x);
     gradientControl.updateImgui(width, mH);
 
-    // Every frame of a drag would otherwise close its own change: gradientControl takes the mouse
-    // buttons for itself, so it never holds ImGui's active item and ChangeFinishTracker sees no edit.
+    // Every frame of a drag, or of an open color picker, would otherwise close its own change:
+    // gradientControl takes the mouse buttons for itself, so it never holds ImGui's active item
+    // and ChangeFinishTracker sees no edit.
     if (gradientControl.isGestureActive())
     {
       heldActiveImguiItem();

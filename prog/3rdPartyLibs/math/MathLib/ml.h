@@ -45,7 +45,9 @@ IMPORTANT:
 #endif
 
 // ARM?
-#if (defined(__arm__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM))
+// Gaijin change
+#if (defined(__arm__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM) || defined(_M_ARM64EC))
+// ~Gaijin change
 #    define ML_ARM
 #endif
 
@@ -140,10 +142,12 @@ IMPORTANT:
 #    include <unistd.h> // TODO: needed?
 #endif
 
-#if (defined(__i386__) || defined(__x86_64__) || defined(__SCE__))
-#    include <x86intrin.h>
-#elif (defined(ML_ARM))
+// Gaijin change: ARM64EC also defines __x86_64__, so test ML_ARM first
+#if (defined(ML_ARM))
 #    include "sse2neon.h"
+#elif (defined(__i386__) || defined(__x86_64__) || defined(__SCE__))
+#    include <x86intrin.h>
+// ~Gaijin change
 #else
 #    include <mmintrin.h>
 #    if (ML_SVML_AVAILABLE || ML_INTRINSIC_LEVEL >= ML_INTRINSIC_AVX1)
@@ -588,7 +592,9 @@ ML_INLINE float DoubleToGequal(double dValue) {
     float fError = (float)(dValue - fValue);
 
     int32_t exponent = 0;
-    frexp(fValue, &exponent);
+    // Gaijin change
+    (void)frexp(fValue, &exponent); // MSVC 19.52 frexp is nodiscard
+    // ~Gaijin change
     exponent = max(exponent, 0);
     exponent = (int32_t)log10f(float(1 << exponent));
 
@@ -613,7 +619,9 @@ ML_INLINE float DoubleToLequal(double dValue) {
     float fError = (float)(dValue - fValue);
 
     int32_t exponent = 0;
-    frexp(fValue, &exponent);
+    // Gaijin change
+    (void)frexp(fValue, &exponent); // MSVC 19.52 frexp is nodiscard
+    // ~Gaijin change
     exponent = max(exponent, 0);
     exponent = (int32_t)log10f(float(1 << exponent));
 

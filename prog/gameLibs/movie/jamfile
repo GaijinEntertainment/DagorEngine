@@ -26,13 +26,4 @@ UseProgLibs =
   3rdPartyLibs/codecs/libtheora-1.0
 ;
 
-if [ GLOB $(Root)/prog/gameLibs/daGUI : jamfile ] {
-  Sources +=
-    daGuiBhvMovie.cpp
-    daGuiPlayer.cpp
-  ;
-  AddIncludes += $(Root)/prog/gameLibs/daGUI ; # for webcache.h
-  UseProgLibs += gameLibs/daGUI ;
-}
-
 include $(Root)/prog/_jBuild/build.jam ;

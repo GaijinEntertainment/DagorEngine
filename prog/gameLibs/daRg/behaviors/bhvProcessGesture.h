@@ -2,10 +2,9 @@
 #pragma once
 
 #include <daRg/dag_behavior.h>
-#include <gesture/gestureDetector.h>
 
 /*
-This is a thin interface to internal daRg touch device gesture handling.
+This is a thin interface to internal daRg touch screen and touch pad gesture handling.
 It allows to implement arbitrary gesture processing in script.
 
 One should be careful when using this behavior:
@@ -18,7 +17,7 @@ One should be careful when using this behavior:
   properly checking 'hit' and 'accumRes' flags and returning
   correct code (R_PROCESSED or 0/null)
 
-See dagor4\tools\dargbox\samples\_basic\behaviors\process_gesture.ui.nut for demo
+See the dargbox samples process_gesture*.ui.nut for demo
 */
 
 namespace darg
@@ -29,14 +28,15 @@ class BhvProcessGesture : public darg::Behavior
 public:
   BhvProcessGesture();
 
+  virtual void onDetach(Element *, DetachMode) override;
   virtual int pointingEvent(ElementTree *, Element *, InputDevice, InputEvent, int /*touch_idx*/, int /*btn_id*/, Point2 pos,
     int /*accum_res*/) override;
+  virtual int touchPadGestureEvent(ElementTree *, Element *, int state, const TouchPadGesture &, int accum_res) override;
+  virtual int getTouchPadGestures(const Element *elem) override;
 
 private:
   int processGesture(Element *elem, InputEvent event, int pointer_id, const Point2 &pos, int accum_res);
   void onElemSetup(Element *elem, SetupMode setup_mode) override;
-
-  GestureDetector gestureDetector;
 };
 
 extern BhvProcessGesture bhv_process_gesture;

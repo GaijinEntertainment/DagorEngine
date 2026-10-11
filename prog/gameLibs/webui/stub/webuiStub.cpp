@@ -61,6 +61,7 @@ void update() {}
 
 void init_dmviewer_plugin() {}
 void init_ecsviewer_plugin() {}
+void set_dmviewer_source(const IDmViewerSource *) {}
 void set_ecsviewer_entity_manager(ecs::EntityManager *) {}
 uint16_t get_binded_port() { return 0; }
 

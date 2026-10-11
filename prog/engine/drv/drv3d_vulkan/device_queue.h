@@ -152,8 +152,8 @@ public:
   DeviceQueueGroup(const DeviceQueueGroup &) = delete;
   DeviceQueueGroup &operator=(const DeviceQueueGroup &) = delete;
 
-  DeviceQueueGroup(DeviceQueueGroup &&o);
-  DeviceQueueGroup &operator=(DeviceQueueGroup &&o);
+  DeviceQueueGroup(DeviceQueueGroup &&o) noexcept;
+  DeviceQueueGroup &operator=(DeviceQueueGroup &&o) noexcept;
 
   struct Info
   {

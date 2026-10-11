@@ -285,6 +285,11 @@ class LogWalker : DapiDataWalker {
     def override afterLambda(var value : DapiLambda; ti : TypeInfo) : void {
         log += "afterLambda\n"
     }
+
+    // --- block ---
+    def override WalkBlock(var value : DapiBlock) : void {
+        log += "Block:body={value.body != null},args={value.functionArguments != null}\n"
+    }
 }
 
 

@@ -64,6 +64,7 @@ struct AnalogStickActionData : public AnalogStickAction
   void init(int nid, int t)
   {
     x = y = 0, bActive = false, bEnabled = true, nameId = nid, type = t;
+    gpadX = gpadY = 0;
     flags = exclTag = groupTag = 0;
     vx = vy = 0;
     sx = sy = 0;
@@ -103,6 +104,7 @@ struct ActionSet
 
 extern ActionGlobData agData;
 extern Tab<ActionSet> actionSets;
+extern unsigned actionSetsGen;
 extern Tab<action_handle_t> actionsNativeOrdered;
 extern FastStrMap actionNameIdx;
 extern Tab<const char *> actionNameBackMap[3];
@@ -126,6 +128,7 @@ extern HumanInput::VrInput *dev5_vr;
 extern int configVer;
 
 extern int64_t controlTID;
+inline bool on_control_thread() { return controlTID < 0 || is_controled_by_cur_thread(); } // none before init_actions()
 
 extern void (*notify_ui_action_triggered_cb)(action_handle_t action, bool action_terminated, int dur_ms);
 extern action_triggered_t notify_action_triggered_cb;

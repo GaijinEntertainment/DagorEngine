@@ -98,14 +98,14 @@ static ecs::EntitySystemDesc settings_override_logerr_es_event_handler_es_desc
 ,nullptr,"settings_override__graphicsSettings,settings_override__graphicsSettings_android,settings_override__graphicsSettings_ios,settings_override__graphicsSettings_nswitch,settings_override__graphicsSettings_pc,settings_override__graphicsSettings_ps4,settings_override__graphicsSettings_ps5,settings_override__graphicsSettings_scarlett,settings_override__graphicsSettings_xboxone");
 static constexpr ecs::ComponentDesc apply_settings_override_entity_ecs_query_comps[] =
 {
-//start of 1 ro components at [0]
+//start of 1 rw components at [0]
   {ECS_HASH("settings_override__manager"), ecs::ComponentTypeInfo<SettingsOverride>()}
 };
 static ecs::CompileTimeQueryDesc apply_settings_override_entity_ecs_query_desc
 (
   "apply_settings_override_entity_ecs_query",
+  make_span(apply_settings_override_entity_ecs_query_comps+0, 1)/*rw*/,
   empty_span(),
-  make_span(apply_settings_override_entity_ecs_query_comps+0, 1)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -117,7 +117,7 @@ inline void apply_settings_override_entity_ecs_query(ecs::EntityManager &manager
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RO_COMP(apply_settings_override_entity_ecs_query_comps, "settings_override__manager", SettingsOverride)
+              ECS_RW_COMP(apply_settings_override_entity_ecs_query_comps, "settings_override__manager", SettingsOverride)
             );
 
         }while (++comp != compE);

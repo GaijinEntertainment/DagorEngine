@@ -29,14 +29,12 @@ ShipWakeFx::ShipWakeFx(const Settings &in_settings) : settings(in_settings)
   ParticleSystem::MainParams psWakeParams;
   psWakeParams.diffuseTexId = settings.wakeTexId;
   psWakeParams.diffuseSampler = get_sampler_default_mipbias(psWakeParams.diffuseTexId);
-  psWakeParams.renderType = ParticleSystem::RENDER_HEIGHT;
   psWake = effectManager->addPSystem(psWakeParams);
   psWake->reserveEmitters(DEFAULT_NUM_SHIPS * 2);
 
   ParticleSystem::MainParams psWakeTrailParams;
   psWakeTrailParams.diffuseTexId = settings.wakeTrailTexId;
   psWakeTrailParams.diffuseSampler = get_sampler_default_mipbias(psWakeTrailParams.diffuseTexId);
-  psWakeTrailParams.renderType = ParticleSystem::RENDER_HEIGHT;
   psWakeTrail = effectManager->addPSystem(psWakeTrailParams);
   psWakeTrail->reserveEmitters(DEFAULT_NUM_SHIPS * 3);
 

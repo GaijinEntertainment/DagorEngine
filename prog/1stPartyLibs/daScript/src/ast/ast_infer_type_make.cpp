@@ -18,7 +18,7 @@ namespace das {
                     // the generator contract fixes the block result to bool; pinning a bare
                     // auto here keeps return-type diagnostics at the offending return site
                     if (blk->returnType && blk->returnType->baseType == Type::autoinfer) {
-                        blk->returnType = new TypeDecl(Type::tBool);
+                        blk->returnType = new TypeDecl(Type::tBool, blk->at);
                         blk->returnType->at = blk->at;
                     }
                 }
@@ -90,14 +90,16 @@ namespace das {
                         if (!expr->iterType->isVoid()) {
                             auto yva = new Variable();
                             if (expr->iterType->ref) {
-                                yva->type = new TypeDecl(Type::tPointer);
+                                yva->type = new TypeDecl(Type::tPointer, block->at);
                                 yva->type->firstType = new TypeDecl(*expr->iterType);
+                                if ( !yva->type->firstType->at.fileInfo ) yva->type->firstType->at = block->at;
                                 yva->type->firstType->ref = false;
                                 yva->type->constant = false;
                                 yva->type->ref = true;
                                 makeRef = true;
                             } else {
                                 yva->type = new TypeDecl(*expr->iterType);
+                                if ( !yva->type->at.fileInfo ) yva->type->at = block->at;
                                 yva->type->constant = false;
                                 yva->type->ref = !expr->iterType->isRefType();
                             }
@@ -411,6 +413,10 @@ namespace das {
         auto fieldVariant = mkBaseT->findArgumentIndex(decl->name);
         if (fieldVariant != -1) {
             auto fieldType = mkBaseT->argTypes[fieldVariant];
+            if (decl->cloneSemantics) {
+                convertCloneFieldToMove(fieldType, decl);
+                return Visitor::visitMakeVariantField(expr, index, decl, last);
+            }
             {
                 bool rangeError = false;
                 if (auto promoted = tryPromoteConstInt(decl->value, fieldType, rangeError)) {
@@ -630,19 +636,44 @@ namespace das {
         reportAstChanged();
         return true;
     }
+    void InferTypes::convertCloneFieldToMove(const TypeDeclPtr &fieldType, MakeFieldDecl *decl) {
+        if (fieldType) {
+            bool rangeError = false;
+            if (auto promoted = tryPromoteConstInt(decl->value, fieldType, rangeError)) {
+                decl->value = promoted;
+            } else if (rangeError) {
+                return;
+            }
+        }
+        auto cloneCall = new ExprCall(decl->at, "builtin::clone_to_move");
+        cloneCall->arguments.push_back(decl->value);
+        decl->value = cloneCall;
+        decl->cloneSemantics = false;
+        decl->moveSemantics = !(fieldType && fieldType->canCopy());
+        reportAstChanged();
+    }
     MakeFieldDeclPtr InferTypes::visitMakeStructureField(ExprMakeStruct *expr, int index, MakeFieldDecl *decl, bool last) {
         if (!decl->value->type) {
             return Visitor::visitMakeStructureField(expr, index, decl, last);
         }
-        if (decl->cloneSemantics) {
-            if ( convertCloneSemanticsToExpression(expr, index, decl) ) {
-                return nullptr;
-            } else {
-                return Visitor::visitMakeStructureField(expr, index, decl, last);
-            }
-        }
         auto mkBaseT = expr->makeType;
         while (mkBaseT->baseType==Type::tFixedArray && mkBaseT->firstType) mkBaseT = mkBaseT->firstType;
+        if (decl->cloneSemantics) {
+            if (mkBaseT->isAutoOrAlias() || mkBaseT->isExprType()) {
+                return Visitor::visitMakeStructureField(expr, index, decl, last);
+            }
+            if (mkBaseT->baseType == Type::tVariant || mkBaseT->baseType == Type::tTuple) {
+                auto fieldIndex = mkBaseT->findArgumentIndex(decl->name);
+                if (fieldIndex != -1) {
+                    convertCloneFieldToMove(mkBaseT->argTypes[fieldIndex], decl);
+                }
+                return Visitor::visitMakeStructureField(expr, index, decl, last);
+            }
+            if (convertCloneSemanticsToExpression(expr, index, decl)) {
+                return nullptr;
+            }
+            return Visitor::visitMakeStructureField(expr, index, decl, last);
+        }
         if (mkBaseT->baseType == Type::tStructure) {
             if (auto field = mkBaseT->structType->findField(decl->name)) {
                 auto copyFieldType = field->type;
@@ -658,6 +689,13 @@ namespace das {
                         return Visitor::visitMakeStructureField(expr, index, decl, last);
                     }
                     if (rangeError) {
+                        return Visitor::visitMakeStructureField(expr, index, decl, last);
+                    }
+                }
+                if (!field->type->ref && !decl->cloneSemantics && !decl->value->generated) {
+                    if (auto viaAssign = promoteInitToAssign(decl->moveSemantics ? "<-" : "=", field->type, decl->value, decl->value->at)) {
+                        decl->value = viaAssign;
+                        decl->moveSemantics = !field->type->canCopy();
                         return Visitor::visitMakeStructureField(expr, index, decl, last);
                     }
                 }
@@ -800,6 +838,9 @@ namespace das {
                       fld->at, CompilationError::already_declared_tuple_field);
                 return nullptr;
             } else {
+                if (fld->cloneSemantics) {
+                    convertCloneFieldToMove(makeType->argTypes[idx], fld);
+                }
                 mkt->values[idx] = fld->value->clone();
             }
         }
@@ -807,6 +848,7 @@ namespace das {
             if (!mkt->values[i]) {
                 auto mks = new ExprMakeStruct(at);
                 mks->makeType = new TypeDecl(*makeType->argTypes[i]);
+                if ( !mks->makeType->at.fileInfo ) mks->makeType->at = at;
                 mkt->values[i] = mks;
             }
         }
@@ -1129,7 +1171,7 @@ namespace das {
         if (expr->type->isString()) {
             reportAstChanged();
             auto ecs = new ExprConstString(expr->at);
-            ecs->type = new TypeDecl(Type::tString);
+            ecs->type = new TypeDecl(Type::tString, ecs->at);
             return ecs;
         } else if (expr->type->isEnumT()) {
             auto f0 = expr->type->enumType->find(0, "");
@@ -1244,6 +1286,16 @@ namespace das {
                       init->at, CompilationError::exceeds_tuple_index);
                 return Visitor::visitMakeTupleIndex(expr, index, init, lastField);
             }
+            {
+                bool rangeError = false;
+                if (auto promoted = tryPromoteConstInt(ExpressionPtr(init), expr->recordType->argTypes[index], rangeError)) {
+                    reportAstChanged();
+                    return promoted;
+                }
+                if (rangeError) {
+                    return Visitor::visitMakeTupleIndex(expr, index, init, lastField);
+                }
+            }
             if (!canCopyOrMoveType(expr->recordType->argTypes[index], init->type, TemporaryMatters::no, init,
                                    "can't initialize tuple element " + to_string(index), CompilationError::cant_copy, init->at)) {
             }
@@ -1297,7 +1349,7 @@ namespace das {
                         expr->at, CompilationError::mismatching_tuple_argument_count);
                 return Visitor::visit(expr);
             }
-            auto mkt = new TypeDecl(Type::tTuple);
+            auto mkt = new TypeDecl(Type::tTuple, expr->at);
             for (size_t ai = 0; ai != argCount; ++ai) {
                 const auto &val = expr->values[ai];
                 const auto &argT = expr->recordType->argTypes[ai];
@@ -1308,6 +1360,7 @@ namespace das {
                           expr->at, CompilationError::invalid_tuple_argument_type);
                 }
                 auto valT = new TypeDecl(*argT);
+                valT->at = expr->at;
                 valT->ref = false;
                 valT->constant = false;
                 mkt->argTypes.push_back(valT);
@@ -1317,10 +1370,10 @@ namespace das {
             }
             expr->makeType = mkt;
         } else {
-            auto mkt = new TypeDecl(Type::tTuple);
-            mkt->at = expr->at;
+            auto mkt = new TypeDecl(Type::tTuple, expr->at);
             for (auto &val : expr->values) {
                 auto valT = new TypeDecl(*val->type);
+                valT->at = expr->at;
                 if (valT->isVoid()) {
                     error("tuple element type can't be void", "", "",
                           val->at, CompilationError::invalid_tuple);
@@ -1396,6 +1449,23 @@ namespace das {
             TypeDecl::clone(expr->recordType, mkBaseT);
         }
         expr->initAllFields = true;
+        if (!expr->constValues && expr->recordType && !expr->values.empty()) {
+            bool allConst = true;
+            for (auto & val : expr->values) {
+                if (!val->rtti_isConstant() || !val->type
+                    || !expr->recordType->isSameType(*val->type, RefMatters::no, ConstMatters::no, TemporaryMatters::no, AllowSubstitute::no)) {
+                    allConst = false;
+                    break;
+                }
+            }
+            expr->constValues = allConst;
+        }
+    }
+    bool InferTypes::canVisitMakeArray(ExprMakeArray *expr) {
+        return !expr->constValues;
+    }
+    bool InferTypes::canVisitMakeArrayIndex(ExprMakeArray *, int, Expression *init, bool) {
+        return !(init->rtti_isConstant() && init->type);
     }
     ExpressionPtr InferTypes::visitMakeArrayIndex(ExprMakeArray *expr, int index, Expression *init, bool last) {
         if (expr->makeType && expr->makeType->isExprType()) {
@@ -1430,6 +1500,7 @@ namespace das {
                             return Visitor::visitMakeArrayIndex(expr, index, init, last);
                         }
                         expr->makeType = mkt;
+                        if ( !expr->makeType->at.fileInfo ) expr->makeType->at = expr->at;
                         reportAstChanged();
                         return Visitor::visitMakeArrayIndex(expr, index, init, last);
                     }
@@ -1565,8 +1636,7 @@ namespace das {
         if (expr->gen2 && expr->makeArrayOnHeap) {
             // heap array literal: type directly as array<T> (not the stack fixed array); codegen
             // builds it on the heap, and to_array_move/to_table_move resolve their array<T> overload.
-            resT = new TypeDecl(Type::tArray);
-            resT->at = expr->at;
+            resT = new TypeDecl(Type::tArray, expr->at);
             resT->constant = false;
             resT->removeConstant = true;
             resT->firstType = new TypeDecl(*expr->recordType);

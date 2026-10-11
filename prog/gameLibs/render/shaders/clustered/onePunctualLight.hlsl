@@ -27,7 +27,7 @@
   shadowTerm *= calc_micro_shadow(NoL, ao);
 
   #if OMNI_SHADOWS
-    shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos, shadow_zn_zfar);
+    shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos, shadow_zn_zfar, source_radius);
   #endif
 
   #if !DYNAMIC_LIGHTS_SPECULAR
@@ -67,7 +67,7 @@
   #endif
 
   #if OMNI_SHADOWS
-    attenuation *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos);
+    attenuation *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos, float2(0, 0), source_radius);
   #endif
 
   half3 lightDir = point2light*rcpDistFromLight;

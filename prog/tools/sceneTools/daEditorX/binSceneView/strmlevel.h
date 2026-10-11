@@ -3,7 +3,6 @@
 
 #include <streaming/dag_streamingBase.h>
 #include <render/dag_cur_view.h>
-#include <scene/dag_frtdumpInline.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_asyncRead.h>
 #include <3d/dag_picMgr.h>
@@ -91,7 +90,7 @@ public:
   // The static scene, whichever tag the level carried: nothing outside this class reads the members.
   bool hasStaticScene() const;
   void clearStaticScene();
-  void drawStaticSceneClip(const Point3 &view_pos, float max_dist) const;
+  void drawStaticSceneClip(const Point3 &view_pos, float max_dist, bool wire) const;
   bool tracerayNormalizedStaticScene(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm);
 
   bool tracerayNormalizedHeightmap(const Point3 &p0, const Point3 &dir, float &t, Point3 *norm);
@@ -101,8 +100,7 @@ public:
   LandMeshManager *lmeshMgr;
 
 private:
-  FastRtDump frtDump;                // the static collision of a level exported as an FRT dump (tag FRT) ...
-  Ptr<CollisionResource> staticColl; // ... or as a CollisionResource stream (tag SCol); one of the two per level
+  Ptr<CollisionResource> staticColl; // the level's static collision, from its SCol stream or built from its legacy FRT block
 
 public:
   collisionpreview::Collision lrtCollision;

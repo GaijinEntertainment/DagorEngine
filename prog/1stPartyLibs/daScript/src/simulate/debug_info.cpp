@@ -89,13 +89,6 @@ namespace das
         {   Type::fakeLineInfo,  "__lineInfo"},
     };
 
-    TypeAnnotation * TypeInfo::getAnnotation() const {
-        if ( type != Type::tHandle ) {
-            return nullptr;
-        }
-        return Module::resolveAnnotation(this);
-    }
-
     StructInfo * TypeInfo::getStructType() const {
         if ( type != Type::tStructure ) {
             return nullptr;
@@ -108,11 +101,6 @@ namespace das
         }
         return enumType;
     }
-
-    void TypeInfo::resolveAnnotation() const {
-        if ( daScriptEnvironment::getBound()->modules ) Module::resolveAnnotation(this);
-    }
-
 
     string das_to_string ( Type t ) {
         return g_typeTable.find(t);
@@ -809,6 +797,55 @@ namespace das
 
     LineInfo LineInfo::g_LineInfoNULL;
 
+    // One FileInfo per binding name, keyed by the display name so a deserialized location maps
+    // back to the same singleton. Intentionally never freed - these outlive every Program, and
+    // no FileAccess owns them. The tracker guard keeps these immortals out of the leak report:
+    // without it every process exit in a DAS_TRACK_ALLOC build symbolizes ~3000 of them
+    // (~5s), which starves timing-sensitive child-process tests.
+    // File scope, not function-local statics, so shutdownCppBindingLineInfo can drop the whole
+    // cache and a later Initialize rebuild it. The mutex is an object, not a heap pointer: a host
+    // with its own leak detector counts every outstanding chunk, immortal or not.
+    static das_map<string, LineInfo> * g_cppBindingInfos = nullptr;
+    static mutex g_cppBindingInfosMutex;
+
+    static LineInfo & cppBindingLineInfoNamed ( const string & display ) {
+        AllocTrackerInternalGuard trackerGuard;
+        lock_guard<mutex> guard(g_cppBindingInfosMutex);
+        if ( !g_cppBindingInfos ) g_cppBindingInfos = new das_map<string, LineInfo>();
+        auto it = g_cppBindingInfos->find(display);
+        if ( it != g_cppBindingInfos->end() ) return it->second;
+        auto fi = new FileInfo();
+        fi->name = display;
+        return (*g_cppBindingInfos)[display] = LineInfo(fi, 0, 0, 0, 0);
+    }
+
+    // Called once the last environment is gone, so no TypeDecl or Program can still point here.
+    void shutdownCppBindingLineInfo () {
+        AllocTrackerInternalGuard trackerGuard;
+        lock_guard<mutex> guard(g_cppBindingInfosMutex);
+        if ( !g_cppBindingInfos ) return;
+        for ( auto & it : *g_cppBindingInfos ) delete it.second.fileInfo;
+        delete g_cppBindingInfos;
+        g_cppBindingInfos = nullptr;
+    }
+
+    static string cppBindingDisplayName ( const char * name ) {
+        return (name && *name) ? ("<c++ binding: " + string(name) + ">") : string("<c++ binding>");
+    }
+
+    const LineInfo & cppBindingLineInfo ( const char * name ) {
+        return cppBindingLineInfoNamed(cppBindingDisplayName(name));
+    }
+
+    FileInfo * cppBindingFileInfo ( const char * name ) {
+        return cppBindingLineInfo(name).fileInfo;
+    }
+
+    bool isCppBindingAt ( const LineInfo & at ) {
+        return at.fileInfo && at.fileInfo->name.compare(0, 12, "<c++ binding") == 0;
+    }
+
+
     string LineInfo::describe(bool fully) const {
         if ( fileInfo ) {
             TextWriter ss;
@@ -864,7 +901,7 @@ namespace das
 
     void TextFileInfo::getSourceAndLength ( const char * & src, uint32_t & len ) {
         src = source;
-        len = sourceLength;
+        len = source ? sourceLength : 0;    // a cached record carries sourceLength with no bytes; callers dereference src whenever len > 0
     }
 
     void TextFileInfo::freeSourceData() {

@@ -4,62 +4,53 @@
 #include <generic/dag_span.h>
 #include <EASTL/vector.h>
 #include <fmod.hpp>
-#include <osApiWrappers/dag_critSec.h>
-#include <EASTL/array.h>
-#include <EASTL/queue.h>
 #include "speex_headers.h"
+#include "spscRing.h"
 
 namespace voicechat
 {
 
+// The echo reference: what the master channel group plays, as 10 ms frames at the capture rate.
+// processEchoSource runs on the FMOD mixer thread, the other members on the thread that owns the recorder.
 class VoiceFeedback
 {
 public:
-  VoiceFeedback(unsigned int sample_rate, FMOD_SOUND_FORMAT sample_format, unsigned int frame_samples);
+  // reference older than window_ms cannot line up with the mic capture and is dropped
+  VoiceFeedback(unsigned int sample_rate, unsigned int frame_samples, unsigned int mixer_rate, int window_ms);
   ~VoiceFeedback();
 
   bool init(FMOD::System *fmod_sys, FMOD::ChannelGroup *channel_group);
   void shutdown();
 
-  void processEchoSource(int samplerate_in, const float *inbuffer, unsigned int nsamples, int nchannels);
+  void processEchoSource(const float *inbuffer, unsigned int nsamples, int nchannels);
 
-  dag::ConstSpan<int16_t> lockFrame();
-  void unlockFrame();
+  bool popFrame(dag::Span<int16_t> out);
 
-  unsigned getMaxFramesCount() const { return framesCount; }
-
+  // enable drops the reference left from before; disable logs how much reference was lost
   void enable();
   void disable();
 
 private:
-  struct PCMFrame
-  {
-    dag::Span<int16_t> samples;
-    int age = 0;
-  };
-
-  PCMFrame *nextFrameFromPool();
-
-  int samplerate = 0;
-  bool enabled = false;
+  void dropPending();
+  void restart();
+  void drainRing();
 
   SpeexResamplerState *resampler = nullptr;
   FMOD::DSP *captureDSP = nullptr;
   FMOD::ChannelGroup *channelGroup = nullptr;
 
-  eastl::vector<float> f32PCMBuffer;
-  eastl::vector<int16_t> i16PCMProcess;
-  eastl::vector<int16_t> i16PCMOutput;
+  eastl::vector<float> mixerRateBuf;
+  eastl::vector<float> resampledBuf;
+  eastl::vector<int16_t> pendingPcm;
+  SpscRing<float> ring;
 
-  static constexpr unsigned int framesCount = 10;
-
-  unsigned int frameSize = 0;
-  unsigned int sampleSize = 0;
-
-
-  int idCounter = 0;
-  std::array<PCMFrame, framesCount> framesPool;
-  eastl::queue<PCMFrame *> outFrames;
-  WinCritSec mutex;
+  const int samplerate = 0;
+  const unsigned int frameSize = 0;
+  const int mixerRate = 0;
+  const uint32_t windowSamples = 0;
+  const uint32_t fullSamples = 0;
+  volatile int enabled = 0;
+  volatile uint32_t droppedSamples = 0;
+  uint32_t discardedTotal = 0;
 };
 } // namespace voicechat

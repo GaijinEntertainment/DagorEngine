@@ -764,7 +764,7 @@ void PipelineCache::preRecovery()
 #endif
 }
 
-void PipelineCache::recover(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes)
+void PipelineCache::recover(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes)
 {
 #if _TARGET_PC_WIN
   D3D12_FEATURE_DATA_SHADER_CACHE cacheFlags = {};
@@ -798,7 +798,7 @@ void PipelineCache::recover(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FL
 #endif
 }
 
-bool PipelineCache::onBindumpLoad(ID3D12Device1 *device, eastl::span<const dxil::HashValue> all_shader_hashes)
+bool PipelineCache::onBindumpLoad(D3DDevice *device, eastl::span<const dxil::HashValue> all_shader_hashes)
 {
   logdbg("DX12: onBindumpLoad...");
   auto newHash = dxil::HashValue::calculate(all_shader_hashes.data(), all_shader_hashes.size());
@@ -1684,7 +1684,7 @@ void PipelineCache::preRecoveryBuildInPipelineLibrary()
   }
 }
 
-void PipelineCache::recoverBuildInPipelineLibrary(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS cache_support)
+void PipelineCache::recoverBuildInPipelineLibrary(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS cache_support)
 {
   if (0 == (cache_support & D3D12_SHADER_CACHE_SUPPORT_LIBRARY))
   {

@@ -3,17 +3,10 @@
 
 #include <daFracture/core/destrMesh.h>
 #include <vecmath/dag_vecMath.h>
+#include <util/dag_compilerDefs.h>
 
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#define FORCE_INLINE_LAMBDA
-#define NOINLINE_LAMBDA
-#else
-#define FORCE_INLINE_LAMBDA __attribute__((always_inline))
-#define NOINLINE_LAMBDA     __attribute__((noinline))
-#endif
-
-#define LAMBDA_PROF_BEGIN ([&] () NOINLINE_LAMBDA {
+#define LAMBDA_PROF_BEGIN ([&] () DAGOR_NOINLINE_LAMBDA {
 #define LAMBDA_PROF_END \
   })();
 
@@ -22,11 +15,11 @@
 #define FRX_VERIFY_LOG     FRX_VERIFY_ENABLED
 
 #if FRX_VERIFY_ENABLED
-#define FRX_CHECK_FAILURE(EXPR, ...)           \
-  DAGOR_UNLIKELY(([&]() FORCE_INLINE_LAMBDA {  \
-    bool chk = (EXPR);                         \
-    G_ASSERTF_EX(!chk, #EXPR, "" __VA_ARGS__); \
-    return chk;                                \
+#define FRX_CHECK_FAILURE(EXPR, ...)                \
+  DAGOR_UNLIKELY(([&]() DAGOR_FORCE_INLINE_LAMBDA { \
+    bool chk = (EXPR);                              \
+    G_ASSERTF_EX(!chk, #EXPR, "" __VA_ARGS__);      \
+    return chk;                                     \
   })())
 #else
 #define FRX_CHECK_FAILURE(EXPR, ...) (DAGOR_UNLIKELY(EXPR))

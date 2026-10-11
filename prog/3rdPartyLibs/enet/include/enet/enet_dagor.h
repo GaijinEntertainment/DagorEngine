@@ -22,11 +22,23 @@ int enet_dagor_protocol_handle_send_unconnected (ENetHost * host, ENetProtocol *
 /** Called from enet_protocol_handle_incoming_commands for PING_TARGET_PORT_FOR_RELAY. */
 int enet_dagor_protocol_handle_ping_target_port_for_relay (ENetHost * host, ENetPeer * peer, const ENetProtocol * command);
 
+/** Called from enet_protocol_handle_incoming_commands for RELAY_PONG (updates peer relay RTT only). */
+int enet_dagor_protocol_handle_relay_pong (ENetHost * host, ENetPeer * peer, const ENetProtocol * command);
+
+/** Peerless framed send: header + command (+ optional payload). */
+ENET_API void enet_dagor_manual_send_command (ENetHost * host, const ENetAddress * addr, const ENetProtocol * command,
+                                              const ENetBuffer * ebuf);
+/** SEND_UNCONNECTED wrapper around enet_dagor_manual_send_command. */
 ENET_API void enet_dagor_manual_send_immediately (ENetHost * host, const ENetAddress * addr, const ENetBuffer * ebuf);
 ENET_API void                enet_dagor_peer_ping_target_request (ENetPeer *, enet_uint32 host, enet_uint16 port);
 ENET_API ENetPacket *        enet_dagor_peer_receive_unconnected_messages (ENetPeer *, ENetAddress * addressFrom);
 ENET_API ENetPeer * enet_dagor_host_connect_peer_from_the_end (ENetHost *, const ENetAddress *, size_t, enet_uint32);
 ENET_API int        enet_dagor_host_service_only_incoming_commands (ENetHost *, ENetEvent *);
+
+/** 1 if the datagram carries SENT_TIME; writes the clear header sentTime (body may be encrypted). */
+ENET_API int enet_dagor_datagram_header_sent_time (const enet_uint8 * data, size_t data_length, enet_uint16 * out_sent_time);
+/** 1 if the datagram is a peerless unencrypted RELAY_PONG. */
+ENET_API int enet_dagor_datagram_is_relay_pong (const enet_uint8 * data, size_t data_length);
 
 /** Resolve a host name to an ENetAddress, trying IP-literal first.
     Upstream enet_address_set_host calls gethostbyname unconditionally which on Windows can
@@ -72,6 +84,10 @@ void enet_dagor_print_buffer_hex (ENetDagorHexDebugDumpBuffer * buffer, const ch
           enet_logf("received ENET_PROTOCOL_COMMAND_DAGOR_SEND_UNCONNECTED"); \
           if (enet_dagor_protocol_handle_send_unconnected (host, command, & currentData)) \
             goto commandError; \
+          break; \
+       case ENET_PROTOCOL_COMMAND_DAGOR_RELAY_PONG: \
+          if (enet_dagor_protocol_handle_relay_pong (host, peer, command)) \
+            goto commandError; \
           break;
 #define _DAGOR_ENET_INJECT_UNCONNECTED_PEER_RECEIVE_MESSAGES \
 if (!enet_list_empty (& ENET_DAGOR_UNCONNECTED_PEER (host) -> dispatchedCommands)) \
@@ -97,6 +113,7 @@ if (!enet_list_empty (& ENET_DAGOR_UNCONNECTED_PEER (host) -> dispatchedCommands
    Expands to nothing when _DAGOR_ENET_EXT is off. */
 #define _DAGOR_ENET_EXTRA_PEERLESS_COMMANDS(n) \
     && (n) != ENET_PROTOCOL_COMMAND_DAGOR_SEND_UNCONNECTED \
+    && (n) != ENET_PROTOCOL_COMMAND_DAGOR_RELAY_PONG
 
 /* Extra OR condition in enet_peer_dispatch_incoming_unreliable_commands skip check. */
 #define _DAGOR_ENET_EXTRA_UNSEQUENCED_DISPATCH_SKIP(cmd) \

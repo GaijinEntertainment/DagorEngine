@@ -1,6 +1,5 @@
 {
   "__disabled_checks":[
-    "not-a-const",
     "imported-never-used"
   ]
 }

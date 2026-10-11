@@ -38,7 +38,8 @@ ASTCENC_DECLARE_STATIC_DATA();
 #endif
 
 bool game_res_sys_v2 = false;
-int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1);
+int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1,
+  int stride_bytes = 0);
 static int exportDdsAsDDsX(mkbindump::BinDumpSaveCB &cb, void *data, int size, bool gamma1);
 
 
@@ -454,15 +455,28 @@ static void exportColorAndLightMaps(mkbindump::BinDumpSaveCB &cb, MapStorage<E3D
 }
 #endif
 
-int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1)
+int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1,
+  int stride_bytes)
 {
+  // ddsConvertImage() takes a pitch but reads the rows as tight (dtxConvertImage.cpp), so any padding the
+  // locked texture reports has to be removed here; 0 means the caller already has tight rows
+  const int tightStride = size * sizeof(*image);
+  Tab<TexPixel32> tightImage(tmpmem);
+  if (stride_bytes > 0 && stride_bytes != tightStride)
+  {
+    tightImage.resize(size * size);
+    for (int y = 0; y < size; y++)
+      memcpy(&tightImage[y * size], (const char *)image + y * stride_bytes, tightStride);
+    image = tightImage.data();
+  }
+
   ddstexture::Converter cnv;
   cnv.format = (ddstexture::Converter::Format)format;
   cnv.mipmapType = ddstexture::Converter::mipmapGenerate;
   cnv.mipmapCount = mipmap_count;
 
   DynamicMemGeneralSaveCB memcwr(tmpmem, 0, size * size * (4 * 3 / 2));
-  if (!dagTools->ddsConvertImage(cnv, memcwr, image, size, size, size * sizeof(*image)))
+  if (!dagTools->ddsConvertImage(cnv, memcwr, image, size, size, tightStride))
     throw IGenSave::SaveException("Error converting image to DDS", cb.tell());
 
   return exportDdsAsDDsX(cb, memcwr.data(), memcwr.size(), gamma1);

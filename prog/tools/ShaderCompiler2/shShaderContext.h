@@ -29,6 +29,33 @@ struct TypeTables
   explicit TypeTables(shc::TargetContext &ctx) : allStaticTypes{ctx}, allDynamicTypes{ctx}, referencedTypes{ctx} {}
 };
 
+struct PsOutputStructKey
+{
+  const ShaderTerminal::state_block_struct_decl *decl = nullptr;
+  RenderPassOptIn optIn{};
+
+  bool operator==(const PsOutputStructKey &) const = default;
+};
+
+struct PsOutputStructKeyHash
+{
+  size_t operator()(const PsOutputStructKey &k) const noexcept
+  {
+    size_t h = 0;
+    hash_into(h, uintptr_t(k.decl));
+    hash_into(h, uintptr_t(k.optIn.pass));
+    hash_into(h, k.optIn.subpassIdx);
+    hash_into(h, uintptr_t(k.optIn.group));
+    return h;
+  }
+};
+
+struct PsOutputStructCacheEntry
+{
+  SemanticShaderPass::PsOutput psOutput;
+  eastl::string src1Target;
+};
+
 class ShaderContext
 {
   const char *mName;
@@ -42,6 +69,7 @@ class ShaderContext
   PerHlslStage<String> mLocalHlslSource{};
   PerHlslStage<CodeSourceBlocks> mHlslCodeBlocks{};
   PreshaderCompilationCache mPreshaderCache{};
+  ska::flat_hash_map<PsOutputStructKey, PsOutputStructCacheEntry, PsOutputStructKeyHash> mPsOutputStructCache{};
   ShaderAssumesTable mLocalAssumes;
   ShaderMessages mMessages{};
   bool mDebugModeEnabled = false;
@@ -89,6 +117,8 @@ public:
 
   PreshaderCompilationCache &preshaderCache() { return mPreshaderCache; }
   const PreshaderCompilationCache &preshaderCache() const { return mPreshaderCache; }
+
+  auto &psOutputStructCache() { return mPsOutputStructCache; }
 
   ShaderAssumesTable &assumes() { return mLocalAssumes; }
   const ShaderAssumesTable &assumes() const { return mLocalAssumes; }

@@ -70,8 +70,7 @@ struct NodeVarTraces
 #endif
 
 
-#define MAX_ALLOWED_SUBSCRIBERS_QUEUE_LENGTH 200
-#define MAX_SUBSCRIBERS_PER_TRIGGER          2000
+#define MAX_NESTED_SUBSCRIBER_CALLS_PER_TRIGGER 2000
 
 
 namespace Sqrat
@@ -735,7 +734,7 @@ void ObservablesGraph::onExitTriggerRoot()
   }
 
   if (!triggerNestDepth)
-    curTriggerSubscribersCounter = 0;
+    curTriggerNestedSubscriberCalls = 0;
 }
 
 
@@ -973,24 +972,13 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
     collectScriptSubscribers(nid, subscriberCallsQueue);
   notify_queue.clear();
 
-  if (subscriberCallsQueue.size() > MAX_ALLOWED_SUBSCRIBERS_QUEUE_LENGTH)
-  {
-    dumpSubscribersQueue(subscriberCallsQueue);
-    logerr_graph_error(vm,
-      String(0, "Max subscribers queue length exceeded (current size = %d), see log for details", subscriberCallsQueue.size())
-        .c_str());
-    subscriberCallsQueue.clear();
-    return false;
-  }
-  maxSubscribersQueueLen = ::max<int>(maxSubscribersQueueLen, subscriberCallsQueue.size());
-
   bool isCallingSubscribers = !curSubscriberCalls.empty();
   if (isCallingSubscribers) // leave processing to top level call
     return true;
 
   auto t0 = ref_time_ticks();
   bool ok = true;
-  for (;;)
+  for (bool firstBatch = true;; firstBatch = false)
   {
     if (subscriberCallsQueue.empty())
       break;
@@ -998,12 +986,13 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
     G_ASSERT(curSubscriberCalls.empty());
     curSubscriberCalls.swap(subscriberCallsQueue);
 
-    curTriggerSubscribersCounter += curSubscriberCalls.size();
+    if (!firstBatch)
+      curTriggerNestedSubscriberCalls += curSubscriberCalls.size();
     G_ASSERT(triggerNestDepth > 0);
-    if (triggerNestDepth > 0 && curTriggerSubscribersCounter > MAX_SUBSCRIBERS_PER_TRIGGER)
+    if (triggerNestDepth > 0 && curTriggerNestedSubscriberCalls > MAX_NESTED_SUBSCRIBER_CALLS_PER_TRIGGER)
     {
       logerr_graph_error(vm,
-        String(0, "Subscribers calls count exceeded (%d), see log for details", curTriggerSubscribersCounter).c_str());
+        String(0, "Nested subscriber calls count exceeded (%d), see log for details", curTriggerNestedSubscriberCalls).c_str());
       dumpSubscribersQueue(curSubscriberCalls);
       dumpSubscribersQueue(subscriberCallsQueue);
       curSubscriberCalls.clear();

@@ -7,6 +7,7 @@
 #include <drv/hid/dag_hiDecl.h>
 #include <drv/hid/dag_hiHidClassDrv.h>
 #include <drv/hid/dag_hiJoyData.h>
+#include <drv/hid/dag_hiPointingData.h>
 #include <util/dag_globDef.h>
 
 class DataBlock;
@@ -115,12 +116,26 @@ public:
   // set (or reset) light effect on device
   virtual void resetSensorsOrientation() { /* VOID */ }
   virtual void setLight(bool /*set*/, unsigned char /*r*/, unsigned char /*g*/, unsigned char /*b*/) {}
+  // player indicator LEDs, bit i lights LED i counted from the left (DualSense has 5)
+  virtual void setPlayerLeds(unsigned /*mask*/) {}
+  virtual void setMicLed(JoystickMicLed /*mode*/) {}
+  // adaptive trigger effects (DualSense); see dag_hiJoyTriggerEffect.h
+  virtual void setTriggerEffect(const TriggerEffectParam & /*param*/) {}
+  // latest calibrated gyro and accelerometer sample; false when the device has none
+  virtual bool getMotionState(JoystickMotionState & /*out*/) const { return false; }
+  // false when the device has no touchpad
+  virtual bool getTouchpadState(JoystickTouchpadState & /*out*/) const { return false; }
+  // main thread: touchpad gestures since the last call, oldest first (see dag_hiTouchpadGestures.h); false without a touchpad
+  virtual bool fetchTouchpadGestures(GestureCb /*cb*/) { return false; }
   // returns device connection status
   virtual bool isConnected() = 0;
   virtual bool isRemoteController() const { return false; }
   // not all devices are gamepads, android/ios has sensors
   virtual bool isDeviceGyro() const { return false; }
   virtual bool isXinputCompatible() const { return false; }
+  // a pad with the x360 control order, which the composite also assumes for the "x360" device id: with its layout group
+  // on, the composite overlays the buttons, sticks and triggers of such a pad on the first one and drops its other axes
+  virtual bool isGamepadLayout() const { return false; }
 
   virtual void enableSensorsTiltCorrection(bool /*enable*/) { /* VOID */ }
   virtual void reportGyroSensorsAngDelta(bool /*report_ang_delta*/) { /* VOID */ }

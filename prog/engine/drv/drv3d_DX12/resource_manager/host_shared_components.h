@@ -143,7 +143,7 @@ protected:
       segment.finishExecution(history_index);
     }
 
-    void create(HeapType *heap, ID3D12Device *device, uint32_t size)
+    void create(HeapType *heap, D3DDevice *device, uint32_t size)
     {
       segment = {};
 #if _TARGET_PC_WIN
@@ -425,7 +425,7 @@ protected:
     size_t poolSizeLimit = 512 * 1024 * 1024;
     bool reportedOverBudget = false;
 
-    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, size_t size,
+    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, D3DDevice *device, size_t size,
       size_t alignment, bool fail_over_budget)
     {
       for (auto &buffer : buffers)
@@ -622,7 +622,7 @@ protected:
       return {desc, allocInfo};
     }
 
-    bool tryMoveBuffer(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, Buffer &buffer, AllocationFlags allocation_flags)
+    bool tryMoveBuffer(HeapType *heap, DXGIAdapter *adapter, D3DDevice *device, Buffer &buffer, AllocationFlags allocation_flags)
     {
       auto [desc, allocInfo] = calculate_temp_buffer_desc_alloc_info(buffer.getBufferMemorySize());
 
@@ -677,7 +677,7 @@ protected:
 
     // Takes an iterator, not a reference: this gives the memory back before the replacement
     // exists, so a failure has to remove the buffer from 'buffers'.
-    bool tryMoveBufferToLocation(HeapType *heap, ID3D12Device *device, decltype(buffers)::iterator at, HeapID heap_id,
+    bool tryMoveBufferToLocation(HeapType *heap, D3DDevice *device, decltype(buffers)::iterator at, HeapID heap_id,
       uint32_t free_range_index)
     {
       const auto memory = at->getBufferMemory();
@@ -720,7 +720,7 @@ protected:
       return true;
     }
 
-    bool tryMoveBuffer(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer,
+    bool tryMoveBuffer(HeapType *heap, DXGIAdapter *adapter, D3DDevice *device, ID3D12Resource *buffer,
       AllocationFlags allocation_flags)
     {
       auto ref = eastl::find_if(begin(buffers), end(buffers),
@@ -733,8 +733,7 @@ protected:
       return tryMoveBuffer(heap, adapter, device, *ref, allocation_flags);
     }
 
-    bool tryMoveBufferToLocation(HeapType *heap, ID3D12Device *device, ID3D12Resource *buffer, HeapID heap_id,
-      uint32_t free_range_index)
+    bool tryMoveBufferToLocation(HeapType *heap, D3DDevice *device, ID3D12Resource *buffer, HeapID heap_id, uint32_t free_range_index)
     {
       auto ref = eastl::find_if(begin(buffers), end(buffers),
         [buffer](auto &buf) //
@@ -827,8 +826,7 @@ protected:
     freeTemporaryRanges(*access);
   }
 
-  bool tryMoveTemporaryUploadBuffer(DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer,
-    AllocationFlags allocation_flags)
+  bool tryMoveTemporaryUploadBuffer(DXGIAdapter *adapter, D3DDevice *device, ID3D12Resource *buffer, AllocationFlags allocation_flags)
   {
     return tempBuffer.access()->tryMoveBuffer(this, adapter, device, buffer, allocation_flags);
   }
@@ -881,7 +879,7 @@ protected:
   }
 
 public:
-  HostDeviceSharedMemoryRegionAllocationResult tryAllocateTempUpload(DXGIAdapter *adapter, ID3D12Device *device, size_t size,
+  HostDeviceSharedMemoryRegionAllocationResult tryAllocateTempUpload(DXGIAdapter *adapter, D3DDevice *device, size_t size,
     size_t alignment, bool &should_flush)
   {
     auto tempBufferAccess = tempBuffer.access();
@@ -922,7 +920,7 @@ public:
   HostDeviceSharedMemoryRegionAllocationResult allocateTempUploadForUploadBuffer(DXGIAdapter *adapter, Device &device, size_t size,
     size_t alignment);
 
-  HostDeviceSharedMemoryRegionAllocationResult tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, ID3D12Device *device,
+  HostDeviceSharedMemoryRegionAllocationResult tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, D3DDevice *device,
     size_t size, size_t alignment);
 
   void completeFrameRecording(const CompletedFrameRecordingInfo &info)
@@ -1034,7 +1032,7 @@ protected:
       }
     }
 
-    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, size_t size,
+    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, D3DDevice *device, size_t size,
       size_t alignment)
     {
       for (auto &buffer : buffers)

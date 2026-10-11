@@ -3,8 +3,7 @@
 #include "daScript/misc/platform.h"
 
 // Pure-C++ registry for exposing std::shared_ptr<T>-owned C++ objects to das
-// as value-sized, strongly-typed, reuse-safe handles. See plan:
-// ../../../../plans/jaunty-chasing-crayon.md
+// as value-sized, strongly-typed, reuse-safe handles.
 //
 // No AST dependency. Bindings live in daScript/ast/ast_handle.h.
 

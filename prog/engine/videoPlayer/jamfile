@@ -26,6 +26,8 @@ if $(Platform) in windows xboxOne scarlett ps4 ps5 linux macOS android iOS tvOS 
     AddIncludes += $(Root)/prog/3rdPartyLibs/codecs/dav1d/generated/win32 ;
   } else if $(Platform)-$(PlatformArch) = windows-arm64 {
     AddIncludes += $(Root)/prog/3rdPartyLibs/codecs/dav1d/generated/windows_arm64 ;
+  } else if $(Platform)-$(PlatformArch) = windows-arm64ec {
+    AddIncludes += $(Root)/prog/3rdPartyLibs/codecs/dav1d/generated/windows_arm64ec ;
   }
 
   if $(Platform) = linux {

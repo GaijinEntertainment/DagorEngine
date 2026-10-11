@@ -20,7 +20,7 @@ namespace dafg
 
 void RegistryValidator::validateLifetimes(ValidityInfo &validity) const
 {
-  for (auto [resId, lifetime] : depData.resourceLifetimes.enumerate())
+  for (const auto &[resId, lifetime] : depData.resourceLifetimes.enumerate())
   {
     if (registry.resources[resId].history != History::No && lifetime.consumedBy != NodeNameId::Invalid)
     {
@@ -605,10 +605,84 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
     }
   }
 
+  bool anyCopyRequestConflicts = false;
+  if (const auto *copy = eastl::get_if<CopyRequirements>(&nodeData.executeRequirements))
+  {
+    const auto reportWorkload = [&](const char *workload) {
+      logerr("daFG: The node '%s' requested a copy of '%s' into '%s', but also %s! "
+             "A copy node runs no shaders and no render passes, disabling this node!",
+        registry.knownNames.getName(nodeId), registry.knownNames.getName(copy->source), registry.knownNames.getName(copy->destination),
+        workload);
+      anyCopyRequestConflicts = true;
+    };
+
+    const bool anyVertexSources = eastl::any_of(nodeData.vertexSources.begin(), nodeData.vertexSources.end(),
+      [](const auto &source) { return source.has_value(); });
+
+    if (nodeData.renderingRequirements)
+      reportWorkload("requested a render pass");
+    if (!nodeData.bindings.empty() || !nodeData.refinedBlockBindings.empty())
+      reportWorkload("bound resources to shader variables");
+    if (nodeData.stateRequirements)
+      reportWorkload("requested a render state");
+    if (anyVertexSources || nodeData.indexSource)
+      reportWorkload("bound vertex or index buffers");
+    if (nodeData.usedRefinedBlock)
+      reportWorkload("used a refined block");
+
+    const auto checkCopyUsage = [&](bool history, ResNameId resId, const ResourceRequest &req) {
+      const bool isSource = resId == copy->source && history == copy->sourceIsHistory;
+      const bool isDestination = resId == copy->destination && !history;
+      const Access copyAccess = isDestination ? Access::READ_WRITE : Access::READ_ONLY;
+      const bool usageValid = (isSource || isDestination)
+                                ? req.usage.type == Usage::COPY && req.usage.access == copyAccess && req.usage.stage == Stage::TRANSFER
+                                : req.usage.type == Usage::UNKNOWN && req.usage.stage == Stage::UNKNOWN;
+      if (usageValid)
+        return;
+
+      logerr("daFG: The node '%s' requested a copy of '%s' into '%s', but also requested '%s' with usage '%s' at stage '%s'! "
+             "A copy node only reads its source and writes its destination, disabling this node!",
+        registry.knownNames.getName(nodeId), registry.knownNames.getName(copy->source), registry.knownNames.getName(copy->destination),
+        registry.knownNames.getName(resId), to_string(req.usage.type), to_string(req.usage.stage));
+      anyCopyRequestConflicts = true;
+    };
+    for (const auto &[resId, req] : nodeData.resourceRequests)
+      checkCopyUsage(false, resId, req);
+    for (const auto &[resId, req] : nodeData.historyResourceReadRequests)
+      checkCopyUsage(true, resId, req);
+
+    for (const auto resId : {copy->source, copy->destination})
+      if (const auto *data = createdResourceDataCache[resId];
+          data && (data->type == ResourceType::Buffer || data->type == ResourceType::Blob))
+      {
+        logerr("daFG: The node '%s' requested a copy of '%s' into '%s', but '%s' is not a texture! "
+               "Only textures can be copied, disabling this node!",
+          registry.knownNames.getName(nodeId), registry.knownNames.getName(copy->source),
+          registry.knownNames.getName(copy->destination), registry.knownNames.getName(resId));
+        anyCopyRequestConflicts = true;
+      }
+  }
+  else if (!eastl::holds_alternative<eastl::monostate>(nodeData.executeRequirements))
+  {
+    const auto checkNoCopyUsage = [&](ResNameId resId, const ResourceRequest &req) {
+      if ((req.usage.type & Usage::COPY) == Usage::UNKNOWN)
+        return;
+
+      logerr("daFG: The node '%s' requested a draw or a dispatch, but also requested '%s' as a copy source or destination! "
+             "A draw or dispatch node does not copy, disabling this node!",
+        registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
+      anyCopyRequestConflicts = true;
+    };
+    for (const auto &[resId, req] : nodeData.resourceRequests)
+      checkNoCopyUsage(resId, req);
+    for (const auto &[resId, req] : nodeData.historyResourceReadRequests)
+      checkNoCopyUsage(resId, req);
+  }
+
   return noErronousIntroductions && noErronousConsumptions && !anyUnfilledSlotRequests && !anyBindingTypeMismatches &&
          !anyUsageConflictsAfterNameResolution && !anyFaultyHistoryRequests && !anyFramebufferUsageMismatches &&
          !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches && usagesValid &&
-         !anyInvalidRefinedBlocks;
+         !anyInvalidRefinedBlocks && !anyCopyRequestConflicts;
 }
 
 void RegistryValidator::validateRegistry()
@@ -635,7 +709,7 @@ void RegistryValidator::validateRegistry()
 
   // We have to do an initial pass of marking resources created by
   // broken nodes as invalid.
-  for (auto [nodeId, valid] : nodeValid.enumerate())
+  for (const auto &[nodeId, valid] : nodeValid.enumerate())
     if (!valid)
     {
       for (auto resId : registry.nodes[nodeId].createdResources)
@@ -650,7 +724,7 @@ void RegistryValidator::validateRegistry()
 
   IdIndexedMapping<ResNameId, size_t, framemem_allocator> nodesDependentOnResourceCount(resourceValid.size(), 0);
 
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &nodeData : registry.nodes.values())
   {
     for (const auto &[unresolvedResId, req] : nodeData.resourceRequests)
       if (!req.optional)
@@ -667,7 +741,7 @@ void RegistryValidator::validateRegistry()
   using ResToNodeMapping = IdIndexedMapping<ResNameId, dag::Vector<NodeNameId, framemem_allocator>, framemem_allocator>;
   ResToNodeMapping nodesDependentOnResource(resourceValid.size());
 
-  for (auto [resId, count] : dag::ReverseView{nodesDependentOnResourceCount.enumerate()})
+  for (auto &&[resId, count] : dag::ReverseView{nodesDependentOnResourceCount.enumerate()})
     nodesDependentOnResource[resId].reserve(count);
 
   // We also need a mapping that says us which resources are actually
@@ -677,7 +751,7 @@ void RegistryValidator::validateRegistry()
   using ResToResMapping = IdIndexedMapping<ResNameId, eastl::optional<ResNameId>, framemem_allocator>;
   ResToResMapping resourceRenamingDependencies(resourceValid.size());
 
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
   {
     for (const auto &[unresolvedResId, req] : nodeData.resourceRequests)
       if (!req.optional)

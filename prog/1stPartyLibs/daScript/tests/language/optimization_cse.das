@@ -70,7 +70,7 @@ def target_kill(x : int) : int {
 
 [export]
 def target_branch_avail(x : int; c : bool) : int {
-    var t = 0 // nolint:LINT010 -- dead init, DSE fodder
+    var t = 0 // dead init, DSE fodder
     if (c) { // nolint:LINT009 -- identical arms are the point: pair available on both paths
         t = x * 7
     } else {
@@ -265,7 +265,7 @@ def body_of(t : T?; nm : string) : string {
 }
 
 [test]
-def test_cse_fired(t : T?) {
+def test_cse_fired(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     ast_gc_guard() {
         t |> run("let-seeded reuse") @(t : T?) {
             let b = body_of(t, "target_let_reuse")

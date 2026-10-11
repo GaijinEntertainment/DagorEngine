@@ -443,6 +443,26 @@ void EntityManager::convertArchetypeScheduledChanges()
   trackQueryIndices.clear();
 }
 
+// spikes come up to ~60 frames apart, so shrink only on the peak of a whole period
+static constexpr uint8_t TRACKING_QUEUE_SHRINK_PERIOD = 128;
+
+template <class Queue>
+static void clear_tracking_queue(Queue &queue, uint32_t &peak, uint8_t &frames)
+{
+  peak = max(peak, queue.size());
+  if (++frames < TRACKING_QUEUE_SHRINK_PERIOD)
+  {
+    queue.clear();
+    return;
+  }
+  if (queue.get_capacity(peak) * 2 < queue.bucket_count()) // allow 2x overallocation of the peak
+    queue.clear(peak);
+  else
+    queue.clear();
+  peak = 0;
+  frames = 0;
+}
+
 inline unsigned EntityManager::trackScheduledChanges()
 {
   TIME_PROFILE_DEV(ecs_track_scheduled_changes);
@@ -492,17 +512,7 @@ inline unsigned EntityManager::trackScheduledChanges()
   }
   // cleared only after the eid loop: trackChanged skips eid entries whose pair was already scanned
   archetypeTrackingQueue.clear(archetypeTrackingQueue.size());
-  if (max<size_t>(32, eidTrackingQueue.get_capacity(eidTrackingQueue.size()) * 2) < eidTrackingQueue.bucket_count()) // allow
-                                                                                                                     // overallocation
-                                                                                                                     // of size of 2,
-                                                                                                                     // do not reduce
-                                                                                                                     // to less than
-                                                                                                                     // 128 bytes size
-                                                                                                                     // (two
-                                                                                                                     // cachelines)
-    eidTrackingQueue.clear(eidTrackingQueue.size());
-  else
-    eidTrackingQueue.clear();
+  clear_tracking_queue(eidTrackingQueue, eidTrackingQueuePeak, eidTrackingQueueFrames);
   if (!toProcess.empty())
   {
     TIME_PROFILE_DEV(ecs_process_change_events);

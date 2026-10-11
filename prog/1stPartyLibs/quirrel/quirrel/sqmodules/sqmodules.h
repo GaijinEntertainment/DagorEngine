@@ -72,6 +72,7 @@ public:
   typedef bool (*BeforeImportModuleCallback)(SqModules *sq_modules, const char *module_name);
   typedef void (*SQOnCompileFileCb)(HSQUIRRELVM, const char *);
   typedef void (*ModuleUnloadCallback)(HSQUIRRELVM vm, bool is_closing);
+  typedef void (*ModuleReloadCallback)(SqModules *modules);
 
   struct Module
   {
@@ -100,13 +101,14 @@ public:
 
   bool reloadAll(string &err_msg);
 
-  void resetStaticMemos();
-
   bool addNativeModule(const char *module_name, const Sqrat::Object &exports);
 
   // called before each reload runs the new modules, and from the dtor with is_closing.
   // Kept across reloads, unlike the script handlers of on_module_unload(); dups ignored
   void addModuleUnloadCallback(ModuleUnloadCallback cb);
+  // called by reloadModule() after it required its main, also a failed one, and before the previous modules go,
+  // so a main required here keeps its persist state; kept across reloads; dups ignored
+  void addModuleReloadCallback(ModuleReloadCallback cb);
 
   void registerTypesLib();
   void registerMathLib();
@@ -175,6 +177,7 @@ public:
   {
     bool raiseError;
     bool doStaticAnalysis;
+    bool keepCommentsInAst;
   } compilationOptions;
 
   void *up_data;
@@ -185,7 +188,6 @@ public:
 private:
   vector<Module> modules;
   vector<Module> prevModules; //< for hot reload
-  vector<Sqrat::Object> runningScriptClosuresStack;
 
 #if defined(SQRAT_HAS_EASTL)
   using NativeModulesMap = eastl::vector_map<string, Sqrat::Object>;
@@ -198,6 +200,7 @@ private:
   vector<string> runningScripts;
   vector<Sqrat::Object> onModuleUnload;
   vector<ModuleUnloadCallback> onModuleUnloadNative;
+  vector<ModuleReloadCallback> onModuleReloadNative;
   HSQUIRRELVM sqvm = nullptr;
 
   ISqModulesFileAccess *fileAccess = nullptr;

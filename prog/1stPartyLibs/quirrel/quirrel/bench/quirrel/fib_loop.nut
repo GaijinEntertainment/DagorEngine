@@ -1,20 +1,14 @@
-//-file:plus-string
+from "profile.nut" import benchmark
 
-function fibI(n) {
-    local last = 0;
-    local cur = 1;
-    while(--n) {
-        local tmp = cur;
-        cur += last;
-        last = tmp;
-    }
-    return cur;
+// no result: the sum overflows
+function fibLoop(n) {
+  local last = 0
+  local cur = 1
+  for (local i = 1; i < n; i++) {
+    let next = last + cur
+    last = cur
+    cur = next
+  }
 }
-local profile_it
-try {
-  profile_it = getroottable()["loadfile"]("profile.nut")()
-  if (profile_it == null)
-    throw "no loadfile"
-} catch(e) profile_it = require("profile.nut")
 
-print("\"fibonacci loop\", " + profile_it(30, function() {fibI(6511134)}) + ", 30\n");
+benchmark("fibonacci loop", 20, @() fibLoop(6511134))

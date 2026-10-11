@@ -143,76 +143,76 @@ namespace das
     void Module_BuiltIn::addMiscTypes(ModuleLibrary & lib) {
         // enum
         addFunctionBasic<EnumStub>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // enum8
         addFunctionBasic<EnumStub8>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum8_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // enum16
         addFunctionBasic<EnumStub16>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum16_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // enum64
         addFunctionBasic<EnumStub64>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum64_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // enum8u — unsigned-underlying 8-bit enums dispatch here so byte zero-extends instead of sign-extending
         // (addFunctionBasic registers ==/!= via the SimPolicy<EnumStub8u> defined above; needed so
         //  uint-backed enums still have an equality operator after the isSameType tightening).
         addFunctionBasic<EnumStub8u>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum8u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum8u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum8u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // enum16u
         addFunctionBasic<EnumStub16u>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum16u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum16u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum16u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // enum64u
         addFunctionBasic<EnumStub64u>(*this,lib);
-        addExtern<DAS_BIND_FUN(enum64u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
-        addExtern<DAS_BIND_FUN(enum64u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExternInline<DAS_BIND_FUN(enum64u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // function
         addFunctionBasic<Func>(*this,lib);
         addFunction( (new BuiltInFn<Sim_EqFunPtr, bool,const Func,const void *>("==",lib,"==",false)) );
@@ -247,7 +247,7 @@ namespace das
         // temp-string reclaim wrapper: the compiler inserts this around a [temp_string_result] call
         // whose result dies in the consuming call. NOT setCaptureString - the queue retention is the
         // mechanism itself, and captureString here would poison every caller's capture analysis
-        addExtern<DAS_BIND_FUN(das_temp_string_result)>(*this, lib, "_temp_string_result",
+        addExternInline<DAS_BIND_FUN(das_temp_string_result)>(*this, lib, "_temp_string_result",
             SideEffects::modifyExternal, "das_temp_string_result")->args({"str","context","at"});
     }
 }

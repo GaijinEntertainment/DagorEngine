@@ -31,13 +31,7 @@ def cmr_makeSequence(var base : auto(numT) -&; max : numT) : array<numT> {
 
 def cmr_joinSequences(l : array<auto(numT)>; r : array<numT>) : array<numT> {
     var a : array<numT>
-    reserve(a, length(l) + length(r))
-    for (tf in l) {
-        push(a, tf)
-    }
-    for (tf in r) {
-        push(a, tf)
-    }
+    push_from(a, l, r)
     return <- a
 }
 

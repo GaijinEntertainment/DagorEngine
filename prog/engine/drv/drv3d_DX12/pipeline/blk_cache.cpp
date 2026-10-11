@@ -139,7 +139,8 @@ bool drv3d_dx12::pipeline::RenderStateDeEncoder::decodeDX12(const DataBlock &blk
   target.stencilOnFail = blk.getInt("stencilOnFail", target.stencilOnFail);
   target.stencilOnDepthFail = blk.getInt("stencilOnDepthFail", target.stencilOnDepthFail);
   target.stencilOnPass = blk.getInt("stencilOnPass", target.stencilOnPass);
-  target.colorWriteMask = blk.getInt("colorWriteMask", target.colorWriteMask);
+  target.colorWriteMask =
+    FrameBufferColorChannelMask::make(static_cast<uint32_t>(blk.getInt("colorWriteMask", target.colorWriteMask.raw())));
   target.depthBias = blk.getReal("depthBias", target.depthBias);
   target.depthBiasSloped = blk.getReal("depthBiasSloped", target.depthBiasSloped);
   if (auto blendParamsBlk = blk.getBlockByName("blendParams"))
@@ -276,7 +277,7 @@ bool drv3d_dx12::pipeline::RenderStateDeEncoder::encode(DataBlock &blk, const Re
   blk.setInt("stencilOnFail", source.stencilOnFail);
   blk.setInt("stencilOnDepthFail", source.stencilOnDepthFail);
   blk.setInt("stencilOnPass", source.stencilOnPass);
-  blk.setInt("colorWriteMask", source.colorWriteMask);
+  blk.setInt("colorWriteMask", source.colorWriteMask.raw());
   blk.setReal("depthBias", source.depthBias);
   blk.setReal("depthBiasSloped", source.depthBiasSloped);
 
@@ -328,7 +329,7 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::decodeDX12(const DataBloc
         {
           continue;
         }
-        target.colorTargetMask |= bit;
+        target.colorTargetMask.set(i);
         targetMask ^= bit;
         target.colorFormats[i] = fmt;
         break;
@@ -363,7 +364,7 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::decodeEngine(const DataBl
         {
           continue;
         }
-        target.colorTargetMask |= bit;
+        target.colorTargetMask.set(i);
         targetMask ^= bit;
         target.colorFormats[i] = fmt;
       }
@@ -400,10 +401,10 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::encode(DataBlock &blk, co
   if (source.colorTargetMask)
   {
     // TODO only needed when there are holes in the mask
-    blk.setInt("colorTargetMask", source.colorTargetMask);
+    blk.setInt("colorTargetMask", source.colorTargetMask.raw());
     for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
     {
-      if (0 == (source.colorTargetMask & (1u << i)))
+      if (!source.colorTargetMask.get(i))
       {
         continue;
       }

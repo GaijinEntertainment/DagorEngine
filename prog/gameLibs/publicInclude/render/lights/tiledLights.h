@@ -7,13 +7,13 @@
 #include <3d/dag_resPtr.h>
 #include <3d/dag_resizableTex.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/optional.h>
 #include <math/integer/dag_IPoint2.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_overrideStateId.h>
 #include <vecmath/dag_vecMathDecl.h>
+#include <render/lights/lightsBase.h>
 
-class TiledLights
+class TiledLights final : public IDynLightsPipelineSection
 {
   ResizableTex tilesRT;
   UniqueBufWithShaderVar lightsListBuf;
@@ -55,12 +55,14 @@ class TiledLights
   void fillzBins(uint32_t max_id, uint32_t offset, const Tab<vec4f> &ligth_bounds, const vec4f &cur_view_pos,
     const vec4f &cur_view_dir);
   void createSpotLightIb();
+  void clearZBinningLUT();
 
 public:
   void fillSpotLightIb();
-  TiledLights(float max_lights_dist, eastl::optional<bool> gpu_lights_override = {});
+  TiledLights(float max_lights_dist);
+  void init(DynLightsFeatures requested_features) override;
+  DynLightsFeatures getRuntimeFeatures() const override;
   ~TiledLights();
-  bool isGPUZBinning() const;
   void resizeTilesGrid(uint32_t width, uint32_t height);
   void setResolution(uint32_t width, uint32_t height);
   void changeResolution(uint32_t width, uint32_t height);

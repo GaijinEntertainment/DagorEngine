@@ -48,6 +48,8 @@ struct Texture2dCreateInfo
   eastl::variant<IPoint2, AutoResolutionRequest<2>> resolution;
   /// Use 0 for automatic mip levels
   uint32_t mipLevels = 1;
+  /// Array layers, 1 makes a plain 2D texture
+  uint32_t arrayLayers = 1;
 
   bool operator==(const Texture2dCreateInfo &) const = default;
 };

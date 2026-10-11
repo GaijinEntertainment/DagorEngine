@@ -271,7 +271,7 @@ int DagorWinMain(bool /*debugmode*/)
     int64_t t1 = ref_time_ticks();
     churnT += t1 - t0;
     g_entity_mgr->tick();
-    g_entity_mgr->update(ecs::UpdateStageInfoAct(dt, dt * f));
+    g_entity_mgr->update(ecs::UpdateStageInfoAct(dt, double(dt * f)));
 
     int64_t t2 = ref_time_ticks();
     tickT += t2 - t1;

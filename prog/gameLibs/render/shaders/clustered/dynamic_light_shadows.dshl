@@ -1,0 +1,171 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+include "shader_global.dshl"
+include "hardware_defines.dshl"
+
+buffer scene_omni_managed_lights;
+buffer scene_spot_managed_lights;
+
+buffer visible_lights_data_buf;
+buffer visible_lights_counts_buf;
+
+buffer dynamic_lights_shadows_data_buf;
+buffer dynamic_lights_shadows_transit_buf;
+buffer spot_lights_ssss_shadow_desc;
+
+shader dynamic_lights_shadows_gather
+{
+  (cs) {
+    scene_omni_managed_lights@buf = scene_omni_managed_lights hlsl {
+      #include <lightsManager.hlsli>
+      StructuredBuffer<ManagedLight> scene_omni_managed_lights@buf;
+    };
+    scene_spot_managed_lights@buf = scene_spot_managed_lights hlsl {
+      #include <lightsManager.hlsli>
+      StructuredBuffer<ManagedLight> scene_spot_managed_lights@buf;
+    };
+    visible_lights_data_buf@buf = visible_lights_data_buf hlsl {
+      ByteAddressBuffer visible_lights_data_buf@buf;
+    };
+    visible_lights_counts_buf@buf = visible_lights_counts_buf hlsl {
+      StructuredBuffer<uint> visible_lights_counts_buf@buf;
+    };
+    dynamic_lights_shadows_data_buf@buf = dynamic_lights_shadows_data_buf hlsl {
+      ByteAddressBuffer dynamic_lights_shadows_data_buf@buf;
+    };
+    dynamic_lights_shadows_transit_buf@uav = dynamic_lights_shadows_transit_buf hlsl {
+      RWByteAddressBuffer dynamic_lights_shadows_transit_buf@uav;
+    };
+    spot_lights_ssss_shadow_desc@uav = spot_lights_ssss_shadow_desc hlsl {
+      #include <renderLights.hlsli>
+      RWStructuredBuffer<SpotlightShadowDescriptor> spot_lights_ssss_shadow_desc@uav;
+    };
+  }
+
+  hlsl(cs) {
+    #include <lightsPartition.hlsli>
+    #include <dynamicLightShadows.hlsli>
+
+    uint get_clustered_lights_count(uint count_index, uint max_lights)
+    {
+      uint rawLightsCount = structuredBufferAt(visible_lights_counts_buf, count_index);
+      ##assert(rawLightsCount <= max_lights, "clustered lights count %f exceeds max %f", rawLightsCount, max_lights);
+      return min(rawLightsCount, max_lights);
+    }
+
+    uint get_clustered_light_shadow_id(uint light_index, bool is_spot)
+    {
+      uint idsOffset = is_spot ? CLUSTERED_SPOT_LIGHTS_IDS_OFFSET : CLUSTERED_OMNI_LIGHTS_IDS_OFFSET;
+      uint sceneLightIndex = loadBuffer(visible_lights_data_buf, (idsOffset + light_index) * 4u);
+      uint shadowIdMask = 0u;
+      BRANCH
+      if (is_spot)
+      {
+        shadowIdMask = structuredBufferAt(scene_spot_managed_lights, sceneLightIndex).shadowId_mask;
+      }
+      else
+      {
+        shadowIdMask = structuredBufferAt(scene_omni_managed_lights, sceneLightIndex).shadowId_mask;
+      }
+      return decode_managed_shadow_id(shadowIdMask);
+    }
+
+    float4 load_shadow_slot_const(uint shadow_id, uint const_in_slot)
+    {
+      return asfloat(loadBuffer4(dynamic_lights_shadows_data_buf, (shadow_id * SHADOW_SLOT_POINT4_STRIDE + const_in_slot) * 16u));
+    }
+
+    float4 get_default_spot_light_shadow_const(uint const_in_light)
+    {
+      float4x4 defaultTm = DLS_DEFAULT_SPOT_LIGHT_TM;
+      return const_in_light == SPOT_LIGHT_SHADOW_UV_BOUNDS_POINT4_OFFSET ? DLS_DEFAULT_SPOT_LIGHT_SHADOW_UV_BOUNDS
+                                                                         : defaultTm[const_in_light];
+    }
+
+    ##if spot_lights_ssss_shadow_desc != NULL
+      void gather_spot_light_ssss_descriptor(uint light_index)
+      {
+        uint shadowId = get_clustered_light_shadow_id(light_index, true);
+        float4 desc0 = 0;
+        float4 desc1 = 0;
+        BRANCH
+        if (shadowId != INVALID_SHADOW_VOLUME_ID)
+        {
+          desc0 = load_shadow_slot_const(shadowId, SHADOW_SLOT_SSSS_DESC_POINT4_OFFSET);
+          desc1 = load_shadow_slot_const(shadowId, SHADOW_SLOT_SSSS_DESC_POINT4_OFFSET + 1u);
+        }
+        SpotlightShadowDescriptor desc;
+        desc.decodeDepth = desc0.xy;
+        desc.meterToUvAtZfar = desc0.z;
+        desc.hasDynamic = desc0.w;
+        desc.uvMinMax = desc1;
+        spot_lights_ssss_shadow_desc[light_index] = desc;
+      }
+    ##endif
+
+    [numthreads(64, 1, 1)]
+    void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
+    {
+      uint constIndex = dispatch_thread_id.x;
+      BRANCH
+      if (constIndex >= DYNAMIC_LIGHTS_SHADOWS_GATHER_THREADS_COUNT)
+        return;
+
+      uint spotsCount = get_clustered_lights_count(CLUSTERED_SPOT_LIGHTS_COUNT_INDEX, MAX_CLUSTERED_SPOT_LIGHTS);
+
+      ##if spot_lights_ssss_shadow_desc != NULL
+        BRANCH
+        if (constIndex >= COMMON_LIGHTS_SHADOWS_POINT4_FULL_SIZE)
+        {
+          uint lightIndex = constIndex - COMMON_LIGHTS_SHADOWS_POINT4_FULL_SIZE;
+          BRANCH
+          if (lightIndex < spotsCount)
+            gather_spot_light_ssss_descriptor(lightIndex);
+          return;
+        }
+      ##endif
+
+      uint dstConstIndex = constIndex;
+      float4 value = 0;
+      BRANCH
+      if (constIndex < COMMON_LIGHTS_SHADOWS_POINT4_HEADER_SIZE)
+      {
+        uint omnisCount = get_clustered_lights_count(CLUSTERED_OMNI_LIGHTS_COUNT_INDEX, MAX_CLUSTERED_OMNI_LIGHTS);
+        value = float4(spotsCount, omnisCount, SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE * spotsCount, 0);
+      }
+      else if (constIndex < DYNAMIC_LIGHTS_SHADOWS_GATHER_OMNI_OFFSET)
+      {
+        uint constInSection = constIndex - COMMON_LIGHTS_SHADOWS_POINT4_HEADER_SIZE;
+        uint lightIndex = constInSection / SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE;
+        BRANCH
+        if (lightIndex >= spotsCount)
+          return;
+        uint constInLight = constInSection % SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE;
+        uint shadowId = get_clustered_light_shadow_id(lightIndex, true);
+        BRANCH
+        if (shadowId != INVALID_SHADOW_VOLUME_ID)
+          value = load_shadow_slot_const(shadowId, constInLight);
+        else
+          value = get_default_spot_light_shadow_const(constInLight);
+      }
+      else
+      {
+        uint omnisCount = get_clustered_lights_count(CLUSTERED_OMNI_LIGHTS_COUNT_INDEX, MAX_CLUSTERED_OMNI_LIGHTS);
+        uint lightIndex = constIndex - DYNAMIC_LIGHTS_SHADOWS_GATHER_OMNI_OFFSET;
+        BRANCH
+        if (lightIndex >= omnisCount)
+          return;
+        uint shadowId = get_clustered_light_shadow_id(lightIndex, false);
+        BRANCH
+        if (shadowId != INVALID_SHADOW_VOLUME_ID)
+          value = load_shadow_slot_const(shadowId, 0u);
+        else
+          value = DLS_DEFAULT_OMNI_LIGHT_SHADOW_DATA;
+        dstConstIndex = COMMON_LIGHTS_SHADOWS_POINT4_HEADER_SIZE + spotsCount * SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE + lightIndex;
+      }
+      storeBuffer4(dynamic_lights_shadows_transit_buf, dstConstIndex * 16u, asuint(value));
+    }
+  }
+
+  compile("target_cs", "main");
+}

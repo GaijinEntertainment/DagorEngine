@@ -2,6 +2,7 @@
 
 #include "preshaderCompilation.h"
 #include "variantSemantic.h"
+#include "renderPassObject.h"
 #include "variantAssembly.h"
 #include "shVariantContext.h"
 #include "stcodeBytecode.h"
@@ -207,7 +208,7 @@ static bool compile_stat(const PreshaderStat &stat, PreshaderCompilationContext 
   outCppStcodePass.cppStcode.reportStageUsage(stat.stage);
 
   const auto parsedDefMaybe =
-    semantic::parse_named_const_definition(*stat.stat, stat.stage, semantic::VariableType(stat.vt), vctx, &rm_alloc);
+    semantic::parse_named_const_definition(*stat.stat, stat.stage, semantic::VariableType(stat.vt), vctx, &rm_alloc, stat.subpassRead);
   if (!parsedDefMaybe)
     return false;
 
@@ -270,8 +271,8 @@ static bool compile_stat(const PreshaderStat &stat, PreshaderCompilationContext 
     const String &varName = def.mangledName;
     const HlslRegisterSpace reg_space = def.regSpace;
 
-    const auto hnd =
-      outNcTable.addConst(stage, varName, var, parser.get_lexer(), reg_space, registers_count, hardcoded_reg, def.isDynamic);
+    const auto hnd = outNcTable.addConst(stage, varName, var, parser.get_lexer(), reg_space, registers_count, hardcoded_reg,
+      def.isDynamic, semantic::vt_is_subpass_read(def.type) ? render_pass_read_register(def.subpassRead.readPos) : -1);
     if (is_error(hnd))
     {
       return false;
@@ -378,7 +379,9 @@ static bool process_stat(const PreshaderStat &stat, PreshaderCompilationContext 
   shc::VariantContext &vctx = *ctx.vctx;
   Parser &parser = vctx.tgtCtx().sourceParseState().parser;
 
-  auto &[st, stage, vt] = stat;
+  auto *st = stat.stat;
+  const ShaderStage stage = stat.stage;
+  const VariableType vt = stat.vt;
 
   G_ASSERT(st->var || st->arr || st->reg || st->reg_arr);
 
@@ -499,6 +502,20 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
 
   for (auto *s : input.supportStats)
     process_supports(*s, ctx);
+
+  if (input.subpassReadWindow)
+  {
+    const int base = input.subpassReadWindow.readWindowBase();
+    outNcTable.subpassReadWindow = input.subpassReadWindow;
+    auto &psTAlloc = outNcTable.pixelOrComputeRegAllocators[HLSL_RSPACE_T];
+    if (auto res = psTAlloc.reserve(HlslSlotSemantic::RESERVED_FOR_SUBPASS_READS, base, input.subpassReadWindow.readCount()); !res)
+    {
+      report_reg_reserve_failed("subpass read window", base, input.subpassReadWindow.readCount(), HLSL_RSPACE_T,
+        HlslSlotSemantic::RESERVED_FOR_SUBPASS_READS, res.error(), psTAlloc,
+        outNcTable.makeInfoProvider(&NamedConstBlock::pixelProps, HLSL_RSPACE_T, parser.get_lexer()));
+      return eastl::nullopt;
+    }
+  }
 
   // Push header for static stcode straight away to avoid push-front copies
   // Format:
@@ -687,6 +704,8 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
   // Finally, reservations are completed, and we process automatic preshaders decls for dynamic resources
   // @TODO: use the fact that we know these to be dynamic and don't recalculate
   for (auto &s : input.dynamicResourceStats)
+    CHECK(process_stat(s, ctx));
+  for (auto &s : input.subpassReadStats)
     CHECK(process_stat(s, ctx));
 
   // After assebmling everything, do validations on the code that has been assembled

@@ -8,13 +8,8 @@ from "dagor.time" import get_time_msec
 from "frp" import this_subscriber_call_may_take_up_to_usec, get_slow_subscriber_threshold_usec
 from "iostream" import blob
 from "types" import String
-// Disabled due to bug in zstd streaming decompression
-//from "json" import parse_json_from_zstd_stream, object_to_zstd_json
-// from "json" import parse_json, object_to_json_string
 
 let serialazableClasses = {}.__update(math)
-
-// let {dlog} = require("%sqstd/log.nut")()
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!So that there is no record in nestdb on shutdown!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -31,9 +26,6 @@ function readNewData(name){
     let {key, watched} = registered[name]
     watched.set(ndbRead(key))
   }
-//  else
-//    println($"requested data for unknown subscriber '{name}'")
-// it spamming too much, but without info about VM logs are useless
 }
 
 function globalWatched(name, ctor=null): table {
@@ -65,10 +57,16 @@ function globalWatched(name, ctor=null): table {
 eventbus_subscribe(EVT_NEW_DATA, readNewData)
 
 
+let usedKeysForPersist = {}
 local uniqueKey = null
 function setUniqueNestKey(key) {
+  if (uniqueKey != null) { //constraint: two UI trees share one VM
+    assert(uniqueKey == key, @() $"setUniqueNestKey({key}) after {uniqueKey}")
+    return
+  }
   assert(!ndbExists(key), $"key {key} is not unique")
   assert(key instanceof String, $"setUniqueNestKey failed: {key} is not string")
+  assert(usedKeysForPersist.len() == 0, @() $"setUniqueNestKey({key}) after the storage of {", ".join(usedKeysForPersist.keys())}")
   uniqueKey = key
   ndbWrite(key, true)
 }
@@ -80,8 +78,25 @@ let mkPersistOnHardReloadKey = @(key) uniqueKey==null
 
 eventbus_subscribe("app.shutdown", @(_) isExiting = true)
 
+local isPlainDataCheckOn = false
+function setHardPersistPlainDataCheck(is_on) {
+  isPlainDataCheckOn = is_on
+}
+
+const plainTypes = { ["null"] = true, integer = true, float = true, bool = true, string = true }
+function findNotPlainPath(v, path) {
+  let t = type(v)
+  if (t != "table" && t != "array")
+    return t in plainTypes || v instanceof blob ? null : $"{path} ({t})"
+  foreach (k, item in v) {
+    let res = findNotPlainPath(k, $"{path} key") ?? findNotPlainPath(item, $"{path}.{k}")
+    if (res != null)
+      return res
+  }
+  return null
+}
+
 let persistOnHardReloadData = persist("PERSIST_ON_RELOAD_DATA", @() {})
-let usedKeysForPersist = {}
 let _big_datas = persist("_big_datas", @() {})
 
 const size_threshold_to_store_as_big_data = 100 << 10
@@ -110,18 +125,15 @@ on_module_unload(function(is_closing) {
 
         local data
         if (is_big_data) {
-          // Disabled due to bug in zstd streaming compression
-          /*
-          let t0 = get_time_msec()
-          data = object_to_zstd_json(val)
-          let t1 = get_time_msec()
-          println($"json for {key} zstd-compressed in {t1-t0} ms")
-          */
           data = blob()
           data.writeobject(val, serialazableClasses)
         }
-        else
+        else {
+          let notPlainPath = isPlainDataCheckOn ? findNotPlainPath(val, key) : null
+          if (notPlainPath != null)
+            logerr($"ERROR: on hard reload storage save: {notPlainPath} is not plain data")
           data = val
+        }
 
         ndbWrite(mkPersistOnHardReloadKey(key), {data, is_big_data = !!is_big_data })
       }
@@ -143,13 +155,13 @@ on_module_unload(function(is_closing) {
   }
 })
 
-function hardPersistWatched(key, def=null, big_immutable_data = null) {
+function loadHardPersistValue(key, def, big_immutable_data) {
   assert(key not in usedKeysForPersist, @() $"super persistent {key} already registered")
   if (big_immutable_data != null)
     _big_datas[key] <- big_immutable_data
   let ndbKey = mkPersistOnHardReloadKey(key)
   usedKeysForPersist[key] <- null
-  local val
+  local val = def
   let isInNdb = ndbExists(ndbKey)
   if (key in persistOnHardReloadData) {
     val = persistOnHardReloadData[key]
@@ -162,22 +174,11 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
     try {
       let {is_big_data=null, data=null} = stored
       if (is_big_data) {
-        // Disabled due to bug in zstd streaming decompression
-        /*
-        let t0 = get_time_msec()
-        val = parse_json_from_zstd_stream(data)
-        let t1 = get_time_msec()
-        println($"json for {key} zstd-decompressed in {t1-t0} ms")
-        */
         val = data?.readobject(serialazableClasses)
-
-        //let size0 = get_quirrel_object_size(val).size
         if (big_immutable_data) {
           let t3 = get_time_msec()
           deduplicate_object(val)
           let t4 = get_time_msec()
-          //let size1 = get_quirrel_object_size(val).size
-          //print($">>> Shrinking {key} from {size0} to {size1} bytes, time = {t4-t3} ms")
           print($">>> Shrinking {key}, time = {t4-t3} ms")
         }
       }
@@ -191,11 +192,12 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
     set_huge_alloc_threshold(prevAllocThreshold)
     ndbDelete(ndbKey)
   }
-  else {
-    val = def
-  }
   persistOnHardReloadData[key] <- val
-  let res = Watched(val)
+  return val
+}
+
+function hardPersistWatched(key, def=null, big_immutable_data = null) {
+  let res = Watched(loadHardPersistValue(key, def, big_immutable_data))
   if (!big_immutable_data)
     res.subscribe(@(v) persistOnHardReloadData[key] <- v)
   else
@@ -206,6 +208,10 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
   return res
 }
 
+function hardPersist(key: string, def: table|array|null = null, big_immutable_data = null): table|array {
+  return loadHardPersistValue(key, def ?? {}, big_immutable_data)
+}
+
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!So that there is no record in nestdb on shutdown!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!eventbus event app.shutdown is required!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -213,5 +219,7 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
 return freeze({
   globalWatched
   hardPersistWatched
+  hardPersist
   setUniqueNestKey
+  setHardPersistPlainDataCheck
 })

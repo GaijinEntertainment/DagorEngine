@@ -119,7 +119,7 @@ static void render_services_distortion_es(const UpdateStageInfoRenderDistortion 
 
 ECS_NO_ORDER
 ECS_TAG(render)
-static void render_services_debug_es(const UpdateStageInfoRenderDebug &)
+static void render_services_debug_es(const UpdateStageInfoRenderDebug &stg)
 {
   TIME_D3D_PROFILE(render_services_debug);
   if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
@@ -129,7 +129,7 @@ static void render_services_debug_es(const UpdateStageInfoRenderDebug &)
     return;
   RenderServiceBlock renderBlk;
   IEditorCoreEngine::get()->renderObjects();
-  IEditorCoreEngine::get()->renderTransObjects();
+  IEditorCoreEngine::get()->renderTransObjects(stg.target);
 
   ec_camera_elem::freeCameraElem->render();
   ec_camera_elem::maxCameraElem->render();

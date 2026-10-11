@@ -85,6 +85,11 @@ static uint32_t ri_cellsVB_geom_growth_heap_size_threshold = (8u << 20) * ri_cel
 static uint32_t ri_cellsVB_arithmetic_grow_size = (2u << 20) * ri_cellsVB_elem_size_mul;
 static uint32_t ri_cellsVB_page_size_mask = (1 << 16) - 1;
 static uint32_t ri_cellsVB_max_size = (64 << 20) * ri_cellsVB_elem_size_mul;
+// > 0 = max_size covers riGen settings muls up to this value; a larger mul (the settings
+// ceiling raised by the game or the dev console) scales the cap with the resident cell
+// area (quadratically), up to ri_cellsVB_raised_max_size
+static float ri_cellsVB_max_size_dist_mul = 0.f;
+static uint32_t ri_cellsVB_raised_max_size = ri_cellsVB_max_size;
 
 static struct
 {
@@ -135,21 +140,15 @@ MultidrawContext<rendinst::render::RiGenPerInstanceParameters> riGenMultidrawCon
 
 Vbuffer *oneInstanceTmVb = nullptr;
 Vbuffer *rotationPaletteTmVb = nullptr;
-float globalDistMul = 1;
-float globalCullDistMul = 1;
-float globalLodCullDistMul = 1;
-float settingsDistMul = 1;
-float settingsMinCullDistMul = 0.f;
-float lodsShiftDistMul = 1;
-float additionalRiExtraLodDistMul = 1;
-float riExtraLodsShiftDistMul = 1.f;
-float riExtraMulScale = 1;
-float riExtraLodsShiftDistMulForCulling = 1.f;
+DistMulInputs distMulInputs;
+float riGenLodDistMul = 1;
+float riGenCullDistMul = 1;
+float riExtraLodCompareMul = 1.f;
+float riExtraCullCompareMul = 1.f;
 ShaderBlockIdHolder globalFrameBlockId{"global_frame"};
 ShaderBlockIdHolder rendinstSceneBlockId{"rendinst_scene"};
 ShaderBlockIdHolder rendinstSceneTransBlockId{"rendinst_trans_scene"};
 ShaderBlockIdHolder rendinstDepthSceneBlockId{"rendinst_depth_scene"};
-bool forceImpostors = false;
 bool useCellSbuffer = false;
 
 int instancingTypeVarId = -1;
@@ -551,14 +550,11 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
     if (a##VarId >= 0)                                            \
       rendinst::render::a = ShaderGlobal::get_int_fast(a##VarId); \
   }
-  rendinst::render::settingsDistMul = clamp(::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("rendinstDistMul", 1.f),
-    MIN_SETTINGS_RENDINST_DIST_MUL, MAX_SETTINGS_RENDINST_DIST_MUL);
-  rendinst::render::globalDistMul = rendinst::render::settingsDistMul;
-  rendinst::render::riExtraMulScale = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("riExtraMulScale", 1.0f);
-  float lodsShiftDistMulConfigValue = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f);
-  rendinst::render::lodsShiftDistMul = clamp(lodsShiftDistMulConfigValue, 1.f, 1.3f);
-  if (lodsShiftDistMulConfigValue != rendinst::render::lodsShiftDistMul)
-    logerr("lodsShiftDistMul value (%f) clamped to %f", lodsShiftDistMulConfigValue, rendinst::render::lodsShiftDistMul);
+  // start from the plain settings muls; the client re-applies its dynamic scale per frame
+  rendinst::resetDynamicDistMul();
+  rendinst::updateSettingsDistMul();
+  rendinst::updateRIExtraMulScale();
+  rendinst::setLodsShiftDistMul();
 
   rendinst::render::use_color_padding =
     use_color_padding && ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("riColorPadding", true);
@@ -686,10 +682,14 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   ri_cellsVB_arithmetic_grow_size =
     cellsVBcfg->getInt("arithmetic_grow_size", ri_cellsVB_arithmetic_grow_size / ri_cellsVB_elem_size_mul) * ri_cellsVB_elem_size_mul;
   ri_cellsVB_max_size = cellsVBcfg->getInt("max_size", ri_cellsVB_max_size / ri_cellsVB_elem_size_mul) * ri_cellsVB_elem_size_mul;
+  ri_cellsVB_max_size_dist_mul = cellsVBcfg->getReal("max_size_at_dist_mul", 0.f);
+  ri_cellsVB_raised_max_size =
+    cellsVBcfg->getInt("raised_max_size", ri_cellsVB_max_size / ri_cellsVB_elem_size_mul) * ri_cellsVB_elem_size_mul;
   ri_cellsVB_page_size_mask = cellsVBcfg->getInt("page_size_mask", ri_cellsVB_page_size_mask);
-  debug("rendinst: cellsVB: alloc config - min %u Mb, geomTh %u Mb, arithGrow %u Mb, maxSize %u Mb, pageMask %X",
+  debug("rendinst: cellsVB: alloc config - min %u Mb, geomTh %u Mb, arithGrow %u Mb, maxSize %u Mb (raised %u Mb past dist mul %g), "
+        "pageMask %X",
     ri_cellsVB_min_allocation_size >> 20, ri_cellsVB_geom_growth_heap_size_threshold >> 20, ri_cellsVB_arithmetic_grow_size >> 20,
-    ri_cellsVB_max_size >> 20, ri_cellsVB_page_size_mask);
+    ri_cellsVB_max_size >> 20, ri_cellsVB_raised_max_size >> 20, ri_cellsVB_max_size_dist_mul, ri_cellsVB_page_size_mask);
 }
 
 constexpr float MIN_TREES_FAR_MUL = 0.3177f;
@@ -837,10 +837,10 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
   }
 
 
-  float secondLayerDistMul = min(rendinst::render::globalDistMul, 0.75f);
+  float secondLayerDistMul = min(rendinst::render::riGenLodDistMul, 0.75f);
 
   if (main_layer)
-    rtData->setDistMul(rendinst::render::globalDistMul, rendinst::render::globalCullDistMul);
+    rtData->setDistMul(rendinst::render::riGenLodDistMul, rendinst::render::riGenCullDistMul);
   else
     rtData->setDistMul(secondLayerDistMul, secondLayerDistMul);
 
@@ -889,7 +889,7 @@ void RendInstGenData::applyLodRanges()
     {
       float subCellOfsSize = grid2world * cellSz *
                              ((rendinst::render::per_instance_visibility_for_everyone ? 0.75f : 0.25f) *
-                               (rendinst::render::globalDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
+                               (rendinst::render::riGenLodDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
       rtData->applyImpostorRange(i, ri_ovr, subCellOfsSize);
     }
     int lastLodNo = rtData->riResLodCount(i) - 1;
@@ -1087,15 +1087,22 @@ void RendInstGenData::CellRtData::allocate(int idx)
       nextHeapSize = nextHeapSize +
                      eastl::max(ri_cellsVB_arithmetic_grow_size, (vbSizeRes + ri_cellsVB_page_size_mask) & ~ri_cellsVB_page_size_mask);
 
-    if (nextHeapSize > ri_cellsVB_max_size)
+    uint32_t maxSize = ri_cellsVB_max_size;
+    float distMul = rendinst::render::distMulInputs.riGenSettingsMul;
+    if (ri_cellsVB_max_size_dist_mul > 0.f && distMul > ri_cellsVB_max_size_dist_mul)
     {
-      if (rtData->cellsVb.allocated() + vbSizeRes <= ri_cellsVB_max_size)
-        nextHeapSize = ri_cellsVB_max_size;
+      float k = distMul / ri_cellsVB_max_size_dist_mul;
+      maxSize = (uint32_t)min(float(maxSize) * k * k, (float)ri_cellsVB_raised_max_size);
+    }
+    if (nextHeapSize > maxSize)
+    {
+      if (rtData->cellsVb.allocated() + vbSizeRes <= maxSize)
+        nextHeapSize = maxSize;
       else
       {
 #if DAGOR_DBGLEVEL > 0
-        logerr("allocated too much of instances buffer %d needed, %d max_size", rtData->cellsVb.allocated() + vbSizeRes,
-          ri_cellsVB_max_size);
+        logerr("allocated too much of instances buffer %d needed, %d max_size at riGen dist mul %g",
+          rtData->cellsVb.allocated() + vbSizeRes, maxSize, distMul);
 #endif
       }
     }
@@ -1269,7 +1276,7 @@ void RendInstGenData::renderOptimizationDepthPrepass(const RiGenVisibility &visi
 
   set_up_left_to_shader(view_itm);
   ShaderGlobal::set_float(rendinst::render::lods_shift_dist_mul_varId,
-    rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
+    rendinst::render::distMulInputs.lodsShiftMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
   ShaderGlobal::set_float(rendinst::render::ri_dist_mul_rcp_varId, safediv(1.0f, visibility.riDistMul));
   // horizontal fade matches the cull gate in prepareVisibility: convar and no forced lod
   const bool horFade = tree_horizontal_cull.get() && rendinst::get_effective_forced_lod(visibility.forcedLod) < 0;
@@ -1445,7 +1452,7 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
 
   set_up_left_to_shader(view_itm);
   ShaderGlobal::set_float(rendinst::render::lods_shift_dist_mul_varId,
-    rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
+    rendinst::render::distMulInputs.lodsShiftMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
   ShaderGlobal::set_float(rendinst::render::ri_dist_mul_rcp_varId, safediv(1.0f, visibility.riDistMul));
   // horizontal fade matches the cull gates in prepareVisibility: convar, no forced
   // lod, and not the shadow pass (shadow cull and fade stay 3d)

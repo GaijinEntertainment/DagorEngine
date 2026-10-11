@@ -7,20 +7,15 @@
 class DeDagorPhys : public IDagorPhys
 {
 public:
-  StaticSceneRayTracer *loadBinaryRaytracer(IGenLoad &crd) const override;
-
   bool traceRayStatic(const Point3 &p, const Point3 &dir, real &maxt) const override;
   bool traceRayStatic(const Point3 &p, const Point3 &dir, real &maxt, Point3 &norm) const override;
   bool rayHitStatic(const Point3 &p, const Point3 &dir, real maxt) const override;
 
   real clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt) const override;
-  real clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt, Point3 &norm) const override;
-
-  FastRtDump *getFastRtDump() const override;
-
-  void initCollisionBinary(StaticSceneRayTracer *rt) const override;
 
   void closeCollision() const override;
 
   BBox3 getBoundingBox() const override;
+
+  void visitClipTriangles(const BBox3 &box, const ClipTriVisitor &visitor) const override;
 };

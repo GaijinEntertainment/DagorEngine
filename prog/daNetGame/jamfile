@@ -9,6 +9,7 @@ TargetCodeName = daNetGame.framework ; # code name is used to form TmpDir (base 
 if $(Dedicated) = yes { Target = daNetGame-server.lib ; } else { Target = daNetGame-client.lib ; }
 
 include $(Root)/$(Location)/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
+StrictCompileFrameLimit = 262144 ;
 
 if $(Config) in dbg dev {
   UsePCH ?= yes ;
@@ -211,6 +212,9 @@ if $(KernelLinkage) != dynamic {
 }
 include $(Root)/prog/gameLibs/render/animatedSplashScreen/_lib.jam ;
 include $(Root)/prog/gameLibs/render/cameraInCamera/_lib.jam ;
+include $(Root)/prog/gameLibs/cameraManager/_lib.jam ;
+include $(Root)/prog/gameLibs/render/ambientOcclusion/_lib.jam ;
+include $(Root)/prog/gameLibs/render/debugMultiTextLabels/_lib.jam ;
 UseProgLibs +=
   engine/startup
   engine/coreUtil
@@ -223,7 +227,6 @@ UseProgLibs +=
   engine/guiBase
   engine/scene
   engine/phys/physCommon
-  engine/sceneRay
   engine/animChar
   engine/anim
   engine/phys/fastPhys
@@ -674,6 +677,7 @@ if $(UseSystemLibcurl) = yes && $(Platform) in linux { AddLibs += -lcurl ; }
 AddIncludes +=
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine
+  $(Root)/prog/gameLibs
 ;
 
 if $(IsHeadless) = yes {
@@ -912,11 +916,15 @@ if $(Dedicated) = yes {
         engine/drv/hid_joystick
         engine/drv/hid_gamepad_xinput
         engine/drv/hid_dinput
+        engine/drv/hid_dspad_pc
       ;
     } else if $(Platform) = macOS {
       UseProgLibs += engine/drv/hid_joystick_osx ;
     } else if $(Platform) = linux {
-      UseProgLibs += engine/drv/hid_joystick_linux ;
+      UseProgLibs +=
+        engine/drv/hid_joystick_linux
+        engine/drv/hid_dspad_pc
+      ;
     } else if $(Platform) in ps4 ps5 {
       UseProgLibs += engine/drv/hid_sony ;
     } else if $(Platform) in xboxOne scarlett {
@@ -1096,5 +1104,7 @@ include $(Root)/$(Location)/gaijin.jam ;
 if $(UseSyncDebugLib) = no { CPPopt += -DDISABLE_SYNC_DEBUG ; }
 
 if $(BuildingTools) = yes { CPPopt += -D_TARGET_PC_TOOLS_BUILD ; }
+
+if $(ThreadSafeNetTime) = yes { opt on net/time.cpp += -DTHREAD_SAFE_NET_TIME %DISABLE_PCH% ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

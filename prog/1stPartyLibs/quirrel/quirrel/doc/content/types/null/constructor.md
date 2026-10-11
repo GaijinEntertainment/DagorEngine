@@ -24,9 +24,8 @@ converts it implicitly, since that path does not go through a method lookup;
 see [`types.Bool.tostring`](sym:types.Bool.tostring) for the same contrast
 on a type that does have the method.
 
-`constructor` is a reserved word, but the parser special-cases it after a
-dot, so `null.constructor()` parses like an ordinary method call even though
-`null` has no other reachable methods.
+`null.constructor()` parses like an ordinary method call, even though `null`
+has no other reachable methods.
 
 ## Example
 

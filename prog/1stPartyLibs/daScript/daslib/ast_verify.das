@@ -6,17 +6,40 @@ module ast_verify shared private
 
 //! AST invariant verifier.
 //!
-//! Reports a clean ``macro_error`` when an AST violates a structural invariant the
-//! compiler relies on, instead of letting it segfault several passes later::
+//! Reports a clean sticky compile error when an AST violates a structural invariant the
+//! compiler relies on, instead of letting it segfault several passes later - the node is
+//! repaired in place so every finding prints, and the compile fails::
 //!
 //!     daslang --ast-verify foo.das
 //!
 //! or ``require daslib/ast_verify``, or call [[verify_module]] /
 //! [[verify_expression]] from your own macro right after building AST.
+//!
+//! Two modes. Plain ``--ast-verify`` (or the source ``require``) is the debugging tool: it
+//! re-checks before EVERY inference pass, so a break is caught - and repaired in place - on the
+//! pass right after it happens, and each post-infer firing sweeps every module.
+//! ``--ast-verify-batch`` is the CI gate: no pre-infer checks (a tree a macro breaks
+//! mid-inference crashes the compiler instead of being repaired - the gates count that as red),
+//! and the module being compiled is walked once, on the firing right before the finished tree's
+//! first consumer - the ~10 post-infer firings per module all walk one tree, and paying for one of
+//! them is what makes the gate cheap enough for many files. Under the CLI force-include every
+//! non-builtin module compiles after the verifier registered, so each is still checked once as
+//! the module being compiled (the verifier's own requires are promoted builtin - neither mode
+//! walks those); a module read from a module cache, or required before a source
+//! ``require daslib/ast_verify``, is not.
 
 require daslib/ast
 require daslib/ast_boost
 require strings
+
+def private batch_mode() : bool {
+    let args <- get_command_line_arguments()
+    for (arg in args) {
+        return false if (arg == "--")
+        return true if (arg == "--ast-verify-batch")
+    }
+    return false
+}
 
 def private placeholder(at : LineInfo) : ExpressionPtr {
     return new ExprConstInt(at = at, value = 0)
@@ -76,46 +99,123 @@ def private compact_nulls(var list : auto(LT)) : int {
     return removed
 }
 
-// the grammar admits only these in a unary slot (ds2_parser.ypp), so any other name
-// leaves ExprOp1.func null, which SimulateVisitor::visit(ExprOp1*) dereferences
 let private UNARY_OPS <- { "-", "+", "~", "!", "++", "--", "+++", "---" }
 
-// inc / dec need an l-value, so on a literal they can never resolve; infer reports that
-// from source, but a macro-built one reaches the string-builder fold with func still null
 let private LVALUE_OPS <- { "++", "--", "+++", "---" }
+
+def private is_cpp_binding_at(at : LineInfo) : bool {
+    return at.fileInfo != null && starts_with(string(at.fileInfo.name), "<c++ binding")
+}
 
 def private is_enum_type(bt : Type) : bool {
     return (bt == Type.tEnumeration || bt == Type.tEnumeration8
         || bt == Type.tEnumeration16 || bt == Type.tEnumeration64)
 }
 
+let private DIM_CONST = -2
+
+typedef private DupReport = block<(msg : string; at : LineInfo) : void>
+
+def private note_node_is_new(var seen : table<void?>; node : void?; what : string; at : LineInfo;
+                             report : DupReport) : bool {
+    if (!key_exists(seen, node)) {
+        seen |> insert(node)
+        return true
+    }
+    invoke(report, "{what} is aliased - reachable from two parents (missing clone)", at)
+    return false
+}
+
+def private note_type_tree(var seen : table<void?>; var typ : TypeDeclPtr; what : string;
+                           report : DupReport) : void {
+    if (typ == null
+            || !note_node_is_new(seen, typ, "TypeDecl {describe(typ)} ({what})", typ.at, report)) {
+        return
+    }
+    note_type_tree(seen, typ.firstType, "{what}.firstType", report)
+    note_type_tree(seen, typ.secondType, "{what}.secondType", report)
+    for (i in range(length(typ.argTypes))) {
+        note_type_tree(seen, typ.argTypes[i], "{what}.argTypes[{i}]", report)
+    }
+    note_type_payload(seen, typ, what, report)
+}
+
+def private note_type_payload(var seen : table<void?>; var typ : TypeDeclPtr; what : string;
+                              report : DupReport) : void {
+    if (typ.baseType != Type.typeDecl && typ.baseType != Type.typeMacro) {
+        for (i in range(length(typ.typeMacroExpr))) {
+            note_expr_node(seen, typ.typeMacroExpr[i], "{what}.typeMacroExpr[{i}]", report)
+        }
+    }
+    if (typ.baseType == Type.tFixedArray && typ.fixedDim != DIM_CONST) {
+        note_expr_node(seen, typ.fixedDimExpr, "{what}.fixedDimExpr", report)
+    }
+}
+
+def private note_expr_node(var seen : table<void?>; var expr : ExpressionPtr; what : string;
+                           report : DupReport) : void {
+    if (expr == null
+            || !note_node_is_new(seen, expr, "{expr.__rtti} ({what})", expr.at, report)) {
+        return
+    }
+    note_type_tree(seen, expr._type, "{what}.type", report)
+}
+
 
 
 
 class private AstVerifyVisitor : AstVisitor {
+    prog : ProgramPtr
     error_count : int = 0
     @do_not_delete current_fn : Function?
     @do_not_delete fn_stack : array<Function?>
-    seen_nodes : table<uint64; bool>
-    check_unique : bool = false
-    // A node reachable from itself makes every walk — inference, codegen, ours —
-    // recurse until the stack dies, so the cycle is cut, not only reported.
-    path : table<uint64; bool>
-    tpath : table<uint64; bool>
-    // `return` inside a closure block returns from the BLOCK, not the function, so
-    // its null subexpr says nothing about the function's result type
+    seen : table<void?>
+    aliased_types : table<void?>
+    check_unique : bool = true
+    @do_not_delete adapter : VisitorAdapter?
+    ancestors : table<void?>
+    type_ancestors : table<void?>
     closure_depth : int = 0
 
-    // Compiler-generated functions are filled in ACROSS passes, so mid-pass they
-    // legitimately look half-built — checking them gave 19 false positives.
     def override canVisitFunction(fun : Function?) : bool {
         return !fun.flags.generated
     }
 
     def report(at : LineInfo; msg : string) : void {
         error_count++
-        to_log(LOG_ERROR, "AST verify: {msg} at {describe(at)}\n")
-        compiling_program() |> macro_error(at, "AST verify: {msg}")
+        let loc = describe(at)
+        to_log(LOG_ERROR, empty(loc) ? "AST verify: {msg}\n" : "AST verify: {msg} at {loc}\n")
+        prog |> macro_sticky_error(at, "AST verify: {msg}")
+    }
+
+    def track_node(node : void?; what : string; at : LineInfo) : bool {
+        return note_node_is_new(seen, node, what, at) $(msg, msg_at) {
+            report(msg_at, msg)
+        }
+    }
+
+    def track_type_tree(var typ : TypeDeclPtr; what : string) : void {
+        if (!check_unique) {
+            return
+        }
+        note_type_tree(seen, typ, what) $(msg, msg_at) {
+            report(msg_at, msg)
+        }
+    }
+
+    def track_type_payload(var typ : TypeDeclPtr; what : string) : void {
+        if (!check_unique) {
+            return
+        }
+        note_type_payload(seen, typ, what) $(msg, msg_at) {
+            report(msg_at, msg)
+        }
+    }
+
+    def walk(var expr : ExpressionPtr) : void {
+        if (expr != null && adapter != null) {
+            visit(expr, adapter)
+        }
     }
 
     def verify_elements(var list : dasvector`ptr`Expression; at : LineInfo; what : string) : void {
@@ -141,7 +241,7 @@ class private AstVerifyVisitor : AstVisitor {
     }
 
     def cut_type_cycle(var slot : TypeDeclPtr&; what : string; at : LineInfo) : void {
-        if (slot == null || !key_exists(tpath, intptr(slot))) {
+        if (slot == null || !key_exists(type_ancestors, slot)) {
             return
         }
         report(at, "{what} points at its own ancestor - a cycle")
@@ -173,7 +273,6 @@ class private AstVerifyVisitor : AstVisitor {
             report(at, "{what}: {typ.baseType} with a null enumType")
             typ.baseType = Type.tInt
         } elif (is_enum_type(typ.baseType) && typ.enumType._module == null) {
-            // infer looks the enumerator up through its module
             report(at, "{what}: enumeration '{typ.enumType.name}' belongs to no module")
             typ.baseType = Type.tInt
             typ.enumType = null
@@ -181,7 +280,6 @@ class private AstVerifyVisitor : AstVisitor {
             report(at, "{what}: tHandle with a null annotation")
             typ.baseType = Type.tInt
         } elif (typ.baseType == Type.tDistinct && (typ.annotation == null || typ.firstType == null)) {
-            // a distinct type IS its DistinctTypeAnnotation, dereferenced unguarded
             report(at, "{what}: tDistinct without a DistinctTypeAnnotation or underlying type")
             typ.baseType = Type.tInt
         }
@@ -210,38 +308,27 @@ class private AstVerifyVisitor : AstVisitor {
         if (expr == null) {
             return
         }
-        // folding sets this flag only alongside a type, and acts on the flag alone
         if (expr.flags.constexpression && expr._type == null) {
             report(expr.at, "{expr.__rtti} is marked constexpression but has no type")
             expr.flags.constexpression = false
         }
-        let key = intptr(expr)
-        path |> insert(key, true)
-        if (!check_unique) {
+        let revisit = key_exists(ancestors, expr)
+        ancestors |> insert(expr)
+        if (!check_unique || revisit || !track_node(expr, "node {expr.__rtti}", expr.at)) {
             return
         }
-        if (key_exists(seen_nodes, key)) {
-            report(expr.at, "node {expr.__rtti} is aliased - reachable from two parents (missing clone_expression)")
-            return
-        }
-        seen_nodes |> insert(key, true)
-    }
-
-    def leave(var expr : ExpressionPtr) : ExpressionPtr {
-        path |> erase(intptr(expr))
-        return expr
+        track_type_tree(expr._type, "{expr.__rtti}.type")
     }
 
     def override visitExpression(var expr : ExpressionPtr) : ExpressionPtr {
-        return leave(expr)
+        ancestors |> erase(expr)
+        return expr
     }
 
     def is_ancestor(slot : ExpressionPtr) : bool {
-        return slot != null && key_exists(path, intptr(slot))
+        return slot != null && key_exists(ancestors, slot)
     }
 
-    // Variable / MakeStruct entries are dereferenced by the visitor itself before any
-    // per-entry hook runs, so a null one has to be dropped in preVisit, not reported.
     def dropped(n : int; what : string; at : LineInfo) : void {
         if (n > 0) {
             report(at, "{what} holds {n} null entry(s), which the visitor dereferences")
@@ -262,8 +349,6 @@ class private AstVerifyVisitor : AstVisitor {
         }
     }
 
-    // Reporting alone is not enough: the visitor descends into the slot right after
-    // preVisit, so a null has to be replaced or the verify pass segfaults itself.
     def need_type(var slot : TypeDeclPtr&; msg : string; at : LineInfo;
                   bt : Type = Type.tInt) : void {
         if (slot != null) {
@@ -273,9 +358,6 @@ class private AstVerifyVisitor : AstVisitor {
         slot = new TypeDecl(at = at, baseType = bt)
     }
 
-    // Reporting alone is not enough: the visitor descends into the slot right after
-    // preVisit, so a null has to be replaced or the verify pass segfaults itself.
-    // `stand_in` clones a sibling instead, when one operand can stand for the other.
     def need(var slot : ExpressionPtr&; what : string; at : LineInfo;
              mk : function<(at : LineInfo) : ExpressionPtr> = @@placeholder;
              detail : string = ""; stand_in : ExpressionPtr = null) : void {
@@ -296,20 +378,29 @@ class private AstVerifyVisitor : AstVisitor {
 
     def override preVisitTypeDecl(var typ : TypeDeclPtr) : void {
         if (typ != null) {
-            tpath |> insert(intptr(typ), true)
+            type_ancestors |> insert(typ)
+            if (check_unique) {
+                if (!track_node(typ, "TypeDecl {describe(typ)}", typ.at)) {
+                    aliased_types |> insert(typ)
+                }
+                track_type_payload(typ, "TypeDecl")
+            }
         }
         verify_type(typ, "TypeDecl", typ != null ? typ.at : LineInfo())
     }
 
     def override visitTypeDecl(var typ : TypeDeclPtr) : TypeDeclPtr {
-        if (typ != null) {
-            tpath |> erase(intptr(typ))
+        if (typ == null) {
+            return typ
+        }
+        type_ancestors |> erase(typ)
+        if (key_exists(aliased_types, typ)) {
+            aliased_types |> erase(typ)
+            return clone_type(typ)
         }
         return typ
     }
 
-    // The visitor dispatches on the CONCRETE kind, so preVisitExprAt never fires for
-    // an ExprSafeAt — every derived kind needs its own override, delegating here.
     def check_at(var subexpr : ExpressionPtr&; var index : ExpressionPtr&; kind : string;
                  at : LineInfo) : void {
         need(subexpr, "{kind}.subexpr", at)
@@ -419,15 +510,19 @@ class private AstVerifyVisitor : AstVisitor {
     }
 
     def override preVisitExprFor(var expr : ExprFor?) : void {
-        // ExprFor.body is deliberately NOT null-checked: it is transiently null.
         verify_elements(expr.sources, expr.at, "ExprFor.sources")
         verify_value_elements(expr.sources, expr.at, "ExprFor.sources")
+        for (i in range(length(expr.iteratorsTags))) {
+            walk(expr.iteratorsTags[i])
+        }
     }
 
-    // finalList only: a null in `list` compiles clean, so it is not a crash shape
+    def override canVisitQuoteSubexpression(_expr : ExprQuote?) : bool {
+        return true
+    }
+
     def override preVisitExprBlock(var expr : ExprBlock?) : void {
         dropped(compact_nulls(expr.arguments), "ExprBlock.arguments", expr.at)
-        // ExprBlock::visit walks `arguments` only when isClosure; inference does not
         if (!expr.blockFlags.isClosure && !empty(expr.arguments)) {
             report(expr.at, "ExprBlock has arguments but is not marked isClosure")
             expr.blockFlags.isClosure = true
@@ -437,13 +532,16 @@ class private AstVerifyVisitor : AstVisitor {
         }
         verify_elements(expr.finalList, expr.at, "ExprBlock.finalList")
         cut_list_cycles(expr.list, expr.at, "ExprBlock.list")
+        if (!expr.blockFlags.isClosure) {
+            track_type_tree(expr.returnType, "ExprBlock.returnType")
+        }
     }
 
     def override visitExprBlock(var expr : ExprBlock?) : ExpressionPtr {
         if (expr.blockFlags.isClosure && closure_depth > 0) {
             closure_depth--
         }
-        return leave(expr)
+        return expr
     }
 
     def override preVisitExprOp3(var expr : ExprOp3?) : void {
@@ -460,7 +558,6 @@ class private AstVerifyVisitor : AstVisitor {
         need(expr.cond, "ExprIfThenElse.cond", expr.at, @@placeholder_bool)
         value_slot(expr.cond, "ExprIfThenElse.cond", expr.at)
         need(expr.if_true, "ExprIfThenElse.if_true", expr.at, @@placeholder_block)
-        // if_false is legitimately null — an `if` without `else`.
     }
 
     def override preVisitExprTryCatch(var expr : ExprTryCatch?) : void {
@@ -469,7 +566,6 @@ class private AstVerifyVisitor : AstVisitor {
     }
 
     def override preVisitExprWith(var expr : ExprWith?) : void {
-        // `with (module x)` has no subject: ast_expressions.h documents with==nullptr
         let module_with = !empty(expr.moduleName)
         if (!module_with) {
             need(expr._with, "ExprWith.with", expr.at)
@@ -525,11 +621,24 @@ class private AstVerifyVisitor : AstVisitor {
     def override preVisitExprAscend(var expr : ExprAscend?) : void {
         need(expr.subexpr, "ExprAscend.subexpr", expr.at)
         verify_type(expr.ascType, "ExprAscend.ascType", expr.at)
+        track_type_tree(expr.ascType, "ExprAscend.ascType")
     }
 
     def override preVisitExprMakeTuple(var expr : ExprMakeTuple?) : void {
         verify_type(expr.recordType, "ExprMakeTuple.recordType", expr.at)
         verify_type(expr.makeType, "ExprMakeTuple.makeType", expr.at)
+        track_type_tree(expr.recordType, "ExprMakeTuple.recordType")
+    }
+
+    def override preVisitExprConstBitfield(var expr : ExprConstBitfield?) : void {
+        track_type_tree(expr.bitfieldType, "ExprConstBitfield.bitfieldType")
+    }
+
+    def override preVisitExprAssume(var expr : ExprAssume?) : void {
+        if (expr.assumeType != null && check_unique) {
+            let _dup = track_node(expr.assumeType, "TypeDecl {describe(expr.assumeType)} (ExprAssume.assumeType)",
+                expr.assumeType.at)
+        }
     }
 
     def override preVisitExprMakeBlock(var expr : ExprMakeBlock?) : void {
@@ -537,10 +646,8 @@ class private AstVerifyVisitor : AstVisitor {
         if (!expr.mmFlags.isLambda) {
             return
         }
-        // kind_slot just guaranteed the rtti, so the cast is sound
         var blk = unsafe(reinterpret<ExprBlock?>(expr._block))
         if (!blk.blockFlags.isLambdaBlock) {
-            // generateLambdaFunction copies *block->type unguarded
             report(expr.at, "ExprMakeBlock is isLambda but its block is not isLambdaBlock")
             expr.mmFlags.isLambda = false
         }
@@ -612,11 +719,10 @@ class private AstVerifyVisitor : AstVisitor {
     }
 
     def payload_slot(var expr : ExpressionPtr; present : bool; what : string) : ExpressionPtr {
-        path |> erase(intptr(expr))
+        ancestors |> erase(expr)
         if (present) {
             return expr
         }
-        // infer dereferences the payload unguarded, and there is nothing to put back
         report(expr.at, "{expr.__rtti} has a null {what}")
         return placeholder(expr.at)
     }
@@ -635,7 +741,6 @@ class private AstVerifyVisitor : AstVisitor {
 
     def override visitExprVar(var expr : ExprVar?) : ExpressionPtr {
         let v = expr.variable
-        // `var x aka X` gives the variable a legitimate second name
         var internal = false
         peek(expr.name) $(nm) {
             internal = find(nm, "`") >= 0
@@ -646,7 +751,7 @@ class private AstVerifyVisitor : AstVisitor {
             report(expr.at, "ExprVar.name '{expr.name}' disagrees with its resolved variable '{v.name}'")
             expr.name := v.name
         }
-        return leave(expr)
+        return expr
     }
 
     def override preVisitFunction(var fun : FunctionPtr) : void {
@@ -678,7 +783,6 @@ class private AstVerifyVisitor : AstVisitor {
         if (expr.subexpr != null || current_fn == null || closure_depth > 0) {
             return
         }
-        // compiler-internal functions carry a backtick in their mangled name
         var internal = false
         peek(current_fn.name) $(nm) {
             internal = find(nm, "`") >= 0
@@ -686,7 +790,6 @@ class private AstVerifyVisitor : AstVisitor {
         if (internal) {
             return
         }
-        // an auto/alias result is still being inferred, so it says nothing yet
         if (current_fn.result != null && !current_fn.result.isAutoOrAlias
                 && current_fn.result.baseType != Type.tVoid) {
             need(expr.subexpr, "ExprReturn.subexpr", expr.at,
@@ -697,16 +800,17 @@ class private AstVerifyVisitor : AstVisitor {
     def override preVisitExprCall(var expr : ExprCall?) : void {
         verify_elements(expr.arguments, expr.at, "ExprCall.arguments")
         verify_value_elements(expr.arguments, expr.at, "ExprCall.arguments")
-        // no arity check: the sort intrinsic renames calls in place, leaving `func`
     }
 }
 
 def public verify_module(prog : ProgramPtr; mod : Module?) : int {
-    //! Verifies one module in place, emitting a ``macro_error`` per violation and
+    //! Verifies one module in place, emitting a sticky compile error per violation and
     //! returning the count. Call it from a macro's ``apply()`` right after building
-    //! AST — see utils/ast-fuzz/README.md for when each entry point applies.
-    var v = new AstVerifyVisitor(check_unique = prog._options |> find_arg("_ast_verify_unique") ?as tBool ?? false)
+    //! AST — the repo's ast-fuzz suite README covers when each entry point applies.
+    var v = new AstVerifyVisitor(check_unique = prog._options |> find_arg("_ast_verify_unique") ?as tBool ?? true)
+    v.prog := prog
     make_visitor(*v) $(adapter) {
+        v.adapter = adapter
         visit_module(prog, adapter, mod)
     }
     let n = v.error_count
@@ -716,25 +820,12 @@ def public verify_module(prog : ProgramPtr; mod : Module?) : int {
     return n
 }
 
-[pre_infer_macro]
-class AstVerifyMacro : AstPassMacro {
-    //! Runs the AST verifier over each non-builtin module. Active whenever this
-    //! module is loaded — via ``--ast-verify`` (force-include) or a source
-    //! ``require daslib/ast_verify``.
-    def override apply(prog : ProgramPtr; mod : Module?) : bool {
-        if (mod == null || mod.moduleFlags.builtIn) {
-            return true
-        }
-        verify_module(prog, mod)
-        return true
-    }
-}
-
 def public verify_function(var fn : FunctionPtr) : int {
     //! Verifies one function IN PLACE, signature included. For a macro that BUILDS a
     //! function: add_function mangles the signature at once, so a malformed result or
     //! argument type crashes there, before [[verify_module]] could see it.
     var v = new AstVerifyVisitor()
+    v.prog := compiling_program()
     make_visitor(*v) $(adapter) {
         visit(fn, adapter)
     }
@@ -750,6 +841,7 @@ def public verify_expression(var expr : ExpressionPtr) : int {
     //! that build and return a tree (for-loop / call / annotation / reader), which
     //! run inside inference where [[verify_module]] cannot see the result yet.
     var v = new AstVerifyVisitor()
+    v.prog := compiling_program()
     make_visitor(*v) $(adapter) {
         visit(expr, adapter)
     }
@@ -771,34 +863,95 @@ def public verify_program(prog : ProgramPtr) : int {
     return total
 }
 
-// ===== post-inference verification =====
+struct private Anchor {
+    @do_not_delete node : Expression?
+    @safe_when_uninitialized at : LineInfo
+    phrase : string
+}
+
+def private located(e : Expression?) : bool {
+    return e != null && e.at.fileInfo != null
+}
+
+def private usable(e : Expression?) : bool {
+    return located(e) && !is_cpp_binding_at(e.at)
+}
+
+class private FirstLocatedVisitor : AstVisitor {
+    @do_not_delete found : Expression?
+    def override preVisitExpression(var expr : ExpressionPtr) : void {
+        if (found == null && usable(expr)) {
+            found = expr
+        }
+    }
+    def override canVisitWithAliasSubexpression(_expr : ExprAssume?) : bool {
+        return false
+    }
+    def override canVisitStructureFieldInit(st : StructurePtr) : bool {
+        return !st.flags.isTemplate
+    }
+}
+
+def private first_located_inside(var expr : ExpressionPtr) : Expression? {
+    var v = new FirstLocatedVisitor()
+    make_visitor(*v) $(adapter) {
+        visit(expr, adapter)
+    }
+    var found = v.found
+    unsafe {
+        delete v
+    }
+    return found
+}
+
 class private AstPostInferVerifyVisitor : AstVisitor {
+    prog : ProgramPtr
     error_count : int = 0
     @do_not_delete current_fn : Function?
     closure_depth : int = 0
+    @safe_when_uninitialized last_passed : Anchor
 
 
     def report(at : LineInfo; msg : string) : void {
         error_count++
-        to_log(LOG_ERROR, "AST verify (post-infer): {msg} at {describe(at)}\n")
-        compiling_program() |> macro_error(at, "AST verify (post-infer): {msg}")
+        var text = msg
+        var anchor = at
+        if (at.fileInfo == null) {
+            let guess = guess_at(null)
+            anchor = guess.at
+            if (!empty(guess.phrase)) {
+                text = "{msg}; {guess.phrase}"
+            }
+        }
+        let loc = describe(anchor)
+        to_log(LOG_ERROR, empty(loc)
+            ? "AST verify (post-infer): {text}\n"
+            : "AST verify (post-infer): {text} at {loc}\n")
+        prog |> macro_sticky_error(anchor, "AST verify (post-infer): {text}")
     }
 
-    // A template body is expanded per instantiation and a stub body (dasbind [extern]) is
-    // never inferred - InferTypes::canVisitFunction skips both, as does every pass this
-    // verifier guards. A generated body (lambda, generator) IS codegen'd, so it is checked.
+    def guess_at(var expr : ExpressionPtr) : Anchor {
+        var inside = expr != null ? first_located_inside(expr) : null
+        if (inside != null) {
+            return Anchor(at = inside.at, phrase = "first located node inside it is {inside.__rtti}")
+        }
+        let passed = usable(last_passed.node) ? last_passed.node : null
+        return Anchor(at = passed != null ? passed.at : last_passed.at,
+            phrase = passed != null ? "preceded by {passed.__rtti}" : last_passed.phrase)
+    }
+
     def override canVisitFunction(fun : Function?) : bool {
         return !fun.moreFlags.isTemplate && !fun.moreFlags.stub
     }
 
     def override preVisitFunction(var fun : FunctionPtr) : void {
         current_fn = fun
-    }
-
-    // a `return` inside a closure returns from the BLOCK, not the function
-    def override preVisitExprBlock(var expr : ExprBlock?) : void {
-        if (expr.blockFlags.isClosure) {
-            closure_depth++
+        last_passed = Anchor()
+        need_at(fun.at, "function '{fun.name}'")
+        need_slot(fun.result, "function '{fun.name}' result type", fun.at)
+        if (fun.body == null) {
+            report(fun.at, "function '{fun.name}' has no body after inference")
+            fun.body = placeholder_block(fun.at)
         }
     }
 
@@ -809,33 +962,171 @@ class private AstPostInferVerifyVisitor : AstVisitor {
         return expr
     }
 
-    // an `assume` alias is substituted at its use sites and never inferred, so nothing
-    // under it is typed - daslib/quote.das and typemacro_boost.das rely on that
     def override canVisitWithAliasSubexpression(_expr : ExprAssume?) : bool {
         return false
     }
 
-    // a template structure's field initializers stay AST data until it is instantiated
     def override canVisitStructureFieldInit(st : StructurePtr) : bool {
+        decl_init_depth++
         return !st.flags.isTemplate
     }
 
-    // Inference is done, so an operand with no type never got one, and lint / folding /
-    // codegen all dereference it unguarded.
+    def override canVisitStructure(st : Structure?) : bool {
+        return !st.flags.isTemplate
+    }
+
+    decl_init_depth : int = 0
+
+    def override visitStructureField(var _str : StructurePtr; var decl : FieldDeclaration; _last : bool) : void {
+        if (decl.init != null) {
+            decl_init_depth--
+        }
+    }
+
+    def override preVisitFunctionArgumentInit(_fun : FunctionPtr; _arg : VariablePtr; _value : ExpressionPtr) : void {
+        decl_init_depth++
+    }
+
+    def override visitFunctionArgumentInit(_fun : FunctionPtr; _arg : VariablePtr; var value : ExpressionPtr) : ExpressionPtr {
+        decl_init_depth--
+        return value
+    }
+
     def need_typed(var slot : ExpressionPtr; what : string; at : LineInfo) : void {
-        if (slot == null || slot._type != null || slot.genFlags.generated) {
+        if (slot == null || slot._type != null || slot.genFlags.generated || is_stmt_node(slot)) {
             return
         }
-        report(at, "{what} ({slot.__rtti}) has no type after inference")
+        let named = empty(what) ? "{slot.__rtti}" : what
+        report(at, "{named} ({slot.__rtti}) has no type after inference")
         slot._type = new TypeDecl(at = at, baseType = Type.tInt)
     }
 
-    // ast_lint.cpp reports this for ExprCall; ast_unused.cpp getSideEffects segfaults
     def need_func(fn : Function?; what : string; at : LineInfo) : void {
-        if (fn != null) {
+        if (fn != null || decl_init_depth > 0) {
             return
         }
         report(at, "{what} has an unresolved func after inference")
+    }
+
+    def need_at(var at : LineInfo&; what : string; var expr : ExpressionPtr = null; track : bool = true) : void {
+        if (at.fileInfo != null) {
+            if (track && !is_cpp_binding_at(at)) {
+                last_passed = Anchor(at = at, phrase = "closest location the walk passed is {what}")
+            }
+            return
+        }
+        let ctx = current_fn != null ? " in '{current_fn.name}'" : ""
+        let guess = guess_at(expr)
+        let tail = empty(guess.phrase) ? guess.phrase : "; {guess.phrase}"
+        report(guess.at, "{what} has no source location (at is unset){ctx}{tail}")
+        if (guess.at.fileInfo != null) {
+            at = guess.at
+        }
+    }
+
+    def need_type_at(var typ : TypeDeclPtr; what : string) : void {
+        if (typ != null) {
+            need_at(typ.at, "{what} {describe(typ)}", track = false)
+        }
+    }
+
+    def override preVisitExpression(var expr : ExpressionPtr) : void {
+        if (located(expr)) {
+            last_passed.node = expr
+        } else {
+            need_at(expr.at, "{expr.__rtti}", expr)
+        }
+        need_typed(expr, "", expr.at)
+    }
+
+    def need_slot(var slot : TypeDeclPtr&; what : string; at : LineInfo) : void {
+        if (slot != null) {
+            return
+        }
+        report(at, "{what} is null after inference")
+        slot = new TypeDecl(at = at, baseType = Type.tInt)
+    }
+
+    def verify_type_slots(var typ : TypeDeclPtr) : void {
+        if (is_cpp_binding_at(typ.at)) {
+            return
+        }
+        let bt = typ.baseType
+        let what = "TypeDecl {describe(typ)}"
+        if (bt == Type.tArray || bt == Type.tFixedArray) {
+            need_slot(typ.firstType, "{what}: element type (firstType)", typ.at)
+        } elif (bt == Type.tTable) {
+            need_slot(typ.firstType, "{what}: key type (firstType)", typ.at)
+            need_slot(typ.secondType, "{what}: value type (secondType)", typ.at)
+        } elif (bt == Type.tDistinct) {
+            need_slot(typ.firstType, "{what}: underlying type (firstType)", typ.at)
+        }
+        for (i in range(length(typ.argTypes))) {
+            need_slot(typ.argTypes[i], "{what}: argTypes[{i}]", typ.at)
+        }
+        if (bt == Type.tStructure && typ.structType == null) {
+            report(typ.at, "{what}: tStructure with a null structType")
+        } elif (is_enum_type(bt) && typ.enumType == null) {
+            report(typ.at, "{what}: {bt} with a null enumType")
+        } elif ((bt == Type.tHandle || bt == Type.tDistinct) && typ.annotation == null) {
+            report(typ.at, "{what}: {bt} with a null annotation")
+        }
+    }
+
+    def override preVisitTypeDecl(var typ : TypeDeclPtr) : void {
+        need_type_at(typ, "TypeDecl")
+        if (typ != null) {
+            verify_type_slots(typ)
+        }
+    }
+
+    def override preVisitAlias(var typ : TypeDeclPtr; name : das_string) : void {
+        need_type_at(typ, "alias '{name}'")
+    }
+
+    def override preVisitFunctionArgument(var fun : FunctionPtr; var arg : VariablePtr; _last : bool) : void {
+        need_at(arg.at, "function '{fun.name}' argument '{arg.name}'")
+        need_slot(arg._type, "function '{fun.name}' argument '{arg.name}' type", arg.at)
+    }
+
+    def override preVisitExprLetVariable(var _expr : ExprLet?; var arg : VariablePtr; _last : bool) : void {
+        need_at(arg.at, "let variable '{arg.name}'")
+        need_slot(arg._type, "let variable '{arg.name}' type", arg.at)
+    }
+
+    def override preVisitExprBlockArgument(var _blk : ExprBlock?; var arg : VariablePtr; _last : bool) : void {
+        need_at(arg.at, "block argument '{arg.name}'")
+        need_slot(arg._type, "block argument '{arg.name}' type", arg.at)
+    }
+
+    def override preVisitGlobalLetVariable(var arg : VariablePtr; _last : bool) : void {
+        need_at(arg.at, "global '{arg.name}'")
+        need_slot(arg._type, "global '{arg.name}' type", arg.at)
+    }
+
+    def override preVisitStructure(var str : StructurePtr) : void {
+        need_at(str.at, "structure '{str.name}'")
+    }
+
+    def override preVisitStructureField(var str : StructurePtr; var decl : FieldDeclaration; _last : bool) : void {
+        need_at(decl.at, "field '{str.name}.{decl.name}'")
+        need_slot(decl._type, "field '{str.name}.{decl.name}' type", decl.at)
+    }
+
+    def override preVisitEnumeration(var enu : EnumerationPtr) : void {
+        need_at(enu.at, "enumeration '{enu.name}'")
+    }
+
+    def override preVisitExprMakeStructField(var _expr : ExprMakeStruct?; _index : int; var decl : MakeFieldDeclPtr; _last : bool) : void {
+        need_at(decl.at, "make-struct field '{decl.name}'")
+    }
+
+    def override preVisitExprMakeVariantField(var _expr : ExprMakeVariant?; _index : int; var decl : MakeFieldDeclPtr; _last : bool) : void {
+        need_at(decl.at, "make-variant field '{decl.name}'")
+    }
+
+    def override preVisitExprNamedCallArgument(var _expr : ExprNamedCall?; var arg : MakeFieldDeclPtr; _last : bool) : void {
+        need_at(arg.at, "named-call argument '{arg.name}'")
     }
 
     def override visitExprVar(var expr : ExprVar?) : ExpressionPtr {
@@ -847,8 +1138,6 @@ class private AstPostInferVerifyVisitor : AstVisitor {
         need_func(expr.func, "ExprCall '{expr.name}'", expr.at)
     }
 
-    // ast_unused.cpp reads arguments[i]->type for EVERY ExprLooksLikeCall subclass, and
-    // dispatch is on the concrete kind - hence the generic hook, not preVisitExprCall
     def override preVisitExprLooksLikeCallArgument(var expr : ExprLooksLikeCall?; var arg : ExpressionPtr; _last : bool) : void {
         need_typed(arg, "{expr.__rtti} '{expr.name}' argument", expr.at)
     }
@@ -874,7 +1163,6 @@ class private AstPostInferVerifyVisitor : AstVisitor {
         need_typed(expr.right, "ExprOp3.right", expr.at)
     }
 
-    // ast_const_folding.cpp reads expr->type->baseType AND expr->value->type->baseType
     def override preVisitExprSwizzle(var expr : ExprSwizzle?) : void {
         need_typed(expr, "ExprSwizzle", expr.at)
         need_typed(expr.value, "ExprSwizzle.value", expr.at)
@@ -886,6 +1174,172 @@ class private AstPostInferVerifyVisitor : AstVisitor {
 
     def override preVisitExprMakeArrayIndex(var expr : ExprMakeArray?; index : int; var init : ExpressionPtr; _last : bool) : void {
         need_typed(init, "ExprMakeArray.values[{index}]", expr.at)
+    }
+
+    def need_expr(var slot : ExpressionPtr&; what : string; at : LineInfo) : void {
+        if (slot != null) {
+            return
+        }
+        report(at, "{what} is null after inference")
+        slot = placeholder(at)
+    }
+
+    def need_stmt(var slot : ExpressionPtr&; what : string; at : LineInfo) : void {
+        if (slot != null) {
+            return
+        }
+        report(at, "{what} is null after inference")
+        slot = placeholder_block(at)
+    }
+
+    def need_elements(var list : dasvector`ptr`Expression; what : string; at : LineInfo) : void {
+        for (i in range(length(list))) {
+            need_expr(list[i], "{what}[{i}]", at)
+        }
+    }
+
+    def override preVisitExprField(var expr : ExprField?) : void {
+        need_expr(expr.value, "ExprField.value (field '{expr.name}')", expr.at)
+    }
+
+    def override preVisitExprSafeField(var expr : ExprSafeField?) : void {
+        need_expr(expr.value, "ExprSafeField.value (field '{expr.name}')", expr.at)
+    }
+
+    def override preVisitExprIsVariant(var expr : ExprIsVariant?) : void {
+        need_expr(expr.value, "ExprIsVariant.value (field '{expr.name}')", expr.at)
+    }
+
+    def override preVisitExprAsVariant(var expr : ExprAsVariant?) : void {
+        need_expr(expr.value, "ExprAsVariant.value (field '{expr.name}')", expr.at)
+    }
+
+    def override preVisitExprSafeAsVariant(var expr : ExprSafeAsVariant?) : void {
+        need_expr(expr.value, "ExprSafeAsVariant.value (field '{expr.name}')", expr.at)
+    }
+
+    def override preVisitExprCopy(var expr : ExprCopy?) : void {
+        need_expr(expr.left, "ExprCopy.left", expr.at)
+        need_expr(expr.right, "ExprCopy.right", expr.at)
+    }
+
+    def override preVisitExprMove(var expr : ExprMove?) : void {
+        need_expr(expr.left, "ExprMove.left", expr.at)
+        need_expr(expr.right, "ExprMove.right", expr.at)
+    }
+
+    def override preVisitExprClone(var expr : ExprClone?) : void {
+        need_expr(expr.left, "ExprClone.left", expr.at)
+        need_expr(expr.right, "ExprClone.right", expr.at)
+    }
+
+    def override preVisitExprRef2Ptr(var expr : ExprRef2Ptr?) : void {
+        need_expr(expr.subexpr, "ExprRef2Ptr.subexpr", expr.at)
+    }
+
+    def override preVisitExprRef2Value(var expr : ExprRef2Value?) : void {
+        need_expr(expr.subexpr, "ExprRef2Value.subexpr", expr.at)
+    }
+
+    def override preVisitExprPtr2Ref(var expr : ExprPtr2Ref?) : void {
+        need_expr(expr.subexpr, "ExprPtr2Ref.subexpr", expr.at)
+    }
+
+    def override preVisitExprYield(var expr : ExprYield?) : void {
+        need_expr(expr.subexpr, "ExprYield.subexpr", expr.at)
+    }
+
+    def override preVisitExprIs(var expr : ExprIs?) : void {
+        need_expr(expr.subexpr, "ExprIs.subexpr", expr.at)
+    }
+
+    def override preVisitExprCast(var expr : ExprCast?) : void {
+        need_expr(expr.subexpr, "ExprCast.subexpr", expr.at)
+    }
+
+    def override preVisitExprAt(var expr : ExprAt?) : void {
+        need_expr(expr.subexpr, "ExprAt.subexpr", expr.at)
+        need_expr(expr.index, "ExprAt.index", expr.at)
+    }
+
+    def override preVisitExprSafeAt(var expr : ExprSafeAt?) : void {
+        need_expr(expr.subexpr, "ExprSafeAt.subexpr", expr.at)
+        need_expr(expr.index, "ExprSafeAt.index", expr.at)
+    }
+
+    def override preVisitExprWhile(var expr : ExprWhile?) : void {
+        need_expr(expr.cond, "ExprWhile.cond", expr.at)
+        need_stmt(expr.body, "ExprWhile.body", expr.at)
+    }
+
+    def override preVisitExprIfThenElse(var expr : ExprIfThenElse?) : void {
+        need_expr(expr.cond, "ExprIfThenElse.cond", expr.at)
+        need_stmt(expr.if_true, "ExprIfThenElse.if_true", expr.at)
+    }
+
+    def override preVisitExprTryCatch(var expr : ExprTryCatch?) : void {
+        need_stmt(expr.try_block, "ExprTryCatch.try_block", expr.at)
+        need_stmt(expr.catch_block, "ExprTryCatch.catch_block", expr.at)
+    }
+
+    def override preVisitExprWith(var expr : ExprWith?) : void {
+        if (empty(expr.moduleName)) {
+            need_expr(expr._with, "ExprWith.with", expr.at)
+        }
+        need_stmt(expr.body, "ExprWith.body", expr.at)
+    }
+
+    def override preVisitExprUnsafe(var expr : ExprUnsafe?) : void {
+        need_stmt(expr.body, "ExprUnsafe.body", expr.at)
+    }
+
+    def override preVisitExprNullCoalescing(var expr : ExprNullCoalescing?) : void {
+        need_expr(expr.subexpr, "ExprNullCoalescing.subexpr", expr.at)
+        need_expr(expr.defaultValue, "ExprNullCoalescing.defaultValue", expr.at)
+    }
+
+    def override preVisitExprMakeBlock(var expr : ExprMakeBlock?) : void {
+        need_stmt(expr._block, "ExprMakeBlock.block", expr.at)
+    }
+
+    def override preVisitExprStringBuilder(var expr : ExprStringBuilder?) : void {
+        need_elements(expr.elements, "ExprStringBuilder.elements", expr.at)
+    }
+
+    def override preVisitExprMakeArray(var expr : ExprMakeArray?) : void {
+        need_elements(expr.values, "ExprMakeArray.values", expr.at)
+        if (expr.constValues) {
+            for (v in expr.values) {
+                if (v == null || !is_expr_const(v) || v._type == null) {
+                    report(expr.at, "ExprMakeArray.constValues is set over a value that is not a typed constant ({v == null ? "null" : v.__rtti})")
+                    expr.constValues = false
+                    break
+                }
+            }
+        }
+    }
+
+    def override preVisitExprMakeTuple(var expr : ExprMakeTuple?) : void {
+        need_elements(expr.values, "ExprMakeTuple.values", expr.at)
+    }
+
+    def override preVisitExprFor(var expr : ExprFor?) : void {
+        need_elements(expr.sources, "ExprFor.sources", expr.at)
+        need_stmt(expr.body, "ExprFor.body", expr.at)
+    }
+
+    def override preVisitExprBlock(var expr : ExprBlock?) : void {
+        if (expr.blockFlags.isClosure) {
+            closure_depth++
+        }
+        need_elements(expr.list, "ExprBlock.list", expr.at)
+        need_elements(expr.finalList, "ExprBlock.finalList", expr.at)
+    }
+
+    def check_make_field_value(var decl : MakeFieldDeclPtr; kind : string) : void {
+        if (decl != null) {
+            need_expr(decl.value, "{kind}.value (field '{decl.name}')", decl.at)
+        }
     }
 
     def override preVisitExprReturn(var expr : ExprReturn?) : void {
@@ -902,11 +1356,12 @@ class private AstPostInferVerifyVisitor : AstVisitor {
 }
 
 def public verify_program_after_infer(prog : ProgramPtr; thisMod : Module?) : int {
-    //! Verifies thisMod plus every other non-builtin module - getSideEffects recurses
-    //! into CALLED functions. program_for_each_module does NOT yield thisMod itself.
+    //! Verifies thisMod plus every other non-builtin module (a callee's tree is dereferenced
+    //! too - getSideEffects recurses into CALLED functions). program_for_each_module yields
+    //! thisMod as well, so it is walked once here and skipped in the loop.
     var total = verify_module_after_infer(prog, thisMod)
     program_for_each_module(prog) $(mod) {
-        if (!mod.moduleFlags.builtIn) {
+        if (mod != thisMod && !mod.moduleFlags.builtIn) {
             total += verify_module_after_infer(prog, mod)
         }
     }
@@ -918,6 +1373,7 @@ def public verify_module_after_infer(prog : ProgramPtr; mod : Module?) : int {
     //! Separate from [[verify_module]]: a half-inferred tree legitimately violates
     //! these, so they can only be asserted here.
     var v = new AstPostInferVerifyVisitor()
+    v.prog := prog
     make_visitor(*v) $(adapter) {
         visit_module(prog, adapter, mod)
     }
@@ -928,13 +1384,165 @@ def public verify_module_after_infer(prog : ProgramPtr; mod : Module?) : int {
     return n
 }
 
-[post_infer_macro]
-class AstPostInferVerifyMacro : AstPassMacro {
-    def override apply(prog : ProgramPtr; mod : Module?) : bool {
-        if (mod == null || mod.moduleFlags.builtIn) {
-            return true
+class private AstGcReachVisitor : AstVisitor {
+    seen : table<void?>
+    @do_not_delete adapter : VisitorAdapter?
+
+    def reach_expr(var expr : ExpressionPtr; what : string) : void {
+        note_expr_node(seen, expr, what) $(_msg, _at) {
+            pass
         }
-        verify_program_after_infer(prog, mod)
+    }
+
+    def reach_type(var typ : TypeDeclPtr; what : string) : void {
+        note_type_tree(seen, typ, what) $(_msg, _at) {
+            pass
+        }
+    }
+
+    def override canVisitQuoteSubexpression(_expr : ExprQuote?) : bool {
+        return true
+    }
+
+    def override preVisitExpression(var expr : ExpressionPtr) : void {
+        reach_expr(expr, expr == null ? "expression" : "{expr.__rtti}")
+    }
+
+    def override preVisitTypeDecl(var typ : TypeDeclPtr) : void {
+        reach_type(typ, "TypeDecl")
+    }
+
+    def override preVisitExprAscend(var expr : ExprAscend?) : void {
+        reach_type(expr.ascType, "ExprAscend.ascType")
+    }
+
+    def override preVisitExprMakeArray(var expr : ExprMakeArray?) : void {
+        reach_type(expr.recordType, "ExprMakeArray.recordType")
+    }
+
+    def override preVisitExprMakeTuple(var expr : ExprMakeTuple?) : void {
+        reach_type(expr.recordType, "ExprMakeTuple.recordType")
+    }
+
+    def override preVisitExprConstBitfield(var expr : ExprConstBitfield?) : void {
+        reach_type(expr.bitfieldType, "ExprConstBitfield.bitfieldType")
+    }
+
+    def override preVisitExprAssume(var expr : ExprAssume?) : void {
+        reach_type(expr.assumeType, "ExprAssume.assumeType")
+    }
+
+    def override preVisitExprBlock(var expr : ExprBlock?) : void {
+        reach_type(expr.returnType, "ExprBlock.returnType")
+    }
+
+    def override preVisitExprFor(var expr : ExprFor?) : void {
+        for (i in range(length(expr.iteratorsTags))) {
+            if (expr.iteratorsTags[i] != null && adapter != null) {
+                visit(expr.iteratorsTags[i], adapter)
+            }
+        }
+    }
+
+    def override preVisitExprLooksLikeCall(var expr : ExprLooksLikeCall?) : void {
+        reach_type(expr.aliasSubstitution, "{expr.__rtti}.aliasSubstitution")
+    }
+
+    def override preVisitExprReturn(var expr : ExprReturn?) : void {
+        reach_type(expr.returnType, "ExprReturn.returnType")
+    }
+}
+
+def private report_unreached(var prog : ProgramPtr; what : string; at : LineInfo) : void {
+    to_log(LOG_ERROR, "AST verify (gc root): {what} is not reached by the visitor at {describe(at)}\n")
+    prog |> macro_error(at, "AST verify (gc root): {what} is not reached by the visitor")
+}
+
+def public verify_module_gc_root(var prog : ProgramPtr; mod : Module?) : int {
+    //! Reports every gc-tracked node the module owns that a full walk of its AST never
+    //! reaches, returning the count. Meaningful only once the module root is collected,
+    //! i.e. from a ``[post_compile_macro]``.
+    var owned : table<void?>
+    for_each_gc_typedecl(mod) $(t) {
+        owned |> insert(t)
+    }
+    for_each_gc_expression(mod) $(e) {
+        owned |> insert(e)
+    }
+    var v = new AstGcReachVisitor()
+    let was_visiting_builtin = prog.visitBuiltinFunctions
+    prog.visitBuiltinFunctions = true
+    make_visitor(*v) $(adapter) {
+        v.adapter = adapter
+        visit_module(prog, adapter, mod)
+        ast_core::for_each_generic(mod, "") $(fn) {
+            visit(fn, adapter)
+        }
+    }
+    prog.visitBuiltinFunctions = was_visiting_builtin
+    var total = 0
+    for_each_gc_typedecl(mod) $(t) {
+        if (key_exists(owned, t) && !key_exists(v.seen, t)) {
+            total++
+            report_unreached(prog, "TypeDecl {describe(t)}", t.at)
+        }
+    }
+    for_each_gc_expression(mod) $(e) {
+        if (key_exists(owned, e) && !key_exists(v.seen, e)) {
+            total++
+            report_unreached(prog, "{e.__rtti}", e.at)
+        }
+    }
+    unsafe {
+        delete v
+    }
+    return total
+}
+
+[post_compile_macro]
+class AstPostCompileVerifyMacro : AstPassMacro {
+    def override apply(var prog : ProgramPtr; mod : Module?) : bool {
+        if (mod != null && !mod.moduleFlags.builtIn) {
+            verify_module(prog, mod)
+            if (batch_mode()) {
+                verify_module_after_infer(prog, mod)
+            } else {
+                verify_program_after_infer(prog, mod)
+            }
+        }
+        if (mod != null && (prog._options |> find_arg("_ast_verify_gc_root") ?as tBool ?? false)) {
+            verify_module_gc_root(prog, mod)
+        }
+        return true
+    }
+}
+
+
+[post_rewrite_macro]
+class AstPostRewriteVerifyMacro : AstPassMacro {
+    def override apply(prog : ProgramPtr; mod : Module?) : bool {
+        if (mod != null && !mod.moduleFlags.builtIn) {
+            verify_module(prog, mod)
+        }
+        return true
+    }
+}
+
+[simulate_macro]
+class AstSimulateVerifyMacro : AstSimulateMacro {
+    //! The last look at the tree: simulate runs after lint, folding, every optimizer round and
+    //! every codegen-prep pass, so whatever they and the user's own macros left behind is checked
+    //! here. Not reached under -compile-only, which never simulates.
+    def override simulate(_prog : Program?; _ctx : Context?) : bool {
+        let mod = compiling_module()
+        if (mod != null && !mod.moduleFlags.builtIn) {
+            verify_module(compiling_program(), mod)
+            if (batch_mode()) {
+                verify_module_after_infer(compiling_program(), mod)
+            } else {
+                verify_program_after_infer(compiling_program(), mod)
+            }
+        }
         return true
     }
 }

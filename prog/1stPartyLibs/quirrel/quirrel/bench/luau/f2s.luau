@@ -1,35 +1,24 @@
-	TOTAL_NUMBERS = 10000
-	TOTAL_TIMES = 100
+--!strict
+local profile = require("./profile")
 
-    function mk_float(i)
-        return i + (i/TOTAL_NUMBERS)
-    end
+local COUNT = 10000
+local PASSES = 100
 
-    function update(nums)
-        local summ = 0
-        for i = 1, TOTAL_TIMES do
-            for i,num in ipairs(nums) do
-                summ = summ + #(tostring(num))
-            end
-        end
-        return summ
-    end
-
-  nums = {}
-  for i = 1, TOTAL_NUMBERS do
-    table.insert(nums, mk_float(i))
-  end
-
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
-  end
-  return res
+local floats: { number } = table.create(COUNT)
+for i = 0, COUNT - 1 do
+  floats[i + 1] = (i + 1) * 1.0001
 end
 
-print(string.format("\"float2string\", %.8f, 20", profile_it(20, function () update(nums) end)))
+-- no result: each language formats floats differently
+local function totalLength(nums: { number })
+  local total = 0
+  for _ = 1, PASSES do
+    for _, x in nums do
+      total += #tostring(x)
+    end
+  end
+end
 
+profile.benchmark("float2string", 20, function()
+  totalLength(floats)
+end)

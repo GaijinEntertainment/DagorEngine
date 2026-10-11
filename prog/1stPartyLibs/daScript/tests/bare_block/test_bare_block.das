@@ -23,7 +23,7 @@ def test_basic_bare_block(t : T?) {
     t |> run("bare block scopes variables") @(t : T?) {
         var x = 10
         {
-            var y = 20
+            let y = 20
             x = x + y
         }
         t |> equal(x, 30)
@@ -35,9 +35,9 @@ def test_nested_bare_blocks(t : T?) {
     t |> run("nested bare blocks") @(t : T?) {
         var result = 0
         {
-            var a = 1
+            let a = 1
             {
-                var b = 2
+                let b = 2
                 result = a + b
             }
         }
@@ -77,7 +77,7 @@ def test_bare_block_sequential(t : T?) {
 def test_bare_block_in_control_flow(t : T?) {
     t |> run("bare block inside if") @(t : T?) {
         var x = 0
-        if (true) {
+        if (true) {     // nolint:STYLE010 - the always-taken if is the container this arm nests a bare block inside
             {
                 x = 42
             }
@@ -98,8 +98,8 @@ def test_bare_block_in_control_flow(t : T?) {
         var n = 3
         while (n > 0) {
             {
-                count += 1
-                n -= 1
+                count ++
+                n --
             }
         }
         t |> equal(count, 3)
@@ -126,7 +126,7 @@ def test_bare_block_scope(t : T?) {
     t |> run("inner var not visible outside") @(t : T?) {
         var x = 1
         {
-            var y = 2
+            let y = 2
             x += y
         }
         // y is no longer in scope here — only x survives
@@ -135,7 +135,7 @@ def test_bare_block_scope(t : T?) {
     t |> run("inner block modifies outer var") @(t : T?) {
         var x = 10
         {
-            var inner_val = 99
+            let inner_val = 99
             x = inner_val
         }
         // inner_val no longer in scope, but x was modified
@@ -144,11 +144,11 @@ def test_bare_block_scope(t : T?) {
     t |> run("nested blocks each have own scope") @(t : T?) {
         var result = 0
         {
-            var a = 1
+            let a = 1
             {
-                var b = 2
+                let b = 2
                 {
-                    var c = 3
+                    let c = 3
                     result = a + b + c
                 }
                 // c not visible here
@@ -163,15 +163,15 @@ def test_bare_block_scope(t : T?) {
     t |> run("sequential blocks reuse names") @(t : T?) {
         var sum = 0
         {
-            var tmp = 10
+            let tmp = 10
             sum += tmp
         }
         {
-            var tmp = 20
+            let tmp = 20
             sum += tmp
         }
         {
-            var tmp = 30
+            let tmp = 30
             sum += tmp
         }
         t |> equal(sum, 60)
@@ -180,9 +180,7 @@ def test_bare_block_scope(t : T?) {
         var arr : array<int>
         {
             var local_arr = [1, 2, 3]
-            for (v in local_arr) {
-                arr |> push(v)
-            }
+            arr |> push_from(local_arr)
         }
         t |> equal(length(arr), 3)
         t |> equal(arr[0], 1)
@@ -200,8 +198,7 @@ def test_bare_block_name_reuse(t : T?) {
             ok = ok && a == 2
         }
         {
-            var a : string
-            a = "hello"
+            let a : string = "hello"
             ok = ok && a == "hello"
         }
         t |> success(ok)
@@ -209,10 +206,10 @@ def test_bare_block_name_reuse(t : T?) {
     t |> run("same name in block then outer scope") @(t : T?) {
         var result = ""
         {
-            var a = "inner"
+            let a = "inner"
             result = a
         }
-        var a = "outer"
+        let a = "outer"
         t |> equal(result, "inner")
         t |> equal(a, "outer")
     }
@@ -221,10 +218,10 @@ def test_bare_block_name_reuse(t : T?) {
         var n2 = 0
         {
             {
-                var a = 10
+                let a = 10
                 n1 = a
             }
-            var a = 20
+            let a = 20
             n2 = a
         }
         t |> equal(n1, 10)
@@ -233,15 +230,15 @@ def test_bare_block_name_reuse(t : T?) {
     t |> run("three sequential blocks reuse name with different types") @(t : T?) {
         var sum = 0
         {
-            var v = 1
+            let v = 1
             sum += v
         }
         {
-            var v = 2.0
+            let v = 2.0
             sum += int(v)
         }
         {
-            var v = 3
+            let v = 3
             sum += v
         }
         t |> equal(sum, 6)

@@ -12,3 +12,10 @@ struct ResourcePaths
   String subgraphsDir; // root of *.subgraph.blk reusable subgraph components; scanned by appendSubgraphTemplatesToBaseNodes and the
                        // compile-time expander
 };
+
+// A subgraph directory and its label in the Create dialog. Only General exists today.
+struct SubgraphRoot
+{
+  String label;
+  String dir; // ends with '/'
+};

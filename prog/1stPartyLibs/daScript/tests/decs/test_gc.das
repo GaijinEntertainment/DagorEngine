@@ -1,6 +1,9 @@
 options gen2
 options persistent_heap
 options gc
+// gc-semantics file: heap_collect refuses chains with compiled (AOT/JIT) frames -
+// no_aot covers the AOT sweep; the collect tests carry [test, no_jit] for the jit sweep
+options no_aot
 
 require daslib/decs_boost
 require dastest/testing_boost public
@@ -71,7 +74,7 @@ def test_archive_strings(t : T?) {
     }
 }
 
-[test]
+[test, no_jit]
 def test_gc_arrays(t : T?) {
     restart()
     for (i in range(3)) {
@@ -89,9 +92,7 @@ def test_gc_arrays(t : T?) {
         }
     }
     before_gc()
-    unsafe {
-        heap_collect(true, true)
-    }
+    unsafe(heap_collect(true, true))
     after_gc()
     t |> run("after gc") @(t : T?) {
         query() $(values : array<int>; i : int) {
@@ -102,7 +103,7 @@ def test_gc_arrays(t : T?) {
     }
 }
 
-[test]
+[test, no_jit]
 def test_gc_strings(t : T?) {
     restart()
     for (i in range(3)) {
@@ -119,9 +120,7 @@ def test_gc_strings(t : T?) {
         t |> equal(i, 3)
     }
     before_gc()
-    unsafe {
-        heap_collect(true, true)
-    }
+    unsafe(heap_collect(true, true))
     after_gc()
     t |> run("after string gc") @(t : T?) {
         var j = 0
@@ -145,7 +144,7 @@ class FooWithLifetime {
 [test]
 def test_arrays_lifetime(t : T?) {
     restart()
-    for (i in range(3)) {
+    for (_i in range(3)) {
         create_entity() @(eid, cmp) {
             cmp |> set("pfoo", new FooWithLifetime())
         }
@@ -156,14 +155,14 @@ def test_arrays_lifetime(t : T?) {
     t |> success(total_foo == 0)
 }
 
-[test]
-def test_gc_stress(t : T?) {
+[test, no_jit]
+def test_gc_stress(t : T?) {   // nolint:STYLE037,STYLE038 - one randomized stress scenario; every phase consumes the same RNG stream and running entity count, so a split would only thread state
     var seed = random_seed(13)
     restart()
     static_let() {
         var TOTAL_EID = 0
     }
-    for (count in range(5)) {
+    for (_count in range(5)) {
         let morei = (random_int(seed) & 31) + 10
         for (i in range(morei)) {
             create_entity() @(eid, cmp) {
@@ -176,7 +175,7 @@ def test_gc_stress(t : T?) {
             }
         }
         let morej = (random_int(seed) & 31) + 10
-        for (j in range(morei)) {
+        for (_j in range(morei)) {
             create_entity() @(eid, cmp) {
                 cmp.txt := "text_{eid}"
                 let random_arch = random_int(seed) & 63
@@ -194,9 +193,7 @@ def test_gc_stress(t : T?) {
         }
         if ((random_int(seed) % 100) < 50) {
             before_gc()
-            unsafe {
-                heap_collect(true, true)
-            }
+            unsafe(heap_collect(true, true))
             after_gc()
         }
         commit()
@@ -213,7 +210,7 @@ def test_gc_stress(t : T?) {
         query() $(var values : array<int2>; var i : int) {
             var subi = (random_int(seed) & 63) + 5
             subi = min(length(values) - 10, subi)
-            for (tt in range(subi)) {
+            for (_tt in range(subi)) {
                 values |> pop
             }
             i -= subi
@@ -235,9 +232,7 @@ def test_gc_stress(t : T?) {
             data |> mem_archive_load(decsState)
         } else {
             before_gc()
-            unsafe {
-                heap_collect(true, true)
-            }
+            unsafe(heap_collect(true, true))
             after_gc()
         }
         query() $(values : array<int2>; i : int) {

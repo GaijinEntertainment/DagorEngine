@@ -147,7 +147,6 @@ build_bvh::TLASData *RenderSWRT::buildTopLevelStructuresInternal(build_bvh::TLAS
     ret->data.resize(maxTlasSize);
 
   uint8_t *bvhData = ret->data.begin();
-  uint32_t numBoxLeaves;
   {
     build_bvh::WriteTLASTreeInfo info = {};
     tlasLeavesOffsets.clear();
@@ -162,6 +161,8 @@ build_bvh::TLASData *RenderSWRT::buildTopLevelStructuresInternal(build_bvh::TLAS
     info.blasData = blasDataInfo.begin();
     info.blasBoxes = blasBoxes.begin();
     info.boxDist = blasDimAsBox.begin();
+    info.lightTransparent = blasLightTransparent.begin();
+    info.boxUser = tlasBoxUser ? blasBoxUser.begin() : nullptr;
 
     info.nodesSize = (tlasBoxes.size() + 1) * sizeof(build_bvh::TLASNode);
     info.leavesOffset = info.nodesSize;
@@ -170,17 +171,12 @@ build_bvh::TLASData *RenderSWRT::buildTopLevelStructuresInternal(build_bvh::TLAS
     build_bvh::writeTLASTreeRoot(info);
     G_ASSERTF(info.nodesOffset == info.nodesSize, "dataOffset=%d nodesSize=%d", info.nodesOffset, info.nodesSize);
     G_ASSERTF(info.leavesOffset <= info.leavesSize, "leavesOffset=%d leavesSize=%d", info.leavesOffset, info.leavesSize);
-    numBoxLeaves = info.numBoxLeaves;
+    ret->data.resize(info.leavesOffset); // trim to actual size
+
+    if (do_debug)
+      debug("write BVH TLAS in %dus of %d bytes, %d instances (%d boxes)", profile_time_usec(reft), info.leavesOffset, matrices.size(),
+        info.numBoxLeaves);
   }
-
-  const uint32_t tlasSize = (tlasBoxes.size() + 1) * sizeof(build_bvh::TLASNode) + numBoxLeaves * build_bvh::TLASLeaf::BOX_SIZE +
-                            (matrices.size() - numBoxLeaves) * sizeof(build_bvh::TLASLeaf);
-  G_ASSERT(ret->data.size() >= tlasSize);
-  ret->data.resize(tlasSize); // trim to actual size
-
-  if (do_debug)
-    debug("write BVH TLAS in %dus of %d bytes, %d instances (%d boxes)", profile_time_usec(reft), tlasSize, matrices.size(),
-      numBoxLeaves);
   return ret;
 
   // G_ASSERT(build_bvh::max_tlas_depth <= BVH_MAX_TLAS_DEPTH);

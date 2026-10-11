@@ -11,6 +11,9 @@ struct IDrv3DResetCB
   virtual void beforeReset(bool full_reset) = 0;
   virtual void afterReset(bool full_reset) = 0;
   virtual void resetCounter() {}
+  //! called when the window size changes. If is_window_resize_pending() returns true, a device reset follows and
+  //! afterReset() can handle the new size. If it returns false (iOS), the driver has already applied the new size
+  //! in place and no beforeReset() or afterReset() follows, so the handler must not wait for afterReset()
   virtual void windowResized() {}
   virtual void fullscreenStateRestored() {}
 };
@@ -25,7 +28,9 @@ extern IDrv3DDeviceLostCB *ext_drv3d_device_lost_handler;
 void set_3d_device_reset_callback(IDrv3DResetCB *handler);
 void set_3d_device_lost_callback(IDrv3DDeviceLostCB *handler);
 
-//! returns true if window was resized and therefore d3d reset is needed
+//! returns true if window was resized and therefore d3d reset is needed.
+//! On iOS a resize is applied in place: d3d::reset_device() takes the new size without restart procs, then
+//! IDrv3DResetCB::windowResized() is called, and the function returns false because no reset is needed
 bool check_and_handle_window_resize();
 #if _TARGET_PC | _TARGET_ANDROID
 //! returns true if drawing is allowed (device is not lost)
@@ -49,6 +54,9 @@ bool is_window_resizing_by_mouse();
 bool is_window_minimized();
 void set_window_resizing_by_mouse(bool value);
 void notify_window_resized(int w, int h);
+//! returns true if the driver screen size differs from the stored window size, so a reset is needed
+//! to apply that size
+bool is_window_resize_pending();
 void get_unminimized_window_resolution(int &w, int &h);
 
 unsigned int get_d3d_reset_counter();      // returns current reset generation, never 0

@@ -5,6 +5,8 @@
 #include <debug/dag_log.h>
 #include "shsyn.h"
 #include "shsem.h"
+#include "renderPassObject.h"
+#include "framebufferLayout.h"
 #include "globVarSem.h"
 #include "boolVar.h"
 #include "cppStcode.h"
@@ -243,6 +245,9 @@ SourceFileParseState::SourceFileParseState(const char *fn, shc::TargetContext &a
 // clang-format off
 void Parser::add_shader(shader_decl *d)                                      { ShaderParser::add_shader(d, *this, ctx); }
 void Parser::add_block(block_decl *d)                                        { ShaderParser::add_block(d, *this, ctx); }
+void Parser::add_render_pass(render_pass_decl *d)                            { ShaderParser::add_render_pass(d, *this, ctx); }
+void Parser::add_render_pass_group(render_pass_group_decl *d)                { ShaderParser::add_render_pass_group(d, *this, ctx); }
+void Parser::add_framebuffer_layout(framebuffer_layout_decl *d)              { ShaderParser::add_framebuffer_layout(d, *this, ctx); }
 void Parser::add_global_var(global_var_decl *d)                              { ShaderParser::add_global_var(d, *this, ctx); }
 void Parser::add_sampler(sampler_decl *d)                                    { ShaderParser::add_sampler(d, *this, ctx); }
 void Parser::add_global_interval(interval &i)                                { ShaderParser::add_global_interval(i, *this, ctx); }

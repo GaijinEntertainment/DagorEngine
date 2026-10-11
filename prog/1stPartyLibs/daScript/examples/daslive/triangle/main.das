@@ -5,8 +5,8 @@ options gc
 require live/glfw_live
 require opengl/opengl_boost
 require daslib/decs_boost
-require live/decs_live    // nolint:STYLE030 — load-bearing for decs entity serialization across live reloads
-require live/opengl_live  // nolint:STYLE030 — load-bearing for OpenGL resource live-reload
+require live/decs_live      // load-bearing for decs entity serialization across live reloads
+require live/opengl_live    // load-bearing for OpenGL resource live-reload
 require live/live_commands
 require live/live_api
 require daslib/json
@@ -176,9 +176,7 @@ def update() {
     var vertices : Vertex[3]
     get_triangle_vertices(vertices)
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    unsafe {
-        glBufferSubData(GL_ARRAY_BUFFER, 0l, int64(typeinfo sizeof(vertices)), addr(vertices[0]))
-    }
+    glBufferSubData(GL_ARRAY_BUFFER, 0l, int64(typeinfo sizeof(vertices)), unsafe(addr(vertices[0])))
     glBindVertexArray(vao)
     glDrawArrays(GL_TRIANGLES, 0, 3)
     live_end_frame()

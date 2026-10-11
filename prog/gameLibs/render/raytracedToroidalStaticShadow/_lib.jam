@@ -1,0 +1,3 @@
+if $(HaveRenderer) != no {
+  UseProgLibs += gameLibs/render/raytracedToroidalStaticShadow ;
+}

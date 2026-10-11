@@ -50,5 +50,7 @@ void reencodeQuadBlasToFP16(uint8_t *data, int blasStartOffset, int blasSize, in
 // preserving the skip/encoding word at +12. For callers that already walk the tree node-by-node and
 // want to fold the box re-encode into that pass instead of re-traversing via reencodeQuadBlasToFP16.
 void reencodeBoxNodeToFP16(uint8_t *nodeData);
+// The same through an affine map q -> [-1,1]: the box becomes the AABB of the mapped box, rounded outward.
+void reencodeBoxNodeToFP16(uint8_t *nodeData, mat44f_cref to_norm);
 
 } // namespace build_bvh

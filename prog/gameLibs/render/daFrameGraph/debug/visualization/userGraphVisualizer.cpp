@@ -58,6 +58,11 @@ constexpr float HISTORY_WAVE_LEN = NODE_MIN_X_SIZE / 3.f;
 constexpr float HISTORY_WAVE_HEIGHT = BASE_DEP_WIDTH * 3.f;
 
 
+constexpr float MACRO_VIEW_THRESHOLD = 1.0f;
+constexpr float MACRO_FONT_SCALE = 4.f;
+constexpr float NAMESPACE_FONT_SCALE = 6.f;
+
+
 constexpr ImU32 NODE_NAME_COLOR = IM_COL32(128, 128, 128, 255);       // rgb(128, 128, 128)
 constexpr ImU32 NODE_BASE_COLOR = IM_COL32(96, 96, 96, 255);          // rgb(96, 96, 96)
 constexpr ImU32 NODE_CHANGED_COLOR = IM_COL32(255, 64, 255, 255);     // rgb(255, 64, 255)
@@ -102,6 +107,13 @@ static void hash_pack(size_t &hash, T first, const Ts &...other)
   hash ^= eastl::hash<T>{}(first) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
   (hash_pack(hash, other), ...);
 }
+
+struct PushFontScaleScopeHandler
+{
+  PushFontScaleScopeHandler(const float scale) { ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * scale); }
+  ~PushFontScaleScopeHandler() { ImGui::PopFont(); }
+};
+#define PUSH_FONT_SCALE_SCOPE(SCALE) auto DAG_CONCAT(pfs, __LINE__) = PushFontScaleScopeHandler(SCALE);
 
 
 namespace dafg
@@ -185,6 +197,7 @@ void Visualizer::draw()
   hoverState.reset();
   hoverState.window = ImGui::IsWindowHovered();
   gpuCapture.nodeRowPopupOpenedThisFrame = false;
+  macroView = canvasCamera.getZoom() < MACRO_VIEW_THRESHOLD;
 
 
   drawUI();
@@ -331,8 +344,7 @@ void Visualizer::drawCanvas()
 
     drawEdges(drawList, layoutToUse);
 
-    if (hierarchicalView)
-      drawNodeBoxes(drawList);
+    drawNodeBoxes(drawList);
 
     // TODO: generate edges for disabled dependencies and draw them like others
     {
@@ -374,7 +386,7 @@ void Visualizer::drawCanvas()
         const float vertOffset = NODE_ANCHORS_MARGIN + 1.5f * BASE_DEP_WIDTH;
         const float wavesThird = HISTORY_WAVE_LEN / 3.f;
 
-        for (auto [nodeId, node] : userNodes.enumerate())
+        for (auto &&[nodeId, node] : userNodes.enumerate())
         {
           const auto [offset, size] = layoutToUse.nodes[nodeId];
           ImVec2 leftAnchor = offset + ImVec2{0.f, size.y - vertOffset};
@@ -441,8 +453,9 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
 {
   const ImRect canvasView = canvas.ViewRect();
   const bool mouseRclick = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+  PUSH_FONT_SCALE_SCOPE(macroView ? MACRO_FONT_SCALE : 1.f)
 
-  for (auto [nodeId, nodeRect] : layout.nodes.enumerate())
+  for (const auto &[nodeId, nodeRect] : layout.nodes.enumerate())
   {
     const ImVec2 leftTopPos = nodeRect.offset;
     const ImVec2 rightBottomPos = nodeRect.offset + nodeRect.size;
@@ -452,11 +465,14 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
     const auto &node = userNodes[nodeId];
     const auto nodeNameId = getNameId(nodeId);
     const auto nodeName = getName(nodeNameId);
+    const char *nodeNameFormatted = macroView ? multi_line_name(nodeName.data()) : nodeName.data();
     auto &nodeData = registry.nodes[node.regId];
 
-    const ImVec2 nameTagSize = ImMax(ImGui::CalcTextSize(nodeName.data()), ImVec2{nodeRect.size.x, 0.f}) + 2.f * NAMETAG_PADDING;
-    const ImVec2 nameTagLeftTopPos = leftTopPos - ImVec2{NAMETAG_PADDING.x, nameTagSize.y / 2};
+    const ImVec2 nameTagSize = ImGui::CalcTextSize(nodeNameFormatted) + 2.f * NAMETAG_PADDING;
+    const ImVec2 nameTagLeftTopPos =
+      leftTopPos + (macroView ? nodeRect.size / 2.f : ImVec2{nodeRect.size.x / 2.f, 0.f}) - nameTagSize / 2.f;
     const ImVec2 nameTagRightBottomPos = nameTagLeftTopPos + nameTagSize;
+
 
     // draw node rectangle and borders
     {
@@ -509,33 +525,35 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
       draw_list->AddRectFilled(nameTagLeftTopPos, nameTagRightBottomPos, NODE_NAME_COLOR, 4.0f);
     }
 
-    // draw texts and buttons
-    {
-      draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
 
-      if (hoverState.node == nodeId)
-        switch (coloration)
-        {
-          case NodeColorationType::None: break;
-          case NodeColorationType::Framebuffer: break;
-          case NodeColorationType::Pass:
-          {
-            if (node.passColor != UNKNOWN_PASS_COLOR)
-              hoverState.tooltip.printf(0, "Pass color: %d\n", eastl::to_underlying(node.passColor));
-            else
-              hoverState.tooltip.printf(0, "Culled node\n");
-            break;
-          }
-          default: break;
-        }
-
+    if (hoverState.node == nodeId)
+      switch (coloration)
       {
-        ImGui::SetCursorScreenPos(nameTagLeftTopPos + NAMETAG_PADDING);
-        ImGui::TextUnformatted(nodeName.data());
-        if (ImGui::IsItemHovered())
-          hoverState.tooltip.printf(0, "nameId: %d\ngeneration: %d\npriority: %d", eastl::to_underlying(nodeNameId),
-            nodeData.generation, nodeData.priority);
+        case NodeColorationType::None: break;
+        case NodeColorationType::Framebuffer: break;
+        case NodeColorationType::Pass:
+        {
+          if (node.passColor != UNKNOWN_PASS_COLOR)
+            hoverState.tooltip.printf(0, "Pass color: %d\n", eastl::to_underlying(node.passColor));
+          else
+            hoverState.tooltip.printf(0, "Culled node\n");
+          break;
+        }
+        default: break;
       }
+
+    draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
+
+    ImGui::SetCursorScreenPos(nameTagLeftTopPos + NAMETAG_PADDING);
+    ImGui::TextUnformatted(nodeNameFormatted);
+
+
+    // draw texts and buttons if close enough
+    if (!macroView)
+    {
+      if (ImGui::IsItemHovered())
+        hoverState.tooltip.printf(0, "nameId: %d\ngeneration: %d\npriority: %d", eastl::to_underlying(nodeNameId), nodeData.generation,
+          nodeData.priority);
 
       ImGui::SetCursorScreenPos(leftTopPos + NODE_BORDER_PADDING);
       ImGui::BeginGroup();
@@ -711,6 +729,10 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const CanvasLayout &layout)
       edgeInspected |= inspectedDependency.depId == depId;
     }
 
+    float visibleWidth = BASE_DEP_WIDTH;
+    if (macroView && focusingThisRes)
+      visibleWidth /= canvasCamera.getZoom();
+
     dag::RelocatableFixedVector<ImU32, 4> colorsToDraw;
 
     colorsToDraw.push_back(depColor);
@@ -723,7 +745,7 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const CanvasLayout &layout)
 
     for (const auto &spline : edgeSplines)
       for (int i = colorsToDraw.size() - 1; i >= 0; --i)
-        drawSpline(spline, colorsToDraw[i], BASE_DEP_WIDTH * (i + 1));
+        drawSpline(spline, colorsToDraw[i], visibleWidth * (i + 1));
   }
 
   if (hoverState.resource != ResourceId::Invalid)
@@ -739,33 +761,37 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const CanvasLayout &layout)
 
 void Visualizer::drawNodeBoxes(ImDrawList *draw_list)
 {
-  for (auto [boxId, box] : nodeBoxes.enumerate())
+  if (!hierarchicalView)
+    return;
+
+  PUSH_FONT_SCALE_SCOPE(NAMESPACE_FONT_SCALE);
+
+  for (const auto &box : nodeBoxes)
     if (box.nameSpace != registry.knownNames.root())
     {
-      draw_list->ChannelsSetCurrent(CanvasChannels::NAMESPACES);
-
       const ImU32 nameSpaceBorderColor = color_by_hash(size_t(box.nameSpace));
       const ImU32 nameSpaceFillColor = apply_alpha_coeff(nameSpaceBorderColor, 0.1f);
 
       const ImVec2 leftTopPos = box.rect.offset;
       const ImVec2 rightBottomPos = leftTopPos + box.rect.size;
 
+      const auto nameSpaceName = getName(box.nameSpace);
+      const ImVec2 nameTagSize = ImGui::CalcTextSize(nameSpaceName.data()) + 2.f * NAMETAG_PADDING;
+      const ImVec2 nameTagLeftTopPos = leftTopPos - ImVec2{NAMETAG_PADDING.x, nameTagSize.y / 2};
+      const ImVec2 nameTagRightBottomPos = nameTagLeftTopPos + nameTagSize;
+
+
+      draw_list->ChannelsSetCurrent(CanvasChannels::NAMESPACES);
+
       draw_list->AddRectFilled(leftTopPos, rightBottomPos, nameSpaceFillColor, 4.0f);
       draw_list->AddRect(leftTopPos, rightBottomPos, nameSpaceBorderColor, 4.0f, 0, NAMESPACE_BORDER_WIDTH);
+      draw_list->AddRectFilled(nameTagLeftTopPos, nameTagRightBottomPos, nameSpaceBorderColor, 4.0f);
 
 
       draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
 
-      const char *nameSpaceName = registry.knownNames.getName(box.nameSpace);
-      const ImVec2 nameBoxSize = ImGui::CalcTextSize(nameSpaceName) + 2.f * NAMETAG_PADDING;
-
-      const ImVec2 nameBoxLeftTopPos = leftTopPos - ImVec2{0.f, nameBoxSize.y / 2};
-      const ImVec2 nameBoxRightBottomPos = nameBoxLeftTopPos + nameBoxSize;
-      const ImVec2 nameBoxTextStart = nameBoxLeftTopPos + NAMETAG_PADDING;
-
-      draw_list->AddRectFilled(nameBoxLeftTopPos, nameBoxRightBottomPos, nameSpaceBorderColor, 4.0f);
-      ImGui::SetCursorPos(nameBoxTextStart);
-      ImGui::TextUnformatted(nameSpaceName);
+      ImGui::SetCursorPos(nameTagLeftTopPos + NAMETAG_PADDING);
+      ImGui::TextUnformatted(nameSpaceName.data());
     }
 }
 
@@ -780,7 +806,7 @@ void Visualizer::checkHovering()
 
   const auto &layout = hierarchicalView ? condensedLayout : generalLayout;
 
-  for (auto [nodeId, nodeRect] : layout.nodes.enumerate())
+  for (const auto &[nodeId, nodeRect] : layout.nodes.enumerate())
   {
     const ImVec2 leftTopPos = nodeRect.offset;
     const ImVec2 rightBottomPos = nodeRect.offset + nodeRect.size;
@@ -790,6 +816,7 @@ void Visualizer::checkHovering()
   }
 
   const ImVec2 mousePos = ImGui::GetMousePos();
+  const float visibleFocusWidth = BASE_DEP_WIDTH / canvasCamera.getZoom();
   for (const auto &[edgeDeps, edgeSplines] : layout.edges)
   {
     if (eastl::find_if(edgeSplines.begin(), edgeSplines.end(),
@@ -799,10 +826,11 @@ void Visualizer::checkHovering()
     const auto &frontDep = registryDependencies[edgeDeps.front()];
     const bool depVisible = dependency_info_by_type(frontDep.type).visible;
     const auto resId = frontDep.resource;
+    const bool focusingThisRes = focusState.resId == resId;
     if (depVisible && resId != ResourceId::Invalid && isResourceVisible(resId))
       for (const auto &spline : edgeSplines)
-        if (
-          mousePos.x >= spline.P0.x && mousePos.x <= spline.P3.x && ImProjectOnCubicBezier(mousePos, spline).Distance < BASE_DEP_WIDTH)
+        if (mousePos.x >= spline.P0.x && mousePos.x <= spline.P3.x &&
+            ImProjectOnCubicBezier(mousePos, spline).Distance < (macroView && focusingThisRes ? visibleFocusWidth : BASE_DEP_WIDTH))
         {
           hoverState.deps = {edgeDeps.begin(), edgeDeps.end()};
           hoverState.resource = resId;
@@ -910,6 +938,12 @@ void Visualizer::processPopup()
         {
           const DrawRequirements &drawReqs = reqs;
           ImGui::Text("Draw requirements:\n  Shader: %s", registry.knownShaders.getName(drawReqs.shaderId).data());
+        }
+        else if constexpr (std::is_same_v<T, CopyRequirements>)
+        {
+          const CopyRequirements &copyReqs = reqs;
+          ImGui::Text("Copy requirements:\n  Source: %s%s\n  Destination: %s", registry.knownNames.getName(copyReqs.source),
+            copyReqs.sourceIsHistory ? " (history)" : "", registry.knownNames.getName(copyReqs.destination));
         }
         else
         {
@@ -1111,8 +1145,8 @@ void Visualizer::processPopup()
         if (auto tex2dDescr = eastl::get_if<Texture2dCreateInfo>(&createdData.creationInfo))
         {
           format_pretty(ImGui::GetWindowDrawList(), tex2dDescr->creationFlags & TEXFMT_MASK);
-          ImGui::Text("2D%s%s%s", tex2dDescr->creationFlags & TEXCF_RTARGET ? " - RT" : "",
-            tex2dDescr->creationFlags & TEXCF_UNORDERED ? " - UAV" : "",
+          ImGui::Text("%s%s%s%s", tex2dDescr->arrayLayers > 1 ? "2D Array" : "2D",
+            tex2dDescr->creationFlags & TEXCF_RTARGET ? " - RT" : "", tex2dDescr->creationFlags & TEXCF_UNORDERED ? " - UAV" : "",
             tex2dDescr->creationFlags & TEXCF_VARIABLE_RATE ? " - VRS" : "");
           {
             IPoint2 res{-1, -1};
@@ -1120,7 +1154,10 @@ void Visualizer::processPopup()
               res = *point2;
             else if (auto autoRes2 = eastl::get_if<AutoResolutionRequest<2>>(&tex2dDescr->resolution))
               res = autoRes2->get();
-            ImGui::Text("%dx%d", res.x, res.y);
+            if (tex2dDescr->arrayLayers > 1)
+              ImGui::Text("%dx%d [%d]", res.x, res.y, tex2dDescr->arrayLayers);
+            else
+              ImGui::Text("%dx%d", res.x, res.y);
           }
           {
             ImGui::Text("mips: %d%s, flags:", tex2dDescr->mipLevels, tex2dDescr->mipLevels == 0 ? "(auto)" : "");
@@ -1420,7 +1457,7 @@ void Visualizer::centerOnFocus()
 
     ImVec2 leftPos = MAX_IMVEC2;
     ImVec2 rightPos = MAX_IMVEC2;
-    for (auto [edgeId, edge] : (hierarchicalView ? condensedLayout : generalLayout).edges.enumerate())
+    for (const auto &edge : (hierarchicalView ? condensedLayout : generalLayout).edges.values())
       for (const auto depId : edge.carriedDeps)
         if (registryDependencies[depId].resource == focusState.resId)
           for (const auto &spline : edge.splines)
@@ -1483,7 +1520,7 @@ void Visualizer::updateVisualization(const IdIndexedFlags<NodeNameId, framemem_a
   performLayout();
   performCondensedLayout();
 
-  update_external_texture_visualization(registry, depData);
+  update_external_texture_visualization();
 
   updateNeeded = false;
 }
@@ -1506,6 +1543,11 @@ void Visualizer::updateNodesRess()
   regNodesRepresent.resize(totalNodeCount, NodeId::Invalid);
   regResRepresent.resize(totalResourceCount, ResourceId::Invalid);
 
+  if (lastChangedNodes.size() < totalNodeCount)
+    lastChangedNodes.resize(totalNodeCount, false);
+  if (accumChangedNodes.size() < totalNodeCount)
+    accumChangedNodes.resize(totalNodeCount, true);
+
   for (const auto nodeNameId : registry.nodes.keys())
     if (!getName(nodeNameId).starts_with("/.debug"))
       regNodesRepresent[nodeNameId] = userNodes.appendNew(Node{nodeNameId}).first;
@@ -1520,7 +1562,7 @@ void Visualizer::updateIRInfo()
   TIME_PROFILE(update_ir_info);
 
   uint32_t currExecTime = 0;
-  for (auto [irIndex, irNode] : intermediateGraph.nodes.enumerate())
+  for (const auto &[irIndex, irNode] : intermediateGraph.nodes.enumerate())
     if (irNode.multiplexingIndex == 0 && irNode.frontendNode && isPresented(*irNode.frontendNode))
     {
       auto &node = userNodes[getRepresentId(*irNode.frontendNode)];
@@ -1613,7 +1655,7 @@ void Visualizer::updateDependencies()
 
 
   // filling explicit dependencies
-  for (auto [nodeId, node] : userNodes.enumerate())
+  for (auto &&[nodeId, node] : userNodes.enumerate())
   {
     const auto &nodeData = registry.nodes[node.regId];
 
@@ -1627,7 +1669,7 @@ void Visualizer::updateDependencies()
   }
 
   // filling resource dependencies
-  for (auto [resourceId, resource] : userResources.enumerate())
+  for (auto &&[resourceId, resource] : userResources.enumerate())
   {
     const auto &lifetime = depData.resourceLifetimes[resource.regId];
 
@@ -1869,7 +1911,7 @@ void Visualizer::checkCycles()
     dag::Vector<dag::Vector<DependencyId, framemem_allocator>, framemem_allocator> sccDependencies;
     sccDependencies.resize(sccCount, {});
     for (const uint32_t sccIndex : dag::ReverseView{sccWithLoopsIndices})
-      for (auto [depId, dep] : registryDependencies.enumerate())
+      for (auto &&[depId, dep] : registryDependencies.enumerate())
         if (nodesSCC[dep.from] == sccIndex && nodesSCC[dep.to] == sccIndex && dep.type != DependencyType::IMPLICIT_RES_HIST)
           sccDependencies[sccIndex].push_back(depId);
 
@@ -2051,7 +2093,7 @@ void Visualizer::checkCycles()
   }
   disabledDependencies.clear();
 
-  for (auto [depId, dep] : registryDependencies.enumerate())
+  for (auto &&[depId, dep] : registryDependencies.enumerate())
     if (!dep.disabled)
     {
       if (dep.type != DependencyType::IMPLICIT_RES_HIST)
@@ -2101,7 +2143,7 @@ void Visualizer::condenseGraph()
     dag::Vector<NodeIdx, framemem_allocator> topOrder;
     {
       AdjacencyLists graphAdjLists(userNodesCount);
-      for (auto [nodeId, node] : userNodes.enumerate())
+      for (auto &&[nodeId, node] : userNodes.enumerate())
       {
         const auto nodeIdx = NodeIdx(nodeId);
         graphAdjLists[nodeIdx].reserve(node.outDeps.size());
@@ -2153,7 +2195,7 @@ void Visualizer::condenseGraph()
 
   // now, when we separated all nodes by boxes, we can
   // add dependencies, that connect boxes with each other
-  for (auto [depId, dep] : registryDependencies.enumerate())
+  for (auto &&[depId, dep] : registryDependencies.enumerate())
   {
     const auto fromNodeBoxId = nodesNodeBox[dep.from];
     const auto toNodeBoxId = nodesNodeBox[dep.to];
@@ -2610,18 +2652,22 @@ void Visualizer::calculateObjectsSizes(RawLayout &raw_layout)
   auto &objectsSizes = raw_layout.objectsSizes;
   auto &objectsColumnSizes = raw_layout.objectsColumnSizes;
 
-  for (uint32_t userNodeIndex = 0; userNodeIndex < userNodesCount; ++userNodeIndex)
   {
-    const auto &object = objects[userNodesIndexOffset + userNodeIndex];
-    const auto &node = userNodes[raw_layout.userNodeIds[userNodeIndex]];
-    const uint32_t maxAnchorsCount = max(object.inAnchors.size(), object.outAnchors.size());
-    const uint32_t maxHistDepCount = max(node.inHistDeps.size(), node.outHistDeps.size());
+    PUSH_FONT_SCALE_SCOPE(MACRO_FONT_SCALE);
+    for (uint32_t userNodeIndex = 0; userNodeIndex < userNodesCount; ++userNodeIndex)
+    {
+      const auto &object = objects[userNodesIndexOffset + userNodeIndex];
+      const auto &node = userNodes[raw_layout.userNodeIds[userNodeIndex]];
+      const uint32_t maxAnchorsCount = max(object.inAnchors.size(), object.outAnchors.size());
+      const uint32_t maxHistDepCount = max(node.inHistDeps.size(), node.outHistDeps.size());
 
-    const float calcWidth = ImGui::CalcTextSize(getName(node.regId).data()).x + 2.f * NAMESPACE_BORDER_PADDING.x;
-    const float calcHeight =
-      NODE_Y_ANCHORS_START + 2.f * NODE_ANCHORS_MARGIN + 3.f * BASE_DEP_WIDTH * (maxAnchorsCount + 1 + maxHistDepCount);
-    objectsSizes[userNodesIndexOffset + userNodeIndex] =
-      ImMax(ImVec2{calcWidth, calcHeight}, ImVec2{NODE_MIN_X_SIZE, NODE_MIN_Y_SIZE});
+      const float calcWidth = ImGui::CalcTextSize(multi_line_name(getName(node.regId).data())).x;
+      const float calcHeight =
+        NODE_Y_ANCHORS_START + 2.f * NODE_ANCHORS_MARGIN + 3.f * BASE_DEP_WIDTH * (maxAnchorsCount + 1 + maxHistDepCount);
+
+      objectsSizes[userNodesIndexOffset + userNodeIndex] =
+        ImMax(ImVec2{calcWidth, calcHeight}, ImVec2{NODE_MIN_X_SIZE, NODE_MIN_Y_SIZE});
+    }
   }
 
   for (uint32_t nodeBoxIndex = 0; nodeBoxIndex < nodeBoxesCount; ++nodeBoxIndex)

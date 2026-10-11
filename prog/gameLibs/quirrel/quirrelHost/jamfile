@@ -22,7 +22,7 @@ Sources =
   sqmem_dagor.cpp
 ;
 
-if $(Sanitize) in address hwaddress {} else { opt on sqmem_dagor.cpp += -DENABLE_RE_USE=0 ; }
+if $(Sanitize) in address hwaddress { opt on sqmem_dagor.cpp += -DENABLE_RE_USE=0 ; }
 
 if $(SqVarTrace) = yes {
   CPPopt += -DSQ_VAR_TRACE_ENABLED ;

@@ -117,7 +117,7 @@ float DirichletSolver::getSimulationTime() const { return simulationTime; }
 
 DirichletCascadeSolver::DirichletCascadeSolver(IPoint3 tex_size, float spatial_step,
   const eastl::array<uint32_t, NUM_CASCADES> &num_dispatches_per_cascade) :
-  numDispatchesPerCascade(std::move(num_dispatches_per_cascade)), textureDepth(tex_size.z)
+  numDispatchesPerCascade(num_dispatches_per_cascade), textureDepth(tex_size.z)
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   DIRICHLET_VARS_LIST

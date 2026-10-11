@@ -8,7 +8,7 @@ under interpreter, AOT, and JIT.
 
 | Directory | Purpose |
 |---|---|
-| [features/](features/) | ~100 short, single-feature snippets — one combinator or effect per file. Built around [`feature_common`](features/feature_common.das); render to WAV with `--wav PATH` for offline inspection. |
+| [features/](features/) | ~100 short, single-feature snippets - one combinator or effect per file. Built around [`feature_common`](features/feature_common.das); render to WAV with `--wav PATH` for offline inspection. |
 | [hrtf/](hrtf/) | 3D positional ("bumblebee") demo using the per-event HRTF override (azimuth + elevation). Three sources rendered simultaneously: one orbiting source plus two stationary positions. |
 | [drum_compare/](drum_compare/) | A/B drum kit comparison (built-in synth vs sample bank). |
 | [synth_demo/](synth_demo/) | 100% synthesised mini-track (no sample files). |
@@ -37,13 +37,14 @@ bin/daslang examples/daStrudel/synth_demo/main.das -jit
 ### Feature snippets
 
 Each `features/*.das` file uses `play_feature_cps` from `feature_common.das`
-and supports three flags:
+and supports these flags (after `--`, which separates script args from daslang's own):
 
 ```sh
-bin/daslang examples/daStrudel/features/orbit_chorus_only.das               # play 10s
-bin/daslang examples/daStrudel/features/orbit_chorus_only.das --duration 4  # play N seconds
-bin/daslang examples/daStrudel/features/orbit_chorus_only.das --wav out.wav # render offline
-bin/daslang examples/daStrudel/features/orbit_chorus_only.das --track-memory
+bin/daslang examples/daStrudel/features/orbit_chorus_only.das                    # play 10s
+bin/daslang examples/daStrudel/features/orbit_chorus_only.das -- --duration 4    # play N seconds
+bin/daslang examples/daStrudel/features/orbit_chorus_only.das -- --wav out.wav   # render offline
+bin/daslang examples/daStrudel/features/orbit_chorus_only.das -- --volume 0.2    # quieter playback
+bin/daslang examples/daStrudel/features/orbit_chorus_only.das -- --track-memory
 ```
 
 ## See also

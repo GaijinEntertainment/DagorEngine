@@ -39,6 +39,7 @@ MAKE_TYPE_FACTORY(HumanControlState, HumanControlState);
 MAKE_TYPE_FACTORY(PrecomputedWeaponPositions, PrecomputedWeaponPositions);
 MAKE_TYPE_FACTORY(SegmentedHumanPhysicsState, SegmentedHumanPhysicsState);
 MAKE_TYPE_FACTORY(HumanPhys, HumanPhys);
+MAKE_TYPE_FACTORY(ClimbQueryResults, ClimbQueryResults);
 
 typedef Tab<HumanControlState> HumanControlStateTab;
 
@@ -116,6 +117,18 @@ inline void human_phys_calcGunTm(const HumanPhys &phys, PrecomputedPresetMode mo
 
 inline bool human_phys_isGoProneAllowed(const HumanPhys &phys) { return phys.isGoProneAllowed(); }
 
+inline Point3 human_phys_get_segphys_smooth_cam_coefs(const HumanPhys &phys)
+{
+  const SegmentedHumanPhysics *segPhys = phys.segPhysShared;
+  const auto &state = phys.previousState.segPhysState;
+  if (!segPhys || state.currSeg < 0)
+    return Point3(0.f, -1.f, 0.5f);
+  const auto &seg = segPhys->segs[state.currSeg];
+  const Point3 &conv = seg.smoothFirstPersonTimeToTau;
+  const float tau = cvt(state.currTime, 0.f, conv.x, conv.y, conv.z);
+  return Point3(tau, seg.smoothFirstPersonOffsetMultVel, seg.smoothFirstPersonOffsetMult);
+}
+
 inline int human_phys_get_segphys_num_anims(const HumanPhys &phys)
 {
   const SegmentedHumanPhysics *segPhys = phys.segPhysShared;
@@ -188,6 +201,22 @@ inline bool human_phys_state_get_forceWeaponDown(const HumanPhysState &phys) { r
 inline void human_phys_state_set_forceWeaponDown(HumanPhysState &phys, bool value) { phys.forceWeaponDown = value; }
 
 inline bool human_phys_state_get_isClimbing(const HumanPhysState &phys) { return phys.isClimbing; }
+
+inline bool human_phys_state_get_cancelledClimb(const HumanPhysState &phys) { return phys.cancelledClimb; }
+
+inline int human_phys_state_get_climbHangPhase(const HumanPhysState &phys) { return phys.climbHangPhase; }
+
+inline bool human_phys_climb_query_along(const HumanPhys &phys, const Point3 &dir, float forward_offset, float max_height,
+  ClimbQueryResults &res)
+{
+  res = phys.climbQueryAlong(dir, forward_offset, max_height);
+  return res.canClimb;
+}
+
+inline bool human_phys_start_climb(HumanPhys &phys, const ClimbQueryResults &res, int at_tick, bool allow_hang)
+{
+  return phys.startClimb(res, at_tick, allow_hang);
+}
 
 inline bool human_phys_state_get_isClimbingOverObstacle(const HumanPhysState &phys) { return phys.isClimbingOverObstacle; }
 

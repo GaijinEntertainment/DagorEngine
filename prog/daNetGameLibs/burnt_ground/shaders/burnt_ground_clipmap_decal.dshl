@@ -39,14 +39,18 @@ shader clipmap_burnt_ground_decal
   if (clipmap_decal_array_tex == off)
   {
     (ps) {
-      m_tex@smp2d = clipmap_decal_material_tex;
+      m_tex@tex2d = clipmap_decal_material_tex;
     }
   }
   else
   {
     (ps) {
-      m_tex@smpArray = clipmap_decal_material_tex;
+      m_tex@texArray = clipmap_decal_material_tex;
     }
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define m_tex_samplerstate global_linear_wrap_sampler
   }
 
   CLIPMAP_DECALS_COMMON()

@@ -1,0 +1,9 @@
+ERROR: duplicate key '1'
+testData/diagnostics/compilation_errors/sema_errors/duplicate_int_key_in_const.nut:5:5
+
+    [1.0] = "b",
+    [1] = "c"
+     ^
+}
+
+

@@ -999,6 +999,7 @@ private:
   void initHWFeedback();
   void closeHWFeedback();
   void updateRenderStates();
+  void bindIndirectionVars();
   void finalizeCompressionQueue();
   void addCompressionQueue(const CacheCoords &cacheCoords);
   void sortFeedback();
@@ -2469,6 +2470,7 @@ void ClipmapImpl::setMaxTexMips(int tex_mips)
 
     currentContext->closeIndirection();
     currentContext->initIndirection(maxTexMipCnt);
+    bindIndirectionVars();
 
     if (feedbackType == CPU_HW_FEEDBACK)
       currentContext->initHWFeedback();
@@ -2573,6 +2575,7 @@ void ClipmapImpl::initVirtualTexture(int argCacheDimX, int argCacheDimY, int tex
     initHWFeedback();
 
   setTileSizeVars();
+  bindIndirectionVars();
 }
 
 void MipContext::initIndirection(int max_tex_mips)
@@ -4704,6 +4707,17 @@ void ClipmapImpl::updateRendinstLandclassParams()
   }
 }
 
+void ClipmapImpl::bindIndirectionVars()
+{
+  ShaderGlobal::set_texture(var::indirection_tex, currentContext->indirection.getTexId());
+  ShaderGlobal::set_int(var::clipmap_tex_mips, currentContext->currentTexMipCnt);
+
+  Point4 landscape2uv = getLandscape2uv(TERRAIN_RI_OFFSET);
+  ShaderGlobal::set_float4(var::landscape2uv, landscape2uv);
+  IPoint2 offset = getMipPosition(TERRAIN_RI_OFFSET).offset;
+  ShaderGlobal::set_int4(var::mippos_offset, IPoint4(offset.x, offset.y, 0, 0));
+}
+
 void ClipmapImpl::updateRenderStates()
 {
   G_ASSERT(currentContext);
@@ -4711,15 +4725,8 @@ void ClipmapImpl::updateRenderStates()
   for (int ci = 0; ci < cacheCnt; ++ci)
     cache[ci].setVar(); // new way
 
-  ShaderGlobal::set_texture(var::indirection_tex, currentContext->indirection.getTexId());
   setDDScale();
-
-  ShaderGlobal::set_int(var::clipmap_tex_mips, currentContext->currentTexMipCnt);
-
-  Point4 landscape2uv = getLandscape2uv(TERRAIN_RI_OFFSET);
-  ShaderGlobal::set_float4(var::landscape2uv, landscape2uv);
-  IPoint2 offset = getMipPosition(TERRAIN_RI_OFFSET).offset;
-  ShaderGlobal::set_int4(var::mippos_offset, IPoint4(offset.x, offset.y, 0, 0));
+  bindIndirectionVars();
 
   currentContext->bindedPos = currentContext->LRUPos;
   currentContext->bindedTexMipCnt = currentContext->currentTexMipCnt;

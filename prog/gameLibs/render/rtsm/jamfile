@@ -17,12 +17,10 @@ AddIncludes =
 if $(BVHSupport) = yes {
   Sources =
     rtsm.cpp
-    rtdl.cpp
   ;
 } else {
   Sources =
     rtsm_stub.cpp
-    rtdl_stub.cpp
   ;
   Target = $(Target:S=-stub.lib) ;
 }

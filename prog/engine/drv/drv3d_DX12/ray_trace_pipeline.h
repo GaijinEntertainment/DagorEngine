@@ -8,8 +8,9 @@
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <supp/dag_comPtr.h>
 
-#include <EASTL/string.h>
 #include <EASTL/optional.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
 
 
 #if D3D_HAS_RAY_TRACING
@@ -24,22 +25,42 @@ struct RayTracePipelineResourceTypeTable
   uint8_t uRegisterTypes[dxil::MAX_U_REGISTERS];
 };
 
+struct RayTracePipelineRebuildData
+{
+  struct Import
+  {
+    ComPtr<ID3D12StateObject> collection;
+    eastl::vector<eastl::wstring> exportNames;
+  };
+  struct HitGroup
+  {
+    eastl::wstring exportName;
+    eastl::wstring anyHitImport;
+    eastl::wstring closestHitImport;
+    eastl::wstring intersectionImport;
+    D3D12_HIT_GROUP_TYPE type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
+  };
+  eastl::vector<Import> imports;
+  eastl::vector<HitGroup> hitGroups;
+  // export name of each shader group in shader handle order, for identifier lookup after a rebuild
+  eastl::vector<eastl::wstring> groupExportNames;
+  // Config the rebuild emits and the next expansion inherits. appendRebuildData overwrites all of
+  // these with the addition's values, so after an expansion they describe the expanded pipeline.
+  uint32_t minRecursion = 1;
+  uint32_t minPayload = 4;
+  uint32_t minAttributes = sizeof(float) * 2;
+  bool allowOpacityMicroMaps = false;
+};
+
 class RayTracePipeline
 {
-  // Holds the data we need to properly support expansion
-  struct ExpansionSupportData
-  {
-    uint32_t minRecursion = 0;
-    uint32_t minPayload = 0;
-    uint32_t minAttributes = 0;
-    bool allowOpacityMicroMaps = false;
-  };
   ComPtr<ID3D12StateObject> object;
   RaytracePipelineSignature rootSignature;
   RayTracePipelineResourceTypeTable resourceTypeTable;
   DynamicArray<uint8_t> shaderReferenceTableStorage;
   eastl::string debugName;
-  eastl::optional<ExpansionSupportData> expansionData;
+  // Data for a later expansion, expand refuses a pipeline that has none or that is not expandable.
+  eastl::optional<RayTracePipelineRebuildData> rebuildData;
 
 public:
   RayTracePipeline() = default;
@@ -58,13 +79,13 @@ public:
     bool useEmbeddedObjects = false;
   };
 
-  bool build(AnyDevicePtr device_ptr, bool has_native_expand, bool device_allows_omm, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer,
+  bool build(AnyDevicePtr device_ptr, bool allow_native_expand, bool device_allows_omm, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer,
     RayTracePipeline *base, const ::raytrace::PipelineCreateInfo &ci);
   // build function for simpler pipeline builds with supplied root signature, currently used for CS on RayGen
   bool build(D3DDevice *device, const RaytracePipelineSignature &root_signature,
     const RayTracePipelineResourceTypeTable &res_type_table, const ::raytrace::PipelineCreateInfo &ci, const BuildConfig &build_config,
     bool device_allows_omm);
-  RayTracePipeline *expand(ID3D12Device7 *device, const ::raytrace::PipelineExpandInfo &ei) const;
+  RayTracePipeline *expand(ID3D12Device7 *device, const ::raytrace::PipelineExpandInfo &ei, bool allow_native_expand) const;
   ID3D12StateObject *get() { return object.Get(); }
   const RaytracePipelineSignature &getSignature() { return rootSignature; }
   const uint8_t *getShaderReferenceTable() const { return shaderReferenceTableStorage.data(); }
@@ -73,7 +94,7 @@ public:
   {
     return make_span(shaderReferenceTableStorage.data(), shaderReferenceTableStorage.size());
   }
-  bool isExpandable() const { return static_cast<bool>(expansionData); }
+  bool isExpandable() const { return rebuildData.has_value(); }
   const eastl::string &name() const { return debugName; }
   // TODO
   uint32_t getRayGenGroupShaderRecordDataSize() const { return 0; }

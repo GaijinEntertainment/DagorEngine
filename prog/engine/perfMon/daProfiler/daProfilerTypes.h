@@ -3,7 +3,7 @@
 
 #include <perfMon/dag_drawStat.h>
 #include <util/dag_uniqueHashedNames.h>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 #include "daProfilePageAllocator.h"
 #include "stl/daProfilerVector.h"
 #include "dag_chunkedStorage.h"
@@ -175,7 +175,7 @@ struct SymbolsCache
   vector<ModuleInfo> modules;
 
   UniqueHashedNames<uint32_t> strings; // name, path, module
-  mutable std::mutex lock;
+  mutable dag::mutex lock;
   size_t memAllocated() const;
 };
 

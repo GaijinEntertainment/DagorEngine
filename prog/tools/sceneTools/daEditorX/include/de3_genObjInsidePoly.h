@@ -56,10 +56,14 @@ inline bool point_inside_poly(const Point2 &p, dag::ConstSpan<Point3> points)
   return false;
 }
 
+// detile: the landclass map the objects follow, or null for the plain grid.
+// A polygon with its own tiling angle keeps the grid whatever is passed: two turns of one grid mean nothing
 inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd, int subtype, int editLayerIdx, IHeightmap *hmap,
-  dag::Span<landclass::SingleEntityPool> pools, dag::Span<Point3> points, float ang, const Point2 &polyObjOffs)
+  dag::Span<landclass::SingleEntityPool> pools, dag::Span<Point3> points, float ang, const Point2 &polyObjOffs,
+  const LandDetile *detile)
 {
   bool needRotate = (fabs(ang) > 1e-5);
+  land_detile::ClusterWalk walk(needRotate ? nullptr : detile);
   BBox2 polyBBox;
   polyBBox.setempty();
   TMatrix roty;
@@ -87,23 +91,10 @@ inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd,
     roty = rotyTM(-ang);
   }
 
-  Point2 offs;
   real dx = lcd.tile.x;
   real dy = lcd.tile.y;
 
-  real k = polyBBox.lim[0].x / dx;
-  offs.x = (k - floor(k) - 1) * fabs(dx);
-
-  k = polyBBox.lim[0].y / dy;
-  offs.y = (k - floor(k) - 1) * fabs(dy);
-
   IPoint2 mapped = IPoint2(0, 0);
-
-  real limX = polyBBox.lim[1].x + dx;
-  real limY = polyBBox.lim[1].y + dy;
-
-  real startX = polyBBox.lim[0].x - offs.x - dx;
-  real startY = polyBBox.lim[0].y - offs.y - dy;
 
 #define SET_SUBTYPES(x)                        \
   for (int i = 0; i < lcd.data.size(); i++)    \
@@ -130,121 +121,137 @@ inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd,
     landclass::SingleEntityPool &pool = pools[i];
 
     int obj_idx = pool.entUsed, ent_avail = pool.entPool.size();
-    int seed = sep.rseed;
 
-    for (real mx = startX; mx <= limX; mx += dx)
-      for (real my = startY; my <= limY; my += dy)
-        for (int tmi = sep.tm.size() - 1; tmi >= 0; tmi--)
-        {
-          Point3 pos3 = sep.tm[tmi].getcol(3);
-          Point3 newPos(pos3.x + polyObjOffs.x, mid_y, pos3.z + polyObjOffs.y);
+    for (int ci = 0; ci < walk.clusters(); ci++)
+    {
+      walk.select(ci);
+      // the tile grid cell in pattern space, where the candidates below are generated
+      const BBox2 wr = walk.walkRect(polyBBox);
+      Point2 offs;
+      real f = wr.lim[0].x / dx;
+      offs.x = (f - floor(f) - 1) * fabs(dx);
+      f = wr.lim[0].y / dy;
+      offs.y = (f - floor(f) - 1) * fabs(dy);
+      real limX = wr.lim[1].x + dx, limY = wr.lim[1].y + dy;
+      real startX = wr.lim[0].x - offs.x - dx, startY = wr.lim[0].y - offs.y - dy;
+      int seed = sep.rseed;
 
-          newPos.x += mx - floor(newPos.x / dx) * dx;
-          newPos.z += my - floor(newPos.z / dy) * dy;
-
-          if (point_inside_poly(Point2(newPos.x, newPos.z), points))
+      for (real mx = startX; mx <= limX; mx += dx)
+        for (real my = startY; my <= limY; my += dy)
+          for (int tmi = sep.tm.size() - 1; tmi >= 0; tmi--)
           {
-            TMatrix tm = sep.tm[tmi];
+            Point3 pos3 = sep.tm[tmi].getcol(3);
+            Point3 newPos(pos3.x + polyObjOffs.x, mid_y, pos3.z + polyObjOffs.y);
 
-            MpPlacementRec mppRec;
-            bool is_multi_place = sep.mpRec.mpOrientType != MpPlacementRec::MP_ORIENT_NONE;
-            TMatrix rot_tm = tm; // TMatrix::IDENT;
-            rot_tm.setcol(3, Point3(0, 0, 0));
-            if (lcd.colliders.size() && needRotate && is_multi_place)
-            {
-              rot_tm.setcol(3, rot_tm.getcol(3) - center);
-              rot_tm = roty * rot_tm;
-              rot_tm.setcol(3, rot_tm.getcol(3) + center);
-            }
+            newPos.x += mx - floor(newPos.x / dx) * dx;
+            newPos.z += my - floor(newPos.z / dy) * dy;
 
-            if (orientType == sep.ORIENT_WORLD)
+            // shows refuses where the texture shows another cluster; either refusal takes the one rnd below
+            if (walk.shows(walk.toWorld(newPos)) && point_inside_poly(Point2(newPos.x, newPos.z), points))
             {
-              hmap ? hmap->getHeightmapPointHt(newPos, NULL) : false;
-              if (lcd.colliders.size())
+              TMatrix tm = sep.tm[tmi];
+              walk.rotateTm(tm); // the object turns with the tile it stands on
+
+              MpPlacementRec mppRec;
+              bool is_multi_place = sep.mpRec.mpOrientType != MpPlacementRec::MP_ORIENT_NONE;
+              TMatrix rot_tm = tm; // TMatrix::IDENT;
+              rot_tm.setcol(3, Point3(0, 0, 0));
+              if (lcd.colliders.size() && needRotate && is_multi_place)
               {
-                if (is_multi_place)
-                {
-                  mppRec = sep.mpRec;
-                  place_multipoint(mppRec, newPos, rot_tm, lcd.aboveHt);
-                }
-                else
-                  place_on_ground(newPos, lcd.aboveHt);
+                rot_tm.setcol(3, rot_tm.getcol(3) - center);
+                rot_tm = roty * rot_tm;
+                rot_tm.setcol(3, rot_tm.getcol(3) + center);
               }
-            }
-            else
-            {
-              TMatrix rot;
-              Point3 norm(0, 1, 0);
-              hmap ? hmap->getHeightmapPointHt(newPos, &norm) : false;
-              if (lcd.colliders.size())
+
+              if (orientType == sep.ORIENT_WORLD)
               {
-                if (is_multi_place)
+                hmap ? hmap->getHeightmapPointHt(newPos, NULL) : false;
+                if (lcd.colliders.size())
                 {
-                  mppRec = sep.mpRec;
-                  place_multipoint(mppRec, newPos, rot_tm, lcd.aboveHt);
+                  if (is_multi_place)
+                  {
+                    mppRec = sep.mpRec;
+                    place_multipoint(mppRec, newPos, rot_tm, lcd.aboveHt);
+                  }
+                  else
+                    place_on_ground(newPos, lcd.aboveHt);
                 }
-                else
-                  place_on_ground(newPos, norm, lcd.aboveHt);
-              }
-              if (orientType == sep.ORIENT_NORMAL_XZ)
-                rot.setcol(0, norm % Point3(-norm.z, 0, norm.x));
-              else if (orientType == sep.ORIENT_WORLD_XZ)
-              {
-                if (fabsf(norm.x) + fabsf(norm.z) > 1e-5f)
-                  rot.setcol(0, tm.getcol(1) % Point3(-norm.z, 0, norm.x));
-                else
-                  rot.setcol(0, tm.getcol(1) % Point3(0, 0, 1));
-                norm = tm.getcol(1);
               }
               else
-                rot.setcol(0, norm % Point3(0, 0, 1));
-              float xAxisLength = length(rot.getcol(0));
-              if (xAxisLength <= 1.192092896e-06F)
-                rot.setcol(0, normalize(norm % Point3(1, 0, 0)));
+              {
+                TMatrix rot;
+                Point3 norm(0, 1, 0);
+                hmap ? hmap->getHeightmapPointHt(newPos, &norm) : false;
+                if (lcd.colliders.size())
+                {
+                  if (is_multi_place)
+                  {
+                    mppRec = sep.mpRec;
+                    place_multipoint(mppRec, newPos, rot_tm, lcd.aboveHt);
+                  }
+                  else
+                    place_on_ground(newPos, norm, lcd.aboveHt);
+                }
+                if (orientType == sep.ORIENT_NORMAL_XZ)
+                  rot.setcol(0, norm % Point3(-norm.z, 0, norm.x));
+                else if (orientType == sep.ORIENT_WORLD_XZ)
+                {
+                  if (fabsf(norm.x) + fabsf(norm.z) > 1e-5f)
+                    rot.setcol(0, tm.getcol(1) % Point3(-norm.z, 0, norm.x));
+                  else
+                    rot.setcol(0, tm.getcol(1) % Point3(0, 0, 1));
+                  norm = tm.getcol(1);
+                }
+                else
+                  rot.setcol(0, norm % Point3(0, 0, 1));
+                float xAxisLength = length(rot.getcol(0));
+                if (xAxisLength <= 1.192092896e-06F)
+                  rot.setcol(0, normalize(norm % Point3(1, 0, 0)));
+                else
+                  rot.setcol(0, rot.getcol(0) / xAxisLength);
+                rot.setcol(1, norm);
+                rot.setcol(2, normalize(rot.getcol(0) % norm));
+                tm = rot % tm;
+              }
+
+              if (is_multi_place)
+                rotate_multipoint(tm, mppRec);
+              newPos.y += getRandom(seed, sep.yOffset);
+              if (lcd.useYpos)
+                newPos.y += pos3.y;
+              tm.setcol(3, newPos);
+
+              if (needRotate)
+              {
+                tm.setcol(3, tm.getcol(3) - center);
+                tm = roty * tm;
+                tm.setcol(3, tm.getcol(3) + center);
+              }
+
+              IObjEntity *e = NULL;
+              if (obj_idx < ent_avail)
+                e = pool.entPool[obj_idx];
               else
-                rot.setcol(0, rot.getcol(0) / xAxisLength);
-              rot.setcol(1, norm);
-              rot.setcol(2, normalize(rot.getcol(0) % norm));
-              tm = rot % tm;
+              {
+                e = IDaEditor3Engine::get().cloneEntity(sep.entity);
+                if (!e)
+                  continue;
+                pool.entPool.push_back(e);
+              }
+              e->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
+              if (lcd.setSeedToEntities)
+                if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
+                  irsh->setSeed(seed);
+              e->setTm(tm);
+              IColor *ecol = e->queryInterface<IColor>();
+              if (ecol)
+                ecol->setColor(sep.colorRangeIdx), skip_rnd_ivec4(seed);
+              obj_idx++;
             }
-
-            if (is_multi_place)
-              rotate_multipoint(tm, mppRec);
-            newPos.y += getRandom(seed, sep.yOffset);
-            if (lcd.useYpos)
-              newPos.y += pos3.y;
-            tm.setcol(3, newPos);
-
-            if (needRotate)
-            {
-              tm.setcol(3, tm.getcol(3) - center);
-              tm = roty * tm;
-              tm.setcol(3, tm.getcol(3) + center);
-            }
-
-            IObjEntity *e = NULL;
-            if (obj_idx < ent_avail)
-              e = pool.entPool[obj_idx];
             else
-            {
-              e = IDaEditor3Engine::get().cloneEntity(sep.entity);
-              if (!e)
-                continue;
-              pool.entPool.push_back(e);
-            }
-            e->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
-            if (lcd.setSeedToEntities)
-              if (IRandomSeedHolder *irsh = e->queryInterface<IRandomSeedHolder>())
-                irsh->setSeed(seed);
-            e->setTm(tm);
-            IColor *ecol = e->queryInterface<IColor>();
-            if (ecol)
-              ecol->setColor(sep.colorRangeIdx), skip_rnd_ivec4(seed);
-            obj_idx++;
+              rnd(seed);
           }
-          else
-            rnd(seed);
-        }
+    }
     pool.entUsed = obj_idx;
   }
 

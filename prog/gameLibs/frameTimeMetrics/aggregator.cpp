@@ -17,6 +17,15 @@ CONSOLE_INT_VAL("fps", update_rate_msec, 1000, 100, 100000);
 
 static const uint32_t MAX_FPS_TO_DISPLAY = 9999;
 
+static const char *get_short_driver_name()
+{
+  return d3d::get_driver_code()
+    .map(d3d::dx11, "dx11")
+    .map(d3d::dx12, "dx12")
+    .map(d3d::vulkan, "vulk")
+    .map(d3d::any, d3d::get_driver_name());
+}
+
 void FrameTimeMetricsAggregator::update(const float current_time_msec, const uint32_t frame_no, const float dt,
   PerfDisplayMode display_mode, uint32_t last_frame_count)
 {
@@ -65,19 +74,24 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
       lastAverageLatencyA = 0;
       lastAverageLatencyR = 0;
     }
+    const char *driverName = detailGrowsWithMode ? get_short_driver_name() : d3d::get_driver_name();
     if (displayMode == PerfDisplayMode::OFF)
       fpsText.clear();
+    else if (detailGrowsWithMode && displayMode == PerfDisplayMode::FPS)
+      fpsText.sprintf("%s %1.1f", driverName, lastAverageFps);
+    else if (detailGrowsWithMode && displayMode == PerfDisplayMode::COMPACT)
+      fpsText.sprintf("%s %1.1f (%1.1f < %1.1f)", driverName, lastAverageFps, lastMinFrameTime, lastMaxFrameTime);
     else if (displayMode == PerfDisplayMode::COMPACT)
       fpsText.sprintf("FPS: %1.1f", lastAverageFps);
     else
-      fpsText.sprintf("%s%s FPS: %1.1f (%1.1f<%1.1f %1.1f)%s", d3d::get_driver_name(), isPixCapturerLoaded.value() ? "(PIX)" : "",
-        lastAverageFps, lastMinFrameTime, lastMaxFrameTime, lastAverageFrameTime,
-        isBackgroundShadersProcessingInProgress ? " (PROCESSING)" : "");
+      fpsText.sprintf("%s%s FPS: %1.1f (%1.1f<%1.1f %1.1f)%s", driverName, isPixCapturerLoaded.value() ? "(PIX)" : "", lastAverageFps,
+        lastMinFrameTime, lastMaxFrameTime, lastAverageFrameTime, isBackgroundShadersProcessingInProgress ? " (PROCESSING)" : "");
 
-    if (last_frame_count > 1)
+    const bool withDetails = !detailGrowsWithMode || displayMode == PerfDisplayMode::FULL;
+    if (withDetails && last_frame_count > 1)
       fpsText += String(-1, " FG: %ux", last_frame_count);
 
-    if (dynamicResolution.has_value())
+    if (withDetails && dynamicResolution.has_value())
       fpsText +=
         String(-1, " DR: %d%% - %dx%d", int(dynamicResolutionRate.value() * 100 + 0.5), dynamicResolution->x, dynamicResolution->y);
 
@@ -92,7 +106,7 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
         break;
     }
 
-    if (renderingResolution.has_value())
+    if (withDetails && renderingResolution.has_value())
       fpsText += String(-1, " %dx%d", renderingResolution->x, renderingResolution->y);
 
 #if _TARGET_XBOX
@@ -100,7 +114,8 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
     if (xbox_get_available_memory(available))
     {
       size_t availableMb = available >> 20;
-      fpsText += String(-1, " %uMB", availableMb);
+      if (withDetails)
+        fpsText += String(-1, " %uMB", availableMb);
       achtung = availableMb < 500;
     }
 #endif

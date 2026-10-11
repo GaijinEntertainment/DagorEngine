@@ -13,6 +13,64 @@ using dblk_test_binary::put_leb;
 using dblk_test_binary::put_names;
 using dblk_test_binary::put_node;
 using dblk_test_binary::put_param;
+
+const dblk::ReadFlags robust_and_default[] = {dblk::ReadFlag::ROBUST, dblk::ReadFlags()};
+
+Bytes wrap_zstd(const Bytes &inner)
+{
+  size_t cbound = zstd_compress_bound(inner.size());
+  REQUIRE(cbound > 0);
+  Bytes wrapped(4 + cbound);
+  size_t csz = zstd_compress(wrapped.data() + 4, cbound, inner.data(), inner.size());
+  REQUIRE(csz > 0);
+  REQUIRE(csz <= cbound);
+  REQUIRE(csz <= 0xFFFFFFu);
+  wrapped.resize(4 + csz);
+
+  // Wrap as BBF_full_binary_in_stream_z (\2 + 3-byte compressed size).
+  wrapped[0] = 0x02;
+  wrapped[1] = (uint8_t)(csz & 0xFF);
+  wrapped[2] = (uint8_t)((csz >> 8) & 0xFF);
+  wrapped[3] = (uint8_t)((csz >> 16) & 0xFF);
+  return wrapped;
+}
+
+// A valid BBF_full_binary_in_stream payload (\1) with one int param.
+Bytes make_valid_dump()
+{
+  Bytes inner;
+  inner.push_back(0x01);
+  put_names(inner, {"a"});
+  put_leb(inner, 1); // blocks_count
+  put_leb(inner, 1); // params_count
+  put_leb(inner, 0); // complex_data size
+  put_param(inner, 0, DataBlock::TYPE_INT, 42);
+  put_node(inner, 0, 1, 0); // root: unnamed, 1 param, 0 blocks
+  return inner;
+}
+
+// Like a pipe: no size known, and a seek past the end throws.
+struct UnsizedLoadCB : InPlaceMemLoadCB
+{
+  using InPlaceMemLoadCB::InPlaceMemLoadCB;
+  int64_t getTargetDataSize() override { return -1; }
+};
+
+template <class LoadCB = InPlaceMemLoadCB>
+void check_zstd_load_fails(const Bytes &wrapped, const char *fname)
+{
+  FatalFlagsGuard guard;
+  guard.setAllNonFatal();
+  for (dblk::ReadFlags flags : robust_and_default)
+  {
+    ErrorCollector collector;
+    DataBlock::InstallReporterRAII reporter(&collector);
+    DataBlock blk;
+    LoadCB crd(wrapped.data(), (int)wrapped.size());
+    CHECK_FALSE(dblk::load_from_stream(blk, crd, flags, fname));
+    CHECK_FALSE(collector.empty());
+  }
+}
 } // namespace
 
 TEST_CASE("DataBlock robust load missing file does not error", "[datablock][robust]")
@@ -96,14 +154,8 @@ TEST_CASE("DataBlock RESTORE_FLAGS restores state after load", "[datablock][robu
   CHECK((flags & dblk::ReadFlag::ROBUST) == dblk::ReadFlags());
 }
 
-TEST_CASE("DataBlock robust load malformed zstd binary stream does not assert", "[datablock][robust][zstd]")
+TEST_CASE("DataBlock load malformed zstd binary stream does not assert", "[datablock][robust][zstd]")
 {
-  FatalFlagsGuard guard;
-  guard.setAllNonFatal();
-
-  ErrorCollector collector;
-  DataBlock::InstallReporterRAII reporter(&collector);
-
   // Build malformed BBF_full_binary_in_stream payload (\1):
   // root claims children far beyond available node array.
   Bytes inner;
@@ -116,32 +168,34 @@ TEST_CASE("DataBlock robust load malformed zstd binary stream does not assert", 
 
   // Ensure parser can fail before consuming all compressed bytes.
   inner.insert(inner.end(), 2048, 0xAB);
-
-  size_t cbound = zstd_compress_bound(inner.size());
-  REQUIRE(cbound > 0);
-  Bytes compressed;
-  compressed.resize(cbound);
-  size_t csz = zstd_compress(compressed.data(), compressed.size(), inner.data(), inner.size());
-  REQUIRE(csz > 0);
-  REQUIRE(csz <= compressed.size());
-  REQUIRE(csz <= 0xFFFFFFu);
-  compressed.resize(csz);
-
-  // Wrap as BBF_full_binary_in_stream_z (\2 + 3-byte compressed size).
-  Bytes wrapped;
-  wrapped.push_back(0x02);
-  wrapped.push_back((uint8_t)(csz & 0xFF));
-  wrapped.push_back((uint8_t)((csz >> 8) & 0xFF));
-  wrapped.push_back((uint8_t)((csz >> 16) & 0xFF));
-  wrapped.insert(wrapped.end(), compressed.begin(), compressed.end());
-
-  DataBlock blk;
-  InPlaceMemLoadCB crd(wrapped.data(), (int)wrapped.size());
-  bool ok = dblk::load_from_stream(blk, crd, dblk::ReadFlag::ROBUST, "malformed_zstd.blk");
-  CHECK(ok == false);
+  check_zstd_load_fails(wrap_zstd(inner), "malformed_zstd.blk");
 }
 
-TEST_CASE("DataBlock robust load zstd stream with wrong inner tag does not assert", "[datablock][robust][zstd]")
+TEST_CASE("DataBlock load zstd stream with bad compressed size fails", "[datablock][robust][zstd]")
+{
+  Bytes wrapped = wrap_zstd(make_valid_dump());
+  for (uint32_t csz : {uint32_t(wrapped.size()), 0u}) // past the end of the stream, and empty
+  {
+    memcpy(&wrapped[1], &csz, 3);
+    check_zstd_load_fails(wrapped, "bad_size_zstd.blk");
+  }
+}
+
+TEST_CASE("DataBlock load zstd stream with wrong inner tag does not assert", "[datablock][robust][zstd]")
+{
+  // Decompressed stream starts with a non-\1 tag, so only the tag check rejects it.
+  Bytes inner = make_valid_dump();
+  inner[0] = 0x7F;
+  Bytes wrapped = wrap_zstd(inner);
+  check_zstd_load_fails(wrapped, "wrong_tag_zstd.blk");
+
+  // An unsized stream skips the size check, so a size past its end reaches the reader.
+  const uint32_t csz = uint32_t(wrapped.size());
+  memcpy(&wrapped[1], &csz, 3);
+  check_zstd_load_fails<UnsizedLoadCB>(wrapped, "unsized_zstd.blk");
+}
+
+TEST_CASE("DataBlock load valid zstd binary stream succeeds", "[datablock][robust][zstd]")
 {
   FatalFlagsGuard guard;
   guard.setAllNonFatal();
@@ -149,77 +203,21 @@ TEST_CASE("DataBlock robust load zstd stream with wrong inner tag does not asser
   ErrorCollector collector;
   DataBlock::InstallReporterRAII reporter(&collector);
 
-  // Decompressed stream starts with a non-\1 tag. In robust mode this should
-  // fail gracefully without tripping assertion handlers.
-  Bytes inner;
-  inner.push_back(0x7F);
-  inner.insert(inner.end(), 2048, 0xCD);
+  for (int extra : {0, 16}) // extra bytes inside the frame are ignored
+  {
+    Bytes inner = make_valid_dump();
+    inner.insert(inner.end(), extra, 0xEE);
+    const Bytes wrapped = wrap_zstd(inner);
 
-  size_t cbound = zstd_compress_bound(inner.size());
-  REQUIRE(cbound > 0);
-  Bytes compressed;
-  compressed.resize(cbound);
-  size_t csz = zstd_compress(compressed.data(), compressed.size(), inner.data(), inner.size());
-  REQUIRE(csz > 0);
-  REQUIRE(csz <= compressed.size());
-  REQUIRE(csz <= 0xFFFFFFu);
-  compressed.resize(csz);
-
-  Bytes wrapped;
-  wrapped.push_back(0x02);
-  wrapped.push_back((uint8_t)(csz & 0xFF));
-  wrapped.push_back((uint8_t)((csz >> 8) & 0xFF));
-  wrapped.push_back((uint8_t)((csz >> 16) & 0xFF));
-  wrapped.insert(wrapped.end(), compressed.begin(), compressed.end());
-
-  DataBlock blk;
-  InPlaceMemLoadCB crd(wrapped.data(), (int)wrapped.size());
-  bool ok = dblk::load_from_stream(blk, crd, dblk::ReadFlag::ROBUST, "wrong_tag_zstd.blk");
-  CHECK(ok == false);
-}
-
-TEST_CASE("DataBlock robust load valid zstd binary stream succeeds", "[datablock][robust][zstd]")
-{
-  FatalFlagsGuard guard;
-  guard.setAllNonFatal();
-
-  ErrorCollector collector;
-  DataBlock::InstallReporterRAII reporter(&collector);
-
-  // Build a valid BBF_full_binary_in_stream payload (\1) with one int param.
-  Bytes inner;
-  inner.push_back(0x01);
-  put_names(inner, {"a"});
-  put_leb(inner, 1); // blocks_count
-  put_leb(inner, 1); // params_count
-  put_leb(inner, 0); // complex_data size
-  put_param(inner, 0, DataBlock::TYPE_INT, 42);
-  put_node(inner, 0, 1, 0); // root: unnamed, 1 param, 0 blocks
-
-  size_t cbound = zstd_compress_bound(inner.size());
-  REQUIRE(cbound > 0);
-  Bytes compressed;
-  compressed.resize(cbound);
-  size_t csz = zstd_compress(compressed.data(), compressed.size(), inner.data(), inner.size());
-  REQUIRE(csz > 0);
-  REQUIRE(csz <= compressed.size());
-  REQUIRE(csz <= 0xFFFFFFu);
-  compressed.resize(csz);
-
-  // Wrap as BBF_full_binary_in_stream_z (\2 + 3-byte compressed size).
-  Bytes wrapped;
-  wrapped.push_back(0x02);
-  wrapped.push_back((uint8_t)(csz & 0xFF));
-  wrapped.push_back((uint8_t)((csz >> 8) & 0xFF));
-  wrapped.push_back((uint8_t)((csz >> 16) & 0xFF));
-  wrapped.insert(wrapped.end(), compressed.begin(), compressed.end());
-
-  DataBlock blk;
-  InPlaceMemLoadCB crd(wrapped.data(), (int)wrapped.size());
-  bool ok = dblk::load_from_stream(blk, crd, dblk::ReadFlag::ROBUST, "valid_zstd.blk");
-  REQUIRE(ok == true);
-  CHECK(blk.paramCount() == 1);
-  REQUIRE(blk.getParamName(0) != nullptr);
-  CHECK(strcmp(blk.getParamName(0), "a") == 0);
-  CHECK(blk.getInt(0) == 42);
+    for (dblk::ReadFlags flags : robust_and_default)
+    {
+      DataBlock blk;
+      InPlaceMemLoadCB crd(wrapped.data(), (int)wrapped.size());
+      REQUIRE(dblk::load_from_stream(blk, crd, flags, "valid_zstd.blk"));
+      CHECK(blk.paramCount() == 1);
+      REQUIRE(blk.getParamName(0) != nullptr);
+      CHECK(strcmp(blk.getParamName(0), "a") == 0);
+      CHECK(blk.getInt(0) == 42);
+    }
+  }
 }

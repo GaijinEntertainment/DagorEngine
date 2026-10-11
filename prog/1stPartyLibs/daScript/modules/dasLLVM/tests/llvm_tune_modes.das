@@ -24,24 +24,21 @@ def test_llvm_tune_grid_mode(t : T?) {
     let args <- get_command_line_arguments()  // locked view — do not delete
     let bin = args[0]
     let client = "{get_this_module_dir()}/llvm_tune_modes_client.das"
-    let inner = "\"{bin}\" -jit \"{client}\""
+    let inner = "\"{bin}\" -no-module-cache -jit -jit-no-cache \"{client}\""
     // popen goes through cmd.exe / /bin/sh — set the env inside the command line
     let cmd = get_platform_name() == "windows" ? "set DAS_TUNE_MODE=test&& {inner}" : "DAS_TUNE_MODE=test {inner}"
     var lines : array<string>
-    var rc : int
-    unsafe {
-        rc = popen_timeout(cmd, 300.0) $(f) {
-            if (f == null) {
-                return
-            }
-            while (!feof(f)) {
-                let ln = fgets(f)
-                if (ln |> starts_with("VARIANT ") || ln |> starts_with("KVARIANT ")) {
-                    lines |> push("{ln}")
-                }
+    let rc = unsafe(popen_timeout(cmd, 300.0) $(f) {
+        if (f == null) {
+            return
+        }
+        while (!feof(f)) {
+            let ln = fgets(f)
+            if (ln |> starts_with("VARIANT ") || ln |> starts_with("KVARIANT ")) {
+                lines |> push("{ln}")
             }
         }
-    }
+    })
     t |> equal(rc, 0)
     var seen : table<string>
     for (ln in lines) {

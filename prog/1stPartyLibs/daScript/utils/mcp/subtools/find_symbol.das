@@ -98,7 +98,7 @@ def write_handled_fields_highlighted(var w : StringBuilderWriter; value : Annota
     }
 }
 
-def search_module(var results : array<string>; var total_found : int&; mname : string; mod : Module?; query : string; kind : string; with_cpp_source : bool; cpp_dirs : array<string>; cpp_entries : array<CppMatch>) {
+def search_module(var results : array<string>; var total_found : int&; mname : string; mod : Module?; query : string; kind : string; with_cpp_source : bool; cpp_dirs : array<string>; cpp_entries : array<CppMatch>) { // nolint:STYLE038 — one arm per API section kind, uniform shape
     let dname = module_display_name(mname)
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "function")) {
         for_each_function(mod, "") $(func) {
@@ -234,11 +234,8 @@ def run_find_symbol(query : string; kind : string = ""; file : string = ""; proj
     // for every per-symbol redirect lookup. The previous code re-scanned
     // inside cpp_lookup_by_name_scoped on every match — up to MAX_FIND_RESULTS
     // (50) rescans of the same dirs per query.
-    var cpp_entries : array<CppMatch>
-    if (with_cpp_source && !empty(cpp_dirs)) {
-        var err : string
-        cpp_entries <- cpp_run_scan(cpp_dirs, "", err)
-    }
+    var err : string
+    let cpp_entries <- (with_cpp_source && !empty(cpp_dirs)) ? cpp_run_scan(cpp_dirs, "", err) : default<array<CppMatch>>
     if (!empty(file)) {
         return compile_and_simulate(file, project) $(program; _issues) {
             var results : array<string>

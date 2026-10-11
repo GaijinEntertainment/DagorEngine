@@ -13,13 +13,32 @@ let public DATA_BLOCK_SID = 0xB10CDA7Aul
 [block_macro(name="data_block")]
 class DataBlockAnnotation : AstBlockAnnotation {
     def override apply(var blk : ExprBlock?; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         return true
     }
     def override finish(var blk : ExprBlock?; var group : ModuleGroup;
-                        args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+                        var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         blk.annotationData = DATA_BLOCK_PAYLOAD
         blk.annotationDataSid = DATA_BLOCK_SID
+        return true
+    }
+}
+
+//! `finish` turns the block's `return 0` into `return 1`: a lambda leaves no runtime block to read,
+//! so the rewritten constant is how a test sees that finish reached a lambda's block.
+[block_macro(name="finish_mark")]
+class FinishMarkAnnotation : AstBlockAnnotation {
+    def override apply(var blk : ExprBlock?; var group : ModuleGroup;
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
+        return true
+    }
+    def override finish(var blk : ExprBlock?; var group : ModuleGroup;
+                        var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+        for (e in blk.list) {
+            if (e is ExprReturn && (e as ExprReturn).subexpr is ExprConstInt) {
+                ((e as ExprReturn).subexpr as ExprConstInt).value = 1
+            }
+        }
         return true
     }
 }

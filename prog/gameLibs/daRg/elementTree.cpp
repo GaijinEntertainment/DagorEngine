@@ -400,7 +400,8 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
   StringKeys *csk = guiScene->getStringKeys();
 
   const int inputBehaviorFlags = Behavior::F_HANDLE_JOYSTICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE |
-                                 Behavior::F_HANDLE_TOUCH | Behavior::F_CAN_HANDLE_CLICKS | Behavior::F_FOCUS_ON_CLICK;
+                                 Behavior::F_HANDLE_TOUCH | Behavior::F_CAN_HANDLE_CLICKS | Behavior::F_FOCUS_ON_CLICK |
+                                 Behavior::F_HANDLE_TOUCH_PAD_GESTURE;
 
   bool wasHidden = existing && existing->isHidden();
   bool hadTransitions = existing && !existing->transitions.empty();

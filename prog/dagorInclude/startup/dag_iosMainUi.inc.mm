@@ -13,6 +13,7 @@
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_dbgStr.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <osApiWrappers/dag_iosWindowScene.h>
 #include <drv/hid/dag_hiCreate.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <util/dag_string.h>
@@ -51,6 +52,7 @@ UIViewController *storedMainViewCtrl;
 
 const int EDIT_FIELD_HEIGHT = 44;
 const float EDIT_FIELD_WIDTH_SCALE = 0.75f;
+const float EDIT_FIELD_MARGIN = 8.0f;
 
 void (*dagor_ios_active_status_handler)(bool isVisible) = nullptr;
 static apple_events_callback_with_dictionary g_onDidFinishLaunchingWithOptionsFunc = NULL;
@@ -114,7 +116,9 @@ UIInterfaceOrientation getAppOrientation() { return g_app_orientation; }
 
 void setUIInterfaceOrientationFromActiveWindow()
 {
-  UIWindowScene *activeWindow = (UIWindowScene *)[[[UIApplication sharedApplication] windows] firstObject];
+  UIWindowScene *activeWindow = ios_get_window_scene();
+  if (!activeWindow)
+    activeWindow = (UIWindowScene *)[[[UIApplication sharedApplication] windows] firstObject];
   if (activeWindow)
   {
     g_app_orientation = [activeWindow interfaceOrientation];
@@ -145,7 +149,7 @@ void setWaitForUIEvents(bool wait)
   g_ios_wait_for_ui_events = wait;
 }
 
-int ios_get_maximum_frames_per_second() { return [UIScreen mainScreen].maximumFramesPerSecond; }
+int ios_get_maximum_frames_per_second() { return ios_get_screen().maximumFramesPerSecond; }
 
 void runIOSRunloop(const eastl::function<void()> &callback)
 {
@@ -239,7 +243,11 @@ NSString *appName;
 
 - (NSUInteger)supportedInterfaceOrientations
 {
+#if _TARGET_IOS
+  return UIInterfaceOrientationMaskAll;
+#else
   return UIInterfaceOrientationMaskLandscape;
+#endif
 }
 - (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
 {
@@ -313,6 +321,7 @@ NSString *appName;
   UIBarButtonItem *editDoneButton;
   BOOL kbdVisible;
   NSInteger maxChars;
+  CGFloat kbdHeight;
   int mousePtrIdx;
 }
 #else
@@ -350,7 +359,7 @@ NSString *appName;
 {
   self.opaque = YES;
   self.backgroundColor = nil;
-  self.contentScaleFactor = [UIScreen mainScreen].nativeScale;
+  self.contentScaleFactor = ios_get_screen().nativeScale;
 
 #if _TARGET_IOS
   [self initializeKeyboard];
@@ -369,6 +378,12 @@ NSString *appName;
 - (void)didMoveToWindow
 {
   self.contentScaleFactor = self.window.screen.nativeScale;
+}
+
+- (void)setContentScaleFactor:(CGFloat)contentScaleFactor
+{
+  [super setContentScaleFactor:contentScaleFactor];
+  self.scale = self.contentScaleFactor;
 }
 
 - (id)initWithFrame:(CGRect)frame
@@ -466,10 +481,9 @@ NSString *appName;
 
 - (void)initializeKeyboard
 {
+  const CGSize screenSize = ios_get_screen().bounds.size;
 
-  CGRect applicationFrame = [[UIScreen mainScreen] applicationFrame];
-
-  editField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, applicationFrame.size.width * EDIT_FIELD_WIDTH_SCALE, EDIT_FIELD_HEIGHT)] autorelease];
+  editField = [[[UITextField alloc] initWithFrame:CGRectMake(0, 0, screenSize.width * EDIT_FIELD_WIDTH_SCALE, EDIT_FIELD_HEIGHT)] autorelease];
   editField.delegate = self;
   editField.text = @" ";
   editField.font = [UIFont systemFontOfSize:14.0];
@@ -482,7 +496,7 @@ NSString *appName;
   editField.secureTextEntry = NO;
   editField.borderStyle = UITextBorderStyleRoundedRect;
 
-  editToolbar = [[[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, EDIT_FIELD_HEIGHT)] autorelease];
+  editToolbar = [[[UIToolbar alloc] initWithFrame:CGRectMake(0, 0, screenSize.width, EDIT_FIELD_HEIGHT)] autorelease];
   editDoneButton = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                                                               target:self
                                                               action:@selector(doneClicked)] autorelease];
@@ -492,7 +506,7 @@ NSString *appName;
   editToolbar.items = @[ flexibleSpace, editDoneButton ];
   [editToolbar sizeToFit];
 
-  editBG = [[[UIButton alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, [[UIScreen mainScreen] bounds].size.height)] autorelease];
+  editBG = [[[UIButton alloc] initWithFrame:CGRectMake(0, 0, screenSize.width, screenSize.height)] autorelease];
   [editBG addTarget:self action:@selector(hideKeyboard) forControlEvents:UIControlEventTouchUpInside];
   editBG.backgroundColor = [UIColor blackColor];
   editBG.alpha = .4;
@@ -501,6 +515,10 @@ NSString *appName;
   [[NSNotificationCenter defaultCenter] addObserver:self
                                         selector:@selector(keyboardWillShow:)
                                         name:UIKeyboardWillShowNotification
+                                        object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                        selector:@selector(keyboardWillChangeFrame:)
+                                        name:UIKeyboardWillChangeFrameNotification
                                         object:nil];
 }
 
@@ -555,30 +573,70 @@ NSString *appName;
 
 - (void)keyboardWillShow:(NSNotification *)notification
 {
-  UIViewController *root = getMainController();
-  if (root != nil && editField != nil)
+  NSValue *keyboardFrameValue = [[notification userInfo] objectForKey:UIKeyboardFrameEndUserInfoKey];
+  kbdHeight = [keyboardFrameValue CGRectValue].size.height;
+  [self layoutKeyboardControls];
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification *)notification
+{
+  if (kbdVisible)
+    [self keyboardWillShow:notification];
+}
+
+static CGFloat toolbar_items_min_x(UIToolbar *toolbar, UIView *space, CGFloat fallback)
+{
+  CGFloat minX = fallback;
+  NSMutableArray<UIView *> *stack = [NSMutableArray arrayWithArray:toolbar.subviews];
+  while (stack.count)
   {
-    NSDictionary *userInfo = [notification userInfo];
-    NSValue *keyboardFrameValue = [userInfo objectForKey:UIKeyboardFrameEndUserInfoKey];
-    CGRect keyboardFrame = [keyboardFrameValue CGRectValue];
+    UIView *view = stack.lastObject;
+    [stack removeLastObject];
+    if (view.hidden)
+      continue;
+    if ([view isKindOfClass:[UIControl class]])
+      minX = fmin(minX, [view convertRect:view.bounds toView:space].origin.x);
+    else
+      [stack addObjectsFromArray:view.subviews];
+  }
+  return minX;
+}
 
-    UIWindow *window = UIApplication.sharedApplication.keyWindow;
-    CGRect safeArea = window.safeAreaLayoutGuide.layoutFrame;
-    CGSize screenSize = UIScreen.mainScreen.bounds.size;
+- (void)layoutKeyboardControls
+{
+  UIViewController *root = getMainController();
+  if (root == nil || editField == nil)
+    return;
 
-    CGRect editFieldFrame = editField.frame;
-    editFieldFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editFieldFrame.size.height;
-    editFieldFrame.origin.x = ((root.view.bounds.size.width - editFieldFrame.size.width) / 2);
-    editFieldFrame.size.width = screenSize.width * EDIT_FIELD_WIDTH_SCALE - safeArea.origin.x * 2;
+  const CGRect bounds = root.view.bounds;
+  const UIEdgeInsets safeInsets = root.view.safeAreaInsets;
+
+  [UIView performWithoutAnimation:^{
+    editBG.frame = bounds;
 
     CGRect editToolbarFrame = editToolbar.frame;
-    editToolbarFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editToolbarFrame.size.height;
+    editToolbarFrame.origin.y = bounds.size.height - kbdHeight - editToolbarFrame.size.height;
+    editToolbarFrame.size.width = bounds.size.width;
+    editToolbar.frame = editToolbarFrame;
+    [editToolbar layoutIfNeeded];
 
-    [UIView performWithoutAnimation:^{
-      editField.frame = editFieldFrame;
-      editToolbar.frame = editToolbarFrame;
-    }];
-  }
+    const CGFloat fieldAreaLeft = safeInsets.left + EDIT_FIELD_MARGIN;
+    const CGFloat fieldAreaRight =
+      toolbar_items_min_x(editToolbar, root.view, bounds.size.width - safeInsets.right) - EDIT_FIELD_MARGIN;
+    CGRect editFieldFrame = editField.frame;
+    editFieldFrame.size.width = fmin(bounds.size.width * EDIT_FIELD_WIDTH_SCALE - safeInsets.left - safeInsets.right,
+      fieldAreaRight - fieldAreaLeft);
+    editFieldFrame.origin.x = fieldAreaLeft + (fieldAreaRight - fieldAreaLeft - editFieldFrame.size.width) / 2;
+    editFieldFrame.origin.y = bounds.size.height - kbdHeight - editFieldFrame.size.height;
+    editField.frame = editFieldFrame;
+  }];
+}
+
+- (void)layoutSubviews
+{
+  [super layoutSubviews];
+  if (kbdVisible)
+    [self layoutKeyboardControls];
 }
 
 - (void)showKeyboard
@@ -586,6 +644,7 @@ NSString *appName;
   UIViewController *root = getMainController();
   if (root != nil && !kbdVisible)
   {
+    editBG.frame = root.view.bounds;
     [root.view addSubview:editBG];
     [root.view addSubview:editToolbar];
     [root.view addSubview:editField];
@@ -702,22 +761,18 @@ void HumanInput::showScreenKeyboardIME_iOS(const char *text, const char *hint, u
 
 UIWindow *createIOSDagorWindow(UIView *drawView, float scale)
 {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000
-  CGRect rect = [[UIScreen mainScreen] bounds];
-#else
-  CGRect rect = [[UIScreen mainScreen] applicationFrame];
-#endif
-
-#if _TARGET_IOS
-  [UIApplication sharedApplication].statusBarHidden = YES;
-#endif
-  UIWindow *mainwnd = [[UIWindow alloc] initWithFrame:rect];
+  UIWindowScene *scene = ios_get_window_scene();
+  UIWindow *mainwnd = scene ? [[UIWindow alloc] initWithWindowScene:scene] : [[UIWindow alloc] initWithFrame:ios_get_screen().bounds];
+  CGRect rect = mainwnd.bounds;
+  if ([scene.delegate respondsToSelector:@selector(setWindow:)])
+    [(id<UIWindowSceneDelegate>)scene.delegate setWindow:mainwnd];
 
   DagorView *mainview = [[DagorView alloc] initWithFrame:rect];
+  mainview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+  drawView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
   [mainview addSubview:drawView];
   [mainwnd addSubview:mainview];
   mainview.mainwnd = mainwnd;
-  mainview.scale = scale;
 
 #if _TARGET_IOS
   DagorViewCtrl *mainviewctrl = [[DagorViewCtrl alloc] init];
@@ -926,6 +981,7 @@ extern "C" void dagor_ios_delegate_init()
 extern "C" void dagor_ios_delegate_main(id delegate)
 {
   DEBUG_CP();
+  ios_wait_for_window_scene();
   [delegate performSelector:@selector(createDisplayLink)];
   int res = DagorWinMain(0, 0);
   DEBUG_CP();
@@ -1157,6 +1213,53 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 }
 @end
 
+#if _TARGET_IOS
+// with a scene manifest in Info.plist UIKit sends the activation, URL and user activity events to the scene
+// delegate and not to the app delegate
+@interface DagorSceneDelegate : UIResponder <UIWindowSceneDelegate>
+@property(nonatomic, retain) UIWindow *window;
+@end
+
+@implementation DagorSceneDelegate
+
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions
+{
+  DEBUG_CP();
+  [self scene:scene openURLContexts:connectionOptions.URLContexts];
+  for (NSUserActivity *activity in connectionOptions.userActivities)
+    [self scene:scene continueUserActivity:activity];
+}
+
+- (void)sceneWillResignActive:(UIScene *)scene
+{
+  dagor_ios_delegate_applicationWillResignActive([UIApplication sharedApplication]);
+}
+
+- (void)sceneDidBecomeActive:(UIScene *)scene
+{
+  dagor_ios_delegate_applicationDidBecomeActive([UIApplication sharedApplication]);
+}
+
+- (void)scene:(UIScene *)scene openURLContexts:(NSSet<UIOpenURLContext *> *)URLContexts
+{
+  for (UIOpenURLContext *context in URLContexts)
+    dagor_ios_delegate_openURL([UIApplication sharedApplication], context.URL, context.options.sourceApplication,
+      context.options.annotation);
+}
+
+- (void)scene:(UIScene *)scene continueUserActivity:(NSUserActivity *)userActivity
+{
+  dagor_ios_delegate_continueUserActivity([UIApplication sharedApplication], userActivity, nil);
+}
+
+- (void)dealloc
+{
+  [_window release];
+  [super dealloc];
+}
+@end
+#endif
+
 @implementation Dagor2_AppDelegate
 
 + (Dagor2_AppDelegate *)sharedAppDelegate
@@ -1259,6 +1362,17 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 {
   return dagor_ios_delegate_continueUserActivity(application, userActivity, restorationHandler);
 }
+
+#if _TARGET_IOS
+- (UISceneConfiguration *)application:(UIApplication *)application
+  configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
+                                 options:(UISceneConnectionOptions *)options
+{
+  UISceneConfiguration *config = [UISceneConfiguration configurationWithName:nil sessionRole:connectingSceneSession.role];
+  config.delegateClass = [DagorSceneDelegate class];
+  return config;
+}
+#endif
 
 - (void)dealloc
 {

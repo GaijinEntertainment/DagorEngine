@@ -256,18 +256,20 @@ static void water_flowmap_foam_2_es_event_handler(const ecs::Event &, FFTWater &
 }
 
 ECS_ON_EVENT(on_appear, EventLevelLoaded)
-ECS_TRACK(water__wind_dir, water__strength, water__oneToFourFFTPeriodicDivisor)
+ECS_TRACK(water__wind_dir, water__strength, water__oneToFourFFTPeriodicDivisor, water__detail_presets)
 static void water_strength_es_event_handler(const ecs::Event &,
   FFTWater &water,
   float water__wind_dir,
   float water__strength,
   int water__max_tessellation,
-  float water__oneToFourFFTPeriodicDivisor = 1.0f)
+  float water__oneToFourFFTPeriodicDivisor = 1.0f,
+  bool water__detail_presets = false)
 {
   float windDirX = cosf(DegToRad(water__wind_dir)), windDirZ = sinf(DegToRad(water__wind_dir));
   fft_water::set_wind(&water, water__strength, Point2(windDirX, windDirZ));
 
-  fft_water::apply_wave_preset(&water, water__strength, Point2(windDirX, windDirZ), fft_water::Spectrum::PHILLIPS);
+  fft_water::apply_wave_preset(&water, water__strength, Point2(windDirX, windDirZ),
+    water__detail_presets ? fft_water::WavePresetTable::PHILLIPS_DETAIL : fft_water::WavePresetTable::PHILLIPS);
 
   if (fft_water::one_to_four_render_enabled(&water))
     // scale FFT period down so 0 cascade have something, instead of being empty

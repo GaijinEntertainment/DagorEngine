@@ -1141,7 +1141,8 @@ void PictureManager::prepare_to_release(bool final_term)
   AsyncPicLoadJob::loadAllowed = false;
   if (asyncLoadJobMgr >= 0)
   {
-    cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'));
+    cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'), false);
+    cpujobs::release_done_jobs();
     while (interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
     {
       sleep_msec(1);
@@ -1177,7 +1178,8 @@ void PictureManager::release()
 
   if (asyncLoadJobMgr >= 0)
   {
-    cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'));
+    cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'), false);
+    cpujobs::release_done_jobs();
     while (interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
     {
       sleep_msec(1);
@@ -1245,7 +1247,8 @@ void PictureManager::before_d3d_reset()
     debug("PM: before d3d reset, wait for %d async jobs", interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight));
     d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
     d3d::driver_command(Drv3dCommand::RELEASE_LOADING, (void *)1); // unlockWrite
-    cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'));
+    cpujobs::remove_jobs_by_tag(asyncLoadJobMgr, _MAKE4C('PICM'), false);
+    cpujobs::release_done_jobs();
     while (interlocked_acquire_load(AsyncPicLoadJob::numJobsInFlight))
     {
       sleep_msec(10);
@@ -2007,11 +2010,8 @@ void PictureManager::AsyncPicLoadJob::loadPicInAtlas()
         tmd.flags |= tmd.FLG_PREMUL_A;
       else
         tmd.flags &= ~tmd.FLG_PREMUL_A;
-      int flags = TEXCF_SYSMEM | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT;
-#if _TARGET_C1
-
-#endif
-      pic_tex.reset(create_texture_via_factories(dec_name, flags, 1, dd_get_fname_ext(dec_name), tmd, NULL));
+      pic_tex.reset(create_texture_via_factories(dec_name, TEXCF_SYSMEM | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT, 1,
+        dd_get_fname_ext(dec_name), tmd, NULL));
     }
   }
 

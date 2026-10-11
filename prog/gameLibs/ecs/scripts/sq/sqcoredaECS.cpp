@@ -222,7 +222,7 @@ struct VmExtraData
     int vmedSlotId = -1;
     int cbSlotId = -1;
     PendingCreationCbRef(uint16_t id_, int vi, int ci) : id(id_), vmedSlotId(vi), cbSlotId(ci) {}
-    PendingCreationCbRef(PendingCreationCbRef &&other)
+    PendingCreationCbRef(PendingCreationCbRef &&other) noexcept
     {
       memcpy(this, &other, sizeof(other));
       other.vmedSlotId = -1;
@@ -3515,7 +3515,7 @@ SQInteger SqQuery::perform(HSQUIRRELVM vm) //-V688
       qd.filterToUse = &sqQuery.filterExpr;
   }
 
-  ecs::stoppable_query_cb_t queryCb = [&qd, &sqQuery](const ecs::QueryView &__restrict qv) {
+  auto queryCb = [&qd, &sqQuery](const ecs::QueryView &__restrict qv) {
     if (!qd.scriptRes.IsNull())
       return ecs::QueryCbResult::Stop;
 
@@ -3552,7 +3552,7 @@ SQInteger SqQuery::perform(HSQUIRRELVM vm) //-V688
   if (isSingleEntity)
     ecs::perform_query(g_entity_mgr, singleEid, sqQuery.qid, queryCb);
   else
-    ecs::perform_query(g_entity_mgr, sqQuery.qid, queryCb);
+    ecs::perform_query(g_entity_mgr, sqQuery.qid, ecs::stoppable_query_cb_t(queryCb));
 
   sq_pushobject(vm, qd.scriptRes.GetObject());
 

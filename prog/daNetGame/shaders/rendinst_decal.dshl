@@ -67,7 +67,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
   if (shader == rendinst_blend_diffuse_decal)
   {
     RENDINST_OVERLAY_COLOR_MAP(vs, false , get_paint_palette_row_index().x)
-    INIT_DECAL_PAINTED()
+    CONDITIONAL_INIT_DECAL_PAINTED()
   }
 
   ENABLE_MULTI_DRAW(false)
@@ -312,7 +312,7 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
   if (shader == rendinst_deferred_decal)
   {
     RENDINST_OVERLAY_COLOR_MAP(vs, false, get_paint_palette_row_index().x)
-    INIT_DECAL_PAINTED()
+    CONDITIONAL_INIT_DECAL_PAINTED()
   }
 
   ENABLE_MULTI_DRAW(false)

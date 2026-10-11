@@ -51,44 +51,9 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
         _isAsync = false;
         _outers = 0;
         _hoistLevel = 0;
-        _staticmemos_count = 0;
         _ss = ss;
         _result_type_mask = ~0u;
         lang_features = parent ? parent->lang_features : ss->defaultLangFeatures;
-}
-
-void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
-{
-    for (int i = 0; i < func->_nfunctions; i++) {
-        SQObjectPtr &f = func->_functions[i];
-        assert(sq_isfunction(f));
-        ResetStaticMemos(_funcproto(f), ss);
-    }
-
-    if (func->_nstaticmemos) {
-        SQInstruction* instr = func->_instructions;
-        int count = func->_ninstructions;
-
-        for (int i = 0; i < count; i += sq_opcode_length(instr[i].op)) {
-            if (instr[i].op == _OP_LOAD_STATIC_MEMO) {
-                SQInteger staticIdx = instr[i]._arg1;
-                assert(unsigned(staticIdx) < func->_nstaticmemos);
-                SQObjectPtr& storedStatic = func->_staticmemos[staticIdx];
-
-                if (ISREFCOUNTED(sq_type(storedStatic))) {
-                #ifdef NO_GARBAGE_COLLECTOR
-                    assert(storedStatic._unVal.pRefCounted->_uiRef > 1);
-                    __Release(storedStatic._type, storedStatic._unVal);
-                #else
-                    ss->_refs_table.Release(storedStatic);
-                #endif
-                }
-
-                func->_staticmemos[staticIdx].Null();
-                instr[i].op = _OP_DATA_NOP;
-            }
-        }
-    }
 }
 
 
@@ -605,8 +570,7 @@ SQFunctionProto *SQFuncState::BuildProto()
 
     SQFunctionProto *f=SQFunctionProto::Create(_ss,lang_features,_instructions.size(),
         _nliterals,_parameters.size(),_functions.size(),_outervalues.size(),
-        _full_line_infos.size(),useCompressedLineInfos,_localvarinfos.size(),_defaultparams.size(),
-        _staticmemos_count);
+        _full_line_infos.size(),useCompressedLineInfos,_localvarinfos.size(),_defaultparams.size());
 
     SQObjectPtr refidx,key,val;
     SQInteger idx;

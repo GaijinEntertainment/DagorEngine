@@ -1,0 +1,33 @@
+include "bvh.dshl"
+include "rtss_trace_common.dshl"
+include "rtss_trace_hmap.dshl"
+
+shader rtss_trace_hwrt_cs
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
+  {
+    dont_render;
+  }
+  RTSS_TRACE_TEXEL(cs)
+  RTSS_TRACE_HMAP(cs)
+  INIT_MAIN_BVH(cs, 0, false) // constraint: coherent rays are wave32 only on Scarlett, and a job group is 64 threads
+  USE_BVH_FOR_SHADOW(cs, false)
+  hlsl(cs) {
+    [numthreads(RTSS_BUILD_GROUP, 1, 1)]
+    void rtss_trace_hwrt(uint3 gid : SV_GroupID, uint tid : SV_GroupThreadID)
+    {
+      RtssTraceTexel tx;
+      if (!rtss_trace_texel(gid.x, tid, tx))
+        return;
+      float t = tx.t;
+      // closest hit on the main TLAS, two-sided, with its alpha test; the origin is on the start plane
+      HitInfo hitInfo;
+      if (bvhMainValid) // constraint: dsc2 HLSL 2018 runs both sides of &&
+        if (trace_ray(bvhMain, tx.origin - bvh_origin, tx.dir, 0, t, 0, bvhGroupHardShadow, hitInfo))
+          t = hitInfo.t;
+      rtss_trace_hmap(tx.origin, tx.dir, t);
+      rtss_trace_store(tx, t);
+    }
+  }
+  compile("cs_6_5", "rtss_trace_hwrt");
+}

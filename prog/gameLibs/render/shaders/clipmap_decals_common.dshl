@@ -1,0 +1,70 @@
+macro USE_CLIPMAP_DECALS_DEFAULT_VERTEX_SHADING(code, is_tex_array)
+hlsl(code)
+{
+  #define NUM_CONSTS_PER_INST 3
+
+  struct DecalsVertexData
+  {
+    float2 vertexPos;
+    float2 worldPosXZ;
+    float3 diffuseTexcoord;
+    float maxBaseLen;
+    float4 tangent;
+    float4 displacementMaskParams;
+  };
+
+  DecalsVertexData clipmap_decals_default_vertex_shading(Buffer<float4> buf, uint vertex_id, float decal_size_scale)
+  {
+    uint instanceId = vertex_id/4;
+    uint vertex = vertex_id%4;
+
+    float2 pos = int2(vertex % 2, vertex / 2);
+    FLATTEN
+    if ((vertex/2)%2 == 1)
+      pos.x = 1-pos.x;
+
+    pos = 2*pos-1;
+
+    float4 pData1 = loadBuffer(buf, instanceId*NUM_CONSTS_PER_INST+0);
+    float4 pData2 = loadBuffer(buf, instanceId*NUM_CONSTS_PER_INST+1);
+    float4 pData3 = loadBuffer(buf, instanceId*NUM_CONSTS_PER_INST+2);
+
+    float2 localX = float2(pData1.x, pData1.y) * decal_size_scale;
+    float2 localZ = float2(pData1.z, pData1.w) * decal_size_scale;
+
+    DecalsVertexData data;
+
+    data.vertexPos = pos;
+    data.worldPosXZ = float2(pData3.x, pData3.y) + pos.x*localX + pos.y*localZ;
+
+    data.diffuseTexcoord.xy = 0.5*(pos.xy+1);
+    data.diffuseTexcoord.x = lerp(pData2.x, pData2.z, data.diffuseTexcoord.x);
+    ##if !(is_tex_array)
+      data.diffuseTexcoord.y = lerp(pData2.y, pData2.w, data.diffuseTexcoord.y);
+      data.diffuseTexcoord.z = 0;
+    ##else
+      data.diffuseTexcoord.y = data.diffuseTexcoord.y;
+      data.diffuseTexcoord.z = pData2.y;
+    ##endif
+
+    float2 basesLen = float2(length(localX), length(localZ));
+    data.maxBaseLen = max(basesLen.x, basesLen.y);
+
+    data.tangent.xy = normalize(localX);
+    // for mirrored decals
+    data.tangent.xy = pData2.x > pData2.z ? -data.tangent.xy : +data.tangent.xy;
+    data.tangent.zw = normalize(localZ);
+
+    uint displacementMaskSize = pData3.z;
+    // Displacement mask is not scaled by decal_size_scale and not rotated.
+    float2 displacementMaskCoord = pos * displacementMaskSize * decal_size_scale;
+    displacementMaskCoord = (displacementMaskCoord.x * normalize(localX) +
+                            displacementMaskCoord.y * normalize(localZ) +
+                            displacementMaskSize - 1) * 0.5;
+    data.displacementMaskParams = float4(displacementMaskCoord.xy,
+                                        instanceId, displacementMaskSize);
+
+    return data;
+  }
+}
+endmacro

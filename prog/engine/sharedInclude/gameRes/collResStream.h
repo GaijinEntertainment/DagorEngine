@@ -3,10 +3,13 @@
 
 #include <gameRes/dag_collisionResource.h>
 
-// The persisted records of the collision resource stream (label 0xACE50000 | COLLRES_STREAM_VERSION):
-// explicit little-endian structs with no implicit padding, content only. Body = the header, the
-// bind records, the Data arrays in ArrayId order, then optional tail records.
+// The persisted records of the collision resource stream (label COLLRES_STREAM_MAGIC |
+// COLLRES_STREAM_VERSION): explicit little-endian structs with no implicit padding, content only.
+// Body = the header, the bind records, the Data arrays in ArrayId order, then optional tail records.
 
+inline constexpr uint32_t COLLRES_STREAM_MAGIC = CollisionGameResClassId;
+inline constexpr uint32_t COLLRES_STREAM_MAGIC_MASK = 0xFFFF0000u;
+inline constexpr uint32_t COLLRES_STREAM_VERSION_MASK = 0xFFFFu;
 inline constexpr uint32_t COLLRES_STREAM_VERSION = 3;
 inline constexpr uint32_t COLLRES_STREAM_ARRAYS = 11; // Data's ArrayIds before NODE_ORDER, pinned by the loader
 inline constexpr uint64_t MAX_COLLRES_BLOCK_BYTES = 256u << 20;

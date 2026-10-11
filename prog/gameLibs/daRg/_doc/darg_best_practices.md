@@ -2,8 +2,10 @@
 
 This document distills recurring bugs and anti-patterns found by analyzing
 ~1000 bug-fix and optimization commits across several daRg-based game UIs.
-It is written as review context: load it when writing or reviewing any
-daRg/Quirrel UI code.
+It is written as review context. A review of daRg/Quirrel UI code loads it
+whole; an edit loads section 10 and the theme it touches, as AGENTS.md says.
+The lint `prog/utils/darg_analyzer/darg_lint` finds many of these mistakes,
+and `prog/utils/darg_analyzer/README.md` is the guide to a sweep with it.
 
 daRg is Dagor's reactive GUI framework. UI is described by components:
 plain Quirrel tables, or builder functions returning tables. Reactivity
@@ -15,6 +17,19 @@ Rules are grouped by theme. Each theme lists what to look for when
 reviewing. Frequency notes ("seen repeatedly") reflect how often the
 mistake appeared in real commit history.
 
+The ten themes, so an edit can pick its section without reading the file:
+
+1. Keep component builders pure
+2. `watch` must exactly match what the builder reads
+3. Reading and writing observables correctly
+4. Computed discipline
+5. Subscription, timer, and lifecycle hygiene
+6. Performance
+7. Quirrel language traps
+8. Layout and behavior misuse
+9. State management patterns
+10. Reviewer checklist
+
 ## 1. Keep component builders pure
 
 A builder function re-runs on every change of any observable in its
@@ -23,10 +38,9 @@ return a description" is a bug waiting to fire at unpredictable times.
 
 ### Do not create timers, subscriptions, or requests in a builder body
 
-Seen repeatedly, with severe symptoms: leaked subscribers accumulating
-until the FRP subscriber-queue cap logs an error and drops calls, per-frame
-rebuild loops,
-timers re-armed on every rebuild, duplicate network requests.
+Seen repeatedly, with severe symptoms: leaked subscribers (each rebuild
+adds one more, and all of them run on each change), per-frame rebuild
+loops, timers re-armed on every rebuild, duplicate network requests.
 
 ```quirrel
 // WRONG: re-armed and re-subscribed on every rebuild
@@ -113,11 +127,20 @@ key) or, worse, hits and returns a description frozen at old observable
 values. Memoize only pure functions of plain values, and key the cache on
 every input that affects the result.
 
+Call `memoize()` one time, at module scope: each call makes a new cache
+that the process keeps, so a `memoize()` in a function body makes one more
+cache on each call. A cache is dropped whole when it grows past its cap
+(and by `clearMemoizeCaches`), so never memoize a record that holds state:
+a `Watched`, a subscription, or onAttach/onDetach bookkeeping. Keys that
+grow with play make the cache grow too. A memo of a function with no
+parameters keeps its one value in a local, which nothing ever drops.
+
 Review checklist for this theme: any call in a builder body that is not a
 read or a pure computation; `subscribe`, `setTimeout`, `setInterval`,
 `set`/`mutate`/`modify`, network/event calls; `Watched(`/`Computed(` inside
 a function that returns a component description; in-place array mutators
-on shared data; `memoize` around anything reading `.get()`.
+on shared data; `memoize` around anything reading `.get()` or making
+state, and a `memoize()` call that runs more than one time.
 
 ## 2. `watch` must exactly match what the builder reads
 
@@ -144,6 +167,14 @@ let status = @() {
 
 Helpers called from the builder count: if `mkRow(item)` reads
 `selectedId.get()`, the caller's `watch` must include `selectedId`.
+
+A missing entry can hide behind a parent. A parent rebuild calls a child
+builder again only when it gives a new function object; the same object is
+reused with no call. The UI VMs compile with closure hoisting, so an inline
+builder that uses no local of its parent is one object for all parent runs.
+A builder that is fresh only because each parent rebuild makes a new closure
+goes stale when it is hoisted to a factory or to module scope. So give
+a builder a `watch` that names all it reads before you hoist it.
 
 ### Every branch must carry the watch
 
@@ -417,6 +448,30 @@ onAttach = function() {
 }
 ```
 
+### onAttach runs one time for each element, later than its build
+
+daRg keeps an element when its own `watch` rebuilds it, also when the new
+description has another `key` or `onAttach`. A parent rebuild reuses it
+when the new description has an `onAttach`/`onDetach` of the same source
+and matches it (the same `key`; with no key, the same description table
+or the same behavior list). The script `onAttach` runs one time
+for each element, and the element keeps the `onDetach` of its last
+build. So a setup in `onAttach` that uses a value of the build (a mode,
+a kind) keeps the value of the first build. That is right for a setup
+that follows an event (a join); a setup that must follow the state runs
+again from a subscription to the observable that decides it.
+
+Script hooks (`onAttach`, `onDetach`, a recalc handler) are queued and run
+in a later update, not in the build (after the first render for an element
+that an update builds), and a `.set()` there notifies one frame later still.
+A value that `onAttach` publishes is absent from the first build,
+so each reader must watch it.
+
+A detach clears no state flag of the element. A component that keeps
+its hover state in an observable clears it in `onDetach`, or the flag stays
+set when the element goes away under the pointer (its click opens a scene
+that replaces it, or a mode flag above it hides it).
+
 ### Timers: unique ids, atomic rescheduling, cleared on teardown
 
 Duplicate-timer-id throws and leaked timers were seen repeatedly. Without
@@ -472,10 +527,39 @@ padding = [0, 5, 0, 5]                padding = const [0, 5, 0, 5]
 transform = {}                        transform = true   // cheapest way to enable transforms
 ```
 
-Prefer `const` over `static`: `const` is folded at compile time (pure calls
-with constant arguments fold too), `static` is evaluated on first use and
-cached. Both freeze a container result.
+`const` is folded at compile time (pure calls with constant arguments fold
+too) and freezes a container result.
 Hoist components that do not depend on builder inputs to module scope.
+
+Three values must stay new on each build:
+- a `hotkeys` array whose handler reads a value of the build (a builder
+  local, an entry picked by state), or that has an item with no action (it
+  takes the element's `onClick`): `Element::setup` reads `hotkeys` again
+  only when the array is not the same immutable object, so a `const` array,
+  or a frozen one made one time, keeps the handlers of the first build;
+- a description with `RtPropUpdate`: it writes into its own description;
+- a table as `key` (`key = {}`): a new key on purpose, so that the element
+  is made again (an animation starts again) on each build.
+
+Hoist to the narrowest scope that is made one time for each element:
+the factory that makes the builder. Use module scope only for a value
+with no per-element state. A component that keeps state (an `XmbNode`,
+a hover flag) must not become one object that all instances share;
+a hoisted value that the builder changes (`__update`) must be a copy.
+
+### One value where an array is not needed
+
+`watch`, `behavior` and `children` take one value as well as an array.
+`size = X` is `[X, X]`; `padding`, `margin`, `borderWidth`, `borderRadius`,
+`texOffs`, `screenOffs` and `safeAreaMargin` take 1 to 4 elements, and equal
+elements are the scalar; `pivot`, `translate` and `scale` of a `transform`
+take one number for both axes. A null is the exception: `size = null` is
+`SIZE_TO_CONTENT`, `[null, null]` is 0 pixels, and an offset array asserts
+on a null element. The array is one more allocation on each build.
+Keep `children = [x]` where x can be null in a table with no `rendObj`
+and no `size`: a non-null `children` slot counts in the gaps of its flow.
+Keep the array also where another module extends the field
+(`[...].extend(rootBase?.behavior ?? [])` throws on a single value).
 
 ### Do not hold `Picture` objects at module scope
 
@@ -612,6 +696,19 @@ use an array when duplicates are valid.
 - Key types must match: integer and string keys never collide
   (`tbl[1]` vs `tbl["1"]`), a silent never-matches bug.
 
+### `[pure]` is trusted, and the compiler acts on it
+
+The mark is not checked. Outside `const`, a call of a `[pure]` function runs
+on each call, as any call does. Under `const` (`const X = f(...)`, or an
+inline `const f(...)`) the compiler runs the call one time, when it
+compiles the module, and puts the result in the code; a container result
+is immutable. So a `[pure]` function that reads state (an observable, or a
+module table that other code changes, also through a callback) gives each
+`const` that calls it the compile-time value for good. Mark only functions
+that read their arguments and constants, or state whose change runs
+the scripts again. `[nodiscard]` is checked on natives only. A container
+that a module exports is immutable for the modules that import it.
+
 ### Misc
 
 - `@(x) function() {...}` returns a closure instead of executing; use a
@@ -651,6 +748,14 @@ use an array when duplicates are valid.
   it they overlap at the same origin.
 - Derive sizes from the observable they depend on (safe area, UI scale)
   and put that observable in `watch`; a computed-once size goes stale.
+
+### Wrong keys and values fail silently
+
+daRg reads only the keys it knows. A misspelled key (`fontsize`, `valing`,
+`line_width`) is skipped with no message, and the element draws
+with the default. `gap` takes a number (pixels) or a component put between
+the children; an array or a `flex()`/`pw()`/`ph()` value gives no gap
+and no message.
 
 ### Transforms and animations
 
@@ -751,12 +856,16 @@ Builder purity
       factory invocations of static widgets.
 - [ ] No in-place mutation (`sort`/`reverse`/`__update`) of shared or
       observable-held data in builders.
+- [ ] `memoize()` runs one time (at module scope, or in a function called
+      once), never around a record that holds state.
 
 watch correctness
 - [ ] Every `.get()` the builder (or its helpers) reads is in `watch`.
 - [ ] All return branches carry the same `watch`.
 - [ ] No container-level watch for per-item state; high-frequency sources
       wrapped in identity-stable Computeds.
+- [ ] A builder to hoist watches all it reads: a parent rebuild does not
+      call the same builder object again.
 
 FRP API use
 - [ ] No comparison/membership/indexing/calls on the observable wrapper;
@@ -775,6 +884,10 @@ Lifecycle
       detach/teardown.
 - [ ] Stable `key` on animated/stateful elements; per-scope state reset on
       scope end.
+- [ ] An `onAttach` setup that uses a value of the build and must follow
+      the state runs again when that state changes; a value published
+      in `onAttach` is watched; hover flags kept in observables are
+      cleared in `onDetach`.
 
 Language
 - [ ] No `if (x)` presence checks on numeric fields; no `&&`-as-value.
@@ -782,10 +895,17 @@ Language
 - [ ] No `in` on arrays for membership; float math for ratios; `__merge`
       over `__update` on shared tables; sorted keys where order matters;
       `?.`/defaults on any data that can be absent.
+- [ ] `[pure]` only on functions that read no state, or state whose change
+      runs the scripts again.
 
 Layout/perf
 - [ ] `const` on constant literal arrays; static parts hoisted; no
       module-scope Pictures.
+- [ ] No `const` or frozen `hotkeys` array whose handlers read the build,
+      no frozen `RtPropUpdate` description, no hoisted `key = {}`.
+- [ ] One value, not a one-element or equal-sides array (but keep
+      `children = [x]` for an x that can be null, see theme 6).
+- [ ] No misspelled description keys; `gap` is a number or a component.
 - [ ] Text has measurable bounds; sizes derived from watched observables;
       dpi-scaled sizes clamped to >= 1.
 - [ ] Pointer handling device-agnostic where gamepad is supported.

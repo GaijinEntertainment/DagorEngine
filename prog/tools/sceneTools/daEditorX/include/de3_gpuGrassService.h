@@ -48,6 +48,8 @@ struct GPUGrassDecal
   eastl::vector<eastl::pair<eastl::string, float>> channels;
 };
 
+struct IRandomGrassRenderHelper;
+
 class IGPUGrassService : public IRenderingService
 {
 public:
@@ -76,7 +78,10 @@ public:
   virtual bool findDecalId(int id) const = 0;
 
   virtual void invalidate() = 0;
+  virtual void afterD3DReset(bool full_reset) = 0;
 
   virtual void setIsSmallGrass(bool flag) = 0;
   virtual bool isSmallGrass() const = 0;
+
+  virtual IRandomGrassRenderHelper *getGrassRenderHelper() { return nullptr; }
 };

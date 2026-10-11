@@ -29,7 +29,11 @@ public:
   void setAssets(dag::Span<DagorAsset *> assets, DagorAsset *selected_asset);
   int getThumbnailImageSize() const;
   void setThumbnailImageSize(int size);
-  void updateImgui();
+
+  // can_submit_contents: whether the contents of the windows should be drawn. Basically the result of ImGui::Begin().
+  // Call updateImgui() even when ImGui::Begin() returns false.
+  // This also handles the hotkey of toggling the Asset Browser window, but only while that window is in the focus stack.
+  void updateImgui(bool can_submit_contents);
   bool isContextMenuOpen() const;
 
   PropPanel::IMenu &createContextMenu();

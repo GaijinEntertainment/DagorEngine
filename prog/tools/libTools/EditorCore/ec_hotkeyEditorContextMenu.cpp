@@ -3,6 +3,7 @@
 #include "ec_hotkeyEditorContextMenu.h"
 
 #include "ec_editorCommand.h"
+#include "ec_screenshotSettingsDialogController.h"
 #include "ec_singleHotkeyEditor.h"
 #include "ec_ViewportWindowGridSettingsDialogController.h"
 
@@ -165,6 +166,7 @@ public:
     }
 
     renderHotkeyItems();
+    renderScreenshotSettingsItem();
 
     if (snapKind.has_value() && spinControl)
     {
@@ -232,6 +234,18 @@ private:
         ec_editor_commands.resetToDefaultHotkeys(editorCommandId);
       }
     }
+  }
+
+  void renderScreenshotSettingsItem()
+  {
+    const bool isScreenshot = strcmp(editorCommandId, EditorCommandIds::CREATE_SCREENSHOT) == 0;
+    const bool isCubeScreenshot = strcmp(editorCommandId, EditorCommandIds::CREATE_CUBE_SCREENSHOT) == 0;
+    if (!isScreenshot && !isCubeScreenshot)
+      return;
+
+    ImGui::Separator();
+    if (ImGui::MenuItem(isCubeScreenshot ? "Open cube screenshot settings..." : "Open screenshot settings..."))
+      ec_show_screenshot_settings_dialog(isCubeScreenshot);
   }
 
   const SimpleString editorCommandId;

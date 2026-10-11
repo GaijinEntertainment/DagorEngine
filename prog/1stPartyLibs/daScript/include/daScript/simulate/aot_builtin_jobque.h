@@ -50,7 +50,7 @@ namespace das {
     public:
         template <typename TT>
         void peek ( TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
+            lock_guard guard(mCompleteMutex);
             if ( box.data ) {
                 tt(box.data, box.type, box.from);
             }
@@ -161,7 +161,7 @@ namespace das {
     public:
         template <typename TT>
         void for_each_item ( TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
+            lock_guard guard(mCompleteMutex);
             for ( auto & f : pipe ) {
                 tt(f.data, f.type, f.from ? f.from : owner);
             }
@@ -176,7 +176,7 @@ namespace das {
         void gather ( TT && tt ) {
             decltype(pipe) drained;
             {
-                lock_guard<mutex> guard(mCompleteMutex);
+                lock_guard guard(mCompleteMutex);
                 drained.swap(pipe);
             }
             for ( auto & f : drained ) {
@@ -187,7 +187,7 @@ namespace das {
         void gatherEx ( Context * ctx, TT && tt ) {
             decltype(pipe) drained;
             {
-                lock_guard<mutex> guard(mCompleteMutex);
+                lock_guard guard(mCompleteMutex);
                 for ( auto f = pipe.begin(); f != pipe.end(); ) {
                     auto itOwner = f->from ? f->from : owner;
                     if ( itOwner == ctx ) {
@@ -206,14 +206,14 @@ namespace das {
         void gather_and_forward ( Channel * that, TT && tt ) {
             decltype(pipe) drained;
             {
-                lock_guard<mutex> guard(mCompleteMutex);
+                lock_guard guard(mCompleteMutex);
                 drained.swap(pipe);
             }
             for ( auto & f : drained ) {
                 tt(f.data, f.type, f.from ? f.from : owner);
             }
             {
-                lock_guard<mutex> guard2(that->mCompleteMutex);
+                lock_guard guard2(that->mCompleteMutex);
                 for ( auto & f : drained ) {
                     that->pipe.emplace_back(das::move(f));
                 }
@@ -242,7 +242,7 @@ namespace das {
     public:
         template <typename TT>
         void for_each_item ( TT && tt ) {
-            lock_guard<mutex> guard(mCompleteMutex);
+            lock_guard guard(mCompleteMutex);
             for ( auto & v : pipe ) {
                 Array arr;
                 array_mark_locked(arr, (void *)v.data(), v.size());
@@ -256,7 +256,7 @@ namespace das {
         void gather ( TT && tt ) {
             decltype(pipe) drained;
             {
-                lock_guard<mutex> guard(mCompleteMutex);
+                lock_guard guard(mCompleteMutex);
                 drained.swap(pipe);
             }
             for ( auto & v : drained ) {
@@ -276,9 +276,12 @@ namespace das {
     DAS_API int32_t get_jobque_worker_limit ( Context * context, LineInfoArg * at );
     DAS_API void set_jobque_team_rank_gate ( bool on, Context * context, LineInfoArg * at );
     DAS_API bool get_jobque_team_rank_gate ( Context * context, LineInfoArg * at );
+    DAS_API void setJobqueAffinity ( int32_t mode );
+    DAS_API int32_t getJobqueAffinity ();
     DAS_API uint64_t count_jobque_leaks();
     DAS_API void new_job_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
     DAS_API void set_jobque_fork_pool ( bool keep, bool skipInit, Context * context, LineInfoArg * at );
+    DAS_API bool get_jobque_fork_pool ( Context * context, LineInfoArg * at );
     DAS_API void set_jobque_fork_skip_heap_reset ( bool skip, Context * context, LineInfoArg * at );
     DAS_API void set_jobque_worker_spin ( int32_t usec, Context * context, LineInfoArg * at );
     DAS_API void set_jobque_batch_dispatch ( bool batch, Context * context, LineInfoArg * at );
@@ -301,6 +304,8 @@ namespace das {
     DAS_API int32_t jobque_trace_marker_name ( const char * name, Context * context, LineInfoArg * at );
     DAS_API void jobque_trace_marker ( int32_t id, int32_t arg, Context * context, LineInfoArg * at );
     DAS_API void jobque_set_thread_priority ( int32_t level, Context * context, LineInfoArg * at );
+    DAS_API int32_t jobque_get_current_processor ( Context * context, LineInfoArg * at );
+    DAS_API void jobque_set_thread_affinity ( int32_t cpu, bool hard, Context * context, LineInfoArg * at );
     DAS_API void team_parallel_for_invoke ( int32_t rangeBegin, int32_t rangeEnd, int32_t numChunks, Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
     DAS_API void team_parallel_for_indexed_invoke ( int32_t rangeBegin, int32_t rangeEnd, int32_t numChunks, Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
     DAS_API void team_parallel_stages_invoke ( const TArray<int3> & stages, Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
@@ -313,6 +318,10 @@ namespace das {
     DAS_API int getTotalHwThreads ();
     DAS_API int getTotalHwCores ();
     DAS_API void setJobqueThreadsCap ( int32_t cap );
+    DAS_API void setJobqueThreads ( int32_t total );
+    DAS_API int32_t getJobqueThreads ();
+    DAS_API int getTotalPerfCores ();
+    DAS_API bool isSlowTierCompute ();
     DAS_API void withJobStatus ( int32_t total, const TBlock<void,JobStatus *> & block, Context * context, LineInfoArg * lineInfo );
     DAS_API void jobStatusAddRef ( JobStatus * status, Context * context, LineInfoArg * at );
     DAS_API void jobStatusReleaseRef ( JobStatus * & status, Context * context, LineInfoArg * at );

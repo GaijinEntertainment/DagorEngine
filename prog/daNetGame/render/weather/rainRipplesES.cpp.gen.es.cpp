@@ -84,6 +84,32 @@ static ecs::EntitySystemDesc rain_ripples_toggle_es_es_desc
   ecs::EventSetBuilder<OnRainToggle>::build(),
   0
 ,nullptr,"*");
+static constexpr ecs::ComponentDesc rain_ripples_texture_load_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("rain_ripples_texture"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()}
+};
+static void rain_ripples_texture_load_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    rain_ripples_texture_load_es(evt
+        , ECS_RO_COMP(rain_ripples_texture_load_es_comps, "rain_ripples_texture", SharedTexWithShaderVar)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc rain_ripples_texture_load_es_es_desc
+(
+  "rain_ripples_texture_load_es",
+  "prog/daNetGame/render/weather/rainRipplesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, rain_ripples_texture_load_es_all_events),
+  empty_span(),
+  make_span(rain_ripples_texture_load_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc create_rain_ripples_node_es_comps[] =
 {
 //start of 1 rw components at [0]

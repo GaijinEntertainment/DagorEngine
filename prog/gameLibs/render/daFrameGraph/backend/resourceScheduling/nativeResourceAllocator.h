@@ -20,24 +20,28 @@ public:
   ~NativeResourceAllocator() override;
 
 private:
-  D3dResource *getD3dResource(int frame, intermediate::ResourceIndex res_idx) const override;
-
   ResourceAllocationProperties getResourceAllocationProperties(const ResourceDescription &desc,
     bool force_not_on_chip = false) override;
   ResourceHeapGroupProperties getResourceHeapGroupProperties(ResourceHeapGroup *heap_group) override;
+  bool doHeapsCountObjects() const override { return false; }
+  bool doesResizeKeepContents() const override { return false; }
+  uint64_t getFreeMemoryBudget() const override;
 
-  DestroyedHeapSet allocateHeaps(const HeapRequests &heap_requests) override;
+  void allocateHeaps(const LayoutHeaps &layout_heaps, bool defer_destruction, ChangedHeaps &changed) override;
+  void destroyRetired() override;
 
-  void resetResourcePlacement() override;
-  void placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &desc,
-    uint64_t offset, const ResourceAllocationProperties &properties, const DynamicResolution &dyn_resolution) override;
+  D3dResource *placeResource(intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &desc, uint64_t offset,
+    const ResourceAllocationProperties &properties, const DynamicResolution &dyn_resolution) override;
 
-  template <class T>
-  void resizeTexture(intermediate::ResourceIndex res_idx, int frame, const T &resolution);
+  void lruCleanup() override;
+  void releaseObject(HeapIndex heap_idx, const D3dResource *object, uint32_t keep_frames) override;
+  bool doesHeapAgree(HeapIndex heap_idx, const HeapRequest &req) const override;
+
   void shutdownInternal() override;
 
 private:
   IdIndexedMapping<HeapIndex, ResourceHeap *> heaps;
+  IdIndexedMapping<HeapIndex, uint64_t> heapCapacities;
   struct ResourceKey
   {
     ResourceKey() : hash{0}, rawHash{0}, desc{} {}
@@ -66,19 +70,31 @@ private:
     }
   };
   using UniqueD3dRes = eastl::unique_ptr<D3dResource, Destroyer>;
-  using D3dResourceCache = LruCache<ResourceKey, UniqueD3dRes, ResKeyHash, 128>;
+  using D3dResourceCache = ResourceLruCache<ResourceKey, D3dResource, Destroyer, ResKeyHash, 128, 8>;
   IdIndexedMapping<HeapIndex, D3dResourceCache> d3dResourceCaches;
 
-  struct PlaceProperty
+  struct AcquiredObject
   {
-    HeapIndex heapIndex = HeapIndex::Invalid;
-    uint64_t offset = ~uint64_t(0);
-    size_t size = 0;
-    ResourceKey staticKey;
-    ResourceKey activeDynamicKey;
-    D3dResource *activeResource = nullptr;
+    ResourceKey key;
+    uint32_t refs = 0;
   };
-  eastl::array<IdIndexedMapping<intermediate::ResourceIndex, PlaceProperty>, SCHEDULE_FRAME_WINDOW> placedResourceProperties;
+  IdIndexedMapping<HeapIndex, ska::flat_hash_map<const D3dResource *, AcquiredObject>> acquiredObjects;
+
+  struct RetiredHeap
+  {
+    ResourceHeap *heap = nullptr;
+    uint64_t size = 0;
+    D3dResourceCache cache;
+    ska::flat_hash_map<const D3dResource *, AcquiredObject> acquired;
+  };
+  dag::Vector<RetiredHeap> retired;
+
+  template <class F>
+  D3dResource *acquireObject(HeapIndex heap_idx, const ResourceKey &key, const F &creator);
+
+  template <class T>
+  D3dResource *placeDynamicTexture(intermediate::ResourceIndex res_idx, HeapIndex heap_idx, uint64_t offset, uint64_t static_size,
+    const ResourceKey &dynamic_key, const T &resolution);
 
   using PropertyCache = LruCache<ResourceDescription, ResourceAllocationProperties, eastl::hash<ResourceDescription>, 128>;
   PropertyCache allocationPropertiesCache;

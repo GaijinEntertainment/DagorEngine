@@ -39,6 +39,11 @@ static __forceinline T roll_bit(T bit)
   return (bit << 1) | (bit >> ((sizeof(bit) * CHAR_BIT) - 1));
 }
 
+static __forceinline eastl::BitvectorWordType pool_bit(uint32_t pool)
+{
+  return eastl::BitvectorWordType(1) << (pool % (sizeof(eastl::BitvectorWordType) * CHAR_BIT));
+}
+
 // reach of the collision bounding sphere from the instance origin, at unit scale
 static __forceinline vec4f bounding_rad_from_origin(const CollisionResource *coll_res)
 {
@@ -259,6 +264,8 @@ struct TraceRayAllUnsortedListStrat : public TraceRayStrat
   TransparencyStratT *transparencyStrat = nullptr;
   CollResIntersectionsType intersectedNodes;
   float extendRay = 0.0f;
+  bool triangleHitsOnly = false;
+  VisitedRiBoundsCbType visitedBoundsCb = {};
 
   TraceRayAllUnsortedListStrat(PhysMat::MatID ray_mat, ListT &list) : TraceRayStrat(ray_mat), list(list) {}
 
@@ -290,6 +297,9 @@ struct TraceRayAllUnsortedListStrat : public TraceRayStrat
     Point3 & /* out_norm */, rendinst::RendInstDesc * /* ri_desc */, bool &have_collision, int layer_idx, int idx, int pool, int offs,
     int &out_mat_id, int cell_idx, const float &transparency = -1.f)
   {
+    const RendInstDesc riDesc(cell_idx, idx, pool, offs, layer_idx);
+    if (visitedBoundsCb && (!triangleHitsOnly || !coll_res->meshNodes().empty()))
+      visitedBoundsCb(ray_idx, riDesc, coll_res->vFullBBox, tm);
     if (coll_res->traceRay(tm,
           /* geom_node_tree */ nullptr, pos, dir, /* in_t */ in_out_t + extendRay, intersectedNodes,
           /* sort */ true, /* behavior_filter */ CollisionNode::TRACEABLE,
@@ -305,20 +315,15 @@ struct TraceRayAllUnsortedListStrat : public TraceRayStrat
 
       for (const IntersectedNode &node : intersectedNodes)
       {
+        if (triangleHitsOnly && !tri_ref::hasTri(node.triRef))
+          continue;
         const uint32_t nodeId = tri_ref::nodeIndex(node.triRef);
         int physMatId = coll_res->getHitPhysMat(node.triRef);
         if (riProp && should_override_material_from_ri_props(physMatId, *riProp))
           physMatId = defPhysMatId;
         out_mat_id = physMatId;
 
-        RendInstDesc riDesc;
-        riDesc.layer = layer_idx;
-        riDesc.idx = idx;
-        riDesc.pool = pool;
-        riDesc.offs = offs;
-        riDesc.cellIdx = cell_idx;
         addIntersection(ray_idx, riDesc, node.intersectionT, node.normal, nodeId, physMatId, transparency);
-        // in_out_t = eastl::max(in_out_t, node.intersectionT);
       }
     }
     return false;
@@ -338,6 +343,8 @@ struct TraceRayAllUnsortedListStrat : public TraceRayStrat
     }
     if constexpr (!eastl::is_same_v<TransparencyStratT, void>)
     {
+      if (triangleHitsOnly)
+        return false;
       out_norm = -dir; // in case it is not written
       const bool result = transparencyStrat->executeForPos(coll_res, tm, box_collision, ray_idx, pos, dir, in_out_t, out_norm, ri_desc,
         have_collision, layer_idx, idx, pool, offs, out_mat_id, cell_idx, bbox_all);
@@ -823,7 +830,7 @@ struct TraverseRayCell
     float cellSz = rgl.grid2world * rgl.cellSz;
     float subcellSz = cellSz / SUBCELL_DIV;
 
-    int pcnt = crt.pools.size();
+    const int poolsBegin = crt.pools.spanBegin(), poolsEnd = crt.pools.spanEnd();
     float cell_x0 = v_extract_x(crt.cellOrigin), cell_z0 = v_extract_z(crt.cellOrigin);
     vec3f v_cell_add = crt.cellOrigin;
     vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));
@@ -944,11 +951,11 @@ struct TraverseRayCell
     for (int i = 0; i < subcellIndicesCnt; ++i)
     {
       int idx = subcellIndices[i];
-      eastl::BitvectorWordType riPosInstBit = 1;
-      for (int p = 0; DAGOR_LIKELY(p < pcnt); p++, riPosInstBit = roll_bit(riPosInstBit))
+      eastl::BitvectorWordType riPosInstBit = pool_bit(poolsBegin);
+      for (int p = poolsBegin; DAGOR_LIKELY(p < poolsEnd); p++, riPosInstBit = roll_bit(riPosInstBit))
       {
         const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(p, idx);
-        if (DAGOR_LIKELY(!scs.sz)) // very hot place, hits is ~2% of 1000+
+        if (DAGOR_LIKELY(!scs.sz)) // very hot place
           continue;
         v_prefetch(crt.sysMemData.get() + scs.ofs);
         CollisionResource *collRes = rgl.rtData->riCollRes[p].collRes;
@@ -1694,7 +1701,7 @@ static bool traceDownMultiRayCell(int layer_idx, int cell_idx, dag::Span<Trace> 
   float cellSz = rgl->grid2world * rgl->cellSz;
   vec4f v_invSubcellSz = v_splats(SUBCELL_DIV / cellSz);
 
-  int pcnt = crt.pools.size();
+  const int poolsBegin = crt.pools.spanBegin(), poolsEnd = crt.pools.spanEnd();
   vec3f v_cell_add = crt.cellOrigin;
   vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));
 
@@ -1732,8 +1739,8 @@ static bool traceDownMultiRayCell(int layer_idx, int cell_idx, dag::Span<Trace> 
     {
       if (!v_bbox3_test_box_intersect(crt.bbox[idx + 1], ray_box))
         continue;
-      eastl::BitvectorWordType riPosInstBit = 1;
-      for (int p = 0; DAGOR_LIKELY(p < pcnt); p++, riPosInstBit = roll_bit(riPosInstBit))
+      eastl::BitvectorWordType riPosInstBit = pool_bit(poolsBegin);
+      for (int p = poolsBegin; DAGOR_LIKELY(p < poolsEnd); p++, riPosInstBit = roll_bit(riPosInstBit))
       {
         const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(p, idx);
         if (DAGOR_LIKELY(!scs.sz))
@@ -1997,6 +2004,8 @@ bool traceRayRendInstsListAllNormalizedImpl(dag::Span<Trace> traces, ListT &ri_d
   if (params.traceTransparencyPrimaryLayers || params.traceTransparencyAllLayers)
     traceRayStrategy.setTransparencyStrat(&transpStrategy);
   traceRayStrategy.extendRay = params.extendRay;
+  traceRayStrategy.triangleHitsOnly = params.triangleHitsOnly;
+  traceRayStrategy.visitedBoundsCb = params.visitedBoundsCb;
 
   bool haveCollision = false;
   bbox3f rayBox;
@@ -2430,9 +2439,11 @@ public:
       mat44f itmB;
       v_mat44_inverse43(itmB, tm_b);
       vec3f lcA = v_mat44_mul_vec3p(itmB, centerA);
-      vec4f maxScale = v_splat_x(v_mat44_max_scale43_x(tm_b));
+      // A world radius r covers r / s local units, so the smallest column scale sets the pad.
+      vec4f minScale = v_sqrt_x(v_hmin3(v_mat44_scale43_sq(tm_b)));
+      vec4f pad = v_div_x(v_set_x(boundingA.r), minScale);
       bbox3f extB = local_box_b;
-      v_bbox3_extend(extB, v_mul(v_splats(boundingA.r), maxScale));
+      v_bbox3_extend(extB, v_splat_x(pad));
       return v_bbox3_test_pt_inside(extB, lcA);
     }
 
@@ -2693,7 +2704,6 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
           vec3f v_cell_add = crt.cellOrigin;
           vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));
 
-          int pcnt = crt.pools.size();
           // crt.bbox[0] and obj_world_aabb intersects, so we can merge them
           vec4f cellBox2d = v_perm_xzac(crt.bbox[0].bmin, crt.bbox[0].bmax);
           vec4f isectBox2d = v_perm_xycd(v_max(objBox2d, cellBox2d), v_min(objBox2d, cellBox2d));
@@ -2706,15 +2716,44 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
           DECL_ALIGN16(int, subCell[4]);               // xzXZ
           v_sti(subCell, isectBox2di);
 
-          int totalPools;
+          int poolsBegin, poolsEnd;
           if constexpr (eastl::is_null_pointer<pool_list_t>::value)
-            totalPools = pcnt;
+          {
+            poolsBegin = crt.pools.spanBegin();
+            poolsEnd = crt.pools.spanEnd();
+          }
           else
-            totalPools = pool_list.size();
+          {
+            poolsBegin = 0;
+            poolsEnd = pool_list.size();
+          }
 
-          eastl::BitvectorWordType riPosInstBit = 1;
-          const int initialSubCell1 = subCell[1];
-          for (int pi = 0; DAGOR_LIKELY(pi < totalPools); pi++, riPosInstBit = roll_bit(riPosInstBit))
+          carray<uint16_t, SUBCELL_DIV * SUBCELL_DIV> subcellIndices;
+          int subcellIndicesCnt = 0;
+          for (int z2 = subCell[1]; z2 <= subCell[3]; z2++)
+            for (int x2 = subCell[0]; x2 <= subCell[2]; x2++)
+            {
+              const int idx = z2 * SUBCELL_DIV + x2;
+              if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
+                if (!v_bbox3_test_sph_intersect(crt.bbox[idx + 1], v_ldu(&obj_bounding.c.x), v_set_x(obj_bounding.r2)))
+                  continue;
+              if constexpr (eastl::is_same_v<bounding_type_t, BBox3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
+                if (!v_bbox3_test_box_intersect(crt.bbox[idx + 1], v_ldu_bbox3(obj_world_aabb)))
+                  continue;
+              if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+              {
+                bbox3f extB = crt.bbox[idx + 1];
+                v_bbox3_extend(extB, v_splats(obj_bounding.r));
+                if (!v_test_segment_box_intersection(v_ldu(&obj_bounding.a.x), v_ldu(&obj_bounding.b.x), extB))
+                  continue;
+              }
+              subcellIndices[subcellIndicesCnt++] = idx;
+            }
+
+          if (!subcellIndicesCnt)
+            continue;
+          eastl::BitvectorWordType riPosInstBit = pool_bit(poolsBegin);
+          for (int pi = poolsBegin; DAGOR_LIKELY(pi < poolsEnd); pi++, riPosInstBit = roll_bit(riPosInstBit))
           {
             int p;
             if constexpr (eastl::is_null_pointer<pool_list_t>::value)
@@ -2735,70 +2774,88 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
             int strideW = 0;
             rendinst::gen::RotationPaletteManager::Palette palette;
 
-            subCell[1] = initialSubCell1;
-            for (int stride_subCell = SUBCELL_DIV - (subCell[2] - subCell[0] + 1), idx = subCell[1] * SUBCELL_DIV + subCell[0];
-                 subCell[1] <= subCell[3]; subCell[1]++, idx += stride_subCell)
+            for (int i = 0; i < subcellIndicesCnt; i++)
             {
-              for (int x2 = subCell[0]; x2 <= subCell[2]; x2++, idx++)
+              const int idx = subcellIndices[i];
+              const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(p, idx);
+              if (DAGOR_LIKELY(!scs.sz))
+                continue;
+
+              if (!poolResolved)
               {
-                if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
-                  if (!v_bbox3_test_sph_intersect(crt.bbox[idx + 1], v_ldu(&obj_bounding.c.x), v_set_x(obj_bounding.r2)))
-                    continue;
-                if constexpr (eastl::is_same_v<bounding_type_t, BBox3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
-                  if (!v_bbox3_test_box_intersect(crt.bbox[idx + 1], v_ldu_bbox3(obj_world_aabb)))
-                    continue;
-                if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
+                poolResolved = true;
+                const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[p];
+                isPosInst = (riPosInstData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
+                if (should_ignore(isPosInst, riProp.immortal, riProp.damageable, riProp.matId))
+                  goto nextPool;
+                collRes = rgl->rtData->riCollRes[p].collRes;
+                paletteRotation = (riPaletteRotationData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
+                posBoundingRad = collRes ? bounding_rad_from_origin(collRes) : v_zero();
+                vFullBBox = collRes ? collRes->vFullBBox : rgl->rtData->riCollResBb[p];
+                v_stu_bbox3(localBBox, vFullBBox);
+                checkCanopy = (ri_types & GatherRiTypeFlag::RiGenCanopy) && riProp.canopyOpacity > 0.f;
+                if (checkCanopy)
                 {
-                  bbox3f extB = crt.bbox[idx + 1];
-                  v_bbox3_extend(extB, v_splats(obj_bounding.r));
-                  if (!v_test_segment_box_intersection(v_ldu(&obj_bounding.a.x), v_ldu(&obj_bounding.b.x), extB))
-                    continue;
+                  BBox3 canopyBox;
+                  getRIGenCanopyBBox(riProp, rgl->rtData->riRes[p]->bbox, canopyBox);
+                  vCanopyBBox = v_ldu_bbox3(canopyBox);
                 }
+                strideW = RIGEN_STRIDE_B(isPosInst,
+                            (rgl->rtData->riZeroInstSeeds.data()[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0,
+                            rgl->perInstDataDwords) /
+                          2;
+                if (isPosInst && paletteRotation)
+                  palette = rendinst::gen::get_rotation_palette_manager()->getPalette({layer, p});
+              }
 
-                const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(p, idx);
-                if (DAGOR_LIKELY(!scs.sz))
-                  continue;
-                if (!poolResolved)
+              if (!isPosInst)
+              {
+                const int16_t *data_s = (const int16_t *)(crt.sysMemData.get() + scs.ofs);
+                for (const int16_t *data = data_s, *data_e = data + scs.sz / 2; data < data_e; data += strideW)
                 {
-                  poolResolved = true;
-                  const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[p];
-                  isPosInst = (riPosInstData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
-                  if (should_ignore(isPosInst, riProp.immortal, riProp.damageable, riProp.matId))
-                    goto nextPool;
-                  collRes = rgl->rtData->riCollRes[p].collRes;
-                  paletteRotation = (riPaletteRotationData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
-                  posBoundingRad = collRes ? bounding_rad_from_origin(collRes) : v_zero();
-                  vFullBBox = collRes ? collRes->vFullBBox : rgl->rtData->riCollResBb[p];
-                  v_stu_bbox3(localBBox, vFullBBox);
-                  checkCanopy = (ri_types & GatherRiTypeFlag::RiGenCanopy) && riProp.canopyOpacity > 0.f;
-                  if (checkCanopy)
-                  {
-                    BBox3 canopyBox;
-                    getRIGenCanopyBBox(riProp, rgl->rtData->riRes[p]->bbox, canopyBox);
-                    vCanopyBBox = v_ldu_bbox3(canopyBox);
-                  }
-                  strideW = RIGEN_STRIDE_B(isPosInst,
-                              (rgl->rtData->riZeroInstSeeds.data()[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0,
-                              rgl->perInstDataDwords) /
-                            2;
-                  if (isPosInst && paletteRotation)
-                    palette = rendinst::gen::get_rotation_palette_manager()->getPalette({layer, p});
+                  mat44f riTm;
+                  if (!rendinst::gen::unpack_tm_full(riTm, data, v_cell_add, v_cell_mul))
+                    continue;
+                  if (!objectBounding.testIntersection(riTm, vFullBBox) &&
+                      (!checkCanopy || !objectBounding.testIntersection(riTm, vCanopyBBox)))
+                    continue;
+
+                  rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
+                  stop |= callback(rgl, riDesc, riTm, localBBox, collRes, false);
+                  testedNum++;
+#if DA_PROFILER_ENABLED && _TARGET_PC_WIN
+                  trianglesNum += collRes ? collRes->getTrianglesCount(CollisionNode::PHYS_COLLIDABLE) : 0;
+#endif
+                  if (stop)
+                    goto done;
                 }
-
-                if (!isPosInst)
+              }
+              else
+              {
+                const int16_t *data_s = (int16_t *)(crt.sysMemData.get() + scs.ofs);
+                if (paletteRotation)
                 {
-                  const int16_t *data_s = (const int16_t *)(crt.sysMemData.get() + scs.ofs);
                   for (const int16_t *data = data_s, *data_e = data + scs.sz / 2; data < data_e; data += strideW)
                   {
-                    mat44f riTm;
-                    if (!rendinst::gen::unpack_tm_full(riTm, data, v_cell_add, v_cell_mul))
+                    vec3f v_pos, v_scale;
+                    vec4i paletteId;
+                    if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, paletteRotation, &paletteId))
                       continue;
-                    if (!objectBounding.testIntersection(riTm, vFullBBox) &&
-                        (!checkCanopy || !objectBounding.testIntersection(riTm, vCanopyBBox)))
+                    if (collRes)
+                    {
+                      if (!objectBounding.testSphereIntersectionEst(v_pos, v_mul_x(posBoundingRad, v_hmax3(v_scale))))
+                        continue;
+                    }
+
+                    quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(paletteId));
+                    mat44f tm;
+                    v_mat44_compose(tm, v_pos, v_rot, v_scale);
+                    if (!objectBounding.testIntersection(tm, vFullBBox) &&
+                        (!checkCanopy || !objectBounding.testIntersection(tm, vCanopyBBox)))
                       continue;
 
                     rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
-                    stop |= callback(rgl, riDesc, riTm, localBBox, collRes, false);
+                    stop |= callback(rgl, riDesc, tm, localBBox, collRes, true);
                     testedNum++;
 #if DA_PROFILER_ENABLED && _TARGET_PC_WIN
                     trianglesNum += collRes ? collRes->getTrianglesCount(CollisionNode::PHYS_COLLIDABLE) : 0;
@@ -2809,78 +2866,43 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
                 }
                 else
                 {
-                  const int16_t *data_s = (int16_t *)(crt.sysMemData.get() + scs.ofs);
-                  if (paletteRotation)
+                  vec3f v_tree_min = vFullBBox.bmin;
+                  vec3f v_tree_max = vFullBBox.bmax;
+
+                  for (const int16_t *data = data_s, *data_e = data + scs.sz / 2; data < data_e; data += strideW)
                   {
-                    for (const int16_t *data = data_s, *data_e = data + scs.sz / 2; data < data_e; data += strideW)
+                    vec3f v_pos, v_scale;
+                    if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, paletteRotation))
+                      continue;
+                    bbox3f treeBBox;
+                    treeBBox.bmin = v_add(v_pos, v_mul(v_scale, v_tree_min));
+                    treeBBox.bmax = v_add(v_pos, v_mul(v_scale, v_tree_max));
+
+                    if (!v_bbox3_test_box_intersect(treeBBox, v_ldu_bbox3(obj_world_aabb))) // simple check without tm for pos
+                                                                                            // instance
                     {
-                      vec3f v_pos, v_scale;
-                      vec4i paletteId;
-                      if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, paletteRotation, &paletteId))
+                      if (!checkCanopy)
                         continue;
-                      if (collRes)
+                      else
                       {
-                        if (!objectBounding.testSphereIntersectionEst(v_pos, v_mul_x(posBoundingRad, v_hmax3(v_scale))))
+                        bbox3f worldCanopyBBox;
+                        worldCanopyBBox.bmin = v_add(v_pos, v_mul(v_scale, vCanopyBBox.bmin));
+                        worldCanopyBBox.bmax = v_add(v_pos, v_mul(v_scale, vCanopyBBox.bmax));
+                        if (!v_bbox3_test_box_intersect(worldCanopyBBox, v_ldu_bbox3(obj_world_aabb)))
                           continue;
                       }
-
-                      quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(paletteId));
-                      mat44f tm;
-                      v_mat44_compose(tm, v_pos, v_rot, v_scale);
-                      if (!objectBounding.testIntersection(tm, vFullBBox) &&
-                          (!checkCanopy || !objectBounding.testIntersection(tm, vCanopyBBox)))
-                        continue;
-
-                      rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
-                      stop |= callback(rgl, riDesc, tm, localBBox, collRes, true);
-                      testedNum++;
-#if DA_PROFILER_ENABLED && _TARGET_PC_WIN
-                      trianglesNum += collRes ? collRes->getTrianglesCount(CollisionNode::PHYS_COLLIDABLE) : 0;
-#endif
-                      if (stop)
-                        goto done;
                     }
-                  }
-                  else
-                  {
-                    vec3f v_tree_min = vFullBBox.bmin;
-                    vec3f v_tree_max = vFullBBox.bmax;
 
-                    for (const int16_t *data = data_s, *data_e = data + scs.sz / 2; data < data_e; data += strideW)
-                    {
-                      vec3f v_pos, v_scale;
-                      if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, paletteRotation))
-                        continue;
-                      bbox3f treeBBox;
-                      treeBBox.bmin = v_add(v_pos, v_mul(v_scale, v_tree_min));
-                      treeBBox.bmax = v_add(v_pos, v_mul(v_scale, v_tree_max));
-
-                      if (!v_bbox3_test_box_intersect(treeBBox, v_ldu_bbox3(obj_world_aabb))) // simple check without tm for pos
-                                                                                              // instance
-                      {
-                        if (!checkCanopy)
-                          continue;
-                        else
-                        {
-                          bbox3f worldCanopyBBox;
-                          worldCanopyBBox.bmin = v_add(v_pos, v_mul(v_scale, vCanopyBBox.bmin));
-                          worldCanopyBBox.bmax = v_add(v_pos, v_mul(v_scale, vCanopyBBox.bmax));
-                          if (!v_bbox3_test_box_intersect(worldCanopyBBox, v_ldu_bbox3(obj_world_aabb)))
-                            continue;
-                        }
-                      }
-
-                      rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
-                      mat44f tm;
-                      v_mat44_compose(tm, v_pos, v_scale);
-                      stop |= callback(rgl, riDesc, tm, localBBox, collRes, true);
-                      testedNum++;
+                    rendinst::RendInstDesc riDesc(cellI, idx, p, int(intptr_t(data) - intptr_t(data_s)), layer);
+                    mat44f tm;
+                    v_mat44_compose(tm, v_pos, v_scale);
+                    stop |= callback(rgl, riDesc, tm, localBBox, collRes, true);
+                    testedNum++;
 #if DA_PROFILER_ENABLED && _TARGET_PC_WIN
-                      trianglesNum += collRes ? collRes->getTrianglesCount(CollisionNode::PHYS_COLLIDABLE) : 0;
+                    trianglesNum += collRes ? collRes->getTrianglesCount(CollisionNode::PHYS_COLLIDABLE) : 0;
 #endif
-                      if (stop)
-                        goto done;
-                    }
+                    if (stop)
+                      goto done;
                   }
                 }
               }

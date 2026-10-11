@@ -125,10 +125,11 @@ BlkEditorApp::BlkEditorApp(IWndManager *manager, const char *open_fname) : blkEd
 
 BlkEditorApp::~BlkEditorApp()
 {
+  mManager->reset();
+  mManager->unregisterWindowHandler(this);
+
   delete console;
   del_it(undoSystem);
-
-  mManager->unregisterWindowHandler(this);
 
   PropPanel::release();
   imgui_shutdown();
@@ -282,14 +283,14 @@ void *BlkEditorApp::onWmCreateWindow(int type)
 
 bool BlkEditorApp::onWmDestroyWindow(void *handle)
 {
-  if (mScintillaPanel && mScintillaPanel->getParentWindowHandle() == handle)
+  if (mScintillaPanel && mScintillaPanel == handle)
   {
     del_it(mScintillaPanel);
     mainMenu->setEnabledById(CM_WINDOW_SCINTILLA, true);
     return true;
   }
 
-  if (mPropPanel && mPropPanel->getParentWindowHandle() == handle)
+  if (mPropPanel && mPropPanel == handle)
   {
     blkEditor.destroyPanel();
     del_it(mPropPanel);
@@ -297,7 +298,7 @@ bool BlkEditorApp::onWmDestroyWindow(void *handle)
     return true;
   }
 
-  if (mToolPanel && mToolPanel->getParentWindowHandle() == handle)
+  if (mToolPanel && mToolPanel == handle)
   {
     del_it(mToolPanel);
     mainMenu->setEnabledById(CM_WINDOW_TOOLBAR, true);

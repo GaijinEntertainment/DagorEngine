@@ -33,6 +33,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <perfMon/dag_statDrv.h>
 #include <startup/dag_globalSettings.h>
 #include <statsd/statsd.h>
@@ -40,6 +41,8 @@
 #include <util/dag_string.h>
 
 #include <EASTL/algorithm.h>
+#include <EASTL/functional.h>
+#include <EASTL/vector.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -88,6 +91,41 @@ bool is_this_thread_net_em_owner() { return is_net_authority_thread_or_unset(); 
 InitOnDemand<net::NetContext, false> net_context;
 
 NetGlobals g_net_globals;
+
+struct OnNetCall
+{
+  int gen = 0;
+  eastl::function<void(bool)> fn;
+};
+static OSSpinlock g_on_net_lock;
+static eastl::vector<OnNetCall> g_on_net;
+
+static void bump_net_gen()
+{
+  OSSpinlockScopedLock lock(g_on_net_lock);
+  ++g_net_globals.connectGen;
+}
+
+void on_net_thread(eastl::function<void(bool)> fn)
+{
+  if (!fn)
+    return;
+  OSSpinlockScopedLock lock(g_on_net_lock);
+  g_on_net.push_back({g_net_globals.connectGen, eastl::move(fn)});
+}
+
+static void drain_on_net_thread()
+{
+  eastl::vector<OnNetCall> fns;
+  int gen = 0;
+  {
+    OSSpinlockScopedLock lock(g_on_net_lock);
+    fns.swap(g_on_net);
+    gen = g_net_globals.connectGen;
+  }
+  for (auto &call : fns)
+    call.fn(call.gen == gen);
+}
 
 net::CNetwork *get_net_or_null_unchecked() { return net_context ? &net_context->getNet() : nullptr; }
 
@@ -147,7 +185,7 @@ bool destroy_net_ctx()
 
 bool bootstrap_net_ctx(ecs::EntityManager &mgr, net::INetDriver *drv, net::create_net_observer_cb_t obs_cb)
 {
-  ++g_net_globals.connectGen;
+  bump_net_gen();
   if (!create_net_ctx(mgr, drv, obs_cb))
     return false;
   net_context->createObserver();
@@ -241,12 +279,15 @@ void send_echo_msg(uint32_t route_id)
 
 void on_client_disconnected(ecs::EntityManager &manager, DisconnectionCause cause)
 {
-  ++g_net_globals.connectGen;
+  bump_net_gen();
   if (net_context)
     net_context->lastClientDc = cause;
   // Immediate so the netClient,userEM ES fires before sweep_pending_destroy
   // switches the role tag back to server.
-  manager.broadcastEventImmediate(EventOnDisconnectedFromServer(cause));
+  eastl::string details;
+  if (net_context)
+    details.swap(net_context->disconnectDetails);
+  manager.broadcastEventImmediate(EventOnDisconnectedFromServer(cause, eastl::move(details)));
 }
 
 bool has_network() { return bool(net_context); }
@@ -336,7 +377,6 @@ void net_disconnect(net::IConnection &conn, DisconnectionCause cause)
   conn.disconnect(cause);
 }
 
-// Relay helpers fire on matching-client callback threads.
 void disconnect_from_relay()
 {
   auto *ctx = GET_NET_CTX();
@@ -352,6 +392,15 @@ bool establish_relay_connection(const char *relay_url)
   {
     logerr("failed to initiate connection with relay host/port '%s' - no "
            "network initialized",
+      relay_url);
+    return false;
+  }
+
+  auto *daif = static_cast<DaNetPeerInterface *>(ctx->network.getDriver()->getControlIface());
+  if (!daif || !daif->GetHostRaw())
+  {
+    logerr("failed to initiate connection with relay host/port '%s' - no "
+           "enet host",
       relay_url);
     return false;
   }
@@ -483,11 +532,12 @@ void net_update(ecs::EntityManager &mgr)
 {
   G_UNUSED(mgr);
   RETURN_IF_NOT_NET_CTX_OWNER_THREAD();
+  drain_on_net_thread();
   auto *nctx = GET_NET_CTX();
   if (nctx)
   {
     TIME_PROFILE(net_update);
-    int curMs = get_time_mgr().getAsyncMillis();
+    int curMs = get_async_millis();
     nctx->update(curMs);
     netstat::update(curMs, static_cast<DaNetPeerInterface *>(nctx->network.getDriver()->getControlIface()));
 
@@ -554,11 +604,12 @@ bool net_destroy(ecs::EntityManager &mgr, bool final)
     return false;
   net_dump_stats();
   mgr.broadcastEventImmediate(OnNetDestroy{final});
-  ++g_net_globals.connectGen;
+  bump_net_gen();
   // destroy_net_ctx clears authority tid; user-thread reset would then fail
   // is_net_lifecycle_thread (tid 0 means main).
   reset_time_mgr();
   destroy_net_ctx();
+  drain_on_net_thread();
   net::event::release_claim(&mgr);
   mgr.broadcastEventImmediate(EventNetTornDown{});
   return true;

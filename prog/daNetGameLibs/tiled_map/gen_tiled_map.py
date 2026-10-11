@@ -19,6 +19,9 @@ import datablock as datablock
 DAGOR_DIR = str(_REPO_DIR)
 
 nconvert = os.path.abspath(f"{DAGOR_DIR}/tools/converters/nconvert/nconvert.exe")
+CDK_DIR = os.path.abspath(f"{DAGOR_DIR}/tools/dagor_cdk/windows-x86_64")
+ddsConverter = os.path.join(CDK_DIR, "ddsConverter-dev.exe")
+ddsxCvt = os.path.join(CDK_DIR, "ddsxCvt.exe")
 inputPath = ""
 outPath = ""
 zlevels = -1
@@ -86,22 +89,69 @@ def preProcessBaseLevel(tuple):
     p.send_signal(signal.SIGINT)
     exit(1)
 
-def postProcessAllLevels(tuple):
-  file, outPath = tuple
-  name = os.path.splitext(file)[0]
-  print(f"[INFO] Postprocessing {name}")
-
-  p = subprocess.Popen([nconvert, "-quiet", "-overwrite"] +
-    avif_out_format +
-    ["-D"] + # delete original file
-    ["-o", os.path.join(outPath, name), os.path.join(outPath, file)],
-    stdout=subprocess.DEVNULL)
+def runTool(cmd, cwd=None, outputPath=None):
+  if outputPath and os.path.exists(outputPath):
+    os.remove(outputPath)
+  p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.DEVNULL)
   try:
     p.wait()
   except KeyboardInterrupt:
     print("[INFO] Terminating...")
     p.send_signal(signal.SIGINT)
     exit(1)
+  # some CDK tools return 1 on success, so the output file is the only reliable result
+  ok = os.path.exists(outputPath) if outputPath else p.returncode == 0
+  if not ok:
+    print(f"[ERROR] {os.path.basename(cmd[0])} failed with code {p.returncode}: {' '.join(cmd[1:])}")
+  return ok
+
+# Constant alpha means no real transparency: `-add_alpha 0` fills opaque tiles with alpha 0.
+def tgaHasVaryingAlpha(path):
+  with open(path, "rb") as f:
+    data = f.read()
+  idLen, imageType, bitsPerPixel = data[0], data[2], data[16]
+  if imageType != 2: # not uncompressed truecolor, cannot inspect
+    return True
+  if bitsPerPixel != 32:
+    return False
+  width = data[12] | (data[13] << 8)
+  height = data[14] | (data[15] << 8)
+  pixelsStart = 18 + idLen
+  alpha = data[pixelsStart + 3 : pixelsStart + width * height * 4 : 4]
+  return alpha.count(alpha[0]) != len(alpha)
+
+def convertTifToDdsx(tifPath, outPath, name, ddsConverterPath, ddsxCvtPath):
+  tgaPath = os.path.join(outPath, f"{name}.tga")
+  ddsPath = os.path.join(outPath, f"{name}.dds")
+  ok = runTool([nconvert, "-quiet", "-overwrite", "-32bits", "-out", "tga", "-o", tgaPath, tifPath], outputPath=tgaPath)
+  if ok:
+    ddsFormat = "fmtDXT5" if tgaHasVaryingAlpha(tgaPath) else "fmtDXT1"
+    # ddsConverter writes <name>.dds into the working directory
+    ok = runTool([ddsConverterPath, tgaPath, f"-format:{ddsFormat}", "-mipmapType:mipmapNone", "-quiet"], cwd=outPath,
+      outputPath=ddsPath)
+  if ok:
+    # gamma1: avif tiles are created as non-sRGB textures, keep the same look
+    ddsxPath = os.path.join(outPath, f"{name}.ddsx")
+    ok = runTool([ddsxCvtPath, "-q", "-pack:zstd", "-gamma1", "PC", ddsPath, ddsxPath], outputPath=ddsxPath)
+  for tmpPath in (tgaPath, ddsPath):
+    if os.path.exists(tmpPath):
+      os.remove(tmpPath)
+  return ok
+
+def postProcessAllLevels(tuple):
+  file, outPath, formats, ddsConverterPath, ddsxCvtPath = tuple
+  name = os.path.splitext(file)[0]
+  tifPath = os.path.join(outPath, file)
+  print(f"[INFO] Postprocessing {name}")
+
+  ok = True
+  if "avif" in formats:
+    ok = runTool([nconvert, "-quiet", "-overwrite"] + avif_out_format + ["-o", os.path.join(outPath, name), tifPath])
+  if "ddsx" in formats:
+    ok = convertTifToDdsx(tifPath, outPath, name, ddsConverterPath, ddsxCvtPath) and ok
+  if ok:
+    os.remove(tifPath)
+  return ok
 
 def mergeTilesByIdx(tuple):
   x, y, z, outPath = tuple
@@ -162,14 +212,23 @@ def main():
     '\n' +
     'The files processing is done in intermediate tiff format. As there is a bug with alpha channel in avif merging.' +
     'The 4 tiles of the previous level are merged into one tile of the current level. And then scaled down by 50%.' +
-    'The post processing converts tiff to avif format for better compression.'
+    'The post processing converts tiff to avif (compact, CPU decode on load) and/or ddsx (BC compressed, no decode) format.'
     )
   parser.add_argument("game", type=str, help="Which game to use (should work with any dng game)")
   parser.add_argument("scene", type=str, help="Path to the scene *.blk file (as it passed to the game)")
   parser.add_argument("--nconvert", type=str, help="Path to nconvert.exe", default=nconvert)
+  parser.add_argument("--format", choices=["avif", "ddsx", "both"], default="avif",
+    help="Tile output format. ddsx tiles are BC1 (BC3 with alpha) for the PC target, the game prefers them when combined.ddsx exists")
+  parser.add_argument("--ddsConverter", type=str, help="Path to ddsConverter-dev.exe", default=ddsConverter)
+  parser.add_argument("--ddsxCvt", type=str, help="Path to ddsxCvt.exe", default=ddsxCvt)
 
   args = parser.parse_args()
   nconvert = args.nconvert
+  formats = ["avif", "ddsx"] if args.format == "both" else [args.format]
+  for tool in ([args.ddsConverter, args.ddsxCvt] if "ddsx" in formats else []):
+    if not os.path.exists(tool):
+      print(f"[ERROR] Tool not found: {tool}")
+      exit(1)
 
   gamePWD = os.path.join(DAGOR_DIR, args.game, "game")
   gameEXE = os.path.join(gamePWD, "win64", f"{args.game}-dev.exe")
@@ -279,7 +338,8 @@ def main():
     mergeZoomLevel(i)
   mergeZoomLevel(0)
 
-  postProcessAllLevelsArgs = [(f, outPath) for f in os.listdir(outPath) if os.path.isfile(os.path.join(outPath, f)) and f.endswith(".tif")]
+  postProcessAllLevelsArgs = [(f, outPath, formats, args.ddsConverter, args.ddsxCvt)
+    for f in os.listdir(outPath) if os.path.isfile(os.path.join(outPath, f)) and f.endswith(".tif")]
   print(f"[INFO] Found {len(postProcessAllLevelsArgs)} files for post processing")
 
   pool = Pool(threads)
@@ -296,6 +356,14 @@ def main():
     print("[INFO] Finished")
     pool.close()
     pool.join()
+
+  if "ddsx" not in formats and os.path.exists(os.path.join(outPath, "combined.ddsx")):
+    print(f"[WARNING] Old ddsx tiles are left in {outPath}, the game loads them instead of the new avif tiles. Remove them.")
+
+  failedCount = result.get().count(False)
+  if failedCount > 0:
+    print(f"[ERROR] {failedCount} tiles failed to convert, their .tif files are kept in {outPath}")
+    exit(1)
 
 if __name__ == "__main__":
   main()

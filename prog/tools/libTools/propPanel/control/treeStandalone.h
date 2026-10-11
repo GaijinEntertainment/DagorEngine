@@ -110,6 +110,7 @@ public:
     clear_all_ptr_items(rootNode.children);
     lastSelected = nullptr;
     ensureVisibleRequested = nullptr;
+    moveNavCursorRequested = nullptr;
     markLinearizedTreeNodesDirty();
     resetMaximumSeenWidth();
 
@@ -131,6 +132,8 @@ public:
 
     if (node == ensureVisibleRequested)
       ensureVisibleRequested = nullptr;
+    if (node == moveNavCursorRequested)
+      moveNavCursorRequested = nullptr;
 
     if (node == lastSelected)
     {
@@ -593,6 +596,7 @@ public:
 
     lastSelected = node;
     ensureVisibleRequested = node;
+    moveNavCursorRequested = node;
 
     if (!multiSelectionEnabled && lastSelected)
     {
@@ -610,6 +614,7 @@ public:
     deselectAllChildren(rootNode);
     lastSelected = nullptr;
     ensureVisibleRequested = nullptr;
+    moveNavCursorRequested = nullptr;
 
     for (TLeafHandle leaf : leafs)
     {
@@ -619,6 +624,7 @@ public:
       setExpandedTillRoot(leaf);
       lastSelected = node;
       ensureVisibleRequested = node;
+      moveNavCursorRequested = node;
     }
 
     if (selectionChangeEventsByCode && eventHandler)
@@ -1372,6 +1378,7 @@ private:
   TreeNode rootNode;
   TreeNode *lastSelected = nullptr;
   TreeNode *ensureVisibleRequested = nullptr;
+  TreeNode *moveNavCursorRequested = nullptr;
   IconId checkedIcon = IconId::Invalid;
   IconId uncheckedIcon = IconId::Invalid;
   eastl::unique_ptr<ContextMenu> contextMenu;

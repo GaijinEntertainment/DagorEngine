@@ -20,7 +20,7 @@ options rtti
 require protocol_core public
 require registry_cpp public
 
-[export]
+[export, no_aot]
 def main() {
     logger_init("mcp_cpp_server")
     logger_info("mcp", "Starting daslang cpp MCP server (stdio transport)")

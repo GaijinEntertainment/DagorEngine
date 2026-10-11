@@ -1,0 +1,3 @@
+Plain().getarity() = null
+Blaster(): num_params=3 num_required=2 varargs=false
+Blaster()("tank") = true

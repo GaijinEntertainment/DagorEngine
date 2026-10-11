@@ -7,7 +7,7 @@
 #include <rendInst/rendInstDesc.h>
 #include <rendInst/layerFlags.h>
 
-#include <EASTL/fixed_function.h>
+#include <generic/dag_functionRef.h>
 #include <memory/dag_framemem.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_TMatrix.h>
@@ -25,11 +25,6 @@ class IGenLoad;
 class RenderableInstanceLodsResource;
 class ShaderMaterial;
 
-inline float MIN_SETTINGS_RENDINST_DIST_MUL = 0.5f;
-inline float MAX_SETTINGS_RENDINST_DIST_MUL = 3.0f;
-inline float MIN_EFFECTIVE_RENDINST_DIST_MUL = 0.1f;
-inline float MAX_EFFECTIVE_RENDINST_DIST_MUL = 3.0f;
-
 #define RI_COLLISION_RES_SUFFIX "_collision"
 
 namespace rendinst
@@ -42,7 +37,7 @@ inline uint32_t mat44_to_ri_type(mat44f_cref node)
 
 typedef void *(*ri_register_collision_cb)(const CollisionResource *collRes, const char *debug_name);
 typedef void (*ri_unregister_collision_cb)(void *&handle);
-typedef eastl::fixed_function<2 * sizeof(void *), void(const char *)> res_walk_cb;
+typedef dag::FunctionRef<void(const char *) const> res_walk_cb;
 
 extern void (*do_delayed_ri_extra_destruction)();
 extern void (*sweep_rendinst_cb)(const RendInstDesc &);
@@ -119,9 +114,6 @@ void registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list);
 int scheduleRIGenPrepare(dag::ConstSpan<Point3> poi);
 bool isRIGenPrepareFinished();
 
-using ri_added_from_rigendata_cb_t = void (*)(riex_handle_t handle);                        // Warn: called in thread
-ri_added_from_rigendata_cb_t setRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb_t cb); // Returns prev cb
-
 using ri_gen_cell_loaded_cb = void (*)(int layer_idx, int cell_idx, int x, int z, bool loaded, bool last_job);
 void registerRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb);
 bool unregisterRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb);
@@ -129,7 +121,7 @@ void onRiGenCellLoaded(int layer_idx, int cell_idx, int x, int z, bool loaded, b
 
 bool isRiGenCellPrepared(int layer);
 
-void get_ri_color_infos(eastl::fixed_function<sizeof(void *) * 4, void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name)> cb);
+void get_ri_color_infos(dag::FunctionRef<void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name) const> cb);
 extern void regenerateRIGen();
 
 extern void enableSecLayer(bool en);
@@ -176,26 +168,29 @@ extern bool rendinstSecondaryLayer; // should be set only once before init
 extern bool tmInst12x32bit;
 
 void set_billboards_vertical(bool is_vertical);
-void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul = false,
-  float impostors_far_dist_additional_mul = 1.f); // 0.2353, 0.0824 will remap 0.5 .. 2.2 to 0.2 .. 0.6
+void setDynamicDistMul(float mul, float ofs = 0.f, float impostors_far_dist_additional_mul = 1.f);
+void resetDynamicDistMul(); // level init: dynamic pair back to identity without touching the impostors far mul
+// all the per frame inputs in one call: one recompute instead of one per setter
+void setPerFrameDistMuls(float mul, float ofs, float min_cull_mul, float lods_shift_mul = 1.f,
+  float impostors_far_dist_additional_mul = 1.f);
 void setImpostorsDistAddMul(float impostors_dist_additional_mul);
 void setImpostorsFarDistAddMul(float impostors_far_dist_additional_mul);
 void setImpostorsMinRange(float impostors_min_range);
-void updateSettingsDistMul();
-void updateSettingsDistMul(float v);
-void updateMinSettingsDistMul(float v);
-void updateMinEffectiveRendinstDistMul(float v);
-void updateMaxSettingsDistMul(float v);
-void updateMaxEffectiveRendinstDistMul(float v);
-float getSettingsDistMul();
-void updateMinCullSettingsDistMul(float v);
+void updateSettingsDistMul();               // reads graphics/rendinstDistMul and rendinstExDistMul, moves both domains
+void updateSettingsDistMul(float v);        // moves both the riGen and the riExtra settings mul
+void updateSettingsRiGenDistMul(float v);   // moves the riGen settings mul only
+void updateSettingsRiExtraDistMul(float v); // moves the riExtra settings mul only
+void setSettingsDistMulMin(float v);
+void setEffectiveDistMulMin(float v);
+// move the settings and effective ceiling of one domain (dev tools, client range policy)
+void setRiGenDistMulMax(float v);
+void setRiExtraDistMulMax(float v);
+float getSettingsDistMul(); // the riGen settings mul
+float getSettingsRiExtraDistMul();
 void updateRIExtraMulScale();
-void setLodsShiftDistMult();
-void setLodsShiftDistMult(float mul);
-void resetLodsShiftDistMult();
+void setLodsShiftDistMul();
+void setLodsShiftDistMul(float mul);
 void setAdditionalRiExtraLodDistMul(float mul);
-void setZoomDistMul(float mul, bool scale_lod1_dist, float impostors_far_dist_additional_mul = 1.f); // multiplication for different
-                                                                                                     // aspect ratio
 void overrideLodRanges(const DataBlock &ri_lod_ranges);
 void onSettingsChanged(const Point3 &sun_dir_0);
 
@@ -210,11 +205,11 @@ void closeImpostorShadowTempTex();
 void updateHeapVb(); // Optional, when you need to do it outside of the render.
 void updateHeapVbNoLock();
 
-using RiApexIterationCallback = eastl::fixed_function<32, void(const char *riResName, const char *apexDestructionOptionsPresetName)>;
+using RiApexIterationCallback = dag::FunctionRef<void(const char *riResName, const char *apexDestructionOptionsPresetName) const>;
 void iterate_apex_destructible_rendinst_data(RiApexIterationCallback callback);
 
 bool should_init_ri_damage_model();
-void dm_iter_all_ri_layers(eastl::fixed_function<20, void(int, const dag::ConstSpan<const char *> &)> cb);
+void dm_iter_all_ri_layers(dag::FunctionRef<void(int, const dag::ConstSpan<const char *> &) const> cb);
 
 using ImpostorTextureCallback = void (*)(const RenderableInstanceLodsResource *);
 void set_impostor_iexture_callback(ImpostorTextureCallback callback);

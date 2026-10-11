@@ -112,7 +112,7 @@ bool convert_ltoutput(const char *lto_fname, const char *img_fname)
       pix[i].a = i < w * h ? (bmDone[i] ? 255 : 0) : 255;
     }
     success = save_tga32(img_fname, pix, w, eff_h, w * 4);
-    delete pix;
+    delete[] pix;
   }
   else if (::trail_stricmp(img_fname, ".pfm"))
   {
@@ -139,7 +139,7 @@ bool convert_ltoutput(const char *lto_fname, const char *img_fname)
     }
   }
 
-  delete cpix;
+  delete[] cpix;
 
   if (!success)
   {

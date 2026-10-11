@@ -6,7 +6,6 @@ module vis_renderer shared
 
 require opengl/opengl_boost
 require opengl/opengl_ttf
-require strudel/strudel_event
 require strudel/strudel_time
 require strudel/strudel_pattern
 require strudel/strudel_player
@@ -67,9 +66,7 @@ def public pianoroll(var pat : Pattern; name : string = "") : Pattern {
     while (length(g_vis_registrations) <= idx) {
         g_vis_registrations |> emplace(VisRegistration())
     }
-    unsafe {
-        g_vis_registrations[idx].flags |= VisFlags.has_pianoroll
-    }
+    g_vis_registrations[idx].flags.has_pianoroll = true
     if (!empty(name)) {
         g_vis_registrations[idx].name = name
     }
@@ -100,9 +97,7 @@ def public spectrum(var pat : Pattern; name : string = "") : Pattern {
     while (length(g_vis_registrations) <= idx) {
         g_vis_registrations |> emplace(VisRegistration())
     }
-    unsafe {
-        g_vis_registrations[idx].flags |= VisFlags.has_spectrum
-    }
+    g_vis_registrations[idx].flags.has_spectrum = true
     if (!empty(name)) {
         g_vis_registrations[idx].name = name
     }
@@ -115,9 +110,7 @@ def public scope(var pat : Pattern; name : string = "") : Pattern {
     while (length(g_vis_registrations) <= idx) {
         g_vis_registrations |> emplace(VisRegistration())
     }
-    unsafe {
-        g_vis_registrations[idx].flags |= VisFlags.has_scope
-    }
+    g_vis_registrations[idx].flags.has_scope = true
     if (!empty(name)) {
         g_vis_registrations[idx].name = name
     }
@@ -130,9 +123,7 @@ def public vectorscope(var pat : Pattern; name : string = "") : Pattern {
     while (length(g_vis_registrations) <= idx) {
         g_vis_registrations |> emplace(VisRegistration())
     }
-    unsafe {
-        g_vis_registrations[idx].flags |= VisFlags.has_vectorscope
-    }
+    g_vis_registrations[idx].flags.has_vectorscope = true
     if (!empty(name)) {
         g_vis_registrations[idx].name = name
     }
@@ -145,9 +136,7 @@ def public drums(var pat : Pattern; name : string = "") : Pattern {
     while (length(g_vis_registrations) <= idx) {
         g_vis_registrations |> emplace(VisRegistration())
     }
-    unsafe {
-        g_vis_registrations[idx].flags |= VisFlags.has_drums
-    }
+    g_vis_registrations[idx].flags.has_drums = true
     if (!empty(name)) {
         g_vis_registrations[idx].name = name
     }
@@ -340,9 +329,9 @@ def drum_panel_update(var state : DrumPanelState; haps : array<PianorollHap>; cu
         } else {
             pad_idx = state.pad_map[key]
         }
-        if (h.whole_start <= current_cycle && h.whole_start > unsafe(state.pads[pad_idx]).last_trigger_cycle) {
-            unsafe(state.pads[pad_idx]).last_trigger_cycle = h.whole_start
-            unsafe(state.pads[pad_idx]).brightness = 1.0
+        if (h.whole_start <= current_cycle && h.whole_start > state.pads[pad_idx].last_trigger_cycle) {
+            state.pads[pad_idx].last_trigger_cycle = h.whole_start
+            state.pads[pad_idx].brightness = 1.0
         }
     }
     for (si in range(length(state.pads))) {
@@ -447,9 +436,9 @@ def pianoroll_render_panel(var verts : array<VisVertex>; rs : PianorollRenderSta
     let grid_color = float4(0.3, 0.3, 0.35, 0.5)
     var cyc = ceil(time_start)
     while (cyc <= time_end) {
-        let x = (float(cyc) - time_start) / (time_end - time_start) * fw
+        let x = (cyc - time_start) / (time_end - time_start) * fw
         push_quad(verts, x - 0.5, py0, x + 0.5, py1, grid_color)
-        cyc += 1.0
+        cyc ++
     }
     // grid — horizontal
     if (rs.is_drum_mode) {
@@ -466,7 +455,7 @@ def pianoroll_render_panel(var verts : array<VisVertex>; rs : PianorollRenderSta
                 let y = py0 + y_frac * ph
                 push_quad(verts, 0.0, y - 0.5, fw, y + 0.5, float4(0.3, 0.3, 0.35, 0.4))
             }
-            note_val += 1.0
+            note_val ++
         }
     }
     // hap rectangles

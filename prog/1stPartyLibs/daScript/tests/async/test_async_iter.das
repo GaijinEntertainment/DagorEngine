@@ -21,12 +21,7 @@ def int_range() : int {
 [test]
 def test_async_int_range(t : T?) {
     t |> run("iterate typed async with for loop") @(t : T?) {
-        var vals : array<int>
-        for (v in int_range()) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in int_range()); v as res; where v is res]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], 10)
         t |> equal(vals[1], 20)
@@ -46,12 +41,7 @@ def bool_range() : bool {
 [test]
 def test_async_bool_range(t : T?) {
     t |> run("iterate bool async") @(t : T?) {
-        var vals : array<bool>
-        for (v in bool_range()) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in bool_range()); v as res; where v is res]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], true)
         t |> equal(vals[1], false)
@@ -130,7 +120,7 @@ def empty_range() : int {
 def test_empty_range(t : T?) {
     t |> run("empty async range produces no values") @(t : T?) {
         var count = 0
-        for (v in empty_range()) {
+        for (_v in empty_range()) {
             count ++
         }
         t |> equal(count, 0)
@@ -147,12 +137,7 @@ def single_value() : int {
 [test]
 def test_single_value(t : T?) {
     t |> run("async with single yield") @(t : T?) {
-        var vals : array<int>
-        for (v in single_value()) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in single_value()); v as res; where v is res]
         t |> equal(length(vals), 1)
         t |> equal(vals[0], 42)
     }
@@ -170,12 +155,7 @@ def string_range() : string {
 [test]
 def test_string_range(t : T?) {
     t |> run("string-typed async range") @(t : T?) {
-        var vals : array<string>
-        for (v in string_range()) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in string_range()); v as res; where v is res]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], "alpha")
         t |> equal(vals[1], "beta")

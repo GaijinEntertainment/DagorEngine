@@ -1,8 +1,6 @@
 options gen2
 
-require strings
 require daslib/json_boost
-require daslib/strings_boost
 require daslib/fio
 require cluster_input
 require judge
@@ -119,6 +117,72 @@ def private member_label(m : InputMemberRef) : string {
 }
 
 
+def private write_row_partition(fw : file; row : VerdictRow) {
+    if (empty(row.groups) && empty(row.false_positives)) return
+    fw |> fprint("**Partition:**\n\n")
+    for (g in row.groups) {
+        fw |> fprint("- group: ")
+        for (i in iter_range(g)) {
+            if (i > 0) {
+                fw |> fprint(", ")
+            }
+            fw |> fprint("`[{g[i]}]`")
+        }
+        fw |> fprint("\n")
+    }
+    if (!empty(row.false_positives)) {
+        fw |> fprint("- false_positives: ")
+        for (i in iter_range(row.false_positives)) {
+            if (i > 0) {
+                fw |> fprint(", ")
+            }
+            fw |> fprint("`[{row.false_positives[i]}]`")
+        }
+        fw |> fprint("\n")
+    }
+    fw |> fprint("\n")
+}
+
+
+def private write_verdict_row(fw : file; row : VerdictRow;
+                              var sources_by_id : table<int; array<string>>) {
+    let kind = parse_verdict_string(row.verdict)
+    let tag = verdict_emoji(kind)
+    fw |> fprint("## {tag} Cluster #{row.cluster_id} — {row.kind}")
+    if (row.kind == "fuzzy") {
+        fw |> fprint("  (similarity {row.similarity})")
+    }
+    fw |> fprint("\n\n")
+    if (!empty(row.reason)) {
+        fw |> fprint("**Reason:** {row.reason}\n\n")
+    }
+    if (row.skipped) {
+        fw |> fprint("_Skipped:_ {row.skip_reason}\n\n")
+    }
+    if (!empty(row.error)) {
+        fw |> fprint("_Error:_ `{row.error}`\n\n")
+    }
+    fw |> fprint("**Members ({length(row.members)}):**\n\n")
+    for (i in iter_range(row.members)) {
+        fw |> fprint("- `[{i}]` {member_label(row.members[i])}\n")
+    }
+    fw |> fprint("\n")
+    write_row_partition(fw, row)
+    // Source code (collapsed). `key_exists` first so we don't
+    // insert an empty default into the cache.
+    if (key_exists(sources_by_id, row.cluster_id)) {
+        fw |> fprint("<details><summary>source</summary>\n\n")
+        let sources & = unsafe(sources_by_id[row.cluster_id])
+        for (si in iter_range(sources)) {
+            fw |> fprint("`[{si}]` `{row.members[si].name}`\n")
+            fw |> fprint("```daslang\n{sources[si]}\n```\n\n")
+        }
+        fw |> fprint("</details>\n\n")
+    }
+    fw |> fprint("---\n\n")
+}
+
+
 def public write_markdown_report(report : OutputReport;
                                  var sources_by_id : table<int; array<string>>;
                                  path : string) : bool {
@@ -141,64 +205,7 @@ def public write_markdown_report(report : OutputReport;
         fw |> fprint("- tokens: in={s.input_tokens}  out={s.output_tokens}\n\n")
         fw |> fprint("---\n\n")
         for (row in report.verdicts) {
-            let kind = parse_verdict_string(row.verdict)
-            let tag = verdict_emoji(kind)
-            fw |> fprint("## {tag} Cluster #{row.cluster_id} — {row.kind}")
-            if (row.kind == "fuzzy") {
-                fw |> fprint("  (similarity {row.similarity})")
-            }
-            fw |> fprint("\n\n")
-            if (!empty(row.reason)) {
-                fw |> fprint("**Reason:** {row.reason}\n\n")
-            }
-            if (row.skipped) {
-                fw |> fprint("_Skipped:_ {row.skip_reason}\n\n")
-            }
-            if (!empty(row.error)) {
-                fw |> fprint("_Error:_ `{row.error}`\n\n")
-            }
-            fw |> fprint("**Members ({length(row.members)}):**\n\n")
-            for (i in iter_range(row.members)) {
-                fw |> fprint("- `[{i}]` {member_label(row.members[i])}\n")
-            }
-            fw |> fprint("\n")
-            // Partition annotation
-            if (!empty(row.groups) || !empty(row.false_positives)) {
-                fw |> fprint("**Partition:**\n\n")
-                for (g in row.groups) {
-                    fw |> fprint("- group: ")
-                    for (i in iter_range(g)) {
-                        if (i > 0) {
-                            fw |> fprint(", ")
-                        }
-                        fw |> fprint("`[{g[i]}]`")
-                    }
-                    fw |> fprint("\n")
-                }
-                if (!empty(row.false_positives)) {
-                    fw |> fprint("- false_positives: ")
-                    for (i in iter_range(row.false_positives)) {
-                        if (i > 0) {
-                            fw |> fprint(", ")
-                        }
-                        fw |> fprint("`[{row.false_positives[i]}]`")
-                    }
-                    fw |> fprint("\n")
-                }
-                fw |> fprint("\n")
-            }
-            // Source code (collapsed). `key_exists` first so we don't
-            // insert an empty default into the cache.
-            if (key_exists(sources_by_id, row.cluster_id)) {
-                fw |> fprint("<details><summary>source</summary>\n\n")
-                let sources & = unsafe(sources_by_id[row.cluster_id])
-                for (si in iter_range(sources)) {
-                    fw |> fprint("`[{si}]` `{row.members[si].name}`\n")
-                    fw |> fprint("```daslang\n{sources[si]}\n```\n\n")
-                }
-                fw |> fprint("</details>\n\n")
-            }
-            fw |> fprint("---\n\n")
+            write_verdict_row(fw, row, sources_by_id)
         }
     }
     return ok

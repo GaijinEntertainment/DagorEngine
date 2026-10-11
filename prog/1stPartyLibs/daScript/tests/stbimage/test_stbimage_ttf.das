@@ -5,7 +5,6 @@ options indenting = 4
 
 require stbimage/stbimage_ttf
 require stbimage/stbimage_boost
-require math
 require daslib/fio
 require dastest/testing_boost public
 
@@ -43,7 +42,7 @@ def test_load_ttf_basic(t : T?) {
 [test]
 def test_load_ttf_custom_params(t : T?) {
     t |> run("load_ttf with custom atlas size and pixel height") <| @(tt : T?) {
-        var font <- load_ttf(font_path(), [pixel_height = 48.0f, atlas_dim = int2(256, 256)])
+        let font <- load_ttf(font_path(), [pixel_height = 48.0f, atlas_dim = int2(256, 256)])
         tt |> success(font.bitmap.valid(), "bitmap is valid")
         tt |> equal(font.bitmap.width, 256)
         tt |> equal(font.bitmap.height, 256)
@@ -54,7 +53,7 @@ def test_load_ttf_custom_params(t : T?) {
 [test]
 def test_load_ttf_nonexistent(t : T?) {
     t |> run("load_ttf with nonexistent file returns invalid font") <| @(tt : T?) {
-        var font <- load_ttf("/does/not/exist.ttf")
+        let font <- load_ttf("/does/not/exist.ttf")
         tt |> success(!font.bitmap.valid(), "bitmap is invalid for missing file")
         tt |> success(empty(font.font_data), "no font data loaded")
     }
@@ -83,7 +82,7 @@ def test_render_text_basic(t : T?) {
         let m = font_metrics(font)
         var img = make_image(200, 50, 4)
         // fill black
-        img.fill_rect(0, 0, 200, 50, uint(0xFF000000u))
+        img.fill_rect(0, 0, 200, 50, 0xFF000000u)
         render_text(img, font, "Hi", 10, int(m.ascent) + 5, 255, 255, 255)
         // check that some pixels were written (not all black)
         var non_black = 0
@@ -103,7 +102,7 @@ def test_render_text_empty(t : T?) {
     t |> run("render_text with empty string does nothing") <| @(tt : T?) {
         var font <- load_ttf(font_path())
         var img = make_image(100, 50, 4)
-        img.fill_rect(0, 0, 100, 50, uint(0xFF000000u))
+        img.fill_rect(0, 0, 100, 50, 0xFF000000u)
         render_text(img, font, "", 10, 30, 255, 255, 255)
         // all pixels should still be black
         var non_black = 0
@@ -124,7 +123,7 @@ def test_render_text_color(t : T?) {
         var font <- load_ttf(font_path())
         let m = font_metrics(font)
         var img = make_image(200, 50, 4)
-        img.fill_rect(0, 0, 200, 50, uint(0xFF000000u))
+        img.fill_rect(0, 0, 200, 50, 0xFF000000u)
         // render in red
         render_text(img, font, "A", 10, int(m.ascent) + 5, 255, 0, 0)
         // find a non-black pixel — it should have red but no green/blue

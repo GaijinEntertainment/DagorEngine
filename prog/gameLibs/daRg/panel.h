@@ -6,7 +6,7 @@
 #include "inputStack.h"
 #include "touchPointers.h"
 #include <daRg/dag_guiScene.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <math/dag_TMatrix4.h>
 #include <render/viewDependentResource.h>
 
@@ -150,7 +150,7 @@ public:
   PanelPointer pointers[MAX_POINTERS];
   TouchPointers touchPointers;
 
-  eastl::unique_ptr<TextureIDHolder> canvas;
+  UniqueTex canvas;
   int index = -1;
   bool isDirty = true;
 };

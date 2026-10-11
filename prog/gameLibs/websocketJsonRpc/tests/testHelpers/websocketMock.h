@@ -57,6 +57,8 @@ private:
 
   void poll() override;
 
+  void deliverMessage(PayloadView payload, bool is_text);
+
 public:
   void initialize(websocket::ClientConfig &&config_);
 

@@ -11,6 +11,7 @@
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_input.h>
 #include <anim/dag_animPostBlendCtrl.h>
+#include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <phys/dag_fastPhys.h>
 #include <shaders/dag_dynSceneRes.h>
@@ -58,7 +59,11 @@ static ecs::EntityId create_animchar_entity(const char *name, const DataBlock *a
         ecs::load_comp_list_from_blk(*g_entity_mgr, *b, clist);
     }
 
-    eid = g_entity_mgr->createEntitySync(template_name, complist_to_compinitializer(eastl::move(clist)));
+    GameResource *res = ::get_one_game_resource_ex(name, CharacterGameResClassId);
+    const bool loaded = res && ((AnimV20::IAnimCharacter2 *)res)->getVisualResource();
+    ::release_game_resource_ex(res, CharacterGameResClassId);
+    if (loaded)
+      eid = g_entity_mgr->createEntitySync(template_name, complist_to_compinitializer(eastl::move(clist)));
   }
   catch (...)
   {
@@ -269,14 +274,14 @@ public:
       DynamicAttachement &att = dynAtt[i];
       float val =
         att.varTypeInt ? baseComp->getAnimState()->getParamInt(att.animVarId) : baseComp->getAnimState()->getParam(att.animVarId);
-      if (fabsf(att.curValue - val) < 1e-3)
+      if (fabsf(att.curValue - val) < 1e-3f)
         continue;
 
       const char *enum_val = NULL;
       for (int pi = 0; pi < att.bEnum->blockCount(); pi++)
       {
         const DataBlock *enumBlock = att.bEnum->getBlock(pi);
-        if (fabsf(enumBlock->getInt("_enumValue", -1) - val) < 1e-3)
+        if (fabsf(enumBlock->getInt("_enumValue", -1) - val) < 1e-3f)
         {
           enum_val = enumBlock->getBlockName();
           break;
@@ -460,7 +465,7 @@ public:
     VirtualAnimCharECSEntity::clear();
   }
 
-  void setTm(const TMatrix &_tm) override { g_entity_mgr->set(eid, ECS_HASH("transform"), _tm); }
+  void setTm(const TMatrix &_tm) override { g_entity_mgr->setOptional(eid, ECS_HASH("transform"), _tm); }
 
   void getTm(TMatrix &_tm) const override
   {

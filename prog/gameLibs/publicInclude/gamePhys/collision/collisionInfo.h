@@ -36,6 +36,7 @@ struct CollisionObjectInfo
 
   virtual bool isRICollision() const { return false; }
   virtual bool isTreeCollision() const { return false; }
+  virtual bool isBushCollision() const { return false; }
 };
 
 struct CollisionInfo

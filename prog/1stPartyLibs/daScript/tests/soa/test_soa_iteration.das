@@ -5,6 +5,7 @@ options no_unused_function_arguments = false
 
 require dastest/testing_boost public
 require daslib/soa
+require strings
 
 // ===========================
 // Test structs
@@ -112,9 +113,10 @@ def test_soa_for_loop_entity(t : T?) {
         var soa : Entity`SOA
         soa |> push <| Entity(id = 1, name = "a")
         soa |> push <| Entity(id = 2, name = "b")
-        var names = ""
-        for (it in soa) {
-            names += it.name
+        let names = build_string() $(var writer) {
+            for (it in soa) {
+                writer |> write(it.name)
+            }
         }
         t |> equal(names, "ab")
     }
@@ -144,7 +146,7 @@ def test_soa_for_loop_mixed(t : T?) {
         for (i in range(3)) {
             soa |> push <| Particle(pos = float3(i))
         }
-        var indices : array<int>
+        var indices : array<int>   // nolint:STYLE027 - daslib/soa's for-lowering macro does not handle the comprehension form
         for (idx, it in count(), soa) {
             indices |> push(idx)
         }

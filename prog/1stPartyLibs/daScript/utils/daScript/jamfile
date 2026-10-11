@@ -20,6 +20,7 @@ Sources =
   ../../dagorAdapter/da.cpp
   ../../modules/dasUnitTest/bytecode.cpp
   ../../modules/dasUnitTest/test_enum.cpp
+  ../../modules/dasUnitTest/test_crt_math.cpp
   ../../modules/dasUnitTest/test_handles.cpp
 ;
 
@@ -35,7 +36,6 @@ UseProgLibs =
 
   3rdPartyLibs/eastl
   1stPartyLibs/daScript
-  1stPartyLibs/daScript/utils/dasFormatter
   engine/daECS/core
   gameLibs/ecs/scripts/das
   gameLibs/dasModules/common

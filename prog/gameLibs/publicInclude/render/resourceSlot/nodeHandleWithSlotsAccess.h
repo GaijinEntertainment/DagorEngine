@@ -34,8 +34,8 @@ namespace resource_slot
 struct NodeHandleWithSlotsAccess
 {
   NodeHandleWithSlotsAccess();
-  NodeHandleWithSlotsAccess(NodeHandleWithSlotsAccess &&h);
-  NodeHandleWithSlotsAccess &operator=(NodeHandleWithSlotsAccess &&h);
+  NodeHandleWithSlotsAccess(NodeHandleWithSlotsAccess &&h) noexcept;
+  NodeHandleWithSlotsAccess &operator=(NodeHandleWithSlotsAccess &&h) noexcept;
   NodeHandleWithSlotsAccess(const NodeHandleWithSlotsAccess &) = delete;
   NodeHandleWithSlotsAccess &operator=(const NodeHandleWithSlotsAccess &) = delete;
 

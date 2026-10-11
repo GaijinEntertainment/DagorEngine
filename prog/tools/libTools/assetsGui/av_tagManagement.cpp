@@ -105,8 +105,12 @@ static bool framedLabelWithCloseButton(const char *label, ImVec2 &size, float &c
   return closed;
 }
 
-bool AssetTagManager::updateImgui()
+bool AssetTagManager::updateImgui(bool can_submit_contents)
 {
+  const bool closeRequested = ImGui::Shortcut(WINDOW_TOGGLE_HOTKEY);
+  if (!can_submit_contents)
+    return !closeRequested;
+
   ImGui::PushID(this);
 
   ImGui::PushFont(imgui_get_bold_font(), 0.0f);
@@ -409,7 +413,7 @@ bool AssetTagManager::updateImgui()
 
   ImGui::PopID();
 
-  return !ImGui::Shortcut(WINDOW_TOGGLE_HOTKEY);
+  return !closeRequested;
 }
 
 void AssetTagManager::onImguiDelayedCallback(void *data)
@@ -508,6 +512,6 @@ AssetTagsDlg::AssetTagsDlg(void *phandle, const DagorAsset *selected_asset) :
 
 void AssetTagsDlg::customControlUpdate(int id)
 {
-  if (!mTagManager.updateImgui())
+  if (!mTagManager.updateImgui(true))
     clickDialogButton(PropPanel::DIALOG_ID_CLOSE);
 }

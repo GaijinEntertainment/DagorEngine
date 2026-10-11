@@ -19,13 +19,17 @@
 #endif
 
 // MSVC supports compiling SSSE3 code regardless of compile options; we use a cpuid-based scalar fallback
-#if !defined(SIMD_SSE) && !defined(SIMD_AVX) && defined(_MSC_VER) && !defined(__clang__) && (defined(_M_IX86) || defined(_M_X64))
+// Gaijin change
+#if !defined(SIMD_SSE) && !defined(SIMD_AVX) && defined(_MSC_VER) && !defined(__clang__) && (defined(_M_IX86) || (defined(_M_X64) && !defined(_M_ARM64EC)))
+// ~Gaijin change
 #define SIMD_SSE
 #define SIMD_FALLBACK
 #endif
 
 // GCC 4.9+ and clang 3.8+ support targeting SIMD ISA from individual functions; we use a cpuid-based scalar fallback
-#if !defined(SIMD_SSE) && !defined(SIMD_AVX) && ((defined(__clang__) && __clang_major__ * 100 + __clang_minor__ >= 308) || (defined(__GNUC__) && __GNUC__ * 100 + __GNUC_MINOR__ >= 409)) && (defined(__i386__) || defined(__x86_64__))
+// Gaijin change
+#if !defined(SIMD_SSE) && !defined(SIMD_AVX) && ((defined(__clang__) && __clang_major__ * 100 + __clang_minor__ >= 308) || (defined(__GNUC__) && __GNUC__ * 100 + __GNUC_MINOR__ >= 409)) && (defined(__i386__) || (defined(__x86_64__) && !defined(_M_ARM64EC)))
+// ~Gaijin change
 #define SIMD_SSE
 #define SIMD_FALLBACK
 #define SIMD_TARGET __attribute__((target("ssse3")))
@@ -37,7 +41,9 @@
 #endif
 
 // On MSVC, we assume that ARM builds always target NEON-capable devices
-#if !defined(SIMD_NEON) && defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
+// Gaijin change
+#if !defined(SIMD_NEON) && defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC))
+// ~Gaijin change
 #define SIMD_NEON
 #endif
 

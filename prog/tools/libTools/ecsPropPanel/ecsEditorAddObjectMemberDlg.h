@@ -41,8 +41,7 @@ public:
       {"string", ecs::ComponentTypeInfo<ecs::string>::type},
     };
 
-    eastl::unique_ptr<PropPanel::DialogWindow> dialogWindow(
-      EDITORCORE->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(100), "Add object member"));
+    eastl::unique_ptr<PropPanel::DialogWindow> dialogWindow(EDITORCORE->createAutoSizedDialog("Add object member"));
     dialogWindow->setInitialFocus(PropPanel::DIALOG_ID_NONE);
 
     PropPanel::ContainerPropertyControl &panel = *dialogWindow->getPanel();
@@ -55,8 +54,7 @@ public:
 
     panel.createCombo(PID_TYPE, "Type", values, 0);
 
-    panel.setFocusById(member_name ? PID_NAME : PID_NAME);
-    dialogWindow->autoSize();
+    panel.setFocusById(member_name ? PID_NAME : PID_TYPE);
     if (dialogWindow->showDialog() != PropPanel::DIALOG_ID_OK)
       return false;
 

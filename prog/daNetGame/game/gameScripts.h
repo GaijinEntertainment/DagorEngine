@@ -31,6 +31,8 @@ bool get_das_aot();
 void set_das_log_aot_errors(bool value);
 bool get_das_log_aot_errors();
 int set_load_threads_num(int num);
+// Prepended to the serialized AST file name, so run modes that load different scripts keep separate caches.
+void set_serialized_data_prefix(const char *prefix);
 int get_game_das_reload_threads();
 int get_load_threads_num();
 void update_deferred();

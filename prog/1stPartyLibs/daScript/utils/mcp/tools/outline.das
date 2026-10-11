@@ -65,13 +65,19 @@ def find_earliest(text : string; chars : array<int>) : int {
 }
 
 def strip_modifiers(rest0 : string; modifiers : array<string>) : string {
-    var rest = rest0
-    for (m in modifiers) {
-        if (starts_with(rest, m)) {
-            rest = strip(slice(rest, length(m)))
+    var out = rest0
+    peek_data(rest0) $(d) {
+        var pos = 0
+        for (m in modifiers) {
+            if (starts_with(d, pos, m)) {
+                pos = skip_white_space(d, pos + length(m))
+            }
+        }
+        if (pos > 0) {
+            out = strip(slice(d, pos))
         }
     }
-    return rest
+    return out
 }
 
 def extract_name_from_text(text, kind : string) : string {
@@ -154,16 +160,22 @@ def extract_name_from_text(text, kind : string) : string {
 
 def skip_annotations(text : string) : string {
     // Skip annotation lines like "[generic]\n[macro_function]\n" to get to the declaration
-    var line = text
-    while (starts_with(strip(line), "[")) {
-        let nl = find(line, "\n")
-        if (nl >= 0) {
-            line = slice(line, nl + 1)
-        } else {
-            break
+    var out = text
+    peek_data(text) $(d) {
+        let n = length(d)
+        var pos = 0
+        while (true) {
+            let head = skip_white_space(d, pos)
+            break if (head >= n || int(d[head]) != '[')
+            let nl = find(d, "\n", pos)
+            break if (nl < 0)
+            pos = nl + 1
+        }
+        if (pos > 0) {
+            out = slice(d, pos)
         }
     }
-    return line
+    return out
 }
 
 def get_first_line(text : string) : string {
@@ -221,16 +233,14 @@ def do_outline(file, glob_filter : string) : string {
     let das_root = get_das_root()
     let cmd = build_outline_cmd(file, glob_filter, das_root)
     var raw_json : string
-    unsafe {
-        popen(cmd) $(f) {
-            if (f == null) return
-            raw_json = build_string() $(var w) {
-                while (!feof(f)) {
-                    write(w, fgets(f))
-                }
+    unsafe(popen(cmd) $(f) {
+        if (f == null) return
+        raw_json = build_string() $(var w) {
+            while (!feof(f)) {
+                write(w, fgets(f))
             }
         }
-    }
+    })
     raw_json = strip_ast_grep_banner(raw_json)
     if (empty(raw_json) || raw_json == "[]") return make_tool_result("No declarations found")
     var err : string
@@ -259,7 +269,7 @@ def do_outline(file, glob_filter : string) : string {
             let line_num = start != null ? get_json_int(start, "line") + 1 : 0
             let name = extract_name_from_text(text, kind)
             if (empty(name)) continue  // skip block-form globals like "let private {"
-            let display_path = make_relative_path(file_path, das_root)
+            let display_path = make_relative_path(file_path, server_root())
             let idx = length(entries)
             entries |> emplace(OutlineEntry(kind = kind, name = name, line = line_num, text = get_first_line(text)))
             if (!key_exists(by_file, display_path)) {
@@ -271,10 +281,8 @@ def do_outline(file, glob_filter : string) : string {
     unsafe { delete parsed; }
     // sort entries within each file by line
     for (fp in file_order) {
-        unsafe {
-            sort(by_file[fp]) $(a, b) {
-                return entries[a].line < entries[b].line
-            }
+        sort(unsafe(by_file[fp])) $(a, b) {
+            return entries[a].line < entries[b].line
         }
     }
     return make_tool_result(format_outline(entries, by_file, file_order))

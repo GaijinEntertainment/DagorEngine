@@ -16,13 +16,11 @@ public:
       PID_CLONE_COUNT = 11000,
     };
 
-    eastl::unique_ptr<PropPanel::DialogWindow> dialogWindow(
-      DAGORED2->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(100), "Clone object"));
+    eastl::unique_ptr<PropPanel::DialogWindow> dialogWindow(DAGORED2->createAutoSizedDialog("Clone object"));
 
     PropPanel::ContainerPropertyControl &panel = *dialogWindow->getPanel();
     panel.createEditInt(PID_CLONE_COUNT, "Count of clones:", 1);
 
-    dialogWindow->autoSize();
     if (dialogWindow->showDialog() != PropPanel::DIALOG_ID_OK)
       return false;
 

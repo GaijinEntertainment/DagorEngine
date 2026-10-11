@@ -141,7 +141,9 @@ macro CURRENT_RADIANCE_SAMPLE(code)
         float3 rayDir = screenspace_probe_dir_decode(octCoord*sp_radiance_tc_decode.z + sp_radiance_tc_decode.w);
         float3x3 tm = tangent_to_world_matrix(probeNormal);
         float3 localDir = mul(tm, rayDir); // inverse == transpose, so just use other matrix mul
-        if (localDir.z <= 0)
+        // Horizon texels read the trace, mirrored.
+        float firstRingBelowZ = -sp_radiance_tc_decode.z * (2 - sp_radiance_tc_decode.z);
+        if (localDir.z < 0.5 * firstRingBelowZ)
         {
           float distToPlane = 0; // fixme: this should be solved using plane solution
           return float4(decodeProbeColor(encodedBackColor), distToPlane);

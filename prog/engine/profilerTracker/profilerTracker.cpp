@@ -15,15 +15,14 @@
 #include <util/dag_string.h>
 #include <imgui/imgui.h>
 #include <imgui/implot.h>
-
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 static bool d3d_markers_window = false;
 static bool help_window = false;
 static bool hidden_group_window = false;
 
 static eastl::unique_ptr<Tracker> tracker;
-static std::mutex mutex;
+static dag::mutex mutex;
 static char profilerInputBuffer[256] = {0};
 static bool loaded = false;
 // profiler values are not updated if the window is closed
@@ -58,7 +57,7 @@ static void load()
 
 void profiler_tracker::init()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  dag::lock_guard lock(mutex);
   loaded = false;
 #if PROFILER_TRACKER_ENABLED
   // history size (frames); max skipped frames
@@ -70,7 +69,7 @@ void profiler_tracker::init()
 
 void profiler_tracker::close()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  dag::lock_guard lock(mutex);
   if (tracker)
   {
     tracker.reset();
@@ -106,7 +105,7 @@ static void update_records(int threadId, TimeIntervalNode *, TimeIntervalNode *,
 
 void profiler_tracker::start_frame()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  dag::lock_guard lock(mutex);
   frame_id++;
   if (tracker)
   {
@@ -125,19 +124,19 @@ void profiler_tracker::start_frame()
 
 void profiler_tracker::record_value(const eastl::string &group, const eastl::string &label, float value, uint32_t frameOffset)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  dag::lock_guard lock(mutex);
   record_value_impl(group, label, value, frameOffset);
 }
 
 void profiler_tracker::record_value(const char *group, const char *label, float value, uint32_t frameOffset)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  dag::lock_guard lock(mutex);
   record_value_impl(group, label, value, frameOffset);
 }
 
 void profiler_tracker::clear()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  dag::lock_guard lock(mutex);
   if (tracker)
     tracker->clear();
 }

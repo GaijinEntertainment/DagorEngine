@@ -15,7 +15,7 @@ struct DastestArgs {
     @clarg_doc = "Compile test files without executing them"
     compile_only : bool
 
-    @clarg_doc = "If tests run longer than this duration in seconds, panic. If 0, the timeout is disabled. The default is 20 minutes"
+    @clarg_doc = "The whole suite's timeout in seconds: past it the process ends at once with exit code 124 and no summary. 0 disables it. The default is 20 minutes"
     timeout : float = 1200.0
 
     @clarg_doc = "Print the top N slowest test files and highlight statistical timing outliers (above mean + 2x stddev)"
@@ -65,6 +65,14 @@ struct DastestArgs {
     @clarg_doc = "Skip test files whose base name contains this substring (repeatable)"
     exclude_files : array<string>
 
+    @clarg_name = "test-list"
+    @clarg_doc = "Path to a file listing one test path per line; restricts the collected set to those paths"
+    test_list : string
+
+    @clarg_name = "test-only"
+    @clarg_doc = "Restrict the collected set to this test path (repeatable)"
+    test_only : array<string>
+
     @clarg_doc = "Run top-level tests matching this name prefix"
     test_names : array<string>
 
@@ -94,6 +102,9 @@ struct DastestArgs {
 
     @clarg_doc = "Compile every test with the CSE (common-subexpression-elimination) pass disabled (cop.disable_cse)"
     disable_cse : bool = false
+
+    @clarg_doc = "Run every test on the persistent heap (cop.persistent_heap), whose frees and sweeps an address-sanitizer build hands to its own allocator, so a stale pointer into them is reported; a test that pins the default heap's byte counts fails under it"
+    persistent_heap : bool = false
 
     @clarg_doc = "Compile every test with the DSE (dead-store-elimination) pass disabled (cop.disable_dse)"
     disable_dse : bool = false

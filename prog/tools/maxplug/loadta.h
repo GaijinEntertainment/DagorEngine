@@ -13,6 +13,9 @@ struct TexAnimFile
   static std::wstring getlasterr();
 
 private:
-  void add_frame(char *);
+  std::string basepath, basefile;
+
+  void setbasefile(const wchar_t *fn);
+  void add_frame(const std::string &fname);
   bool parse(char *);
 };

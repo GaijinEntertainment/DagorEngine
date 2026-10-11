@@ -253,8 +253,6 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
 
     case TO_PAREN:
     case TO_CLONE:
-    // Static memo wraps an expression
-    case TO_STATIC_MEMO:
     // Inline const wraps a literal
     case TO_INLINE_CONST:
         return inferExprTypeMask(static_cast<UnExpr *>(expr)->argument());

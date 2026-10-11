@@ -27,21 +27,33 @@ def info(msg : string | #) {
     }
 }
 
+def started(msg : string | #) {
+    to_log(LOG_INFO, "{iso8601_now()} {msg}\n")
+}
+
+
+//! prints a colored line with the newline outside the color wrap, so the closing reset
+//! escape can never land at the head of the next stdout line (it corrupts machine-read
+//! output such as `--bench-format json`)
+def print_line(colored : string) {
+    print(colored + "\n")
+}
+
 
 def warn(msg : string | #) {
     if (!verbose) {
-        print(yellow_str("[W] {msg}\n"))
+        print_line(yellow_str("[W] {msg}"))
     } else {
-        print(yellow_str("[W] {msg} @{file_info_hr(get_line_info(1), uriPaths)}\n"))
+        print_line(yellow_str("[W] {msg} @{file_info_hr(get_line_info(1), uriPaths)}"))
     }
 }
 
 
 def error(msg : string | #) {
     if (!verbose) {
-        print(red_str("[E] {msg}\n"))
+        print_line(red_str("[E] {msg}"))
     } else {
-        print(red_str("[E] {msg} @{file_info_hr(get_line_info(1), uriPaths)}\n"))
+        print_line(red_str("[E] {msg} @{file_info_hr(get_line_info(1), uriPaths)}"))
     }
 }
 
@@ -49,18 +61,18 @@ def error(msg : string | #) {
 def green(msg : string | #) {
     if (failuresOnly) return
     if (!verbose) {
-        print(green_str("{msg}\n"))
+        print_line(green_str("{msg}"))
     } else {
-        print(green_str("{msg} @{file_info_hr(get_line_info(1), uriPaths)}\n"))
+        print_line(green_str("{msg} @{file_info_hr(get_line_info(1), uriPaths)}"))
     }
 }
 
 
 def red(msg : string | #) {
     if (!verbose) {
-        print(red_str("{msg}\n"))
+        print_line(red_str("{msg}"))
     } else {
-        print(red_str("{msg} @{file_info_hr(get_line_info(1), uriPaths)}\n"))
+        print_line(red_str("{msg} @{file_info_hr(get_line_info(1), uriPaths)}"))
     }
 }
 
@@ -68,9 +80,9 @@ def red(msg : string | #) {
 def blue(msg : string | #) {
     if (failuresOnly) return
     if (!verbose) {
-        print(blue_str("{msg}\n"))
+        print_line(blue_str("{msg}"))
     } else {
-        print(blue_str("{msg} @{file_info_hr(get_line_info(1), uriPaths)}\n"))
+        print_line(blue_str("{msg} @{file_info_hr(get_line_info(1), uriPaths)}"))
     }
 }
 

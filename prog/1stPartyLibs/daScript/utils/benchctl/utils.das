@@ -8,15 +8,13 @@ var colored_output = true
 
 def cmd_exec(cmd : string) : string {
     var out = ""
-    unsafe {
-        popen(cmd) $(f) {
-            out = build_string() $(var w) {
-                while (!feof(f)) {
-                    w |> write(fgets(f))
-                }
+    unsafe(popen(cmd) $(f) {
+        out = build_string() $(var w) {
+            while (!feof(f)) {
+                w |> write(fgets(f))
             }
         }
-    }
+    })
     return trim(out)
 }
 

@@ -71,13 +71,13 @@ LightsVisibilityChecker::LightsVisibilityChecker(TestParameters &&test_parameter
   moveCacheData(eastl::move(checker), *this, true);
 }
 
-LightsVisibilityChecker::LightsVisibilityChecker(LightsVisibilityChecker &&checker) :
+LightsVisibilityChecker::LightsVisibilityChecker(LightsVisibilityChecker &&checker) noexcept :
   testParams(eastl::move(checker.testParams)), config(eastl::move(checker.config))
 {
   moveCacheData(eastl::move(checker), *this, false);
 }
 
-LightsVisibilityChecker &LightsVisibilityChecker::operator=(LightsVisibilityChecker &&checker)
+LightsVisibilityChecker &LightsVisibilityChecker::operator=(LightsVisibilityChecker &&checker) noexcept
 {
   if (this != &checker)
   {

@@ -152,59 +152,59 @@ namespace das
         addFunctionBasic<Bitfield64,uint64_t>(*this,lib);
         addFunctionBitLogic<Bitfield64,uint64_t>(*this,lib);
         // bitfield 8 operations
-        addExtern<DAS_BIND_FUN(__bitfield8_eq)>(*this, lib, "==",
+        addExternInline<DAS_BIND_FUN(__bitfield8_eq)>(*this, lib, "==",
             SideEffects::none, "__bitfield8_eq")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_neq)>(*this, lib, "!=",
+        addExternInline<DAS_BIND_FUN(__bitfield8_neq)>(*this, lib, "!=",
             SideEffects::none, "__bitfield8_neq")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_not)>(*this, lib, "~",
+        addExternInline<DAS_BIND_FUN(__bitfield8_not)>(*this, lib, "~",
             SideEffects::none, "__bitfield8_not")
                 ->args({"value"});
-        addExtern<DAS_BIND_FUN(__bitfield8_and)>(*this, lib, "&",
+        addExternInline<DAS_BIND_FUN(__bitfield8_and)>(*this, lib, "&",
             SideEffects::none, "__bitfield8_and")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_or)>(*this, lib, "|",
+        addExternInline<DAS_BIND_FUN(__bitfield8_or)>(*this, lib, "|",
             SideEffects::none, "__bitfield8_or")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_xor)>(*this, lib, "^",
+        addExternInline<DAS_BIND_FUN(__bitfield8_xor)>(*this, lib, "^",
             SideEffects::none, "__bitfield8_xor")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_setand)>(*this, lib, "&=",
+        addExternInline<DAS_BIND_FUN(__bitfield8_setand)>(*this, lib, "&=",
             SideEffects::modifyArgument, "__bitfield8_setand")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_setor)>(*this, lib, "|=",
+        addExternInline<DAS_BIND_FUN(__bitfield8_setor)>(*this, lib, "|=",
             SideEffects::modifyArgument, "__bitfield8_setor")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield8_setxor)>(*this, lib, "^=",
+        addExternInline<DAS_BIND_FUN(__bitfield8_setxor)>(*this, lib, "^=",
             SideEffects::modifyArgument, "__bitfield8_setxor")
                 ->args({"left","right"});
         // bitfield 16 operations
-        addExtern<DAS_BIND_FUN(__bitfield16_eq)>(*this, lib, "==",
+        addExternInline<DAS_BIND_FUN(__bitfield16_eq)>(*this, lib, "==",
             SideEffects::none, "__bitfield16_eq")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_neq)>(*this, lib, "!=",
+        addExternInline<DAS_BIND_FUN(__bitfield16_neq)>(*this, lib, "!=",
             SideEffects::none, "__bitfield16_neq")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_not)>(*this, lib, "~",
+        addExternInline<DAS_BIND_FUN(__bitfield16_not)>(*this, lib, "~",
             SideEffects::none, "__bitfield16_not")
                 ->args({"value"});
-        addExtern<DAS_BIND_FUN(__bitfield16_and)>(*this, lib, "&",
+        addExternInline<DAS_BIND_FUN(__bitfield16_and)>(*this, lib, "&",
             SideEffects::none, "__bitfield16_and")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_or)>(*this, lib, "|",
+        addExternInline<DAS_BIND_FUN(__bitfield16_or)>(*this, lib, "|",
             SideEffects::none, "__bitfield16_or")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_xor)>(*this, lib, "^",
+        addExternInline<DAS_BIND_FUN(__bitfield16_xor)>(*this, lib, "^",
             SideEffects::none, "__bitfield16_xor")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_setand)>(*this, lib, "&=",
+        addExternInline<DAS_BIND_FUN(__bitfield16_setand)>(*this, lib, "&=",
             SideEffects::modifyArgument, "__bitfield16_setand")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_setor)>(*this, lib, "|=",
+        addExternInline<DAS_BIND_FUN(__bitfield16_setor)>(*this, lib, "|=",
             SideEffects::modifyArgument, "__bitfield16_setor")
                 ->args({"left","right"});
-        addExtern<DAS_BIND_FUN(__bitfield16_setxor)>(*this, lib, "^=",
+        addExternInline<DAS_BIND_FUN(__bitfield16_setxor)>(*this, lib, "^=",
             SideEffects::modifyArgument, "__bitfield16_setxor")
                 ->args({"left","right"});
         // int64
@@ -272,7 +272,7 @@ namespace das
         // `half` spells float16 without reserving the identifier (audit: `half` is a common
         // local name — 107 uses in-tree; an alias coexists with same-named locals)
         {
-            auto halfT = new TypeDecl(Type::tFloat16);
+            auto halfT = new TypeDecl(Type::tFloat16, cppBindingLineInfo());
             halfT->alias = "half";
             addAlias(halfT);
         }

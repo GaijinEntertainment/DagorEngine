@@ -188,12 +188,9 @@ void NightVisionPostFx::initTargets(int ch_state, int sizeX, int sizeY, int targ
       logerr("nightvision falling to argb8");
   }
 
-  glowTex[0].set(d3d::create_tex(NULL, glowResolution.x, glowResolution.y, flags, 1, "nightVisionGlowTex0", "nightvision"),
-    "nightVisionGlowTex0");
-  glowTex[1].set(d3d::create_tex(NULL, glowResolution.x, glowResolution.y, flags, 1, "nightVisionGlowTex1", "nightvision"),
-    "nightVisionGlowTex1");
-  tempTex.set(d3d::create_tex(NULL, glowResolution.x, glowResolution.y, flags, 1, "nightVisionTempTex", "nightvision"),
-    "nightVisionTempTex");
+  glowTex[0] = dag::create_tex(NULL, glowResolution.x, glowResolution.y, flags, 1, "nightVisionGlowTex0", "nightvision");
+  glowTex[1] = dag::create_tex(NULL, glowResolution.x, glowResolution.y, flags, 1, "nightVisionGlowTex1", "nightvision");
+  tempTex = dag::create_tex(NULL, glowResolution.x, glowResolution.y, flags, 1, "nightVisionTempTex", "nightvision");
   if (state == render::special_vision::RENDER_NIGHT_VISION && currentResolution != baseResolution)
   {
     flags = TEXCF_RTARGET;
@@ -201,9 +198,8 @@ void NightVisionPostFx::initTargets(int ch_state, int sizeX, int sizeY, int targ
       flags |= TEXFMT_R16F;
     else
       flags |= TEXFMT_R8;
-    downsampleTex.set(
-      d3d::create_tex(NULL, currentResolution.x, currentResolution.y, flags, 1, "nightVisionDownsampleTex", "nightvision"),
-      "nightVisionDownsampleTex");
+    downsampleTex =
+      dag::create_tex(NULL, currentResolution.x, currentResolution.y, flags, 1, "nightVisionDownsampleTex", "nightvision");
   }
 
   SCOPE_RENDER_TARGET;
@@ -294,7 +290,7 @@ void NightVisionPostFx::apply(Texture *src_tex, Texture *dest_tex)
   float blurPixelSizeX = 1.0f / (float)currentResolution.x;
   float blurPixelSizeY = 1.0f / (float)currentResolution.y;
 
-  blur.getMat()->set_texture_param(prevGlowTexVarId, glowTex[1 - currentTexIndex].getId());
+  blur.getMat()->set_texture_param(prevGlowTexVarId, glowTex[1 - currentTexIndex].getTexId());
 
   for (int k = 0; k < 3; k++)
   {
@@ -311,7 +307,7 @@ void NightVisionPostFx::apply(Texture *src_tex, Texture *dest_tex)
     }
 
     d3d::set_render_target({}, DepthAccess::RW, {{tempTex.getTex2D(), 0, 0}});
-    blur.getMat()->set_texture_param(texVarId, glowTex[currentTexIndex].getId());
+    blur.getMat()->set_texture_param(texVarId, glowTex[currentTexIndex].getTexId());
     blur.render();
 
     d3d::resource_barrier({tempTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -328,7 +324,7 @@ void NightVisionPostFx::apply(Texture *src_tex, Texture *dest_tex)
     }
 
     d3d::set_render_target({}, DepthAccess::RW, {{glowTex[currentTexIndex].getTex2D(), 0, 0}});
-    blur.getMat()->set_texture_param(texVarId, tempTex.getId());
+    blur.getMat()->set_texture_param(texVarId, tempTex.getTexId());
     blur.render();
     d3d::resource_barrier({glowTex[currentTexIndex].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
@@ -361,9 +357,9 @@ void NightVisionPostFx::apply(Texture *src_tex, Texture *dest_tex)
       d3d::resource_barrier({downsampleTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       ShaderGlobal::set_texture(glob_night_vision_downsample_texVarId, BAD_TEXTUREID);
 
-      ShaderGlobal::set_texture(glob_night_vision_combine_texVarId, downsampleTex.getTex());
+      ShaderGlobal::set_texture(glob_night_vision_combine_texVarId, downsampleTex.getBaseTex());
     }
-    applyFullscreen.getMat()->set_texture_param(glowTexVarId, glowTex[currentTexIndex].getId());
+    applyFullscreen.getMat()->set_texture_param(glowTexVarId, glowTex[currentTexIndex].getTexId());
   }
   else
     ShaderGlobal::set_texture(glob_night_vision_combine_texVarId, glowTex[currentTexIndex].getTex2D());

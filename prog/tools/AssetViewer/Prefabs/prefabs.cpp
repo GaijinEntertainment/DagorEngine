@@ -149,7 +149,7 @@ void PrefabsPlugin::renderOccluders()
   }
 }
 
-void PrefabsPlugin::renderTransObjects()
+void PrefabsPlugin::renderTransObjects(BaseTexture *)
 {
   if (showDag)
   {

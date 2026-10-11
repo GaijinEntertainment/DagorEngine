@@ -70,7 +70,7 @@ def recursive_taker(n : int; blk : block<(v : int) : int>) : int {
     if (n <= 0) {
         return invoke(blk, 0)
     }
-    return recursive_taker(n - 1, blk) + 1  // nolint:LINT010
+    return recursive_taker(n - 1, blk) + 1
 }
 
 def iter_sum(var src : iterator<int>; blk : block<(v : int) : int>) : int {
@@ -265,10 +265,9 @@ def target_nested_same(k : int) : int {
     return o._has ? o._v : -1
 }
 
-// a MUTABLE for-iterator (value type, so the by-value substitution path) reaching a
-// const param through two splice levels. substituting it verbatim re-flavors every
-// read inside the body, and the ==const-locked locked_note it calls stops matching
-// its own instance - 30341 at a call the author never wrote
+// a MUTABLE for-iterator reaching a const param through two splice levels: substituting
+// it verbatim re-flavors every read in the body, and the ==const-locked locked_note it
+// calls stops matching its own instance - 30341 at a call the author never wrote
 [export]
 def target_const_widened_arg() : float {
     var counted : array<int>
@@ -313,7 +312,7 @@ def probe_comp(v : int; blk : block<(var comp : auto(TT)? ==const) : void>) : bo
 def private locked_once(node : int; var counted : array<int>) : float {
     var m = 0.0
     if (node > 0 && !counted_has(counted, node)) {
-        probe_comp(node) <| $(var comp : int?) {
+        probe_comp(node) $(var comp : int?) {
             m = float(*comp)
             locked_note(counted, node)
         }
@@ -425,7 +424,7 @@ def test_auto_inline_behavior(t : T?) {
         // shrink the borrowed temporary's lifetime to the temp's own statement and
         // the spliced body would iterate freed memory (latent in v1's devirt too)
         let r <- invoke($(var it : iterator<int&>) : array<int> {
-            var buf : array<int>
+            var buf : array<int>  // nolint:STYLE027 - the loop body shape is what auto-inline is tested on
             for (x in it) {
                 buf |> push(x * 2)
             }
@@ -460,5 +459,26 @@ def test_auto_inline_behavior(t : T?) {
         g_log = ""
         t |> equal(target_impure_args(3, 4), 14)
         t |> equal(g_log, "ab")
+    }
+}
+
+[never_inline]  // keep the probe anchor itself out of the heuristic tier
+def target_never_inline_block() : int {
+    return transform_sum([1, 2, 3]) $ [never_inline] (v : int) : int {
+        return v * 10
+    }
+}
+
+[test]
+def test_never_inline_block(t : T?) {
+    ast_gc_guard() {
+        t |> run("[never_inline] block declines invoke-block inlining") @(t : T?) {
+            let b = body_of(t, "target_never_inline_block")
+            t |> success(!has(b, "transform_sum("), "the function still inlines: {b}")
+            t |> success(has(b, "invoke("), "the block stays an invoke: {b}")
+        }
+    }
+    t |> run("values preserved") @(t : T?) {
+        t |> equal(target_never_inline_block(), 60)
     }
 }

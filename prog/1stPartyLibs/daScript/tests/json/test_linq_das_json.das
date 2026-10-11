@@ -154,3 +154,24 @@ def query_multifrom_pre_where(t : T?) {
     let rows <- %linq! from c : Car in jv where c.price > 199 from b in brands select (Id = c.id, Country = b.country) %%
     t |> equal(length(rows), 8, "4 filtered JSON cars × 2 brands")
 }
+
+struct CorrLine {
+    sku : string
+    qty : int
+}
+
+struct CorrOrder {
+    id    : int
+    lines : JsonValue?
+}
+
+[test]
+def test_correlated_from_honors_row_type(t : T?) {
+    var orders <- [ <- CorrOrder(id = 1, lines = JV([JV((sku = "a", qty = 2)), JV((sku = "b", qty = 3))])),
+                   <- CorrOrder(id = 2, lines = JV([JV((sku = "c", qty = 5))]))]
+    let rows <- %linq! from o in orders from l : CorrLine in o.lines select "{o.id}:{l.sku}x{l.qty}" %%
+    t |> equal(length(rows), 3, "row-type annotation on the correlated from dispatches through from_json")
+    t |> equal(rows[0], "1:ax2")
+    t |> equal(rows[1], "1:bx3")
+    t |> equal(rows[2], "2:cx5")
+}

@@ -366,20 +366,20 @@ ADD_SVEC_SPLAT(VTYPE,ETYPE,uint32_t) ADD_SVEC_CTOR_##N(VTYPE,ETYPE,uint32_t)
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, float3, float3>("float3",lib,"float3",false)) );
         addFunction( (new BuiltInFn<SimNode_Int4ToFloat4, float3, int3>("float3",lib,"cvt_ifloat3",false)) );
         addFunction( (new BuiltInFn<SimNode_UInt4ToFloat4,float3,uint3>("float3",lib,"cvt_ufloat3",false)) );
-        addExtern<DAS_BIND_FUN(float3_from_xy_z)> (*this, lib, "float3", SideEffects::none, "float3_from_xy_z");
-        addExtern<DAS_BIND_FUN(float3_from_x_yz)> (*this, lib, "float3", SideEffects::none, "float3_from_x_yz");
+        addExternInline<DAS_BIND_FUN(float3_from_xy_z)> (*this, lib, "float3", SideEffects::none, "float3_from_xy_z");
+        addExternInline<DAS_BIND_FUN(float3_from_x_yz)> (*this, lib, "float3", SideEffects::none, "float3_from_x_yz");
         // float4
         ADD_VEC_CTOR_1(float4,"v_splats");
         ADD_VEC_CTOR_4(float4,"float4");
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, float4, float4>("float4",lib,"float4",false)) );
         addFunction( (new BuiltInFn<SimNode_Int4ToFloat4, float4, int4>("float4",lib,"cvt_ifloat4",false)) );
         addFunction( (new BuiltInFn<SimNode_UInt4ToFloat4,float4,uint4>("float4",lib,"cvt_ufloat4",false)) );
-        addExtern<DAS_BIND_FUN(float4_from_xyz_w)>  (*this, lib, "float4", SideEffects::none, "float4_from_xyz_w");
-        addExtern<DAS_BIND_FUN(float4_from_x_yzw)>  (*this, lib, "float4", SideEffects::none, "float4_from_x_yzw");
-        addExtern<DAS_BIND_FUN(float4_from_xy_zw)>  (*this, lib, "float4", SideEffects::none, "float4_from_xy_zw");
-        addExtern<DAS_BIND_FUN(float4_from_xy_z_w)> (*this, lib, "float4", SideEffects::none, "float4_from_xy_z_w");
-        addExtern<DAS_BIND_FUN(float4_from_x_yz_w)> (*this, lib, "float4", SideEffects::none, "float4_from_x_yz_w");
-        addExtern<DAS_BIND_FUN(float4_from_x_y_zw)> (*this, lib, "float4", SideEffects::none, "float4_from_x_y_zw");
+        addExternInline<DAS_BIND_FUN(float4_from_xyz_w)>  (*this, lib, "float4", SideEffects::none, "float4_from_xyz_w");
+        addExternInline<DAS_BIND_FUN(float4_from_x_yzw)>  (*this, lib, "float4", SideEffects::none, "float4_from_x_yzw");
+        addExternInline<DAS_BIND_FUN(float4_from_xy_zw)>  (*this, lib, "float4", SideEffects::none, "float4_from_xy_zw");
+        addExternInline<DAS_BIND_FUN(float4_from_xy_z_w)> (*this, lib, "float4", SideEffects::none, "float4_from_xy_z_w");
+        addExternInline<DAS_BIND_FUN(float4_from_x_yz_w)> (*this, lib, "float4", SideEffects::none, "float4_from_x_yz_w");
+        addExternInline<DAS_BIND_FUN(float4_from_x_y_zw)> (*this, lib, "float4", SideEffects::none, "float4_from_x_y_zw");
         // int2
         ADD_VEC_CTOR_1(int2,"int2");
         ADD_VEC_CTOR_2(int2,"int2");
@@ -392,20 +392,20 @@ ADD_SVEC_SPLAT(VTYPE,ETYPE,uint32_t) ADD_SVEC_CTOR_##N(VTYPE,ETYPE,uint32_t)
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, int3, int3>("int3",lib,"int3",false)) );
         addFunction( (new BuiltInFn<SimNode_Float4ToInt4, int3, float3>("int3",lib,"cvt_int3",false)) );
         addFunction( (new BuiltInFn<SimNode_AnyIntToAnyInt,int3, uint3>("int3",lib,"cvt_pass",false)) );
-        addExtern<DAS_BIND_FUN(int3_from_xy_z)> (*this, lib, "int3", SideEffects::none, "int3_from_xy_z");
-        addExtern<DAS_BIND_FUN(int3_from_x_yz)> (*this, lib, "int3", SideEffects::none, "int3_from_x_yz");
+        addExternInline<DAS_BIND_FUN(int3_from_xy_z)> (*this, lib, "int3", SideEffects::none, "int3_from_xy_z");
+        addExternInline<DAS_BIND_FUN(int3_from_x_yz)> (*this, lib, "int3", SideEffects::none, "int3_from_x_yz");
         // int4
         ADD_VEC_CTOR_1(int4,"int4");
         ADD_VEC_CTOR_4(int4,"int4");
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, int4, int4>("int4",lib,"int4",false)) );
         addFunction( (new BuiltInFn<SimNode_Float4ToInt4, int4, float4>("int4",lib,"cvt_int4",false)) );
         addFunction( (new BuiltInFn<SimNode_AnyIntToAnyInt,int4, uint4>("int4",lib,"cvt_pass",false)) );
-        addExtern<DAS_BIND_FUN(int4_from_xyz_w)>  (*this, lib, "int4", SideEffects::none, "int4_from_xyz_w");
-        addExtern<DAS_BIND_FUN(int4_from_x_yzw)>  (*this, lib, "int4", SideEffects::none, "int4_from_x_yzw");
-        addExtern<DAS_BIND_FUN(int4_from_xy_zw)>  (*this, lib, "int4", SideEffects::none, "int4_from_xy_zw");
-        addExtern<DAS_BIND_FUN(int4_from_xy_z_w)> (*this, lib, "int4", SideEffects::none, "int4_from_xy_z_w");
-        addExtern<DAS_BIND_FUN(int4_from_x_yz_w)> (*this, lib, "int4", SideEffects::none, "int4_from_x_yz_w");
-        addExtern<DAS_BIND_FUN(int4_from_x_y_zw)> (*this, lib, "int4", SideEffects::none, "int4_from_x_y_zw");
+        addExternInline<DAS_BIND_FUN(int4_from_xyz_w)>  (*this, lib, "int4", SideEffects::none, "int4_from_xyz_w");
+        addExternInline<DAS_BIND_FUN(int4_from_x_yzw)>  (*this, lib, "int4", SideEffects::none, "int4_from_x_yzw");
+        addExternInline<DAS_BIND_FUN(int4_from_xy_zw)>  (*this, lib, "int4", SideEffects::none, "int4_from_xy_zw");
+        addExternInline<DAS_BIND_FUN(int4_from_xy_z_w)> (*this, lib, "int4", SideEffects::none, "int4_from_xy_z_w");
+        addExternInline<DAS_BIND_FUN(int4_from_x_yz_w)> (*this, lib, "int4", SideEffects::none, "int4_from_x_yz_w");
+        addExternInline<DAS_BIND_FUN(int4_from_x_y_zw)> (*this, lib, "int4", SideEffects::none, "int4_from_x_y_zw");
         // uint2
         ADD_VEC_CTOR_1(uint2,"uint2");
         ADD_VEC_CTOR_2(uint2,"uint2");
@@ -418,20 +418,20 @@ ADD_SVEC_SPLAT(VTYPE,ETYPE,uint32_t) ADD_SVEC_CTOR_##N(VTYPE,ETYPE,uint32_t)
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, uint3, uint3>("uint3",lib,"uint3",false)) );
         addFunction( (new BuiltInFn<SimNode_Float4ToUInt4,uint3,float3>("uint3",lib,"cvt_uint3",false)) );
         addFunction( (new BuiltInFn<SimNode_AnyIntToAnyInt,uint3, int3>("uint3",lib,"cvt_pass",false)) );
-        addExtern<DAS_BIND_FUN(uint3_from_xy_z)> (*this, lib, "uint3", SideEffects::none, "uint3_from_xy_z");
-        addExtern<DAS_BIND_FUN(uint3_from_x_yz)> (*this, lib, "uint3", SideEffects::none, "uint3_from_x_yz");
+        addExternInline<DAS_BIND_FUN(uint3_from_xy_z)> (*this, lib, "uint3", SideEffects::none, "uint3_from_xy_z");
+        addExternInline<DAS_BIND_FUN(uint3_from_x_yz)> (*this, lib, "uint3", SideEffects::none, "uint3_from_x_yz");
         // uint4
         ADD_VEC_CTOR_1(uint4,"uint4");
         ADD_VEC_CTOR_4(uint4,"uint4");
         addFunction( (new BuiltInFn<SimNode_VecPassThrough, uint4, uint4>("uint4",lib,"uint4",false)) );
         addFunction( (new BuiltInFn<SimNode_Float4ToUInt4,uint4,float4>("uint4",lib,"cvt_uint4",false)) );
         addFunction( (new BuiltInFn<SimNode_AnyIntToAnyInt,uint4, int4>("uint4",lib,"cvt_pass",false)) );
-        addExtern<DAS_BIND_FUN(uint4_from_xyz_w)>  (*this, lib, "uint4", SideEffects::none, "uint4_from_xyz_w");
-        addExtern<DAS_BIND_FUN(uint4_from_x_yzw)>  (*this, lib, "uint4", SideEffects::none, "uint4_from_x_yzw");
-        addExtern<DAS_BIND_FUN(uint4_from_xy_zw)>  (*this, lib, "uint4", SideEffects::none, "uint4_from_xy_zw");
-        addExtern<DAS_BIND_FUN(uint4_from_xy_z_w)> (*this, lib, "uint4", SideEffects::none, "uint4_from_xy_z_w");
-        addExtern<DAS_BIND_FUN(uint4_from_x_yz_w)> (*this, lib, "uint4", SideEffects::none, "uint4_from_x_yz_w");
-        addExtern<DAS_BIND_FUN(uint4_from_x_y_zw)> (*this, lib, "uint4", SideEffects::none, "uint4_from_x_y_zw");
+        addExternInline<DAS_BIND_FUN(uint4_from_xyz_w)>  (*this, lib, "uint4", SideEffects::none, "uint4_from_xyz_w");
+        addExternInline<DAS_BIND_FUN(uint4_from_x_yzw)>  (*this, lib, "uint4", SideEffects::none, "uint4_from_x_yzw");
+        addExternInline<DAS_BIND_FUN(uint4_from_xy_zw)>  (*this, lib, "uint4", SideEffects::none, "uint4_from_xy_zw");
+        addExternInline<DAS_BIND_FUN(uint4_from_xy_z_w)> (*this, lib, "uint4", SideEffects::none, "uint4_from_xy_z_w");
+        addExternInline<DAS_BIND_FUN(uint4_from_x_yz_w)> (*this, lib, "uint4", SideEffects::none, "uint4_from_x_yz_w");
+        addExternInline<DAS_BIND_FUN(uint4_from_x_y_zw)> (*this, lib, "uint4", SideEffects::none, "uint4_from_x_y_zw");
         // range
         ADD_RANGE_CTOR_1(range,"range");
         ADD_VEC_CTOR_2(range,"range");
@@ -485,9 +485,9 @@ ADD_SVEC_SPLAT(VTYPE,ETYPE,uint32_t) ADD_SVEC_CTOR_##N(VTYPE,ETYPE,uint32_t)
         // `_sat` variant that clamps to the target range (the Q8-quant shape; the native
         // sqxtn/PACK lowering is a later JIT wave)
 #define ADD_SVEC_CVT(TO,TOE,FROM,FE) \
-    addExtern<DAS_BIND_FUN((das_sv_cvt<TO,TOE,FROM,FE>))>(*this, lib, #TO, SideEffects::none, "das_sv_cvt<" #TO "," #TOE "," #FROM "," #FE ">");
+    addExternInline<DAS_BIND_FUN((das_sv_cvt<TO,TOE,FROM,FE>))>(*this, lib, #TO, SideEffects::none, "das_sv_cvt<" #TO "," #TOE "," #FROM "," #FE ">");
 #define ADD_SVEC_CVT_SAT(TO,TOE,FROM,FE) \
-    addExtern<DAS_BIND_FUN((das_sv_cvt_sat<TO,TOE,FROM,FE>))>(*this, lib, #TO "_sat", SideEffects::none, "das_sv_cvt_sat<" #TO "," #TOE "," #FROM "," #FE ">");
+    addExternInline<DAS_BIND_FUN((das_sv_cvt_sat<TO,TOE,FROM,FE>))>(*this, lib, #TO "_sat", SideEffects::none, "das_sv_cvt_sat<" #TO "," #TOE "," #FROM "," #FE ">");
         // widen to 32-bit families
         ADD_SVEC_CVT(int2, int32_t, short2, int16_t);
         ADD_SVEC_CVT(int3, int32_t, short3, int16_t);
@@ -532,33 +532,33 @@ ADD_SVEC_SPLAT(VTYPE,ETYPE,uint32_t) ADD_SVEC_CTOR_##N(VTYPE,ETYPE,uint32_t)
         ADD_SVEC_CVT(float2, float, half2, float16_t);
         ADD_SVEC_CVT(float3, float, half3, float16_t);
         ADD_SVEC_CVT(float4, float, half4, float16_t);
-        addExtern<DAS_BIND_FUN(das_half8_pack)>(*this, lib, "half8", SideEffects::none, "das_half8_pack");
-        addExtern<DAS_BIND_FUN(das_half8_lo)>(*this, lib, "half8_lo", SideEffects::none, "das_half8_lo");
-        addExtern<DAS_BIND_FUN(das_half8_hi)>(*this, lib, "half8_hi", SideEffects::none, "das_half8_hi");
+        addExternInline<DAS_BIND_FUN(das_half8_pack)>(*this, lib, "half8", SideEffects::none, "das_half8_pack");
+        addExternInline<DAS_BIND_FUN(das_half8_lo)>(*this, lib, "half8_lo", SideEffects::none, "das_half8_lo");
+        addExternInline<DAS_BIND_FUN(das_half8_hi)>(*this, lib, "half8_hi", SideEffects::none, "das_half8_hi");
         // the idot family — the lattice's first compute ops (exact integer dots; results
         // always signed, operand signedness selects the overload — the OpSDot/OpSUDot split)
-        addExtern<DAS_BIND_FUN(das_idot4_ss)>(*this, lib, "idot4", SideEffects::none, "das_idot4_ss")->args({"acc","a","b"});
-        addExtern<DAS_BIND_FUN(das_idot4_us)>(*this, lib, "idot4", SideEffects::none, "das_idot4_us")->args({"acc","a","b"});
-        addExtern<DAS_BIND_FUN(das_idot4z_ss)>(*this, lib, "idot4", SideEffects::none, "das_idot4z_ss")->args({"a","b"});
-        addExtern<DAS_BIND_FUN(das_idot4z_us)>(*this, lib, "idot4", SideEffects::none, "das_idot4z_us")->args({"a","b"});
-        addExtern<DAS_BIND_FUN(das_idot_ss)>(*this, lib, "idot", SideEffects::none, "das_idot_ss")->args({"a","b"});
-        addExtern<DAS_BIND_FUN(das_idot_us)>(*this, lib, "idot", SideEffects::none, "das_idot_us")->args({"a","b"});
-        addExtern<DAS_BIND_FUN(das_shuffle_b16)>(*this, lib, "shuffle", SideEffects::none, "das_shuffle_b16")->args({"lut","idx"});
+        addExternInline<DAS_BIND_FUN(das_idot4_ss)>(*this, lib, "idot4", SideEffects::none, "das_idot4_ss")->args({"acc","a","b"});
+        addExternInline<DAS_BIND_FUN(das_idot4_us)>(*this, lib, "idot4", SideEffects::none, "das_idot4_us")->args({"acc","a","b"});
+        addExternInline<DAS_BIND_FUN(das_idot4z_ss)>(*this, lib, "idot4", SideEffects::none, "das_idot4z_ss")->args({"a","b"});
+        addExternInline<DAS_BIND_FUN(das_idot4z_us)>(*this, lib, "idot4", SideEffects::none, "das_idot4z_us")->args({"a","b"});
+        addExternInline<DAS_BIND_FUN(das_idot_ss)>(*this, lib, "idot", SideEffects::none, "das_idot_ss")->args({"a","b"});
+        addExternInline<DAS_BIND_FUN(das_idot_us)>(*this, lib, "idot", SideEffects::none, "das_idot_us")->args({"a","b"});
+        addExternInline<DAS_BIND_FUN(das_shuffle_b16)>(*this, lib, "shuffle", SideEffects::none, "das_shuffle_b16")->args({"lut","idx"});
         // the integer-lattice bit surface, parity with addFunctionVecBit on the 32-bit vector
         // families: per-lane <<//>> by a scalar count (masked to lane width; signed >> is
         // arithmetic), bitwise & | ^, and the five compound assigns — the JIT overrides all
         // of them with native vector IR
 #define ADD_SVEC_BITOPS(VTYPE,ETYPE) \
-    addExtern<DAS_BIND_FUN((das_sv_shr<VTYPE,ETYPE>))>(*this, lib, ">>", SideEffects::none, "das_sv_shr<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
-    addExtern<DAS_BIND_FUN((das_sv_shl<VTYPE,ETYPE>))>(*this, lib, "<<", SideEffects::none, "das_sv_shl<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
-    addExtern<DAS_BIND_FUN((das_sv_set_shr<VTYPE,ETYPE>))>(*this, lib, ">>=", SideEffects::modifyArgument, "das_sv_set_shr<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
-    addExtern<DAS_BIND_FUN((das_sv_set_shl<VTYPE,ETYPE>))>(*this, lib, "<<=", SideEffects::modifyArgument, "das_sv_set_shl<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
-    addExtern<DAS_BIND_FUN((das_sv_and<VTYPE>))>(*this, lib, "&", SideEffects::none, "das_sv_and<" #VTYPE ">")->args({"a","b"}); \
-    addExtern<DAS_BIND_FUN((das_sv_or<VTYPE>))>(*this, lib, "|", SideEffects::none, "das_sv_or<" #VTYPE ">")->args({"a","b"}); \
-    addExtern<DAS_BIND_FUN((das_sv_xor<VTYPE>))>(*this, lib, "^", SideEffects::none, "das_sv_xor<" #VTYPE ">")->args({"a","b"}); \
-    addExtern<DAS_BIND_FUN((das_sv_set_and<VTYPE>))>(*this, lib, "&=", SideEffects::modifyArgument, "das_sv_set_and<" #VTYPE ">")->args({"a","b"}); \
-    addExtern<DAS_BIND_FUN((das_sv_set_or<VTYPE>))>(*this, lib, "|=", SideEffects::modifyArgument, "das_sv_set_or<" #VTYPE ">")->args({"a","b"}); \
-    addExtern<DAS_BIND_FUN((das_sv_set_xor<VTYPE>))>(*this, lib, "^=", SideEffects::modifyArgument, "das_sv_set_xor<" #VTYPE ">")->args({"a","b"});
+    addExternInline<DAS_BIND_FUN((das_sv_shr<VTYPE,ETYPE>))>(*this, lib, ">>", SideEffects::none, "das_sv_shr<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_shl<VTYPE,ETYPE>))>(*this, lib, "<<", SideEffects::none, "das_sv_shl<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_set_shr<VTYPE,ETYPE>))>(*this, lib, ">>=", SideEffects::modifyArgument, "das_sv_set_shr<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_set_shl<VTYPE,ETYPE>))>(*this, lib, "<<=", SideEffects::modifyArgument, "das_sv_set_shl<" #VTYPE "," #ETYPE ">")->args({"v","count"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_and<VTYPE>))>(*this, lib, "&", SideEffects::none, "das_sv_and<" #VTYPE ">")->args({"a","b"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_or<VTYPE>))>(*this, lib, "|", SideEffects::none, "das_sv_or<" #VTYPE ">")->args({"a","b"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_xor<VTYPE>))>(*this, lib, "^", SideEffects::none, "das_sv_xor<" #VTYPE ">")->args({"a","b"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_set_and<VTYPE>))>(*this, lib, "&=", SideEffects::modifyArgument, "das_sv_set_and<" #VTYPE ">")->args({"a","b"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_set_or<VTYPE>))>(*this, lib, "|=", SideEffects::modifyArgument, "das_sv_set_or<" #VTYPE ">")->args({"a","b"}); \
+    addExternInline<DAS_BIND_FUN((das_sv_set_xor<VTYPE>))>(*this, lib, "^=", SideEffects::modifyArgument, "das_sv_set_xor<" #VTYPE ">")->args({"a","b"});
         ADD_SVEC_BITOPS(byte2, int8_t);
         ADD_SVEC_BITOPS(byte3, int8_t);
         ADD_SVEC_BITOPS(byte4, int8_t);

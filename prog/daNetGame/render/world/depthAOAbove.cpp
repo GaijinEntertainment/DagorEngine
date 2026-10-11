@@ -160,6 +160,7 @@ bool DepthAOAboveContext::prepare(const Point3 &view_pos, float scene_min_z, flo
 
 void DepthAOAboveContext::waitCullJobs()
 {
+  TIME_PROFILE(wait_depth_ao_above_cull_jobs);
   for (auto &j : cullJobs)
     threadpool::wait(&j);
 }

@@ -169,6 +169,8 @@ public:
   static bool allowOodlePacking;
   static bool pcPreferASTC;
   static bool includeHiddenLayersInExportedNavMesh;
+  static bool exportLastclip;
+  static int exportLastclipSize;
   static bool useASTC(unsigned tc) { return tc == _MAKE4C('iOS') || (tc == _MAKE4C('PC') && pcPreferASTC); }
 
   static IHmapService *hmlService;
@@ -860,6 +862,7 @@ private:
   } lastChangeDet, lastChangeMain, lastChangeWaterDet, lastChangeWaterMain;
 
   bool isVisible;
+  bool lastGameSplinesView = false;
   bool doAutocenter;
 
   real lastMinHeight[2];

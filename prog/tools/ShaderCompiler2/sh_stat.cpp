@@ -47,6 +47,11 @@ void ShaderCompilerStat::printReport(const char *dir)
     if (!dir)
       return;
     FILE *file = fopen(String(dir) + "\\Stat.txt", "w");
+    if (!file)
+    {
+      sh_debug(SHLOG_WARNING, "Cannot open statistics file in %s", dir);
+      return;
+    }
     fprintf(file, "                                                                           "
                   "total                     texture                  arithmetic                  flow\n");
     fprintf(file, "                   shader                               entry  average      "

@@ -26,17 +26,16 @@ require math
 // than DAS_MAX_FUNCTION_ARGUMENTS gets several generated helpers, one per subrange (invoke fallback only).
 [macro_function]
 def for_each_subrange(total : int; blk : block<(r : range) : void>) {
-    let MAX_ARGUMENTS = DAS_MAX_FUNCTION_ARGUMENTS - 2  // we need one for the data itself
+    let MAX_FIELD_BLOCKS_PER_HELPER = DAS_MAX_FUNCTION_ARGUMENTS - 2
     var i = 0
     while (i < total) {
         let fromI = i
-        let toI = min(i + MAX_ARGUMENTS, total)
+        let toI = min(i + MAX_FIELD_BLOCKS_PER_HELPER, total)
         blk |> invoke(range(fromI, toI))
         i = toI
     }
 }
 
-// Build the static RTTI annotation array (struct-only, for the 3-arg block form) for one field.
 [macro_function]
 def private field_rtti_annotations(fld : FieldDeclaration) : ExpressionPtr {
     var rttiAnnValues : array<tuple<name : string; data : RttiValue>>
@@ -58,7 +57,6 @@ def private field_rtti_annotations(fld : FieldDeclaration) : ExpressionPtr {
     return qmacro($v(rttiAnnValues))
 }
 
-// Inline one field into the caller's scope: clone the per-field block, bind its `field` param to a real reference local — `let/var <field> & = unsafe(<access>)` (const-ref iff `isConst`) — its `name` param to a const string via `assume`, and (struct only) its `annotations` param to the static RTTI array via `assume`; then drop the block params. The `unsafe` is satisfied by `alwaysSafe` flags on the let + the access (local-ref-to-nonlocal and variant `as` both gate on it). `capture_as_ref` lets a nested block in the body capture the field-ref (the json/xml `move_to_ref(field, ...)` pattern).
 [macro_function]
 def private inline_apply_field(nameStr : string; var access : ExpressionPtr; fieldType : TypeDeclPtr;
                                isConst : bool; hasExtraArg : bool; var annExpr : ExpressionPtr;
@@ -66,7 +64,6 @@ def private inline_apply_field(nameStr : string; var access : ExpressionPtr; fie
     var res = clone_expression(blk)
     var imb = res as ExprMakeBlock
     var rblk = imb._block as ExprBlock
-    // field -> ref-local bound to <access>, named after the user's field param
     var vtype = clone_type(fieldType)
     vtype.flags.ref = true
     if (isConst) {
@@ -80,7 +77,6 @@ def private inline_apply_field(nameStr : string; var access : ExpressionPtr; fie
         _type <- vtype,
         init <- access,
         flags = VariableFlags.can_shadow | VariableFlags.generated | VariableFlags.capture_as_ref)
-    // prepend setup (front-insert in reverse so the final order is: let field; assume name; [assume ann]; body)
     if (hasExtraArg) {
         var aAnn = new ExprAssume(at = blk.at, alias := rblk.arguments[2].name, subexpr <- annExpr)
         rblk.list |> emplace(aAnn, 0)
@@ -95,7 +91,6 @@ def private inline_apply_field(nameStr : string; var access : ExpressionPtr; fie
     return imb._block
 }
 
-// ===== Invoke fallback: per-field helper generation (used when the block escapes via `return`) =====
 [macro_function]
 def generateApplyVisitStruct(stype : TypeDeclPtr; frange : range; fnname : string; at : LineInfo; var names : array<string>; hasExtraArg : bool) {
     assert(stype.baseType == Type.tStructure)
@@ -116,7 +111,7 @@ def generateApplyVisitStruct(stype : TypeDeclPtr; frange : range; fnname : strin
             } else {
                 blkList |> push(qmacro(invoke($i("__arg_{fld.name}"), _`_self.$f(fld.name))))
             }
-            var argT = new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
+            var argT = new TypeDecl(baseType = Type.tBlock, at = at)
             var fldT = clone_type(fld._type)
             if (stype.flags.constant) {
                 fldT.flags.constant = true
@@ -165,7 +160,7 @@ def generateApplyVisitTuple(stype : TypeDeclPtr; frange : range; fnname : string
             let fldname = length(stype.argNames) == length(stype.argTypes) ? string(stype.argNames[fldi]) : "_{fldi}"
             names |> push(fldname)
             blkList |> push(qmacro(invoke($i("__arg_{fldname}"), _`_self.$f(fldname))))
-            var argT = new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
+            var argT = new TypeDecl(baseType = Type.tBlock, at = at)
             var fldT = clone_type(flda)
             if (stype.flags.constant) {
                 fldT.flags.constant = true
@@ -195,7 +190,6 @@ def generateApplyVisitTuple(stype : TypeDeclPtr; fnname : string; at : LineInfo)
     return <- names
 }
 
-// def apply`Foo(self:Foo; __arg_field1:block<...>; __arg_field2:...)   // variant: only the active arm runs if variant_index(self)==0  { invoke(__arg_field1, self.field1); return } if variant_index(self)==1  { invoke(__arg_field2, self.field2); return } ...
 [macro_function]
 def generateApplyVisitVariant(stype : TypeDeclPtr; frange : range; fnname : string; at : LineInfo; var names : array<string>) {
     assert(stype.baseType == Type.tVariant)
@@ -218,7 +212,7 @@ def generateApplyVisitVariant(stype : TypeDeclPtr; frange : range; fnname : stri
                 }
             }
             blkList |> emplace(vexpr)
-            var argT = new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
+            var argT = new TypeDecl(baseType = Type.tBlock, at = at)
             var fldT = clone_type(flda)
             if (stype.flags.constant) {
                 fldT.flags.constant = true
@@ -248,8 +242,6 @@ def generateApplyVisitVariant(stype : TypeDeclPtr; fnname : string; at : LineInf
     return <- names
 }
 
-// Clone the per-field block for the invoke path, binding only its `name` param (the field name) via
-// `assume`; the `field` (and optional `annotations`) param stays a real block arg the helper invokes.
 [macro_function]
 def clone_block_with_name(name : string; blk : ExpressionPtr; hasExtraArg : bool) {
     macro_verify(blk is ExprMakeBlock, this_program(), blk.at, "expecting make block, i.e. $(..)")
@@ -271,7 +263,6 @@ def clone_block_with_name(name : string; blk : ExpressionPtr; hasExtraArg : bool
     return <- res
 }
 
-// ===== Inline-safety: does the block escape via `return`? =====
 [macro]
 class FindEscapingReturn : AstVisitor {
     found : bool
@@ -279,11 +270,10 @@ class FindEscapingReturn : AstVisitor {
         found = true
     }
     def override canVisitMakeBlockBody(expr : ExprMakeBlock?) : bool {
-        return false  // a `return` inside a nested $(){}/lambda is that block's own, not an escape
+        return false
     }
 }
 
-// True when the per-field block has no function-escaping `return` — then `apply` may inline the body directly. A `return` at the block's top level (or inside a transparent if/for/static_if) escapes the inlined caller, so the macro falls back to the invoke helper instead. Returns inside a nested $(){} belong to that block and are ignored (canVisitMakeBlockBody == false stops descent).
 [macro_function]
 def private apply_block_inline_safe(blk : ExpressionPtr) : bool {
     if (!(blk is ExprMakeBlock)) {
@@ -300,12 +290,12 @@ def private apply_block_inline_safe(blk : ExpressionPtr) : bool {
     return !escaping
 }
 
-[call_macro(name = "apply")]  // apply(value, block)
+[call_macro(name = "apply")]
 class ApplyMacro : AstCallMacro {
     //! Visits every field of a struct, tuple, or variant with a per-field block. The block is ``$(name, field)`` — ``name`` is the field-name string (a compile-time constant, so ``static_if (name == "...")`` folds) and ``field`` is a reference to the field value (read or mutate; writes propagate to the source). A struct may use a third ``annotations`` param receiving ``array<tuple<name:string; data:RttiValue>>`` per field. A variant runs only its active arm.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting apply(value, block)")
-        if (expr.arguments[0]._type == null) {  // need value inferred
+        if (expr.arguments[0]._type == null) {
             return null
         }
         var argT = clone_type(expr.arguments[0]._type)
@@ -330,18 +320,13 @@ class ApplyMacro : AstCallMacro {
     }
 }
 
-// Inline path: bind `self` once (lvalue -> reference, rvalue -> materialized local) then inline each
-// field's body as a `let/var <field> & = unsafe(self.field)` scope. Struct emits sequential scopes,
-// tuple the same, variant an if/elif chain on `variant_index` (only the active arm runs, no `return`).
 [macro_function]
 def private inline_apply(var expr : ExprCallMacro?; argT : TypeDeclPtr; hasExtraArg : bool) : ExpressionPtr {
     let selfIsConst = argT.flags.constant
-    // bind self once (single-evaluation). lvalue -> reference binding so mutations through `field` propagate back; rvalue -> materialize into a local (a reference to a temporary dangles for variants).
     var selfPeeled = expr.arguments[0]
     while (selfPeeled != null && selfPeeled is ExprRef2Value) {
         selfPeeled = (selfPeeled as ExprRef2Value).subexpr
     }
-    // lvalue == an expression denoting storage (var/param/field/index): ref-bind it. A var/param read is an ExprVar with ref=false in its value type, so detect by node kind, not the ref flag.
     let selfIsRef = selfPeeled != null && (selfPeeled is ExprVar || selfPeeled is ExprField
         || selfPeeled is ExprSafeField || selfPeeled is ExprAt || selfPeeled is ExprSafeAt || selfPeeled is ExprSwizzle)
     let selfName = "__apply_self`{expr.at.line}`{expr.at.column}"
@@ -386,12 +371,12 @@ def private inline_apply(var expr : ExprCallMacro?; argT : TypeDeclPtr; hasExtra
             var scope = inline_apply_field(fname, access, tt.argTypes[fldi], isConst, false, noAnn, expr.arguments[1])
             outer.list |> emplace(scope)
         }
-    } else {  // variant: only the active arm runs (if/elif on variant_index, no return)
+    } else {
         let vt = expr.arguments[0]._type
         let nfields = length(vt.argTypes)
         var chain : ExpressionPtr
         for (ri in range(nfields)) {
-            let fldi = nfields - 1 - ri  // build back-to-front so the chain reads field 0, 1, 2, ...
+            let fldi = nfields - 1 - ri
             let fname = length(vt.argNames) == length(vt.argTypes) ? string(vt.argNames[fldi]) : "_{fldi}"
             var access = qmacro($i(selfName) as $f(fname))
             let isConst = selfIsConst || vt.argTypes[fldi].flags.constant
@@ -407,25 +392,23 @@ def private inline_apply(var expr : ExprCallMacro?; argT : TypeDeclPtr; hasExtra
     return outer
 }
 
-// Invoke fallback: generate per-field helper(s) and emit a block of calls passing the user block per
-// field. The user `return` rides through `invoke` as a block-local exit — i.e. "skip this field".
 [macro_function]
 def private invoke_apply(var expr : ExprCallMacro?; argT : TypeDeclPtr; hasExtraArg : bool) : ExpressionPtr {
     var callName : string
     var nfields : int
     var names : array<string>
     if (argT.baseType == Type.tStructure) {
-        callName = "apply`struct`{argT.structType.name}`{expr.at.line}"
+        callName = "apply`struct`{argT.structType.name}`{expr.at.line}`{expr.at.column}"
         nfields = argT.structType.fields |> length
-        names <- generateApplyVisitStruct(expr.arguments[0]._type, callName, expr.at, hasExtraArg)
+        names <- generateApplyVisitStruct(expr.arguments[0]._type, callName, expr.at, hasExtraArg)  // nolint:PERF030 - target is the fresh empty decl above; the three fills are mutually exclusive branches
     } elif (argT.baseType == Type.tTuple) {
-        callName = "apply`tuple`{expr.arguments[0]._type.get_mnh}`{expr.at.line}"
+        callName = "apply`tuple`{expr.arguments[0]._type.get_mnh}`{expr.at.line}`{expr.at.column}"
         nfields = length(argT.argTypes)
-        names <- generateApplyVisitTuple(expr.arguments[0]._type, callName, expr.at)
-    } else {  // variant
-        callName = "apply`variant`{expr.arguments[0]._type.get_mnh}`{expr.at.line}"
+        names <- generateApplyVisitTuple(expr.arguments[0]._type, callName, expr.at)  // nolint:PERF030 - target is the fresh empty decl above; the three fills are mutually exclusive branches
+    } else {
+        callName = "apply`variant`{expr.arguments[0]._type.get_mnh}`{expr.at.line}`{expr.at.column}"
         nfields = length(argT.argTypes)
-        names <- generateApplyVisitVariant(expr.arguments[0]._type, callName, expr.at)
+        names <- generateApplyVisitVariant(expr.arguments[0]._type, callName, expr.at)  // nolint:PERF030 - target is the fresh empty decl above; the three fills are mutually exclusive branches
     }
     var calls : array<ExpressionPtr>
     for_each_subrange(nfields) $(frange) {
@@ -446,15 +429,12 @@ def private invoke_apply(var expr : ExprCallMacro?; argT : TypeDeclPtr; hasExtra
     return <- callblock
 }
 
-// Inline one field of an apply_imm: clone the block, alias its params via `assume` (name -> field-name
-// const, field -> self.field lvalue, optional annotations -> static RTTI), drop the params; no invoke.
 [macro_function]
 def private inline_apply_imm_field(fldname : string; var fieldAccess : ExpressionPtr; hasExtraArg : bool;
                                    var annExpr : ExpressionPtr; blk : ExpressionPtr) : ExpressionPtr {
     var res = clone_expression(blk)
     var imb = res as ExprMakeBlock
     var rblk = imb._block as ExprBlock
-    // prepend assumes at the front (reverse order so final body order is name, field[, annotations], ...)
     if (hasExtraArg) {
         var aAnn = new ExprAssume(at = blk.at, alias := rblk.arguments[2].name, subexpr <- annExpr)
         rblk.list |> emplace(aAnn, 0)
@@ -470,12 +450,12 @@ def private inline_apply_imm_field(fldname : string; var fieldAccess : Expressio
     return imb._block
 }
 
-[call_macro(name = "apply_imm")]  // apply_imm(struct_value, block)
+[call_macro(name = "apply_imm")]
 class ApplyImmMacro : AstCallMacro {
     //! Struct-only, faster sibling of ``apply`` for a hot field walk (e.g. a serialization materializer).
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting apply_imm(value, block)")
-        if (expr.arguments[0]._type == null) {  // need value inferred
+        if (expr.arguments[0]._type == null) {
             return null
         }
         var argT = clone_type(expr.arguments[0]._type)

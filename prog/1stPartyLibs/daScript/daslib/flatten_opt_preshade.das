@@ -23,8 +23,6 @@ def private psh_reserved(name : das_string) : bool {
     return name |> starts_with("__flat_") || name |> starts_with("__ssa_") || name |> starts_with("_preshader_")
 }
 
-// Parse `name` as `prefix` + decimal digits, -1 when it isn't. The round-trip check rejects
-// foreign suffixes — `_preshader_cse_3` against prefix `_preshader_` belongs to the cse counter.
 def private name_counter_suffix(name : das_string; prefix : string) : int {
     if (!(name |> starts_with(prefix))) return -1
     let s = slice("{name}", length(prefix))
@@ -33,9 +31,6 @@ def private name_counter_suffix(name : das_string; prefix : string) : int {
     return "{v}" == s ? v : -1
 }
 
-// True if the subtree carries a graph node (operator or call) — i.e. hoisting it saves per-pixel
-// work. A bare var / const / member access alone is trivial (no node), so it is inlined as an alias
-// rather than hoisted.
 def private psh_has_compute(e : ExpressionPtr) : bool {
     if (e == null) return false
     if (e is ExprRef2Value) return psh_has_compute((e as ExprRef2Value).subexpr)
@@ -53,19 +48,16 @@ def private psh_has_compute(e : ExpressionPtr) : bool {
 
 struct private PEX {
     paramNames : table<string>
-    localColor : table<string; bool>    // local name -> uniform (preshader-eligible)?
-    mutableVars : table<string>         // reassigned names (incl. written globals) — never uniform
-    top : array<ExpressionPtr>          // hoisted `_preshader_N` lets, in dependency order
-    dedup : table<string; string>       // describe(init) -> preshader name
-    rename : table<string; ExpressionPtr>   // old local name -> replacement (alias inline / preshader ref)
+    localColor : table<string; bool>
+    mutableVars : table<string>
+    top : array<ExpressionPtr>
+    dedup : table<string; string>
+    rename : table<string; ExpressionPtr>
     counter : int
     changed : bool
-    noFastMath : bool                       // zero-init false = fast-math ON (the default)
+    noFastMath : bool
 }
 
-// A ref to a hoisted / CSE'd let, carrying the replaced node's resolved type. The cse/alias loop runs
-// passes that read expr_bt BEFORE the macro re-infers (the rcp-rewrite's scalar-float gate is one) — an
-// un-typed ref reads as `none`, so those passes silently skip a freshly-hoisted divisor.
 def private hoisted_ref(refName : string; src : ExpressionPtr) : ExpressionPtr {
     var v = new ExprVar(at = src.at, name := refName)
     if (src._type != null) {
@@ -74,25 +66,20 @@ def private hoisted_ref(refName : string; src : ExpressionPtr) : ExpressionPtr {
     return v
 }
 
-// `x / U` rcp-candidate: a varying division by a preshader-eligible scalar-float NON-const
-// divisor — shared verbatim by the extraction rewrite and the opt residual oracle. A wholly-
-// uniform division hoists intact (maximal arm); a const divisor belongs to the fold arm.
 def private is_rcp_candidate(pe : PEX; barriers : table<string>; o : ExprOp2?) : bool {
     return (o.op == "/" && expr_bt(o.right) == Type.tFloat && is_float_valued(o) &&
         !(o.right |> is_expr_const()) && !pex_eligible(pe, barriers, o) &&
         pex_eligible(pe, barriers, o.right))
 }
 
-// Uniform = depends only on globals + literals, no barrier (sampler/noise) call. Leaf rule: a param
-// read is varying; a local read inherits its colored value; anything else is a module global (uniform).
 def private pex_eligible(pe : PEX; barriers : table<string>; e : ExpressionPtr) : bool {   // nolint:STYLE037 - exact-type `is` ladder, one arm per expression kind
     if (e == null) return false
     if (e |> is_expr_const()) return true
     if (e is ExprVar) {
         let nm = "{(e as ExprVar).name}"
-        if (key_exists(pe.mutableVars, nm)) return false   // reassigned (e.g. a written global) → not stable
+        if (key_exists(pe.mutableVars, nm)) return false
         if (key_exists(pe.localColor, nm)) return pe.localColor?[nm] ?? false
-        return !key_exists(pe.paramNames, nm)   // a non-param, non-local read is a module global → uniform
+        return !key_exists(pe.paramNames, nm)
     }
     if (e is ExprRef2Value) return pex_eligible(pe, barriers, (e as ExprRef2Value).subexpr)
     if (e is ExprField) return pex_eligible(pe, barriers, (e as ExprField).value)
@@ -120,7 +107,6 @@ def private pex_eligible(pe : PEX; barriers : table<string>; e : ExpressionPtr) 
     }
     if (e is ExprCall) {
         let c = e as ExprCall
-        // Surviving calls are all whitelisted pure GPU math; only the caller's barriers (sampler/noise) bar a preshader.
         if (key_exists(barriers, simple_name("{c.name}"))) return false
         for (a in c.arguments) {
             if (!pex_eligible(pe, barriers, a)) return false
@@ -130,8 +116,6 @@ def private pex_eligible(pe : PEX; barriers : table<string>; e : ExpressionPtr) 
     return false
 }
 
-// Hoist an eligible+nontrivial subtree into a `_preshader_N` let (deduped by describe), returning
-// the let name. The fresh let is un-inferred; the macro re-infers it after the pass.
 def private pex_hoist_name(var pe : PEX; var e : ExpressionPtr) : string {
     let key = describe(e)
     if (key_exists(pe.dedup, key)) return pe.dedup[key]
@@ -143,8 +127,6 @@ def private pex_hoist_name(var pe : PEX; var e : ExpressionPtr) : string {
     return nm
 }
 
-// Top-down maximal-subtree extraction: the first eligible+nontrivial node going down is hoisted and
-// replaced with a ref; otherwise recurse children. Handles the bounded post-flatten node set.
 def private pex_extract(var pe : PEX; barriers : table<string>; var e : ExpressionPtr) : ExpressionPtr {
     if (e == null) return null
     if (psh_has_compute(e) && pex_eligible(pe, barriers, e)) {
@@ -152,7 +134,6 @@ def private pex_extract(var pe : PEX; barriers : table<string>; var e : Expressi
         pe.changed = true
         return hoisted_ref(nm, e)
     }
-    // `x / U` → `x * (1f/U)` — reciprocal hoisted per-draw, dedup'd by describe (fast-math)
     if (e is ExprOp2 && !pe.noFastMath && is_rcp_candidate(pe, barriers, e as ExprOp2)) {
         var o = e as ExprOp2
         var one = new ExprConstFloat(at = o.at, value = 1.0)
@@ -161,21 +142,18 @@ def private pex_extract(var pe : PEX; barriers : table<string>; var e : Expressi
         pe.changed = true
         return new ExprOp2(at = o.at, op := "*",
             left = pex_extract(pe, barriers, o.left),
-            right = hoisted_ref(nm, o.right))   // 1/U shares U's (scalar-float) type
+            right = hoisted_ref(nm, o.right))
     }
     rewrite_children(e) $(var c : ExpressionPtr) { return pex_extract(pe, barriers, c) }
     return e
 }
 
-// `counter` is owned by the caller's optimize loop — extraction re-runs per round, and a fresh
-// per-call numbering would collide a later round's `_preshader_0` with the surviving first one.
 def private extract_preshader(var func : FunctionPtr; var blk : ExprBlock?; barriers : table<string>; var counter : int&; no_fast_math : bool) : bool {   // nolint:STYLE037,STYLE038 - one hoist pass; seeding, colouring and splice share the dedup state
     var pe = PEX(counter = counter, noFastMath = no_fast_math)
     for (a in func.arguments) {
         pe.paramNames |> insert("{a.name}")
     }
     pe.mutableVars <- collect_mutable(blk)
-    // re-entry seeding: prefix lets pre-fill dedup + colour (a re-hoist of one's own init would self-collapse)
     var oldPrefix = 0
     for (s in blk.list) {
         if (s is ExprLet && length((s as ExprLet).variables) == 1 &&
@@ -185,7 +163,6 @@ def private extract_preshader(var func : FunctionPtr; var blk : ExprBlock?; barr
                 pe.dedup["{describe(lv.init)}"] = "{lv.name}"
             }
             pe.localColor["{lv.name}"] = true
-            // existing names own their suffixes — a fresh caller's counter must not re-mint them
             let cnum = name_counter_suffix(lv.name, "_preshader_")
             if (cnum >= pe.counter) {
                 pe.counter = cnum + 1
@@ -212,19 +189,16 @@ def private extract_preshader(var func : FunctionPtr; var blk : ExprBlock?; barr
             var init = lc.variables[0].init
             if (init != null && pex_eligible(pe, barriers, init)) {
                 if (psh_has_compute(init)) {
-                    // Whole uniform let: hoist its init, rename refs to the preshader temp, drop the decl.
                     let nm = pex_hoist_name(pe, init)
                     pe.rename[vname] = hoisted_ref(nm, init)
                     pe.changed = true
                 } else {
-                    // Trivial uniform alias (a bare global / member read): inline it at every use.
                     pe.rename[vname] = clone_expression(init)
                     pe.changed = true
                 }
                 continue
             }
         }
-        // Varying / reserved / multi-var statement: extract buried uniform subtrees, then emit.
         if (s is ExprLet) {
             var lc = s as ExprLet
             for (lv in lc.variables) {
@@ -243,7 +217,6 @@ def private extract_preshader(var func : FunctionPtr; var blk : ExprBlock?; barr
         body |> push(s)
     }
     if (pe.changed) {
-        // old prefix first, then fresh hoists (they may reference earlier `_preshader_` names), then the body
         while (!empty(blk.list)) {
             blk.list |> erase(length(blk.list) - 1)
         }
@@ -272,12 +245,11 @@ def private extract_preshader(var func : FunctionPtr; var blk : ExprBlock?; barr
 }
 
 class private CseTally : AstVisitor {
-    collectSample : bool        // clone a representative node per key (cse_body only; the oracle just counts)
+    collectSample : bool
     counts : table<string; int>
     sample : table<string; ExpressionPtr>
     mutableVars : table<string>
     def override preVisitExpression(expr : ExpressionPtr) : void {
-        // ExprRef2Value is describe-transparent: tallying wrapper AND wrappee double-counts every ref-rooted dup (an array/field read), so its count never drops below 2 after sharing and the round loop spins. Tally the wrappee only.
         if (expr is ExprRef2Value) {
             return
         }
@@ -291,8 +263,6 @@ class private CseTally : AstVisitor {
     }
 }
 
-// Replace every subtree whose describe matches `key` with a ref to `refName`. Top-down: a match is
-// replaced (no recursion into it); otherwise recurse children (the bounded post-flatten node set).
 def private cse_replace_expr(var e : ExpressionPtr; key, refName : string) : ExpressionPtr {
     if (e == null) return null
     if (psh_has_compute(e) && "{describe(e)}" == key) {
@@ -319,9 +289,6 @@ def private cse_replace_stmt(var s : ExpressionPtr; key, refName : string) {
     }
 }
 
-// Tally EXACTLY the regions cse_replace_stmt rewrites (let inits, copy RHS, return expr) — NOT the
-// whole statement. A dup counted in an unrewritable position (a store's lvalue) can never drop
-// below 2, so the round loop would re-pick the same key and spin to the guard.
 def private cse_tally_stmt(s : ExpressionPtr; a) {
     if (s is ExprLet) {
         for (lv in (s as ExprLet).variables) {
@@ -339,9 +306,6 @@ def private cse_tally_stmt(s : ExpressionPtr; a) {
     }
 }
 
-// Count leading contiguous `_preshader_*` lets — the preshader region. A CSE dup whose first use
-// falls inside it is uniform (Pass A already pulled every nontrivial uniform subtree out of the
-// body), so it routes to the preshader.
 def private preshader_prefix_len(blk : ExprBlock?) : int {
     var k = 0
     for (s in blk.list) {
@@ -355,12 +319,9 @@ def private preshader_prefix_len(blk : ExprBlock?) : int {
     return k
 }
 
-// `counter` is owned by the caller's cse/alias loop — fresh per-call numbering would collide a
-// second call's `_cse_0` with a surviving first-call `_cse_0` (error[30704] shadowing).
 def private cse_body(var blk : ExprBlock?; var counter : int&) : bool {   // nolint:STYLE037,STYLE038 - one CSE pass; scan, mint and rewrite share the name counter
     var anyChange = false
     var guard = 0
-    // existing share names own their suffixes — never re-mint them (shares splice mid-body, so scan all)
     for (s in blk.list) {
         if (s is ExprLet && length((s as ExprLet).variables) == 1) {
             var cnum = name_counter_suffix((s as ExprLet).variables[0].name, "_preshader_cse_")
@@ -372,11 +333,9 @@ def private cse_body(var blk : ExprBlock?; var counter : int&) : bool {   // nol
             }
         }
     }
-    // Reassigned vars are stable across rounds (cse only ever adds `let`s), so collect once.
     var mutableVars <- collect_mutable(blk)
     while (guard < 4096) {
         guard ++
-        // Tally every nontrivial subtree across the block, recording its first statement index.
         var counts : table<string; int>
         var sample : table<string; ExpressionPtr>
         var firstStmt : table<string; int>
@@ -398,7 +357,6 @@ def private cse_body(var blk : ExprBlock?; var counter : int&) : bool {   // nol
                 delete ct
             }
         }
-        // Pick the largest subtree computed >=2x (largest → fewer rounds; nested dups surface next).
         var bestKey = ""
         var bestLen = 0
         for (k in keys(counts)) {
@@ -419,7 +377,6 @@ def private cse_body(var blk : ExprBlock?; var counter : int&) : bool {   // nol
         let uniform = fi < preshader_prefix_len(blk)
         let nm = uniform ? "_preshader_cse_{counter}" : "_cse_{counter}"
         counter ++
-        // `sample` holds a tally-time (pre-replace) clone; cse_replace mutates the tree, not it.
         var src = sample?[bestKey] ?? null
         for (s in blk.list) {
             cse_replace_stmt(s, bestKey, nm)
@@ -451,10 +408,6 @@ def private cse_body(var blk : ExprBlock?; var counter : int&) : bool {   // nol
     return anyChange
 }
 
-// ===== Regroup-to-share (const-minus) =====
-// Reassoc's canonical sum order splits a `C - x` idiom out of a sum another expression carries whole
-// (`1 - mask` × two outputs), killing the describe-match CSE needs; re-emit as `(C - x) + rest`.
-
 def private cm_key(l, r : ExpressionPtr) : string {
     return "{describe(l)}\t-\t{describe(r)}"
 }
@@ -471,8 +424,6 @@ class private CmTally : AstVisitor {
     }
 }
 
-// A grouped `C - x` node already on the chain's spine — collect_add re-splits it into {+C, -x},
-// so without this check a regrouped chain would re-fire (and spin the fixpoint) forever.
 def private chain_has_grouped(e : ExpressionPtr; key : string) : bool {
     if (e == null) return false
     if (e is ExprOp2) {
@@ -490,9 +441,6 @@ def private chain_has_grouped(e : ExpressionPtr; key : string) : bool {
     return false
 }
 
-// Fill `terms` + the (const, negated-var) indices to regroup, gated on a live `C - x` twin in
-// `cm`. ONE gate for the pass and the residual oracle. A ≥2-const chain is reassoc's business
-// (gather pending), and a mutable-reading x can't CSE-share, so neither is a candidate.
 def private regroup_candidate(var that : ExprOp2?; cm : table<string; int>; mutableVars : table<string>;
                               no_fast_math : bool; var terms : array<ReTerm>; var ci : int&; var xi : int&) : bool {
     if (that == null || !(that.op == "+" || that.op == "-") || (no_fast_math && is_float_valued(that))) {
@@ -598,11 +546,6 @@ def private regroup_to_share(var blk : ExprBlock?; no_fast_math : bool) : bool {
     return ch
 }
 
-// ===== Pure-alias elimination =====
-// Collapse `let X = <bare var V>` copies (V not reassigned) into direct refs to V and drop the let —
-// clears CSE's `_cse_a = _cse_b` leftovers and unroll/fold's `p_0 = ro`. General, not CSE-specific.
-
-// The bare ExprVar under any chain of ExprRef2Value wrappers, else null.
 def private alias_source(e : Expression const?) : ExpressionPtr {
     if (e == null) return null
     if (e is ExprRef2Value) return alias_source((e as ExprRef2Value).subexpr)
@@ -615,12 +558,10 @@ def private eliminate_aliases(var blk : ExprBlock?) : bool {
     var body : array<ExpressionPtr>
     var changed = false
     for (s0 in blk.list) {
-        // Resolve already-collapsed aliases first, so chains (let a = b; let b = c) fold in one pass.
         var s = !empty(rename) && reads_any(s0, rename) ? subst_consts(s0, rename) : s0
         if (s is ExprLet && length((s as ExprLet).variables) == 1) {
             let lvName = "{(s as ExprLet).variables[0].name}"
             let src = alias_source((s as ExprLet).variables[0].init)
-            // Skip if either the alias var X or the source V is reassigned — renaming a reassigned X rewrites its stores onto the const source.
             if (src != null && !key_exists(mutableVars, lvName) &&
                     !key_exists(mutableVars, "{(src as ExprVar).name}")) {
                 rename[lvName] = clone_expression(src)
@@ -646,30 +587,23 @@ def private eliminate_aliases(var blk : ExprBlock?) : bool {
     return changed
 }
 
-// ===== Completeness oracle (test-framework facing) =====
-// Mirrors flatten.das FoldResidualVisitor: flags a uniform subtree still inline in the varying body
-// or a pure subtree computed >=2x un-shared. Empty ⇒ complete; checked over the COMPILED twin.
-
-// True if the subtree hides a maximal eligible-nontrivial node (one preshader extraction missed).
 def private pex_residual_expr(pe : PEX; barriers : table<string>; e : ExpressionPtr) : bool {
     if (e == null) return false
     if (psh_has_compute(e) && pex_eligible(pe, barriers, e)) return true
     return fold_children_or(e) $(c) => pex_residual_expr(pe, barriers, c)
 }
 
-// Oracle mirror of the extraction rcp rewrite — any descendant division `is_rcp_candidate`
-// would have become `* _preshader(1/U)`. Same closed node set as pex_residual_expr.
 def private rcp_residual_expr(pe : PEX; barriers : table<string>; e : ExpressionPtr) : bool {
     if (e == null) return false
     if (e is ExprOp2 && is_rcp_candidate(pe, barriers, e as ExprOp2)) return true
     return fold_children_or(e) $(c) => rcp_residual_expr(pe, barriers, c)
 }
 
-def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fast_math : bool = false) : array<string> {   // nolint:STYLE037,STYLE038 - one arm per residual peephole; the ladder IS the optimizer
+def public opt_residuals(var func : FunctionPtr; barriers : table<string>;   // nolint:STYLE037,STYLE038 - one arm per residual peephole; the ladder IS the optimizer
+                         no_fast_math : bool = false; hadd_min_width : int = 3) : array<string> {
     var res : array<string>
     if (func == null || func.body == null || !(func.body is ExprBlock)) return <- res
     var blk = func.body as ExprBlock
-    // Post-optimize coloring: a `_preshader_*` let is uniform, every other local is varying.
     var pe : PEX
     for (a in func.arguments) {
         pe.paramNames |> insert("{a.name}")
@@ -682,7 +616,6 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
             }
         }
     }
-    // Preshader residual: a uniform subtree still inline in the varying region (index >= prefix).
     let prefix = preshader_prefix_len(blk)
     for (i in range(length(blk.list))) {
         if (i < prefix) {
@@ -706,7 +639,6 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
             break
         }
     }
-    // rcp residual: a varying division by a preshader-eligible scalar still inline (fast-math only).
     if (!no_fast_math) {
         for (i in range(length(blk.list))) {
             if (i < prefix) {
@@ -731,8 +663,6 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
             }
         }
     }
-    // CSE residual: any pure subtree (no mutable read) still computed >=2x — tallying the same
-    // rewritable regions cse_body does, so an unrewritable lvalue dup is not a false positive.
     var counts : table<string; int>
     for (i in range(length(blk.list))) {
         var ct = new CseTally()
@@ -753,8 +683,6 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
             break
         }
     }
-    // Regroup residual: a sum still splitting {+C, -x} apart while a grouped `C - x` twin lives
-    // elsewhere in the body — regroup_to_share should have re-paired it for the CSE.
     var cmt = new CmTally()
     cmt.mutableVars := pe.mutableVars
     make_visitor(*cmt) $(a) {
@@ -777,8 +705,6 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
     unsafe {
         delete cmt
     }
-    // Alias residual: a pure single-def `let X = <bare var V>` copy (neither X nor V reassigned)
-    // the cleanup should collapse. A reassigned X (`var X = V` reused across copies) is a real var.
     for (s in blk.list) {
         if (s is ExprLet && length((s as ExprLet).variables) == 1) {
             let lvName = "{(s as ExprLet).variables[0].name}"
@@ -790,13 +716,11 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
             }
         }
     }
-    // Fusion residual: a fusable mul-add (`a*b ± c`) PHASE_FUSED should have re-packed into
-    // `mad` (or a mad still carrying the lerp shape) — gated on the same module visibility —
-    // plus an un-packed ctor lane pattern (re-vectorize / shared factor), which needs no callable.
     let cm = fuse_callable(func._module, "mad")
     var fr = new FuseResidualVisitor(checkMad = cm, checkLerp = cm && fuse_callable(func._module, "lerp"),
         checkDot = !no_fast_math && fuse_callable(func._module, "dot", 2),
-        checkHadd = !no_fast_math && fuse_callable(func._module, "hadd", 1), noFastMath = no_fast_math)
+        checkHadd = !no_fast_math && fuse_callable(func._module, "hadd", 1),
+        haddMinWidth = hadd_min_width, noFastMath = no_fast_math)
     make_visitor(*fr) $(a) {
         visit(func.body, a)
     }
@@ -816,7 +740,7 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
         res |> push("an un-fused lane sum ('v.x + v.y + ...' should be dot(v, mask))")
     }
     if (fr.foundHadd) {
-        res |> push("an un-fused scalar sum ('a + b + c + d' should be hadd(float4(...)))")
+        res |> push("an un-fused scalar sum of >= {hadd_min_width} lanes (should be hadd(floatN(...)))")
     }
     unsafe {
         delete fr
@@ -828,8 +752,6 @@ def public opt_residuals(var func : FunctionPtr; barriers : table<string>; no_fa
     return <- res
 }
 
-// The CSE value-number cache (per-region pure-subtree tally, count ≥1) plus the const-minus shape
-// table — the raw material for grouping/variation decisions, dumped under `_flatten_log_cse`.
 def private log_cse_cache(func : FunctionPtr; var blk : ExprBlock?) {
     var mutableVars <- collect_mutable(blk)
     var counts : table<string; int>
@@ -885,9 +807,6 @@ def public flatten_preshade_cse(var func : FunctionPtr; barriers : table<string>
     //! collapse pure aliases — a joint fixpoint. `log_cse` dumps the final value-number cache.
     if (!(func.body is ExprBlock)) return false
     var blk = func.body as ExprBlock
-    // The passes enable each other — an alias subst / CSE share can re-expose uniform compute only
-    // re-extraction hoists, and a regroup creates the very dup CSE shares, so iterate the set to a
-    // fixpoint. An exhausted guard means an oscillation regression — warn, never hang.
     var changed = false
     var guard = 0
     var cseCounter = 0

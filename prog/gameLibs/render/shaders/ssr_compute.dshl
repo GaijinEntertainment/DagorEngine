@@ -9,12 +9,15 @@ float non_confident_inv_exposure = 0.1;
 int ssr_fix_apply_fog = 1;
 float4 ssr_fix_confidence_for_disoccluded = (1.0, 0.3, 0, 0);
 int filter_high_luminance_changes = 0;
+float4 ssr_history_weights = (0.97, 0.8, 0.95, 0.97); // x - history weight of a rough surface, y - of a mirror, z - the share of the clamp a rough surface skips, w - x while the camera moves
+float4 ssr_motion_filter = (1, 1, 0, 0); // x - history clamp half width in neighbourhood deviations, y - spatial kernel falloff scale while the camera moves
 
 macro SSR_STOCHASTIC_RAY(code)
   (code) {
     blue_noise_tex@tex2d = blue_noise_tex;
     stochasticFrame@f1 = (ssr_frameNo.y);
     non_confident_exposure@f2 = (1 - non_confident_inv_exposure, non_confident_inv_exposure,0,0);
+    ssr_motion_filter@f2 = ssr_motion_filter;
   }
   hlsl(code) {
     half reflection_tonemap_luminance(half3 color)
@@ -23,10 +26,9 @@ macro SSR_STOCHASTIC_RAY(code)
     }
     float2 SampleRandomVector2D(uint2 pixel, uint frame_index)
     {
-      #define GOLDEN_RATIO  1.61803398875
       float2 E = texture2DAt(blue_noise_tex, pixel % 128).xy;
-      return float2(frac(E.x + (uint(frame_index.x) & 0xFFu) * GOLDEN_RATIO),
-                    frac(E.y + (uint(frame_index.x) & 0xFFu) * GOLDEN_RATIO));
+      #define R2_STEPS float2(0.7548776662, 0.5698402910) // per-axis steps; equal ones sample a line
+      return frac(E + (frame_index & 0xFFu) * R2_STEPS);
     }
 
     float2 HammersleylRandomVector2D(uint2 pixel, uint frame_index)
@@ -63,12 +65,13 @@ macro SSR_STOCHASTIC_RAY(code)
       float recipNormFactor = dotNV >= 0.0f ? t + saturate(dotNV) : s / (t + saturate(abs(dotNV)));
       return d / (2.0f * recipNormFactor);
     }
-    half get_filter_exp(half linear_roughness, half confidence, float currentDepth)
+    // motion: 0 for a still pixel, 1 for one the camera moves fully
+    half get_filter_exp(half linear_roughness, half confidence, float currentDepth, half motion)
     {
       half linearRoughnessW = get_is_rough_surface_param(linear_roughness);
       half filter_exp = (5.h - 1.h*linearRoughnessW)*confidence;
       filter_exp = lerp(filter_exp, filter_exp*confidence, saturate(scaled_prev_camera_translation/currentDepth));
-      return filter_exp;
+      return filter_exp * lerp(1.h, half(ssr_motion_filter.y), motion);
     }
     float atanh(float v) {
       return 0.5*log((1+v)/(1-v));
@@ -102,6 +105,18 @@ hlsl {
     return saturate(1.0 - asfloat((biasedExp - 10u) << 23));
   }
 }
+
+macro SSR_RESOLVE_NDF(code)
+  hlsl(code) {
+    float ssr_resolve_ndf(float ggx_alpha, float NoH)
+    {
+      float alpha2 = ggx_alpha*ggx_alpha;
+      float d = (NoH*alpha2 - NoH)*NoH + 1;
+      // d >= alpha2 in exact math; near the peak fp32 rounds it lower, down to 0 at NoH = 1.
+      return pow2(alpha2 / max(alpha2, d));
+    }
+  }
+endmacro
 
 macro SSR_READ_POINT_INFO(code)
   SSR_STOCHASTIC_RAY(code)
@@ -168,6 +183,7 @@ shader ssr_temporal_denoise_cs
     output@uav = ssr_target hlsl { RWTexture2D<float4> output@uav; };
     resolution@f2 = get_dimensions(ssr_target, 0);
     ssr_denoiser_tile@i1 = (ssr_denoiser_tile);
+    ssr_history_weights@f4 = ssr_history_weights;
   }
   SSR_READ_POINT_INFO(cs)
   SSR_USE_EXPOSURE(cs)
@@ -370,7 +386,8 @@ shader ssr_temporal_denoise_cs
           cameraToPoint, curViewTc, normal, linear_roughness, reflectionDistance, w, prevFrame, virtualWeight);
         //rougher surfaces should be more relaxed, to fight noise
         //todo: add pixel age, so we can more correctly fight noise
-        const half roughnessWeightFactor = lerp(0.97h, 0.8h, exp2(-60*linear_roughness));
+        const half roughWeight = lerp(ssr_history_weights.x, ssr_history_weights.w, relativePixelTranslation);
+        const half roughnessWeightFactor = lerp(roughWeight, half(ssr_history_weights.y), exp2(-60*linear_roughness));
         reprojectionWeight = disocclusionWeightAtten * roughnessWeightFactor;
       } else
       {
@@ -379,7 +396,7 @@ shader ssr_temporal_denoise_cs
       }
 
       half confidence = saturate(1.01h - neighboorhoodVariance);
-      half filterExp = get_filter_exp(linear_roughness, confidence, w);
+      half filterExp = get_filter_exp(linear_roughness, confidence, w, relativePixelTranslation);
       half exposure = max(1e-6h, PREV_FRAME_PACK(half3(1,1,1)).x*rcp(confidence*half(non_confident_exposure.x) + half(non_confident_exposure.y)));//to reduce fire-flies more
       half invExposure = rcp(exposure);
 
@@ -447,11 +464,11 @@ shader ssr_temporal_denoise_cs
       newFrame.a = 1;
       ##endif
 
-      half4 prevFrameClamped = clamp(prevFrame, max(newFrame - dev, 0), newFrame + dev);
+      half4 prevFrameClamped = clamp(prevFrame, max(newFrame - ssr_motion_filter.x*dev, 0), newFrame + ssr_motion_filter.x*dev);
       half lumaA = reflection_tonemap_luminance(prevFrame.rgb), lumaB = reflection_tonemap_luminance(prevFrameClamped.rgb);
       half temporal_blend = pow2(clamp(max(lumaA - lumaB - min(lumaA, lumaB), 0.0f) / max(max(lumaA, lumaB), 1e-4f), 0.0f, 1.f));
 
-      prevFrame = lerp(prevFrame, prevFrameClamped, lerp(temporal_blend, 1, originalConfidence)*relativePixelTranslation*(1-0.95*get_is_rough_surface_param(currentPoint.linear_roughness)));
+      prevFrame = lerp(prevFrame, prevFrameClamped, lerp(temporal_blend, 1, originalConfidence)*relativePixelTranslation*(1-ssr_history_weights.z*get_is_rough_surface_param(currentPoint.linear_roughness)));
       newFrame = force_ignore_history == 0 ? lerp(newFrame, prevFrame, reprojectionWeight) : newFrame;
 
       FLATTEN
@@ -473,8 +490,11 @@ texture packed_mv;
 texture denoised_ssr;
 
 macro RESOLVE_BY_NEIGHBOURS(code)
+  SSR_RESOLVE_NDF(code)
   hlsl(code) {
-    #include <BRDF.hlsl>
+    // On near mirrors the narrow lobe and grazing NoL can zero every weight, and a zero
+    // weight sum resolves to zero alpha, so the centre tap keeps at least this weight.
+    #define SSR_RESOLVE_CENTER_WEIGHT_FLOOR 1e-2
 
     float CalcNeighborhoodSampleDepthWeight(uint groupIndex, float4 scenePlaneScaled, float currentDepth)
     {
@@ -609,7 +629,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         float3 HalfVec = normalize(CurrentReflection.xyz + pointToEyeDir);
         float NoH = saturate(dot(normal, HalfVec));
         float NoL = saturate(dot(normal, CurrentReflection.xyz));
-        float D_GGX = NoL*BRDF_distribution( ggx_alpha, NoH );
+        float D_GGX = NoL*ssr_resolve_ndf(ggx_alpha, NoH);
 
         float4 sampleColor = LoadShared(NEW_FRAME_COLOR_SLOT, groupIndex);
 
@@ -629,7 +649,8 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         sampleWeight *= LocalNeighborhoodKernelWeighted((int(i) - int(GTIDU))*(int(i) - int(GTIDU)), 3, filterExp);
         //reflectionDistanceW += CurrentReflection.w * sampleWeight;
 
-        //sampleWeight = (i == GTIDU) ? 1 : sampleWeight;
+        if (i == GTIDU)
+          sampleWeight = max(sampleWeight, SSR_RESOLVE_CENTER_WEIGHT_FLOOR);
         totalWeight += sampleWeight; // Integration of microfacet distribution (PDF)
 
         //sampleColor.rgb /= max(reflection_tonemap_luminance(sampleColor.rgb)*invMaxBrightness,1);
@@ -677,7 +698,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         float3 HalfVec = normalize(CurrentReflection.xyz + pointToEyeDir);
         float NoH = saturate(dot(normal, HalfVec));
         float NoL = saturate(dot(normal, CurrentReflection.xyz));
-        float D_GGX = NoL*BRDF_distribution( ggx_alpha, NoH );
+        float D_GGX = NoL*ssr_resolve_ndf(ggx_alpha, NoH);
 
 
         // We assume that the hit point of the neighbor's ray is also visible for our ray, and we blindly pretend
@@ -694,9 +715,10 @@ macro RESOLVE_BY_NEIGHBOURS(code)
         sampleWeight *= depthWeight;
 
         sampleWeight *= LocalNeighborhoodKernelWeighted((int(i) - int(GTIDU))*(int(i) - int(GTIDU)), 3, filterExp);
-        //sampleWeight = (y == GTid.y) ? 1 : sampleWeight;
         //reflectionDistanceW += CurrentReflection.w * sampleWeight;
 
+        if (i == GTIDU)
+          sampleWeight = max(sampleWeight, SSR_RESOLVE_CENTER_WEIGHT_FLOOR);
         totalWeight += currentW*sampleWeight; // Integration of microfacet distribution (PDF)
 
         //sampleColor.rgb /= max(reflection_tonemap_luminance(sampleColor.rgb)*invMaxBrightness,1);
@@ -770,7 +792,7 @@ macro RESOLVE_BY_NEIGHBOURS(code)
           float3 HalfVec = normalize(CurrentReflection.xyz + pointToEyeDir);
           float NoH = saturate(dot(normal, HalfVec));
           float NoL = saturate(dot(normal, CurrentReflection.xyz));
-          float D_GGX = NoL*BRDF_distribution( ggx_alpha, NoH );
+          float D_GGX = NoL*ssr_resolve_ndf(ggx_alpha, NoH);
 
           float4 sampleColor = LoadShared(NEW_FRAME_COLOR_SLOT, groupIndex);
 
@@ -821,11 +843,11 @@ macro RESOLVE_BY_NEIGHBOURS(code)
       return averagedColor;
     }
 
-    float4 ResolvePixels(float4 val, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, float neighboorhoodVariance)
+    float4 ResolvePixels(float4 val, uint2 GTid, float3 pointToEyeDir, float3 normal, float3 cameraToPoint, float linear_roughness, uint filterSize, float currentDepth, out float4 maxDeviation, float neighboorhoodVariance, half motion)
     {
       ResolveStruct rs;
       half confidence = saturate(1.01h - neighboorhoodVariance);
-      half filterExp = get_filter_exp(linear_roughness, confidence, currentDepth);
+      half filterExp = get_filter_exp(linear_roughness, confidence, currentDepth, motion);
       half curExposure = PREV_FRAME_PACK(half3(1,1,1)).x;
       half exposure = max(1e-6h, curExposure*rcp(confidence*half(non_confident_exposure.x) + half(non_confident_exposure.y)));//to reduce fire-flies more
       half invExposure = rcp(exposure);
@@ -872,6 +894,7 @@ shader tile_ssr_compute
     ssr_fix_apply_fog@i1 = ssr_fix_apply_fog;
     ssr_tile_jitter@f2 = (ssr_tile_jitter);
     filter_high_luminance_changes@i1 = filter_high_luminance_changes;
+    ssr_history_weights@f4 = ssr_history_weights;
     hit_dist_params@f4 = ssr_hit_dist_params;
     denoiser_frame_index@i1 = denoiser_frame_index;
     ssr_fix_confidence_for_disoccluded@f2 = (ssr_fix_confidence_for_disoccluded);
@@ -942,6 +965,24 @@ shader tile_ssr_compute
       return asfloat(sharedStorage[groupthreads*(bankIndex*2 + 0) + groupIndex]);
     }
 
+    void StoreSharedUncompressed2(uint bankIndex, uint groupIndex, float2 fval)
+    {
+      ##assert(bankIndex < SHARED_MEMORY_BANK_COUNT, "Out of bounds: memory banks count is %d, but access to %d", _FILE_, __LINE__, SHARED_MEMORY_BANK_COUNT, bankIndex);
+      ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (bank = %d)", _FILE_, __LINE__, groupthreads, groupIndex, bankIndex);
+
+      sharedStorage[groupthreads*(bankIndex*2 + 0) + groupIndex] = asuint(fval.x);
+      sharedStorage[groupthreads*(bankIndex*2 + 1) + groupIndex] = asuint(fval.y);
+    }
+
+    float2 LoadSharedUncompressed2(uint bankIndex, uint groupIndex)
+    {
+      ##assert(bankIndex < SHARED_MEMORY_BANK_COUNT, "Out of bounds: memory banks count is %d, but access to %d", _FILE_, __LINE__, SHARED_MEMORY_BANK_COUNT, bankIndex);
+      ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d (bank = %d)", _FILE_, __LINE__, groupthreads, groupIndex, bankIndex);
+
+      return asfloat(uint2(sharedStorage[groupthreads*(bankIndex*2 + 0) + groupIndex],
+        sharedStorage[groupthreads*(bankIndex*2 + 1) + groupIndex]));
+    }
+
     void StoreWposDepth(uint groupIndex, float3 cameraToPoint, float w)
     {
       ##assert(groupIndex < groupthreads, "[%s:%.f] Out of bounds: groupthreads size is %d, but access to %d", _FILE_, __LINE__, groupthreads, groupIndex);
@@ -985,6 +1026,81 @@ shader tile_ssr_compute
       get_bruneton_fog(view, dist, loss, add);
       color = color*loss + add;
     }
+
+    #if ALTERNATE_REFLECTIONS
+    #define SDF_HIT_SEARCH_HALF_TAPS 3
+    #define SDF_HIT_SEARCH_MAX_RADIUS 16
+    bool find_sdf_hit_on_screen(float3 cameraToHit, float3 hitNorm, CameraView origin_view, out float3 hitUVZ)
+    {
+      hitUVZ = 0;
+      uint clip = world_sdf_find_clip(world_view_pos.xyz + cameraToHit);
+      float4 hitClip = mul(float4(cameraToHit, 1), globtm_no_ofs_psf);
+      if (clip >= MAX_WORLD_SDF_CLIPS || hitClip.w <= 1e-6)
+        return false;
+      float2 hitUV = hitClip.xy*rcp(hitClip.w)*float2(0.5, -0.5) + 0.5;
+      if (any(hitUV <= 0) || any(hitUV >= 1))
+        return false;
+      BRANCH
+      if (camera_has_sub_view())
+      {
+        if (!is_same_camera_view(get_camera_view(hitUV), origin_view))
+          return false;
+      }
+
+      float voxelSize = world_sdf_voxel_size(clip);
+      float bestDist = 1.5*voxelSize;
+      float2 invRes = rcp(lowres_rt_params.xy);
+      float texelSize = length(getViewVecOptimized(hitUV + float2(invRes.x, 0)) - getViewVecOptimized(hitUV))*hitClip.w;
+      float radius = min(bestDist/max(texelSize, 1e-6), SDF_HIT_SEARCH_MAX_RADIUS);
+      float stride = max(1, radius/SDF_HIT_SEARCH_HALF_TAPS);
+      float2 centerTc = hitUV*lowres_rt_params.xy;
+      bool found = false;
+      LOOP
+      for (int y = -SDF_HIT_SEARCH_HALF_TAPS; y <= SDF_HIT_SEARCH_HALF_TAPS; ++y)
+      {
+        UNROLL
+        for (int x = -SDF_HIT_SEARCH_HALF_TAPS; x <= SDF_HIT_SEARCH_HALF_TAPS; ++x)
+        {
+          int2 tc = clamp(int2(centerTc + float2(x, y)*stride), 0, int2(lowres_rt_params.xy) - 1);
+          float linearZ = ssr_linearize_z(texelFetch(downsampled_close_depth_tex, tc, 0).r);
+          float2 tcUV = (tc + 0.5)*invRes;
+          float dist = length(getViewVecOptimized(tcUV)*linearZ - cameraToHit);
+          if (dist < bestDist && linearZ > hitClip.w - 0.5*voxelSize)
+          {
+            half3 texelNorm;
+            half texelRoughness, texelSmoothness;
+            unpack_material(uint2(tc), texelNorm, texelRoughness, texelSmoothness);
+            if (dot(texelNorm, hitNorm) > 0.5)
+            {
+              bestDist = dist;
+              hitUVZ = float3(tcUV, linearZ);
+              found = true;
+            }
+          }
+        }
+      }
+      BRANCH
+      if (found && camera_has_sub_view())
+        found = is_same_camera_view(get_camera_view(hitUVZ.xy), origin_view);
+      return found;
+    }
+
+    bool sdf_start_clears_surface(float3 cameraToStart, float3 cameraToSurface, float3 surfaceNorm)
+    {
+      uint clip = world_sdf_find_clip(world_view_pos.xyz + cameraToStart);
+      if (clip >= MAX_WORLD_SDF_CLIPS)
+        return true;
+      return dot(cameraToStart - cameraToSurface, surfaceNorm) > 2*world_sdf_voxel_size(clip);
+    }
+    #else
+    bool find_sdf_hit_on_screen(float3 cameraToHit, float3 hitNorm, CameraView origin_view, out float3 hitUVZ)
+    {
+      hitUVZ = 0;
+      return false;
+    }
+
+    bool sdf_start_clears_surface(float3 cameraToStart, float3 cameraToSurface, float3 surfaceNorm) { return false; }
+    #endif
     ##endif
 
     float4 packReflection(bool NEEDSSR, float4 result, float reflectionDistance)
@@ -1016,6 +1132,32 @@ shader tile_ssr_compute
       InterlockedAdd(avg_normal_linear_roughness.w, avgN.w);
       InterlockedMin(min_linear_depth, asuint(w));
       InterlockedAdd(some_used_in_group, used_count);
+    }
+
+    void calc_normal_roughness(bool need_ssr, half3 normal, half linear_roughness, out float3 calc_n, out half calc_roughness)
+    {
+      uint4 avgN = avg_normal_linear_roughness;
+      float4 avgTileNLR = avgN*(1./(1<<20));
+      avgTileNLR.xyz = normalize(avgTileNLR.xyz*2 - 1);
+      calc_roughness = min(CALC_SSR_ROUGHNESS_THRESHOLD, need_ssr ? linear_roughness : avgTileNLR.w);
+      calc_n = need_ssr ? normal : avgTileNLR.xyz;
+    }
+
+    // relativePixelTranslation's measure, without the motion vectors
+    half camera_motion(float3 cameraToPoint, float2 curViewTc, float w)
+    {
+      float3 prevViewVec = cameraToPoint;
+      bool isHero = false;
+      #if SSR_MOTIONREPROJ != 1
+        isHero = apply_hero_matrix(curViewTc, prevViewVec);
+      #endif
+      // no mul(), which CSE would keep live
+      float4 prevClip = prev_globtm_no_ofs_psf[3] + prevViewVec.z*prev_globtm_no_ofs_psf[2] + prevViewVec.y*prev_globtm_no_ofs_psf[1] + prevViewVec.x*prev_globtm_no_ofs_psf[0];
+      float2 prevTc = prevClip.w > 1e-6 ? prevClip.xy / prevClip.w * float2(0.5, -0.5) + 0.5 : curViewTc;
+      float2 screenMotion = prevTc - curViewTc;
+      half translation = saturate(scaled_prev_camera_translation / w);
+      translation = isHero ? translation*saturate(length(screenMotion)*100) : translation;
+      return max(translation, saturate(length(screenMotion * ssr_target_size.xy) - 1));
     }
 
     #define SSR_FP16_MAX 65504.0 // fp16 friendly max
@@ -1072,6 +1214,8 @@ shader tile_ssr_compute
       half smoothness;
       unpack_material(screenCoord, normal, linear_roughness, smoothness);
 
+      // The material can come from another pixel of the quad than the depth. Keep the close
+      // depth as the origin: from a farther pixel a grazing ray is under the close pyramid.
       float rawDepth = tex2Dlod(src_depth_tex, float4(curViewTc, 0, 0)).x;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
@@ -1103,13 +1247,18 @@ shader tile_ssr_compute
         return;
       }
       float3 cameraToPoint = viewVect * w;
-      uint4 avgN = avg_normal_linear_roughness;
-      float4 avgTileNLR = avgN*(1./(1<<20));
-      avgTileNLR.xyz = normalize(avgTileNLR.xyz*2 - 1);
-
-      half calcRoughness = min(CALC_SSR_ROUGHNESS_THRESHOLD, NEEDSSR ? linear_roughness : avgTileNLR.w);
-      float3 calcN = NEEDSSR ? normal : avgTileNLR.xyz;
+      float3 calcN;
+      half calcRoughness;
+      calc_normal_roughness(NEEDSSR, normal, linear_roughness, calcN, calcRoughness);
       w = NEEDSSR ? w : asfloat(min_linear_depth);
+      ##if (manual_denoising)
+        // kept in LDS over the alternate trace
+        bool calcNeedSSR = NEEDSSR;
+        StoreWposDepth(GI, cameraToPoint, w);
+        StoreShared(NORMAL_ROUGHNESS_SLOT, GI, float4(calcN, calcRoughness));
+        // CONFIDENCE_X_SLOT is free until GetNeighborhoodVariance
+        StoreSharedUncompressed2(CONFIDENCE_X_SLOT, GI, curViewTc);
+      ##endif
       //calcRoughness = linear_roughness;
       //calcN = normal;
 
@@ -1170,28 +1319,57 @@ shader tile_ssr_compute
 
           if (newFrame.a < 1 && alternateReflectionsMask > 0.0)
           {
+            // one VGPR, not two, over the trace
+            half alternateConfidence = confidence_a * alternateReflectionsMask;
             half4 alternateRefl = 0;
 
-            if (!hitSky)
-            {
-              float3 alternateReflectionsStart = cameraToPoint;
-              #ifdef SSR_FFX
-                // instead of raymarching from start point, we pass already traced area in screen space. By this we avoid false-positive trace of thin objects in SDF
-                const float linearZLastHit = ssr_linearize_z(backSurfaceEndPos.z);
-                float3 cameraToLastHitPoint = getViewVecOptimized(backSurfaceEndPos.xy) * linearZLastHit;
-                alternateReflectionsStart = cameraToLastHitPoint;
-              #endif
+            bool traceSdf = !hitSky;
+            bool sdfStartOnRay = false;
+            bool sdfStartOffSurface = false;
+            float3 alternateReflectionsStart = cameraToPoint;
+            #ifdef SSR_FFX
+              // instead of raymarching from start point, we pass already traced area in screen space. By this we avoid false-positive trace of thin objects in SDF
+              const float3 sdfStartUVZ = backSurfaceBeginPos.w > 0 ? saturate(backSurfaceBeginPos.xyz) : backSurfaceEndPos;
+              float3 cameraToTracedEnd = getViewVecOptimized(sdfStartUVZ.xy) * ssr_linearize_z(sdfStartUVZ.z);
+              float tracedT = dot(cameraToTracedEnd - cameraToPoint, R);
+              BRANCH
+              if (camera_has_sub_view())
+              {
+                if (!is_same_camera_view(get_camera_view(sdfStartUVZ.xy), originViewType))
+                  tracedT = 0;
+              }
+              alternateReflectionsStart = cameraToPoint + R*max(0, tracedT);
+              sdfStartOnRay = tracedT > 0;
+              sdfStartOffSurface = sdfStartOnRay && sdf_start_clears_surface(alternateReflectionsStart, cameraToPoint, normal);
+              traceSdf = true;
+            #endif
 
-              get_alternate_reflections(alternateRefl, reflectionDistance, screenCoord, R, alternateReflectionsStart, normal, false, false);
+            BRANCH
+            if (traceSdf)
+            {
+              float3 sdfHitPos, sdfHitNorm;
+              get_alternate_reflections_with_hit(alternateRefl, reflectionDistance, sdfHitPos, sdfHitNorm, screenCoord, R, alternateReflectionsStart, normal,
+                false, false, 200, sdfStartOnRay, sdfStartOffSurface);
 
               if (alternateRefl.a > 0)
               {
+                reflectionDistance += max(0, dot(alternateReflectionsStart - cameraToPoint, R));
                 float len = length(reflectionDistance*R + cameraToPoint);
 
                 // This is totaly fake, len calcs is correct, but on some scenesssr  relfections glowing since too much fog applying.
                 // We hack this, but reduce fog ray length, when reflectionDistance is short. This just speculative fix.
                 float fogRayLen = (ssr_fix_apply_fog > 0) ? lerp(reflectionDistance, len, smoothstep(0.5, 3.0, reflectionDistance)) : len;
                 applyFogToReflection((reflectionDistance*R + cameraToPoint)*rcp(max(1e-6,len)), fogRayLen, alternateRefl.rgb);
+
+                float3 screenHitUVZ;
+                BRANCH
+                if (find_sdf_hit_on_screen(sdfHitPos, sdfHitNorm, originViewType, screenHitUVZ))
+                {
+                  float3 cameraToScreenHit = getViewVecOptimized(screenHitUVZ.xy)*screenHitUVZ.z;
+                  half4 screenRefl = sample_vignetted_color(screenHitUVZ, calcRoughness, screenHitUVZ.z, cameraToPoint, R,
+                    ssr_world_view_pos.xyz + cameraToPoint, cameraToScreenHit);
+                  alternateRefl.rgb = lerp(alternateRefl.rgb, screenRefl.rgb, screenRefl.a);
+                }
               }
             }
             if (alternateRefl.a < 1)
@@ -1200,7 +1378,7 @@ shader tile_ssr_compute
               alternateRefl.rgb *= apply_sky_polarization_filter();
               reflectionDistance = SSR_FP16_MAX;
             }
-            alternateRefl.a = confidence_a * alternateReflectionsMask;
+            alternateRefl.a = alternateConfidence;
             newFrame = half4(lerp(alternateRefl.rgb, newFrame.rgb, newFrame.a), alternateRefl.a);
             //newFrame.a = reflectionDistance < 1000;
             #if !TEMPORAL_IN_ONE_PASS
@@ -1226,24 +1404,36 @@ shader tile_ssr_compute
       // Temporal reprojection
       /////////////////////////////////////////////////
       ##if (manual_denoising)
-        const uint2 GTid = uint2(GI % BLOCK_SIZE_W, GI / BLOCK_SIZE_W);
+        // XOR undoes the 0 or 4 jitter
+        uint2 tileJitter = select(bool2(ssr_tile_jitter), uint2(BLOCK_SIZE_W/2, BLOCK_SIZE_H/2), uint2(0,0));
+        const uint2 GTid = (outputCoord & uint2(BLOCK_SIZE_W - 1, BLOCK_SIZE_H - 1)) ^ tileJitter;
+        GI = GTid.y*BLOCK_SIZE_W + GTid.x;
 
-        StoreWposDepth(GI, cameraToPoint, w);
         StoreShared(NEW_FRAME_COLOR_SLOT, GI, newFrame);
         StoreShared(REFLECTION_NEEDSSR_SLOT, GI, float4(R, NEEDSSR));
-        StoreShared(NORMAL_ROUGHNESS_SLOT, GI, float4(calcN, calcRoughness));
         GroupMemoryBarrierWithGroupSync();
+
+        float4 ownWposDepth = LoadWposDepth(GI);
+        cameraToPoint = ownWposDepth.xyz;
+        w = ownWposDepth.w;
+        curViewTc = LoadSharedUncompressed2(CONFIDENCE_X_SLOT, GI);
+        unpack_material(screenCoord, normal, linear_roughness, smoothness);
+        calc_normal_roughness(calcNeedSSR, normal, linear_roughness, calcN, calcRoughness);
 
         half neighboorhoodVariance = GetNeighborhoodVariance(GTid, 3, calcN, cameraToPoint, calcRoughness, w);
         half4 maxDev = 0;
         {
           uint res_Params = 3;
-          newFrame = ResolvePixels(newFrame, GTid, -normalize(viewVect), calcN, cameraToPoint, calcRoughness, res_Params, w, maxDev, neighboorhoodVariance);
+          newFrame = ResolvePixels(newFrame, GTid, -normalize(viewVect), calcN, cameraToPoint, calcRoughness, res_Params, w, maxDev, neighboorhoodVariance,
+            camera_motion(cameraToPoint, curViewTc, w));
         }
         newFrame = NEEDSSR ? newFrame : 0;
       ##endif
 
       #if TEMPORAL_IN_ONE_PASS
+        // equal where NEEDSSR; zero result elsewhere
+        normal = calcN;
+        linear_roughness = calcRoughness;
         half reprojectionWeight = 0, virtualWeight = 0;
         half4 prevFrame = 0;
         half relativePixelTranslation = 0;
@@ -1255,18 +1445,19 @@ shader tile_ssr_compute
             cameraToPoint, curViewTc, normal, linear_roughness, reflectionDistance, w, prevFrame, virtualWeight);
           //rougher surfaces should be more relaxed, to fight noise
           //todo: add pixel age, so we can more correctly fight noise
-          const half roughnessWeightFactor = lerp(0.97h, 0.8h, exp2(-60*linear_roughness));
+          const half roughWeight = lerp(ssr_history_weights.x, ssr_history_weights.w, relativePixelTranslation);
+          const half roughnessWeightFactor = lerp(roughWeight, half(ssr_history_weights.y), exp2(-60*linear_roughness));
           reprojectionWeight = disocclusionWeightAtten * roughnessWeightFactor;
         }
 
-        half4 minNeighboorhood = max(newFrame-maxDev, 0), maxNeighboorhood = newFrame+maxDev;
+        half4 minNeighboorhood = max(newFrame-ssr_motion_filter.x*maxDev, 0), maxNeighboorhood = newFrame+ssr_motion_filter.x*maxDev;
         minNeighboorhood.rgb *= minNeighboorhood.a; maxNeighboorhood.rgb *= min(1, maxNeighboorhood.a);
         half4 prevFrameClamped = clamp(prevFrame, minNeighboorhood, maxNeighboorhood);
         half lumaN = reflection_tonemap_luminance(newFrame.rgb);
         half lumaA = reflection_tonemap_luminance(prevFrame.rgb), lumaB = reflection_tonemap_luminance(prevFrameClamped.rgb);
         half temporal_blend = pow2(clamp(max(lumaA - lumaB - min(lumaA, lumaB), 0.0f) / max(max(lumaA, lumaB), 1e-4f), 0.0f, 1.f));
         half confidence = saturate(1.01h - neighboorhoodVariance);
-        prevFrame = lerp(prevFrame, prevFrameClamped, lerp(temporal_blend, 1, confidence)*relativePixelTranslation*(1-0.95*get_is_rough_surface_param(linear_roughness)));
+        prevFrame = lerp(prevFrame, prevFrameClamped, lerp(temporal_blend, 1, confidence)*relativePixelTranslation*(1-ssr_history_weights.z*get_is_rough_surface_param(linear_roughness)));
 
         half lumaFilerTheshold = -4.0;
         half minConfidenceForDisoccludedSample = 0.15;

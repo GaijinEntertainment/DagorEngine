@@ -164,6 +164,13 @@ void ShaderMatVdata::makeTexAndMat(const DataBlock &texBlk, const DataBlock &mat
       mat[i]->addRef();
   }
 }
+struct NamedInPlaceMemLoadCB : public InPlaceMemLoadCB
+{
+  const char *name;
+  NamedInPlaceMemLoadCB(const void *p, int sz, const char *n) : InPlaceMemLoadCB(p, sz), name(n ? n : "(mem)") {}
+  const char *getTargetName() override { return name; }
+};
+
 void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flags)
 {
   int compr_type = 0; // none
@@ -214,7 +221,8 @@ void ShaderMatVdata::loadMatVdata(const char *name, IGenLoad &crd, unsigned flag
       if (matVdataSrc.resize(compr_data_sz))
       {
         crd.read(matVdataSrc.data(), data_size(matVdataSrc));
-        mcrd = new (alloca(sizeof(InPlaceMemLoadCB)), _NEW_INPLACE) InPlaceMemLoadCB(matVdataSrc.data(), data_size(matVdataSrc));
+        mcrd = new (alloca(sizeof(NamedInPlaceMemLoadCB)), _NEW_INPLACE)
+          NamedInPlaceMemLoadCB(matVdataSrc.data(), data_size(matVdataSrc), matVdataSrcRef.fname);
       }
     }
 
@@ -350,7 +358,7 @@ void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs
   unsigned compr_type = matVdataSrcRef.comprType;
   unsigned pack_tag = matVdataSrcRef.packTag;
 
-  InPlaceMemLoadCB mcrd(matVdataSrc.data(), data_size(matVdataSrc));
+  NamedInPlaceMemLoadCB mcrd(matVdataSrc.data(), data_size(matVdataSrc), matVdataSrcRef.fname);
   IGenLoad *zcrd = fcrd ? static_cast<IGenLoad *>(fcrd) : &mcrd;
   if (compr_type == 3)
   {
@@ -410,7 +418,7 @@ void ShaderMatVdata::unpackVData(ShaderMatVDataReadCb cb)
   unsigned compr_type = matVdataSrcRef.comprType;
   unsigned pack_tag = matVdataSrcRef.packTag;
 
-  InPlaceMemLoadCB mcrd(matVdataSrc.data(), data_size(matVdataSrc));
+  NamedInPlaceMemLoadCB mcrd(matVdataSrc.data(), data_size(matVdataSrc), matVdataSrcRef.fname);
   IGenLoad *zcrd = fcrd ? static_cast<IGenLoad *>(fcrd) : &mcrd;
   if (compr_type == 3)
   {

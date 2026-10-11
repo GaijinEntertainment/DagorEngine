@@ -259,9 +259,8 @@ void ECSObjectEditor::updateImgui()
     PropPanel::PanelWindowPropertyControl *panelWindow = sceneOutliner->getPanel();
 
     bool open = true;
-    DAEDITOR3.imguiBegin(*panelWindow, &open);
-    sceneOutliner->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*panelWindow, &open); window.canSubmitContents())
+      sceneOutliner->updateImgui();
 
     if (!open && sceneOutliner)
     {
@@ -608,11 +607,22 @@ ecs::EntityId ECSObjectEditor::createEntityDirect(ECSEntityCreateData *data)
 {
   data->eid = ecs::INVALID_ENTITY_ID;
   removeSelectedTemplateName(data->templName);
+
+  ecs::Scene &scene = ecs::g_scenes->getActiveScene();
+  const ecs::Scene::SceneId prevTargetSceneId = scene.getTargetSceneId();
+  const bool overrideTargetScene = data->scene != ecs::Scene::C_INVALID_SCENE_ID && data->scene != prevTargetSceneId;
+  if (overrideTargetScene)
+    scene.setTargetSceneId(data->scene);
+
   ECSEntityCreateData::createCb(data);
   if (data->eid != ecs::INVALID_ENTITY_ID)
-    ecs::g_scenes->getActiveScene().insertEmptyEntityRecord(data->eid, data->templName.c_str());
+    scene.insertEmptyEntityRecord(data->eid, data->templName.c_str());
   else
     logerr("failed to create new entity");
+
+  if (overrideTargetScene)
+    scene.setTargetSceneId(prevTargetSceneId);
+
   return data->eid;
 }
 
@@ -1725,6 +1735,30 @@ void *ECSObjectEditor::onWmCreateWindow(int type)
   }
 
   return Base::onWmCreateWindow(type);
+}
+
+void ECSObjectEditor::initUi(int toolbar_id)
+{
+  Base::initUi(toolbar_id);
+
+  if (reopenSceneOutliner)
+  {
+    reopenSceneOutliner = false;
+    EDITORCORE->addPropPanel(SCENE_OUTLINER_EDITOR_WTYPE, hdpi::_pxScaled(SCENE_OUTLINER_WIDTH));
+    EDITORCORE->managePropPanels();
+  }
+}
+
+void ECSObjectEditor::closeUi()
+{
+  // Base::closeUi() unregisters the handler, and the manager's reset() at exit asserts on a panel left behind it.
+  if (sceneOutliner)
+  {
+    reopenSceneOutliner = true;
+    EDITORCORE->getWndManager()->removeWindow(sceneOutliner.get());
+  }
+
+  Base::closeUi();
 }
 
 bool ECSObjectEditor::onWmDestroyWindow(void *window)

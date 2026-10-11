@@ -298,7 +298,7 @@ static void get_obj_size_recursively(HSQUIRRELVM vm, HSQOBJECT &obj, ObjectSizeH
       SQFunctionProto *func = clo->_function;
       size_t size = sizeof(SQClosure) + _FUNC_SIZE(func->_ninstructions, func->_nliterals, func->_nparameters, func->_nfunctions,
                                           func->_noutervalues, func->_nlineinfos, func->_lineinfos->_is_compressed,
-                                          func->_nlocalvarinfos, func->_ndefaultparams, func->_nstaticmemos);
+                                          func->_nlocalvarinfos, func->_ndefaultparams);
 
       if (hist.processedObjects.find((void *)func) == hist.processedObjects.end())
       {
@@ -320,7 +320,7 @@ static void get_obj_size_recursively(HSQUIRRELVM vm, HSQOBJECT &obj, ObjectSizeH
       hist.typeCountHistogram["funcproto"]++;
       SQFunctionProto *func = _funcproto(obj);
       size_t size = _FUNC_SIZE(func->_ninstructions, func->_nliterals, func->_nparameters, func->_nfunctions, func->_noutervalues,
-        func->_nlineinfos, func->_lineinfos->_is_compressed, func->_nlocalvarinfos, func->_ndefaultparams, func->_nstaticmemos);
+        func->_nlineinfos, func->_lineinfos->_is_compressed, func->_nlocalvarinfos, func->_ndefaultparams);
 
       if (hist.processedObjects.find((void *)func) == hist.processedObjects.end())
       {

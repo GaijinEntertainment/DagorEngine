@@ -465,7 +465,7 @@ dafg::NodeHandle makeRenderLensOpticsNode()
           {{frameHndl.get(), 0, 0}});
 
       const ScopeAimRenderingData &scopeAimRenderData = scopeAimRenderDataHndl.ref();
-      render_lens_optics(scopeAimRenderData, strmCtxHndl.ref(), fadingRenderer);
+      render_lens_optics(scopeAimRenderData, aimRenderDataHndl.ref().lensBoundingSphereRadius, strmCtxHndl.ref(), fadingRenderer);
     };
   });
 }

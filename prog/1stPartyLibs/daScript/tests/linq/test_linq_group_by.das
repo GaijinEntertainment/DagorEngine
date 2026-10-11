@@ -1,7 +1,6 @@
 options gen2
 require daslib/linq
 require dastest/testing_boost public
-require math
 
 require daslib/linq_boost
 
@@ -12,10 +11,7 @@ def test_group_by_lazy(t : T?) {
     t |> run("basic _group_by_lazy on array — primitive key") @(t : T?) {
         let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         var groups <- nums._group_by_lazy(_ % 3)
-        var counts : table<int; int>
-        for (g in groups) {
-            counts[g._0] = g._1 |> length
-        }
+        var counts <- {for (g in groups); g._0 => length(g._1)}
         t |> equal(counts |> length, 3)
         t |> equal(counts[0], 3)   // 3, 6, 9
         t |> equal(counts[1], 4)   // 1, 4, 7, 10
@@ -23,10 +19,7 @@ def test_group_by_lazy(t : T?) {
     }
     t |> run("basic _group_by_lazy on iterator — primitive key") @(t : T?) {
         var groups <- [iterator for(x in 0..6); x * 2]._group_by_lazy(_ % 3)
-        var counts : table<int; int>
-        for (g in groups) {
-            counts[g._0] = g._1 |> length
-        }
+        var counts <- {for (g in groups); g._0 => length(g._1)}
         t |> equal(counts |> length, 3)
         t |> equal(counts[0], 2)   // 0, 6
         t |> equal(counts[1], 2)   // 4, 10
@@ -34,10 +27,7 @@ def test_group_by_lazy(t : T?) {
     }
     t |> run("_group_by_lazy on user struct — group people by name") @(t : T?) {
         var groups <- people._group_by_lazy(_.name)
-        var by_name : table<string; int>
-        for (g in groups) {
-            by_name[g._0] = g._1 |> length
-        }
+        var by_name <- {for (g in groups); g._0 => length(g._1)}
         t |> equal(by_name |> length, 3)
         t |> equal(by_name["Alice"], 2)
         t |> equal(by_name["Bob"], 2)
@@ -86,10 +76,7 @@ def test_group_by_lazy(t : T?) {
         // stored in the tuple ._0 slot. Earlier raw-key implementation only
         // compiled for workhorse keys.
         var groups <- pets._group_by_lazy(_.owner)
-        var by_owner : table<string; int>
-        for (g in groups) {
-            by_owner[g._0.name] = g._1 |> length
-        }
+        var by_owner <- {for (g in groups); g._0.name => length(g._1)}
         t |> equal(by_owner |> length, 3)
         t |> equal(by_owner["Hedlund, Magnus"], 1)
         t |> equal(by_owner["Adams, Terry"], 2)
@@ -138,10 +125,7 @@ def test_having(t : T?) {
             _where(_ > 2).
             _group_by_lazy(_ % 3).
             _having(_._1 |> length >= 3))
-        var counts : table<int; int>
-        for (g in filtered) {
-            counts[g._0] = g._1 |> length
-        }
+        var counts <- {for (g in filtered); g._0 => length(g._1)}
         // 3,4,5,6,7,8,9,10 → buckets %3: 0=[3,6,9](3), 1=[4,7,10](3), 2=[5,8](2)
         // _having keeps only buckets with len >= 3 → buckets 0 and 1
         t |> equal(counts |> length, 2)
@@ -159,10 +143,7 @@ def test_group_by(t : T?) {
     t |> run("_group_by produces same buckets as _group_by_lazy") @(t : T?) {
         let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         var groups <- nums._group_by(_ % 3)
-        var counts : table<int; int>
-        for (g in groups) {
-            counts[g._0] = g._1 |> length
-        }
+        var counts <- {for (g in groups); g._0 => length(g._1)}
         t |> equal(counts |> length, 3)
         t |> equal(counts[0], 3)   // 3, 6, 9
         t |> equal(counts[1], 4)   // 1, 4, 7, 10

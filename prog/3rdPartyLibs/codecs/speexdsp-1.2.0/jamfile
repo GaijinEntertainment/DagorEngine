@@ -37,7 +37,7 @@ if $(Platform) in windows xboxOne scarlett {
 if $(Platform) in ps4 ps5 linux macOS && $(PlatformArch) in x86_64 {
   Copt += -DUSE_SSE -DUSE_SSE2 ;
 }
-if $(PlatformArch) in arm64 arm64e arm64-v8a {
+if $(PlatformArch) in arm64 arm64ec arm64e arm64-v8a {
   Copt += -DUSE_NEON ;
 }
 

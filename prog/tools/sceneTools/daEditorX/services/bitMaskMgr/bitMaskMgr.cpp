@@ -513,7 +513,7 @@ public:
 
         if (new_bpp == 1)
           nimg.setMaskPixel1(i, j, out);
-        else if (new_bpp == 8)
+        else
           nimg.setMaskPixel8(i, j, out);
       }
 

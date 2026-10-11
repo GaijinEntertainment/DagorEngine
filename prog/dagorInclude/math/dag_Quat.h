@@ -184,7 +184,7 @@ INLINE Quat fastqinterp(const Quat &a, const Quat &b, real w, real sinw, real t)
 template <>
 INLINE Quat approach<Quat>(Quat from, Quat to, float dt, float viscosity)
 {
-  if (viscosity < 1e-5)
+  if (viscosity < 1e-5f)
     return to;
   return qinterp(from, to, 1.0f - expf(-dt / viscosity));
 }
@@ -203,7 +203,7 @@ INLINE Quat quat_rotation_arc(const Point3 &in_v0, const Point3 &in_v1)
   if (d < -1.0f + F_DOT_ERROR)
   {
     Point3 p;
-    if (fabsf(v0[2]) > M_SQRT1_2)
+    if (fabsf(v0[2]) > float(M_SQRT1_2))
     {
       // choose p in y-z plane
       float a = v0[1] * v0[1] + v0[2] * v0[2];

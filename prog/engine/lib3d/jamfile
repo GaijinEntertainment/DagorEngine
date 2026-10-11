@@ -1,6 +1,7 @@
 Root    ?= ../../.. ;
 Location = prog/engine/lib3d ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -58,7 +59,7 @@ if $(Platform) in windows linux ps4 xboxOne
 {
   if $(PlatformArch) in x86 x86_64 e2k {
     Sources += MaskedOcclusionCulling_sse.cpp ;
-  } else if $(PlatformArch) in arm64 {
+  } else if $(PlatformArch) in arm64 arm64ec {
     Sources += MaskedOcclusionCulling_neon.cpp ;
   }
 }
@@ -84,7 +85,7 @@ if $(Platform) in windows
 
   local AgilitySdkDir = $(_DEVTOOL)/Agility.SDK.$(AgilitySdkVer) ;
 
-  if ! [ GLOB $(AgilitySdkDir) : * ] { exit FATAL\: \"$(AgilitySdkDir)\" not found!  Please, update DEVTOOLS ; }
+  if ! [ GLOB $(AgilitySdkDir) : * ] { exit "FATAL: \"$(AgilitySdkDir)\" not found!  Please, update DEVTOOLS" ; }
 
   pre_opt on $(Sources) = -I$(AgilitySdkDir)/include ;
 
@@ -102,7 +103,7 @@ UseProgLibs =
 if $(Platform) in windows { UseProgLibs += 3rdPartyLibs/convert/detex ; }
 if $(Config) in dev dbg { UseProgLibs += engine/consoleProc ; }
 
-if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 && $(SSEVersion) != 2 && $(SSEVersion) != 3)
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 && $(SSEVersion) != 2 && $(SSEVersion) != 3
 {
 UseProgLibs +=
   engine/lib3d/moc_avx

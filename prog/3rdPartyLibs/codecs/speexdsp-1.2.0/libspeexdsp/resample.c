@@ -101,7 +101,10 @@ static void speex_free(void *ptr) {free(ptr);}
 #endif
 
 #ifdef USE_NEON
-#if !defined(_MSC_VER) || defined(__clang__)
+// Gaijin change
+/* constraint: ARM64EC reserves v16-v31, used by the NEON asm */
+#if (!defined(_MSC_VER) || defined(__clang__)) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #include "resample_neon.h"
 #endif
 #endif

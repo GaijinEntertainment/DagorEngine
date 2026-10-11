@@ -12,8 +12,8 @@
 #include <drv/3d/dag_commands.h>
 
 PostFxRenderer::PostFxRenderer() = default;
-PostFxRenderer::PostFxRenderer(PostFxRenderer &&other) = default;
-PostFxRenderer &PostFxRenderer::operator=(PostFxRenderer &&other) = default;
+PostFxRenderer::PostFxRenderer(PostFxRenderer &&other) noexcept = default;
+PostFxRenderer &PostFxRenderer::operator=(PostFxRenderer &&other) noexcept = default;
 PostFxRenderer::PostFxRenderer(const PostFxRenderer &other) = default;
 PostFxRenderer &PostFxRenderer::operator=(const PostFxRenderer &other) = default;
 PostFxRenderer::PostFxRenderer(const char *shader_name) { init(shader_name); }

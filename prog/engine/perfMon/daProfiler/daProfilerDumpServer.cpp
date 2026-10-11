@@ -17,21 +17,21 @@ namespace da_profiler
 class ProfilerDumpServer
 {
   vector<ProfilerDumpClient *> clients;
-  mutable std::recursive_mutex clientsLock;
+  mutable dag::recursive_mutex clientsLock;
 
   vector<unique_ptr<Dump>> dumps;
-  mutable std::mutex dumpsLock;
+  mutable dag::mutex dumpsLock;
 
   RingBuffer<uint64_t> frameTimes;
   std::atomic<bool> liveReporting;
   std::atomic<uint32_t> avilableFrames;
 
   UserSettings settings;
-  mutable std::mutex settingsLock;
+  mutable dag::mutex settingsLock;
   int stop = 0;
-  mutable std::mutex threadLock;
+  mutable dag::mutex threadLock;
 
-  mutable std::mutex pluginsLock;
+  mutable dag::mutex pluginsLock;
   hash_map<string, bool> plugins;
   int pluginsGen = 0;
 
@@ -45,25 +45,25 @@ public:
   ~ProfilerDumpServer() { shutdown(); }
   void addDump(unique_ptr<Dump> &&dump)
   {
-    std::lock_guard<std::mutex> lock(dumpsLock);
+    dag::lock_guard lock(dumpsLock);
     dumps.emplace_back(move(dump));
   }
   void sendPlugins(hash_map<string, bool> &&a)
   {
-    std::lock_guard<std::mutex> lock(pluginsLock);
+    dag::lock_guard lock(pluginsLock);
     plugins = move(a);
     pluginsGen++;
   }
   void setSettings(const UserSettings &s)
   {
-    std::lock_guard<std::mutex> lock(settingsLock);
+    dag::lock_guard lock(settingsLock);
     settings = s;
   }
   void addClient(ProfilerDumpClient *client)
   {
     if (!client)
       return;
-    std::lock_guard<std::recursive_mutex> lock(clientsLock);
+    dag::lock_guard lock(clientsLock);
     clients.emplace_back(client);
     sort(clients.begin(), clients.end(), [](auto &a, auto &b) { return a->priority() > b->priority(); });
   }
@@ -71,7 +71,7 @@ public:
   {
     if (!client)
       return false;
-    std::lock_guard<std::recursive_mutex> lock(clientsLock);
+    dag::lock_guard lock(clientsLock);
     auto ci = find(clients.begin(), clients.end(), client);
     if (ci == clients.end())
       return false;
@@ -83,7 +83,7 @@ public:
   {
     if (!name)
       return false;
-    std::lock_guard<std::recursive_mutex> lock(clientsLock);
+    dag::lock_guard lock(clientsLock);
     auto ci = find_if(clients.begin(), clients.end(), [&](auto &c) { return strcmp(c->getDumpClientName(), name) == 0; });
     if (ci == clients.end())
       return false;
@@ -95,15 +95,15 @@ public:
   void shutdown()
   {
     interlocked_release_store(stop, 1);
-    std::lock_guard<std::mutex> lock(threadLock); // ensure thread has stopped
+    dag::lock_guard lock(threadLock); // ensure thread has stopped
     {
-      std::lock_guard<std::recursive_mutex> lock(clientsLock);
+      dag::lock_guard lock(clientsLock);
       for (auto &c : clients)
         c->removeDumpClient();
       clients.clear();
     }
     {
-      std::lock_guard<std::mutex> lock(dumpsLock);
+      dag::lock_guard lock(dumpsLock);
       dumps.clear();
     }
   }
@@ -112,7 +112,7 @@ public:
   {
     unique_ptr<Dump> dump;
     {
-      std::lock_guard<std::mutex> lock(dumpsLock);
+      dag::lock_guard lock(dumpsLock);
       if (!dumps.empty())
       {
         move_swap(dump, dumps.front());
@@ -121,10 +121,10 @@ public:
     }
     UserSettings set;
     {
-      std::lock_guard<std::mutex> lock(settingsLock);
+      dag::lock_guard lock(settingsLock);
       set = settings;
     }
-    std::lock_guard<std::recursive_mutex> lock(clientsLock);
+    dag::lock_guard lock(clientsLock);
     bool nextLiveReporting = false;
     for (auto &c : clients)
     {
@@ -137,7 +137,7 @@ public:
       decltype(plugins) pluginsToSend;
       int currentPluginsGen;
       {
-        std::lock_guard<std::mutex> lock(pluginsLock);
+        dag::lock_guard lock(pluginsLock);
         currentPluginsGen = pluginsGen;
         pluginsToSend = plugins;
       }
@@ -163,7 +163,7 @@ public:
   }
   static void thread_update(ProfilerDumpServer &server, const function<bool()> &is_terminating)
   {
-    std::lock_guard<std::mutex> lock(server.threadLock); // ensure thread has stopped
+    dag::lock_guard lock(server.threadLock); // ensure thread has stopped
     interlocked_release_store(server.stop, 0);
     while (!is_terminating() && !interlocked_acquire_load(server.stop))
     {
@@ -177,7 +177,7 @@ public:
   void start()
   {
     interlocked_release_store(stop, 1);
-    std::lock_guard<std::mutex> lock(threadLock); // ensure thread has stopped
+    dag::lock_guard lock(threadLock); // ensure thread has stopped
     execute_in_new_thread([&](function<bool()> &&is_terminating) { thread_update(*this, is_terminating); }, "profiler_dump_thread",
       128 << 10);
   }

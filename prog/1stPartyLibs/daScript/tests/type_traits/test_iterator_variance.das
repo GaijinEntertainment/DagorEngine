@@ -36,10 +36,8 @@ def test_mut_iter_flows_into_const_param(t : T?) {
     // each(array<int>) yields iterator<int -&> (mut element). Passing it into a
     // function expecting iterator<int const -&> should succeed via variance.
     let arr <- [1, 2, 3, 4, 5]
-    unsafe {
-        let total = sum_const_iter(each(arr))
-        t |> equal(15, total)
-    }
+    let total = sum_const_iter(unsafe(each(arr)))
+    t |> equal(15, total)
 }
 
 [test]

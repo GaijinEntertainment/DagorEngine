@@ -60,7 +60,6 @@ def test_charset(t : T?) {
         var fake <- Faker()
         fuzz() {
             let ch = fake |> any_set
-            let total = int(set_total(ch))
             let idx = fake |> random_int
             t |> accept(is_char_in_set(idx, ch))
         }

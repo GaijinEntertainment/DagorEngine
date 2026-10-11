@@ -23,6 +23,7 @@ HaveConsole = no ;
 HaveSound = no ;
 HaveSoundNet = no ;
 include $(Root)/prog/daNetGame/setup.jam ;
+StrictCompileFrameLimit = 262144 ;
 
 ImguiTestRuntime ?= yes ;
 
@@ -31,7 +32,6 @@ Target = tools/sceneTools/daEditorX/daEditor3x ;
 include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
-
 
 AddIncludes +=
   $(Root)/prog/tools/sceneTools/daEditorX/include
@@ -105,7 +105,6 @@ UseProgLibs =
   engine/image
   engine/coreUtil
   engine/scene
-  engine/sceneRay
 
   engine/streaming
 
@@ -124,6 +123,7 @@ UseProgLibs =
   engine/phys/physBullet
 
   engine/perfMon
+  engine/collResDebugDraw
   engine/consoleProc
 
   tools/libTools/dagFileRW
@@ -339,5 +339,7 @@ gameVersion =
 ;
 Sources += dng_pulls.cpp ;
 opt on dng_pulls.cpp = -I$(Root)/prog/daNetGameLibs ;
+
+include $(Root)/prog/gameLibs/render/ambientOcclusion/_lib.jam ;
 
 include $(Root)/prog/_jBuild/build.jam ;

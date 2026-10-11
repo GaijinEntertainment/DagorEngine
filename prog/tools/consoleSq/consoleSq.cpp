@@ -65,6 +65,7 @@
 #include <squirrel/sqfuncproto.h>
 #include <squirrel/sqclosure.h>
 #include <squirrel/compiler/sqtypeparser.h>
+#include <squirrel/compiler/compiler.h>
 
 #include <algorithm>
 #include <string>
@@ -74,7 +75,7 @@
 #include "scriptapi.h"
 
 
-#define APP_VERSION "1.0.49"
+#define APP_VERSION "1.0.52"
 
 // Stubs
 
@@ -91,7 +92,7 @@ extern int __argc;
 extern char **__argv;
 static int argc_limit = -1; // index of '--' argument
 
-static bool syntax_check_only = false;
+static bool parse_only = false;
 static bool has_errors = false;
 static bool csq_time = false;
 static bool csq_show_native_modules = false;
@@ -101,6 +102,7 @@ static bool check_fname_case = false;
 static bool do_static_analysis = false;
 static bool dump_bytecode = false;
 static bool dump_ast = false;
+static bool dump_ast_json = false;
 static bool dump_ast_nodes_location = false;
 static bool check_stack_mode = false;
 static bool closure_hoisting_optimization = false;
@@ -246,7 +248,7 @@ static bool run_sq_code(const char *name, const char *code)
   Sqrat::Script script(sqvm);
   Sqrat::string errMsg;
 
-  if (!script.CompileString(code, errMsg, name) || (!syntax_check_only && script.Run(errMsg)))
+  if (!script.CompileString(code, errMsg, name) || (!parse_only && !script.Run(errMsg)))
   {
     sq_error_handler(errMsg);
     return false;
@@ -383,6 +385,15 @@ static String read_file_ignoring_utf8bom(const char *filename)
 }
 
 
+static void dump_ast_to_stdout(HSQUIRRELVM vm, SQCompilation::SqASTData *ast)
+{
+  if (dump_ast_json)
+    sq_dumpastjson(vm, ast, &sq_stream_write_file, stdout);
+  else
+    sq_dumpast(vm, ast, dump_ast_nodes_location, &sq_stream_write_file, stdout);
+}
+
+
 static void check_syntax(SqModules *module_mgr, const char *filename)
 {
   G_ASSERT(module_mgr->getVM() == sqvm);
@@ -396,11 +407,15 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
   module_mgr->bindRequireApi(hBindings);
   module_mgr->bindBaseLib(hBindings);
 
-  SQCompilation::SqASTData *ast =
-    sq_parsetoast(sqvm, source.str(), source.length(), filename, do_static_analysis, /* raise error*/ true);
+  SQCompilation::SqASTData *ast = sq_parsetoast(sqvm, source.str(), source.length(), filename,
+    do_static_analysis || module_mgr->compilationOptions.keepCommentsInAst,
+    /* raise error*/ true);
 
   if (!ast)
     quit_game(1, false);
+
+  if (dump_ast)
+    dump_ast_to_stdout(sqvm, ast);
 
   if (do_static_analysis)
   {
@@ -408,19 +423,6 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
 
     HSQOBJECT hBindings = bindings.GetObject();
     hBindings._flags = SQOBJ_FLAG_IMMUTABLE;
-
-    if (!syntax_check_only)
-    {
-      SQInteger stackTop = sq_gettop(sqvm);
-      SQRESULT compileResult = sq_translateasttobytecode(sqvm, ast, &hBindings, source.str(), source.length(), /* raise error*/ true);
-      sq_settop(sqvm, stackTop);
-
-      if (SQ_FAILED(compileResult))
-      {
-        sq_releaseASTData(sqvm, ast);
-        quit_game(1, false);
-      }
-    }
 
     sq_analyzeast(sqvm, ast, &hBindings, source.str(), source.length());
   }
@@ -485,12 +487,14 @@ static void compiler_error_cb(HSQUIRRELVM v, SQMessageSeverity severity, const c
 }
 
 
-static void dump_ast_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *ast_data, void *opts)
+// a .sqconfig script may run or import the named script before the command line reaches it, and then the module
+// manager compiles it only once, so the hook is set before the .sqconfig and takes the AST with the named script's name
+static void dump_ast_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *ast_data, void *named_script)
 {
-  G_UNUSED(opts);
-  if (!ast_data)
+  if (!ast_data || strncmp(ast_data->sourceName, (const char *)named_script, sizeof(ast_data->sourceName) - 1) != 0)
     return;
-  sq_dumpast(vm, ast_data, dump_ast_nodes_location, &sq_stream_write_file, stdout);
+  module_manager->onAST_cb = nullptr;
+  dump_ast_to_stdout(vm, ast_data);
 }
 
 
@@ -540,7 +544,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   sqvm = sq_open(1280);
   sqstd_seterrorhandlers(sqvm);
 
-  if (syntax_check_only)
+  if (parse_only)
     sq_setcompilationoption(sqvm, CompilationOptions::CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION, true);
 
   sq_forbidglobalconstrewrite(sqvm, true);
@@ -567,8 +571,13 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     sq_enablesyntaxwarnings(true);
   }
 
-  if (dump_ast)
+  module_manager->compilationOptions.keepCommentsInAst = dump_ast_json;
+
+  Sqrat::string namedScript;
+  if (dump_ast && !parse_only)
   {
+    fileAccess.resolveFileName(filename, nullptr, namedScript);
+    module_manager->up_data = (void *)namedScript.c_str();
     module_manager->onAST_cb = &dump_ast_callback;
   }
 
@@ -643,29 +652,30 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
     module_manager->forEachNativeModule([&](const char *mn, const Sqrat::Object &) {
       printf("\nModule: %s\n", mn);
-      String code(0,
-        "let { get_function_decl_string } = require(\"debug\")\n"
-        "local a = []\n"
-        "function type_with_decl(v) {"
-        "  local t = typeof v\n"
-        "  if (t == \"function\") {\n"
-        "    let decl = get_function_decl_string(v)\n"
-        "    if (decl)\n"
-        "      t += \" \" + decl.replace(\"(table|userdata|instance|class|null).\", \"\")\n"
-        "  }\n"
-        "  return t\n"
-        "}\n"
-        "foreach (k, v in require(\"%s\")) {\n"
-        "  a.append($\"  {k} - {type_with_decl(v)}\")\n"
-        "  if (typeof v == \"class\") {\n"
-        "    local a2 = []\n"
-        "    foreach (k2, v2 in v) {\n"
-        "      a2.append($\"    {k}.{k2} - {type_with_decl(v2)}\")\n"
-        "    }\n"
-        "    a[a.len() - 1] += $\"\\n{\"\\n\".join(a2.sort())}\"\n"
-        "  }\n"
-        "}\n"
-        "foreach (_, s in a.sort()) println(s);",
+      String code(0, R"QUIRREL(
+        let { get_function_decl_string } = require("debug")
+        local a = []
+        function type_with_decl(v) {
+          local t = typeof v
+          if (t == "function") {
+            let decl = get_function_decl_string(v)
+            if (decl)
+              t += " " + decl.replace("(table|userdata|instance|class|null).", "")
+          }
+          return t
+        }
+        foreach (k, v in require("%s")) {
+          a.append($"  {k} - {type_with_decl(v)}")
+          if (typeof v == "class") {
+            local a2 = []
+            foreach (k2, v2 in v) {
+              a2.append($"    {k}.{k2} - {type_with_decl(v2)}")
+            }
+            a[a.len() - 1] += $"\n{"\n".join(a2.sort())}"
+          }
+        }
+        foreach (_, s in a.sort()) println(s);
+        )QUIRREL",
         mn);
 
       if (!script.CompileString(code.c_str(), errMsg, code.c_str(), &bindings.GetObject()) || !script.Run(errMsg, &nullThis))
@@ -679,7 +689,8 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   }
 
   indexCounter++;
-  if (moduleIndex < 0 || moduleIndex == indexCounter)
+  // .sqconfig 'execute' code only feeds codegen and the run, and parse-only mode has neither
+  if (!parse_only && (moduleIndex < 0 || moduleIndex == indexCounter))
   {
     is_execute = true;
 
@@ -707,13 +718,13 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
           Sqrat::Table bindings(sqvm);
           module_manager->bindRequireApi(bindings.GetObject());
+          module_manager->bindBaseLib(bindings.GetObject());
           Sqrat::Object nullThis(sqvm);
 
           String exportName;
           exportName.printf(0, "%s/execute:#%d", resolve_absolute_file_name(config_blk.getFileName().c_str()).c_str(), executeCount);
 
-          if (!script.CompileString(s, errMsg, srcName.c_str(), &bindings.GetObject()) ||
-              (!syntax_check_only && !script.Run(errMsg, &nullThis)))
+          if (!script.CompileString(s, errMsg, srcName.c_str(), &bindings.GetObject()) || !script.Run(errMsg, &nullThis))
           {
             sq_error_handler(errMsg);
             printf("In script: %s\n\n", s);
@@ -772,15 +783,18 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
       sq_setcompilerdiaghandler(sqvm, compiler_diag_cb);
     }
 
-    if (syntax_check_only)
+    if (parse_only)
     {
       check_syntax(module_manager, filename);
     }
-    else if (!module_manager->requireModule(filename, true, do_static_analysis ? SqModules::__analysis__ : SqModules::__main__, ret,
-               errorMsg))
+    else
     {
-      success = false;
-      report_error(errorMsg.c_str());
+      if (!module_manager->requireModule(filename, true, do_static_analysis ? SqModules::__analysis__ : SqModules::__main__, ret,
+            errorMsg))
+      {
+        success = false;
+        report_error(errorMsg.c_str());
+      }
     }
   }
 
@@ -790,7 +804,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     has_errors = true;
   }
 
-  if (do_static_analysis && !syntax_check_only)
+  if (do_static_analysis && !parse_only)
   {
     sq_checkglobalnames(sqvm);
   }
@@ -858,47 +872,52 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 }
 
 
-static void print_usage()
-{
-  printf("\nUsage: csq [options] <script.nut>\n");
-  printf("\nApp can be preconfigured to use some modules with .sqconfig found in folder of script on on any upper folders\n\n");
-  printf("  --time - measure execution time\n");
-  printf("  --debugfile - create 'debug' file\n");
-  printf("  --config-path - show path to found .sqconfig\n");
-  printf("  --show-basepaths - show all base paths\n");
-  printf("  --set-sqconfig:<file-name> - specialize .sqconfig file\n");
-  printf("  --sample-config - print reference .sqconfig in output\n");
-  printf("  --native-modules - show list of available native modules\n");
-  printf("  --native-modules-content - show list of available native modules and content of modules\n");
-  printf("  --mount-vromfs:<vrom> - all vroms will be mounted\n");
-  printf("  --mount:<mount>=<path> - add mount point (--mount:darg=../../prog/daRg)\n");
-  printf("  --show-mounts - print mount points\n");
-  printf("  --check-fname-case - check file name case on Windows\n");
-  printf("  --set-blk-root - will set blk root path (relative to current dir) for '#/' includes\n");
-  printf("  --add-basepath - will add basepath (relative to current dir)\n");
-  printf("  --syntax-check - don't execute, just check syntax\n");
-  printf("  --final-message:<message> - print message at the end of execution without fatal errors\n");
-  printf("  --static-analysis - perform static analysis of compiling .nut files\n");
-  printf("  --message-output-file:<file-name> - print compiler messages to file (JSON)\n");
-  printf("  --warnings-list - print all warnings and exit\n");
-  printf("  --suppress-hints-errors - do not treat hints as errors\n");
-  printf("  --absolute-path - use absolute path in diagnsotic render\n");
-  printf("  --visited-files-list:<file_name> - dump all visited scripts file names into specified file (appends if existed)\n");
-  printf("  --D:<diagnostic_id> - disable diagnostic by text id\n");
-  printf("  --dump-bytecode - dump bytecode and line infos of compiled script\n");
-  printf("  --dump-ast - dump AST of compiled script\n");
-  printf("  --nodes-location - dump AST nodes location in format [line:column]\n");
-  printf("  --parse-types - just parse function types in given files, one type per line\n");
-  printf("  --stack-check - check stack state after script execution\n");
-  printf("  --iter-seed:<seed> - table iterator randomization seed\n");
-  printf("  --opt-closure-hoisting - enable closure hoisting optimization\n");
-  printf("  --hide-compilation-error - don't print compilation error text, just show common message\n");
-  printf("  --sqversion - print version of quirrel\n");
-  printf("  --version - print version of csq\n");
-  printf("  -- - ignore arguments after '--', but these arguments are still available in '__argv' array\n");
-  printf("  *.nut - arguments after the script name will not be checked for correctness\n");
-  printf("\n");
-}
+static const char usage_text[] = R"HELP(
+Usage: csq [options] <script.nut>
+
+App can be preconfigured to use some modules with .sqconfig found in the script folder or in any upper folder
+
+  --time - measure execution time
+  --debugfile - create 'debug' file
+  --config-path - show path to found .sqconfig
+  --show-basepaths - show all base paths
+  --set-sqconfig:<file-name> - specialize .sqconfig file
+  --sample-config - print reference .sqconfig in output
+  --native-modules - show list of available native modules
+  --native-modules-content - show list of available native modules and content of modules
+  --mount-vromfs:<vrom> - all vroms will be mounted
+  --mount:<mount>=<path> - add mount point (--mount:darg=../../prog/daRg)
+  --show-mounts - print mount points
+  --check-fname-case - check file name case on Windows
+  --set-blk-root - will set blk root path (relative to current dir) for '#/' includes
+  --add-basepath - will add basepath (relative to current dir)
+  --parse-only - parse the script only, do not compile or run it
+  --syntax-check - alias of --parse-only
+  --final-message:<message> - print message at the end of execution without fatal errors
+  --static-analysis - perform static analysis of compiling .nut files
+  --message-output-file:<file-name> - print compiler messages to file (JSON)
+  --warnings-list - print all warnings and exit
+  --suppress-hints-errors - do not treat hints as errors
+  --absolute-path - use absolute path in diagnostic render
+  --visited-files-list:<file_name> - dump all visited scripts file names into specified file (appends if existed)
+  --D:<diagnostic_id> - disable diagnostic by text id
+  --dump-bytecode - dump bytecode and line infos of compiled script
+  --dump-ast - dump AST of the named script
+  --dump-ast-json - the same as one line of JSON
+  --nodes-location - dump AST nodes location in format [line:column]
+  --parse-types - just parse function types in given files, one type per line
+  --check-stack - check stack state after script execution
+  --iter-seed:<seed> - table iterator randomization seed
+  --opt-closure-hoisting - enable closure hoisting optimization
+  --hide-compilation-error - don't print compilation error text, just show common message
+  --sqversion - print version of Quirrel
+  --version - print version of csq
+  -- - ignore arguments after '--', but these arguments are still available in '__argv' array
+  *.nut - arguments after the script name will not be checked for correctness
+
+)HELP";
+
+static void print_usage() { fputs(usage_text, stdout); }
 
 static void append_final_slash(String &dir)
 {
@@ -1177,9 +1196,9 @@ int DagorWinMain(bool debugmode)
     printf("\n");
     printf("; allowed_native_modules = dagor.debug DataBlock");
     printf("\n");
-    printf("\n; execute = print(\"hello\\n\")  ; execute some quirrel script, line by line of \"execute\"");
+    printf("\n; execute = print(\"hello\\n\")  ; execute some Quirrel script, line by line of \"execute\"");
     printf("\n");
-    printf("\n; execute_file = stub.nut  ; execute some .nut file (ralative to this .sqconfig)");
+    printf("\n; execute_file = stub.nut  ; execute some .nut file (relative to this .sqconfig)");
     printf("\n");
     printf("\nuse_libs_by_default = yes  ; what to do if library not found in this config");
 
@@ -1246,6 +1265,12 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("dump-ast"))
   {
     dump_ast = true;
+  }
+
+  if (::dgs_get_argv("dump-ast-json"))
+  {
+    dump_ast = true;
+    dump_ast_json = true;
   }
 
   if (::dgs_get_argv("nodes-location"))
@@ -1383,7 +1408,9 @@ int DagorWinMain(bool debugmode)
     return check_unused_args();
   }
 
-  syntax_check_only = ::dgs_get_argv("syntax-check");
+  parse_only = ::dgs_get_argv("parse-only");
+  if (::dgs_get_argv("syntax-check")) // read even if set: an unread flag fails check_unused_args()
+    parse_only = true;
 
   csq_show_native_modules = ::dgs_get_argv("native-modules");
   csq_show_native_modules_content = ::dgs_get_argv("native-modules-content");

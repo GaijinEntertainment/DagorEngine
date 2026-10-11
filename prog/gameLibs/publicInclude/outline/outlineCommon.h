@@ -15,6 +15,7 @@
 #include <dag/dag_vector.h>
 
 #include <ecs/anim/anim.h>
+#include <ecs/render/updateStageRender.h>
 #include <daECS/core/componentTypes.h>
 
 #include <outline/outline_buffer_size.hlsli>
@@ -42,9 +43,14 @@ struct OutlinedDynModel : OutlineElement
 {
   const DynamicRenderableSceneInstance *dynModel;
   const ecs::Point4List *animcharAdditionalData;
+  // One byte per scene node, OUTLINE_NODE_FILTER_MASK bit set to outline the node. Null or empty outlines the whole model.
+  const ecs::UInt8List *nodeFilter;
   OutlinedDynModel(vec4f clipBox, E3DCOLOR int_color, E3DCOLOR ext_color, float depthDiffBlendStart, float depthDiffBlendEnd,
-    const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *animcharAdditionalData);
+    const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *animcharAdditionalData,
+    const ecs::UInt8List *nodeFilter = nullptr);
 };
+
+inline constexpr uint8_t OUTLINE_NODE_FILTER_MASK = UpdateStageInfoRender::RENDER_COLOR;
 
 struct OutlinedRendinst : OutlineElement
 {
@@ -64,8 +70,8 @@ struct OutlinedBox : OutlineElement
 struct OutlineContext
 {
   void addOutline(E3DCOLOR int_color, E3DCOLOR ext_color, mat44f_cref globtm, bbox3f_cref wbox,
-    const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *additional_data, float depthDiffBlendStart = 1,
-    float depthDiffBlendEnd = 0);
+    const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *additional_data,
+    const ecs::UInt8List *node_filter = nullptr, float depthDiffBlendStart = 1, float depthDiffBlendEnd = 0);
   void addOutline(E3DCOLOR int_color, E3DCOLOR ext_color, mat44f_cref globtm, bbox3f_cref wbox, const TMatrix &transform,
     uint32_t ri_idx, float depthDiffBlendStart = 1, float depthDiffBlendEnd = 0);
   void addOutlineBox(E3DCOLOR int_color, E3DCOLOR ext_color, mat44f_cref globtm, const TMatrix &transform,
@@ -104,6 +110,7 @@ struct OutlineRenderer
   eastl::array<shaders::UniqueOverrideStateId, OVERRIDES_COUNT> zTestOverrides;
 
   int width = 0, height = 0;
+  int viewOffsetX = 0, viewOffsetY = 0;
   PostFxRenderer finalRender, fillDepthRender;
   UniqueBuf colorsCB;
   UniqueBuf rendInstTransforms;
@@ -115,12 +122,13 @@ struct OutlineRenderer
   void resetColorBuffer();
   void uploadColorBufferToGPU();
   void updateScaleVar();
-  void setClippedViewport(float dynamic_resolution_scale = 1);
+  void setClippedViewport();
   void calculateProjection(Point4 clipBox);
   shaders::OverrideStateId create_override(int override_type);
   void init(float outline_brightness);
   void close();
   void changeResolution(int w, int h);
+  void setViewOffset(int offset_x, int offset_y);
   void initBlurWidth(float outline_blur_width, int display_width, int display_height);
 
   // Common render functions
@@ -185,4 +193,4 @@ void outline_prepare(OutlineRenderer &outline_renderer, OutlineContexts &outline
 
 // Requires:
 // Outline depth binded at shaderVar outline_depth
-void outline_apply(OutlineRenderer &outline_renderer, Texture *outline_depth, float dynamic_resolution_scale = 1);
+void outline_apply(OutlineRenderer &outline_renderer, Texture *outline_depth);

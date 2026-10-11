@@ -39,6 +39,7 @@ struct Destroyer
 {
   void operator()(D3dResource *res) const
   {
+    validation_remove_resource(res);
 #if DAGOR_DBGLEVEL > 0
     G_ASSERT(!ShaderGlobal::is_resource_used_as_unmanaged_pointer(res, true));
 #endif
@@ -95,24 +96,25 @@ auto ResourceCreator<PoolResourceType::SBuffer>::operator()()
     desc.asBufferRes.viewFormat, name.data(), RESTAG_FRAMEGRAPH));
 }
 
-template <PoolResourceType RES_TYPE>
-class ResourceCollection
+class PooledResources
 {
-  using ResStorageType = eastl::invoke_result_t<ResourceCreator<RES_TYPE>>;
-  dag::Vector<ResStorageType> resources;
-  dag::Vector<ResStorageType> flipped;
+  IdIndexedMapping<HeapIndex, dag::Vector<UniqueD3dRes>> perHeap;
 
   static auto &get()
   {
-    static ResourceCollection collection;
-    return collection;
+    static PooledResources storage;
+    return storage.perHeap;
   }
 
 public:
-  static auto &current() { return get().resources; }
-  static auto &previous() { return get().flipped; }
+  static dag::Vector<UniqueD3dRes> &ofHeap(HeapIndex heap_idx)
+  {
+    auto &perHeap = get();
+    perHeap.expandMapping(heap_idx);
+    return perHeap[heap_idx];
+  }
 
-  static void flip() { get().flipped = eastl::move(get().resources); }
+  static void clear() { get().clear(); }
 };
 
 static constexpr PoolResourceType d3d_restype_to_pool_restype(D3DResourceType type)
@@ -168,6 +170,13 @@ public:
     return d3d_restype_to_pool_restype(heapIdxToResDesc[heap_idx].type);
   }
 
+  static const ResourceDescription &describeHeap(SimulatedHeapId heap_idx)
+  {
+    const auto &heapIdxToResDesc = get();
+    G_ASSERT(heapIdxToResDesc.isMapped(heap_idx));
+    return heapIdxToResDesc[heap_idx];
+  }
+
   static void clear() { get().clear(); }
 };
 
@@ -188,56 +197,18 @@ public:
   static ResourceCreator<RES_TYPE> &poolForHeap(SimulatedHeapId heap_idx)
   {
     auto &perDescPools = get();
-    G_ASSERT(perDescPools.isMapped(heap_idx));
+    if (!perDescPools.isMapped(heap_idx))
+      perDescPools.set(heap_idx, ResourceCreator<RES_TYPE>(SimulatedHeaps::describeHeap(heap_idx)));
     return perDescPools[heap_idx];
-  }
-
-  static void lazyInitPool(const ResourceDescription &desc)
-  {
-    G_ASSERT(d3d_restype_to_pool_restype(desc.type) == RES_TYPE);
-
-    const auto simHeapId = SimulatedHeaps::heapIndexForDesc(desc);
-
-    auto &perDescPools = get();
-
-    if (perDescPools.isMapped(simHeapId))
-      return;
-
-    perDescPools.set(simHeapId, ResourceCreator<RES_TYPE>(desc));
   }
 };
 
-D3dResource *PoolResourceAllocator::getD3dResource(int frame, intermediate::ResourceIndex res_idx) const
-{
-  G_ASSERT(res_idx < resourceIndexInCollection[frame].size());
-  const auto resIdxInCollection = resourceIndexInCollection[frame][res_idx];
-  if (DAGOR_UNLIKELY(resIdxInCollection == UNSCHEDULED))
-  {
-    LOGERR_ONCE("daFG: resource '%s' was not scheduled for frame %d!", cachedIntermediateResourceNames[res_idx].c_str(), frame);
-    return {};
-  }
-
-#define USE(RES_TYPE) \
-  case RES_TYPE: return ResourceCollection<RES_TYPE>::current()[resIdxInCollection].get();
-
-  switch (resourceTypes[res_idx])
-  {
-    SUPPORTED_RESTYPE_LIST
-    default: G_ASSERTF(false, "Resource %s is not a d3d resource!", cachedIntermediateResourceNames[res_idx]); break;
-  }
-
-#undef USE
-
-  G_ASSERT(false);
-  return nullptr;
-}
-
-ResourceAllocationProperties PoolResourceAllocator::getResourceAllocationProperties(const ResourceDescription &desc, bool)
+static UniqueD3dRes create_pooled_resource(SimulatedHeapId heap_id)
 {
 #define USE(RES_TYPE) \
-  case RES_TYPE: PoolsCollection<RES_TYPE>::lazyInitPool(desc); break;
+  case RES_TYPE: return PoolsCollection<RES_TYPE>::poolForHeap(heap_id)();
 
-  switch (d3d_restype_to_pool_restype(desc.type))
+  switch (SimulatedHeaps::resourceTypeOfHeap(heap_id))
   {
     SUPPORTED_RESTYPE_LIST
     default: G_ASSERT(false); break;
@@ -245,6 +216,11 @@ ResourceAllocationProperties PoolResourceAllocator::getResourceAllocationPropert
 
 #undef USE
 
+  return UniqueD3dRes{};
+}
+
+ResourceAllocationProperties PoolResourceAllocator::getResourceAllocationProperties(const ResourceDescription &desc, bool)
+{
   ResourceAllocationProperties result{};
   result.sizeInBytes = 1;
   result.offsetAlignment = 1;
@@ -261,119 +237,89 @@ ResourceHeapGroupProperties PoolResourceAllocator::getResourceHeapGroupPropertie
   return heapGroupProp;
 }
 
-template <PoolResourceType RES_TYPE>
-static uint32_t allocateHeap(SimulatedHeapId simulated_heap_id, uint32_t heap_size, uint32_t previous_heap_start_offset,
-  uint32_t previous_heap_size)
+bool PoolResourceAllocator::doesHeapAgree(HeapIndex heap_idx, const HeapRequest &req) const
 {
-  auto &currStorage = ResourceCollection<RES_TYPE>::current();
-  auto &prevStorage = ResourceCollection<RES_TYPE>::previous();
-
-  const uint32_t result = currStorage.size();
-
-  const uint32_t reusableResCount = min<uint32_t>(heap_size, previous_heap_size);
-
-  if (reusableResCount > 0)
-  {
-    // Move already leased resources
-    currStorage.resize(currStorage.size() + reusableResCount);
-    eastl::move(prevStorage.begin() + previous_heap_start_offset, prevStorage.begin() + previous_heap_start_offset + reusableResCount,
-      currStorage.end() - reusableResCount);
-  }
-
-  // Lease new resources
-  auto &pool = PoolsCollection<RES_TYPE>::poolForHeap(simulated_heap_id);
-  for (uint32_t j = reusableResCount; j < heap_size; ++j)
-    currStorage.push_back(pool());
-
-  return result;
+  return PooledResources::ofHeap(heap_idx).size() == req.size;
 }
 
-DestroyedHeapSet PoolResourceAllocator::allocateHeaps(const HeapRequests &heap_requests)
+void PoolResourceAllocator::allocateHeaps(const LayoutHeaps &layout_heaps, bool defer_destruction, ChangedHeaps &changed)
 {
   TIME_PROFILE(allocateHeaps);
-
-  // WIPE ALL OF THEM LOL
-  // It's completely pointless do do anything smarter here, as DX11 does
-  // not in fact care about deactivations at all.
-  DestroyedHeapSet result;
-  result.reserve(allocatedHeaps.size());
-  for (auto idx : IdRange<HeapIndex>(allocatedHeaps.size()))
-    if (allocatedHeaps[idx].size > 0 && allocatedHeaps[idx].group != CPU_HEAP_GROUP)
-      result.push_back(idx);
+  G_ASSERT(!defer_destruction);
+  G_UNUSED(defer_destruction);
 
   FRAMEMEM_VALIDATE;
 
-  if (heapStartOffsets.size() < heap_requests.size())
-    heapStartOffsets.resize(heap_requests.size());
-
-#define USE(RES_TYPE) ResourceCollection<RES_TYPE>::flip();
-  SUPPORTED_RESTYPE_LIST
-#undef USE
-
-  for (auto [heapIdx, heap] : heap_requests.enumerate())
-    if (heap.group != CPU_HEAP_GROUP)
+  for (auto &&[heapIdx, layoutHeap] : layout_heaps.enumerate())
+  {
+    const auto heap = make_heap_request(layoutHeap);
+    if (heap.group == CPU_HEAP_GROUP)
     {
-      const uint32_t reusableOffset = heapStartOffsets[heapIdx];
-      const uint32_t reusableSize = allocatedHeaps[heapIdx].size;
-
-      const auto simHeapId = groupToSimulatedHeapId(heap.group);
-
-      switch (SimulatedHeaps::resourceTypeOfHeap(simHeapId))
+      auto &objects = PooledResources::ofHeap(heapIdx);
+      if (!objects.empty())
       {
-#define USE(RES_TYPE) \
-  case RES_TYPE: heapStartOffsets[heapIdx] = allocateHeap<RES_TYPE>(simHeapId, heap.size, reusableOffset, reusableSize); break;
-        SUPPORTED_RESTYPE_LIST
-#undef USE
-
-        default: G_ASSERT(false); break;
+        objects.clear();
+        ++stats.heapsDestroyed;
+        changed.set(heapIdx, true);
+        allocatedHeaps[heapIdx] = {};
       }
-
-      // NOTE: pool scheduler doesn't actually need to leave more
-      // textures allocated than necessary, pools already do that
-      // sort of caching automatically.
-      allocatedHeaps[heapIdx].size = heap.size;
+      continue;
     }
 
-
-#define USE(RES_TYPE) ResourceCollection<RES_TYPE>::previous().clear();
-  SUPPORTED_RESTYPE_LIST
-#undef USE
-
-  return result;
+    // NOTE: pool scheduler doesn't actually need to leave more
+    // textures allocated than necessary, pools already do that
+    // sort of caching automatically.
+    auto &objects = PooledResources::ofHeap(heapIdx);
+    if (allocatedHeaps[heapIdx].group != heap.group && !objects.empty())
+    {
+      objects.clear();
+      ++stats.heapsDestroyed;
+    }
+    const bool wasEmpty = objects.empty();
+    const bool shrank = objects.size() > heap.size;
+    if (shrank)
+      objects.resize(heap.size);
+    else
+    {
+      const auto simHeapId = groupToSimulatedHeapId(heap.group);
+      while (objects.size() < heap.size)
+      {
+        objects.push_back(create_pooled_resource(simHeapId));
+        ++stats.objectsCreated;
+      }
+    }
+    if (wasEmpty && !objects.empty())
+      ++stats.heapsAllocated;
+    if (shrank || (wasEmpty && !objects.empty()))
+      changed.set(heapIdx, true);
+    allocatedHeaps[heapIdx] = heap;
+  }
 }
 
-void PoolResourceAllocator::resetResourcePlacement()
+D3dResource *PoolResourceAllocator::placeResource(intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &,
+  uint64_t offset, const ResourceAllocationProperties &, const DynamicResolution &)
 {
-  for (auto &indices : resourceIndexInCollection)
-    indices.assign(cachedIntermediateResources.totalKeys(), UNSCHEDULED);
+  G_UNUSED(res_idx);
+
+  auto &objects = PooledResources::ofHeap(heap_idx);
+  G_ASSERT_RETURN(offset < objects.size(), nullptr);
+  return objects[offset].get();
 }
 
-void PoolResourceAllocator::placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx,
-  const ResourceDescription &desc, uint64_t offset, const ResourceAllocationProperties &, const DynamicResolution &)
-{
-  resourceIndexInCollection[frame][res_idx] = heapStartOffsets[heap_idx] + offset;
-
-  if (res_idx >= resourceTypes.size())
-    resourceTypes.resize(res_idx + 1);
-  resourceTypes[res_idx] = d3d_restype_to_pool_restype(desc.type);
-}
-
-template <PoolResourceType RES_TYPE>
-static void shutdownPoolFor()
-{
-  ResourceCollection<RES_TYPE>::current().clear();
-  PoolsCollection<RES_TYPE>::clear();
-}
-
+// The heap ids outlive a device reset, because the layout keeps its heaps
+// and names their pools by id
 void PoolResourceAllocator::shutdownInternal()
 {
-#define USE(RES_TYPE) shutdownPoolFor<RES_TYPE>();
+  PooledResources::clear();
+#define USE(RES_TYPE) PoolsCollection<RES_TYPE>::clear();
   SUPPORTED_RESTYPE_LIST
 #undef USE
-  heapStartOffsets.clear();
-  SimulatedHeaps::clear();
 }
 
-PoolResourceAllocator::~PoolResourceAllocator() { PoolResourceAllocator::shutdownInternal(); }
+PoolResourceAllocator::~PoolResourceAllocator()
+{
+  PoolResourceAllocator::shutdownInternal();
+  SimulatedHeaps::clear();
+}
 
 } // namespace dafg

@@ -450,7 +450,7 @@ static bool make_gameres_desc_diff(const char *desc_fn, const char *mnt_dir, con
     dblk::pack_to_stream(new_desc_blk, fcwr);
     total_changed += fcwr.tell();
   }
-  return true;
+  return fcwr.close();
 }
 
 static void close_any_cache_file(dag::Span<FullFileLoadCB *> crd_cache, int but_i)
@@ -698,6 +698,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
     if (new_grp[i].changedIdx.size())
       new_grp_changed_files++;
   }
+  clear_all_ptr_items(crd_cache);
   if (!dryRun && new_grp_changed_files)
   {
     for (int i = 0; i < new_grp.size(); i++)
@@ -711,9 +712,10 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
         dd_mkpath(fn);
         FullFileSaveCB fcwr(fn);
         cwr.copyDataTo(fcwr);
+        if (!fcwr.close())
+          return -1;
       }
   }
-  clear_all_ptr_items(crd_cache);
 
 
   crd_cache.resize(old_dxp.size());
@@ -825,6 +827,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
     if (new_dxp[i].changedIdx.size())
       new_dxp_changed_files++;
   }
+  clear_all_ptr_items(crd_cache);
   if (!dryRun && new_dxp_changed_files)
   {
     for (int i = 0; i < new_dxp.size(); i++)
@@ -838,9 +841,10 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
         dd_mkpath(fn);
         FullFileSaveCB fcwr(fn);
         cwr.copyDataTo(fcwr);
+        if (!fcwr.close())
+          return -1;
       }
   }
-  clear_all_ptr_items(crd_cache);
 
   if (!dryRun && new_grp_changed_files + new_dxp_changed_files)
   {
@@ -970,7 +974,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
       i++;
     });
     if (failed)
-      return false;
+      return -1;
     pt_names.finishTab(cwr);
     pt_data.finishTab(cwr);
 
@@ -981,7 +985,7 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
     if (!fcwr.fileHandle)
     {
       debug("\nERR: failed write %s", fname);
-      return false;
+      return -1;
     }
 
     fcwr.writeInt(_MAKE4C('VRFs'));
@@ -998,6 +1002,8 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
     fcwr.writeInt(hw32);
     fcwr.write(mcwr.data(), packed_sz);
     total_changed += fcwr.tell();
+    if (!fcwr.close())
+      return -1;
   }
 
   debug("patch_update_game_resources results:"

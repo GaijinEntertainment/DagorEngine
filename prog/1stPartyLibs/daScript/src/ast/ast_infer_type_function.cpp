@@ -4,8 +4,15 @@
 #include "daScript/ast/ast_generate.h"
 #include "daScript/ast/ast_infer_type.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/simulate/das_qsort_r.h"
 
 namespace das {
+
+    static bool canBeAliasName(const string &callName) {
+        string moduleName, funcName;
+        splitTypeName(callName, moduleName, funcName);
+        return isPlainIdentifier(funcName);
+    }
 
     Module *InferTypes::getSearchModule(string &moduleName) const {
         if (moduleName == "_") {
@@ -92,9 +99,14 @@ namespace das {
         string moduleName, funcName;
         splitTypeName(name, moduleName, funcName);
         MatchingFunctions result;
+        // "__::" means THIS module exactly - but foreach on a module name also walks that
+        // module's public dependencies, so without this filter a `require X public` twin
+        // still makes the lookup ambiguous (the generated class-finalizer pin relies on it)
+        const bool strictThisModule = (moduleName == "__");
         auto inWhichModule = getSearchModule(moduleName);
         auto hFuncName = hash64z(funcName.c_str());
         program->library.foreach ([&](Module *mod) -> bool {
+                if ( strictThisModule && mod != inWhichModule ) return true;
                 auto itFnList = mod->functionsByName.find(hFuncName);
                 if ( itFnList ) {
                     // Hoist module-level visibility — pFn->module == mod for non-generic fns (set in addFunction).
@@ -535,6 +547,7 @@ namespace das {
         vector<ExpressionPtr> padded;
         for (int ai = p; ai != k; ++ai) {
             auto newArg = winner->arguments[ai]->init->clone();
+            stampMissingAt(newArg, expr->at);
             if (!newArg->type) {
                 // recursive resolve - same as the append-default path below
                 inInfer.push_back(winner);
@@ -549,6 +562,15 @@ namespace das {
                 newArg->at = expr->at;
             }
             padded.push_back(newArg);
+        }
+        for (int ai = p; ai != k; ++ai) {
+            const auto & argType = winner->arguments[ai]->type;
+            if (!argType->isAutoOrAlias()) continue;
+            AliasMap aliases;
+            OptionsMap options;
+            if (!isMatchingArgument(winner, argType, padded[ai - p]->type, useGenerics, true, &aliases, &options)) {
+                return false;
+            }
         }
         for (int ai = k - 1; ai >= p; --ai) {
             expr->arguments.insert(expr->arguments.begin() + p, padded[ai - p]);
@@ -604,7 +626,7 @@ namespace das {
                 }
                 fnm.push_back(make_pair(dist, fn));
             }
-            stable_sort(fnm.begin(), fnm.end(), [](const pair<int, Function *> &a, const pair<int, Function *> &b) { return a.first < b.first; });
+            sort(fnm.begin(), fnm.end(), [](const pair<int, Function *> &a, const pair<int, Function *> &b) { return a.first < b.first; });
             if (fnm[0].first != fnm[1].first) {
                 winners.resize(1);
                 winners[0] = fnm[0].second;
@@ -789,6 +811,7 @@ namespace das {
                 continue;
             }
             auto def = pFn->arguments[s]->init->clone();
+            stampMissingAt(def, expr->at);
             if (!def->type) { // resolve a not-yet-inferred default, same as tryPipedCallPadding
                 inInfer.push_back(pFn);
                 def = def->visit(*this);
@@ -853,25 +876,7 @@ namespace das {
         if (name.find("::") != string::npos) {
             return nullptr;
         }
-        auto field = st->findField(name);
-        if (!field) {
-            return nullptr;
-        }
-        if (!field->classMethod) {
-            return nullptr;
-        }
-        auto addr = field->init;
-        if (addr->rtti_isCast()) {
-            addr = static_cast<ExprCast*>(addr)->subexpr;
-        }
-        if (!addr->rtti_isAddr()) {
-            return nullptr;
-        }
-        auto pAddr = static_cast<ExprAddr*>(addr);
-        if (!pAddr->func) {
-            return nullptr;
-        }
-        return pAddr->func;
+        return st->findMethodFunction(name);
     }
     bool InferTypes::hasMatchingMemberCall(Structure *st, const string &name, const vector<MakeFieldDeclPtr> &arguments, const vector<TypeDeclPtr> &nonNamedArguments, bool methodCall) const {
         auto methodFunc = findMethodFunction(st, name);
@@ -1138,7 +1143,6 @@ namespace das {
         return findMatchingFunctions(thisModule->name, thisModule, sna, argDummy); // "__::sna"
     }
     bool InferTypes::hasDefaultUserConstructor(const string &sna) const {
-        vector<TypeDeclPtr> argDummy;
         auto fnlist = findDefaultConstructor(sna);
         for (auto &fn : fnlist) {
             if (fn->arguments.size() == 0) {
@@ -1201,6 +1205,69 @@ namespace das {
     bool InferTypes::verifyCloneFunc(const MatchingFunctions &fnList, const LineInfo &at) const {
         return verifyAnyFunc(fnList, at);
     }
+    MatchingFunctions InferTypes::getAssignFunc(const string &opName, const TypeDeclPtr &left, const TypeDeclPtr &right, MatchingFunctions &generics) const {
+        auto leftRef = new TypeDecl(*left);
+        leftRef->ref = true;
+        leftRef->constant = false;
+        vector<TypeDeclPtr> argDummy = {leftRef, right};
+        MatchingFunctions fns;
+        findMatchingFunctionsAndGenerics(fns, generics, "_::" + opName, argDummy, false, true);
+        applyLSP(argDummy, fns);
+        return fns;
+    }
+    // src/ast/ARCHITECTURE_INFER.md#assign-operator-lookup
+    ExpressionPtr InferTypes::promoteInitToAssign(const string &opName, const TypeDeclPtr &varType, const ExpressionPtr &init, const LineInfo &at) {
+        if ( !init->type || init->type->isAutoOrAlias() || init->type->isVoid() || init->type->isExprType() ) return nullptr;
+        if ( isPromotedInitCall(init) ) return nullptr;
+        if ( init->rtti_isVar() ) {
+            auto initVar = static_cast<ExprVar *>(init)->variable;
+            if ( initVar && initVar->generated ) return nullptr;
+        }
+        if ( !program->library.hasFunctionOrGenericNamed(opName) ) return nullptr;
+        MatchingFunctions generics;
+        auto fns = getAssignFunc(opName, varType, init->type, generics);
+        if ( fns.empty() && generics.empty() ) return nullptr;
+        if ( fns.size() > 1 ) return nullptr;
+        if ( fns.empty() && generics.size() > 1 ) {
+            auto leftRef = new TypeDecl(*varType);
+            leftRef->ref = true;
+            leftRef->constant = false;
+            auto probe = new ExprLooksLikeCall(at, "_::" + opName);
+            auto leftProbe = new ExprConstInt(at, 0);
+            leftProbe->type = leftRef;
+            auto rightProbe = new ExprConstInt(at, 0);
+            rightProbe->type = init->type;
+            probe->arguments.push_back(leftProbe);
+            probe->arguments.push_back(rightProbe);
+            das_stable_sort(generics.data(), generics.data() + generics.size(), [&](const FunctionPtr &f1, const FunctionPtr &f2) { return copmareFunctionSpecialization(f1, f2, probe); });
+            const bool oneWins = copmareFunctionSpecialization(generics.front(), generics[1], probe);
+            probe->arguments.clear();
+            gc_free_now(leftProbe);
+            gc_free_now(rightProbe);
+            gc_free_now(probe);
+            if ( !oneWins ) return nullptr;
+            generics.resize(1);
+        }
+        const FunctionPtr &chosen = fns.empty() ? generics.front() : fns.front();
+        if ( chosen->unsafeOperation && !unsafeDepth ) {
+            error("unsafe call '" + opName + "' must be inside the 'unsafe' block", "", "",
+                  at, CompilationError::unsafe_function_call);
+            return nullptr;
+        }
+        reportAstChanged();
+        const char * helper = opName == "<-"
+            ? (init->type->ref ? "_::move_to_move_ref" : "_::move_to_move")
+            : (init->type->ref ? "_::copy_to_move_ref" : "_::copy_to_move");
+        auto call = new ExprCall(at, helper);
+        call->generated = true;
+        call->arguments.push_back(init);
+        auto tdecl = new TypeDecl(*varType);
+        tdecl->ref = false;
+        tdecl->constant = false;
+        tdecl->temporary = false;
+        call->arguments.push_back(new ExprTypeDecl(at, tdecl));
+        return call;
+    }
     MatchingFunctions InferTypes::getFinalizeFunc(const TypeDeclPtr &subexpr) const {
         vector<TypeDeclPtr> argDummy = {subexpr};
         auto fins = findMatchingFunctions("*", thisModule, "finalize", argDummy); // "_::finalize"
@@ -1227,6 +1294,7 @@ namespace das {
                 } else {
                     DAS_ASSERTF(fnArg->init, "somehow matched function, which does not match. can only skip defaults");
                     newCallArguments.push_back(fnArg->init->clone());
+                    stampMissingAt(newCallArguments.back(), expr->at);
                 }
                 fnArgIndex++;
             }
@@ -1238,6 +1306,7 @@ namespace das {
             auto &fnArg = pFn->arguments[fnArgIndex];
             DAS_ASSERTF(fnArg->init, "somehow matched function, which does not match. tail has to be defaults");
             newCallArguments.push_back(fnArg->init->clone());
+            stampMissingAt(newCallArguments.back(), expr->at);
             fnArgIndex++;
         }
         return newCallArguments;
@@ -1802,6 +1871,7 @@ namespace das {
             // append default arguments
             for (size_t iT = expr->arguments.size(), iTs = funcC->arguments.size(); iT != iTs; ++iT) {
                 auto newArg = funcC->arguments[iT]->init->clone();
+                stampMissingAt(newArg, expr->at);
                 if (!newArg->type) {
                     // recursive resolve???
                     inInfer.push_back(funcC);
@@ -1826,7 +1896,7 @@ namespace das {
         } else if (functions.size() == 0) {
             // if there is more than one, we pick more specialized
             if (generics.size() > 1) {
-                stable_sort(generics.begin(), generics.end(), [&](const FunctionPtr &f1, const FunctionPtr &f2) { return copmareFunctionSpecialization(f1, f2, expr); });
+                das_stable_sort(generics.data(), generics.data() + generics.size(), [&](const FunctionPtr &f1, const FunctionPtr &f2) { return copmareFunctionSpecialization(f1, f2, expr); });
                 // if one is most specialized, we pick it, otherwise we report all of them
                 if (copmareFunctionSpecialization(generics.front(), generics[1], expr)) {
                     generics.resize(1);
@@ -1888,7 +1958,7 @@ namespace das {
                                 auto it = options.find(argType);
                                 if (it != options.end()) {
                                     auto optionType = argType->argTypes[it->second];
-                                    defaultRef[ai] = optionType->ref;
+                                    defaultRef[ai] = optionType->ref || argType->ref;
                                 }
                             } else {
                                 defaultRef[ai] = argType->ref;
@@ -1897,7 +1967,6 @@ namespace das {
                         if (!anyFailed)
                             break;
                         if (totalAliases == aliases.size()) {
-                            DAS_ASSERTF(0, "we should not be here. function matched arguments!");
                             break;
                         }
                     }
@@ -1930,12 +1999,14 @@ namespace das {
                                 arg->init = arg->init->visit(*this);
                                 if (arg->init->type && !arg->init->type->isAutoOrAlias()) {
                                     arg->type = new TypeDecl(*arg->init->type);
+                                    if ( !arg->type->at.fileInfo ) arg->type->at = arg->at;
                                     continue;
                                 }
                             }
                             auto argT = inferPartialAliases(arg->type, arg->type, clone, &aliases);
                             if ( !argT->isAutoOrAlias() ) {
                                 arg->type = argT;
+                                if ( !arg->type->at.fileInfo ) arg->type->at = arg->at;
                                 continue;
                             }
                             error("unknown type of argument " + clone->arguments[ai]->name + "; can't instance " + describeFunction(oneGeneric), "",
@@ -2014,7 +2085,8 @@ namespace das {
                     reportExcess(expr, types, "too many matching functions or generics ", functions, generics);
                 }
             } else {
-                if (auto aliasT = findAlias(expr->name)) {
+                TypeDeclPtr aliasT = canBeAliasName(expr->name) ? findAlias(expr->name) : nullptr;
+                if (aliasT) {
                     if (aliasT->isCtorType()) {
                         expr->name = das_to_string(aliasT->baseType);
                         if (aliasT->baseType == Type::tBitfield || aliasT->baseType == Type::tBitfield8 ||
@@ -2049,7 +2121,7 @@ namespace das {
                             if (!reportOp2Errors(expr)) {
                                 reportMissing(expr, types, missingMsg, true);
                             }
-                        } else if (cerr != InferCallError::tryOperator) {
+                        } else if (cerr != InferCallError::tryOperator && cerr != InferCallError::operatorOp2Borrow) {
                             reportMissing(expr, types, missingMsg, true);
                         }
                     }
@@ -2061,7 +2133,7 @@ namespace das {
                         if (!reportOp2Errors(expr)) {
                             reportMissing(expr, types, missingMsg, true);
                         }
-                    } else if (cerr != InferCallError::tryOperator) {
+                    } else if (cerr != InferCallError::tryOperator && cerr != InferCallError::operatorOp2Borrow) {
                         reportMissing(expr, types, missingMsg, true);
                     }
                 }
@@ -2089,6 +2161,7 @@ namespace das {
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
         } else {
+            gc_free_now(tempCall);
             return nullptr;
         }
     }
@@ -2112,15 +2185,21 @@ namespace das {
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
         } else {
+            gc_free_now(tempCall);
             return nullptr;
         }
     }
     ExpressionPtr InferTypes::inferGenericOperatorWithName(const string &opN, const LineInfo &expr_at, ExpressionPtr arg0, const string &arg1, InferCallError err) {
-        auto conststring = new TypeDecl(Type::tString);
+        auto conststring = new TypeDecl(Type::tString, expr_at);
         conststring->constant = true;
         auto fieldName = new ExprConstString(expr_at, arg1);
         fieldName->type = conststring;
-        return inferGenericOperator(opN, expr_at, arg0, fieldName, err);
+        auto opE = inferGenericOperator(opN, expr_at, arg0, fieldName, err);
+        if (!opE) {
+            gc_free_now(fieldName);
+            gc_free_now(conststring);
+        }
+        return opE;
     }
     Variable *InferTypes::findMatchingBlockOrLambdaVariable(const string &name) {
         // local (that on the stack)

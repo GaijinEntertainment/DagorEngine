@@ -26,8 +26,6 @@ namespace darg
 
 BhvSlider bhv_slider;
 
-static const char *dataSlotName = "slider:data";
-
 
 struct BhvSliderData
 {
@@ -74,16 +72,16 @@ static Element *find_knob(Element *elem)
 void BhvSlider::onAttach(Element *elem)
 {
   BhvSliderData *bhvData = new BhvSliderData();
-  elem->props.storage.SetValue(dataSlotName, bhvData);
+  elem->props.storage.SetValue(elem->csk->sliderData, bhvData);
 }
 
 
 void BhvSlider::onDetach(Element *elem, DetachMode)
 {
-  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
+  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(elem->csk->sliderData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->sliderData);
     delete bhvData;
   }
 }
@@ -173,7 +171,7 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
 int BhvSlider::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
   Point2 pointer_pos, int accum_res)
 {
-  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
+  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(elem->csk->sliderData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (event == INP_EV_MOUSE_WHEEL) // special case
@@ -392,7 +390,7 @@ static void deactivate_input_impl(Element *elem, BhvSliderData *bhvData)
 
 int BhvSlider::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
-  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
+  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(elem->csk->sliderData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isClickedBy(device, pointer_id))
@@ -404,7 +402,7 @@ int BhvSlider::onDeactivateInput(Element *elem, InputDevice device, int pointer_
 
 int BhvSlider::onDeactivateAllInput(Element *elem)
 {
-  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
+  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(elem->csk->sliderData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isClicked())

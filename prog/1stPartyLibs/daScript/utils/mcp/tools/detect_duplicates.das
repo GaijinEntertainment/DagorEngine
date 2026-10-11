@@ -20,6 +20,20 @@ struct DetectDuplicatesEnvelope {
 }
 
 
+// Appends `--flag N` for an integer argument bounded below by `min_value`.
+// Returns "" when the argument is absent or valid, else the error envelope.
+def private push_int_arg(var argv : array<string>; flag, arg_name, expected, raw : string; min_value : int) : string {
+    if (empty(raw)) return ""
+    let parsed = try_to_int(raw)
+    if (is_err(parsed)) return make_tool_result("detect_duplicates: '{arg_name}' must be {expected} (got '{raw}')", true)
+    let n = unwrap(parsed)
+    if (n < min_value) return make_tool_result("detect_duplicates: '{arg_name}' must be >= {min_value} (got {n})", true)
+    argv |> push(flag)
+    argv |> push("{n}")
+    return ""
+}
+
+
 def public do_detect_duplicates(paths : string; corpus : string;
                                 threshold_str : string;
                                 min_tokens_str : string;
@@ -55,22 +69,10 @@ def public do_detect_duplicates(paths : string; corpus : string;
         argv |> push("-t")
         argv |> push("{t}")
     }
-    if (!empty(min_tokens_str)) {
-        let parsed = try_to_int(min_tokens_str)
-        if (is_err(parsed)) return make_tool_result("detect_duplicates: 'min_tokens' must be a non-negative integer (got '{min_tokens_str}')", true)
-        let n = unwrap(parsed)
-        if (n < 0) return make_tool_result("detect_duplicates: 'min_tokens' must be >= 0 (got {n})", true)
-        argv |> push("--min-tokens")
-        argv |> push("{n}")
-    }
-    if (!empty(top_str)) {
-        let parsed = try_to_int(top_str)
-        if (is_err(parsed)) return make_tool_result("detect_duplicates: 'top' must be a positive integer (got '{top_str}')", true)
-        let n = unwrap(parsed)
-        if (n < 1) return make_tool_result("detect_duplicates: 'top' must be >= 1 (got {n})", true)
-        argv |> push("-n")
-        argv |> push("{n}")
-    }
+    let min_tokens_err = push_int_arg(argv, "--min-tokens", "min_tokens", "a non-negative integer", min_tokens_str, 0)
+    if (!empty(min_tokens_err)) return min_tokens_err
+    let top_err = push_int_arg(argv, "-n", "top", "a positive integer", top_str, 1)
+    if (!empty(top_err)) return top_err
     if (!empty(keep_str)) {
         for (k in split_by_chars(keep_str, ", \t\n")) {
             if (empty(k)) continue

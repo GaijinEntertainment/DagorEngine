@@ -54,7 +54,7 @@ public:
 
 BhvFpsBar::BhvFpsBar() :
   Behavior(darg::Behavior::STAGE_BEFORE_RENDER, 0),
-  frameTimeMetrics(eastl::make_unique<FrameTimeMetricsAggregator>()),
+  frameTimeMetrics(eastl::make_unique<FrameTimeMetricsAggregator>(true)),
   displayMode(PerfDisplayMode::OFF)
 {}
 

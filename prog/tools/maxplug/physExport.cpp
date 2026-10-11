@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <max.h>
+#include <iparamb2.h>
+#include <istdplug.h>
 #include <format>
 #include "dagor.h"
 #include "enumnode.h"
@@ -20,6 +22,13 @@
 
 
 static const int CID_DagorPhysicsResource = 0xABEFB687; // DagorPhysicsResource
+
+template <typename ValueType>
+static BOOL pb_get_value(IParamBlock2 &pb, ParamID id, TimeValue t, ValueType &v)
+{
+  Interval valid = FOREVER;
+  return pb.GetValue(id, t, v, valid);
+}
 
 
 static double cubic_root(double x)
@@ -359,8 +368,6 @@ public:
 
     Class_ID cid = obj->ClassID();
 
-    IParamBlock *pblock = (IParamBlock *)obj->GetReference(0);
-
     Point3 pt0(0, 0, 0), pt1(0, 0, 0);
     Point3 size(0, 0, 0);
     float radius = 0;
@@ -375,13 +382,14 @@ public:
       pt0 = Point3(0, 0, 0);
       radius = 0;
 
-      pb_get_value(*pblock, 0, curTime, radius);
+      IParamBlock2 *pblock = obj->GetParamBlock(0);
+      pb_get_value(*pblock, SPHERE_RADIUS, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
       int recenter = 0;
-      pb_get_value(*pblock, 5, curTime, recenter);
+      pb_get_value(*pblock, SPHERE_RECENTER, curTime, recenter);
 
       if (recenter)
         pt0.z += radius;
@@ -391,9 +399,10 @@ public:
       // box
       type = COLL_ID_BOX;
 
-      pb_get_value(*pblock, 0, curTime, size.y);
-      pb_get_value(*pblock, 1, curTime, size.x);
-      pb_get_value(*pblock, 2, curTime, size.z);
+      IParamBlock2 *pblock = obj->GetParamBlock(0);
+      pb_get_value(*pblock, BOXOBJ_LENGTH, curTime, size.y);
+      pb_get_value(*pblock, BOXOBJ_WIDTH, curTime, size.x);
+      pb_get_value(*pblock, BOXOBJ_HEIGHT, curTime, size.z);
 
       pt0.z = size.z / 2;
     }
@@ -409,13 +418,14 @@ public:
       float ht = 0;
       int centers = 0;
 
-      pb_get_value(*pblock, 0, curTime, radius);
+      IParamBlock *pblock = (IParamBlock *)obj->GetReference(0);
+      pb_get_value(*pblock, CAPSULE_RADIUS, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
-      pb_get_value(*pblock, 1, curTime, ht);
-      pb_get_value(*pblock, 2, curTime, centers);
+      pb_get_value(*pblock, CAPSULE_HEIGHT, curTime, ht);
+      pb_get_value(*pblock, CAPSULE_CENTERS, curTime, centers);
 
       if (centers)
         ht += (ht < 0 ? -radius : +radius) * 2;
@@ -595,8 +605,6 @@ public:
 
     Class_ID cid = obj->ClassID();
 
-    IParamBlock *pblock = (IParamBlock *)obj->GetReference(0);
-
     Point3 pt0(0, 0, 0), pt1(0, 0, 0);
     Point3 size(0, 0, 0);
     float radius = 0;
@@ -609,13 +617,14 @@ public:
       pt0 = Point3(0, 0, 0);
       radius = 0;
 
-      pb_get_value(*pblock, 0, curTime, radius);
+      IParamBlock2 *pblock = obj->GetParamBlock(0);
+      pb_get_value(*pblock, SPHERE_RADIUS, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
       int recenter = 0;
-      pb_get_value(*pblock, 5, curTime, recenter);
+      pb_get_value(*pblock, SPHERE_RECENTER, curTime, recenter);
 
       if (recenter)
         pt0.z += radius;
@@ -632,9 +641,10 @@ public:
     else if (cid == Class_ID(BOXOBJ_CLASS_ID, 0))
     {
       // box
-      pb_get_value(*pblock, 0, curTime, size.y);
-      pb_get_value(*pblock, 1, curTime, size.x);
-      pb_get_value(*pblock, 2, curTime, size.z);
+      IParamBlock2 *pblock = obj->GetParamBlock(0);
+      pb_get_value(*pblock, BOXOBJ_LENGTH, curTime, size.y);
+      pb_get_value(*pblock, BOXOBJ_WIDTH, curTime, size.x);
+      pb_get_value(*pblock, BOXOBJ_HEIGHT, curTime, size.z);
 
       pt0.z = size.z / 2;
 
@@ -688,13 +698,14 @@ public:
       float ht = 0;
       int centers = 0;
 
-      pb_get_value(*pblock, 0, curTime, radius);
+      IParamBlock *pblock = (IParamBlock *)obj->GetReference(0);
+      pb_get_value(*pblock, CAPSULE_RADIUS, curTime, radius);
 
       if (radius < 0)
         radius = 0;
 
-      pb_get_value(*pblock, 1, curTime, ht);
-      pb_get_value(*pblock, 2, curTime, centers);
+      pb_get_value(*pblock, CAPSULE_HEIGHT, curTime, ht);
+      pb_get_value(*pblock, CAPSULE_CENTERS, curTime, centers);
 
       if (centers)
         ht += (ht < 0 ? -radius : +radius) * 2;

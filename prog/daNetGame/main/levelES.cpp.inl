@@ -16,6 +16,7 @@
 #include <gameRes/dag_stdGameResId.h>
 #include <gameRes/dag_gameResources.h>
 #include <landMesh/lmeshManager.h>
+#include <landMesh/landDetile.h>
 #include <landMesh/lmeshMirroring.h>
 #include <heightmap/heightmapHandler.h>
 #include <daECS/core/entityManager.h>
@@ -459,6 +460,10 @@ public:
       if (landMeshOffset >= 0)
       {
         lmeshMgr = eastl::make_unique<LandMeshManager>();
+        if (dataNeeded)
+          land_detile::set_noise_size(land_detile::level_noise_size(*levelBlk));
+        else // a dedicated server loads no shader dump, but its de-tiled RI generation reads the size
+          land_detile::set_noise_size_cpu(land_detile::level_noise_size(*levelBlk));
         debug("[load]landmesh data");
         lmeshMgr->resetRenderDataNeeded(LC_ALL_DATA);
         if (dataNeeded & LC_GRASS_DATA)
@@ -1280,8 +1285,6 @@ void save_weather_settings_to_screenshot(DataBlock &blk)
 
 static void load_weather_preset_from_blk(const DataBlock &blk)
 {
-  delete_weather_choice_entities();
-
   const DataBlock *weatherBlk = blk.getBlockByName("weather");
   if (!weatherBlk)
   {
@@ -1297,6 +1300,8 @@ static void load_weather_preset_from_blk(const DataBlock &blk)
            "use the old method to load them!");
     return;
   }
+
+  delete_weather_choice_entities();
 
   const float timeOfDay = weatherBlk->getReal("time_of_day", 9.f);
   const int weatherSeed = weatherBlk->getInt("weather_seed");
@@ -1421,7 +1426,11 @@ void reroll_weather_choice(
   skiesData.latitude = wdt.lat;
   skiesData.longtitude = wdt.lon;
   skiesData.seed = skies_seed;
+  // constraint: callers set origins before a reroll
+  const DPoint2 cloudsOrigin = get_clouds_origin(), strataCloudsOrigin = get_strata_clouds_origin();
   load_daskies(*saved_level_blk.getBlockByNameEx("skies"), skiesData, wdt.weatherBlk);
+  set_clouds_origin(cloudsOrigin);
+  set_strata_clouds_origin(strataCloudsOrigin);
   g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
 
   console::print_d("weather choice: %s", wdt.weatherChoice);
@@ -1448,18 +1457,16 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
       timeOfDay = console::to_real(argv[4]);
     if (argc >= 6)
       presetName = argv[5];
-    // reroll calls ecs_tick(); webui is processed on the main thread while the
-    // additional game job updates the ECS concurrently, so queue reroll for the
-    // next work cycle's perform_delayed_actions() (which runs after that job is
-    // waited and before the next one starts) instead of racing its das contexts.
-    // Must be add_delayed_action, not execute_delayed_action_on_main_thread: the
-    // latter runs inline when already on the main thread.
+    // constraint: webui, ESes and PUFD cannot tick
     add_delayed_action(make_delayed_action([=]() {
       reroll_weather_choice(weatherSeed, skiesSeed, timeSeed, timeOfDay, presetName.empty() ? nullptr : presetName.c_str());
     }));
   }
 
-  CONSOLE_CHECK_NAME("level", "select_weather_preset", 2, 2) { select_weather_preset(argv[1]); }
+  CONSOLE_CHECK_NAME("level", "select_weather_preset", 2, 2)
+  {
+    delayed_call([name = String(argv[1])]() { select_weather_preset(name); });
+  }
 
   CONSOLE_CHECK_NAME("level", "weather_save", 1, 2)
   {
@@ -1508,27 +1515,29 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
     if (argc == 2)
       slotNo = console::to_int(argv[1]);
 
-    DataBlock weatherSavedPresets;
-    if (dd_file_exist("weatherSavedPresets.blk"))
-      weatherSavedPresets.load("weatherSavedPresets.blk");
+    delayed_call([slotNo]() {
+      DataBlock weatherSavedPresets;
+      if (dd_file_exist("weatherSavedPresets.blk"))
+        weatherSavedPresets.load("weatherSavedPresets.blk");
 
-    const DataBlock *slotBlk = weatherSavedPresets.getBlockByNameEx(String(100, "slot%d", slotNo));
-    set_clouds_origin(dpoint2(slotBlk->getPoint2("clouds_origin", Point2(0, 0))));
-    set_strata_clouds_origin(dpoint2(slotBlk->getPoint2("strata_clouds_origin", Point2(0, 0))));
-    reroll_weather_choice(slotBlk->getInt("weather_seed", -1), slotBlk->getInt("skies_seed", -1), slotBlk->getInt("time_seed", -1),
-      slotBlk->getReal("time_of_day", -1.0), slotBlk->getStr("preset_name", nullptr));
+      const DataBlock *slotBlk = weatherSavedPresets.getBlockByNameEx(String(100, "slot%d", slotNo));
+      set_clouds_origin(dpoint2(slotBlk->getPoint2("clouds_origin", Point2(0, 0))));
+      set_strata_clouds_origin(dpoint2(slotBlk->getPoint2("strata_clouds_origin", Point2(0, 0))));
+      reroll_weather_choice(slotBlk->getInt("weather_seed", -1), slotBlk->getInt("skies_seed", -1), slotBlk->getInt("time_seed", -1),
+        slotBlk->getReal("time_of_day", -1.0), slotBlk->getStr("preset_name", nullptr));
+    });
   }
 
   CONSOLE_CHECK_NAME("level", "load_weather_from_image", 2, 2)
   {
-    delete_weather_choice_entities();
-    const char *imagePath = argv[1];
-    DataBlock metaInfo;
-    String errorMessage;
-    if (load_meta_info_from_image(imagePath, metaInfo, errorMessage))
-      load_weather_preset_from_blk(metaInfo);
-    else
-      logerr("%s", errorMessage.c_str());
+    delayed_call([imagePath = String(argv[1])]() {
+      DataBlock metaInfo;
+      String errorMessage;
+      if (load_meta_info_from_image(imagePath, metaInfo, errorMessage))
+        load_weather_preset_from_blk(metaInfo);
+      else
+        logerr("%s", errorMessage.c_str());
+    });
   }
 
   CONSOLE_CHECK_NAME("level", "export_weather_gen", 1, 1)

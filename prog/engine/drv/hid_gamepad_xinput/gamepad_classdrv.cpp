@@ -13,6 +13,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <EASTL/type_traits.h>
+#include <generic/dag_span.h>
 
 #define MS_IN_SEC       1000
 #define RESCAN_ATTEMPTS 10
@@ -140,7 +141,12 @@ void HumanInput::Xbox360GamepadClassDriver::refreshDeviceList()
   }
 
   if (secDrv && secDrv->isDeviceConfigChanged())
+  {
+    // secDrv deletes its devices on refresh, and defJoy can be one of them
+    if (defJoy && defJoy != virtualDevice && find_value_idx(make_span_const(device, deviceNum), defJoy) < 0)
+      setDefaultJoystick(nullptr);
     secDrv->refreshDeviceList();
+  }
 
   if (deviceNum > 0)
     setDefaultJoystick(device[0]); // The most recent gamepad is enumerated first. Make it a default one.

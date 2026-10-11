@@ -141,7 +141,7 @@ BcCompressor::BcCompressor(ECompressionType compr_type, unsigned int buffer_mips
     errorShaderName = eastl::string(eastl::string::CtorSprintf{}, "%s_sqError", bc_shader);
 }
 
-BcCompressor::BcCompressor(BcCompressor &&other) :
+BcCompressor::BcCompressor(BcCompressor &&other) noexcept :
   useOwnBuffer(other.useOwnBuffer),
   bufferFlags(other.bufferFlags),
   bufferTex(eastl::move(other.bufferTex)),
@@ -166,7 +166,7 @@ BcCompressor::BcCompressor(BcCompressor &&other) :
   other.closeErrorStats();
 }
 
-BcCompressor &BcCompressor::operator=(BcCompressor &&other)
+BcCompressor &BcCompressor::operator=(BcCompressor &&other) noexcept
 {
   useOwnBuffer = other.useOwnBuffer;
   bufferFlags = other.bufferFlags;

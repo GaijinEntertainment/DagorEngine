@@ -86,7 +86,7 @@ void ProfilerData::stackSamplingFunction(const function<bool()> &is_terminating)
   };
   unique_ptr<ThreadStackUnwindProvider, TSWPDeleter> provider(p);
   {
-    std::lock_guard<std::mutex> lock(threadsLock);
+    dag::lock_guard lock(threadsLock);
     ourThreadsGeneration = interlocked_acquire_load(threadsGeneration);
     uint32_t i = 0;
     for (auto &thread : threadsData)
@@ -112,7 +112,7 @@ void ProfilerData::stackSamplingFunction(const function<bool()> &is_terminating)
     if (threadSampling != 0 && ourThreadsGeneration != interlocked_acquire_load(threadsGeneration)) // threads has changed. we need to
                                                                                                     // sample new threads as well
     {
-      std::lock_guard<std::mutex> lock(threadsLock);
+      dag::lock_guard lock(threadsLock);
       ourThreadsGeneration = interlocked_acquire_load(threadsGeneration);
       for (auto &thread : threadsData) // N^2 seach, only reasonable when not so many threads
       {
@@ -302,14 +302,14 @@ bool ProfilerData::startStackSampling(uint32_t sample) // should be called from 
   interlocked_release_store(samplingState, sample);
   {
     interlocked_release_store(samplingThreadRun, 0);
-    std::lock_guard<std::mutex> lock(samplingStateLock); // ensure that sampling thread stopped, because of samplingThreadRun!
+    dag::lock_guard lock(samplingStateLock); // ensure that sampling thread stopped, because of samplingThreadRun!
   }
   if (sample)
   {
     interlocked_release_store(samplingThreadRun, 1);
     execute_in_new_thread(
       [&](function<bool()> &&is_terminating) {
-        std::lock_guard<std::mutex> lock(samplingStateLock); // Used for shutdown
+        dag::lock_guard lock(samplingStateLock); // Used for shutdown
         stackSamplingFunction(is_terminating);
       },
       "profiler_stack_thread");

@@ -1,0 +1,15 @@
+Root    ?= ../../../.. ;
+Module = ambientOcclusion ;
+Location = prog/gameLibs/render/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  gameLibs/render
+;
+
+local AllSrcFolder_CPP = . ;
+
+include $(Root)/prog/gameLibs/build_module.jam ;

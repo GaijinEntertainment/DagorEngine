@@ -1263,13 +1263,13 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getNodeCollapserBits), das::SimNode_ExtFuncCallRef>(*this, lib,
       "scene_instance_getNodeCollapserBits", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(DynamicRenderableSceneInstance::getNodeCollapserBits));
-    using method_setNodeCollapserBits =
+    using method_mergeNodeCollapserBits =
       das::das_call_member<void (DynamicRenderableSceneInstance::*)(const DynamicRenderableSceneInstance::NodeCollapserBits &),
-        &::DynamicRenderableSceneInstance::setNodeCollapserBits>;
-    das::addExtern<DAS_CALL_METHOD(method_setNodeCollapserBits)>(*this, lib, "scene_instance_setNodeCollapserBits",
+        &::DynamicRenderableSceneInstance::mergeNodeCollapserBits>;
+    das::addExtern<DAS_CALL_METHOD(method_mergeNodeCollapserBits)>(*this, lib, "scene_instance_mergeNodeCollapserBits",
       das::SideEffects::modifyArgument,
       "das_call_member<void(DynamicRenderableSceneInstance::*)(const DynamicRenderableSceneInstance::NodeCollapserBits &), "
-      "&::DynamicRenderableSceneInstance::setNodeCollapserBits>::invoke");
+      "&::DynamicRenderableSceneInstance::mergeNodeCollapserBits>::invoke");
     using method_NodeCollapserBits_clear = DAS_CALL_MEMBER(DynamicRenderableSceneInstance::NodeCollapserBits::clear);
     das::addExtern<DAS_CALL_METHOD(method_NodeCollapserBits_clear)>(*this, lib, "node_collapser_bits_clear",
       das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(DynamicRenderableSceneInstance::NodeCollapserBits::clear));
@@ -1740,7 +1740,7 @@ public:
 #undef DAS_BIND_MEMBER
 #undef ALL_ANIM_CTRLS
 
-    auto pType = new das::TypeDecl(das::Type::tUInt);
+    auto pType = new das::TypeDecl(das::Type::tUInt, das::cppBindingLineInfo());
     pType->alias = "animchar_visbits_t";
     addAlias(pType);
 

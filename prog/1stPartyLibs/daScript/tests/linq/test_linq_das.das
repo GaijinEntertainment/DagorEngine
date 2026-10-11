@@ -1097,3 +1097,55 @@ def test_let_forward_scope_no_clobber(t : T?) {
     t |> equal(brands[0], "eco")
     t |> equal(brands[1], "eco")
 }
+
+struct D2Brand {
+    brand   : string
+    country : string
+}
+
+[test]
+def test_join_where_labels_shadow_range_vars(t : T?) {
+    let cars <- mk_cars()
+    var brands <- [D2Brand(brand = "eco", country = "JP"), D2Brand(brand = "lux", country = "DE")]
+    let rows <- %linq! from c in cars join b in brands on c.brand equals b.brand where c.price > 100 select (c = c.name, b = b.country) %%
+    t |> equal(length(rows), 2, "labels named like range vars survive the join+where rewrite")
+    t |> equal(rows[0].c, "mid")
+    t |> equal(rows[0].b, "JP")
+    t |> equal(rows[1].c, "lux")
+    t |> equal(rows[1].b, "DE")
+    delete brands
+}
+
+[test]
+def test_cross_from_table_source(t : T?) {
+    let cars <- mk_cars()
+    var tags <- { 1 => "t1", 2 => "t2" }
+    let rows <- %linq! from c in cars from kv in tags select "{c.name}:{kv.value}" %%
+    t |> equal(length(rows), 6, "a table source works in the second from")
+}
+
+[test]
+def test_parenthesized_identity_select(t : T?) {
+    let cars <- mk_cars()
+    let bare <- %linq! from c in cars where c.price > 100 select c %%
+    let paren <- %linq! from c in cars where c.price > 100 select (c) %%
+    t |> equal(length(bare), length(paren), "select c and select (c) agree")
+    for (a, b in bare, paren) {
+        t |> equal(a.name, b.name)
+    }
+}
+
+[test]
+def test_labels_shadowing_let_and_group_vars(t : T?) {
+    let cars <- mk_cars()
+    let r1 <- %linq! from c in cars let price = c.price select (price = price * 2) %%
+    t |> equal(length(r1), 3, "a label named like the let binding stays a label")
+    t |> equal(r1[0].price, 100)
+    let r2 <- %linq! from c in cars group c by c.brand into g select (g = length(g)) %%
+    t |> equal(length(r2), 2, "a label named like the group var stays a label")
+    var total = 0
+    for (row in r2) {
+        total += row.g
+    }
+    t |> equal(total, 3)
+}

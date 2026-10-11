@@ -137,14 +137,33 @@ extern int dynamicImpostorViewXVarId, dynamicImpostorViewYVarId;
 extern int dynamic_impostor_texture_const_no;
 extern float rendinst_ao_mul;
 
-extern float globalDistMul;
-extern float globalCullDistMul;
-extern float globalLodCullDistMul;
+struct DistMulBounds
+{
+  float settingsMin = 0.5f, settingsMax = 3.0f;   // clamp for the config settings mul
+  float effectiveMin = 0.1f, effectiveMax = 3.0f; // clamp for the derived muls
+};
 
-extern float settingsDistMul;
-extern float settingsMinCullDistMul;
-extern float lodsShiftDistMul;
-extern bool forceImpostors;
+// The distance inputs that recomputeDistMuls() consumes; it recomputes the derived muls
+// on every setter call - never write the derived values directly.
+struct DistMulInputs
+{
+  float riGenSettingsMul = 1.f;   // graphics/rendinstDistMul
+  float riExtraSettingsMul = 1.f; // graphics/rendinstExDistMul, falls back to rendinstDistMul
+  float minCullMul = 0.f;         // client floor for the riGen draw distance, keeps lod switches
+  float dynamicMul = 1.f;         // client per-frame scale (ground proximity in WT, cam zoom in DNG)
+  float dynamicOfs = 0.f;
+  float lodsShiftMul = 1.f;           // >= 1 pulls lod switches closer, keeps the draw distance
+  float riExtraAddLodMul = 1.f;       // extra riExtra lod shortening (respawn camera in DNG)
+  float impostorsFarDistAddMul = 1.f; // stretches the trees far range (WT per-frame)
+  // per domain clamp bounds, also runtime inputs: legacy dx10 lowers the mins, the dev console raises the maxes
+  DistMulBounds riGenBounds;
+  DistMulBounds riExtraBounds;
+  bool riExtraScaled = true; // graphics/riExtraMulScale > 0: riExtra follows the dist muls
+};
+extern DistMulInputs distMulInputs;
+
+extern float riGenLodDistMul;  // scales riGen lod switch ranges
+extern float riGenCullDistMul; // scales riGen last lod end, alpha fade and preload distance
 extern bool use_color_padding;
 extern bool vertical_billboards;
 

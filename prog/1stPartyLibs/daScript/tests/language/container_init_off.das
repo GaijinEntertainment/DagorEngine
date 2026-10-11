@@ -33,9 +33,7 @@ def test_policy_off_no_finalize_banner(t : T?) {
         let after = heap_bytes_allocated()
         t |> equal(int(before), int(after))
         arr |> clear()
-        unsafe {
-            delete arr
-        }
+        delete arr
     }
     t |> run("clear drops every slot without releasing") @(t : T?) {
         var arr <- make_bags(2)
@@ -43,9 +41,7 @@ def test_policy_off_no_finalize_banner(t : T?) {
         arr |> clear()
         let after = heap_bytes_allocated()
         t |> equal(int(before), int(after))
-        unsafe {
-            delete arr
-        }
+        delete arr
     }
     t |> run("table erase and clear drop values without releasing") @(t : T?) {
         var tab : table<string; Bag>
@@ -57,9 +53,7 @@ def test_policy_off_no_finalize_banner(t : T?) {
         tab |> clear()
         let after = heap_bytes_allocated()
         t |> equal(int(before), int(after))
-        unsafe {
-            delete tab
-        }
+        delete tab
     }
     t |> run("the composite trait follows its policy") @(t : T?) {
         // the collect banner rides force_inscope_pod (default off) - not container init

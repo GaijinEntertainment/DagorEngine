@@ -47,9 +47,7 @@ void * reuse_cache_allocate ( size_t size ) {
 }
 
 
-#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZER_ADDRESS__)
-#include <sanitizer/asan_interface.h>
-#endif
+#include "daScript/misc/das_asan.h"
 
 void reuse_cache_free ( void * ptr, size_t size ) {
     size = (size+15) & ~15;
@@ -60,9 +58,7 @@ void reuse_cache_free ( void * ptr, size_t size ) {
 
         // Asan treats `ptr` as already freed, however we reuse it as a node in linked list.
         // Let's unpoison it to make asan work.
-        #if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZER_ADDRESS__)
-        ASAN_UNPOISON_MEMORY_REGION(ptr, size);
-        #endif
+        DAS_ASAN_UNPOISON(ptr, size);
         hold = (ReuseChunk *) ptr;
         hold->next = next;
     } else {

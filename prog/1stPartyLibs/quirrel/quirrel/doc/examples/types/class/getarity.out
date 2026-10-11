@@ -1,0 +1,3 @@
+Plain.getarity() = null
+Scaler: num_params=3 num_required=2 varargs=false
+Scaler()(5) = 10

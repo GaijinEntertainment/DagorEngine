@@ -29,7 +29,7 @@ def tn_tabTypes(var a : table<auto(key); auto(value)>) {
 [test]
 def test_typename(t : T?) {
     t |> run("typeinfo typename for various types") @(t : T?) {
-        var x : auto(numT) = 3
+        var _x : auto(numT) = 3
         t |> equal(typeinfo typename(type<numT>), "int")
         t |> equal(tn_testInfT(3), "int")
         t |> equal(tn_testVarRefT(3), "int")

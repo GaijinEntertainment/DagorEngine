@@ -14,6 +14,7 @@ Autodesk 3ds Max.
    check_degenerated_faces_tool.md
    custom_groups_export_tool.md
    damages_setup_tool.md
+   decal_projector_tool.md
    editing_normals_tool.md
    fast_editor_user_properties.md
    fix_normal_orientation_tool.md
@@ -22,4 +23,6 @@ Autodesk 3ds Max.
    pivot_painter_vegetation_tool.md
    simple_cmp_editor.md
    transfer_vertex_position_to_vertex_color_tool.md
+   unwrap_me_tool.md
+   volume_normal_transfer_tool.md
 

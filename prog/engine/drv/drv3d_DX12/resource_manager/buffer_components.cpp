@@ -392,7 +392,7 @@ void BufferHeap::notifyBufferMemoryRelease(size_t sz)
 
 void BufferHeap::notifyBufferMemoryAllocate(size_t sz) { tql::on_persistent_changed(true, tql::sizeInKb(sz)); }
 
-BufferHeap::BufferCloneResult BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
+BufferHeap::BufferCloneResult BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, D3DDevice *device, BufferGlobalId buffer_id,
   BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size)
 {
   auto &heap = bufferHeapStateAccess->getConstHeap(buffer_id.index());

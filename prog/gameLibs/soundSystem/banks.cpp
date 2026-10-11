@@ -706,7 +706,7 @@ void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs
   const DataBlock &modBlk = *blk.getBlockByNameEx("mod");
 
   init_locale(blk, banksBlk);
-  debug("[SNDSYS]: locale is \"%s\"", locale.c_str());
+  debug("[SNDSYS] locale is \"%s\"", locale.c_str());
 
   const char *folder = banksBlk.getStr("folder", "sound");
   g_banks_folder = eastl::string(folder);
@@ -717,12 +717,12 @@ void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs
   if (enableMod && !verify_mods(folder, mod_path, extension, blk, prohibited_bank_descs))
   {
     enableMod = false;
-    logwarn("[SNDSYS]: bank mods disallowed: prohibited banks found");
+    logwarn("[SNDSYS] bank mods disallowed: prohibited banks found");
     // TODO: add callback to notify user about disallowed mods
   }
   else
   {
-    debug("[SNDSYS]: bank mods %s", enableMod ? "enabled" : "disabled");
+    debug("[SNDSYS] bank mods %s", enableMod ? "enabled" : "disabled");
   }
 
   g_report_bank_loading_time = blk.getBool("reportBankLoadingTime", false);

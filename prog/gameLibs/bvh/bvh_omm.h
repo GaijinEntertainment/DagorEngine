@@ -14,9 +14,6 @@ namespace bvh
 inline constexpr int OMM_PRIMARY_SLOT = 0;
 inline constexpr int OMM_SECONDARY_SLOT = 1;
 
-// Frames to wait for an alpha source to reach full quality. Past it the wait fails the bake.
-inline constexpr uint32_t MAX_OMM_TEXTURE_WAIT_ATTEMPTS = 1000;
-
 struct OmmBakeSource
 {
   Sbuffer *texCoordBuffer = nullptr;
@@ -153,7 +150,7 @@ const char *omm_failure_text(OmmFailure failure);
 const char *grass_omm_failure_text(OmmFailure failure);
 
 // Costly: call it only when the caller writes to the log.
-String describe_missing_omm(ContextId context_id, const Mesh &mesh);
+String describe_missing_omm(ContextId context_id, const Mesh &mesh, const OmmBakeSource &source);
 
 void discard_inactive_omm_bakes(ContextId context_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock);
 

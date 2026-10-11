@@ -103,7 +103,7 @@ def parse_profiler_args() : ProfilerConfig {
         }
     }
     if (cfg.track_leaks) {
-        cfg.use_thread_local = false   // leak agent is a named singleton
+        cfg.use_thread_local = false
     } else {
         cfg.use_thread_local = force_thread_local == -1 ? !cfg.report_memory : (force_thread_local == 1)
     }
@@ -119,18 +119,14 @@ def public set_enable_profiler(ctxId : uint64, enabled : bool) {
     //! Enables or disables the profiler for the given context ID. No-op in leak mode.
     let cfg <- parse_profiler_args()
     if (cfg.track_leaks) return
-    unsafe {
-        invoke_debug_agent_method(profiler_category(cfg), "enable_profiler", ctxId, enabled)
-    }
+    unsafe(invoke_debug_agent_method(profiler_category(cfg), "enable_profiler", ctxId, enabled))
 }
 
 def public set_enable_profiler_log(ctxId : uint64, enabled : bool) {
     //! Enables or disables the profiler log for the given context ID. No-op in leak mode.
     let cfg <- parse_profiler_args()
     if (cfg.track_leaks) return
-    unsafe {
-        invoke_debug_agent_method(profiler_category(cfg), "enable_profiler_log", ctxId, enabled)
-    }
+    unsafe(invoke_debug_agent_method(profiler_category(cfg), "enable_profiler_log", ctxId, enabled))
 }
 
 class ProfilerBaseAgent : DapiDebugAgent {
@@ -177,9 +173,7 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         use_thread_local = cfg.use_thread_local
         time_unit = cfg.time_unit
         if (report_memory) {
-            unsafe {
-                self.onInstrumentFunction = reinterpret<function<(var agent : DapiDebugAgent; var ctx : Context; fn : SimFunction?; entering : bool; userData : uint64) : void>>(self.onInstrumentFunctionWithMemory)
-            }
+            self.onInstrumentFunction = unsafe(reinterpret<function<(var agent : DapiDebugAgent; var ctx : Context; fn : SimFunction?; entering : bool; userData : uint64) : void>>(self.onInstrumentFunctionWithMemory))
         }
         write("[")
         us0 = ref_time_ticks()
@@ -195,7 +189,6 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         if (!isProfileable(ctx)) return
         let tid = intptr(unsafe(addr(ctx)))
         events[tid].enabled = !manual
-        // note: silent defaults to false. In manual mode the user flips `enabled` via set_enable_profiler; the dump on destroy is controlled separately by set_enable_profiler_log.
         ensure_instrumented(ctx)
     }
     def enable_profiler(ctxId : uint64; enabled : bool) : void {
@@ -292,13 +285,11 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
                 own_hb -= int64(ch.total_heap_bytes)
                 own_shb -= int64(ch.total_string_heap_bytes)
             }
-            unsafe {
-                var e & = flat[node.fun]
-                e.fun = node.fun
-                e.own_heap += own_hb
-                e.own_string_heap += own_shb
-                e.count += node.count
-            }
+            var e & = flat[node.fun]
+            e.fun = node.fun
+            e.own_heap += own_hb
+            e.own_string_heap += own_shb
+            e.count += node.count
         }
         for (ch in values(node.children)) {
             collect_flat(ch, flat)
@@ -329,7 +320,6 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         }
     }
     def dump_context_stack(tid : uint64) {
-        // print("context: {tid} // {ctx.name} {ctx.category}\n")
         var root = new PerfNode()
         var stack : array<PerfNode?>
         var sp = root
@@ -350,7 +340,7 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
                 sp.total_heap_bytes += ev.heapBytes - sp.enter_heap_bytes
                 sp.total_string_heap_bytes += ev.stringHeapBytes - sp.enter_string_heap_bytes
                 sp = !empty(stack) ? stack |> back() : root
-                if (!empty(stack)) {// protection for mismatching enable\disable
+                if (!empty(stack)) {
                     stack |> pop()
                 }
             }
@@ -374,7 +364,6 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         dump("\{\"args\": \{ \"name\": \"{ctxDesc}\" \}, \"name\": \"thread_name\", \"cat\": \"__metadata\", \"ph\": \"M\", \"pid\": 0, \"tid\": {int64(tid)}, \"ts\": 0 \}")
         if (wasDead) { ctx.category.dead = true; }
     }
-        // dump("\{\"args\": \{ \"value\" : \"ns\" \}, \"name\": \"displayTimeUnit\", \"cat\": \"__metadata\", \"ph\": \"M\", \"pid\": 0, \"tid\": {int64(tid)}, \"ts\": 0 \}")
     def dump_events(tid : uint64) {
         for (ev in events[tid].events) {
             dump_event(ev, tid)
@@ -416,7 +405,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
         if (!empty(cfg.log_file)) {
             out = fopen(cfg.log_file, "wb")
         }
-        use_thread_local = false   // named/global install -> non-thread-local function instrumentation
+        use_thread_local = false
     }
     def override onUninstall(agent : DebugAgent?) : void {
         if (out != null) {
@@ -442,7 +431,6 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
             dump_leaks(ctx, tid)
             delete ctxs[tid]
         }
-        // code-allocator ids are globally unique; keep them in `instrumented` so we never re-scan the same program
     }
     def override onInstrumentFunction(var ctx : Context; var fun : SimFunction?; entering : bool; userData : uint64) : void {
         unsafe {
@@ -503,7 +491,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
         unsafe {
             var lc & = ctxs[tid]
             if (empty(lc.allocations)) return
-            var sorted : array<tuple<uint64; uint64>>   // (size, addr-key)
+            var sorted : array<tuple<uint64; uint64>>
             var totalBytes = 0ul
             for (k, v in keys(lc.allocations), values(lc.allocations)) {
                 sorted |> push((v.size, k))
@@ -518,7 +506,6 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
             for (e in sorted) {
                 var rec & = lc.allocations[e._1]
                 emit_line("[leak] size={rec.size} bytes")
-                // innermost (last-pushed) first
                 let stackLen = length(rec.stack)
                 for (i in range(stackLen)) {
                     let idx = stackLen - 1 - i

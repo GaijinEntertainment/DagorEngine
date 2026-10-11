@@ -8,7 +8,7 @@ options infer_time_folding = false   // mirror the lint runner's policy via the 
 // Background: InferTypes::preVisit(ExprIfThenElse) force-enables
 // enableInferTimeFolding for the condition of a static_if so subexpressions
 // like `typeinfo sizeof(...) == N` can fold under lint policies that disable
-// infer-time folding (utils/lint, utils/mcp, utils/requirefix,
+// infer-time folding (utils/lint, utils/mcp, requirefix, and
 // utils/fix-lint-errors all set `cop.no_infer_time_folding = true`).
 //
 // The matching restore lives in InferTypes::visit(ExprIfThenElse) — NOT in

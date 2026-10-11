@@ -287,7 +287,7 @@ public:
   constexpr INLINE DPoint3() = default;
   constexpr INLINE DPoint3(double ax, double ay, double az) : x(ax), y(ay), z(az) {}
   constexpr INLINE DPoint3(const double *p, CtorPtrMark /*check*/) : x(p[0]), y(p[1]), z(p[2]) {}
-  constexpr INLINE explicit DPoint3(const Point3 &p) : x(p.x), y(p.y), z(p.z) {}
+  constexpr INLINE explicit DPoint3(const Point3 &p) : x(double(p.x)), y(double(p.y)), z(double(p.z)) {}
 
   INLINE void zero()
   {
@@ -334,20 +334,8 @@ public:
     z -= a.z;
     return *this;
   }
-  INLINE DPoint3 &operator+=(const Point3 &a)
-  {
-    x += a.x;
-    y += a.y;
-    z += a.z;
-    return *this;
-  }
-  INLINE DPoint3 &operator-=(const Point3 &a)
-  {
-    x -= a.x;
-    y -= a.y;
-    z -= a.z;
-    return *this;
-  }
+  INLINE DPoint3 &operator+=(const Point3 &a) { return *this += DPoint3(a); }
+  INLINE DPoint3 &operator-=(const Point3 &a) { return *this -= DPoint3(a); }
   INLINE DPoint3 &operator*=(double a)
   {
     x *= a;
@@ -356,13 +344,7 @@ public:
     return *this;
   }
   INLINE DPoint3 &operator/=(double a) { return operator*=(1.0 / a); }
-  INLINE DPoint3 &operator=(const Point3 &a)
-  {
-    x = a.x;
-    y = a.y;
-    z = a.z;
-    return *this;
-  }
+  INLINE DPoint3 &operator=(const Point3 &a) { return *this = DPoint3(a); }
 
   INLINE bool operator==(const DPoint3 &a) const { return (x == a.x && y == a.y && z == a.z); }
   INLINE bool operator!=(const DPoint3 &a) const { return (x != a.x || y != a.y || z != a.z); }
@@ -373,113 +355,113 @@ public:
   template <class T>
   static DPoint3 xyz(const T &a)
   {
-    return DPoint3(a.x, a.y, a.z);
+    return DPoint3(double(a.x), double(a.y), double(a.z));
   }
   template <class T>
   static DPoint3 xzy(const T &a)
   {
-    return DPoint3(a.x, a.z, a.y);
+    return DPoint3(double(a.x), double(a.z), double(a.y));
   }
   template <class T>
   static DPoint3 x0y(const T &a)
   {
-    return DPoint3(a.x, 0, a.y);
+    return DPoint3(double(a.x), 0, double(a.y));
   }
   template <class T>
   static DPoint3 x0z(const T &a)
   {
-    return DPoint3(a.x, 0, a.z);
+    return DPoint3(double(a.x), 0, double(a.z));
   }
   template <class T>
   static DPoint3 xy0(const T &a)
   {
-    return DPoint3(a.x, a.y, 0);
+    return DPoint3(double(a.x), double(a.y), 0);
   }
   template <class T>
   static DPoint3 xz0(const T &a)
   {
-    return DPoint3(a.x, a.z, 0);
+    return DPoint3(double(a.x), double(a.z), 0);
   }
   template <class T>
   static DPoint3 xVy(const T &a, double v)
   {
-    return DPoint3(a.x, v, a.y);
+    return DPoint3(double(a.x), v, double(a.y));
   }
   template <class T>
   static DPoint3 xVz(const T &a, double v)
   {
-    return DPoint3(a.x, v, a.z);
+    return DPoint3(double(a.x), v, double(a.z));
   }
   template <class T>
   static DPoint3 xyV(const T &a, double v)
   {
-    return DPoint3(a.x, a.y, v);
+    return DPoint3(double(a.x), double(a.y), v);
   }
   template <class T>
   static DPoint3 xzV(const T &a, double v)
   {
-    return DPoint3(a.x, a.z, v);
+    return DPoint3(double(a.x), double(a.z), v);
   }
   template <class T>
   static DPoint3 rgb(const T &a)
   {
-    return DPoint3(a.r, a.g, a.b);
+    return DPoint3(double(a.r), double(a.g), double(a.b));
   }
 
   template <class T>
   void set_xyz(const T &a)
   {
-    x = a.x, y = a.y, z = a.z;
+    *this = xyz(a);
   }
   template <class T>
   void set_xzy(const T &a)
   {
-    x = a.x, y = a.z, z = a.y;
+    *this = xzy(a);
   }
   template <class T>
   void set_x0y(const T &a)
   {
-    x = a.x, y = 0, z = a.y;
+    *this = x0y(a);
   }
   template <class T>
   void set_x0z(const T &a)
   {
-    x = a.x, y = 0, z = a.z;
+    *this = x0z(a);
   }
   template <class T>
   void set_xy0(const T &a)
   {
-    x = a.x, y = a.y, z = 0;
+    *this = xy0(a);
   }
   template <class T>
   void set_xz0(const T &a)
   {
-    x = a.x, y = a.z, z = 0;
+    *this = xz0(a);
   }
   template <class T>
   void set_xVy(const T &a, double v)
   {
-    x = a.x, y = v, z = a.y;
+    *this = xVy(a, v);
   }
   template <class T>
   void set_xVz(const T &a, double v)
   {
-    x = a.x, y = v, z = a.z;
+    *this = xVz(a, v);
   }
   template <class T>
   void set_xyV(const T &a, double v)
   {
-    x = a.x, y = a.y, z = v;
+    *this = xyV(a, v);
   }
   template <class T>
   void set_xzV(const T &a, double v)
   {
-    x = a.x, y = a.z, z = v;
+    *this = xzV(a, v);
   }
   template <class T>
   void set_rgb(const T &a)
   {
-    x = a.r, y = a.g, z = a.b;
+    *this = rgb(a);
   }
 };
 

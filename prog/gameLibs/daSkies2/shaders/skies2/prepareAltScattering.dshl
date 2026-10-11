@@ -16,6 +16,8 @@ float min_ground_offset;
 float skies_scattering_effect = 1.; // it's only purpose is cuisine royale eclipse.
 float last_skies_scattering_effect = 1.;
 float skies_froxels_prev_dist=10000;
+float4 skies_froxels_ground_ray = (0, 0, 0, 1); // r, R*R-r*r, weighted km scale, 1-weight
+float4 skies_froxels_prev_ground_ray = (0, 0, 0, 1);
 
 macro PREPARE_TRANSMITTANCE(code)
   (code) {
@@ -117,10 +119,7 @@ float4 prev_view_vecRT;
 float4 prev_view_vecLB;
 float4 prev_view_vecRB;
 int skies_continue_temporal = 1;
-float skies_froxels_history_blur_start = 0.1; // 0 = tent radius follows the reprojection delta, 1 = constant quarter texel, fractions blend
-float skies_froxels_history_blur_end = 1.0;
-float skies_froxels_history_blur_blend_from = 3000;
-float skies_froxels_history_blur_blend_to = 5000;
+float skies_froxels_history_blur = 0.1; // 0 = tent radius follows the reprojection delta, 1 = constant quarter texel, fractions blend
 
 int skies_render_panorama_scattering;
 interval skies_render_panorama_scattering:off<1, on;
@@ -129,13 +128,6 @@ float4 move_world_view_pos;
 
 
 macro FROXELS_SCATTERING(code)
-  // Above 5000m stripes on water appear. Increasing skies_froxels_history_blur on high camera altitudes that hides
-  // godrays but shouldn't be important then.
-  local float skies_froxels_history_blur_blend_range = max(skies_froxels_history_blur_blend_to - skies_froxels_history_blur_blend_from, 0.1);
-  local float skies_froxels_history_blur_blend_coeff = max(min((prepare_origin.y - skies_froxels_history_blur_blend_from) / skies_froxels_history_blur_blend_range, 1), 0);
-  local float skies_froxels_history_blur = skies_froxels_history_blur_end * skies_froxels_history_blur_blend_coeff +
-    skies_froxels_history_blur_start * (1.0 - skies_froxels_history_blur_blend_coeff);
-
   (code) {
     use_camera_altitude@f1 = (max(0.01, (prepare_origin.y-min_ground_offset)/1000), prepare_origin.y,0,0);//prepare_origin.y
     prepare_resolution@f3 = (1./skies_froxels_resolution.x,1./skies_froxels_resolution.y,1./skies_froxels_resolution.z);
@@ -161,6 +153,8 @@ macro FROXELS_SCATTERING(code)
     skies_panoramic_scattering@f1 = (skies_panoramic_scattering);
     move_world_view_pos@f3 = move_world_view_pos;
     skies_froxels_prev_dist@f3 =(1./skies_froxels_prev_dist, skies_froxels_dist/skies_froxels_prev_dist, skies_froxels_prev_dist);
+    skies_froxels_ground_ray@f4 = skies_froxels_ground_ray;
+    skies_froxels_prev_ground_ray@f4 = skies_froxels_prev_ground_ray;
     skies_frustum_scattering_last_tz@f1 = (skies_frustum_scattering_last_tz);
     skies_froxels_history_blur@f1 = (skies_froxels_history_blur);
   }
@@ -195,6 +189,16 @@ macro FROXELS_SCATTERING(code)
       float2 dxy = abs(prev_uv - cur_uv) * float2(skies_froxels_resolutionI.xy);
       return lerp(min(max(dxy.x, dxy.y), 0.25), 0.25, skies_froxels_history_blur);
     }
+    // per ray; motion barely shifts mu
+    float getPrevFroxelInvRange(float mu)
+    {
+      float prevGroundDist = get_froxel_ground_dist(mu, skies_froxels_prev_ground_ray);
+      return skies_froxels_prev_dist.x/get_froxel_range_scale(prevGroundDist, skies_froxels_prev_ground_ray);
+    }
+    float getPrevFroxelUVZ(float3 cam_pos, float prev_inv_range)
+    {
+      return sqrt(saturate(length(cam_pos - move_world_view_pos)*prev_inv_range));
+    }
     #define skies_continue_temporal skies_continue_temporal__old_effect.x
     #define old_effect skies_continue_temporal__old_effect.y
   }
@@ -223,9 +227,11 @@ shader skies_integrate_froxel_scattering_ps
           viewVect = normalize(getViewVecOptimized(texcoord.xy));
       #endif
       Length r = use_camera_altitude + theAtmosphere.bottom_radius;
-      Length d = pow2(texcoord.z)*(skies_froxels_dist/1000/skies_frustum_scattering_last_tz);//3 consts mul. todo: move to preshader
+      Length groundDist = get_froxel_ground_dist(viewVect.y, skies_froxels_ground_ray);
+      Length d = pow2(texcoord.z)*(skies_froxels_dist/1000/skies_frustum_scattering_last_tz)*get_froxel_range_scale(groundDist, skies_froxels_ground_ray);
       if (texcoord.z >= skies_frustum_scattering_last_tz)
         d = 245000;
+      d = min(d, get_froxel_march_end(groundDist, skies_froxels_ground_ray));
       if (abs(r - theAtmosphere.top_radius) < 0.01)
         r = theAtmosphere.top_radius+0.01;
       Number mu = viewVect.y;
@@ -241,7 +247,7 @@ shader skies_integrate_froxel_scattering_ps
       #if !RENDER_PANORAMA_SCATTERING
         float3 prevUV;
         float3 camPos = viewVect*1000*d;
-        prevUV.z = sqrt(length(camPos - move_world_view_pos)*skies_froxels_prev_dist.x);
+        prevUV.z = getPrevFroxelUVZ(camPos, getPrevFroxelInvRange(viewVect.y));
         float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
         float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
         prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
@@ -309,8 +315,7 @@ shader skies_integrate_froxel_scattering_ps
           // a z tent always: two center-column taps at half a texel, weighted to match the
           // legacy kernel's z-neighbor mass (fades near the camera); the tail slice is a
           // different distance domain, no z mixing across last_tz
-          // prevUV.z is not saturated here (unlike the CS); keep the kernel weights convex
-          float wz = texcoord.z < skies_frustum_scattering_last_tz ? 0.25*pow2(min(prevUV.z, 1.)) : 0.;
+          float wz = texcoord.z < skies_frustum_scattering_last_tz ? 0.25*pow2(prevUV.z) : 0.;
           float zofs = 0.5*prepare_resolution.z;
           old = old*(1. - 2.*wz)
             + (tex3Dlod(prev_skies_frustum_scattering, float4(prevUV.xy, prevUV.z - zofs, 0))
@@ -512,7 +517,7 @@ shader skies_integrate_froxel_scattering_cs
     float loadPrecalculatedShadow(uint3 tc)
     {
       ##if skies_integrate_froxel_scattering_cs_stage == use_precomputed_shadow
-        return texelFetch(skies_froxel_precomputed_shadow, tc, 0);
+        return texelFetch(skies_froxel_precomputed_shadow, min(tc, skies_froxels_resolutionI - 1), 0);
       ##else
         return 1.0;
       ##endif
@@ -651,7 +656,11 @@ shader skies_integrate_froxel_scattering_cs
 
       // Sample count
       ##assert(skies_frustum_scattering_last_tz != 0.0);
-      const float tMax = skies_froxels_dist/1000/max(skies_frustum_scattering_last_tz, 0.1);
+      const Length groundDist = get_froxel_ground_dist(c.mu, skies_froxels_ground_ray);
+      const float rangeScale = get_froxel_range_scale(groundDist, skies_froxels_ground_ray);
+      const Length marchEnd = get_froxel_march_end(groundDist, skies_froxels_ground_ray);
+      const float prevInvRange = getPrevFroxelInvRange(c.mu);
+      const float tMax = skies_froxels_dist/1000/max(skies_frustum_scattering_last_tz, 0.1)*rangeScale;
 
       // Phase functions
       //const Number uniformPhase = 1.0 / (4.0 * PI);
@@ -672,8 +681,8 @@ shader skies_integrate_froxel_scattering_cs
       {
         float texcoordZ = max(float(slice), 0.5)/float(sampleCount);
         float prevTexcoordZ = slice != 0 ? max(float(slice - 1), 0.5)/float(sampleCount) : 0;
-        Length realD = pow2(texcoordZ)*tMax;
-        Length prevD = pow2(prevTexcoordZ)*tMax;
+        Length realD = min(pow2(texcoordZ)*tMax, marchEnd);
+        Length prevD = min(pow2(prevTexcoordZ)*tMax, marchEnd);
         Length dt = realD - prevD;
         float worldHeight = c.worldPos.y + realD * c.viewVect.y * 1000;
 
@@ -748,10 +757,8 @@ shader skies_integrate_froxel_scattering_cs
             float3 prevUV = curUV;
             if (!skies_panoramic_scattering)
             {
-              float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
-              float prevLinearDist = length(camPos - move_world_view_pos);
-              float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
-              prevUV.z = sqrt(prevLinearUVZ);
+              float3 camPos = c.viewVect*min(pow2(prevUV.z)*skies_froxels_dist*rangeScale, marchEnd*1000);
+              prevUV.z = getPrevFroxelUVZ(camPos, prevInvRange);
 
               #if 0
               //instead of sampling with previous UV, we can make correct sampling, with linear distribution between samples
@@ -806,7 +813,7 @@ shader skies_integrate_froxel_scattering_cs
       BRANCH
       if (skies_frustum_scattering_last_tz < 1)
       {
-        Length startD = tMax * pow2(float(sampleCount - 1) / float(sampleCount));
+        Length startD = min(tMax * pow2(float(sampleCount - 1) / float(sampleCount)), marchEnd);
         Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, c.r, c.mu);
         //everything here is in km: mixing in metres made the tail overshoot the
         //atmosphere so the last slice accumulated almost nothing beyond tMax.
@@ -849,10 +856,8 @@ shader skies_integrate_froxel_scattering_cs
             float3 prevUV = curUV;
             if (!skies_panoramic_scattering)
             {
-              float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
-              float prevLinearDist = length(camPos - move_world_view_pos);
-              float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
-              prevUV.z = sqrt(prevLinearUVZ);
+              float3 camPos = c.viewVect*min(skies_froxels_dist*rangeScale, marchEnd*1000);
+              prevUV.z = getPrevFroxelUVZ(camPos, prevInvRange);
 
               float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
               float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
@@ -971,7 +976,11 @@ shader skies_integrate_froxel_scattering_cs
 
       // Sample count
       ##assert(skies_frustum_scattering_last_tz != 0.0);
-      float tMax = skies_froxels_dist/1000/max(skies_frustum_scattering_last_tz, 0.1);
+      const Length groundDist = get_froxel_ground_dist(c.mu, skies_froxels_ground_ray);
+      const float rangeScale = get_froxel_range_scale(groundDist, skies_froxels_ground_ray);
+      const Length marchEnd = get_froxel_march_end(groundDist, skies_froxels_ground_ray);
+      const float prevInvRange = getPrevFroxelInvRange(c.mu);
+      float tMax = skies_froxels_dist/1000/max(skies_frustum_scattering_last_tz, 0.1)*rangeScale;
       float prevD = 0;
 
       // Phase functions
@@ -992,7 +1001,7 @@ shader skies_integrate_froxel_scattering_cs
       for (uint i = 0; i < sampleCount; i++)
       {
         float texcoordZ = max(float(i), 0.5)/float(sampleCount);
-        Length realD = pow2(texcoordZ)*tMax;
+        Length realD = min(pow2(texcoordZ)*tMax, marchEnd);
         Length dt = realD - prevD;
         float worldHeight = c.worldPos.y + realD * c.viewVect.y * 1000;
 
@@ -1029,10 +1038,8 @@ shader skies_integrate_froxel_scattering_cs
             float3 prevUV = curUV;
             if (!skies_panoramic_scattering)
             {
-              float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
-              float prevLinearDist = length(camPos - move_world_view_pos);
-              float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
-              prevUV.z = sqrt(prevLinearUVZ);
+              float3 camPos = c.viewVect*min(pow2(prevUV.z)*skies_froxels_dist*rangeScale, marchEnd*1000);
+              prevUV.z = getPrevFroxelUVZ(camPos, prevInvRange);
 
               #if 0
               //instead of sampling with previous UV, we can make correct sampling, with linear distribution between samples
@@ -1125,10 +1132,8 @@ shader skies_integrate_froxel_scattering_cs
           float3 prevUV = curUV;
           if (!skies_panoramic_scattering)
           {
-            float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
-            float prevLinearDist = length(camPos - move_world_view_pos);
-            float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
-            prevUV.z = sqrt(prevLinearUVZ);
+            float3 camPos = c.viewVect*min(skies_froxels_dist*rangeScale, marchEnd*1000);
+            prevUV.z = getPrevFroxelUVZ(camPos, prevInvRange);
 
             float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
             float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);

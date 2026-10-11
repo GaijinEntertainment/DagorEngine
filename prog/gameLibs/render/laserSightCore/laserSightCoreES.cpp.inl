@@ -126,7 +126,7 @@ static void update_laser_spots_buffer_es(const UpdateStageInfoBeforeRender &evt,
         return;
       if (!evt.mainCullingFrustum.testSphereB(laser_data__fxPos, 1.0))
         return;
-      if ((laser_data__intesity < 0.0001) || (laser_data__crownSize < 0.01))
+      if ((laser_data__intesity < 0.0001f) || (laser_data__crownSize < 0.01f))
         return;
 
       lasersData.push_back();

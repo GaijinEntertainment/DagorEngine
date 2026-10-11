@@ -98,6 +98,10 @@ public:
   // Does NOT hold the global das compile lock while waiting (the worker needs it to finish).
   void waitAllJobsDone();
 
+  // For reload and env shutdown, which discard every result: jobs not yet compiling skip the
+  // compile, so the wait covers only the one already running.
+  void discardAllJobs();
+
   // Sync fallback: block only until THIS script is published, not the whole queue.
   void waitScriptResolved(const DasScript *s);
 
@@ -122,6 +126,7 @@ public:
   // cpujobs virtual job manager (single dedicated worker thread; jobs run serially).
   int asyncJobMgrId = -1;
   volatile int numJobsInFlight = 0;
+  volatile int generation = 0; // see discardAllJobs()
   bool pendingModuleGroupCleanup = false;
 
   // shutdownDasEnvironment releases each script's ctx/program before module teardown: the

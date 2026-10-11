@@ -19,6 +19,7 @@
 #include <EASTL/string_view.h>
 #include <EASTL/array.h>
 #include <memory/dag_fixedBlockAllocator.h>
+#include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_files.h>
@@ -38,6 +39,7 @@
 #include <osApiWrappers/dag_threads.h>
 #include <contentUpdater/version.h>
 #include <util/dag_threadPool.h>
+#include <util/dag_watchdog.h>
 #include <ioSys/dag_findFiles.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
@@ -90,6 +92,8 @@ extern das::unique_ptr<das::AstSerializer> initDeserializer;
 uint32_t g_serializationVersion = 0; // TODO: extract to settings
 
 
+extern Scripts scripts;
+
 ESModuleGroupData *getGroupData(das::ModuleGroup &group)
 {
   // skip in completion mode to avoid memory leaks
@@ -99,10 +103,15 @@ ESModuleGroupData *getGroupData(das::ModuleGroup &group)
   {
     return (ESModuleGroupData *)data;
   }
-  auto esData = new ESModuleGroupData(new DebugArgStrings, g_entity_mgr.get()); // this can only happen in AOT
+  // only the AOT and dry-run tools get here, with no loader group. The names must outlive this
+  // group: a promoted module's desc keeps component names pointing into them.
+  DebugArgStrings *argStrings = nullptr;
+#if DAGOR_DBGLEVEL > 0
+  argStrings = scripts.argStrings.getOrCreateValuePtr();
+#endif
+  auto esData = new ESModuleGroupData(argStrings, g_entity_mgr.get());
   group.setUserData(esData);
   return esData;
-  return nullptr;
 }
 
 struct LoadedScript;
@@ -133,7 +142,12 @@ static das::vector<eastl::string> loadingQueue;
 #if DAGOR_DBGLEVEL > 0
 static eastl::vector_set<ecs::hash_str_t> loadingQueueHash;
 #endif
-using DasWorkerContextsArray = eastl::array<eastl::unique_ptr<bind_dascript::EsContext>, threadpool::MAX_WORKER_COUNT + /*main*/ 1>;
+struct WorkerContextSlot
+{
+  eastl::unique_ptr<bind_dascript::EsContext> context;
+  const das::Context *boundTo = nullptr; // Module context which code & globals are used by worker context now
+};
+using DasWorkerContextsArray = eastl::array<WorkerContextSlot, threadpool::MAX_WORKER_COUNT + /*main*/ 1>;
 static DasWorkerContextsArray cachedWorkerContexts;
 static OSSpinlock esDescsAllocatorLock;
 static OSSpinlock esQueryDescsAllocatorLock;
@@ -148,10 +162,223 @@ void EsDescDeleter::operator()(EsDesc *p)
     esDescsAllocator.freeOneBlock(p);
   }
 }
+
+// A query block stores a generational handle to its EsQueryDesc in annotationData, not the pointer:
+// the descriptor of a failed or unloaded script then fails to resolve instead of aliasing whichever
+// descriptor reused its pool slot. Pages are published once and never move, so resolving takes no
+// lock; registration and release take esQueryDescsAllocatorLock.
+namespace
+{
+struct EsQueryDescSlot
+{
+  EsQueryDesc *desc = nullptr;
+  uint32_t generation = 0; // bumped on release, so a handle to a freed desc never matches again
+#if DAGOR_DBGLEVEL > 0
+  eastl::string blockName;
+#endif
+};
+constexpr uint32_t QUERY_DESC_PAGE_BITS = 10;
+constexpr uint32_t QUERY_DESC_PAGE_SIZE = 1u << QUERY_DESC_PAGE_BITS;
+constexpr uint32_t QUERY_DESC_MAX_PAGES = 1024;
+constexpr uint32_t QUERY_DESC_GENERATION_MASK = (1u << 24) - 1;
+constexpr uint64_t QUERY_DESC_HANDLE_TAG_MASK = 0xFFull << 56;
+constexpr uint64_t QUERY_DESC_HANDLE_TAG = uint64_t('Q') << 56; // tells our handles from other annotationData users
+
+struct EsQueryDescRegistry
+{
+  EsQueryDescSlot *volatile pages[QUERY_DESC_MAX_PAGES] = {};
+  uint32_t used = 1;           // slot 0 stays empty: handle 0 is "no descriptor"
+  uint32_t generationSeed = 0; // per process, so a handle serialized by another process does not resolve here by chance
+  eastl::vector<uint32_t> freeSlots;
+};
+} // namespace
+static EsQueryDescRegistry esQueryDescRegistry;
+
+// the one place that knows how annotationData packs a slot index and a generation
+struct EsQueryDescHandle
+{
+  uint32_t index = 0;
+  uint32_t generation = 0;
+  bool tagged = false; // false for a value some other annotation user stored
+
+  explicit EsQueryDescHandle(uint64_t value) : tagged((value & QUERY_DESC_HANDLE_TAG_MASK) == QUERY_DESC_HANDLE_TAG)
+  {
+    if (tagged)
+    {
+      index = uint32_t(value);
+      generation = uint32_t(value >> 32) & QUERY_DESC_GENERATION_MASK;
+    }
+  }
+  EsQueryDescHandle(uint32_t index_, uint32_t generation_) :
+    index(index_), generation(generation_ & QUERY_DESC_GENERATION_MASK), tagged(true)
+  {}
+  uint64_t pack() const { return QUERY_DESC_HANDLE_TAG | (uint64_t(generation) << 32) | index; }
+};
+
+// a release moves the slot to the next generation, so every handle issued before it stops matching
+static uint32_t next_query_desc_generation(uint32_t generation) { return (generation + 1) & QUERY_DESC_GENERATION_MASK; }
+
+bool is_query_desc_handle(uint64_t value) { return EsQueryDescHandle(value).tagged; }
+
+static EsQueryDescSlot *query_desc_slot(uint32_t index)
+{
+  if (index >= QUERY_DESC_MAX_PAGES * QUERY_DESC_PAGE_SIZE)
+    return nullptr;
+  EsQueryDescSlot *page = interlocked_acquire_load_ptr(esQueryDescRegistry.pages[index >> QUERY_DESC_PAGE_BITS]);
+  return page ? page + (index & (QUERY_DESC_PAGE_SIZE - 1)) : nullptr;
+}
+
+EsQueryDesc *find_query_desc(uint64_t value)
+{
+  const EsQueryDescHandle handle(value);
+  if (!handle.tagged)
+    return nullptr;
+  EsQueryDescSlot *slot = query_desc_slot(handle.index);
+  if (!slot)
+    return nullptr;
+  // desc first, generation second: a release clears desc before it bumps the generation and a reuse
+  // of the slot stores the next desc after that bump, so a generation that still matches vouches
+  // for the desc read before it
+  EsQueryDesc *desc = interlocked_acquire_load_ptr(slot->desc);
+  return interlocked_acquire_load(slot->generation) == handle.generation ? desc : nullptr;
+}
+
+static uint64_t register_query_desc(EsQueryDesc &desc, const char *block_name)
+{
+  G_UNUSED(block_name);
+  OSSpinlockScopedLock lock(esQueryDescsAllocatorLock);
+  EsQueryDescRegistry &reg = esQueryDescRegistry;
+  uint32_t index;
+  if (!reg.freeSlots.empty())
+  {
+    index = reg.freeSlots.back();
+    reg.freeSlots.pop_back();
+  }
+  else
+  {
+    index = reg.used;
+    if (index >= QUERY_DESC_MAX_PAGES * QUERY_DESC_PAGE_SIZE)
+      return 0;
+    const uint32_t pageIndex = index >> QUERY_DESC_PAGE_BITS;
+    if (!reg.pages[pageIndex])
+    {
+      if (reg.generationSeed == 0)
+        reg.generationSeed = uint32_t(ref_time_ticks()) & QUERY_DESC_GENERATION_MASK;
+      EsQueryDescSlot *page = new EsQueryDescSlot[QUERY_DESC_PAGE_SIZE];
+      for (uint32_t i = 0; i < QUERY_DESC_PAGE_SIZE; ++i)
+        page[i].generation = reg.generationSeed;
+      interlocked_release_store_ptr(reg.pages[pageIndex], page);
+    }
+    reg.used = index + 1;
+  }
+  EsQueryDescSlot &slot = reg.pages[index >> QUERY_DESC_PAGE_BITS][index & (QUERY_DESC_PAGE_SIZE - 1)];
+#if DAGOR_DBGLEVEL > 0
+  slot.blockName = block_name;
+#endif
+  desc.registrySlot = index;
+  interlocked_release_store_ptr(slot.desc, &desc);
+  return EsQueryDescHandle(index, slot.generation).pack();
+}
+
+#if DAGOR_DBGLEVEL > 0
+// a promoted module outlives the group that compiled it, so a handle it still holds to a descriptor
+// being freed is the ownership bug itself: report it now, not at the next query call
+static void report_live_users_of_query_desc(uint64_t handle, const char *block_name)
+{
+  if (!das::daScriptEnvironment::getBound())
+    return;
+  das::Module::foreach([&](das::Module *mod) {
+    if (mod->promoted)
+      for (const auto &sidAndData : mod->annotationData)
+        if (sidAndData.second == handle)
+          logerr("das: query block '%s' loses its descriptor while module '%s' still references it (script load failed?)", block_name,
+            mod->name.c_str());
+    return true;
+  });
+}
+#endif
+
+static void release_query_desc(EsQueryDesc &desc)
+{
+  const uint32_t index = desc.registrySlot;
+  if (!index)
+    return;
+  desc.registrySlot = 0;
+  EsQueryDescSlot *slot = query_desc_slot(index);
+  G_ASSERT_RETURN(slot && slot->desc == &desc, );
+#if DAGOR_DBGLEVEL > 0
+  if (desc.shared) // only a shared desc can be referenced by a module that outlives its owner
+    report_live_users_of_query_desc(EsQueryDescHandle(index, slot->generation).pack(), slot->blockName.c_str());
+#endif
+  OSSpinlockScopedLock lock(esQueryDescsAllocatorLock);
+  interlocked_release_store_ptr(slot->desc, static_cast<EsQueryDesc *>(nullptr));
+  interlocked_release_store(slot->generation, next_query_desc_generation(slot->generation));
+  esQueryDescRegistry.freeSlots.push_back(index);
+}
+
+// Only safe once every descriptor is released: a resolve holds an interior page pointer with no
+// lock, so nothing can be ordered against the free. shutdown_systems proves that precondition.
+static void free_query_desc_registry()
+{
+  OSSpinlockScopedLock lock(esQueryDescsAllocatorLock);
+  EsQueryDescRegistry &reg = esQueryDescRegistry;
+  for (uint32_t i = 0; i < QUERY_DESC_MAX_PAGES; ++i)
+  {
+    delete[] reg.pages[i];
+    reg.pages[i] = nullptr;
+  }
+  reg.used = 1;
+  reg.freeSlots.clear();
+}
+
+// throws (and does not return) when the handle does not resolve
+static EsQueryDesc &resolve_query_desc_or_throw(uint64_t value, das::Context *ctx, das::LineInfoArg *at)
+{
+  if (EsQueryDesc *desc = find_query_desc(value))
+    return *desc;
+  const EsQueryDescHandle handle(value);
+  if (!handle.tagged)
+    ctx->throw_error_at(at, "block carries no query descriptor handle (AST cache from another build?)");
+#if DAGOR_DBGLEVEL > 0
+  // the slot keeps the block name until another block takes it, which can happen while we read it
+  eastl::string blockName;
+  {
+    OSSpinlockScopedLock lock(esQueryDescsAllocatorLock);
+    const EsQueryDescSlot *slot = query_desc_slot(handle.index);
+    if (slot && !slot->desc && slot->generation == next_query_desc_generation(handle.generation))
+      blockName = slot->blockName;
+  }
+  ctx->throw_error_at(at, "query block '%s' has a stale descriptor (script reloaded or unloaded?)",
+    blockName.empty() ? "?" : blockName.c_str());
+#else
+  ctx->throw_error_at(at, "query block has a stale descriptor (script reloaded or unloaded?)");
+#endif
+}
+
+EsQueryRef resolve_query_desc(uint64_t handle, das::Context *ctx, das::LineInfoArg *at)
+{
+  EsQueryDesc &desc = resolve_query_desc_or_throw(handle, ctx, at);
+  return EsQueryRef{&desc, desc.query};
+}
+
+void check_deserialized_query_desc_handles(das::Program &program, const char *fname)
+{
+  program.library.foreach(
+    [&](das::Module *mod) {
+      for (const auto &sidAndData : mod->annotationData)
+        if (is_query_desc_handle(sidAndData.second) && !find_query_desc(sidAndData.second))
+          logerr("daScript: <%s>: a query block of module '%s' keeps a stale descriptor after deserialization", fname,
+            mod->name.c_str());
+      return true;
+    },
+    "*");
+}
+
 void EsQueryDescDeleter::operator()(EsQueryDesc *p)
 {
   if (p)
   {
+    release_query_desc(*p);
     eastl::destroy_at(p);
     OSSpinlockScopedLock lock(esQueryDescsAllocatorLock);
     esQueryDescsAllocator.freeOneBlock(p);
@@ -178,27 +405,13 @@ static void das_es_on_update(const ecs::UpdateStageInfo &info, const ecs::QueryV
 static void das_es_on_update_empty(const ecs::UpdateStageInfo &info, const ecs::QueryView &__restrict qv);
 
 static bool alwaysUseMainThreadEnv = true;
-static bool workerThreadsMode = false;
 static bool isInDocumentation = false;
-static bool enableDasRtti = false;
 
 bool get_always_use_main_thread_env() { return alwaysUseMainThreadEnv; }
 
 void set_always_use_main_thread_env(bool value) { alwaysUseMainThreadEnv = value; }
 
-void set_worker_threads_mode(bool on) { workerThreadsMode = on; }
-
-bool is_in_worker_threads_mode() { return workerThreadsMode; }
-
 bool is_in_documentation() { return isInDocumentation; }
-bool enable_das_rtti() { return enableDasRtti; }
-
-bool set_enable_das_rtti(bool value)
-{
-  const bool res = enableDasRtti;
-  enableDasRtti = value;
-  return res;
-}
 
 RAIIDasEnvBound::RAIIDasEnvBound()
 {
@@ -946,7 +1159,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
 #endif
     return err.empty();
   };
-  virtual bool apply(das::ExprBlock *block, das::ModuleGroup &, const das::AnnotationArgumentList &args, das::string &err) override
+  virtual bool apply(das::ExprBlock *block, das::ModuleGroup &, das::AnnotationArgumentList &args, das::string &err) override
   {
     for (const das::VariablePtr &arg : block->arguments)
       if (arg->type->isTag)
@@ -998,8 +1211,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
 #endif
     return true;
   }
-  virtual bool apply(const das::FunctionPtr &func, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args,
-    das::string &err) override
+  virtual bool apply(const das::FunctionPtr &func, das::ModuleGroup &mg_, das::AnnotationArgumentList &args, das::string &err) override
   {
     if (isInDocumentation)
     {
@@ -1135,7 +1347,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
           first = false;
         }
       }
-      blk->returnType = new das::TypeDecl(das::Type::tVoid);
+      blk->returnType = new das::TypeDecl(das::Type::tVoid, das::cppBindingLineInfo());
       auto ann = new das::AnnotationDeclaration();
       ann->annotation = this;
       ann->arguments = args;
@@ -1174,7 +1386,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
     return true;
   };
 
-  virtual bool finalize(const das::FunctionPtr &func, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args,
+  virtual bool finalize(const das::FunctionPtr &func, das::ModuleGroup &mg_, das::AnnotationArgumentList &args,
     const das::AnnotationArgumentList &progArgs, das::string &err) override
   {
     if (das::is_in_completion() || isInDocumentation)
@@ -1331,7 +1543,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
     mg.unresolvedEs.emplace_back(eastl::move(esDesc), func->name);
     return true;
   }
-  virtual bool finalize(das::ExprBlock *block, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args,
+  virtual bool finalize(das::ExprBlock *block, das::ModuleGroup &mg_, das::AnnotationArgumentList &args,
     const das::AnnotationArgumentList &progArgs, das::string &err) override
   {
     if (das::is_in_completion())
@@ -1358,11 +1570,21 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
     mangledName += block->inFunction->getMangledName();
 
     block->annotationDataSid = das::hash_blockz64((uint8_t *)mangledName.c_str());
-    block->annotationData = uintptr_t(desc.get()); // todo: add indirection to control pointers
-    auto program = das::daScriptEnvironment::getBound()->g_Program;
-    const bool promoteToBuiltin = program->promoteToBuiltin;
-    desc->shared = promoteToBuiltin;
-    mg.unresolvedQueries.emplace_back(QueryData{blockName, eastl::move(desc)});
+    block->annotationData = register_query_desc(*desc, blockName.c_str());
+    if (!block->annotationData)
+    {
+      err.append_sprintf("can't register es query <%s>: too many query blocks", blockName.c_str());
+      return false;
+    }
+    // a promoted module outlives every script load, so the loader owns its descs from the start
+    desc->shared = das::daScriptEnvironment::getBound()->g_Program->promoteToBuiltin;
+    if (desc->shared)
+    {
+      das::lock_guard guard(scripts.mutex);
+      scripts.sharedQueries.emplace_back(QueryData{blockName, eastl::move(desc)});
+    }
+    else
+      mg.unresolvedQueries.emplace_back(QueryData{blockName, eastl::move(desc)});
     return true;
   }
 };
@@ -1417,6 +1639,9 @@ void shutdown_systems()
     OSSpinlockScopedLock lock(esQueryDescsAllocatorLock);
     G_VERIFY(esQueryDescsAllocator.clear() == 0);
   }
+  // the check above leaves no live descriptor, so no query block can be resolving a handle and no
+  // reader holds a page pointer
+  free_query_desc_registry();
   das::Module::Shutdown();
 
   if (debuggerEnvironment)
@@ -1426,7 +1651,7 @@ void shutdown_systems()
   }
 
   for (auto &c : cachedWorkerContexts)
-    c.reset();
+    c = {};
 }
 
 
@@ -1453,8 +1678,8 @@ void collect_heap(float mem_scale_threshold, ValidateDasGC validate)
 
   TIME_PROFILE(collect_das_garbage);
 
-  G_ASSERT(mem_scale_threshold > 0.);
-  das::unique_lock<das::recursive_mutex> lock(scripts.mutex, std::defer_lock);
+  G_ASSERT(mem_scale_threshold > 0.f);
+  das::unique_lock lock(scripts.mutex, std::defer_lock);
   if (!lock.try_lock()) // in case of hot-reload
     return;
   const int now = get_time_msec();
@@ -1658,6 +1883,7 @@ struct DascriptLoadJob final : public DaThread
       auto file_access = new DagFileAccess(local_scripts.getFileAccess(), globally_hot_reload);
       success = local_scripts.loadScript(file_names[i], file_access, ctx) && success;
       count++;
+      watchdog_kick();
     }
     das::daScriptEnvironment::getBound()->g_resolve_annotations = true;
   }
@@ -1675,7 +1901,7 @@ struct DascriptLoadJob final : public DaThread
     do_work(localScripts, fileNames);
 
     {
-      das::lock_guard<das::recursive_mutex> guard(localScripts.mutex);
+      das::lock_guard guard(localScripts.mutex);
       localScripts.thisThreadDone();
     }
 
@@ -1692,10 +1918,10 @@ struct DascriptLoadJob final : public DaThread
 bool fill_stack_while_compile_das()
 {
   const bool defaultFillStack = DAGOR_DBGLEVEL == 0;
-  if (::dgs_get_settings())
-    return ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("dasFillStack", defaultFillStack);
-  else
+  if (!::dgs_get_settings())
     return defaultFillStack;
+  static const bool fillStack = ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("dasFillStack", defaultFillStack);
+  return fillStack;
 }
 
 static bool load_scripts_from_serialized_data()
@@ -1731,7 +1957,7 @@ static bool load_scripts_from_serialized_data()
     if (enableSerialization && script.program && !script.program->options.getBoolOption("rtti", script.program->policies.rtti) &&
         !das::is_in_aot())
       script.program.reset();
-    if (script.moduleGroup && !enable_das_rtti())
+    if (script.moduleGroup)
       script.moduleGroup->reset();
   }
   // collect created file infos that no module owns
@@ -2232,29 +2458,56 @@ static bind_dascript::EsContext *create_cached_worker_context(int i)
   context->stringHeap = das::make_unique<das::LinearStringAllocator>();
   context->heap->setInitialSize(DAS_INITIAL_HEAP_SIZE);
   context->stringHeap->setInitialSize(DAS_INITIAL_STRING_HEAP_SIZE);
-  cachedWorkerContexts[i].reset(context);
+  cachedWorkerContexts[i].context.reset(context);
   return context;
 }
 
-static EsContext *get_worker_context(const ecs::QueryView &qv, const EsDesc *esData)
+// Parallel jobs can call any ES (incl. via immediate events) on several threads at once, so each thread needs own context
+static int get_worker_context_slot()
+{
+  if (!ecs::is_in_parallel_job())
+    return -1;
+  const int tpwid = threadpool::get_current_worker_id();
+  // Assume that no threads beyond main and threadpool workers run parallel jobs (e.g. in threadpool wait)
+  return tpwid >= 0 ? tpwid : (is_main_thread() ? threadpool::MAX_WORKER_COUNT : -1);
+}
+
+class ScopedEsContext
+{
+  EsContext *context = nullptr;
+  WorkerContextSlot *slot = nullptr;
+  const das::Context *outerBoundTo = nullptr;
+
+public:
+  ScopedEsContext(const ecs::QueryView &qv, const EsDesc *esData);
+  ~ScopedEsContext()
+  {
+    if (outerBoundTo) // Return code & globals of outer call's module on exit from nested call
+    {
+      context->makeWorkerFor(*outerBoundTo);
+      slot->boundTo = outerBoundTo;
+    }
+  }
+  EsContext *get() const { return context; }
+  EA_NON_COPYABLE(ScopedEsContext)
+};
+
+ScopedEsContext::ScopedEsContext(const ecs::QueryView &qv, const EsDesc *esData)
 {
   G_FAST_ASSERT(qv.getUserData() == esData);
 
-  int workerContextId = -1;
-  if (DAGOR_UNLIKELY(workerThreadsMode))
-    workerContextId = threadpool::get_current_worker_id();
-  else if (esData->minQuant > 0 && qv.getWorkerId() != 0)
-    workerContextId = int(qv.getWorkerId() - 1u);
-  if (DAGOR_UNLIKELY(workerContextId >= 0))
+  if (const int slotId = get_worker_context_slot(); slotId >= 0) [[unlikely]]
   {
     G_ASSERTF(!esData->context->thisHelper, "helper should be null here, otherwise remove copying of thisHelper from makeWorkerFor");
-    G_FAST_ASSERT(workerContextId < cachedWorkerContexts.size());
-    EsContext *context = cachedWorkerContexts[workerContextId].get();
-    if (DAGOR_UNLIKELY(!context))
-      context = create_cached_worker_context(workerContextId);
+    G_FAST_ASSERT(slotId < cachedWorkerContexts.size());
+    slot = &cachedWorkerContexts[slotId];
+    this->context = slot->context ? slot->context.get() : create_cached_worker_context(slotId);
+    if (context->insideContext && slot->boundTo != esData->context) // Outer call's module is alive while it is running
+      outerBoundTo = slot->boundTo;
+    slot->boundTo = esData->context;
     context->makeWorkerFor(*esData->context);
     context->mgr = &qv.manager();
-    return context;
+    return;
   }
 
 #if DAGOR_DBGLEVEL > 0
@@ -2279,13 +2532,14 @@ static EsContext *get_worker_context(const ecs::QueryView &qv, const EsDesc *esD
   }
 #endif
 
-  return esData->context;
+  context = esData->context;
 }
 
 template <typename F>
 static inline void run_es_query_lambda(const ecs::QueryView &qv, const EsDesc *esData, const F &lambda)
 {
-  EsContext *context = get_worker_context(qv, esData);
+  ScopedEsContext scopedContext(qv, esData);
+  EsContext *context = scopedContext.get();
   RAIIContextMgr newMgr(context, &qv.manager());
   context->tryRestartAndLock();
 
@@ -2328,10 +2582,6 @@ static inline void run_es_query_lambda(const ecs::QueryView &qv, const EsDesc *e
   }
 
   context->unlock();
-
-  // Restore worker's context internal data on return from recursive calls
-  if (context != esData->context && context->code != esData->context->code)
-    context->makeWorkerFor(*esData->context);
 }
 
 
@@ -2435,7 +2685,8 @@ void process_view(const ecs::QueryView &qv, const das::Block &block, const uint6
 {
   EsDesc *esData = (EsDesc *)qv.getUserData(); // todo: put name in EsDesc
 
-  EsContext *context = get_worker_context(qv, esData);
+  ScopedEsContext scopedContext(qv, esData);
+  EsContext *context = scopedContext.get();
   RAIIContextMgr newMgr(context, &qv.manager());
 
   if (!context->ownStack)
@@ -2493,12 +2744,7 @@ static void das_es_on_update_empty(const ecs::UpdateStageInfo &info, const ecs::
 void queryEs(const das::Block &block, das::Context *das_context, das::LineInfoArg *line)
 {
   auto *closure = (das::SimNode_ClosureBlock *)block.body;
-  EsQueryDesc *esData = (EsQueryDesc *)closure->annotationData;
-  if (!esData)
-  {
-    das_context->throw_error_at(line, "invalid (non-ES) block");
-    return;
-  }
+  EsQueryDesc *esData = &resolve_query_desc_or_throw(closure->annotationData, das_context, line);
   struct
   {
     const das::Block *block;
@@ -2548,12 +2794,7 @@ void queryEsMgr(ecs::EntityManager &mgr, const das::Block &block, das::Context *
 bool findQueryEs(const das::Block &block, das::Context *das_context, das::LineInfoArg *line)
 {
   auto *closure = (das::SimNode_ClosureBlock *)block.body;
-  EsQueryDesc *esData = (EsQueryDesc *)closure->annotationData;
-  if (!esData)
-  {
-    das_context->throw_error_at(line, "invalid (non-ES) block");
-    return false;
-  }
+  EsQueryDesc *esData = &resolve_query_desc_or_throw(closure->annotationData, das_context, line);
   struct
   {
     const das::Block *block;
@@ -2610,12 +2851,7 @@ bool findQueryEsMgr(ecs::EntityManager &mgr, const das::Block &block, das::Conte
 bool queryEsEid(ecs::EntityId eid, const das::Block &block, das::Context *das_context, das::LineInfoArg *line)
 {
   auto *closure = (das::SimNode_ClosureBlock *)block.body;
-  EsQueryDesc *esData = (EsQueryDesc *)closure->annotationData;
-  if (!esData)
-  {
-    das_context->throw_error_at(line, "invalid block");
-    return false;
-  }
+  EsQueryDesc *esData = &resolve_query_desc_or_throw(closure->annotationData, das_context, line);
   struct
   {
     const das::Block *block;
@@ -2715,12 +2951,12 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
   if (esType != EsType::ES)
   {
     ss << "\tecs::EntityManager *mgr = ((bind_dascript::EsContext *)__context)->mgr;\n";
-    static_assert(offsetof(EsQueryDesc, query) == 0, "AOT assumes annotation data starts with QueryId. keep it that way");
+    ss << "\tconst bind_dascript::EsQueryRef __query = bind_dascript::resolve_query_desc(annotationData, __context, __line);\n";
     ss << (hasReturn ? "\treturn " : "\t");
     ss << "::ecs::perform_query(mgr, ";
     if (esType == EsType::SingleEidQuery)
       ss << "eid, ";
-    ss << "*((::ecs::QueryId *)annotationData), " << (esType == EsType::FindQuery ? "::ecs::stoppable_query_cb_t(" : "");
+    ss << "__query.query, " << (esType == EsType::FindQuery ? "::ecs::stoppable_query_cb_t(" : "");
     ss << "[&](const ::ecs::QueryView& __restrict qv) DAS_AOT_INLINE_LAMBDA {\n";
   }
   das::StringBuilderWriter body;
@@ -2887,7 +3123,7 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
     ss << "\treturn ::ecs::QueryCbResult::Continue;\n";
   if (esType != EsType::ES)
   {
-    ss << "\t}" << (esType == EsType::FindQuery ? ")" : "") << ", (void*)annotationData)";
+    ss << "\t}" << (esType == EsType::FindQuery ? ")" : "") << ", (void*)__query.desc)";
     ss << (esType == EsType::FindQuery ? " == ::ecs::QueryCbResult::Stop;\n" : ";\n");
   }
   ss << "}\n\n";
@@ -2925,27 +3161,27 @@ struct EsRunFunctionAnnotation : das::FunctionAnnotation
   }
 
   EsRunFunctionAnnotation(EsType est) : das::FunctionAnnotation(get_name(est)), esType(est) {}
-  virtual bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &err) override
+  virtual bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &err) override
   {
     err = "not a block annotation";
     return false;
   }
-  virtual bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  virtual bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &err) override
   {
     err = "not a block annotation";
     return false;
   }
-  virtual bool apply(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override
+  virtual bool apply(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &) override
   {
     return true;
   };
-  virtual bool finalize(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &,
+  virtual bool finalize(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &,
     const das::AnnotationArgumentList &, das::string &) override
   {
     return true;
   }
-  virtual bool verifyCall(das::ExprCallFunc *call, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  virtual bool verifyCall(das::ExprCallFunc *call, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &err) override
   {
     const uint32_t blockArgIdx = ArgsOffset + (esType != EsType::ES && esType != EsType::SingleEidQuery ? 0 : 1);
@@ -3015,7 +3251,8 @@ struct EsRunFunctionAnnotation : das::FunctionAnnotation
     const uint32_t blockArgIdx = ArgsOffset + (esType != EsType::ES && esType != EsType::SingleEidQuery ? 0 : 1);
     auto mb = static_cast<das::ExprMakeBlock *>(call->arguments[blockArgIdx]);
     das::ExprBlock *closure = (das::ExprBlock *)mb->block;
-    EsQueryDesc *desc = (EsQueryDesc *)closure->annotationData;
+    EsQueryDesc *desc = find_query_desc(closure->annotationData);
+    G_ASSERTF_RETURN(desc, , "%s: query block has no descriptor", closure->at.describe().c_str());
     aotEsRunBlock(ss, desc, esType == EsType::ES ? getEsDesc(closure->annotations) : nullptr, closure, esType);
     closure->aotSkipMakeBlock = true;
     closure->aotDoNotSkipAnnotationData = esType != EsType::ES;
@@ -3245,6 +3482,8 @@ void das_load_ecs_templates()
 } // namespace bind_dascript
 DAG_DECLARE_RELOCATABLE(bind_dascript::DascriptLoadJob);
 
+extern void das_pull_jit_runtime();
+
 static void pull()
 {
   das::daScriptEnvironment::ensure();
@@ -3261,6 +3500,7 @@ static void pull()
   NEED_MODULE(Module_Rtti)
   NEED_MODULE(Module_Ast)
   NEED_MODULE(ECS)
+  das_pull_jit_runtime();
 }
 
 void bind_dascript::set_das_root(const char *root_path) { das::setDasRoot(root_path); }

@@ -687,22 +687,22 @@ void workcycle_internal::default_on_swap_callback()
     float frame_time_f = max((float)frameTime, 1e-6f);
     if (sumFrameTime > 1000000U)
     {
-      last_fps = 1e6 * float(fpsNum) / float(sumFrameTime);
+      last_fps = 1e6f * float(fpsNum) / float(sumFrameTime);
 
       fpsNum = 0;
       sumFrameTime = 0;
       maxFrameTime = minFrameTime = frameTime;
-      max_fps = min_fps = 1e6 / frame_time_f;
+      max_fps = min_fps = 1e6f / frame_time_f;
     }
     else if (frameTime < minFrameTime)
     {
       minFrameTime = frameTime;
-      max_fps = 1e6 / frame_time_f;
+      max_fps = 1e6f / frame_time_f;
     }
     else if (frameTime > maxFrameTime)
     {
-      minFrameTime = frameTime;
-      min_fps = 1e6 / frame_time_f;
+      maxFrameTime = frameTime;
+      min_fps = 1e6f / frame_time_f;
     }
     fpsNum++;
   }

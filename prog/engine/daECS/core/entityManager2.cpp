@@ -1373,6 +1373,8 @@ void EntityManager::clear()
   esUpdates.clear();
   eidTrackingQueue.clear();
   archetypeTrackingQueue.clear();
+  eidTrackingQueuePeak = 0;
+  eidTrackingQueueFrames = 0;
   trackQueryIndices.clear();
   queryScheduled.clear();
 

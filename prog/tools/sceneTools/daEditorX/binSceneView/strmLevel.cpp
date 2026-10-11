@@ -11,12 +11,14 @@
 #include <shaders/dag_rendInstRes.h>
 #include <scene/dag_objsToPlace.h>
 #include <scene/dag_physMat.h>
-#include <sceneRay/dag_sceneRay.h>
 #include <gameRes/dag_collisionResource.h>
-#include <perfMon/dag_visClipMesh.h>
+#include <gameRes/collisionResourceBuilder.h>
+#include <debug/dag_collResDebugDraw.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_direct.h>
 #include <landMesh/lmeshManager.h>
+#include <render/noiseTex.h>
+#include <landMesh/landDetile.h>
 #include <landMesh/landRayTracerSoA4.h>
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/clipMap.h>
@@ -258,7 +260,10 @@ void AcesScene::setEnvironmentSettings(DataBlock &enviBlk)
   Color3 avg = 0.5 * (sunColor0Initial + skyColorInitial);
 
   if (lmeshMgr && !lmeshRenderer)
+  {
+    init_and_get_l8_64_noise(); // the de-tiled landclass LUT, held for the process lifetime (refcounted, never released here)
     lmeshRenderer = lmeshMgr->createRenderer();
+  }
 
   delete hmapEnviBlk;
   hmapEnviBlk = NULL;
@@ -354,7 +359,10 @@ void AcesScene::loadLevel(const char *bindump)
     DAG_FATAL("can't load binary level dump: %s", bindump);
 
   if (lmeshMgr && !lmeshRenderer)
+  {
+    init_and_get_l8_64_noise(); // the de-tiled landclass LUT, held for the process lifetime (refcounted, never released here)
     lmeshRenderer = lmeshMgr->createRenderer();
+  }
 
   // place resource objects
   placeResObjects();
@@ -468,6 +476,7 @@ void AcesScene::loadLevel(const char *bindump)
 
   if (!loaded)
     DAEDITOR3.conWarning("cannot load %s (tried also with %d prefixes)", fn, prefix_tried);
+  land_detile::set_noise_size(land_detile::level_noise_size(levelSettingsBlk));
   if (IHmapService *hmlService = DAGORED2->queryEditorInterface<IHmapService>())
     hmlService->onLevelBlkLoaded(loaded ? levelSettingsBlk : DataBlock());
   if (IRendInstGenService *rendInstGenService = DAGORED2->queryEditorInterface<IRendInstGenService>())
@@ -506,7 +515,7 @@ void AcesScene::loadLevel(const char *bindump)
 
   float water_zbias = zbiasBlk->getReal("waterZbias", 0.f);
   ShaderGlobal::set_float(::get_shader_variable_id("water_zbias", true), water_zbias);
-  ShaderGlobal::set_float(::get_shader_variable_id("bottom_zbias", true), water_zbias * 1.1);
+  ShaderGlobal::set_float(::get_shader_variable_id("bottom_zbias", true), water_zbias * 1.1f);
 
   ShaderGlobal::set_vars_from_blk(*levelSettingsBlk.getBlockByNameEx("shader_vars"));
   if (ISkiesService *skiesSrv = DAGORED2->queryEditorInterface<ISkiesService>())
@@ -641,19 +650,23 @@ bool AcesScene::bdlCustomLoad(unsigned bindump_id, int tag, IGenLoad &crd, dag::
   if (tag == _MAKE4C('FRT'))
   {
     debug("[load]frt");
-    bool res = true;
+    // constraint: a bin carrying both tags traces its SCol, whichever tag the loader reaches first
+    if (staticColl)
+      return true;
+    CollisionResource *built = nullptr;
     try
     {
-      frtDump.loadData(crd);
-      res = frtDump.isDataValid();
+      if (!load_frt_block_as_collision(crd, built))
+        return false;
     }
     catch (...)
     {
       DEBUG_CTX("failed to load FRT");
-      frtDump.unloadData();
-      res = false;
+      return false;
     }
-    return res;
+    staticColl = built;
+    // constraint: a false here drops the whole bin, which AcesScene::loadLevel makes fatal
+    return true;
   }
 
   if (tag == _MAKE4C('SCol'))
@@ -1108,7 +1121,7 @@ void AcesScene::renderHeight()
   LandMeshRenderDesc desc;
   desc.mode = LMeshRenderingMode::RENDERING_HEIGHTMAP;
   desc.renderInBBox = lmeshMgr->getBBox();
-  desc.invGeomLodDist = 0.5 / lmeshMgr->getBBox().width().length();
+  desc.invGeomLodDist = 0.5f / lmeshMgr->getBBox().width().length();
 
   shaders::overrides::set(blendOpMaxStateId);
   lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, desc, ::grs_cur_view.pos,
@@ -1222,7 +1235,7 @@ void AcesScene::renderSplinePoints(float max_dist)
 
       Point4 p = Point4::xyz1(pt) * gtm;
       Point2 s = scale * splinepoint::ptScreenRad;
-      if (p.w > 0.0)
+      if (p.w > 0.0f)
       {
         Point3 dx(s.x, 0, 0);
         Point3 dy(0, s.y, 0);
@@ -1314,41 +1327,24 @@ bool AcesScene::tracerayNormalizedHeightmap(const Point3 &p0, const Point3 &dir,
 }
 
 
-bool AcesScene::hasStaticScene() const { return staticColl || frtDump.isDataValid(); }
+bool AcesScene::hasStaticScene() const { return staticColl.get() != nullptr; }
 
-void AcesScene::clearStaticScene()
-{
-  frtDump.unloadData();
-  staticColl = nullptr;
-}
+void AcesScene::clearStaticScene() { staticColl = nullptr; }
 
-void AcesScene::drawStaticSceneClip(const Point3 &view_pos, float max_dist) const
+void AcesScene::drawStaticSceneClip(const Point3 &view_pos, float max_dist, bool wire) const
 {
   if (const CollisionResource *coll = staticColl.get())
   {
-    // the stream draws what it is handed, so max_dist bounds the walk
     bbox3f box;
     v_bbox3_init_by_bsph(box, v_ldu(&view_pos.x), v_splats(max_dist));
-    ::render_visclipmesh_stream([coll, &box](const VisClipMeshEmit &emit) {
-      coll->visitTrianglesInBox(box, CollisionNode::PHYS_COLLIDABLE, [&emit](vec3f a, vec3f b, vec3f c, int mat, int) {
-        emit(a, b, c, mat);
-        return false; //-V657 draw everything the box holds
-      });
-    });
+    ::draw_collres_debug(*coll, box, CollisionNode::PHYS_COLLIDABLE, wire);
   }
-  else
-    ::render_visclipmesh(frtDump, view_pos);
 }
 
 bool AcesScene::tracerayNormalizedStaticScene(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm)
 {
   int pmid = -1, &dest_pmid = out_pmid ? *out_pmid : pmid;
-  if (staticColl)
-    return staticColl->traceRay(TMatrix::IDENT, p, dir, t, out_norm, dest_pmid);
-  if (!frtDump.isDataValid())
-    return false;
-  return (out_norm ? frtDump.tracerayNormalized(p, dir, t, dest_pmid, *out_norm) : frtDump.tracerayNormalized(p, dir, t, dest_pmid)) >=
-         0;
+  return staticColl && staticColl->traceRay(TMatrix::IDENT, p, dir, t, out_norm, dest_pmid);
 }
 
 bool AcesScene::getHeightmapAtPoint(float x, float z, float &out_height, Point3 *out_normal)
@@ -1402,6 +1398,6 @@ vec3f __stdcall AcesScene::custom_update_pregen_pos_y(vec4f pos, int16_t *dest_p
     return pos;
 
   p.y += aboveHt - t;
-  *dest_packed_y = short(clamp((p.y - oy) / csz_y, -1.0f, 1.0f) * 32767.0);
+  *dest_packed_y = short(clamp((p.y - oy) / csz_y, -1.0f, 1.0f) * 32767.0f);
   return v_ld(&p.x);
 }

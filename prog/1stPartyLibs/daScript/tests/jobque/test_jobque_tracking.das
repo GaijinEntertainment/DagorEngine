@@ -15,20 +15,16 @@ def test_tracking_clean_run(t : T?) {
         }
     }
     t |> run("lockbox create+remove leaves no leak") @(t : T?) {
-        unsafe {
-            var box = lock_box_create()
-            t |> success(box != null)
-            box |> lock_box_remove
-            t |> success(box == null)
-        }
+        var box = lock_box_create()
+        t |> success(box != null)
+        unsafe(box |> lock_box_remove)
+        t |> success(box == null)
     }
     t |> run("job_status create+remove leaves no leak") @(t : T?) {
-        unsafe {
-            var js = job_status_create()
-            t |> success(js != null)
-            js |> job_status_remove
-            t |> success(js == null)
-        }
+        var js = job_status_create()
+        t |> success(js != null)
+        unsafe(js |> job_status_remove)
+        t |> success(js == null)
     }
     t |> run("with_channel scoped cleanup") @(t : T?) {
         with_channel() $(ch) {
@@ -51,22 +47,18 @@ def test_tracking_clean_run(t : T?) {
 [test]
 def test_tracking_atomics_standalone(t : T?) {
     t |> run("atomic32 create+remove works without JobStatus") @(t : T?) {
-        unsafe {
-            var a = atomic32_create()
-            a |> set(42)
-            t |> equal(42, a |> get)
-            a |> atomic32_remove
-            t |> success(a == null)
-        }
+        var a = atomic32_create()
+        a |> set(42)
+        t |> equal(42, a |> get)
+        unsafe(a |> atomic32_remove)
+        t |> success(a == null)
     }
     t |> run("atomic64 create+remove works without JobStatus") @(t : T?) {
-        unsafe {
-            var a = atomic64_create()
-            a |> set(123l)
-            t |> equal(123l, a |> get)
-            a |> atomic64_remove
-            t |> success(a == null)
-        }
+        var a = atomic64_create()
+        a |> set(123l)
+        t |> equal(123l, a |> get)
+        unsafe(a |> atomic64_remove)
+        t |> success(a == null)
     }
     t |> run("with_atomic32 scoped") @(t : T?) {
         with_atomic32() $(a) {

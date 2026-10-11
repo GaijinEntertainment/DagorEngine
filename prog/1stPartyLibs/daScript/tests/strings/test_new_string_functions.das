@@ -261,7 +261,9 @@ def test_is_null_or_whitespace(t : T?) {
         t |> equal(is_null_or_whitespace("\t"), true)
         t |> equal(is_null_or_whitespace("\n"), true)
         t |> equal(is_null_or_whitespace("\r"), true)
-        t |> equal(is_null_or_whitespace(" \t\n\r"), true)
+        t |> equal(is_null_or_whitespace("\f"), true)
+        t |> equal(is_null_or_whitespace("\v"), true)
+        t |> equal(is_null_or_whitespace(" \t\n\r\f\v"), true)
     }
 
     t |> run("non-whitespace") @@(t : T?) {

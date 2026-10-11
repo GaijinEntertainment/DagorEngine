@@ -64,8 +64,10 @@ public:
 
   int flags; // see tools/matFlags.h
 
+  int dagMatId;
 
-  StaticGeometryMaterial() : flags(0), atest(0), cosPower(1)
+
+  StaticGeometryMaterial() : flags(0), atest(0), cosPower(1), dagMatId(-1)
   {
     amb = diff = Color4(1, 1, 1, 1);
     trans = spec = emis = Color4(0, 0, 0, 0);
@@ -84,7 +86,8 @@ public:
     trans(from.trans),
     atest(from.atest),
     cosPower(from.cosPower),
-    flags(from.flags)
+    flags(from.flags),
+    dagMatId(from.dagMatId)
   {
     for (int i = 0; i < NUM_TEXTURES; ++i)
       textures[i] = from.textures[i];

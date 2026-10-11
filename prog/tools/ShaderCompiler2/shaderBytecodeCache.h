@@ -74,6 +74,7 @@ struct CachedShader
   Tab<unsigned> relCode;
   Tab<uint8_t> relMetadata;
   ComputeShaderInfo computeShaderInfo;
+  PixelShaderOutputInfo psOutputInfo; // cache hits need it too
   String compileCtx;
   CachedShader() : relCode(midmem_ptr()), relMetadata(midmem_ptr()), codeType(HLSL_INVALID) {}
 
@@ -128,6 +129,7 @@ public:
 
   void resolvePendingPasses();
   void registerPendingPass(SemanticShaderPass &p);
+  bool hasPendingPasses() const { return !pendingShaderPasses.empty(); }
 };
 
 void apply_shader_from_cache(SemanticShaderPass &pass, HlslCompilationStage stage, ShaderCacheLevelIds c,

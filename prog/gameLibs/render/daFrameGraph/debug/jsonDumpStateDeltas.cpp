@@ -13,7 +13,7 @@ void dump_state_deltas_to_json(const intermediate::Graph &graph, const sd::NodeS
   w.Key("nodeStateDeltas");
   {
     OBJECT_SCOPED
-    for (auto [nodeIdx, stateDelta] : state_deltas.enumerate())
+    for (const auto &[nodeIdx, stateDelta] : state_deltas.enumerate())
     {
       w.Key(get_name(graph, nodeIdx));
       {

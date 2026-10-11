@@ -1,5 +1,4 @@
 options gen2
-require strings
 require daslib/archive
 require dastest/testing_boost public
 
@@ -301,10 +300,7 @@ def test_bulk_array_raw_pod(t : T?) {
 [test]
 def test_bulk_array_non_raw(t : T?) {
     t |> run("array<string> element-wise path") @(t : T?) {
-        var reference : array<string>
-        reference |> push("hello")
-        reference |> push("world")
-        reference |> push("foo")
+        var reference <- ["hello", "world", "foo"]
         var data <- mem_archive_save(reference)
         var test : array<string>
         data |> mem_archive_load(test)
@@ -315,9 +311,7 @@ def test_bulk_array_non_raw(t : T?) {
         t |> equal(test[2], "foo")
     }
     t |> run("array<NonRawStruct> element-wise path") @(t : T?) {
-        var reference : array<NonRawStruct>
-        reference |> push(NonRawStruct(value = 1, name = "one"))
-        reference |> push(NonRawStruct(value = 2, name = "two"))
+        var reference <- [NonRawStruct(value = 1, name = "one"), NonRawStruct(value = 2, name = "two")]
         var data <- mem_archive_save(reference)
         var test : array<NonRawStruct>
         data |> mem_archive_load(test)

@@ -43,9 +43,10 @@ struct TLASTraverse
   {
     origin = v_ldu((const float *)leaf.origin);
     scale = v_ldu((const float *)leaf.scale);
-    // Negative scale.x signals a reflected transform (det < 0); clear sign bit
+    // Negative scale.x signals a reflected transform (det < 0), negative scale.y a light-transparent model
+    // (a shadow-only flag); clear both sign bits
     const int reflected = bitwise_cast<uint32_t>(leaf.scale[0]) >> 31;
-    scale = v_and(scale, v_cast_vec4f(v_make_vec4i(0x7FFFFFFF, -1, -1, -1)));
+    scale = v_and(scale, v_cast_vec4f(v_make_vec4i(0x7FFFFFFF, 0x7FFFFFFF, -1, -1)));
     invTm.col0 = v_ldu(leaf.invTm);
     invTm.col1 = v_ldu(leaf.invTm + 3);
     // Exact identity test: col0==(1,0,0) and col1==(0,1,0). The previous signmask-based

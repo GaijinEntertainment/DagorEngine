@@ -20,19 +20,15 @@ public:
     return getSeconds();
   }
   double getSeconds() const override { return curTimeUs / 1000000.; }
-  int getMillis() const override { return (int)(curTimeUs / 1000. + 0.5); }
   int getAsyncMillis() const override { return getUsec() / 1000; }
-
-  int getType4CC() const override { return _MAKE4C('SRVT'); }
 
   static void onReceiveTimeSyncRequestMsg(const net::IMessage *imsg)
   {
     auto msg = imsg->cast<TimeSyncRequest>();
     G_ASSERT(msg);
-    auto &self = static_cast<const ServerTime &>(get_time_mgr());
     int localQueueCorrection = danet::GetTime() - msg->rcvTime;
     int clientTime = msg->get<0>() + localQueueCorrection;
-    TimeSyncResponse respMsg(clientTime, self.getMillis());
+    TimeSyncResponse respMsg(clientTime, get_sync_millis());
     respMsg.connection = imsg->connection;
     send_net_msg(eastl::move(respMsg));
   }

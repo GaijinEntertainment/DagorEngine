@@ -15,6 +15,7 @@
 #include "savgol.h"
 
 #include <ioSys/dag_dataBlock.h>
+#include <EASTL/unique_ptr.h>
 
 
 String get_mm_data_base_loading_error_context()
@@ -656,7 +657,9 @@ static void validate_next_clip_pose(const AnimationClip &prev_clip, const Animat
 {
   const GeomNodeTree &tree = *dataBase.getReferenceSkeleton();
   int rootId = dataBase.rootNode.index();
-  NodeTSRFixedArray lastPose(tree.nodeCount());
+  // two poses on stack exceed frame limit
+  eastl::unique_ptr<NodeTSRFixedArray, framememDeleter> lastPoseHolder(new (framemem_ptr()) NodeTSRFixedArray(tree.nodeCount()));
+  NodeTSRFixedArray &lastPose = *lastPoseHolder;
   set_identity(lastPose, tree);
   sample_animation(prev_clip.duration, prev_clip, lastPose);
   if (!prev_clip.inPlaceAnimation)

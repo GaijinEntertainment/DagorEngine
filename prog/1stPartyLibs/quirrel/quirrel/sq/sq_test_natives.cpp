@@ -16,6 +16,7 @@ struct TestNativeVec
 {
   float x, y, z;
   int32_t w;
+  bool flag;
 };
 
 static SQInteger nativevec_ctor(HSQUIRRELVM vm)
@@ -133,7 +134,8 @@ void register_test_natives(SqModules *module_mgr)
     .NativeVar("x", &TestNativeVec::x)
     .NativeVar("y", &TestNativeVec::y)
     .NativeVar("z", &TestNativeVec::z)
-    .NativeVar("w", &TestNativeVec::w);
+    .NativeVar("w", &TestNativeVec::w)
+    .NativeVar("flag", &TestNativeVec::flag);
 
   Sqrat::Table exports(vm);
   exports.Bind("NativeVec", cls);

@@ -128,13 +128,8 @@ public:
     memset(md->mtex, 0xFF, sizeof(md->mtex));
     for (int ti = 0; ti < MAXMATTEXNUM; ++ti)
     {
-      bool badTex = false;
-
       if (ti < textures.size() && !textures[ti].empty())
         md->mtex[ti] = ::add_managed_texture(textures[ti]);
-
-      if (badTex)
-        md->mtex[ti] = BAD_TEXTUREID;
     }
 
     return md;

@@ -49,7 +49,7 @@ public:
   void actObjects(float dt) override {}
   void beforeRenderObjects() override {}
   void renderObjects() override {}
-  void renderTransObjects() override;
+  void renderTransObjects(BaseTexture *) override;
 
   bool supportAssetType(const DagorAsset &asset) const override;
 
@@ -106,7 +106,7 @@ protected:
   void printKdopLog();
   void clearAssetStats();
   void fillAssetStats();
-  void updateFaceOrientationRenderDepthFromCurRT();
+  void updateFaceOrientationRenderDepth(BaseTexture *color_target);
   int getNodeIdx(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle leaf);
   void updateModel();
 };

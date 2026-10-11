@@ -173,10 +173,8 @@ def main() {
 
     // 4. Print summary — tracker lives in the agent context,
     //    so we invoke our helper there via the named agent
-    unsafe {
-        invoke_in_context(get_debug_agent_context("alloc_tracker"),
-                          "print_tracker_summary")
-    }
+    unsafe(invoke_in_context(get_debug_agent_context("alloc_tracker"),
+                             "print_tracker_summary"))
 
     delete_debug_agent_context("alloc_tracker")
 }

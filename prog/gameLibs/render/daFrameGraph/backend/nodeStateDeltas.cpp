@@ -114,7 +114,7 @@ IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> DeltaCalculator:
   }
 
   uint16_t pos = 0;
-  for (auto [nodeIdx, nodeState] : graph.nodeStates.enumerate())
+  for (const auto &[nodeIdx, nodeState] : graph.nodeStates.enumerate())
   {
     for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
       for (const auto &ev : events[frame][nodeIdx])
@@ -488,6 +488,10 @@ IdIndexedFlags<intermediate::NodeIndex> DeltaCalculator::computeDirtyDeltas(cons
   for (auto [cur, next] : dag::PairwiseView(graph.nodeStates.keys()))
     if (nodes_changed[cur] || requestedResChanged(cur))
       dirtyDeltas[cur] = dirtyDeltas[next] = true;
+
+  const auto lastNodeIdx = graph.nodeStates.backKey();
+  if (nodes_changed[lastNodeIdx] || requestedResChanged(lastNodeIdx))
+    dirtyDeltas[lastNodeIdx] = true;
 
   cachedForcePassBreak.resize(graph.nodeStates.totalKeys(), false);
   for (auto nodeIdx : graph.nodeStates.keys())

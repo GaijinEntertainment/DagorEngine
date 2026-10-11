@@ -39,13 +39,7 @@ constexpr bool undo_declares_merge_key()
 // alone is not, as the several UndoPropsChange do: two classes sharing a UID fold into each other, and the
 // one that is dropped loses its restore() with nothing to report it.
 #define UNDO_MERGE_KEY_BY_TARGET(kind_uid, target_expr) \
-  UndoMergeKey get_merge_key() const override           \
-  {                                                     \
-    UndoMergeKey key;                                   \
-    key.kind = (kind_uid);                              \
-    key.target = (target_expr);                         \
-    return key;                                         \
-  }
+  UndoMergeKey get_merge_key() const override { return UndoMergeKey{.kind = (kind_uid), .target = (target_expr)}; }
 
 // For an object that snapshots its target whole and rereads the redo state in restore(), so a later
 // snapshot of the same slice adds nothing. One holding both values up front needs its own merge().
@@ -67,6 +61,10 @@ public:
 
   // redo undone changes
   virtual void redo() = 0;
+
+  // False for an object that changes what the editor shows and not what the document saves, a
+  // selection for example. A save point looks past those, see UndoSystem::set_save_point.
+  virtual bool changes_saved_data() const { return true; }
 
   // get approximate size of this object (bytes)
   // used to keep undo data size under reasonable limit
@@ -205,7 +203,7 @@ public:
   // get maximum undo size (bytes)
   virtual int get_max_size() = 0;
 
-  // remove all undo/redo operations
+  // Remove all undo/redo operations. What they changed stays applied, see set_save_point.
   virtual void clear() = 0;
 
   // Per-operation owner token. The undo system never dereferences it -- the owner
@@ -224,13 +222,22 @@ public:
   // Remove every top-level operation stamped with `owner` (both undo and redo sides),
   // adjusting the current position so the surviving operations keep their order. Used
   // to drop one owner's history without touching others -- e.g. a plugin reloading its
-  // document. No-op while an operation is being recorded (is_holding()).
+  // document. Drops that owner's save point too. No-op while an operation is being recorded
+  // (is_holding()).
   virtual void remove_ops_by_owner(void *owner) = 0;
 
   // "Dirty" flag is set when undo system is modified in some way, or when setDirty() is called.
   virtual bool isDirty() const = 0;
 
   virtual void setDirty(bool dirty = true) = 0;
+
+  // Call when `owner` saves its document, with no operation open. Records the newest applied
+  // operation of `owner` that changes saved data (see UndoRedoObject::changes_saved_data)
+  virtual void set_save_point(void *owner) = 0;
+
+  // True while what `owner` holds is what it saved (undo/redo was triggered to the last save point),
+  // and for an owner that never recorded anything.
+  virtual bool is_at_save_point(void *owner) = 0;
 
 protected:
   // put<T>() offers what it built here first, under the key it worked out for T. True means it is dealt
@@ -243,6 +250,37 @@ protected:
   // key it inherited still folds there. Applies and reverts `o` when no operation is open, as the raw put
   // does.
   virtual void record_put(UndoRedoObject *o, const UndoMergeKey &key) = 0;
+};
+
+
+// Groups the per-change operations of one continuous edit -- a dragged slider, a held spin button, an
+// open color picker -- into a single operation, so undo reverts the whole edit instead of its last
+// change. The owner calls begin() on every change and end() on the matching change finish; `edit_id`
+// tells one edit from the next and is whatever the owner uses to name what is being edited.
+// An open gesture keeps the system it was begun on, so end() resolves none: a destructor can close it
+// without reaching for an editor that may already be gone.
+class UndoEditGesture
+{
+public:
+  bool isOpenFor(int edit_id) const { return undoSystem && gestureId == edit_id; }
+
+  // Opens a gesture, or keeps the one already open for `edit_id`. `operation_name` has to outlive the
+  // gesture (a literal); it names the operation the matching end() accepts.
+  void begin(UndoSystem &undo, int edit_id, const char *operation_name);
+
+  // Safe to call with no gesture open. Returns false when it left the gesture open because an operation
+  // opened inside it is not closed yet.
+  bool end();
+
+  // Closes only a gesture begun for `edit_id`, so a change finish closes the edit it belongs to and
+  // leaves one another control opened in between alone. True when no gesture of that edit is open.
+  bool end(int edit_id) { return isOpenFor(edit_id) ? end() : true; }
+
+private:
+  UndoSystem *undoSystem = nullptr; // the system the open gesture was begun on, null when none is open
+  int gestureId = -1;
+  int gestureDepth = 0;
+  const char *gestureName = nullptr;
 };
 
 

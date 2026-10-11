@@ -7,7 +7,7 @@
 
 #include <debug/dag_logSys.h>
 #include <ioSys/dag_dataBlock.h>
-#include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_versionQuery.h>
 #include <startup/dag_globalSettings.h>
@@ -74,6 +74,26 @@ eastl::optional<LibraryVersion> get_current_vc_redist_ver()
   return get_library_version(vcRedistMainDll);
 #endif
 }
+
+bool run_vc_redist_installer(const char *installer)
+{
+  String cmdLine(0, "\"%s\" /install /passive /norestart", installer);
+  STARTUPINFOA si{.cb = sizeof(si)};
+  PROCESS_INFORMATION pi{};
+  if (!CreateProcessA(installer, cmdLine.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi))
+  {
+    logerr("cannot start '%s', error %u", installer, GetLastError());
+    return false;
+  }
+
+  WaitForSingleObject(pi.hProcess, INFINITE);
+  DWORD exitCode = 0;
+  GetExitCodeProcess(pi.hProcess, &exitCode);
+  debug("'%s' finished with exit code %u", installer, exitCode);
+  CloseHandle(pi.hThread);
+  CloseHandle(pi.hProcess);
+  return true;
+}
 } // namespace
 
 void check_vc_redist(const DataBlock *cfg)
@@ -92,14 +112,15 @@ void check_vc_redist(const DataBlock *cfg)
   if (currentVcRedistVer && *currentVcRedistVer >= vcRedistVer)
     return;
 
-  const bool hasVcRedistInstaller = dd_file_exists(vcRedistInstallerName);
+  const String installerPath(df_get_real_name(vcRedistInstallerName));
+  const bool hasVcRedistInstaller = !installerPath.empty();
 
   int result = [&] {
     ScopeSetWatchdogTimeout _wd(WATCHDOG_DISABLE);
 
     const String msg1(1024,                                                                              //
       get_localized_text(hasVcRedistInstaller ? "engine/vcredist_install" : "engine/outdated_vcredist"), //
-      currentVcRedistVer->toString().c_str(),                                                            //
+      currentVcRedistVer.value_or(LibraryVersion{}).toString().c_str(),                                  //
       vcRedistVer.toString().c_str());                                                                   //
     const String msg(1024, "%s\n<a href=\"https://%s\">%s</a>", msg1.c_str(), vcRedistUpdateArticleUrl, vcRedistUpdateArticleUrl);
 
@@ -114,9 +135,15 @@ void check_vc_redist(const DataBlock *cfg)
 
     if (result == GUI_MB_BUTTON_1) // Yes
     {
-      STARTUPINFO si{.cb = sizeof(si)};
-      PROCESS_INFORMATION pi{};
-      CreateProcessA(vcRedistInstallerName, nullptr, nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si, &pi);
+      ScopeSetWatchdogTimeout _wd(WATCHDOG_DISABLE);
+      if (run_vc_redist_installer(installerPath.str()))
+      {
+        currentVcRedistVer = get_current_vc_redist_ver();
+        if (currentVcRedistVer && *currentVcRedistVer >= vcRedistVer)
+          return;
+        logerr("VC++ redist is %s after the install, %s is required", currentVcRedistVer.value_or(LibraryVersion{}).toString().c_str(),
+          vcRedistVer.toString().c_str());
+      }
     }
 
     flush_debug_file();

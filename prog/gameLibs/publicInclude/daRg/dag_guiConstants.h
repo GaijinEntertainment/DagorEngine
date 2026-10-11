@@ -84,6 +84,18 @@ enum SetupMode
   SM_REALTIME_UPDATE
 };
 
+enum PicSampler
+{
+  // keeps sampler declared by the texture
+  SAMPLER_DEFAULT = 0,
+  SAMPLER_LINEAR_CLAMP,
+  SAMPLER_LINEAR_WRAP,
+  SAMPLER_POINT_CLAMP,
+  SAMPLER_POINT_WRAP,
+
+  _NUM_PIC_SAMPLERS
+};
+
 enum KeepAspectMode
 {
   KEEP_ASPECT_NONE = SQFalse,

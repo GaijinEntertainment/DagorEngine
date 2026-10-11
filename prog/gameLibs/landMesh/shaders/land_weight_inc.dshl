@@ -34,21 +34,43 @@ hlsl(ps) {
     return tex2Dlod(land_detail_map_n0, float4(uv, 0, 0)).rgb;
   }
 
-  void get_weights(float2 world_pos_xz, out half4 weight1, out half3 weight2)
+  // folding the continuous cell coordinate reflects the intra-cell position with it.
+  // The period is not twice the map: MirroredCellState::init shifts the positive side by a cell
+  float2 land_weight_mirrored_cell(float2 world_pos_xz, out float2 wrapped, out float2 mirror)
   {
-    // Cells outside the map are mirrored copies of the ones inside. Folding the
-    // continuous cell coordinate reflects the intra-cell position along with it,
-    // for any number of reflections (the renderer only ever mirrors once). The
-    // period is not twice the map: MirroredCellState::init shifts the positive
-    // side by a grid cell, so the far reflection sits half of one inside.
     float2 cf = world_pos_xz * land_weight_cell.x + land_weight_cell.yz;
     float2 period = land_weight_fold.xy;
-    float2 wrapped = cf - period * floor(cf * land_weight_fold.zw);
-    float2 folded = min(wrapped, period - wrapped);
+    wrapped = cf - period * floor(cf * land_weight_fold.zw);
+    mirror = period - wrapped;
+    return min(wrapped, mirror);
+  }
+
+  // back to the source world position, so the de-tile map reads the record the fold picked
+  float2 land_weight_reflected_world(float2 world_pos_xz, out int2 cell)
+  {
+    float2 wrapped, mirror;
+    cell = int2(land_weight_mirrored_cell(world_pos_xz, wrapped, mirror));
+    float2 reflected = (mirror - land_weight_cell.yz) / land_weight_cell.x;
+    return float2(wrapped.x > mirror.x ? reflected.x : world_pos_xz.x, wrapped.y > mirror.y ? reflected.y : world_pos_xz.y);
+  }
+
+  uint land_weight_cell_record_ofs(int2 cell) { return uint(cell.y * (int)land_weight_cell.w + cell.x) * LAND_WEIGHT_CELL_STRIDE; }
+
+  // the landclass id behind a cell slot (0..6)
+  uint land_weight_cell_slot_id(int2 cell, uint slot)
+  {
+    uint ofs = land_weight_cell_record_ofs(cell) + LAND_WEIGHT_CELL_IDS_OFS + slot;
+    return (loadBuffer(land_weight_cells, ofs & ~3u) >> ((ofs & 3u) * 8u)) & 0xFFu;
+  }
+
+  void get_weights(float2 world_pos_xz, out half4 weight1, out half3 weight2)
+  {
+    float2 wrapped, mirror;
+    float2 folded = land_weight_mirrored_cell(world_pos_xz, wrapped, mirror);
     int2 cell = int2(folded);
     float2 cellUv = frac(folded);
 
-    uint rec = loadBuffer(land_weight_cells, (cell.y * (int)land_weight_cell.w + cell.x) * LAND_WEIGHT_CELL_STRIDE);
+    uint rec = loadBuffer(land_weight_cells, land_weight_cell_record_ofs(cell));
     uint count = ((rec >> LAND_WEIGHT_COUNT_SHIFT) & LAND_WEIGHT_COUNT_MASK) + 1;
 
     float4 w0123 = float4(1, 0, 0, 0);

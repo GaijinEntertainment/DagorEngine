@@ -4,6 +4,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/gdk/plm.h>
 #include <debug/dag_debug.h>
 
 
@@ -185,6 +186,8 @@ void init()
     if (iter > MAX_RETRIES)
       DAG_FATAL("Failed to initialize input. Something went wrong.");
 
+    // GameInputCreate fails while the title is suspended
+    gdk::wait_while_suspended();
     result = GameInputCreate(&game_input);
     if (FAILED(result))
     {

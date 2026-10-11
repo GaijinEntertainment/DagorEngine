@@ -76,6 +76,8 @@ public:
     discard_rad = genDiscardRadius;
   }
 
+  bool shouldBakeGeometryVertexLighting() const { return bakeGeometryVertexLighting; }
+
 private:
   Workspace params;
 
@@ -88,6 +90,8 @@ private:
   bool hmapRequireTileTex, hmapHasColorTex, hmapHasLightmapTex, hmapUseMeshSurface;
   bool hmapUseNormalMap;
   float genFwdRadius, genBackRadius, genDiscardRadius;
+  bool bakeGeometryVertexLighting = false;
+
 
   bool loadSpecific(const DataBlock &blk) override;
   bool loadAppSpecific(const DataBlock &blk) override;

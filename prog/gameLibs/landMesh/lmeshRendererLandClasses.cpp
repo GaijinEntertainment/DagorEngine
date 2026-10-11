@@ -28,6 +28,7 @@
 #include <startup/dag_globalSettings.h>
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/lmeshManager.h>
+#include <landMesh/lmeshWeightAtlas.h> // LAND_WEIGHT_CELL_LC_ID_RANGE
 #include "heightmap/heightmapHandler.h"
 #include "lmeshRendererGlue.h"
 #include <memory/dag_framemem.h>
@@ -36,6 +37,7 @@
 #include <EASTL/unique_ptr.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_hash.h>
+#include <3d/dag_lockSbuffer.h>
 #include "lmeshRendererCommon.h"
 
 static int create_new_land_shader(const char *shader_name, const char *landclass_name)
@@ -210,6 +212,113 @@ void LandVtexRenderer::prepareLandClasses(LandMeshManager &provider)
   }
 
   updateCustomSamplers(provider);
+}
+
+// The renderer owns the callback: a driver that takes it only calls
+// destroySelf() when a second one replaces it (see LandWeightAtlas::CellsReload).
+struct LandVtexRenderer::DetileReload final : public Sbuffer::IReloadData
+{
+  LandVtexRenderer &owner;
+  DetileReload(LandVtexRenderer &o) : owner(o) {}
+  void reloadD3dRes(Sbuffer *) override
+  {
+    owner.detileParamsDirty = true; // the device dropped the content
+    owner.uploadDetileParams(owner.weightAtlasPresent);
+  }
+  void destroySelf() override {}
+};
+
+// one record per landclass (land_detile.hlsli); a shader resolves the id from the atlas record
+void LandVtexRenderer::uploadDetileParams(bool has_weight_atlas)
+{
+  if (weightAtlasPresent != has_weight_atlas) // the gate depends on it: recompute on a flip
+    detileParamsDirty = true;
+  weightAtlasPresent = has_weight_atlas;
+  if (land_detile_params_const_no < 0 || !detileParamsDirty)
+    return;
+  detileParamsDirty = false;
+  bool anyOn = false;
+  for (const LandClassDetailTextures &lc : landClasses)
+    anyOn |= lc.detile.enabled();
+  if (!anyOn) // an all-off level allocates nothing; a toggle-off keeps the records, nothing reads past the gate
+  {
+    detileOn = false;
+    return;
+  }
+  const uint32_t dwords = LAND_WEIGHT_CELL_LC_ID_RANGE * LAND_DETILE_PARAMS_STRIDE / 4;
+  if (!detileParamsBuf)
+  {
+    detileParamsBuf = d3d::buffers::create_persistent_sr_byte_address(dwords, "land_detile_params", d3d::buffers::Init::Zero);
+    if (!detileParamsBuf)
+    {
+      logerr("land_detile_params: buffer creation failed, de-tiling stays off");
+      detileOn = false;
+      return;
+    }
+    detileReload = new DetileReload(*this);
+    detileParamsBuf->setReloadCallback(detileReload);
+  }
+  auto rec = lock_sbuffer<uint32_t>(detileParamsBuf, 0, dwords, VBLOCK_WRITEONLY);
+  if (!rec)
+  {
+    logerr("land_detile_params: lock failed, de-tiling stays off");
+    detileOn = false;
+    return;
+  }
+  memset(rec.get(), 0, dwords * 4);
+  // the last record stays zeroed: the 0xFF id of a free cell slot must read an off record
+  const uint32_t n = min<uint32_t>(landClasses.size(), LAND_WEIGHT_CELL_LC_ID_RANGE - 1);
+  for (uint32_t i = 0; i < n; ++i)
+  {
+    const LandDetile &d = landClasses[i].detile;
+    uint32_t *r = rec.get() + i * (LAND_DETILE_PARAMS_STRIDE / 4);
+    r[LAND_DETILE_PARAMS_CLUSTERS / 4] = d.clusters;
+    memcpy(r + LAND_DETILE_PARAMS_ANGLE / 4, &d.angle, sizeof(float));
+    memcpy(r + LAND_DETILE_PARAMS_SPREAD / 4, &d.spread, sizeof(float));
+    memcpy(r + LAND_DETILE_PARAMS_SIZE / 4, &d.size, sizeof(float));
+  }
+  // a missing LUT keeps the old path too: a null-SRV read is platform-defined
+  const bool lutMissing = var::noise_64_tex_l8.get_texture() == BAD_TEXTUREID;
+  if (lutMissing)
+    logerr("de-tiled landclasses need init_and_get_l8_64_noise() from the renderer init");
+  // the slot-id read needs the atlas cell records
+  if (!weightAtlasPresent)
+    logwarn("de-tiled landclasses without a weight atlas: de-tiling off");
+  detileOn = !lutMissing && weightAtlasPresent;
+}
+
+void LandVtexRenderer::bindDetileParams() const
+{
+  // the gate travels with the buffer: another renderer's prepare must not arm this draw
+  ShaderGlobal::set_int(var::land_detile_on, detileOn ? 1 : 0);
+  // declared when off too: no stale binds
+  if (land_detile_params_const_no >= 0)
+    d3d::set_buffer(STAGE_PS, land_detile_params_const_no, detileParamsBuf);
+  if (land_detile_noise_tex_const_no >= 0)
+    bind_managed_tex_ps(land_detile_noise_tex_const_no, var::noise_64_tex_l8.get_texture(), d3d::SamplerHandle::Invalid);
+}
+
+int LandVtexRenderer::applyDetileOverride(const char *name, int clusters, float angle_rad, float spread_rad)
+{
+  int n = 0;
+  for (LandClassDetailTextures &lc : landClasses)
+    if (strcmp(name, "*") == 0 || strcmp(lc.name, name) == 0)
+    {
+      lc.detile.clusters = lc.detile.clampClusters(clusters); // size stays the level's
+      lc.detile.angle = angle_rad;
+      lc.detile.spread = spread_rad;
+      n++;
+    }
+  if (n > 0)
+    detileParamsDirty = true;
+  return n;
+}
+
+void LandVtexRenderer::closeDetileParams()
+{
+  del_d3dres(detileParamsBuf);
+  delete detileReload;
+  detileReload = nullptr;
 }
 
 void LandVtexRenderer::updateCustomSamplers(LandMeshManager &provider)

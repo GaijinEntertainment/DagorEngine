@@ -134,12 +134,7 @@ def usev(x : int) : int {
 
 // ----- driver -----
 
-var GRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-201, -101, -7, -1, 0, 1, 7, 100, 101, 250]
-}
+var GRID <- [-201, -101, -7, -1, 0, 1, 7, 100, 101, 250]
 
 [test]
 def test_flatten_coverage(t : T?) {

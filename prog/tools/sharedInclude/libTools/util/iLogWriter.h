@@ -17,7 +17,7 @@ class ILogWriter
 {
 public:
   /// Messages types.
-  enum MessageType
+  enum MessageType : int // constraint: daBuild sends NOTE | 0x100
   {
     NOTE,    ///< Note message
     WARNING, ///< Warning message

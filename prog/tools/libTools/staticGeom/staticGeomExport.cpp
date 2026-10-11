@@ -125,8 +125,7 @@ void StaticGeometryContainer::exportDag(const char *path, bool make_tex_path_loc
     if (dag.start_save_node(nodes[j]->name, nodes[j]->wtm, flags))
     {
       Tab<uint16_t> nodeMaterials(tmpmem);
-      DagBigMapChannel mapch[NUMMESHTCH];
-      int mapChannels = 0;
+      DagMapChannels mapch;
       Tab<DagBigFace> fc(tmpmem);
 
       if (!nodes[j]->mesh.get())
@@ -153,19 +152,7 @@ void StaticGeometryContainer::exportDag(const char *path, bool make_tex_path_loc
       dag.save_node_mats(nodeMaterials.size(), nodeMaterials.data());
 
 
-      for (int m = 0; m < NUMMESHTCH; ++m)
-      {
-        if (!(mesh.tvert[m].size()))
-          continue;
-
-        mapch[mapChannels].numtv = mesh.tvert[m].size();
-        mapch[mapChannels].num_tv_coords = 2;
-        mapch[mapChannels].channel_id = m + 1;
-        mapch[mapChannels].tverts = &mesh.tvert[m][0][0];
-
-        mapch[mapChannels].tface = (DagBigTFace *)mesh.tface[m].data();
-        ++mapChannels;
-      }
+      mapch.fill(mesh);
 
 
       fc.resize(mesh.face.size());
@@ -288,15 +275,7 @@ void StaticGeometryContainer::exportDag(const char *path, bool make_tex_path_loc
 
       if (nodes[j]->mesh.get())
       {
-        for (int m = 0; m < NUMMESHTCH; ++m)
-          for (int tv = 0; tv < mesh.tvert[m].size(); ++tv)
-            mesh.tvert[m][tv].y = -mesh.tvert[m][tv].y;
-
-        dag.save_dag_bigmesh(mesh.vert.size(), mesh.vert.data(), mesh.face.size(), &fc[0], mapChannels, mapch);
-
-        for (int m = 0; m < NUMMESHTCH; ++m)
-          for (int tv = 0; tv < mesh.tvert[m].size(); ++tv)
-            mesh.tvert[m][tv].y = -mesh.tvert[m][tv].y;
+        dag.save_dag_bigmesh(mesh.vert.size(), mesh.vert.data(), mesh.face.size(), &fc[0], mapch.count, mapch.channel);
       }
 
       dag.end_save_node();
@@ -469,22 +448,9 @@ void StaticGeometryContainer::writeNodes(DagSaver *sv) const
 
       sv->save_node_mats(nodeMaterials.size(), nodeMaterials.data());
 
-      DagBigMapChannel mapch[NUMMESHTCH];
-      int mapChannels = 0;
+      DagMapChannels mapch;
 
-      for (int m = 0; m < NUMMESHTCH; ++m)
-      {
-        if (!(mesh.tvert[m].size()))
-          continue;
-
-        mapch[mapChannels].numtv = mesh.tvert[m].size();
-        mapch[mapChannels].num_tv_coords = 2;
-        mapch[mapChannels].channel_id = m + 1;
-        mapch[mapChannels].tverts = &mesh.tvert[m][0][0];
-
-        mapch[mapChannels].tface = (DagBigTFace *)mesh.tface[m].data();
-        ++mapChannels;
-      }
+      mapch.fill(mesh);
 
       Tab<DagBigFace> fc(tmpmem);
       fc.resize(mesh.face.size());
@@ -605,15 +571,7 @@ void StaticGeometryContainer::writeNodes(DagSaver *sv) const
       else
         sv->save_node_script("");
 
-      for (int m = 0; m < NUMMESHTCH; ++m)
-        for (int tv = 0; tv < mesh.tvert[m].size(); ++tv)
-          mesh.tvert[m][tv].y = -mesh.tvert[m][tv].y;
-
-      sv->save_dag_bigmesh(mesh.vert.size(), mesh.vert.data(), mesh.face.size(), &fc[0], mapChannels, mapch);
-
-      for (int m = 0; m < NUMMESHTCH; ++m)
-        for (int tv = 0; tv < mesh.tvert[m].size(); ++tv)
-          mesh.tvert[m][tv].y = -mesh.tvert[m][tv].y;
+      sv->save_dag_bigmesh(mesh.vert.size(), mesh.vert.data(), mesh.face.size(), &fc[0], mapch.count, mapch.channel);
 
       sv->end_save_node();
     }

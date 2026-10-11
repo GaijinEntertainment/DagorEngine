@@ -204,6 +204,35 @@ def test_tsi_cross_module(t : T?) {
     }
 }
 
+// the template stays HERE while its concrete base XModBase stays in the required module: a
+// same-module pair reifies green either way, so only the split pins the cast<auto> __finalize init
+[ |> template_struct_instance]
+class template XModOverKern : XModBase {
+    @template_constant STEP : int = 1
+
+    def value : int {
+        return hits * STEP
+    }
+}
+
+class XModOverInt : XModOverKern {
+    override STEP = 10
+}
+
+[test]
+def test_tsi_cross_module_base(t : T?) {
+    t |> run("template deriving a concrete class from another module keeps that class as parent") @(t : T?) {
+        unsafe {
+            var inscope k <- new XModOverInt()
+            k->bump()
+            k->bump()
+            var base : XModBase? = k
+            t |> equal(base.hits, 2)
+            t |> equal(k->value(), 20)
+        }
+    }
+}
+
 [test]
 def test_tsi_late_bind(t : T?) {
     t |> run("an alias another macro supplies after the reifier binds at infer") @(t : T?) {
@@ -278,8 +307,8 @@ class GExt : GKernT {
 def test_tsi_gated_fields(t : T?) {
     t |> run("a gated field exists only where its axis says so, both polarities") @(t : T?) {
         // each stamp dropped exactly one of the two gated ints — both remaining would be 12
-        t |> equal(int(typeinfo sizeof(type<GateOff>)), 8)
-        t |> equal(int(typeinfo sizeof(type<GateOn>)), 8)
+        t |> equal(typeinfo sizeof(type<GateOff>), 8)
+        t |> equal(typeinfo sizeof(type<GateOn>), 8)
         let off = GateOff(a = 1, solo = 3) // named-arg construction pins WHICH field survived
         let on = GateOn(a = 1, rt = 2)
         t |> equal(off.a + off.solo, 4)
@@ -322,6 +351,101 @@ def test_tsi_method_annotation_apply(t : T?) {
             var inscope k <- new TagInt()
             k.x = 21
             t |> equal(k->tick(), 42)
+        }
+    }
+}
+
+//! chain fixture: cross-level calls (ChainBase`run -> ChainMid`leaf_add) must resolve to the stamped names
+[ |> template_struct_instance]
+class template ChainBase {
+    @template_constant SCALE : int = 1
+    base_v : int = 7
+
+    def abstract leaf_add(x : int) : int
+
+    def run(x : int) : int {
+        return leaf_add(x) * SCALE + base_v
+    }
+}
+
+[ |> template_struct_instance]
+class template ChainMid : ChainBase {
+    @template_constant BUMP : int = 0
+    mid_v : TT
+
+    def override leaf_add(x : int) : int {
+        return x + int(mid_v) + BUMP
+    }
+}
+
+class ChainLeaf : ChainMid {
+    typedef TT = float
+    override SCALE = 3
+    override BUMP = 10
+}
+
+class ChainLeafOwn : ChainMid {
+    typedef TT = int
+    override SCALE = 2
+
+    def override leaf_add(x : int) : int { //! instance override beats BOTH template levels
+        return x - mid_v
+    }
+}
+
+//! chain fixture under a concrete base: a template level overrides a non-abstract template method, ChainRoot stays the parent
+class ChainRoot {
+    hits : int = 0
+
+    def bump : void {
+        hits++
+    }
+}
+
+[ |> template_struct_instance]
+class template RootedBase : ChainRoot {
+    @template_constant SCALE : int = 1
+
+    def accum(x : int) : int {
+        return x * 2
+    }
+    def run(x : int) : int {
+        return accum(x) * SCALE + hits
+    }
+}
+
+[ |> template_struct_instance]
+class template RootedMid : RootedBase {
+    def override accum(x : int) : int {
+        return x * 3
+    }
+}
+
+class RootedLeaf : RootedMid {
+    override SCALE = 10
+}
+
+class RootedLeafBase : RootedBase {
+    override SCALE = 10
+}
+
+[test]
+def test_tsi_template_chain(t : T?) {
+    t |> run("a template chain reifies whole: constants, typedefs and overrides at every level") @(t : T?) {
+        unsafe {
+            var inscope c <- new ChainLeaf(mid_v = 2.0)
+            t |> equal(c->run(5), (5 + 2 + 10) * 3 + 7)
+            var inscope o <- new ChainLeafOwn(mid_v = 4)
+            t |> equal(o->run(9), (9 - 4) * 2 + 7)
+        }
+    }
+    t |> run("a template-level override of a template method reifies under a concrete parent") @(t : T?) {
+        unsafe {
+            var inscope m <- new RootedLeaf()
+            m->bump()
+            t |> equal(m->run(5), 5 * 3 * 10 + 1)
+            var inscope b <- new RootedLeafBase()
+            t |> equal(b->run(5), 5 * 2 * 10)
         }
     }
 }

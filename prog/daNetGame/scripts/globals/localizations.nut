@@ -37,25 +37,21 @@ function locWithCheck(locId, ...) {
   return nativeLoc.acall([null, locId].extend(vargv))
 }
 
-function hashLocFunc(locId, ...) {
-  let keys = ["", ""]
+function hashLocArg(v) {
+  if (v == null)
+    return ""
+  if (type(v) in const (["string", "float", "integer", "bool"].totable()))
+    return v
+  let r = []
+  foreach (k, val in v)
+    r.append(k, val)
+  return "_".join(r) //better to replace with fast hash here
+}
 
-  foreach (idx, v in vargv) {
-    let t = type(v)
-    if (v==null)
-      keys[idx] = ""
-    else if (t in const (["string", "float", "integer", "bool"].totable()))
-      keys[idx] = v
-    else {
-      let r = []
-      foreach (k, val in v) {
-        r.append(k, val)
-      }
-      keys[idx] = "_".join(r) //better to replace with fast hash here
-    }
-  }
-
-  return $"{locId}{keys[0]}{keys[1]}"
+function hashLocFunc(locId, defLoc, params) {
+  if (defLoc == null && params == null)
+    return locId
+  return $"{locId}{hashLocArg(defLoc)}{hashLocArg(params)}"
 }
 
 let persistLocCache = persist("persistLocCache", @(){})

@@ -69,8 +69,8 @@ public:
   ~BcCompressor();
   BcCompressor(const BcCompressor &) = delete;
   BcCompressor &operator=(const BcCompressor &) = delete;
-  BcCompressor(BcCompressor &&);
-  BcCompressor &operator=(BcCompressor &&);
+  BcCompressor(BcCompressor &&) noexcept;
+  BcCompressor &operator=(BcCompressor &&) noexcept;
 
   bool resetBuffer(unsigned int mips, unsigned int width, unsigned int height, int htiles); // uncompressed dimensions. recreate buffer
                                                                                             // texture

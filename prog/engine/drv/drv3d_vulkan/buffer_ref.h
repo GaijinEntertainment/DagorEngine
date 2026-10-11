@@ -54,7 +54,8 @@ struct BufferRef
   }
   friend bool operator!=(const BufferRef &l, const BufferRef &r) { return !(l == r); }
 
-  BufferRef discard(DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags, uint32_t dynamic_size);
+  BufferRef discard(DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags, uint32_t dynamic_size,
+    uint32_t visible_size = 0);
 };
 
 inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size) :

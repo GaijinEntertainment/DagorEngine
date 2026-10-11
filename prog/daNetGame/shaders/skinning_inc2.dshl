@@ -3,6 +3,9 @@ include "animchar_additional_data.dshl"
 
 buffer instance_data_buffer;
 buffer bind_pose_tr_buffer always_referenced;
+int cor_skinning_support = 0;
+interval cor_skinning_support : off < 1, on;
+assume_if_not_assumed cor_skinning_support = off;
 
 macro DYNMODEL_SHARED_DECL_BUFFER(code)
   if (small_sampled_buffers == no)
@@ -208,7 +211,37 @@ hlsl(code)
 
 INIT_PER_INSTANCE_DATA(code)
 USE_BONE_VERTEX_UNPACKING(code)
-USE_BONE_MATRIX_BLENDING_GEN(code, blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER, 0)
+if (cor_skinning_support == on)
+{
+  hlsl(code)
+  {
+    #include <cor_skinning.hlsl>
+    bone_t fetch_skinning_bone(uint offset, uint bi)
+    {
+      bone_t bone;
+      bi = bi * SKINNING_MATRIX_STRIDE + offset;
+      bone.r0 = get_bone_row(bi + 0);
+      bone.r1 = get_bone_row(bi + 1);
+      bone.r2 = get_bone_row(bi + 2);
+      return bone;
+    }
+    bone_t fetch_skinning_matrix_base(uint offset, uint bi) { return bone_matrix(fetch_skinning_bone(offset, bi)); }
+    bone_t blend_skinning_matrix_base(uint offset, uint4 bi, float4 bw)
+    {
+      bone_t b0 = fetch_skinning_matrix_base(offset, bi.x), b1 = fetch_skinning_matrix_base(offset, bi.y);
+      bone_t b2 = fetch_skinning_matrix_base(offset, bi.z), b3 = fetch_skinning_matrix_base(offset, bi.w);
+      bone_t skinnedTm;
+      skinnedTm.r0 = b0.r0 * bw.x + b1.r0 * bw.y + b2.r0 * bw.z + b3.r0 * bw.w;
+      skinnedTm.r1 = b0.r1 * bw.x + b1.r1 * bw.y + b2.r1 * bw.z + b3.r1 * bw.w;
+      skinnedTm.r2 = b0.r2 * bw.x + b1.r2 * bw.y + b2.r2 * bw.z + b3.r2 * bw.w;
+      return skinnedTm;
+    }
+  }
+}
+else
+{
+  USE_BONE_MATRIX_BLENDING_GEN(code, blend_skinning_matrix_base, fetch_skinning_matrix_base, SKINNING_MATRIX_STRIDE, SKINNING_BONE_ROW_GETTER, 0)
+}
 
 hlsl(code)
 {
@@ -286,6 +319,32 @@ hlsl(code)
     return skinning_matrix_base(input, 3);//Skip 3 rows
   }
 
+  // constraint: a pass that defines HAS_COR_SKINNING declares VsInput::corOffset; zero keeps linear blend skinning
+  bool skin_vertex_base(in VsInput input, uint in_matrix_offset, float3 vertex_pos, out float3 skinned_pos,
+    out float3x3 skinned_rot)
+  {
+    uint4 bi; float4 bw;
+    unpack_bone_vertex_data(input.packedBoneIndices, input.boneWeights, bi, bw);
+  ##if cor_skinning_support == on
+    #if HAS_COR_SKINNING
+    float3 corOffset = cor_offset_decode(input.corOffset);
+    #else
+    float3 corOffset = 0;
+    #endif
+    cor_skin(fetch_skinning_bone(in_matrix_offset, bi.x), fetch_skinning_bone(in_matrix_offset, bi.y),
+      fetch_skinning_bone(in_matrix_offset, bi.z), fetch_skinning_bone(in_matrix_offset, bi.w), bw, vertex_pos,
+      corOffset, skinned_pos, skinned_rot);
+    return checkAllBonesToCollapse(bi, bw);
+  ##else
+    bone_t skinned_tm = blend_skinning_matrix(bi, bw, in_matrix_offset);
+    // constraint: the node collapser zeroes the blended matrix, not the bone rows
+    bool collapsed = all(and(and(skinned_tm.r0 == 0, skinned_tm.r1 == 0), skinned_tm.r2 == 0));
+    skinned_rot = float3x3(skinned_tm.r0.xyz, skinned_tm.r1.xyz, skinned_tm.r2.xyz);
+    skinned_pos = mul_bone(vertex_pos, skinned_tm);
+    return collapsed;
+  ##endif
+  }
+
   void instance_skinning(
     in VsInput input,
     in float3 vertex_pos,
@@ -300,10 +359,8 @@ hlsl(code)
   {
     SETUP_RENDER_VARS(0); // For skins, rigid_index is always 0
 
-    bone_t skinnedTm = skinning_matrix(input);
-
-    eye_to_point = mul_bone(vertex_pos, skinnedTm);
-    float3x3 wtm = float3x3(skinnedTm.r0.xyz, skinnedTm.r1.xyz, skinnedTm.r2.xyz);
+    float3x3 wtm;
+    bool collapsed = skin_vertex_base(input, 0, vertex_pos, eye_to_point, wtm);
 
     world_normal = normalize(mul_bone3m(vertex_normal, wtm));
     #if VERTEX_TANGENT
@@ -314,7 +371,7 @@ hlsl(code)
     #endif
     output_pos = eye_to_point.x * globtm_0 + eye_to_point.y * globtm_1 + eye_to_point.z * globtm_2 + globtm_3;
 
-    if (all(and(and(skinnedTm.r0 == 0, skinnedTm.r1 == 0), skinnedTm.r2 == 0)))
+    if (collapsed)
       output_pos = NaN;
   }
 }
@@ -359,9 +416,10 @@ macro USE_MOTION_VECTORS()
     {
       #ifdef HAS_SKINNING
         SETUP_RENDER_VARS(0); // For skins, rigid_index is always 0
-        bone_t skinnedTm = skinning_matrix_base(input, PREV_MATRIX_OFFSET);
-        float3 skinned_vertex_pos = mul_bone(vertex_pos, skinnedTm);
-        float3 world_normal = mul_bone3(vertex_normal, skinnedTm);
+        float3 skinned_vertex_pos;
+        float3x3 skinnedRot;
+        skin_vertex_base(input, PREV_MATRIX_OFFSET, vertex_pos, skinned_vertex_pos, skinnedRot);
+        float3 world_normal = mul_bone3m(vertex_normal, skinnedRot);
       #else
         SETUP_RENDER_VARS(input.normal.w);
         float3 skinned_vertex_pos = vertex_pos;

@@ -7,6 +7,8 @@ namespace objectmotionblur
 {
 bool is_enabled() { return false; }
 void on_settings_changed(const MotionBlurSettings &) {}
+MotionBlurSettings get_live_settings() { return MotionBlurSettings(); }
+void set_live_settings(const MotionBlurSettings &) {}
 bool is_frozen_in_pause() { return false; }
 bool needs_transparent_gbuffer() { return false; }
 

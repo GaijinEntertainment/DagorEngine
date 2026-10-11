@@ -52,10 +52,7 @@ def test_lockbox_grab_returns_data(t : T?) {
                 with_channel(1) $(ch) {
                     // fill and grab in the same job — data must outlive grab
                     new_job() @() {
-                        var buf : array<float>
-                        buf |> push(10.0)
-                        buf |> push(20.0)
-                        buf |> push(30.0)
+                        var buf <- [10.0, 20.0, 30.0]
                         box |> fill(buf)
                         var grabbed_sum = 0.0
                         var grabbed_len = 0
@@ -113,9 +110,7 @@ def test_lockbox_fill_grab_cycle(t : T?) {
             with_lock_box() $(box) {
                 with_channel(1) $(ch) {
                     new_job() @() {
-                        var buf1 : array<float>
-                        buf1 |> push(1.0)
-                        buf1 |> push(2.0)
+                        var buf1 <- [1.0, 2.0]
                         // cycle 1
                         box |> fill(buf1)
                         var sum1 = 0.0
@@ -125,10 +120,7 @@ def test_lockbox_fill_grab_cycle(t : T?) {
                             }
                         }
                         // cycle 2
-                        var buf2 : array<float>
-                        buf2 |> push(10.0)
-                        buf2 |> push(20.0)
-                        buf2 |> push(30.0)
+                        var buf2 <- [10.0, 20.0, 30.0]
                         box |> fill(buf2)
                         var sum2 = 0.0
                         box |> grab() $(var arr : array<float>) {

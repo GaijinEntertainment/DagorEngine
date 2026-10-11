@@ -138,7 +138,7 @@ bool GlobalVertexDataSrc::checkChannels(const CompiledShaderChannelId *ch, int c
 bool GlobalVertexDataSrc::checkFreeSpace(int add_numv, int add_numf, bool allow_32_bit) const
 {
   if (allow_32_bit)
-    return ((numv + add_numv) <= MAX_VERTEX_32) && ((numf + add_numf) * 3 <= MAX_INDEX_32);
+    return true;
   else
     return ((numv + add_numv) <= MAX_VERTEX_16) && ((numf + add_numf) * 3 <= MAX_INDEX_16);
   //  return ((numv + add_numv) * stride <= 0xFFFF) && ((numf + add_numf) * 3 <= 0xFFFF);

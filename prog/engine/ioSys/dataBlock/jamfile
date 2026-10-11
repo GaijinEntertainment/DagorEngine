@@ -1,6 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/engine/ioSys/dataBlock ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 
 TargetType  = lib ;
 Target      = engine/ioSys/dataBlock.lib ;

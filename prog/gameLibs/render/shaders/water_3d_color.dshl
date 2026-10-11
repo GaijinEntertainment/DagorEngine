@@ -4,9 +4,6 @@ include "water_foam_params_inc.dshl"
 int use_water_fresnel_reflections = 0;
 interval use_water_fresnel_reflections : no<1, yes;
 
-int chop_water_enabled = 0;
-interval chop_water_enabled : no<1, yes;
-
 hlsl {
   #define WATER_GEOMORPHING FULL_GEOMORPH_LODS
 }
@@ -42,10 +39,6 @@ float water_sss_max_view_angle_cos = 0.95;
 float tacview_gridXZ;
 float4 tacview_gridXZ_color;
 float4 tacView_watercolor = (0.0, 0.0, 0.1, 0.0);
-
-float4 water_perlin_smoothness_tc_factors = (0.00011, 0.00041, 0, 0);
-float4 water_perlin_fadeout = (500, 800, 0, 0);
-float water_perlin_mip_influence = 1.0;
 
 float zFarSphere_radius = 1000000;
 float zFarSphere_error = 0;
@@ -91,9 +84,6 @@ macro INIT_WATER_3D_DEFERRED_COLOR()
   }
   (ps) {
     far_water_transparency@f1 = (far_water_transparency, 0, 0, 0);
-    water_perlin_smoothness_tc_factors@f4 = water_perlin_smoothness_tc_factors;
-    perlin_fadeout@f2 = water_perlin_fadeout;
-    perlin_mip_influence@f1 = water_perlin_mip_influence;
     rcpFadeDist@f1 = (1 / min(zn_zfar.y, zFarSphere_radius - zFarSphere_error));
     water_zfar@f1 = zn_zfar.y;
     // raw values: the water preshader is at the stcode temp register limit,
@@ -159,7 +149,6 @@ macro USE_WATER_3D_DEFERRED_COLOR()
   USE_SUN_DISK_SPECULAR()
   USE_AND_INIT_VIEW_VEC_PS()
   VIEW_VEC_OPTIMIZED(ps)
-  WATER_3D_COMMON_PS()
   INIT_WATER_FOAM(ps)
 
   if (compatibility_mode == compatibility_mode_off)
@@ -812,6 +801,9 @@ macro USE_WATER_3D_DEFERRED_COLOR()
   #endif
       half3 refraction = refractionsData.finalLitRefraction;
 ##endif
+#ifdef WATER_LIGHTS_REFLECTION
+      reflection += reflectionsData.lightsReflection;
+#endif
 
       half4 result = half4(0, 0, 0, 1);
 

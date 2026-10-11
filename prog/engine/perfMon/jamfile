@@ -15,7 +15,6 @@ AddIncludes =
 Sources =
   profilerModes.cpp
   profilerSettings.cpp
-  visClipMesh.cpp
   stat3d.cpp
   tdrProfile.cpp
   statStd.cpp

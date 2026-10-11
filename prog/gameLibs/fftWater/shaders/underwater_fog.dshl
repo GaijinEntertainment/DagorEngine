@@ -9,15 +9,18 @@ float4 river1 = (0.56,0.54,0.28,0);
 float underwater_fog_base_diffuse = 0.6;
 float underwater_fog_normal_diffuse = 0.4;
 
+float height_tiling = 1;
+float water_color_noise_size = 737;
+
 macro INIT_UNDERWATER_FOG(stage)
-  local float4 ocean0_srgb = (sRGBRead(ocean0));
-  local float4 ocean1_srgb = (sRGBRead(ocean1));
-  local float4 river0_srgb = (sRGBRead(river0));
-  local float4 river1_srgb = (sRGBRead(river1));
+  local float4 ocean0_srgb = (sRGBread(ocean0));
+  local float4 ocean1_srgb = (sRGBread(ocean1));
+  local float4 river0_srgb = (sRGBread(river0));
+  local float4 river1_srgb = (sRGBread(river1));
   (stage) {
-    ocean0@f4 = (ocean0_srgb.r,ocean0_srgb.g,ocean0_srgb.b, -ocean_density);
+    ocean0@f4 = (ocean0_srgb.r,ocean0_srgb.g,ocean0_srgb.b, ocean_density);
     ocean1@f4 = (ocean1_srgb.r,ocean1_srgb.g,ocean1_srgb.b, 1./(0.01+(height_tiling+1)*water_color_noise_size));
-    river0@f4 = (river0_srgb.r, river0_srgb.g, river0_srgb.b, -river_density);
+    river0@f4 = (river0_srgb.r, river0_srgb.g, river0_srgb.b, river_density);
     river1@f4 = (river1_srgb.r, river1_srgb.g, river1_srgb.b, (0.41*0.3/PI));//inscatter through surface can not be more, than (0.98*0.66)^2/pi
   }
 endmacro
@@ -32,27 +35,17 @@ macro GET_UNDERWATER_FOG_PERLIN(stage)
     }
     void get_underwater_fog_colored(float4 oceanColorDensity, float3 waterWorldPos, float3 view, float water_view_depth, out half3 underwater_loss, out half3 underwater_inscatter)
     {
-      //float dist = depthDist;
-      //if (waterWorldPos.y>water_level && view.y<-0.01)
-      //  dist = depthDist + water_level/view.y;
-      underwater_loss = half3(exp2(saturate(float3(1.0,1.0,1.0)-oceanColorDensity.rgb)*(oceanColorDensity.w*max(0.0, water_view_depth))));
+      underwater_loss = half3(exp2(saturate(float3(1.0,1.0,1.0)-oceanColorDensity.rgb)*(-oceanColorDensity.w*max(0.0, water_view_depth))));
       float water_total_inscatter = river1.w;
       underwater_inscatter = half3(oceanColorDensity.rgb*water_total_inscatter);
     }
     void get_underwater_fog_perlin(float3 waterWorldPos, float3 view, float water_view_depth, float ocean_part, half perlin_noise_water_color, out half3 underwater_loss, out half3 underwater_inscatter)
     {
-      //half3 oceanColor = get_ocean_color(waterWorldPos.xz, lerp(1, ocean_part, pow4(1-saturate(-view.y*4-0.1))));
-      //half3 oceanColor = get_ocean_color(waterWorldPos.xz, saturate((view.y+0.1)*10) > 0 ? ocean_part : 1);
       float4 oceanColor = get_ocean_color_perlin(waterWorldPos.xz, ocean_part, perlin_noise_water_color);
       get_underwater_fog_colored(oceanColor, waterWorldPos, view, water_view_depth, underwater_loss, underwater_inscatter);
     }
   }
 endmacro
-
-// FIXME: move out here, it is global constansts affecting not only underwater fog
-texture perlin_noise;
-float height_tiling = 1;
-float water_color_noise_size = 737;
 
 macro GET_UNDERWATER_FOG()
   GET_UNDERWATER_FOG_PERLIN(ps)

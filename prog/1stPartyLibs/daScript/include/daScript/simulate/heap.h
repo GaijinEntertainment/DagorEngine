@@ -4,6 +4,18 @@
 #include "daScript/misc/callable.h"
 #include "daScript/misc/anyhash.h"
 
+// Heap reporting is a host diagnostic: it walks every deck and formats it.
+// A build with nothing to report to compiles the bodies away.
+#ifndef DAS_HEAP_REPORT
+#define DAS_HEAP_REPORT 1
+#endif
+
+// The debug-info name cache is compiler-side: it interns names on the way into
+// debug info. A build that only runs already-generated code never fills it.
+#ifndef DAS_DEBUG_INFO_NAME_CACHE
+#define DAS_DEBUG_INFO_NAME_CACHE 1
+#endif
+
 namespace das {
 
     class StackAllocator {
@@ -14,6 +26,7 @@ namespace das {
 
         void strip () {
             if ( stack ) {
+                DAS_ASAN_UNPOISON(stack, stackSize);
                 das_aligned_free16(stack);
                 stack = nullptr;
             }
@@ -44,6 +57,7 @@ namespace das {
 
         __forceinline void reset() {
             evalTop = stackTop = stack + stackSize;
+            if ( stack ) DAS_ASAN_POISON(stack, stackSize);
         }
 
         __forceinline bool push(uint32_t size, char * & EP, char * & SP ) {        // stack watermark
@@ -54,6 +68,7 @@ namespace das {
             EP = evalTop;
             SP = stackTop;
             stackTop -= size;
+            DAS_ASAN_UNPOISON(stackTop, size);
             evalTop = stackTop;
             return true;
         }
@@ -64,6 +79,7 @@ namespace das {
         }
 
         __forceinline void pop(char * EP, char * SP ) {    // restore stack to watermark
+            DAS_ASAN_POISON(stackTop, SP - stackTop);
             evalTop = EP;
             stackTop = SP;
         }
@@ -82,6 +98,7 @@ namespace das {
             EP = evalTop;
             SP = stackTop;
             stackTop -= size;
+            DAS_ASAN_UNPOISON(stackTop, size);
             evalTop = stack + et;
             return true;
         }
@@ -148,6 +165,8 @@ namespace das {
         __forceinline uint64_t getTotalAllocations() const { return totalAllocations; }
         __forceinline uint64_t getTotalBytesAllocated() const { return totalBytesAllocated; }
         __forceinline uint64_t getTotalBytesDeleted() const { return totalBytesDeleted; }
+        __forceinline uint64_t getTotalFrees() const { return totalFrees; }
+        __forceinline uint64_t getTotalReallocations() const { return totalReallocations; }
     public:
         // Non-virtual fast-path dispatcher. When trackAllocations is false (the default),
         // this inlines to a single byte-load + always-predicted-false branch at every call
@@ -191,6 +210,8 @@ namespace das {
         uint64_t totalAllocations = 0;
         uint64_t totalBytesAllocated = 0;
         uint64_t totalBytesDeleted = 0;
+        uint64_t totalFrees = 0;
+        uint64_t totalReallocations = 0;
         bool     trackAllocations = false;
     };
 
@@ -269,7 +290,7 @@ namespace das {
 #else
     public:
         virtual void impl_free ( char * ptr, uint64_t size ) override {
-            totalBytesDeleted += size;
+            if (ptr) { ++totalFrees; totalBytesDeleted += size; }
             model.free(ptr,size);
         }
         virtual void sweep() override { model.sweep(); }
@@ -311,13 +332,24 @@ namespace das {
             if ( limit==0 || model.bytesAllocated()+size<=limit ) {
                 totalAllocations ++;
                 totalBytesAllocated += size;
+#if DAS_ASAN
+                return allocateWithGap(size);
+#else
                 return model.allocate(size);
+#endif
             } else {
                 return nullptr;
             }
         }
         virtual void impl_free ( char * ptr, uint64_t size ) override;
         virtual char * impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) override;
+#if DAS_ASAN
+        __forceinline char * allocateWithGap ( uint64_t size ) {
+            char * ptr = model.allocate(size + DAS_ASAN_REDZONE);
+            if ( ptr ) DAS_ASAN_POISON(ptr + size, DAS_ASAN_REDZONE);
+            return ptr;
+        }
+#endif
         virtual int depth() const override;
         virtual uint64_t bytesAllocated() const override;
         virtual uint64_t totalAlignedMemoryAllocated() const override;
@@ -351,8 +383,10 @@ namespace das {
         }
         virtual void reset () override;
         char * intern ( const char * str, uint64_t length ) const;
+        uint32_t blobLength ( const char * str ) const;
     protected:
         das_string_set internMap;
+        das_hash_map<const char *, uint32_t> blobLengths;
     };
 
     class DAS_API PersistentStringAllocator final : public StringHeapAllocator {
@@ -744,10 +778,15 @@ namespace das {
         virtual uint64_t grow ( uint64_t size ) override {
             return size;
         }
-        char * allocateCachedName ( const string & name );
         das_hash_map<uint64_t,TypeInfo *>    lookup;
+#if DAS_DEBUG_INFO_NAME_CACHE
+        // Every caller of this lives in src/ast - it is how the compiler interns
+        // the names it bakes into debug info. A runtime with no compiler in it
+        // has none, and the two maps keyed by string are not free to carry.
+        char * allocateCachedName ( const string & name );
         das_hash_map<string, char *>         stringLookup;
         das_hash_map<string, wchar_t *>      stringWideLookup;
+#endif
         uint64_t                             stringBytes = 0;
     };
 }

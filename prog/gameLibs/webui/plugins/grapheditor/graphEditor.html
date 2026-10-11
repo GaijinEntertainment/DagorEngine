@@ -1085,6 +1085,9 @@ function onTimer()
     return;
   }
 
+  if (editor.saveGraphError && !lastErrorString)
+    lastErrorString = editor.saveGraphError;
+
   if (attached)
   {
     var time = Date.now();

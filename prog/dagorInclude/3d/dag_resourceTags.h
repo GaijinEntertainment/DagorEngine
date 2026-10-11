@@ -25,7 +25,6 @@
 #define RESTAG_RESIZABLE_TEX        "resizable_tex"
 #define RESTAG_RING_CPU_BUFFER_LOCK "RingCPUBufferLock"
 #define RESTAG_SERIAL_INT_BUFFER    "serialIntBuffer"
-#define RESTAG_PERFMON              "perfMon"
 #define RESTAG_RENDINST             "rendInst"
 #define RESTAG_DIFFUSE_MIPMAP       "diffuse_mipmap"
 #define RESTAG_SHADER_MESH          "shaderMesh"

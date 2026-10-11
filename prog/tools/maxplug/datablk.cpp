@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 
-TMatrix TMatrix::IDENT(1), TMatrix::ZERO(0);
+TMatrix TMatrix::IDENT(1);
 
 static const std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> type_map = {
   {"t", DataBlock::ParamType::TYPE_STRING},
@@ -109,10 +109,8 @@ public:
 
   const std::string &currentFile() const { return includeStack.back(); }
 
-  void updatePointers()
+  void updatePointers(int pos)
   {
-    int pos = curp - text;
-
     text = buffer.data();
     textend = text + buffer.size();
     curp = text + pos;
@@ -377,7 +375,11 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
 
       std::string value;
       getValue(value);
-      blk.addParam(name.data(), type, value.data(), curLine, currentFile().c_str());
+
+      if (type == DataBlock::ParamType::TYPE_NONE)
+        debug("unknown param type '{}' in line {} of '{}'\n", typeName, curLine, currentFile());
+      else
+        blk.addParam(name.data(), type, value.data(), curLine, currentFile().c_str());
     }
     else if (iequal(name, "include"))
     {
@@ -411,7 +413,7 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
       int pos = curp - text;
       buffer.insert(pos, buf);
 
-      updatePointers();
+      updatePointers(pos);
     }
     else
       throw SyntaxErrorException("syntax error");
@@ -441,8 +443,6 @@ int DataBlock::addBlock(std::unique_ptr<DataBlock> blk)
 
 int DataBlock::addParam(const char *name, ParamType type, const char *value, int line, const char *filename)
 {
-  nameIds.emplace_back(nameMap->addNameId(name));
-
   switch (type)
   {
     case ParamType::TYPE_STRING: params.emplace_back(std::string(value)); break;
@@ -558,12 +558,10 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
     }
     break;
 
-    default:
-      nameIds.pop_back();
-      debug("addBlock error: unknown param type");
-      break;
+    default: return -1;
   }
 
+  nameIds.emplace_back(nameMap->addNameId(name));
   return int(params.size()) - 1;
 }
 

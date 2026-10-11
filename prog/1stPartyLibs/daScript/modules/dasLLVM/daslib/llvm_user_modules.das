@@ -1,18 +1,19 @@
 options gen2
 options indenting = 4
+options _dasllama_internal = true
+options no_global_variables = false
 
 module llvm_user_modules shared private
 
 require llvm/daslib/llvm_code_selftest
-require ?dasllama/dasllama_gemm_gen dasllama/dasllama_gemm_register  // nolint:STYLE030 — used inside the static_if below; on builds without the package both the require and the branch drop (path guard: pure-das package, nothing C++ to guard on)
+require llvm/daslib/llvm_tune_fat_word
+require daslib/module_group
+require [llvm_code_generator]
 
-//! User-extensible wiring for `[llvm_code]` generator modules. The JIT calls
+//! Wiring for `[llvm_code]` generator modules. The JIT calls
 //! `register_user_llvm_code_generators` (lazily, in the context that reads the registry)
-//! before the first generator lookup. To plug in a generator module: add a
-//! `require ?<impl-path> <registration>` line above — a PATH guard loads exactly when the
-//! contributor's package is mounted (the guard's own file resolves), so this
-//! module never hard-depends on the contributor. Pair each line with a `static_if
-//! (typeinfo builtin_module_exists(<impl>))` around the registration call below; registered
+//! before the first generator lookup. A generator package joins the `llvm_code_generator`
+//! group from its descriptor and defines `register_llvm_code_generators`. Registered
 //! generators are name-keyed and inert for programs whose `[llvm_code]` annotations never
 //! name them.
 
@@ -25,7 +26,6 @@ def public register_user_llvm_code_generators {
     }
     g_registered = true
     llvm_code_selftest::register_selftest()  // worked example + self-test generator (add_i32, add_plus_k)
-    static_if (typeinfo builtin_module_exists(dasllama_gemm_gen)) {
-        dasllama_gemm_register::register_dasllama_gemm_code_generators()
-    }
+    llvm_tune_fat_word::register_fat_word()  // the fat dispatch mask as an LLVM-side word
+    call_module_group("llvm_code_generator", "register_llvm_code_generators")
 }

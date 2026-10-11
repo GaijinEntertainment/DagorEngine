@@ -3,6 +3,12 @@ include "sky_shader_global.dshl"
 include "skies_special_vision.dshl"
 include "vr_reprojection.dshl"
 include "camera_in_camera.dshl"
+include_optional "project_apply_skies.dshl"
+
+// A subpass read needs a render_pass object, so only a project that declares one can override this.
+define_macro_if_not_defined APPLY_SKIES_SUBPASS_DEPTH(depth_var)
+  dont_render;
+endmacro
 
 texture lowres_sky;
 texture apply_sky_src_depth;
@@ -60,23 +66,7 @@ shader applySkies, applySkies_sphere
 
     if (apply_sky_src_depth == NULL)
     {
-      USE_SUBPASS_LOADS()
-
-      hlsl(ps) {
-        // Emulated backends bind read N at MAX_T_REGISTERS - 1 - N, so the register and the
-        // attachment index below are one pair: change either and the other must follow.
-        #ifndef APPLY_SKIES_DEPTH_REGISTER
-          #define APPLY_SKIES_DEPTH_REGISTER t29
-        #endif
-        #ifndef APPLY_SKIES_DEPTH_IA
-          #define APPLY_SKIES_DEPTH_IA 2
-        #endif
-        ##if deferred_msaa_subpass == yes
-          SUBPASS_RESOURCE_MS(subpass_depth_tex, APPLY_SKIES_DEPTH_REGISTER, APPLY_SKIES_DEPTH_IA)
-        ##else
-          SUBPASS_RESOURCE(subpass_depth_tex, APPLY_SKIES_DEPTH_REGISTER, APPLY_SKIES_DEPTH_IA)
-        ##endif
-      }
+      APPLY_SKIES_SUBPASS_DEPTH(subpass_depth_tex)
     }
     else
     {
@@ -156,7 +146,7 @@ shader applySkies, applySkies_sphere
 ##if deferred_msaa_subpass == no
   ##if blend_apply_skies == yes
     ##if apply_sky_src_depth == NULL
-      float depth = SUBPASS_LOAD(subpass_depth_tex, tc).r;
+      float depth = pixelLocalLoad(subpass_depth_tex, tc).r;
     ##else
       float depth = tex2Dlod(src_depth_tex, float4(tc,0,0)).r;
     ##endif
@@ -180,10 +170,10 @@ shader applySkies, applySkies_sphere
       return sky;
 ##elif blend_apply_skies == yes
       float4 depth;
-      depth.r = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 0).r;
-      depth.g = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 1).r;
-      depth.b = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 2).r;
-      depth.a = SUBPASS_LOAD_SAMPLE(subpass_depth_tex, tc, 3).r;
+      depth.r = pixelLocalLoadSample(subpass_depth_tex, tc, 0).r;
+      depth.g = pixelLocalLoadSample(subpass_depth_tex, tc, 1).r;
+      depth.b = pixelLocalLoadSample(subpass_depth_tex, tc, 2).r;
+      depth.a = pixelLocalLoadSample(subpass_depth_tex, tc, 3).r;
       BRANCH
       if (min(min(depth.r, depth.g), min(depth.b, depth.a)) > sky_blendup_range)
       {

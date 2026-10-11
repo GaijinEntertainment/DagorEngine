@@ -11,11 +11,11 @@ var bad_global := "global"                       // LINT016
 
 require daslib/lint
 
-def bad_assign(var dst : string; src : string) {
+def bad_assign(var dst : string&; src : string) {
     dst := src                                      // LINT016
 }
 
-def bad_redundant_assign_wrapper(var dst : string; src : string) {
+def bad_redundant_assign_wrapper(var dst : string&; src : string) {
     dst := clone_string(src)                        // LINT016
 }
 
@@ -49,12 +49,12 @@ def bad_redundant_wrapper(var dst : array<string>; src : string) {
     dst |> push_clone(clone_string(src))            // LINT016
 }
 
-def good_same_context(var dst : string; var arr : array<string>; src : string) {
+def good_same_context(var dst : string&; var arr : array<string>; src : string) {
     dst = src
     arr |> push(src)
 }
 
-def good_cross_context(var dst : string; var arr : array<string>; src : string) {
+def good_cross_context(var dst : string&; var arr : array<string>; src : string) {
     dst = clone_string(src)
     arr |> push(clone_string(src))
 }
@@ -70,7 +70,7 @@ def bad_redundant_temp_init_wrapper(src : string) {
     print(dst)
 }
 
-def good_temporary(var dst : string; var arr : array<string>; src : string) {
+def good_temporary(var dst : string&; var arr : array<string>; src : string) {
     let retained := borrow_string(src)
     dst := borrow_string(src)
     arr |> push_clone(borrow_string(src))

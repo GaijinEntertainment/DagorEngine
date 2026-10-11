@@ -15,12 +15,6 @@
 #if _TARGET_PC_WIN
 
 #if HAS_AFTERMATH
-#include <GFSDK_Aftermath.h>
-#include <GFSDK_Aftermath_GpuCrashDump.h>
-#include <GFSDK_Aftermath_GpuCrashDumpDecoding.h>
-#endif
-
-#if HAS_AFTERMATH
 #include "gpu_postmortem_nvidia_aftermath.h"
 #endif
 #include "gpu_postmortem_dagor_trace.h"
@@ -581,10 +575,10 @@ public:
     traceRecorder.onDeviceCreated(device, config, d3d_env, vendorExtendedRecorder);
     pageFaultRecorder.onDeviceCreated(device, config, d3d_env, vendorExtendedRecorder);
   }
-  void teardown()
+  void onDeviceRecovery()
   {
     pageFaultRecorder.reset();
-    traceRecorder.reset();
+    traceRecorder.invoke<false>([&](auto &recorder) { recorder.onDeviceRecovery(); });
     vendorExtendedRecorder.reset();
   }
   void onDeviceShutdown()
@@ -596,7 +590,7 @@ public:
   void beginCommandBuffer(D3DDevice *device, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
   {
     traceRecorder.invoke<false>([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd_id); });
-    pageFaultRecorder.invoke([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd); });
+    pageFaultRecorder.invoke([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd_id, cmd); });
     vendorExtendedRecorder.invoke([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd); });
   }
   void endCommandBuffer(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
@@ -740,6 +734,16 @@ public:
     vendorExtendedRecorder.invoke([=](auto &module) { module.nameResource(resource, name); });
   }
 
+  void nameObject(ID3D12Object *object, eastl::string_view name)
+  {
+    pageFaultRecorder.invoke([=](auto &module) { module.nameObject(object, name); });
+  }
+
+  void nameObject(ID3D12Object *object, eastl::wstring_view name)
+  {
+    pageFaultRecorder.invoke([=](auto &module) { module.nameObject(object, name); });
+  }
+
   TraceCheckpoint getTraceCheckpoint()
   {
     return traceRecorder.invoke<false>([=](auto &module) { return module.getCheckpoint(); });
@@ -771,7 +775,7 @@ class GpuPostmortem
 public:
   void setup(const Configuration &, const Direct3D12Enviroment &) {}
   void setupDevice(D3DDevice *, const Configuration &, const Direct3D12Enviroment &) {}
-  void teardown() {}
+  void onDeviceRecovery() {}
   void onDeviceShutdown() {}
   void beginCommandBuffer(D3DDevice *, D3DGraphicsCommandList *) {}
   void endCommandBuffer(D3DGraphicsCommandList *) {}
@@ -828,6 +832,8 @@ public:
 
   void nameResource(ID3D12Resource *, eastl::string_view) {}
   void nameResource(ID3D12Resource *, eastl::wstring_view) {}
+  void nameObject(ID3D12Object *, eastl::string_view) {}
+  void nameObject(ID3D12Object *, eastl::wstring_view) {}
 
   TraceCheckpoint getTraceCheckpoint() { return detail::get_post_mortem_module_default_value<TraceCheckpoint>(); }
   TraceRunStatus getTraceRunStatusFor(const TraceCheckpoint &)

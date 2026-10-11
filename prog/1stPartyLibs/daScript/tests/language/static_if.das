@@ -1,5 +1,6 @@
 options gen2
 options no_unused_function_arguments = false
+// lint-skip-file: tests infer-time folding, which the lint pipeline's no_infer_time_folding policy disables
 require dastest/testing_boost public
 
 struct SiFoo {

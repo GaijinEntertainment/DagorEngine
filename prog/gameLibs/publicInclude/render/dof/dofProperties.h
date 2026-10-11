@@ -106,12 +106,15 @@ public:
     out_farLinearMin = farLinearMin;
     out_farLinearMax = farLinearMax;
   }
+  float getNearMaxBlur() const { return nearMaxBlur; }
+  float getFarMaxBlur() const { return farMaxBlur; }
 
 protected:
   float farCoCScale = 0, farCoCBias = 0;
   float nearCoCScale = 0, nearCoCBias = 0;
   float farLinearMin = 0, farLinearMax = 0;
   float nearLinearMin = 0, nearLinearMax = 0;
+  float nearMaxBlur = 0, farMaxBlur = 0;
   bool fovInvariant = false;
 
   float nearDofDist(float threshold, float def) const { return dist_from_coc_scale_bias(nearCoCScale, nearCoCBias, threshold, def); }
@@ -158,6 +161,7 @@ inline void DOFProperties::setNearDof(float minDist_, float maxDist_, float maxB
 
   minDist = 1 / max(0.00001f, minDist);
   maxDist = 1 / max(0.00002f, maxDist);
+  nearMaxBlur = maxBlurAmount;
   // min, max are inverted values so it should be max
   nearCoCScale = maxBlurAmount / max(minDist - maxDist, 1e-9f);
   nearCoCBias = -(nearCoCScale * maxDist);
@@ -180,6 +184,7 @@ inline bool DOFProperties::setFarDof(float minDist_, float maxDist_, float maxBl
 
   farLinearMin = minDist;
   farLinearMax = maxDist;
+  farMaxBlur = maxBlurAmount;
 
   minDist = 1 / max(0.00001f, minDist);
   maxDist = 1 / max(0.00002f, maxDist);

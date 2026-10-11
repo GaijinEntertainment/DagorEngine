@@ -3,6 +3,7 @@
 
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_TMatrix.h>
+#include <math/dag_frustum.h>
 #include <vecmath/dag_vecMath.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -20,6 +21,7 @@ namespace dagdp
 enum class GatherMode
 {
   Async,
+  AsyncNoWake, // queued only: a wake on the caller's path follows
   Synchronous
 };
 
@@ -32,10 +34,10 @@ inline vec4f volume_cull_extent2(mat44f_cref tm44, float scale, float max_boundi
     v_splats(2.0f * max_bounding_radius));
 }
 
-inline bool volume_in_draw_range(mat44f_cref tm44, vec4f extent2, vec4f view_pos, float draw_radius)
+inline bool volume_in_draw_range(vec4f center, vec4f extent2, vec4f view_pos, float draw_radius)
 {
   bbox3f volBox;
-  v_bbox3_init_by_bsph(volBox, tm44.col3, v_mul(extent2, V_C_HALF));
+  v_bbox3_init_by_bsph(volBox, center, v_mul(extent2, V_C_HALF));
   bbox3f drawBox;
   v_bbox3_init_by_bsph(drawBox, view_pos, v_splats(draw_radius));
   return v_bbox3_test_box_intersect(drawBox, volBox);
@@ -49,17 +51,26 @@ inline bbox3f volume_local_box(mat44f_cref tm44, float scale)
   return box;
 }
 
+struct VolumeMappingItem;
+
 struct DagdpRiexGatherJob : public cpujobs::IJob
 {
   struct PlacerData
   {
     ecs::EntityId eid; // for validation
-    size_t firstEntry;
-    size_t entryCount;
+    size_t firstEntry = 0;
+    size_t entryCount = 0;
+    // The on_ri records only: the job filters the record's instances into meshPool.
+    int meshLod = 0;
+    int firstUnprocessedRes = -1; // riex resource of the first unprocessed instance, -1 if none
+    size_t handleCount = 0;
+    size_t firstMesh = 0; // into meshPool
+    size_t meshCount = 0;
   };
 
   struct AroundRiPlacerData : PlacerData
   {
+    const VolumeMappingItem *variant = nullptr;
     bbox3f fbox = {};
     float drawRadius = 0.0f;
     size_t firstLocalVolume = 0;
@@ -70,6 +81,7 @@ struct DagdpRiexGatherJob : public cpujobs::IJob
 
   struct PerViewportData
   {
+    Frustum frustum; // shrunk to the draw range, the one gather_process tests against
     bbox3f frustumBox = {};
     vec4f worldPos = {};
     bool valid = false;
@@ -94,17 +106,26 @@ struct DagdpRiexGatherJob : public cpujobs::IJob
     size_t volumeCount = 0;
   };
 
-  // One grid query. The query box does not depend on the viewport, so a world volume is queried once
-  // for the whole view; a local volume belongs to the one viewport whose around_ri record made it.
+  // The cull inputs come first so that rejecting a volume touches one cache line.
   struct VolumeEntry
   {
-    ecs::EntityId placerEid;
-    TMatrix tm;
+    vec4f center;
+    vec4f extent2; // the full extent, as Frustum::testBoxExtentB takes it
+    const VolumeMappingItem *variant;
     float scale;
     int volumeType;
-    bbox3f box;
-    size_t firstHandle; // into volumeHandlePool
-    size_t handleCount;
+    TMatrix tm;
+    bbox3f box;    // in world space
+    vec4f itmRow0; // the inverse divided by scale, the VolumeGpuData rows
+    vec4f itmRow1;
+    vec4f itmRow2;
+    Point3 axis;
+    int2 tileMin;
+    int2 tileMax;
+    float instancePosDelta;
+    size_t firstMesh; // into meshPool
+    size_t meshCount;
+    int firstUnprocessedRes; // riex resource of the first unprocessed instance, -1 if none
   };
 
   // The job owns everything below between start() and waitDone(): read or reset it only after the drain.
@@ -118,28 +139,44 @@ struct DagdpRiexGatherJob : public cpujobs::IJob
   Tab<VolumeEntry> volumePool; // world volumes first, then the local volumes appended by doJob
   size_t volumeCount = 0;
   size_t worldVolumeCount = 0;
-  // One arena: a Tab per (local volume, source) pair would retain thousands of blocks.
-  Tab<rendinst::riex_handle_t> volumeHandlePool;
+  // One arena for the filtered meshes of every volume and on_ri record: a Tab per volume would retain thousands of blocks.
+  Tab<MeshIntersection> meshPool;
   Tab<TMatrix> riGenSourcePool; // RIGen sources have no riex handle, so gather_start snapshots their transforms
   Tab<TMatrix> sourceTmScratch;
+  Tab<rendinst::riex_handle_t> handleScratch;
+  Tab<MeshIntersection> meshScratch;
 
-  // Draw-range culling inputs snapshotted at gather_start; gather_process culls with the same values,
-  // so every volume it emits has pre-gathered handles.
+  // Inputs snapshotted at gather_start. gather_process culls with the same range and frustum, so every pre-gathered volume it
+  // emits has pre-gathered meshes. The processor is only read here: its map changes in the process node, after the drain.
+  const RiexProcessor *riexProcessor = nullptr;
   float rangeScale = 1.0f;
   float maxBoundingRadius = 0.0f;
+  int targetMeshLod = 0;
+  bool meshesEnabled = true;
   bool gridGathered = false;
 
   bool launched = false;
   bool scheduled = false;
 
+  // Profiler names carry the view: every view runs the same code. The job's own name is preset in jobNameProfDesc.
+  da_profiler::desc_id_t startDesc = 0;
+  da_profiler::desc_id_t waitDesc = 0;
+
+  ~DagdpRiexGatherJob() { waitDone(); } // views can die inside draw with the job in flight
+
+  void initProfileMarkers(const char *view_name);
   void reset();
   PerViewportData &addViewport();
   void addEntries(PlacerData &rec, const ecs::IntList &resource_ids, bbox3f_cref box);
   LocalVolumeSnapshot &addLocalVolume();
-  VolumeEntry &addVolumeEntry(ecs::EntityId placer_eid, const TMatrix &tm, mat44f_cref tm44, float scale, int volume_type);
-  dag::ConstSpan<rendinst::riex_handle_t> volumeHandles(const VolumeEntry &e) const
+  VolumeEntry &addVolumeEntry(const VolumeEntry &e);
+  dag::ConstSpan<MeshIntersection> volumeMeshes(const VolumeEntry &e) const
   {
-    return make_span_const(volumeHandlePool.data() + e.firstHandle, e.handleCount);
+    return make_span_const(meshPool.data() + e.firstMesh, e.meshCount);
+  }
+  dag::ConstSpan<MeshIntersection> recordMeshes(const PlacerData &rec) const
+  {
+    return make_span_const(meshPool.data() + rec.firstMesh, rec.meshCount);
   }
   dag::ConstSpan<VolumeEntry> localVolumeSources(const LocalVolumeSnapshot &local) const
   {
@@ -152,9 +189,27 @@ struct DagdpRiexGatherJob : public cpujobs::IJob
 
 private:
   size_t addEntry(int res_idx, bbox3f_cref box);
-  void gatherVolumeHandles(VolumeEntry &e);
+  void gatherVolume(VolumeEntry &e);
+  void filterRecord(PlacerData &rec);
   void gatherLocalVolumes(AroundRiPlacerData &rec, size_t viewport_index);
 };
+
+void init_volume_entry(DagdpRiexGatherJob::VolumeEntry &e,
+  const VolumeMappingItem *variant,
+  const TMatrix &tm,
+  mat44f_cref tm44,
+  float scale,
+  int volume_type,
+  float max_bounding_radius);
+void prepare_volume_entry(DagdpRiexGatherJob::VolumeEntry &e, mat44f_cref tm44);
+
+// Appends the opaque elems of the handles that pass the placement filter, volumeIndex left to the caller. Skips the meshes
+// of unprocessed resources and returns the riex resource index of the first of those, or -1.
+int filter_volume_meshes(dag::ConstSpan<rendinst::riex_handle_t> handles,
+  int mesh_lod,
+  const bbox3f *volume_box,
+  const RiexProcessor &riex_processor,
+  Tab<MeshIntersection> &out_meshes);
 
 static constexpr uint32_t ESTIMATED_LOCAL_VOLUMES_PER_PLACER = 4;
 using LocalVolumeSnapshots =
@@ -188,6 +243,11 @@ struct VolumeMappingItem
 };
 
 using VolumeMapping = dag::VectorMap<ecs::EntityId, VolumeMappingItem>;
+
+inline int resolve_mesh_lod(const VolumeMappingItem &variant, int view_target_lod)
+{
+  return variant.targetMeshLod >= 0 ? variant.targetMeshLod : view_target_lod;
+}
 
 struct VolumeBuilder
 {
@@ -224,6 +284,8 @@ void gather_start(DagdpRiexGatherJob &job,
   const ViewInfo &view_info,
   const ViewPerFrameData &view_per_frame,
   float max_bounding_radius,
+  int target_mesh_lod,
+  const RiexProcessor &riex_processor,
   GatherMode mode);
 
 void gather_process(DagdpRiexGatherJob &job,
@@ -238,7 +300,11 @@ void gather_process(DagdpRiexGatherJob &job,
   RelevantTiles &out_tiles,
   RelevantVolumes &out_volumes);
 
-void start_gather_before_draw_volumes(ecs::EntityManager &manager, const Point3 &cam_pos, const Frustum &cam_frustum);
+// dagdp_update_es may rebuild the views and free their jobs, so it must not start before that ES.
+void start_gather_camera_volumes(const Point3 &cam_pos, const Frustum &cam_frustum);
+
+// Reads the cascades ShadowsManager::prepareShadowsMatrices builds, so it must not start before that call.
+void start_gather_csm_volumes(ecs::EntityManager &manager);
 
 bool is_volume_early_riex_gather_enabled();
 

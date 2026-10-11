@@ -25,13 +25,16 @@ def test_cpu_supports(t : T?) {
             if (cpu_supports("avx512vnni")) {
                 t |> success(cpu_supports("avx512f"), "avx512vnni implies avx512f")
             }
+            if (cpu_supports("avx512vbmi")) {
+                t |> success(cpu_supports("avx512f"), "avx512vbmi implies avx512f")
+            }
             if (cpu_supports("avx512bw")) {
                 t |> success(cpu_supports("avx512f"), "avx512bw implies avx512f")
             }
             if (cpu_supports("avx512vl")) {
                 t |> success(cpu_supports("avx512f"), "avx512vl implies avx512f")
             }
-        } elif (arch == "arm64") {
+        } elif (arch == "arm64" || arch == "arm64ec") {
             // neon and fp-armv8 are mandatory in every arm64 profile, so these are ISA facts
             t |> success(cpu_supports("neon"), "neon is baseline on arm64")
             t |> success(cpu_supports("fp-armv8"), "fp-armv8 is baseline on arm64")

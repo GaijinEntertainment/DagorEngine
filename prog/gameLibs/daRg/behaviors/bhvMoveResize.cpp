@@ -19,8 +19,6 @@ BhvMoveResize bhv_move_resize;
 
 const float BhvMoveResize::handle_eps = 4;
 
-static const char *dataSlotName = "moveresize:data";
-
 
 struct BhvMoveResizeData
 {
@@ -68,16 +66,16 @@ BhvMoveResize::BhvMoveResize() : Behavior(0, F_HANDLE_MOUSE | F_HANDLE_TOUCH) {}
 void BhvMoveResize::onAttach(Element *elem)
 {
   BhvMoveResizeData *bhvData = new BhvMoveResizeData();
-  elem->props.storage.SetValue(dataSlotName, bhvData);
+  elem->props.storage.SetValue(elem->csk->moveResizeData, bhvData);
 }
 
 
 void BhvMoveResize::onDetach(Element *elem, DetachMode)
 {
-  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
+  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(elem->csk->moveResizeData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->moveResizeData);
     delete bhvData;
   }
 }
@@ -86,7 +84,7 @@ void BhvMoveResize::onDetach(Element *elem, DetachMode)
 int BhvMoveResize::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id,
   int button_id, Point2 pos, int accum_res)
 {
-  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
+  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(elem->csk->moveResizeData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   int result = 0;
@@ -320,7 +318,7 @@ static void deactivate_input_impl(Element *elem, BhvMoveResizeData *bhvData)
 
 int BhvMoveResize::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
-  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
+  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(elem->csk->moveResizeData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isStartedBy(device, pointer_id))
@@ -332,7 +330,7 @@ int BhvMoveResize::onDeactivateInput(Element *elem, InputDevice device, int poin
 
 int BhvMoveResize::onDeactivateAllInput(Element *elem)
 {
-  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
+  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(elem->csk->moveResizeData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isStarted())

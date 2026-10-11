@@ -45,6 +45,8 @@
   VAR(skies_froxels_resolution, false)                   \
   VAR(skies_froxels_dist, false)                         \
   VAR(skies_frustum_scattering_last_tz, true)            \
+  VAR(skies_froxels_ground_ray, true)                    \
+  VAR(skies_froxels_prev_ground_ray, true)               \
   VAR(skies_continue_temporal, false)                    \
   VAR(skies_min_max_horizon_mu, false)                   \
   VAR(skies_view_lut_tex, false)                         \
@@ -270,14 +272,19 @@ void use_prepared_skies(PreparedSkies *skies, PreparedSkies *panorama_skies)
     ShaderGlobal::set_texture(skies_view_lut_texVarId, BAD_TEXTUREID);
     ShaderGlobal::set_texture(skies_view_lut_mie_texVarId, BAD_TEXTUREID);
   }
+  TextureInfo info;
   if (skies->scatteringVolume[0])
   {
-    TextureInfo info;
     skies->scatteringVolume[0]->getinfo(info, 0);
     ShaderGlobal::set_int4(skies_froxels_resolutionVarId, info.w, info.h, info.d, 0);
     ShaderGlobal::set_float(skies_froxels_distVarId, skies->froxelsMaxDist);
   }
-  ShaderGlobal::set_float4x4(skies_globtmVarId, skies->prevGlobTm);
+  TMatrix4 globTm = skies->prevGlobTm;
+  // froxel grid and horizon band in the unused z column
+  globTm.setrow(2, info.w, info.h, skies->froxelsHorizonDiscBand, skies->froxelsGroundRay.b);
+  // ground ray in the unused translation row
+  globTm.setcol(3, skies->froxelsGroundRay.r, skies->froxelsGroundRay.g, skies->froxelsGroundRay.b, skies->froxelsGroundRay.a);
+  ShaderGlobal::set_float4x4(skies_globtmVarId, globTm);
   ShaderGlobal::set_float4(prepare_originVarId, P3D(skies->preparedScatteringOrigin), 0);
   ShaderGlobal::set_float4(preparedScatteringDistToTcVarId, skies->precomputedTcDist);
   ShaderGlobal::set_int(skies_panoramic_scatteringVarId, skies->panoramic ? 1 : 0);
@@ -423,6 +430,34 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
     ShaderGlobal::set_float(skies_froxels_prev_distVarId, skies.froxelsMaxDist);
     skies.froxelsMaxDist = maxDist;
 
+    ShaderGlobal::set_float4(skies_froxels_prev_ground_rayVarId, skies.froxelsGroundRay);
+    skies.froxelsGroundRay = Color4(0, 0, 0, 1);
+    skies.froxelsHorizonDiscBand = 0;
+    // slice math assumes the tail layout, like last_tz
+    if (!skies.panoramic && !panorama_skies)
+    {
+      // match use_camera_altitude, it reads prepare_origin
+      const double R = getEarthRadius();
+      const double r = R + max(0.01, (ShaderGlobal::get_float4(prepare_originVarId).g - current.min_ground_offset) * 0.001);
+      const double rangeKm = maxDist * 0.001;
+      // keeps the range continuous at the horizon
+      const double stretch = max(1.0, rangeKm / sqrt(r * r - R * R));
+      // last CS slice lands just past ground
+      const double lastSliceEnd = sqr((info.d - 2.0) / (info.d - 1.0)) / skies.skiesLastTcZ * 0.999;
+      // below 1 km distance slices match better
+      const double groundRelativeWeight = saturate((r - R - 1.0) / (2.0 - 1.0));
+      skies.froxelsGroundRay =
+        Color4(r, R * R - r * r, groundRelativeWeight * stretch / (lastSliceEnd * rangeKm), 1.0 - groundRelativeWeight);
+      if (groundRelativeWeight > 0)
+      {
+        // discriminant bound for 2 texels of mu
+        const double muBand = 4.0 * max(1.0 / fabs(proj_tm.m[0][0] * info.w), 1.0 / fabs(proj_tm.m[1][1] * info.h));
+        const double horizonMu = sqrt(r * r - R * R) / r;
+        skies.froxelsHorizonDiscBand = r * r * muBand * (2.0 * horizonMu + muBand);
+      }
+    }
+    ShaderGlobal::set_float4(skies_froxels_ground_rayVarId, skies.froxelsGroundRay);
+
     if (skies_integrate_froxel_scattering_cs)
     {
       if (skies.multiStageScattering)
@@ -489,7 +524,6 @@ bool DaScattering::prepareSkyForAltitude(const Point3 &origin, float tolerance, 
         lengthSq(origin - skies->preparedScatteringOrigin) > tolerance)
     {
       resetTemporalScattering = true;
-      updateScattering = true;
     }
     else
       updateScattering = false;

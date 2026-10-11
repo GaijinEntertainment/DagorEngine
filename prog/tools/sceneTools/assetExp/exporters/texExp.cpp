@@ -295,7 +295,7 @@ class TexExporter : public IDagorAssetExporter //-V553
       clear_all_ptr_items_and_shrink(imageMips);
       memfree(img, tmpmem);
     }
-    ImageSurface(ImageSurface &&is)
+    ImageSurface(ImageSurface &&is) noexcept
     {
       memcpy(this, &is, sizeof(*this));
       memset(&is, 0, sizeof(is));

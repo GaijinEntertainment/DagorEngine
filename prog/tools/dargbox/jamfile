@@ -126,6 +126,7 @@ if $(Platform) in windows {
     engine/drv/hid_joystick
     engine/drv/hid_dinput
     engine/drv/hid_gamepad_xinput
+    engine/drv/hid_dspad_pc
     gameLibs/quirrel/win_registry
   ;
   include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;

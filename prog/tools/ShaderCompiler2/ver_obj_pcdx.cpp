@@ -6,7 +6,7 @@
 #include "util/dag_globDef.h"
 
 // Increase this number if changes in the compiler invalidate .obj for dx11
-extern const int VER_OBJ_PCDX_VAL = _MAKE4C('10.7');
+extern const int VER_OBJ_PCDX_VAL = _MAKE4C('10.8');
 
 #if _CROSS_TARGET_DX11
 #include <drv/shadersMetaData/dx11/register_limits.h>

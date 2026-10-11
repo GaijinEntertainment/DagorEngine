@@ -45,8 +45,6 @@ def private build_invoke_call(at : LineInfo; var targetExpr : ExpressionPtr; fun
     return call
 }
 
-// ── template: non-void return ──────────────────────────────────────────
-
 struct template public DelegateReturn {
     private invocation_list : array<DelegateLambda>
 
@@ -86,8 +84,8 @@ struct template public DelegateReturn {
             static_if (typeinfo can_copy(type<$t(retType) -const>)) {
                 return default<$t(retType) -const>
             } else {
-                var _delegate_default : $t(retType) -const
-                return <- _delegate_default
+                var delegate_default : $t(retType) -const
+                return <- delegate_default
             }
         }
         let delegate_n = length(invocation_list)
@@ -114,8 +112,6 @@ struct template public DelegateReturn {
         return <- unsafe(each(self.invocation_list))
     }
 }
-
-// ── template: void return ──────────────────────────────────────────────
 
 struct template public DelegateVoid {
     private invocation_list : array<DelegateLambda>
@@ -175,19 +171,15 @@ struct template public DelegateVoid {
     }
 }
 
-// ── typemacro ──────────────────────────────────────────────────────────
-
 [typemacro_function]
-def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDeclPtr) : TypeDeclPtr {
+def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDeclPtr) : TypeDeclPtr {  // nolint:STYLE038 - DelegateReturn/DelegateVoid splice names out of THIS scope; moving the builders into helpers breaks reification
     //! Type macro that generates a delegate struct from a function or lambda type.
 
-    // ── validate input ─────────────────────────────────────────────────
     if (FuncType.baseType != Type.tFunction && FuncType.baseType != Type.tLambda) {
         macro_error(compiling_program(), macroArgument.at, "delegate expects function<...> or lambda<...> type, got {describe(FuncType)}")
         return null
     }
 
-    // ── normalize types ────────────────────────────────────────────────
     var lambdaType = clone_type(FuncType)
     lambdaType.baseType = Type.tLambda
     var functionType = clone_type(FuncType)
@@ -195,21 +187,16 @@ def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDe
 
     let is_void = FuncType.firstType == null || FuncType.firstType.isVoid
 
-    // ── template references ────────────────────────────────────────────
     var template_type_ret = typeinfo ast_typedecl(type<DelegateReturn>)
     var template_type_void = typeinfo ast_typedecl(type<DelegateVoid>)
 
-    // primary template argument (used for generic matching and struct naming)
     var inscope extra_template_arguments : array<tuple<string; string>>
 
-    // ── generic path ───────────────────────────────────────────────────
     if (passArgument != null) {
-        // try DelegateReturn
         if (is_typemacro_template_instance(passArgument, template_type_ret, extra_template_arguments)) {
             var args_ret <- [TypeMacroTemplateArgument(name = "DelegateLambda", argument_type = clone_type(FuncType))]
             if (infer_struct_aliases(passArgument.structType, args_ret)) return infer_template_types(passArgument, args_ret)
         }
-        // try DelegateVoid
         if (is_typemacro_template_instance(passArgument, template_type_void, extra_template_arguments)) {
             var args_void <- [TypeMacroTemplateArgument(name = "DelegateLambda", argument_type = clone_type(FuncType))]
             if (infer_struct_aliases(passArgument.structType, args_void)) return infer_template_types(passArgument, args_void)
@@ -217,27 +204,21 @@ def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDe
         return null
     }
 
-    // ── concrete path ──────────────────────────────────────────────────
     var template_arguments <- [
         TypeMacroTemplateArgument(name = "DelegateLambda", argument_type = clone_type(lambdaType))
     ]
     if (!verify_arguments(template_arguments)) return null
 
-    // pick template
     var template_struct = is_void ? template_type_void.structType : template_type_ret.structType
 
     let struct_name = template_structure_name(template_struct, template_arguments, extra_template_arguments)
 
-    // deduplication
     var existing_struct = compiling_program().find_unique_structure(struct_name)
     if (existing_struct != null) return new TypeDecl(baseType = Type.tStructure, structType = existing_struct, at = macroArgument.at)
 
-    // ── build reification variables ────────────────────────────────────
     let nArgs = length(FuncType.argTypes)
 
-    // invoke parameter list
     var invokeArgs : array<VariablePtr>
-    // forward expressions (ExprVar for each arg name)
     var fwdExprs : array<ExpressionPtr>
     fwdExprs |> reserve(nArgs)
     for (idx in range(nArgs)) {
@@ -247,7 +228,6 @@ def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDe
         fwdExprs |> push(new ExprVar(at = macroArgument.at, name := argName))
     }
 
-    // lambda args for wrapper (separate copies)
     var lambdaArgs : array<VariablePtr>
     var lambdaFwd  : array<ExpressionPtr>
     lambdaFwd |> reserve(nArgs)
@@ -258,10 +238,8 @@ def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDe
         lambdaFwd |> push(new ExprVar(at = macroArgument.at, name := argName))
     }
 
-    // ── instantiate template ───────────────────────────────────────────
     var resType : TypeDeclPtr
     if (is_void) {
-        // void-specific reification variables
         var voidCall = build_invoke_call(macroArgument.at,
             new ExprVar(at = macroArgument.at, name := "cb"), FuncType)
         var wrapperLambda = qmacro(@($a(lambdaArgs)) {
@@ -269,7 +247,6 @@ def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDe
         })
         resType = qmacro_template_class(struct_name, type<DelegateVoid>)
     } else {
-        // non-void-specific reification variables
         var discardCall = build_invoke_call(macroArgument.at,
             qmacro(invocation_list[delegate_i]), FuncType)
         var lastCall = build_invoke_call(macroArgument.at,
@@ -281,10 +258,8 @@ def public delegate(macroArgument, passArgument : TypeDeclPtr; FuncType : TypeDe
         resType = qmacro_template_class(struct_name, type<DelegateReturn>)
     }
 
-    // ── mark as template instance + add aliases ────────────────────────
     make_typemacro_template_instance(resType.structType, template_struct, extra_template_arguments)
     add_structure_aliases(resType.structType, template_arguments)
-    // extra aliases (not used for generic matching, but needed for method type resolution)
     var funcAlias = clone_type(functionType)
     resType.structType |> add_structure_alias("DelegateFunction", funcAlias)
     if (!is_void) {

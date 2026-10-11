@@ -3,6 +3,15 @@ include "vr_multiview.dshl"
 texture fast_grass_tex_a;
 texture fast_grass_tex_n;
 
+sampler fast_grass_tex_sampler
+{
+  address_u = wrap;
+  address_v = border;
+  address_w = border;
+  border_color = (0, 0, 0, 0);
+  anisotropic_max = 1;
+};
+
 const_buffer fast_grass_types_buf;
 const_buffer fast_grass_clip_rects;
 int fast_grass_num_clips = 1;
@@ -30,6 +39,14 @@ float fast_grass_ao_curve = 2;
 texture fast_grass_pre_hmap;
 texture fast_grass_pre_gmap;
 texture fast_grass_pre_cmap;
+
+sampler fast_grass_pre_sampler
+{
+  address_u = border;
+  address_v = border;
+  border_color = (0, 0, 0, 0);
+  anisotropic_max = 1;
+};
 
 int fast_grass_debug = 0;
 interval fast_grass_debug: off < 1, biomes < 2, density < 3, range;
@@ -190,8 +207,10 @@ macro USE_FAST_GRASS()
     };
 
     globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
-    fast_grass_tex_a@smpArray = fast_grass_tex_a;
-    fast_grass_tex_n@smpArray = fast_grass_tex_n;
+    fast_grass_tex_a@texArray = fast_grass_tex_a;
+    fast_grass_tex_a_samplerstate@sampler = fast_grass_tex_sampler;
+    fast_grass_tex_n@texArray = fast_grass_tex_n;
+    fast_grass_tex_n_samplerstate@sampler = fast_grass_tex_sampler;
 
     grass_porosity@f1 = fast_grass_porosity;
     smoothnessfadeParams@f2 = (fast_grass_smoothness_fade_start, 1.0 / max(fast_grass_smoothness_fade_end - fast_grass_smoothness_fade_start, 0.001) );

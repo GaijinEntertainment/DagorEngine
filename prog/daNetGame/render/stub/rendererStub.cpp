@@ -54,6 +54,8 @@ void destroy_world_renderer() {}
 
 void close_world_renderer() { console::set_visual_driver(NULL, NULL); }
 
+void term_camera_manager_client() {}
+
 IRenderWorld *get_world_renderer() { return NULL; }
 Occlusion *get_main_occlusion_safe() { return NULL; }
 void update_world_renderer(float, float, const TMatrix &, bool) {}

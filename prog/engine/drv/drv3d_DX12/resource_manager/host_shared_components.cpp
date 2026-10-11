@@ -86,7 +86,7 @@ TemporaryUploadMemoryProvider::HostDeviceSharedMemoryRegionAllocationResult Temp
 }
 
 TemporaryUploadMemoryProvider::HostDeviceSharedMemoryRegionAllocationResult TemporaryUploadMemoryProvider::
-  tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment)
+  tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, D3DDevice *device, size_t size, size_t alignment)
 {
   auto tempBufferAccess = tempBuffer.access();
   return tempBufferAccess->allocate(this, adapter, device, size, alignment, true);

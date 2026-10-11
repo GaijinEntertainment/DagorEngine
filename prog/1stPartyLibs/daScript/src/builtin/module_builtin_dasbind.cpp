@@ -12,13 +12,72 @@
 #include "daScript/misc/sysos.h"
 #include "daScript/misc/env_cfg.h"
 
+#include <cstring>
+#include <memory>
 #include <mutex>
+
+#if DAS_BIND_EXTERNAL && defined(__aarch64__) && (defined(__APPLE__) || defined(__linux__))
+#define DAS_BIND_ARM64_LAYOUT 1
+#else
+#define DAS_BIND_ARM64_LAYOUT 0
+#endif
+#if DAS_BIND_ARM64_LAYOUT && defined(__APPLE__)
+#define DAS_BIND_ARM64_PACKED_STACK 1
+#else
+#define DAS_BIND_ARM64_PACKED_STACK 0
+#endif
+
+#if DAS_BIND_ARM64_LAYOUT
+#if defined(__APPLE__)
+#define DAS_ARM64_CALL_SYMBOL "_das_arm64_call"
+#else
+#define DAS_ARM64_CALL_SYMBOL "das_arm64_call"
+#endif
+// src/builtin/ARCHITECTURE.md#interpreter-extern-call
+__asm__(
+    ".text\n"
+    ".p2align 2\n"
+    ".globl " DAS_ARM64_CALL_SYMBOL "\n"
+    DAS_ARM64_CALL_SYMBOL ":\n"
+    "    stp x29, x30, [sp, #-32]!\n"
+    "    stp x19, x20, [sp, #16]\n"
+    "    mov x29, sp\n"
+    "    mov x19, x0\n"
+    "    mov x20, x5\n"
+    "    sub sp, sp, x4\n"
+    "    mov x9, #0\n"
+    "1:  cmp x9, x4\n"
+    "    b.hs 2f\n"
+    "    ldr x10, [x3, x9]\n"
+    "    str x10, [sp, x9]\n"
+    "    add x9, x9, #8\n"
+    "    b 1b\n"
+    "2:  ldp d0, d1, [x2]\n"
+    "    ldp d2, d3, [x2, #16]\n"
+    "    ldp d4, d5, [x2, #32]\n"
+    "    ldp d6, d7, [x2, #48]\n"
+    "    ldp x6, x7, [x1, #48]\n"
+    "    ldp x4, x5, [x1, #32]\n"
+    "    ldp x2, x3, [x1, #16]\n"
+    "    ldp x0, x1, [x1]\n"
+    "    blr x19\n"
+    "    str x0, [x20]\n"
+    "    str d0, [x20, #8]\n"
+    "    mov sp, x29\n"
+    "    ldp x19, x20, [sp, #16]\n"
+    "    ldp x29, x30, [sp], #32\n"
+    "    ret\n"
+);
+struct Arm64Result { uint64_t x0, d0; };
+extern "C" void das_arm64_call ( void * fn, const uint64_t * gpr, const uint64_t * fpr,
+    const uint8_t * stack, uint64_t stackBytes, Arm64Result * out );
+#endif
 
 namespace das {
 
 #if DAS_BIND_EXTERNAL
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     typedef uint64_t ( __stdcall * StdCallFunction )( ... );
     typedef uint64_t ( __cdecl * CdeclCallFunction )( ... );
     typedef uint64_t ( __stdcall * OpenglCallFunction )( ... );
@@ -31,6 +90,7 @@ namespace das {
 
 #if (defined(_MSC_VER) && !defined(_GAMING_XBOX) && !defined(_DURANGO)) || defined(__APPLE__)
     void * getFunction ( const char * fun, const char * lib ) {
+        AllocTrackerInternalGuard atg;
         void * libhandle = nullptr;
         libhandle = getLibraryHandle(lib);
         if ( !libhandle ) {
@@ -85,12 +145,18 @@ namespace das {
         FastCallWrapper wrapper;
     };
 
+    enum { RES_INT = 0, RES_FLOAT = 1 };
+
+    static bool isFloatClass ( const TypeDeclPtr & type ) {
+        return !type->isRef() && (type->baseType==Type::tFloat || type->baseType==Type::tDouble);
+    }
+
     __forceinline vec4f   Rx ( int64_t x ) { return v_cast_vec4f(v_splatsi64(x)); }
 
     #define AX(i)   (*(uint64_t *)(args+(i)))
     #define AD(i)   (*(double *)(args+(i)))
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include "win_x86_64_wrapper.inc"
 #else
 #include "systemV_64_wrapper.inc"
@@ -109,6 +175,68 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
 
     #undef  AX
     #undef  AD
+
+    // src/builtin/ARCHITECTURE.md#interpreter-extern-call
+    struct Arm64Layout {
+        struct Slot { uint8_t argIndex, bytes; uint16_t offset; };
+        uint8_t gprArg[8] = {}, fprArg[8] = {};
+        int ngpr = 0, nfpr = 0;
+        vector<Slot> stack;
+        uint32_t stackBytes = 0;
+        bool fpResult = false;
+    };
+
+#if DAS_BIND_ARM64_LAYOUT
+    static uint8_t arm64StackArgumentBytes ( const TypeDeclPtr & type ) {
+        if ( !DAS_BIND_ARM64_PACKED_STACK || type->isRef() ) return 8;
+        auto size = type->getBaseSizeOf();
+        return (size==1 || size==2 || size==4) ? uint8_t(size) : 8;
+    }
+
+    static const Arm64Layout * computeArm64Layout ( Function * fun ) {
+        if ( fun->arguments.size()<=6 ) return nullptr;
+        auto layout = make_unique<Arm64Layout>();
+        uint32_t offset = 0;
+        for ( int a=0, as=int(fun->arguments.size()); a<as; ++a ) {
+            const auto & type = fun->arguments[a]->type;
+            bool fp = isFloatClass(type);
+            int & count = fp ? layout->nfpr : layout->ngpr;
+            if ( count<8 ) {
+                (fp ? layout->fprArg : layout->gprArg)[count++] = uint8_t(a);
+            } else {
+                uint8_t bytes = arm64StackArgumentBytes(type);
+                offset = (offset + bytes - 1) & ~uint32_t(bytes - 1);
+                layout->stack.push_back({uint8_t(a), bytes, uint16_t(offset)});
+                offset += bytes;
+            }
+        }
+        layout->stackBytes = (offset + 15) & ~15u;
+        layout->fpResult = isFloatClass(fun->result);
+        static mutex layoutsMutex;
+        static vector<unique_ptr<Arm64Layout>> layouts;
+        lock_guard<mutex> guard(layoutsMutex);
+        layouts.push_back(das::move(layout));
+        return layouts.back().get();
+    }
+
+    static vec4f arm64Call ( void * fn, vec4f * args, const Arm64Layout * layout ) {
+        uint64_t gpr[8] = {}, fpr[8] = {};
+        Arm64Result out = {};
+        for ( int i=0; i!=layout->ngpr; ++i ) memcpy(gpr+i, args+layout->gprArg[i], 8);
+        for ( int i=0; i!=layout->nfpr; ++i ) memcpy(fpr+i, args+layout->fprArg[i], 8);
+        alignas(16) uint8_t stack[DAS_MAX_FUNCTION_ARGUMENTS*8 + 16] = {};
+        for ( const auto & slot : layout->stack ) memcpy(stack+slot.offset, args+slot.argIndex, slot.bytes);
+        das_arm64_call(fn, gpr, fpr, stack, layout->stackBytes, &out);
+        uint64_t raw = layout->fpResult ? out.d0 : out.x0;
+        int64_t bits;
+        memcpy(&bits, &raw, sizeof(bits));
+        return v_cast_vec4f(v_splatsi64(bits));
+    }
+#else
+    static const Arm64Layout * computeArm64Layout ( Function * ) {
+        return nullptr;
+    }
+#endif
 
     struct BoundFunction {
         void *  fun;
@@ -150,6 +278,14 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
     das_hash_map<string,void *>    g_dasBindLib;
     mutex                          g_dasBindLibMutex;
 
+#if defined(_WIN32)
+    #define DAS_SHARED_LIBRARY_EXTENSION ".dll"
+#elif defined(__APPLE__)
+    #define DAS_SHARED_LIBRARY_EXTENSION ".dylib"
+#else
+    #define DAS_SHARED_LIBRARY_EXTENSION ".so"
+#endif
+
     enum class ApiType {
         api_unknown,
         api_cdecl,
@@ -189,37 +325,52 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
         return paths;
     }
 
+    static void * searchDynamicLibrary ( const string & library ) {
+        void * libhandle = getLibraryHandle(library.c_str());
+        if ( !libhandle ) {
+            libhandle = loadDynamicLibrary(library.c_str());
+            if (!libhandle) {
+                if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
+                    for ( auto & root : (*daScriptEnvironment::bound)->g_Program->policies.dll_search_paths ) {
+                        libhandle = loadDynamicLibrary((root + "/" + library).c_str());
+                        if ( libhandle ) break;
+                    }
+                    /* // we figure this out later
+                    if ( !libhandle ) {
+                        libhandle = loadDynamicLibrary(((*daScriptEnvironment::bound)->g_Program->policies.jit_path_to_shared_lib + "/" + library).c_str());
+                    }
+                    */
+                }
+                if ( !libhandle ) {
+                    for ( auto & root : dasDllSearchPathsFromEnv() ) {
+                        libhandle = loadDynamicLibrary((root + "/" + library).c_str());
+                        if ( libhandle ) break;
+                    }
+                }
+                if ( !libhandle ) {
+                    libhandle = loadDynamicLibrary((getDasRoot() + "/lib/" + library).c_str());
+                }
+            }
+        }
+        return libhandle;
+    }
+
     static void * bindDynamicLibrary ( const string & library ) {
         lock_guard<mutex> guard(g_dasBindLibMutex);
+        // LLVM.dll pulls in libz3, whose static initializer leaks 40 bytes nothing here can free.
+        AllocTrackerInternalGuard atg;
         auto it = g_dasBindLib.find(library);
         if ( it!=g_dasBindLib.end() ) {
             return it->second;
         } else {
-            void * libhandle = nullptr;
-            libhandle = getLibraryHandle(library.c_str());
+            void * libhandle = searchDynamicLibrary(library);
             if ( !libhandle ) {
-                libhandle = loadDynamicLibrary(library.c_str());
-                if (!libhandle) {
-                    if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-                        for ( auto & root : (*daScriptEnvironment::bound)->g_Program->policies.dll_search_paths ) {
-                            libhandle = loadDynamicLibrary((root + "/" + library).c_str());
-                            if ( libhandle ) break;
-                        }
-                        /* // we figure this out later
-                        if ( !libhandle ) {
-                            libhandle = loadDynamicLibrary(((*daScriptEnvironment::bound)->g_Program->policies.jit_path_to_shared_lib + "/" + library).c_str());
-                        }
-                        */
-                    }
-                    if ( !libhandle ) {
-                        for ( auto & root : dasDllSearchPathsFromEnv() ) {
-                            libhandle = loadDynamicLibrary((root + "/" + library).c_str());
-                            if ( libhandle ) break;
-                        }
-                    }
-                    if ( !libhandle ) {
-                        libhandle = loadDynamicLibrary((getDasRoot() + "/lib/" + library).c_str());
-                    }
+                // an [extern] may name its library without one, so every platform can spell the
+                // same binding: add this one's extension and walk the same search again
+                string ext = DAS_SHARED_LIBRARY_EXTENSION;
+                if ( library.length()<ext.length() ||
+                     library.compare(library.length()-ext.length(), ext.length(), ext)!=0 ) {
+                    libhandle = searchDynamicLibrary(library + ext);
                 }
             }
             g_dasBindLib[library] = libhandle;
@@ -246,8 +397,9 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
     }
 
     struct SimNode_DasBindCall : SimNode_ExtFuncCallBase {
-        SimNode_DasBindCall ( const LineInfo & a, const char * fnName, uint64_t hc, FastCallWrapper wrp, void * fun, ApiType api_ )
-            : SimNode_ExtFuncCallBase(a, fnName), code(hc), wrapper(wrp), fnptr(fun), api(api_) {
+        SimNode_DasBindCall ( const LineInfo & a, const char * fnName, uint64_t hc, FastCallWrapper wrp, void * fun, ApiType api_,
+                              const Arm64Layout * layout_ )
+            : SimNode_ExtFuncCallBase(a, fnName), code(hc), wrapper(wrp), fnptr(fun), api(api_), layout(layout_) {
         }
         void bind ( Context & context ) {
             string crash_and_burn;
@@ -261,7 +413,12 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
                     crash_and_burn = "internal error. missing BoundFunction";
                 }
             });
-            if ( !crash_and_burn.empty() ) context.throw_error_at(debugInfo, "%s",crash_and_burn.c_str());
+            if ( !crash_and_burn.empty() ) {
+                char message[8192];   // src/builtin/ARCHITECTURE.md#message-crosses-panic-jump
+                snprintf(message, sizeof(message), "%s", crash_and_burn.c_str());
+                string().swap(crash_and_burn);
+                context.throw_error_at(debugInfo, "%s", message);
+            }
         }
         DAS_EVAL_ABI vec4f eval ( Context & context ) override {
             DAS_PROFILE_NODE
@@ -270,20 +427,23 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             }
             vec4f argValues[DAS_MAX_FUNCTION_ARGUMENTS];
             evalArgs(context, argValues);
+#if DAS_BIND_ARM64_LAYOUT
+            if ( layout ) return arm64Call(fnptr, argValues, layout);
+#endif
             return wrapper(fnptr, argValues);
         }
         uint64_t code = 0;
         FastCallWrapper wrapper = nullptr;
         void * fnptr = nullptr;
         ApiType api = ApiType::api_unknown;
+        const Arm64Layout * layout = nullptr;
     };
 
     FastCallWrapper getWrapper ( Function * fun, int nReg ) {
-        int args = ( fun->result->baseType==Type::tFloat || fun->result->baseType==Type::tDouble ) ? (1<<nReg) : 0;
+        int args = isFloatClass(fun->result) ? (1<<nReg) : 0;
         for ( int a=0, as=int(fun->arguments.size()); a<as; ++a ) {
-            if ( a==4 ) break;
-            auto tp = fun->arguments[a]->type->baseType;
-            if ( tp==Type::tFloat || tp==Type::tDouble ) {
+            if ( a==nReg ) break;
+            if ( isFloatClass(fun->arguments[a]->type) ) {
                 args |= (1<<a);
             }
         }
@@ -294,12 +454,14 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
     struct DasBindFunction : BuiltInFunction {
         void * dllAddress;
         FastCallWrapper wrapper;
+        const Arm64Layout * layout;
         bool isLate;
         ApiType api;
         uint64_t hc;
-        DasBindFunction ( const string & dasName, uint64_t _hc, void * addr, ExternBindArgs params, FastCallWrapper wrp )
+        DasBindFunction ( const string & dasName, uint64_t _hc, void * addr, ExternBindArgs params, FastCallWrapper wrp,
+                          const Arm64Layout * layout_ )
             : BuiltInFunction(dasName.c_str(), dasName.c_str())
-            , dllAddress(addr), wrapper(wrp) {
+            , dllAddress(addr), wrapper(wrp), layout(layout_) {
             callBased = true;
             isLate = params.late;
             api = params.api;
@@ -310,7 +472,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
         }
         SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
             const char * fnName = context.code->allocateName(this->name);
-            return context.code->makeNode<SimNode_DasBindCall>(at, fnName, hc, wrapper, dllAddress, api);
+            return context.code->makeNode<SimNode_DasBindCall>(at, fnName, hc, wrapper, dllAddress, api, layout);
         }
     };
 
@@ -357,7 +519,7 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             } else if ( arg.name=="late" ) {
                 result.late = true;
             }
-#ifdef _MSC_VER
+#ifdef _WIN32
             else if ( arg.name=="windows_library" && arg.type==Type::tString ) {
                 platform_library = arg.sValue;
             }
@@ -386,20 +548,19 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
     }
 
     FastCallWrapper computeWrapper ( Function * fun ) {
-#ifdef _MSC_VER
+#ifdef _WIN32
         return getWrapper(fun, 4);
 #else
         if ( fun->arguments.size()>6 ) {
             int nargs = int(fun->arguments.size());
-            int res = ( fun->result->baseType==Type::tFloat || fun->result->baseType==Type::tDouble ) ? 0 : 1;
+            int res = isFloatClass(fun->result) ? RES_FLOAT : RES_INT;
             int perm = 0;
             for ( size_t ai=0, ais=fun->arguments.size(); ai!=ais; ++ai ) {
-                const auto & a = fun->arguments[ai];
-                if ( a->type->isSimpleType(Type::tFloat) || a->type->isSimpleType(Type::tDouble) ) {
+                if ( isFloatClass(fun->arguments[ai]->type) ) {
                     perm |= (1<<int(ai));
                 }
             }
-            if ( perm>=(1<<7) ) {
+            if ( perm>=(1<<6) ) {
                 return getExtraWrapper(nargs, res, perm);
             }
         }
@@ -411,19 +572,18 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
 
     struct ExternFunctionAnnotation : FunctionAnnotation {
         ExternFunctionAnnotation() : FunctionAnnotation("extern") { }
-        das_hash_map<const Function *, string> transformMap;
-        virtual bool apply(ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, string & err) override {
+        virtual bool apply(ExprBlock *, ModuleGroup &, AnnotationArgumentList &, string & err) override {
             err = "not supported for block";
             return false;
         }
-        virtual bool finalize ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+        virtual bool finalize ( const FunctionPtr &, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
             return true;
         }
-        virtual bool finalize(ExprBlock *, ModuleGroup &,const AnnotationArgumentList &, const AnnotationArgumentList &, string &) override {
+        virtual bool finalize(ExprBlock *, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string &) override {
             return true;
         }
 #if !DAS_BIND_EXTERNAL
-        virtual bool apply ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string & err )  override {
+        virtual bool apply ( const FunctionPtr &, ModuleGroup &, AnnotationArgumentList &, string & err )  override {
             err = "daslang is configured with extern functions disabled";
             return false;
         }
@@ -445,18 +605,17 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
                 err = "function returns vector type, which is currently not supported by the specified binding";
                 return false;
             }
-#ifndef _MSC_VER
-            if ( fun->arguments.size()>6 ) {
+#ifndef _WIN32
+            if ( fun->arguments.size()>6 && !DAS_BIND_ARM64_LAYOUT ) {
                 int perm=0;
                 int nargs = int(fun->arguments.size());
-                int res = ( fun->result->baseType==Type::tFloat || fun->result->baseType==Type::tDouble ) ? 0 : 1;
+                int res = isFloatClass(fun->result) ? RES_FLOAT : RES_INT;
                 for ( size_t ai=0, ais=fun->arguments.size(); ai!=ais; ++ai ) {
-                    const auto & arg = fun->arguments[ai];
-                    if ( arg->type->isSimpleType(Type::tFloat) || arg->type->isSimpleType(Type::tDouble) ) {
+                    if ( isFloatClass(fun->arguments[ai]->type) ) {
                         perm |= (1<<int(ai));
                     }
                 }
-                if ( perm>=(1<<7) ) {
+                if ( perm>=(1<<6) ) {
                     auto wrp = getExtraWrapper(nargs,res,perm);
                     if ( !wrp ) {
                         string argText;
@@ -475,33 +634,58 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             return true;
         }
 
-        virtual bool apply ( const FunctionPtr & fun, ModuleGroup &, const AnnotationArgumentList & args, string & err )  override {
+        virtual bool apply ( const FunctionPtr & fun, ModuleGroup &, AnnotationArgumentList & args, string & err )  override {
             if (!verifyCallCorrect(fun, args, err)) {
                 return false;
             }
             fun->stub = true;
             fun->userScenario = true;
             fun->noAot = true;         // TODO: generate custom C++ to invoke the call directly
+            fun->requestNoJit = true;  // the body is a placeholder - transformCall rewrites the call sites
             // parse annotation arguments
             auto [is_ok, ba] = parseExternArgs(args, err);
             if ( !is_ok ) {
                 return false;
             }
+            // src/ast/ARCHITECTURE.md#module-cache-read
+            if ( auto program = daScriptEnvironment::getBound()->g_Program ) {
+                if ( program->thisModule ) program->thisModule->noteRegistrationAtCompile();
+            }
+            return !registerProxy(fun, ba, err).empty();
+        }
+
+        // the proxy outlives the registrar's program: its types are clones, with no location
+        static TypeDeclPtr proxyType ( const TypeDeclPtr & type, const LineInfo & bindAt ) {
+            if ( !type ) return nullptr;
+            auto clone = new TypeDecl(*type);
+            clone->at = bindAt;
+            clone->firstType = proxyType(type->firstType, bindAt);
+            clone->secondType = proxyType(type->secondType, bindAt);
+            for ( auto & argType : clone->argTypes ) {
+                argType = proxyType(argType, bindAt);
+            }
+            return clone;
+        }
+
+        // registers the proxy a call to `fun` is retargeted to; the bind name, empty on failure
+        string registerProxy ( Function * fun, const ExternBindArgs & ba, string & err ) {
             // resolve DLL and create a BuiltInFunction proxy for JIT
             void * funptr = nullptr;
             string bindName = mangleFunction(ba.fn_name, ba.library, ba.api);
             if ( !ba.late && ba.api!=ApiType::api_opengl ) {
                 funptr = getDllAddress(ba.library, ba.fn_name, ba.api == ApiType::api_opengl, err);
-                if ( !funptr ) return false;
+                if ( !funptr ) return string();
             }
             auto wrp = computeWrapper(fun);
             uint64_t code = lateBind(ba.fn_name, ba.library, funptr);
-            auto bif = new DasBindFunction(bindName, code, funptr, ba, wrp);
-            bif->result = fun->result;
+            auto bif = new DasBindFunction(bindName, code, funptr, ba, wrp, computeArm64Layout(fun));
+            const LineInfo & bindAt = cppBindingLineInfo(bindName.c_str());
+            bif->at = bindAt;
+            bif->result = proxyType(fun->result, bindAt);
             for ( auto & a : fun->arguments ) {
-                auto newArg = new Variable();
+                auto newArg = new Variable(bindAt);
                 newArg->name = a->name;
-                newArg->type = a->type;
+                newArg->type = proxyType(a->type, bindAt);
                 bif->arguments.push_back(newArg);
             }
             bif->noAot = true;
@@ -513,8 +697,37 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             if ( !module->addFunction(bif, true) ) {
                 module->replaceFunction(bif);
             }
-            transformMap[fun] = bindName;
+            return bindName;
+        }
+
+        static bool sameSignature ( Function * proxy, Function * fun ) {
+            if ( proxy->arguments.size() != fun->arguments.size() ) return false;
+            if ( !proxy->result->isSameType(*fun->result, RefMatters::yes, ConstMatters::no, TemporaryMatters::no) ) return false;
+            for ( size_t i=0, is=fun->arguments.size(); i!=is; ++i ) {
+                if ( !proxy->arguments[i]->type->isSameType(*fun->arguments[i]->type, RefMatters::yes, ConstMatters::no, TemporaryMatters::no) ) return false;
+            }
             return true;
+        }
+
+        // the bind name from the call target's own [extern] declaration (a cache-served
+        // registrar never passed apply here), registering the proxy when the module lacks it;
+        // empty for a non-extern, empty with `err` set when the bind fails
+        string bindNameOf ( Function * fun, string & err ) {
+            for ( auto & decl : fun->annotations ) {
+                if ( decl->annotation != this ) continue;
+                auto [is_ok, ba] = parseExternArgs(decl->arguments, err);
+                if ( !is_ok ) return string();
+                string bindName = mangleFunction(ba.fn_name, ba.library, ba.api);
+                // one bind name per native symbol, one proxy per das signature
+                if ( auto proxies = module->functionsByName.find(hash64z(bindName.c_str())) ) {
+                    for ( auto * proxy : proxies->second ) {
+                        if ( sameSignature(proxy, fun) ) return bindName;
+                    }
+                }
+                if ( !verifyCallCorrect(fun, decl->arguments, err) ) return string();
+                return registerProxy(fun, ba, err);
+            }
+            return string();
         }
 
         static bool needWrapArg(ExpressionPtr arg) {
@@ -536,10 +749,11 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             return false;
         }
 
-        virtual ExpressionPtr transformCall ( ExprCallFunc * call, string & ) override {
+        virtual ExpressionPtr transformCall ( ExprCallFunc * call, string & err ) override {
             if ( !call->func ) return nullptr;
-            auto it = transformMap.find(call->func);
-            bool hasBindFunction = it != transformMap.end();
+            string bindName = bindNameOf(call->func, err);
+            if ( !err.empty() ) return nullptr;    // the inferer reports it
+            bool hasBindFunction = !bindName.empty();
             // check if any string args need wrapping
             auto needToTransform = any_of(call->arguments.begin(), call->arguments.end(), [](ExpressionPtr arg) {
                 return needWrapArg(arg);
@@ -547,8 +761,8 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             if ( !needToTransform && !hasBindFunction ) return nullptr;
             // clone call, optionally retargeting to the DasBindFunction
             ExpressionPtr newCallExpr = nullptr;
-            DAS_ASSERTF(hasBindFunction, "All dasbind functions should have been mapped, %s is not mapped somehow.", call->func->name.c_str());
-            newCallExpr = new ExprCall(call->at, it->second);
+            DAS_ASSERTF(hasBindFunction, "an [extern] call's bind name must resolve, %s has none.", call->func->name.c_str());
+            newCallExpr = new ExprCall(call->at, bindName);
             for ( auto & arg : call->arguments ) {
                 static_cast<ExprCall*>(newCallExpr)->arguments.push_back(arg->clone());
             }
@@ -563,43 +777,21 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             }
             return newCallExpr;
         }
-        virtual SimNode * simulate ( Context * /*context*/, Function * fun, const AnnotationArgumentList & /*args*/, string & /*err*/ ) override {
-            if (is_in_completion()) return nullptr;
-            DAS_FATAL_ERROR("Should be unreachable. We handled it in transformCall. Failed on: %s.", fun->name.c_str());
-            // // All validation is in apply(). This path is only reached for late/opengl functions.
-            // auto [is_ok, ba] = parseExternArgs(args, err);
-            // DAS_ASSERTF(is_ok, "Should have failed in apply");
-            // void * libhandle = nullptr;
-            // if ( !ba.library.empty() ) {
-            //     libhandle = bindDynamicLibrary(ba.library);
-            //     if ( !libhandle && !ba.late && ba.api!=ApiType::api_opengl ) {
-            //         err = "can't load library " + ba.library;
-            //         return nullptr;
-            //     }
-            // }
-            // void * funptr = nullptr;
-            // if ( !ba.late ) {
-            //     if ( ba.api==ApiType::api_opengl ) {
-            //         funptr = openGlGetFunctionAddress(ba.fn_name.c_str());
-            //     }
-            //     if ( !funptr ) {
-            //         funptr = getFunctionAddress(libhandle, ba.fn_name.c_str());
-            //     }
-            //     if ( !funptr ) {
-            //         err = "can't find function " + ba.fn_name + " in library " + ba.library;
-            //         return nullptr;
-            //     }
-            // }
-            // uint64_t code = lateBind(ba.fn_name, ba.library, funptr);
-            // auto wrp = computeWrapper(fun);
-            // if ( ba.api==ApiType::api_opengl ) {
-            //     return context->code->makeNode<SimNode_ExtCallOpenGL>(fun->at,code,wrp,funptr);
-            // }
-            // if ( ba.late ) {
-            //     return context->code->makeNode<SimNode_ExtCallLate>(fun->at,code,wrp,funptr);
-            // }
-            // return context->code->makeNode<SimNode_ExtCall>(fun->at,code,wrp,funptr);
-            return nullptr;     // dagor's fatal returns when DAGOR_DBGLEVEL > 0 (RETURN_X_AFTER_FATAL); upstream's exits
+        // transformCall rewrites every CALL to the bound extern, so the body is reached only
+        // without a call site to rewrite - an address-taken extern. Simulating still has to
+        // SUCCEED (-aot-macros marks and simulates every function), but the body must refuse:
+        // an empty one answers uninitialized stack.
+        virtual SimNode * simulate ( Context * context, Function * fun, const AnnotationArgumentList &, string & ) override {
+            if ( is_in_completion() ) return nullptr;
+            struct SimNode_NoIndirect : SimNode {
+                SimNode_NoIndirect ( const LineInfo & at ) : SimNode(at) {}
+                virtual vec4f eval ( Context & ctx ) override {
+                    ctx.throw_error_at(debugInfo, "a dasbind extern has no body to call - it is reached "
+                        "through its call site, which transformCall rewrites, not through a function pointer");
+                    return v_zero();
+                }
+            };
+            return context->code->makeNode<SimNode_NoIndirect>(fun->at);
         }
 #endif
     };
@@ -622,6 +814,19 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
 #endif
     }
 
+    // The library handle dasbind's own extern machinery resolves (already-loaded check +
+    // dll_search_paths + dasroot/lib fallbacks) — so das code needing raw entry points from a
+    // bound library (the --jit-split-modules parallel emit) shares ONE resolution truth.
+    void * dasbind_get_library ( const char * library ) {
+#if DAS_BIND_EXTERNAL
+        if ( !library || !*library ) return nullptr;
+        return bindDynamicLibrary(library);
+#else
+        (void)library;
+        return nullptr;
+#endif
+    }
+
     class Module_DASBIND : public Module {
     public:
         Module_DASBIND() : Module("dasbind") {
@@ -635,6 +840,9 @@ FastCallWrapper getExtraWrapper ( int nargs, int res, int perm ) {
             addExtern<DAS_BIND_FUN(dasbind_resolve)>(*this, lib, "__dasbind_resolve",
                 SideEffects::accessExternal, "dasbind_resolve")
                     ->args({"mangledName"});
+            addExtern<DAS_BIND_FUN(dasbind_get_library)>(*this, lib, "__dasbind_get_library",
+                SideEffects::accessExternal, "dasbind_get_library")
+                    ->args({"library"});
         }
         virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
             tw << "#include \"daScript/simulate/aot_builtin_dasbind.h\"\n";

@@ -311,10 +311,10 @@ static inline bool getTriangleHtCull(float x, float z, real &maxht, const Point3
   float det = edge1.z * edge2.x - edge1.x * edge2.z;
   if (noCull)
   {
-    if (fabsf(det) < 1e-30) // culling: uncomment this line to make accurate culling - prevent errors on near zero det
+    if (fabsf(det) < 1e-30f) // culling: uncomment this line to make accurate culling - prevent errors on near zero det
       return false;
   }
-  else if (det < 1e-30) // culling: uncomment this line to make accurate culling - prevent errors on near zero det
+  else if (det < 1e-30f) // culling: uncomment this line to make accurate culling - prevent errors on near zero det
     return false;
 
   /// calculate distance from vert0 to ray origin

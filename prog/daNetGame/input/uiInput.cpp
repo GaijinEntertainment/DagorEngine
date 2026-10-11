@@ -13,13 +13,19 @@
 #include <daRg/dag_joystick.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiJoystick.h>
+#include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <startup/dag_inpDevClsDrv.h>
+#include <startup/dag_globalSettings.h>
 #include <gui/dag_visConsole.h>
 #include <daInput/input_api.h>
 #include <memory/dag_framemem.h>
+#include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_atomic.h>
+#include <perfMon/dag_cpuFreq.h>
 
 
 namespace uiinput
@@ -138,10 +144,19 @@ void mask_dainput_buttons(dag::ConstSpan<darg::HotkeyButton> buttons, bool consu
   dainput::set_initial_usage_mask(keys_disable, layer);
 }
 
+static unsigned ui_mouse_layers = 0;
+
+bool is_mouse_used_by_ui() { return interlocked_relaxed_load(ui_mouse_layers) != 0; }
+
 void mask_dainput_pointers(int iflags, int layer)
 {
   using namespace HumanInput;
   using namespace darg;
+
+  const unsigned bit = 1u << layer;
+  const unsigned layers = (iflags & IGuiSceneCallback::IF_MOUSE) ? ui_mouse_layers | bit : ui_mouse_layers & ~bit;
+  interlocked_relaxed_store(ui_mouse_layers, layers);
+  interlocked_relaxed_store(stg_pnt.touchPadTapClicks, layers != 0);
 
   // Mask mouse and gamepad stick
 
@@ -176,6 +191,26 @@ void mask_dainput_pointers(int iflags, int layer)
       keys_disable.push_back(dainput::SingleButtonId{dainput::DEV_gamepad | 0x10, i}); // both gamepad sticks
   }
   dainput::set_initial_usage_mask(keys_disable, layer);
+}
+
+static WinCritSec dainput_calls_cs;
+static Tab<eastl::function<void()>> dainput_calls;
+
+void call_dainput(eastl::function<void()> &&f)
+{
+  WinAutoLock lock(dainput_calls_cs);
+  if (dainput::is_controled_by_cur_thread() && dainput_calls.empty())
+    f();
+  else
+    dainput_calls.push_back(eastl::move(f));
+}
+
+void flush_dainput_calls()
+{
+  WinAutoLock lock(dainput_calls_cs);
+  for (eastl::function<void()> &f : dainput_calls)
+    f();
+  dainput_calls.clear();
 }
 
 static struct ConsoleAndGlobalMouseKbdHandler : public ecs::IGenHidEventHandler
@@ -364,6 +399,39 @@ bool MouseKbdHandler::gjehStateChanged(const Context &, HumanInput::IGenJoystick
 }
 
 
-void update_joystick_input() { uishared::joystick_handler->processPendingBtnStack(get_all_scenes()); }
+#if _TARGET_PC
+static void move_mouse_with_touch_pad()
+{
+  using namespace HumanInput;
+  static JoystickTouchpadState::Point last;
+  JoystickTouchpadState touch;
+  JoystickTouchpadState::Point p;
+  {
+    WinAutoLock lock(global_cls_drv_update_cs);
+    IGenJoystick *joy = ::global_cls_drv_joy ? ::global_cls_drv_joy->getDevice(0) : nullptr;
+    if (joy && joy->getTouchpadState(touch))
+      p = touch.points[0];
+  }
+  IGenPointing *pnt = ::global_cls_drv_pnt ? ::global_cls_drv_pnt->getDevice(0) : nullptr;
+  const int dx = p.x - last.x, dy = p.y - last.y;
+  if (pnt && ::dgs_app_active && p.down && last.down && p.contactId == last.contactId && (dx || dy) &&
+      interlocked_relaxed_load(stg_pnt.emuMouseWithTouchPad))
+  {
+    if (!pnt->getRelativeMovementMode())
+      pnt->setPosition(pnt->getRawState().mouse.x + dx, pnt->getRawState().mouse.y + dy);
+    dainput::mouse_move_event_occurs(ref_time_delta_to_usec(ref_time_ticks()), dx, dy, raw_state_pnt.mouse.x, raw_state_pnt.mouse.y,
+      /*injected*/ true);
+  }
+  last = p;
+}
+#endif
+
+void update_joystick_input()
+{
+  uishared::joystick_handler->processPendingBtnStack(get_all_scenes());
+#if _TARGET_PC
+  move_mouse_with_touch_pad();
+#endif
+}
 
 } // namespace uiinput

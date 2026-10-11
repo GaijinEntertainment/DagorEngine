@@ -13,8 +13,10 @@ methods of every instance made from it.
 
 `class Name { ... }` declares fields with a default value and methods,
 either as `function name() { ... }` or as a field assigned a function or a
-lambda. `constructor` is a reserved method name, called automatically for
-every new instance. Inside a method, a field is always reached through
+lambda. The method named `constructor` runs for every new instance. In a
+class body it can also be written without `function`, as
+`constructor(x) { ... }`. The word is not a keyword: elsewhere it is an
+ordinary name. Inside a method, a field is always reached through
 `this.`. Unlike some other object-oriented languages, a bare name does not
 mean `this.name`.
 
@@ -35,8 +37,7 @@ parentheses, or `null` for a class with none.
 
 {{example:language/classes-inheritance}}
 
-The keyword `extends` appears in the grammar (`class Tank extends Vehicle`)
-but the lexer never produces it. It is dead syntax and fails to parse with
+There is no `extends` keyword: `class Tank extends Vehicle` fails with
 `expected '{'`. Use the parenthesized form above.
 
 ## Static members

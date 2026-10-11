@@ -1,0 +1,272 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include "randomSwitch.h"
+#include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
+#include "../animTreePanelPids.h"
+#include "../animTreeEditor.h"
+#include "animCtrlData.h"
+
+#include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_dataBlockCommentsDef.h>
+#include <propPanel/control/container.h>
+
+static const bool DEFAULT_SPLIT_CHANS = true;
+static const int DEFAULT_MAXREPEAT = 1;
+
+void random_switch_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)
+{
+  add_edit_box_if_not_exists(params, panel, field_idx, "name");
+  add_edit_box_if_not_exists(params, panel, field_idx, "varname");
+  add_edit_int_if_not_exists(params, panel, field_idx, "maxrepeat", DEFAULT_MAXREPEAT);
+  add_edit_bool_if_not_exists(params, panel, field_idx, "splitChans", DEFAULT_SPLIT_CHANS);
+  add_edit_box_if_not_exists(params, panel, field_idx, "accept_name_mask_re");
+  add_edit_box_if_not_exists(params, panel, field_idx, "decline_name_mask_re");
+}
+
+void random_switch_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+{
+  remove_param_if_default_str(params, panel, "varname", get_default_varname_from_name(params, panel));
+  remove_param_if_default_int(params, panel, "maxrepeat", DEFAULT_MAXREPEAT);
+  remove_param_if_default_bool(params, panel, "splitChans", DEFAULT_SPLIT_CHANS);
+  remove_param_if_default_str(params, panel, "accept_name_mask_re");
+  remove_param_if_default_str(params, panel, "decline_name_mask_re");
+}
+
+bool random_switch_has_duplicated_childs(const DataBlock &settings)
+{
+  const DataBlock *weights = settings.getBlockByName("weight");
+  if (!weights)
+    return false;
+
+  bool hasDuplicates = false;
+  for (int i = 0; i < weights->paramCount(); ++i)
+  {
+    if (CHECK_COMMENT_PREFIX(weights->getParamName(i)))
+      continue;
+    for (int j = 0; j < i; ++j)
+      if (weights->getParamNameId(j) == weights->getParamNameId(i))
+      {
+        logerr("randomSwitch <%s>: duplicated child <%s> in weight block, fix it manually to allow editing",
+          settings.getStr("name", ""), weights->getParamName(i));
+        hasDuplicates = true;
+        break;
+      }
+  }
+  return hasDuplicates;
+}
+
+void random_switch_init_block_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings,
+  dag::Vector<DependentParamData> &params)
+{
+  random_switch_has_duplicated_childs(*settings);
+  const DataBlock *weights = settings->getBlockByName("weight");
+  const DataBlock *maxrepeats = settings->getBlockByName("maxrepeat");
+  const char *defaultName = weights ? weights->getParamName(0) : "";
+  const float defaultWeight = weights ? weights->getReal(0) : 0.f;
+  const int maxRepeatValue = settings->getInt("maxrepeat", DEFAULT_MAXREPEAT);
+  const int defaultMaxRepeat = maxrepeats ? maxrepeats->getInt(defaultName, maxRepeatValue) : maxRepeatValue;
+  Tab<String> names;
+  if (weights)
+    fill_param_names_without_comments(names, *weights);
+
+  bool isEditable = !names.empty();
+  panel->createList(PID_CTRLS_NODES_LIST, "Nodes", names, 0);
+  panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add");
+  panel->createButton(PID_CTRLS_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
+  panel->createEditBox(PID_CTRLS_RANDOM_SWITCH_NODE_NAME, "name", defaultName, isEditable);
+  panel->createEditFloat(PID_CTRLS_RANDOM_SWITCH_NODE_WEIGHT, "weight", defaultWeight, /*prec*/ 2, isEditable);
+  panel->createEditInt(PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT, "maxrepeat", defaultMaxRepeat, isEditable);
+  params.emplace_back(
+    DependentParamData{PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT, PID_CTRLS_DEPENDENT_MAXREPEAT, maxRepeatValue == defaultMaxRepeat});
+}
+
+void AnimTreeEditor::randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data)
+{
+  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
+  if (listName.empty())
+    return;
+
+  if (random_switch_has_duplicated_childs(*settings))
+    return;
+
+  const SimpleString fieldName = panel->getText(PID_CTRLS_RANDOM_SWITCH_NODE_NAME);
+  DataBlock *weights = settings->getBlockByName("weight");
+  DataBlock *maxrepeats = settings->getBlockByName("maxrepeat");
+
+  if (weights && listName != fieldName && weights->paramExists(fieldName.c_str()))
+  {
+    logerr("randomSwitch <%s>: child <%s> already exists in weight block, rename rejected", settings->getStr("name", ""),
+      fieldName.c_str());
+    return;
+  }
+
+  if (weights && listName != fieldName)
+  {
+    weights->changeParamName(get_param_name_idx_by_list_name(*weights, listName, selectedIdx), fieldName.c_str());
+    data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName.c_str());
+    check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName);
+  }
+  if (maxrepeats && listName != fieldName)
+  {
+    int listNameId = maxrepeats->getNameId(listName.c_str());
+    for (int i = 0; i < maxrepeats->paramCount(); ++i)
+      if (maxrepeats->getParamNameId(i) == listNameId)
+        maxrepeats->changeParamName(i, fieldName.c_str());
+  }
+
+  const float weightValue = panel->getFloat(PID_CTRLS_RANDOM_SWITCH_NODE_WEIGHT);
+  const int maxRepeatValue = panel->getInt(PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT);
+  const int defaultMaxRepeat = settings->getInt("maxrepeat", DEFAULT_MAXREPEAT);
+
+  if (!weights)
+  {
+    weights = settings->addBlock("weight");
+    data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName.c_str());
+    check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName);
+  }
+
+  weights->setReal(fieldName.c_str(), weightValue);
+
+  if (maxRepeatValue != defaultMaxRepeat)
+  {
+    if (!maxrepeats)
+      maxrepeats = settings->addBlock("maxrepeat");
+
+    maxrepeats->setInt(fieldName.c_str(), maxRepeatValue);
+  }
+
+  if (maxrepeats && maxrepeats->isEmpty())
+    settings->removeBlock("maxrepeat");
+
+  if (listName != fieldName)
+    panel->setText(PID_CTRLS_NODES_LIST, fieldName.c_str());
+}
+
+void random_switch_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings,
+  dag::Vector<DependentParamData> &params, dag::ConstSpan<AnimParamData> base_params)
+{
+  const DataBlock *weights = settings->getBlockByNameEx("weight");
+  const DataBlock *maxrepeats = settings->getBlockByNameEx("maxrepeat");
+  const int defaultMaxRepeat = settings->getInt("maxrepeat", DEFAULT_MAXREPEAT);
+  const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
+  const int maxRepeatValue = maxrepeats->getInt(name.c_str(), defaultMaxRepeat);
+  panel->setText(PID_CTRLS_RANDOM_SWITCH_NODE_NAME, name.c_str());
+  panel->setFloat(PID_CTRLS_RANDOM_SWITCH_NODE_WEIGHT, weights->getReal(name.c_str(), 0.f));
+  panel->setInt(PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT, maxRepeatValue);
+  bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
+  for (int i = PID_CTRLS_RANDOM_SWITCH_NODE_NAME; i <= PID_CTRLS_RANDOM_SWITCH_NODE_MAX_REPEAT; ++i)
+    panel->setEnabledById(i, isEditable);
+  for (DependentParamData &param : params)
+  {
+    if (param.dependentParamPid == PID_CTRLS_DEPENDENT_MAXREPEAT)
+    {
+      param.dependent = maxRepeatValue == defaultMaxRepeat;
+      update_dependent_param_value_by_name(panel, base_params, param, "maxrepeat");
+    }
+  }
+}
+
+void random_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
+{
+  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
+  DataBlock *weights = settings->getBlockByName("weight");
+  DataBlock *maxrepeats = settings->getBlockByName("maxrepeat");
+
+  if (weights)
+    weights->removeParam(removeName.c_str());
+  if (maxrepeats)
+    maxrepeats->removeParam(removeName.c_str());
+
+  if (weights && weights->isEmpty())
+    settings->removeBlock("weight");
+  if (maxrepeats && maxrepeats->isEmpty())
+    settings->removeBlock("maxrepeat");
+}
+
+void AnimTreeEditor::randomSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings)
+{
+  const DataBlock *nodes = settings.getBlockByNameEx("weight");
+  for (int i = 0; i < nodes->paramCount(); ++i)
+    if (nodes->getParamType(i) == DataBlock::TYPE_REAL)
+    {
+      int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, nodes->getParamName(i));
+      check_ctrl_child_idx(idx, settings.getStr("name"), nodes->getParamName(i));
+    }
+}
+
+const char *random_switch_get_child_name_by_idx(const DataBlock &settings, int idx)
+{
+  return settings.getBlockByNameEx("weight")->getParamName(idx);
+}
+
+String random_switch_get_child_prefix_name(const DataBlock &settings, int idx)
+{
+  const DataBlock *weights = settings.getBlockByNameEx("weight");
+  float sum = 0.f;
+  for (int i = 0; i < weights->paramCount(); ++i)
+    sum += weights->getReal(i);
+
+  const float value = safediv(weights->getReal(idx), sum) * 100.f;
+
+  return String(0, "[%.0f%%] ", value);
+}
+
+void random_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name)
+{
+  DataBlock *weights = settings.getBlockByName("weight");
+  DataBlock *maxrepeats = settings.getBlockByName("maxrepeat");
+  String writeName;
+  if (weights)
+    for (int i = 0; i < weights->paramCount(); ++i)
+      if (get_updated_child_name(name, old_name, weights->getParamName(i), writeName))
+      {
+        weights->changeParamName(i, writeName.c_str());
+        break;
+      }
+
+  if (maxrepeats)
+    for (int i = 0; i < maxrepeats->paramCount(); ++i)
+      if (get_updated_child_name(name, old_name, maxrepeats->getParamName(i), writeName))
+      {
+        maxrepeats->changeParamName(i, writeName.c_str());
+        break;
+      }
+}
+
+class RandomSwitchReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  RandomSwitchReorderHandler(AnimTreeEditor &editor, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data) :
+    BaseCtrlReorderHandler(editor, controllers, panel), ctrlData(ctrl_data)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    DataBlock *weights = settings.getBlockByName("weight");
+    if (!weights)
+      return;
+
+    dag::Vector<int> positions;
+    for (int i = 0; i < weights->paramCount(); ++i)
+      if (!CHECK_COMMENT_PREFIX(weights->getParamName(i)))
+        positions.push_back(i);
+    if (from < 0 || from >= positions.size() || to < 0 || to >= positions.size())
+      return;
+
+    move_param_blk(*weights, positions[from], positions[to]);
+    if (ctrlData && positions.size() == ctrlData->childs.size())
+      move_childs(ctrlData->childs, from, to);
+  }
+
+  AnimCtrlData *ctrlData;
+};
+
+IListReorderHandler *random_switch_get_reorder_handler(AnimTreeEditor &editor, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data)
+{
+  return new RandomSwitchReorderHandler(editor, controllers, panel, ctrl_data);
+}

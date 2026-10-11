@@ -26,10 +26,13 @@ def updateCOP(var cop : CodeOfPolicies; gen2 : bool; gen2_make : bool; aot_lib :
     cop.version_2_syntax = gen2;
     cop.gen2_make_syntax = gen2_make;
     // AOT output is a cross-box artifact — per-box [tune] stamps must not leak into the
-    // generated stubs (the das twin of utils/daScript/main.cpp's -aot policy; without it the
+    // generated stubs (the das twin of utils/daslang/main.cpp's -aot policy; without it the
     // stubs record stamped-world hashes while the AOT-consuming runtime compiles gated →
     // error[50101] on any function with a [tune] family in its static call graph)
     cop.tune_frozen = true;
+    // mirror das_scripts.cpp: the runtime sets no_aliasing, which gates Program::patchInline's
+    // plain-call auto-inline tier. Without it the tool inlines what the game does not and the
+    // artifact records hashes the runtime never computes -> error[50101], interpreted fallback
     cop.no_aliasing = true;
 }
 
@@ -116,6 +119,16 @@ def parse_input_file(filename : string) {
     return <- (aot_files, aot_lib_files, ctx_files)
 }
 
+// aot / aotlib / ctx work lists, either from an -in_file manifest or from the argv triplets
+def collect_inputs(args : array<string>) {
+    let input_file = find_argument_or(args, "-in_file", "")
+    if (!input_file.empty()) return <- parse_input_file(input_file)
+    var aot_files <- get_list_of_files(args, "-aot")
+    var aotlib_files <- get_list_of_files(args, "-aotlib")
+    var ctx_files <- get_list_of_files(args, "-ctx")
+    return <- (aot_files, aotlib_files, ctx_files)
+}
+
 def find_bool(args : array<string>; key : string) {
     let idx = find_index(args, key)
     return idx >= 0 && idx + 1 < length(args)
@@ -124,7 +137,7 @@ def find_bool(args : array<string>; key : string) {
 def write_result(content : string; output_filename : string;
                  mode : string; force_overwrite : bool) {
     var result : bool = true
-    if (content |> !empty(content) && (force_overwrite || !is_content_same(content, output_filename))) {
+    if (!empty(content) && (force_overwrite || !is_content_same(content, output_filename))) {
         fopen(output_filename, "wb") $(fw) {
             if (fw != null) {
                 to_log(LOG_INFO, "{mode} to {output_filename}\n")
@@ -150,21 +163,7 @@ def main() {
     let force_overwrite = find_bool(args, "-force-overwrite");
     let quiet = find_bool(args, "-quiet");
 
-    var aot_files = array<tuple<string; string>>()
-    var aotlib_files = array<tuple<string; string>>()
-    var ctx_files = array<tuple<string; string>>()
-
-    let input_file = find_argument_or(args, "-in_file", "")
-    if (!input_file.empty()) {
-        var (a1, a2, a3) <- parse_input_file(input_file)
-        aot_files <- a1
-        aotlib_files <- a2
-        ctx_files <- a3
-    } else {
-        aot_files = get_list_of_files(args, "-aot")
-        aotlib_files = get_list_of_files(args, "-aotlib")
-        ctx_files = get_list_of_files(args, "-ctx")
-    }
+    var (aot_files, aotlib_files, ctx_files) <- collect_inputs(args)
     var result = true
     using() $(var cop : CodeOfPolicies) {
         updateCOP(cop, !gen1, gen2_make, false)
@@ -194,9 +193,15 @@ def main() {
             }
         }
         updateCOP(cop, !gen1, gen2_make, false)
+        let bindings = find_argument_or(args, "-bindings", "")
+        let bindings_library = find_argument_or(args, "-bindings_library", "")
+        if (!bindings.empty() && length(ctx_files) != 1) {
+            panic("-bindings names one output, so it takes exactly one -ctx input")
+        }
         for ((ctx_in, ctx_out) in ctx_files) {
             ast_gc_guard() {
-                let is_ok = standalone_aot(ctx_in, ctx_out, cross_platform, false, cop)
+                let is_ok = standalone_aot(ctx_in, ctx_out, bindings, bindings_library,
+                                           cross_platform, false, cop)
                 if (!is_ok && !quiet) {
                     to_log(LOG_ERROR, "Failed to compile `{ctx_in}` in standalone.\n")
                 }

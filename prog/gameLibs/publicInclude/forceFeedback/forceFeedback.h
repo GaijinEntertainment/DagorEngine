@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <drv/hid/dag_hiJoyTriggerEffect.h>
 
 namespace force_feedback
 {
@@ -29,5 +30,12 @@ void shutdown();
 void reset();
 
 void add_event(const EventParams &evtp);
+void set_scale(float scale);
 } // namespace rumble
+
+namespace trigger_effect
+{
+// programs the triggers of the default gamepad; a pad without adaptive triggers ignores it
+void set(const HumanInput::TriggerEffectParam &param);
+} // namespace trigger_effect
 }; // namespace force_feedback

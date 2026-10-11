@@ -9,12 +9,19 @@ ForceCreateAAB ?= no ;
 
 SubGame ?= none ;
 
+AndroidCleanOutput ?= no ;
+
 rule ProcessLinkTarget
 {
   local _LIBS =
      c m log dl android
      stdc++ c++abi
   ;
+
+  local _LTO_CACHE_OPT = ;
+  if $(UseWholeOpt) != no && $(AndroidNdkVer) in r27c r29 {
+    _LTO_CACHE_OPT = -Wl,--thinlto-cache-dir=$($(Target)__TmpDir)/thinlto-cache -Wl,--thinlto-cache-policy=cache_size_bytes=8g ;
+  }
 
   if $(Sanitize) = hwaddress {
     _LIBS += c++_shared ;
@@ -43,6 +50,7 @@ rule ProcessLinkTarget
     local stage_dir = $($(Target)__TmpDir)/android ;
 
     AndroidGradleOutDir = $(stage_dir) ;
+    if $(AndroidCleanOutput) = yes { Depends $(OutDir)/$(Target) : [ AndroidCleanOutputTarget $(stage_dir) ] ; }
 
     if $(Config) = rel { AndroidObfuscate ?= yes ; }
 
@@ -85,6 +93,7 @@ rule ProcessLinkTarget
       AndroidGenerateDebugSymbols = 1 ;
     }
 
+    _LINK_OPT += $(_LTO_CACHE_OPT) ;
     $(Target)__LINK      = $(_LINK) ;
     $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
 
@@ -620,6 +629,7 @@ rule ProcessLinkTarget
       _LINK_OPT += "-Wl,-Map,"$($(Target)__TmpDir)/$(Target:S=.map) ;
     }
 
+    _LINK_OPT += $(_LTO_CACHE_OPT) ;
     $(Target)__LINK      = $(_LINK) ;
     $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
     $(Target)__POSTLINK_CMD =
@@ -662,13 +672,55 @@ rule AndroidDefineArgs
   return $(result) ;
 }
 
+rule AndroidCleanOutputTarget stage_dir { return $(stage_dir:G=cao) ; }
+
+if $(OS) = MACOSX {
+  actions together quietly clean_android_output
+  {
+    echo --- Clean $(tmp_dir)/android
+    call rm -rf $(tmp_dir)/android
+  }
+} else {
+  actions together quietly clean_android_output
+  {
+    echo --- Clean $(tmp_dir)/android
+    call $(ComSpec) /c pushd "$(tmp_dir)" && rmdir /s /q android && popd
+  }
+}
+
+rule CleanAndroidOutput  # target
+{
+  local tmp_dir = $($(1)__TmpDir) ;
+  local cao = [ AndroidCleanOutputTarget $(tmp_dir)/android ] ;
+  NOTFILE $(cao) clean-android-output ;
+  Depends clean-android-output : $(cao) ;
+  if [ GLOB $(tmp_dir) : android ] {
+    ALWAYS $(cao) ;
+    tmp_dir on $(cao) = $(tmp_dir) ;
+    clean_android_output $(cao) ;
+  } else {
+    Echo nothing to clean, dir is missing: $(tmp_dir)/android ;
+  }
+}
+
+rule AndroidStageFile  # file : stage_dir
+{
+  if $(AndroidCleanOutput) != yes { MakeDirectory $(1) : $(1:D) ; return ; }
+  local cao = [ AndroidCleanOutputTarget $(2) ] ;
+  local dir = $(1:D) ;
+  dir = $(dir:G=android_stage_dir) ;
+  Depends $(1) : $(dir) $(cao) ;
+  Depends $(dir) : $(cao) ;
+  MkDir $(dir) ;
+}
+
 rule ProcessBundleCopy
 {
   local src = [ LocationBasedToAbsPath $(1[1]) ] ;
   local dest = $(1[2]) ;
   local out = $($(Target)__TmpDir)/android ;
 
-  MakeDirectory $(out)/$(dest) : $(out)/$(dest:D) ;
+  AndroidStageFile $(out)/$(dest) : $(out) ;
   Depends $(OutDir)/$(Target) : $(out)/$(dest) ;
   Depends $(out)/$(dest) : $(src) ;
   file on $(out)/$(dest) = $(dest) ;
@@ -703,7 +755,7 @@ rule ProcessAndroidSources
   local src = [ LocationBasedToAbsPath $(1[1]) ] ;
   local stamp = $(out)/.jcopy/$(Target:D=:S=)~$(1[1]:D=).jcopy ;
 
-  MakeDirectory $(stamp) : $(stamp:D) ;
+  AndroidStageFile $(stamp) : $(out) ;
   Depends $(OutDir)/$(Target) : $(stamp) ;
   Depends $(stamp) : $(src) ;
   script on $(stamp) = $(Root)/prog/_jBuild/android/copy_java_sources.py ;
@@ -721,7 +773,7 @@ rule ProcessAndroidCopy
   local dest = $(1[2]) ;
   local out = $(AndroidGradleOutDir) ;
 
-  MakeDirectory $(out)/$(dest) : $(out)/$(dest:D) ;
+  AndroidStageFile $(out)/$(dest) : $(out) ;
   Depends $(OutDir)/$(Target) : $(out)/$(dest) ;
   Depends $(out)/$(dest) : $(src) ;
   file on $(out)/$(dest) = $(dest) ;
@@ -747,7 +799,7 @@ rule ProcessAndroidProguard
   local dest = proguard.d/$(1[1]:D=:S=)_$(Target:D=:S=).proguard ;
   local out = $(AndroidGradleOutDir) ;
 
-  MakeDirectory $(out)/$(dest) : $(out)/$(dest:D) ;
+  AndroidStageFile $(out)/$(dest) : $(out) ;
   Depends $(OutDir)/$(Target) : $(out)/$(dest) ;
   Depends $(out)/$(dest) : $(src) ;
   file on $(out)/$(dest) = $(dest) ;
@@ -763,7 +815,7 @@ rule ProcessAndroidLibs
   local out = $(AndroidGradleOutDir) ;
   local dest = $(out)/$(Target:D=:S=).libs ;
 
-  MakeDirectory $(dest) : $(dest:D) ;
+  AndroidStageFile $(dest) : $(out) ;
   Depends $(OutDir)/$(Target) : $(dest) ;
   Depends $(dest) : $(Root)/$(Location)/jamfile ;
   script on $(dest) = $(Root)/prog/_jBuild/android/gradle/write_gradle_libs.py ;

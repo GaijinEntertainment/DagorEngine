@@ -134,4 +134,34 @@ protected:
   static ButtonBits btmp[2];
 };
 
+// calibrated motion sensors of the latest device report; frame: X right, Y up, Z to the player
+struct JoystickMotionState
+{
+  float angVelDegS[3] = {0, 0, 0}; // right-handed rotation rate around X (pitch), Y (yaw), Z (roll)
+  float accelG[3] = {0, 0, 0};     // at rest the up axis reads +1
+  uint32_t timestampUs = 0;        // device time since the pad connected, wraps
+  uint32_t sampleCount = 0;        // reports received since connect
+};
+
+// points in pixels of a width x height pad, origin in the top-left corner, x to the right, y down;
+// contactId changes for each new touch
+struct JoystickTouchpadState
+{
+  struct Point
+  {
+    bool down = false;
+    uint8_t contactId = 0;
+    uint16_t x = 0, y = 0;
+  };
+  Point points[2];
+  uint16_t width = 0, height = 0;
+};
+
+enum JoystickMicLed : int
+{
+  JOY_MIC_LED_OFF,
+  JOY_MIC_LED_ON,
+  JOY_MIC_LED_PULSE
+};
+
 } // namespace HumanInput

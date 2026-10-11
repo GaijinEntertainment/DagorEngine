@@ -18,7 +18,8 @@ float hmap_max_gradient = 1e9;
 // HEIGHTMAP_MAX_GRID_HAS_HEIGHT define; shader_global.dshl in scope for
 // BRANCH/LOOP/select):
 //   float heightmap_max_grid_get_height(float3 world_pos) - the heightfield
-//     the march refines against; the grid only accelerates, that decides hits
+//     the march refines against; the grid only accelerates, that decides hits;
+//     -1e9 past heightmap_max_grid_region, as the grid update stores there
 //   float heightmap_max_grid_get_texel_size() - its sample spacing in meters,
 //     the march aims at half texel steps, capped at 4 per cell span (a
 //     feature narrower than a quarter cell can slip between samples)
@@ -45,6 +46,28 @@ macro USE_HEIGHTMAP_MAX_GRID(code)
         uint2 w = uint2(cell) & uint(heightmap_max_grid_lt.w);
         return asfloat(loadBuffer(heightmap_max_grid, (w.y*uint(heightmap_max_grid_lt.z) + w.x)*4));
       }
+      // the inside end of a step across the edge of the region, the side face of the terrain block, by bisection
+      float heightmap_max_grid_edge_t(float3 world_pos, float3 dir, float t_in, float t_out)
+      {
+        LOOP
+        for (uint k = 0; k < 10u; ++k)
+        {
+          float m = 0.5*(t_in + t_out);
+          bool inside = heightmap_max_grid_get_height(world_pos + dir*m) > -1e8;
+          t_in = inside ? m : t_in;
+          t_out = inside ? t_out : m;
+        }
+        return t_in;
+      }
+      bool heightmap_max_grid_crossed(bool from_below, float d, float d_next, float t0, float t1, inout float hit_t)
+      {
+        if (from_below ? (d < 0 && d_next >= 0) : (d > 0 && d_next <= 0))
+        {
+          hit_t = t0 + (t1 - t0)*saturate(d/(d - d_next));
+          return true;
+        }
+        return false;
+      }
       // 2d dda over the max cells. below_hits_at_once treats the heightfield
       // as solid ground: a ray starting below it hits its exit through the
       // surface with a back face (max_t when it never exits), so buried
@@ -69,9 +92,10 @@ macro USE_HEIGHTMAP_MAX_GRID(code)
         bool fromBelow = below_hits_at_once && world_pos.y <= heightmap_max_grid_cell_max(cell) &&
                          world_pos.y < heightmap_max_grid_get_height(world_pos);
         // climbs steeper than any terrain: cannot hit; a buried ray still
-        // marches to find its exit
+        // marches to find its exit, and one from past the region can meet
+        // the side face of the terrain block
         BRANCH
-        if (!fromBelow && dir.y >= heightmap_max_grid_get_up_cull())
+        if (!fromBelow && dir.y >= heightmap_max_grid_get_up_cull() && heightmap_max_grid_get_height(world_pos) > -1e8)
           return false;
         // a near zero direction axis keeps its sign: flipping it would place
         // the next cell boundary behind the origin
@@ -112,10 +136,20 @@ macro USE_HEIGHTMAP_MAX_GRID(code)
             {
               float t = tA + s*dt;
               float dNext = world_pos.y + dir.y*t - heightmap_max_grid_get_height(world_pos + dir*t);
-              if (fromBelow ? (d < 0 && dNext >= 0) : (d > 0 && dNext <= 0))
+              // a step across the edge of the region is split there: no terrain past it is no surface to interpolate to
+              float tEdge = t, dEdge = dNext;
+              BRANCH
+              if ((d > 1e8) != (dNext > 1e8))
               {
-                // crossed the surface between the two samples
-                hit_t = t - dt + dt*saturate(d/(d - dNext));
+                tEdge = heightmap_max_grid_edge_t(world_pos, dir, d > 1e8 ? t : t - dt, d > 1e8 ? t - dt : t);
+                dEdge = world_pos.y + dir.y*tEdge - heightmap_max_grid_get_height(world_pos + dir*tEdge);
+              }
+              // constraint: HLSL 2018 runs both sides of ||, and the second call writes hit_t
+              bool crossed = heightmap_max_grid_crossed(fromBelow, d, dEdge, t - dt, tEdge, hit_t);
+              if (!crossed)
+                crossed = heightmap_max_grid_crossed(fromBelow, dEdge, dNext, tEdge, t, hit_t);
+              if (crossed)
+              {
                 hit_back_face = fromBelow;
                 return true;
               }
@@ -140,4 +174,56 @@ macro USE_HEIGHTMAP_MAX_GRID(code)
       #endif
     }
   }
+endmacro
+
+// USE_HEIGHTMAP_MAX_GRID over tex_hmap_low, the heightfield that fills the grid
+macro INIT_AND_USE_HEIGHTMAP_MAX_GRID(code)
+  INIT_WORLD_HEIGHTMAP_BASE(code)
+  USE_HEIGHTMAP_COMMON_BASE(code)
+  if (tex_hmap_low != NULL)
+  {
+    // stcode: texel size in meters and the up cull, the sine of the worst
+    // slope (sqrt2 covers the diagonal; tex_hmap_inv_sizes is repurposed)
+    local float hmap_grid_texel = 1.0 / max(get_dimensions(tex_hmap_low, 0).x * world_to_hmap_low.x, 1e-9);
+    local float hmap_grid_grad = 1.4142136 * min(heightmap_scale.x / hmap_grid_texel, hmap_max_gradient);
+    (code) {
+      heightmap_max_grid_texel_upcull@f2 = (hmap_grid_texel, hmap_grid_grad / sqrt(1 + hmap_grid_grad * hmap_grid_grad));
+      heightmap_max_grid_region@f4 = heightmap_region;
+    }
+  }
+  hlsl(code) {
+    ##if tex_hmap_low != NULL
+    #define HEIGHTMAP_MAX_GRID_HAS_HEIGHT 1
+    // no region test: a site reads get_height, or get_normal for a hit normal
+    float heightmap_max_grid_sample_height(float3 world_pos)
+    {
+      return decode_height(getHeightLowLod(calcTcLow(world_pos.xz), 0));
+    }
+    // no terrain past a clamped heightmap: its sampler repeats the edge there, a mirrored one has wide bounds
+    float heightmap_max_grid_get_height(float3 world_pos)
+    {
+      if (any(world_pos.xz < heightmap_max_grid_region.xy) || any(world_pos.xz > heightmap_max_grid_region.zw))
+        return -1e9;
+      return heightmap_max_grid_sample_height(world_pos);
+    }
+    // with no region test, so a hit at the edge gets the normal of the clamped heightfield
+    float3 heightmap_max_grid_get_normal(float3 world_pos)
+    {
+      const float e = 1.0;
+      float2 dh = float2(
+        heightmap_max_grid_sample_height(world_pos + float3(e, 0, 0)) - heightmap_max_grid_sample_height(world_pos - float3(e, 0, 0)),
+        heightmap_max_grid_sample_height(world_pos + float3(0, 0, e)) - heightmap_max_grid_sample_height(world_pos - float3(0, 0, e)));
+      return normalize(float3(-dh.x, 2*e, -dh.y));
+    }
+    float heightmap_max_grid_get_texel_size()
+    {
+      return heightmap_max_grid_texel_upcull.x;
+    }
+    float heightmap_max_grid_get_up_cull()
+    {
+      return heightmap_max_grid_texel_upcull.y;
+    }
+    ##endif
+  }
+  USE_HEIGHTMAP_MAX_GRID(code)
 endmacro

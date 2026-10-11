@@ -38,13 +38,13 @@ float3 get_panorama_inv_reprojection(float3 origin, float3 inv_view, float3 pano
   // The panorama center is assumed to be close enough to the origin, that no double intersection happens with the cloud surface
   // If there is no real-value solution, no need to extend the cloudDist
   // Solution for: dot(refPoint + (cloudDist+t) * inv_view - origin, refPoint + (cloudDist+t) * inv_view - origin) = PANORAMA_MIN_CLOUD_DISTANCE^2
-  float b = 2.0*dot(inv_view, refPoint-origin);
+  float b = 2.0f*dot(inv_view, refPoint-origin);
   float c = dot(refPoint-origin, refPoint-origin) - PANORAMA_MIN_CLOUD_DISTANCE*PANORAMA_MIN_CLOUD_DISTANCE;
-  float D = b*b - 4.0*c;
+  float D = b*b - 4.0f*c;
   if (D >= 0)
   {
     // T = (cloudDist+t)
-    float T = (-b + sqrt(D)) / 2.0;
+    float T = (-b + sqrt(D)) / 2.0f;
     cloudDist = max(cloudDist, T);
   }
   return normalize(inv_view*cloudDist + refPoint - origin);

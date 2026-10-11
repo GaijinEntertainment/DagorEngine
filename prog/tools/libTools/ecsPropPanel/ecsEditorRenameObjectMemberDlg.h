@@ -17,15 +17,13 @@ public:
       PID_NAME = 11000,
     };
 
-    eastl::unique_ptr<PropPanel::DialogWindow> dialogWindow(
-      EDITORCORE->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(100), "Rename object member"));
+    eastl::unique_ptr<PropPanel::DialogWindow> dialogWindow(EDITORCORE->createAutoSizedDialog("Rename object member"));
     dialogWindow->setInitialFocus(PropPanel::DIALOG_ID_NONE);
 
     PropPanel::ContainerPropertyControl &panel = *dialogWindow->getPanel();
     panel.createEditBox(PID_NAME, "Name", member_name);
     panel.setFocusById(PID_NAME);
 
-    dialogWindow->autoSize();
     if (dialogWindow->showDialog() != PropPanel::DIALOG_ID_OK)
       return false;
 

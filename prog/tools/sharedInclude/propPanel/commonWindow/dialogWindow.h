@@ -103,7 +103,7 @@ public:
   // screen (AUTO_SIZE_MAX_DISPLAY_FRACTION) in either dimension. Past that point the content can be scrolled, keeping
   // the buttons in view.
   // use_preferred_size: set the dialog's minimum size based on the panel's PropertyControlBase::getPreferredSize().
-  //   Off by default because getPreferredSize() support is still limited across controls.
+  //   Off by default because some controls do not implement getPreferredSize() yet.
   virtual void autoSize(bool auto_center = true, bool use_preferred_size = false);
 
   // Check if the dialog has ever been shown. "Ever" also includes previous sessions.

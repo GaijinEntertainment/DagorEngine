@@ -80,11 +80,11 @@ def test_convert_with_errors(t : T?) {
     test_conversions(t, "13", uint16(13), "65536")
     test_hex_conversions(t, "13", uint16(0x13), "0x10000")
 
-    test_conversions(t, "13", int(13), "2147483648")
+    test_conversions(t, "13", int(13), "2147483648") // nolint:PERF020 the cast names the row's type in this conformance table
     test_hex_conversions(t, "13", int(0x13), "0x100000000")
 
     test_conversions(t, "13", uint(13), "4294967296")
-    test_hex_conversions(t, "13", uint(0x13), "0x100000000")
+    test_hex_conversions(t, "13", uint(0x13), "0x100000000") // nolint:PERF020 the cast names the row's type in this conformance table
 
     test_conversions(t, "13", int64(13), "9223372036854775808")
     test_hex_conversions(t, "13", int64(0x13), "0x10000000000000000")
@@ -92,12 +92,12 @@ def test_convert_with_errors(t : T?) {
     test_conversions(t, "13", uint64(13), "18446744073709551616")
     test_hex_conversions(t, "13", uint64(0x13), "0x10000000000000000")
 
-    test_conversions(t, "13", float(13.), "1e39")
-    test_conversions(t, "13", double(13.lf), "1e309")
+    test_conversions(t, "13", float(13.), "1e39") // nolint:PERF020 the cast names the row's type in this conformance table
+    test_conversions(t, "13", double(13.lf), "1e309") // nolint:PERF020 the cast names the row's type in this conformance table
 }
 
 [test]
-def test_convert(t : T?) {
+def test_convert(t : T?) { // nolint:STYLE038 one flat pin+fuzz arm per conversion entry point under test
 
     let a8 <- array<uint8>(uint8('A'), uint8('B'), uint8('C'))
     t |> equal(string(a8), "ABC")
@@ -105,7 +105,7 @@ def test_convert(t : T?) {
         var fake <- Faker()
         fuzz() {
             let len = fake |> random_uint % 10u
-            var arr <- [for (q in urange(len)); uint8(fake |> random_int % 256)]
+            var arr <- [for (_q in urange(len)); uint8(fake |> random_int % 256)]
             t |> accept(string(arr))
             delete arr
         }

@@ -1,0 +1,16 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Module = cameraManager ;
+Root    ?= ../../.. ;
+Location = prog/gameLibs/$(Module) ;
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+;
+local AllSrcFolder_CPP = ;
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP += . ;
+  UseProgLibs += gameLibs/folders ;
+}
+include $(Root)/prog/gameLibs/build_module.jam ;

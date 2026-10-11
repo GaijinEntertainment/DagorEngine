@@ -213,7 +213,7 @@ public:
   }
 #endif
 
-  static FormatSupport configureFormatSupport(ID3D12Device *device, DXGI_FORMAT dxgi_format)
+  static FormatSupport configureFormatSupport(D3DDevice *device, DXGI_FORMAT dxgi_format)
   {
     D3D12_FEATURE_DATA_FORMAT_SUPPORT supportQuery = {dxgi_format};
     device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &supportQuery, sizeof(supportQuery));
@@ -244,7 +244,7 @@ public:
     return {supportQuery.Support1, supportQuery.Support2, sampleCountSupportMask, maxSampleCount};
   }
 
-  static void configureTable(ID3D12Device *device, uint32_t vendor)
+  static void configureTable(D3DDevice *device, uint32_t vendor)
   {
 #if _TARGET_PC_WIN
     static constexpr uint32_t AMD_VENDOR_ID = 0x1002;
@@ -333,10 +333,10 @@ public:
     return planeCount[index];
   }
 
-  static uint32_t getChannelMask(uint32_t index)
+  static ColorChannelMask getChannelMask(uint32_t index)
   {
     checkTableIndex(index);
-    return channelMask[index];
+    return ColorChannelMask::make(channelMask[index]);
   }
 
   static bool isInList(DXGI_FORMAT format)
@@ -963,11 +963,11 @@ template const char *FormatStore::getNameString<false>() const;
 
 bool FormatStore::canBeStored(DXGI_FORMAT fmt) { return FormatInfoTableSet::isInList(fmt); }
 
-void FormatStore::configureFormatTable(ID3D12Device *device, uint32_t vendor) { FormatInfoTableSet::configureTable(device, vendor); }
+void FormatStore::configureFormatTable(D3DDevice *device, uint32_t vendor) { FormatInfoTableSet::configureTable(device, vendor); }
 
 FormatPlaneCount FormatStore::getPlanes() const { return FormatPlaneCount::make(FormatInfoTableSet::getPlaneCount(linearFormat)); }
 
-uint32_t FormatStore::getChannelMask() const { return FormatInfoTableSet::getChannelMask(linearFormat); }
+ColorChannelMask FormatStore::getChannelMask() const { return FormatInfoTableSet::getChannelMask(linearFormat); }
 
 bool FormatStore::isSupported(D3D12_FORMAT_SUPPORT1 flags) const
 {

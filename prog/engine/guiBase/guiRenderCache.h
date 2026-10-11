@@ -427,5 +427,6 @@ struct BufferedRenderer
   void renderChunkCustom(int chunk_id, int targetW, int targetH, int replace_buffer, Ptr<ShaderElement> shaderElem);
 
   void resetBuffers();
+  void abandonFrame();
 };
 } // namespace StdGuiRender

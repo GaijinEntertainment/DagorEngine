@@ -140,7 +140,7 @@ void Animate2ndPassCtx::Ctrl::update(real dt, GeomNodeTree &tree, AnimV20::Animc
     AnimV20::AnimBlender::TlsContext &tls = anim.getGraph().selectBlenderCtx();
     state->setParam(2, curT);
     anim.getGraph().blend(tls, *state, NULL);
-    if (w > 0.999)
+    if (w > 0.999f)
       for (int i = 0, e = animMap.size(); i < e; i++)
         anim.getGraph().getNodeTm(tls, animMap[i].animId, tree.getNodeTm(animMap[i].geomId), NULL);
     else

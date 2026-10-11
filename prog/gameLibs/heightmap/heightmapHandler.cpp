@@ -42,14 +42,17 @@ static inline int resolve_metrics_level(int level_value, const ConVarI &cvar)
 #define ENABLE_RENDER_HMAP_MODIFICATION    1
 #define ENABLE_RENDER_HMAP_SUB_TESSELATION 1
 
-#define GLOBAL_VARS_LIST         \
-  VAR(heightmap_region)          \
-  VAR(tex_hmap_low_samplerstate) \
-  VAR(hmapMain)                  \
-  VAR(tex_hmap_low)              \
-  VAR(world_to_hmap_low)         \
-  VAR(heightmap_scale)           \
-  VAR(tex_hmap_inv_sizes)        \
+#define GLOBAL_VARS_LIST          \
+  VAR(hmapMain)                   \
+  VAR(tex_hmap_low)               \
+  VAR(tex_hmap_high)              \
+  VAR(tex_hmap_low_samplerstate)  \
+  VAR(tex_hmap_high_samplerstate) \
+  VAR(world_to_hmap_low)          \
+  VAR(world_to_hmap_high)         \
+  VAR(heightmap_region)           \
+  VAR(heightmap_scale)            \
+  VAR(tex_hmap_inv_sizes)         \
   VAR(hmap_max_gradient)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -77,17 +80,21 @@ void HeightmapHandler::setVars() const
     return;
   Color4 c = mirror ? Color4(-(128 << 20), -(128 << 20), 128 << 20, 128 << 20)
                     : Color4(worldBox2[0].x, worldBox2[0].y, worldBox2[1].x, worldBox2[1].y);
-  ShaderGlobal::set_float4(heightmap_regionVarId, c);
-  ShaderGlobal::set_float4(world_to_hmap_lowVarId,
-    Color4(1.0f / worldSize.x, 1.0f / worldSize.y, -worldPosOfs.x / worldSize.x, -worldPosOfs.y / worldSize.y));
 
-  ShaderGlobal::set_float4(tex_hmap_inv_sizesVarId,
-    Color4(1.0f / hmapWidth.x, 1.0f / hmapWidth.y, 1.0f / hmapWidth.x, 1.0f / hmapWidth.y));
-
-  ShaderGlobal::set_float4(heightmap_scaleVarId, Color4(hScale, hMin, hScale, hMin));
   ShaderGlobal::set_texture(hmapMainVarId, renderData->heightmap);
   ShaderGlobal::set_texture(tex_hmap_lowVarId, renderData->heightmap);
+  ShaderGlobal::set_texture(tex_hmap_highVarId, renderData->heightmap);
   ShaderGlobal::set_sampler(tex_hmap_low_samplerstateVarId, renderData->heightmapSampler);
+  ShaderGlobal::set_sampler(tex_hmap_high_samplerstateVarId, renderData->heightmapSampler);
+  ShaderGlobal::set_float4(world_to_hmap_lowVarId,
+    Color4(1.0f / worldSize.x, 1.0f / worldSize.y, -worldPosOfs.x / worldSize.x, -worldPosOfs.y / worldSize.y));
+  ShaderGlobal::set_float4(world_to_hmap_highVarId,
+    Color4(1.0f / worldSize.x, 1.0f / worldSize.y, -worldPosOfs.x / worldSize.x, -worldPosOfs.y / worldSize.y));
+
+  ShaderGlobal::set_float4(heightmap_regionVarId, c);
+  ShaderGlobal::set_float4(heightmap_scaleVarId, Color4(hScale, hMin, hScale, hMin));
+  ShaderGlobal::set_float4(tex_hmap_inv_sizesVarId,
+    Color4(1.0f / hmapWidth.x, 1.0f / hmapWidth.y, 1.0f / hmapWidth.x, 1.0f / hmapWidth.y));
   ShaderGlobal::set_float(hmap_max_gradientVarId, maxGradient);
 }
 
@@ -321,6 +328,9 @@ void HeightmapHandler::fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 regi
       l, regionMipPivot.x, regionMipPivot.y, 0);
   }
 
+  const IPoint2 regionEnd = region_pivot + region_width;
+  lastTerrainChange = BBox2(worldPosOfs + Point2(region_pivot.x, region_pivot.y) * hmapCellSize,
+    worldPosOfs + Point2(regionEnd.x, regionEnd.y) * hmapCellSize);
   terrainStateVersion++;
 }
 
@@ -366,7 +376,9 @@ void HeightmapHandler::close()
   hmapUploadTex.close();
   ShaderGlobal::set_texture(hmapMainVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(tex_hmap_lowVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(tex_hmap_highVarId, BAD_TEXTUREID);
   ShaderGlobal::set_float4(world_to_hmap_lowVarId, Color4(10e+3, 10e+3, 10e+10, 10e+10)); // 1mm^2 at (-10000Km, -10000Km)
+  ShaderGlobal::set_float4(world_to_hmap_highVarId, Color4(10e+3, 10e+3, 10e+10, 10e+10));
   renderData.reset();
   renderer.close();
   heightmapHeightCulling.reset();

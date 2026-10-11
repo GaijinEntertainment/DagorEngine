@@ -319,6 +319,8 @@ namespace das {
         return reinterpret_cast<T *>(r.get());
     }
 
+    // overridable: a build with no leak reporting opts out of the tracking list and its counter
+    #ifndef DAS_NEW_SMART_PTR_ID
     #define DAS_NEW_SMART_PTR_ID \
     { \
         lock_guard<mutex> guard(ref_count_mutex); \
@@ -328,6 +330,8 @@ namespace das {
         if (ref_count_head) ref_count_head->ref_count_prev = this; \
         ref_count_head = this; \
     }
+    #endif
+    #ifndef DAS_DELETE_SMART_PTR_ID
     #define DAS_DELETE_SMART_PTR_ID \
     { \
         lock_guard<mutex> guard(ref_count_mutex); \
@@ -335,12 +339,21 @@ namespace das {
         else ref_count_head = ref_count_next; \
         if (ref_count_next) ref_count_next->ref_count_prev = ref_count_prev; \
     }
+    #endif
+    #ifndef DAS_TRACK_SMART_PTR_ID
     #define DAS_TRACK_SMART_PTR_ID         if ( ref_count_id==ref_count_track ) os_debug_break();
+    #endif
+    #ifndef DAS_TRACK_SMART_PTR_ID_DTOR
     #define DAS_TRACK_SMART_PTR_ID_DTOR    if ( ref_count_id==ref_count_track_destructor ) os_debug_break();
+    #endif
 
     DAS_API extern atomic<uint64_t> g_smart_ptr_total;
+    #ifndef DAS_SMART_PTR_NEW
     #define DAS_SMART_PTR_NEW     g_smart_ptr_total++;
+    #endif
+    #ifndef DAS_SMART_PTR_DELETE
     #define DAS_SMART_PTR_DELETE  g_smart_ptr_total--;
+    #endif
 
     class DAS_API ptr_ref_count {
     public:

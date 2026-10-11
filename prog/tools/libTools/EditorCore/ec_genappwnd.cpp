@@ -606,7 +606,7 @@ bool saveScreenshot(ScreenshotFormat fmt, Texture &tex, const String &fname, int
 }
 } // namespace
 
-GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManager *manager) :
+GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManager *manager, ScreenshotDlgMode screenshot_dlg_mode) :
   ged(),
   quietMode(false),
   isRenderingOrtScreenshot_(false),
@@ -615,6 +615,8 @@ GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManag
   cubeScreenshotCfg(ScreenshotConfig::getDefaultCubeCfg())
 {
   G_ASSERT(mManager && "GenericEditorAppWindow::ctor(): layout manager == NULL!");
+
+  screenshot_settings_dialog_controller.setConfig(screenshot_dlg_mode, &screenshotCfg, &cubeScreenshotCfg);
 
   SimpleString exe_dir(dgs_argv[0]);
   ::dd_get_fname_location(exe_dir.str(), dgs_argv[0]);
@@ -890,9 +892,8 @@ void GenericEditorAppWindow::handleNotifyEvent ( CtlWndObject *w, CtlEventData &
 }
 */
 
-void GenericEditorAppWindow::getModelessWindowControllers(ModelessWindowControllerList &controllers, ScreenshotDlgMode mode)
+void GenericEditorAppWindow::getModelessWindowControllers(ModelessWindowControllerList &controllers)
 {
-  screenshot_settings_dialog_controller.setConfig(mode, &screenshotCfg, &cubeScreenshotCfg);
   controllers.addWindowController(screenshot_settings_dialog_controller);
 }
 
@@ -1167,16 +1168,17 @@ bool GenericEditorAppWindow::canClose()
 }
 
 
-class GenericEditorAppWindow::FovDlg : public PropPanel::DialogWindow
+class GenericEditorAppWindow::FovDlg final : public PropPanel::DialogWindow
 {
 public:
-  FovDlg(void *phandle, const char *caption, float curFov) : DialogWindow(phandle, _pxScaled(200), _pxScaled(100), caption)
+  FovDlg(void *phandle, const char *caption, float curFov) : DialogWindow(phandle, hdpi::Px::ZERO, hdpi::Px::ZERO, caption)
   {
     PropPanel::ContainerPropertyControl *_panel = getPanel();
     G_ASSERT(_panel && "No panel in GenericEditorAppWindow::FovDlg");
 
     _panel->createEditFloat(ID_FOV_EDIT, "FoV (deg)", curFov);
     _panel->setMinMaxStep(ID_FOV_EDIT, 2.0, 178.0, 1);
+    autoSize(/*auto_center = */ !hasEverBeenShown(), /*use_preferred_size = */ true);
   }
 
   float getFov()
@@ -1238,34 +1240,34 @@ String GenericEditorAppWindow::getScreenshotName(bool cube) const
 
 //==================================================================================================
 
-Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bool skip_debug_objects,
+TexPtr GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bool skip_debug_objects,
   bool should_make_orthogonal_screenshot, bool should_use_z_buffer, float world_x0, float world_x1, float world_z0, float world_z1)
 {
   if (!ec_cached_viewports)
-    return NULL;
+    return {};
 
   const int curVpIdx = ged.getCurrentViewportId();
 
   if (curVpIdx < 0)
-    return NULL;
+    return {};
 
   ViewportWindow *viewport = (ViewportWindow *)ec_cached_viewports->getViewportUserData(curVpIdx);
 
   if (!viewport)
-    return NULL;
+    return {};
 
   d3d::GpuAutoLock gpuLock;
 
   Driver3dRenderTarget old;
   d3d::get_render_target(old);
 
-  Texture *tex = d3d::create_tex(NULL, w, h, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1);
+  TexPtr tex = dag::create_tex(NULL, w, h, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "editor_render_texture");
 
 
   if (!tex)
-    return NULL;
+    return {};
 
-  d3d::set_render_target({}, DepthAccess::RW, {{tex, 0, 0}});
+  d3d::set_render_target({}, DepthAccess::RW, {{tex.get(), 0, 0}});
 
 
   const bool cacheUsed = ::ec_cached_viewports->isViewportCacheUsed(curVpIdx);
@@ -1333,17 +1335,16 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
       const float origAspect = static_cast<float>(origW) / origH;
       float top = 0.f, bottom = 0.f, right = 0.f, left = 0.f;
 
-      const float hFov = tm ? HALFPI : fov;
       if (origAspect < aspect)
       {
-        top = tanf(0.5f * hFov) * (static_cast<float>(origH) / origW) * zNear;
+        top = tanf(0.5f * fov) * (static_cast<float>(origH) / origW) * zNear;
         bottom = -top;
         right = top * aspect;
         left = -right;
       }
       else
       {
-        right = tanf(hFov * 0.5f) * zNear;
+        right = tanf(fov * 0.5f) * zNear;
         left = -right;
         top = right / aspect;
         bottom = -top;
@@ -1375,8 +1376,9 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 void GenericEditorAppWindow::createScreenshot()
 {
   String fname = getScreenshotName(false);
-  Texture *tex = renderInTex(screenshotCfg.width, screenshotCfg.height, NULL, !screenshotCfg.enableDebugGeometry);
-  if (tex && saveScreenshot(screenshotCfg.format, *tex, fname, screenshotCfg.jpegQuality, screenshotCfg.enableTransparentBackground))
+  TexPtr tex = renderInTex(screenshotCfg.width, screenshotCfg.height, NULL, !screenshotCfg.enableDebugGeometry);
+  if (tex &&
+      saveScreenshot(screenshotCfg.format, *tex.get(), fname, screenshotCfg.jpegQuality, screenshotCfg.enableTransparentBackground))
   {
     wingw::message_box(wingw::MBS_INFO, "Screenshot saved", "Screenshot saved to\n\"%s\"", fname);
   }
@@ -1407,7 +1409,7 @@ void GenericEditorAppWindow::createCubeScreenshot()
     tm.setcol(3, pos);
     tm = cube_matrix(tm, face);
 
-    Texture *tex = renderInTex(cubeScreenshotCfg.size, cubeScreenshotCfg.size, &tm, !cubeScreenshotCfg.enableDebugGeometry);
+    TexPtr tex = renderInTex(cubeScreenshotCfg.size, cubeScreenshotCfg.size, &tm, !cubeScreenshotCfg.enableDebugGeometry);
 
     if (tex)
     {
@@ -1422,7 +1424,6 @@ void GenericEditorAppWindow::createCubeScreenshot()
             strideLen);
 
       tex->unlockimg();
-      del_d3dres(tex);
     }
     else
     {
@@ -1504,7 +1505,7 @@ void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder,
         break;
     }
 
-    Texture *tex = renderInTex(sz, sz, NULL, false, true, false, minX, maxX, minZ, maxZ);
+    TexPtr tex = renderInTex(sz, sz, NULL, false, true, false, minX, maxX, minZ, maxZ);
 
     if (tex)
     {
@@ -1524,7 +1525,6 @@ void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder,
       }
 
       tex->unlockimg();
-      del_d3dres(tex);
     }
   }
   else if (dest_folder)
@@ -1598,7 +1598,7 @@ void GenericEditorAppWindow::createOrthogonalScreenshot(const char *dest_folder,
 void GenericEditorAppWindow::saveOrthogonalScreenshot(const char *cur_fn, int mip_level, float _x, float _z, float tile_in_meters)
 {
   int tile_size = mScrData.tileSize;
-  Texture *tex = renderInTex(tile_size, tile_size, NULL, false, true, false, _x, _x + tile_in_meters, _z, _z + tile_in_meters);
+  TexPtr tex = renderInTex(tile_size, tile_size, NULL, false, true, false, _x, _x + tile_in_meters, _z, _z + tile_in_meters);
 
   if (tex)
   {
@@ -1626,7 +1626,6 @@ void GenericEditorAppWindow::saveOrthogonalScreenshot(const char *cur_fn, int mi
       };
 
     tex->unlockimg();
-    del_d3dres(tex);
   }
 }
 
@@ -1784,3 +1783,5 @@ void GenericEditorAppWindow::loadScreenshotSettings(const DataBlock &blk)
     }
   }
 }
+
+void ec_show_screenshot_settings_dialog(bool cube_screenshot) { screenshot_settings_dialog_controller.showTab(cube_screenshot); }

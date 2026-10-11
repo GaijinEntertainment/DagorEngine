@@ -199,6 +199,15 @@ function isCompReadOnly(eid, comp_name){
   return object?.isReadOnly() ?? false
 }
 
+// Identifies a component, or one value inside it, in a single string. Used as
+// the selection identity, the open-state cache key and the row key.
+function mkCompPathKey(cname, cpath) {
+  local key = cname
+  foreach (k in (cpath ?? []))
+    key = $"{key}.{k}"
+  return key
+}
+
 // Stops at the deepest key that exists, so a stale path yields the parent value.
 function valueAtPath(object, path) {
   local res = object
@@ -243,6 +252,7 @@ function writeComponent(eid, comp_name, path, val): bool {
 
 let exports = {
   isCompReadOnly
+  mkCompPathKey
   valueAtPath
   writeComponent
   isValueTextValid

@@ -467,6 +467,7 @@ class string : public eastl::string
 
 public:
   BINDUMP_ENABLE_STREAMING(string, eastl::string, string);
+  using eastl::string::operator=;
 };
 
 template <typename Type>

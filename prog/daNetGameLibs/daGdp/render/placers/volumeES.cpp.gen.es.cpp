@@ -57,24 +57,44 @@ static ecs::EntitySystemDesc volume_view_finalize_es_es_desc
   ecs::EventSetBuilder<dagdp::EventViewFinalize>::build(),
   0
 ,nullptr,nullptr,"*");
-//static constexpr ecs::ComponentDesc dagdp_volume_before_draw_es_comps[] ={};
-static void dagdp_volume_before_draw_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+//static constexpr ecs::ComponentDesc dagdp_volume_start_camera_gather_es_comps[] ={};
+static void dagdp_volume_start_camera_gather_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_FAST_ASSERT(evt.is<BeforeDraw>());
-  dagdp::dagdp_volume_before_draw_es(static_cast<const BeforeDraw&>(evt)
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
+  dagdp::dagdp_volume_start_camera_gather_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+        );
+}
+static ecs::EntitySystemDesc dagdp_volume_start_camera_gather_es_es_desc
+(
+  "dagdp_volume_start_camera_gather_es",
+  "prog/daNetGameLibs/daGdp/render/placers/volumeES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, dagdp_volume_start_camera_gather_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  0
+,"render",nullptr,"animchar_before_render_es","dagdp_update_es");
+//static constexpr ecs::ComponentDesc dagdp_volume_start_csm_gather_es_comps[] ={};
+static void dagdp_volume_start_csm_gather_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<BeforeStartVisibility>());
+  dagdp::dagdp_volume_start_csm_gather_es(static_cast<const BeforeStartVisibility&>(evt)
         , components.manager()
     );
 }
-static ecs::EntitySystemDesc dagdp_volume_before_draw_es_es_desc
+static ecs::EntitySystemDesc dagdp_volume_start_csm_gather_es_es_desc
 (
-  "dagdp_volume_before_draw_es",
+  "dagdp_volume_start_csm_gather_es",
   "prog/daNetGameLibs/daGdp/render/placers/volumeES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, dagdp_volume_before_draw_es_all_events),
+  ecs::EntitySystemOps(nullptr, dagdp_volume_start_csm_gather_es_all_events),
   empty_span(),
   empty_span(),
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<BeforeDraw>::build(),
+  ecs::EventSetBuilder<BeforeStartVisibility>::build(),
   0
 ,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc dagdp_placer_volume_changed_es_comps[] =

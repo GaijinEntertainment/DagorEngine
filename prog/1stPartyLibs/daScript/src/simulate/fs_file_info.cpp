@@ -2,6 +2,7 @@
 
 #include "daScript/simulate/fs_file_info.h"
 #include "daScript/misc/sysos.h"
+#include "daScript/misc/dep_recorder.h"
 #include "daScript/ast/ast.h"
 #include "daScript/simulate/aot_builtin_fio.h"
 
@@ -123,6 +124,7 @@ namespace das {
         if ( locked ) return nullptr;
         for ( auto & fs : fileSystems ) {
             if ( auto info = fs.first->tryOpenFile(fileName) ) {
+                das_dep_note_read(fileName.c_str());
                 return setFileInfo(fileName, FileInfoPtr(info));
             }
         }
@@ -139,6 +141,7 @@ namespace das {
 #if !defined(DAS_NO_FILEIO)
     bool FsFileAccess::introduceFileFromDisk ( const string & name, const string & diskPath ) {
         if ( FILE * ff = fopen(diskPath.c_str(), "rb") ) {
+            das_dep_note_read(diskPath.c_str());
             struct stat st;
             int fd = fileno((FILE *)ff);
             fstat(fd, &st);

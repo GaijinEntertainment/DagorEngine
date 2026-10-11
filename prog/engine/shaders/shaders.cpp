@@ -390,8 +390,8 @@ struct ShaderVDecl
       d3d::delete_vdecl(vdecl);
   }
   EA_NON_COPYABLE(ShaderVDecl)
-  ShaderVDecl(ShaderVDecl &&other) : vdecl(other.vdecl) { other.vdecl = BAD_VDECL; }
-  ShaderVDecl &operator=(ShaderVDecl &&a)
+  ShaderVDecl(ShaderVDecl &&other) noexcept : vdecl(other.vdecl) { other.vdecl = BAD_VDECL; }
+  ShaderVDecl &operator=(ShaderVDecl &&a) noexcept
   {
     eastl::swap(vdecl, a.vdecl);
     return *this;

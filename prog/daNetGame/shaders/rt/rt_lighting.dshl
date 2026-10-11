@@ -1,6 +1,3 @@
-include "rt_landclass_inc.dshl"
-include "land_block_inc.dshl"
-include "clipmap.dshl"
 include "shader_global.dshl"
 include "skyLight.dshl"
 include "gbuffer.dshl"
@@ -8,46 +5,16 @@ include "static_shadow.dshl"
 include "csm.dshl"
 include "sq_clouds_shadow.dshl"
 include "fom_shadows.dshl"
-include "layered_inc.dshl"
-include "perlin_layered_inc.dshl"
 include "indoor_light_probes.dshl"
 include "bvh_common_includes.dshl"
 include "clustered/gi_dynamic_lights.dshl"
-include "project_prev_frame_sample_radiance.dshl"
-include "prev_screen_tc.dshl"
-include "reprojected_motion_vectors.dshl"
-include "rtr_probes_use.dshl"
-include "grass_generate_inc.dshl"
-include "skinning_inc2.dshl"
-include "underwater_fog.dshl"
-include "envi_cover_inc.dshl"
-
-int bvh_paint_details_tex_slot;
+include "rt_surface_params.dshl"
 
 int rtr_shadow = 1;
 interval rtr_shadow: off < 1, on;
 
 int glass_rtr_shadow = 1;
 interval glass_rtr_shadow: off < 1, on;
-
-int envi_cover_rt = 0;
-interval envi_cover_rt: off < 1, on;
-
-texture noise_128_tex_hash;
-
-float4 bvh_eye_sclera_color = (0.651, 0.565, 0.565, 0);
-float4 bvh_eye_iris_color = (0.075, 0.094, 0.09, 0);
-
-float rtr_sky_probe_ray_length_threshold = 200;
-float4 texcoord_scale_offset = (1.0, 1.0, 0.0, 0.0);
-float rtr_probe_weight_offset_factor = -0.2;
-
-texture perlin_noise3d;
-
-int bvh_dynamic_decals_atlas_tex_slot;
-int bvh_dynamic_decals_atlas_smp_slot;
-int bvh_instance_data_buffer_cur_offset;
-buffer bvh_instance_data_buffer;
 
 macro INIT_DAGI_IN_RT(stage)
   if (gi_quality == only_ao)
@@ -79,7 +46,7 @@ macro USE_DAGI_IN_RT(stage)
         float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, worldPos, 0, 0, diffuseNormal, 0, vignette);
         ambient = lerp(GetSHFunctionValueSimple(diffuseNormal, enviSPH0 * sh1.wyzx, enviSPH1 * sh1.wyzx, enviSPH2 * sh1.wyzx), ambient, vignette);
       ##else
-          float ofs = max(dist * 0.04, 0.25 * dagi_irrad_grid_probe_size(0));
+          float ofs = min(max(dist * 0.04, 0.25 * dagi_irrad_grid_probe_size(0)), 0.5 * dist);
           float3 filteredWorldPos = worldPos.xyz + view * ofs;
           dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, diffuseNormal, view, max(0, dist-ofs), normal, 0, ambient);
       ##endif
@@ -88,733 +55,20 @@ macro USE_DAGI_IN_RT(stage)
   }
 endmacro
 
-macro INIT_BVH_DECALS(stage)
-  (stage)
-  {
-    bvh_dynamic_decals_atlas_tex_slot@i1 = bvh_dynamic_decals_atlas_tex_slot;
-    bvh_dynamic_decals_atlas_smp_slot@i1 = bvh_dynamic_decals_atlas_smp_slot;
-    bvh_instance_data_buffer_cur_offset@i1 = bvh_instance_data_buffer_cur_offset;
-  }
-  if (small_sampled_buffers == no)
-  {
-    (stage) {
-      instance_data_buffer@buf = bvh_instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
-    }
-  } else
-  {
-    (stage) {
-      instance_data_buffer@buf = bvh_instance_data_buffer hlsl { StructuredBuffer<float4> instance_data_buffer@buf; }
-    }
-  }
-endmacro
-
-macro USE_BVH_DECALS(stage)
-  hlsl(stage)
-  {
-    // Hard coded values, to not need to pass them in material parameter
-    static const float tank_decals_smoothness = 0.4;
-    static const float diffuse_to_decal = 0.01;
-    float4 get_decal_depth_rcp__diff_mul__decal_smoothness()
-    {
-      return float4(0, 0, 1. / (diffuse_to_decal * diffuse_to_decal + 1e-6), tank_decals_smoothness);
-    }
-
-    #define vehicle_decals_atlas uniformBindlessTex2D(bvh_textures, bvh_dynamic_decals_atlas_tex_slot)
-    #define vehicle_decals_atlas_samplerstate bvh_clamp_sampler
-
-    static int instance_offset_for_decal = 0;
-    #define INST_OFFSET_GETTER instance_offset_for_decal
-    #define OFFSET_TO_INSTANCE_DATA (instance_offset_for_decal)
-  }
-  INIT_PER_INSTANCE_DATA(stage)
-  hlsl(stage) {
-    // Copy pasted from vehicle_decals.dshl, but mip level is an input parameter, to avoid derivates
-    float GetInfluence(float influence)
-    {
-      float minAng80 = 0.174;
-      float maxAng45 = 0.707;
-      return saturate((influence - minAng80) / (maxAng45 - minAng80));
-    }
-
-    half apply_decals_impl(inout float3 diffuseColor, float3 model_pos, float3 model_normal, float mipLevel)
-    {
-      // Can't rely on daNetGameLibs directly, so copy pasted
-      // #include "vehicle_decals.hlsli"
-      const int DECALS_SIZE = 4;
-      const int MAX_DECALS = 8;//one sided
-
-      const uint MAX_DECALS_SIZE = MAX_DECALS * DECALS_SIZE;
-      uint2 offset_count = get_offset_count_additional_data(AAD_DECALS_TYPE);
-
-      half diffMul = saturate(luminance(diffuseColor.rgb) * get_decal_depth_rcp__diff_mul__decal_smoothness().z);
-      float4 modelPos4 = float4(model_pos, 1);
-      float underDecalEffect = 1;
-
-      for (int i = 0, n = min(MAX_DECALS_SIZE, offset_count.y); i < n; i += DECALS_SIZE)
-      {
-        float2 uv;
-        float4 depthProjection = get_additional_data_unsafe(offset_count, i + 0);
-        float decDepth = dot(modelPos4, depthProjection);
-        float decTexInfluence = GetInfluence(dot(model_normal, depthProjection.xyz));
-        uv.x = dot(modelPos4, get_additional_data_unsafe(offset_count, i + 1));
-        uv.y = dot(modelPos4, get_additional_data_unsafe(offset_count, i + 2));
-
-        if (all(and(0.0 <= uv, uv <= 1.0)))
-        {
-          float4 uvOffsetScale = get_additional_data_unsafe(offset_count, i + 3);
-          uv = uv * uvOffsetScale.zw + uvOffsetScale.xy;
-          float4 decal = vehicle_decals_atlas.SampleLevel(vehicle_decals_atlas_samplerstate, uv, mipLevel);
-
-          float decalEffect = decTexInfluence * (abs(decDepth) < 1) * decal.a;
-          diffuseColor.rgb = lerp(diffuseColor.rgb, diffMul * decal.rgb, decalEffect);
-          underDecalEffect *= (1-decalEffect);
-        }
-      }
-      return saturate(underDecalEffect);
-    }
-
-    void apply_decals(float3 modelPos, float3 modelNorm, inout float3 diffuseColor, inout float smoothness, inout float metallness, float mipLevel)
-    {
-      float4 decalsColor = float4(diffuseColor.rgb, 1);
-      decalsColor.a = apply_decals_impl(decalsColor.rgb, modelPos, modelNorm, mipLevel);
-      diffuseColor.rgb = lerp(decalsColor.rgb, diffuseColor.rgb, decalsColor.a);
-      smoothness = lerp(get_decal_depth_rcp__diff_mul__decal_smoothness().w, smoothness, decalsColor.a);
-      metallness = lerp(0, metallness, decalsColor.a);
-    }
-
-    void apply_node_transformation_to_model(inout HitInfo hitInfo)
-    {
-      uint nodeId = hitInfo.packed_normal_w;
-      uint2 tm_st_pos = get_offset_count_additional_data(AAD_MODEL_TM);
-      const int POINT4_FOR_MATRIX = 3;
-      uint tmOffset = tm_st_pos.y - nodeId * POINT4_FOR_MATRIX;
-      float3x4 mat = float3x4(
-        get_additional_data(tm_st_pos, tmOffset - 1),
-        get_additional_data(tm_st_pos, tmOffset - 2),
-        get_additional_data(tm_st_pos, tmOffset - 3)
-      );
-
-      hitInfo.modelPosition = mul(mat, float4(hitInfo.modelPosition, 1));
-      hitInfo.modelNormal = mul(mat, float4(hitInfo.modelNormal, 0));
-    }
-  }
-endmacro
-
-macro INIT_RT_SURFACE_PARAMS(stage)
-  INIT_CLIPMAP_NORMAL_BASE(stage, true)
-  INIT_WORLD_HEIGHTMAP_BASE(stage)
-  RANDOM_UV_OFFSET(stage)
-  INIT_GRASS_COLORS_CBUF(stage)
-  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
-  (stage)
-  {
-    paint_details_tex_slot@i1 = bvh_paint_details_tex_slot;
-    perlin_noise3d@tex3d = perlin_noise3d;
-    bvh_eye_sclera_color@f3 = (pow(bvh_eye_sclera_color.x, 2.2), pow(bvh_eye_sclera_color.y, 2.2), pow(bvh_eye_sclera_color.z, 2.2), 0);
-    bvh_eye_iris_color@f3 = (pow(bvh_eye_iris_color.x, 2.2), pow(bvh_eye_iris_color.y, 2.2), pow(bvh_eye_iris_color.z, 2.2), 0);
-    bvh_water_color@f3 = (sRGBRead(ocean0)); // Probably good enough
-  }
-  if (bvh_decals == yes)
-  {
-    INIT_BVH_DECALS(stage)
-  }
-endmacro
-
-macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
-  if (bvh_decals == yes && !fast_mode)
-  {
-    USE_BVH_DECALS(stage)
-  }
-  hlsl(stage)
-  {
-    #define NO_GRADIENTS_IN_SHADER 1
-    #include <psh_tangent.hlsl>
-    #include <normaldetail.hlsl>
-
-    #define paint_details_tex uniformBindlessTex2D(bvh_textures, paint_details_tex_slot)
-    #define paint_details_tex_samplerstate bvh_clamp_sampler
-    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
-  }
-  (stage)
-  {
-    texcoord_scale_offset@f4 = texcoord_scale_offset;
-  }
-  USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(stage)
-  USE_CLIPMAP_NORMAL_BASE(stage, true, false)
-  INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, true)
-  USE_HEIGHTMAP_COMMON_BASE(stage)
-  USE_ROUGH_TO_MIP()
-  USE_PERLIN_LAYERED(stage)
-  DETAIL_WEIGHTS_BLENDING(stage)
-  WETNESS_FOR_SPEC_BRDF(stage)
-  if (!fast_mode && envi_cover_rt == on)
-  {
-    INIT_ENVI_COVER_RT(stage)
-    USE_ENVI_COVER_RT(stage)
-  }
-  USE_LANDSCAPE_TC_TO_WORLD(stage)
-  DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(stage)
-  hlsl(stage)
-  {
-    half get_specular_intensity_from_color(half3 color)
-    {
-      return pow4(color.r);
-    }
-
-    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip, inout DetailDesc micro_detail, int inderection_offset)
-    {
-      Vtex vtex = (Vtex)0;
-      half2 normalXY;
-      sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
-        vtex.diffuse, normalXY, vtex.smoothness, vtex.ao,
-        vtex.reflectance, vtex.emission, micro_detail, smooth_mip, inderection_offset);
-      vtex.normal = restore_normal(normalXY);
-      return vtex;
-    }
-
-    // from paint_details_inc.dshl
-    half3 getColorMul(uint paint_palette_row, uint palette_index, uint paint_palette_col)
-    {
-      half correction = COLOR_CORRECTION_MULTIPLIER;
-      uint2 dim;
-      paint_details_tex.GetDimensions(dim.x, dim.y);
-      dim.x >>= 1;
-      half3 colorMul = paint_details_tex[uint2(paint_palette_col%dim.x + dim.x * palette_index, paint_palette_row % dim.y)].rgb;
-      colorMul *= correction;
-      return colorMul;
-    }
-
-    float4 modulate2x(float4 input_color)
-    {
-      return float4(input_color.xyz * 2.0, input_color.w);
-    }
-
-    half4 unpack_srgb_e3dcolor(uint packed_color)
-    {
-      half4 color = half4((packed_color >> uint4(16, 8, 0, 24)) & 255) / 255.0h;
-      return half4(pow((color.rgb + 0.055) / 1.055, 2.4), color.a);
-    }
-
-    // from const_color_inc.dshl
-    half3 get_color_mul(half3 colorMul, half4 const_color)
-    {
-      const_color.xyz *= 2;
-      return lerp(colorMul * const_color.rgb, const_color.rgb, const_color.w);
-    }
-
-    void apply_painting(HitInfo hitInfo, half paint_weight, inout half3 albedo)
-    {
-      ##if paint_details_tex != NULL
-      if (!has_material_painted(hitInfo.material))
-        return;
-
-      uint paint_palette_row = hitInfo.materialData1.x;
-      uint palette_index = hitInfo.materialData1.y;
-      uint paint_palette_col = hitInfo.perInstanceDataCompressed.x;
-      half4 colorOverride = half4(modulate2x(hitInfo.materialData2));
-      uint packedDetailsData = asuint(hitInfo.materialData1.z);
-      half paint_details_strength = half(hitInfo.materialData1.w);
-
-      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
-      paintColor = get_color_mul(paintColor, colorOverride);
-      half mask = luminance(albedo.rgb);
-      uint3 vectorizedDetailsData = uint3(packedDetailsData, packedDetailsData >> 10, packedDetailsData >> 20);
-      float3 detailsData = ((vectorizedDetailsData & 0x3FF) / 1023.0);
-      float3 calculatedDetails = float3(1 / (detailsData.x - detailsData.y), -detailsData.y / (detailsData.x - detailsData.y), detailsData.z);
-      int use_alpha_as_mask = packedDetailsData >> 30;
-      if (use_alpha_as_mask > 0)
-      {
-        mask = paint_weight;
-      }
-
-      half detailsWeight = paint_details_strength * saturate(mask * calculatedDetails.x + calculatedDetails.y);
-      albedo.rgb = lerp(albedo.rgb, albedo.rgb * paintColor  * calculatedDetails.z, saturate(detailsWeight));
-      ##endif
-    }
-
-##if !fast_mode
-    void apply_paint_by_mask(HitInfo hitInfo, float mip_level, inout half3 albedo)
-    {
-      half primaryMask = 0;
-      if (hitInfo.extraTextureIndex != 0xFFFFU)
-        primaryMask = (half)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level).x;
-
-      half secondaryMask = 0;
-      if (hitInfo.secondaryMaskTextureIndex != 0xFFFFU)
-        secondaryMask = (half)nonUniformBindlessTex2D(bvh_textures, hitInfo.secondaryMaskTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level).x;
-
-      half3 primaryColor = unpack_srgb_e3dcolor(hitInfo.perInstanceDataCompressed.z).rgb;
-      half3 secondaryColor = unpack_srgb_e3dcolor(hitInfo.perInstanceDataCompressed.w).rgb;
-
-      albedo *= (1 - max(primaryMask, secondaryMask))
-              + saturate(primaryMask - secondaryMask) * primaryColor
-              + secondaryMask * secondaryColor;
-    }
-##endif
-
-    half3 calc_perling_layers(HitInfo hitInfo, float mip_level)
-    {
-      if (hitInfo.albedoTextureIndex == 0xFFFFU)
-        return 0;
-
-      float4 invertHeights = float4(f16tof32(asuint(hitInfo.rawLayerData.z)), f16tof32(asuint(hitInfo.rawLayerData.z >> 16)), f16tof32(asuint(hitInfo.rawLayerData.w)), f16tof32(asuint(hitInfo.rawLayerData.w >> 16)));
-      float4 mask_gamma = float4(f16tof32(asuint(hitInfo.rawLayerData.x)), f16tof32(asuint(hitInfo.rawLayerData.x >> 16)), f16tof32(asuint(hitInfo.rawLayerData.y)), f16tof32(asuint(hitInfo.rawLayerData.y >> 16)));
-
-      half4 diffuseColor0 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-      half4 diffuseColor1 = 0;
-      if (hitInfo.alphaTextureIndex != 0xFFFFU)
-        diffuseColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-      else
-        invertHeights.y = 0;
-      half4 diffuseColor2 = 0;
-      if (hitInfo.extraTextureIndex != 0xFFFFU)
-        diffuseColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-      else
-        invertHeights.z = 0;
-
-      uint paint_palette_col = hitInfo.perInstanceDataCompressed.x;
-      uint paint_palette_row = hitInfo.rawAtlasTileSize;
-      uint palette_index = hitInfo.rawAtlasFirstLastTile;
-
-      uint packedColorData1 = asuint(hitInfo.materialData1.z);
-      uint packedColorData2 = asuint(hitInfo.materialData1.w);
-      uint packedColorData3 = asuint(hitInfo.materialData2.z);
-
-      uint4 vectorizedPackedColorData1 = uint4(packedColorData1, packedColorData1 >> 8, packedColorData1 >> 16, packedColorData1 >> 24);
-      uint4 vectorizedPackedColorData2 = uint4(packedColorData2, packedColorData2 >> 8, packedColorData2 >> 16, packedColorData2 >> 24);
-      uint4 vectorizedPackedColorData3 = uint4(packedColorData3, packedColorData3 >> 8, packedColorData3 >> 16, packedColorData3 >> 24);
-
-      float4 unpackedColorInput1 = ((vectorizedPackedColorData1 & 0xFF) / 255.0);
-      float4 unpackedColorInput2 = ((vectorizedPackedColorData2 & 0xFF) / 255.0);
-      float4 unpackedColorInput3 = ((vectorizedPackedColorData3 & 0xFF) / 255.0);
-
-      unpackedColorInput1 = modulate2x(unpackedColorInput1);
-      unpackedColorInput2 = modulate2x(unpackedColorInput2);
-      unpackedColorInput3 = modulate2x(unpackedColorInput3);
-
-      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
-      half3 paint_details_col = get_color_mul(paintColor.xyz, unpackedColorInput1);
-      half3 paint_details_col1 = get_color_mul(paintColor.xyz, unpackedColorInput2);
-      half3 paint_details_col2 = get_color_mul(paintColor.xyz, unpackedColorInput3);
-
-      float4 mask_by_normal = float4(f16tof32(asuint(hitInfo.materialData1.x)), f16tof32(asuint(hitInfo.materialData1.x) >> 16), f16tof32(asuint(hitInfo.materialData1.y)), f16tof32(asuint(hitInfo.materialData1.y) >> 16));
-      float moss = hitInfo.position.y + bvh_origin.y - hitInfo.centerWorldPos.y; // use_local_transform_for_details = 0
-      half3 weights = init_blend_weights(hitInfo.position + bvh_origin, mask_gamma, invertHeights, moss, float2(max(dot(mask_by_normal.xyz, hitInfo.normal), 0), mask_by_normal.w));
-      weights = select(isfinite(weights), weights, 0.0); // workaround for pow(0,0) case in init_blend_weights
-      half3 initialHeight = half3(diffuseColor0.a, diffuseColor1.a, diffuseColor2.a);
-
-      weights = get_blending_weights(weights, lerp(initialHeight, 1 - initialHeight, invertHeights.xyz));
-      float4 paintColorDetails = float4(f16tof32(asuint(hitInfo.materialData2.x)), f16tof32(asuint(hitInfo.materialData2.x) >> 16), f16tof32(asuint(hitInfo.materialData2.y)), 0.0);
-
-      half3 details = saturate(paintColorDetails.xyz); // saturate it because,  in some resource details could be negative, which cause glowing.
-
-      diffuseColor0.rgb = lerp(diffuseColor0.rgb, diffuseColor0.rgb * paint_details_col, details.x);
-      diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
-      diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
-
-      half4 resultColor = diffuseColor0*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
-      return saturate(resultColor.rgb);
-    }
-
-    void calculate_detail_mask_texcoords(LayerData layer_data, float2 rndUV, float4 uv12, inout float2 mask_tc, inout float4 uv_detail, inout float mask_gamma)
-    {
-      mask_tc = uv12.xy * layer_data.maskTile.xy;
-      uv_detail = uv12.zwzw * layer_data.detailTile * layer_data.objectScale;
-
-      mask_tc += layer_data.maskTile.z > 0 ? rndUV : 0;
-      uv_detail.zw += rndUV.xy;
-
-      mask_gamma = frac(rndUV.x * 11.1 + rndUV.y * 13.39) * layer_data.maskGamma.x + layer_data.maskGamma.y;
-    }
-
-    half3 calc_layers(HitInfo hitInfo, float mip_level)
-    {
-      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU || hitInfo.normalTextureIndex == 0xFFFFU)
-        return 0;
-
-      float4 uvDetail;
-      float2 maskTc;
-      float maskgamma;
-
-      float2 randomUVOffset = get_random_uv_offset(hitInfo.centerWorldPos);
-
-      calculate_detail_mask_texcoords(hitInfo.layerData, randomUVOffset, float4(hitInfo.texcoord, hitInfo.secTexcoord), maskTc, uvDetail, maskgamma);
-
-      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-      half4 mask = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, maskTc, mip_level);
-      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, uvDetail.xy, mip_level);
-      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, uvDetail.zw, mip_level);
-
-      half weight = pow(mask.g, maskgamma) * baseColor.a;
-      half weight2 = get_mix_weight(detailColor1.a, detailColor2.a, weight);
-
-      half4 detailColor = lerp(detailColor1, detailColor2, weight2);
-      half4 result = baseColor * detailColor;
-      result.rgb *= half(COLOR_CORRECTION_MULTIPLIER);
-      apply_painting(hitInfo, result.a, result.rgb);
-      return result.rgb;
-    }
-
-    half3 calc_mask_layers(HitInfo hitInfo, float mip_level)
-    {
-      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU)
-        return 0;
-
-      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
-
-      float2 invert_heights = float2(f16tof32(asuint(hitInfo.materialData2.x)), f16tof32(asuint(hitInfo.materialData2.x) >> 16));
-      float2 paintDetails = float2(f16tof32(asuint(hitInfo.materialData2.y)), f16tof32(asuint(hitInfo.materialData2.y) >> 16));
-      float4 paintPoints = float4(f16tof32(asuint(hitInfo.materialData2.z)), f16tof32(asuint(hitInfo.materialData2.z) >> 16), f16tof32(asuint(hitInfo.materialData2.w)), f16tof32(asuint(hitInfo.materialData2.w)>> 16));
-      float4 paintPointsTr = float4(1 / (paintPoints.y - paintPoints.x), -paintPoints.x / (paintPoints.y - paintPoints.x), 1 / (paintPoints.w - paintPoints.z), -paintPoints.z / (paintPoints.w - paintPoints.z));
-      half2 weights = GetWeights(detailColor1, detailColor2, baseColor.a, invert_heights.xy);
-
-      uint paint_palette_row = hitInfo.materialData1.x;
-      uint palette_index = hitInfo.materialData1.y;
-      uint paint_palette_col = hitInfo.perInstanceDataCompressed.x;
-
-      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
-      half2 lumins = half2(luminance(detailColor1.rgb), luminance(detailColor2.rgb));
-      float2 details = saturate(paintDetails.xy) * saturate(lumins * paintPointsTr.xz + paintPointsTr.yw);
-      detailColor1.rgb = lerp(detailColor1.rgb, detailColor1.rgb * paintColor, details.x);
-      detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb * paintColor, details.y);
-
-      half4 detailColor = detailColor1*weights.x + detailColor2*weights.y;
-      half3 diffuseColor = baseColor.rgb * detailColor.rgb;
-      return saturate(diffuseColor * COLOR_CORRECTION_MULTIPLIER);
-    }
-
-    float4 get_camo_params(HitInfo hitInfo)
-    {
-      uint camoArgsPacked = hitInfo.perInstanceDataCompressed.y;
-      const uint TWELVE_BIT_MASK = (1U << 12) - 1;
-      const float MAX_SCALE = 2;
-      float condition = float((camoArgsPacked >> 24) & 0xFF) / 0xFF;
-      float rotation = (float((camoArgsPacked >> 12) & TWELVE_BIT_MASK) / TWELVE_BIT_MASK * 2 - 1) * PI;
-      float scale = float(camoArgsPacked & TWELVE_BIT_MASK) / TWELVE_BIT_MASK * MAX_SCALE;
-
-      float rotationSin, rotationCos;
-      sincos(rotation, rotationSin, rotationCos);
-      float camoScale = 2.f / (4096.f * scale);
-      float2 scaledRotation = float2(rotationSin, rotationCos) * camoScale;
-
-      float3 camoSinCos = float3(scaledRotation.x, -scaledRotation.x, scaledRotation.y);
-      float2 camoTexcoord = 4096 * hitInfo.secTexcoord - float2(0.5, 0.5) * 4096;
-      camoTexcoord = float2(dot(camoTexcoord, camoSinCos.zx), dot(camoTexcoord, camoSinCos.yz));
-      camoTexcoord.xy += 0.5;
-
-      return half4(camoTexcoord, condition, 0);
-    }
-
-    #include "light_consts.hlsli"
-    #include <pixelPacking/ColorSpaceUtility.hlsl>
-    half3 get_emission(HitInfo hitInfo, half3 albedo, half texelAlpha)
-    {
-      bool nightly = hitInfo.materialData2.x > 0;
-      if (-from_sun_direction.y >= NIGHT_SUN_COS  && nightly)
-        return 0;
-
-      bool use_alpha_for_emission_mask = hitInfo.materialData2.y > 0;
-      half emissionMask = use_alpha_for_emission_mask ? texelAlpha : 1;
-      half4 emission_color = hitInfo.materialData1;
-      FLATTEN
-      if (emission_color.a < 0)
-        emissionMask = 1 - emissionMask;
-      half emission_strength = RemoveSRGBCurve_Fast(emissionMask).x * min(abs(emission_color.a), MAX_EMISSION);
-      half emission_albedo_mult = hitInfo.materialData2.z;
-
-      return emission_strength * saturate(emission_color.rgb) * lerp(1, albedo, emission_albedo_mult);
-    }
-
-    struct SurfaceParams
-    {
-      float3 position;
-      half3 surfaceToCamera;
-      half3 albedo;
-      half3 normal;
-      half smoothness;
-      half metalness;
-      half reflectance;
-      half3 emission;
-      bool isWater;
-      bool isImpostor;
-      bool isFoliage;
-    };
-
-    ##if !fast_mode && envi_cover_rt == on
-    void apply_rt_envi_cover(float3 worldPos, HitInfo hitInfo, inout SurfaceParams sp)
-    {
-      uint materialType = get_material_type(hitInfo.material);
-      if (hitInfo.isEmissive || hitInfo.isGrass || sp.isWater ||
-          materialType == bvhMaterialTerrain || materialType == bvhMaterialLandclass ||
-          is_dynrend(hitInfo.material))
-        return;
-
-      float enviInfluence = 0;
-      EnviSnowParams enviParams = fillEnviSnowParams();
-      BRANCH
-      if (calculate_envi_cover_influence(worldPos, sp.normal, enviParams, enviInfluence))
-        return;
-
-
-      half translucencyDummy = 0;
-      uint materialDummy = SHADING_NORMAL;
-      lerp_envi_cover(worldPos, sp.normal, 0, enviInfluence,
-        enviParams, sp.albedo, sp.reflectance, sp.smoothness, translucencyDummy, materialDummy);
-      sp.metalness = lerp(sp.metalness, 0, half(enviInfluence));
-    }
-    ##endif
-
-    SurfaceParams calc_surface_params(inout HitInfo hitInfo, half3 surfaceToCamera, float w)
-    {
-      float3 worldPos = hitInfo.position + bvh_origin;
-
-      SurfaceParams sp = (SurfaceParams)0;
-      sp.isImpostor = hitInfo.isImpostor;
-
-      if (!hitInfo.isImpostor)
-        sp.reflectance = 0.5;
-      else
-        sp.reflectance = 0.0;
-      sp.position = hitInfo.position;
-      sp.surfaceToCamera = surfaceToCamera;
-      sp.albedo = 1;
-      sp.normal = hitInfo.normal;
-      sp.isFoliage = false; // Can we figure this out?
-
-      float mipLevel = w <= 0 ? abs(w) : calc_mip_level(w + hitInfo.t, hitInfo.isImpostor);
-
-      if (get_material_type(hitInfo.material) == bvhMaterialTerrain ||
-          get_material_type(hitInfo.material) == bvhMaterialLandclass)
-      {
-        float totalRayT = w + hitInfo.t;
-        float calculatedDx = totalRayT / 1000;
-
-        bool isLandclass = get_material_type(hitInfo.material) == bvhMaterialLandclass;
-
-        float3 tcWorldPos = worldPos;
-        int indirectionOffset = 0;
-        if (isLandclass)
-        {
-          float2 texcoord = hitInfo.texcoord * hitInfo.materialData1.xy + hitInfo.materialData1.zw;
-          float2 spoofedWorldPosXZ = texcoord * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
-          tcWorldPos = float3(spoofedWorldPosXZ.x, worldPos.y, spoofedWorldPosXZ.y);
-          indirectionOffset = get_clipmap_indirection_offset_by_index(asint(hitInfo.materialData2.x));
-        }
-
-        DetailDesc microdetail_desc;
-        Vtex textures = sample_clipmaps(tcWorldPos, calculatedDx, 0, microdetail_desc, indirectionOffset);
-
-        float3 terrainNormal = getNormalLow(tcWorldPos.xz);
-        if (isLandclass)
-          terrainNormal.xzy = RNM_ndetail_normalized(hitInfo.normal.xzy, terrainNormal.xzy); // Not quite correct, but better than nothing
-
-        sp.albedo = textures.diffuse;
-        sp.normal = terrainNormal;
-        ##if !fast_mode
-          sp.normal.xzy = RNM_ndetail_normalized(sp.normal.xzy,textures.normal);
-        ##endif
-        sp.smoothness = textures.smoothness;
-        sp.reflectance = textures.reflectance;
-      }
-      else if (get_material_type(hitInfo.material) == bvhMaterialRendinst)
-      {
-        float texelAlpha = 1;
-        if (hitInfo.isPerlinLayered) // rendinst_perlin_layered, rendinst_tree_perlin_layered
-        {
-          sp.albedo = calc_perling_layers(hitInfo, mipLevel);
-        }
-        else if (hitInfo.isLayered && is_atlas(hitInfo.material)) //rendinst_layered, dynamic_layered
-        {
-          sp.albedo = calc_layers(hitInfo, mipLevel);
-        }
-        else if (hitInfo.isLayered) //rendinst_mask_layered
-        {
-          sp.albedo = calc_mask_layers(hitInfo, mipLevel);
-        }
-        else if (hitInfo.albedoTextureIndex != 0xFFFFU)
-        {
-          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
-          sp.albedo = texel.rgb;
-          texelAlpha = texel.a;
-          apply_painting(hitInfo, texel.a, sp.albedo);
-          ##if !fast_mode
-            if (is_painted_by_mask(hitInfo.material))
-              apply_paint_by_mask(hitInfo, mipLevel, sp.albedo);
-          ##endif
-          if (hitInfo.isEye)
-          {
-            half eyeLerpParam = texel.b;
-            sp.albedo = lerp(bvh_eye_sclera_color, bvh_eye_iris_color, saturate((eyeLerpParam - 0.03) * 24)) * (1 - saturate((eyeLerpParam - 0.5) * 4));
-          }
-
-          if (hitInfo.hasColorMod)
-          {
-            half4 fillColor = half4(1, 1, 1, 1);
-            if (hitInfo.extraTextureIndex != 0xFFFF)
-            {
-              // camouflage_scale_and_offset is ignored
-              fillColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
-            }
-            else
-            {
-              fillColor = unpack_srgb_e3dcolor(hitInfo.perInstanceDataCompressed.x);
-              fillColor.rgb = fillColor.rgb * fillColor.a + sp.albedo * (1. - fillColor.a);
-            }
-
-            half colorMul  = half(hitInfo.perInstanceDataCompressed.y / 255.0);
-            sp.albedo = sp.albedo * texelAlpha + min(sp.albedo * fillColor.rgb * colorMul, 1.xxx) * (1 - texelAlpha);
-          }
-        }
-
-        if (hitInfo.normalTextureIndex != 0xFFFFU && !(hitInfo.isLayered && is_atlas(hitInfo.material)))
-        {
-          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
-          sp.smoothness = texel.r;
-          sp.metalness = texel.b  * (hitInfo.isNonMetal ? 0 : 1);
-        }
-        else
-        {
-          sp.smoothness = get_specular_intensity_from_color(sp.albedo);
-          sp.metalness = 0.0;
-        }
-
-        if (hitInfo.isEmissive)
-          sp.emission = get_emission(hitInfo, sp.albedo, texelAlpha);
-
-        ##if !fast_mode
-          if (hitInfo.isCamo)
-          {
-            uint camoTexPacked = hitInfo.perInstanceDataCompressed.x;
-            uint camoTexIndex = camoTexPacked >> 16;
-            if (camoTexIndex != 0xFFFFU)
-            {
-              float4 camoParams = get_camo_params(hitInfo);
-              float2 camoTexcoord = camoParams.xy;
-              float condition = camoParams.z;
-              float invCondition = 1.0 / condition;
-
-              half4 camoTexture = (half4)nonUniformBindlessTex2D(bvh_textures, camoTexIndex).SampleLevel(bvh_wrap_sampler, camoTexcoord, mipLevel);
-
-              half camouflagePart = texelAlpha;
-              uint camoSkinTex = camoTexPacked & 0xFFFFU;
-              if (camoSkinTex < 0xFFFFU)
-              {
-                half4 skinColor = (half4)nonUniformBindlessTex2D(bvh_textures, camoSkinTex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
-                camoTexture.rgb = lerp(camoTexture.rgb, skinColor.rgb, skinColor.a);
-                camouflagePart = lerp(camouflagePart, 1.0, skinColor.a);
-              }
-
-              camouflagePart = half(pow(camouflagePart, max(0.0001, invCondition)));
-              sp.albedo = lerp(sp.albedo, camoTexture.rgb*lerp(0.5,1, pow4(saturate(texelAlpha+0.25))), camouflagePart);
-              sp.smoothness = lerp(sp.smoothness, sp.smoothness*0.5 + camoTexture.a*0.5, camouflagePart);
-              sp.metalness = lerp(sp.metalness, 0, pow4(camouflagePart));//camoTexture.a*camoTexture.a
-            }
-          }
-          else if (hitInfo.isGrass)
-          {
-            uint grassType = hitInfo.materialData1.x;
-            float randV = 0.5; // No per instance data support on GPU placed instances (yet)
-            // VS
-            half3 mask_r = lerp( grass_colors_vs[grassType].mask_r_color0.rgb, grass_colors_vs[grassType].mask_r_color1.rgb, randV );
-            half3 mask_b = lerp( grass_colors_vs[grassType].mask_b_color0.rgb, grass_colors_vs[grassType].mask_b_color1.rgb, randV );
-            half3 color_mask_g_from = grass_colors_vs[grassType].mask_g_color0.rgb;
-            half3 color_mask_g_to = grass_colors_vs[grassType].mask_g_color1.rgb;
-            // PS
-            half3 grassAlbedo = sp.albedo;
-            half3 landColor = sample_lastclip_lod(worldPos, 0);
-            half3 color = lerp( landColor, mask_r, grassAlbedo.r );
-            color = lerp( color.rgb, mask_b, grassAlbedo.b );
-            color = color * lerp( color_mask_g_from, color_mask_g_to.rgb, grassAlbedo.g ) * COLOR_CORRECTION_MULTIPLIER;
-            sp.albedo = saturate(color);
-            sp.isFoliage = true;
-          }
-          ##if bvh_decals == yes
-          if (hitInfo.hasAnimcharDecals)
-          {
-            instance_offset_for_decal = hitInfo.perInstanceDataCompressed.z + bvh_instance_data_buffer_cur_offset;
-            apply_node_transformation_to_model(hitInfo);
-            apply_decals(hitInfo.modelPosition, hitInfo.modelNormal, sp.albedo, sp.smoothness, sp.metalness, mipLevel);
-          }
-          ##endif
-        ##endif
-      }
-      else if (get_material_type(hitInfo.material) == bvhMaterialWater)
-      {
-        sp.isWater = true;
-        sp.albedo = bvh_water_color;
-        sp.reflectance = 1;
-        sp.smoothness = 1;
-        sp.metalness = 0;
-      }
-      else if (get_material_type(hitInfo.material) == bvhMaterialMonochrome)
-      {
-        sp.albedo = hitInfo.materialData1.xyz;
-        sp.metalness = hitInfo.materialData2.x;
-        sp.smoothness = hitInfo.materialData2.y;
-        sp.reflectance = hitInfo.materialData2.z;
-      }
-
-      if (has_instance_color(hitInfo.material))
-        sp.albedo *= hitInfo.instanceColor;
-      if (get_material_type(hitInfo.material) == bvhMaterialCable)
-        sp.albedo = hitInfo.vertexColor;
-
-      apply_env_wetness(worldPos, sp.normal, surfaceToCamera, SHADING_NORMAL, false, sp.albedo, sp.smoothness, sp.normal, sp.reflectance);
-
-      ##if !fast_mode && envi_cover_rt == on
-        apply_rt_envi_cover(worldPos, hitInfo, sp);
-      ##endif
-
-      return sp;
-    }
-  }
-endmacro
-
 // use_cockpit_lights is Skyquake specific
-macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows, use_dagi, shadow_use_rt, use_probes)
+macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows, use_dagi, shadow_use_rt)
+  bool lighting_use_dagi = use_dagi;
+  bool lighting_use_rt_shadows = shadow_use_rt;
   INIT_RT_SURFACE_PARAMS(stage)
   INIT_SKY_DIFFUSE_BASE(stage)
   INIT_ENVI_SPECULAR_BASE(stage)
   INIT_DAGI_IN_RT(stage)
   INIT_ENVI_SPECULAR_SAMPLE(stage)
 
-  if (use_dagi)
+  if (!lighting_use_rt_shadows)
   {
-    hlsl(stage) {
-      #define RT_USE_DAGI 1
-    }
-  }
-  else
-  {
-    hlsl(stage) {
-      // make PTGI shadows cheaper
-      #define FASTEST_STATIC_SHADOW_PCF 1
-    }
-  }
-
-  hlsl(stage) {
-    #define HAS_STATIC_SHADOW 1
-  }
-
-  if (shadow_use_rt)
-  {
-    hlsl(stage) {
-      #define RT_USE_RT_SHADOW 1
-    }
-  }
-  else
-  {
-    INIT_STATIC_SHADOW_BASE(stage)
-    USE_STATIC_SHADOW_BASE(stage)
-
-    hlsl(stage) {
-      #define RT_USE_STATIC_SHADOW 1
-    }
-
     INIT_CSM_SHADOW(stage)
-    if (use_dagi)
+    if (lighting_use_dagi)
     {
       BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(stage)
     }
@@ -822,27 +76,23 @@ macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows,
     {
       // make PTGI shadows cheaper
       BASE_USE_CSM_SHADOW_DEF_NUM(stage, get_csm_shadow_simple)
+      hlsl(stage) {
+        #define FASTEST_STATIC_SHADOW_PCF 1
+      }
     }
-
     hlsl(stage) {
-      #define RT_USE_CSM_SHADOW 1
+      #define HAS_STATIC_SHADOW 1
     }
-  }
-
-  if (use_probes)
-  {
-    INIT_RTR_PROBES(stage, true)
-    USE_RTR_PROBES(stage)
+    INIT_STATIC_SHADOW_BASE(stage)
+    USE_STATIC_SHADOW_BASE(stage)
   }
 
   SQ_INIT_CLOUDS_SHADOW(stage)
   DO_INIT_FOM_SHADOWS_BINDLESS(stage)
   (stage) {
     clouds_shadow_influence@f1 = clouds_shadow_influence;
-    rtr_sky_probe_ray_length_threshold@f1 = rtr_sky_probe_ray_length_threshold;
-    rtr_probe_weight_offset_factor@f1 = rtr_probe_weight_offset_factor;
   }
-  endmacro
+endmacro
 
 macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
   USE_RT_SURFACE_PARAMS(stage, fast_mode)
@@ -853,7 +103,10 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
   USE_ENVI_SPECULAR_SAMPLE(stage)
   PACK_UNPACK_GBUFFER_BASE(stage)
   USING_SKYLIGHT_PARAMS(stage)
-  USE_INDOOR_LIGHT_PROBES(stage, false)
+  if (lighting_use_dagi)
+  {
+    USE_INDOOR_LIGHT_PROBES(stage, false)
+  }
 
   USE_COSINE_SAMPLING(stage)
 
@@ -877,49 +130,51 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       return getGiDynamicLighting(gbuffer, worldPos, 0, 0, 0);
     }
 
-    half3 calc_environment_specular_reflection(float3 worldPos, float3 normalh, float linearRoughness, float3 surfaceToCamera, float viewDist, float3 ambientLum, out float indoor_probe_weight)
+    ##if lighting_use_dagi
+      half3 calc_environment_specular_reflection(float3 worldPos, float3 normalh, float linearRoughness, float3 surfaceToCamera, float viewDist, float3 ambientLum, out float indoor_probe_weight)
+      {
+          half ggx_alpha = max(1e-4, linearRoughness * linearRoughness);
+          half NdotV = dot(normalh, surfaceToCamera);
+          half3 reflectionVec = 2 * NdotV * normalh - surfaceToCamera;
+          half3 roughR = getRoughReflectionVec(reflectionVec.xyz, normalh, ggx_alpha);
+          float roughMip = ComputeReflectionCaptureMipFromRoughness(linearRoughness);
+          half4 indoorReflectionLocalWeight = use_indoor_probes(worldPos, normalh, roughR, roughMip, viewDist);
+          half NoV = abs(NdotV) + 1e-5h;
+          half3 environmentSpecularReflection = indoorReflectionLocalWeight.xyz;
+
+          if (indoorReflectionLocalWeight.w > 0)
+            environmentSpecularReflection += sample_envi_probe(float4(roughR, roughMip)).rgb * indoorReflectionLocalWeight.w;
+          indoor_probe_weight = saturate(indoorReflectionLocalWeight.w * 1000);
+
+          float mipForTrick = linearRoughness*NUM_PROBE_MIPS;
+          float maximumSpecValue = max3(
+            1.26816,
+            9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV,
+            9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
+          maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
+          float3 adjustedMaxSpec = ambientLum * maximumSpecValue;
+          return environmentSpecularReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentSpecularReflection + 0.001));//avoid nans
+      }
+    ##endif
+
+    half3 calc_environment_ambient_unoccluded_lighting(float3 worldPos, float3 normalh, float linearRoughness, float3 surfaceToCamera, float dist)
     {
-        half ggx_alpha = max(1e-4, linearRoughness * linearRoughness);
-        half NdotV = dot(normalh, surfaceToCamera);
-        half3 reflectionVec = 2 * NdotV * normalh - surfaceToCamera;
-        half3 roughR = getRoughReflectionVec(reflectionVec.xyz, normalh, ggx_alpha);
-        float roughMip = ComputeReflectionCaptureMipFromRoughness(linearRoughness);
-        half4 indoorReflectionLocalWeight = use_indoor_probes(worldPos, normalh, roughR, roughMip, viewDist);
-        half NoV = abs(NdotV) + 1e-5h;
-        half3 environmentSpecularReflection = indoorReflectionLocalWeight.xyz;
-
-        if (indoorReflectionLocalWeight.w > 0)
-          environmentSpecularReflection += sample_envi_probe(float4(roughR, roughMip)).rgb * indoorReflectionLocalWeight.w;
-        indoor_probe_weight = saturate(indoorReflectionLocalWeight.w * 1000);
-
-        float mipForTrick = linearRoughness*NUM_PROBE_MIPS;
-        float maximumSpecValue = max3(
-          1.26816,
-          9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV,
-          9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
-        maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
-        float3 adjustedMaxSpec = ambientLum * maximumSpecValue;
-        return environmentSpecularReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentSpecularReflection + 0.001));//avoid nans
-    }
-
-    half3 calc_environment_ambient_unoccluded_lighting(float3 worldPos, float3 normalh, float linearRoughness, float3 surfaceToCamera, float w)
-    {
-      #if RT_USE_DAGI
+      ##if lighting_use_dagi
         half ggx_alpha = max(1e-4, linearRoughness * linearRoughness);
         half NdotV = dot(normalh, surfaceToCamera);
         half3 enviLightingNormal = normalize(getDiffuseDominantDir(normalh, surfaceToCamera, saturate(NdotV), ggx_alpha));
         half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
-        half3 ambient = get_gi_ambient(worldPos, enviLightingNormal, normalh, enviLight, w, surfaceToCamera);
+        half3 ambient = get_gi_ambient(worldPos, enviLightingNormal, normalh, enviLight, dist, surfaceToCamera);
 
         ambient *= skylight_gi_weight_atten;
 
         return ambient;
-      #else
+      ##else
         return 0;
-      #endif
+      ##endif
     }
 
-    half3 light_hit_surface(SurfaceParams surface, half3 surfaceToCamera, float w, float ray_max, uint trace_extra_flags = 0)
+    half3 light_hit_surface(SurfaceParams surface, half3 surfaceToCamera, float w, float ray_length, float ray_max, uint trace_extra_flags = 0)
     {
       half3 normalh = (half3)surface.normal;
 
@@ -935,15 +190,13 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
 
       float3 worldPos = surface.position + bvh_origin;
 
-      #if RT_USE_RT_SHADOW
+      ##if lighting_use_rt_shadows
         float3 offsetPos = applyAdaptiveRayOffset(surface.position, surface.normal);
         half shadow = is_obstructed(bvhMain, offsetPos, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, trace_extra_flags) ? 0 : 1;
-      #else
+      ##else
         half shadow = getStaticShadow(worldPos.xyz);
-        #if RT_USE_CSM_SHADOW
-          shadow *= get_csm_shadow(-surface.position).x;
-        #endif
-      #endif
+        shadow *= get_csm_shadow(-surface.position).x;
+      ##endif
       shadow *= saturate(pow(clouds_shadow(worldPos), clouds_shadow_influence));
       shadow *= getFOMShadow(worldPos);
 
@@ -956,11 +209,11 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       half3 litPixel = standardBRDF( NoV, saturate(NoL), diffuseColor, ggx_alpha, linearRoughness, specularColor, extractedAlbedoAo, toSun, surface.surfaceToCamera, normalh, sheenColor, sheenStrength)*(shadow)*lightColor;
       litPixel += calc_dynamic_lights(surface, worldPos, diffuseColor);
       litPixel += surface.emission;
-      float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normalh, linearRoughness, surface.surfaceToCamera, w);
+      float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normalh, linearRoughness, surface.surfaceToCamera, ray_length);
       litPixel += ambient * diffuseColor;
 
       float3 specularReflection = 0;
-      #if RT_USE_DAGI
+      ##if lighting_use_dagi
         float3 enviBRDF = EnvBRDFApprox(specularColor, linearRoughness, NoV);
         float indoorProbeWeight; // 0 = fully inside, 1 = fully outside
         float3 specularComponent = calc_environment_specular_reflection(worldPos, normalh, linearRoughness, surface.surfaceToCamera, length(surface.position), luminance(ambient), indoorProbeWeight);
@@ -975,7 +228,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
         enviSSR *= specularAOcclusion;
 
         specularReflection = specularComponent * enviSSR * enviBRDF;
-      #endif
+      ##endif
 
       if (surface.isWater)
       {
@@ -990,85 +243,6 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
 
       return litPixel;
     }
-
-    #if rtr_use_probes
-      static const int borderCount = 1;
-      float calc_probe_weight(float distance, float w)
-      {
-        const float minW = 2; // To accept probes near camera
-        w = max(w, minW);
-        float weightOffset = 1.0 / (rtr_probe_weight_offset_factor * w);
-        const float resolutionFactor = 1.0 / 40.0; // Probes are further away from each other on low resolution
-        weightOffset *= usable_probe_count.x * resolutionFactor;
-        const float minDistance = 1e-5;
-        return max(0, weightOffset + 1.0 / max(distance, minDistance));
-      }
-    #endif
-
-
-    half3 calc_direct_surface_reflection(float3 worldPos, float3 normal, float roughness, float3 surfaceToCamera, float w, float viewDist, float3 sampleDir, float maxReflectionDistance, uint2 tci, inout float depth)
-    {
-      if (maxReflectionDistance > rtr_sky_probe_ray_length_threshold)
-        return texCUBElod(envi_probe_specular, float4(sampleDir, 0)).rgb * apply_sky_polarization_filter();
-
-      #if rtr_use_probes
-        if (rtr_probes_bindless_enabled())
-        {
-          int2 probeIndex = tci / PROBE_AREA;
-          int2 probeCountI = usable_probe_count;
-          float3 colorAccum = 0;
-          float depthAccum = 0;
-          float weightSum = 0;
-          for (int y = max(probeIndex.y - borderCount, 0); y < min(probeIndex.y + borderCount + 1, probeCountI.y); ++y)
-          {
-            for (int x = max(probeIndex.x - borderCount, 0); x < min(probeIndex.x + borderCount + 1, probeCountI.x); ++x)
-            {
-              uint cellIndex = x + y * probe_count.x;
-              float4 frontProbeData = asfloat(loadBuffer4(probe_locations, cellIndex * PROBE_SLOT_STRIDE));
-              float4 backProbeData = asfloat(loadBuffer4(probe_locations, cellIndex * PROBE_SLOT_STRIDE + PROBE_SIZE));
-
-              BRANCH
-              if (frontProbeData.w != 0)
-              {
-                float4 frontSample = sample_probe(uint2(x, y), 0, sampleDir);
-                float4 backSample;
-                if (backProbeData.w != 0)
-                  backSample = sample_probe(uint2(x, y), 1, sampleDir);
-                else
-                {
-                  backSample = frontSample;
-                  backProbeData = frontProbeData;
-                }
-
-                float frontDistance = distance(worldPos, frontProbeData.xyz);
-                float backDistance = distance(worldPos, backProbeData.xyz);
-
-                float t = frontDistance / (frontDistance + backDistance + 1e-5);
-                float4 lerpedSample = lerp(frontSample, backSample, t);
-                float3 lerpedPos = lerp(frontProbeData.xyz, backProbeData.xyz, t);
-
-                float probeWeight = calc_probe_weight(distance(lerpedPos, worldPos), w);
-                weightSum += probeWeight;
-                colorAccum += lerpedSample.rgb * probeWeight;
-                depthAccum += lerpedSample.a * probeWeight;
-              }
-            }
-          }
-
-          if (weightSum > 0)
-          {
-            colorAccum /= weightSum;
-            depthAccum /= weightSum;
-            depth = depthAccum;
-            return colorAccum;
-          }
-        }
-      #endif
-
-      float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normal, roughness, surfaceToCamera, w);
-      float indoorProbeWeight;
-      return calc_environment_specular_reflection(worldPos, normal, roughness, surfaceToCamera, viewDist, luminance(ambient), indoorProbeWeight);
-    }
   }
 endmacro
 
@@ -1079,38 +253,5 @@ macro GET_SCATTERED_REFLECTION_VECTOR(stage)
     {
       return cosine_sample_hemisphere(reflection_vector, seed, pow2(roughness));
     }
-  }
-endmacro
-
-macro RT_PREV_FRAME_SAMPLE(stage, struct_name, prev_frame_sample_enabled)
-  (stage)
-  {
-    prev_globtm_psf@f44 = { prev_globtm_psf_0, prev_globtm_psf_1, prev_globtm_psf_2, prev_globtm_psf_3 };
-    sp_prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, 1/(prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
-  }
-  hlsl(stage)
-  {
-    #define RT_CALC_VIEWVECT 1
-  }
-  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(stage)
-  hlsl(stage)
-  {
-    struct struct_name
-    {
-      static bool get_screen_sample(float3 worldPos, float3 rayDir, out float3 radiance)
-      {
-        if (!(prev_frame_sample_enabled))
-          return false;
-        float4 prevNDC = mul(float4(worldPos, 1), prev_globtm_psf);
-        float3 prevUVW = float3(prevNDC.xy / prevNDC.w, prevNDC.w);
-        prevUVW.xy = float2(prevUVW.x, -prevUVW.y) * 0.5 + 0.5;
-        float3 currentUVW = 0; // dummy
-        float3 camPos = 0; // dummy
-        bool allow_uncertaincy = true;
-        radiance = 0;
-
-        return sample_prev_frame_radiance(prevUVW, currentUVW, camPos, rayDir, allow_uncertaincy, radiance);
-      }
-    };
   }
 endmacro

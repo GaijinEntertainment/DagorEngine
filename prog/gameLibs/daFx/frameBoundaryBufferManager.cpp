@@ -113,7 +113,8 @@ FrameBoundaryBufferManager::~FrameBoundaryBufferManager()
   resetUsedTextureId();
 }
 
-FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManager &&rhs) : frameBoundaryAllocator(RESTAG_DEBUG)
+FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManager &&rhs) noexcept :
+  frameBoundaryAllocator(RESTAG_DEBUG)
 {
   WinAutoLock lock(g_frame_boundary_cs);
 

@@ -426,7 +426,7 @@ struct SplineAndPolygonGenService : public ISplineGenService
         if (node && node->layer == layer && (!flags || (node->flags & flags)))
         {
           StaticGeometryNode *n = new (tmpmem) StaticGeometryNode(*node);
-          n->name = (ni == 0) ? String(0, "%s_%p", node->name, e) : String(0, "%s_%p_%d", node->name, e, ni);
+          n->name = (ni == 0) ? String(0, "%s&P(%p)", node->name, e) : String(0, "%s&P(%p)_%d", node->name, e, ni);
           if (layer_order >= 0)
             n->script.setInt("splineLayer", layer_order); // Use this and layer:i from loft to split materials by layers.
           cont.addNode(n);

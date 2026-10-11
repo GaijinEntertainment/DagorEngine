@@ -1,0 +1,2 @@
+parameter 2 of 'takeTables' has an invalid type 'integer' ; expected: 'table'
+freed: true

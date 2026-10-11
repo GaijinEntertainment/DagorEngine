@@ -30,6 +30,7 @@ struct GrassRenderer
   dag::Vector<BBox2> sdfBoxesToUpdate;
   int sdfUpdatePeriod = 3; // 3x3 = 9 frames
   eastl::unique_ptr<RendInstHeightmap> rendInstHeightmap;
+  IRandomGrassRenderHelper *extraMaskColorHelper = nullptr;
   GrassRenderer()
   {
 #if DAGOR_DBGLEVEL > 0

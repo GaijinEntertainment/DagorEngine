@@ -435,6 +435,18 @@ hlsl {
         return tex.SampleLevel(smp, uv.xy, uv.w);
     }
 
+    float4 tex2DgradBindless(TextureSampler a, float2 uv, float2 dx, float2 dy)
+    {
+      Texture2D tex = a.tex;
+      SamplerState smp = a.smp;
+      return tex.SampleGrad(smp, uv, dx, dy);
+    }
+
+    float4 tex2DgradBindlessSampler(Texture2D tex, SamplerState smp, float2 uv, float2 dx, float2 dy)
+    {
+      return tex.SampleGrad(smp, uv, dx, dy);
+    }
+
     float4 texCUBEBindless(TextureSamplerCube a, float3 uv)
     {
       TextureCube tex = a.tex;
@@ -466,8 +478,8 @@ hlsl {
     #define tex2DBindlessSampler(a, b, uv) (a).Sample((b), uv)
     #define tex2DLodBindless(a, uv) (a).tex.SampleLevel((a).smp, (uv).xy, (uv).w)
     #define tex2DLodBindlessSampler(a, b, uv) (a).SampleLevel((b), (uv).xy, (uv).w)
-    #define tex2DgradBindless(a, uv, dx, dy) (a).tex.SampleGradient((a).smp, (uv).xy, dx, dy)
-    #define tex2DgradBindlessSampler(a, b, uv, dx, dy) (a).SampleGradient((b), (uv).xy, dx, dy)
+    #define tex2DgradBindless(a, uv, dx, dy) (a).tex.SampleGrad((a).smp, (uv).xy, dx, dy)
+    #define tex2DgradBindlessSampler(a, b, uv, dx, dy) (a).SampleGrad((b), (uv).xy, dx, dy)
     #define tex2DprojBindless(a, uv) tex2DBindless((a), (uv).xy/(uv).w)
     #define tex2DbiasBindless(a, uv, bias) (a).tex.SampleBias((a).smp, (uv).xy, bias)
     #define texCUBEBindless(a, uv) (a).tex.Sample((a).smp, uv)
@@ -773,23 +785,33 @@ hlsl(ps) {
 
   #define h4tex2Dlod(tex_,tc_) ((half4)tex2Dlod(tex_, tc_))
 
+  float4 pixelLocalLoad(Texture2D tex, float2 tc)
+  {
+    uint2 dim;
+    tex.GetDimensions(dim.x, dim.y);
+    return tex.Load(uint3(tc*dim, 0));
+  }
+  float4 pixelLocalLoadSample(Texture2DMS<float4> tex, float2 tc, int sample_idx)
+  {
+    uint2 dim;
+    uint samples;
+    tex.GetDimensions(dim.x, dim.y, samples);
+    return tex.Load(uint2(tc*dim), sample_idx);
+  }
   ##if hardware.vulkan || hardware.metaliOS
     #if SHADER_COMPILER_DXC
       #define SUBPASS_RESOURCE(name, reg, iatt_idx) [[vk::input_attachment_index(iatt_idx)]] SubpassInput name;
-      #define SUBPASS_LOAD(tgt, tc) tgt.SubpassLoad()
+      #define SUBPASS_LOAD(tgt, tc) pixelLocalLoad(tgt, tc)
       #define SUBPASS_RESOURCE_MS(name, reg, iatt_idx) [[vk::input_attachment_index(iatt_idx)]] SubpassInputMS name;
-      #define SUBPASS_LOAD_SAMPLE(tgt, tc, sample_idx) tgt.SubpassLoad(sample_idx)
+      #define SUBPASS_LOAD_SAMPLE(tgt, tc, sample_idx) pixelLocalLoadSample(tgt, tc, sample_idx)
+      float4 pixelLocalLoad(SubpassInput tgt, float2 tc) { return tgt.SubpassLoad(); }
+      float4 pixelLocalLoadSample(SubpassInputMS tgt, float2 tc, int sample_idx) { return tgt.SubpassLoad(sample_idx); }
     #else
       #error "this shader can't be compiled without DXC"
     #endif
   ##else
     #define SUBPASS_RESOURCE(name, reg, iatt_idx) Texture2D name: register(reg);
-    float4 SUBPASS_LOAD(Texture2D tex, float2 tc)
-    {
-      uint2 dim;
-      tex.GetDimensions(dim.x, dim.y);
-      return tex.Load(uint3(tc*dim, 0));
-    }
+    #define SUBPASS_LOAD(tgt, tc) pixelLocalLoad(tgt, tc)
   ##endif
 }
 hlsl {
@@ -1110,6 +1132,14 @@ endmacro
 float mip_bias = 0;
 int dgs_tex_anisotropy = 1;
 
+int render_pass_split_mode = 0;
+interval render_pass_split_mode: native < 1, split;
+
+hlsl {
+  // The dummy argument is for FXC, which cannot parse an empty macro argument list.
+  #define RP_OUTPUT_HAS(field) (RP_OUTPUT_HAS_##field(0))
+}
+
 sampler global_linear_wrap_sampler
 {
   mipmap_mode = linear;
@@ -1326,6 +1356,15 @@ hlsl(ps)
     #define MOBILE_PS_OUTPUT_WRAPPER(a) (a)*0.9999f;
   ##else
     #define MOBILE_PS_OUTPUT_WRAPPER(a) a
+  ##endif
+}
+
+hlsl
+{
+  ##if hardware.dx12
+    #define HW_IS_HELPER_LANE IsHelperLane()
+  ##else
+    #define HW_IS_HELPER_LANE false
   ##endif
 }
 

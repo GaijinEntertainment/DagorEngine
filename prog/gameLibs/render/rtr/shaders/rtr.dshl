@@ -3,6 +3,8 @@ include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "bvh.dshl"
 include "rt/rt_lighting.dshl"
+include "rt/rt_direct_surface_reflection.dshl"
+include "rt/rt_prev_frame_sample.dshl"
 include "use_prefiltered_gf.dshl"
 include "wetness_inc.dshl"
 include "bvh_common_includes.dshl"
@@ -135,8 +137,10 @@ shader rt_reflection
 
   USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_RT_LIGHTING(cs, false, true, true, rtr_shadow == on, true)
+  INIT_RT_LIGHTING(cs, false, true, true, rtr_shadow == on)
+  INIT_RT_DIRECT_SURFACE_REFLECTION(cs)
   USE_RT_LIGHTING(cs, 0, false)
+  USE_RT_DIRECT_SURFACE_REFLECTION(cs)
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
   RT_PREV_FRAME_SAMPLE(cs, RTRScreenSample, rtr_use_prev_frame_sample)
@@ -160,7 +164,16 @@ shader rt_reflection
       ssao_tex@tex2d = ssao_tex;
       ssao_apply_strength@f1 = ssao_apply_strength;
     }
-    USE_SSAO_SIMPLE_BASE_WITH_SMP(cs, envi_probe_specular_samplerstate)
+    USE_SCREENPOS_TO_LOWRES_TC_BASE(cs)
+    hlsl(cs) {
+      float getSSAOSimple(float2 screenpos)
+      {
+        float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
+        float ssao = ssao_tex.SampleLevel(bvh_clamp_sampler, ssaotc, 0).x;
+        ssao = pow(ssao, ssao_apply_strength);
+        return ssao;
+      }
+    }
     USING_RTAO(cs)
   }
 
@@ -364,7 +377,7 @@ shader rt_reflection
           bvh_voxel_activity_mark(hitInfo.position);
 
         [branch]
-        if (!isHit && bvhTerrainValid)
+        if (!isHit && bvhTerrainValid && !rtr_probes_cover_miss(maxReflectionDistance))
           isHit = trace_ray<true>(bvhTerrain, relPos, sampleDir, maxReflectionDistance, 100000, w, bvhGroupRender, hitInfo);
       }
 
@@ -375,7 +388,7 @@ shader rt_reflection
         if (!hitInfo.isScreenHit)
         {
           SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, w);
-          reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hit_dist_params.x);
+          reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hitInfo.t, hit_dist_params.x);
           calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
         }
         else
@@ -394,7 +407,7 @@ shader rt_reflection
               if (isRTAOEnabled() && !isGrass)
                 ao *= getRTAO(pixelCenter);
               else
-                ao *= getSSAOSimple(w, pixelCenter).x;
+                ao *= getSSAOSimple(pixelCenter);
           }
           half specularAOcclusion = computeSpecOcclusion(saturate(dot(-toPoint, normal)), ao, roughness * roughness);
           reflectionColor *= specularAOcclusion;
@@ -511,7 +524,7 @@ shader rt_glass_reflection
 
   USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_RT_LIGHTING(cs, true, true, true, glass_rtr_shadow == on, false)
+  INIT_RT_LIGHTING(cs, true, true, true, glass_rtr_shadow == on)
   USE_RT_LIGHTING(cs, 1, false)
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
@@ -573,7 +586,7 @@ shader rt_glass_reflection
       if (isHit)
       {
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, w);
-        reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hit_dist_params.x);
+        reflectionColor = light_hit_surface(hitSurface, -sampleDir, w + hitInfo.t, hitInfo.t, hit_dist_params.x);
         calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
       }
       else
@@ -626,6 +639,13 @@ shader rt_reflection_decode
         c2 = RELAX_BackEnd_UnpackRadiance(texture2DAt(input, dtid * 2 + uint2(0, 1))).rgb;
         c3 = RELAX_BackEnd_UnpackRadiance(texture2DAt(input, dtid * 2 + uint2(1, 0))).rgb;
         c4 = RELAX_BackEnd_UnpackRadiance(texture2DAt(input, dtid * 2 + uint2(1, 1))).rgb;
+      }
+      else if (rtr_output_type == RTR_RR)
+      {
+        c1 = texture2DAt(input, dtid * 2 + uint2(0, 0)).gba;
+        c2 = texture2DAt(input, dtid * 2 + uint2(0, 1)).gba;
+        c3 = texture2DAt(input, dtid * 2 + uint2(1, 0)).gba;
+        c4 = texture2DAt(input, dtid * 2 + uint2(1, 1)).gba;
       }
 
       texture2DAt(output, dtid) = float4((c1 + c2 + c3 + c4) / 4, 1);

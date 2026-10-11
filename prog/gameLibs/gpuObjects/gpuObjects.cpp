@@ -200,10 +200,10 @@ void ObjectManager::recreateGrid(int cell_tile, int cells_size_count, float cell
   toroidalGrid.texSize = cellsSideCount;
 
   float weightMultiplier = parameters.weightRange.y - parameters.weightRange.x;
-  if (weightMultiplier < 0.9999)
+  if (weightMultiplier < 0.9999f)
   {
     // buffer size will be based on weight, and a little bigger because random not very precise
-    weightMultiplier = min(1.0, weightMultiplier * 1.5);
+    weightMultiplier = min(1.0f, weightMultiplier * 1.5f);
     maxObjectsCountInCell *= weightMultiplier;
     if (maxObjectsCountInCell == 0 && cell_tile != 0)
     {

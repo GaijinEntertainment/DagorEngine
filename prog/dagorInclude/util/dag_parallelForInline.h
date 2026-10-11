@@ -86,7 +86,7 @@ inline void parallel_for_inline_impl(uint32_t begin, uint32_t end, uint32_t quan
     }
   };
   // To avoid false sharing on `job->done`, we allocate two (on x86) cache lines space
-#if defined(__aarch64__) || defined(_M_ARM64)
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
   static constexpr size_t stack_per_job = eastl::max((size_t)64, sizeof(ParallelForJob));
 #else
   static constexpr size_t stack_per_job = eastl::max((size_t)64 * 2, sizeof(ParallelForJob));

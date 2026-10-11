@@ -344,7 +344,7 @@ public:
     for (const eastl::pair<NBSType, Tab<Tab<String>>> &permutations : gatherOptionalGraphFilenames(a))
       if (graphType == NBSType::UNKNOWN || graphType == permutations.first)
         for (const Tab<String> &permGroups : permutations.second)
-          for (const String optGraph : permGroups)
+          for (const String &optGraph : permGroups)
             files.push_back() = optGraph;
 
     for (const auto &sourceFile : gatherAllShaderResources(a, graphType))

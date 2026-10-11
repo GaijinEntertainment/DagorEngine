@@ -66,7 +66,6 @@
     DEF_TREE_OP(BNOT), \
     DEF_TREE_OP(NEG), \
     DEF_TREE_OP(TYPEOF), \
-    DEF_TREE_OP(STATIC_MEMO), \
     DEF_TREE_OP(INLINE_CONST), \
     DEF_TREE_OP(SPREAD), \
     DEF_TREE_OP(RESUME), \
@@ -553,6 +552,7 @@ public:
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}
 
+    const char *name = nullptr;
     uint32_t setFlags = 0, clearFlags = 0;
     bool applyToDefault = false;
 };
@@ -1373,7 +1373,6 @@ void Node::visit(V *visitor) {
     case TO_CLONE:
     case TO_PAREN:
     case TO_DELETE:
-    case TO_STATIC_MEMO:
     case TO_SPREAD:
     case TO_INLINE_CONST:
         visitor->visitUnExpr(static_cast<UnExpr *>(this)); return;
@@ -1491,7 +1490,6 @@ Node *Node::transform(T *transformer) {
   case TO_CLONE:
   case TO_PAREN:
   case TO_DELETE:
-  case TO_STATIC_MEMO:
   case TO_SPREAD:
   case TO_INLINE_CONST:
     return transformer->transformUnExpr(static_cast<UnExpr *>(this));

@@ -17,7 +17,7 @@ enum
 HmapExportSizeDlg::HmapExportSizeDlg(float &min_height, float &height_range, float min_height_hm, float height_range_hm) :
   minHeight(min_height), heightRange(height_range), minHeightHm(min_height_hm), heightRangeHm(height_range_hm), mDialog(NULL)
 {
-  mDialog = DAGORED2->createDialog(hdpi::_pxScaled(240), hdpi::_pxScaled(170), "HeightMap dimensions");
+  mDialog = DAGORED2->createAutoSizedDialog("HeightMap dimensions");
 
   PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
   panel.setEventHandler(this);

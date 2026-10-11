@@ -1582,8 +1582,7 @@ void HmapLandObjectEditor::splitComposits()
   }
   otherObj.clear();
 
-  eastl::unique_ptr<PropPanel::DialogWindow> dialog(
-    DAGORED2->createDialog(hdpi::_pxScaled(280), hdpi::_pxScaled(100), "Split Composites"));
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createAutoSizedDialog("Split Composites"));
   PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
   panel->createCheckBox(PID_SPLIT_RECURSIVE, "Recursive (split sub-components as well)", ::defaultHMLEntity.splitCompRecursive);
   dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Split");
@@ -1694,7 +1693,7 @@ void HmapLandObjectEditor::instantiateGenToEntities()
       for (auto &p : spl->getLandClass()->poolPlanted)
         make_entities(spl->getName(), make_span_const(p.entUsed ? p.entPool.data() : nullptr, p.entUsed));
     }
-    for (auto sp : spl->points)
+    for (const auto &sp : spl->points)
       if (ISplineGenObj *gen = sp->getSplineGen())
         for (auto &p : gen->entPools)
           make_entities(spl->getName(), make_span_const(p.entUsed ? p.entPool.data() : nullptr, p.entUsed));
@@ -1709,7 +1708,7 @@ void HmapLandObjectEditor::instantiateGenToEntities()
   {
     if (spl->points.size() < 2)
       continue;
-    for (auto sp : spl->points)
+    for (const auto &sp : spl->points)
       sp->setEffectiveAsset("", true, 0);
     spl->points[0]->setBlkGenName("");
     spl->selectObject(false);

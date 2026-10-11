@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_atomic.h>
-#include <mutex>
 #include "daGpuProfiler.h"
 #include "daProfilerInternal.h"
 #include "daProfilePlatform.h"
@@ -276,7 +275,7 @@ void ProfilerData::shutdown(bool pre_destructor)
     storage->clear();
   }
   {
-    std::lock_guard<std::mutex> lock(threadsLock);
+    dag::lock_guard lock(threadsLock);
     auto thread_is_running = [](int64_t /*tid*/) {
       return true; // fixme! to be implemented!
     };
@@ -652,7 +651,7 @@ void ProfilerData::shrinkMemory()
 {
   // we can always free memory in main thread
   // storage->shrink_to_fit();//reduce at least main frame.
-  std::lock_guard<std::mutex> lock(threadsLock);
+  dag::lock_guard lock(threadsLock);
   for (auto &thread : threadsData)
     if (thread)
       thread->storage.shrink_to_fit();

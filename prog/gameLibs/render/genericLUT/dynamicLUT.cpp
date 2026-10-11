@@ -454,7 +454,7 @@ void DynamicLutManager::showLutWindow(double star_julian_day, double &minute_cha
     ImGui::SameLine();
   if (ImGui::Button("add Minute"))
   {
-    minute_change = valueMinute / 1440.0f;
+    minute_change = double(valueMinute / 1440.0f);
   }
 
   float debugTime = abs((floor(star_julian_day) - star_julian_day)) * 1440;

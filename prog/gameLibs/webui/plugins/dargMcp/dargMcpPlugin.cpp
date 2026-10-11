@@ -1030,7 +1030,10 @@ static void darg_mcp(RequestInfo *params)
 
   Json::Value request;
   Json::Reader reader;
-  if (!reader.parse(params->content, request))
+  char *body = (char *)params->read_POST_content();
+  const bool parsed = body && reader.parse(body, request);
+  tmpmem->free(body);
+  if (!parsed)
   {
     response["id"] = Json::Value();
     set_error(response, JSONRPC_PARSE_ERROR, "Parse error: " + reader.getFormattedErrorMessages());

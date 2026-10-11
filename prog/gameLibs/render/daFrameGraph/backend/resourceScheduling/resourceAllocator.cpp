@@ -1,8 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "resourceAllocator.h"
+#include "layoutUpdate.h"
 
 #include <EASTL/algorithm.h>
+#include <EASTL/sort.h>
 
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_convar.h>
@@ -16,197 +18,276 @@
 
 
 CONSOLE_BOOL_VAL("dafg", set_resource_names, DAGOR_DBGLEVEL > 0);
+CONSOLE_BOOL_VAL("dafg", validate_allocator, false);
 
 namespace dafg
 {
 
-DestroyedHeapSet ResourceAllocator::allocateCpuHeaps(int prev_frame, const HeapRequests &requests,
-  const PotentialDeactivationSet &potential_deactivation_set)
+static uint64_t cpu_storage_size(const LayoutHeap &heap) { return heap.heapClass.group == CPU_HEAP_GROUP ? heap.reservedSize : 0; }
+
+void ResourceAllocator::allocateCpuHeaps(int prev_frame, const LayoutHeaps &layout_heaps,
+  const PotentialDeactivationSet &potential_deactivation_set, bool defer_destruction, ChangedHeaps &changed)
 {
-  DestroyedHeapSet result;
-  result.reserve(SCHEDULE_FRAME_WINDOW * cachedIntermediateResources.totalKeys());
+  TIME_PROFILE(allocateCpuHeaps);
 
   FRAMEMEM_VALIDATE;
 
-
-  for (const auto [heapIdx, req] : requests.enumerate())
+  IdIndexedFlags<HeapIndex, framemem_allocator> dropsStorage(layout_heaps.size(), false);
+  bool anyDropsStorage = false;
+  for (const auto [heapIdx, heap] : layout_heaps.enumerate())
   {
-    if (req.group != CPU_HEAP_GROUP)
-      continue;
-
     cpuHeaps.expandMapping(heapIdx);
-
-    // sanity check
-    G_ASSERT(allocatedHeaps[heapIdx].size == cpuHeaps[heapIdx].size());
-
-    if (req.size <= cpuHeaps[heapIdx].size())
+    if (!cpuHeaps[heapIdx].empty() && cpu_storage_size(heap) != cpuHeaps[heapIdx].size())
     {
-      if (req.size != 0)
-        debug("daFG: Reusing CPU pseudo-heap %d of size %dKB instead of allocating a new %dKB heap", //
-          eastl::to_underlying(heapIdx), allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
-      continue;
+      dropsStorage.set(heapIdx, true);
+      anyDropsStorage = true;
     }
-
-    if (!cpuHeaps[heapIdx].empty())
-    {
-      // If we are relocating a CPU heap, we need to call destructors
-      // on all CPU resources present in it. Note that resource
-      // scheduling guarantees that all of these resources are NOT
-      // preserved.
-      // Also note that this is not the case for GPU heaps, there,
-      // deactivation is a simple memory barrier, which we don't in fact
-      // need or want.
-      for (const auto resIdx : heapToResourceList[heapIdx][prev_frame])
+  }
+  if (anyDropsStorage)
+    for (auto &&[resIdx, entry] : placed[prev_frame].enumerate())
+      if (entry.where.heap != HeapIndex::Invalid && dropsStorage.test(entry.where.heap, false))
         if (auto *blob = eastl::get_if<BlobDeactivationRequest>(&potential_deactivation_set[resIdx]))
           blob->destructor(blob->blob);
 
-      result.push_back(heapIdx);
+  for (const auto [heapIdx, heap] : layout_heaps.enumerate())
+  {
+    auto req = make_heap_request(heap);
 
-      debug("daFG: Destroyed CPU pseudo-heap %d because it was too small (size was %dKB, but %dKB are required)",
-        eastl::to_underlying(heapIdx), allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
-    }
-    else // sanity check
-      G_ASSERT(!heapToResourceList.isMapped(heapIdx) || heapToResourceList[heapIdx][prev_frame].empty());
+    const bool leftCpu = req.group != CPU_HEAP_GROUP;
+    if (leftCpu && cpuHeaps[heapIdx].empty())
+      continue;
+    if (leftCpu)
+      req.size = 0;
 
+    G_ASSERT(leftCpu || allocatedHeaps[heapIdx].size == cpuHeaps[heapIdx].size());
+
+    if (req.size == cpuHeaps[heapIdx].size())
+      continue;
+
+    if (!cpuHeaps[heapIdx].empty())
+      debug("daFG: Destroyed CPU pseudo-heap %d because its size changed (was %dKB, now %dKB)", eastl::to_underlying(heapIdx),
+        allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
+
+    changed.set(heapIdx, true);
+
+    if (defer_destruction && !cpuHeaps[heapIdx].empty())
+      retiredCpuHeaps.push_back(eastl::move(cpuHeaps[heapIdx]));
+    cpuHeaps[heapIdx] = {};
     cpuHeaps[heapIdx].resize(req.size, 0);
-    allocatedHeaps[heapIdx].size = req.size;
-    debug("daFG: Successfully allocated a new CPU pseudo-heap %d of size %dKB", //
-      eastl::to_underlying(heapIdx), req.size >> 10);
+    if (!leftCpu)
+      allocatedHeaps[heapIdx] = req;
+    if (req.size > 0)
+      debug("daFG: Successfully allocated a new CPU pseudo-heap %d of size %dKB", //
+        eastl::to_underlying(heapIdx), req.size >> 10);
+  }
+}
+
+D3dResource *ResourceAllocator::getD3dResource(int frame, intermediate::ResourceIndex res_idx) const
+{
+  D3dResource *object = placed[frame].isMapped(res_idx) ? placed[frame][res_idx].object : nullptr;
+  G_ASSERT_LOG_ONCE(object, "daFG: resource '%s' has nothing placed for frame %d!", cachedIntermediateResourceNames[res_idx].c_str(),
+    frame);
+  return object;
+}
+
+void ResourceAllocator::updateCachedResources(const intermediate::Graph &graph, const ResourcesChangedFmem &resources_changed,
+  const intermediate::HistoryPairing &historyPairing, bool does_pairing_keep_indices)
+{
+  TIME_PROFILE(updateCachedResources);
+
+  const size_t newCount = graph.resources.totalKeys();
+
+  if (does_pairing_keep_indices)
+  {
+    IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> changed(newCount, false);
+    for (auto &&[idx, oldIdx] : historyPairing.enumerate())
+      if (changed.isMapped(idx) && (oldIdx == intermediate::RESOURCE_NOT_MAPPED || resources_changed.test(idx, true)))
+        changed.set(idx, true);
+    cachedIntermediateResources.updateFrom(graph.resources, changed);
+    cachedIntermediateResourceNames.updateFrom(graph.resourceNames, changed);
+  }
+  else
+  {
+    const auto newIndexOf = invert_pairing(historyPairing);
+
+    cachedIntermediateResources = graph.resources;
+    cachedIntermediateResourceNames = graph.resourceNames;
+
+    for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    {
+      IdIndexedMapping<intermediate::ResourceIndex, PlacedResource> moved(newCount, PlacedResource{});
+      for (auto &&[idx, oldIdx] : historyPairing.enumerate())
+        if (oldIdx != intermediate::RESOURCE_NOT_MAPPED && placed[frame].isMapped(oldIdx))
+          moved[idx] = placed[frame][oldIdx];
+      placed[frame] = eastl::move(moved);
+    }
+    for (auto &users : objectUsers)
+      for (auto &what : users.second)
+        if (newIndexOf.isMapped(what.resIdx) && newIndexOf[what.resIdx] != intermediate::RESOURCE_NOT_MAPPED)
+          what.resIdx = newIndexOf[what.resIdx];
   }
 
+  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    placed[frame].resize(newCount, PlacedResource{});
+}
+
+void ResourceAllocator::placeFrameResource(FrameResource what, AllocationLocation location, uint64_t size,
+  const ResourceProperties &properties, const DynamicResolutions &dyn_resolutions, TouchedObjects &touched)
+{
+  const auto [resIdx, frame] = what;
+  const auto &res = cachedIntermediateResources[resIdx];
+  G_ASSERT_RETURN(res.isScheduled(), );
+
+  auto resProps = properties[resIdx];
+  G_ASSERT(resProps.offsetAlignment != 0);
+  resProps.sizeInBytes = size;
+
+  G_ASSERT(placed[frame][resIdx].where.heap == HeapIndex::Invalid);
+  placed[frame][resIdx].where = location;
+  placed[frame][resIdx].size = resProps.sizeInBytes;
+
+  if (res.asScheduled().isGpuResource())
+  {
+    DynamicResolution dynResolution = eastl::monostate{};
+    if (const auto &type = res.asScheduled().resolutionType; type.has_value() && dyn_resolutions.isMapped(type->id))
+      dynResolution = dyn_resolutions[type->id];
+
+    D3dResource *object =
+      placeResource(resIdx, location.heap, res.asScheduled().getGpuDescription(), location.offset, resProps, dynResolution);
+    placed[frame][resIdx].object = object;
+    if (object != nullptr)
+    {
+      validation_add_resource(object);
+      setManagedName(frame, resIdx, object);
+      if (set_resource_names.get())
+      {
+        objectUsers[object].push_back(what);
+        touched.push_back(object);
+      }
+    }
+  }
+
+  ++stats.frameResourcesPlaced;
+}
+
+void ResourceAllocator::dropPlacement(FrameResource what, uint32_t keep_frames)
+{
+  auto &entry = placed[what.frame][what.resIdx];
+  const HeapIndex heapIdx = eastl::exchange(entry.where, NOWHERE).heap;
+
+  if (const D3dResource *object = eastl::exchange(entry.object, nullptr))
+  {
+    releaseObject(heapIdx, object, keep_frames);
+    removeObjectUser(object, what);
+  }
+}
+
+void ResourceAllocator::removeObjectUser(const D3dResource *object, FrameResource what)
+{
+  if (auto it = objectUsers.find(object); it != objectUsers.end())
+  {
+    auto &users = it->second;
+    users.erase(eastl::remove(users.begin(), users.end(), what), users.end());
+    if (users.empty())
+      objectUsers.erase(it);
+  }
+}
+
+void ResourceAllocator::rebindObject(FrameResource what, D3dResource *object)
+{
+  auto &entry = placed[what.frame][what.resIdx];
+  const D3dResource *old = eastl::exchange(entry.object, object);
+  if (old != nullptr)
+    releaseObject(entry.where.heap, old, 0);
+  if (old == object)
+    return;
+
+  if (old != nullptr)
+    removeObjectUser(old, what);
+  if (object != nullptr && set_resource_names.get())
+    objectUsers[object].push_back(what);
+}
+
+void ResourceAllocator::unplaceFrameResource(FrameResource what, TouchedObjects &touched, uint32_t keep_frames)
+{
+  const D3dResource *object = placed[what.frame][what.resIdx].object;
+  dropPlacement(what, keep_frames);
+  if (object != nullptr && objectUsers.find(object) != objectUsers.end())
+    touched.push_back(object);
+}
+
+static ResourceSetFmem mark_paired_old_indices(const intermediate::HistoryPairing &pairing, size_t old_count)
+{
+  ResourceSetFmem result(old_count, false);
+  for (const auto oldIdx : pairing.values())
+    if (oldIdx != intermediate::RESOURCE_NOT_MAPPED)
+      result.set(oldIdx, true);
   return result;
 }
 
-void ResourceAllocator::placeResources(const intermediate::Graph &graph, const ResourceProperties &resource_properties,
-  const AllocationLocations &allocation_locations, const DynamicResolutions &dyn_resolutions,
-  const BadResolutionTracker::Corrections &corrections)
+void ResourceAllocator::releaseUnpaired(const ResourceSetFmem &paired, bool does_pairing_keep_indices,
+  const IdIndexedMapping<intermediate::ResourceIndex, uint32_t> &keep_frames, TouchedObjects &touched)
 {
-  TIME_PROFILE(placeResources);
-
-  heapToResourceList.resize(allocatedHeaps.size());
-
-  for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-  {
-    IdIndexedMapping<HeapIndex, uint32_t> resCountPerHeap(allocatedHeaps.size(), 0);
-    for (auto resIdx : graph.resources.keys())
-      if (graph.resources[resIdx].isScheduled())
-        ++resCountPerHeap[allocation_locations[frame][resIdx].heap];
-
-    for (auto [heapIdx, count] : resCountPerHeap.enumerate())
-    {
-      heapToResourceList[heapIdx][frame].clear();
-      heapToResourceList[heapIdx][frame].reserve(count);
-    }
-  }
-
-  debug_clear_resource_placements();
-
-  for (auto [i, res] : graph.resources.enumerate())
-  {
-    if (!res.isScheduled())
-      continue;
-
-    auto resProps = resource_properties[i];
-
-    G_ASSERT(resProps.offsetAlignment != 0);
-
-    for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-    {
-      auto [heapIdx, offset] = allocation_locations[frame][i];
-
-      if (corrections[frame][i] != 0)
-        resProps.sizeInBytes = corrections[frame][i];
-
-      heapToResourceList[heapIdx][frame].push_back(i);
-
-      if (res.asScheduled().isGpuResource())
-      {
-        DynamicResolution dynResolution = eastl::monostate{};
-
-        if (const auto &type = res.asScheduled().resolutionType; type.has_value() && dyn_resolutions.isMapped(type->id))
-          dynResolution = dyn_resolutions[type->id];
-
-        placeResource(frame, i, heapIdx, res.asScheduled().getGpuDescription(), offset, resProps, dynResolution);
-
-        validation_add_resource(getD3dResource(frame, i));
-      }
-      else
-      {
-        cpuResources[frame][i] = {static_cast<uint32_t>(offset), heapIdx};
-      }
-
-      const bool isCpuHeap = allocatedHeaps[heapIdx].group == CPU_HEAP_GROUP;
-      for (auto resId : cachedIntermediateResources[i].frontendResources)
-        debug_rec_resource_placement(resId, frame, eastl::to_underlying(heapIdx), offset, resProps.sizeInBytes, isCpuHeap);
-    }
-  }
-  if (set_resource_names.get())
-    restoreResourceApiNames();
+  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    for (auto &&[resIdx, entry] : placed[frame].enumerate())
+      if (entry.where.heap != HeapIndex::Invalid && !paired.test(resIdx, false))
+        unplaceFrameResource(
+          {
+            .resIdx = resIdx,
+            .frame = frame,
+          },
+          touched, does_pairing_keep_indices && keep_frames.isMapped(resIdx) ? keep_frames[resIdx] : 0);
 }
 
-void ResourceAllocator::restoreResourceApiNames() const
+void ResourceAllocator::forgetChangedHeaps(int prev_frame, const ChangedHeaps &changed,
+  PotentialDeactivationSet &potential_deactivations)
 {
+  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    for (auto &&[resIdx, entry] : placed[frame].enumerate())
+    {
+      if (entry.where.heap == HeapIndex::Invalid || !changed.test(entry.where.heap, false))
+        continue;
+      if (frame == static_cast<uint32_t>(prev_frame) && potential_deactivations.isMapped(resIdx))
+        potential_deactivations[resIdx] = eastl::monostate{};
+      dropPlacement({
+        .resIdx = resIdx,
+        .frame = frame,
+      });
+    }
+}
+
+void ResourceAllocator::updateApiNames(TouchedObjects &touched) const
+{
+  TIME_PROFILE(updateApiNames);
+  eastl::sort(touched.begin(), touched.end());
+  touched.erase(eastl::unique(touched.begin(), touched.end()), touched.end());
   FRAMEMEM_REGION;
 
-  struct strInfo
+  eastl::basic_string<char, framemem_allocator> name;
+  for (const D3dResource *object : touched)
   {
-    size_t size;
-    eastl::basic_string<char, framemem_allocator> str;
-  };
-
-  ska::flat_hash_map<const D3dResource *, strInfo, eastl::hash<const D3dResource *>, eastl::equal_to<const D3dResource *>,
-    framemem_allocator>
-    names;
-  names.reserve(SCHEDULE_FRAME_WINDOW * cachedIntermediateResources.totalKeys());
-
-  const char *separatorStr = ", ";
-  // node: size of elements should be equal
-  const char *frameStr[SCHEDULE_FRAME_WINDOW] = {"|0", "|1"};
-  const size_t frameStrSize = strlen(frameStr[0]);
-  const size_t separatorStrSize = strlen(separatorStr);
-
-  for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-    for (auto resIdx : cachedIntermediateResources.keys())
+    const auto it = objectUsers.find(object);
+    if (it == objectUsers.end())
+      continue;
+    name.clear();
+    for (const auto [resIdx, frame] : it->second)
     {
-      if (!cachedIntermediateResources[resIdx].isScheduled() ||
-          cachedIntermediateResources[resIdx].asScheduled().resourceType == ResourceType::Blob)
-        continue;
-
-      const D3dResource *pResource = getD3dResource(frame, resIdx);
-      auto &strRef = names[pResource];
-      if (strRef.size != 0)
-        strRef.size += separatorStrSize;
-      strRef.size += cachedIntermediateResourceNames[resIdx].length() + frameStrSize;
+      if (!name.empty())
+        name += ", ";
+      name += cachedIntermediateResourceNames[resIdx].c_str();
+      name.append_sprintf("|%d", frame);
     }
-
-  for (auto &[d3dRes, str] : names)
-    names[d3dRes].str.reserve(str.size);
-
-  for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-    for (auto resIdx : cachedIntermediateResources.keys())
-    {
-      if (!cachedIntermediateResources[resIdx].isScheduled() ||
-          cachedIntermediateResources[resIdx].asScheduled().resourceType == ResourceType::Blob)
-        continue;
-
-      const D3dResource *pResource = getD3dResource(frame, resIdx);
-      auto &name = names[pResource];
-      if (!name.str.empty())
-        name.str += separatorStr;
-      name.str += cachedIntermediateResourceNames[resIdx].c_str();
-      name.str += frameStr[frame];
-    }
-
-  for (auto &[d3dRes, name] : names)
-    d3dRes->setApiName(name.str.c_str());
+    object->setApiName(name.c_str());
+  }
 }
 
 void ResourceAllocator::gatherPotentialDeactivationSet(int prev_frame, PotentialDeactivationSet &result)
 {
+  TIME_PROFILE(gatherPotentialDeactivationSet);
   result.assign(cachedIntermediateResources.totalKeys(), eastl::monostate{});
 
   for (auto [idx, res] : cachedIntermediateResources.enumerate())
-    if (res.isScheduled() && res.asScheduled().history != History::No)
+    if (res.isScheduled() && res.asScheduled().history != History::No && !wipedBlobs.test(idx, false))
     {
       const auto &releaseBarrier = cachedReleaseBarriers[idx];
       switch (res.asScheduled().resourceType)
@@ -233,6 +314,8 @@ void ResourceAllocator::gatherPotentialDeactivationSet(int prev_frame, Potential
         default: G_ASSERT(false); break;
       }
     }
+
+  wipedBlobs.clear();
 }
 
 void ResourceAllocator::closeTransientResources()
@@ -243,6 +326,9 @@ void ResourceAllocator::closeTransientResources()
 
 void ResourceAllocator::setManagedName(int frame, intermediate::ResourceIndex res_idx, D3dResource *res)
 {
+  // names are debug only, and a resize renames on every frame
+  if (!set_resource_names.get())
+    return;
   // Unique names have to be per frame & per IR resources
   const auto &irName = cachedIntermediateResourceNames[res_idx];
   eastl::basic_string<char, framemem_allocator> buffer;
@@ -258,103 +344,165 @@ void ResourceAllocator::refreshManagedTexture(int frame, intermediate::ResourceI
   setManagedName(frame, res_idx, tex);
 }
 
-void ResourceAllocator::applySchedule(int prev_frame, const ResourceSchedule &schedule, const intermediate::Graph &graph,
-  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::EnhancedBarrier> &release_barriers,
-  const DynamicResolutions &dyn_resolutions, const BadResolutionTracker::Corrections &corrections,
-  PotentialDeactivationSet &potentialDeactivations)
+bool ResourceAllocator::doTablesAgree(const Layout &layout) const
 {
-  cachedIntermediateResources = graph.resources;
-  cachedIntermediateResourceNames = graph.resourceNames;
+  for (auto &&[heapIdx, heap] : layout.heaps.enumerate())
+  {
+    const auto req = make_heap_request(heap);
+    if (!allocatedHeaps.isMapped(heapIdx))
+      return false;
+    const auto &allocated = allocatedHeaps[heapIdx];
+    if (req.size > 0 && (allocated.group != req.group || allocated.untracked != req.untracked || allocated.size != req.size))
+      return false;
+    const size_t cpuSize = cpuHeaps.isMapped(heapIdx) ? cpuHeaps[heapIdx].size() : 0;
+    if (cpuSize != (req.group == CPU_HEAP_GROUP ? req.size : 0))
+      return false;
+    if (req.group != CPU_HEAP_GROUP && !doesHeapAgree(heapIdx, req))
+      return false;
+  }
+  return true;
+}
+
+const ResourceAllocator::Relocation *ResourceAllocator::findRelocation(intermediate::ResourceIndex res_idx) const
+{
+  for (const auto &relocation : pendingRelocations)
+    if (relocation.resIdx == res_idx)
+      return &relocation;
+  return nullptr;
+}
+
+void ResourceAllocator::finishRelocations()
+{
+  destroyRetired();
+  retiredCpuHeaps.clear();
+  pendingRelocations.clear();
+}
+
+void ResourceAllocator::applySchedule(int prev_frame, const Layout &layout, const PlacementsChanged &placements_changed,
+  const IdIndexedFlags<intermediate::ResourceIndex> &relocated,
+  const IdIndexedMapping<intermediate::ResourceIndex, uint32_t> &keep_frames, const ResourceProperties &properties,
+  const intermediate::Graph &graph, const ResourcesChangedFmem &resources_changed, const intermediate::HistoryPairing &historyPairing,
+  const ReleaseBarriers &release_barriers, const DynamicResolutions &dyn_resolutions,
+  PotentialDeactivationSet &potential_deactivations)
+{
+  TIME_PROFILE(applySchedule);
+  FRAMEMEM_VALIDATE;
+  stats = {
+    .schedulesApplied = stats.schedulesApplied + 1,
+  };
+
+  G_ASSERT(pendingRelocations.empty());
+  for (const auto idx : relocated.trueKeys())
+  {
+    const auto oldIdx = historyPairing.isMapped(idx) ? historyPairing[idx] : intermediate::RESOURCE_NOT_MAPPED;
+    if (oldIdx == intermediate::RESOURCE_NOT_MAPPED || !placed[prev_frame].isMapped(oldIdx))
+      continue;
+    const auto &entry = placed[prev_frame][oldIdx];
+    if (entry.where.heap == HeapIndex::Invalid)
+      continue;
+    const bool cpu = allocatedHeaps[entry.where.heap].group == CPU_HEAP_GROUP;
+    pendingRelocations.push_back(Relocation{
+      .resIdx = idx,
+      .object = entry.object,
+      .blob = cpu ? cpuHeaps[entry.where.heap].data() + entry.where.offset : nullptr,
+    });
+  }
+  const bool deferHeaps = eastl::any_of(pendingRelocations.begin(), pendingRelocations.end(),
+    [](const Relocation &relocation) { return relocation.blob == nullptr; });
+  const bool deferCpuHeaps = eastl::any_of(pendingRelocations.begin(), pendingRelocations.end(),
+    [](const Relocation &relocation) { return relocation.blob != nullptr; });
+  stats.relocations = static_cast<uint32_t>(pendingRelocations.size());
+
+  if (allocatedHeaps.size() < layout.heaps.size())
+    for (auto it = layout.heaps.begin() + allocatedHeaps.size(); it != layout.heaps.end(); ++it)
+      allocatedHeaps.appendNew(HeapRequest{
+        .group = it->heapClass.group,
+        .size = 0,
+        .untracked = it->heapClass.untracked,
+      });
+
+  ChangedHeaps changedHeaps(allocatedHeaps.size(), false);
+  allocateHeaps(layout.heaps, deferHeaps, changedHeaps);
+  allocateCpuHeaps(prev_frame, layout.heaps, potential_deactivations, deferCpuHeaps, changedHeaps);
+  if (const auto changed = changedHeaps.trueKeys(); changed.begin() != changed.end())
+    forgetChangedHeaps(prev_frame, changedHeaps, potential_deactivations);
+
+  const bool pairingKeepsIndices = intermediate::does_pairing_keep_indices(historyPairing);
+  // Declared before the touched list, which grows above it in frame memory
+  const auto paired = mark_paired_old_indices(historyPairing, cachedIntermediateResources.totalKeys());
+  TouchedObjects touched;
+  releaseUnpaired(paired, pairingKeepsIndices, keep_frames, touched);
+
+  updateCachedResources(graph, resources_changed, historyPairing, pairingKeepsIndices);
   cachedReleaseBarriers = release_barriers;
 
-  auto &allocationLocations = schedule.allocationLocations;
-  auto &heapRequests = schedule.heapRequests;
+  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    for (const auto resIdx : placements_changed[frame].trueKeys())
+      if (placed[frame].isMapped(resIdx) && placed[frame][resIdx].where.heap != HeapIndex::Invalid)
+        unplaceFrameResource(
+          {
+            .resIdx = resIdx,
+            .frame = frame,
+          },
+          touched, keep_frames.isMapped(resIdx) ? keep_frames[resIdx] : 0);
 
-  const auto oldHeapCount = allocatedHeaps.size();
-
-  // Start tracking newly requested heap groups
-  if (allocatedHeaps.size() < heapRequests.size())
-    for (auto it = heapRequests.begin() + allocatedHeaps.size(); it != heapRequests.end(); ++it)
-      allocatedHeaps.appendNew(HeapRequest{it->group, 0u, it->untracked});
-
-  {
-    // allocateHeaps might destroy some physical resources due to
-    // their heap being re-allocated, so don't try to deactivate those
-    // (otherwise we'll get assertions and maybe a crash)
-    const auto wipeDeactivations = [this, prev_frame, &potentialDeactivations](const DestroyedHeapSet &set) {
-      for (auto heapIdx : set)
-        for (auto resIdx : heapToResourceList[heapIdx][prev_frame])
-          potentialDeactivations[resIdx] = eastl::monostate{};
-    };
-
+  for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
+    for (const auto resIdx : placements_changed[frame].trueKeys())
     {
-      const auto destroyedGpuHeaps = allocateHeaps(heapRequests);
-      // NOTE: this method is responsible for updating allocatedHeaps size
-      wipeDeactivations(destroyedGpuHeaps);
+      const FrameResource what{
+        .resIdx = resIdx,
+        .frame = frame,
+      };
+      if (const LayoutRect *rect = layout.find(what))
+        placeFrameResource(what, layout.where[what], rect->size, properties, dyn_resolutions, touched);
     }
 
-    {
-      const auto destroyedCpuHeaps = allocateCpuHeaps(prev_frame, heapRequests, potentialDeactivations);
-      wipeDeactivations(destroyedCpuHeaps);
-    }
-  }
+  for (const auto heapIdx : changedHeaps.trueKeys())
+    for (const auto &rect : layout.heaps[heapIdx].rects)
+      if (placed[rect.what.frame][rect.what.resIdx].where.heap == HeapIndex::Invalid)
+        placeFrameResource(rect.what,
+          {
+            .heap = heapIdx,
+            .offset = rect.offset,
+          },
+          rect.size, properties, dyn_resolutions, touched);
 
-  for (int i = 0; i < SCHEDULE_FRAME_WINDOW; ++i)
-    cpuResources[i].assign(cachedIntermediateResources.totalKeys(), CpuResourcePlacement{UNSCHEDULED, HeapIndex::Invalid});
+  if (set_resource_names.get())
+    updateApiNames(touched);
 
-  resetResourcePlacement();
-  placeResources(graph, schedule.resourceProperties, allocationLocations, dyn_resolutions, corrections);
+  lruCleanup();
 
-  // Without native heaps it is perfectly normal to have single-resource heaps.
-  if (!d3d::get_driver_code().is(d3d::dx11))
-    for (auto i = oldHeapCount; i < heapToResourceList.size(); ++i)
-      if (const auto &list = heapToResourceList[static_cast<HeapIndex>(i)][0]; list.size() == 1)
-        logwarn("daFG: Heap %d had to be created for containing a single resource '%s'", i,
-          cachedIntermediateResourceNames[list[0]].c_str());
-
-  for (int frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
-  {
-    for (auto [resIdx, irRes] : cachedIntermediateResources.enumerate())
-    {
-      if (!irRes.isScheduled() || !irRes.asScheduled().isGpuResource())
-        continue;
-
-      D3dResource *res = getD3dResource(frame, resIdx);
-      if (!res)
-        continue;
-
-      G_ASSERT(irRes.asScheduled().resourceType == ResourceType::Texture || irRes.asScheduled().resourceType == ResourceType::Buffer);
-      setManagedName(frame, resIdx, res);
-    }
-  }
+  if (validate_allocator.get())
+    G_ASSERT(doTablesAgree(layout));
 }
 
 void ResourceAllocator::shutdown(int frame)
 {
+  finishRelocations();
   closeTransientResources();
 
   // Call destructor on all CPU resources. Asan complains otherwise.
   for (auto [i, res] : cachedIntermediateResources.enumerate())
-    if (res.isScheduled() && res.asScheduled().history != History::No && res.asScheduled().isCpuResource())
+    if (
+      res.isScheduled() && res.asScheduled().history != History::No && res.asScheduled().isCpuResource() && !wipedBlobs.test(i, false))
       res.asScheduled().getCpuDescription().dtor(getBlob(frame, i).data);
   cpuHeaps.clear();
+  wipedBlobs.clear();
 
-  resetResourcePlacement();
-  for (int i = 0; i < SCHEDULE_FRAME_WINDOW; ++i)
-  {
-    eastl::fill(cpuResources[i].begin(), cpuResources[i].end(), CpuResourcePlacement{UNSCHEDULED, HeapIndex::Invalid});
-  }
+  for (auto &perFrame : placed)
+    for (auto &entry : perFrame)
+      entry = PlacedResource{};
+  objectUsers.clear();
 
   shutdownInternal();
 
-  heapToResourceList.clear();
   allocatedHeaps.clear();
   cachedIntermediateResources.clear();
 }
 
 BlobView ResourceAllocator::getBlob(int frame, intermediate::ResourceIndex res_idx)
 {
-  const auto [offset, heapIdx] = cpuResources[frame][res_idx];
+  const auto [heapIdx, offset] = placed[frame][res_idx].where;
   G_ASSERT_RETURN(offset != UNSCHEDULED && heapIdx != HeapIndex::Invalid, {});
 
   return BlobView{cpuHeaps[heapIdx].data() + offset, cachedIntermediateResources[res_idx].asScheduled().getCpuDescription().typeTag};
@@ -363,30 +511,37 @@ BlobView ResourceAllocator::getBlob(int frame, intermediate::ResourceIndex res_i
 BaseTexture *ResourceAllocator::getTexture(int frame, intermediate::ResourceIndex res_idx)
 {
   const auto resPtr = getD3dResource(frame, res_idx);
-  resPtr->setName(cachedIntermediateResourceNames[res_idx].c_str(), cachedIntermediateResourceNames[res_idx].size());
+  if (resPtr)
+    resPtr->setName(cachedIntermediateResourceNames[res_idx].c_str(), cachedIntermediateResourceNames[res_idx].size());
   return static_cast<BaseTexture *>(resPtr);
 }
 
 Sbuffer *ResourceAllocator::getBuffer(int frame, intermediate::ResourceIndex res_idx)
 {
   const auto resPtr = getD3dResource(frame, res_idx);
-  resPtr->setName(cachedIntermediateResourceNames[res_idx].c_str(), cachedIntermediateResourceNames[res_idx].size());
+  if (resPtr)
+    resPtr->setName(cachedIntermediateResourceNames[res_idx].c_str(), cachedIntermediateResourceNames[res_idx].size());
   return static_cast<Sbuffer *>(resPtr);
 }
 
-void ResourceAllocator::emergencyWipeBlobs(int frame, dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> resources)
+auto ResourceAllocator::emergencyWipeBlobs(int frame,
+  const dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> &resources)
+  -> dag::Vector<intermediate::ResourceIndex, framemem_allocator>
 {
+  dag::Vector<intermediate::ResourceIndex, framemem_allocator> wiped;
+  wipedBlobs.resize(cachedIntermediateResources.totalKeys(), false);
   for (auto [resIdx, res] : cachedIntermediateResources.enumerate())
     if (res.isScheduled() && res.asScheduled().isCpuResource() && resources.count(res.frontendResources.front()))
     {
-      auto &desc = res.asScheduled().getCpuDescription();
-      if (res.asScheduled().history != History::No)
-        desc.dtor(getBlob(frame, resIdx).data);
+      if (res.asScheduled().history != History::No && !wipedBlobs.test(resIdx, false))
+        res.asScheduled().getCpuDescription().dtor(getBlob(frame, resIdx).data);
 
-      res.asScheduled().history = History::No;
+      wipedBlobs.set(resIdx, true);
+      wiped.push_back(resIdx);
 
       debug("daFG: Wiped resource %s", cachedIntermediateResourceNames[resIdx]);
     }
+  return wiped;
 }
 
 } // namespace dafg

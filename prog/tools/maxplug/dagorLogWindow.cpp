@@ -136,7 +136,6 @@ INT_PTR CALLBACK DagorLogWindow::dialogProc(HWND hw, UINT msg, WPARAM wParam, LP
 
     case WM_DESTROY:
     {
-      EndDialog(hwnd, FALSE);
       Interface *ip = GetCOREInterface();
       ip->UnRegisterDlgWnd(hwnd);
       hwnd = 0;

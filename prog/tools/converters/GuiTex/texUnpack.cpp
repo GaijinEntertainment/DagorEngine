@@ -127,7 +127,7 @@ int unpackTex(const char *coordblk, const char *dest_dir, bool no_stripes)
   if (!blk.load(coordblk))
     error("cannot open source file!");
   String destDir(dest_dir);
-  if (!destDir.length() || destDir[destDir.length() - 1] != '\\' || destDir[destDir.length() - 1] != '/')
+  if (!destDir.length() || (destDir[destDir.length() - 1] != '\\' && destDir[destDir.length() - 1] != '/'))
   {
     destDir = destDir + "/";
   }

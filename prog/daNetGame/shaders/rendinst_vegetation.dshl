@@ -283,8 +283,10 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         self_shadow_samples@u1 = fast_grass_self_shadow_samples;
         pre_half_texel@f1 = 0.5 / get_dimensions(fast_grass_pre_hmap, 0).x;
         pre_levels@u1 = fast_grass_num_clips;
-        pre_hmap_tex@smpArray = fast_grass_pre_hmap;
-        fast_grass_tex_a@smpArray = fast_grass_tex_a;
+        pre_hmap_tex@texArray = fast_grass_pre_hmap;
+        pre_hmap_tex_samplerstate@sampler = fast_grass_pre_sampler;
+        fast_grass_tex_a@texArray = fast_grass_tex_a;
+        fast_grass_tex_a_samplerstate@sampler = fast_grass_tex_sampler;
         VSGrassTypes@cbuf = fast_grass_types_buf hlsl {
           #include <grassInstance.hlsli>
           cbuffer VSGrassTypes@cbuf
@@ -292,11 +294,6 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
             FastGrassType fast_grass_types[GRASS_MAX_CHANNELS];
           };
         };
-
-        if (in_editor == yes)
-        {
-          heightmap_scale@f4 = heightmap_scale;
-        }
       }
 
       // No RI grass self-shadow for SPIRV because of stupid hardcoded registers taking up all the slots.

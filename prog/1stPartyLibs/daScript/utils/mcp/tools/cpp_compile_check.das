@@ -39,9 +39,11 @@ def private is_header(path : string) : bool {
 
 // Locate compile_commands.json. `build_dir` (optional) is tried first (accepts
 // either a build directory or a direct path to the JSON), then a fixed set of
-// common build-dir names under the repo root, then build*/ globs.
+// common build-dir names under the served tree when it is a project (the daslang
+// root otherwise), then build*/ globs there.
+[arch(at="../README.md#cpp-index-roots")]
 def cpp_locate_compile_db(build_dir : string) : string {
-    let root = get_das_root()
+    let root = served_tree_is_project(server_root()) ? server_root() : get_das_root()
     let names = ["build", "build-ninja", "build-release", "build-debug", "out/build"]
     var candidates : array<string>
     candidates |> reserve(length(names) + 1)
@@ -96,18 +98,18 @@ def private entry_command(m : JsonValue?) : string {
 def private cpp_load_compile_db(db_path : string; var entries : array<CompileEntry>; var err : string&) : bool {
     let txt = fread(db_path)
     if (empty(txt)) {
-        err := "compile DB is empty or unreadable: {db_path}"
+        err = "compile DB is empty or unreadable: {db_path}"
         return false
     }
     var perr : string
     var parsed = read_json(txt, perr)
     if (parsed == null) {
-        err := "failed to parse {db_path}: {perr}"
+        err = "failed to parse {db_path}: {perr}"
         return false
     }
     if (!(parsed.value is _array)) {
         unsafe { delete parsed; }
-        err := "unexpected compile DB format (not a JSON array): {db_path}"
+        err = "unexpected compile DB format (not a JSON array): {db_path}"
         return false
     }
     entries |> reserve(length(parsed.value as _array))
@@ -150,15 +152,15 @@ def private split_ws(s : string) : array<string> {
             let start = i
             var in_quote = false
             while (i < n) {
-                let ch = bytes[i]
-                if (ch == uint8('"')) {
+                let ch = int(bytes[i])
+                if (ch == '"') {
                     in_quote = !in_quote
-                } elif (!in_quote && (ch == uint8(' ') || ch == uint8('\t'))) {
+                } elif (!in_quote && (ch == ' ' || ch == '\t')) {
                     break
                 }
                 i++
             }
-            out |> push(slice(s, start, i))
+            out |> push(slice(bytes, start, i))
         }
     }
     return <- out
@@ -250,7 +252,7 @@ def private run_syntax_check(work_dir, cmd : string; var output : string&) : int
             }
         }
     }))
-    output := captured
+    output = captured
     return rc
 }
 
@@ -267,7 +269,7 @@ def do_cpp_compile_check(file : string; build_dir : string = ""; json : bool = f
     var entries : array<CompileEntry>
     var lerr : string
     if (!cpp_load_compile_db(db_path, entries, lerr)) return make_tool_result(lerr, true)
-    let rel_db = make_relative_path(db_path, get_das_root())
+    let rel_db = make_relative_path(db_path, server_root())
     let idx = find_entry(entries, abs_file)
     if (idx < 0) {
         if (is_header(abs_file)) {
@@ -281,7 +283,7 @@ def do_cpp_compile_check(file : string; build_dir : string = ""; json : bool = f
     let rc = run_syntax_check(e.directory, to_syntax_only(e.command, is_msvc), output)
     let timed_out = rc == popen_timed_out
     let success = rc == 0 && !timed_out
-    let rel = make_relative_path(abs_file, get_das_root())
+    let rel = make_relative_path(abs_file, server_root())
     let filtered = filter_compiler_noise(output, base_name(abs_file))
     // On a failure with nothing left after filtering, fall back to raw output so
     // we never report an empty error.
@@ -312,13 +314,13 @@ def do_cpp_build_info(file : string; build_dir : string = "") : string {
     var entries : array<CompileEntry>
     var lerr : string
     if (!cpp_load_compile_db(db_path, entries, lerr)) return make_tool_result(lerr, true)
-    let rel_db = make_relative_path(db_path, get_das_root())
+    let rel_db = make_relative_path(db_path, server_root())
     let idx = find_entry(entries, abs_file)
     if (idx < 0) return make_tool_result("no compile DB entry for '{file}' in {rel_db} — is it part of the configured build?", true)
     let e = entries[idx]
     let is_msvc = command_is_msvc(e.command)
     let output = build_string() $(var w) {
-        w |> write("file: {make_relative_path(abs_file, get_das_root())}\n")
+        w |> write("file: {make_relative_path(abs_file, server_root())}\n")
         w |> write("compile DB: {rel_db}\n")
         w |> write("compiler: {compiler_of(e.command)}\n")
         w |> write("driver: {is_msvc ? "msvc" : "gnu"}\n")

@@ -209,7 +209,7 @@ bool TexturesPlugin::begin(DagorAsset *asset)
 
   shader.init("tex_view");
 
-  if (spEditor && asset)
+  if (spEditor)
     spEditor->load(asset);
   return true;
 }
@@ -870,10 +870,9 @@ void TexturesPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *pane
         {
           case ID_COLOR_MODE_R:
           case ID_COLOR_MODE_G:
-          case ID_COLOR_MODE_B: ShaderGlobal::set_int_fast(colorModeSVId, TEX_COLOL_MODE_RGB); break;
-          case ID_COLOR_MODE_RGBA: ShaderGlobal::set_int_fast(colorModeSVId, TEX_COLOL_MODE_RGBA); break;
-
+          case ID_COLOR_MODE_B:
           case ID_COLOR_MODE_RGB: ShaderGlobal::set_int_fast(colorModeSVId, TEX_COLOL_MODE_RGB); break;
+          case ID_COLOR_MODE_RGBA: ShaderGlobal::set_int_fast(colorModeSVId, TEX_COLOL_MODE_RGBA); break;
 
           case ID_COLOR_MODE_A: ShaderGlobal::set_int_fast(colorModeSVId, TEX_COLOL_MODE_A); break;
 

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "assemblyShader.h"
+#include "commonUtils.h"
 #include "shExprParser.h"
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shOpcode.h>
@@ -12,6 +13,7 @@
 #include "transcodeCommon.h"
 #include "hwAssembly.h"
 #include "boolExpr.h"
+#include "framebufferLayout.h"
 #include "variantAssembly.h"
 #include "shTargetContext.h"
 
@@ -67,7 +69,9 @@ static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel:
 
 #if _CROSS_TARGET_C1
 
+
 #elif _CROSS_TARGET_C2
+
 
 #elif _CROSS_TARGET_METAL
 #include "hlsl2metal/asmShaderHLSL2Metal.h"
@@ -154,7 +158,6 @@ void AssembleShaderEvalCB::eval_channel_decl(channel_decl &s, int str_idx)
     return;
   }
   ch.vbu = vbus;
-  ch.vbui = 0;
   if (s.usgi)
   {
     G_ASSERT(s.usgi->index);
@@ -164,7 +167,6 @@ void AssembleShaderEvalCB::eval_channel_decl(channel_decl &s, int str_idx)
   int us = ::channel_usage(s.src_usg->usage->num);
   G_ASSERT(us >= 0);
   ch.u = us;
-  ch.ui = 0;
   if (s.src_usgi)
   {
     G_ASSERT(s.src_usgi->index);
@@ -516,11 +518,6 @@ void AssembleShaderEvalCB::eval_state(state_stat &s)
               report_error(parser, s.var->var, "color_write should be swizzle of 'rgba'");
 
             color_write_mask = v;
-          }
-          else if (!val)
-          {
-            report_error(parser, s.var->var, "color_write should be a value of int, rgba swizzle, true or false");
-            break;
           }
 
           if (!s.index)
@@ -923,16 +920,44 @@ void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderS
   if (ctx.tgtCtx().isPreshaderOnly())
     return;
 
+  const bool inBlock = ctx.shCtx().blockLevel() != ShaderBlockLevel::SHADER;
+  if (s.out_struct)
+  {
+    if (inBlock)
+    {
+      report_error(parser, s.out_struct->var->name,
+        "output struct '%s' cannot be declared inside a block; declare it in the shader that opts into the render_pass",
+        s.out_struct->var->name->text);
+      return;
+    }
+    evalPsOutputStruct(*s.out_struct, stage);
+    return;
+  }
+
   semantic::VariableType vt = semantic::parse_named_const_type(s);
   if (vt == semantic::VariableType::Unknown)
   {
     report_error(parser, &s, "Invalid preshader var type");
     return;
   }
+  if (inBlock && semantic::vt_is_subpass_read(vt))
+  {
+    report_error(parser, &s,
+      "@subpass_read cannot be declared inside a block; declare it in the shader that opts into the render_pass");
+    return;
+  }
 
   PreshaderStat stat{&s, stage, vt};
 
-  if (s.reg || s.reg_arr)
+  if (semantic::vt_is_subpass_read(vt))
+  {
+    if (s.reg || s.reg_arr)
+      report_error(parser, s.reg ? s.reg->var->name : s.reg_arr->var->name, //-V522
+        "@subpass_read cannot use an explicit register; the register is derived from the render_pass shape");
+    else
+      preshaderSource.subpassReadStats.emplace_back(stat);
+  }
+  else if (s.reg || s.reg_arr)
     preshaderSource.hardcodedStats.emplace_back(stat);
   else if (semantic::vt_is_numeric(vt))
     preshaderSource.scalarStats.emplace_back(stat);
@@ -986,6 +1011,549 @@ void AssembleShaderEvalCB::eval_raytrace_pipeline(raytrace_pipeline_stat &s)
       report_error(parser, s.allow_opacity_micromaps, "allow_opacity_micromaps specified more than once");
   }
 }
+
+void AssembleShaderEvalCB::eval_render_pass(render_pass_use_stat &s)
+{
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
+  Terminal *at = render_pass_opt_in_term(s);
+  auto optInName = [](const RenderPassOptIn &o) {
+    return o.group ? String(0, "subpass group %s", o.group->nameStr())
+                   : String(0, "pass %s.%s", o.pass->nameStr(), o.pass->subpassName(o.subpassIdx));
+  };
+
+  const RenderPassOptIn optIn = resolve_render_pass_opt_in(s, parser, ctx.tgtCtx(), RenderPassOptInMode::Reuse);
+  if (!optIn)
+  {
+    optInUnresolved = true;
+    return;
+  }
+
+  if (activeOptIn && !(activeOptIn == optIn))
+  {
+    report_error(parser, at,
+      "shader variant already opted into %s; cannot also opt into %s.\n"
+      "Guard the opt-ins with mutually exclusive interval branches so each variant selects one.",
+      optInName(activeOptIn).c_str(), optInName(optIn).c_str());
+    return;
+  }
+
+  activeOptIn = optIn;
+  if (optIn.group)
+    curpass->renderPassOptIn.setGroup(optIn.group->tableIdx);
+  else
+    curpass->renderPassOptIn.setPass(optIn.pass->tableIdx, optIn.subpassIdx);
+  curpass->renderPassDeclTerm = at;
+}
+
+bool AssembleShaderEvalCB::validateSubpassReads()
+{
+  const VarNameMap &rpNames = ctx.tgtCtx().renderPassNameMap();
+  bool emulatedReads = !render_pass_target_has_native_subpasses();
+  if (!emulatedReads && activeOptIn && activeOptIn.readsUnderAllowSplit())
+  {
+    if (!render_pass_split_mode_declared(ctx.tgtCtx()))
+    {
+      report_error(parser, curpass->renderPassDeclTerm,
+        "interval %s is not declared, and an allow_split pass reads it; include hardware_defines.dshl, which declares it",
+        RENDER_PASS_SPLIT_MODE_INTERVAL);
+      return false;
+    }
+    const int splitOrdinal = render_pass_split_mode_ordinal("split", ctx.tgtCtx());
+    if (splitOrdinal < 0)
+    {
+      report_error(parser, curpass->renderPassDeclTerm, "interval %s has no value named 'split', which an allow_split pass reads",
+        RENDER_PASS_SPLIT_MODE_INTERVAL);
+      return false;
+    }
+    if (splitOrdinal != RENDER_PASS_SPLIT_MODE_SPLIT)
+    {
+      report_error(parser, curpass->renderPassDeclTerm,
+        "interval %s declares 'split' at ordinal %d, but the runtime sets ordinal %d for split execution; declare it as native < 1, "
+        "split",
+        RENDER_PASS_SPLIT_MODE_INTERVAL, splitOrdinal, RENDER_PASS_SPLIT_MODE_SPLIT);
+      return false;
+    }
+    emulatedReads = eval_interval_value(RENDER_PASS_SPLIT_MODE_INTERVAL) == splitOrdinal;
+  }
+
+  // The pass binds the whole read list, so every variant drawn in a read-bearing subpass reserves the window.
+  if (emulatedReads && activeOptIn && activeOptIn.readCount() > 0)
+    preshaderSource.subpassReadWindow = activeOptIn;
+
+  // Must run before the preshader cache query: variants sharing one preshader source can opt into different passes.
+  const int errCountBefore = ErrorCounter::curShader().err;
+
+  Tab<FramebufferLayoutRef> scopeLayouts;
+  if (activeOptIn && !preshaderSource.subpassReadStats.empty())
+    ShaderParser::render_pass_scope_layouts(activeOptIn, ctx.tgtCtx(), scopeLayouts);
+  auto resolveRead = [&](PreshaderStat &stat, Terminal *target_term, int read_pos, int target_idx, bool multisampled) {
+    eastl::string offender;
+    if (!ShaderParser::render_pass_scope_target_reads_as_float(scopeLayouts, rpNames.getVarId(target_term->text), offender))
+    {
+      report_error(parser, target_term,
+        "a @subpass_read lowers to a float4 read (SubpassInput, Texture2D), but %s; only a float-class target (float, unorm, "
+        "snorm or depth) can be read in-pass",
+        offender.c_str());
+      return;
+    }
+    stat.subpassRead.readPos = read_pos;
+    stat.subpassRead.targetIdx = target_idx;
+    stat.subpassRead.emulated = emulatedReads;
+    stat.subpassRead.multisampled = multisampled;
+  };
+  for (PreshaderStat &stat : preshaderSource.subpassReadStats)
+  {
+    Terminal *varTerm = stat.stat->var ? (Terminal *)stat.stat->var->var->name : (Terminal *)stat.stat->arr->var->name;
+    if (stat.stage != STAGE_PS)
+    {
+      report_error(parser, varTerm, "@subpass_read is only available in the (ps) block");
+      continue;
+    }
+    auto refMaybe = semantic::parse_subpass_read_source_ref(*stat.stat, varTerm, parser);
+    if (!refMaybe)
+      continue;
+    const char *targetName = refMaybe->targetTerm->text;
+    const int targetNameId = rpNames.getVarId(targetName);
+    if (refMaybe->passTerm && !ctx.tgtCtx().renderPasses().findByName(refMaybe->passTerm->text))
+    {
+      report_error(parser, refMaybe->passTerm,
+        "'%s' is not a declared render_pass; a @subpass_read source is a bare target name or PASS.TARGET, and takes no channel "
+        "selection",
+        refMaybe->passTerm->text);
+      continue;
+    }
+
+    if (activeOptIn.group)
+    {
+      const RenderPassGroup &grp = *activeOptIn.group;
+      if (refMaybe->passTerm)
+      {
+        report_error(parser, refMaybe->passTerm,
+          "@subpass_read names render_pass '%s' but this variant opted into subpass group '%s'; use the bare target form",
+          refMaybe->passTerm->text, grp.nameStr());
+        continue;
+      }
+      const int readPos = grp.readPos(targetNameId);
+      if (readPos < 0 || readPos >= grp.readableCount)
+      {
+        eastl::string reads;
+        for (int i = 0; i < grp.readableCount; ++i)
+          reads.append_sprintf("%s%s", reads.empty() ? "" : ", ", grp.str(grp.reads[i].name));
+        if (readPos >= 0)
+          report_error(parser, refMaybe->targetTerm,
+            "subpass group '%s' cannot read target '%s': only some members read it, so its ordinal is not fixed. Readable in "
+            "every member: %s",
+            grp.nameStr(), targetName, reads.empty() ? "<none>" : reads.c_str());
+        else
+          report_error(parser, refMaybe->targetTerm, "subpass group '%s' does not read target '%s' (readable targets: %s)",
+            grp.nameStr(), targetName, reads.empty() ? "<none>" : reads.c_str());
+        continue;
+      }
+      resolveRead(stat, refMaybe->targetTerm, readPos, grp.reads[readPos].targetIdx, grp.reads[readPos].multisampled);
+      continue;
+    }
+
+    if (!activeOptIn.pass)
+    {
+      if (optInUnresolved)
+        return false;
+      report_error(parser, refMaybe->targetTerm,
+        "reading subpass input '%s' requires opting into a render_pass or a subpass group in this variant "
+        "(pass NAME.SUBPASS; or pass GROUP;)",
+        targetName);
+      continue;
+    }
+    if (refMaybe->passTerm && !streq(refMaybe->passTerm->text, activeOptIn.pass->nameStr()))
+    {
+      report_error(parser, refMaybe->passTerm,
+        "@subpass_read names render_pass '%s' but this variant opted into '%s'; use the bare target form or match the opt-in",
+        refMaybe->passTerm->text, activeOptIn.pass->nameStr());
+      continue;
+    }
+    const int targetIdx = activeOptIn.pass->targetIndex(targetNameId);
+    if (targetIdx < 0)
+    {
+      eastl::string targets;
+      for (const RenderPassObject::Target &t : activeOptIn.pass->targets)
+        targets.append_sprintf("%s%s", targets.empty() ? "" : ", ", activeOptIn.pass->str(t.name));
+      report_error(parser, refMaybe->targetTerm, "active render_pass '%s' has no target '%s' (targets: %s)",
+        activeOptIn.pass->nameStr(), targetName, targets.c_str());
+      continue;
+    }
+    const RenderPassObject::Subpass &sp = activeOptIn.pass->subpasses[activeOptIn.subpassIdx];
+    const int readPos = sp.readPos(targetIdx);
+    if (readPos < 0)
+    {
+      eastl::string reads;
+      for (int r : sp.reads)
+        reads.append_sprintf("%s%s", reads.empty() ? "" : ", ", activeOptIn.pass->targetName(r));
+      report_error(parser, refMaybe->targetTerm, "subpass '%s.%s' does not read target '%s' (its read list: %s)",
+        activeOptIn.pass->nameStr(), activeOptIn.pass->str(sp.name), targetName, reads.empty() ? "<empty>" : reads.c_str());
+      continue;
+    }
+    resolveRead(stat, refMaybe->targetTerm, readPos, targetIdx, activeOptIn.pass->targetIsMs(targetIdx));
+  }
+  return ErrorCounter::curShader().err == errCountBefore;
+}
+
+void AssembleShaderEvalCB::evalPsOutputStruct(state_block_struct_decl &s, ShaderStage stage)
+{
+  if (strcmp(s.var->nameSpace->text, "@ps_output") != 0)
+  {
+    report_error(parser, s.var->nameSpace,
+      "unknown binding type '%s' for a declaration block; pixel shader outputs are declared '%s@ps_output { ... }'",
+      s.var->nameSpace->text, s.var->name->text);
+    return;
+  }
+  if (stage != STAGE_PS)
+  {
+    report_error(parser, s.var->name, "output struct '%s' is only available in the (ps) block", s.var->name->text);
+    return;
+  }
+  if (psOutputStructDecl && psOutputStructDecl != &s)
+  {
+    report_error(parser, s.var->name, "this variant already declares output struct '%s'; only one (ps) output struct is allowed",
+      psOutputStructDecl->var->name->text);
+    return;
+  }
+  psOutputStructDecl = &s;
+}
+
+void AssembleShaderEvalCB::processPsOutputStruct()
+{
+  if (!psOutputStructDecl)
+    return;
+  const state_block_struct_decl &s = *psOutputStructDecl;
+  if (!activeOptIn)
+  {
+    if (!optInUnresolved)
+      report_error(parser, s.var->name,
+        "(ps) output struct '%s' resolves target-name semantics against the variant's render_pass opt-in; add 'pass NAME.SUBPASS;' "
+        "or 'pass GROUP;'",
+        s.var->name->text);
+    return;
+  }
+
+  auto &cache = ctx.shCtx().psOutputStructCache();
+  const shc::PsOutputStructKey key{&s, activeOptIn};
+  auto cached = cache.find(key);
+  if (cached == cache.end())
+    cached = cache.emplace(key, buildPsOutputStruct(s)).first;
+  curpass->psOutput = cached->second.psOutput;
+  curpass->psOutput.structHlsl.append(exportFormatPragmas(curpass->psOutput.fieldBySlot,
+    cached->second.src1Target.empty() ? nullptr : cached->second.src1Target.c_str()));
+}
+
+shc::PsOutputStructCacheEntry AssembleShaderEvalCB::buildPsOutputStruct(const state_block_struct_decl &s)
+{
+  shc::PsOutputStructCacheEntry entry;
+  SemanticShaderPass::PsOutput &out = entry.psOutput;
+  const RenderPassObject::Subpass *sp = nullptr;
+  if (!activeOptIn.group)
+    sp = &activeOptIn.pass->subpasses[activeOptIn.subpassIdx]; //-V522 the opt-in check above leaves one of the two set
+  const eastl::string scope = ShaderParser::render_pass_scope_desc(activeOptIn);
+
+  eastl::string text;
+#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+#endif
+  text.append_sprintf("#line %d \"%s\"\n", s.var->name->line_start,
+    parser.get_lexer().get_input_stream()->get_filename(s.var->name->file_start));
+  text.append_sprintf("struct %s\n{\n", s.var->name->text);
+  eastl::string leaves;
+  eastl::vector<SemanticShaderPass::PsOutputField> fieldBySlot;
+  eastl::vector<eastl::pair<eastl::string, eastl::string>> dropped;
+  auto dropField = [&](const char *field, const char *target) {
+    leaves.append_sprintf("#define RP_OUTPUT_HAS_%s(u) 0 // dropped: %s does not write target '%s'\n", field, scope.c_str(), target);
+    dropped.push_back({eastl::string(field), eastl::string(eastl::string::CtorSprintf{},
+                                               "output field '%s' is not in the compiled struct: %s does not write target '%s'. Guard "
+                                               "its assignment with #if RP_OUTPUT_HAS(%s)",
+                                               field, scope.c_str(), target, field)});
+  };
+  uint32_t slotMask = 0;
+  const char *src1Target = nullptr;
+  const state_block_struct_field *src1Field = nullptr;
+  FramebufferFormatClass src1Cls = FramebufferFormatClass::Float;
+  int src1Components = 0;
+  for (state_block_struct_field *f : s.field)
+    if (f->sem2 && strcmp(f->sem1->text, "src1") == 0)
+    {
+      if (src1Field)
+      {
+        report_error(parser, f->sem1,
+          "output field '%s': this variant already declares '%s' as the second blend source; "
+          "dual-source blending has exactly one",
+          f->name->text, src1Field->name->text);
+        break;
+      }
+      src1Field = f;
+      src1Target = f->sem2->text;
+    }
+  for (state_block_struct_field *f : s.field)
+  {
+    if (!f->sem2 && (strcmp(f->sem1->text, "optional") == 0 || strcmp(f->sem1->text, "src1") == 0))
+    {
+      report_error(parser, f->sem1, "output field '%s': '%s' needs a target name after it (write ': %s TARGET')", f->name->text,
+        f->sem1->text, f->sem1->text);
+      continue;
+    }
+    const bool hasModifier = f->sem2 != nullptr;
+    const bool isOptional = hasModifier && strcmp(f->sem1->text, "optional") == 0;
+    const bool isSrc1 = hasModifier && strcmp(f->sem1->text, "src1") == 0;
+    if (hasModifier && !isOptional && !isSrc1)
+    {
+      report_error(parser, f->sem1, "unknown output semantic modifier '%s' (expected 'optional' or 'src1')", f->sem1->text);
+      continue;
+    }
+    Terminal *sem = hasModifier ? (Terminal *)f->sem2 : (Terminal *)f->sem1;
+    FramebufferFormatClass fieldCls = FramebufferFormatClass::Float;
+    int fieldComponents = 0;
+    if (!framebuffer_hlsl_type_class(f->type->text, fieldCls, fieldComponents))
+    {
+      report_error(parser, f->type, "'%s' is not an output-legal scalar/vector type", f->type->text);
+      continue;
+    }
+    if (dd_strnicmp(sem->text, "SV_Target", strlen("SV_Target")) == 0)
+    {
+      report_error(parser, sem, "explicit SV_TargetN is not allowed here; name the render_pass target the field writes instead");
+      continue;
+    }
+    if (ShaderParser::render_pass_name_is_system_value(sem->text))
+    {
+      if (hasModifier)
+      {
+        report_error(parser, f->sem1, "'%s' applies to render_pass targets only, not system-value semantics", f->sem1->text);
+        continue;
+      }
+      if (dd_strnicmp(sem->text, "SV_Coverage", strlen("SV_Coverage")) == 0)
+        out.hasCoverage = true;
+      text.append_sprintf("  %s %s : %s;\n", f->type->text, f->name->text, sem->text);
+      leaves.append_sprintf("#define RP_OUTPUT_HAS_%s(u) 1 // system value %s of %s\n", f->name->text, sem->text, scope.c_str());
+      continue;
+    }
+    int slot = -1;
+    const int semNameId = ctx.tgtCtx().renderPassNameMap().getVarId(sem->text);
+    if (activeOptIn.group)
+    {
+      const RenderPassGroup::ColorSlot *cs = activeOptIn.group->findColor(semNameId);
+      if (!cs)
+      {
+        // Before the `optional` drop: resolve destinations and shading-rate attachments are declared targets too.
+        if (render_pass_group_target_is_resolve_dst(*activeOptIn.group, semNameId, ctx.tgtCtx().renderPasses()))
+        {
+          report_error(parser, sem,
+            "output field '%s' names target '%s', which a member's render_pass writes with a resolve(); a resolve destination is "
+            "written by the fixed-function resolve, not by shaders",
+            f->name->text, sem->text);
+          continue;
+        }
+        if (render_pass_group_target_is_vrs(*activeOptIn.group, semNameId, ctx.tgtCtx().renderPasses()))
+        {
+          report_error(parser, sem,
+            "output field '%s' names target '%s', which a member's render_pass binds with vrs(); a shading-rate attachment is read "
+            "by the rasterizer and is invisible to shaders",
+            f->name->text, sem->text);
+          continue;
+        }
+        if (!render_pass_any_has_target(ctx.tgtCtx().renderPasses(), semNameId))
+        {
+          report_error(parser, sem, "output field '%s' of %s names unknown target '%s': no render_pass declares it%s", f->name->text,
+            scope.c_str(), sem->text, isOptional ? " ('optional' does not accept an unknown target name)" : "");
+          continue;
+        }
+        if (isOptional)
+        {
+          dropField(f->name->text, sem->text);
+          continue;
+        }
+        eastl::string colors;
+        for (const RenderPassGroup::ColorSlot &c : activeOptIn.group->colorSlots)
+          colors.append_sprintf("%s%s", colors.empty() ? "" : ", ", activeOptIn.group->str(c.name));
+        report_error(parser, sem, "subpass group '%s' has no color target '%s' (its targets: %s)", activeOptIn.group->nameStr(),
+          sem->text, colors.empty() ? "<none>" : colors.c_str());
+        continue;
+      }
+      if (cs->slot < 0)
+      {
+        eastl::string where;
+        render_pass_group_slot_divergence(*activeOptIn.group, semNameId, ctx.tgtCtx().renderPasses(), where);
+        report_error(parser, sem,
+          "subpass group '%s' cannot write target '%s': its members bind it at different platform slots (%s), so one artifact "
+          "cannot address it. Opt into a concrete render_pass subpass to write it",
+          activeOptIn.group->nameStr(), sem->text, where.empty() ? "<unknown>" : where.c_str());
+        continue;
+      }
+      if (!cs->inAllMembers && !isOptional)
+      {
+        if (isSrc1)
+          report_error(parser, sem,
+            "target '%s' is not written by every member of subpass group '%s', and a second blend source cannot be 'optional'; "
+            "opt into a concrete render_pass subpass that writes it",
+            sem->text, activeOptIn.group->nameStr());
+        else
+          report_error(parser, sem,
+            "target '%s' is not written by every member of subpass group '%s'; mark the field 'optional' so members without it "
+            "discard the write",
+            sem->text, activeOptIn.group->nameStr());
+        continue;
+      }
+      slot = cs->slot;
+    }
+    else
+    {
+      const int targetIdx = activeOptIn.pass->targetIndex(semNameId);     //-V522 set with sp above where no group is active
+      const int colorPos = targetIdx >= 0 ? sp->colorPos(targetIdx) : -1; //-V522
+      if (colorPos < 0)
+      {
+        if (targetIdx >= 0 && activeOptIn.pass->isResolveDst(targetIdx))
+        {
+          report_error(parser, sem,
+            "output field '%s' names target '%s', which render_pass '%s' writes with a resolve(); a resolve destination is written "
+            "by the fixed-function resolve, not by shaders",
+            f->name->text, sem->text, activeOptIn.pass->nameStr());
+          continue;
+        }
+        if (targetIdx >= 0 && activeOptIn.pass->isVrsTarget(targetIdx))
+        {
+          report_error(parser, sem,
+            "output field '%s' names target '%s', which render_pass '%s' binds with vrs(); a shading-rate attachment is read by the "
+            "rasterizer and is invisible to shaders",
+            f->name->text, sem->text, activeOptIn.pass->nameStr());
+          continue;
+        }
+        if (targetIdx < 0 && !render_pass_any_has_target(ctx.tgtCtx().renderPasses(), semNameId))
+        {
+          report_error(parser, sem, "output field '%s' of %s names unknown target '%s': no render_pass declares it%s", f->name->text,
+            scope.c_str(), sem->text, isOptional ? " ('optional' does not accept an unknown target name)" : "");
+          continue;
+        }
+        if (isOptional)
+        {
+          dropField(f->name->text, sem->text);
+          continue;
+        }
+        eastl::string colors;
+        for (int cb : sp->colors)
+          colors.append_sprintf("%s%s", colors.empty() ? "" : ", ", activeOptIn.pass->targetName(cb));
+        if (isSrc1)
+          report_error(parser, sem,
+            "subpass '%s.%s' does not write color target '%s' (its color list: %s); a second blend source must name a target the "
+            "subpass writes",
+            activeOptIn.pass->nameStr(), activeOptIn.pass->str(sp->name), sem->text, colors.empty() ? "<none>" : colors.c_str());
+        else
+          report_error(parser, sem,
+            "subpass '%s.%s' does not write color target '%s' (its color list: %s); mark the field 'optional' to drop it in shapes "
+            "without the target",
+            activeOptIn.pass->nameStr(), activeOptIn.pass->str(sp->name), sem->text, colors.empty() ? "<none>" : colors.c_str());
+        continue;
+      }
+      slot = render_pass_color_slot(*sp, colorPos);
+    }
+    if (isSrc1)
+    {
+      const int scopeColors = render_pass_scope_color_count(activeOptIn, ctx.tgtCtx().renderPasses());
+      if (scopeColors > 1)
+      {
+        report_error(parser, f->sem1,
+          "output field '%s' is the second blend source of target '%s', but %s binds up to %d color targets in one draw; "
+          "dual-source blending supports exactly one render target on every API",
+          f->name->text, sem->text, scope.c_str(), scopeColors);
+        continue;
+      }
+#if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+      if (slot != 0)
+      {
+        report_error(parser, f->sem1,
+          "output field '%s' is the second blend source of target '%s', which resolves to color slot %d; dual-source blending "
+          "writes slot 0 only, and on Metal the slot is the pass target index, so declare '%s' before every other target",
+          f->name->text, sem->text, slot, sem->text);
+        continue;
+      }
+      text.append_sprintf("  [[vk::location(%d), vk::index(1)]] %s %s : SV_Target1;\n", slot, f->type->text, f->name->text);
+      slotMask |= 1u << 1;
+#else
+      text.append_sprintf("  %s %s : SV_Target1;\n", f->type->text, f->name->text);
+      slotMask |= 1u << 1;
+#endif
+      out.hasSrc1 = true;
+      src1Cls = fieldCls;
+      src1Components = fieldComponents;
+      leaves.append_sprintf("#define RP_OUTPUT_HAS_%s(u) 1 // second blend source of target '%s' of %s\n", f->name->text, sem->text,
+        scope.c_str());
+      continue;
+    }
+    if (slotMask & (1u << slot))
+    {
+      report_error(parser, sem, "two output fields resolve to target '%s'", sem->text);
+      continue;
+    }
+    slotMask |= 1u << slot;
+#if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
+    if (src1Target && strcmp(src1Target, sem->text) == 0)
+      text.append_sprintf("  [[vk::location(%d), vk::index(0)]] %s %s : SV_Target%d;\n", slot, f->type->text, f->name->text, slot);
+    else
+#endif
+      text.append_sprintf("  %s %s : SV_Target%d;\n", f->type->text, f->name->text, slot);
+    leaves.append_sprintf("#define RP_OUTPUT_HAS_%s(u) 1 // target '%s' of %s\n", f->name->text, sem->text, scope.c_str());
+    if ((int)fieldBySlot.size() <= slot)
+      fieldBySlot.resize(slot + 1);
+    fieldBySlot[slot] = {f->name->text, f->type->text, sem->text, fieldCls, fieldComponents};
+  }
+  if (src1Field && out.hasSrc1)
+  {
+    const SemanticShaderPass::PsOutputField *plain = nullptr;
+    for (const SemanticShaderPass::PsOutputField &pf : fieldBySlot)
+      if (!pf.name.empty() && pf.target == src1Target)
+        plain = &pf;
+    if (!plain)
+      report_error(parser, src1Field->sem1,
+        "output field '%s' is the second blend source of target '%s', but the struct has no plain field writing '%s'; the blend "
+        "unit reads both sources",
+        src1Field->name->text, src1Target, src1Target);
+    else if (plain->cls != src1Cls || plain->components != src1Components)
+      report_error(parser, src1Field->sem1,
+        "output field '%s' is the second blend source of target '%s', but its type '%s' differs in HLSL class or component count "
+        "from the plain field '%s' of type '%s'; one target has one format",
+        src1Field->name->text, src1Target, src1Field->type->text, plain->name.c_str(), plain->type.c_str());
+  }
+  text.append("};\n");
+  text.append(leaves);
+
+  out.structHlsl = eastl::move(text);
+  out.fieldBySlot = eastl::move(fieldBySlot);
+  out.droppedFields = eastl::move(dropped);
+  out.structMask = slotMask;
+  out.structTerm = s.var->name;
+  if (src1Target)
+    entry.src1Target = src1Target;
+  return entry;
+}
+
+eastl::string AssembleShaderEvalCB::exportFormatPragmas(dag::ConstSpan<SemanticShaderPass::PsOutputField> field_by_slot,
+  const char *src1_target)
+{
+  eastl::string out;
+#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+
+
+
+
+
+
+
+
+
+
+#else
+  G_UNUSED(field_by_slot);
+  G_UNUSED(src1_target);
+#endif
+  return out;
+}
+
 void AssembleShaderEvalCB::eval_command(shader_directive &s)
 {
   if (ctx.tgtCtx().isPreshaderOnly())
@@ -1212,7 +1780,18 @@ void AssembleShaderEvalCB::end_eval(shader_decl &sh)
   if (ctx.tgtCtx().isPreshaderOnly())
     return;
 
-  static_assert(STAGE_PS < STAGE_VS && STAGE_CS < STAGE_VS);
+  static_assert(STAGE_PS < STAGE_VS);
+  static_assert(STAGE_CS < STAGE_VS);
+
+  if (activeOptIn && isCompute())
+  {
+    report_error(parser, curpass->renderPassDeclTerm,
+      "a compute shader cannot opt into a render_pass: only drawn shaders run in a subpass");
+    return;
+  }
+  if (!validateSubpassReads())
+    return;
+  processPsOutputStruct();
 
   preshaderSource.isCompute = isCompute();
 
@@ -1474,6 +2053,12 @@ public:
     dag::ConstSpan<char> main_src = code_blocks.buildSourceCode(preprocessed_blocks);
     source.setStr(main_src.data(), main_src.size());
 
+    const dag::ConstSpan<char> prefix = curpass->sourcePrefix(stage);
+    if (!prefix.empty())
+    {
+      source.insert(0, prefix.data(), (int)prefix.size());
+    }
+
     eastl::string src_predefines = assembly::build_hardware_defines_hlsl(profile.c_str(), enableFp16, ascb->ctx.tgtCtx().compCtx());
 #if _CROSS_TARGET_C2
 
@@ -1487,7 +2072,7 @@ public:
 #endif
 
     ascb->curpass->preshader->namedConstTable.patchHlsl(source, HLSL_STAGE_TO_SHADER_STAGE[stage], *ascb->curpass->preshader, *lexer,
-      implicitCbufRegCount, eastl::string_view{src_predefines}, curpass->dual_source_blending);
+      implicitCbufRegCount, eastl::string_view{src_predefines}, curpass->dual_source_blending && !curpass->psOutput.hasSrc1);
     int base = append_items(source, 16);
     memset(&source[base], 0, 16);
 
@@ -1554,13 +2139,29 @@ void AssembleShaderEvalCB::hlsl_compile(HlslCompilationStage stage)
 
   CodeSourceBlocks *codeP = ctx.shCtx().hlslCodeBlocks().validProfileSwitch(compile.profile);
   G_ASSERTF(codeP, "ShaderParser::curXsCode must be non null here by design");
-  CodeSourceBlocks &code = *codeP;
+  CodeSourceBlocks &srcBlocks = *codeP;
 
   ShaderBytecodeCache &cache = ctx.tgtCtx().bytecodeCache();
 
-  dag::ConstSpan<CodeSourceBlocks::Unconditional *> code_blocks = code.getPreprocessedCode(*this);
-  CryptoHash code_digest = code.getCodeDigest(code_blocks);
+  dag::ConstSpan<CodeSourceBlocks::Unconditional *> code_blocks = srcBlocks.getPreprocessedCode(*this);
+  CryptoHash code_digest = srcBlocks.getCodeDigest(code_blocks);
   CryptoHash const_digest = curpass->preshader->namedConstTable.getDigest(HLSL_STAGE_TO_SHADER_STAGE[stage], *curpass->preshader);
+
+  // The synthesized output struct is not in code_digest, but its slots depend on the opt-in.
+  if (const dag::ConstSpan<char> prefix = curpass->sourcePrefix(stage); !prefix.empty())
+  {
+    CryptoHasher h{code_digest};
+    h.update(prefix.data(), prefix.size());
+    code_digest = h.hash();
+  }
+
+#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+
+
+
+
+#endif
 
   ShaderCompilerStat::hlslCompileCount++;
   auto [cacheIdx, entryIds] = cache.find(code_digest, const_digest, compile.entry, compile.profile);
@@ -1596,7 +2197,7 @@ void AssembleShaderEvalCB::hlsl_compile(HlslCompilationStage stage)
     if (variant.dyn)
       hash_variant_src(*variant.dyn, shader_variant_hash);
 
-    shc::add_job(new CompileShaderJob{this, hlsl, stage, hlsl.symbol, code, code_blocks, shader_variant_hash});
+    shc::add_job(new CompileShaderJob{this, hlsl, stage, hlsl.symbol, srcBlocks, code_blocks, shader_variant_hash});
   }
 }
 
@@ -1629,6 +2230,14 @@ static const char *get_next_line_trail_to_strip(const char *c_start, bool hold_f
     next_line = strchr(next_line + 7, ' ');
   return next_line;
 }
+struct Sha1BinRecordTail
+{
+  ComputeShaderInfo computeShaderInfo;
+  PixelShaderOutputInfo psOutputInfo;
+};
+static_assert(sizeof(Sha1BinRecordTail) == sizeof(ComputeShaderInfo) + sizeof(PixelShaderOutputInfo));
+static constexpr size_t SHA1_BIN_RECORD_OVERHEAD = sizeof(uint32_t) + sizeof(uint32_t) + sizeof(Sha1BinRecordTail);
+
 static inline void calc_sha1_stripped(HASH_CONTEXT &sha1, const char *src, size_t total_len, bool hold_file_line,
   String *out_stripped = nullptr)
 {
@@ -1642,9 +2251,9 @@ static inline void calc_sha1_stripped(HASH_CONTEXT &sha1, const char *src, size_
       out_stripped->append(c_start, (uint32_t)(next_line - c_start));
     c_start = strstr(next_line + 1, "\n");
   };
-  size_t at = (c_start - src);
-  if (c_start != nullptr && at < total_len)
+  if (c_start != nullptr && size_t(c_start - src) < total_len)
   {
+    const size_t at = c_start - src;
     HASH_UPDATE(&sha1, (const unsigned char *)c_start, (uint32_t)(size_t(total_len) - at));
     if (out_stripped)
       out_stripped->append(c_start, (uint32_t)(size_t(total_len) - at));
@@ -1874,6 +2483,10 @@ void CompileShaderJob::doJobBody()
           }
           else
           {
+            DEFER([&] {
+              df_unmap(content, sha1FileLen);
+              df_close(sha1BinFile);
+            });
 #if _CROSS_TARGET_DX12
             bool missingSeparateDebugInfo = false;
             if (separateDebugInfoIsNeeded)
@@ -1886,25 +2499,35 @@ void CompileShaderJob::doJobBody()
 #endif
             {
               uint32_t metadata_size = 0;
-              memcpy(&metadata_size, content, sizeof(metadata_size));
-
               uint32_t bytecode_size = 0;
-              memcpy(&bytecode_size, content + sizeof(metadata_size), sizeof(bytecode_size));
+              if (size_t(sha1FileLen) >= SHA1_BIN_RECORD_OVERHEAD)
+              {
+                memcpy(&metadata_size, content, sizeof(metadata_size));
+                memcpy(&bytecode_size, content + sizeof(metadata_size), sizeof(bytecode_size));
+              }
 
-              const uint8_t *start_metadata = content + sizeof(metadata_size) + sizeof(bytecode_size);
-              const uint8_t *end_metadata = start_metadata + metadata_size;
-              compile_result.metadata.assign(start_metadata, end_metadata);
+              const size_t sha1RecordSize = SHA1_BIN_RECORD_OVERHEAD + size_t(metadata_size) + size_t(bytecode_size);
+              if (sha1RecordSize != size_t(sha1FileLen))
+                debug("Sha1 bin %s holds %d bytes but its header needs %u; recompiling.", sha1BinPath, sha1FileLen,
+                  unsigned(sha1RecordSize));
+              else
+              {
+                const uint8_t *start_metadata = content + sizeof(metadata_size) + sizeof(bytecode_size);
+                const uint8_t *end_metadata = start_metadata + metadata_size;
+                compile_result.metadata.assign(start_metadata, end_metadata);
 
-              const uint8_t *start_bytecode = end_metadata;
-              const uint8_t *end_bytecode = start_bytecode + bytecode_size;
-              compile_result.bytecode.assign(start_bytecode, end_bytecode);
-              memcpy(&compile_result.computeShaderInfo, end_bytecode, sizeof(ComputeShaderInfo));
-              df_unmap(content, sha1FileLen);
-              df_close(sha1BinFile);
-              if (shc::config().hlslDumpCodeAlways)
-                dump_hlsl_src(compileCtx, source, compile_result.bytecode, sha1SrcPath, true, shaderName, shader_variant_hash);
-              ShaderCompilerStat::hlslExternalCacheHitCount.fetch_add(1);
-              return;
+                const uint8_t *start_bytecode = end_metadata;
+                const uint8_t *end_bytecode = start_bytecode + bytecode_size;
+                compile_result.bytecode.assign(start_bytecode, end_bytecode);
+                Sha1BinRecordTail tail;
+                memcpy(&tail, end_bytecode, sizeof(tail));
+                compile_result.computeShaderInfo = tail.computeShaderInfo;
+                compile_result.psOutputInfo = tail.psOutputInfo;
+                if (shc::config().hlslDumpCodeAlways)
+                  dump_hlsl_src(compileCtx, source, compile_result.bytecode, sha1SrcPath, true, shaderName, shader_variant_hash);
+                ShaderCompilerStat::hlslExternalCacheHitCount.fetch_add(1);
+                return;
+              }
             }
 #if _CROSS_TARGET_DX12
             else
@@ -2014,13 +2637,13 @@ void CompileShaderJob::doJobBody()
       else if (strncmp(pragma, "def", 3) == 0)
       {
         int waves = useScarlettWave32 ? 32 : 64;
-        if (waveSpecification == 32 && waves != 32)
+        if (waveSpecification == 32 && waves != 32) //-V560 waves is target-constant
         {
           compile_result.errors = "wave32 was already specified, now seeing wave64 as def";
           debug("Hlsl compilation failed, exiting job...");
           return;
         }
-        if (waveSpecification == 64 && waves != 64)
+        if (waveSpecification == 64 && waves != 64) //-V560 waves is target-constant
         {
           compile_result.errors = "wave64 was already specified, now seeing wave32 as def";
           debug("Hlsl compilation failed, exiting job...");
@@ -2095,6 +2718,7 @@ void CompileShaderJob::doJobBody()
       .dumpSpirvOnly = shc::config().dumpSpirvOnly,
       .validateGlobalConstsOffsetOrder = shc::config().sortGlobalConstsByOffset,
       .noConversionWarnings = shc::config().noConversionWarnings,
+      .warningsAsErrors = !forceDisableWarnings && shc::config().hlslWarningsAsErrors,
       .useScalarLayout = shc::config().useScalarLayout});
   }
   else
@@ -2162,7 +2786,8 @@ void CompileShaderJob::doJobBody()
   {
     uint32_t metadata_size = compile_result.metadata.size();
     uint32_t bytecode_size = compile_result.bytecode.size();
-    uint32_t total_size = sizeof(metadata_size) + sizeof(bytecode_size) + metadata_size + bytecode_size + sizeof(ComputeShaderInfo);
+    uint32_t total_size = SHA1_BIN_RECORD_OVERHEAD + metadata_size + bytecode_size;
+    const Sha1BinRecordTail tail{compile_result.computeShaderInfo, compile_result.psOutputInfo};
 
     unsigned char binSha1[HASH_SIZE];
     HASH_CONTEXT sha1;
@@ -2171,7 +2796,7 @@ void CompileShaderJob::doJobBody()
     HASH_UPDATE(&sha1, (const unsigned char *)&bytecode_size, sizeof(bytecode_size));
     HASH_UPDATE(&sha1, (const unsigned char *)compile_result.metadata.data(), compile_result.metadata.size());
     HASH_UPDATE(&sha1, (const unsigned char *)compile_result.bytecode.data(), compile_result.bytecode.size());
-    HASH_UPDATE(&sha1, (const unsigned char *)&compile_result.computeShaderInfo, sizeof(compile_result.computeShaderInfo));
+    HASH_UPDATE(&sha1, (const unsigned char *)&tail, sizeof(tail));
     HASH_FINISH(&sha1, binSha1);
     char sha1BinPath[420];
     sha1BinPath[0] = 0;
@@ -2198,7 +2823,7 @@ void CompileShaderJob::doJobBody()
       written += df_write(tmpF, &bytecode_size, sizeof(bytecode_size));
       written += df_write(tmpF, compile_result.metadata.data(), compile_result.metadata.size());
       written += df_write(tmpF, compile_result.bytecode.data(), compile_result.bytecode.size());
-      written += df_write(tmpF, &compile_result.computeShaderInfo, sizeof(ComputeShaderInfo));
+      written += df_write(tmpF, &tail, sizeof(tail));
       if (written == total_size)
       {
         df_close(tmpF);
@@ -2289,6 +2914,14 @@ void CompileShaderJob::releaseJobBody()
         else
           break;
       sh_debug(SHLOG_NORMAL, "  %s\n", es);
+
+      if (stage == HLSL_PS)
+        for (const auto &d : curpass->psOutput.droppedFields)
+        {
+          const eastl::string quoted(eastl::string::CtorSprintf{}, "'%s'", d.first.c_str());
+          if (strstr(compile_result.errors.c_str(), quoted.c_str()))
+            sh_debug(SHLOG_NORMAL, "Note: %s", d.second.c_str());
+        }
     }
     else
       sh_debug(SHLOG_NORMAL, "  D3DXCompileShader error");
@@ -2516,22 +3149,16 @@ void CompileShaderJob::addResults()
       stat->entry = entry;
       stat->hlslVariants++;
 
-      if (totalInstructionsNum < stat->minInstructions)
-        stat->minInstructions = totalInstructionsNum;
-      if (totalInstructionsNum > stat->maxInstructions)
-        stat->maxInstructions = totalInstructionsNum;
+      stat->minInstructions = min(totalInstructionsNum, stat->minInstructions);
+      stat->maxInstructions = max(totalInstructionsNum, stat->maxInstructions);
       stat->totalInstructions += totalInstructionsNum;
 
-      if (textureInstructionsNum < stat->minTextureInstructions)
-        stat->minTextureInstructions = textureInstructionsNum;
-      if (textureInstructionsNum > stat->maxTextureInstructions)
-        stat->maxTextureInstructions = textureInstructionsNum;
+      stat->minTextureInstructions = min(textureInstructionsNum, stat->minTextureInstructions);
+      stat->maxTextureInstructions = max(textureInstructionsNum, stat->maxTextureInstructions);
       stat->totalTextureInstructions += textureInstructionsNum;
 
-      if (arithmeticInstructionsNum < stat->minArithmeticInstructions)
-        stat->minArithmeticInstructions = arithmeticInstructionsNum;
-      if (arithmeticInstructionsNum > stat->maxArithmeticInstructions)
-        stat->maxArithmeticInstructions = arithmeticInstructionsNum;
+      stat->minArithmeticInstructions = min(arithmeticInstructionsNum, stat->minArithmeticInstructions);
+      stat->maxArithmeticInstructions = max(arithmeticInstructionsNum, stat->maxArithmeticInstructions);
       stat->totalArithmeticInstructions += arithmeticInstructionsNum;
 
       stat->minFlowInstructions = min(flowInstructionsNum, stat->minFlowInstructions);

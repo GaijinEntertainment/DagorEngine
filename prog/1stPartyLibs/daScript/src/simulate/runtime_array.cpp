@@ -88,6 +88,7 @@ namespace das
         }
         uint64_t memSize64 = newCapacity * uint64_t(stride);
         const char * prev_comment = arr.data ? context.heap->get_comment(arr.data) : nullptr;
+        DAS_ASAN_ANNOTATE_ARRAY(arr, stride, arr.size, arr.capacity);
         char * newData = nullptr;
         // deferred arm: abandon the old buffer to GC so stale interior aliases stay readable
         if ( context.verySafeContext && !arr.scratch && !eager ) {
@@ -104,6 +105,7 @@ namespace das
             arr.data = newData;
         }
         arr.capacity = newCapacity;
+        DAS_ASAN_ANNOTATE_ARRAY(arr, stride, arr.capacity, arr.size);
     }
 
     void array_reserve(Context & context, Array & arr, uint64_t newCapacity, uint32_t stride, LineInfo * at) {
@@ -141,6 +143,7 @@ namespace das
         }
         // stride 0 (zero-size elements) allocates nothing, so arr.data stays null - and
         // memset's first argument is declared nonnull even for a zero byte count (UBSan)
+        DAS_ASAN_ANNOTATE_ARRAY(arr, stride, arr.size, newSize);
         if ( zero && newSize>arr.size && stride ) {
             memset ( arr.data + arr.size*stride, 0, size_t(newSize-arr.size)*size_t(stride) );
         }

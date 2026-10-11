@@ -611,6 +611,8 @@ enum RenderPassTargetAction : int
   /// \warning Must supply the source in the same slot and the same subpass in another binding: the MSAA
   /// target written there, or, on \b RP_SLOT_DEPTH_STENCIL, a read-only depth bind.
   /// Otherwise creation on render pass will fail
+  /// \note Generic implementation moves an untracked source from RenderTarget, DepthRw or, for a read-only depth bind,
+  /// GenericRead to ResolveSource and leaves it there. An untracked destination must already be in ResolveDest
   RP_TA_SUBPASS_RESOLVE = 1u << 4,
   /// \brief Target contents will be written by subpass
   RP_TA_SUBPASS_WRITE = 1u << 5,

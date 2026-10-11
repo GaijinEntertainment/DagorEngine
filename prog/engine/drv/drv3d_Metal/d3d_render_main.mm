@@ -8,6 +8,7 @@
 #else
 #import <UIKit/UIKit.h>
 #include <drv/hid/dag_hiCreate.h>
+#include <osApiWrappers/dag_iosWindowScene.h>
 #endif
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -15,6 +16,7 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/tql.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
@@ -203,12 +205,15 @@ bool d3d::init_video(void* hinst,
 
 #else
 
-  float scale = [[UIScreen mainScreen] nativeScale];
+  UIWindowScene *scene = ios_get_window_scene();
+  UIScreen *screen = ios_get_screen();
+  const CGRect rect = scene ? scene.coordinateSpace.bounds : screen.bounds;
+  float scale = screen.nativeScale;
 
-  render.scr_wd = [[UIScreen mainScreen] bounds].size.width;
-  render.scr_ht = [[UIScreen mainScreen] bounds].size.height;
-  render.wnd_wd = [[UIScreen mainScreen] bounds].size.width  * scale;
-  render.wnd_ht = [[UIScreen mainScreen] bounds].size.height * scale;
+  render.scr_wd = rect.size.width;
+  render.scr_ht = rect.size.height;
+  render.wnd_wd = rect.size.width * scale;
+  render.wnd_ht = rect.size.height * scale;
   render.scr_bpp = 32;
 
   D3dInitialSettings initSetts(render.scr_wd, render.scr_ht);
@@ -217,15 +222,14 @@ bool d3d::init_video(void* hinst,
   render.scr_wd *= scale;
   render.scr_ht *= scale;
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000
-  CGRect rect = [[UIScreen mainScreen] bounds];
-#else
-  CGRect rect = [[UIScreen mainScreen] applicationFrame];
-#endif
   render.mainview = [[MetalView alloc] initWithFrame:rect andScale:scale];
 
   UIWindow* mainwnd = createIOSDagorWindow(render.mainview, scale);
   mainwnd_ = mainwnd;
+
+#if _TARGET_IOS
+  notify_window_resized(render.wnd_wd, render.wnd_ht);
+#endif
 #endif
 
   render.device = render.mainview.device;

@@ -153,17 +153,15 @@ def test_deprecated_structure_for_each_annotation(t : T?) {
     let s = AnnotatedStruct()
     let sinfo = (typeinfo rtti_typeinfo(s)).structType
     var seen = 0
-    unsafe {
-        structure_for_each_annotation(*sinfo) $(ann; args) {
-            t |> equal("{ann.name}", "comment")
-            t |> equal(length(args), 5)
-            for (arg in args) {
-                if (arg.name == "v_int") {
-                    t |> equal(arg.iValue, 13)
-                }
+    structure_for_each_annotation(*sinfo) $(ann; args) {
+        t |> equal("{ann.name}", "comment")
+        t |> equal(length(args), 5)
+        for (arg in args) {
+            if (arg.name == "v_int") {
+                t |> equal(arg.iValue, 13)
             }
-            seen ++
         }
+        seen ++
     }
     t |> equal(seen, 1)
 }

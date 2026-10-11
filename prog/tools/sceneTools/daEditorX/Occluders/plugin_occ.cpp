@@ -191,8 +191,7 @@ bool occplugin::Plugin::onPluginMenuClick(unsigned id)
 {
   if (id == CM_SET_VIS_DIST)
   {
-    PropPanel::DialogWindow *dlg =
-      DAGORED2->createDialog(hdpi::_pxScaled(300), hdpi::_pxScaled(130), "Set visibility for implicit occluders");
+    PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Set visibility for implicit occluders");
     PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
     panel.createCheckBox(1, "Show implicit occluders", renderExternalOccluders);
     panel.createEditFloat(2, "Implicit occluders visibility range", renderExternalOccludersDist);

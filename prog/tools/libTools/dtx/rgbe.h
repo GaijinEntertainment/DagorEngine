@@ -17,13 +17,13 @@ inline void float2rgbe(unsigned char *rgbe, float red, float green, float blue)
     v = green;
   if (blue > v)
     v = blue;
-  if (v < 1e-32)
+  if (v < 1e-32f)
   {
     rgbe[0] = rgbe[1] = rgbe[2] = rgbe[3] = 0;
   }
   else
   {
-    v = frexp(v, &e) * 256.0 / v;
+    v = frexp(v, &e) * 256.0f / v;
     rgbe[0] = (unsigned char)(red * v);
     rgbe[1] = (unsigned char)(green * v);
     rgbe[2] = (unsigned char)(blue * v);

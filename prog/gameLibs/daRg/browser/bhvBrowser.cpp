@@ -24,8 +24,6 @@ namespace darg
 
 BhvBrowser bhv_browser;
 
-static const char *dataSlotName = "browser:data";
-
 
 struct BhvBrowserData
 {
@@ -70,7 +68,7 @@ void BhvBrowser::onAttach(darg::Element *elem)
   }
 
   BhvBrowserData *bhvData = new BhvBrowserData();
-  elem->props.storage.SetValue(dataSlotName, bhvData);
+  elem->props.storage.SetValue(elem->csk->browserData, bhvData);
 }
 
 
@@ -83,10 +81,10 @@ void BhvBrowser::onDetach(darg::Element *elem, DetachMode)
     ::del_wnd_proc_component(this);
   }
 
-  BhvBrowserData *bhvData = elem->props.storage.RawGetSlotValue<BhvBrowserData *>(dataSlotName, nullptr);
+  BhvBrowserData *bhvData = elem->props.storage.RawGetSlotValue<BhvBrowserData *>(elem->csk->browserData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->browserData);
     delete bhvData;
   }
 }
@@ -173,7 +171,7 @@ int BhvBrowser::pointingEvent(ElementTree *, Element *elem, InputDevice device, 
   if (!webbrowser::get_helper()->browserExists())
     return 0;
 
-  BhvBrowserData *bhvData = elem->props.storage.RawGetSlotValue<BhvBrowserData *>(dataSlotName, nullptr);
+  BhvBrowserData *bhvData = elem->props.storage.RawGetSlotValue<BhvBrowserData *>(elem->csk->browserData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   webbrowser::IBrowser *browser = webbrowser::get_helper()->getBrowser();

@@ -48,7 +48,8 @@ private:
 enum class OpaqueFlags : uint8_t
 {
   Default = 0,
-  NoStencil = 1
+  NoStencil = 1,
+  NoScissor = 2
 };
 
 class ApplyMasterState

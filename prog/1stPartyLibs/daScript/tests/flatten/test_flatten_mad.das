@@ -136,12 +136,7 @@ def p_lerp(x : float) : float {
     return lerp(G_A, G_B, x)
 }
 
-var GRID : array<float>
-
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-}
+var GRID <- [-100.0, -3.5, -1.0, 0.0, 1.0, 2.5, 7.0, 100.0]
 
 def fapprox(t : T?; a, b : float) {
     let m = max(max(abs(a), abs(b)), 1.0)
@@ -157,7 +152,7 @@ def cmp3i(t : T?; a, b : int3) {
 }
 
 [test]
-def test_flatten_mad(t : T?) {
+def test_flatten_mad(t : T?) {    // nolint:STYLE038 -- flat list of independent differential arms, one per mad shape
     t |> run("mad: a*b + c fuses (approx)") @(t : T?) {
         for (v in GRID) {
             fapprox(t, m_basic_flat(v, v * 0.5 - 1.0, 3.0), m_basic(v, v * 0.5 - 1.0, 3.0))

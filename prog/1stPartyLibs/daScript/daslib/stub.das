@@ -10,7 +10,7 @@ require daslib/templates_boost
 [function_macro(name="stub")]
 class TemplateMacro : AstFunctionAnnotation {
     //! Function annotation stub for stubbed-out modules.
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         if (func.result == null) {
             errors := "stub function must have a result type"
             return false
@@ -32,7 +32,6 @@ class TemplateMacro : AstFunctionAnnotation {
             }
         }
         qblk |> force_at(func.body.at)
-        // The body is macro-generated, not user-written — mark it so lint passes (e.g. STYLE025 on the generated `unsafe { var dummy ... }`) skip it.
         qblk |> force_generated(true)
         func.body = qblk
         return true

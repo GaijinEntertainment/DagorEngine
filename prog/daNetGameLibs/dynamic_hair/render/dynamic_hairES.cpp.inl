@@ -50,7 +50,7 @@ static const bool transparentHairsEnable = true;
 static const bool opaqueHairsEnable = true;
 #endif
 
-static const char *HAIR_SHADER_NAME = "dynamic_hair";
+static const char *HAIR_SHADER_NAMES[] = {"dynamic_hair", "dynamic_hair_morph"};
 static float hairsAtestValue = 1.0f / 255.0f;
 
 ECS_ON_EVENT(on_appear)
@@ -67,8 +67,8 @@ static void detect_hair_es(
     G_ASSERT_CONTINUE(dynRes);
 
     const auto cb = [&dynamicHairNodes](int nodeId) { dynamicHairNodes.emplace(nodeId); };
-    dynRes->findSkinNodesWithMaterials(make_span_const(&HAIR_SHADER_NAME, 1), cb);
-    dynRes->findRigidNodesWithMaterials(make_span_const(&HAIR_SHADER_NAME, 1), cb);
+    dynRes->findSkinNodesWithMaterials(make_span_const(HAIR_SHADER_NAMES), cb);
+    dynRes->findRigidNodesWithMaterials(make_span_const(HAIR_SHADER_NAMES), cb);
   }
   if (dynamicHairNodes.empty())
     return;

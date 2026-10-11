@@ -29,13 +29,25 @@ namespace darg
 {
 
 
-bool HotkeyCombo::updateOnCombo(HumanInput::IGenJoystick *joy)
+static bool has_button(const Tab<HotkeyButton> &buttons, HotkeyButton btn)
+{
+  for (const HotkeyButton &b : buttons)
+    if (b.devId == btn.devId && b.btnId == btn.btnId)
+      return true;
+  return false;
+}
+
+
+bool HotkeyCombo::updateOnCombo(HumanInput::IGenJoystick *joy, HotkeyButton event_btn)
 {
   if (!buttons.size())
   {
     G_ASSERT(!eventName.empty());
     return false;
   }
+
+  if (!isPressed && event_btn.devId != DEVID_NONE && !has_button(buttons, event_btn))
+    return false;
 
   bool newPressed = true;
   HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr;

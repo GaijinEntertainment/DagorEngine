@@ -18,11 +18,15 @@ shader deferred_light_compute
   VIEW_VEC_OPTIMIZED(cs)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+  hlsl(cs) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
+  }
   INIT_AND_USE_DEFERRED_LIGHT_COMMON(cs)
 
   (cs) {
     frame@f1 = (shadow_frame, 0, 0, 0);
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     current_time@f1 = (time_phase(0, 0));
     world_view_pos@f4 = world_view_pos;
     depth_bounds@f2 = depth_bounds;

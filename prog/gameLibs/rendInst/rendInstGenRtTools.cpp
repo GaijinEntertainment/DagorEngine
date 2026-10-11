@@ -905,6 +905,9 @@ void rendinst::set_sun_dir_for_global_shadows(const Point3 &sun_dir)
   debug("update sundir for RI: %@", curSunDir);
   updateGlobalShadows();
 }
+
+void rendinst::update_global_shadows() { updateGlobalShadows(); }
+
 void rendinst::set_global_shadows_needed(bool need)
 {
   if (!RendInstGenData::renderResRequired)

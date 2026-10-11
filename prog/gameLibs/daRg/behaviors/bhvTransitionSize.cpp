@@ -18,8 +18,6 @@ namespace darg
 
 BhvTransitionSize bhv_transition_size;
 
-static const char *dataSlotName = "size_trans:data";
-
 
 void BhvTransitionSizeData::load(Element *elem, bool initial)
 {
@@ -37,24 +35,24 @@ BhvTransitionSize::BhvTransitionSize() : Behavior(STAGE_BEFORE_RENDER, 0) {}
 void BhvTransitionSize::onAttach(Element *elem)
 {
   BhvTransitionSizeData *bhvData = new BhvTransitionSizeData();
-  elem->props.storage.SetValue(dataSlotName, bhvData);
+  elem->props.storage.SetValue(elem->csk->sizeTransData, bhvData);
   bhvData->load(elem, true);
 }
 
 
 void BhvTransitionSize::onDetach(Element *elem, DetachMode)
 {
-  BhvTransitionSizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvTransitionSizeData *>(dataSlotName, nullptr);
+  BhvTransitionSizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvTransitionSizeData *>(elem->csk->sizeTransData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->sizeTransData);
     delete bhvData;
   }
 }
 
 void BhvTransitionSize::onElemSetup(Element *elem, SetupMode setup_mode)
 {
-  BhvTransitionSizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvTransitionSizeData *>(dataSlotName, nullptr);
+  BhvTransitionSizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvTransitionSizeData *>(elem->csk->sizeTransData, nullptr);
   if (!bhvData)
     return;
 
@@ -86,7 +84,7 @@ static void convert_flex_size_to_parent_relative(SizeSpec *tgtSizeSpec, Element 
 
 int BhvTransitionSize::update(UpdateStage /*stage*/, darg::Element *elem, float dt)
 {
-  BhvTransitionSizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvTransitionSizeData *>(dataSlotName, nullptr);
+  BhvTransitionSizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvTransitionSizeData *>(elem->csk->sizeTransData, nullptr);
 
   if (!bhvData)
     return 0;

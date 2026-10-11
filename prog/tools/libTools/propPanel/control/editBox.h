@@ -7,6 +7,7 @@
 #include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/propPanel.h>
 #include "../c_constants.h"
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 #include <gui/dag_imguiUtil.h>
 #include <imgui/imgui_internal.h>
@@ -86,6 +87,27 @@ public:
   void setPlaceholderText(const char *text) override { placeholderText = text; }
 
   const char *getImguiTypeName() const override { return "EditBox"; }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const Point2 labelSize = ControlSizeHelper::getSeparateLineLabelPreferredSize(controlCaption.begin(), controlCaption.end());
+    const float inputWidth = mW > 0 ? (float)mW : ControlSizeHelper::getPreferredTextInputWidth();
+    const float width = min(max(labelSize.x, inputWidth), max_width_px);
+
+    if (!controlMultiline)
+      return Point2(width, labelSize.y + ImGui::GetFrameHeight());
+
+    // Same as the height in updateImgui(). The full height input follows the available height, so it has no own height.
+    float inputHeight = (float)mH;
+    if (mH == (int)Constants::EDITBOX_MULTILINE_DEFAULT_HEIGHT)
+      inputHeight = ImGui::GetFontSize() * 2.5f;
+    else if (mH == (int)Constants::EDITBOX_MULTILINE_8_LINES_HEIGHT)
+      inputHeight = ImGui::GetFontSize() * 8.0f + ImGui::GetStyle().FramePadding.y * 2.0f; // ImGui's default for a zero size.
+    else if (mH == (int)Constants::EDITBOX_MULTILINE_FULL_HEIGHT)
+      return Point2(width, 0.0f);
+
+    return Point2(width, labelSize.y + inputHeight);
+  }
 
   void updateImgui() override
   {

@@ -79,7 +79,7 @@ macro LOADING_SPLASH_CONSTS(stage)
       return t - slow_exit_time;
     }
 
-    #define SPLASH_EXIT_WHITE_FULL 2.0
+    #define SPLASH_EXIT_END 2.0
     #define SPLASH_EXIT_DOOR_SHARE 0.5
 
     // 1 arrival, 2 end, negative loading
@@ -88,14 +88,14 @@ macro LOADING_SPLASH_CONSTS(stage)
       float slowPace = slow_exit_time > 0.0 && slow_exit_seconds > 0.0 ? 1.0 / slow_exit_seconds : 0.0;
       if (splash_exit_rushing(t))
       {
-        float a0 = clamp((rush_exit_time - slow_exit_time) * slowPace, 0.0, SPLASH_EXIT_WHITE_FULL);
-        return a0 + (SPLASH_EXIT_WHITE_FULL - a0) * splash_exit_ramp(t - rush_exit_time, SPLASH_EXIT_DOOR_SHARE * rush_exit_seconds);
+        float a0 = clamp((rush_exit_time - slow_exit_time) * slowPace, 0.0, SPLASH_EXIT_END);
+        return a0 + (SPLASH_EXIT_END - a0) * splash_exit_ramp(t - rush_exit_time, SPLASH_EXIT_DOOR_SHARE * rush_exit_seconds);
       }
       // no duration, or standing before the stamp: still loading, not 0
       if (slowPace <= 0.0 || t < slow_exit_time)
         return -1.0;
       // holding there keeps the rush continuous
-      return min((t - slow_exit_time) * slowPace, SPLASH_EXIT_WHITE_FULL);
+      return min((t - slow_exit_time) * slowPace, SPLASH_EXIT_END);
     }
 
     // 1 ends the splash

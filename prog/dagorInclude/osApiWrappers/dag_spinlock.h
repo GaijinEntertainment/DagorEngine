@@ -17,7 +17,7 @@
 // If not set it is a plain TTAS spin and it shall be held for a very short time only.
 #if _TARGET_PC_LINUX && DAGOR_THREAD_SANITIZER // TSAN sees the lock only through the pthread API
 #define DAG_SPINLOCK_IS_FUTEX_MUTEX 0
-#elif _TARGET_PC_WIN || _TARGET_XBOX || _TARGET_C2 || _TARGET_PC_LINUX || _TARGET_ANDROID
+#elif _TARGET_PC_WIN || _TARGET_XBOX || _TARGET_C2 || _TARGET_PC_LINUX || _TARGET_ANDROID || _TARGET_APPLE
 #define DAG_SPINLOCK_IS_FUTEX_MUTEX 1
 #else
 #define DAG_SPINLOCK_IS_FUTEX_MUTEX 0

@@ -102,24 +102,9 @@ def mj_comp(x, y, z : float) : float3 {
 
 // ----- differential driver -----
 
-var GRID : array<float>
-var IGRID : array<int>
+var GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
+var IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
 
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-    IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
-}
-
-// A host may build the runtime with -ffast-math (dagor does), which lets a/b become
-// a*(1/b) and flushes denormals - so the vector path and the scalar reference stop being
-// bit-equal. Probed through module-level vars so the compiler cannot fold the answer.
-var private g_probe_x = -200.0
-var private g_probe_s = 7.0
-
-def private host_recips_division() : bool {
-    return (float3(g_probe_x, g_probe_x, g_probe_x) / g_probe_s).x != g_probe_x / g_probe_s
-}
 
 def fapprox(t : T?; a, b : float) {
     let m = max(max(abs(a), abs(b)), 1.0)
@@ -213,7 +198,7 @@ def test_flatten_ctor(t : T?) {  // nolint:STYLE038 — flat list of independent
         }
     }
     t |> run("shared divisor -> ctor / s (exact on an IEEE host)") @(t : T?) {
-        let recips = host_recips_division()
+        let recips = HOST_FAST_MATH
         for (v in GRID) {
             let flat = sf_div_flat(v, -v, 1.0, 3.5)
             let ref_ = sf_div(v, -v, 1.0, 3.5)

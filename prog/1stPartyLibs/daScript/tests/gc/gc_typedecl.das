@@ -27,9 +27,7 @@ def compile_and_run(file_path : string) : bool {
                         to_log(LOG_ERROR, "simulate failed: {serrors}\n")
                         return
                     }
-                    unsafe {
-                        invoke_in_context(context, "test")
-                    }
+                    unsafe(invoke_in_context(context, "test"))
                     result = true
                 }
             }
@@ -154,9 +152,7 @@ def test_thread_root_decrease_investigation(t : T?) {
                         let c2 = gc_thread_root_count()
                         to_log(LOG_INFO, "after simulate: {c2} (delta from compile: {int64(c2)-int64(c1)})\n")
                         t |> success(sok, "simulation succeeded")
-                        unsafe {
-                            invoke_in_context(context, "test")
-                        }
+                        unsafe(invoke_in_context(context, "test"))
                         let c3 = gc_thread_root_count()
                         to_log(LOG_INFO, "after invoke: {c3} (delta from simulate: {int64(c3)-int64(c2)})\n")
                     }

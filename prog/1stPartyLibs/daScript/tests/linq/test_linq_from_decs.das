@@ -183,7 +183,7 @@ def private describe_count(expr : Expression?; needle : string) : int {
 }
 
 // Structural ExprFor counter — robust against describe() formatting changes (Copilot review #2).
-def private count_expr_for(expr : Expression?) : int {
+def private count_expr_for(expr : Expression?) : int { // nolint:STYLE037 exact-type `is` ladder over AST node classes
     if (expr == null) return 0
     var n = 0
     if (expr is ExprFor) {
@@ -3702,3 +3702,29 @@ def test_fb_last_splice_shape(t : T?) {
     }
 }
 
+
+[decs_template(prefix = "mmg_")]
+struct MinMaxGuardVal {
+    v : int
+}
+
+[test]
+def test_decs_unknown_terminator_cascades(t : T?) {
+    restart()
+    for (i in range(5)) {
+        create_entity() @(eid, cmp) {
+            cmp.eid := eid
+            apply_decs_template(cmp, MinMaxGuardVal(v = 10 + i))
+        }
+    }
+    commit()
+    t |> run("min_max family over decs returns tuples, not the element array") @(t : T?) {
+        let mm = _fold(from_decs_template(type<MinMaxGuardVal>)._select(_.v) |> min_max())
+        t |> equal(mm._0, 10)
+        t |> equal(mm._1, 14)
+        let mma = _fold(from_decs_template(type<MinMaxGuardVal>)._select(_.v) |> min_max_average())
+        t |> equal(mma._0, 10)
+        t |> equal(mma._1, 14)
+        t |> equal(mma._2, 12)
+    }
+}

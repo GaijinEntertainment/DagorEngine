@@ -71,6 +71,7 @@ struct RiGenVisibility
 
   Tab<SubCellRange> subCells;
   Tab<RenderRanges> renderRanges;
+  Tab<uint16_t> visiblePools;
   carray<Tab<CellRange>, rendinst::render::MAX_LOD_COUNT_WITH_ALPHA> cellsLod;
   carray<int, rendinst::render::MAX_LOD_COUNT_WITH_ALPHA + 1> instNumberCounter;
 
@@ -110,7 +111,7 @@ struct RiGenVisibility
   bool hasTransparent() const { return vismask & VIS_HAS_TRANSP; }
   bool hasImpostor() const { return vismask & VIS_HAS_IMPOSTOR; }
 
-  RiGenVisibility(IMemAlloc *allocator) : renderRanges(allocator), subCells(allocator)
+  RiGenVisibility(IMemAlloc *allocator) : renderRanges(allocator), visiblePools(allocator), subCells(allocator)
   {
     subCells.reserve(4096);
     mem_set_0(instNumberCounter);
@@ -123,6 +124,7 @@ struct RiGenVisibility
   {
     clear_and_shrink(subCells);
     clear_and_shrink(renderRanges);
+    clear_and_shrink(visiblePools);
     for (auto &c : cellsLod)
       clear_and_shrink(c);
     for (auto &c : perInstanceVisibilityCells)
@@ -145,6 +147,7 @@ struct RiGenVisibility
       clear_and_resize(renderRanges, cnt);
     }
     mem_set_0(renderRanges); // for (int i = 0; i < renderRanges.size(); ++i) renderRanges[i].init();
+    visiblePools.clear();
     for (int i = 0; i < cellsLod.size(); ++i)
     {
       cellsLod[i].clear();

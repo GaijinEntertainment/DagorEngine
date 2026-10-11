@@ -29,15 +29,15 @@ def test_return_reference(t : T?) {
         g_rr_t = 2
         unsafe {
             var x = rr_ret_ref()
-            var xx : int& = rr_ret_safe_ref(x)
+            let xx : int& = rr_ret_safe_ref(x)
             t |> equal(xx, 2)
         }
     }
     t |> run("assign via returned ref") @(t : T?) {
         g_rr_t = 2
         unsafe {
-            var x = rr_ret_ref()
-            var z : int& = rr_ret_ref()
+            let x = rr_ret_ref()
+            let z : int& = rr_ret_ref()
             t |> equal(x, 2)
             t |> equal(z, 2)
             rr_ret_ref() = 3
@@ -52,7 +52,7 @@ def test_return_reference(t : T?) {
             var xx : int& = rr_ret_safe_ref(x)
             xx = 4
             t |> equal(x, 4)
-            rr_add2() <| $() : auto& {
+            rr_add2() $() : auto& {
                 unsafe {
                     return x
                 }

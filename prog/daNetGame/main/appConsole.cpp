@@ -14,6 +14,7 @@
 #include <visualConsole/dag_visualConsole.h>
 #include <consoleWindow/dag_consoleWindow.h>
 #include <util/dag_console.h>
+#include <util/dag_delayedAction.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
 #include "ui/overlay.h"
@@ -80,8 +81,8 @@ static bool app_console_handler(const char *argv[], int argc)
   }
   CONSOLE_CHECK_NAME("app", "reinit_input", 1, 1)
   {
-    controls::destroy();
-    controls::init_control();
+    // constraint: called during PUFD
+    delayed_call([] { controls::reinit_control(); });
   }
   return found;
 }

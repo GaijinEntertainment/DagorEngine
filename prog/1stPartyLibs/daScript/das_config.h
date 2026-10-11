@@ -17,6 +17,7 @@
 #include <debug/dag_assert.h>
 #include <debug/dag_fatal.h>
 #include <debug/dag_log.h>
+#include <osApiWrappers/dag_mutex.h>
 #include <cstddef>
 #include <stddef.h>
 #include <setjmp.h>
@@ -41,9 +42,9 @@ using eastl::min;
 using std::atomic;
 using std::condition_variable;
 using std::lock_guard;
-using std::mutex;
+using dag::mutex;
 using std::nullptr_t;
-using std::recursive_mutex;
+using dag::recursive_mutex;
 using std::stringstream;
 using std::thread;
 using std::unique_lock;
@@ -60,7 +61,7 @@ using std::chrono::milliseconds;
 
 #define DAS_GLOBAL_NEW 1
 
-#if defined(DAS_LLVM_AOT)
+#if defined(DAS_LLVM_AOT) || defined(DAS_JIT_RUNTIME)
 #define DAS_BIND_EXTERNAL 1
 #else
 #define DAS_BIND_EXTERNAL 0

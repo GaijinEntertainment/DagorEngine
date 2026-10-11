@@ -16,7 +16,6 @@ float3 (*modfx_get_cfd_wind_cpu)(const float3 &p, const float2 &wind_dir, float 
   float impulse_force) = nullptr;
 float modfx_cfd_wind_infl_threshold = 0.0f; // CFD wind is disabled if the directional_force * life_limit for the particle is below
                                             // this threshold
-extern int dafx_gravity_zone_count;
 extern GravityZoneDescriptor_buffer dafx_gravity_zone_buffer;
 
 namespace dafx_modfx

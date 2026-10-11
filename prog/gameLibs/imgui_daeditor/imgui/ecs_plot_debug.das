@@ -10,7 +10,7 @@ require DagorMath
 require imgui/imgui_boost
 require daslib/static_let
 require DaeditorPlotDebug
-require gameLibs.imgui_daeditor.imgui.ecs_struct_walker_common
+require ecs.ecs_struct_walker_common
 require %gameLibs.imgui_daeditor.imgui.imgui_common
 require %gameLibs.imgui_daeditor.imgui.ecs_plot_common
 require gameLibs.imgui_daeditor.imgui.ecs_plot_registry_common
@@ -985,7 +985,7 @@ def sample_float(data : void?;
     val = *reinterpret<float?> data
 
 [plot_set(type_name="float")]
-def set_float(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_float(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<float?> data = new_val
 
@@ -999,7 +999,7 @@ def sample_double(data : void?;
     val = float(*reinterpret<double?> data)
 
 [plot_set(type_name="double")]
-def set_double(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_double(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<double?> data = double(new_val)
 
@@ -1013,7 +1013,7 @@ def sample_int(data : void?;
     val = float(*reinterpret<int?> data)
 
 [plot_set(type_name="int")]
-def set_int(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_int(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<int?> data = int(new_val)
 
@@ -1027,7 +1027,7 @@ def sample_int8(data : void?;
     val = float(*reinterpret<int8?> data)
 
 [plot_set(type_name="int8_t")]
-def set_int8(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_int8(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<int8?> data = int8(clamp(int(new_val), -128, 127))
 
@@ -1041,7 +1041,7 @@ def sample_uint8(data : void?;
     val = float(*reinterpret<uint8?> data)
 
 [plot_set(type_name="uint8_t")]
-def set_uint8(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_uint8(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<uint8?> data = uint8(clamp(int(new_val), 0, 255))
 
@@ -1055,7 +1055,7 @@ def sample_int16(data : void?;
     val = float(*reinterpret<int16?> data)
 
 [plot_set(type_name="int16_t")]
-def set_int16(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_int16(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<int16?> data = int16(clamp(int(new_val), -32768, 32767))
 
@@ -1069,7 +1069,7 @@ def sample_uint16(data : void?;
     val = float(*reinterpret<uint16?> data)
 
 [plot_set(type_name="uint16_t")]
-def set_uint16(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_uint16(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<uint16?> data = uint16(clamp(int(new_val), 0, 65535))
 
@@ -1083,7 +1083,7 @@ def sample_uint32(data : void?;
     val = float(*reinterpret<uint?> data)
 
 [plot_set(type_name="uint32_t")]
-def set_uint32(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_uint32(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<uint?> data = uint(max(int(new_val), 0))
 
@@ -1097,7 +1097,7 @@ def sample_int64(data : void?;
     val = float(*reinterpret<int64?> data)
 
 [plot_set(type_name="int64_t")]
-def set_int64(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_int64(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<int64?> data = int64(new_val)
 
@@ -1111,7 +1111,7 @@ def sample_uint64(data : void?;
     val = float(*reinterpret<uint64?> data)
 
 [plot_set(type_name="uint64_t")]
-def set_uint64(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_uint64(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<uint64?> data = uint64(max(new_val, 0.0f))
 
@@ -1125,7 +1125,7 @@ def sample_EntityId(data : void?;
     val = float(*reinterpret<uint?> data)
 
 [plot_set(type_name="ecs::EntityId")]
-def set_EntityId(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_EntityId(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<uint?> data = uint(max(int(new_val), 0))
 
@@ -1139,7 +1139,7 @@ def sample_bool(data : void?;
     val = *reinterpret<bool?> data ? 1.0f : 0.0f
 
 [plot_set(type_name="bool")]
-def set_bool(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_bool(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     *reinterpret<bool?> data = new_val != 0.0f
 
@@ -1155,7 +1155,7 @@ def sample_Point2(data : void?;
     val = (*reinterpret<float2?> data)[comp_idx]
 
 [plot_set(type_name="Point2")]
-def set_Point2(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_Point2(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 2
     return
   unsafe
@@ -1172,7 +1172,7 @@ def sample_Point3(data : void?;
     val = (*reinterpret<float3?> data)[comp_idx]
 
 [plot_set(type_name="Point3")]
-def set_Point3(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_Point3(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 3
     return
   unsafe
@@ -1189,7 +1189,7 @@ def sample_Point4(data : void?;
     val = (*reinterpret<float4?> data)[comp_idx]
 
 [plot_set(type_name="Point4")]
-def set_Point4(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_Point4(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 4
     return
   unsafe
@@ -1207,7 +1207,7 @@ def sample_IPoint2(data : void?;
     val = float((*reinterpret<int2?> data)[comp_idx])
 
 [plot_set(type_name="IPoint2")]
-def set_IPoint2(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_IPoint2(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 2
     return
   unsafe
@@ -1224,7 +1224,7 @@ def sample_IPoint3(data : void?;
     val = float((*reinterpret<int3?> data)[comp_idx])
 
 [plot_set(type_name="IPoint3")]
-def set_IPoint3(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_IPoint3(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 3
     return
   unsafe
@@ -1241,7 +1241,7 @@ def sample_IPoint4(data : void?;
     val = float((*reinterpret<int4?> data)[comp_idx])
 
 [plot_set(type_name="IPoint4")]
-def set_IPoint4(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_IPoint4(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 4
     return
   unsafe
@@ -1261,7 +1261,7 @@ def sample_DPoint2(data : void?;
     val = float(*(dp + comp_idx))
 
 [plot_set(type_name="DPoint2")]
-def set_DPoint2(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_DPoint2(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 2
     return
   unsafe
@@ -1280,7 +1280,7 @@ def sample_DPoint3(data : void?;
     val = float(comp_idx == 0 ? p.x : (comp_idx == 1 ? p.y : p.z))
 
 [plot_set(type_name="DPoint3")]
-def set_DPoint3(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_DPoint3(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   unsafe
     var p & = *reinterpret<DPoint3?> data
     if comp_idx == 0
@@ -1302,7 +1302,7 @@ def sample_vec4f(data : void?;
     val = (*reinterpret<float4?> data)[comp_idx]
 
 [plot_set(type_name="vec4f")]
-def set_vec4f(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_vec4f(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 4
     return
   unsafe
@@ -1322,7 +1322,7 @@ def sample_E3DCOLOR(data : void?;
     val = float(*(bp + byte_off))
 
 [plot_set(type_name="E3DCOLOR")]
-def set_E3DCOLOR(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_E3DCOLOR(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if comp_idx < 0 || comp_idx >= 4
     return
   let byte_off = comp_idx == 0 ? 2 : (comp_idx == 1 ? 1 : (comp_idx == 2 ? 0 : 3))
@@ -1346,7 +1346,7 @@ def sample_TMatrix(data : void?;
     val = m[row_idx][comp_idx]
 
 [plot_set(type_name="TMatrix")]
-def set_TMatrix(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_TMatrix(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if row_idx < 0 || row_idx >= 4 || comp_idx < 0 || comp_idx >= 3
     return
   unsafe
@@ -1369,7 +1369,7 @@ def sample_bbox3f(data : void?;
     val = v[comp_idx]
 
 [plot_set(type_name="bbox3f")]
-def set_bbox3f(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_bbox3f(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if row_idx < 0 || row_idx >= 2 || comp_idx < 0 || comp_idx >= 3
     return
   unsafe
@@ -1394,7 +1394,7 @@ def sample_BBox3(data : void?;
     val = *(fp + row_idx * 3 + comp_idx)
 
 [plot_set(type_name="BBox3")]
-def set_BBox3(data : void?; comp_idx, row_idx : int; new_val : float) : void
+def set_BBox3(var data : void?; comp_idx, row_idx : int; new_val : float) : void
   if row_idx < 0 || row_idx >= 2 || comp_idx < 0 || comp_idx >= 3
     return
   unsafe

@@ -27,7 +27,7 @@ def pk_direct(var d : float?; s : float const?) {
 
 // control: helper called with the pointer UNOFFSET — plain ExprVar arg, always propagated
 def pk_unoffset(var d : float?; s : float const?) {
-    unsafe { cpy2(d, s, 4l) }
+    cpy2(d, s, 4l)
 }
 
 def fill(var a : float[4]; base : float) {

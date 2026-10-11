@@ -1,6 +1,7 @@
 # setup for Intel(r) Implicit SPMD Program Compiler
 switch $(Platform)-$(PlatformArch) {
   case windows-arm64 : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-windows/bin/ispc.exe --arch=aarch64 ;
+  case windows-arm64ec : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-windows/bin/ispc.exe --arch=x86-64 ; # constraint: aarch64 objects cannot link into ARM64EC
   case windows-*     : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-windows/bin/ispc.exe --arch=$(PlatformArch) ;
   case linux-x86_64  : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-linux/bin/ispc ;
   case macOS-arm64   : _ISPC_COMPILER = $(_DEVTOOL)/ispc-v1.23.0-macOS.universal/bin/ispc --arch=aarch64 ;
@@ -12,7 +13,7 @@ if ! $(_ISPC_COMPILER) { # ISPC compilation is not supported for other platforms
   return ;
 }
 if ! [ GLOB $(_ISPC_COMPILER[1]:D) : $(_ISPC_COMPILER[1]:D=) ] {
-  rule CompileISPC { Exit FATAL\: \"$(_ISPC_COMPILER)\" not found!  Please, update DEVTOOLS (required for $(2)) ; }
+  rule CompileISPC { Exit "FATAL: \"$(_ISPC_COMPILER)\" not found!  Please, update DEVTOOLS (required for $(2))" ; }
   rule GatherISPCObjs { return ; }
   return ;
 }

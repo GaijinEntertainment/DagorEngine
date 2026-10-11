@@ -33,7 +33,7 @@ void fix_vhacd_faces(GeomMeshHelperDagObject &collision_object)
       Plane3 revertPlane(verts[face.v[0]], verts[face.v[1]], verts[face.v[2]]);
       const float length = revertPlane.n.length();
       revertPlane.normalize();
-      if (!check_face(verts, revertPlane, boundingSphere) && length < 1e-7)
+      if (!check_face(verts, revertPlane, boundingSphere) && length < 1e-7f)
       {
         faces.erase(faces.begin() + i--);
       }
@@ -61,7 +61,7 @@ bool is_vhacd_has_not_valid_faces(const Tab<Point3> &verts, const Tab<int> &indi
       Plane3 revertPlane(verts[indices[i]], verts[indices[i + 1]], verts[indices[i + 2]]);
       const float length = revertPlane.n.length();
       revertPlane.normalize();
-      if (!check_face(verts, revertPlane, boundingSphere) && length > 1e-7)
+      if (!check_face(verts, revertPlane, boundingSphere) && length > 1e-7f)
       {
         return true;
       }

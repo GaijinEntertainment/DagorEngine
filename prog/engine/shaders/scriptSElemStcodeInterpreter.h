@@ -166,7 +166,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       case SHCOD_IMM_REAL1: int_reg(regs, shaderopcode::getOp2p1_8(opc)) = int(shaderopcode::getOp2p2_16(opc)) << 16; break;
       case SHCOD_IMM_SVEC1:
       {
-        int *reg = get_reg_ptr<int>(regs, shaderopcode::getOp2p1_8(opc));
+        auto *reg = get_reg_ptr<int>(regs, shaderopcode::getOp2p1_8(opc));
         int v = int(shaderopcode::getOp2p2_16(opc)) << 16;
         reg[0] = reg[1] = reg[2] = reg[3] = v;
       }
@@ -193,7 +193,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         const uint32_t r2 = shaderopcode::getOp3p3(opc);
         const uint32_t r3 = shaderopcode::getData2p1(codp[1]);
         const uint32_t r4 = shaderopcode::getData2p2(codp[1]);
-        real *reg = get_reg_ptr<real>(regs, ro);
+        auto *reg = get_reg_ptr<real>(regs, ro);
         reg[0] = real_reg(regs, r1);
         reg[1] = real_reg(regs, r2);
         reg[2] = real_reg(regs, r3);
@@ -335,7 +335,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       break;
       case SHCOD_LVIEW:
       {
-        real *reg = get_reg_ptr<real>(regs, shaderopcode::getOp2p1(opc));
+        auto *reg = get_reg_ptr<real>(regs, shaderopcode::getOp2p1(opc));
         if (!tm_lview_c)
           tm_lview_c = &d3d::gettm_cref(TM_VIEW2LOCAL).col0;
         v_stu(reg, tm_lview_c[shaderopcode::getOp2p2(opc)]);
@@ -361,7 +361,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t reg = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        Sbuffer *&buf = buf_reg(regs, reg);
+        auto &buf = buf_reg(regs, reg);
         buf = shGlobalData().globVarsState.get<shaders_internal::Buf>(index).buf;
       }
       break;
@@ -369,7 +369,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t reg = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        RaytraceTopAccelerationStructure *&tlas = tlas_reg(regs, reg);
+        auto &tlas = tlas_reg(regs, reg);
         tlas = shGlobalData().globVarsState.get<RaytraceTopAccelerationStructure *>(index);
       }
       break;
@@ -456,7 +456,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       break;
       case SHCOD_TMWORLD:
       {
-        real *reg = get_reg_ptr<real>(regs, shaderopcode::getOp2p1(opc));
+        auto *reg = get_reg_ptr<real>(regs, shaderopcode::getOp2p1(opc));
         if (!tm_world_c)
           tm_world_c = &d3d::gettm_cref(TM_WORLD).col0;
         v_stu(reg, tm_world_c[shaderopcode::getOp2p2(opc)]);
@@ -514,8 +514,8 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t regDst = shaderopcode::getOp1p1(opc);
         const uint32_t regSrc = shaderopcode::getOp2p2(opc);
-        real *reg = get_reg_ptr<real>(regs, regDst);
-        const int *src = get_reg_ptr<int>(regs, regSrc);
+        auto *reg = get_reg_ptr<real>(regs, regDst);
+        const auto *src = get_reg_ptr<int>(regs, regSrc);
         reg[0] = src[0];
         reg[1] = src[1];
         reg[2] = src[2];
@@ -534,7 +534,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
-        real *reg = get_reg_ptr<real>(regs, ro);
+        auto *reg = get_reg_ptr<real>(regs, ro);
         reg[0] = *(int *)&vars[ofs];
         reg[1] = *(int *)&vars[ofs + 4];
         reg[2] = *(int *)&vars[ofs + 8];
@@ -550,7 +550,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       break;
       case SHCOD_INVERSE:
       {
-        real *r = get_reg_ptr<real>(regs, shaderopcode::getOp2p1(opc));
+        auto *r = get_reg_ptr<real>(regs, shaderopcode::getOp2p1(opc));
         r[0] = -r[0];
         if (shaderopcode::getOp2p2(opc) == 4)
           r[1] = -r[1], r[2] = -r[2], r[3] = -r[3];

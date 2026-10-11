@@ -50,8 +50,7 @@ def mixed_result(n : int) : int {
     return g_hits + n
 }
 
-// the raw generic instance is an empty void function until [constant_expression] folds the
-// argument in; a bare-auto caller must not lock its result to void off that transient state
+// until [constant_expression] folds the argument in, the raw instance is an empty void function
 [generic, constant_expression(name), unused_argument(name)]
 def get_by_name(name : string) {
     static_if (!typeinfo is_argument(name)) {

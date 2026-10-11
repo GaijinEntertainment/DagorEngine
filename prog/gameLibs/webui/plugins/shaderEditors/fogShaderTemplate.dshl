@@ -21,6 +21,11 @@ shader
   }
 
   USE_CLOUDS_BSM(cs) // Needs defines and funcs from globalHlslFunctions.hlsl
+  if (fog_shader_type == raymarch && nbs_rtss_static_shadow == on)
+  {
+    INIT_STATIC_SHADOW_RTSS(cs)
+    USE_STATIC_SHADOW_RTSS(cs)
+  }
 
   hlsl (cs) {
     #include "../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"
@@ -68,8 +73,10 @@ shader
     #undef IS_DISTANT_FOG
     #define IS_DISTANT_FOG 1
 
+    ##if nbs_rtss_static_shadow == off
     #include "../../../render/shaders/static_shadow_int.hlsl"
     #include "../../../render/shaders/static_shadow.hlsl"
+    ##endif
     #include "../../../render/volumetricLights/shaders/volfog_df_common.hlsl"
 
     // TODO: until node basd shaders have precompile support

@@ -35,7 +35,8 @@
 #include <util/dag_texMetaData.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_string.h>
-#include <util/dag_oaHashNameMap.h>
+#include <util/dag_hashedKeyMap.h>
+#include <util/dag_nameHashers.h>
 #include <3d/dag_texIdSet.h>
 #include <3d/tql.h>
 #include <shaders/dag_shaders.h>
@@ -107,12 +108,13 @@ class DDSxTexturePack2;
 
 struct TexPackRegRec
 {
-  int pathId;
   DDSxTexturePack2 *pack;
+  int pathId;
   int refCount;
 };
 
-static OAHashNameMap<true> packs_pathes;
+typedef DefaultOAHasher<true, uint64_t> PackPathHasher;
+static HashedKeyMap</*hash*/ uint64_t, /*pack_id*/ int, 0, oa_hashmap_util::MumStepHash<uint64_t>> pack_path_ids;
 static Tab<TexPackRegRec> tex_packs(inimem);
 static SmartReadWriteLock tex_packs_lock;
 struct TexPackALWr
@@ -126,7 +128,7 @@ struct TexPackALRd
   ~TexPackALRd() { tex_packs_lock.unlockRead(); }
 };
 
-static void simplify_path(const char *path, char *simplified)
+static void simplify_pack_path(const char *path, char *simplified)
 {
   strncpy(simplified, path, DAGOR_MAX_PATH - 1);
   simplified[DAGOR_MAX_PATH - 1] = '\0';
@@ -134,11 +136,11 @@ static void simplify_path(const char *path, char *simplified)
   dd_simplify_fname_c(simplified);
 }
 
-static int get_path_id(const char *path)
+static int get_pack_path_id(const char *path)
 {
   char simplified[DAGOR_MAX_PATH];
-  simplify_path(path, simplified);
-  return packs_pathes.getNameId(simplified);
+  simplify_pack_path(path, simplified);
+  return pack_path_ids.findOr(PackPathHasher::hash_data(simplified, strlen(simplified)), -1);
 }
 
 
@@ -1689,13 +1691,12 @@ bool ddsx::load_tex_pack2(const char *pack_path, int *ret_code, bool can_overrid
     return true;
   }
   char simplifiedPath[DAGOR_MAX_PATH];
-  simplify_path(pack_path, simplifiedPath);
+  simplify_pack_path(pack_path, simplifiedPath);
   const uint32_t simplifiedPathLen = strlen(simplifiedPath);
   tex_packs_lock.lockRead();
-  const uint32_t simplifiedPathHash = packs_pathes.string_hash(simplifiedPath, simplifiedPathLen);
-  int pathId = packs_pathes.getNameId(simplifiedPath, simplifiedPathLen, simplifiedPathHash);
-  ;
-  if (pathId != -1)
+  const uint64_t simplifiedPathHash = PackPathHasher::hash_data(simplifiedPath, simplifiedPathLen);
+  int pathId = pack_path_ids.findOr(simplifiedPathHash, -1);
+  if (pathId >= 0)
     for (int i = 0; i < tex_packs.size(); i++)
       if (pathId == tex_packs[i].pathId)
       {
@@ -1726,9 +1727,14 @@ bool ddsx::load_tex_pack2(const char *pack_path, int *ret_code, bool can_overrid
     return true;
   }
 
-  if (pathId == -1)
-    pathId = packs_pathes.addNameId(simplifiedPath, simplifiedPathLen, simplifiedPathHash);
-  ;
+  if (pathId < 0) // another loader may have registered it while the lock was not held
+  {
+    auto [slot, inserted] = pack_path_ids.emplace_if_missing(simplifiedPathHash);
+    if (inserted)
+      *slot = pack_path_ids.size() - 1;
+    pathId = *slot;
+  }
+
   TexPackRegRec &r = tex_packs.push_back();
   r.refCount = 1;
   r.pathId = pathId;
@@ -1752,8 +1758,8 @@ bool ddsx::release_tex_pack2(const char *pack_path, int *ret_code)
     tex_packs_lock.lockWrite();
     restore_texq_loading(intr);
   }
-  int pathId = get_path_id(pack_path);
-  if (pathId != -1)
+  int pathId = get_pack_path_id(pack_path);
+  if (pathId >= 0)
     for (int i = 0; i < tex_packs.size(); i++)
       if (pathId == tex_packs[i].pathId)
       {

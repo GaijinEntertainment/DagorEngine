@@ -5,6 +5,7 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/imguiHelper.h>
 #include "../colorChangeBuffer.h"
+#include "../controlSizeHelper.h"
 #include "../messageQueueInternal.h"
 #include "../scopedImguiBeginDisabled.h"
 #include "../tooltipHelper.h"
@@ -44,6 +45,18 @@ public:
 
   const char *getImguiTypeName() const override { return "ColorBox"; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    // The color button fills the width after the label, so give it the width of a right side edit.
+    float width = ControlSizeHelper::getDefaultRightSideEditWidth();
+    if (!controlCaption.empty())
+      width += ImGui::CalcTextSize(controlCaption.begin(), controlCaption.end()).x + ImGui::GetStyle().ItemInnerSpacing.x;
+
+    // The preview button row and the ColorEdit4 row below it.
+    const float height = ImGui::GetFrameHeight() * 2.0f + ImGui::GetStyle().ItemSpacing.y;
+    return Point2(min(width, max_width_px), height);
+  }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
@@ -52,7 +65,7 @@ public:
     if (!controlCaption.empty())
     {
       float availableWidthForLabel =
-        ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x - ImguiHelper::getDefaultRightSideEditWidth();
+        ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x - ControlSizeHelper::getDefaultRightSideEditWidth();
       if (availableWidthForLabel < 0.0f)
         availableWidthForLabel = 0.0f;
 

@@ -14,6 +14,7 @@
 #include <shaders/dag_shStateBlockBindless.h>
 #include <shaders/dag_shaderResUnitedData.h>
 #include <shaders/dag_shaderBlock.h>
+#include <shaders/dag_corSkinningChannel.h>
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraAccess.h>
@@ -355,6 +356,7 @@ static BufferProcessor::ProcessArgs build_args(uint64_t object_id, const Mesh &m
   args.colorOffset = mesh.colorOffset;
   args.indicesOffset = mesh.indicesOffset;
   args.weightsOffset = mesh.weightsOffset;
+  args.corOffset = mesh.corOffset;
   args.posMul = mesh.posMul;
   args.posAdd = mesh.posAdd;
   args.texture = mesh.albedoTextureId;
@@ -550,7 +552,7 @@ static class PrebuildMetaJob : public cpujobs::IJob
 
     auto animatedVertices = UniqueOrReferencedBVHBuffer(instance.uniqueData->buffer); //-V595
     const bool needsProcessing = [&]() {
-      for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+      for (auto &&[mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
       {
         if (!mesh.vertexProcessor)
           continue;
@@ -1663,6 +1665,7 @@ static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id,
       mesh.colorOffset = info.colorOffset;
       mesh.indicesOffset = info.indicesOffset;
       mesh.weightsOffset = info.weightsOffset;
+      mesh.corOffset = info.corOffset;
       mesh.vertexProcessor = info.vertexProcessor;
       mesh.hasSecondaryGeometry = has_secondary_geometry(info);
       const uint32_t meshGeometryIndex = geometryIndex;
@@ -2318,6 +2321,7 @@ static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget)
     if (context_id->ommEnabled)
     {
       const Mesh *missingOmm = nullptr;
+      OmmBakeSource missingOmmSource;
       {
         // One meta for each mesh, as ensureMetaAllocated allocates them. Not the per-geometry index that
         // the descriptor loop below uses.
@@ -2336,12 +2340,14 @@ static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget)
           if (mesh_should_be_skipped(mesh))
             continue;
           missingOmm = &mesh;
+          missingOmmSource = make_omm_bake_source(context_id, mesh, metaRegion[mesh.firstGeometryIndex]);
           break;
         }
       }
       if (missingOmm)
       {
-        report_omm_asset_problem(object, objectId, "dropping alpha-tested object", describe_missing_omm(context_id, *missingOmm));
+        report_omm_asset_problem(object, objectId, "dropping alpha-tested object",
+          describe_missing_omm(context_id, *missingOmm, missingOmmSource));
         iter = context_id->halfBakedObjects.erase(iter);
         batch.objectsToDestroy.push_back(objectId);
         continue;
@@ -3032,7 +3038,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
                 [] { return String(omm_failure_text(OmmFailure::InstanceAlphaSourceOverride)); });
             else if (overrideResult == OverrideOmmResult::WithholdAndReportBakeSource)
               report_withheld_dynamic_omm(mesh.notOmmCandidateLogged, object, instance.objectId,
-                [&] { return describe_missing_omm(context_id, mesh); });
+                [&] { return describe_missing_omm(context_id, mesh, ommSource); });
             break;
           }
 
@@ -3057,7 +3063,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
             // Only reads: a diagnostic must not create a cache entry or re-arm a failed bake.
             OmmCacheEntry *primaryEntry = mesh.ommEntries[OMM_PRIMARY_SLOT].get();
             report_withheld_dynamic_omm(primaryEntry ? primaryEntry->failureLogged : mesh.notOmmCandidateLogged, object,
-              instance.objectId, [&] { return describe_missing_omm(context_id, mesh); });
+              instance.objectId, [&] { return describe_missing_omm(context_id, mesh, ommSource); });
             break;
           }
         }
@@ -3087,7 +3093,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
       // Built last: the OMM resolve and the meta processing can both change what the descs link.
       eastl::fixed_vector<OmmCacheEntry *, Context::MAX_GEOMS_PER_OBJ, true> desiredOmms;
       if (context_id->ommEnabled)
-        for (uint32_t meshIndex = 0; auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+        for (uint32_t meshIndex = 0; auto &&[mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
         {
           const uint32_t meshOrdinal = meshIndex++;
           if (OmmCacheEntry *overrideEntry = overrideOmms[meshOrdinal])
@@ -3121,7 +3127,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
       // A null blas must never reach the TLAS, even when the animation logic reports no vertex update.
       needBlasBuild |= instance.uniqueData && !instance.uniqueData->blas;
 
-      for (uint32_t meshOrdinal = 0; auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+      for (uint32_t meshOrdinal = 0; auto &&[mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
       {
         const uint32_t meshIndex = meshOrdinal++;
         if (!mesh.vertexProcessor)
@@ -3349,8 +3355,10 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     ri::wait_ri_extra_instances_update(context_id);
   }
 
+  // constraint: only a context with RI runs the parallel jobs of update_instances(), and they upload RI instances only
   const parallel_instance_processing::ParallelFinishResult parallelFinishResult =
-    parallel_instance_processing::is_parallel_jobs_finished(context_id);
+    context_id->hasAny(Features::AnyRI) ? parallel_instance_processing::is_parallel_jobs_finished(context_id)
+                                        : parallel_instance_processing::ParallelFinishResult{true, true};
 
   lru_collision::update(context_id, camera_pos);
   CHECK_LOST_DEVICE_STATE();
@@ -3956,9 +3964,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   if (reallocateLruCollisionTlas && context_id->tlasLruCollision)
     context_id->tlasLruCollision.reset();
 
-  RaytraceBuildFlags tlasBuildFlags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
-  if (bvh_use_fast_tlas_build)
-    tlasBuildFlags |= RaytraceBuildFlags::FAST_BUILD;
+  const RaytraceBuildFlags tlasBuildFlags =
+    (bvh_use_fast_tlas_build ? RaytraceBuildFlags::FAST_BUILD : RaytraceBuildFlags::FAST_TRACE) | RaytraceBuildFlags::LOW_MEMORY;
 
   if (!context_id->tlasMain && context_id->tlasUploadMain)
   {
@@ -4306,9 +4313,9 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_meta_countVarId = get_shader_variable_id("bvh_meta_count");
   static int bvh_metaVarId = get_shader_variable_id("bvh_meta");
   static int bvh_per_instance_dataVarId = get_shader_variable_id("bvh_per_instance_data");
-  static int bvh_atmosphere_textureVarId = get_shader_variable_id("bvh_atmosphere_texture");
-  static int bvh_atmosphere_texture_distanceVarId = get_shader_variable_id("bvh_atmosphere_texture_distance");
-  static int bvh_paint_details_tex_slotVarId = get_shader_variable_id("bvh_paint_details_tex_slot");
+  static int bvh_atmosphere_textureVarId = get_shader_variable_id("bvh_atmosphere_texture", true);
+  static int bvh_atmosphere_texture_distanceVarId = get_shader_variable_id("bvh_atmosphere_texture_distance", true);
+  static int bvh_paint_details_tex_slotVarId = get_shader_variable_id("bvh_paint_details_tex_slot", true);
   static int bvh_land_color_tex_slotVarId = get_shader_variable_id("bvh_land_color_tex_slot", true);
   static int bvh_dynamic_mfd_color_tex_slotVarId = get_shader_variable_id("bvh_dynamic_mfd_color_tex_slot", true);
   static int bvh_dynamic_decals_atlas_tex_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_tex_slot", true);
@@ -4339,7 +4346,7 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid");
   static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid");
   static int bvh_lru_collision_validVarId = get_shader_variable_id("bvh_lru_collision_valid", true);
-  static int bvh_max_water_distanceVarId = get_shader_variable_id("bvh_max_water_distance");
+  static int bvh_max_water_distanceVarId = get_shader_variable_id("bvh_max_water_distance", true);
   static int bvh_water_fade_powerVarId = get_shader_variable_id("bvh_water_fade_power", true);
   static int bvh_max_water_depthVarId = get_shader_variable_id("bvh_max_water_depth", true);
   static int rtr_max_water_depthVarId = get_shader_variable_id("rtr_max_water_depth", true);
@@ -4550,6 +4557,7 @@ void ChannelParser::enum_shader_channel(int usage, int usage_index, int type, in
   ATTRIB(normal, vb_, SCUSAGE_NORM, 0);
   ATTRIB(indices, , SCUSAGE_EXTRA, 0);
   ATTRIB(weights, , SCUSAGE_EXTRA, 1);
+  ATTRIB(cor, , SCUSAGE_EXTRA, COR_SKINNING_EXTRA_CHANNEL);
 
   if (texcoordFormat == VSDT_SHORT2)
     texcoordFormat = BufferProcessor::bvhAttributeShort2TC;

@@ -28,4 +28,7 @@ AutoscanBuildLists $(AllSrcFolder_C) : *.c       : Sources ;
 
 Copt = -DXXH_CPU_LITTLE_ENDIAN ;
 
+# constraint: a binary that links system OpenSSL loads the system zstd, so it must not export ours
+if $(Platform) = linux && zstd in $(ExcludeStaticLibSymbols) { AddLibs += --exclude-libs,$(Target:D=) ; }
+
 include $(Root)/prog/_jBuild/build.jam ;

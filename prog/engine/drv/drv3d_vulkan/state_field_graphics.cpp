@@ -772,7 +772,7 @@ void StateFieldGraphicsExtStencilTest::dumpLog(const BackExtDynamicGraphicsState
 template <>
 void StateFieldGraphicsDynamicRenderStateIndex::applyTo(BackGraphicsStateStorage &state, BEContext &) const
 {
-  auto dynamicStateDesc = Backend::renderStateSystem.getDynamic(data);
+  const auto &dynamicStateDesc = Backend::renderStateSystem.getDynamic(data);
 
   using DBias = StateFieldGraphicsDepthBias;
   state.dynamic.set<DBias, DBias::DataType>({dynamicStateDesc.depthBias, dynamicStateDesc.slopedDepthBias});

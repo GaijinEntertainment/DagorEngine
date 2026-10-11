@@ -153,7 +153,7 @@ void writeNBSGbuffer(NBSGbuffer nbsGbuff, uint2 tc)
     BRANCH
     if (isModified(nbsGbuff.flags, SELECT_NORMAL))
     {
-      writeGbuffNormal(tc, float4(nbsGbuff.unpackedGbuffer.normal * 0.5 - 0.5, 0));
+      writeGbuffNormal(tc, float4(nbsGbuff.unpackedGbuffer.normal * 0.5 + 0.5, 0));
     }
     BRANCH
     if (isModified(nbsGbuff.flags, SELECT_MATERIAL_EXTRA))

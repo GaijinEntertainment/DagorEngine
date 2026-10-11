@@ -13,10 +13,10 @@ def write_weights_to_block(var blk : DataBlock; weights : FeatureWeights)
       node |> add("position_weight", p)
       node |> add("velocity_weight", v)
 
-  for p, v in weights.rootPositions, weights.rootDirections
-    blk |> datablock_add_new_block("point") <| $(node)
-      node |> add("position_weight", p)
-      node |> add("velocity_weight", v)
+  for p, d in weights.rootPositions, weights.rootDirections
+    blk |> datablock_add_new_block("point") <| $(point)
+      point |> add("position_weight", p)
+      point |> add("direction_weight", d)
 
 
 def serialize_node_names(var blk : DataBlock; nodes_name : StringList)
@@ -43,6 +43,10 @@ def serialize_presets(path : string; presets : TagPresetVector; nodes_name : Str
           presetBlk |> add("animationBlendTime", preset.animationBlendTime)
           presetBlk |> add("linearVelocityViscosity", preset.linearVelocityViscosity)
           presetBlk |> add("angularVelocityViscosity", preset.angularVelocityViscosity)
+          presetBlk |> add("metricaToleranceMin", preset.metricaToleranceMin)
+          presetBlk |> add("metricaToleranceMax", preset.metricaToleranceMax)
+          presetBlk |> add("metricaToleranceDecayTime", preset.metricaToleranceDecayTime)
+          presetBlk |> add("presetBlendTime", preset.presetBlendTime)
 
       datablock_save_to_text_file(blk, path)
 
@@ -170,6 +174,7 @@ def deserialize_root_motions(path : string;
 
 def serialize_root_motions(path : string;
                            rootNode : das_string;
+                           rootMotionA2dNode : das_string;
                            directionNodes : StringList;
                            directionWeights : FloatList;
                            centerOfMassNodes : StringList;
@@ -178,6 +183,7 @@ def serialize_root_motions(path : string;
   if !empty(path)
     using() <| $(var blk : DataBlock)
       blk |> add("root_node", string(rootNode))
+      blk |> add("root_motion_a2d_node", string(rootMotionA2dNode))
       blk |> datablock_add_new_block("direction_nodes") <| $(directionsBlk)
         for name, weight in directionNodes, directionWeights
           directionsBlk |> datablock_add_new_block("node") <| $(node)
@@ -186,7 +192,7 @@ def serialize_root_motions(path : string;
       blk |> datablock_add_new_block("center_of_mass") <| $(conterOfMassBlk)
         for name, params in centerOfMassNodes, centerOfMassParams
           conterOfMassBlk |> datablock_add_new_block("node") <| $(node)
-            node |> add("node", string(name))
+            node |> add("name", string(name))
             node |> add("params", params)
       datablock_save_to_text_file(blk, path)
       result = true

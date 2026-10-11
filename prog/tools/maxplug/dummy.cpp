@@ -326,7 +326,6 @@ void LinkDummy::DrawIt(GraphicsWindow *gw, TimeValue t, INode *inode, int sel, i
 void LinkDummy::GetLocalBoundBox(TimeValue t, INode *inode, ViewExp *vpt, Box3 &box)
 {
   UpdateMesh(t);
-  Matrix3 mat = Inverse(inode->GetNodeTM(t));
   float sz;
   pb_get_value(*pblock, PB_SIZE, t, sz);
   box.MakeCube(Point3(0, 0, 0), sz * 2);

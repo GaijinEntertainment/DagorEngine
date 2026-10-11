@@ -51,7 +51,7 @@ static bool dynamic_light_shadows = false;
 
 static RenderMode render_mode = RenderMode::Hard;
 
-Texture *denoised_rtsm_for_debug = nullptr;
+static Texture *denoised_rtsm_for_debug = nullptr;
 
 namespace TextureNames
 {
@@ -100,6 +100,8 @@ void initialize(RenderMode rm, bool have_dynamic_light_shadows)
 
   if (!traceDynamic)
     traceDynamic = new_compute_shader("rt_direct_lights");
+
+  denoised_rtsm_for_debug = nullptr;
 }
 
 template <typename T>
@@ -131,6 +133,7 @@ void teardown()
 
   ShaderGlobal::set_int(rtsm_bindless_slotVarId, -1);
   clean_shvars();
+  denoised_rtsm_for_debug = nullptr;
 }
 
 
@@ -245,6 +248,8 @@ eastl::optional<RTSMContext> prepare(bvh::ContextId context_id, const Point3 &li
     rtsmShadowsDenoisedTex = rtsm_shadows_denoised;
     rtsmTranslucencyTex = rtsm_translucency;
   }
+  else
+    denoised_rtsm_for_debug = rtsmValueTex;
 
   return RTSMContext{.denoiserParams = eastl::move(params),
     .resolution = resolution,
@@ -373,7 +378,8 @@ static void imguiWindow()
   if (!denoised_rtsm_for_debug)
     return;
 
-  ImGui::SliderInt("Max stabilized frame count", &max_stabilized_frame_count, 0, 7);
+  if (!denoiser::is_ray_reconstruction_enabled())
+    ImGui::SliderInt("Max stabilized frame count", &max_stabilized_frame_count, 0, 7);
   ImGuiDagor::Image(denoised_rtsm_for_debug);
 }
 

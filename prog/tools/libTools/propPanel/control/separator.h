@@ -21,6 +21,19 @@ public:
 
   const char *getImguiTypeName() const override { return "Separator"; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    // ImGui::Separator() is one pixel thick.
+    if (controlCaption.empty())
+      return Point2(0.0f, 1.0f);
+
+    // Same as the item size in ImGui::SeparatorText().
+    const ImGuiStyle &style = ImGui::GetStyle();
+    const ImVec2 labelSize = ImGui::CalcTextSize(controlCaption.c_str());
+    return Point2(min(labelSize.x + style.SeparatorTextPadding.x * 2.0f, max_width_px),
+      max(labelSize.y + style.SeparatorTextPadding.y * 2.0f, style.SeparatorTextBorderSize));
+  }
+
   void updateImgui() override
   {
     if (controlCaption.empty())

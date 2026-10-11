@@ -138,7 +138,7 @@ public:
     progress = 0;
   }
 
-  bool reset(ID3D12Device *device, debug::DeviceState &debug, eastl::wstring_view name)
+  bool reset(D3DDevice *device, debug::DeviceState &debug, eastl::wstring_view name)
   {
     reset();
     if (!DX12_CHECK_OK(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, COM_ARGS(&fence))))
@@ -219,7 +219,7 @@ class DeviceQueueGroup
   AsyncProgress<std::atomic_uint64_t> frameProgress;
 
 public:
-  bool init(ID3D12Device *device, debug::DeviceState &debug);
+  bool init(D3DDevice *device, debug::DeviceState &debug);
   void shutdown();
   DeviceQueue &operator[](DeviceQueueType type) { return group[static_cast<uint32_t>(type)]; }
   const DeviceQueue &operator[](DeviceQueueType type) const { return group[static_cast<uint32_t>(type)]; }

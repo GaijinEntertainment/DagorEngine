@@ -256,7 +256,7 @@ namespace das {
                     if ( tp->rtti_isBasicStructureAnnotation() ) {
                         auto bs = static_cast<BasicStructureAnnotation*>(tp);
                         if ( !bs->validationNeverFails ) {
-                            auto cppt = new TypeDecl(Type::tHandle);
+                            auto cppt = new TypeDecl(Type::tHandle, cppBindingLineInfo(tp->name.c_str()));
                             cppt->annotation = bs;
                             auto cppn = describeCppType(cppt);
                             logs << "//\t" << cppn << " aka " << tp->name << "\n";

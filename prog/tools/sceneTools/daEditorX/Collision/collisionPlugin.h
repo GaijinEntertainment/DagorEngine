@@ -10,7 +10,6 @@
 
 #include <libTools/staticGeom/staticGeometryContainer.h>
 
-#include <scene/dag_frtdump.h>
 #include <gameRes/dag_collisionResource.h>
 #include <util/dag_string.h>
 #include <util/dag_oaHashNameMap.h>
@@ -23,6 +22,21 @@ namespace PropPanel
 {
 class ContainerPropertyControl;
 }
+
+// the panel's two inert fields, kept with their blk keys; no cook reads them
+struct CollisionBuildSettings
+{
+  Point3 leafSize;
+  int levels;
+
+  CollisionBuildSettings() { defaults(); }
+
+  void defaults()
+  {
+    leafSize = Point3(4, 8, 4);
+    levels = 7;
+  }
+};
 
 class ICollisionDumpBuilder;
 class CollisionPropPanelClient;
@@ -125,8 +139,6 @@ public:
 
   bool recreatePanel();
   bool initCollision(bool for_game) override;
-  FastRtDump *getFrt();
-  void getFastRtDump(FastRtDump **p) override { *p = getFrt(); }
 
   // IDagorEdCustomCollider
   bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override;
@@ -136,12 +148,12 @@ public:
 public:
   bool showVcm, showDags, showVcmWire;
   bool showGameFrt;
+  float vcmRad;
 
   DataBlock mainPanelState;
 
 private:
   bool isVisible;
-  float vcmRad;
   bool mPanelVisible;
   collisionpreview::Collision collision;
   bool collisionReady;
@@ -151,8 +163,8 @@ private:
 
   int toolBarId;
   CollisionPropPanelClient *panelClient;
-  FastRtDump dagRtDump;
-  bool dagRtDumpReady;
+  Ptr<CollisionResource> dagColl;
+  bool dagCollReady;
 
   Tab<String> clipDag;
   Tab<String> clipDagNew;
@@ -187,7 +199,7 @@ private:
 
 
 //==============================================================================
-inline void CollisionPlugin::getEditorClipPath(String &path) { path = DAGORED2->getPluginFilePath(this, "editor_clip.frt.bin"); }
+inline void CollisionPlugin::getEditorClipPath(String &path) { path = DAGORED2->getPluginFilePath(this, "editor_clip.ecol.bin"); }
 
 
 //==============================================================================

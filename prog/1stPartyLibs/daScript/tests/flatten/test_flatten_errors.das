@@ -50,6 +50,10 @@ def test_flatten_boundaries(t : T?) {
         let issues = compile_issues("{get_das_root()}/tests/flatten/_err_move.das")
         t |> success(find(issues, "cannot be predicated") >= 0, "expected move/clone error, got: {issues}")
     }
+    t |> run("a whitelisted builtin writing through a by-ref argument is rejected") @(t : T?) {
+        let issues = compile_issues("{get_das_root()}/tests/flatten/_err_ref_arg.das")
+        t |> success(find(issues, "writes through by-reference argument") >= 0, "expected ref-argument error, got: {issues}")
+    }
     t |> run("over-cap loop unrolling is rejected") @(t : T?) {
         let issues = compile_issues("{get_das_root()}/tests/flatten/_err_unroll.das")
         t |> success(find(issues, "exceeds max_unroll") >= 0, "expected unroll-cap error, got: {issues}")

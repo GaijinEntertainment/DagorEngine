@@ -32,6 +32,8 @@ public:
 
   void draw();
 
+  void drawUntrackedList();
+
   void drawUI();
 
   void drawCanvas(eastl::span<const HeapIndex> heapIndicesToDisplay);
@@ -72,6 +74,7 @@ private:
   IdIndexedMapping<HeapIndex, dag::Vector<intermediate::ResourceIndex>> heapToResources;
   IdIndexedMapping<HeapIndex, int> resourceHeapSizes;
   IdIndexedMapping<HeapIndex, bool> cpuHeapFlags;
+  IdIndexedMapping<HeapIndex, bool> untrackedHeapFlags;
   IdIndexedMapping<intermediate::NodeIndex, eastl::string> nodeNames;
   struct InterestingNodes
   {

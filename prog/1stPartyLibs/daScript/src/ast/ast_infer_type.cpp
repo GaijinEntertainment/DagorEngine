@@ -3,6 +3,7 @@
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_generate.h"
 #include "daScript/ast/ast_infer_type.h"
+#include "daScript/ast/ast_pass_macros.h"
 #include "daScript/ast/ast_visitor.h"
 
 #define DAS_XSTR(s) #s
@@ -107,6 +108,7 @@ namespace das {
     InferTypes::InferTypes(const ProgramPtr &prog, TextWriter *logs_) : FoldingVisitor(prog), logs(logs_) {
         debugInferFlag = prog->options.getBoolOption("debug_infer_flag", prog->policies.debug_infer_flag);
         enableInferTimeFolding = prog->options.getBoolOption("infer_time_folding", !prog->policies.no_infer_time_folding);
+        demandFoldConstInit = !enableInferTimeFolding;
         disableAot = prog->options.getBoolOption("no_aot", false);
         noHeapArrayLiterals = prog->options.getBoolOption("no_heap_array_literals", false);
         multiContext = prog->options.getBoolOption("multiple_contexts", prog->policies.multiple_contexts);
@@ -129,10 +131,27 @@ namespace das {
         logInscopePod = prog->options.getBoolOption("log_inscope_pod", prog->policies.log_inscope_pod);
         thisModule = prog->thisModule.get();
     }
+    void InferTypes::preVisit(TypeDecl *type) {
+        Visitor::preVisit(type);
+        // A dimension has to fold before the type resolves at all, so folding is
+        // forced here even where policy disabled it. TypeDecl::visit preVisits a
+        // nested dimension without a matching visit, so the first forcing node
+        // records the restore and the enclosing type site's visit() performs it.
+        if (!enableInferTimeFolding && !foldingForcedForDim &&
+            type->baseType == Type::tFixedArray &&
+            type->fixedDim == TypeDecl::dimConst && type->fixedDimExpr) {
+            foldingForcedForDim = true;
+            enableInferTimeFolding = true;
+        }
+    }
     TypeDeclPtr InferTypes::visit(TypeDecl *type) {
         TypeDeclPtr newType = type;
         if (inferTypeExpr(newType)) {
             reportAstChanged();
+        }
+        if (foldingForcedForDim) {
+            foldingForcedForDim = false;
+            enableInferTimeFolding = false;
         }
         return newType;
     }
@@ -286,7 +305,23 @@ namespace das {
     }
     bool InferTypes::canVisitStructure(Structure *st) {
         if ( fatalAliasLoop ) return false;
-        return !st->isTemplate; // we don't do a thing with templates
+        if ( st->isTemplate ) return false; // we don't do a thing with templates
+        bool aliasLoop = false;
+        st->aliases.foreach([&](const TypeDeclPtr & atype) -> bool {
+            vector<string> visited;
+            visited.push_back(atype->alias);
+            if ( isLoop(visited, atype) ) {
+                aliasLoop = true;
+                error("alias loop detected: '" + describeType(atype) + "'", "", "",
+                      atype->at, CompilationError::recursion_type_alias);
+            }
+            return true;
+        });
+        if ( aliasLoop ) {
+            fatalAliasLoop = true;
+            return false;
+        }
+        return true;
     }
     void InferTypes::preVisit(Structure *that) {
         Visitor::preVisit(that);
@@ -308,7 +343,8 @@ namespace das {
             program->stickyError("malformed AST, structure field '" + decl.name + "' is missing its type",
                   "likely a macro-generated declaration; set its type to auto to request inference", "",
                   decl.at, CompilationError::internal_field);
-            decl.type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+            decl.type = new TypeDecl(Type::autoinfer, decl.at);  // repair in place; the sticky error still fails the compile
+            decl.type->at = decl.at;
         }
         if (decl.type->isAuto() && !decl.init) {
             error("structure field type can't be inferred, it needs an initializer", "", "",
@@ -370,6 +406,7 @@ namespace das {
             } else {
                 TypeDecl::applyAutoContracts(varT, decl.type);
                 decl.type = varT;
+                if ( !decl.type->at.fileInfo ) decl.type->at = decl.at;
                 decl.type->ref = false;
                 decl.type->sanitize();
                 reportAstChanged();
@@ -403,6 +440,13 @@ namespace das {
                         return;
                     }
                     if (rangeError) return;
+                }
+                if (!decl.type->ref) {
+                    if (auto viaAssign = promoteInitToAssign(decl.moveSemantics ? "<-" : "=", decl.type, decl.init, decl.init->at)) {
+                        decl.init = viaAssign;
+                        decl.moveSemantics = !decl.type->canCopy();
+                        return;
+                    }
                 }
                 if (!canCopyOrMoveType(decl.type, decl.init->type, TemporaryMatters::yes, decl.init,
                                        "structure field " + decl.name + " initialization type mismatch", CompilationError::invalid_initialization_type, decl.init->at)) {
@@ -474,7 +518,7 @@ namespace das {
                 getOrCreateDummy(thisModule);
             }
         }
-        auto tt = new TypeDecl(Type::tStructure);
+        auto tt = new TypeDecl(Type::tStructure, var->at);
         tt->structType = var;
         if (isCircularType(tt)) {
             var->circular = true;
@@ -491,7 +535,8 @@ namespace das {
             program->stickyError("malformed AST, global variable '" + var->name + "' is missing its type",
                   "likely a macro-generated declaration; set its type to auto to request inference", "",
                   var->at, CompilationError::internal_variable);
-            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+            var->type = new TypeDecl(Type::autoinfer, var->at);  // repair in place; the sticky error still fails the compile
+            var->type->at = var->at;
         }
         if (noUnsafeUninitializedStructs && !var->init && var->type->unsafeInit()) {
             if (!hasSafeWhenUninitialized(var->annotation)) {
@@ -559,6 +604,7 @@ namespace das {
                     }
                 }
                 var->type = varT;
+                if ( !var->type->at.fileInfo ) var->type->at = var->at;
                 var->type->sanitize();
                 reportAstChanged();
             }
@@ -571,6 +617,13 @@ namespace das {
             }
             if (rangeError) {
                 return Visitor::visitGlobalLetInit(var, init);
+            }
+            if (!var->generated && !var->init_via_clone && !var->type->ref) {
+                if (auto viaAssign = promoteInitToAssign(var->init_via_move ? "<-" : "=", var->type, var->init, var->init->at)) {
+                    var->init = viaAssign;
+                    var->init_via_move = !var->type->canCopy();
+                    return Visitor::visitGlobalLetInit(var, var->init);
+                }
             }
             if (!canCopyOrMoveType(var->type, var->init->type, TemporaryMatters::no, var->init,
                                       "global variable '" + var->name + "' initialization type mismatch", CompilationError::invalid_initialization_type, var->init->at)) {
@@ -621,7 +674,11 @@ namespace das {
             auto ivar = static_cast<ExprVar*>(var->init);
             if (ivar->isGlobalVariable() && ivar->variable->init && ivar->variable->init->rtti_isConstant()) {
                 reportAstChanged();
-                return ivar->variable->init->clone();
+                auto folded = ivar->variable->init->clone();
+                // the folded constant reports where it was read, since a C++-registered
+                // constant has no location of its own
+                stampMissingAt(folded, ivar->at);
+                return folded;
             }
         }
         if (disableInit && !var->init->rtti_isConstant()) {
@@ -693,7 +750,8 @@ namespace das {
             program->stickyError("malformed AST, function '" + f->name + "' is missing its result type",
                   "likely a macro-generated function; set result to auto to request inference", "",
                   f->at, CompilationError::internal_function);
-            f->result = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+            f->result = new TypeDecl(Type::autoinfer, f->at);  // repair in place; the sticky error still fails the compile
+            f->result->at = f->at;
         }
         for (auto it = f->arguments.begin(); it != f->arguments.end();) {
             if (*it == nullptr) {
@@ -733,7 +791,8 @@ namespace das {
             program->stickyError("malformed AST, function argument '" + var->name + "' is missing its type",
                   "likely a macro-generated declaration; set its type to auto to request inference", "",
                   var->at, CompilationError::internal_variable);
-            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+            var->type = new TypeDecl(Type::autoinfer, var->at);  // repair in place; the sticky error still fails the compile
+            var->type->at = var->at;
         }
         if (var->type->isAlias()) {
             if (auto aT = inferAlias(var->type)) {
@@ -746,6 +805,14 @@ namespace das {
         }
         if (var->type->isVoid()) {
             error("function argument type can't be declared void", "", "",
+                  var->at, CompilationError::invalid_function_argument_type);
+        }
+        // operators dispatching through fixed-operand nodes (ExprOp1/2/3) - no call site can
+        // supply or omit a default there. the `?` and `[` families lower to plain ExprCall
+        // where defaults pad legally, so they stay out of the set; mangled template products
+        // start with a backtick, properties with a dot
+        if (var->init && !fn->name.empty() && strchr("+-*/%&|^<>=!~", fn->name[0])) {
+            error("operator '" + fn->name + "' can't have default arguments", "", "",
                   var->at, CompilationError::invalid_function_argument_type);
         }
         if (var->type->ref && var->type->isRefType()) { // silently fix a : Foo& into a : Foo
@@ -772,6 +839,7 @@ namespace das {
             } else {
                 TypeDecl::applyAutoContracts(varT, arg->type);
                 arg->type = varT;
+                if ( !arg->type->at.fileInfo ) arg->type->at = arg->at;
                 arg->type->ref = false; // so that def ( a = VAR ) infers as def ( a : var_type ), not as def ( a : var_type & )
                 reportAstChanged();
                 return Visitor::visitArgumentInit(f, arg, that);
@@ -799,7 +867,7 @@ namespace das {
         // if function got no 'result', function is a void function
         if (!func->hasReturn && canFoldResult) {
             if (func->result->isAuto()) {
-                func->result = new TypeDecl(Type::tVoid);
+                func->result = new TypeDecl(Type::tVoid, func->at);
                 reportAstChanged();
             } else if (!func->result->isVoid()) {
                 error("function does not return a value", "", "",
@@ -976,11 +1044,11 @@ namespace das {
                 TypeDecl::clone(c->type, cB->bitfieldType);
                 c->type->ref = false;
             } else {
-                c->type = new TypeDecl(c->baseType);
+                c->type = new TypeDecl(c->baseType, c->at);
             }
             c->type->constant = isConstantType(c);
         } else if (c->baseType == Type::tPointer) {
-            c->type = new TypeDecl(c->baseType);
+            c->type = new TypeDecl(c->baseType, c->at);
             auto cptr = static_cast<ExprConstPtr *>(c);
             c->type->smartPtr = cptr->isSmartPtr;
             if (cptr->ptrType) {
@@ -990,7 +1058,7 @@ namespace das {
                 c->type->constant = false; // true;
             }
         } else {
-            c->type = new TypeDecl(c->baseType);
+            c->type = new TypeDecl(c->baseType, c->at);
             c->type->constant = isConstantType(c);
         }
         return Visitor::visit(c);
@@ -1020,6 +1088,7 @@ namespace das {
                     }
                 }
             }
+            if (blk->isClosure) break;
         }
         return nullptr;
     }
@@ -1140,7 +1209,7 @@ namespace das {
             // however having auto or alias in the result may cause problems, so we swap it to void
             // and then swap it back to whatever it was
             auto retT = expr->funcType->firstType;
-            expr->funcType->firstType = new TypeDecl(Type::tVoid);
+            expr->funcType->firstType = new TypeDecl(Type::tVoid, expr->at);
             if (expr->funcType->isAlias()) {
                 auto aT = inferAlias(expr->funcType);
                 if (aT) {
@@ -1158,6 +1227,9 @@ namespace das {
                 return Visitor::visit(expr);
             }
             expr->funcType->firstType = retT;
+            if (expr->funcType->isExprType()) {
+                return Visitor::visit(expr);
+            }
         }
         expr->func = nullptr;
         MatchingFunctions fns;
@@ -1174,11 +1246,13 @@ namespace das {
             expr->func = fns.back();
             expr->func->addr = true;
             expr->func->fastCall = false;
-            expr->type = new TypeDecl(Type::tFunction);
+            expr->type = new TypeDecl(Type::tFunction, expr->at);
             expr->type->firstType = new TypeDecl(*expr->func->result);
+            if ( !expr->type->firstType->at.fileInfo ) expr->type->firstType->at = expr->at;
             expr->type->argTypes.reserve(expr->func->arguments.size());
             for (auto &arg : expr->func->arguments) {
                 auto at = new TypeDecl(*arg->type);
+                if ( !at->at.fileInfo ) at->at = expr->at;
                 expr->type->argTypes.push_back(at);
                 expr->type->argNames.push_back(arg->name);
             }
@@ -1310,7 +1384,7 @@ namespace das {
                     }
                 }
             }
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = new TypeDecl(*expr->subexpr->type);
             expr->type->firstType->ref = false;
             expr->type->constant |= expr->subexpr->type->constant;
@@ -1354,8 +1428,10 @@ namespace das {
             return Visitor::visit(expr); // failed to infer
         if (!expr->defaultValue->type || expr->defaultValue->type->isAliasOrExpr())
             return Visitor::visit(expr); // failed to infer
-        if (auto opE = inferGenericOperator("??", expr->at, expr->subexpr, expr->defaultValue))
-            return opE;
+        if (!expr->no_promotion) {
+            if (auto opE = inferGenericOperator("??", expr->at, expr->subexpr, expr->defaultValue))
+                return opE;
+        }
         // infer
         expr->subexpr = Expression::autoDereference(expr->subexpr);
         auto seT = expr->subexpr->type;
@@ -1455,22 +1531,18 @@ namespace das {
                         extra += func->getLocationExtra();
                         atC = func->getConceptLocation(atC);
                     }
-                    if (verbose) {
-                        program->error(message, extra, "", atC, CompilationError::concept_failed);
-                    }
+                    program->error(message, extra, "", atC, CompilationError::concept_failed);
                 } else {
                     string extra;
                     if (func) {
                         extra = func->getLocationExtra();
                     }
-                    if (verbose) {
-                        program->error(message, extra, "", expr->at, CompilationError::static_assert_failed);
-                    }
+                    program->error(message, extra, "", expr->at, CompilationError::static_assert_failed);
                 }
             }
         }
 
-        expr->type = new TypeDecl(Type::tVoid);
+        expr->type = new TypeDecl(Type::tVoid, expr->at);
         return Visitor::visit(expr);
     }
     void InferTypes::preVisit(ExprAssert *expr) {
@@ -1504,7 +1576,7 @@ namespace das {
             error("assert comment must be string constant", "", "",
                   expr->at, CompilationError::invalid_assert_comment_type);
         }
-        expr->type = new TypeDecl(Type::tVoid);
+        expr->type = new TypeDecl(Type::tVoid, expr->at);
         return Visitor::visit(expr);
     }
     ExpressionPtr InferTypes::visit(ExprQuote *expr) {
@@ -1514,15 +1586,11 @@ namespace das {
             return Visitor::visit(expr);
         }
         // infer
-        expr->type = new TypeDecl(Type::tPointer);
-        expr->type->firstType = new TypeDecl(Type::tHandle);
+        expr->type = new TypeDecl(Type::tPointer, expr->at);
+        expr->type->firstType = new TypeDecl(Type::tHandle, expr->at);
         expr->type->firstType->annotation = (TypeAnnotation *)Module::require("ast_core")->findAnnotation("Expression");
-        // mark quote as noAot, unless daslib/quote lowering will replace it
-        // (aot_macros or jit_enabled policy, or per-module `options aot_macros` — same gate
-        // as QuotePass, including its macro-module exclusion for the jit trigger)
         if (func) {
             if (!program->policies.aot_macros
-                    && !(program->policies.jit_enabled && !program->needMacroModule)
                     && !program->options.getBoolOption("aot_macros", false)) {
                 func->noAot = true;
             }
@@ -1544,6 +1612,11 @@ namespace das {
         if (expr->arguments.size() == 2 && !expr->arguments[1]->rtti_isStringConstant()) {
             error("debug comment must be string constant", "", "",
                   expr->at, CompilationError::invalid_debug_comment_type);
+        }
+        if (expr->arguments[0]->type->isVoid()) {
+            error("void type is not allowed as argument", "", "",
+                  expr->at, CompilationError::invalid_argument_type);
+            return Visitor::visit(expr);
         }
         TypeDecl::clone(expr->type, expr->arguments[0]->type);
         return Visitor::visit(expr);
@@ -1619,7 +1692,7 @@ namespace das {
                     // arg 1 becomes cast<auto> deref(field.value)
                     auto pCast = new ExprCast();
                     pCast->at = expr->at;
-                    pCast->castType = new TypeDecl(Type::autoinfer);
+                    pCast->castType = new TypeDecl(Type::autoinfer, pCast->at);
                     pCast->subexpr = new ExprPtr2Ref(expr->at, eField->value);
                     pCast->subexpr->alwaysSafe = true;
                     expr->arguments[1] = pCast;
@@ -1663,7 +1736,7 @@ namespace das {
                                 }
                             }
                             vector<TypeDeclPtr> argTypes;
-                            auto selfType = new TypeDecl(Type::tStructure);
+                            auto selfType = new TypeDecl(Type::tStructure, func->classParent->at);
                             selfType->structType = func->classParent;
                             argTypes.push_back(selfType);
                             for (size_t i = 2; i != expr->arguments.size(); ++i) {
@@ -2049,7 +2122,7 @@ namespace das {
             if (!containerType->firstType->isSameType(*valueType, RefMatters::no, ConstMatters::no, TemporaryMatters::no))
                 error("key must be of the same type as table<key,...>", "", "",
                       expr->at, CompilationError::invalid_table_key_type);
-            expr->type = new TypeDecl(Type::tBool);
+            expr->type = new TypeDecl(Type::tBool, expr->at);
         } else {
             error("first argument must be fully qualified table", "", "",
                   expr->at, CompilationError::invalid_table_argument_type);
@@ -2081,7 +2154,7 @@ namespace das {
             if (!containerType->firstType->isSameType(*valueType, RefMatters::no, ConstMatters::no, TemporaryMatters::no))
                 error("key must be of the same type as table<key,...>", "", "",
                       expr->at, CompilationError::invalid_table_key_type);
-            expr->type = new TypeDecl(Type::tBool);
+            expr->type = new TypeDecl(Type::tBool, expr->at);
         } else {
             error("first argument must be fully qualified table", "", "",
                   expr->at, CompilationError::invalid_table_argument_type);
@@ -2113,7 +2186,7 @@ namespace das {
             if (!containerType->firstType->isSameType(*valueType, RefMatters::no, ConstMatters::no, TemporaryMatters::no))
                 error("key must be of the same type as table<key,...>", "", "",
                       expr->at, CompilationError::invalid_table_key_type);
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = new TypeDecl(*containerType->secondType);
         } else {
             error("first argument must be fully qualified table", "", "",
@@ -2147,7 +2220,7 @@ namespace das {
             if (!containerType->firstType->isSameType(*valueType, RefMatters::no, ConstMatters::no, TemporaryMatters::no))
                 error("key must be of the same type as table<key,...>", "", "",
                       expr->at, CompilationError::invalid_table_key_type);
-            expr->type = new TypeDecl(Type::tBool);
+            expr->type = new TypeDecl(Type::tBool, expr->at);
         } else {
             error("first argument must be fully qualified table", "", "",
                   expr->at, CompilationError::invalid_table_argument_type);
@@ -2170,11 +2243,13 @@ namespace das {
         }
         // generic operator
         if ( !expr->typeexpr->isAutoOrAlias() ) {
-            auto tname = das_to_string(expr->typeexpr->baseType);
-            if (auto opE = inferGenericOperator("`is`" + tname, expr->at, expr->subexpr, nullptr))
-                return opE;
-            if (auto opE = inferGenericOperatorWithName("`is", expr->at, expr->subexpr, tname))
-                return opE;
+            if (!expr->no_promotion) {
+                auto tname = das_to_string(expr->typeexpr->baseType);
+                if (auto opE = inferGenericOperator("`is`" + tname, expr->at, expr->subexpr, nullptr))
+                    return opE;
+                if (auto opE = inferGenericOperatorWithName("`is", expr->at, expr->subexpr, tname))
+                    return opE;
+            }
         } else {
             error("is " + (expr->typeexpr ? describeType(expr->typeexpr) : "...") + " can't be inferred", "", "",
                   expr->at, CompilationError::not_resolved_yet_is_expression_type);
@@ -2247,7 +2322,7 @@ namespace das {
         }
         // verify
         bool allowMissingTypeExpr = false;
-        if (expr->trait == "builtin_function_exists" || expr->trait == "builtin_module_exists") {
+        if (expr->trait == "builtin_function_exists" || expr->trait == "builtin_module_exists" || expr->trait == "module_exists") {
             allowMissingTypeExpr = true;
         }
         bool allowMissingType = false;
@@ -2398,7 +2473,7 @@ namespace das {
                     error("is argument requires subexpression", "", "",
                           expr->at, CompilationError::missing_typeinfo_subexpression);
                 } else {
-                    if (expr->subexpr->rtti_isVar()) {
+                    if (expr->subexpr->rtti_isVar() && func) {
                         auto evar = static_cast<ExprVar*>(expr->subexpr);
                         reportAstChanged();
                         return new ExprConstBool(expr->at, func->findArgument(evar->name) != nullptr);
@@ -2529,6 +2604,11 @@ namespace das {
                 reportAstChanged();
                 return new ExprConstBool(expr->at, expr->typeexpr->isVectorType());
             } else if (expr->trait == "vector_dim") {
+                if (!expr->typeexpr->isVectorType()) {
+                    error("typeinfo(vector_dim non_vector) is prohibited, " + describeType(expr->typeexpr), "", "",
+                          expr->at, CompilationError::invalid_typeinfo_dim);
+                    return Visitor::visit(expr);
+                }
                 reportAstChanged();
                 return new ExprConstInt(expr->at, expr->typeexpr->getVectorDim());
             } else if (expr->trait == "is_array") {
@@ -2650,6 +2730,7 @@ namespace das {
                     return new ExprConstBool(expr->at, ft != nullptr);
                 } else {
                     if (expr->trait == "safe_has_field") {
+                        reportAstChanged();
                         return new ExprConstBool(expr->at, false);
                     } else {
                         error("typeinfo(has_field<" + expr->subtrait + "> ...) is only defined for structures and handled types, " + describeType(expr->typeexpr), "", "",
@@ -2664,6 +2745,7 @@ namespace das {
                     return new ExprConstBool(expr->at, it != ann.end());
                 } else {
                     if (expr->trait == "struct_safe_has_annotation") {
+                        reportAstChanged();
                         return new ExprConstBool(expr->at, false);
                     } else {
                         error("typeinfo(struct_has_annotation<" + expr->subtrait + "> ...) is only defined for structures, " + describeType(expr->typeexpr), "", "",
@@ -2676,6 +2758,7 @@ namespace das {
                     auto it = find_if(ann.begin(), ann.end(), [&](const AnnotationDeclarationPtr &pa) { return pa->annotation->name == expr->subtrait; });
                     if (it == ann.end()) {
                         if (expr->trait == "struct_safe_has_annotation_argument") {
+                            reportAstChanged();
                             return new ExprConstBool(expr->at, false);
                         } else {
                             error("typeinfo(struct_has_annotation_argument<" + expr->subtrait + ";" + expr->extratrait + "> ...) annotation not found ", "", "",
@@ -2689,6 +2772,7 @@ namespace das {
                     }
                 } else {
                     if (expr->trait == "struct_safe_has_annotation_argument") {
+                        reportAstChanged();
                         return new ExprConstBool(expr->at, false);
                     } else {
                         error("typeinfo(struct_has_annotation_argument<" + expr->subtrait + "> ...) is only defined for structures, " + describeType(expr->typeexpr), "", "",
@@ -2756,13 +2840,13 @@ namespace das {
                         auto eaddr = static_cast<ExprAddr*>(expr->subexpr);
                         if (!eaddr->func) {
                             reportAstChanged();
-                            return new ExprConstBool(false);
+                            return new ExprConstBool(expr->at, false);
                         } else if (!eaddr->func->builtIn) {
                             error("builtin_function_exists of non-builtin function @@" + describeFunction(eaddr->func), "", "",
                                   expr->at, CompilationError::invalid_typeinfo_function);
                         } else {
                             reportAstChanged();
-                            return new ExprConstBool(true);
+                            return new ExprConstBool(expr->at, true);
                         }
                     } else {
                         error("unsupported mangled name subexpression ", expr->subexpr->__rtti, "",
@@ -2780,7 +2864,27 @@ namespace das {
                         // also accepts shared das modules compiled earlier in the process
                         auto mod = Module::requireEx(evar->name, true);
                         reportAstChanged();
-                        return new ExprConstBool(mod != nullptr);
+                        return new ExprConstBool(expr->at, mod != nullptr || guardModuleAvailable(evar->name));
+                    } else {
+                        error("unsupported module name subexpression ", expr->subexpr->__rtti, "",
+                              expr->at, CompilationError::invalid_typeinfo_module_subexpression);
+                    }
+                }
+            } else if (expr->trait == "module_exists") {
+                if (!expr->subexpr) {
+                    error("module_exists requires subexpression", "", "",
+                          expr->at, CompilationError::missing_typeinfo_subexpression);
+                } else {
+                    if (expr->subexpr->rtti_isVar()) {
+                        auto evar = static_cast<ExprVar*>(expr->subexpr);
+                        // visible from the compiling module - the module itself, one it requires, or one a
+                        // require re-exports public - C++ or das, promoted or not: the same answer whether
+                        // the program compiles as the running script or inside a tool's nested compile,
+                        // and "in the program somewhere" is not enough for the call the taken arm makes
+                        auto mod = program->library.findModule(evar->name);
+                        bool visible = mod && program->thisModule->isVisibleDirectly(mod);
+                        reportAstChanged();
+                        return new ExprConstBool(expr->at, visible);
                     } else {
                         error("unsupported module name subexpression ", expr->subexpr->__rtti, "",
                               expr->at, CompilationError::invalid_typeinfo_module_subexpression);
@@ -2789,13 +2893,13 @@ namespace das {
             } else if (expr->trait == "builtin_annotation_exists") {
                 if (expr->typeexpr->isAlias()) {
                     reportAstChanged();
-                    return new ExprConstBool(false);
+                    return new ExprConstBool(expr->at, false);
                 } else if (!expr->typeexpr->isHandle()) {
                     error("builtin_function_exists requires annotation type", "", "",
                           expr->at, CompilationError::invalid_typeinfo_annotation);
                 } else {
                     reportAstChanged();
-                    return new ExprConstBool(true);
+                    return new ExprConstBool(expr->at, true);
                 }
             } else {
                 auto mtis = program->findTypeInfoMacro(expr->trait);
@@ -2880,6 +2984,7 @@ namespace das {
                         reportAstChanged();
                         auto selfVar = new ExprVar(expr->at, "self");
                         auto castT = new TypeDecl(baseStruct);
+                        castT->at = expr->at;
                         auto castExpr = new ExprCast(expr->at, selfVar, castT);
                         auto newDel = new ExprDelete(expr->at, castExpr);
                         newDel->alwaysSafe = true;
@@ -2892,7 +2997,7 @@ namespace das {
                     // Struct finalize substitution via base type matches at the immediate parent
                     // even when only an ancestor defines `def operator delete`.
                     while (baseStruct) {
-                        auto baseType = new TypeDecl(Type::tStructure);
+                        auto baseType = new TypeDecl(Type::tStructure, baseStruct->at);
                         baseType->structType = baseStruct;
                         vector<TypeDeclPtr> argTypes;
                         argTypes.push_back(baseType);
@@ -2908,6 +3013,7 @@ namespace das {
                             reportAstChanged();
                             auto selfVar = new ExprVar(expr->at, "self");
                             auto castT = new TypeDecl(baseStruct);
+                            castT->at = expr->at;
                             auto castExpr = new ExprCast(expr->at, selfVar, castT);
                             auto newDel = new ExprDelete(expr->at, castExpr);
                             newDel->alwaysSafe = true;
@@ -3170,7 +3276,7 @@ namespace das {
         if (expr->ascType) {
             TypeDecl::clone(expr->type, expr->ascType);
         } else {
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = new TypeDecl(*expr->subexpr->type);
             expr->type->firstType->ref = false;
             if (expr->type->firstType->baseType == Type::tHandle) {
@@ -3222,7 +3328,9 @@ namespace das {
         // infer
         if (expr->typeexpr->isAlias()) {
             if (auto aT = findAlias(expr->typeexpr->alias)) {
+                auto nameAt = expr->typeexpr->at;
                 TypeDecl::clone(expr->typeexpr, aT);
+                expr->typeexpr->at = nameAt.fileInfo ? nameAt : expr->at;
                 expr->typeexpr->ref = false;      // drop a ref
                 expr->typeexpr->constant = false; // drop a const
                 expr->typeexpr->sanitize();
@@ -3255,14 +3363,16 @@ namespace das {
                 error("invalid syntax for 'new' of class, expected syntax: 'new " + describeType(expr->typeexpr) + "()'", "", "",
                       expr->at, CompilationError::invalid_new_class_syntax);
             }
-            auto pt = new TypeDecl(Type::tPointer);
+            auto pt = new TypeDecl(Type::tPointer, expr->at);
             pt->firstType = new TypeDecl(*baseT);
+            if ( !pt->firstType->at.fileInfo ) pt->firstType->at = expr->at;
             expr->type = wrapNewDimChain(pt);
             expr->name = baseT->structType->getMangledName();
         } else if (baseT->baseType == Type::tHandle) {
             if (baseT->annotation->canNew()) {
-                auto pt = new TypeDecl(Type::tPointer);
+                auto pt = new TypeDecl(Type::tPointer, expr->at);
                 pt->firstType = new TypeDecl(*baseT);
+                if ( !pt->firstType->at.fileInfo ) pt->firstType->at = expr->at;
                 pt->smartPtr = baseT->annotation->isSmart();
                 expr->type = wrapNewDimChain(pt);
                 expr->name = baseT->annotation->module->name + "::" + baseT->annotation->name;
@@ -3276,8 +3386,9 @@ namespace das {
                       expr->at, CompilationError::invalid_new_type);
                 return Visitor::visit(expr);
             }
-            auto pt = new TypeDecl(Type::tPointer);
+            auto pt = new TypeDecl(Type::tPointer, expr->at);
             pt->firstType = new TypeDecl(*baseT);
+            if ( !pt->firstType->at.fileInfo ) pt->firstType->at = expr->at;
             expr->type = wrapNewDimChain(pt);
             expr->name = baseT->getMangledName();
         } else if (baseT->baseType == Type::tVariant) {
@@ -3286,8 +3397,9 @@ namespace das {
                       expr->at, CompilationError::invalid_new_type);
                 return Visitor::visit(expr);
             }
-            auto pt = new TypeDecl(Type::tPointer);
+            auto pt = new TypeDecl(Type::tPointer, expr->at);
             pt->firstType = new TypeDecl(*baseT);
+            if ( !pt->firstType->at.fileInfo ) pt->firstType->at = expr->at;
             expr->type = wrapNewDimChain(pt);
             expr->name = baseT->getMangledName();
         } else {
@@ -3346,18 +3458,6 @@ namespace das {
             if (auto opE = inferGenericOperator("[]", expr->at, expr->subexpr, expr->index)) {
                 opE->alwaysSafe = expr->alwaysSafe;
                 return opE;
-            }
-        }
-        if (jitEnabled() && expr->subexpr->type->isHandle()) {
-            // If `[]` not found try looking for native `.[]`.
-            // In JIT we have `.[]` similar to `das_index` in aot.
-            auto candidates = findMatchingFunctions("*", thisModule, ".[]", {expr->subexpr->type, expr->index->type});
-            if (!candidates.empty()) {
-                reportAstChanged();
-                auto eachFn = new ExprCall(expr->at, ".[]");
-                eachFn->arguments.push_back(expr->subexpr->clone());
-                eachFn->arguments.push_back(expr->index->clone());
-                return eachFn;
             }
         }
         expr->index = Expression::autoDereference(expr->index);
@@ -3479,7 +3579,7 @@ namespace das {
                       expr->index->at, CompilationError::invalid_index_type);
                 return Visitor::visit(expr);
             } else if (seT->isVectorType()) {
-                expr->type = new TypeDecl(seT->getVectorBaseType());
+                expr->type = new TypeDecl(seT->getVectorBaseType(), expr->at);
                 expr->type->ref = seT->ref;
                 expr->type->constant = seT->constant;
             } else {
@@ -3527,7 +3627,7 @@ namespace das {
                           expr->index->at, CompilationError::invalid_table_safe_index_type);
                     return Visitor::visit(expr);
                 }
-                expr->type = new TypeDecl(Type::tPointer);
+                expr->type = new TypeDecl(Type::tPointer, expr->at);
                 expr->type->firstType = new TypeDecl(*seT->secondType);
                 expr->type->constant |= seT->constant;
             } else if (seT->isHandle()) {
@@ -3550,15 +3650,15 @@ namespace das {
                           expr->index->at, CompilationError::invalid_index_type);
                     return Visitor::visit(expr);
                 } else if (seT->isVectorType()) {
-                    expr->type = new TypeDecl(Type::tPointer);
-                    expr->type->firstType = new TypeDecl(seT->getVectorBaseType());
+                    expr->type = new TypeDecl(Type::tPointer, expr->at);
+                    expr->type->firstType = new TypeDecl(seT->getVectorBaseType(), expr->at);
                     expr->type->firstType->constant = seT->constant;
                 } else if (seT->isGoodArrayType()) {
                     if (!safeExpression(expr)) {
                         error("safe-index of array<> must be inside the 'unsafe' block", "", "",
                               expr->at, CompilationError::unsafe_array_safe_index);
                     }
-                    expr->type = new TypeDecl(Type::tPointer);
+                    expr->type = new TypeDecl(Type::tPointer, expr->at);
                     expr->type->firstType = new TypeDecl(*seT->firstType);
                     expr->type->firstType->constant |= seT->constant;
                 } else if (seT->baseType==Type::tFixedArray) {
@@ -3567,7 +3667,7 @@ namespace das {
                               expr->subexpr->at, CompilationError::not_resolved_yet_array_dimension);
                         return Visitor::visit(expr);
                     } else {
-                        expr->type = new TypeDecl(Type::tPointer);
+                        expr->type = new TypeDecl(Type::tPointer, expr->at);
                         expr->type->firstType = new TypeDecl(*seT->firstType);
                         expr->type->firstType->constant |= seT->constant;
                     }
@@ -3599,7 +3699,7 @@ namespace das {
                 return Visitor::visit(expr);
             }
             auto seT = expr->subexpr->type;
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = new TypeDecl(*seT->firstType);
             expr->type->firstType->constant |= seT->constant;
         } else if (expr->subexpr->type->isGoodTableType()) {
@@ -3618,7 +3718,7 @@ namespace das {
                       expr->index->at, CompilationError::cant_safe_index_table);
                 return Visitor::visit(expr);
             }
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = new TypeDecl(*seT->secondType);
             expr->type->constant |= seT->constant;
         } else if (expr->subexpr->type->baseType==Type::tFixedArray) {
@@ -3636,7 +3736,7 @@ namespace das {
                 error("type dimensions are not resolved yet: '" + describeType(seT) + "'", "", "",
                       expr->subexpr->at, CompilationError::not_resolved_yet_array_dimension);
             }
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = new TypeDecl(*seT->firstType);
             expr->type->firstType->constant |= seT->constant;
         } else if (expr->subexpr->type->isVectorType() && expr->subexpr->type->isRef()) {
@@ -3646,8 +3746,8 @@ namespace das {
                 return Visitor::visit(expr);
             }
             const auto &seT = expr->subexpr->type;
-            expr->type = new TypeDecl(Type::tPointer);
-            expr->type->firstType = new TypeDecl(seT->getVectorBaseType());
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
+            expr->type->firstType = new TypeDecl(seT->getVectorBaseType(), expr->at);
             expr->type->firstType->constant = seT->constant;
         } else {
             error("type can't be safe-indexed: '" + describeType(expr->subexpr->type) + "'", "", "",
@@ -3702,7 +3802,8 @@ namespace das {
             program->stickyError("malformed AST, block argument '" + var->name + "' is missing its type",
                   "likely a macro-generated declaration; set its type to auto to request inference", "",
                   var->at, CompilationError::internal_variable);
-            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+            var->type = new TypeDecl(Type::autoinfer, var->at);  // repair in place; the sticky error still fails the compile
+            var->type->at = var->at;
         }
         if (!var->can_shadow && !program->policies.allow_block_variable_shadowing) {
             if (func) {
@@ -3836,8 +3937,8 @@ namespace das {
                 }
             }
             if (!block->hasReturn && canFoldResult && block->type->isAuto()) {
-                block->returnType = new TypeDecl(Type::tVoid);
-                block->type = new TypeDecl(Type::tVoid);
+                block->returnType = new TypeDecl(Type::tVoid, block->at);
+                block->type = new TypeDecl(Type::tVoid, block->at);
                 setBlockCopyMoveFlags(block);
                 reportAstChanged();
             }
@@ -3889,7 +3990,7 @@ namespace das {
         } else {
             auto bt = valT->getVectorBaseType();
             auto rt = valT->isRange() ? TypeDecl::getRangeType(bt, int(expr->fields.size())) : TypeDecl::getVectorType(bt, int(expr->fields.size()));
-            expr->type = new TypeDecl(rt);
+            expr->type = new TypeDecl(rt, expr->at);
             expr->type->constant = valT->constant;
             expr->type->ref = valT->ref;
             if (expr->type->ref) {
@@ -3904,30 +4005,18 @@ namespace das {
     ExpressionPtr InferTypes::visit(ExprAsVariant *expr) {
         if (!expr->value->type || expr->value->type->isAliasOrExpr())
             return Visitor::visit(expr);
-        // implement variant macros
-        ExpressionPtr substitute = nullptr;
-        auto modMacro = [&](Module *mod) -> bool {
-            if (thisModule->isVisibleDirectly(mod) && mod != thisModule) {
-                for (const auto &pm : mod->variantMacros) {
-                    if ((substitute = pm->visitAs(program, thisModule, expr))) {
-                        return false;
-                    }
-                }
+        if (!expr->no_promotion) {
+            // implement variant macros
+            if (auto substitute = runVariantMacros([&](const auto & pm){ return pm->visitAs(program, thisModule, expr); })) {
+                reportAstChanged();
+                return substitute;
             }
-            return true;
-        };
-        Module::foreach (modMacro);
-        if (!substitute)
-            program->library.foreach (modMacro, "*");
-        if (substitute) {
-            reportAstChanged();
-            return substitute;
+            // generic operator
+            if (auto opE = inferGenericOperator("`as`" + expr->name, expr->at, expr->value, nullptr))
+                return opE;
+            if (auto opE = inferGenericOperatorWithName("`as", expr->at, expr->value, expr->name))
+                return opE;
         }
-        // generic operator
-        if (auto opE = inferGenericOperator("`as`" + expr->name, expr->at, expr->value, nullptr))
-            return opE;
-        if (auto opE = inferGenericOperatorWithName("`as", expr->at, expr->value, expr->name))
-            return opE;
         // regular infer
         auto valT = expr->value->type;
         if (!valT->isGoodVariantType()) {
@@ -3951,33 +4040,21 @@ namespace das {
     ExpressionPtr InferTypes::visit(ExprSafeAsVariant *expr) {
         if (!expr->value->type || expr->value->type->isAliasOrExpr())
             return Visitor::visit(expr);
-        // implement variant macros
-        ExpressionPtr substitute = nullptr;
-        auto modMacro = [&](Module *mod) -> bool {
-            if (thisModule->isVisibleDirectly(mod) && mod != thisModule) {
-                for (const auto &pm : mod->variantMacros) {
-                    if ((substitute = pm->visitSafeAs(program, thisModule, expr))) {
-                        return false;
-                    }
-                }
+        if (!expr->no_promotion) {
+            // implement variant macros
+            if (auto substitute = runVariantMacros([&](const auto & pm){ return pm->visitSafeAs(program, thisModule, expr); })) {
+                reportAstChanged();
+                return substitute;
             }
-            return true;
-        };
-        Module::foreach (modMacro);
-        if (!substitute)
-            program->library.foreach (modMacro, "*");
-        if (substitute) {
-            reportAstChanged();
-            return substitute;
-        }
-        // generic operator
-        if (auto opE = inferGenericOperator("?as`" + expr->name, expr->at, expr->value, nullptr)) {
-            reportAstChanged();
-            return opE;
-        }
-        if (auto opE = inferGenericOperatorWithName("?as", expr->at, expr->value, expr->name)) {
-            reportAstChanged();
-            return opE;
+            // generic operator
+            if (auto opE = inferGenericOperator("?as`" + expr->name, expr->at, expr->value, nullptr)) {
+                reportAstChanged();
+                return opE;
+            }
+            if (auto opE = inferGenericOperatorWithName("?as", expr->at, expr->value, expr->name)) {
+                reportAstChanged();
+                return opE;
+            }
         }
         // regular infer
         if (!expr->value->type->isPointer() && !safeExpression(expr)) {
@@ -4004,7 +4081,7 @@ namespace das {
         expr->skipQQ = expr->type->isPointer();
         if (!expr->skipQQ) {
             auto fieldType = expr->type;
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = fieldType;
         }
         expr->type->constant |= valT->constant || expr->value->type->constant;
@@ -4014,30 +4091,18 @@ namespace das {
     ExpressionPtr InferTypes::visit(ExprIsVariant *expr) {
         if (!expr->value->type || expr->value->type->isAliasOrExpr())
             return Visitor::visit(expr);
-        // implement variant macros
-        ExpressionPtr substitute = nullptr;
-        auto modMacro = [&](Module *mod) -> bool {
-            if (thisModule->isVisibleDirectly(mod) && mod != thisModule) {
-                for (const auto &pm : mod->variantMacros) {
-                    if ((substitute = pm->visitIs(program, thisModule, expr))) {
-                        return false;
-                    }
-                }
+        if (!expr->no_promotion) {
+            // implement variant macros
+            if (auto substitute = runVariantMacros([&](const auto & pm){ return pm->visitIs(program, thisModule, expr); })) {
+                reportAstChanged();
+                return substitute;
             }
-            return true;
-        };
-        Module::foreach (modMacro);
-        if (!substitute)
-            program->library.foreach (modMacro, "*");
-        if (substitute) {
-            reportAstChanged();
-            return substitute;
+            // generic operator
+            if (auto opE = inferGenericOperator("`is`" + expr->name, expr->at, expr->value, nullptr))
+                return opE;
+            if (auto opE = inferGenericOperatorWithName("`is", expr->at, expr->value, expr->name))
+                return opE;
         }
-        // generic operator
-        if (auto opE = inferGenericOperator("`is`" + expr->name, expr->at, expr->value, nullptr))
-            return opE;
-        if (auto opE = inferGenericOperatorWithName("`is", expr->at, expr->value, expr->name))
-            return opE;
         // regular infer
         auto valT = expr->value->type;
         if (!valT->isGoodVariantType()) {
@@ -4052,7 +4117,7 @@ namespace das {
             return Visitor::visit(expr);
         }
         expr->fieldIndex = index;
-        expr->type = new TypeDecl(Type::tBool);
+        expr->type = new TypeDecl(Type::tBool, expr->at);
         return Visitor::visit(expr);
     }
     ExpressionPtr InferTypes::visit(ExprField *expr) {
@@ -4163,10 +4228,8 @@ namespace das {
                         error("'" + var->name + "' is ambiguous", tw.str(), "",
                               expr->at, CompilationError::ambiguous_field);
                     } else {
-                        if (verbose) {
-                            error("Don't know what '" + var->name + "' is", "", "",
-                              expr->at, CompilationError::lookup_field);
-                        }
+                        error("Don't know what '" + var->name + "' is", "", "",
+                          expr->at, CompilationError::lookup_field);
                     }
                 }
             }
@@ -4233,7 +4296,9 @@ namespace das {
         } else {
             if (valT->isVectorType()) {
                 reportAstChanged();
-                return new ExprSwizzle(expr->at, expr->value, expr->name);
+                auto swz = new ExprSwizzle(expr->at, expr->value, expr->name);
+                swz->no_promotion = expr->no_promotion; // v!.xyz must keep printing (and re-parsing) as the raw form
+                return swz;
             } else if (valT->isBitfield()) {
                 expr->value = Expression::autoDereference(expr->value);
                 valT = expr->value->type;
@@ -4312,7 +4377,7 @@ namespace das {
             }
         } else if (expr->fieldIndex != -1) {
             if (valT->isBitfield()) {
-                expr->type = new TypeDecl(Type::tBool);
+                expr->type = new TypeDecl(Type::tBool, expr->at);
             } else {
                 auto tupleT = valT->isPointer() ? valT->firstType : valT;
                 auto & tt = tupleT->argTypes[expr->fieldIndex];
@@ -4332,7 +4397,7 @@ namespace das {
                 collectMissingOperators(".", mf, true);
                 if (!mf.empty()) {
                     reportDualFunctionNotFound(".`" + expr->name, "field '" + expr->name + "' not found in " + describeType(valT),
-                                               expr->at, mf, {valT}, {valT, new TypeDecl(Type::tString)}, true, false, true,
+                                               expr->at, mf, {valT}, {valT, new TypeDecl(Type::tString, expr->at)}, true, false, true,
                                                CompilationError::cant_get_field, 0, "");
                 } else {
                     error("field '" + expr->name + "' not found in " + describeType(valT), "", "",
@@ -4366,7 +4431,7 @@ namespace das {
                 collectMissingOperators("?.", mf, true);
                 if (!mf.empty()) {
                     reportDualFunctionNotFound("?.`" + expr->name, "can only safe dereference a variant or a pointer to a tuple, a structure or a handle " + describeType(valT),
-                                               expr->at, mf, {expr->value->type}, {expr->value->type, new TypeDecl(Type::tString)}, true, false, true,
+                                               expr->at, mf, {expr->value->type}, {expr->value->type, new TypeDecl(Type::tString, expr->at)}, true, false, true,
                                                CompilationError::invalid_safe_dereference_type, 0, "");
                 } else {
                     error("can only safe dereference a variant or a pointer to a tuple, a structure or a handle " + describeType(valT), "", "",
@@ -4433,7 +4498,7 @@ namespace das {
         expr->skipQQ = expr->type->isPointer();
         if (!expr->skipQQ) {
             auto fieldType = expr->type;
-            expr->type = new TypeDecl(Type::tPointer);
+            expr->type = new TypeDecl(Type::tPointer, expr->at);
             expr->type->firstType = fieldType;
         }
         expr->type->constant |= valT->constant;
@@ -4551,6 +4616,9 @@ namespace das {
                 return Visitor::visit(expr);
             }
             expr->variable = var;
+            if (var->type->isExprType()) {
+                return Visitor::visit(expr);
+            }
             TypeDecl::clone(expr->type, var->type);
             expr->type->ref = true;
             return Visitor::visit(expr);
@@ -4769,6 +4837,19 @@ namespace das {
                   expr->at, CompilationError::invalid_continue);
         return Visitor::visit(expr);
     }
+    struct MarkNamedVariablesUsed : Visitor {
+        Function * func = nullptr;
+        vector<VariablePtr> * local = nullptr;
+        virtual void preVisit(ExprVar * expr) override {
+            Visitor::preVisit(expr);
+            for (auto & arg : func->arguments) {
+                if (arg->name == expr->name) arg->marked_used = true;
+            }
+            for (auto & var : *local) {
+                if (var->name == expr->name) var->marked_used = true;
+            }
+        }
+    };
     bool InferTypes::canVisitIfSubexpr(ExprIfThenElse *expr) {
         if (expr->isStatic) {
             // static_if prevents normal resolve flow
@@ -4826,6 +4907,15 @@ namespace das {
             if (auto constCond = getConstExpr(expr->cond)) {
                 reportAstChanged();
                 auto condR = static_cast<ExprConstBool*>(constCond)->getValue();
+                if (expr->isStatic && func) {
+                    auto & dropped = condR ? expr->if_false : expr->if_true;
+                    if (dropped) {
+                        MarkNamedVariablesUsed mark;
+                        mark.func = func;
+                        mark.local = &local;
+                        dropped->visit(mark);
+                    }
+                }
                 if (condR) {
                     return expr->if_true;
                 } else {
@@ -5210,11 +5300,11 @@ namespace das {
                 pVar->type = new TypeDecl(*src->type->firstType);
                 pVar->type->ref = true;
             } else if (src->type->isRange()) {
-                pVar->type = new TypeDecl(src->type->getRangeBaseType());
+                pVar->type = new TypeDecl(src->type->getRangeBaseType(), pVar->at);
                 pVar->type->ref = false;
                 pVar->type->constant = true;
             } else if (src->type->isString()) {
-                pVar->type = new TypeDecl(Type::tInt);
+                pVar->type = new TypeDecl(Type::tInt, pVar->at);
                 pVar->type->ref = false;
                 pVar->type->constant = true;
             } else if (src->type->isHandle() && src->type->annotation->isIterable()) {
@@ -5270,7 +5360,9 @@ namespace das {
                     error("for loop iterator variable " + pVar->name + " is not a tuple", "", "",
                           expr->at, CompilationError::invalid_for_iterator_tuple);
                 } else {
-                    expandTupleName(pVar->name, pVar->at);
+                    // the for-loop sibling checks two screens up report iterator shadowing
+                    // as already_declared_variable - keep the destructured form on the same code
+                    expandTupleName(pVar->name, pVar->at, pVar->can_shadow, CompilationError::already_declared_variable);
                 }
             }
             ++idx;
@@ -5282,19 +5374,8 @@ namespace das {
         markNoDiscard(that);
     }
     ExpressionPtr InferTypes::visitForSource(ExprFor *expr, Expression *that, bool last) {
-        if (jitEnabled() && that->type && ((that->type->isHandle() && that->type->annotation->isIterable()) || (that->type->isString()))) {
-            auto fnc = findMatchingFunctions("*", thisModule, "each", {that->type});
-            // If there's any `each` for handle type use it, otherwise
-            // stay in interpreter.
-            if (!fnc.empty()) {
-                reportAstChanged();
-                auto eachFn = new ExprCall(expr->at, "each");
-                eachFn->arguments.push_back(that->clone());
-                return eachFn;
-            }
-        }
         // now, for the one where we did not find anything
-        if (that->type) {
+        if (that->type && !that->type->isExprType()) {
             if (that->type->baseType != Type::tFixedArray &&
                 !that->type->isGoodIteratorType() &&
                 !that->type->isGoodArrayType() &&
@@ -5333,6 +5414,8 @@ namespace das {
                 return Visitor::visit(expr);
             } else if (expr->iteratorVariables.size() != expr->sources.size()) {
                 return Visitor::visit(expr);
+            } else if (!expr->body) {
+                return Visitor::visit(expr);
             }
             // only topmost
             //  which in case of generator is 2, due to
@@ -5343,6 +5426,11 @@ namespace das {
             uint32_t tf = expr->body->getEvalFlags();
             if (tf & EvalFlags::yield) { // only unwrap if it has "yield"
                 auto blk = replaceGeneratorFor(expr, func);
+                if (!blk) {
+                    error("generator for is not fully inferred yet", "", "",
+                          expr->at, CompilationError::not_resolved_yet_block);
+                    return Visitor::visit(expr);
+                }
                 scopes.back()->needCollapse = true;
                 reportAstChanged();
                 return blk;
@@ -5400,7 +5488,8 @@ namespace das {
             program->stickyError("malformed AST, variable '" + var->name + "' is missing its type",
                   "likely a macro-generated declaration; set its type to auto to request inference", "",
                   var->at, CompilationError::internal_variable);
-            var->type = new TypeDecl(Type::autoinfer);  // repair in place; the sticky error still fails the compile
+            var->type = new TypeDecl(Type::autoinfer, var->at);  // repair in place; the sticky error still fails the compile
+            var->type->at = var->at;
         }
         if (var->type && var->type->isExprType()) {
             return;
@@ -5641,6 +5730,7 @@ namespace das {
                     }
                 }
                 var->type = varT;
+                if ( !var->type->at.fileInfo ) var->type->at = var->at;
                 var->type->sanitize();
                 reportAstChanged();
             }
@@ -5653,6 +5743,13 @@ namespace das {
             }
             if (rangeError) {
                 return Visitor::visitLetInit(expr, var, init);
+            }
+            if (!var->generated && !var->init_via_clone && !var->type->ref) {
+                if (auto viaAssign = promoteInitToAssign(var->init_via_move ? "<-" : "=", var->type, var->init, var->at)) {
+                    var->init = viaAssign;
+                    var->init_via_move = !var->type->canCopy();
+                    return Visitor::visitLetInit(expr, var, var->init);
+                }
             }
             if (!canCopyOrMoveType(var->type, var->init->type, TemporaryMatters::no, var->init,
                                       "local variable " + var->name + " initialization type mismatch", CompilationError::invalid_initialization_type, var->at)) {
@@ -5759,7 +5856,7 @@ namespace das {
                     error("expansion of " + var->name + " should be tuple", "", "",
                           var->at, CompilationError::invalid_local_tuple_expansion);
                 }
-                expandTupleName(var->name, var->at);
+                expandTupleName(var->name, var->at, var->can_shadow);
             }
         }
         return Visitor::visit(expr);
@@ -6059,7 +6156,7 @@ namespace das {
         if (func && func->isClassMethod && func->classParent && expr->name == "super") {
             if (auto baseClass = func->classParent->parent) {
                 vector<TypeDeclPtr> argumentTypes;
-                auto selfType = new TypeDecl(Type::tStructure);
+                auto selfType = new TypeDecl(Type::tStructure, func->classParent->at);
                 selfType->structType = func->classParent;
                 argumentTypes.reserve(1 + expr->arguments.size());
                 argumentTypes.push_back(selfType);
@@ -6121,6 +6218,7 @@ namespace das {
                 return Visitor::visit(expr);
             }
             auto ecast = new ExprCast(expr->at, expr->clone(), new TypeDecl(*expr->aliasSubstitution));
+            if ( !ecast->castType->at.fileInfo ) ecast->castType->at = expr->at;
             ecast->reinterpret = true;
             ecast->alwaysSafe = true;
             expr->aliasSubstitution = nullptr;
@@ -6141,6 +6239,7 @@ namespace das {
                     } else {
                         auto mks = new ExprMakeStruct(expr->at);
                         mks->makeType = new TypeDecl(*aliasT);
+                        if ( !mks->makeType->at.fileInfo ) mks->makeType->at = expr->at;
                         return mks;
                     }
                 } else if (aliasT->isDistinct()) {
@@ -6163,6 +6262,8 @@ namespace das {
                     }
                     reportAstChanged();
                     auto ecast = new ExprCast(expr->at, expr->arguments[0]->clone(), new TypeDecl(*aliasT));
+                    if ( !ecast->castType->at.fileInfo ) ecast->castType->at = expr->at;
+                    if ( ecast->castType->firstType && !ecast->castType->firstType->at.fileInfo ) ecast->castType->firstType->at = expr->at;
                     ecast->reinterpret = true;
                     ecast->alwaysSafe = true;
                     return ecast;
@@ -6171,6 +6272,7 @@ namespace das {
                     reportAstChanged();
                     auto mks = new ExprMakeStruct(expr->at);
                     mks->makeType = new TypeDecl(*aliasT);
+                    if ( !mks->makeType->at.fileInfo ) mks->makeType->at = expr->at;
                     mks->useInitializer = true;
                     mks->alwaysUseInitializer = true;
                     return mks;
@@ -6352,31 +6454,14 @@ namespace das {
         }
     }
     ExpressionPtr InferTypes::visit(ExprStringBuilder *expr) {
-        expr->type = new TypeDecl(Type::tString);
+        expr->type = new TypeDecl(Type::tString, expr->at);
         return evalAndFoldStringBuilder(expr);
-    }
-
-    // try infer, if failed - no macros
-    // run macros til any of them does work, then reinfer and restart (i.e. infer after each macro)
-    static bool applyPreInferMacros ( Program * program ) {
-        auto nErr = program->errors.size();
-        // program->library, not Module::foreach: the latter walks every module in the
-        // process, so a nested compile would run macros from an unrelated program
-        program->library.foreach([&](Module * mod) -> bool {
-            for ( const auto & pm : mod->preInferMacros ) {
-                pm->apply(program, program->thisModule.get());
-            }
-            return true;
-        }, "*");
-        // the next pass clears program->errors, so a violation has to stop the loop
-        return program->errors.size() == nErr;
     }
 
     void inferTypes(Program * program, TextWriter &logs, ModuleGroup &libGroup) {
         program->newLambdaIndex = 1;
         // inferPassesUsed is NOT reset here — parseDaScript resets it once per module
         // before the restartInfer: loop, so multiple inferTypes legs accumulate properly.
-        applyPreInferMacros(program);
         inferTypesDirty(program, logs, false);
         bool anyMacrosDidWork = false;
         bool anyMacrosFailedToInfer = false;
@@ -6398,7 +6483,8 @@ namespace das {
                             return false;
                         }
                         if (anyWork) { // if macro did anything, we done
-                            applyPreInferMacros(program);
+                            applyPostRewriteMacros(program);
+                            if (program->failed()) return false;
                             program->reportingInferErrors = true;
                             inferTypesDirty(program, logs, true);
                             program->reportingInferErrors = false;
@@ -6456,6 +6542,7 @@ namespace das {
     }
 
     void inferTypesDirty(Program * program, TextWriter &logs, bool verbose) {
+        program->astChanged();
         int pass = 0;
         int32_t maxInferPasses = program->options.getIntOption("max_infer_passes", program->policies.max_infer_passes);
         bool logInferPasses = program->options.getBoolOption("log_infer_passes", false);
@@ -6463,10 +6550,9 @@ namespace das {
             logs << "INITIAL CODE:\n"
                  << *program;
         }
-        // Per-pass collect+swap: infer mints a lot of throwaway TypeDecls/Expressions. When a
-        // pass grows the working root enough, collect the live tree into a fresh root and swap
-        // it in (O(1)); the old root's dtor sweeps that pass's garbage. Fire when growth since
-        // the last collect crosses a node threshold (~2 MB) OR a fraction of the live set.
+        // Per-pass collect+swap fires when growth since the last collect crosses a fraction of
+        // the live set, with a node floor (~2 MB) for small modules: a collect walks the whole
+        // live set, so it must reclaim a matching share.
         bool gcInferCollect = program->options.getBoolOption("gc_infer_collect", program->policies.gc_infer_collect);
         int32_t gcInferNodes = program->options.getIntOption("gc_infer_collect_nodes", program->policies.gc_infer_collect_nodes);
         int32_t gcInferPct = program->options.getIntOption("gc_infer_collect_pct", program->policies.gc_infer_collect_pct);
@@ -6489,8 +6575,8 @@ namespace das {
             if ( gcInferCollect && pass > 0 ) {
                 uint64_t curCount = gc_root::gc_get_active_root()->gc_count;
                 uint64_t grown = curCount >= gcLastCount ? curCount - gcLastCount : 0;
-                bool fire = grown >= uint64_t(gcInferNodes)
-                         || ( gcLastCount && grown * 100 >= gcLastCount * uint64_t(gcInferPct) );
+                uint64_t threshold = das::max(uint64_t(gcInferNodes), gcLastCount * uint64_t(gcInferPct) / 100);
+                bool fire = grown >= threshold;
                 if ( gcInferLog ) {
                     logs << "[gc-infer] " << program->thisModule->name << " pass " << pass
                          << " live=" << curCount << " grown=" << grown
@@ -6505,9 +6591,6 @@ namespace das {
             program->inferPassesUsed++;   // count each body invocation; avoids undercount when loop breaks early (pass is 0-based)
             program->failToCompile = false;
             program->errors.clear();
-            if (!applyPreInferMacros(program)) {
-                break;
-            }
             InferTypes context(program, &logs);
             context.verbose = verbose || logInferPasses;
             program->visit(context);
@@ -6532,7 +6615,10 @@ namespace das {
             auto modMacro = [&](Module *mod) -> bool {
                 if (program->thisModule->isVisibleDirectly(mod) && mod != program->thisModule.get()) {
                     for (const auto &pm : mod->inferMacros) {
-                        anyMacrosDidWork |= pm->apply(program, program->thisModule.get());
+                        if ( pm->apply(program, program->thisModule.get()) ) {
+                            anyMacrosDidWork = true;
+                            applyPostRewriteMacros(program);
+                        }
                     }
                 }
                 return true;

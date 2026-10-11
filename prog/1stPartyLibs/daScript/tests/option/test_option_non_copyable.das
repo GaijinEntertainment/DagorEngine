@@ -102,7 +102,7 @@ def test_map(t : T?) {
 [test]
 def test_filter(t : T?) {
     t |> run("filter keeps matching some") @(t : T?) {
-        let f = some(make_arr(1, 2)) |> filter($(v : array<int>) => length(v) > 0)
+        let f = some(make_arr(1, 2)) |> filter($(v : array<int>) => !empty(v))
         t |> success(f._has_value)
     }
 

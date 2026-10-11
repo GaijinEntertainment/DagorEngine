@@ -33,7 +33,7 @@ CONSOLE_BOOL_VAL("render", stationary_rt_trees, false);
 #define ENABLE_HAS_COLLISION_DEBUG 0
 
 #if ENABLE_HAS_COLLISION_DEBUG
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 struct TreeMappingData
 {
@@ -44,14 +44,14 @@ struct TreeMappingData
   TMatrix tm;
 };
 
-static std::mutex treeMappingDebugMutex;
+static dag::mutex treeMappingDebugMutex;
 static eastl::unordered_map<uint64_t, TreeMappingData> treeMappingDebug[bvh::Context::maxUniqueLods];
 
 uint64_t tree_mapping_debug_key = 0;
 
 void start_new_tree_mapping_debug_frame()
 {
-  std::lock_guard<std::mutex> lock(treeMappingDebugMutex);
+  dag::lock_guard lock(treeMappingDebugMutex);
   for (auto &bucket : treeMappingDebug)
     bucket.clear();
 }
@@ -61,7 +61,7 @@ void check_tree_mapping_debug(uint64_t key, uint64_t object_id, const Point4 &po
   if (key == tree_mapping_debug_key)
     logdbg("");
 
-  std::lock_guard<std::mutex> lock(treeMappingDebugMutex);
+  dag::lock_guard lock(treeMappingDebugMutex);
 
   auto &bucket = treeMappingDebug[lod_ix];
   auto iter = bucket.find(key);

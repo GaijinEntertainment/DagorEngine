@@ -112,6 +112,9 @@ struct MilkshapeAnimTrack
 
   Point3 interp(float time)
   {
+    if (!keys.Count())
+      return Point3(0, 0, 0);
+
     int i;
     for (i = 0; i < keys.Count(); ++i)
       if (time < keys[i].time)
@@ -129,6 +132,9 @@ struct MilkshapeAnimTrack
 
   Quat interpRot(float time)
   {
+    if (!keys.Count())
+      return Quat(0.f, 0.f, 0.f, 1.f);
+
     int i;
     for (i = 0; i < keys.Count(); ++i)
       if (time < keys[i].time)
@@ -173,7 +179,7 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
   const int LINELEN = 1024;
   char str[LINELEN];
 
-  int numBones = 0;
+  int numBones = -1;
 
   Tab<TCHAR> missingNodes;
 
@@ -182,31 +188,34 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
     if (sscanf(str, "Bones: %d", &numBones) == 1)
       break;
 
-  char name[256] = "", parentName[256];
+  if (numBones < 0)
+  {
+    fclose(fh);
+    MessageBox(hpanel, L"The file has no valid \"Bones:\" count", L"Milkshape animation import", MB_OK);
+    return;
+  }
+
+  char name[256] = "";
 
   int errLine = 0;
 
-  std::vector<MilkshapeNodeAnim> bones(numBones);
+  std::vector<MilkshapeNodeAnim> bones;
 
   float minTime = 1e30f, maxTime = -1e30f;
 
   int boneInd;
   for (boneInd = 0; boneInd < numBones; ++boneInd)
   {
-    MilkshapeNodeAnim &anim = bones[boneInd];
+    MilkshapeNodeAnim &anim = bones.emplace_back();
 
     errLine = __LINE__;
     if (!fgets(str, LINELEN, fh))
       break;
-    if (sscanf(str, "\"%[^\"]\"", name) != 1)
+    if (sscanf(str, "\"%255[^\"]\"", name) != 1)
       break;
 
     errLine = __LINE__;
     if (!fgets(str, LINELEN, fh))
-      break;
-    if (strncmp(str, "\"\"", 2) == 0)
-      strcpy(parentName, "");
-    else if (sscanf(str, "\"%[^\"]\"", parentName) != 1)
       break;
 
     anim.name = strToWide(name).c_str();
@@ -229,16 +238,15 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
     errLine = __LINE__;
     if (!fgets(str, LINELEN, fh))
       break;
-    if (parse_spaced_nums(str, num) != 1)
+    if (parse_spaced_nums(str, num) != 1 || num < 0)
       break;
 
     Tab<MilkshapeKey> &posKeys = anim.pos.keys;
-    posKeys.SetCount(num);
 
     int i;
-    for (i = 0; i < posKeys.Count(); ++i)
+    for (i = 0; i < num; ++i)
     {
-      MilkshapeKey &k = posKeys[i];
+      MilkshapeKey k;
 
       errLine = __LINE__;
       if (!fgets(str, LINELEN, fh))
@@ -250,23 +258,23 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
         minTime = k.time;
       if (k.time > maxTime)
         maxTime = k.time;
+      posKeys.Append(1, &k, 32);
     }
-    if (i < posKeys.Count())
+    if (i < num)
       break;
 
     // rot keys
     errLine = __LINE__;
     if (!fgets(str, LINELEN, fh))
       break;
-    if (parse_spaced_nums(str, num) != 1)
+    if (parse_spaced_nums(str, num) != 1 || num < 0)
       break;
 
     Tab<MilkshapeKey> &rotKeys = anim.rot.keys;
-    rotKeys.SetCount(num);
 
-    for (i = 0; i < rotKeys.Count(); ++i)
+    for (i = 0; i < num; ++i)
     {
-      MilkshapeKey &k = rotKeys[i];
+      MilkshapeKey k;
 
       errLine = __LINE__;
       if (!fgets(str, LINELEN, fh))
@@ -278,8 +286,9 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
         minTime = k.time;
       if (k.time > maxTime)
         maxTime = k.time;
+      rotKeys.Append(1, &k, 32);
     }
-    if (i < rotKeys.Count())
+    if (i < num)
       break;
 
     // get node and set keys
@@ -294,6 +303,8 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
     }
   }
 
+  fclose(fh);
+
   // handle read error
   if (boneInd < numBones)
   {
@@ -301,8 +312,10 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
 
     msg.printf(_T("Error reading bone #%d (%s), line %d"), boneInd + 1, strToWide(name).c_str(), errLine);
     MessageBox(hpanel, msg, _T("Milkshape animation import"), MB_OK);
+    return;
   }
-  else if (missingNodes.Count())
+
+  if (missingNodes.Count())
   {
     missingNodes.Append(1, (TCHAR *)_T(""));
     TSTR msg;
@@ -315,17 +328,14 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
     MessageBox(hpanel, _T("Imported successfully"), _T("Milkshape animation import"), MB_OK);
   }
 
-  fclose(fh);
-
 
   // create keys
   ip->DisableSceneRedraw();
 
   for (float keyTime = minTime; keyTime <= maxTime; keyTime += 1)
   {
-    for (boneInd = 0; boneInd < numBones; ++boneInd)
+    for (MilkshapeNodeAnim &anim : bones)
     {
-      MilkshapeNodeAnim &anim = bones[boneInd];
       const TCHAR *name = anim.name;
 
       // get node and set keys

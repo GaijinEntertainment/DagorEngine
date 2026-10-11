@@ -26,7 +26,7 @@
 #define FX_CMD_STAT_DBG 0
 
 #define debug(...)             logmessage(_MAKE4C('_FX_'), __VA_ARGS__)
-#define RANDOM_DISTANCE_OFFSET 0.2
+#define RANDOM_DISTANCE_OFFSET 0.2f
 
 namespace acesfx
 {
@@ -527,7 +527,7 @@ void EffectManager::setFxTm(BaseEffect &fx, const TMatrix &tm, bool is_emitter_t
   }
   G_ASSERT(fx.obj);
 
-  Point4 pos = Point4::xyzV(fx.tm.getcol(3), fx.distanceOffsetSq);
+  Point4 pos = Point4::xyzV(fx.tm.getcol(3), fx.distanceOffset);
   fx.obj->setParam(_MAKE4C('PFXP'), &pos);
 
   if (is_emitter_tm)
@@ -983,8 +983,7 @@ AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_pla
   fx->flags |= is_player ? AcesEffect::IS_PLAYER : 0;
   fx->flags |= AcesEffect::IS_ACTIVE;
   int rndSeed = (size_t(this) >> 4) | (uint32_t)fxId;
-  fx->distanceOffsetSq = params.distanceOffset + RANDOM_DISTANCE_OFFSET * _frnd(rndSeed);
-  fx->distanceOffsetSq *= fx->distanceOffsetSq;
+  fx->distanceOffset = params.distanceOffset + RANDOM_DISTANCE_OFFSET * _frnd(rndSeed);
   fx->extFx = extFx;
   updateCachedFlags(*fx);
 

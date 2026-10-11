@@ -34,6 +34,9 @@ f() // null: the table literal had no other owner
 Give the environment a named local (or another strong owner) for as long as
 the bound closure needs it.
 
+The bound `this` keeps the frozen state of `env`: after
+`f.bindenv(freeze(t))`, a write to `this` inside `f` is rejected.
+
 ## Example
 
 {{example:types.Function.bindenv}}

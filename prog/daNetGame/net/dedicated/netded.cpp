@@ -105,6 +105,22 @@ static inline uint16_t try_parse_port(const char *str) // return 0 on error
   return ret;
 }
 
+int get_listen_max_connections()
+{
+  if (const char *a = dgs_get_argv(LISTEN_MAX_CONNECTIONS_ARG))
+  {
+    char *end = nullptr;
+    const long parsed = strtol(a, &end, 0);
+    if (!*end && parsed > 0)
+    {
+      if (parsed > NET_MAX_PLAYERS)
+        logwarn("--max_connections=%ld clamped to NET_MAX_PLAYERS (%d)", parsed, NET_MAX_PLAYERS);
+      return eastl::min(int(parsed), NET_MAX_PLAYERS);
+    }
+  }
+  return NET_MAX_PLAYERS;
+}
+
 net::INetDriver *create_listen_net_driver(const char *url_override, int max_connections, bool no_fatal_on_failure)
 {
   // -nolisten: only applies to the cmdline-driven path; a script-provided URL overrides it.

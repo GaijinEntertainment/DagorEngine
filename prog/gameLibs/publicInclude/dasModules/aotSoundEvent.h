@@ -399,6 +399,19 @@ inline void __occlusion_gpu__attach_to_blob(const SoundEvent &sound_event, const
 {
   sndsys::occlusion_gpu::attach_to_blob(sound_event.handle, sound_occlusion_blob.handle);
 }
+inline void occlusion_gpu__create_blob_template(float attach_radius, float occlusion_radius, const char *name)
+{
+  sndsys::occlusion_gpu::create_blob_template(attach_radius, occlusion_radius, name);
+}
+
+inline void occlusion_gpu__set_preferred_blob_template(sndsys::EventHandle handle, const char *name)
+{
+  sndsys::occlusion_gpu::set_preferred_blob_template(handle, name);
+}
+inline void __occlusion_gpu__set_preferred_blob_template(const SoundEvent &sound_event, const char *name)
+{
+  sndsys::occlusion_gpu::set_preferred_blob_template(sound_event.handle, name);
+}
 
 inline void occlusion_gpu__detach_instance(sndsys::EventHandle handle) { sndsys::occlusion_gpu::drop_instance(handle); }
 inline void occlusion_gpu__drop_instance(sndsys::EventHandle handle) { sndsys::occlusion_gpu::drop_instance(handle); }
@@ -415,6 +428,8 @@ inline void occlusion_gpu__set_blob_active_range(const SoundOcclusionBlob &sound
 {
   sndsys::occlusion_gpu::set_blob_active_range(sound_occlusion_blob.handle, active_radius);
 }
+
+inline void occlusion_gpu__suspend_backend(bool suspend) { sndsys::occlusion_gpu::suspend_backend(suspend); }
 
 // Fills out[] with FFT spectrum bar heights in [0..1]. Resize before calling.
 inline void get_music_spectrum(das::TArray<float> &out)

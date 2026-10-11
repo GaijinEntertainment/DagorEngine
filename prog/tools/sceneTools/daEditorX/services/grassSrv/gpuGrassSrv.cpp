@@ -149,7 +149,7 @@ bool GPUGrassService::isGrassValid() const
       continue;
     for (const auto &channel : decal.channels)
     {
-      if (channel.second < 1.0)
+      if (channel.second < 1.0f)
         continue;
       const GPUGrassType *type = nullptr;
       for (const auto &t : grassTypes)
@@ -312,6 +312,17 @@ void GPUGrassService::invalidate()
 {
   if (grass)
     grass->invalidate();
+}
+
+void GPUGrassService::afterD3DReset(bool full_reset)
+{
+  if (!grass)
+    return;
+
+  if (full_reset)
+    grass->driverReset();
+  else
+    grass->invalidate(false);
 }
 
 void GPUGrassService::setIsSmallGrass(bool flag) { smallGrass = flag; }

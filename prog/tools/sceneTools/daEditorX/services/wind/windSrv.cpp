@@ -89,6 +89,8 @@ void WindBaseService::init(const char *inAppDdir, const DataBlock &envBlk)
       if (windBlk.load(absWindTemplatePath))
         windTemplateBlk = *(windBlk.getBlockByNameEx("wind")->getBlockByNameEx("_group"));
     }
+    if (windTemplateBlk.isEmpty())
+      logwarn("ambientWind: <%s> is missing, unreadable or has no wind{_group{}}, template not applied", absWindTemplatePath.str());
   }
   else
   {

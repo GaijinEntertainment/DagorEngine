@@ -277,7 +277,7 @@ def test_expand_glob_absolute(t : T?) {
         // place rather than an empty path.
         var files : array<string>
         parse_file_list("{root}/*.das", files)
-        t |> success(length(files) > 0, "absolute pattern matched at least one file")
+        t |> success(!empty(files), "absolute pattern matched at least one file")
         t |> success(has_path(files, "foo.das"), "foo.das present")
     }
     t |> run("absolute root prefix produces clean paths (no double slash)") @(t : T?) {

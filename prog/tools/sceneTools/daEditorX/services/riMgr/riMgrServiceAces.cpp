@@ -425,9 +425,6 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
       data = rdata;
     }
 
-    if (!data)
-      return;
-
     mat44f instTm;
     v_mat44_make_from_43cu_unsafe(instTm, coll_info.tm.array);
     const int indBase = indices.size();
@@ -1444,7 +1441,15 @@ public:
   void onBeforeReset3dDevice() override {}
   bool catchEvent(unsigned event_huid, void *userData) override
   {
-    if (event_huid == HUID_DumpEntityStat)
+    if (event_huid == HUID_AfterD3DReset)
+    {
+      // A full device reset recreates the global shadow textures empty, and impostors cast no shadow until they are
+      // rendered again.
+      const bool fullReset = (bool)userData;
+      if (fullReset)
+        rendinst::update_global_shadows();
+    }
+    else if (event_huid == HUID_DumpEntityStat)
     {
       DAEDITOR3.conNote("RendInstMgr: %d entities (using %u different models, while %u models have no instances)",
         riPool.getUsedEntityCount(), riPool.getUsedPoolsCount(), riPool.getEmptyPoolsCount());
@@ -1994,7 +1999,7 @@ public:
         while (cpujobs::is_job_manager_busy(coresId[ci]))
           ::sleep_msec(10);
         DAEDITOR3.conNote("RendinstGatherCollJob core done in %.2f sec", get_time_usec_qpc(refdet) / 1000000.0);
-        cpujobs::stop_job_manager(coresId[ci], cores_count ? true : false);
+        cpujobs::stop_job_manager(coresId[ci], true);
       }
       cpujobs::release_done_jobs();
     }

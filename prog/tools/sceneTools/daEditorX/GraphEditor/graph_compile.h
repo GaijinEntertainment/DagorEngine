@@ -4,6 +4,8 @@
 #include <graphEditor/graph_data.h>
 
 class DataBlock;
+struct GraphResolutions;
+struct DeadPaths;
 
 // Compiles a GraphData (nodes + edges + propertyValues + descriptor data from
 // base_nodes.blk) into the two DataBlocks the texgen pipeline consumes. Both
@@ -31,6 +33,12 @@ class DataBlock;
 // preview panel's non-locked read of `Pin::customTextureName` on the main
 // thread doesn't race with the worker-thread compile. Callers must apply the
 // names to `GraphData::Pin::customTextureName` on the main thread.
+//
+// `out_node_resolutions`, when given, receives the per-node propagated texture size / format,
+// parallel to `data.nodes`. The canvas footer reads it so it shows what the compile emits rather
+// than a second guess at the same rules. `out_dead` receives the dead set this compile used, so a
+// caller that needs to know which nodes were dropped does not recompute it.
 bool compile_graph_to_blks(const GraphData &data, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
   DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
-  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message = nullptr);
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message = nullptr,
+  GraphResolutions *out_node_resolutions = nullptr, DeadPaths *out_dead = nullptr);

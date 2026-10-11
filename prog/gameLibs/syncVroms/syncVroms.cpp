@@ -11,6 +11,10 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_vromfs.h>
+#include <osApiWrappers/dag_cpuJobs.h>
+#include <osApiWrappers/dag_threads.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <perfMon/dag_daProfilerString.h>
 #include <statsd/statsd.h>
 #include <daNet/bitStream.h>
 
@@ -19,6 +23,7 @@
 #include <EASTL/vector_map.h>
 
 #include <stdlib.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -67,6 +72,7 @@ static eastl::vector_map<SystemIndex, syncvroms::SyncVromsList> g_client_sync_vr
 static const syncvroms::SyncVromsList EMPTY_SYNC_VROMS;
 static eastl::unique_ptr<VirtualRomFsData, VromfsDataRemover> g_base_fs_data;
 static eastl::unique_ptr<VirtualRomFsData, VromfsDataRemover> g_diff_fs_data;
+static int g_save_job_mgr = -1;
 
 
 const VromHash &syncvroms::get_base_vrom_hash(const char *vrom_name)
@@ -87,6 +93,13 @@ const char *syncvroms::get_base_vrom_name(const VromHash &vrom_hash)
 
 void syncvroms::shutdown()
 {
+  if (g_save_job_mgr >= 0)
+  {
+    cpujobs::reset_job_queue(g_save_job_mgr, /*auto_release_jobs*/ true);
+    spin_wait([] { return cpujobs::is_job_manager_busy(g_save_job_mgr); });
+    cpujobs::destroy_virtual_job_manager(g_save_job_mgr, /*finish_jobs*/ false);
+    g_save_job_mgr = -1;
+  }
   g_base_fs_data.reset();
   g_diff_fs_data.reset();
 }
@@ -237,9 +250,9 @@ syncvroms::Bytes load_compressed(const char *path, const Compression &compr, int
 }
 
 
-static uint32_t patch_vromfs_dump_version(syncvroms::Bytes &bytes, uint32_t patch_version)
+static uint32_t patch_vromfs_dump_version(char *data, size_t size, uint32_t patch_version)
 {
-  InPlaceMemLoadCB cb(bytes.data(), bytes.size());
+  InPlaceMemLoadCB cb(data, size);
 
   VirtualRomFsDataHdr hdr;
   if (cb.tryRead(&hdr, sizeof(hdr)) != sizeof(hdr))
@@ -259,8 +272,8 @@ static uint32_t patch_vromfs_dump_version(syncvroms::Bytes &bytes, uint32_t patc
   const uint32_t wasVersion = hdr_ext.version;
   hdr_ext.version = patch_version;
 
-  ConstrainedMemSaveCB writeCb(bytes.data(), bytes.size());
-  writeCb.setsize(bytes.size());
+  ConstrainedMemSaveCB writeCb(data, size);
+  writeCb.setsize(size);
   writeCb.seekto(hrdOffset);
   writeCb.write(&hdr_ext, sizeof(hdr_ext));
 
@@ -268,26 +281,24 @@ static uint32_t patch_vromfs_dump_version(syncvroms::Bytes &bytes, uint32_t patc
 }
 
 
+static VromHash hash_vrom_dump(char *data, size_t size)
+{
+  // Hash vrom ignoring its version.
+  // So, just rebuilding vrom with version increase won't change the hash.
+  // Only content matters
+  const uint32_t wasVersion = patch_vromfs_dump_version(data, size, 0);
+  const VromHash vromHash{VromHash::hash(data, size)};
+  patch_vromfs_dump_version(data, size, wasVersion);
+  return vromHash;
+}
+
+
 static eastl::pair<syncvroms::Bytes, VromHash> load_vrom_compressed(const char *path, const VromfsCompression &compr,
   int64_t &out_mtime)
 {
   syncvroms::Bytes vromContent = load_compressed(path, compr, out_mtime);
-
-  // Hash vrom ignoring its version.
-  // So, just rebuilding vrom with version increase won't change the hash.
-  // Only content matters
-  const uint32_t wasVersion = patch_vromfs_dump_version(vromContent, 0);
-  const VromHash vromHash{VromHash::hash(vromContent.data(), vromContent.size())};
-  patch_vromfs_dump_version(vromContent, wasVersion);
-
+  const VromHash vromHash = hash_vrom_dump(vromContent.data(), vromContent.size());
   return eastl::make_pair(eastl::move(vromContent), vromHash);
-}
-
-
-static eastl::pair<syncvroms::Bytes, VromHash> load_vrom_compressed(const char *path)
-{
-  int64_t dummy;
-  return load_vrom_compressed(path, {}, dummy);
 }
 
 
@@ -321,43 +332,120 @@ static bool write_file_atomic(const char *path, const syncvroms::Bytes &bytes, c
 }
 
 
-static bool save_compressed(const char *path, const Tab<char> &bytes, const Compression &compr)
+static bool save_compressed(const char *path, const Tab<char> &vrom_dump, const Compression &compr)
 {
-  const int compressedSize = compr.getRequiredCompressionBufferLength(bytes.size());
+  const int startMs = get_time_msec();
+
+  const int compressedSize = compr.getRequiredCompressionBufferLength(vrom_dump.size());
   if (compressedSize < 0)
     return false;
 
-  syncvroms::Bytes copressed((size_t)(compressedSize + 1));
-  copressed[0] = compr.getId();
+  syncvroms::Bytes compressed((size_t)(compressedSize + 1));
+  compressed[0] = compr.getId();
 
   int outCompressedSize = compressedSize;
-  void *writeTo = &copressed[1];
-  if (compr.compress(bytes.data(), bytes.size(), writeTo, outCompressedSize) != writeTo)
+  void *writeTo = &compressed[1];
+  if (compr.compress(vrom_dump.data(), vrom_dump.size(), writeTo, outCompressedSize) != writeTo)
     return false;
 
-  copressed.resize(outCompressedSize + 1);
+  compressed.resize(outCompressedSize + 1);
 
-  return write_file_atomic(path, copressed, "XXXXXX");
+  const int compressedMs = get_time_msec();
+
+  if (!write_file_atomic(path, compressed, "XXXXXX"))
+    return false;
+
+  const int savedMs = get_time_msec();
+  statsd::profile("syncvroms.save_vrom_ms", (long)(savedMs - startMs));
+
+  debug("[SyncVroms]: The vrom has been saved to '%s' within %d ms (compress %d -> %d bytes: %d ms, write: %d ms)", path,
+    savedMs - startMs, vrom_dump.size(), compressed.size(), compressedMs - startMs, savedMs - compressedMs);
+
+  return true;
+}
+
+
+static bool save_vrom_dump(const char *path, const Tab<char> &vrom_dump, const Compression &compr)
+{
+  if (save_compressed(path, vrom_dump, compr))
+    return true;
+
+  statsd::counter("syncvroms.error", 1, {"error", "save_vrom_to_cache"});
+  logerr("[SyncVroms]: Cannot save to '%s'", path);
+  return false;
+}
+
+
+struct SaveVromDumpJob final : public cpujobs::IJob
+{
+  eastl::string path;
+  Tab<char> vromDump;
+  VromfsCompression compr;
+
+  SaveVromDumpJob(const char *path_, Tab<char> &&vrom_dump, const VromfsCompression &compr_) :
+    path(path_), vromDump(eastl::move(vrom_dump)), compr(compr_)
+  {}
+
+  const char *getJobName(bool &) const override { return DAPROFILER_STRING("SaveVromDumpJob"); }
+
+  void doJob() override { save_vrom_dump(path.c_str(), vromDump, compr); }
+
+  void releaseJob() override { delete this; }
+};
+
+
+void syncvroms::save_vrom_dump_async(const char *path, Tab<char> &&vrom_dump, const VromfsCompression &compr)
+{
+  if (g_save_job_mgr < 0)
+  {
+    g_save_job_mgr = cpujobs::create_virtual_job_manager(256 << 10, WORKER_THREADS_AFFINITY_MASK, "SyncVromsSave");
+    if (g_save_job_mgr < 0)
+    {
+      statsd::counter("syncvroms.error", 1, {"error", "save_vrom_job_mgr"});
+      logerr("[SyncVroms]: Cannot create the save job manager, saving '%s' on the calling thread", path);
+    }
+  }
+
+  SaveVromDumpJob *job = new SaveVromDumpJob(path, eastl::move(vrom_dump), compr);
+  if (!cpujobs::add_job(g_save_job_mgr >= 0 ? g_save_job_mgr : cpujobs::COREID_IMMEDIATE, job))
+  {
+    delete job;
+    statsd::counter("syncvroms.error", 1, {"error", "save_vrom_job"});
+    logerr("[SyncVroms]: Cannot schedule saving to '%s'", path);
+  }
+}
+
+
+static syncvroms::LoadedSyncVrom load_vromfs_dump_impl(dag::ConstSpan<char> dump, const VromHash &hash, const char *path,
+  const VromfsCompression &compr, bool allow_shared_mem, int64_t mtime)
+{
+  static constexpr VromfsCompression::CheckType vromfsCheck = VromfsCompression::CHECK_VERBOSE;
+  static constexpr VromfsCompression::InputDataType inputData = VromfsCompression::IDT_DATA;
+
+  if (dump.size() == 0 || compr.getDataType(dump.data() + 1, dump.size() - 1, vromfsCheck) == inputData)
+    return {};
+
+  const char *shared_nm = allow_shared_mem ? dd_get_fname(path) : nullptr;
+  if (syncvroms::LoadedSyncVrom loadedVrom{hash, dd_get_fname(path), load_vromfs_dump_from_mem(dump, defaultmem, shared_nm, mtime)})
+    return loadedVrom;
+
+  return {};
 }
 
 
 syncvroms::LoadedSyncVrom syncvroms::load_vromfs_dump(const char *path, const VromfsCompression &compr, bool allow_shared_mem)
 {
-  static constexpr VromfsCompression::CheckType vromfsCheck = VromfsCompression::CHECK_VERBOSE;
-  static constexpr VromfsCompression::InputDataType inputData = VromfsCompression::IDT_DATA;
-
   int64_t mtime = -1;
   const eastl::pair<Bytes, VromHash> vrom{load_vrom_compressed(path, compr, mtime)};
-  if (!vrom.first.empty() && compr.getDataType(vrom.first.data() + 1, vrom.first.size() - 1, vromfsCheck) != inputData)
-  {
-    dag::ConstSpan<char> vromSlice{vrom.first.data(), (intptr_t)vrom.first.size()};
-    const char *shared_nm = allow_shared_mem ? dd_get_fname(path) : nullptr;
-    if (syncvroms::LoadedSyncVrom loadedVrom{
-          vrom.second, dd_get_fname(path), load_vromfs_dump_from_mem(vromSlice, defaultmem, shared_nm, mtime)})
-      return loadedVrom;
-  }
+  const dag::ConstSpan<char> vromSlice{vrom.first.data(), (intptr_t)vrom.first.size()};
+  return load_vromfs_dump_impl(vromSlice, vrom.second, path, compr, allow_shared_mem, mtime);
+}
 
-  return {};
+
+syncvroms::LoadedSyncVrom syncvroms::load_vromfs_dump(const AppliedVromDiff &applied, const char *path, const VromfsCompression &compr,
+  bool allow_shared_mem)
+{
+  return load_vromfs_dump_impl(make_span_const(applied.vromDump), applied.hash, path, compr, allow_shared_mem, ::time(nullptr));
 }
 
 
@@ -367,7 +455,7 @@ static BsdiffStatus apply_bsdiff(const syncvroms::Bytes &old, const syncvroms::B
 }
 
 
-bool syncvroms::apply_vrom_diff(const VromDiff &diff, const char *save_vrom_to, const VromfsCompression &compr)
+bool syncvroms::apply_vrom_diff(const VromDiff &diff, AppliedVromDiff &out_result)
 {
   const int startMs = get_time_msec();
 
@@ -383,16 +471,18 @@ bool syncvroms::apply_vrom_diff(const VromDiff &diff, const char *save_vrom_to, 
 
   const eastl::string baseBin(eastl::string::CtorSprintf{}, "%s/base/%s.bin", g_root_folder.c_str(), diff.baseVromHash.c_str());
 
-  const eastl::pair<Bytes, VromHash> srcData = load_vrom_compressed(baseBin.c_str());
-  if (srcData.first.empty())
+  int64_t baseMtime = -1;
+  const Bytes baseDump = load_compressed(baseBin.c_str(), VromfsCompression{}, baseMtime);
+  if (baseDump.empty())
   {
     statsd::counter("syncvroms.error", 1, {"error", "open_base_vrom"});
     logerr("[SyncVroms]: Cannot apply diff: base vrom '%s' (%s) is not found", vromName, diff.baseVromHash.c_str());
     return false;
   }
 
-  Tab<char> resultData;
-  const BsdiffStatus status = apply_bsdiff(srcData.first, diff.bytes, resultData);
+  const int loadedMs = get_time_msec();
+
+  const BsdiffStatus status = apply_bsdiff(baseDump, diff.bytes, out_result.vromDump);
   if (status != BSDIFF_OK)
   {
     statsd::counter("syncvroms.apply_bsdiff_error", 1, {"error", bsdiff_status_str(status)});
@@ -400,19 +490,25 @@ bool syncvroms::apply_vrom_diff(const VromDiff &diff, const char *save_vrom_to, 
     return false;
   }
 
-  if (!save_compressed(save_vrom_to, resultData, compr))
-  {
-    statsd::counter("syncvroms.error", 1, {"error", "save_vrom_to_cache"});
-    logerr("[SyncVroms]: Cannot save to '%s'", save_vrom_to);
-    return false;
-  }
+  const int appliedMs = get_time_msec();
 
-  const int diffTimeMs = get_time_msec() - startMs;
+  out_result.hash = hash_vrom_dump(out_result.vromDump.data(), out_result.vromDump.size());
+
+  const int hashedMs = get_time_msec();
+  const int diffTimeMs = hashedMs - startMs;
   statsd::profile("syncvroms.apply_diff_ms", (long)diffTimeMs);
 
-  debug("[SyncVroms]: The vrom has been saved to '%s' within %d ms", save_vrom_to, diffTimeMs);
+  debug("[SyncVroms]: Diff for vrom '%s' applied within %d ms (load base %d bytes: %d ms, apply: %d ms, hash %d bytes: %d ms)",
+    vromName, diffTimeMs, baseDump.size(), loadedMs - startMs, appliedMs - loadedMs, out_result.vromDump.size(), hashedMs - appliedMs);
 
   return true;
+}
+
+
+bool syncvroms::apply_vrom_diff(const VromDiff &diff, const char *save_vrom_to, const VromfsCompression &compr)
+{
+  AppliedVromDiff applied;
+  return apply_vrom_diff(diff, applied) && save_vrom_dump(save_vrom_to, applied.vromDump, compr);
 }
 
 

@@ -89,11 +89,7 @@ def get_start_line(m : JsonValue?) : int {
 def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : string {
     if (empty(symbol)) return make_tool_result("'symbol' argument is required", true)
     let das_root = get_das_root()
-    // "" and "." both mean the repo root. Going through resolve_path(".") would append
-    // a trailing "/.", and ast-grep cannot relativize candidate paths against a root
-    // spelled that way -- every slash-anchored --globs filter then matches nothing and
-    // the tool reports a silent "0 matches" instead of an error.
-    let search_dir = (empty(directory) || directory == "." ? get_das_root() : resolve_path(directory))
+    let search_dir = resolve_path(directory)
     // build ast-grep command
     let sg = get_ast_grep_cmd()
     let cd_root = "cd \"{das_root}\" && "
@@ -102,16 +98,14 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
         cmd = "{cd_root}{sg} run -p \"{symbol}\" -l daslang --globs \"{glob_filter}\" --json \"{search_dir}\""
     }
     var raw_json : string
-    unsafe {
-        popen(cmd) $(f) {
-            if (f == null) return
-            raw_json = build_string() $(var w) {
-                while (!feof(f)) {
-                    write(w, fgets(f))
-                }
+    unsafe(popen(cmd) $(f) {
+        if (f == null) return
+        raw_json = build_string() $(var w) {
+            while (!feof(f)) {
+                write(w, fgets(f))
             }
         }
-    }
+    })
     raw_json = strip_ast_grep_banner(raw_json)
     if (empty(raw_json) || raw_json == "[]") return make_tool_result("No matches found for '{symbol}' in {search_dir}")
     // parse JSON array from ast-grep
@@ -134,7 +128,7 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
             let file_val = m?.file
             let lines_val = m?.lines
             if (file_val == null) continue
-            let display_path = make_relative_path(file_val.value as _string, das_root)
+            let display_path = make_relative_path(file_val.value as _string, server_root())
             let line_num = get_start_line(m) + 1
             var context = ""
             if (lines_val != null && (lines_val.value is _string)) {
@@ -155,9 +149,7 @@ def private format_grep_matches(symbol : string; var by_file : table<string; arr
     let total = length(by_file)
     var match_count = 0
     for (fp in file_order) {
-        unsafe {
-            match_count += length(by_file[fp])
-        }
+        match_count += length(unsafe(by_file[fp]))
     }
     return build_string() $(var w) {
         write(w, "Found {match_count} match")
@@ -171,10 +163,8 @@ def private format_grep_matches(symbol : string; var by_file : table<string; arr
         write(w, "\n\n")
         for (fp in file_order) {
             write(w, "{fp}:\n")
-            unsafe {
-                for (entry in by_file[fp]) {
-                    write(w, "{entry}\n")
-                }
+            for (entry in unsafe(by_file[fp])) {
+                write(w, "{entry}\n")
             }
             write(w, "\n")
         }

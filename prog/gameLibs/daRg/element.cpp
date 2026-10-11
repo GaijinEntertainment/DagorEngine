@@ -1192,8 +1192,8 @@ void Element::putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters,
     stacks.rlist->push(re);
   }
 
-  const int bhvFlagsInput =
-    Behavior::F_FOCUS_ON_CLICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE | Behavior::F_HANDLE_TOUCH;
+  const int bhvFlagsInput = Behavior::F_FOCUS_ON_CLICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE |
+                            Behavior::F_HANDLE_TOUCH | Behavior::F_HANDLE_TOUCH_PAD_GESTURE;
 
   const int elemInputFlags = F_STOP_HOVER | F_STOP_POINTING | F_JOYSTICK_SCROLL | F_STOP_HOTKEYS;
 

@@ -15,6 +15,8 @@
 #include "boolVar.h"
 #include "hlslStage.h"
 #include "namedConst.h"
+#include "renderPassObject.h"
+#include "framebufferLayout.h"
 #include "shAssumes.h"
 #include "globalConfig.h"
 #include "refinedBlockLayout.h"
@@ -39,6 +41,10 @@ class TargetContext
   BoolVarTable mBoolVarTable;
   PerHlslStage<String> mGlobalHlslSource{};
   ShaderBlockTable mStateBlockTable{};
+  VarNameMap mRenderPassNameMap{};
+  RenderPassTable mRenderPassTable;
+  RenderPassGroupTable mRenderPassGroupTable;
+  FramebufferLayoutTable mFramebufferLayoutTable;
   ShaderAssumesTable mGlobalAssumes;
   SCFastNameMap mGlobalMessages{};
   ShaderTargetStorage mDataStorage{};
@@ -92,6 +98,18 @@ public:
   ShaderBlockTable &blocks() { return mStateBlockTable; }
   const ShaderBlockTable &blocks() const { return mStateBlockTable; }
 
+  VarNameMap &renderPassNameMap() { return mRenderPassNameMap; }
+  const VarNameMap &renderPassNameMap() const { return mRenderPassNameMap; }
+
+  RenderPassTable &renderPasses() { return mRenderPassTable; }
+  const RenderPassTable &renderPasses() const { return mRenderPassTable; }
+
+  RenderPassGroupTable &renderPassGroups() { return mRenderPassGroupTable; }
+  const RenderPassGroupTable &renderPassGroups() const { return mRenderPassGroupTable; }
+
+  FramebufferLayoutTable &framebufferLayouts() { return mFramebufferLayoutTable; }
+  const FramebufferLayoutTable &framebufferLayouts() const { return mFramebufferLayoutTable; }
+
   ShaderAssumesTable &globAssumes() { return mGlobalAssumes; }
   const ShaderAssumesTable &globAssumes() const { return mGlobalAssumes; }
 
@@ -143,6 +161,9 @@ private:
     mGvarTable{mVarNameMap, mIntervalNameMap},
     mSamplerTable{mVarNameMap, mGvarTable, mCppstcodeAccum},
     mBoolVarTable{mBoolVarNameMap},
+    mRenderPassTable{mRenderPassNameMap},
+    mRenderPassGroupTable{mRenderPassNameMap},
+    mFramebufferLayoutTable{mRenderPassNameMap},
     mGlobalAssumes{*shc::config().assumedVarsConfig, mIntervalNameMap},
     mParent{parent},
     preshaderOnlyMode{preshader_only}

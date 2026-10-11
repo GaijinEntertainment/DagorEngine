@@ -18,6 +18,7 @@
 #include <math/dag_TMatrix.h>
 #include <math/integer/dag_IPoint2.h>
 #include <drv/3d/dag_resId.h>
+#include <3d/dag_resPtr.h>
 
 #include <coolConsole/coolConsole.h>
 
@@ -47,7 +48,7 @@ class GenericEditorAppWindow : public PropPanel::IMenuEventHandler,
 public:
   /// Constructor.
   /// @param[in] open_fname - path to the project to open on application start
-  GenericEditorAppWindow(const char *open_fname, IWndManager *manager);
+  GenericEditorAppWindow(const char *open_fname, IWndManager *manager, ScreenshotDlgMode screenshot_dlg_mode);
   /// Destructor.
   virtual ~GenericEditorAppWindow();
 
@@ -195,7 +196,7 @@ protected:
   void registerCommonEditorCommands(IEditorCommandSystem &command_system);
   void fillCommonToolbar(PropPanel::ContainerPropertyControl &tb, IEditorCommandSystem &command_system);
 
-  void getModelessWindowControllers(ModelessWindowControllerList &controllers, ScreenshotDlgMode mode);
+  void getModelessWindowControllers(ModelessWindowControllerList &controllers);
 
   // screenshot routine
   virtual String getScreenshotNameMask(bool cube) const = 0;
@@ -203,9 +204,8 @@ protected:
 
   String getScreenshotName(bool cube) const;
 
-  Texture *renderInTex(int w, int h, const TMatrix *tm, bool skip_debug_objects = false,
-    bool should_make_orthogonal_screenshot = false, bool should_use_z_buffer = true, float world_x0 = 0.f, float world_x1 = 0.f,
-    float world_z0 = 0.f, float world_z1 = 0.f);
+  TexPtr renderInTex(int w, int h, const TMatrix *tm, bool skip_debug_objects = false, bool should_make_orthogonal_screenshot = false,
+    bool should_use_z_buffer = true, float world_x0 = 0.f, float world_x1 = 0.f, float world_z0 = 0.f, float world_z1 = 0.f);
 
   void createScreenshot();
   void createCubeScreenshot();

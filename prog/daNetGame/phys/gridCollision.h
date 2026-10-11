@@ -3,6 +3,7 @@
 
 #include <ecs/game/generic/grid.h>
 #include <generic/dag_span.h>
+#include <generic/dag_functionRef.h>
 #include <phys/collisionTraces.h>
 
 enum GridHideFlag : int
@@ -14,8 +15,8 @@ enum GridHideFlag : int
 
 struct CollisionObject;
 
-typedef eastl::fixed_function<sizeof(intptr_t) * 4, float(ecs::EntityId /*eid*/)> get_capsule_radius_cb_t;
-using GameObjectsCollisionsCb = eastl::fixed_function<6 * sizeof(void *), void(CollisionObject obj)>;
+typedef dag::FunctionRef<float(ecs::EntityId /*eid*/) const> get_capsule_radius_cb_t;
+using GameObjectsCollisionsCb = dag::FunctionRef<void(CollisionObject obj) const>;
 
 bool grid_trace_main_entities(const Point3 &from,
   const Point3 &dir,

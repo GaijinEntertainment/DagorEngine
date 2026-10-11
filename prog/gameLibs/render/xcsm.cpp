@@ -153,8 +153,6 @@ void XCSM::prepare(float wk, float hk, float znear, float zfar, const TMatrix4 &
   bool isWarp = true;
   if (cosGamma > 0.15f)
   {
-    isWarp = true;
-
     // normalize XY projection of view vector
     float x = viewDir.x / cosGamma;
     float y = viewDir.y / cosGamma;

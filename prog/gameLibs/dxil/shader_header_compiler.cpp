@@ -278,10 +278,6 @@ ComPtr<IDxcUtils> load_utilities(void *dxc_lib)
   }
 
   DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utilities));
-  if (!utilities)
-  {
-    return utilities;
-  }
   return utilities;
 }
 
@@ -751,8 +747,15 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
       if (outputInfo.SystemValueType == D3D_NAME_TARGET)
       {
         result.header.inOutSemanticMask |= uint32_t((~outputInfo.ReadWriteMask) & 0xF) << (outputInfo.SemanticIndex * 4);
+        result.psOutput.colorTargetMask |= 1u << outputInfo.SemanticIndex;
+      }
+      else if (outputInfo.SystemValueType == D3D_NAME_DEPTH || outputInfo.SystemValueType == D3D_NAME_DEPTH_GREATER_EQUAL ||
+               outputInfo.SystemValueType == D3D_NAME_DEPTH_LESS_EQUAL)
+      {
+        result.psOutput.writesDepth = true;
       }
     }
+    result.psOutput.valid = true;
     debug("PS output mask %08x", result.header.inOutSemanticMask);
   }
 

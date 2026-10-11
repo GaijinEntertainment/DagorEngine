@@ -35,17 +35,24 @@ static int cmdQueueRerunCount = 0;
 static bool cmdQueueYield = false;
 static int cmdQueueTimeout = -1;
 static bool cmdQueueRet = true;
+static void (*cmdQueueAbortHandler)() = nullptr;
 
 static void queuedBatchUpdate(void *) { ConBatch::updateQueue(); }
 void start_cmd_queue_idle_cycle() { register_regular_action_to_idle_cycle(queuedBatchUpdate, nullptr); }
 
 void stop_cmd_queue_idle_cycle() { unregister_regular_action_to_idle_cycle(queuedBatchUpdate, nullptr); }
 
+void set_cmd_queue_abort_handler(void (*handler)()) { cmdQueueAbortHandler = handler; }
+
 /* static */
 void ConBatch::updateQueue()
 {
   if (cmdQueue.empty())
+  {
+    // A batch file with no commands queues nothing, so the end of the queue run below never clears the handler.
+    cmdQueueAbortHandler = nullptr;
     return;
+  }
 
   if (!queuedBatch.prepared)
   {
@@ -80,6 +87,7 @@ void ConBatch::updateQueue()
     }
     else
     {
+      cmdQueue.clear();
       break;
     }
   }
@@ -87,6 +95,11 @@ void ConBatch::updateQueue()
   if (cmdQueue.empty())
   {
     cmdQueueRet = queuedBatch.stopBatch(false, ret);
+
+    void (*abortHandler)() = cmdQueueAbortHandler;
+    cmdQueueAbortHandler = nullptr;
+    if (!cmdQueueRet && abortHandler)
+      abortHandler();
   }
 }
 

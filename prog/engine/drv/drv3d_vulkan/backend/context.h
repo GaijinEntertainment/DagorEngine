@@ -53,7 +53,9 @@ public:
   uint32_t directDrawCount;
   // store amount of non-indirected drawcalls at start of survey
   // to avoid waiting empty surveys as they can hang on some GPUs
-  uint32_t directDrawCountInSurvey;
+  uint32_t directDrawCountAtSurveyBegin;
+  uint32_t surveyQueryActiveId;
+  bool surveyQueryCompleted;
 
   // increments on any "action"-like (draw,dispatch,custom op) command
   uint32_t actionIdx;

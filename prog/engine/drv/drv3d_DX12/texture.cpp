@@ -2526,33 +2526,51 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
   if (tex)
   {
     BaseTex *bt = (BaseTex *)tex;
-    int st_pos = crd.tell();
+    const bool canRetry = !is_main_thread();
+    const auto dataSz = hdr.packedSz ? hdr.packedSz : hdr.memSz;
+    SmallTab<uint8_t, TmpmemAlloc> retryCopy;
+    uint8_t *data = nullptr;
 
     G_ASSERTF_AND_DO(hdr.hqPartLevels == 0, bt->cflg &= ~TEXCF_SYSTEXCOPY,
       "cannot use TEXCF_SYSTEXCOPY with base part of split texture!");
     if (bt->cflg & TEXCF_SYSTEXCOPY)
     {
-      auto data_sz = hdr.packedSz ? hdr.packedSz : hdr.memSz;
-      clear_and_resize(bt->texCopy, sizeof(hdr) + data_sz);
+      clear_and_resize(bt->texCopy, sizeof(hdr) + dataSz);
       memcpy(bt->texCopy.data(), &hdr, sizeof(hdr));
       /*sysCopyQualityId*/ ((ddsx::Header *)bt->texCopy.data())->hqPartLevels = quality_id;
-      if (!crd.readExact(bt->texCopy.data() + sizeof(hdr), data_sz))
-      {
-        D3D_ERROR("DX12: inconsistent input tex data, data_sz=%d tex=%s", data_sz, stat_name);
-        del_d3dres(tex);
-        return NULL;
-      }
-      VERBOSE_DEBUG("%s %dx%d stored DDSx (%d bytes) for TEXCF_SYSTEXCOPY", stat_name, hdr.w, hdr.h, data_size(bt->texCopy));
-      InPlaceMemLoadCB mcrd(bt->texCopy.data() + sizeof(hdr), data_sz);
-      if (load_ddsx_tex_contents(tex, hdr, mcrd, quality_id) == TexLoadRes::OK)
-        return tex;
+      data = bt->texCopy.data() + sizeof(hdr);
     }
-    else if (load_ddsx_tex_contents(tex, hdr, crd, quality_id) == TexLoadRes::OK)
+    else if (canRetry)
+    {
+      clear_and_resize(retryCopy, dataSz);
+      data = retryCopy.data();
+    }
+
+    TexLoadRes ldRet;
+    if (data)
+    {
+      if (!crd.readExact(data, dataSz))
+      {
+        D3D_ERROR("DX12: inconsistent input tex data, data_sz=%d tex=%s", dataSz, stat_name);
+        del_d3dres(tex);
+        return nullptr;
+      }
+      if (bt->cflg & TEXCF_SYSTEXCOPY)
+      {
+        VERBOSE_DEBUG("%s %dx%d stored DDSx (%d bytes) for TEXCF_SYSTEXCOPY", stat_name, hdr.w, hdr.h, data_size(bt->texCopy));
+      }
+      InPlaceMemLoadCB mcrd(data, dataSz);
+      ldRet = load_ddsx_tex_contents(tex, hdr, mcrd, quality_id);
+    }
+    else
+      ldRet = load_ddsx_tex_contents(tex, hdr, crd, quality_id);
+    if (ldRet == TexLoadRes::OK)
       return tex;
 
-    if (!is_main_thread())
+    if (canRetry)
     {
-      for (unsigned attempt = 0, tries = 5, f = dagor_frame_no(); attempt < tries;)
+      unsigned retries = 0;
+      for (unsigned attempt = 0, tries = 5, f = dagor_frame_no(); ldRet == TexLoadRes::ERR_RUB && attempt < tries;)
         if (dagor_frame_no() < f + 1)
         {
           sleep_msec(1);
@@ -2561,8 +2579,10 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
         }
         else
         {
-          crd.seekto(st_pos);
-          if (load_ddsx_tex_contents(tex, hdr, crd, quality_id) == TexLoadRes::OK)
+          InPlaceMemLoadCB mcrd(data, dataSz);
+          ldRet = load_ddsx_tex_contents(tex, hdr, mcrd, quality_id);
+          retries++;
+          if (ldRet == TexLoadRes::OK)
           {
             logdbg("finally loaded %s (attempt=%d)", stat_name, attempt + 1);
             return tex;
@@ -2570,6 +2590,8 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
           f = dagor_frame_no();
           attempt++;
         }
+      if (drv3d_dx12::get_device().isHealthy())
+        D3D_ERROR("DX12: create_ddsx_tex('%s'): %s, retries=%u", stat_name, ldRet == TexLoadRes::ERR_RUB ? "ERR_RUB" : "ERR", retries);
       return tex;
     }
     del_d3dres(tex);

@@ -39,7 +39,7 @@ struct public ExportEnvelope {
 // by `utils/find-dupe/`. v1 readers reject v2 files (and vice
 // versa) via the explicit version check in `read_import` /
 // `load_baseline_canonicals`.
-let public EXCHANGE_SCHEMA_VERSION = 2
+let public EXCHANGE_SCHEMA_VERSION = 3
 
 
 // Single source of truth for "given a canonical string, finish
@@ -50,6 +50,17 @@ let public EXCHANGE_SCHEMA_VERSION = 2
 // Always (re)sets `sig`: when `want_sigs` is false (or token_count
 // is below the floor), `sig` is cleared so a reused record can't
 // carry a stale signature into fuzzy_pairs.
+// One record from its identity and canonical text, signed and counted the way every producer -
+// the parse, the import, a test - needs it.
+def public make_record(ref : MemberRef; canon : string; want_sigs : bool; min_tokens : int) : FuncRecord {
+    var rec = FuncRecord()
+    rec.ref := ref
+    rec.canonical = canon
+    derive_sig_and_count(rec, want_sigs, min_tokens)
+    return <- rec
+}
+
+
 def public derive_sig_and_count(var rec : FuncRecord; want_sigs : bool; min_tokens : int) {
     let tokens <- tokenize_canonical(rec.canonical)
     rec.token_count = length(tokens)
@@ -99,16 +110,16 @@ def public merge_envelope_files(shard_paths : array<string>; out_path : string;
     for (p in shard_paths) {
         let text = fread(p)
         if (empty(text)) {
-            error := "could not read shard (empty or missing): {p}"
+            error = "could not read shard (empty or missing): {p}"
             return false
         }
         var env = ExportEnvelope()
         if (!sscan_json(text, env)) {
-            error := "could not parse shard JSON: {p}"
+            error = "could not parse shard JSON: {p}"
             return false
         }
         if (env.schema_version != EXCHANGE_SCHEMA_VERSION) {
-            error := "shard schema_version {env.schema_version} (expected {EXCHANGE_SCHEMA_VERSION}): {p}"
+            error = "shard schema_version {env.schema_version} (expected {EXCHANGE_SCHEMA_VERSION}): {p}"
             return false
         }
         merged.functions |> reserve(length(merged.functions) + length(env.functions))
@@ -124,7 +135,7 @@ def public merge_envelope_files(shard_paths : array<string>; out_path : string;
         fw |> fprint(body)
     }
     if (!ok) {
-        error := "could not write merged envelope to {out_path}"
+        error = "could not write merged envelope to {out_path}"
     }
     return ok
 }
@@ -194,16 +205,16 @@ def public load_baseline_canonicals(path : string;
                                     var error : string&) : bool {
     let text = fread(path)
     if (empty(text)) {
-        error := "could not read baseline file (empty or missing): {path}"
+        error = "could not read baseline file (empty or missing): {path}"
         return false
     }
     var env = ExportEnvelope()
     if (!sscan_json(text, env)) {
-        error := "could not parse baseline JSON: {path}"
+        error = "could not parse baseline JSON: {path}"
         return false
     }
     if (env.schema_version != EXCHANGE_SCHEMA_VERSION) {
-        error := "unsupported baseline schema_version {env.schema_version} (expected {EXCHANGE_SCHEMA_VERSION}): {path}"
+        error = "unsupported baseline schema_version {env.schema_version} (expected {EXCHANGE_SCHEMA_VERSION}): {path}"
         return false
     }
     for (ef in env.functions) {
@@ -229,16 +240,16 @@ def public read_import(path : string; var records : array<FuncRecord>;
                        quiet : bool = false) : bool {
     let text = fread(path)
     if (empty(text)) {
-        error := "could not read file (empty or missing): {path}"
+        error = "could not read file (empty or missing): {path}"
         return false
     }
     var env = ExportEnvelope()
     if (!sscan_json(text, env)) {
-        error := "could not parse JSON: {path}"
+        error = "could not parse JSON: {path}"
         return false
     }
     if (env.schema_version != EXCHANGE_SCHEMA_VERSION) {
-        error := "unsupported schema_version {env.schema_version} (expected {EXCHANGE_SCHEMA_VERSION}): {path}"
+        error = "unsupported schema_version {env.schema_version} (expected {EXCHANGE_SCHEMA_VERSION}): {path}"
         return false
     }
     records |> reserve(length(records) + length(env.functions))
@@ -248,15 +259,8 @@ def public read_import(path : string; var records : array<FuncRecord>;
             skipped++
             continue
         }
-        var rec = FuncRecord()
-        rec.ref.name := ef.name
-        rec.ref.file := ef.file
-        rec.ref.line = ef.line
-        rec.ref.end_line = ef.end_line
-        rec.ref.is_lambda = ef.is_lambda
-        rec.canonical := ef.canonical
-        derive_sig_and_count(rec, want_sigs, min_tokens)
-        records |> emplace(rec)
+        records |> emplace(make_record(MemberRef(file = ef.file, name = ef.name, line = ef.line,
+            end_line = ef.end_line, is_lambda = ef.is_lambda), ef.canonical, want_sigs, min_tokens))
     }
     if (skipped > 0 && !quiet) {
         to_log(LOG_WARNING, "warning: skipped {skipped} malformed function record(s) during import\n")

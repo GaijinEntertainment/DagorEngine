@@ -16,8 +16,10 @@ class AssetTagManager : public IAssetBaseViewClient, public PropPanel::IDelayedC
 public:
   explicit AssetTagManager(const DagorAsset *_a);
 
-  // Returns with false if the user requested closing the window with a hotkey.
-  bool updateImgui();
+  // can_submit_contents: whether the contents of the windows should be drawn. Basically the result of ImGui::Begin().
+  // Call updateImgui() even when ImGui::Begin() returns false.
+  // Returns with false if the user requested closing the window with the hotkey.
+  [[nodiscard]] bool updateImgui(bool can_submit_contents);
 
   // IAssetBaseViewClient
   virtual void onAvClose() {};

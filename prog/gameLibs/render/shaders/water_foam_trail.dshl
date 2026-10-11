@@ -217,13 +217,17 @@ shader water_foam_obstacle_apply
 
   (ps) {
     tex@tex2d = water_foam_obstacle;
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
 
     water_foam_trail_mask@smp2d = water_foam_trail_mask;
     water_foam_obstacle_params@f4 = water_foam_obstacle_params;
     current_water_time@f1 = (current_water_time);
     wake_mask_params0@f4 = (wake_mask_params0.x, wake_mask_params0.y, wake_mask_params0.z, wake_mask_size);
     wake_mask_params1@f4 = wake_mask_params1;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
   (vs) {
     water_foam_obstacle_mat0@f4 = water_foam_obstacle_mat0;

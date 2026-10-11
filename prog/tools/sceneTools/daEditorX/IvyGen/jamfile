@@ -23,7 +23,6 @@ Sources =
 
 UseProgLibs =
   tools/libTools/winGuiWrapper
-  engine/sceneRay
 ;
 
 include $(Root)/prog/tools/sceneTools/daEditorX/plugin_setup.jam ;

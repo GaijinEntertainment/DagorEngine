@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "common.h"
 #include "datablk.h"
 
 class IRollupWindow;
@@ -35,7 +36,7 @@ private:
 
   Interface *ip;
   static RollupPanel *instance;
-  IRollupWindow *iRoll;
+  ControlPtr<IRollupWindow> iRoll;
   static std::unique_ptr<DataBlock> templateBlk;
 
   void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,

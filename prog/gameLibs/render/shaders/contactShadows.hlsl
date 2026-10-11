@@ -23,7 +23,7 @@ float contactShadowRayCastWithScaleHitT(
   float2 screenHtAspectAndMinLen = float2(1080. / 1920., 0.0))
 {
   float4 rayStartClip = mul( float4( cameraToPoint, 1 ), viewProjTmNoOfs );
-  float4 rayDirClip = mul( float4( rayDirection * rayLength, 0 ), viewProjTmNoOfs );
+  float4 rayDirClip = mul( float4( rayDirection, 0 ), viewProjTmNoOfs ) * rayLength;
   float4 rayEndClip = rayStartClip + rayDirClip;
 
   float3 rayStartScreen = float3(rayStartClip.xyz / rayStartClip.w);
@@ -114,7 +114,7 @@ float contactShadowFilteredRayCastWithScaleHitT(
   float2 screenHtAspectAndMinLen = float2(1080./1920., 0.0))
 {
   float4 rayStartClip = mul( float4( cameraToPoint, 1 ), viewProjTmNoOfs );
-  float4 rayDirClip = mul( float4( rayDirection * rayLength, 0 ), viewProjTmNoOfs );
+  float4 rayDirClip = mul( float4( rayDirection, 0 ), viewProjTmNoOfs ) * rayLength;
   float4 rayEndClip = rayStartClip + rayDirClip;
 
   float3 rayStartScreen = float3(rayStartClip.xyz / rayStartClip.w);

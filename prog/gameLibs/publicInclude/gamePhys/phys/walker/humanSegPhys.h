@@ -93,6 +93,12 @@ struct SegPhysSegment
   float blendTrajMinHeight = 0.f;
   float blendTrajMaxHeight = 0.f;
 
+  // Allows smoothing of player first-person view when acting in segmented
+  // human physics segments by currTime (maxTime, zeroTimeTau, maxTimeTau)
+  Point3 smoothFirstPersonTimeToTau = Point3(1.f, 0.f, 0.f);
+  float smoothFirstPersonOffsetMultVel = -1.f; // to smoothen entering "real eyes"
+  float smoothFirstPersonOffsetMult = 0.5f;    // "strict vs real eyes" effect coef
+
   // Trajectory of timed point should only be used for specific
   // segment types i.e. SEGPHYS_CLIMB_MOVE_BY_TRAJECTORY and alike
   eastl::vector<SegPhysTrajectoryPoint> trajectory;

@@ -3,8 +3,10 @@
 #include <drv/hid/dag_hiComposite.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiJoyFF.h>
+#include <drv/hid/dag_hiJoyTriggerEffect.h>
 #include <drv/hid/dag_hiCreate.h>
 #include <startup/dag_inpDevClsDrv.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
 #include <memory/dag_framemem.h>
@@ -63,6 +65,7 @@ public:
     MAX_NAMED_BTN = JoystickRawState::MAX_BUTTONS,
     MAX_NAMED_AXIS = 64,
     MAX_NAMED_POV = JoystickRawState::MAX_POV_HATS,
+    GAMEPAD_SHARED_AXES = 6, // the layouts agree on sticks and triggers only
   };
 
   CompositeJoystickDevice() : devices(midmem), client(NULL)
@@ -114,6 +117,7 @@ public:
     char prevState[DATA_SZ];
     memcpy(prevState, &state, DATA_SZ);
     bool changed = false;
+    bool sensorsTaken = false;
 
     state.buttonsPrev = state.buttons;
     for (int j = 0; j < JoystickRawState::MAX_POV_HATS; j++)
@@ -129,6 +133,17 @@ public:
     state.sensorX = state.sensorY = state.sensorZ = state.sensorG = 0.f;
     state.rawSensX = state.rawSensY = state.rawSensZ = state.rawSensG = 0;
 
+    int active = activePad();
+    for (int i = 0; i < devices.size(); i++)
+      if (watchedOnly(i, active))
+      {
+        ButtonBits pressed;
+        devices[i].dev->getRawState().buttons.bitXorAnd1(pressed, devices[i].lastButtons);
+        if (pressed.hasAny())
+          active = i;
+      }
+    interlocked_release_store(activeGamepadIndex, active);
+
     for (int i = 0; i < devices.size(); i++)
     {
       int mapToBtnOfs = devices[i].ofsButtons;
@@ -137,6 +152,15 @@ public:
       if (devices[i].dev)
       {
         const JoystickRawState &st = devices[i].dev->getRawState();
+        // our own copy, since a driver whose read failed keeps its buttonsPrev behind
+        if (!st.buttons.cmpEq(devices[i].lastButtons))
+        {
+          devices[i].lastButtons = st.buttons;
+          if (!watchedOnly(i, active))
+            interlocked_release_store(lastActiveVendor, devices[i].vendorId);
+        }
+        if (watchedOnly(i, active))
+          continue;
         for (int j = 0, inc = 0, k = mapToBtnOfs; j < devices[i].numButtons; j += inc, k += inc)
           if (k < st.buttons.SZ)
           {
@@ -157,6 +181,11 @@ public:
         state.rz += st.rz;
         state.slider[0] += st.slider[0];
         state.slider[1] += st.slider[1];
+        JoystickMotionState motion;
+        const bool reportsMotion = devices[i].dev->getMotionState(motion);
+        if (reportsMotion && sensorsTaken)
+          continue;
+        sensorsTaken |= reportsMotion;
 #define _UPDATE_SENSOR(SENSOR)  \
   if (float_nonzero(st.SENSOR)) \
     state.SENSOR += st.SENSOR;
@@ -182,7 +211,7 @@ public:
     }
 
     if (!changed)
-      changed = memcmp(prevState, &state, DATA_SZ) != 0;
+      changed = memcmp(prevState, &state, DATA_SZ) != 0; //-V1014 the compare is exact on purpose
 
     for (int i = 0, inc = 0; i < state.MAX_BUTTONS; i += inc)
       if (state.buttonsPrev.getIter(i, inc))
@@ -221,7 +250,22 @@ public:
   bool isStickDeadZoneSetupSupported() const override { return true; }
   float getStickDeadZoneScale(int /*stick_idx*/) const override { return 0; }
   void setStickDeadZoneScale(int /*stick_idx*/, float /*scale*/) override {}
-  float getStickDeadZoneAbs(int /*stick_idx*/) const override { return 0; }
+  // smallest cut among pads feeding this stick
+  float getStickDeadZoneAbs(int stick_idx) const override
+  {
+    const int axis = stick_idx * 2, active = activePad();
+    float dz = -1.f;
+    for (int i = 0; i < devices.size(); i++)
+    {
+      const int localAxis = axis - devices[i].ofsAxes;
+      if (devices[i].dev && !watchedOnly(i, active) && localAxis >= 0 && localAxis < 4 && localAxis < devices[i].numAxes)
+      {
+        const float devDz = devices[i].dev->isStickDeadZoneSetupSupported() ? devices[i].dev->getStickDeadZoneAbs(localAxis / 2) : 0.f;
+        dz = dz < 0.f ? devDz : min(dz, devDz);
+      }
+    }
+    return max(dz, 0.f);
+  }
 
 
   int getPairedButtonForAxis(int axis_id) const override
@@ -351,9 +395,10 @@ public:
   bool getButtonState(int btn_id) const override
   {
     bool btn = false;
+    const int active = activePad();
     for (int i = 0; i < devices.size(); i++)
       if (btn_id >= devices[i].ofsButtons && btn_id < devices[i].ofsButtons + devices[i].numButtons)
-        if (devices[i].dev)
+        if (devices[i].dev && !watchedOnly(i, active))
           btn |= devices[i].dev->getButtonState(btn_id - devices[i].ofsButtons);
     return btn;
   }
@@ -362,9 +407,10 @@ public:
   float getAxisPos(int axis_id) const override
   {
     float val = 0.f;
+    const int active = activePad();
     for (int i = 0; i < devices.size(); i++)
       if (axis_id >= devices[i].ofsAxes && axis_id < devices[i].ofsAxes + devices[i].numAxes)
-        if (devices[i].dev)
+        if (devices[i].dev && !watchedOnly(i, active))
           val += devices[i].dev->getAxisPos(axis_id - devices[i].ofsAxes);
     return val;
   }
@@ -373,9 +419,10 @@ public:
   int getAxisPosRaw(int axis_id) const override
   {
     int val = 0;
+    const int active = activePad();
     for (int i = 0; i < devices.size(); i++)
       if (axis_id >= devices[i].ofsAxes && axis_id < devices[i].ofsAxes + devices[i].numAxes)
-        if (devices[i].dev)
+        if (devices[i].dev && !watchedOnly(i, active))
           val += devices[i].dev->getAxisPosRaw(axis_id - devices[i].ofsAxes);
     return val;
   }
@@ -387,7 +434,8 @@ public:
       return false;
     for (int i = 0; i < devices.size(); i++)
       if (axis_id >= devices[i].ofsAxes && axis_id < devices[i].ofsAxes + devices[i].numAxes)
-        return (axis_id >= devices[i].ofsAxes + devices[i].numAxes - devices[i].numPovs * 2);
+        return devices[i].dev && // the pad's own counts, since an overlaid pad keeps fewer axes than it reports
+               axis_id >= devices[i].ofsAxes + devices[i].dev->getAxisCount() - devices[i].dev->getPovHatCount() * 2;
     return false;
   }
 
@@ -486,32 +534,78 @@ public:
   }
 
 
+  template <typename F>
+  void forEachOutputDevice(F &&f)
+  {
+    if (rumbleDevIdx >= 0)
+    {
+      if (rumbleDevIdx < devices.size() && devices[rumbleDevIdx].dev)
+        f(*devices[rumbleDevIdx].dev);
+      return;
+    }
+    for (int i = 0; i < devices.size(); i++)
+      if (devices[i].dev)
+        f(*devices[i].dev);
+  }
+
   void doRumble(float lowFreq, float highFreq) override
   {
     TIME_PROFILE(HID_CJD_doRumble);
-    if (rumbleDevIdx >= 0)
-    {
-      if (rumbleDevIdx < devices.size() && devices[rumbleDevIdx].dev)
-        devices[rumbleDevIdx].dev->doRumble(lowFreq, highFreq);
-      return;
-    }
-    for (int i = 0; i < devices.size(); i++)
-      if (devices[i].dev)
-        devices[i].dev->doRumble(lowFreq, highFreq);
+    forEachOutputDevice([&](IGenJoystick &dev) { dev.doRumble(lowFreq, highFreq); });
   }
-
 
   void setLight(bool set, unsigned char r, unsigned char g, unsigned char b) override
   {
-    if (rumbleDevIdx >= 0)
-    {
-      if (rumbleDevIdx < devices.size() && devices[rumbleDevIdx].dev)
-        devices[rumbleDevIdx].dev->setLight(set, r, g, b);
-      return;
-    }
+    forEachOutputDevice([&](IGenJoystick &dev) { dev.setLight(set, r, g, b); });
+  }
+
+  void setPlayerLeds(unsigned mask) override
+  {
+    forEachOutputDevice([&](IGenJoystick &dev) { dev.setPlayerLeds(mask); });
+  }
+
+  void setMicLed(JoystickMicLed mode) override
+  {
+    forEachOutputDevice([&](IGenJoystick &dev) { dev.setMicLed(mode); });
+  }
+
+  void setTriggerEffect(const TriggerEffectParam &param) override
+  {
+    forEachOutputDevice([&](IGenJoystick &dev) { dev.setTriggerEffect(param); });
+  }
+
+  bool getMotionState(JoystickMotionState &out) const override
+  {
+    const int active = activePad();
     for (int i = 0; i < devices.size(); i++)
-      if (devices[i].dev)
-        devices[i].dev->setLight(set, r, g, b);
+      if (devices[i].dev && !watchedOnly(i, active) && devices[i].dev->getMotionState(out))
+        return true;
+    return false;
+  }
+
+  bool getTouchpadState(JoystickTouchpadState &out) const override
+  {
+    const int active = activePad();
+    for (int i = 0; i < devices.size(); i++)
+      if (devices[i].dev && !watchedOnly(i, active) && devices[i].dev->getTouchpadState(out))
+        return true;
+    return false;
+  }
+
+  bool fetchTouchpadGestures(GestureCb cb) override
+  {
+    const int active = activePad();
+    bool fetched = false;
+    for (int i = 0; i < devices.size(); i++)
+    {
+      if (!devices[i].dev)
+        continue;
+      if (!fetched && !watchedOnly(i, active))
+        fetched = devices[i].dev->fetchTouchpadGestures(cb);
+      else // a pad that is not read drops its gestures, else they come late once it is read
+        devices[i].dev->fetchTouchpadGestures([](Gesture::State, const Gesture &) {});
+    }
+    return fetched;
   }
 
 
@@ -525,6 +619,8 @@ public:
 
   void enableSensorsTiltCorrection(bool enable) override
   {
+    tiltCorrection = enable;
+    gyroModeSet = true;
     for (auto &d : devices)
       if (d.dev)
         d.dev->enableSensorsTiltCorrection(enable);
@@ -533,6 +629,8 @@ public:
 
   void reportGyroSensorsAngDelta(bool report_ang_delta) override
   {
+    gyroAngDelta = report_ang_delta;
+    gyroModeSet = true;
     for (auto &d : devices)
       if (d.dev)
         d.dev->reportGyroSensorsAngDelta(report_ang_delta);
@@ -552,17 +650,57 @@ public:
     return false;
   }
 
+  bool sharesGamepadControls(const IGenJoystick *dev) const
+  {
+    return stricmp(dev->getDeviceID(), "x360") == 0 || (layoutGroup && dev->isGamepadLayout());
+  }
+  int activePad() const { return interlocked_acquire_load(activeGamepadIndex); }
+  bool watchedOnly(int i, int active) const
+  {
+    return layoutGroup && i != active && devices[i].dev && sharesGamepadControls(devices[i].dev);
+  }
+  void setLayoutGroup(bool on) { layoutGroup = on; }
+  // constraint: a slot does not keep its pad across a refresh, a name with a device id is not unique, and a freed object's
+  // address can carry another pad's new object
+  void settleActiveGamepad()
+  {
+    int active = -1, named = -1, namedCount = 0;
+    for (int i = 0; i < devices.size(); i++)
+      if (devices[i].dev && sharesGamepadControls(devices[i].dev))
+      {
+        const bool sameName =
+          strcmp(devices[i].name.c_str(), activePadName.c_str()) == 0 && strcmp(devices[i].devID.c_str(), activePadID.c_str()) == 0;
+        if (devices[i].dev == activePadDev && sameName)
+          active = i;
+        if (sameName)
+        {
+          named = i;
+          namedCount++;
+        }
+      }
+    if (active < 0)
+      active = namedCount == 1 ? named : firstGamepadIndex;
+    interlocked_release_store(activeGamepadIndex, active);
+  }
+
   void clearDevices()
   {
+    const int a = interlocked_acquire_load(activeGamepadIndex);
+    if (a >= 0 && a < devices.size())
+    {
+      activePadDev = devices[a].dev;
+      activePadName = devices[a].name;
+      activePadID = devices[a].devID;
+    }
     for (int i = 0; i < devices.size(); i++)
       devices[i].dev = NULL;
     btnNum = axesNum = povsNum = 0;
-    firstX360Index = -1;
+    firstGamepadIndex = -1;
   }
 
   void resetDevices() { devices.clear(); }
 
-  void addDevice(IGenJoystick *dev, bool is_xinput)
+  void addDevice(IGenJoystick *dev, bool is_xinput, int vendor_id)
   {
     if (!dev)
       return;
@@ -580,27 +718,20 @@ public:
 
     if (index < 0 || index >= devices.size())
       index = append_items(devices, 1);
+    devices[index].vendorId = vendor_id;
+    devices[index].lastButtons = dev->getRawState().buttons; // a refresh is no press
 
-    // required for XR-112
-    if (firstX360Index < 0 && stricmp(dev->getDeviceID(), "x360") == 0)
-      firstX360Index = index;
-    if (index == firstX360Index || stricmp(dev->getDeviceID(), "x360") != 0)
-    {
-      // append controls
-      devices[index].ofsButtons = btnNum;
-      devices[index].ofsPovs = povsNum;
-      devices[index].ofsAxes = axesNum;
-      btnNum += dev->getButtonCount();
-      povsNum += dev->getPovHatCount();
-      axesNum += dev->getAxisCount();
-    }
-    else
-    {
-      // refer to existing x360
-      devices[index].ofsButtons = devices[firstX360Index].ofsButtons;
-      devices[index].ofsPovs = devices[firstX360Index].ofsPovs;
-      devices[index].ofsAxes = devices[firstX360Index].ofsAxes;
-    }
+    const bool layout = sharesGamepadControls(dev);
+    if (firstGamepadIndex < 0 && layout)
+      firstGamepadIndex = index;
+    const bool overlay = index != firstGamepadIndex && layout;
+    devices[index].ofsButtons = overlay ? devices[firstGamepadIndex].ofsButtons : btnNum;
+    devices[index].ofsPovs = povsNum;
+    devices[index].ofsAxes = overlay ? devices[firstGamepadIndex].ofsAxes : axesNum;
+    const int axes = overlay && layoutGroup ? min(dev->getAxisCount(), int(GAMEPAD_SHARED_AXES)) : dev->getAxisCount();
+    btnNum = max(btnNum, devices[index].ofsButtons + dev->getButtonCount());
+    povsNum += dev->getPovHatCount();
+    axesNum = max(axesNum, devices[index].ofsAxes + axes);
 
     auto assignUnlessEq = [&](SimpleString &strf, const char *n) {
       if (strf != n)
@@ -610,11 +741,16 @@ public:
     devices[index].dev = dev;
     assignUnlessEq(devices[index].name, dev->getName());
     assignUnlessEq(devices[index].devID, dev->getDeviceID());
+    if (gyroModeSet)
+    {
+      dev->enableSensorsTiltCorrection(tiltCorrection);
+      dev->reportGyroSensorsAngDelta(gyroAngDelta);
+    }
 
     devices[index].isXInput = is_xinput;
     devices[index].numButtons = dev->getButtonCount();
     devices[index].numPovs = dev->getPovHatCount();
-    devices[index].numAxes = dev->getAxisCount();
+    devices[index].numAxes = axes;
 
     /*
     debug("composite.reg dev=%p (%s, %s) as %d, ofs=(%d,%d,%d) num=(%d,%d,%d)",
@@ -638,8 +774,12 @@ public:
     if (localize_composite_joy_dev(dev_name, loc_dev_name_stor, global_cls_composite_drv_joy->getLocClient()))
       dev_name = loc_dev_name_stor;
 
-    if (index != firstX360Index && dev && stricmp(dev->getDeviceID(), "x360") == 0)
-      return; // required for XR-112
+    int first_pad_buttons = 0, first_pad_axes = 0;
+    if (index != firstGamepadIndex && sharesGamepadControls(dev))
+    {
+      first_pad_buttons = devices[firstGamepadIndex].numButtons;
+      first_pad_axes = devices[firstGamepadIndex].numAxes;
+    }
 
     bool is_first_xinput = is_xinput;
     for (int i = 0; i < index; i++)
@@ -658,7 +798,7 @@ public:
     int b_base = devices[index].ofsButtons;
     int a_base = devices[index].ofsAxes;
     int p_base = devices[index].ofsPovs;
-    for (int j = 0; j < devices[index].numButtons; j++)
+    for (int j = first_pad_buttons; j < devices[index].numButtons; j++)
       if (b_base + j < btnNames.size())
       {
         if (should_use_native_names(devices[index]))
@@ -678,7 +818,7 @@ public:
         assignFullNameUnlessEq(btnNames[b_base + j]);
       }
 
-    for (int j = 0; j < devices[index].numAxes; j++)
+    for (int j = first_pad_axes; j < devices[index].numAxes; j++)
       if (a_base + j < axisNames.size())
       {
         if (should_use_native_names(devices[index]))
@@ -732,10 +872,20 @@ protected:
   carray<char *, MAX_NAMED_AXIS> axisNames;
   carray<char *, MAX_NAMED_POV> povNames;
   int btnNum, axesNum, povsNum;
-  int firstX360Index = -1;
+  int firstGamepadIndex = -1;
+  const IGenJoystick *activePadDev = nullptr; // constraint: compared, never dereferenced, the object can be gone
+  SimpleString activePadName, activePadID;
+  volatile int activeGamepadIndex = -1; // constraint: the input poll thread and the device list refresh write, the UI reads
+  bool layoutGroup = false;
+  volatile int lastActiveVendor = NO_ACTIVE_VENDOR; // written by the input poll thread, read by the UI
+  // constraint: unknown until the game sets it, and a caller may set one flag alone
+  bool gyroModeSet = false, tiltCorrection = false, gyroAngDelta = false;
 
 public:
   int rumbleDevIdx;
+  static constexpr int NO_ACTIVE_VENDOR = GAMEPAD_VENDOR_UNKNOWN - 1; // no button changed yet
+  // the vendor of the real device whose buttons changed last
+  int getLastActiveVendor() const { return interlocked_acquire_load(lastActiveVendor); }
 };
 
 
@@ -867,8 +1017,8 @@ void CompositeJoystickClassDriver::updateDevices()
           classDrv->enable(true); // TEMP
         for (int s = 0; s < 2; s++)
         {
-          classDrv->setStickDeadZoneScale(s, true, stickDzScale[s + 0]);
-          classDrv->setStickDeadZoneScale(s, false, stickDzScale[s + 2]);
+          applyStickDeadZone(classDrv, s, true);
+          applyStickDeadZone(classDrv, s, false);
         }
         deviceConfigChanged = true;
       }
@@ -1020,9 +1170,11 @@ void CompositeJoystickClassDriver::setRumbleTargetRealDevIdx(int real_dev_idx)
   out_real_dev_idx = -1;                                                  \
   return -1
 
-#define REMAP_REL2ABS(ID, FIELD)                                            \
-  if (real_dev_idx < 0 || real_dev_idx >= compositeDevice->getNumDevices()) \
-    return -1;                                                              \
+#define REMAP_REL2ABS(ID, FIELD)                                                                                 \
+  if (real_dev_idx < 0 || real_dev_idx >= compositeDevice->getNumDevices())                                      \
+    return -1;                                                                                                   \
+  if (ID < 0 || ID >= compositeDevice->getDevice(real_dev_idx).num##FIELD) /* an axis an overlaid pad dropped */ \
+    return -1;                                                                                                   \
   return ID + compositeDevice->getDevice(real_dev_idx).ofs##FIELD
 
 int CompositeJoystickClassDriver::remapAbsButtonId(int abs_btn_id, int &out_real_dev_idx) const { REMAP_ABS2REL(abs_btn_id, Buttons); }
@@ -1051,6 +1203,42 @@ static bool check_main_gamepad(HumanInput::IGenJoystick *dev, bool main_gamepad)
 }
 
 
+// constraint: a GameInput composite lists a virtual pad that its class driver setter does not reach
+static void set_stick_dead_zone_scale(IGenJoystickClassDrv *drv, int stick_idx, bool main_gamepad, float scale)
+{
+  drv->setStickDeadZoneScale(stick_idx, main_gamepad, scale);
+  for (int devNo = 0; devNo < drv->getDeviceCount(); devNo++)
+  {
+    IGenJoystick *dev = drv->getDevice(devNo);
+    if (check_main_gamepad(dev, main_gamepad))
+      dev->setStickDeadZoneScale(stick_idx, scale);
+  }
+}
+
+// constraint: the console pad class driver answers the bare getStickDeadZoneAbs read with 0
+static float stick_dead_zone_base(IGenJoystickClassDrv *drv, int stick_idx, bool main_gamepad)
+{
+  set_stick_dead_zone_scale(drv, stick_idx, main_gamepad, 1.f);
+  for (int devNo = 0; devNo < drv->getDeviceCount(); devNo++)
+  {
+    IGenJoystick *dev = drv->getDevice(devNo);
+    if (check_main_gamepad(dev, main_gamepad))
+      return dev->getStickDeadZoneAbs(stick_idx);
+  }
+  return drv->getStickDeadZoneAbs(stick_idx, main_gamepad, nullptr);
+}
+
+// the driver takes the scale that keeps the remembered absolute dead zone
+void CompositeJoystickClassDriver::applyStickDeadZone(IGenJoystickClassDrv *drv, int stick_idx, bool main_gamepad)
+{
+  if (!drv->isStickDeadZoneSetupSupported())
+    return;
+  const int idx = (main_gamepad ? 0 : 2) + stick_idx;
+  const float base = stickDzAbs[idx] > 0 ? stick_dead_zone_base(drv, stick_idx, main_gamepad) : 0;
+  set_stick_dead_zone_scale(drv, stick_idx, main_gamepad, base > 0 ? stickDzAbs[idx] / base : stickDzScale[idx]);
+}
+
+
 float CompositeJoystickClassDriver::getStickDeadZoneScale(int stick_idx, bool main_gamepad) const
 {
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, 0);
@@ -1061,17 +1249,16 @@ float CompositeJoystickClassDriver::getStickDeadZoneScale(int stick_idx, bool ma
 void CompositeJoystickClassDriver::setStickDeadZoneScale(int stick_idx, bool main_gamepad, float scale)
 {
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, );
-  stickDzScale[(main_gamepad ? 0 : 2) + stick_idx] = scale;
-  if (compositeDevice)
-    for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
-      if (IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv)
-        if (classDrv->isStickDeadZoneSetupSupported())
-          for (int devNo = 0; devNo < classDrv->getDeviceCount(); devNo++)
-          {
-            HumanInput::IGenJoystick *dev = classDrv->getDevice(devNo);
-            if (check_main_gamepad(dev, main_gamepad))
-              dev->setStickDeadZoneScale(stick_idx, scale);
-          }
+  const int idx = (main_gamepad ? 0 : 2) + stick_idx;
+  stickDzScale[idx] = scale;
+  for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
+    if (IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv)
+      if (classDrv->isStickDeadZoneSetupSupported())
+        set_stick_dead_zone_scale(classDrv, stick_idx, main_gamepad, 1.f);
+  stickDzAbs[idx] = scale * getStickDeadZoneAbs(stick_idx, main_gamepad, nullptr);
+  for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
+    if (IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv)
+      applyStickDeadZone(classDrv, stick_idx, main_gamepad);
 }
 
 
@@ -1092,9 +1279,10 @@ float CompositeJoystickClassDriver::getStickDeadZoneAbs(int stick_idx, bool main
         }
   for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
     if (IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv)
-      if (classDrv->isStickDeadZoneSetupSupported())
-        if (!classDrv->getDeviceCount())
-          return classDrv->getStickDeadZoneAbs(stick_idx, main_gamepad, nullptr);
+      if (classDrv->isStickDeadZoneSetupSupported() && !classDrv->getDeviceCount())
+        // constraint: other-kind class drivers answer 0
+        if (const float dz = classDrv->getStickDeadZoneAbs(stick_idx, main_gamepad, nullptr); dz > 0)
+          return dz;
   return 0;
 }
 
@@ -1106,6 +1294,31 @@ void CompositeJoystickClassDriver::enableGyroscope(bool enable, bool main_dev)
       classDrvs[i].drv->enableGyroscope(enable, main_dev);
 }
 
+void CompositeJoystickClassDriver::setGamepadLayoutGroup(bool on)
+{
+  compositeDevice->setLayoutGroup(on);
+  refreshCompositeDevicesList();
+}
+
+
+int CompositeJoystickClassDriver::getVendorId() const
+{
+  const int active = compositeDevice->getLastActiveVendor();
+  int fallback = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
+  for (int i = 0; i < MAX_CLASSDRV; i++)
+  {
+    IGenJoystickClassDrv *drv = classDrvs[i].drv;
+    if (!drv || drv->getDeviceCount() <= 0)
+      continue;
+    const int vendor = drv->getVendorId();
+    if (vendor == active)
+      return active;
+    if (fallback == HumanInput::GAMEPAD_VENDOR_UNKNOWN)
+      fallback = vendor;
+  }
+  return fallback;
+}
+
 
 void CompositeJoystickClassDriver::refreshCompositeDevicesList()
 {
@@ -1115,23 +1328,28 @@ void CompositeJoystickClassDriver::refreshCompositeDevicesList()
   if (compositeDevice)
   {
     compositeDevice->clearDevices();
-    for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
-    {
-      IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv;
-      if (classDrv)
+    // constraint: the pads that share controls are added before the other devices
+    for (int pass = 0; pass < 2; pass++)
+      for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
       {
-        for (int devNo = 0, total = classDrv->getDeviceCount(); devNo < total; devNo++)
+        IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv;
+        if (classDrv)
         {
-          HumanInput::IGenJoystick *dev = classDrv->getDevice(devNo);
-          G_ASSERTF_CONTINUE(dev != nullptr, "[CTRL][CJCD] no device #%d, but %d reported present by drv #%d", devNo, total,
-            classDrvNo);
-          compositeDevice->addDevice(dev, classDrvs[classDrvNo].isXInput);
-          isXInput |= dev->isXinputCompatible();
+          for (int devNo = 0, total = classDrv->getDeviceCount(); devNo < total; devNo++)
+          {
+            HumanInput::IGenJoystick *dev = classDrv->getDevice(devNo);
+            G_ASSERTF_CONTINUE(dev != nullptr, "[CTRL][CJCD] no device #%d, but %d reported present by drv #%d", devNo, total,
+              classDrvNo);
+            if ((pass == 0) != compositeDevice->sharesGamepadControls(dev))
+              continue;
+            compositeDevice->addDevice(dev, classDrvs[classDrvNo].isXInput, classDrv->getVendorId());
+            isXInput |= dev->isXinputCompatible();
+          }
         }
       }
-    }
     for (int i = 0; i < compositeDevice->getNumDevices(); i++)
       compositeDevice->setupControlNames(i);
+    compositeDevice->settleActiveGamepad();
   }
 
   haveXInput = isXInput;

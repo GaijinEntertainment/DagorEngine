@@ -4,11 +4,8 @@
 
 #include <oldEditor/de_collision.h>
 
+#include <gameRes/dag_collisionResource.h>
 #include <math/dag_capsule.h>
-
-
-//==================================================================================================
-StaticSceneRayTracer *DeDagorPhys::loadBinaryRaytracer(IGenLoad &crd) const { return DagorPhys::load_binary_raytracer(crd); }
 
 
 //==================================================================================================
@@ -37,18 +34,19 @@ real DeDagorPhys::clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt
 
 
 //==================================================================================================
-real DeDagorPhys::clipCapsuleStatic(Capsule &c, Point3 &cap_pt, Point3 &world_pt, Point3 &norm) const
+void DeDagorPhys::visitClipTriangles(const BBox3 &box, const ClipTriVisitor &visitor) const
 {
-  return DagorPhys::clip_capsule_static(c, cap_pt, world_pt, norm);
+  const CollisionResource *clip = DagorPhys::getClipCollision();
+  if (!clip)
+    return;
+
+  clip->visitTrianglesInBox(v_ldu_bbox3(box), CollisionNode::TRACEABLE, [&visitor](vec3f a, vec3f b, vec3f c, int, int) {
+    Point3 v0, v1, v2;
+    v_stu_p3(&v0.x, a), v_stu_p3(&v1.x, b), v_stu_p3(&v2.x, c);
+    visitor(v0, v1, v2);
+    return false;
+  });
 }
-
-
-//==================================================================================================
-FastRtDump *DeDagorPhys::getFastRtDump() const { return DagorPhys::getFastRtDump(); }
-
-
-//==================================================================================================
-void DeDagorPhys::initCollisionBinary(StaticSceneRayTracer *rt) const { DagorPhys::init_collision_binary(rt); }
 
 
 //==================================================================================================

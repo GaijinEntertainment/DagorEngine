@@ -82,6 +82,9 @@ struct Parser : public ShaderTerminal::GeneratedParser
   // Concrete callbacks
   void add_shader(ShaderTerminal::shader_decl *d) override;
   void add_block(ShaderTerminal::block_decl *d) override;
+  void add_render_pass(ShaderTerminal::render_pass_decl *d) override;
+  void add_render_pass_group(ShaderTerminal::render_pass_group_decl *d) override;
+  void add_framebuffer_layout(ShaderTerminal::framebuffer_layout_decl *d) override;
   void add_global_var(ShaderTerminal::global_var_decl *d) override;
   void add_sampler(ShaderTerminal::sampler_decl *d) override;
   void add_global_interval(ShaderTerminal::interval &i) override;

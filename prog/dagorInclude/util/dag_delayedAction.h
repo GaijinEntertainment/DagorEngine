@@ -59,7 +59,7 @@ KRNLIMP void perform_delayed_actions();
 //! runs the callbacks itself, so it has the same main-thread-only rule as perform_delayed_actions()
 KRNLIMP void flush_delayed_actions();
 
-// sets maximum time that perform_delayed_actions() may spend on one work cycle; default is 4000000 (4 sec)
+// sets maximum time that perform_delayed_actions() may spend on one work cycle; default is 40000 usec (40 ms)
 KRNLIMP void set_delayed_action_max_quota(int quota_usec);
 
 KRNLIMP void register_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg, bool perform_on_work_cycle = true);

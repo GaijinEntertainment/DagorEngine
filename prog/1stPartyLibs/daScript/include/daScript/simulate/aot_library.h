@@ -29,27 +29,13 @@ namespace das {
         RegisterAotFunctions regFn;
     };
 
+    DAS_API void aotLibraryEmplace ( AotLibrary & lib, uint64_t hash, const AotFactory & factory );
+
     DAS_API AotLibrary & getGlobalAotLibrary();
     DAS_API void clearGlobalAotLibrary();
 
-    // makeAotJitNode builds a SimNode_Jit (defined in module_jit.cpp, where it is visible);
+    // makeAotJitNode builds a SimNode_Jit (defined in jit_runtime.cpp, where it is visible);
     SimNode * makeAotJitNode ( Context & ctx, void * publ );
-
-    // Test standalone context
-
-    typedef Context * ( * RegisterTestCreator ) ();
-
-    struct StandaloneContextNode {
-        StandaloneContextNode( RegisterTestCreator prfn ) {
-            regFn = prfn;
-            tail = head;
-            head = this;
-        }
-
-        StandaloneContextNode * tail = nullptr;
-        static StandaloneContextNode * head;
-        RegisterTestCreator regFn;
-    };
 
 }
 

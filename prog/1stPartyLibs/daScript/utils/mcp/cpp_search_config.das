@@ -12,8 +12,8 @@
 //
 // All paths are relative to the daslang repository root.
 //
-// Documentation: skills/mcp_tools.md (or install/skills/mcp_tools.md for SDK
-// consumers) and doc/source/reference/utils/mcp.rst.
+// Documentation: skills/mcp_tools.md (same path in the SDK bundle) and
+// doc/source/reference/utils/mcp.rst.
 
 options gen2
 

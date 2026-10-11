@@ -47,6 +47,16 @@ def test_annotated_block(t : T?) {
     t |> equal(ad, DATA_BLOCK_PAYLOAD)
 }
 
+// finish reaches a lambda's block too: block folding used to merge that block into the lambda
+// function's body, dropping its annotations before finalize ran.
+[test]
+def test_finish_reaches_lambda(t : T?) {
+    let l <- @ [finish_mark] () : int {
+        return 0
+    }
+    t |> equal(invoke(l), 1)
+}
+
 def probe_annotation_data(blk : block<(x : int) : int>) : uint64 {
     return testBlockAnnotationData(blk)
 }
@@ -107,13 +117,11 @@ def test_annotated_block_exe(t : T?) {
     t |> equal(write_exe_script(), true)
     if (!compile_to_exe(t)) return
     var output = ""
-    unsafe {
-        popen(EXE_BINARY) $(f) {
-            while (!feof(f)) {
-                output += fgets(f)
-            }
+    unsafe(popen(EXE_BINARY) $(f) {
+        while (!feof(f)) {
+            output += fgets(f)
         }
-    }
+    })
     // ad=0x0 is the correct answer for a standalone exe, not a shortfall of the resolve: the payload
     // is made by the compiling process, and an exe context is built by jit_create_standalone_ctx
     // rather than simulate(), so it has no sid->data table for jit_ad_by_sid to read. Before the fix

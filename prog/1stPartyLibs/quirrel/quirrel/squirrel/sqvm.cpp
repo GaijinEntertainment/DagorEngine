@@ -407,21 +407,37 @@ bool SQVM::ToString(const SQObjectPtr &o,SQObjectPtr &res)
         res = o;
         return true;
     case OT_FLOAT: {
+#if SQ_USE_STD_FROM_CHARS
+            const auto converted = std::to_chars(buf, buf + sizeof(buf), double(_float(o)), std::chars_format::general, 6);
+            res = SQString::Create(_ss(this), buf, converted.ptr - buf);
+            return true;
+#else
             int i = scsprintf(buf, sizeof(buf), "%g", _float(o));
             for (; i >= 0; i--)
                 if (buf[i] == ',')
                     buf[i] = '.';
+#endif
         }
         break;
-    case OT_INTEGER:
-        scsprintf(buf, sizeof(buf), _PRINT_INT_FMT, _integer(o));
-        break;
+    case OT_INTEGER: {
+            char *end = buf + sizeof(buf), *p = end;
+            const SQInteger i = _integer(o);
+            SQUnsignedInteger u = i < 0 ? SQUnsignedInteger(0) - SQUnsignedInteger(i) : SQUnsignedInteger(i);
+            do {
+                *--p = char('0' + u % 10);
+                u /= 10;
+            } while (u);
+            if (i < 0)
+                *--p = '-';
+            res = SQString::Create(_ss(this), p, end - p);
+            return true;
+        }
     case OT_BOOL:
-        scsprintf(buf, sizeof(buf), _integer(o) ? "true" : "false");
-        break;
+        res = _integer(o) ? _ss(this)->_trueString : _ss(this)->_falseString;
+        return true;
     case OT_NULL:
-        scsprintf(buf, sizeof(buf), "null");
-        break;
+        res = _ss(this)->TypeName(OT_NULL);
+        return true;
     case OT_TABLE:
     case OT_USERDATA:
     case OT_INSTANCE:
@@ -468,7 +484,7 @@ bool SQVM::TypeOf(const SQObjectPtr &obj1,SQObjectPtr &dest)
             return CallMetaMethod(closure,MT_TYPEOF,1,dest);
         }
     }
-    dest = SQString::Create(_ss(this),GetTypeName(obj1));
+    dest = _ss(this)->TypeName(sq_type(obj1));
     return true;
 }
 
@@ -524,7 +540,8 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
 
         //dumpstack(stackbase);
         SQInteger nvargs = nargs - paramssize;
-        SQArray *arr = SQArray::Create(_ss(this),nvargs);
+        SQObjectPtr arrPtr(SQArray::Create(_ss(this),nvargs));
+        SQArray *arr = _array(arrPtr);
         SQInteger pbase = stackbase+paramssize;
         SQUnsignedInteger32 mask = func->_param_type_masks ? func->_param_type_masks[paramssize] : ~0u;
 
@@ -540,7 +557,7 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
             pbase++;
 
         }
-        _stack._vals[stackbase+paramssize] = arr;
+        _stack._vals[stackbase+paramssize] = arrPtr;
         //dumpstack(stackbase);
     }
     else if (paramssize != nargs) {
@@ -1122,6 +1139,8 @@ exception_restore:
     //
     {
         int prevLineNum = -1;
+        SQInteger prevLineDepth = -1;
+        SQInt32 prevLineNcalls = -1;
         int lineHint = 0;
         SQInstruction *_ip = ci->_ip;
         SQObjectPtr *_stkbase = _stack._vals + _stackbase;
@@ -1133,8 +1152,10 @@ exception_restore:
                     SQFunctionProto *funcProto = _closure(ci->_closure)->_function;
                     bool isStepPoint;
                     int curLineNum = funcProto->GetLine(_ip, &lineHint, &isStepPoint);
-                    if (curLineNum != prevLineNum) {
+                    if (curLineNum != prevLineNum || _callsstacksize != prevLineDepth || ci->_ncalls != prevLineNcalls) {
                         prevLineNum = curLineNum;
+                        prevLineDepth = _callsstacksize;
+                        prevLineNcalls = ci->_ncalls;
                         if (isStepPoint) {
                             SYNC_IP();
                             CallDebugHook('l', curLineNum);
@@ -1934,50 +1955,6 @@ exception_restore:
                 _class(o)->_docstring_id = SQDocStringId(arg1);
                 continue;
                 }
-            case _OP_LOAD_STATIC_MEMO:
-                // _staticmemos[arg1] -> STK(arg0), jump to ((arg2 << 8) + arg3)
-                STK(arg0) = _closure(ci->_closure)->_function->_staticmemos[arg1];
-                _ip += (arg2 << 8) + arg3;  //-V595
-                continue;
-            case _OP_SAVE_STATIC_MEMO: {
-                // STK(arg0) -> _staticmemos[arg1], STK(arg0) -> STK(loadInstr->_arg0),
-                // modify instruction op at -((arg2 << 8) + arg3) to _OP_LOAD_STATIC_MEMO
-                SQObjectPtr & staticmemo = STK(arg0);
-                SQObjectType tp = sq_type(staticmemo);
-                bool isAutoMemo = (arg1 & STATIC_MEMO_AUTO_FLAG) != 0;
-                SQInteger staticIdx = arg1 & STATIC_MEMO_IDX_MASK;
-                if (isAutoMemo && (tp == OT_ARRAY || tp == OT_TABLE || tp == OT_INSTANCE || tp == OT_CLASS)) {
-                    // don't auto-memoize mutable containers - might change observable behavior
-                    // but still copy result to the LOAD instruction's target register if needed
-                    SQInstruction * loadInstr = (_ip - (arg2 << 8) - arg3);
-                    if (loadInstr->_arg0 != arg0)
-                        STK(loadInstr->_arg0) = staticmemo;
-                    continue;
-                }
-                staticmemo._flags |= SQOBJ_FLAG_IMMUTABLE;
-
-                SQObjectPtr & storedStatic = _closure(ci->_closure)->_function->_staticmemos[staticIdx]; //-V595
-                storedStatic = staticmemo;
-
-                if (ISREFCOUNTED(tp)) {
-                #ifdef NO_GARBAGE_COLLECTOR
-                    __AddRef(storedStatic._type, storedStatic._unVal);
-                #else
-                    _ss(this)->_refs_table.AddRef(storedStatic);
-                #endif
-                }
-
-                SQInstruction * loadInstr = (_ip - (arg2 << 8) - arg3);  //-V595
-                if (loadInstr->_arg0 != arg0)
-                    STK(loadInstr->_arg0) = staticmemo;
-                loadInstr->_arg1 = staticIdx; // strip STATIC_MEMO_AUTO_FLAG
-                loadInstr->op = _OP_LOAD_STATIC_MEMO;
-                continue;
-                }
-            case _OP_FREEZE:
-                STK(arg1)._flags |= SQOBJ_FLAG_IMMUTABLE;
-                TARGET = STK(arg1);
-                continue;
             case _OP_CHECK_TYPE:
                 if (!check_typemask(sq_type(STK(arg0)), arg1)) {
                     char buf[160];
@@ -2810,6 +2787,24 @@ void SQVM::FindOuter(SQObjectPtr &target, SQObjectPtr *stackindex)
 
 bool SQVM::EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall)
 {
+    if(newtop + STACK_GROW_THRESHOLD > (SQInteger)_stack.size()) {
+        if(!_nmetamethodscall) {
+            SQInteger newsize = newtop + (STACK_GROW_THRESHOLD << 1);
+            if (newsize > MAX_SQ_STACK_SIZE) {
+                Raise_Error("stack overflow, cannot resize stack");
+                return false;
+            }
+            _stack.resize(newsize);
+            RelocateOuters();
+        }
+        // TODO: this exception should never occur and will be removed soon
+        else if(newtop + MIN_STACK_OVERHEAD > (SQInteger)_stack.size()) {
+            Raise_Error("stack overflow, cannot resize stack while in a metamethod, stack.size = %d, required = %d",
+                int(_stack.size()), int(newtop + MIN_STACK_OVERHEAD));
+            return false;
+        }
+    }
+
     if( !tailcall ) {
         if( _callsstacksize == _alloccallsstacksize ) {
             GrowCallStack();
@@ -2828,24 +2823,6 @@ bool SQVM::EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall)
 
     _stackbase = newbase;
     _top = newtop;
-
-    if(newtop + STACK_GROW_THRESHOLD > (SQInteger)_stack.size()) {
-        if(!_nmetamethodscall) {
-            SQInteger newsize = newtop + (STACK_GROW_THRESHOLD << 1);
-            if (newsize > MAX_SQ_STACK_SIZE) {
-                Raise_Error("stack overflow, cannot resize stack");
-                return false;
-            }
-            _stack.resize(newsize);
-            RelocateOuters();
-        }
-        // TODO: this exception should never occur and will be removed soon
-        else if(newtop + MIN_STACK_OVERHEAD > (SQInteger)_stack.size()) {
-            Raise_Error("stack overflow, cannot resize stack while in a metamethod, stack.size = %d, required = %d",
-                int(_stack.size()), int(newtop + MIN_STACK_OVERHEAD));
-            return false;
-        }
-    }
     return true;
 }
 

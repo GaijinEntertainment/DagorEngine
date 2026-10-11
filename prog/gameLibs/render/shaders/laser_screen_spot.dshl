@@ -93,8 +93,12 @@ shader laser_screen_spot
         LaserScreenSpot laser_screen_spots[MAX_LASER_SCREEN_SPOTS_COUNT];
       };
     };
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     noiseTimeFactor@f1 = time_phase(0, 0);
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   hlsl(ps) {

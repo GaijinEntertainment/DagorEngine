@@ -6,6 +6,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
 #include <startup/dag_globalSettings.h>
+#include <startup/dag_loadSettings.h>
 #include <ioSys/dag_dataBlockUtils.h>
 
 SettingsOverride::~SettingsOverride() { useDefaultConfigBlk(); }
@@ -46,7 +47,7 @@ void SettingsOverride::useDefaultConfigBlk()
   }
 }
 
-const DataBlock *SettingsOverride::getSettings() const { return &configBlk; }
+void SettingsOverride::applyToSettings() { dgs_apply_config_blk(configBlk, false, false); }
 
 bool SettingsOverride::isSettingOverriden(const char *setting_path) const
 {

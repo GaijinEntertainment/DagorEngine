@@ -64,7 +64,7 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
     FunctionAnnotation("imgui_func"), registry(reg), mutex(mutex_)
   {}
 
-  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
+  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override
   {
     auto mod = fn->fromGeneric ? fn->fromGeneric->module : fn->module;
     if (mod && mod->isModule)
@@ -76,7 +76,7 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
     return true;
   }
 
-  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &argTypes,
+  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &argTypes,
     const das::AnnotationArgumentList &, eastl::string &err) override
   {
     if (!fn->arguments.empty())
@@ -133,12 +133,12 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
     return true;
   }
 
-  bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
+  bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override
   {
     err = "not a block annotation";
     return false;
   }
-  bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     eastl::string &err) override
   {
     err = "not a block annotation";

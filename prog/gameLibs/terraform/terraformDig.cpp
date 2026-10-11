@@ -193,8 +193,8 @@ void TerraformDig::advanceDigging(TerraformDigCtx *dig_ctx, const Point2 &pos, c
         mutable int numDigAlt = 0;
         mutable float maxDigAlt = 0;
       } digCell(ctx);
-      IPoint2 digCoords[2] = {tform.getCoordFromPos(digCtx.pos + cellLen * 2 * digCtx.dir + digCtx.width * 0.5 * up),
-        tform.getCoordFromPos(digCtx.pos + cellLen * 2 * digCtx.dir - digCtx.width * 0.5 * up)};
+      IPoint2 digCoords[2] = {tform.getCoordFromPos(digCtx.pos + cellLen * 2 * digCtx.dir + digCtx.width * 0.5f * up),
+        tform.getCoordFromPos(digCtx.pos + cellLen * 2 * digCtx.dir - digCtx.width * 0.5f * up)};
       rastr_line(digCoords[0].x, digCoords[0].y, digCoords[1].x, digCoords[1].y, digCell);
       ctx.digAlt = ctx.digEnabled ? (digCell.sumDigAlt / max(digCell.numDigAlt, 1) + digCell.maxDigAlt) * 0.5f
                                   : max(digCell.maxDigAlt, -ctx.tform.getMinDAlt());

@@ -231,7 +231,7 @@ static rapidjson::Value sqval_to_json(Sqrat::Object val, rapidjson::Document::Al
   {
     case OT_NULL: return rapidjson::Value();
     case OT_INTEGER: return rapidjson::Value(val.Cast<int64_t>());
-    case OT_FLOAT: return rapidjson::Value(val.Cast<float>());
+    case OT_FLOAT: return rapidjson::Value(double(val.Cast<float>()));
     case OT_STRING:
     {
       auto str = val.GetVar<const char *>();

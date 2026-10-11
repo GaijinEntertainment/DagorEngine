@@ -10,9 +10,6 @@ void init_player_for_ogg_theora();
 //! init move player globals to allow native video (non-.ogg files; .wmv or .pam) playback (XBOX360/PS3)
 void init_player_for_native_video();
 
-//! init move player globals to allow playback of dagui scene (.blk) with fadein/out (PC/XBOX360/PS3);
-void init_player_for_dagui();
-
 //! plays specified movie in full screen; playback is stopped via action buttons on XBOX360/PS3 or Esc on PC
 //!   audio_fname specifies sound track for movie (can be NULL for PS3 and PC and not used for XBOX360)
 //!   subtitle_prefix will be used as prefix for subtitles and forcefx track files (+.sub.blk and +.ff.blk)

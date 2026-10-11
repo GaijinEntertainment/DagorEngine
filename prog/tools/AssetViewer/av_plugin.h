@@ -63,7 +63,7 @@ public:
   virtual void actObjects(real dt) = 0;
   virtual void beforeRenderObjects() = 0;
   virtual void renderObjects() = 0;
-  virtual void renderTransObjects() = 0;
+  virtual void renderTransObjects(BaseTexture *color_target) = 0;
   virtual void updateImgui() {}
 
   virtual bool supportAssetType([[maybe_unused]] const DagorAsset &asset) const { return false; }

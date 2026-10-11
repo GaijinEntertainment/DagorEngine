@@ -9,6 +9,7 @@
 #include "daScript/simulate/simulate_nodes.h"
 #include "daScript/simulate/sim_policy.h"
 #include "misc/include_fmt.h"
+#include "daScript/misc/float2string.h"
 
 namespace das
 {
@@ -18,9 +19,12 @@ namespace das
     DAS_THREAD_LOCAL(jmp_buf *) g_throwBuf;
     DAS_THREAD_LOCAL(string) g_throwMsg;
 
-    void das_throw(const char * msg) {
+    void das_stash_throw(const char * msg) {
+        *g_throwMsg = msg ? msg : "";
+    }
+
+    void das_throw_stashed() {
         if ( *g_throwBuf ) {
-            *g_throwMsg = msg;
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Walign-mismatch"  // mingw jmp_buf alignment
@@ -30,8 +34,13 @@ namespace das
 #pragma clang diagnostic pop
 #endif
         } else {
-            DAS_FATAL_ERROR("unhanded das_throw, %s\n", msg);
+            DAS_FATAL_ERROR("unhandled das_throw (no active das_trycatch): %s\n", g_throwMsg->c_str());
         }
+    }
+
+    void das_throw(const char * msg) {
+        das_stash_throw(msg);
+        das_throw_stashed();
     }
 
 #if defined(_MSC_VER)
@@ -244,19 +253,17 @@ namespace das
         return das_lexical_cast_int_T(x, hex, __context__, at);
     }
 
-    template <typename TT>
-    __forceinline char * das_lexical_cast_fp_T ( TT x, Context * __context__, LineInfoArg * at ) {
-        char buffer[128];
-        auto result = fmt::format_to(buffer,FMT_STRING("{}"),x);
+    char * das_lexical_cast_fp_f ( float x, Context * __context__, LineInfoArg * at ) {
+        char buffer[DAS_F2S_BUFFER_SIZE];
+        auto result = float2string(buffer, x);
         *result = 0;
         return __context__->allocateString(buffer,uint32_t(result-buffer),at);
     }
-
-    char * das_lexical_cast_fp_f ( float x, Context * __context__, LineInfoArg * at ) {
-        return das_lexical_cast_fp_T(x, __context__, at);
-    }
     char * das_lexical_cast_fp_d ( double x, Context * __context__, LineInfoArg * at ) {
-        return das_lexical_cast_fp_T(x, __context__, at);
+        char buffer[DAS_F2S_BUFFER_SIZE];
+        auto result = double2string(buffer, x);
+        *result = 0;
+        return __context__->allocateString(buffer,uint32_t(result-buffer),at);
     }
 
     // temp-string reclaim wrapper: the compiler inserts this around a [temp_string_result] call
@@ -439,7 +446,8 @@ namespace das
                                 char buf[8];
                                 if (!encodeUtf8Char(charCode, buf) && error)
                                     *error = true;
-                                result += buf;
+                                if ( charCode == 0 ) result += char(0);
+                                else result += buf;
                             }
                         }
                         break;
@@ -447,39 +455,6 @@ namespace das
                 }
             } else
                 result += *str;
-        }
-        return result;
-    }
-
-    string escapeString ( const string & input, bool das_escape ) {
-        const char* str = input.c_str();
-        const char* strEnd = str + input.length();
-        string result;
-        result.reserve(input.size());
-        for( ; str < strEnd; ++str ) {
-            auto ch = uint8_t(*str);
-            switch ( ch ) {
-                case '\"':  result.append("\\\"");  break;
-                case '\\':  result.append("\\\\");  break;
-                case '\b':  result.append("\\b");   break;
-                case '\v':  result.append("\\v");   break;
-                case '\f':  result.append("\\f");   break;
-                case '\n':  result.append("\\n");   break;
-                case '\r':  result.append("\\r");   break;
-                case '\t':  result.append("\\t");   break;
-                case '{':   if (das_escape) result.append("\\{"); else result.append("{");  break;
-                case '}':   if (das_escape) result.append("\\}"); else result.append("}");  break;
-                default:
-                    if ( ch <= 0x1f ) {
-                        result.append("\\u00");
-                        const char tohex[] = "0123456789abcdef";
-                        result.append(1,tohex[ch>>4]);
-                        result.append(1,tohex[ch&15]);
-                    } else {
-                        result.append(1, ch);
-                    }
-                    break;
-            }
         }
         return result;
     }

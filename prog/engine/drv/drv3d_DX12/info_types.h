@@ -147,6 +147,26 @@ struct RayTraceOpacityMicroMapTriangleArrayBuildBufferSet
   BufferReference compactedSizeBuffer;
   BufferReference scratchBuffer;
 };
+
+struct RaytraceBottomAccelerationStructureBuildEntry
+{
+  RaytraceAccelerationStructure *as;
+  BufferResourceReferenceAndAddress scratchBuffer;
+  BufferResourceReferenceAndAddress compactedSize;
+  uint32_t geometryCount;
+  RaytraceBuildFlags flags;
+  bool update;
+};
+
+struct RaytraceTopAccelerationStructureBuildEntry
+{
+  RaytraceAccelerationStructure *as;
+  BufferResourceReferenceAndAddress instanceBuffer;
+  BufferResourceReferenceAndAddress scratchBuffer;
+  uint32_t instanceCount;
+  RaytraceBuildFlags flags;
+  bool update;
+};
 #endif
 
 enum class RaytraceAccelerationStructureType

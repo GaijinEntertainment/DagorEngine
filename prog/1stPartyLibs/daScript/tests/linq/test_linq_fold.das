@@ -2,7 +2,6 @@ options gen2
 require daslib/linq
 require dastest/testing_boost public
 require math
-require strings
 
 require daslib/linq_boost
 
@@ -207,7 +206,7 @@ def test_generic_fold_order(t : T?) {
 }
 
 [test]
-def test_generic_fold_aggregates(t : T?) {
+def test_generic_fold_aggregates(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("min fold") @(t : T?) {
         var t1 = ([5, 3, 8, 1, 4]    // nolint:LINT003 — `var` required for the `typename(t1) == "int"` assertion below (let adds const)
             .to_sequence()
@@ -632,7 +631,7 @@ def test_intersect(t : T?) {
             ._order_by(_) // sort
             ._fold()
         )
-        var expected = [3, 4, 5, 6]    // nolint:LINT003
+        var expected = [1, 2, 3, 4]    // nolint:LINT003
         t |> equal(length(t1), length(expected))
         for (i, v in 0..length(expected), t1) {
             t |> equal(expected[i], v)
@@ -1403,7 +1402,7 @@ def test_take_skip_array_lane(t : T?) {
     }
     t |> run("array: take(0).to_array → empty") @(t : T?) {
         let arr <- [1, 2, 3]
-        let r <- _fold(each(arr).take(0).to_array())
+        let r <- _fold(each(arr).take(0).to_array()) // nolint:PERF017 fires on _fold-emitted code, not on this line
         t |> equal(0, length(r))
     }
     t |> run("array: skip(huge).to_array → empty") @(t : T?) {
@@ -1421,7 +1420,7 @@ def test_take_skip_array_lane(t : T?) {
     }
     t |> run("array: take(0).to_array → empty (pins zero-N)") @(t : T?) {
         let arr <- [1, 2, 3]
-        let r <- _fold(each(arr).take(0).to_array())
+        let r <- _fold(each(arr).take(0).to_array()) // nolint:PERF017 fires on _fold-emitted code, not on this line
         t |> equal(0, length(r))
     }
     t |> run("array: skip(-1).to_array → full (non-positive skip is a no-op)") @(t : T?) {
@@ -1759,10 +1758,7 @@ def test_group_by_count_fold_parity(t : T?) {
         let got <- _fold([1, 2, 3, 4, 5, 6, 7]._group_by(_ % 3)._select((K = _._0, N = _._1 |> length)))
         tt |> equal(3, length(got))
         // Per-key expectations: 0→{3,6}=2, 1→{1,4,7}=3, 2→{2,5}=2. Tests bucket assignment, not just total.
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.N
-        }
+        var perKey <- {for (item in got); item.K => item.N}
         tt |> equal(2, perKey[0])
         tt |> equal(3, perKey[1])
         tt |> equal(2, perKey[2])
@@ -1791,10 +1787,7 @@ def test_group_by_count_fold_parity(t : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Sum = _._1 |> sum)))
         tt |> equal(3, length(got))
         // Per-key expectations: 0→63, 1→41, 2→31. Tests bucket assignment, not just total.
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.Sum
-        }
+        var perKey <- {for (item in got); item.K => item.Sum}
         tt |> equal(63, perKey[0])
         tt |> equal(41, perKey[1])
         tt |> equal(31, perKey[2])
@@ -1829,10 +1822,7 @@ def test_group_by_inner_select_sum_fold_parity(t : T?) {
     t |> run("named inner-select-sum: preserves K + projected sum") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, T = _._1 |> select(@(x : int) => x * 2) |> sum)))
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.T
-        }
+        var perKey <- {for (item in got); item.K => item.T}
         tt |> equal(126, perKey[0])   // (30+21+12)*2
         tt |> equal(82,  perKey[1])   // (10+31)*2
         tt |> equal(62,  perKey[2])   // (20+11)*2
@@ -1863,7 +1853,7 @@ def test_group_by_inner_select_sum_fold_parity(t : T?) {
 }
 
 [test]
-def test_group_by_min_max_first_fold_parity(t : T?) {
+def test_group_by_min_max_first_fold_parity(t : T?) { // nolint:STYLE038 flat list of independent run arms
     // PR-A2: min/max/first bare + named + inner-select reducers. Each splices into the
     // miss/hit emission with per-reducer init+update shapes (min/max compare; first no-op on hit).
     t |> run("bare min: per-bucket workhorse min") @(tt : T?) {
@@ -1879,10 +1869,7 @@ def test_group_by_min_max_first_fold_parity(t : T?) {
     t |> run("named min: preserves K + Min") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Min = _._1 |> min)))
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.Min
-        }
+        var perKey <- {for (item in got); item.K => item.Min}
         tt |> equal(12, perKey[0])
         tt |> equal(10, perKey[1])
         tt |> equal(11, perKey[2])
@@ -1900,10 +1887,7 @@ def test_group_by_min_max_first_fold_parity(t : T?) {
     t |> run("named max: preserves K + Max") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Max = _._1 |> max)))
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.Max
-        }
+        var perKey <- {for (item in got); item.K => item.Max}
         tt |> equal(30, perKey[0])
         tt |> equal(31, perKey[1])
         tt |> equal(20, perKey[2])
@@ -1921,10 +1905,7 @@ def test_group_by_min_max_first_fold_parity(t : T?) {
     t |> run("named first: preserves K + First (first source elem per key)") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, First = _._1 |> first)))
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.First
-        }
+        var perKey <- {for (item in got); item.K => item.First}
         tt |> equal(30, perKey[0])    // 30 is the first elem for key 0
         tt |> equal(10, perKey[1])    // 10 is the first elem for key 1
         tt |> equal(20, perKey[2])    // 20 is the first elem for key 2
@@ -1942,10 +1923,7 @@ def test_group_by_min_max_first_fold_parity(t : T?) {
     t |> run("inner-select-max: named (K, M) with projected max") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, M = _._1 |> select(@(x : int) => x * 2) |> max)))
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.M
-        }
+        var perKey <- {for (item in got); item.K => item.M}
         tt |> equal(60, perKey[0])    // max(30,21,12)*2 = 60
         tt |> equal(62, perKey[1])    // max(10,31)*2 = 62
         tt |> equal(40, perKey[2])    // max(20,11)*2 = 40
@@ -1953,10 +1931,7 @@ def test_group_by_min_max_first_fold_parity(t : T?) {
     t |> run("inner-select-first: named (K, F) with projected first") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, F = _._1 |> select(@(x : int) => x * 2) |> first)))
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.F
-        }
+        var perKey <- {for (item in got); item.K => item.F}
         tt |> equal(60, perKey[0])    // first elem 30, *2 = 60
         tt |> equal(20, perKey[1])    // first elem 10, *2 = 20
         tt |> equal(40, perKey[2])    // first elem 20, *2 = 40
@@ -2062,7 +2037,7 @@ def test_group_by_multi_reducer_fold_parity(t : T?) {
 }
 
 [test]
-def test_group_by_average_fold_parity(t : T?) {
+def test_group_by_average_fold_parity(t : T?) { // nolint:STYLE038 flat list of independent run arms
     // PR-A2 follow-up: average reducer splices via 2-slot per-key accumulator
     // (sum : double + count : uint64) with post-process division at result-build.
     // Each bucket is non-empty by construction → no divide-by-zero guard needed.
@@ -2079,10 +2054,7 @@ def test_group_by_average_fold_parity(t : T?) {
     t |> run("named (K=_._0, Avg=_._1|>average) — field name + key preserved") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Avg = _._1 |> average)))
         tt |> equal(3, length(got))
-        var perKey : table<int; double>
-        for (item in got) {
-            perKey[item.K] = item.Avg
-        }
+        var perKey <- {for (item in got); item.K => item.Avg}
         tt |> equal(21.0lf, perKey[0])
         tt |> equal(20.5lf, perKey[1])
         tt |> equal(15.5lf, perKey[2])
@@ -2091,7 +2063,7 @@ def test_group_by_average_fold_parity(t : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select(_._1 |> select(@(x : int) => x * 2) |> average))
         // Inner projects x→x*2. Bucket sums double, count stays the same → averages also double.
         tt |> equal(3, length(got))
-        var perCount : table<int; int>
+        var perCount : table<int; int> // nolint:STYLE027 the loop accumulates from the table it fills - no comprehension form
         for (v in got) {
             perCount[int(v)] = (perCount?[int(v)] ?? 0) + 1
         }
@@ -2103,10 +2075,7 @@ def test_group_by_average_fold_parity(t : T?) {
     t |> run("inner-select-average (named): (K, Avg = select(x*2) |> average)") @(tt : T?) {
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Avg = _._1 |> select(@(x : int) => x * 2) |> average)))
         tt |> equal(3, length(got))
-        var perKey : table<int; double>
-        for (item in got) {
-            perKey[item.K] = item.Avg
-        }
+        var perKey <- {for (item in got); item.K => item.Avg}
         tt |> equal(42.0lf, perKey[0])
         tt |> equal(41.0lf, perKey[1])
         tt |> equal(31.0lf, perKey[2])
@@ -2141,13 +2110,8 @@ def test_group_by_average_fold_parity(t : T?) {
         let foldGot <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Avg = _._1 |> average)))
         let refGot  <- ([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((K = _._0, Avg = _._1 |> average)))
         tt |> equal(length(refGot), length(foldGot))
-        var refAvg, foldAvg : table<int; double>
-        for (r in refGot) {
-            refAvg[r.K] = r.Avg
-        }
-        for (f in foldGot) {
-            foldAvg[f.K] = f.Avg
-        }
+        var refAvg <- {for (r in refGot); r.K => r.Avg}
+        let foldAvg <- {for (f in foldGot); f.K => f.Avg}
         for (k in keys(refAvg)) {
             tt |> equal(refAvg?[k] ?? -1.0lf, foldAvg?[k] ?? -1.0lf)
         }
@@ -2155,10 +2119,7 @@ def test_group_by_average_fold_parity(t : T?) {
     t |> run("float source — average over array<float>") @(tt : T?) {
         let got <- _fold([1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f]._group_by(int(_) % 2)._select((K = _._0, Avg = _._1 |> average)))
         tt |> equal(2, length(got))
-        var perKey : table<int; double>
-        for (item in got) {
-            perKey[item.K] = item.Avg
-        }
+        var perKey <- {for (item in got); item.K => item.Avg}
         // Bucket 0: {2,4,6}=12/3=4.0; bucket 1: {1,3,5}=9/3=3.0.
         tt |> equal(4.0lf, perKey[0])
         tt |> equal(3.0lf, perKey[1])
@@ -2170,10 +2131,7 @@ def test_group_by_average_fold_parity(t : T?) {
         // are present.
         let got <- _fold([10, 20, 30, 11, 21, 31, 12]._group_by(_ % 3)._select((_._0, _._1 |> average)))
         tt |> equal(3, length(got))
-        var perKey : table<int; double>
-        for (item in got) {
-            perKey[item._0] = item._1
-        }
+        var perKey <- {for (item in got); item._0 => item._1}
         tt |> equal(21.0lf, perKey[0])
         tt |> equal(20.5lf, perKey[1])
         tt |> equal(15.5lf, perKey[2])
@@ -2199,10 +2157,7 @@ def test_group_by_upstream_fusion_fold_parity(t : T?) {
         // Projected: [20,40,60,22,42,62,24]. Mod 3: 20%3=2, 40%3=1, 60%3=0, 22%3=1, 42%3=0, 62%3=2, 24%3=0.
         // Buckets: 0→{60,42,24}=126; 1→{40,22}=62; 2→{20,62}=82.
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.S
-        }
+        var perKey <- {for (item in got); item.K => item.S}
         tt |> equal(126, perKey[0])
         tt |> equal(62,  perKey[1])
         tt |> equal(82,  perKey[2])
@@ -2212,10 +2167,7 @@ def test_group_by_upstream_fusion_fold_parity(t : T?) {
         // Survivors: [4,5,6,7,8,9,10]; projected: [40,50,60,70,80,90,100]; mod 3: 40%3=1, 50%3=2, 60%3=0, 70%3=1, 80%3=2, 90%3=0, 100%3=1.
         // Buckets: 0→{60,90}=150; 1→{40,70,100}=210; 2→{50,80}=130.
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.S
-        }
+        var perKey <- {for (item in got); item.K => item.S}
         tt |> equal(150, perKey[0])
         tt |> equal(210, perKey[1])
         tt |> equal(130, perKey[2])
@@ -2225,10 +2177,7 @@ def test_group_by_upstream_fusion_fold_parity(t : T?) {
         // Projected: [20,40,60,22,42,62,24]; survivors (>30): [40,60,42,62]; mod 3: 1, 0, 0, 2.
         // Buckets: 0→{60,42}=102; 1→{40}=40; 2→{62}=62.
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.S
-        }
+        var perKey <- {for (item in got); item.K => item.S}
         tt |> equal(102, perKey[0])
         tt |> equal(40,  perKey[1])
         tt |> equal(62,  perKey[2])
@@ -2238,10 +2187,7 @@ def test_group_by_upstream_fusion_fold_parity(t : T?) {
         // [1..7] * 2: [2,4,6,8,10,12,14]; +1: [3,5,7,9,11,13,15]; mod 3: 0,2,1,0,2,1,0.
         // Buckets: 0→{3,9,15}=3; 1→{7,13}=2; 2→{5,11}=2.
         tt |> equal(3, length(got))
-        var perKey : table<int; int>
-        for (item in got) {
-            perKey[item.K] = item.N
-        }
+        var perKey <- {for (item in got); item.K => item.N}
         tt |> equal(3, perKey[0])
         tt |> equal(2, perKey[1])
         tt |> equal(2, perKey[2])
@@ -2325,10 +2271,7 @@ def test_group_by_having_fold_parity(t : T?) {
     t |> run("named-tuple form: length-match preserves output shape") @(tt : T?) {
         let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         let got <- _fold(nums._group_by_lazy(_ % 3)._having(_._1 |> length >= 4)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(1, seen |> length)
         tt |> equal(4, seen[1])
     }
@@ -2369,10 +2312,7 @@ def test_group_by_having_fold_parity(t : T?) {
         let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         // where >2 then group %3: 0=[3,6,9](3), 1=[4,7,10](3), 2=[5,8](2); having len>=3 → 0,1.
         let got <- _fold(nums._where(_ > 2)._group_by_lazy(_ % 3)._having(_._1 |> length >= 3)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[0])
         tt |> equal(3, seen[1])
@@ -2382,10 +2322,7 @@ def test_group_by_having_fold_parity(t : T?) {
         let arr = [1, 2, 3, 4, 5, 6, 7, 8]
         // Buckets %3: 0=[3,6](sum=9), 1=[1,4,7](sum=12), 2=[2,5,8](sum=15). Having sum>10 → 1,2.
         let got <- _fold(arr._group_by_lazy(_ % 3)._having(_._1 |> select($(x : int) => x * 1) |> sum > 10)._select((K = _._0, S = _._1 |> select($(x : int) => x * 1) |> sum)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.S
-        }
+        var seen <- {for (kv in got); kv.K => kv.S}
         tt |> equal(2, seen |> length)
         tt |> equal(12, seen[1])
         tt |> equal(15, seen[2])
@@ -2419,10 +2356,7 @@ def test_group_by_having_unhandled_node_cascades(t : T?) {
         // failure at the splice site rather than a graceful cascade).
         let got <- _fold(nums._group_by_lazy(_ % 2)._having(_._1[0] == 1)._select((K = _._0, N = _._1 |> length)))
         // Bucket 0=[2,4,6] first=2≠1 fails; bucket 1=[1,3,5] first=1 passes.
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(1, seen |> length)
         tt |> equal(3, seen[1])
     }
@@ -2443,10 +2377,7 @@ def test_group_by_having_two_same_named_inner_select_diff_lambdas(t : T?) {
                             ._having((_._1 |> select($(x : int) => x * 2) |> sum)
                                 + (_._1 |> select($(x : int) => x * 3) |> sum) > 50)
                             ._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[1])
         tt |> equal(3, seen[2])
@@ -2526,7 +2457,7 @@ def test_reverse_first_or_default_parity(t : T?) {
 }
 
 [test]
-def test_group_by_having_hidden_slot_fold_parity(t : T?) {
+def test_group_by_having_hidden_slot_fold_parity(t : T?) { // nolint:STYLE038 flat list of independent run arms
     // PR-E: having references a reducer not present in select — splice synthesizes a hidden
     // accumulator slot in the internal table value type; result-build projects only the
     // user-visible slots.
@@ -2534,10 +2465,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [1, 2, 3, 4, 5, 6]
         // Buckets %2: 0=[2,4,6](sum=12, len=3), 1=[1,3,5](sum=9, len=3). Having sum > 10 → 0.
         let got <- _fold(arr._group_by_lazy(_ % 2)._having(_._1 |> sum > 10)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(1, seen |> length)
         tt |> equal(3, seen[0])
     }
@@ -2545,10 +2473,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [10, 20, 30, 11, 21, 31, 12, 22, 32]
         // Buckets %3: 0=[30,21,12](min=12), 1=[10,31,22](min=10), 2=[20,11,32](min=11). Having min<12 → 1,2.
         let got <- _fold(arr._group_by_lazy(_ % 3)._having(_._1 |> min < 12)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[1])
         tt |> equal(3, seen[2])
@@ -2557,10 +2482,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [10, 20, 30, 11, 21, 31, 12]
         // Buckets %3: 0=[30,21,12](max=30), 1=[10,31](max=31), 2=[20,11](max=20). Having max>=30 → 0,1.
         let got <- _fold(arr._group_by_lazy(_ % 3)._having(_._1 |> max >= 30)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[0])
         tt |> equal(2, seen[1])
@@ -2569,10 +2491,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [10, 20, 30, 11, 21, 31, 12]
         // Buckets %3: 0=[30,21,12](avg=21.0), 1=[10,31](avg=20.5), 2=[20,11](avg=15.5). Having avg>16 → 0,1.
         let got <- _fold(arr._group_by_lazy(_ % 3)._having(_._1 |> average > 16.0lf)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[0])
         tt |> equal(2, seen[1])
@@ -2581,10 +2500,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [1, 2, 3, 4, 5, 6]
         // 0=[2,4,6](sum=12, len=3), 1=[1,3,5](sum=9, len=3). Having sum>=9 && len>=3 → both pass.
         let got <- _fold(arr._group_by_lazy(_ % 2)._having((_._1 |> sum) >= 9 && (_._1 |> length) >= 3)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[0])
         tt |> equal(3, seen[1])
@@ -2593,10 +2509,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [10, 20, 30, 11, 21, 31, 12]
         // 0=[30,21,12](sum=63, min=12), 1=[10,31](sum=41, min=10), 2=[20,11](sum=31, min=11). Having sum>40 && min<15 → 0,1.
         let got <- _fold(arr._group_by_lazy(_ % 3)._having((_._1 |> sum) > 40 && (_._1 |> min) < 15)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[0])
         tt |> equal(2, seen[1])
@@ -2605,10 +2518,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [1, 2, 3, 4, 5, 6, 7, 8]
         // Buckets %3: 0=[3,6] doubled=[6,12](sum=18), 1=[1,4,7] doubled=[2,8,14](sum=24), 2=[2,5,8] doubled=[4,10,16](sum=30). Having sum>20 → 1,2.
         let got <- _fold(arr._group_by_lazy(_ % 3)._having(_._1 |> select($(x : int) => x * 2) |> sum > 20)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[1])
         tt |> equal(3, seen[2])
@@ -2623,10 +2533,7 @@ def test_group_by_having_hidden_slot_fold_parity(t : T?) {
         let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         // where >2 then group %3: 0=[3,6,9](sum=18), 1=[4,7,10](sum=21), 2=[5,8](sum=13). Having sum>=18 → 0,1.
         let got <- _fold(arr._where(_ > 2)._group_by_lazy(_ % 3)._having(_._1 |> sum >= 18)._select((K = _._0, N = _._1 |> length)))
-        var seen : table<int; int>
-        for (kv in got) {
-            seen[kv.K] = kv.N
-        }
+        var seen <- {for (kv in got); kv.K => kv.N}
         tt |> equal(2, seen |> length)
         tt |> equal(3, seen[0])
         tt |> equal(3, seen[1])
@@ -2660,7 +2567,7 @@ def test_top_n_mid_chain_iterator_source(t : T?) {
 }
 
 [test]
-def test_take_while_skip_while_splice_parity(t : T?) {
+def test_take_while_skip_while_splice_parity(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("take_while array lane") @(tt : T?) {
         let got <- _fold(each([5, 3, 8, 1, 4])._take_while(_ < 8).to_array())
         let expected = [5, 3]
@@ -2871,5 +2778,173 @@ def test_fold_order_by_first(t : T?) {
         tt |> equal(2, length(result), "take 2 of descending order")
         tt |> equal(25, result[0], "first is max (25)")
         tt |> equal(20, result[1], "second is next-max (20)")
+    }
+}
+
+[test]
+def test_join_multistatement_result_group_by(t : T?) {
+    t |> run("join with multi-statement result lambda + group_by keeps its rows") @(tt : T?) {
+        let cars = [(id = 1, dealer = 1), (id = 2, dealer = 2), (id = 3, dealer = 1)]
+        let dealers = [(id = 1, region = "north"), (id = 2, region = "south")]
+        let rows <- _fold(each(cars)
+            |> _join(dealers,
+                     $(l, r) => l.dealer == r.id,
+                     $(l, r) {
+                         let regionTag = r.region
+                         return (Region = regionTag, CarId = l.id)
+                     })
+            |> _group_by(_.Region)
+            |> _select((R = _._0, N = _._1 |> count()))
+            |> to_array())
+        tt |> equal(length(rows), 2)
+        var totalMembers = 0
+        for (row in rows) {
+            totalMembers += row.N
+        }
+        tt |> equal(totalMembers, 3)
+    }
+}
+
+var g_impure_counter = 0
+
+def impure_double_for_fold(x : int) : int {
+    g_impure_counter ++
+    return x * 2
+}
+
+[test]
+def test_chained_impure_selects_then_where(t : T?) {
+    t |> run("chained impure selects + where compile and match plain semantics") @(tt : T?) {
+        g_impure_counter = 0
+        let vals <- _fold(each([1, 2, 3])._select(impure_double_for_fold(_))._select(_ + 1)._where(_ > 3).to_array())
+        tt |> equal(length(vals), 2)
+        tt |> equal(vals[0], 5)
+        tt |> equal(vals[1], 7)
+        tt |> equal(g_impure_counter, 3)
+        let n = _fold(each([1, 2, 3])._select(impure_double_for_fold(_))._select(_ + 1)._where(_ > 3).count())
+        tt |> equal(n, 2)
+        tt |> equal(g_impure_counter, 6)
+        let taken <- _fold(each([1, 2, 3, 4])._select(impure_double_for_fold(_))._select(_ + 1).take(3)._where(_ > 3).to_array())
+        tt |> equal(length(taken), 2)
+        tt |> equal(taken[0], 5)
+        tt |> equal(taken[1], 7)
+    }
+}
+
+[test]
+def test_having_inner_select_distinct_selector(t : T?) {
+    t |> run("having inner-select uses its own selector, not the visible _select slot") @(tt : T?) {
+        let arr = [1, 2, 3, 4, 5, 6]
+        let got <- _fold(arr._group_by_lazy(_ % 3)._having(_._1 |> select($(x : int) => x * 10) |> sum > 60)._select((K = _._0, S = _._1 |> select($(x : int) => x * 1) |> sum)))
+        tt |> equal(length(got), 2)
+        var totalS = 0
+        for (g in got) {
+            totalS += g.S
+        }
+        tt |> equal(totalS, 16)
+    }
+}
+
+struct MmItem {
+    id : int
+    w : int
+}
+
+[test]
+def test_min_max_family_splice_parity(t : T?) {
+    t |> run("min_max family folds match plain evaluation") @(tt : T?) {
+        let xs = [5, 1, 9, 3, 7, 3]
+        var items <- [MmItem(id = 1, w = 30), MmItem(id = 2, w = 10), MmItem(id = 3, w = 20)]
+        unsafe {   // nolint:STYLE024 - _fold rewrites the chain and erases the each whose unsafeOutsideOfFor needs the wrap
+            let mm = _fold(each(xs) |> min_max())
+            tt |> equal(mm._0, 1)
+            tt |> equal(mm._1, 9)
+            let mmw = _fold(each(xs)._where(_ > 2)._select(_ * 10) |> min_max())
+            tt |> equal(mmw._0, 30)
+            tt |> equal(mmw._1, 90)
+            let mb = _fold(each(items) |> _min_by(_.w))
+            tt |> equal(mb.id, 2)
+            let xb = _fold(each(items) |> _max_by(_.w))
+            tt |> equal(xb.id, 1)
+            let mmb = _fold(each(items) |> _min_max_by(_.w))
+            tt |> equal(mmb._0.id, 2)
+            tt |> equal(mmb._1.id, 1)
+            let mma = _fold(each(xs) |> min_max_average())
+            tt |> equal(mma._0, 1)
+            tt |> equal(mma._1, 9)
+            tt |> equal(mma._2, 4)
+            let mmab = _fold(each(xs) |> _min_max_average_by(_ % 5))
+            let plainMmab = each(xs) |> _min_max_average_by(_ % 5)
+            tt |> equal(mmab._0, plainMmab._0)
+            tt |> equal(mmab._1, plainMmab._1)
+            tt |> equal(mmab._2, plainMmab._2)
+        }
+        delete items
+    }
+}
+
+[test]
+def test_tier2_generated_names_do_not_capture_locals(t : T?) {
+    t |> run("locals named like the generated binds do not hijack tier-2 chains") @(tt : T?) {
+        let fsrc = [7]
+        let other = [5]
+        let r <- _fold(other |> union(fsrc) |> unique())
+        tt |> equal(length(r), 2)
+        tt |> equal(r[0], 5)
+        tt |> equal(r[1], 7)
+        let fpass_0 = [9]
+        let r2 <- _fold(other |> union(fpass_0) |> unique())
+        tt |> equal(length(r2), 2)
+        tt |> equal(r2[0], 5)
+        tt |> equal(r2[1], 9)
+    }
+}
+
+[test]
+def test_early_exit_non_copyable_elements_cascade(t : T?) {
+    t |> run("first over array<array<int>> cascades instead of failing") @(tt : T?) {
+        var arr2d <- [[1, 2], [3]]
+        let f <- _fold(each(arr2d) |> first())
+        tt |> equal(length(f), 2)
+        tt |> equal(f[0], 1)
+        let g <- _fold(each(arr2d) |> skip(1) |> first())
+        tt |> equal(length(g), 1)
+        tt |> equal(g[0], 3)
+        delete arr2d
+    }
+    t |> run("other element-returning terminators cascade over array<array<int>> too") @(tt : T?) {
+        var arr2d <- [[1, 2], [3]]
+        let lst <- _fold(each(arr2d) |> last())
+        tt |> equal(length(lst), 1)
+        tt |> equal(lst[0], 3)
+        let ea <- _fold(each(arr2d) |> element_at(1))
+        tt |> equal(length(ea), 1)
+        tt |> equal(ea[0], 3)
+        let mb <- _fold(each(arr2d) |> _min_by(length(_)))
+        tt |> equal(length(mb), 1)
+        let sg <- _fold(each(arr2d) |> skip(1) |> single())
+        tt |> equal(length(sg), 1)
+        delete arr2d
+    }
+}
+
+var g_having_sel_calls = 0
+
+def impure_having_sel(x : int) : int {
+    g_having_sel_calls ++
+    return x
+}
+
+[test]
+def test_having_impure_selector_call_parity(t : T?) {
+    t |> run("repeated impure having reducers evaluate as often fused as plain") @(tt : T?) {
+        let arr = [1, 2, 3, 4, 5, 6]
+        g_having_sel_calls = 0
+        let plain <- arr._group_by_lazy(_ % 3)._having((_._1 |> select($(x : int) => impure_having_sel(x)) |> sum > 4) && (_._1 |> select($(x : int) => impure_having_sel(x)) |> sum < 100))._select((K = _._0, N = _._1 |> length))
+        let plainCalls = g_having_sel_calls
+        g_having_sel_calls = 0
+        let fused <- _fold(arr._group_by_lazy(_ % 3)._having((_._1 |> select($(x : int) => impure_having_sel(x)) |> sum > 4) && (_._1 |> select($(x : int) => impure_having_sel(x)) |> sum < 100))._select((K = _._0, N = _._1 |> length)))
+        tt |> equal(length(fused), length(plain))
+        tt |> equal(g_having_sel_calls, plainCalls, "impure selector side effects match tier-2")
     }
 }

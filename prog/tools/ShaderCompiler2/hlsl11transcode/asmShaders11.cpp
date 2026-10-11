@@ -141,9 +141,16 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
       {
         D3D11_SIGNATURE_PARAMETER_DESC out;
         reflector->GetOutputParameterDesc(i, &out);
-        if (strcmp(out.SemanticName, "SV_Target") == 0)
+        if (out.SystemValueType == D3D_NAME_TARGET)
+        {
           maxRtv = max(maxRtv, int(out.SemanticIndex));
+          result.psOutputInfo.colorTargetMask |= 1u << out.SemanticIndex;
+        }
+        else if (out.SystemValueType == D3D_NAME_DEPTH || out.SystemValueType == D3D_NAME_DEPTH_GREATER_EQUAL ||
+                 out.SystemValueType == D3D_NAME_DEPTH_LESS_EQUAL)
+          result.psOutputInfo.writesDepth = true;
       }
+      result.psOutputInfo.valid = true;
     }
 
     reflector->Release();

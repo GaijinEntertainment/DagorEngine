@@ -186,7 +186,7 @@ def cleanup_tree(root : string) {
 }
 
 [test]
-def test_glob_filesystem(t : T?) {
+def test_glob_filesystem(t : T?) { // nolint:STYLE038 - flat list of independent glob arms over one fixture tree
     let tmp = create_temp_directory_result("glob_test_")
     if (!(tmp is value)) {
         t |> failure("could not create temp directory: {tmp as error}")

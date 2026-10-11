@@ -97,7 +97,6 @@ struct BoolArray {
             assert(newSize >= 0)
             let new_real_size = uint(newSize)
             if (new_real_size > real_size && (real_size & 31u) != 0u) {
-                // fill remaining bits of the last uint with zeros
                 let offs = real_size >> 5u
                 let tail_mask = (1u << (real_size & 31u)) - 1u
                 bits[offs] &= tail_mask
@@ -112,7 +111,6 @@ struct BoolArray {
         //! Push a new boolean value to the end of the BoolArray.
         with (self) {
             if ((real_size & 31u) == 0u) {
-                // need a new uint
                 bits.push(0u)
             }
             let offs = real_size >> 5u
@@ -155,14 +153,12 @@ struct BoolArray {
         with (self) {
             let uindex = uint(index)
             if (uindex >= real_size) panic("index out of range, {index}")
-            // we start with the dword, where we want to erase
             let start_offs = uindex >> 5u
             let start_bit = uindex & 31u
             let w = bits[start_offs]
             let low_bits = w & ((1u << start_bit) - 1u)
             let upper_bits = start_bit < 31u ? (w >> (start_bit + 1u)) : 0u
             var new_w = low_bits | (upper_bits << start_bit)
-            // the top bit of that dword is now free, we need to pull bits from the next dwords
             let total_uints = (real_size + 31u) >> 5u
             for (offs in (start_offs + 1u) .. total_uints) {
                 let next_w = bits[offs]
@@ -172,7 +168,6 @@ struct BoolArray {
                 new_w = next_w >> 1u
             }
             bits[total_uints - 1u] = new_w
-            // adjust the size
             resize(self, int(real_size - 1u))
         }
     }
@@ -187,7 +182,6 @@ struct BoolArray {
                 return
             }
             resize(self, int(real_size + 1u))
-            // we start with the dword, where we want to insert
             let start_offs = uindex >> 5u
             let start_bit = uindex & 31u
             var w = bits[start_offs]
@@ -198,7 +192,6 @@ struct BoolArray {
             let set_bit = value ? (1u << start_bit) : 0u
             w = lower_bits | set_bit | upper_bits
             bits[start_offs] = w
-            // now we need to propagate the carry bit to the next dwords
             let total_uints = (real_size + 31u) >> 5u
             for (offs in (start_offs + 1u) .. total_uints) {
                 let next_w = bits[offs]
@@ -242,20 +235,16 @@ def each(self : BoolArray) : iterator<bool> {
     return <- generator<bool> {
         let len = (*pself).length()
         return false if (len == 0)
-        let full_uints = uint(len) >> 5u
-        let remaining_bits = uint(len) & 31u
+        let stored_uints = (uint(len) + 31u) >> 5u
+        let last_uint_bits = uint(len) - ((stored_uints - 1u) << 5u)
         let data_ptr = unsafe((*pself).data_pointer())
-        for (i in 0u .. full_uints) {
+        for (i in 0u .. stored_uints) {
             var bits_value = unsafe(data_ptr[i])
-            for (b in 0u .. 32u) {
+            let bit_count = i + 1u < stored_uints ? 32u : last_uint_bits
+            for (b in 0u .. bit_count) {
                 yield (bits_value & 1u) != 0u
                 bits_value >>= 1u
             }
-        }
-        var tail = unsafe(data_ptr[full_uints])
-        for (b in 0u .. remaining_bits) {
-            yield (tail & 1u) != 0u
-            tail >>= 1u
         }
         return false
     }

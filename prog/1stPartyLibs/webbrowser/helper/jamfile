@@ -1,6 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/1stPartyLibs/webbrowser/helper ;
 Config = rel ; # force, we want only one executable
+if $(PlatformArch) = arm64ec { PlatformArch = arm64 ; } # CEF runs out of process, so use native arm64 CEF
 
 include $(Root)/prog/3rdPartyLibs/cef3/select.jam ; # Get CEF3 versions
 TargetType = exe ;

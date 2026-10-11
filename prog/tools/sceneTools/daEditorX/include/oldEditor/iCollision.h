@@ -8,7 +8,6 @@
 
 class Point3;
 class String;
-class FastRtDump;
 
 
 class ICollision
@@ -21,6 +20,4 @@ public:
 
   // Need for DagorEditor to call it before call IGenEditorPlugin::beforeMainLoop()
   virtual void manageCustomColliders() = 0;
-
-  virtual void getFastRtDump(FastRtDump **) = 0;
 };

@@ -48,6 +48,8 @@ MaybeChildComponent deserialize_child_component(const DeserializerCb &serializer
 
 void write_string(ecs::SerializerCb &cb, const char *pStr, uint32_t max_string_len);
 int read_string(const ecs::DeserializerCb &cb, char *buf, uint32_t buf_size);
+extern const int MAX_STRING_LENGTH;
+bool read_string(const ecs::DeserializerCb &cb, ecs::string &str);
 
 class SerializerCb
 {

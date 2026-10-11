@@ -30,11 +30,9 @@
 #include <webui/editVarHolder.h>
 #include <webui/editVarPlugin.h>
 
-#define GRID_SIZE              10
-#define VB_GRID_SIZE           8
-#define MAX_VERTICES_IN_CELL   65534
-#define INSTANCES_IN_SINGLE_VB 100
-#define MAX_COLOR_MASKS        6
+#define GRID_SIZE            10
+#define MAX_VERTICES_IN_CELL 65534
+#define MAX_COLOR_MASKS      6
 
 
 class BaseTexture;
@@ -107,10 +105,7 @@ struct GrassLod
   UniqueBuf cellIb;
   ShaderMesh *mesh;
   int vdecl;
-  int numv;
-  int numf;
   int numfperinst;
-  int numvperinst;
 
   unsigned int numInstancesInCell;
 
@@ -128,7 +123,6 @@ struct GrassLod
   float maxInstanceSize;
 
   float density;
-  bool singleVb;
 
   Tab<uint8_t> gridOpaqueIndices;
   Tab<uint8_t> gridTranspIndices;
@@ -247,7 +241,6 @@ protected:
   float grassRadiusMul;
   float grassDensityMul;
   bool useSorting;
-  bool vboForMaxElements;
 
   float cellSize;
   unsigned int baseNumInstances;

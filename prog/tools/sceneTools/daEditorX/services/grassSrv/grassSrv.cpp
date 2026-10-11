@@ -289,6 +289,13 @@ public:
   void updateLayerVbo(int layer_i) override { randomGrass->updateLayerVbo(layer_i); }
 
   void forceUpdate() override { force_update = true; }
+
+  void afterD3DReset(bool full_reset) override
+  {
+    if (full_reset && randomGrass)
+      randomGrass->onReset();
+    force_update = true;
+  }
 };
 
 
@@ -315,6 +322,8 @@ void *get_generic_grass_service()
   }
   return &srv;
 }
+
+bool is_generic_grass_service_initialized() { return is_inited; }
 
 void release_generic_grass_service()
 {

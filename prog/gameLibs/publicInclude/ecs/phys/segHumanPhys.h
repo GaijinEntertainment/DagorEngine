@@ -11,6 +11,7 @@ struct SharedSegmentedHumanPhysics : public SegmentedHumanPhysics
 {
   SharedSegmentedHumanPhysics() {} // non default ctor to avoid zeroing on creation
   bool onLoaded(ecs::EntityManager &mgr, ecs::EntityId eid);
+  static void onTypeManagerClear();
 };
 
 void reloadSharedSegmentedHumanPhysics();

@@ -435,9 +435,7 @@ def match_copy(var cmdm : CmdLocate; cmd : Cmd) {
     if (cmd.rtti != "CmdLocate") {
         return false
     }
-    unsafe {
-        cmdm = reinterpret<CmdLocate const&>(cmd)
-    }
+    cmdm = unsafe(reinterpret<CmdLocate const&>(cmd))
     return true
 }
 
@@ -489,7 +487,7 @@ def multi_match_test(a : int) {
 }
 
 [test]
-def test_all_match(t : T?) {
+def test_all_match(t : T?) { // nolint:STYLE038 - flat list of independent match arms
     t |> run("enum match") @@(t : T?) {
         t |> equal(0, enum_match(Color.black))
         t |> equal(1, enum_match(Color.red))

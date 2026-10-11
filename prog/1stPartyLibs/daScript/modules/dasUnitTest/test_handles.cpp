@@ -16,7 +16,7 @@ namespace das {
     template <>
     struct typeFactory<Point3> {
         static TypeDeclPtr make(const ModuleLibrary &) {
-            auto t = new TypeDecl(Type::tFloat3);
+            auto t = new TypeDecl(Type::tFloat3, cppBindingLineInfo("Point3"));
             t->alias = "Point3";
             t->aotAlias = true;
             return t;
@@ -47,7 +47,7 @@ namespace das {
   template <>
   struct typeFactory<SampleVariant> {
       static TypeDeclPtr make(const ModuleLibrary & library ) {
-          auto vtype = new TypeDecl(Type::tVariant);
+          auto vtype = new TypeDecl(Type::tVariant, cppBindingLineInfo());
           vtype->alias = "SampleVariant";
           vtype->aotAlias = true;
           vtype->addVariant("i_value", typeFactory<decltype(SampleVariant::i_value)>::make(library));
@@ -132,18 +132,18 @@ void testAdd ( int & a, int b ) {
 struct CheckRange : StructureAnnotation {
     CheckRange() : StructureAnnotation("checkRange") {}
     virtual bool touch(const StructurePtr & st, ModuleGroup &,
-        const AnnotationArgumentList & args, string & ) override {
+        AnnotationArgumentList & args, string & ) override {
         // this is here for the 'example' purposes
         // lets add a sample 'dummy' field
         if (args.getBoolOption("dummy",false) && !st->findField("dummy")) {
-            st->fields.emplace_back("dummy", new TypeDecl(Type::tInt),
+            st->fields.emplace_back("dummy", new TypeDecl(Type::tInt, cppBindingLineInfo()),
                 nullptr /*init*/, AnnotationArgumentList(), false /*move_to_init*/, LineInfo());
             st->fieldLookup.clear();
         }
         return true;
     }
     virtual bool look ( const StructurePtr & st, ModuleGroup &,
-                        const AnnotationArgumentList & args, string & err ) override {
+                        AnnotationArgumentList & args, string & err ) override {
         bool ok = true;
         if (!args.getBoolOption("disable", false)) {
             for (auto & fd : st->fields) {
@@ -244,7 +244,7 @@ struct CheckEidFunctionAnnotation : TransformFunctionAnnotation {
             if (!starg->getValue().empty()) {
                 auto hv = hash_blockz64((uint8_t *)starg->text.c_str());
                 auto hconst = new ExprConstUInt64(arg->at, hv);
-                hconst->type = new TypeDecl(Type::tUInt64);
+                hconst->type = new TypeDecl(Type::tUInt64, cppBindingLineInfo());
                 hconst->type->constant = true;
                 auto newCall = static_cast<ExprCallFunc*>(call->clone());
                 newCall->arguments.insert(newCall->arguments.begin() + 2, hconst);
@@ -267,22 +267,22 @@ struct CheckEidFunctionAnnotation : TransformFunctionAnnotation {
 
 struct TestFunctionAnnotation : FunctionAnnotation {
     TestFunctionAnnotation() : FunctionAnnotation("test_function") { }
-    virtual bool apply ( const FunctionPtr & fn, ModuleGroup &, const AnnotationArgumentList &, string & ) override {
+    virtual bool apply ( const FunctionPtr & fn, ModuleGroup &, AnnotationArgumentList &, string & ) override {
         TextPrinter tp;
         tp << "test function: apply " << fn->describe() << "\n";
         return true;
     }
-    virtual bool finalize ( const FunctionPtr & fn, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+    virtual bool finalize ( const FunctionPtr & fn, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
         TextPrinter tp;
         tp << "test function: finalize " << fn->describe() << "\n";
         return true;
     }
-    virtual bool apply ( ExprBlock * blk, ModuleGroup &, const AnnotationArgumentList &, string & ) override {
+    virtual bool apply ( ExprBlock * blk, ModuleGroup &, AnnotationArgumentList &, string & ) override {
         TextPrinter tp;
         tp << "test function: apply to block at " << blk->at.describe() << "\n";
         return true;
     }
-    virtual bool finalize ( ExprBlock * blk, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+    virtual bool finalize ( ExprBlock * blk, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
         TextPrinter tp;
         tp << "test function: finalize block at " << blk->at.describe() << "\n";
         return true;
@@ -291,17 +291,17 @@ struct TestFunctionAnnotation : FunctionAnnotation {
 
 struct BlockAnnotationDataAnnotation : FunctionAnnotation {
     BlockAnnotationDataAnnotation() : FunctionAnnotation("block_ann_data") { }
-    virtual bool apply ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string & err ) override {
+    virtual bool apply ( const FunctionPtr &, ModuleGroup &, AnnotationArgumentList &, string & err ) override {
         err = "block_ann_data can only be applied to a block";
         return false;
     }
-    virtual bool finalize ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+    virtual bool finalize ( const FunctionPtr &, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
         return true;
     }
-    virtual bool apply ( ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, string & ) override {
+    virtual bool apply ( ExprBlock *, ModuleGroup &, AnnotationArgumentList &, string & ) override {
         return true;
     }
-    virtual bool finalize ( ExprBlock * blk, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+    virtual bool finalize ( ExprBlock * blk, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
         // ast_annotations.cpp requires the pair; setting only one is an internal error.
         blk->annotationData = g_blockAnnotationDataPayload;
         blk->annotationDataSid = g_blockAnnotationDataSid;
@@ -312,17 +312,17 @@ struct BlockAnnotationDataAnnotation : FunctionAnnotation {
 struct EventRegistrator : StructureAnnotation {
     EventRegistrator() : StructureAnnotation("event") {}
     bool touch ( const StructurePtr & st, ModuleGroup & /*libGroup*/,
-        const AnnotationArgumentList & /*args*/, string & /*err*/ ) override {
-        st->fields.emplace(st->fields.begin(), "eventFlags", new TypeDecl(Type::tUInt16),
+        AnnotationArgumentList & /*args*/, string & /*err*/ ) override {
+        st->fields.emplace(st->fields.begin(), "eventFlags", new TypeDecl(Type::tUInt16, cppBindingLineInfo()),
             ExpressionPtr(), AnnotationArgumentList(), false, st->at);
-        st->fields.emplace(st->fields.begin(), "eventSize", new TypeDecl(Type::tUInt16),
+        st->fields.emplace(st->fields.begin(), "eventSize", new TypeDecl(Type::tUInt16, cppBindingLineInfo()),
             ExpressionPtr(), AnnotationArgumentList(), false, st->at);
-        st->fields.emplace(st->fields.begin(), "eventType", new TypeDecl(Type::tUInt64),
+        st->fields.emplace(st->fields.begin(), "eventType", new TypeDecl(Type::tUInt64, cppBindingLineInfo()),
             ExpressionPtr(), AnnotationArgumentList(), false, st->at);
         return true;
     }
     bool look (const StructurePtr & /*st*/, ModuleGroup & /*libGroup*/,
-        const AnnotationArgumentList & /*args*/, string & /* err */ ) override {
+        AnnotationArgumentList & /*args*/, string & /* err */ ) override {
         return true;
     }
 };
@@ -368,6 +368,86 @@ bool tempArrayExample( const TArray<char *> & arr,
     args[0] = cast<void *>::from(&arr);
     context->invoke(blk, args, nullptr, at);
     return (arr.size == 1) && (strcmp(arr[0], "one") == 0);
+}
+
+// A keyed handle whose index yields a POINTER, and null for a missing key - the shape an
+// embedder's keyed container has (an ecs Object, a json object). Every annotation that overrides
+// makeIndexType in tree yields a ref, so without this one nothing can reach the jit's pointer arm:
+// a jit that loads through the returned pointer hands back the pointee instead, and dereferences
+// null on a miss.
+struct PtrSlots {
+    int a = 7;
+    int b = 9;
+};
+
+MAKE_TYPE_FACTORY(PtrSlots,PtrSlots);
+
+// the at`handle contract: ( handle, index natively typed, Context *, LineInfoArg * )
+static char * ptr_slots_at ( void * pSlots, char * key, Context *, LineInfoArg * ) {
+    auto * slots = (PtrSlots *) pSlots;
+    if ( !slots || !key ) return nullptr;
+    if ( key[0]=='a' && key[1]==0 ) return (char *) &slots->a;
+    if ( key[0]=='b' && key[1]==0 ) return (char *) &slots->b;
+    return nullptr;
+}
+
+struct PtrSlotsAnnotation final : ManagedStructureAnnotation<PtrSlots,false> {
+    struct SimNode_PtrSlotsAt : SimNode_At {
+        DAS_PTR_NODE;
+        SimNode_PtrSlotsAt ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t ofs )
+            : SimNode_At(at, rv, idx, 0, ofs, 0, "PtrSlots[key]") {}
+        __forceinline char * compute ( Context & context ) {
+            auto * slots = value->evalPtr(context);
+            char * key = cast<char *>::to(index->eval(context));
+            char * res = ptr_slots_at(slots, key, &context, nullptr);
+            return res ? res + offset : nullptr;
+        }
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            using TT = PtrSlots;
+            V_BEGIN();
+            V_OP_TT(AtPtrSlots);
+            V_SUB(value);
+            V_SUB(index);
+            V_END();
+        }
+    };
+    PtrSlotsAnnotation ( ModuleLibrary & ml ) : ManagedStructureAnnotation("PtrSlots", ml, "PtrSlots") {
+        addField<DAS_BIND_MANAGED_FIELD(a)>("a");
+        addField<DAS_BIND_MANAGED_FIELD(b)>("b");
+        atType = makeType<int *>(ml);
+    }
+    virtual bool isIndexable ( const TypeDeclPtr & indexType ) const override {
+        return indexType->isSimpleType(Type::tString);
+    }
+    virtual TypeDeclPtr makeIndexType ( ExpressionPtr, ExpressionPtr ) const override {
+        return new TypeDecl(*atType);
+    }
+    virtual SimNode * simulateGetAt ( Context & context, const LineInfo & at, const TypeDeclPtr &,
+                                     ExpressionPtr rv, ExpressionPtr idx, uint32_t ofs ) const override {
+        return context.code->makeNode<SimNode_PtrSlotsAt>(at, simulateExpression(context, rv),
+                                                              simulateExpression(context, idx), ofs);
+    }
+    virtual void * jitGetAt ( Type indexType ) const override {
+        // one index type only: the key. The jit passes it natively typed, same as the ref-yielding
+        // annotations do for their int indices.
+        return indexType==Type::tString ? (void *) &ptr_slots_at : nullptr;
+    }
+    virtual void gc_collect ( gc_root * target, gc_root * from ) override {
+        ManagedStructureAnnotation<PtrSlots,false>::gc_collect(target, from);
+        if ( atType ) atType->gc_collect(target, from);
+    }
+    virtual void visitTypeDecls ( const function<void(TypeDecl *)> & callback ) override {
+        ManagedStructureAnnotation<PtrSlots,false>::visitTypeDecls(callback);
+        if ( atType ) callback(atType);
+    }
+    TypeDeclPtr atType = nullptr;
+};
+
+void testPtrSlots(const TBlock<void,PtrSlots> & blk, Context * context, LineInfoArg * at) {
+    PtrSlots slots;
+    vec4f args[1];
+    args[0] = cast<PtrSlots *>::from(&slots);
+    context->invoke(blk, args, nullptr, at);
 }
 
 void testPoint3Array(const TBlock<void,const Point3Array> & blk, Context * context, LineInfoArg * at) {
@@ -588,6 +668,7 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     lib.addBuiltInModule();
     addBuiltinDependency(lib, Module::require("math"));
     addEnumTest(lib);
+    addCrtMath(lib);
     // options
     options["unit_test"] = Type::tFloat;
     // constant
@@ -624,6 +705,10 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
         SideEffects::none, "testStringArgLength")->arg("str");
     addExtern<DAS_BIND_FUN(testPoint3Array)>(*this, lib, "testPoint3Array",
         SideEffects::modifyExternal, "testPoint3Array");
+    // keyed handle whose index yields a pointer - the jit's pointer arm (see PtrSlotsAnnotation)
+    addAnnotation(new PtrSlotsAnnotation(lib));
+    addExtern<DAS_BIND_FUN(testPtrSlots)>(*this, lib, "testPtrSlots",
+        SideEffects::modifyExternal, "testPtrSlots");
     addExtern<DAS_BIND_FUN(testNotLocalObject)>(*this, lib, "testNotLocalObject",
         SideEffects::modifyExternal, "testNotLocalObject");
     addExtern<DAS_BIND_FUN(testCMRES),SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "testCMRES",

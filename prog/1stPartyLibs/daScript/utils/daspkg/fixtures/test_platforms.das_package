@@ -1,0 +1,12 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("platforms-pkg")
+    package_author("testauthor")
+    package_description("A package that declares its platforms")
+    package_platform("Windows")
+    package_platforms(["wasm", "macos"])
+}

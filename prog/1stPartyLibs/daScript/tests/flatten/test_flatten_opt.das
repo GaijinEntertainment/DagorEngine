@@ -99,7 +99,7 @@ def c_loop_uni(x : int) : int {
     return acc
 }
 
-var PAL : array<float>
+var PAL <- [1.0, 2.0, 3.0, 4.0]
 
 // ----- CSE under a wrapper node: the repeated index `(a*3+b)&3` sits under two ExprAt nodes.
 // flatten preserves ExprAt/ExprCast/ExprMakeTuple/ExprPtr2Ref (see lift_expr), and the opt-pass
@@ -145,13 +145,7 @@ def r_notwin(b : float; e : float) : float {
     return 1.0 - b + e
 }
 
-var GRID : array<float>
-
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-    PAL <- [1.0, 2.0, 3.0, 4.0]
-}
+var GRID <- [-100.0, -3.5, -1.0, 0.0, 1.0, 2.5, 7.0, 100.0]
 
 def cmp3f(t : T?; a, b : float3) {
     t |> equal(a.x, b.x); t |> equal(a.y, b.y); t |> equal(a.z, b.z)

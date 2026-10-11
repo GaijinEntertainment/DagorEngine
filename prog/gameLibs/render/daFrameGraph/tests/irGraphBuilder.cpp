@@ -16,10 +16,18 @@
 #include <render/daFrameGraph/detail/resourceType.h>
 #include <render/daFrameGraph/detail/rtti.h>
 #include <drv/3d/dag_samplerHandle.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include "testRuntime.h"
+#include <util/dag_convar.h>
 
+
+namespace dafg
+{
+extern ConVarT<bool, false> randomize_order;
+}
 
 namespace
 {
@@ -88,6 +96,19 @@ struct IrGraphBuilderFixture
     dafg::IrGraphBuilder::NodesChanged nodesChanged(nodeCount, false);
     dafg::IrGraphBuilder::ResourcesChanged resourcesChanged(resCount, false);
     auto changes = builder->build(graph, extents, extents, lastMapping, resourcesChanged, resourcesChanged, nodesChanged);
+    lastMapping = graph.calculateMapping();
+    return changes;
+  }
+
+  dafg::IrGraphBuilder::Changes rebuildWithExtents(dafg::multiplexing::Extents new_extents)
+  {
+    const auto nodeCount = registry.knownNames.nameCount<dafg::NodeNameId>();
+    const auto resCount = registry.knownNames.nameCount<dafg::ResNameId>();
+    dafg::IrGraphBuilder::NodesChanged nodesChanged(nodeCount, false);
+    dafg::IrGraphBuilder::ResourcesChanged resourcesChanged(resCount, false);
+    const auto prevExtents = extents;
+    extents = new_extents;
+    auto changes = builder->build(graph, extents, prevExtents, lastMapping, resourcesChanged, resourcesChanged, nodesChanged);
     lastMapping = graph.calculateMapping();
     return changes;
   }
@@ -338,7 +359,7 @@ TEST_CASE("first build marks all nodes changed", "[irGraphBuilder]")
   f.finalize();
   auto changes = f.build();
 
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto idx : f.graph.nodes.keys())
     CHECK(changes.irNodesChanged[idx]);
 }
 
@@ -353,7 +374,7 @@ TEST_CASE("no-op rebuild marks nothing changed", "[irGraphBuilder]")
 
   auto changes = f.rebuildNoChanges();
 
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto idx : f.graph.nodes.keys())
     CHECK_FALSE(changes.irNodesChanged[idx]);
 }
 
@@ -367,7 +388,7 @@ TEST_CASE("destination sentinel has empty requests", "[irGraphBuilder]")
   f.build();
 
   // Check after first build
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
   {
     if (IrGraphBuilderFixture::isDestinationSentinel(node))
     {
@@ -378,7 +399,7 @@ TEST_CASE("destination sentinel has empty requests", "[irGraphBuilder]")
 
   // Check after rebuild
   f.rebuildNoChanges();
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
   {
     if (IrGraphBuilderFixture::isDestinationSentinel(node))
     {
@@ -403,7 +424,7 @@ TEST_CASE("graph structure after first build", "[irGraphBuilder]")
   dafg::intermediate::NodeIndex srcIdx{};
   bool foundSrc = false;
 
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
   {
     if (IrGraphBuilderFixture::isSourceSentinel(node))
     {
@@ -418,7 +439,7 @@ TEST_CASE("graph structure after first build", "[irGraphBuilder]")
   // Destination sentinel should have both frontend nodes as predecessors.
   uint32_t frontendCount = 0;
   uint32_t dstPredecessorCount = 0;
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
   {
     if (node.frontendNode)
     {
@@ -449,14 +470,14 @@ TEST_CASE("removing node leaves clean sentinel", "[irGraphBuilder]")
 
   // First build
   auto changes1 = f.build();
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
     CHECK(changes1.irNodesChanged[idx]);
 
   // Remove node A
   auto changes2 = f.rebuildWithNodeRemoved(nodeA);
 
   // Destination sentinel should still be clean
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
   {
     if (IrGraphBuilderFixture::isDestinationSentinel(node))
     {
@@ -467,7 +488,7 @@ TEST_CASE("removing node leaves clean sentinel", "[irGraphBuilder]")
 
   // Destination sentinel's predecessors should have changed (node A was removed)
   bool dstFound = false;
-  for (auto [idx, node] : f.graph.nodes.enumerate())
+  for (auto &&[idx, node] : f.graph.nodes.enumerate())
   {
     if (IrGraphBuilderFixture::isDestinationSentinel(node))
     {
@@ -788,7 +809,7 @@ TEST_CASE("missing optional shader-var binding survives into IR with optional fl
   f.build();
 
   bool foundBinding = false;
-  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  for (auto &&[idx, irNode] : f.graph.nodes.enumerate())
   {
     if (irNode.frontendNode != consumerId)
       continue;
@@ -829,7 +850,7 @@ TEST_CASE("mandatory shader-var binding does not set IR optional flag", "[irGrap
   f.build();
 
   bool foundBinding = false;
-  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  for (auto &&[idx, irNode] : f.graph.nodes.enumerate())
   {
     if (irNode.frontendNode != consumerId)
       continue;
@@ -862,7 +883,7 @@ TEST_CASE("bindless shader-var binding survives into IR with its type", "[irGrap
   f.build();
 
   bool foundBinding = false;
-  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  for (auto &&[idx, irNode] : f.graph.nodes.enumerate())
   {
     if (irNode.frontendNode != consumerId)
       continue;
@@ -896,7 +917,7 @@ TEST_CASE("missing optional bindless shader-var binding survives into IR with op
   f.build();
 
   bool foundBinding = false;
-  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  for (auto &&[idx, irNode] : f.graph.nodes.enumerate())
   {
     if (irNode.frontendNode != consumerId)
       continue;
@@ -932,7 +953,7 @@ TEST_CASE("bindless sampler binding survives into IR with its SamplerHandle tag"
   f.build();
 
   bool foundBinding = false;
-  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  for (auto &&[idx, irNode] : f.graph.nodes.enumerate())
   {
     if (irNode.frontendNode != consumerId)
       continue;
@@ -1395,4 +1416,385 @@ TEST_CASE("no-op rebuild does not flag a renamed resource with declared but unre
 
   CHECK_FALSE(changes.irResourcesChanged[sharedIdx]);
   CHECK(f.graph.resources[sharedIdx].asScheduled().history == dafg::History::No);
+}
+
+TEST_CASE("randomized rebuilds keep the IR node change flags valid", "[irGraphBuilder][incremental]")
+{
+  // REQUIRE throws on failure, so restore the console variable on scope exit.
+  struct RandomizeOrderScope
+  {
+    RandomizeOrderScope() { dafg::randomize_order.set(true); }
+    ~RandomizeOrderScope() { dafg::randomize_order.set(false); }
+  };
+
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  // Enough independent nodes for the reshuffled IR slots to outgrow the
+  // initial change flag capacity within a few hundred rebuilds.
+  for (int i = 0; i < 62; ++i)
+    f.addNode(eastl::string(eastl::string::CtorSprintf{}, "node_%d", i).c_str());
+  f.finalize();
+  f.build();
+
+  // Mirrors dafg.randomize_order together with dafg.recompile_graph_every_frame.
+  RandomizeOrderScope randomize;
+  for (int i = 0; i < 300; ++i)
+  {
+    const auto changes = f.build();
+    for (const auto idx : changes.irNodesChanged.trueKeys())
+    {
+      REQUIRE(f.graph.nodes.isMapped(idx));
+    }
+  }
+}
+
+TEST_CASE("color and depth resolve targets can be untracked", "[irGraphBuilder][untracked resources]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  const auto resolver = f.addNodeCreatingResource("resolver", "msaa_color");
+  const auto msaaColor = f.resourceId("msaa_color");
+  const auto msaaDepth = f.addResource("msaa_depth");
+  const auto resolvedColor = f.addResource("resolved_color");
+  const auto resolvedDepth = f.addResource("resolved_depth");
+
+  auto &node = f.registry.nodes[resolver];
+  node.resourceRequests[msaaDepth].usage = {dafg::Usage::DEPTH_ATTACHMENT, dafg::Access::READ_WRITE, dafg::Stage::PS};
+  for (const auto resId : {resolvedColor, resolvedDepth})
+    node.resourceRequests[resId].usage = {dafg::Usage::RESOLVE_ATTACHMENT, dafg::Access::READ_WRITE, dafg::Stage::TRANSFER};
+  for (const auto resId : {msaaDepth, resolvedColor, resolvedDepth})
+  {
+    node.createdResources.insert(resId);
+    f.depData.resourceLifetimes[resId].introducedBy = resolver;
+  }
+
+  auto &pass = node.renderingRequirements.emplace();
+  pass.colorAttachments.push_back({msaaColor});
+  pass.depthAttachment = {msaaDepth};
+  pass.depthReadOnly = false;
+  pass.resolves.emplace(msaaColor, resolvedColor);
+  pass.resolves.emplace(msaaDepth, resolvedDepth);
+
+  f.finalize();
+  f.build();
+
+  const auto isUntracked = [&f](dafg::ResNameId res_id) { return f.graph.resources[f.lastMapping.mapRes(res_id, {})].isUntracked(); };
+  const bool untrackedSupported = d3d::get_driver_desc().caps.hasEnhancedResourceBarriers;
+  CHECK(isUntracked(msaaColor) == untrackedSupported);
+  CHECK(isUntracked(resolvedColor) == untrackedSupported);
+  CHECK(isUntracked(msaaDepth) == untrackedSupported);
+  CHECK(isUntracked(resolvedDepth) == untrackedSupported);
+}
+
+TEST_CASE("untracked buffer gets a UAV flag only when its history is cleared", "[irGraphBuilder][untracked resources]")
+{
+  const auto history = GENERATE(dafg::History::DiscardOnFirstFrame, dafg::History::ClearZeroOnFirstFrame);
+
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  const auto producer = f.addNode("producer");
+  const auto reader = f.addNode("reader");
+  const auto buf = f.registry.knownNames.addNameId<dafg::ResNameId>(f.registry.knownNames.root(), "history_buf");
+  f.registry.resources.set(buf, {.history = history,
+                                  .createdResData = dafg::CreatedResourceData{
+                                    .creationInfo = dafg::BufferCreateInfo{4, 1, 0, 0}, .type = dafg::ResourceType::Buffer}});
+  f.validityInfo.resourceValid.set(buf, true);
+  f.depData.resourceLifetimes.expandMapping(buf);
+  f.depData.resourceLifetimes[buf].introducedBy = producer;
+  f.depData.resourceLifetimes[buf].historyReaders.push_back(reader);
+
+  f.registry.nodes[producer].createdResources.insert(buf);
+  f.registry.nodes[producer].resourceRequests[buf].usage = {dafg::Usage::COPY, dafg::Access::READ_WRITE, dafg::Stage::TRANSFER};
+  f.registry.nodes[reader].historyResourceReadRequests[buf].usage = {
+    dafg::Usage::SHADER_RESOURCE, dafg::Access::READ_ONLY, dafg::Stage::PS};
+
+  f.finalize();
+  f.build();
+
+  const auto &res = f.graph.resources[f.lastMapping.mapRes(buf, {})];
+  const bool untracked = res.isUntracked();
+  const bool unordered = (res.asScheduled().getGpuDescription().asBasicRes.cFlags & SBCF_BIND_UNORDERED) != 0;
+  CHECK(untracked == d3d::get_driver_desc().caps.hasEnhancedResourceBarriers);
+  CHECK(unordered == (untracked && history == dafg::History::ClearZeroOnFirstFrame));
+}
+
+TEST_CASE("a resource has no history pair on the first build and pairs with itself on a rebuild", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.addNodeCreatingResource("producer", "tex");
+  f.addNodeReadingResource("reader_a", "tex");
+  auto readerB = f.addNodeReadingResource("reader_b", "tex");
+  f.finalize();
+  auto first = f.build();
+  const auto tex = f.resourceId("tex");
+  const auto texIdx = f.lastMapping.mapRes(tex, {});
+  CHECK(first.irHistoryPairing[texIdx] == dafg::intermediate::RESOURCE_NOT_MAPPED);
+
+  auto changes = f.rebuildWithNodesRemoved({readerB}, {tex});
+
+  CHECK(f.lastMapping.mapRes(tex, {}) == texIdx);
+  CHECK(changes.irHistoryPairing[texIdx] == texIdx);
+}
+
+TEST_CASE("a rename chain that loses its last name has no history pair", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.addNodeCreatingResource("producer", "a");
+  f.addNodeReadingResource("reader_a", "a");
+  auto renamer = f.addNodeRenamingResource("renamer", "a", "b");
+  f.finalize();
+  const auto a = f.resourceId("a");
+  const auto b = f.resourceId("b");
+  f.depData.renamingChains[a] = b;
+  f.depData.renamingRepresentatives[b] = a;
+  f.build();
+  const auto sharedIdx = f.lastMapping.mapRes(a, {});
+  REQUIRE(f.lastMapping.mapRes(b, {}) == sharedIdx);
+
+  f.depData.renamingChains[a] = a;
+  f.depData.renamingRepresentatives[b] = b;
+  f.validityInfo.resourceValid.set(b, false);
+  auto changes = f.rebuildWithNodesRemoved({renamer}, {a});
+
+  const auto aIdx = f.lastMapping.mapRes(a, {});
+  REQUIRE(f.graph.resources.isMapped(aIdx));
+  REQUIRE(f.graph.resources[aIdx].frontendResources.back() == a);
+  CHECK(changes.irHistoryPairing[aIdx] == dafg::intermediate::RESOURCE_NOT_MAPPED);
+}
+
+TEST_CASE("a resource pruned with its producer has no history pair", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.addNodeCreatingResource("producer", "tex", dafg::SideEffects::Internal);
+  auto reader = f.addNodeReadingResource("reader", "tex");
+  f.addNode("sink");
+  f.finalize();
+  f.build();
+  const auto tex = f.resourceId("tex");
+  const auto texIdx = f.lastMapping.mapRes(tex, {});
+
+  auto changes = f.rebuildWithNodesRemoved({reader}, {tex});
+
+  REQUIRE_FALSE(f.graph.resources.isMapped(texIdx));
+  for (const auto oldIdx : changes.irHistoryPairing)
+    CHECK(oldIdx != texIdx);
+}
+
+TEST_CASE("an IR resource at the same multiplexing index keeps its history pair when the extents change",
+  "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.addNodeCreatingResource("producer", "tex");
+  f.addNodeReadingResource("reader", "tex");
+  f.finalize();
+  f.build();
+  const auto tex = f.resourceId("tex");
+  const auto texIdx = f.lastMapping.mapRes(tex, {});
+
+  auto grown = f.rebuildWithExtents({2, 1, 1, 1});
+
+  const auto firstIdx = f.lastMapping.mapRes(tex, {});
+  const auto secondIdx = f.lastMapping.mapRes(tex, dafg::multiplexing_index_to_ir(
+                                                     {
+                                                       .superSample = 1,
+                                                     },
+                                                     f.extents));
+  REQUIRE(f.graph.resources.isMapped(firstIdx));
+  REQUIRE(f.graph.resources.isMapped(secondIdx));
+  CHECK(grown.irHistoryPairing[firstIdx] == texIdx);
+  CHECK(grown.irHistoryPairing[secondIdx] == dafg::intermediate::RESOURCE_NOT_MAPPED);
+
+  auto shrunk = f.rebuildWithExtents({1, 1, 1, 1});
+
+  const auto backIdx = f.lastMapping.mapRes(tex, {});
+  REQUIRE(f.graph.resources.isMapped(backIdx));
+  CHECK(shrunk.irHistoryPairing[backIdx] == firstIdx);
+}
+
+TEST_CASE("IR resources of the first sub camera keep their history pairs when a sub camera is added", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.extents = {2, 1, 1, 1};
+  f.addNodeCreatingResource("producer", "tex");
+  f.addNodeReadingResource("reader", "tex");
+  f.finalize();
+  f.build();
+  const auto tex = f.resourceId("tex");
+  const auto oldFirst = f.lastMapping.mapRes(tex, {});
+  const auto oldSecond = f.lastMapping.mapRes(tex, dafg::multiplexing_index_to_ir(
+                                                     {
+                                                       .superSample = 1,
+                                                     },
+                                                     f.extents));
+  REQUIRE(oldFirst != oldSecond);
+
+  auto changes = f.rebuildWithExtents({2, 1, 1, 2});
+
+  const auto first = f.lastMapping.mapRes(tex, dafg::multiplexing_index_to_ir(
+                                                 {
+                                                   .superSample = 0,
+                                                   .subCamera = 0,
+                                                 },
+                                                 f.extents));
+  const auto second = f.lastMapping.mapRes(tex, dafg::multiplexing_index_to_ir(
+                                                  {
+                                                    .superSample = 1,
+                                                    .subCamera = 0,
+                                                  },
+                                                  f.extents));
+  const auto third = f.lastMapping.mapRes(tex, dafg::multiplexing_index_to_ir(
+                                                 {
+                                                   .superSample = 0,
+                                                   .subCamera = 1,
+                                                 },
+                                                 f.extents));
+  const auto fourth = f.lastMapping.mapRes(tex, dafg::multiplexing_index_to_ir(
+                                                  {
+                                                    .superSample = 1,
+                                                    .subCamera = 1,
+                                                  },
+                                                  f.extents));
+  CHECK(changes.irHistoryPairing[first] == oldFirst);
+  CHECK(changes.irHistoryPairing[second] == oldSecond);
+  CHECK(changes.irHistoryPairing[third] == dafg::intermediate::RESOURCE_NOT_MAPPED);
+  CHECK(changes.irHistoryPairing[fourth] == dafg::intermediate::RESOURCE_NOT_MAPPED);
+}
+
+TEST_CASE("an IR resource that splits out of a shared entry has no history pair", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.extents = {2, 1, 1, 1};
+  auto producer = f.addNodeCreatingResource("producer", "tex");
+  f.addNodeReadingResource("reader", "tex");
+  f.registry.nodes[producer].multiplexingMode = dafg::multiplexing::Mode::None;
+  f.finalize();
+  f.build();
+
+  const auto tex = f.resourceId("tex");
+  const auto secondMidx = dafg::multiplexing_index_to_ir(
+    {
+      .superSample = 1,
+    },
+    f.extents);
+  const auto sharedIdx = f.lastMapping.mapRes(tex, {});
+  REQUIRE(f.lastMapping.mapRes(tex, secondMidx) == sharedIdx);
+
+  f.registry.nodes[producer].multiplexingMode = dafg::multiplexing::Mode::SuperSampling;
+  auto changes = f.rebuildWithDeclarationsChanged({producer}, {tex});
+
+  const auto ownIdx = f.lastMapping.mapRes(tex, secondMidx);
+  REQUIRE(f.lastMapping.mapRes(tex, {}) == sharedIdx);
+  REQUIRE(ownIdx != sharedIdx);
+  CHECK(changes.irHistoryPairing[sharedIdx] == sharedIdx);
+  CHECK(changes.irHistoryPairing[ownIdx] == dafg::intermediate::RESOURCE_NOT_MAPPED);
+}
+
+TEST_CASE("a rename chain that keeps its last name pairs with its old index", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.addNodeCreatingResource("producer", "a");
+  f.addNodeReadingResource("reader_a", "a");
+  f.addNodeRenamingResource("renamer", "a", "b");
+  f.addNodeReadingResource("reader_b", "b");
+  auto secondReaderB = f.addNodeReadingResource("second_reader_b", "b");
+  f.finalize();
+  const auto a = f.resourceId("a");
+  const auto b = f.resourceId("b");
+  f.depData.renamingChains[a] = b;
+  f.depData.renamingRepresentatives[b] = a;
+  f.build();
+  const auto sharedIdx = f.lastMapping.mapRes(a, {});
+  REQUIRE(f.lastMapping.mapRes(b, {}) == sharedIdx);
+
+  auto changes = f.rebuildWithNodesRemoved({secondReaderB}, {b});
+
+  const auto newIdx = f.lastMapping.mapRes(b, {});
+  REQUIRE(f.graph.resources.isMapped(newIdx));
+  REQUIRE(f.lastMapping.mapRes(a, {}) == newIdx);
+  REQUIRE(f.graph.resources[newIdx].frontendResources.front() == a);
+  REQUIRE(f.graph.resources[newIdx].frontendResources.back() == b);
+  REQUIRE(newIdx == sharedIdx);
+  CHECK(changes.irHistoryPairing[newIdx] == sharedIdx);
+}
+
+TEST_CASE("a resource merged by a new rename pairs with the old resource of its last name", "[irGraphBuilder][incremental]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+  f.addNodeCreatingResource("producer_a", "a");
+  f.addNodeReadingResource("reader_a", "a");
+  auto producerB = f.addNodeCreatingResource("producer_b", "b");
+  f.addNodeReadingResource("reader_b", "b");
+  auto renamer = f.addNode("renamer");
+  f.finalize();
+  f.build();
+  const auto a = f.resourceId("a");
+  const auto b = f.resourceId("b");
+  const auto oldAIdx = f.lastMapping.mapRes(a, {});
+  const auto oldBIdx = f.lastMapping.mapRes(b, {});
+  REQUIRE(oldAIdx != oldBIdx);
+
+  f.registry.nodes[renamer].renamedResources.emplace(b, a);
+  f.depData.resourceLifetimes[a].consumedBy = renamer;
+  f.depData.resourceLifetimes[b].introducedBy = renamer;
+  f.depData.renamingChains[a] = b;
+  f.depData.renamingRepresentatives[b] = a;
+  f.validityInfo.nodeValid.set(producerB, false);
+  {
+    FRAMEMEM_REGION;
+    dafg::NameResolver::NodesChanged resolverNodesChanged(f.registry.knownNames.nameCount<dafg::NodeNameId>(), false);
+    resolverNodesChanged.set(producerB, true);
+    resolverNodesChanged.set(renamer, true);
+    f.nameRes.update(resolverNodesChanged);
+  }
+
+  auto changes = f.rebuildWithDeclarationsChanged({producerB, renamer}, {a, b});
+
+  const auto mergedIdx = f.lastMapping.mapRes(a, {});
+  REQUIRE(f.graph.resources.isMapped(mergedIdx));
+  REQUIRE(f.lastMapping.mapRes(b, {}) == mergedIdx);
+  REQUIRE(f.graph.resources[mergedIdx].frontendResources.back() == b);
+  REQUIRE(mergedIdx != oldBIdx);
+  CHECK(changes.irHistoryPairing[mergedIdx] == oldBIdx);
+}
+
+TEST_CASE("a resource named as debug is flagged in the IR and stays equal on a rebuild", "[irGraphBuilder]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  f.addNodeCreatingResource("producer", "gbuf_raw");
+  f.addNodeRenamingResource("renamer", "gbuf_raw", "gbuf_Debug_view");
+  f.addNodeReadingResource("consumer", "gbuf_Debug_view");
+  f.addNodeCreatingResource("other", "gbuf");
+  f.finalize();
+  const auto raw = f.resourceId("gbuf_raw");
+  const auto debugName = f.resourceId("gbuf_Debug_view");
+  f.depData.renamingChains[raw] = debugName;
+  f.depData.renamingRepresentatives[debugName] = raw;
+  f.build();
+
+  // Only a later name of the renaming chain is a debug one
+  const auto plain = f.resourceId("gbuf");
+  const auto debugIdx = f.lastMapping.mapRes(raw, dafg::intermediate::MultiplexingIndex{0});
+  const auto plainIdx = f.lastMapping.mapRes(plain, dafg::intermediate::MultiplexingIndex{0});
+  CHECK(f.graph.resources[debugIdx].debugRelated);
+  CHECK_FALSE(f.graph.resources[plainIdx].debugRelated);
+
+  const dafg::intermediate::Resource before = f.graph.resources[debugIdx];
+  f.build();
+  CHECK((f.graph.resources[debugIdx] == before));
+
+  // A rebuild in place must not keep the flag of what the slot held before
+  f.graph.resources[plainIdx].debugRelated = true;
+  f.rebuildWithDeclarationsChanged({}, {plain});
+  REQUIRE(f.lastMapping.mapRes(plain, dafg::intermediate::MultiplexingIndex{0}) == plainIdx);
+  CHECK_FALSE(f.graph.resources[plainIdx].debugRelated);
 }

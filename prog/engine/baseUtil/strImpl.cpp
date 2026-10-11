@@ -160,35 +160,39 @@ bool String::suffix(const char *suff) const
 
 String &String::replace(const char *old_str, const char *new_str)
 {
-  int old_str_len = (int)strlen(old_str), new_str_len = (int)strlen(new_str);
-  String dst;
-  const char *first = begin(), *last = begin(), *p = old_str;
+  char *hit = *old_str ? strstr(str(), old_str) : nullptr;
+  if (!hit)
+    return *this;
 
-  while (*last)
+  const int old_str_len = (int)strlen(old_str), new_str_len = (int)strlen(new_str);
+  if (new_str_len <= old_str_len)
   {
-    if (*p == 0)
+    char *w = hit;
+    while (hit)
     {
-      dst += String::mk_sub_str(first, last - old_str_len);
-      dst.append(new_str, new_str_len);
-      first = last;
-      p = old_str;
+      memmove(w, new_str, new_str_len);
+      w += new_str_len;
+      char *r = hit + old_str_len;
+      hit = strstr(r, old_str);
+      const int n = hit ? int(hit - r) : (int)strlen(r) + 1;
+      memmove(w, r, n);
+      w += n;
     }
-    else if (*last != *p)
-      p = old_str;
-    else
-      p++;
-    last++;
+    resize(int(w - data()));
+    return *this;
   }
 
-  if (*p == 0)
+  String dst(get_allocator());
+  dst.reserve(max(capacity(), size() + new_str_len - old_str_len));
+  char *first = str();
+  for (; hit; hit = strstr(first, old_str))
   {
-    dst += String::mk_sub_str(first, last - old_str_len);
+    dst.append(first, int(hit - first));
     dst.append(new_str, new_str_len);
+    first = hit + old_str_len;
   }
-  else
-    dst += String::mk_sub_str(first, last);
-
-  return operator=(dst);
+  dst.append(first);
+  return operator=(eastl::move(dst));
 }
 
 String &String::replaceAll(const char *old_str, const char *new_str)

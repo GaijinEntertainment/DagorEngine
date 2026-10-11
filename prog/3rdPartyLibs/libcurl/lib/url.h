@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -25,59 +25,74 @@
  ***************************************************************************/
 #include "curl_setup.h"
 
+/* Reject URLs exceeding this length */
+#define MAX_URL_LEN 0xffff
+
 /*
- * Prototypes for library-wide functions provided by url.c
+ * Prototypes for library-wide functions
  */
 
-CURLcode Curl_init_do(struct Curl_easy *data, struct connectdata *conn);
+CURLcode Curl_init_transfer(struct Curl_easy *data, struct connectdata *conn);
 CURLcode Curl_open(struct Curl_easy **curl);
-CURLcode Curl_init_userdefined(struct Curl_easy *data);
+void Curl_init_userdefined(struct Curl_easy *data);
 
 void Curl_freeset(struct Curl_easy *data);
 CURLcode Curl_uc_to_curlcode(CURLUcode uc);
-CURLcode Curl_close(struct Curl_easy **datap); /* opposite of curl_open() */
-CURLcode Curl_connect(struct Curl_easy *, bool *async, bool *protocol_connect);
-void Curl_disconnect(struct Curl_easy *data,
-                     struct connectdata *, bool dead_connection);
-CURLcode Curl_setup_conn(struct Curl_easy *data,
-                         bool *protocol_done);
-void Curl_free_request_state(struct Curl_easy *data);
+CURLcode Curl_close(struct Curl_easy **datap); /* opposite of Curl_open() */
+CURLcode Curl_connect(struct Curl_easy *data, bool *pconnected);
+void Curl_conn_free(struct Curl_easy *data, struct connectdata *conn);
 CURLcode Curl_parse_login_details(const char *login, const size_t len,
-                                  char **userptr, char **passwdptr,
-                                  char **optionsptr);
+                                  char **userp, char **passwdp,
+                                  char **optionsp);
 
-const struct Curl_handler *Curl_builtin_scheme(const char *scheme);
+/* Attach/Clear/Get meta data for an easy handle. Needs to provide
+ * a destructor, will be automatically called when the easy handle
+ * is reset or closed. */
+typedef void Curl_meta_dtor(void *key, size_t key_len, void *meta_data);
 
-bool Curl_is_ASCII_name(const char *hostname);
-CURLcode Curl_idnconvert_hostname(struct Curl_easy *data,
-                                  struct hostname *host);
-void Curl_free_idnconverted_hostname(struct hostname *host);
+/* Set the transfer meta data for the key. Any existing entry for that
+ * key will be destroyed.
+ * Takes ownership of `meta_data` and destroys it when the call fails. */
+CURLcode Curl_meta_set(struct Curl_easy *data, const char *key,
+                       void *meta_data, Curl_meta_dtor *meta_dtor);
+void Curl_meta_remove(struct Curl_easy *data, const char *key);
+void *Curl_meta_get(struct Curl_easy *data, const char *key);
+void Curl_meta_reset(struct Curl_easy *data);
+
+/* Set connection meta data for the key. Any existing entry for that
+ * key will be destroyed.
+ * Takes ownership of `meta_data` and destroys it when the call fails. */
+CURLcode Curl_conn_meta_set(struct connectdata *conn, const char *key,
+                            void *meta_data, Curl_meta_dtor *meta_dtor);
+void Curl_conn_meta_remove(struct connectdata *conn, const char *key);
+void *Curl_conn_meta_get(struct connectdata *conn, const char *key);
+
+/* Get an admin handle for internal operations from the given
+ * easy handle, if possible. The admin handle inherits certain
+ * properties from `data`. If no admin handle is available (not multi
+ * or share attached), the easy handle itself is returned. */
+struct Curl_easy *Curl_get_admin(struct Curl_easy *data);
 
 #define CURL_DEFAULT_PROXY_PORT 1080 /* default proxy port unless specified */
 #define CURL_DEFAULT_HTTPS_PROXY_PORT 443 /* default https proxy port unless
                                              specified */
 
-#ifdef CURL_DISABLE_VERBOSE_STRINGS
-#define Curl_verboseconnect(x,y)  Curl_nop_stmt
+/* Always eval all arguments, return the first
+ * result != (CURLE_OK | CURLE_AGAIN) or `r1`. */
+CURLcode Curl_1st_fatal(CURLcode r1, CURLcode r2);
+
+#if defined(USE_HTTP2) || defined(USE_HTTP3)
+void Curl_data_priority_clear_state(struct Curl_easy *data);
 #else
-void Curl_verboseconnect(struct Curl_easy *data, struct connectdata *conn);
+#define Curl_data_priority_clear_state(x)
+#endif /* USE_HTTP2 || USE_HTTP3 */
+
+#ifdef USE_NGHTTP2
+CURLcode Curl_data_priority_add_child(struct Curl_easy *parent,
+                                      struct Curl_easy *child,
+                                      bool exclusive);
+#else
+#define Curl_data_priority_add_child(x, y, z) CURLE_NOT_BUILT_IN
 #endif
-
-#ifdef CURL_DISABLE_PROXY
-#define CONNECT_PROXY_SSL() FALSE
-#else
-
-#define CONNECT_PROXY_SSL()\
-  (conn->http_proxy.proxytype == CURLPROXY_HTTPS &&\
-  !conn->bits.proxy_ssl_connected[sockindex])
-
-#define CONNECT_FIRSTSOCKET_PROXY_SSL()\
-  (conn->http_proxy.proxytype == CURLPROXY_HTTPS &&\
-  !conn->bits.proxy_ssl_connected[FIRSTSOCKET])
-
-#define CONNECT_SECONDARYSOCKET_PROXY_SSL()\
-  (conn->http_proxy.proxytype == CURLPROXY_HTTPS &&\
-  !conn->bits.proxy_ssl_connected[SECONDARYSOCKET])
-#endif /* !CURL_DISABLE_PROXY */
 
 #endif /* HEADER_CURL_URL_H */

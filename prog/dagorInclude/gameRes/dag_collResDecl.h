@@ -13,8 +13,6 @@ namespace eastl
 class allocator;
 template <typename T, typename A>
 class vector;
-template <int, typename>
-class fixed_function;
 template <typename A, typename E, typename C>
 class bitvector;
 template <typename T>
@@ -31,6 +29,8 @@ template <typename T, typename A, bool I, typename C>
 class Vector;
 template <typename T, size_t N, bool O, typename A, typename C, bool I>
 class RelocatableFixedVector;
+template <typename Signature>
+class FunctionRef;
 } // namespace dag
 
 class CollisionResource;
@@ -57,16 +57,16 @@ public:
   CollResTraceTmCache() { memset((void *)this, 0, sizeof(*this)); } // eps 0: no basis yet
 };
 
-using CollisionNodeFilter = eastl::fixed_function<64, bool(int)>;
+using CollisionNodeFilter = dag::FunctionRef<bool(int) const>; // a view: the callable must outlive the filter
 using CollisionNodeMask = eastl::bitvector<framemem_allocator, uintptr_t, eastl::vector<uintptr_t, framemem_allocator>>;
 // Caller-owned pose of a CollisionResource (defined in dag_collisionResource.h). The alias here
 // covers signatures and locals only; holding one as a data member additionally needs
 // <EASTL/unique_ptr.h> (or the full resource header), like the fwd-declared types above.
 struct CollisionResourceInstance;
 using CollisionResourceInstancePtr = eastl::unique_ptr<CollisionResourceInstance, eastl::default_delete<CollisionResourceInstance>>;
-using CollResIntersectionsType = dag::RelocatableFixedVector<IntersectedNode, 64, true, framemem_allocator, uint32_t, true>;
-using MultirayCollResIntersectionsType =
-  dag::RelocatableFixedVector<MultirayIntersectedNode, 256, true, framemem_allocator, uint32_t, true>;
+// heap overflow: grown while framemem scratch lives
+using CollResIntersectionsType = dag::RelocatableFixedVector<IntersectedNode, 64, true, MidmemAlloc, uint32_t, true>;
+using MultirayCollResIntersectionsType = dag::RelocatableFixedVector<MultirayIntersectedNode, 256, true, MidmemAlloc, uint32_t, true>;
 using TraceCollisionResourceStats = dag::Vector<int, framemem_allocator, true, uint32_t>;
 
 // Opaque self-describing identifier of a hit inside a CollisionResource. Stored on

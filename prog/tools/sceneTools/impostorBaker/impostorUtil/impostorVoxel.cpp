@@ -25,8 +25,10 @@
 #include <EASTL/hash_set.h>
 
 
-#define VOXEL_OVERSCALE        3
-#define ZSTD_COMPRESSION_LEVEL 18
+#define VOXEL_OVERSCALE 3
+
+// 0 means use default level
+#define ZSTD_COMPRESSION_LEVEL 0
 
 
 static float compute_threshold_length(RenderableInstanceResource *res, float threshold_percent)
@@ -1038,11 +1040,13 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
 
     FullFileSaveCB fileIO(filename);
     fileIO.writeIntP<4>(voxelcache::VERSION); // version
-    auto dumpSize = cwr.getSize();
+    uint32_t dumpSize = cwr.getSize();
     fileIO.writeIntP<4>(dumpSize);
 
+    auto t0 = profile_ref_ticks();
     MemoryLoadCB memReader(cwr.getMem(), false);
-    zstd_stream_compress_data(fileIO, memReader, dumpSize, ZSTD_COMPRESSION_LEVEL);
+    uint32_t compressedSize = zstd_stream_compress_data(fileIO, memReader, dumpSize, ZSTD_COMPRESSION_LEVEL);
+    conlog("compressed zstd in %d us, from %d to %d bytes", profile_lapse_usec(t0), dumpSize, compressedSize);
   }
   catch (IGenSave::SaveException)
   {

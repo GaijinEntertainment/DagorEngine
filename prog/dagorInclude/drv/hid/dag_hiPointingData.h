@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <generic/dag_functionRef.h>
 // #include <util/dag_globDef.h> // TODO: for Gesture::elapsedTime
 
 
@@ -20,6 +21,7 @@ struct PointingSettings
 
   bool emuTouchScreenWithMouse = false;
   bool touchScreen = false;
+  bool touchpadAsTouch = false; // Windows; set before mouse init; unthreaded window
   bool allowEmulatedLMB = true;
   int tapAndHoldThresMs = 2000;
   int tapStillCircleRad = 8;
@@ -30,6 +32,7 @@ struct PointingSettings
   float touchPadSpeedFactorAtMin = 0.2f;
 
   bool emuMouseWithTouchPad = false;
+  bool touchPadTapClicks = true;
 };
 
 struct PointingRawState
@@ -73,7 +76,7 @@ struct PointingRawState
     unsigned touchOrdId = 0;      //< ordinal ID, incremented for each new touch
     unsigned touchSrc = TS_none;  //< source of touch data (touch pad, touch screen, etc.)
 
-    bool screenCoords() const { return touchSrc == TS_touchScreen || touchSrc == TS_emuTouchScreen; }
+    bool screenCoords() const { return touchSrc != TS_none; }
   };
 
   Mouse mouse;
@@ -121,11 +124,13 @@ struct Gesture
   float deltaX = 0, deltaY = 0; //< delta since previous position
   float x0 = 0, y0 = 0;         //< initial position
   float scale = 1.0;            //< scale factor, only for PINCH
-  float angle = 0.0;            //< TODO: rotation angle, only for ROTATION
+  float angle = 0.0;            //< radians from the start, clockwise, only for ROTATE
 
   Direction dir = Direction::LEFT; //< FLICK direction shortcut
   // uint64_t elapsedTimeUsec = 0; //< TODO: time elapsed since gesture start
   //
 }; // struct Gesture
+
+using GestureCb = dag::FunctionRef<void(Gesture::State state, const Gesture &g)>;
 
 } // namespace HumanInput

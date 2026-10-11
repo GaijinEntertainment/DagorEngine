@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#if !_MSC_VER || __clang__ || defined(__ATOMIC_SEQ_CST) || !(defined(_M_IX86) || defined(_M_X64))
+#if !_MSC_VER || __clang__ || defined(__ATOMIC_SEQ_CST) || !(defined(_M_IX86) || defined(_M_X64)) || defined(_M_ARM64EC)
 #error This file is for MSVC x86/x64 only!
 #endif
 

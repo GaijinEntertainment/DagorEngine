@@ -2,7 +2,7 @@
 #pragma once
 
 #include <gameRes/dag_collisionResource.h>
-#include <sceneRay/dag_sceneRayDecl.h>
+#include <gameRes/dag_legacySceneRay.h>
 
 // Every way a CollisionResource gets its content. The state is the Data block unfrozen, one
 // growable vector per array, plus the raw geometry the passes edit; a pass reads and writes it
@@ -60,8 +60,10 @@ struct CollisionResourceBuilder
     uint16_t behavior_flags = CollisionNode::TRACEABLE | CollisionNode::PHYS_COLLIDABLE | CollisionNode::FLAG_ALLOW_HOLE |
                               CollisionNode::FLAG_DAMAGE_REQUIRED,
     uint8_t flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED);
-  // One IDENT node per (part within the bounds, class, material), numbered by the builder; -1 adds
-  // nothing. A face's class is its index into class_flags, which holds one behaviour mask each.
+  // One IDENT node per (part, class, material), numbered by the builder; -1 adds nothing.
+  // A face's centroid picks its cell: 65536 m for a face past 512 m with every edge 1 m or more, else 3072 m.
+  // A cell past the face or vert caps splits into parts.
+  // A face's class is its index into class_flags, which holds one behaviour mask each.
   int addSplitMeshNodes(dag::ConstSpan<uint16_t> class_flags, dag::ConstSpan<Point3_vec4> verts, dag::ConstSpan<uint32_t> indices,
     dag::ConstSpan<int16_t> face_pmid, dag::ConstSpan<uint8_t> face_class = {});
   // The FRT's faces as a soup: what its masks trace is the traceable class, the rest the
@@ -106,10 +108,9 @@ struct CollisionResourceBuilder
   // A mesh node's geometry replaced (node-local verts; empty: the node keeps no geometry): the
   // slice is appended, the node box and sphere follow the verts.
   void replaceNodeGeometry(int node_index, dag::ConstSpan<Point3> verts, dag::ConstSpan<uint32_t> indices);
-  // The historical composed frames the v1 writer and the bounds read: BOX / SPHERE through the
-  // authored placement, the rest stored-space.
+  // The historical composed frame the bounds read: BOX / SPHERE through the authored placement,
+  // the rest stored-space.
   BBox3 nodeBBox(int node_index) const;
-  BSphere3 nodeBSphere(int node_index) const;
   float nodeMaxTmScale(int node_index) const { return bindMeta[node_index].maxTmScale; }
 
   // Bakes a mesh or convex node's placement into its raw geometry (false: nothing to bake).
@@ -123,6 +124,25 @@ struct CollisionResourceBuilder
 
   // A v0 or v1 body after its label (v0 opens its own blocks; the caller opened the v1 block).
   bool loadLegacy(IGenLoad &crd, unsigned label, const char *res_name, int (*resolve_phmat)(const char *) = nullptr);
+  // One node as the exporter's DAG walk and the v0 layout hold it: the exporter's box and sphere,
+  // node-local geometry. beginRawNodes, then addRawNode for each node, then endRawNodes.
+  struct RawNode
+  {
+    const char *name = "";
+    const char *physMat = nullptr; // null: no material
+    CollisionResourceNodeType type = COLLISION_NODE_TYPE_MESH;
+    uint16_t behaviorFlags = 0; // read under COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS only
+    TMatrix tm = TMatrix::IDENT;
+    TMatrix relGeomTm = TMatrix::IDENT; // read under COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID only
+    BSphere3 sphere;
+    BBox3 box;
+    dag::ConstSpan<Plane3> planes; // a convex node's
+    dag::ConstSpan<Point3> verts;
+    dag::ConstSpan<int> indices;
+  };
+  void beginRawNodes(uint32_t collision_flags, const BSphere3 &res_sphere);
+  void addRawNode(const RawNode &src, const char *res_name, int (*resolve_phmat)(const char *));
+  void endRawNodes();
   // Chunks decoded back to raw faces (with their per-face users), the authored flags rebaselined
   // from the source's live ones, everything else copied; the node order kept. The landing
   // re-chunks, so chunk bytes may differ from the source's.
@@ -133,6 +153,10 @@ struct CollisionResourceBuilder
   // A resource from the stream, physmat ids kept through the synthetic name pair; never null (a
   // refused stream leaves it empty). inplace_mem: the caller's storage, else operator new.
   CollisionResource *build(const char *res_name, void *inplace_mem = nullptr);
+
+  // debug dump: raw block, no rebuild
+  static void writeRaw(const CollisionResource &res, IGenSave &cwr);
+  static bool readRaw(CollisionResource &res, IGenLoad &crd);
 
 private:
   struct NodeBlasBuildScratch; // the chunk builds' reusable buffers
@@ -160,3 +184,11 @@ private:
   friend class CollisionResource;
   friend struct CollisionResourceUnittest;
 };
+
+// load_frt_block's pair, split into nodes and landed two-sided. Null, with the reason logged, when the split
+// adds no node, which a face-less tracer also answers. The caller owns the resource.
+CollisionResource *build_static_collision_frt(const StaticSceneRayTracer &frt, dag::ConstSpan<uint8_t> face_pmid, const char *name);
+
+// An old level's FRT block, read from its version word on, which goes unchecked, and built into out_res, which the caller owns.
+// False when the tracer does not read, true when it holds no face or builds nothing too; out_res is null unless a resource is built.
+bool load_frt_block_as_collision(IGenLoad &crd, CollisionResource *&out_res);

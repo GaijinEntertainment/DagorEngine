@@ -45,12 +45,9 @@ struct VbExtraCtx
 extern carray<rendinst::render::VbExtraCtx, RI_EXTRA_VB_CTX_CNT> vbExtraCtx;
 extern UniqueBuf riExtraPerDrawData;
 
-extern float riExtraLodDistSqMul;
-extern float riExtraCullDistSqMul;
-extern float additionalRiExtraLodDistMul;
-extern float riExtraLodsShiftDistMul;
-extern float riExtraLodsShiftDistMulForCulling;
-extern float riExtraMulScale;
+// multiply a riExtraDistSqScale-scaled squared distance into lod-select / last-lod-cull space
+extern float riExtraLodCompareMul;
+extern float riExtraCullCompareMul;
 extern bool canIncreaseRenderBuffer;
 
 
@@ -92,7 +89,7 @@ void renderRIGenExtra(const RiGenVisibility &v, RenderPass render_pass, Optimize
   const RiExtraRenderer *riex_renderer = nullptr, RiExtraRenderingSubset rendering_subset = RiExtraRenderingSubset::All);
 
 void renderRIGenExtraSortedTransparentInstanceElems(const RiGenVisibility &v, const TexStreamingContext &texCtx,
-  bool draw_partitioned_elems = false);
+  bool draw_partitioned_elems = false, const RiExtraRenderer *prebuilt = nullptr);
 
 void write_ri_extra_per_instance_data(vec4f *dest_buffer, const RendinstTiledScene &tiled_scene, scene::pool_index pool_id,
   scene::node_index ni, mat44f_cref m, bool is_dynamic);
@@ -103,7 +100,7 @@ uint32_t get_per_draw_offset(scene::pool_index pool_id);
 template <int N>
 inline int find_lod(const float *__restrict lod_dists, float dist)
 {
-  dist *= rendinst::render::riExtraLodsShiftDistMul;
+  dist *= rendinst::render::riExtraLodCompareMul;
   for (int lod = 0; lod <= N - 1; lod++)
     if (lod_dists[lod] < dist)
       return lod;
@@ -113,7 +110,7 @@ inline int find_lod(const float *__restrict lod_dists, float dist)
 template <>
 inline int find_lod<4>(const float *__restrict lod_dists, float dist)
 {
-  dist *= rendinst::render::riExtraLodsShiftDistMul;
+  dist *= rendinst::render::riExtraLodCompareMul;
   if (dist < lod_dists[1])
     return (dist < lod_dists[0] ? 0 : 1);
   return (dist < lod_dists[2] ? 2 : 3);
@@ -122,7 +119,7 @@ inline int find_lod<4>(const float *__restrict lod_dists, float dist)
 template <>
 inline int find_lod<8>(const float *__restrict lod_dists, float dist)
 {
-  dist *= rendinst::render::riExtraLodsShiftDistMul;
+  dist *= rendinst::render::riExtraLodCompareMul;
   if (dist < lod_dists[3])
   {
     if (dist < lod_dists[1])

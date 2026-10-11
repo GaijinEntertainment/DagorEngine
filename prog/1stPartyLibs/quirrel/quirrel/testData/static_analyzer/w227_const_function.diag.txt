@@ -1,0 +1,8 @@
+WARNING: w227 (ident-hides-ident) parameter 'bound' hides const with the same name.
+testData/static_analyzer/w227_const_function.nut:5:15
+
+function outer(bound) {
+               ^----
+  return bound + boundGlobal()
+
+

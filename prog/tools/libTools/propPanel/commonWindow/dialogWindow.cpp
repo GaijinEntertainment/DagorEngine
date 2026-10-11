@@ -12,6 +12,7 @@
 
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_lock.h>
+#include <gui/dag_imgui.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <workCycle/dag_workCycle.h>
 
@@ -33,6 +34,42 @@ static void get_button_panel_style_vars(bool is_modal, ImVec2 &item_spacing, ImV
   const ImGuiStyle &style = ImGui::GetStyle();
   item_spacing = is_modal ? ImVec2(modalSpacing, modalSpacing) : style.ItemSpacing;
   frame_padding = is_modal ? ImVec2(hdpi::_pxS(6), hdpi::_pxS(6)) : style.FramePadding;
+}
+
+// Same layout as the title bar in ImGui::RenderWindowTitleBarContents(). Use it with the title bar's frame padding style set.
+static float calculate_title_bar_width(const char *caption, bool is_modal, bool has_close_button)
+{
+  const ImGuiStyle &style = ImGui::GetStyle();
+
+  // DialogManager::renderModalDialog() draws the title of a modal dialog with the bold font.
+  if (is_modal)
+    ImGui::PushFont(imgui_get_bold_font(), 0.0f);
+  const float buttonSize = ImGui::GetFontSize();
+  const float textWidth = ImGui::CalcTextSize(caption, nullptr, true).x;
+  if (is_modal)
+    ImGui::PopFont();
+
+  float padLeft = style.FramePadding.x;
+  float padRight = style.FramePadding.x;
+  if (has_close_button)
+    padRight += buttonSize + style.ItemInnerSpacing.x;
+
+  // BeginPopupModal() sets ImGuiWindowFlags_NoCollapse, so only modeless dialogs have a collapse button.
+  if (!is_modal && style.WindowMenuButtonPosition == ImGuiDir_Right)
+    padRight += buttonSize + style.ItemInnerSpacing.x;
+  else if (!is_modal && style.WindowMenuButtonPosition == ImGuiDir_Left)
+    padLeft += buttonSize + style.ItemInnerSpacing.x;
+
+  if (padLeft > style.FramePadding.x)
+    padLeft += style.ItemInnerSpacing.x;
+  if (padRight > style.FramePadding.x)
+    padRight += style.ItemInnerSpacing.x;
+
+  // Centered text keeps the same distance from both sides.
+  if (style.WindowTitleAlign.x > 0.0f && style.WindowTitleAlign.x < 1.0f)
+    padLeft = padRight = max(padLeft, padRight);
+
+  return padLeft + textWidth + padRight;
 }
 
 namespace PropPanel
@@ -418,10 +455,11 @@ DialogWindow::DialogFrameSizing DialogWindow::beforeUpdateImguiDialog(const Poin
     maxSize.x = viewport->WorkSize.x * AUTO_SIZE_MAX_DISPLAY_FRACTION;
     maxSize.y = viewport->WorkSize.y * AUTO_SIZE_MAX_DISPLAY_FRACTION;
 
-    // The two ItemSpacing.y are for the gaps between EndChild() and Dummy(); Dummy() and the button panel.
+    // The ItemSpacing.y gaps are between EndChild() and Dummy(), and between Dummy() and the button panel if it is shown.
     const float titleBarHeight = existingWindow ? existingWindow->TitleBarHeight : ImGui::GetFrameHeight();
     const float chromeWidth = style.WindowPadding.x * 2.0f;
-    const float chromeHeight = buttonPanelHeight + (style.ItemSpacing.y * 2.0f) + (style.WindowPadding.y * 2.0f) + titleBarHeight;
+    const float gapsHeight = style.ItemSpacing.y * (buttonsVisible ? 2.0f : 1.0f);
+    const float chromeHeight = buttonPanelHeight + gapsHeight + (style.WindowPadding.y * 2.0f) + titleBarHeight;
 
     sizing.maxContentWidth = max(maxSize.x - chromeWidth, 0.0f);
     sizing.maxContentHeight = max(maxSize.y - chromeHeight, 0.0f);
@@ -441,11 +479,17 @@ DialogWindow::DialogFrameSizing DialogWindow::beforeUpdateImguiDialog(const Poin
         // The extra pixel is needed because ImGui rounds a window's measured ContentSize up, and the panel's items
         // can start at a fractional X.
         // A control's preferred size is a best-effort estimate and may exceed maxContentWidth.
-        minSize.x = clamp(preferredPanelSize.x + 1.0f + chromeWidth, minSize.x, maxSize.x);
+        // A panel taller than its limit gets a vertical scrollbar, which takes from its width.
+        const float scrollbarWidth = preferredPanelSize.y > sizing.maxContentHeight ? style.ScrollbarSize : 0.0f;
+        minSize.x = clamp(preferredPanelSize.x + 1.0f + chromeWidth + scrollbarWidth, minSize.x, maxSize.x);
       }
 
       if (preferredPanelSize.y > 0.0f)
         minSize.y = clamp(preferredPanelSize.y + chromeHeight, minSize.y, maxSize.y);
+
+      // ImGui's auto sizing does not include the title bar, so a long caption would be clipped.
+      const float titleBarWidth = calculate_title_bar_width(dialogCaption, isModal(), !isModal() || closeButtonVisible);
+      minSize.x = clamp(titleBarWidth, minSize.x, maxSize.x);
     }
   }
 
@@ -503,7 +547,9 @@ void DialogWindow::updateImguiDialog(const DialogFrameSizing &sizing)
     const ImGuiWindowFlags windowFlags =
       ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_HorizontalScrollbar;
     const float regionAvailYStart = ImGui::GetContentRegionAvail().y;
-    const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - style.ItemSpacing.y, 0.0f);
+    // Without the button panel nothing fills the gap below the panel, and an auto resized dialog would shrink by it in every frame.
+    const float spaceBelowPanel = buttonsVisible ? (buttonPanelHeight + style.ItemSpacing.y) : 0.0f;
+    const float propertiesPanelHeight = max(regionAvailYStart - spaceBelowPanel, 0.0f);
     ImVec2 childWindowSize(0.0f, propertiesPanelHeight);
 
     if (sizing.autoSize)

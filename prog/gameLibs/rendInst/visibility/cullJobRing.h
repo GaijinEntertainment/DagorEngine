@@ -2,6 +2,7 @@
 #pragma once
 
 #include <util/dag_threadPool.h>
+#include <perfMon/dag_statDrv.h>
 
 #include "visibility/cullJob.h"
 
@@ -36,14 +37,17 @@ struct CullJobRing
   }
   void finishWork()
   {
-    jobs.back().doJob();
+    {
+      TIME_PROFILE(parallel_ri_cull_job_caller); //-V1096
+      jobs.back().doJob();
+    }
     bool haveAnyNonDoneJobs = false;
     for (int i = 0, n = (int)jobs.size() - 1; i < n && !haveAnyNonDoneJobs; ++i)
       haveAnyNonDoneJobs |= !interlocked_acquire_load(jobs[i].done);
     if (!haveAnyNonDoneJobs)
       return;
 
-    DA_PROFILE_WAIT("wait_ri_cull_jobs");
+    DA_PROFILE_WAIT("wait_ri_cull_jobs"); //-V1096
 
     // Warning: scenes are read locked at this point, so any job that want to grab write lock for it will deadlock,
     // therefore try to avoid active wait if we can; can't do that if there are no enough threadpool workers available

@@ -101,21 +101,19 @@ eastl::string build_hardware_defines_hlsl(const char *profile, bool use_halfs, c
   defines.sprintf("#define _SHADER_STAGE_%cS 1\n", toupper(profile[0]));
   defines += ctx.commonHlslDefines();
 
-  if (profile)
-  {
-    // Format required: ..._#_#, where # are digits in the shader model version,
-    // for user-defined profiles this is validated on hlsl_compile evaluation.
-    auto shaderModelLe = [](const char *t1, const char *t2) {
-      auto isNum = [](char c) { return c >= '0' && c <= '9'; };
-      size_t l1 = strlen(t1);
-      size_t l2 = strlen(t2);
-      G_ASSERT(l1 >= 3 && l2 >= 3);
-      t1 += l1 - 3;
-      t2 += l2 - 3;
-      G_ASSERT(isNum(t1[0]) && isNum(t2[0]) && isNum(t1[2]) && isNum(t2[2]));
-      G_ASSERT(t1[1] == '_' && t2[1] == '_');
-      return t1[0] < t2[0] || (t1[0] == t2[0] && t1[2] <= t2[2]);
-    };
+  // Format required: ..._#_#, where # are digits in the shader model version,
+  // for user-defined profiles this is validated on hlsl_compile evaluation.
+  auto shaderModelLe = [](const char *t1, const char *t2) {
+    auto isNum = [](char c) { return c >= '0' && c <= '9'; };
+    size_t l1 = strlen(t1);
+    size_t l2 = strlen(t2);
+    G_ASSERT(l1 >= 3 && l2 >= 3);
+    t1 += l1 - 3;
+    t2 += l2 - 3;
+    G_ASSERT(isNum(t1[0]) && isNum(t2[0]) && isNum(t1[2]) && isNum(t2[2]));
+    G_ASSERT(t1[1] == '_' && t2[1] == '_');
+    return t1[0] < t2[0] || (t1[0] == t2[0] && t1[2] <= t2[2]);
+  };
 
 #define TRY_ADD_HW_MACRO(TOKEN)                                                             \
   do                                                                                        \
@@ -124,14 +122,13 @@ eastl::string build_hardware_defines_hlsl(const char *profile, bool use_halfs, c
     if (defines.find(tok.c_str()) == eastl::string::npos && shaderModelLe(#TOKEN, profile)) \
       defines.append_sprintf("#define _HARDWARE_%s 1\n", tok.c_str());                      \
   } while (0)
-    TRY_ADD_HW_MACRO(fsh_4_0);
-    TRY_ADD_HW_MACRO(fsh_4_1);
-    TRY_ADD_HW_MACRO(fsh_5_0);
-    TRY_ADD_HW_MACRO(fsh_6_0);
-    TRY_ADD_HW_MACRO(fsh_6_2);
-    TRY_ADD_HW_MACRO(fsh_6_6);
+  TRY_ADD_HW_MACRO(fsh_4_0);
+  TRY_ADD_HW_MACRO(fsh_4_1);
+  TRY_ADD_HW_MACRO(fsh_5_0);
+  TRY_ADD_HW_MACRO(fsh_6_0);
+  TRY_ADD_HW_MACRO(fsh_6_2);
+  TRY_ADD_HW_MACRO(fsh_6_6);
 #undef TRY_ADD_HW_MACRO
-  }
 
   if (use_halfs)
     defines += "#define _USE_HALFS 1\n";

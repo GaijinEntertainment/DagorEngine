@@ -140,7 +140,6 @@ bool is_box_inside_sphere(const BSphere3 &sphere, const BBox3 &bbox)
 
 RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &params_blk) :
   useSorting(true),
-  vboForMaxElements(false),
   isDissolve(false),
   isColorDebug(false),
   centerPos(0.f, 0.f, 0.f),
@@ -1075,11 +1074,7 @@ void RandomGrass::fillLayerLod(GrassLayer &layer, unsigned int lod_idx, int rand
     emptyLayer = true;
   }
 
-  if (vboForMaxElements)
-    // create buffer for max elements
-    lod.numInstancesInCell = (unsigned int)MAX_VERTICES_IN_CELL / elem.numv;
-  else
-    lod.numInstancesInCell = min(numInstancesInCell, (unsigned int)MAX_VERTICES_IN_CELL / elem.numv);
+  lod.numInstancesInCell = min(numInstancesInCell, (unsigned int)MAX_VERTICES_IN_CELL / elem.numv);
 
   // if we'll use unclamped numInstancesInCell, grass density on aircraft maps will be too large
   // todo: fix grass density in blk
@@ -1096,12 +1091,7 @@ void RandomGrass::fillLayerLod(GrassLayer &layer, unsigned int lod_idx, int rand
     lod.maxInstancesCount = 0;
   }
 
-  lod.singleVb = false;
-
-  lod.numv = lod.numInstancesInCell * elem.numv * (lod.singleVb ? 1 : VB_GRID_SIZE * VB_GRID_SIZE);
-  lod.numf = lod.numInstancesInCell * elem.numf;
   lod.numfperinst = elem.numf;
-  lod.numvperinst = elem.numv;
 
   lod.lodRndSeed = rand_seed;
 }

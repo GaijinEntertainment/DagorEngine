@@ -4,7 +4,6 @@ require dastest/testing_boost public
 require daslib/rtti
 require daslib/json
 require daslib/json_boost
-require strings
 
 // ============================================================
 //  Enum-as-flags JSON serialization.

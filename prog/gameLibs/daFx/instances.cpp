@@ -690,7 +690,7 @@ void warmup_instance(ContextId cid, InstanceId iid, float time, bool per_instanc
   os_spinlock_unlock(&ctx.queueLock);
 }
 DAGOR_NOINLINE
-bool replicate_compare_specialized_ool(uint8_t *__restrict dest, const void *__restrict source, int size) // supposedly never happen
+static bool assign_unless_equal_ool(uint8_t *__restrict dest, const void *__restrict source, int size) // supposedly never happen
 {
   if (memcmp(dest, source, size) == 0)
     return false;
@@ -698,7 +698,7 @@ bool replicate_compare_specialized_ool(uint8_t *__restrict dest, const void *__r
   return true;
 }
 
-__forceinline bool compare_and_copy_64_bytes(void *__restrict dst, const void *__restrict src)
+static __forceinline bool assign_unless_equal_64_bytes(void *__restrict dst, const void *__restrict src)
 {
   vec4i src0 = v_ldui((int *)src), src1 = v_ldui((int *)src + 4), src2 = v_ldui((int *)src + 8), src3 = v_ldui((int *)src + 12);
   vec4i cmp = v_andi(v_andi(v_cmp_eqi(v_ldui((int *)dst), src0), v_cmp_eqi(v_ldui((int *)dst + 4), src1)),
@@ -711,32 +711,28 @@ __forceinline bool compare_and_copy_64_bytes(void *__restrict dst, const void *_
   v_stui((int *)dst + 12, src3);
   return true;
 }
-__forceinline bool replicate_compare_specialized(uint8_t *__restrict dst, const void *__restrict src, int size)
+// src is float data seen as bytes; through uint32_t strict aliasing would drop the stores that wrote it
+static __forceinline bool assign_unless_equal(uint8_t *__restrict dst, const void *__restrict src, int size)
 {
-  const uint32_t *__restrict source = (const uint32_t *)src;
-  uint32_t *__restrict dest = (uint32_t *)dst;
-  // G_ASSERT(((uintptr_t(dst)&3) == 0) && ((uintptr_t(src)&3) == 0));
   if (DAGOR_LIKELY(size == 12))
   {
-    if ((dest[0] == source[0]) & (dest[1] == source[1]) & (dest[2] == source[2]))
+    if (memcmp(dst, src, 12) == 0)
       return false;
-    dest[0] = source[0];
-    dest[1] = source[1];
-    dest[2] = source[2];
+    memcpy(dst, src, 12);
     return true;
   }
   if (DAGOR_LIKELY(size == 4))
   {
-    if (*dest == *source)
+    if (memcmp(dst, src, 4) == 0)
       return false;
-    *dest = *source;
+    memcpy(dst, src, 4);
     return true;
   }
   if (DAGOR_LIKELY(size == 64))
   {
-    return compare_and_copy_64_bytes(dest, source);
+    return assign_unless_equal_64_bytes(dst, src);
   }
-  return replicate_compare_specialized_ool(dst, src, size);
+  return assign_unless_equal_ool(dst, src, size);
 }
 inline void set_instance_value(Context &ctx, int sid, int offset, const void *data, int size)
 {
@@ -752,7 +748,7 @@ inline void set_instance_value(Context &ctx, int sid, int offset, const void *da
 #endif
 
   int destOffset = cpuBuffer.offset + offset;
-  if (!replicate_compare_specialized(dest + destOffset, data, size))
+  if (!assign_unless_equal(dest + destOffset, data, size))
     return;
 
   uint32_t &flags = stream.get<INST_FLAGS>(sid);
@@ -1265,6 +1261,7 @@ void set_instance_pos(ContextId cid, InstanceId iid, const Point4 &pos)
     logerr("dafx: NaN in instance pos");
     return;
   }
+  G_ASSERTF(pos.w >= 0, "dafx: negative sort bias %f, culling sorts distances as ints", pos.w);
 
   os_spinlock_lock(&ctx.queueLock);
   ctx.commandQueueNext.instancePos.push_back({iid, pos});

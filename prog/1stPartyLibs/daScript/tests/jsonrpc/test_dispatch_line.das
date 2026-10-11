@@ -10,7 +10,7 @@ require strings
 
 [test]
 def test_dispatch_single_request(t : T?) {
-    let r = dispatch_line("\{\"id\":1,\"method\":\"echo\",\"params\":[42]}", false) $(method, params_json) {
+    let r = dispatch_line("\{\"id\":1,\"method\":\"echo\",\"params\":[42]}", false) $(method, _params_json) {
         return "\"got-{method}\""
     }
     t |> equal(r, "\{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"got-echo\"}")
@@ -20,7 +20,7 @@ def test_dispatch_single_request(t : T?) {
 def test_dispatch_single_notification(t : T?) {
     // Notification: dispatcher runs for side-effects but response is "".
     var dispatcher_called = false
-    let r = dispatch_line("\{\"method\":\"fire\"}", false) $(method, params_json) {
+    let r = dispatch_line("\{\"method\":\"fire\"}", false) $(_method, _params_json) {
         dispatcher_called = true
         return "\"unused\""
     }
@@ -31,7 +31,7 @@ def test_dispatch_single_notification(t : T?) {
 [test]
 def test_dispatch_top_level_parse_error(t : T?) {
     var called = false
-    let r = dispatch_line("garbage", false) $(method, params_json) {
+    let r = dispatch_line("garbage", false) $(_method, _params_json) {
         called = true
         return "x"
     }
@@ -42,7 +42,7 @@ def test_dispatch_top_level_parse_error(t : T?) {
 
 [test]
 def test_dispatch_batch_mixed(t : T?) {
-    let r = dispatch_line("[\{\"id\":1,\"method\":\"a\"},\{\"method\":\"notif\"},\{\"id\":3,\"method\":\"b\"}]", false) $(method, params_json) {
+    let r = dispatch_line("[\{\"id\":1,\"method\":\"a\"},\{\"method\":\"notif\"},\{\"id\":3,\"method\":\"b\"}]", false) $(method, _params_json) {
         return "\"r-{method}\""
     }
     // Batch with one notification: response array has 2 entries (notification suppressed).
@@ -62,7 +62,7 @@ def test_dispatch_batch_mixed(t : T?) {
 
 [test]
 def test_dispatch_batch_all_notifications(t : T?) {
-    let r = dispatch_line("[\{\"method\":\"a\"},\{\"method\":\"b\"}]", false) $(method, params_json) {
+    let r = dispatch_line("[\{\"method\":\"a\"},\{\"method\":\"b\"}]", false) $(_method, _params_json) {
         return "ignored"
     }
     t |> equal(r, "")
@@ -71,7 +71,7 @@ def test_dispatch_batch_all_notifications(t : T?) {
 [test]
 def test_dispatch_batch_per_entry_errors(t : T?) {
     // Mixed valid + malformed entries: batch returns array with per-entry error envelopes.
-    let r = dispatch_line("[\{\"id\":1,\"method\":\"good\"},\{\"id\":2}]", false) $(method, params_json) {
+    let r = dispatch_line("[\{\"id\":1,\"method\":\"good\"},\{\"id\":2}]", false) $(_method, _params_json) {
         return "\"ok\""
     }
     t |> success(find(r, "\"id\":1") >= 0, "valid entry response present")
@@ -80,8 +80,22 @@ def test_dispatch_batch_per_entry_errors(t : T?) {
 }
 
 [test]
+def test_dispatch_malformed_without_id_still_answers(t : T?) {
+    let r = dispatch_line("\{\"params\":[1,2]}", false) $(_method, _params_json) {
+        return "\"ok\""
+    }
+    t |> success(!empty(r), "a malformed idless request still gets a response")
+    t |> success(find(r, "\"id\":null") >= 0, "id is null")
+    t |> success(find(r, "-32600") >= 0, "INVALID_REQUEST code")
+    let rb = dispatch_line("[\{\"params\":[1,2]}]", false) $(_method, _params_json) {
+        return "\"ok\""
+    }
+    t |> success(find(rb, "-32600") >= 0, "same inside a batch")
+}
+
+[test]
 def test_dispatch_strict_mode_propagates(t : T?) {
-    let r = dispatch_line("\{\"id\":1,\"method\":\"x\"}", true) $(method, params_json) {
+    let r = dispatch_line("\{\"id\":1,\"method\":\"x\"}", true) $(_method, _params_json) {
         return "\"ok\""
     }
     t |> success(find(r, "-32600") >= 0, "strict mode rejects missing jsonrpc field")

@@ -50,7 +50,7 @@ class BreakpointAgent : DapiDebugAgent {
     }
 }
 
-[export]
+[export, unused_argument(ctx)]
 def install_bp_agent(ctx : Context) {
     assert(this_context().category.debug_context)
     install_new_debug_agent(new BreakpointAgent(), "bp_agent")
@@ -83,9 +83,7 @@ def demo_watch_int() {
     print("  after write: target = {target}\n")
 
     // Clear the breakpoint — further writes are silent
-    unsafe {
-        clear_hw_breakpoint(bp)
-    }
+    unsafe(clear_hw_breakpoint(bp))
     print("  breakpoint cleared\n")
 
     target = 50
@@ -121,9 +119,7 @@ def demo_watch_struct_field() {
     pos.y = 3.0
     print("  pos.y = {pos.y} (triggered again)\n")
 
-    unsafe {
-        clear_hw_breakpoint(bp)
-    }
+    unsafe(clear_hw_breakpoint(bp))
     print("  breakpoint cleared\n")
 }
 
@@ -136,9 +132,7 @@ def demo_watch_struct_field() {
 def watch_variable(var ctx : Context; data : void?; size : int; blk : block) {
     let bp = unsafe(set_hw_breakpoint(ctx, data, size, true))
     invoke(blk)
-    unsafe {
-        clear_hw_breakpoint(bp)
-    }
+    unsafe(clear_hw_breakpoint(bp))
 }
 
 def demo_scoped_breakpoint() {
@@ -146,13 +140,11 @@ def demo_scoped_breakpoint() {
 
     var value = 100
 
-    unsafe {
-        watch_variable(this_context(), addr(value), 4) {
-            value = 200
-            print("  inside scope: value = {value}\n")
-            value = 300
-            print("  inside scope: value = {value}\n")
-        }
+    watch_variable(this_context(), unsafe(addr(value)), 4) {
+        value = 200
+        print("  inside scope: value = {value}\n")
+        value = 300
+        print("  inside scope: value = {value}\n")
     }
 
     // After the scope, no breakpoint — writes are silent

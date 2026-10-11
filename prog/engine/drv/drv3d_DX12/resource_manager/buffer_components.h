@@ -54,7 +54,7 @@ protected:
   struct CompletedFrameExecutionInfo : BaseType::CompletedFrameExecutionInfo
   {
     frontend::BindlessManager *bindlessManager;
-    ID3D12Device *device;
+    D3DDevice *device;
   };
 
   static bool can_use_sub_alloc(uint32_t cflags);
@@ -163,13 +163,13 @@ protected:
 
     size_t freeBufferHeap(BufferHeap *manager, uint32_t index, eastl::string_view name, bool is_heaps_lock_required);
     size_t freeBufferHeap(BufferHeap *manager, uint32_t index, ValueRange<uint64_t> range, eastl::string_view name);
-    BufferHeapAllocationResult createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device, uint64_t allocation_size,
+    BufferHeapAllocationResult createBufferHeapInMemory(BufferHeap *manager, D3DDevice *device, uint64_t allocation_size,
       D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, const D3D12_RESOURCE_DESC &desc,
       const ResourceMemory &allocation, ResourceHeapProperties allocatedProperties, bool can_suballocate);
 
-    BufferHeapAllocationResult createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, ID3D12Device *device,
-      uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state,
-      eastl::string_view name, bool can_suballocate, AllocationFlags allocation_flags = {});
+    BufferHeapAllocationResult createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, D3DDevice *device, uint64_t allocation_size,
+      ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, eastl::string_view name,
+      bool can_suballocate, AllocationFlags allocation_flags = {});
 
     bool isValidBuffer(const BufferState &buf);
 
@@ -209,7 +209,7 @@ protected:
 
   /// Empty when no memory could be found for the clone, which is how defragmentation learns that a
   /// heap group is full. Everything else, a failed resource creation for example, is an error.
-  BufferCloneResult tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
+  BufferCloneResult tryCloneBuffer(DXGIAdapter *adapter, D3DDevice *device, BufferGlobalId buffer_id,
     BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size);
 
   // Checks if the buffer is actually needed and if not it will be deleted immediately
@@ -228,7 +228,7 @@ public:
     FormatStore format, uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
     const char *name, uint32_t frame_index, bool disable_sub_alloc);
 
-  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_buffer_desc_allocation_info(ID3D12Device *device,
+  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_buffer_desc_allocation_info(D3DDevice *device,
     uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags);
 
   using BufferAllocationResult = dag::Expected<BufferState, MemoryAllocationError>;

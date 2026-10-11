@@ -25,7 +25,7 @@
 #include <de3_hmapStorage.h>
 
 #include <fftWater/fftWater.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_cpuFreq.h>
 
@@ -46,8 +46,8 @@ class WaterService : public IWaterService
 public:
   FFTWater *water = nullptr;
   UniqueTexWithShaderVar distTex;
-  TextureIDHolder heightmap;
-  TextureIDHolder wfx_normals, wfx_details;
+  UniqueTex heightmap;
+  UniqueTex wfx_normals, wfx_details;
   float waterLevel = 0.f;
   double totalTime = 0.0;
   double currentDt = 0.01f;
@@ -116,22 +116,21 @@ public:
     prev_frame_texVarId = get_shader_variable_id("prev_frame_tex", true);
     water = fft_water::create_water(fft_water::RENDER_GOOD, 1000.0f, 7, false, false, false, 6, fft_water::RenderQuality::UNDEFINED,
       false, -1, false);
-    if (!heightmap.getTex())
+    if (!heightmap.getBaseTex())
     {
-      heightmap.set(d3d::create_tex(NULL, heightmap_w, heightmap_w, TEXCF_RTARGET | TEXFMT_R16F, 1, "water_heightmap_tex"),
-        "water_heightmap_tex");
+      heightmap = dag::create_tex(NULL, heightmap_w, heightmap_w, TEXCF_RTARGET | TEXFMT_R16F, 1, "water_heightmap_tex");
     }
-    if (!wfx_normals.getTex())
+    if (!wfx_normals.getBaseTex())
     {
-      wfx_normals.set(d3d::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_normals"), "wfx_normals");
+      wfx_normals = dag::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_normals");
       d3d::clear_rt({wfx_normals.getTex2D()}, make_clear_value(0.5f, 0.5f, 0.0f, 0.0f));
-      ShaderGlobal::set_texture(get_shader_variable_id("wfx_normals", true), wfx_normals.getId());
+      ShaderGlobal::set_texture(get_shader_variable_id("wfx_normals", true), wfx_normals.getTexId());
     }
-    if (!wfx_details.getTex())
+    if (!wfx_details.getBaseTex())
     {
-      wfx_details.set(d3d::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_details"), "wfx_details");
+      wfx_details = dag::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_details");
       d3d::clear_rt({wfx_details.getTex2D()}, make_clear_value(0.0f, 0.0f, 0.0f, 1.0f));
-      ShaderGlobal::set_texture(get_shader_variable_id("wfx_details", true), wfx_details.getId());
+      ShaderGlobal::set_texture(get_shader_variable_id("wfx_details", true), wfx_details.getTexId());
     }
   }
   void term() override
@@ -168,7 +167,7 @@ public:
     if (!water)
       return;
     auto *prev = ShaderGlobal::get_tex_ptr_fast(prev_frame_texVarId);
-    ShaderGlobal::set_texture(water_refraction_texVarId, prev);
+    STATE_GUARD_NULLPTR(ShaderGlobal::set_texture(water_refraction_texVarId, VALUE), prev);
     ShaderGlobal::set_sampler(get_shader_variable_id("water_refraction_tex_samplerstate", true),
       ShaderGlobal::get_sampler(get_shader_variable_id("prev_frame_tex_samplerstate", true)));
     TMatrix4 globtm;
@@ -243,7 +242,7 @@ public:
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
     smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
     ShaderGlobal::set_sampler(get_shader_variable_id("heightmap_tex_samplerstate", true), d3d::request_sampler(smpInfo));
-    ShaderGlobal::set_texture(get_shader_variable_id("heightmap_tex", true), heightmap.getId());
+    ShaderGlobal::set_texture(get_shader_variable_id("heightmap_tex", true), heightmap.getTexId());
     fft_water::build_distance_field(distTex, shore_w, heightmap_w, rivers_size, NULL);
     // save_tex_as_ddsx(distTex.getTex2D(), String(0, "d:/distTex-%04d.ddsx", get_time_msec()));
 

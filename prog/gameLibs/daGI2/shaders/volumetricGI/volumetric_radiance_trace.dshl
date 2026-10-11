@@ -101,6 +101,7 @@ shader calc_current_gi_froxels_cs
   GI_VOLUMETRIC_TRACE(cs)
   GI_VOLUMETRIC_JITTER(cs)
   DAGI_RAD_GRID_SAMPLE(cs)
+  PROJECT_GET_SKY_RADIANCE_AT(cs)
   local float4 gi_froxels_size = gi_froxels_sizei;
   (cs) {
     gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;

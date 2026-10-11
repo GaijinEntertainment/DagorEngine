@@ -1664,6 +1664,13 @@ static Point3 get_velocity_from_hit(const JPH::ClosestHitCollisionCollector<JPH:
   return to_point3(jolt_api::body_api().GetLinearVelocity(cb.mHit.mBodyID2));
 }
 
+// constraint: Jolt prunes a cast by the collector early-out fraction only; AddHit takes the first hit whatever mHit holds
+static void limit_cast_to(JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> &cb, float t)
+{
+  if (t < cb.GetEarlyOutFraction())
+    cb.UpdateEarlyOutFraction(t);
+}
+
 void PhysWorld::shape_query(const JPH::Shape *shape, const TMatrix &from, const Point3 &dir, PhysWorld *,
   dag::ConstSpan<PhysBody *> bodies, PhysShapeQueryResult &out, int filter_grp, int filter_mask)
 {
@@ -1677,6 +1684,7 @@ void PhysWorld::shape_query(const JPH::Shape *shape, const TMatrix &from, const 
 
   JPH::TransformedShape tshape;
   JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> closestCb;
+  limit_cast_to(closestCb, out.t);
 
   for (auto b : bodies)
   {
@@ -1701,7 +1709,7 @@ bool PhysWorld::convex_shape_sweep_test(const JPH::Shape *shape, const Point3 &f
   const JPH::ObjectLayerFilter &obj_filter, const JPH::BodyFilter &body_filter)
 {
   JPH::RShapeCast shape_cast(shape, JPH::Vec3::sReplicate(1.0f), JPH::Mat44::sTranslation(to_jVec3(from)), to_jVec3(to - from));
-  closestCb.mHit.mFraction = out.t;
+  limit_cast_to(closestCb, out.t);
   phys_sys().GetNarrowPhaseQuery().CastShape(shape_cast, defShapeCastStg, JPH::Vec3::sZero(), closestCb, {}, obj_filter, body_filter);
   if (closestCb.HadHit() && closestCb.mHit.mFraction < out.t)
   {

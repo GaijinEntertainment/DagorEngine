@@ -33,6 +33,7 @@
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_textMarks.h>
+#include <render/debugMultiTextLabels/debugMultiTextLabels_api.h>
 #include <render/debug3dSolidBuffered.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_atomic.h>
@@ -255,7 +256,7 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
     d3d::set_render_target({depth, 0, 0}, DepthAccess::RW, {{target, 0, 0}});
     if (depth || canDrawWithoutDepth)
     {
-      g_entity_mgr->update(UpdateStageInfoRenderDebug(reinterpret_cast<mat44f_cref>(camera.noJitterGlobtm), camera.viewItm));
+      g_entity_mgr->update(UpdateStageInfoRenderDebug(reinterpret_cast<mat44f_cref>(camera.noJitterGlobtm), camera.viewItm, target));
       flush_buffered_debug_lines(get_timespeed() == 0.f);
     }
 
@@ -274,6 +275,7 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
 
   if (imgui_get_state() != ImGuiState::OFF)
     imgui_perform_registered();
+  console::update(); // constraint: runs TTY commands, needs PUFD idle
 
   G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
   g_entity_mgr->setConstrainedMTMode(true);
@@ -451,6 +453,10 @@ void finish_rendering_ui()
   prepare_debug_text_marks(globTm, view_w, view_h);
   bool isPersp = d3d::validatepersp(persp);
 
+  const bool drawDebugMarks = !should_hide_gui() && !should_hide_debug();
+  if (!drawDebugMarks)
+    discard_debug_multitext_labels();
+
   if (DAGOR_LIKELY(!should_hide_gui()))
   {
     TIME_D3D_PROFILE(gui);
@@ -482,8 +488,11 @@ void finish_rendering_ui()
       // draw debug text marks before the UI
       // a lot of marks overlapping Editor UI and mouse cursor is quite annoying
       // and seem to have no benefits
-      if (!should_hide_debug())
+      if (drawDebugMarks)
+      {
         render_debug_text_marks();
+        render_debug_multitext_labels(globTm);
+      }
 
       if (isPersp)
       {
@@ -556,7 +565,6 @@ void finish_rendering_ui()
     g_entity_mgr->broadcastEventImmediate(RenderEventDebugGUI());
     visuallog::draw();
     TIME_D3D_PROFILE(console);
-    console::update();
     console::render();
   }
   if (imgui_get_state() != ImGuiState::OFF)

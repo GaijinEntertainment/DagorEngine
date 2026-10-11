@@ -84,7 +84,11 @@ shader dynamic_perlin_layered
   }
   else
   {
-    (ps) { perlin_noise3d@smp3d = perlin_noise3d; }//todo: better move to block
+    (ps) { perlin_noise3d@tex3d = perlin_noise3d; }//todo: better move to block
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+    hlsl(ps) {
+      #define perlin_noise3d_samplerstate global_linear_wrap_sampler
+    }
     USE_PERLIN_LAYERED(ps)
     hlsl(ps) {
       #define IS_DYNAMIC 1

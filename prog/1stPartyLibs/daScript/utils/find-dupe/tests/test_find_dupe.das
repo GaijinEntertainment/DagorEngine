@@ -109,7 +109,7 @@ def test_parse_verdict_resets_stale_error(t : T?) {
     // A reused Verdict instance must not carry a previous error
     // through a successful parse.
     var v : Verdict
-    v.error := "stale error from previous attempt"
+    v.error = "stale error from previous attempt"
     var json_error : string
     let json = "\{\"groups\":[[0,1,2]],\"false_positives\":[],\"reason\":\"identical\"\}"
     let input = read_json(json, json_error)
@@ -153,7 +153,7 @@ def test_classify_false_positive_all(t : T?) {
 [test]
 def test_classify_error_propagates(t : T?) {
     var v : Verdict
-    v.error := "something broke"
+    v.error = "something broke"
     let kind = classify_verdict(2, v)
     t |> equal(verdict_kind_to_string(kind), "error")
 }

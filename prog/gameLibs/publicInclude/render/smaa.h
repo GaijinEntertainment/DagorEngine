@@ -9,7 +9,6 @@
 #include <math/integer/dag_IPoint2.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_textureIDHolder.h>
 #include <drv/3d/dag_renderPass.h>
 
 class SMAA
@@ -22,6 +21,6 @@ private:
   PostFxRenderer edge_detect, blend_weights, apply_smaa;
   UniqueTexWithShaderVar edgeDetect, blendWeights;
   SharedTexWithShaderVar areaTex, searchTex;
-  TextureIDHolder depthStencilTex;
+  UniqueTex depthStencilTex;
   const IPoint2 resolution;
 };

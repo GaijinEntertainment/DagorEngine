@@ -65,7 +65,7 @@ def test_bitfield64_all_bits(t : T?) {
 def test_bitfield64_var_assign(t : T?) {
     t |> run("bitfield64 var assign high bit") @(t : T?) {
         var f : TestFlags64
-        f = bitfield64(1ul << 63ul)
+        f = bitfield64(1ul << 63ul)    // nolint:STYLE011 -- assign-to-declared-var is the JIT store path under test; the init form is test_bitfield64_high_bit
         t |> equal(uint64(f), 0x8000000000000000ul)
     }
 }

@@ -119,19 +119,6 @@ bool atlas_tex_manager::TexRec::initAtlas(int tex_count, dag::ConstSpan<unsigned
 
 void atlas_tex_manager::TexRec::resetAtlas()
 {
-  for (int i = 0; i < atlasTex.size(); ++i)
-  {
-    TEXTUREID texId = atlasTex[i].getTexId();
-    if (texId != BAD_TEXTUREID)
-    {
-      // Release shader variable references.
-      ShaderGlobal::reset_from_vars(texId);
-      // Force-release any remaining external references (e.g. BVH)
-      int extraRefs = get_managed_texture_refcount(texId) - 1;
-      for (int j = 0; j < extraRefs; ++j)
-        release_managed_tex(texId);
-    }
-  }
   atlasTex.clear();
   atlasTexFmt.clear();
   if (ad)

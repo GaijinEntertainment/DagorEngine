@@ -8,6 +8,7 @@
 #include <generic/dag_span.h>
 #include <dag/dag_vector.h>
 #include <EASTL/string.h>
+#include <EASTL/functional.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <daECS/net/authority.h>
 #include <debug/dag_assert.h>
@@ -89,6 +90,8 @@ void debug_verify_net_connection_ptr(net::IConnection *conn);     // may run off
 void disconnect_from_relay();
 bool establish_relay_connection(const char *relay_url);
 bool set_relay_connection_handler(void (*relayConnectionHandler)(bool));
+// Runs at net_update and net_destroy. fn's bool is false when connectGen moved since the call.
+void on_net_thread(eastl::function<void(bool)> fn);
 
 eastl::string get_received_stun_system_address_str();
 void request_udp_punch_via_relay(const char *relay_addr);
@@ -111,5 +114,15 @@ enum class NetworkVariant : int
   UserNet = 2,
 };
 
+// Like dedicated::is_dedicated(): constexpr default for DNG; Eden links a runtime
+// body when built with -DDAGOR_NET_VARIANT_RUNTIME=1.
+// non_main_net_possible: Eden can run UserNet / forbidden-thread checks; DNG folds them away.
+#if DAGOR_NET_VARIANT_RUNTIME
 NetworkVariant network_variant();
-bool is_main_thread_network(); // network_variant() == MainNet
+bool is_main_thread_network();
+inline constexpr bool non_main_net_possible() { return true; }
+#else
+inline constexpr NetworkVariant network_variant() { return NetworkVariant::MainNet; }
+inline constexpr bool is_main_thread_network() { return true; }
+inline constexpr bool non_main_net_possible() { return false; }
+#endif

@@ -70,19 +70,19 @@ static uint32_t get_texformat_bits(D3DFORMAT f)
 {
   switch ((int)f)
   {
-    case D3DFMT_A8R8G8B8: return 32;
-    case D3DFMT_A16B16G16R16: return 64;
+    case D3DFMT_A16B16G16R16:
     case D3DFMT_A16B16G16R16F: return 64;
     case D3DFMT_A32B32G32R32F: return 128;
-    case D3DFMT_DXT1: return 4;
-    case D3DFMT_DXT3: return 8;
-    case D3DFMT_DXT5: return 8;
-    case D3DFMT_G16R16: return 32;
-    case D3DFMT_G16R16F: return 32;
+    case D3DFMT_A8R8G8B8:
+    case D3DFMT_G16R16:
+    case D3DFMT_G16R16F:
     case D3DFMT_A8B8G8R8: return 32;
     case D3DFMT_R16F: return 16;
+    case D3DFMT_DXT1:
     case FOURCC_ATI1N: return 4;
-    case FOURCC_ATI2N: return 8;
+    case D3DFMT_DXT3:
+    case D3DFMT_DXT5:
+    case FOURCC_ATI2N:
     case FOURCC_BC5S: return 8;
     default: return 0;
   }

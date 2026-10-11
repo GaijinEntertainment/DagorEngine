@@ -174,7 +174,6 @@ static void reset_view()
     filter.max = 1;
   }
   channelFilters[3].active = false;
-  selectedMipLevel = 0;
   selectedArraySlice = 0;
   selectedDepthSlice = 0;
 
@@ -329,7 +328,7 @@ static bool render_channel_filter(const char *name, ChannelFilter &filter, const
   else if (desc.isFloatPoint)
   {
     minValue = desc.isSigned ? -100 : 0;
-    maxValue = desc.isSigned ? 100 : 100;
+    maxValue = 100;
   }
   else if (desc.isSigned)
   {
@@ -391,8 +390,8 @@ static int tex_type_ix(TextureInfo &ti)
   {
     case D3DResourceType::TEX: return is_integer_texture(ti.cflg) ? 4 : 0;
     case D3DResourceType::VOLTEX: return 1;
-    case D3DResourceType::CUBETEX: return 3;
     case D3DResourceType::ARRTEX: return 2;
+    case D3DResourceType::CUBETEX:
     case D3DResourceType::CUBEARRTEX: return 3;
     default: return 0;
   }
@@ -405,7 +404,7 @@ static float tex_slice_val(const TextureInfo &ti)
     case D3DResourceType::TEX: return 0;
     case D3DResourceType::VOLTEX: return (selectedDepthSlice + 0.5f) / ti.d;
     case D3DResourceType::CUBETEX: return selectedArraySlice == 6 ? -1 : selectedArraySlice;
-    case D3DResourceType::ARRTEX: return selectedArraySlice;
+    case D3DResourceType::ARRTEX:
     case D3DResourceType::CUBEARRTEX: return selectedArraySlice;
     default: return 0;
   }
@@ -418,7 +417,7 @@ static float tex_sliceI_val(const TextureInfo &ti)
     case D3DResourceType::TEX: return 0;
     case D3DResourceType::VOLTEX: return selectedDepthSlice;
     case D3DResourceType::CUBETEX: return selectedArraySlice == 6 ? -1 : selectedArraySlice;
-    case D3DResourceType::ARRTEX: return selectedArraySlice;
+    case D3DResourceType::ARRTEX:
     case D3DResourceType::CUBEARRTEX: return selectedArraySlice;
     default: return 0;
   }

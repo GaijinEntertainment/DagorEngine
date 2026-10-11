@@ -2,6 +2,7 @@
 #pragma once
 
 #include <libTools/dagFileRW/dagFileFormat.h>
+#include <math/dag_mesh.h>
 #include <ioSys/dag_fileIo.h>
 #include <util/dag_string.h>
 
@@ -11,8 +12,8 @@ struct DagBigMapChannel
   int numtv;
   unsigned char num_tv_coords;
   unsigned char channel_id;
-  float *tverts;
-  DagBigTFace *tface;
+  const float *tverts;
+  const DagBigTFace *tface;
 };
 
 
@@ -22,7 +23,20 @@ struct DagExpMater : public DagMater
 };
 
 
-class Point3;
+struct DagMapChannels
+{
+  DagBigMapChannel channel[NUMMESHTCH + 1];
+  TVertTab tc[NUMMESHTCH];
+  Tab<Point3> color;
+  int count;
+
+  DagMapChannels() : color(tmpmem), count(0) { memset(channel, 0, sizeof(channel)); }
+  DagMapChannels(const DagMapChannels &) = delete;
+  DagMapChannels &operator=(const DagMapChannels &) = delete;
+
+  void fill(const MeshData &mesh);
+};
+
 
 // Dag file exporter.
 // Throws IGenSave::SaveException on write errors, so watch for it.

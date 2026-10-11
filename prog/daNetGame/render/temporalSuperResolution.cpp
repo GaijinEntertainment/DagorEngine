@@ -62,7 +62,9 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
                                  .useAs(dafg::Usage::SHADER_RESOURCE)
                                  .handle();
 
-    auto depthHndl = registry.createTexture2d("tsr_depth", {TEXFMT_R16F | TEXCF_UNORDERED, output_resolution})
+    const unsigned depthFormat =
+      (d3d::get_texformat_usage(TEXFMT_R16F | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED) ? TEXFMT_R16F : TEXFMT_R32F;
+    auto depthHndl = registry.createTexture2d("tsr_depth", {depthFormat | TEXCF_UNORDERED, output_resolution})
                        .withHistory(dafg::History::ClearZeroOnFirstFrame)
                        .atStage(dafg::Stage::PS_OR_CS)
                        .useAs(dafg::Usage::SHADER_RESOURCE)

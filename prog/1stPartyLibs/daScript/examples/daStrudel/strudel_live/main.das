@@ -5,13 +5,13 @@ options gc
 
 require strudel/strudel_mini
 require strudel/strudel_player
-require strudel/strudel_live  // nolint:STYLE030 — load-bearing for strudel player/SF2 state across reloads
+require strudel/strudel_live
 require audio/audio_boost
-require live/audio_live   // nolint:STYLE030 — load-bearing for audio buffer persistence across reloads
+require live/audio_live
 require live/live_commands
 require live/live_api
 require live/live_gc
-require live/live_watch_boost // nolint:STYLE030 — load-bearing for live file-watch side-effects
+require live/live_watch_boost
 require live_host
 require daslib/fio
 require daslib/strings_boost
@@ -132,9 +132,7 @@ var asch : AudioSystemChannels
 [export]
 def init() {
     print("daStrudel live\n")
-    if (get_audio_command_stream() == null) {
-        asch = audio_system_create()
-    }
+    asch = audio_live_system()
     load_samples()
     strudel_init(@@strudel_main)
     print("playing...\n")
@@ -149,7 +147,7 @@ def update() {
 def shutdown() {
     print("Shutting down...\n")
     strudel_shutdown()
-    audio_system_finalize(asch.command, asch.next_sid)
+    audio_live_finalize(asch)
 }
 
 // standalone mode (daslang.exe): the same exported trio in the canonical loop

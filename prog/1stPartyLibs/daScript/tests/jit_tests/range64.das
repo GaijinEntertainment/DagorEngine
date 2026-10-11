@@ -34,7 +34,7 @@ def test_r64_yx(r : range64) : range64 {
 [sideeffects]
 def test_for_range64 {
     var t = 0ul
-    for (x in 0ul .. 10ul) {
+    for (_x in 0ul .. 10ul) {
         t ++
     }
     return t

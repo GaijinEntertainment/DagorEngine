@@ -295,7 +295,7 @@ bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params,
     else if (strcmp(type, "mail") == 0)
       edit_flags |= TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
     else if (strcmp(type, "num") == 0)
-      edit_flags = TYPE_CLASS_NUMBER | TYPE_NUMBER_VARIATION_NORMAL;
+      edit_flags = TYPE_CLASS_NUMBER | TYPE_NUMBER_VARIATION_NORMAL | TYPE_NUMBER_FLAG_DECIMAL;
     else
       logerr("unrecognized IME type: <%s>", type);
   }
@@ -318,9 +318,11 @@ bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params,
     ; // n/a
   if (init_params.getBool("optFixedPos", false))
     ; // n/a
-  if (!init_params.getBool("optNoAutoCap",
-        (edit_flags & (TYPE_TEXT_VARIATION_URI | TYPE_TEXT_VARIATION_EMAIL_ADDRESS | TYPE_TEXT_VARIATION_VISIBLE_PASSWORD))))
-    edit_flags |= TYPE_TEXT_FLAG_CAP_WORDS;
+  const unsigned no_auto_cap_variations =
+    TYPE_TEXT_VARIATION_URI | TYPE_TEXT_VARIATION_EMAIL_ADDRESS | TYPE_TEXT_VARIATION_PASSWORD | TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+  if ((edit_flags & TYPE_MASK_CLASS) == TYPE_CLASS_TEXT &&
+      !init_params.getBool("optNoAutoCap", (edit_flags & no_auto_cap_variations) != 0))
+    edit_flags |= TYPE_TEXT_FLAG_CAP_SENTENCES;
   if (init_params.getBool("optNoLearning", false))
     edit_flags |= TYPE_TEXT_FLAG_NO_SUGGESTIONS;
   int max_chars = init_params.getInt("maxChars", 128);

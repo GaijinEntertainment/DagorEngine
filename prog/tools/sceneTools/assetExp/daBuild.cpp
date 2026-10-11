@@ -316,6 +316,32 @@ static void process_result(DabuildJobPool::Ctx *ctx, dag::ConstSpan<AssetPack *>
   }
 }
 
+// A job saves the desc entries of each built pack; merge them where a build without jobs makes them, to keep the entry order
+static bool merge_job_desc_entries(DataBlock &out_blk, const char *fn, ILogWriter &log)
+{
+  DataBlock job_blk;
+  bool loaded = dblk::load(job_blk, fn, dblk::ReadFlag::ROBUST);
+  dd_erase(fn);
+  if (!loaded)
+  {
+    log.addMessage(log.ERROR, "lost the desc entries of a job, the next build rebuilds them: %s", fn);
+    return false;
+  }
+  for (int t = 0; t < job_blk.blockCount(); t++)
+  {
+    const DataBlock &type_blk = *job_blk.getBlock(t);
+    DataBlock *dest_type_blk = out_blk.addBlock(type_blk.getBlockName());
+    for (int p = 0; p < type_blk.blockCount(); p++)
+    {
+      const DataBlock &pkg_blk = *type_blk.getBlock(p);
+      DataBlock *dest_pkg_blk = dest_type_blk->addBlock(pkg_blk.getBlockName());
+      for (int a = 0; a < pkg_blk.blockCount(); a++)
+        dest_pkg_blk->addNewBlock(pkg_blk.getBlock(a));
+    }
+  }
+  return true;
+}
+
 static inline const char *read_str(const DataBlock *b, const char *target_str, const char *profile, const char *def)
 {
   if (!b)
@@ -633,6 +659,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
   String tmp_str;
   String grpvromfs_fname;
   String base_cache_fname, base_pack_fname;
+  String desc_fname;
   bool valid_base = false;
 
   simplify_fname(cache_base);
@@ -730,6 +757,9 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
               tex_checked_cnt += asset_list.size();
               tex_total += asset_list.size();
               tex_pack[i]->buildRes = 2;
+              // no job gets this pack, so leave the empty hand-over its job would leave for an up-to-date pack
+              dabuild_make_job_desc_fname(desc_fname, cache_base, jobMem->pid, false, i);
+              dabuild_hand_over_out_blk(out_blk, mgr, desc_fname);
               continue;
             }
 
@@ -1063,6 +1093,9 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
         }
         else
           upToDate = true;
+        dabuild_make_job_desc_fname(desc_fname, cache_base, jobMem->pid, false, i);
+        if (!merge_job_desc_entries(out_blk, desc_fname, log))
+          success = false;
       }
       else
       {
@@ -1088,6 +1121,8 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
           stat_tex_failed++;
           continue;
         }
+        if (jobMem && !upToDate && !valid_base) // a pack no job got: its textures were converted by jobs that dropped their entries
+          dabuild_make_tex_desc_entries(out_blk, mgr, asset_list, targetCode);
       }
 
       if (pkg_patch_build[pkid + 1] && valid_base)
@@ -1168,6 +1203,9 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
         }
         else
           upToDate = true;
+        dabuild_make_job_desc_fname(desc_fname, cache_base, jobMem->pid, true, i);
+        if (!merge_job_desc_entries(out_blk, desc_fname, log))
+          success = false;
       }
       else
       {
@@ -2283,6 +2321,34 @@ void dabuild_prepare_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBloc
       if (const char *fn = build_blk.getBlockByNameEx(mgr.getAssetTypeName(i))->getStr("descListOutPath", NULL))
         if (*fn)
           exporter->setBuildResultsBlk(dest.addBlock(mgr.getAssetTypeName(i)));
+}
+bool dabuild_hand_over_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const char *fname)
+{
+  DataBlock results;
+  for (int i = 0; i < mgr.getAssetTypesCount(); i++)
+    if (DataBlock *b = dest.getBlockByName(mgr.getAssetTypeName(i)); b && b->blockCount())
+    {
+      if (fname)
+        results.addNewBlock(b);
+      b->clearData();
+    }
+  if (!fname)
+    return true;
+  if (results.blockCount())
+    return dblk::save_to_binary_file(results, fname);
+  FullFileSaveCB cwr(fname);
+  return cwr.fileHandle && cwr.close();
+}
+void dabuild_make_tex_desc_entries(DataBlock &dest, DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, unsigned tc)
+{
+  if (IDagorAssetExporter *e = mgr.getAssetExporter(mgr.getTexAssetTypeId()))
+    if (dest.getBlockByName(mgr.getAssetTypeName(mgr.getTexAssetTypeId())))
+      for (DagorAsset *a : assets)
+        e->updateBuildResultsBlk(*a, tc);
+}
+void dabuild_make_job_desc_fname(String &fname, const char *cache_base, unsigned main_pid, bool grp, int pack_idx)
+{
+  fname.printf(0, "%sdesc~%u~%c%d.blk", cache_base, main_pid, grp ? 'r' : 't', pack_idx);
 }
 void dabuild_set_desc_base_md5(DataBlock &desc_blk, const char *base_desc_fname)
 {

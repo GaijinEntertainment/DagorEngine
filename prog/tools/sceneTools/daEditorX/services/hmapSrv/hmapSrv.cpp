@@ -18,7 +18,9 @@
 #include <oldEditor/de_util.h>
 
 #include <landMesh/lmeshRenderer.h>
+#include <render/noiseTex.h>
 #include <landMesh/lmeshWeightAtlas.h>
+#include <landMesh/landDetile.h>
 #include <landMesh/clipMap.h>
 #include <landMesh/lastClip.h>
 #include <heightmap/lodGrid.h>
@@ -1212,6 +1214,7 @@ public:
 
   void onLevelBlkLoaded(const DataBlock &level_blk) override
   {
+    land_detile::set_noise_size(land_detile::level_noise_size(level_blk));
     loadLandMicroDetails(*level_blk.getBlockByNameEx("micro_details"));
     grassBlk = *level_blk.getBlockByNameEx("randomGrass");
     paintDetailsTextureName = level_blk.getStr("global_paint_details_tex", "assets_color_global_tex_palette*");
@@ -1783,7 +1786,7 @@ public:
         *to = clamp<int>((get_ht(x, y) - hMin) * scale + 0.5f, 0, 65535);
 
     HeightmapHandler handler;
-    handler.initRaw(r16.data(), cellSize, w, h, hMin, hMax - hMin, -0.5 * cellSize * Point2(w, h));
+    handler.initRaw(r16.data(), cellSize, w, h, hMin, hMax - hMin, -0.5f * cellSize * Point2(w, h));
 
     hm2.hMin = hMin;
     hm2.hMax = hMax;
@@ -1961,7 +1964,7 @@ public:
         clippedVpos.y = min(max(clip->top(), clippedVpos.y), clip->bottom());
       }
       int lod = (length(clippedVpos - Point2::xz(vpos)) / hm2.rend.getDim()) * 0.5f;
-      lod += max(0.f, vpos.y) * 0.001;
+      lod += max(0.f, vpos.y) * 0.001f;
       lod = clamp(lod, 0, hm2.lodGrid.lodsCount - 1);
       float lodScale = (1 << lod);
       Point2 cellSize(hm2.sx * lodScale, hm2.sy * lodScale);
@@ -2142,7 +2145,7 @@ public:
         ShaderGlobal::set_float4(world_to_hmap_patches_tex_ofsVarId, ofs.x, ofs.y, 0, 0);
         alignedOrigin = point2(hmapPatchesData.curOrigin) * texelSize;
         ShaderGlobal::set_float4(world_to_hmap_patches_ofsVarId, 1.0f / fullDistance, 1.0f / fullDistance,
-          -alignedOrigin.x / fullDistance + 0.5, -alignedOrigin.y / fullDistance + 0.5);
+          -alignedOrigin.x / fullDistance + 0.5f, -alignedOrigin.y / fullDistance + 0.5f);
       }
     }
   };
@@ -2332,6 +2335,7 @@ public:
     if (!mat.get())
       return NULL;
     DAEDITOR3.setFatalHandler();
+    init_and_get_l8_64_noise(); // the de-tiled landclass LUT, held for the process lifetime (refcounted, never released here)
     LandMeshRenderer *r = p.createRenderer();
 
     DAEDITOR3.popFatalHandler();
@@ -2377,11 +2381,11 @@ public:
       clipmap->afterReset();
   }
 
-  void afterD3DResetLandMesh(LandMeshManager &p, LandMeshRenderer *r, bool full_reset) override
+  void afterD3DResetLandMesh(LandMeshManager &p, LandMeshRenderer *r, bool full_reset, IGenLoad *in_memory_dump) override
   {
     if (!full_reset)
       return;
-    p.afterDeviceReset(r, full_reset);
+    p.afterDeviceReset(r, full_reset, in_memory_dump);
     if (HeightmapHandler *h = p.getHmapHandler())
       h->fillHmapTextures();
   }
@@ -2422,7 +2426,7 @@ public:
     if (rebuilLastClip)
     {
       rebuilLastClip = false;
-      prepareFixedClip(&p, &r, lastClipTexSz);
+      prepareFixedClip(p, r, lastClipTexSz);
       setFixedClipToShader(&p);
     }
 
@@ -2531,32 +2535,54 @@ public:
     render_decals_to_clipmap(hmap, rendSrv, old_st_mask, new_st_mask);
   }
   DecalsCb getDecalsRenderCb() const override { return render_decals_cb; }
-  void prepareFixedClip(LandMeshManager *lmMgr, LandMeshRenderer *lmRend, int texture_size)
+
+  void prepareFixedClipCommon(LandMeshManager &lmMgr, LandMeshRenderer &lmRend, int texture_size,
+    const eastl::function<void(LandMeshData &)> &renderCb)
   {
     int64_t reft = ref_time_ticks();
 
-    closeFixedClip();
-    if (!lmMgr || !lmRend)
-      return;
-
     LandMeshData data;
-    data.lmeshMgr = lmMgr;
-    data.lmeshRenderer = lmRend;
+    data.lmeshMgr = &lmMgr;
+    data.lmeshRenderer = &lmRend;
     data.texture_size = texture_size;
     data.use_dxt = false; // true;
     data.decals_cb = render_decals_cb;
     data.global_frame_id = -1;
     data.flipCullStateId = flipCullStateId.get();
     data.land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
-    LMeshRenderingMode oldm = lmRend->getLMeshRenderingMode();
+    LMeshRenderingMode oldm = lmRend.getLMeshRenderingMode();
     ShaderGlobal::enableAutoBlockChange(false);
 
-    prepare_fixed_clip(last_clip, last_clip_sampler, data, false, ::grs_cur_view.pos);
-    lmRend->setLMeshRenderingMode(oldm);
+    renderCb(data);
+
+    lmRend.setLMeshRenderingMode(oldm);
     ShaderGlobal::enableAutoBlockChange(true);
 
     if (get_time_usec(reft) > 20000)
       debug("create last clip of size %dx%d in %dus", texture_size, texture_size, get_time_usec(reft));
+  }
+
+  void prepareFixedClip(LandMeshManager &lmMgr, LandMeshRenderer &lmRend, int texture_size)
+  {
+    closeFixedClip();
+
+    prepareFixedClipCommon(lmMgr, lmRend, texture_size,
+      [&](LandMeshData &data) { prepare_fixed_clip(last_clip, last_clip_sampler, data, false, ::grs_cur_view.pos); });
+  }
+
+  Texture *prepareFixedClipForExport(LandMeshRenderer &r, LandMeshManager &p, int texture_size) override
+  {
+    texture_size = min(texture_size, min(d3d::get_driver_desc().maxtexw, d3d::get_driver_desc().maxtexh));
+
+    // A8R8G8B8 and the sRGB flags are what the bake renders into and what the DDS conversion reads back
+    Texture *out_tex = d3d::create_tex(NULL, texture_size, texture_size,
+      TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_SRGBWRITE | TEXCF_SRGBREAD, 1, "last_clip_export", RESTAG_LAND);
+    if (!out_tex)
+      return NULL;
+
+    prepareFixedClipCommon(p, r, texture_size,
+      [&](LandMeshData &data) { render_last_clip_to_tex(out_tex, data, Point3{0.f, 0.f, 0.f}); });
+    return out_tex;
   }
 
   void setFixedClipToShader(const LandMeshManager *lmMgr) { last_clip.setVar(); }
@@ -2581,7 +2607,11 @@ public:
 
   void renderLandMeshClipmap(LandMeshRenderer &r, LandMeshManager &p) const override
   {
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+    const bool dngRenderer = DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
+
+    if (!dngRenderer)
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+
     DagorCurView savedView = ::grs_cur_view;
     d3d::settm(TM_WORLD, TMatrix::IDENT);
     LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
@@ -2597,7 +2627,9 @@ public:
     // restore the ambient mode shadervar for tool passes that still rely on inheriting it
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
-    ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
+
+    if (!dngRenderer)
+      ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
   void renderLandMeshVSM(LandMeshRenderer &r, LandMeshManager &p) const override
@@ -2645,7 +2677,7 @@ public:
     LandMeshRenderDesc desc;
     desc.mode = LMeshRenderingMode::RENDERING_HEIGHTMAP;
     desc.renderInBBox = landBox;
-    desc.invGeomLodDist = 0.5 / landBox.width().length();
+    desc.invGeomLodDist = 0.5f / landBox.width().length();
     shaders::overrides::set(blendOpMaxStateId.get());
     r.render(p, r.RENDER_ONE_SHADER, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
     r.setLMeshRenderingMode(oldMode);
@@ -2687,7 +2719,11 @@ public:
 
   void renderLandMeshGrassMask(LandMeshRenderer &r, LandMeshManager &p) const override
   {
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+    const bool dngRenderer = DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
+
+    if (!dngRenderer)
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+
     DagorCurView savedView = ::grs_cur_view;
     LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
     LandMeshRenderDesc desc;
@@ -2698,7 +2734,9 @@ public:
     r.render(p, r.RENDER_GRASS_MASK, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos), LandMeshRenderer::RENDER_FOR_GRASS);
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
-    ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
+
+    if (!dngRenderer)
+      ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
   void updateGrassTranslucency(LandMeshRenderer &r, LandMeshManager &p) const override
@@ -2984,8 +3022,12 @@ public:
     }
     {
       bool oldAllowBaseVertex = eastl::exchange(GlobalVertexDataConnector::allowBaseVertex, true);
+      bool oldDisableBaseVertexSizeLimits = eastl::exchange(GlobalVertexDataConnector::disableBaseVertexSizeLimits, true);
+
       decal_gvd.connectData(false, NULL);
+
       GlobalVertexDataConnector::allowBaseVertex = oldAllowBaseVertex;
+      GlobalVertexDataConnector::disableBaseVertexSizeLimits = oldDisableBaseVertexSizeLimits;
     }
 
     for (int i = 0; i < combined_objects.size(); ++i)

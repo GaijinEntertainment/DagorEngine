@@ -45,6 +45,8 @@ bool HumanPhys::isAiming() const { G_ASSERT_RETURN(false, false); }
 void HumanPhys::setWeaponLen(float, int) { G_ASSERT(0); }
 void HumanPhys::tryClimbing(bool, bool, const Point3 &, float) { G_ASSERT(0); }
 void HumanPhys::resetClimbing() { G_ASSERT(0); }
+ClimbQueryResults HumanPhys::climbQueryAlong(const Point3 &, float, float) const { G_ASSERT_RETURN(false, ClimbQueryResults()); }
+bool HumanPhys::startClimb(const ClimbQueryResults &, int, bool) { G_ASSERT_RETURN(false, false); }
 Point3 HumanPhys::calcCollCenter() const { G_ASSERT_RETURN(false, ZERO<Point3>()); }
 
 #include <gamePhys/phys/walker/humanAnimState.h>

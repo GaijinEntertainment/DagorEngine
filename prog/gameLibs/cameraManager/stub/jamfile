@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/cameraManager/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/cameraManagerStub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+;
+
+Sources =
+  cameraManagerStub.cpp
+;
+include $(Root)/prog/_jBuild/build.jam ;

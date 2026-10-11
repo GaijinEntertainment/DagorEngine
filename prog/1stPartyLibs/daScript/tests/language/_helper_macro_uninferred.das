@@ -11,13 +11,13 @@ require daslib/ast
 require daslib/ast_boost
 require daslib/templates_boost
 
-def some_callee(x : int) : void {
+def some_callee(_x : int) : void {
 }
 
 [structure_macro(name = "bad_emitter")]
 class BadEmitterMacro : AstStructureAnnotation {
     def override patch(var st : StructurePtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         let badname = "id|{st.name}"
         var regblk <- setup_call_list("emitted_calls|{st.name}", st.at, true, true)

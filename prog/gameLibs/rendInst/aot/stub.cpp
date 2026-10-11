@@ -87,12 +87,9 @@ const char *getRIGenDestrName(const RendInstDesc &) { G_ASSERT_RETURN(false, nul
 Point4 getRIGenBSphere(const RendInstDesc &) { G_ASSERT_RETURN(false, {}); }
 BBox3 getRIGenBBox(const RendInstDesc &) { G_ASSERT_RETURN(false, {}); }
 BBox3 getRIGenFullBBox(const RendInstDesc &) { G_ASSERT_RETURN(false, {}); }
-bool moveRIGenExtra43(riex_handle_t, mat43f_cref, bool, bool) { G_ASSERT_RETURN(false, false); }
+bool moveRIGenExtra43(riex_handle_t, mat43f_cref, bool, bool, bool, bool) { G_ASSERT_RETURN(false, false); }
 void applyTiledScenesUpdateForRIGenExtra(int, int) { G_ASSERT(0); }
-void get_ri_color_infos(eastl::fixed_function<sizeof(void *) * 4, void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name)>)
-{
-  G_ASSERT(0);
-}
+void get_ri_color_infos(dag::FunctionRef<void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name) const>) { G_ASSERT(0); }
 
 
 int getRIGenExtraPoolsCount() { G_ASSERT_RETURN(false, 0); }
@@ -115,7 +112,7 @@ float getInitialHP(riex_handle_t) { G_ASSERT_RETURN(false, 0.f); }
 bool isInvincible(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 bool isRiGenExtraValid(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 const char *getRIGenExtraName(uint32_t) { G_ASSERT_RETURN(false, nullptr); }
-void iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &) { G_ASSERT(0); }
+void iterateRIExtraMap(dag::FunctionRef<void(int, const char *) const>) { G_ASSERT(0); }
 void setRIGenExtraImmortal(uint32_t, bool) { G_ASSERT(0); }
 bool isRIGenExtraImmortal(uint32_t) { G_ASSERT_RETURN(false, false); }
 bool isRIGenExtraWalls(uint32_t) { G_ASSERT_RETURN(false, false); }

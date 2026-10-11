@@ -164,6 +164,7 @@ protected:
 
   void close();
   bool loadMeshData(IGenLoad &loadCb);
+  void afterDeviceResetInternal(LandMeshRenderer *lrend, IGenLoad *dump);
 
   void loadDetailData(IGenLoad &loadCb);
   void loadRaytracerData(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator = midmem);
@@ -192,7 +193,11 @@ public:
     if (holesMgr)
       holesMgr->clearHoles();
   }
-  void afterDeviceReset(LandMeshRenderer *lrend, bool full_reset);
+
+  //! full_reset: reload the mesh data. If false, in_memory_dump is not used.
+  //! in_memory_dump: the dump that this manager was loaded from, or null to reload from srcFileName when that file exists.
+  void afterDeviceReset(LandMeshRenderer *lrend, bool full_reset, IGenLoad *in_memory_dump = nullptr);
+
   void updateOverrideSamplers();
   bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data, float water_level = -1000000, float shore_error_meters = 2.0f,
     int metrics_min_calc_level = -1, int metrics_max_calc_level = -1);

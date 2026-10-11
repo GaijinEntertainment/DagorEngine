@@ -1,7 +1,7 @@
 buffer nuke_atmospheric_light_effects;
 int nuke_atmospheric_light_effects_count = 0;
 
-float nuke_scattering_light_mul = 0.00005;
+float nuke_scattering_light_mul = 0.01;
 float nuke_scattering_dist_mul = 0.4;
 
 int nuke_in_atmosphere = 0;
@@ -36,13 +36,12 @@ macro USE_NUKE_FOG_LIGHT(code)
         float glowScale = f16tof32(nukeLightPosGlowScale.w);
         if (nukeLightColor.w > 0)
         {
-
           nukeLightColor.w *= nuke_scattering_dist_mul;
 
           float lightDist = length(cur_world_pos - nukeLightPos.xyz);
           float radFade = pow2(saturate((nukeLightColor.w-lightDist)/max(nukeLightColor.w, 0.0000001)));
 
-          sample_transmittance *= exp(-dl * glowScale * pow2(radFade)); // not physical at all, but adds more dramatic lighting from mushroom cloud
+          float nuke_density = dl * glowScale * pow2(radFade); // not physical at all, but adds more dramatic lighting from mushroom cloud
 
           // Attempt to add variance to nuke lighting, looks good
           float3 angs = (normalize(nukeLightPos.xyz - cur_world_pos) + timePhase) * 2.0f * 3.1415926f;
@@ -52,7 +51,7 @@ macro USE_NUKE_FOG_LIGHT(code)
           // from current density of fog and distance  (it's not not physical, but very simple)
           float3 transmitFade = exp(- extinction * lightDist *0.001);
           transmitFade *= 0.6f + 0.4f*dot(view, normalize(nukeLightPos.xyz - cur_world_pos));
-          result += (1 - sample_transmittance)*nukeLightColor.rgb * nuke_scattering_light_mul * radFade * transmitFade * throughput / extinction;
+          result += nuke_density * nukeLightColor.rgb * nuke_scattering_light_mul * radFade * transmitFade * throughput;
         }
       }
       return result;

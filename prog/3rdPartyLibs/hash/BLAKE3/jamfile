@@ -16,7 +16,7 @@ Sources =
   blake3_portable.c
 ;
 
-if $(PlatformArch) in x86 e2k || ($(MAbi) && $(MAbi) != 64) {
+if $(PlatformArch) in x86 e2k || ( $(MAbi) && $(MAbi) != 64 ) {
   Copt = -DBLAKE3_NO_SSE2 -DBLAKE3_NO_SSE41 -DBLAKE3_NO_AVX2 -DBLAKE3_NO_AVX512 ;
 } else if $(PlatformArch) in x86_64 && $(Platform) in windows xboxOne scarlett {
   Sources +=
@@ -33,7 +33,7 @@ if $(PlatformArch) in x86 e2k || ($(MAbi) && $(MAbi) != 64) {
     blake3_sse41_x86-64_unix.S
   ;
   if $(Platform) = macOS { ASMopt += -mmacosx-version-min=$(MacOSXMinVer) ; }
-} else if $(PlatformArch) in arm64 arm64e arm64-v8a armv7 armv7s armeabi-v7a {
+} else if $(PlatformArch) in arm64 arm64ec arm64e arm64-v8a armv7 armv7s armeabi-v7a {
   Sources += blake3_neon.c ;
   Copt = -DBLAKE3_USE_NEON ;
 }

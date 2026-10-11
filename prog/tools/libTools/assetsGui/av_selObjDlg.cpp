@@ -55,7 +55,7 @@ private:
   void customControlUpdate(int id) override
   {
     G_ASSERT(id == CustomControlHolderId);
-    assetBrowser.updateImgui();
+    assetBrowser.updateImgui(true);
   }
 
   static constexpr int CustomControlHolderId = 1;

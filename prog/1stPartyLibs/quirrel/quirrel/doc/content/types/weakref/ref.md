@@ -15,6 +15,10 @@ reference to it. Once the last strong reference is dropped, `ref()` returns
 
 Takes no arguments; `wr.ref(1)` throws a wrong-number-of-parameters error.
 
+The returned reference has the frozen state of the reference that made the
+`weakref`: `freeze(t).weakref().ref()` is frozen and `t.weakref().ref()` is
+not. Thus these two `weakref` values are different, and not `==`.
+
 Dropping a variable's value does not always show up immediately: leaving a
 `{ }` block does not, by itself, release a local's reference the moment
 control leaves the block - the value's slot on the VM stack keeps holding it

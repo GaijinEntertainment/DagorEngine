@@ -6,19 +6,12 @@ from "%darg/laconic.nut" import *
 from "types" import Table, Array, String
 
 let entity_editor = require_optional("entity_editor")
-let { isCompReadOnly, valueAtPath, writeComponent } = require("components/attrUtil.nut")
-let { filterString, propPanelVisible, propPanelClosed, selectedCompName, extraPropPanelCtors, selectedEntity,
-  selectedEntities, focusEntity, de4workMode, wantOpenRISelect, edObjectFlagsUpdateTrigger } = require("state.nut")
+let { isCompReadOnly, mkCompPathKey, valueAtPath, writeComponent } = require("components/attrUtil.nut")
+let { filterString, propPanelVisible, propPanelClosed, selectedComp, selectedCompKey, deselectComp,
+  extraPropPanelCtors, selectedEntity, selectedEntities, focusEntity, de4workMode, wantOpenRISelect,
+  edObjectFlagsUpdateTrigger } = require("state.nut")
 let { sceneIdMap, allModifiableScenes, sceneToComboboxEntry, canSceneBeModified } = require("sceneModel.nut")
 let { colors, gridHeight } = require("components/style.nut")
-
-let selectedCompComp = Watched(null)
-let selectedCompPath = Watched(null)
-function deselectComp() {
-  selectedCompName.set("")
-  selectedCompComp.set(null)
-  selectedCompPath.set(null)
-}
 
 let textButton = require("components/textButton.nut")
 let closeButton = require("components/closeButton.nut")
@@ -35,7 +28,7 @@ let { getCompSqTypePropEdit, getCompNamePropEdit } = require("propPanelControls.
 let { makeVertScroll } = require("%daeditor/components/scrollbar.nut")
 
 let fieldReadOnly = require("components/apFieldReadOnly.nut")
-let compNameFilter = require("components/apNameFilter.nut")(filterString, selectedCompName)
+let compNameFilter = require("components/apNameFilter.nut")(filterString, selectedCompKey, deselectComp)
 
 let { riSelectShown, riSelectWindow, openRISelectForEntity } = require("riSelect.nut")
 
@@ -147,9 +140,7 @@ function isModifiedComponent(cname, cpath): bool {
 
 function doResetComponent(eid, comp_name) {
   entity_editor?.reset_component(eid, comp_name)
-  selectedCompName.set(null)
-  selectedCompComp.set(null)
-  selectedCompPath.set(null)
+  deselectComp()
   setCurComps()
 }
 
@@ -157,9 +148,10 @@ function doResetSelectedComponent() {
   let eid = selectedEntity.get() ?? ecs.INVALID_ENTITY_ID
   if (eid == ecs.INVALID_ENTITY_ID)
     return
-  if (selectedCompComp.get() == null)
+  let cname = selectedComp.get()?.cname
+  if (cname == null)
     return
-  doResetComponent(eid, selectedCompComp.get())
+  doResetComponent(eid, cname)
 }
 
 function panelRowColor(stateFlags: int, isOdd) {
@@ -239,15 +231,6 @@ function mkCompTooltip(metaInfo) {
   }
 }
 
-// Identifies a component, or one value inside it, in a single string. Used as
-// the selection identity, the open-state cache key and the row key.
-function mkCompPathKey(cname, cpath) {
-  local key = cname
-  foreach (k in (cpath ?? []))
-    key = $"{key}.{k}"
-  return key
-}
-
 // A leaf row. The instance lives while the row is in the window, across every
 // flatten, so its state and its field editor are built once here. The editor
 // type is decided at mount from the sq type and the lock state, so the key
@@ -263,7 +246,7 @@ let CompRow = StatefulComp(function(scope, mountParams, isOdd) {
   let indent = p?.indent ?? 0
 
   let stateFlags = scope.Watched(0)
-  let isSelected = scope.Computed(@() selectedCompName.get() == pathKey)
+  let isSelected = scope.Computed(@() selectedCompKey.get() == pathKey)
   let group = ElemGroup()
   let rowSize = [flex(), gridHeight]
 
@@ -326,12 +309,7 @@ let CompRow = StatefulComp(function(scope, mountParams, isOdd) {
     behavior = Behaviors.Button
     margin = [0, 0, 0, indent]
 
-    onClick = function() {
-      let deselect = selectedCompName.get() == pathKey
-      selectedCompName.set(deselect ? null : pathKey)
-      selectedCompComp.set(deselect ? null : rawComponentName)
-      selectedCompPath.set(deselect ? null : path)
-    }
+    onClick = @() selectedComp.set(selectedCompKey.get() == pathKey ? null : { cname = rawComponentName, path })
     onHover = @(on) cursors.setTooltip(on ? mkCompTooltip(metaInfo) : null)
     eventPassThrough = true
     onElemState = @(sf) stateFlags.set(sf & S_TOP_HOVER)
@@ -370,7 +348,7 @@ function doAddTemplate(templateName) {
     infoBox("Entity not selected")
   }
   removeModalWindow(attrPanelAddEntityTemplateUID)
-  selectedCompName.set(null)
+  deselectComp()
 }
 
 function openAddTemplateDialog() {
@@ -421,7 +399,7 @@ function doDelTemplate(templateName) {
     infoBox("Entity not selected")
   }
   removeModalWindow(attrPanelDelEntityTemplateUID)
-  selectedCompName.set(null)
+  deselectComp()
 }
 
 function openDelTemplateDialog() {
@@ -515,13 +493,13 @@ function panelButtons(eid) {
     borderWidth = hdpx(1)
     padding = const [0,hdpx(5)]
     eventPassThrough = true
-    watch = [selectedCompComp, selectedCompPath]
+    watch = selectedComp
     children = {
       flow = FLOW_HORIZONTAL
       hplace = ALIGN_RIGHT
       vplace = ALIGN_CENTER
       children = [
-        isModifiedComponent(selectedCompComp.get(), selectedCompPath.get()) ? textButton("R", doResetSelectedComponent) : null
+        isModifiedComponent(selectedComp.get()?.cname, selectedComp.get()?.path) ? textButton("R", doResetSelectedComponent) : null
         !isLocked ? textButton("-", openDelTemplateDialog) : null
         !isLocked ? textButton("+", openAddTemplateDialog) : null
         textButton("Close", closePropPanel)
@@ -772,21 +750,23 @@ function openAddArrayValueDialog(eid, cname, cpath, ckey) {
   })
 }
 
-function doContainerOp(eid, comp_name, cont_path, op) {
-  local cname = comp_name
-  local cpath = cont_path
-  local ckey  = null
-  let spath = selectedCompPath.get()
-  let len1 = (spath?.len()??0)
-  let len2 = (cpath?.len()??0)
-  if (selectedCompComp.get() == comp_name && len1 == len2 + 1) {
-    local same = true
-    foreach(idx, key in (cpath ?? []))
-      if (spath[idx] != key)
-        same = false
-    if (same)
-      ckey = spath[spath.len()-1]
-  }
+// The key of the picked row when it is a direct child of this container, else null
+function pickedChildKey(sel, comp_name, cpath) {
+  if (sel == null || sel.cname != comp_name)
+    return null
+  let spath = sel.path ?? []
+  cpath = cpath ?? []
+  if (spath.len() != cpath.len() + 1)
+    return null
+  foreach (idx, key in cpath)
+    if (spath[idx] != key)
+      return null
+  return spath.top()
+}
+
+// child_key: the child to act on; the picked row by default
+function doContainerOp(eid, cname, cpath, op, child_key = null) {
+  let ckey = child_key ?? pickedChildKey(selectedComp.get(), cname, cpath)
 
   local object = ecs._dbg_get_comp_val_inspect(eid, cname)
   local ccobj = object
@@ -798,11 +778,9 @@ function doContainerOp(eid, comp_name, cont_path, op) {
   if (op=="delself") {
     if (cpath==null)
       return
-    local dpath = clone cpath
-    dpath.pop()
-    selectedCompComp.set(comp_name)
-    selectedCompPath.set(cpath)
-    doContainerOp(eid, comp_name, dpath, "delete")
+    let dpath = clone cpath
+    let selfKey = dpath.pop()
+    doContainerOp(eid, cname, dpath, "delete", selfKey)
     return
   }
 

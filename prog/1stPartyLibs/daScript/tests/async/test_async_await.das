@@ -128,7 +128,7 @@ def test_void_await(t : T?) {
     t |> run("await void async") @(t : T?) {
         var it <- test_void_await_impl()
         var frames = 0
-        for (v in it) {
+        for (_v in it) {
             frames ++
         }
         // void_delay(3) takes 3 frames, so parent should take >= 3

@@ -15,7 +15,7 @@ require dastest/testing_boost public
 [export, marker(no_coverage)]
 def fold_dead_code(a : int) : int {
     return a + 1
-    return a + 2
+    return a + 2 // nolint:LINT001 the dead return is the fixture BlockFolding must remove
 }
 
 // CondFolding: if/else return → ternary
@@ -54,7 +54,7 @@ def fold_void_trailing_return() : void {
 [export, marker(no_coverage)]
 def fold_nested_block(a : int) : int {
     {
-        var x = a + 1
+        let x = a + 1
         return x
     }
 }
@@ -193,14 +193,14 @@ def test_void_trailing_return(t : T?) {
     }
 }
 
-// Nested block flattened: body is `var x = a+1; return x` (not wrapped in block)
+// Nested block flattened: body is `let x = a+1; return x` (not wrapped in block)
 [test]
 def test_nested_block_flattened(t : T?) {
     ast_gc_guard() {
         var func = find_module_function_via_rtti(compiling_module(), @@fold_nested_block)
         if (func == null) { t |> success(false, "function not found"); return ; }
         let r = qmatch_function(func) $(a : int) : int {
-            var x = a + 1
+            let x = a + 1
             return x
         }
         t |> match_report(r, "nested block should be flattened")

@@ -55,7 +55,7 @@ public:
   const eastl::string &name() const { return libName; }
   eastl::wstring_view nameOf(uint32_t index) const;
 
-  static ShaderLibrary *build(ID3D12Device5 *device, const ::ShaderLibraryCreateInfo &ci, bool embeddable = false);
+  static ShaderLibrary *build(D3DDevice *device, const ::ShaderLibraryCreateInfo &ci, bool embeddable = false);
 };
 } // namespace drv3d_dx12
 #endif

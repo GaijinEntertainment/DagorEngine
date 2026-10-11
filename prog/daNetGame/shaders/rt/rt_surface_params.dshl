@@ -1,0 +1,597 @@
+include "rt_landclass_inc.dshl"
+include "land_block_inc.dshl"
+include "clipmap.dshl"
+include "shader_global.dshl"
+include "layered_inc.dshl"
+include "perlin_layered_inc.dshl"
+include "bvh_common_includes.dshl"
+include "grass_generate_inc.dshl"
+include "underwater_fog.dshl"
+include "envi_cover_inc.dshl"
+include "skinning_inc2.dshl"
+include "rt_bvh_decals.dshl"
+
+int bvh_paint_details_tex_slot;
+
+int envi_cover_rt = 0;
+interval envi_cover_rt: off < 1, on;
+
+float4 bvh_eye_sclera_color = (0.651, 0.565, 0.565, 0);
+float4 bvh_eye_iris_color = (0.075, 0.094, 0.09, 0);
+
+float4 texcoord_scale_offset = (1.0, 1.0, 0.0, 0.0);
+
+texture perlin_noise3d;
+texture noise_128_tex_hash;
+
+macro INIT_RT_SURFACE_PARAMS(stage)
+  INIT_CLIPMAP_NORMAL_BASE(stage, true)
+  INIT_WORLD_HEIGHTMAP_BASE(stage)
+  RANDOM_UV_OFFSET(stage)
+  INIT_GRASS_COLORS_CBUF(stage)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
+  (stage)
+  {
+    paint_details_tex_slot@i1 = bvh_paint_details_tex_slot;
+    perlin_noise3d@tex3d = perlin_noise3d;
+    bvh_eye_sclera_color@f3 = (pow(bvh_eye_sclera_color.x, 2.2), pow(bvh_eye_sclera_color.y, 2.2), pow(bvh_eye_sclera_color.z, 2.2), 0);
+    bvh_eye_iris_color@f3 = (pow(bvh_eye_iris_color.x, 2.2), pow(bvh_eye_iris_color.y, 2.2), pow(bvh_eye_iris_color.z, 2.2), 0);
+    bvh_water_color@f3 = (sRGBRead(ocean0)); // Probably good enough
+  }
+  if (bvh_decals == yes)
+  {
+    INIT_BVH_DECALS(stage)
+  }
+endmacro
+
+macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
+  if (bvh_decals == yes && !fast_mode)
+  {
+    USE_BVH_DECALS(stage)
+  }
+  hlsl(stage)
+  {
+    #define NO_GRADIENTS_IN_SHADER 1
+    #include <psh_tangent.hlsl>
+    #include <normaldetail.hlsl>
+
+    #define paint_details_tex uniformBindlessTex2D(bvh_textures, paint_details_tex_slot)
+    #define paint_details_tex_samplerstate bvh_clamp_sampler
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
+  }
+  (stage)
+  {
+    texcoord_scale_offset@f4 = texcoord_scale_offset;
+  }
+  USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(stage)
+  USE_CLIPMAP_NORMAL_BASE(stage, true, false)
+  INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, true)
+  USE_HEIGHTMAP_COMMON_BASE(stage)
+  USE_ROUGH_TO_MIP()
+  USE_PERLIN_LAYERED(stage)
+  DETAIL_WEIGHTS_BLENDING(stage)
+  WETNESS_FOR_SPEC_BRDF(stage)
+  if (!fast_mode && envi_cover_rt == on)
+  {
+    INIT_ENVI_COVER_RT(stage)
+    USE_ENVI_COVER_RT(stage)
+  }
+  USE_LANDSCAPE_TC_TO_WORLD(stage)
+  DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(stage)
+  hlsl(stage)
+  {
+    half get_specular_intensity_from_color(half3 color)
+    {
+      return pow4(color.r);
+    }
+
+    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip, inout DetailDesc micro_detail, int inderection_offset)
+    {
+      Vtex vtex = (Vtex)0;
+      half2 normalXY;
+      sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
+        vtex.diffuse, normalXY, vtex.smoothness, vtex.ao,
+        vtex.reflectance, vtex.emission, micro_detail, smooth_mip, inderection_offset);
+      vtex.normal = restore_normal(normalXY);
+      return vtex;
+    }
+
+    // from paint_details_inc.dshl
+    half3 getColorMul(uint paint_palette_row, uint palette_index, uint paint_palette_col)
+    {
+      half correction = COLOR_CORRECTION_MULTIPLIER;
+      uint2 dim;
+      paint_details_tex.GetDimensions(dim.x, dim.y);
+      dim.x >>= 1;
+      half3 colorMul = paint_details_tex[uint2(paint_palette_col%dim.x + dim.x * palette_index, paint_palette_row % dim.y)].rgb;
+      colorMul *= correction;
+      return colorMul;
+    }
+
+    float4 modulate2x(float4 input_color)
+    {
+      return float4(input_color.xyz * 2.0, input_color.w);
+    }
+
+    half4 unpack_srgb_e3dcolor(uint packed_color)
+    {
+      half4 color = half4((packed_color >> uint4(16, 8, 0, 24)) & 255) / 255.0h;
+      return half4(pow((color.rgb + 0.055) / 1.055, 2.4), color.a);
+    }
+
+    // from const_color_inc.dshl
+    half3 get_color_mul(half3 colorMul, half4 const_color)
+    {
+      const_color.xyz *= 2;
+      return lerp(colorMul * const_color.rgb, const_color.rgb, const_color.w);
+    }
+
+    void apply_painting(HitInfo hitInfo, half paint_weight, inout half3 albedo)
+    {
+      ##if paint_details_tex != NULL
+      if (!has_material_painted(hitInfo.material))
+        return;
+
+      uint paint_palette_row = hitInfo.materialData1.x;
+      uint palette_index = hitInfo.materialData1.y;
+      uint paint_palette_col = hitInfo.perInstanceDataCompressed.x;
+      half4 colorOverride = half4(modulate2x(hitInfo.materialData2));
+      uint packedDetailsData = asuint(hitInfo.materialData1.z);
+      half paint_details_strength = half(hitInfo.materialData1.w);
+
+      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
+      paintColor = get_color_mul(paintColor, colorOverride);
+      half mask = luminance(albedo.rgb);
+      uint3 vectorizedDetailsData = uint3(packedDetailsData, packedDetailsData >> 10, packedDetailsData >> 20);
+      float3 detailsData = ((vectorizedDetailsData & 0x3FF) / 1023.0);
+      float3 calculatedDetails = float3(1 / (detailsData.x - detailsData.y), -detailsData.y / (detailsData.x - detailsData.y), detailsData.z);
+      int use_alpha_as_mask = packedDetailsData >> 30;
+      if (use_alpha_as_mask > 0)
+      {
+        mask = paint_weight;
+      }
+
+      half detailsWeight = paint_details_strength * saturate(mask * calculatedDetails.x + calculatedDetails.y);
+      albedo.rgb = lerp(albedo.rgb, albedo.rgb * paintColor  * calculatedDetails.z, saturate(detailsWeight));
+      ##endif
+    }
+
+##if !fast_mode
+    void apply_paint_by_mask(HitInfo hitInfo, float mip_level, inout half3 albedo)
+    {
+      half primaryMask = 0;
+      if (hitInfo.extraTextureIndex != 0xFFFFU)
+        primaryMask = (half)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level).x;
+
+      half secondaryMask = 0;
+      if (hitInfo.secondaryMaskTextureIndex != 0xFFFFU)
+        secondaryMask = (half)nonUniformBindlessTex2D(bvh_textures, hitInfo.secondaryMaskTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level).x;
+
+      half3 primaryColor = unpack_srgb_e3dcolor(hitInfo.perInstanceDataCompressed.z).rgb;
+      half3 secondaryColor = unpack_srgb_e3dcolor(hitInfo.perInstanceDataCompressed.w).rgb;
+
+      albedo *= (1 - max(primaryMask, secondaryMask))
+              + saturate(primaryMask - secondaryMask) * primaryColor
+              + secondaryMask * secondaryColor;
+    }
+##endif
+
+    half3 calc_perling_layers(HitInfo hitInfo, float mip_level)
+    {
+      if (hitInfo.albedoTextureIndex == 0xFFFFU)
+        return 0;
+
+      float4 invertHeights = float4(f16tof32(asuint(hitInfo.rawLayerData.z)), f16tof32(asuint(hitInfo.rawLayerData.z >> 16)), f16tof32(asuint(hitInfo.rawLayerData.w)), f16tof32(asuint(hitInfo.rawLayerData.w >> 16)));
+      float4 mask_gamma = float4(f16tof32(asuint(hitInfo.rawLayerData.x)), f16tof32(asuint(hitInfo.rawLayerData.x >> 16)), f16tof32(asuint(hitInfo.rawLayerData.y)), f16tof32(asuint(hitInfo.rawLayerData.y >> 16)));
+
+      half4 diffuseColor0 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 diffuseColor1 = 0;
+      if (hitInfo.alphaTextureIndex != 0xFFFFU)
+        diffuseColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      else
+        invertHeights.y = 0;
+      half4 diffuseColor2 = 0;
+      if (hitInfo.extraTextureIndex != 0xFFFFU)
+        diffuseColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      else
+        invertHeights.z = 0;
+
+      uint paint_palette_col = hitInfo.perInstanceDataCompressed.x;
+      uint paint_palette_row = hitInfo.rawAtlasTileSize;
+      uint palette_index = hitInfo.rawAtlasFirstLastTile;
+
+      uint packedColorData1 = asuint(hitInfo.materialData1.z);
+      uint packedColorData2 = asuint(hitInfo.materialData1.w);
+      uint packedColorData3 = asuint(hitInfo.materialData2.z);
+
+      uint4 vectorizedPackedColorData1 = uint4(packedColorData1, packedColorData1 >> 8, packedColorData1 >> 16, packedColorData1 >> 24);
+      uint4 vectorizedPackedColorData2 = uint4(packedColorData2, packedColorData2 >> 8, packedColorData2 >> 16, packedColorData2 >> 24);
+      uint4 vectorizedPackedColorData3 = uint4(packedColorData3, packedColorData3 >> 8, packedColorData3 >> 16, packedColorData3 >> 24);
+
+      float4 unpackedColorInput1 = ((vectorizedPackedColorData1 & 0xFF) / 255.0);
+      float4 unpackedColorInput2 = ((vectorizedPackedColorData2 & 0xFF) / 255.0);
+      float4 unpackedColorInput3 = ((vectorizedPackedColorData3 & 0xFF) / 255.0);
+
+      unpackedColorInput1 = modulate2x(unpackedColorInput1);
+      unpackedColorInput2 = modulate2x(unpackedColorInput2);
+      unpackedColorInput3 = modulate2x(unpackedColorInput3);
+
+      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
+      half3 paint_details_col = get_color_mul(paintColor.xyz, unpackedColorInput1);
+      half3 paint_details_col1 = get_color_mul(paintColor.xyz, unpackedColorInput2);
+      half3 paint_details_col2 = get_color_mul(paintColor.xyz, unpackedColorInput3);
+
+      float4 mask_by_normal = float4(f16tof32(asuint(hitInfo.materialData1.x)), f16tof32(asuint(hitInfo.materialData1.x) >> 16), f16tof32(asuint(hitInfo.materialData1.y)), f16tof32(asuint(hitInfo.materialData1.y) >> 16));
+      float moss = hitInfo.position.y + bvh_origin.y - hitInfo.centerWorldPos.y; // use_local_transform_for_details = 0
+      half3 weights = init_blend_weights(hitInfo.position + bvh_origin, mask_gamma, invertHeights, moss, float2(max(dot(mask_by_normal.xyz, hitInfo.normal), 0), mask_by_normal.w));
+      weights = select(isfinite(weights), weights, 0.0); // workaround for pow(0,0) case in init_blend_weights
+      half3 initialHeight = half3(diffuseColor0.a, diffuseColor1.a, diffuseColor2.a);
+
+      weights = get_blending_weights(weights, lerp(initialHeight, 1 - initialHeight, invertHeights.xyz));
+      float4 paintColorDetails = float4(f16tof32(asuint(hitInfo.materialData2.x)), f16tof32(asuint(hitInfo.materialData2.x) >> 16), f16tof32(asuint(hitInfo.materialData2.y)), 0.0);
+
+      half3 details = saturate(paintColorDetails.xyz); // saturate it because,  in some resource details could be negative, which cause glowing.
+
+      diffuseColor0.rgb = lerp(diffuseColor0.rgb, diffuseColor0.rgb * paint_details_col, details.x);
+      diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
+      diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
+
+      half4 resultColor = diffuseColor0*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
+      return saturate(resultColor.rgb);
+    }
+
+    void calculate_detail_mask_texcoords(LayerData layer_data, float2 rndUV, float4 uv12, inout float2 mask_tc, inout float4 uv_detail, inout float mask_gamma)
+    {
+      mask_tc = uv12.xy * layer_data.maskTile.xy;
+      uv_detail = uv12.zwzw * layer_data.detailTile * layer_data.objectScale;
+
+      mask_tc += layer_data.maskTile.z > 0 ? rndUV : 0;
+      uv_detail.zw += rndUV.xy;
+
+      mask_gamma = frac(rndUV.x * 11.1 + rndUV.y * 13.39) * layer_data.maskGamma.x + layer_data.maskGamma.y;
+    }
+
+    half3 calc_layers(HitInfo hitInfo, float mip_level)
+    {
+      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU || hitInfo.normalTextureIndex == 0xFFFFU)
+        return 0;
+
+      float4 uvDetail;
+      float2 maskTc;
+      float maskgamma;
+
+      float2 randomUVOffset = get_random_uv_offset(hitInfo.centerWorldPos);
+
+      calculate_detail_mask_texcoords(hitInfo.layerData, randomUVOffset, float4(hitInfo.texcoord, hitInfo.secTexcoord), maskTc, uvDetail, maskgamma);
+
+      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 mask = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, maskTc, mip_level);
+      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, uvDetail.xy, mip_level);
+      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, uvDetail.zw, mip_level);
+
+      half weight = pow(mask.g, maskgamma) * baseColor.a;
+      half weight2 = get_mix_weight(detailColor1.a, detailColor2.a, weight);
+
+      half4 detailColor = lerp(detailColor1, detailColor2, weight2);
+      half4 result = baseColor * detailColor;
+      result.rgb *= half(COLOR_CORRECTION_MULTIPLIER);
+      apply_painting(hitInfo, result.a, result.rgb);
+      return result.rgb;
+    }
+
+    half3 calc_mask_layers(HitInfo hitInfo, float mip_level)
+    {
+      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU)
+        return 0;
+
+      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+
+      float2 invert_heights = float2(f16tof32(asuint(hitInfo.materialData2.x)), f16tof32(asuint(hitInfo.materialData2.x) >> 16));
+      float2 paintDetails = float2(f16tof32(asuint(hitInfo.materialData2.y)), f16tof32(asuint(hitInfo.materialData2.y) >> 16));
+      float4 paintPoints = float4(f16tof32(asuint(hitInfo.materialData2.z)), f16tof32(asuint(hitInfo.materialData2.z) >> 16), f16tof32(asuint(hitInfo.materialData2.w)), f16tof32(asuint(hitInfo.materialData2.w)>> 16));
+      float4 paintPointsTr = float4(1 / (paintPoints.y - paintPoints.x), -paintPoints.x / (paintPoints.y - paintPoints.x), 1 / (paintPoints.w - paintPoints.z), -paintPoints.z / (paintPoints.w - paintPoints.z));
+      half2 weights = GetWeights(detailColor1, detailColor2, baseColor.a, invert_heights.xy);
+
+      uint paint_palette_row = hitInfo.materialData1.x;
+      uint palette_index = hitInfo.materialData1.y;
+      uint paint_palette_col = hitInfo.perInstanceDataCompressed.x;
+
+      half3 paintColor = getColorMul(paint_palette_row, palette_index, paint_palette_col);
+      half2 lumins = half2(luminance(detailColor1.rgb), luminance(detailColor2.rgb));
+      float2 details = saturate(paintDetails.xy) * saturate(lumins * paintPointsTr.xz + paintPointsTr.yw);
+      detailColor1.rgb = lerp(detailColor1.rgb, detailColor1.rgb * paintColor, details.x);
+      detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb * paintColor, details.y);
+
+      half4 detailColor = detailColor1*weights.x + detailColor2*weights.y;
+      half3 diffuseColor = baseColor.rgb * detailColor.rgb;
+      return saturate(diffuseColor * COLOR_CORRECTION_MULTIPLIER);
+    }
+
+    float4 get_camo_params(HitInfo hitInfo)
+    {
+      uint camoArgsPacked = hitInfo.perInstanceDataCompressed.y;
+      const uint TWELVE_BIT_MASK = (1U << 12) - 1;
+      const float MAX_SCALE = 2;
+      float condition = float((camoArgsPacked >> 24) & 0xFF) / 0xFF;
+      float rotation = (float((camoArgsPacked >> 12) & TWELVE_BIT_MASK) / TWELVE_BIT_MASK * 2 - 1) * PI;
+      float scale = float(camoArgsPacked & TWELVE_BIT_MASK) / TWELVE_BIT_MASK * MAX_SCALE;
+
+      float rotationSin, rotationCos;
+      sincos(rotation, rotationSin, rotationCos);
+      float camoScale = 2.f / (4096.f * scale);
+      float2 scaledRotation = float2(rotationSin, rotationCos) * camoScale;
+
+      float3 camoSinCos = float3(scaledRotation.x, -scaledRotation.x, scaledRotation.y);
+      float2 camoTexcoord = 4096 * hitInfo.secTexcoord - float2(0.5, 0.5) * 4096;
+      camoTexcoord = float2(dot(camoTexcoord, camoSinCos.zx), dot(camoTexcoord, camoSinCos.yz));
+      camoTexcoord.xy += 0.5;
+
+      return half4(camoTexcoord, condition, 0);
+    }
+
+    #include "light_consts.hlsli"
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    half3 get_emission(HitInfo hitInfo, half3 albedo, half texelAlpha)
+    {
+      bool nightly = hitInfo.materialData2.x > 0;
+      if (-from_sun_direction.y >= NIGHT_SUN_COS  && nightly)
+        return 0;
+
+      bool use_alpha_for_emission_mask = hitInfo.materialData2.y > 0;
+      half emissionMask = use_alpha_for_emission_mask ? texelAlpha : 1;
+      half4 emission_color = hitInfo.materialData1;
+      FLATTEN
+      if (emission_color.a < 0)
+        emissionMask = 1 - emissionMask;
+      half emission_strength = RemoveSRGBCurve_Fast(emissionMask).x * min(abs(emission_color.a), MAX_EMISSION);
+      half emission_albedo_mult = hitInfo.materialData2.z;
+
+      return emission_strength * saturate(emission_color.rgb) * lerp(1, albedo, emission_albedo_mult);
+    }
+
+    struct SurfaceParams
+    {
+      float3 position;
+      half3 surfaceToCamera;
+      half3 albedo;
+      half3 normal;
+      half smoothness;
+      half metalness;
+      half reflectance;
+      half3 emission;
+      bool isWater;
+      bool isImpostor;
+      bool isFoliage;
+    };
+
+    ##if !fast_mode && envi_cover_rt == on
+    void apply_rt_envi_cover(float3 worldPos, HitInfo hitInfo, inout SurfaceParams sp)
+    {
+      uint materialType = get_material_type(hitInfo.material);
+      if (hitInfo.isEmissive || hitInfo.isGrass || sp.isWater ||
+          materialType == bvhMaterialTerrain || materialType == bvhMaterialLandclass ||
+          is_dynrend(hitInfo.material))
+        return;
+
+      float enviInfluence = 0;
+      EnviSnowParams enviParams = fillEnviSnowParams();
+      BRANCH
+      if (calculate_envi_cover_influence(worldPos, sp.normal, enviParams, enviInfluence))
+        return;
+
+
+      half translucencyDummy = 0;
+      uint materialDummy = SHADING_NORMAL;
+      lerp_envi_cover(worldPos, sp.normal, 0, enviInfluence,
+        enviParams, sp.albedo, sp.reflectance, sp.smoothness, translucencyDummy, materialDummy);
+      sp.metalness = lerp(sp.metalness, 0, half(enviInfluence));
+    }
+    ##endif
+
+    SurfaceParams calc_surface_params(inout HitInfo hitInfo, half3 surfaceToCamera, float w)
+    {
+      float3 worldPos = hitInfo.position + bvh_origin;
+
+      SurfaceParams sp = (SurfaceParams)0;
+      sp.isImpostor = hitInfo.isImpostor;
+
+      if (!hitInfo.isImpostor)
+        sp.reflectance = 0.5;
+      else
+        sp.reflectance = 0.0;
+      sp.position = hitInfo.position;
+      sp.surfaceToCamera = surfaceToCamera;
+      sp.albedo = 1;
+      sp.normal = hitInfo.normal;
+      sp.isFoliage = false; // Can we figure this out?
+
+      float mipLevel = w <= 0 ? abs(w) : calc_mip_level(w + hitInfo.t, hitInfo.isImpostor);
+
+      if (get_material_type(hitInfo.material) == bvhMaterialTerrain ||
+          get_material_type(hitInfo.material) == bvhMaterialLandclass)
+      {
+        float totalRayT = w + hitInfo.t;
+        float calculatedDx = totalRayT / 1000;
+
+        bool isLandclass = get_material_type(hitInfo.material) == bvhMaterialLandclass;
+
+        float3 tcWorldPos = worldPos;
+        int indirectionOffset = 0;
+        if (isLandclass)
+        {
+          float2 texcoord = hitInfo.texcoord * hitInfo.materialData1.xy + hitInfo.materialData1.zw;
+          float2 spoofedWorldPosXZ = texcoord * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
+          tcWorldPos = float3(spoofedWorldPosXZ.x, worldPos.y, spoofedWorldPosXZ.y);
+          indirectionOffset = get_clipmap_indirection_offset_by_index(asint(hitInfo.materialData2.x));
+        }
+
+        DetailDesc microdetail_desc;
+        Vtex textures = sample_clipmaps(tcWorldPos, calculatedDx, 0, microdetail_desc, indirectionOffset);
+
+        float3 terrainNormal = getNormalLow(tcWorldPos.xz);
+        if (isLandclass)
+          terrainNormal.xzy = RNM_ndetail_normalized(hitInfo.normal.xzy, terrainNormal.xzy); // Not quite correct, but better than nothing
+
+        sp.albedo = textures.diffuse;
+        sp.normal = terrainNormal;
+        ##if !fast_mode
+          sp.normal.xzy = RNM_ndetail_normalized(sp.normal.xzy,textures.normal);
+        ##endif
+        sp.smoothness = textures.smoothness;
+        sp.reflectance = textures.reflectance;
+      }
+      else if (get_material_type(hitInfo.material) == bvhMaterialRendinst)
+      {
+        float texelAlpha = 1;
+        if (hitInfo.isPerlinLayered) // rendinst_perlin_layered, rendinst_tree_perlin_layered
+        {
+          sp.albedo = calc_perling_layers(hitInfo, mipLevel);
+        }
+        else if (hitInfo.isLayered && is_atlas(hitInfo.material)) //rendinst_layered, dynamic_layered
+        {
+          sp.albedo = calc_layers(hitInfo, mipLevel);
+        }
+        else if (hitInfo.isLayered) //rendinst_mask_layered
+        {
+          sp.albedo = calc_mask_layers(hitInfo, mipLevel);
+        }
+        else if (hitInfo.albedoTextureIndex != 0xFFFFU)
+        {
+          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
+          sp.albedo = texel.rgb;
+          texelAlpha = texel.a;
+          apply_painting(hitInfo, texel.a, sp.albedo);
+          ##if !fast_mode
+            if (is_painted_by_mask(hitInfo.material))
+              apply_paint_by_mask(hitInfo, mipLevel, sp.albedo);
+          ##endif
+          if (hitInfo.isEye)
+          {
+            half eyeLerpParam = texel.b;
+            sp.albedo = lerp(bvh_eye_sclera_color, bvh_eye_iris_color, saturate((eyeLerpParam - 0.03) * 24)) * (1 - saturate((eyeLerpParam - 0.5) * 4));
+          }
+
+          if (hitInfo.hasColorMod)
+          {
+            half4 fillColor = half4(1, 1, 1, 1);
+            if (hitInfo.extraTextureIndex != 0xFFFF)
+            {
+              // camouflage_scale_and_offset is ignored
+              fillColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
+            }
+            else
+            {
+              fillColor = unpack_srgb_e3dcolor(hitInfo.perInstanceDataCompressed.x);
+              fillColor.rgb = fillColor.rgb * fillColor.a + sp.albedo * (1. - fillColor.a);
+            }
+
+            half colorMul  = half(hitInfo.perInstanceDataCompressed.y / 255.0);
+            sp.albedo = sp.albedo * texelAlpha + min(sp.albedo * fillColor.rgb * colorMul, 1.xxx) * (1 - texelAlpha);
+          }
+        }
+
+        if (hitInfo.normalTextureIndex != 0xFFFFU && !(hitInfo.isLayered && is_atlas(hitInfo.material)))
+        {
+          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
+          sp.smoothness = texel.r;
+          sp.metalness = texel.b  * (hitInfo.isNonMetal ? 0 : 1);
+        }
+        else
+        {
+          sp.smoothness = get_specular_intensity_from_color(sp.albedo);
+          sp.metalness = 0.0;
+        }
+
+        if (hitInfo.isEmissive)
+          sp.emission = get_emission(hitInfo, sp.albedo, texelAlpha);
+
+        ##if !fast_mode
+          if (hitInfo.isCamo)
+          {
+            uint camoTexPacked = hitInfo.perInstanceDataCompressed.x;
+            uint camoTexIndex = camoTexPacked >> 16;
+            if (camoTexIndex != 0xFFFFU)
+            {
+              float4 camoParams = get_camo_params(hitInfo);
+              float2 camoTexcoord = camoParams.xy;
+              float condition = camoParams.z;
+              float invCondition = 1.0 / condition;
+
+              half4 camoTexture = (half4)nonUniformBindlessTex2D(bvh_textures, camoTexIndex).SampleLevel(bvh_wrap_sampler, camoTexcoord, mipLevel);
+
+              half camouflagePart = texelAlpha;
+              uint camoSkinTex = camoTexPacked & 0xFFFFU;
+              if (camoSkinTex < 0xFFFFU)
+              {
+                half4 skinColor = (half4)nonUniformBindlessTex2D(bvh_textures, camoSkinTex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
+                camoTexture.rgb = lerp(camoTexture.rgb, skinColor.rgb, skinColor.a);
+                camouflagePart = lerp(camouflagePart, 1.0, skinColor.a);
+              }
+
+              camouflagePart = half(pow(camouflagePart, max(0.0001, invCondition)));
+              sp.albedo = lerp(sp.albedo, camoTexture.rgb*lerp(0.5,1, pow4(saturate(texelAlpha+0.25))), camouflagePart);
+              sp.smoothness = lerp(sp.smoothness, sp.smoothness*0.5 + camoTexture.a*0.5, camouflagePart);
+              sp.metalness = lerp(sp.metalness, 0, pow4(camouflagePart));//camoTexture.a*camoTexture.a
+            }
+          }
+          else if (hitInfo.isGrass)
+          {
+            uint grassType = hitInfo.materialData1.x;
+            float randV = 0.5; // No per instance data support on GPU placed instances (yet)
+            // VS
+            half3 mask_r = lerp( grass_colors_vs[grassType].mask_r_color0.rgb, grass_colors_vs[grassType].mask_r_color1.rgb, randV );
+            half3 mask_b = lerp( grass_colors_vs[grassType].mask_b_color0.rgb, grass_colors_vs[grassType].mask_b_color1.rgb, randV );
+            half3 color_mask_g_from = grass_colors_vs[grassType].mask_g_color0.rgb;
+            half3 color_mask_g_to = grass_colors_vs[grassType].mask_g_color1.rgb;
+            // PS
+            half3 grassAlbedo = sp.albedo;
+            half3 landColor = sample_lastclip_lod(worldPos, 0);
+            half3 color = lerp( landColor, mask_r, grassAlbedo.r );
+            color = lerp( color.rgb, mask_b, grassAlbedo.b );
+            color = color * lerp( color_mask_g_from, color_mask_g_to.rgb, grassAlbedo.g ) * COLOR_CORRECTION_MULTIPLIER;
+            sp.albedo = saturate(color);
+            sp.isFoliage = true;
+          }
+          ##if bvh_decals == yes
+          if (hitInfo.hasAnimcharDecals)
+          {
+            instance_offset_for_decal = hitInfo.perInstanceDataCompressed.z + bvh_instance_data_buffer_cur_offset;
+            apply_node_transformation_to_model(hitInfo);
+            apply_decals(hitInfo.modelPosition, hitInfo.modelNormal, sp.albedo, sp.smoothness, sp.metalness, mipLevel);
+          }
+          ##endif
+        ##endif
+      }
+      else if (get_material_type(hitInfo.material) == bvhMaterialWater)
+      {
+        sp.isWater = true;
+        sp.albedo = bvh_water_color;
+        sp.reflectance = 1;
+        sp.smoothness = 1;
+        sp.metalness = 0;
+      }
+      else if (get_material_type(hitInfo.material) == bvhMaterialMonochrome)
+      {
+        sp.albedo = hitInfo.materialData1.xyz;
+        sp.metalness = hitInfo.materialData2.x;
+        sp.smoothness = hitInfo.materialData2.y;
+        sp.reflectance = hitInfo.materialData2.z;
+      }
+
+      if (has_instance_color(hitInfo.material))
+        sp.albedo *= hitInfo.instanceColor;
+      if (get_material_type(hitInfo.material) == bvhMaterialCable)
+        sp.albedo = hitInfo.vertexColor;
+
+      apply_env_wetness(worldPos, sp.normal, surfaceToCamera, SHADING_NORMAL, false, sp.albedo, sp.smoothness, sp.normal, sp.reflectance);
+
+      ##if !fast_mode && envi_cover_rt == on
+        apply_rt_envi_cover(worldPos, hitInfo, sp);
+      ##endif
+
+      return sp;
+    }
+  }
+endmacro

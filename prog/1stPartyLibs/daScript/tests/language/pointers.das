@@ -30,21 +30,17 @@ def test_new_and_fields(t : T?) {
         }
     }
     t |> run("auto-deref field access") @(t : T?) {
-        unsafe {
-            var inscope p = new TestStruct(x = 42, y = 99)
-            // p.x auto-dereferences the pointer — no -> needed
-            t |> equal(p.x, 42)
-            t |> equal(p.y, 99)
-        }
+        var inscope p = new TestStruct(x = 42, y = 99)
+        // p.x auto-dereferences the pointer — no -> needed
+        t |> equal(p.x, 42)
+        t |> equal(p.y, 99)
     }
     t |> run("modify through pointer") @(t : T?) {
-        unsafe {
-            var inscope p = new TestStruct(x = 1, y = 2)
-            p.x = 100
-            p.y = 200
-            t |> equal(p.x, 100)
-            t |> equal(p.y, 200)
-        }
+        var inscope p = new TestStruct(x = 1, y = 2)
+        p.x = 100
+        p.y = 200
+        t |> equal(p.x, 100)
+        t |> equal(p.y, 200)
     }
 }
 
@@ -52,27 +48,21 @@ def test_new_and_fields(t : T?) {
 def test_addr_and_deref(t : T?) {
     t |> run("addr and deref") @(t : T?) {
         var x = 42
-        unsafe {
-            var p = addr(x)
-            t |> equal(*p, 42)
-            t |> equal(deref(p), 42)
-        }
+        var p = unsafe(addr(x))
+        t |> equal(*p, 42)
+        t |> equal(deref(p), 42)
     }
     t |> run("modify through addr") @(t : T?) {
         var x = 10
-        unsafe {
-            var p = addr(x)
-            *p = 99
-        }
+        var p = unsafe(addr(x))
+        *p = 99
         t |> equal(x, 99)
     }
     t |> run("addr of struct field") @(t : T?) {
         var s = TestStruct(x = 7, y = 8)
-        unsafe {
-            var px = addr(s.x)
-            t |> equal(*px, 7)
-            *px = 77
-        }
+        var px = unsafe(addr(s.x))
+        t |> equal(*px, 7)
+        *px = 77
         t |> equal(s.x, 77)
     }
 }
@@ -115,11 +105,9 @@ def test_null_pointer(t : T?) {
 [test]
 def test_safe_navigation(t : T?) {
     t |> run("?. on valid pointer") @(t : T?) {
-        unsafe {
-            var inscope p = new TestStruct(x = 42, y = 99)
-            t |> equal(p?.x ?? -1, 42)
-            t |> equal(p?.y ?? -1, 99)
-        }
+        var inscope p = new TestStruct(x = 42, y = 99)
+        t |> equal(p?.x ?? -1, 42)
+        t |> equal(p?.y ?? -1, 99)
     }
     t |> run("?. on null pointer") @(t : T?) {
         var p : TestStruct?
@@ -190,18 +178,14 @@ def test_pointer_arithmetic(t : T?) {
 def test_intptr(t : T?) {
     t |> run("intptr non-zero") @(t : T?) {
         var x = 42
-        unsafe {
-            var p = addr(x)
-            let address = intptr(p)
-            t |> equal(address != uint64(0), true)
-        }
+        var p = unsafe(addr(x))
+        let address = intptr(p)
+        t |> equal(address != uint64(0), true)
     }
     t |> run("intptr same pointer same value") @(t : T?) {
         var x = 42
-        unsafe {
-            var p = addr(x)
-            t |> equal(intptr(p), intptr(p))
-        }
+        var p = unsafe(addr(x))
+        t |> equal(intptr(p), intptr(p))
     }
     t |> run("intptr different pointers differ") @(t : T?) {
         var x = 1
@@ -212,6 +196,30 @@ def test_intptr(t : T?) {
             t |> equal(intptr(px) != intptr(py), true)
         }
     }
+    t |> run("intptr of a function value is its handle, whatever spelling carries it") @(t : T?) {
+        let typed_slot : function<(a : int) : int> = @@ip_twice
+        t |> equal(intptr(typed_slot) != 0ul, true, "a function handle is not null")
+        t |> equal(intptr(@@ip_twice), intptr(typed_slot), "the direct and the typed spelling agree")
+        unsafe {
+            t |> equal(intptr(@@ip_twice), intptr(reinterpret<void?>(@@ip_twice)), "the handle is the address the pointer overload reads")
+        }
+        t |> equal(intptr(@@ip_twice) != intptr(@@ip_thrice), true, "two functions do not share a handle")
+    }
+    t |> run("intptr of a lambda value is its capture address") @(t : T?) {
+        let lam <- @(a : int) : int { return a + 1 }
+        let other_lam <- @(a : int) : int { return a + 2 }
+        t |> equal(intptr(lam) != 0ul, true, "a lambda handle is not null")
+        t |> equal(intptr(lam), intptr(unsafe(reinterpret<void?>(lam))), "the handle is the capture pointer")
+        t |> equal(intptr(lam) != intptr(other_lam), true, "two lambdas do not share a handle")
+    }
+}
+
+def ip_twice(a : int) : int {
+    return a * 2
+}
+
+def ip_thrice(a : int) : int {
+    return a * 3
 }
 
 [test]
@@ -253,9 +261,7 @@ def test_delete(t : T?) {
     t |> run("var inscope auto-deletes") @(t : T?) {
         // var inscope p = new ... — p is deleted at scope exit
         // We just verify it works without crash
-        unsafe {
-            var inscope p = new TestStruct(x = 5, y = 6)
-            t |> equal(p.x, 5)
-        }
+        var inscope p = new TestStruct(x = 5, y = 6)
+        t |> equal(p.x, 5)
     }
 }

@@ -21,3 +21,4 @@ void grass_prepare(const CameraParams &main_view,
   const eastl::optional<CameraParams> &prev_camcam_view);
 void grass_prepare_per_camera(const CameraParams &main_view);
 void grass_prepare_per_view(const CameraParams &view, const CameraParams &prev_view, const bool is_main_view);
+void grass_set_extra_helper(IRandomGrassRenderHelper *helper);

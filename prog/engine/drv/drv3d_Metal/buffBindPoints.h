@@ -44,9 +44,13 @@ union EncodedMetalImageType
     MetalImageType type;
     uint8_t is_uint; // is this uint texture
     uint8_t is_int;  // is this int texture
+    // set for a UAV texture the shader reads or writes, both clear when unknown
+    uint8_t is_read : 1;
+    uint8_t is_written : 1;
   };
   int value = 0;
 };
+static_assert(sizeof(EncodedMetalImageType) == 4, "stored as an int in the shader header");
 
 enum BufferType : uint8_t
 {

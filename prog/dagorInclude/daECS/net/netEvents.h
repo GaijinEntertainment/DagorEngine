@@ -21,7 +21,7 @@ class Connection;
     uint16_t /*client_flags*/, eastl::string /*platform_user_id*/, eastl::string /*platform*/,                                      \
     int /*mteam team assigned by matching*/, int /*appId*/)                                                                         \
   NET_ECS_EVENT(EventOnClientDisconnected, int /*connection_id*/, DisconnectionCause)                                               \
-  NET_ECS_EVENT(EventOnDisconnectedFromServer, DisconnectionCause)                                                                  \
+  NET_ECS_EVENT(EventOnDisconnectedFromServer, DisconnectionCause, eastl::string /*details*/)                                       \
   NET_ECS_EVENT(EventOnConnectedToServer)                                                                                           \
   NET_ECS_EVENT(EventOnNetworkDestroyed, int /*last_client_dc*/)                                                                    \
   NET_ECS_EVENT(NetEchoReponse, uint32_t /*routeId*/, int /*result*/, uint32_t /*rttOrTimeout*/)                                    \

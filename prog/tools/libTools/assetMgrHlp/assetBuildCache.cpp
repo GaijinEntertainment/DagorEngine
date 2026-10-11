@@ -684,6 +684,8 @@ static void reset_gameres_hooks()
 int dabuildcache::get_asset_res_id(const DagorAsset &a)
 {
   WinAutoLock lock(dabuild_cache_cs);
+  if (!assetTypeToClassId[a.getType()] && a.getType() != texTypeId)
+    return -1;
   int res_id = -1;
   if (resolve_res_handle(&a, res_id))
     return res_id;

@@ -12,48 +12,6 @@
 #include <drv/3d/dag_texture.h>
 
 
-static void build_stub_ri_mesh(Mesh &m)
-{
-  return; // don't generate mesh since this stub is not ShaderResUnitedVdata-compatible and cannot be rendered
-  m.vert.resize(8);
-  m.vert[0].set(-0.1, 0, 0.1);
-  m.vert[1].set(-0.5, 1, 0.5);
-  m.vert[2].set(0.5, 1, 0.5);
-  m.vert[3].set(0.1, 0, 0.1);
-  m.vert[4].set(-0.1, 0, -0.1);
-  m.vert[5].set(0.1, 0, -0.1);
-  m.vert[6].set(0.5, 1, -0.5);
-  m.vert[7].set(-0.5, 1, -0.5);
-
-  m.face.resize(12);
-  m.face[0].set(2, 1, 0, 0, 0);
-  m.face[1].set(0, 3, 2, 0, 0);
-  m.face[2].set(6, 5, 4, 0, 0);
-  m.face[3].set(4, 7, 6, 0, 0);
-  m.face[4].set(5, 6, 2, 0, 0);
-  m.face[5].set(2, 3, 5, 0, 0);
-  m.face[6].set(5, 3, 0, 0, 0);
-  m.face[7].set(0, 4, 5, 0, 0);
-  m.face[8].set(7, 4, 0, 0, 0);
-  m.face[9].set(0, 1, 7, 0, 0);
-  m.face[10].set(6, 7, 1, 0, 0);
-  m.face[11].set(1, 2, 6, 0, 0);
-
-  m.tvert[0].resize(m.vert.size());
-  for (int i = 0; i < m.vert.size(); i++)
-    m.tvert[0][i].set_xz(m.vert[i]);
-
-  m.tface[0].resize(m.face.size());
-  for (int i = 0; i < m.face.size(); i++)
-    for (int k = 0; k < 3; k++)
-      m.tface[0][i].t[k] = m.face[i].v[k];
-
-  m.calc_ngr();
-  m.calc_vertnorms();
-  for (int i = 0; i < m.vertnorm.size(); i++)
-    m.vertnorm[i] = -m.vertnorm[i];
-}
-
 class StubRiReleasingFactory : public GameResourceFactory
 {
   struct StubInstShaderMeshResource : public InstShaderMeshResource
@@ -62,8 +20,7 @@ class StubRiReleasingFactory : public GameResourceFactory
     {
       resSize = 0;
 
-      Mesh m;
-      build_stub_ri_mesh(m);
+      Mesh m; // constraint: empty, the stub is not ShaderResUnitedVdata-compatible
 
       MaterialData md;
       md.className = "rendinst_simple";

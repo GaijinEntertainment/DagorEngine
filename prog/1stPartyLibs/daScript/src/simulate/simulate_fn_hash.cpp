@@ -71,7 +71,10 @@ namespace das {
             write(argN);
         }
         virtual void arg ( const char * argV,  const char * argN  ) override {
-            if ( argV ) write(argV);
+            if ( argV ) {
+                write(argV);
+                if ( auto blobLength = context && context->constStringHeap ? context->constStringHeap->blobLength(argV) : 0 ) write(argV, blobLength);
+            }
             write(argN);
         }
         virtual void arg ( vec4f argV,  const char * argN ) override {
@@ -167,27 +170,29 @@ namespace das {
             }
         }
         using FunAndName = pair<const Function *,string>;
-        vector<FunAndName> getStableDependencies() {
+        vector<FunAndName> getDependenciesByMangledName() {
             vector<FunAndName> vec;
             vec.reserve(functions.size());
             for ( const auto & it : functions ) {
                 vec.emplace_back(make_pair(it,it->getMangledName()));
             }
-            stable_sort(vec.begin(), vec.end(), [&](const FunAndName & a, const FunAndName & b){
+            sort(vec.begin(), vec.end(), [&](const FunAndName & a, const FunAndName & b){
                 return a.second < b.second;
             });
+            DAS_ASSERT(adjacent_find(vec.begin(), vec.end(), [](const FunAndName & a, const FunAndName & b){ return a.second == b.second; }) == vec.end());
             return vec;
         }
         using VarAndName = pair<const Variable *,string>;
-        vector<VarAndName> getStableVariableDependencies() {
+        vector<VarAndName> getVariableDependenciesByMangledName() {
             vector<VarAndName> vec;
             vec.reserve(variables.size());
             for ( const auto & it : variables ) {
                 vec.emplace_back(make_pair(it,it->getMangledName()));
             }
-            stable_sort(vec.begin(), vec.end(), [&](const VarAndName & a, const VarAndName & b){
+            sort(vec.begin(), vec.end(), [&](const VarAndName & a, const VarAndName & b){
                 return a.second < b.second;
             });
+            DAS_ASSERT(adjacent_find(vec.begin(), vec.end(), [](const VarAndName & a, const VarAndName & b){ return a.second == b.second; }) == vec.end());
             return vec;
         }
         das_hash_set<const Function *> functions;
@@ -197,11 +202,11 @@ namespace das {
     DAS_API void collectDependencies ( FunctionPtr fun, const TBlock<void,TArray<Function *>,TArray<Variable *>> & block, Context * context, LineInfoArg * line ) {
         auto program = daScriptEnvironment::getBound()->g_Program;
         if ( !program ) context->throw_error_at(line, "Can't collect dependencies outside of compilation.");
-        program->markExecutableSymbolUse();
+        program->markFunctionDependencies(fun);
         DependencyCollector collector;
         collector.collect(fun);
-        auto vecFunc = collector.getStableDependencies();
-        auto vecVars = collector.getStableVariableDependencies();
+        auto vecFunc = collector.getDependenciesByMangledName();
+        auto vecVars = collector.getVariableDependenciesByMangledName();
         vector<const Function *> tfun;
         tfun.reserve(vecFunc.size());
         for ( auto & fn : vecFunc ) {
@@ -230,7 +235,7 @@ namespace das {
         if ( fun->aotHash != 0 ) return fun->aotHash; // cached
         DependencyCollector collector;
         collector.collect(fun);
-        auto vec = collector.getStableDependencies();
+        auto vec = collector.getDependenciesByMangledName();
         vector<uint64_t> uvec;
         uvec.reserve(vec.size() + 1);
         debug_aot_hash("HASH %s %" PRIx64 "\n", fun->getMangledName().c_str(), fun->hash);
@@ -252,7 +257,7 @@ namespace das {
     string getAotHashComment ( const Function * fun ) {
         DependencyCollector collector;
         collector.collect(fun);
-        auto vec = collector.getStableDependencies();
+        auto vec = collector.getDependenciesByMangledName();
         TextWriter tw;
         tw << fun->getMangledName() << " hash=0x" << HEX << fun->hash;
         for ( const auto & fn : vec ) {
@@ -269,7 +274,7 @@ namespace das {
         for ( const auto & var : globs ) {
             collector.collect(var);
         }
-        auto vec = collector.getStableDependencies();
+        auto vec = collector.getDependenciesByMangledName();
         vector<uint64_t> uvec;
         uvec.reserve(vec.size() + 1);
         uvec.push_back(initHash);

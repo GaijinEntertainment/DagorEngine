@@ -624,7 +624,7 @@ void CompositeEditorViewport::getAllHits(IObjEntity &entity, const Point3 &from,
       CompositeEntityHit hit;
       hit.entity = subEntity;
       hit.distance = out_t;
-      hits.push_back(std::move(hit));
+      hits.push_back(hit);
     }
   }
 }

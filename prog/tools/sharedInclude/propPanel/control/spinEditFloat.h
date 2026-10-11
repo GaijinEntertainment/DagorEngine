@@ -41,7 +41,7 @@ public:
 
   unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_FLOAT; }
 
-  unsigned getWidth() const override { return mW > 0 ? mW : ImguiHelper::getDefaultRightSideEditWidth(); }
+  unsigned getWidth() const override;
 
   float getFloatValue() const override { return spinEdit.getValue(); }
   void setFloatValue(float value) override { spinEdit.setValue(value); }
@@ -78,6 +78,8 @@ public:
   void setDefaultValue(Variant var) override { defaultValue = var.convert<float>(); }
 
   const char *getImguiTypeName() const override { return "EditFloat"; }
+
+  Point2 getPreferredSize(float max_width_px) const override;
 
   void updateImgui() override;
 

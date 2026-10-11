@@ -163,6 +163,5 @@ point script, or the name it was `require`d under.
 [modules.get_native_module_names](sym:modules.get_native_module_names) lists
 every native module a host has registered. Use it to check which optional
 native modules (`io`, `datetime`, `async`, ...) a particular embedding shipped.
-[modules.on_module_unload](sym:modules.on_module_unload) and
-[modules.reset_static_memos](sym:modules.reset_static_memos) are the other
-functions of the module system's own native module, `require("modules")`.
+[modules.on_module_unload](sym:modules.on_module_unload) is the other
+function of the module system's own native module, `require("modules")`.

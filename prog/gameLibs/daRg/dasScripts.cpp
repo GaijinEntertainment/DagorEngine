@@ -291,7 +291,7 @@ static bool darg_das_init_purity_violation(Program *program, eastl::string &err)
       // (1) No user-authored [init] / [finalize]. Same dead/template filter as
       // daScript's own simulate-time check (ast_simulate.cpp).
       mod->functions.foreach([&](auto &fn) {
-        if (violated || !fn || fn->index < 0 || !fn->used || fn->isTemplate)
+        if (violated || !fn || program->indexOf(fn) < 0 || !program->isUsed(fn) || fn->isTemplate)
           return;
         if (fn->init || fn->shutdown)
         {
@@ -307,7 +307,7 @@ static bool darg_das_init_purity_violation(Program *program, eastl::string &err)
       // (2) No global whose initializer's call graph reaches the darg native
       // module (the host-affine darg/Quirrel API).
       mod->globals.foreach([&](auto &gv) {
-        if (violated || !gv || !gv->used || !gv->init)
+        if (violated || !gv || !program->isUsed(gv) || !gv->init)
           return;
         das_hash_set<Function *> visited;
         for (Function *callee : gv->useFunctions)
@@ -347,9 +347,11 @@ public:
   smart_ptr<DargContext> ctx;
   eastl::string errorText;
   bool compiledOk = false;
+  bool started = false;
+  const int generation; // of dasMgr at queue time
 
   DasLoadAndCompileJob(DasScriptsData *mgr, GuiScene *scene, DasScript *s, const char *fn, const CodeOfPolicies &pol) :
-    dasMgr(mgr), guiScene(scene), script(s), fileName(fn), policies(pol)
+    dasMgr(mgr), guiScene(scene), script(s), fileName(fn), policies(pol), generation(interlocked_acquire_load(mgr->generation))
   {
     interlocked_increment(dasMgr->numJobsInFlight);
   }
@@ -364,6 +366,9 @@ public:
   virtual void doJob() override
   {
     WinAutoLock lock(das_compile_lock());
+    if (interlocked_acquire_load(dasMgr->generation) != generation)
+      return; // discarded while queued (or while waiting for the lock)
+    started = true;
     das::daScriptEnvironmentGuard envGuard(dasMgr->dasEnv, dasMgr->dasEnv);
     NoDebugStackCollector noStackCollector;
 
@@ -428,6 +433,13 @@ public:
   // ---- main thread ---------------------------------------------------------
   virtual void releaseJob() override
   {
+    if (!started)
+    {
+      ::debug("daScript: load of <%s> discarded before compile", fileName.c_str());
+      if (script)
+        script->setState(DasScript::FAILED);
+    }
+    else
     {
       WinAutoLock lock(das_compile_lock());
       das::daScriptEnvironmentGuard envGuard(dasMgr->dasEnv, dasMgr->dasEnv);
@@ -444,10 +456,9 @@ public:
         if (script)
           script->setState(DasScript::FAILED);
       }
-
-      if (script)
-        script->loadingJob = nullptr;
     }
+    if (script)
+      script->loadingJob = nullptr;
 
     // Run module-group teardown deferred by cleanupAfterReload, on the last job.
     if (interlocked_decrement(dasMgr->numJobsInFlight) == 0 && dasMgr->pendingModuleGroupCleanup)
@@ -462,10 +473,11 @@ public:
 private:
   void lintGlobalsHeapUsage()
   {
+    const das::Program *prog = program.get();
     program->library.foreach(
-      [this](das::Module *mod) {
-        mod->globals.foreach([this](auto globVar) {
-          if (globVar && globVar->used && !globVar->type->isNoHeapType())
+      [this, prog](das::Module *mod) {
+        mod->globals.foreach([this, prog](auto globVar) {
+          if (globVar && prog->isUsed(globVar) && !globVar->type->isNoHeapType())
           {
             const auto ignoreMark = globVar->annotation.find("ignore_heap_usage", das::Type::tBool);
             if (ignoreMark == nullptr || !ignoreMark->bValue)
@@ -648,7 +660,7 @@ void DasScriptsData::initDasEnvironment(TInitDasEnv init_callback)
 void DasScriptsData::shutdownDasEnvironment()
 {
   // Final teardown: finish/cancel everything before the env disappears.
-  waitAllJobsDone();
+  discardAllJobs();
 
   WinAutoLock lock(das_compile_lock());
   {
@@ -679,15 +691,23 @@ void DasScriptsData::shutdownDasEnvironment()
 
 void DasScriptsData::resetBeforeReload()
 {
-  // Drains the PREVIOUS scene's jobs before the env is recreated. Does NOT make
+  // Drops the PREVIOUS scene's jobs before the env is recreated. Does NOT make
   // the new scene synchronous - its jobs are queued later, during the run.
-  waitAllJobsDone();
+  discardAllJobs();
 
   WinAutoLock lock(das_compile_lock());
   if (isOwnedDasEnv)
     initDasEnvironment(initCallback); // recreate environment to lose all stored shared modules
   if (fAccess)
     fAccess->reset();
+}
+
+
+void DasScriptsData::discardAllJobs()
+{
+  // stale jobs return from doJob() without compiling; only the one already running is waited for
+  interlocked_increment(generation);
+  waitAllJobsDone();
 }
 
 

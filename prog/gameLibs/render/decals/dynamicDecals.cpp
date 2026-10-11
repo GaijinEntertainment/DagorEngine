@@ -57,6 +57,7 @@ static WriteTextureToAtlasResult write_texture_to_atlas(TEXTUREID tex_id, Point4
 static atlas_tex_manager::TexRec atlas;
 static eastl::vector_map<TEXTUREID, AtlasElem> atlas_elements;
 static WinCritSec atlasMutex;
+static void (*before_atlas_reset_cb)() = nullptr;
 
 #define PARAM_COUNT                                                                                                    \
   ((sizeof(ShaderParams) + decals.capsules.size() * sizeof(CapsulePrim) + decals.spheres.size() * sizeof(SpherePrim) + \
@@ -359,6 +360,8 @@ void after_reset_device() { planarDecalsShaderParamsNeedUpdate.assign(planarDeca
 
 static void reset_atlas()
 {
+  if (before_atlas_reset_cb)
+    before_atlas_reset_cb();
   atlas.resetAtlas();
   planarDecalsShaderParamsNeedUpdate.assign(planarDecalsShaderParamsNeedUpdate.size(), true);
 }
@@ -414,6 +417,8 @@ void clear_atlas()
   WinAutoLock lock(atlasMutex);
   close_atlas();
 }
+
+void set_before_atlas_reset_callback(void (*cb)()) { before_atlas_reset_cb = cb; }
 
 Point4 get_atlas_uv(TEXTUREID texId)
 {

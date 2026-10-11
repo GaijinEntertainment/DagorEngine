@@ -181,9 +181,10 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
 
     #define AHSArgs float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, uint instanceIndex
     #define ForwardAHSParams ray_origin, ray_direction, ray_t, triangleIx, instanceId, geometryIndex, barycentrics2, to_world, isFrontFace, instanceIndex
-    #define PassAHSParams query.WorldRayOrigin(),                             \
-                          query.WorldRayDirection(),                          \
-                          query.CandidateTriangleRayT(),                      \
+    // The inline traversals report t in the caller's frame: see make_query_ray.
+    #define PassAHSParamsFor(origin, direction, t_offset) origin,             \
+                          direction,                                          \
+                          query.CandidateTriangleRayT() + (t_offset),         \
                           query.CandidatePrimitiveIndex(),                    \
                           query.CandidateInstanceID(),                        \
                           query.CandidateGeometryIndex(),                     \
@@ -191,6 +192,27 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
                           query.CandidateObjectToWorld3x4(),                  \
                           query.CandidateTriangleFrontFace(),                 \
                           query.CandidateInstanceIndex()
+    #define PassAHSParams PassAHSParamsFor(query.WorldRayOrigin(), query.WorldRayDirection(), 0)
+    #define CommittedRayTFor(t_offset) (query.CommittedRayT() + (t_offset))
+
+    // TMin is folded into the origin: some drivers bias the origin by TMin and then report it
+    // inconsistently with t. t_offset returns every reported t to the caller's frame.
+    ##if !hardware.ps5
+    RayDesc make_query_ray(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, out float t_offset)
+    {
+      ##if hardware.scarlett
+        t_offset = 0; // Scarlett keeps TMin: its traversal is exact and its any-hit wrapper cannot see t_offset.
+      ##else
+        t_offset = ray_min;
+      ##endif
+      RayDesc ray;
+      ray.Origin    = ray_origin + ray_direction * t_offset;
+      ray.Direction = ray_direction;
+      ray.TMin      = ray_min - t_offset;
+      ray.TMax      = ray_max - t_offset;
+      return ray;
+    }
+    ##endif
   }
 endmacro
 
@@ -1084,11 +1106,8 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       GenericRayQuery(flags, IsObstructedAHSLambda) query;
 
-      RayDesc ray;
-      ray.Origin    = ray_origin;
-      ray.Direction = ray_direction;
-      ray.TMin      = ray_min;
-      ray.TMax      = ray_max;
+      float tOffset;
+      RayDesc ray = make_query_ray(ray_origin, ray_direction, ray_min, ray_max, tOffset);
 
       query.TraceRayInline(bvh, flags | extra_flags, group_mask, ray);
 
@@ -1103,7 +1122,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         {
           ##if bvh_has_omm_support == no
             // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
-            if (lambda.InlineAHSImpl(PassAHSParams))
+            if (lambda.InlineAHSImpl(PassAHSParamsFor(ray_origin, ray_direction, tOffset)))
               query.CommitNonOpaqueTriangleHit();
           ##endif
         }
@@ -1152,7 +1171,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         uint group_mask,
         uint extra_flags = 0)
     {
-      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
+      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAGS;
 
       sce::Psr::Ray const ray = {
         .m_org = ray_origin,
@@ -1161,7 +1180,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         .m_tmax = ray_max
       };
 
-      sce::Psr::RayFlags rayFlags = sce::Psr::RayFlags::kCullBackFacingTriangles;
+      sce::Psr::RayFlags rayFlags = sce::Psr::RayFlags::kCullBackFacingTriangles | remap_DX12_ray_flags(extra_flags);
 
       auto const noIntersection = sce::Psr::NoIntersection{};
       auto const noAABBInstance = sce::Psr::NoAABBInstance {bvh.m_bvh};
@@ -1182,7 +1201,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         return false;
       };
 
-      auto psHit = sce::Psr::Closest<optimizedFlags>(bvh.m_bvh, rayFlags,
+      auto psHit = sce::Psr::Occluded<optimizedFlags>(bvh.m_bvh, rayFlags,
         group_mask, ray, lambda, noIntersection, noAABBInstance);
       return psHit.isHit();
     }
@@ -1237,11 +1256,8 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       GenericRayQuery(flags, TraceRayAHSLambda) query;
 
-      RayDesc ray;
-      ray.Origin    = ray_origin;
-      ray.Direction = ray_direction;
-      ray.TMin      = ray_min;
-      ray.TMax      = ray_max;
+      float tOffset;
+      RayDesc ray = make_query_ray(ray_origin, ray_direction, ray_min, ray_max, tOffset);
 
       query.TraceRayInline(bvh, flags | extra_flags, group_mask, ray);
 
@@ -1255,7 +1271,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         {
           ##if bvh_has_omm_support == no
             // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
-            if (lambda.InlineAHSImpl(PassAHSParams))
+            if (lambda.InlineAHSImpl(PassAHSParamsFor(ray_origin, ray_direction, tOffset)))
               query.CommitNonOpaqueTriangleHit();
           ##endif
         }
@@ -1263,9 +1279,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
       {
-        float3 ray_origin = query.WorldRayOrigin();
-        float3 ray_direction = query.WorldRayDirection();
-        float ray_t = query.CommittedRayT();
+        float ray_t = CommittedRayTFor(tOffset);
         float3 pos = ray_origin + ray_direction * ray_t;
         if (is_terrain)
           pos -= bvh_terrain_offset;
@@ -1300,6 +1314,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       return false;
     }
 ##else // hardware.ps5
+    // On PS5, using RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH in extra_flags doesn't select between the more optimal Occluded and Closest.
     template<typename ScreenSample, bool is_terrain>
     bool trace_ray_with_screen_sample(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT,
       uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, uint extra_flags = 0)
@@ -1309,7 +1324,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       if (is_terrain)
         ray_origin += bvh_terrain_offset;
 
-      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
+      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAGS;
 
       sce::Psr::Ray const ray = {
         .m_org = ray_origin,
@@ -1352,14 +1367,20 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         return false;
       };
 
+    #ifdef TRACE_RAY_EXTRA_FLAGS
+      const bool occluded = first_hit || (TRACE_RAY_EXTRA_FLAGS & RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH) != 0;
+    #else
+      const bool occluded = first_hit;
+    #endif
+
     sce::Psr::Hit psHit;
     #if handle_translucent
-      if (rayFlags & sce::Psr::RayFlags::kAcceptFirstHitAndEndSearch)
+      if (occluded)
         psHit = sce::Psr::Occluded<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray, inlineLambda, noIntersection, noAABBInstance);
       else
         psHit = sce::Psr::Closest<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray, inlineLambda, noIntersection, noAABBInstance);
     #else
-      if (rayFlags & sce::Psr::RayFlags::kAcceptFirstHitAndEndSearch)
+      if (occluded)
         psHit = sce::Psr::Occluded<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray);
       else
         psHit = sce::Psr::Closest<optimizedFlags>(bvh.m_bvh, rayFlags, group_mask, ray);
@@ -1876,11 +1897,8 @@ macro USE_BVH_FX_RENDER(stage, fast_mode)
 
       GenericRayQuery(flags, TraceRayFxTranslucentAHSLambda) query;
 
-      RayDesc ray;
-      ray.Origin    = ray_origin;
-      ray.Direction = ray_direction;
-      ray.TMin      = ray_min;
-      ray.TMax      = ray_max;
+      float tOffset;
+      RayDesc ray = make_query_ray(ray_origin, ray_direction, ray_min, ray_max, tOffset);
 
       query.TraceRayInline(bvhParticles, flags, bvhGroupAll, ray);
 
@@ -1901,7 +1919,7 @@ macro USE_BVH_FX_RENDER(stage, fast_mode)
         while (query.Proceed())
         {
           // Can only be a particle
-          if (lambda.InlineAHSImpl(PassAHSParams) > 0.99)
+          if (lambda.InlineAHSImpl(PassAHSParamsFor(ray_origin, ray_direction, tOffset)) > 0.99)
             query.CommitNonOpaqueTriangleHit();
           if (lambda.cursor >= maxAHSCalls)
             query.Abort();
@@ -1961,7 +1979,7 @@ macro USE_BVH_FX_RENDER(stage, fast_mode)
         .m_tmax = ray_max
       };
 
-      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
+      constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAGS;
       sce::Psr::RayFlags rayFlags = sce::Psr::RayFlags::kNone;
       auto const noIntersection = sce::Psr::NoIntersection{};
       auto const noAABBInstance = sce::Psr::NoAABBInstance {bvhParticles.m_bvh};

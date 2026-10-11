@@ -5,7 +5,7 @@
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/util/strUtil.h>
 
-#define SUN_DIRECTION_ZENITH  (PI / 4.0)
+#define SUN_DIRECTION_ZENITH  (PI / 4.0f)
 #define SUN_DIRECTION_AZIMUTH PI
 #define SUN_COLOR             E3DCOLOR(255, 255, 220, 255)
 #define SKY_COLOR             E3DCOLOR(160, 180, 220, 255)

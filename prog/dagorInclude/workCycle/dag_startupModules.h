@@ -16,7 +16,6 @@ void dagor_init_mouse_win();
 //! schedules joystick driver initialization
 void dagor_init_joystick();
 void dagor_init_joystick_xinput();
-void dagor_init_joystick_steam();
 
 //! schedules null device drivers initialization
 void dagor_init_keyboard_null();

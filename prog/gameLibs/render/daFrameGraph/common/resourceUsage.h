@@ -32,12 +32,20 @@ enum class DesiredActivationBehaviour
   Clear,
 };
 
+enum class ResolveRole : uint8_t
+{
+  None,
+  ColorSource,
+  DepthSource,
+  DepthDest,
+};
+
 ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, DesiredActivationBehaviour history, bool is_int);
 
 ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after);
 
-intermediate::EnhancedBarrier enhanced_barrier_for_transition(intermediate::ResourceUsage usage_before,
-  intermediate::ResourceUsage usage_after, ResourceType res_type);
+intermediate::EnhancedBarrier enhanced_barrier_for_transition(intermediate::ResourceUsage usage_before, ResolveRole role_before,
+  intermediate::ResourceUsage usage_after, ResolveRole role_after, ResourceType res_type);
 
 d3d::BufferBarrier enhanced_buffer_barrier_for_release(intermediate::ResourceUsage last_usage, d3d::PipelineStageFlags sync_after);
 
@@ -46,9 +54,10 @@ d3d::BufferBarrier enhanced_buffer_barrier_for_activation(intermediate::Resource
 
 inline constexpr d3d::TextureSubresourceRange ENTIRE_TEXTURE_SUBRESOURCE_RANGE{{0xffffffffu, 0}, {0, 0}, {0, 0}};
 
-d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage, d3d::PipelineStageFlags sync_after);
+d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage, ResolveRole role,
+  d3d::PipelineStageFlags sync_after);
 
-d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage,
+d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage, ResolveRole role,
   d3d::PipelineStageFlags sync_before);
 
 eastl::optional<ResourceActivationAction> get_activation_from_usage(DesiredActivationBehaviour behavior,

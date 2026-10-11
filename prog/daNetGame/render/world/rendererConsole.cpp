@@ -369,6 +369,7 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("render", "invalidate_light_probes", 1, 1) { ((WorldRenderer *)get_world_renderer())->invalidateLightProbes(); }
   CONSOLE_CHECK_NAME("render", "invalidate_gi", 1, 1) { ((WorldRenderer *)get_world_renderer())->invalidateAllGI(); }
   CONSOLE_CHECK_NAME("render", "invalidate_ri_collision", 1, 1) { ((WorldRenderer *)get_world_renderer())->invalidateRiCollision(); }
+  CONSOLE_CHECK_NAME("render", "invalidate_impostors", 1, 1) { rendinst::resetRiGenImpostors(); }
   CONSOLE_CHECK_NAME("render", "invalidate_volumelight", 1, 1) { ((WorldRenderer *)get_world_renderer())->invalidateVolumeLight(); }
   CONSOLE_CHECK_NAME("render", "show_boxes", 1, 4)
   {

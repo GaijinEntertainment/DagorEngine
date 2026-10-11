@@ -148,6 +148,8 @@ public:
 
   void renderGeometry(bool opaque);
   void renderGrassMask();
+  void renderGameSplines();
+  void logGameSplinesStats() const;
 
   void onBrushPaintEnd();
 

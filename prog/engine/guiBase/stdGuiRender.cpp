@@ -1070,6 +1070,11 @@ void init_render()
   ctx.setTarget();
   debug("StdGuiRender::init_render: phys res %dx%d == log res", ctx.screenWidth, ctx.screenHeight);
 
+  update_screen_size();
+}
+
+void update_screen_size()
+{
   int w, h;
   d3d::get_screen_size(w, h);
   g_screen_size = Point2(w, h);
@@ -1204,6 +1209,19 @@ void GuiContext::resetFrame()
 #endif
   G_ASSERT(!isInRender);
   renderer->resetBuffers();
+
+  defaultState();
+
+  rollState = ROLL_ALL_STATES;
+}
+
+void GuiContext::abandonFrame()
+{
+  isInRender = false;
+  currentChunk = -1;
+  viewportList.clear();
+  if (renderer)
+    renderer->abandonFrame();
 
   defaultState();
 
@@ -1837,7 +1855,7 @@ void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTU
   bool update = false;
   if (font_l8)
   {
-    if (tex_id != guiState.params.getFontTexId())
+    if (tex_id != guiState.params.getFontTexId() || smp_id != guiState.params.getFontTexSampler())
     {
       currentTextureAlpha = true;
       guiState.params.setFontTexId(tex_id, smp_id);
@@ -1849,7 +1867,8 @@ void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTU
   }
   else
   {
-    if (tex_id != guiState.params.getTexId() || tex_id2 != guiState.params.getTexId2())
+    if (tex_id != guiState.params.getTexId() || tex_id2 != guiState.params.getTexId2() || smp_id != guiState.params.getTexSampler() ||
+        smp_id2 != guiState.params.getTex2Sampler())
     {
       currentTextureAlpha = true;
       guiState.params.setTexId(tex_id, smp_id);

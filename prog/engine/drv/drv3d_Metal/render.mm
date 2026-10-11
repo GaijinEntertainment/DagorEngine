@@ -6,6 +6,8 @@
 #include <ioSys/dag_dataBlock.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_texture.h>
 #include <drv_assert_defs.h>
 
 #include "drv_log_defs.h"
@@ -493,7 +495,7 @@ namespace drv3d_metal
           debug("[METAL] queued stuff");
         }
         {
-          std::lock_guard<std::mutex> scopedLock(render.command_buffer_mutex);
+          std::lock_guard scopedLock(render.command_buffer_mutex);
           if (error)
           {
             const auto &manual_signposts = render.command_buffers[buffer];
@@ -667,6 +669,16 @@ namespace drv3d_metal
             G_ASSERT(render.computeEncoder);
             [render.computeEncoder setSamplerState : res.metal_resource atIndex : res.slot];
           }
+          else if (res.stage == STAGE_MS)
+          {
+            if (@available(iOS 16, macOS 13.0, *))
+              [render.renderEncoder setMeshSamplerState : res.metal_resource atIndex : res.slot];
+          }
+          else if (res.stage == STAGE_OS)
+          {
+            if (@available(iOS 16, macOS 13.0, *))
+              [render.renderEncoder setObjectSamplerState : res.metal_resource atIndex : res.slot];
+          }
           else
             G_ASSERT(0 && "Uknown stage");
           break;
@@ -686,6 +698,16 @@ namespace drv3d_metal
           {
             G_ASSERT(render.computeEncoder);
             [render.computeEncoder setTexture : res.metal_resource atIndex : res.slot];
+          }
+          else if (res.stage == STAGE_MS)
+          {
+            if (@available(iOS 16, macOS 13.0, *))
+              [render.renderEncoder setMeshTexture : res.metal_resource atIndex : res.slot];
+          }
+          else if (res.stage == STAGE_OS)
+          {
+            if (@available(iOS 16, macOS 13.0, *))
+              [render.renderEncoder setObjectTexture : res.metal_resource atIndex : res.slot];
           }
           else
             G_ASSERT(0 && "Uknown stage");
@@ -722,6 +744,26 @@ namespace drv3d_metal
             }
             else
               [render.computeEncoder setBuffer : res.metal_resource offset : res.offset atIndex : res.slot];
+          }
+          else if (res.stage == STAGE_MS)
+          {
+            if (@available(iOS 16, macOS 13.0, *))
+            {
+              if (res.offset_only)
+                [render.renderEncoder setMeshBufferOffset : res.offset atIndex : res.slot];
+              else
+                [render.renderEncoder setMeshBuffer : res.metal_resource offset : res.offset atIndex : res.slot];
+            }
+          }
+          else if (res.stage == STAGE_OS)
+          {
+            if (@available(iOS 16, macOS 13.0, *))
+            {
+              if (res.offset_only)
+                [render.renderEncoder setObjectBufferOffset : res.offset atIndex : res.slot];
+              else
+                [render.renderEncoder setObjectBuffer : res.metal_resource offset : res.offset atIndex : res.slot];
+            }
           }
           else
             G_ASSERT(0 && "Uknown stage");
@@ -908,6 +950,18 @@ namespace drv3d_metal
       }
       else if (cache.texture)
       {
+#if DAGOR_DBGLEVEL > 0
+        const EncodedMetalImageType access = shader->tex_type[i];
+        if (is_uav && access.is_written)
+        {
+          const unsigned needed = d3d::USAGE_UNORDERED | (access.is_read ? d3d::USAGE_UNORDERED_LOAD : 0);
+          const int cflg = cache.as_uint ? TEXFMT_R32UI : cache.texture->cflg;
+          D3D_CONTRACT_ASSERTF((d3d::get_texformat_usage(cflg) & needed) == needed,
+            "Metal: shader %s %s u%d, but the format of texture %s does not support %s", shader->name.c_str(),
+            access.is_read ? "reads and writes" : "writes", slot - MAX_SHADER_TEXTURES, cache.texture->getName(),
+            access.is_read ? "USAGE_UNORDERED_LOAD" : "USAGE_UNORDERED");
+        }
+#endif
         cache.texture->apply(texture, cache.mip_level, cache.slice, is_uav, cache.as_uint);
         resource = cache.texture->apiTex;
       }
@@ -1516,6 +1570,9 @@ namespace drv3d_metal
     PatchShader(copy_vshd, 1, 0);
     PatchVertexShader(copy_vshd);
     PatchShader(copy_pshd, 0, 1);
+    // stretch_rect must not depend on the caller's sampler, so the shader has its own
+    shaders.getObj(copy_pshd)->num_samplers = 0;
+    shaders.getObj(copy_pshd)->sampler_mask = 0;
 
     copy_prog = createProgram(copy_vshd, copy_pshd, clear_vdecl, 0, 0);
 
@@ -1640,7 +1697,7 @@ namespace drv3d_metal
   }
 
   void Render::executeTemporalUpscale(Texture *color, Texture *motion, Texture *depth, Texture *output, float jitterX, float jitterY,
-    float motionScaleX, float motionScaleY)
+    float motionScaleX, float motionScaleY, bool reset)
   {
     checkRenderAcquired();
 
@@ -1654,7 +1711,8 @@ namespace drv3d_metal
       .write(jitterX)
       .write(jitterY)
       .write(motionScaleX)
-      .write(motionScaleY);
+      .write(motionScaleY)
+      .write(reset);
 #endif
   }
 
@@ -1668,7 +1726,7 @@ namespace drv3d_metal
     {
       TIME_PROFILE(free_queued);
 
-      std::lock_guard<std::mutex> scopedLock(delete_lock);
+      std::lock_guard scopedLock(delete_lock);
       const uint64_t completed = submits_completed;
       {
         int freed_items = 0;
@@ -1756,7 +1814,8 @@ namespace drv3d_metal
             [res.native_resource release];
             break;
           case DeletedResource::Type::Heap:
-            [res.heap release];
+            [res.heap->heap release];
+            delete res.heap;
             break;
         }
       }
@@ -1937,9 +1996,6 @@ namespace drv3d_metal
       int stride = cmd.src_w * koef;
       int sz = cmd.src_w * cmd.src_h * koef;
 
-      if (cmd.src_w < 4 || cmd.src_h < 4)
-        return;
-
       constexpr uint32_t copy_size = 131072;
 
       int src_offset = 0;
@@ -1956,8 +2012,9 @@ namespace drv3d_metal
             destinationBytesPerRow : stride
           destinationBytesPerImage : sz];
 
-      size.width = cmd.src_w * 4;
-      size.height = cmd.src_h * 4;
+      // a block covers more than a 2x2 or 1x1 mip, so clamp to the mip edge
+      size.width = min<NSUInteger>(cmd.src_w * 4, max<NSUInteger>(cmd.dst.width >> dst_mip, 1) - cmd.dest_x);
+      size.height = min<NSUInteger>(cmd.src_h * 4, max<NSUInteger>(cmd.dst.height >> dst_mip, 1) - cmd.dest_y);
 
       [blitEncoder copyFromBuffer : tmp_buf
                      sourceOffset : src_offset
@@ -2455,10 +2512,12 @@ namespace drv3d_metal
           id<MTLBuffer> buf_metal = nil;
           uint32_t buffer_size = 0, channels = 0;
           unsigned val[4];
-          command_encoder.read(buf).read(buf_metal).read(buffer_size).read(channels).read(val, sizeof(unsigned)*4);
+          bool use_blit = false;
+          command_encoder.read(buf).read(buf_metal).read(buffer_size).read(channels).read(val, sizeof(unsigned)*4)
+            .read(use_blit);
 
-          bool all_the_same = val[0] == val[1] && val[1] == val[2] && val[2] == val[3];
-          if (all_the_same && (val[0] == 0 || val[0] == 0xffffffff) && computeEncoder == nil)
+          // the frontend chose the path and bound clear_cs_pipeline for compute, follow it
+          if (use_blit)
           {
             ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit, "ClearBuffer");
 
@@ -2475,6 +2534,8 @@ namespace drv3d_metal
           }
           else
           {
+            // the frontend bound clear_cs_pipeline on this encoder, a new one would have no pipeline
+            G_ASSERT(computeEncoder);
             ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Compute, "ClearBuffer");
 
             G_ASSERT(buf);
@@ -2760,7 +2821,7 @@ namespace drv3d_metal
           ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Acceleration);
 
           {
-            std::lock_guard<std::mutex> scopedLock(delete_lock);
+            std::lock_guard scopedLock(delete_lock);
 
             if (info.scratch)
               residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = info.scratch->getBuffer() });
@@ -2870,8 +2931,9 @@ namespace drv3d_metal
 #if USE_METALFX_UPSCALE
           Texture *color = nullptr, *motion = nullptr, *depth = nullptr, *output = nullptr;
           float jitterX = 0.f, jitterY = 0.f, motionScaleX = 0.f, motionScaleY = 0.f;
+          bool reset = false;
           command_encoder.read(color).read(motion).read(depth).read(output).read(jitterX).read(jitterY).read(motionScaleX)
-            .read(motionScaleY);
+            .read(motionScaleY).read(reset);
 
           uint32_t colFlg = color->cflg, outFlg = output->cflg;
           bool color_srgb = (colFlg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE)) &&
@@ -2938,6 +3000,7 @@ namespace drv3d_metal
             scaler.inputContentWidth = color->getWidth();
             scaler.inputContentHeight = color->getHeight();
             scaler.depthReversed = true;
+            scaler.reset = reset;
             scaler.outputTexture = output->apiTex->texture;
             scaler.colorTexture = color->apiTex->texture;
             scaler.depthTexture = depth->apiTex->texture;
@@ -3032,7 +3095,7 @@ namespace drv3d_metal
     }
     if (enable_postmortem)
     {
-      std::lock_guard<std::mutex> scopedLock(command_buffer_mutex);
+      std::lock_guard scopedLock(command_buffer_mutex);
       command_buffers[commandBuffer] = command_buffer_labels;
       command_buffer_labels.clear();
     }
@@ -3066,6 +3129,25 @@ namespace drv3d_metal
     return true;
   }
 
+#if _TARGET_IOS
+  bool Render::applyBackbufferResize()
+  {
+    G_ASSERT_RETURN(!drawable_acquired, false);
+
+    int w, h;
+    get_unminimized_window_resolution(w, h);
+    if (w <= 0 || h <= 0 || (w == wnd_wd && h == wnd_ht))
+      return true;
+
+    debug("metal: backbuffer resized %dx%d -> %dx%d", wnd_wd, wnd_ht, w, h);
+    scr_wd = wnd_wd = w;
+    scr_ht = wnd_ht = h;
+    backbuffer->width = w;
+    backbuffer->height = h;
+    return true;
+  }
+#endif
+
   void Render::flush(bool wait, bool present)
   {
     TIME_PROFILE(flush);
@@ -3076,7 +3158,7 @@ namespace drv3d_metal
 
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::None);
 
-    std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+    std::lock_guard scopedLock(copy_tex_lock);
 
     for (auto blas : blases2create)
       addResource(blas);
@@ -3089,7 +3171,7 @@ namespace drv3d_metal
     if (present)
     {
       {
-        std::lock_guard<std::mutex> scopedLock(dynamic_buffer_lock);
+        std::lock_guard scopedLock(dynamic_buffer_lock);
         frame_callbacks[frame % MAX_FRAMES_TO_RENDER] = std::move(frame_callback);
         G_ASSERT(frame_callback.empty());
       }
@@ -3312,7 +3394,7 @@ namespace drv3d_metal
 
     if (cache[index].metal_tex)
     {
-      std::lock_guard<std::mutex> scopedLock(render.delete_lock);
+      std::lock_guard scopedLock(render.delete_lock);
       render.residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = render.submits_scheduled, .native_resource = cache[index].metal_tex });
     }
     cache[index] = { texture, metal_tex };
@@ -3341,7 +3423,7 @@ namespace drv3d_metal
 
     if (cache[index].metal_buf)
     {
-      std::lock_guard<std::mutex> scopedLock(render.delete_lock);
+      std::lock_guard scopedLock(render.delete_lock);
       render.residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = render.submits_scheduled, .native_resource = cache[index].metal_buf });
     }
     cache[index] = { buffer, metal_buffer };
@@ -3499,7 +3581,7 @@ namespace drv3d_metal
       return result;
     }
 
-    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    std::lock_guard lock(pending_bindless_lock);
     for (uint32_t i = 0; i < resources.size(); ++i)
       if (resources[i])
         pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Update, type, index + i, 0, resources[i]});
@@ -3518,7 +3600,7 @@ namespace drv3d_metal
       return;
     }
 
-    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    std::lock_guard lock(pending_bindless_lock);
     pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Null, type, index, count, nullptr});
     pending_bindless_count.fetch_add(1, std::memory_order_release);
   }
@@ -3531,7 +3613,7 @@ namespace drv3d_metal
       return;
     }
 
-    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    std::lock_guard lock(pending_bindless_lock);
     pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Resize, type, new_size, 0, nullptr});
     pending_bindless_count.fetch_add(1, std::memory_order_release);
   }
@@ -3558,7 +3640,7 @@ namespace drv3d_metal
       return;
     }
 
-    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    std::lock_guard lock(pending_bindless_lock);
     pending_bindless_updates.push_back(
       {PendingBindlessUpdate::Op::Sampler, D3DResourceType::TEX, slot, 0, nullptr, bias, sampler_res_id});
     pending_bindless_count.fetch_add(1, std::memory_order_release);
@@ -3569,7 +3651,7 @@ namespace drv3d_metal
     if (pending_bindless_count.load(std::memory_order_acquire) == 0)
       return;
 
-    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    std::lock_guard lock(pending_bindless_lock);
     for (auto &u : pending_bindless_updates)
       if (u.op == PendingBindlessUpdate::Op::Update && u.res == res)
       {
@@ -3588,7 +3670,7 @@ namespace drv3d_metal
 
     // held across the whole drain, so a delete on another thread lands either before an entry is applied
     // (purgeQueuedBindlessUpdates turns it into Null) or after, never in between
-    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    std::lock_guard lock(pending_bindless_lock);
     for (const auto &u : pending_bindless_updates)
     {
       switch (u.op)
@@ -3832,7 +3914,7 @@ namespace drv3d_metal
 
   void Render::deleteVertexShader(int vs)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Shader, .submit = submits_scheduled, .shader = vs });
   }
 
@@ -3857,7 +3939,7 @@ namespace drv3d_metal
 
   void Render::deletePixelShader(int ps)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Shader, .submit = submits_scheduled, .shader = ps });
   }
 
@@ -3883,7 +3965,7 @@ namespace drv3d_metal
 
   void Render::deleteVDecl(VDECL vdecl)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::VDecl, .submit = submits_scheduled, .vdecl = vdecl });
   }
 
@@ -3986,7 +4068,7 @@ namespace drv3d_metal
 
   void Render::deleteProgram(int prog)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Program, .submit = submits_scheduled, .program = prog });
   }
 
@@ -4013,7 +4095,7 @@ namespace drv3d_metal
 
   void Render::deleteComputeProgram(int cs)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Shader, .submit = submits_scheduled, .shader = cs });
   }
 
@@ -4060,7 +4142,8 @@ namespace drv3d_metal
     G_ASSERT(!buf->is_fast_discard());
 
     bool all_the_same = val[0] == val[1] && val[1] == val[2] && val[2] == val[3];
-    if (all_the_same && (val[0] == 0 || val[0] == 0xffffffff) && encoder_type != EncoderType::Compute)
+    bool use_blit = all_the_same && (val[0] == 0 || val[0] == 0xffffffff) && encoder_type != EncoderType::Compute;
+    if (use_blit)
       ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::Blit);
     else
     {
@@ -4072,13 +4155,14 @@ namespace drv3d_metal
       }
       current_cs_pipeline = clear_cs_pipeline;
     }
-    command_encoder.write(CommandType::ClearBuffer).write(buf).write(buf_metal).write(buffer_size).write(channels).write(val, sizeof(unsigned)*4);
+    command_encoder.write(CommandType::ClearBuffer).write(buf).write(buf_metal).write(buffer_size).write(channels)
+      .write(val, sizeof(unsigned)*4).write(use_blit);
   }
 
   void Render::clearBuffer(Buffer *buf, Buffer::BufTex* buff)
   {
     // called on buffer creation, can be queued to the beginning of the flush
-    std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+    std::lock_guard scopedLock(copy_tex_lock);
     G_ASSERT(buf);
     buffers2clear.emplace_back(buf, buff);
   }
@@ -4245,7 +4329,7 @@ namespace drv3d_metal
     TexCopyRegion region(dest, dest_level, dest_x, dest_y, dest_z, src, src_level, src_x, src_y, src_z, src_w, src_h, src_d);
     if (from_thread)
     {
-      std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+      std::lock_guard scopedLock(copy_tex_lock);
       regions2copy.push_back(region);
     }
     else
@@ -4343,7 +4427,7 @@ namespace drv3d_metal
 
   void Render::clearTexture(Texture* tex)
   {
-    std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+    std::lock_guard scopedLock(copy_tex_lock);
     textures2clear.emplace_back(tex);
   }
 
@@ -4459,11 +4543,14 @@ namespace drv3d_metal
     if (!cur_prog)
       return false;
 
-    if (cur_state == NULL || (cur_state && !(last_rstate == cur_rstate)))
+    VDecl *state_vdecl = vdecl ? vdecl : cur_prog->vdecl;
+    const uint64_t vdecl_hash = state_vdecl ? state_vdecl->hash : 0;
+    if (cur_state == NULL || !(last_rstate == cur_rstate) || last_vdecl_hash != vdecl_hash)
     {
       cur_state = shadersPreCache.getState(cur_prog, vdecl, cur_rstate, using_async_pso_compilation);
 
       last_rstate = cur_rstate;
+      last_vdecl_hash = vdecl_hash;
 
       if (!cur_state)
       {
@@ -5183,7 +5270,7 @@ namespace drv3d_metal
       ++frame;
     }
 
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     G_ASSERT(resources2delete.empty());
     G_ASSERT(textures2upload.empty());
     G_ASSERT(buffers2copy.empty());
@@ -5264,20 +5351,20 @@ namespace drv3d_metal
   void Render::uploadTexture(Texture *tex_ptr, id<MTLTexture> tex, int level, int layer, int x, int y, int z, int w, int h, int d,
     id<MTLBuffer> buf, int pitch, int imageSize)
   {
-    std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+    std::lock_guard scopedLock(copy_tex_lock);
     G_ASSERT(tex_ptr);
     textures2upload.push_back( {tex_ptr->apiTex, tex, buf, (uint32_t)pitch, (uint32_t)imageSize, (uint16_t)x, (uint16_t)y, (uint16_t)z, (uint16_t)w, (uint16_t)h, (uint16_t)d, (uint8_t)level, (uint8_t)layer} );
   }
 
   void Render::queueResourceForDeletion(id<MTLResource> buf)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::NativeResource, .submit = submits_scheduled, .native_resource = buf });
   }
 
-  void Render::queueHeapForDeletion(id<MTLHeap> heap)
+  void Render::queueHeapForDeletion(ResourceHeap *heap)
   {
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Heap, .submit = submits_scheduled, .heap = heap });
   }
 
@@ -5285,7 +5372,7 @@ namespace drv3d_metal
   {
     purgeQueuedBindlessUpdates(buff);
 
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Buffer, .submit = submits_scheduled, .buffer = buff });
 
     if (buff && isRenderAcquiredInThisThread())
@@ -5311,7 +5398,7 @@ namespace drv3d_metal
     if (tex->isStub())
       tex->apiTex = nullptr; // hack?
 
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Texture, .submit = submits_scheduled, .texture = tex });
     if (tex)
       flushTexture(tex);
@@ -5341,7 +5428,7 @@ namespace drv3d_metal
 
   void Render::queueCopyBuffer(Buffer *dst_buf, Buffer::BufTex *buf_tex, id<MTLBuffer> src, int src_offset, id<MTLBuffer> dst, int dst_offset, int size)
   {
-    std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+    std::lock_guard scopedLock(copy_tex_lock);
     G_ASSERT(dst_buf);
     buffers2copy.push_back({ dst_buf, buf_tex, src, dst, src_offset, dst_offset, size });
   }
@@ -5364,6 +5451,8 @@ namespace drv3d_metal
   shaders::DriverRenderStateId Render::createRenderState(const shaders::RenderState & state)
   {
     CachedRenderState rstate;
+    // raster_state bytes are the PSO key, so padding and unused blend slots must be zero
+    memset(&rstate.raster_state, 0, sizeof(rstate.raster_state));
     rstate.scissor_on = state.scissorEnabled;
 
     G_ASSERT(state.zFunc);
@@ -5531,7 +5620,7 @@ namespace drv3d_metal
       blases.unlock();
       G_ASSERT(as->index >= 0);
 
-      std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+      std::lock_guard scopedLock(copy_tex_lock);
       blases2create.emplace_back(as->acceleration_struct);
     }
     return as;
@@ -5570,7 +5659,7 @@ namespace drv3d_metal
 
     TEXQL_ON_PERSISTENT_RELEASE_SZ(as->acceleration_struct.allocatedSize);
 
-    std::lock_guard<std::mutex> scopedLock(delete_lock);
+    std::lock_guard scopedLock(delete_lock);
     if (is_blas)
       residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = as->acceleration_struct });
     resources2delete.push_back({ .type = DeletedResource::Type::AccelerationStructure, .submit = submits_scheduled, .as = as });

@@ -5,7 +5,7 @@ options persistent_heap
 // MIDI player with SF2 SoundFont — plays a .mid file using a GM SoundFont.
 // Place a GM SoundFont next to this file (see README.md for download links).
 // Usage: daslang.exe main.das [-- path_to.mid]
-// Default: examples/media/midi/take_five.mid
+// Default: examples/media/midi/Bach_Air_on_G_string_BWV1068.mid
 
 require strudel/strudel_midi_player
 require audio/audio_boost

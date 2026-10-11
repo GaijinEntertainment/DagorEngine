@@ -3,7 +3,7 @@ options gen2
 require dastest/testing_boost public
 
 [test]
-def test_nested(t : T?) {
+def test_nested(t : T?) { // nolint:STYLE038 one flat arm per nested loop-kind pairing under test
     t |> run("for in for") @(t : T?) {
         var outer = 0
         var inner = 0

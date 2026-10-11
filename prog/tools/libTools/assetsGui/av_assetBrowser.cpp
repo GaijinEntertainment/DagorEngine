@@ -76,7 +76,11 @@ void AssetBrowser::Layout::update(int item_count, int image_size, float availabl
 
 AssetBrowser::AssetBrowser(IAssetBrowserHost &host) : assetBrowserHost(host) { settingsIcon = PropPanel::load_icon("settings"); }
 
-AssetBrowser::~AssetBrowser() { clearTexturesDrawnThisFrame(); }
+AssetBrowser::~AssetBrowser()
+{
+  clearItems();
+  clearTexturesDrawnThisFrame();
+}
 
 bool AssetBrowser::isTheSameAssetList(dag::Span<DagorAsset *> assets) const
 {
@@ -311,8 +315,6 @@ void AssetBrowser::drawItem(BrowserItem &browser_item, const ImVec2 &pos, int it
 
 void AssetBrowser::drawItems()
 {
-  clearTexturesDrawnThisFrame();
-
   if (!ImGui::BeginChild("assets", ImVec2(0.0f, 0.0f), ImGuiChildFlags_FrameStyle,
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings))
   {
@@ -414,29 +416,34 @@ void AssetBrowser::showSettingsPanel(const char *popup_id)
   ImGui::EndPopup();
 }
 
-void AssetBrowser::updateImgui()
+void AssetBrowser::updateImgui(bool can_submit_contents)
 {
-  const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
-  const ImVec2 settingsButtonSize = PropPanel::ImguiHelper::getImageButtonWithDownArrowSize(fontSizedIconSize);
-  const ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-  const float spaceXBeforeButton = max(ImGui::GetContentRegionAvail().x - settingsButtonSize.x, 0.0f);
-  ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + spaceXBeforeButton, cursorPos.y));
+  clearTexturesDrawnThisFrame();
 
-  const char *popupId = "settingsPopup";
-  const bool settingsButtonPressed =
-    PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsIcon, fontSizedIconSize, settingsPanelOpen);
-  PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Settings");
-
-  if (settingsPanelOpen)
-    showSettingsPanel(popupId);
-
-  if (settingsButtonPressed)
+  if (can_submit_contents)
   {
-    ImGui::OpenPopup(popupId);
-    settingsPanelOpen = true;
-  }
+    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
+    const ImVec2 settingsButtonSize = PropPanel::ImguiHelper::getImageButtonWithDownArrowSize(fontSizedIconSize);
+    const ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+    const float spaceXBeforeButton = max(ImGui::GetContentRegionAvail().x - settingsButtonSize.x, 0.0f);
+    ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + spaceXBeforeButton, cursorPos.y));
 
-  drawItems();
+    const char *popupId = "settingsPopup";
+    const bool settingsButtonPressed =
+      PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsIcon, fontSizedIconSize, settingsPanelOpen);
+    PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Settings");
+
+    if (settingsPanelOpen)
+      showSettingsPanel(popupId);
+
+    if (settingsButtonPressed)
+    {
+      ImGui::OpenPopup(popupId);
+      settingsPanelOpen = true;
+    }
+
+    drawItems();
+  }
 
   if (contextMenu && !contextMenu->updateImgui())
     contextMenu.reset();

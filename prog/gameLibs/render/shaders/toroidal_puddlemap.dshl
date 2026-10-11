@@ -12,12 +12,11 @@ macro INIT_TOROIDAL_PUDDLES(code, use_sampler)
   }
   if (use_sampler)
   {
-    (code) { toroidal_puddles_texarray@smpArray = toroidal_puddles_texarray; }
+    (code) {
+      toroidal_puddles_texarray_samplerstate@sampler = global_linear_wrap_sampler;
+    }
   }
-  else
-  {
-    (code) { toroidal_puddles_texarray@texArray = toroidal_puddles_texarray; }
-  }
+  (code) { toroidal_puddles_texarray@texArray = toroidal_puddles_texarray; }
 endmacro
 
 macro FALLBACK_TOROIDAL_PUDDLES(code)

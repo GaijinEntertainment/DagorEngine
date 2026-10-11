@@ -10,7 +10,7 @@
 const TIME_SEPARATOR = "-->"
 const BOM = "\xEF\xBB\xBF"
 
-function isDigits(str: string): bool {
+function [pure] isDigits(str: string): bool {
   if (str.len() == 0)
     return false
   foreach (ch in str)
@@ -19,7 +19,7 @@ function isDigits(str: string): bool {
   return true
 }
 
-function parseTimeMsec(str: string): int|null {
+function [pure] parseTimeMsec(str: string): int|null {
   let hms = str.strip().split(":")
   if (hms.len() != 3)
     return null
@@ -31,7 +31,7 @@ function parseTimeMsec(str: string): int|null {
     + msec.tointeger()
 }
 
-function parseSrt(text: string): array {
+function [pure] parseSrt(text: string): array {
   let lines = (text.startswith(BOM) ? text.slice(BOM.len()) : text).split("\n")
   let cues = []
   local idx = 0

@@ -213,16 +213,13 @@ public:
   bool isVisibleInMainCamera() { return isVisible; }
   void renderForShadow(const Point3 &view_pos)
   {
-    bool lastLod = true;
     if (!isVisible)
       setMatrices(view_pos);
-    if (lastLod)
-      body->getModel()->setLod(body->getModel()->getLodsCount() - 1);
+    body->getModel()->setLod(body->getModel()->getLodsCount() - 1);
     body->getModel()->render();
     body->getModel()->renderTrans();
 
-    if (lastLod)
-      body->getModel()->setLod(-1);
+    body->getModel()->setLod(-1);
 
     for (int i = 0; i < wheels.size(); i++)
     {

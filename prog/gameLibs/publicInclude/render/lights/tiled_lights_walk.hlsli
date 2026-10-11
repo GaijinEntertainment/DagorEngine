@@ -1,5 +1,6 @@
 // Iterates visible lights of one type from the per-tile z-binned light lists,
-// invoking the light body for each light index.
+// invoking the light body for each light index. Helper lanes skip the walk,
+// so the light body must not need derivatives.
 //
 // Usage:
 //   #define TILED_LIGHTS_WALK_SPOT 0|1           // light type: omni (0) or spot (1)

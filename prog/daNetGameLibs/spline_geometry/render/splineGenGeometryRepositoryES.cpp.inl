@@ -153,6 +153,9 @@ SplineGenGeometryShapeManagerPtr SplineGenGeometryRepository::getOrMakeShapeMana
       });
     shapeManager->createAndFillBuffer();
   }
+  else if (shapeBufferLost)
+    shapeManager->createAndFillBuffer();
+  shapeBufferLost = false;
   return shapeManager;
 }
 
@@ -161,6 +164,7 @@ void SplineGenGeometryRepository::reset()
   ibs.clear();
   assets.clear();
   managers.clear();
+  shapeBufferLost = true;
 }
 
 ska::flat_hash_map<uint32_t, eastl::shared_ptr<SplineGenGeometryIb>> &SplineGenGeometryRepository::getIbs() { return ibs; }

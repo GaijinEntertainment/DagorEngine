@@ -7,6 +7,7 @@
 #include "nameMap.h"
 #include "hlslRegisters.h"
 #include "globalConfig.h"
+#include "subpassRead.h"
 #include <util/dag_bindump_ext.h>
 #include <util/dag_string.h>
 #include <EASTL/vector_set.h>
@@ -111,6 +112,8 @@ struct NamedConstBlock
   // Cached bottom-up at block construction: does this block's HLSL decl subtree contain an @bindless* const, per stage group?
   eastl::bitset<size_t(StageGroup::Count)> explicitBindlessSubtree;
 
+  RenderPassOptIn subpassReadWindow{};
+
   BINDUMP_END_NON_SERIALIZABLE();
 
   SerializableTab<bindump::Address<ShaderStateBlock>> suppBlk;
@@ -118,7 +121,7 @@ struct NamedConstBlock
   NamedConstBlock() : suppBlk(midmem) {}
 
   CstHandle addConst(int stage, const char *name, Terminal *decl_term, Lexer &lexer, HlslRegisterSpace reg_space, int sz,
-    int hardcoded_reg, bool is_dynamic);
+    int hardcoded_reg, bool is_dynamic, int preallocated_reg = -1);
 
   // @TODO: error message
   bool initSlotTextureSuballocators(int vs_tex_count, int vs_smp_count, int ps_tex_count, int ps_smp_count, Lexer &lexer);
@@ -196,12 +199,12 @@ class ShaderStateBlock
 {
 public:
   ShaderStateBlock() : nameId(-1), stcodeId(-1), cppStcodeId(-1), layerLevel(ShaderBlockLevel::UNDEFINED), regSize(0) {}
-  ShaderStateBlock(const char *name, ShaderBlockLevel lev, NamedConstBlock &&ncb, dag::Span<int> stcode,
-    DynamicStcodeRoutine *cpp_stcode, int maxregsize, shc::TargetContext &a_ctx);
+  ShaderStateBlock(const char *blk_name, ShaderBlockLevel lev, NamedConstBlock &&ncb, dag::Span<int> stcode,
+    DynamicStcodeRoutine &cpp_stcode, int maxregsize, shc::TargetContext &a_ctx);
 
   bool canBeSupportedBy(ShaderBlockLevel lev) const { return layerLevel < lev; }
-  int getVsNameId(const char *name) const;
-  int getPsNameId(const char *name) const;
+  int getVsNameId(const char *var_name) const;
+  int getPsNameId(const char *var_name) const;
 
   struct BuildTimeData
   {
@@ -306,6 +309,10 @@ inline auto NamedConstBlock::makeInfoProvider(const RegisterProperties NamedCons
         return eastl::move(*info);
     if (auto [name, ref, size] = getInfoForReg(this->*props_field); name)
       return AllocatedRegInfo{eastl::string{name} + ", <shader, " + (ref ? ref->c_str() : "unknown source location") + ">\n", size};
+
+    if (rspace == HLSL_RSPACE_T && props_field == &NamedConstBlock::pixelProps)
+      if (const char *target = subpassReadWindow.targetAtRegister(reg))
+        return AllocatedRegInfo{eastl::string{"render_pass target '"} + target + "', <subpass read>\n", 1};
 
     return AllocatedRegInfo{"<unnamed>\n", 1};
   };

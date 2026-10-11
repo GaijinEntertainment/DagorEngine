@@ -2,6 +2,12 @@ include_optional "project_dagi_lit_scene_helper.dshl"//for PROJECT_GET_WORLD_RAD
 include "project_light_point.dshl" // for PROJECT_LIGHT_POINT_TRACE_HIT
 include "dagi_albedo_scene_common.dshl"
 include "dagi_lit_scene_voxels.dshl"
+include "skyLightBase.dshl"
+
+int dagi_voxel_lit_scene_only_emission = 0;
+int dagi_voxel_lit_scene_emission_only_supported = 0;
+interval dagi_voxel_lit_scene_emission_only_supported: no < 1, yes;
+assume_if_not_assumed dagi_voxel_lit_scene_emission_only_supported = no;
 
 define_macro_if_not_defined PROJECT_LIGHT_POINT_TRACE_HIT(code) // when tracing radiance for probe
   hlsl(code) {
@@ -99,14 +105,20 @@ define_macro_if_not_defined PROJECT_GET_SKY_RADIANCE_AT(code)
 endmacro
 
 define_macro_if_not_defined PROJECT_GET_WORLD_RADIANCE_AT(code)
-  PROJECT_GET_SKY_RADIANCE_AT(code)
   PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
   DAGI_ALBEDO_SAMPLE(code)
   PROJECT_LIGHT_POINT_TRACE_HIT(code)
 
+  if (dagi_voxel_lit_scene_emission_only_supported == yes)
+  {
+    (code) {
+      dagi_voxel_lit_scene_only_emission@i1 = dagi_voxel_lit_scene_only_emission;
+    }
+  }
+
   hlsl(code) {
     //when ray we hit the scene
-    bool dagi_get_radiance_at_valid(float3 worldPos, float3 worldNormal, out float3 radiance, float4 toCameraBiasDirAndLimit = 0)
+    float3 dagi_get_radiance_at(float3 worldPos, float3 worldNormal, float4 toCameraBiasDirAndLimit = 0)
     {
       //fixme add per-project ray hit result (as some of ray hits can return additional info)
       //float oneClipSizeWithBorderInTexels = dagi_lit_voxel_scene_to_sdf_clips.z;
@@ -114,31 +126,41 @@ define_macro_if_not_defined PROJECT_GET_WORLD_RADIANCE_AT(code)
       //float oneAxisSliceSizeWithoutBorderInTexels = dagi_lit_voxel_scene_res.y;
       //float fullAtlasSizeInTexels = dagi_lit_scene_voxels_full_atlas_res_d();
       //float4 lit_scene_to_atlas_decode = float4(oneAxisSliceSizeWithoutBorderInTexels, oneClipSizeWithBorderInTexels, oneAxisSliceSizeWithBorderInTexels, 1) / fullAtlasSizeInTexels;
+      float3 radiance = 0;
       if (dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
-        return true;
+      {
+      ##if dagi_voxel_lit_scene_emission_only_supported == yes
+        if (!dagi_voxel_lit_scene_only_emission)
+      ##endif
+        {
+          return radiance;
+        }
+      }
+
       #ifndef DAGI_RADIANCE_AT_SKIP_ALBEDO
         float3 albedo = DAGI_MISSED_ALBEDO;
         dagi_sample_albedo_best(worldPos, albedo);
-        radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo, toCameraBiasDirAndLimit);
+        radiance += project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo, toCameraBiasDirAndLimit);
       #else
         radiance = DAGI_RADIANCE_AT_SKIP_ALBEDO;
       #endif
-      return false;
-    }
-
-    float3 dagi_get_radiance_at(float3 worldPos, float3 worldNormal, float4 toCameraBiasDirAndLimit = 0)
-    {
-      float3 radiance;
-      dagi_get_radiance_at_valid(worldPos, worldNormal, radiance, toCameraBiasDirAndLimit);
       return radiance;
     }
 
     float3 dagi_get_radiance_at_with_albedo(float3 worldPos, float3 worldNormal, float3 albedo, float4 toCameraBiasDirAndLimit = 0)
     {
-      float3 radiance;
-      if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
-        radiance = project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo, toCameraBiasDirAndLimit);
-      //avoid using return from mid function, as dx11 compilers is going crazy about unitialized variables
+      float3 radiance = 0;
+      if (dagi_get_voxels_lit_scene_radiance_at(worldPos, worldNormal, radiance))
+      {
+      ##if dagi_voxel_lit_scene_emission_only_supported == yes
+        if (!dagi_voxel_lit_scene_only_emission)
+      ##endif
+        {
+          return radiance;
+        }
+      }
+
+      radiance += project_get_lit_color_at_trace_hit(worldPos, worldNormal, albedo, toCameraBiasDirAndLimit);
       return radiance;
     }
   }

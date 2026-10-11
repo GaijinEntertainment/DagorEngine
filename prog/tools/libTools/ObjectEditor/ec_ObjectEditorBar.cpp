@@ -55,7 +55,7 @@ ObjectEditorPropPanelBar::ObjectEditorPropPanelBar(ObjectEditor *obj_ed, void *h
 
 ObjectEditorPropPanelBar::~ObjectEditorPropPanelBar()
 {
-  endEditGesture();
+  editGesture.end();
 
   if (objects.size())
     objects[0]->onPPClose(*propPanel, mk_slice(objects));
@@ -74,55 +74,11 @@ void ObjectEditorPropPanelBar::getObjects()
 }
 
 
-void ObjectEditorPropPanelBar::beginEditGesture(int pcb_id)
-{
-  if (editGestureOpen && editGesturePid == pcb_id)
-    return;
-
-  // A gesture that could not be closed keeps this change, rather than nesting a second one inside it.
-  if (!endEditGesture())
-    return;
-
-  objEd->getUndoSystem()->begin(true);
-  editGesturePid = pcb_id;
-  editGestureOpen = true;
-  editGestureDepth = objEd->getUndoSystem()->open_operation_count();
-}
-
-
-bool ObjectEditorPropPanelBar::endEditGesture()
-{
-  if (!editGestureOpen)
-    return true;
-
-  UndoSystem *undo = objEd->getUndoSystem();
-  const int openNow = undo->open_operation_count();
-
-  // Accepting now would close what was opened inside the gesture instead of the gesture itself, and
-  // leave the gesture open for good. Whoever opened that one still has to close it, and the next
-  // attempt here gets the gesture once they have.
-  if (openNow > editGestureDepth)
-    return false;
-
-  const int pid = editGesturePid;
-  editGestureOpen = false;
-
-  // Fewer open than the gesture itself opened means its operation is gone: loading a level clears the
-  // undo system without telling anyone. Accepting would commit an unrelated operation under this name.
-  if (openNow < editGestureDepth)
-    return true;
-
-  // An empty operation is dropped by accept(), so a gesture that changed nothing leaves no record.
-  undo->accept(edit_gesture_name(pid));
-  return true;
-}
-
-
 void ObjectEditorPropPanelBar::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   // A dragged spin box or slider changes every frame, so the per-change operations below are nested
   // in one operation per edit. Undo then reverts the whole drag instead of its last frame.
-  beginEditGesture(pcb_id);
+  editGesture.begin(*objEd->getUndoSystem(), pcb_id, edit_gesture_name(pcb_id));
 
   if (pcb_id == ID_NAME)
   {
@@ -154,10 +110,9 @@ void ObjectEditorPropPanelBar::onChangeFinished(int pcb_id, PropPanel::Container
 {
   G_UNUSED(panel);
 
-  // The value already arrived through onChange. The id has to match, a gesture another control
-  // opened in between is still being edited.
-  if (editGestureOpen && editGesturePid == pcb_id)
-    endEditGesture();
+  // The value already arrived through onChange. Closing by id leaves a gesture another control opened
+  // in between alone, it is still being edited.
+  editGesture.end(pcb_id);
 }
 
 
@@ -250,7 +205,7 @@ void ObjectEditorPropPanelBar::setObjectTransform(int mode, Point3 val)
 
 void ObjectEditorPropPanelBar::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  endEditGesture();
+  editGesture.end();
 
   if (objects.size())
   {
@@ -280,7 +235,7 @@ void ObjectEditorPropPanelBar::fillPanel()
   G_ASSERT(propPanel && "ObjectEditorPropPanelBar::fillPanel: ppanel is NULL!");
 
   // The controls are about to be destroyed, so no finish event will arrive for a gesture in progress.
-  endEditGesture();
+  editGesture.end();
 
   if (objects.size() && objects[0].get() && propPanel && propPanel->getById(ID_NAME))
     objects[0]->onPPClear(*propPanel, mk_slice(objects));

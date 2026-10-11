@@ -23,25 +23,27 @@ class EntityManager;
 class EntityId
 {
 public:
-  EntityId() = default;
-  explicit EntityId(entity_id_t h) : handle(h) {}
-  EntityId(const EntityId &) = default;
-  EntityId &operator=(const EntityId &) = default;
-  explicit operator entity_id_t() const { return handle; }
-  explicit operator bool() const { return handle != ECS_INVALID_ENTITY_ID_VAL; }
-  bool operator==(const EntityId &rhs) const { return handle == rhs.handle; }
-  bool operator!=(const EntityId &rhs) const { return handle != rhs.handle; }
-  bool operator<(const EntityId &rhs) const { return handle < rhs.handle; }
-  void reset() { handle = ECS_INVALID_ENTITY_ID_VAL; }
-  entity_id_t value() const { return handle; }
-  unsigned index() const { return handle >> ENTITY_GENERATION_BITS; } // Note: trims generation bits
+  constexpr EntityId() = default;
+  explicit constexpr EntityId(entity_id_t h) : handle(h) {}
+  constexpr EntityId(const EntityId &) = default;
+  constexpr EntityId &operator=(const EntityId &) = default;
+  explicit constexpr operator entity_id_t() const { return handle; }
+  explicit constexpr operator bool() const { return handle != ECS_INVALID_ENTITY_ID_VAL; }
+  constexpr bool operator==(const EntityId &rhs) const { return handle == rhs.handle; }
+  constexpr bool operator!=(const EntityId &rhs) const { return handle != rhs.handle; }
+  constexpr bool operator<(const EntityId &rhs) const { return handle < rhs.handle; }
+  constexpr void reset() { handle = ECS_INVALID_ENTITY_ID_VAL; }
+  constexpr entity_id_t value() const { return handle; }
+  constexpr unsigned index() const { return handle >> ENTITY_GENERATION_BITS; } // Note: trims generation bits
 
 private:
   friend class ecs::EntityManager;
   friend unsigned get_generation(const EntityId);
   entity_id_t handle = ECS_INVALID_ENTITY_ID_VAL;
-  unsigned generation() const { return handle & ENTITY_GENERATION_MASK; }
+  constexpr unsigned generation() const { return handle & ENTITY_GENERATION_MASK; }
 };
+
+static_assert(EntityId().value() == ECS_INVALID_ENTITY_ID_VAL, "default constructed EntityId must be invalid");
 
 struct EidHash
 {

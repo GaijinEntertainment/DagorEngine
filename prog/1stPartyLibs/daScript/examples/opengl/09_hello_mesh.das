@@ -5,7 +5,7 @@ require glfw/glfw_boost
 require opengl/opengl_boost
 require opengl/opengl_gen
 require math
-require strings
+require daslib/strings_convert
 require daslib/math_boost
 require live/live_gc
 
@@ -100,18 +100,18 @@ def init() {
             }
         }
         glfwSetMouseButtonCallback(window) @(w, b, a, m) {
-            if (b == int(GLFW_MOUSE_BUTTON_1)) {
-                cursor_enabled = a == int(GLFW_PRESS)
+            if (b == GLFW_MOUSE_BUTTON_1) {
+                cursor_enabled = a == GLFW_PRESS
                 if (cursor_enabled) {
                     glfwSetInputMode(window, int(GLFW_CURSOR), int(GLFW_CURSOR_HIDDEN))
-                    glfwSetInputMode(window, int(GLFW_RAW_MOUSE_MOTION), int(GLFW_TRUE))
+                    glfwSetInputMode(window, int(GLFW_RAW_MOUSE_MOTION), GLFW_TRUE)
                     var display_w, display_h : int
                     glfwGetFramebufferSize(window, display_w, display_h)
                     cursor_position_xy = float2(display_w / 2, display_h / 2)
                     glfwSetCursorPos(window, double(cursor_position_xy.x), double(cursor_position_xy.y))
                 } else {
                     glfwSetInputMode(window, int(GLFW_CURSOR), int(GLFW_CURSOR_NORMAL))
-                    glfwSetInputMode(window, int(GLFW_RAW_MOUSE_MOTION), int(GLFW_FALSE))
+                    glfwSetInputMode(window, int(GLFW_RAW_MOUSE_MOTION), GLFW_FALSE)
                 }
             }
         }
@@ -163,7 +163,7 @@ def parse_args() {
     let args <- get_command_line_arguments()
     for (i in range(length(args) - 1)) {
         if (args[i] == "--max-frames") {
-            max_frame_limit = to_int(args[i + 1])
+            max_frame_limit = try_to_int(args[i + 1]) ?? 0   // garbage = no cap
         }
     }
 }

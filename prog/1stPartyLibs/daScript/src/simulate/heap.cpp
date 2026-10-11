@@ -73,6 +73,7 @@ namespace das {
     }
 
     void PersistentHeapAllocator::report() {
+#if DAS_HEAP_REPORT
         LOG tout(LogLevel::debug);
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {
             if ( model.shoe.chunks[si] ) tout << "decks of size " << int((si+1)<<4) << "\n";
@@ -131,6 +132,7 @@ namespace das {
             }
 #endif
         }
+#endif
     }
 
     char * PersistentHeapAllocator::impl_allocate ( uint64_t size ) {
@@ -145,7 +147,9 @@ namespace das {
     char * PersistentHeapAllocator::impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) {
         if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
             totalAllocations ++;
-            totalBytesAllocated += newSize-oldSize;
+            if (ptr) ++totalReallocations;
+            if (newSize >= oldSize) totalBytesAllocated += newSize - oldSize;
+            else totalBytesDeleted += oldSize - newSize;
             return model.reallocate(ptr,oldSize,newSize);
         } else {
             return nullptr;
@@ -184,15 +188,32 @@ namespace das {
     }
 
     void LinearHeapAllocator::impl_free( char * ptr, uint64_t size ) {
-            totalBytesDeleted += size;
+            if (ptr) { ++totalFrees; totalBytesDeleted += size; }
+#if DAS_ASAN
+            model.free(ptr,size + DAS_ASAN_REDZONE);
+            if ( ptr ) DAS_ASAN_POISON(ptr, size);
+#else
             model.free(ptr,size);
+#endif
     }
 
     char * LinearHeapAllocator::impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) {
         if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
             totalAllocations ++;
-            totalBytesAllocated += newSize-oldSize;
+            if (ptr) ++totalReallocations;
+            if (newSize >= oldSize) totalBytesAllocated += newSize - oldSize;
+            else totalBytesDeleted += oldSize - newSize;
+#if DAS_ASAN
+            char * nptr = allocateWithGap(newSize);
+            if ( ptr && nptr ) {
+                memcpy(nptr, ptr, das::min(oldSize, newSize));
+                model.free(ptr, oldSize + DAS_ASAN_REDZONE);
+                DAS_ASAN_POISON(ptr, oldSize);
+            }
+            return nptr;
+#else
             return model.reallocate(ptr,oldSize,newSize);
+#endif
         } else {
             return nullptr;
         }
@@ -205,11 +226,13 @@ namespace das {
     void LinearHeapAllocator::shrink() { model.shrink(); }
 
     void LinearHeapAllocator::report() {
+#if DAS_HEAP_REPORT
         LOG tout(LogLevel::debug);
         for ( auto ch=model.chunk; ch; ch=ch->next ) {
             tout << HEX << intptr_t(ch->data) << DEC << "\t"
                 << ch->offset << " of " << ch->size << "\n";
         }
+#endif
     }
 
     bool LinearHeapAllocator::isOwnPtr ( char * ptr, uint64_t ) { return model.isOwnPtr(ptr); }
@@ -267,6 +290,12 @@ namespace das {
         LinearChunkAllocator::reset();
         das_string_set dummy;
         swap(internMap, dummy);
+        blobLengths.clear();
+    }
+
+    uint32_t ConstStringAllocator::blobLength ( const char * str ) const {
+        auto it = blobLengths.find(str);
+        return it != blobLengths.end() ? it->second : 0;
     }
 
     char * ConstStringAllocator::impl_allocateString ( const char * text, uint64_t length ) {
@@ -284,6 +313,7 @@ namespace das {
                 if ( text ) memcpy(str, text, length);
                 str[length] = 0;
                 internMap.insert(StrHashEntry(str,uint32_t(length)));
+                if ( text && memchr(text, 0, length) ) blobLengths[str] = uint32_t(length);
                 return str;
             }
         }
@@ -324,6 +354,10 @@ namespace das {
         impl_free ( text, length + 1 );
     }
 
+#if DAS_HEAP_REPORT
+    // Only the report() bodies below call this, plus simulate_gc.cpp, which is
+    // never built with reporting off. It is guarded because escapeString builds
+    // a std::string, and that is the whole reason escape_string.cpp gets linked.
     char * presentStr ( char * buf, char * ch, int size ) {
         auto str = escapeString(ch);
         strncpy(buf,str.c_str(),size);
@@ -333,6 +367,7 @@ namespace das {
         buf[size-1] = 0;
         return buf;
     }
+#endif
 
     char * PersistentStringAllocator::impl_allocate ( uint64_t size ) {
         if ( limit==0 || model.bytesAllocated()+size<=limit ) {
@@ -344,13 +379,15 @@ namespace das {
         }
     }
     void PersistentStringAllocator::impl_free ( char * ptr, uint64_t size ) {
-        totalBytesDeleted += size;
+        if (ptr) { ++totalFrees; totalBytesDeleted += size; }
         model.free(ptr,size);
     }
     char * PersistentStringAllocator::impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) {
         if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
             totalAllocations ++;
-            totalBytesAllocated += newSize-oldSize;
+            if (ptr) ++totalReallocations;
+            if (newSize >= oldSize) totalBytesAllocated += newSize - oldSize;
+            else totalBytesDeleted += oldSize - newSize;
             return model.reallocate(ptr,oldSize,newSize);
         } else {
             return nullptr;
@@ -359,7 +396,7 @@ namespace das {
     int PersistentStringAllocator::depth() const { return model.depth(); }
     uint64_t PersistentStringAllocator::bytesAllocated() const { return model.bytesAllocated(); }
     uint64_t PersistentStringAllocator::totalAlignedMemoryAllocated() const { return model.totalAlignedMemoryAllocated(); }
-    void PersistentStringAllocator::reset() { model.reset(); }
+    void PersistentStringAllocator::reset() { StringHeapAllocator::reset(); model.reset(); }
     void PersistentStringAllocator::shrink() { model.shrink(); }
     bool PersistentStringAllocator::isOwnPtr ( char * ptr, uint64_t size ) { return model.isOwnPtr(ptr,size); }
     bool PersistentStringAllocator::isValidPtr ( char * ptr, uint64_t size ) { return model.isAllocatedPtr(ptr,size); }
@@ -401,6 +438,7 @@ namespace das {
     }
 
     void PersistentStringAllocator::report() {
+#if DAS_HEAP_REPORT
         LOG tout(LogLevel::debug);
         char buf[33];
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {
@@ -436,6 +474,7 @@ namespace das {
             }
             tout << " big stuff total size:" << (totalBigStuff + 1023) / 1024 << " kb\n";
         }
+#endif
     }
 
     LinearStringAllocator::LinearStringAllocator() { model.alignMask = 3; }
@@ -450,14 +489,16 @@ namespace das {
         }
     }
     void LinearStringAllocator::impl_free ( char * ptr, uint64_t size ) {
-        totalBytesDeleted += size;
+        if (ptr) { ++totalFrees; totalBytesDeleted += size; }
         model.free(ptr,size);
     }
 
     char * LinearStringAllocator::impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) {
         if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
             totalAllocations ++;
-            totalBytesAllocated += newSize-oldSize;
+            if (ptr) ++totalReallocations;
+            if (newSize >= oldSize) totalBytesAllocated += newSize - oldSize;
+            else totalBytesDeleted += oldSize - newSize;
             return model.reallocate(ptr,oldSize,newSize);
         } else {
             return nullptr;
@@ -467,7 +508,7 @@ namespace das {
     int LinearStringAllocator::depth() const { return model.depth(); }
     uint64_t LinearStringAllocator::bytesAllocated() const { return model.bytesAllocated(); }
     uint64_t LinearStringAllocator::totalAlignedMemoryAllocated() const { return model.totalAlignedMemoryAllocated(); }
-    void LinearStringAllocator::reset() { model.reset(); }
+    void LinearStringAllocator::reset() { StringHeapAllocator::reset(); model.reset(); }
     void LinearStringAllocator::shrink() { model.shrink(); }
     bool LinearStringAllocator::isOwnPtr ( char * ptr, uint64_t ) { return model.isOwnPtr(ptr); }
     void LinearStringAllocator::setInitialSize ( uint64_t size ) { model.setInitialSize(size); }
@@ -475,6 +516,7 @@ namespace das {
     void LinearStringAllocator::setGrowFunction( CustomGrowFunction && fun ) { model.customGrow = fun; }
 
     void LinearStringAllocator::report() {
+#if DAS_HEAP_REPORT
         LOG tout(LogLevel::debug);
         char buf[33];
         for ( auto ch=model.chunk; ch; ch=ch->next ) {
@@ -490,6 +532,7 @@ namespace das {
                 txt += sz;
             }
         }
+#endif
     }
 
     void LinearStringAllocator::forEachString ( const callable<void (const char *)> & fn ) {
@@ -504,6 +547,7 @@ namespace das {
         }
     }
 
+#if DAS_DEBUG_INFO_NAME_CACHE
     char * DebugInfoAllocator::allocateCachedName ( const string & name ) {
         auto it = stringLookup.find(name);
         if ( it!=stringLookup.end() )  return it->second;
@@ -514,4 +558,5 @@ namespace das {
         stringBytes += bytes;
         return nname;
     }
+#endif
 }

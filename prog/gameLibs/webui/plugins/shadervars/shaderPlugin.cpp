@@ -16,23 +16,24 @@
 
 using namespace webui;
 
-static const char *get_sh_var_value(const String &name, int var_id, ShaderVarType type, char *buf, int b_size)
+static const char *get_sh_var_value(const String &name, int var_id, ShaderVarType type, String &buf)
 {
+  buf.clear();
   switch (type)
   {
     case SHVT_FLOAT4X4:
     {
       TMatrix4 mat = ShaderGlobal::get_float4x4(var_id);
-      SNPRINTF(buf, b_size, "(%.3f %.3f %.3f %.3f)<br/>(%.3f %.3f %.3f %.3f)<br/>(%.3f %.3f %.3f %.3f)<br/>(%.3f %.3f %.3f %.3f)",
+      buf.printf(0, "(%.3f %.3f %.3f %.3f)<br/>(%.3f %.3f %.3f %.3f)<br/>(%.3f %.3f %.3f %.3f)<br/>(%.3f %.3f %.3f %.3f)",
         P4D(mat.getrow(0)), P4D(mat.getrow(1)), P4D(mat.getrow(2)), P4D(mat.getrow(3)));
     }
     break;
     case SHVT_FLOAT4x3:
     {
       TMatrix mat = ShaderGlobal::get_float4x3(var_id);
-      SNPRINTF(buf, b_size, "(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)", mat.m[0][0],
-        mat.m[0][1], mat.m[0][2], mat.m[1][0], mat.m[1][1], mat.m[1][2], mat.m[2][0], mat.m[2][1], mat.m[2][2], mat.m[3][0],
-        mat.m[3][1], mat.m[3][2]);
+      buf.printf(0, "(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)", mat.m[0][0], mat.m[0][1],
+        mat.m[0][2], mat.m[1][0], mat.m[1][1], mat.m[1][2], mat.m[2][0], mat.m[2][1], mat.m[2][2], mat.m[3][0], mat.m[3][1],
+        mat.m[3][2]);
     }
     break;
     case SHVT_INT:
@@ -44,23 +45,23 @@ static const char *get_sh_var_value(const String &name, int var_id, ShaderVarTyp
         dag::Vector<String> subintervs = ShaderGlobal::get_subinterval_names(interv);
         for (auto &subinterv : subintervs)
           if (currSubinterv == ShaderGlobal::Subinterval(subinterv, subinterv.length()))
-            SNPRINTF(buf, b_size, "%s (%d)", subinterv.c_str(), ShaderGlobal::get_int(var_id));
+            buf.printf(0, "%s (%d)", subinterv.c_str(), ShaderGlobal::get_int(var_id));
       }
       else
-        SNPRINTF(buf, b_size, "%d", ShaderGlobal::get_int(var_id));
+        buf.printf(0, "%d", ShaderGlobal::get_int(var_id));
       break;
     }
     case SHVT_INT4:
     {
       const IPoint4 &p = ShaderGlobal::get_int4(var_id);
-      SNPRINTF(buf, b_size, "(%d, %d, %d, %d)", p.x, p.y, p.z, p.w);
+      buf.printf(0, "(%d, %d, %d, %d)", p.x, p.y, p.z, p.w);
     }
     break;
-    case SHVT_REAL: SNPRINTF(buf, b_size, "%.3f", ShaderGlobal::get_float(var_id)); break;
+    case SHVT_REAL: buf.printf(0, "%.3f", ShaderGlobal::get_float(var_id)); break;
     case SHVT_COLOR4:
     {
       const Color4 &c = ShaderGlobal::get_float4(var_id);
-      SNPRINTF(buf, b_size, "(%.3f, %.3f, %.3f, %.3f)", c.r, c.g, c.b, c.a);
+      buf.printf(0, "(%.3f, %.3f, %.3f, %.3f)", c.r, c.g, c.b, c.a);
     }
     break;
     case SHVT_TEXTURE:
@@ -71,9 +72,9 @@ static const char *get_sh_var_value(const String &name, int var_id, ShaderVarTyp
       else
       {
         if (const char *n = get_managed_texture_name(texId))
-          SNPRINTF(buf, b_size, "tex #0x%x ('%s')", unsigned(texId), n);
+          buf.printf(0, "tex #0x%x ('%s')", unsigned(texId), n);
         else
-          SNPRINTF(buf, b_size, "tex #0x%x", unsigned(texId));
+          buf.printf(0, "tex #0x%x", unsigned(texId));
       }
     }
     break;
@@ -82,9 +83,9 @@ static const char *get_sh_var_value(const String &name, int var_id, ShaderVarTyp
   return buf;
 }
 
-static const char *get_sh_interval_ranges(const String &name, int var_id, char *buf, int b_size)
+static const char *get_sh_interval_ranges(const String &name, int var_id, String &buf)
 {
-  int w = 0;
+  buf.clear();
   int type = ShaderGlobal::get_var_type(var_id);
   dag::ConstSpan<float> maxVal = ShaderGlobal::get_interval_ranges(var_id);
 
@@ -94,15 +95,12 @@ static const char *get_sh_interval_ranges(const String &name, int var_id, char *
     dag::Vector<String> subintervs = ShaderGlobal::get_subinterval_names(interv);
 
     for (uint32_t i = 0; i < maxVal.size(); i++)
-      w += _snprintf(buf + w, b_size - w, "%s<br/>", subintervs[i].c_str());
-    _snprintf(buf + w, b_size - w, "%s", subintervs.back().c_str());
-
-    buf[b_size - 1] = 0;
+      buf.aprintf(0, "%s<br/>", subintervs[i].c_str());
+    buf.aprintf(0, "%s", subintervs.back().c_str());
     return buf;
   }
 
-  w = _snprintf(buf, b_size, "(");
-  int saved_w = w;
+  buf.printf(0, "(");
   bool ascending = true;
   float prev = 0.f;
 
@@ -111,27 +109,26 @@ static const char *get_sh_interval_ranges(const String &name, int var_id, char *
     if (i)
       ascending &= maxVal[i] - 1.f == prev;
     prev = maxVal[i];
-    w += _snprintf(buf + w, b_size - w, "%.1f%s", maxVal[i], i == (maxVal.size() - 1) ? ")" : ",");
+    buf.aprintf(0, "%.1f%s", maxVal[i], i == (maxVal.size() - 1) ? ")" : ",");
   }
   if ((type == SHVT_INT || type == SHVT_TEXTURE) && ascending && (maxVal.size() > 1 || maxVal[0] == 1.f)) // folding
-    _snprintf(buf + saved_w, b_size - saved_w, "%d-%d)", (int)maxVal[0] - 1, (int)maxVal.back());
-  buf[b_size - 1] = 0;
+    buf.printf(0, "(%d-%d)", (int)maxVal[0] - 1, (int)maxVal.back());
   return buf;
 }
 
-static const char *str_color4_html(char *buf, int buf_size, const Color4 &c)
+static const char *str_color4_html(String &buf, const Color4 &c)
 {
   if (c.r < 0.0 || c.r > 1.0 || c.g < 0.0 || c.g > 1.0 || c.b < 0.0 || c.b > 1.0)
     return "#not_a_color";
 #define TO_INT(cc) (int)floorf((cc) * 255.f + 0.5f)
-  SNPRINTF(buf, buf_size, "#%02x%02x%02x", TO_INT(c.r), TO_INT(c.g), TO_INT(c.b));
+  buf.printf(0, "#%02x%02x%02x", TO_INT(c.r), TO_INT(c.g), TO_INT(c.b));
 #undef TO_INT
   return buf;
 }
 
-static const char *str_color4_float(char *buf, int buf_size, const Color4 &c)
+static const char *str_color4_float(String &buf, const Color4 &c)
 {
-  SNPRINTF(buf, buf_size, "%.3f, %.3f, %.3f, %.3f", c.r, c.g, c.b, c.a);
+  buf.printf(0, "%.3f, %.3f, %.3f, %.3f", c.r, c.g, c.b, c.a);
   return buf;
 }
 
@@ -156,9 +153,10 @@ static bool parse_float_color(const char *scolor, Color4 &c)
 static void on_shader_vars(RequestInfo *params)
 {
   YAMemSave buf;
-  char stackBuf[256];
-  char stackBuf2[256];
-  const char *tn[] = {"INT", "REAL", "COL4", "TEX", "BUF", "INT4", "MAT", "SMP"};
+  String stackBuf;
+  String stackBuf2;
+  const char *tn[] = {"INT", "REAL", "COL4", "TEX", "BUF", "INT4", "MAT4X4", "SMP", "TLAS", "MAT4X3"};
+  G_STATIC_ASSERT(countof(tn) == SHVT_COUNT_);
   const char *hs[] = {
     "#",
     "name",
@@ -249,17 +247,16 @@ static void on_shader_vars(RequestInfo *params)
     TCOL("%d", row++);
     TCOL("%s", varName);
     TCOL("%s", type < countof(tn) ? tn[type] : "unknown");
-    buf.printf("<td id='sh_val_%d'>%s</td>", varId,
-      get_sh_var_value(varName, varId, static_cast<ShaderVarType>(type), stackBuf, sizeof(stackBuf)));
+    buf.printf("<td id='sh_val_%d'>%s</td>", varId, get_sh_var_value(varName, varId, static_cast<ShaderVarType>(type), stackBuf));
     if (ShaderGlobal::has_associated_interval(varId))
-      TCOL("%s", ShaderGlobal::is_var_assumed(varId) ? "assumed" : get_sh_interval_ranges(varName, varId, stackBuf, sizeof(stackBuf)));
+      TCOL("%s", ShaderGlobal::is_var_assumed(varId) ? "assumed" : get_sh_interval_ranges(varName, varId, stackBuf));
     else
       TCOL("");
     if (type == SHVT_COLOR4)
       TCOL("<button style=\"background:%s; width:50;\" name=\"%s\" "
            "onclick=\"show_color_picker(this,%d,shadervars_color_cb)\">&nbsp;</button>",
-        str_color4_html(stackBuf, sizeof(stackBuf), ShaderGlobal::get_float4(varId)),
-        str_color4_float(stackBuf2, sizeof(stackBuf2), ShaderGlobal::get_float4(varId)), varId);
+        str_color4_html(stackBuf, ShaderGlobal::get_float4(varId)), str_color4_float(stackBuf2, ShaderGlobal::get_float4(varId)),
+        varId);
     else
       TCOL("n/a");
     if (type == SHVT_REAL)

@@ -33,7 +33,7 @@ void update_samplers();
 void clear(bool completeClear = false);
 
 // update buffer
-void before_render(float dt, const Point3 &origin, bool need_deform_pressure_buffer = false);
+void before_render(float dt, bool need_deform_pressure_buffer = false);
 
 // render tires
 void render_strips(bool apply_clipmap_writemask);

@@ -50,10 +50,9 @@ function gatherComponentNames(component_list): array {
 }
 
 const INTERNAL_REGISTER_ECS = "___register_entity_system_internal___"
-if (INTERNAL_REGISTER_ECS not in ecs) {
+if (INTERNAL_REGISTER_ECS not in ecs)
   ecs[INTERNAL_REGISTER_ECS] <- ecs.register_entity_system
-  ecs.register_entity_system = @(_name, _events, _comps, _params) assert(false, "register_entity_system considered unsafe. use ecs.register_es instead")
-}
+ecs.register_entity_system = @(_name, _events, _comps, _params) assert(false, "register_entity_system considered unsafe. use ecs.register_es instead")
 
 let ecs_register_entity_system = ecs[INTERNAL_REGISTER_ECS]
 

@@ -277,6 +277,11 @@ static bool should_skip_var(const char *var_name)
          skipVarsEnd;
 }
 
+static inline int get_lod_group_panel_pid(int lod)
+{
+  return MAX_LOD_GROUP_GUI_ELEMENTS_COUNT * lod + PID_LODS_MATERIAL_EDITORS_BASE + LPID_LOD_MATERIALS_GROUP;
+}
+
 static inline int get_mat_group_panel_base_pid(int lod, int mat_id)
 {
   return MAX_LOD_GROUP_GUI_ELEMENTS_COUNT * lod + PID_LODS_MATERIAL_EDITORS_BASE + MAX_MATERIAL_GROUP_GUI_ELEMENTS_COUNT * mat_id +
@@ -912,7 +917,7 @@ void EntityMaterialEditor::fillPropPanel(PropPanel::ContainerPropertyControl &pa
   for (int lod = 0; lod < matDataPerLod.size(); ++lod)
   {
     PropPanel::ContainerPropertyControl *grpLodMatList =
-      panel.createGroup(lod * MAX_LOD_GROUP_GUI_ELEMENTS_COUNT + LPID_MATERIAL_GROUP, String(0, "Materials (Lod%d)", lod).c_str());
+      panel.createGroup(get_lod_group_panel_pid(lod), String(0, "Materials (Lod%d)", lod).c_str());
     if (!grpLodMatList)
       continue;
 
@@ -1204,8 +1209,7 @@ int EntityMaterialEditor::swapTexture(int for_lod, const char *old_tex_name, con
     if (for_lod > -1 && lod != for_lod)
       continue;
 
-    PropPanel::ContainerPropertyControl *grpLodMatList =
-      panel.getContainerById(lod * MAX_LOD_GROUP_GUI_ELEMENTS_COUNT + LPID_MATERIAL_GROUP);
+    PropPanel::ContainerPropertyControl *grpLodMatList = panel.getContainerById(get_lod_group_panel_pid(lod));
     if (!grpLodMatList)
       continue;
 

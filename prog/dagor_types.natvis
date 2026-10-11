@@ -201,6 +201,21 @@
   <DisplayString>r={r} g={g} b={b} a={a}</DisplayString>
 </Type>
 
+<Type Name="Bitarray">
+  <DisplayString>{{ size={used} }}</DisplayString>
+  <Expand>
+    <Item Name="[size]">used</Item>
+    <CustomListItems Condition="ptr != 0">
+      <Variable Name="_i" InitialValue="0" />
+      <Size>used</Size>
+      <Loop Condition="_i &lt; used">
+        <Item>((ptr[_i / 32] &gt;&gt; (_i % 32)) &amp; 1) != 0</Item>
+        <Exec>_i++</Exec>
+      </Loop>
+    </CustomListItems>
+  </Expand>
+</Type>
+
 <Type Name="PatchablePtr&lt;*&gt;">
   <SmartPointer Usage="Minimal">p</SmartPointer>
   <DisplayString IncludeView="ptr" Condition="p == 0">nullptr</DisplayString>

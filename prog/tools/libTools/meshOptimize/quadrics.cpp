@@ -387,7 +387,6 @@ ErrorAlpha Quadrics::calculate_error(int id_v1, int id_v2)
   {
     ret.error = FLT_MAX;
     ret.alpha = 0;
-    ret.collapseTo = NO_COLLAPSE;
     return ret;
   }
 

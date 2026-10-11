@@ -19,17 +19,17 @@ ConsoleProcessorHintAnnotation::ConsoleProcessorHintAnnotation(das::ModuleLibrar
   addField<DAS_BIND_MANAGED_FIELD(description)>("description");
 }
 
-bool ConsoleProcessorFunctionAnnotation::apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &,
+bool ConsoleProcessorFunctionAnnotation::apply(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &,
   eastl::string &)
 {
   fn->exports = true;
   return true;
 }
 
-bool ConsoleProcessorFunctionAnnotation::finalize(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &,
+bool ConsoleProcessorFunctionAnnotation::finalize(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &,
   const das::AnnotationArgumentList &, eastl::string &err)
 {
-  das::lock_guard<das::recursive_mutex> lock(registryMutex);
+  das::lock_guard lock(registryMutex);
   if (!fn->result->isBool())
   {
     err = "function must return bool (was console command handled by this processor)";
@@ -40,13 +40,12 @@ bool ConsoleProcessorFunctionAnnotation::finalize(const das::FunctionPtr &fn, da
   return true;
 }
 
-bool ConsoleProcessorFunctionAnnotation::apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &,
-  eastl::string &err)
+bool ConsoleProcessorFunctionAnnotation::apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err)
 {
   err = "not a block annotation";
   return false;
 }
-bool ConsoleProcessorFunctionAnnotation::finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &,
+bool ConsoleProcessorFunctionAnnotation::finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &,
   const das::AnnotationArgumentList &, eastl::string &err)
 {
   err = "not a block annotation";
@@ -55,7 +54,7 @@ bool ConsoleProcessorFunctionAnnotation::finalize(das::ExprBlock *, das::ModuleG
 
 bool ConsoleProcessorFunctionAnnotation::simulate(das::Context *ctx, das::SimFunction *fn)
 {
-  das::lock_guard<das::recursive_mutex> lock(registryMutex);
+  das::lock_guard lock(registryMutex);
   for (auto &pair : registry)
   {
     if (pair.second.mangledNameHash == fn->mangledNameHash)
@@ -70,7 +69,7 @@ bool ConsoleProcessorFunctionAnnotation::simulate(das::Context *ctx, das::SimFun
 
 bool ConsoleProcessorFunctionAnnotation::processCommand(const char *argv[], int argc)
 {
-  das::lock_guard<das::recursive_mutex> lock(registryMutex);
+  das::lock_guard lock(registryMutex);
   bool collect = ICommandProcessor::cmdCollector;
 
   eastl::vector<SimpleString> args;

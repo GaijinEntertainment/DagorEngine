@@ -200,5 +200,5 @@ def test_escape_free_control_grows(t : T?) {
     let grew = heap_bytes_allocated() - before
     t |> equal(s, 3 * ((N - 1) * N / 2))
     t |> equal(length(g_list), N)
-    t |> success(grew >= uint64(N) * (typeinfo sizeof(type<Node>)))   // N live nodes retained
+    t |> success(grew >= uint64(N) * uint64(typeinfo sizeof(type<Node>)))   // N live nodes retained
 }

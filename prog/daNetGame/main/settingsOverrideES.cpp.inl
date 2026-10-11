@@ -8,7 +8,6 @@
 #include <main/level.h>
 #include <main/settingsOverrideUtil.h>
 #include <main/settings.h>
-#include <startup/dag_loadSettings.h>
 #include <startup/dag_globalSettings.h>
 
 ECS_REGISTER_RELOCATABLE_TYPE(SettingsOverride, nullptr);
@@ -18,9 +17,8 @@ static void apply_settings_override_entity_ecs_query(ecs::EntityManager &manager
 
 void apply_settings_override_entity()
 {
-  apply_settings_override_entity_ecs_query(*g_entity_mgr, [&](const SettingsOverride &settings_override__manager) {
-    dgs_apply_config_blk(*settings_override__manager.getSettings(), false, false);
-  });
+  apply_settings_override_entity_ecs_query(*g_entity_mgr,
+    [&](SettingsOverride &settings_override__manager) { settings_override__manager.applyToSettings(); });
 }
 
 template <typename Callable>

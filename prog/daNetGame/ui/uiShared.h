@@ -21,6 +21,7 @@ void set_visuallog_logerrs(int count);
 
 void init();
 void term();
+void resend_input_state(); // for a UI scene that just started
 
 void update();
 
@@ -30,6 +31,7 @@ void after_device_reset();
 void on_settings_changed(const FastNameMap &changed_fields, bool apply_after_device_reset);
 void window_resized();
 
+// Each on=true call adds one owner; the set stays active until its last owner releases it.
 void activate_ui_elem_action_set(dainput::action_set_handle_t ash, bool on);
 
 void invalidate_world_3d_view();

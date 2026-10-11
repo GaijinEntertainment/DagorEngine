@@ -63,7 +63,7 @@ FSR2_PERMUTATION_ARGS =
 
 FSR2_SC_ARGS = $(FSR2_BASE_ARGS) $(FSR2_HLSL_BASE_ARGS) $(FSR2_PERMUTATION_ARGS) ;
 
-if ! [ GLOB $(_DEVTOOL)/FidelityFX_SC_ARM/ : * ] { exit FATAL\: \"$(_DEVTOOL)/FidelityFX_SC_ARM\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_DEVTOOL)/FidelityFX_SC_ARM/ : * ] { exit "FATAL: \"$(_DEVTOOL)/FidelityFX_SC_ARM\" not found!  Please, update DEVTOOLS" ; }
 FFX_SC_EXECUTABLE = $(_DEVTOOL)/FidelityFX_SC_ARM/FidelityFX_SC.exe ;
 PASS_SHADER_INPUT_PATH = $(Root)/$(Location)/src/backends/vk/shaders/fsr2/hlsl/ ;
 PASS_SHADER_INC_DIRS = $(Root)/$(Location)/include/gpu $(Root)/$(Location)/include/gpu/fsr2 ;

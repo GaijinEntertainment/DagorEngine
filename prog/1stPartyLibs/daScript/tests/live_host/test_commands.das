@@ -14,7 +14,7 @@ require live_host
 var test_call_count : int = 0
 
 [live_command]
-def test_increment(input : JsonValue?) : JsonValue? {
+def test_increment(_input : JsonValue?) : JsonValue? {
     test_call_count++
     return JV(test_call_count)
 }
@@ -54,7 +54,7 @@ def test_add(input : JsonValue?) : JsonValue? {
 }
 
 [live_command]
-def test_null_return(input : JsonValue?) : JsonValue? {
+def test_null_return(_input : JsonValue?) : JsonValue? {
     return null
 }
 

@@ -133,13 +133,13 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
   dag::Vector<int, framemem_allocator> vCanon;
   vCanon.resize(graph.verts.size());
   eastl::iota(vCanon.begin(), vCanon.end(), 0);
-  const auto getVCanon = [&](int v) FORCE_INLINE_LAMBDA {
+  const auto getVCanon = [&](int v) DAGOR_FORCE_INLINE_LAMBDA {
     while (vCanon[v] != v)
       v = vCanon.data()[v] = vCanon.data()[vCanon.data()[v]];
     return v;
   };
   bool needEdgeFilteringPass = false; // set by every graph mutation that can produce duplicate/degenerate edges
-  const auto weld2verts = [&](int v1, int v2) FORCE_INLINE_LAMBDA {
+  const auto weld2verts = [&](int v1, int v2) DAGOR_FORCE_INLINE_LAMBDA {
     v1 = getVCanon(v1);
     v2 = getVCanon(v2);
     if (v1 != v2)
@@ -152,7 +152,7 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
     return v1;
   };
 
-  const auto canonizeEdges = [&]() FORCE_INLINE_LAMBDA {
+  const auto canonizeEdges = [&]() DAGOR_FORCE_INLINE_LAMBDA {
     for (auto &e : graph.edges)
     {
       e.v0 = getVCanon(e.v0);
@@ -226,7 +226,7 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
     const Point2 p = graph.verts[v];
     int found = -1;
     float foundDistSq = EXTEND_DIST_SQ;
-    vGrid.queryBBox(BBox2(p, EXTEND_DIST * 2.f), [&](int v1) FORCE_INLINE_LAMBDA {
+    vGrid.queryBBox(BBox2(p, EXTEND_DIST * 2.f), [&](int v1) DAGOR_FORCE_INLINE_LAMBDA {
       v1 = getVCanon(v1);
       const auto &__restrict v1Info = vertInfo[v1];
       if (v1Info.incoming != v1Info.outgoing && v1 != v)
@@ -342,7 +342,7 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
     st.danglingV1 = !vertDirs[e.v1].outCnt || vertDirs[e.v1].spike;
   }
 
-  const auto insertSplitAt = [&](int e, float t, Point2 pos) FORCE_INLINE_LAMBDA -> EdgeSplit & {
+  const auto insertSplitAt = [&](int e, float t, Point2 pos) DAGOR_FORCE_INLINE_LAMBDA -> EdgeSplit & {
     auto &splits = edgeStates[e].splits;
     int i = 0;
     for (; i < int(splits.size()); i++)
@@ -374,7 +374,7 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
 
   // insert a split on edge e at param t and bind vertex fv to it (welding if a coincident split
   // vertex already sits there); shared tail of the STEP 7 endpoint test and the STEP 8 re-judge
-  const auto adoptSplitVert = [&](int e, float t, int fv, Point2 fpos) FORCE_INLINE_LAMBDA {
+  const auto adoptSplitVert = [&](int e, float t, int fv, Point2 fpos) DAGOR_FORCE_INLINE_LAMBDA {
     EdgeSplit &s = insertSplitAt(e, t, fpos);
     if (s.v == -1)
       s.v = fv;
@@ -387,14 +387,14 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
   {
     float low, high;
   };
-  const auto extRange = [&](const EdgeSplitState &st) FORCE_INLINE_LAMBDA -> TRange {
+  const auto extRange = [&](const EdgeSplitState &st) DAGOR_FORCE_INLINE_LAMBDA -> TRange {
     const float ext = EXTEND_DIST * st.invLen;
     return {st.danglingV0 ? -ext : 0.f, st.danglingV1 ? 1.f + ext : 1.f};
   };
 
   // STEP 6: prepare and fill edge grid
   EdgeGrid eGrid;
-  eGrid.build(graph.edges.size(), 5, EXTEND_DIST * 3.f, [&](const int ei) FORCE_INLINE_LAMBDA {
+  eGrid.build(graph.edges.size(), 5, EXTEND_DIST * 3.f, [&](const int ei) DAGOR_FORCE_INLINE_LAMBDA {
     auto &st = edgeStates[ei];
     vec4f v01 = st.v01;
     vec4f v10 = v_perm_zwxy(v01);
@@ -419,7 +419,7 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
   };
   dag::Vector<EndpointWatch, framemem_allocator> endpointWatch;
 
-  eGrid.iteratePotentialPairs([&](const int ei, const int ej) FORCE_INLINE_LAMBDA {
+  eGrid.iteratePotentialPairs([&](const int ei, const int ej) DAGOR_FORCE_INLINE_LAMBDA {
     const auto ie = graph.edges[ei];
     const auto je = graph.edges[ej];
     PG_TRACE("pair e%d(v%d->v%d) x e%d(v%d->v%d)", ei, ie.v0, ie.v1, ej, je.v0, je.v1);
@@ -479,7 +479,7 @@ DAGOR_NOINLINE void prepare_planar_graph(DestrContext &ctx, const PlaneBasis &ba
     if (DAGOR_UNLIKELY(endpointSplitMask != 0 || TRACE_GRAPH))
     {
       const auto splitAtEndpoint = [&](int e, Point2 e0, Point2 eDir, float invLenSqE, float weldSlackE, TRange tr, int fv,
-                                     float perpSqN) FORCE_INLINE_LAMBDA {
+                                     float perpSqN) DAGOR_FORCE_INLINE_LAMBDA {
         if (fv == graph.edges[e].v0 || fv == graph.edges[e].v1)
           return; // fv is e's own endpoint (chain neighbor)
         const Point2 fpos = graph.verts[fv];

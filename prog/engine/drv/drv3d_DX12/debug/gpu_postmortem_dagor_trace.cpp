@@ -194,6 +194,13 @@ void Trace::onDeviceRemoved(D3DDevice *, HRESULT reason, call_stack::Reporter &r
 
 bool Trace::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
 
+void Trace::onDeviceRecovery()
+{
+  commandListTable.reset();
+  traceRecoderingPool.reset();
+  updateCheckpoint({});
+}
+
 void Trace::onDeviceShutdown()
 {
   commandListTable.reset();

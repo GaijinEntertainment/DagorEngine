@@ -13,12 +13,10 @@ AsyncLoadCB::AsyncLoadCB(const char *realname)
 {
   memset(&file, 0, sizeof(file));
   memset(&buf, 0, sizeof(buf));
-  file.pos = -1;
   file.size = -1;
 
   buf.size = 64 << 10;
 
-  file.pos = 0;
   // debug("load: %s", fpath);
   buf.minimumChunk = dfa_chunk_size(realname);
   if (buf.minimumChunk)

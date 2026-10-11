@@ -21,6 +21,7 @@ LeavesWindEffect::LeavesWindEffect()
   memset(this, 0, sizeof(*this));
   for (int i = 0; i < WIND_GRP_NUM; ++i)
     windMatrixXId[i] = windMatrixYId[i] = windMatrixZId[i] = -1;
+  windMatrixXId[0] = -2;
 }
 
 static void init_var_id()
@@ -106,8 +107,8 @@ void LeavesWindEffect::ScalarWindValue::update(real dt, const ScalarWindParams &
 
 void LeavesWindEffect::WindGroup::update(real dt, LeavesWindEffect &wind)
 {
-  if (dt > 0.1)
-    dt = 0.1;
+  if (dt > 0.1f)
+    dt = 0.1f;
 
   rocking.update(dt, wind.rocking, wind);
   rustling.update(dt, wind.rustling, wind);
@@ -119,6 +120,8 @@ void LeavesWindEffect::WindGroup::calcTm(Matrix3 &tm) { tm = rotyM3(rustling.pos
 
 void LeavesWindEffect::setShaderVars(const TMatrix &view_itm, real rocking_scale, real rustling_scale)
 {
+  if (windMatrixXId[0] < -1)
+    init_var_id();
   for (int i = 0; i < WIND_GRP_NUM; ++i)
   {
     Matrix3 tm;

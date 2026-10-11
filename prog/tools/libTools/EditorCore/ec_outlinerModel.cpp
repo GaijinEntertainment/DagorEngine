@@ -82,6 +82,9 @@ bool ObjectTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
   if (tree_interface.isSampleObject(*renderableEditableObject))
     return false;
 
+  if (outlinerModel.getShowSelectedOnly() && !isSelected() && (!objectAssetNameTreeItem || !objectAssetNameTreeItem->isSelected()))
+    return false;
+
   if (objectAssetNameTreeItem &&
       matches_search_text(objectAssetNameTreeItem->getLabelStringView(), to_string_view(outlinerModel.textToSearch)))
     return true;
@@ -95,6 +98,9 @@ bool LayerTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
   G_ASSERT(parentTreeItem && parentTreeItem->getType() == ItemType::ObjectType);
   ObjectTypeTreeItem *objectTypeTreeItem = static_cast<ObjectTypeTreeItem *>(parentTreeItem);
   if (!objectTypeTreeItem->objectTypeVisible)
+    return false;
+
+  if (outlinerModel.getShowSelectedOnly() && !isSelected())
     return false;
 
   return matches_search_text(getLabelStringView(), to_string_view(outlinerModel.textToSearch));
@@ -127,6 +133,9 @@ void LayerTreeItem::removeFromFilteredChildren(OutlinerTreeItem &tree_item)
 bool ObjectTypeTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
 {
   if (!objectTypeVisible)
+    return false;
+
+  if (outlinerModel.getShowSelectedOnly() && !isSelected())
     return false;
 
   return matches_search_text(getLabelStringView(), to_string_view(outlinerModel.textToSearch));

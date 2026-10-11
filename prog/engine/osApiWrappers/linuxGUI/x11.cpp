@@ -37,6 +37,9 @@ bool X11::init()
   lastCursorX = 0;
   lastCursorY = 0;
   forceQueryCursorPosition = 0;
+  rawMotionSeen = false;
+  rawDx = rawDy = 0;
+  resetXiSourceKinds();
 
   // as we handle missing entry points, load any viable xrandr there is
   randrLib = os_dll_load("libXrandr.so.2");
@@ -87,6 +90,100 @@ bool X11::init()
     randr.reset();
   }
 
+  initRawMotion();
+  return true;
+}
+
+// constraint: libXi fills XIRawEvent::sourceid only with XI 2.2 or newer
+static constexpr int XI_REQUIRED_MAJOR = 2, XI_REQUIRED_MINOR = 2;
+
+void X11::initRawMotion()
+{
+  int xiEvent, xiError;
+  if (!XQueryExtension(rootDisplay, "XInputExtension", &xiOpcode, &xiEvent, &xiError))
+  {
+    debug("x11: no XInputExtension, raw mouse motion is disabled");
+    xiOpcode = -1;
+    return;
+  }
+
+  xiLib = os_dll_load("libXi.so.6");
+  int major = XI_REQUIRED_MAJOR, minor = XI_REQUIRED_MINOR;
+  if (!xiLib || !xi.init(xiLib))
+    debug("x11: no usable libXi.so.6, raw mouse motion is disabled");
+  else if (xi.XIQueryVersion(rootDisplay, &major, &minor) != Success)
+    debug("x11: XIQueryVersion failed, raw mouse motion is disabled");
+  else if (major == XI_REQUIRED_MAJOR && minor < XI_REQUIRED_MINOR)
+    debug("x11: XInput %d.%d is older than %d.%d, raw mouse motion is disabled", major, minor, XI_REQUIRED_MAJOR, XI_REQUIRED_MINOR);
+  else
+  {
+    unsigned char rawMask[XIMaskLen(XI_RawMotion)] = {};
+    unsigned char hierarchyMask[XIMaskLen(XI_HierarchyChanged)] = {};
+    XISetMask(rawMask, XI_RawMotion);
+    XISetMask(hierarchyMask, XI_HierarchyChanged);
+    XIEventMask masks[] = {
+      {XIAllMasterDevices, (int)sizeof(rawMask), rawMask}, {XIAllDevices, (int)sizeof(hierarchyMask), hierarchyMask}};
+    xi.XISelectEvents(rootDisplay, rootWindow, masks, countof(masks));
+    debug("x11: XInput %d.%d raw mouse motion", major, minor);
+    return;
+  }
+
+  if (xiLib)
+    os_dll_close(xiLib);
+  xiLib = nullptr;
+  xi.reset();
+  xiOpcode = -1;
+}
+
+void X11::resetXiSourceKinds()
+{
+  for (XiSourceKind &kind : xiSourceKind)
+    kind = XiSourceKind::UNKNOWN;
+}
+
+bool X11::isRelativePointerSource(int sourceid)
+{
+  if (sourceid <= XIAllMasterDevices || sourceid >= X_SERVER_MAX_DEVICES)
+    return false;
+
+  XiSourceKind &kind = xiSourceKind[sourceid];
+  if (kind == XiSourceKind::UNKNOWN)
+  {
+    kind = XiSourceKind::OTHER;
+    int count = 0;
+    if (XIDeviceInfo *info = xi.XIQueryDevice(rootDisplay, sourceid, &count))
+    {
+      for (int i = 0; i < info->num_classes; ++i)
+      {
+        const XIValuatorClassInfo *valuator = (const XIValuatorClassInfo *)info->classes[i];
+        if (valuator->type == XIValuatorClass && valuator->number == 0 && valuator->mode == XIModeRelative)
+          kind = XiSourceKind::RELATIVE_POINTER;
+      }
+      xi.XIFreeDeviceInfo(info);
+    }
+  }
+  return kind == XiSourceKind::RELATIVE_POINTER;
+}
+
+bool X11::accumulateRawMotion(const XIRawEvent &ev)
+{
+  // constraint: raw events arrive regardless of focus, and absolute devices put positions in them
+  if (!::dgs_app_active || !isRelativePointerSource(ev.sourceid))
+    return false;
+
+  // constraint: raw_values holds only the valuators set in the mask, x and y are valuators 0 and 1
+  const double *unaccelValue = ev.raw_values;
+  double delta[2] = {0, 0};
+  for (int axis = 0; axis < 2 && axis < ev.valuators.mask_len * 8; ++axis)
+    if (XIMaskIsSet(ev.valuators.mask, axis))
+      delta[axis] = *unaccelValue++;
+
+  if (delta[0] == 0 && delta[1] == 0)
+    return false;
+
+  rawDx += delta[0];
+  rawDy += delta[1];
+  rawMotionSeen = true;
   return true;
 }
 
@@ -104,6 +201,13 @@ void X11::shutdown()
   {
     os_dll_close(randrLib);
     randrLib = NULL;
+  }
+  if (xiLib)
+  {
+    os_dll_close(xiLib);
+    xiLib = nullptr;
+    xi.reset();
+    xiOpcode = -1;
   }
 }
 
@@ -1024,6 +1128,24 @@ void X11::processMessages()
         updateMousePos = true;
         break;
 
+      case GenericEvent:
+        if (xev.xcookie.extension == xiOpcode && XGetEventData(rootDisplay, &xev.xcookie))
+        {
+          if (xev.xcookie.evtype == XI_RawMotion)
+          {
+            // constraint: a pointer held at the confine edge sends raw motion but no MotionNotify
+            if (accumulateRawMotion(*(const XIRawEvent *)xev.xcookie.data))
+              updateMousePos = true;
+          }
+          else if (xev.xcookie.evtype == XI_HierarchyChanged)
+          {
+            // constraint: the X server reuses ids of removed devices
+            resetXiSourceKinds();
+          }
+          XFreeEventData(rootDisplay, &xev.xcookie);
+        }
+        break;
+
       case KeyPress:
       {
         KeySym keysym = 0;
@@ -1070,6 +1192,7 @@ void X11::processMessages()
         if ((void *)xev.xfocus.window != win32_get_main_wnd())
           continue;
 
+        rawDx = rawDy = 0;
         XSetICFocus(ic);
         workcycle_internal::main_window_proc(&mainWindow, GPCM_Activate, GPCMP1_Activate, 0);
         break;
@@ -1240,7 +1363,19 @@ void X11::getAbsoluteCursorPosition(int &cx, int &cy)
   XQueryPointer(rootDisplay, mainWindow, &unusedWindow, &unusedWindow, &cx, &cy, &unusedInt, &unusedInt, &unusedUnsigned);
 }
 
-bool X11::getCursorDelta(int &, int &, void *) { return false; }
+bool X11::getCursorDelta(int &cx, int &cy, void *)
+{
+  // constraint: Xwayland moves the real pointer on XWarpPointer only while the X cursor is NULL
+  // shortcut: absolute pointers give no deltas once raw motion is seen - replace if they must drive relative mode
+  if (!rawMotionSeen)
+    return false;
+
+  cx = (int)rawDx;
+  cy = (int)rawDy;
+  rawDx -= cx;
+  rawDy -= cy;
+  return true;
+}
 
 void X11::clipCursor()
 {

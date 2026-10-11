@@ -3,6 +3,7 @@
 #include "dependencyDataCalculator.h"
 
 #include <frontend/dumpInternalRegistry.h>
+#include <generic/dag_tabUtils.h>
 
 
 namespace dafg
@@ -38,6 +39,12 @@ DependencyDataCalculator::ResourcesChanged DependencyDataCalculator::recalculate
     if (eastl::erase_if(lifetime.readers, nodeChanged) > 0)
       result.set(resId, true);
     if (eastl::erase_if(lifetime.historyReaders, nodeChanged) > 0)
+      result.set(resId, true);
+
+    // No eastl::erase_if() overload accepts dag::VectorSet.
+    if (tabutils::erase_if(lifetime.erroneousIntroducers, nodeChanged) > 0)
+      result.set(resId, true);
+    if (tabutils::erase_if(lifetime.erroneousConsumers, nodeChanged) > 0)
       result.set(resId, true);
   }
 
@@ -114,7 +121,7 @@ DependencyDataCalculator::ResourcesChanged DependencyDataCalculator::recalculate
     }
   }
 
-  for (auto [resId, lifetime] : lifetimes.enumerate())
+  for (auto &&[resId, lifetime] : lifetimes.enumerate())
   {
     if (!result[resId])
       continue;

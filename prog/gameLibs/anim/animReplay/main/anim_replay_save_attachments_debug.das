@@ -23,9 +23,12 @@ def anim_replay_save_animchar_attachments(evt : Event; var anim_replay__savedAni
         set(animcharData, "additionalTemplates", additionalTemplates)
     assume additionalTemplates = *getRW_ecs_object(animcharData, "additionalTemplates")
     //todo: It looks like game specific
-    query(animcharEid) <| $ [es] (human_equipment__slots : Object)
+    query(animcharEid) <| $ [es] (human_equipment__slots : Object;
+                                  human_equipment__clientSlots : Object const?)
       using <| $(var equipment_components : Object)
         using <| $(var initialEquip : Object)
           get_initial_equip_from_slots(initialEquip, human_equipment__slots)
+          if human_equipment__clientSlots != null
+            get_initial_equip_from_slots(initialEquip, *human_equipment__clientSlots)
           set(equipment_components, "human_equipment__initialEquip", initialEquip)
         set(additionalTemplates, "anim_replay_human_attaches", equipment_components)

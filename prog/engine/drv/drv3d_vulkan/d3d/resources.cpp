@@ -464,6 +464,8 @@ Vbuffer *d3d::create_vb(int size, int flg, const char *name, ResourceTagType)
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagType)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(size % ((flg & SBCF_INDEX32) ? 4 : 2) == 0, nullptr,
+    "vulkan: create_ib '%s' size %d is not a whole number of indices", stat_name, size);
   D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);
   return allocate_buffer(1, size, flg | SBCF_BIND_INDEX, FormatStore(), true /*managed*/, stat_name);
 }

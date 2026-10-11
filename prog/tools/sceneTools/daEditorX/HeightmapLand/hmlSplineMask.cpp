@@ -12,7 +12,7 @@
 #include <math/dag_bezierPrec.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <libTools/math/bitrender.h>
-#include <sceneRay/dag_sceneRay.h>
+#include <libTools/staticGeom/staticGeometryContainer.h>
 
 using namespace objgenerator; // prng
 using editorcore_extapi::dagGeom;
@@ -140,7 +140,7 @@ bool HmapLandPlugin::rebuildSplinesLoftBitmask(int layer, BBox2 &out_dirty_box)
   Bitrender<objgenerator::WorldHugeBitmask> renderer;
   BezierSpline2d s2d_src;
   Tab<Point2> verts(tmpmem);
-  int loft_count = 0;
+  int loft_count = 0, noMeshNodes = 0, noVertNodes = 0, droppedFaces = 0;
 
   BBox2 bb_loft;
   for (int i = 0; i < objEd.splinesCount(); i++)
@@ -206,24 +206,55 @@ bool HmapLandPlugin::rebuildSplinesLoftBitmask(int layer, BBox2 &out_dirty_box)
       if (!a || !a->genGeom || !a->genGeom->foundationGeom)
         continue;
 
-      StaticSceneRayTracer *rt = dagGeom->geomObjectGetRayTracer(*geom);
-      if (!rt)
-        continue;
-
-      verts.resize(rt->getVertsCount());
-      for (int vi = 0; vi < verts.size(); vi++)
-        verts[vi].set((rt->verts(vi).x - bmLoft.ox) * bmLoft.scale - 0.5, (rt->verts(vi).z - bmLoft.oz) * bmLoft.scale - 0.5);
-
-      for (int fi = 0, fie = rt->getFacesCount(); fi < fie; fi++)
+      const StaticGeometryContainer &cont = dagGeom->geomObjectGetGeometryContainer(*geom);
+      for (int n = 0; n < cont.nodes.size(); n++)
       {
-        StaticSceneRayTracer::RTface &f = rt->faces(fi);
-        renderer.draw_indexed_triangle(verts.data(), f.v[0], f.v[1], f.v[2]);
+        StaticGeometryNode *node = cont.nodes[n];
+        if (!node || !node->mesh)
+        {
+          ++noMeshNodes;
+          continue;
+        }
+        if (node->isNonTopLod() || !(node->flags & StaticGeometryNode::FLG_COLLIDABLE))
+          continue;
+
+        const Mesh &mesh = node->mesh->mesh;
+        if (mesh.getFace().empty())
+          continue;
+        if (mesh.getVert().empty())
+        {
+          ++noVertNodes;
+          continue;
+        }
+
+        verts.resize(mesh.getVert().size());
+        for (int vi = 0; vi < verts.size(); vi++)
+        {
+          const Point3 v = node->wtm * mesh.getVert()[vi];
+          verts[vi].set((v.x - bmLoft.ox) * bmLoft.scale - 0.5, (v.z - bmLoft.oz) * bmLoft.scale - 0.5);
+        }
+
+        for (int fi = 0, fie = mesh.getFace().size(); fi < fie; fi++)
+        {
+          const Face &f = mesh.getFace()[fi];
+          // constraint: verts holds this node alone, so a corner past it reads past the end
+          if (f.v[0] >= verts.size() || f.v[1] >= verts.size() || f.v[2] >= verts.size())
+          {
+            ++droppedFaces;
+            continue;
+          }
+          renderer.draw_indexed_triangle(verts.data(), f.v[0], f.v[1], f.v[2]);
+        }
+        has_loft = true;
       }
-      has_loft = true;
     }
     if (has_loft)
       loft_count++;
   }
+  if (noMeshNodes || noVertNodes || droppedFaces)
+    DAEDITOR3.conWarning("loft[%d] mask: %d loft nodes carry no mesh, %d carry faces and no vertex, and %d faces have a corner past "
+                         "their node's verts; none is drawn",
+      layer, noMeshNodes, noVertNodes, droppedFaces);
   if (!loft_count)
     bmLoft.clear();
 

@@ -6,15 +6,15 @@ options gc
 require live/glfw_live
 require opengl/opengl_boost
 require opengl/opengl_ttf
-require live/opengl_live  // nolint:STYLE030 — load-bearing for OpenGL resource live-reload
+require live/opengl_live
 require live/live_commands
 require live/live_api
-require live/live_watch_boost // nolint:STYLE030 — load-bearing for live file-watch side-effects
+require live/live_watch_boost
 require live_host
 require daslib/math_boost
 require daslib/safe_addr
 require audio/audio_boost
-require live/audio_live   // nolint:STYLE030 — load-bearing for audio buffer persistence across reloads
+require live/audio_live
 require strudel/strudel
 require strudel/strudel_player
 require daslib/fio
@@ -190,18 +190,18 @@ def init() { // nolint:STYLE038 — linear track-setup sequence
     live_create_window("daStrudel Visualizer", 1280, 720)
     create_gl_objects()
     create_ttf_objects()
+    delete font
     font <- load_ttf("{get_das_root()}/examples/opengl/droidsansmono.ttf", [pixel_height = 16.0, oversampling = 2])
-    if (!!empty(font.bitmap.bytes)) {
-        font <- load_ttf("{get_das_root()}/examples/opengl/media/droidsansmono.ttf", [oversampling = 2])
+    if (empty(font.bitmap.bytes)) {
+        delete font
+        font <- load_ttf("{get_das_root()}/modules/dasStbImage/fonts/droidsansmono.ttf", [pixel_height = 16.0, oversampling = 2])
     }
-    if (!!empty(font.bitmap.bytes)) {
+    if (empty(font.bitmap.bytes)) {
         panic("can't load font")
     }
     upload_font_texture(font)
     // audio
-    if (get_audio_command_stream() == null) {
-        asch = audio_system_create()
-    }
+    asch = audio_live_system()
     // load SF2 soundfont
     if (USE_SF2) {
         let sf2_path = find_sf2()
@@ -303,7 +303,7 @@ def init() { // nolint:STYLE038 — linear track-setup sequence
 }
 
 [export]
-def update() { // nolint:STYLE037 — per-panel-kind dispatch
+def update() { // nolint:STYLE037,STYLE038 — per-panel-kind dispatch over a GL state sequence
     if (!live_begin_frame()) {
         return
     }
@@ -413,7 +413,7 @@ def update() { // nolint:STYLE037 — per-panel-kind dispatch
 def shutdown() {
     print("Shutting down...\n")
     strudel_shutdown()
-    audio_system_finalize(asch.command, asch.next_sid)
+    audio_live_finalize(asch)
     delete render_states
     delete audio_analyses
     delete drum_panel_states

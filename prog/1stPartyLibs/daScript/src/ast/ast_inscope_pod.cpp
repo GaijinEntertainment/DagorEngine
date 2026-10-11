@@ -128,7 +128,7 @@ namespace das {
                     auto podVar = new Variable();
                     podVar->at = expr->sources[i]->at;
                     podVar->name = "`pod`source`" + expr->iterators[i];
-                    podVar->type = new TypeDecl(Type::autoinfer);
+                    podVar->type = new TypeDecl(Type::autoinfer, podVar->at);
                     podVar->init = move(expr->sources[i]);
                     podVar->init_via_move = true;
                     podVar->pod_delete = true;

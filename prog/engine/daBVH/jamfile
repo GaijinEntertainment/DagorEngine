@@ -18,6 +18,8 @@ Sources =
   bvhReencode.cpp
   bvhSerialization.cpp
   bvhTraversalQuadOOL.cpp
+  meshBLAS.cpp
+  meshSoa4BLAS.cpp
   quadBLASBuilder.cpp
   soa4Convert.cpp
   soa4EdgeFlags.cpp

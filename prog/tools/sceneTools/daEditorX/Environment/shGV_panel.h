@@ -17,12 +17,6 @@ public:
   ShaderGlobVarsPanel(EnvironmentPlugin &plugin, void *hwnd);
   ~ShaderGlobVarsPanel() override;
 
-  PropPanel::PanelWindowPropertyControl *getPanel()
-  {
-    G_ASSERT(propPanel);
-    return propPanel;
-  }
-
   void fillPanel();
 
 private:

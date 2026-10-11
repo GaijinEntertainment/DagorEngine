@@ -72,7 +72,6 @@ static int rtr_probe_debug_display_backVarId = -1;
 static int rt_nrVarId = -1;
 static int cameraFovYVarId = 1;
 static int downsampled_close_depth_texVarId = -1;
-static int denoiser_glass_history_confidence_tweakVarId = -1;
 static int denoiser_view_zVarId = -1;
 static int half_selected_depth_rtrVarId = -1;
 
@@ -93,9 +92,6 @@ static float al_luminance_sensitivity = 3.0f;
 static int max_reblur_stabilized_frame_num = 31;
 static int max_relax_stabilized_frame_num = 30;
 static int max_relax_fast_stabilized_frame_num = 6;
-
-static float glass_tweak_full = 0.3;
-static float glass_tweak_half = 0.6;
 
 static denoiser::ReflectionMethod output_type = denoiser::ReflectionMethod::Relax;
 
@@ -184,7 +180,6 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
   rt_nrVarId = get_shader_variable_id("rt_nr");
   cameraFovYVarId = get_shader_variable_id("cameraFovY", true);
   downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
-  denoiser_glass_history_confidence_tweakVarId = get_shader_variable_id("denoiser_glass_history_confidence_tweak", true);
   denoiser_view_zVarId = get_shader_variable_id("denoiser_view_z", true);
   half_selected_depth_rtrVarId = get_shader_variable_id("half_selected_depth_rtr", true);
   ShaderGlobal::set_int(rtr_res_mulVarId, half_res ? 2 : 1);
@@ -220,6 +215,8 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
     rtr_probes_bindless.locationBuf = d3d::allocate_bindless_resource_range(D3DResourceType::SBUF, 1);
     rtr_probes_bindless.allocated = true;
   }
+
+  decoded_denoised_reflection_ptr = nullptr;
 }
 
 void change_method(denoiser::ReflectionMethod method) { output_type = method; }
@@ -258,6 +255,7 @@ void teardown()
   probeDebug.close();
 
   ShaderGlobal::set_int(rtr_bindless_slotVarId, -1);
+  decoded_denoised_reflection_ptr = nullptr;
 }
 
 void set_water_params()
@@ -451,8 +449,6 @@ void bind_params()
   ShaderGlobal::set_texture(half_selected_depth_rtrVarId, half_selected_depth_rtr_ptr);
   ShaderGlobal::set_int(rtr_shadowVarId, has_rt_shadow ? 1 : 0);
   ShaderGlobal::set_int(rtr_checkerboardVarId, is_checkerboard ? 1 : 0);
-  ShaderGlobal::set_float(denoiser_glass_history_confidence_tweakVarId,
-    denoiser::resolution_config.rtr.isHalfRes ? glass_tweak_half : glass_tweak_full);
   ShaderGlobal::set_float(rtr_probe_tresholdVarId, probe_treshold);
 }
 
@@ -586,36 +582,43 @@ inline const char *operator*(denoiser::ReflectionMethod mode)
 
 static void imguiWindow()
 {
+  if (!decoded_denoised_reflection_ptr)
+    return;
+
   ImGui::SliderFloat("Water ray length", &water_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Gloss ray length", &gloss_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Rough ray length", &rough_ray_length, 0.01f, 5000);
   ImGui::SliderFloat("Maximum ray limit coeff", &ray_limit_coeff, 0.01f, 5000);
   ImGui::SliderFloat("Maximum ray limit power", &ray_limit_power, 0.01f, 5);
-  ImGui::SliderFloat("Distance factor", &distance_factor, 0, 1);
-  ImGui::SliderFloat("Scatter factor", &scatter_factor, 0, 2);
-  ImGui::SliderFloat("Roughness factor", &roughness_factor, 0, 10);
 
-  ImGui::SliderFloat("luminance sigma scale", &al_luminance_sigma_scale, 1, 5);
-  ImGui::SliderFloat("luminance sensitivity", &al_luminance_sensitivity, 1, 5);
+  if (!denoiser::is_ray_reconstruction_enabled())
+  {
+    ImGui::SliderFloat("Distance factor", &distance_factor, 0, 1);
+    ImGui::SliderFloat("Scatter factor", &scatter_factor, 0, 2);
+    ImGui::SliderFloat("Roughness factor", &roughness_factor, 0, 10);
 
-  ImGui::SliderInt("Max reblur stabilized frames", &max_reblur_stabilized_frame_num, 0,
-    denoiser::ReflectionDenoiser::REBLUR_MAX_HISTORY_FRAME_NUM);
-  ImGui::SliderInt("Max relax stabilized frames", &max_relax_stabilized_frame_num, 0,
-    denoiser::ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
-  ImGui::SliderInt("Max relax fast stabilized frames", &max_relax_fast_stabilized_frame_num, 0, max_relax_stabilized_frame_num);
+    ImGui::SliderFloat("luminance sigma scale", &al_luminance_sigma_scale, 1, 5);
+    ImGui::SliderFloat("luminance sensitivity", &al_luminance_sensitivity, 1, 5);
 
-  ImGui::SliderFloat("Glass tweak", denoiser::resolution_config.rtr.isHalfRes ? &glass_tweak_half : &glass_tweak_full, 0, 1);
-  ShaderGlobal::set_float(denoiser_glass_history_confidence_tweakVarId,
-    denoiser::resolution_config.rtr.isHalfRes ? glass_tweak_half : glass_tweak_full);
+    using RDM = denoiser::ReflectionMethod;
+    ImGui::Text("Denoiser: %s", *output_type);
 
-  using RDM = denoiser::ReflectionMethod;
-  ImGui::Text("Denoiser: %s", *output_type);
+    if (output_type == RDM::Reblur)
+    {
+      ImGui::Checkbox("Performance mode", &performance_mode);
+      ImGui::SliderInt("Max reblur stabilized frames", &max_reblur_stabilized_frame_num, 0,
+        denoiser::ReflectionDenoiser::REBLUR_MAX_HISTORY_FRAME_NUM);
+    }
+    else
+    {
+      ImGui::SliderInt("Max relax stabilized frames", &max_relax_stabilized_frame_num, 0,
+        denoiser::ReflectionDenoiser::RELAX_MAX_HISTORY_FRAME_NUM);
+      ImGui::SliderInt("Max relax fast stabilized frames", &max_relax_fast_stabilized_frame_num, 0, max_relax_stabilized_frame_num);
+    }
 
-  if (output_type == RDM::Reblur)
-    ImGui::Checkbox("Performance mode", &performance_mode);
-
-  ImGui::Checkbox("Show validation layer", &show_validation);
-  ImGui::Checkbox("Use anti firefly", &use_anti_firefly);
+    ImGui::Checkbox("Show validation layer", &show_validation);
+    ImGui::Checkbox("Use anti firefly", &use_anti_firefly);
+  }
   ImGui::Checkbox("Show probes", &show_probes);
   if (show_probes)
   {
@@ -625,10 +628,14 @@ static void imguiWindow()
     ImGui::SliderFloat("Probe size", &probe_size, 0.01, 2);
   }
 
-  ImGui::Separator();
-  ImGui::Checkbox("Show unfiltered", &show_unfiltered);
+  if (!denoiser::is_ray_reconstruction_enabled())
+  {
+    ImGui::Separator();
+    ImGui::Checkbox("Show unfiltered", &show_unfiltered);
+  }
 
-  if (denoised_reflection_ptr)
+  auto sourcePtr = (show_unfiltered || denoiser::is_ray_reconstruction_enabled()) ? rtr_tex_unfiltered_ptr : denoised_reflection_ptr;
+  if (sourcePtr)
   {
     if (!decode)
       decode = new_compute_shader("rt_reflection_decode");
@@ -640,11 +647,12 @@ static void imguiWindow()
       [](const ImDrawList *, const ImDrawCmd *) {
         if (decoded_denoised_reflection_ptr)
         {
+          auto sourcePtr =
+            (show_unfiltered || denoiser::is_ray_reconstruction_enabled()) ? rtr_tex_unfiltered_ptr : denoised_reflection_ptr;
           TextureInfo ti;
           decoded_denoised_reflection_ptr->getinfo(ti);
 
-          ShaderGlobal::set_texture(rtr_reflection_decode_srcVarId,
-            show_unfiltered ? rtr_tex_unfiltered_ptr : denoised_reflection_ptr);
+          ShaderGlobal::set_texture(rtr_reflection_decode_srcVarId, sourcePtr);
           ShaderGlobal::set_texture(rtr_reflection_decode_dstVarId, decoded_denoised_reflection_ptr);
 
           decode->dispatchThreads(ti.w, ti.h, 1);
@@ -686,22 +694,21 @@ void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persisten
 {
   denoiser::get_required_persistent_texture_descriptors_for_rtr(persistent_textures, output_type);
 #if DAGOR_DBGLEVEL > 0
-  if (!denoiser::is_ray_reconstruction_enabled())
+  const char *sourceName = denoiser::is_ray_reconstruction_enabled() ? denoiser::ReflectionDenoiser::TextureNames::rtr_tex_unfiltered
+                                                                     : denoiser::ReflectionDenoiser::TextureNames::rtr_tex;
+  auto sourceTex = persistent_textures.find(sourceName);
+  if (sourceTex == persistent_textures.end())
   {
-    auto denoised_reflection = persistent_textures.find(denoiser::ReflectionDenoiser::TextureNames::rtr_tex);
-    if (denoised_reflection == persistent_textures.end())
-    {
-      logerr("rtr_tex was not found in requested rtr textures!");
-      return;
-    }
-    TextureInfo sourceTi = denoised_reflection->second;
-    auto &ti = persistent_textures[TextureNames::decoded_denoised_reflection];
-    ti.w = sourceTi.w / 2;
-    ti.h = sourceTi.h / 2;
-    ti.mipLevels = 1;
-    ti.type = D3DResourceType::TEX;
-    ti.cflg = TEXCF_UNORDERED | TEXFMT_A16B16G16R16F;
+    logerr("%s was not found in requested rtr textures!", sourceName);
+    return;
   }
+  TextureInfo sourceTi = sourceTex->second;
+  auto &ti = persistent_textures[TextureNames::decoded_denoised_reflection];
+  ti.w = sourceTi.w / 2;
+  ti.h = sourceTi.h / 2;
+  ti.mipLevels = 1;
+  ti.type = D3DResourceType::TEX;
+  ti.cflg = TEXCF_UNORDERED | TEXFMT_A16B16G16R16F;
 #endif
 }
 

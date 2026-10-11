@@ -29,7 +29,7 @@ def test_live_vars_compiles(t : T?) {
 }
 
 [test]
-def test_live_vars_archive_round_trip(t : T?) {
+def test_live_vars_archive_round_trip(t : T?) {   // nolint:STYLE038 flat list of independent round-trip arms
     t |> run("int round-trip via Archive") @(t : T?) {
         var original = 99
         var ser = new MemSerializer()
@@ -65,10 +65,7 @@ def test_live_vars_archive_round_trip(t : T?) {
     }
 
     t |> run("array<float> round-trip via Archive") @(t : T?) {
-        var original : array<float>
-        original |> push(1.0)
-        original |> push(2.0)
-        original |> push(3.0)
+        var original <- [1.0, 2.0, 3.0]
         var ser = new MemSerializer()
         var arch = Archive(reading = false, stream = ser)
         arch |> serialize(original)
@@ -104,7 +101,7 @@ def test_live_vars_archive_round_trip(t : T?) {
         arch |> serialize(test_string)
         arch |> serialize(test_bool)
         arch |> serialize(test_array)
-        var data <- ser->extractData()
+        let data <- ser->extractData()
         live_store_bytes("__test_live_vars_manual", data)
         unsafe { delete ser; }
 
@@ -139,13 +136,11 @@ def test_live_vars_archive_round_trip(t : T?) {
     }
 
     t |> run("garbage data does not crash with try/recover") @(t : T?) {
-        var garbage : array<uint8>
-        garbage |> push(uint8(0xFF))
-        garbage |> push(uint8(0xFE))
+        let garbage <- [uint8(0xFF), uint8(0xFE)]
         live_store_bytes("__test_garbage", garbage)
 
         var load_data : array<uint8>
-        if (live_load_bytes("__test_garbage", load_data) && length(load_data) > 0) {
+        if (live_load_bytes("__test_garbage", load_data) && !empty(load_data)) {
             try {
                 var deser = new MemSerializer(load_data)
                 var arch = Archive(reading = true, stream = deser)
@@ -163,7 +158,7 @@ def test_live_vars_archive_round_trip(t : T?) {
 }
 
 [test]
-def test_live_vars_per_key_round_trip(t : T?) {
+def test_live_vars_per_key_round_trip(t : T?) {   // nolint:STYLE038 flat list of independent round-trip arms
     t |> run("per-variable save/load with matching hash") <| @(t : T?) {
         // Simulate what the generated code does: hash + value
         let init_hash = int64(hash("42"))  // hash of describe(test_int.init) = "42"
@@ -175,13 +170,13 @@ def test_live_vars_per_key_round_trip(t : T?) {
         var h = init_hash
         arch |> serialize(h)
         arch |> serialize(value)
-        var data <- ser->extractData()
+        let data <- ser->extractData()
         live_store_bytes(key, data)
         unsafe { delete ser; }
         // Load with same hash — should restore
         var restored = 0
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64
@@ -204,13 +199,13 @@ def test_live_vars_per_key_round_trip(t : T?) {
         var h = old_hash
         arch |> serialize(h)
         arch |> serialize(value)
-        var data <- ser->extractData()
+        let data <- ser->extractData()
         live_store_bytes(key, data)
         unsafe { delete ser; }
         // Load expecting new hash — should NOT restore
         var restored = 0
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64
@@ -232,13 +227,13 @@ def test_live_vars_per_key_round_trip(t : T?) {
         var h = no_init_hash
         arch |> serialize(h)
         arch |> serialize(value)
-        var data <- ser->extractData()
+        let data <- ser->extractData()
         live_store_bytes(key, data)
         unsafe { delete ser; }
         // Load with hash 0 — should restore
         var restored = 0
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64

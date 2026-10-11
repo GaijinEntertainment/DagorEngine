@@ -8,6 +8,7 @@
 #include <oldEditor/de_cm.h>
 #include <oldEditor/de_workspace.h>
 #include <oldEditor/de_collision.h>
+#include <scene/dag_physMat.h>
 #include <de3_huid.h>
 #include <de3_fileTracker.h>
 #include <de3_interface.h>
@@ -59,7 +60,7 @@
 #include <perfMon/dag_graphStat.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
-#include <perfMon/dag_visClipMesh.h>
+#include <debug/dag_collResDebugDraw.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 
@@ -579,10 +580,10 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
   DAEDITOR3.initAssetBase(wsp->getAppDir(), appblk);
 
   String phmat_fn(wsp->getPhysmatPath());
-  if (::dd_file_exist(phmat_fn))
-    ::init_tps_physmat(phmat_fn);
-  else if (!phmat_fn.empty())
+  if (!phmat_fn.empty() && !::dd_file_exist(phmat_fn))
     DAEDITOR3.conError("PhysMat: can't find physmat file: '%s'", phmat_fn);
+  // unconditional: a failed load still clears the table and installs the default material
+  PhysMat::init(phmat_fn);
 
   // init dynamic or classic renderer
   queryEditorInterface<IDynRenderService>()->setup(wsp->getAppDir(), appblk);
@@ -754,7 +755,10 @@ void DagorEdAppWindow::resetCore()
 {
   undoSystem->clear();
 
+  // Everything goes here, so a plugin that refuses to end cannot keep the index alive past the
+  // array it points into.
   switchToPlugin(-1);
+  curPluginId = -1;
 
   for (int i = 0; i < plugin.size(); ++i)
     if (plugin[i].p)
@@ -789,7 +793,7 @@ void DagorEdAppWindow::terminateInterface()
     service->closeGrass();
 
   services_release();
-  delete_visclipmesh();
+  term_collres_debug_draw();
   terminate_interface_de3();
   IDagorEd2Engine::set(NULL);
 }
@@ -1169,6 +1173,13 @@ PropPanel::DialogWindow *DagorEdAppWindow::createDialog(hdpi::Px w, hdpi::Px h, 
   return new PropPanel::DialogWindow(0, w, h, title);
 }
 
+PropPanel::DialogWindow *DagorEdAppWindow::createAutoSizedDialog(const char *title, hdpi::Px min_width, hdpi::Px min_height)
+{
+  PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(0, min_width, min_height, title);
+  dialog->autoSize(/*auto_center = */ !dialog->hasEverBeenShown(), /*use_preferred_size = */ true);
+  return dialog;
+}
+
 void DagorEdAppWindow::deleteDialog(PropPanel::DialogWindow *dlg) { delete dlg; }
 
 void DagorEdAppWindow::sendImmediateFocusLossNotification() { PropPanel::send_immediate_focus_loss_notification(); }
@@ -1189,11 +1200,12 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
   if (!mPlugTools)
     return;
 
-  ged.activateCurrentViewport();
-
   int curId = curPluginId;
   if (plgId == curPluginId)
+  {
+    ged.activateCurrentViewport();
     return;
+  }
 
   // delete gizmo
   setGizmo(NULL, MODE_None);
@@ -1202,7 +1214,16 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
 
   // close current plugin mode
   if (cur && !cur->end())
+  {
+    // Both selectors moved to the clicked entry before they notified us, and the bar notifies
+    // nothing on a second click of that same page, so put them back on the plugin that stays.
+    mTabWindow->setInt(TAB_PANEL_ID, cur->showInTabs() ? TAB_BASE_ID + curId : -1);
+    getMainMenu()->setRadioById(CM_PLUGINS_MENU_1ST + curId, CM_PLUGINS_MENU_1ST, CM_PLUGINS_MENU_1ST + plugin.size());
     return;
+  }
+
+  // Below the refusal, so the plugin that keeps the frame keeps the keys with it.
+  ged.activateCurrentViewport();
 
   setEnabledColliders(activeColliders);
 
@@ -1272,8 +1293,22 @@ void DagorEdAppWindow::switchToUndoOpOwner(void *owner)
   {
     return;
   }
-  const int idx = findPlugin(static_cast<IGenEditorPlugin *>(owner));
-  if (idx >= 0)
+  int idx = findPlugin(static_cast<IGenEditorPlugin *>(owner));
+  if (idx < 0)
+  {
+    // A plugin editing several documents stamps a token of its own, so ask which one owns this.
+    for (int i = 0; i < plugin.size(); ++i)
+    {
+      if (plugin[i].p && plugin[i].p->catchEvent(HUID_ClaimUndoOpOwner, owner))
+      {
+        idx = i;
+        break;
+      }
+    }
+  }
+  // switchToPlugin activates the viewport before it sees that the plugin is already the current one,
+  // which would take the focus off the canvas the undo is about to change.
+  if (idx >= 0 && idx != curPluginId)
   {
     switchToPlugin(idx);
   }
@@ -1980,7 +2015,7 @@ void DagorEdAppWindow::renderGrid()
 
 
 //==============================================================================
-void DagorEdAppWindow::renderTransObjects()
+void DagorEdAppWindow::renderTransObjects(BaseTexture *)
 {
   if (skipRenderObjects)
   {

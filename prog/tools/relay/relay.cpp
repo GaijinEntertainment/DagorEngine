@@ -43,8 +43,11 @@ static String relay_get_log_prefix()
 #include <startup/dag_mainCon.inc.cpp>
 
 #include <enet/enet_dagor.h>
+#include <enet/time.h>
 
 #define BUFFERING_BEFORE_UDP_PUNCH_WAIT_TIMEOUT 10000 // 10 sec
+#define RELAY_PONG_MIN_INTERVAL_MS              2000
+#define ECHO_PACKET_MARKER                      0xFFFF // constraint: daNet EchoNetPacket.marker
 
 #if DAGOR_DBGLEVEL > 0
 static bool verbose_logs_enabled = false;
@@ -351,6 +354,25 @@ int intercept_network_message(_ENetHost *host, _ENetEvent *event)
     ebuf.data = (void *)host->receivedData;
     ebuf.dataLength = host->receivedDataLength;
     send_message_of_client_to_dedic(relayHost, from_whom, ebuf);
+    if (DAGOR_UNLIKELY(relayHost->dagorLastRelayPongTime == 0 ||
+                       ENET_TIME_DIFFERENCE(host->serviceTime, relayHost->dagorLastRelayPongTime) >= RELAY_PONG_MIN_INTERVAL_MS))
+    {
+      if (!DAGOR_UNLIKELY(host->receivedDataLength >= sizeof(enet_uint16) &&
+                          ENET_NET_TO_HOST_16(*(const enet_uint16 *)host->receivedData) == ECHO_PACKET_MARKER))
+      {
+        enet_uint16 sentTime = 0;
+        if (enet_dagor_datagram_header_sent_time(host->receivedData, host->receivedDataLength, &sentTime))
+        {
+          ENetProtocol pong;
+          memset(&pong, 0, sizeof(pong));
+          pong.header.command = ENET_PROTOCOL_COMMAND_DAGOR_RELAY_PONG;
+          pong.header.channelID = 0xFF;
+          pong.dagorRelayPong.receivedSentTime = ENET_HOST_TO_NET_16(sentTime);
+          enet_dagor_manual_send_command(host, &from_whom, &pong, nullptr);
+          relayHost->dagorLastRelayPongTime = host->serviceTime;
+        }
+      }
+    }
     return 1;
   }
 }

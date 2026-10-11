@@ -418,7 +418,8 @@ bool Context::releaseTextureNoLock(TEXTUREID id)
     }
 
     usedTextures.erase(iter);
-    release_managed_tex(id);
+    if (D3dResManagerData::isValidID(id, nullptr))
+      release_managed_tex(id);
     texturesWaitingForLoad.erase(id);
     return true;
   }

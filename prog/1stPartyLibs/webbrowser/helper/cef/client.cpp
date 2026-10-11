@@ -155,8 +155,8 @@ void Client::OnLoadStart(CefRefPtr<CefBrowser> browser,
   if (!frame->IsMain() || !this->browsers.isActive(browser))
     return;
 
-  if (this->cefScale > 1.0)
-    browser->GetHost()->SetZoomLevel(cefScale);
+  if (this->cefScale > 1.0f)
+    browser->GetHost()->SetZoomLevel(double(cefScale));
 
   webbrowser::IHandler::PageInfo pi;
   const std::string url = frame->GetURL().ToString();
@@ -401,7 +401,7 @@ void Client::setWindowHandle(cef_window_handle_t h)
     if (scaleInt > 100)
     {
       //CEF use scale exponent +20% per scale level, so 2.0 means 120%, 3.0 means 144% etc
-      this->cefScale = logf((float)scaleInt / 100.0) / logf(1.2);
+      this->cefScale = logf((float)scaleInt / 100.0f) / logf(1.2f);
     }
 }
 

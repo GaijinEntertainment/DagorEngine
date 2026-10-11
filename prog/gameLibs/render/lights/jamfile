@@ -12,6 +12,7 @@ AddIncludes =
 ;
 
 Sources =
+  lightsBase.cpp
   clusteredLights.cpp
   clusteredLightsGrid.cpp
   lightsSorter.cpp
@@ -28,6 +29,7 @@ Sources =
   lightsRenderer.cpp
   dynamicLightShadows.cpp
   lightsVisibilityChecker.cpp
+  lightsCounter.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

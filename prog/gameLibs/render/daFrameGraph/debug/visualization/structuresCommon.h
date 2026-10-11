@@ -15,6 +15,7 @@
 [[maybe_unused]] constexpr auto IMGUI_USG_WIN_NAME = "User Graph Visualizer";
 [[maybe_unused]] constexpr auto IMGUI_IRG_WIN_NAME = "IR Graph Visualizer";
 [[maybe_unused]] constexpr auto IMGUI_RES_WIN_NAME = "Resourse Visualizer";
+[[maybe_unused]] constexpr auto IMGUI_UNTRACKED_WIN_NAME = "Untracked Resources";
 [[maybe_unused]] constexpr auto IMGUI_TEX_WIN_NAME = "Texture Visualizer";
 [[maybe_unused]] constexpr auto IMGUI_GPU_CAPTURE_WIN_NAME = "GPU Capture";
 
@@ -55,6 +56,7 @@ const char *buffer_flags_descr(const int flags);
 const char *buffer_bind_name(const int flags);
 
 void format_pretty(ImDrawList *draw_list, const int format);
+const char *multi_line_name(const char *name);
 
 
 void request_user_node_focus(const NodeNameId id);

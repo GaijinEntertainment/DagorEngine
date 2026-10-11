@@ -1344,6 +1344,7 @@ public:
 
   Tab<IKRec> rec;
   int varId;
+  bool applyRootScale = false;
 
   AnimPostBlendTwoBonesIK(AnimationGraph &g) : AnimPostBlendCtrl(g), rec(midmem), varId(-1) {}
 

@@ -45,8 +45,7 @@ def test_native_dim_field(t : T?) {
     t |> run("native field copies out to das FA") @(t : T?) {
         var foo : TestObjectFoo
         foo.fooArray[1] = 42
-        var local : int[3]
-        local = foo.fooArray
+        let local = foo.fooArray
         foo.fooArray[1] = 0
         t |> equal(local[1], 42)
     }

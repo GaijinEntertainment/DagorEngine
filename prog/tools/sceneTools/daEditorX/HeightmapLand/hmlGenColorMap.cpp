@@ -386,6 +386,7 @@ public:
   Point2 tile, offset;
   bool clampU, clampV, flipU, flipV, swapUV, showMask;
   int detailType;
+  LandDetile detile; // of the landclass the image came from: the image is read where its de-tiled tile shows the spot
   IHmapBrushImage::Channel channel;
 
   int mappingTypePid, tilePid, offsetPid, clampUPid, clampVPid, showMaskPid, flipUPid, flipVPid, swapUVPid, detailTypePid,
@@ -407,6 +408,7 @@ public:
     int mappingType, detailType;
     Point2 tile, offset;
     bool clampU, clampV, flipU, flipV, swapUV;
+    LandDetile detile;
 
     DefParams() :
       mappingType(MAPPING_HMAP),
@@ -434,6 +436,7 @@ public:
     flipV(def.flipV),
     swapUV(def.swapUV),
     detailType(def.detailType),
+    detile(def.detile),
     channel(IHmapBrushImage::CHANNEL_RGB)
   {}
 
@@ -741,6 +744,7 @@ public:
         def.flipU = img.flipU;
         def.flipV = img.flipV;
         def.swapUV = img.swapUV;
+        def.detile = assetData->detile;
 
         images[i] = new ScriptParamImage(String(64, "%s_%s", (char *)paramName, (char *)img.name), def);
         HmapLandPlugin::self->getScriptImage(images[i]->imageName, 1, 32);
@@ -2066,7 +2070,7 @@ public:
 
         case PropPanel::EXT_BUTTON_INSERT:
         {
-          PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Insert generation layer");
+          PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Insert generation layer");
           dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
           PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
           panel->createEditBox(0, "Enter generation layer name:");
@@ -2145,7 +2149,7 @@ public:
 
         case PropPanel::EXT_BUTTON_RENAME:
         {
-          PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Rename generation layer");
+          PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Rename generation layer");
           dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
           PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
           panel->createEditBox(0, "Change generation layer name:", paramName);
@@ -3063,15 +3067,10 @@ void HmapLandPlugin::recompileGenLayerExpressions(bool shrink_arenas)
   // exprNv may exceed the per-pixel exprVars[] slot count if the debug
   // expression declares many local vars; track it in maxNv so the buffer is
   // sized accordingly even when no enabled gen layer needs as many slots.
-  {
-    lcexpr::NameMap debugVm = baseVm;
-    uint16_t debugNv = baseNv;
-    lcexpr::VarTypeTable debugVt = baseVt;
-    compile_debug_into(debugExprArena, debugExprText.str(), debugExprRoot, debugExprVarMask, debugExprValid, debugExprLastErr,
-      debugExprNv, debugVm, debugNv, debugVt);
-    if (debugExprValid && debugExprNv > maxNv)
-      maxNv = debugExprNv;
-  }
+  compile_debug_into(debugExprArena, debugExprText.str(), debugExprRoot, debugExprVarMask, debugExprValid, debugExprLastErr,
+    debugExprNv, baseVm, baseNv, baseVt);
+  if (debugExprValid && debugExprNv > maxNv)
+    maxNv = debugExprNv;
 
   // Reserve MAX_TEMP_REGS slots beyond the widest named-var range for `{ block }`
   // scoped temp regs. Done unconditionally rather than tracking each expression's
@@ -3743,6 +3742,16 @@ void HmapLandPlugin::storeLayerTex()
 
 void ScriptParamImage::calcMapping(const LandColorGenData &lcg, real x, real z, Point2 &p) const
 {
+  // only the world mapping repeats with the tile: the hmap mappings anchor to the map,
+  // a clamped image pins to its edges, and a vertical one reads lcg.height alone
+  if (detile.enabled() && mappingType == MAPPING_WORLD && !clampU && !clampV)
+  {
+    // the image is the tile: read it where the de-tiled tile shows this spot
+    const Point2 w(x * lcg.gridCellSize + lcg.heightMapOffset.x, z * lcg.gridCellSize + lcg.heightMapOffset.y);
+    const Point2 q = land_detile::to_pattern(land_detile::cluster(detile, land_detile::dominant_cluster(detile, w)), w);
+    x = (q.x - lcg.heightMapOffset.x) / lcg.gridCellSize;
+    z = (q.y - lcg.heightMapOffset.y) / lcg.gridCellSize;
+  }
   if (mappingType == MAPPING_HMAP_PERCENT)
   {
     p.x = x / lcg.heightMapSizeX;
@@ -5330,6 +5339,7 @@ real HmapLandPlugin::getBrushImageData(int x, int y, IHmapBrushImage::Channel ch
     lcg.heightMapX = x / float(lcmScale);
     lcg.heightMapZ = y / float(lcmScale);
     lcg.gridCellSize = gridCellSize;
+    lcg.heightMapOffset = heightMapOffset; // calcMapping of a de-tiled world image reads it
     lcg.heightMapSizeX = heightMap.getMapSizeX();
     lcg.heightMapSizeZ = heightMap.getMapSizeY();
 
@@ -5378,6 +5388,7 @@ void HmapLandPlugin::setBrushImageData(int x, int y, real v, IHmapBrushImage::Ch
     lcg.heightMapX = x / float(lcmScale);
     lcg.heightMapZ = y / float(lcmScale);
     lcg.gridCellSize = gridCellSize;
+    lcg.heightMapOffset = heightMapOffset; // calcMapping of a de-tiled world image reads it
     lcg.heightMapSizeX = heightMap.getMapSizeX();
     lcg.heightMapSizeZ = heightMap.getMapSizeY();
 

@@ -115,8 +115,8 @@ namespace das {
                 array_clear(*context, *pa, /*at*/nullptr);
                 // exact reserve first: the final size is known, so the resize never grows -
                 // no pow2 slack on big payloads, and no max_unreserved_size panic
-                array_reserve(*context, *pa, newSize, getTypeBaseSize(ti), /*at*/nullptr);
-                array_resize(*context, *pa, newSize, getTypeBaseSize(ti), true, /*at*/nullptr);
+                array_reserve(*context, *pa, newSize, ti->firstType->size, /*at*/nullptr);
+                array_resize(*context, *pa, newSize, ti->firstType->size, true, /*at*/nullptr);
             } else {
                 save(pa->size);
             }
@@ -287,6 +287,10 @@ namespace das {
                 lambda->capture = ptr;
             } else {
                 info = lambda->getTypeInfo();
+                if ( !info ) {
+                    error("binary serialization of null lambdas is not supported");
+                    return;
+                }
                 serialize(info->hash);
             }
         }
@@ -294,16 +298,23 @@ namespace das {
 
     // save ( obj, block<(bytesAt)> )
     vec4f _builtin_binary_save ( Context & context, SimNode_CallBase * call, vec4f * args ) {
-        BinDataSerialize writer(context, &call->debugInfo);
-        // args
-        Block * block = cast<Block *>::to(args[1]);
-        auto info = call->types[0];
-        writer.walk(args[0], info);
-        writer.close();
-        Array arr;
-        array_mark_locked(arr, writer.bytesAt, writer.bytesWritten);
-        vec4f arg = cast<char *>::from((char *)&arr);
-        context.invoke(*block, &arg, nullptr, &call->debugInfo);
+        bool ok = false;
+        {
+            BinDataSerialize writer(context, &call->debugInfo);
+            // args
+            Block * block = cast<Block *>::to(args[1]);
+            auto info = call->types[0];
+            writer.walk(args[0], info);
+            writer.close();
+            Array borrowedBytesView;
+            array_mark_locked(borrowedBytesView, writer.bytesAt, writer.bytesWritten);
+            vec4f borrowedBytesArgument = cast<char *>::from((char *)&borrowedBytesView);
+            ok = context.runWithCatch([&]() {
+                context.invoke(*block, &borrowedBytesArgument, nullptr, &call->debugInfo);
+            });
+            context.free(writer.bytesAt, writer.bytesWritten, &call->debugInfo);
+        }
+        if (!ok) context.rethrow();
         return v_zero();
     }
 

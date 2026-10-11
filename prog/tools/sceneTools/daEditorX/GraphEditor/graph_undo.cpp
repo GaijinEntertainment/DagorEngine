@@ -3,18 +3,23 @@
 #include "graph_undo.h"
 #include "graph_document.h"
 
-UndoCreateNode::UndoCreateNode(GraphDocument &document, GraphData::Node node_snapshot) :
-  doc(document), node(eastl::move(node_snapshot))
+UndoCreateNode::UndoCreateNode(GraphDocument &document, GraphData::Node node_snapshot, int node_index) :
+  doc(document), node(eastl::move(node_snapshot)), nodeIndex(node_index)
 {}
 
 void UndoCreateNode::restore(bool /*save_redo_data*/)
 {
+  doc.activateTab();
   // We already hold the full snapshot, so there is no redo data to capture here -- undo just
   // removes the created node (and its incident edges).
   doc.eraseNode(node.id);
 }
 
-void UndoCreateNode::redo() { doc.reinsertNode(node); }
+void UndoCreateNode::redo()
+{
+  doc.activateTab();
+  doc.reinsertNode(node, nodeIndex);
+}
 
 size_t UndoCreateNode::size()
 {
@@ -26,14 +31,25 @@ size_t UndoCreateNode::size()
 void UndoCreateNode::get_description(String &s) { s = "Create node"; }
 
 UndoDeleteNodes::UndoDeleteNodes(GraphDocument &document, eastl::vector<GraphData::Node> removed_nodes,
-  eastl::vector<GraphData::Edge> removed_edges) :
-  doc(document), nodes(eastl::move(removed_nodes)), edges(eastl::move(removed_edges))
-{}
+  eastl::vector<int> node_indices, eastl::vector<GraphData::Edge> removed_edges, eastl::vector<int> edge_indices) :
+  doc(document),
+  nodes(eastl::move(removed_nodes)),
+  nodeIndices(eastl::move(node_indices)),
+  edges(eastl::move(removed_edges)),
+  edgeIndices(eastl::move(edge_indices))
+{
+  G_ASSERT(nodes.size() == nodeIndices.size() && edges.size() == edgeIndices.size());
+}
 
-void UndoDeleteNodes::restore(bool /*save_redo_data*/) { doc.restoreNodesAndEdges(nodes, edges); }
+void UndoDeleteNodes::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.restoreNodesAndEdges(nodes, nodeIndices, edges, edgeIndices);
+}
 
 void UndoDeleteNodes::redo()
 {
+  doc.activateTab();
   // Re-delete by id; eraseNodes strips each node's incident edges (exactly the ones restore()
   // re-added), leaving the graph as the original delete did.
   eastl::vector<int> ids;
@@ -53,6 +69,7 @@ size_t UndoDeleteNodes::size()
     sz += approx_node_size(n);
   }
   sz += edges.size() * sizeof(GraphData::Edge);
+  sz += (nodeIndices.size() + edgeIndices.size()) * sizeof(int);
   return sz;
 }
 
@@ -62,45 +79,69 @@ UndoMoveNodes::UndoMoveNodes(GraphDocument &document, eastl::vector<NodePos> old
   doc(document), oldPositions(eastl::move(old_positions)), newPositions(eastl::move(new_positions))
 {}
 
-void UndoMoveNodes::restore(bool /*save_redo_data*/) { doc.applyNodePositions(oldPositions); }
+void UndoMoveNodes::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.applyNodePositions(oldPositions);
+}
 
-void UndoMoveNodes::redo() { doc.applyNodePositions(newPositions); }
+void UndoMoveNodes::redo()
+{
+  doc.activateTab();
+  doc.applyNodePositions(newPositions);
+}
 
 size_t UndoMoveNodes::size() { return sizeof(*this) + (oldPositions.size() + newPositions.size()) * sizeof(NodePos); }
 
 void UndoMoveNodes::get_description(String &s) { s = "Move nodes"; }
 
-UndoCreateEdge::UndoCreateEdge(GraphDocument &document, const GraphData::Edge &created_edge) : doc(document), edge(created_edge) {}
+UndoCreateEdge::UndoCreateEdge(GraphDocument &document, const GraphData::Edge &created_edge, int edge_index) :
+  doc(document), edge(created_edge), edgeIndex(edge_index)
+{}
 
-void UndoCreateEdge::restore(bool /*save_redo_data*/) { doc.eraseEdge(edge.id); }
+void UndoCreateEdge::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.eraseEdge(edge.id);
+}
 
-void UndoCreateEdge::redo() { doc.reinsertEdge(edge); }
+void UndoCreateEdge::redo()
+{
+  doc.activateTab();
+  doc.reinsertEdge(edge, edgeIndex);
+}
 
 size_t UndoCreateEdge::size() { return sizeof(*this); }
 
 void UndoCreateEdge::get_description(String &s) { s = "Create edge"; }
 
-UndoDeleteEdges::UndoDeleteEdges(GraphDocument &document, eastl::vector<GraphData::Edge> removed_edges) :
-  doc(document), edges(eastl::move(removed_edges))
-{}
+UndoDeleteEdges::UndoDeleteEdges(GraphDocument &document, eastl::vector<GraphData::Edge> removed_edges,
+  eastl::vector<int> edge_indices) :
+  doc(document), edges(eastl::move(removed_edges)), edgeIndices(eastl::move(edge_indices))
+{
+  G_ASSERT(edges.size() == edgeIndices.size());
+}
 
 void UndoDeleteEdges::restore(bool /*save_redo_data*/)
 {
-  for (const GraphData::Edge &e : edges)
+  doc.activateTab();
+  // Backwards: an index holds only once the edges erased after it are back.
+  for (int i = static_cast<int>(edges.size()) - 1; i >= 0; --i)
   {
-    doc.reinsertEdge(e);
+    doc.reinsertEdge(edges[i], edgeIndices[i]);
   }
 }
 
 void UndoDeleteEdges::redo()
 {
+  doc.activateTab();
   for (const GraphData::Edge &e : edges)
   {
     doc.eraseEdge(e.id);
   }
 }
 
-size_t UndoDeleteEdges::size() { return sizeof(*this) + edges.size() * sizeof(GraphData::Edge); }
+size_t UndoDeleteEdges::size() { return sizeof(*this) + edges.size() * sizeof(GraphData::Edge) + edgeIndices.size() * sizeof(int); }
 
 void UndoDeleteEdges::get_description(String &s) { s = "Delete edges"; }
 
@@ -108,9 +149,17 @@ UndoToggleEdgeMuted::UndoToggleEdgeMuted(GraphDocument &document, int edge_id, b
   doc(document), edgeId(edge_id), oldMuted(old_muted)
 {}
 
-void UndoToggleEdgeMuted::restore(bool /*save_redo_data*/) { doc.applyEdgeMuted(edgeId, oldMuted); }
+void UndoToggleEdgeMuted::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.applyEdgeMuted(edgeId, oldMuted);
+}
 
-void UndoToggleEdgeMuted::redo() { doc.applyEdgeMuted(edgeId, !oldMuted); }
+void UndoToggleEdgeMuted::redo()
+{
+  doc.activateTab();
+  doc.applyEdgeMuted(edgeId, !oldMuted);
+}
 
 size_t UndoToggleEdgeMuted::size() { return sizeof(*this); }
 
@@ -120,9 +169,17 @@ UndoSelection::UndoSelection(GraphDocument &document, GraphSelection old_selecti
   doc(document), oldSelection(eastl::move(old_selection)), newSelection(eastl::move(new_selection))
 {}
 
-void UndoSelection::restore(bool /*save_redo_data*/) { doc.applySelection(oldSelection); }
+void UndoSelection::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.applySelection(oldSelection);
+}
 
-void UndoSelection::redo() { doc.applySelection(newSelection); }
+void UndoSelection::redo()
+{
+  doc.activateTab();
+  doc.applySelection(newSelection);
+}
 
 size_t UndoSelection::size()
 {
@@ -140,6 +197,7 @@ UndoNodeProps::UndoNodeProps(GraphDocument &document, int node_id) : doc(documen
 
 void UndoNodeProps::restore(bool save_redo_data)
 {
+  doc.activateTab();
   if (save_redo_data)
   {
     doc.getNodeProperties(nodeId, redoProps);
@@ -147,7 +205,11 @@ void UndoNodeProps::restore(bool save_redo_data)
   doc.applyNodeProperties(nodeId, oldProps);
 }
 
-void UndoNodeProps::redo() { doc.applyNodeProperties(nodeId, redoProps); }
+void UndoNodeProps::redo()
+{
+  doc.activateTab();
+  doc.applyNodeProperties(nodeId, redoProps);
+}
 
 size_t UndoNodeProps::size()
 {
@@ -171,6 +233,7 @@ UndoGraphSettings::UndoGraphSettings(GraphDocument &document, GraphSettings old_
 
 void UndoGraphSettings::restore(bool save_redo_data)
 {
+  doc.activateTab();
   if (save_redo_data)
   {
     doc.getGraphSettings(redoSettings);
@@ -178,7 +241,11 @@ void UndoGraphSettings::restore(bool save_redo_data)
   doc.applyGraphSettings(oldSettings);
 }
 
-void UndoGraphSettings::redo() { doc.applyGraphSettings(redoSettings); }
+void UndoGraphSettings::redo()
+{
+  doc.activateTab();
+  doc.applyGraphSettings(redoSettings);
+}
 
 size_t UndoGraphSettings::size()
 {
@@ -194,9 +261,17 @@ UndoPinComment::UndoPinComment(GraphDocument &document, int node_id, int pin_ind
   doc(document), nodeId(node_id), pinIndex(pin_index), oldComment(eastl::move(old_comment)), newComment(eastl::move(new_comment))
 {}
 
-void UndoPinComment::restore(bool /*save_redo_data*/) { doc.applyPinComment(nodeId, pinIndex, oldComment); }
+void UndoPinComment::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.applyPinComment(nodeId, pinIndex, oldComment);
+}
 
-void UndoPinComment::redo() { doc.applyPinComment(nodeId, pinIndex, newComment); }
+void UndoPinComment::redo()
+{
+  doc.activateTab();
+  doc.applyPinComment(nodeId, pinIndex, newComment);
+}
 
 size_t UndoPinComment::size() { return sizeof(*this) + oldComment.length() + newComment.length(); }
 
@@ -206,9 +281,17 @@ UndoBlockResize::UndoBlockResize(GraphDocument &document, eastl::vector<BlockSiz
   doc(document), oldSizes(eastl::move(old_sizes)), newSizes(eastl::move(new_sizes))
 {}
 
-void UndoBlockResize::restore(bool /*save_redo_data*/) { doc.applyBlockSizes(oldSizes); }
+void UndoBlockResize::restore(bool /*save_redo_data*/)
+{
+  doc.activateTab();
+  doc.applyBlockSizes(oldSizes);
+}
 
-void UndoBlockResize::redo() { doc.applyBlockSizes(newSizes); }
+void UndoBlockResize::redo()
+{
+  doc.activateTab();
+  doc.applyBlockSizes(newSizes);
+}
 
 size_t UndoBlockResize::size() { return sizeof(*this) + (oldSizes.size() + newSizes.size()) * sizeof(BlockSize); }
 

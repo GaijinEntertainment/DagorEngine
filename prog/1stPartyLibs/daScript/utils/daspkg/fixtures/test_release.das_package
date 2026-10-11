@@ -20,4 +20,6 @@ def release() {
     release_wasm_build("emcmake cmake -S . -B _wasm && cmake --build _wasm")
     release_wasm_archive("_wasm/liblibDasModuleTest.a")
     release_wasm_archive("_wasm/liblibTestApp.a")
+    release_wasm_disable_module("dasvulkan")
+    release_emcc_arg("--profiling-funcs")
 }

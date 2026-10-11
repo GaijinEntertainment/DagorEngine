@@ -21,6 +21,9 @@ BhvWheelScroll bhv_wheel_scroll;
 BhvWheelScroll::BhvWheelScroll() : Behavior(0, F_HANDLE_MOUSE | F_ALLOW_AUTO_SCROLL) {}
 
 
+void BhvWheelScroll::onDetach(Element *elem, DetachMode) { elem->props.storage.RawDeleteSlot(elem->csk->wheelScrollRemainder); }
+
+
 int BhvWheelScroll::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
   int data, Point2 pos, int accum_res)
 {
@@ -30,7 +33,10 @@ int BhvWheelScroll::pointingEvent(ElementTree * /*etree*/, Element *elem, InputD
     event == INP_EV_MOUSE_WHEEL && !(accum_res & R_PROCESSED) && (elem->hitTest(pos) || elem->props.getBool(elem->csk->globalScroll)))
   {
     const float wheelStep = elem->props.scriptDesc.RawGetSlotValue("wheelStep", 0.2f);
-    const float delta = truncf(data * wheelStep);
+    // Keep the sub-pixel part, so that devices with fine steps still scroll
+    const float fullDelta = elem->props.storage.RawGetSlotValue(elem->csk->wheelScrollRemainder, 0.0f) + data * wheelStep;
+    const float delta = truncf(fullDelta);
+    elem->props.storage.SetValue(elem->csk->wheelScrollRemainder, fullDelta - delta);
     if (elem->props.scriptDesc.RawGetSlotValue(elem->csk->orientation, O_VERTICAL) == O_VERTICAL)
       elem->scroll(Point2(0, -delta));
     else

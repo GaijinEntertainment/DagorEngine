@@ -4,6 +4,8 @@
 #include <math/random/dag_random.h>
 #include <math/dag_rayIntersectSphere.h>
 #include <generic/dag_staticTab.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
 #include <daSkies2/daSkies.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
@@ -960,17 +962,26 @@ void DaSkies::renderEnvi(bool can_be_inside_clouds, const DPoint3 &origin, const
   const TMatrix4 &proj_tm, const Driver3dPerspective &persp, UpdateSky update_sky, bool fixed_offset, float altitude_tolerance,
   const CloudsRenderFlags flags)
 {
+  renderEnvi(can_be_inside_clouds, origin, dir, render_sun_moon, cloudsDepth.getTex2D(), prevCloudsDepth.getTex2D(), targetDepth, data,
+    view_tm, proj_tm, persp, update_sky, fixed_offset, altitude_tolerance, flags);
+}
+
+void DaSkies::renderEnvi(bool can_be_inside_clouds, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon,
+  BaseTexture *cloudsDepth, BaseTexture *prevCloudsDepth, BaseTexture *targetDepth, SkiesData *data, const TMatrix &view_tm,
+  const TMatrix4 &proj_tm, const Driver3dPerspective &persp, UpdateSky update_sky, bool fixed_offset, float altitude_tolerance,
+  const CloudsRenderFlags flags)
+{
   if (cpuOnly)
     return;
   G_ASSERT(data);
   TIME_D3D_PROFILE(envi)
-  prepareSkyAndClouds(can_be_inside_clouds, origin, dir, render_sun_moon, cloudsDepth.getTex2D(), prevCloudsDepth.getTex2D(), data,
-    view_tm, proj_tm, update_sky, fixed_offset, altitude_tolerance, flags);
+  prepareSkyAndClouds(can_be_inside_clouds, origin, dir, render_sun_moon, cloudsDepth, prevCloudsDepth, data, view_tm, proj_tm,
+    update_sky, fixed_offset, altitude_tolerance, flags);
 
   bool prevSolidColorMode = solidColorMode;
   solidColorMode = false;
   renderSky(data, view_tm, proj_tm, persp, RenderPrepared::LowresOnFarPlane, nullptr);
-  renderCloudsToTarget(can_be_inside_clouds, cloudsDepth.getTex2D(), targetDepth, data, view_tm, proj_tm, Point4(1, 1, 0, 0), flags);
+  renderCloudsToTarget(can_be_inside_clouds, cloudsDepth, targetDepth, data, view_tm, proj_tm, Point4(1, 1, 0, 0), flags);
   solidColorMode = prevSolidColorMode;
 }
 
@@ -1181,15 +1192,14 @@ void DaSkies::dispatchCloudsTraces()
     if (resultBuffer)
     {
       uint64_t startTraceId = currentCloudsTraceDispatchId;
-      Point4 dispatchData[numCloudsTracesPerFrame * 2];
-      int dispatchSize = 0;
       int maxDispatchSize = traceCloudsCs ? numCloudsTracesPerFrame : numCloudsTracesPerFramePs;
-      for (; currentCloudsTraceDispatchId < currentCloudsTraceId && dispatchSize < maxDispatchSize;
-           currentCloudsTraceDispatchId++, dispatchSize++)
+      int dispatchSize = int(min(currentCloudsTraceId - startTraceId, uint64_t(maxDispatchSize)));
+      dag::RelocatableFixedVector<Point4, 8, true, framemem_allocator, uint32_t, false> dispatchData(dispatchSize * 2);
+      for (int i = 0; i < dispatchSize; i++, currentCloudsTraceDispatchId++)
       {
         CloudsTrace &data = cloudsTraces[currentCloudsTraceDispatchId % cloudsTraceHistorySize];
-        dispatchData[dispatchSize * 2] = Point4(data.inPos.x, data.inPos.y, data.inPos.z, data.inThreshold);
-        dispatchData[dispatchSize * 2 + 1] = Point4(data.inDir.x, data.inDir.y, data.inDir.z, data.inDist);
+        dispatchData[i * 2] = Point4(data.inPos.x, data.inPos.y, data.inPos.z, data.inThreshold);
+        dispatchData[i * 2 + 1] = Point4(data.inDir.x, data.inDir.y, data.inDir.z, data.inDist);
         data.state = CloudsTrace::State::DISPATCHED;
       }
 

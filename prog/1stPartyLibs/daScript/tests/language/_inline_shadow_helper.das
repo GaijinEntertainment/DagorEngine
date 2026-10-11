@@ -10,14 +10,14 @@ require daslib/ast_boost
 [block_macro(name="shadowable")]
 class ShadowableBlock : AstBlockAnnotation {
     def override apply(var blk : ExprBlock?; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         for (a in blk.arguments) {
             a.flags.can_shadow = true
         }
         return true
     }
     def override finish(var blk : ExprBlock?; var group : ModuleGroup;
-                        args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+                        var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         return true
     }
 }

@@ -1,9 +1,10 @@
 return {
-  get_map = @() null
-  get_config_revision = @() 1
-  get_config = @() {}
   save_config = @() {}
   reset_to_default = @() null
+  reset_to_preset = @(_preset, _move_changes) null
   restore_saved_config = @() null
+  set_touch_pad_always_mouse = @(_on) null
   get_sens_scale = @() {}
+  set_rumble_scale = @(_scale) null
+  rumble = @(_freq, _duration_msec) null
 }

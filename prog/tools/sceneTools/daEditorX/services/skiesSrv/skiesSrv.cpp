@@ -363,7 +363,7 @@ public:
       srv->getPostFxSettings(set);
       Point3 volFogPos(::grs_cur_view.pos.x, max(::grs_cur_view.pos.y, VOL_FOG_POS_ALT), ::grs_cur_view.pos.z);
       Color3 mieColor = daSkies->getMieColor(volFogPos, -sunDir0, VOL_FOG_POS_DIST);
-      if (lengthSq(set.volfogColor - mieColor) > 1e-8)
+      if (lengthSq(set.volfogColor - mieColor) > 1e-8f)
       {
         set.volfogColor = mieColor;
         srv->setPostFxSettings(set);
@@ -590,7 +590,7 @@ public:
     appliedWeather.setReal("locTime", gmt_to_localtime(gmtTime, longitude));
 
     daSkies->setStarsLatLon(latitude, longitude);
-    daSkies->setStarsJulianDay(julian_day(yy, mm, dd, gmtTime));
+    daSkies->setStarsJulianDay(julian_day(yy, mm, dd, double(gmtTime)));
     daSkies->setAstronomicalSunMoon();
   }
 
@@ -665,7 +665,7 @@ public:
     Color3 sun_color, sun_sky_color, moon_color, moon_sky_color;
     if (daSkies->currentGroundSunSkyColor(sunCos, moonCos, sun_color, sun_sky_color, moon_color, moon_sky_color))
     {
-      if (lengthSq(sun_color) + lengthSq(sun_sky_color) + lengthSq(moon_color) + lengthSq(moon_sky_color) < 1e-6)
+      if (lengthSq(sun_color) + lengthSq(sun_sky_color) + lengthSq(moon_color) + lengthSq(moon_sky_color) < 1e-6f)
       {
         logwarn("bad sun/sky colors (for %.3f, %.3f): %@ %@ %@ %@, recalc on CPU", sunCos, moonCos, sun_color, sun_sky_color,
           moon_color, moon_sky_color);
@@ -685,7 +685,7 @@ public:
     }
 
     skyColor = sun_sky_color + moon_sky_color;
-    if (brightness(sun_color) < 0.1)
+    if (brightness(sun_color) < 0.1f)
     {
       sunColor0 = moon_color / PI;
       sunDir0 = -daSkies->getMoonDir();
@@ -721,7 +721,7 @@ public:
     ltService->getSun(0)->azimuth = s0a.x;
     ltService->getSun(0)->ltCol = sunColor0;
     float maxRGB = max(max(sunColor0.r, sunColor0.g), sunColor0.b);
-    ltService->getSun(0)->ltColUser = e3dcolor(sunColor0 / (0.0001 + maxRGB));
+    ltService->getSun(0)->ltColUser = e3dcolor(sunColor0 / (0.0001f + maxRGB));
     ltService->getSun(0)->ltColMulUser = maxRGB;
 
     debug("HMAP sun az=%.5f zen=%.5f", RadToDeg(PI + atan2f(sunDir0.z, sunDir0.x)),

@@ -50,6 +50,92 @@ struct TokenAt {
 let private {
     Token_string = typeinfo variant_index<_string>(type<Token>) //! index of the
     Token_symbol = typeinfo variant_index<_symbol>(type<Token>)
+    HIGH_SURROGATE_FIRST = 0xD800u
+    HIGH_SURROGATE_LAST = 0xDBFFu
+    LOW_SURROGATE_FIRST = 0xDC00u
+    LOW_SURROGATE_LAST = 0xDFFFu
+    SUPPLEMENTARY_FIRST = 0x10000u
+    REPLACEMENT_CODEPOINT = 0xFFFDu
+    INT64_MAX_DIGITS = 19
+}
+
+def private is_high_surrogate(codepoint : uint) : bool => codepoint >= HIGH_SURROGATE_FIRST && codepoint <= HIGH_SURROGATE_LAST
+
+def private is_low_surrogate(codepoint : uint) : bool => codepoint >= LOW_SURROGATE_FIRST && codepoint <= LOW_SURROGATE_LAST
+
+def private push_utf8_continuation(var str : array<uint8>; codepoint : uint; shift : uint) {
+    //! appends one UTF-8 continuation byte carrying the six `codepoint` bits above `shift`.
+    push(str, uint8(0x80u | ((codepoint >> shift) & 0x3Fu)))
+}
+
+def private push_utf8(var str : array<uint8>; codepoint : uint) {
+    //! appends the UTF-8 encoding of `codepoint` to `str`.
+    if (codepoint <= 0x7Fu) {
+        push(str, uint8(codepoint))
+    } elif (codepoint <= 0x7FFu) {
+        push(str, uint8(0xC0u | (codepoint >> 6u)))
+        push_utf8_continuation(str, codepoint, 0u)
+    } elif (codepoint <= 0xFFFFu) {
+        push(str, uint8(0xE0u | (codepoint >> 12u)))
+        push_utf8_continuation(str, codepoint, 6u)
+        push_utf8_continuation(str, codepoint, 0u)
+    } else {
+        push(str, uint8(0xF0u | (codepoint >> 18u)))
+        push_utf8_continuation(str, codepoint, 12u)
+        push_utf8_continuation(str, codepoint, 6u)
+        push_utf8_continuation(str, codepoint, 0u)
+    }
+}
+
+def private flush_unpaired_surrogate(var str : array<uint8>; var pending : uint&) {
+    //! emits U+FFFD for a high surrogate that never got its low half, and clears `pending`.
+    if (!is_high_surrogate(pending)) return
+    pending = 0u
+    push_utf8(str, REPLACEMENT_CODEPOINT)
+}
+
+def private hex4_codepoint(hex_str : array<uint8>) : uint {
+    //! folds four hex digits into a code point.
+    var codepoint = 0u
+    for (hb in hex_str) {
+        codepoint = codepoint << 4u
+        let c = int(hb)
+        if (is_number(c)) {
+            codepoint += uint(c - '0')
+        } elif (c >= 'a' && c <= 'f') {
+            codepoint += uint(c - 'a' + 10)
+        } elif (c >= 'A' && c <= 'F') {
+            codepoint += uint(c - 'A' + 10)
+        }
+    }
+    return codepoint
+}
+
+def private fits_int64(num : string) : bool {
+    //! true when the `[-]?digits` literal `num` is representable as int64.
+    var fits = true
+    peek_data(num) $(digits) {
+        let n = length(digits)
+        var i = 0
+        let negative = n > 0 && digits[0] == '-'u8
+        if (negative) {
+            i ++
+        }
+        while (i < n && digits[i] == '0'u8) {
+            i ++
+        }
+        if (n - i > INT64_MAX_DIGITS) {
+            fits = false
+        } else {
+            var value = 0ul
+            while (i < n) {
+                value = value * 10ul + uint64(int(digits[i]) - '0')
+                i ++
+            }
+            fits = value <= (negative ? 9223372036854775808ul : 9223372036854775807ul)
+        }
+    }
+    return fits
 }
 
 def JVNull {
@@ -183,19 +269,20 @@ def private next(var text : iterator<int>; var character, line, row : int&) : bo
     return false
 }
 
+def private is_json_white_space(ch : int) : bool => ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t'
+
 def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one linear lexer state machine
     //! creates a lexer generator from the input `stext` string.
     return <- generator<TokenAt> {
         var tin : iterator<int>
-        unsafe {
-            tin <- each(stext)
-        }
+        tin <- unsafe(each(stext))
         var ahead : int = ' '
         var str : array<uint8>
+        var pending_high = 0u
         var line : int = 1
         var row : int = 0
         while (!empty(tin)) {
-            while (is_white_space(ahead) && next(tin, ahead, line, row)) {
+            while (is_json_white_space(ahead) && next(tin, ahead, line, row)) {
                 pass
             }
             if (empty(tin)) return false
@@ -206,19 +293,7 @@ def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one line
                 while (next(tin, ahead, line, row) && ahead != '"') {
                     if (ahead == '\\') {
                         if (next(tin, ahead, line, row)) {
-                            if (ahead == 'b') {
-                                ahead = '\b'
-                            } elif (ahead == 'f') {
-                                ahead = '\f'
-                            } elif (ahead == 'n') {
-                                ahead = '\n'
-                            } elif (ahead == 'r') {
-                                ahead = '\r'
-                            } elif (ahead == 't') {
-                                ahead = '\t'
-                            } elif (ahead == '/') {
-                                ahead = '/'
-                            } elif (ahead == 'u') {
+                            if (ahead == 'u') {
                                 var hex_str : array<uint8>
                                 var valid_hex = true
                                 for (_ in range(4)) {
@@ -233,41 +308,43 @@ def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one line
                                     push(hex_str, uint8(ahead))
                                 }
                                 if (valid_hex && length(hex_str) == 4) {
-                                    var codepoint = uint(0)
-                                    for (hb in hex_str) {
-                                        codepoint = codepoint << uint(4)
-                                        let c = int(hb)
-                                        if (c >= '0' && c <= '9') {
-                                            codepoint += uint(c - '0')
-                                        } elif (c >= 'a' && c <= 'f') {
-                                            codepoint += uint(c - 'a' + 10)
-                                        } elif (c >= 'A' && c <= 'F') {
-                                            codepoint += uint(c - 'A' + 10)
-                                        }
-                                    }
-                                    // encode codepoint as UTF-8
-                                    if (codepoint <= uint(0x7F)) {
-                                        push(str, uint8(codepoint))
-                                    } elif (codepoint <= uint(0x7FF)) {
-                                        push(str, uint8(uint(0xC0) | (codepoint >> uint(6))))
-                                        push(str, uint8(uint(0x80) | (codepoint & uint(0x3F))))
-                                    } elif (codepoint <= uint(0xFFFF)) {
-                                        push(str, uint8(uint(0xE0) | (codepoint >> uint(12))))
-                                        push(str, uint8(uint(0x80) | ((codepoint >> uint(6)) & uint(0x3F))))
-                                        push(str, uint8(uint(0x80) | (codepoint & uint(0x3F))))
+                                    let codepoint = hex4_codepoint(hex_str)
+                                    if (is_high_surrogate(codepoint)) {
+                                        flush_unpaired_surrogate(str, pending_high)
+                                        pending_high = codepoint
+                                    } elif (is_low_surrogate(codepoint) && is_high_surrogate(pending_high)) {
+                                        push_utf8(str, SUPPLEMENTARY_FIRST + ((pending_high - HIGH_SURROGATE_FIRST) << 10u) + (codepoint - LOW_SURROGATE_FIRST))
+                                        pending_high = 0u
+                                    } elif (is_low_surrogate(codepoint)) {
+                                        push_utf8(str, REPLACEMENT_CODEPOINT)
+                                    } else {
+                                        flush_unpaired_surrogate(str, pending_high)
+                                        push_utf8(str, codepoint)
                                     }
                                 } else {
-                                    // invalid hex sequence, preserve as-is
-                                    push(str, uint8('\\'))
+                                    flush_unpaired_surrogate(str, pending_high)
+                                    push(str, uint8('\\')) // nolint:STYLE012 the unparsed escape appends to the accumulating token buffer
                                     push(str, uint8('u'))
-                                    for (b in hex_str) {
-                                        push(str, b) // nolint:PERF006,LINT019 hex_str is 4 bytes max; PERF006 fires only in downstream compiles
-                                    }
+                                    str |> push_from(hex_str) // nolint:PERF006,LINT019 hex_str is 4 bytes max; PERF006 fires only in downstream compiles
                                     if (!valid_hex) {
                                         push(str, uint8(ahead))
                                     }
                                 }
                                 continue
+                            }
+                            flush_unpaired_surrogate(str, pending_high)
+                            if (ahead == 'b') {
+                                ahead = '\b'
+                            } elif (ahead == 'f') {
+                                ahead = '\f'
+                            } elif (ahead == 'n') {
+                                ahead = '\n'
+                            } elif (ahead == 'r') {
+                                ahead = '\r'
+                            } elif (ahead == 't') {
+                                ahead = '\t'
+                            } elif (ahead == '/') {
+                                ahead = '/'
                             }
                             push(str, uint8(ahead))
                         } else {
@@ -275,6 +352,7 @@ def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one line
                             return false
                         }
                     } else {
+                        flush_unpaired_surrogate(str, pending_high)
                         push(str, uint8(ahead))
                     }
                 }
@@ -282,11 +360,11 @@ def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one line
                     yield TokenAt(value = Token(_error = "string exceeds text"), line = line, row = row)
                     return false
                 }
+                flush_unpaired_surrogate(str, pending_high)
                 yield TokenAt(value = Token(_string = string(str)), line = line, row = row)
                 clear(str)
                 next(tin, ahead)
-            } elif (ahead == '+' || ahead == '-' || is_number(ahead)) {
-                var is_negative = (ahead == '-')
+            } elif (ahead == '-' || is_number(ahead)) {
                 push(str, uint8(ahead))
                 var anyNumbers = is_number(ahead)
                 while (next(tin, ahead, line, row) && is_number(ahead)) {
@@ -316,20 +394,24 @@ def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one line
                 }
                 var num = string(str)
                 if (!anyNumbers) {
-                    yield TokenAt(value = Token(_error = "invalid number {num}"), line = line, row = row)
+                    yield TokenAt(value = Token(_error = "number {num} is invalid"), line = line, row = row)
                     return false
                 }
-                if (is_integer) {
-                    // we can have big unsigned numbers, which overflow int64 but fit in uint64
-                    var ival = is_negative ? int64(num) : int64(uint64(num))
-                    yield TokenAt(value = Token(_longint = ival), line = line, row = row)
+                if (is_integer && fits_int64(num)) {
+                    yield TokenAt(value = Token(_longint = int64(num)), line = line, row = row)
                 } else {
-                    yield TokenAt(value = Token(_number = double(num)), line = line, row = row)
+                    var conversion : ConversionResult
+                    var consumed = 0
+                    let wide = double(num, conversion, consumed)
+                    if (conversion != ConversionResult.ok || consumed != length(num)) {
+                        let verdict = conversion == ConversionResult.out_of_range ? "out of range" : "invalid"
+                        yield TokenAt(value = Token(_error = "number {num} is {verdict}"), line = line, row = row)
+                        return false
+                    }
+                    yield TokenAt(value = Token(_number = wide), line = line, row = row)
                 }
                 clear(str)
-                unsafe {
-                    delete_string(num)
-                }
+                unsafe(delete_string(num))
             } elif (is_alpha(ahead)) {
                 push(str, uint8(ahead))
                 while (next(tin, ahead, line, row) && is_alpha(ahead)) {
@@ -346,9 +428,7 @@ def private _lexer(var stext : string implicit) {  // nolint:STYLE038 - one line
                     yield TokenAt(value = Token(_error = "invalid name {name}"), line = line, row = row)
                     return false
                 }
-                unsafe {
-                    delete_string(name)
-                }
+                unsafe(delete_string(name))
                 clear(str)
             } else {
                 yield TokenAt(value = Token(_error = "invalid character `{to_char(ahead)}` aka ASCII {ahead}"), line = line, row = row)
@@ -392,10 +472,15 @@ def private expect_symbol(var itv : iterator<TokenAt>; var ahead : TokenAt; sym 
     }
 }
 
-def private parse_value(var itv : iterator<TokenAt>; var error : string&) : JsonValue? {  // nolint:STYLE037,STYLE038 - recursive descent, one arm per json production
+def private parse_value(var itv : iterator<TokenAt>; var error : string&) : JsonValue? {
     //! parses a JSON value from the token iterator `itv`.
     var ahead : TokenAt
     if (!next(itv, ahead)) return null
+    return parse_value(itv, ahead, error)
+}
+
+def private parse_value(var itv : iterator<TokenAt>; var ahead : TokenAt; var error : string&) : JsonValue? {  // nolint:STYLE037 - recursive descent, one arm per json production
+    //! parses a JSON value whose first token `ahead` has already been read.
     if (ahead.value is _symbol) {
         let sym = ahead.value as _symbol
         if (sym == ']') {
@@ -404,30 +489,22 @@ def private parse_value(var itv : iterator<TokenAt>; var error : string&) : Json
         }
         if (sym == '[') {
             var arr : array<JsonValue?>
-            while (!empty(itv)) {
-                var value = parse_value(itv, error)
-                if (value == null) {
-                    if (error |> starts_with("unexpected ]") && empty(arr)) {
-                        error = ""
-                        return JV(arr)
-                    }
-                    return null
-                }
+            var element : TokenAt
+            while (next(itv, element)) {
+                if (empty(arr) && (element.value is _symbol) && (element.value as _symbol) == ']') return JV(arr)
+                var value = parse_value(itv, element, error)
+                if (value == null) return null
                 push(arr, value)
                 if (!expect_token(itv, ahead, Token_symbol, error)) return null
                 let sepsym = ahead.value as _symbol
-                if (sepsym == ']') {
-                    break;
-                } elif (sepsym != ',') {
+                if (sepsym == ']') return JV(arr)
+                if (sepsym != ',') {
                     error = "unexpected array separator symbol `{to_char(sepsym)}` aka ASCII {sepsym} at {ahead.line}:{ahead.row}";
                     return null;
                 }
             }
-            if (empty(itv)) {
-                error = "unexpected eos";
-                return null;
-            }
-            return JV(arr);
+            error = "unexpected eos";
+            return null;
         } elif (sym == '{') {
             var tab : table<string; JsonValue?>;
             while (!empty(itv)) {
@@ -528,7 +605,6 @@ def set_allow_duplicate_keys(value : bool) {
     return old_adc
 }
 
-// note - we use StringBuilderWriter for performance reasons here
 def private write_value(var writer : StringBuilderWriter; jsv : JsonValue?; depth : int) {
     //! writes JSON value `jsv` into the `writer` at indentation `depth`.
     if (jsv == null) {
@@ -675,7 +751,7 @@ def write_json_compact(val : JsonValue?) : string {
 
 def write_json(val : JsonValue?#) : string {
     //! Overload accepting temporary type
-    unsafe {// Fine, as json doesn't escape the function
+    unsafe {
         return write_json(reinterpret<JsonValue?>(val))
     }
 }
@@ -689,14 +765,9 @@ def delete_json(var jsv : JsonValue?) {
 def update(var obj : JsonValue?; key : string; var jsv : JsonValue?) {
     //! Set object field ``key`` to ``jsv``, first freeing (via ``delete_json``) whatever JsonValue was stored at ``key``. Use this instead of a bare insert when overwriting a field on a reused/long-lived object every frame — a bare ``insert`` drops the old value on the heap. No-op when ``obj`` is null or not an ``_object``.
     if (obj == null || !(obj.value is _object)) return
-    // Never store a raw null (write_json deref's object values) or the shared sentinel
-    // (a later cascade-free would delete it out from under everyone) into a tree —
-    // substitute a fresh owned null for both.
     if (jsv == null || jsv == g_json_null_sentinel) {
         jsv = JVNull()
     }
-    // Free the previous value, unless the caller passed back the very pointer already
-    // stored here (freeing then re-inserting it would be a use-after-free).
     if (key_exists(obj.value as _object, key) && (obj.value as _object)[key] != jsv) {
         delete_json((obj.value as _object)[key])
     }
@@ -710,7 +781,6 @@ def try_fixing_broken_json(var bad : string) {  // nolint:STYLE038 - one linear 
             var i = 0
             let lstr = length(str)
             while (i < lstr) {
-                // write until beginning of string or end
                 while (i < lstr && str[i] != '"'u8) {
                     if (str[i] == ','u8) {
                         var j = i + 1;
@@ -722,7 +792,7 @@ def try_fixing_broken_json(var bad : string) {  // nolint:STYLE038 - one linear 
                             continue;
                         }
                     }
-                    if (str[i] == '\\'u8 && str[i + 1] == 'u'u8) {
+                    if (str[i] == '\\'u8 && i + 1 < lstr && str[i + 1] == 'u'u8) {
                         i += 2;
                         while (i < lstr && is_hex(int(str[i]))) {
                             i ++;
@@ -732,71 +802,62 @@ def try_fixing_broken_json(var bad : string) {  // nolint:STYLE038 - one linear 
                     writer |> write_char(int(str[i]));
                     i ++;
                 }
-                if (i >= lstr) break  // eof — done
-                // write the first quote
+                if (i >= lstr) break
                 writer |> write_char('"')
                 i ++
-                // write until end of string or end of file
                 label 0:
                 while (i < lstr && str[i] != '"'u8) {
                     writer |> write_char(int(str[i]));
                     i ++;
                 }
-                if (i >= lstr) {// if eof we done, we fix close quote and we are done
+                if (i >= lstr) {
                     writer |> write_char('"')
                     break
                 }
-                // skipping whitespace
                 let nested = i
                 var j = i + 1
                 let any_white_space = j < lstr && is_white_space(int(str[j]))
                 while (j < lstr && is_white_space(int(str[j]))) {
                     j ++
                 }
-                if (j >= lstr) {// if eof we done, we fix close quote and we are done
+                if (j >= lstr) {
                     writer |> write_char('"');
                     break;
                 }
-                // valid JSON things after string are :, }, ], or , if its one of those, we close the string and we are done
                 let strj = int(str[j]);
                 if (strj == ':' || strj == '}' || strj == ']' || strj == ',') {
                     writer |> write_char('"')
                     i ++
                     continue
                 }
-                // now, if its a + - it could be a string concatenation
                 if (strj == '+') {
                     j ++
                     while (j < lstr && is_white_space(int(str[j]))) {
                         j ++
                     }
-                    if (j < lstr && str[j] == '"'u8) {// if it is indeed new string, we go back to string writing, and add a separator
+                    if (j < lstr && str[j] == '"'u8) {
                         writer |> write_char(' ');
                         i = j + 1;
                         goto label 0;
                     }
                 }
-                // ok, its not a string concatination, or a valid character
-                // if it was a whitespace after the quote, we assume its missing ','
                 if (any_white_space) {
                     writer |> write_char('"')
                     writer |> write_char(',')
                     i = nested + 1
                     continue
                 }
-                // . we assume its nested quotes and we replace with \"
                 writer |> write("`")
                 i = nested + 1
                 while (i < lstr && str[i] != '"'u8) {
                     writer |> write_char(int(str[i]));
                     i ++;
                 }
-                if (i >= lstr) {// if eof we done, we fix nested quote and and closing quote and we are done
+                if (i >= lstr) {
                     writer |> write("`");
                     writer |> write_char('"')
                     break
                 }
-                // write the second replaced quote
                 writer |> write("`")
                 i ++
                 goto label 0

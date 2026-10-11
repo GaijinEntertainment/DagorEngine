@@ -80,4 +80,8 @@ def test_inline_contract_errors(t : T?) {
         t |> expect_issue("_inline_scope_in_with.das",
             "the call site resolves inside with (module _inline_scope_dispatch_helper)")
     }
+    t |> run("writable by-ref argument that may alias caller storage") @(t : T?) {
+        t |> expect_issue("_inline_alias_hazard.das",
+            "may alias caller storage the callee writes")
+    }
 }

@@ -1,15 +1,13 @@
 options gen2
 
-require dastest/testing_boost
+require dastest/testing_boost public
 require daslib/strings_boost
 require daslib/json_boost
 require math
 
-require bench_table public
-
 struct BenchmarkSampleSet {
     key : string
-    list : array<Benchmark>
+    list : array<BenchmarkRunStats>
 
     // Assigned later, when stats are computed.
     stats : BenchmarkStats? = null
@@ -63,10 +61,10 @@ def parse_bench_output(data : string) : array<BenchmarkRunStats> {
     return <- entries
 }
 
-def make_sample_sets(entries : array<Benchmark>) : table<string, BenchmarkSampleSet?> {
+def make_sample_sets(entries : array<BenchmarkRunStats>) : table<string, BenchmarkSampleSet?> {
     var result : table<string, BenchmarkSampleSet?>
     for (e in entries) {
-        let key := e.name + "/" + e.sub_name
+        let key = e.name + "/" + e.sub_name
         var samples : BenchmarkSampleSet?
         if (key_exists(result, key)) {
             samples = unsafe(result[key])
@@ -92,7 +90,7 @@ def fill_sample_stats(var samples : BenchmarkSampleSet?) : string {
     // An example: there can be N entries for "foo/bar" benchmark,
     // every such entry is considered to be a single sample for analysis.
     for (e in samples.list) {
-        if (e.n == 0l) continue
+        if (e.n == 0) continue
         let n = double(e.n)
         stats.time_ns.values |> push(double(e.time_ns) / n)
         stats.heap_bytes.values |> push(double(e.heap_bytes) / n)
@@ -290,4 +288,18 @@ def private betacf(a : double; b : double; x : double) : double {
         mi++
     }
     return h
+}
+
+def median(vals : array<double>) : double {
+    return 0.0lf if (empty(vals))
+    var sorted := vals
+    sort(sorted)
+    let n = length(sorted)
+    return (n % 2 == 1) ? sorted[n / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0lf
+}
+
+def median_i64(var vals : array<int64>) : int64 {
+    return 0l if (empty(vals))
+    sort(vals)
+    return vals[length(vals) / 2]
 }

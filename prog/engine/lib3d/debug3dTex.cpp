@@ -296,10 +296,8 @@ static bool fill_ddsx_hdr(ddsx::Header &hdr, int cflg, int w, int h, int d, int 
       hdr.d3dFormat = D3DFMT_R5G6B5;
       break;
     case TEXFMT_A16B16G16R16S:
-      hdr.bitsPerPixel = 64;
-      hdr.d3dFormat = (cflg & TEXFMT_MASK);
-      break;
     case TEXFMT_A16B16G16R16UI:
+    case TEXFMT_R32G32UI:
       hdr.bitsPerPixel = 64;
       hdr.d3dFormat = (cflg & TEXFMT_MASK);
       break;
@@ -307,22 +305,9 @@ static bool fill_ddsx_hdr(ddsx::Header &hdr, int cflg, int w, int h, int d, int 
       hdr.bitsPerPixel = 128;
       hdr.d3dFormat = (cflg & TEXFMT_MASK);
       break;
-    case TEXFMT_R32G32UI:
-      hdr.bitsPerPixel = 64;
-      hdr.d3dFormat = (cflg & TEXFMT_MASK);
-      break;
     case TEXFMT_R32UI:
-      hdr.bitsPerPixel = 32;
-      hdr.d3dFormat = (cflg & TEXFMT_MASK);
-      break;
     case TEXFMT_R32SI:
-      hdr.bitsPerPixel = 32;
-      hdr.d3dFormat = (cflg & TEXFMT_MASK);
-      break;
     case TEXFMT_R11G11B10F:
-      hdr.bitsPerPixel = 32;
-      hdr.d3dFormat = (cflg & TEXFMT_MASK);
-      break;
     case TEXFMT_R9G9B9E5:
       hdr.bitsPerPixel = 32;
       hdr.d3dFormat = (cflg & TEXFMT_MASK);

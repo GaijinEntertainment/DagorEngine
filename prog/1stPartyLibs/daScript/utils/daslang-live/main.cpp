@@ -12,6 +12,7 @@
 #include "daScript/misc/das_common.h"
 #include "daScript/simulate/fs_file_info.h"
 #include "daScript/ast/dyn_modules.h"
+#include "daScript/ast/ast_serializer.h"
 #include "daScript/misc/crash_handler.h"
 #include "daScript/misc/job_que.h"
 #include <sys/stat.h>
@@ -49,6 +50,10 @@ das::FileAccessPtr get_file_access( char * pak );
 static TextPrinter tout;
 static string projectFile;
 static string project_root;
+static string moduleCacheFile;  // -module-cache <path>: AST module cache, read+refreshed per (re)compile
+static bool noModuleCache = false;  // -no-module-cache: off, over -module-cache and the default alike
+static string hostBinary;           // argv[0]
+static string hostOptions;          // argv up to "--": the compile's own options key the default cache
 static vector<string> load_modules;
 static bool version2syntax = true;
 static bool trackAllocations = false;
@@ -160,20 +165,7 @@ static double get_time_sec() {
 // --- GC ---
 
 static void maybe_collect_gc(Context * ctx) {
-    // collectHeap with stringHeap=true marks both heaps.
-    // Check string heap first (fills faster, lower threshold).
-    auto sUsed = ctx->stringHeap->bytesAllocated();
-    auto sTotal = ctx->stringHeap->totalAlignedMemoryAllocated();
-    if (sTotal > 0 && sUsed * 3 < sTotal * 2) {  // >1/3 unused
-        ctx->collectHeap(nullptr, /*stringHeap*/true, /*validate*/false);
-        return;
-    }
-    // Regular heap — higher threshold
-    auto hUsed = ctx->heap->bytesAllocated();
-    auto hTotal = ctx->heap->totalAlignedMemoryAllocated();
-    if (hTotal > 0 && hUsed * 3 < hTotal) {  // >2/3 unused
-        ctx->collectHeap(nullptr, /*stringHeap*/true, /*validate*/false);
-    }
+    ctx->collectHeapIfMostlyFree();
 }
 
 // --- Agent ticking ---
@@ -185,6 +177,9 @@ static void auto_tick_agents() {
 // --- Compilation ---
 
 struct CompileResult {
+    // moduleCache owns deserialized-AST FileInfos (LineInfos point at them) — must
+    // outlive everything below. Declared first → destroyed last.
+    ModuleFileCache moduleCache;
     // moduleGroup owns the non-builtin dep modules (deletes them on reset()).
     // Program/Context hold raw Module* into it via library.modules, so it must
     // outlive program+ctx. Declared first → destroyed last.
@@ -212,13 +207,54 @@ static CompileResult compile_script(const string & fn) {
     policies.track_allocations = trackAllocations;
 
     double t_compile = get_time_sec();
+    // AST module cache: live recompiles the whole graph on every reload (shared modules are
+    // not promoted - ignore_shared_modules above), so the cache pays per reload, not just
+    // on the cold start. Same file is read and refreshed: a clean or resumed-only read
+    // writes nothing, an edit rewrites the stream from the changed module's cutoff. The
+    // cache lives in CompileResult - it owns deserialized FileInfos past this return.
+    string cachePath = noModuleCache ? string() : moduleCacheFile;
+    bool cacheQuiet = false;
+    if (cachePath.empty() && !noModuleCache) {
+        cachePath = ModuleFileCache::defaultPath(fn, hostBinary, hostOptions);
+        cacheQuiet = true;
+    }
+    result.moduleCache.install(cachePath, cachePath, cacheQuiet);
     result.program = compileDaScript(fn, result.access, tout, *result.moduleGroup, policies);
+    // armed through simulate: a late require from a simulate macro or an [init] joins this stream
+    auto finishModuleCache = [&]() {
+        auto cres = result.moduleCache.finish();
+        if (!cacheQuiet) {
+            switch (cres.verdict) {
+            case ModuleFileCache::ReadVerdict::fallback:
+                if (cres.served > 0) {
+                    tout << "daslang-live: module cache " << cres.served << " module(s) served, recompiled from '" << cres.cutoffFile << "' (" << cres.cutoffReason << ")\n";
+                } else {
+                    tout << "daslang-live: module cache stale - recompiled from source\n";
+                }
+                break;
+            case ModuleFileCache::ReadVerdict::partial:
+                tout << "daslang-live: module cache partial - " << cres.resumed << " module(s) reparsed in place\n";
+                break;
+            case ModuleFileCache::ReadVerdict::clean:
+                tout << "daslang-live: module cache clean\n";
+                break;
+            case ModuleFileCache::ReadVerdict::unavailable:
+                tout << "daslang-live: module cache unavailable (built without file IO)\n";
+                break;
+            default: break;
+            }
+            if (cres.wrote) tout << "daslang-live: module cache refreshed (" << cres.wroteBytes << " bytes)\n";
+        }
+        if (cres.saveFailed) tout << "daslang-live: module cache write FAILED '" << cachePath << "'\n";
+    };
     if (!result.program) {
+        finishModuleCache();
         result.errors = "failed to compile " + fn;
         tout << "ERROR: " << result.errors << "\n";
         return result;
     }
     if (result.program->failed()) {
+        finishModuleCache();
         TextWriter tw;
         for (auto & err : result.program->errors) {
             auto report = reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
@@ -236,6 +272,7 @@ static CompileResult compile_script(const string & fn) {
     tout << "daslang-live: [startup] compile took " << int((get_time_sec() - t_compile) * 1000.0) << " ms\n";
     double t_simulate = get_time_sec();
     result.ctx = SimulateWithErrReport(result.program, tout);
+    finishModuleCache();
     tout << "daslang-live: [startup] simulate took " << int((get_time_sec() - t_simulate) * 1000.0) << " ms (incl. module [init]; HTTP server starts here)\n";
     // Check for compiler leaks (TypeDecl nodes left on thread root after compile+simulate)
     {
@@ -722,6 +759,9 @@ static void print_help() {
     tout << "  -project <file>    - project file (.das_project)\n";
     tout << "  -project_root <path> - project root (parent of modules/, default: script's dir)\n";
     tout << "  -load_module <path> - directly load a single dynamic-module folder (the one containing .das_module); repeatable. Shadows same-basename entries from dasroot/project_root.\n";
+    tout << "  -module-cache <path> - AST module cache: read when present, refreshed when a compile diverges; pays on every reload.\n"
+            "                        Default ON (silent) at .jitted_scripts/module_cache/<script>-<hash>.dascache\n"
+            "  -no-module-cache     - no AST module cache at all\n";
     tout << "  -dasroot <path>    - override DAS_ROOT\n";
     tout << "  -cwd               - change working directory to script's folder\n";
     tout << "  -v1syntax          - use v1 syntax (default: v2)\n";
@@ -846,6 +886,13 @@ int main(int argc, char * argv[]) {
     bool dumpLeaks = true;
 
     // Parse args
+    char exePath[4096];
+    size_t exeLen = getExecutablePathName(exePath, sizeof(exePath));
+    hostBinary = exeLen ? string(exePath, exeLen) : string(argv[0]);
+    for (int i = 1; i < argc && strcmp(argv[i], "--") != 0; i++) {
+        hostOptions += argv[i];
+        hostOptions += '\n';
+    }
     for (int i = 1; i < argc; i++) {
         string arg = argv[i];
         if (arg == "-project" && i + 1 < argc) {
@@ -854,6 +901,10 @@ int main(int argc, char * argv[]) {
             project_root = argv[++i];
         } else if ((arg == "-load_module" || arg == "-load-module") && i + 1 < argc) {
             load_modules.push_back(argv[++i]);
+        } else if (arg == "-module-cache" && i + 1 < argc) {
+            moduleCacheFile = argv[++i];
+        } else if (arg == "-no-module-cache") {
+            noModuleCache = true;
         } else if (arg == "-dasroot" && i + 1 < argc) {
             setDasRoot(argv[++i]);
         } else if (arg == "-cwd") {
@@ -954,6 +1005,8 @@ int main(int argc, char * argv[]) {
 #endif
     Module::Initialize();
 
+    if (auto loader = getDeferredModuleLoader()) loader("live_host");
+
     // Load live_host DLL functions
     if (!load_live_host_functions()) {
         tout << "WARNING: live_host module not found — lifecycle functions will use defaults\n";
@@ -971,8 +1024,8 @@ int main(int argc, char * argv[]) {
     if ( dumpLeaks ) {
         JobStatus::DumpJobQueLeaks();
     }
-    // das::dump_alloc_leaks is registered as an atexit handler via init_seg(lib),
-    // so it fires after all static destructors — cleaner than dumping here.
+    // das::dump_alloc_leaks registers itself as the FIRST atexit handler, so it
+    // fires after all static destructors — cleaner than dumping here.
     release_single_instance();
     return result;
 }

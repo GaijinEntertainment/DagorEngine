@@ -1,0 +1,29 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
+#include "../controllers/animCtrlData.h"
+#include <propPanel/control/listBoxInterface.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/c_common.h>
+
+namespace PropPanel
+{
+class ContainerPropertyControl;
+} // namespace PropPanel
+
+class AnimTreeEditor;
+
+class ResetRandomSwitchListEventHandler : public PropPanel::IListBoxControlEventHandler, public PropPanel::IMenuEventHandler
+{
+public:
+  ResetRandomSwitchListEventHandler(dag::Vector<AnimCtrlData> &controllers);
+  bool onListBoxContextMenu(int pcb_id, PropPanel::IListBoxInterface &list_box_interface) override;
+  int onMenuItemClick(unsigned id) override;
+  void setEventHandler(PropPanel::ContainerPropertyControl *panel, AnimTreeEditor *event_handler);
+  void editSelectedNode();
+
+private:
+  dag::Vector<AnimCtrlData> &controllers;
+  PropPanel::ContainerPropertyControl *pluginPanel = nullptr;
+  AnimTreeEditor *eventHandler = nullptr;
+};

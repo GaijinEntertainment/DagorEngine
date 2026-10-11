@@ -37,7 +37,7 @@ Point4 getScaleOffset(int &texture_size)
   // Aligning texels centers with heightmap points.
   const float eps = 0.01f;
   Point2 samplingStep = Point2(getSamplingStepDist(hmapWorldSize.x, texture_size), getSamplingStepDist(hmapWorldSize.y, texture_size));
-  Point2 groundHolesOffset = hmapOffset - (0.5 - eps) * samplingStep;
+  Point2 groundHolesOffset = hmapOffset - (0.5f - eps) * samplingStep;
 
   debug("hmap hole bbox size = %f, heightmap_holes_tex resolution %d, texel size = %f", hmapWorldSize.x, texture_size,
     hmapWorldSize.x / texture_size);

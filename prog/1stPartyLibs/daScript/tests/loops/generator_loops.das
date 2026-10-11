@@ -20,9 +20,9 @@ def checkSeq(t : T?; var gen : iterator<int>; expected : array<int>) {
 }
 
 [test]
-def test_generator_loops(t : T?) {
+def test_generator_loops(t : T?) { // nolint:STYLE038 one flat arm per generator loop/finally form under test
     t |> run("for plain finally") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (i in range(3)) {
                 yield i
             } finally {
@@ -34,7 +34,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 1, 99, 2, 99])
     }
     t |> run("for finally break") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (i in range(10)) {
                 yield i
                 if (i == 1) {
@@ -49,7 +49,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 1, 99])
     }
     t |> run("for finally continue") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (i in range(4)) {
                 if (i == 1) {
                     continue
@@ -67,7 +67,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 99, 2, 99, 3, 99])
     }
     t |> run("for finally empty") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (i in range(0)) {
                 yield i
             } finally {
@@ -78,7 +78,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [])
     }
     t |> run("while plain finally") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             var i = 0
             while (i < 3) {
                 yield i
@@ -91,7 +91,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 1, 99, 2, 99])
     }
     t |> run("while finally break") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             var i = 0
             while (i < 100) {
                 yield i
@@ -107,7 +107,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 1, 99])
     }
     t |> run("while finally empty") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             while (false) {
                 yield 1
             } finally {
@@ -118,7 +118,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [])
     }
     t |> run("nested for finally") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (y in range(2)) {
                 for (x in range(2)) {
                     yield y * 10 + x
@@ -141,7 +141,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 77, 1, 77, 99, 10, 77, 11, 77, 99])
     }
     t |> run("for finally return") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (i in range(5)) {
                 yield i
                 if (i == 1) {
@@ -157,7 +157,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 1, 99])
     }
     t |> run("while finally return") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             var i = 0
             while (i < 10) {
                 yield i
@@ -176,7 +176,7 @@ def test_generator_loops(t : T?) {
         checkSeq(t, gen, [0, 99, 1, 99, 2, 99])
     }
     t |> run("for finally return nested") @(t : T?) {
-        var gen <- generator<int>() <| $() {
+        var gen <- generator<int> {
             for (y in range(3)) {
                 for (x in range(3)) {
                     yield y * 10 + x

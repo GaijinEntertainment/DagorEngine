@@ -141,21 +141,16 @@ bool ExpressionParser::parseConstExpression(ShaderTerminal::arithmetic_expr &s, 
 
   // if we expect the expression to be color4, or don't expect it to be of a given type
   // and failed to parse it as real, try to parse as color4
-  if (ctx.destValueType != shexpr::VT_REAL)
+  ComplexExpression color_expr(&s, shexpr::VT_COLOR4);
+  if (!parseExpression(s, &color_expr, ctx))
+    return false;
+  if (color_expr.getChannels() != 1 && color_expr.getChannels() != 4)
   {
-    ComplexExpression color_expr(&s, shexpr::VT_COLOR4);
-    if (!parseExpression(s, &color_expr, ctx))
-      return false;
-    if (color_expr.getChannels() != 1 && color_expr.getChannels() != 4)
-    {
-      report_error(parser, ctx.destTerm, "Invalid number of channels (%d) for float4 const expression (must be 1 or 4)",
-        color_expr.getChannels());
-      return false;
-    }
-    return color_expr.evaluate(ret_value, parser);
+    report_error(parser, ctx.destTerm, "Invalid number of channels (%d) for float4 const expression (must be 1 or 4)",
+      color_expr.getChannels());
+    return false;
   }
-
-  return false;
+  return color_expr.evaluate(ret_value, parser);
 }
 
 // parse color mask

@@ -256,6 +256,8 @@ struct Resource
   // Multiplexing iteration this resource is produced on
   MultiplexingIndex multiplexingIndex{Invalid};
 
+  bool debugRelated = false;
+
   bool operator==(const Resource &) const = default;
 
   bool isExternal() const { return eastl::holds_alternative<ExternalResource>(resource); }
@@ -456,6 +458,16 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Grap
 
 inline constexpr ResourceIndex RESOURCE_NOT_MAPPED = MINUS_ONE_SENTINEL_FOR<ResourceIndex>;
 inline constexpr NodeIndex NODE_NOT_MAPPED = MINUS_ONE_SENTINEL_FOR<NodeIndex>;
+
+using HistoryPairing = IdIndexedMapping<ResourceIndex, ResourceIndex, framemem_allocator>;
+
+inline bool does_pairing_keep_indices(const HistoryPairing &pairing)
+{
+  for (auto [idx, oldIdx] : pairing.enumerate())
+    if (oldIdx != idx && oldIdx != RESOURCE_NOT_MAPPED)
+      return false;
+  return true;
+}
 
 class Mapping final
 {

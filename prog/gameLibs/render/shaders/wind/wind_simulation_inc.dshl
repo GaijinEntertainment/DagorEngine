@@ -114,7 +114,11 @@ macro INIT_USE_COMBINED_WIND(stage)
   INIT_COMBINED_WIND(stage)
   (stage)
   {
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
+  hlsl(stage) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
   USE_COMBINED_WIND(stage)
 endmacro

@@ -170,7 +170,7 @@ public:
     lodCount = 0;
     forcedRenderLod = -1;
     dasset = asset;
-    entity = asset ? DAEDITOR3.createEntity(*asset) : NULL;
+    entity = DAEDITOR3.createEntity(*asset);
     const char *name = asset->getName();
 
     if (!entity || !name)
@@ -322,7 +322,7 @@ public:
   }
   void beforeRenderObjects() override {}
   void renderObjects() override {}
-  void renderTransObjects() override
+  void renderTransObjects(BaseTexture *) override
   {
     if (nowSimulated)
     {
@@ -1036,7 +1036,7 @@ public:
   }
   void beforeRenderObjects() override { PhysObjViewPlugin::beforeRenderObjects(); }
   void renderObjects() override {}
-  void renderTransObjects() override
+  void renderTransObjects(BaseTexture *) override
   {
     physsimulator::renderTrans(testBits(getRendSubTypeMask(), collisionMask), false, false, false, false, false, true);
     if (car)

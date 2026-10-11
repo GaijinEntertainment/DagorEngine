@@ -17,7 +17,7 @@ namespace das
 {
 inline das::TypeDeclPtr make_vec4()
 {
-  auto t = new das::TypeDecl(das::Type::tFloat4);
+  auto t = new das::TypeDecl(das::Type::tFloat4, das::cppBindingLineInfo());
   t->alias = "vec4f";
   // t->aotAlias = true;
   return t;

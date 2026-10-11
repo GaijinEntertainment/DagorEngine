@@ -106,6 +106,7 @@ protected:
   ToroidalHelper helper;
   float distance = 0, configDistance = 0;
   float texelSize = 1;
+  float originRefHeight = 0;
   float scrolledDepthMin = 0;
   float scrolledDepthMax = 1;
   int static_shadow_matrixVarId[4] = {-1, -1, -1, -1};
@@ -233,8 +234,8 @@ public:
   void setShaderVars();
   int cascadesCount() const { return cascades.size(); }
 
-  float getMaxWorldDistance() const;
-  float calculateCascadeDistance(int cascade, int cascade_count, float max_distance) const;
+  static float getMaxWorldDistance(const BBox3 &world_box);
+  static float calculateCascadeDistance(int cascade, int cascade_count, float max_distance, const BBox3 &world_box);
 
   float getDistance() const { return maxDistance; }
   const ManagedTexWithShaderVar &getTex() { return staticShadowTex; }
@@ -253,6 +254,7 @@ public:
   bool isCompletelyValid(const BBox3 &box) const; // returns true, if box has no never rendered (empty) or invalid (invalidated)
                                                   // regions
   bool isValid(const BBox3 &box) const;           // returns true, if box has no never rendered (empty) regions
+  void invalidateCascadeIfCameraTooFar(int cascade_no, const Point3 &pos, float max_distance_outside);
   inline bool isOrthoShadow() const { return isOrtho; }
   bool setDepthBias(float f);
   bool setDepthBiasForCascade(int cascade, float f);

@@ -15,8 +15,7 @@ shader flash_blind, flash_blind_capture
   cull_mode = none;
   z_write = false;
   z_test = false;
-  blend_src = 1;
-  blend_dst = 0;
+  no_ablend;
 
   POSTFX_VS_TEXCOORD(0, uv)
 

@@ -11,9 +11,6 @@ winch_anchor {
 
 world_anchor {
   _use:t="entity_anchor"
-  "anchor__ri_extra_handle:u64"{
-    value:i64=-1
-  }
   "anchorWorld:tag" {}
 }
 
@@ -45,6 +42,7 @@ rope_phys {
 
 detached_rope {
   _use:t="rope_base_phys"
+  _use:t="replicating"
 
   rope_phys__despawnAt:r=0
   rope_phys__lastFixed:b=no
@@ -67,7 +65,8 @@ phys_joint_pt {
     value:i64=-1
   }
 
-  joint__lambdaSum:r=0 // it's duplicated in winch_settings in tts. probably a good idea to have it only in one place
+  joint__lambdaSum:r=0
+  joint__lambdaLimit:r=1e9
 
   joint__stressLimit:r=40000
   joint__stressStart:r=25000

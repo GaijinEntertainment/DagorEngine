@@ -1,0 +1,9 @@
+WARNING: w225 (all-paths-return-value) Not all control paths return a value.
+testData/static_analyzer/w315_const_function.nut:6:13
+
+let after = f()
+global const function g(x) { if (x) return 3 }
+             ^--------------------------------
+let last = g(1)
+
+

@@ -15,9 +15,9 @@ def test_using(t : T?) {
 
 [sideeffects]
 def test_placement_new(t : T?) {
-    var fc0 = FancyClass()
+    let fc0 = FancyClass()
     t |> equal(13, fc0.value)
-    var fc = FancyClass(1, 2)
+    let fc = FancyClass(1, 2)
     t |> equal(3, fc.value)
 }
 

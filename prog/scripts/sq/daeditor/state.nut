@@ -4,6 +4,7 @@ from "%darg/ui_imports.nut" import *
 from "%sqstd/frp.nut" import WatchedRo
 from "ecs.computed" import mkEcsComputedEidMap
 let { hideAllWindows } = require("%daeditor/components/window.nut")
+let { mkCompPathKey } = require("%daeditor/components/attrUtil.nut")
 
 let {setWorkMode=@(_) null, setEditMode=@(_) null, setPointActionPreview=@(_, __) null,
      DE4_MODE_POINT_ACTION=null, DE4_MODE_SELECT=null,
@@ -31,6 +32,14 @@ let selectedEntity = Computed(function() {
   let focused = focusedEntity.get()
   return focused in sel ? focused : ecs.INVALID_ENTITY_ID
 })
+// The picked attrPanel row: null, or { cname, path } with path null for the component itself
+let selectedComp = Watched(null)
+let deselectComp = @() selectedComp.set(null)
+let selectedCompKey = Computed(function() {
+  let sel = selectedComp.get()
+  return sel == null ? null : mkCompPathKey(sel.cname, sel.path)
+})
+selectedEntity.subscribe_with_nasty_disregard_of_frp_update(@(_) deselectComp())
 const SETTING_EDITOR_WORKMODE = "daEditor/workMode"
 const SETTING_EDITOR_TPLGROUP = "daEditor/templatesGroup"
 const SETTING_EDITOR_PROPS_ON_SELECT = "daEditor/showPropsOnSelect"
@@ -203,7 +212,9 @@ return {
   propPanelVisible
   propPanelClosed
   filterString = mkWatched(persist, "filterString", "")
-  selectedCompName = Watched()
+  selectedComp
+  selectedCompKey
+  deselectComp
   showTemplateSelect
   showHelp = mkWatched(persist, "showHelp", false)
   edObjectFlagsUpdateTrigger

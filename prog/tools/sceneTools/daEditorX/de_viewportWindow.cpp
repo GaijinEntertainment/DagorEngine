@@ -43,8 +43,7 @@ bool DagorEdViewportWindow::onDropFiles(const dag::Vector<String> &files)
     ScreenshotMetaInfoLoader::applyCameraSettings(metaInfo, *this);
   else
   {
-    String f = files[0];
-    delayed_call([f, errorMessage]() {
+    delayed_call([f = files[0], errorMessage]() {
       wingw::message_box(wingw::MBS_EXCL, "Error", "Error loading camera position from screenshot\n\"%s\"\n\n%s", f.c_str(),
         errorMessage.c_str());
     });

@@ -6,7 +6,6 @@ require daslib/coverage
 require daslib/ast_boost
 require daslib/debugger
 require daslib/fio
-require strings
 
 def public compile_and_simulate(input : string, var access; var mg : ModuleGroup?, cop, blk) {
     //! Compiles a daslang file, simulates it, and invokes a callback with the program and context.

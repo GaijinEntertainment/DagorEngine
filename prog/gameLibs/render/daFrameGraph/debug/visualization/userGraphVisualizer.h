@@ -147,6 +147,7 @@ private:
   };
 
   CanvasCamera canvasCamera{};
+  bool macroView = false;
 
   NodeColorationType coloration = NodeColorationType::None;
 
@@ -225,7 +226,7 @@ private:
 
     popupState.deps.clear();
     if (popupState.resNameId != ResNameId::Invalid && !popupState.fromToNameIds.empty())
-      for (auto [depId, dep] : registryDependencies.enumerate())
+      for (auto &&[depId, dep] : registryDependencies.enumerate())
         if (!dep.disabled && (dep.type == DependencyType::IMPLICIT_RES_HIST) == popupState.history &&
             popupState.resNameId == getNameId(dep.resource) &&
             eastl::find(popupState.fromToNameIds.begin(), popupState.fromToNameIds.end(),
@@ -368,7 +369,7 @@ private:
 
   void resolveInspectedDependency()
   {
-    for (auto [depId, dep] : registryDependencies.enumerate())
+    for (auto &&[depId, dep] : registryDependencies.enumerate())
       if (!dep.disabled && inspectedDependency.resNameId == getNameId(dep.resource) &&
           inspectedDependency.fromNameId == getNameId(dep.from) && inspectedDependency.toNameId == getNameId(dep.to) &&
           (dep.type == DependencyType::IMPLICIT_RES_HIST) == inspectedDependency.history)

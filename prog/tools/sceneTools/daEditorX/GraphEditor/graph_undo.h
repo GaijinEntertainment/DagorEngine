@@ -12,8 +12,9 @@ class GraphDocument;
 
 // Undo entry for a single node creation (drag-drop spawn). Holds a full Node snapshot so redo
 // re-inserts it with the same id and spawn position; the editor's global UndoSystem owns and
-// deletes the object. Operations are attributed to the GraphEditor plugin by the engine
-// (set_op_owner), so a graph swap drops them via remove_ops_by_owner without a stale-id guard.
+// deletes the object. Operations are owned by the GraphTab that recorded them
+// (GraphPanel::stampUndoOwner), so closing that tab drops them via remove_ops_by_owner without a
+// stale-id guard, and each one activates its tab before it applies.
 // This is the home for future graph undo entries (delete, move, edge, property edit, paste) --
 // each is a separate UndoRedoObject bracketed by begin()/accept().
 class UndoCreateNode : public UndoRedoObject
@@ -21,7 +22,7 @@ class UndoCreateNode : public UndoRedoObject
 public:
   DAG_DECLARE_NEW(midmem)
 
-  UndoCreateNode(GraphDocument &doc, GraphData::Node node_snapshot);
+  UndoCreateNode(GraphDocument &doc, GraphData::Node node_snapshot, int node_index = -1);
 
   void restore(bool save_redo_data) override;
   void redo() override;
@@ -32,6 +33,7 @@ public:
 private:
   GraphDocument &doc;
   GraphData::Node node;
+  int nodeIndex;
 };
 
 // Undo entry for deleting one or more nodes. Snapshots the removed nodes plus every edge incident
@@ -43,7 +45,9 @@ class UndoDeleteNodes : public UndoRedoObject
 public:
   DAG_DECLARE_NEW(midmem)
 
-  UndoDeleteNodes(GraphDocument &doc, eastl::vector<GraphData::Node> removed_nodes, eastl::vector<GraphData::Edge> removed_edges);
+  // node_indices and edge_indices are the ascending list positions the removed items had.
+  UndoDeleteNodes(GraphDocument &doc, eastl::vector<GraphData::Node> removed_nodes, eastl::vector<int> node_indices,
+    eastl::vector<GraphData::Edge> removed_edges, eastl::vector<int> edge_indices);
 
   void restore(bool save_redo_data) override;
   void redo() override;
@@ -54,7 +58,9 @@ public:
 private:
   GraphDocument &doc;
   eastl::vector<GraphData::Node> nodes;
+  eastl::vector<int> nodeIndices;
   eastl::vector<GraphData::Edge> edges;
+  eastl::vector<int> edgeIndices;
 };
 
 // Undo entry for moving (dragging) one or more nodes. Records each moved node's old and new canvas
@@ -86,7 +92,7 @@ class UndoCreateEdge : public UndoRedoObject
 public:
   DAG_DECLARE_NEW(midmem)
 
-  UndoCreateEdge(GraphDocument &doc, const GraphData::Edge &created_edge);
+  UndoCreateEdge(GraphDocument &doc, const GraphData::Edge &created_edge, int edge_index = -1);
 
   void restore(bool save_redo_data) override;
   void redo() override;
@@ -97,6 +103,7 @@ public:
 private:
   GraphDocument &doc;
   GraphData::Edge edge;
+  int edgeIndex;
 };
 
 // Undo entry for deleting one or more edges (link Delete). Snapshots the removed edges so restore()
@@ -106,7 +113,8 @@ class UndoDeleteEdges : public UndoRedoObject
 public:
   DAG_DECLARE_NEW(midmem)
 
-  UndoDeleteEdges(GraphDocument &doc, eastl::vector<GraphData::Edge> removed_edges);
+  // removed_edges in erase order; edge_indices[i] is the index removed_edges[i] had when it was erased.
+  UndoDeleteEdges(GraphDocument &doc, eastl::vector<GraphData::Edge> removed_edges, eastl::vector<int> edge_indices);
 
   void restore(bool save_redo_data) override;
   void redo() override;
@@ -117,6 +125,7 @@ public:
 private:
   GraphDocument &doc;
   eastl::vector<GraphData::Edge> edges;
+  eastl::vector<int> edgeIndices;
 };
 
 // Undo entry for muting / unmuting a single edge (link double-click). Only the id and the previous
@@ -143,7 +152,7 @@ private:
 // Undo entry for a selection change (nodes and/or links). Records the selection before and after the
 // change; restore reapplies the old set, redo the new. Selection lives in imgui-node-editor and its
 // select calls are valid only in-frame, so applying is deferred: the entry hands the target set to
-// doc.applySelection, which the GraphPanel pushes to ne on its next render pass -- so a set
+// doc.applySelection, which the GraphTab pushes to ne on its next render pass -- so a set
 // restored alongside re-added nodes or edges (same undo entry) reselects them once they exist again.
 // Deliberate selection changes record one of these alone; a change caused by an edit rides that
 // edit's entry.
@@ -159,6 +168,8 @@ public:
   size_t size() override;
   void accepted() override {}
   void get_description(String &s) override;
+  // The selection is not written to the graph file, so it must not mark the tab modified.
+  bool changes_saved_data() const override { return false; }
 
 private:
   GraphDocument &doc;
@@ -170,7 +181,8 @@ private:
 // pattern (HeightmapLand/hmlEntity.h): snapshot the node's whole propertyValues vector -- old in the
 // ctor (before the edit applies), redo lazily on the first restore. Restoring the whole vector keeps
 // originally-absent properties absent, so a freshly-set value undoes back to its descriptor default.
-// GraphDocument::setNodeProperty brackets each edit gesture, so one gesture is one entry.
+// One per edit: the panel nests the per-change writes of an edit in a single UndoEditGesture and asks
+// for the snapshot only on the first of them, which covers the rest.
 class UndoNodeProps : public UndoRedoObject
 {
 public:

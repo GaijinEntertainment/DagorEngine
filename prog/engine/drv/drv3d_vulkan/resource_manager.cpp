@@ -433,7 +433,9 @@ ResourceMemoryId ResourceManager::allocMemory(AllocationDesc desc)
   mem.originalSize = desc.reqs.requirements.size;
   mem.size = mem.originalSize;
 
-  G_ASSERTF(desc.reqs.requirements.memoryTypeBits != 0, "vulkan: trying to allocate memory but all memory types are disallowed");
+  G_ASSERTF(desc.reqs.requirements.memoryTypeBits != 0,
+    "vulkan: trying to allocate memory but all memory types are disallowed, mem class %u, class mask %08X, shared handle %u",
+    (uint32_t)desc.memClass, Globals::Mem::pool.getMemoryTypeMaskForClass(desc.memClass), (uint32_t)desc.isSharedHandleAllowed());
   DeviceMemoryTypeRange memoryTypes = Globals::Mem::pool.selectMemoryType(desc.reqs.requirements.memoryTypeBits, desc.memClass);
 
   // try to allocate

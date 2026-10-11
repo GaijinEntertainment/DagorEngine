@@ -23,13 +23,13 @@ def test_resize_array(t : T?) {
     t |> run("array init") @(t : T?) {
         ast_gc_guard() {
             var b : ExpressionPtr <- new ExprOp2(op := "==")
-            var a <- array<ExpressionPtr>(b)
+            let a <- array<ExpressionPtr>(b)
             t |> equal(1, length(a))
             // Note: GC-managed ExpressionPtr is not zeroed by array construction (pass by value)
         }
         ast_gc_guard() {
             var b : ExpressionPtr <- new ExprOp2(op := "==")
-            var a <- array<ExpressionPtr>(move_to_local(b))
+            let a <- array<ExpressionPtr>(move_to_local(b))
             t |> equal(1, length(a))
             // Note: GC-managed ExpressionPtr is not zeroed by move_to_local
         }
@@ -44,7 +44,7 @@ def test_resize_array(t : T?) {
     t |> run("struct init") @(t : T?) {
         ast_gc_guard() {
             var b : ExpressionPtr <- new ExprOp2(op := "==")
-            var a <- Foo(a <- b)
+            var _a <- Foo(a <- b)
             // Note: GC-managed ExpressionPtr is not zeroed by struct construction move
         }
     }

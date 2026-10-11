@@ -11,7 +11,6 @@
 #include <math/dag_Quat.h>
 #include <math/dag_Point2.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <3d/dag_textureIDHolder.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/string.h>
 
@@ -70,7 +69,7 @@ public:
   static Point3 geo_coord_to_cartesian(const Point2 &p);
 
   void render(const TMatrix view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, DaSkies &skies, RenderSun render_sun,
-    RenderMoon render_moon, const Point3 &view_pos, const TextureIDPair &low_res_tex = TextureIDPair());
+    RenderMoon render_moon, const Point3 &view_pos);
 
 private:
   void renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon render_moon, const Driver3dPerspective &persp,
@@ -91,5 +90,4 @@ private:
   int texNumLods;
 
   PostFxRenderer drawProg;
-  PostFxRenderer applyLowProg;
 };

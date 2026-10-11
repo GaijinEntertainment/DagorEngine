@@ -302,6 +302,7 @@ void HeightmapLandOutlinerInterface::toggleLayerExport(int type, int per_type_la
   EditLayerProps &layerProp = EditLayerProps::layerProps[layerPropsIndex];
 
   layerProp.exp = !layerProp.exp;
+  objectEditor.invalidateObjectProps();
 }
 
 void HeightmapLandOutlinerInterface::renameLayer(int type, int per_type_layer_index, const char *name)

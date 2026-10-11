@@ -64,7 +64,7 @@ def test_regex_search(t : T?) {
 def test_regex_split(t : T?) {
     t |> run("split by comma-space") @(t : T?) {
         var re <- regex_compile(",\\s*")
-        var parts <- regex_split(re, "a, b,c, d")
+        let parts <- regex_split(re, "a, b,c, d")
         t |> equal(length(parts), 4)
         t |> equal(parts[0], "a")
         t |> equal(parts[1], "b")
@@ -73,7 +73,7 @@ def test_regex_split(t : T?) {
     }
     t |> run("split by digits") @(t : T?) {
         var re <- regex_compile("\\d+")
-        var parts <- regex_split(re, "abc123def456ghi")
+        let parts <- regex_split(re, "abc123def456ghi")
         t |> equal(length(parts), 3)
         t |> equal(parts[0], "abc")
         t |> equal(parts[1], "def")
@@ -81,18 +81,18 @@ def test_regex_split(t : T?) {
     }
     t |> run("split no match returns whole") @(t : T?) {
         var re <- regex_compile("\\d+")
-        var parts <- regex_split(re, "abcdef")
+        let parts <- regex_split(re, "abcdef")
         t |> equal(length(parts), 1)
         t |> equal(parts[0], "abcdef")
     }
     t |> run("split empty string") @(t : T?) {
         var re <- regex_compile(",")
-        var parts <- regex_split(re, "")
+        let parts <- regex_split(re, "")
         t |> equal(length(parts), 0)
     }
     t |> run("split at boundaries") @(t : T?) {
         var re <- regex_compile(",")
-        var parts <- regex_split(re, ",a,b,")
+        let parts <- regex_split(re, ",a,b,")
         t |> equal(length(parts), 4)
         t |> equal(parts[0], "")
         t |> equal(parts[1], "a")
@@ -101,7 +101,7 @@ def test_regex_split(t : T?) {
     }
     t |> run("split whitespace") @(t : T?) {
         var re <- regex_compile("\\s+")
-        var parts <- regex_split(re, "hello   world\tfoo")
+        let parts <- regex_split(re, "hello   world\tfoo")
         t |> equal(length(parts), 3)
         t |> equal(parts[0], "hello")
         t |> equal(parts[1], "world")
@@ -162,7 +162,7 @@ def test_non_capturing_groups(t : T?) {
 def test_regex_match_all(t : T?) {
     t |> run("match_all digits") @(t : T?) {
         var re <- regex_compile("\\d+")
-        var matches <- regex_match_all(re, "a1 bb22 ccc333")
+        let matches <- regex_match_all(re, "a1 bb22 ccc333")
         t |> equal(length(matches), 3)
         t |> equal(matches[0].x, 1)
         t |> equal(matches[0].y, 2)
@@ -173,17 +173,17 @@ def test_regex_match_all(t : T?) {
     }
     t |> run("match_all words") @(t : T?) {
         var re <- regex_compile("\\w+")
-        var matches <- regex_match_all(re, "foo bar baz")
+        let matches <- regex_match_all(re, "foo bar baz")
         t |> equal(length(matches), 3)
     }
     t |> run("match_all no match") @(t : T?) {
         var re <- regex_compile("xyz")
-        var matches <- regex_match_all(re, "abc def")
+        let matches <- regex_match_all(re, "abc def")
         t |> equal(length(matches), 0)
     }
     t |> run("match_all single char") @(t : T?) {
         var re <- regex_compile("a")
-        var matches <- regex_match_all(re, "banana")
+        let matches <- regex_match_all(re, "banana")
         t |> equal(length(matches), 3)
     }
 }
@@ -374,7 +374,7 @@ def test_combined_phase2(t : T?) {
     }
     t |> run("split with non-capturing") @(t : T?) {
         var re <- regex_compile("(?:,|;)\\s*")
-        var parts <- regex_split(re, "a, b; c,d")
+        let parts <- regex_split(re, "a, b; c,d")
         t |> equal(length(parts), 4)
         t |> equal(parts[0], "a")
         t |> equal(parts[1], "b")
@@ -383,7 +383,7 @@ def test_combined_phase2(t : T?) {
     }
     t |> run("match_all with lazy") @(t : T?) {
         var re <- regex_compile("\".*?\"")
-        var matches <- regex_match_all(re, "say \"hi\" and \"bye\"")
+        let matches <- regex_match_all(re, "say \"hi\" and \"bye\"")
         t |> equal(length(matches), 2)
     }
     t |> run("reader macro non-capturing") @(t : T?) {

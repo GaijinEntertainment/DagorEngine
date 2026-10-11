@@ -57,6 +57,7 @@ void EnvironmentPlugin::PostfxPanel::fillPanel()
   bool enable = gameBlk.getBlockByNameEx("hdr")->getBool("enabled", false);
 
   scheme->load(schemeBlk, true);
+  propPanel->clear();
   propPanel->disableFillAutoResize();
   scheme->setParams(propPanel, gameBlk);
   propPanel->restoreFillAutoResize();

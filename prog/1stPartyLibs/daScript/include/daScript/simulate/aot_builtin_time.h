@@ -36,4 +36,5 @@ namespace das {
     DAS_API Time builtin_mktime(int year, int month, int mday, int hour, int min, int sec);
     DAS_API void builtin_sleep ( uint32_t msec );
     DAS_API void builtin_exit ( int32_t ec, Context * context, LineInfoArg * at );
+    DAS_API void builtin_exit_now ( int32_t ec, Context * context, LineInfoArg * at );
 }

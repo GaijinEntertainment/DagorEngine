@@ -46,7 +46,7 @@ def test_long_length_resize_cascade(t : T?) {
     if (!huge_enabled()) return
     restart()
 
-    create_entities(HUGE_N) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(HUGE_N) $(_eid : EntityId; _i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, default<HugePayload>)
     }
 

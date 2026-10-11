@@ -147,12 +147,13 @@ void FramememBufferManager::shutdown()
   purge();
 }
 
-BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_class)
+BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_class, uint32_t visible_size)
 {
   // will also trigger TSAN warning if we try to present in parallel to discard, see assert below,
   // that's invalid for framemem buffer! fix in user code!
   volatile uint32_t frame = Frontend::State::pod.frameIndex;
   size = Globals::VK::bufProps.alignSize(size);
+  visible_size = max(size, Globals::VK::bufProps.alignSize(visible_size));
 #if DAGOR_DBGLEVEL > 0
   totalUsage += size;
 #endif
@@ -161,7 +162,7 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
   WinAutoLock lock(writeLock);
   Buffer *&buf = nonMappedRing ? getNonMappedBuf(mem_class, frame) : getBuf(mem_class, frame);
 
-  if (!buf || !buf->onDiscardFramemem(frame, size))
+  if (!buf || !buf->onDiscardFramemem(frame, visible_size))
   {
     uint32_t discardCount = 1;
     uint32_t discardBlockSz = Globals::cfg.framememBlockSize;
@@ -170,18 +171,20 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
       discardCount += buf->getDiscardBlocks();
       destroyQue.push_back(buf);
     }
-    discardCount += size / discardBlockSz + 1;
+    discardCount += visible_size / discardBlockSz + 1;
 
-    buf = Buffer::create(discardBlockSz, mem_class, discardCount, BufferMemoryFlags::FRAMEMEM);
     // first CmdAddRefFrameMem handled at creation time to avoid lock order inversion
     // between manager write lock and front lock
-    buf->markDiscardUsageRange(frame, size);
+    buf = Buffer::create(discardBlockSz, mem_class, discardCount, BufferMemoryFlags::FRAMEMEM);
     if (Globals::cfg.debugLevel > 0)
       buf->setDebugName(String(32, "framemem_%u", frameToRingIdx(frame)));
   }
+  // consume only what asked by size, bigger visible range is used to avoid HW level OOB (i.e. CB prefetch)
+  // caller ensures that we are not reading excessive non written data
+  buf->markDiscardUsageRange(frame, size);
   if (nonMappedRing)
     buf->ensureNoMappedMemory();
-  BufferRef ret{buf, size};
+  BufferRef ret{buf, visible_size};
   // make acquires unique over multiple frames as some framemem buffers may be leaved bound, yet not updated
   // causing discard state replacement to fail, due to non unique buf+offset combos
   ret.frameReference = frame;
@@ -191,9 +194,9 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
   return ret;
 }
 
-BufferRef FramememBufferManager::acquire(uint32_t size, uint32_t flags)
+BufferRef FramememBufferManager::acquire(uint32_t size, uint32_t flags, uint32_t visible_size)
 {
-  return acquire(size, BufferDescription::memoryClassFromCflags(flags));
+  return acquire(size, BufferDescription::memoryClassFromCflags(flags), visible_size);
 }
 
 void FramememBufferManager::getMemUsageInfo(uint32_t &allocated, uint32_t &used_currently)

@@ -1,4 +1,7 @@
-# daspkg — daslang package manager
+# daspkg - daslang package manager
+
+daspkg ships in the SDK as a prebuilt exe - the `DAS_UTILS_SHIPPED_EXES` entry in `utils/CMakeLists.txt`
+(repo root); `utils/REVIEW.das` reads this line as the record of that decision.
 
 Package manager for [daslang](https://daslang.io/). Installs, updates, builds, and manages daslang modules from git repositories or a central package index.
 
@@ -38,9 +41,10 @@ daslang utils/daspkg/main.das -- install --global dasImgui
 | `build` | Build all C/C++ packages (cmake) |
 | `check` | Verify installed packages are present |
 | `doctor` | Check environment (git, cmake, gh) |
-| `release [--out <dir>] [--paranoid \| --quick]` | Bundle project as a redistributable standalone. Release ALWAYS mints the tune sidecar; `--quick` is the only mode that inherits a complete existing one |
+| `release [--out <dir>] [--paranoid \| --quick \| --fat <class>]` | Bundle project as a redistributable standalone. A plain release mints the tune sidecar on the build box and ships it; `--quick` inherits a complete existing one instead of minting; `--fat <class>` builds a fat exe from the class profiles - no mint, no sidecar |
 | `introduce [url]` | Submit a package to the index via PR |
 | `withdraw <name>` | Remove a package from the index via PR |
+| `update-index [--commit \| --dry-run]` | Re-read every index entry's manifest from its repo and refresh the entry. Default opens a PR on the index repo; `--commit` pushes straight to its main branch; `--dry-run` prints the diff and changes nothing. A package whose clone or manifest fails is reported and exits 1 after the rest refreshed |
 
 All package commands accept `--global` / `-g` to operate on global modules.
 
@@ -49,19 +53,24 @@ All package commands accept `--global` / `-g` to operate on global modules.
 | Flag | Description |
 |------|-------------|
 | `--root <path>` | Project root (default: current directory) |
-| `--force` | Force reinstall (overrides duplicate/version checks) |
+| `--force` | Force reinstall (overrides duplicate/version checks); also lets `install`, `update` and `upgrade` take a package whose manifest declares other platforms only |
 | `--global`, `-g` | Operate on global modules in `{das_root}/modules/` |
 | `--color` / `--no-color` | Enable/disable ANSI colored output |
 | `--verbose`, `-v` | Print debug details (git commands, resolve steps) |
 | `--json` | Machine-readable JSON output (`search`, `list`, `check`) |
 | `--branch <name>`, `-b <name>` | Install from a git branch (e.g. `master`) instead of a tag |
 | `--out <path>` | Output directory for `release` (default: current directory) |
-| `--paranoid` | During `release`, tune with the paranoid budget: 3x the rounds and a 1% noise-gate ceiling. There is no fast race mode — a cheap race measures nothing |
-| `--quick` | During `release`, accept a complete existing sidecar instead of re-minting (an incomplete or stale scope still mints — an exe never ships unmeasured). Forgetting it costs one re-mint, never correctness |
+| `--wasm` | Target wasm64 (memory64, lowered to a 32-bit memory at link so every browser runs it): `build --wasm` builds the wasm64 runtime and module archives, `release wasm` ships compiled `.wasm` artifacts |
+| `--wasm-lib-dir <path>` | Directory holding the wasm64 archives `release wasm` links (default `<das_root>/web/output64/lib`) |
+| `--paranoid` | Accepted for compatibility; the tuner runs one margin-decided protocol and this flag no longer changes the budget |
+| `--quick` | During `release`, accept a complete existing sidecar instead of re-minting (an incomplete or stale scope still mints - an exe never ships unmeasured). Forgetting it costs one re-mint, never correctness |
+| `--commit` | During `update-index`, commit the refreshed index straight to the index repo's main branch (needs push access) |
+| `--dry-run` | During `update-index`, print the refreshed `packages.json` as a diff and change nothing |
+| `--fat <class>` | During `release`, build a fat exe for a CPU class (`x86-avx2`, `x86-vnni512`, `x86-amx`, `arm-neon`, `arm-i8mm`, ...): the plain code targets the class, every `[tune]` kernel ships one clone per class the library has a profile for, and the exe picks the clone from cpuid at startup. No mint and no shipped sidecar; a kernel with no profile entry for the class refuses the release. `skills/tune.md`, *The fat exe* |
 
 ## Global modules
 
-Large packages (e.g. dasImgui) can be installed **globally** — once under `{das_root}/modules/` — shared across all projects using that SDK. Avoids redundant clones and builds.
+Large packages (e.g. dasImgui) can be installed **globally** - once under `{das_root}/modules/` - shared across all projects using that SDK. Avoids redundant clones and builds.
 
 ```bash
 daspkg install --global dasImgui        # install to das_root/modules/
@@ -92,6 +101,7 @@ def package() {
     package_license("MIT")
     package_tag("networking")
     package_min_sdk("0.4")
+    package_platform("windows")     // optional; repeatable, or package_platforms(["windows", "wasm"]) - none declared = every platform
 }
 
 [export]
@@ -120,19 +130,28 @@ def release() {
     release_main("main.das")
     release_include("assets/**")                 // release-owned; refreshed every time
     release_include_if_missing("app.toml")       // user-owned after initialization
+    release_include_tool("watchdog")             // a built tool from bin/, shipped beside the exe
+    release_launcher("watchdog")                 // macOS: the .app opens this tool, which starts the exe
+    release_program("my-bench", "tools/bench.das")   // a companion exe baked beside the main one, same class, shared runtime
 }
 ```
+
+`release_include_from(source, dest)` copies an SDK-relative file into the bundle
+on native and WASM releases. Omit `dest` to use the source filename. Both paths
+use relative segments made of letters, digits, `_`, `-`, and `.`. The source can
+use `..` to reach a neighboring tree; destination paths reject `..` segments.
+A missing source or failed copy fails the release.
 
 Use `release_include_if_missing` for editable deployment files. They are copied only when absent,
 excluded from `.daspkg_release.manifest`, and preserved even when upgrading from an older manifest
 that previously treated the same path as release-owned.
 
-All functions except `package()` are optional. A repo without `.das_package` gets a "dumb clone" — no version resolution, no deps, no build.
+All functions except `package()` are optional. A repo without `.das_package` gets a "dumb clone" - no version resolution, no deps, no build.
 
 ## Install flow
 
 1. Shallow-clone from default branch
-2. Run `.das_package` `resolve()` → checkout resolved tag/branch (or re-clone on redirect)
+2. Run `.das_package` `resolve()` -> checkout resolved tag/branch (or re-clone on redirect)
 3. Move to `modules/<name>/`
 4. Record in `daspkg.lock`
 5. Install transitive dependencies
@@ -181,10 +200,10 @@ my_project/
 }
 ```
 
-- **root** — `true` if user-installed, `false` if transitive dependency
-- **tag/branch** — resolved git ref
-- **local** — installed from local path
-- **global** — resolved from global install (no local copy)
+- **root** - `true` if user-installed, `false` if transitive dependency
+- **tag/branch** - resolved git ref
+- **local** - installed from local path
+- **global** - resolved from global install (no local copy)
 
 The global lock file (`{das_root}/modules/.daspkg_global.lock`) uses the same format.
 
@@ -192,19 +211,56 @@ The global lock file (`{das_root}/modules/.daspkg_global.lock`) uses the same fo
 
 | File | Description |
 |------|-------------|
-| `main.das` | CLI entry point — parses args, dispatches to commands |
+| `main.das` | CLI entry point - parses args, dispatches to commands |
 | `commands.das` | Command implementations: install, remove, update, upgrade, build, check, doctor |
 | `index.das` | Package index: fetch, search, introduce, withdraw |
 | `lockfile.das` | `LockFile` / `PackageEntry` structs, JSON serialization |
-| `package_runner.das` | In-process `.das_package` compiler — compiles, simulates, extracts metadata |
+| `package_runner.das` | In-process `.das_package` compiler - compiles, simulates, extracts metadata |
 | `utils.das` | Shared utilities: `run_cmd`, `force_rmdir`, path helpers |
 | `daslib/daspkg.das` | API module that `.das_package` scripts `require` |
 
 The **package runner** compiles `.das_package` scripts in-process using `compile_file` + `simulate` + `invoke_in_context`. It calls exported functions and reads state from `daslib/daspkg` module globals via `get_context_global_variable`.
 
+### Platform declaration
+
+A manifest's `package_platform` list is a declaration, not a build probe: it names the
+`get_platform_name()` values (`windows`, `darwin`, `linux`, `emscripten`; `wasm` and `macos` are
+accepted spellings) the author supports, and an empty list means every platform. `install`
+reads it from the cloned checkout before anything lands in `modules/` and refuses a host outside
+the list with exit code 3 (`RC_UNSUPPORTED_PLATFORM`), the same for a dependency on the chain;
+`--force` installs anyway with a warning, on `update` and `upgrade` too. `release` checks the
+root package against the host and `release wasm` against `emscripten`. The index carries the
+list as `platforms`, so `search` shows it and the nightly index sweep (`index_sweep.cmake`)
+skips an entry whose list leaves out the sweep host instead of failing on it; an install that
+exits 3 under the sweep is also a skip, flagged as a stale index entry until the next
+`update-index`. A name outside the vocabulary fails the manifest outright, under `--force` too.
+
+### Wasm archive staging {#wasm-archive-staging}
+
+The web build pins every archive it produces - the runtime and each module - into its own
+output directory, `web/output64/lib` (`das_pin_wasm_archives` in `web/CMakeLists.txt`), and
+`build --wasm` stages from there alone. `<das_root>/lib` belongs to the desktop build and is
+never read: an archive found there is stale by construction - a wasm archive an earlier web
+configure wrote, or a native one - and staging it over the fresh build ships old code under the
+new toolchain id. Staging still identifies each archive by content - it walks the archive's
+members to the first object and asks for the wasm magic - and refuses a native one, so a web
+build directory configured for another target is caught before `release wasm` fails to link.
+
+### Web build stamp {#web-build-stamp}
+
+`release wasm` stamps the page it releases. Where the shell's markup carries the
+`__DAS_BUILD_STAMP__` placeholder, wherever the shell puts it, the release replaces it with the
+source revision (`git describe --always --dirty=+ --abbrev=9`, or `unknown` outside a git tree)
+and the build time with its zone, after the external files have landed. The shells this
+repository ships put the placeholder in a `das-build` meta tag in the page head, so the stamp
+draws nothing and a tester reads which build answered from the page source, or from
+`document.querySelector('meta[name=das-build]').content` in the console. A shell whose markup
+lacks the placeholder ships unstamped, and so does a page the release cannot read; the release
+is silent about both.
+
 ## Tests
 
-Review gates live in [CODEREVIEW.md](CODEREVIEW.md) — run the unit suite on every change.
+Review gates live in [REVIEW.md](REVIEW.md) - run the unit suite on every change.
 
 | File | Count | Type |
 |------|-------|------|
@@ -212,10 +268,10 @@ Review gates live in [CODEREVIEW.md](CODEREVIEW.md) — run the unit suite on ev
 | `test_daspkg_git.das` | 70 | Integration tests (git clone, version resolve, index, global modules) |
 
 ```bash
-# unit tests — fast, no network
+# unit tests - fast, no network
 daslang dastest/dastest.das -- --test utils/daspkg/test_daspkg.das
 
-# integration tests — requires network
+# integration tests - requires network
 daslang dastest/dastest.das -- --test utils/daspkg/test_daspkg_git.das
 ```
 
@@ -231,25 +287,25 @@ daslang dastest/dastest.das -- --test utils/daspkg/test_daspkg_git.das
 ## Design rationale
 
 ### Why git-based (like Go modules)?
-- Packages are git repositories — no centralized registry server to maintain
+- Packages are git repositories - no centralized registry server to maintain
 - Version = git tag. `resolve()` maps version requests to tags.
 - Index is a curated JSON file in a git repo. Authors add via PR (`daspkg introduce`).
 
 ### Why executable manifests?
 - Authors can put version-conditional logic in `resolve()` and `dependencies()`
-- Same pattern as `.das_module` — familiar to daslang authors
+- Same pattern as `.das_module` - familiar to daslang authors
 - daspkg provides registration functions via `daslib/daspkg`; `.das_package` just calls them
 
 ### Why per-project by default?
-- Game projects need reproducible builds — `modules/` is self-contained
+- Game projects need reproducible builds - `modules/` is self-contained
 - Global install (`--global`) for large shared modules (dasImgui, etc.)
 - Runtime already scans both `das_root/modules/` and project `modules/`
 
 ### Version model
-- **Package version** — semver, resolved via `.das_package` `resolve()`
-- **SDK version** — `resolve()` receives it, can return different tags per SDK
-- **Dependency constraints** — operators `>=`, `>`, `<=`, `<`, `=`, comma AND: `">=1.0,<2.0"`
-- **Diamond deps** — first installed wins (single `require` namespace). Manual upgrade with `--force`.
+- **Package version** - semver, resolved via `.das_package` `resolve()`
+- **SDK version** - `resolve()` receives it, can return different tags per SDK
+- **Dependency constraints** - operators `>=`, `>`, `<=`, `<`, `=`, comma AND: `">=1.0,<2.0"`
+- **Diamond deps** - first installed wins (single `require` namespace). Manual upgrade with `--force`.
 
 ### Transport
 - Only external dependency: `git` CLI. No HTTP library needed.
@@ -258,8 +314,19 @@ daslang dastest/dastest.das -- --test utils/daspkg/test_daspkg_git.das
 
 ## Requirements
 
-- **git** — required for all remote operations
-- **cmake** — required for building C/C++ packages
-- **gh** (GitHub CLI) — optional, only for `introduce`/`withdraw`
+- **git** - required for all remote operations
+- **cmake** - required for building C/C++ packages
+- **gh** (GitHub CLI) - optional, only for `introduce`/`withdraw`
 
 Run `daspkg doctor` to check your environment.
+
+For `release wasm`, `release_include_symbols()` enables `--jit-debug --jit-stack`
+during cross-compilation and `-g3 --emit-symbol-map` during linking. The deployed
+WASM retains generated debug information and function names, with an adjacent
+`.html.symbols` map. Prebuilt archives contribute only their existing debug data.
+Runtime assertions and heap instrumentation remain explicit `release_emcc_arg`
+choices, so requesting symbols alone does not silently enable those checks.
+
+With emsdk active, `node utils/daspkg/test_wasm_external.cjs` checks external-file
+staging and failure propagation through real WASM releases. Set `DASLANG_BIN` and
+`DASLANG_WASM_LIB` to override the local compiler and `web/output64/lib` defaults.

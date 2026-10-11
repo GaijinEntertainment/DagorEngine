@@ -945,7 +945,7 @@ int VolumePlacer::calculateObjectCount(ecs::EntityId eid, float density, const T
     readbackPending = false;
     if (auto locked = lock_sbuffer<const uint>(counterBuffer.getBuf(), 0, COUNTERS_NUM, 0))
     {
-      on_rendinst_geometry_count = density * (locked[TRIANGLES_AREA_SUM] / (TRIANGLE_AREA_MULTIPLIER * 2.0));
+      on_rendinst_geometry_count = double(density) * (locked[TRIANGLES_AREA_SUM] / (TRIANGLE_AREA_MULTIPLIER * 2.0));
       on_terrain_geometry_count = clamp(static_cast<int>(locked[TERRAIN_OBJECTS_COUNT]), 0, ON_TERRAIN_OBJECT_COUNT_CLAMP);
       int count = on_rendinst_geometry_count + on_terrain_geometry_count;
       if (count > object_max_count)
@@ -983,6 +983,13 @@ void VolumePlacer::resetReadbackEntity(ecs::EntityId eid)
 {
   if (eid == waitReadbackEntity)
     waitReadbackEntity.reset();
+}
+
+void VolumePlacer::afterDeviceReset()
+{
+  matricesBuffer.invalidate();
+  waitReadbackEntity.reset();
+  readbackPending = false;
 }
 
 void VolumePlacer::drawDebugGeometry(const TMatrix &transform, float min_triangle_size, float triangle_edge_length_ratio_cutoff,
@@ -1315,7 +1322,7 @@ static __forceinline void gpu_object_placer_changed_es_event_handler(const ecs::
 
   Point3 upVector = Point3::xyz(gpu_object_placer__object_up_vector_threshold);
   normalizeDef(upVector, Point3(0, 0, 0));
-  if (lengthSq(upVector - Point3::xyz(gpu_object_placer__object_up_vector_threshold)) > 0.0001)
+  if (lengthSq(upVector - Point3::xyz(gpu_object_placer__object_up_vector_threshold)) > 0.0001f)
     gpu_object_placer__object_up_vector_threshold = Point4::xyzV(upVector, gpu_object_placer__object_up_vector_threshold.w);
 
   // Expected to be preloaded by `GpuObjectRiResourcePreload`
@@ -1394,7 +1401,7 @@ static __forceinline void gpu_object_placer_destroy_es_event_handler(const ecs::
 static void volume_placer_after_reset(bool /*full_reset*/)
 {
   if (volume_placer_mgr)
-    volume_placer_mgr->matricesBuffer.invalidate();
+    volume_placer_mgr->afterDeviceReset();
 }
 
 } // namespace gpu_objects

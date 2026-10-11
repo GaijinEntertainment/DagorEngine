@@ -60,12 +60,10 @@ AddIncludes =
 UseProgLibs =
   engine/lib3d
   engine/shaders
-  engine/sceneRay
   engine/perfMon
   engine/image
 
   engine/gameRes
-  engine/sceneRay
   engine/scene
   engine/coreUtil
 

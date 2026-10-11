@@ -51,7 +51,7 @@ static float scatter_factor = 20.0;
 static float roughness_factor = -25.0;
 static int max_stabilized_frame_num = 30;
 
-Texture *denoised_ao_for_debug = nullptr;
+static Texture *denoised_ao_for_debug = nullptr;
 
 void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persistent_textures)
 {
@@ -98,6 +98,8 @@ void initialize(bool half_res)
     scatter_factor = clamp(scatter_factor, scatter_factor_min, scatter_factor_max);
     roughness_factor = clamp(roughness_factor, roughness_factor_min, roughness_factor_max);
   }
+
+  denoised_ao_for_debug = nullptr;
 }
 
 template <typename T>
@@ -117,6 +119,7 @@ void teardown()
   safe_delete(trace);
 
   ShaderGlobal::set_int(rtao_bindless_slotVarId, -1);
+  denoised_ao_for_debug = nullptr;
 }
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
@@ -173,6 +176,8 @@ bool do_trace(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *half_
     ACQUIRE_DENOISER_TEXTURE_BASE(DENOISER_TEX_NAMES(denoiser::AODenoiser), textures, denoised_ao, false);
     denoised_ao_for_debug = denoised_ao;
   }
+  else
+    denoised_ao_for_debug = rtao_tex_unfiltered;
 
   render_noisy(context_id, proj_tm, half_depth, rtao_tex_unfiltered, checkerboard);
 
@@ -215,8 +220,11 @@ static void imguiWindow()
   ImGui::SliderFloat("Ray length", &ray_length, ray_length_min, ray_length_max);
   ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
   ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
-  ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
-  ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::AODenoiser::MAX_HISTORY_FRAME_NUM);
+  if (!denoiser::is_ray_reconstruction_enabled())
+  {
+    ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
+    ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::AODenoiser::MAX_HISTORY_FRAME_NUM);
+  }
 
   ImGuiDagor::Image(denoised_ao_for_debug);
 }

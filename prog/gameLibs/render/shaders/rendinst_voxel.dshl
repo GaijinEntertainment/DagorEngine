@@ -6,6 +6,8 @@ include "paint_details_inc.dshl"
 include "gbuffer.dshl"
 include "voxel_inc.dshl"
 
+int shadow_frame;
+
 shader rendinst_voxel
 {
   if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||

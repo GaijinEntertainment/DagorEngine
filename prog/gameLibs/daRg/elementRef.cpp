@@ -2,7 +2,10 @@
 
 #include "elementRef.h"
 #include "elementTree.h"
+#include "behaviorHelpers.h"
+#include "eventData.h"
 #include <daRg/dag_element.h>
+#include <daRg/dag_stringKeys.h>
 #include <quirrel/sqStackChecker.h>
 
 
@@ -96,6 +99,21 @@ static SQInteger elem_get_screen_pos_y(HSQUIRRELVM vm)
 {
   GET_EREF;
   sq_pushfloat(vm, ref->elem->screenCoord.screenPos.y);
+  return 1;
+}
+
+static SQInteger elem_get_transformed_rect(HSQUIRRELVM vm)
+{
+  GET_EREF;
+  EventDataRect rect;
+  calc_elem_rect_for_event_handler(rect, ref->elem);
+  const StringKeys *csk = ref->elem->csk;
+  Sqrat::Table res(vm);
+  res.SetValue(csk->l, rect.l);
+  res.SetValue(csk->t, rect.t);
+  res.SetValue(csk->r, rect.r);
+  res.SetValue(csk->b, rect.b);
+  sq_pushobject(vm, res);
   return 1;
 }
 
@@ -194,6 +212,7 @@ void ElementRef::bind_script(HSQUIRRELVM vm)
     //.SquirrelFunc("getCompDesc", elem_get_comp_desc)
     .SquirrelFunc("getScreenPosX", elem_get_screen_pos_x, 1, "x")
     .SquirrelFunc("getScreenPosY", elem_get_screen_pos_y, 1, "x")
+    .SquirrelFunc("getTransformedRect", elem_get_transformed_rect, 1, "x")
     .SquirrelFunc("getWidth", elem_get_width, 1, "x")
     .SquirrelFunc("getHeight", elem_get_height, 1, "x")
     .SquirrelFunc("getContentWidth", elem_get_content_width, 1, "x")

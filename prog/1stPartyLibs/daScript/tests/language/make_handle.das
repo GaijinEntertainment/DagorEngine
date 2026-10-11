@@ -27,10 +27,10 @@ def test_make_handle(t : T?) {
     let local_t = TestObjectFoo(fooData = 5)
     t |> equal(local_t.fooData, 5)
     // cmres variable
-    var cmres_t = cmresTest(13)
+    let cmres_t = cmresTest(13)
     t |> equal(cmres_t.fooData, 13)
     // mixed in the other type
-    var mixed = fixed_array(OverFoo(a = 1, foo = TestObjectFoo(fooData = 1)), OverFoo(a = 2, foo = TestObjectFoo(fooData = 2)))
+    let mixed = fixed_array(OverFoo(a = 1, foo = TestObjectFoo(fooData = 1)), OverFoo(a = 2, foo = TestObjectFoo(fooData = 2)))
     t |> success(mixed[0].foo.fooData == 1 && mixed[1].foo.fooData == 2)
     // ascend
     var ascend_t <- new TestObjectFoo(fooData = 1)

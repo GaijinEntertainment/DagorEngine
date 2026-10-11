@@ -1406,10 +1406,12 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multi_select_io)
     for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index)
       renderTreeItem(*linearizedTreeItems[index], dimmedTextColor, actionButtonsTotalWidth, multi_select_io);
 
-  // If there are no search results then show the no results message at the center of the tree control.
-  if (!outlinerModel->textToSearch.empty() && linearizedTreeItems.empty())
+  // If the filtered tree is empty then show the no results message at the center of the tree control.
+  if ((!outlinerModel->textToSearch.empty() || outlinerModel->getShowSelectedOnly()) && linearizedTreeItems.empty())
   {
     const char *message = "No results found";
+    if (outlinerModel->textToSearch.empty())
+      message = outlinerModel->isAnyObjectSelected() ? "Selected objects are hidden" : "No objects selected";
     const ImVec2 textSize = ImGui::CalcTextSize(message, nullptr);
     ImVec2 posMin = ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
     ImVec2 posMax = posMin + ImGui::GetContentRegionAvail();
@@ -1528,9 +1530,27 @@ void OutlinerWindow::applyRangeSelectionRequest(const ImGuiSelectionRequest &req
 {
   G_ASSERT(request.Type == ImGuiSelectionRequestType_SetRange);
 
+  const dag::Span<OutlinerTreeItem *> treeItems = outlinerModel->getLinearizedTreeItems();
+  const auto getTreeIndex = [&treeItems](ImGuiSelectionUserData item) {
+    auto it = eastl::find(treeItems.begin(), treeItems.end(), reinterpret_cast<OutlinerTreeItem *>(item));
+    return it == treeItems.end() ? -1 : (int)(it - treeItems.begin());
+  };
+
+  // ImGui keeps the range anchor also when the filter removed its row. Make sure that both range ends are visible rows,
+  // otherwise Shift+Click selects the wrong rows.
+  ImGuiSelectionRequest rangeRequest = request;
+  const int firstIndex = getTreeIndex(rangeRequest.RangeFirstItem);
+  const int lastIndex = getTreeIndex(rangeRequest.RangeLastItem);
+  if (firstIndex < 0)
+    rangeRequest.RangeFirstItem = rangeRequest.RangeLastItem;
+  else if (lastIndex < 0)
+    rangeRequest.RangeLastItem = rangeRequest.RangeFirstItem;
+  else if (firstIndex > lastIndex) // ImGui reverses the ends when the clipper did not submit an anchor above the viewport.
+    eastl::swap(rangeRequest.RangeFirstItem, rangeRequest.RangeLastItem);
+
   bool foundFirst = false;
   for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->filteredObjectTypes)
-    if (!applyRangeSelectionRequestInternal(request, *objectTypeTreeItem, foundFirst))
+    if (!applyRangeSelectionRequestInternal(rangeRequest, *objectTypeTreeItem, foundFirst))
       break;
 }
 
@@ -1855,6 +1875,8 @@ void OutlinerWindow::updateImgui()
 
   ImGui::PushID(this);
 
+  outlinerModel->updateSelectionFilter(*treeInterface);
+
   const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
 
   const int selectedType = outlinerModel->getExclusiveSelectedType(*treeInterface);
@@ -1903,16 +1925,24 @@ void OutlinerWindow::updateImgui()
   const char *collapseAllTitle = "Collapse all";
   const ImVec2 expandAllSize = PropPanel::ImguiHelper::getButtonSize(expandAllTitle);
   const ImVec2 collapseAllSize = PropPanel::ImguiHelper::getButtonSize(collapseAllTitle);
-  const ImVec2 expandButtonRegionAvailable = ImGui::GetContentRegionAvail();
-  const ImVec2 expandButtonCursorPos = ImGui::GetCursorPos();
+  const float rowRightX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+  const float collapseAllX = rowRightX - collapseAllSize.x;
+  const float expandAllX = collapseAllX - ImGui::GetStyle().ItemSpacing.x - expandAllSize.x;
 
-  ImGui::SetCursorPosX(
-    expandButtonCursorPos.x + expandButtonRegionAvailable.x - (expandAllSize.x + ImGui::GetStyle().ItemSpacing.x + collapseAllSize.x));
+  bool showSelectedOnly = outlinerModel->getShowSelectedOnly();
+  if (PropPanel::ImguiHelper::toggleSwitch("showSelectedOnly", "All", "Selected", showSelectedOnly))
+    outlinerModel->setShowSelectedOnly(*treeInterface, showSelectedOnly);
+  const char *showAllSelectedTooltip = showSelectedOnly ? "Only selected items are shown.\n\nClick to show all items."
+                                                        : "All items are shown.\n\nClick to show only selected items.";
+  PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), showAllSelectedTooltip);
+
+  ImGui::SameLine();
+  ImGui::SetCursorPosX(max(ImGui::GetCursorPosX(), expandAllX));
   if (ImGui::Button(expandAllTitle))
     outlinerModel->expandAll(true);
 
   ImGui::SameLine();
-  ImGui::SetCursorPosX(expandButtonCursorPos.x + expandButtonRegionAvailable.x - collapseAllSize.x);
+  ImGui::SetCursorPosX(max(ImGui::GetCursorPosX(), collapseAllX));
   if (ImGui::Button(collapseAllTitle))
     outlinerModel->expandAll(false);
 

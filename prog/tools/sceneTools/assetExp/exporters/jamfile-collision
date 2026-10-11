@@ -24,7 +24,6 @@ UseProgLibs +=
   engine/lib3d
   engine/drv/drv3d_null
   engine/gameRes
-  engine/sceneRay
   engine/scene
   engine/coreUtil
 

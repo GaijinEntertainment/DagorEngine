@@ -4,6 +4,7 @@
 #include <ioSys/dag_dataBlock.h>
 
 #include <EASTL/fixed_vector.h>
+#include <EASTL/hash_map.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 
@@ -41,12 +42,22 @@ enum class PinType : uint8_t
 PinType parse_pin_type(const char *type_name);
 bool is_texture_or_particles(PinType t);
 
+// The pin types a node can inherit its texture size from: the array forms included, particles not.
+bool is_texture_type_for_inherit(PinType t);
+
+// 1 / 2 / 3, particles counting as 2, and 0 for a type that produces no texture.
+int texture_out_dimension(PinType t);
+
 // Polymorphic read of a BLK param into the canonical text form used throughout
 // GraphData (Node::propertyValues stores values as strings regardless of the
 // descriptor's declared type; the consumer re-parses with `type` in hand).
 // Handles TYPE_STRING / INT / REAL / BOOL / POINT4; returns "" when the param
 // is absent or the type isn't representable as a scalar string.
 eastl::string param_as_string(const DataBlock *blk, const char *name);
+
+// Inverse of parse_pin_type; "" for Unknown. The subgraph extraction names an input boundary after
+// the producer's type ("subgraph in: <this>").
+const char *pin_type_to_string(PinType t);
 
 // Returns the property's declared type string ("bool" / "int" / "float" /
 // "color" / "string" / ...) or "" when neither `type:t` nor the val tag yields
@@ -84,7 +95,7 @@ struct GraphData
   //
   // `customTextureName` is a runtime cache of the texgen register name assigned by
   // `compile_graph_to_blks`. It is repopulated by every compile's write-back loop and read
-  // only by the texture-preview panel (graph_panel.cpp). NOT persisted, NOT read from
+  // only by the texture-preview panel (graph_tab.cpp). NOT persisted, NOT read from
   // loaded files -- doing so would carry stale values across edits that re-number elements.
   //
   // `type` / `types` / `typeGroup` / `role` / `isInput` / `singleConnect` / `hidden` are a *cache*
@@ -161,7 +172,7 @@ struct GraphData
     bool muted = false; // authored "switch this connection off" bit
   };
 
-  // Display data (consumed by GraphPanel).
+  // Display data (consumed by GraphTab).
   eastl::vector<Node> nodes;
   eastl::vector<Edge> edges;
 
@@ -235,6 +246,64 @@ inline const eastl::string *find_property_value(const GraphData::Node &n, const 
   return nullptr;
 }
 
+// The node{} block for a templateUid, or nullptr. Linear scan; a per-frame caller wants an index.
+inline const DataBlock *find_node_desc(const DataBlock *base_nodes_blk, const char *template_uid)
+{
+  if (!base_nodes_blk || !template_uid || !template_uid[0])
+  {
+    return nullptr;
+  }
+  for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
+  {
+    const DataBlock *b = base_nodes_blk->getBlock(i);
+    if (strcmp(b->getBlockName(), "node") == 0 && strcmp(b->getStr("templateUid", ""), template_uid) == 0)
+    {
+      return b;
+    }
+  }
+  return nullptr;
+}
+
+// The node{} whose name:t is desc_name, or nullptr. Linear; meant for the fixed boundary descriptors.
+inline const DataBlock *find_node_desc_by_name(const DataBlock &base_nodes_blk, const char *desc_name)
+{
+  if (!desc_name || !desc_name[0])
+  {
+    return nullptr;
+  }
+  for (uint32_t i = 0; i < base_nodes_blk.blockCount(); ++i)
+  {
+    const DataBlock *b = base_nodes_blk.getBlock(i);
+    if (strcmp(b->getBlockName(), "node") == 0 && strcmp(b->getStr("name", ""), desc_name) == 0)
+    {
+      return b;
+    }
+  }
+  return nullptr;
+}
+
+// A fresh node from its descriptor: templateUid, descName, plugin, pin stubs in descriptor order
+// (resolved by resolve_node_pins) and the default property values. No id: the caller allocates it.
+void make_node_from_descriptor(const DataBlock &base_nodes_blk, const DataBlock &desc, float x, float y, GraphData::Node &out);
+
+// The descriptor block of one pin, or nullptr when the node template has no pin by that name.
+inline const DataBlock *find_pin_desc(const DataBlock *node_desc, const char *pin_name)
+{
+  if (!node_desc || !pin_name)
+  {
+    return nullptr;
+  }
+  for (uint32_t i = 0; i < node_desc->blockCount(); ++i)
+  {
+    const DataBlock *b = node_desc->getBlock(i);
+    if (strcmp(b->getBlockName(), "pin") == 0 && strcmp(b->getStr("name", ""), pin_name) == 0)
+    {
+      return b;
+    }
+  }
+  return nullptr;
+}
+
 // The descriptor block of one property, or nullptr when the node template has no property by that name.
 inline const DataBlock *find_property_desc(const DataBlock *node_desc, const char *prop_name)
 {
@@ -252,6 +321,59 @@ inline const DataBlock *find_property_desc(const DataBlock *node_desc, const cha
   }
   return nullptr;
 }
+
+// What the node stored for a texture property, else the descriptor default. An empty stored value
+// counts as unset here but not in the properties panel, so the two differ for a cleared combobox.
+// constraint: the texture properties only; every other property reads the stored value raw.
+inline eastl::string texture_property_value(const GraphData::Node &n, const DataBlock *node_desc, const char *prop_name)
+{
+  const eastl::string *const stored = find_property_value(n, prop_name);
+  if (stored && !stored->empty())
+  {
+    return *stored;
+  }
+  return param_as_string(find_property_desc(node_desc, prop_name), "val");
+}
+
+// 0 when the node produces no texture. The last texture out-pin wins, hidden included.
+// constraint: preprocess_node_descriptor takes the maximum instead, so a node with a 3D and a 2D
+// output gets a depth property it never uses.
+inline int node_out_texture_dimension(const GraphData::Node &n)
+{
+  int dimension = 0;
+  for (const GraphData::Pin &p : n.pins)
+  {
+    if (p.role != PinRole::Out || p.types.empty())
+    {
+      continue;
+    }
+    const int pinDimension = texture_out_dimension(p.types.front());
+    if (pinDimension != 0)
+    {
+      dimension = pinDimension;
+    }
+  }
+  return dimension;
+}
+
+// Node::id is an allocated id, not a position; an edge endpoint needs this to reach its node.
+inline void build_node_index(const GraphData &g, eastl::hash_map<int, int> &out)
+{
+  out.clear();
+  out.reserve(g.nodes.size());
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    out[g.nodes[i].id] = i;
+  }
+}
+
+// The `plugin:t` marker on a node spliced in from another graph file.
+inline constexpr const char *SUBGRAPH_PLUGIN = "subgraph";
+inline bool is_subgraph_instance(const GraphData::Node &n) { return n.plugin == SUBGRAPH_PLUGIN; }
+// The interface nodes of a subgraph file. An input names its type after the colon: "subgraph in: float".
+inline bool is_input_boundary(const GraphData::Node &n) { return strncmp(n.descName.c_str(), "subgraph in:", 12) == 0; }
+inline bool is_output_boundary(const GraphData::Node &n) { return n.descName == "subgraph out"; }
+inline bool is_separator_boundary(const GraphData::Node &n) { return n.descName == "subgraph separator"; }
 
 // Edge::id is allocated like Node::id, so an endpoint always needs a lookup. Linear, as
 // find_node_by_id is. Const only: every write to an edge goes through mutateGraphData, which hands
@@ -352,6 +474,8 @@ inline uint64_t make_pin_id(int node_id, int pin_index)
 {
   return ((uint64_t(uint32_t(node_id)) + 1) << 20) | (uint64_t(uint32_t(pin_index)) + 1);
 }
+inline int node_id_from_pin_id(uint64_t pin_id) { return int(uint32_t((pin_id >> 20) - 1)); }
+inline int pin_index_from_pin_id(uint64_t pin_id) { return int(uint32_t((pin_id & 0xFFFFF) - 1)); }
 inline uint64_t make_node_id(int node_id) { return uint64_t(uint32_t(node_id)) + 1; }
 inline uint64_t make_link_id(int edge_id) { return uint64_t(uint32_t(edge_id)) + 1; }
 
@@ -396,6 +520,12 @@ void clear_graph_data(GraphData &out);
 // into per-pin DataBlocks).
 size_t approx_node_size(const GraphData::Node &node);
 
+// The file name without its extension, and without a trailing ".subgraph" -- what a saved
+// subgraph is called, and what dd_get_fname_without_path_and_ext leaves behind because it cuts
+// only the last extension. out_is_subgraph reports whether that suffix was there. Takes a path
+// or a bare name.
+eastl::string graph_file_stem(const char *path, bool *out_is_subgraph = nullptr);
+
 // Serializes GraphData source-of-truth (nodes, edges, propertyValues, dirs,
 // heightmap, graph-level texture defaults) as a text DataBlock at `blk_path`.
 // Does NOT write `sourcePath`, and does NOT persist `mainGraphBlk` /
@@ -423,6 +553,7 @@ struct SubgraphSchemaError
     NO_OUTPUTS,           // graph has boundary nodes but zero `subgraph out` -- parent cannot consume anything
     EMPTY_INTERFACE_NAME, // boundary node's `name` property is empty
     DUPLICATE_NAME,       // two boundaries share the same (role, name) -- ambiguous splice
+    SEPARATOR_NAME_CLASH, // a separator's label repeats a boundary name, and pins are found by name
   };
   Code code = NO_BOUNDARIES;
   int nodeId = -1;
@@ -446,3 +577,29 @@ struct DeadInputBoundary
 };
 
 void find_dead_input_boundaries(const GraphData &gd, eastl::vector<DeadInputBoundary> &out);
+
+// A problem in a subgraph file, worded without its path. isError is the severity, not a refusal.
+struct SubgraphDescriptorMessage
+{
+  bool isError = false;
+  eastl::string text;
+};
+
+// The boundary nodes in the order an instance of the subgraph shows its pins: the inputs by y, then
+// the outputs by y. with_separators keeps the separators among the inputs, where the instance draws them.
+void collect_subgraph_boundaries(const GraphData &gd, bool with_separators, eastl::vector<const GraphData::Node *> &out);
+
+// The node{} a *.subgraph.blk registers as: a pin per boundary, inputs first. False on a schema error.
+bool synthesize_subgraph_descriptor(const GraphData &child, const char *stem, const char *source_path, const char *location_label,
+  DataBlock &out_node_blk, eastl::vector<SubgraphDescriptorMessage> &out_messages);
+
+struct DroppedInstanceEdge
+{
+  int edgeId = -1;
+  eastl::string pinName; // the instance pin it sat on, which the subgraph no longer has
+};
+
+// The instance with pins rebuilt from its descriptor, matched by name and role. out_incident_edges replaces
+// every edge that touches it, remapped; out_dropped: the edges of lost pins. False when nothing changes.
+bool resync_subgraph_instance(const GraphData &gd, int node_id, const DataBlock &base_nodes_blk, GraphData::Node &out_node,
+  eastl::vector<GraphData::Edge> &out_incident_edges, eastl::vector<DroppedInstanceEdge> &out_dropped);

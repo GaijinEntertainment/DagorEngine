@@ -532,9 +532,9 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
             tile.resize(tile.PLANTED, rec[c]->landClass->planted->ent.size());
 
           tile.beginGenerate(tile.PLANTED);
-          objgenerator::generatePlantedEntitiesInMaskedRect(*rec[c]->landClass->planted, tiledByLandclassSubTypeId,
-            IObjEntity::LAYER_INDEX_LANDCLASS, HmapLandPlugin::self, tile.pool[tile.PLANTED], bmps[c], world2grid, tx * box_sz,
-            ty * box_sz, box_sz, box_sz, world0x, world0y, 0, rendInst_atype);
+          objgenerator::generatePlantedEntitiesInMaskedRect(*rec[c]->landClass->planted, rec[c]->landClass->planted->detile,
+            tiledByLandclassSubTypeId, IObjEntity::LAYER_INDEX_LANDCLASS, HmapLandPlugin::self, tile.pool[tile.PLANTED], bmps[c],
+            world2grid, tx * box_sz, ty * box_sz, box_sz, box_sz, world0x, world0y, 0, rendInst_atype);
           tile.endGenerate(tile.PLANTED);
         }
 

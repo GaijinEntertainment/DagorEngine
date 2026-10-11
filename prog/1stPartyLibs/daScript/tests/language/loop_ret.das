@@ -21,7 +21,7 @@ def lr_foo(var attached_fires : array<LrFoo>) {
 def test_loop_ret(t : T?) {
     t |> run("loop early return fills unique entries") @(t : T?) {
         var a : array<LrFoo>
-        for (x in range(1000)) {
+        for (_x in range(1000)) {
             lr_foo(a)
         }
         t |> equal(length(a), 100)

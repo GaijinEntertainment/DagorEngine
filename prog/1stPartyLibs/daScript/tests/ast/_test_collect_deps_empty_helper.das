@@ -20,11 +20,11 @@ var public g_empty_var_count : int = -1
 [function_macro(name="probe_empty_deps")]
 class EmptyDepsProbe : AstFunctionAnnotation {
     def override apply(var func : FunctionPtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         return true
     }
     def override patch(var func : FunctionPtr; var group : ModuleGroup;
-                       args, progArgs : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         // Drive collect_dependencies on a function whose body is genuinely empty. Before the
         // src/simulate/simulate_fn_hash.cpp fix, the C++ side leaves Array.magic uninitialised

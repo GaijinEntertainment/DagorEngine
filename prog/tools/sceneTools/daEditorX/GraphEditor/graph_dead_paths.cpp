@@ -29,9 +29,37 @@ struct EdgeFlow
   }
 };
 
+// An edge marks BOTH its endpoints connected, but only when one of them is an In pin, so an
+// out-to-out or any-to-any edge marks nothing. The compile reads these bits rather than deriving
+// them again.
+void mark_connected_pins(const GraphData &g, const DeadPaths &dead, const eastl::hash_map<int, int> &id_to_index,
+  PinConnectivity &conn)
+{
+  for_each_live_edge(g, dead, id_to_index, [&](const LiveEdge &e) {
+    if (g.nodes[e.nodeA].pins[e.pinA].role == PinRole::In || g.nodes[e.nodeB].pins[e.pinB].role == PinRole::In)
+    {
+      conn.connected[conn.pinBase[e.nodeA] + e.pinA] = 1;
+      conn.connected[conn.pinBase[e.nodeB] + e.pinB] = 1;
+    }
+  });
+}
+
 } // namespace
 
-void compute_dead_paths(const GraphData &g, DeadPaths &out)
+void build_pin_connectivity(const GraphData &g, const DeadPaths &dead, const eastl::hash_map<int, int> &id_to_index,
+  PinConnectivity &conn)
+{
+  const int nodeCount = static_cast<int>(g.nodes.size());
+  conn.pinBase.assign(nodeCount + 1, 0);
+  for (int i = 0; i < nodeCount; ++i)
+  {
+    conn.pinBase[i + 1] = conn.pinBase[i] + static_cast<int>(g.nodes[i].pins.size());
+  }
+  conn.connected.assign(conn.pinBase[nodeCount], 0);
+  mark_connected_pins(g, dead, id_to_index, conn);
+}
+
+void compute_dead_paths(const GraphData &g, const eastl::hash_map<int, int> &idToIdx, DeadPaths &out)
 {
   const int nodeCount = static_cast<int>(g.nodes.size());
   const int edgeCount = static_cast<int>(g.edges.size());
@@ -42,17 +70,6 @@ void compute_dead_paths(const GraphData &g, DeadPaths &out)
   {
     return;
   }
-
-  eastl::hash_map<int, int> idToIdx;
-  idToIdx.reserve(nodeCount);
-  for (int i = 0; i < nodeCount; ++i)
-  {
-    idToIdx[g.nodes[i].id] = i;
-  }
-  auto findNode = [&idToIdx](int id) {
-    auto it = idToIdx.find(id);
-    return it == idToIdx.end() ? -1 : it->second;
-  };
 
   // (node, pin) counters kept in one flat array indexed by pinBase[node] + pin, so a recompute
   // costs no per-node allocation.
@@ -65,34 +82,24 @@ void compute_dead_paths(const GraphData &g, DeadPaths &out)
   eastl::vector<int> liveFedPins(nodeCount, 0);
 
   eastl::vector<EdgeFlow> flows(edgeCount);
+  LiveEdge le;
   for (int e = 0; e < edgeCount; ++e)
   {
-    const GraphData::Edge &edge = g.edges[e];
-    const int a = findNode(edge.elemA);
-    const int b = findNode(edge.elemB);
-    if (a < 0 || b < 0)
+    if (!resolve_edge_endpoints(g, idToIdx, g.edges[e], le))
     {
       continue;
     }
-    const GraphData::Node &na = g.nodes[a];
-    const GraphData::Node &nb = g.nodes[b];
-    if (edge.pinA < 0 || edge.pinA >= static_cast<int>(na.pins.size()))
-    {
-      continue;
-    }
-    if (edge.pinB < 0 || edge.pinB >= static_cast<int>(nb.pins.size()))
-    {
-      continue;
-    }
+    const GraphData::Node &na = g.nodes[le.nodeA];
+    const GraphData::Node &nb = g.nodes[le.nodeB];
 
     EdgeFlow &f = flows[e];
-    if (na.pins[edge.pinA].role == PinRole::In)
+    if (na.pins[le.pinA].role == PinRole::In)
     {
-      f.add(a, edge.pinA, b);
+      f.add(le.nodeA, le.pinA, le.nodeB);
     }
-    if (nb.pins[edge.pinB].role == PinRole::In)
+    if (nb.pins[le.pinB].role == PinRole::In)
     {
-      f.add(b, edge.pinB, a);
+      f.add(le.nodeB, le.pinB, le.nodeA);
     }
 
     // Muted edges are counted live here and killed by the seed loop below, so both cases go

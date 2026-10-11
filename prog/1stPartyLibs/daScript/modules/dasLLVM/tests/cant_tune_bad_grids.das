@@ -4,6 +4,7 @@
 options gen2
 expect 20800:12
 
+require daslib/tune
 require llvm/daslib/llvm_tune
 
 // 1. missing gen=

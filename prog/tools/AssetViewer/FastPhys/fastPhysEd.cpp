@@ -719,12 +719,8 @@ IFPObject *FastPhysEditor::getSelObject()
   if (selectedCount() == 1)
   {
     RenderableEditableObject *o = getSelected(0);
-    IFPObject *wobj = NULL;
-
-    if (!o || !o->isSubOf(IFPObject::HUID) || !(wobj = (IFPObject *)o))
-      return NULL;
-
-    return wobj;
+    if (o && o->isSubOf(IFPObject::HUID))
+      return static_cast<IFPObject *>(o);
   }
 
   return NULL;

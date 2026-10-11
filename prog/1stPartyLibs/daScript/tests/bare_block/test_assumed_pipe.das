@@ -84,13 +84,13 @@ def test_named_call_lambda_block(t : T?) {
 [test]
 def test_named_call_explicit_pipe(t : T?) {
     t |> run("named_call() <| $ block") @(t : T?) {
-        let res = call_block() <| $ {
+        let res = call_block() <| $ {     // nolint:STYLE002 - the explicit pipe form is what this test covers
             return 42;
         }
         t |> equal(res, 42)
     }
     t |> run("named_call() <| block with args") @(t : T?) {
-        let res = call_block_with_arg(10) <| $(v : int) : int {
+        let res = call_block_with_arg(10) <| $(v : int) : int {     // nolint:STYLE001 - the explicit pipe form is what this test covers
             return v + 5;
         }
         t |> equal(res, 15)
@@ -104,7 +104,7 @@ def test_named_call_explicit_pipe(t : T?) {
 [test]
 def test_arrow_call_bare_block(t : T?) {
     t |> run("obj->method() bare block") @(t : T?) {
-        var c = make_callable()
+        let c = make_callable()
         let res = c->fn() {
             return 77;
         }
@@ -115,7 +115,7 @@ def test_arrow_call_bare_block(t : T?) {
 [test]
 def test_arrow_call_block(t : T?) {
     t |> run("obj->method() block") @(t : T?) {
-        var c = make_callable()
+        let c = make_callable()
         let res = c->fn() $ {
             return 77;
         }
@@ -126,7 +126,7 @@ def test_arrow_call_block(t : T?) {
 [test]
 def test_arrow_call_lambda_block(t : T?) {
     t |> run("obj->method() @ block") @(t : T?) {
-        var c = make_callable()
+        let c = make_callable()
         let res = c->fn() $ {
             return 77;
         }
@@ -137,8 +137,8 @@ def test_arrow_call_lambda_block(t : T?) {
 [test]
 def test_arrow_call_explicit_pipe(t : T?) {
     t |> run("obj->method() <| $ block") @(t : T?) {
-        var c = make_callable()
-        let res = c->fn() <| $ {
+        let c = make_callable()
+        let res = c->fn() <| $ {     // nolint:STYLE002 - the explicit pipe form is what this test covers
             return 77;
         }
         t |> equal(res, 77)
@@ -200,14 +200,14 @@ def test_dot_call_lambda_block(t : T?) {
 def test_dot_call_explicit_pipe(t : T?) {
     t |> run("obj.method() <| $ block") @(t : T?) {
         var r = new Receiver()
-        let res = r.call_method() <| $ {
+        let res = r.call_method() <| $ {     // nolint:STYLE002 - the explicit pipe form is what this test covers
             return 33;
         }
         t |> equal(res, 33)
     }
     t |> run("obj.method() <| block with args") @(t : T?) {
         var r = new Receiver()
-        let res = r.call_method_with_arg(10) <| $(v : int) : int {
+        let res = r.call_method_with_arg(10) <| $(v : int) : int {     // nolint:STYLE001 - the explicit pipe form is what this test covers
             return v + 23;
         }
         t |> equal(res, 33)

@@ -21,11 +21,9 @@ require _inline_unsafe_helper
 def local_unsafe_sum(src : array<int>; blk : block<(v : int) : int>) : int {
     // same-module callee: its own `unsafe { }` wrapper is still present at patch time
     var total = 0
-    unsafe {
-        var p = addr(total)
-        for (v in src) {
-            *p += invoke(blk, v)
-        }
+    var p = unsafe(addr(total))
+    for (v in src) {
+        *p += invoke(blk, v)
     }
     return total
 }

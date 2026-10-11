@@ -39,9 +39,9 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
     case SHADER_TOKENS::SHTOK_float4x4: t = SHVT_FLOAT4X4; break;
     case SHADER_TOKENS::SHTOK_float4x3: t = SHVT_FLOAT4x3; break;
     case SHADER_TOKENS::SHTOK_texture: t = SHVT_TEXTURE; break;
-    case SHADER_TOKENS::SHTOK_buffer: t = SHVT_BUFFER; break;
-    case SHADER_TOKENS::SHTOK_tlas: t = SHVT_TLAS; break;
+    case SHADER_TOKENS::SHTOK_buffer:
     case SHADER_TOKENS::SHTOK_const_buffer: t = SHVT_BUFFER; break;
+    case SHADER_TOKENS::SHTOK_tlas: t = SHVT_TLAS; break;
     default: G_ASSERT(0);
   }
 

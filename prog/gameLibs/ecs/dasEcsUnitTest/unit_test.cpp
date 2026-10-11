@@ -35,6 +35,7 @@
 #include <daScript/misc/platform.h>
 #include <daScript/daScriptModule.h>
 #include <dasModules/dasFsFileAccess.h>
+#include <dasModules/aotEcs.h>
 #include "unitModule.h"
 
 extern bool NEED_DAS_AOT_COMPILE;
@@ -135,6 +136,23 @@ static int count_entities_with_query()
   return count;
 }
 
+static int count_entities_with_int()
+{
+  ecs::ComponentDesc intComp{ECS_HASH("just_int_variable"), ecs::ComponentTypeInfo<int>()};
+  ecs::NamedQueryDesc desc{
+    "count_entities_with_int_test",
+    dag::ConstSpan<ecs::ComponentDesc>(),
+    dag::ConstSpan<ecs::ComponentDesc>(&intComp, 1),
+    dag::ConstSpan<ecs::ComponentDesc>(),
+    dag::ConstSpan<ecs::ComponentDesc>(),
+  };
+  ecs::QueryId qid = g_entity_mgr->createQuery(desc);
+  int count = 0;
+  ecs::perform_query(g_entity_mgr, qid, [&count](const ecs::QueryView &qv) { count += qv.end() - qv.begin(); });
+  g_entity_mgr->destroyQuery(qid);
+  return count;
+}
+
 // an exiting thread frees its query TLS node; the later main thread clear() must then free only live-TLS nodes
 static void test_free_per_thread_query_data()
 {
@@ -157,6 +175,162 @@ static void test_free_per_thread_query_data()
   G_ASSERTF(thread.count == expected, "%d != %d", thread.count, expected);
   count_entities_with_query(); // re-create the main thread node so the final clear() frees it with live TLS
   printf("freePerThreadQueryData test passed (%d entities)\n", expected);
+}
+
+// a query block keeps its descriptor as a generational handle; once the owning script is unloaded the
+// handle must fail with a das error instead of resolving to reused memory
+static void test_stale_query_desc_handle()
+{
+#if DAGOR_DBGLEVEL > 0
+  eastl::string scriptName;
+  das::Context *scriptCtx = nullptr;
+  uint64_t handle = 0;
+  bind_dascript::find_loaded_das_script([&](const char *name, das::Context &ctx, das::smart_ptr<das::Program>) {
+    if (!strstr(name, "findQuery.das"))
+      return false;
+    for (const auto &sidAndData : *ctx.tabAdLookup)
+      if (bind_dascript::is_query_desc_handle(sidAndData.second))
+      {
+        handle = sidAndData.second;
+        break;
+      }
+    scriptName = name;
+    scriptCtx = &ctx;
+    return true;
+  });
+  G_ASSERTF(handle != 0, "no query block handle found in findQuery.das");
+  das::LineInfoArg at;
+  G_VERIFY(scriptCtx->runWithCatch([&]() {
+    const bind_dascript::EsQueryRef live = bind_dascript::resolve_query_desc(handle, scriptCtx, &at);
+    G_ASSERT(live.desc != nullptr && (bool)live.query);
+  }));
+  G_VERIFY(bind_dascript::unload_es_script(scriptName.c_str()));
+  das::Context ctx(4096); // the script's own context died with it
+  const bool failed = !ctx.runWithCatch([&]() { bind_dascript::resolve_query_desc(handle, &ctx, &at); });
+  // the error names the block whose descriptor is gone
+  G_ASSERTF(failed && ctx.getException() && strstr(ctx.getException(), "stale") && strstr(ctx.getException(), "findQuery.das"), "%s",
+    ctx.getException());
+
+  // reload the script: its blocks take the freed slots back (the low half of a handle is the slot), so the
+  // old handle now meets a live descriptor of a later generation and only the generation compare rejects it
+  G_VERIFY(bind_dascript::load_das_script(scriptName.c_str()));
+  uint64_t reused = 0;
+  bind_dascript::find_loaded_das_script([&](const char *name, das::Context &reloadedCtx, das::smart_ptr<das::Program>) {
+    if (strcmp(name, scriptName.c_str()) != 0)
+      return false;
+    for (const auto &sidAndData : *reloadedCtx.tabAdLookup)
+      if (bind_dascript::is_query_desc_handle(sidAndData.second) && uint32_t(sidAndData.second) == uint32_t(handle))
+        reused = sidAndData.second;
+    return true;
+  });
+  G_ASSERTF(reused != 0 && reused != handle, "the reloaded script did not take the freed slot");
+  G_VERIFY(ctx.runWithCatch([&]() { G_ASSERT(bind_dascript::resolve_query_desc(reused, &ctx, &at).desc != nullptr); }));
+  const bool failedOnReuse = !ctx.runWithCatch([&]() { bind_dascript::resolve_query_desc(handle, &ctx, &at); });
+  G_ASSERTF(failedOnReuse && ctx.getException() && strstr(ctx.getException(), "stale"), "%s", ctx.getException());
+  printf("stale query desc handle test passed\n");
+#endif
+}
+
+// the AOT and dry-run tools compile each file in its own module group and drop the group after the
+// file, while a shared module promoted by that compile stays for the next file: its query descriptors
+// must survive the group
+static void test_shared_query_desc_outlives_group()
+{
+#if DAGOR_DBGLEVEL > 0
+  bind_dascript::RAIIDasEnvBound bound;
+  das::TextPrinter tout;
+  das::LineInfoArg at;
+  uint64_t handle = 0;
+  {
+    das::ModuleGroup group;
+    das::CodeOfPolicies policies;
+    policies.gen2_make_syntax = true;
+    das::ProgramPtr program = das::compileDaScript("fixtures/shared_query_user.das",
+      das::make_smart<bind_dascript::DagFileAccess>(bind_dascript::HotReload::DISABLED), tout, group, policies);
+    G_ASSERTF(program && !program->failed(), "fixtures/shared_query_user.das does not compile");
+    das::Module *shared = das::Module::require("shared_query_common");
+    G_ASSERT(shared && shared->promoted);
+    for (const auto &sidAndData : shared->annotationData)
+      if (bind_dascript::is_query_desc_handle(sidAndData.second))
+      {
+        handle = sidAndData.second;
+        break;
+      }
+    G_ASSERTF(handle != 0, "no query block handle found in shared_query_common");
+  }
+  das::Context ctx(4096);
+  G_VERIFY(ctx.runWithCatch([&]() { G_ASSERT(bind_dascript::resolve_query_desc(handle, &ctx, &at).desc != nullptr); }));
+  printf("shared query desc outlives group test passed\n");
+#endif
+}
+
+// the crash this started from: a script that fails to compile after it promoted a shared module
+// must not take that module's query descriptors with it
+static void test_shared_query_desc_survives_failed_load()
+{
+#if DAGOR_DBGLEVEL > 0
+  ignore_log_errors = true; // the broken fixture logerrs its compile errors by design
+  const bool loaded = bind_dascript::load_das_script("fixtures/failed_load_broken.das");
+  ignore_log_errors = false;
+  G_ASSERTF(!loaded, "fixtures/failed_load_broken.das must not compile");
+  das::Module *shared = das::Module::require("failed_load_common");
+  G_ASSERTF(shared && shared->promoted, "failed_load_common must stay promoted after the failed load");
+  uint64_t handle = 0;
+  for (const auto &sidAndData : shared->annotationData)
+    if (bind_dascript::is_query_desc_handle(sidAndData.second))
+    {
+      handle = sidAndData.second;
+      break;
+    }
+  G_ASSERTF(handle != 0, "no query block handle found in failed_load_common");
+  das::Context ctx(4096);
+  das::LineInfoArg at;
+  G_VERIFY(ctx.runWithCatch([&]() { G_ASSERT(bind_dascript::resolve_query_desc(handle, &ctx, &at).desc != nullptr); }));
+
+  // resolving is not enough: the next good script must be able to run that block, which means the
+  // lazy loop had to create its ecs query too
+  G_VERIFY(bind_dascript::load_das_script("fixtures/failed_load_user.das"));
+  const int expected = count_entities_with_int();
+  G_ASSERTF(expected > 0, "the scene has no entity with just_int_variable to count");
+  auto runSharedQuery = [](const char *when) {
+    int got = -1;
+    bind_dascript::find_loaded_das_script([&](const char *name, das::Context &userCtx, das::smart_ptr<das::Program>) {
+      if (!strstr(name, "failed_load_user.das"))
+        return false;
+      das::SimFunction *fn = userCtx.findFunction("use_count_ints");
+      G_ASSERTF_RETURN(fn, true, "use_count_ints not found %s", when);
+      // a query may only run in a locked context, and an ES context borrows the shared stack
+      auto call = [&]() { got = das::cast<int>::to(userCtx.eval(fn, nullptr)); };
+      userCtx.tryRestartAndLock();
+      bool ok;
+      if (!userCtx.ownStack)
+      {
+        das::SharedFramememStackGuard guard(userCtx);
+        ok = userCtx.runWithCatch(call);
+      }
+      else
+        ok = userCtx.runWithCatch(call);
+      userCtx.unlock();
+      G_ASSERTF(ok, "use_count_ints threw %s: %s", when, userCtx.getException() ? userCtx.getException() : "?");
+      return true;
+    });
+    return got;
+  };
+  G_ASSERTF(runSharedQuery("on the first run") == expected, "the promoted module's query did not count %d", expected);
+
+  // the crash report had one broken module fail 101 dependent scripts: a later failed load must not
+  // disturb the module that already works
+  ignore_log_errors = true;
+  G_VERIFY(!bind_dascript::load_das_script("fixtures/failed_load_broken.das"));
+  ignore_log_errors = false;
+  G_ASSERTF(runSharedQuery("after a second failed load") == expected, "a second failed load changed the count from %d", expected);
+
+  // the descriptor belongs to the loader, not to the script that happened to compile the module:
+  // unloading that script must leave the handle alive
+  G_VERIFY(bind_dascript::unload_es_script("fixtures/failed_load_user.das"));
+  G_VERIFY(ctx.runWithCatch([&]() { G_ASSERT(bind_dascript::resolve_query_desc(handle, &ctx, &at).desc != nullptr); }));
+  printf("shared query desc survives failed load test passed (%d entities)\n", expected);
+#endif
 }
 
 int myMain2(int startArgC)
@@ -369,6 +543,9 @@ int myMain2(int startArgC)
     }
   }
   test_free_per_thread_query_data();
+  test_stale_query_desc_handle();
+  test_shared_query_desc_outlives_group();
+  test_shared_query_desc_survives_failed_load();
   int64_t reft = ref_time_ticks();
   g_entity_mgr->clear();
   debug("clear in %dus", get_time_usec(reft));

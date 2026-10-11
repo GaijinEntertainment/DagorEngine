@@ -29,6 +29,11 @@ namespace ecs
 G_STATIC_ASSERT(sizeof(ArchetypesQuery) <= 64);
 static constexpr int MAX_ES_JOBS = threadpool::MAX_WORKER_COUNT;
 
+static thread_local int parallel_job_depth = 0;
+bool is_in_parallel_job() { return parallel_job_depth != 0; }
+ScopedParallelJob::ScopedParallelJob() { ++parallel_job_depth; }
+ScopedParallelJob::~ScopedParallelJob() { --parallel_job_depth; }
+
 static uint64_t computeQueryRequiredBitmask(const ResolvedQueryDesc &resDesc)
 {
   uint64_t bitmask = 0;
@@ -148,7 +153,11 @@ public:
 
   const char *getJobName(bool &) const override { return DAPROFILER_STRING("ESJob"); }
 
-  virtual void doJob() override { perform_fun(parent, parent->starts.data(), workerId); }
+  virtual void doJob() override
+  {
+    ScopedParallelJob pjob;
+    perform_fun(parent, parent->starts.data(), workerId);
+  }
 };
 
 static constexpr int num_jobs_to_wake_up_all = 2; // it is faster to wake up 2 thread workers one-by-one, than wake up all

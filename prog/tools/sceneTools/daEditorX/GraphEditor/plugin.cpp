@@ -8,24 +8,32 @@
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
 #include <libTools/util/strUtil.h>
-#include <libTools/util/undo.h>
 #include <osApiWrappers/dag_direct.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 
 #include <EASTL/algorithm.h>
-#include <EASTL/sort.h>
+#include <EASTL/hash_set.h>
+#include <EASTL/optional.h>
 
 #include <imgui/imgui.h>
 
 #include <graphEditor/graph_data.h>
 #include <graphEditor/graph_subgraph_expand.h>
+#include <graphEditor/graph_subgraph_extract.h>
+
+#include <math.h>
 
 #include "node_library_panel.h"
 #include "command_definitions.h"
+#include "graph_command_text.h"
 #include "graph_compile.h"
+#include "graph_create_subgraph_dialog.h"
+#include "graph_dead_paths.h"
+#include "graph_document.h"
 #include "graph_panel.h"
 #include "graph_shortcuts_panel.h"
+#include "graph_tab.h"
 #include "histogram_panel.h"
 #include "landscape_preview_panel.h"
 #include "landscape_preview_scene.h"
@@ -55,9 +63,16 @@ enum
   CM_SAVE_TEXTURES_BY_SUBSTRING,
   CM_RELOAD_TEXTURES,
   CM_FORCE_REBUILD,
+  CM_TOGGLE_GRAPH_PROPERTIES,
 };
 
 constexpr unsigned RECENT_NODE_LIMIT = 20;
+
+constexpr const char *GENERAL_SUBGRAPH_ROOT_LABEL = "General";
+constexpr float SUBGRAPH_GRID = 16.0f; // ne snaps node drags to this grid (AlignPointToGrid)
+// The design puts a toast's top-left this far right of and below the cursor tip, clear of the arrow.
+constexpr int TOAST_CURSOR_DX = 12;
+constexpr int TOAST_CURSOR_DY = 16;
 
 // Canvas-space cascade for spawns that have no cursor position of their own.
 constexpr unsigned SPAWN_SLOT_COUNT = 8;
@@ -78,13 +93,20 @@ enum
 {
   PID_SAVE_TEXTURES_SUBSTRING = 11100,
   PID_PIN_COMMENT,
+  PID_OPEN_GRAPH_MODE,
+};
+
+enum
+{
+  OPEN_GRAPH_EXISTING = 0,
+  OPEN_GRAPH_NEW = 1,
 };
 
 static String last_save_textures_substring;
 
 bool prompt_texture_substring(String &out_substring)
 {
-  PropPanel::DialogWindow *dlg = DAGORED2->createDialog(hdpi::_pxScaled(360), hdpi::_pxScaled(130), "Save textures by substring");
+  PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Save textures by substring");
 
   PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
   panel.createEditBox(PID_SAVE_TEXTURES_SUBSTRING, "Substring:", out_substring);
@@ -139,13 +161,14 @@ public:
   {
     bool ok = false;
     eastl::string compileMsg;
-    doc.mutateGraphData([&](GraphData &gd) {
+    doc.mutateWithoutInvalidating([&](GraphData &gd) {
       // Compile into local BLKs first so a failure (e.g. iteration-limit hit)
       // leaves gd.mainGraphBlk / shaderListBlk untouched -- the service relies
       // on this to keep the previous compile's output usable on failure.
       DataBlock newMain;
       DataBlock newShader;
       eastl::vector<eastl::vector<eastl::string>> pendingNamesByIdx;
+      GraphResolutions resolutions;
 
       // Inline-expand every subgraph instance into a local flat copy. The user-facing `gd`
       // keeps the instance nodes for display / editing; compile sees the spliced tree only.
@@ -155,7 +178,7 @@ public:
       bool hasSubgraphs = false;
       for (const GraphData::Node &n : gd.nodes)
       {
-        if (n.plugin == "subgraph")
+        if (is_subgraph_instance(n))
         {
           hasSubgraphs = true;
           break;
@@ -163,35 +186,164 @@ public:
       }
       const GraphData *compileGd = &gd;
       GraphData flat;
+      eastl::hash_map<uint64_t, uint64_t> instanceOutputSource;
+      GraphDocument::CompileResults failure;
+      failure.failed = true;
+      bool expanded = true;
       if (hasSubgraphs)
       {
         flat = gd;
-        expand_subgraphs(flat, plugin.getBaseNodesBlk(), plugin.getSubgraphsDir());
+        SubgraphExpandError expandError;
+        expanded = expand_subgraphs(flat, plugin.getBaseNodesBlk(), plugin.getSubgraphsDir(), &instanceOutputSource, &expandError);
+        if (!expanded)
+        {
+          compileMsg = eastl::string("Subgraph recompilation failed: ") + expandError.message;
+          failure.failedSubgraphs = eastl::move(expandError.chain);
+        }
         compileGd = &flat;
       }
 
-      ok = compile_graph_to_blks(*compileGd, plugin.getBaseNodesBlk(), plugin.getShaderIncludesDir(), newMain, newShader,
-        pendingNamesByIdx, &compileMsg);
+      DeadPaths flatDead;
+      // constraint: no compile after a failed splice, or it succeeds without the instance outputs and replaces the last good textures
+      ok = expanded && compile_graph_to_blks(*compileGd, plugin.getBaseNodesBlk(), plugin.getShaderIncludesDir(), newMain, newShader,
+                         pendingNamesByIdx, &compileMsg, hasSubgraphs ? &resolutions : nullptr, hasSubgraphs ? &flatDead : nullptr);
       if (ok)
       {
         gd.mainGraphBlk.setFrom(&newMain);
         gd.shaderListBlk.setFrom(&newShader);
 
-        // pendingNamesByIdx is parallel to compileGd->nodes (which may be the flat copy).
-        // Keyed by id so the main-thread drain (applyPendingPinCustomTextureNames) can match
-        // entries back to user-facing nodes -- spliced child nodes have ids that don't exist
-        // in gd.nodes, and their entries are silently dropped by findNodeById there.
-        eastl::vector<eastl::pair<int, eastl::vector<eastl::string>>> stashed;
-        stashed.reserve(pendingNamesByIdx.size());
+        // Keyed by id: spliced subgraph children have ids that do not exist in gd.nodes.
+        GraphDocument::CompileResults results;
+        results.pinCustomTextureNames.reserve(pendingNamesByIdx.size());
         for (int i = 0; i < static_cast<int>(pendingNamesByIdx.size()) && i < static_cast<int>(compileGd->nodes.size()); ++i)
         {
           if (pendingNamesByIdx[i].empty())
           {
             continue;
           }
-          stashed.emplace_back(compileGd->nodes[i].id, eastl::move(pendingNamesByIdx[i]));
+          results.pinCustomTextureNames.emplace_back(compileGd->nodes[i].id, eastl::move(pendingNamesByIdx[i]));
         }
-        doc.setPendingPinCustomTextureNames(eastl::move(stashed));
+
+        // Only a subgraph expansion gives compile a chain the canvas cannot see.
+        if (hasSubgraphs)
+        {
+          eastl::hash_map<int, int> flatIdToIdx;
+          build_node_index(*compileGd, flatIdToIdx);
+          eastl::hash_map<int, int> gdIdToIdx;
+          build_node_index(gd, gdIdToIdx);
+
+          // Instance outputs the parent reads. An output nobody consumes shows nowhere, so it gets
+          // no vote below.
+          // constraint: live edges only, because that is what the canvas propagates along. Counting
+          // a muted one lets it veto a seed the live wire beside it needed.
+          DeadPaths gdDead;
+          compute_dead_paths(gd, gdIdToIdx, gdDead);
+          eastl::hash_set<uint64_t> consumedOutPins;
+          auto noteConsumed = [&](int node_index, int pin_idx) {
+            const GraphData::Node &n = gd.nodes[node_index];
+            if (is_subgraph_instance(n) && n.pins[pin_idx].role == PinRole::Out)
+            {
+              consumedOutPins.insert(make_pin_id(n.id, pin_idx));
+            }
+          };
+          for_each_live_edge(gd, gdDead, gdIdToIdx, [&](const LiveEdge &e) {
+            noteConsumed(e.nodeA, e.pinA);
+            noteConsumed(e.nodeB, e.pinB);
+          });
+
+          // A consumed output with no producer is a wire the compile dropped. The canvas still draws
+          // it, so a seed here would push a size down a wire the emitted BLK does not have.
+          eastl::hash_set<int> vetoed;
+          for (const uint64_t pin : consumedOutPins)
+          {
+            if (instanceOutputSource.find(pin) == instanceOutputSource.end())
+            {
+              vetoed.insert(node_id_from_pin_id(pin));
+            }
+          }
+
+          // Instances only; the canvas propagates the rest from them.
+          // constraint: the seed is one result for the whole node, so it may go out only when every
+          // output the parent reads agrees. A conflicting instance keeps the canvas's own guess,
+          // which is approximate but never claims one output's size for another's.
+          struct InstanceSeed
+          {
+            const NodeResolution *consumed = nullptr;
+            const NodeResolution *lowest = nullptr; // an output nobody reads still gives a footer
+            int lowestPin = 0;
+            bool conflict = false;
+          };
+          eastl::hash_map<int, InstanceSeed> byInstance;
+          for (const auto &entry : instanceOutputSource)
+          {
+            uint64_t producer = entry.second;
+            for (size_t hop = 0; hop < instanceOutputSource.size(); ++hop)
+            {
+              const auto next = instanceOutputSource.find(producer);
+              if (next == instanceOutputSource.end())
+              {
+                break;
+              }
+              producer = next->second;
+            }
+            const auto it = flatIdToIdx.find(node_id_from_pin_id(producer));
+            if (it == flatIdToIdx.end() || flatDead.isDeadNode(it->second))
+            {
+              // The producer either spliced out with nothing behind it or died on a mute -- the
+              // expander reads only the boundary edge's own mute, so one further up the body leaves
+              // a producer that still resolves. The compile dropped this wire either way, so it
+              // takes the same veto as a pin with no key at all.
+              if (consumedOutPins.count(entry.first) != 0)
+              {
+                vetoed.insert(node_id_from_pin_id(entry.first));
+              }
+              continue;
+            }
+            // A producer in the flat graph keeps its wire, so this stays a skip. It carries no
+            // texture (a scalar boundary), and a scalar pin never feeds a main input.
+            const NodeResolution *const found = resolutions.byIndex(it->second);
+            if (!found)
+            {
+              continue;
+            }
+
+            const NodeResolution &res = *found;
+            InstanceSeed &seed = byInstance[node_id_from_pin_id(entry.first)];
+            const int pin = pin_index_from_pin_id(entry.first);
+            if (!seed.lowest || pin < seed.lowestPin)
+            {
+              seed.lowest = &res;
+              seed.lowestPin = pin;
+            }
+            if (consumedOutPins.count(entry.first) == 0)
+            {
+              continue;
+            }
+            if (!seed.consumed)
+            {
+              seed.consumed = &res;
+            }
+            else if (!same_texture_result(*seed.consumed, res))
+            {
+              seed.conflict = true;
+            }
+          }
+
+          results.nodeResolutions.reserve(byInstance.size());
+          for (const auto &kv : byInstance)
+          {
+            const InstanceSeed &seed = kv.second;
+            if (!seed.conflict && vetoed.count(kv.first) == 0)
+            {
+              results.nodeResolutions.emplace_back(kv.first, seed.consumed ? *seed.consumed : *seed.lowest);
+            }
+          }
+        }
+        doc.setPendingCompileResults(eastl::move(results));
+      }
+      else
+      {
+        doc.setPendingCompileResults(eastl::move(failure));
       }
     });
 
@@ -224,16 +376,153 @@ private:
   GraphEditorPlg &plugin;
   GraphDocument &doc;
 };
+
+// The compile worker reads baseNodesBlk with no lock; clearing the compiler drains it.
+class CompilerDrainScope
+{
+public:
+  explicit CompilerDrainScope(GraphEditorPlg &p) : plugin(p)
+  {
+    if (depth++ > 0)
+    {
+      return;
+    }
+    if (IGraphTexGenService *svc = plugin.getTexGenService())
+    {
+      svc->setGraphCompiler(nullptr);
+    }
+  }
+
+  ~CompilerDrainScope()
+  {
+    if (--depth > 0)
+    {
+      return;
+    }
+    // An empty strip stays empty: closeAllTabs already cleared the service, and texGenTab() would build a tab.
+    if (IGraphTexGenService *svc = plugin.getTexGenService(); svc && plugin.getGraphPanel().hasTabs())
+    {
+      svc->setGraphCompiler(plugin.getGraphPanel().texGenTab().getCompiler());
+      // The tab's graph can hold instances of what changed.
+      svc->markGraphDirty();
+    }
+  }
+
+private:
+  // Nested scopes act at the outermost only: an inner rebind lets a compile start that the outer one repeats.
+  static inline int depth = 0;
+  GraphEditorPlg &plugin;
+};
+
+// One *.subgraph.blk into its descriptor, with its problems logged.
+bool synthesize_subgraph_file(const char *path, const char *shader_includes_dir, const char *location_label, DataBlock &out_node_blk)
+{
+  const eastl::string stem = graph_file_stem(path);
+  if (stem.empty())
+  {
+    return false;
+  }
+
+  GraphData childGd;
+  // No registry: the boundaries need only the file, and at startup the registry is half built.
+  if (!load_graph_data_blk(childGd, path, shader_includes_dir, nullptr))
+  {
+    DAEDITOR3.conError("GraphEditor: failed to parse subgraph %s", path);
+    return false;
+  }
+
+  eastl::vector<SubgraphDescriptorMessage> messages;
+  const bool ok = synthesize_subgraph_descriptor(childGd, stem.c_str(), path, location_label, out_node_blk, messages);
+  for (const SubgraphDescriptorMessage &m : messages)
+  {
+    if (m.isError)
+    {
+      DAEDITOR3.conError("GraphEditor: subgraph %s: %s", path, m.text.c_str());
+    }
+    else
+    {
+      DAEDITOR3.conWarning("GraphEditor: subgraph %s: %s", path, m.text.c_str());
+    }
+  }
+  return ok;
+}
+
+// <graph>_subgraph_<n> with the first n whose file is free: a start the user can type over.
+String propose_subgraph_name(const char *source_path, const char *root_dir)
+{
+  const eastl::string stem = graph_file_stem(source_path);
+  const String prefix = stem.empty() ? String("subgraph") : String(0, "%s_subgraph", sanitize_subgraph_name(stem.c_str()).str());
+  for (int n = 1;; ++n)
+  {
+    String name(0, "%s_%d", prefix.str(), n);
+    if (!dd_file_exist(String(0, "%s%s.subgraph.blk", root_dir, name.str())))
+    {
+      return name;
+    }
+  }
+}
+
+void show_toast_at_cursor(PropPanel::ToastType type, const char *text)
+{
+  if (!ImGui::IsMousePosValid())
+  {
+    DAEDITOR3.showToast(type, text);
+    return;
+  }
+  const ImVec2 mouse = ImGui::GetMousePos();
+  const IPoint2 position(static_cast<int>(mouse.x) + hdpi::_pxS(TOAST_CURSOR_DX),
+    static_cast<int>(mouse.y) + hdpi::_pxS(TOAST_CURSOR_DY));
+  DAEDITOR3.showToast(type, text, &position, Point2(0.0f, 0.0f));
+}
+
+void show_saved_toast(const char *path)
+{
+  show_toast_at_cursor(PropPanel::ToastType::Success, String(0, "%s saved successfully", graph_file_stem(path).c_str()).str());
+}
+
+int find_pin_by_name(const GraphData::Node &node, const char *name, bool output)
+{
+  for (int i = 0; i < static_cast<int>(node.pins.size()); ++i)
+  {
+    if ((node.pins[i].role == PinRole::Out) == output && node.pins[i].name == name)
+    {
+      return i;
+    }
+  }
+  return -1;
+}
 } // namespace
 
-GraphEditorPlg::GraphEditorPlg() : document(*this) {}
+eastl::unique_ptr<IGraphCompiler> GraphEditorPlg::createGraphCompiler(GraphDocument &doc)
+{
+  return eastl::make_unique<GraphCompilerImpl>(*this, doc);
+}
+
+GraphDocument &GraphEditorPlg::getActiveDocument() { return graphPanel->activeDocument(); }
+
+void GraphEditorPlg::beforeActiveTabChanges()
+{
+  if (propertiesPanel)
+  {
+    propertiesPanel->commitPendingEdit();
+  }
+}
+
+void GraphEditorPlg::beforeTabCloses(const GraphDocument &closing)
+{
+  if (propertiesPanel)
+  {
+    propertiesPanel->detachFromDocument(closing);
+  }
+}
+
+GraphEditorPlg::GraphEditorPlg() : graphPanel(eastl::make_unique<GraphPanel>(*this)) {}
 
 GraphEditorPlg::~GraphEditorPlg()
 {
-  document.setView(nullptr);
-  // The service and the undo stack both outlive the plugin and hold pointers into it: the service
-  // the graph plus the compiler adapter, the undo entries a GraphDocument&. shutdownTexGen goes
-  // first because setGraphData(nullptr) frees the pipeline without stopping the worker.
+  // The service outlives the plugin and holds the graph plus the compiler adapter. shutdownTexGen
+  // goes first because setGraphData(nullptr) frees the pipeline without stopping the worker. The
+  // undo stack outlives it too, and ~GraphPanel drops the entries that point into the graph.
   if (IEditorService *svc = IDaEditor3Engine::get().findService("texgen"))
   {
     if (IGraphTexGenService *texgen = svc->queryInterface<IGraphTexGenService>())
@@ -243,7 +532,10 @@ GraphEditorPlg::~GraphEditorPlg()
       texgen->setGraphCompiler(nullptr);
     }
   }
-  dropMyUndoOps();
+
+  // end() takes this back on a plugin switch, but it can refuse one; the call is a no-op when it did
+  // not, and leaving a handler behind outlives the plugin.
+  IEditorCoreEngine::get()->getWndManager()->unregisterWindowHandler(this);
 }
 
 void GraphEditorPlg::registered() {}
@@ -302,6 +594,7 @@ bool GraphEditorPlg::begin(int toolbar_id, unsigned menu_id)
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_LANDSCAPE_PREVIEW, SHOW_LANDSCAPE_PREVIEW, "Show landscape preview");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_NODE_LIBRARY, SHOW_NODE_LIBRARY, "Show node library");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_PROPERTIES, SHOW_PROPERTIES, "Show properties");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_TOGGLE_GRAPH_PROPERTIES, TOGGLE_GRAPH_PROPERTIES, "Toggle graph properties");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_SHORTCUTS, SHOW_SHORTCUTS, "Show shortcuts");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_NEW_GRAPH, NEW_GRAPH, "New graph");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_LOAD_GRAPH_BLK, LOAD_GRAPH_BLK, "Load graph...");
@@ -353,12 +646,6 @@ bool GraphEditorPlg::begin(int toolbar_id, unsigned menu_id)
 
   commandSystem->createToolbarButton(*tool, CM_LOAD_GRAPH_BLK, LOAD_GRAPH_BLK, "Load graph...");
   tool->setButtonPictures(CM_LOAD_GRAPH_BLK, "obj_lib");
-
-  commandSystem->createToolbarButton(*tool, CM_SAVE_GRAPH_BLK, SAVE_GRAPH_BLK, "Save graph...");
-  tool->setButtonPictures(CM_SAVE_GRAPH_BLK, "save_mission");
-
-  commandSystem->createToolbarButton(*tool, CM_SAVE_AS_SUBGRAPH_BLK, SAVE_AS_SUBGRAPH_BLK, "Save as subgraph...");
-  tool->setButtonPictures(CM_SAVE_AS_SUBGRAPH_BLK, "save_mission");
 
   commandSystem->createToolbarButton(*tool, CM_SAVE_TEXTURES, SAVE_TEXTURES, "Save textures");
   tool->setButtonPictures(CM_SAVE_TEXTURES, "save_mission");
@@ -421,14 +708,42 @@ bool GraphEditorPlg::begin(int toolbar_id, unsigned menu_id)
 
 bool GraphEditorPlg::end()
 {
+  // A queued edit records its undo entry under this tab, and can open a modal about this graph, so
+  // it is resolved here rather than over the plugin they switched to. actObjects drains the queue
+  // on the next tick, so a second attempt goes through.
+  if (graphPanel->hasPendingActions())
+  {
+    return false;
+  }
+  // A destroyed control drops its pending change, so a value typed into the Properties panel lands before the removal.
+  if (propertiesPanel)
+    propertiesPanel->commitPendingEdit();
+
   IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
+
+  // The manager's reset() at exit asserts on a panel left behind the handler. Removal clears the flag that begin() reopens by.
+  auto removePanel = [manager](void *panel, bool &visible) {
+    const bool wasVisible = visible;
+    manager->removeWindow(panel);
+    visible = wasVisible;
+  };
+  removePanel(graphPanel.get(), isGraphVisible);
+  removePanel(previewPanel.get(), isTexturePreviewVisible);
+  removePanel(histogramPanel.get(), isHistogramVisible);
+  removePanel(landscapePanel.get(), isLandscapeVisible);
+  removePanel(nodeLibraryPanel.get(), isNodeLibraryVisible);
+  removePanel(propertiesPanel.get(), isPropertiesVisible);
+  removePanel(shortcutsPanel.get(), isShortcutsVisible);
+
   manager->unregisterWindowHandler(this);
   return true;
 }
 
 void GraphEditorPlg::onNewProject() {}
 
-void GraphEditorPlg::clearObjects() {}
+// Graphs live outside the project file but inside its tree, so they go when it does. Without
+// this a tab outlived its project and went on pointing at a file the editor had left.
+void GraphEditorPlg::clearObjects() { graphPanel->closeAllTabs(); }
 
 void GraphEditorPlg::saveObjects([[maybe_unused]] DataBlock &blk, [[maybe_unused]] DataBlock &local_data,
   [[maybe_unused]] const char *base_path)
@@ -451,32 +766,9 @@ void GraphEditorPlg::loadObjects([[maybe_unused]] const DataBlock &blk, [[maybe_
   {
     texGenService->initTexGen(resourcePaths.defaultShadersPath, resourcePaths.defaultTexgenPath);
     texGenService->setGraphData(nullptr);
-
-    if (!graphCompiler)
-    {
-      graphCompiler.reset(new GraphCompilerImpl(*this, document));
-    }
-    texGenService->setGraphCompiler(graphCompiler.get());
+    // Binds the first tab, with its compiler: the graph is empty, but it is the one on screen.
+    graphPanel->rebindTexGen();
   }
-}
-
-void GraphEditorPlg::newEmptyGraph()
-{
-  // Resets graphData to clear_graph_data's factory state (no nodes, no edges, default
-  // graph-level texture knobs, empty sourcePath). The mutate-lock keeps the texgen worker
-  // from observing a half-cleared graph mid-clear. notifyGraphSourceChanged pushes the
-  // reset through to the service and the canvas; graphPanel->onGraphDataChanged rebuilds
-  // the canvas widget tree. Same shape as the post-load tail in promptAndLoadGraphBlk.
-  // No dirty-tracking confirmation here -- the user explicitly asked to skip it for now.
-  document.mutateGraphData([](GraphData &gd) { clear_graph_data(gd); });
-  notifyGraphSourceChanged();
-  if (graphPanel)
-  {
-    graphPanel->onGraphDataChanged();
-  }
-  // The new graph reuses node ids from 0, so our existing undo entries would alias different
-  // nodes. Drop only THIS plugin's ops; other plugins keep their history.
-  dropMyUndoOps();
 }
 
 void GraphEditorPlg::promptAndLoadGraphBlk()
@@ -488,72 +780,123 @@ void GraphEditorPlg::promptAndLoadGraphBlk()
     return;
   }
 
-  bool ok = false;
-  document.mutateGraphData(
-    [&](GraphData &gd) { ok = load_graph_data_blk(gd, picked.str(), resourcePaths.shaderIncludesDir, &getBaseNodesBlk()); });
-  if (!ok)
+  bool isSubgraph = false;
+  graph_file_stem(picked.str(), &isSubgraph);
+  if (isSubgraph)
   {
+    // A subgraph is edited only in a floating window, over a graph that uses it.
+    const char *const openKey = command_hint(CANVAS_OPEN_SUBGRAPH);
+    wingw::message_box(wingw::MBS_OK | wingw::MBS_INFO, "Load graph",
+      "%s is a subgraph: it opens in a floating window over a graph that holds an instance of it. Only a subgraph in %s "
+      "can have instances.\n\n"
+      "Open it from that instance: %s%sits context menu or its header icon.",
+      dd_get_fname(picked.str()), resourcePaths.subgraphsDir.str(), openKey, *openKey ? ", " : "");
     return;
   }
-  notifyGraphSourceChanged();
-  if (graphPanel)
+
+  if (!graphPanel->openGraphFile(picked.str()))
   {
-    graphPanel->onGraphDataChanged();
+    DAEDITOR3.conError("GraphEditor: failed to load graph BLK %s", picked.str());
   }
-  // Loaded graph reuses node ids from 0; drop this plugin's stale undo entries so a later Ctrl+Z
-  // cannot alias an unrelated node in the new graph.
-  dropMyUndoOps();
 }
 
 void GraphEditorPlg::promptAndSaveGraphBlk()
 {
-  // If we have a previously-loaded source path, pass it as the dialog seed so the user
-  // gets the same filename pre-populated; otherwise fall back to the mainGraphs dir.
-  const eastl::string &curPath = document.getGraphData().sourcePath;
-  String initPath = !curPath.empty() ? String(curPath.c_str()) : resourcePaths.mainGraphsDir;
-  String picked = wingw::file_save_dlg(nullptr, "Save graph BLK", "Graph BLK (*.blk)|*.blk|All files (*.*)|*.*", "blk", initPath);
-  if (!picked.length())
+  GraphTab &surface = graphPanel->activeSurface();
+  // A window holds only a subgraph, so it saves only as one.
+  if (surface.getHostWindow())
   {
-    return;
-  }
-
-  if (save_graph_data_blk(document.getGraphData(), picked.str()))
-  {
-    document.mutateGraphData([&](GraphData &gd) { gd.sourcePath = picked.str(); });
+    saveAsSubgraphBlk(surface);
   }
   else
   {
-    DAEDITOR3.conError("GraphEditor: failed to save graph BLK to %s", picked.str());
+    saveGraphAs(surface);
   }
 }
 
-void GraphEditorPlg::promptAndSaveAsSubgraphBlk()
+bool GraphEditorPlg::writeGraphTo(GraphTab &tab, const char *path)
 {
-  // Validate the current graph against the subgraph schema FIRST. Reject the save (no
-  // file written) when any check fails: NO_BOUNDARIES, EMPTY_INTERFACE_NAME, or
-  // DUPLICATE_NAME. The user gets one consolidated message box listing every problem,
-  // not one per error -- chasing them down individually with a sequence of prompts is
-  // worse UX than a flat list.
-  eastl::vector<SubgraphSchemaError> errors;
-  if (!validate_subgraph_schema(document.getGraphData(), errors))
+  GraphDocument &doc = tab.getDocument();
+  bool isSubgraph = false;
+  const eastl::string stem = graph_file_stem(path, &isSubgraph);
+  // The tab's compile reads instance bodies from the subgraph files, so it must not run while one is written.
+  eastl::optional<CompilerDrainScope> drain;
+  if (isSubgraph)
   {
-    String text("Cannot save as subgraph -- schema invalid:");
+    drain.emplace(*this);
+  }
+  if (!save_graph_data_blk(doc.getGraphData(), path))
+  {
+    DAEDITOR3.conError("GraphEditor: failed to save graph BLK to %s", path);
+    return false;
+  }
+  doc.mutateWithoutInvalidating([&](GraphData &gd) { gd.sourcePath = path; });
+  tab.markSaved();
+  if (SubgraphWindow *window = tab.getHostWindow())
+  {
+    window->setStem(stem.c_str()); // a Save as moves the window to the new file
+  }
+  if (isSubgraph)
+  {
+    // Every save ends here, and a subgraph file is also a palette entry.
+    registerSubgraphFile(path, /*replace_existing=*/true);
+  }
+  return true;
+}
+
+bool GraphEditorPlg::saveGraphAs(GraphTab &tab)
+{
+  // Seeded with the graph's own file so the user gets that name back; one with no file yet starts
+  // in the mainGraphs dir.
+  const eastl::string &curPath = tab.getDocument().getGraphData().sourcePath;
+  String initPath = !curPath.empty() ? String(curPath.c_str()) : resourcePaths.mainGraphsDir;
+  const String picked =
+    wingw::file_save_dlg(nullptr, "Save graph BLK", "Graph BLK (*.blk)|*.blk|All files (*.*)|*.*", "blk", initPath);
+  if (!picked.length())
+  {
+    return false;
+  }
+  bool isSubgraph = false;
+  graph_file_stem(picked.str(), &isSubgraph);
+  // A subgraph is edited only in a floating window, never in a graph tab.
+  if (isSubgraph && !tab.getHostWindow())
+  {
+    wingw::message_box(wingw::MBS_OK | wingw::MBS_INFO, "Save graph",
+      "%s is a subgraph name, and a graph tab does not hold a subgraph.\n\nSave the graph under a name without .subgraph.",
+      dd_get_fname(picked.str()));
+    return false;
+  }
+  return writeGraphTo(tab, picked.str());
+}
+
+bool GraphEditorPlg::saveGraph(GraphTab &tab)
+{
+  const eastl::string &curPath = tab.getDocument().getGraphData().sourcePath;
+  // No file to write back to, so this raises the same prompt the Save command does.
+  return !curPath.empty() ? writeGraphTo(tab, curPath.c_str()) : saveGraphAs(tab);
+}
+
+// All the schema errors in one message box, not a prompt for each.
+bool GraphEditorPlg::confirmSubgraphSchema(GraphTab &tab, const char *title)
+{
+  const GraphData &gd = tab.getDocument().getGraphData();
+  eastl::vector<SubgraphSchemaError> errors;
+  if (!validate_subgraph_schema(gd, errors))
+  {
+    String text("Cannot save the subgraph -- schema invalid:");
     for (const SubgraphSchemaError &err : errors)
     {
       eastl::string line = format_subgraph_schema_error(err);
       text.aprintf(0, "\n  - %s", line.c_str());
       DAEDITOR3.conError("GraphEditor: subgraph schema -- %s", line.c_str());
     }
-    wingw::message_box(wingw::MBS_OK | wingw::MBS_EXCL, "Save as subgraph", text);
-    return;
+    wingw::message_box(wingw::MBS_OK | wingw::MBS_EXCL, title, text);
+    return false;
   }
 
-  // Soft warning: input boundaries whose data doesn't propagate to any output. The graph
-  // is still saveable, but the parent will see input pins that have no effect on the
-  // subgraph's outputs -- usually a forgotten wire inside the child. Show the names (or
-  // type as fallback for any pin we couldn't name) and let the user confirm.
+  // Legal, but usually a wire forgotten inside the subgraph, so the user confirms.
   eastl::vector<DeadInputBoundary> dead;
-  find_dead_input_boundaries(document.getGraphData(), dead);
+  find_dead_input_boundaries(gd, dead);
   if (!dead.empty())
   {
     String warning("The following input pins do not propagate to any output:");
@@ -564,21 +907,54 @@ void GraphEditorPlg::promptAndSaveAsSubgraphBlk()
       DAEDITOR3.conWarning("GraphEditor: subgraph input '%s' (node id=%d) does not reach any output", label, d.nodeId);
     }
     warning.aprintf(0, "\n\nSave subgraph anyway?");
-    const int ret = wingw::message_box(wingw::MBS_YESNO | wingw::MBS_EXCL, "Save as subgraph", warning);
+    const int ret = wingw::message_box(wingw::MBS_YESNO | wingw::MBS_EXCL, title, warning);
     if (ret != wingw::MB_ID_YES)
     {
-      return;
+      return false;
     }
   }
+  return true;
+}
 
+bool GraphEditorPlg::saveSubgraph(GraphTab &tab)
+{
+  const eastl::string path = tab.getDocument().getGraphData().sourcePath;
+  if (path.empty())
+  {
+    return saveAsSubgraphBlk(tab);
+  }
+  if (!confirmSubgraphSchema(tab, "Save subgraph") || !writeGraphTo(tab, path.c_str()))
+  {
+    return false;
+  }
+  show_saved_toast(path.c_str());
+  return true;
+}
+
+bool GraphEditorPlg::saveAsSubgraphBlk(GraphTab &tab)
+{
+  // A subgraph is edited only in a floating window, never in a graph tab.
+  if (!tab.getHostWindow())
+  {
+    wingw::message_box(wingw::MBS_OK | wingw::MBS_INFO, "Save as subgraph",
+      "A graph tab does not hold a subgraph: a subgraph is edited only in a floating window.\n\n"
+      "To make one from this graph, select its nodes and create a subgraph from the selection.");
+    return false;
+  }
+  if (!confirmSubgraphSchema(tab, "Save as subgraph"))
+  {
+    return false;
+  }
+
+  GraphDocument &doc = tab.getDocument();
   const String &subgraphsDir = resourcePaths.subgraphsDir;
   // Seed the dialog with the previous source path only if it already lives under the
   // subgraphs convention; otherwise drop to the subgraphsDir so the user doesn't end up
   // saving a subgraph back into mainGraphs/ by accident.
   String initPath = subgraphsDir;
-  if (!document.getGraphData().sourcePath.empty())
+  if (!doc.getGraphData().sourcePath.empty())
   {
-    const String existing(document.getGraphData().sourcePath.c_str());
+    const String existing(doc.getGraphData().sourcePath.c_str());
     if (existing.suffix(".subgraph.blk"))
     {
       initPath = existing;
@@ -588,7 +964,7 @@ void GraphEditorPlg::promptAndSaveAsSubgraphBlk()
     "Subgraph BLK (*.subgraph.blk)|*.subgraph.blk|All files (*.*)|*.*", "blk", initPath);
   if (!picked.length())
   {
-    return;
+    return false;
   }
 
   String finalPath = picked;
@@ -604,44 +980,28 @@ void GraphEditorPlg::promptAndSaveAsSubgraphBlk()
     }
   }
 
-  if (!save_graph_data_blk(document.getGraphData(), finalPath.str()))
+  // The library and the compile read subgraphs only from the subgraphs folder.
+  if (!subgraphRootOf(finalPath.str()))
   {
-    DAEDITOR3.conError("GraphEditor: failed to save subgraph BLK to %s", finalPath.str());
-    return;
+    wingw::message_box(wingw::MBS_OK | wingw::MBS_INFO, "Save as subgraph",
+      "%s is outside the subgraphs folder, so no graph could use it.\n\nSave it into %s", finalPath.str(), subgraphsDir.str());
+    return false;
   }
 
-  document.mutateGraphData([&](GraphData &gd) { gd.sourcePath = finalPath.str(); });
+  if (!writeGraphTo(tab, finalPath.str()))
+  {
+    return false;
+  }
   DAEDITOR3.conNote("GraphEditor: saved subgraph to %s", finalPath.str());
-
-  // Make the freshly-saved file appear in the Subgraphs palette without a restart.
-  // reloadBaseNodes re-runs the lazy loader (re-scanning subgraphsDir) and rebuilds the
-  // tree; the next time the user opens a different graph they can drop this subgraph in.
-  reloadBaseNodes();
+  show_saved_toast(finalPath.str());
+  return true;
 }
 
-void GraphEditorPlg::selectAll()
-{
-  if (graphPanel)
-  {
-    graphPanel->requestSelectAll();
-  }
-}
+void GraphEditorPlg::selectAll() { graphPanel->requestSelectAll(); }
 
-void GraphEditorPlg::deselectAll()
-{
-  if (graphPanel)
-  {
-    graphPanel->requestDeselectAll();
-  }
-}
+void GraphEditorPlg::deselectAll() { graphPanel->requestDeselectAll(); }
 
-void GraphEditorPlg::invertSelection()
-{
-  if (graphPanel)
-  {
-    graphPanel->requestInvertSelection();
-  }
-}
+void GraphEditorPlg::invertSelection() { graphPanel->requestInvertSelection(); }
 
 // Texture generation runs on a worker thread inside the service. The poll here is cheap
 // (no D3D, no generation steps) and just feeds the worker file-change notifications and
@@ -659,12 +1019,9 @@ void GraphEditorPlg::actObjects(float dt)
     }
   }
 
-  document.applyPendingPinCustomTextureNames();
+  graphPanel->applyPendingCompileResults();
 
-  if (graphPanel)
-  {
-    graphPanel->actObjects(dt);
-  }
+  graphPanel->actObjects(dt);
 }
 
 void GraphEditorPlg::beforeRenderObjects([[maybe_unused]] IGenViewportWnd *vp) {}
@@ -687,16 +1044,15 @@ void GraphEditorPlg::renderTransObjects() {}
 
 void GraphEditorPlg::updateImgui()
 {
-  if (graphPanel)
-  {
-    PropPanel::PanelWindowPropertyControl *panelWindow = graphPanel->getPanelWindow();
+  graphPanel->stampUndoOwner();
 
+  if (PropPanel::PanelWindowPropertyControl *panelWindow = graphPanel->getPanelWindow())
+  {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*panelWindow, &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*panelWindow, &open); window.canSubmitContents())
     {
       graphPanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -708,11 +1064,10 @@ void GraphEditorPlg::updateImgui()
   if (previewPanel)
   {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*previewPanel->getPanelWindow(), &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*previewPanel->getPanelWindow(), &open); window.canSubmitContents())
     {
       previewPanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -724,11 +1079,10 @@ void GraphEditorPlg::updateImgui()
   if (histogramPanel)
   {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*histogramPanel->getPanelWindow(), &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*histogramPanel->getPanelWindow(), &open); window.canSubmitContents())
     {
       histogramPanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -740,11 +1094,10 @@ void GraphEditorPlg::updateImgui()
   if (landscapePanel)
   {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*landscapePanel->getPanelWindow(), &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*landscapePanel->getPanelWindow(), &open); window.canSubmitContents())
     {
       landscapePanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -756,11 +1109,10 @@ void GraphEditorPlg::updateImgui()
   if (nodeLibraryPanel)
   {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*nodeLibraryPanel->getPanelWindow(), &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*nodeLibraryPanel->getPanelWindow(), &open); window.canSubmitContents())
     {
       nodeLibraryPanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -775,11 +1127,10 @@ void GraphEditorPlg::updateImgui()
   if (propertiesPanel)
   {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*propertiesPanel->getPanelWindow(), &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*propertiesPanel->getPanelWindow(), &open); window.canSubmitContents())
     {
       propertiesPanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -791,11 +1142,10 @@ void GraphEditorPlg::updateImgui()
   if (shortcutsPanel)
   {
     bool open = true;
-    if (DAEDITOR3.imguiBegin(*shortcutsPanel->getPanelWindow(), &open))
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*shortcutsPanel->getPanelWindow(), &open); window.canSubmitContents())
     {
       shortcutsPanel->updateImgui();
     }
-    DAEDITOR3.imguiEnd();
 
     if (!open)
     {
@@ -805,7 +1155,7 @@ void GraphEditorPlg::updateImgui()
   }
 
   // After the panels: it reads the canvas drop target's verdict from this same frame.
-  dragOverlay.draw(*this, graphPanel.get());
+  dragOverlay.draw(*this, graphPanel->isBaseNodeDropTargetHot());
 }
 
 void *GraphEditorPlg::queryInterfacePtr([[maybe_unused]] unsigned huid) { return nullptr; }
@@ -816,7 +1166,7 @@ bool GraphEditorPlg::onPluginMenuClick([[maybe_unused]] unsigned id)
   {
     case CM_SHOW_GRAPH:
     {
-      if (!graphPanel)
+      if (!graphPanel->getPanelWindow())
       {
         EDITORCORE->addPropPanel(GRAPH_PANEL_WTYPE, hdpi::_pxScaled(600));
       }
@@ -894,9 +1244,17 @@ bool GraphEditorPlg::onPluginMenuClick([[maybe_unused]] unsigned id)
       toggleShortcutsPanel();
       return true;
     }
+    case CM_TOGGLE_GRAPH_PROPERTIES:
+    {
+      if (propertiesPanel)
+      {
+        propertiesPanel->toggleGraphView();
+      }
+      return true;
+    }
     case CM_NEW_GRAPH:
     {
-      newEmptyGraph();
+      graphPanel->openNewTab();
       return true;
     }
     case CM_LOAD_GRAPH_BLK:
@@ -911,7 +1269,7 @@ bool GraphEditorPlg::onPluginMenuClick([[maybe_unused]] unsigned id)
     }
     case CM_SAVE_AS_SUBGRAPH_BLK:
     {
-      promptAndSaveAsSubgraphBlk();
+      saveAsSubgraphBlk(graphPanel->activeSurface());
       return true;
     }
     case CM_SAVE_TEXTURES:
@@ -950,17 +1308,22 @@ bool GraphEditorPlg::onPluginMenuClick([[maybe_unused]] unsigned id)
 
 void GraphEditorPlg::handleViewportAcceleratorCommand([[maybe_unused]] unsigned id) {}
 
-bool GraphEditorPlg::catchEvent(unsigned event_huid, [[maybe_unused]] void *user_data)
+bool GraphEditorPlg::catchEvent(unsigned event_huid, void *user_data)
 {
+  if (event_huid == HUID_ClaimUndoOpOwner)
+  {
+    return graphPanel->ownsUndoToken(user_data);
+  }
+  if (event_huid == HUID_KeepEditorOpen)
+  {
+    return !graphPanel->confirmCloseAllTabs();
+  }
   if (event_huid != HUID_ZoomAndCenter)
   {
     return false;
   }
-  if (graphPanel)
-  {
-    graphPanel->requestFrameSelected();
-  }
-  // Handled even with no panel: this plugin has no 3D selection for the viewport fallback to frame.
+  graphPanel->requestFrameSelected();
+  // Handled even with the window closed: this plugin has no 3D selection for the viewport fallback to frame.
   return true;
 }
 
@@ -1009,6 +1372,7 @@ void GraphEditorPlg::registerEditorCommands(IEditorCommandSystem &command_system
   command_system.addCommand(SAVE_TEXTURES_BY_SUBSTRING);
   command_system.addCommand(RELOAD_TEXTURES);
   command_system.addCommand(FORCE_REBUILD, ImGuiMod_Ctrl | ImGuiKey_R);
+  command_system.addCommand(TOGGLE_GRAPH_PROPERTIES, ImGuiKey_P);
 
   // Canvas-local shortcuts
   command_system.addCommand(CANVAS_DELETE_SELECTED, ImGuiKey_Delete);
@@ -1031,6 +1395,11 @@ void GraphEditorPlg::registerEditorCommands(IEditorCommandSystem &command_system
   // RouteGlobal, which the canvas dispatch outranks while this panel has focus.
   command_system.addCommand(CANVAS_ADD_NODE_AT_PIN, ImGuiKey_Space);
   command_system.addCommand(CANVAS_ADD_TRANSIT_NODE, ImGuiMod_Shift | ImGuiKey_Space);
+  command_system.addCommand(CANVAS_CREATE_SUBGRAPH, ImGuiMod_Ctrl | ImGuiKey_G);
+  // Open and Go to parent share Tab with the pin jump; separate ids keep each one rebindable.
+  command_system.addCommand(CANVAS_OPEN_SUBGRAPH, ImGuiKey_Tab);
+  command_system.addCommand(CANVAS_EXPLODE_SUBGRAPH, ImGuiMod_Ctrl | ImGuiKey_E);
+  command_system.addCommand(CANVAS_GO_TO_PARENT_GRAPH, ImGuiKey_Tab);
 }
 
 void GraphEditorPlg::registerMenuAccelerators()
@@ -1040,12 +1409,14 @@ void GraphEditorPlg::registerMenuAccelerators()
   manager->addAccelerator(CM_SHOW_SHORTCUTS, SHOW_SHORTCUTS);
   // The menu item and toolbar button show this command's chord, so it has to work outside the canvas.
   manager->addAccelerator(CM_FORCE_REBUILD, FORCE_REBUILD);
+  // Global, so P works from any panel; a focused text field still types the letter.
+  manager->addAccelerator(CM_TOGGLE_GRAPH_PROPERTIES, TOGGLE_GRAPH_PROPERTIES);
 }
 
 bool GraphEditorPlg::promptPinComment(eastl::string &inout_comment)
 {
   String text(inout_comment.c_str());
-  PropPanel::DialogWindow *dlg = DAGORED2->createDialog(hdpi::_pxScaled(360), hdpi::_pxScaled(130), "Pin comment");
+  PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Pin comment");
   dlg->setInitialFocus(PID_PIN_COMMENT);
 
   PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
@@ -1063,6 +1434,36 @@ bool GraphEditorPlg::promptPinComment(eastl::string &inout_comment)
 
   del_it(dlg);
   return accepted;
+}
+
+void GraphEditorPlg::promptOpenGraph()
+{
+  // The size is a floor: autoSize below fits the box to the two radios, as the design has it.
+  PropPanel::DialogWindow *dlg = DAGORED2->createDialog(hdpi::_pxScaled(330), hdpi::_pxScaled(60), "Open graph");
+  dlg->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Open");
+
+  PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
+  PropPanel::ContainerPropertyControl *group = panel.createRadioGroup(PID_OPEN_GRAPH_MODE, "");
+  group->createRadio(OPEN_GRAPH_EXISTING, "existing graph");
+  group->createRadio(OPEN_GRAPH_NEW, "new graph");
+  panel.setInt(PID_OPEN_GRAPH_MODE, OPEN_GRAPH_EXISTING);
+  dlg->autoSize();
+
+  const bool accepted = dlg->showDialog() == PropPanel::DIALOG_ID_OK;
+  const int mode = panel.getInt(PID_OPEN_GRAPH_MODE); // read before the dialog goes
+  del_it(dlg);
+  if (!accepted)
+  {
+    return;
+  }
+  if (mode == OPEN_GRAPH_NEW)
+  {
+    graphPanel->openNewTab();
+  }
+  else
+  {
+    promptAndLoadGraphBlk();
+  }
 }
 
 bool GraphEditorPlg::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
@@ -1104,13 +1505,12 @@ void *GraphEditorPlg::onWmCreateWindow(int type)
   {
     case GRAPH_PANEL_WTYPE:
     {
-      if (graphPanel)
+      if (graphPanel->getPanelWindow())
       {
         return nullptr;
       }
 
-      graphPanel = eastl::make_unique<GraphPanel>(*this, texGenService, document);
-      document.setView(graphPanel.get());
+      graphPanel->createWindow();
 
       if (toolBar)
       {
@@ -1194,7 +1594,7 @@ void *GraphEditorPlg::onWmCreateWindow(int type)
         return nullptr;
       }
 
-      propertiesPanel = eastl::make_unique<PropertiesPanel>(*this, document);
+      propertiesPanel = eastl::make_unique<PropertiesPanel>(*this);
 
       if (toolBar)
       {
@@ -1230,10 +1630,9 @@ bool GraphEditorPlg::onWmDestroyWindow(void *window)
 {
   PropPanel::ContainerPropertyControl *toolBar = DAGORED2->getCustomPanel(toolBarId);
 
-  if (graphPanel && window == graphPanel.get())
+  if (window == graphPanel.get())
   {
-    document.setView(nullptr);
-    graphPanel.reset();
+    graphPanel->destroyWindow();
     isGraphVisible = false;
 
     if (toolBar)
@@ -1327,7 +1726,7 @@ void GraphEditorPlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   {
     case CM_SHOW_GRAPH:
     {
-      if (!graphPanel)
+      if (!graphPanel->getPanelWindow())
       {
         EDITORCORE->addPropPanel(GRAPH_PANEL_WTYPE, hdpi::_pxScaled(600));
       }
@@ -1407,7 +1806,7 @@ void GraphEditorPlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     }
     case CM_NEW_GRAPH:
     {
-      newEmptyGraph();
+      graphPanel->openNewTab();
       break;
     }
     case CM_LOAD_GRAPH_BLK:
@@ -1422,7 +1821,7 @@ void GraphEditorPlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     }
     case CM_SAVE_AS_SUBGRAPH_BLK:
     {
-      promptAndSaveAsSubgraphBlk();
+      saveAsSubgraphBlk(graphPanel->activeSurface());
       break;
     }
     case CM_SAVE_TEXTURES:
@@ -1465,10 +1864,6 @@ void GraphEditorPlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   }
 }
 
-// The engine stamps the active IGenEditorPlugin* as the op owner (set_op_owner), so with multiple
-// inheritance the void* has to name that subobject exactly.
-void GraphEditorPlg::dropMyUndoOps() { EDITORCORE->getUndoSystem()->remove_ops_by_owner(static_cast<IGenEditorPlugin *>(this)); }
-
 void GraphEditorPlg::initResourcePaths()
 {
   String graphEditorDataDir = ::make_full_path(sgg::get_common_data_dir(), "graphEditor/");
@@ -1478,6 +1873,9 @@ void GraphEditorPlg::initResourcePaths()
   resourcePaths.shaderIncludesDir = graphEditorDataDir + "generated/";
   resourcePaths.mainGraphsDir = ::make_full_path(sgg::get_exe_path_full(), "../../graphEditor/mainGraphs/");
   resourcePaths.subgraphsDir = graphEditorDataDir + "subgraphs/";
+  subgraphRoots.clear();
+  // constraint: every lookup of a subgraph file reads subgraphsDir alone; a second root must reach each lookup first.
+  subgraphRoots.push_back(SubgraphRoot{String(GENERAL_SUBGRAPH_ROOT_LABEL), resourcePaths.subgraphsDir});
 }
 
 void GraphEditorPlg::appendShaderTemplatesToBaseNodes()
@@ -1566,191 +1964,6 @@ void GraphEditorPlg::appendSubgraphTemplatesToBaseNodes()
     return;
   }
 
-  struct Boundary
-  {
-    eastl::string ifaceName;
-    eastl::string types;  // CSV form, matches base_nodes.blk's `types:t` schema
-    bool isInput = false; // mirrors subgraph in:TYPE boundary (true) vs subgraph out (false)
-    // `subgraph separator` boundary: contributes a pinless section divider rather than a real pin.
-    bool isSeparator = false;
-    float y = 0.0f; // boundary node's canvas y, used to order pins as the author laid them out
-  };
-
-  auto processFile = [&](const String &filePath, const char *fileName) {
-    // dd_get_fname_without_path_and_ext strips only the LAST extension and writes the
-    // result into `buf`. If passed a full path the buffer still contains the directory
-    // components (the function returns a pointer past the last separator -- but we use
-    // `buf` directly here, so we MUST pass just the filename, not the full path). For
-    // "foo.subgraph.blk" the buffer comes back as "foo.subgraph"; the trailing
-    // ".subgraph" then needs to be stripped so the synthesised templateUid / descName
-    // (and the child-file resolver in the expander) are the plain stem "foo".
-    char stem[128] = {};
-    dd_get_fname_without_path_and_ext(stem, sizeof(stem), fileName);
-    if (!stem[0])
-    {
-      return;
-    }
-    {
-      constexpr const char *SUBGRAPH_SUFFIX = ".subgraph";
-      const size_t stemLen = strlen(stem);
-      const size_t suffixLen = strlen(SUBGRAPH_SUFFIX);
-      if (stemLen > suffixLen && strcmp(stem + stemLen - suffixLen, SUBGRAPH_SUFFIX) == 0)
-      {
-        stem[stemLen - suffixLen] = 0;
-      }
-    }
-
-    GraphData childGd;
-    // Pass nullptr for base_nodes_blk -- pin resolution against the descriptor registry isn't
-    // needed for boundary scanning (descName + propertyValues come straight from the file).
-    // Avoids re-entering reconcile_template_uid mid-synthesis while baseNodesByUid is still
-    // empty.
-    if (!load_graph_data_blk(childGd, filePath.str(), resourcePaths.shaderIncludesDir, nullptr))
-    {
-      DAEDITOR3.conError("GraphEditor: failed to parse subgraph %s", filePath.str());
-      return;
-    }
-
-    // Schema check first -- log every issue to the editor console so the user can see all
-    // problems with a subgraph at startup, not silently. Any error (DUPLICATE_NAME,
-    // EMPTY_INTERFACE_NAME, or NO_BOUNDARIES) blocks the descriptor from entering the
-    // palette: an invalid subgraph can't safely be inlined at compile time, so showing it
-    // as a draggable entry would just defer the failure to a worse moment.
-    {
-      eastl::vector<SubgraphSchemaError> schemaErrors;
-      const bool schemaOk = validate_subgraph_schema(childGd, schemaErrors);
-      for (const SubgraphSchemaError &err : schemaErrors)
-      {
-        const eastl::string msg = format_subgraph_schema_error(err);
-        if (err.code == SubgraphSchemaError::NO_BOUNDARIES)
-        {
-          DAEDITOR3.conWarning("GraphEditor: subgraph %s: %s", filePath.str(), msg.c_str());
-        }
-        else
-        {
-          DAEDITOR3.conError("GraphEditor: subgraph %s: %s", filePath.str(), msg.c_str());
-        }
-      }
-      if (!schemaOk)
-      {
-        return;
-      }
-    }
-
-    // Dead-input warnings -- never blocks (the subgraph still works for its other pins),
-    // but the author should know which inputs are wired into nothing useful.
-    {
-      eastl::vector<DeadInputBoundary> dead;
-      find_dead_input_boundaries(childGd, dead);
-      for (const DeadInputBoundary &d : dead)
-      {
-        const char *label = !d.interfaceName.empty() ? d.interfaceName.c_str() : (!d.type.empty() ? d.type.c_str() : "<unnamed>");
-        DAEDITOR3.conWarning("GraphEditor: subgraph %s input '%s' (id=%d) does not propagate to any output", filePath.str(), label,
-          d.nodeId);
-      }
-    }
-
-    // Boundary collection. Validation above guarantees every boundary has a non-empty
-    // effective name and no two boundaries collide on (role, name), so this loop just
-    // packs the descriptor inputs in load order (already y-sorted by the converter).
-    eastl::vector<Boundary> boundaries;
-    for (const GraphData::Node &n : childGd.nodes)
-    {
-      const char *dn = n.descName.c_str();
-      const bool isInBoundary = strncmp(dn, "subgraph in:", 12) == 0;
-      const bool isOutBoundary = strcmp(dn, "subgraph out") == 0;
-      const bool isSeparatorBoundary = strcmp(dn, "subgraph separator") == 0;
-      if (!isInBoundary && !isOutBoundary && !isSeparatorBoundary)
-      {
-        continue;
-      }
-
-      Boundary b;
-      b.ifaceName = effective_subgraph_boundary_name(childGd, n.id);
-      b.isInput = isInBoundary || isSeparatorBoundary;
-      b.isSeparator = isSeparatorBoundary;
-      b.y = n.y;
-      if (isSeparatorBoundary)
-      {
-        // No types / role: it is a label, and the schema validator ignores it entirely (it only
-        // recognises in / out boundaries), so an unnamed separator is legal and draws a bare rule.
-        boundaries.push_back(eastl::move(b));
-        continue;
-      }
-      if (isInBoundary)
-      {
-        // descName format: "subgraph in: <type>". Slice past the colon + spaces.
-        const char *colon = strchr(dn, ':');
-        const char *t = colon ? colon + 1 : "";
-        while (*t == ' ')
-        {
-          ++t;
-        }
-        b.types = t;
-      }
-      else
-      {
-        // For output boundaries we keep the multi-type CSV from base_nodes.blk so the instance
-        // pin accepts whatever the parent connects. Compile-time expansion resolves the actual
-        // single type from the child's upstream producer and type-checks against the parent
-        // edge -- so a per-instance type narrowing here would only affect editor pin colouring,
-        // not correctness, and isn't worth the upstream-edge scan at synthesis time.
-        b.types = "texture2D,particles,bool,int,float,float2,float3,float4";
-      }
-      boundaries.push_back(eastl::move(b));
-    }
-
-    DataBlock *nodeBlk = baseNodesBlk.addNewBlock("node");
-    eastl::string templateUid("subgraph::");
-    templateUid.append(stem);
-    nodeBlk->setStr("templateUid", templateUid.c_str());
-    nodeBlk->setStr("name", stem);
-    nodeBlk->setStr("category", "Subgraphs");
-    // `plugin:t = "subgraph"` is the marker the compile-time expander uses to identify instance
-    // nodes (graph_subgraph_expand.cpp). It mirrors the shader_editor convention -- a marker
-    // routed through Node::plugin rather than a templateUid string-prefix check.
-    nodeBlk->setStr("plugin", "subgraph");
-    nodeBlk->setBool("generated", true);
-    nodeBlk->setInt("width", 200);
-
-    // Order by the boundary node's y so the pin order matches what the author laid out vertically
-    eastl::stable_sort(boundaries.begin(), boundaries.end(), [](const Boundary &a, const Boundary &b) { return a.y < b.y; });
-
-    // Inputs first then outputs for canonical layout; the only re-ordering this loop applies is
-    // grouping inputs ahead of outputs. Separators ride along in the input pass.
-    auto emitPin = [&](const Boundary &b) {
-      DataBlock *pinBlk = nodeBlk->addNewBlock("pin");
-      pinBlk->setStr("name", b.ifaceName.c_str());
-      if (b.isSeparator)
-      {
-        // Section divider: name is the label, nothing else applies. Emitted inline in the input run
-        // so it lands between the pins the author placed it between inside the subgraph.
-        pinBlk->setBool("separator", true);
-        return;
-      }
-      pinBlk->setStr("types", b.types.c_str());
-      pinBlk->setStr("role", b.isInput ? "in" : "out");
-      // One driver per instance input: the expander substitutes a single parent edge into the
-      // child's `subgraph in: TYPE` boundary and errors on a second, while it rewires every
-      // consumer of an output. graphEditor.js builds its external pins with the same split.
-      pinBlk->setBool("singleConnect", b.isInput);
-    };
-    for (const Boundary &b : boundaries)
-    {
-      if (b.isInput)
-      {
-        emitPin(b);
-      }
-    }
-    for (const Boundary &b : boundaries)
-    {
-      if (!b.isInput)
-      {
-        emitPin(b);
-      }
-    }
-  };
-
   // Scan `*.subgraph.blk` under subgraphsDir. dd_find_iterator's glob mask is shell-style
   // "*", and the double-dot filename "<stem>.subgraph.blk" still matches the single "*"
   // wildcard because the "*" portion absorbs "<stem>.subgraph".
@@ -1759,7 +1972,11 @@ void GraphEditorPlg::appendSubgraphTemplatesToBaseNodes()
   for (const alefind_t &fs : dd_find_iterator(mask, DA_FILE))
   {
     String filePath(0, "%s%s", subgraphsDir.str(), fs.name);
-    processFile(filePath, fs.name);
+    DataBlock desc;
+    if (synthesize_subgraph_file(filePath, resourcePaths.shaderIncludesDir, GENERAL_SUBGRAPH_ROOT_LABEL, desc))
+    {
+      baseNodesBlk.addNewBlock(&desc, "node");
+    }
     ++loaded;
   }
 
@@ -1813,7 +2030,7 @@ bool GraphEditorPlg::loadBaseNodesBlkIfNeeded()
   baseNodesByUid.clear();
   for (uint32_t i = 0; i < baseNodesBlk.blockCount(); ++i)
   {
-    const DataBlock *node = baseNodesBlk.getBlock(i);
+    DataBlock *node = baseNodesBlk.getBlock(i);
     if (strcmp(node->getBlockName(), "node") != 0)
     {
       continue;
@@ -1839,6 +2056,7 @@ const DataBlock &GraphEditorPlg::getBaseNodesBlk()
 
 void GraphEditorPlg::reloadBaseNodes()
 {
+  CompilerDrainScope drain(*this);
   baseNodesByUid.clear();
   baseNodesBlk.reset();
   baseNodesBlkLoaded = false;
@@ -1847,6 +2065,190 @@ void GraphEditorPlg::reloadBaseNodes()
   {
     nodeLibraryPanel->refresh();
   }
+  graphPanel->invalidateDerivedState();
+  // The panel's controls point into the freed descriptors.
+  invalidatePropertiesPanel();
+}
+
+bool GraphEditorPlg::registerSubgraphFile(const char *path, bool replace_existing)
+{
+  const SubgraphRoot *root = subgraphRootOf(path);
+  if (!root)
+  {
+    // The compile looks only in the roots, so this entry would never resolve.
+    DAEDITOR3.conWarning("GraphEditor: %s is outside the subgraph roots, not registered", path);
+    return false;
+  }
+  DataBlock fresh;
+  if (!synthesize_subgraph_file(path, resourcePaths.shaderIncludesDir, root->label, fresh))
+  {
+    return false;
+  }
+
+  const eastl::string uid = eastl::string("subgraph::") + graph_file_stem(path);
+  CompilerDrainScope drain(*this);
+  if (!loadBaseNodesBlkIfNeeded())
+  {
+    return false;
+  }
+  auto it = baseNodesByUid.find(uid);
+  DataBlock *target = it != baseNodesByUid.end() ? it->second : nullptr;
+  if (target)
+  {
+    // An entry of this very file is no clash: the first load's scan made it, or the file was deleted outside the editor.
+    if (!replace_existing && !dd_fname_equal(target->getStr("sourcePath", ""), path))
+    {
+      DAEDITOR3.conWarning("GraphEditor: %s not registered, the palette already has %s", path, uid.c_str());
+      return false;
+    }
+    target->setFrom(&fresh); // in place: tabs, panels and the compile hold pointers to it
+  }
+  else
+  {
+    target = baseNodesBlk.addNewBlock(&fresh, "node");
+    baseNodesByUid.emplace(uid, target);
+  }
+  preprocess_node_descriptor(*target); // as the startup load does for every descriptor
+  subgraphRegistrationGenerations[uid] = ++subgraphDescriptorGeneration;
+  if (nodeLibraryPanel)
+  {
+    nodeLibraryPanel->refresh();
+  }
+  graphPanel->invalidateDerivedState();
+  invalidatePropertiesPanel();
+  return true;
+}
+
+bool GraphEditorPlg::explodeSubgraphInstance(GraphTab &tab, int node_id)
+{
+  ExplodeResult res;
+  if (!explode_subgraph_instance(tab.getDocument().getGraphData(), node_id, getBaseNodesBlk(), resourcePaths.subgraphsDir,
+        SUBGRAPH_GRID, res))
+  {
+    DAEDITOR3.conError("GraphEditor: cannot explode the subgraph: %s", res.error.c_str());
+    show_toast_at_cursor(PropPanel::ToastType::Alert, String(0, "Subgraph explode failed: %s", res.error.c_str()).str());
+    return false;
+  }
+  for (const GraphData::Edge &e : res.droppedParentEdges)
+  {
+    if (e.muted)
+    {
+      DAEDITOR3.conWarning("GraphEditor: explode dropped muted edge %d", e.id);
+    }
+    else
+    {
+      DAEDITOR3.conWarning("GraphEditor: explode dropped edge %d, the subgraph has no wire behind that pin", e.id);
+    }
+  }
+  tab.getDocument().replaceNodes({node_id}, eastl::move(res.addedNodes), eastl::move(res.addedEdges), "Explode subgraph",
+    /*select_added=*/true);
+  return true;
+}
+
+void GraphEditorPlg::createSubgraphFromSelection(GraphTab &tab, const eastl::vector<int> &node_ids)
+{
+  if (subgraphRoots.empty())
+  {
+    return; // set by the project load, like the other resource paths
+  }
+  GraphDocument &doc = tab.getDocument();
+  GraphData child;
+  ExtractPlan plan;
+  // Before the dialog, so a refusal costs no typing.
+  if (!extract_subgraph(doc.getGraphData(), make_span_const(node_ids), getBaseNodesBlk(), resourcePaths.subgraphsDir, child, plan))
+  {
+    wingw::message_box(wingw::MBS_OK | wingw::MBS_EXCL, "Create subgraph", plan.error.c_str());
+    return;
+  }
+  for (const eastl::string &warning : plan.warnings)
+  {
+    DAEDITOR3.conWarning("GraphEditor: create subgraph: %s", warning.c_str());
+  }
+
+  CreateSubgraphChoice choice;
+  const String proposed = propose_subgraph_name(doc.getGraphData().sourcePath.c_str(), subgraphRoots[0].dir);
+  if (!prompt_create_subgraph(getSubgraphRoots(), proposed, choice))
+  {
+    return;
+  }
+  auto toastFailure = [](const char *reason) {
+    show_toast_at_cursor(PropPanel::ToastType::Alert, String(0, "Subgraph creation failed: %s", reason).str());
+  };
+  dd_mkdir(subgraphRoots[choice.rootIndex].dir);
+  if (dd_file_exist(choice.finalPath) || !save_graph_data_blk(child, choice.finalPath))
+  {
+    DAEDITOR3.conError("GraphEditor: create subgraph: cannot write %s", choice.finalPath.str());
+    toastFailure(String(0, "cannot write %s", choice.finalPath.str()));
+    return;
+  }
+  if (!registerSubgraphFile(choice.finalPath, /*replace_existing=*/false))
+  {
+    // Nothing refers to the file yet, and left behind it would come back at every startup scan.
+    dd_erase(choice.finalPath);
+    DAEDITOR3.conError("GraphEditor: create subgraph: %s was not registered and is removed", choice.finalPath.str());
+    // registerSubgraphFile has logged why.
+    toastFailure(String(0, "the node library refused %s, see the console", dd_get_fname(choice.finalPath)));
+    return;
+  }
+
+  const eastl::string uid = eastl::string("subgraph::") + graph_file_stem(choice.finalPath);
+  // On the grid Explode snaps its offset to, so the round trip stays exact.
+  const float x = roundf(plan.centroidX / SUBGRAPH_GRID) * SUBGRAPH_GRID;
+  const float y = roundf(plan.centroidY / SUBGRAPH_GRID) * SUBGRAPH_GRID;
+  GraphData::Node instance;
+  if (!makeNodeFromBaseBlk(uid.c_str(), x, y, instance))
+  {
+    DAEDITOR3.conError("GraphEditor: create subgraph: no descriptor '%s'", uid.c_str());
+    toastFailure(String(0, "no node library entry %s", uid.c_str()));
+    return;
+  }
+  instance.id = tab.allocateNodeId(); // before the removal, so never one of the removed ids
+
+  eastl::vector<GraphData::Edge> edges;
+  for (const ExtractCrossing &c : plan.crossings)
+  {
+    const int pin = find_pin_by_name(instance, c.ifaceName.c_str(), /*output=*/!c.isInput);
+    if (pin < 0)
+    {
+      DAEDITOR3.conWarning("GraphEditor: create subgraph: the instance has no pin '%s', edge %d dropped", c.ifaceName.c_str(),
+        c.parentEdgeId);
+      continue;
+    }
+    // Stored Out -> In, as the loader and the spawn paths store them.
+    GraphData::Edge &e = edges.push_back();
+    e.id = c.parentEdgeId;
+    e.muted = c.muted;
+    e.elemA = c.isInput ? c.outsideNode : instance.id;
+    e.pinA = c.isInput ? c.outsidePin : pin;
+    e.elemB = c.isInput ? instance.id : c.outsideNode;
+    e.pinB = c.isInput ? pin : c.outsidePin;
+  }
+  eastl::vector<GraphData::Node> added;
+  added.push_back(eastl::move(instance));
+  doc.replaceNodes(node_ids, eastl::move(added), eastl::move(edges), "Create subgraph", /*select_added=*/true);
+  noteRecentlyUsedNode(uid.c_str());
+  DAEDITOR3.conNote("GraphEditor: created subgraph %s", choice.finalPath.str());
+  show_toast_at_cursor(PropPanel::ToastType::Success, String(0, "%s created successfully", dd_get_fname(choice.finalPath)).str());
+}
+
+uint32_t GraphEditorPlg::getSubgraphRegistrationGeneration(const char *template_uid) const
+{
+  auto it = subgraphRegistrationGenerations.find_as(template_uid);
+  return it != subgraphRegistrationGenerations.end() ? it->second : 0;
+}
+
+const SubgraphRoot *GraphEditorPlg::subgraphRootOf(const char *path) const
+{
+  char dir[DAGOR_MAX_PATH];
+  dd_get_fname_location(dir, path);
+  for (const SubgraphRoot &root : subgraphRoots)
+  {
+    if (dd_fname_equal(dir, root.dir))
+    {
+      return &root;
+    }
+  }
+  return nullptr;
 }
 
 const DataBlock *GraphEditorPlg::findBaseNodeBlockByUid(const char *template_uid)
@@ -1891,57 +2293,13 @@ bool GraphEditorPlg::makeNodeFromBaseBlk(const char *template_uid, float x, floa
   {
     return false;
   }
-
-  out = GraphData::Node{};
-  out.x = x;
-  out.y = y;
-  // Both fields come from the descriptor: uid is the stable key; descName is captured
-  // at spawn time but will be refreshed from the descriptor on every subsequent load.
-  out.templateUid = template_uid;
-  out.descName = desc->getStr("name", "");
-  out.plugin = desc->getStr("plugin", "");
-
-  // Pin stubs in descriptor order. Edges (which reference pins by index) will line up with
-  // the descriptor naturally for fresh nodes; for loaded nodes the loader preserves the saved
-  // pin order instead. customTextureName stays empty here. Resolved-cache fields (type /
-  // isInput / hidden) are filled in a separate pass below via resolve_node_pins so the
-  // logic stays in one place.
-  for (uint32_t i = 0; i < desc->blockCount(); ++i)
-  {
-    const DataBlock *child = desc->getBlock(i);
-    if (strcmp(child->getBlockName(), "pin") != 0)
-    {
-      continue;
-    }
-    GraphData::Pin pin;
-    pin.name = child->getStr("name", "");
-    out.pins.emplace_back(eastl::move(pin));
-  }
-  resolve_node_pins(out, &baseNodesBlk);
-
-  // Default property values from descriptor `val` field. Descriptor stores typed scalars
-  // (val:i / val:r / val:b / val:p4 / val:t) -- normalize to a string here.
-  for (uint32_t i = 0; i < desc->blockCount(); ++i)
-  {
-    const DataBlock *child = desc->getBlock(i);
-    if (strcmp(child->getBlockName(), "property") != 0)
-    {
-      continue;
-    }
-    eastl::string name = child->getStr("name", "");
-    if (name.empty())
-    {
-      continue;
-    }
-    out.propertyValues.emplace_back(eastl::move(name), param_as_string(child, "val"));
-  }
-
+  make_node_from_descriptor(baseNodesBlk, *desc, x, y, out);
   return true;
 }
 
 bool GraphEditorPlg::buildSpawnedNode(const char *template_uid, float x, float y, GraphData::Node &out)
 {
-  if (!graphPanel)
+  if (!graphPanel->getPanelWindow())
   {
     return false;
   }
@@ -1961,7 +2319,7 @@ void GraphEditorPlg::spawnBaseNode(const char *template_uid, float x, float y)
   {
     return;
   }
-  document.createNode(eastl::move(n));
+  getActiveDocument().createNode(eastl::move(n));
   noteRecentlyUsedNode(template_uid);
 }
 
@@ -1976,8 +2334,9 @@ int GraphEditorPlg::spawnBaseNodeWired(const char *template_uid, float x, float 
 
   const int newId = n.id;
   const eastl::string shownName = n.descName; // n is moved from below
-  const int wiredPin = splice ? document.recordInsertNodeOnPin(eastl::move(n), anchor_node, anchor_pin, anchor_edge)
-                              : document.recordAddConnectedNode(eastl::move(n), anchor_node, anchor_pin);
+  GraphDocument &doc = getActiveDocument();
+  const int wiredPin = splice ? doc.recordInsertNodeOnPin(eastl::move(n), anchor_node, anchor_pin, anchor_edge)
+                              : doc.recordAddConnectedNode(eastl::move(n), anchor_node, anchor_pin);
   if (wiredPin < 0)
   {
     // The whole-graph pass refused every pin. Creating it unconnected beats discarding the node the
@@ -1990,7 +2349,7 @@ int GraphEditorPlg::spawnBaseNodeWired(const char *template_uid, float x, float 
 
 void GraphEditorPlg::spawnBaseNodeAtCanvasCenter(const char *template_uid)
 {
-  if (!graphPanel)
+  if (!graphPanel->getPanelWindow())
   {
     return;
   }
@@ -1999,7 +2358,7 @@ void GraphEditorPlg::spawnBaseNodeAtCanvasCenter(const char *template_uid)
   // the identical centre and overlap exactly, which reads as nothing having happened. Derived
   // rather than counted because a node dragged away leaves graphData holding its old position.
   const ImVec2 center = graphPanel->getLastCanvasCenter();
-  const float slot = static_cast<float>(document.getGraphData().nodes.size() % SPAWN_SLOT_COUNT);
+  const float slot = static_cast<float>(getActiveDocument().getGraphData().nodes.size() % SPAWN_SLOT_COUNT);
   spawnBaseNode(template_uid, center.x + slot * SPAWN_SLOT_STEP, center.y + slot * SPAWN_SLOT_STEP);
 }
 
@@ -2039,31 +2398,11 @@ void GraphEditorPlg::invalidatePropertiesPanel()
   }
 }
 
-void GraphEditorPlg::markGraphDirtyAndRegen()
+void GraphEditorPlg::markGraphDirtyAndRegen(const GraphDocument &doc)
 {
-  if (!texGenService)
+  // constraint: no setGraphData here, it drops the preview and the pipeline caches on every edit.
+  if (IGraphTexGenService *svc = graphPanel->texGenServiceFor(doc))
   {
-    return;
+    svc->markGraphDirty();
   }
-  // Cheap per-edit path: just kick the worker. The service's worker compiles
-  // the graph and, on successful commit, sets shouldGenerateTex + generateOnce
-  // so the regen pushes through even when the user has autoupdate disabled --
-  // matching the old `svc->requestRegenerate()` semantics that edit-side
-  // callers used before they migrated to this entrypoint.
-  // Crucially does NOT call setGraphData -- that wipes preview-final state and
-  // pipeline caches, which is correct for a load but disastrous mid-drag
-  // (drops the preview every slider tick + forces a full pipeline reset every
-  // frame).
-  texGenService->markGraphDirty();
-}
-
-void GraphEditorPlg::notifyGraphSourceChanged()
-{
-  if (!texGenService)
-  {
-    return;
-  }
-  document.pushHeightmapParams();
-  texGenService->setGraphData(document.dataForTexGenService());
-  texGenService->markGraphDirty();
 }

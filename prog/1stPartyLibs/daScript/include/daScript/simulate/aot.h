@@ -134,10 +134,10 @@ namespace das {
     // special bitfield8 operations
     __forceinline bool __bitfield8_eq  ( Bitfield8 left, Bitfield8 right ) { return left.value == right.value; }
     __forceinline bool __bitfield8_neq ( Bitfield8 left, Bitfield8 right ) { return left.value != right.value; }
-    __forceinline Bitfield8 __bitfield8_not ( Bitfield8 value ) { return Bitfield8(~value.value); }
-    __forceinline Bitfield8 __bitfield8_and ( Bitfield8 left, Bitfield8 right ) { return Bitfield8(left.value & right.value); }
-    __forceinline Bitfield8 __bitfield8_or  ( Bitfield8 left, Bitfield8 right ) { return Bitfield8(left.value | right.value); }
-    __forceinline Bitfield8 __bitfield8_xor ( Bitfield8 left, Bitfield8 right ) { return Bitfield8(left.value ^ right.value); }
+    __forceinline Bitfield8 __bitfield8_not ( Bitfield8 value ) { return Bitfield8(uint8_t(~value.value)); }
+    __forceinline Bitfield8 __bitfield8_and ( Bitfield8 left, Bitfield8 right ) { return Bitfield8(uint8_t(left.value & right.value)); }
+    __forceinline Bitfield8 __bitfield8_or  ( Bitfield8 left, Bitfield8 right ) { return Bitfield8(uint8_t(left.value | right.value)); }
+    __forceinline Bitfield8 __bitfield8_xor ( Bitfield8 left, Bitfield8 right ) { return Bitfield8(uint8_t(left.value ^ right.value)); }
     __forceinline void __bitfield8_setand ( Bitfield8 & left, Bitfield8 right ) { left.value &= right.value; }
     __forceinline void __bitfield8_setor  ( Bitfield8 & left, Bitfield8 right ) { left.value |= right.value; }
     __forceinline void __bitfield8_setxor ( Bitfield8 & left, Bitfield8 right ) { left.value ^= right.value; }
@@ -145,10 +145,10 @@ namespace das {
     // special bitfield16 operations
     __forceinline bool __bitfield16_eq  ( Bitfield16 left, Bitfield16 right ) { return left.value == right.value; }
     __forceinline bool __bitfield16_neq ( Bitfield16 left, Bitfield16 right ) { return left.value != right.value; }
-    __forceinline Bitfield16 __bitfield16_not ( Bitfield16 value ) { return Bitfield16(~value.value); }
-    __forceinline Bitfield16 __bitfield16_and ( Bitfield16 left, Bitfield16 right ) { return Bitfield16(left.value & right.value); }
-    __forceinline Bitfield16 __bitfield16_or  ( Bitfield16 left, Bitfield16 right ) { return Bitfield16(left.value | right.value); }
-    __forceinline Bitfield16 __bitfield16_xor ( Bitfield16 left, Bitfield16 right ) { return Bitfield16(left.value ^ right.value); }
+    __forceinline Bitfield16 __bitfield16_not ( Bitfield16 value ) { return Bitfield16(uint16_t(~value.value)); }
+    __forceinline Bitfield16 __bitfield16_and ( Bitfield16 left, Bitfield16 right ) { return Bitfield16(uint16_t(left.value & right.value)); }
+    __forceinline Bitfield16 __bitfield16_or  ( Bitfield16 left, Bitfield16 right ) { return Bitfield16(uint16_t(left.value | right.value)); }
+    __forceinline Bitfield16 __bitfield16_xor ( Bitfield16 left, Bitfield16 right ) { return Bitfield16(uint16_t(left.value ^ right.value)); }
     __forceinline void __bitfield16_setand ( Bitfield16 & left, Bitfield16 right ) { left.value &= right.value; }
     __forceinline void __bitfield16_setor  ( Bitfield16 & left, Bitfield16 right ) { left.value |= right.value; }
     __forceinline void __bitfield16_setxor ( Bitfield16 & left, Bitfield16 right ) { left.value ^= right.value; }
@@ -182,6 +182,29 @@ namespace das {
             return res;
         }
     };
+
+    // `return <- a` from a by-ref function passes the reference through; the move-out
+    // (copy, then zero the source) belongs to the caller, so zeroing here would destroy
+    // the value before the consumer reads it. Lvalue-only parameter (like das_auto_cast_ref):
+    // a temporary source would return a dangling reference, so it must not compile.
+    template <typename TT>
+    struct das_auto_cast_move<TT &> {
+        template <typename QQ>
+        __forceinline static TT & cast ( QQ & expr ) {
+            return expr;
+        }
+    };
+
+    // Sequenced operand capture: braced aggregate init is guaranteed left-to-right,
+    // restoring the interpreter's operand evaluation order where a C++ call argument
+    // list or binary operator leaves it unsequenced. Emitted by daslib/aot_cpp.das
+    // for binary ops with impure operands.
+    template <typename LT, typename RT>
+    struct das_ordered2 {
+        LT left;
+        RT right;
+    };
+    template <typename LT, typename RT> das_ordered2 ( LT, RT ) -> das_ordered2<LT,RT>;
 
     template <typename TT>
     __forceinline void das_zero ( TT & a ) {
@@ -323,6 +346,24 @@ namespace das {
     __forceinline void das_memcpy ( void * left, const void * right, int64_t size ) { memcpy(left, right, size_t(size)); }
     DAS_SUPPRESS_UB
     __forceinline void das_memcpy ( void * left, const void * right, uint64_t size ) { memcpy(left, right, size_t(size)); }
+
+    // memmove: the overlapping-range twin of memcpy, same four size spellings and const-source twins
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, void * right, int size ) { memmove(left, right, size); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, void * right, uint32_t size ) { memmove(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, void * right, int64_t size ) { memmove(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, void * right, uint64_t size ) { memmove(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, const void * right, int size ) { memmove(left, right, size); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, const void * right, uint32_t size ) { memmove(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, const void * right, int64_t size ) { memmove(left, right, size_t(size)); }
+    DAS_SUPPRESS_UB
+    __forceinline void das_memmove ( void * left, const void * right, uint64_t size ) { memmove(left, right, size_t(size)); }
 
     // Suppress null argument with size = 0
     DAS_SUPPRESS_UB
@@ -569,6 +610,12 @@ namespace das {
         template <typename QQ>
         static __forceinline TT * cast ( const QQ & expr ) {
             return const_cast<TT *>(reinterpret_cast<const TT *>(&expr));
+        }
+        static __forceinline TT * cast ( const Func & expr ) {
+            return (TT *) expr.PTR;
+        }
+        static __forceinline TT * cast ( const Lambda & expr ) {
+            return (TT *) expr.capture;
         }
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -1101,6 +1148,25 @@ namespace das {
         }
     };
 
+    // signedness decided here, not by overload, so the negative test compiles away when unsigned
+    template <typename IndexT, typename SizeT>
+    __forceinline bool das_dim_index_ok ( IndexT index, SizeT size ) {
+        if ( is_signed<IndexT>::value && index < IndexT(0) ) return false;
+        return uint64_t(index) < uint64_t(size);
+    }
+
+    template <typename IndexT, typename SizeT>
+    DAS_NORETURN_PREFIX __forceinline void das_dim_index_error ( IndexT index, SizeT size, Context * __context__ ) DAS_NORETURN_SUFFIX;
+
+    template <typename IndexT, typename SizeT>
+    __forceinline void das_dim_index_error ( IndexT index, SizeT size, Context * __context__ ) {
+        if ( is_signed<IndexT>::value ) {
+            __context__->throw_error_ex("index out of range, %lld of %llu", (long long)index, (unsigned long long)size);
+        } else {
+            __context__->throw_error_ex("index out of range, %llu of %llu", (unsigned long long)index, (unsigned long long)size);
+        }
+    }
+
     template <typename TT, int size>
     struct TDim {
         using THIS_TYPE = TDim<TT, size>;
@@ -1113,38 +1179,16 @@ namespace das {
         __forceinline const TT & operator [] ( int32_t index ) const {
             return data[index];
         }
-    // index
-        __forceinline TT & operator () ( int32_t index, Context * __context__ ) {
-            if ( index<0 || uint32_t(index)>=uint32_t(size) ) __context__->throw_error_ex("index out of range, %d of %d", index, size);
+    // index - one candidate per constness, since an index literal is an int by language rule
+        template <typename IndexT, typename = enable_if_t<is_integral<IndexT>::value>>
+        __forceinline TT & operator () ( IndexT index, Context * __context__ ) {
+            if ( !das_dim_index_ok(index, size) ) das_dim_index_error(index, size, __context__);
             return data[index];
         }
-        __forceinline const TT & operator () ( int32_t index, Context * __context__ ) const {
-            if ( index<0 || uint32_t(index)>=uint32_t(size) ) __context__->throw_error_ex("index out of range, %d of %d", index, size);
+        template <typename IndexT, typename = enable_if_t<is_integral<IndexT>::value>>
+        __forceinline const TT & operator () ( IndexT index, Context * __context__ ) const {
+            if ( !das_dim_index_ok(index, size) ) das_dim_index_error(index, size, __context__);
             return data[index];
-        }
-        __forceinline TT & operator () ( uint32_t idx, Context * __context__ ) {
-            if ( idx>=uint32_t(size) ) __context__->throw_error_ex("index out of range, %u of %d", idx, size);
-            return data[idx];
-        }
-        __forceinline const TT & operator () ( uint32_t idx, Context * __context__ ) const {
-            if ( idx>=uint32_t(size) ) __context__->throw_error_ex("index out of range, %u of %d", idx, size);
-            return data[idx];
-        }
-        __forceinline TT & operator () ( int64_t index, Context * __context__ ) {
-            if ( index<0 || uint64_t(index)>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %lld of %d", (long long)index, size);
-            return data[index];
-        }
-        __forceinline const TT & operator () ( int64_t index, Context * __context__ ) const {
-            if ( index<0 || uint64_t(index)>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %lld of %d", (long long)index, size);
-            return data[index];
-        }
-        __forceinline TT & operator () ( uint64_t idx, Context * __context__ ) {
-            if ( idx>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %llu of %d", (unsigned long long)idx, size);
-            return data[idx];
-        }
-        __forceinline const TT & operator () ( uint64_t idx, Context * __context__ ) const {
-            if ( idx>=uint64_t(size) ) __context__->throw_error_ex("index out of range, %llu of %d", (unsigned long long)idx, size);
-            return data[idx];
         }
     // safe index
         static __forceinline TT * safe_index ( THIS_TYPE * that, int32_t index, Context * ) {
@@ -1235,37 +1279,15 @@ namespace das {
             return ((TT *)data)[index];
         }
     // index
-        __forceinline TT & operator () ( int32_t index, Context * __context__ ) {
-            if ( index<0 || uint64_t(index)>=size ) __context__->throw_error_ex("array index out of range, %d of %llu", index, (unsigned long long)size);
+        template <typename IndexT, typename = enable_if_t<is_integral<IndexT>::value>>
+        __forceinline TT & operator () ( IndexT index, Context * __context__ ) {
+            if ( !das_dim_index_ok(index, size) ) das_dim_index_error(index, size, __context__);
             return ((TT *)data)[index];
         }
-        __forceinline const TT & operator () ( int32_t index, Context * __context__ ) const {
-            if ( index<0 || uint64_t(index)>=size ) __context__->throw_error_ex("array index out of range, %d of %llu", index, (unsigned long long)size);
+        template <typename IndexT, typename = enable_if_t<is_integral<IndexT>::value>>
+        __forceinline const TT & operator () ( IndexT index, Context * __context__ ) const {
+            if ( !das_dim_index_ok(index, size) ) das_dim_index_error(index, size, __context__);
             return ((const TT *)data)[index];
-        }
-        __forceinline TT & operator () ( uint32_t idx, Context * __context__ ) {
-            if ( idx>=size ) __context__->throw_error_ex("array index out of range, %u of %llu", idx, (unsigned long long)size);
-            return ((TT *)data)[idx];
-        }
-        __forceinline const TT & operator () ( uint32_t idx, Context * __context__ ) const {
-            if ( idx>=size ) __context__->throw_error_ex("array index out of range, %u of %llu", idx, (unsigned long long)size);
-            return ((const TT *)data)[idx];
-        }
-        __forceinline TT & operator () ( int64_t index, Context * __context__ ) {
-            if ( index<0 || uint64_t(index)>=size ) __context__->throw_error_ex("array index out of range, %lld of %llu", (long long)index, (unsigned long long)size);
-            return ((TT *)data)[index];
-        }
-        __forceinline const TT & operator () ( int64_t index, Context * __context__ ) const {
-            if ( index<0 || uint64_t(index)>=size ) __context__->throw_error_ex("array index out of range, %lld of %llu", (long long)index, (unsigned long long)size);
-            return ((const TT *)data)[index];
-        }
-        __forceinline TT & operator () ( uint64_t idx, Context * __context__ ) {
-            if ( idx>=size ) __context__->throw_error_ex("array index out of range, %llu of %llu", (unsigned long long)idx, (unsigned long long)size);
-            return ((TT *)data)[idx];
-        }
-        __forceinline const TT & operator () ( uint64_t idx, Context * __context__ ) const {
-            if ( idx>=size ) __context__->throw_error_ex("array index out of range, %llu of %llu", (unsigned long long)idx, (unsigned long long)size);
-            return ((const TT *)data)[idx];
         }
     // safe index
         static __forceinline TT * safe_index ( THIS_TYPE * that, int32_t index, Context * ) {
@@ -1330,24 +1352,25 @@ namespace das {
             flags = arr.flags; arr.flags = 0;
             keys = arr.keys; arr.keys = 0;
             hashes = arr.hashes; arr.hashes = 0;
+            tombstones = arr.tombstones; arr.tombstones = 0;
         }
         __forceinline TV & operator () ( const TK & key, Context * __context__ ) {
             TableHash<TK> thh(__context__,sizeof(TV));
-            auto hfn = hash_function(*__context__, key);
+            auto hfn = KeyHash<KeyType>()(*__context__, key);
             int64_t index = thh.reserve(*this, key, hfn);
             return ((TV *)data)[index];
         }
         static __forceinline TV * safe_index ( THIS_TYPE * that, const TK & key, Context * __context__ ) {
             if (!that) return nullptr;
             TableHash<TK> thh(__context__,sizeof(TV));
-            auto hfn = hash_function(*__context__, key);
+            auto hfn = KeyHash<KeyType>()(*__context__, key);
             int64_t index = thh.find(*that, key, hfn);
             return index==-1 ? nullptr : ((TV *)that->data) + index;
         }
         static __forceinline const TV * safe_index ( const THIS_TYPE * that, const TK & key, Context * __context__ ) {
             if (!that) return nullptr;
             TableHash<TK> thh(__context__,sizeof(TV));
-            auto hfn = hash_function(*__context__, key);
+            auto hfn = KeyHash<KeyType>()(*__context__, key);
             int64_t index = thh.find(*that, key, hfn);
             return index==-1 ? nullptr : ((const TV *)that->data) + index;
         }
@@ -1371,6 +1394,7 @@ namespace das {
             flags = arr.flags; arr.flags = 0;
             keys = arr.keys; arr.keys = 0;
             hashes = arr.hashes; arr.hashes = 0;
+            tombstones = arr.tombstones; arr.tombstones = 0;
         }
     };
 
@@ -2170,8 +2194,13 @@ namespace das {
     }
 
     template <typename TT>
-    __forceinline TT * das_ref ( Context *, const TT & ref ) {
-        return &const_cast<TT &>(ref);
+    __forceinline auto das_ref ( Context *, const TT & ref ) {
+        if constexpr ( is_base_of<Block,TT>::value && !is_same<Block,TT>::value ) {
+            // a Block-derived object (the das_make_block closures): its Block subobject, not the vtable-carrying base at offset 0
+            return static_cast<Block *>(&const_cast<TT &>(ref));
+        } else {
+            return &const_cast<TT &>(ref);
+        }
     }
 
     template <typename TT, typename AT, bool moveIt = false>
@@ -2251,6 +2280,14 @@ namespace das {
     struct cast_aot_arg {
         static __forceinline TT to ( Context &, vec4f x ) {
             return cast<TT>::to(x);
+        }
+    };
+
+    // a `type<T>` argument's slot holds no object, and nothing reads the reference bound off it
+    template <typename TT>
+    struct cast_aot_arg<const TT &> {
+        DAS_SUPPRESS_UB static __forceinline const TT & to ( Context &, vec4f x ) {
+            return *cast<const TT *>::to(x);
         }
     };
 
@@ -3213,7 +3250,7 @@ namespace das {
     template <typename TK, typename TV, typename TKey>
     __forceinline TV * __builtin_table_find ( Context * context, const TTable<TK, TV> & tab, TKey _key ) {
         TK key = (TK) _key;
-        auto hfn = hash_function(*context, key);
+        auto hfn = KeyHash<TK>()(*context, key);
         TableHash<TK> thh(context,sizeof(TV));
         int64_t index = thh.find(tab, key, hfn);
         return (TV *) ( index!=-1 ? tab.data + index * sizeof(TV) : nullptr );
@@ -3228,7 +3265,7 @@ namespace das {
     template <typename TK, typename TV, typename TKey>
     __forceinline bool __builtin_table_key_exists ( Context * context, const TTable<TK, TV> & tab, TKey _key ) {
         TK key = (TK) _key;
-        auto hfn = hash_function(*context, key);
+        auto hfn = KeyHash<TK>()(*context, key);
         TableHash<TK> thh(context, safe_size_of<TV>::value);
         return thh.find(tab, key, hfn) != -1;
     }
@@ -3237,7 +3274,7 @@ namespace das {
     __forceinline bool __builtin_table_erase ( Context * context, TTable<TK,TV> & tab, TKey _key ) {
         if ( tab.isLocked() ) context->throw_error("can't erase from locked table");
         TK key = (TK) _key;
-        auto hfn = hash_function(*context, key);
+        auto hfn = KeyHash<TK>()(*context, key);
         TableHash<TK> thh(context,safe_size_of<TV>::value);
         return thh.erase(tab, key, hfn) != -1;
     }
@@ -3246,7 +3283,7 @@ namespace das {
     __forceinline void __builtin_table_set_insert ( Context * context, TTable<TK,void> & tab, TKey _key ) {
         if ( tab.isLocked() ) context->throw_error("can't insert to a locked table");
         TK key = (TK) _key;
-        auto hfn = hash_function(*context, key);
+        auto hfn = KeyHash<TK>()(*context, key);
         TableHash<TK> thh(context,0);
         thh.reserve(tab, key, hfn);
     }
@@ -3432,6 +3469,7 @@ namespace das {
     DAS_API const char * pass_string( const char * str );
     DAS_API char * clone_pass_string( char * str, Context * ctx, LineInfoArg * at);
     DAS_API void set_das_string(string & str, const char * bs);
+    DAS_API void set_das_string_bytes(string & str, const TArray<uint8_t> & bytes);
     DAS_API void set_string_das(char * & bs, const string & str, Context * ctx, LineInfoArg * at);
 
     __forceinline bool das_str_equ ( const string & a, const string & b ) { return a==b; }
@@ -4505,12 +4543,7 @@ namespace das {
     __forceinline vec4f cvt_uint3 ( float3 f ) { return v_cast_vec4f(v_cvt_vec4i(f)); }
     __forceinline vec4f cvt_uint4 ( float4 f ) { return v_cast_vec4f(v_cvt_vec4i(f)); }
 
-    __forceinline vec4f cvt_pass ( int2 i )  { return i; }
-    __forceinline vec4f cvt_pass ( int3 i )  { return i; }
-    __forceinline vec4f cvt_pass ( int4 i )  { return i; }
-    __forceinline vec4f cvt_pass ( uint2 i ) { return i; }
-    __forceinline vec4f cvt_pass ( uint3 i ) { return i; }
-    __forceinline vec4f cvt_pass ( uint4 i ) { return i; }
+    __forceinline vec4f cvt_pass ( vec4f i ) { return i; }
 
     __forceinline int32_t class_rtti_size ( void * ptr ) {
        auto pti = (TypeInfo **)ptr;
@@ -4586,7 +4619,6 @@ namespace das {
         return -1;
     }
 
-    void ___noinline builtin_try_recover ( const Block & try_block, const Block & catch_block, Context * context, LineInfoArg * at );
 
     bool das_jit_enabled ( Context * context, LineInfoArg * at );
     bool das_aot_enabled ( Context * context, LineInfoArg * at );
@@ -4600,7 +4632,7 @@ namespace das {
         r *= b;
         a = static_cast<uint64_t>(r);
         b = static_cast<uint64_t>(r >> 64U);
-    #elif defined(_MSC_VER) && defined(_M_X64)
+    #elif defined(_MSC_VER) && defined(_M_X64) && !defined(_M_ARM64EC)
         a = _umul128(a, b, &b);
     #else
         uint64_t ha = a >> 32U;

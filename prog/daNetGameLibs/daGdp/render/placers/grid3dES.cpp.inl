@@ -93,7 +93,6 @@ static inline void grid3d_view_process_es(
       placer3d.distBasedCenter = dagdp__distance_based_center;
       placer3d.gridJitter = dagdp__jitter;
       placer3d.prngSeed = dagdp__seed;
-      placer3d.csmCascadeCount = dagdp__csm_cascade_count;
 
       for (const auto objectGroupEid : placer.objectGroupEids)
       {

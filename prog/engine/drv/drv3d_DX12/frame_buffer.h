@@ -8,6 +8,7 @@
 #include "format_store.h"
 #include "image_view_state.h"
 #include "resource_manager/image.h"
+#include "render_target_mask_util.h"
 
 #include <cstdint>
 #include <debug/dag_assert.h>
@@ -17,55 +18,75 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/optional.h>
 #include <math/dag_lsbVisitor.h>
+#include <generic/dag_enumerate.h>
 
 
 namespace drv3d_dx12
 {
-union FramebufferMask
+class FramebufferMask
 {
-  uint32_t raw = 0;
-  struct
+  uint32_t hasDepthStencilAttachmentBit : 1 = 0;
+  uint32_t isConstantDepthstencilAttachmentBit : 1 = 0;
+  uint32_t colorAttachmentMask : Driver3dRenderTarget::MAX_SIMRT = 0;
+  uint32_t padd : 32 - Driver3dRenderTarget::MAX_SIMRT - 2 = 0;
+
+public:
+  void combineWith(FramebufferMask other)
   {
-    uint32_t hasDepthStencilAttachment : 1;
-    uint32_t isConstantDepthstencilAttachment : 1;
-    uint32_t colorAttachmentMask : Driver3dRenderTarget::MAX_SIMRT;
-  };
+    hasDepthStencilAttachmentBit |= other.hasDepthStencilAttachmentBit;
+    isConstantDepthstencilAttachmentBit |= other.isConstantDepthstencilAttachmentBit;
+    colorAttachmentMask |= other.colorAttachmentMask;
+  }
+  RenderTargetMask getRenderTargetMask() const { return RenderTargetMask::make(colorAttachmentMask); }
 
   template <typename T>
   void iterateColorAttachments(T &&u)
   {
-    for (auto i : LsbVisitor{colorAttachmentMask})
+    for (auto i : getRenderTargetMask().visit())
     {
       u(i);
     }
   }
 
   template <typename T>
-  void iterateColorAttachments(uint32_t valid_mask, T &&u)
+  void iterateColorAttachments(RenderTargetMask valid_mask, T &&u)
   {
-    for (auto i : LsbVisitor{colorAttachmentMask & valid_mask})
+    for (auto i : (getRenderTargetMask() & valid_mask).visit())
     {
       u(i);
     }
   }
 
   void setColorAttachment(uint32_t index) { colorAttachmentMask |= 1u << index; }
-
   void resetColorAttachment(uint32_t index) { colorAttachmentMask &= ~(1u << index); }
+
+  void maskOffColorAttachments(RenderTargetMask mask)
+  {
+    // PVS fails to see that colorAttachmentMask is a bitmask of 8 bits, which is the same as mask
+    colorAttachmentMask &= mask.raw(); // -V784
+  }
 
   void setDepthStencilAttachment(bool is_const)
   {
-    hasDepthStencilAttachment = 1;
-    isConstantDepthstencilAttachment = is_const ? 1u : 0u;
+    hasDepthStencilAttachmentBit = 1;
+    isConstantDepthstencilAttachmentBit = is_const ? 1u : 0u;
   }
 
   void resetDepthStencilAttachment()
   {
-    hasDepthStencilAttachment = 0;
-    isConstantDepthstencilAttachment = 0;
+    hasDepthStencilAttachmentBit = 0;
+    isConstantDepthstencilAttachmentBit = 0;
   }
 
-  void resetAll() { raw = 0; }
+  bool isConstantDepthstencilAttachment() const { return 0 != isConstantDepthstencilAttachmentBit; }
+  bool hasDepthStencilAttachment() const { return 0 != hasDepthStencilAttachmentBit; }
+
+  void resetAll()
+  {
+    hasDepthStencilAttachmentBit = 0;
+    isConstantDepthstencilAttachmentBit = 0;
+    colorAttachmentMask = 0;
+  }
 };
 
 
@@ -84,14 +105,17 @@ struct FramebufferInfo
   FramebufferMask getMatchingAttachmentMask(Image *texture)
   {
     FramebufferMask result;
-    uint32_t i = 1;
-    for (auto &colorAttachment : colorAttachments)
+    for (auto [i, e] : enumerate(colorAttachments))
     {
-      result.colorAttachmentMask |= colorAttachment.image == texture ? i : 0u;
-      i <<= 1;
+      if (e.image == texture)
+      {
+        result.setColorAttachment(i);
+      }
     }
-    result.isConstantDepthstencilAttachment = attachmentMask.isConstantDepthstencilAttachment;
-    result.hasDepthStencilAttachment = (depthStencilAttachment.image == texture) ? 1u : 0u;
+    if (depthStencilAttachment.image == texture)
+    {
+      result.setDepthStencilAttachment(attachmentMask.isConstantDepthstencilAttachment());
+    }
     return result;
   }
 
@@ -118,8 +142,8 @@ struct FramebufferInfo
     depthStencilAttachment = AttachmentInfo{};
     attachmentMask.resetDepthStencilAttachment();
   }
-  bool hasConstDepthStencilAttachment() const { return 0 != attachmentMask.isConstantDepthstencilAttachment; }
-  bool hasDepthStencilAttachment() const { return 0 != attachmentMask.hasDepthStencilAttachment; }
+  bool hasConstDepthStencilAttachment() const { return attachmentMask.isConstantDepthstencilAttachment(); }
+  bool hasDepthStencilAttachment() const { return attachmentMask.hasDepthStencilAttachment(); }
   Extent2D makeDrawArea(Extent2D def = {}) const;
 };
 
@@ -131,7 +155,7 @@ struct FramebufferLayout
 {
   FormatStore colorFormats[Driver3dRenderTarget::MAX_SIMRT] = {};
   FormatStore depthStencilFormat = {};
-  uint8_t colorTargetMask = 0;
+  RenderTargetMask colorTargetMask = RenderTargetMask::make(0);
   uint16_t colorMsaaLevels = 0;
   uint8_t hasDepth = 0;
   uint8_t depthMsaaLevel = 0;
@@ -147,7 +171,7 @@ struct FramebufferLayout
   {
     eastl::fill(eastl::begin(colorFormats), eastl::end(colorFormats), FormatStore{});
     depthStencilFormat = FormatStore{};
-    colorTargetMask = 0;
+    colorTargetMask.clear();
     hasDepth = 0;
     depthMsaaLevel = 0;
     colorMsaaLevels = 0;
@@ -155,14 +179,14 @@ struct FramebufferLayout
 
   void setColorAttachment(uint8_t index, uint8_t msaa_level, FormatStore format)
   {
-    colorTargetMask |= 1 << index;
+    colorTargetMask.set(index);
     colorFormats[index] = format;
     setColorMsaaLevel(msaa_level, index);
   }
 
   void clearColorAttachment(uint8_t index)
   {
-    colorTargetMask &= ~(1 << index);
+    colorTargetMask.unset(index);
     colorFormats[index] = FormatStore{};
     clearColorMsaaLevel(index);
   }
@@ -186,7 +210,7 @@ struct FramebufferLayout
   void checkMsaaLevelsEqual() const
   {
     eastl::optional<uint8_t> previous;
-    for (const auto index : LsbVisitor{colorTargetMask})
+    for (const auto index : colorTargetMask.visit())
     {
       G_ASSERT(!previous || *previous == getColorMsaaLevel(index));
       previous = getColorMsaaLevel(index);
@@ -195,13 +219,12 @@ struct FramebufferLayout
   }
 
   // Calculates the color write mask for all targets, per target channel mask depends on format
-  uint32_t getColorWriteMask() const
+  FrameBufferColorChannelMask getColorWriteMask() const
   {
-    uint32_t mask = 0;
-    for (auto i : LsbVisitor{colorTargetMask})
+    auto mask = FrameBufferColorChannelMask::make(0);
+    for (auto i : colorTargetMask.visit())
     {
-      auto m = colorFormats[i].getChannelMask();
-      mask |= m << (i * 4);
+      mask.set(i, colorFormats[i].getChannelMask());
     }
     return mask;
   }
@@ -243,7 +266,7 @@ private:
   };
   void supportCheckVisit(auto &&visit) const
   {
-    for (auto i : LsbVisitor{colorTargetMask})
+    for (auto i : colorTargetMask.visit())
     {
       auto &fmt = colorFormats[i];
       SupportCheckResult result = SupportCheckResult::Pass;
@@ -334,7 +357,7 @@ struct FramebufferState
   void dirtyTextureState(Image *texture)
   {
     auto state = frontendFrameBufferInfo.getMatchingAttachmentMask(texture);
-    framebufferDirtyState.raw |= state.raw;
+    framebufferDirtyState.combineWith(state);
   }
 
   void dirtyAllTexturesState() { framebufferDirtyState = frontendFrameBufferInfo.attachmentMask; }

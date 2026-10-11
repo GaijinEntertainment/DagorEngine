@@ -78,6 +78,7 @@ static RiGenVisibility *take_scene_shadow_ri_visibility(int update_index,
 
 void wait_scene_shadow_ri_cull_jobs()
 {
+  TIME_PROFILE(wait_scene_shadow_ri_cull_jobs);
   for (auto &job : scene_shadow_ri_cull_jobs)
     threadpool::wait(&job);
 }

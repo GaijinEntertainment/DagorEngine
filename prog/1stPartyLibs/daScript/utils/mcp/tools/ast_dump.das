@@ -10,7 +10,7 @@ def do_ast_dump_expression(expression, project_root : string; load_modules : arr
     let exe = get_daslang_exe()
     if (empty(exe)) return make_tool_result("Cannot determine daslang executable path", true)
     let script_path = make_temp_das_file()
-    let code = "options gen2\noptions rtti\nrequire daslib/ast\nrequire daslib/ast_boost\n\n[export]\ndef main() \{\n    var ed <- quote({expression})\n    print(\"\{debug_expression(ed)\}\n\")\n\}\n"
+    let code = "options gen2\noptions rtti\nrequire daslib/ast\nrequire daslib/ast_boost\n\n[export]\ndef main() \{\n    ast_gc_guard() \{\n        var ed <- quote({expression})\n        print(\"\{debug_expression(ed)\}\n\")\n    \}\n\}\n"
     var write_ok = false
     fopen(script_path, "wb") $(fw) {
         if (fw == null) return

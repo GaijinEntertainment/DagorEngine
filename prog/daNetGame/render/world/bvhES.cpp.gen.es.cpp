@@ -235,6 +235,32 @@ static ecs::EntitySystemDesc set_glass_rtr_shadow_es_es_desc
                        OnRenderSettingsReady>::build(),
   0
 ,"render","render_settings__enableRTTRShadows");
+static constexpr ecs::ComponentDesc rtr_ptgi_debug_view_recreate_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("resolved_rt_settings"), ecs::ComponentTypeInfo<ResolvedRTSettings>()}
+};
+static void rtr_ptgi_debug_view_recreate_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    rtr_ptgi_debug_view_recreate_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+        , ECS_RO_COMP(rtr_ptgi_debug_view_recreate_es_comps, "resolved_rt_settings", ResolvedRTSettings)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc rtr_ptgi_debug_view_recreate_es_es_desc
+(
+  "rtr_ptgi_debug_view_recreate_es",
+  "prog/daNetGame/render/world/bvhES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, rtr_ptgi_debug_view_recreate_es_all_events),
+  empty_span(),
+  make_span(rtr_ptgi_debug_view_recreate_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  0
+,"dev,render");
 static constexpr ecs::ComponentDesc rt_set_resolution_es_comps[] =
 {
 //start of 1 rq components at [0]

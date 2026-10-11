@@ -8,10 +8,7 @@ require live_host
 [test]
 def test_store_and_load(t : T?) {
     t |> run("store and load bytes") @(t : T?) {
-        var data : array<uint8>
-        data |> push(uint8(1))
-        data |> push(uint8(2))
-        data |> push(uint8(3))
+        let data <- [uint8(1), uint8(2), uint8(3)]
         live_store_bytes("test_key", data)
         var loaded : array<uint8>
         let ok = live_load_bytes("test_key", loaded)
@@ -31,9 +28,7 @@ def test_store_and_load(t : T?) {
         var data1 : array<uint8>
         data1 |> push(uint8(10))
         live_store_bytes("overwrite_key", data1)
-        var data2 : array<uint8>
-        data2 |> push(uint8(20))
-        data2 |> push(uint8(30))
+        let data2 <- [uint8(20), uint8(30)]
         live_store_bytes("overwrite_key", data2)
         var loaded : array<uint8>
         let ok = live_load_bytes("overwrite_key", loaded)
@@ -43,7 +38,7 @@ def test_store_and_load(t : T?) {
         t |> equal(int(loaded[1]), 30)
     }
     t |> run("store empty array") @(t : T?) {
-        var data : array<uint8>
+        let data : array<uint8>
         live_store_bytes("empty_key", data)
         var loaded : array<uint8>
         let ok = live_load_bytes("empty_key", loaded)
@@ -51,10 +46,7 @@ def test_store_and_load(t : T?) {
         t |> equal(length(loaded), 0)
     }
     t |> run("store large data") @(t : T?) {
-        var data : array<uint8>
-        for (i in range(10000)) {
-            data |> push(uint8(i % 256))
-        }
+        let data <- [for (i in range(10000)); uint8(i % 256)]
         live_store_bytes("large_key", data)
         var loaded : array<uint8>
         let ok = live_load_bytes("large_key", loaded)

@@ -60,7 +60,6 @@ class SafeAddrMacro : AstFunctionAnnotation {
     }
 }
 
-// [tag_function(temp_addr_tag)]
 def public temp_ptr(x : auto(T)? implicit ==const) : T? const# {
     //! returns temporary pointer from a given pointer
     unsafe {
@@ -68,7 +67,6 @@ def public temp_ptr(x : auto(T)? implicit ==const) : T? const# {
     }
 }
 
-// [tag_function(temp_addr_tag)]
 def public temp_ptr(var x : auto(T)? implicit ==const) : T?# {
     //! returns temporary pointer from a given pointer
     unsafe {
@@ -92,7 +90,7 @@ def public shared_addr(val : auto(VALUE)&) {
 class SharedAddrMacro : AstFunctionAnnotation {
     //! This macro reports an error if shared_addr is attempted on anything other that shared global variables.
     //! I.e. only global variables are safe to use with shared_addr.
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (is_shared_expr(call.arguments[0])) return true
         compiling_program() |> macro_error(call.at, "{call.name} can only be used with shared global variables")
         return false
@@ -118,35 +116,10 @@ def public temp_value(var x : auto(T)& ==const) : T&# {
 [tag_function_macro(tag="temp_value_tag")]
 class TempValueMacro : AstFunctionAnnotation {
     //! This macro reports an error if temp_value is attempted outside of function arguments.
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (is_temp_safe(call.arguments[0])) return true
         compiling_program() |> macro_error(call.at, "{describe(call.arguments[0])} can't be simply promoted to temp value")
         return false
     }
 }
 
-/*
-
-// this breaks safety. i.e. a:array<FOO>; temp_addr(a[0]); resize(a,100500)
-
-[tag_function(temp_addr_tag)]
-def public temp_addr(var x : auto(T)& ==const) : T-& ? #
-    //! returns temporary pointer to the given expression
-    unsafe
-        return reinterpret<T-&?#>(addr(x))
-
-[tag_function(temp_addr_tag)]
-def public temp_addr(x : auto(T)& ==const) : T-& ? const #
-    //! Returns a temporary const pointer to the given expression.
-    unsafe
-        return reinterpret<T-&? const #>(addr(x))
-
-[tag_function_macro(tag="temp_addr_tag")]
-class TempAddrMacro : AstFunctionAnnotation
-    //! This macro reports an error if temp_addr is attempted outside of function arguments.
-    def override verifyCall ( var call : ExprCallFunc?; args,progArgs:AnnotationArgumentList; var errors : das_string ) : bool
-        if call.flags.isForLoopSource || call.flags.isCallArgument
-            return true
-        compiling_program() |> macro_error(call.at,"{call.name} can only be used in function arguments or for loop source")
-        return false
-*/

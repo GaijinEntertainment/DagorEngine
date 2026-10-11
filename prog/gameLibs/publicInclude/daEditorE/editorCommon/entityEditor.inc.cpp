@@ -641,7 +641,7 @@ public:
   {
     // We need hierarchy_attached_entity_transform_es() to run to be able to get the final transform values.
     g_entity_mgr->tick(true);
-    g_entity_mgr->update(ecs::UpdateStageInfoAct(0.0f, 0.0f));
+    g_entity_mgr->update(ecs::UpdateStageInfoAct(0.0f, 0.0));
 
     for (UndoRedoData &undoRedoObject : directlyChangedObjects)
       if (EntityObj *entityObj = RTTI_cast<EntityObj>(undoRedoObject.object))
@@ -822,9 +822,15 @@ ecs::EntityId EntityObjEditor::createEntityDirect(EntCreateData *data)
 {
   data->eid = ecs::INVALID_ENTITY_ID;
   removeSelectedTemplateName(data->templName);
+  isCreatingSampleEntity = true;
   EntCreateData::createCb(data);
+  isCreatingSampleEntity = false;
   if (data->eid != ecs::INVALID_ENTITY_ID)
+  {
     ecs::g_scenes->getActiveScene().insertEmptyEntityRecord(data->eid, data->templName.c_str());
+    if (is_editor_activated())
+      eidsCreated.insert(data->eid);
+  }
   else
     logerr("failed to create new entity");
   return data->eid;

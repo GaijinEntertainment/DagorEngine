@@ -1,0 +1,36 @@
+include "prev_screen_tc.dshl"
+include "reprojected_motion_vectors.dshl"
+include "project_prev_frame_sample_radiance.dshl"
+
+macro RT_PREV_FRAME_SAMPLE(stage, struct_name, prev_frame_sample_enabled)
+  (stage)
+  {
+    prev_globtm_psf@f44 = { prev_globtm_psf_0, prev_globtm_psf_1, prev_globtm_psf_2, prev_globtm_psf_3 };
+    sp_prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, 1/(prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+  }
+  hlsl(stage)
+  {
+    #define RT_CALC_VIEWVECT 1
+  }
+  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(stage, true)
+  hlsl(stage)
+  {
+    struct struct_name
+    {
+      static bool get_screen_sample(float3 worldPos, float3 rayDir, out float3 radiance)
+      {
+        if (!(prev_frame_sample_enabled))
+          return false;
+        float4 prevNDC = mul(float4(worldPos, 1), prev_globtm_psf);
+        float3 prevUVW = float3(prevNDC.xy / prevNDC.w, prevNDC.w);
+        prevUVW.xy = float2(prevUVW.x, -prevUVW.y) * 0.5 + 0.5;
+        float3 currentUVW = 0; // dummy
+        float3 camPos = 0; // dummy
+        bool allow_uncertaincy = true;
+        radiance = 0;
+
+        return sample_prev_frame_radiance(prevUVW, currentUVW, camPos, rayDir, allow_uncertaincy, radiance);
+      }
+    };
+  }
+endmacro

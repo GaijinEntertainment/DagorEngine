@@ -276,7 +276,7 @@ struct RiexPersistentData
   RiexCache cache{};
 
   bool isCacheValid = false;
-  bool areBuffersValid = false;
+  bool hasValidDrawData = false;
 };
 
 class ExternalShaderVarsScope
@@ -550,7 +550,7 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
     }
   }
 
-  persistent_data.areBuffersValid = update_buffers(persistent_data, protoDrawCallsFmem);
+  persistent_data.hasValidDrawData = !protoDrawCallsFmem.empty() && update_buffers(persistent_data, protoDrawCallsFmem);
   persistent_data.isCacheValid = true;
 }
 
@@ -561,7 +561,7 @@ static void render(SubPass sub_pass,
   Sbuffer *draw_args_buf)
 {
   G_ASSERT(viewport_index < persistent_data.constants.viewInfo.maxViewports);
-  if (!persistent_data.areBuffersValid)
+  if (!persistent_data.hasValidDrawData)
     return;
 
   const RiexConstants &constants = persistent_data.constants;
@@ -838,10 +838,13 @@ static dafg::NodeHandle create_bvh_indirect_args_node(const eastl::shared_ptr<Ri
           mappingData.push_back(data);
         }
       }
-      mappingHndl.get()->updateData(0, data_size(mappingData), mappingData.data(), VBLOCK_WRITEONLY);
-
       uint32_t data[] = {mappingData.size(), 0, 1};
       indirectArgsHndl.get()->updateData(0, sizeof(data), data, VBLOCK_WRITEONLY);
+
+      if (mappingData.empty())
+        return;
+
+      mappingHndl.get()->updateData(0, data_size(mappingData), mappingData.data(), VBLOCK_WRITEONLY);
 
       const RiexConstants &constants = persistent_data->constants;
       ShaderGlobal::set_int(dagdp_bvh_draw_args_dwordsVardId, constants.argsDwords);
@@ -1155,7 +1158,7 @@ void riex_finalize_view(const ViewInfo &view_info,
     registry.modify("draw_args").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_riex__draw_args");
 
     return [persistentData, shader = ComputeShader("dagdp_riex_patch_dynamic")] {
-      if (!persistentData->areBuffersValid)
+      if (!persistentData->hasValidDrawData)
         return;
 
       ShaderGlobal::set_int(var::num_patches, persistentData->cache.numCounterPatches);

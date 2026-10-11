@@ -23,6 +23,8 @@ if $(Platform)-$(PlatformArch) = windows-x86 {
   AddIncludes += $(Root)/$(Location)/generated/win32 ;
 } else if $(Platform)-$(PlatformArch) = windows-arm64 {
   AddIncludes += $(Root)/$(Location)/generated/windows_arm64 ;
+} else if $(Platform)-$(PlatformArch) = windows-arm64ec {
+  AddIncludes += $(Root)/$(Location)/generated/windows_arm64ec ;
 }
 
 if $(Platform) = macOS {

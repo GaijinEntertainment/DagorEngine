@@ -79,16 +79,16 @@ def test_invoke_cmres(t : T?) {
         checkInvoke(t, 1, @@funcAC)
     }
     t |> run("invoke blocks") @(t : T?) {
-        checkInvoke(t) <| $() : Foo {
+        checkInvoke(t) $() : Foo {
             return Foo(a = 1, b = 2)
         }
-        checkInvoke(t) <| $() : Foo const {
+        checkInvoke(t) $() : Foo const {
             return Foo(a = 1, b = 2)
         }
-        checkInvoke(t, 1) <| $(tt : int) : Foo {
+        checkInvoke(t, 1) $(tt : int) : Foo {
             return Foo(a = tt, b = tt + 1)
         }
-        checkInvoke(t, 1) <| $(tt : int) : Foo const {
+        checkInvoke(t, 1) $(tt : int) : Foo const {
             return Foo(a = tt, b = tt + 1)
         }
     }

@@ -72,6 +72,8 @@ Sources =
   makeShBinDump.cpp
   transcodeShader.cpp
   namedConst.cpp
+  renderPassObject.cpp
+  framebufferLayout.cpp
   refinedBlockLayout.cpp
   refinedBlockRegisterAllocator.cpp
   codeBlocks.cpp
@@ -137,7 +139,8 @@ HlslPredefines =
   predefines_dx12xs.hlsl
 ;
 
-for s in $(HlslPredefines) { if [ GLOB $(Root)/$(Location) : $(s) ] { StringifySourceFile $(s) : $(s).inl : namedConst.cpp ; } }
+# hwAssembly.cpp is the includer of the generated .inl, so the rebuild must depend on it.
+for s in $(HlslPredefines) { if [ GLOB $(Root)/$(Location) : $(s) ] { StringifySourceFile $(s) : $(s).inl : hwAssembly.cpp ; } }
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -160,7 +163,7 @@ include $(Root)/prog/gameLibs/spirv/jamfile-dxc-ver ;
 
 if $(CopyDxcLib) = yes {
   local dxc_dir = $(_DEVTOOL)/DXC-$(DXC_VERSION)/lib/$(LegacyPlatformSuffix) ;
-  if ! [ GLOB $(dxc_dir) : * ] { exit FATAL\: \"$(dxc_dir)\" not found! Please, update DEVTOOLS ; }
+  if ! [ GLOB $(dxc_dir) : * ] { exit "FATAL: \"$(dxc_dir)\" not found! Please, update DEVTOOLS" ; }
   ExplicitLicenseUsed += $(_DEVTOOL)/DXC-$(DXC_VERSION) ;
   local library = [ AutoCompleteTargetName dxcompiler : dll : macOS-shortform ] ;
   local src = $(dxc_dir)/$(library) ;

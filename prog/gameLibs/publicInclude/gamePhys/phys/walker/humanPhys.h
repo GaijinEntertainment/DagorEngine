@@ -65,6 +65,13 @@ enum HUStandState : uint8_t
   ESS_NUM,
 };
 
+enum HumanClimbHangPhase : uint8_t
+{
+  HCHP_NONE,
+  HCHP_REACH,
+  HCHP_HOLD,
+};
+
 struct HumanDmgState
 {
   float legsHitTimer;
@@ -185,6 +192,7 @@ struct HumanSerializableState //-V730
   uint16_t reduceToWalk : 1;
   uint16_t isLadderQuickMovingUp : 1;
   uint16_t isLadderQuickMovingDown : 1;
+  uint16_t climbHangPhase : 2;
 
   TMatrix ladderTm = TMatrix::IDENT;
   Point3 climbFromPos = Point3(0.f, 0.f, 0.f);    // where we started our climbing
@@ -196,6 +204,8 @@ struct HumanSerializableState //-V730
   Point3 climbPosBehindObstacle = Point3(0.f, 0.f, 0.f);
   float climbDeltaHt = 0.f;
   float climbStartAtTime = 0.f;
+  float climbHangTargetHt = 0.f;
+  float climbHangStartAtTime = 0.f;
 
   float gunBackoffAmount = 0.f;
   float gunTraceTimer = 0.f;
@@ -513,6 +523,11 @@ public:
   float climbHorzBrake = 10.f;
   float climbBrakeHeight = 1.f;
   float climbTimeout = 2.f;
+  float climbHangDepth = 2.f;
+  float climbHangSinkSpeed = 2.5f;
+  float climbHangStandoff = 0.3f;
+  float climbHangHoldTime = 0.2f;
+  float climbHangMaxTime = 1.f;
   float climbDistance = 1.f;
   float climbOverDistance = 1.7f;
   float climbFinishDistance = 0.05f;
@@ -817,8 +832,14 @@ public:
     const Point3 &climb_from_pos, const Point3 &orig_climb_to_pos, int ray_mat_id, TraceMeshFaces *handle) const;
   ClimbQueryResults climbQuery(const Point3 &offset, int ray_mat_id = -1, bool check_norm = true, bool check_min = true,
     bool check_max = true, bool is_in_air = false, bool on_ladder = false, TraceMeshFaces *handle = nullptr) const;
+  ClimbQueryResults climbQueryInFrame(const TMatrix &tm, const Point3 &offset, float climb_height, int ray_mat_id, bool check_norm,
+    bool check_min, bool check_max, bool on_ladder, TraceMeshFaces *handle) const;
+  ClimbQueryResults climbQueryAlong(const Point3 &dir, float forward_offset, float max_height) const;
+  bool startClimb(const ClimbQueryResults &climb_res, int at_tick, bool allow_hang);
   void resetClimbing();
-  void performClimb(const ClimbQueryResults &climb_res, float at_time);
+  void performClimb(const ClimbQueryResults &climb_res, float at_time, bool allow_hang);
+  void startClimbHang(float at_time);
+  void updateClimbHang(float at_time, float dt, const Point3 &vert_dir);
   bool canClimbOverObstacle(const ClimbQueryResults &climb_res);
 
   static bool isDebugDrawEnabled();

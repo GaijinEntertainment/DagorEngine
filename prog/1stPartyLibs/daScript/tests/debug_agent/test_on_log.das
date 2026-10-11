@@ -6,6 +6,8 @@ options no_unused_block_arguments = false
 
 require dastest/testing_boost public
 require daslib/debugger
+require daslib/defer
+require daslib/fio
 
 var log_count : int = 0
 var last_log_level : int = -1
@@ -20,7 +22,7 @@ class LogAgent : DapiDebugAgent {
 
 var log_agent_ready : bool = false
 
-def setup_log_agent(ctx : Context) {
+def setup_log_agent(_ctx : Context) {
     install_new_debug_agent(new LogAgent(), "log_test")
     log_agent_ready = true
 }
@@ -33,16 +35,12 @@ def ensure_log_agent() {
 
 [export, pinvoke]
 def read_log_count(var result : int?) {
-    unsafe {
-        *result = log_count
-    }
+    *result = log_count
 }
 
 [export, pinvoke]
 def read_last_level(var result : int?) {
-    unsafe {
-        *result = last_log_level
-    }
+    *result = last_log_level
 }
 
 [export, pinvoke]
@@ -53,11 +51,13 @@ def reset_log_state() {
 
 [test]
 def test_to_log_triggers_on_log(t : T?) {
+    set_env_variable("DAS_LOG_LEVEL", "info")
+    defer() {
+        set_env_variable("DAS_LOG_LEVEL", "")
+    }
     t |> run("to_log routes through onLog") @(t : T?) {
         ensure_log_agent()
-        unsafe {
-            invoke_in_context(get_debug_agent_context("log_test"), "reset_log_state")
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("log_test"), "reset_log_state"))
         to_log(LOG_INFO, "test message\n")
         var count = 0
         unsafe {
@@ -71,9 +71,7 @@ def test_to_log_triggers_on_log(t : T?) {
 def test_print_triggers_on_log(t : T?) {
     t |> run("print routes through onLog") @(t : T?) {
         ensure_log_agent()
-        unsafe {
-            invoke_in_context(get_debug_agent_context("log_test"), "reset_log_state")
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("log_test"), "reset_log_state"))
         // this print is intentional. do not feint
         print("test print message\n")
         var count = 0
@@ -88,15 +86,13 @@ def test_print_triggers_on_log(t : T?) {
 def test_on_log_receives_level(t : T?) {
     t |> run("onLog receives the log level") @(t : T?) {
         ensure_log_agent()
-        unsafe {
-            invoke_in_context(get_debug_agent_context("log_test"), "reset_log_state")
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("log_test"), "reset_log_state"))
         to_log(LOG_WARNING, "warning test\n")
         var level = -1
         unsafe {
             invoke_in_context(get_debug_agent_context("log_test"), "read_last_level", addr(level))
         }
-        t |> equal(level, int(LOG_WARNING))
+        t |> equal(level, LOG_WARNING)
     }
 }
 

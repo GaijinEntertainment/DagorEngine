@@ -8,12 +8,6 @@ see copyright notice in squirrel.h
 #include "sqclosure.h"
 #include <assert.h>
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#pragma intrinsic(_BitScanReverse)
-#endif
-
-#define _FAST_CLONE
-
 #define MINPOWER2 1
 
 #define CLASS_TYPE_HASH_INIT    14695981039346656037ul
@@ -86,17 +80,7 @@ void SQTable::Rehash(bool force)
         oldsize > MINPOWER2)
         AllocNodes(oldsize/2);
     else if (force)
-    {
-        assert(oldsize > 0);
-#if !defined(_MSC_VER) || defined(__clang__)
-        unsigned log2 = 31 - __builtin_clz((unsigned)oldsize);
-#else
-        unsigned long log2;
-        _BitScanReverse(&log2, oldsize);
-#endif
-        AllocNodes(unsigned(1 << (log2 + 1)));
-        assert(_numofnodes_minus_one + 1 > oldsize);
-    }
+        AllocNodes(oldsize*2);
     else
         return;
     _usednodes = 0;
@@ -132,7 +116,6 @@ SQTable *SQTable::CopyNodes()
 {
     const uint32_t cnt = _numofnodes_minus_one+1;
     SQTable *__restrict nt=Create(_opt_ss(this), cnt);
-#ifdef _FAST_CLONE
     _HashNode *__restrict basesrc = _nodes;
     _HashNode *__restrict basedst = nt->_nodes;
     _HashNode *__restrict src = _nodes;
@@ -152,13 +135,6 @@ SQTable *SQTable::CopyNodes()
     assert(_firstfree != NULL);
     nt->_firstfree = basedst + (_firstfree - basesrc);
     nt->_usednodes = _usednodes;
-#else
-    SQInteger ridx=0;
-    SQObjectPtr key,val;
-    while((ridx=Next(true,ridx,key,val))!=-1){
-        nt->NewSlot(key,val VT_CODE(VT_COMMA &_nodes[ridx].varTrace));
-    }
-#endif
     nt->_classTypeId = _classTypeId;
     return nt;
 }
@@ -349,7 +325,7 @@ void SQTable::Clear(SQBool rehash)
 
 bool SQTable::IsBinaryEqual(SQTable *o)
 {
-    if (o->_usednodes != _usednodes || o->_classTypeId != _classTypeId)
+    if (o->_usednodes != _usednodes || o->_classTypeId != _classTypeId || o->_numofnodes_minus_one != _numofnodes_minus_one)
         return false;
     if (o == this)
         return true;

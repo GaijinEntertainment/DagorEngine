@@ -99,6 +99,8 @@ Sources +=
 
   prog/1stPartyLibs/daScript/modules/dasStdDlg/src/dasStdDlg.cpp
   prog/1stPartyLibs/daScript/modules/dasStdDlg/src/dasStdDlgNotImplemented.cpp
+  prog/1stPartyLibs/daScript/modules/dasStdDlg/src/dasStdDlgTray.cpp
+  prog/1stPartyLibs/daScript/modules/dasStdDlg/src/dasStdDlgTrayNotImplemented.cpp
 ;
 include $(Root)/prog/gameLibs/render/daFrameGraph/_aot.jam ;
 include $(Root)/prog/gameLibs/render/resourceSlot/_aot.jam ;
@@ -141,14 +143,12 @@ UseProgLibs +=
 #  engine/ioSys
   engine/startup
   engine/coreUtil
-  engine/sceneRay
   engine/scene
   engine/imgui/stub
   engine/animChar/stub
   3rdPartyLibs/eastl
   1stPartyLibs/rapidJsonUtils
   1stPartyLibs/daScript
-  1stPartyLibs/daScript/utils/dasFormatter
   1stPartyLibs/daScriptModules/rapidjson
   1stPartyLibs/daScript/modules/dasImgui
   1stPartyLibs/daScript/modules/dasQuirrel

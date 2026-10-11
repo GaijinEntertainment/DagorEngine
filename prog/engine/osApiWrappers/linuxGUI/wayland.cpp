@@ -8,6 +8,8 @@
 #include <wayland/wayland-client.h>
 #include <wayland/xdg-shell-client-protocol.h>
 #include <wayland/viewporter-client-protocol.h>
+#include <wayland/fractional-scale-v1-client-protocol.h>
+#include <wayland/xdg-decoration-unstable-v1-client-protocol.h>
 #include <wayland/relative-pointer-unstable-v1-client-protocol.h>
 #include <wayland/pointer-constraints-unstable-v1-client-protocol.h>
 #include <xkbcommon/xkbcommon.h>
@@ -21,6 +23,7 @@
 #include <math/dag_lsbVisitor.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_bits.h>
+#include <math/integer/dag_IPoint2.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <perfMon/dag_statDrv.h>
@@ -189,6 +192,12 @@ static void handle_xdg_toplevel_configure_bounds(void *data, xdg_toplevel *, int
 
 static void handle_xdg_toplevel_wm_capabilities(void *, xdg_toplevel *, wl_array *) { DUMP_HANDLE(); }
 
+static void handle_zxdg_toplevel_decoration_v1_configure(void *, zxdg_toplevel_decoration_v1 *, uint32_t mode)
+{
+  DUMP_HANDLE();
+  debug("wayland: %s window decorations", mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "server-side" : "client-side");
+}
+
 static void handle_wl_seat_capabilities(void *data, wl_seat *, uint32_t capabilities)
 {
   DUMP_HANDLE();
@@ -300,12 +309,19 @@ static void handle_wl_keyboard_repeat_info(void *data, wl_keyboard *, int32_t ra
   info.cbRepeatInfo(delay, rate);
 }
 
-static void handle_zwp_relative_pointer_v1_relative_motion(void *data, zwp_relative_pointer_v1 *, uint32_t, uint32_t, wl_fixed_t dx,
-  wl_fixed_t dy, wl_fixed_t, wl_fixed_t)
+static void handle_zwp_relative_pointer_v1_relative_motion(void *data, zwp_relative_pointer_v1 *, uint32_t, uint32_t, wl_fixed_t,
+  wl_fixed_t, wl_fixed_t dx_unaccel, wl_fixed_t dy_unaccel)
 {
   DUMP_HANDLE();
   Wayland::Pointer &info = *((Wayland::Pointer *)data);
-  info.cbRelativeMotion(dx, dy);
+  info.cbRelativeMotion(dx_unaccel, dy_unaccel);
+}
+
+static void handle_wp_fractional_scale_v1_preferred_scale(void *data, wp_fractional_scale_v1 *, uint32_t scale)
+{
+  DUMP_HANDLE();
+  Wayland::Window &info = *((Wayland::Window *)data);
+  info.cbPreferredScale(scale);
 }
 
 static void handle_wl_data_device_data_offer(void *data, wl_data_device *, wl_data_offer *offer)
@@ -435,6 +451,9 @@ struct Listeners
       .configure_bounds = handle_xdg_toplevel_configure_bounds,
       .wm_capabilities = handle_xdg_toplevel_wm_capabilities,
     };
+    zxdg_toplevel_decoration_v1_listener toplevelDecorationV1 = {
+      .configure = handle_zxdg_toplevel_decoration_v1_configure,
+    };
   } xdg;
 
   struct
@@ -443,6 +462,13 @@ struct Listeners
       .relative_motion = handle_zwp_relative_pointer_v1_relative_motion,
     };
   } zwp;
+
+  struct
+  {
+    wp_fractional_scale_v1_listener fractionalScaleV1 = {
+      .preferred_scale = handle_wp_fractional_scale_v1_preferred_scale,
+    };
+  } wp;
 };
 
 static const Listeners listeners{};
@@ -479,6 +505,10 @@ void Wayland::Window::destroy()
 
   if (wp.viewport)
     wp_viewport_destroy(wp.viewport);
+  if (wp.fractionalScaleV1)
+    wp_fractional_scale_v1_destroy(wp.fractionalScaleV1);
+  if (xdg.decorationV1)
+    zxdg_toplevel_decoration_v1_destroy(xdg.decorationV1);
   if (xdg.toplevel)
     xdg_toplevel_destroy(xdg.toplevel);
   if (xdg.surface)
@@ -495,20 +525,21 @@ void Wayland::Window::cbClose()
   if (this == parent->mainWindow)
   {
     debug("main window close signal received!");
-    d3d::window_destroyed(this);
-    win32_set_main_wnd(NULL);
     quit_game(0);
+    return;
   }
   destroy();
 }
 
 void Wayland::Window::processChangedOutputs()
 {
-  if (!outputsChanged)
-    return;
-
-  resetupFullscreen();
-  outputsChanged = false;
+  if (outputsChanged)
+  {
+    resetupFullscreen();
+    outputsChanged = false;
+  }
+  // constraint: wl_output.scale can change without a surface enter or leave
+  updateScale();
 }
 
 void Wayland::Window::resetupFullscreen()
@@ -520,8 +551,8 @@ void Wayland::Window::resetupFullscreen()
     if (!fullscreenOnOutput)
       return;
     xdg_toplevel_unset_fullscreen(xdg.toplevel);
-    wp_viewport_set_destination(wp.viewport, -1, -1);
     fullscreenOnOutput = nullptr;
+    applyViewport();
     {
       WinAutoLock cs(*inputCritSec);
       wl_surface_commit(obj);
@@ -534,7 +565,6 @@ void Wayland::Window::resetupFullscreen()
     if (!fullscreenOnOutput)
       return;
     xdg_toplevel_unset_fullscreen(xdg.toplevel);
-    wp_viewport_set_destination(wp.viewport, -1, -1);
     fullscreenOnOutput = nullptr;
   }
   else
@@ -544,17 +574,17 @@ void Wayland::Window::resetupFullscreen()
       return;
 
     if (fullscreenOnOutput)
-    {
       xdg_toplevel_unset_fullscreen(xdg.toplevel);
-      wp_viewport_set_destination(wp.viewport, -1, -1);
-    }
     fullscreenOnOutput = targetOutput;
     if (!targetOutput)
+    {
+      applyViewport();
       return;
+    }
 
     xdg_toplevel_set_fullscreen(xdg.toplevel, targetOutput->obj);
-    wp_viewport_set_destination(wp.viewport, targetOutput->mode.current.width, targetOutput->mode.current.height);
   }
+  applyViewport();
   {
     WinAutoLock cs(*inputCritSec);
     wl_surface_commit(obj);
@@ -563,7 +593,7 @@ void Wayland::Window::resetupFullscreen()
 
 void Wayland::Window::changeFullscreen(bool enable)
 {
-  if (enable == fullscreen)
+  if (enable == fullscreen && (getFirstOutput() == fullscreenOnOutput))
     return;
   fullscreen = enable;
   resetupFullscreen();
@@ -603,7 +633,112 @@ void Wayland::Window::cbConfigure()
 {
   if (activePointer)
     activePointer->clipChanged |= true;
-  notify_window_resized(reportedWidth, reportedHeight);
+  applyViewport();
+}
+
+void Wayland::Window::cbPreferredScale(uint32_t scale)
+{
+  preferredScale120 = scale;
+  updateScale();
+}
+
+// constraint: wp_fractional_scale_v1 gives scales in 1/120 units
+static constexpr int32_t SCALE_DENOMINATOR = 120;
+
+int32_t Wayland::Window::getScale120()
+{
+  if (preferredScale120 > 0)
+    return preferredScale120;
+
+  int32_t scale = 0;
+  for (uint32_t i : LsbVisitor{onOutputs})
+    if (parent->outputs.isValid(i))
+      scale = max(scale, parent->outputs.arr[i].scaleFactor);
+  if (!scale)
+    if (Output *oi = parent->getDefaultOutput())
+      scale = oi->scaleFactor;
+  return max(scale, 1) * SCALE_DENOMINATOR;
+}
+
+int32_t Wayland::Window::toPhysical(int32_t logical) { return (int32_t)lround((double)logical * getScale120() / SCALE_DENOMINATOR); }
+
+int32_t Wayland::Window::toLogical(int32_t physical) { return (int32_t)lround((double)physical * SCALE_DENOMINATOR / getScale120()); }
+
+// constraint: a position rounds down to stay inside the client area, an extent rounds to nearest as wp_fractional_scale_v1 asks
+int32_t Wayland::Window::toPhysicalFixed(wl_fixed_t_proxy logical)
+{
+  return (int32_t)floor(wl_fixed_to_double(logical) * getScale120() / SCALE_DENOMINATOR);
+}
+
+wl_fixed_t_proxy Wayland::Window::toLogicalFixed(int32_t physical)
+{
+  return wl_fixed_from_double((double)physical * SCALE_DENOMINATOR / getScale120());
+}
+
+void Wayland::Window::getClientSize(int32_t &width, int32_t &height)
+{
+  if (fullscreen && fullscreenOnOutput)
+  {
+    width = fullscreenOnOutput->mode.current.width;
+    height = fullscreenOnOutput->mode.current.height;
+  }
+  // constraint: the vulkan swapchain takes the configure size only in a resizable window, else the requested size
+  else if (dgs_get_window_mode() != WindowMode::WINDOWED_RESIZABLE && requestedWidth && requestedHeight)
+  {
+    width = requestedWidth;
+    height = requestedHeight;
+  }
+  else
+  {
+    width = reportedWidth ? toPhysical(reportedWidth) : (requestedWidth ? requestedWidth : toPhysical(boundsWidth));
+    height = reportedHeight ? toPhysical(reportedHeight) : (requestedHeight ? requestedHeight : toPhysical(boundsHeight));
+  }
+}
+
+bool Wayland::Window::getCursorPos(int &cx, int &cy)
+{
+  if (!activePointer)
+    return false;
+
+  // constraint: the viewport destination rounds to whole logical pixels, so the surface can overhang the client area
+  int32_t width, height;
+  getClientSize(width, height);
+  cx = clamp(toPhysicalFixed(activePointer->x), 0, max(width - 1, 0));
+  cy = clamp(toPhysicalFixed(activePointer->y), 0, max(height - 1, 0));
+  return true;
+}
+
+void Wayland::Window::applyViewport()
+{
+  appliedScale120 = getScale120();
+  int32_t width, height;
+  getClientSize(width, height);
+  const bool hasSize = width > 0 && height > 0;
+  const int32_t logicalWidth = max(toLogical(width), 1), logicalHeight = max(toLogical(height), 1);
+  if (hasSize)
+    wp_viewport_set_destination(wp.viewport, logicalWidth, logicalHeight);
+  else
+    wp_viewport_set_destination(wp.viewport, -1, -1);
+
+  // constraint: xdg-shell rejects a minimum above the maximum, so lift the maximum before a pin can grow
+  const bool fixedSize = hasSize && !fullscreen && dgs_get_window_mode() == WindowMode::WINDOWED;
+  xdg_toplevel_set_max_size(xdg.toplevel, 0, 0);
+  xdg_toplevel_set_min_size(xdg.toplevel, fixedSize ? logicalWidth : 0, fixedSize ? logicalHeight : 0);
+  xdg_toplevel_set_max_size(xdg.toplevel, fixedSize ? logicalWidth : 0, fixedSize ? logicalHeight : 0);
+  notify_window_resized(width, height);
+}
+
+void Wayland::Window::updateScale()
+{
+  if (getScale120() == appliedScale120)
+    return;
+
+  debug("wayland: window scale %.3f", getScale120() / (float)SCALE_DENOMINATOR);
+  applyViewport();
+  {
+    WinAutoLock cs(*inputCritSec);
+    wl_surface_commit(obj);
+  }
 }
 
 void Wayland::Pointer::destroy()
@@ -973,6 +1108,9 @@ void Wayland::cbRegistryGlobal(const Wayland::InputGlobal &in)
   bindGlobal(in, {wl_compositor_interface, RegistryMinVersions::COMPOSITOR, (void **)&wl.compositor});
   bindGlobal(in, {xdg_wm_base_interface, RegistryMinVersions::XDG_WM_BASE, (void **)&xdg.wmBase});
 
+  if (bindGlobal(in, {zxdg_decoration_manager_v1_interface, RegistryMinVersions::XDG_DECORATION, (void **)&gptr}))
+    xdg.decorationManagerV1 = (zxdg_decoration_manager_v1 *)gptr;
+
   if (bindGlobal(in, {wl_output_interface, RegistryMinVersions::OUTPUT, (void **)&gptr}))
   {
     wl_output *output = (wl_output *)gptr;
@@ -1012,6 +1150,9 @@ void Wayland::cbRegistryGlobal(const Wayland::InputGlobal &in)
 
   if (bindGlobal(in, {wp_viewporter_interface, RegistryMinVersions::VIEWPORTER, (void **)&gptr}))
     wp.viewporter = (wp_viewporter *)gptr;
+
+  if (bindGlobal(in, {wp_fractional_scale_manager_v1_interface, RegistryMinVersions::FRACTIONAL_SCALE, (void **)&gptr}))
+    wp.fractionalScaleManagerV1 = (wp_fractional_scale_manager_v1 *)gptr;
 
   if (bindGlobal(in, {zwp_relative_pointer_manager_v1_interface, RegistryMinVersions::RELATIVE_POINTER, (void **)&gptr}))
     zwp.relativePointerManagerV1 = (zwp_relative_pointer_manager_v1 *)gptr;
@@ -1269,6 +1410,119 @@ void Wayland::processMessages()
 
 bool Wayland::init()
 {
+  if (initFailed)
+    return false;
+  if (initConnection())
+    return true;
+  releaseFailedInit();
+  initFailed = true;
+  return false;
+}
+
+void Wayland::releaseFailedInit()
+{
+  // constraint: events of the seats and outputs bound in initConnection can still be queued, so no dispatch here
+  if (wl.display)
+    wl_display_disconnect(wl.display);
+  if (xkbCtx)
+    xkb_context_unref(xkbCtx);
+  if (libHandle)
+    unloadLib();
+  wl = {};
+  xkbCtx = nullptr;
+}
+
+bool Wayland::hasServerSideDecorations()
+{
+  if (!loadLib())
+    return false;
+
+  // collected by the self-contained listeners below
+  struct ProbeState
+  {
+    wl_compositor *compositor = nullptr;
+    xdg_wm_base *wmBase = nullptr;
+    zxdg_decoration_manager_v1 *decoManager = nullptr;
+    bool serverSideGranted = false;
+  } st;
+
+  static const wl_registry_listener registryL = {
+    .global =
+      [](void *data, wl_registry *reg, uint32_t name, const char *interface, uint32_t) {
+        ProbeState *s = static_cast<ProbeState *>(data);
+        if (strcmp(interface, wl_compositor_interface.name) == 0)
+          s->compositor = static_cast<wl_compositor *>(wl_registry_bind(reg, name, &wl_compositor_interface, 1));
+        else if (strcmp(interface, xdg_wm_base_interface.name) == 0)
+          s->wmBase = static_cast<xdg_wm_base *>(wl_registry_bind(reg, name, &xdg_wm_base_interface, 1));
+        else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
+          s->decoManager =
+            static_cast<zxdg_decoration_manager_v1 *>(wl_registry_bind(reg, name, &zxdg_decoration_manager_v1_interface, 1));
+      },
+    .global_remove = [](void *, wl_registry *, uint32_t) {},
+  };
+  static const xdg_wm_base_listener wmBaseL = {
+    .ping = [](void *, xdg_wm_base *b, uint32_t serial) { xdg_wm_base_pong(b, serial); },
+  };
+  static const xdg_surface_listener xdgSurfaceL = {
+    .configure = [](void *, xdg_surface *s, uint32_t serial) { xdg_surface_ack_configure(s, serial); },
+  };
+  // the toplevel will receive configure/close events; a listener must be set or libwayland dispatches through null
+  static const xdg_toplevel_listener xdgToplevelL = {
+    .configure = [](void *, xdg_toplevel *, int32_t, int32_t, wl_array *) {},
+    .close = [](void *, xdg_toplevel *) {},
+    .configure_bounds = [](void *, xdg_toplevel *, int32_t, int32_t) {},
+    .wm_capabilities = [](void *, xdg_toplevel *, wl_array *) {},
+  };
+  static const zxdg_toplevel_decoration_v1_listener decorationL = {
+    .configure = [](void *data, zxdg_toplevel_decoration_v1 *,
+                   uint32_t mode) { *static_cast<bool *>(data) = (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE); },
+  };
+
+  if (wl_display *dpy = wl_display_connect(nullptr))
+  {
+    if (wl_registry *reg = wl_display_get_registry(dpy))
+    {
+      wl_registry_add_listener(reg, &registryL, &st);
+      wl_display_roundtrip(dpy); // bind the globals we need
+    }
+
+    if (st.compositor && st.wmBase && st.decoManager)
+    {
+      xdg_wm_base_add_listener(st.wmBase, &wmBaseL, nullptr);
+
+      wl_surface *surf = wl_compositor_create_surface(st.compositor);
+      xdg_surface *xsurf = surf ? xdg_wm_base_get_xdg_surface(st.wmBase, surf) : nullptr;
+      xdg_toplevel *top = xsurf ? xdg_surface_get_toplevel(xsurf) : nullptr;
+      zxdg_toplevel_decoration_v1 *deco = top ? zxdg_decoration_manager_v1_get_toplevel_decoration(st.decoManager, top) : nullptr;
+      if (deco)
+      {
+        xdg_surface_add_listener(xsurf, &xdgSurfaceL, nullptr);
+        xdg_toplevel_add_listener(top, &xdgToplevelL, nullptr);
+        zxdg_toplevel_decoration_v1_add_listener(deco, &decorationL, &st.serverSideGranted);
+        zxdg_toplevel_decoration_v1_set_mode(deco, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+
+        wl_surface_commit(surf); // no buffer -> stays unmapped; still triggers the initial (decoration) configure
+        wl_display_roundtrip(dpy);
+        wl_display_roundtrip(dpy); // tolerate compositors that send the decoration configure a sync late
+      }
+
+      if (deco)
+        zxdg_toplevel_decoration_v1_destroy(deco);
+      if (top)
+        xdg_toplevel_destroy(top);
+      if (xsurf)
+        xdg_surface_destroy(xsurf);
+      if (surf)
+        wl_surface_destroy(surf);
+    }
+    wl_display_disconnect(dpy);
+  }
+  unloadLib();
+  return st.serverSideGranted;
+}
+
+bool Wayland::initConnection()
+{
   if (!loadLib())
     return false;
 
@@ -1285,6 +1539,7 @@ bool Wayland::init()
   WL_CHECK(wl.compositor);
   WL_CHECK(xdg.wmBase);
   WL_CHECK(outputs.isValid(0));
+  WL_CHECK(wp.viewporter);
   WL_CHECK(zwp.relativePointerManagerV1);
   WL_CHECK(zwp.pointerConstraintsV1);
 
@@ -1364,25 +1619,40 @@ void Wayland::getDisplaySize(int &width, int &height, bool)
     height = oi->mode.current.height;
   }
 
-  if (mainWindow && (mainWindow->reportedWidth > width || mainWindow->reportedHeight > height))
+  if (mainWindow)
   {
-    width = mainWindow->reportedWidth;
-    height = mainWindow->reportedHeight;
+    int32_t windowWidth, windowHeight;
+    mainWindow->getClientSize(windowWidth, windowHeight);
+    if (windowWidth > width || windowHeight > height)
+    {
+      width = windowWidth;
+      height = windowHeight;
+    }
   }
+}
+
+// constraint: compositors advertise only the current output mode, so windowed sizes come from this list
+static const IPoint2 standard_window_sizes[] = {{1280, 720}, {1280, 800}, {1366, 768}, {1440, 900}, {1600, 900}, {1680, 1050},
+  {1920, 1080}, {1920, 1200}, {2560, 1080}, {2560, 1440}, {2560, 1600}, {3440, 1440}, {3840, 1600}, {3840, 2160}, {5120, 2160}};
+
+static void list_output_resolutions(const Wayland::Output &output, Tab<String> &list)
+{
+  const auto &current = output.mode.current;
+  const auto &preferred = output.mode.preferred;
+  list.push_back(String(64, "%d x %d", current.width, current.height));
+  if (preferred.width > 0 && preferred.height > 0 && (preferred.width != current.width || preferred.height != current.height))
+    list.push_back(String(64, "%d x %d", preferred.width, preferred.height));
+  for (const IPoint2 &size : standard_window_sizes)
+    if (size.x <= current.width && size.y <= current.height && (size.x != current.width || size.y != current.height) &&
+        (size.x != preferred.width || size.y != preferred.height))
+      list.push_back(String(64, "%d x %d", size.x, size.y));
 }
 
 void Wayland::getVideoModeList(Tab<String> &list)
 {
-  Output *oi = getDefaultOutput();
   list.clear();
-  if (!oi)
-    return;
-
-  auto &preferred = oi->mode.preferred;
-  auto &current = oi->mode.current;
-  list.push_back(String(64, "%d x %d", current.width, current.height));
-  if (preferred.width != current.width || preferred.height != current.height)
-    list.push_back(String(64, "%d x %d", preferred.width, preferred.height));
+  if (Output *oi = getDefaultOutput())
+    list_output_resolutions(*oi, list);
 }
 
 Wayland::Output *Wayland::findOutputByName(const char *monitorName)
@@ -1443,15 +1713,8 @@ bool Wayland::getMonitorInfo(const char *monitorName, String *friendlyName, int 
 void Wayland::getResolutionsFromMonitor(const char *monitorName, Tab<String> &list)
 {
   list.clear();
-  Output *oi = findOutputByName(monitorName);
-  if (!oi)
-    return;
-
-  auto &preferred = oi->mode.preferred;
-  auto &current = oi->mode.current;
-  list.push_back(String(64, "%d x %d", current.width, current.height));
-  if (preferred.width != current.width || preferred.height != current.height)
-    list.push_back(String(64, "%d x %d", preferred.width, preferred.height));
+  if (Output *oi = findOutputByName(monitorName))
+    list_output_resolutions(*oi, list);
 }
 
 void *Wayland::getMainWindowPtrHandle() const { return mainWindow; }
@@ -1480,6 +1743,20 @@ bool Wayland::initWindow(const char *title, int winWidth, int winHeight, const l
   }
   setTitle(title, nullptr);
   debug("Wayland::initWindow %s %u %u", title, winWidth, winHeight);
+  mainWindow->requestedWidth = winWidth;
+  mainWindow->requestedHeight = winHeight;
+  if (mainWindow->xdg.decorationV1)
+  {
+    const WindowMode mode = dgs_get_window_mode();
+    const bool framed = mode == WindowMode::WINDOWED || mode == WindowMode::WINDOWED_RESIZABLE;
+    zxdg_toplevel_decoration_v1_set_mode(mainWindow->xdg.decorationV1,
+      framed ? ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE : ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE);
+  }
+  mainWindow->applyViewport();
+  {
+    WinAutoLock cs(*mainWindow->inputCritSec);
+    wl_surface_commit(mainWindow->obj);
+  }
   return true;
 }
 
@@ -1507,12 +1784,18 @@ bool Wayland::isWindowMaximized(void *w)
 
 void Wayland::setTitle(const char *title, const char *)
 {
+  if (!mainWindow)
+    return;
+
   xdg_toplevel_set_title(mainWindow->xdg.toplevel, title);
   xdg_toplevel_set_app_id(mainWindow->xdg.toplevel, title);
 }
 
 void Wayland::setTitleUTF8(const char *title, const char *)
 {
+  if (!mainWindow)
+    return;
+
   xdg_toplevel_set_title(mainWindow->xdg.toplevel, title);
   xdg_toplevel_set_app_id(mainWindow->xdg.toplevel, title);
 }
@@ -1531,13 +1814,7 @@ bool Wayland::getLastCursorPos(int *cx, int *cy, void *w)
   Window *wi = (Window *)w;
   if (!wi)
     wi = mainWindow;
-  if (wi && wi->activePointer)
-  {
-    *cx = wl_fixed_to_int(wi->activePointer->x);
-    *cy = wl_fixed_to_int(wi->activePointer->y);
-    return true;
-  }
-  return false;
+  return wi && wi->getCursorPos(*cx, *cy);
 }
 
 void Wayland::setCursor(void *, const char *) { G_ASSERTF(0, "Wayland::setCursor not implemented"); }
@@ -1559,7 +1836,7 @@ void Wayland::setCursorPosition(int cx, int cy, void *w)
 
   zwp_locked_pointer_v1 *pointerLock = zwp_pointer_constraints_v1_lock_pointer(zwp.pointerConstraintsV1, wi->obj, pi.obj, NULL,
     ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT);
-  zwp_locked_pointer_v1_set_cursor_position_hint(pointerLock, wl_fixed_from_int(cx), wl_fixed_from_int(cy));
+  zwp_locked_pointer_v1_set_cursor_position_hint(pointerLock, wi->toLogicalFixed(cx), wi->toLogicalFixed(cy));
   {
     WinAutoLock cs(*wi->inputCritSec);
     wl_surface_commit(wi->obj);
@@ -1572,12 +1849,7 @@ void Wayland::setCursorPosition(int cx, int cy, void *w)
 
 void Wayland::getAbsoluteCursorPosition(int &cx, int &cy)
 {
-  if (mainWindow && mainWindow->activePointer)
-  {
-    cx = wl_fixed_to_int(mainWindow->activePointer->x);
-    cy = wl_fixed_to_int(mainWindow->activePointer->y);
-  }
-  else
+  if (!mainWindow || !mainWindow->getCursorPos(cx, cy))
   {
     cx = 0;
     cy = 0;
@@ -1656,18 +1928,10 @@ bool Wayland::getWindowClientSize(void *w, int &width, int &height)
   if (!w)
     return false;
 
-  Window &wi = *(Window *)w;
-  if (wi.fullscreen && wi.fullscreenOnOutput)
-  {
-    width = wi.fullscreenOnOutput->mode.current.width;
-    height = wi.fullscreenOnOutput->mode.current.height;
-  }
-  else
-  {
-    width = wi.reportedWidth ? wi.reportedWidth : wi.boundsWidth;
-    height = wi.reportedHeight ? wi.reportedHeight : wi.boundsHeight;
-  }
-
+  int32_t clientWidth, clientHeight;
+  ((Window *)w)->getClientSize(clientWidth, clientHeight);
+  width = clientWidth;
+  height = clientHeight;
   return true;
 }
 
@@ -1675,21 +1939,12 @@ bool Wayland::getWindowScreenRect(void *w, linux_GUI::RECT *rect, linux_GUI::REC
 {
   if (!w || !rect)
     return false;
-  Window &wi = *(Window *)w;
-  if (wi.fullscreen && wi.fullscreenOnOutput)
-  {
-    rect->left = 0;
-    rect->top = 0;
-    rect->right = wi.fullscreenOnOutput->mode.current.width;
-    rect->bottom = wi.fullscreenOnOutput->mode.current.height;
-  }
-  else
-  {
-    rect->left = 0;
-    rect->top = 0;
-    rect->right = wi.reportedWidth ? wi.reportedWidth : wi.boundsWidth;
-    rect->bottom = wi.reportedHeight ? wi.reportedHeight : wi.boundsHeight;
-  }
+  int32_t width, height;
+  ((Window *)w)->getClientSize(width, height);
+  rect->left = 0;
+  rect->top = 0;
+  rect->right = width;
+  rect->bottom = height;
 
   if (rect_unclipped)
     *rect_unclipped = *rect;
@@ -1762,8 +2017,18 @@ Wayland::Window *Wayland::setupWindow()
   WL_CHECKP_A(listner, xdg_surface_add_listener(out.xdg.surface, &listeners.xdg.surface, &out) == 0);
   WL_CHECKP_A(out.xdg.toplevel, xdg_surface_get_toplevel(out.xdg.surface));
   WL_CHECKP_A(listner, xdg_toplevel_add_listener(out.xdg.toplevel, &listeners.xdg.toplevel, &out) == 0);
-  if (wp.viewporter)
-    out.wp.viewport = wp_viewporter_get_viewport(wp.viewporter, out.obj);
+  if (xdg.decorationManagerV1)
+  {
+    out.xdg.decorationV1 = zxdg_decoration_manager_v1_get_toplevel_decoration(xdg.decorationManagerV1, out.xdg.toplevel);
+    WL_CHECKP_A(listner,
+      zxdg_toplevel_decoration_v1_add_listener(out.xdg.decorationV1, &listeners.xdg.toplevelDecorationV1, &out) == 0);
+  }
+  WL_CHECKP_A(out.wp.viewport, wp_viewporter_get_viewport(wp.viewporter, out.obj));
+  if (wp.fractionalScaleManagerV1)
+  {
+    out.wp.fractionalScaleV1 = wp_fractional_scale_manager_v1_get_fractional_scale(wp.fractionalScaleManagerV1, out.obj);
+    WL_CHECKP_A(listner, wp_fractional_scale_v1_add_listener(out.wp.fractionalScaleV1, &listeners.wp.fractionalScaleV1, &out) == 0);
+  }
   cleanup.ptr = nullptr;
   return &out;
 }

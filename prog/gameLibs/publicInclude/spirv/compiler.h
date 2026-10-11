@@ -5,6 +5,7 @@
 #pragma once
 
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
+#include <drv/shadersMetaData/pixelShaderOutputInfo.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
@@ -38,8 +39,9 @@ struct ReflectionInfo
 struct CompileToSpirVResult
 {
   // hash and version is not set, only metadata
-  spirv::ShaderHeader header;
-  spirv::ComputeShaderInfo computeShaderInfo;
+  spirv::ShaderHeader header = {};
+  spirv::ComputeShaderInfo computeShaderInfo = {};
+  PixelShaderOutputInfo psOutput;
   // using std vector here to void additional copy (glslang -> spirv only accepts std::vector as target)
   // if this is empty, compilation failed
   std::vector<unsigned int> byteCode;

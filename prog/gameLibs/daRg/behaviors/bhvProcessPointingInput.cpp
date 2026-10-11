@@ -45,27 +45,27 @@ int BhvProcessPointingInput::pointingEvent(ElementTree * /*etree*/, Element *ele
   Sqrat::Table evt(vm);
   evt.SetValue(csk->devId, device);
   evt.SetValue(csk->eventId, event);
-  evt.SetValue("pointerId", pointer_id);
+  evt.SetValue(csk->pointerId, pointer_id);
   evt.SetValue(csk->btnId, btn_id);
-  evt.SetValue("x", pos.x);
-  evt.SetValue("y", pos.y);
-  evt.SetValue("hit", elem->hitTest(pos));
-  evt.SetValue("accumRes", accum_res);
+  evt.SetValue(csk->x, pos.x);
+  evt.SetValue(csk->y, pos.y);
+  evt.SetValue(csk->hit, elem->hitTest(pos));
+  evt.SetValue(csk->accumRes, accum_res);
   evt.SetValue(csk->target, elem->getRef(vm));
 
   const HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : NULL;
   if (kbd)
   {
     int modifiers = kbd->getRawState().shifts;
-    evt.SetValue("shiftKey", (modifiers & HumanInput::KeyboardRawState::SHIFT_BITS) != 0);
-    evt.SetValue("ctrlKey", (modifiers & HumanInput::KeyboardRawState::CTRL_BITS) != 0);
-    evt.SetValue("altKey", (modifiers & HumanInput::KeyboardRawState::ALT_BITS) != 0);
+    evt.SetValue(csk->shiftKey, (modifiers & HumanInput::KeyboardRawState::SHIFT_BITS) != 0);
+    evt.SetValue(csk->ctrlKey, (modifiers & HumanInput::KeyboardRawState::CTRL_BITS) != 0);
+    evt.SetValue(csk->altKey, (modifiers & HumanInput::KeyboardRawState::ALT_BITS) != 0);
   }
   else
   {
-    evt.SetValue("shiftKey", false);
-    evt.SetValue("ctrlKey", false);
-    evt.SetValue("altKey", false);
+    evt.SetValue(csk->shiftKey, false);
+    evt.SetValue(csk->ctrlKey, false);
+    evt.SetValue(csk->altKey, false);
   }
 
   auto sqRes = handler.Eval<Sqrat::Object>(evt);

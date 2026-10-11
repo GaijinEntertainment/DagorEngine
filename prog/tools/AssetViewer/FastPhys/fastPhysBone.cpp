@@ -247,7 +247,7 @@ void FPObjectBone::render()
   if (isSelected())
     color = selectedColor;
 
-  if (p2)
+  if (p1 && p2)
   {
     Point3 dir = p2->getPos() - p1->getPos();
     real len = length(dir);

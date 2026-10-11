@@ -780,14 +780,14 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
 }
 
 
-void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
+void LandMeshManager::afterDeviceResetInternal(LandMeshRenderer *lrend, IGenLoad *dump)
 {
-  if (full_reset && srcFileName && dd_file_exist(srcFileName))
+  if (dump)
   {
     int t0 = get_time_msec();
 
     // reload mesh data
-    FullFileLoadCB crd(srcFileName);
+    IGenLoad &crd = *dump;
     crd.seekto(srcFileMeshMapOfs);
 
     if (lrend)
@@ -800,7 +800,7 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
     fatal_context_push("landMesh::mesh");
     loadMeshData(crd);
     fatal_context_pop();
-    debug("reloaded land mesh data for %d msec (from %s:0x%x)", get_time_msec() - t0, srcFileName, srcFileMeshMapOfs);
+    debug("reloaded land mesh data for %d msec (from %s:0x%x)", get_time_msec() - t0, crd.getTargetName(), srcFileMeshMapOfs);
 
     // The atlas was built without a system copy on the promise that we would do
     // this, so its pages are gone; the records survive but describe nothing.
@@ -818,7 +818,7 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
       {
         del_it(weightAtlas);
         weightAtlas = fresh;
-        debug("reloaded land weight atlas for %d msec (from %s:0x%x)", get_time_msec() - t1, srcFileName, srcFileDetailMapOfs);
+        debug("reloaded land weight atlas for %d msec (from %s:0x%x)", get_time_msec() - t1, crd.getTargetName(), srcFileDetailMapOfs);
       }
       else
         // there is no atlas-less fallback in the shaders, and the stale atlas
@@ -842,6 +842,19 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
 
   if (hmapHandler)
     hmapHandler->afterDeviceReset();
+}
+
+void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset, IGenLoad *in_memory_dump)
+{
+  if (full_reset && in_memory_dump)
+    afterDeviceResetInternal(lrend, in_memory_dump);
+  else if (full_reset && srcFileName && dd_file_exist(srcFileName))
+  {
+    FullFileLoadCB crd(srcFileName);
+    afterDeviceResetInternal(lrend, &crd);
+  }
+  else
+    afterDeviceResetInternal(lrend, nullptr);
 }
 
 /*static*/

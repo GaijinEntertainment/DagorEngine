@@ -13,6 +13,7 @@
 #include <PowerOfTwoBinPack.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/vector_set.h>
+#include <EASTL/bitvector.h>
 #include <EASTL/string.h>
 #include <shaders/dag_overrideStateId.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -21,6 +22,7 @@
 #include <render/lights/dynamicShadowRenderExtensions.h>
 #include <render/lights/shadowCastersFlags.h>
 #include <render/lights/lightsResources.h>
+#include <generic/dag_functionRef.h>
 
 struct TraceLightInfo;
 
@@ -84,6 +86,13 @@ public:
   const bbox3f &getVolumeBox(uint16_t id) const { return volumesBox[id]; }
   bool isVolumeContentValid(uint16_t id) const { return volumes[id].isValidContent(); }
   bool hasVolumeEverBeenRendered(uint16_t id) const { return volumes[id].hasEverBeenRendered(); }
+  bool isVolumeAllocated(uint16_t id) const { return id < volumes.size() && !volumes[id].isDestroyed(); }
+  bool isVolumeOctahedral(uint16_t id) const { return volumes[id].isOctahedral(); }
+
+  using UpdatedShadowCallback = dag::FunctionRef<void(uint16_t shadow_id) const>;
+  void forEachUpdatedShadow(UpdatedShadowCallback callback) const;
+  void clearUpdatedShadows();
+  void markAllShadowsUpdated();
   void startRenderVolumes(const dynamic_shadow_render::FrameVolumeData &volume_data);
 
   enum RenderFlags
@@ -248,6 +257,7 @@ protected:
   // SoA-
   Tab<uint16_t> freeVolumes;
   eastl::vector_set<uint16_t> volumesToUpdate;
+  eastl::bitvector<> updatedShadows;
   bbox3f activeShadowVolume;
 
   uint16_t atlasWidth = 0, atlasHeight = 0;
@@ -272,6 +282,8 @@ protected:
   void resizeVolumes(int cnt);
   // return true if success. will try to free least recent used, if no space
   bool insertToAtlas(uint16_t id, uint16_t targetShadowSize);
+  void setStaticShadowTexData(uint16_t id);
+  void markShadowUpdated(uint32_t id);
   void packOctahedral(uint16_t id, bool dynamic_content);
   TraceLightInfo prepareApproximateStaticCasters(const Volume &volume, uint16_t atlas_w, uint16_t atlas_h);
 

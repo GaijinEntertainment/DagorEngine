@@ -117,8 +117,6 @@ public:
   int getSize() const { return file.size; }
 
   void *getFileHandle() const { return file.handle; }
-
-  SimpleString targetFilename;
 };
 
 #include <supp/dag_undef_KRNLIMP.h>

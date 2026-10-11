@@ -74,7 +74,7 @@ static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferr
   VAR(shadow_cascade_0_tm)                    \
   VAR(shadow_cascade_relative_scale_and_near) \
   VAR(shadow_cascade_relative_offset_and_far) \
-  VAR(shadow_cascade_rcp_basis_length_sq)     \
+  VAR(shadow_cascade_normal_tc_scale)         \
   VAR(shadow_cascade_camera_near_plane)       \
   VAR(shadow_cascade_splits)                  \
   VAR(shadow_cascade_manual_cascade_count)
@@ -153,10 +153,10 @@ public:
   }
   void renderShadowsCascades();
 
-  void renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, BaseTexture *external_cascades = {},
+  void renderShadowsCascadesCb(csm_render_cascades_cb_t render_cascades_cb, BaseTexture *external_cascades = {},
     bool clear_per_view = false);
   void renderShadowCascadeDepth(int cascadeNo, bool clearPerView, BaseTexture *external_cascades = {});
-  void renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &cb);
+  void renderShadowCascadeDepthCb(int cascadeNo, csm_render_cascade_depth_cb_t cb);
   void calcTMs();
   void setSamplingBiasToShader(float value);
   void setCascadesToShader();
@@ -165,7 +165,7 @@ public:
   bool isEnabled() const { return numCascadesToRender != 0; }
   void uploadCSMBuffer(const Color4 shadow_cascade_camera_near_plane, const Color4 *shadow_cascade_0_tm,
     const Color4 *cascade_relative_scale_and_near, const Color4 *cascade_relative_offset_and_far, const Color4 *atlas_tc_mul_offset,
-    const Color4 *cascade_rcp_basis_length_sq, const int manual_cascade_count);
+    const Color4 *cascade_normal_tc_scale, const int manual_cascade_count);
   void invalidate()
   {
     for (unsigned int cascadeNo = 0; cascadeNo < shadowSplits.size(); cascadeNo++)
@@ -286,7 +286,7 @@ private:
   // so we can get Nth cascade space position by scaling and offseting 0th cascade space position.
   carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeScaleAndNear;
   carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeOffsetAndFar;
-  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRcpBasisLengthSq;
+  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeNormalTcScale;
   carray<Color4, 3> shadowCascade0Tm;
   Color4 shadowCascadeCameraNearPlane = Color4(0, 0, 1, 0);
 
@@ -298,7 +298,7 @@ private:
     Color4 relativeScaleAndNear[CascadeShadows::MAX_CASCADES];
     Color4 relativeOffsetAndFar[CascadeShadows::MAX_CASCADES];
     Color4 tcMulOffset[CascadeShadows::MAX_CASCADES];
-    Color4 rcpBasisLengthSq[CascadeShadows::MAX_CASCADES];
+    Color4 normalTcScale[CascadeShadows::MAX_CASCADES];
     int32_t manualCascadeCount;
     int32_t pad0;
     int32_t pad1;
@@ -479,7 +479,7 @@ void CascadeShadowsPrivate::closeDepthShadow()
 }
 
 
-void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, BaseTexture *external_cascades,
+void CascadeShadowsPrivate::renderShadowsCascadesCb(csm_render_cascades_cb_t render_cascades_cb, BaseTexture *external_cascades,
   bool clear_per_view)
 {
   if (numCascadesToRender == 0)
@@ -751,6 +751,8 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
       {
         shadowSplits[cascadeNo].frames++;
         shadowSplits[cascadeNo].shouldUpdate = 0;
+        shadowSplits[cascadeNo].from = ss.from;
+        shadowSplits[cascadeNo].to = ss.to;
         TMatrix tm = TMatrix::IDENT;
         tm.setcol(3, ss.viewPos - shadowSplits[cascadeNo].viewPos);
         shadowSplits[cascadeNo].cameraRenderMatrix = TMatrix4(tm) * shadowSplits[cascadeNo].cameraRenderMatrix;
@@ -838,7 +840,6 @@ void CascadeShadowsPrivate::calcTMs()
     Point3 col0(texTm.m[0][0], texTm.m[1][0], texTm.m[2][0]);
     Point3 col1(texTm.m[0][1], texTm.m[1][1], texTm.m[2][1]);
     Point3 col2(texTm.m[0][2], texTm.m[1][2], texTm.m[2][2]);
-    shadowCascadeRcpBasisLengthSq[cascadeNo] = Color4(1.0f / col0.lengthSq(), 1.0f / col1.lengthSq(), 1.0f / col2.lengthSq(), 1);
     if (cascadeNo == 0)
     {
       shadowCascadeRelativeScaleAndNear[cascadeNo] = Color4(1, 1, 1, ss.from);
@@ -852,6 +853,10 @@ void CascadeShadowsPrivate::calcTMs()
       shadowCascadeRelativeScaleAndNear[cascadeNo] = Color4(tmp[0][0], tmp[1][1], tmp[2][2], ss.from);
       shadowCascadeRelativeOffsetAndFar[cascadeNo] = Color4(off.x, off.y, off.z, ss.to);
     }
+    const Color4 &relScale = shadowCascadeRelativeScaleAndNear[cascadeNo];
+    const Color4 &tcMul = shadowCascadeTcMulOffset[cascadeNo];
+    shadowCascadeNormalTcScale[cascadeNo] = Color4(relScale.r / (col0.lengthSq() * tcMul.r), relScale.g / (col1.lengthSq() * tcMul.g),
+      relScale.b / col2.lengthSq(), 0.5f / float(min(ss.viewport.width().x, ss.viewport.width().y)));
   }
   for (unsigned int cascadeNo = numCascadesToRender; cascadeNo < CascadeShadows::MAX_CASCADES; cascadeNo++)
   {
@@ -859,6 +864,7 @@ void CascadeShadowsPrivate::calcTMs()
     shadowCascadeTm[cascadeNo * 3 + 1] = Color4(0, 0, 0, 1);
     shadowCascadeTm[cascadeNo * 3 + 2] = Color4(0, 0, 0, 1);
     shadowCascadeTcMulOffset[cascadeNo] = Color4(1, 1, 1, 1);
+    shadowCascadeNormalTcScale[cascadeNo] = Color4(1, 1, 1, 1);
   }
 }
 
@@ -1252,7 +1258,7 @@ void CascadeShadowsPrivate::renderShadowCascadeDepth(int cascadeNo, bool clearPe
 }
 
 
-void CascadeShadowsPrivate::renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &render_cb)
+void CascadeShadowsPrivate::renderShadowCascadeDepthCb(int cascadeNo, csm_render_cascade_depth_cb_t render_cb)
 {
   const ShadowSplit &ss = shadowSplits[cascadeNo];
   G_ASSERT(ss.to > ss.from);
@@ -1280,7 +1286,7 @@ void CascadeShadowsPrivate::setFadeOutToShaders(float max_dist)
 
 void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 shadow_cascade_camera_near_plane, const Color4 *shadow_cascade_0_tm,
   const Color4 *cascade_relative_scale_and_near, const Color4 *cascade_relative_offset_and_far, const Color4 *atlas_tc_mul_offset,
-  const Color4 *cascade_rcp_basis_length_sq, const int manual_cascade_count)
+  const Color4 *cascade_normal_tc_scale, const int manual_cascade_count)
 {
   if (csmBuffer)
   {
@@ -1290,7 +1296,7 @@ void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 shadow_cascade_camera_n
     memcpy(uploadData.relativeScaleAndNear, cascade_relative_scale_and_near, sizeof(uploadData.relativeScaleAndNear));
     memcpy(uploadData.relativeOffsetAndFar, cascade_relative_offset_and_far, sizeof(uploadData.relativeOffsetAndFar));
     memcpy(uploadData.tcMulOffset, atlas_tc_mul_offset, sizeof(uploadData.tcMulOffset));
-    memcpy(uploadData.rcpBasisLengthSq, cascade_rcp_basis_length_sq, sizeof(uploadData.rcpBasisLengthSq));
+    memcpy(uploadData.normalTcScale, cascade_normal_tc_scale, sizeof(uploadData.normalTcScale));
     uploadData.manualCascadeCount = manual_cascade_count;
     G_ASSERT_RETURN(csmBuffer, );
     csmBuffer->updateData(0, sizeof(uploadData), &uploadData, VBLOCK_DISCARD);
@@ -1302,7 +1308,7 @@ void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 shadow_cascade_camera_n
   ShaderGlobal::set_float4_array(shadow_cascade_relative_scale_and_nearVarId, cascade_relative_scale_and_near, maxCascadesPossible);
   ShaderGlobal::set_float4_array(shadow_cascade_relative_offset_and_farVarId, cascade_relative_offset_and_far, maxCascadesPossible);
   ShaderGlobal::set_float4_array(shadow_cascade_tc_mul_offsetVarId, atlas_tc_mul_offset, maxCascadesPossible);
-  ShaderGlobal::set_float4_array(shadow_cascade_rcp_basis_length_sqVarId, cascade_rcp_basis_length_sq, maxCascadesPossible);
+  ShaderGlobal::set_float4_array(shadow_cascade_normal_tc_scaleVarId, cascade_normal_tc_scale, maxCascadesPossible);
   ShaderGlobal::set_int(shadow_cascade_manual_cascade_countVarId, manual_cascade_count);
   ShaderGlobal::set_int(has_manual_cascadesVarId, manual_cascade_count);
 }
@@ -1318,8 +1324,7 @@ void CascadeShadowsPrivate::setSamplingBiasToShader(float value)
     shadowCascadeRelativeOffsetAndFar[i].b += value * (1.0f - shadowCascadeRelativeScaleAndNear[i].b);
 
   uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeRelativeScaleAndNear.data(),
-    shadowCascadeRelativeOffsetAndFar.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data(),
-    numManualCascades);
+    shadowCascadeRelativeOffsetAndFar.data(), shadowCascadeTcMulOffset.data(), shadowCascadeNormalTcScale.data(), numManualCascades);
 }
 
 void CascadeShadowsPrivate::setCascadesToShader()
@@ -1327,8 +1332,7 @@ void CascadeShadowsPrivate::setCascadesToShader()
   calcTMs();
 
   uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeRelativeScaleAndNear.data(),
-    shadowCascadeRelativeOffsetAndFar.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data(),
-    numManualCascades);
+    shadowCascadeRelativeOffsetAndFar.data(), shadowCascadeTcMulOffset.data(), shadowCascadeNormalTcScale.data(), numManualCascades);
   ShaderGlobal::set_float4(csm_world_view_posVarId, P3D(shadowSplits[0].viewPos), 0);
 }
 
@@ -1398,7 +1402,7 @@ void CascadeShadows::prepareShadowCascades(const CascadeShadows::ModeSettings &m
     z_near_for_cascade_distribution);
 }
 
-void CascadeShadows::renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, BaseTexture *external_cascades,
+void CascadeShadows::renderShadowsCascadesCb(csm_render_cascades_cb_t render_cascades_cb, BaseTexture *external_cascades,
   bool clear_per_view)
 {
   d->renderShadowsCascadesCb(render_cascades_cb, external_cascades, clear_per_view);
@@ -1411,7 +1415,7 @@ void CascadeShadows::renderShadowCascadeDepth(int cascadeNo, bool clearPerView, 
   d->renderShadowCascadeDepth(cascadeNo, clearPerView, external_cascades);
 }
 
-void CascadeShadows::renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &cb)
+void CascadeShadows::renderShadowCascadeDepthCb(int cascadeNo, csm_render_cascade_depth_cb_t cb)
 {
   d->renderShadowCascadeDepthCb(cascadeNo, cb);
 }

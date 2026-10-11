@@ -85,7 +85,7 @@ public:
   void render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
     Occlusion *occlusion, const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon,
     IWaterDecalsRenderHelper *decals_renderer = NULL, fft_water::RenderMode render_mode = fft_water::RenderMode::WATER_SHADER,
-    eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {});
+    dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb = {});
 
   void performGPUFFT();
   void closeGPU();

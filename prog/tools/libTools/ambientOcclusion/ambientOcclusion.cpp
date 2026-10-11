@@ -72,7 +72,7 @@ static void packPRTWeights(float prtWeights[SPHHARM_NUM3], float w)
 
   prtWeights[SPHHARM_2m1] = prtWeights[SPHHARM_2m1] * 2 / w;
 
-  prtWeights[SPHHARM_20] = prtWeights[SPHHARM_20] * 0.5 / w;
+  prtWeights[SPHHARM_20] = prtWeights[SPHHARM_20] * 0.5f / w;
 
   prtWeights[SPHHARM_2p1] = prtWeights[SPHHARM_2p1] * 2 / w;
   prtWeights[SPHHARM_2p2] = prtWeights[SPHHARM_2p2] / w;
@@ -111,8 +111,8 @@ void calculatePRT(MeshData &meshData, const TMatrix &toWorld, const CollisionRes
     verts[i] = toWorld * meshData.vert[i];
   clear_and_resize(faceArea, meshData.face.size());
   for (int i = 0; i < faceArea.size(); ++i)
-    faceArea[i] = 0.5 * length((verts[meshData.face[i].v[1]] - verts[meshData.face[i].v[0]]) %
-                               (verts[meshData.face[i].v[2]] - verts[meshData.face[i].v[0]]));
+    faceArea[i] = 0.5f * length((verts[meshData.face[i].v[1]] - verts[meshData.face[i].v[0]]) %
+                                (verts[meshData.face[i].v[2]] - verts[meshData.face[i].v[0]]));
   Tab<Tabint> map(tmpmem);
   meshData.get_vert2facemap(map, 0, meshData.facengr.size());
 
@@ -150,7 +150,7 @@ void calculatePRT(MeshData &meshData, const TMatrix &toWorld, const CollisionRes
           b = 1 - b;
           a = 1 - a;
         }
-      } while (a + b < 0.01 || 1 - a - b < 0.01); // not in vertex
+      } while (a + b < 0.01f || 1 - a - b < 0.01f); // not in vertex
       Point3 pt;
       pt = edge1 * a + edge2 * b + verts[meshData.face[fid].v[0]];
       prtmap[i].samples[pti].pt = pt;

@@ -497,13 +497,14 @@ int DagorWinMain(bool)
             includePath:t="%s/../../../prog/gameLibs/daSDF/shaders"
             includePath:t="%s/../../../prog/gameLibs/daSkies2/shaders"
             includePath:t="%s/../../../prog/gameLibs/publicInclude"
+            includePath:t="%s/../../../prog/gameLibs"
           }
           Compile {
             fsh:t = %s
             additional_dump:b = yes
           }
         )",
-    settings.singleOutputBin, exePath, outputDshl, exePath, exePath, exePath, exePath, exePath,
+    settings.singleOutputBin, exePath, outputDshl, exePath, exePath, exePath, exePath, exePath, exePath,
     NodeBasedShaderManager::getShaderModelFsh(shaderBlk));
 
   FINALLY([&] {

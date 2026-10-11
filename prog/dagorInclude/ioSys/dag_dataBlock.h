@@ -214,8 +214,7 @@ public:
 
   /// Copy constructor.
   KRNLIMP DataBlock(const DataBlock &);
-  // copy contructor with move semantic
-  KRNLIMP DataBlock(DataBlock &&b);
+  KRNLIMP DataBlock(DataBlock &&b) noexcept;
 
   // setFrom.
   DataBlock &operator=(const DataBlock &right)
@@ -224,7 +223,7 @@ public:
     return *this;
   }
   // assignment with move-semantic
-  KRNLIMP DataBlock &operator=(DataBlock &&right);
+  KRNLIMP DataBlock &operator=(DataBlock &&right) noexcept;
 
   // copy from read-only data block.
   DataBlock &operator=(const RoDataBlock &right)
@@ -623,7 +622,7 @@ protected:
   KRNLIMP bool loadFromStream(IGenLoad &crd, const char *fname, DataBlock::IFileNotify *fnotify, unsigned hint_size);
   KRNLIMP bool load(const char *fname, DataBlock::IFileNotify *fnotify);
   bool doLoadFromStreamBBF3(IGenLoad &cwr);
-  bool loadFromStreamBBF3(IGenLoad &cwr, const int *cnv, const int *cnvEnd, const DBNameMap &strings);
+  bool loadFromStreamBBF3(IGenLoad &cwr, const int *cnv, const int *cnvEnd, const DBNameMap &strings, int depth);
 
   int addParam(const char *name, int type, const char *value, const char *val_end, int line, const char *filename, int at = -1);
   KRNLIMP void addParamsTo(DataBlock &dest) const;

@@ -199,13 +199,13 @@ void DeviceQueueGroup::tidy()
 
 DeviceQueueGroup::~DeviceQueueGroup() { tidy(); }
 
-DeviceQueueGroup::DeviceQueueGroup(DeviceQueueGroup &&o) : computeCanPresent(o.computeCanPresent)
+DeviceQueueGroup::DeviceQueueGroup(DeviceQueueGroup &&o) noexcept : computeCanPresent(o.computeCanPresent)
 {
   mem_copy_from(group, o.group.data());
   mem_set_0(o.group);
 }
 
-DeviceQueueGroup &DeviceQueueGroup::operator=(DeviceQueueGroup &&o)
+DeviceQueueGroup &DeviceQueueGroup::operator=(DeviceQueueGroup &&o) noexcept
 {
   tidy();
   mem_copy_from(group, o.group.data());

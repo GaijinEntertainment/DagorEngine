@@ -199,10 +199,7 @@ namespace das {
                     error("table key can't be declared as a reference: '" + describeType(keyType) + "'", "", "",
                           keyType->at, CompilationError::invalid_table);
                 }
-                if (keyType->baseType == Type::tDistinct) {
-                    error("distinct type can't be a table key: '" + describeType(keyType) + "'", "", "",
-                          keyType->at, CompilationError::invalid_table_type);
-                } else if (!(keyType->isWorkhorseType() || (keyType->baseType == Type::tHandle && !keyType->annotation->isRefType()))) {
+                if (!keyType->isTableKeyType()) {
                     error("table key has to be declared as a basic 'hashable' type: '" + describeType(keyType) + "'", "", "",
                           keyType->at, CompilationError::invalid_table_type);
                 }
@@ -378,6 +375,14 @@ namespace das {
                 return true;
             }
         }
+        for ( auto & tme : decl->typeMacroExpr ) {
+            if ( tme && tme->rtti_isTypeDecl() ) {
+                auto te = static_cast<ExprTypeDecl *>(tme);
+                if ( te->typeexpr && isLoop(visited, te->typeexpr) ) {
+                    return true;
+                }
+            }
+        }
         if ( decl->baseType == Type::alias ) {
             visited.pop_back();
         }
@@ -389,7 +394,7 @@ namespace das {
         if (decl->baseType == Type::typeDecl || decl->baseType == Type::typeMacro) {
             return nullptr;
         }
-        if (decl->baseType == Type::autoinfer && !autoToAlias) { // until alias is fully resolved, can't infer
+        if (decl->baseType == Type::autoinfer && (!autoToAlias || decl->alias.empty())) {
             return nullptr;
         }
         if (decl->baseType == Type::alias || (decl->baseType == Type::autoinfer && autoToAlias)) {
@@ -409,7 +414,7 @@ namespace das {
             if (!aT) {
                 auto bT = nameToBasicType(decl->alias);
                 if (bT != Type::none) {
-                    aT = new TypeDecl(bT);
+                    aT = new TypeDecl(bT, decl->at);
                 }
             }
             if (aT) {
@@ -480,6 +485,8 @@ namespace das {
             if (decl->firstType) {
                 resT->firstType = inferAlias(decl->firstType, fptr, aliases, options, autoToAlias);
                 if (!resT->firstType)
+                    return nullptr;
+                if (!resT->firstType->isAutoOrAlias() && !resT->firstType->isTableKeyType())
                     return nullptr;
             }
             if (decl->secondType) {
@@ -659,6 +666,15 @@ namespace das {
         return nullptr;
     }
     ExpressionPtr InferTypes::promoteToProperty(ExprVar *expr, ExpressionPtr right) {
+        if (with.empty())
+            return nullptr;
+        PropertyProbe probe;
+        probe.fnName = right ? ".`" + expr->name + "`clone" : ".`" + expr->name;
+        probe.fieldName = expr->name;
+        probe.hasNamed = hasPropertyFunction(probe.fnName);
+        probe.hasWithName = !right && hasPropertyFunction(".");
+        if (!probe.hasNamed && !probe.hasWithName)
+            return nullptr;
         for (auto it = with.rbegin(), its = with.rend(); it != its; ++it) {
             auto eW = *it;
             if (!eW->with) continue;    // module flavor opens no field scope
@@ -671,30 +687,11 @@ namespace das {
                 }
                 if (pSt) {
                     if (eWT->isPointer()) {
-                        auto derefV = new ExprPtr2Ref(expr->at, eW->with);
-                        derefV->type = new TypeDecl(*eWT->firstType);
-                        TypeDecl::applyAutoContracts(derefV->type, eWT->firstType);
-                        derefV->type->ref = true;
-                        derefV->type->constant |= eWT->constant;
-                        if (right) {
-                            if (auto cloneSet = inferGenericOperator(".`" + expr->name + "`clone", expr->at, derefV, right))
-                                return cloneSet;
-                        } else {
-                            if (auto opE = inferGenericOperator(".`" + expr->name, expr->at, derefV, nullptr))
-                                return opE;
-                            if (auto opE = inferGenericOperatorWithName(".", expr->at, derefV, expr->name))
-                                return opE;
-                        }
+                        if (auto opE = tryPropertyThroughDeref(probe, expr->at, eW->with, right))
+                            return opE;
                     } else {
-                        if (right) {
-                            if (auto cloneSet = inferGenericOperator(".`" + expr->name + "`clone", expr->at, eW->with, right))
-                                return cloneSet;
-                        } else {
-                            if (auto opE = inferGenericOperator(".`" + expr->name, expr->at, eW->with, nullptr))
-                                return opE;
-                            if (auto opE = inferGenericOperatorWithName(".", expr->at, eW->with, expr->name))
-                                return opE;
-                        }
+                        if (auto opE = tryProperty(probe, expr->at, eW->with, right))
+                            return opE;
                     }
                 }
             }
@@ -815,7 +812,9 @@ namespace das {
             if (fromGeneric) {
                 ctor->fromGeneric = getOrCreateDummy(var->module);
             }
-            bool export_for_aot = !var->cppLayout && (daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_isInAot);
+            // AOT never emits a macro class, so exporting its ctor claims a caller that
+            // cannot exist - and that claim roots the whole macro into the simulated context
+            bool export_for_aot = !var->cppLayout && !var->macroInterface && (daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_isInAot);
             ctor->exports = alwaysExportInitializer || export_for_aot;
             extraFunctions.push_back(ctor);
             reportAstChanged();
@@ -979,38 +978,51 @@ namespace das {
     }
     ExpressionPtr InferTypes::promoteToProperty(ExprField *expr, ExpressionPtr right, const string &opName) {
         if (!expr->no_promotion && expr->value->type) {
-            if (right) {
-                if (auto cloneSet = inferGenericOperator(".`" + expr->name + "`" + opName, expr->at, expr->value, right))
-                    return cloneSet;
-                auto valT = expr->value->type;
-                if (valT->isPointer() && valT->firstType) {
-                    auto derefV = new ExprPtr2Ref(expr->at, expr->value);
-                    derefV->type = new TypeDecl(*valT->firstType);
-                    TypeDecl::applyAutoContracts(derefV->type, valT->firstType);
-                    derefV->type->ref = true;
-                    derefV->type->constant |= valT->constant;
-                    if (auto cloneSet = inferGenericOperator(".`" + expr->name + "`" + opName, expr->at, derefV, right))
-                        return cloneSet;
-                }
-            } else {
-                if (auto opE = inferGenericOperator(".`" + expr->name, expr->at, expr->value, nullptr))
+            PropertyProbe probe;
+            probe.fnName = right ? ".`" + expr->name + "`" + opName : ".`" + expr->name;
+            probe.fieldName = expr->name;
+            probe.hasNamed = hasPropertyFunction(probe.fnName);
+            probe.hasWithName = !right && hasPropertyFunction(".");
+            if (!probe.hasNamed && !probe.hasWithName)
+                return nullptr;
+            if (auto opE = tryProperty(probe, expr->at, expr->value, right))
+                return opE;
+            auto valT = expr->value->type;
+            if (valT->isPointer() && valT->firstType) {
+                if (auto opE = tryPropertyThroughDeref(probe, expr->at, expr->value, right))
                     return opE;
-                if (auto opE = inferGenericOperatorWithName(".", expr->at, expr->value, expr->name))
-                    return opE;
-                auto valT = expr->value->type;
-                if (valT->isPointer() && valT->firstType) {
-                    auto derefV = new ExprPtr2Ref(expr->at, expr->value);
-                    derefV->type = new TypeDecl(*valT->firstType);
-                    TypeDecl::applyAutoContracts(derefV->type, valT->firstType);
-                    derefV->type->ref = true;
-                    derefV->type->constant |= valT->constant;
-                    if (auto opE = inferGenericOperator(".`" + expr->name, expr->at, derefV, nullptr))
-                        return opE;
-                    if (auto opE = inferGenericOperatorWithName(".", expr->at, derefV, expr->name))
-                        return opE;
-                }
             }
         }
+        return nullptr;
+    }
+    bool InferTypes::hasPropertyFunction(const string &propFnName) const {
+        return program->library.hasFunctionOrGenericNamed(propFnName);
+    }
+    ExpressionPtr InferTypes::tryProperty(const PropertyProbe &probe, const LineInfo &at, ExpressionPtr value, ExpressionPtr right) {
+        if (right)
+            return inferGenericOperator(probe.fnName, at, value, right);
+        if (probe.hasNamed) {
+            if (auto opE = inferGenericOperator(probe.fnName, at, value, nullptr))
+                return opE;
+        }
+        if (probe.hasWithName) {
+            if (auto opE = inferGenericOperatorWithName(".", at, value, probe.fieldName))
+                return opE;
+        }
+        return nullptr;
+    }
+    ExpressionPtr InferTypes::tryPropertyThroughDeref(const PropertyProbe &probe, const LineInfo &at, ExpressionPtr value, ExpressionPtr right) {
+        auto valT = value->type;
+        auto derefV = new ExprPtr2Ref(at, value);
+        auto derefT = new TypeDecl(*valT->firstType);
+        TypeDecl::applyAutoContracts(derefT, valT->firstType);
+        derefT->ref = true;
+        derefT->constant |= valT->constant;
+        derefV->type = derefT;
+        if (auto opE = tryProperty(probe, at, derefV, right))
+            return opE;
+        if (derefV->type == derefT) gc_free_now(derefT);
+        gc_free_now(derefV);
         return nullptr;
     }
     LineInfo InferTypes::makeConstAt(ExprField *expr) const {
@@ -1048,17 +1060,12 @@ namespace das {
                   expr->at, CompilationError::not_resolved_yet_expression_type);
         }
     }
-    // a void-typed return value coming from a call is only trustworthy once the callee settled:
-    // a generic instance still pending macro folds (e.g. a static_if-gated body) is void only
-    // transiently, and committing an auto result or lowering the return on it is irreversible
     bool InferTypes::isVoidReturnValueSettled(Expression *subexpr) const {
         if (!subexpr->rtti_isCallFunc()) {
             return true;
         }
         auto callee = ((ExprCallFunc *)subexpr)->func;
         if (!callee) {
-            // no function bound - the node was just rewritten (e.g. by a call transform)
-            // and may still carry the stale type of the expression it replaced
             return false;
         }
         if (callee->builtIn || callee->isFullyInferred) {
@@ -1067,8 +1074,6 @@ namespace das {
         if (callee->module && callee->module != program->thisModule.get()) {
             return true;
         }
-        // a return statement proves the void result came from the callee's own body
-        // (mutual void recursion lands here); an empty transient instance has none
         return callee->hasReturn;
     }
     bool InferTypes::inferReturnType(TypeDeclPtr &resType, ExprReturn *expr) {
@@ -1116,11 +1121,12 @@ namespace das {
                         resType->constant = true;
                     }
                     resType->sanitize();
+                    if ( !resType->at.fileInfo ) resType->at = expr->at;
                     reportAstChanged();
                     return true;
                 }
             } else {
-                resType = new TypeDecl(Type::tVoid);
+                resType = new TypeDecl(Type::tVoid, expr->at);
                 reportAstChanged();
                 return true;
             }
@@ -1196,129 +1202,7 @@ namespace das {
         }
     }
     bool InferTypes::isConstExprFunc(Function *fun) const {
-        if ( fun->sideEffectFlags != 0 || !fun->builtIn || !fun->result->isFoldable() ) return false;
-        // BuiltInFunction::noFolding - a bound function whose body may not be callable where the
-        // compiler runs (the AOT compiler stubs C++ bound bodies) must not fold at infer time either
-        return !static_cast<const BuiltInFunction *>(fun)->noFolding;
-    }
-    ExpressionPtr InferTypes::getConstExpr(Expression *expr) {
-        if (expr->rtti_isConstant() && expr->type && expr->type->isFoldable()) {
-            if (expr->type->isEnum()) {
-                auto enumc = static_cast<ExprConstEnumeration *>(expr);
-                auto enumv = enumc->enumType->find(enumc->text);
-                if (!enumv.second)
-                    return nullptr; // not found???
-                if (!enumv.first || !enumv.first->type)
-                    return nullptr; // not resolved
-                if (!enumv.first->rtti_isConstant())
-                    return nullptr; // not a constant
-                // TODO: do we need to check if const is of the same size?
-                // if ( enumc->baseType != enumv.first->type->baseType ) return nullptr;   // not a constant of the same type
-            }
-            return expr;
-        }
-        if (expr->rtti_isR2V()) {
-            auto r2v = static_cast<ExprRef2Value *>(expr);
-            return getConstExpr(r2v->subexpr);
-        }
-        if (expr->rtti_isVar()) { // global variable which happens to be constant
-            auto var = static_cast<ExprVar *>(expr);
-            auto variable = var->variable;
-            if (variable && variable->init && variable->type->isConst() && variable->type->isFoldable()) {
-                if (/*!var->local &&*/ // this is an interesting question. should we allow local const to be folded?
-                    !var->argument &&
-                    !var->block) {
-                    if (variable->init->rtti_isConstant()) {
-                        variable->access_fold = true;
-                        return variable->init->clone();
-                    } else if (constExprFolding.count(variable) == 0) {
-                        // a const global's init EXPRESSION only folds in place when infer-time
-                        // folding is on; under lint/IDE profiles (no_optimizations) it stays an
-                        // op tree, so compute the value on the side — static_if over such a
-                        // global must resolve identically in every compile profile. The in-flight
-                        // set breaks init cycles (A = B + 1; B = A + 1): a revisited global reads
-                        // as non-constant and the standard init-loop diagnostic reports it.
-                        constExprFolding.insert(variable);
-                        auto foldedInit = getConstExpr(variable->init);
-                        constExprFolding.erase(variable);
-                        if (foldedInit) {
-                            variable->access_fold = true;
-                            return foldedInit;
-                        }
-                    }
-                }
-            }
-        }
-        if (expr->rtti_isOp1()) {
-            // fold a pure builtin operator over a constant operand on a DETACHED clone —
-            // never in place, so profiles that keep source shapes for lint rules still see
-            // the original expression. mirrors the in-place fold in InferTypes::visit(ExprOp1).
-            auto op1 = static_cast<ExprOp1 *>(expr);
-            if (op1->func && op1->subexpr->type && isConstExprFunc(op1->func)) {
-                if (auto scc = getConstExpr(op1->subexpr)) {
-                    auto cloned = expr->clone();
-                    auto clonedOp = static_cast<ExprOp1 *>(cloned);
-                    clonedOp->subexpr = scc;
-                    auto folded = evalAndFold(clonedOp);
-                    if (folded && folded->rtti_isConstant()) {
-                        return folded;
-                    }
-                }
-            }
-        }
-        if (expr->rtti_isOp2()) {
-            // two-operand twin of the ExprOp1 arm above, mirroring InferTypes::visit(ExprOp2)
-            auto op2 = static_cast<ExprOp2 *>(expr);
-            if (op2->func && op2->left->type && op2->right->type && isConstExprFunc(op2->func)) {
-                auto lcc = getConstExpr(op2->left);
-                auto rcc = lcc ? getConstExpr(op2->right) : nullptr;
-                if (lcc && rcc) {
-                    auto cloned = expr->clone();
-                    auto clonedOp = static_cast<ExprOp2 *>(cloned);
-                    clonedOp->left = lcc;
-                    clonedOp->right = rcc;
-                    auto folded = evalAndFold(clonedOp);
-                    if (folded && folded->rtti_isConstant()) {
-                        return folded;
-                    }
-                }
-            }
-        }
-        if (expr->rtti_isSwizzle()) {
-            auto swz = static_cast<ExprSwizzle *>(expr);
-            if (swz->value->type) {
-                if (auto cswz = getConstExpr(swz->value)) {
-                    int dim = swz->value->type->getVectorDim();
-                    vector<uint8_t> fields;
-                    if (TypeDecl::buildSwizzleMask(swz->mask, dim, fields)) {
-                        auto baseType = swz->value->type->getVectorBaseType();
-                        vec4f data = static_cast<ExprConst *>(cswz)->value;
-                        vec4f resData = v_zero();
-                        if (baseType != Type::tInt64 && baseType != Type::tUInt64) {
-                            int32_t *res = (int32_t *)&resData;
-                            int32_t *src = (int32_t *)&data;
-                            int outI = 0;
-                            for (auto f : fields) {
-                                res[outI++] = src[f];
-                            }
-                        } else {
-                            int64_t *res = (int64_t *)&resData;
-                            int64_t *src = (int64_t *)&data;
-                            int outI = 0;
-                            for (auto f : fields) {
-                                res[outI++] = src[f];
-                            }
-                        }
-                        auto vecType = swz->type->getVectorType(baseType, int(fields.size()));
-                        auto constValue = program->makeConst(expr->at, new TypeDecl(vecType), resData);
-                        constValue->type = new TypeDecl(vecType);
-                        constValue->type->at = expr->at;
-                        return constValue;
-                    }
-                }
-            }
-        }
-        return nullptr;
+        return das::isConstExprFunc(fun);
     }
     bool InferTypes::isPodDelete(TypeDecl *typ) {
         if (typ->temporary)
@@ -1405,6 +1289,7 @@ namespace das {
         var->init_via_clone = false;
         var->init_via_move = true;
         auto c2m = new ExprCall(var->at, "clone_to_move");
+        c2m->generated = true;
         c2m->arguments.push_back(var->init);
         return c2m;
     }
@@ -1414,6 +1299,7 @@ namespace das {
         var->init_via_clone = false;
         var->init_via_move = false;
         auto cloneString = new ExprCall(var->at, "clone_string");
+        cloneString->generated = true;
         cloneString->arguments.push_back(var->init);
         return cloneString;
     }
@@ -1441,7 +1327,7 @@ namespace das {
         }
         return false;
     }
-    void InferTypes::expandTupleName(const string &name, const LineInfo &varAt) {
+    void InferTypes::expandTupleName(const string &name, const LineInfo &varAt, bool canShadow, CompilationError shadowError) {
         // split name which consits of multiple names separated by ` into parts
         vector<string> parts;
         size_t pos = 0;
@@ -1455,12 +1341,77 @@ namespace das {
                 pos = npos + 1;
             }
         }
+        // `_` is the discard: it binds nothing and collides with nothing, any number of times.
+        // destructuring forces a name per position, so unlike a plain `let _` there is no way
+        // to simply not write one
+        // a destructured name binds like a `let` declaration - enforce the same shadowing rules.
+        // alias collisions (including a repeat within one pattern) are same-scope REPLACEMENT,
+        // not shadowing, so they are checked unconditionally - mirroring preVisitLet, where the
+        // taken-by-alias check sits outside the can_shadow/policy gate
+        das_hash_set<string> reported;
+        for (size_t i = 0; i != parts.size(); ++i) {
+            if (parts[i] == "_" || reported.find(parts[i]) != reported.end()) continue;
+            for (size_t j = i + 1; j != parts.size(); ++j) {
+                if (parts[i] == parts[j]) {
+                    error("can't destructure into " + parts[i] + " twice in one pattern", "", "",
+                          varAt, shadowError);
+                    reported.insert(parts[i]);
+                    break;
+                }
+            }
+        }
+        for (auto &part : parts) {
+            if (part == "_") continue;
+            for (auto &al : assume) {
+                if (al.expr->alias == part) {
+                    error("can't destructure into " + part + ", name already taken by alias", "", "",
+                          varAt, shadowError);
+                    break;
+                }
+            }
+        }
+        if (!canShadow && !program->policies.allow_local_variable_shadowing) {
+            for (auto &part : parts) {
+                if (part == "_") continue;
+                if (func) {
+                    for (auto &fna : func->arguments) {
+                        if (fna->name == part) {
+                            error("can't destructure into " + part + ", name is shadowed by function argument " + fna->name + ": " + describeType(fna->type) + " at line " + to_string(fna->at.line), "", "",
+                                  varAt, shadowError);
+                            break;
+                        }
+                    }
+                }
+                for (auto &blk : blocks) {
+                    for (auto &bna : blk->arguments) {
+                        if (bna->name == part) {
+                            error("can't destructure into " + part + ", name is shadowed by block argument " + bna->name + ": " + describeType(bna->type) + " at line " + to_string(bna->at.line), "", "",
+                                  varAt, shadowError);
+                            break;
+                        }
+                    }
+                }
+                for (auto &lv : local) {
+                    if (lv->name == part) {
+                        error("can't destructure into " + part + ", name is shadowed by local variable " + lv->name + ": " + describeType(lv->type) + " at line " + to_string(lv->at.line), "", "",
+                              varAt, shadowError);
+                        break;
+                    }
+                }
+                if (auto eW = hasMatchingWith(part)) {
+                    error("can't destructure into " + part + ", name is shadowed by with expression at line " + to_string(eW->at.line), "", "",
+                          varAt, shadowError);
+                }
+            }
+        }
         int partIndex = 0;
         for (auto &part : parts) {
-            // we build var_name._partIndex
-            auto varName = new ExprVar(varAt, name);
-            auto partExpr = new ExprField(varAt, varName, "_" + to_string(partIndex), true);
-            assume.push_back(AssumeEntry{new ExprAssume(varAt, part, ExpressionPtr(partExpr)), {}});
+            // we build var_name._partIndex; `_` binds nothing (its position is simply skipped)
+            if (part != "_") {
+                auto varName = new ExprVar(varAt, name);
+                auto partExpr = new ExprField(varAt, varName, "_" + to_string(partIndex), true);
+                assume.push_back(AssumeEntry{new ExprAssume(varAt, part, ExpressionPtr(partExpr)), {}});
+            }
             partIndex++;
         }
     }

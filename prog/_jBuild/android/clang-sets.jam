@@ -54,14 +54,14 @@ if $(AndroidNdkVer) in r27c r29 {
   _A_GCC_BIN = $(_A_NDK_DIR)/toolchains/arm-linux-androideabi-4.9/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/arm-linux-androideabi/bin/ ;
 }
 
-if ! [ GLOB $(_A_NDK_DIR) : * ] { exit FATAL\: \"$(_A_NDK_DIR)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_A_ADK_DIR) : * ] { exit FATAL\: \"$(_A_ADK_DIR)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_A_JAVA_HOME) : * ] { exit FATAL\: \"$(_A_JAVA_HOME)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_A_ANT_HOME) : * ] { exit FATAL\: \"$(_A_ANT_HOME)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_A_NDK_SYSROOT) : * ] { exit FATAL\: \"$(_A_NDK_SYSROOT)\" not found!  AndroidApiVer\=$(AndroidApiVer)  PlatformArch\=$(PlatformArch) ; }
-if ! [ GLOB $(_A_GRADLE_HOME) : * ] { exit FATAL\: \"$(_A_GRADLE_HOME)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_A_TC_ROOT) : * ] { exit FATAL\: \"$(_A_TC_ROOT)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_A_GCC_BIN) : * ] { exit FATAL\: \"$(_A_GCC_BIN)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_A_NDK_DIR) : * ] { exit "FATAL: \"$(_A_NDK_DIR)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_A_ADK_DIR) : * ] { exit "FATAL: \"$(_A_ADK_DIR)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_A_JAVA_HOME) : * ] { exit "FATAL: \"$(_A_JAVA_HOME)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_A_ANT_HOME) : * ] { exit "FATAL: \"$(_A_ANT_HOME)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_A_NDK_SYSROOT) : * ] { exit "FATAL: \"$(_A_NDK_SYSROOT)\" not found!  AndroidApiVer=$(AndroidApiVer)  PlatformArch=$(PlatformArch)" ; }
+if ! [ GLOB $(_A_GRADLE_HOME) : * ] { exit "FATAL: \"$(_A_GRADLE_HOME)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_A_TC_ROOT) : * ] { exit "FATAL: \"$(_A_TC_ROOT)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_A_GCC_BIN) : * ] { exit "FATAL: \"$(_A_GCC_BIN)\" not found!  Please, update DEVTOOLS" ; }
 
 AndroidHasNeon = yes ;
 AndroidUploadCrashlyticsSymbols ?= no ;

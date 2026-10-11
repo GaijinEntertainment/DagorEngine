@@ -21,7 +21,7 @@ def test_flip_vertically_on_load(t : T?) {
         pixels[4] = uint8(0); pixels[5] = uint8(0); pixels[6] = uint8(255); pixels[7] = uint8(255)
         // encode to PNG
         var png_data : array<uint8>
-        stbi_write_png_to_memory(1, 2, 4, safe_addr(pixels[0]), 4) <| $(data : array<uint8>#) {
+        stbi_write_png_to_memory(1, 2, 4, safe_addr(pixels[0]), 4) $(data : array<uint8>#) {
             png_data := data
         }
         // load without flip
@@ -59,7 +59,7 @@ def test_flip_vertically_on_write(t : T?) {
         // write with flip enabled
         stbi_flip_vertically_on_write(1)
         var flipped_png : array<uint8>
-        stbi_write_png_to_memory(1, 2, 4, safe_addr(pixels[0]), 4) <| $(data : array<uint8>#) {
+        stbi_write_png_to_memory(1, 2, 4, safe_addr(pixels[0]), 4) $(data : array<uint8>#) {
             flipped_png := data
         }
         stbi_flip_vertically_on_write(0)

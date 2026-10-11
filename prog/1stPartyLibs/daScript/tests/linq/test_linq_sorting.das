@@ -586,7 +586,7 @@ def test_heap_ops(t : T?) {
         var a <- [5, 2, 8, 1, 9, 3, 7, 4, 6, 0]
         sort_boost::make_heap(a)
         var popped : array<int>
-        while (length(a) > 0) {
+        while (!empty(a)) {
             sort_boost::pop_heap(a)
             popped |> push(a[length(a) - 1])
             a |> resize(length(a) - 1)
@@ -634,7 +634,7 @@ def test_q_macros(t : T?) {
     //! routes to the right wrapper for ``array<T>`` sources.
     t |> run("qpartial_sort on array") @(t : T?) {
         var a <- [5, 2, 8, 1, 9, 3, 7, 4, 6, 0]
-        sort_boost::qpartial_sort(a, 3) <| $(x, y : int) : bool {
+        sort_boost::qpartial_sort(a, 3) $(x, y : int) : bool {
             return x < y
         }
         t |> equal(a[0], 0)
@@ -643,35 +643,35 @@ def test_q_macros(t : T?) {
     }
     t |> run("qnth_element on array") @(t : T?) {
         var a <- [7, 3, 1, 9, 5, 8, 0, 4, 2]
-        sort_boost::qnth_element(a, 4) <| $(x, y : int) : bool {
+        sort_boost::qnth_element(a, 4) $(x, y : int) : bool {
             return x < y
         }
         t |> equal(a[4], 4)
     }
     t |> run("qmake_heap on array") @(t : T?) {
         var a <- [5, 2, 8, 1, 9, 3, 7]
-        sort_boost::qmake_heap(a) <| $(x, y : int) : bool {
+        sort_boost::qmake_heap(a) $(x, y : int) : bool {
             return x < y
         }
         t |> equal(a[0], 9)
     }
     t |> run("qpush_heap append-then-sift") @(t : T?) {
         var a <- [9, 5, 7, 1, 3, 6]
-        sort_boost::qmake_heap(a) <| $(x, y : int) : bool {
+        sort_boost::qmake_heap(a) $(x, y : int) : bool {
             return x < y
         }
         a |> push(12)
-        sort_boost::qpush_heap(a) <| $(x, y : int) : bool {
+        sort_boost::qpush_heap(a) $(x, y : int) : bool {
             return x < y
         }
         t |> equal(a[0], 12)
     }
     t |> run("qpop_heap moves max to end") @(t : T?) {
         var a <- [5, 2, 8, 1, 9, 3, 7]
-        sort_boost::qmake_heap(a) <| $(x, y : int) : bool {
+        sort_boost::qmake_heap(a) $(x, y : int) : bool {
             return x < y
         }
-        sort_boost::qpop_heap(a) <| $(x, y : int) : bool {
+        sort_boost::qpop_heap(a) $(x, y : int) : bool {
             return x < y
         }
         t |> equal(a[length(a) - 1], 9)

@@ -15,9 +15,18 @@ class template public XModKern {
     }
 }
 
+class public XModBase {
+    hits : int
+
+    def bump() : int {
+        hits++
+        return hits
+    }
+}
+
 [structure_macro(name = "tsi_test_bind_kt")]
 class TsiTestBindKt : AstStructureAnnotation {
-    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var st : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         var td = new TypeDecl(at = st.at, baseType = Type.tInt)
         st |> add_structure_alias("KT", td)
         return true
@@ -37,7 +46,7 @@ class template public LateKern {
 // the instance-named global exists (i.e. the reifier ran applies on the clone, exactly once)
 [function_macro(name = "tsi_test_fn_tag")]
 class TsiTestFnTag : AstFunctionAnnotation {
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         let gname = "{func.name}_tag" |> replace("`", "_")
         if (!add_global_var(compiling_module(), gname, new TypeDecl(at = func.at, baseType = Type.tInt), func.at, false)) {
             errors := "can't add global {gname}"

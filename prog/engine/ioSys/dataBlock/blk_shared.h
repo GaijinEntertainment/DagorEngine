@@ -280,6 +280,8 @@ enum FormatHeaderByte
                                           // (each block descriptor is followed by explicit param data offset)
 };
 
+static constexpr int MAX_BLOCK_DEPTH = 500;
+
 bool check_shared_name_map_valid(const VirtualRomFsData *fs, const char **out_err_desc);
 bool add_name_to_name_map(DBNameMap &nm, const char *s);
 

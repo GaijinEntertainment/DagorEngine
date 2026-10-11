@@ -46,6 +46,10 @@ static void upload_hzb(CameraViewVisibilityMgr &view_jobs_mgr, BaseTexture *dst,
     }
   }
 
+#if _TARGET_C1 || _TARGET_C2
+
+#endif
+
   for (int mip = 0; mip < hzb_mips_count; ++mip)
   {
     const size_t mipW = OcclusionZBuffer::WIDTH >> mip;

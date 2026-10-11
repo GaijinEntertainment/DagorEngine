@@ -11,7 +11,6 @@
 #include <util/dag_bitFlagsMask.h>
 #include <util/dag_stdint.h>
 #include <generic/dag_carray.h>
-#include <EASTL/fixed_function.h>
 #include <generic/dag_functionRef.h>
 
 #include <rendInst/rendInstDesc.h>
@@ -127,6 +126,6 @@ bool removeRIGenExternalControl(const RendInstDesc &desc, DestroyedRi *ri, bool 
 
 void play_riextra_dmg_fx(rendinst::riex_handle_t id, const Point3 &pos, ri_damage_effect_cb effect_cb);
 
-bool getDestrCellData(int layer_idx, const eastl::fixed_function<64, bool(const Tab<DestroyedCellData> &)> &callback);
+bool getDestrCellData(int layer_idx, dag::FunctionRef<bool(const Tab<DestroyedCellData> &) const> callback);
 
 } // namespace rendinst

@@ -94,6 +94,7 @@ static void update_geom_tree(AnimV20::AnimcharRendComponent &animchar_render,
     m4.col3 = v_add(m4.col3, ofs);
     scene->setNodeWtm(n.id, m4);
   }
+  cache_animchar_skin_bone_rows(*scene);
 }
 
 static void prepare_for_render(AnimV20::AnimcharRendComponent &animchar_render)
@@ -450,8 +451,7 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg,
       const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
       bool animchar__renderPriority = false) {
       if (stg.eidFilter > AnimcharRenderAsyncFilter::ARF_ANY_IDX &&
-          (hash_int(ecs::entity_id_t(eid)) & ecs::entity_id_t(AnimcharRenderAsyncFilter::ARF_IDX_MASK)) !=
-            ecs::entity_id_t(stg.eidFilter))
+          (hash_int(ecs::entity_id_t(eid)) & ecs::entity_id_t(stg.eidFilterMask)) != ecs::entity_id_t(stg.eidFilter))
         return;
 
       // Check visibility

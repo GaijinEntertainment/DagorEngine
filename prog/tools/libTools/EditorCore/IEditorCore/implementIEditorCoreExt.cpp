@@ -45,10 +45,6 @@
 #include <scene/dag_loadLevel.h>
 #include <scene/dag_renderSceneMgr.h>
 #include <scene/dag_occlusionMap.h>
-#include <scene/dag_frtdump.h>
-#include <scene/dag_frtdumpInline.h>
-
-#include <sceneRay/dag_sceneRay.h>
 
 #include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -221,16 +217,14 @@ ShaderMesh *EcGeom::geomObjectGetShaderMesh(const GeomObject &go, int idx) const
 
 
 //==================================================================================================
-bool EcGeom::geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const
+bool EcGeom::geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &unnormalized_dir, real &maxt, Point3 *norm) const
 {
-  return go.traceRay(p, dir, maxt, norm);
+  return go.traceRay(p, unnormalized_dir, maxt, norm);
 }
 
 
 //==================================================================================================
-bool EcGeom::geomObjectReloadRayTracer(GeomObject &go) const { return go.reloadRayTracer(); }
-
-StaticSceneRayTracer *EcGeom::geomObjectGetRayTracer(GeomObject &go) const { return go.getRayTracer(); }
+bool EcGeom::geomObjectReloadCollision(GeomObject &go) const { return go.reloadCollision(); }
 
 
 //==================================================================================================
@@ -735,13 +729,6 @@ bool EcInput::isCtrlKeyDown() const { return ec_is_ctrl_key_down(); }
 
 //==================================================================================================
 bool EcInput::isShiftKeyDown() const { return ec_is_shift_key_down(); }
-
-
-//==================================================================================================
-int EcScene::fastRtDumpTraceRay(FastRtDump &frt, int custom, const Point3 &p, const Point3 &dir, real &t, int &out_pmid) const
-{
-  return frt.traceray(custom, p, dir, t, out_pmid);
-}
 
 
 //==================================================================================================

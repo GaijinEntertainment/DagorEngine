@@ -770,6 +770,8 @@ void DriverConfig::extCapsFillAndroidOnly(DriverDesc &caps)
   // ~99% of device / drivers support it, the remaining 1% is probably not compatible anyways
   caps.caps.hasAnisotropicFilter = has.anisotropicSampling;
 
+  caps.caps.hasDepthClamp = Globals::VK::phy.features.depthClamp != VK_FALSE && !bits.disableDepthClamp;
+
   switch (Globals::VK::phy.vendor)
   {
     // Qualcomm Adreno GPUs

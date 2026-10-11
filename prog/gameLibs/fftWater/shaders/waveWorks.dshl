@@ -7,6 +7,7 @@ int water_cascades = 5;
 interval water_cascades : two < 3, three < 4, four < 5, five < 6, one_to_four;
 
 texture water_gradients_tex0;
+sampler water_gradients_tex0_samplerstate;
 texture water_gradients_tex1;
 texture water_gradients_tex2;
 texture water_gradients_tex3;
@@ -193,7 +194,10 @@ macro USE_WATER_DISPLACEMENT(stage, surf)
   INIT_SHORE(stage)
   USE_SHORE(stage, 0, surf)
 
-  (stage) { displacement0@smpArray = water_displacement_texture0; }
+  (stage) {
+    displacement0@texArray = water_displacement_texture0;
+    displacement0_samplerstate@sampler = global_linear_wrap_sampler;
+  }
 
   hlsl(stage) {
     void WaveWorks_GetDisplacedVertex(float3 worldPos, float4 blend_factors0123, float4 blend_factors4567,
@@ -304,7 +308,8 @@ endmacro
 macro INIT_WATER_GRADIENTS(stage)
   INIT_WATER_GRADIENTS_CONSTS(stage)
   (stage) {
-    water_gradients_tex0@smpArray = water_gradients_tex0;
+    water_gradients_tex0@texArray = water_gradients_tex0;
+    water_gradients_tex0_samplerstate@sampler = water_gradients_tex0_samplerstate;
   }
 endmacro
 

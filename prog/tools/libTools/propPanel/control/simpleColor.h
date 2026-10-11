@@ -6,6 +6,7 @@
 #include <propPanel/commonWindow/colorDialog.h>
 #include <propPanel/imguiHelper.h>
 #include "../colorChangeBuffer.h"
+#include "../controlSizeHelper.h"
 #include "../messageQueueInternal.h"
 #include "../scopedImguiBeginDisabled.h"
 #include "../tooltipHelper.h"
@@ -28,7 +29,7 @@ public:
   unsigned getWidth() const override
   {
     if (mW <= 0)
-      return ImguiHelper::getDefaultRightSideEditWidth();
+      return ControlSizeHelper::getDefaultRightSideEditWidth();
     else if (mW == (int)Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE)
       return ImGui::GetFrameHeight();
     else
@@ -80,7 +81,7 @@ public:
       if (mW == (int)Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE)
         availableWidthForLabel -= ImGui::GetFrameHeight();
       else
-        availableWidthForLabel -= ImguiHelper::getDefaultRightSideEditWidth();
+        availableWidthForLabel -= ControlSizeHelper::getDefaultRightSideEditWidth();
 
       if (availableWidthForLabel < 0.0f)
         availableWidthForLabel = 0.0f;

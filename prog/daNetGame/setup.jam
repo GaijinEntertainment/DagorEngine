@@ -25,6 +25,7 @@ if $(NeedDasLLVMAotCompile) = yes { NeedDasAotCompile = yes ; }   # LLVM-AOT reu
 HaveEmbeddedBrowser ?= no ; # include/skip embedded browser support
 HaveAssetManager ?= no ;    # include/skip asset manager (runtime dabuild-cache) support
 Dedicated ?= no ;           # select dedicated server or client
+ThreadSafeNetTime ?= no ;   # guard the global net time manager with a lock (sync time readable from any thread)
 
 UseLLDLink ?= yes ; # faster than default ld/link.exe
 
@@ -51,6 +52,7 @@ if $(Dedicated) != yes {
       SqVarTrace ?= no ;
     }
     UseSystemOpenSSL ?= yes ;
+    UseSystemLibcurl ?= yes ; # the vendored curl cannot build against a host OpenSSL 1.x
     UseSyncAsyncRead ?= yes ;
   }
   if $(NetPeerAuth) = yes {
@@ -162,7 +164,7 @@ if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
 
   if $(Platform) in ps4 ps5 xboxOne scarlett android nswitch ||
      $(Platform)-$(PlatformArch) in windows-x86_64 { host_platform = windows ; host_arch = x86_64 ; }
-  else if $(Platform)-$(PlatformArch) = windows-arm64 { host_platform = windows ; host_arch = $(WindowsHostArch) ; }
+  else if $(Platform)-$(PlatformArch) in windows-arm64 windows-arm64ec { host_platform = windows ; host_arch = $(WindowsHostArch) ; }
   else if $(Platform)-$(PlatformArch) = windows-x86 { host_platform = windows ; }
   else if $(Platform) in linux { host_platform = linux ; }
   else if $(Platform) in macOS iOS tvOS { host_platform = macOS ; }

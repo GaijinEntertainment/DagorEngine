@@ -26,7 +26,7 @@ int TexStreamingContext::getTexLevel(float texScale, float distSq) const
     return MAX_TEX_LEVEL;
   int desiredTexLevel;
   // acutually computes ceil(log2(sqrt( multiplicator * texScale / (perspective ? distSq : 1.0f) )))
-  frexp(multiplicator * texScale / distSq, &desiredTexLevel);
+  (void)frexp(multiplicator * texScale / distSq, &desiredTexLevel);
   desiredTexLevel = max(desiredTexLevel, MIN_TEX_LEVEL);
   desiredTexLevel = (desiredTexLevel >> 1) + (desiredTexLevel & 1);
 

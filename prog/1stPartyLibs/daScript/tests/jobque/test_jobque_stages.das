@@ -103,7 +103,7 @@ def stages_ragged_round(t : T?) {
                 unsafe(pa[i]) = i * 7
             }
         } elif (stage == 2) {
-            unsafe(pa[0]) += 1   // single chunk: [0,1)
+            unsafe(pa[0]) ++   // single chunk: [0,1)
         } elif (stage == 3) {
             for (i in range(jb, je)) {
                 unsafe(pb[i]) = unsafe(pa[total - 1 - i])
@@ -144,7 +144,7 @@ def stages_mixed_storm(t : T?; rounds : int) {
         }
         team_parallel_for(0, lanes, lanes) <| @(jb : int; je : int) {
             for (i in range(jb, je)) {
-                unsafe(ph[i]) += 1
+                unsafe(ph[i]) ++
             }
         }
         team_parallel_stages(stages) <| @(stage : int; jb : int; je : int) {
@@ -160,7 +160,7 @@ def stages_mixed_storm(t : T?; rounds : int) {
         }
         team_parallel_for(0, total, 64) <| @(jb : int; je : int) {
             for (i in range(jb, je)) {
-                unsafe(ph[i]) += 1
+                unsafe(ph[i]) ++
             }
         }
         var bad = 0
@@ -212,6 +212,25 @@ def test_jobque_stages(t : T?) {
             stages_mixed_storm(t, 3000)
             set_jobque_team_mode(false)
             set_jobque_worker_spin(0)
+        }
+        t |> run("a stage chunk's panic is the caller's - recoverable, the chain serves on") @(t : T?) {
+            // the caller's own slot panics too: an unwrapped caller slot longjmps past the chain's dispatch lock
+            set_jobque_team_mode(true)
+            for (_r in range(3)) {
+                var caught = false
+                try {
+                    team_parallel_stages([int3(0, 64, 16), int3(0, 64, 16)]) <| @(stage : int; job_begin : int; job_end : int) {
+                        if (stage == 1 && job_begin >= 0) {
+                            panic("STAGES_PANIC_PROBE {job_begin}")
+                        }
+                    }
+                } recover {
+                    caught = true
+                }
+                t |> success(caught, "the stage panic reached the caller as a recoverable exception")
+            }
+            stages_pipeline_round(t, 4, 4, 64, 2)
+            set_jobque_team_mode(false)
         }
     }
 }

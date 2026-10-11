@@ -115,7 +115,7 @@ def test_fetch_index(t : T?) {
         mkdir(tmp_root)
         var index : table<string; IndexEntry>
         t |> success(fetch_index(tmp_root, index), "fetch succeeded")
-        t |> success(length(index) > 0, "index has entries")
+        t |> success(!empty(index), "index has entries")
         t |> success(index |> key_exists("daspkg-test-pure"), "test-pure in index")
         // cleanup
         force_rmdir(tmp_root)

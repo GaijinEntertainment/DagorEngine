@@ -27,5 +27,7 @@ ECS_NET_DECL_MSG(ClientInfo,
   danet::BitStream  // sync vroms
 );
 
+// Sent by server right before it disconnects a client; carries a human-readable reason
+ECS_NET_DECL_MSG(DisconnectDetails, eastl::string);
 ECS_NET_DECL_MSG(ApplySyncVromsDiffs, danet::BitStream);
 ECS_NET_DECL_MSG(SyncVromsDone);

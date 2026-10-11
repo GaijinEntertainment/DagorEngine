@@ -570,7 +570,7 @@ FSHADER d3d::create_pixel_shader_hlsl([[maybe_unused]] const char *hlsl_text, un
         {
           D3D11_SIGNATURE_PARAMETER_DESC out;
           reflector->GetOutputParameterDesc(i, &out);
-          if (strcmp(out.SemanticName, "SV_Target") == 0)
+          if (out.SystemValueType == D3D_NAME_TARGET)
             maxRtv = max(maxRtv, int(out.SemanticIndex));
         }
       }

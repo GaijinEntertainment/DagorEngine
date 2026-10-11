@@ -3744,6 +3744,12 @@ void AnimPostBlendTwoBonesIK::init(AnimGraphStateHolder &st, const GeomNodeTree 
       const mat44f &foot_wtm = tree.getNodeWtmRel(endNodeId);
       nodes[i].len0 = v_extract_x(v_length3_x(v_sub(leg_wtm.col3, knee_wtm.col3)));
       nodes[i].len1 = v_extract_x(v_length3_x(v_sub(foot_wtm.col3, knee_wtm.col3)));
+      if (applyRootScale)
+      {
+        float rootScale = v_extract_x(v_mat44_max_scale43_x(tree.getRootTm()));
+        nodes[i].len0 = safediv(nodes[i].len0, rootScale);
+        nodes[i].len1 = safediv(nodes[i].len1, rootScale);
+      }
     }
     else
     {
@@ -3762,6 +3768,10 @@ void AnimPostBlendTwoBonesIK::process(AnimGraphStateHolder &st, real wt, GeomNod
 
   NodeId *nodes = (NodeId *)st.getInlinePtr(varId);
   tree.calcWtm();
+
+  float rootScale = 1.0f;
+  if (applyRootScale)
+    rootScale = v_extract_x(v_mat44_max_scale43_x(tree.getRootTm()));
 
   for (int i = 0; i < rec.size(); i++)
   {
@@ -3787,7 +3797,8 @@ void AnimPostBlendTwoBonesIK::process(AnimGraphStateHolder &st, real wt, GeomNod
       flex_direction = v_neg(flex_direction);
     }
 
-    solve_2bones_ik(start_wtm, middle_wtm, end_wtm, target_wtm, nodes[i].len0, nodes[i].len1, flex_direction, rec[i].maxReachScale);
+    solve_2bones_ik(start_wtm, middle_wtm, end_wtm, target_wtm, nodes[i].len0 * rootScale, nodes[i].len1 * rootScale, flex_direction,
+      rec[i].maxReachScale);
 
     if (rec[i].rotateFlexDirectionParamId >= 0)
     {
@@ -3817,9 +3828,9 @@ void AnimPostBlendTwoBonesIK::process(AnimGraphStateHolder &st, real wt, GeomNod
       }
     }
 
-    if (ctx.acScale)
+    if (ctx.acScale || applyRootScale)
     {
-      vec3f s = *ctx.acScale;
+      vec3f s = applyRootScale ? v_splats(rootScale) : *ctx.acScale; //-V522
       start_wtm.col0 = v_mul(start_wtm.col0, s);
       start_wtm.col1 = v_mul(start_wtm.col1, s);
       start_wtm.col2 = v_mul(start_wtm.col2, s);
@@ -3879,5 +3890,6 @@ void AnimPostBlendTwoBonesIK::createNode(AnimationGraph &graph, const DataBlock 
 
   node->varId =
     graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(NodeId) * node->rec.size(), AnimGraphStateHolder::PT_InlinePtr);
+  node->applyRootScale = blk.getBool("applyRootScale", false);
   graph.registerBlendNode(node, name);
 }

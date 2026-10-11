@@ -14,34 +14,32 @@ require daslib/enum_trait public
 
 struct public CommandArgumentInfo {
     field_name : string
-    flag_name : string         // long form, e.g. "--verbose"; for positionals this is "<field_name>"
-    short_flag_name : string   // e.g. "-v"; empty if no short flag declared
-    env_name : string          // environment twin, e.g. "TOOL_VERBOSE"; "" = none. Command line wins; set-but-empty env counts as unset
+    flag_name : string
+    short_flag_name : string
+    env_name : string
     doc_string : string
-    default_doc : string       // default as doc text: @clarg_default_doc, else the rendered field initializer; "" = nothing to show
+    default_doc : string
     value_type : Type
-    is_path : bool             // @clarg_path: a string knob holding a filesystem path (doc/completion hint)
+    is_path : bool
     is_array : bool
     is_required : bool
-    is_positional : bool       // declared with @clarg_positional; consumed in declaration order
-    is_optional_wrap : bool    // declared as Option<T> (positional or flag); affects required-ness
-    is_count : bool            // declared with @clarg_count; sums every flag occurrence
-    mutex_group : string       // declared with @clarg_mutex_group="name"; "" if not in any group
+    is_positional : bool
+    is_optional_wrap : bool
+    is_count : bool
+    mutex_group : string
     enum_values : array<string>
 }
 
 struct public CommandInfo {
     args : array<CommandArgumentInfo>
-    has_user_help : bool       // true if the user already declared a --help/-h flag (suppresses auto-injection)
+    has_user_help : bool
 }
 
-// Returns the slice of `all_args` after a "--" separator (or empty if no "--").
-// Use this for script-style invocation (`daslang script.das -- script_args...`).
 def public get_cli_arguments(all_args : array<string>) : array<string> {
     var arg_index = find_index(all_args, "--")
     var result : array<string>
     if (arg_index == -1) return <- result
-    arg_index++ // Skip the "--" itself
+    arg_index++
     while (arg_index < length(all_args)) {
         result |> push(all_args[arg_index])
         arg_index++
@@ -53,9 +51,6 @@ def public get_cli_arguments() : array<string> {
     return <- get_cli_arguments(get_command_line_arguments())
 }
 
-// Returns `all_args[1..]` (skips the program name).
-// Use this for standalone-tool invocation where there is no "--" separator
-// and argv[1..] are the actual flags.
 def public get_program_args(all_args : array<string>) : array<string> {
     var result : array<string>
     var i = 1
@@ -70,7 +65,6 @@ def public get_program_args() : array<string> {
     return <- get_program_args(get_command_line_arguments())
 }
 
-// Mode-aware argv source.  Returns argv[1..] when running as a standalone exe (built via `daslang -exe`), and the post-`--` slice when running under the interpreter or in-process JIT.  This is what the macro-generated default `parse_args()` uses, so utilities work the same whether interpreted or shipped as a binary.
 def public get_user_args() : array<string> {
     let argv <- get_command_line_arguments()
     if (is_standalone_exe()) {
@@ -80,11 +74,20 @@ def public get_user_args() : array<string> {
     }
 }
 
+def public get_host_binary() : string {
+    //! The host binary for a program that spawns the daslang it runs under: `argv[0]` made absolute
+    //! when it names an existing file (on Windows maybe without the `.exe` the shell added), else
+    //! unchanged - a bare name the shell found on PATH, for PATH to find again at spawn.
+    let arg0 = get_command_line_arguments()[0]
+    let full = get_full_file_name(arg0)
+    if (fexist(full)) return full
+    if (get_platform_name() == "windows" && fexist("{full}.exe")) return "{full}.exe"
+    return arg0
+}
+
 def clargs_flag_name(field_name : string) : string {
     return "--" + replace_multiple(field_name, [(text="_", replacement="-")])
 }
-
-// Duplicate-flag policy: last occurrence wins.  Matches GNU getopt, Python argparse, Go flag, Rust clap, and most other CLI parsers — lets users override an earlier flag (typically from an alias or wrapper script) by appending a later one.
 
 def public find_bool_flag_raw_value(args : array<string>; flag_name : string) : Option<string> {
     let prefix = "{flag_name}="
@@ -108,14 +111,12 @@ def public find_flag_raw_value(args : array<string>; flag_name : string) : Optio
                 result = some(args[i + 1])
             }
         } elif (starts_with(args[i], prefix)) {
-            result = some(slice(args[i], length(prefix)))
+            result = some(slice(args[i], length(prefix)))   // nolint:PERF031 - a distinct argv element per iteration, sliced at most once
         }
     }
     return result
 }
 
-// Returns true if any form of flag_name (--flag, --flag=value, --flag value)
-// is present in args.  Used for required-flag validation.
 def public flag_present(args : array<string>; flag_name : string) : bool {
     let prefix = "{flag_name}="
     for (a in args) {
@@ -145,23 +146,15 @@ def public find_array_flag_raw_values(args : array<string>; flag_name : string) 
     return <- result
 }
 
-// Environment twins: an option with a non-empty env_name falls back to that variable when
-// NO spelling of the flag is on the command line — argv always wins, including its errors
-// (a bare value-less "--flag" stays "missing value" even with the variable set).
-
-// the shared boolean rule (build_const / dasllama_env): "", "0", "false", "off", "no" any-case are false
 def env_text_is_true(v : string) : bool {
     let s = to_lower(v)
     return !(empty(s) || s == "0" || s == "false" || s == "off" || s == "no")
 }
 
-// set-but-empty counts as unset, matching daslib/build_const — and warns, because the old
-// dasllama registry read FOO= as false, so a silent flip of a disable idiom must be loud
 def public env_config_text(name : string) : Option<string> {
     if (empty(name) || !has_env_variable(name)) return none(type<string>)
     let v = get_env_variable(name)
     if (empty(v)) {
-        to_log(LOG_WARNING, "env {name} is set but empty - treated as unset (use {name}=0 to disable a flag)\n")
         return none(type<string>)
     }
     return some(v)
@@ -170,9 +163,6 @@ def public env_config_text(name : string) : Option<string> {
 def env_raw_value(arg_info : CommandArgumentInfo) : Option<string> {
     return env_config_text(arg_info.env_name)
 }
-
-// ===== [EnvConfig] runtime readers =====
-// unset and set-but-empty yield the default; garbage numeric text logs a warning and yields the default
 
 def public env_config_flag(name : string; dflt : bool) : bool {
     let v = env_config_text(name)
@@ -226,10 +216,6 @@ def public env_config_int64(name : string; dflt : int64) : int64 {
     return parsed
 }
 
-// Option-typed twins for tri-state knobs: the field keeps its declared default (usually `none`)
-// when the variable is unset, so a read site can tell "explicitly set" from "compute a default".
-// Garbage numeric text warns and keeps the default, same as the plain readers.
-
 def public env_config_opt_flag(name : string; dflt : Option<bool>) : Option<bool> {
     let v = env_config_text(name)
     return is_none(v) ? dflt : some(env_text_is_true(unwrap(v)))
@@ -282,16 +268,10 @@ def public env_config_opt_string(name : string; dflt : Option<string>) : Option<
     return is_none(v) ? dflt : v
 }
 
-// Command-line presence only (either alias, either spelling) — mutex checks and
-// argv-error precedence use this, NOT the env-aware flag_present overload below.
-def argv_present(args : array<string>; arg_info : CommandArgumentInfo) : bool {
+def present_in_argv(args : array<string>; arg_info : CommandArgumentInfo) : bool {
     if (flag_present(args, arg_info.flag_name)) return true
     return !empty(arg_info.short_flag_name) && flag_present(args, arg_info.short_flag_name)
 }
-
-// Short-flag-aware overloads: single pass over args treating long and short
-// as aliases.  Last-occurrence wins (same policy as the single-flag overloads
-// above), so e.g. `-n Alice --name Bob` resolves to "Bob".
 
 def public find_flag_raw_value(args : array<string>; arg_info : CommandArgumentInfo) : Option<string> {
     if (arg_info.is_positional) return none(type<string>)
@@ -311,7 +291,7 @@ def public find_flag_raw_value(args : array<string>; arg_info : CommandArgumentI
             result = some(slice(arg, length(short_prefix)))
         }
     }
-    if (is_none(result) && !argv_present(args, arg_info)) {
+    if (is_none(result) && !present_in_argv(args, arg_info)) {
         result = env_raw_value(arg_info)
     }
     return result
@@ -335,16 +315,12 @@ def public find_bool_flag_raw_value(args : array<string>; arg_info : CommandArgu
     if (is_none(result)) {
         let env_v = env_raw_value(arg_info)
         if (is_some(env_v)) {
-            // env booleans take the shared spelling rule, normalized to what the strict argv parser expects
             result = some(env_text_is_true(unwrap(env_v)) ? "true" : "false")
         }
     }
     return result
 }
 
-// Single pass over args so that mixed long/short occurrences are returned
-// in command-line order as they appear in args
-// (e.g. --tags=a -t b --tags=c -> ["a", "b", "c"]).
 def public find_array_flag_raw_values(args : array<string>; arg_info : CommandArgumentInfo) : array<string> {
     var result : array<string>
     if (arg_info.is_positional) return <- result
@@ -374,12 +350,9 @@ def public find_array_flag_raw_values(args : array<string>; arg_info : CommandAr
 }
 
 def public flag_present(args : array<string>; arg_info : CommandArgumentInfo) : bool {
-    // env-aware: a value supplied via the env twin counts as present (satisfies @clarg_required)
-    if (argv_present(args, arg_info)) return true
+    if (present_in_argv(args, arg_info)) return true
     return is_some(env_raw_value(arg_info))
 }
-
-// For value-bearing flags (everything except bool), a bare "--flag" with no following value token and no "=value" form is malformed input.  Each parse_argument overload below returns Result<Option<T>, string> distinguishing three states:
 
 [unused_argument(t)]
 def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; t : type<string>) : Result<Option<string>; string> {
@@ -399,7 +372,6 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
     var result : ConversionResult
     var offset = 0
     let parsed = int(raw_value, result, offset)
-    // Reject both outright parse failures and trailing garbage ("42abc").
     if (result != ConversionResult.ok || offset != length(raw_value)) return err("invalid int value '{raw_value}'", type<Option<int>>)
     return ok(some(parsed), type<string>)
 }
@@ -445,8 +417,6 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
     }
 }
 
-// Positional-argument collection.
-
 def public collect_positional_args(args : array<string>; info : CommandInfo) : array<string> {
     var result : array<string>
     var i = 0
@@ -464,7 +434,6 @@ def public collect_positional_args(args : array<string>; info : CommandInfo) : a
             if (exact_long || exact_short || prefix_long || prefix_short) {
                 matched_flag = true
                 let is_bool_simple = (a.value_type == Type.tBool && !a.is_array)
-                // Bool flags and count flags never consume the next token as a value.
                 if (!is_bool_simple && !a.is_count && (exact_long || exact_short)) {
                     consumes_value = true
                 }
@@ -478,10 +447,7 @@ def public collect_positional_args(args : array<string>; info : CommandInfo) : a
             }
             continue
         }
-        // Unknown flag-shaped tokens — skip without consuming next.  Avoids
-        // them landing in the positional list and matches today's silent-
-        // ignore behavior for unknown flags.
-        if (length(arg) >= 2 && first_character(arg) == int(0x2D) /* '-' */) {
+        if (length(arg) >= 2 && first_character(arg) == int(0x2D)) {
             i++
             continue
         }
@@ -491,9 +457,6 @@ def public collect_positional_args(args : array<string>; info : CommandInfo) : a
     return <- result
 }
 
-// Counts every occurrence of `arg_info.flag_name` and `arg_info.short_flag_name`
-// in `args`.  Backs `@clarg_count` fields.  v1 does not implement short-flag
-// clustering ("-vvv"); only `-v -v -v` and `--verbose --verbose` style sums.
 def public count_flag(args : array<string>; arg_info : CommandArgumentInfo) : int {
     if (arg_info.is_positional) return 0
     let has_short = !empty(arg_info.short_flag_name)
@@ -508,8 +471,6 @@ def public count_flag(args : array<string>; arg_info : CommandArgumentInfo) : in
     return n
 }
 
-// Walks `args` to detect `--flag=value` against a count flag, which is
-// rejected (count flags don't accept values).  Returns "" if clean.
 def public count_flag_value_violation(args : array<string>; arg_info : CommandArgumentInfo) : string {
     if (arg_info.is_positional || !arg_info.is_count) return ""
     let has_short = !empty(arg_info.short_flag_name)
@@ -522,13 +483,10 @@ def public count_flag_value_violation(args : array<string>; arg_info : CommandAr
     return ""
 }
 
-// Returns "" if every mutex group has at most one member present, or an
-// error string identifying the conflicting flags otherwise.
 def public find_mutex_violation(args : array<string>; info : CommandInfo) : string {
     var groups : table<string; array<string>>
     for (a in info.args) {
-        // argv-only on purpose: an env-supplied default must not conflict with an explicit argv choice
-        if (empty(a.mutex_group) || !argv_present(args, a)) continue
+        if (empty(a.mutex_group) || !present_in_argv(args, a)) continue
         if (!key_exists(groups, a.mutex_group)) {
             groups[a.mutex_group] <- [a.flag_name]
         } else {
@@ -551,8 +509,6 @@ def public find_mutex_violation(args : array<string>; info : CommandInfo) : stri
     return ""
 }
 
-// Synthetic --help/-h argument used by `parse_args_with_help` and friends.
-// Not pushed into the user's CommandInfo unless the user explicitly opts in.
 def public make_auto_help_arg() : CommandArgumentInfo {
     return CommandArgumentInfo(
         field_name = "_auto_help",
@@ -563,8 +519,6 @@ def public make_auto_help_arg() : CommandArgumentInfo {
     )
 }
 
-// Convenience: render help with the auto-injected --help row appended unless
-// the user already declared their own.  Used by `parse_args_with_help`.
 def public format_help_with_auto_help(info : CommandInfo; prog_name : string) : string {
     if (info.has_user_help) return format_help(info, prog_name)
     var augmented : CommandInfo
@@ -573,8 +527,6 @@ def public format_help_with_auto_help(info : CommandInfo; prog_name : string) : 
     augmented.args |> push_clone(make_auto_help_arg())
     return format_help(augmented, prog_name)
 }
-
-// Help rendering.
 
 def value_placeholder(arg : CommandArgumentInfo) : string {
     if (arg.is_positional || arg.is_count
@@ -586,7 +538,6 @@ def value_placeholder(arg : CommandArgumentInfo) : string {
 }
 
 def render_flag_spec(arg : CommandArgumentInfo) : string {
-    // For positionals, flag_name is already wrapped as "<name>" by collect_command_info.
     if (arg.is_positional) return arg.flag_name
     var spec = ""
     if (!empty(arg.short_flag_name)) {
@@ -657,8 +608,6 @@ def render_doc_column(arg : CommandArgumentInfo) : string {
     }
 }
 
-// Renders a positional arg's slot in the usage line: `<name>` for required,
-// `[<name>]` for optional, `[<name>...]` for the array tail.
 def render_positional_usage_token(arg : CommandArgumentInfo) : string {
     if (arg.is_array) return "[{arg.flag_name}...]"
     if (arg.is_required) return "{arg.flag_name}"
@@ -774,9 +723,6 @@ def find_string_annotation(args : AnnotationArgumentList; argn : string, default
     return default_value
 }
 
-// env twin for one field: explicit @clarg_env wins ("" opts out of prefix derivation);
-// otherwise a struct-level env_prefix derives PREFIX_LONG_NAME (hyphens to underscores,
-// upper case). Positional, count, and repeatable (array) fields have no environment form.
 def resolve_env_name(fannotations : AnnotationArgumentList; fname, raw_name, env_prefix : string;
                      is_positional, is_count, is_array : bool; var errors : das_string&) : string {
     let explicit_v = find_arg(fannotations, "clarg_env")
@@ -803,7 +749,7 @@ def resolve_env_name(fannotations : AnnotationArgumentList; fname, raw_name, env
 
 [structure_macro(name=CommandLineArgs)]
 class ArgsMacro : AstStructureAnnotation {
-    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var st : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         let command_info = collect_command_info(st, args, errors)
         if (!empty(errors)) return false
 
@@ -816,7 +762,6 @@ class ArgsMacro : AstStructureAnnotation {
         var parse_args_default_fn = make_parse_default_fn(st)
         compiling_module() |> add_function(parse_args_default_fn)
 
-        // Auto --help/-h is only injected when the user did not declare their own help flag.  If they did, they're responsible for handling it.
         if (!command_info.has_user_help) {
             var parse_args_with_help_fn = make_parse_args_with_help_fn(st)
             compiling_module() |> add_function(parse_args_with_help_fn)
@@ -826,9 +771,6 @@ class ArgsMacro : AstStructureAnnotation {
     }
 
 
-    // Reject characters that produce ambiguous or unparseable short flags: '-' yields '--'
-    // (collides with the script-args separator), '=' yields '-=' (collides with --flag=value
-    // form), whitespace can't be typed on the command line.
     def resolve_short_flag(fannotations : AnnotationArgumentList; field_name : string; is_positional : bool;
                            var seen_short : table<string; string>; var errors : das_string&) : string {
         let short_char = find_string_annotation(fannotations, "clarg_short", "")
@@ -853,7 +795,6 @@ class ArgsMacro : AstStructureAnnotation {
         return "-{short_char}"
     }
 
-    // Positional ordering/type rules; allowed types are string, Option<string>, array<string>.
     def validate_positional(var arg : CommandArgumentInfo; fannotations : AnnotationArgumentList;
                             var has_array_tail, saw_optional_positional : bool&; var errors : das_string&) {
         if (arg.value_type != Type.tString) {
@@ -880,13 +821,12 @@ class ArgsMacro : AstStructureAnnotation {
         }
     }
 
-    // collect_command_info turns the structure info into command info.
     def collect_command_info(st : StructurePtr; ann_args : AnnotationArgumentList; var errors : das_string&) : CommandInfo {
         let env_prefix = find_string_annotation(ann_args, "env_prefix", "")
         var result : CommandInfo
         result.args |> reserve(length(st.fields))
         var seen_short : table<string; string>
-        var has_array_tail = false       // an array<string> positional terminates the positional list
+        var has_array_tail = false
         var saw_optional_positional = false
         for (field in st.fields) {
             if (find_bool_annotation(field.annotation, "clarg_skip", false)) continue
@@ -951,7 +891,6 @@ class ArgsMacro : AstStructureAnnotation {
             arg.env_name = resolve_env_name(field.annotation, "{field.name}", raw_name, env_prefix,
                 is_positional, is_count, arg.is_array, errors)
             if (!empty(errors)) return <- result
-            // Detect a user-declared --help/-h flag — suppresses auto-injection by parse_args_with_help.
             if (!is_positional && (arg.flag_name == "--help" || arg.short_flag_name == "-h")) {
                 result.has_user_help = true
             }
@@ -980,7 +919,6 @@ class ArgsMacro : AstStructureAnnotation {
     }
 
     def make_parse_args_with_help_fn(var st : StructurePtr) : FunctionPtr {
-        // Auto-handles --help/-h by printing format_help_with_auto_help and returning 0.  Returns -1 on clean parse, 1 on parse error.
         var fn = qmacro_function("parse_args_with_help") $(var dst : $t(st); prog_name : string) : int {
             let auto_args <- get_user_args()
             if (find_index(auto_args, "--help") != -1 || find_index(auto_args, "-h") != -1) {
@@ -1277,7 +1215,6 @@ class EnvConfigMacro : AstStructureAnnotation {
         }
     }
 
-    // @clarg_default_doc wins; else a constant initializer renders as its literal text
     def field_default_doc(fannotations : AnnotationArgumentList; init : ExpressionPtr) : string {
         let explicit_v = find_string_annotation(fannotations, "clarg_default_doc", "")
         if (!empty(explicit_v)) return explicit_v
@@ -1290,12 +1227,12 @@ class EnvConfigMacro : AstStructureAnnotation {
         return ""
     }
 
-    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var st : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         let env_prefix = find_string_annotation(args, "env_prefix", "")
         var info : CommandInfo
         info.args |> reserve(length(st.fields))
         var load_exprs : array<ExpressionPtr>
-        var seen_env : table<string; string>   // resolved env name -> first field: one variable, one field
+        var seen_env : table<string; string>
         for (field in st.fields) {
             if (find_bool_annotation(field.annotation, "clarg_skip", false)) continue
             if (find_bool_annotation(field.annotation, "clarg_positional", false)

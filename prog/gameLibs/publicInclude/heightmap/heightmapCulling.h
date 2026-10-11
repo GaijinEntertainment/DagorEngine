@@ -8,6 +8,7 @@
 #include <math/dag_frustum.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_smallTab.h>
+#include <generic/dag_functionRef.h>
 #include <heightmap/lodGrid.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/optional.h>
@@ -172,7 +173,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float 
   const Occlusion *occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId = -1, int dim = default_patch_dim,
   bool fight_t_junctions = true, const HeightmapHeightCulling *handler = NULL, BBox2 *lodsRegion = nullptr,
   float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr,
-  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {},
+  dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb = {},
   void (*on_patch_cb)(const BBox3 &box) = nullptr);
 
 struct MetricsErrors;

@@ -173,17 +173,18 @@ CompileResult compileShaderSpirV(const SpirVCompileInputs &inputs)
   header = finalSpirV.header;
 
   eastl::string flatLogString;
-  bool errorOrWarningFound = false;
+  bool errorFound = false;
+  bool warningFound = false;
   for (auto &&msg : finalSpirV.infoLog)
   {
     flatLogString += "DXC_SPV: ";
     flatLogString += msg;
     flatLogString += "\n";
-    errorOrWarningFound |= msg.compare(0, 8, "Warning:") == 0;
+    warningFound |= msg.compare(0, 8, "Warning:") == 0 || msg.find("warning: ") != eastl::string::npos;
   }
-  errorOrWarningFound |= spirv.empty(); // assume error will surely fail spirv dump generation
+  errorFound |= spirv.empty(); // assume error will surely fail spirv dump generation
 
-  if (errorOrWarningFound)
+  if (errorFound || warningFound)
   {
     flatLogString += "DXC_SPV: Problematic shader dump:\n";
     flatLogString += "======= dump begin\n";
@@ -191,7 +192,7 @@ CompileResult compileShaderSpirV(const SpirVCompileInputs &inputs)
     flatLogString += "======= dump end\n";
   }
 
-  if (spirv.empty())
+  if (errorFound || (inputs.warningsAsErrors && warningFound))
   {
     result.errors.sprintf("HLSL to Spir-V compilation failed:\n %s", flatLogString.c_str());
     return result;
@@ -205,6 +206,7 @@ CompileResult compileShaderSpirV(const SpirVCompileInputs &inputs)
     result.computeShaderInfo.threadGroupSizeY = finalSpirV.computeShaderInfo.threadGroupSizeY;
     result.computeShaderInfo.threadGroupSizeZ = finalSpirV.computeShaderInfo.threadGroupSizeZ;
   }
+  result.psOutputInfo = finalSpirV.psOutput;
 
 #if 0
   if (!inputs.skipValidation)

@@ -168,7 +168,7 @@ void TextureRegManager::fillGradientTexture(Texture *tex, const char *gradient_s
   Tab<float> arr;
   const char *end = gradient_str + strlen(gradient_str);
   char *ptr = (char *)gradient_str;
-  double val = 0.0f;
+  double val = 0.0;
 
   while (isspace(*ptr))
     ptr++;
@@ -236,7 +236,7 @@ void TextureRegManager::fillGradientTexture(Texture *tex, const char *gradient_s
           if (t < arr[i * 5])
           {
             float k = nearest ? 0.f : (t - arr[(i - 1) * 5]) / (arr[i * 5] - arr[(i - 1) * 5] + 1e-6f);
-            float invK = 1.0 - k;
+            float invK = 1.0f - k;
 
             float res[4] = {0};
             for (int n = 0; n < 4; n++)

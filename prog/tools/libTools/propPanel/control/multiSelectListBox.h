@@ -4,6 +4,7 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/colors.h>
 #include <propPanel/constants.h>
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
@@ -104,6 +105,12 @@ public:
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
   const char *getImguiTypeName() const override { return "MultiSelectListBox"; }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const float width = mW > 0 ? (float)mW : ControlSizeHelper::getListBoxPreferredWidth(values);
+    return Point2(min(width, max_width_px), ControlSizeHelper::getListBoxPreferredHeight(mH));
+  }
 
   void updateImgui() override
   {

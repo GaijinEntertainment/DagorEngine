@@ -16,6 +16,9 @@ void StringKeys::init(HSQUIRRELVM vm)
   DARG_STRING_KEYS_LIST
 
 #undef KEY
+#define STORAGE_KEY(name, str) getStr(vm, str, name);
+  DARG_STORAGE_KEYS_LIST
+#undef STORAGE_KEY
 }
 
 

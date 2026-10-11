@@ -287,7 +287,7 @@ static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cr
       {
         const float *src_mf = (const float *)&riPool.riTm[j];
         Point3_vec4 pos(src_mf[3], src_mf[7], src_mf[11]);
-        unsigned dist2_i = bitwise_cast<unsigned, float>(lengthSq(pos - vpos) * rendinst::riExtraCullDistSqMul);
+        unsigned dist2_i = bitwise_cast<unsigned, float>(lengthSq(pos - vpos) * rendinst::riExtraDistSqScale);
         if (dist2_i > riPool.distSqLOD_i[rendinst::RiExtraPool::MAX_LODS - 1])
           continue;
       }
@@ -308,7 +308,14 @@ static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cr
 static void draw_collision_ui(const CollisionInfo &coll, mat44f_cref globtm, const Point3 &view_pos,
   const float ui_max_dist_sq = 20.0f * 20.0f)
 {
-  if (lengthSq(coll.tm.getcol(3) - view_pos) > ui_max_dist_sq)
+  constexpr float LABEL_SCREEN_MARGIN_PX = 8.0f;
+  constexpr float MIN_CLIP_W = 1e-3f;
+
+  const BBox3 &lbb = coll.localBBox;
+  Point3 localView = inverse(coll.tm) * view_pos;
+  Point3 localClosest(clamp(localView.x, lbb[0].x, lbb[1].x), clamp(localView.y, lbb[0].y, lbb[1].y),
+    clamp(localView.z, lbb[0].z, lbb[1].z));
+  if (lengthSq(coll.tm * localClosest - view_pos) > ui_max_dist_sq)
     return;
 
   const char *riName = nullptr;
@@ -333,16 +340,25 @@ static void draw_collision_ui(const CollisionInfo &coll, mat44f_cref globtm, con
   mat44f gtm;
   v_mat44_mul43(gtm, globtm, locTm);
 
-  Point3_vec4 bbMid = coll.localBBox.center();
-  vec3f avg = v_ldu(&bbMid.x);
-  avg = v_mat44_mul_vec3p(gtm, avg);
-  avg = v_div(avg, v_splat_w(avg));
-  avg = v_madd(avg, V_C_HALF, V_C_HALF);
-  Point2 center = Point2(v_extract_x(avg) * StdGuiRender::screen_width(), (1 - v_extract_y(avg)) * StdGuiRender::screen_height());
+  Point3 bbMid = lbb.center();
+  vec4f clip = v_mat44_mul_vec3p(gtm, v_ldu_p3(&bbMid.x));
+  float clipW = v_extract_w(clip);
+  Point2 ndc(v_extract_x(clip), v_extract_y(clip));
+  // no point on rendering if behind the camera
+  if (clipW <= MIN_CLIP_W)
+    return;
+  ndc /= clipW;
 
   StdGuiRender::set_font(0, 0);
-  StdGuiRender::goto_xy(center);
   String str(128, "%s: %d", riName, idx);
+  BBox2 textBox = StdGuiRender::get_str_bbox(str.str());
+  float screenW = StdGuiRender::screen_width();
+  float screenH = StdGuiRender::screen_height();
+  Point2 center((ndc.x * 0.5f + 0.5f) * screenW, (0.5f - ndc.y * 0.5f) * screenH);
+  center.x = clamp(center.x, LABEL_SCREEN_MARGIN_PX - textBox[0].x, screenW - LABEL_SCREEN_MARGIN_PX - textBox[1].x);
+  center.y = clamp(center.y, LABEL_SCREEN_MARGIN_PX - textBox[0].y, screenH - LABEL_SCREEN_MARGIN_PX - textBox[1].y);
+
+  StdGuiRender::goto_xy(center);
   StdGuiRender::set_color(E3DCOLOR(255, 255, 255, 255));
   StdGuiRender::draw_str(str.str());
 }

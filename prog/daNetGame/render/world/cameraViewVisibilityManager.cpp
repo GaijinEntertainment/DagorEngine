@@ -13,12 +13,14 @@
 #include <rendInst/visibility.h>
 
 #include <render/cameraParams.h>
+#include <render/world/bvh.h>
 #include <render/world/dynModelRenderPass.h>
 #include <render/world/global_vars.h>
 #include <render/world/occlusionLandMeshManager.h>
 #include <render/world/worldRendererQueries.h>
 
 #include <render/dynmodelRenderer.h>
+#include <render/whiteTex.h>
 
 #include <EASTL/fixed_string.h>
 
@@ -31,7 +33,12 @@ extern ConVarB sw_hmap_occlusion;
 extern ConVarB sw_animchars_occlusion;
 extern ConVarB occlusion_async_readback_gpu;
 
-static ShaderVariableInfo cockpit_distanceVarId("cockpit_distance", true);
+
+namespace var
+{
+static ShaderVariableInfo cockpit_distance("cockpit_distance", true);
+static ShaderVariableInfo glass_rt_reflection("glass_rt_reflection", true);
+} // namespace var
 
 void CameraViewVisibilityMgr::init()
 {
@@ -108,7 +115,7 @@ void CameraViewVisibilityMgr::startOcclusionFrame(
       }
       else
         occl->startFrame(v_ld(&viewPos.x), viewTm, projTm, (mat44f &)globtm, 0, COCKPIT_NO_REPROJECT, mat44f{}, &cockpit_proj, 0, 0);
-      cockpit_distanceVarId.set_float(occlusionData ? occlusionData.closeGeometryBoundingRadius : 0);
+      var::cockpit_distance.set_float(occlusionData ? occlusionData.closeGeometryBoundingRadius : 0);
     }
     else
       occl->resetStats();
@@ -171,7 +178,7 @@ void CameraViewVisibilityMgr::startSwRasterization(rendinst::RIOcclusionData &ri
   add_sw_rasterization_tasks(ri_occlusion_data, *occl, cullgtm, rasterizationTasks);
   if (sw_animchars_occlusion.get())
     gather_animchars_for_occlusion_rasterization(globtm, occl->getCurViewPos(), rasterizationTasks);
-  occlusionRasterizer->rasterizeMeshes(eastl::move(rasterizationTasks), p.zn);
+  occlusionRasterizer->rasterizeMeshes(eastl::move(rasterizationTasks), p.zn, MaskedOcclusionCulling::BackfaceWinding::BACKFACE_CCW);
 
   add_occlusion_mask_tasks(occlusionMaskApplier, isSubView);
 }
@@ -183,7 +190,6 @@ void CameraViewVisibilityMgr::startVisibility(const CameraParams &cur_frame_came
 {
   G_ASSERT_AND_DO(rendinstMainVisibility, init());
   Occlusion *occl = getOcclusion();
-  lodsByDistanceJob.start(cur_frame_camera.viewItm.getcol(3));
   visibilityJob.start(&jobsCtx, occl, occlusionRasterizer.get(), rendinstMainVisibility, cur_frame_camera,
     transparent_partition_sphere, rendering_resolution, shadow_ctx,
     occlusionMaskApplier.hasScheduledTasks() ? &occlusionMaskApplier : nullptr);
@@ -280,6 +286,12 @@ void CameraViewVisibilityMgr::waitLights()
   threadpool::wait(&lightsCullJob);
 }
 
+void CameraViewVisibilityMgr::waitLodsByDistance()
+{
+  TIME_PROFILE(wait_lods_by_distance);
+  threadpool::wait(&lodsByDistanceJob);
+}
+
 void CameraViewVisibilityMgr::waitLightProbeVisibility()
 {
   TIME_PROFILE(wait_light_probe_visibility);
@@ -300,6 +312,7 @@ void CameraViewVisibilityMgr::waitAllJobs()
   }
   waitAsyncAnimcharMainRender();
   waitAsyncRIGenExtraOpaqueRender();
+  riExtraRenderJob.waitAllJobs();
   waitLights();
   waitGroundVisibility();
   waitGroundReflectionVisibility();
@@ -330,6 +343,23 @@ void CameraViewVisibilityMgr::waitAsyncRIGenExtraOpaqueRenderVbFill() { riExtraR
 rendinst::render::RiExtraRenderer *CameraViewVisibilityMgr::waitAsyncRIGenExtraOpaqueRender()
 {
   return riExtraRenderJob.wait(rendinstMainVisibility);
+}
+
+void CameraViewVisibilityMgr::startAsyncRIGenExtraTransparentRender()
+{
+  riExtraRenderJob.startTransparent([](bool partitioned) {
+    // the far node (partitioned) cannot resolve glass_target from transparent/far
+    const bool bound = !partitioned && is_rttr_enabled();
+    // the RT glass variant is selected on the binding, any texture is enough, the draw binds the real one
+    ShaderGlobal::set_texture(var::glass_rt_reflection, bound ? get_white_on_demand().getTexId() : BAD_TEXTUREID);
+  });
+
+  ShaderGlobal::set_texture(var::glass_rt_reflection, BAD_TEXTUREID);
+}
+
+rendinst::render::RiExtraRenderer *CameraViewVisibilityMgr::waitAsyncRIGenExtraTransparentRender(bool partitioned)
+{
+  return riExtraRenderJob.waitTransparent(partitioned);
 }
 
 void CameraViewVisibilityMgr::startAsyncAnimcharMainRender(const Frustum &fg_cam_blob_frustum,

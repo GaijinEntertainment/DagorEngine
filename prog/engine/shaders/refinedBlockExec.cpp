@@ -122,7 +122,7 @@ void exec_refined_block_stcode(dag::ConstSpan<int> cod, const PassBlockHandle &b
       case SHCOD_IMM_REAL1: int_reg(regs, getOp2p1_8(opc)) = int(getOp2p2_16(opc)) << 16; break;
       case SHCOD_IMM_SVEC1:
       {
-        int *reg = get_reg_ptr<int>(regs, getOp2p1_8(opc));
+        auto *reg = get_reg_ptr<int>(regs, getOp2p1_8(opc));
         int v = int(getOp2p2_16(opc)) << 16;
         reg[0] = reg[1] = reg[2] = reg[3] = v;
       }
@@ -137,7 +137,7 @@ void exec_refined_block_stcode(dag::ConstSpan<int> cod, const PassBlockHandle &b
         break;
       case SHCOD_MAKE_VEC:
       {
-        real *reg = get_reg_ptr<real>(regs, getOp3p1(opc));
+        auto *reg = get_reg_ptr<real>(regs, getOp3p1(opc));
         reg[0] = real_reg(regs, getOp3p2(opc));
         reg[1] = real_reg(regs, getOp3p3(opc));
         reg[2] = real_reg(regs, getData2p1(codp[1]));
@@ -168,7 +168,7 @@ void exec_refined_block_stcode(dag::ConstSpan<int> cod, const PassBlockHandle &b
       case SHCOD_SUB_VEC: color4_reg(regs, getOp3p1(opc)) = color4_reg(regs, getOp3p2(opc)) - color4_reg(regs, getOp3p3(opc)); break;
       case SHCOD_INVERSE:
       {
-        real *r = get_reg_ptr<real>(regs, getOp2p1(opc));
+        auto *r = get_reg_ptr<real>(regs, getOp2p1(opc));
         r[0] = -r[0];
         if (getOp2p2(opc) == 4)
           r[1] = -r[1], r[2] = -r[2], r[3] = -r[3];
@@ -187,8 +187,8 @@ void exec_refined_block_stcode(dag::ConstSpan<int> cod, const PassBlockHandle &b
       {
         const uint32_t regDst = getOp1p1(opc);
         const uint32_t regSrc = getOp2p2(opc);
-        real *reg = get_reg_ptr<real>(regs, regDst);
-        const int *src = get_reg_ptr<int>(regs, regSrc);
+        auto *reg = get_reg_ptr<real>(regs, regDst);
+        const auto *src = get_reg_ptr<int>(regs, regSrc);
         reg[0] = src[0];
         reg[1] = src[1];
         reg[2] = src[2];

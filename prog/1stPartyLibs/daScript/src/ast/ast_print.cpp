@@ -623,6 +623,7 @@ namespace das {
             if ( printVarAccess && var->access_pass ) ss << "/*pass*/";
             if ( printVarAccess && var->access_get ) ss << "/*get*/";
             if ( printVarAccess && var->access_info_pass_mutable ) ss << "/*pass_mut*/";
+            outputVariableAnnotation(var->annotation);
             ss << var->name;
             if ( !var->aka.empty() ) ss << " aka " << var->aka;
             if ( printAliases && var->aliasCMRES ) ss << "/*cmres*/";
@@ -1005,7 +1006,7 @@ namespace das {
         }
     // swizzle
         virtual ExpressionPtr visit ( ExprSwizzle * expr ) override {
-            ss << ".";
+            ss << (expr->no_promotion ? "!." : ".");
             if ( printRef && expr->r2v ) ss << "@";
             if ( printRef && expr->r2cr ) ss << "$";
             if ( printRef && expr->write ) ss << "#";
@@ -1037,35 +1038,35 @@ namespace das {
             if ( printRef && field->r2v ) ss << "@";
             if ( printRef && field->r2cr ) ss << "$";
             if ( printRef && field->write ) ss << "#";
-            ss << "." << field->name;
+            ss << (field->no_promotion ? "!." : ".") << field->name;
             return Visitor::visit(field);
         }
         virtual ExpressionPtr visit ( ExprSafeField * field ) override {
             if ( printRef && field->r2v ) ss << "@";
             if ( printRef && field->r2cr ) ss << "$";
             if ( printRef && field->write ) ss << "#";
-            ss << ".?" << field->name;
+            ss << (field->no_promotion ? "!?." : ".?") << field->name;
             return Visitor::visit(field);
         }
         virtual ExpressionPtr visit ( ExprIsVariant * field ) override {
             if ( printRef && field->r2v ) ss << "@";
             if ( printRef && field->r2cr ) ss << "$";
             if ( printRef && field->write ) ss << "#";
-            ss << " is " << field->name;
+            ss << (field->no_promotion ? " !is " : " is ") << field->name;
             return Visitor::visit(field);
         }
         virtual ExpressionPtr visit ( ExprAsVariant * field ) override {
             if ( printRef && field->r2v ) ss << "@";
             if ( printRef && field->r2cr ) ss << "$";
             if ( printRef && field->write ) ss << "#";
-            ss << " as " << field->name;
+            ss << (field->no_promotion ? " !as " : " as ") << field->name;
             return Visitor::visit(field);
         }
         virtual ExpressionPtr visit ( ExprSafeAsVariant * field ) override {
             if ( printRef && field->r2v ) ss << "@";
             if ( printRef && field->r2cr ) ss << "$";
             if ( printRef && field->write ) ss << "#";
-            ss << " ?as " << field->name;
+            ss << (field->no_promotion ? " !?as " : " ?as ") << field->name;
             return Visitor::visit(field);
         }
     // addr
@@ -1145,7 +1146,7 @@ namespace das {
     // null coaelescing
         virtual void preVisitNullCoaelescingDefault ( ExprNullCoalescing * nc, Expression * expr ) override {
             Visitor::preVisitNullCoaelescingDefault(nc,expr);
-            ss << " ?? ";
+            ss << (nc->no_promotion ? " !?? " : " ?? ");
         }
     // at
         virtual void preVisitAtIndex ( ExprAt * expr, Expression * index ) override {
@@ -1153,7 +1154,7 @@ namespace das {
             if ( printRef && expr->r2v ) ss << "@";
             if ( printRef && expr->r2cr ) ss << "$";
             if ( printRef && expr->write ) ss << "#";
-            ss << "[";
+            ss << (expr->no_promotion ? "![" : "[");
 
         }
         virtual ExpressionPtr visit ( ExprAt * that ) override {
@@ -1166,7 +1167,7 @@ namespace das {
             if ( printRef && expr->r2v ) ss << "@";
             if ( printRef && expr->r2cr ) ss << "$";
             if ( printRef && expr->write ) ss << "#";
-            ss << "?[";
+            ss << (expr->no_promotion ? "!?[" : "?[");
 
         }
         virtual ExpressionPtr visit ( ExprSafeAt * that ) override {
@@ -1221,15 +1222,15 @@ namespace das {
     // copy & move, clone
         virtual void preVisitRight ( ExprCopy * that, Expression * right ) override {
             Visitor::preVisitRight(that,right);
-            ss << " = ";
+            ss << (that->no_promotion ? " !== " : " = ");
         }
         virtual void preVisitRight ( ExprMove * that, Expression * right ) override {
             Visitor::preVisitRight(that,right);
-            ss << " <- ";
+            ss << (that->no_promotion ? " !<- " : " <- ");
         }
         virtual void preVisitRight ( ExprClone * that, Expression * right ) override {
             Visitor::preVisitRight(that,right);
-            ss << " := ";
+            ss << (that->no_promotion ? " !:= " : " := ");
         }
     // return
         virtual void preVisit ( ExprReturn * expr ) override {
@@ -1274,7 +1275,7 @@ namespace das {
     // is
         virtual void preVisitType ( ExprIs * expr, TypeDecl * decl ) override {
             Visitor::preVisit(expr);
-            ss << " is type<" << decl->describe(TypeDecl::DescribeExtra::no, TypeDecl::DescribeContracts::yes) << ">";
+            ss << (expr->no_promotion ? " !is type<" : " is type<") << decl->describe(TypeDecl::DescribeExtra::no, TypeDecl::DescribeContracts::yes) << ">";
         }
     // make variant
         virtual void preVisit ( ExprMakeVariant * expr ) override {
@@ -1470,7 +1471,7 @@ namespace das {
 
     void Program::setPrintFlags() {
 #if defined(STANDALONE_MODE)
-        ast_print::Standalone ctx;
+        ctx_ast_print::Standalone ctx;
         ctx.setFlags(this);
 #else
         ClearPrinterFlags cflags;

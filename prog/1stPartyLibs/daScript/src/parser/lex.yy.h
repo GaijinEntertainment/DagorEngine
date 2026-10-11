@@ -2,9 +2,9 @@
 #define das_yyHEADER_H 1
 #define das_yyIN_HEADER 1
 
-#line 5 "lex.yy.h"
+#line 6 "lex.yy.h"
 
-#line 7 "lex.yy.h"
+#line 8 "lex.yy.h"
 
 #define  YY_INT_ALIGNED short int
 
@@ -375,8 +375,8 @@ struct yy_buffer_state
     {
     FILE *yy_input_file;
 
-    char *yy_ch_buf;        /* input buffer */
-    char *yy_buf_pos;        /* current position in input buffer */
+    char *yy_ch_buf;     /* input buffer */
+    char *yy_buf_pos;   /* current position in input buffer */
 
     /* Size of input buffer in bytes, not including room for EOB
      * characters.
@@ -493,7 +493,7 @@ FILE *yyget_out ( yyscan_t yyscanner );
 
 void yyset_out  ( FILE * _out_str , yyscan_t yyscanner );
 
-            int yyget_leng ( yyscan_t yyscanner );
+         int yyget_leng ( yyscan_t yyscanner );
 
 char *yyget_text ( yyscan_t yyscanner );
 
@@ -720,9 +720,9 @@ extern int yylex \
 #undef yyTABLES_NAME
 #endif
 
-#line 1195 "ds_lexer.lpp"
+#line 1208 "ds_lexer.lpp"
 
 
-#line 726 "lex.yy.h"
+#line 727 "lex.yy.h"
 #undef das_yyIN_HEADER
 #endif /* das_yyHEADER_H */

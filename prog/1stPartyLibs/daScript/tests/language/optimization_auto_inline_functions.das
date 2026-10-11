@@ -151,7 +151,7 @@ def private big_private_addr(a : int) : int {
     return t
 }
 
-def recur_inc(n : int) : int => n <= 0 ? 0 : recur_inc(n - 1) + 1  // nolint:LINT010
+def recur_inc(n : int) : int => n <= 0 ? 0 : recur_inc(n - 1) + 1
 
 def gadd(a, b : auto) => a + b  // generic: instances stay out of the heuristic tier
 
@@ -384,6 +384,148 @@ def target_locked_name_dispatch(a : int) : int {
     return out
 }
 
+// ----- writable by-ref argument lvalue shapes -----
+// a cast/reinterpret of a var parameter is an lvalue the argument's type flags don't mark
+// as one - these pin that it binds a reference, never a by-value copy (rootsInVar in
+// ast_inline.cpp); the rest pin which shapes count as a fresh value (isProvenRvalue)
+
+struct WrPlain {
+    n : int = 1
+}
+
+struct WrKid : WrPlain {
+    extra : int = 0
+}
+
+struct WrTwin {
+    m : int = 5
+}
+
+struct WrBox {
+    inner : WrPlain = WrPlain()
+}
+
+struct WrOwner {
+    txt : string = "hello"
+    tbl : table<string; int>
+}
+
+struct WrPair {
+    a : int = 0
+    b : int = 0
+}
+
+variant WrEither {
+    num : int
+    plain : WrPlain
+}
+
+def poke_n(var s : WrPlain) {
+    s.n = 42
+}
+
+def poke_txt(var o : WrOwner) {
+    o.txt = "poked"
+}
+
+def poke_pair(var p : WrPair) {
+    p.a = 42
+}
+
+def poke_either(var e : WrEither) {
+    e := WrEither(num = 42)
+}
+
+def poke_dim(var d : int[3]) {
+    d[0] = 42
+}
+
+def poke_tuple(var tp : tuple<int; int>) {
+    tp._0 = 42
+}
+
+[never_inline]
+def make_wr_plain : WrPlain {
+    return WrPlain()
+}
+
+[never_inline]
+def make_wr_kid : WrKid {
+    return WrKid()
+}
+
+[export]
+def target_cast_param(var s : WrPlain) {
+    poke_n(cast<WrPlain>(s))
+}
+
+[export]
+def target_upcast_param(var k : WrKid) {
+    poke_n(cast<WrPlain>(k))
+}
+
+[export]
+def target_reinterpret_param(var w : WrTwin) {
+    poke_n(unsafe(reinterpret<WrPlain>(w)))
+}
+
+[export]
+def target_cast_field(var b : WrBox) {
+    // control: a field is already flagged ref, so this rides the pre-existing lvalue arm
+    poke_n(cast<WrPlain>(b.inner))
+}
+
+[export]
+def target_ternary_pick(c : bool; var a : WrPlain; var b : WrPlain) {
+    poke_n(c ? a : b)
+}
+
+[export]
+def target_cast_param_noncopyable(var o : WrOwner) {
+    // a non-copyable argument turns a by-value temp into a MOVE init: the caller's
+    // value is zeroed outright, not merely left unwritten
+    poke_txt(cast<WrOwner>(o))
+}
+
+[export]
+def target_rvalue_arg {
+    // writes land in the dying temp either way, so materializing is semantics-preserving.
+    // make_wr_plain is [never_inline] so the argument stays a call node, not a spliced var read
+    poke_n(make_wr_plain())
+}
+
+[export]
+def target_make_struct_arg {
+    poke_n(WrPlain(n = 2))
+}
+
+[export]
+def target_make_variant_arg {
+    poke_either(WrEither(num = 7))
+}
+
+[export]
+def target_make_array_arg {
+    poke_dim(fixed_array<int>(1, 2, 3))
+}
+
+[export]
+def target_make_tuple_arg {
+    poke_tuple((1, 2))
+}
+
+[export]
+def target_invoke_arg(blk : block<(x : int) : WrPair>) {
+    poke_pair(invoke(blk, 3))
+}
+
+[export]
+def target_upcast_of_rvalue {
+    // a same-type cast is elided by infer, so an UPCAST is the shape that reaches the
+    // classifier still wrapped: the fresh value is under the cast, not the cast itself
+    poke_n(cast<WrPlain>(make_wr_kid()))
+}
+
 def has(s, sub : string) : bool {
     return find(s, sub, 0) >= 0
 }
@@ -569,5 +711,111 @@ def test_auto_inline_functions_behavior(t : T?) {
         t |> equal(target_move_chain(1), 1)
         t |> equal(target_move_copyable(7), 7)
         t |> equal(target_ref_binder(10, 20, 30), 11)
+    }
+}
+
+[test]
+def test_auto_inline_writable_ref_args(t : T?) {
+    ast_gc_guard() {
+        // the binding's `&` is the load-bearing half: a by-value temp splices the call away
+        // just the same, and then drops every write the body makes into it
+        t |> run("cast of a parameter binds a reference") @(t : T?) {
+            let b = body_of(t, "target_cast_param")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+            t |> success(has(b, "WrPlain&"), "argument binds by reference: {b}")
+        }
+        t |> run("upcast of a parameter binds a reference") @(t : T?) {
+            let b = body_of(t, "target_upcast_param")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+            t |> success(has(b, "WrPlain&"), "argument binds by reference: {b}")
+        }
+        t |> run("reinterpret of a parameter binds a reference") @(t : T?) {
+            let b = body_of(t, "target_reinterpret_param")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+            t |> success(has(b, "WrPlain&"), "argument binds by reference: {b}")
+        }
+        t |> run("cast of a non-copyable parameter binds a reference") @(t : T?) {
+            let b = body_of(t, "target_cast_param_noncopyable")
+            t |> success(!has(b, "poke_txt("), "call is gone: {b}")
+            t |> success(has(b, "WrOwner&"), "argument binds by reference: {b}")
+        }
+        t |> run("cast of a field rides the pre-existing lvalue arm") @(t : T?) {
+            let b = body_of(t, "target_cast_field")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+            t |> success(has(b, "WrPlain&"), "argument binds by reference: {b}")
+        }
+        t |> run("a ternary of two lvalues into a var param stays a call") @(t : T?) {
+            let b = body_of(t, "target_ternary_pick")
+            t |> success(has(b, "poke_n("), "call stays regular: {b}")
+        }
+        t |> run("a value-returning call into a var param materializes and splices") @(t : T?) {
+            let b = body_of(t, "target_rvalue_arg")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+        }
+        t |> run("an invoke into a var param materializes and splices") @(t : T?) {
+            let b = body_of(t, "target_invoke_arg")
+            t |> success(!has(b, "poke_pair("), "call is gone: {b}")
+        }
+        t |> run("a make-struct into a var param materializes and splices") @(t : T?) {
+            let b = body_of(t, "target_make_struct_arg")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+        }
+        t |> run("a make-variant into a var param materializes and splices") @(t : T?) {
+            let b = body_of(t, "target_make_variant_arg")
+            t |> success(!has(b, "poke_either("), "call is gone: {b}")
+        }
+        t |> run("a make-array into a var param materializes and splices") @(t : T?) {
+            let b = body_of(t, "target_make_array_arg")
+            t |> success(!has(b, "poke_dim("), "call is gone: {b}")
+        }
+        t |> run("a make-tuple into a var param materializes and splices") @(t : T?) {
+            let b = body_of(t, "target_make_tuple_arg")
+            t |> success(!has(b, "poke_tuple("), "call is gone: {b}")
+        }
+        t |> run("an upcast of a value-returning call is still a proven rvalue") @(t : T?) {
+            let b = body_of(t, "target_upcast_of_rvalue")
+            t |> success(!has(b, "poke_n("), "call is gone: {b}")
+        }
+    }
+}
+
+[test]
+def test_auto_inline_writable_ref_args_behavior(t : T?) {
+    t |> run("writes through the param reach the caller") @(t : T?) {
+        var p = WrPlain()
+        target_cast_param(p)
+        t |> equal(p.n, 42, "cast of a parameter aliases")
+        var k = WrKid()
+        target_upcast_param(k)
+        t |> equal(k.n, 42, "upcast of a parameter aliases")
+        var w = WrTwin()
+        target_reinterpret_param(w)
+        t |> equal(w.m, 42, "reinterpret of a parameter aliases")
+        var bx = WrBox()
+        target_cast_field(bx)
+        t |> equal(bx.inner.n, 42, "cast of a field aliases")
+        var a = WrPlain()
+        var b = WrPlain()
+        target_ternary_pick(true, a, b)
+        t |> equal(a.n, 42, "picked arm is written")
+        t |> equal(b.n, 1, "unpicked arm is untouched")
+        target_rvalue_arg()
+        target_make_struct_arg()
+        target_make_variant_arg()
+        target_make_array_arg()
+        target_make_tuple_arg()
+        target_invoke_arg($(x : int) {
+            return WrPair(a = x, b = x)
+        })
+        target_upcast_of_rvalue()
+    }
+    t |> run("non-copyable argument is aliased, not moved out") @(t : T?) {
+        var o = WrOwner()
+        o.tbl["k"] = 7
+        target_cast_param_noncopyable(o)
+        t |> equal(o.txt, "poked", "write reaches the caller")
+        t |> equal(length(o.tbl), 1, "owned table survives the call")
+        t |> equal(o.tbl?["k"] ?? 0, 7, "table contents survive the call")
+        delete o
     }
 }

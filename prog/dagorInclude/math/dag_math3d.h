@@ -123,7 +123,7 @@ inline Point3 project_onto_plane(const Point3 &vec, const Point3 &normal) { retu
 /// Important: (0, 1, 0) returns (1, 0, 0)
 inline Point3 get_some_normal(const Point3 &vec)
 {
-  Point3 altDir = abs(dot(vec, Point3(0, 0, 1))) > 0.5 * vec.length() ? Point3(1, 0, 0) : Point3(0, 0, 1);
+  Point3 altDir = abs(dot(vec, Point3(0, 0, 1))) > 0.5f * vec.length() ? Point3(1, 0, 0) : Point3(0, 0, 1);
   return normalize(cross(vec, altDir));
 }
 

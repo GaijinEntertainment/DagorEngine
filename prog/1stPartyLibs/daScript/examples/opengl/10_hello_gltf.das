@@ -9,6 +9,7 @@ require gltf/gltf_pbr
 require math
 require daslib/math_boost
 require strings
+require daslib/strings_convert
 require live/live_gc
 
 // dasGLTF — minimal static glTF viewer (OpenGL). Loads a .glb, uploads it to GL, and renders it with
@@ -52,11 +53,11 @@ def init() {
     glfwMakeContextCurrent(window)
 
     let path = model_path()
-    scene <- load_gltf(path)
+    scene <- load_gltf(path)   // nolint:PERF030 - module global, first and only write (init runs once)
     if (empty(scene.meshes)) {
         panic("no meshes loaded from {path}")
     }
-    model <- upload_gltf(scene)
+    model <- upload_gltf(scene)   // nolint:PERF030 - module global, first and only write (init runs once)
     renderer <- gltf_pbr_create()
 
     // auto-frame: orbit the world-space bounding sphere so any model (BoomBox is ~0.02m) fills the view
@@ -72,8 +73,8 @@ def init() {
             camera_distance = clamp(camera_distance * (y > 0.0lf ? 0.9 : 1.1), radius * 1.1, radius * 40.0)
         }
         glfwSetMouseButtonCallback(window) @(w, b, a, m) {
-            if (b == int(GLFW_MOUSE_BUTTON_1)) {
-                dragging = a == int(GLFW_PRESS)
+            if (b == GLFW_MOUSE_BUTTON_1) {
+                dragging = a == GLFW_PRESS
                 cursor_prev = glfwGetCursorPos(window)
             }
         }
@@ -81,8 +82,8 @@ def init() {
             let cur = glfwGetCursorPos(window)
             if (dragging) {
                 let d = cur - cursor_prev
-                camera_yaw -= float(d.x) * 0.01
-                camera_pitch = clamp(camera_pitch + float(d.y) * 0.01, -1.5, 1.5)
+                camera_yaw -= d.x * 0.01
+                camera_pitch = clamp(camera_pitch + d.y * 0.01, -1.5, 1.5)
             }
             cursor_prev = cur
         }
@@ -132,7 +133,7 @@ def parse_args() {
     let args <- get_command_line_arguments()
     for (i in range(length(args) - 1)) {
         if (args[i] == "--max-frames") {
-            max_frame_limit = to_int(args[i + 1])
+            max_frame_limit = try_to_int(args[i + 1]) ?? 0   // garbage = no cap
         }
     }
 }

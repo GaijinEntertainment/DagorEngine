@@ -20,7 +20,7 @@ class ClassMethodMacro : AstFunctionAnnotation {
     //! of the class type as the first argument, and wrapping the function body
     //! in ``with (self) { ... }``. Applied via ``[class_method]`` annotation.
     explicitConstClassMethod : bool = false
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         if (func.classParent == null) {
             errors := "class_method can be applied only to class methods"
             return false
@@ -29,7 +29,7 @@ class ClassMethodMacro : AstFunctionAnnotation {
             errors := "class_method can be applied only to static class methods"
             return false
         }
-        var tt = new TypeDecl(baseType = Type.tStructure, structType = func.classParent)
+        var tt = new TypeDecl(at = func.at, baseType = Type.tStructure, structType = func.classParent)
         if (explicitConstClassMethod) {
             tt.flags.explicitConst = true
         }

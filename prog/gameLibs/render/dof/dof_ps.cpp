@@ -14,6 +14,7 @@
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <util/dag_console.h>
+#include <startup/dag_globalSettings.h>
 
 #define GLOBAL_VARS_LIST               \
   VAR(dof_frame_tex)                   \
@@ -136,15 +137,16 @@ void DepthOfFieldPS::initNear()
     {
       int wd = 1 << i;
       String name(128, "dof_coc%d", i);
-      dof_coc[i] =
-        dag::create_tex(NULL, (originalWidth + wd - 1) / wd, (originalHeight + wd - 1) / wd, flg | TEXFMT_R8, 1, name, RESTAG_DOF);
+      dof_coc[i] = dag::create_tex(NULL, (originalWidth + wd - 1) / wd, (originalHeight + wd - 1) / wd,
+        flg | DepthOfFieldTargets::COC_FORMAT, 1, name, RESTAG_DOF);
     }
     if (originalWidth != width || originalHeight != height)
       changeNearResolution();
   }
   if (wantHistory && !dof_coc_history)
   {
-    dof_coc_history = dag::create_tex(NULL, originalWidth, originalHeight, flg | TEXFMT_R8, 1, "dof_coc_history", RESTAG_DOF);
+    dof_coc_history =
+      dag::create_tex(NULL, originalWidth, originalHeight, flg | DepthOfFieldTargets::COC_FORMAT, 1, "dof_coc_history", RESTAG_DOF);
     historyValid = false;
   }
 }
@@ -175,7 +177,7 @@ void DepthOfFieldPS::initFar()
   ShaderGlobal::set_sampler(dof_far_layer_samplerstateVarId, clampSampler);
   uint32_t flg = TEXCF_RTARGET;
 
-  dof_max_coc_far = dag::create_tex(NULL, width, height, flg | TEXFMT_R8, 1, "dof_max_coc_far", RESTAG_DOF);
+  dof_max_coc_far = dag::create_tex(NULL, width, height, flg | DepthOfFieldTargets::COC_FORMAT, 1, "dof_max_coc_far", RESTAG_DOF);
 }
 
 void DepthOfFieldPS::changeFarResolution()
@@ -219,7 +221,7 @@ void DepthOfFieldPS::init(int w, int h)
     dofLayerRTPool = nullptr;
   }
 
-  dofLayerRTPool = ResizableRTargetPool::get(originalWidth, originalHeight, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1);
+  dofLayerRTPool = ResizableRTargetPool::get(originalWidth, originalHeight, TEXCF_RTARGET | DepthOfFieldTargets::LAYER_FORMAT, 1);
   // dof_coc_temp.set(d3d::create_tex(NULL, width, height, 1, TEXFMT_R16G16F|TEXCF_RTARGET, "dof_coc_temp", RESTAG_DOF),
   // "dof_coc_temp");
   ShaderGlobal::set_float4(dof_rt_sizeVarId, width, height, 1. / width, 1. / height);
@@ -284,15 +286,15 @@ static inline void device_reversed_depth_from_inv_depth_scale_bias(float &hyper_
   hyper_bias = bias + scale / zf;
 }
 
-void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float zn, float zf, float fov_scale)
+bool DepthOfFieldPS::prepareFrame(BaseTexture *frame, float zn, float zf, float &fov_scale, bool &has_near_dof, bool &has_far_dof)
 {
   if (!height || !frame)
-    return;
+    return false;
   if (!on)
   {
     resetOutputVars();
     historyValid = false;
-    return;
+    return false;
   }
   fov_scale = max(fov_scale, 1e-6f);
   fov_scale *= fov_scale; // that is correct if focus plane is >> focalLength, which is usually true. (especially when focus to
@@ -304,20 +306,32 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
   const float near_z_check = minCheckDist > 0.f ? max(zn, minCheckDist) : zn;
   // Focal Length is of max 20 centimeters (0.05 mm lense focal for 24 mm film) * magnification, which is typicay less than 4.
   // If we use tele lense, than it can be up to meter, but focus plane will be at infinity.
-  const bool hasNearDof = cFocus.hasNearDof(near_z_check, 0.25f / height / fov_scale),
-             hasFarDof = cFocus.hasFarDof(zf, 0.5f / height / fov_scale);
+  has_near_dof = cFocus.hasNearDof(near_z_check, 0.25f / height / fov_scale);
+  has_far_dof = cFocus.hasFarDof(zf, 0.5f / height / fov_scale);
 
   cFocus = nFocus;
   // cFocus.setNearDof(dof_focus_near_start.get(), dof_focus_near_end.get(), dof_near_blur.get()*dof_blur_amount.get()/100);
   // cFocus.setFarDof(dof_focus_far_start.get(), dof_focus_far_end.get(), dof_far_blur.get()*dof_blur_amount.get()/100);
   // debug("calcNearCoc(%f) = %f, threshold=%f", near_z_check, cFocus.calcNearCoc(near_z_check), 0.25f/height/fov_scale);
-  if (!hasNearDof && !hasFarDof)
+  if (!has_near_dof && !has_far_dof)
   {
     resetOutputVars();
     releaseRTs();
     historyValid = false;
-    return;
+    return false;
   }
+
+  performedNearDof = has_near_dof;
+  performedFarDof = has_far_dof;
+  return true;
+}
+
+void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float zn, float zf, float fov_scale)
+{
+  bool hasNearDof, hasFarDof;
+  if (!prepareFrame(frame, zn, zf, fov_scale, hasNearDof, hasFarDof))
+    return;
+
   if (hasNearDof)
     initNear();
   else
@@ -327,9 +341,107 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
   else
     dof_far_layer = nullptr;
 
-  performedNearDof = hasNearDof;
-  performedFarDof = hasFarDof;
+  if (hasNearDof && dof_near_layer == nullptr)
+  {
+    dof_near_layer = dofLayerRTPool->acquire();
+    dof_near_layer->resize(width, height);
+  }
+  if (hasFarDof && dof_far_layer == nullptr)
+  {
+    dof_far_layer = dofLayerRTPool->acquire();
+    dof_far_layer->resize(width, height);
+  }
+  ShaderGlobal::set_texture(dof_near_layerVarId, hasNearDof ? dof_near_layer->getTexId() : BAD_TEXTUREID);
+  ShaderGlobal::set_texture(dof_far_layerVarId, hasFarDof ? dof_far_layer->getTexId() : BAD_TEXTUREID);
 
+  ResizableRTarget::Ptr tmpNearDof, tmpFarDof;
+  if (hasNearDof)
+  {
+    tmpNearDof = dofLayerRTPool->acquire();
+    tmpNearDof->resize(width, height);
+  }
+  if (hasFarDof)
+  {
+    tmpFarDof = dofLayerRTPool->acquire();
+    tmpFarDof->resize(width, height);
+  }
+
+  const bool useHistory = hasNearDof && useCoCAccumulation && !useSimplifiedRendering;
+
+  DepthOfFieldTargets targets;
+  targets.nearLayer = hasNearDof ? dof_near_layer->getTex2D() : nullptr;
+  targets.farLayer = hasFarDof ? dof_far_layer->getTex2D() : nullptr;
+  targets.nearLayerTemp = tmpNearDof ? tmpNearDof->getTex2D() : nullptr;
+  targets.farLayerTemp = tmpFarDof ? tmpFarDof->getTex2D() : nullptr;
+  for (int i = 0; i < dof_coc.size(); i++)
+    targets.coc[i] = dof_coc[i].getTex2D();
+  targets.cocHistory = (useHistory && historyValid) ? dof_coc_history.getTex2D() : nullptr;
+  targets.maxCocFar = dof_max_coc_far.getTex2D();
+
+  renderLayers(targets, frame, close_depth, zn, zf, fov_scale, hasNearDof, hasFarDof);
+
+  if (useHistory && dof_coc_history && dof_coc[0])
+  {
+    TextureInfo histInfo;
+    dof_coc_history.getTex2D()->getinfo(histInfo, 0);
+    TextureInfo cocInfo;
+    dof_coc[0].getTex2D()->getinfo(cocInfo, 0);
+    if (histInfo.w != cocInfo.w || histInfo.h != cocInfo.h)
+    {
+      dof_coc_history.resize(cocInfo.w, cocInfo.h);
+    }
+    eastl::swap(dof_coc_history, dof_coc[0]);
+    historyValid = true;
+  }
+  else
+    historyValid = false;
+}
+
+void DepthOfFieldPS::perform(const DepthOfFieldTargets &targets, BaseTexture *frame, BaseTexture *close_depth, float zn, float zf,
+  float fov_scale)
+{
+  G_ASSERT_RETURN(targets.coc[0], );
+  TextureInfo cocInfo;
+  targets.coc[0]->getinfo(cocInfo, 0);
+  if (cocInfo.w != width || cocInfo.h != height)
+  {
+    width = cocInfo.w;
+    height = cocInfo.h;
+    ShaderGlobal::set_float4(dof_rt_sizeVarId, width, height, 1. / width, 1. / height);
+    historyValid = false;
+  }
+
+  bool hasNearDof, hasFarDof;
+  if (!prepareFrame(frame, zn, zf, fov_scale, hasNearDof, hasFarDof))
+    return;
+
+  const bool useHistory = hasNearDof && useCoCAccumulation && !useSimplifiedRendering && targets.cocHistory;
+  const uint32_t frameNo = dagor_frame_no();
+  DepthOfFieldTargets frameTargets = targets;
+  frameTargets.cocHistory = (useHistory && historyValid && historyFrame + 1 == frameNo) ? targets.cocHistory : nullptr;
+  if (!hasNearDof)
+  {
+    frameTargets.nearLayer = frameTargets.nearLayerTemp = nullptr;
+    frameTargets.coc = {};
+  }
+  if (!hasFarDof)
+    frameTargets.farLayer = frameTargets.farLayerTemp = frameTargets.maxCocFar = nullptr;
+
+  ShaderGlobal::set_texture(dof_near_layerVarId, frameTargets.nearLayer);
+  ShaderGlobal::set_texture(dof_far_layerVarId, frameTargets.farLayer);
+  ShaderGlobal::set_sampler(dof_near_layer_samplerstateVarId, clampSampler);
+  ShaderGlobal::set_sampler(dof_far_layer_samplerstateVarId, clampSampler);
+  renderLayers(frameTargets, frame, close_depth, zn, zf, fov_scale, hasNearDof, hasFarDof);
+  ShaderGlobal::set_texture(dof_near_layerVarId, nullptr);
+  ShaderGlobal::set_texture(dof_far_layerVarId, nullptr);
+
+  historyValid = useHistory;
+  historyFrame = frameNo;
+}
+
+void DepthOfFieldPS::renderLayers(const DepthOfFieldTargets &targets, BaseTexture *frame, BaseTexture *close_depth, float zn, float zf,
+  float fov_scale, bool has_near_dof, bool has_far_dof)
+{
   TIME_D3D_PROFILE(dof)
   SCOPE_RENDER_TARGET;
 
@@ -341,9 +453,9 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
   // convert to use with hyperz
   device_reversed_depth_from_inv_depth_scale_bias(cocFarScale, cocFarBias, cocFarScale, cocFarBias, zn, zf);     // reversed depth
   device_reversed_depth_from_inv_depth_scale_bias(cocNearScale, cocNearBias, cocNearScale, cocNearBias, zn, zf); // reversed depth
-  if (!hasNearDof)
+  if (!has_near_dof)
     cocNearScale = cocNearBias = 0;
-  if (!hasFarDof)
+  if (!has_far_dof)
     cocFarScale = cocFarBias = 0;
   cocNearScale *= fov_scale;
   cocNearBias *= fov_scale; // use fov
@@ -367,11 +479,10 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
     -nearLinearMin / max(nearLinearMax - nearLinearMin, 1e-9f), 1.0f / max(farLinearMax - farLinearMin, 1e-9f),
     -farLinearMin / max(farLinearMax - farLinearMin, 1e-9f));
 
-  ShaderGlobal::set_int(dof_focus_near_modeVarId, hasNearDof ? (nearIsLinear ? 2 : 1) : 0);
-  ShaderGlobal::set_int(dof_focus_far_modeVarId, hasFarDof ? (farIsLinear ? 2 : 1) : 0);
+  ShaderGlobal::set_int(dof_focus_near_modeVarId, has_near_dof ? (nearIsLinear ? 2 : 1) : 0);
+  ShaderGlobal::set_int(dof_focus_far_modeVarId, has_far_dof ? (farIsLinear ? 2 : 1) : 0);
 
-  const bool useHistory = hasNearDof && useCoCAccumulation && !useSimplifiedRendering;
-  ShaderGlobal::set_texture(dof_coc_historyVarId, (useHistory && historyValid) ? dof_coc_history.getTexId() : BAD_TEXTUREID);
+  ShaderGlobal::set_texture(dof_coc_historyVarId, targets.cocHistory);
 
   // 1st downscale stage
   TextureInfo info;
@@ -390,69 +501,43 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
 
   {
     TIME_D3D_PROFILE(dof_downscale);
-    if (hasNearDof && dof_near_layer == nullptr)
-    {
-      dof_near_layer = dofLayerRTPool->acquire();
-      dof_near_layer->resize(width, height);
-    }
-    if (hasFarDof && dof_far_layer == nullptr)
-    {
-      dof_far_layer = dofLayerRTPool->acquire();
-      dof_far_layer->resize(width, height);
-    }
-
-    ShaderGlobal::set_texture(dof_near_layerVarId, hasNearDof ? dof_near_layer->getTexId() : BAD_TEXTUREID);
-    ShaderGlobal::set_texture(dof_far_layerVarId, hasFarDof ? dof_far_layer->getTexId() : BAD_TEXTUREID);
-
-    if (hasNearDof)
+    if (has_near_dof)
     {
       d3d::set_render_target({}, DepthAccess::RW,
-        {{dof_near_layer->getTex2D(), 0, 0}, {dof_coc[0].getTex2D(), 0, 0}, {hasFarDof ? dof_far_layer->getTex2D() : nullptr, 0, 0},
-          {hasFarDof ? dof_max_coc_far.getTex2D() : nullptr, 0, 0}});
+        {{targets.nearLayer, 0, 0}, {targets.coc[0], 0, 0}, {has_far_dof ? targets.farLayer : nullptr, 0, 0},
+          {has_far_dof ? targets.maxCocFar : nullptr, 0, 0}});
     }
     else
     {
-      d3d::set_render_target({}, DepthAccess::RW, {{dof_far_layer->getTex2D(), 0, 0}, {dof_max_coc_far.getTex2D(), 0, 0}});
+      d3d::set_render_target({}, DepthAccess::RW, {{targets.farLayer, 0, 0}, {targets.maxCocFar, 0, 0}});
     }
     dofDownscale.render();
-    if (hasNearDof)
+    if (has_near_dof)
     {
-      d3d::resource_barrier({dof_near_layer->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      d3d::resource_barrier({dof_coc[0].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.nearLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.coc[0], RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
-    if (hasFarDof)
+    if (has_far_dof)
     {
-      d3d::resource_barrier({dof_far_layer->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      d3d::resource_barrier({dof_max_coc_far.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.farLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.maxCocFar, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
   }
 
   // 2nd downscale stage (tile min CoC)
-  if (hasNearDof)
+  if (has_near_dof)
   {
     TIME_D3D_PROFILE(dof_tiles);
-    for (int i = 1; i < dof_coc.size(); i++)
+    for (int i = 1; i < targets.coc.size(); i++)
     {
-      d3d::set_render_target({}, DepthAccess::RW, {{dof_coc[i].getTex2D(), 0, 0}});
-      d3d::set_tex(STAGE_PS, 0, dof_coc[i - 1].getTex2D());
+      d3d::set_render_target({}, DepthAccess::RW, {{targets.coc[i], 0, 0}});
+      d3d::set_tex(STAGE_PS, 0, targets.coc[i - 1]);
       d3d::set_sampler(STAGE_PS, 0, clampPointSampler);
       dofTile.render();
-      d3d::resource_barrier({dof_coc[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      d3d::resource_barrier({targets.coc[i], RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
   }
   Point2 scale(1. / width, 1. / height);
-
-  ResizableRTarget::Ptr tmpNearDof, tmpFarDof;
-  if (hasNearDof)
-  {
-    tmpNearDof = dofLayerRTPool->acquire();
-    tmpNearDof->resize(width, height);
-  }
-  if (hasFarDof)
-  {
-    tmpFarDof = dofLayerRTPool->acquire();
-    tmpFarDof->resize(width, height);
-  }
 
   // 1st gather pass
   {
@@ -480,25 +565,25 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
     d3d::set_ps_const(6, &vTaps[0].x, nSquareTapsSide * nSquareTapsSide);
 
     d3d::set_render_target({}, DepthAccess::RW,
-      {{hasNearDof ? tmpNearDof->getTex2D() : NULL, 0, 0}, {hasFarDof ? tmpFarDof->getTex2D() : NULL, 0, 0}});
+      {{has_near_dof ? targets.nearLayerTemp : NULL, 0, 0}, {has_far_dof ? targets.farLayerTemp : NULL, 0, 0}});
     // d3d::set_render_target(2, dof_coc_temp.getTex2D(), 0, false);
 
-    d3d::settex(0, hasNearDof ? dof_near_layer->getTex2D() : NULL);
+    d3d::settex(0, has_near_dof ? targets.nearLayer : NULL);
     d3d::set_sampler(STAGE_PS, 0, clampSampler);
-    d3d::settex(1, hasFarDof ? dof_far_layer->getTex2D() : NULL);
+    d3d::settex(1, has_far_dof ? targets.farLayer : NULL);
     d3d::set_sampler(STAGE_PS, 1, clampSampler);
-    d3d::set_tex(STAGE_PS, 2, dof_coc.back().getTex2D());
+    d3d::set_tex(STAGE_PS, 2, targets.coc.back());
     d3d::set_sampler(STAGE_PS, 2, clampPointSampler);
-    d3d::set_tex(STAGE_PS, 3, dof_max_coc_far.getTex2D());
+    d3d::set_tex(STAGE_PS, 3, targets.maxCocFar);
     d3d::set_sampler(STAGE_PS, 3, clampSampler);
 
     ShaderGlobal::set_int(num_dof_tapsVarId, nSquareTapsSide * nSquareTapsSide);
     ShaderGlobal::set_int(dof_gather_iterationVarId, 0);
     dofGather.render();
-    if (hasNearDof)
-      d3d::resource_barrier({tmpNearDof->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    if (hasFarDof)
-      d3d::resource_barrier({tmpFarDof->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (has_near_dof)
+      d3d::resource_barrier({targets.nearLayerTemp, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (has_far_dof)
+      d3d::resource_barrier({targets.farLayerTemp, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   // 2nd gather iteration
@@ -525,41 +610,25 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
     d3d::set_ps_const(6, &vTaps[0].x, nSquareTapsSide * nSquareTapsSide);
 
     d3d::set_render_target({}, DepthAccess::RW,
-      {{hasNearDof ? dof_near_layer->getTex2D() : NULL, 0, 0}, {hasFarDof ? dof_far_layer->getTex2D() : NULL, 0, 0}});
-    // d3d::set_render_target(2, dof_coc[0].getTex2D(), 0, false);
+      {{has_near_dof ? targets.nearLayer : NULL, 0, 0}, {has_far_dof ? targets.farLayer : NULL, 0, 0}});
+    // d3d::set_render_target(2, targets.coc[0], 0, false);
 
-    d3d::settex(0, tmpNearDof ? tmpNearDof->getTex2D() : nullptr);
+    d3d::settex(0, targets.nearLayerTemp);
     d3d::set_sampler(STAGE_PS, 0, clampSampler);
-    d3d::settex(1, tmpFarDof ? tmpFarDof->getTex2D() : nullptr);
+    d3d::settex(1, targets.farLayerTemp);
     d3d::set_sampler(STAGE_PS, 1, clampSampler);
-    d3d::set_tex(STAGE_PS, 2, dof_coc.back().getTex2D());
+    d3d::set_tex(STAGE_PS, 2, targets.coc.back());
     d3d::set_sampler(STAGE_PS, 2, clampPointSampler);
-    d3d::set_tex(STAGE_PS, 3, dof_max_coc_far.getTex2D());
+    d3d::set_tex(STAGE_PS, 3, targets.maxCocFar);
     d3d::set_sampler(STAGE_PS, 3, clampSampler);
     ShaderGlobal::set_int(num_dof_tapsVarId, nSquareTapsSide * nSquareTapsSide);
     ShaderGlobal::set_int(dof_gather_iterationVarId, 1);
     dofGather.render();
-    if (hasNearDof)
-      d3d::resource_barrier({dof_near_layer->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    if (hasFarDof)
-      d3d::resource_barrier({dof_far_layer->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (has_near_dof)
+      d3d::resource_barrier({targets.nearLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (has_far_dof)
+      d3d::resource_barrier({targets.farLayer, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
-
-  if (useHistory && dof_coc_history && dof_coc[0])
-  {
-    TextureInfo histInfo;
-    dof_coc_history.getTex2D()->getinfo(histInfo, 0);
-    TextureInfo cocInfo;
-    dof_coc[0].getTex2D()->getinfo(cocInfo, 0);
-    if (histInfo.w != cocInfo.w || histInfo.h != cocInfo.h)
-    {
-      dof_coc_history.resize(cocInfo.w, cocInfo.h);
-    }
-    eastl::swap(dof_coc_history, dof_coc[0]);
-    historyValid = true;
-  }
-  else
-    historyValid = false;
 
   ShaderGlobal::set_texture(dof_coc_historyVarId, nullptr);
   ShaderGlobal::set_texture(dof_downsampled_frame_texVarId, nullptr);

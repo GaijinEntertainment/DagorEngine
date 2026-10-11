@@ -71,10 +71,7 @@ def insert_during_iteration(var t : table<int; int>) : bool {
 def test_table_walk(t : T?) {
     t |> run("kv zip with tombstones") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@kv_sums))
-        var tab : table<int; int>
-        for (i in range(10)) {
-            tab[i] = i * 10
-        }
+        var tab <- {for (i in range(10)); i => i * 10}
         tab |> erase(3)
         tab |> erase(7)
         let r = kv_sums(tab)
@@ -85,10 +82,7 @@ def test_table_walk(t : T?) {
     }
     t |> run("keys-only walk") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@keys_sum))
-        var tab : table<int; int>
-        for (i in range(5)) {
-            tab[i] = i
-        }
+        var tab <- {for (i in range(5)); i => i}
         t |> equal(keys_sum(tab), 10)
         var e : table<int; int>
         t |> equal(keys_sum(e), 0)
@@ -97,10 +91,7 @@ def test_table_walk(t : T?) {
     }
     t |> run("values walk mutates by ref") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@values_bump))
-        var tab : table<int; int>
-        for (i in range(4)) {
-            tab[i] = i * 10
-        }
+        var tab <- {for (i in range(4)); i => i * 10}
         values_bump(tab)
         let r = kv_sums(tab)
         t |> equal(r.vs, 60 + 4)
@@ -108,10 +99,7 @@ def test_table_walk(t : T?) {
     }
     t |> run("break exits the walk and unlocks") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@keys_break_at))
-        var tab : table<int; int>
-        for (i in range(8)) {
-            tab[i] = i
-        }
+        var tab <- {for (i in range(8)); i => i}
         t |> equal(keys_break_at(tab, 3), 3)
         tab[100] = 1   // table must be unlocked after the break
         t |> equal(length(tab), 9)
@@ -119,29 +107,20 @@ def test_table_walk(t : T?) {
     }
     t |> run("string keys keep the generic path") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@string_kv_sum))
-        var tab : table<string; int>
-        tab["a"] = 1
-        tab["b"] = 2
-        tab["c"] = 4
+        var tab <- {"a" => 1, "b" => 2, "c" => 4}
         t |> equal(string_kv_sum(tab), 7)
         delete tab
     }
     t |> run("int64 keys ride the walk") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@keys64_sum))
-        var tab : table<int64; int>
-        tab[10l] = 1
-        tab[20l] = 2
-        tab[30l] = 3
+        var tab <- {10l => 1, 20l => 2, 30l => 3}
         t |> equal(keys64_sum(tab), 60l)
         delete tab
     }
     t |> run("insert during locked iteration panics") @(t : T?) {
         // no delete: the panic leaves the table locked by design (panic is not resumable);
         // the context teardown reclaims it — same shape as array.das's locked-resize test
-        var tab : table<int; int>
-        for (i in range(5)) {
-            tab[i] = i
-        }
+        var tab <- {for (i in range(5)); i => i}
         t |> success(insert_during_iteration(tab))
     }
 }

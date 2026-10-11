@@ -13,7 +13,11 @@
 #include <math/dag_mathUtils.h>
 
 #include <osApiWrappers/dag_miscApi.h>
+#include <drv/3d/dag_resetDevice.h>
 #include "drv_utils.h"
+#if _TARGET_IOS | _TARGET_TVOS
+#include <osApiWrappers/dag_iosWindowScene.h>
+#endif
 
 extern bool get_lowpower_mode();
 
@@ -44,7 +48,7 @@ extern bool get_lowpower_mode();
   self.userInteractionEnabled = NO;
   self.opaque      = YES;
   self.backgroundColor = nil;
-  self.contentScaleFactor = [UIScreen mainScreen].nativeScale;
+  self.contentScaleFactor = ios_get_screen().nativeScale;
   self.layer.contentsScale = retinaScale;
   metalLayer = (CAMetalLayer *)self.layer;
   metalLayer.maximumDrawableCount = 3; // drv3d_metal::Render::MAX_FRAMES_TO_RENDER;
@@ -222,13 +226,14 @@ extern bool get_lowpower_mode();
   {
     G_ASSERT(backTex != nil);
     BOOL doUpdate = (savedBackTex.width != backTex.width) ||
-                    (savedBackTex.height != backTex.height);
+                    (savedBackTex.height != backTex.height) ||
+                    (savedBackTex.pixelFormat != backTex.pixelFormat);
 
     if (!savedBackTex || doUpdate)
     {
       if (savedBackTex)
         drv3d_metal::render.queueResourceForDeletion(savedBackTex);
-      MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : metalLayer.pixelFormat
+      MTLTextureDescriptor* desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat : backTex.pixelFormat
                                                                                       width : backTex.width
                                                                                      height : backTex.height
                                                                                   mipmapped : NO];
@@ -290,7 +295,23 @@ extern bool get_lowpower_mode();
     drawableSize.height = layer_height * metalLayer.contentsScale;
 #endif
 
+#if _TARGET_IOS
+    // the game takes the new size from the drawable at the start of the next frame, see d3d::reset_device()
+    const int w = lround(drawableSize.width), h = lround(drawableSize.height);
+    if (w > 0 && h > 0)
+    {
+      if (w != (int)metalLayer.drawableSize.width || h != (int)metalLayer.drawableSize.height)
+      {
+        debug("metal: drawable resized %dx%d -> %dx%d", (int)metalLayer.drawableSize.width, (int)metalLayer.drawableSize.height, w, h);
+        TEXQL_ON_PERSISTENT_RELEASE_SZ([self getDrawableSize]);
+        metalLayer.drawableSize = CGSizeMake(w, h);
+        TEXQL_ON_PERSISTENT_ALLOC_SZ([self getDrawableSize]);
+      }
+      notify_window_resized(w, h);
+    }
+#else
     metalLayer.drawableSize = drawableSize;
+#endif
 
     layerSizeDidUpdate = NO;
   }
@@ -314,8 +335,9 @@ extern bool get_lowpower_mode();
   if (@available(iOS 16, *))
   {
     constexpr float lowerEDRBound = 1.f;
-    const float maxEDRBound = [UIScreen mainScreen].potentialEDRHeadroom;
-    return cvt([UIScreen mainScreen].currentEDRHeadroom, lowerEDRBound, maxEDRBound, 0.f, 1.f);
+    UIScreen *screen = ios_get_screen();
+    const float maxEDRBound = screen.potentialEDRHeadroom;
+    return cvt(screen.currentEDRHeadroom, lowerEDRBound, maxEDRBound, 0.f, 1.f);
   }
 #endif
   return 1.f;
@@ -331,7 +353,7 @@ extern bool get_lowpower_mode();
 #if _TARGET_IOS | _TARGET_TVOS
   if (@available(iOS 16, *))
   {
-    return [UIScreen mainScreen].potentialEDRHeadroom >= 8;
+    return ios_get_screen().potentialEDRHeadroom >= 8;
   }
   return false;
 #elif _TARGET_PC_MACOSX

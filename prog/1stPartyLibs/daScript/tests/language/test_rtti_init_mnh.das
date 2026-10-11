@@ -24,7 +24,5 @@ def test_named_module_structure_init_mnh(t : T?) {
     t |> success(initializerHash != 0ul)
 
     let typeInfo = typeinfo rtti_typeinfo(type<RttiInitProbe>)
-    unsafe {
-        t |> equal(typeInfo.structType.init_mnh, initializerHash)
-    }
+    t |> equal(typeInfo.structType.init_mnh, initializerHash)
 }

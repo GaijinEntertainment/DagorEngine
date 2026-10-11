@@ -32,7 +32,7 @@ public:
   FrameBoundaryBufferManager();
   ~FrameBoundaryBufferManager();
 
-  FrameBoundaryBufferManager(FrameBoundaryBufferManager &&);
+  FrameBoundaryBufferManager(FrameBoundaryBufferManager &&) noexcept;
 
   FrameBoundaryBufferManager(const FrameBoundaryBufferManager &) = delete;
   FrameBoundaryBufferManager &operator=(const FrameBoundaryBufferManager &) = delete;

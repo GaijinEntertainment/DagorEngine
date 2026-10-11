@@ -55,6 +55,17 @@ StaticGeometryMaterial *StaticGeometryContainer::DagLoadData::getMaterial(Materi
 
   // convert MaterialData to StaticGeometryMaterial
   StaticGeometryMaterial *sgm = new StaticGeometryMaterial;
+  if (dagMatList)
+  {
+    for (int i = 0; i < dagMatList->size(); ++i)
+    {
+      if ((*dagMatList)[i] == m)
+      {
+        sgm->dagMatId = i;
+        break;
+      }
+    }
+  }
   sgm->name = m->matName;
   sgm->scriptText = m->matScript;
   sgm->className = m->className;
@@ -480,7 +491,8 @@ bool StaticGeometryContainer::loadFromDag(const char *filename, ILogWriter *log,
     set_global_tex_name_resolver(&resolvCb);
 
   AScene sc;
-  if (!::load_ascene((char *)filename, sc, load_flags, false))
+  PtrTab<MaterialData> dagMatList;
+  if (!::load_ascene((char *)filename, sc, load_flags, false, &dagMatList))
   {
     set_global_tex_name_resolver(oldResolver);
     debug("Couldn't load ascene from \"%s\" file with 0x%08x flags", filename, load_flags);
@@ -494,6 +506,7 @@ bool StaticGeometryContainer::loadFromDag(const char *filename, ILogWriter *log,
   DagLoadData dag(filename);
   dag.setUseNotFoundTex(use_not_found_tex);
   dag.setLogWriter(log);
+  dag.setDagMatList(&dagMatList);
 
   curLoadedDag = filename;
   if (sc.root)

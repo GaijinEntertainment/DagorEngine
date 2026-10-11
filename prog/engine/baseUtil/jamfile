@@ -1,6 +1,7 @@
 Root    ?= ../../.. ;
 Location = prog/engine/baseUtil ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 
 TargetType  = lib ;
 Target      = engine/baseUtil.lib ;

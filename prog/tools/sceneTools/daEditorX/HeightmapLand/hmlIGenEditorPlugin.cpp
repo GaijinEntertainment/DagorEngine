@@ -89,6 +89,7 @@
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/panelWindow.h>
 #include <landMesh/lmeshRenderer.h>
+#include <landMesh/landDetile.h>
 #include <heightmap/heightmapHandler.h>
 #include "renderLandNormals.h"
 
@@ -287,6 +288,9 @@ void HmapLandPlugin::registered()
 
   if (navmeshSubtypeMask == -1)
     navmeshSubtypeMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("navmesh");
+
+  if (SplineObject::gameSplineSubtypeMask == -1)
+    SplineObject::gameSplineSubtypeMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("game_spline");
 
 
   snowPrevievSVId = dagGeom->getShaderVariableId("snow_preview_mode");
@@ -606,6 +610,8 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
 
   if (!loaded)
     DAEDITOR3.conWarning("cannot load %s (tried also with %d prefixes)", fn, prefix_tried);
+  // this plugin is a dll with its own copy of the global; the services set theirs in onLevelBlkLoaded
+  land_detile::set_noise_size_cpu(land_detile::level_noise_size(loaded ? level_blk : DataBlock()));
   hmlService->onLevelBlkLoaded(loaded ? level_blk : DataBlock());
   if (IRendInstGenService *rendInstGenService = DAGORED2->queryEditorInterface<IRendInstGenService>())
     rendInstGenService->onLevelBlkLoaded(loaded ? level_blk : DataBlock());
@@ -1847,8 +1853,17 @@ void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
 
     // write meshes
     debug("decal nodes %d", decalNodes.size());
-    cwr_pm.writeInt16e(decalNodes.size());
-    for (int i = 0; i < decalNodes.size(); ++i)
+    const int maxU16Count = 0xFFFF;
+    int firstDecalNode = 0;
+    if (decalNodes.size() > maxU16Count)
+    {
+      DAEDITOR3.conError("PhysMap: there are %d decal meshes, but that is over the limit. Only the last %d will be in the phys map.",
+        decalNodes.size(), maxU16Count);
+      // The sort above puts the solid physmats last, so drop from the head to keep them.
+      firstDecalNode = decalNodes.size() - maxU16Count;
+    }
+    cwr_pm.writeInt16e(decalNodes.size() - firstDecalNode);
+    for (int i = firstDecalNode; i < decalNodes.size(); ++i)
     {
       StaticGeometryNode *node = decalNodes[i];
 
@@ -1867,6 +1882,28 @@ void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
       tempMesh.kill_unused_verts();
       tempMesh.kill_bad_faces();
       tempMesh.sort_faces_by_mat();
+
+      // Each phys material group stores its own face count, so the limit is per group, not per mesh.
+      int maxGroupFaceCount = 0;
+      for (int fi = 0, groupStart = 0; fi < tempMesh.face.size(); ++fi)
+      {
+        if (fi > 0 && physMatIds[i][tempMesh.face[fi].mat] != physMatIds[i][tempMesh.face[fi - 1].mat])
+          groupStart = fi;
+        maxGroupFaceCount = max(maxGroupFaceCount, fi - groupStart + 1);
+      }
+
+      if (tempMesh.vert.size() > maxU16Count || tempMesh.tvert[0].size() > maxU16Count || maxGroupFaceCount > maxU16Count)
+      {
+        DAEDITOR3.conError(
+          "PhysMap: decal mesh \"%s\" has %d vertices, %d texture vertices and %d faces with one phys material, but that is over "
+          "the limit of %d. It will not be in the phys map.",
+          node->name.c_str(), tempMesh.vert.size(), tempMesh.tvert[0].size(), maxGroupFaceCount, maxU16Count);
+        cwr_pm.writeInt16e(0); // 0 verts
+        cwr_pm.writeInt16e(0); // 0 tex verts
+        cwr_pm.writeInt8e(0);  // 0 mat
+        cwr_pm.writeInt16e(0); // 0 faces
+        continue;
+      }
 
       // Simplify
       SmallTab<Point2, TmpmemAlloc> vertices;
@@ -2016,6 +2053,9 @@ void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
   dagGeom->deleteStaticGeometryContainer(geoCont);
 }
 
+extern int exportImageAsDds(mkbindump::BinDumpSaveCB &cb, TexPixel32 *image, int size, int format, int mipmap_count, bool gamma1,
+  int stride_bytes);
+
 bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &tn, PropPanel::ContainerPropertyControl *params)
 {
   // Temporary show not exported RIs for buildAndWriteNavmesh
@@ -2079,7 +2119,7 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
       }
       con.addMessage(ILogWriter::REMARK, "export landmesh in %g seconds.", (dagTools->getTimeMsec() - localStart) / 1000.0);
     }
-    catch (IGenSave::SaveException e)
+    catch (const IGenSave::SaveException &e)
     {
       CoolConsole &con = DAGORED2->getConsole();
       con.startLog();
@@ -2094,6 +2134,61 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
 
     cwr.align8();
     cwr.endBlock();
+
+    if (exportLastclip)
+    {
+      if (d3d::is_stub_driver())
+      {
+        con.addMessage(ILogWriter::ERROR, "Cannot render and export last clip texture with stub d3d driver");
+        return false;
+      }
+      localStart = dagTools->getTimeMsec();
+
+      bool lastclipExported = false;
+      TextureInfo lastclipTi;
+      lastclipTi.w = lastclipTi.h = 0;
+
+      // the renderer is dropped by invalidateRenderer()/eraseHeightmap() and only recreated on demand
+      Texture *lastclipExportTex = landMeshRenderer && landMeshManager
+                                     ? hmlService->prepareFixedClipForExport(*landMeshRenderer, *landMeshManager, exportLastclipSize)
+                                     : NULL;
+
+      TexPixel32 *data;
+      int stride;
+      if (lastclipExportTex && lastclipExportTex->getinfo(lastclipTi, 0) &&
+          lastclipExportTex->lockimg((void **)&data, stride, 0, TEXLOCK_READ))
+      {
+        // uncompressed size is guaranteed to be enough for compressed texture
+        const int fmt = HmapLandPlugin::useASTC(cwr.getTarget()) || cwr.getTarget() == _MAKE4C('and') ? ddstexture::Converter::fmtASTC4
+                                                                                                      : ddstexture::Converter::fmtDXT1;
+        cwr.beginTaggedBlock(_MAKE4C('lmlc'));
+        try
+        {
+          lastclipExported = exportImageAsDds(cwr, data, lastclipTi.w, fmt, ddstexture::Converter::AllMipMaps, false, stride) > 0;
+        }
+        catch (const IGenSave::SaveException &e)
+        {
+          con.addMessage(ILogWriter::ERROR, "failed to convert lastclip: %s", e.excDesc);
+          lastclipExported = false;
+        }
+        cwr.align8();
+        cwr.endBlock();
+        lastclipExportTex->unlockimg();
+      }
+
+      del_d3dres(lastclipExportTex);
+
+      if (lastclipExported)
+      {
+        con.addMessage(ILogWriter::REMARK, "exported lastclip (%d x %d) in %g seconds.", lastclipTi.w, lastclipTi.h,
+          (dagTools->getTimeMsec() - localStart) / 1000.0);
+      }
+      else
+      {
+        con.addMessage(ILogWriter::ERROR, "failed to export lastclip");
+        return false;
+      }
+    }
 
 
     //---export land modulate color tex
@@ -2404,7 +2499,7 @@ bool HmapLandPlugin::buildAndWrite(BinDumpSaveCB &cwr, const ITextureNumerator &
       exportLand(cwr);
       cwr.popOrigin();
     }
-    catch (IGenSave::SaveException e)
+    catch (const IGenSave::SaveException &e)
     {
       CoolConsole &con = DAGORED2->getConsole();
       con.startLog();
@@ -2645,21 +2740,30 @@ bool HmapLandPlugin::getEditorHeightmapInfo(EditorHeightmapInfo *out) const
 
 bool HmapLandPlugin::buildEditorHeightmap(DynamicMemGeneralSaveCB *cb)
 {
-  if (!heightMap.isFileOpened())
+  const bool useDetHmap = heightMapDet.isFileOpened() && detDivisor > 0;
+  HeightMapStorage &hmap = useDetHmap ? heightMapDet : heightMap;
+  if (!hmap.isFileOpened())
     return false;
 
   applyHmModifiers(false);
 
-  const int width = heightMap.getMapSizeX();
-  const int height = heightMap.getMapSizeY();
-  if (width <= 0 || height <= 0)
+  const Point2 offset = useDetHmap ? detRect[0] : heightMapOffset;
+  const IPoint2 start = useDetHmap ? detRectC[0] : IPoint2{0, 0};
+  const IPoint2 end = useDetHmap ? detRectC[1] : IPoint2{hmap.getMapSizeX(), hmap.getMapSizeY()};
+  const IPoint2 texSize = end - start;
+  float cellSize = gridCellSize;
+  if (useDetHmap)
+    cellSize /= detDivisor;
+
+  if (texSize.x <= 0 || texSize.y <= 0)
     return false;
 
-  float hmin = heightMap.getFinalData(0, 0), hmax = hmin;
-  for (int y = 0; y < height; y++)
-    for (int x = 0; x < width; x++)
+  float hmin = hmap.getFinalData(start.x, start.y);
+  float hmax = hmin;
+  for (int y = start.y; y < end.y; y++)
+    for (int x = start.x; x < end.x; x++)
     {
-      const float h = heightMap.getFinalData(x, y);
+      const float h = hmap.getFinalData(x, y);
       inplace_min(hmin, h);
       inplace_max(hmax, h);
     }
@@ -2667,24 +2771,24 @@ bool HmapLandPlugin::buildEditorHeightmap(DynamicMemGeneralSaveCB *cb)
   if (hdelta < 1.f)
     hdelta = 1.f;
 
-  cb->writeReal(gridCellSize);
+  cb->writeReal(cellSize);
   cb->writeReal(hmin);
   cb->writeReal(hdelta);
-  cb->writeReal(heightMapOffset.x);
-  cb->writeReal(heightMapOffset.y);
+  cb->writeReal(offset.x);
+  cb->writeReal(offset.y);
   const int hmap_version = (int)HmapVersion::HMAP_BASE_VER;
-  cb->writeInt(width | (hmap_version << HMAP_WIDTH_BITS));
-  cb->writeInt(height); // mirror bit = 0
-  cb->writeInt(0);      // exclude bbox (empty)
+  cb->writeInt(texSize.x | (hmap_version << HMAP_WIDTH_BITS));
+  cb->writeInt(texSize.y); // mirror bit = 0
+  cb->writeInt(0);         // exclude bbox (empty)
   cb->writeInt(0);
   cb->writeInt(0);
   cb->writeInt(0);
 
   DynamicMemGeneralSaveCB hmCwr(tmpmem, 0, 64 << 10);
-  for (int y = 0; y < height; y++)
-    for (int x = 0; x < width; x++)
+  for (int y = start.y; y < end.y; y++)
+    for (int x = start.x; x < end.x; x++)
     {
-      int v = (int)floorf((heightMap.getFinalData(x, y) - hmin) * 65535.0f / hdelta + 0.5f);
+      int v = (int)floorf((hmap.getFinalData(x, y) - hmin) * 65535.0f / hdelta + 0.5f);
       hmCwr.writeIntP<2>((uint16_t)clamp(v, 0, 65535));
     }
 
@@ -3295,7 +3399,7 @@ void HmapLandPlugin::importHeightmap()
       public:
         HmapImportSizeDlg(float &min_height, float &height_range) : minHeight(min_height), heightRange(height_range), mDialog(NULL)
         {
-          mDialog = DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), "Import HMAP data range");
+          mDialog = DAGORED2->createAutoSizedDialog("Import HMAP data range");
 
           PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
           panel.setEventHandler(this);
@@ -3489,7 +3593,7 @@ void HmapLandPlugin::importWaterHeightmap(bool det)
     ID_HEIGHT_RANGE,
   };
   eastl::string dialogText{eastl::string::CtorSprintf{}, "Importing water %s heightmap.", det ? "DET" : "MAIN"};
-  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), dialogText.c_str()));
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createAutoSizedDialog(dialogText.c_str()));
   PropPanel::ContainerPropertyControl &panel = *dialog->getPanel();
   panel.setEventHandler(this);
   Point2 *waterHeightMinRange = &waterHeightMinRangeDet;
@@ -3555,7 +3659,7 @@ void HmapLandPlugin::eraseWaterHeightmap()
     ID_REMOVE_DET,
   };
   eastl::string dialogText{eastl::string::CtorSprintf{}, "Choose heightmaps for erase."};
-  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(240), _pxScaled(170), dialogText.c_str()));
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createAutoSizedDialog(dialogText.c_str()));
   PropPanel::ContainerPropertyControl &panel = *dialog->getPanel();
   panel.setEventHandler(this);
   panel.createCheckBox(ID_REMOVE_MAIN, "Erase MAIN hmap");
@@ -4794,7 +4898,7 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   EditLayerProps::updateEntityLayerHiddenMask();
 
   origBasePath = base_path;
-  if (d3d::is_stub_driver())
+  if (DAGORED2->isInBatchOp())
   {
     // avoid unpredictable caches in DE3xq
     DAEDITOR3.conNote("removing delaunayGen.cache.bin and delaunayGenEarly.cache.bin");
@@ -5453,7 +5557,7 @@ void HmapLandPlugin::restoreBackup()
     if (detDivisor)
       heightMapDet.getInitialMap().revertChanges();
   }
-  DAGOR_CATCH(DagorException e)
+  DAGOR_CATCH(const DagorException &e)
   {
     con.addMessage(ILogWriter::ERROR, "Error restoring heightmap backup: '%s'", e.excDesc);
     con.endLog();
@@ -7218,9 +7322,8 @@ void HmapLandPlugin::updateImgui()
     if (panelWindow)
     {
       bool open = true;
-      DAEDITOR3.imguiBegin(*panelWindow, &open);
-      panelWindow->updateImgui();
-      DAEDITOR3.imguiEnd();
+      if (auto window = IDaEditor3Engine::ScopedImguiWindow(*panelWindow, &open); window.canSubmitContents())
+        panelWindow->updateImgui();
 
       if (!open && propPanel)
       {
@@ -7270,9 +7373,23 @@ bool HmapLandPlugin::catchEvent(unsigned ev_huid, void *userData)
     if (editedScriptImage && showEditedMask())
       updateBlueWhiteMask(NULL);
     if (landMeshManager)
-      hmlService->afterD3DResetLandMesh(*landMeshManager, landMeshRenderer, full_reset);
+    {
+      // landMeshManager was loaded from lmDump, so reload its mesh data from lmDump too.
+      MemoryLoadCB crd(lmDump, false);
+      hmlService->afterD3DResetLandMesh(*landMeshManager, landMeshRenderer, full_reset, lmDump ? &crd : nullptr);
+    }
     delayedResetRenderer();
     hmlService->invalidateClipmap(true);
+
+    // A device reset empties these buffers. renderNavMeshDebug() fills them again.
+    dagRender->invalidateDebugPrimitivesVbuffer(*navMeshBuf);
+    dagRender->invalidateDebugPrimitivesVbuffer(*coversBuf);
+    dagRender->invalidateDebugPrimitivesVbuffer(*contoursBuf);
+    dagRender->invalidateDebugPrimitivesVbuffer(*obstaclesBuf);
+
+    for (int i = 0; i < objEd.splinesCount(); ++i)
+      if (SplineObject *s = objEd.getSpline(i))
+        s->regenerateVBuf();
   }
   else if (ev_huid == HUID_InvalidateClipmap)
   {
@@ -7286,6 +7403,15 @@ bool HmapLandPlugin::catchEvent(unsigned ev_huid, void *userData)
   }
   else if (ev_huid == HUID_AutoSaveDueToCrash)
     onPluginMenuClick(CM_COMMIT_HM_CHANGES);
+  else if (ev_huid == HUID_PostRenderObjects)
+  {
+    const bool gameSplinesView = SplineObject::isGameSplinesViewOn();
+    if (gameSplinesView && !lastGameSplinesView)
+      objEd.logGameSplinesStats();
+    lastGameSplinesView = gameSplinesView;
+    if (gameSplinesView && !isVisible)
+      objEd.renderGameSplines();
+  }
   return false;
 }
 

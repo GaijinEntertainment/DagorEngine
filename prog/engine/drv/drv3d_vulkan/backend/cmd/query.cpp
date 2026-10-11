@@ -23,11 +23,12 @@ TSPEC void BEContext::execCmd(const CmdEndSurvey &cmd)
   uint32_t ofs = cmd.buffer->bufOffsetLoc(cmd.index * stride);
   uint32_t sz = stride * count;
 
-  // do not copy if there was no writes to query, as copy will crash on some GPUs in this situation
-  if (directDrawCountInSurvey == 0)
+  // do not copy if there was no writes to query, or query was not run at all
+  // as copy will crash on some GPUs in this situation
+  if (!surveyQueryCompleted || surveyQueryActiveId != cmd.index || directDrawCountAtSurveyBegin == directDrawCount)
   {
     // fill zero instead
-    fillBuffer(cmd.buffer, ofs, sz, 1);
+    fillBuffer(cmd.buffer, ofs, sz, 0);
     return;
   }
 
@@ -37,9 +38,6 @@ TSPEC void BEContext::execCmd(const CmdEndSurvey &cmd)
 
   VULKAN_LOG_CALL(
     Backend::cb.wCmdCopyQueryPoolResults(cmd.pool, cmd.index, count, cmd.buffer->getHandle(), ofs, sz, VK_QUERY_RESULT_WAIT_BIT));
-
-  Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, cmd.buffer, {ofs, sz});
-  Backend::sync.completeNeeded();
 }
 
 TSPEC void BEContext::execCmd(const CmdInsertTimesampQuery &)

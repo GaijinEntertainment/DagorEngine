@@ -338,7 +338,7 @@ int rendinst::getRIGenExtraPreferableLodRawDistance(uint32_t res_idx, float squa
 
 int rendinst::getRIGenExtraPreferableLod(uint32_t res_idx, float squared_distance, bool &over_max_lod, int &last_lod)
 {
-  squared_distance *= rendinst::riExtraCullDistSqMul;
+  squared_distance *= rendinst::riExtraDistSqScale;
   return getRIGenExtraPreferableLodRawDistance(res_idx, squared_distance, over_max_lod, last_lod);
 }
 
@@ -346,7 +346,7 @@ int rendinst::getRIGenExtraPreferableLod(uint32_t res_idx, float squared_distanc
 {
   bool over_max_lod;
   int max_lod;
-  squared_distance *= rendinst::riExtraCullDistSqMul;
+  squared_distance *= rendinst::riExtraDistSqScale;
   return getRIGenExtraPreferableLodRawDistance(res_idx, squared_distance, over_max_lod, max_lod);
 }
 
@@ -379,6 +379,20 @@ float rendinst::riex_get_bsph_rad(int res_idx)
   if (!riExtra.isValid(res_idx))
     return 0.f;
   return riExtra[res_idx].sphereRadius;
+}
+
+float rendinst::riex_get_interaction_height(int res_idx)
+{
+  if (!riExtra.isValid(res_idx))
+    return 0.f;
+  const RiExtraPool &pool = riExtra[res_idx];
+  if (pool.indestructibleByNuke)
+    return -1.f;
+  if (pool.hasImpostor())
+    return pool.sphereRadius;
+  if (pool.rendinstHeight != 0.f)
+    return pool.rendinstHeight;
+  return v_extract_y(v_sub(pool.lbb.bmax, pool.lbb.bmin));
 }
 
 void rendinst::setRiGenResMatId(uint32_t res_idx, int matId)
@@ -498,7 +512,7 @@ bool rendinst::isNodeAllocated(riex_handle_t id)
 
 bool rendinst::isRIGenExtraPlacedInTiledScenes(int res_idx) { return riExtra.isValid(res_idx) && riExtra[res_idx].tsIndex >= 0; }
 
-float rendinst::getCullDistSqMul() { return riExtraCullDistSqMul; }
+float rendinst::getRiExtraDistSqScale() { return riExtraDistSqScale; }
 
 namespace rendinst
 {

@@ -18,7 +18,6 @@ struct DabuildJobSharedMem
   int logLevel;
   bool quiet;
   bool nopbar;
-  bool showImportantWarnings;
   bool dryRun;
   bool stopOnFirstError;
   bool stripD3Dres;

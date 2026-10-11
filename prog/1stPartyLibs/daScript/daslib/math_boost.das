@@ -82,13 +82,13 @@ def linear_to_SRGB(c : float4) {
     return float4(linear_to_SRGB(c.x), linear_to_SRGB(c.y), linear_to_SRGB(c.z), c.w)
 }
 
-def is_intersecting(a, b : AABR) {   // A.LO<=B.HI && A.HI>=B.LO
+def is_intersecting(a, b : AABR) {
     //! returns true if inputs intersect
     return (a.min.x <= b.max.x && a.min.y <= b.max.y &&
         a.max.x >= b.min.x && a.max.y >= b.min.y)
 }
 
-def is_intersecting(a, b : AABB) {   // A.LO<=B.HI && A.HI>=B.LO
+def is_intersecting(a, b : AABB) {
     //! returns true if inputs intersect
     return (a.min.x <= b.max.x && a.min.y <= b.max.y && a.min.z <= b.max.z &&
         a.max.x >= b.min.x && a.max.y >= b.min.y && a.max.z >= b.min.z)
@@ -181,7 +181,6 @@ def perspective_rh_opengl(fovy, aspect, zn, zf : float) {
     return Result
 }
 
-// perspective_rh_0_to_1 / perspective_rh_minus1_to_1 are the corrected, depth-range-explicit builders.
 def perspective_rh_0_to_1(fovy, aspect, zn, zf : float) {
     //! right-handed (z toward viewer) perspective matrix, clip-space z in [0..1] (Vulkan / D3D).
     let yScale = 1. / tan(fovy / 2.)
@@ -252,4 +251,9 @@ def planar_shadow(Light, Plane : float4) {
     Result[2] = float4(P.z * L.x,      P.z * L.y,      P.z * L.z + d,  P.z * L.w)
     Result[3] = float4(P.w * L.x,      P.w * L.y,      P.w * L.z,      P.w * L.w + d)
     return Result
+}
+
+def round_up(n, m : auto(TT)) : TT {
+    //! ``n`` rounded up to a multiple of ``m`` (``m`` > 0), in ``m``'s integer type
+    return (n + m - TT(1)) / m * m
 }

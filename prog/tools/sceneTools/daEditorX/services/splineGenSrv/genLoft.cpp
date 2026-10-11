@@ -3,6 +3,8 @@
 #include "spline.h"
 #include <de3_lightService.h>
 #include <de3_assetService.h>
+#include <oldEditor/de_workspace.h>
+#include <oldEditor/de_interface.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <libTools/ObjCreator3d/objCreator3d.h>
@@ -20,6 +22,8 @@ void SplineGenEntity::recalcGeomLighting(StaticGeometryContainer &geom)
   Point3 normal;
 
   ltService->getDirectLight(ltDir1, ltCol1, ltDir2, ltCol2, ambCol);
+
+  const bool bakeGeometryVertexLighting = DAGORED2 && DAGORED2->getWorkspace().shouldBakeGeometryVertexLighting();
 
   for (int ni = 0; ni < geom.nodes.size(); ++ni)
   {
@@ -46,13 +50,17 @@ void SplineGenEntity::recalcGeomLighting(StaticGeometryContainer &geom)
 
           const int vi = f * 3 + v;
 
-          Color3 resColor = ambCol;
-          real k = normal * ltDir1;
-          if (k > 0)
-            resColor += ltCol1 * k;
-          k = normal * ltDir2;
-          if (k > 0)
-            resColor += ltCol2 * k;
+          Color3 resColor = Color3(0.f, 0.f, 0.f);
+          if (bakeGeometryVertexLighting)
+          {
+            resColor = ambCol;
+            real k = normal * ltDir1;
+            if (k > 0)
+              resColor += ltCol1 * k;
+            k = normal * ltDir2;
+            if (k > 0)
+              resColor += ltCol2 * k;
+          }
 
           mesh.cvert[vi] = ::color4(resColor, 1);
           mesh.cface[f].t[v] = vi;
@@ -231,8 +239,7 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
       if (loft.waterSurface && !bspw_inited)
         bspw_inited = make_spline_x0z(bspw, splineXZ, water_level);
 
-      Mesh *themesh = new Mesh;
-      Mesh &mesh = *themesh;
+      Mesh mesh;
 
       assetSrv->createLoftMesh(mesh, asset, j, loft.waterSurface ? bspw : effSpline, start_idx, end_idx, place_on_collision, 1.0f, -1,
         splineScales, NULL, name, (start_idx == 0 && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0,
@@ -307,8 +314,7 @@ void SplineGenEntity::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, BezierSpline
       bspw_inited = make_spline_x0z(bspw, splineXZ, water_level);
 
     {
-      Mesh *themesh = new Mesh;
-      Mesh &mesh = *themesh;
+      Mesh mesh;
 
       assetSrv->createLoftMesh(mesh, asset, j, bspw, start_idx, end_idx, place_on_collision, 1.0f, -1, splineScales, NULL, name,
         (start_idx == 0 && zeroOpacityDistAtEnds > 0) ? zeroOpacityDistAtEnds : 0,

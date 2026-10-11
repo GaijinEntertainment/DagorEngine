@@ -1,5 +1,6 @@
 options gen2
 
+require daslib/tune
 require llvm/daslib/llvm_tune
 
 // Template fixture for llvm_tune_manifest.das (no [test] on purpose — the suite just
@@ -40,10 +41,16 @@ def main {
     var n = 2  // nolint:LINT003 — var defeats const-fold so the calls survive to codegen
     let args <- get_command_line_arguments()  // locked view — do not delete
     var doWrite = false
+    var doWriteOwn = false
     for (a in args) {
         doWrite ||= a == "write"
+        doWriteOwn ||= a == "write-own"
     }
-    if (doWrite) {
+    if (doWriteOwn) {
+        // the companion's OWN entry (the gemv-seat shape): man_kv stamps from it, man_add keeps its k2
+        let ok = tune_manifest_set("man_kv", "k1")
+        print("WRITE {ok ? "ok" : "FAILED"} -> {tune_manifest_path()}\n")
+    } elif (doWrite) {
         let ok = tune_manifest_set("man_add", "k2") && tune_manifest_set("man_ref", "reference")
         print("WRITE {ok ? "ok" : "FAILED"} -> {tune_manifest_path()}\n")
     } else {

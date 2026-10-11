@@ -8,6 +8,8 @@
 #include <gameRes/dag_collisionResource.h>
 #include <render/primitiveObjects.h>
 #include <generic/dag_carray.h>
+#include <gameRes/dag_collResDump.h>
+#include <gameRes/collisionResourceBuilder.h>
 
 
 namespace rendinst
@@ -106,6 +108,27 @@ void dumpAllCollisions(IGenSave &cb)
     cb.write(pool.riTm.begin(), pool.riTm.size() * sizeof(mat43f));
   });
 }
+
+static void dumpAllCollRes(IGenSave &cb)
+{
+  cb.writeInt((int)COLLRES_DUMP_MAGIC);
+  cb.writeInt(COLLRES_DUMP_VERSION);
+  cb.writeInt(PhysMat::getMaterials().size());
+  for (const PhysMat::MaterialData &m : PhysMat::getMaterials())
+  {
+    cb.writeString(m.name.str());
+    cb.writeString(m.soundMaterial.str());
+    cb.writeString(PhysMat::getBFClassName(m.bfid));
+    cb.write(&m.imp_absorb_k, collres_mat_pod_bytes(m));
+  }
+  iterateRIExtra([&](int id, const RiExtraPool &pool) {
+    if (!pool.collRes || pool.isPosInst())
+      return;
+    cb.writeString(riExtraMap.getName(id));
+    cb.writeTab(pool.riTm);
+    CollisionResourceBuilder::writeRaw(*pool.collRes, cb);
+  });
+}
 } // namespace rendinst
 
 static bool ri_collision_console_handler(const char *argv[], int argc)
@@ -123,6 +146,15 @@ static bool ri_collision_console_handler(const char *argv[], int argc)
       rendinst::dumpAllCollisions(cb);
       console::print("done");
     }
+    else
+      console::print_d("file %s can't be open for save", fn);
+  }
+  CONSOLE_CHECK_NAME("ri", "dump_collres", 1, 2)
+  {
+    const char *fn = argc < 2 ? "ri_collres.bin" : argv[1];
+    FullFileSaveCB cb(fn);
+    if (cb.fileHandle)
+      rendinst::dumpAllCollRes(cb);
     else
       console::print_d("file %s can't be open for save", fn);
   }

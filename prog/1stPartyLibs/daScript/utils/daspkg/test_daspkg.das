@@ -56,6 +56,41 @@ def moved_bundle_exe_path(moved_root, name : string) : string {
 }
 
 [test]
+def test_ship_tools(t : T?) {
+    t |> run("a tool ships by bare name from bin/, then bin/Release/, with the platform's exe suffix; a missing tool fails the release") @(t : T?) {
+        let tmp = create_temp_directory_result("daspkg tools ")
+        if (!(tmp is value)) {
+            t |> failure("could not create temp directory: {tmp as error}")
+            return
+        }
+        let root = tmp as value
+        let das_root = path_join(root, "root")
+        let bundle = path_join(root, "bundle")
+        let ext = get_platform_name() == "windows" ? ".exe" : ""
+        mkdir(das_root)
+        mkdir(path_join(das_root, "bin"))
+        mkdir(path_join(path_join(das_root, "bin"), "Release"))
+        mkdir(bundle)
+        fwrite(path_join(das_root, "bin/flat{ext}"), "flat")
+        fwrite(path_join(das_root, "bin/Release/msvc{ext}"), "msvc")
+        var shipped : array<string>
+        t |> equal(ship_tools("pkg", bundle, ["flat", "msvc"], shipped, das_root), 0, "both tools resolve")
+        t |> equal(length(shipped), 2)
+        t |> success(fexist(path_join(bundle, "flat{ext}")), "bin/<tool> lands at the bundle root")
+        t |> success(fexist(path_join(bundle, "msvc{ext}")), "bin/Release/<tool> lands at the bundle root")
+        var none : array<string>
+        t |> equal(ship_tools("pkg", bundle, ["absent"], none, das_root), 1, "a tool no build produced fails the release")
+        t |> equal(length(none), 0)
+        fwrite(path_join(root, "escaped{ext}"), "outside")
+        var unsafe_name : array<string>
+        t |> equal(ship_tools("pkg", bundle, ["../escaped"], unsafe_name, das_root), 1, "a name with a path separator is refused before any path is built")
+        t |> success(!fexist(path_join(bundle, "escaped{ext}")), "nothing was copied for the refused name")
+        let cleanup = rmdir_rec_result(root)
+        t |> success(cleanup is value && cleanup as value, "temp dir removed")
+    }
+}
+
+[test]
 def test_package_name_from_source(t : T?) {
     t |> run("github URL") @(t : T?) {
         t |> equal(package_name_from_source("github.com/user/dasImgui"), "dasImgui")
@@ -194,7 +229,7 @@ def test_parse_args(t : T?) {   // nolint:STYLE038 — a flat case table: one ar
         t |> equal(parsed.command ?? "", "list")
         t |> success(parsed.command_arg |> is_none)
     }
-    t |> run("release with paranoid tuning") @(t : T?) {
+    t |> run("release accepts --paranoid (compat, no budget change)") @(t : T?) {
         var r <- parse_args(type<DaspkgArgs>, ["release", "--out", "E:/", "--paranoid"])
         t |> success(r |> is_ok, "parse succeeds")
         let parsed <- r |> move_unwrap
@@ -279,6 +314,49 @@ def test_lockfile_roundtrip(t : T?) {
 }
 
 [test]
+def test_copy_dir_rec_skips_links_and_build_residue(t : T?) {
+    t |> run("junction/symlink, .git, and build dirs stay out of the copy") @(t : T?) {
+        let tmp = "{get_das_root()}/_daspkg_test_copyskip"
+        let src = "{tmp}/src"
+        mkdir(tmp)
+        mkdir(src)
+        mkdir("{src}/real")
+        fopen("{src}/real/a.txt", "wb") $(f) {
+            fprint(f, "content")
+        }
+        mkdir("{src}/_build")
+        fopen("{src}/_build/CMakeCache.txt", "wb") $(f) {
+            fprint(f, "stale")
+        }
+        mkdir("{src}/build")
+        mkdir("{src}/.git")
+        // a link pointing at src itself - copying it recurses forever unless copy_dir_rec skips links
+        let link = "{src}/loop"
+        var out : string
+        var link_cmd = "ln -s \"{src}\" \"{link}\""
+        if (get_platform_name() == "windows") {
+            link_cmd = "cmd /c mklink /J \"{replace(link, "/", "\\")}\" \"{replace(src, "/", "\\")}\""
+        }
+        let linked = run_cmd(link_cmd, out) == 0
+        let dst = "{tmp}/dst"
+        t |> success(copy_dir_rec(src, dst), "copy_dir_rec({src} -> {dst}) returned false")
+        t |> success(fexist("{dst}/real/a.txt"), "real content missing from the copy")
+        t |> success(!fexist("{dst}/_build"), "_build was copied")
+        t |> success(!fexist("{dst}/build"), "build was copied")
+        t |> success(!fexist("{dst}/.git"), ".git was copied")
+        if (linked) {
+            var link_err : string
+            t |> success(is_reparse_point(link, link_err), "is_reparse_point does not see the link")
+            t |> success(!is_reparse_point(src, link_err), "is_reparse_point flags a plain dir")
+            t |> success(!fexist("{dst}/loop"), "the link was followed into the copy")
+        } else {
+            to_log(LOG_INFO, "test_copy_dir_rec_skips_links_and_build_residue: could not create a junction/symlink here; skipping the link half\n")
+        }
+        force_rmdir(tmp)
+    }
+}
+
+[test]
 def test_in_tree_module_satisfies_install(t : T?) {
     t |> run("explicit install of an in-tree module is a no-op") @(t : T?) {
         // dasGlfw is a tracked in-tree module: present at <das_root>/modules/
@@ -340,11 +418,22 @@ def private write_passing_pkg(src_dir, pkg_name : string) {
 
 // Writes a .das_package with optional dependencies (each entry is a require_package source).
 def private write_passing_pkg(src_dir, pkg_name : string; deps : array<string>) {
+    let no_lines : array<string>
+    write_passing_pkg(src_dir, pkg_name, no_lines, deps)
+}
+
+// Writes a .das_package whose package() holds package_name plus `package_lines`, with optional
+// dependencies (each entry is a require_package source).
+def private write_passing_pkg(src_dir, pkg_name : string; package_lines, deps : array<string>) {
     mkdir(src_dir)
     let manifest = build_string() $(var w) {
         w |> write("options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"")
         w |> write(pkg_name)
-        w |> write("\")\n\}\n")
+        w |> write("\")\n")
+        for (line in package_lines) {
+            w |> write("    {line}\n")
+        }
+        w |> write("\}\n")
         if (!empty(deps)) {
             w |> write("[export]\ndef dependencies(version : string) \{\n")
             for (d in deps) {
@@ -764,9 +853,7 @@ def test_remove_from_index_json(t : T?) {
         var error : string
         var js = read_json(result, error)
         t |> success(js != null)
-        unsafe {
-            t |> equal(length(js.value as _array), 0)
-        }
+        unsafe(t |> equal(length(js.value as _array), 0))
     }
     t |> run("preserves other entries") @(t : T?) {
         var input = add_to_index_json("[]", "pkg1", "github.com/user/pkg1", "First")
@@ -1738,6 +1825,12 @@ def test_run_das_package_release(t : T?) {
         tt |> equal(2, length(info.wasm_archives))
         tt |> equal("_wasm/liblibDasModuleTest.a", info.wasm_archives[0])
         tt |> equal("_wasm/liblibTestApp.a", info.wasm_archives[1])
+        // the two wasm-only knobs cross the same hand-written marshaller: a dropped copy would
+        // cross-compile with the module mounted and the flag missing, silently
+        tt |> equal(1, length(info.wasm_disabled_modules))
+        tt |> equal("dasvulkan", info.wasm_disabled_modules[0])
+        tt |> equal(1, length(info.emcc_args))
+        tt |> equal("--profiling-funcs", info.emcc_args[0])
     }
     t |> run("returns true with empty spec when release() is missing") @(tt : T?) {
         var info : PackageReleaseInfo
@@ -1802,6 +1895,263 @@ def test_cmd_release_pure_daslang(t : T?) {
         force_rmdir(tmp_root)
         force_rmdir(out_dir)
     }
+    t |> run("paranoid with quick warns and releases (no refusal)") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_pq"
+        let out_dir = "{get_das_root()}/_test_release_pq_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"smokepq\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+        let rc = cmd_release(tmp_root, out_dir, true, true)
+        tt |> equal(0, rc, "the pair is a warning, not a refusal")
+        tt |> success(fexist(bundle_exe_path(out_dir, "smokepq")), "exe shipped")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+// the tool release_launcher names must be a real build product: the watchdog the tree builds
+// where dasHV, dasStdDlg and dasStbImage are in
+def private built_watchdog_path() : string {
+    let ext = get_platform_name() == "windows" ? ".exe" : ""
+    for (rel in ["bin/watchdog{ext}", "bin/Release/watchdog{ext}"]) {
+        let candidate = path_join(get_das_root(), rel)
+        if (fexist(candidate)) return candidate
+    }
+    return ""
+}
+
+[test]
+def test_cmd_release_launcher(t : T?) {
+    t |> run("release_launcher names the shipped tool the macOS .app opens; a tool not shipped refuses before the build") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_launcher"
+        let out_dir = "{get_das_root()}/_test_release_launcher_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"launched\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_launcher(\"watchdog\")\n\}\n")
+        }
+        let refused = cmd_release(tmp_root, out_dir)
+        tt |> equal(1, refused, "a launcher no release_include_tool ships is refused")
+        tt |> success(!fexist(bundle_exe_path(out_dir, "launched")), "and nothing was built")
+        if (empty(built_watchdog_path())) {
+            force_rmdir(tmp_root)
+            force_rmdir(out_dir)
+            tt |> skip("no built watchdog in this tree - the shipped-tool half of the launcher test needs bin/watchdog")
+            return
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"launched\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_include_tool(\"watchdog\")\n    release_launcher(\"watchdog\")\n\}\n")
+        }
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0 with the tool shipped")
+        let artifacts = bundle_artifacts_dir(out_dir, "launched")
+        let ext = get_platform_name() == "windows" ? ".exe" : ""
+        tt |> success(fexist(path_join(artifacts, "watchdog{ext}")), "the launcher tool sits beside the exe")
+        tt |> success(fexist(bundle_exe_path(out_dir, "launched")), "the exe itself still ships")
+        if (get_platform_name() == "darwin") {
+            let plist = fread(path_join(bundle_root_dir(out_dir, "launched"), "Contents/Info.plist"))
+            let key_at = find(plist, "<key>CFBundleExecutable</key>")
+            tt |> success(key_at >= 0, "the plist names an executable")
+            let value_at = find(plist, "<string>", key_at)
+            tt |> success(value_at >= 0 && starts_with(slice(plist, value_at, length(plist)), "<string>watchdog</string>"),
+                "CFBundleExecutable is the launcher, so a double click on the .app starts the supervisor:\n{plist}")
+            tt |> success(find(plist, "<key>LSUIElement</key>") >= 0, "a launcher app is menu-bar-only - no Dock tile, no application menu:\n{plist}")
+        }
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+    t |> run("without a launcher the .app opens the exe itself and is an ordinary application") @(tt : T?) {
+        if (get_platform_name() != "darwin") {
+            tt |> skip("the Info.plist exists only in the macOS .app layout")
+            return
+        }
+        let tmp_root = "{get_das_root()}/_test_release_nolauncher"
+        let out_dir = "{get_das_root()}/_test_release_nolauncher_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"plainapp\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+        tt |> equal(0, cmd_release(tmp_root, out_dir), "cmd_release returns 0")
+        let plist = fread(path_join(bundle_root_dir(out_dir, "plainapp"), "Contents/Info.plist"))
+        tt |> success(find(plist, "<string>plainapp</string>") >= 0, "CFBundleExecutable is the exe:\n{plist}")
+        tt |> success(find(plist, "LSUIElement") < 0, "and it is not marked menu-bar-only")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+[test]
+def test_cmd_release_program(t : T?) {
+    t |> run("release_program bakes a companion exe beside the main one, in the manifest, sharing the runtime") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_program"
+        let out_dir = "{get_das_root()}/_test_release_program_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        // the companion alone requires a shared module (stbimage): the bundle must ship it for the
+        // companion's sake, where the main program never asked for it
+        let stb_module = path_join(get_das_root(), "modules/dasStbImage/dasModuleStbImage.shared_module")
+        let stb_built = fexist(stb_module)
+        let tool_require = stb_built ? "require stbimage\n" : ""
+        fopen("{tmp_root}/tool.das", "wb") $(f) {
+            fwrite(f, "options gen2\n{tool_require}[export]\ndef main() \{\n    print(\"companion\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"withtool\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_program(\"side-tool\", \"tool.das\")\n\}\n")
+        }
+        tt |> equal(0, cmd_release(tmp_root, out_dir), "cmd_release returns 0 with a companion")
+        let artifacts = bundle_artifacts_dir(out_dir, "withtool")
+        let companion_rel = get_platform_name() == "darwin" ? "side-tool" : "side-tool.exe"
+        tt |> success(fexist(bundle_exe_path(out_dir, "withtool")), "the main exe ships")
+        tt |> success(fexist(path_join(artifacts, companion_rel)), "the companion exe sits beside it as {companion_rel}")
+        tt |> success(!fexist(path_join(artifacts, "side-tool.o")), "the companion's object file is dropped")
+        for (stem in ["withtool", "side-tool"]) {
+            for (suffix in [".map", ".lib", ".exp"]) {
+                tt |> success(!fexist(path_join(artifacts, "{stem}{suffix}")), "no linker residue {stem}{suffix} rides beside the exe: nothing at run time reads it")
+            }
+        }
+        let manifest = fread(path_join(artifacts, ".daspkg_release.manifest"))
+        tt |> success(find(manifest, companion_rel) >= 0, "the manifest records the companion, so a re-release cleans it:\n{manifest}")
+        if (stb_built) {
+            tt |> success(fexist(path_join(artifacts, "modules/dasStbImage/dasModuleStbImage.shared_module")), "the shared module only the companion requires ships")
+        } else {
+            tt |> success(true, "not covered here: the companion-only shared module needs a built dasStbImage")
+        }
+        tt |> success(fexist(path_join(artifacts, "side-tool.tune.json")) == fexist(path_join(artifacts, "withtool.tune.json")), "the companion carries the sidecar exactly when the main exe does")
+        var runtime_names : table<string>
+        var runtime_dupes = 0
+        fio::dir(artifacts) $(name) {
+            if (find(name, "libDaScriptDyn") >= 0) {
+                runtime_dupes += key_exists(runtime_names, name) ? 1 : 0
+                runtime_names |> insert(name)
+            }
+        }
+        tt |> success(!empty(runtime_names) && runtime_dupes == 0, "one set of runtime libraries serves both exes, none twice")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+[test]
+def test_cmd_release_program_refusals(t : T?) {
+    t |> run("a companion that fails to build ends the release with nothing of it left behind") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_program_broken"
+        let out_dir = "{get_das_root()}/_test_release_program_broken_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/tool.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    this is not daslang\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"withbroken\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_program(\"side-tool\", \"tool.das\")\n\}\n")
+        }
+        tt |> equal(1, cmd_release(tmp_root, out_dir), "a companion that does not compile fails the release")
+        let artifacts = bundle_artifacts_dir(out_dir, "withbroken")
+        tt |> success(!fexist(path_join(artifacts, "side-tool.exe")) && !fexist(path_join(artifacts, "side-tool")) && !fexist(path_join(artifacts, "side-tool.o")), "no half-built companion stays in the bundle")
+        var leftover = 0
+        fio::dir(get_das_root()) $(name) {
+            if (name |> starts_with("_daspkg_release_deps_")) {
+                leftover ++
+            }
+        }
+        tt |> equal(0, leftover, "no deps JSON is left in the tree")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+    t |> run("a companion with an unsafe name, the bundle's own name, a shipped tool's name, a twin's name, or a missing script is refused before the build") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_program_bad"
+        let out_dir = "{get_das_root()}/_test_release_program_bad_out"
+        for (bad in ["release_program(\"bad name\", \"main.das\")", "release_program(\"withtool\", \"main.das\")", "release_program(\"side-tool\", \"absent.das\")",
+                     "release_program(\"\", \"main.das\")", "release_program(\"side-tool.exe\", \"main.das\")", "release_program(\"a..b\", \"main.das\")",
+                     "release_program(\"side-tool\", \"main.das; rm -rf x\")",
+                     "release_include_tool(\"watchdog\")\n    release_program(\"watchdog\", \"main.das\")",
+                     "release_program(\"side-tool\", \"main.das\")\n    release_program(\"side-tool\", \"main.das\")"]) {
+            force_rmdir(tmp_root)
+            force_rmdir(out_dir)
+            mkdir(tmp_root)
+            fopen("{tmp_root}/main.das", "wb") $(f) {
+                fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+            }
+            fopen("{tmp_root}/.das_package", "wb") $(f) {
+                fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"withtool\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    {bad}\n\}\n")
+            }
+            tt |> equal(1, cmd_release(tmp_root, out_dir), "refused: {bad}")
+            tt |> success(!fexist(bundle_exe_path(out_dir, "withtool")), "and nothing was built for {bad}")
+        }
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+[test]
+def test_cmd_release_refuses_jit_only(t : T?) {
+    t |> run("release_requires_jit() refuses the release before anything builds") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_jitonly"
+        let out_dir = "{get_das_root()}/_test_release_jitonly_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"jitonly\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_requires_jit()\n\}\n")
+        }
+        tt |> equal(1, cmd_release(tmp_root, out_dir), "a JIT-only package is refused")
+        tt |> success(!fexist(bundle_exe_path(out_dir, "jitonly")), "and nothing was built")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+[test]
+def test_cmd_release_refuses_unsafe_bundle_name(t : T?) {
+    // the bundle name is a .das_package string that reaches path_join, force_rmdir and shell
+    // command lines; the guard admits letters, digits, `_`, `-` and `.` only - a space or a
+    // shell metacharacter is refused before anything is built or removed
+    for (bad in ["bad name", "bad;name", "bad$(name)", "bad\"name"]) {
+        t |> run("refuses bundle name `{bad}`") @(tt : T?) {
+            let tmp_root = "{get_das_root()}/_test_release_badname"
+            let out_dir = "{get_das_root()}/_test_release_badname_out"
+            force_rmdir(tmp_root)
+            force_rmdir(out_dir)
+            mkdir(tmp_root)
+            fopen("{tmp_root}/main.das", "wb") $(f) {
+                fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+            }
+            let escaped = replace(replace(bad, "\\", "\\\\"), "\"", "\\\"")
+            fopen("{tmp_root}/.das_package", "wb") $(f) {
+                fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"{escaped}\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+            }
+            let rc = cmd_release(tmp_root, out_dir)
+            tt |> equal(1, rc, "cmd_release refuses the name")
+            tt |> success(!fexist(out_dir), "nothing was built or removed under {out_dir}")
+            force_rmdir(tmp_root)
+            force_rmdir(out_dir)
+        }
+    }
 }
 
 [test]
@@ -1820,7 +2170,7 @@ def test_cmd_release_ships_minted_scope_manifest(t : T?) {
             fwrite(f, payload)
         }
         fopen("{tmp_root}/main.das", "wb") $(f) {
-            fwrite(f, "options gen2\nrequire llvm/daslib/llvm_tune\n[tune_scope(name=\"stubscope\", tuner=\"stub_tuner.das\")]\nstruct StubScope \{\n    unused : int\n\}\n[export]\ndef main() \{\n    print(\"hi\\n\")\n\}\n")
+            fwrite(f, "options gen2\nrequire daslib/tune\nrequire llvm/daslib/llvm_tune\n[tune_scope(name=\"stubscope\", tuner=\"stub_tuner.das\")]\nstruct StubScope \{\n    unused : int\n\}\n[export]\ndef main() \{\n    print(\"hi\\n\")\n\}\n")
         }
         fopen("{tmp_root}/stub_tuner.das", "wb") $(f) {
             fwrite(f, "options gen2\nrequire daslib/fio\n[export]\ndef main() \{\n    fopen(get_env_variable(\"DAS_TUNE_MANIFEST\"), \"wb\") $(mf) \{\n        fwrite(mf, fread(\"{tmp_root}/stub_payload.json\"))\n    \}\n\}\n")
@@ -1849,6 +2199,75 @@ def test_cmd_release_ships_minted_scope_manifest(t : T?) {
         tt |> success(int64(side_fs.mtime) > int64(exe_fs.mtime), "shipped sidecar mtime is strictly newer than the exe")
         force_rmdir(tmp_root)
         force_rmdir(out_dir)
+    }
+}
+
+// a fat release's fixture: a scope shipping class profiles under ./defaults and one [tune]
+// kernel over the add_plus_k selftest generator; `with_profile` decides whether the host's
+// lowest class gets a profile entry for the kernel
+def private write_fat_fixture(tmp_root : string; with_profile : bool) {
+    mkdir(tmp_root)
+    mkdir("{tmp_root}/defaults")
+    let arch = get_architecture_name()
+    let low = arch == "x86_64" ? "x86-avx2" : "arm-neon"
+    let features = arch == "x86_64" ? "avx2;f16c;fma;sse4.2" : "neon;dotprod;fullfp16;lse"
+    if (with_profile) {
+        fwrite("{tmp_root}/defaults/{low}.tune-defaults.json",
+            "\{ \"kernels\" : \{ \"fat_kernel\" : \"k2\" \}, \"provenance\" : \{ \"features\" : \"{features}\" \} \}")
+    }
+    fwrite("{tmp_root}/main.das", "options gen2\nrequire daslib/tune\nrequire llvm/daslib/llvm_tune\n[tune_scope(name=\"fatscope\", defaults=\"./defaults\")]\nstruct FatScope \{\n    unused : int\n\}\n[tune_perm(k = 0), tune_perm(k = 1), tune_perm(k = 2), tune(gen = \"llvm_code_selftest::add_plus_k\", fallback = \"k1\")]\ndef fat_kernel(a, b : int) : int \{\n    return a + b\n\}\n[export, tune_policy(missing = \"fallback\")]\ndef main() \{\n    print(\"R \{fat_kernel(length(get_command_line_arguments()), 3)}\\n\")\n\}\n")
+    fwrite("{tmp_root}/.das_package", "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"fatstub\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+}
+
+[test]
+def test_cmd_release_fat(t : T?) {
+    let arch = get_architecture_name()
+    let low = arch == "x86_64" ? "x86-avx2" : "arm-neon"
+    t |> run("--fat ships the class profile's clones, mints nothing, and ships no sidecar") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_fat"
+        let out_dir = "{get_das_root()}/_test_release_fat_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        write_fat_fixture(tmp_root, true)
+        let rc = cmd_release(tmp_root, out_dir, false, false, low)
+        tt |> equal(0, rc, "cmd_release --fat {low} returns 0")
+        tt |> success(!fexist("{tmp_root}/main.tune.json"), "a fat release mints no sidecar beside the script")
+        let bundle_dir = dir_name(bundle_exe_path(out_dir, "fatstub"))
+        tt |> success(!fexist(path_join(bundle_dir, "fatstub.tune.json")), "the bundle ships no tune sidecar")
+        tt |> success(fexist(bundle_exe_path(out_dir, "fatstub")), "the fat exe is in the bundle")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+    t |> run("--fat refuses a kernel the baseline class has no profile entry for") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_fat_none"
+        let out_dir = "{get_das_root()}/_test_release_fat_none_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        write_fat_fixture(tmp_root, false)
+        let rc = cmd_release(tmp_root, out_dir, false, false, low)
+        tt |> success(rc != 0, "a fallback-stamped baseline clone refuses the release")
+        let bundle_dir = dir_name(bundle_exe_path(out_dir, "fatstub"))
+        tt |> success(!fexist(path_join(bundle_dir, RELEASE_MANIFEST)), "the refused release never finishes its bundle")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+    t |> run("--fat refuses a class name that is not a name before anything builds") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_fat_unsafe"
+        let out_dir = "{get_das_root()}/_test_release_fat_unsafe_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        write_fat_fixture(tmp_root, true)
+        for (bad in ["x86-avx2 DAS_X=1", "x86-avx2;echo", "x86-avx2\"", "../x86-avx2"]) {
+            tt |> success(cmd_release(tmp_root, out_dir, false, false, bad) != 0, "'{bad}' is refused")
+        }
+        tt |> success(!fexist(bundle_exe_path(out_dir, "fatstub")), "no exe was built for a refused class name")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+    t |> run("the gate names the kernel and the class, and passes a fully profiled scope") @(tt : T?) {
+        let refusal = release_fat_refusal("fatscope", "fat_kernel;other_kernel", low)
+        tt |> success(find(refusal, "scope `fatscope` has no {low} profile entry for fat_kernel, other_kernel") >= 0, "the refusal names the scope, the class and the kernels: {refusal}")
+        tt |> equal(release_fat_refusal("fatscope", "", low), "", "a scope whose baseline clones all came from a profile passes")
     }
 }
 
@@ -2170,8 +2589,7 @@ def test_cmd_release_portable_on_macos(t : T?) { // nolint:STYLE038
         var real_dylib = ""
         var dylib_count = 0
         dir(glfw_dir) $(filename) {
-            if (filename == "." || filename == "..") return
-            if (!ends_with(filename, ".dylib")) return
+            if (filename == "." || filename == ".." || !ends_with(filename, ".dylib")) return
             let p = path_join(glfw_dir, filename)
             var sym_err : string
             if (is_symlink(p, sym_err)) return
@@ -2185,8 +2603,7 @@ def test_cmd_release_portable_on_macos(t : T?) { // nolint:STYLE038
         var install_name = ""
         for (line in split(id_out, "\n")) {
             let s = strip(line)
-            if (empty(s)) continue
-            if (ends_with(s, ":")) continue
+            if (empty(s) || ends_with(s, ":")) continue
             install_name = s
         }
         tt |> success(starts_with(install_name, "@rpath/"),
@@ -2231,3 +2648,461 @@ def test_cmd_release_portable_on_macos(t : T?) { // nolint:STYLE038
     }
 }
 
+
+def private push_text(var bytes : array<uint8>; text : string) {
+    bytes |> reserve(length(bytes) + length(text))
+    for (c in text) {
+        bytes |> push(uint8(c))
+    }
+}
+
+//! a 60-byte ar member header: name, then the decimal size in its column, then the two-byte terminator (a backtick and a newline)
+def private push_ar_header(var bytes : array<uint8>; name : string; size : int) {
+    let digits = "{size}"
+    push_text(bytes, "{name}{repeat(" ", 48 - length(name))}{digits}{repeat(" ", 10 - length(digits))}`\n")
+}
+
+//! a fake `!<arch>` file: a symbol-table member of `index_bytes` zeros, a GNU long-name table when the
+//! object's name is `/0` (the shape llvm-ar writes for a long file name), then the object opening with the magic
+def private write_archive(path : string; magic : array<uint8>; index_bytes : int = 0; long_name : bool = false) {
+    var bytes : array<uint8>
+    bytes |> reserve(index_bytes + 256)
+    push_text(bytes, "!<arch>\n")
+    if (index_bytes > 0) {
+        push_ar_header(bytes, "/", index_bytes)
+        for (_i in range(index_bytes + (index_bytes & 1))) {
+            bytes |> push(0u8)
+        }
+    }
+    if (long_name) {
+        push_ar_header(bytes, "//", 20)
+        push_text(bytes, "a_long_member_name/\n")
+    }
+    push_ar_header(bytes, long_name ? "/0" : "member.o/", 64)
+    bytes |> push_from(magic)
+    push_text(bytes, "padding past the magic so the member has a body")
+    fopen(path, "wb") $(f) {
+        fwrite(f, bytes)
+    }
+}
+
+//! the BSD shape macOS's ar writes: a `__.SYMDEF SORTED` table, then a member whose `#1/NN` name leads its body
+def private write_bsd_archive(path : string; magic : array<uint8>) {
+    var bytes : array<uint8>
+    bytes |> reserve(256)
+    push_text(bytes, "!<arch>\n")
+    push_ar_header(bytes, "__.SYMDEF SORTED", 16)
+    push_text(bytes, "0000000000000000")
+    let name = "a_long_member_name.o"
+    push_ar_header(bytes, "#1/{length(name)}", length(name) + 64)
+    push_text(bytes, name)
+    bytes |> push_from(magic)
+    push_text(bytes, "padding past the magic so the member has a body")
+    fopen(path, "wb") $(f) {
+        fwrite(f, bytes)
+    }
+}
+
+[test]
+def test_wasm_archive_detection(t : T?) {
+    t |> run("build --wasm stages an archive only when a member carries the wasm magic; a native archive under the same name is refused") @(t : T?) {
+        let tmp = create_temp_directory_result("daspkg archives ")
+        if (!(tmp is value)) {
+            t |> failure("could not create temp directory: {tmp as error}")
+            return
+        }
+        let root = tmp as value
+        let wasm_path = path_join(root, "liblibDasModuleWasm.a")
+        let indexed_path = path_join(root, "liblibDasModuleIndexed.a")
+        let native_path = path_join(root, "liblibDasModuleNative.a")
+        let wasm_magic <- [0x00u8, 0x61u8, 0x73u8, 0x6du8, 0x01u8, 0x00u8, 0x00u8, 0x00u8]   // "\0asm" + version 1
+        write_archive(wasm_path, wasm_magic)
+        write_archive(indexed_path, wasm_magic, 200000)   // a symbol table far past any fixed scan window
+        let long_named_path = path_join(root, "liblibDasModuleLongName.a")
+        write_archive(long_named_path, wasm_magic, 1024, true)   // llvm-ar's shape: `/` table, `//` names, the object as `/0`
+        let odd_path = path_join(root, "liblibDasModuleOdd.a")
+        write_archive(odd_path, wasm_magic, 1023)   // an odd-sized table: the next header sits past its padding byte
+        let bsd_path = path_join(root, "liblibDasModuleBsd.a")
+        write_bsd_archive(bsd_path, wasm_magic)
+        let bsd_native_path = path_join(root, "liblibDasModuleBsdNative.a")
+        write_bsd_archive(bsd_native_path, [0xcfu8, 0xfau8, 0xedu8, 0xfeu8, 0x0cu8, 0x00u8, 0x00u8, 0x01u8])
+        write_archive(native_path, [0xcfu8, 0xfau8, 0xedu8, 0xfeu8, 0x0cu8, 0x00u8, 0x00u8, 0x01u8])   // a 64-bit Mach-O member
+        let text_path = path_join(root, "liblibDasModuleText.a")
+        fopen(text_path, "wb") $(f) {
+            fwrite(f, "not an archive at all, whatever the name says; long enough to read a header from\n")
+        }
+        t |> success(looks_like_wasm_archive(wasm_path), "an archive whose first object opens with the wasm magic is a wasm archive")
+        t |> success(looks_like_wasm_archive(indexed_path), "a 200 KB symbol table ahead of that object changes nothing: members are walked, not scanned")
+        t |> success(looks_like_wasm_archive(long_named_path), "an object named through the long-name table is an object, not a table")
+        t |> success(looks_like_wasm_archive(odd_path), "an odd-sized table's padding byte is stepped over")
+        t |> success(looks_like_wasm_archive(bsd_path), "BSD ar: the __.SYMDEF table is skipped and the #1/NN name is stepped over")
+        t |> success(!looks_like_wasm_archive(bsd_native_path), "BSD ar around a Mach-O member is native")
+        t |> success(!looks_like_wasm_archive(native_path), "an archive of native objects is not, whatever its name")
+        t |> success(!looks_like_wasm_archive(text_path), "a file without the !<arch> header is not an archive")
+        t |> success(!looks_like_wasm_archive(path_join(root, "missing.a")), "a file that is not there is not a wasm archive")
+        force_rmdir(root)
+    }
+}
+
+[test]
+def test_wasm_archive_staging(t : T?) {
+    t |> run("build --wasm stages the runtime and module archives of the web build's lib dir and nothing else") @(t : T?) {
+        let tmp = create_temp_directory_result("daspkg staging ")
+        if (!(tmp is value)) {
+            t |> failure("could not create temp directory: {tmp as error}")
+            return
+        }
+        let root = tmp as value
+        let web_lib = path_join(root, "web_lib")
+        let dst = path_join(root, "dst")
+        mkdir_rec(web_lib)
+        let wasm_magic <- [0x00u8, 0x61u8, 0x73u8, 0x6du8, 0x01u8, 0x00u8, 0x00u8, 0x00u8]
+        let native_magic <- [0xcfu8, 0xfau8, 0xedu8, 0xfeu8, 0x0cu8, 0x00u8, 0x00u8, 0x01u8]
+        write_archive(path_join(web_lib, "liblibDaScript_runtime.a"), wasm_magic)
+        write_archive(path_join(web_lib, "liblibDasModuleGlfw.a"), wasm_magic)
+        write_archive(path_join(web_lib, "libfreetype.a"), native_magic)   // a third-party bake beside them
+        t |> equal(stage_wasm_archives(web_lib, dst), 2, "the runtime and the module archive are staged")
+        t |> success(fexist(path_join(dst, "liblibDaScript_runtime.a")) && fexist(path_join(dst, "liblibDasModuleGlfw.a")), "both land in the lib dir")
+        t |> success(!fexist(path_join(dst, "libfreetype.a")), "an archive that is neither runtime nor module is left where it is")
+        t |> equal(stage_wasm_archives(web_lib, web_lib), 2, "the same directory counts without copying")
+        write_archive(path_join(web_lib, "liblibDasModuleNative.a"), native_magic)
+        t |> equal(stage_wasm_archives(web_lib, dst), -1, "a native archive among them refuses the stage")
+        force_rmdir(root)
+    }
+}
+
+[test]
+def test_ship_external_files(t : T?) {
+    let tmp = create_temp_directory_result("daspkg external ")
+    if (!(tmp is value)) {
+        t |> failure("could not create temp directory: {tmp as error}")
+        return
+    }
+    let root = tmp as value
+    let bundle = path_join(root, "bundle")
+    mkdir(bundle)
+    var shipped : array<string>
+    t |> equal(ship_external_files("pkg", bundle, ["README.md@nested/readme.txt", "README.md@", "utils\\daspkg\\README.md@windows\\nested\\readme.txt"], shipped), 0)
+    t |> equal(fread(path_join(bundle, "nested/readme.txt")), fread(path_join(get_das_root(), "README.md")))
+    t |> success(fexist(path_join(bundle, "README.md")), "default destination uses the source filename")
+    t |> equal(length(shipped), 3)
+    t |> success(fexist(path_join(bundle, "windows/nested/readme.txt")), "Windows separators name the same destination on every host")
+    if (length(shipped) == 3) {
+        t |> equal(shipped[2], "windows/nested/readme.txt", "manifest stores normalized separators")
+    }
+    fwrite(path_join(root, "victim.txt"), "untouched")
+    for (entry in ["README.md@../victim.txt", "README.md@nested/../../victim.txt", "README.md@{root}/absolute.txt", "README.md@nested/quote\".txt", "README.md@nested\\..\\..\\victim.txt", "@empty.txt", "README.md", "missing-external-source@missing.txt"]) {
+        var rejected : array<string>
+        t |> equal(ship_external_files("pkg", bundle, [entry], rejected), 1, entry)
+        t |> equal(length(rejected), 0, "rejected entry is not recorded as shipped")
+    }
+    t |> equal(fread(path_join(root, "victim.txt")), "untouched", "destinations cannot escape the bundle")
+    mkdir(path_join(bundle, "directory"))
+    var failed_copy : array<string>
+    t |> equal(ship_external_files("pkg", bundle, ["README.md@directory"], failed_copy), 1, "copy errors propagate")
+    t |> equal(length(failed_copy), 0)
+    let cleanup = rmdir_rec_result(root)
+    t |> success(cleanup is value && cleanup as value, "temp directory removed")
+}
+
+// --- platform declarations ---
+
+let PKG_PLATFORMS_FIXTURE = "utils/daspkg/fixtures/test_platforms.das_package"
+
+// A known platform name that is not this host's.
+def private other_platform() : string {
+    for (p in PLATFORM_NAMES) {
+        if (p != get_platform_name()) return p
+    }
+    return ""
+}
+
+[test]
+def test_run_das_package_platforms(t : T?) {
+    t |> run("reads and normalizes package_platform / package_platforms") @(t : T?) {
+        var meta : PackageMeta
+        t |> success(run_das_package_meta(PKG_PLATFORMS_FIXTURE, meta))
+        t |> equal(3, length(meta.platforms))
+        t |> equal("windows", meta.platforms[0])
+        t |> equal("emscripten", meta.platforms[1])
+        t |> equal("darwin", meta.platforms[2])
+    }
+    t |> run("a manifest without a declaration has none") @(t : T?) {
+        var meta : PackageMeta
+        t |> success(run_das_package_meta(PKG_FIXTURE, meta))
+        t |> equal(0, length(meta.platforms))
+    }
+    t |> run("vocabulary helpers") @(t : T?) {
+        t |> equal("emscripten", normalize_platform_name(" WASM "))
+        t |> equal("linux", normalize_platform_name("linux"))
+        t |> equal("amiga", normalize_platform_name("amiga"))
+        t |> success(is_known_platform("darwin"))
+        t |> success(!is_known_platform("amiga"))
+        let bad <- unknown_platforms(["windows", "amiga", "beos"])
+        t |> equal(2, length(bad))
+        t |> equal("amiga", bad[0])
+    }
+}
+
+[test]
+def test_platform_gate(t : T?) {
+    let host = get_platform_name()
+    let other = other_platform()
+    t |> run("no declaration passes") @(t : T?) {
+        let none : array<string>
+        t |> equal(0, platform_gate("pkg", host, none, false))
+    }
+    t |> run("host among the declared passes") @(t : T?) {
+        t |> equal(0, platform_gate("pkg", host, [other, host], false))
+    }
+    t |> run("host outside the declared refuses with the sweep's skip code") @(t : T?) {
+        t |> equal(RC_UNSUPPORTED_PLATFORM, platform_gate("pkg", host, [other], false))
+    }
+    t |> run("--force turns the refusal into a warning") @(t : T?) {
+        t |> equal(0, platform_gate("pkg", host, [other], true))
+    }
+    t |> run("an unknown name is an error even under --force") @(t : T?) {
+        t |> equal(1, platform_gate("pkg", host, ["amiga"], true))
+    }
+    t |> run("a directory without a manifest passes") @(t : T?) {
+        let tmp_dir = "{get_das_root()}/_daspkg_test_gate_nomanifest"
+        mkdir(tmp_dir)
+        t |> equal(0, platform_gate(tmp_dir, "pkg", host, false))
+        force_rmdir(tmp_dir)
+    }
+    t |> run("a manifest that does not compile passes - the install fails on it later, not here") @(t : T?) {
+        let tmp_dir = "{get_das_root()}/_daspkg_test_gate_broken"
+        mkdir(tmp_dir)
+        fwrite("{tmp_dir}/.das_package", "this is not daslang\n")
+        t |> equal(0, platform_gate(tmp_dir, "pkg", host, false))
+        force_rmdir(tmp_dir)
+    }
+}
+
+// Writes a releasable package (main.das + release_main) declaring `platform` as its only platform.
+def private write_release_platform_pkg(src_dir, pkg_name, platform : string) {
+    mkdir(src_dir)
+    fwrite("{src_dir}/main.das", "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+    fwrite("{src_dir}/.das_package", "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"{pkg_name}\")\n    package_platform(\"{platform}\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+}
+
+[test]
+def test_release_platform_gate(t : T?) {
+    t |> run("release refuses a package declaring another platform before writing anything") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_relgate"
+        let out_dir = "{get_das_root()}/_daspkg_test_relgate_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        write_release_platform_pkg(tmp_root, "relgate", other_platform())
+        t |> equal(RC_UNSUPPORTED_PLATFORM, cmd_release(tmp_root, out_dir))
+        t |> success(!fexist(out_dir))
+        force_rmdir(tmp_root)
+    }
+    t |> run("release wasm checks the declaration against emscripten, not the host") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_relgate"
+        let out_dir = "{get_das_root()}/_daspkg_test_relgate_out"
+        let empty_lib = "{get_das_root()}/_daspkg_test_relgate_lib"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(empty_lib)
+        write_release_platform_pkg(tmp_root, "relgate", get_platform_name())
+        t |> equal(RC_UNSUPPORTED_PLATFORM, cmd_release_wasm(tmp_root, out_dir, empty_lib))
+        write_release_platform_pkg(tmp_root, "relgate", "wasm")
+        t |> equal(1, cmd_release_wasm(tmp_root, out_dir, empty_lib), "past the gate, the empty archive dir is the next refusal")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        force_rmdir(empty_lib)
+    }
+}
+
+[test]
+def test_index_sweep_skips_other_platforms(t : T?) {
+    t |> run("an index entry declaring other platforms only is a skip row, never an install") @(t : T?) {
+        var cmake_out : string
+        if (run_cmd("cmake --version", cmake_out) != 0) {
+            t |> skip("cmake not on PATH")
+            return
+        }
+        let tmp = "{get_das_root()}/_daspkg_test_sweep"
+        force_rmdir(tmp)
+        mkdir(tmp)
+        mkdir("{tmp}/root")
+        mkdir("{tmp}/out")
+        let entry = "[\{\"name\":\"elsewhere\",\"url\":\"github.com/nobody/elsewhere\",\"description\":\"d\",\"platforms\":[\"{other_platform()}\"]\}]"
+        fwrite("{tmp}/packages.json", entry)
+        var output : string
+        let rc = run_cmd("cmake -DDASLANG=\"{get_das_root()}/bin/daslang\" -DROOT=\"{tmp}/root\" -DOUT=\"{tmp}/out\" -DPACKAGES_JSON=\"{tmp}/packages.json\" -P \"{get_das_root()}/utils/daspkg/index_sweep.cmake\"", output)
+        t |> equal(0, rc, output)
+        t |> success(find(output, "skip elsewhere:") >= 0, output)
+        t |> success(!fexist("{tmp}/root/modules/elsewhere"))
+        force_rmdir(tmp)
+    }
+}
+
+// Writes a .das_package with no build() that declares `platform` as its only platform.
+def private write_platform_pkg(src_dir, pkg_name, platform : string) {
+    let no_deps : array<string>
+    write_passing_pkg(src_dir, pkg_name, ["package_platform(\"{platform}\")"], no_deps)
+}
+
+[test]
+def test_install_local_platform_gate(t : T?) {
+    let other = other_platform()
+    t |> run("an unsupported package is refused before anything lands") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_plat_root"
+        let tmp_src = "{get_das_root()}/_daspkg_test_plat_src"
+        mkdir(tmp_root)
+        write_platform_pkg(tmp_src, "foreign", other)
+        var lf : LockFile
+        t |> equal(RC_UNSUPPORTED_PLATFORM, install_local(tmp_root, "foreign", tmp_src, lf))
+        t |> success(!has_package(lf, "foreign"))
+        t |> success(!fexist("{tmp_root}/modules/foreign"))
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+    }
+    t |> run("--force installs it") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_plat_root"
+        let tmp_src = "{get_das_root()}/_daspkg_test_plat_src"
+        mkdir(tmp_root)
+        write_platform_pkg(tmp_src, "foreign", other)
+        var lf : LockFile
+        t |> equal(0, install_local(tmp_root, "foreign", tmp_src, lf, [force = true]))
+        t |> success(has_package(lf, "foreign"))
+        t |> success(fexist("{tmp_root}/modules/foreign/.das_package"))
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+    }
+    t |> run("a supported package installs") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_plat_root"
+        let tmp_src = "{get_das_root()}/_daspkg_test_plat_src"
+        mkdir(tmp_root)
+        write_platform_pkg(tmp_src, "native", get_platform_name())
+        var lf : LockFile
+        t |> equal(0, install_local(tmp_root, "native", tmp_src, lf))
+        t |> success(has_package(lf, "native"))
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+    }
+    t |> run("an unsupported dependency refuses the parent and rolls it back") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_plat_root"
+        let tmp_src = "{get_das_root()}/_daspkg_test_plat_src"
+        let dep_src = "{get_das_root()}/_daspkg_test_plat_dep"
+        mkdir(tmp_root)
+        write_platform_pkg(dep_src, "foreigndep", other)
+        write_passing_pkg(tmp_src, "parent", [dep_src])
+        var lf : LockFile
+        t |> equal(RC_UNSUPPORTED_PLATFORM, install_local(tmp_root, "parent", tmp_src, lf))
+        t |> success(!has_package(lf, "parent"))
+        t |> success(!has_package(lf, "_daspkg_test_plat_dep"))
+        t |> success(!fexist("{tmp_root}/modules/parent"))
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+        force_rmdir(dep_src)
+    }
+    t |> run("--force reaches the dependency") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_plat_root"
+        let tmp_src = "{get_das_root()}/_daspkg_test_plat_src"
+        let dep_src = "{get_das_root()}/_daspkg_test_plat_dep"
+        mkdir(tmp_root)
+        write_platform_pkg(dep_src, "foreigndep", other)
+        write_passing_pkg(tmp_src, "parent", [dep_src])
+        var lf : LockFile
+        t |> equal(0, install_local(tmp_root, "parent", tmp_src, lf, [force = true]))
+        t |> success(has_package(lf, "parent"))
+        t |> success(has_package(lf, "_daspkg_test_plat_dep"))
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+        force_rmdir(dep_src)
+    }
+}
+
+[test]
+def test_index_platforms(t : T?) {
+    t |> run("parses, serializes and renders platforms") @(t : T?) {
+        let json_text = "[\{\"name\":\"winpkg\",\"url\":\"github.com/u/winpkg\",\"description\":\"windows only\",\"platforms\":[\"windows\",\"emscripten\"]\}]"
+        var index : table<string; IndexEntry>
+        t |> success(parse_index_json(json_text, index))
+        unsafe {
+            let e & = index["winpkg"]
+            t |> equal(2, length(e.platforms))
+            t |> equal("windows", e.platforms[0])
+            t |> equal("emscripten", e.platforms[1])
+        }
+        let serialized = serialize_index(index)
+        t |> success(find(serialized, "\"platforms\"") >= 0)
+        var index2 : table<string; IndexEntry>
+        t |> success(parse_index_json(serialized, index2))
+        t |> equal(2, unsafe(length(index2["winpkg"].platforms)))
+        let readme = generate_index_readme(json_text)
+        t |> success(find(readme, "**Platforms:** windows, emscripten") >= 0)
+    }
+    t |> run("an entry without platforms stays without them") @(t : T?) {
+        let json_text = "[\{\"name\":\"bare\",\"url\":\"github.com/u/bare\",\"description\":\"minimal\"\}]"
+        var index : table<string; IndexEntry>
+        t |> success(parse_index_json(json_text, index))
+        t |> equal(0, unsafe(length(index["bare"].platforms)))
+        t |> success(find(serialize_index(index), "\"platforms\"") < 0)
+        t |> success(find(generate_index_readme(json_text), "**Platforms:**") < 0)
+    }
+    t |> run("a refresh replaces the entry's platforms with the manifest's, an empty declaration included") @(t : T?) {
+        var entry : IndexEntry
+        entry.platforms |> push_clone("windows")
+        var restricted = PackageManifest(name = "p", description = "d")
+        restricted.platforms |> push_clone("linux")
+        apply_manifest_to_entry(restricted, entry)
+        t |> equal(1, length(entry.platforms))
+        t |> equal("linux", entry.platforms[0])
+        let unrestricted = PackageManifest(name = "p", description = "d")
+        apply_manifest_to_entry(unrestricted, entry)
+        t |> equal(0, length(entry.platforms))
+    }
+    t |> run("introduce carries the manifest's platforms into the entry") @(t : T?) {
+        var manifest = PackageManifest(name = "winpkg", description = "windows only")
+        manifest.platforms |> push_clone("windows")
+        let result = add_to_index_json_rich("[]", "winpkg", manifest, "github.com/u/winpkg")
+        var index : table<string; IndexEntry>
+        t |> success(parse_index_json(result, index))
+        unsafe {
+            t |> equal(1, length(index["winpkg"].platforms))
+            t |> equal("windows", index["winpkg"].platforms[0])
+        }
+    }
+}
+
+[test]
+def test_read_manifest_platforms(t : T?) {
+    t |> run("reads a declaration") @(t : T?) {
+        let tmp_dir = "{get_das_root()}/_daspkg_test_manifest_platforms"
+        let no_deps : array<string>
+        write_passing_pkg(tmp_dir, "winpkg", ["package_description(\"d\")", "package_platform(\"windows\")"], no_deps)
+        var manifest : PackageManifest
+        t |> success(read_manifest(tmp_dir, manifest))
+        t |> equal(1, length(manifest.platforms))
+        t |> equal("windows", manifest.platforms[0])
+        force_rmdir(tmp_dir)
+    }
+    t |> run("an unknown platform name fails the manifest") @(t : T?) {
+        let tmp_dir = "{get_das_root()}/_daspkg_test_manifest_platforms"
+        let no_deps : array<string>
+        write_passing_pkg(tmp_dir, "badpkg", ["package_description(\"d\")", "package_platform(\"amiga\")"], no_deps)
+        var manifest : PackageManifest
+        t |> success(!read_manifest(tmp_dir, manifest))
+        force_rmdir(tmp_dir)
+    }
+}
+
+[test]
+def test_parse_args_update_index_flags(t : T?) {
+    t |> run("--commit and --dry-run parse and default off") @(t : T?) {
+        var r <- parse_args(type<DaspkgArgs>, ["update-index", "--commit"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
+        t |> success(parsed.commit)
+        t |> success(!parsed.dry_run)
+        var r2 <- parse_args(type<DaspkgArgs>, ["update-index", "--dry-run"])
+        t |> success(r2 |> is_ok, "parse succeeds")
+        let parsed2 <- r2 |> move_unwrap
+        t |> success(parsed2.dry_run)
+        t |> success(!parsed2.commit)
+    }
+}

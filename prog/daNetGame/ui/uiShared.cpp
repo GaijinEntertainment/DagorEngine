@@ -31,6 +31,7 @@
 #include <startup/dag_inpDevClsDrv.h>
 
 #include <daInput/input_api.h>
+#include <EASTL/vector_map.h>
 #include "input/globInput.h"
 
 #include <gui/dag_imgui.h>
@@ -53,11 +54,10 @@ static bool need_initial_dev_type_notify = false;
 
 static bool prev_apply_resolution_change_after_reset = false;
 
-static int prev_gamepad_vendor_id = HumanInput::GAMEPAD_VENDOR_UNKNOWN;
+static constexpr int NO_GAMEPAD_VENDOR_SENT = HumanInput::GAMEPAD_VENDOR_UNKNOWN - 1;
+static int prev_gamepad_vendor_id = NO_GAMEPAD_VENDOR_SENT;
 
-static dainput::action_set_handle_t break_input_action_set_id = dainput::BAD_ACTION_SET_HANDLE;
-static int break_input_depth = 0;
-static bool break_input_action_set_is_active = false;
+static eastl::vector_map<dainput::action_set_handle_t, int> ui_elem_action_set_owners;
 
 eastl::unique_ptr<darg::JoystickHandler> joystick_handler; // inited once at start
 
@@ -67,37 +67,16 @@ TMatrix view_tm = TMatrix::ZERO;
 TMatrix view_itm = TMatrix::ZERO;
 
 
-static void apply_break_input_action_set()
-{
-  bool needStop = break_input_depth > 0;
-  if (break_input_action_set_is_active != needStop)
-  {
-    break_input_action_set_is_active = needStop;
-    dainput::activate_action_set(break_input_action_set_id, needStop);
-  }
-}
-
-static void activate_user_ui_break_unput(bool set)
-{
-  if (set)
-    ++break_input_depth;
-  else
-    --break_input_depth;
-  G_ASSERT(break_input_depth >= 0);
-  G_ASSERT(break_input_depth <= 50);
-  apply_break_input_action_set();
-}
-
-
 void activate_ui_elem_action_set(dainput::action_set_handle_t ash, bool on)
 {
-  if (ash != dainput::BAD_ACTION_SET_HANDLE)
-  {
-    if (ash == break_input_action_set_id)
-      activate_user_ui_break_unput(on);
-    else
-      dainput::activate_action_set(ash, on);
-  }
+  if (ash == dainput::BAD_ACTION_SET_HANDLE)
+    return;
+  int &owners = ui_elem_action_set_owners[ash];
+  G_ASSERT_RETURN(on || owners > 0, );
+  owners += on ? 1 : -1;
+  G_ASSERT(owners <= 50);
+  if (on || owners == 0)
+    dainput::activate_action_set(ash, on);
 }
 
 
@@ -137,6 +116,13 @@ void init_early()
 bool is_ui_available_in_build() { return true; }
 
 
+void resend_input_state()
+{
+  need_initial_dev_type_notify = true;
+  prev_gamepad_vendor_id = NO_GAMEPAD_VENDOR_SENT;
+}
+
+
 void init()
 {
   TIME_PROFILE(ui_shared_init);
@@ -145,13 +131,12 @@ void init()
   apply_visuallog_max_items();
 
   apply_resolution_change_after_reset = false;
-  need_initial_dev_type_notify = true;
+  resend_input_state();
 
   {
     dainput::action_set_handle_t ash = dainput::get_action_set_handle("StopInput");
     G_ASSERT(ash != dainput::BAD_ACTION_SET_HANDLE || dainput::get_actions_count() == 0);
     dainput::set_breaking_action_set(ash);
-    break_input_action_set_id = ash;
   }
 
   imgui_register_global_input_handler(glob_input_process_top_level_key);
@@ -214,7 +199,7 @@ static void notify_gamepad_type_change()
   if (global_cls_drv_joy)
     vendor_id = global_cls_drv_joy->getVendorId();
 
-  if (vendor_id != prev_gamepad_vendor_id && vendor_id != HumanInput::GAMEPAD_VENDOR_UNKNOWN)
+  if (vendor_id != prev_gamepad_vendor_id)
   {
     prev_gamepad_vendor_id = vendor_id;
     sqeventbus::write_event_main_thread("input_gamepad_type", [=](auto &data) { data["ctype"] = vendor_id; });

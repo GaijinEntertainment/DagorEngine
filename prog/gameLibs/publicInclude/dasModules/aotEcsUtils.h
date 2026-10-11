@@ -45,6 +45,10 @@ inline void component_to_blk_param(const char *name, const ecs::EntityComponentR
 {
   ecs::component_to_blk_param(name ? name : "", comp, &blk);
 }
+inline void component_to_blk_param_ex(const char *name, const ecs::EntityComponentRef &comp, DataBlock &blk, bool logerr_unsupported)
+{
+  ecs::component_to_blk_param(name ? name : "", comp, &blk, logerr_unsupported);
+}
 
 // TODO: Remove this binding and bind ComponentsList as a vector type
 inline bool find_component(const ecs::ComponentsList &list,

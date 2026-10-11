@@ -7,6 +7,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
+#include <X11/extensions/XInput2.h>
 
 #ifdef Bool
 #undef Bool
@@ -83,6 +84,25 @@ struct X11Randr
     *(void **)&XRRSetScreenSize = os_dll_get_symbol(so, "XRRSetScreenSize");
     *(void **)&XRRRotations = os_dll_get_symbol(so, "XRRRotations");
     *(void **)&XRRConfigCurrentRate = os_dll_get_symbol(so, "XRRConfigCurrentRate");
+  }
+
+  inline void reset() { memset(this, 0, sizeof(*this)); }
+};
+
+struct X11Xi
+{
+  Status (*XIQueryVersion)(Display *dpy, int *major_version_inout, int *minor_version_inout);
+  int (*XISelectEvents)(Display *dpy, Window win, XIEventMask *masks, int num_masks);
+  XIDeviceInfo *(*XIQueryDevice)(Display *dpy, int deviceid, int *ndevices_return);
+  void (*XIFreeDeviceInfo)(XIDeviceInfo *info);
+
+  bool init(void *so)
+  {
+    *(void **)&XIQueryVersion = os_dll_get_symbol(so, "XIQueryVersion");
+    *(void **)&XISelectEvents = os_dll_get_symbol(so, "XISelectEvents");
+    *(void **)&XIQueryDevice = os_dll_get_symbol(so, "XIQueryDevice");
+    *(void **)&XIFreeDeviceInfo = os_dll_get_symbol(so, "XIFreeDeviceInfo");
+    return XIQueryVersion && XISelectEvents && XIQueryDevice && XIFreeDeviceInfo;
   }
 
   inline void reset() { memset(this, 0, sizeof(*this)); }
@@ -217,7 +237,15 @@ struct X11
     WND_TRANSLATED_MAIN = 2,
     WND_COUNT = 3,
 
-    CURSOR_WARP_RECOVERY_CYCLES = 30
+    CURSOR_WARP_RECOVERY_CYCLES = 30,
+    X_SERVER_MAX_DEVICES = 256
+  };
+
+  enum class XiSourceKind : int8_t
+  {
+    UNKNOWN,
+    RELATIVE_POINTER,
+    OTHER
   };
 
   XErrorHandler xDefErrorHandler;
@@ -251,6 +279,17 @@ struct X11
   int lastCursorY;
   int forceQueryCursorPosition;
   void cacheCursorPosition();
+
+  void *xiLib = nullptr;
+  X11Xi xi = {};
+  int xiOpcode = -1;
+  bool rawMotionSeen = false;
+  double rawDx = 0, rawDy = 0;
+  XiSourceKind xiSourceKind[X_SERVER_MAX_DEVICES] = {};
+  void initRawMotion();
+  void resetXiSourceKinds();
+  bool isRelativePointerSource(int sourceid);
+  bool accumulateRawMotion(const XIRawEvent &ev);
 
   XWindowAttributes windowAttribs[WND_COUNT];
   linux_GUI::RECT lastFrameExtents{};

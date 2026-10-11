@@ -28,10 +28,6 @@ def test_collision_ri_ex(collobj : CollisionObject; box : BBox3; mat_id : int) :
   return Dacoll::test_collision_ri_ex(collobj, box, mat_id) <| $ [unused_argument(contacts)] (contacts : array<CollisionContactData>#) {}
 
 [generic]
-def test_collision_frt(collobj : CollisionObject; mat_id = -1) : bool
-  return Dacoll::test_collision_frt(collobj, mat_id) <| $ [unused_argument(contacts)] (contacts : array<CollisionContactData>#) {}
-
-[generic]
 def traceht_lmesh(pos : float3) : float
   let pos2d = pos.xz
   return traceht_lmesh(pos2d)

@@ -290,7 +290,7 @@ obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, flo
     return 0;
 
   dtObstacleRef ref = 0;
-  obstacle_handle_t handle = obstacle_add_impl(0, c, ext, angY, sync, block, ref);
+  obstacle_handle_t handle = obstacle_add_impl(0, c, ext, angY, block, sync, ref);
   if (handle)
     handle2obstacle[handle].ref = ref;
   if (ref)

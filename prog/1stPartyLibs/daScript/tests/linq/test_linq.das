@@ -1,7 +1,6 @@
 options gen2
 require daslib/linq
 require dastest/testing_boost public
-require math
 
 require daslib/linq_boost
 
@@ -30,7 +29,7 @@ def test_totable(t : T?) {
             $(c : ComplexType) => (c.a[0] * 2, c.a[1] * 2)
         )
         var expected = { 0 => 0, 1 => 10, 2 => 20, 3 => 30, 4 => 40 }
-        for (ek, ev in keys(expected), values(expected)) {
+        for (ek, _ev in keys(expected), values(expected)) {
             let k = unique_key((ek, ek * 10))
             let found = qcomplex.get(k, $(v) {
                 t |> equal(v._0, ek * 2)
@@ -119,28 +118,28 @@ def test_where(t : T?) {
 [test]
 def test_sequenceequal(t : T?) {
     t |> run("basic sequence equal") @(t : T?) {
-        var query = sequence_equal(
+        let query = sequence_equal(
             [iterator for(x in 0..5); x],
             [iterator for(x in 0..5); x]
         )
         t |> success(query)
     }
     t |> run("basic sequence not equal") @(t : T?) {
-        var qneq = sequence_equal(
+        let qneq = sequence_equal(
             [iterator for(x in 0..5); x],
             [iterator for(x in 0..5); x + 1]
         )
         t |> success(!qneq)
     }
     t |> run("complex sequence equal") @(t : T?) {
-        var qcomplex = sequence_equal(
+        let qcomplex = sequence_equal(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])],
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])]
         )
         t |> success(qcomplex)
     }
     t |> run("array sequence equal") @(t : T?) {
-        var qarray = sequence_equal(
+        let qarray = sequence_equal(
             [0, 1, 2, 3, 4],
             [0, 1, 2, 3, 4]
         )
@@ -151,7 +150,7 @@ def test_sequenceequal(t : T?) {
 [test]
 def test_sequenceequalby(t : T?) {
     t |> run("basic sequence equal by") @(t : T?) {
-        var query = _sequence_equal_by(
+        let query = _sequence_equal_by(
             [iterator for(x in 0..5); x],
             [iterator for(x in 0..5); x],
             _
@@ -159,7 +158,7 @@ def test_sequenceequalby(t : T?) {
         t |> success(query)
     }
     t |> run("basic sequence not equal by") @(t : T?) {
-        var qneq = _sequence_equal_by(
+        let qneq = _sequence_equal_by(
             [iterator for(x in 0..5); x],
             [iterator for(x in 0..5); x + 1],
             _
@@ -167,7 +166,7 @@ def test_sequenceequalby(t : T?) {
         t |> success(!qneq)
     }
     t |> run("complex sequence not equal by") @(t : T?) {
-        var qcomplex = _sequence_equal_by(
+        let qcomplex = _sequence_equal_by(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])],
             [iterator for(x in 0..5); ComplexType(a = [x, x * 9])],
             _.a[0]
@@ -175,7 +174,7 @@ def test_sequenceequalby(t : T?) {
         t |> success(qcomplex)
     }
     t |> run("array sequence equal by") @(t : T?) {
-        var qarray = _sequence_equal_by(
+        let qarray = _sequence_equal_by(
             [0, 1, 2, 3, 4],
             [0, 1, 2, 3, 4],
             _

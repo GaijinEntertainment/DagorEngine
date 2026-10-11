@@ -27,7 +27,11 @@ if $(Platform) in ps4 ps5 {
 }
 
 if $(Platform) in windows {
-  AddLibs += Ws2_32.lib crypt32.lib ;
+  AddLibs += Ws2_32.lib crypt32.lib bcrypt.lib ;
+}
+
+if $(Platform) in xboxOne scarlett {
+  AddLibs += bcrypt.lib ;
 }
 
 if $(Platform) = macOS {
@@ -40,24 +44,31 @@ if $(UseSystemOpenSSL) != yes {
   UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
 }
 
-AutoscanBuildLists lib/vauth lib : *.c  : Sources ;
-
-Sources += lib/vtls/openssl.c
-           lib/vtls/keylog.c
-           lib/vtls/hostcheck.c
-           lib/vtls/x509asn1.c
-           lib/vtls/vtls.c ;
+# the backend sources compile to nothing unless their USE_* macro is on,
+# so the whole tree can be scanned
+AutoscanBuildLists lib lib/curlx lib/vauth lib/vdns lib/vquic lib/vssh lib/vtls : *.c  : Sources ;
 
 Copt =
-  -DOPENSSL_SUPPRESS_DEPRECATED
   -DCURL_STATICLIB
   -DBUILDING_LIBCURL
-  -DCURL_DISABLE_LDAP
-  -DHTTP_ONLY
   -DHAVE_BROTLI
   -DHAVE_ZSTD
   -DHAVE_LIBZ
-  -DHAVE_ZLIB_H
+# no libjose in the build, and config-win32.h has no slot to say so
+  -DCURL_DISABLE_HTTPSIG
+# HTTP_ONLY would switch WebSockets off as well, so the protocols are listed one by one
+  -DCURL_DISABLE_DICT
+  -DCURL_DISABLE_FILE
+  -DCURL_DISABLE_FTP
+  -DCURL_DISABLE_GOPHER
+  -DCURL_DISABLE_IMAP
+  -DCURL_DISABLE_LDAP
+  -DCURL_DISABLE_MQTT
+  -DCURL_DISABLE_POP3
+  -DCURL_DISABLE_RTSP
+  -DCURL_DISABLE_SMTP
+  -DCURL_DISABLE_TELNET
+  -DCURL_DISABLE_TFTP
 ;
 
 if $(PlatformSpec) = clang {
@@ -80,6 +91,10 @@ if $(UseSystemLibcurl) = yes {
 
 if $(Platform) = nswitch {
   Exit Nintendo switch platform doesn't allow custom libcurl library. Look for UseSystemLibcurl option ;
+}
+
+if $(UseSystemOpenSSL) != yes && $(OpenSSLVer) != 3.x {
+  Exit libcurl 8.x needs OpenSSL 3.0 or newer, but OpenSSLVer is $(OpenSSLVer) ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

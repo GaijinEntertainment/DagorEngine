@@ -114,10 +114,15 @@ public:
   virtual void startUAVFeedback() const = 0;
   virtual void endUAVFeedback() const = 0;
   virtual void copyUAVFeedback() const = 0;
+  //! bakes the lastclip into an A8R8G8B8 render target of its own making and returns it, or NULL on failure;
+  //! the caller owns it: lockimg/unlockimg to read, then del_d3dres. texture_size is a request, the result may be smaller
+  virtual Texture *prepareFixedClipForExport(LandMeshRenderer &r, LandMeshManager &p, int texture_size) = 0;
 
   virtual void beforeD3DReset(bool full_reset) = 0;
   virtual void afterD3DReset(bool full_reset) = 0;
-  virtual void afterD3DResetLandMesh(LandMeshManager &p, LandMeshRenderer *r, bool full_reset) = 0;
+
+  //! in_memory_dump: the dump that p was loaded from, or null if p was loaded from a file
+  virtual void afterD3DResetLandMesh(LandMeshManager &p, LandMeshRenderer *r, bool full_reset, IGenLoad *in_memory_dump) = 0;
 
   virtual void invalidatePhysMatHtTex() = 0;
   virtual void setShouldShowPhysMatColors(bool val) = 0;

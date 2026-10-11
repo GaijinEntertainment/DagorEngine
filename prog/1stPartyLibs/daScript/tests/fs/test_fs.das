@@ -109,7 +109,7 @@ def test_file_size(t : T?) {
     t |> run("known file size") @(t : T?) {
         let root = get_das_root()
         let tmp = root + "/_test_fs_size.tmp"
-        fopen(tmp, "wb") <| $(f) {
+        fopen(tmp, "wb") $(f) {
             fwrite(f, "12345")
         }
         var error : string
@@ -129,7 +129,7 @@ def test_equivalent(t : T?) {
     t |> run("same file") @(t : T?) {
         let root = get_das_root()
         let tmp = root + "/_test_fs_equiv.tmp"
-        fopen(tmp, "wb") <| $(f) {
+        fopen(tmp, "wb") $(f) {
             fwrite(f, "test")
         }
         var error : string
@@ -141,10 +141,10 @@ def test_equivalent(t : T?) {
         let root = get_das_root()
         let a = root + "/_test_fs_equiv_a.tmp"
         let b = root + "/_test_fs_equiv_b.tmp"
-        fopen(a, "wb") <| $(f) {
+        fopen(a, "wb") $(f) {
             fwrite(f, "a")
         }
-        fopen(b, "wb") <| $(f) {
+        fopen(b, "wb") $(f) {
             fwrite(f, "b")
         }
         var error : string
@@ -160,7 +160,7 @@ def test_is_symlink(t : T?) {
     t |> run("regular file is not symlink") @(t : T?) {
         let root = get_das_root()
         let tmp = root + "/_test_fs_symlink.tmp"
-        fopen(tmp, "wb") <| $(f) {
+        fopen(tmp, "wb") $(f) {
             fwrite(f, "test")
         }
         var error : string
@@ -171,7 +171,7 @@ def test_is_symlink(t : T?) {
     t |> run("UTF-8 regular file is not symlink") @(t : T?) {
         let root = get_das_root()
         let tmp = root + "/_test_fs_symlink-Привет.tmp"
-        fopen(tmp, "wb") <| $(f) {
+        fopen(tmp, "wb") $(f) {
             fwrite(f, "test")
         }
         var error : string
@@ -196,14 +196,14 @@ def test_copy_file(t : T?) {
         let root = get_das_root()
         let src = root + "/_test_fs_copy_src.tmp"
         let dst = root + "/_test_fs_copy_dst.tmp"
-        fopen(src, "wb") <| $(f) {
+        fopen(src, "wb") $(f) {
             fwrite(f, "hello copy")
         }
         var error : string
         t |> success(copy_file(src, dst, false, error))
         t |> success(empty(error), "unexpected error: {error}")
         t |> success(fexist(dst))
-        fopen(dst, "rb") <| $(f) {
+        fopen(dst, "rb") $(f) {
             let content = fread(f)
             t |> equal(content, "hello copy")
         }
@@ -214,10 +214,10 @@ def test_copy_file(t : T?) {
         let root = get_das_root()
         let src = root + "/_test_fs_copy_noow_src.tmp"
         let dst = root + "/_test_fs_copy_noow_dst.tmp"
-        fopen(src, "wb") <| $(f) {
+        fopen(src, "wb") $(f) {
             fwrite(f, "src")
         }
-        fopen(dst, "wb") <| $(f) {
+        fopen(dst, "wb") $(f) {
             fwrite(f, "dst")
         }
         var error : string
@@ -229,16 +229,16 @@ def test_copy_file(t : T?) {
         let root = get_das_root()
         let src = root + "/_test_fs_copy_ow_src.tmp"
         let dst = root + "/_test_fs_copy_ow_dst.tmp"
-        fopen(src, "wb") <| $(f) {
+        fopen(src, "wb") $(f) {
             fwrite(f, "new content")
         }
-        fopen(dst, "wb") <| $(f) {
+        fopen(dst, "wb") $(f) {
             fwrite(f, "old content")
         }
         var error : string
         t |> success(copy_file(src, dst, true, error))
         t |> success(empty(error), "unexpected error: {error}")
-        fopen(dst, "rb") <| $(f) {
+        fopen(dst, "rb") $(f) {
             let content = fread(f)
             t |> equal(content, "new content")
         }
@@ -254,17 +254,17 @@ def test_dir_rec(t : T?) {
         let base = root + "/_test_fs_dir_rec"
         mkdir(base)
         mkdir(base + "/sub")
-        fopen(base + "/a.txt", "wb") <| $(f) {
+        fopen(base + "/a.txt", "wb") $(f) {
             fwrite(f, "a")
         }
-        fopen(base + "/sub/b.txt", "wb") <| $(f) {
+        fopen(base + "/sub/b.txt", "wb") $(f) {
             fwrite(f, "b")
         }
         var count = 0
         var found_sub = false
         var found_a = false
         var found_b = false
-        dir_rec(base) <| $(name : string; is_dir : bool) {
+        dir_rec(base) $(name : string; is_dir : bool) {
             count++
             if (find(name, "sub") >= 0 && is_dir) {
                 found_sub = true
@@ -286,11 +286,11 @@ def test_dir_rec(t : T?) {
         let root = get_das_root()
         let base = root + "/_test_fs_dir_rec2"
         mkdir(base)
-        fopen(base + "/file.txt", "wb") <| $(f) {
+        fopen(base + "/file.txt", "wb") $(f) {
             fwrite(f, "x")
         }
         var has_relative = false
-        dir_rec(base) <| $(name : string; is_dir : bool) {
+        dir_rec(base) $(name : string; is_dir : bool) {
             if (name == "file.txt") {
                 has_relative = true
             }
@@ -359,7 +359,7 @@ def test_set_mtime(t : T?) {
     t |> run("set modification time") @(t : T?) {
         let root = get_das_root()
         let tmp = root + "/_test_fs_mtime.tmp"
-        fopen(tmp, "wb") <| $(f) {
+        fopen(tmp, "wb") $(f) {
             fwrite(f, "test")
         }
         let target_time = mktime(2020, 1, 1, 0, 0, 0)

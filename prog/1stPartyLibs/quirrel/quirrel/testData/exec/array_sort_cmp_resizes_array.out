@@ -1,0 +1,4 @@
+1, 2, 3, 4, 5
+clear: array resized during sort operation
+shrink: array resized during sort operation
+grow: array resized during sort operation

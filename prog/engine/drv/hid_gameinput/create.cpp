@@ -46,7 +46,7 @@ CompositeJoystickClassDriver *HumanInput::createGameInputCompositeJoystickClassD
 }
 
 
-IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool) { return new (inimem) FlightStickClassDriver(); }
+IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool, bool) { return new (inimem) FlightStickClassDriver(); }
 
 
 IGenKeyboardClassDrv *HumanInput::createGameInputKeyboardClassDriver()

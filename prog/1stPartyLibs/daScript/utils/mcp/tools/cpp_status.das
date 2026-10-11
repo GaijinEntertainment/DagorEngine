@@ -31,9 +31,8 @@ struct private CppStatusResult {
 def do_cpp_status(build_dir : string; as_json : bool) : string {
     let root = get_das_root()
     let sg = detect_ast_grep()
-    // Empty build_dir probes the server root's build dirs (get_das_root) -- which
-    // in a standalone bundle is the bundle, NOT the user's project. Callers serving
-    // an external project should pass their build_dir so this reflects it.
+    // Empty build_dir probes the served tree's build dirs when it is a project (the daslang
+    // root otherwise); a project whose database lives elsewhere passes its build_dir.
     let db = cpp_locate_compile_db(build_dir)
     let cf = detect_clang_format()
     let has_include = has_env_variable("INCLUDE")   // MSVC: cpp_compile_check needs vcvars' INCLUDE
@@ -67,7 +66,7 @@ def do_cpp_status(build_dir : string; as_json : bool) : string {
         } else {
             w |> write("  compile DB:    NOT FOUND in build/ build-ninja/ build*/\n")
             w |> write("                 -> configure CMake with CMAKE_EXPORT_COMPILE_COMMANDS=ON; the VS generator does not emit it -- use a Ninja build dir\n")
-            w |> write("                 -> probes the server root by default; pass build_dir to point at your project's build dir\n")
+            w |> write("                 -> probes the served tree when it is a project (the daslang root otherwise); pass build_dir to point at your project's build dir\n")
         }
         if (!empty(cf)) {
             w |> write("  clang-format:  {cf}\n")

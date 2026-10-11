@@ -8,6 +8,7 @@
 #include <3d/dag_resizableTex.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_commands.h>
 #include <3d/dag_resourceTags.h>
 #include <memory/dag_framemem.h>
 
@@ -93,17 +94,6 @@ NativeResourceAllocator::ResourceKey::ResourceKey(const ResourceKey &key, const 
   hashPack(hash, resolution.x, resolution.y, resolution.z);
 }
 
-D3dResource *NativeResourceAllocator::getD3dResource(int frame, intermediate::ResourceIndex res_idx) const
-{
-  G_ASSERT(cachedIntermediateResources[res_idx].asScheduled().resourceType == ResourceType::Texture ||
-           cachedIntermediateResources[res_idx].asScheduled().resourceType == ResourceType::Buffer);
-
-  D3dResource *res = placedResourceProperties[frame][res_idx].activeResource;
-  G_ASSERT_LOG_ONCE(res, "daFG: resource '%s' has nothing placed for frame %d!", cachedIntermediateResourceNames[res_idx].c_str(),
-    frame);
-  return res;
-}
-
 ResourceAllocationProperties NativeResourceAllocator::getResourceAllocationProperties(const ResourceDescription &desc,
   bool force_not_on_chip)
 {
@@ -124,112 +114,128 @@ ResourceAllocationProperties NativeResourceAllocator::getResourceAllocationPrope
 
 ResourceHeapGroupProperties NativeResourceAllocator::getResourceHeapGroupProperties(ResourceHeapGroup *heap_group)
 {
-  if (heap_group != CPU_HEAP_GROUP)
-  {
-    auto heapProp = d3d::get_resource_heap_group_properties(heap_group);
-    // For an ESRAM heap, maxHeapSize in properties will contain
-    // the size of the free ESRAM which is most likely zero if we already
-    // allocated the ESRAM heap.
-    // ESRAM heaps never hold untracked buffers, so the tracked/untracked heap
-    // split never applies here and matching this group alone is exact.
-    if (heapProp.isDedicatedFastGPULocal)
-      for (const auto &heap : allocatedHeaps)
-        if (heap.group == heap_group)
-        {
-          heapProp.maxHeapSize = heap.size;
-          break;
-        }
-    return heapProp;
-  }
-
-  ResourceHeapGroupProperties fakeHeapGroupProp{};
-  fakeHeapGroupProp.flags = 0;
-  fakeHeapGroupProp.maxHeapSize = eastl::numeric_limits<uint64_t>::max();
-  fakeHeapGroupProp.maxResourceSize = eastl::numeric_limits<uint64_t>::max();
-  return fakeHeapGroupProp;
+  G_ASSERT(heap_group != CPU_HEAP_GROUP);
+  auto heapProp = d3d::get_resource_heap_group_properties(heap_group);
+  // For an ESRAM heap, maxHeapSize in properties will contain
+  // the size of the free ESRAM which is most likely zero if we already
+  // allocated the ESRAM heap.
+  // ESRAM heaps never hold untracked buffers, so the tracked/untracked heap
+  // split never applies here and matching this group alone is exact.
+  if (heapProp.isDedicatedFastGPULocal)
+    for (const auto &heap : allocatedHeaps)
+      if (heap.group == heap_group)
+      {
+        heapProp.maxHeapSize = heap.size;
+        break;
+      }
+  return heapProp;
 }
 
-DestroyedHeapSet NativeResourceAllocator::allocateHeaps(const HeapRequests &heap_requests)
+uint64_t NativeResourceAllocator::getFreeMemoryBudget() const
+{
+  uint32_t totalKb = 0;
+  uint32_t freeKb = 0;
+  uint32_t usedKb = 0;
+  d3d::driver_command(Drv3dCommand::GET_VIDEO_MEMORY_BUDGET, &totalKb, &freeKb, &usedKb);
+  return totalKb == 0 ? UNKNOWN_MEMORY_BUDGET : static_cast<uint64_t>(freeKb) << 10;
+}
+
+void NativeResourceAllocator::allocateHeaps(const LayoutHeaps &layout_heaps, bool defer_destruction, ChangedHeaps &changed)
 {
   TIME_PROFILE(allocateHeaps);
 
-  DestroyedHeapSet result;
-  result.reserve(heap_requests.size());
-
   FRAMEMEM_VALIDATE;
 
-  debug("daFG: attempting to reuse %d heaps and allocate %d new ones (%d total):", heaps.size(), heap_requests.size() - heaps.size(),
-    heap_requests.size());
-
-  if (heaps.size() < heap_requests.size())
+  if (heaps.size() < layout_heaps.size())
   {
-    heaps.resize(heap_requests.size());
-    d3dResourceCaches.resize(heap_requests.size());
+    heaps.resize(layout_heaps.size());
+    heapCapacities.resize(layout_heaps.size(), 0);
+    d3dResourceCaches.resize(layout_heaps.size());
+    acquiredObjects.resize(layout_heaps.size());
   }
-
-  static constexpr float MIN_OCCUPANCY_RATIO = 0.75f;
 
   struct DiscardedHeap
   {
     ResourceHeap *heap;
     ResourceHeapGroup *group;
     uint64_t size;
+    HeapIndex from;
     bool operator<(const DiscardedHeap &rhs) const { return size < rhs.size; }
   };
   dag::Vector<DiscardedHeap, framemem_allocator> discardedHeaps;
 
-  // reuse heaps or collect into a discard list
-  for (auto [i, req] : heap_requests.enumerate())
+  for (auto &&[i, heap] : layout_heaps.enumerate())
   {
-    if (req.group == CPU_HEAP_GROUP)
-      continue;
-
-    // Only reuse previously allocated heaps if they are big enough
-    // AND not too big (requested / allocated > ~3/4)
-    // The not too big part is needed to clean up after "burst" memory
-    // requests that occur during screenshots in x2 resolution and with
-    // tons of history resources
-    if (allocatedHeaps.isMapped(i) && req.size <= allocatedHeaps[i].size &&
-        static_cast<float>(req.size) / static_cast<float>(allocatedHeaps[i].size) > MIN_OCCUPANCY_RATIO)
+    const auto req = make_heap_request(heap);
+    auto &allocated = allocatedHeaps[i];
+    const bool sameClass = allocated.group == req.group && allocated.untracked == req.untracked;
+    const bool grewWithinCapacity = req.size > allocated.size && req.size <= heapCapacities[i];
+    if (heaps[i] != nullptr && sameClass && (req.size == allocated.size || grewWithinCapacity))
     {
-      debug("daFG: Reusing heap %d of size %dKB instead of allocating a new %dKB heap", eastl::to_underlying(i),
-        allocatedHeaps[i].size >> 10, req.size >> 10);
+      allocated.size = req.size;
       continue;
     }
 
     if (heaps[i] != nullptr)
     {
-      d3dResourceCaches[i].clear();
-      result.push_back(i);
-      discardedHeaps.push_back({eastl::exchange(heaps[i], nullptr), allocatedHeaps[i].group, allocatedHeaps[i].size});
+      changed.set(i, true);
+      if (defer_destruction)
+        retired.push_back(RetiredHeap{
+          .heap = eastl::exchange(heaps[i], nullptr),
+          .size = heapCapacities[i],
+          .cache = eastl::move(d3dResourceCaches[i]),
+          .acquired = eastl::move(acquiredObjects[i]),
+        });
+      else
+        discardedHeaps.push_back({
+          .heap = eastl::exchange(heaps[i], nullptr),
+          .group = allocated.group,
+          .size = heapCapacities[i],
+          .from = i,
+        });
+      d3dResourceCaches[i] = D3dResourceCache{};
+      acquiredObjects[i] = {};
+      allocated.size = 0;
+      heapCapacities[i] = 0;
     }
+    if (req.group == CPU_HEAP_GROUP)
+      continue;
+    allocated.group = req.group;
+    allocated.untracked = req.untracked;
+    allocated.size = 0;
+    heapCapacities[i] = 0;
   }
 
   eastl::sort(discardedHeaps.begin(), discardedHeaps.end());
 
   // try to reassign a discarded heap (avoiding a GPU alloc+dealloc pair), otherwise allocate new
-  for (auto [i, req] : heap_requests.enumerate())
+  for (auto &&[i, heap] : layout_heaps.enumerate())
   {
-    if (req.group == CPU_HEAP_GROUP || heaps[i] != nullptr)
+    const auto req = make_heap_request(heap);
+    if (req.group == CPU_HEAP_GROUP || heaps[i] != nullptr || req.size == 0)
       continue;
 
-    if (req.size == 0)
-    {
-      allocatedHeaps[i].size = 0;
-      continue;
-    }
-
-    const auto rangeBegin = eastl::lower_bound(discardedHeaps.begin(), discardedHeaps.end(), DiscardedHeap{{}, {}, req.size});
-    const uint64_t maxSize = req.size + (req.size - 1) / 3; // req.size / size > 0.75(MIN_OCCUPANCY_RATIO)
-    const auto rangeEnd = eastl::upper_bound(rangeBegin, discardedHeaps.end(), DiscardedHeap{{}, {}, maxSize});
-    auto match = eastl::find_if(rangeBegin, rangeEnd, [group = req.group](const DiscardedHeap &d) { return d.group == group; });
+    const auto rangeBegin = eastl::lower_bound(discardedHeaps.begin(), discardedHeaps.end(),
+      DiscardedHeap{
+        .size = req.size,
+      });
+    const uint64_t maxSize = 2 * req.size;
+    const auto rangeEnd = eastl::upper_bound(rangeBegin, discardedHeaps.end(),
+      DiscardedHeap{
+        .size = maxSize,
+      });
+    auto match = eastl::find_if(rangeBegin, rangeEnd,
+      [group = req.group, i = i](const DiscardedHeap &d) { return d.group == group && d.from != i; });
 
     if (match != rangeEnd)
     {
       heaps[i] = match->heap;
-      allocatedHeaps[i].size = match->size;
+      heapCapacities[i] = match->size;
+      allocatedHeaps[i].size = req.size;
+      ++stats.heapsReassigned;
+      changed.set(i, true);
       debug("daFG: Reassigned a discarded heap to index %d (discarded size %dKB, requested %dKB)", eastl::to_underlying(i),
-        allocatedHeaps[i].size >> 10, req.size >> 10);
+        match->size >> 10, req.size >> 10);
       discardedHeaps.erase(match);
     }
   }
@@ -238,12 +244,14 @@ DestroyedHeapSet NativeResourceAllocator::allocateHeaps(const HeapRequests &heap
   for (auto &discarded : discardedHeaps)
   {
     d3d::destroy_resource_heap(discarded.heap);
+    ++stats.heapsDestroyed;
     debug("daFG: Destroyed discarded heap of size %dKB", discarded.size >> 10);
   }
 
   // allocate new heaps only when discarded heaps are freed and driver can reuse memory
-  for (auto [i, req] : heap_requests.enumerate())
+  for (auto &&[i, heap] : layout_heaps.enumerate())
   {
+    const auto req = make_heap_request(heap);
     if (req.group == CPU_HEAP_GROUP || heaps[i] != nullptr || req.size == 0)
       continue;
 
@@ -253,9 +261,10 @@ DestroyedHeapSet NativeResourceAllocator::allocateHeaps(const HeapRequests &heap
     else
       debug("daFG: Successfully allocated a new heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
     allocatedHeaps[i].size = req.size;
+    heapCapacities[i] = req.size;
+    ++stats.heapsAllocated;
+    changed.set(i, true);
   }
-
-  return result;
 }
 
 static auto generate_name(uint32_t heap_idx, size_t hash_value)
@@ -278,34 +287,21 @@ static auto generate_name(uint32_t heap_idx, size_t hash_value)
   return result;
 }
 
-void NativeResourceAllocator::resetResourcePlacement()
-{
-  for (auto &properties : placedResourceProperties)
-    properties.assign(cachedIntermediateResources.totalKeys(), PlaceProperty{});
-
-  for (auto &cache : d3dResourceCaches)
-    cache.lruCleanup();
-  allocationPropertiesCache.lruCleanup();
-}
-
-void NativeResourceAllocator::placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx,
+D3dResource *NativeResourceAllocator::placeResource(intermediate::ResourceIndex res_idx, HeapIndex heap_idx,
   const ResourceDescription &desc, uint64_t offset, const ResourceAllocationProperties &properties,
   const DynamicResolution &dyn_resolution)
 {
+
   const auto key = ResourceKey(desc, properties, offset);
   const auto placedResName = generate_name(eastl::to_underlying(heap_idx), key.hash);
 
-  PlaceProperty property{
-    .heapIndex = heap_idx,
-    .offset = offset,
-    .size = properties.sizeInBytes,
-    .staticKey = key,
-    .activeDynamicKey = key,
-  };
+  D3dResource *object = nullptr;
 
   if (desc.type == D3DResourceType::SBUF)
   {
     auto createBuf = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueD3dRes {
+      TIME_PROFILE(placeBufferInHeap);
+      ++stats.objectsCreated;
       auto buf = d3d::place_buffer_in_resource_heap(heaps[heap_idx], key.desc, offset, properties, placedResName.c_str());
       if (!buf)
         logerr("daFG: Failed to place buffer %s in resource heap %d (%p) at offset %d! Description was: %s", placedResName.c_str(),
@@ -313,11 +309,32 @@ void NativeResourceAllocator::placeResource(int frame, intermediate::ResourceInd
       return UniqueD3dRes(buf);
     };
 
-    property.activeResource = d3dResourceCaches[heap_idx].access(key, createBuf).get();
+    object = acquireObject(heap_idx, key, createBuf);
   }
   else
   {
+    const auto &schedRes = cachedIntermediateResources[res_idx].asScheduled();
+    const bool placedDynamicTex = eastl::visit(
+      [&](const auto &res) {
+        if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, eastl::monostate>)
+        {
+          const auto resolution = scale_by(res, schedRes.resolutionType->multiplier);
+          const ResourceKey dynamicKey(key, resolution, schedRes.autoMipCount);
+          if (dynamicKey != key)
+          {
+            object = placeDynamicTexture(res_idx, heap_idx, offset, properties.sizeInBytes, dynamicKey, resolution);
+            return true;
+          }
+        }
+        return false;
+      },
+      dyn_resolution);
+    if (placedDynamicTex)
+      return object;
+
     auto createTex = [this, &key, &heap_idx, &placedResName, &offset, &properties]() -> UniqueD3dRes {
+      TIME_PROFILE(placeTextureInHeap);
+      ++stats.objectsCreated;
       auto tex = d3d::place_texture_in_resource_heap(heaps[heap_idx], key.desc, offset, properties, placedResName.c_str());
       if (!tex)
         logerr("daFG: Failed to place texture %s in resource heap %d (%p) at offset %d! Description was: %s", placedResName.c_str(),
@@ -325,33 +342,79 @@ void NativeResourceAllocator::placeResource(int frame, intermediate::ResourceInd
       return UniqueD3dRes(tex);
     };
 
-    property.activeResource = d3dResourceCaches[heap_idx].access(key, createTex).get();
+    object = acquireObject(heap_idx, key, createTex);
   }
 
-  placedResourceProperties[frame][res_idx] = eastl::move(property);
+  return object;
+}
 
-  if (desc.type != D3DResourceType::SBUF)
+template <class F>
+D3dResource *NativeResourceAllocator::acquireObject(HeapIndex heap_idx, const ResourceKey &key, const F &creator)
+{
+  D3dResource *object = d3dResourceCaches[heap_idx].access(key, creator);
+  if (object != nullptr)
   {
-    // TODO: it is possible to skip placing a full-resolution texture and place a
-    // dynamic resolution one from the start, but that would require some refactoring.
-    const auto autotype = cachedIntermediateResources[res_idx].asScheduled().resolutionType;
-    eastl::visit(
-      [&](const auto &res) {
-        if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, eastl::monostate>)
-          resizeTexture(res_idx, frame, scale_by(res, autotype->multiplier));
-      },
-      dyn_resolution);
+    auto &acquired = acquiredObjects[heap_idx][object];
+    acquired.key = key;
+    ++acquired.refs;
   }
+  return object;
+}
+
+void NativeResourceAllocator::releaseObject(HeapIndex heap_idx, const D3dResource *object, uint32_t keep_frames)
+{
+  if (!acquiredObjects.isMapped(heap_idx))
+    return;
+  auto &acquired = acquiredObjects[heap_idx];
+  const auto it = acquired.find(object);
+  if (it == acquired.end())
+    return;
+  d3dResourceCaches[heap_idx].dropReference(it->second.key, keep_frames);
+  if (--it->second.refs == 0)
+    acquired.erase(it);
+}
+
+void NativeResourceAllocator::lruCleanup()
+{
+  allocationPropertiesCache.lruCleanup();
+
+  for (auto &cache : d3dResourceCaches)
+  {
+    cache.retireUnreferenced();
+    cache.compact();
+  }
+}
+
+bool NativeResourceAllocator::doesHeapAgree(HeapIndex heap_idx, const HeapRequest &req) const
+{
+  const bool has = heaps[heap_idx] != nullptr;
+  return has == (req.size > 0) && (!has || heapCapacities[heap_idx] >= req.size);
+}
+
+void NativeResourceAllocator::destroyRetired()
+{
+  for (auto &entry : retired)
+  {
+    entry.cache.clear();
+    entry.acquired.clear();
+    d3d::destroy_resource_heap(entry.heap);
+    ++stats.heapsDestroyed;
+    debug("daFG: Destroyed retired heap of size %dKB", entry.size >> 10);
+  }
+  retired.clear();
 }
 
 void NativeResourceAllocator::shutdownInternal()
 {
+  destroyRetired();
+  allocationPropertiesCache.clear();
   d3dResourceCaches.clear();
-  placedResourceProperties.fill({});
+  acquiredObjects.clear();
   for (ResourceHeap *heap : heaps)
     if (heap != nullptr)
       d3d::destroy_resource_heap(heap);
   heaps.clear();
+  heapCapacities.clear();
 }
 
 NativeResourceAllocator::~NativeResourceAllocator()
@@ -361,39 +424,43 @@ NativeResourceAllocator::~NativeResourceAllocator()
 }
 
 template <class T>
-void NativeResourceAllocator::resizeTexture(intermediate::ResourceIndex res_idx, int frame, const T &resolution)
+D3dResource *NativeResourceAllocator::placeDynamicTexture(intermediate::ResourceIndex res_idx, HeapIndex heap_idx, uint64_t offset,
+  uint64_t static_size, const ResourceKey &dynamic_key, const T &resolution)
 {
-  auto &resProperties = placedResourceProperties[frame][res_idx];
-
-  resProperties.activeDynamicKey =
-    ResourceKey(resProperties.staticKey, resolution, cachedIntermediateResources[res_idx].asScheduled().autoMipCount);
-
   auto createTex = [&]() -> UniqueD3dRes {
-    const auto placedResName = generate_name(eastl::to_underlying(resProperties.heapIndex), resProperties.activeDynamicKey.hash);
-    const ResourceDescription &desc = resProperties.activeDynamicKey.desc;
+    const auto placedResName = generate_name(eastl::to_underlying(heap_idx), dynamic_key.hash);
+    const ResourceDescription &desc = dynamic_key.desc;
     const auto allocInfo = getResourceAllocationProperties(desc);
-    if (allocInfo.sizeInBytes > resProperties.size)
+    if (allocInfo.sizeInBytes > static_size)
       logerr("daFG: dynamic resolution is broken! "
              "Dynamic texture takes %d bytes, which is bigger than "
-             "the original static texture took %d bytes for resource %s (frame %d)! "
+             "the original static texture took %d bytes for resource %s! "
              "Desired resolution was: %@",
-        allocInfo.sizeInBytes, resProperties.size, cachedIntermediateResourceNames[res_idx].c_str(), frame, resolution);
-    auto tex = d3d::place_texture_in_resource_heap(heaps[resProperties.heapIndex], desc, resProperties.offset, allocInfo,
-      placedResName.c_str());
-    G_ASSERT_RETURN(tex, {});
+        allocInfo.sizeInBytes, static_size, cachedIntermediateResourceNames[res_idx].c_str(), resolution);
+    ++stats.objectsCreated;
+    auto tex = d3d::place_texture_in_resource_heap(heaps[heap_idx], desc, offset, allocInfo, placedResName.c_str());
+    if (!tex)
+    {
+      logerr("daFG: Failed to place dynamic resolution texture %s (%s) in resource heap %d (%p) at offset %lld! "
+             "Desired resolution was: %@. Description was: %s",
+        cachedIntermediateResourceNames[res_idx].c_str(), placedResName.c_str(), eastl::to_underlying(heap_idx), heaps[heap_idx],
+        offset, resolution, desc.toDebugString());
+      return {};
+    }
     validation_add_resource(tex);
     return UniqueD3dRes(tex);
   };
 
-  resProperties.activeResource = d3dResourceCaches[resProperties.heapIndex].access(resProperties.activeDynamicKey, createTex).get();
+  return acquireObject(heap_idx, dynamic_key, createTex);
 }
 
 void NativeResourceAllocator::resizeAutoResTextures(int frame, const DynamicResolutionUpdates &resolutions)
 {
-  // For safety, we clean up old resources before creating the ones we
-  // will need on this frame, just in case the LRU cache is broken (it shouldn't be)
   for (auto &cache : d3dResourceCaches)
-    cache.lruCleanup(); // also wipes unused resources from managed_resources for resource validation (debug only)
+    cache.tick();
+
+  if (resolutions.empty())
+    return;
 
   for (auto idx : cachedIntermediateResources.keys())
   {
@@ -401,28 +468,46 @@ void NativeResourceAllocator::resizeAutoResTextures(int frame, const DynamicReso
       continue;
 
     const auto &schedRes = cachedIntermediateResources[idx].asScheduled();
+    if (schedRes.resourceType != ResourceType::Texture || !schedRes.resolutionType.has_value() ||
+        !resolutions.isMapped(schedRes.resolutionType->id) ||
+        eastl::holds_alternative<NoDynamicResolutionUpdate>(resolutions[schedRes.resolutionType->id]))
+      continue;
 
-    if (schedRes.resourceType == ResourceType::Texture && schedRes.resolutionType.has_value() &&
-        resolutions.isMapped(schedRes.resolutionType->id) &&
-        !eastl::holds_alternative<NoDynamicResolutionUpdate>(resolutions[schedRes.resolutionType->id]))
-    {
-      const auto mult = schedRes.resolutionType->multiplier;
-      const auto res = resolutions[schedRes.resolutionType->id];
-      eastl::visit(
-        [&](const auto &res) {
-          if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, NoDynamicResolutionUpdate>)
-            resizeTexture(idx, frame, scale_by(res.dynamicRes, mult));
-        },
-        res);
+    const AllocationLocation where = placed[frame][idx].where;
+    const HeapIndex heapIdx = where.heap;
+    const uint64_t offset = where.offset;
+    if (heapIdx == HeapIndex::Invalid)
+      continue;
 
-      refreshManagedTexture(frame, idx, static_cast<BaseTexture *>(getD3dResource(frame, idx)));
-    }
-    else
-    {
-      const auto &props = placedResourceProperties[frame][idx];
-      d3dResourceCaches[props.heapIndex].touch(props.activeDynamicKey);
-    }
+    const auto &desc = schedRes.getGpuDescription();
+    const ResourceKey staticKey(desc, getResourceAllocationProperties(desc), offset);
+
+    const auto mult = schedRes.resolutionType->multiplier;
+    const uint64_t staticSize = placed[frame][idx].size;
+    D3dResource *object = nullptr;
+    eastl::visit(
+      [&](const auto &res) {
+        if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(res)>, NoDynamicResolutionUpdate>)
+        {
+          const auto resolution = scale_by(res.dynamicRes, mult);
+          object = placeDynamicTexture(idx, heapIdx, offset, staticSize, ResourceKey(staticKey, resolution, schedRes.autoMipCount),
+            resolution);
+        }
+      },
+      resolutions[schedRes.resolutionType->id]);
+
+    rebindObject(
+      {
+        .resIdx = idx,
+        .frame = static_cast<uint32_t>(frame),
+      },
+      object);
+    if (object != nullptr)
+      refreshManagedTexture(frame, idx, static_cast<BaseTexture *>(object));
   }
+
+  for (auto &cache : d3dResourceCaches)
+    cache.retireUnreferenced();
 }
 
 } // namespace dafg

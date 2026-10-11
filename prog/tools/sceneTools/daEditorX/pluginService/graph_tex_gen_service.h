@@ -55,7 +55,7 @@ struct SelectedTextureState
   float maxHistValue = 0.0f;
 };
 
-// One-call snapshot of the live pipeline counters rendered by the GraphPanel status bar.
+// One-call snapshot of the live pipeline counters rendered by the GraphTab status bar.
 // Copied under the service's state lock so the UI thread never reads torn state from the
 // texgen worker.
 struct TexGenPipelineStatus

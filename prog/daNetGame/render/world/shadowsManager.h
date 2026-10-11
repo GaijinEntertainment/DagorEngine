@@ -2,7 +2,7 @@
 #pragma once
 
 #include <cinttypes>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 #include <EASTL/span.h>
 #include <dag/dag_vector.h>
 #include <memory/dag_framemem.h>
@@ -237,7 +237,7 @@ private:
   {
     dag::Vector<BBox3> list;
     uint64_t lastApplyTicks = 0;
-    std::mutex lock;
+    dag::mutex lock;
   } staticShadowInvalidBboxes;
 
   // Last cascade is dynamic only even on high and ultra

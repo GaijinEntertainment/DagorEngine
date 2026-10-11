@@ -6,6 +6,7 @@
 #include <oldEditor/de_interface.h>
 #include <propPanel/c_control_event_handler.h>
 
+#include <generic/dag_span.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_string.h>
 
@@ -17,11 +18,12 @@
 
 #include <graphEditor/graph_data.h>
 
-#include "graph_document.h"
 #include "node_drag_overlay.h"
 #include "resource_paths.hpp"
 
 class NodeLibraryPanel;
+class GraphDocument;
+class GraphTab;
 class GraphPanel;
 struct IGraphCompiler;
 struct IGraphTexGenService;
@@ -125,14 +127,14 @@ public:
   // graph. Returns false if `template_uid` is unknown.
   bool makeNodeFromBaseBlk(const char *template_uid, float x, float y, GraphData::Node &out);
 
-  // makeNodeFromBaseBlk plus a fresh id, shared by every spawn path. False with no canvas or an
-  // unknown uid.
+  // makeNodeFromBaseBlk plus a fresh id, shared by every spawn path. False while the Graph window is
+  // closed, or with an unknown uid.
   bool buildSpawnedNode(const char *template_uid, float x, float y, GraphData::Node &out);
 
   // Builds a fresh node via makeNodeFromBaseBlk, allocates its id via graphPanel and hands it to
   // the document. Reached from the canvas drop handler and from the node library's double click.
-  // No-op if graphPanel is null or template_uid is unknown, and notes the descriptor as recently
-  // used.
+  // No-op while the Graph window is closed or with an unknown uid, and notes the descriptor as
+  // recently used.
   void spawnBaseNode(const char *template_uid, float x, float y);
   void spawnBaseNodeAtCanvasCenter(const char *template_uid);
   // Same, wired to (anchor_node, anchor_pin) as one undo entry: alongside what that pin feeds, or
@@ -146,19 +148,24 @@ public:
   // asynchronously and regenerates. Use for every mutation that doesn't change
   // the graph *source* (property edit, link add/remove, node spawn). Returns
   // instantly; coalesces with other pending marks before the worker picks them up.
-  void markGraphDirtyAndRegen();
+  // Does nothing for a document the service does not compile (GraphPanel::texGenServiceFor).
+  void markGraphDirtyAndRegen(const GraphDocument &doc);
 
-  // Use after a graph load (BLK / initial registration). Pushes heightmap
-  // params, hands the GraphData pointer to the service (which resets pipeline
-  // state -- preview-final, selected texture, etc.), then marks dirty so the
-  // worker compiles the freshly-loaded graph. Do NOT call this from edit paths;
-  // it wipes preview state.
-  void notifyGraphSourceChanged();
+  // Hooks the tab strip calls before it leaves a graph or destroys one: the properties panel
+  // commits its open edit while that graph is still the active one, and lets go of the
+  // controls built for a document that is about to die.
+  void beforeActiveTabChanges();
+  void beforeTabCloses(const GraphDocument &closing);
+
+  // The graph the user is working on, and the compile adapter each open graph needs. The first
+  // call builds the tab, and with it the document, the compiler and the canvas.
+  GraphDocument &getActiveDocument();
+  eastl::unique_ptr<IGraphCompiler> createGraphCompiler(GraphDocument &doc);
 
   // Accessors for sibling panels (in particular PropertiesPanel) that need to read shared
-  // state without reaching into private members. GraphPanel may be null when the user has
-  // closed it; texGenService may be null until the texgen service initialises.
-  GraphPanel *getGraphPanel() const { return graphPanel.get(); }
+  // state without reaching into private members. texGenService may be null until the
+  // texgen service initialises.
+  GraphPanel &getGraphPanel() const { return *graphPanel; }
   IGraphTexGenService *getTexGenService() const { return texGenService; }
 
   // The displayed controls still hold the pre-undo values; make the panel rebuild them.
@@ -167,6 +174,7 @@ public:
   const char *getShaderIncludesDir() const { return resourcePaths.shaderIncludesDir; }
   const char *getMainGraphsDir() const { return resourcePaths.mainGraphsDir; }
   const char *getSubgraphsDir() const { return resourcePaths.subgraphsDir; }
+  String getSubgraphPath(const char *stem) const { return String(0, "%s%s.subgraph.blk", resourcePaths.subgraphsDir.str(), stem); }
 
   // Drops the cached base-nodes blk + uid index and re-runs the lazy load + synthesis pipeline,
   // then marks the NodeLibraryPanel tabs stale so newly added shader / subgraph files appear
@@ -174,18 +182,50 @@ public:
   // small fixed set of shader / subgraph files on disk). Triggered from the panel's reload button.
   void reloadBaseNodes();
 
+  // The only directories an instance resolves in.
+  dag::ConstSpan<SubgraphRoot> getSubgraphRoots() const { return make_span_const(subgraphRoots); }
+  // Bumped by each registration.
+  uint32_t getSubgraphDescriptorGeneration() const { return subgraphDescriptorGeneration; }
+  // The generation of the uid's last registration, 0 if none.
+  uint32_t getSubgraphRegistrationGeneration(const char *template_uid) const;
+  // Adds one *.subgraph.blk to the palette, or updates its entry in place when replace_existing. False (logged)
+  // for a path outside the roots, a file that does not synthesize, or a name another file holds without replace_existing.
+  bool registerSubgraphFile(const char *path, bool replace_existing);
+  // Replaces one instance by its body as one undo entry. False when the splice fails: logged, and an alert toast
+  // shows the reason.
+  bool explodeSubgraphInstance(GraphTab &tab, int node_id);
+  // Writes the nodes to a new subgraph file and puts one instance in their place, as one undo entry. Once the
+  // dialog is accepted a toast tells how it ended, with the reason of a failure; a refusal before it is a message box.
+  void createSubgraphFromSelection(GraphTab &tab, const eastl::vector<int> &node_ids);
+
   bool promptPinComment(eastl::string &inout_comment);
 
+  // The strip's + button: asks for an existing file or a new untitled graph, then opens it.
+  void promptOpenGraph();
+
+  // Writes the graph to its own file, asking for a path only when it has none yet. False when the
+  // user cancelled that dialog or the write failed, so the caller can leave the graph open.
+  bool saveGraph(GraphTab &tab);
+  // A subgraph window's Save: back to its own file, once the subgraph schema holds. False when the
+  // schema or the user refused it, or the write failed.
+  bool saveSubgraph(GraphTab &tab);
+  // Asks for a *.subgraph.blk path, once the subgraph schema holds.
+  bool saveAsSubgraphBlk(GraphTab &tab);
+
 private:
-  void dropMyUndoOps();
   void initResourcePaths();
   void toggleNodeLibraryPanel();
   void toggleShortcutsPanel();
-  void newEmptyGraph();
   void promptAndLoadGraphBlk();
   void promptAndSaveGraphBlk();
-  void promptAndSaveAsSubgraphBlk();
+  // The shared tail of every save: write, take the path, and the graph is what is on disk again.
+  bool writeGraphTo(GraphTab &tab, const char *path);
+  // Always asks for a path, which is what the Save command does and what a graph with no file needs.
+  bool saveGraphAs(GraphTab &tab);
+  // Message boxes titled `title` list what refuses the save, or ask about inputs that reach no output.
+  bool confirmSubgraphSchema(GraphTab &tab, const char *title);
   bool loadBaseNodesBlkIfNeeded();
+  const SubgraphRoot *subgraphRootOf(const char *path) const;
 
   void appendShaderTemplatesToBaseNodes();
   // Mirrors appendShaderTemplatesToBaseNodes for *.subgraph.blk files under
@@ -200,9 +240,7 @@ private:
 
   bool isVisible = false;
   int toolBarId = -1;
-  // Declared before the panels: they hold a GraphDocument &, so it has to outlive them.
-  GraphDocument document;
-
+  // Never null: it lives with the plugin, only its dock window comes and goes.
   eastl::unique_ptr<GraphPanel> graphPanel;
   IGraphTexGenService *texGenService = nullptr;
   eastl::unique_ptr<TexturePreviewPanel> previewPanel;
@@ -213,18 +251,15 @@ private:
   eastl::unique_ptr<ShortcutsPanel> shortcutsPanel;
 
   ResourcePaths resourcePaths;
-
-  // Adapter that forwards IGraphCompiler::compile() calls (issued from the
-  // texgen worker) into compile_graph_to_blks under the document's graph mutex.
-  // Constructed once the texgen service is resolved; cleared from the service
-  // before the impl is destroyed at shutdown.
-  eastl::unique_ptr<IGraphCompiler> graphCompiler;
+  eastl::vector<SubgraphRoot> subgraphRoots;
+  uint32_t subgraphDescriptorGeneration = 0;
+  eastl::hash_map<eastl::string, uint32_t> subgraphRegistrationGenerations;
 
   DataBlock baseNodesBlk;
   // uid -> node{} block pointer into baseNodesBlk. Built once in
   // loadBaseNodesBlkIfNeeded() after a successful load; lifetime is tied to
   // baseNodesBlk (do NOT reload baseNodesBlk without rebuilding this map).
-  eastl::hash_map<eastl::string, const DataBlock *> baseNodesByUid;
+  eastl::hash_map<eastl::string, DataBlock *> baseNodesByUid;
   bool baseNodesBlkLoaded = false;
 
   // Newest first. On the plugin, not the panel: loadSettings runs before the panel can exist.

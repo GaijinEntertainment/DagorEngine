@@ -88,6 +88,7 @@ private:
   }
 
 public:
+  using BaseType::getConsumerWakeThreshold;
   using BaseType::getRingSize;
   using BaseType::resize;
   using BaseType::usesMirror;

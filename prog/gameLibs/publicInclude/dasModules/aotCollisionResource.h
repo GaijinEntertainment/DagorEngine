@@ -96,6 +96,12 @@ inline bool collres_rayhit(const CollisionResource &collres, const das::float3x4
   return collres.rayHit(reinterpret_cast<const TMatrix &>(tm), geom_node_tree, tracePos, traceDir, t);
 }
 
+inline bool collres_rayhit_both_ways(const CollisionResource &collres, const das::float3x4 &tm, const GeomNodeTree *geom_node_tree,
+  const Point3 &tracePos, const Point3 &traceDir, float t)
+{
+  return collres.rayHitHullBothWays(reinterpret_cast<const TMatrix &>(tm), geom_node_tree, tracePos, traceDir, t);
+}
+
 inline int collres_get_node_index_by_name(const CollisionResource &collres, const char *name)
 {
   return collres.getNodeIndexByName(name ? name : "");
@@ -211,10 +217,9 @@ inline bool test_collres_intersection_out_intersections(const CollisionResource 
   uint16_t &nodeIndex2, const das::TBlock<void, const das::TTemporary<const das::TArray<uint16_t>>> &block, das::Context *context,
   das::LineInfoArg *at)
 {
-  Tab<uint16_t> intersectionNodesIndices(framemem_ptr());
-  bool ret = CollisionResource::testIntersection(&col1, reinterpret_cast<const TMatrix &>(tm1), CollisionNodeFilter(), &col2,
-    reinterpret_cast<const TMatrix &>(tm2), CollisionNodeFilter(), collPt1, collPt2, &nodeIndex1, &nodeIndex2,
-    &intersectionNodesIndices);
+  CollResNodeIndicesType intersectionNodesIndices;
+  bool ret = CollisionResource::testIntersection(&col1, reinterpret_cast<const TMatrix &>(tm1), {}, &col2,
+    reinterpret_cast<const TMatrix &>(tm2), {}, collPt1, collPt2, &nodeIndex1, &nodeIndex2, &intersectionNodesIndices);
   das::Array arr;
   das::array_mark_locked(arr, intersectionNodesIndices.data(), intersectionNodesIndices.size());
   arr.flags = 0;

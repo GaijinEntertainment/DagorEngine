@@ -9,6 +9,7 @@
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
 #include <math/integer/dag_IBBox2.h>
+#include <math/dag_bounds2.h>
 #include "simpleHeightmapRenderer.h"
 #include "heightmapCulling.h"
 #include "heightmapPhysHandler.h"
@@ -118,6 +119,7 @@ public:
 
   // incremented when terrain changes
   int getTerrainStateVersion() const { return terrainStateVersion; }
+  BBox2 getLastTerrainChange() const { return lastTerrainChange; } // the world xz box of the last increment
 
   eastl::unique_ptr<HeightmapHeightCulling> heightmapHeightCulling;
   void initRender(bool clamp = true, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL, float shore_error = 2.0f,
@@ -153,6 +155,7 @@ protected:
   int metricsMinCalcLevel = -1, metricsMaxCalcLevel = -1;
   bool enabledMipsUpdating = true;
   int terrainStateVersion = 0;
+  BBox2 lastTerrainChange;
   // Stable between bookkeeping points: written by initRender()/makeBookKeeping() only, read-only
   // for frustumCulling()/renderCulled().
   MetricsErrors *metrics = nullptr;

@@ -49,13 +49,14 @@ struct EventState
 };
 
 static Tab<EventState> incoming_events, processing_events;
+static float rumble_scale = 1.f;
 
 static void set_rumble(float lo_freq, float hi_freq)
 {
   WinAutoLock joyGuard(global_cls_drv_update_cs);
   HumanInput::IGenJoystick *joy = get_joystick();
   if (joy)
-    joy->doRumble(lo_freq, hi_freq);
+    joy->doRumble(lo_freq * rumble_scale, hi_freq * rumble_scale);
 }
 
 
@@ -175,6 +176,12 @@ void add_event(const EventParams &evtp)
     init();
 
   os_event_set(&rumble_wakeup_event);
+}
+
+void set_scale(float scale)
+{
+  WinAutoLock joyGuard(global_cls_drv_update_cs);
+  rumble_scale = min(max(scale, 0.f), 1.f);
 }
 
 static RumbleThread rumble_thread;

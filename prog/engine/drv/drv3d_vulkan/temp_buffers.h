@@ -140,8 +140,9 @@ public:
 
   void init();
   void shutdown();
-  BufferRef acquire(uint32_t size, DeviceMemoryClass mem_class);
-  BufferRef acquire(uint32_t size, uint32_t flags);
+  // visible_size is the range the returned ref exposes to binds, it can be bigger than the consumed size
+  BufferRef acquire(uint32_t size, DeviceMemoryClass mem_class, uint32_t visible_size = 0);
+  BufferRef acquire(uint32_t size, uint32_t flags, uint32_t visible_size = 0);
   void getMemUsageInfo(uint32_t &allocated, uint32_t &used_currently);
   void purge();
   void onFrameEnd();

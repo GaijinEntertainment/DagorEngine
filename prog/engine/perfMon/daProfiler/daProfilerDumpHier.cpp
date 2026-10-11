@@ -7,8 +7,14 @@
 
 namespace da_profiler
 {
-static inline void add_stat(DrawStatSingle &, const EventData &) {}
-static inline void add_stat(DrawStatSingle &stat, const GpuEventData &gs)
+struct DrawStatSum
+{
+  uint32_t val[DRAWSTAT_NUM] = {};
+  uint64_t tri = 0;
+};
+
+static inline void add_stat(DrawStatSum &, const EventData &) {}
+static inline void add_stat(DrawStatSum &stat, const GpuEventData &gs)
 {
   for (int i = 0; i < DRAWSTAT_NUM; ++i)
     stat.val[i] += gs.ds.val[i];
@@ -49,7 +55,7 @@ inline void dumpHierEvents(const ProfilerData &pd, uint32_t stream_description, 
     int depth;
     uint32_t calls;
     uint64_t minTicks, maxTicks;
-    DrawStatSingle stat;
+    DrawStatSum stat;
   };
   HashedKeyMap<uint64_t, int> uniqueIdToNodeId;
   SmallTab<HierNode> hierNodes;
@@ -65,7 +71,8 @@ inline void dumpHierEvents(const ProfilerData &pd, uint32_t stream_description, 
   uniqueIdToNodeId.emplace(threadRootUniqueId, threadRootHierId);
   // const uint64_t frameEndTicks = (frame.end == ~0ULL ? curTicks : frame.end);
   // hierNodes[0].ticks = frameEndTicks - frame.start;
-  hierNodes.push_back(HierNode{~0u, stream_description, 0ULL, 0ULL, threadRootUniqueId, -1, 1, 0, 0});
+  hierNodes.push_back(
+    HierNode{.parentNodeHierId = ~0u, .descriptionId = stream_description, .uniqueId = threadRootUniqueId, .depth = -1, .calls = 1});
 
   SmallTab<StackEvent> stack;
   stack.push_back(StackEvent{threadRootHierId, threadRootUniqueId, ~0ULL});
@@ -90,7 +97,12 @@ inline void dumpHierEvents(const ProfilerData &pd, uint32_t stream_description, 
     if (emplRet.second)
     {
       *emplRet.first = hierNodes.size();
-      hierNodes.push_back(HierNode{hierParentId, event.description, ticksTaken, 0ULL, hierUniqueId, depth, 0, ticksTaken, ticksTaken});
+      hierNodes.push_back(HierNode{.parentNodeHierId = hierParentId,
+        .descriptionId = event.description,
+        .uniqueId = hierUniqueId,
+        .depth = depth,
+        .minTicks = ticksTaken,
+        .maxTicks = ticksTaken});
     }
     const uint32_t hierId = uint32_t(*emplRet.first);
     auto &h = hierNodes[hierId];
@@ -186,7 +198,7 @@ void dumpHierFrames(const ProfilerData &pd, ProfilerDumpFunctionPtr cb, void *ct
   const uint64_t curGpuTicks = startGpuDumpTicks + ((curTicks - startDumpTicks) * gpuFreq) / cpuFreq;
   // uint64_t memCPUAllocated = 0, memGPUAllocated = 0;
   {
-    std::lock_guard<std::mutex> lock(pd.threadsLock);
+    dag::lock_guard lock(pd.threadsLock);
 
     for (auto &thread : pd.threadsData)
     {

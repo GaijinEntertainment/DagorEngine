@@ -167,7 +167,7 @@ static dafg::NodeHandle makeHeatHazeRenderParticlesNode(
           G_ASSERT(heatHazeLod >= 0);
           const auto lodDepth = heatHazeLod == 0 ? depthForTransparencyHndl.view() : farDownsampledDepth.view();
 
-          const camera_in_camera::ApplyMasterState camcam{is_main_view};
+          const camera_in_camera::ApplyMasterState camcam{is_main_view, camera_in_camera::OpaqueFlags::NoScissor};
           Texture *stencil = hasStencil ? depthForTransparencyHndl.view().getTex2D() : nullptr;
           acesfx::set_dafx_globaldata(camera.jitterGlobtm, camera.viewItm, camera.viewItm.getcol(3));
 

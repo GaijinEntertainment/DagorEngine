@@ -135,10 +135,8 @@ struct template TFlatHashTable {
         while (true) {
             let h = hashes[index]
             if (h == hash) {
-                // otherwise skip matching hash collision
                 if (key_data[index] == key) return index
-            } elif (h == 0ul) break  // empty, key not found
-            // skip hash collision or tombstone(1)
+            } elif (h == 0ul) break
             index = (index + 1) & mask
         }
         return -1
@@ -180,7 +178,7 @@ struct template TFlatHashTable {
     def static erase(key : KeyType) : bool {
         let index = self |> key_index(key)
         if (index != -1) {
-            hashes[index] = 1ul   // tombstone
+            hashes[index] = 1ul
             tombstones ++
             data_length --
             return true
@@ -258,7 +256,7 @@ struct template TFlatHashTable {
 
     [explicit_const_class_method, hint(unsafe_range_check, noalias=self)]
     def static operator [] (key : KeyType) : ValueType & {
-        if (data_length > (capacity >> 1)) {// ((mask+1)*2/3)
+        if (data_length > (capacity >> 1)) {
             self |> grow()
         } elif (((capacity - data_length) >> 1) < tombstones) {
             self |> rehash()
@@ -269,7 +267,7 @@ struct template TFlatHashTable {
         while (true) {
             let h = hashes[index]
             if (h == hash) {
-                if (key_data[index] == key) {   // otherwise skip matching hash collision
+                if (key_data[index] == key) {
                     unsafe {
                         return value_data[index]
                     }
@@ -283,7 +281,7 @@ struct template TFlatHashTable {
                     index = lastTombstone
                     tombstones --
                 }
-                key_data[index] := key
+                key_data[index] := key  // nolint:LINT016,LINT019 - generic clone-assign (deep keys need it); a string key stays a same-context pointer copy by design
                 hashes[index] = hash
                 data_length ++
                 unsafe {
@@ -294,7 +292,7 @@ struct template TFlatHashTable {
         }
         panic("unreachable")
         unsafe {
-            return value_data[0] // we never get here due to panic
+            return value_data[0]
         }
     }
 
@@ -308,7 +306,7 @@ struct template TFlatHashTable {
         }
         panic("key not found")
         unsafe {
-            return value_data[0] // we never get here due to panic
+            return value_data[0]
         }
     }
 

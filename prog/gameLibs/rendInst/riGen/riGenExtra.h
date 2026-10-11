@@ -81,8 +81,7 @@ extern int maxExtraRiCount;
 extern float extendTreeRiExtraTreeBbox;
 
 extern carray<int, RI_EXTRA_VB_CTX_CNT> maxRenderedRiEx;
-extern float riExtraLodDistSqMul;
-extern float riExtraCullDistSqMul;
+extern float riExtraDistSqScale; // scales squared world distances in riExtra traversal and queries
 extern carray<Tab<uint16_t>, RIEX_STAGE_COUNT> riExPoolIdxPerStage;
 
 void initRIGenExtra(bool need_render = true, const DataBlock *level_blk = nullptr);

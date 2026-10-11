@@ -5,7 +5,7 @@ require glfw/glfw_boost
 require opengl/opengl_boost
 require opengl/opengl_gen
 require math
-require strings
+require daslib/strings_convert
 require daslib/math_boost
 require live/live_gc
 
@@ -133,7 +133,7 @@ def parse_args() {
     let args <- get_command_line_arguments()
     for (i in range(length(args) - 1)) {
         if (args[i] == "--max-frames") {
-            max_frame_limit = to_int(args[i + 1])
+            max_frame_limit = try_to_int(args[i + 1]) ?? 0   // garbage = no cap
         }
     }
 }

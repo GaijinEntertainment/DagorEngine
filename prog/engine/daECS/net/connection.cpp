@@ -848,7 +848,7 @@ void Connection::applyDelayedAttrsUpdate(ecs::entity_id_t server_eid)
   }
 }
 
-bool Connection::readDestructionPacket(const danet::BitStream &bs, const on_object_constructed_cb_t &obj_destroyed_cb)
+bool Connection::readDestructionPacket(const danet::BitStream &bs, on_object_destroyed_cb_t obj_destroyed_cb)
 {
   G_ASSERT(isReplicatingTo());
 

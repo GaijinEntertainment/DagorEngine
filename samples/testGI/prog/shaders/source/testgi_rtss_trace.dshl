@@ -1,0 +1,30 @@
+include "project_trace.dshl"
+include "render/raytracedToroidalStaticShadow/shaders/rtss_trace_common.dshl"
+include "render/raytracedToroidalStaticShadow/shaders/rtss_trace_hmap.dshl"
+
+shader testgi_rtss_trace_collision_cs
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
+  {
+    dont_render;
+  }
+  RTSS_TRACE_TEXEL(cs)
+  RTSS_TRACE_HMAP(cs)
+  TESTGI_TRACE_COLLISION(cs)
+  hlsl(cs) {
+    [numthreads(RTSS_BUILD_GROUP, 1, 1)]
+    void testgi_rtss_trace_collision(uint3 gid : SV_GroupID, uint tid : SV_GroupThreadID)
+    {
+      RtssTraceTexel tx;
+      if (!rtss_trace_texel(gid.x, tid, tx))
+        return;
+      float t = tx.t;
+      RayQuery<TESTGI_COLLISION_RAY_FLAGS> query;
+      if (testgi_trace_collision(tx.origin - bvh_origin, tx.dir, t, query))
+        t = query.CommittedRayT();
+      rtss_trace_hmap(tx.origin, tx.dir, t);
+      rtss_trace_store(tx, t);
+    }
+  }
+  compile("cs_6_5", "testgi_rtss_trace_collision");
+}

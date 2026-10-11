@@ -3,6 +3,7 @@ options no_unused_function_arguments = false
 options no_unused_block_arguments = false
 require dastest/testing_boost public
 require daslib/jobque_boost
+require daslib/fio
 
 // Channel boost helpers (push_clone, for_each_clone, etc.) require struct types.
 // POD types (int, float, int2) cannot be used with `new TT` or `delete temp`.
@@ -118,7 +119,7 @@ def test_channel_for_each_clone(t : T?) {
         with_channel() $(ch) {
             var count = 0
             ch |> for_each_clone() $(val : IntVal#) {
-                count += 1
+                count ++
             }
             t |> equal(0, count)
         }
@@ -204,7 +205,7 @@ def test_channel_each_clone_iterator(t : T?) {
             ch |> push_clone(IntVal(v = 100))
             ch |> push_clone(IntVal(v = 200))
             ch |> push_clone(IntVal(v = 300))
-            var results : array<int>
+            var results : array<int>   // nolint:STYLE027 each_clone yields a temporary (#); the comprehension form needs unsafe
             for (val in each_clone(ch, type<IntVal>)) {
                 results |> push(val.v)
             }
@@ -232,6 +233,34 @@ def test_channel_push_batch_clone(t : T?) {
             t |> equal(20, results[1])
             t |> equal(30, results[2])
         }
+    }
+}
+
+// A payload consumer (pop_with_timeout_clone) wakes on the worker's push, which lands BEFORE the
+// worker's notify_and_release - the deliberate sleep holds that window open, and join() before the
+// with_channel scope closes is the fence (see skills/jobque_debugging.md).
+[test]
+def test_join_fences_a_payload_consumer(t : T?) {
+    t |> run("join before scope close outlives a slow-releasing worker") @(t : T?) {
+        var value = 0
+        with_channel(1) $(ch) {
+            new_thread() @() {
+                ch |> push_clone(IntVal(v = 42))
+                sleep(200u)
+                ch |> notify_and_release()
+            }
+            var got = false
+            var rounds = 0
+            while (!got && rounds < 500) {
+                got = pop_with_timeout_clone(ch, 10) $(r : IntVal#) {
+                    value = r.v
+                }
+                rounds++
+            }
+            t |> success(got, "worker payload never arrived within the 500 x 10ms cap")
+            ch |> join()
+        }
+        t |> equal(42, value)
     }
 }
 

@@ -428,9 +428,8 @@ void WorldRenderer::giBeforeRender()
   DaGISettings s = getGISettings();
   daGI2->setSettings(s);
 
-  // If we have voxels lit scene lights are handled inside its rasterization / updation.
-  bool hasVoxelsLitScene = s.voxelScene.sdfResScale > 0.0f;
-  bool useGiGlobalLights = gi_quality > GI_ONLY_AO && !hasVoxelsLitScene;
+  bool hasLightsInVoxelsLitScene = s.voxelScene.sdfResScale > 0.0f && !s.voxelScene.onlyEmission;
+  bool useGiGlobalLights = gi_quality > GI_ONLY_AO && !hasLightsInVoxelsLitScene;
   if (useGiGlobalLights)
     useGiGlobalLights &= !ShaderGlobal::is_var_assumed(gi_enable_lights_at_radiance_traceVarId) ||
                          ShaderGlobal::get_interval_assumed_value(gi_enable_lights_at_radiance_traceVarId) > 0;

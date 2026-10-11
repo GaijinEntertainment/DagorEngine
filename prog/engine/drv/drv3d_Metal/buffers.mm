@@ -77,12 +77,30 @@ namespace drv3d_metal
     this->tid = g_buffers.safeAllocAndSet(e);
   }
 
-  void Buffer::BufTex::create(id<MTLBuffer> mtl_buf, const char *name)
+  void Buffer::BufTex::create(id<MTLBuffer> mtl_buf, MTLTextureDescriptor *pTexDesc, int alignment, int tex_format,
+                              const char *name)
   {
-    bufsize = 0;
+    bufsize = mtl_buf.length;
     buffer = mtl_buf;
     initialized = true;
+    in_heap = true;
     texture = nullptr;
+
+    // release() subtracts bufsize
+    if (flags & SBCF_BIND_VERTEX)
+      g_vb_memory_used += bufsize;
+    else if (flags & SBCF_BIND_INDEX)
+      g_ib_memory_used += bufsize;
+    else
+      g_buffer_memory_used += bufsize;
+
+    if (pTexDesc)
+    {
+      id<MTLTexture> tex = [buffer newTextureWithDescriptor : pTexDesc
+                                                     offset : 0
+                                                bytesPerRow : alignment];
+      texture = new Texture(tex, tex_format, name);
+    }
 
 #if DAGOR_DBGLEVEL > 0
     mtl_buf.label = [NSString stringWithUTF8String : name];
@@ -111,7 +129,8 @@ namespace drv3d_metal
       else
         g_buffer_memory_used -= bufsize;
     }
-    TEXQL_ON_PERSISTENT_RELEASE(this);
+    if (!in_heap)
+      TEXQL_ON_PERSISTENT_RELEASE(this);
 
     g_buffers.lock();
     if (g_buffers.isIndexValid(tid))
@@ -148,43 +167,7 @@ namespace drv3d_metal
     tex_format = set_tex_format;
 
     if (tex_format != 0)
-    {
-      MTLPixelFormat metal_format = Texture::format2Metal(tex_format);
-
-      alignment = [render.device minimumLinearTextureAlignmentForPixelFormat:metal_format];
-      bufSizeUnaligned = bufSize = fmax(bufSize, alignment);
-
-      int widBytes, nBytes;
-      Texture::getStride(tex_format, 1, 1, 0, widBytes, nBytes);
-      int w = bufSize / widBytes;
-      int h = 1;
-
-      if (w > 4096)
-      {
-        w = 4096;
-        h = DivideRoundingUp(bufSize, 4096 * widBytes);
-        alignment = w * widBytes;
-        bufSizeUnaligned = bufSize = h * alignment;
-      }
-      else
-      {
-        if (bufSize % alignment != 0)
-        {
-          bufSizeUnaligned = bufSize = DivideRoundingUp(bufSize, alignment) * alignment;
-        }
-
-        alignment = bufSize;
-      }
-
-      pTexDesc = [[MTLTextureDescriptor texture2DDescriptorWithPixelFormat : metal_format
-                                                                    width : w
-                                                                   height : h
-                                                                mipmapped : NO] retain];
-
-      pTexDesc.usage = MTLTextureUsageShaderRead;
-      if (bufFlags & SBCF_BIND_UNORDERED)
-        pTexDesc.usage |= MTLTextureUsageShaderWrite;
-    }
+      bufSizeUnaligned = bufSize = createTexelViewDesc(bufSize);
 
     isDynamic = bufFlags & SBCF_DYNAMIC;
     fast_discard = bufFlags & SBCF_FRAMEMEM;
@@ -250,7 +233,46 @@ namespace drv3d_metal
     }
   }
 
-  Buffer::Buffer(id<MTLBuffer> buf, int buf_flags, const char* name)
+  uint32_t Buffer::getTexelViewLayout(uint32_t size, int tex_format, int &w, int &h, int &row_bytes)
+  {
+    int alignment = [render.device minimumLinearTextureAlignmentForPixelFormat:Texture::format2Metal(tex_format)];
+    size = max<uint32_t>(size, alignment);
+
+    int widBytes, nBytes;
+    Texture::getStride(tex_format, 1, 1, 0, widBytes, nBytes);
+    w = size / widBytes;
+    h = 1;
+
+    if (w > 4096)
+    {
+      w = 4096;
+      h = DivideRoundingUp(size, 4096 * widBytes);
+      row_bytes = w * widBytes;
+      return h * row_bytes;
+    }
+
+    size = DivideRoundingUp(size, alignment) * alignment;
+    row_bytes = size;
+    return size;
+  }
+
+  uint32_t Buffer::createTexelViewDesc(uint32_t size)
+  {
+    int w, h;
+    size = getTexelViewLayout(size, tex_format, w, h, alignment);
+
+    pTexDesc = [[MTLTextureDescriptor texture2DDescriptorWithPixelFormat : Texture::format2Metal(tex_format)
+                                                                  width : w
+                                                                 height : h
+                                                              mipmapped : NO] retain];
+
+    pTexDesc.usage = MTLTextureUsageShaderRead;
+    if (bufFlags & SBCF_BIND_UNORDERED)
+      pTexDesc.usage |= MTLTextureUsageShaderWrite;
+    return size;
+  }
+
+  Buffer::Buffer(id<MTLBuffer> buf, int ssize, int buf_flags, int set_tex_format, const char* name)
   {
     setName(name);
 
@@ -261,18 +283,28 @@ namespace drv3d_metal
     isDynamic = false;
     fast_discard = false;
 
-    tex_format = 0;
-    structSize = 4;
+    tex_format = set_tex_format;
+    structSize = buf_flags & SBCF_MISC_ALLOW_RAW ? 4 : ssize;
     bufSizeUnaligned = bufSize = buf.length;
     bufFlags = buf_flags;
     use_upload_buffer = true;
     storage = MTLResourceStorageModePrivate;
     max_buffers = Render::MAX_FRAMES_TO_RENDER;
 
-    D3D_CONTRACT_ASSERT(bufFlags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_UNORDERED));
+    D3D_CONTRACT_ASSERT(tex_format ||
+                        (bufFlags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_UNORDERED)));
+    D3D_CONTRACT_ASSERTF(tex_format == 0 ||
+                           (bufFlags & (SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_MISC_STRUCTURED | SBCF_MISC_ALLOW_RAW)) == 0,
+                         "can't create buffer with texture format which is Structured, Vertex, Index or Raw");
+
+    if (tex_format != 0)
+    {
+      createTexelViewDesc(bufSize);
+      pTexDesc.resourceOptions = storage;
+    }
 
     cur_buffer = new BufTex(bufSize, bufFlags);
-    cur_buffer->create(buf, name);
+    cur_buffer->create(buf, pTexDesc, alignment, tex_format, name);
     cur_render_buffer = cur_buffer;
   }
 
@@ -556,12 +588,16 @@ namespace drv3d_metal
 #endif
       return nullptr;
     }
-    return dynamic_buffer ? dynamic_buffer : cur_render_buffer->buffer;
+    if (dynamic_buffer)
+      return dynamic_buffer;
+    return cur_render_buffer->buffer;
   }
 
   Texture* Buffer::getTexture()
   {
-    return cur_render_buffer ? cur_render_buffer->texture : nullptr;
+    if (!cur_render_buffer)
+      return nullptr;
+    return cur_render_buffer->texture;
   }
 
   void Buffer::destroy()

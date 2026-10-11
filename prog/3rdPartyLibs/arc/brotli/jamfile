@@ -19,4 +19,7 @@ local AllSrcFolder_C =
 
 AutoscanBuildLists $(AllSrcFolder_C) : *.c       : Sources ;
 
+# constraint: a binary that links system OpenSSL loads the system brotli, so it must not export ours
+if $(Platform) = linux && brotli in $(ExcludeStaticLibSymbols) { AddLibs += --exclude-libs,$(Target:D=) ; }
+
 include $(Root)/prog/_jBuild/build.jam ;

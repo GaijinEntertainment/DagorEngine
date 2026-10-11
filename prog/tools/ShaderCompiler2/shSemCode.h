@@ -18,10 +18,14 @@
 #include "shVarBool.h"
 #include "shaderVariantSrc.h"
 #include <shaders/slotTexturesRange.h>
+#include "framebufferLayout.h"
 #include "shaderBytecodeCache.h"
 #include "preshaderCompilation.h"
 #include <memory/dag_regionMemAlloc.h>
 #include <EASTL/optional.h>
+#include <EASTL/string.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <osApiWrappers/dag_stackHlp.h>
 
@@ -43,7 +47,7 @@ struct SemanticShaderPass
     bool psOrCs : 1 = false;
   };
 
-  FSHTYPE fshver;
+  FSHTYPE fshver = 0;
   ShaderStageData fsh;
   ShaderStageData vpr;
   ShaderStageData hs, ds, gs;
@@ -84,6 +88,36 @@ struct SemanticShaderPass
   bool ps30 : 1;
 
   ShaderCode::Pass *target = nullptr;
+
+  RenderPassOptInRef renderPassOptIn;
+  Terminal *renderPassDeclTerm = nullptr;
+  PixelShaderOutputInfo psOutputInfo{};
+  struct PsOutputField
+  {
+    eastl::string name;
+    eastl::string type;
+    eastl::string target;
+    FramebufferFormatClass cls = FramebufferFormatClass::Float;
+    int components = 0;
+  };
+  // Not in equal(): identical bytecode implies an identical struct.
+  struct PsOutput
+  { //-V802
+    eastl::string structHlsl;
+    eastl::vector<PsOutputField> fieldBySlot;
+    // field name, why the opt-in dropped it
+    eastl::vector<eastl::pair<eastl::string, eastl::string>> droppedFields;
+    Terminal *structTerm = nullptr;
+    uint32_t structMask = 0;
+    bool hasSrc1 = false;
+    bool hasCoverage = false;
+    bool declared() const { return !structHlsl.empty(); }
+  };
+  PsOutput psOutput;
+  dag::ConstSpan<char> sourcePrefix(int hlsl_stage) const
+  {
+    return hlsl_stage == HLSL_PS ? make_span_const(psOutput.structHlsl.c_str(), psOutput.structHlsl.length()) : dag::ConstSpan<char>{};
+  }
 
   static constexpr eastl::array<ShaderStageData SemanticShaderPass::*, HLSL_COUNT> BYTECODE_MEMBERS_MAPPING = {
     &SemanticShaderPass::fsh, // HLSL_PS
@@ -148,7 +182,7 @@ public:
   struct Var
   {
     int nameId;
-    ShaderVarType type;
+    ShaderVarType type = SHVT_UNKNOWN;
     int slot = -1;
     ShaderVarTextureType texType = ShaderVarTextureType::SHVT_TEX_UNKNOWN;
     void *terminal;

@@ -249,6 +249,28 @@ void ColorDialog::show()
   DialogWindow::show();
 }
 
+void ColorDialog::hide(int result)
+{
+  const bool wasVisible = isVisible();
+
+  DialogWindow::hide(result);
+
+  // The color is settled now, so the handler gets it as its last report and needs no result of its own.
+  // Only the close that hid the dialog reports, and anything but OK settles on the color it started from.
+  if (wasVisible)
+    reportColor(dialogResult == DIALOG_ID_OK ? mColor : mOldColor);
+}
+
+// The HSV plots send a change per drag frame, so only a real color change may reach the handler.
+void ColorDialog::reportColor(E3DCOLOR color)
+{
+  if (!changeHandler || color == reportedColor)
+    return;
+
+  reportedColor = color;
+  changeHandler->onColorDialogChange(color);
+}
+
 void ColorDialog::onChange(int pcb_id, ContainerPropertyControl *panel)
 {
   if (pcb_id >= ID_PALETTE_CELL_FIRST && pcb_id < ID_PALETTE_CELL_LAST)
@@ -352,6 +374,8 @@ void ColorDialog::onChange(int pcb_id, ContainerPropertyControl *panel)
     panel->setText(ID_EDIT_FLOAT,
       String(0, "%.3f, %.3f, %.3f, %.3f", mColor.r / 255.f, mColor.g / 255.f, mColor.b / 255.f, mColor.a / 255.f).c_str());
   }
+
+  reportColor(mColor);
 }
 
 void ColorDialog::onClick(int pcb_id, ContainerPropertyControl *panel)

@@ -834,7 +834,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
     if (::hdr_render_mode != HDR_MODE_FLOAT && current.hdrDarkThreshold > ::hdr_max_overbright)
       hasGlow = false;
 
-    if (current.hdrGlowMul <= 0.0)
+    if (current.hdrGlowMul <= 0.0f)
     {
       hasGlow = false;
     }

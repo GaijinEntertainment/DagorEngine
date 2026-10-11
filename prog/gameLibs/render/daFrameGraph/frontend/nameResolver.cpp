@@ -35,10 +35,10 @@ NameResolver::Changes NameResolver::update(const NodesChanged &node_changed)
 
   updateMapping();
 
-  for (auto [resId, wasResolvedTo] : prevResolvedNameForResource.enumerate())
+  for (auto &&[resId, wasResolvedTo] : prevResolvedNameForResource.enumerate())
     result.nameResolutionChanged.set<ResNameId>(resId, wasResolvedTo != resolve(resId));
 
-  for (auto [autoResTypeId, wasResolvedTo] : prevResolvedNameForAutoResType.enumerate())
+  for (auto &&[autoResTypeId, wasResolvedTo] : prevResolvedNameForAutoResType.enumerate())
     result.nameResolutionChanged.set<AutoResTypeNameId>(autoResTypeId, wasResolvedTo != resolve(autoResTypeId));
 
   updateInverseMapping(result.nodesWithChangedRequests, prevResolvedNameForResource, node_changed, result.nameResolutionChanged);
@@ -74,7 +74,7 @@ void NameResolver::updateMapping()
   // name lookup.
   IdIndexedFlags<ResNameId, framemem_allocator> resourceValid(registry.knownNames.nameCount<ResNameId>(), false);
   IdIndexedFlags<NodeNameId, framemem_allocator> nodeValid(registry.knownNames.nameCount<NodeNameId>(), false);
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
   {
     if (!nodeData.declare)
       continue;
@@ -84,7 +84,7 @@ void NameResolver::updateMapping()
     for (auto [to, from] : nodeData.renamedResources)
       resourceValid[to] = true;
   }
-  for (auto [resId, data] : registry.resourceSlots.enumerate())
+  for (auto &&[resId, data] : registry.resourceSlots.enumerate())
     if (data.has_value())
     {
       auto &slot = data.value();
@@ -92,7 +92,7 @@ void NameResolver::updateMapping()
       resourceValid[resId] = true;
     }
   IdIndexedFlags<AutoResTypeNameId, framemem_allocator> autoResTypeValid(registry.knownNames.nameCount<AutoResTypeNameId>(), false);
-  for (auto [autoResTypeId, data] : registry.autoResTypes.enumerate())
+  for (const auto &[autoResTypeId, data] : registry.autoResTypes.enumerate())
   {
     const bool positive = eastl::visit(
       [&](const auto &values) {
@@ -144,7 +144,7 @@ void NameResolver::updateInverseMapping(NodesChanged &out_nodes_with_changed_req
     inv_mapping[resolve(unresolved_res_id)].push_back(unresolved_res_id);
   };
 
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
   {
     auto &nodeInverseMapping = inverseMapping[nodeId];
     auto &nodeInverseHistoryMapping = inverseHistoryMapping[nodeId];

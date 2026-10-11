@@ -26,11 +26,9 @@ def test_long_enumerate(t : T?) {
     arr[3] = 40
     var sum_idx = 0_l
     var sum_val = 0
-    unsafe {
-        for ((i, v) in long_enumerate(each(arr))) {
-            sum_idx += i
-            sum_val += v
-        }
+    for ((i, v) in long_enumerate(unsafe(each(arr)))) {
+        sum_idx += i
+        sum_val += v
     }
     t |> equal(sum_idx, 0_l + 1_l + 2_l + 3_l)
     t |> equal(sum_val, 100)

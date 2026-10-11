@@ -481,6 +481,8 @@ int create_bvh_node_sah(Tab<bbox3f> &nodes, bbox3f *boxes, const uint32_t boxes_
 {
   if (boxes_cnt == 0)
     return (int)nodes.size();
+  // 2n bounds the tree; reserved before scratch
+  nodes.reserve(nodes.size() + boxes_cnt * 2);
 
   // Presort: axis 0 in-place (boxes become the implicit axis-0 ordering), idx1/idx2 are
   // index arrays revealing axis-1/2 orderings. Maintained through partitionNode at every split.
@@ -549,13 +551,13 @@ int create_bvh_node_sah(Tab<bbox3f> &nodes, bbox3f *boxes, const uint32_t boxes_
   h.idx1 = useAxis1 ? idx1.data() : nullptr;
   h.idx2 = idx2.data();
 
-  nodes.reserve(nodes.size() + boxes_cnt * 3 / 2);
+  // member order: the destructor frees in reverse
   h.area.reserve(boxes_cnt);
   h.mark.reserve(boxes_cnt);
   h.remap.reserve(boxes_cnt);
-  h.tempBoxes.reserve(boxes_cnt);
   h.tempIdx.reserve(boxes_cnt);
   h.tempIdx2.reserve(boxes_cnt);
+  h.tempBoxes.reserve(boxes_cnt);
 
   int ret = createBVHNodeSAH(boxes, boxes + boxes_cnt, h);
   max_depth = max(max_depth, h.maxDepth);
@@ -583,9 +585,6 @@ template <class IdxT>
 unsigned leafOrderVertexFetch(IdxT *idx, unsigned idxCount, const vec4f *srcVerts, unsigned srcVertCount, dag::Vector<vec4f> &outVerts,
   int minOff, int maxOff)
 {
-  // The SAH build releases its workspaces out of order; framemem returns only its newest block, so
-  // without a region every build leaves them in the arena.
-  FRAMEMEM_REGION;
   // LEAF_OFF_DEFAULT means "default leaf-offset window": resolve to the quad-BLAS range before it reaches
   // dedupWindowDup, which derives blockCap from maxOff and must never see the sentinel. minOff is a real
   // signed bound that may legitimately be negative, so test the exact sentinel rather than minOff < 0.

@@ -1,20 +1,39 @@
 include "shader_global.dshl"
 texture prev_frame_tex;
 texture prev_downsampled_far_depth_tex;
+int bvh_prev_frame_tex_index = -1;
+int bvh_prev_downsampled_far_depth_tex_index = -1;
 
-define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
+define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code, use_bindless)
   INIT_HDR(code)
   USE_HDR(code)
   USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
-  (code) {
-    prev_frame_tex@smp2d = prev_frame_tex;
-    prev_downsampled_far_depth_tex@smp2d = prev_downsampled_far_depth_tex;
+  if (use_bindless)
+  {
+    (code) {
+      bvh_prev_frame_tex_index@u1 = bvh_prev_frame_tex_index;
+      bvh_prev_downsampled_far_depth_tex_index@u1 = bvh_prev_downsampled_far_depth_tex_index;
+    }
+    INIT_GLOBAL_POINT_CLAMP_SAMPLER(code)
+    hlsl(code) {
+      #define prev_frame_tex                              (uniformBindlessTex2D(bvh_textures, bvh_prev_frame_tex_index))
+      #define prev_frame_tex_samplerstate                 bvh_clamp_sampler
+      #define prev_downsampled_far_depth_tex              (uniformBindlessTex2D(bvh_textures, bvh_prev_downsampled_far_depth_tex_index))
+      #define prev_downsampled_far_depth_tex_samplerstate global_point_clamp_sampler
+    }
+  }
+  else
+  {
+    (code) {
+      prev_frame_tex@smp2d = prev_frame_tex;
+      prev_downsampled_far_depth_tex@smp2d = prev_downsampled_far_depth_tex;
+    }
   }
   hlsl(code) {
     #define HAS_PREV_FRAME_RADIANCE 1
     half3 sample_prev_frame_radiance_unsafe(float2 uv)
     {
-      return unpack_hdr(tex2Dlod(prev_frame_tex, float4(uv,0,0)).xyz);//as it is called before new adaptation applied, we just use current exposure
+      return unpack_hdr(prev_frame_tex.SampleLevel(prev_frame_tex_samplerstate, uv, 0).xyz);//as it is called before new adaptation applied, we just use current exposure
     }
 
     float3 calc_relative_pos(float2 uv, float w)
@@ -36,7 +55,7 @@ define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
         if (allow_uncertaincy)
         {
           float2 uv0 = prevUVW.xy;
-          float depth0 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(uv0, 0, 0)).r, sp_prev_zn_zfar.zw);//fixme : prev
+          float depth0 = linearize_z(prev_downsampled_far_depth_tex.SampleLevel(prev_downsampled_far_depth_tex_samplerstate, uv0, 0).r, sp_prev_zn_zfar.zw);//fixme : prev
          //check certaincy using previous depth and compare with prevUVW.z
           if (abs(prevUVW.z - depth0) > 0.1*min(prevUVW.z, depth0))
             return false;
@@ -44,8 +63,8 @@ define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
           float2 uv1 = prevUVW.xy + screen_pos_to_lowres_tc(float2(1, 0));
           float2 uv2 = prevUVW.xy + screen_pos_to_lowres_tc(float2(0, 1));
 
-          float depth1 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(uv1, 0, 0)).r, sp_prev_zn_zfar.zw);
-          float depth2 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(uv2, 0, 0)).r, sp_prev_zn_zfar.zw);
+          float depth1 = linearize_z(prev_downsampled_far_depth_tex.SampleLevel(prev_downsampled_far_depth_tex_samplerstate, uv1, 0).r, sp_prev_zn_zfar.zw);
+          float depth2 = linearize_z(prev_downsampled_far_depth_tex.SampleLevel(prev_downsampled_far_depth_tex_samplerstate, uv2, 0).r, sp_prev_zn_zfar.zw);
 
           float3 wm = calc_relative_pos(uv0, depth0);
           float3 wx = calc_relative_pos(uv1, depth1);

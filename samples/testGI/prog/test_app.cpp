@@ -49,7 +49,6 @@
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiPointing.h>
 #include "de3_freeCam.h"
-#include "de3_visibility_finder.h"
 #include <gui/dag_stdGuiRender.h>
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_perfMonStat.h>
@@ -63,8 +62,8 @@
 #include <render/sphHarmCalc.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <render/cascadeShadows.h>
-#include <render/ssao.h>
-#include <render/gtao.h>
+#include <ssao_public.h>
+#include <gtao_public.h>
 #include <render/lights/omniLightsManager.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_TMatrix4more.h>
@@ -72,6 +71,7 @@
 #include <math/dag_viewMatrix.h>
 #include <math/dag_frustum.h>
 #include <math/dag_math3d.h>
+#include <math/dag_adjpow2.h>
 #include <math/random/dag_random.h>
 #include <gui/dag_visConsole.h>
 #include <screenShotSystem/dag_screenShotSystem.h>
@@ -81,19 +81,21 @@
 #include <render/lightCube.h>
 #include <drv/3d/dag_rwResource.h>
 #include <daSWRT/swBVH.h>
-#include <daSWRT/swBLASBoxResemblance.h>
+#include <levelSwrt.h>
 #include <drv/3d/dag_lock.h>
-#include <util/dag_parallelForInline.h>
 #include <memory/dag_framemem.h>
 
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <util/dag_delayedAction.h>
+#include <util/dag_parallelForInline.h>
+#include <landMesh/lmeshCulling.h>
 #include <util/dag_oaHashNameMap.h>
 #include <math/dag_geomTree.h>
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
 #include <render/deferredRenderer.h>
 #include <render/downsampleDepth.h>
+#include <render/whiteTex.h>
 #include <screenSpaceReflections_api.h>
 #include <render/preIntegratedGF.h>
 #include <render/viewVecs.h>
@@ -111,7 +113,8 @@
 #include <render/debugTexOverlay.h>
 #include <render/cameraPositions.h>
 #include <shaders/dag_DynamicShaderHelper.h>
-#include <render/toroidalStaticShadows.h>
+#include <render/staticShadowsCB.h>
+#include <render/viewTransformData.h>
 #include <render/upscale/upscaleSampling.h>
 #include <daEditorE/daEditorE.h>
 #include "entEdit.h"
@@ -136,12 +139,12 @@
 
 #include "de3_benchmark.h"
 #include "lruCollision.h"
-#include <rendInst/riCollisionDump.h>
 #include <render/toroidal_update.h>
 #include <profileEventsGUI/profileEventsGUI.h>
 #include <scene/dag_visibility.h>
 #include <shaders/dag_renderScene.h>
 #include <render/heightmapShadows/heightmapShadows.h>
+#include <gameLibs/render/raytracedToroidalStaticShadow/raytracedToroidalStaticShadow_api.h>
 #include "depthAround.h"
 
 #include <SnapdragonSuperResolution/SnapdragonSuperResolution.h>
@@ -178,8 +181,6 @@ typedef StrmSceneHolder scene_type_t;
   VAR(view_vecLB)                                    \
   VAR(view_vecRB)                                    \
   VAR(world_view_pos)                                \
-  VAR(upscale_half_res_depth_tex)                    \
-  VAR(upscale_half_res_depth_tex_samplerstate)       \
   VAR(lowres_tex_size)                               \
   VAR(downsampled_far_depth_tex)                     \
   VAR(downsampled_far_depth_tex_samplerstate)        \
@@ -192,7 +193,6 @@ typedef StrmSceneHolder scene_type_t;
   VAR(downsampled_normals)                           \
   VAR(downsampled_normals_samplerstate)              \
   VAR(prev_downsampled_normals)                      \
-  VAR(prev_downsampled_normals_samplerstate)         \
   VAR(from_sun_direction)                            \
   VAR(shadow_frame)                                  \
   VAR(rasterize_collision_type)                      \
@@ -203,6 +203,9 @@ typedef StrmSceneHolder scene_type_t;
 #define GLOBAL_VARS_OPT_LIST                           \
   VAR(downsampled_checkerboard_depth_tex)              \
   VAR(downsampled_checkerboard_depth_tex_samplerstate) \
+  VAR(upscale_half_res_depth_tex)                      \
+  VAR(upscale_half_res_depth_tex_samplerstate)         \
+  VAR(prev_downsampled_normals_samplerstate)           \
   VAR(sphere_time)                                     \
   VAR(dagi_sp_has_exposure_assume)                     \
   VAR(lmesh_height_tex)                                \
@@ -229,7 +232,10 @@ typedef StrmSceneHolder scene_type_t;
   VAR(globtm_no_ofs_psf_1)                             \
   VAR(globtm_no_ofs_psf_2)                             \
   VAR(globtm_no_ofs_psf_3)                             \
-  VAR(use_hw_rt_gi)
+  VAR(use_hw_rt_gi)                                    \
+  VAR(rtss_screen_filter_mode)                         \
+  VAR(rtss_screen_radius)                              \
+  VAR(rtss_reference)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_OPT_LIST
@@ -278,6 +284,7 @@ static void init_webui(const DataBlock *debug_block)
     webui::plugin_lists[1] = test_http_plugins;
     webui::Config cfg;
     memset(&cfg, 0, sizeof(cfg));
+    cfg.bindPort = debug_block->getInt("http_port", 0);
     webui::startup(&cfg);
   }
 }
@@ -343,17 +350,16 @@ CONSOLE_FLOAT_VAL_MINMAX("render", taa_frame_weight_dynamic_min, 0.15f, 0, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_sharpening, 0.2f, 0, 1.f);
 CONSOLE_FLOAT_VAL_MINMAX("render", taa_clamping_gamma, 1.2f, 0.1, 3.f);
 CONSOLE_INT_VAL("render", taa_subsamples, 4, 1, 16);
-CONSOLE_BOOL_VAL("shadows", render_static_shadows_every_frame, false);
 
 CONSOLE_FLOAT_VAL_MINMAX("render", bvh_radius, 0, 0, 10000); // 0 = match world SDF far distance
+CONSOLE_INT_VAL("render", hmap_max_grid_cells, 256, 32, 1024);
+CONSOLE_FLOAT_VAL_MINMAX("render", hmap_max_grid_cell_size, 8, 1, 64);
+
+CONSOLE_BOOL_VAL("rtss", freeze, false);
+CONSOLE_BOOL_VAL("rtss", terrain, true); // off: no heightmap raster and no max grid, for the rtss and the GI trace
+CONSOLE_BOOL_VAL("rtss", reference, false);
 
 ConVarI sleep_msec_val("sleep_msec", 0, 0, 1000, NULL);
-
-struct IRenderDynamicCubeFace2
-{
-  virtual void renderLightProbeOpaque(const TMatrix &view_tm, const TMatrix4 &proj_tm) = 0;
-  virtual void renderLightProbeEnvi(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp) = 0;
-};
 
 class RenderDynamicCube
 {
@@ -378,13 +384,14 @@ public:
     target = eastl::make_unique<DeferredRenderTarget>("deferred_simple", "cube", cube_size, cube_size,
       DeferredRT::StereoMode::MonoOrMultipass, 0, gbuf_rt, gbuf_fmts, TEXFMT_DEPTH24);
   }
-  void update(const ManagedTex *cubeTarget, IRenderDynamicCubeFace2 &cb, const Point3 &pos)
+  template <typename Opaque, typename Envi>
+  void update(const ManagedTex *cubeTarget, const Point3 &pos, Opaque opaque, Envi envi)
   {
     ShaderGlobal::set_float4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
     float prev_pre_exposure = ShaderGlobal::get_float(get_shader_variable_id("pre_exposure", true));
     ShaderGlobal::set_float(get_shader_variable_id("pre_exposure"), 1);
-    Driver3dRenderTarget prevRT;
-    d3d::get_render_target(prevRT);
+    SCOPE_RENDER_TARGET;
+    SCOPE_VIEW_PROJ_MATRIX;
     float zn = 0.05, zf = 100;
     ShaderGlobal::set_float4(zn_zfarVarId, zn, zf, 0, 0);
     static int light_probe_posVarId = get_shader_variable_id("light_probe_pos", true);
@@ -394,78 +401,30 @@ public:
       target->setRt();
       const Driver3dPerspective persp(1, 1, zn, zf, 0, 0);
       TMatrix4 projTm;
-      d3d::setpersp(persp, &projTm);
+      d3d::calcproj(persp, projTm);
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       cameraMatrix.setcol(3, pos);
       TMatrix viewTm = orthonormalized_inverse(cameraMatrix);
-      d3d::settm(TM_VIEW, viewTm);
+      const RenderView view(viewTm, projTm, pos);
 
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 
-      cb.renderLightProbeOpaque(viewTm, projTm);
+      opaque(view);
+      view.bind();
       target->resolve(shadedTarget.getTex2D(), viewTm, projTm);
       d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{shadedTarget.getTex2D(), 0, 0}});
 
       // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
-      cb.renderLightProbeEnvi(viewTm, projTm, persp);
+      view.bind();
+      envi(view, persp);
       // save_rt_image_as_tga(shadedTarget.getTex2D(), String(128, "cube%s.tga", i));
 
       d3d::set_render_target({}, DepthAccess::RW, {{cubeTarget->getCubeTex(), 0, static_cast<uint32_t>(i)}});
       d3d::settex(2, shadedTarget.getTex2D());
       copy.render();
     }
-    d3d::set_render_target(prevRT);
     ShaderGlobal::set_float(get_shader_variable_id("pre_exposure"), prev_pre_exposure);
   }
-};
-
-
-class IntProperty
-{
-  int mValue = -1;
-  int mPrevValue = -1;
-
-public:
-  template <typename Type>
-  IntProperty(Type value) : mValue((Type)value)
-  {}
-  bool pullValueChange()
-  {
-    bool ret = mPrevValue != mValue;
-    mPrevValue = mValue;
-    return ret;
-  }
-  template <typename Type>
-  operator Type() const
-  {
-    return (Type)mValue;
-  }
-  int *operator&() { return &mValue; }
-  int get() const { return mValue; }
-};
-
-class FloatProperty
-{
-  float mValue = -1;
-  float mPrevValue = -1;
-
-public:
-  template <typename Type>
-  FloatProperty(Type value) : mValue((Type)value)
-  {}
-  bool pullValueChange()
-  {
-    bool ret = mPrevValue != mValue;
-    mPrevValue = mValue;
-    return ret;
-  }
-  template <typename Type>
-  operator Type() const
-  {
-    return (Type)mValue;
-  }
-  float get() const { return mValue; }
-  float *operator&() { return &mValue; }
 };
 
 CONSOLE_BOOL_VAL("render", rasterize_debug_collision, false);
@@ -489,18 +448,45 @@ void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &info)
 }
 } // namespace bvh
 
-class DemoGameScene final : public DagorGameScene, public IRenderDynamicCubeFace2, public ICascadeShadowsClient
+static constexpr RaytracedToroidalStaticShadowSettings RTSS_DEFAULTS{};
+
+class DemoGameScene final : public DagorGameScene, public ICascadeShadowsClient
 {
 public:
   RenderSWRT swrt;
+  eastl::unique_ptr<RaytracedToroidalStaticShadow> rtss;
+  BBox3 rtssWorldBox;
+  double rtssLastTime = DBL_MAX; // constraint: real_time comes from a wrapping int of microseconds, so it can step back
+  Point3 rtssLastCamPos = Point3(0, 0, 0), cameraMoveVel = Point3(0, 0, 0);
+  uint32_t rtssLruRevision = 0, rtssHwMask = 0;
+  int rtssFramesSinceJob = 0;
   CascadeShadows *csm = nullptr;
   static DemoGameScene *the_scene;
-  VisibilityFinder visibilityFinder;
   struct ViewLodSelect
   {
-    vec4f vp = v_zero();
-    TMatrix4 proj = TMatrix4::IDENT;
-  } current;
+    const LandMeshCullingData *lmesh;
+    const dag::Vector<uint64_t> *collision;
+    ViewLodSelect() : lmesh(nullptr), collision(nullptr) {}
+  };
+  struct Geometry
+  {
+    StrmSceneHolder *level;
+    DynamicRenderableSceneInstance *trees;
+    int treeCount;
+    LRUCollision *collision;
+    DynamicShaderHelper *spheres;
+    float sphereTime;
+    bool lmesh;
+    bool terrain;
+    BBox2 hmapGridWindow;
+  };
+  Geometry geometry()
+  {
+    return {land_panel.level ? binScene : nullptr, land_panel.trees && trees.get() ? test : nullptr, testCount,
+      land_panel.collision && rasterize_gbuf_collision ? &lruColl : nullptr, land_panel.spheres ? &drawSpheres : nullptr,
+      current_sphere_time, land_panel.lmesh, ::terrain, hmapGridWindow};
+  }
+  eastl::optional<eastl::pair<Point3, mat44f>> frozenView; // position and culling of render.stop_camera
   Point4 getCascadeShadowAnchor(int cascade_no) override
   {
     TMatrix itm;
@@ -509,9 +495,7 @@ public:
   }
   virtual void renderCascadeShadowDepth(int cascade_no, const Point2 &)
   {
-    d3d::settm(TM_VIEW, TMatrix::IDENT);
-    d3d::settm(TM_PROJ, &csm->getWorldRenderMatrix(cascade_no));
-    renderOpaque(current, (mat44f_cref)csm->getWorldCullingMatrix(cascade_no), false, true);
+    G_ASSERTF(false, "Use renderShadowsCascadesCb with explicit view data");
   }
 
   virtual void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum &, float &out_min_sparse_dist,
@@ -522,6 +506,36 @@ public:
   }
 
   Point3 dir_to_sun;
+  float sunAnimDt = 0;
+  Point3 sliderDirToSun() const
+  {
+    const float zenith = DegToRad(sun_panel.sun_zenith), azimuth = DegToRad(sun_panel.sun_azimuth);
+    return Point3(sinf(zenith) * cosf(azimuth), cosf(zenith), sinf(zenith) * sinf(azimuth));
+  }
+  float dayRate() const { return 2.f * PI / (sun_panel.day_minutes * 60.f); }
+  void animateSun(float dt)
+  {
+    const float skipMinutes = sun_panel.time_skip ? 30.f : 0.f;
+    sun_panel.time_skip = false;
+    sunAnimDt = sun_panel.animate && skipMinutes == 0 ? dt : 0.f;
+    if (sun_panel.astronomical)
+    {
+      if (sun_panel.animate)
+        sun_panel.time += dt * 24.f / (sun_panel.day_minutes * 60.f);
+      // constraint: julian_day is linear in a day past the month end and in a time below 0, but its day is unsigned
+      const int days = max(int(floorf((sun_panel.time + skipMinutes / 60.f) / 24.f)), 1 - sun_panel.day);
+      sun_panel.day += days;
+      sun_panel.time += skipMinutes / 60.f - days * 24.f;
+      return;
+    }
+    if (!sun_panel.animate && skipMinutes == 0)
+      return;
+    const Point3 axis(0, cosf(DegToRad(sun_panel.axis_tilt)), sinf(DegToRad(sun_panel.axis_tilt)));
+    const float angle = (sun_panel.animate ? dayRate() * dt : 0.f) + skipMinutes * (2.f * PI / (24.f * 60.f));
+    const Point3 dir = Quat(axis, angle) * sliderDirToSun();
+    sun_panel.sun_zenith = RadToDeg(acosf(clamp(dir.y, -1.f, 1.f)));
+    sun_panel.sun_azimuth = fmodf(RadToDeg(atan2f(dir.z, dir.x)) + 360.f, 360.f);
+  }
   void setDirToSun()
   {
     float gmtTime = sun_panel.time;
@@ -538,9 +552,7 @@ public:
     }
     else
     {
-      dir_to_sun.x = sin(DegToRad(sun_panel.sun_zenith)) * cos(DegToRad(sun_panel.sun_azimuth));
-      dir_to_sun.z = sin(DegToRad(sun_panel.sun_zenith)) * sin(DegToRad(sun_panel.sun_azimuth));
-      dir_to_sun.y = cos(DegToRad(sun_panel.sun_zenith));
+      dir_to_sun = sliderDirToSun();
       daSkies.setMoonDir(-dir_to_sun);
       daSkies.setMoonAge(sun_panel.moon_age);
     }
@@ -615,8 +627,9 @@ public:
 
     // src is the half-res depth width; the checkerboard target is ceil(src/2) so its last column
     // still maps to the last source column (shader maps dtId.x -> 2*dtId.x + parity).
+    const bool checkerboard = swrt_shadow_use_checkerboard && !reference;
     const int srcW = target->getWidth() >> 1;
-    const int halfW = swrt_shadow_use_checkerboard ? (srcW + 1) / 2 : srcW, halfH = target->getHeight() >> 1;
+    const int halfW = checkerboard ? (srcW + 1) / 2 : srcW, halfH = target->getHeight() >> 1;
     if (halfW != ti.w || halfH != ti.h)
     {
       swrt_shadow_target.close();
@@ -624,8 +637,14 @@ public:
     }
     if (bvhCtx != bvh::InvalidContextId)
       bvh::bind_resources(bvhCtx, target->getWidth()); // swrt hw rt mode traces the context's main TLAS (render meshes, RTSM only)
-    swrt.renderShadows(dir_to_sun, sun_size, shadow_frame, swrt_shadow_use_checkerboard ? shadow_frame : 0, srcW,
+    // constraint: the SWRT early-out copies combined_shadows, which holds the rtss term that view 5 checks
+    ShaderGlobal::set_int(rtss_referenceVarId, reference ? 1 : 0);
+    if (reference)
+      ShaderGlobal::set_texture(combined_shadows.getVarId(), get_white_on_demand());
+    swrt.renderShadows(dir_to_sun, reference ? 0.f : sun_size, shadow_frame, checkerboard ? shadow_frame : 0, srcW,
       swrt_shadow_mask.getBuf(), swrt_shadow_target.getTex2D(), true);
+    if (reference)
+      combined_shadows.setVar();
   }
   void combineShadows()
   {
@@ -643,6 +662,8 @@ public:
     if (daGI2)
       daGI2->afterReset();
     mediaVolumes.afterReset();
+    rtss->afterDeviceReset();
+    giHmapMaxGrid.close(); // constraint: the grid owner closes it after a device reset (heightmapMaxGrid.h)
   }
 
   void invalidateGI()
@@ -668,27 +689,120 @@ public:
   };
   void updateSSGIPos(const Point3 &pos_)
   {
-    update_visibility_finder(visibilityFinder);
     float giUpdateDist = min(64.f, 0.5f * min(sceneBox.width().x, min(sceneBox.width().y, sceneBox.width().z)));
-    BBox3 shBox = staticShadows->getWorldBox();
-    Point3 pos = min(max(pos_, shBox[0] + Point3(giUpdateDist, giUpdateDist, giUpdateDist)),
-      shBox[1] - Point3(giUpdateDist, giUpdateDist, giUpdateDist));
-    if (++giUpdatePosFrameCounter <= MAX_GI_FRAMES_TO_INVALIDATE_POS) // if frames passed < threshold
-    {
-      BBox3 checkBox(pos, giUpdateDist);
-      checkBox[0] = max(checkBox[0], shBox[0]);
-      checkBox[1] = min(checkBox[1], shBox[1]);
-      if (!staticShadows->isInside(checkBox)) // we are not even inside static shadows
-        return;
-      if (!staticShadows->isValid(BBox3(pos, giUpdateDist))) // static shadows are invalid
-        return;
-      if (giUpdatePosFrameCounter == 1 && !staticShadows->isCompletelyValid(BBox3(pos, giUpdateDist))) // if static shadows are fully
-                                                                                                       // updated, render immediately,
-                                                                                                       // otherwise try to wait for one
-                                                                                                       // frame
-        return;
-    }
+    Point3 pos = pos_;
+    if (!rtssWorldBox.isempty())
+      pos = min(max(pos, rtssWorldBox[0] + Point3(giUpdateDist, giUpdateDist, giUpdateDist)),
+        rtssWorldBox[1] - Point3(giUpdateDist, giUpdateDist, giUpdateDist));
+    const bool waitForShadows = ++giUpdatePosFrameCounter <= MAX_GI_FRAMES_TO_INVALIDATE_POS;
+    if (waitForShadows && !rtss->isReady(BBox3(pos, giUpdateDist)))
+      return;
     giUpdatePosFrameCounter = 0;
+  }
+
+  static constexpr int HYBRID_HW_RASTER_LEVELS = 2;
+  // constraint: the collision TLAS streams only within its radius, so the coarse levels trace SWRT
+  uint32_t rtssHwLevelMask() const
+  {
+    const bool hwRecipe = rtss_panel.recipe == RTSS_HWRT || rtss_panel.recipe == RTSS_HYBRID_HW;
+    const uint32_t traced = rtss_panel.recipe == RTSS_HYBRID_HW ? ~((1u << HYBRID_HW_RASTER_LEVELS) - 1) : ~0u;
+    return hwRecipe && hwRtAvailable() ? ((1u << eastl::clamp(rtss_panel.hwLevels, 0, RTSS_MAX_LEVELS)) - 1) & traced : 0;
+  }
+  RaytracedToroidalStaticShadowSettings rtssSettings(uint32_t hw) const
+  {
+    RaytracedToroidalStaticShadowSettings settings = rtss_panel;
+    // constraint: atan2 sees a wrapped travel as a short step, so a frame whose day travel can pass 60 deg gives no rate
+    const float dayStep = sunAnimDt * dayRate();
+    settings.sunJumpDeg = dayStep <= PI / 3 ? RadToDeg(1.5f * dayStep) : 0.f;
+    for (int k = 0; k < settings.levels; ++k)
+    {
+      RtssRaster raster = RtssRaster::None;
+      if (rtss_panel.recipe == RTSS_RASTER)
+        raster = RtssRaster::All;
+      else if (rtss_panel.recipe == RTSS_HYBRID_SW)
+        raster = settings.texel0 * float(1 << k) <= rtss_panel.rasterMaxTexel * 1.001f ? RtssRaster::All : RtssRaster::Augment;
+      else if (rtss_panel.recipe == RTSS_HYBRID_HW)
+        raster = k < HYBRID_HW_RASTER_LEVELS ? RtssRaster::All : RtssRaster::Augment;
+      if (raster != RtssRaster::All && !(hw & (1u << k)) && !swrt.hasData())
+        raster = RtssRaster::All;
+      const float cost = raster == RtssRaster::All       ? rtss_panel.rasterCost
+                         : raster == RtssRaster::Augment ? rtss_panel.augmentCost
+                                                         : 1.f;
+      settings.recipes[k] = {raster, cost};
+    }
+    return settings;
+  }
+  // constraint: the collision TLAS carries no terrain, so the gi trace and the rtss complete it with this window
+  BBox2 hmapGridWindow; // the terrain the trace holds, empty while the grid is closed
+  void updateHmapMaxGrid(const Point3 &pos)
+  {
+    const int cells = get_bigger_pow2(hmap_max_grid_cells);
+    const float cell = hmap_max_grid_cell_size;
+    const bool ready = terrain && binScene && land_panel.level && giHmapMaxGrid.init(cells, cell);
+    const bool wasReady = !hmapGridWindow.isempty();
+    hmapGridWindow.setempty();
+    if (ready)
+    {
+      giHmapMaxGrid.update(pos);
+      const Point2 lt = Point2(floorf(pos.x / cell) - cells / 2, floorf(pos.z / cell) - cells / 2) * cell; // as HeightmapMaxGrid
+      hmapGridWindow = BBox2(lt, lt + Point2(cells, cells) * cell);
+    }
+    else
+      giHmapMaxGrid.close(); // constraint: a level turned off keeps no terrain in the grid
+    if ((ready != wasReady) | hmap_max_grid_cells.pullValueChange() | hmap_max_grid_cell_size.pullValueChange())
+      rtss->invalidate(); // constraint: the pages hold the terrain of the grid they were built with
+  }
+  int rtssCasters = -1;
+  void updateRtss(const Point3 &cam_pos, double real_time)
+  {
+    ShaderGlobal::set_int(rtss_screen_filter_modeVarId, rtss_panel.screen_filter);
+    ShaderGlobal::set_float(rtss_screen_radiusVarId, rtss_panel.screen_radius);
+    const float dt = real_time > rtssLastTime ? float(real_time - rtssLastTime) : 0.f;
+    const Point3 camVel = dt > 0 ? (cam_pos - rtssLastCamPos) / dt : Point3(0, 0, 0);
+    rtssLastTime = real_time;
+    rtssLastCamPos = cam_pos;
+    ++rtssFramesSinceJob;
+    if (freeze)
+      return;
+    const uint32_t hw = applyRtssSettings();
+    if (hw)
+    {
+      const bvh::LruCollisionStats lru = bvh::get_lru_collision_stats(bvhCtx);
+      if (lru.settled && lru.revision != rtssLruRevision)
+      {
+        rtssLruRevision = lru.revision;
+        const BBox3 box(cam_pos, 2 * (bvhLruRadius + bvhBorder(bvhLruRadius)));
+        rtss->invalidateBoxes(&box, 1, hw);
+      }
+    }
+    const int casters = (land_panel.trees && trees.get() && test) | land_panel.lmesh << 1 |
+                        (land_panel.collision && rasterize_gbuf_collision) << 2 | land_panel.spheres << 3;
+    if (const int old = eastl::exchange(rtssCasters, casters); old >= 0 && old != casters)
+      rtss->invalidate(); // constraint: the raster pages draw the casters of these toggles
+    rtss->setSun(dir_to_sun);
+    buildRtss(cam_pos, camVel, dt);
+  }
+  uint32_t applyRtssSettings(bool hw_allowed = true)
+  {
+    const uint32_t hw = hw_allowed ? rtssHwLevelMask() : 0;
+    rtss->setSettings(rtssSettings(hw));
+    if (hw != rtssHwMask)
+      rtss->invalidate(); // constraint: the library does not see the tracers
+    rtssHwMask = hw;
+    return hw;
+  }
+  void buildRtss(const Point3 &pos, const Point3 &vel, float dt)
+  {
+    rtss->update(dpoint3(pos), vel, dt);
+    const Geometry geom = geometry();
+    precullRtssRegions(*rtss, geom, pos, rtssCulls);
+    RtssRasterCallback cb(*rtss, geom, pos, rtssCulls);
+    RtssTracers tracers(rtssSwTracer, rtssCollisionTracer, rtssHwMask);
+    rtss->render(&cb, &tracers);
+    RaytracedToroidalStaticShadow::Stats st;
+    rtss->getStats(st);
+    if (st.rasterJobs || st.rays) // a raster job with an empty depth range builds without the callback
+      rtssFramesSinceJob = 0;
   }
 
   void renderVoxelsMediaGeom(const BBox3 &scene_box, const Point3 &voxel_size, int mode)
@@ -703,12 +817,10 @@ public:
     SCOPE_RENDER_TARGET;
     int maxRes = max(max(res.x, res.y), res.z);
     set_voxelization_target_and_override(maxRes, maxRes);
-    ShaderGlobal::set_float4(get_shader_variable_id("voxelize_box0"), scene_box[0].x, scene_box[0].y, scene_box[0].z, maxRes);
-    ShaderGlobal::set_float4(get_shader_variable_id("voxelize_box1"), 1. / scene_box.width().x, 1 / scene_box.width().y,
-      1 / sceneBox.width().z, 0.f);
-
     Point3 voxelize_box0 = scene_box[0];
     Point3 voxelize_box1 = Point3(1. / scene_box.width().x, 1. / scene_box.width().y, 1. / scene_box.width().z);
+    ShaderGlobal::set_float4(get_shader_variable_id("voxelize_box0"), P3D(voxelize_box0), maxRes);
+    ShaderGlobal::set_float4(get_shader_variable_id("voxelize_box1"), P3D(voxelize_box1), 0.f);
     Point3 voxelize_aspect_ratio = min(point3(res) / maxRes, Point3(1, 1, 1));
     // Point3 voxelize_aspect_ratio = min((point3(res) + Point3(1,1,1)) * 2. / maxRes, Point3(1,1,1));
     // voxelize_aspect_ratio = max(voxelize_aspect_ratio, Point3(0.5,0.5,0.5));
@@ -717,60 +829,23 @@ public:
     ShaderGlobal::set_float4(get_shader_variable_id("voxelize_world_to_rasterize_space_mul"), P3D(mult), 0);
     ShaderGlobal::set_float4(get_shader_variable_id("voxelize_world_to_rasterize_space_add"), P3D(add), 0);
 
-    Frustum f;
     Point3 camera_pos(scene_box.center().x, scene_box[1].y, scene_box.center().z);
-    {
-      TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, CUBEFACE_NEGY);
-      cameraMatrix.setcol(3, camera_pos);
-      cameraMatrix = orthonormalized_inverse(cameraMatrix);
-      d3d::settm(TM_VIEW, cameraMatrix);
-
-      BBox3 box = cameraMatrix * scene_box;
-      TMatrix4 proj = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z);
-      d3d::settm(TM_PROJ, &proj);
-      mat44f globtm;
-      d3d::calcglobtm(cameraMatrix, proj, (TMatrix4 &)globtm);
-      f = Frustum(globtm);
-    }
-    VisibilityFinder vf;
-    vf.set(v_ldu(&camera_pos.x), f, 0.0f, 0.0f, 1.0f, 1.0f, nullptr);
+    TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, CUBEFACE_NEGY);
+    cameraMatrix.setcol(3, camera_pos);
+    cameraMatrix = orthonormalized_inverse(cameraMatrix);
+    const BBox3 box = cameraMatrix * scene_box;
+    const RenderView view(cameraMatrix, matrix_ortho_off_center_lh(box[0].x, box[1].x, box[1].y, box[0].y, box[0].z, box[1].z),
+      camera_pos);
 
     for (int i = 0; i < 3; ++i)
     {
       ShaderGlobal::set_int(get_shader_variable_id("voxelize_axis", true), i);
-      // TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, (i == 0 ? CUBEFACE_NEGX : i == 1 ? CUBEFACE_NEGY : CUBEFACE_NEGZ));
-      // cameraMatrix.setcol(3, camera_pos);
-      // cameraMatrix = orthonormalized_inverse(cameraMatrix);
-      // d3d::settm(TM_VIEW, cameraMatrix);
-      // BBox3 box = cameraMatrix*scene_box;
-      /*int xAxis = 0, yAxis = 1, zAxis = 2;
-      if (i == 0)
-      {
-        xAxis = 1; yAxis = 2; zAxis = 0;
-      } else if (i == 1)
-      {
-        xAxis = 0; yAxis = 2; zAxis = 1;
-      }
-      d3d::setview(0,0, res[xAxis], res[yAxis],0,1);
-      d3d::settm(TM_VIEW, TMatrix::IDENT);
-      TMatrix4 proj = matrix_ortho_off_center_lh(scene_box[0][xAxis], scene_box[1][xAxis],
-                                                 scene_box[1][yAxis], scene_box[0][yAxis],
-                                                 scene_box[0][zAxis], scene_box[1][zAxis]);
-      d3d::settm(TM_PROJ, &proj);
-      mat44f globtm;
-      d3d::getglobtm(globtm);*/
-      // vf.set(v_ldu(&camera_pos.x), Frustum(globtm), 0.0f, 0.0f, 1.0f, 1.0f, false);
-      // d3d::setview(0, 0, maxRes, maxRes, 0, 1);
-      binScene->render(vf, 0, 0xFFFFFFFF);
+      binScene->render(view, 0, 0xFFFFFFFF);
     }
     reset_voxelization_override();
     ShaderGlobal::set_int(scene_mode_varId, SCENE_MODE_NORMAL);
   }
 
-  void debugVolmap()
-  {
-    // fixme: add here
-  }
   bool useShaderAsserts = false;
 
   UniqueTex ambient[2];
@@ -1059,156 +1134,21 @@ public:
 
     the_scene = this;
     init_voxelization();
+    rtss = eastl::make_unique<RaytracedToroidalStaticShadow>(RTSS_DEFAULTS);
+    FullFileLoadCB riCollision(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin"));
+    const LevelCollision &level = lruColl.level;
+    const int64_t loadRef = ref_time_ticks();
+    if (!riCollision.fileHandle)
+      debug("missing ri_collisions.bin");
+    else if (lruColl.level.load(riCollision))
+      lruColl.init();
+    const int loadUsec = get_time_usec(loadRef);
+    if (level.resourceCount())
     {
-      FullFileLoadCB riCollision(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin"));
-      if (riCollision.fileHandle)
-        lruColl.load(riCollision);
-    }
-    {
-      int64_t reft = ref_time_ticks();
-      FullFileLoadCB riCollision(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin"));
-      if (riCollision.fileHandle)
-      {
-        swrt.init();
-        struct Mesh
-        {
-          dag::Vector<uint16_t> indices;   // non-wide records
-          dag::Vector<uint32_t> indices32; // wide (>65535 vert) records
-          dag::Vector<Point3> vertices;
-          int lruIdx = 0;
-          int instCount = 0;
-          bool wide = false;
-        };
-        dag::Vector<Mesh> meshes;
-        meshes.reserve(lruColl.count);
-        swrt.reserveAddInstances(lruColl.count);
-
-        // Instance transforms were already read by lruColl.load above, so skip
-        // their payload here and just keep the per-record count in lockstep.
-        struct SwrtHandler
-        {
-          dag::Vector<Mesh> &meshes;
-          const LRUCollision &lruColl;
-          Mesh *cur = nullptr;
-          bool wantMesh(int recordIdx, bool wide)
-          {
-            cur = &meshes.push_back();
-            cur->lruIdx = recordIdx;
-            cur->wide = wide;
-            return true;
-          }
-          void *indexBuffer(int count, bool wide)
-          {
-            if (wide)
-            {
-              cur->indices32.resize(count);
-              return cur->indices32.data();
-            }
-            cur->indices.resize(count);
-            return cur->indices.data();
-          }
-          Point3 *vertexBuffer(int count)
-          {
-            cur->vertices.resize(count);
-            return cur->vertices.data();
-          }
-          mat43f *instanceBuffer(int count)
-          {
-            cur->instCount = count;
-            return nullptr;
-          }
-          void endMesh(int recordIdx, bool, int, int, int)
-          {
-            G_ASSERT(lruColl.instances.size() > recordIdx && lruColl.instances[recordIdx].size() == cur->instCount);
-            G_UNUSED(recordIdx);
-          }
-        } handler{meshes, lruColl};
-        const bool dumpOk = read_ri_collision_dump(riCollision, handler);
-        if (!dumpOk)
-          logerr("ri_collisions: corrupt or truncated collision dump; skipping SWRT build");
-
-        // modelIndex is record-parallel (one slot per lruColl record, -1 == no SWRT model):
-        // remakeSWRTInstances indexes it by record, and dropped records stay -1.
-        modelIndex.assign(lruColl.instances.size(), -1);
-
-        if (dumpOk)
-        {
-          // File I/O was sequential; BLAS build dispatches across workers. Per-worker
-          // RenderSWRT::buildBLAS does not touch shared SWRT state, only the addBuiltModel +
-          // addInstance handoff runs under the spinlock.
-          WinCritSec addLock;
-
-          // Default threadpool size is ~N_cores-3 (61 on this box); at that many workers
-          // the single addBuiltModel critical section starves the builders. Cap at 32: a
-          // sweep on this 7815-mesh scene is flat from ~16..48 once the per-worker
-          // transient allocations go through framemem, so 32 is just a picked round.
-          threadpool::parallel_for_inline(
-            0, (uint32_t)meshes.size(), 64,
-            [&](uint32_t tbegin, uint32_t tend, uint32_t worker_id) {
-              Tab<Point3_vec4> verts4(framemem_ptr());
-              for (uint32_t mi = tbegin; mi < tend; ++mi)
-              {
-                const Mesh &m = meshes[mi];
-                bool anyQualifying = false;
-                for (int j = 0; j < m.instCount; ++j)
-                  if (v_extract_w(lruColl.instancesSph[m.lruIdx][j]) >= minSWRTRadius)
-                  {
-                    anyQualifying = true;
-                    break;
-                  }
-                if (!anyQualifying)
-                  continue;
-
-                verts4.resize(m.vertices.size());
-                for (int j = 0, n = (int)m.vertices.size(); j < n; ++j)
-                  verts4[j] = m.vertices[j];
-
-                static const float dimAsBoxMin = 2.f, dimAsBoxMax = 16.f;
-                daSWRT::BuiltBLAS built = m.wide ? RenderSWRT::buildBLAS(m.indices32.data(), (int)m.indices32.size(), verts4.data(),
-                                                     (int)verts4.size(), dimAsBoxMax)
-                                                 : RenderSWRT::buildBLAS(m.indices.data(), (int)m.indices.size(), verts4.data(),
-                                                     (int)verts4.size(), dimAsBoxMax);
-
-                // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree).
-                // `isBox()` meshes are already perfect boxes; skip and count separately.
-                if (!built.isBox())
-                {
-                  float boxLike = daSWRT::computeBlasBoxResemblanceVoxel(built.data.data(), 0, (int)built.treeBytes, built.box,
-                    daSWRT::BlasBoxEncoding::Fp16);
-                  // Empirical calibration toward MC-yaw (fitted on this scene, 111 meshes).
-                  // Pow law is the only single-param family that pins (0,0) and (1,1).
-                  boxLike = powf(boxLike, 1.5f);
-                  built.dimAsBoxDist = lerp(dimAsBoxMax, dimAsBoxMin, boxLike);
-                }
-
-                WinAutoLock lk(addLock);
-                modelIndex[m.lruIdx] = swrt.addBuiltModel(eastl::move(built));
-              }
-            },
-            32);
-
-          // Merge per-worker stats and log a single summary line.
-          for (uint32_t mi = 0; mi < meshes.size(); ++mi)
-          {
-            const Mesh &m = meshes[mi];
-            const int modelId = modelIndex[m.lruIdx];
-            if (modelId < 0)
-              continue;
-            for (int j = 0; j < m.instCount; ++j)
-              if (v_extract_w(lruColl.instancesSph[m.lruIdx][j]) >= minSWRTRadius)
-                swrt.addInstance(modelId, lruColl.instances[m.lruIdx][j]);
-          }
-          swrt.copyToGPUAndDestroy(swrt.buildBottomLevelStructures());
-          swrt.clearBLASSourceData();
-          swrt.copyToGPUAndDestroy(swrt.buildTopLevelStructures());
-          swrt.clearTLASSourceData();
-        }
-      }
-      else
-      {
-        debug("missing ri_collisions.bin");
-      }
-      debug("full SWRT in %dus", get_time_usec(reft));
+      const int trees = buildSwrt();
+      const int allUsec = get_time_usec(loadRef);
+      debug("level SWRT: %d BLASes, %d with a tree, built in %dus; the load and the SWRT in %dus", swrt.getBLASCount(), trees,
+        allUsec - loadUsec, allUsec);
     }
     daGI2.reset(create_dagi());
 
@@ -1358,11 +1298,7 @@ public:
     if (file_panel.export_min || file_panel.export_max)
     {
       String fileName = de3_imgui_file_save_dlg("Export sky settings", "Blk files|*.blk", "blk", "./", lastExportName);
-      if (fileName.empty())
-      {
-        // show error
-      }
-      else
+      if (!fileName.empty())
       {
         DataBlock blk;
         dblk::load(blk, fileName, dblk::ReadFlag::ROBUST);
@@ -1408,10 +1344,6 @@ public:
           lastExportName = fileName;
         }
       }
-      else
-      {
-        // show error
-      }
       file_panel.import_minmax = false;
     }
 
@@ -1424,15 +1356,8 @@ public:
       DataBlock blk;
       dblk::load(blk, fileName, dblk::ReadFlag::ROBUST);
       de3_imgui_save_values(*blk.addBlock("gui"));
-      if (fileName.empty() || !blk.saveToTextFile(fileName))
-      {
-        // show error
-      }
-      else
-      {
+      if (!fileName.empty() && blk.saveToTextFile(fileName))
         lastLoadName = fileName;
-      }
-      file_panel.save = false;
     }
     if (file_panel.load)
     {
@@ -1443,43 +1368,17 @@ public:
         de3_imgui_load_values(*blk.addBlock("gui"));
         lastLoadName = fileName;
       }
-      else
-      {
-        // show error
-      }
       file_panel.load = false;
     }
 
     if (!exit_button_pressed && !de3_imgui_act(::dagor_game_act_time))
       curCamera->act();
-    // Quit Game
-    static int old_type = -1;
-    if (render_panel.render_type != old_type)
-    {
-      switch (render_panel.render_type)
-      {
-        case PANORAMA:
-          GUI_DISABLE_OBJ(render_panel, sky_quality);
-          GUI_DISABLE_OBJ(render_panel, direct_quality);
-          // GUI_DISABLE_OBJ(render_panel, temporal_upscale);
-          GUI_DISABLE_OBJ(render_panel, infinite_skies);
-          // GUI_ENABLE_OBJ(render_panel, panoramaTemporalSpeed);
-          GUI_ENABLE_OBJ(render_panel, panorama_blending);
-          GUI_ENABLE_OBJ(render_panel, panoramaResolution);
-          break;
-        case DIRECT:
-          GUI_ENABLE_OBJ(render_panel, infinite_skies);
-          GUI_ENABLE_OBJ(render_panel, sky_quality);
-          GUI_ENABLE_OBJ(render_panel, direct_quality);
-          // GUI_ENABLE_OBJ(render_panel, temporal_upscale);
-          // GUI_DISABLE_OBJ(render_panel, panoramaTemporalSpeed);
-          GUI_DISABLE_OBJ(render_panel, panorama_blending);
-          GUI_DISABLE_OBJ(render_panel, panoramaResolution);
-          break;
-      }
-
-      old_type = render_panel.render_type;
-    }
+    const bool panorama = render_panel.render_type == PANORAMA;
+    de3_imgui_enable_obj(&render_panel.sky_quality, !panorama);
+    de3_imgui_enable_obj(&render_panel.direct_quality, !panorama);
+    de3_imgui_enable_obj(&render_panel.infinite_skies, !panorama);
+    de3_imgui_enable_obj(&render_panel.panorama_blending, panorama);
+    de3_imgui_enable_obj(&render_panel.panoramaResolution, panorama);
     if (exit_button_pressed)
     {
       quit_game(1);
@@ -1489,6 +1388,43 @@ public:
 
   ProfileUniqueEventsGUI allEvents;
   void drawProfile() { allEvents.drawProfiled(); }
+  using FrameStr = eastl::basic_string<char, framemem_allocator>;
+  FrameStr rtssPagesLine(const RaytracedToroidalStaticShadow::Stats &s) const
+  {
+    return FrameStr(FrameStr::CtorSprintf(),
+      "rtss: pages required %.2f dirty %.2f sweep %.2f pretrace %.2f fill %.2f edge %.2f, rays %u, sun %.3f deg/s%s%s",
+      s.pages[RTSS_REQUIRED], s.pages[RTSS_DIRTY], s.pages[RTSS_SWEEP], s.pages[RTSS_PRETRACE], s.pages[RTSS_FILL], s.pagesEdge,
+      s.rays, s.sunRateDegPerSec, s.sunBelowHorizon ? ", below horizon" : "", freeze ? ", frozen: of the last update" : "");
+  }
+  void drawRtssStats()
+  {
+    if (!rtss_panel.show_stats)
+      return;
+    RaytracedToroidalStaticShadow::Stats s;
+    rtss->getStats(s);
+    const FrameStr pages = rtssPagesLine(s);
+    FrameStr levels;
+    for (auto [i, l] : enumerate(s.levels))
+    {
+      levels.append_sprintf("%sL%d %.2f/%.2f deg ", i ? " | " : "", int(i), l.sunErrorDeg, l.toleranceDeg);
+      if (l.sweeping)
+        levels.append_sprintf("%d%%%s", int(l.sweepProgress * 100), l.fastSweep ? " F" : "");
+      else
+        levels += "idle";
+    }
+    StdGuiRender::ScopeStarterOptional guiScope;
+    StdGuiRender::set_font(0);
+    StdGuiRender::set_ablend(true);
+    const int fontHt = StdGuiRender::get_def_font_ht(0), y = int(StdGuiRender::screen_height()) - fontHt * 3;
+    StdGuiRender::set_draw_str_attr(FFT_SHADOW, 1, 1, E3DCOLOR(0, 0, 0, 255), 16);
+    StdGuiRender::set_color(E3DCOLOR(255, 255, 255, 255));
+    StdGuiRender::goto_xy(30, y);
+    StdGuiRender::draw_str(pages.c_str());
+    StdGuiRender::goto_xy(30, y + fontHt * 3 / 2);
+    StdGuiRender::draw_str(levels.c_str());
+    StdGuiRender::reset_draw_str_attr();
+    StdGuiRender::flush_data();
+  }
 
   virtual void drawScene()
   {
@@ -1505,8 +1441,6 @@ public:
 
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    // todo: clamp itm.getcol(3) with shrinked sceneBox - there is nothing interesting outside scene
-    updateSSGIPos(itm.getcol(3));               // we can frustum cull here as well, to reduce latency
     if (land_panel.trees != treesInGI && daGI2) // trees appeared or went away, as a game does on destruction
     {
       treesInGI = land_panel.trees;
@@ -1518,12 +1452,6 @@ public:
     static int64_t time0 = ref_time_ticks();
     int current_time_usec = get_time_usec(time0);
     double realTime = current_time_usec / 1000000.0;
-    static double lastTime = realTime;
-    static double gameTime = 0;
-    double realDt = lastTime - realTime;
-    lastTime = realTime;
-    gameTime += realDt * ::dagor_game_time_scale;
-    // set_shader_global_time(gameTime);
     set_shader_global_time(realTime);
     static int taaFrame = 0;
     bool renderTaa = taa.get() || enable_taa_override;
@@ -1531,6 +1459,7 @@ public:
 
     Driver3dPerspective p;
     d3d::getpersp(p);
+    const TMatrix view = orthonormalized_inverse(itm);
 
     if (renderTaa)
     {
@@ -1545,14 +1474,13 @@ public:
       taaParams.clampingGamma = taa_clamping_gamma.get();
       taaParams.frameWeightMinDynamicStill = taa_frame_weight_dynamic_min.get();
       taaParams.newframeFalloffDynamicStill = taa_newframe_dynamic_falloff.get();
-      Driver3dPerspective oldp;
-      oldp = p;
       TMatrix4 noJitterGlobTm;
-      d3d::getglobtm(noJitterGlobTm);
+      TMatrix4 noJitterProj;
+      d3d::calcproj(p, noJitterProj);
+      d3d::calcglobtm(view, noJitterProj, noJitterGlobTm);
       Point2 jitteredOfs = get_taa_jitter(taaFrame, taaParams);
       p.ox += jitteredOfs.x * (2.0f / w);
       p.oy += -jitteredOfs.y * (2.0f / h);
-      d3d::setpersp(p);
       static TMatrix4 prevNoJitterGlobTm = noJitterGlobTm;
       static int64_t reft = 0;
       int usecs = get_time_usec(reft);
@@ -1578,10 +1506,16 @@ public:
       prevNoJitterGlobTm = noJitterGlobTm;
     }
 
-    TMatrix view;
-    d3d::gettm(TM_VIEW, view);
     alignas(16) TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
+    d3d::calcproj(p, projTm);
+    RenderView frameView(view, projTm, itm.getcol(3));
+    if (!stop_camera || !frozenView)
+      frozenView = eastl::make_pair(frameView.position, frameView.culling);
+    RenderView geometryView = frameView;
+    geometryView.position = frozenView->first;
+    geometryView.culling = frozenView->second;
+    const Geometry geom = geometry();
+    frameView.bind();
     {
       alignas(16) TMatrix4 viewTm = TMatrix4(view);
       mat44f globtm;
@@ -1615,10 +1549,10 @@ public:
       clusteredLights->frameRenderShadows(
         volumesToRender,
         [&](mat44f_cref globTm, mat44f_cref projTm, const TMatrix &viewItm, int, int, DynamicShadowRenderGPUObjects) {
-          d3d::settm(TM_VIEW, TMatrix::IDENT);
-          d3d::settm(TM_PROJ, globTm);
           ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-          renderOpaque(current, (mat44f_cref)globTm, false, true);
+          RenderView shadow(TMatrix::IDENT, reinterpret_cast<const TMatrix4 &>(globTm), geometryView.position);
+          shadow.lodProj = geometryView.proj;
+          renderOpaque(geom, shadow, true);
           ShaderGlobal::setBlock(globalFrameId, ShaderGlobal::LAYER_FRAME);
         },
         [](const TMatrix &view_itm, const mat44f &view_tm, const mat44f &proj_tm, int, int) {
@@ -1628,27 +1562,16 @@ public:
         });
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     }
-    // the on variant of use_hw_rt_gi exists only in the dx12 dump, and needs a built TLAS
-#if _TARGET_PC
-    const bool hwRtGiInDump = d3d::get_driver_code().is(d3d::dx12);
-#else
-    constexpr bool hwRtGiInDump = false;
-#endif
-    // no resident collision (still gathering, or a level without a collision
-    // dump) stays on the SDF path: the collision trace would resolve to sky
-    const bool hwRtGi = hwRtGiInDump && bvhBuilt && hw_rt_gi.get() && bvhCtx != bvh::InvalidContextId &&
-                        bvh::get_lru_collision_stats(bvhCtx).residentInstances > 0;
+    const bool hwRt = hwRtAvailable();
+    const bool hwRtGi = hwRt && hw_rt_gi.get();
     ShaderGlobal::set_int(use_hw_rt_giVarId, hwRtGi ? 1 : 0);
-    hwRtGiActive = hwRtGi;
-    bvhBindWidth = w;
-    if (hwRtGi)
+    if (hwRtGi || rtssHwLevelMask())
       bvh::bind_resources(bvhCtx, w); // the collision TLAS and its normals pool ride the regular bind
 
-    // the collision tlas carries no terrain: the gi trace completes with the
-    // heightfield max grid window, filled once the level provides a heightfield
-    giHmapMaxGrid.init(128, 8.f);
-    if (binScene && land_panel.level)
-      giHmapMaxGrid.update(itm.getcol(3));
+    updateHmapMaxGrid(itm.getcol(3));
+    updateRtss(itm.getcol(3), realTime);
+    // todo: clamp itm.getcol(3) with shrinked sceneBox - there is nothing interesting outside scene
+    updateSSGIPos(itm.getcol(3)); // constraint: after updateRtss, which moves the rtss to the camera
     auto ru = gi_panel.update_radiance && giUpdatePosFrameCounter == 0 ? DaGI::RadianceUpdate::On : DaGI::RadianceUpdate::Off;
     daGI2->beforeRender(sw, sh, w, h, itm, projTm, p.zn, p.zf, ru);
     // media volumes own the tree canopy density: append the instances a box touches, and bake
@@ -1770,18 +1693,17 @@ public:
     mediaVolumes.debugPrepare(itm.getcol(3), gatherMediaInstances);
 
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
-    render(projTm, p);
+    render(geom, frameView, geometryView, itm, p, hwRtGi, w);
 
-    d3d::settm(TM_VIEW, view);
-    d3d::settm(TM_PROJ, &projTm);
+    frameView.bind();
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
     daGI2->afterFrameRendered(DaGI::FrameData(DaGI::FrameHasAll));
-    d3d::settm(TM_VIEW, view);
-    d3d::settm(TM_PROJ, &projTm);
+    frameView.bind();
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getTex2D(), 0, 0}});
-    renderWater();
+    renderWater(frameView);
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
-    renderTrans();
+    renderTrans(frameView);
+    frameView.bind();
     daGI2->debugRenderTrans();
     mediaVolumes.debugRender(); // the debug pass view vars are set by debugRenderTrans above
     ShaderGlobal::set_int(dynamic_lights_countVarId, 0);
@@ -1825,9 +1747,11 @@ public:
       const char *dir = verifyCaptureDir.empty() ? "verify_capture" : verifyCaptureDir.c_str();
       // itm and p are this frame's camera and projection, already in hand - no
       // need to ask the driver for state the frame owns
-      bool ok = gi_verify::save_capture(dir, itm, p, target->getWidth(), target->getHeight(), dir_to_sun,
-        df_get_real_name(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin")),
-        df_get_real_name(dgs_get_settings()->getStr("level", "")), &gi_verify::write_env_exr);
+      // df_get_real_name may return a shared buffer
+      const String dumpName(df_get_real_name(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin")));
+      const String levelName(df_get_real_name(dgs_get_settings()->getStr("level", "")));
+      bool ok = gi_verify::save_capture(dir, itm, p, target->getWidth(), target->getHeight(), dir_to_sun, dumpName, levelName,
+        &gi_verify::write_env_exr);
       console::print_d("save_verify_capture: %s -> %s", ok ? "saved" : "FAILED", dir);
       verifyCaptureDir.clear();
     }
@@ -1847,6 +1771,10 @@ public:
       daGI2->debugRenderScreenDepth();
       daGI2->debugRenderScreen();
     }
+    if (rtss_panel.debug == 6)
+      rtss->debugDrawAtlas(rtss_panel.debug_level);
+    else if (rtss_panel.debug >= 1 && rtss_panel.debug <= 5)
+      rtss->debugRenderScreen(rtss_panel.debug);
 
     debugTexOverlay.render();
     de3_imgui_render();
@@ -1861,6 +1789,7 @@ public:
     {
       TIME_D3D_PROFILE(gui);
       drawProfile();
+      drawRtssStats();
     }
     if (::grs_draw_wire)
       d3d::setwire(::grs_draw_wire);
@@ -1953,28 +1882,60 @@ public:
     if (gi_panel.gi_mode != ENVI_PROBE)
       daGI2->setSettings(s);
   }
-  const float minSWRTRadius = 1.f;
+  int buildSwrt()
+  {
+    const LevelCollision &level = lruColl.level;
+    swrt.init();
+    // constraint: no SWRT_SHADOW_SKIP_LEAF here, so the glass faces are carved out
+    auto opaque = [&](int16_t mat_id) { return !level.isLightTransparent(mat_id); };
+    const int trees = build_level_swrt_models(swrt, level, modelIndex, opaque);
+    swrt.copyToGPUAndDestroy(swrt.buildBottomLevelStructures());
+    swrt.clearBLASSourceData();
+    remakeSWRTInstances(Point3(0, 0, 0), 0.f);
+    swrt.clearTLASSourceData();
+    return trees;
+  }
+
+  // a full reset loses the gpu data that the scene uploads once at load
+  void sceneAfterDeviceReset()
+  {
+    daSkies.reset();
+    daSkies.skiesDataScatteringVolumeBarriers(main_pov_data.get());
+    if (clusteredLights)
+      clusteredLights->afterResetDevice();
+    if (binScene)
+      binScene->afterDeviceReset();
+    if (lruColl.lruColl)
+      lruColl.lruColl->reset();
+    if (swrt.hasData())
+      buildSwrt();
+    preIntegratedGF.reset();
+    delayed_call([this] { redrawSceneGpuData(); }); // it draws, so it runs after the reset
+  }
+
   void remakeSWRTInstances(const Point3 &at, float rel_sz)
   {
     swrt.clearTLASSourceData();
+    const LevelCollision &level = lruColl.level;
     vec4f posScale = v_perm_xyzd(v_ldu(&at.x), v_splats(rel_sz * rel_sz));
-    for (int i = 0, e = lruColl.instances.size(); i < e; ++i)
+    for (uint32_t r = 0, e = modelIndex.size(); r < e; ++r)
     {
-      if (modelIndex[i] < 0)
+      if (modelIndex[r] < 0)
         continue;
-      for (int instCount = lruColl.instances[i].size(), j = 0; j < instCount; ++j)
+      for (uint32_t i = level.firstInstance(r), ie = level.firstInstance(r + 1); i < ie; ++i)
       {
-        vec4f sph = lruColl.instancesSph[i][j];
-        if (v_extract_w(sph) < minSWRTRadius)
+        vec4f sph = level.sphere(i);
+        if (v_extract_w(sph) < LEVEL_SWRT_MIN_RADIUS)
           continue;
 
         vec3f distSq = v_distance_xyz_x(sph, posScale);
         if (v_test_vec_x_lt(v_splat_w(v_mul(sph, sph)), v_mul_x(distSq, v_splat_w(posScale))))
           continue;
-        swrt.addInstance(modelIndex[i], lruColl.instances[i][j]);
+        swrt.addInstance(modelIndex[r], level.transform(i));
       }
     }
     swrt.copyToGPUAndDestroy(swrt.buildTopLevelStructures());
+    rtss->invalidate();
   }
   virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec)
   {
@@ -2047,10 +2008,10 @@ public:
 
         // binScene->heightmap.setTexture((UniqueTex &&) heightmap);
         giHmapMaxGrid.close(); // the content changed in place: refill the window
+        rtss->invalidate();
         rerender_hmap = 0;
       }
     }
-    lruColl.doMaintenance();
     giQualitySet();
     if (gi_reset)
     {
@@ -2075,24 +2036,18 @@ public:
       scene = land_panel.level;
       onSceneLoaded();
     }
-    static int astronomical = -1;
-    if (astronomical != (sun_panel.astronomical ? 1 : 0))
-    {
-      astronomical = (sun_panel.astronomical ? 1 : 0);
-      if (astronomical)
-      {
-        GUI_DISABLE_OBJ(sun_panel, sun_azimuth);
-        GUI_DISABLE_OBJ(sun_panel, sun_zenith);
-        GUI_DISABLE_OBJ(sun_panel, moon_age);
-      }
-      else
-      {
-        GUI_ENABLE_OBJ(sun_panel, sun_azimuth);
-        GUI_ENABLE_OBJ(sun_panel, sun_zenith);
-        GUI_ENABLE_OBJ(sun_panel, moon_age);
-      }
-    }
+    de3_imgui_enable_obj(&sun_panel.sun_azimuth, !sun_panel.astronomical);
+    de3_imgui_enable_obj(&sun_panel.sun_zenith, !sun_panel.astronomical);
+    de3_imgui_enable_obj(&sun_panel.moon_age, !sun_panel.astronomical);
+    animateSun(realtime_elapsed_usec * 1e-6f);
     setDirToSun();
+    if (lengthSq(cameraMoveVel) > 0)
+    {
+      TMatrix itm;
+      curCamera->getInvViewMatrix(itm);
+      itm.setcol(3, itm.getcol(3) + cameraMoveVel * (realtime_elapsed_usec * 1e-6f));
+      curCamera->setInvViewMatrix(itm);
+    }
     current_sphere_time += land_panel.spheres_speed * gametime_elapsed_sec / 100.;
     if (current_sphere_time > 1e5)
       current_sphere_time = 0;
@@ -2100,7 +2055,6 @@ public:
 
     curCamera->setView();
 
-    update_visibility_finder(visibilityFinder);
     float windDirX = cosf(DegToRad(render_panel.windDir)), windDirZ = sinf(DegToRad(render_panel.windDir));
     float dt = gametime_elapsed_sec;
     float windX = render_panel.cloudsSpeed * windDirX * dt, windZ = render_panel.cloudsSpeed * windDirZ * dt;
@@ -2188,15 +2142,11 @@ public:
     G_VERIFY(d3d::getpersp(p));
     ShaderGlobal::set_float4(zn_zfarVarId, p.zn, p.zf, 0, 0);
     // target.prepare();
-    TMatrix4 globtm;
-    d3d::getglobtm(globtm);
-    /*TMatrix4 globtmTr = globtm.transpose();
-    ShaderGlobal::set_float4(globtm_psf_0VarId,Color4(globtmTr[0]));
-    ShaderGlobal::set_float4(globtm_psf_1VarId,Color4(globtmTr[1]));
-    ShaderGlobal::set_float4(globtm_psf_2VarId,Color4(globtmTr[2]));
-    ShaderGlobal::set_float4(globtm_psf_3VarId,Color4(globtmTr[3]));*/
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
+    TMatrix4 projTm;
+    d3d::calcproj(p, projTm);
+    const RenderView frameView(orthonormalized_inverse(itm), projTm, itm.getcol(3));
     if (swrt_rebuild_around >= 0)
     {
       remakeSWRTInstances(itm.getcol(3), swrt_rebuild_around);
@@ -2209,15 +2159,10 @@ public:
         ShaderGlobal::set_float4(get_shader_variable_id("depth_above_heights", true), -100000, 0, 0, 0);
         return;
       }
-      d3d::settm(TM_VIEW, &view);
       TMatrix4 proj = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[0].y, box[1].y, sceneBox[0].y, sceneBox[1].y);
       ShaderGlobal::set_float4(get_shader_variable_id("depth_above_heights", true), sceneBox[0].y, sceneBox[1].y - sceneBox[0].y, 0,
         0);
-      d3d::settm(TM_PROJ, &proj);
-      TMatrix4 globtm_ = view * proj;
-      mat44f globtm;
-      v_mat44_make_from_44cu(globtm, globtm_.m[0]);
-      renderOpaque(ViewLodSelect{}, globtm, false, true, RenderHmap::Off);
+      renderOpaque(geometry(), RenderView(tmatrix(view), proj, itm.getcol(3)), true, StrmSceneHolder::Hmap::Off);
     });
 
     if (hmapShadows.cascadesCount() != hmapShadowsCascades || hmapShadows.cascadeWidth() != hmapShadowsSize)
@@ -2235,16 +2180,14 @@ public:
     ShaderGlobal::set_float4(world_view_posVarId, itm.getcol(3).x, itm.getcol(3).y, itm.getcol(3).z, 1);
     CascadeShadows::ModeSettings mode;
     mode.powWeight = 0.8;
-    mode.maxDist = min(50.f, staticShadows->getDistance() * 0.55f);
+    mode.maxDist = 50.f;
     mode.shadowStart = p.zn;
     mode.numCascades = 4;
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    csm->prepareShadowCascades(mode, dir_to_sun, orthonormalized_inverse(itm), itm.getcol(3), projTm, Frustum(globtm),
-      Point2(p.zn, p.zf), p.zn);
+    csm->prepareShadowCascades(mode, dir_to_sun, frameView.view, itm.getcol(3), projTm, Frustum(frameView.culling), Point2(p.zn, p.zf),
+      p.zn);
     de3_imgui_before_render();
 
-    buildBvh();
+    buildBvh(itm);
 
     if (hmapShadowsSteps == 0)
       hmapShadows.invalidate();
@@ -2297,187 +2240,210 @@ public:
   }
   DynamicShaderHelper drawSpheres;
   float current_sphere_time = 0;
-  void renderDynamicSpheres()
+  static void renderDynamicSpheres(const Geometry &geom, const RenderView &view)
   {
-    if (!land_panel.spheres)
+    if (!geom.spheres)
       return;
+    DynamicShaderHelper &drawSpheres = *geom.spheres;
     DA_PROFILE_GPU;
     if (!drawSpheres.shader)
       drawSpheres.init("draw_debug_dynamic_spheres", NULL, 0, "draw_debug_dynamic_spheres");
-    ShaderGlobal::set_float(sphere_timeVarId, current_sphere_time);
+    view.bind();
+    ShaderGlobal::set_float(sphere_timeVarId, geom.sphereTime);
     drawSpheres.shader->setStates(0, true);
     d3d::setvsrc_ex(0, NULL, 0, 0);
     d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, 6);
   }
 
-  // IRenderWorld interface
-  void renderTrees()
+  static bool renderTreesCulled(const Geometry &geom, const RenderView &view)
   {
-    if (!land_panel.trees || !trees.get() || !test)
-      return;
+    DynamicRenderableSceneInstance *test = geom.trees;
+    if (!test)
+      return false;
     TIME_D3D_PROFILE(tree);
-
-    TMatrix tm;
-    tm.identity();
-    for (int inst = 0; inst < testCount; inst++)
-    {
-      set_test_tm(inst, tm);
+    const Frustum frustum(view.culling);
+    bool drawn = false;
+    test->setLod(test->chooseLod(view.position));
+    view.bind();
+    foreachTreeInstance(test, geom.treeCount, [&](const TMatrix &tm, const BBox3 &world) {
+      if (!frustum.testSphereB(world.center(), length(world.width()) * 0.5f))
+        return;
       for (int i : test->getLodsResource()->getNames().node.id)
         test->setNodeWtm(i, tm);
       test->render();
-    }
+      drawn = true;
+    });
+    return drawn;
   }
-  void renderLevel(bool hmap, const ViewLodSelect &v)
+  static bool renderLandmeshPastHmap(const Geometry &geom, const RenderView &view)
   {
-    if (!land_panel.level || !binScene)
+    StrmSceneHolder *binScene = geom.level;
+    if (!geom.terrain || !geom.lmesh || !binScene || !binScene->lMesh)
+      return false;
+    const HeightmapHandler *hmap = binScene->getHeightmap();
+    float minHt, maxHt;
+    if ((hmap && hmap->isMirror()) || !binScene->getMinMax(minHt, maxHt))
+      return false;
+    // constraint: land casters lie in the height range of the land, a short part of the long page prism
+    mat44f inv;
+    v_mat44_inverse(inv, view.culling);
+    Point3 corner[8];
+    for (int c = 0; c < 8; ++c)
+    {
+      const vec4f p = v_mat44_mul_vec4(inv, v_make_vec4f(c & 1 ? 1 : -1, c & 2 ? 1 : -1, c >> 2, 1));
+      v_stu_p3(&corner[c].x, v_div(p, v_splat_w(p)));
+    }
+    BBox2 land;
+    for (int a = 0; a < 8; ++a)
+      for (int bit = 1; bit < 8; bit <<= 1)
+      {
+        if (a & bit)
+          continue;
+        const Point3 &p = corner[a], &q = corner[a | bit];
+        float lo = 0, hi = 1;
+        if (fabsf(q.y - p.y) > 1e-3f)
+        {
+          const float ta = (minHt - p.y) / (q.y - p.y), tb = (maxHt - p.y) / (q.y - p.y);
+          lo = max(lo, min(ta, tb));
+          hi = min(hi, max(ta, tb));
+        }
+        else if (p.y < minHt || p.y > maxHt)
+          continue;
+        if (lo > hi)
+          continue;
+        land += Point2::xz(lerp(p, q, lo));
+        land += Point2::xz(lerp(p, q, hi));
+      }
+    // constraint: the trace holds terrain only inside both the heightmap and the window of the max grid
+    if (land.isempty() || (hmap && hmap->worldBox2 & land[0] && hmap->worldBox2 & land[1] && geom.hmapGridWindow & land[0] &&
+                            geom.hmapGridWindow & land[1]))
+      return false;
+    binScene->renderLmesh(view);
+    return true;
+  }
+  static void renderLevel(const Geometry &geom, const RenderView &view, StrmSceneHolder::Hmap hmap, const ViewLodSelect &v)
+  {
+    if (!geom.level)
       return;
     TIME_D3D_PROFILE(level);
-    binScene->render(visibilityFinder, (StrmSceneHolder::Hmap)hmap, (StrmSceneHolder::Lmesh)(hmap && land_panel.lmesh), v.proj);
+    geom.level->render(view, hmap, (StrmSceneHolder::Lmesh)(hmap == StrmSceneHolder::Hmap::On && geom.lmesh), v.lmesh);
   }
-  void renderPrepass()
+  void renderPrepass(const Geometry &geom, const RenderView &view)
   {
     if (!land_panel.prepass) //! land_panel.trees ||
       return;
     TIME_D3D_PROFILE(testScenePrepass);
-    Driver3dRenderTarget prevRT;
-    d3d::get_render_target(prevRT);
+    SCOPE_RENDER_TARGET;
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {});
-    renderTrees();
-    renderLevel(true, ViewLodSelect{});
-    renderDynamicSpheres();
-    d3d::set_render_target(prevRT);
+    renderTreesCulled(geom, view);
+    renderLevel(geom, view, StrmSceneHolder::Hmap::On, {});
+    renderDynamicSpheres(geom, view);
   }
-  enum class RenderHmap
-  {
-    Off,
-    On
-  };
-  void renderOpaque(const ViewLodSelect &v, mat44f_cref culling, bool render_decals, bool change_frustum,
-    RenderHmap render_hmap = RenderHmap::On)
+  static void renderOpaque(const Geometry &geom, const RenderView &view, bool depth,
+    StrmSceneHolder::Hmap render_hmap = StrmSceneHolder::Hmap::On, const ViewLodSelect &v = {})
   {
     TIME_D3D_PROFILE(opaque);
-    renderTrees();
-    renderDynamicSpheres();
-    Frustum frustum = visibilityFinder.getFrustum();
-    vec3f saved = visibilityFinder.getViewerPos();
-    if (change_frustum)
-    {
-      visibilityFinder.setFrustum(Frustum(culling));
-      visibilityFinder.setViewerPos(v.vp);
-    }
-    renderLevel(render_hmap == RenderHmap::On, v);
-    if (change_frustum)
-    {
-      visibilityFinder.setFrustum(frustum);
-      visibilityFinder.setViewerPos(saved);
-    }
+    renderTreesCulled(geom, view);
+    renderDynamicSpheres(geom, view);
+    renderLevel(geom, view, render_hmap, v);
 
-    if (land_panel.collision)
-      rasterizeGbufCollision(culling, !render_decals);
+    if (geom.collision)
+      rasterizeGbufCollision(*geom.collision, view, depth, v);
   }
-  void renderLightProbeOpaque(const TMatrix &view_tm, const TMatrix4 &proj_tm) override
+  void renderCube(const ManagedTex *target, const Point3 &pos, bool level)
   {
-    // daSkies.prepare(dir_to_sun);
-    TMatrix itm = orthonormalized_inverse(view_tm);
-    daSkies.useFog(itm.getcol(3), cube_pov_data.get(), view_tm, proj_tm);
-    if (binScene && land_panel.level)
-      binScene->render(visibilityFinder, StrmSceneHolder::Hmap::On, (StrmSceneHolder::Lmesh)land_panel.lmesh, proj_tm);
+    cube.update(
+      target, pos,
+      [&](const RenderView &view) {
+        daSkies.useFog(pos, cube_pov_data.get(), view.view, view.proj);
+        if (level && binScene)
+          binScene->render(view, StrmSceneHolder::Hmap::On, (StrmSceneHolder::Lmesh)land_panel.lmesh);
+      },
+      [&](const RenderView &view, const Driver3dPerspective &persp) {
+        TIME_D3D_PROFILE(cubeenvi)
+        // cube faces are disjoint views sharing cube_pov_data: restart clouds TAA per face
+        const TMatrix itm = orthonormalized_inverse(view.view);
+        daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(pos), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{}, nullptr,
+          cube_pov_data.get(), view.view, view.proj, persp, UpdateSky::On, false, SKY_PREPARE_THRESHOLD,
+          CloudsRenderFlags::Default | CloudsRenderFlags::RestartTAA);
+      });
   }
 
-  void renderLightProbeEnvi(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp) override
+  struct RtssRegionCull
   {
-    TIME_D3D_PROFILE(cubeenvi)
-    TMatrix itm = orthonormalized_inverse(view_tm);
-    // cube faces are disjoint views sharing cube_pov_data: restart clouds TAA per face
-    daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
-      nullptr, cube_pov_data.get(), view_tm, proj_tm, persp, UpdateSky::On, false, SKY_PREPARE_THRESHOLD,
-      CloudsRenderFlags::Default | CloudsRenderFlags::RestartTAA);
-  }
-
-  eastl::unique_ptr<ToroidalStaticShadows> staticShadows;
-  struct StaticShadowCallback : public IStaticShadowsCB
+    LandMeshCullingData lmesh;
+    dag::Vector<uint64_t> coll;
+    ViewLodSelect lod;
+  };
+  dag::Vector<RtssRegionCull> rtssCulls; // storage only: each render call refills it
+  struct RtssRasterCallback : public IStaticShadowsCB
   {
-    DemoGameScene *scene;
-    shaders::OverrideStateId depthBiasAndClamp;
-    StaticShadowCallback(DemoGameScene *s, shaders::OverrideStateId override) : scene(s), depthBiasAndClamp(override) {}
+    const RaytracedToroidalStaticShadow &rtss;
+    const Geometry &geom;
+    const Point3 &position;
+    const dag::Vector<RtssRegionCull> &culls;
+    RtssRasterCallback(const RaytracedToroidalStaticShadow &r, const Geometry &g, const Point3 &pos,
+      const dag::Vector<RtssRegionCull> &c) :
+      rtss(r), geom(g), position(pos), culls(c)
+    {}
     void startRenderStaticShadow(const TMatrix &, const Point2 &, float, float) override
     {
-      shaders::overrides::set(depthBiasAndClamp);
-      char *one = 0;
-      one++;
-      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, one); //-V566
+      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, reinterpret_cast<void *>(1));
     }
-
-    void renderStaticShadowDepth(const mat44f &culling_gtm, const ViewTransformData &, int) override
+    void endRenderStaticShadow() override { d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, (void *)0); }
+    RasterizedResult renderStaticShadowDepth(const mat44f &culling_gtm, const ViewTransformData &transform, int region) override
     {
-      scene->renderOpaque(ViewLodSelect{}, culling_gtm, false, true);
-    }
-    void endRenderStaticShadow() override
-    {
-      shaders::overrides::reset();
-      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, (void *)0);
+      RenderView view(TMatrix::IDENT, reinterpret_cast<const TMatrix4 &>(transform.globtm), position);
+      view.culling = culling_gtm;
+      if (rtss.getSettings().recipes[transform.cascade].raster == RtssRaster::Augment)
+      {
+        const bool drawn = renderTreesCulled(geom, view) | renderLandmeshPastHmap(geom, view);
+        return drawn ? RasterizedResult::SomethingRendered : RasterizedResult::NothingRendered;
+      }
+      renderOpaque(geom, view, true, geom.terrain ? StrmSceneHolder::Hmap::On : StrmSceneHolder::Hmap::Off, culls[region].lod);
+      return RasterizedResult::SomethingRendered;
     }
   };
-
-
-  shaders::UniqueOverrideStateId depthBiasAndClamp;
-
-  void updateStaticShadowAround(const Point3 &p, float t)
+  static void precullRtssRegions(const RaytracedToroidalStaticShadow &rtss, const Geometry &geom, const Point3 &vp,
+    dag::Vector<RtssRegionCull> &culls)
   {
-    initStaticShadow();
-    bool invalidVars = staticShadows->setSunDir(dir_to_sun);
-    StaticShadowCallback cb(this, depthBiasAndClamp.get());
-    if (!render_static_shadows_every_frame)
-    {
-      if (staticShadows->updateOriginAndRender(p, t, 0.1f, 0.1f, false, cb).varsChanged || invalidVars)
-        staticShadows->setShaderVars();
-    }
-    else
-    {
-      staticShadows->invalidate(true);
-
-      for (int i = 0, n = staticShadows->cascadesCount(); i < n; i++)
+    TIME_PROFILE(rtss_precull);
+    const int n = rtss.getRasterRegionCount();
+    if ((int)culls.size() < n)
+      culls.resize(n);
+    const LMesh *lmesh = geom.terrain && geom.lmesh && geom.level ? geom.level->lMesh.get() : nullptr;
+    threadpool::parallel_for_inline(0, n, 1, [&](uint32_t begin, uint32_t end, uint32_t) {
+      for (uint32_t r = begin; r < end; ++r)
       {
-        staticShadows->enableOptimizeBigQuadsRender(i, false);
-        staticShadows->enableTransitionCascade(i, false);
-
-        staticShadows->updateOriginAndRender(p, t, 0.1f, 0.1f, false, cb);
+        RtssRegionCull &c = culls[r];
+        const ViewTransformData &v = rtss.getRasterRegion(r);
+        c.lod = {};
+        if (rtss.getSettings().recipes[v.cascade].raster == RtssRaster::Augment)
+          continue;
+        if (lmesh && cull_lmesh(*lmesh, v.globtm, vp, c.lmesh))
+          c.lod.lmesh = &c.lmesh;
+        if (geom.collision)
+        {
+          geom.collision->cull(v.globtm, c.coll);
+          c.lod.collision = &c.coll;
+        }
       }
-
-      staticShadows->setShaderVars();
+    });
+  }
+  struct RtssTracers final : IRtssTraceCB
+  {
+    RtssComputeTracer &sw, &collision;
+    RtssTracers(RtssComputeTracer &s, RtssComputeTracer &c, uint32_t hw) : sw(s), collision(c)
+    {
+      sw.levelMask = ~hw;
+      collision.levelMask = hw;
     }
-  }
-  void updateStaticShadowAround()
-  {
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
-    updateStaticShadowAround(itm.getcol(3), 0.05f);
-  }
-
-  shaders::OverrideState get_static_shadows_override_state()
-  {
-    shaders::OverrideState state;
-    state.set(shaders::OverrideState::Z_CLAMP_ENABLED);
-    state.set(shaders::OverrideState::Z_BIAS);
-    state.set(shaders::OverrideState::Z_FUNC);
-    state.zBias = 0.0000025 * 130; // average zfar-znear is 130m.
-    state.slopeZBias = 0.7;
-    state.zFunc = CMPF_LESSEQUAL;
-    return state;
-  }
-
-  void initStaticShadow()
-  {
-    if (!staticShadows)
-      staticShadows = eastl::make_unique<ToroidalStaticShadows>(2048, 2, 250.f, 100, true);
-
-    if (!depthBiasAndClamp)
-      depthBiasAndClamp = shaders::overrides::create(get_static_shadows_override_state());
-  }
+    bool traceJobs(const RtssTraceBatch &batch) override { return sw.traceJobs(batch) & collision.traceJobs(batch); }
+  };
+  RtssComputeTracer rtssSwTracer{"rtss_trace_swrt_cs"}, rtssCollisionTracer{"testgi_rtss_trace_collision_cs"};
 
   void onSceneLoaded()
   {
-    staticShadows->invalidate(true);
     if (binScene)
     {
       binScene->onSceneLoaded();
@@ -2488,16 +2454,15 @@ public:
       // bin scene; levelBox below also includes collision bounds and spans the whole map)
       loadedLevelBox = box;
       loadedLevelBox.inflate(1.f);
-      if (lruColl.size())
+      if (lruColl.level.instanceCount())
       {
-        bbox3f colBox = lruColl.calcBox();
+        bbox3f colBox = lruColl.level.worldBox();
         box[0] = min(box[0], (const Point3 &)colBox.bmin);
         box[1] = max(box[1], (const Point3 &)colBox.bmax);
       }
       box.inflate(1.f);
       levelBox = box;
       sceneBox = box;
-      staticShadows->setWorldBox(box);
 
       extern float hmap_water_level;
       box[0].y = min(hmap_water_level, box[0].y);
@@ -2505,20 +2470,28 @@ public:
       binScene->getMinMax(htMinMax.x, htMinMax.y);
       htMinMax.x = min(hmap_water_level, htMinMax.x);
       debug("htMinMax = %@", htMinMax);
+      rtssWorldBox = levelBox;
+      rtssWorldBox[0].y = min(rtssWorldBox[0].y, htMinMax.x);
+      rtssWorldBox[1].y = max(rtssWorldBox[1].y, htMinMax.y);
+      rtss->setWorldBox(rtssWorldBox);
 
-      const float htRange = min(ceilf((htMinMax.y - htMinMax.x) / 8.f) * 8., 1024.); // no more than 1km
-      staticShadows->setMaxHtRange(htRange);                                         // that is only for skewed matrix
       hmapShadows.setMinMax(htMinMax);
     }
-    clusteredLights->invalidateAllShadows();
-    depthAround.invalidate();
+    rtss->invalidate();
     // the first collision window saw a partial level: refill it whole
     bvh::invalidate_lru_collision(bvhCtx);
+    redrawSceneGpuData();
+    console::process_file("autoexec.txt");
+  }
+
+  void redrawSceneGpuData()
+  {
+    clusteredLights->invalidateAllShadows();
+    depthAround.invalidate();
     invalidateGI();
     reloadCube(true);
     renderLmeshDepthAbove();
     hmapShadows.invalidate();
-    console::process_file("autoexec.txt");
   }
 
   void setLandMeshDepthVars(TEXTUREID t, const BBox3 &box, bool unbound_sample)
@@ -2547,13 +2520,8 @@ public:
     view.setcol(1, 0, 0, 1, 0);
     view.setcol(2, 0, 1, 0, 0);
     view.setcol(3, 0, 0, 0, 1);
-    d3d::settm(TM_VIEW, &view);
     TMatrix4 proj = matrix_ortho_off_center_lh(box[0].x, box[1].x, box[uint32_t(inv)].z, box[1 - uint32_t(inv)].z, box[0].y, box[1].y);
-    d3d::settm(TM_PROJ, &proj);
-    TMatrix4 globtm_ = view * proj;
-    mat44f globtm;
-    v_mat44_make_from_44cu(globtm, globtm_.m[0]);
-    binScene->renderLmesh(box);
+    binScene->renderLmesh(RenderView(tmatrix(view), proj, box.center()), box);
   }
   void renderLandMeshDepth(Texture *target, const BBox3 &box)
   {
@@ -2630,7 +2598,7 @@ public:
     DIRECT_LIGHTING,
     INDIRECT_LIGHTING
   };
-  void setMatricesVars(const TMatrix &view, const TMatrix4 &projTm)
+  static void setMatricesVars(const TMatrix &view, const TMatrix4 &projTm)
   {
     set_inv_globtm_to_shader(view, projTm, false);
     set_viewvecs_to_shader(view, projTm);
@@ -2659,26 +2627,13 @@ public:
     ShaderGlobal::set_float4(globtm_no_ofs_psf_3VarId, Color4(gtm_no_ofs[3]));
   }
 
-  void render(const TMatrix4 &projTm, const Driver3dPerspective &persp)
+  void render(const Geometry &geom, const RenderView &frame_view, const RenderView &geometry_view, const TMatrix &itm,
+    const Driver3dPerspective &persp, bool hw_rt_gi, int output_width)
   {
     TIME_D3D_PROFILE(render)
-    Driver3dRenderTarget prevRT;
-    d3d::get_render_target(prevRT);
-    // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0,0,64,0), 0, 0);
-    // d3d::set_render_target();
-    // d3d::set_render_target(target.gbuf[target.GBUF_ALBEDO_AO].getTex2D(), 0, false);
-    // d3d::clearview(CLEAR_TARGET, 0xFF108080, 0, 0);
-    // d3d::set_render_target();
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
-    TMatrix view = orthonormalized_inverse(itm);
-    mat44f globtm;
-    d3d::calcglobtm(view, projTm, (TMatrix4 &)globtm);
-    if (!stop_camera)
-    {
-      current.vp = v_ldu(&itm.getcol(3).x);
-      current.proj = projTm;
-    }
+    const TMatrix &view = frame_view.view;
+    const TMatrix4 &projTm = frame_view.proj;
+    const mat44f &globtm = frame_view.culling;
 
     {
       motion_vector_access::set_motion_vector_type(motion_vector_access::MotionVectorType::StaticUVZ);
@@ -2695,21 +2650,16 @@ public:
       daSkies.useFog(itm.getcol(3), main_pov_data.get(), view, projTm);
     }
     setMatricesVars(view, projTm);
-    updateStaticShadowAround();
-    setMatricesVars(view, projTm);
-    d3d::settm(TM_VIEW, view);
-    d3d::settm(TM_PROJ, &projTm);
+    frame_view.bind();
 
     target->setRt();
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0); //
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     {
       TIME_D3D_PROFILE(scene)
-      renderPrepass();
-      static mat44f gtm;
-      if (!stop_camera)
-        gtm = globtm;
-      renderOpaque(current, gtm, true, true);
+      renderPrepass(geom, geometry_view);
+      renderOpaque(geom, geometry_view, false);
+      frame_view.bind();
       renderDebugHmapTrace();
     }
 
@@ -2717,7 +2667,18 @@ public:
       d3d::setwire(0);
     extern bool g_ssao_blur;
     g_ssao_blur = ssao_blur.get();
-    csm->renderShadowsCascades();
+    csm->renderShadowsCascadesCb([&](int count, bool clear_per_view) {
+      for (int cascade = 0; cascade < count; ++cascade)
+        csm->renderShadowCascadeDepthCb(cascade, [&] {
+          if (clear_per_view)
+            d3d::clearview(CLEAR_ZBUFFER, 0, 1.f, 0);
+          RenderView shadow(TMatrix::IDENT, csm->getWorldRenderMatrix(cascade), geometry_view.position);
+          shadow.culling = (mat44f_cref)csm->getWorldCullingMatrix(cascade);
+          shadow.lodProj = geometry_view.proj;
+          renderOpaque(geom, shadow, true);
+        });
+    });
+    frame_view.bind();
     csm->setCascadesToShader();
     combineShadows();
     downsampleDepth(true);
@@ -2781,8 +2742,8 @@ public:
     }
 
     // swrt/rtsm above unbind; the GI relight below traces the collision TLAS
-    if (hwRtGiActive && bvhCtx != bvh::InvalidContextId)
-      bvh::bind_resources(bvhCtx, bvhBindWidth);
+    if (hw_rt_gi && bvhCtx != bvh::InvalidContextId)
+      bvh::bind_resources(bvhCtx, output_width);
     daGI2->beforeFrameLit(gi_panel.dynamic_gi_quality);
 
     ShaderGlobal::set_int(get_shader_variable_id("deferred_lighting_mode"), gi_panel.onscreen_mode);
@@ -2798,7 +2759,7 @@ public:
 
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getTex2D(), 0, 0}});
     clusteredLights->renderOtherLights();
-    renderEnvi(view, projTm, persp);
+    renderEnvi(frame_view, itm, persp);
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
     ensurePrevFrame();
     d3d::stretch_rect(frame.getTex2D(), prevFrame.getTex2D());
@@ -2809,33 +2770,35 @@ public:
       sleep_msec(sleep_msec_val.get());
   }
 
-  void rasterizeDebugCollision()
+  void rasterizeDebugCollision(const RenderView &view)
   {
-    mat44f viewproj;
-    d3d::getglobtm(viewproj);
+    view.bind();
     ShaderGlobal::set_int(rasterize_collision_typeVarId, 0);
-    lruColl.rasterize(viewproj);
+    lruColl.rasterize(view.culling);
   }
-  void rasterizeGbufCollision(mat44f_cref culling, bool depth)
+  static void rasterizeGbufCollision(LRUCollision &lruColl, const RenderView &view, bool depth, const ViewLodSelect &v)
   {
-    if (!rasterize_gbuf_collision)
-      return;
+    view.bind();
     ShaderGlobal::set_int(rasterize_collision_typeVarId, depth ? 2 : 1);
-    lruColl.rasterize(culling);
+    if (v.collision)
+      lruColl.draw(make_span_const(*v.collision));
+    else
+      lruColl.rasterize(view.culling);
   }
   DynamicShaderHelper drawWater;
-  void renderWater()
+  void renderWater(const RenderView &view)
   {
     if (!water_panel.enabled)
       return;
     if (!drawWater.shader)
       drawWater.init("draw_water", NULL, 0, "draw_water");
     DA_PROFILE_GPU;
+    view.bind();
     drawWater.shader->setStates(0, true);
     d3d::setvsrc_ex(0, NULL, 0, 0);
     d3d::draw(PRIM_TRILIST, 0, 2);
   }
-  virtual void renderTrans()
+  void renderTrans(const RenderView &view)
   {
     // begin_draw_cached_debug_lines();
     // for (auto &b : indirBoxes)
@@ -2843,13 +2806,16 @@ public:
     // end_draw_cached_debug_lines();
 
     if (binScene && land_panel.level)
-      binScene->renderTrans();
+      binScene->renderTrans(view);
     if (rasterize_debug_collision)
-      rasterizeDebugCollision();
-    debugVolmap();
+      rasterizeDebugCollision(view);
     if (sw_rt)
+    {
+      view.bind();
       swrt.drawRT();
+    }
     using namespace hmap_debug;
+    view.bind();
     set_cached_debug_lines_wtm(TMatrix::IDENT);
     begin_draw_cached_debug_lines(false);
     for (int i = 0; i < debug_water_edges_count; ++i)
@@ -2862,14 +2828,6 @@ public:
     }
     end_draw_cached_debug_lines();
   }
-
-  virtual void renderIslDecals() {}
-
-  virtual void renderToShadowMap() {}
-
-  virtual void renderWaterReflection() {}
-
-  virtual void renderWaterRefraction() {}
 
   void reinitCube(int ew)
   {
@@ -2904,18 +2862,12 @@ public:
     // causing RW conflict (SRV vs RT usages) workaround this by removing texture from shader var
     ShaderGlobal::set_texture(envi_probe_specularVarId, BAD_TEXTUREID);
     ShaderGlobal::set_texture(local_light_probe_texVarId, BAD_TEXTUREID);
-    SCOPE_RENDER_TARGET;
-    SCOPE_VIEW_PROJ_MATRIX;
-    const bool old = land_panel.level;
-    land_panel.level = false;
-    cube.update(&enviProbe0, *this, Point3(100000, 10, 0));
-    land_panel.level = old;
+    renderCube(&enviProbe0, Point3(100000, 10, 0), false);
 
     ShaderGlobal::set_texture(envi_probe_specularVarId, enviProbe0.getTexId());
     ShaderGlobal::set_texture(local_light_probe_texVarId, enviProbe0.getTexId());
 
-    cube.update(&enviProbe, *this, Point3(100000, 10, 0));
-    land_panel.level = old;
+    renderCube(&enviProbe, Point3(100000, 10, 0), land_panel.level);
     enviProbe.getCubeTex()->generateMips();
 
     if (light_probe::getManagedTex(localProbe))
@@ -2934,7 +2886,17 @@ public:
       curCamera->getInvViewMatrix(itm);
       pos = itm.getcol(3);
     }
-    updateStaticShadowAround(pos, 1.);
+    // constraint: the probe bake reads the rtss, so it is built around pos first
+    updateHmapMaxGrid(pos);
+    if (!freeze)
+    {
+      const uint32_t hw = applyRtssSettings(!first); // constraint: the collision TLAS gathers around the camera, not the fixed pos
+      if (hw)
+        bvh::bind_resources(bvhCtx, target->getWidth());
+      rtss->setSun(dir_to_sun);
+      for (int i = 0; i < 8 && (i == 0 || !rtss->isReady(BBox3(pos, 64.f), 0)); ++i) // constraint: the first update moves it to pos
+        buildRtss(pos, Point3(0, 0, 0), 0.f);
+    }
     if (first)
     {
       ShaderGlobal::set_texture(local_light_probe_texVarId, enviProbe);
@@ -2951,7 +2913,7 @@ public:
     }
     {
       TIME_D3D_PROFILE(cubeRender)
-      cube.update(light_probe::getManagedTex(localProbe), *this, pos);
+      renderCube(light_probe::getManagedTex(localProbe), pos, land_panel.level);
     }
     {
       TIME_D3D_PROFILE(lightProbeSpecular)
@@ -3008,11 +2970,16 @@ protected:
   template <typename Cb>
   void foreachTreeInstance(Cb cb) const
   {
+    foreachTreeInstance(test, testCount, cb);
+  }
+  template <typename Cb>
+  static void foreachTreeInstance(DynamicRenderableSceneInstance *test, int count, Cb cb)
+  {
     if (!test)
       return;
     const BBox3 local = test->getLocalBoundingBox();
     TMatrix tm = TMatrix::IDENT; // set_test_tm writes the translation only: the basis is ours
-    for (int i = 0; i < testCount; ++i)
+    for (int i = 0; i < count; ++i)
     {
       set_test_tm(i, tm);
       cb(tm, tm * local);
@@ -3068,12 +3035,14 @@ protected:
       DECLARE_BOOL_BUTTON(file_panel, export_min, false), DECLARE_BOOL_BUTTON(file_panel, export_max, false),
       DECLARE_BOOL_BUTTON(file_panel, import_minmax, false), DECLARE_BOOL_BUTTON(file_panel, save, false),
       DECLARE_BOOL_BUTTON(file_panel, load, false), DECLARE_BOOL_CHECKBOX(sun_panel, astronomical, false),
-      DECLARE_FLOAT_SLIDER(sun_panel, sun_zenith, 0.1, 120, 30, 0.01), DECLARE_FLOAT_SLIDER(sun_panel, sun_azimuth, 0., 360, 215, 1),
+      DECLARE_FLOAT_SLIDER(sun_panel, sun_zenith, 0.1, 180, 30, 0.01), DECLARE_FLOAT_SLIDER(sun_panel, sun_azimuth, 0., 360, 215, 1),
       DECLARE_FLOAT_SLIDER(sun_panel, moon_age, 0., 29.530588853, 10, 0.1),
       DECLARE_FLOAT_SLIDER(sun_panel, latitude, -90, 90, 55, 0.01), DECLARE_FLOAT_SLIDER(sun_panel, longitude, -180, 180, 37, 0.01),
       DECLARE_INT_SLIDER(sun_panel, year, 1941, 2032, 1939), DECLARE_INT_SLIDER(sun_panel, month, 1, 12, 6),
       DECLARE_INT_SLIDER(sun_panel, day, 1, 365, 6), DECLARE_FLOAT_SLIDER(sun_panel, time, 0, 24, 12, 0.001),
-      DECLARE_BOOL_CHECKBOX(sun_panel, local_time, true),
+      DECLARE_BOOL_CHECKBOX(sun_panel, local_time, true), DECLARE_BOOL_CHECKBOX(sun_panel, animate, false),
+      DECLARE_FLOAT_SLIDER(sun_panel, day_minutes, 1, 240, 24, 1), DECLARE_FLOAT_SLIDER(sun_panel, axis_tilt, 0, 80, 40, 1),
+      DECLARE_BOOL_BUTTON(sun_panel, time_skip, false),
 
       DECLARE_FLOAT_SLIDER(sky_panel, average_ground_albedo, 0.02, 0.83, 0.1, 0.01),
       DECLARE_FLOAT_SLIDER(sky_panel, ground_color.r, 0, 1, 1, 0.01), DECLARE_FLOAT_SLIDER(sky_panel, ground_color.g, 0, 1, 1, 0.01),
@@ -3183,7 +3152,27 @@ protected:
 
       DECLARE_FLOAT_SLIDER(layered_fog, mie2_scale, 0, 200, 0, 0.00001),
       DECLARE_FLOAT_SLIDER(layered_fog, mie2_altitude, 1, 2500, 200, 1),
-      DECLARE_FLOAT_SLIDER(layered_fog, mie2_thickness, 200, 1500, 400, 1)};
+      DECLARE_FLOAT_SLIDER(layered_fog, mie2_thickness, 200, 1500, 400, 1),
+
+      DECLARE_INT_SLIDER(rtss_panel, levels, 1, RTSS_MAX_LEVELS, RTSS_DEFAULTS.levels),
+      DECLARE_INT_COMBOBOX(rtss_panel, windowPages, RTSS_DEFAULTS.windowPages, 4, 8, 16, 32),
+      DECLARE_INT_COMBOBOX(rtss_panel, slotTexels, RTSS_DEFAULTS.slotTexels, 32, 64, 128),
+      DECLARE_INT_SLIDER(rtss_panel, borderTexels, 1, 4, RTSS_DEFAULTS.borderTexels),
+      DECLARE_FLOAT_SLIDER(rtss_panel, texel0, 0.01, 0.5, RTSS_DEFAULTS.texel0, 0.01),
+      DECLARE_FLOAT_SLIDER(rtss_panel, maxAnisotropy, 1, 8, RTSS_DEFAULTS.maxAnisotropy, 1),
+      DECLARE_FLOAT_SLIDER(rtss_panel, toleranceDeg0, 0.01, RTSS_DEFAULTS.toleranceDegMax, RTSS_DEFAULTS.toleranceDeg0, 0.01),
+      DECLARE_INT_SLIDER(rtss_panel, updatePagesPerFrame, 1, 256, RTSS_DEFAULTS.updatePagesPerFrame),
+      DECLARE_INT_SLIDER(rtss_panel, batchFrames, 1, 16, RTSS_DEFAULTS.batchFrames),
+      DECLARE_INT_COMBOBOX(rtss_panel, recipe, RTSS_SWRT, RTSS_SWRT, RTSS_HWRT, RTSS_RASTER, RTSS_HYBRID_SW, RTSS_HYBRID_HW),
+      DECLARE_INT_SLIDER(rtss_panel, hwLevels, 0, RTSS_MAX_LEVELS, 3),
+      DECLARE_FLOAT_SLIDER(rtss_panel, rasterMaxTexel, 0.01, 2, 0.25, 0.01),
+      DECLARE_FLOAT_SLIDER(rtss_panel, rasterCost, 0.1, 16, 1, 0.1), DECLARE_FLOAT_SLIDER(rtss_panel, augmentCost, 0.1, 16, 1.5, 0.1),
+      DECLARE_INT_SLIDER(rtss_panel, rasterBatchPages, 4, 64, RTSS_DEFAULTS.rasterBatchPages),
+      DECLARE_INT_COMBOBOX(rtss_panel, screen_filter, RTSS_DITHERED_HARDEN, RTSS_DITHERED_HARDEN, RTSS_TENT),
+      DECLARE_FLOAT_SLIDER(rtss_panel, screen_radius, 0.25, 4, 1.5, 0.05),
+      DECLARE_FLOAT_SLIDER(rtss_panel, seamBand, 0, 0.5, RTSS_DEFAULTS.seamBand, 0.01),
+      DECLARE_INT_COMBOBOX(rtss_panel, debug, 0, 0, 1, 2, 3, 4, 5, 6),
+      DECLARE_INT_SLIDER(rtss_panel, debug_level, 0, RTSS_MAX_LEVELS - 1, 0), DECLARE_BOOL_CHECKBOX(rtss_panel, show_stats, false)};
     de3_imgui_build(skyGuiDesc, sizeof(skyGuiDesc) / sizeof(skyGuiDesc[0]));
 
     if (const DataBlock *def_envi = dgs_get_settings()->getBlockByName("guiDefVal"))
@@ -3253,14 +3242,13 @@ protected:
   }
 
 
-  void renderEnvi(const TMatrix &view, const TMatrix4 &projTm, const Driver3dPerspective &persp)
+  void renderEnvi(const RenderView &view, const TMatrix &itm, const Driver3dPerspective &persp)
   {
     TIME_D3D_PROFILE(envi)
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
+    view.bind();
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3,
       farDownsampledDepth[currentDownsampledDepth], farDownsampledDepth[1 - currentDownsampledDepth], target->getDepth(),
-      main_pov_data.get(), view, projTm, persp);
+      main_pov_data.get(), view.view, view.proj, persp);
   }
   struct FilePanel
   {
@@ -3280,23 +3268,13 @@ protected:
 
   struct SunPanel
   {
-    float sun_zenith, sun_azimuth;
-    float moon_age;
-    bool astronomical, local_time;
-    float longitude, latitude, time;
-    int year, month, day;
-    SunPanel() :
-      sun_zenith(70),
-      sun_azimuth(30),
-      astronomical(false),
-      longitude(55),
-      latitude(37),
-      time(1),
-      year(1943),
-      day(1),
-      month(6),
-      local_time(true)
-    {}
+    float sun_zenith = 70, sun_azimuth = 30;
+    float moon_age = 10;
+    bool astronomical = false, local_time = true;
+    float longitude = 55, latitude = 37, time = 1;
+    int year = 1943, month = 6, day = 1;
+    bool animate = false, time_skip = false;
+    float day_minutes = 24, axis_tilt = 40;
   } sun_panel;
   struct
   {
@@ -3316,6 +3294,30 @@ protected:
     bool fake_dynres = false;
     bool update_radiance = true;
   } gi_panel;
+  enum
+  {
+    RTSS_DITHERED_HARDEN = 0,
+    RTSS_TENT = 1
+  };
+  enum
+  {
+    RTSS_SWRT,
+    RTSS_HWRT,
+    RTSS_RASTER,
+    RTSS_HYBRID_SW,
+    RTSS_HYBRID_HW
+  };
+  struct : RaytracedToroidalStaticShadowSettings
+  {
+    int recipe = RTSS_SWRT;
+    int hwLevels = 3;
+    float rasterMaxTexel = 0.25f;
+    float rasterCost = 1, augmentCost = 1.5;
+    int screen_filter = RTSS_DITHERED_HARDEN;
+    float screen_radius = 1.5;
+    int debug = 0, debug_level = 0;
+    bool show_stats = false;
+  } rtss_panel;
   struct
   {
     int clips = 5, texWidth = 128;
@@ -3337,8 +3339,6 @@ protected:
     bool reproject = true;
     bool angleFiltering;
   } screen_probes;
-  bool hwRtGiActive = false; // last frame's runtime hw RT GI state
-  int bvhBindWidth = 1920;   // the relight rebind runs outside beforeRender: keep its width
   struct
   {
     int tileSize = 64, slices = 16;
@@ -3477,14 +3477,7 @@ protected:
         if (!is_managed_textures_streaming_load_on_demand())
           ddsx::tex_pack2_perform_delayed_data_loading();
 
-        struct UpdatePtr : public DelayedAction
-        {
-          DemoGameScene *s;
-          DynamicRenderableSceneInstance *val;
-          UpdatePtr(DemoGameScene *_s, DynamicRenderableSceneInstance *_val) : s(_s), val(_val) {}
-          void performAction() override { s->setModel(val); }
-        };
-        add_delayed_action(new UpdatePtr(s, val));
+        delayed_call([scene = s, val] { scene->setModel(val); });
       }
       virtual void releaseJob() { delete this; }
     };
@@ -3502,10 +3495,10 @@ protected:
       SimpleString fn, hmap_fn;
       float cellSize = 0;
       float hMin = 0, hMax = 1;
-      scene_type_t **destScn;
+      DemoGameScene *scene;
 
-      LoadJob(const char *_fn, const char *hmap_fn, scene_type_t **scn, float cell, float h_min, float h_max) :
-        fn(_fn), hmap_fn(hmap_fn), destScn(scn), cellSize(cell), hMin(h_min), hMax(h_max)
+      LoadJob(const char *_fn, const char *hmap_fn, DemoGameScene *owner, float cell, float h_min, float h_max) :
+        fn(_fn), hmap_fn(hmap_fn), scene(owner), cellSize(cell), hMin(h_min), hMax(h_max)
       {}
       const char *getJobName(bool &) const override { return DAPROFILER_STRING("LoadJob_scheduleLevelBinLoad"); }
       virtual void doJob()
@@ -3532,24 +3525,17 @@ protected:
         prefetch_managed_textures_by_textag(TEXTAG_LAND);
         // if (!is_managed_textures_streaming_load_on_demand())
         ddsx::tex_pack2_perform_delayed_data_loading();
-        struct UpdatePtr : public DelayedAction
-        {
-          scene_type_t **dest, *val;
-          UpdatePtr(scene_type_t **_dest, scene_type_t *_val) : dest(_dest), val(_val) {}
-          virtual void performAction()
-          {
-            *dest = val;
-            ddsx::tex_pack2_perform_delayed_data_loading();
-            ((DemoGameScene *)dagor_get_current_game_scene())->onSceneLoaded();
-            ((DemoGameScene *)dagor_get_current_game_scene())->addBvhMeshes(val);
-          }
-        };
-        add_delayed_action(new UpdatePtr(destScn, scn));
+        delayed_call([owner = scene, scn] {
+          owner->binScene = scn;
+          ddsx::tex_pack2_perform_delayed_data_loading();
+          owner->onSceneLoaded();
+          owner->addBvhMeshes(scn);
+        });
       }
       virtual void releaseJob() { delete this; }
     };
 
-    cpujobs::add_job(loading_job_mgr_id, new LoadJob(level_bindump_fn, hmap_fn, &binScene, cell, hMin, hMax));
+    cpujobs::add_job(loading_job_mgr_id, new LoadJob(level_bindump_fn, hmap_fn, this, cell, hMin, hMax));
   }
 
   // one context: the collision TLAS the GI traces, plus the RTSM meshes when on
@@ -3559,7 +3545,6 @@ protected:
   bool bvhLruConnected = false;
   float bvhLruRadius = 0;
   uint32_t bvhBuildCount = 0;
-  bool bvhBuilt = false;
   uint64_t bvhMeshBase = 0;
   uint64_t bvhMeshCount = 0;
   uint64_t testId = 0;
@@ -3634,10 +3619,7 @@ public:
     bvhLruConnected = false;
     bvhLruRadius = 0;
     if (for_device_reset)
-    {
-      bvhBuilt = false;
       bvhIdGen = bvhMeshBase = bvhMeshCount = testId = 0;
-    }
     else
     {
       rt_textures.clear();
@@ -3687,6 +3669,18 @@ protected:
     }
   }
 
+  bool hwRtAvailable() const
+  {
+    // constraint: the HW shader variants exist only in the dx12 dump
+#if _TARGET_PC
+    const bool inDump = d3d::get_driver_code().is(d3d::dx12);
+#else
+    constexpr bool inDump = false;
+#endif
+    // constraint: with no resident collision (still gathering, or no collision dump) a collision trace resolves to sky
+    return inDump && bvh::get_lru_collision_stats(bvhCtx).residentInstances > 0;
+  }
+
   float effectiveBvhRadius() const
   {
     if (bvh_radius > 0)
@@ -3698,7 +3692,7 @@ protected:
 
   void updateCollisionBvhStreaming()
   {
-    if (!bvhLruConnected && lruColl.lruColl && lruColl.size())
+    if (!bvhLruConnected && lruColl.lruColl && lruColl.level.instanceCount())
     {
       bvh::LruCollisionSettings s;
       s.radius = bvhLruRadius = effectiveBvhRadius();
@@ -3708,8 +3702,8 @@ protected:
         [this](bbox3f_cref box, dag::Vector<rendinst::riex_handle_t> &out, dag::Vector<mat43f> &out_tms) {
           // boxCull takes the scene read lock itself; no outer lock, a second
           // acquire deadlocks if the lock ever stops being reentrant
-          lruColl.boxCull(box, [&](scene::node_index, mat44f_cref node) {
-            out.push_back((uint64_t(scene::get_node_pool(node)) << 32UL) | uint64_t(scene::get_node_flags(node)));
+          lruColl.level.boxCull(box, [&](uint64_t h, mat44f_cref node) {
+            out.push_back(h);
             // the w components carry pool/flags/bsphere, the transpose drops them
             mat43f tm;
             v_mat44_transpose_to_mat43(tm, node);
@@ -3727,13 +3721,11 @@ protected:
     }
   }
 
-  void buildBvh()
+  void buildBvh(const TMatrix &itm)
   {
     if (bvhCtx == bvh::InvalidContextId)
       return;
 
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
     const Point3 viewPos = itm.getcol(3);
 
     bvh::start_frame();
@@ -3764,7 +3756,6 @@ protected:
 
     // every frame: the collision streaming window advances inside build
     bvh::build(bvhCtx, itm, TMatrix4::IDENT, viewPos, Point3::ZERO);
-    bvhBuilt = true;
     ++bvhBuildCount;
   }
 
@@ -3775,6 +3766,33 @@ public:
     console::print_d("bvh: %d builds, collision revision %u, %d resident instances, %d built models, cache %dK of %dK, settled %d",
       bvhBuildCount, s.revision, s.residentInstances, s.builtModels, int(s.cachedBytes >> 10), int(s.cacheLimit >> 10),
       int(s.settled));
+  }
+  void printRtssStats()
+  {
+    RaytracedToroidalStaticShadow::Stats s;
+    rtss->getStats(s);
+    const RaytracedToroidalStaticShadowSettings &set = rtss->getSettings();
+    console::print_d("%s", rtssPagesLine(s).c_str());
+    for (auto [i, l] : enumerate(s.levels))
+      console::print_d(
+        "rtss: level %d sweeping %d progress %.2f sun error %.3f deg, last sweep %.2f s, slots valid %d dirty %d empty %d, "
+        "tolerance %.3f deg, sweep %.2f s, fast %d, sweeps %d, pretrace blocked %d",
+        int(i), l.sweeping, l.sweepProgress, l.sunErrorDeg, l.lastSweepSeconds, l.validSlots, l.dirtySlots, l.emptySlots,
+        l.toleranceDeg, l.sweepSeconds, l.fastSweep, l.sweeps, l.pretraceBlocked);
+    console::print_d("rtss: debug pass lookups %u, no data %u, fallbacks: released slot %u, bit %u, depth %u, reference %u pixels, "
+                     "%.3f%% differ",
+      s.gpu.lookups, s.gpu.noData, s.gpu.fallbackReleased, s.gpu.fallbackBit, s.gpu.fallbackDepth, s.gpu.referencePixels,
+      100. * s.gpu.referenceDiff / max(s.gpu.referencePixels, 1u));
+    console::print_d("rtss: recipe %d, HW mask %x, updatePagesPerFrame %d, cost required %.2f other %.2f, raster jobs %d skipped "
+                     "%d provisional %d empty %d",
+      rtss_panel.recipe, rtssHwMask, set.updatePagesPerFrame, s.cost[RTSS_REQUIRED],
+      s.cost[RTSS_DIRTY] + s.cost[RTSS_SWEEP] + s.cost[RTSS_PRETRACE] + s.cost[RTSS_FILL], s.rasterJobs, s.rasterSkipped,
+      s.rasterProvisional, s.rasterEmpty);
+    for (int k = 0; k < set.levels; ++k)
+      console::print_d("rtss: level %d raster %d cost %.1f", k, int(set.recipes[k].raster), set.recipes[k].pageCost);
+    const bvh::LruCollisionStats lru = bvh::get_lru_collision_stats(bvhCtx);
+    console::print_d("rtss: lru revision %u (invalidated %u), settled %d, resident %u", lru.revision, rtssLruRevision,
+      int(lru.settled), lru.residentInstances);
   }
 
 protected:
@@ -3796,12 +3814,15 @@ static void testgi_bvh_after_reset(bool full_reset)
 }
 REGISTER_D3D_AFTER_RESET_FUNC(testgi_bvh_after_reset);
 
-static void testgi_gi_after_reset(bool full_reset)
+static void testgi_scene_and_gi_after_reset(bool full_reset)
 {
   if (full_reset && DemoGameScene::the_scene)
+  {
+    DemoGameScene::the_scene->sceneAfterDeviceReset();
     DemoGameScene::the_scene->giAfterDeviceReset();
+  }
 }
-REGISTER_D3D_AFTER_RESET_FUNC(testgi_gi_after_reset);
+REGISTER_D3D_AFTER_RESET_FUNC(testgi_scene_and_gi_after_reset);
 // headers needed for startup only
 // #include <fx/dag_fxInterface.h>
 // #include <fx/dag_commonFx.h>
@@ -3901,6 +3922,11 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     ((DemoGameScene *)dagor_get_current_game_scene())->curCamera->getInvViewMatrix(camTm);
     save_camera_position("cameraPositions.blk", argc > 1 ? argv[1] : "slot0", camTm);
   }
+  CONSOLE_CHECK_NAME("camera", "move", 1, 4)
+  {
+    Point3 &v = ((DemoGameScene *)dagor_get_current_game_scene())->cameraMoveVel;
+    v = Point3(argc > 1 ? atof(argv[1]) : 0.f, argc > 2 ? atof(argv[2]) : 0.f, argc > 3 ? atof(argv[3]) : 0.f);
+  }
   CONSOLE_CHECK_NAME("camera", "restore", 1, 2)
   {
     TMatrix camTm;
@@ -3943,6 +3969,66 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     if (!str.empty())
       console::print(str);
   }
+  auto rtssPanel = []() -> auto & { return ((DemoGameScene *)dagor_get_current_game_scene())->rtss_panel; };
+  CONSOLE_CHECK_NAME("rtss", "stats", 1, 1) { ((DemoGameScene *)dagor_get_current_game_scene())->printRtssStats(); }
+  CONSOLE_CHECK_NAME("rtss", "invalidate", 1, 1) { ((DemoGameScene *)dagor_get_current_game_scene())->rtss->invalidate(); }
+  CONSOLE_CHECK_NAME("rtss", "invalidate_around", 2, 3)
+  {
+    DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
+    TMatrix itm;
+    scene->curCamera->getInvViewMatrix(itm);
+    const BBox3 box(itm.getcol(3), 2 * atof(argv[1]));
+    scene->rtss->invalidateBoxes(&box, 1, argc > 2 ? atoi(argv[2]) : ~0u);
+  }
+  CONSOLE_CHECK_NAME("rtss", "settle", 1, 1)
+  {
+    DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
+    console::print_d("rtss: %d frames since the last frame with a job", scene->rtssFramesSinceJob);
+  }
+  CONSOLE_CHECK_NAME("rtss", "layout", 3, 3)
+  {
+    rtssPanel().windowPages = atoi(argv[1]);
+    rtssPanel().slotTexels = atoi(argv[2]);
+  }
+  CONSOLE_CHECK_NAME("sun", "dir", 3, 3)
+  {
+    DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
+    scene->sun_panel.sun_zenith = atof(argv[1]);
+    scene->sun_panel.sun_azimuth = atof(argv[2]);
+  }
+  CONSOLE_CHECK_NAME("sun", "animate", 2, 4)
+  {
+    DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
+    scene->sun_panel.animate = tobool(argv[1]);
+    if (argc > 2)
+      scene->sun_panel.day_minutes = clamp(float(atof(argv[2])), 1.f, 240.f);
+    if (argc > 3)
+      scene->sun_panel.axis_tilt = clamp(float(atof(argv[3])), 0.f, 80.f);
+  }
+  CONSOLE_CHECK_NAME("rtss", "debug", 2, 3)
+  {
+    rtssPanel().debug = clamp(atoi(argv[1]), 0, 6);
+    if (argc > 2)
+      rtssPanel().debug_level = clamp(atoi(argv[2]), 0, RTSS_MAX_LEVELS - 1);
+  }
+  CONSOLE_CHECK_NAME("rtss", "update_pages_per_frame", 2, 2) { rtssPanel().updatePagesPerFrame = clamp(atoi(argv[1]), 1, 256); }
+  CONSOLE_CHECK_NAME("rtss", "batch_frames", 2, 2) { rtssPanel().batchFrames = clamp(atoi(argv[1]), 1, 16); }
+  CONSOLE_CHECK_NAME("rtss", "screen_filter", 2, 2) { rtssPanel().screen_filter = clamp(atoi(argv[1]), 0, 1); }
+  CONSOLE_CHECK_NAME("rtss", "screen_radius", 2, 2) { rtssPanel().screen_radius = clamp(float(atof(argv[1])), 0.25f, 4.f); }
+  CONSOLE_CHECK_NAME("rtss", "max_anisotropy", 2, 2) { rtssPanel().maxAnisotropy = clamp(float(atof(argv[1])), 1.f, 8.f); }
+  CONSOLE_CHECK_NAME("rtss", "border_texels", 2, 2) { rtssPanel().borderTexels = clamp(atoi(argv[1]), 1, 4); }
+  CONSOLE_CHECK_NAME("rtss", "normal_bias_texels", 2, 2) { rtssPanel().normalBiasTexels = clamp(float(atof(argv[1])), 0.f, 8.f); }
+  CONSOLE_CHECK_NAME("rtss", "seam_band", 2, 2) { rtssPanel().seamBand = clamp(float(atof(argv[1])), 0.f, 0.5f); }
+  CONSOLE_CHECK_NAME("rtss", "recipe", 2, 2) { rtssPanel().recipe = clamp(atoi(argv[1]), 0, 4); }
+  CONSOLE_CHECK_NAME("rtss", "hw_levels", 2, 2) { rtssPanel().hwLevels = clamp(atoi(argv[1]), 0, RTSS_MAX_LEVELS); }
+  CONSOLE_CHECK_NAME("rtss", "raster_max_texel", 2, 2) { rtssPanel().rasterMaxTexel = clamp(float(atof(argv[1])), 0.01f, 2.f); }
+  CONSOLE_CHECK_NAME("rtss", "raster_cost", 2, 3)
+  {
+    rtssPanel().rasterCost = clamp(float(atof(argv[1])), 0.1f, 16.f);
+    if (argc > 2)
+      rtssPanel().augmentCost = clamp(float(atof(argv[2])), 0.1f, 16.f);
+  }
+  CONSOLE_CHECK_NAME("rtss", "show_stats", 1, 2) { toggle_or_set_bool_arg(rtssPanel().show_stats, 1, argc, argv); }
   /*CONSOLE_CHECK_NAME("render", "objects_sdf_atlas_sz", 4, 4)
   {
     DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
@@ -3951,15 +4037,6 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   }*/
   return found;
 }
-
-uint32_t lru_collision_get_type(rendinst::riex_handle_t h) { return h >> 32ULL; }
-mat43f lru_collision_get_transform(rendinst::riex_handle_t h)
-{
-  uint32_t typ = h >> 32ULL, in = uint32_t(h);
-  return DemoGameScene::the_scene->lruColl.instances[typ][in];
-}
-
-const CollisionResource *lru_collision_get_collres(uint32_t typ) { return DemoGameScene::the_scene->lruColl.collRes[typ].get(); }
 
 
 static TestConsole test_console;

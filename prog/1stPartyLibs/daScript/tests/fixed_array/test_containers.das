@@ -42,9 +42,7 @@ def test_array_of_fa(t : T?) {
         delete arr
     }
     t |> run("iterate array of FA") @(t : T?) {
-        var arr : array<int[4]>
-        arr |> push(make_iota())
-        arr |> push(make_iota())
+        var arr <- [make_iota(), make_iota()]
         var total = 0
         for (fa in arr) {
             for (x in fa) {

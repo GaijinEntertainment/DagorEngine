@@ -43,6 +43,7 @@ protected:
 
 #if _TARGET_PC_WIN
   bool relativeModeNextTime = false;
+  bool relCursorCentered = false;
   bool canClipCursor();
 
   void updateState(int wParam, int lParam);

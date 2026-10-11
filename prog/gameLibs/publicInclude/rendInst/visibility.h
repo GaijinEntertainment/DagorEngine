@@ -11,7 +11,6 @@
 #include <math/dag_frustum.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_TMatrix.h>
-#include <EASTL/fixed_function.h>
 #include <EASTL/optional.h>
 #include <generic/dag_functionRef.h>
 
@@ -49,7 +48,7 @@ extern void setRIGenVisibilityRequestDestrLods(RiGenVisibility *visibility, bool
 // borrowed for the call only, so the callable must outlive it
 using VisibilityExternalFilter = dag::FunctionRef<bool(vec4f bbmin, vec4f bbmax) const>;
 using VisibilityTileExternalFilter = dag::FunctionRef<int(vec4f bbmin, vec4f bbmax) const>;
-using VisibilityExternalIdFilter = eastl::fixed_function<sizeof(void *), bool(int ri_idx, const TMatrix &tm)>;
+using VisibilityExternalIdFilter = dag::FunctionRef<bool(int ri_idx, const TMatrix &tm) const>;
 
 struct PrepareRiGenVisibilityParams
 {
@@ -102,7 +101,7 @@ struct PrepareRiexVisibilityParams
   VisibilityExternalFilter externalFilter;
   VisibilityTileExternalFilter tileExternalFilter;
   float minSizeToDistRatio = -1.f;
-  bool forShadow = false;
+  bool forShadow = false; // a piece of a tall combined rendinst skips externalFilter
   bool forVisualCollision = false;
   bool filterRendinstClipmap = false;
   bool forVsm = false;

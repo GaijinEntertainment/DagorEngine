@@ -171,7 +171,20 @@ public:
   // Additive blend override used while splatting land classes into the clipmap.
   shaders::OverrideStateId setStateBlend();
 
+  // the per-landclass de-tiling records (land_detile.hlsli)
+  void uploadDetileParams(bool has_weight_atlas);
+  void bindDetileParams() const;
+  // returns matches; a landclass with no detile size stays off, and the call keeps the loaded size
+  int applyDetileOverride(const char *name, int clusters, float angle_rad, float spread_rad);
+
 private:
+  Sbuffer *detileParamsBuf = nullptr;
+  bool detileParamsDirty = true;   // the tools path prepares per frame: upload only on change
+  bool detileOn = false;           // set per pass beside the buffer: the gate must match the renderer that binds
+  bool weightAtlasPresent = false; // the no-atlas fallback has no cell records for the slot-id read
+  struct DetileReload;
+  DetileReload *detileReload = nullptr; // owned here: a driver frees one only when a second replaces it
+  void closeDetileParams();
   // Land-class / virtual-texture data moved out of LandMeshRenderer. Private: the driver reads
   // it through the accessors above, external code through the LandMeshRenderer forwarders.
   Tab<LandClassDetailTextures> landClasses;

@@ -547,6 +547,13 @@ the edge. 
    }
    ```
 
+   ```{note}
+   With `transition_lod{}`, the export adds `use_cross_dissolve=1` to the
+   material script of each material in the transition LOD. If the impostor
+   material in the transition LOD does not get a `use_cross_dissolve` value
+   above `0`, the export of the asset fails.
+   ```
+
 4. Run Impostor Baker, to bake the impostors.
 
 5. Export whole data to the game.

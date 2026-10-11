@@ -10,8 +10,9 @@ namespace das {
     // base: struct/tuple/bitfield fields and array/fixed-array/vector indexing only.
     // Pointer or handled-type links, variant access, and table indexing (which inserts on
     // read) fall outside the model. Soundness rests on the access flags stamped by
-    // buildAccessFlags/TrackVariableFlags (ast_unused.cpp), which run at the top of every
-    // optimization round (optimizationUnused precedes CSE/DSE in ast_optimize.cpp):
+    // buildAccessFlags/TrackVariableFlags (ast_unused.cpp), current at the top of every
+    // optimization round (optimizationUnused precedes CSE/DSE in ast_optimize.cpp; a round
+    // that follows no reported AST change keeps the flags of the last build):
     //  * every write stamps `write` on the full access chain, including the base ExprVar -
     //    statement stores, op-assign, addr-of, move sources, non-const for sources, and
     //    call sites of argument-modifying callees (propagateModifiedArguments) alike;

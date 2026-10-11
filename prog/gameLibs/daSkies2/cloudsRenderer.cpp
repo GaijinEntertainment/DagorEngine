@@ -142,6 +142,19 @@ int CloudsRenderer::getNotLesserDepthLevel(CloudsRendererData &data, int &depth_
   return level;
 }
 
+static IPoint2 set_depth_gbuf_dims(BaseTexture *depth, int level)
+{
+  if (!depth)
+  {
+    ShaderGlobal::set_float4(clouds_depth_gbuf_dimsVarId, 0, 0, 0, 0);
+    return IPoint2(0, 0);
+  }
+  TextureInfo dti;
+  depth->getinfo(dti, level);
+  ShaderGlobal::set_float4(clouds_depth_gbuf_dimsVarId, dti.w, dti.h, 1.f / dti.w, 1.f / dti.h);
+  return IPoint2(dti.w, dti.h);
+}
+
 void CloudsRenderer::setCloudsOriginOffset(float world_size)
 {
   ShaderGlobal::set_float4(clouds_origin_offsetVarId, P2D(currentCloudsOffsetCalc(world_size)), 0, 0);
@@ -356,17 +369,16 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
   // the TAA depth texel math needs each texture's really sampled mip size: the depth pair
   // follows the current scale, which the clouds grid is locked to, and current vs prev
   // differ on a step frame
+  const IPoint2 depthDims = set_depth_gbuf_dims(depth, level);
   if (depth)
   {
-    TextureInfo dti;
-    depth->getinfo(dti, level);
-    IPoint2 depthDims(dti.w, dti.h), prevDepthDims = depthDims;
+    IPoint2 prevDepthDims = depthDims;
     if (prev_depth)
     {
+      TextureInfo dti;
       prev_depth->getinfo(dti, level);
       prevDepthDims = IPoint2(dti.w, dti.h);
     }
-    ShaderGlobal::set_float4(clouds_depth_gbuf_dimsVarId, depthDims.x, depthDims.y, 1.f / depthDims.x, 1.f / depthDims.y);
     ShaderGlobal::set_float4(clouds_prev_depth_gbuf_dimsVarId, prevDepthDims.x, prevDepthDims.y, 1.f / prevDepthDims.x,
       1.f / prevDepthDims.y);
 #if DAGOR_DBGLEVEL > 0
@@ -382,7 +394,6 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
   {
     // no scene depth bound: zeros make the shader derive the legacy clouds-based
     // unit itself (halved under fullres clouds), exactly the pre-change fallback
-    ShaderGlobal::set_float4(clouds_depth_gbuf_dimsVarId, 0, 0, 0, 0);
     ShaderGlobal::set_float4(clouds_prev_depth_gbuf_dimsVarId, 0, 0, 0, 0);
   }
 
@@ -638,6 +649,7 @@ void CloudsRenderer::renderCloudsApply(CloudsRendererData &data, BaseTexture *do
   d3d::resource_barrier({appliedColor.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   int depthLevels;
   int level = getNotLesserDepthLevel(data, depthLevels, downsampled_depth);
+  set_depth_gbuf_dims(downsampled_depth, level);
   if (level != 0)
     downsampled_depth->texmiplevel(level, level);
   if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)

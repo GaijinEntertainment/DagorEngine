@@ -115,7 +115,7 @@ static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::Entit
         a.prevRel = relTime;
       }
 
-      if (a.timer <= 0.0)
+      if (a.timer <= 0.0f)
         manager.sendEvent(eid, EventActionFinished(i));
     }
   }

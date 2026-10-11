@@ -126,7 +126,7 @@ void WebsocketMock::poll()
       message = R"({"jsonrpc":"2.0","id":null,"result":{"status":"ok","details":"SEP: Authentication passed"}})";
     }
 
-    config.onMessage(this, websocket::PayloadView{reinterpret_cast<const uint8_t *>(message.data()), message.size()}, true);
+    deliverMessage(websocket::PayloadView{reinterpret_cast<const uint8_t *>(message.data()), message.size()}, true);
   }
 
   now = websocketjsonrpc::abstraction::get_current_tick_count();
@@ -154,10 +154,8 @@ void WebsocketMock::poll()
     CAPTURE(state);
     REQUIRE((state == CONNECTED || state == CLOSE_CALLED));
 
-    REQUIRE(!!config.onMessage);
     onMessageCallbackCallCount++;
-    config.onMessage(this,
-      websocket::PayloadView{reinterpret_cast<const uint8_t *>(message.messageData.data()), message.messageData.size()},
+    deliverMessage(websocket::PayloadView{reinterpret_cast<const uint8_t *>(message.messageData.data()), message.messageData.size()},
       message.isText);
   }
 
@@ -175,6 +173,12 @@ void WebsocketMock::poll()
     error.message = "Simulated internet connection failure";
     config.onClose(this, (int)websocket::CloseStatus::Normal, eastl::move(error));
   }
+}
+
+void WebsocketMock::deliverMessage(PayloadView payload, bool is_text)
+{
+  REQUIRE(!!config.onMessageAsync);
+  config.onMessageAsync(this, payload, is_text);
 }
 
 // ===========================================================

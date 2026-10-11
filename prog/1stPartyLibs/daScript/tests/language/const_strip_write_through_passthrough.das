@@ -1,5 +1,6 @@
 options gen2
 options no_unused_function_arguments = false
+options _nolint = "LINT031"   // the const-stripped write is the shape under test
 require dastest/testing_boost public
 
 // Regression for issue #3311: a write performed by const-stripping (reinterpret to
@@ -32,9 +33,7 @@ def passthrough2(p : float const?; n : int) {
 
 // control: mutable `var float?` params throughout, no reinterpret — always worked
 def leaf_mut(var p : float?; n : int) {
-    unsafe {
-        for (i in range(n)) { p[i] = 7.0 }
-    }
+    for (i in range(n)) { unsafe(p[i]) = 7.0 }
 }
 def passthrough_mut(var p : float?; n : int) {
     leaf_mut(p, n)
@@ -57,9 +56,7 @@ def passthrough_alias2(p : float const?; n : int) {
 
 def writer_via_copy(var p : float?; n : int) {
     var w = p
-    unsafe {
-        for (i in range(n)) { w[i] = 7.0 }
-    }
+    for (i in range(n)) { unsafe(w[i]) = 7.0 }
 }
 
 def fill_zero(var a : float[4]) {
@@ -72,14 +69,14 @@ def test_const_strip_write_through_passthrough(t : T?) {
     t |> run("direct leaf write") @(t : T?) {
         var a : float[4]
         fill_zero(a)
-        unsafe { leaf(addr(a[0]), 4) }
+        leaf(unsafe(addr(a[0])), 4)
         t |> equal(a[0], 7.0)
     }
     // (2) forwarded through a `float const?` pass-through — the bug (b stayed 0.0)
     t |> run("write forwarded through const? pass-through") @(t : T?) {
         var b : float[4]
         fill_zero(b)
-        unsafe { passthrough(addr(b[0]), 4) }
+        passthrough(unsafe(addr(b[0])), 4)
         t |> equal(b[0], 7.0)
     }
     // (3) forwarded through TWO chained `float const?` pass-throughs — transitive
@@ -87,35 +84,35 @@ def test_const_strip_write_through_passthrough(t : T?) {
     t |> run("write forwarded through two const? hops") @(t : T?) {
         var c : float[4]
         fill_zero(c)
-        unsafe { passthrough2(addr(c[0]), 4) }
+        passthrough2(unsafe(addr(c[0])), 4)
         t |> equal(c[0], 7.0)
     }
     // (4) control: mutable-param pass-through — never lost the write
     t |> run("mutable-param pass-through control") @(t : T?) {
         var d : float[4]
         fill_zero(d)
-        unsafe { passthrough_mut(addr(d[0]), 4) }
+        passthrough_mut(unsafe(addr(d[0])), 4)
         t |> equal(d[0], 7.0)
     }
     // (5) write forwarded through a `let q = p` pointer-alias local
     t |> run("write through let-alias of const? param") @(t : T?) {
         var e : float[4]
         fill_zero(e)
-        unsafe { passthrough_alias(addr(e[0]), 4) }
+        passthrough_alias(unsafe(addr(e[0])), 4)
         t |> equal(e[0], 7.0)
     }
     // (6) two chained alias lets — chase must be transitive
     t |> run("write through chained let-aliases") @(t : T?) {
         var g : float[4]
         fill_zero(g)
-        unsafe { passthrough_alias2(addr(g[0]), 4) }
+        passthrough_alias2(unsafe(addr(g[0])), 4)
         t |> equal(g[0], 7.0)
     }
     // (7) direct write through `var w = p` copy of a mutable param — no reinterpret at all
     t |> run("write through var-copy of mutable param") @(t : T?) {
         var h : float[4]
         fill_zero(h)
-        unsafe { writer_via_copy(addr(h[0]), 4) }
+        writer_via_copy(unsafe(addr(h[0])), 4)
         t |> equal(h[0], 7.0)
     }
 }

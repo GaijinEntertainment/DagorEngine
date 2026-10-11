@@ -2,7 +2,18 @@ IF ((NOT DAS_LLVM_INCLUDED) AND ((NOT ${DAS_LLVM_DISABLED}) OR (NOT DEFINED DAS_
     SET(DAS_LLVM_INCLUDED TRUE)
     MESSAGE(STATUS "dasLlvm module included.")
 
+    ADD_MODULE_DAS_FROM_DESCRIPTOR(llvm daslib)
+    ADD_MODULE_DAS_FROM_DESCRIPTOR(llvm bindings)
+
 	SET(DAS_LLVM_DIR ${PROJECT_SOURCE_DIR}/modules/dasLLVM)
+
+    # the `llvm` witness module (src/dasLLVM.cpp): compiled in exactly when this package is, so
+    # `require ?llvm <target>` follows the configure - the das files below are on disk in every
+    # checkout and would otherwise satisfy a path guard in a build without LLVM
+    ADD_MODULE_CPP(LLVM)
+    ADD_MODULE_LIB(libDasModuleLLVM dasModuleLLVM ${DAS_LLVM_DIR}/src/dasLLVM.cpp)
+    SETUP_CPP11(libDasModuleLLVM)
+    SETUP_CPP11(dasModuleLLVM)
 
     LIST(APPEND CMAKE_MODULE_PATH ${DAS_LLVM_DIR})
 
@@ -121,7 +132,7 @@ IF ((NOT DAS_LLVM_INCLUDED) AND ((NOT ${DAS_LLVM_DISABLED}) OR (NOT DEFINED DAS_
 
             file(COPY ${das_llvm_shared_lib_SOURCE_DIR}/LLVM.dll DESTINATION ${CMAKE_SOURCE_DIR}/lib)
             IF(WIN32)
-                # The package also ships clang-cl.exe (utils/preflight probes it
+                # The package also ships clang-cl.exe (utils/internal/preflight probes it
                 # in the FetchContent source dir as a bundled-compiler fallback);
                 # only the linker goes to bin/.
                 file(COPY ${das_llvm_shared_lib_SOURCE_DIR}/lld-link.exe DESTINATION ${CMAKE_SOURCE_DIR}/bin)
@@ -146,8 +157,13 @@ IF ((NOT DAS_LLVM_INCLUDED) AND ((NOT ${DAS_LLVM_DISABLED}) OR (NOT DEFINED DAS_
 			DESTINATION ${DAS_INSTALL_MODULESDIR}/dasLLVM/daslib
 	)
 	file(GLOB DASLLVM_BINDINGS ${DAS_LLVM_DIR}/bindings/*.das)
+    # daslib/ carries [arch] citations; the bundle gets generated excerpts of the cited
+    # sections (registry processed by the root CMakeLists)
+    set_property(GLOBAL APPEND PROPERTY DAS_ARCH_EXTRACT_SPECS
+       "modules/dasLLVM/daslib|modules/dasLLVM|${DAS_INSTALL_MODULESDIR}/dasLLVM")
 	install(FILES ${DASLLVM_BINDINGS} DESTINATION ${DAS_INSTALL_MODULESDIR}/dasLLVM/bindings)
 	install(FILES ${DAS_LLVM_DIR}/.das_module DESTINATION ${DAS_INSTALL_MODULESDIR}/dasLLVM/)
+    install(FILES ${DAS_LLVM_DIR}/ENVIRONMENT.md DESTINATION ${DAS_INSTALL_MODULESDIR}/dasLLVM/)
 
 	ADD_EXAMPLE_RUN(modules/dasLLVM/examples/hello_jit.das)
 	ADD_EXAMPLE_RUN(modules/dasLLVM/examples/hello_llvm.das)
@@ -155,3 +171,15 @@ IF ((NOT DAS_LLVM_INCLUDED) AND ((NOT ${DAS_LLVM_DISABLED}) OR (NOT DEFINED DAS_
 	ADD_EXAMPLE_RUN(modules/dasLLVM/examples/hello_llvm_jit_function.das FALSE)
 
 ENDIF()
+
+if(NOT DAS_TOOLS_DISABLED)
+    das_lane_dastest_target(run_tests_llvm_vector_math COMMENT "Testing the dasLLVM inline-polynomial rail"
+        JIT_FILES modules/dasLLVM/tests/llvm_vector_math.das)
+
+    das_lane_dastest_target(run_tests_llvm_env_registry COMMENT "Testing the dasLLVM env-knob registry"
+        FILES modules/dasLLVM/tests/llvm_env_registry.das)
+    das_lane_dastest_target(run_tests_llvm_jit_backend COMMENT "Testing the JIT backend"
+        JIT_FILES modules/dasLLVM/tests/llvm_compile_only.das modules/dasLLVM/tests/llvm_obj_cache.das
+                  modules/dasLLVM/tests/llvm_split_modules.das modules/dasLLVM/tests/llvm_ast_roundtrip.das
+                  modules/dasLLVM/tests/llvm_cache_selfheal.das modules/dasLLVM/tests/exe_host_cpu.das)
+endif()

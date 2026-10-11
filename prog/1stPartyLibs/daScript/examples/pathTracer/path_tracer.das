@@ -9,7 +9,6 @@ options solid_context
 
 
 require math
-require strings
 
 require daslib/random
 

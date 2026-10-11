@@ -99,6 +99,8 @@ float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, fl
 
     valid_hit = raymachResult.hitUVZw.w;
     result.xyz = raymachResult.hitUVZw.xyz;
+    if (all(abs(result.xy - origin.xy) < 2.0 / screen_size))
+      valid_hit = false;
 
     bool hitSky = result.z == 0;
     if (!valid_hit && !hitSky)

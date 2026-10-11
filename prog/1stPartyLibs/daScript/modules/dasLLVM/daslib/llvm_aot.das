@@ -10,6 +10,8 @@ require llvm/daslib/llvm_exe
 require llvm/daslib/llvm_dll_utils
 require daslib/ast_boost
 require daslib/rtti
+require daslib/safe_addr
+require strings
 
 //! LLVM-AOT registration pass. After the JIT visitor has generated + optimized the module (as for a
 //! normal exe), this adds the offline-AOT-object registration layer so a statically-linked .o binds
@@ -70,7 +72,7 @@ def private emit_aot_register_ctor_dtor(types : PrimitiveTypes?; funcs : array<F
 // there) and points ExprAddr globals at their publ symbols. No module/function registration.
 def public emit_aot_object_globinit(ctx : LLVMContextRef; mod : LLVMOpaqueModule?;
                                     var types : PrimitiveTypes?; var funcs : array<FunctionPtr>;
-                                    var uids : UidNodes?) : LLVMOpaqueValue? {
+                                    var uids : UidNodes?; prog : Program?) : LLVMOpaqueValue? {
     // void das_aot_object_globinit_constructor(Context* ctx): ctx is used to
     // resolve Func-value globs to the host's SimFunction* (das_aot_get_func_by_mnh).
     let fnType = LLVMFunctionType(types.t_void, fixed_array<LLVMTypeRef>(types.LLVMVoidPtrType()))
@@ -81,6 +83,7 @@ def public emit_aot_object_globinit(ctx : LLVMContextRef; mod : LLVMOpaqueModule
     // Aliases the caller's uids; do NOT delete it (deletion cascades into that shared uid, which the
     // caller still uses). It's a gc_node, reclaimed by the surrounding ast_gc_guard / process teardown.
     var extern_resolver = new CollectExternVisitor(null, ctx, b, mod, types, uids, false, LlvmJitMode.LLVM_AOT)
+    extern_resolver.prog = prog     // the selection a constructor is checked against is the program's
     extern_resolver.aot_ctx_arg = LLVMGetParam(ctor, 0u)
     make_visitor(*extern_resolver) $(adapter_resolve) {
         ast_gc_guard() {
@@ -89,30 +92,65 @@ def public emit_aot_object_globinit(ctx : LLVMContextRef; mod : LLVMOpaqueModule
             }
         }
     }
-    // No das call/ctor target globs to fill: those are per-Context, so codegen resolves them at each
-    // use site (llvm_jit das_func_target). This ctor only re-resolves process-wide addresses.
     LLVMBuildRetVoid(b)
     LLVMDisposeBuilder(b)
     return ctor
 }
 
 
-def public emit_aot_pull_anchor(var types : PrimitiveTypes?; obj_name : string) {
-    var anchor = LLVMAddGlobal(g_mod, types.t_int64, "aot_{obj_name}_pull")
-    LLVMSetInitializer(anchor, LLVMConstInt(types.t_int64, 0ul, 0))
-}
-
-
-def public emit_aot_init_array_entry(var types : PrimitiveTypes?; ctor : LLVMOpaqueValue?; obj_name : string) {
-    var entry = LLVMAddGlobal(g_mod, types.LLVMVoidPtrType(), "das_aot_init_{obj_name}")
-    LLVMSetInitializer(entry, ctor)
-    LLVMSetSection(entry, ".init_array")
-}
-
-
 //! Build both offline-AOT-object ctors (the extern-resolver globinit + the das_aot_register ctor) and
 //! return the (ctor, dtor) pair to append to llvm.global_ctors/dtors. Called by run_jit in emit_aot_object mode.
 def public build_llvm_aot_ctors(ctx : LLVMContextRef; mod : LLVMOpaqueModule?; var types : PrimitiveTypes?; var funcs : array<FunctionPtr>; var uids : UidNodes?; prog : Program?) : tuple<LLVMOpaqueValue?, LLVMOpaqueValue?> {
-    let glob_ctor = emit_aot_object_globinit(ctx, mod, types, funcs, uids)
+    let glob_ctor = emit_aot_object_globinit(ctx, mod, types, funcs, uids, prog)
     return emit_aot_register_ctor_dtor(types, funcs, uids, prog, glob_ctor)
+}
+
+//! jam links an AOT object in only through the aot_<obj>_pull symbol its pull list names.
+def public emit_aot_pull_anchor(mod : LLVMOpaqueModule?; var types : PrimitiveTypes?; obj_name : string) {
+    var anchor = LLVMAddGlobal(mod, types.t_int64, "aot_{obj_name}_pull")
+    LLVMSetInitializer(anchor, LLVMConstInt(types.t_int64, 0ul, 0))
+}
+
+def public move_global_ctors_to_init_array(mod : LLVMOpaqueModule?; var types : PrimitiveTypes?; obj_name : string) {
+    var ctors = LLVMGetNamedGlobal(mod, "llvm.global_ctors")
+    if (ctors == null) return
+    var list = LLVMGetInitializer(ctors)
+    for (i in range(LLVMGetNumOperands(list))) {
+        var entry = LLVMAddGlobal(mod, types.LLVMVoidPtrType(), "das_aot_init_{obj_name}_{i}")
+        LLVMSetInitializer(entry, LLVMGetOperand(LLVMGetOperand(list, uint(i)), 1u))
+        LLVMSetSection(entry, ".init_array")
+    }
+    LLVMDeleteGlobal(ctors)
+}
+
+//! Names the DllName.glob() address globals nothing fills at load, for the caller to panic on.
+def public collect_unresolved_address_globals(mod : LLVMOpaqueModule?) : array<string> {
+    var bad : array<string>
+    var glob = LLVMGetFirstGlobal(mod)
+    while (glob != null) {
+        let init = LLVMGetInitializer(glob)
+        if (init != null && LLVMIsNull(init) != 0) {
+            var name_len = 0ul
+            let name = LLVMGetValueName2(glob, safe_addr(name_len))
+            if (name |> ends_with(" glob")) {
+                var loaded = false
+                var escaped = false
+                var use = LLVMGetFirstUse(glob)
+                while (use != null) {
+                    let user = LLVMGetUser(use)
+                    if (LLVMIsALoadInst(user) != null) {
+                        loaded = true
+                    } else {
+                        escaped = true   // stored into, or the address itself is passed on
+                    }
+                    use = LLVMGetNextUse(use)
+                }
+                if (loaded && !escaped) {
+                    bad |> push(clone_string(name))
+                }
+            }
+        }
+        glob = LLVMGetNextGlobal(glob)
+    }
+    return <- bad
 }

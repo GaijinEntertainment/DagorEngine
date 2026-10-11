@@ -467,7 +467,6 @@ bool CoolConsole::runCommand(const char *cmd, bool silent)
   if (strcmp(command, "clrhist") == 0)
   {
     cmdHistory.clear();
-    cmdHistoryLastUnfinished = false;
     cmdHistoryPos = cmdHistory.size();
     if (!silent)
       addMessage(NOTE, "command history cleared!");

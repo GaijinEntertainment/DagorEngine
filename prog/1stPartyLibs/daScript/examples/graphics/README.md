@@ -1,7 +1,7 @@
 # Graphics Examples
 
 ImGui and OpenGL examples using the in-tree `dasImgui` module. It ships built-in
-with the daslang tree — no package install needed, a bare build suffices.
+with the daslang tree - no package install needed, a bare build suffices.
 
 ## Run
 

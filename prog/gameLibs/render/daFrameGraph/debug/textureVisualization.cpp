@@ -1,21 +1,27 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "textureVisualization.h"
+#include <common/genericPoint.h>
 #include <frontend/internalRegistry.h>
 #include <frontend/dependencyData.h>
 #include <gui/dag_imguiUtil.h>
 #include <gui/dag_imgui.h>
 #include <render/daFrameGraph/daFG.h>
 #include <runtime/runtime.h>
+#include <backend/resourceScheduling/resourceLifetimes.h>
 #include <util/dag_console.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <render/texDebug.h>
 #include <generic/dag_enumerate.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/unordered_set.h>
+#include <EASTL/unordered_map.h>
 
 static dafg::NodeHandle debugTextureCopyNode;
 static UniqueTex copiedTexture;
+static String copiedTextureName;
 
 static bool overlayMode = false;
 
@@ -36,9 +42,12 @@ struct ManualShowTexSettings
 using ShowTexSettings = eastl::variant<AutoShowTexSettings, ManualShowTexSettings>;
 static ShowTexSettings showTexSettings;
 
+static TextureInfo copiedTextureInfo;
+static eastl::optional<dafg::AutoResolutionData> copiedTextureResolution;
+static IdIndexedMapping<dafg::AutoResTypeNameId, IPoint2> prevAppliedResolutions;
 static int copiedTextureChannelCount = 0;
 static bool selectedResourceIsATexture = true;
-static bool runShowTex = false;
+static bool externalTexturesOutdated = false;
 static eastl::optional<Selection> savedSelection;
 
 
@@ -54,7 +63,12 @@ dag::Vector<dafg::NodeNameId, framemem_allocator> filter_out_debug_node(eastl::s
 
 void close_visualization_texture() { copiedTexture.close(); }
 
-void clear_visualization_node() { debugTextureCopyNode = {}; }
+void clear_visualization_node()
+{
+  if (debugTextureCopyNode.valid() && dafg::Runtime::isInitialized())
+    dafg::root().unmarkResourceExternallyConsumed(copiedTextureName);
+  debugTextureCopyNode = {};
+}
 
 bool deselect_button(const char *label)
 {
@@ -84,9 +98,119 @@ void overlay_checkbox(const char *label)
   ImGuiDagor::HelpMarker(hint);
 }
 
-static UniqueTex create_empty_debug_tex(int fmt, int w, int h, int miplevels, const char *name)
+static String debug_copy_tex_name(const char *texture_name, bool history)
 {
-  return dag::create_tex(nullptr, w, h, fmt, miplevels, name, RESTAG_DEBUG);
+  String textureName({}, ".debug_%s%s_copy", texture_name, history ? "_history" : "");
+  textureName.replaceAll("/", "_");
+  return textureName;
+}
+
+static UniqueTex create_debug_copy_tex(const TextureInfo &info, const char *name)
+{
+  return dag::create_tex(nullptr, info.w, info.h, info.cflg, info.mipLevels, name, RESTAG_DEBUG);
+}
+
+static uint32_t debug_copy_tex_flags(uint32_t src_flags)
+{
+  return (src_flags & ~static_cast<uint32_t>(TEXCF_NO_STATE_TRACKING)) | TEXCF_RTARGET;
+}
+
+static eastl::optional<TextureInfo> get_physical_tex_info(const BaseTexture *tex)
+{
+  if (!tex)
+    return eastl::nullopt;
+
+  TextureInfo info{};
+  tex->getinfo(info);
+  if (info.type != D3DResourceType::TEX)
+    return eastl::nullopt;
+
+  info.cflg = debug_copy_tex_flags(info.cflg);
+  return info;
+}
+
+static eastl::optional<IPoint2> get_applied_resolution(const dafg::AutoResolutionData &resolution, bool history,
+  const dafg::InternalRegistry &registry)
+{
+  const auto autoResId = dafg::Runtime::get().getNameResolver().resolve(resolution.id);
+  if (autoResId == dafg::AutoResTypeNameId::Invalid)
+    return eastl::nullopt;
+
+  const auto &autoResType = registry.autoResTypes[autoResId];
+  const auto *values = eastl::get_if<dafg::ResolutionValues<IPoint2>>(&autoResType.values);
+  if (!values)
+    return eastl::nullopt;
+
+  const bool historyHasPrevResolution =
+    history && autoResType.dynamicResolutionCountdown == dafg::SCHEDULE_FRAME_WINDOW - 1 && prevAppliedResolutions.isMapped(autoResId);
+  const IPoint2 resolutionValue = historyHasPrevResolution ? prevAppliedResolutions[autoResId] : values->lastAppliedDynamicResolution;
+  return dafg::scale_by(resolutionValue, resolution.multiplier);
+}
+
+static eastl::optional<IPoint2> get_creation_resolution(const dafg::CreatedResourceData &created_res_data,
+  const dafg::Texture2dCreateInfo &creation_info, bool history, const dafg::InternalRegistry &registry)
+{
+  if (created_res_data.resolution)
+    return get_applied_resolution(*created_res_data.resolution, history, registry);
+
+  if (const auto *resolution = eastl::get_if<IPoint2>(&creation_info.resolution))
+    return *resolution;
+
+  return eastl::nullopt;
+}
+
+static eastl::optional<TextureInfo> get_debug_copy_tex_info(const dafg::CreatedResourceData &created_res_data, bool history,
+  const dafg::InternalRegistry &registry)
+{
+  if (const auto *provider = eastl::get_if<dafg::ExternalResourceProvider>(&created_res_data.creationInfo))
+  {
+    if (!*provider)
+      return eastl::nullopt;
+
+    const dafg::ExternalResource extRes = (*provider)(dafg::multiplexing::Index{});
+    const auto *tex = eastl::get_if<ManagedTexView>(&extRes);
+    return tex ? get_physical_tex_info(tex->getBaseTex()) : eastl::nullopt;
+  }
+
+  if (eastl::holds_alternative<dafg::DriverDeferredTexture>(created_res_data.creationInfo))
+  {
+    d3d::GpuAutoLock gpuLock;
+    return get_physical_tex_info(d3d::get_backbuffer_tex());
+  }
+
+  const auto *creationInfo = eastl::get_if<dafg::Texture2dCreateInfo>(&created_res_data.creationInfo);
+  if (!creationInfo)
+    return eastl::nullopt;
+
+  const auto resolution = get_creation_resolution(created_res_data, *creationInfo, history, registry);
+  if (!resolution)
+    return eastl::nullopt;
+
+  TextureInfo info{};
+  info.type = D3DResourceType::TEX;
+  info.cflg = debug_copy_tex_flags(creationInfo->creationFlags);
+  info.mipLevels = creationInfo->mipLevels;
+  info.w = resolution->x;
+  info.h = resolution->y;
+  return info;
+}
+
+static bool fit_debug_copy_tex(UniqueTex &texture, TextureInfo &info, const eastl::optional<dafg::AutoResolutionData> &resolution,
+  bool history, const dafg::InternalRegistry &registry)
+{
+  if (!texture || !resolution)
+    return false;
+
+  const auto applied = get_applied_resolution(*resolution, history, registry);
+  if (!applied || *applied == IPoint2(info.w, info.h))
+    return false;
+
+  info.w = applied->x;
+  info.h = applied->y;
+  const String name(texture->getTexName());
+  texture.close();
+  texture = create_debug_copy_tex(info, name);
+  return true;
 }
 
 static const char *get_selected_resource_name(dafg::ResNameId nameId, const dafg::InternalRegistry &registry)
@@ -94,9 +218,15 @@ static const char *get_selected_resource_name(dafg::ResNameId nameId, const dafg
   return nameId == dafg::ResNameId::Invalid ? "None" : registry.knownNames.getName(nameId);
 }
 
+static bool is_texture_array(const dafg::CreatedResourceData &created_res_data)
+{
+  auto info = eastl::get_if<dafg::Texture2dCreateInfo>(&created_res_data.creationInfo);
+  return info && info->arrayLayers > 1;
+}
+
 static void update_texdebug_texture()
 {
-  if (!savedSelection)
+  if (!copiedTexture)
   {
     texdebug::select_texture("");
     return;
@@ -111,7 +241,7 @@ static float brightness_to_range_limit(float brightness) { return pow(10, (1 - b
 
 static void update_overlay_texture()
 {
-  if (!savedSelection)
+  if (!copiedTexture)
   {
     console::command("render.show_tex");
     return;
@@ -143,11 +273,9 @@ static void update_overlay_texture()
   }
 }
 
-static void update_shown_texture()
-{
-  bool imguiOFF = imgui_get_state() == ImGuiState::OFF;
-  overlayMode || imguiOFF ? update_overlay_texture() : update_texdebug_texture();
-}
+static bool is_overlay_shown() { return overlayMode || imgui_get_state() == ImGuiState::OFF; }
+
+static void update_shown_texture() { is_overlay_shown() ? update_overlay_texture() : update_texdebug_texture(); }
 
 void fg_texture_visualization_imgui_line(const dafg::InternalRegistry &registry)
 {
@@ -155,7 +283,8 @@ void fg_texture_visualization_imgui_line(const dafg::InternalRegistry &registry)
 
   if (!selectedResourceIsATexture)
   {
-    ImGui::TextColored((ImVec4)ImColor::HSV(0.f, 1.f, 1.f), "Selected resource is not a texture, so it cannot be displayed.");
+    ImGui::TextColored((ImVec4)ImColor::HSV(0.f, 1.f, 1.f),
+      "Selected resource is not a texture, or is a texture array, so it cannot be displayed.");
     return;
   }
 
@@ -186,7 +315,7 @@ void fg_texture_visualization_imgui_line(const dafg::InternalRegistry &registry)
       showTexSettings = AutoShowTexSettings{};
     else
       showTexSettings = ManualShowTexSettings{consoleInput};
-    runShowTex = true;
+    update_shown_texture();
   }
 
   ImGui::SameLine();
@@ -202,7 +331,7 @@ void fg_texture_visualization_imgui_line(const dafg::InternalRegistry &registry)
     ImGui::SameLine(0.f, ImGui::GetWindowWidth() * 0.015f);
     ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.1f);
     if (ImGui::SliderFloat("Brightness", &autoSettings->fgDebugTexBrightness, 1.f, 10.f, "%.1f"))
-      runShowTex = true;
+      update_shown_texture();
   }
 }
 
@@ -251,29 +380,28 @@ private:
   bool needToLock = false;
 };
 
-template <bool debug_focus = true>
 static dafg::NodeHandle make_debug_texture_copy_node(const Selection &selection, dafg::InternalRegistry &internal_registry,
-  UniqueTex &texture, const char *texture_name)
+  const UniqueTex &texture, const char *copy_name)
 {
-  String nodeName({}, ".debug_%s%s_copy_node", texture_name, selection.history ? "_history" : "");
-  nodeName.replaceAll("/", "_");
-  String textureName({}, ".debug_%s%s_copy", texture_name, selection.history ? "_history" : "");
-  textureName.replaceAll("/", "_");
+  const String nodeName(0, "%s_node", copy_name);
+  const String textureName(copy_name);
+
+  dafg::root().markResourceExternallyConsumed(textureName);
+
   return dafg::register_node(nodeName, DAFG_PP_NODE_SRC,
     [selection, &internal_registry, nodeName, &texture, textureName](dafg::Registry registry) {
-      registry.executionHas(dafg::SideEffects::External);
-
       const auto ourId = internal_registry.knownNames.getNameId<dafg::NodeNameId>(internal_registry.knownNames.root(), nodeName);
 
       const auto fullSelectedResName = internal_registry.knownNames.getName(selection.what);
       const auto resNs = reconstruct_namespace_request(registry, fullSelectedResName);
       const auto shortSelectedResName = internal_registry.knownNames.getShortName(selection.what);
 
-      dafg::VirtualResourceHandle<const BaseTexture, true, false> hndl =
-        selection.history
-          ? resNs.readTextureHistory(shortSelectedResName).atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY).handle()
-          : resNs.read(shortSelectedResName).texture().atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY).handle();
+      registry.registerTexture(textureName, [&texture](auto) { return ManagedTexView(texture); });
 
+      if (selection.history)
+        resNs.readTextureHistory(shortSelectedResName).copyTo(textureName);
+      else
+        resNs.read(shortSelectedResName).texture().copyTo(textureName);
 
       // Order and trick with readResources are not required for history copy
       if (auto prec = eastl::get_if<PreciseTimePoint>(&selection.when); prec && !selection.history)
@@ -286,37 +414,6 @@ static dafg::NodeHandle make_debug_texture_copy_node(const Selection &selection,
         // we need to clear readResources of this node in order to prevent possible cycles.
         internal_registry.nodes[ourId].readResources.clear();
       }
-
-      return [hndl, fullSelectedResName, &texture, textureName]() {
-        if (hndl.get())
-        {
-          TextureInfo srcInfo;
-          hndl.view()->getinfo(srcInfo);
-
-          if (!texture)
-          {
-            texture = create_empty_debug_tex(srcInfo.cflg | TEXCF_RTARGET, srcInfo.w, srcInfo.h, srcInfo.mipLevels, textureName);
-            copiedTextureChannelCount = get_tex_format_desc(srcInfo.cflg).channelsCount();
-            if constexpr (debug_focus)
-              runShowTex = true;
-          }
-          else
-          {
-            TextureInfo dstInfo;
-            texture->getinfo(dstInfo);
-            G_ASSERTF_RETURN(dstInfo.cflg == (srcInfo.cflg | TEXCF_RTARGET), ,
-              "Source and debug texture formats are different. Debug texture should be recreated.");
-          }
-
-          texture.getBaseTex()->update(hndl.view().getBaseTex());
-        }
-        else
-          logerr("daFG: <%s> texture handle returned NULL - no copy was created", fullSelectedResName);
-
-        if constexpr (debug_focus)
-          if (eastl::exchange(runShowTex, false))
-            update_shown_texture();
-      };
     });
 }
 
@@ -335,25 +432,46 @@ static bool operator==(const Selection &lhs, const Selection &rhs)
 void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::InternalRegistry &registry,
   const dafg::DependencyData &dep_data)
 {
-  const bool changed = selection != savedSelection;
-  if (changed)
+  const bool newSelection = selection != savedSelection;
+  if (newSelection || (selection && !copiedTexture))
   {
     DebugNodeRegisterScope debugRegistration;
-    runShowTex = true;
     if (selection)
     {
       const auto &createdResData = registry.resources[dep_data.renamingRepresentatives[selection->what]].createdResData;
 
-      if (createdResData->type != dafg::ResourceType::Texture)
+      if (createdResData->type != dafg::ResourceType::Texture || is_texture_array(*createdResData))
       {
         selectedResourceIsATexture = false;
         return;
       }
       selectedResourceIsATexture = true;
+
+      const char *selectedResName = get_selected_resource_name(selection->what, registry);
+
       savedSelection = selection;
       close_visualization_texture();
-      debugTextureCopyNode =
-        make_debug_texture_copy_node(*selection, registry, copiedTexture, get_selected_resource_name(selection->what, registry));
+      clear_visualization_node();
+
+      const auto copyInfo = get_debug_copy_tex_info(*createdResData, selection->history, registry);
+      if (!copyInfo)
+      {
+        if (newSelection)
+        {
+          logerr("daFG: cannot copy texture '%s' for visualization, it is not a plain 2d texture or it is not provided.",
+            selectedResName);
+          update_shown_texture();
+        }
+        return;
+      }
+
+      copiedTextureName = debug_copy_tex_name(selectedResName, selection->history);
+      copiedTexture = create_debug_copy_tex(*copyInfo, copiedTextureName);
+      copiedTextureInfo = *copyInfo;
+      copiedTextureResolution = createdResData->resolution;
+      copiedTextureChannelCount = get_tex_format_desc(copyInfo->cflg).channelsCount();
+      debugTextureCopyNode = make_debug_texture_copy_node(*selection, registry, copiedTexture, copiedTextureName);
+      update_shown_texture();
     }
     else
     {
@@ -370,33 +488,36 @@ void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::Inte
 void set_manual_showtex_params(const char *params)
 {
   showTexSettings = ManualShowTexSettings{params};
-  runShowTex = true;
+  update_shown_texture();
 }
 
 class IntermediateTextureProvider : public texdebug::ExternalTextureProvider
 {
 public:
-  IntermediateTextureProvider(Selection selection, dafg::InternalRegistry &registry, const TextureInfo &tex_info, const char *name) :
-    registry(&registry), selection(selection), textureInfo(tex_info), name(name)
+  IntermediateTextureProvider(Selection selection, dafg::InternalRegistry &registry, const TextureInfo &tex_info,
+    const eastl::optional<dafg::AutoResolutionData> &resolution, const char *name) :
+    registry(&registry), selection(selection), textureInfo(tex_info), resolution(resolution), name(name)
   {}
   IntermediateTextureProvider(const IntermediateTextureProvider &) = delete;
   IntermediateTextureProvider &operator=(const IntermediateTextureProvider &) = delete;
-  IntermediateTextureProvider(IntermediateTextureProvider &&other)
+  IntermediateTextureProvider(IntermediateTextureProvider &&other) noexcept
   {
     registry = other.registry;
     readerNode = eastl::move(other.readerNode);
     selection = eastl::move(other.selection);
     texture = eastl::move(other.texture);
     textureInfo = eastl::move(other.textureInfo);
+    resolution = eastl::move(other.resolution);
     name = eastl::move(other.name);
   };
-  IntermediateTextureProvider &operator=(IntermediateTextureProvider &&other)
+  IntermediateTextureProvider &operator=(IntermediateTextureProvider &&other) noexcept
   {
     registry = other.registry;
     readerNode = eastl::move(other.readerNode);
     selection = eastl::move(other.selection);
     texture = eastl::move(other.texture);
     textureInfo = eastl::move(other.textureInfo);
+    resolution = eastl::move(other.resolution);
     name = eastl::move(other.name);
     return *this;
   }
@@ -405,13 +526,20 @@ public:
   void init() override
   {
     close();
+    if (!refreshDescription())
+      return;
+
     DebugNodeRegisterScope debugRegistration;
-    readerNode = make_debug_texture_copy_node<false>(selection, *registry, texture, name);
+    const String copyName = getCopyName();
+    texture = create_debug_copy_tex(textureInfo, copyName);
+    readerNode = make_debug_texture_copy_node(selection, *registry, texture, copyName);
   }
 
   void close() override
   {
     DebugNodeRegisterScope debugRegistration;
+    if (readerNode.valid())
+      dafg::root().unmarkResourceExternallyConsumed(getCopyName());
     readerNode = {};
     if (texture)
       texture.close();
@@ -419,11 +547,14 @@ public:
 
   TextureInfo getTextureInfo() override
   {
+    TextureInfo info = textureInfo;
     if (texture)
-      texture->getinfo(textureInfo);
+      texture->getinfo(info);
 
-    return textureInfo;
+    return info;
   }
+
+  void fitToAppliedResolution() { fit_debug_copy_tex(texture, textureInfo, resolution, selection.history, *registry); }
 
   TEXTUREID getTextureId() const override { return texture ? texture.getTexId() : BAD_TEXTUREID; }
   const char *getName() const override { return name; }
@@ -431,11 +562,27 @@ public:
   Selection getSelection() const { return selection; }
 
 private:
+  String getCopyName() const { return debug_copy_tex_name(name, selection.history); }
+
+  bool refreshDescription()
+  {
+    const auto &depData = dafg::Runtime::get().getDependencyData();
+    const auto &createdResData = registry->resources[depData.renamingRepresentatives[selection.what]].createdResData;
+    const auto info = createdResData ? get_debug_copy_tex_info(*createdResData, selection.history, *registry) : eastl::nullopt;
+    if (!info)
+      return false;
+
+    textureInfo = *info;
+    resolution = createdResData->resolution;
+    return true;
+  }
+
   dafg::InternalRegistry *registry;
   dafg::NodeHandle readerNode{};
   Selection selection;
   UniqueTex texture{};
   TextureInfo textureInfo;
+  eastl::optional<dafg::AutoResolutionData> resolution;
   String name;
 };
 
@@ -448,9 +595,11 @@ static void add_texture_provider(IntermediateTextureProvider &&provider)
   {
     if (!is_same_selection(provider.getSelection(), providerIt->second.getSelection()))
     {
-      if (providerIt->second.isUsed())
-        provider.init();
+      const bool wasUsed = providerIt->second.isUsed();
+      providerIt->second.close();
       providerIt->second = eastl::move(provider);
+      if (wasUsed)
+        providerIt->second.init();
     }
   }
   else
@@ -460,11 +609,15 @@ static void add_texture_provider(IntermediateTextureProvider &&provider)
 template <typename T>
 using FramememUnorderedSet = eastl::unordered_set<T, eastl::hash<T>, eastl::equal_to<T>, framemem_allocator>;
 
-void update_external_texture_visualization(dafg::InternalRegistry &registry, const dafg::DependencyData &dep_data)
+template <typename K, typename V>
+using FramememUnorderedMap = eastl::unordered_map<K, V, eastl::hash<K>, eastl::equal_to<K>, framemem_allocator>;
+
+static void rebuild_external_texture_providers(dafg::InternalRegistry &registry, const dafg::DependencyData &dep_data)
 {
   FRAMEMEM_REGION;
   FramememUnorderedSet<TextureProviderKey> unregisterList;
   dag::Vector<TextureProviderKey, framemem_allocator> registerList;
+  FramememUnorderedMap<TextureProviderKey, IntermediateTextureProvider> latestProviders;
   for (auto &[key, provider] : texture_providers)
     unregisterList.insert(key);
 
@@ -472,23 +625,15 @@ void update_external_texture_visualization(dafg::InternalRegistry &registry, con
   {
     const auto &createdResData = registry.resources[dep_data.renamingRepresentatives[resId]].createdResData;
 
-    if (!createdResData.has_value() || createdResData->type != dafg::ResourceType::Texture)
+    if (!createdResData.has_value() || createdResData->type != dafg::ResourceType::Texture || is_texture_array(*createdResData))
       continue;
 
     if (lifetime.consumedBy == dafg::NodeNameId::Invalid && lifetime.readers.empty())
       continue;
 
-    TextureInfo info{};
-    if (auto resInfo = eastl::get_if<dafg::Texture2dCreateInfo>(&createdResData->creationInfo))
-    {
-      info.type = D3DResourceType::TEX;
-      info.cflg = resInfo->creationFlags;
-    }
-    else if (auto resInfo = eastl::get_if<dafg::Texture3dCreateInfo>(&createdResData->creationInfo))
-    {
-      info.type = D3DResourceType::VOLTEX;
-      info.cflg = resInfo->creationFlags;
-    }
+    const auto info = get_debug_copy_tex_info(*createdResData, false, registry);
+    if (!info)
+      continue;
 
     dag::Vector<dafg::NodeNameId, framemem_allocator> resourceUsageChain;
     resourceUsageChain.reserve(lifetime.modificationChain.size() + 2 /*producer and consumer*/);
@@ -507,14 +652,21 @@ void update_external_texture_visualization(dafg::InternalRegistry &registry, con
 
       const auto addNewProvider = [&, resId = resId](const char *node, const char *dir) {
         String name(0, "%s/%s/%s", node, dir, resourceName);
-        add_texture_provider(IntermediateTextureProvider(Selection{PreciseTimePoint{from, to}, resId}, registry, info, name));
-        registerList.push_back(name.c_str());
-        unregisterList.erase(name.c_str());
+        latestProviders.insert_or_assign(TextureProviderKey(name.c_str()),
+          IntermediateTextureProvider(Selection{PreciseTimePoint{from, to}, resId}, registry, *info, createdResData->resolution,
+            name));
       };
 
       addNewProvider(fromName, "out");
       addNewProvider(toName, "in");
     }
+  }
+
+  for (auto &[key, provider] : latestProviders)
+  {
+    add_texture_provider(eastl::move(provider));
+    registerList.push_back(key);
+    unregisterList.erase(key);
   }
 
   for (const auto &providerName : unregisterList)
@@ -531,4 +683,42 @@ void update_external_texture_visualization(dafg::InternalRegistry &registry, con
     G_ASSERT(providerIt != texture_providers.end());
     texdebug::register_external_texture(providerIt->second);
   }
+}
+
+void update_external_texture_visualization() { externalTexturesOutdated = true; }
+
+void apply_external_texture_visualization()
+{
+  if (!eastl::exchange(externalTexturesOutdated, false))
+    return;
+
+  auto &runtime = dafg::Runtime::get();
+  rebuild_external_texture_providers(runtime.getInternalRegistry(), runtime.getDependencyData());
+}
+
+void clear_external_texture_providers()
+{
+  for (auto &[_, provider] : texture_providers)
+  {
+    texdebug::unregister_external_texture(provider);
+    provider.close();
+  }
+  texture_providers.clear();
+  externalTexturesOutdated = false;
+}
+
+void update_debug_copy_textures()
+{
+  const auto &registry = dafg::Runtime::get().getInternalRegistry();
+
+  const bool manualHistory = savedSelection && savedSelection->history;
+  if (fit_debug_copy_tex(copiedTexture, copiedTextureInfo, copiedTextureResolution, manualHistory, registry) && is_overlay_shown())
+    update_overlay_texture();
+
+  for (auto &[_, provider] : texture_providers)
+    provider.fitToAppliedResolution();
+
+  for (const auto [autoResId, autoResType] : registry.autoResTypes.enumerate())
+    if (const auto *values = eastl::get_if<dafg::ResolutionValues<IPoint2>>(&autoResType.values))
+      prevAppliedResolutions.set(autoResId, values->lastAppliedDynamicResolution);
 }

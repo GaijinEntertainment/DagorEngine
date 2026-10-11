@@ -49,6 +49,11 @@ def with_lambda_renamed(var arr : array<int>) {
 }
 
 
+def two_lambdas_one_line(var arr : array<int>) {
+    arr |> sort() <| $(a, b : int) => a < b; arr |> sort() <| $(a, b : int) => a > b
+}
+
+
 [export]
 def main() {
     print("dummy main\n")

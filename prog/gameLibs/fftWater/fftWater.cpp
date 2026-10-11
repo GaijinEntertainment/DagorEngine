@@ -90,7 +90,6 @@ public:
     if (physics)
       physics->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
 
-    renderCommon.setMaxWaveHeight(getMaxWaveHeight()); // FFT maxWaveHeight depends on fft_period
     updateHeightCullingWaveHeight();
   }
   float getPeriod() const { return params.fft_period; }
@@ -147,7 +146,6 @@ public:
       physicsChop->calcWaveHeight();
 
     renderCommon.setWind(params.wind_dir_x, params.wind_dir_y, params.wind_speed); // use FFT wind_speed for shader (todo: check)
-    renderCommon.setMaxWaveHeight(getMaxWaveHeight());
     updateHeightCullingWaveHeight();
 
     convar::wind_speed_chop = chop_wind_speed;
@@ -901,15 +899,21 @@ public:
 
       if (argc < 3)
       {
-        console::print("Usage: water.spectrum <spectra index> <bf_scale>");
-        for (int i = 0; i < countof(fft_water::spectrum_names); ++i)
-          console::print("%s = %d", fft_water::spectrum_names[i], i);
-        console::print_d("Current: water.spectrum %d(%s)", (int)preset.simulation.spectrum,
-          fft_water::spectrum_names[(int)preset.simulation.spectrum]);
+        console::print("Usage: water.spectrum <preset table index> <bf_scale>");
+        for (int i = 0; i < countof(fft_water::wave_preset_table_names); ++i)
+          console::print("%s = %d", fft_water::wave_preset_table_names[i], i);
+        console::print_d("Current spectrum: %s", fft_water::spectrum_names[(int)preset.simulation.spectrum]);
         return true;
       }
 
-      fft_water::apply_wave_preset(water, atof(argv[2]), getDir(), (fft_water::Spectrum)atoi(argv[1]));
+      const int tableNo = atoi(argv[1]);
+      if (tableNo < 0 || tableNo > (int)fft_water::WavePresetTable::LAST)
+      {
+        console::print("water.spectrum: preset table index %d is out of range", tableNo);
+        return true;
+      }
+      fft_water::apply_wave_preset(water, atof(argv[2]), getDir(), (fft_water::WavePresetTable)tableNo);
+      console::print_d("water.spectrum: applied %s at %g", fft_water::wave_preset_table_names[tableNo], atof(argv[2]));
     }
     CONSOLE_CHECK_NAME("water", "vs_samplers", 2, 2)
     {
@@ -1034,13 +1038,7 @@ void simulate(FFTWater *water, double time)
   const bool chopEnabled = water->chopEnabled();
   const bool hasAnyRenderer = water->getRender() || water->getRenderChop();
 
-  // update shader consts after changing generators
-  if (hasAnyRenderer && chopEnabled != water->getRenderCommon().getChopEnabled())
-  {
-    water->getRenderCommon().setMaxWaveHeight(water->getMaxWaveHeight());
-    water->getRenderCommon().setChopEnabled(chopEnabled);
-    water->updateHeightCullingWaveHeight();
-  }
+  water->updateHeightCullingWaveHeight();
   // apply wind_speed_chop changed via convar
   if (chopEnabled && water->getChopWaterGen() && fabs(water->getChopWaterGen()->getWindSpeed() - convar::wind_speed_chop) > 0.05f)
   {
@@ -1066,7 +1064,7 @@ void before_render(const FFTWater *water, float scaled_dt)
   if (water->getRender() || water->getRenderChop())
   {
     ShaderGlobal::set_int(chop_water_enabledVarId, water->chopEnabled() ? 1 : 0);
-    water->getRenderCommon().setGlobalShaderConsts(water->chopEnabled());
+    water->getRenderCommon().setGlobalShaderConsts(water->chopEnabled(), water->getMaxWaveHeight());
   }
   if (water->chopEnabled())
   {
@@ -1106,7 +1104,7 @@ void setGridLod0AdditionalTesselation(FFTWater *water, float additional_tesselat
 
 void render(const FFTWater *water, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, Occlusion *occlusion,
   const Driver3dPerspective &persp, int geom_lod_quality, int survey_id, IWaterDecalsRenderHelper *decals_renderer,
-  RenderMode render_mode, eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb)
+  RenderMode render_mode, dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb)
 {
   TIME_D3D_PROFILE(fft_water_render);
 

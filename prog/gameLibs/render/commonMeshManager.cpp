@@ -139,18 +139,16 @@ int CommonMeshManager::registerOrReferenceMeshImpl(const char *mesh_name, Dynami
   }
 }
 
-ManagedMeshRef &ManagedMeshRef::operator=(ManagedMeshRef &&rhs)
+ManagedMeshRef &ManagedMeshRef::operator=(ManagedMeshRef &&rhs) noexcept
 {
   if (&rhs == this)
     return *this;
-  ManagedMesh oldMesh = mMesh;
+  clear();
   mgr = rhs.mgr;
   mMesh = rhs.mMesh;
   resPtr = rhs.resPtr;
   rhs.resPtr = nullptr;
   rhs.mMesh.clear();
-  if (oldMesh.isValid())
-    mgr->dereferenceMesh(oldMesh); // clear mesh after copying to avoid delRef on resource, in case its the same one
   return *this;
 }
 

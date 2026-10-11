@@ -78,7 +78,7 @@ def getZenOne {
     return Zen.not_zero
 }
 
-[export]
+[export, unused_argument(arg)]
 def testBindEnum(arg : SomeEnum) {
     feint("hello, world!\n")
 }

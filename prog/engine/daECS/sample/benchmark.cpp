@@ -115,7 +115,7 @@ struct SampleComponent
     debug("copy =");
     return *this;
   }
-  SampleComponent &operator=(SampleComponent &&v)
+  SampleComponent &operator=(SampleComponent &&v) noexcept
   {
     a = v.a;
     b = v.b;
@@ -124,7 +124,7 @@ struct SampleComponent
   }
 
   SampleComponent(const SampleComponent &v) : a(v.a), b(v.b) { debug("copy constr %d", ++refcnt); }
-  SampleComponent(SampleComponent &&v) : a(v.a), b(v.b) { debug("move constr %d", refcnt); }
+  SampleComponent(SampleComponent &&v) noexcept : a(v.a), b(v.b) { debug("move constr %d", refcnt); }
   SampleComponent() { debug("def constr %d", ++refcnt); }
   static void requestResources(const char *compname, const ecs::resource_request_cb_t &rcb)
   {

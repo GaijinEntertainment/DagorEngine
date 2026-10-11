@@ -320,8 +320,8 @@ static bool func_with_unused_args(const eastl::string &name)
          name == "renderDebug";
 }
 
-bool AnimDasPostBlendControlerAnnotation::touch(const das::StructurePtr &st, das::ModuleGroup &,
-  const das::AnnotationArgumentList &args, das::string &err)
+bool AnimDasPostBlendControlerAnnotation::touch(const das::StructurePtr &st, das::ModuleGroup &, das::AnnotationArgumentList &args,
+  das::string &err)
 {
   if (st->module->isModule)
   {
@@ -358,8 +358,8 @@ bool AnimDasPostBlendControlerAnnotation::touch(const das::StructurePtr &st, das
   return err.empty();
 }
 
-bool AnimDasPostBlendControlerAnnotation::look(const das::StructurePtr &st, das::ModuleGroup &,
-  const das::AnnotationArgumentList &args, das::string &)
+bool AnimDasPostBlendControlerAnnotation::look(const das::StructurePtr &st, das::ModuleGroup &, das::AnnotationArgumentList &args,
+  das::string &)
 {
   const das::AnnotationArgument *nameAnnotation = args.find("name", das::Type::tString);
   if (!nameAnnotation)

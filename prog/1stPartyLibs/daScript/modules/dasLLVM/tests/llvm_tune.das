@@ -1,6 +1,7 @@
 options gen2
 
 require dastest/testing_boost
+require daslib/tune
 require llvm/daslib/llvm_tune
 
 // [tune] framework (llvm/daslib/llvm_tune): normal mode stamps the fallback perm's [llvm_code]

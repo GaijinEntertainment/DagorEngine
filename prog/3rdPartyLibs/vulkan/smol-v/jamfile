@@ -18,7 +18,7 @@ Sources =
 
 if $(Platform) in windows {
   CPPopt =
-    /d2Zi+
+    -d2Zi+
     -DWIN32
     -DNDEBUG
     -D_CONSOLE

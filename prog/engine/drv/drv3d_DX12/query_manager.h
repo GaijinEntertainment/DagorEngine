@@ -158,11 +158,11 @@ class FrontendQueryManager
   ObjectPool<PipelineStatsQuery> pipelineStatsQueryPool;
   WinCritSec queryGuard;
 
-  bool createPredicateHeapResources(HeapPredicate &heap, Device &device, ID3D12Device *dx_device);
-  PredicateHeapId newPredicateHeap(Device &device, ID3D12Device *dx_device);
+  bool createPredicateHeapResources(HeapPredicate &heap, Device &device, D3DDevice *dx_device);
+  PredicateHeapId newPredicateHeap(Device &device, D3DDevice *dx_device);
 
 public:
-  uint64_t createPredicate(Device &device, ID3D12Device *dx_device);
+  uint64_t createPredicate(Device &device, D3DDevice *dx_device);
   void deletePredicate(uint64_t packed_predicate_id);
   void shutdownPredicate(DeviceContext &ctx);
   PredicateInfo getPredicateInfo(Query *query);
@@ -176,7 +176,7 @@ public:
   void removeDeletedPipelineStatsQueries(dag::ConstSpan<PipelineStatsQuery *> deleted_queries);
 
   void preRecovery();
-  bool postRecovery(Device &device, ID3D12Device *dx_device);
+  bool postRecovery(Device &device, D3DDevice *dx_device);
 };
 
 class BackendQueryManager
@@ -350,7 +350,7 @@ public:
   void shutdown(Device &device);
 };
 
-inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Device *dx_device)
+inline uint64_t FrontendQueryManager::createPredicate(Device &device, D3DDevice *dx_device)
 {
   WinAutoLock lock(predicateGuard);
   uint32_t slotIndex = ~uint32_t(0);

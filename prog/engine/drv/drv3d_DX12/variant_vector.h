@@ -1787,7 +1787,8 @@ public:
   {
     /// Never notify, immediate consumption by the consumers is not required
     Never,
-    /// Notify when the producer knows that consumers are waiting
+    /// Notify when the producer knows that consumers are waiting and the committed but not yet consumed data reached the consumer
+    /// wake threshold
     /// NOTE: This may result in no notification even when it might seem it should, as a consumer just entered wait state after the
     /// producer checked if any consumer is waiting
     WhenWaiting,
@@ -1826,6 +1827,8 @@ private:
 
   // align to cache line size to avoid false sharing
   alignas(false_sharing_avoidance_alignment) size_t size{0};
+  // Like size only written by resize, so it can share its cache line
+  size_t consumerWakeThreshold{0};
   // Memory allocation/reservation counter, memory allocated but not committed is in flight and
   // still be written to by someone
   alignas(false_sharing_avoidance_alignment) std::atomic<size_t> allocationCount{0};
@@ -1917,6 +1920,10 @@ private:
       {
         return;
       }
+      if (consumerWakeThreshold > 0 && nextCommited - freeCount.load(std::memory_order_relaxed) < consumerWakeThreshold)
+      {
+        return;
+      }
     }
     notify_one(committedCount);
   }
@@ -1976,7 +1983,7 @@ public:
   // ignored. Prefers a mirrored allocation (no extra physical memory); when that
   // is unavailable it falls back to a plain buffer with a full-ring-size tail so
   // a wrapping object can always be stored contiguously.
-  void resize(size_t ring_size, bool allow_mirror = true)
+  void resize(size_t ring_size, bool allow_mirror = true, size_t consumer_wake_threshold = 0)
   {
     G_ASSERTF(allocationCount == freeCount && committedCount == freeCount, "You can not resize a "
                                                                            "ring buffer with "
@@ -2015,6 +2022,7 @@ public:
       size = ring_size;
       data = store.get();
     }
+    consumerWakeThreshold = eastl::min(consumer_wake_threshold, size / 2);
   }
 
   template <typename T>
@@ -2089,6 +2097,7 @@ public:
 
   size_t getRingSize() const { return size; }
   bool usesMirror() const { return static_cast<bool>(mirror); }
+  size_t getConsumerWakeThreshold() const { return consumerWakeThreshold; }
 
   /// Waits until there are no commands pending for execution.
   void waitUntilEmpty()

@@ -29,7 +29,6 @@ static int div_key(const void *k,const void *b) {
 
 static int read_line(char *&text, char *s, int n)
 {
-  *s = 0;
   int id = 0;
   *s = text[id];
   if (!*s)

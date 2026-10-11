@@ -20,7 +20,7 @@ private:
     void optimizeConstFolding();
     void optimizeJumpFolding();
     void optimizeEmptyJumps();
-    enum class JumpArg : uint8_t {JUMP_ARG1, JUMP_ARG0, JUMP_ARG_PLUS_23, JUMP_ARG_MINUS_23};
+    enum class JumpArg : uint8_t {JUMP_ARG1, JUMP_ARG0};
     struct Jump {
         int originalInstructionIndex;
         int instructionIndex;

@@ -255,14 +255,14 @@ public:
     {
       DynamicAttachement &att = dynAtt[i];
       float val = att.varTypeInt ? ac->getAnimState()->getParamInt(att.animVarId) : ac->getAnimState()->getParam(att.animVarId);
-      if (fabsf(att.curValue - val) < 1e-3)
+      if (fabsf(att.curValue - val) < 1e-3f)
         continue;
 
       const char *enum_val = NULL;
       for (int pi = 0; pi < att.bEnum->blockCount(); pi++)
       {
         const DataBlock *enumBlock = att.bEnum->getBlock(pi);
-        if (fabsf(enumBlock->getInt("_enumValue", -1) - val) < 1e-3)
+        if (fabsf(enumBlock->getInt("_enumValue", -1) - val) < 1e-3f)
         {
           enum_val = enumBlock->getBlockName();
           break;

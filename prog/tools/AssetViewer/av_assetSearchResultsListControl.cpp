@@ -168,6 +168,8 @@ void AssetSearchResultsListControl::renderSearchResults(bool &context_menu_reque
     ImGui::TableNextColumn();
 
     const SearchResult *searchResult = filteredSearchResults[filteredIndex];
+    ImGui::PushID(searchResult);
+
     const PropPanel::IconId icon =
       searchResult->asset ? AssetSelectorCommon::getAssetTypeIcon(searchResult->asset->getType()) : missingAssetIcon;
     ImGui::Image(PropPanel::get_im_texture_id_from_icon_id(icon), PropPanel::ImguiHelper::getFontSizedIconSize());
@@ -212,6 +214,8 @@ void AssetSearchResultsListControl::renderSearchResults(bool &context_menu_reque
       if (columnIndex <= searchResult->additionalColumns.size())
         ImGui::TextUnformatted(searchResult->getColumnText(columnIndex));
     }
+
+    ImGui::PopID();
   }
 
   ImGui::EndTable();

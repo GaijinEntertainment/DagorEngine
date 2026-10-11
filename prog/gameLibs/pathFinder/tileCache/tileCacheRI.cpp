@@ -99,9 +99,9 @@ static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle)
   }
 }
 
-static void on_ri_extra_added_from_gen_data_in_thread(rendinst::riex_handle_t handle)
+static void on_ri_extra_added_from_gen_data_in_thread(rendinst::riex_handle_t handle, bool on_loading)
 {
-  if (riResourceIds.count(rendinst::handle_to_ri_type(handle)))
+  if (on_loading && riResourceIds.count(rendinst::handle_to_ri_type(handle)))
   {
     if constexpr (sizeof(void *) >= sizeof(handle))
       add_delayed_callback([](void *p) { tilecache_ri_start_try_add_obstacle((rendinst::riex_handle_t)p); }, (void *)handle);
@@ -137,7 +137,7 @@ void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, flo
   debug("tile cache: %d stationary obstacles registered (%d/%d/%d hashes/resIds/riExtra)", riHandle2obstacle.size(),
     res_name_hashes.size(), riResourceIds.size(), rendinst::getRiGenExtraResCount());
 
-  G_VERIFY(!rendinst::setRiExtraAddedFromGenDataCb(on_ri_extra_added_from_gen_data_in_thread)); // No prev CBs supported
+  rendinst::registerRIGenExtraAddedCb(on_ri_extra_added_from_gen_data_in_thread);
   rendinst::registerRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb);
 
   timeSinceStarted = 0.f;
@@ -188,10 +188,7 @@ void tilecache_ri_stop()
   if (riObstacleSettings.logObstacles)
     tilecache_log_final();
 
-  // Warn: potentially `riGenJobId` might still be running (reads `riResourceIds`)
-  if (auto pcb = rendinst::setRiExtraAddedFromGenDataCb(nullptr); pcb && pcb != &on_ri_extra_added_from_gen_data_in_thread)
-    rendinst::setRiExtraAddedFromGenDataCb(pcb);
-
+  G_VERIFY(rendinst::unregisterRIGenExtraAddedCb(on_ri_extra_added_from_gen_data_in_thread));
   G_VERIFY(rendinst::unregisterRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb));
   // free the bucket arrays; plain clear() keeps them parked in menu
   clear_and_shrink(riHandle2obstacle);

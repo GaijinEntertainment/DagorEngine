@@ -1,27 +1,17 @@
-local function fibI(n:number)
-    local last : number = 0
-    local cur : number = 1
-    n = n - 1
-    while (n > 0)
-    do
-        n = n - 1
-        local tmp : number = cur
-        cur = last + cur
-        last = tmp
-    end
-    return cur
-end
+--!strict
+local profile = require("./profile")
 
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
+-- no result: the sum overflows
+local function fibLoop(n: number)
+  local last = 0
+  local cur = 1
+  for _ = 1, n - 1 do
+    local next = last + cur
+    last = cur
+    cur = next
   end
-  return res
 end
 
-print(string.format("\"fibonacci loop\", %.8f, 20", profile_it(20, function () fibI(6511134) end)))
-
+profile.benchmark("fibonacci loop", 20, function()
+  fibLoop(6511134)
+end)

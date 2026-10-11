@@ -417,9 +417,11 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
 
       float weight = 1;
       float3 reflecting_surface_3d_motion;
+      float2 surfaceScreenMotion = oldExactUVZ.xy - curViewTc;
 
       #if SSR_MOTIONREPROJ == 1
         motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(curViewTc,0,0)).motion_attr;
+        surfaceScreenMotion = surface_motion.xy; // without the jitter change
         #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
           surface_motion.xy += MOTION_TO_PREV_JITTERED_UV_OFS;
         #endif
@@ -429,7 +431,10 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
           reflecting_surface_3d_motion = float3(surface_motion, oldExactUVZ.z - w);
         #endif
         if (!CHECK_VALID_MOTION_VECTOR(reflecting_surface_3d_motion))
+        {
           reflecting_surface_3d_motion = oldExactUVZ - float3(curViewTc, w);
+          surfaceScreenMotion = reflecting_surface_3d_motion.xy;
+        }
 
         bool staticPixel = all(abs(curViewTc + reflecting_surface_3d_motion.xy - oldExactUVZ.xy) < 0.5*ssr_target_size.zw);
       #else
@@ -453,6 +458,9 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
           virtualWeight = get_ssr_disocclusion_weight_sample_duo(virtualMulW, virtualMulPostW, normal, linear_roughness, prevVirtualUV.xy, currentPosToPrevW, prevFrame, weight);
         }
         relativePixelTranslation = staticPixel ? relativePixelTranslation : relativePixelTranslation*saturate(length(reflecting_surface_3d_motion.xy)*100);
+        // turns change screen space hits too
+        // the TAA jitter stays under one texel
+        relativePixelTranslation = max(relativePixelTranslation, saturate(length(surfaceScreenMotion*ssr_target_size.xy) - 1));
       }
       neighboorhoodVariance = lerp(1, neighboorhoodVariance, weight);
       return weight;

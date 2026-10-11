@@ -11,7 +11,9 @@ class DataBlock;
 class CompositeEditorUndoParams : public UndoRedoObject
 {
 public:
-  void saveUndo(bool save_selection);
+  CompositeEditorUndoParams() { saveUndo(); }
+
+  UNDO_MERGE_SNAPSHOT_BY_TARGET(0x3E647F18u, nullptr) // CompositeEditorUndoParams
 
 private:
   void restore(bool save_redo) override;
@@ -21,8 +23,8 @@ private:
   void get_description(String &s) override { s = "CompositeEditorUndoParams"; }
 
   void loadUndo() const;
+  void saveUndo();
   void saveUndoFromDataBlock(const DataBlock &dataBlock);
-  bool containsSavedSelection() const;
 
   eastl::unique_ptr<uint8_t[]> buffer;
   size_t bufferSize = 0;

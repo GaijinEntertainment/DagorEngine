@@ -1618,6 +1618,7 @@ CompileResult dx12::dxil::compileShader(const CompileInputs &inputs)
     result.computeShaderInfo.scarlettWave32 = inputs.compilationOptions.scarlettW32;
 #endif
   }
+  result.psOutputInfo = headerCompileResult.psOutput;
 
   if (::dxil::ExtensionVendor::NoExtensionsUsed != headerCompileResult.header.deviceRequirement.extensionVendor)
   {

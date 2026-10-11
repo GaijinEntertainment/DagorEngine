@@ -48,6 +48,7 @@ struct BufferProcessor
     uint32_t colorOffset;
     uint32_t indicesOffset;
     uint32_t weightsOffset;
+    uint32_t corOffset;
     uint32_t outputOffset;
     Point4 posMul;
     Point4 posAdd;

@@ -18,14 +18,15 @@ def it_check12(a, b : int; c : auto(TT)) {
 [test]
 def test_int_types(t : T?) {
     t |> run("integer literal types") @(t : T?) {
-        var i = 100500
-        var li = 100500100500100500l
-        var u = 14u
-        var ul = 100500100500100500ul
-        var uh = 0x1a
-        var uhu = 0x12345678u
-        var uhl = 0x123456789abcdefl
-        var uhlu = 0x123456789abcdefl
+        // each is read only by `typeinfo typename` below, which the unused-variable check cannot see
+        var i = 100500                      // nolint:LINT002
+        var li = 100500100500100500l        // nolint:LINT002
+        var u = 14u                         // nolint:LINT002
+        var ul = 100500100500100500ul       // nolint:LINT002
+        var uh = 0x1a                       // nolint:LINT002
+        var uhu = 0x12345678u               // nolint:LINT002
+        var uhl = 0x123456789abcdefl        // nolint:LINT002
+        var uhlu = 0x123456789abcdefl       // nolint:LINT002
         t |> equal(typeinfo typename(i), "int")
         t |> equal(typeinfo typename(li), "int64")
         t |> equal(typeinfo typename(u), "uint")

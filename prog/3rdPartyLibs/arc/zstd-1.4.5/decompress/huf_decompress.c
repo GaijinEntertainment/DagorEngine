@@ -794,7 +794,9 @@ HUF_decompress4X2_usingDTable_internal_body(
 
         /* 16-32 symbols per loop (4-8 symbols per stream) */
         for ( ; (endSignal) & (op4 < olimit); ) {
-#if defined(__clang__) && (defined(__x86_64__) || defined(__i386__))
+// Gaijin change
+#if defined(__clang__) && (defined(__x86_64__) || defined(__i386__)) && !defined(_M_ARM64EC)
+// ~Gaijin change
             HUF_DECODE_SYMBOLX2_2(op1, &bitD1);
             HUF_DECODE_SYMBOLX2_1(op1, &bitD1);
             HUF_DECODE_SYMBOLX2_2(op1, &bitD1);

@@ -3,6 +3,7 @@
 
 #include "multiPointData.h"
 
+#include <landMesh/landDetile.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
 #include <ioSys/dag_dataBlock.h>
@@ -55,6 +56,8 @@ public:
   volatile int riResResolved;
   const char *loadingAssetFname;
   DataBlock detailData;
+  LandDetile detile; // the tile texture's de-tiling; tiled and planted follow it
+  land_detile::Cluster detileClusterTable[LAND_DETILE_MAX_CLUSTERS];
 
   char hash[20];
 
@@ -105,6 +108,7 @@ public:
   };
 
   Tab<TMatrix> tm;
+  land_detile::TiledSpots byX; // built only for a de-tiled landclass
   int entityIdx;
 
   Point2 yOffset;
@@ -153,6 +157,7 @@ public:
   Tab<Obj> obj;
 
   DensityMap *densityMap;
+  const land_detile::LeafOccupancy *densityLeaves = nullptr; // only for a de-tiled landclass
   Point2 densMapCellSz, densMapSize, densMapOfs;
 
   float aboveHt;
@@ -169,6 +174,8 @@ public:
   Point2 tile;
   float aboveHt;
   bool useYpos;
+  const LandDetile *detile = nullptr;                       // the owning AssetData's; null or off = the plain tile grid
+  const land_detile::Cluster *detileClusterTable = nullptr; // AssetData's; null = the walk computes its own
 };
 
 
@@ -187,4 +194,7 @@ public:
 public:
   Tab<SingleGenEntityGroup> data;
   Tab<DensityMap *> dmPool;
+  dag::Vector<land_detile::LeafOccupancy> dmLeaves;         // dmPool's leaf bits, only for a de-tiled landclass
+  const LandDetile *detile = nullptr;                       // the owning AssetData's, set at load; off = the plain density grid
+  const land_detile::Cluster *detileClusterTable = nullptr; // AssetData's; null = the walk computes its own
 };

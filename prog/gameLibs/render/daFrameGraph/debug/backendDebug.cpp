@@ -9,7 +9,11 @@
 
 namespace dafg
 {
-void reset_texture_visualization() { clear_visualization_node(); }
+void reset_texture_visualization()
+{
+  clear_visualization_node();
+  clear_external_texture_providers();
+}
 
 void debug_send_blob_data(NodeNameId node_id, ResNameId res_id, const BlobView &view)
 {

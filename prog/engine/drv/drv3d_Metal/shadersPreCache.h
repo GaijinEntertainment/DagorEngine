@@ -177,7 +177,8 @@ public:
   void loadPreCache();
   void savePreCache();
 
-  MTLVertexDescriptor *buildDescriptor(Shader *vshader, VDecl *vdecl, const Program::RenderState &rstate, uint64_t &hash);
+  CachedVertexDescriptor buildDescriptor(Shader *vshader, VDecl *vdecl, const Program::RenderState &rstate, uint64_t &hash,
+    uint32_t &buffer_mask);
   id<MTLFunction> getShader(Shader *shader, const char *data, int size, bool async);
   id<MTLRenderPipelineState> getState(Program *program, VDecl *vdecl, const Program::RenderState &rstate, bool async);
 

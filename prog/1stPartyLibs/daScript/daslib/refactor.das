@@ -31,10 +31,6 @@ def public extract_expression(method_name : string; expr) {
     return expr
 }
 
-def log_range(at : LineInfo) {
-    return "{describe(at)}-{int(at.last_line)}:{int(at.last_column)}"
-}
-
 struct ExtractMethodDesc {
     //! Descriptor for extract-method refactoring.
     call_name : string
@@ -55,7 +51,7 @@ def JV(li : LineInfo) {
 class ExtractMethodMacro : AstFunctionAnnotation {
     //! Function annotation implementing extract-method refactoring.
     method_tag = "!!!extract_method"
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (!(call.arguments[0] is ExprConstString)) {
             print("extract_method: first argument must be a string literal")
             return false
@@ -75,7 +71,6 @@ class ExtractMethodMacro : AstFunctionAnnotation {
                     } else {
                         writer |> write("; ")
                     }
-                    // access_info_pass_mutable: a callee inside the extracted block demands a mutable ref even if it never writes — a const param would not compile
                     let needs_mutable = v.variable.access_flags.access_ref || v.variable.access_info.access_info_pass_mutable
                     if (!v.variable._type.flags.constant && needs_mutable) {
                         writer |> write("var ")
@@ -185,7 +180,7 @@ class ExtractVariableFunction : AstFunctionAnnotation {
         }
         return null
     }
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (!(call.arguments[0] is ExprConstString)) {
             print("extract_variable: first argument must be a string literal")
             return false

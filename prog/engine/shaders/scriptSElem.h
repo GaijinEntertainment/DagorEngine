@@ -13,7 +13,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderState.h>
 #include <generic/dag_smallTab.h>
-#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_rwSpinLock.h>
 #include <osApiWrappers/dag_atomic_types.h>
 #include "shStateBlock.h"
 
@@ -47,11 +47,13 @@ public:
   };
   struct PackedPassId
   {
-    static constexpr ShaderStateBlockId DELETED_STATE_BLOCK_ID = static_cast<ShaderStateBlockId>(-1);
+    static constexpr ShaderStateBlockId NOT_INITED_STATE_BLOCK_ID =
+      static_cast<ShaderStateBlockId>(int(ShaderStateBlockId::Invalid) - 1);
+    static_assert(int(NOT_INITED_STATE_BLOCK_ID) < 0, "checked as int(v) < 0");
 
     mutable struct Id
     {
-      // NOTE: might also contain the special value of DELETED_STATE_BLOCK_ID, be careful
+      // NOTE: might also contain the special value of NOT_INITED_STATE_BLOCK_ID, be careful
       dag::AtomicPod<ShaderStateBlockId> v;
       int pr;
     } id; // we cache it inside stateBlocksSpinLock
@@ -66,7 +68,7 @@ public:
   const shaderbindump::ShaderCode &code;
   const shaderbindump::ShaderClass &shClass;
   ShaderBindumpHandle dumpHandle = MAIN_BINDUMP_HANDLE;
-  mutable OSSpinlock stateBlocksSpinLock;
+  mutable SpinLockReadWriteLock stateBlocksSpinLock;
   mutable VDECL usedVdecl; // cached
   uint8_t stageDest;
   enum
@@ -92,8 +94,6 @@ public:
 #endif
 
 public:
-  ScriptedShaderElement(ScriptedShaderElement &&) = default;
-
   const uint8_t *getVars() const { return ((const uint8_t *)this) + sizeof(ScriptedShaderElement); }
   uint8_t *getVars() { return ((uint8_t *)this) + sizeof(ScriptedShaderElement); }
 
@@ -179,6 +179,12 @@ private:
     ScriptedShadersBinDumpOwner const &dump_owner) const;
   void preparePassIdOOL(PackedPassId::Id &pass_id, int variant, unsigned int variant_code,
     ScriptedShadersBinDumpOwner const &dump_owner) const;
+  // Returns with read lock held, the state block of the pass is created
+  __forceinline const PackedPassId::Id &lockReadPassId(int variant, unsigned int variant_code,
+    ScriptedShadersBinDumpOwner const &dump_owner) const DAG_TS_ACQUIRE_SHARED(stateBlocksSpinLock);
+  // Calls cb under the write lock and drops the state blocks, so they are recorded again
+  template <typename Cb>
+  void resetStateBlocks(Cb &&cb);
 
   PROGRAM getComputeProgram(const shaderbindump::ShaderCode::ShRef *p, int variant_code) const;
 

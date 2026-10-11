@@ -47,7 +47,6 @@ void android_d3d_reinit(void *w)
 
   using namespace native_android;
 
-  const IPoint2 prevTargetResolution = {buffer_width, buffer_height};
   ANativeWindow *nativeWindow = (ANativeWindow *)w;
 
   window_width = ANativeWindow_getWidth(nativeWindow);
@@ -149,15 +148,12 @@ void android_d3d_reinit(void *w)
   DEBUG_CTX("ScreenSizes realDPI: %dx%d win: %dx%d buf: %dx%d", dagor_android_scr_xdpi, dagor_android_scr_ydpi, window_width,
     window_height, buffer_width, buffer_height);
 
-  if (!d3d::is_inited())
-  {
-    notify_window_resized(buffer_width, buffer_height);
-    return;
-  }
+  notify_window_resized(buffer_width, buffer_height);
 
-  if (prevTargetResolution != target_resolution)
-    notify_window_resized(buffer_width, buffer_height);
-  else
+  if (!d3d::is_inited())
+    return;
+
+  if (!is_window_resize_pending())
   {
     // nothing is sized to the screen here, so only the surface has to be rebuilt. Do it while the
     // command handler keeps the window alive, vkCreateAndroidSurfaceKHR needs a live one

@@ -730,16 +730,6 @@ bool LandRayTracerSoA4::attach(const void *dump_data, int64_t dump_bytes)
   return true;
 }
 
-// world normal of the hit sub-triangle: positions map world->box by a per-axis scale, so the box
-// normal transforms by the same diagonal (covariance of a diagonal matrix)
-static __forceinline void ref_normal_to_world(const uint8_t *data, uint32_t ref, int sub_tri, vec4f scale, Point3 &out_norm)
-{
-  vec3f a, b, c;
-  soa4::fetchLeafTri(data, (soa4::LeafRef)ref, sub_tri, soa4::Vert21Loader{}, a, b, c);
-  vec3f n = v_cross3(v_sub(b, a), v_sub(c, a));
-  v_stu_p3(&out_norm.x, v_norm3(v_mul(n, scale)));
-}
-
 template <bool ANY_HIT>
 bool LandRayTracerSoA4::traceCell(const Cell &c, vec3f p, vec3f d, const Point3 &pos, const Point3 &dir, float t_in, float t_out,
   float &t, const Cell **hit_cell, uint32_t *hit_ref, int *hit_sub) const
@@ -852,7 +842,7 @@ bool LandRayTracerSoA4::traceRay(const Point3 &pos, const Point3 &dir, float &t,
   if (!traceImpl<false>(pos, dir, t, &hitCell, &hitRef, &hitSub))
     return false;
   if (out_norm && hitCell)
-    ref_normal_to_world(cellData(*hitCell), hitRef, hitSub, hitCell->scale, *out_norm);
+    v_stu_p3(&out_norm->x, soa4::refNormalToWorld(cellData(*hitCell), (soa4::LeafRef)hitRef, hitSub, hitCell->scale));
   return true;
 }
 
@@ -880,7 +870,7 @@ bool LandRayTracerSoA4::heightQuery(float x, float z, float limit_y, float &ht, 
     return false;
   ht = (acc.maxHt - c.ofsY) * c.invScaleY;
   if (out_norm)
-    v_stu_p3(&out_norm->x, v_norm3(v_mul(acc.normalBox, c.scale)));
+    v_stu_p3(&out_norm->x, soa4::normalBoxToWorld(acc.normalBox, c.scale));
   return true;
 }
 

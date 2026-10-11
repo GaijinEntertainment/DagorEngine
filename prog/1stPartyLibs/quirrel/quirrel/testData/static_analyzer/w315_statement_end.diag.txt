@@ -1,0 +1,80 @@
+WARNING: w262 (suspicious-formatting) Suspicious code formatting.
+testData/static_analyzer/w315_statement_end.nut:42:6
+
+    }
+      id(3)
+      ^-
+  return c
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 8.
+testData/static_analyzer/w315_statement_end.nut:8:2
+
+// as after any other statement
+  local first = id(sin(0))
+  ^-----------------------
+local second = id(2)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 8 and 9.
+testData/static_analyzer/w315_statement_end.nut:9:0
+
+  local first = id(sin(0))
+local second = id(2)
+^-------------------
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 13 and 18.
+testData/static_analyzer/w315_statement_end.nut:18:4
+
+  }
+    id(3)
+    ^----
+  id(4)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 18 and 19.
+testData/static_analyzer/w315_statement_end.nut:19:2
+
+    id(3)
+  id(4)
+  ^----
+}
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 23 and 24.
+testData/static_analyzer/w315_statement_end.nut:24:4
+
+  local a = 1
+    id(a)
+    ^----
+  id(2)
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 24 and 25.
+testData/static_analyzer/w315_statement_end.nut:25:2
+
+    id(a)
+  id(2)
+  ^----
+}
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 36 and 42.
+testData/static_analyzer/w315_statement_end.nut:42:6
+
+    }
+      id(3)
+      ^----
+  return c
+
+
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 42 and 43.
+testData/static_analyzer/w315_statement_end.nut:43:2
+
+      id(3)
+  return c
+  ^-------
+}
+
+

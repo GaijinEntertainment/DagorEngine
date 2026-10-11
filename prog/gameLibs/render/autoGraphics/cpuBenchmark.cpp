@@ -153,7 +153,7 @@ namespace cpu_benchmark
 {
 static int benchmark_score(float avg_cpu_time_usec)
 {
-  int score = lroundf((1 + 0.8 * (cpujobs::get_logical_core_count() - 1)) / (avg_cpu_time_usec * 1e-6f));
+  int score = lroundf((1 + 0.8f * (cpujobs::get_logical_core_count() - 1)) / (avg_cpu_time_usec * 1e-6f));
 #if DAGOR_DBGLEVEL > 0
   // Force set debug score for dev version, because logs/asserts/optimizations may affect benchmark result
   auto scoreMul = ::dgs_get_settings()->getReal("cpuBenchmarkDebugScoreMul", 1.0);

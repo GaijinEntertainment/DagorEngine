@@ -3,19 +3,20 @@
 -- https://salsa.debian.org/benchmarksgame-team/benchmarksgame/
 -- contributed by Mike Pall
 
-local sqrt = math.sqrt
+local sqrt <const> = math.sqrt
+local format <const> = string.format
+local benchmark <const> = require("profile").benchmark
 
-local PI = 3.141592653589793
-local SOLAR_MASS = 4 * PI * PI
-local DAYS_PER_YEAR = 365.24
-local bodies = {
+local PI <const> = math.pi
+local SOLAR_MASS <const> = 4.0 * PI * PI
+local DAYS_PER_YEAR <const> = 365.24
+local DT <const> = 0.01
+local STEPS <const> = 500000
+
+local solarSystem <const> = {
   { -- Sun
-    x = 0,
-    y = 0,
-    z = 0,
-    vx = 0,
-    vy = 0,
-    vz = 0,
+    x = 0.0, y = 0.0, z = 0.0,
+    vx = 0.0, vy = 0.0, vz = 0.0,
     mass = SOLAR_MASS
   },
   { -- Jupiter
@@ -56,88 +57,82 @@ local bodies = {
   }
 }
 
-local function advance(bodies, nbody)
-  for i=1,nbody do
-    local bi = bodies[i]
-    local bix, biy, biz, bimass = bi.x, bi.y, bi.z, bi.mass
-    local bivx, bivy, bivz = bi.vx, bi.vy, bi.vz
-    for j=i+1,nbody do
-      local bj = bodies[j]
-      local dx, dy, dz = bix-bj.x, biy-bj.y, biz-bj.z
-      local distance = sqrt(dx*dx + dy*dy + dz*dz)
-      local mag = 1 / (distance * distance * distance)
-      local bim, bjm = bimass*mag, bj.mass*mag
-      bivx = bivx - (dx * bjm)
-      bivy = bivy - (dy * bjm)
-      bivz = bivz - (dz * bjm)
-      bj.vx = bj.vx + (dx * bim)
-      bj.vy = bj.vy + (dy * bim)
-      bj.vz = bj.vz + (dz * bim)
-    end
-    bi.vx = bivx
-    bi.vy = bivy
-    bi.vz = bivz
+local function offsetMomentum(bodies)
+  local px, py, pz = 0.0, 0.0, 0.0
+  for i = 1, #bodies do
+    local b = bodies[i]
+    px = px + b.vx * b.mass
+    py = py + b.vy * b.mass
+    pz = pz + b.vz * b.mass
   end
-  for i=1,nbody do
-    local bi = bodies[i]
-    bi.x = bi.x + bi.vx
-    bi.y = bi.y + bi.vy
-    bi.z = bi.z + bi.vz
-  end
+  local sun = bodies[1]
+  sun.vx = -px / SOLAR_MASS
+  sun.vy = -py / SOLAR_MASS
+  sun.vz = -pz / SOLAR_MASS
 end
 
-local function energy(bodies, nbody)
-  local e = 0
-  for i=1,nbody do
+local function energy(bodies)
+  local n = #bodies
+  local e = 0.0
+  for i = 1, n do
     local bi = bodies[i]
-    local vx, vy, vz, bim = bi.vx, bi.vy, bi.vz, bi.mass
-    e = e + (0.5 * bim * (vx*vx + vy*vy + vz*vz))
-    for j=i+1,nbody do
+    e = e + 0.5 * bi.mass * (bi.vx * bi.vx + bi.vy * bi.vy + bi.vz * bi.vz)
+    for j = i + 1, n do
       local bj = bodies[j]
-      local dx, dy, dz = bi.x-bj.x, bi.y-bj.y, bi.z-bj.z
-      local distance = sqrt(dx*dx + dy*dy + dz*dz)
-      e = e - ((bim * bj.mass) / distance)
+      local dx, dy, dz = bi.x - bj.x, bi.y - bj.y, bi.z - bj.z
+      e = e - bi.mass * bj.mass / sqrt(dx * dx + dy * dy + dz * dz)
     end
   end
   return e
 end
 
-local function scale_bodies(bodies, nbody, scale)
-  for i=1,nbody do
+-- velocities and masses carry DT
+local function scale(bodies, s)
+  for i = 1, #bodies do
     local b = bodies[i]
-    b.mass = b.mass*scale*scale
-    b.vx = b.vx*scale
-    b.vy = b.vy*scale
-    b.vz = b.vz*scale
+    b.mass = b.mass * s * s
+    b.vx = b.vx * s
+    b.vy = b.vy * s
+    b.vz = b.vz * s
   end
 end
 
-local function offsetMomentum(b, nbody)
-  local px, py, pz = 0, 0, 0
-  for i=1,nbody do
-    local bi = b[i]
-    local bim = bi.mass
-    px = px + (bi.vx * bim)
-    py = py + (bi.vy * bim)
-    pz = pz + (bi.vz * bim)
+local function advance(bodies)
+  local n = #bodies
+  for i = 1, n do
+    local bi = bodies[i]
+    local bix, biy, biz, bimass = bi.x, bi.y, bi.z, bi.mass
+    local bivx, bivy, bivz = bi.vx, bi.vy, bi.vz
+    for j = i + 1, n do
+      local bj = bodies[j]
+      local dx, dy, dz = bix - bj.x, biy - bj.y, biz - bj.z
+      local d2 = dx * dx + dy * dy + dz * dz
+      local mag = 1.0 / (d2 * sqrt(d2))
+      local bim, bjm = bimass * mag, bj.mass * mag
+      bivx = bivx - dx * bjm
+      bivy = bivy - dy * bjm
+      bivz = bivz - dz * bjm
+      bj.vx = bj.vx + dx * bim
+      bj.vy = bj.vy + dy * bim
+      bj.vz = bj.vz + dz * bim
+    end
+    bi.vx = bivx
+    bi.vy = bivy
+    bi.vz = bivz
+    bi.x = bi.x + bivx
+    bi.y = bi.y + bivy
+    bi.z = bi.z + bivz
   end
-  b[1].vx = -px / SOLAR_MASS
-  b[1].vy = -py / SOLAR_MASS
-  b[1].vz = -pz / SOLAR_MASS
 end
 
-local function simulate(N, bodies, nbody)
-  scale_bodies(bodies, nbody, 0.01)
-  for i=1,N do
-    advance(bodies, nbody)
+local function simulate()
+  scale(solarSystem, DT)
+  for _ = 1, STEPS do
+    advance(solarSystem)
   end
-  scale_bodies(bodies, nbody, 1/0.01)
+  scale(solarSystem, 1.0 / DT)
+  return format("%.9f", energy(solarSystem))
 end
 
-local N = 500000 --tonumber(arg and arg[1]) or 5000000
-local nbody = #bodies
-
-loadfile("profile.lua")()
-offsetMomentum(bodies, nbody)
-io.write(string.format("\"n-bodies\", %.8f, 10\n", profile_it(10, function () simulate(N, bodies, nbody) end)))
-
+offsetMomentum(solarSystem)
+benchmark("n-bodies", 10, simulate)

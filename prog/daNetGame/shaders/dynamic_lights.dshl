@@ -9,6 +9,7 @@ include "rtao_use.dshl"
 include "classify_tiles_common.dshl"
 include "globtm_no_ofs.dshl"
 include "bvh_usable_inc.dshl"
+include "use_prefiltered_gf.dshl"
 include_optional "ssss/ssss_transmittance_profile.dshl"
 
 float4x4 inv_proj_tm;
@@ -73,6 +74,8 @@ shader render_dynamic_lighting
 
   INIT_RENDERING_RESOLUTION(cs)
   INIT_AND_USE_TILED_LIGHTS(cs)
+  INIT_PREINTEGRATED_GF(cs)
+  BASE_USE_PREINTEGRATED_GF(cs)
 
   hlsl(cs)
   {
@@ -131,7 +134,8 @@ shader render_dynamic_lighting
 
       half AO = processedGbuffer.ao * ssao.x;
 
-      float3 specularColor = special_vision ? 0 : processedGbuffer.specularColor;
+      half3 AB = getEnviBRDF_AB_LinearRoughness(processedGbuffer.linearRoughness, NoV);
+      float3 specularColor = special_vision ? 0 : processedGbuffer.specularColor * EnvBRDFMultiScatter(processedGbuffer.specularColor, AB.xy);
       // view must be normalized: it goes into the BRDF half-vector
       float3 result = get_dynamic_lighting(processedGbuffer, worldPos.xyz, view, w, screenCoordCenter, NoV,
         specularColor, curViewTc, AO);

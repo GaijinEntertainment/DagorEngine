@@ -58,9 +58,10 @@ rem First arg selects the server. A *.exe selects a prebuilt server binary in
 rem bin/ (the AOT cpp-mcp) run directly; otherwise it's an interpreted .das
 rem script handed to daslang.exe. Defaults to main.das (the full server).
 rem Any further args are forwarded to the chosen server.
+rem -ignore-manifest: the server enumerates modules, so every C++ module loads on start.
 set "MCPSCRIPT=%~1"
 if not defined MCPSCRIPT (
-    "%DASLANG%" "%MCPDIR%main.das"
+    "%DASLANG%" -ignore-manifest "%MCPDIR%main.das"
     exit /b %ERRORLEVEL%
 )
 rem Goto (not a parenthesized block) so MCPBIN's set + use are sequential
@@ -68,7 +69,7 @@ rem statements -- this script has no EnableDelayedExpansion, so %MCPBIN%
 rem read inside an `if ( ... )` block would expand stale (pre-set).
 if /i "%MCPSCRIPT:~-4%"==".exe" goto runexe
 shift
-"%DASLANG%" "%MCPDIR%%MCPSCRIPT%" %1 %2 %3 %4 %5 %6 %7 %8
+"%DASLANG%" -ignore-manifest "%MCPDIR%%MCPSCRIPT%" %1 %2 %3 %4 %5 %6 %7 %8
 exit /b %ERRORLEVEL%
 
 :runexe

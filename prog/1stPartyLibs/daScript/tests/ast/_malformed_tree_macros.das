@@ -101,7 +101,7 @@ class StickyLoop : AstForLoopMacro {
 [structure_macro(name=null_result_fn)]
 class NullResultFn : AstStructureAnnotation {
     def override apply(var st : StructurePtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         var fn = qmacro_function("broken`result`fn") $() {
             pass
         }

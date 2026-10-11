@@ -23,7 +23,7 @@ shader dynamic_blend_diffuse_decal, dynamic_deferred_decal
   }
 
   static int draw_order = 0 no_warnings;
-  INIT_DECAL_PAINTED()
+  CONDITIONAL_INIT_DECAL_PAINTED()
   SETUP_CHARACTER_MICRODETAIL()
   if (shader == dynamic_deferred_decal)
   {

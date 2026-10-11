@@ -14,7 +14,7 @@
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_atomic_types.h>
 #include <memory/dag_framemem.h>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 namespace scene
 {
@@ -384,7 +384,7 @@ protected:
     bool empty() const { return interlocked_acquire_load(*(volatile int *)&mCount) == 0; }
   };
   DeferredCommandVector mDeferredCommand;
-  std::mutex mDeferredSetTransformMutex;
+  dag::mutex mDeferredSetTransformMutex;
 
   __forceinline uint32_t selectTileIndex(uint32_t n_index, bool allow_add);
   __forceinline uint32_t getTargetTileIndex(uint32_t n_index); // same mapping as selectTileIndex, but never adds and never logs
@@ -1398,7 +1398,7 @@ void scene::TiledScene::setNodeUserData(node_index node, unsigned user_cmd, cons
   G_STATIC_ASSERT(sizeof(POD) <= sizeof(mat44f));
   G_ASSERTF_AND_DO(user_cmd < DeferredCommand::SET_USER_DATA, user_cmd = DeferredCommand::SET_USER_DATA - 1, "user_cmd=0x%X",
     user_cmd);
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -1420,7 +1420,7 @@ void scene::TiledScene::flushDeferredTransformUpdates(F user_cmd_processor)
   if (mDeferredCommand.empty()) // Note: atomic read (intentionally without mutex taken)
     return;
 
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   WriteLockRAII lock(*this);
   if (usedTilesCount == 0) // drop commands added after tile data was terminated
   {

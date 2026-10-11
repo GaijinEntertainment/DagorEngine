@@ -4,6 +4,11 @@ include "psh_derivate.dshl"
 include "normaldetail.dshl"
 include "edge_tesselation.dshl"
 
+texture cache_tex0 always_referenced;
+texture cache_tex1 always_referenced;
+texture cache_tex2 always_referenced;
+texture last_clip_tex always_referenced;
+
 texture hmap_ldetail;
 texture heightmap;
 float4 world_to_hmap_low = (1,1,1,1);

@@ -13,36 +13,99 @@
 #include <dasModules/aotDaProfiler.h>
 #include <EASTL/vector_map.h>
 #include <perfMon/dag_perfTimer.h>
+#include <debug/dag_debug.h>
 
 namespace das
 {
 #if DAS_DEBUGGER && DA_PROFILER_ENABLED
+
+// Every das call becomes a profiler event, and a script that calls tiny functions millions of times per second
+// (an interpreter written in das) fills the event storage until the process runs out of memory.
+static constexpr uint32_t INSTRUMENT_WINDOW_CALLS = 1024;
+static constexpr uint32_t INSTRUMENT_MIN_AVG_USEC = 1;
+static constexpr uint32_t EVENT_BUDGET_PER_WINDOW = 1 << 16; // about 1M events per second per thread
+
+static thread_local uint64_t event_budget_window_start = 0;
+static thread_local uint32_t event_budget_left = 0;
+
+static bool take_event_budget(uint64_t now)
+{
+  if (now - event_budget_window_start >= (profile_ticks_frequency() >> 4))
+  {
+    event_budget_window_start = now;
+    event_budget_left = EVENT_BUDGET_PER_WINDOW;
+  }
+  if (event_budget_left == 0)
+    return false;
+  if (--event_budget_left == 0)
+  {
+    static const da_profiler::desc_id_t budgetExceededDesc =
+      DA_PROFILE_ADD_DESCRIPTION(__FILE__, __LINE__, "das: event budget exceeded, events dropped");
+    const uint64_t markerTicks = da_profiler::get_current_cpu_ticks();
+    da_profiler::create_leaf_event(budgetExceededDesc, markerTicks, markerTicks);
+  }
+  return true;
+}
 
 struct DaProfilerSimNodeDebugInstrumentFunction : SimNodeDebug_InstrumentFunction
 {
   DaProfilerSimNodeDebugInstrumentFunction(const das::LineInfo &at, das::SimFunction *simF, int64_t mnh, SimNode *se, uint64_t ud) :
     SimNodeDebug_InstrumentFunction(at, simF, mnh, se, ud)
   {}
-  DAS_EVAL_ABI virtual vec4f eval(das::Context &context) override
+
+  static constexpr int WINDOW_TICKS_BITS = 53;
+  static constexpr uint64_t WINDOW_TICKS_MASK = (uint64_t(1) << WINDOW_TICKS_BITS) - 1;
+
+  // calls and ticks share one word: the node can run on several threads, and a lost update must not mix two windows
+  uint64_t windowState = 0;
+  int passthrough = 0;
+
+  void accountCall(uint64_t ticks)
   {
-    vec4f res;
-    DAS_PROFILE_NODE
+    const uint64_t state = interlocked_relaxed_load(windowState);
+    const uint32_t calls = uint32_t(state >> WINDOW_TICKS_BITS) + 1;
+    const uint64_t sum = (state & WINDOW_TICKS_MASK) + (ticks < WINDOW_TICKS_MASK ? ticks : WINDOW_TICKS_MASK);
+    const uint64_t total = sum < WINDOW_TICKS_MASK ? sum : WINDOW_TICKS_MASK;
+    if (calls < INSTRUMENT_WINDOW_CALLS)
+    {
+      interlocked_relaxed_store(windowState, (uint64_t(calls) << WINDOW_TICKS_BITS) | total);
+      return;
+    }
+    interlocked_relaxed_store(windowState, uint64_t(0));
+    if (total < uint64_t(INSTRUMENT_WINDOW_CALLS) * INSTRUMENT_MIN_AVG_USEC * profile_ticks_per_usec())
+    {
+      interlocked_relaxed_store(passthrough, 1);
+      ::debug("daProfiler: das:%s is shorter than %d us on average, no longer profiled", func->mangledName, INSTRUMENT_MIN_AVG_USEC);
+    }
+  }
+
+  template <typename F>
+  __forceinline auto profiled(F &&run) -> decltype(run())
+  {
+    if (interlocked_relaxed_load(passthrough) || !(da_profiler::get_active_mode() & da_profiler::EVENTS))
+      return run();
+    const uint64_t start = profile_ref_ticks();
+    if (!take_event_budget(start))
+      return run();
+    decltype(run()) res;
     {
       da_profiler::ScopedEvent scope((da_profiler::desc_id_t)userData);
-      res = subexpr->eval(context);
+      res = run();
     }
+    accountCall(profile_ref_ticks() - start);
     return res;
   }
-#define EVAL_NODE(TYPE, CTYPE)                                          \
-  virtual CTYPE eval##TYPE(Context &context) override                   \
-  {                                                                     \
-    DAS_PROFILE_NODE                                                    \
-    CTYPE res;                                                          \
-    {                                                                   \
-      da_profiler::ScopedEvent scope((da_profiler::desc_id_t)userData); \
-      res = subexpr->eval##TYPE(context);                               \
-    }                                                                   \
-    return res;                                                         \
+
+  DAS_EVAL_ABI virtual vec4f eval(das::Context &context) override
+  {
+    DAS_PROFILE_NODE
+    return profiled([&] { return subexpr->eval(context); });
+  }
+#define EVAL_NODE(TYPE, CTYPE)                                     \
+  virtual CTYPE eval##TYPE(Context &context) override              \
+  {                                                                \
+    DAS_PROFILE_NODE                                               \
+    return profiled([&] { return subexpr->eval##TYPE(context); }); \
   }
   DAS_EVAL_NODE
 #undef EVAL_NODE

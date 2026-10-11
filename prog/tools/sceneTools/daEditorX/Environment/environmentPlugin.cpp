@@ -177,10 +177,10 @@ static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
   if (col.b > brightness)
     brightness = col.b;
 
-  if (brightness <= 0.0)
+  if (brightness <= 0.0f)
     return E3DCOLOR(0, 0, 0, 0);
 
-  col *= 255.0 / brightness;
+  col *= 255.0f / brightness;
   return E3DCOLOR(col.r, col.g, col.b, col.a);
 }
 
@@ -516,6 +516,116 @@ void EnvironmentPlugin::importEnvi()
 
 
 //==============================================================================
+void EnvironmentPlugin::resetEnvironmentState()
+{
+  selectedEnvironmentNo = -1;
+  selectedWeatherPreset = -1;
+  selectedWeatherType = -1;
+
+  clear_and_shrink(weatherPresetsList);
+  clear_and_shrink(weatherTypesList);
+  clear_and_shrink(environmentNamesList);
+
+  ets.setDef();
+  envParams.znzfScale = 1;
+
+  clear_and_shrink(commonFileNamePcXbox);
+  clear_and_shrink(commonFileNamePs3);
+  clear_and_shrink(commonFileName);
+
+  clear_and_shrink(levelFileNamePcXbox);
+  clear_and_shrink(levelFileNamePs3);
+  clear_and_shrink(levelFileName);
+
+  commonBlk.clearData();
+  levelBlk.clearData();
+
+  clear_and_shrink(currentEnvironmentAces.name);
+  clear_and_shrink(currentEnvironmentAces.environmentFileName);
+  clear_and_shrink(currentEnvironmentAces.dagFileName);
+
+  currentEnvironmentAces.shaderVarsBlk.clearData();
+  currentEnvironmentAces.postfxBlk.clearData();
+  currentEnvironmentAces.enviBlk.clearData();
+  currentEnvironmentAces.hmapBlk.clearData();
+  memset(&currentEnvironmentAces.envParams, 0, sizeof(currentEnvironmentAces.envParams));
+
+  mainPanelState.reset();
+
+  needSkiesUpdate = true;
+}
+
+
+bool EnvironmentPlugin::initAcesEnvironmentState(const DataBlock *blk, const DataBlock *local_data)
+{
+  G_ASSERT(isAcesPlugin);
+
+  if (blk)
+  {
+    commonFileName = commonFileNamePcXbox = blk->getStr("commonFile", nullptr);
+    levelFileName = levelFileNamePcXbox = blk->getStr("levelFile", nullptr);
+
+    commonFileNamePs3 = blk->getStr("commonFilePs3", nullptr);
+    levelFileNamePs3 = blk->getStr("levelFilePs3", nullptr);
+  }
+
+  if (local_data)
+    envParams.znzfScale = local_data->getReal("znzfScale", 1.0f);
+
+  if (DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
+    return true;
+
+  if (skiesSrv)
+  {
+    skiesSrv->fillPresets(weatherPresetsList, environmentNamesList, weatherTypesList);
+
+    if (blk)
+    {
+      String preset = ::make_full_path(DAGORED2->getSdkDir(), String(blk->getStr("weatherPreset", "")));
+
+      selectedWeatherPreset = find_value_idx(weatherPresetsList, preset);
+      selectedWeatherType = find_value_idx(weatherTypesList, blk->getStr("weatherType", ""));
+      selectedEnvironmentNo = find_value_idx(environmentNamesList, blk->getStr("enviName", ""));
+    }
+
+    if (selectedWeatherPreset < 0 && weatherPresetsList.size())
+      selectedWeatherPreset = 0;
+
+    if (selectedWeatherType < 0 && weatherTypesList.size())
+      selectedWeatherType = 0;
+
+    if (selectedEnvironmentNo < 0 && environmentNamesList.size())
+      selectedEnvironmentNo = 0;
+
+    if (local_data)
+    {
+#define LOAD_ETS(NM, TYPE) ets.NM = local_data->get##TYPE(#NM, ets.NM)
+      LOAD_ETS(forceWeather, Bool);
+      // LOAD_ETS(forceGeoDate, Bool);
+      // LOAD_ETS(forceTime, Bool);
+      // LOAD_ETS(forceSeed, Bool);
+      LOAD_ETS(latitude, Real);
+      LOAD_ETS(yyyy, Int);
+      LOAD_ETS(mm, Int);
+      LOAD_ETS(dd, Int);
+      LOAD_ETS(timeOfDay, Real);
+      LOAD_ETS(rndSeed, Int);
+#undef LOAD_ETS
+    }
+  }
+  else if (blk)
+    loadBlk(false, blk->getStr("enviName", blk->getStr("selected", "day")));
+
+  const bool validSelection = (selectedEnvironmentNo >= 0) && (!skiesSrv || (selectedWeatherPreset >= 0 && selectedWeatherType >= 0));
+
+  if (validSelection)
+    setSettingsToPlugins();
+
+  return validSelection;
+}
+
+
+//==============================================================================
 void EnvironmentPlugin::resetEnvi()
 {
   clear_and_shrink(dagFileName);
@@ -543,8 +653,8 @@ bool EnvironmentPlugin::runEnviSetCmd(dag::ConstSpan<const char *> params)
     {
       if (propPanel)
         propPanel->setInt(CM_PID_ENVIRONMENTS_LIST, i);
-      if (selectedEnvironmentNo != -1)
-        getSettingsFromPlugins();
+
+      getSettingsFromPlugins();
 
       selectedEnvironmentNo = i;
       setSettingsToPlugins();
@@ -552,9 +662,9 @@ bool EnvironmentPlugin::runEnviSetCmd(dag::ConstSpan<const char *> params)
       updateLight();
 
       if (postfxPanel)
-        recreatePostfxPanel();
+        postfxPanel->fillPanel();
       if (shgvPanel)
-        recreateShGVPanel();
+        shgvPanel->fillPanel();
       return con.getErrorsCount() + con.getFatalsCount() == errCnt;
     }
 
@@ -576,8 +686,8 @@ void EnvironmentPlugin::runEnvSunFromTime(dag::ConstSpan<const char *> params)
   double time = atof(params[3]);
   real lat = atof(params[4]);
   real lon = atof(params[5]);
-  float timeDelta = lon * 24.0 / 360.0;
-  double utctime = time - timeDelta;
+  float timeDelta = lon * 24.0f / 360.0f;
+  double utctime = time - double(timeDelta);
   if (utctime < 0)
     utctime += 24.0;
   {
@@ -701,6 +811,18 @@ void EnvironmentPlugin::clearObjects()
 
 
 //==============================================================================
+void EnvironmentPlugin::onNewProject()
+{
+  resetEnvironmentState();
+
+  if (isAcesPlugin)
+    initAcesEnvironmentState(nullptr, nullptr);
+
+  fillPanel();
+}
+
+
+//==============================================================================
 void EnvironmentPlugin::autoSaveObjects(DataBlock &local_data)
 {
   DataBlock &autoBlk = *local_data.addBlock("panel_state");
@@ -816,9 +938,11 @@ void EnvironmentPlugin::getSettingsFromPlugins()
   if (DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
     return;
 
-  G_ASSERT(!skiesSrv || selectedWeatherPreset != -1);
-  G_ASSERT(!skiesSrv || selectedWeatherType != -1);
-  G_ASSERT(selectedEnvironmentNo != -1);
+  if (selectedEnvironmentNo < 0)
+    return;
+
+  if (skiesSrv && (selectedWeatherPreset < 0 || selectedWeatherType < 0))
+    return;
 
   // when there is no dedicated lighting plugin
   if (!DAGORED2->getPluginByName("SceneLighter"))
@@ -1151,53 +1275,12 @@ void EnvironmentPlugin::loadObjects(const DataBlock &blk, const DataBlock &local
   }
   else
   {
-    selectedEnvironmentNo = -1;
-    clear_and_shrink(environmentNamesList);
-    selectedWeatherPreset = selectedWeatherType = -1;
-    clear_and_shrink(weatherPresetsList);
-    clear_and_shrink(weatherTypesList);
+    resetEnvironmentState();
 
     geom.loadFromDag(DAGORED2->getPluginFilePath(this, "single.dag"), &DAGORED2->getConsole());
 
-    commonFileName = commonFileNamePcXbox = blk.getStr("commonFile", NULL);
-    levelFileName = levelFileNamePcXbox = blk.getStr("levelFile", NULL);
-    commonFileNamePs3 = blk.getStr("commonFilePs3", NULL);
-    levelFileNamePs3 = blk.getStr("levelFilePs3", NULL);
-
-    if (skiesSrv)
-    {
-      skiesSrv->fillPresets(weatherPresetsList, environmentNamesList, weatherTypesList);
-
-      String preset = ::make_full_path(DAGORED2->getSdkDir(), String(blk.getStr("weatherPreset", "")));
-      selectedWeatherPreset = find_value_idx(weatherPresetsList, preset);
-      if (selectedWeatherPreset < 0 && weatherPresetsList.size())
-        selectedWeatherPreset = 0;
-
-      selectedWeatherType = find_value_idx(weatherTypesList, String(blk.getStr("weatherType", "")));
-      if (selectedWeatherType < 0 && weatherTypesList.size())
-        selectedWeatherType = 0;
-
-      selectedEnvironmentNo = find_value_idx(environmentNamesList, String(blk.getStr("enviName", "")));
-      if (selectedEnvironmentNo < 0 && environmentNamesList.size())
-        selectedEnvironmentNo = 0;
-
-#define LOAD_ETS(NM, TYPE) ets.NM = local_data.get##TYPE(#NM, ets.NM)
-      LOAD_ETS(forceWeather, Bool);
-      // LOAD_ETS(forceGeoDate, Bool);
-      // LOAD_ETS(forceTime, Bool);
-      // LOAD_ETS(forceSeed, Bool);
-      LOAD_ETS(latitude, Real);
-      LOAD_ETS(yyyy, Int);
-      LOAD_ETS(mm, Int);
-      LOAD_ETS(dd, Int);
-      LOAD_ETS(timeOfDay, Real);
-      LOAD_ETS(rndSeed, Int);
-#undef LOAD_ETS
-    }
-    else
-      loadBlk(false, blk.getStr("enviName", blk.getStr("selected", "day")));
-    envParams.znzfScale = local_data.getReal("znzfScale", 1.0);
-    setSettingsToPlugins();
+    if (!initAcesEnvironmentState(&blk, &local_data))
+      DAEDITOR3.conError("failed to initialize Environment plugin from project settings");
   }
 
   const DataBlock *panelStateBlk = local_data.getBlockByName("panel_state");
@@ -1211,49 +1294,73 @@ void EnvironmentPlugin::loadObjects(const DataBlock &blk, const DataBlock &local
 
 
 //==============================================================================
-void EnvironmentPlugin::loadBlk(bool ps3, const char *selectedName)
+bool EnvironmentPlugin::loadBlk(bool ps3, const char *selectedName)
 {
-  clear_and_shrink(environmentNamesList);
-  selectedEnvironmentNo = -1;
-
-  if (ps3)
+  const String &newCommonFileName = ps3 ? commonFileNamePs3 : commonFileNamePcXbox;
+  if (newCommonFileName.empty())
   {
-    commonFileName = commonFileNamePs3;
-    levelFileName = levelFileNamePs3;
+    DAEDITOR3.conError("loading environment blks failed: common filename is empty");
+    return false;
   }
-  else
-  {
-    commonFileName = commonFileNamePcXbox;
-    levelFileName = levelFileNamePcXbox;
-  }
-
-  G_ASSERT(!commonFileName.empty());
   String commonFilePath(DAGORED2->getSdkDir());
-  commonFilePath.append("/" + commonFileName);
-  commonBlk.load(commonFilePath);
+  commonFilePath.append("/" + newCommonFileName);
 
-  G_ASSERT(!levelFileName.empty());
-  String levelFilePath(DAGORED2->getSdkDir());
-  levelFilePath.append("/" + levelFileName);
-  levelBlk.load(levelFilePath);
-
-  int selectedNo = -1;
-
-  for (unsigned int blockNo = 0; blockNo < levelBlk.blockCount(); blockNo++)
+  const String &newLevelFileName = ps3 ? levelFileNamePs3 : levelFileNamePcXbox;
+  if (newLevelFileName.empty())
   {
-    const char *blockName = levelBlk.getBlock(blockNo)->getBlockName();
+    DAEDITOR3.conError("loading environment blks failed: level filename is empty");
+    return false;
+  }
+  String levelFilePath(DAGORED2->getSdkDir());
+  levelFilePath.append("/" + newLevelFileName);
+
+  DataBlock newCommonBlk;
+  DataBlock newLevelBlk;
+
+  if (!newCommonBlk.load(commonFilePath))
+  {
+    DAEDITOR3.conError("unable to load common environment blk at <%s>", commonFilePath.str());
+    return false;
+  }
+
+  if (!newLevelBlk.load(levelFilePath))
+  {
+    DAEDITOR3.conError("unable to load level environment blk at <%s>", levelFilePath.str());
+    return false;
+  }
+
+  Tab<String> newEnvironmentNames;
+  int newSelectedEnvironmentNo = -1;
+
+  for (unsigned int blockNo = 0; blockNo < newLevelBlk.blockCount(); blockNo++)
+  {
+    const char *blockName = newLevelBlk.getBlock(blockNo)->getBlockName();
 
     if (!stricmp(blockName, "shader_vars"))
       continue;
 
     if (!stricmp(blockName, selectedName))
-      selectedNo = environmentNamesList.size();
+      newSelectedEnvironmentNo = newEnvironmentNames.size();
 
-    environmentNamesList.push_back() = blockName;
+    newEnvironmentNames.push_back() = blockName;
   }
 
-  if (selectedNo != -1)
-    selectedEnvironmentNo = selectedNo;
+  if (newEnvironmentNames.empty())
+  {
+    DAEDITOR3.conError("selected level environment blk at <%s> has no environment names", levelFilePath.str());
+    return false;
+  }
+
+  commonFileName = newCommonFileName;
+  levelFileName = newLevelFileName;
+
+  commonBlk = eastl::move(newCommonBlk);
+  levelBlk = eastl::move(newLevelBlk);
+
+  environmentNamesList = eastl::move(newEnvironmentNames);
+  selectedEnvironmentNo = newSelectedEnvironmentNo < 0 ? 0 : newSelectedEnvironmentNo;
+
+  return true;
 }
 
 
@@ -1485,9 +1592,8 @@ void EnvironmentPlugin::updateImgui()
     if (propPanel)
     {
       bool open = true;
-      DAEDITOR3.imguiBegin(*propPanel, &open);
-      propPanel->updateImgui();
-      DAEDITOR3.imguiEnd();
+      if (auto window = IDaEditor3Engine::ScopedImguiWindow(*propPanel, &open); window.canSubmitContents())
+        propPanel->updateImgui();
 
       if (!open && propPanel)
       {
@@ -2154,8 +2260,7 @@ void EnvironmentPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl
     case CM_PID_WEATHER_TYPES_LIST:
     case CM_PID_ENVIRONMENTS_LIST:
     {
-      if (selectedEnvironmentNo >= 0 && selectedWeatherPreset >= 0 && selectedWeatherPreset >= 0)
-        getSettingsFromPlugins();
+      getSettingsFromPlugins();
 
       if (pcb_id == CM_PID_WEATHER_PRESETS_LIST)
         selectedWeatherPreset = propPanel->getInt(pcb_id);
@@ -2168,9 +2273,9 @@ void EnvironmentPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl
       updateLight();
 
       if (postfxPanel)
-        recreatePostfxPanel();
+        postfxPanel->fillPanel();
       if (shgvPanel)
-        recreateShGVPanel();
+        shgvPanel->fillPanel();
       break;
     }
 
@@ -2433,7 +2538,7 @@ void EnvironmentPlugin::setFogDefaults()
 
 
 //==================================================================================================
-void EnvironmentPlugin::recreatePanel(PropPanel::PanelWindowPropertyControl *panel, int wtype_id)
+void EnvironmentPlugin::recreatePanel(void *panel, int wtype_id)
 {
   if (!panel)
     EDITORCORE->addPropPanel(wtype_id, hdpi::_pxScaled(PROPBAR_WIDTH));
@@ -2442,13 +2547,10 @@ void EnvironmentPlugin::recreatePanel(PropPanel::PanelWindowPropertyControl *pan
 }
 
 
-void EnvironmentPlugin::recreatePostfxPanel()
-{
-  recreatePanel(postfxPanel ? postfxPanel->getPanel() : NULL, POSTFX_ENVIRONMENT_WTYPE);
-}
+void EnvironmentPlugin::recreatePostfxPanel() { recreatePanel(postfxPanel, POSTFX_ENVIRONMENT_WTYPE); }
 
 
-void EnvironmentPlugin::recreateShGVPanel() { recreatePanel(shgvPanel ? shgvPanel->getPanel() : NULL, SHADERGV_ENVIRONMENT_WTYPE); }
+void EnvironmentPlugin::recreateShGVPanel() { recreatePanel(shgvPanel, SHADERGV_ENVIRONMENT_WTYPE); }
 
 
 //==================================================================================================
@@ -2462,13 +2564,40 @@ void EnvironmentPlugin::hdrViewSettings()
   if (!hdrBlk)
     return;
 
+  const String prevMode(hdrBlk->getStr("mode", "none"));
+
   HdrViewSettingsDialog dlg(hdrBlk);
 
   if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
   {
     const char *hdr_mode = hdrBlk->getStr("mode", "none");
+
+    bool prevPs3 = stricmp(prevMode.str(), "ps3") == 0;
+    bool newPs3 = stricmp(hdr_mode, "ps3") == 0;
+    bool platformChange = prevPs3 != newPs3;
+
     if (isAcesPlugin)
-      loadBlk(strcmp(hdr_mode, "ps3") == 0, "day");
+    {
+      if (platformChange && !loadBlk(newPs3, "day"))
+      {
+        hdrBlk->setStr("mode", prevMode.str());
+        return;
+      }
+
+      commonBlk.addBlock("postfx")->addBlock("hdr")->setStr("mode", hdr_mode);
+
+      if (platformChange)
+      {
+        setSettingsToPlugins();
+
+        if (postfxPanel)
+          postfxPanel->fillPanel();
+        if (shgvPanel)
+          shgvPanel->fillPanel();
+
+        fillPanel();
+      }
+    }
 
     // Restart HDR
     EDITORCORE->queryEditorInterface<IDynRenderService>()->restartPostfx(!isAcesPlugin ? postfxBlk : currentEnvironmentAces.postfxBlk);
@@ -2547,8 +2676,7 @@ update_envi_fail:
 void EnvironmentPlugin::connectToGameHttpServer()
 {
 #if _TARGET_PC_WIN // TODO: tools Linux porting: EnvironmentPlugin::connectToGameHttpServer()
-  eastl::unique_ptr<PropPanel::DialogWindow> dlg(
-    DAGORED2->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(120), "Connect To Game Http Server"));
+  eastl::unique_ptr<PropPanel::DialogWindow> dlg(DAGORED2->createAutoSizedDialog("Connect To Game Http Server"));
   PropPanel::ContainerPropertyControl *panel = dlg->getPanel();
   panel->createEditBox(337, "Address Connect To:", "");
   if (dlg->showDialog() != PropPanel::DIALOG_ID_OK)
@@ -2746,7 +2874,7 @@ void EnvironmentPlugin::prepareColorStats(int r_channel[256], int g_channel[256]
     return;
   int w, h;
   viewport->getViewportSize(w, h);
-  Texture *renderTex = ((DagorEdAppWindow *)DAGORED2)->renderInTex(w, h, NULL);
+  TexPtr renderTex = ((DagorEdAppWindow *)DAGORED2)->renderInTex(w, h, NULL);
 
   if (renderTex)
   {
@@ -2769,7 +2897,6 @@ void EnvironmentPlugin::prepareColorStats(int r_channel[256], int g_channel[256]
     }
 
     renderTex->unlockimg();
-    del_d3dres(renderTex);
   }
 }
 

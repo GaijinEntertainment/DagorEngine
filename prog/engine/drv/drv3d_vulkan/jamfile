@@ -299,7 +299,7 @@ AddIncludes +=
 
 if $(UseDlss) = yes {
   DlssVersion ?= 310.5.3 ;
-  if ! [ GLOB $(_DEVTOOL)/ngx-dlss-$(DlssVersion) : * ] { exit FATAL\: \"$(_DEVTOOL)/ngx-dlss-$(DlssVersion)\" not found!  Please, update DEVTOOLS ; }
+  if ! [ GLOB $(_DEVTOOL)/ngx-dlss-$(DlssVersion) : * ] { exit "FATAL: \"$(_DEVTOOL)/ngx-dlss-$(DlssVersion)\" not found!  Please, update DEVTOOLS" ; }
 
   AddIncludes += $(_DEVTOOL)/ngx-dlss-$(DlssVersion)/include ;
   Sources += dlss.cpp ;

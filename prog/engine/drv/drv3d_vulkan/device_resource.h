@@ -70,7 +70,7 @@ class ResourceAlgorithm
       return false;
 
     allocDsc.reqs.requirements = res.getSharedHandleMemoryReq();
-    if (allocDsc.reqs.requirements.size == 0)
+    if (allocDsc.reqs.requirements.size == 0 || allocDsc.reqs.requirements.memoryTypeBits == 0)
       return false;
     return res.tryReuseHandle(allocDsc);
   }

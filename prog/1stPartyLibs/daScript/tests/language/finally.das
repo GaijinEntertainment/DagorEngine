@@ -90,7 +90,7 @@ def test_func_finally(tt : T?) {
 [sideeffects]
 def test_block_finally(tt : T?) {
     var t = 0
-    invoke() <| $() { t = 1; } finally { t = 2; }
+    invoke() ${ t = 1; } finally { t = 2; }
     tt |> equal(t, 2)
 }
 

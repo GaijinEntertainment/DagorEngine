@@ -5,11 +5,9 @@ require daslib/strings_boost
 require dastest/testing_boost public
 
 // note: this is var because we want "sample" global variable to show up.
-// The sample is gen2 and declares it, so it compiles under a DEFAULT
-// CodeOfPolicies whichever way an embedding host pins version_2_syntax.
+// The sample is gen2; test_compile_sample sets version_2_syntax explicitly.
 var {
     sample = "
-options gen2
 require math
 require UnitTest
 
@@ -202,7 +200,10 @@ def describeModule(mod) {
 [test]
 def test_compile_sample(t : T?) {
     var compiled_ok = false
-    compile("sample", sample, CodeOfPolicies()) $(ok; prog; errors) {
+    // dagor keeps version_2_syntax off by default, so the gen2 sample asks for it here
+    var policies = CodeOfPolicies()
+    policies.version_2_syntax = true
+    compile("sample", sample, policies) $(ok; prog; errors) {
         if (ok) {
             compiled_ok = true
             let thisMod = get_this_module(prog)

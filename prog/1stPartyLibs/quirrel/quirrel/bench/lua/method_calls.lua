@@ -1,5 +1,10 @@
 -- metatable instance field access + method dispatch
-local Point = {}
+local setmetatable <const> = setmetatable
+local vmBench <const> = require("profile").vmBench
+
+local N <const> = 3000000
+
+local Point <const> = {}
 Point.__index = Point
 
 function Point.new(x, y)
@@ -15,16 +20,15 @@ function Point:addTo(o)
   self.y = self.y + o.y
 end
 
-local N = 3000000
-
-for rep = 1, 5 do
-  local t0 = os.clock()
+local function calls()
   local p = Point.new(0.0, 0.0)
   local d = Point.new(0.001, 0.002)
   local sum = 0.0
-  for i = 1, N do
+  for _ = 1, N do
     p:addTo(d)
     sum = sum + p:len2()
   end
-  print("BENCH method_calls " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. ((sum > 0.0) and 1 or 0) .. ")")
+  return sum > 0.0 and 1 or 0
 end
+
+vmBench("method_calls", calls)

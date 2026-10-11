@@ -1,52 +1,55 @@
 -- 2d array access, integer logic (Game of Life)
-local W = 48
-local H = 48
-local GENS = 300
+local create <const> = table.create
+local vmBench <const> = require("profile").vmBench
+
+local W <const> = 48
+local H <const> = 48
+local GENS <const> = 300
 
 local function mkGrid()
-  local g = {}
+  local g = create(H)
   for y = 0, H - 1 do
-    local row = {}
+    local row = create(W)
     for x = 0, W - 1 do
-      row[x] = ((x * 7 + y * 13) % 5 == 0) and 1 or 0
+      row[x + 1] = (x * 7 + y * 13) % 5 == 0 and 1 or 0
     end
-    g[y] = row
+    g[y + 1] = row
   end
   return g
 end
 
 local function step(src, dst)
-  for y = 0, H - 1 do
-    local ym = (y + H - 1) % H
-    local yp = (y + 1) % H
-    for x = 0, W - 1 do
-      local xm = (x + W - 1) % W
-      local xp = (x + 1) % W
-      local n = src[ym][xm] + src[ym][x] + src[ym][xp]
-              + src[y][xm]               + src[y][xp]
-              + src[yp][xm] + src[yp][x] + src[yp][xp]
-      if n == 3 or (n == 2 and src[y][x] == 1) then
-        dst[y][x] = 1
-      else
-        dst[y][x] = 0
-      end
+  for y = 1, H do
+    local up = src[(y + H - 2) % H + 1]
+    local mid = src[y]
+    local down = src[y % H + 1]
+    local out = dst[y]
+    for x = 1, W do
+      local xm = (x + W - 2) % W + 1
+      local xp = x % W + 1
+      local n = up[xm] + up[x] + up[xp]
+              + mid[xm]         + mid[xp]
+              + down[xm] + down[x] + down[xp]
+      out[x] = (n == 3 or (n == 2 and mid[x] == 1)) and 1 or 0
     end
   end
 end
 
-for rep = 1, 5 do
-  local t0 = os.clock()
+local function life()
   local a = mkGrid()
   local b = mkGrid()
-  for g = 1, GENS do
+  for _ = 1, GENS do
     step(a, b)
     a, b = b, a
   end
   local alive = 0
-  for y = 0, H - 1 do
-    for x = 0, W - 1 do
-      alive = alive + a[y][x]
+  for y = 1, H do
+    local row = a[y]
+    for x = 1, W do
+      alive = alive + row[x]
     end
   end
-  print("BENCH life " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. alive .. ")")
+  return alive
 end
+
+vmBench("life", life)

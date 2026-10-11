@@ -52,7 +52,7 @@ def test_fastpath_team_lambda(t : T?) {
             var pr = unsafe(addr(hits[0]))
             team_parallel_for(0, N, 16) <| @(job_begin : int; job_end : int) {
                 for (i in range(job_begin, job_end)) {
-                    unsafe(pr[i]) += 1
+                    unsafe(pr[i]) ++
                 }
             }
             var bad = 0

@@ -1,5 +1,6 @@
 options gen2
 require math
+require daslib/math_boost
 require dastest/testing_boost public
 
 options optimize = false
@@ -10,9 +11,9 @@ def rightPolicyCeili(a : float) : int {
 }
 
 [test]
-def test_math_misc(t : T?) {
+def test_math_misc(t : T?) { // nolint:STYLE038 one flat assertion per math entry point under test
     t |> success(uint32_hash(1U) != 1U)
-    var seed : uint = 1U
+    let seed : uint = 1U
     let position : int = 1
     t |> equal(min(float2(0.5, -1.), float2(-1., 0.5)), float2(-1., -1.))
     t |> equal(min(float4(0.5, -1., 0.5, -1.), float4(-1., 0.5, -1., 0.5)), float4(-1, -1, -1, -1))
@@ -101,6 +102,18 @@ def test_math_misc(t : T?) {
     t |> equal(pow(0., 0.), 1.)
     t |> equal(pow(2., 2.), 4.)
     t |> equal(exp2(2.), 4.)
+    // windows x86 keeps the vecmath exp2, which is not the CRT at the range edges (sim_policy.h)
+    if (!(get_platform_name() == "windows" && get_architecture_name() == "x86")) {
+        t |> success(exp2(129.) > 3e38, "exp2 past the float range is inf, got {exp2(129.)}")
+        t |> success(exp2(-126.) > 0., "exp2 at the smallest normal is not zero, got {exp2(-126.)}")
+    }
+    var x = -20.
+    while (x < 20.) {
+        let r = exp_std(x)
+        t |> success(abs(exp(x) - r) <= r * 5e-6, "exp({x}) = {exp(x)} against expf {r}")
+        t |> success(abs(exp_est(x) - r) <= r * 1e-4, "exp_est({x}) = {exp_est(x)} against expf {r}")
+        x += 0.37
+    }
     t |> equal(log2(4.), 2.)
     t |> success(abs(exp(1.) - 2.718281828459045f) < 1e-6)
     t |> success(abs(log(2.718281828459045f) - 1.) < 1e-6)
@@ -141,4 +154,13 @@ def test_math_misc(t : T?) {
     // constants
     let mme = "{FLT_MIN} {FLT_MAX} {FLT_EPSILON}"
     t |> equal(mme, "1.1754944e-38 3.4028235e+38 1.1920929e-07")
+}
+
+[test]
+def test_round_up(t : T?) {
+    t |> equal(round_up(13, 8), 16)
+    t |> equal(round_up(16, 8), 16)
+    t |> equal(round_up(0, 8), 0)
+    t |> equal(round_up(13l, 64l), 64l)
+    t |> equal(round_up(13u, 4u), 16u)
 }

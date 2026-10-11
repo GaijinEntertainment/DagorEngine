@@ -120,7 +120,7 @@ public:
 
     if (segc.size() == 4)
     {
-      if (fabs(segc[0 * 4 + 1].y) + fabs(segc[0 * 4 + 2].y) + fabs(segc[0 * 4 + 3].y) < 1e-6)
+      if (fabs(segc[0 * 4 + 1].y) + fabs(segc[0 * 4 + 2].y) + fabs(segc[0 * 4 + 3].y) < 1e-6f)
       {
         cwr.writeInt32e(0xFFFFFFFF);
         cwr.writeInt32e(0);

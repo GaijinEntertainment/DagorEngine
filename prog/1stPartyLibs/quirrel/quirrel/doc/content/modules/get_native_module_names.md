@@ -1,5 +1,5 @@
 ---
-see_also: [modules.on_module_unload, modules.reset_static_memos]
+see_also: [modules.on_module_unload]
 ---
 
 Lists the name of every native module registered in this host.

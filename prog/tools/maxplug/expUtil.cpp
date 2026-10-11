@@ -2,6 +2,7 @@
 
 #include <max.h>
 #include <plugapi.h>
+#include <ilayer.h>
 #include <ilayermanager.h>
 #include <ilayerproperties.h>
 #include <utilapi.h>
@@ -14,6 +15,7 @@
 #include <meshnormalspec.h>
 #include <impexp.h>
 #include <format>
+#include <functional>
 #include <string_view>
 #include "comboBoxHelper.h"
 #include "dagor.h"
@@ -21,6 +23,8 @@
 #include "enumnode.h"
 #include "dagfmt.h"
 #include "mater.h"
+#include "expanim.h"
+#include "expanim2.h"
 #include "Bones.h"
 #include "iparamb2.h"
 #include "ISkin.h"
@@ -31,20 +35,12 @@
 #include "common.h"
 #include "datablk.h"
 
-// #define TIMER
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
 #include <vector>
 #include <algorithm>
 #include <ranges>
-#include <string>
-#include "Timer.hpp"
-#ifdef TIMER
-#define INTERVAL(elapsed, type) TimerInterval timerInterval(elapsed, type)
-#else
-#define INTERVAL(elapsed, type)
-#endif
 #include <string>
 #include <utility>
 #include <Shobjidl.h>
@@ -94,15 +90,23 @@ public:
 
   IUtil *iu;
   Interface *ip;
-  HWND hExpDag, hExpOther, hLog;
+  HWND hExpDag, hExpAnim, hExpOther, hLog;
+  ControlPtr<ICustEdit> eastart, eaend;
+  ControlPtr<ICustEdit> epose, erote, escle, eorte;
+  ControlPtr<ICustEdit> epose2, erote2;
 
   fs::path exp_fname;
+  fs::path exp_anim2_fname;
   fs::path exp_phys_fname;
   fs::path exp_instances_fname;
 
   int expflg;
   ExportMode exportMode;
+  float poseps, roteps, scleps, orteps;
+  float poseps2, roteps2;
+  TimeValue astart, aend;
   bool suppressPrompts;
+  bool separateLayers;
 
   ExpUtil();
   void BeginEditParams(Interface *ip, IUtil *iu) override;
@@ -110,24 +114,33 @@ public:
   void DeleteThis() override {}
 
   void update_ui_dag(HWND hw);
+  void update_ui_anim(HWND hw);
   void update_ui_other(HWND hw);
   void update_ui();
   void update_tooltips();
 
   void set_expflg(int flg, int);
+  void reset_anim_settings();
 
   void Init(HWND hw);
 
+  void InitAnim(HWND hw);
+  void DestroyAnim(HWND hw);
+
   int input_exp_fname();
+  int input_exp_anim2_fname();
   int input_exp_phys_fname();
   int input_exp_instances_fname();
-  BOOL export_one_dag(const fs::path &exp_fn);
+  BOOL export_one_dag(const fs::path &exp_fn, std::unordered_set<INode *> skip_nodes = {});
   BOOL export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn);
+  bool write_via_temp_file(const fs::path &target, const std::function<bool(FILE *)> &write);
   BOOL export_dag();
+  void export_anim_v2();
   void exportPhysics();
   void export_instances();
   void calcMomj();
   BOOL export_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   BOOL export_other_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   void checkDupesAndSpaces(Tab<INode *> &node_list);
   void errorMessage(const TCHAR *msg);
@@ -163,12 +176,14 @@ class DagExport : public SceneExport
     util.exp_fname = name;
     util.ip = i;
 
+    Autotoggle suppressPromptsGuard(util.suppressPrompts, suppressPrompts);
+
     // Not sure what is the correct solution here.
     // In case of errors we already show a message box but if we report back IMPEXP_FAIL then there
     // will be an additional message box shown to the user with no additional information.
     // So we only report back errors if message prompts are suppressed.
     BOOL success = util.export_dag();
-    return (success || !suppressPrompts) ? IMPEXP_SUCCESS : IMPEXP_FAIL;
+    return (success || !are_prompts_suppressed()) ? IMPEXP_SUCCESS : IMPEXP_FAIL;
   }
 };
 
@@ -190,8 +205,7 @@ static DagExpCD dagexpcd;
 
 ClassDesc *GetDAGEXPCD() { return &dagexpcd; }
 
-// asked by the other translation units before they open a box of their own
-bool are_prompts_suppressed() { return util.suppressPrompts; }
+bool are_prompts_suppressed() { return util.suppressPrompts || GetCOREInterface()->GetQuietMode(); }
 
 void explog(const TCHAR *s, ...)
 {
@@ -238,6 +252,10 @@ enum
   CH_EXP_FNAME = 1,
   CH_EXPHIDDEN = 2,
   CH_EXPFLG = 3,
+  CH_ANIMEPS = 4,
+  CH_ANIMRANGE = 5,
+  CH_EXP_ANIM2_FNAME = 6,
+  CH_ANIMEPS2 = 8,
   CH_EXP_PHYS_FNAME = 9,
   CH_EXP_MODE = 10,
 };
@@ -257,7 +275,37 @@ IOResult ExpUtilDesc::Save(ISave *io)
   if (io->Write(&util.expflg, 4, &nw) != IO_OK)
     return IO_ERROR;
   io->EndChunk();
+  io->BeginChunk(CH_ANIMRANGE);
+  if (io->Write(&util.astart, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  if (io->Write(&util.aend, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  io->EndChunk();
+  io->BeginChunk(CH_ANIMEPS);
+  if (io->Write(&util.poseps, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  if (io->Write(&util.roteps, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  if (io->Write(&util.scleps, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  if (io->Write(&util.orteps, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  io->EndChunk();
 
+  io->BeginChunk(CH_ANIMEPS2);
+  if (io->Write(&util.poseps2, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  if (io->Write(&util.roteps2, 4, &nw) != IO_OK)
+    return IO_ERROR;
+  io->EndChunk();
+
+  if (!util.exp_anim2_fname.empty())
+  {
+    io->BeginChunk(CH_EXP_ANIM2_FNAME);
+    if (io->WriteCString(util.exp_anim2_fname.c_str()) != IO_OK)
+      return IO_ERROR;
+    io->EndChunk();
+  }
   if (!util.exp_phys_fname.empty())
   {
     io->BeginChunk(CH_EXP_PHYS_FNAME);
@@ -281,6 +329,7 @@ IOResult ExpUtilDesc::Load(ILoad *io)
   TCHAR *str;
   util.expflg = EXP_DEFAULT;
   util.exportMode = ExpUtil::ExportMode::Standard;
+  util.reset_anim_settings();
   while (io->OpenChunk() == IO_OK)
   {
     switch (io->CurChunkID())
@@ -290,6 +339,11 @@ IOResult ExpUtilDesc::Load(ILoad *io)
           return IO_ERROR;
         util.exp_fname = str;
         break;
+      case CH_EXP_ANIM2_FNAME:
+        if (io->ReadCStringChunk(&str) != IO_OK)
+          return IO_ERROR;
+        util.exp_anim2_fname = str;
+        break;
       case CH_EXP_PHYS_FNAME:
         if (io->ReadCStringChunk(&str) != IO_OK)
           return IO_ERROR;
@@ -298,6 +352,28 @@ IOResult ExpUtilDesc::Load(ILoad *io)
       case CH_EXPHIDDEN: util.expflg |= EXP_HID; break;
       case CH_EXPFLG:
         if (io->Read(&util.expflg, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        break;
+      case CH_ANIMRANGE:
+        if (io->Read(&util.astart, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        if (io->Read(&util.aend, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        break;
+      case CH_ANIMEPS:
+        if (io->Read(&util.poseps, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        if (io->Read(&util.roteps, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        if (io->Read(&util.scleps, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        if (io->Read(&util.orteps, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        break;
+      case CH_ANIMEPS2:
+        if (io->Read(&util.poseps2, 4, &nr) != IO_OK)
+          return IO_ERROR;
+        if (io->Read(&util.roteps2, 4, &nr) != IO_OK)
           return IO_ERROR;
         break;
       case CH_EXP_MODE:
@@ -364,6 +440,61 @@ BOOL ExpUtil::export_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
             update_tooltips();
           }
           break;
+      }
+    }
+    break;
+    default: return FALSE;
+  }
+  return TRUE;
+}
+
+BOOL ExpUtil::export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG: InitAnim(hw); break;
+
+    case WM_DESTROY: DestroyAnim(hw); break;
+
+    case WM_COMMAND:
+    {
+      WORD id = LOWORD(wpar);
+      switch (id)
+      {
+        case IDC_ARANGE: set_expflg(EXP_ARNG, IsDlgButtonChecked(hw, id)); break;
+        case IDC_REDUCE_POS: set_expflg(EXP_DONT_REDUCE_POS, !IsDlgButtonChecked(hw, id)); break;
+        case IDC_LOOP_ANIM: set_expflg(EXP_LOOPED_ANIM, IsDlgButtonChecked(hw, id)); break;
+        case IDC_REDUCE_ROT: set_expflg(EXP_DONT_REDUCE_ROT, !IsDlgButtonChecked(hw, id)); break;
+        case IDC_REDUCE_SCL: set_expflg(EXP_DONT_REDUCE_SCL, !IsDlgButtonChecked(hw, id)); break;
+        case IDC_ASTART:
+        {
+          TSTR s;
+          s.Resize(64);
+          eastart->GetText(s.dataForWrite(), 64);
+          StringToTime(s, astart);
+        }
+        break;
+        case IDC_AEND:
+        {
+          TSTR s;
+          s.Resize(64);
+          eaend->GetText(s.dataForWrite(), 64);
+          StringToTime(s, aend);
+        }
+        break;
+        case IDC_POSEPS: poseps = epose->GetFloat(); break;
+        case IDC_SCLEPS: scleps = escle->GetFloat() / 100; break;
+        case IDC_ROTEPS: roteps = DegToRad(erote->GetFloat()); break;
+        case IDC_ORTEPS: orteps = DegToRad(eorte->GetFloat()); break;
+        case IDC_ORIGIN_LINVEL_EPS: poseps2 = epose2->GetFloat(); break;
+        case IDC_ORIGIN_ANGVEL_EPS: roteps2 = DegToRad(erote2->GetFloat()); break;
+
+        case IDC_EXPORT_ANIM2:
+          if (input_exp_anim2_fname())
+            export_anim_v2();
+          break;
+
+        default: break;
       }
     }
     break;
@@ -454,6 +585,11 @@ static INT_PTR CALLBACK ExpDagDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM l
   return util.export_dlg_proc(hw, msg, wParam, lParam);
 }
 
+static INT_PTR CALLBACK ExportAnimDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  return util.export_anim_dlg_proc(hw, msg, wParam, lParam);
+}
+
 static INT_PTR CALLBACK ExportOtherDlgProc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   return util.export_other_dlg_proc(hw, msg, wParam, lParam);
@@ -480,12 +616,27 @@ ExpUtil::ExpUtil()
 {
   iu = NULL;
   ip = NULL;
-  hExpDag = hExpOther = hLog = NULL;
+  hExpDag = hExpAnim = hExpOther = hLog = NULL;
 
   expflg = EXP_DEFAULT;
   exportMode = ExportMode::Standard;
+  reset_anim_settings();
 
   suppressPrompts = false;
+  separateLayers = false;
+}
+
+void ExpUtil::reset_anim_settings()
+{
+  astart = GetAnimStart();
+  aend = GetAnimEnd();
+  poseps = 0.005f;
+  scleps = 0.01f;
+  roteps = DegToRad(1);
+  orteps = DegToRad(1);
+
+  poseps2 = 0.005f;
+  roteps2 = DegToRad(1);
 }
 
 void ExpUtil::BeginEditParams(Interface *ip, IUtil *iu)
@@ -493,9 +644,10 @@ void ExpUtil::BeginEditParams(Interface *ip, IUtil *iu)
   this->iu = iu;
   this->ip = ip;
 
-  hExpDag = add_rollup_page(ip, IDD_EXPUTIL, ExpDagDlgProc, _T("DAG"), 0);
-  hExpOther = add_rollup_page(ip, IDD_EXPOTHER, ExportOtherDlgProc, _T("Other"), 0, APPENDROLL_CLOSED);
-  hLog = add_rollup_page(ip, IDD_LOGROLL, LogDlgProc, GetString(IDS_EXPLOG_ROLL), 0, APPENDROLL_CLOSED);
+  hExpDag = add_rollup_page(ip, IDD_EXPUTIL, ExpDagDlgProc, _T("DAG"));
+  hExpAnim = add_rollup_page(ip, IDD_EXPANIM, ExportAnimDlgProc, _T("Animation"));
+  hExpOther = add_rollup_page(ip, IDD_EXPOTHER, ExportOtherDlgProc, _T("Other"), APPENDROLL_CLOSED);
+  hLog = add_rollup_page(ip, IDD_LOGROLL, LogDlgProc, GetString(IDS_EXPLOG_ROLL), APPENDROLL_CLOSED);
 }
 
 void ExpUtil::EndEditParams(Interface *ip, IUtil *iu)
@@ -504,6 +656,7 @@ void ExpUtil::EndEditParams(Interface *ip, IUtil *iu)
   this->ip = NULL;
 
   delete_rollup_page(ip, &hExpDag);
+  delete_rollup_page(ip, &hExpAnim);
   delete_rollup_page(ip, &hExpOther);
   delete_rollup_page(ip, &hLog);
 }
@@ -557,6 +710,30 @@ void ExpUtil::update_ui_dag(HWND hw)
   CheckDlgButton(hw, IDC_EXPMATEROPT, expflg & EXP_MATOPT);
 }
 
+void ExpUtil::update_ui_anim(HWND hw)
+{
+  if (!hw)
+    return;
+
+  TSTR s;
+  TimeToString(astart, s);
+  eastart->SetText(s);
+  TimeToString(aend, s);
+  eaend->SetText(s);
+  epose->SetText(poseps, 3);
+  escle->SetText(scleps * 100, 2);
+  erote->SetText(RadToDeg(roteps), 2);
+  eorte->SetText(RadToDeg(orteps), 2);
+  epose2->SetText(poseps2, 3);
+  erote2->SetText(RadToDeg(roteps2), 2);
+
+  CheckDlgButton(hw, IDC_ARANGE, expflg & EXP_ARNG);
+  CheckDlgButton(hw, IDC_REDUCE_POS, !(expflg & EXP_DONT_REDUCE_POS));
+  CheckDlgButton(hw, IDC_REDUCE_ROT, !(expflg & EXP_DONT_REDUCE_ROT));
+  CheckDlgButton(hw, IDC_REDUCE_SCL, !(expflg & EXP_DONT_REDUCE_SCL));
+  CheckDlgButton(hw, IDC_LOOP_ANIM, expflg & EXP_LOOPED_ANIM);
+}
+
 void ExpUtil::update_ui_other(HWND hw)
 {
   if (!hw)
@@ -569,6 +746,7 @@ void ExpUtil::update_ui_other(HWND hw)
 void ExpUtil::update_ui()
 {
   update_ui_dag(hExpDag);
+  update_ui_anim(hExpAnim);
   update_ui_other(hExpOther);
 }
 
@@ -595,12 +773,46 @@ void ExpUtil::Init(HWND hw)
   SendMessage(tooltipExtender.GetToolTipHWND(), TTM_SETDELAYTIME, TTDT_AUTOPOP, 32000);
 }
 
+void ExpUtil::InitAnim(HWND hw)
+{
+  eastart.reset(GetICustEdit(GetDlgItem(hw, IDC_ASTART)));
+  eaend.reset(GetICustEdit(GetDlgItem(hw, IDC_AEND)));
+  epose.reset(GetICustEdit(GetDlgItem(hw, IDC_POSEPS)));
+  erote.reset(GetICustEdit(GetDlgItem(hw, IDC_ROTEPS)));
+  escle.reset(GetICustEdit(GetDlgItem(hw, IDC_SCLEPS)));
+  eorte.reset(GetICustEdit(GetDlgItem(hw, IDC_ORTEPS)));
+  epose2.reset(GetICustEdit(GetDlgItem(hw, IDC_ORIGIN_LINVEL_EPS)));
+  erote2.reset(GetICustEdit(GetDlgItem(hw, IDC_ORIGIN_ANGVEL_EPS)));
+  update_ui_anim(hw);
+}
+
+void ExpUtil::DestroyAnim(HWND hw)
+{
+  hExpAnim = NULL;
+  eastart.reset();
+  eaend.reset();
+  epose.reset();
+  erote.reset();
+  escle.reset();
+  eorte.reset();
+  epose2.reset();
+  erote2.reset();
+}
+
 int ExpUtil::input_exp_fname()
 {
   FilterList fl;
   fl.Append(GetString(IDS_SCENE_FILES));
   fl.Append(_T("*.dag"));
   return get_save_filename(hExpDag, GetString(IDS_SAVE_SCENE_TITLE), fl, _T("dag"), exp_fname);
+}
+
+int ExpUtil::input_exp_anim2_fname()
+{
+  FilterList fl;
+  fl.Append(GetString(IDS_ANIM2_FILES));
+  fl.Append(_T ("*.a2d"));
+  return get_save_filename(hExpAnim, GetString(IDS_SAVE_ANIM2_TITLE2), fl, _T("a2d"), exp_anim2_fname);
 }
 
 int ExpUtil::input_exp_phys_fname()
@@ -701,6 +913,41 @@ struct ExpMat
   ExpMat() : mtl(0), wirecolor(0) {}
 };
 
+class MyExpTMAnimCB : public ExpTMAnimCB
+{
+public:
+  INode *node, *pnode, *origin;
+
+  MyExpTMAnimCB(INode *n, INode *pn, INode *orig)
+  {
+    node = n;
+    pnode = pn;
+    origin = orig;
+  }
+  void interp_tm(TimeValue t, Matrix3 &m) override
+  {
+    Matrix3 ntm = get_scaled_stretch_node_tm(node, t);
+    adjwtm(ntm);
+    Matrix3 ptm;
+    if (pnode)
+    {
+      ptm = get_scaled_stretch_node_tm(pnode, t);
+      if (!pnode->IsRootNode())
+        adjwtm(ptm);
+      m = ntm * Inverse(ptm);
+    }
+    else if (origin)
+    {
+      Matrix3 otm;
+      otm = get_scaled_stretch_node_tm(origin, t);
+      adjwtm(otm);
+      m = ntm * Inverse(otm);
+    }
+    else
+      m = ntm;
+  }
+};
+
 struct ExpNode
 {
   Tab<ExpNode *> child;
@@ -727,10 +974,8 @@ struct ExpNode
   }
 };
 
-#ifdef TIMER
-static double mtlElapsed = 0., procAddMtl = 0., dagorMatElapsed = 0.;
-static int mtlCount = 0, procNodeCount = 0;
-#endif
+const char origin_lin_vel_node_name[] = "origin_lin_vel_node_name";
+const char origin_ang_vel_node_name[] = "origin_ang_vel_node_name";
 
 static int face_mtl_slot(MtlID face_mtl_id, int sub_mtl_num) { return face_mtl_id % sub_mtl_num; }
 
@@ -817,6 +1062,7 @@ class ExportENCB : public ENodeCB
 public:
   TimeValue time;
   Tab<INode *> node;
+  Tab<bool> nodeExp; // used in a2d export to denote nodes that should be exported; 'node' contains all nodes
   std::vector<ExpMat> mat;
   std::vector<std::unordered_set<Mtl *>> mtls;
   Tab<int> matIDtoMatIdx;
@@ -829,6 +1075,7 @@ public:
   std::unordered_map<INode *, int> nodeIdMap;
   INode *nodeOrigin;
   INode *useIdentityTransformForNode;
+  std::unordered_set<INode *> skipNodes;
   char nofaces;
   bool hasDegenerateTriangles;
   bool hasNoSmoothing;
@@ -836,8 +1083,9 @@ public:
   bool hasNonDagorMaterials;
   bool hasNonDagorLights;
   bool hasSubSubMaterials;
+  bool a2dExported;
 
-  explicit ExportENCB(TimeValue t)
+  explicit ExportENCB(TimeValue t, bool a2d = false)
   {
     time = t;
     nofaces = 0;
@@ -849,6 +1097,7 @@ public:
     hasSubSubMaterials = false;
     nodeOrigin = NULL;
     useIdentityTransformForNode = nullptr;
+    a2dExported = a2d;
     autoMatNameCounter = 0;
   }
 
@@ -918,7 +1167,6 @@ public:
       Class_ID cid = em.mtl->ClassID();
       if (cid == Class_ID(DMTL_CLASS_ID, 0))
       {
-        INTERVAL(dagorMatElapsed, TimerIntervalType::GATHER);
         explogWarning(_T("'%s' has standard material '%s'\r\n"), em.node->GetName(), em.name.data());
         hasNonDagorMaterials = true;
 
@@ -970,8 +1218,6 @@ public:
 
       if (cid == DagorMat_CID || cid == DagorMat2_CID)
       {
-        INTERVAL(dagorMatElapsed, TimerIntervalType::GATHER);
-
         assert(mat.size() != 0xFFFF);
         if (mat.size() >= 0xFFFF)
           return;
@@ -1108,10 +1354,6 @@ public:
 
   void add_mtl(INode *node, Mtl *mtl, int subm = 0, DWORD wirecolor = 0xFFFFFF)
   {
-#ifdef TIMER
-    ++mtlCount;
-#endif
-
     std::wstring mtl_name;
 
     if (mtl)
@@ -1130,8 +1372,7 @@ public:
       }
 
       for (int i = 0; i < num_sub_mtls; ++i)
-        if (Mtl *sub_mtl = mtl->GetSubMtl(i))
-          add_mtl(node, sub_mtl, true);
+        add_mtl(node, mtl->GetSubMtl(i), true);
 
       auto it = std::ranges::find_if(matList, [mtl](EMat &em) { return em.mtl == mtl; });
       if (it != matList.end())
@@ -1154,6 +1395,8 @@ public:
   {
     if (!n)
       return ECB_CONT;
+    if (skipNodes.count(n))
+      return ECB_CONT;
     if (iequal(n->GetName(), L"ORIGIN"))
     {
       if ((util.expflg & EXP_SEL) && !n->Selected())
@@ -1175,6 +1418,21 @@ public:
       return ECB_CONT; // don't export origin itself
     }
 
+    if (a2dExported)
+    {
+      bool vis = true;
+
+      if (!(util.expflg & EXP_HID))
+        if (n->IsNodeHidden())
+          vis = false;
+      if (util.expflg & EXP_SEL)
+        if (!n->Selected())
+          vis = false;
+      assert(nodeExp.Count() != 0xFFFF);
+      nodeExp.Append(1, &vis);
+      return add_node(n);
+    }
+
     if (!(util.expflg & EXP_HID))
     {
       if (n->IsNodeHidden())
@@ -1183,17 +1441,8 @@ public:
     if (util.expflg & EXP_SEL)
       if (!n->Selected())
         return ECB_CONT;
-    {
-      INTERVAL(mtlElapsed, TimerIntervalType::ACC);
-#ifdef TIMER
-      ++procNodeCount;
-#endif
-      if ((util.expflg & EXP_MAT) && !(util.expflg & EXP_OBJECTS))
-      {
-        INTERVAL(procAddMtl, TimerIntervalType::ACC);
-        add_mtl(n, n->GetMtl(), 0, n->GetWireColor());
-      }
-    }
+    if ((util.expflg & EXP_MAT) && !(util.expflg & EXP_OBJECTS))
+      add_mtl(n, n->GetMtl(), 0, n->GetWireColor());
 
     if (!(util.expflg & EXP_OBJECTS))
       return ECB_CONT;
@@ -1228,15 +1477,14 @@ public:
       explogWarning(_T( "'%s' has no material\r\n"), n->GetName());
       hasNonDagorMaterials = true;
     }
-    {
-      INTERVAL(mtlElapsed, TimerIntervalType::ACC);
-      if (util.expflg & EXP_MAT)
-      {
-        INTERVAL(procAddMtl, TimerIntervalType::ACC);
-        add_mtl(n, n->GetMtl(), 0, n->GetWireColor());
-      }
-    }
+    if (util.expflg & EXP_MAT)
+      add_mtl(n, n->GetMtl(), 0, n->GetWireColor());
 
+    return add_node(n);
+  }
+
+  int add_node(INode *n)
+  {
     assert(node.Count() != 0xFFFF);
     if (node.Count() >= 0xFFFF)
       return ECB_CONT;
@@ -1426,11 +1674,7 @@ public:
 
         for (int j = 0; j < num; ++j)
         {
-          Mtl *sub_mtl = mtl->GetSubMtl(j);
-          if (!sub_mtl)
-            continue;
-
-          int id = getmatid(sub_mtl);
+          int id = getmatid(mtl->GetSubMtl(j));
           if (id < 0 || matIDtoMatIdx[id] < 0)
             continue;
 
@@ -2247,9 +2491,6 @@ public:
       matUsed.SetCount((int)mat.size());
       for (size_t i = 0; i < mat.size(); ++i)
         matUsed[i] = false;
-#ifdef TIMER
-      double start = Timer::NowMs();
-#endif
       for (int i = 0; i < node.Count(); ++i)
       {
         if (!node[i])
@@ -2272,8 +2513,7 @@ public:
               int firstMat = -1;
               for (int j = 0; j < mat_num; ++j)
               {
-                Mtl *sub_mtl = mtl->GetSubMtl(j);
-                slotMat[j] = sub_mtl ? getusedmatid(sub_mtl) : -1;
+                slotMat[j] = getusedmatid(mtl->GetSubMtl(j));
                 if (firstMat < 0)
                   firstMat = slotMat[j];
               }
@@ -2298,16 +2538,6 @@ public:
       if (useMOpt())
         optimize_materials(matUsed);
 
-#ifdef TIMER
-      double end = Timer::NowMs();
-      explog(_T("matUsed: %g ms\r\n"), end - start);
-      explog(_T("add_mtl: %g ms\r\n"), mtlElapsed);
-      explog(_T("add_mtl count: %d\r\n"), mtlCount);
-      explog(_T("proc node mtl count: %d\r\n"), procNodeCount);
-      explog(_T("proc add mtl: %g\r\n"), procAddMtl);
-      explog(_T("dagorMatElapsed: %g\r\n"), dagorMatElapsed);
-      explog(_T("mtls: %d mat: %d\r\n"), (int)mtls.size(), (int)mat.size());
-#endif
       std::wstring unused_mtls, unused_tex;
 
       Tab<int> tex_remap;
@@ -2512,17 +2742,613 @@ public:
     return 1;
   }
 
+  //
+  // Export animation in Anim-v2 format
+  //
+  struct AnimDataHeader
+  {
+    unsigned label;    // MAKE4C('A','N','I','M')
+    unsigned ver;      // 0x200
+    unsigned hdrSize;  // =sizeof(AnimDataHeader)
+    unsigned reserved; // 0x00000000
+
+    unsigned namePoolSize;      // size of name pool, in bytes
+    unsigned timeNum;           // number of entries in time pool
+    unsigned keyPoolSize;       // size of key pool, in bytes
+    unsigned totalAnimLabelNum; // number of keys in note track (time labels)
+    unsigned dataTypeNum;       // number of data type records
+  };
+  struct DataTypeHeader
+  {
+    unsigned dataType;         // id of data type, analogue for channelType: POINT3, QUAT, REAL
+    unsigned offsetInKeyPool;  // offset in bytes from the beginning of key pool
+    unsigned offsetInTimePool; // offset in elements from the beginning of time pool
+    unsigned channelNum;       // number of channels of this data type (see below)
+  };
+
+  struct ChannelParams
+  {
+    unsigned channelType;
+    Tab<unsigned> keyNums;
+    Tab<int> nodeNameIds;
+    Tab<float> nodeWeights;
+  };
+
+  enum
+  {
+    DATATYPE_POINT3 = 0x577084E5u,
+    DATATYPE_QUAT = 0x39056464u,
+    DATATYPE_REAL = 0xEE0BD66Au,
+  };
+
+  enum
+  {
+    CHTYPE_POSITION = 0xE66CF0CCu,
+    CHTYPE_SCALE = 0x48D43D77u,
+    CHTYPE_ORIGIN_LIN_VEL = 0x31DE5F48u,
+    CHTYPE_ORIGIN_ANG_VEL = 0x09FD7093u,
+    CHTYPE_ROTATION = 0x8D490AE4u,
+  };
+
+  struct AnimKeyQuat
+  {
+    float pw, bw;
+    float sinpw, sinbw;
+    Quat p, b0, b1;
+  };
+  struct AnimKeyLabel
+  {
+    union
+    {
+      char *name;
+      int idx;
+    };
+    int time;
+  };
+
+  static void make_postrack(AnimKeyPoint3 *k, PosKey *s, int num)
+  {
+    for (; num > 1; ++k, ++s, --num)
+    {
+      k->p = s->p;
+      k->k1 = (s->o - s->p) * 3;
+      k->k2 = (s->p + s[1].i - s->o * 2) * 3;
+      k->k3 = (s->o - s[1].i) * 3 + s[1].p - s->p;
+    }
+    k->p = s->p;
+  }
+  static void make_rottrack(AnimKeyQuat *k, RotKey *s, int num)
+  {
+    std::vector<char> h(num * 2 - 1);
+    char *x = h.data() + num - 1;
+
+    int i;
+    for (i = 0; i < num - 1; ++i)
+    {
+      k[i].p = Conjugate(s[i].p);
+      Quat b0 = Conjugate(s[i].o), b1 = Conjugate(s[i + 1].i);
+      Quat sip = Conjugate(s[i].p), sipn = Conjugate(s[i + 1].p);
+
+      float f = b0.x * b1.x + b0.y * b1.y + b0.z * b1.z + b0.w * b1.w;
+      if (f < 0)
+      {
+        b1 = -b1;
+        f = -f;
+      }
+      k[i].b0 = b0;
+      k[i].b1 = b1;
+      if (f >= 1)
+        k[i].sinbw = k[i].bw = 0;
+      else
+        k[i].sinbw = sinf(k[i].bw = acosf(f));
+
+      f = sip.x * sipn.x + sip.y * sipn.y + sip.z * sipn.z + sip.w * sipn.w;
+      h[i] = f < 0 ? 1 : 0;
+      k[i].pw = f;
+    }
+    k[i].p = Conjugate(s[i].p);
+    k[i].pw = 0;
+
+    memset(x, 0, num);
+
+    for (;;)
+    {
+      for (i = 0; i < num - 1; ++i)
+        if (h[i])
+          break;
+      if (i >= num - 1)
+        break;
+      for (i = 1; i < num - 1; ++i)
+        if (h[i - 1] && h[i])
+        {
+          h[i - 1] = h[i] = 0;
+          x[i] ^= 1;
+        }
+      if (h[0])
+      {
+        h[0] = 0;
+        x[0] ^= 1;
+      }
+      for (i = 1; i < num - 1; ++i)
+        if (h[i])
+        {
+          h[i - 1] ^= 1;
+          h[i] = 0;
+          x[i] ^= 1;
+        }
+    }
+
+    for (i = 0; i < num; ++i)
+      if (x[i])
+      {
+        k[i].p = -k[i].p;
+        k[i].pw = -k[i].pw;
+        if (i > 0)
+          k[i - 1].pw = -k[i - 1].pw;
+      }
+    for (i = 0; i < num; ++i)
+    {
+      if (k[i].pw >= 1)
+        k[i].sinpw = k[i].pw = 0;
+      else
+        k[i].sinpw = sinf(k[i].pw = acosf(k[i].pw));
+    }
+  }
+
+  int save_anim2(FILE *fp)
+  {
+    // pools data
+    std::vector<char> namesPool;
+    Tab<int> originLinVelT;
+    Tab<int> originAngVelT;
+    Tab<AnimKeyPoint3> originLinVel;
+    Tab<AnimKeyPoint3> originAngVel;
+    Tab<AnimChanPoint3 *> pos;
+    Tab<AnimChanPoint3 *> scl;
+    Tab<AnimChanQuat *> rot;
+    Tab<AnimKeyLabel> noteTrackKeys;
+
+    // get nodes for export
+    Tab<INode *> exportNodes;
+    for (int i = 0; i < node.Count(); ++i)
+      if (nodeExp[i])
+        exportNodes.Append(1, &node[i]);
+
+    // process data to prepare for writing
+    getNoteTrackKeys(exportNodes, noteTrackKeys);
+
+    getOriginVelocities(originLinVel, originAngVel, originLinVelT, originAngVelT);
+
+    Tab<int> additionalIds;
+    std::vector<std::string> additionalNames;
+    int linVelId = -1, angVelId = -1;
+    if (originLinVel.Count())
+    {
+      linVelId = (int)additionalNames.size();
+      additionalNames.push_back(origin_lin_vel_node_name);
+    }
+    if (originAngVel.Count())
+    {
+      angVelId = (int)additionalNames.size();
+      additionalNames.push_back(origin_ang_vel_node_name);
+    }
+
+    unsigned namePoolSize = 0;
+    std::vector<int> nameIdx;
+    getNamePool(exportNodes, noteTrackKeys, namesPool, nameIdx, namePoolSize, additionalNames, additionalIds);
+
+    getAnimations(exportNodes, pos, rot, scl);
+
+    unsigned keyPoolSize = 0;
+    unsigned timeNum = 0;
+    unsigned keyNum;
+    float nodeWeight = 1.0f;
+
+    // Point3
+    DataTypeHeader point3DataTypeHeader;
+    point3DataTypeHeader.dataType = DATATYPE_POINT3;
+    point3DataTypeHeader.offsetInKeyPool = 0;
+    point3DataTypeHeader.offsetInTimePool = 0;
+    point3DataTypeHeader.channelNum = 0;
+
+    ChannelParams originLinVelCannelParams;
+    if (originLinVel.Count())
+    {
+      originLinVelCannelParams.channelType = CHTYPE_ORIGIN_LIN_VEL;
+      originLinVelCannelParams.keyNums.Append(1, &(keyNum = originLinVel.Count()));
+      originLinVelCannelParams.nodeNameIds.Append(1, &additionalIds[linVelId]);
+      originLinVelCannelParams.nodeWeights.Append(1, &nodeWeight);
+      keyPoolSize += sizeof(AnimKeyPoint3) * originLinVel.Count();
+      timeNum += originLinVel.Count();
+      ++point3DataTypeHeader.channelNum;
+    }
+
+    ChannelParams originAngVelCannelParams;
+    if (originAngVel.Count())
+    {
+      originAngVelCannelParams.channelType = CHTYPE_ORIGIN_ANG_VEL;
+      originAngVelCannelParams.keyNums.Append(1, &(keyNum = originAngVel.Count()));
+      originAngVelCannelParams.nodeNameIds.Append(1, &additionalIds[angVelId]);
+      originAngVelCannelParams.nodeWeights.Append(1, &nodeWeight);
+      keyPoolSize += sizeof(AnimKeyPoint3) * originAngVel.Count();
+      timeNum += originAngVel.Count();
+      ++point3DataTypeHeader.channelNum;
+    }
+
+    ChannelParams posCannelParams;
+    ChannelParams sclCannelParams;
+    posCannelParams.channelType = CHTYPE_POSITION;
+    sclCannelParams.channelType = CHTYPE_SCALE;
+    for (int i = 0; i < exportNodes.Count(); ++i)
+    {
+      if ((keyNum = pos[i]->key.Count()) > 0)
+      {
+        posCannelParams.keyNums.Append(1, &keyNum);
+        posCannelParams.nodeNameIds.Append(1, &nameIdx[i]);
+        posCannelParams.nodeWeights.Append(1, &nodeWeight);
+        keyPoolSize += sizeof(AnimKeyPoint3) * keyNum;
+        timeNum += keyNum;
+      }
+      if ((keyNum = scl[i]->key.Count()) > 0)
+      {
+        sclCannelParams.keyNums.Append(1, &keyNum);
+        sclCannelParams.nodeNameIds.Append(1, &nameIdx[i]);
+        sclCannelParams.nodeWeights.Append(1, &nodeWeight);
+        keyPoolSize += sizeof(AnimKeyPoint3) * keyNum;
+        timeNum += keyNum;
+      }
+    }
+    if (posCannelParams.keyNums.Count())
+      ++point3DataTypeHeader.channelNum;
+    if (sclCannelParams.keyNums.Count())
+      ++point3DataTypeHeader.channelNum;
+
+    // Quat
+    DataTypeHeader quatDataTypeHeader;
+    quatDataTypeHeader.dataType = DATATYPE_QUAT;
+    quatDataTypeHeader.offsetInKeyPool = keyPoolSize;
+    quatDataTypeHeader.offsetInTimePool = timeNum;
+    quatDataTypeHeader.channelNum = 0;
+
+    ChannelParams rotCannelParams;
+    rotCannelParams.channelType = CHTYPE_ROTATION;
+    for (int i = 0; i < exportNodes.Count(); ++i)
+    {
+      if ((keyNum = rot[i]->key.Count()) > 0)
+      {
+        rotCannelParams.keyNums.Append(1, &keyNum);
+        rotCannelParams.nodeNameIds.Append(1, &nameIdx[i]);
+        rotCannelParams.nodeWeights.Append(1, &nodeWeight);
+        keyPoolSize += sizeof(AnimKeyQuat) * keyNum;
+        timeNum += keyNum;
+      }
+    }
+    if (rotCannelParams.keyNums.Count())
+      ++quatDataTypeHeader.channelNum;
+
+    AnimDataHeader hdr;
+    memset(&hdr, 0, sizeof(hdr));
+    hdr.label = 'MINA';
+    hdr.ver = 0x200;
+    hdr.hdrSize = sizeof(hdr);
+
+    hdr.namePoolSize = namePoolSize;
+    hdr.timeNum = timeNum;
+    hdr.keyPoolSize = keyPoolSize;
+    hdr.totalAnimLabelNum = noteTrackKeys.Count();
+    hdr.dataTypeNum = 0; // Point3, Quat
+    if (point3DataTypeHeader.channelNum)
+      ++hdr.dataTypeNum;
+    if (quatDataTypeHeader.channelNum)
+      ++hdr.dataTypeNum;
+
+    //
+    // write file
+    //
+    fwrite(&hdr, sizeof(hdr), 1, fp);
+
+    // write names pool
+    fwrite(namesPool.data(), hdr.namePoolSize, 1, fp);
+
+    // write times pool
+    if (originLinVelT.Count())
+      fwrite(originLinVelT.Addr(0), sizeof(int), originLinVelT.Count(), fp);
+
+    if (originAngVelT.Count())
+      fwrite(originAngVelT.Addr(0), sizeof(int), originAngVelT.Count(), fp);
+
+    for (int i = 0; i < exportNodes.Count(); ++i)
+      for (int j = 0; j < pos[i]->key.Count(); ++j)
+        fwrite(&pos[i]->key[j].t, sizeof(int), 1, fp);
+
+    for (int i = 0; i < exportNodes.Count(); ++i)
+      for (int j = 0; j < scl[i]->key.Count(); ++j)
+        fwrite(&scl[i]->key[j].t, sizeof(int), 1, fp);
+
+    for (int i = 0; i < exportNodes.Count(); ++i)
+      for (int j = 0; j < rot[i]->key.Count(); ++j)
+        fwrite(&rot[i]->key[j].t, sizeof(int), 1, fp);
+
+    // write keys pool
+    //  write pos keys
+    std::vector<AnimKeyPoint3> point3AnimKey;
+    //   write origin velocitiy keys
+    if (originLinVel.Count())
+      fwrite(originLinVel.Addr(0), sizeof(AnimKeyPoint3), originLinVel.Count(), fp);
+
+    if (originAngVel.Count())
+      fwrite(originAngVel.Addr(0), sizeof(AnimKeyPoint3), originAngVel.Count(), fp);
+
+    //   write per-node pos keys
+    for (int i = 0; i < exportNodes.Count(); ++i)
+    {
+      if (!pos[i]->key.Count())
+        continue;
+      point3AnimKey.resize(pos[i]->key.Count());
+      memset(point3AnimKey.data(), 0, sizeof(AnimKeyPoint3) * point3AnimKey.size());
+      make_postrack(point3AnimKey.data(), pos[i]->key.Addr(0), pos[i]->key.Count());
+      fwrite(point3AnimKey.data(), sizeof(AnimKeyPoint3), pos[i]->key.Count(), fp);
+    }
+
+    //  write scl keys
+    for (int i = 0; i < exportNodes.Count(); ++i)
+    {
+      if (!scl[i]->key.Count())
+        continue;
+      point3AnimKey.resize(scl[i]->key.Count());
+      memset(point3AnimKey.data(), 0, sizeof(AnimKeyPoint3) * point3AnimKey.size());
+      make_postrack(point3AnimKey.data(), scl[i]->key.Addr(0), scl[i]->key.Count());
+      fwrite(point3AnimKey.data(), sizeof(AnimKeyPoint3), scl[i]->key.Count(), fp);
+    }
+
+    //  write rot keys
+    std::vector<AnimKeyQuat> quatAnimKey;
+    for (int i = 0; i < exportNodes.Count(); ++i)
+    {
+      if (!rot[i]->key.Count())
+        continue;
+      quatAnimKey.resize(rot[i]->key.Count());
+      memset(quatAnimKey.data(), 0, sizeof(AnimKeyQuat) * quatAnimKey.size());
+      make_rottrack(quatAnimKey.data(), rot[i]->key.Addr(0), rot[i]->key.Count());
+      fwrite(quatAnimKey.data(), sizeof(AnimKeyQuat), rot[i]->key.Count(), fp);
+    }
+
+    // write note track pool
+    if (noteTrackKeys.Count())
+    {
+      for (int i = 0; i < noteTrackKeys.Count(); i++)
+      {
+        fwrite(&noteTrackKeys[i].idx, sizeof(int), 1, fp);
+        fwrite(&noteTrackKeys[i].time, sizeof(int), 1, fp);
+      }
+    }
+    else
+      explogWarning(_T("Warning: NoteTrack not used\n" ));
+
+    // write data of animation
+    //  write point3 data type
+    fwrite(&point3DataTypeHeader, sizeof(point3DataTypeHeader), 1, fp);
+    writeChannel(originLinVelCannelParams, fp);
+    writeChannel(originAngVelCannelParams, fp);
+    writeChannel(posCannelParams, fp);
+    writeChannel(sclCannelParams, fp);
+
+    //  write quat data type
+    fwrite(&quatDataTypeHeader, sizeof(quatDataTypeHeader), 1, fp);
+    writeChannel(rotCannelParams, fp);
+
+    explog(_T(" originLinVelKeyNum=%d\r\n originAngVelKeyNum=%d\r\n"),
+      originLinVelCannelParams.keyNums.Count() ? originLinVelCannelParams.keyNums[0] : 0,
+      originAngVelCannelParams.keyNums.Count() ? originAngVelCannelParams.keyNums[0] : 0);
+
+    explog(_T(" keyPosNum=%d\r\n keySclNum=%d\r\n keyRotNum=%d\r\n"), getKeyNumInChannel(posCannelParams),
+      getKeyNumInChannel(sclCannelParams), getKeyNumInChannel(rotCannelParams));
+
+    explog(_T(" posNodeNum=%d\r\n sclNodeNum=%d\r\n rotNodeNum=%d\r\n"), posCannelParams.keyNums.Count(),
+      sclCannelParams.keyNums.Count(), rotCannelParams.keyNums.Count());
+
+    explog(_T(" namePoolSz=%d\r\n"), namePoolSize);
+    explog(_T(" timePoolSz=%d\r\n"), timeNum * sizeof(int));
+    explog(_T(" keyPoolSz=%d\r\n"), keyPoolSize);
+
+    for (int i = pos.Count(); --i >= 0;)
+      delete pos[i];
+    for (int i = scl.Count(); --i >= 0;)
+      delete scl[i];
+    for (int i = rot.Count(); --i >= 0;)
+      delete rot[i];
+
+    return ferror(fp) ? 0 : 1;
+  }
+
 #undef wr
 #undef bblk
 #undef eblk
+
+private:
+  void getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys);
+
+  void getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys, std::vector<char> &namesPool,
+    std::vector<int> &nameIdx, unsigned &namePoolSize, std::vector<std::string> &additionalNames, Tab<int> &additionalIds);
+
+  void getAnimations(Tab<INode *> &exportNodes, Tab<AnimChanPoint3 *> &pos, Tab<AnimChanQuat *> &rot, Tab<AnimChanPoint3 *> &scl);
+
+  void getOriginVelocities(Tab<AnimKeyPoint3> &originLinVel, Tab<AnimKeyPoint3> &originAngVel, Tab<int> &originLinVelT,
+    Tab<int> &originAngVelT);
+
+  void writeChannel(const ChannelParams &params, FILE *fp);
+
+  int getKeyNumInChannel(const ChannelParams &params);
 };
+
+int ExportENCB::getKeyNumInChannel(const ChannelParams &params)
+{
+  int count = 0;
+  for (int i = params.keyNums.Count(); --i >= 0;)
+    count += params.keyNums[i];
+  return count;
+}
+
+void ExportENCB::getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys)
+{
+  const Interval range(util.astart, util.aend);
+  for (int i = 0; i < exportNodes.Count(); ++i)
+  {
+    if (!exportNodes[i]->HasNoteTracks())
+      continue;
+    for (int j = 0; j < exportNodes[i]->NumNoteTracks(); ++j)
+    {
+      NoteTrack *track = exportNodes[i]->GetNoteTrack(j);
+      if (!track || track->ClassID() != Class_ID(NOTETRACK_CLASS_ID, 0))
+        continue;
+      DefNoteTrack *noteTrack = static_cast<DefNoteTrack *>(track);
+      for (int k = 0; k < noteTrack->keys.Count(); ++k)
+      {
+        NoteKey *key = noteTrack->keys[k];
+        if ((util.expflg & EXP_ARNG) && !range.InInterval(key->time))
+          continue;
+        AnimKeyLabel label;
+        label.name = _strdup(wideToStr(key->note).c_str());
+        label.time = key->time;
+        noteTrackKeys.Append(1, &label, 32);
+      }
+    }
+  }
+}
+
+void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys, std::vector<char> &namesPool,
+  std::vector<int> &nameIdx, unsigned &namePoolSize, std::vector<std::string> &additionalNames, Tab<int> &additionalIds)
+{
+  additionalIds.SetCount((int)additionalNames.size());
+  // prepare nodes name pool
+  namePoolSize = 1;
+  int len;
+  for (int i = 0; i < exportNodes.Count(); ++i)
+    if ((len = (int)wideToStr(exportNodes[i]->GetName()).size()) != 0)
+      namePoolSize += len + 1;
+  for (int i = 0; i < noteTrackKeys.Count(); ++i)
+    if ((len = (int)strlen(noteTrackKeys[i].name)) != 0)
+      namePoolSize += len + 1;
+  for (size_t i = 0; i < additionalNames.size(); ++i)
+    if ((len = (int)additionalNames[i].size()) != 0)
+      namePoolSize += len + 1;
+  namePoolSize = (namePoolSize + 7) & ~7;
+
+  namesPool.assign(namePoolSize, '\0');
+  nameIdx.assign(exportNodes.Count(), 0);
+
+  namePoolSize = 1;
+  for (int i = 0; i < exportNodes.Count(); ++i)
+  {
+    std::string name = wideToStr(exportNodes[i]->GetName());
+    if ((len = (int)name.size()) == 0)
+      nameIdx[i] = 0;
+    else
+    {
+      nameIdx[i] = namePoolSize;
+      char *poolName = namesPool.data() + namePoolSize;
+      strcpy(poolName, name.c_str());
+      namePoolSize += len + 1;
+    }
+  }
+  for (int i = 0; i < noteTrackKeys.Count(); ++i)
+  {
+    char *name = noteTrackKeys[i].name;
+    if ((len = (int)strlen(name)) == 0)
+      noteTrackKeys[i].idx = 0;
+    else
+    {
+      noteTrackKeys[i].idx = namePoolSize;
+      char *poolName = namesPool.data() + namePoolSize;
+      strcpy(poolName, name);
+      namePoolSize += len + 1;
+    }
+    free(name);
+  }
+  for (int i = 0; i < (int)additionalNames.size(); ++i)
+  {
+    const std::string &name = additionalNames[i];
+    if ((len = (int)name.size()) == 0)
+      additionalIds[i] = 0;
+    else
+    {
+      additionalIds[i] = namePoolSize;
+      char *poolName = namesPool.data() + namePoolSize;
+      strcpy(poolName, name.c_str());
+      namePoolSize += len + 1;
+    }
+  }
+
+  namePoolSize = (namePoolSize + 7) & ~7;
+}
+
+void ExportENCB::getAnimations(Tab<INode *> &exportNodes, Tab<AnimChanPoint3 *> &pos, Tab<AnimChanQuat *> &rot,
+  Tab<AnimChanPoint3 *> &scl)
+{
+  const int exportNodeCount = exportNodes.Count();
+  pos.SetCount(exportNodeCount);
+  scl.SetCount(exportNodeCount);
+  rot.SetCount(exportNodeCount);
+
+  // get animations
+  Tab<ExpTMAnimCB *> acb;
+  acb.SetCount(exportNodeCount);
+  for (int i = 0; i < exportNodeCount; ++i)
+  {
+    pos[i] = new AnimChanPoint3;
+    scl[i] = new AnimChanPoint3;
+    rot[i] = new AnimChanQuat;
+
+    const int pid = getnodeid(exportNodes[i]->GetParentNode());
+    INode *parentNode = pid >= 0 ? node[pid] : nullptr;
+
+    acb[i] = new MyExpTMAnimCB(exportNodes[i], parentNode, nodeOrigin);
+  }
+
+  get_tm_anim_2(pos, rot, scl, (util.expflg & EXP_ARNG) ? Interval(util.astart, util.aend) : FOREVER, exportNodes, acb, util.poseps,
+    util.roteps, util.scleps, util.orteps, util.expflg);
+
+  for (int i = acb.Count(); --i >= 0;)
+    delete acb[i];
+}
+
+void ExportENCB::getOriginVelocities(Tab<AnimKeyPoint3> &originLinVel, Tab<AnimKeyPoint3> &originAngVel, Tab<int> &originLinVelT,
+  Tab<int> &originAngVelT)
+{
+  // get origin velocities
+  originLinVel.ZeroCount();
+  originAngVel.ZeroCount();
+  originLinVelT.ZeroCount();
+  originAngVelT.ZeroCount();
+  if (nodeOrigin)
+  {
+    MyExpTMAnimCB *cb = new MyExpTMAnimCB(nodeOrigin, NULL, NULL);
+    get_node_vel(originLinVel, originAngVel, originLinVelT, originAngVelT,
+      (util.expflg & EXP_ARNG) ? Interval(util.astart, util.aend) : FOREVER, *cb, util.poseps2, util.roteps2, util.orteps,
+      util.expflg);
+    delete cb;
+  }
+}
+
+void ExportENCB::writeChannel(const ChannelParams &params, FILE *fp)
+{
+  unsigned nodeNum = params.keyNums.Count();
+  if (nodeNum)
+  {
+    fwrite(&params.channelType, sizeof(unsigned), 1, fp);
+    fwrite(&nodeNum, sizeof(unsigned), 1, fp);
+    fwrite(params.keyNums.Addr(0), sizeof(unsigned), params.keyNums.Count(), fp);
+    fwrite(params.nodeNameIds.Addr(0), sizeof(int), params.nodeNameIds.Count(), fp);
+    fwrite(params.nodeWeights.Addr(0), sizeof(float), params.nodeWeights.Count(), fp);
+  }
+}
 
 
 void ExpUtil::errorMessage(const TCHAR *msg)
 {
   ip->DisplayTempPrompt(msg, ERRMSG_DELAY);
 
-  if (!suppressPrompts)
+  if (!are_prompts_suppressed())
     MessageBox(ip->GetMAXHWnd(), msg, _T ("Error"), MB_OK | MB_ICONSTOP);
 
   explogError(_T("ERROR! %s\r\n"), msg);
@@ -2533,13 +3359,19 @@ void ExpUtil::warningMessage(const TCHAR *msg, const TCHAR *title)
   if (title == NULL)
     title = _T("Warning");
 
-  if (!suppressPrompts)
+  if (!are_prompts_suppressed())
     MessageBox(ip->GetMAXHWnd(), msg, title, MB_OK | MB_ICONSTOP);
 
   explogWarning(_T("WARNING! %s\r\n"), msg);
 }
 
-static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fnames)
+struct LayerFile
+{
+  std::wstring layerName;
+  std::wstring path;
+};
+
+static bool find_co_layers(const fs::path &fname, std::vector<LayerFile> &layers)
 {
   if (!is_dag_file(fname) || !iequal(fname.stem().extension().c_str(), _T(".lod00")))
     return false;
@@ -2566,9 +3398,7 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
     }
     if (l && l->HasObjects())
     {
-      fnames.push_back(formatted_name);
-      formatted_name = std::format(_T("{}.lod{:02}.dag"), base.c_str(), i);
-      fnames.push_back(formatted_name);
+      layers.push_back({formatted_name, std::format(_T("{}.lod{:02}.dag"), base.c_str(), i)});
     }
   }
 
@@ -2589,9 +3419,7 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
 
     if (l && l->HasObjects())
     {
-      fnames.push_back(matched_layer_name);
-      formatted_name = std::format(_T("{}_destr.lod{:02}.dag"), base.c_str(), i);
-      fnames.push_back(formatted_name);
+      layers.push_back({matched_layer_name, std::format(_T("{}_destr.lod{:02}.dag"), base.c_str(), i)});
     }
   }
 
@@ -2609,9 +3437,7 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
   }
   if (l && l->HasObjects())
   {
-    fnames.push_back(matched_layer_name);
-    formatted_name = std::format(_T("{}_dm.dag"), base.c_str());
-    fnames.push_back(formatted_name);
+    layers.push_back({matched_layer_name, std::format(_T("{}_dm.dag"), base.c_str())});
   }
 
   for (int i = 0; i < 16; i++)
@@ -2630,9 +3456,7 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
     }
     if (l && l->HasObjects())
     {
-      fnames.push_back(formatted_name);
-      formatted_name = std::format(_T("{}_dmg.lod{:02}.dag"), base.c_str(), i);
-      fnames.push_back(formatted_name);
+      layers.push_back({formatted_name, std::format(_T("{}_dmg.lod{:02}.dag"), base.c_str(), i)});
     }
   }
 
@@ -2652,9 +3476,7 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
     }
     if (l && l->HasObjects())
     {
-      fnames.push_back(formatted_name);
-      formatted_name = std::format(_T("{}_dmg2.lod{:02}.dag"), base.c_str(), i);
-      fnames.push_back(formatted_name);
+      layers.push_back({formatted_name, std::format(_T("{}_dmg2.lod{:02}.dag"), base.c_str(), i)});
     }
   }
 
@@ -2674,9 +3496,7 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
     }
     if (l && l->HasObjects())
     {
-      fnames.push_back(formatted_name);
-      formatted_name = std::format(_T("{}_expl.lod{:02}.dag"), base.c_str(), i);
-      fnames.push_back(formatted_name);
+      layers.push_back({formatted_name, std::format(_T("{}_expl.lod{:02}.dag"), base.c_str(), i)});
     }
   }
 
@@ -2690,72 +3510,93 @@ static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fna
 
   if (l && l->HasObjects())
   {
-    fnames.push_back(matched_layer_name);
-    formatted_name = std::format(_T("{}_xray.dag"), base.c_str());
-    fnames.push_back(formatted_name);
+    layers.push_back({matched_layer_name, std::format(_T("{}_xray.dag"), base.c_str())});
   }
 
-  if (fnames.size() / 2 > 1)
+  if (layers.size() > 1)
     return true;
 
-  fnames.clear();
+  layers.clear();
   return false;
+}
+
+static bool ask_layered_export(const std::vector<LayerFile> &layers)
+{
+  std::wstring buf = L"Export layers to " + std::to_wstring(layers.size()) + L" separate files?\n";
+  for (size_t i = 0; i < layers.size() && buf.size() < (7 << 10); ++i)
+  {
+    const std::wstring &dst = layers[i].path;
+    buf += layers[i].layerName;
+    buf += L" -> ";
+    buf += dst.size() > 48 ? L"..." + dst.substr(dst.size() - 48) : dst;
+    buf += L'\n';
+  }
+
+  return MessageBox(GetFocus(), buf.c_str(), L"Export layered DAGs", MB_YESNO | MB_ICONQUESTION) == IDYES;
 }
 
 BOOL ExpUtil::export_dag()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
-  std::vector<std::wstring> fnames;
+  std::vector<LayerFile> layers;
   Tab<bool> isHidden;
 
-  if (!find_co_layers(exp_fname, fnames))
+  if (!find_co_layers(exp_fname, layers))
     return export_one_dag(exp_fname);
 
-  std::wstring buf = L"Export layers to " + std::to_wstring(fnames.size() / 2) + L" separate files?\n";
-  for (size_t i = 0; i + 1 < fnames.size() && buf.size() < (7 << 10); i += 2)
+  const bool layered = are_prompts_suppressed() ? separateLayers : ask_layered_export(layers);
+  if (!layered)
   {
-    const std::wstring &dst = fnames[i + 1];
-    buf += fnames[i];
-    buf += L" -> ";
-    buf += dst.size() > 48 ? L"..." + dst.substr(dst.size() - 48) : dst;
-    buf += L'\n';
-  }
-
-  if (MessageBox(GetFocus(), buf.c_str(), _T("Export layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES)
+    if (are_prompts_suppressed())
+      explog(L"prompts are off: exporting one file instead of %d layered dags\r\n", int(layers.size()));
     return export_one_dag(exp_fname);
+  }
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
-  isHidden.SetCount(static_cast<int>(fnames.size() / 2));
-  for (int i = 0; i < (int)fnames.size(); i += 2)
+  const int layerCount = (int)layers.size();
+  isHidden.SetCount(layerCount);
+  std::vector<INodeTab> layerNodes(layerCount);
+  for (int i = 0; i < layerCount; ++i)
   {
-    ILayer *l = manager->GetLayer(fnames[i].data());
-    isHidden[i / 2] = l->IsHidden();
+    ILayer *l = manager->GetLayer(layers[i].layerName.c_str());
+    isHidden[i] = l->IsHidden();
     l->Hide(true);
+    if (ILayerProperties *props = (ILayerProperties *)l->GetInterface(LAYERPROPERTIES_INTERFACE))
+      props->Nodes(layerNodes[i]);
+    else
+      explogError(L"Cannot get the layer properties for layer '%s'.\r\n", l->GetName().data());
   }
-  for (int i = 0; i < (int)fnames.size(); i += 2)
+  for (int i = 0; i < layerCount; ++i)
   {
-    TSTR lnm(fnames[i].data());
+    TSTR lnm(layers[i].layerName.c_str());
     ILayer *l = manager->GetLayer(lnm);
     manager->SetCurrentLayer(lnm);
     l->Hide(false);
 
-    export_one_dag(fnames[i + 1]);
+    std::unordered_set<INode *> otherLayerNodes;
+    for (int j = 0; j < layerCount; ++j)
+      if (j != i)
+        for (int k = 0; k < layerNodes[j].Count(); ++k)
+          otherLayerNodes.insert(layerNodes[j][k]);
+
+    export_one_dag(layers[i].path, std::move(otherLayerNodes));
     l->Hide(true);
   }
-  for (int i = 0; i < (int)fnames.size(); i += 2)
+  for (int i = 0; i < layerCount; ++i)
   {
-    if (!isHidden[i / 2])
-      manager->GetLayer(fnames[i].data())->Hide(false);
+    if (!isHidden[i])
+      manager->GetLayer(layers[i].layerName.c_str())->Hide(false);
   }
   manager->SetCurrentLayer();
 
   return true;
 }
 
-BOOL ExpUtil::export_one_dag(const fs::path &exp_fn)
+BOOL ExpUtil::export_one_dag(const fs::path &exp_fn, std::unordered_set<INode *> skip_nodes)
 {
   ExportENCB cb(ip->GetTime());
+  cb.skipNodes = std::move(skip_nodes);
   enum_nodes(ip->GetRootNode(), &cb);
 
   if (!cb.node.Count())
@@ -2767,23 +3608,48 @@ BOOL ExpUtil::export_one_dag(const fs::path &exp_fn)
   return export_one_dag_cb(cb, exp_fn);
 }
 
-BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn)
+bool ExpUtil::write_via_temp_file(const fs::path &target, const std::function<bool(FILE *)> &write)
 {
-  checkDupesAndSpaces(cb.node);
-
-  FILE *h = _tfopen(exp_fn.c_str(), _T ("wb"));
-  if (!h)
+  std::error_code ec;
+  wchar_t dir[MAX_PATH] = {}, path[MAX_PATH] = {};
+  if (!GetTempPathW(MAX_PATH, dir) || !GetTempFileNameW(dir, L"exp", 0, path))
   {
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
     return false;
   }
-  if (!cb.save(h, ip))
+
+  FILE *h = _wfopen(path, L"wb");
+  if (!h)
   {
-    errorMessage(GetString(IDS_FILE_WRITE_ERR));
-    fclose(h);
+    errorMessage(GetString(IDS_FILE_CREATE_ERR));
+    fs::remove(path, ec);
     return false;
   }
-  fclose(h);
+  const bool written = write(h) && !ferror(h);
+  const bool closed = fclose(h) == 0;
+  if (!written || !closed)
+  {
+    errorMessage(GetString(IDS_FILE_WRITE_ERR));
+    fs::remove(path, ec);
+    return false;
+  }
+
+  const bool copied = CopyFileW(path, target.c_str(), FALSE);
+  fs::remove(path, ec);
+  if (!copied)
+  {
+    errorMessage(GetString(IDS_FILE_CREATE_ERR));
+    return false;
+  }
+  return true;
+}
+
+BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn)
+{
+  checkDupesAndSpaces(cb.node);
+
+  if (!write_via_temp_file(exp_fn, [&](FILE *h) { return cb.save(h, ip) != 0; }))
+    return false;
   explog(_T ("%d nodes\r\n"), cb.node.Count());
   explog(_T ("%d materials\r\n"), (int)cb.mat.size());
   explog(_T ("%d textures\r\n"), (int)cb.tex.size());
@@ -2817,6 +3683,44 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn)
     warningMessage(GetString(IDS_SUB_SUB_MATERIALS));
   }
   return true;
+}
+void ExpUtil::export_anim_v2()
+{
+  DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
+  explog(_T ("Exporting Anim v2 to file <%s>...\r\n"), exp_anim2_fname.c_str());
+  int t0 = timeGetTime();
+
+  ExportENCB cb(ip->GetTime(), /*a2d = */ true);
+  enum_nodes(ip->GetRootNode(), &cb);
+  t0 = timeGetTime() - t0;
+  explog(_T (" enum node: %d ms\r\n"), t0);
+
+  int expNodeCount = 0;
+  for (int i = 0; i < cb.node.Count(); ++i)
+    if (cb.nodeExp[i])
+      ++expNodeCount;
+  if (!expNodeCount)
+  {
+    errorMessage(L"There are no nodes.");
+    return;
+  }
+
+  checkDupesAndSpaces(cb.node);
+
+  // save_anim2 function is not fast but writes the file directly as it goes.
+  // If we are saving an a2d opened in AssetViewer we are highly likely to crash because AV will
+  // trigger on first file flush, try to read not yet fully written file and fail. To avoid this we
+  // export to a temp file and then copy it to the final destination. The copy still writes the
+  // target as it goes, but it is short, and AV waits up to 500 ms for a file open for writing.
+  t0 = timeGetTime();
+  if (!write_via_temp_file(exp_anim2_fname, [&](FILE *h) { return cb.save_anim2(h) != 0; }))
+    return;
+
+  t0 = timeGetTime() - t0;
+  explog(_T (" save anim2: %d ms\r\n"), t0);
+
+  explog(L" %d nodes\r\n", expNodeCount);
+  explog(_T ("Success!\r\n"));
 }
 static bool FolderOpenDialog(fs::path &path, HWND)
 {
@@ -3324,27 +4228,27 @@ class IDagorExportUtil : public FPStaticInterface
 {
 public:
   DECLARE_DESCRIPTOR(IDagorExportUtil)
-  BEGIN_FUNCTION_MAP FN_4(fun_export, TYPE_BOOL, export_dag, TYPE_STRING, TYPE_INTERVAL, TYPE_BOOL, TYPE_BOOL) END_FUNCTION_MAP
+  BEGIN_FUNCTION_MAP FN_5(fun_export, TYPE_BOOL, export_dag, TYPE_STRING, TYPE_INTERVAL, TYPE_BOOL, TYPE_BOOL,
+    TYPE_BOOL) END_FUNCTION_MAP
 
     // `range` is a stub. It used to set the animation range and nothing reads it any more, but it is a
     // positional parameter, so it is kept to avoid breaking the maxscripts that pass it.
-    BOOL export_dag(const TCHAR *fn, Interval /*range*/, bool selectedOnly, bool suppressPrompts)
+    BOOL export_dag(const TCHAR *fn, Interval /*range*/, bool selectedOnly, bool suppressPrompts, bool separateLayers)
   {
     const int bkExpflg = util.expflg;
-    const bool bkSuppressPrompts = util.suppressPrompts;
+    Autotoggle suppressPromptsGuard(util.suppressPrompts, suppressPrompts);
+    Autotoggle separateLayersGuard(util.separateLayers, separateLayers);
 
     if (selectedOnly)
       util.expflg |= EXP_SEL;
     else
       util.expflg &= ~EXP_SEL;
 
-    util.suppressPrompts = suppressPrompts;
-
     util.exp_fname = fn;
+    util.ip = GetCOREInterface();
     util.update_ui();
     BOOL result = util.export_dag();
 
-    util.suppressPrompts = bkSuppressPrompts;
     util.expflg = bkExpflg;
     util.update_ui();
 
@@ -3353,7 +4257,10 @@ public:
 };
 
 static IDagorExportUtil dagorexputiliface(Interface_ID(0x18da32ce, 0x739f1b15), _T ("dagorExport"), IDS_DAGOR_EXPORT_IFACE, NULL,
-  FP_CORE, fun_export, _T ("export"), -1, TYPE_BOOL, 0, 4, _T ("filename"), -1, TYPE_STRING, _T ("range"), -1, TYPE_INTERVAL,
+  FP_CORE, fun_export, _T ("export"), -1, TYPE_BOOL, 0, 5, _T ("filename"), -1, TYPE_STRING, _T ("range"), -1, TYPE_INTERVAL,
   // f_keyArgDefault marks an optional keyArg param. The value
   // after that is its default value.
-  _T ("selectedOnly"), -1, TYPE_BOOL, f_keyArgDefault, false, _T ("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false, p_end);
+  _T ("selectedOnly"), -1, TYPE_BOOL, f_keyArgDefault, false, _T ("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false,
+  // separateLayers answers the layered DAGs question when suppressPrompts is true or Max runs in
+  // quiet mode (3dsmaxbatch); otherwise the user is asked
+  _T ("separateLayers"), -1, TYPE_BOOL, f_keyArgDefault, false, p_end);

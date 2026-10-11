@@ -294,7 +294,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridRingCullData &cull_data,
   const Occlusion *use_occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId, int dim, bool fight_t_junctions,
   const HeightmapHeightCulling *heightCulling, BBox2 *innerLodsRegion, float waterLevel, const Point3 *viewPos,
-  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb, void (*on_patch_cb)(const BBox3 &box))
+  dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb, void (*on_patch_cb)(const BBox3 &box))
 {
   G_UNREFERENCED(fight_t_junctions);
   G_ASSERT(scaleX == scaleY);

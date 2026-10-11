@@ -126,7 +126,7 @@ macro INIT_BURNT_GRASS_BASE_VARS(needs_perlin_noise)
   }
   if (needs_perlin_noise)
   {
-    (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+    (ps) { perlin_noise3d@tex3d = perlin_noise3d; perlin_noise3d_samplerstate@sampler = global_linear_wrap_sampler; }
   }
 endmacro
 

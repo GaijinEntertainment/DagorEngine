@@ -87,7 +87,7 @@ struct RiSceneDumpPoolMeta
   bbox3f collBb;         // collision bbox
   bbox3f fullWabb;       // full world-aligned bbox (spans all instances)
   vec4f bsphXYZR;        // bounding sphere: xyz center, w radius
-  float distSqLOD[8];    // squared LOD switch distances (RI_MAX_LODS == 8)
+  float distSqLOD[8];    // squared LOD switch distances, first RI_MAX_LODS are used
   uint32_t lodLimits;    // packed LOD limits
   int32_t tsIndex;       // tiled scene this pool's instances live in (-1 == none/never rendered)
   uint32_t flags;        // RiSceneDumpPoolFlag bits

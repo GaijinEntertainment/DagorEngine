@@ -24,6 +24,7 @@
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaderBlock.h>
 #include <generic/dag_enumerate.h>
+#include <generic/dag_relocatableFixedVector.h>
 
 #include <math/dag_dxmath.h>
 #include <math/dag_color.h>
@@ -423,7 +424,7 @@ void NodeExecutor::gatherExternalResources(multiplexing::Extents extents)
   externalResources.clear();
   externalResources.reserve(graph.resources.totalKeys());
 
-  for (auto [resIdx, res] : graph.resources.enumerate())
+  for (const auto &[resIdx, res] : graph.resources.enumerate())
   {
     if (!res.isExternal())
       continue;
@@ -663,7 +664,7 @@ void NodeExecutor::applyState(const sd::NodeStateDelta &state, int frame, int pr
         if (shouldSwitchVrsTex() && begin->useVrs)
           setVariableRateShadingCombinersForTextureVRS();
 
-        dag::Vector<RenderPassTarget, framemem_allocator> targets;
+        dag::RelocatableFixedVector<RenderPassTarget, 16, true, framemem_allocator> targets;
         for (const auto &att : begin->attachments)
         {
           ResourceClearValue clearValue{};

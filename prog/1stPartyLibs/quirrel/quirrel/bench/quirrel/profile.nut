@@ -1,22 +1,27 @@
-//-file:plus-string
-local clock_func
-try {
-  clock_func = getroottable()["clock"]
-}
-catch (e) {
-  clock_func = require("datetime").clock
-}
+from "datetime" import clock
+from "string" import format
 
-function profile_it(cnt, f) {//for quirrel version
-  local res = 0
-  for (local i = 0; i < cnt; ++i) {
-    local start = clock_func()
-    f()
-    local measured = clock_func() - start
-    if (i == 0 || measured < res)
-      res = measured;
+function benchmark(name, runs, workload, repeats = 1) {
+  local best = null
+  local result = null
+  for (local i = 0; i < runs; i++) {
+    let start = clock()
+    result = workload()
+    let elapsed = clock() - start
+    if (best == null || elapsed < best)
+      best = elapsed
   }
-  return res / 1.0
+  let tail = result == null ? "" : $", {result}"
+  println(format("\"%s\", %.8f, %d%s", name, best / repeats, runs * repeats, tail))
 }
 
-return profile_it
+// run_vm_bench.py format: one line per rep
+function vmBench(name, workload) {
+  for (local rep = 0; rep < 5; rep++) {
+    let start = clock()
+    let result = workload()
+    println(format("BENCH %s %.3f ms (r=%s)", name, (clock() - start) * 1000, result.tostring()))
+  }
+}
+
+return { benchmark, vmBench }

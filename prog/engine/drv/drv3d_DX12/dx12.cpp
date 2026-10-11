@@ -350,11 +350,7 @@ LRESULT CALLBACK drv3d_dx12::WindowState::windowProcProxy(HWND hWnd, UINT messag
       if (wParam == 0x52 // R key
           && (GetAsyncKeyState(VK_CONTROL) & 0x8000) && (GetAsyncKeyState(VK_RSHIFT) & 0x8000) && (GetAsyncKeyState(VK_MENU) & 0x8000))
       {
-        ComPtr<ID3D12Device5> device5;
-        if (SUCCEEDED(api_state.device.getDevice()->QueryInterface(COM_ARGS(&device5))))
-        {
-          device5->RemoveDevice();
-        }
+        api_state.device.getDevice()->RemoveDevice();
         return 1;
       }
       break;
@@ -568,7 +564,7 @@ APISupport check_driver_version(const DXGI_ADAPTER_DESC1 &adapter_info, const Dr
   return APISupport::FULL_SUPPORT;
 }
 
-APISupport check_device_features(const ComPtr<ID3D12Device> &device)
+APISupport check_device_features(const ComPtr<D3DDevice> &device)
 {
   // devices below feature level 12.0 are not required to support 6.0+/DXIL shaders, but we only
   // ship those so we can only use devices with support for that.
@@ -680,7 +676,7 @@ APISupport check_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVE
   // create device may take a while, so reset watchdog timer.
   watchdog_kick();
 
-  ComPtr<ID3D12Device> device;
+  ComPtr<D3DDevice> device;
   if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, COM_ARGS(&device)); FAILED(hr))
   {
     logdbg("DX12: Rejected, unable to create DX12 device, %s", dxgi_error_code_to_string(hr));
@@ -730,7 +726,7 @@ void check_and_add_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LE
   watchdog_kick();
 
   // checks but does not create a device yet
-  if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, __uuidof(ID3D12Device), nullptr); FAILED(hr))
+  if (auto hr = d3d12_env.D3D12CreateDevice(adapter.Get(), feature_level, __uuidof(D3DDevice), nullptr); FAILED(hr))
   {
     logdbg("DX12: Rejected, because it failed DX12 support test, %s", dxgi_error_code_to_string(hr));
     report_agility_sdk_error(hr);
@@ -2298,7 +2294,10 @@ bool d3d::reset_device()
   const DataBlock &blk_dx = *dgs_get_settings()->getBlockByNameEx("dx12");
 
   POINT cursorPos{};
-  mouse_api_GetCursorPosRel(&cursorPos, api_state.windowState.getMainWindow());
+  HWND mainWnd = (HWND)api_state.windowState.getMainWindow();
+  RECT clientRect{};
+  const bool restoreCursor = ::GetForegroundWindow() == mainWnd && mouse_api_GetCursorPosRel(&cursorPos, mainWnd) &&
+                             ::GetClientRect(mainWnd, &clientRect) && ::PtInRect(&clientRect, cursorPos);
   float cursorPosX = (float)cursorPos.x / api_state.windowState.settings.resolutionX;
   float cursorPosY = (float)cursorPos.y / api_state.windowState.settings.resolutionY;
 
@@ -2437,7 +2436,7 @@ bool d3d::reset_device()
 
   api_state.device.getContext().initFSR();
 
-  if (!is_window_resizing_by_mouse())
+  if (restoreCursor && !is_window_resizing_by_mouse())
   {
     cursorPos.x = cursorPosX * api_state.windowState.settings.resolutionX;
     cursorPos.y = cursorPosY * api_state.windowState.settings.resolutionY;
@@ -3312,9 +3311,9 @@ bool d3d::is_window_occluded()
 
 bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned> formats)
 {
-  const uint32_t UAV_OPERATIONS = d3d::USAGE_UNORDERED | d3d::USAGE_UNORDERED_LOAD;
+  // image processing shaders only store to their UAV, so no USAGE_UNORDERED_LOAD
   for (unsigned format : formats)
-    if ((d3d::get_texformat_usage(format, D3DResourceType::TEX) & UAV_OPERATIONS) != UAV_OPERATIONS)
+    if (!(d3d::get_texformat_usage(format, D3DResourceType::TEX) & d3d::USAGE_UNORDERED))
     {
       logdbg("d3d::should_use_compute_for_image_processing is false due to lack of UAV support for %u.", (format & TEXFMT_MASK));
       return false;
@@ -3931,6 +3930,8 @@ Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagTyp
   STORE_RETURN_ADDRESS();
 
   D3D_CONTRACT_ASSERTF_RETURN(size > 0, nullptr, "DX12: create_ib size parameter must be greater than 0");
+  D3D_CONTRACT_ASSERTF_RETURN(size % ((flg & SBCF_INDEX32) ? 4 : 2) == 0, nullptr,
+    "DX12: create_ib '%s' size %d is not a whole number of indices", stat_name, size);
 
   D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);
   validate_sbuffer_flags(flg | SBCF_BIND_INDEX, stat_name);
@@ -4059,9 +4060,9 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
   // more validation needed
 
   STORE_RETURN_ADDRESS();
-  api_state.device.getContext().raytraceBuildBottomAccelerationStructure(1, 0, as, basbi.geometryDesc, basbi.geometryDescCount,
-    basbi.flags, basbi.doUpdate, basbi.scratchSpaceBuffer, basbi.scratchSpaceBufferOffsetInBytes, basbi.compactedSizeOutputBuffer,
-    basbi.compactedSizeOutputBufferOffsetInBytes);
+  const ::raytrace::BatchedBottomAccelerationStructureBuildInfo build{as, basbi};
+  api_state.device.getContext().raytraceBuildBottomAccelerationStructures(
+    eastl::span<const ::raytrace::BatchedBottomAccelerationStructureBuildInfo>{&build, 1});
 }
 
 void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelerationStructureBuildInfo *as_array, uint32_t as_count)
@@ -4074,6 +4075,8 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
 
   for (auto &build : make_span(as_array, as_count))
   {
+    D3D_CONTRACT_ASSERT_RETURN(build.as, );
+
     if (!validate_compaction(build.basbi))
     {
       return;
@@ -4111,14 +4114,8 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
   }
 
   STORE_RETURN_ADDRESS();
-  for (uint32_t ix = 0; ix < as_count; ++ix)
-  {
-    const ::raytrace::BottomAccelerationStructureBuildInfo &basbi = as_array[ix].basbi;
-
-    api_state.device.getContext().raytraceBuildBottomAccelerationStructure(as_count, ix, as_array[ix].as, basbi.geometryDesc,
-      basbi.geometryDescCount, basbi.flags, basbi.doUpdate, basbi.scratchSpaceBuffer, basbi.scratchSpaceBufferOffsetInBytes,
-      basbi.compactedSizeOutputBuffer, basbi.compactedSizeOutputBufferOffsetInBytes);
-  }
+  api_state.device.getContext().raytraceBuildBottomAccelerationStructures(
+    eastl::span<const ::raytrace::BatchedBottomAccelerationStructureBuildInfo>{as_array, as_count});
 }
 
 void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
@@ -4130,8 +4127,9 @@ void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
     D3D_CONTRACT_ASSERTF_RETURN(tasbi.scratchSpaceBuffer, ,
       "DX12: We now always require a user-provided scratch buffer for AS builds!");
 
-    api_state.device.getContext().raytraceBuildTopAccelerationStructure(1, 0, as, tasbi.instanceBuffer, tasbi.instanceCount,
-      tasbi.flags, tasbi.doUpdate, tasbi.scratchSpaceBuffer, tasbi.scratchSpaceBufferOffsetInBytes);
+    const ::raytrace::BatchedTopAccelerationStructureBuildInfo build{as, tasbi};
+    api_state.device.getContext().raytraceBuildTopAccelerationStructures(
+      eastl::span<const ::raytrace::BatchedTopAccelerationStructureBuildInfo>{&build, 1});
   }
 }
 
@@ -4145,21 +4143,14 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
 
   for (uint32_t ix = 0; ix < as_count; ++ix)
   {
+    D3D_CONTRACT_ASSERT_RETURN(as_array[ix].as, );
     D3D_CONTRACT_ASSERTF_RETURN(as_array[ix].tasbi.scratchSpaceBuffer, ,
       "DX12: This API requires providing a scratch buffer for the AS builds");
   }
 
   STORE_RETURN_ADDRESS();
-  for (uint32_t ix = 0; ix < as_count; ++ix)
-  {
-    auto &elem = as_array[ix];
-
-    D3D_CONTRACT_ASSERT_RETURN(elem.as, );
-
-    api_state.device.getContext().raytraceBuildTopAccelerationStructure(as_count, ix, elem.as, elem.tasbi.instanceBuffer,
-      elem.tasbi.instanceCount, elem.tasbi.flags, elem.tasbi.doUpdate, elem.tasbi.scratchSpaceBuffer,
-      elem.tasbi.scratchSpaceBufferOffsetInBytes);
-  }
+  api_state.device.getContext().raytraceBuildTopAccelerationStructures(
+    eastl::span<const ::raytrace::BatchedTopAccelerationStructureBuildInfo>{as_array, as_count});
 }
 
 void d3d::write_raytrace_index_entries_to_memory(uint32_t count, const RaytraceGeometryInstanceDescription *desc, void *ptr)
@@ -4699,6 +4690,12 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipe
                              "Use enhanced_buffer_barrier instead.",
             gbuf->getBufName());
           return;
+        }
+        if (RB_NONE != (RB_RO_INDIRECT_BUFFER & state) && !(gbuf->getFlags() & SBCF_MISC_DRAWINDIRECT))
+        {
+          D3D_CONTRACT_ERROR("DX12: resource_barrier with RB_RO_INDIRECT_BUFFER on buffer <%s>, which was created without "
+                             "SBCF_MISC_DRAWINDIRECT",
+            gbuf->getBufName());
         }
         if (RB_NONE == (RB_RW_UAV & state))
         {
@@ -5553,6 +5550,13 @@ void d3d::raytrace::build_acceleration_structure(::raytrace::AccelerationStructu
 #if _TARGET_PC_WIN
 ComPtr<DXGISwapChain> get_fg_swapchain() { return api_state.device.getContext().getDxgiSwapchain(); }
 
+ID3D12Resource *get_fg_present_color()
+{
+  auto *colorTex = api_state.device.getContext().getCurrentSwapchainColorTexture();
+  auto *image = colorTex ? colorTex->getDeviceImage() : nullptr;
+  return image ? image->getHandle() : nullptr;
+}
+
 namespace
 {
 
@@ -5576,8 +5580,8 @@ void configure_main_swapchain_factory(SwapchainCreateInfo &sci)
 {
   switch (sci.swapchainKind)
   {
-    case SwapchainKind::Default: break;
-    case SwapchainKind::NvidiaDLSSG: sci.swapchainFactory = nvidia_dlssg_swapchain_factory; break;
+    case SwapchainKind::Default:
+    case SwapchainKind::NvidiaDLSSG: sci.swapchainFactory = streamline_swapchain_factory; break;
     case SwapchainKind::AMDFSRFG: sci.swapchainFactory = amd_fsrfg_swapchain_factory; break;
     case SwapchainKind::IntelXeSSFG: sci.swapchainFactory = intel_xessfg_swapchain_factory; break;
   }

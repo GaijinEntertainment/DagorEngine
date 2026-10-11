@@ -18,7 +18,7 @@ Sources =
   textRender.cpp
 ;
 
-if $(Dedicated) != yes && ($(Config) != rel || $(ForceDebugInterface) = yes) {
+if $(Dedicated) != yes && ( $(Config) != rel || $(ForceDebugInterface) = yes ) {
   Sources +=
     debugDraw.cpp
   ;

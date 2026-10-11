@@ -8,8 +8,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 7 (audit `history/linq_fold/linq_fold_chain_audit.md` "Theme 7" section):
-// chained `_select(f) |> _select(g)` collapse. Symmetric to how chained `_where`
+// Theme 7: chained `_select(f) |> _select(g)` collapse. Symmetric to how chained `_where`
 // already compose via `&&`. `collapse_chained_selects` mutates the call chain
 // in place — N consecutive `_select` calls become a single composed `_select(g(f(_)))`.
 // Gated on PURITY of the inner projection (`!has_sideeffects(innerBody)`) — for
@@ -72,8 +71,8 @@ def test_t7c_parity_vs_cascade(t : T?) {
         // Handwritten cascade: just compute (a[i] + 7) element-wise.
         let cascade <- [for (x in a); x + 7]
         tt |> equal(length(spliced), length(cascade))
-        for (i in range(length(cascade))) {
-            tt |> equal(spliced[i], cascade[i])
+        for (s, c in spliced, cascade) {
+            tt |> equal(s, c)
         }
     }
 }

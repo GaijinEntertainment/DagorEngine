@@ -46,8 +46,6 @@ ECS_REGISTER_EVENT(OnRTTRChanged);
 
 extern ShaderBlockIdHolder dynamicTransSceneBlockId;
 
-extern ConVarT<bool, false> sort_transparent_riex_instances;
-
 extern void render_mainhero_trans(const TMatrix &view_tm);
 
 static void render_dynrend_ctx(dynrend::ContextId ctx, const TMatrix &vtm, int block)
@@ -178,16 +176,10 @@ static void glass_reactive_mask_pass_renderer_es(const ecs::Event &evt, dafg::No
         SCENE_LAYER_GUARD(rendinstTransSceneBlockid);
 
         RiGenVisibility *riMainVisibility = cameraHndl.ref().jobsMgr->getRiMainVisibility();
-        if (sort_transparent_riex_instances)
-        {
-          rendinst::render::renderSortedTransparentRiExtraInstances(*riMainVisibility, strmCtxHndl.ref(), false);
-        }
-        else
-        {
-          rendinst::render::renderRIGen(rendinst::RenderPass::Normal, riMainVisibility, cameraHndl.ref().viewItm,
-            rendinst::LayerFlag::Transparent, rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All, nullptr,
-            strmCtxHndl.ref());
-        }
+
+        // the mask blend (src + dst * (1 - src)) is order independent, no need to sort them
+        rendinst::render::renderRIGen(rendinst::RenderPass::Normal, riMainVisibility, cameraHndl.ref().viewItm,
+          rendinst::LayerFlag::Transparent, rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All, nullptr, strmCtxHndl.ref());
 
         ShaderGlobal::set_int(rendinst_reactive_mask_passVarId, 0);
       };

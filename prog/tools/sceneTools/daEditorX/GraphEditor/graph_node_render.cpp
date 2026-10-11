@@ -77,6 +77,10 @@ constexpr ImU32 NODE_TITLE_TEXT_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 0xFF);
 constexpr ImU32 NODE_ROW_TEXT_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 0xFF);
 constexpr ImU32 NODE_FOOTER_TEXT_COLOR = IM_COL32(0xD5, 0xD5, 0xD5, 0xFF);
 constexpr ImU32 NODE_DIVIDER_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 26); // white at 0.10
+constexpr ImU32 NODE_HEADER_ICON_HOVER_COLOR = IM_COL32(0xFF, 0xFF, 0xFF, 26);
+
+// The canvas never goes light, so the dark theme's icon whatever the active theme is.
+constexpr const char *NODE_SUBGRAPH_ICON = "dark/subgraph";
 
 constexpr const char *NODE_UNNAMED_TITLE = "<unnamed>";
 constexpr const char *NODE_ELLIPSIS = "...";
@@ -377,19 +381,6 @@ NodeVisual resolve_node_visual(bool selected, bool focused, bool hovered, bool r
   return v;
 }
 
-void draw_soft_shadow(const GraphNodeFrame &frame, ImDrawList *dl, const ImVec2 &a, const ImVec2 &b, float rounding)
-{
-  const float reach = frame.shadowReach;
-  const ImU32 col = IM_COL32(0, 0, 0, NODE_SHADOW_LAYER_ALPHA);
-  for (int i = 0; i < NODE_SHADOW_STEPS; ++i)
-  {
-    const float t = static_cast<float>(NODE_SHADOW_STEPS - i) / static_cast<float>(NODE_SHADOW_STEPS);
-    const float off = reach * t * t;
-    dl->AddRectFilled(ImVec2(a.x - off, a.y - off), ImVec2(b.x + off, b.y + off), col, rounding + off);
-  }
-}
-
-
 void stroke_inside(ImDrawList *dl, const ImVec2 &node_min, const ImVec2 &node_max, float at, float thickness, float radius,
   ImU32 color)
 {
@@ -404,72 +395,44 @@ void draw_node_select_band(const GraphNodeFrame &frame, ImDrawList *dl, const Im
   stroke_inside(dl, node_min, node_max, 0.0f, frame.bandMargin, frame.bandRadius, NODE_PLATE_STROKE_COLOR);
 }
 
-bool node_has_texture_output(const GraphData::Node &n, bool &out_is_particles)
-{
-  out_is_particles = false;
-  for (const GraphData::Pin &p : n.pins)
-  {
-    if (p.hidden || p.role != PinRole::Out)
-    {
-      continue;
-    }
-    if (p.type == PinType::Particles)
-    {
-      out_is_particles = true;
-      return true;
-    }
-    if (p.type == PinType::Texture1D || p.type == PinType::Texture2D || p.type == PinType::Texture3D)
-    {
-      return true;
-    }
-  }
-  return false;
-}
 
-void build_footer_texts(const GraphData &gd, const GraphData::Node &n, bool is_particles, char *out_left, size_t left_size,
+// An unresolved node shows the graph defaults, as the compile does when it emits one.
+void build_footer_texts(const GraphData &gd, const NodeResolution *res, int dimension, char *out_left, size_t left_size,
   char *out_right, size_t right_size)
 {
-  auto prop = [&n](const char *name, const char *fallback) -> const char * {
-    const eastl::string *v = find_property_value(n, name);
-    return (v && !v->empty()) ? v->c_str() : fallback;
-  };
-  const char *w = prop("texture width", is_particles ? "= 512" : "parent size");
-  const char *h = prop("texture height", is_particles ? "= 1" : "width");
-  const char *t = prop("texture type", "parent type");
-  const char *a = prop("texture wrap", "parent wrap");
+  const int width = res ? res->width : gd.graphTextureWidth;
+  const int height = res ? res->height : gd.graphTextureHeight;
+  const int depth = res ? res->depth : gd.graphTextureDepth;
+  if (dimension >= 3)
+  {
+    snprintf(out_left, left_size, "%dx%dx%d", width, height, depth);
+  }
+  else if (dimension == 2)
+  {
+    snprintf(out_left, left_size, "%dx%d", width, height);
+  }
+  else
+  {
+    snprintf(out_left, left_size, "%d", width);
+  }
 
-  int width = gd.graphTextureWidth;
-  int height = gd.graphTextureHeight;
-  if (w[0] == '=')
-  {
-    width = parse_graph_size(w, width);
-  }
-  if (h[0] == '=')
-  {
-    height = parse_graph_size(h, height);
-  }
-  else if (strcmp(h, "width") == 0)
-  {
-    height = width;
-  }
-  auto clampDim = [](int v) { return eastl::max(eastl::min(v, 8192), 1); };
-  snprintf(out_left, left_size, "%dx%d", clampDim(width), clampDim(height));
-
-  const char *type = (strcmp(t, "parent type") == 0 || strcmp(t, "graph type") == 0) ? gd.graphTextureType.c_str() : t;
-  const char *wrapSrc = (strcmp(a, "parent wrap") == 0 || strcmp(a, "graph wrap") == 0) ? gd.graphTextureWrap.c_str() : a;
-  snprintf(out_right, right_size, "%s %s", type, strcmp(wrapSrc, "clamp") == 0 ? "CL" : "WR");
+  const char *const type = res ? res->type.c_str() : gd.graphTextureType.c_str();
+  const char *const wrap = res ? res->wrap.c_str() : gd.graphTextureWrap.c_str();
+  snprintf(out_right, right_size, "%s %s", type, strcmp(wrap, "clamp") == 0 ? "CL" : "WR");
 }
 } // namespace
 
 GraphNodeFrame::GraphNodeFrame(const GraphData &graph_data, const eastl::hash_set<uint64_t> &linked_pins,
-  const eastl::hash_set<uint64_t> &live_pins, const GraphPinJumpMenu &pin_jump_menu, GraphEdgeReconnect &edge_reconnect,
-  eastl::string &truncated_tooltip, uint64_t hovered_ne_node_id, int preview_node_id, uint64_t highlight_pin_id) :
+  const eastl::hash_set<uint64_t> &live_pins, const GraphResolutions &node_resolutions, const GraphPinJumpMenu &pin_jump_menu,
+  GraphEdgeReconnect &edge_reconnect, eastl::string &hover_tooltip, uint64_t hovered_ne_node_id, int preview_node_id,
+  uint64_t highlight_pin_id) :
   graph(graph_data),
   linkedPins(linked_pins),
   livePins(live_pins),
+  resolutions(node_resolutions),
   pinJumpMenu(pin_jump_menu),
   edgeReconnect(edge_reconnect),
-  truncatedTooltip(truncated_tooltip),
+  hoverTooltip(hover_tooltip),
   hoveredNeNodeId(hovered_ne_node_id),
   previewNodeId(preview_node_id),
   highlightPinId(highlight_pin_id)
@@ -483,7 +446,9 @@ GraphNodeFrame::GraphNodeFrame(const GraphData &graph_data, const eastl::hash_se
   plateWidth = static_cast<float>(hdpi::_pxS(NODE_PLATE_WIDTH));
   bandReach = bandMargin + plateWidth;
   contentPadX = bandReach + nodePad;
-  titleDx = contentPadX + static_cast<float>(hdpi::_pxS(NODE_HEADER_ICON_SIZE)) + static_cast<float>(hdpi::_pxS(NODE_HEADER_ICON_GAP));
+  headerIconSize = static_cast<float>(hdpi::_pxS(NODE_HEADER_ICON_SIZE));
+  headerIconGap = static_cast<float>(hdpi::_pxS(NODE_HEADER_ICON_GAP));
+  titleDx = contentPadX + headerIconSize + headerIconGap;
   nodeRounding = static_cast<float>(hdpi::_pxS(NODE_CORNER_RADIUS));
   dividerWidth = static_cast<float>(hdpi::_pxS(NODE_DIVIDER_WIDTH));
   inputColPadR = static_cast<float>(hdpi::_pxS(NODE_INPUT_COL_PAD_R));
@@ -507,13 +472,26 @@ GraphNodeFrame::GraphNodeFrame(const GraphData &graph_data, const eastl::hash_se
   pinHoverHaloSize = static_cast<float>(hdpi::_pxS(PIN_HOVER_HALO_SIZE));
   pinOutline = static_cast<float>(eastl::max(1, hdpi::_pxS(1)));
   pinCommentEdgeGap = pinDotSize * 0.5f + PIN_COMMENT_MARGIN;
-  shadowReach = static_cast<float>(hdpi::_pxS(NODE_SHADOW_REACH));
   annotationPad = eastl::max(COMMENT_PADDING, bandReach);
+  const int iconTexturePx = static_cast<int>(headerIconSize * canvas_raster_density(headerIconSize));
+  subgraphIcon = DAEDITOR3.getPropPanelService()->getIconTextureId(NODE_SUBGRAPH_ICON, iconTexturePx);
 
   auto ellipsisWidth = [this](float size) { return calc_canvas_text_size(*font, size, NODE_ELLIPSIS).x; };
   titleEllipsisW = ellipsisWidth(titleFontSize);
   rowEllipsisW = ellipsisWidth(rowFontSize);
   footerEllipsisW = ellipsisWidth(footerFontSize);
+}
+
+void draw_soft_shadow(ImDrawList *dl, const ImVec2 &min, const ImVec2 &max, float rounding)
+{
+  const float reach = static_cast<float>(hdpi::_pxS(NODE_SHADOW_REACH));
+  const ImU32 col = IM_COL32(0, 0, 0, NODE_SHADOW_LAYER_ALPHA);
+  for (int i = 0; i < NODE_SHADOW_STEPS; ++i)
+  {
+    const float t = static_cast<float>(NODE_SHADOW_STEPS - i) / static_cast<float>(NODE_SHADOW_STEPS);
+    const float off = reach * t * t;
+    dl->AddRectFilled(ImVec2(min.x - off, min.y - off), ImVec2(max.x + off, max.y + off), col, rounding + off);
+  }
 }
 
 void draw_comment_node(const GraphNodeFrame &frame, const GraphData::Node &node, bool selected)
@@ -659,7 +637,7 @@ void draw_block_node(const GraphNodeFrame &frame, const GraphData::Node &node, b
   ImGui::PopStyleVar();
 }
 
-void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, bool selected, bool reduced)
+void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, int node_index, bool selected, bool reduced)
 {
   // Pin roles and types were resolved against the descriptor at load time (resolve_node_pins).
   eastl::fixed_vector<int, 16, true> inputIdx;
@@ -715,14 +693,13 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, bool se
   const char *const titleStr = node.descName.empty() ? NODE_UNNAMED_TITLE : node.descName.c_str();
 
   NodeLayout lay;
-  bool isParticles = false;
-  char footerLeft[32] = {0};
-  char footerRight[32] = {0};
-  lay.hasFooter = node_has_texture_output(node, isParticles);
-  if (lay.hasFooter)
-  {
-    build_footer_texts(frame.graph, node, isParticles, footerLeft, sizeof(footerLeft), footerRight, sizeof(footerRight));
-  }
+  // Only the inherited path is clamped, so a hand-edited absolute size can be far wider than 8192.
+  char footerLeft[48] = {0};
+  char footerRight[48] = {0};
+  // constraint: layout-only, so it stays a pure function of the node - a missing derived cache may
+  // not change node height.
+  const int footerDimension = node_out_texture_dimension(node);
+  lay.hasFooter = footerDimension != 0;
 
   lay.rowCount = static_cast<int>(rows.size());
   lay.rowPitch = frame.rowPitch;
@@ -752,7 +729,7 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, bool se
   ImDrawList *dl = ImGui::GetWindowDrawList();
   if (vis.shadow)
   {
-    draw_soft_shadow(frame, dl, bodyMin, bodyMax, frame.nodeRounding);
+    draw_soft_shadow(dl, bodyMin, bodyMax, frame.nodeRounding);
   }
 
   const float contentTop = bodyMin.y + lay.headerH;
@@ -784,7 +761,7 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, bool se
   auto offerFullText = [&](bool cut, const ImVec2 &rect_min, const ImVec2 &rect_max, const char *full) {
     if (cut && nodeHovered && ImGui::IsMouseHoveringRect(rect_min, rect_max, false))
     {
-      frame.truncatedTooltip = full;
+      frame.hoverTooltip = full;
     }
   };
 
@@ -798,15 +775,51 @@ void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, bool se
 
   if (!reduced)
   {
+    float titleRightX = contentRightX;
+    if (is_subgraph_instance(node))
+    {
+      const float iconSize = frame.headerIconSize;
+      const ImVec2 iconMin(contentRightX - iconSize, bodyMin.y + (lay.headerH - iconSize) * 0.5f);
+      const ImVec2 iconMax(iconMin.x + iconSize, iconMin.y + iconSize);
+      ImGui::PushID(node.id);
+      const bool held = ImGui::GetActiveID() == ImGui::GetID("subgraph_open"); // ne reports no hover while it is active
+      // Only on the node ne found under the cursor, or one below would take the click through the one on
+      // top; and not during a reroute, which ends on the release this click would share.
+      if ((nodeHovered || held) && !frame.edgeReconnect.isActive())
+      {
+        // Submitted before ne's own hit items, so it takes the press and the node neither drags nor reselects.
+        ImGui::SetCursorScreenPos(iconMin);
+        if (ImGui::InvisibleButton("subgraph_open", ImVec2(iconSize, iconSize)))
+        {
+          frame.clickedSubgraphNodeId = node.id;
+        }
+        if (ImGui::IsItemHovered())
+        {
+          dl->AddRectFilled(iconMin, iconMax, NODE_HEADER_ICON_HOVER_COLOR, frame.nodeRounding);
+          frame.hoverTooltip = "Click to open subgraph";
+        }
+      }
+      ImGui::PopID();
+      if (frame.subgraphIcon)
+      {
+        dl->AddImage(frame.subgraphIcon, iconMin, iconMax);
+      }
+      titleRightX = iconMin.x - frame.headerIconGap;
+    }
+
     const float titleX = bodyMin.x + frame.titleDx;
     eastl::string shortTitle;
     const bool titleCut =
-      ellipsize_canvas_text(frame.font, frame.titleFontSize, titleStr, contentRightX - titleX, shortTitle, frame.titleEllipsisW);
+      ellipsize_canvas_text(frame.font, frame.titleFontSize, titleStr, titleRightX - titleX, shortTitle, frame.titleEllipsisW);
     add_canvas_text(dl, *frame.font, frame.titleFontSize, ImVec2(titleX, bodyMin.y + (lay.headerH - frame.titleFontSize) * 0.5f),
       NODE_TITLE_TEXT_COLOR, titleCut ? shortTitle.c_str() : titleStr);
-    offerFullText(titleCut, ImVec2(titleX, bodyMin.y), ImVec2(contentRightX, contentTop), titleStr);
+    offerFullText(titleCut, ImVec2(titleX, bodyMin.y), ImVec2(titleRightX, contentTop), titleStr);
     if (lay.hasFooter)
     {
+      // constraint: the band is laid out from this node's own pins, so the format comes from
+      // footerDimension and not from whatever produced the resolution.
+      build_footer_texts(frame.graph, frame.resolutions.byIndex(node_index), footerDimension, footerLeft, sizeof(footerLeft),
+        footerRight, sizeof(footerRight));
       const float footerTextY = footerTop + (lay.footerH - frame.footerFontSize) * 0.5f;
       const float footerLeftX = bodyMin.x + frame.contentPadX;
       eastl::string shortRight;

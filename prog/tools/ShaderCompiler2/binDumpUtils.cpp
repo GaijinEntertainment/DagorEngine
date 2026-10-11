@@ -41,8 +41,8 @@ static int cmpTabInd(const TabInd<T> *a, const TabInd<T> *b)
   else if (b_count < a_count)
     return 1;
 
-  int pos = 0, min_count = a_count < b_count ? a_count : b_count;
-  while (pos < min_count)
+  int pos = 0;
+  while (pos < a_count)
   {
     if ((*a_tab)[pos] < (*b_tab)[pos])
       return -1;

@@ -23,8 +23,12 @@ struct wl_surface;
 struct xdg_wm_base;
 struct xdg_surface;
 struct xdg_toplevel;
+struct zxdg_decoration_manager_v1;
+struct zxdg_toplevel_decoration_v1;
 struct wp_viewporter;
 struct wp_viewport;
+struct wp_fractional_scale_manager_v1;
+struct wp_fractional_scale_v1;
 struct zwp_relative_pointer_manager_v1;
 struct zwp_pointer_constraints_v1;
 struct zwp_relative_pointer_v1;
@@ -45,6 +49,12 @@ struct Wayland
   void *libHandle;
   bool loadLib();
   void unloadLib();
+  bool initConnection();
+  void releaseFailedInit();
+  bool initFailed = false;
+
+  // lightweight standalone probe for xdg-decoration (server-side decoration)
+  bool hasServerSideDecorations();
 
   template <typename DataType, typename ObjType, typename ParentType, int MAX_OBJS>
   struct BlockPool
@@ -172,9 +182,11 @@ struct Wayland
   {
     COMPOSITOR = 4,
     XDG_WM_BASE = 4,
+    XDG_DECORATION = 1,
     OUTPUT = 4,
     SEAT = 8,
     VIEWPORTER = 1,
+    FRACTIONAL_SCALE = 1,
     RELATIVE_POINTER = 1,
     POINTER_CONSTRAINTS = 1,
     DATA_DEVICE_MANAGER = 3,
@@ -209,17 +221,34 @@ struct Wayland
     int32_t boundsHeight;
     int32_t reportedWidth;
     int32_t reportedHeight;
+    int32_t requestedWidth;
+    int32_t requestedHeight;
+    int32_t preferredScale120;
+    int32_t appliedScale120;
 
     struct
     {
       xdg_surface *surface;
       xdg_toplevel *toplevel;
+      zxdg_toplevel_decoration_v1 *decorationV1;
     } xdg;
 
     struct
     {
       wp_viewport *viewport;
+      wp_fractional_scale_v1 *fractionalScaleV1;
     } wp;
+
+    // constraint: Wayland surface coordinates are logical, the game expects physical pixels
+    int32_t getScale120();
+    int32_t toPhysical(int32_t logical);
+    int32_t toLogical(int32_t physical);
+    int32_t toPhysicalFixed(wl_fixed_t_proxy logical);
+    wl_fixed_t_proxy toLogicalFixed(int32_t physical);
+    void getClientSize(int32_t &width, int32_t &height);
+    bool getCursorPos(int &cx, int &cy);
+    void applyViewport();
+    void updateScale();
 
     void cbClose();
     void destroy();
@@ -230,6 +259,7 @@ struct Wayland
     void cbEnterOutput(Output *output);
     void cbLeaveOutput(Output *output);
     void cbConfigure();
+    void cbPreferredScale(uint32_t scale);
   };
 
   BlockPool<Window, wl_surface *, Wayland, 16> windows;
@@ -367,11 +397,13 @@ struct Wayland
   struct
   {
     wp_viewporter *viewporter;
+    wp_fractional_scale_manager_v1 *fractionalScaleManagerV1;
   } wp;
 
   struct
   {
     xdg_wm_base *wmBase;
+    zxdg_decoration_manager_v1 *decorationManagerV1;
   } xdg;
 
   struct

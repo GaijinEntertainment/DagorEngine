@@ -529,6 +529,7 @@ static void draw_entry(DebugEntry &entry)
 
   ImVec2 imagePos = ImGui::GetCursorScreenPos();
   ImGuiDagor::Image(visualizationTex.getTexId(), canvasWidth, canvasHeight);
+
   if (ImGui::IsItemHovered())
   {
     const ImGuiIO &io = ImGui::GetIO();
@@ -540,13 +541,12 @@ static void draw_entry(DebugEntry &entry)
       viewOrigin = ImVec2(before.x - mouseLocal.x / viewScale, before.y - mouseLocal.y / viewScale);
       needsRefresh = true;
     }
-  }
-  if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
-  {
-    const ImGuiIO &io = ImGui::GetIO();
-    viewOrigin.x -= io.MouseDelta.x / viewScale;
-    viewOrigin.y -= io.MouseDelta.y / viewScale;
-    needsRefresh = true;
+    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+    {
+      viewOrigin.x -= io.MouseDelta.x / viewScale;
+      viewOrigin.y -= io.MouseDelta.y / viewScale;
+      needsRefresh = true;
+    }
   }
 
   ImGui::Text("origin: %.1f, %.1f  zoom: %.3f", viewOrigin.x, viewOrigin.y, viewScale);

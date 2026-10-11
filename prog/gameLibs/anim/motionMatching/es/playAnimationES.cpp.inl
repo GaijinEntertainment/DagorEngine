@@ -41,21 +41,13 @@ static void mm_update_root_orientation_es(const ParallelUpdateFrameDelayed &act,
 ECS_TAG(render)
 ECS_AFTER(after_animchar_update_sync)
 static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act, FrameFeatures &motion_matching__goalFeature,
-  const ecs::IntList &motion_matching__goalNodesIdx, bool motion_matching__enabled, const AnimV20::AnimcharBaseComponent &animchar,
-  const MotionMatchingController &motion_matching__controller, const ecs::Point3List &mm_trajectory__featurePositions,
-  const ecs::Point3List &mm_trajectory__featureDirections)
+  const ecs::IntList &motion_matching__goalNodesIdx, ecs::Point3List &motion_matching__goalNodesPrevWpos,
+  const AnimV20::AnimcharBaseComponent &animchar, const MotionMatchingController &motion_matching__controller,
+  const ecs::Point3List &mm_trajectory__featurePositions, const ecs::Point3List &mm_trajectory__featureDirections)
 {
   if (!motion_matching__controller.dataBase)
     return;
   const GeomNodeTree &tree = animchar.getNodeTree();
-  if (!motion_matching__enabled && !motion_matching__controller.hasActiveAnimation())
-  {
-    // copy current positions from nodeTree to be able to calculate velocities in next frame
-    dag::Span<Point3> nodePositions = motion_matching__goalFeature.get_node_positions(0);
-    for (int i = 0, e = motion_matching__goalNodesIdx.size(); i < e; ++i)
-      nodePositions[i] = tree.getNodeWposScalar(dag::Index16(motion_matching__goalNodesIdx[i]));
-    return;
-  }
   TrajectoryFeature trajectoryFeature = motion_matching__goalFeature.get_trajectory_feature(0);
   for (int i = 0, n = mm_trajectory__featurePositions.size(); i < n; i++)
   {
@@ -70,11 +62,13 @@ static void mm_update_goal_features_es(const ParallelUpdateFrameDelayed &act, Fr
     for (int i = 0, e = motion_matching__goalNodesIdx.size(); i < e; ++i)
     {
       dag::Index16 nodeId = dag::Index16(motion_matching__goalNodesIdx[i]);
-      vec3f deltaPos = v_sub(tree.getNodeWpos(nodeId), v_ldu(&nodeFeature.nodePositions[i].x));
+      vec3f deltaPos = v_sub(tree.getNodeWpos(nodeId), v_ldu_p3_safe(&motion_matching__goalNodesPrevWpos[i].x));
       v_stu_p3(&nodeFeature.nodeVelocities[i].x, v_mat44_mul_vec3v(invRoot, v_safediv(deltaPos, v_splats(act.dt))));
       v_stu_p3(&nodeFeature.nodePositions[i].x, v_mat44_mul_vec3p(invRoot, tree.getNodeWposRel(nodeId)));
     }
   }
+  for (int i = 0, e = motion_matching__goalNodesIdx.size(); i < e; ++i)
+    motion_matching__goalNodesPrevWpos[i] = tree.getNodeWposScalar(dag::Index16(motion_matching__goalNodesIdx[i]));
 }
 
 ECS_TAG(render)

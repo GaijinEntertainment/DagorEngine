@@ -45,12 +45,7 @@ def inl_swizzle_loop(base : float3) : float {
     return acc
 }
 
-var GRID : array<float>
-
-[init]
-def fill_grid {
-    GRID <- [-7.0, -1.0, 0.0, 1.0, 2.5, 7.0]
-}
+var GRID <- [-7.0, -1.0, 0.0, 1.0, 2.5, 7.0]
 
 [test]
 def test_flatten_inline_swizzle(t : T?) {

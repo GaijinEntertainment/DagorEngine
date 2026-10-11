@@ -21,6 +21,7 @@ let AOT_HEADERS = "#if defined(_MSC_VER)
 #pragma warning(disable:4946)   // reinterpret_cast used between related classes
 #pragma warning(disable:4269)   // 'const' automatic data initialized with compiler generated default constructor produces unreliable results
 #pragma warning(disable:4555)   // result of expression not used
+#pragma warning(disable:4505)   // unreferenced function with internal linkage has been removed
 #endif
 #if defined(__EDG__)
 #pragma diag_suppress 826

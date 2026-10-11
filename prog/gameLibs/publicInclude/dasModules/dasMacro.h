@@ -29,7 +29,7 @@ struct BakeHashFunctionAnnotation : das::TransformFunctionAnnotation
         uint32_t hv = ecs_str_hash(text);
         auto hconst = new das::ExprConstUInt(arg->at, hv);
         hconst->generated = true;
-        hconst->type = new das::TypeDecl(das::Type::tUInt);
+        hconst->type = new das::TypeDecl(das::Type::tUInt, das::cppBindingLineInfo());
         hconst->type->constant = true;
         auto newCall = static_cast<das::ExprCallFunc *>(call->clone());
         newCall->arguments.insert(newCall->arguments.begin() + ArgN + 1, hconst);
@@ -46,11 +46,8 @@ struct BakeHashFunctionAnnotation : das::TransformFunctionAnnotation
     }
     return nullptr;
   }
-  bool apply(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override
-  {
-    return true;
-  }
-  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool apply(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &) override { return true; }
+  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &) override
   {
     return true;
@@ -368,23 +365,20 @@ struct ConstStringArgCallFunctionAnnotation : das::FunctionAnnotation
 {
   ConstStringArgCallFunctionAnnotation() : das::FunctionAnnotation("const_string_arg_" + eastl::to_string(ArgN)) {}
 
-  bool apply(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override
-  {
-    return true;
-  }
-  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool apply(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &) override { return true; }
+  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &) override
   {
     return true;
   }
-  bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override { return true; }
-  bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &) override { return true; }
+  bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &) override
   {
     return true;
   }
 
-  bool verifyCall(das::ExprCallFunc *call, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool verifyCall(das::ExprCallFunc *call, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &err) override
   {
     auto arg = call->arguments[ArgN];
@@ -438,11 +432,8 @@ struct LogFmtHashFunctionAnnotation : das::TransformFunctionAnnotation
     err.append("Log function called without ExprStringBuilder or String");
     return nullptr;
   }
-  bool apply(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &) override
-  {
-    return true;
-  }
-  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool apply(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &) override { return true; }
+  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &) override
   {
     return true;

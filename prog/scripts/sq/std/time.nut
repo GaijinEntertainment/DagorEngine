@@ -17,17 +17,17 @@ const TIME_WEEK_IN_SECONDS_F = 604800.0
 const DAYS_TO_YEAR_1970 = 719528
 
 
-let millisecondsToSeconds = @(time: number) time / TIME_SECOND_IN_MSEC_F
-let secondsToMilliseconds = @(time: number) time * TIME_SECOND_IN_MSEC
-let millisecondsToSecondsInt = @(time: number) time / TIME_SECOND_IN_MSEC
-let secondsToMinutes = @(time: number) time / TIME_MINUTE_IN_SECONDS_F
-let minutesToSeconds = @(time: number) time * TIME_MINUTE_IN_SECONDS
-let secondsToHours = @(seconds: number) seconds / TIME_HOUR_IN_SECONDS_F
-let hoursToSeconds = @(seconds: number) seconds * TIME_HOUR_IN_SECONDS
-let daysToSeconds = @(days: number) days * TIME_DAY_IN_SECONDS
-let secondsToDays = @(seconds: number) seconds / TIME_DAY_IN_SECONDS_F
+let millisecondsToSeconds = @[pure](time: number): float time / TIME_SECOND_IN_MSEC_F
+let secondsToMilliseconds = @[pure](time: number) time * TIME_SECOND_IN_MSEC
+let millisecondsToSecondsInt = @[pure](time: number) time / TIME_SECOND_IN_MSEC
+let secondsToMinutes = @[pure](time: number): float time / TIME_MINUTE_IN_SECONDS_F
+let minutesToSeconds = @[pure](time: number) time * TIME_MINUTE_IN_SECONDS
+let secondsToHours = @[pure](seconds: number): float seconds / TIME_HOUR_IN_SECONDS_F
+let hoursToSeconds = @[pure](seconds: number) seconds * TIME_HOUR_IN_SECONDS
+let daysToSeconds = @[pure](days: number) days * TIME_DAY_IN_SECONDS
+let secondsToDays = @[pure](seconds: number): float seconds / TIME_DAY_IN_SECONDS_F
 
-function secondsToTime(time): table {
+function [pure] secondsToTime(time): table {
   if(time instanceof Table && "seconds" in time)
     return time
   let s = time.tointeger()
@@ -40,7 +40,7 @@ function secondsToTime(time): table {
   }
 }
 
-function secondsToTimeSimpleString(time): string {
+function [pure] secondsToTimeSimpleString(time: number): string {
   let sign = time >= 0 ? "" : "-"
   let { days=0, hours=0, minutes=0, seconds=0 } = secondsToTime(abs(time.tointeger()))
   let totalHours = days * TIME_DAY_IN_HOURS + hours
@@ -51,7 +51,7 @@ function secondsToTimeSimpleString(time): string {
   return $"{sign}{res}"
 }
 
-function roundTime(time): table {
+function [pure] roundTime(time): table {
   let t = (time instanceof Table && "seconds" in time) ? clone time : secondsToTime(time)
   if (t.days > 2)
     t.hours = 0
@@ -63,7 +63,7 @@ function roundTime(time): table {
   return t
 }
 
-let timeTbl = {
+const timeTbl = {
   s = 1
   m = TIME_MINUTE_IN_SECONDS
   h = TIME_HOUR_IN_SECONDS
@@ -71,7 +71,7 @@ let timeTbl = {
   w = TIME_WEEK_IN_SECONDS
 }
 
-function getSecondsFromTemplate(str, errorValue = null) {
+function [pure] getSecondsFromTemplate(str, errorValue = null) {
  // "1w 1d 1h 1m 1s"
   if (!str.len())
     return errorValue
@@ -92,7 +92,7 @@ function getSecondsFromTemplate(str, errorValue = null) {
   return seconds
 }
 
-function secondsToTimeFormatString(time): string {
+function secondsToTimeFormatString(time: number|table): string {
   let {days=0, hours=0, minutes=0, seconds=0} = secondsToTime(time)
   let res = []
   if (days>0)

@@ -82,7 +82,7 @@ public:
   void actObjects(float dt) override {}
   void beforeRenderObjects() override {}
   void renderObjects() override {}
-  void renderTransObjects() override {}
+  void renderTransObjects(BaseTexture *) override {}
   void renderGeometry(Stage stage) override
   {
     if (stage == STG_BEFORE_RENDER)

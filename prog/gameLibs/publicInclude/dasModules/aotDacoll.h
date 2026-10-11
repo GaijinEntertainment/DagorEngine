@@ -54,9 +54,9 @@ inline bool dacoll_traceray_normalized_trace_handle2(const Point3 &p, const Poin
 }
 
 inline bool dacoll_traceray_normalized_ex(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm, int flags,
-  rendinst::RendInstDesc &out_desc, int ray_mat_id)
+  rendinst::RendInstDesc &out_desc, int ray_mat_id, rendinst::riex_handle_t skip_riex_handle)
 {
-  return dacoll::traceray_normalized(p, dir, t, &out_pmid, &out_norm, flags, &out_desc, ray_mat_id);
+  return dacoll::traceray_normalized(p, dir, t, &out_pmid, &out_norm, flags, &out_desc, ray_mat_id, nullptr, skip_riex_handle);
 }
 
 inline bool dacoll_tracedown_normalized(Point3 p, float &out_t, int flags)
@@ -124,26 +124,9 @@ inline bool dacoll_rayhit_normalized_trace_handle(const Point3 &p, const Point3 
   return dacoll::rayhit_normalized(p, dir, t, flags, ray_mat_id, trace_handle, skip_riex_handle);
 }
 
-inline bool dacoll_traceray_normalized_frt(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm)
-{
-  return dacoll::traceray_normalized_frt(p, dir, t, &out_pmid, &out_norm);
-}
-
 inline bool dacoll_traceray_normalized_lmesh(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm)
 {
   return dacoll::traceray_normalized_lmesh(p, dir, t, &out_pmid, &out_norm);
-}
-
-inline bool dacoll_traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t, int &out_pmid, Point3 &out_norm, int flags,
-  rendinst::RendInstDesc &out_desc, int ray_mat_id, rendinst::riex_handle_t skip_riex_handle)
-{
-  rendinst::TraceFlags additionalTraceFlags = {};
-  if ((flags & dacoll::ETF_RI_TREES) != 0)
-    additionalTraceFlags |= rendinst::TraceFlag::Trees;
-  if ((flags & dacoll::ETF_RI_PHYS) != 0)
-    additionalTraceFlags |= rendinst::TraceFlag::Phys;
-  return dacoll::traceray_normalized_ri(p, dir, t, &out_pmid, &out_norm, additionalTraceFlags, &out_desc, ray_mat_id, nullptr,
-    skip_riex_handle);
 }
 
 inline void dacoll_validate_trace_cache(const bbox3f &query_box, const das::float3 &expands, float physmap_expands,
@@ -303,22 +286,6 @@ inline bool dacoll_test_collision_ri_sph(const CollisionObject &coll_obj, const 
   return result;
 }
 
-inline bool dacoll_test_collision_frt(const CollisionObject &coll_obj, int mat_id,
-  const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::CollisionContactData>>> &block, das::Context *context,
-  das::LineInfoArg *at)
-{
-  Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
-  bool result = dacoll::test_collision_frt(coll_obj, contacts, mat_id);
-
-  das::Array arr;
-  das::array_mark_locked(arr, contacts.data(), contacts.size());
-  arr.flags = 0;
-  vec4f arg = das::cast<das::Array *>::from(&arr);
-  context->invoke(block, &arg, nullptr, at);
-
-  return result;
-}
-
 inline bool dacoll_test_sphere_collision_world(const DPoint3 &pos, float bounding_radius, int mat_id, dacoll::PhysLayer group,
   int mask, const das::TBlock<void, const das::TTemporary<const das::TArray<gamephys::CollisionContactData>>> &block,
   das::Context *context, das::LineInfoArg *at)
@@ -404,53 +371,5 @@ inline void dacoll_add_dynamic_capsule_collision(CollisionObject &obj, float rad
 }
 
 inline void dacoll_draw_collision_object(const CollisionObject &co) { dacoll::draw_collision_object(co); }
-
-inline bool dacoll_shape_query_frt(const CollisionObject &co, const das::float3x4 &from, const das::float3x4 &to,
-  dacoll::ShapeQueryOutput &out)
-{
-  auto convexShape = dacoll::get_convex_shape(co);
-  if (!convexShape)
-    return false;
-  dacoll::shape_query_frt(convexShape, reinterpret_cast<const TMatrix &>(from), reinterpret_cast<const TMatrix &>(to), out);
-  return out.t < 1.f;
-}
-
-inline bool dacoll_shape_query_lmesh(const CollisionObject &co, const das::float3x4 &from, const das::float3x4 &to,
-  dacoll::ShapeQueryOutput &out)
-{
-  auto convexShape = dacoll::get_convex_shape(co);
-  if (!convexShape)
-    return false;
-  dacoll::shape_query_lmesh(convexShape, reinterpret_cast<const TMatrix &>(from), reinterpret_cast<const TMatrix &>(to), out);
-  return out.t < 1.f;
-}
-
-inline bool dacoll_shape_query_ri(const CollisionObject &co, const das::float3x4 &from, const das::float3x4 &to, float rad,
-  dacoll::ShapeQueryOutput &out)
-{
-  auto convexShape = dacoll::get_convex_shape(co);
-  if (!convexShape)
-    return false;
-  dacoll::shape_query_ri(convexShape, reinterpret_cast<const TMatrix &>(from), reinterpret_cast<const TMatrix &>(to), rad, out);
-  return out.t < 1.f;
-}
-
-inline bool dacoll_shape_query_world(const CollisionObject &co, const das::float3x4 &from, const das::float3x4 &to, float rad,
-  dacoll::ShapeQueryOutput &out)
-{
-  auto convexShape = dacoll::get_convex_shape(co);
-  if (!convexShape)
-    return false;
-
-  dacoll::ShapeQueryOutput frtOut, lmeshOut, riOut;
-  dacoll::shape_query_frt(convexShape, reinterpret_cast<const TMatrix &>(from), reinterpret_cast<const TMatrix &>(to), frtOut);
-  dacoll::shape_query_lmesh(convexShape, reinterpret_cast<const TMatrix &>(from), reinterpret_cast<const TMatrix &>(to), lmeshOut);
-  out = lmeshOut.t < frtOut.t ? lmeshOut : frtOut;
-
-  dacoll::shape_query_ri(convexShape, reinterpret_cast<const TMatrix &>(from), reinterpret_cast<const TMatrix &>(to), rad, riOut);
-  out = out.t < frtOut.t ? out : frtOut;
-
-  return out.t < 1.f;
-}
 
 } // namespace bind_dascript

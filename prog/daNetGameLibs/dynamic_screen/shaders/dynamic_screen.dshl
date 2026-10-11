@@ -112,7 +112,7 @@ shader dynamic_screen
     USE_PIXEL_TANGENT_SPACE()
     WRITE_GBUFFER()
     USE_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
-    EMISSIVE_PS_BODY()
+    EMISSIVE_PS_BODY(GBUFFER_ORDER_DYNAMIC)
     compile("target_ps", "simple_ps");
   }
 }

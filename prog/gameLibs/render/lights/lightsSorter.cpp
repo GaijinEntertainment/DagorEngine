@@ -15,8 +15,7 @@
   VAR(sort_lights_dispatch_args_buf)   \
   VAR(sort_lights_stage_data_buf)      \
   VAR(visible_lights_data_buf)         \
-  VAR(visible_lights_counts_buf)       \
-  VAR(visible_far_max_lights_count)
+  VAR(visible_lights_counts_buf)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 LIGHTS_SORTER_GLOBAL_VARS_LIST
@@ -27,30 +26,34 @@ LightsSorter::LightsSorter(OmniLightsManager &omni_lights, SpotLightsManager &sp
   omniLights(&omni_lights), spotLights(&spot_lights)
 {}
 
-void LightsSorter::initGpuMode()
+void LightsSorter::init(DynLightsFeatures requested_features)
 {
-  prepareSortCS = ComputeShader("prepare_sort_lights_cs", true);
-  sortWaveImplCS = ComputeShader("sort_lights_in_wave_cs", true);
-  sortScalarBasicImplCS = ComputeShader("sort_scalar_basic_impl_lights_cs", true);
-  sortScalarMediumImplCS = ComputeShader("sort_scalar_medium_impl_lights_cs", true);
-  sortScalarHighImplCS = ComputeShader("sort_scalar_high_impl_lights_cs", true);
-  sortBatchedImplCS = ComputeShader("sort_batched_high_impl_lights_cs", true);
-  finalizeSortCS = ComputeShader("finalize_sort_lights_cs", true);
+  if (static_cast<bool>(requested_features & DynLightsFeatures::GpuLightsSort))
+  {
+    prepareSortCS = ComputeShader("prepare_sort_lights_cs", true);
+    sortWaveImplCS = ComputeShader("sort_lights_in_wave_cs", true);
+    sortScalarBasicImplCS = ComputeShader("sort_scalar_basic_impl_lights_cs", true);
+    sortScalarMediumImplCS = ComputeShader("sort_scalar_medium_impl_lights_cs", true);
+    sortScalarHighImplCS = ComputeShader("sort_scalar_high_impl_lights_cs", true);
+    sortBatchedImplCS = ComputeShader("sort_batched_high_impl_lights_cs", true);
+    finalizeSortCS = ComputeShader("finalize_sort_lights_cs", true);
 
-  static uint32_t sort_lights_dispatch_args_buf_counter = 0;
-  String argsBufName, stageDataBufName;
-  argsBufName.printf(0, "lights_sorter_dispatch_args_buf_%u", sort_lights_dispatch_args_buf_counter);
-  stageDataBufName.printf(0, "lights_sorter_stage_data_buf_%u", sort_lights_dispatch_args_buf_counter++);
-  sortDispatchArgsBuf = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, SORT_LIGHTS_DISPATCH_ARGS_RECORDS_COUNT,
-    argsBufName, RESTAG_LIGHTS);
-  sortLightsStageDataBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), LIGHTS_SORTER_STAGE_DATA_RECORDS_COUNT,
-    stageDataBufName, d3d::buffers::Init::No, RESTAG_LIGHTS);
+    static uint32_t sort_lights_dispatch_args_buf_counter = 0;
+    String argsBufName, stageDataBufName;
+    argsBufName.printf(0, "lights_sorter_dispatch_args_buf_%u", sort_lights_dispatch_args_buf_counter);
+    stageDataBufName.printf(0, "lights_sorter_stage_data_buf_%u", sort_lights_dispatch_args_buf_counter++);
+    sortDispatchArgsBuf = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, SORT_LIGHTS_DISPATCH_ARGS_RECORDS_COUNT,
+      argsBufName, RESTAG_LIGHTS);
+    sortLightsStageDataBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), LIGHTS_SORTER_STAGE_DATA_RECORDS_COUNT,
+      stageDataBufName, d3d::buffers::Init::No, RESTAG_LIGHTS);
+  }
 }
 
-bool LightsSorter::isGPUSortAvailable() const
+DynLightsFeatures LightsSorter::getRuntimeFeatures() const
 {
-  return prepareSortCS && sortScalarBasicImplCS && sortScalarMediumImplCS && sortScalarHighImplCS && sortBatchedImplCS &&
-         finalizeSortCS;
+  const bool isGpuPathConfigured = (prepareSortCS && sortScalarBasicImplCS && sortScalarMediumImplCS && sortScalarHighImplCS &&
+                                    sortBatchedImplCS && finalizeSortCS && sortDispatchArgsBuf && sortLightsStageDataBuf);
+  return isGpuPathConfigured ? DynLightsFeatures::GpuLightsSort : DynLightsFeatures::CpuOnly;
 }
 
 template <typename LightsManager>
@@ -114,17 +117,15 @@ void LightsSorter::dispatchSortImpl(Sbuffer *data_buf)
   sortBatchedImplCS.dispatchIndirect(dispatch_args_buf, SORT_LIGHTS_DISPATCH_ARGS_BATCHED_HIGH_OFFSET);
 }
 
-void LightsSorter::dispatchFinalizeSort(int max_far_lights_count)
+void LightsSorter::dispatchFinalizeSort()
 {
   if (!finalizeSortCS)
     return;
 
-  ShaderGlobal::set_int(visible_far_max_lights_countVarId, max_far_lights_count);
-
   finalizeSortCS.dispatchIndirect(sortDispatchArgsBuf.getBuf(), SORT_LIGHTS_DISPATCH_ARGS_FINALIZE_OFFSET);
 }
 
-void LightsSorter::sortLightsGPU(Sbuffer *data_buf, Sbuffer *counts_buf, int max_far_lights_count, bool update_variables)
+void LightsSorter::sortLightsGPU(Sbuffer *data_buf, Sbuffer *counts_buf, bool update_variables)
 {
   TIME_D3D_PROFILE(lightsSorter_gpu_sortLights);
 
@@ -155,7 +156,7 @@ void LightsSorter::sortLightsGPU(Sbuffer *data_buf, Sbuffer *counts_buf, int max
 
   {
     TIME_D3D_PROFILE(lightsSorter_gpu_finalize);
-    dispatchFinalizeSort(max_far_lights_count);
+    dispatchFinalizeSort();
   }
 
   if (update_variables)

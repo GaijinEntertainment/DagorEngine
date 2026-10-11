@@ -89,19 +89,15 @@ public:
         gpd->dim = defaultDim;
         break;
       }
-      case REFMSG_GET_PARAM_NAME_NONLOCALIZED:
-      {
-        GetParamName *gpn = (GetParamName *)partID;
-        return REF_STOP;
-      }
+      case REFMSG_GET_PARAM_NAME_NONLOCALIZED: return REF_STOP;
     }
     return (REF_SUCCEED);
   }
 };
 
 // The viewport texture of a Dagor material is the colour DIB of its first texture slot with the mono
-// DIB of the same slot merged into the alpha. Both material classes build it through
-// make_vp_tex_handle(); the two functions above it are its steps.
+// DIB of the same slot merged into the alpha. DagorMat2 builds it through make_vp_tex_handle();
+// the two functions above it are its steps.
 
 // GetVPDisplayDIB() hands over a DIB the caller owns, and MtlMakerCallback has no way to release one
 // except MakeHandle(), which takes ownership. A throwaway handle is how an unused DIB gets freed.

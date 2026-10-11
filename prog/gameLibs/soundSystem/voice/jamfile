@@ -20,11 +20,15 @@ AddIncludes =
 ;
 
 Sources =
-  jitterCompensation.cpp
+  speechGate.cpp
+  voiceCapture.cpp
   voiceCommunicator.cpp
   voiceFeedback.cpp
+  voiceFramer.cpp
+  voiceProcessor.cpp
   voiceRecorder.cpp
   voiceSourceControl.cpp
+  voiceTuning.cpp
 ;
 
 UseProgLibs =
@@ -34,9 +38,21 @@ UseProgLibs =
   3rdPartyLibs/webrtc-apm
 ;
 
-if $(Platform) in macOS linux windows scarlett ps5 {
-  CPPopt += -DUSE_RNNOISE_DENOISER=1 ;
-  UseProgLibs += 3rdPartyLibs/codecs/rnnoise ;
+if $(Config) in dbg dev {
+  Sources += voiceMetrics.cpp voiceCaptureDump.cpp ;
+  UseProgLibs +=
+    3rdPartyLibs/imgui
+    engine/imgui
+  ;
+}
+
+# every platform; one too slow for RNNoise goes back to the WebRTC noise suppressor, with no speech gate, when a
+# $(Platform) condition leaves these two lines out for it
+CPPopt += -DUSE_RNNOISE_DENOISER=1 ;
+UseProgLibs += 3rdPartyLibs/codecs/rnnoise ;
+
+if $(Platform) in windows xboxOne scarlett {
+  CPPopt += /wd4505 ; # warning C4505: 'FMOD_ErrorString': unreferenced local function has been removed
 }
 
 if $(PlatformSpec) = clang {

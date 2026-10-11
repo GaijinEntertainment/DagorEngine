@@ -264,16 +264,9 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::loadResource(IGe
   res->smvd->loadMatVdata(vname, crd, vdataFlags);
 
   crd.read(res->dumpStartPtr(), res_sz);
-  res->patchAndLoadData(res_sz_w, crd, srl_flags, name);
+  res->patchAndLoadData(res_sz_w, crd, srl_flags, name, desc);
   if (res->hasImpostor())
     res->loadImpostorData(name);
-  if (desc)
-  {
-    const DataBlock *texqBlk = desc->getBlockByName("texScale_data");
-    if (texqBlk)
-      for (int lodIdx = 0; lodIdx < res->lods.size(); lodIdx++)
-        res->lods[lodIdx].texScale = texqBlk->getReal(String(0, "texScale%d", lodIdx), 0);
-  }
   return res;
 }
 
@@ -489,7 +482,8 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
   release_game_resource_ex(impostorData, ImpostorDataGameResClassId);
 }
 
-void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd, int srl_flags, const char *name)
+void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd, int srl_flags, const char *name,
+  const DataBlock *desc)
 {
   packedFields = res_sz & 0x0FFFFFFF; // We call it on a resource creation so it could be non thread safe.
   bool hasImpostorMat = (res_sz & (1 << HAS_IMPOSTOR_MAT_SHIFT)) != 0;
@@ -508,6 +502,11 @@ void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd,
     lods[i].scene = RenderableInstanceResource::loadResourceInternal(crd, srl_flags, *smvd);
     lods[i].scene->addRef();
   }
+
+  // texScale%d are in exported lod order, apply them before any lod is dropped below
+  if (const DataBlock *texqBlk = desc ? desc->getBlockByName("texScale_data") : nullptr)
+    for (int lodIdx = 0; lodIdx < lods.size(); lodIdx++)
+      lods[lodIdx].texScale = texqBlk->getReal(String(0, "texScale%d", lodIdx), 0);
 
   if (disable_voxel_lods)
   {
@@ -545,6 +544,66 @@ void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd,
       logerr("empty mesh in trailing lod%02d, dropped; %s", i, dgs_get_fatal_context(buf, sizeof(buf)));
       lods.init(lods.data(), i);
     }
+
+  if constexpr (LOAD_MAX_LODS > 0)
+  {
+    static int use_cross_dissolve_var_id = VariableMap::getVariableId("use_cross_dissolve");
+    static int material_pn_triangulation_var_id = VariableMap::getVariableId("material_pn_triangulation");
+    auto hasPositiveVar = [](const Lod &lod, int var_id) {
+      for (const ShaderMesh::RElem &e : lod.scene->getMesh()->getMesh()->getMesh()->getAllElems())
+        if (int v = 0; e.mat->getIntVariable(var_id, v) && v > 0)
+          return true;
+      return false;
+    };
+    auto dropLods = [this](int first, int cnt) {
+      for (int i = first; i < first + cnt; i++)
+      {
+        lods[i].scene->delRef();
+        lods[i].scene = nullptr;
+      }
+      for (int i = first; i + cnt < lods.size(); i++)
+        lods[i] = eastl::move(lods[i + cnt]);
+      lods.init(lods.data(), lods.size() - cnt);
+    };
+
+    const int srcLodCnt = lods.size();
+    // transition lod is the merged last mesh lod + impostor, marked by the exporter with use_cross_dissolve
+    const bool hasTransitionLod =
+      hasImpostorMat && lods.size() > 1 && hasPositiveVar(lods[lods.size() - 2], use_cross_dissolve_var_id);
+    const int tailCnt = hasTransitionLod ? 2 : 1;
+    const int meshLodCnt = (int)lods.size() - (hasImpostorMat ? tailCnt : 0);
+
+    // tessellation is too costly here, so use the plain copy of lod0 the exporter adds when it splits at the tessellation range;
+    // without a split lod1 is a coarser mesh, that is told apart by the face count
+    auto faceCnt = [](const Lod &lod) {
+      int f = 0;
+      for (const ShaderMesh::RElem &e : lod.scene->getMesh()->getMesh()->getMesh()->getAllElems())
+        f += e.numf;
+      return f;
+    };
+    const bool dropTessLod0 = meshLodCnt > 1 && hasPositiveVar(lods[0], material_pn_triangulation_var_id) &&
+                              !hasPositiveVar(lods[1], material_pn_triangulation_var_id) && faceCnt(lods[0]) == faceCnt(lods[1]);
+    if (dropTessLod0)
+      dropLods(0, 1);
+
+    const int headCnt = LOAD_MAX_LODS - 1;
+    const int dropCnt = (int)lods.size() - headCnt - tailCnt;
+    if (dropCnt > 0)
+      dropLods(headCnt, dropCnt);
+
+    if (dropTessLod0 || dropCnt > 0)
+    {
+      const int firstSrc = headCnt + dropTessLod0; // dropped lods in exported numbering
+      const char *sep = dropTessLod0 ? " and" : "";
+      String dropped;
+      if (dropCnt == 1)
+        dropped.printf(0, "%s lod%d", sep, firstSrc);
+      else if (dropCnt > 1)
+        dropped.printf(0, "%s lods %d..%d", sep, firstSrc, firstSrc + dropCnt - 1);
+      logwarn("%s: %d lods, dropped%s%s to fit %d mesh lods", name, srcLodCnt, dropTessLod0 ? " tessellated lod0" : "",
+        dropped.c_str(), LOAD_MAX_LODS);
+    }
+  }
 
   {
     // This is a very commonly used condition in the BVH, so it is cached here.

@@ -17,12 +17,6 @@ public:
   PostfxPanel(EnvironmentPlugin &plugin, void *hwnd);
   ~PostfxPanel() override;
 
-  PropPanel::PanelWindowPropertyControl *getPanel()
-  {
-    G_ASSERT(propPanel);
-    return propPanel;
-  }
-
   void fillPanel();
 
 private:

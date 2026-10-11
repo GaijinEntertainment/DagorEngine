@@ -10,7 +10,6 @@ texture globe_color_tex;
 texture globe_normals_tex;
 texture globe_clouds_ocean_tex;
 texture globe_shadows_tex;
-texture source_tex;
 texture skies_ms_texture;
 
 float4 globe_slice_tex_size = (4096.0, 2048.0, 1.0, 0);
@@ -475,47 +474,4 @@ shader globe_model
   }
   compile("target_ps", "globe_model_ps");
 
-}
-
-shader globe_model_apply_low
-{
-  cull_mode = none;
-  z_write = false;
-  z_test = true;
-
-  blend_src = one; blend_dst = sa;
-  blend_asrc = zero; blend_adst = sa;
-
-  USE_POSTFX_VERTEX_POSITIONS()
-
-  (ps) {
-    source_tex@smp2d = source_tex;
-  }
-
-  hlsl {
-    struct VsOutput
-    {
-      VS_OUT_POSITION(pos)
-      float2 screenUV: TEXCOORD0;
-    };
-  }
-
-  hlsl(ps) {
-    float4 globe_model_apply_low_ps(VsOutput input) : SV_Target
-    {
-      return tex2Dlod(source_tex, float4(input.screenUV, 0, 0));
-    }
-  }
-  compile("target_ps", "globe_model_apply_low_ps");
-
-  hlsl(vs) {
-    VsOutput globe_model_apply_low_vs(uint vertexId : SV_VertexID)
-    {
-      VsOutput output;
-      output.pos = float4(getPostfxVertexPositionById(vertexId), 0, 1);
-      output.screenUV = output.pos.xy * float2(0.5, HALF_RT_TC_YSCALE) + 0.5;
-      return output;
-    }
-  }
-  compile("target_vs", "globe_model_apply_low_vs");
 }

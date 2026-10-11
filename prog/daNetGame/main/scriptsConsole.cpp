@@ -147,6 +147,17 @@ namespace bind_dascript
 extern size_t dump_memory();
 }
 
+static void reload_all_das_scripts(bool announce)
+{
+  gamescripts::unload_all_das_scripts_without_debug_agents();
+  gamescripts::reload_das_init();
+  gamescripts::reload_das_modules();
+  gamescripts::main_thread_post_load();
+  gamescripts::das_load_ecs_templates(); // after the das es, as at startup
+  if (announce)
+    g_entity_mgr->broadcastEvent(EventDaScriptReloaded());
+}
+
 static bool das_console_handler(const char *argv[], int argc) // move it somewhere else
 {
   if (argc < 1)
@@ -155,15 +166,8 @@ static bool das_console_handler(const char *argv[], int argc) // move it somewhe
   CONSOLE_CHECK_NAME("das", "dump_mem", 1, 1) { console::print_d("total memory used: <%d>", bind_dascript::dump_memory()); } //-V547
   CONSOLE_CHECK_NAME("das", "reload_scripts", 1, 2)
   {
-    bool announce = (argc > 1) ? console::to_bool(argv[1]) : true;
-    delayed_call([announce]() {
-      gamescripts::unload_all_das_scripts_without_debug_agents();
-      gamescripts::reload_das_init();
-      gamescripts::reload_das_modules();
-      gamescripts::main_thread_post_load();
-      if (announce)
-        g_entity_mgr->broadcastEvent(EventDaScriptReloaded());
-    });
+    const bool announce = (argc > 1) ? console::to_bool(argv[1]) : true;
+    delayed_call([announce]() { reload_all_das_scripts(announce); });
   }
   CONSOLE_CHECK_NAME("das", "reload_scripts_serialized_from", 2, 3)
   {
@@ -174,12 +178,7 @@ static bool das_console_handler(const char *argv[], int argc) // move it somewhe
       debug("Loading scripts version %u from %s", version, filename);
       if (version != -1 && version != 0)
         bind_dascript::enableSerialization = bind_dascript::serializationReading = true;
-      gamescripts::unload_all_das_scripts_without_debug_agents();
-      gamescripts::reload_das_init();
-      gamescripts::reload_das_modules();
-      gamescripts::main_thread_post_load();
-      if (announce)
-        g_entity_mgr->broadcastEvent(EventDaScriptReloaded());
+      reload_all_das_scripts(announce);
     });
   }
   CONSOLE_CHECK_NAME("das", "aot", 1, 2)

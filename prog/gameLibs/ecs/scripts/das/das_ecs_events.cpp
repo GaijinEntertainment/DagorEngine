@@ -131,16 +131,16 @@ static inline bool common_touch(const das::StructurePtr &st)
   G_STATIC_ASSERT(sizeof(TestEvent) == sizeof(uint32_t) + sizeof(uint32_t) + sizeof(ecs::event_size_t) + sizeof(ecs::event_flags_t));
   G_STATIC_ASSERT(offsetof(TestEvent, field) == sizeof(ecs::Event));
   st->fields
-    .emplace(st->fields.begin(), "eventFlags", new das::TypeDecl(das::Type::tUInt16), das::ExpressionPtr(),
+    .emplace(st->fields.begin(), "eventFlags", new das::TypeDecl(das::Type::tUInt16, das::cppBindingLineInfo()), das::ExpressionPtr(),
       das::AnnotationArgumentList(), false, st->at)
     ->generated = true;
   st->fields
-    .emplace(st->fields.begin(), "eventSize", new das::TypeDecl(das::Type::tUInt16), das::ExpressionPtr(),
+    .emplace(st->fields.begin(), "eventSize", new das::TypeDecl(das::Type::tUInt16, das::cppBindingLineInfo()), das::ExpressionPtr(),
       das::AnnotationArgumentList(), false, st->at)
     ->generated = true;
   st->fields
-    .emplace(st->fields.begin(), "eventType", new das::TypeDecl(das::Type::tUInt), das::ExpressionPtr(), das::AnnotationArgumentList(),
-      false, st->at)
+    .emplace(st->fields.begin(), "eventType", new das::TypeDecl(das::Type::tUInt, das::cppBindingLineInfo()), das::ExpressionPtr(),
+      das::AnnotationArgumentList(), false, st->at)
     ->generated = true;
   return true;
 }
@@ -303,7 +303,7 @@ static bool get_component_type(const das::TypeDeclPtr &type, const das::string &
     case das::Type::tEnumeration8: res = ecs::ComponentTypeInfo<int8_t>::type; return true;
     case das::Type::tInt16:
     case das::Type::tEnumeration16: res = ecs::ComponentTypeInfo<int16_t>::type; return true;
-    case das::Type::tEnumeration64: res = ecs::ComponentTypeInfo<int64_t>::type; return true;
+    case das::Type::tEnumeration64:
     case das::Type::tInt64: res = ecs::ComponentTypeInfo<int64_t>::type; return true;
     case das::Type::tInt2: res = ecs::ComponentTypeInfo<IPoint2>::type; return true;
     case das::Type::tInt3: res = ecs::ComponentTypeInfo<IPoint3>::type; return true;
@@ -379,14 +379,19 @@ static bool get_component_type(const das::TypeDeclPtr &type, const das::string &
 static bool calc_struct_hash(const das::StructurePtr &st, uint16_t evt_version,
   eastl::vector<ecs::component_type_t, framemem_allocator> &components, ecs::EventsDB::event_scheme_hash_t &hash, das::string &errors)
 {
-  hash = fnv1a_step<32>(evt_version, hash);
-  hash = fnv1a_step<32>(st->fields.size());
+  hash = fnv1a_step<32>(evt_version);
+  hash = fnv1a_step<32>(st->fields.size(), hash);
 
   int skip = SKIP_FIRST_EVENT_FIELDS;
   for (auto &field : st->fields)
   {
     if (--skip >= 0)
       continue;
+    if (field.offset > UINT8_MAX)
+    {
+      errors.append_sprintf("Field '%s' offset %d is too big, maximum possible is %d", field.name.c_str(), field.offset, UINT8_MAX);
+      return false;
+    }
     ecs::component_type_t type;
     if (!get_component_type(field.type, field.name, type, errors))
       return false;
@@ -454,7 +459,7 @@ static bool resolve_net_liable(const das::AnnotationArgumentList &args, Dascript
 struct EventRegistrator final : das::StructureAnnotation
 {
   EventRegistrator() : das::StructureAnnotation("event") {}
-  bool touch(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, const das::AnnotationArgumentList & /*args*/,
+  bool touch(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, das::AnnotationArgumentList & /*args*/,
     das::string & /*err*/) override
   {
     return common_touch(st);
@@ -529,7 +534,7 @@ struct EventRegistrator final : das::StructureAnnotation
     return true;
   }
 
-  bool look(const das::StructurePtr &st, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args, das::string &err)
+  bool look(const das::StructurePtr &st, das::ModuleGroup &mg_, das::AnnotationArgumentList &args, das::string &err)
   {
     if (!isValidStruct(st, err))
       return false;
@@ -659,12 +664,12 @@ ska::flat_hash_map<ecs::event_type_t, EventOffsets, ska::power_of_two_std_hash<e
 struct CppEventRegistrator final : das::StructureAnnotation
 {
   CppEventRegistrator() : das::StructureAnnotation("cpp_event") {}
-  bool touch(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, const das::AnnotationArgumentList & /*args*/,
+  bool touch(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, das::AnnotationArgumentList & /*args*/,
     das::string & /*err*/) override
   {
     return common_touch(st);
   }
-  bool look(const das::StructurePtr &st, das::ModuleGroup &mg_, const das::AnnotationArgumentList &args, das::string &err) override
+  bool look(const das::StructurePtr &st, das::ModuleGroup &mg_, das::AnnotationArgumentList &args, das::string &err) override
   {
     const ecs::event_flags_t castFlag = resolve_cast_type(args);
     auto cppNameIt = args.find("name", das::Type::tString);

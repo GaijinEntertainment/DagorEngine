@@ -45,63 +45,63 @@ public:
   __forceinline Func get_verifyCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_verifyCall]);
   }
-  __forceinline bool invoke_verifyCall ( Context * __context__, Func __funcCall__, void * self, ExprCallFunc * call, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_verifyCall ( Context * __context__, Func __funcCall__, void * self, ExprCallFunc * call, AnnotationArgumentList & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,ExprCallFunc *,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,ExprCallFunc *,AnnotationArgumentList &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,call,args,progArgs,errors);
   }
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,errors);
   }
   __forceinline Func get_generic_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_generic_apply]);
   }
-  __forceinline bool invoke_generic_apply ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_generic_apply ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,errors);
   }
   __forceinline Func get_finish ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_finish]);
   }
-  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors);
   }
   __forceinline Func get_patch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_patch]);
   }
-  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors, bool & astChanged ) const {
+  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList & args, AnnotationArgumentList const  & progArgs, das::string & errors, bool & astChanged ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &,bool &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList &,AnnotationArgumentList const  &,das::string &,bool &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors,astChanged);
   }
   __forceinline Func get_fixup ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_fixup]);
   }
-  __forceinline bool invoke_fixup ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_fixup ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors);
   }
   __forceinline Func get_lint ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_lint]);
   }
-  __forceinline bool invoke_lint ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_lint ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors);
   }
@@ -168,18 +168,18 @@ public:
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, ExprBlock * blk, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, ExprBlock * blk, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,ExprBlock *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,ExprBlock *,ModuleGroup &,AnnotationArgumentList &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,blk,group,args,errors);
   }
   __forceinline Func get_finish ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_finish]);
   }
-  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, ExprBlock * blk, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, ExprBlock * blk, ModuleGroup & group, AnnotationArgumentList & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,ExprBlock *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,ExprBlock *,ModuleGroup &,AnnotationArgumentList &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,blk,group,args,progArgs,errors);
   }
@@ -211,27 +211,27 @@ public:
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Structure *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Structure *,ModuleGroup &,AnnotationArgumentList &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors);
   }
   __forceinline Func get_finish ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_finish]);
   }
-  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Structure *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Structure *,ModuleGroup &,AnnotationArgumentList &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors);
   }
   __forceinline Func get_patch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_patch]);
   }
-  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors, bool & astChanged ) const {
+  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors, bool & astChanged ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Structure *,ModuleGroup &,AnnotationArgumentList const  &,das::string &,bool &>
+      <void *,Structure *,ModuleGroup &,AnnotationArgumentList &,das::string &,bool &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors,astChanged);
   }
@@ -287,9 +287,9 @@ public:
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Enumeration * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Enumeration * st, ModuleGroup & group, AnnotationArgumentList & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Enumeration *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Enumeration *,ModuleGroup &,AnnotationArgumentList &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors);
   }
@@ -1198,134 +1198,138 @@ protected:
     __fn_visitExprAssert = 182,
     __fn_preVisitExprStaticAssert = 183,
     __fn_visitExprStaticAssert = 184,
-    __fn_preVisitExprQuote = 185,
-    __fn_visitExprQuote = 186,
-    __fn_preVisitExprDebug = 187,
-    __fn_visitExprDebug = 188,
-    __fn_preVisitExprInvoke = 189,
-    __fn_visitExprInvoke = 190,
-    __fn_preVisitExprErase = 191,
-    __fn_visitExprErase = 192,
-    __fn_preVisitExprSetInsert = 193,
-    __fn_visitExprSetInsert = 194,
-    __fn_preVisitExprFind = 195,
-    __fn_visitExprFind = 196,
-    __fn_preVisitExprKeyExists = 197,
-    __fn_visitExprKeyExists = 198,
-    __fn_preVisitExprAscend = 199,
-    __fn_visitExprAscend = 200,
-    __fn_preVisitExprCast = 201,
-    __fn_visitExprCast = 202,
-    __fn_preVisitExprDeleteSizeExpression = 203,
-    __fn_preVisitExprDelete = 204,
-    __fn_visitExprDelete = 205,
-    __fn_preVisitExprVar = 206,
-    __fn_visitExprVar = 207,
-    __fn_preVisitExprTag = 208,
-    __fn_preVisitExprTagValue = 209,
-    __fn_visitExprTag = 210,
-    __fn_preVisitExprField = 211,
-    __fn_visitExprField = 212,
-    __fn_preVisitExprSafeField = 213,
-    __fn_visitExprSafeField = 214,
-    __fn_preVisitExprSwizzle = 215,
-    __fn_visitExprSwizzle = 216,
-    __fn_preVisitExprIsVariant = 217,
-    __fn_visitExprIsVariant = 218,
-    __fn_preVisitExprAsVariant = 219,
-    __fn_visitExprAsVariant = 220,
-    __fn_preVisitExprSafeAsVariant = 221,
-    __fn_visitExprSafeAsVariant = 222,
-    __fn_preVisitExprOp1 = 223,
-    __fn_visitExprOp1 = 224,
-    __fn_preVisitExprReturn = 225,
-    __fn_visitExprReturn = 226,
-    __fn_preVisitExprYield = 227,
-    __fn_visitExprYield = 228,
-    __fn_preVisitExprBreak = 229,
-    __fn_visitExprBreak = 230,
-    __fn_preVisitExprContinue = 231,
-    __fn_visitExprContinue = 232,
-    __fn_canVisitMakeBlockBody = 233,
-    __fn_preVisitExprMakeBlock = 234,
-    __fn_visitExprMakeBlock = 235,
-    __fn_preVisitExprMakeGenerator = 236,
-    __fn_visitExprMakeGenerator = 237,
-    __fn_preVisitExprMemZero = 238,
-    __fn_visitExprMemZero = 239,
-    __fn_preVisitExprConst = 240,
-    __fn_visitExprConst = 241,
-    __fn_preVisitExprConstPtr = 242,
-    __fn_visitExprConstPtr = 243,
-    __fn_preVisitExprConstEnumeration = 244,
-    __fn_visitExprConstEnumeration = 245,
-    __fn_preVisitExprConstBitfield = 246,
-    __fn_visitExprConstBitfield = 247,
-    __fn_preVisitExprConstInt8 = 248,
-    __fn_visitExprConstInt8 = 249,
-    __fn_preVisitExprConstInt16 = 250,
-    __fn_visitExprConstInt16 = 251,
-    __fn_preVisitExprConstFloat16 = 252,
-    __fn_visitExprConstFloat16 = 253,
-    __fn_preVisitExprConstInt64 = 254,
-    __fn_visitExprConstInt64 = 255,
-    __fn_preVisitExprConstInt = 256,
-    __fn_visitExprConstInt = 257,
-    __fn_preVisitExprConstInt2 = 258,
-    __fn_visitExprConstInt2 = 259,
-    __fn_preVisitExprConstInt3 = 260,
-    __fn_visitExprConstInt3 = 261,
-    __fn_preVisitExprConstInt4 = 262,
-    __fn_visitExprConstInt4 = 263,
-    __fn_preVisitExprConstUInt8 = 264,
-    __fn_visitExprConstUInt8 = 265,
-    __fn_preVisitExprConstUInt16 = 266,
-    __fn_visitExprConstUInt16 = 267,
-    __fn_preVisitExprConstUInt64 = 268,
-    __fn_visitExprConstUInt64 = 269,
-    __fn_preVisitExprConstUInt = 270,
-    __fn_visitExprConstUInt = 271,
-    __fn_preVisitExprConstUInt2 = 272,
-    __fn_visitExprConstUInt2 = 273,
-    __fn_preVisitExprConstUInt3 = 274,
-    __fn_visitExprConstUInt3 = 275,
-    __fn_preVisitExprConstUInt4 = 276,
-    __fn_visitExprConstUInt4 = 277,
-    __fn_preVisitExprConstRange = 278,
-    __fn_visitExprConstRange = 279,
-    __fn_preVisitExprConstURange = 280,
-    __fn_visitExprConstURange = 281,
-    __fn_preVisitExprConstRange64 = 282,
-    __fn_visitExprConstRange64 = 283,
-    __fn_preVisitExprConstURange64 = 284,
-    __fn_visitExprConstURange64 = 285,
-    __fn_preVisitExprConstBool = 286,
-    __fn_visitExprConstBool = 287,
-    __fn_preVisitExprConstFloat = 288,
-    __fn_visitExprConstFloat = 289,
-    __fn_preVisitExprConstFloat2 = 290,
-    __fn_visitExprConstFloat2 = 291,
-    __fn_preVisitExprConstFloat3 = 292,
-    __fn_visitExprConstFloat3 = 293,
-    __fn_preVisitExprConstFloat4 = 294,
-    __fn_visitExprConstFloat4 = 295,
-    __fn_preVisitExprConstString = 296,
-    __fn_visitExprConstString = 297,
-    __fn_preVisitExprConstDouble = 298,
-    __fn_visitExprConstDouble = 299,
-    __fn_preVisitExprFakeContext = 300,
-    __fn_visitExprFakeContext = 301,
-    __fn_preVisitExprFakeLineInfo = 302,
-    __fn_visitExprFakeLineInfo = 303,
-    __fn_preVisitExprReader = 304,
-    __fn_visitExprReader = 305,
-    __fn_preVisitExprUnsafe = 306,
-    __fn_visitExprUnsafe = 307,
-    __fn_preVisitExprCallMacro = 308,
-    __fn_visitExprCallMacro = 309,
+    __fn_canVisitQuoteSubexpression = 185,
+    __fn_preVisitExprQuote = 186,
+    __fn_visitExprQuote = 187,
+    __fn_preVisitExprDebug = 188,
+    __fn_visitExprDebug = 189,
+    __fn_preVisitExprInvoke = 190,
+    __fn_visitExprInvoke = 191,
+    __fn_preVisitExprErase = 192,
+    __fn_visitExprErase = 193,
+    __fn_preVisitExprSetInsert = 194,
+    __fn_visitExprSetInsert = 195,
+    __fn_preVisitExprFind = 196,
+    __fn_visitExprFind = 197,
+    __fn_preVisitExprKeyExists = 198,
+    __fn_visitExprKeyExists = 199,
+    __fn_preVisitExprAscend = 200,
+    __fn_visitExprAscend = 201,
+    __fn_preVisitExprCast = 202,
+    __fn_visitExprCast = 203,
+    __fn_preVisitExprDeleteSizeExpression = 204,
+    __fn_preVisitExprDelete = 205,
+    __fn_visitExprDelete = 206,
+    __fn_preVisitExprVar = 207,
+    __fn_visitExprVar = 208,
+    __fn_preVisitExprTag = 209,
+    __fn_preVisitExprTagValue = 210,
+    __fn_visitExprTag = 211,
+    __fn_preVisitExprField = 212,
+    __fn_visitExprField = 213,
+    __fn_preVisitExprSafeField = 214,
+    __fn_visitExprSafeField = 215,
+    __fn_preVisitExprSwizzle = 216,
+    __fn_visitExprSwizzle = 217,
+    __fn_preVisitExprIsVariant = 218,
+    __fn_visitExprIsVariant = 219,
+    __fn_preVisitExprAsVariant = 220,
+    __fn_visitExprAsVariant = 221,
+    __fn_preVisitExprSafeAsVariant = 222,
+    __fn_visitExprSafeAsVariant = 223,
+    __fn_preVisitExprOp1 = 224,
+    __fn_visitExprOp1 = 225,
+    __fn_preVisitExprReturn = 226,
+    __fn_visitExprReturn = 227,
+    __fn_preVisitExprYield = 228,
+    __fn_visitExprYield = 229,
+    __fn_preVisitExprBreak = 230,
+    __fn_visitExprBreak = 231,
+    __fn_preVisitExprContinue = 232,
+    __fn_visitExprContinue = 233,
+    __fn_canVisitMakeBlockBody = 234,
+    __fn_canVisitTryCatchBody = 235,
+    __fn_preVisitExprMakeBlock = 236,
+    __fn_visitExprMakeBlock = 237,
+    __fn_preVisitExprMakeGenerator = 238,
+    __fn_visitExprMakeGenerator = 239,
+    __fn_preVisitExprMemZero = 240,
+    __fn_visitExprMemZero = 241,
+    __fn_preVisitExprConst = 242,
+    __fn_visitExprConst = 243,
+    __fn_preVisitExprConstPtr = 244,
+    __fn_visitExprConstPtr = 245,
+    __fn_preVisitExprConstEnumeration = 246,
+    __fn_visitExprConstEnumeration = 247,
+    __fn_preVisitExprConstBitfield = 248,
+    __fn_visitExprConstBitfield = 249,
+    __fn_preVisitExprConstInt8 = 250,
+    __fn_visitExprConstInt8 = 251,
+    __fn_preVisitExprConstInt16 = 252,
+    __fn_visitExprConstInt16 = 253,
+    __fn_preVisitExprConstFloat16 = 254,
+    __fn_visitExprConstFloat16 = 255,
+    __fn_preVisitExprConstInt64 = 256,
+    __fn_visitExprConstInt64 = 257,
+    __fn_preVisitExprConstInt = 258,
+    __fn_visitExprConstInt = 259,
+    __fn_preVisitExprConstInt2 = 260,
+    __fn_visitExprConstInt2 = 261,
+    __fn_preVisitExprConstInt3 = 262,
+    __fn_visitExprConstInt3 = 263,
+    __fn_preVisitExprConstInt4 = 264,
+    __fn_visitExprConstInt4 = 265,
+    __fn_preVisitExprConstUInt8 = 266,
+    __fn_visitExprConstUInt8 = 267,
+    __fn_preVisitExprConstUInt16 = 268,
+    __fn_visitExprConstUInt16 = 269,
+    __fn_preVisitExprConstUInt64 = 270,
+    __fn_visitExprConstUInt64 = 271,
+    __fn_preVisitExprConstUInt = 272,
+    __fn_visitExprConstUInt = 273,
+    __fn_preVisitExprConstUInt2 = 274,
+    __fn_visitExprConstUInt2 = 275,
+    __fn_preVisitExprConstUInt3 = 276,
+    __fn_visitExprConstUInt3 = 277,
+    __fn_preVisitExprConstUInt4 = 278,
+    __fn_visitExprConstUInt4 = 279,
+    __fn_preVisitExprConstRange = 280,
+    __fn_visitExprConstRange = 281,
+    __fn_preVisitExprConstURange = 282,
+    __fn_visitExprConstURange = 283,
+    __fn_preVisitExprConstRange64 = 284,
+    __fn_visitExprConstRange64 = 285,
+    __fn_preVisitExprConstURange64 = 286,
+    __fn_visitExprConstURange64 = 287,
+    __fn_preVisitExprConstBool = 288,
+    __fn_visitExprConstBool = 289,
+    __fn_preVisitExprConstFloat = 290,
+    __fn_visitExprConstFloat = 291,
+    __fn_preVisitExprConstFloat2 = 292,
+    __fn_visitExprConstFloat2 = 293,
+    __fn_preVisitExprConstFloat3 = 294,
+    __fn_visitExprConstFloat3 = 295,
+    __fn_preVisitExprConstFloat4 = 296,
+    __fn_visitExprConstFloat4 = 297,
+    __fn_preVisitExprConstString = 298,
+    __fn_visitExprConstString = 299,
+    __fn_preVisitExprConstDouble = 300,
+    __fn_visitExprConstDouble = 301,
+    __fn_preVisitExprFakeContext = 302,
+    __fn_visitExprFakeContext = 303,
+    __fn_preVisitExprFakeLineInfo = 304,
+    __fn_visitExprFakeLineInfo = 305,
+    __fn_preVisitExprReader = 306,
+    __fn_visitExprReader = 307,
+    __fn_preVisitExprUnsafe = 308,
+    __fn_visitExprUnsafe = 309,
+    __fn_preVisitExprCallMacro = 310,
+    __fn_visitExprCallMacro = 311,
+    __fn_canVisitMakeArray = 312,
+    __fn_canVisitMakeArrayIndex = 313,
   };
 protected:
-  int _das_class_method_offset[310];
+  int _das_class_method_offset[314];
 public:
   AstVisitor_Adapter ( const StructInfo * info ) {
       _das_class_method_offset[__fn_preVisitProgram] = info->fields[2]->offset;
@@ -1513,131 +1517,135 @@ public:
       _das_class_method_offset[__fn_visitExprAssert] = info->fields[184]->offset;
       _das_class_method_offset[__fn_preVisitExprStaticAssert] = info->fields[185]->offset;
       _das_class_method_offset[__fn_visitExprStaticAssert] = info->fields[186]->offset;
-      _das_class_method_offset[__fn_preVisitExprQuote] = info->fields[187]->offset;
-      _das_class_method_offset[__fn_visitExprQuote] = info->fields[188]->offset;
-      _das_class_method_offset[__fn_preVisitExprDebug] = info->fields[189]->offset;
-      _das_class_method_offset[__fn_visitExprDebug] = info->fields[190]->offset;
-      _das_class_method_offset[__fn_preVisitExprInvoke] = info->fields[191]->offset;
-      _das_class_method_offset[__fn_visitExprInvoke] = info->fields[192]->offset;
-      _das_class_method_offset[__fn_preVisitExprErase] = info->fields[193]->offset;
-      _das_class_method_offset[__fn_visitExprErase] = info->fields[194]->offset;
-      _das_class_method_offset[__fn_preVisitExprSetInsert] = info->fields[195]->offset;
-      _das_class_method_offset[__fn_visitExprSetInsert] = info->fields[196]->offset;
-      _das_class_method_offset[__fn_preVisitExprFind] = info->fields[197]->offset;
-      _das_class_method_offset[__fn_visitExprFind] = info->fields[198]->offset;
-      _das_class_method_offset[__fn_preVisitExprKeyExists] = info->fields[199]->offset;
-      _das_class_method_offset[__fn_visitExprKeyExists] = info->fields[200]->offset;
-      _das_class_method_offset[__fn_preVisitExprAscend] = info->fields[201]->offset;
-      _das_class_method_offset[__fn_visitExprAscend] = info->fields[202]->offset;
-      _das_class_method_offset[__fn_preVisitExprCast] = info->fields[203]->offset;
-      _das_class_method_offset[__fn_visitExprCast] = info->fields[204]->offset;
-      _das_class_method_offset[__fn_preVisitExprDeleteSizeExpression] = info->fields[205]->offset;
-      _das_class_method_offset[__fn_preVisitExprDelete] = info->fields[206]->offset;
-      _das_class_method_offset[__fn_visitExprDelete] = info->fields[207]->offset;
-      _das_class_method_offset[__fn_preVisitExprVar] = info->fields[208]->offset;
-      _das_class_method_offset[__fn_visitExprVar] = info->fields[209]->offset;
-      _das_class_method_offset[__fn_preVisitExprTag] = info->fields[210]->offset;
-      _das_class_method_offset[__fn_preVisitExprTagValue] = info->fields[211]->offset;
-      _das_class_method_offset[__fn_visitExprTag] = info->fields[212]->offset;
-      _das_class_method_offset[__fn_preVisitExprField] = info->fields[213]->offset;
-      _das_class_method_offset[__fn_visitExprField] = info->fields[214]->offset;
-      _das_class_method_offset[__fn_preVisitExprSafeField] = info->fields[215]->offset;
-      _das_class_method_offset[__fn_visitExprSafeField] = info->fields[216]->offset;
-      _das_class_method_offset[__fn_preVisitExprSwizzle] = info->fields[217]->offset;
-      _das_class_method_offset[__fn_visitExprSwizzle] = info->fields[218]->offset;
-      _das_class_method_offset[__fn_preVisitExprIsVariant] = info->fields[219]->offset;
-      _das_class_method_offset[__fn_visitExprIsVariant] = info->fields[220]->offset;
-      _das_class_method_offset[__fn_preVisitExprAsVariant] = info->fields[221]->offset;
-      _das_class_method_offset[__fn_visitExprAsVariant] = info->fields[222]->offset;
-      _das_class_method_offset[__fn_preVisitExprSafeAsVariant] = info->fields[223]->offset;
-      _das_class_method_offset[__fn_visitExprSafeAsVariant] = info->fields[224]->offset;
-      _das_class_method_offset[__fn_preVisitExprOp1] = info->fields[225]->offset;
-      _das_class_method_offset[__fn_visitExprOp1] = info->fields[226]->offset;
-      _das_class_method_offset[__fn_preVisitExprReturn] = info->fields[227]->offset;
-      _das_class_method_offset[__fn_visitExprReturn] = info->fields[228]->offset;
-      _das_class_method_offset[__fn_preVisitExprYield] = info->fields[229]->offset;
-      _das_class_method_offset[__fn_visitExprYield] = info->fields[230]->offset;
-      _das_class_method_offset[__fn_preVisitExprBreak] = info->fields[231]->offset;
-      _das_class_method_offset[__fn_visitExprBreak] = info->fields[232]->offset;
-      _das_class_method_offset[__fn_preVisitExprContinue] = info->fields[233]->offset;
-      _das_class_method_offset[__fn_visitExprContinue] = info->fields[234]->offset;
-      _das_class_method_offset[__fn_canVisitMakeBlockBody] = info->fields[235]->offset;
-      _das_class_method_offset[__fn_preVisitExprMakeBlock] = info->fields[236]->offset;
-      _das_class_method_offset[__fn_visitExprMakeBlock] = info->fields[237]->offset;
-      _das_class_method_offset[__fn_preVisitExprMakeGenerator] = info->fields[238]->offset;
-      _das_class_method_offset[__fn_visitExprMakeGenerator] = info->fields[239]->offset;
-      _das_class_method_offset[__fn_preVisitExprMemZero] = info->fields[240]->offset;
-      _das_class_method_offset[__fn_visitExprMemZero] = info->fields[241]->offset;
-      _das_class_method_offset[__fn_preVisitExprConst] = info->fields[242]->offset;
-      _das_class_method_offset[__fn_visitExprConst] = info->fields[243]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstPtr] = info->fields[244]->offset;
-      _das_class_method_offset[__fn_visitExprConstPtr] = info->fields[245]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstEnumeration] = info->fields[246]->offset;
-      _das_class_method_offset[__fn_visitExprConstEnumeration] = info->fields[247]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstBitfield] = info->fields[248]->offset;
-      _das_class_method_offset[__fn_visitExprConstBitfield] = info->fields[249]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt8] = info->fields[250]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt8] = info->fields[251]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt16] = info->fields[252]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt16] = info->fields[253]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat16] = info->fields[254]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat16] = info->fields[255]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt64] = info->fields[256]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt64] = info->fields[257]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt] = info->fields[258]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt] = info->fields[259]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt2] = info->fields[260]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt2] = info->fields[261]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt3] = info->fields[262]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt3] = info->fields[263]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstInt4] = info->fields[264]->offset;
-      _das_class_method_offset[__fn_visitExprConstInt4] = info->fields[265]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt8] = info->fields[266]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt8] = info->fields[267]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt16] = info->fields[268]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt16] = info->fields[269]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt64] = info->fields[270]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt64] = info->fields[271]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt] = info->fields[272]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt] = info->fields[273]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt2] = info->fields[274]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt2] = info->fields[275]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt3] = info->fields[276]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt3] = info->fields[277]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstUInt4] = info->fields[278]->offset;
-      _das_class_method_offset[__fn_visitExprConstUInt4] = info->fields[279]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstRange] = info->fields[280]->offset;
-      _das_class_method_offset[__fn_visitExprConstRange] = info->fields[281]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstURange] = info->fields[282]->offset;
-      _das_class_method_offset[__fn_visitExprConstURange] = info->fields[283]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstRange64] = info->fields[284]->offset;
-      _das_class_method_offset[__fn_visitExprConstRange64] = info->fields[285]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstURange64] = info->fields[286]->offset;
-      _das_class_method_offset[__fn_visitExprConstURange64] = info->fields[287]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstBool] = info->fields[288]->offset;
-      _das_class_method_offset[__fn_visitExprConstBool] = info->fields[289]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat] = info->fields[290]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat] = info->fields[291]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat2] = info->fields[292]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat2] = info->fields[293]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat3] = info->fields[294]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat3] = info->fields[295]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstFloat4] = info->fields[296]->offset;
-      _das_class_method_offset[__fn_visitExprConstFloat4] = info->fields[297]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstString] = info->fields[298]->offset;
-      _das_class_method_offset[__fn_visitExprConstString] = info->fields[299]->offset;
-      _das_class_method_offset[__fn_preVisitExprConstDouble] = info->fields[300]->offset;
-      _das_class_method_offset[__fn_visitExprConstDouble] = info->fields[301]->offset;
-      _das_class_method_offset[__fn_preVisitExprFakeContext] = info->fields[302]->offset;
-      _das_class_method_offset[__fn_visitExprFakeContext] = info->fields[303]->offset;
-      _das_class_method_offset[__fn_preVisitExprFakeLineInfo] = info->fields[304]->offset;
-      _das_class_method_offset[__fn_visitExprFakeLineInfo] = info->fields[305]->offset;
-      _das_class_method_offset[__fn_preVisitExprReader] = info->fields[306]->offset;
-      _das_class_method_offset[__fn_visitExprReader] = info->fields[307]->offset;
-      _das_class_method_offset[__fn_preVisitExprUnsafe] = info->fields[308]->offset;
-      _das_class_method_offset[__fn_visitExprUnsafe] = info->fields[309]->offset;
-      _das_class_method_offset[__fn_preVisitExprCallMacro] = info->fields[310]->offset;
-      _das_class_method_offset[__fn_visitExprCallMacro] = info->fields[311]->offset;
+      _das_class_method_offset[__fn_canVisitQuoteSubexpression] = info->fields[187]->offset;
+      _das_class_method_offset[__fn_preVisitExprQuote] = info->fields[188]->offset;
+      _das_class_method_offset[__fn_visitExprQuote] = info->fields[189]->offset;
+      _das_class_method_offset[__fn_preVisitExprDebug] = info->fields[190]->offset;
+      _das_class_method_offset[__fn_visitExprDebug] = info->fields[191]->offset;
+      _das_class_method_offset[__fn_preVisitExprInvoke] = info->fields[192]->offset;
+      _das_class_method_offset[__fn_visitExprInvoke] = info->fields[193]->offset;
+      _das_class_method_offset[__fn_preVisitExprErase] = info->fields[194]->offset;
+      _das_class_method_offset[__fn_visitExprErase] = info->fields[195]->offset;
+      _das_class_method_offset[__fn_preVisitExprSetInsert] = info->fields[196]->offset;
+      _das_class_method_offset[__fn_visitExprSetInsert] = info->fields[197]->offset;
+      _das_class_method_offset[__fn_preVisitExprFind] = info->fields[198]->offset;
+      _das_class_method_offset[__fn_visitExprFind] = info->fields[199]->offset;
+      _das_class_method_offset[__fn_preVisitExprKeyExists] = info->fields[200]->offset;
+      _das_class_method_offset[__fn_visitExprKeyExists] = info->fields[201]->offset;
+      _das_class_method_offset[__fn_preVisitExprAscend] = info->fields[202]->offset;
+      _das_class_method_offset[__fn_visitExprAscend] = info->fields[203]->offset;
+      _das_class_method_offset[__fn_preVisitExprCast] = info->fields[204]->offset;
+      _das_class_method_offset[__fn_visitExprCast] = info->fields[205]->offset;
+      _das_class_method_offset[__fn_preVisitExprDeleteSizeExpression] = info->fields[206]->offset;
+      _das_class_method_offset[__fn_preVisitExprDelete] = info->fields[207]->offset;
+      _das_class_method_offset[__fn_visitExprDelete] = info->fields[208]->offset;
+      _das_class_method_offset[__fn_preVisitExprVar] = info->fields[209]->offset;
+      _das_class_method_offset[__fn_visitExprVar] = info->fields[210]->offset;
+      _das_class_method_offset[__fn_preVisitExprTag] = info->fields[211]->offset;
+      _das_class_method_offset[__fn_preVisitExprTagValue] = info->fields[212]->offset;
+      _das_class_method_offset[__fn_visitExprTag] = info->fields[213]->offset;
+      _das_class_method_offset[__fn_preVisitExprField] = info->fields[214]->offset;
+      _das_class_method_offset[__fn_visitExprField] = info->fields[215]->offset;
+      _das_class_method_offset[__fn_preVisitExprSafeField] = info->fields[216]->offset;
+      _das_class_method_offset[__fn_visitExprSafeField] = info->fields[217]->offset;
+      _das_class_method_offset[__fn_preVisitExprSwizzle] = info->fields[218]->offset;
+      _das_class_method_offset[__fn_visitExprSwizzle] = info->fields[219]->offset;
+      _das_class_method_offset[__fn_preVisitExprIsVariant] = info->fields[220]->offset;
+      _das_class_method_offset[__fn_visitExprIsVariant] = info->fields[221]->offset;
+      _das_class_method_offset[__fn_preVisitExprAsVariant] = info->fields[222]->offset;
+      _das_class_method_offset[__fn_visitExprAsVariant] = info->fields[223]->offset;
+      _das_class_method_offset[__fn_preVisitExprSafeAsVariant] = info->fields[224]->offset;
+      _das_class_method_offset[__fn_visitExprSafeAsVariant] = info->fields[225]->offset;
+      _das_class_method_offset[__fn_preVisitExprOp1] = info->fields[226]->offset;
+      _das_class_method_offset[__fn_visitExprOp1] = info->fields[227]->offset;
+      _das_class_method_offset[__fn_preVisitExprReturn] = info->fields[228]->offset;
+      _das_class_method_offset[__fn_visitExprReturn] = info->fields[229]->offset;
+      _das_class_method_offset[__fn_preVisitExprYield] = info->fields[230]->offset;
+      _das_class_method_offset[__fn_visitExprYield] = info->fields[231]->offset;
+      _das_class_method_offset[__fn_preVisitExprBreak] = info->fields[232]->offset;
+      _das_class_method_offset[__fn_visitExprBreak] = info->fields[233]->offset;
+      _das_class_method_offset[__fn_preVisitExprContinue] = info->fields[234]->offset;
+      _das_class_method_offset[__fn_visitExprContinue] = info->fields[235]->offset;
+      _das_class_method_offset[__fn_canVisitMakeBlockBody] = info->fields[236]->offset;
+      _das_class_method_offset[__fn_canVisitTryCatchBody] = info->fields[237]->offset;
+      _das_class_method_offset[__fn_preVisitExprMakeBlock] = info->fields[238]->offset;
+      _das_class_method_offset[__fn_visitExprMakeBlock] = info->fields[239]->offset;
+      _das_class_method_offset[__fn_preVisitExprMakeGenerator] = info->fields[240]->offset;
+      _das_class_method_offset[__fn_visitExprMakeGenerator] = info->fields[241]->offset;
+      _das_class_method_offset[__fn_preVisitExprMemZero] = info->fields[242]->offset;
+      _das_class_method_offset[__fn_visitExprMemZero] = info->fields[243]->offset;
+      _das_class_method_offset[__fn_preVisitExprConst] = info->fields[244]->offset;
+      _das_class_method_offset[__fn_visitExprConst] = info->fields[245]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstPtr] = info->fields[246]->offset;
+      _das_class_method_offset[__fn_visitExprConstPtr] = info->fields[247]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstEnumeration] = info->fields[248]->offset;
+      _das_class_method_offset[__fn_visitExprConstEnumeration] = info->fields[249]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstBitfield] = info->fields[250]->offset;
+      _das_class_method_offset[__fn_visitExprConstBitfield] = info->fields[251]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt8] = info->fields[252]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt8] = info->fields[253]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt16] = info->fields[254]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt16] = info->fields[255]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat16] = info->fields[256]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat16] = info->fields[257]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt64] = info->fields[258]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt64] = info->fields[259]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt] = info->fields[260]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt] = info->fields[261]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt2] = info->fields[262]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt2] = info->fields[263]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt3] = info->fields[264]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt3] = info->fields[265]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstInt4] = info->fields[266]->offset;
+      _das_class_method_offset[__fn_visitExprConstInt4] = info->fields[267]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt8] = info->fields[268]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt8] = info->fields[269]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt16] = info->fields[270]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt16] = info->fields[271]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt64] = info->fields[272]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt64] = info->fields[273]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt] = info->fields[274]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt] = info->fields[275]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt2] = info->fields[276]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt2] = info->fields[277]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt3] = info->fields[278]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt3] = info->fields[279]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstUInt4] = info->fields[280]->offset;
+      _das_class_method_offset[__fn_visitExprConstUInt4] = info->fields[281]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstRange] = info->fields[282]->offset;
+      _das_class_method_offset[__fn_visitExprConstRange] = info->fields[283]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstURange] = info->fields[284]->offset;
+      _das_class_method_offset[__fn_visitExprConstURange] = info->fields[285]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstRange64] = info->fields[286]->offset;
+      _das_class_method_offset[__fn_visitExprConstRange64] = info->fields[287]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstURange64] = info->fields[288]->offset;
+      _das_class_method_offset[__fn_visitExprConstURange64] = info->fields[289]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstBool] = info->fields[290]->offset;
+      _das_class_method_offset[__fn_visitExprConstBool] = info->fields[291]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat] = info->fields[292]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat] = info->fields[293]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat2] = info->fields[294]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat2] = info->fields[295]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat3] = info->fields[296]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat3] = info->fields[297]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstFloat4] = info->fields[298]->offset;
+      _das_class_method_offset[__fn_visitExprConstFloat4] = info->fields[299]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstString] = info->fields[300]->offset;
+      _das_class_method_offset[__fn_visitExprConstString] = info->fields[301]->offset;
+      _das_class_method_offset[__fn_preVisitExprConstDouble] = info->fields[302]->offset;
+      _das_class_method_offset[__fn_visitExprConstDouble] = info->fields[303]->offset;
+      _das_class_method_offset[__fn_preVisitExprFakeContext] = info->fields[304]->offset;
+      _das_class_method_offset[__fn_visitExprFakeContext] = info->fields[305]->offset;
+      _das_class_method_offset[__fn_preVisitExprFakeLineInfo] = info->fields[306]->offset;
+      _das_class_method_offset[__fn_visitExprFakeLineInfo] = info->fields[307]->offset;
+      _das_class_method_offset[__fn_preVisitExprReader] = info->fields[308]->offset;
+      _das_class_method_offset[__fn_visitExprReader] = info->fields[309]->offset;
+      _das_class_method_offset[__fn_preVisitExprUnsafe] = info->fields[310]->offset;
+      _das_class_method_offset[__fn_visitExprUnsafe] = info->fields[311]->offset;
+      _das_class_method_offset[__fn_preVisitExprCallMacro] = info->fields[312]->offset;
+      _das_class_method_offset[__fn_visitExprCallMacro] = info->fields[313]->offset;
+      _das_class_method_offset[__fn_canVisitMakeArray] = info->fields[314]->offset;
+      _das_class_method_offset[__fn_canVisitMakeArrayIndex] = info->fields[315]->offset;
   }
   __forceinline Func get_preVisitProgram ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitProgram]);
@@ -3304,6 +3312,15 @@ public:
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
+  __forceinline Func get_canVisitQuoteSubexpression ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitQuoteSubexpression]);
+  }
+  __forceinline bool invoke_canVisitQuoteSubexpression ( Context * __context__, Func __funcCall__, void * self, ExprQuote * const  expr ) const {
+    return das_invoke_function<bool>::invoke
+      <void *,ExprQuote * const >
+        (__context__,nullptr,__funcCall__,
+          self,expr);
+  }
   __forceinline Func get_preVisitExprQuote ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprQuote]);
   }
@@ -3742,6 +3759,15 @@ public:
   __forceinline bool invoke_canVisitMakeBlockBody ( Context * __context__, Func __funcCall__, void * self, ExprMakeBlock * const  expr ) const {
     return das_invoke_function<bool>::invoke
       <void *,ExprMakeBlock * const >
+        (__context__,nullptr,__funcCall__,
+          self,expr);
+  }
+  __forceinline Func get_canVisitTryCatchBody ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitTryCatchBody]);
+  }
+  __forceinline bool invoke_canVisitTryCatchBody ( Context * __context__, Func __funcCall__, void * self, ExprTryCatch * const  expr ) const {
+    return das_invoke_function<bool>::invoke
+      <void *,ExprTryCatch * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
@@ -4428,6 +4454,24 @@ public:
       <void *,ExprCallMacro * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
+  }
+  __forceinline Func get_canVisitMakeArray ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitMakeArray]);
+  }
+  __forceinline bool invoke_canVisitMakeArray ( Context * __context__, Func __funcCall__, void * self, ExprMakeArray * const  expr ) const {
+    return das_invoke_function<bool>::invoke
+      <void *,ExprMakeArray * const >
+        (__context__,nullptr,__funcCall__,
+          self,expr);
+  }
+  __forceinline Func get_canVisitMakeArrayIndex ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitMakeArrayIndex]);
+  }
+  __forceinline bool invoke_canVisitMakeArrayIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeArray * const  expr, int32_t index, Expression * const  init, bool last ) const {
+    return das_invoke_function<bool>::invoke
+      <void *,ExprMakeArray * const ,int32_t,Expression * const ,bool>
+        (__context__,nullptr,__funcCall__,
+          self,expr,index,init,last);
   }
 };
 

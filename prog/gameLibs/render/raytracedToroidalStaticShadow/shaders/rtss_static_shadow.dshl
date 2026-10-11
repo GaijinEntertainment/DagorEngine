@@ -1,0 +1,75 @@
+include "rtss_lookup.dshl"
+
+// the static shadow API of static_shadow.hlsl over the rtss, for force_rtss_shadows == on
+macro INIT_STATIC_SHADOW_RTSS(code)
+  INIT_RTSS(code)
+endmacro
+
+macro USE_STATIC_SHADOW_RTSS(code)
+  hlsl(code) {
+    #define RTSS_SCREEN_HARDEN 1
+  }
+  USE_RTSS(code)
+  hlsl(code) {
+    #if HAS_STATIC_SHADOW
+    // cascade_id is 0 with data and 2 without, as the classic outside its cascades;
+    // FASTEST_STATIC_SHADOW_PCF or a radius_scale of 0 reads one 2x2 pcf, as the classic
+    half getStaticShadowMask(float3 worldPos, float3 normal, float3 from_sun_dir, float dither, out uint cascade_id, out half mask,
+      float radius_scale, float2 harden_param, float2 depth_bias_per_cascade)
+    {
+      cascade_id = 2;
+      mask = 0;
+      half shadow = 1; // constraint: one exit, the fxc of the CI node rejects an early return here
+      float lod, fade;
+      RtssTap center;
+      if (rtss_params.y != 0)
+      {
+        cascade_id = 0;
+        mask = 1;
+        shadow = 0;
+      }
+      else if (rtss_find_level(worldPos - rtss_origin, normal, frac(dither * 16), lod, center, fade) != RTSS_NO_LEVEL)
+      {
+        cascade_id = 0;
+        mask = half(1 - fade);
+    #if FASTEST_STATIC_SHADOW_PCF
+        shadow = rtss_pcf2x2(center, 0);
+    #else
+        if (radius_scale <= 0)
+          shadow = rtss_pcf2x2(center, 0);
+        else
+          shadow = rtss_screen_filter(center, normal, dither, radius_scale, float2(0.5, 0.5 - abs(normal.y) * 0.5), lod);
+    #endif
+      }
+      return shadow;
+    }
+
+    half getStaticShadowWithBias(float3 worldPos, float3 normal, float3 from_sun_dir, float dither, out uint cascade_id,
+      float radius_scale, float2 harden_param, float2 depth_bias_per_cascade)
+    {
+      half mask = 0; // constraint: fxc rejects an out it reads before the call writes it
+      half ret = getStaticShadowMask(worldPos, normal, from_sun_dir, dither, cascade_id, mask, radius_scale, harden_param,
+        depth_bias_per_cascade);
+      return half((1.h - mask) + ret * mask);
+    }
+
+    #if STATIC_SHADOW_DITHERED_NORMAL_ADJ
+    half getStaticShadow(float3 worldPos, float3 normal, float3 from_sun_dir, float dither, out uint cascade_id, float radius_scale)
+    {
+      return getStaticShadowWithBias(worldPos, normal, from_sun_dir, dither, cascade_id, radius_scale, 0, 0);
+    }
+    #else
+    half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float radius_scale)
+    {
+      return getStaticShadowWithBias(worldPos, 0, 0, dither, cascade_id, radius_scale, 0, 0);
+    }
+    #endif
+
+    half getStaticShadow(float3 worldPos)
+    {
+      uint cascadeId;
+      return getStaticShadowWithBias(worldPos, 0, 0, rtss_dither(worldPos), cascadeId, 1, 0, 0);
+    }
+    #endif
+  }
+endmacro

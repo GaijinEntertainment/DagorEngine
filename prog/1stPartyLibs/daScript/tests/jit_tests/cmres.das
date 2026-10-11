@@ -19,13 +19,13 @@ def cmres_alias {
 }
 
 def cmres_var_init_via_call {
-    var a = cmres_alias()
+    let a = cmres_alias()
     return a
 }
 
 def cmres_copy_local(which : bool) {
     var a : int[10]
-    var b : int[10]
+    let b : int[10]
     a = cmres_alias()
     return which ? a : b
 }
@@ -39,12 +39,12 @@ def cmres_alias_no_jit {
 }
 
 def cmres_var_init_via_call_with_cmres {
-    var a = cmres_alias_no_jit()    // calling non-jit function
+    let a = cmres_alias_no_jit()    // calling non-jit function
     return a
 }
 
 def cmres_call_native {
-    var a = testCMRES()
+    let a = testCMRES()
     return a
 }
 

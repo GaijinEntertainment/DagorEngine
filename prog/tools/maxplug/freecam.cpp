@@ -390,7 +390,7 @@ public:
   IUtil *iu = NULL;
   Interface *ip = NULL;
   HWND hFreeCamPanel = NULL;
-  ICustEdit *cammovespeedid = NULL, *camrotspeedid = NULL, *turboid = NULL;
+  ControlPtr<ICustEdit> cammovespeedid, camrotspeedid, turboid;
 
   void BeginEditParams(Interface *ip, IUtil *iu) override;
   void EndEditParams(Interface *ip, IUtil *iu) override;
@@ -568,33 +568,26 @@ void DagFreeCamUtil::update_freecam_vars()
     return;
   freecam.modon = IsDlgButtonChecked(hw, IDC_FREECAM_ON);
   set_cam(freecam.modon);
-  get_edfloat(cammovespeedid, freecam.move_speed);
-  get_edfloat(camrotspeedid, freecam.rot_speed);
-  get_edfloat(turboid, freecam.turbo);
+  get_edfloat(cammovespeedid.get(), freecam.move_speed);
+  get_edfloat(camrotspeedid.get(), freecam.rot_speed);
+  get_edfloat(turboid.get(), freecam.turbo);
 }
 
 void DagFreeCamUtil::Init(HWND hw)
 {
   hFreeCamPanel = hw;
   freecam.init(hw, ip);
-  cammovespeedid = GetICustEdit(GetDlgItem(hw, IDC_MOVE_SPEED));
-  camrotspeedid = GetICustEdit(GetDlgItem(hw, IDC_ROT_SPEED));
-  turboid = GetICustEdit(GetDlgItem(hw, IDC_TURBO));
+  cammovespeedid.reset(GetICustEdit(GetDlgItem(hw, IDC_MOVE_SPEED)));
+  camrotspeedid.reset(GetICustEdit(GetDlgItem(hw, IDC_ROT_SPEED)));
+  turboid.reset(GetICustEdit(GetDlgItem(hw, IDC_TURBO)));
   update_freecam_ui();
 }
 
 void DagFreeCamUtil::Destroy(HWND hw)
 {
   update_freecam_vars();
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
-  reled(cammovespeedid);
-  reled(camrotspeedid);
-  reled(turboid);
-#undef reled
+  cammovespeedid.reset();
+  camrotspeedid.reset();
+  turboid.reset();
   freecam.destroy(hw, ip);
 }

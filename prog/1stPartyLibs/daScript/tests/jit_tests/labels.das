@@ -1,8 +1,6 @@
 options gen2
 require dastest/testing_boost
 
-require jit
-
 var g_label = -1
 
 def test_label(a : int) {
@@ -46,13 +44,13 @@ def test_labels(t : T?) {
         }
     }
     t |> run("panic label") @(t : T?) {
-        // var failed = false
-        // try {
-        //     test_label(13)
-        // } recover {
-        //     failed = true
-        // }
-        // t |> success(failed)
+        var failed = false
+        try {
+            test_label(13)
+        } recover {
+            failed = true
+        }
+        t |> success(failed)
     }
     t |> run("static label") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@test_static_label))

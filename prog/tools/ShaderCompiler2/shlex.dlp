@@ -197,6 +197,11 @@ string      <MAIN> ==> string;
 'pos' <MAIN> => pos;
 'shader' <MAIN> => shader;
 'block' <MAIN> => block;
+'render_pass' <MAIN> => render_pass;
+'multi_render_pass' <MAIN> => multi_render_pass;
+'subpass' <MAIN> => subpass;
+'pass' <MAIN> => pass;
+'framebuffer_layout' <MAIN> => framebuffer_layout;
 'supports' <MAIN> => supports;
 'immediate_dword_count' <MAIN> => immediate_dword_count;
 'short2' <MAIN> => short2;
@@ -340,6 +345,10 @@ keyword ->
   'vertex' |
   'pixel' |
   'render_pass' |
+  'multi_render_pass' |
+  'subpass' |
+  'pass' |
+  'framebuffer_layout' |
   'shader' |
   'block' |
   'supports' |

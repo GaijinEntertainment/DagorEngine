@@ -37,7 +37,7 @@ public:
   virtual ~BinaryChannel() {}
 
   virtual bool setMaxBinaryChannelQueueSize(size_t) { return false; };
-  virtual size_t readFromBinaryChannel(char *, size_t) { return 0; };
+  virtual size_t readFromBinaryChannel(char *, size_t, uint64_t & /*sender_uid*/) { return 0; };
   virtual bool writeToBinaryChannel(const char *, size_t) { return false; };
 };
 
@@ -109,7 +109,7 @@ public:
   virtual void muteRemotePeerFor(const char *uri, bool mute, uint64_t user_id) = 0;
 
   virtual bool setMaxBinaryChannelQueueSize(const char *uri, size_t size) = 0;
-  virtual size_t readFromBinaryChannel(const char *uri, char *dst, size_t size) = 0;
+  virtual size_t readFromBinaryChannel(const char *uri, char *dst, size_t size, uint64_t &sender_uid) = 0;
   virtual bool writeToBinaryChannel(const char *uri, const char *src, size_t size) = 0;
 };
 
@@ -117,6 +117,7 @@ VoiceManagerWithBinaryChannel *create_voice_manager_tamvoice();
 VoiceManagerWithBinaryChannel *create_voice_manager_proximity_chat();
 CompositeVoiceManager *create_voice_manager_composite();
 
+constexpr size_t TAMVOICE_BINARY_MAX_SIZE = 255;
 constexpr const char *TAMVOICE_URL_PREFIX = "tamvchn://";
 constexpr const char *PROXIMITY_CHAT_URL_PREFIX = "danetvoice://";
 constexpr const char *PROXIMITY_CHAT_DEFAULT_ROOM = "danetvoice://proximity_chat";

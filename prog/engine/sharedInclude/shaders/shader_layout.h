@@ -244,15 +244,19 @@ struct ShRef
   uint16_t threadGroupSizeY;
   uint16_t threadGroupSizeZ : 15;
   uint16_t scarlettWave32 : 1;
+  // renderPassId is the table index + 1, so the zero padding of older dumps reads as RP_NONE.
+  static constexpr uint16_t RP_NONE = 0;
+  static constexpr uint16_t RP_GROUP_SUBPASS = 0xFFFF;
+  static constexpr int RP_MAX_INDEX = 0xFFFE;
 
   union
   {
     struct
     {
       int16_t branchlessCppStcodeId;
-      uint16_t pad1_;
+      uint16_t renderPassId;
       int16_t branchlessCppStblkcodeId;
-      uint16_t pad2_;
+      uint16_t renderSubpassIdx;
     };
     struct
     {
@@ -272,10 +276,35 @@ struct ShRef
     threadGroupSizeZ(0),
     scarlettWave32(false),
     branchlessCppStcodeId(-1),
+    renderPassId(RP_NONE),
     branchlessCppStblkcodeId(-1),
-    pad1_(0),
-    pad2_(0)
+    renderSubpassIdx(0)
   {}
+
+  struct RenderPassRef
+  {
+    bool group = false;
+    int index = -1;
+    int subpassIdx = -1;
+    explicit operator bool() const { return index >= 0; }
+  };
+  RenderPassRef renderPassRef() const
+  {
+    if (renderPassId == RP_NONE)
+      return {};
+    const bool grp = renderSubpassIdx == RP_GROUP_SUBPASS;
+    return {grp, int(renderPassId) - 1, grp ? -1 : int(renderSubpassIdx)};
+  }
+  void setPass(int table_index, int subpass_idx)
+  {
+    renderPassId = uint16_t(table_index + 1);
+    renderSubpassIdx = uint16_t(subpass_idx);
+  }
+  void setGroup(int table_index)
+  {
+    renderPassId = uint16_t(table_index + 1);
+    renderSubpassIdx = RP_GROUP_SUBPASS;
+  }
 };
 
 static_assert(sizeof(ShRef) == 24);
@@ -616,4 +645,98 @@ BINDUMP_END_LAYOUT()
 // @NOTE: templated 'using' for some reason trips clang up.
 #define stripped_bindump_frozen_version_t ScriptedShadersBinDumpV4
 
+enum RenderPassTargetFlags : uint8_t
+{
+  RP_TARGET_MULTISAMPLED = 1 << 0
+};
+
+enum RenderPassSubpassFlags : uint8_t
+{
+  RP_SUBPASS_DEPTH_READ_ONLY = 1 << 0,
+  RP_SUBPASS_DEPTH_SAMPLED = 1 << 1
+};
+
+enum RenderPassFlags : uint8_t
+{
+  RP_ALLOW_SPLIT = 1 << 0
+};
+
+static constexpr uint32_t RP_INVALID_NAME_HASH = 0xFFFFFFFFu;
+
+BINDUMP_BEGIN_LAYOUT(RenderPassResolve)
+  uint16_t srcTargetIndex = 0;
+  uint16_t dstTargetIndex = 0;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(RenderPassSubpass)
+  BINDUMP_USING_EXTENSION()
+  StrHolder name;
+  uint32_t nameHash = 0;
+  VecHolder<uint16_t> colors; // target indices
+  VecHolder<uint16_t> reads;  // target indices, in input attachment order
+  uint16_t depthTargetIndex = 0xFFFF;
+  uint16_t vrsTargetIndex = 0xFFFF;
+  uint8_t flags = 0; // RenderPassSubpassFlags
+  uint8_t pad8_ = 0;
+  uint16_t pad16_ = 0;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(FramebufferLayoutTarget)
+  BINDUMP_USING_EXTENSION()
+  StrHolder name;
+  uint32_t format = 0; // TEXFMT_*, plus the TEXCF_SRGB* flags of an sRGB format
+  uint8_t samples = 1;
+  uint8_t pad8_ = 0;
+  uint16_t pad16_ = 0;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(FramebufferLayout)
+  BINDUMP_USING_EXTENSION()
+  StrHolder name;
+  uint32_t nameHash = 0;
+  VecHolder<FramebufferLayoutTarget<>> targets;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(RenderPassShapeTarget)
+  BINDUMP_USING_EXTENSION()
+  StrHolder name;
+  uint8_t flags = 0; // RenderPassTargetFlags
+  uint8_t pad8_ = 0;
+  uint16_t pad16_ = 0;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(RenderPass)
+  BINDUMP_USING_EXTENSION()
+  StrHolder name;
+  uint32_t nameHash = 0;
+  VecHolder<RenderPassShapeTarget<>> targets; // begin_render_pass target array order
+  VecHolder<RenderPassSubpass<>> subpasses;
+  VecHolder<RenderPassResolve<>> resolves;
+  VecHolder<uint16_t> framebuffers;
+  // Row-major [supported layout][pass target] -> index into that layout's targets.
+  VecHolder<uint16_t> framebufferTargetEntries;
+  uint8_t flags = 0; // RenderPassFlags
+  uint8_t pad8_ = 0;
+  uint16_t pad16_ = 0;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(RenderPassGroupMember)
+  uint32_t passNameHash = 0;
+  uint16_t subpassIdx = 0;
+  uint16_t pad16_ = 0;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(RenderPassGroup)
+  BINDUMP_USING_EXTENSION()
+  StrHolder name;
+  uint32_t nameHash = 0;
+  VecHolder<RenderPassGroupMember<>> members;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV6, ScriptedShadersBinDumpV5)
+  BINDUMP_USING_EXTENSION()
+  VecHolder<RenderPass<>> renderPasses;
+  VecHolder<RenderPassGroup<>> renderPassGroups;
+  VecHolder<FramebufferLayout<>> framebufferLayouts;
+BINDUMP_END_LAYOUT()
 } // namespace shader_layout

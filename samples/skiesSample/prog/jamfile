@@ -318,4 +318,6 @@ if $(Config) = rel {
   ForceLogs = yes ;
 }
 
+include $(Root)/prog/gameLibs/render/ambientOcclusion/_lib.jam ;
+
 include $(Root)/prog/_jBuild/build.jam ;

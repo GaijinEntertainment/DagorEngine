@@ -18,7 +18,6 @@
 #include <de3_windService.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
-#include <de3_rendInstGen.h>
 #include <de3_baseInterfaces.h>
 #include <de3_dynRenderService.h>
 #include <shaders/dag_shaders.h>
@@ -40,6 +39,7 @@
 #include <render/wind/ambientWind.h>
 #include <assets/asset.h>
 #include <libTools/util/appDirRelativePath.h>
+#include "av_riGenArea.h"
 
 using hdpi::_pxScaled;
 
@@ -248,8 +248,7 @@ void renderEnviEntity(AssetLightData &ald)
     ald.renderEnviEntity = a ? DAEDITOR3.createEntity(*a) : NULL;
     if (ald.renderEnviEntity)
       ald.renderEnviEntity->setSubtype(IDaEditor3Engine::get().registerEntitySubTypeId("rend_ent_geom"));
-    if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
-      rigenSrv->discardRIGenRect(0, 0, 64, 64);
+    av_discard_rigen_area();
   }
   if (ald.renderEnviEntity)
   {
@@ -304,7 +303,7 @@ void renderEnvironment(bool ortho)
       }
       else if (textureStretch == 4)
         sx = sy = 1;
-      scales.set(sx * 0.5, -sy * 0.5, 0.5, 0.5);
+      scales.set(sx * 0.5f, -sy * 0.5f, 0.5f, 0.5f);
     }
 
     if (texture->getType() == D3DResourceType::TEX)

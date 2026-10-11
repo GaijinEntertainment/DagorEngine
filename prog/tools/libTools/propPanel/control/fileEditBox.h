@@ -6,6 +6,7 @@
 #include <propPanel/imguiHelper.h>
 #include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/messageQueue.h>
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 #include <gui/dag_imguiUtil.h>
 #include <libTools/util/strUtil.h>
@@ -113,6 +114,14 @@ public:
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
   const char *getImguiTypeName() const override { return "FileEditBox"; }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const Point2 labelSize = ControlSizeHelper::getSeparateLineLabelPreferredSize(controlCaption.begin(), controlCaption.end());
+    const float spaceBetweenControls = hdpi::_pxS(Constants::SPACE_BETWEEN_EDIT_BOX_AND_BUTTON_IN_COMBINED_CONTROL);
+    const float inputWidth = ControlSizeHelper::getPreferredTextInputWidth() + spaceBetweenControls + ImGui::GetFrameHeight();
+    return Point2(min(max(labelSize.x, inputWidth), max_width_px), labelSize.y + ImGui::GetFrameHeight());
+  }
 
   void updateImgui() override
   {

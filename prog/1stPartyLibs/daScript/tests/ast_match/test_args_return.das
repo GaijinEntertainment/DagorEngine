@@ -191,7 +191,7 @@ def test_block_no_args_fails_when_target_has_args(t : T?) {
 
 // ── $a(var) — capture remaining arguments ────────────────────────────────
 
-[export, marker(no_coverage)]
+[export, marker(no_coverage), unused_argument(b), unused_argument(c), unused_argument(d), unused_argument(e)]
 def target_five(a, b : int; c : float; d : string; e : bool) : int {
     return a
 }

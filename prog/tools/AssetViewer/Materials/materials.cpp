@@ -91,7 +91,7 @@ bool MaterialsPlugin::begin(DagorAsset *asset)
 
   updatePreview();
 
-  if (spEditor && asset)
+  if (spEditor)
     spEditor->load(asset);
   return true;
 }

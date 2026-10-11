@@ -43,11 +43,15 @@ struct PackageReleaseInfo {
     emcc_args : array<string>
     embed_paths : array<string>
     web_shell : string
+    wasm_disabled_modules : array<string>
     wasm_build_command : string
     wasm_archives : array<string>
     requires_jit : bool
     include_symbols : bool
     external_files : array<string>
+    tools : array<string>
+    launcher : string
+    programs : array<string>
 }
 
 
@@ -66,6 +70,9 @@ def run_das_package_meta(das_package_path : string; var meta : PackageMeta) : bo
             meta.min_sdk = clone_string(src.min_sdk)
             for (t in src.tags) {
                 meta.tags |> push(clone_string(t))
+            }
+            for (pl in src.platforms) {
+                meta.platforms |> push(clone_string(pl))
             }
         }
     }
@@ -146,6 +153,9 @@ def run_das_package_release(das_package_path : string; var info : PackageRelease
                 info.embed_paths |> push(clone_string(e))
             }
             info.web_shell = clone_string(src.web_shell)
+            for (m in src.wasm_disabled_modules) {
+                info.wasm_disabled_modules |> push(clone_string(m))
+            }
             info.wasm_build_command = clone_string(src.wasm_build_command)
             for (a in src.wasm_archives) {
                 info.wasm_archives |> push(clone_string(a))
@@ -154,6 +164,13 @@ def run_das_package_release(das_package_path : string; var info : PackageRelease
             info.include_symbols = src.include_symbols
             for (e in src.external_files) {
                 info.external_files |> push(clone_string(e))
+            }
+            for (tool in src.tools) {
+                info.tools |> push(clone_string(tool))
+            }
+            info.launcher = clone_string(src.launcher)
+            for (prog in src.programs) {
+                info.programs |> push(clone_string(prog))
             }
         }
     }

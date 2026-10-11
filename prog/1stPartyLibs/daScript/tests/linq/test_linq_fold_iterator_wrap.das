@@ -94,10 +94,7 @@ def test_matrix_distinct_iter_to_iter(t : T?) {
     t |> run("distinct(): iter src, no to_array → iterator<int>") @(tt : T?) {
         var got <- _fold([1, 2, 1, 3, 2, 3, 1].to_sequence() |> distinct())
         tt |> equal(typeinfo typename(got), "iterator<int>")
-        var seen : array<int>
-        for (v in got) {
-            seen |> push(v)
-        }
+        let seen <- [for (v in got); v]
         tt |> equal(length(seen), 3)
     }
 }
@@ -117,10 +114,7 @@ def test_matrix_distinct_array_to_iter(t : T?) {
         let arr = [1, 2, 1, 3, 2, 3, 1]
         var got <- _fold(each(arr) |> distinct())
         tt |> equal(typeinfo typename(got), "iterator<int>")
-        var seen : array<int>
-        for (v in got) {
-            seen |> push(v)
-        }
+        let seen <- [for (v in got); v]
         tt |> equal(length(seen), 3)
     }
 }
@@ -159,10 +153,7 @@ def test_matrix_reverse_distinct_iter_to_iter(t : T?) {
     t |> run("reverse() + distinct(): iter src, no to_array → iterator<int>") @(tt : T?) {
         var got <- _fold([3, 1, 2, 1, 3, 2].to_sequence() |> reverse() |> distinct())
         tt |> equal(typeinfo typename(got), "iterator<int>")
-        var collected : array<int>
-        for (v in got) {
-            collected |> push(v)
-        }
+        let collected <- [for (v in got); v]
         // reverse → [2,3,1,2,1,3]; distinct first-seen → [2,3,1]
         tt |> equal(length(collected), 3)
         tt |> equal(collected[0], 2)
@@ -185,10 +176,7 @@ def test_matrix_reverse_distinct_array_to_iter(t : T?) {
         let arr = [3, 1, 2, 1, 3, 2]
         var got <- _fold(each(arr) |> reverse() |> distinct())
         tt |> equal(typeinfo typename(got), "iterator<int>")
-        var collected : array<int>
-        for (v in got) {
-            collected |> push(v)
-        }
+        let collected <- [for (v in got); v]
         tt |> equal(length(collected), 3)
         tt |> equal(collected[0], 2)
     }
@@ -216,10 +204,7 @@ def test_matrix_reverse_take_iter_to_iter(t : T?) {
     t |> run("reverse() + take(N): iter src, no to_array → iterator<int>") @(tt : T?) {
         var got <- _fold([10, 20, 30, 40, 50].to_sequence() |> reverse() |> take(2))
         tt |> equal(typeinfo typename(got), "iterator<int>")
-        var collected : array<int>
-        for (v in got) {
-            collected |> push(v)
-        }
+        let collected <- [for (v in got); v]
         tt |> equal(length(collected), 2)
         tt |> equal(collected[0], 50)
         tt |> equal(collected[1], 40)
@@ -243,10 +228,7 @@ def test_matrix_reverse_take_array_to_iter(t : T?) {
         let arr = [10, 20, 30, 40, 50]
         var got <- _fold(each(arr) |> reverse() |> take(2))
         tt |> equal(typeinfo typename(got), "iterator<int>")
-        var collected : array<int>
-        for (v in got) {
-            collected |> push(v)
-        }
+        let collected <- [for (v in got); v]
         tt |> equal(length(collected), 2)
         tt |> equal(collected[0], 50)
         tt |> equal(collected[1], 40)

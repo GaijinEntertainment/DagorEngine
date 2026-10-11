@@ -1,10 +1,11 @@
 -- float-heavy inner loop
-local W = 320
-local H = 160
-local MAXIT = 60
+local vmBench <const> = require("profile").vmBench
 
-for rep = 1, 5 do
-  local t0 = os.clock()
+local W <const> = 320
+local H <const> = 160
+local MAXIT <const> = 60
+
+local function mandel()
   local inside = 0
   for py = 0, H - 1 do
     local ci = py * 2.0 / H - 1.0
@@ -19,8 +20,12 @@ for rep = 1, 5 do
         zr = nzr
         it = it + 1
       end
-      if it == MAXIT then inside = inside + 1 end
+      if it == MAXIT then
+        inside = inside + 1
+      end
     end
   end
-  print("BENCH mandel " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. inside .. ")")
+  return inside
 end
+
+vmBench("mandel", mandel)

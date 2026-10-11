@@ -108,7 +108,7 @@ def test_load_jpg(t : T?) {
 def test_info_png(t : T?) {
     t |> run("info PNG from file") <| @(tt : T?) {
         var x, y, comp : int
-        var ok = stbi_info(test_image_path("test.png"), safe_addr(x), safe_addr(y), safe_addr(comp))
+        let ok = stbi_info(test_image_path("test.png"), safe_addr(x), safe_addr(y), safe_addr(comp))
         tt |> success(ok != 0, "info ok")
         tt |> equal(x, 64)
         tt |> equal(y, 64)
@@ -120,7 +120,7 @@ def test_info_png(t : T?) {
 def test_info_bmp(t : T?) {
     t |> run("info BMP from file") <| @(tt : T?) {
         var x, y, comp : int
-        var ok = stbi_info(test_image_path("test.bmp"), safe_addr(x), safe_addr(y), safe_addr(comp))
+        let ok = stbi_info(test_image_path("test.bmp"), safe_addr(x), safe_addr(y), safe_addr(comp))
         tt |> success(ok != 0, "info ok")
         tt |> equal(x, 64)
         tt |> equal(y, 64)
@@ -131,7 +131,7 @@ def test_info_bmp(t : T?) {
 def test_info_jpg(t : T?) {
     t |> run("info JPG from file") <| @(tt : T?) {
         var x, y, comp : int
-        var ok = stbi_info(test_image_path("test.jpg"), safe_addr(x), safe_addr(y), safe_addr(comp))
+        let ok = stbi_info(test_image_path("test.jpg"), safe_addr(x), safe_addr(y), safe_addr(comp))
         tt |> success(ok != 0, "info ok")
         tt |> equal(x, 64)
         tt |> equal(y, 64)
@@ -155,7 +155,7 @@ def test_load_nonexistent(t : T?) {
 [test]
 def test_is_hdr_file(t : T?) {
     t |> run("HDR file detected as HDR") <| @(tt : T?) {
-        var ok = stbi_is_hdr(test_image_path("test.hdr"))
+        let ok = stbi_is_hdr(test_image_path("test.hdr"))
         tt |> success(ok != 0, "is HDR")
     }
 }
@@ -163,7 +163,7 @@ def test_is_hdr_file(t : T?) {
 [test]
 def test_is_not_hdr_png(t : T?) {
     t |> run("PNG file not detected as HDR") <| @(tt : T?) {
-        var ok = stbi_is_hdr(test_image_path("test.png"))
+        let ok = stbi_is_hdr(test_image_path("test.png"))
         tt |> equal(ok, 0)
     }
 }
@@ -209,7 +209,7 @@ def test_load_16_png(t : T?) {
 [test]
 def test_is_16_bit_file(t : T?) {
     t |> run("8-bit PNG not detected as 16-bit") <| @(tt : T?) {
-        var ok = stbi_is_16_bit(test_image_path("test.png"))
+        let ok = stbi_is_16_bit(test_image_path("test.png"))
         tt |> equal(ok, 0)
     }
 }

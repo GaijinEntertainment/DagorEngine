@@ -10,7 +10,7 @@
 #include <EditorCore/ec_camera_elem.h>
 
 #include <EASTL/optional.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <drv/3d/dag_decl.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_stdint.h>
@@ -537,7 +537,7 @@ protected:
   bool active = false;
   ImGuiID imguiCanvasId = 0;
 
-  TextureIDHolder viewportTexture;
+  UniqueTex viewportTexture;
   IPoint2 viewportTextureSize = IPoint2(0, 0);
   IPoint2 requestedViewportTextureSize = IPoint2(0, 0);
 

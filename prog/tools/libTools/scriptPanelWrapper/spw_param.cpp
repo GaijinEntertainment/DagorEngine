@@ -1280,13 +1280,12 @@ public:
     String buf(32, "%f", value);
     char *ptr = buf.str() + buf.length() - 1;
     if (!buf.empty() && strchr(buf.str(), '.'))
-      while (ptr > buf.str() && (*ptr == '0' || *ptr == '.'))
-      {
+    {
+      while (ptr > buf.str() && *ptr == '0')
+        *ptr-- = 0;
+      if (ptr > buf.str() && *ptr == '.')
         *ptr = 0;
-        if (*ptr == '.')
-          break;
-        --ptr;
-      }
+    }
 
     return buf;
   }
@@ -2282,13 +2281,13 @@ void ScriptPanelContainer::scriptControlFactory(PropPanel::ContainerPropertyCont
   else if (stricmp(type, "target_asset") == 0 || stricmp(type, "target_object") == 0)
   {
     panel_param = new SPTarget(this, param_name, caption);
-    if (mPanelWrapper && panel_param)
+    if (mPanelWrapper)
       ((SPTarget *)panel_param)->setCB(mPanelWrapper->getObjectCB());
   }
   else if (stricmp(type, "object_or_text") == 0)
   {
     panel_param = new SPCustomTarget(this, param_name, caption);
-    if (mPanelWrapper && panel_param)
+    if (mPanelWrapper)
       ((SPCustomTarget *)panel_param)->setCB(mPanelWrapper->getObjectCB());
   }
   else if (stricmp(type, "gradient") == 0)
@@ -2296,7 +2295,7 @@ void ScriptPanelContainer::scriptControlFactory(PropPanel::ContainerPropertyCont
   else if (stricmp(type, "text_gradient") == 0)
   {
     panel_param = new SPTextGradient(this, param_name, caption);
-    if (mPanelWrapper && panel_param)
+    if (mPanelWrapper)
       ((SPTextGradient *)panel_param)->setCB(mPanelWrapper->getObjectCB());
   }
   else if (stricmp(type, "set") == 0)

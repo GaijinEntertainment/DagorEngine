@@ -50,7 +50,6 @@ bool os_virtual_mem_protect(void *ptr_region_start, size_t region_sz, unsigned p
     case VM_PROT_EXEC | VM_PROT_READ: flg = PAGE_EXECUTE_READ; break;
     case VM_PROT_EXEC | VM_PROT_WRITE:
     case VM_PROT_EXEC | VM_PROT_READ | VM_PROT_WRITE: flg = PAGE_EXECUTE_READWRITE; break;
-    default: flg = PAGE_NOACCESS;
   }
   return VirtualProtect(ptr_region_start, region_sz, flg, &old_prot_flags);
 #elif DAG_HAVE_MMAP

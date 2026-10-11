@@ -108,6 +108,7 @@ extern bool use_tearing;
 extern double vsync_refresh_rate;
 extern eastl::optional<StreamlineAdapter> streamlineAdapter;
 extern HandlePointer waitableObject;
+extern int consecutive_waitable_object_timeouts;
 extern HWND main_window_hwnd;
 
 // @TEST(hang): for diagnosing hangs inside dx11 runtime, @TODO: remove once fixed
@@ -119,6 +120,18 @@ inline void set_pending_reset_reason_if_none(const char *reason)
 }
 inline const char *fetch_pending_reset_reason() { return (const char *)interlocked_exchange(pending_reset_reason, 0); }
 void log_present_state(const char *tag);
+
+inline bool is_flip_model(DXGI_SWAP_EFFECT swap_effect)
+{
+  return swap_effect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL || swap_effect == DXGI_SWAP_EFFECT_FLIP_DISCARD;
+}
+
+inline HRESULT discard_queued_swapchain_frames(IDXGI_SWAP_CHAIN *sc, DXGI_SWAP_EFFECT swap_effect = DXGI_SWAP_EFFECT_DISCARD)
+{
+  if (is_flip_model(swap_effect))
+    return sc->Present(0, DXGI_PRESENT_RESTART);
+  return S_OK;
+}
 
 extern float screen_aspect_ratio;
 

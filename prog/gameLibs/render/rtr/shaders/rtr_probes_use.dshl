@@ -15,8 +15,8 @@ macro INIT_RTR_PROBES_NO_SAMPLER(stage, use_bindless)
       rtr_probe_locations_buf_slot@i1 = rtr_probe_locations_buf_slot;
     }
     else {
-      probes@tex2d = rtr_probes;
-      probe_locations@buf = rtr_probe_locations hlsl { ByteAddressBuffer probe_locations@buf; };
+      rtr_probes@tex2d = rtr_probes;
+      rtr_probe_locations@buf = rtr_probe_locations hlsl { ByteAddressBuffer rtr_probe_locations@buf; };
     }
     probe_count@u2 = rtr_probes_count;
     inv_probe_count@f2 = 1.0 / (max(rtr_probes_count.xy, 1), 1, 1);
@@ -25,10 +25,9 @@ macro INIT_RTR_PROBES_NO_SAMPLER(stage, use_bindless)
 
   hlsl(stage) {
     ##if use_bindless
-      #define probes uniformBindlessTex2D(bvh_textures, rtr_probes_tex_slot)
-      #define probe_locations uniformBindlessBAB(bvh_geometry, rtr_probe_locations_buf_slot)
+      #define rtr_probes uniformBindlessTex2D(bvh_textures, rtr_probes_tex_slot)
+      #define rtr_probe_locations uniformBindlessBAB(bvh_geometry, rtr_probe_locations_buf_slot)
     ##endif
-    #define rtr_use_probes 1
   }
 endmacro
 
@@ -43,7 +42,7 @@ macro INIT_RTR_PROBES(stage, use_bindless)
         BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
         #define global_samplers_array_defined
       #endif
-      #define probes_samplerstate global_samplers_array[rtr_probe_sampler_slot]
+      #define rtr_probes_samplerstate global_samplers_array[rtr_probe_sampler_slot]
       bool rtr_probes_bindless_enabled()
       {
         return rtr_probes_tex_slot >= 0 && rtr_probe_locations_buf_slot >= 0 && rtr_probe_sampler_slot >= 0;
@@ -52,7 +51,7 @@ macro INIT_RTR_PROBES(stage, use_bindless)
   }
   else {
     (stage) {
-      probes_samplerstate@sampler = rtr_probe_sampler;
+      rtr_probes_samplerstate@sampler = rtr_probe_sampler;
     }
   }
 endmacro
@@ -76,7 +75,7 @@ macro USE_RTR_PROBES(stage)
       float2 invCell = float2(inv_probe_count.x * 0.5, inv_probe_count.y);
       uint2 cell = uint2(probeIndex.x * 2 + layer, probeIndex.y);
       uv = (uv + cell) * invCell;
-      return probes.SampleLevel(probes_samplerstate, uv, 0);
+      return rtr_probes.SampleLevel(rtr_probes_samplerstate, uv, 0);
     }
   }
 endmacro

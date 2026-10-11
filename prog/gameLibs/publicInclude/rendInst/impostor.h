@@ -72,7 +72,7 @@ void termImpostorsGlobals();
 __forceinline void get_up_left(Point3 &up, Point3 &left, const TMatrix &itm)
 {
   Point3 forward = itm.getcol(2);
-  if (abs(forward.y) < 0.999)
+  if (abs(forward.y) < 0.999f)
   {
     left = normalize(cross(Point3(0, 1, 0), forward));
     up = cross(forward, left);

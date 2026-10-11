@@ -1,186 +1,167 @@
-local CompsToUpdateEachFrame = 30
+--!strict
+-- the shape of a daRg UI: builders that return component tables
+local profile = require("./profile")
+
+type Component = { [string]: any }
+type Builder = () -> Component
+
 local ROBJ_TEXT = 0
-local ROBJ_FRAME= 1
-local ROBJ_SOLID= 2
+local ROBJ_FRAME = 1
+local ROBJ_SOLID = 2
 local ALIGN_CENTER = 0
 local FLOW_VERTICAL = 0
-local screenWidth = 1920.0
-local screenHeight= 1080.0
+local BEHAVIOR_BUTTON = 0
 
-Behaviors = {
-    Button = 0
-}
+local SCREEN_WIDTH = 1920.0
+local SCREEN_HEIGHT = 1080.0
+local COMPONENTS = 2000
+local FRAMES = 100
+local BORDERS = true
+local DEF_FLEX = table.freeze({})
 
-Watched = {}
+local Watched = {}
 Watched.__index = Watched
-local random = math.random
 
-function Watched:new(value)
-    local instance = setmetatable({}, self)
-    instance.value = value
-    return instance
+type Watched = typeof(setmetatable({} :: { value: any }, Watched))
+
+function Watched.new(value: any): Watched
+  return setmetatable({ value = value }, Watched)
 end
 
-function Watched:get()
-    return self.value
+function Watched.get(self: Watched): any
+  return self.value
 end
 
--- Generate a random integer up to `max`
-function rint(max)
-    return math.floor(math.random() * max)
+function Watched.modify(self: Watched, f: (any) -> any)
+  self.value = f(self.value)
 end
 
--- Convert a value to a percentage of screen width
-function sw(val)
-    return (val / 100) * screenWidth
+-- Park-Miller: same layout in every port
+local seed = 42
+local function rint(max: number): number
+  seed = seed * 16807 % 2147483647
+  return seed % max
 end
 
--- Convert a value to a percentage of screen height
-function sh(val)
-    return (val / 100) * screenHeight
+local function sw(val: number): number
+  return math.floor(val / 100.0 * SCREEN_WIDTH)
 end
 
--- Create a color from RGBA values
-function Color(r, g, b, a)
-    a = a or 255  -- Default alpha to 255 if not provided
-    return (math.floor(a) * 16777216) + (math.floor(r) * 65536) + (math.floor(g) * 256) + math.floor(b)
+local function sh(val: number): number
+  return math.floor(val / 100.0 * SCREEN_HEIGHT)
 end
 
--- Convert a value to a high-density pixel value
-function hdpx(val)
-    return val / sh(100) * screenHeight
+local function Color(r: number, g: number, b: number, a: number?): number
+  return bit32.lshift(a or 255, 24) + bit32.lshift(r, 16) + bit32.lshift(g, 8) + b
 end
 
--- Default flex configuration
-local defflex = {}
-
--- Flex function to return default or custom flex
-function flex(val)
-    if val == nil then
-        return defflex
-    else
-        return {val = val}
-    end
+local function hdpx(val: number): number
+  return val * SCREEN_HEIGHT / sh(100)
 end
 
-
-
-local componentsNum = 2000
-local borders = true
-
-
-function simpleComponent(i, watch)
-    local pos = {sw(random() * 80), sh(random() * 80)}
-    local size = {sh(random() * 15 + 2), sh(random() * 15 + 2)}
-    local color = Color(random() * 255, random() * 255, random() * 255)
-    local textCanBePlaced = size[1] > hdpx(150)
-    local addText = rint(5) == 1
-    local text = nil
-
-    if textCanBePlaced then
-        text = function()
-            return {
-                watch = watch,
-                rendObj = ROBJ_TEXT,
-                text = (addText or not watch:get()) and ("" .. i .. tostring(watch:get())) or nil
-            }
-        end
-    end
-
-    local children = {}
-
-    if borders then
-        table.insert(children, function()
-            return {
-                borderWidth = {1, 1, 1, 1},
-                rendObj = ROBJ_FRAME,
-                size = flex()
-            }
-        end)
-        table.insert(children, text)
-    end
-
-    return function()
-        return {
-            rendObj = ROBJ_SOLID,
-            size = size,
-            key = {},
-            pos = pos,
-            valign = ALIGN_CENTER,
-            halign = ALIGN_CENTER,
-            padding = {hdpx(4), hdpx(5)},
-            margin = {hdpx(5), hdpx(3)},
-            color = watch:get() and color or Color(0, 0, 0),
-            behavior = Behaviors.Button,
-            onClick = function() watch:modify(function(v) return not v end) end,
-            watch = watch,
-            children = children
-        }
-    end
+local function flex(val: any?): any
+  return if val == nil then DEF_FLEX else { val = val }
 end
 
-local num = 0
-local children = {}
-for i = 0, componentsNum - 1 do
-    table.insert(children, simpleComponent(i, Watched:new(i % 3 == 0)))
-end
+local BORDER_WIDTH = table.freeze({ 1, 1, 1, 1 })
+local PADDING = table.freeze({ hdpx(4), hdpx(5) })
+local MARGIN = table.freeze({ hdpx(5), hdpx(3) })
+local BLACK = Color(0, 0, 0)
 
-function benchmark()
-    return {
+local withText = 0
+
+local function simpleComponent(i: number, watch: Watched): Builder
+  local pos = { sw(rint(80)), sh(rint(80)) }
+  local size = { sh(rint(15) + 2), sh(rint(15) + 2) }
+  local color = Color(rint(256), rint(256), rint(256))
+  local textCanBePlaced = size[1] > hdpx(150)
+  local addText = rint(5) == 1
+  local children: { Builder } = {}
+  if BORDERS then
+    table.insert(children, function(): Component
+      return {
+        borderWidth = BORDER_WIDTH,
+        rendObj = ROBJ_FRAME,
         size = flex(),
-        flow = FLOW_VERTICAL,
-        children = children
-    }
-end
-
-function testUi(entry)
-    if entry == nil then
-        return true
+      }
+    end)
+    if textCanBePlaced then
+      withText += 1
+      table.insert(children, function(): Component
+        return {
+          watch = watch,
+          rendObj = ROBJ_TEXT,
+          text = if addText or not watch:get() then `{i}{watch:get()}` else nil,
+        }
+      end)
     end
-    if type(entry) == "function" then
-        entry = entry()
-    end
-    local t = type(entry)
-    if t == "table" then
-        if entry.children == nil then
-            return true
-        end
-        if type(entry.children) == "table" then
-            for _, child in ipairs(entry.children) do
-                if not testUi(child) then
-                    return false
-                end
-            end
-            return true
-        end
-        return testUi(entry.children)
-    end
-    return false
-end
-
-local Frames = 100
-local testsNum = 10
-
-local testf = function()
-    local frames = Frames
-    while frames > 0 do
-        frames = frames - 1
-        testUi(benchmark)
-    end
-end
-
----
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
   end
-  return res
+  return function(): Component
+    return {
+      rendObj = ROBJ_SOLID,
+      size = size,
+      key = {},
+      pos = pos,
+      valign = ALIGN_CENTER,
+      halign = ALIGN_CENTER,
+      padding = PADDING,
+      margin = MARGIN,
+      color = if watch:get() then color else BLACK,
+      behavior = BEHAVIOR_BUTTON,
+      onClick = function()
+        watch:modify(function(v)
+          return not v
+        end)
+      end,
+      watch = watch,
+      children = children,
+    }
+  end
 end
 
+local components: { Builder } = table.create(COMPONENTS)
+for i = 0, COMPONENTS - 1 do
+  components[i + 1] = simpleComponent(i, Watched.new(i % 3 == 0))
+end
 
-print(string.format("\"profile darg ui\", %.8f, %s", profile_it(testsNum, testf), testsNum))
+local function root(): Component
+  return {
+    size = flex(),
+    flow = FLOW_VERTICAL,
+    children = components,
+  }
+end
 
+local function testUi(entry: any): boolean
+  if entry == nil then
+    return true
+  end
+  if type(entry) == "function" then
+    entry = entry()
+  end
+  if type(entry) == "table" then
+    local children = entry.children
+    if children == nil then
+      return true
+    end
+    if type(children) == "table" then
+      for _, child in children do
+        if not testUi(child) then
+          return false
+        end
+      end
+      return true
+    end
+    return testUi(children)
+  end
+  return false
+end
+
+local function frames(): number
+  for _ = 1, FRAMES do
+    testUi(root)
+  end
+  return withText
+end
+
+profile.benchmark("profile darg ui", 20, frames)

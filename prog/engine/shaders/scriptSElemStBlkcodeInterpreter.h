@@ -115,7 +115,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       case SHCOD_IMM_REAL1: int_reg(regs, getOp2p1_8(opc)) = int(getOp2p2_16(opc)) << 16; break;
       case SHCOD_IMM_SVEC1:
       {
-        int *reg = get_reg_ptr<int>(regs, getOp2p1_8(opc));
+        auto *reg = get_reg_ptr<int>(regs, getOp2p1_8(opc));
         int v = int(getOp2p2_16(opc)) << 16;
         reg[0] = reg[1] = reg[2] = reg[3] = v;
       }
@@ -137,7 +137,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
         const uint32_t r2 = getOp3p3(opc);
         const uint32_t r3 = getData2p1(codp[1]);
         const uint32_t r4 = getData2p2(codp[1]);
-        real *reg = get_reg_ptr<real>(regs, ro);
+        auto *reg = get_reg_ptr<real>(regs, ro);
         reg[0] = real_reg(regs, r1);
         reg[1] = real_reg(regs, r2);
         reg[2] = real_reg(regs, r3);
@@ -191,7 +191,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       break;
       case SHCOD_INVERSE:
       {
-        real *r = get_reg_ptr<real>(regs, getOp2p1(opc));
+        auto *r = get_reg_ptr<real>(regs, getOp2p1(opc));
         r[0] = -r[0];
         if (getOp2p2(opc) == 4)
           r[1] = -r[1], r[2] = -r[2], r[3] = -r[3];
@@ -232,7 +232,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       {
         const uint32_t ro = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
-        real *reg = get_reg_ptr<real>(regs, ro);
+        auto *reg = get_reg_ptr<real>(regs, ro);
         memcpy(reg, &vars[ofs], sizeof(real) * 4);
       }
       break;
@@ -275,8 +275,8 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       {
         const uint32_t regDst = getOp1p1(opc);
         const uint32_t regSrc = getOp2p2(opc);
-        real *reg = get_reg_ptr<real>(regs, regDst);
-        const int *src = get_reg_ptr<int>(regs, regSrc);
+        auto *reg = get_reg_ptr<real>(regs, regDst);
+        const auto *src = get_reg_ptr<int>(regs, regSrc);
         reg[0] = src[0];
         reg[1] = src[1];
         reg[2] = src[2];
@@ -295,7 +295,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       {
         const uint32_t ro = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
-        real *reg = get_reg_ptr<real>(regs, ro);
+        auto *reg = get_reg_ptr<real>(regs, ro);
         reg[0] = *(int *)&vars[ofs];
         reg[1] = *(int *)&vars[ofs + 4];
         reg[2] = *(int *)&vars[ofs + 8];

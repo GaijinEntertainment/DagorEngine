@@ -60,10 +60,10 @@ float getPolygonSurfaceArea(const Polygon &poly)
   const auto p1p2 = p2 - p1;
   const auto p3p1 = p3 - p1;
 
-  return 0.5 * length(cross(p1p2, p3p1));
+  return 0.5f * length(cross(p1p2, p3p1));
 }
 
-float getPoissonRadius(float density) { return std::sqrt(3.1415 / density); }
+float getPoissonRadius(float density) { return sqrtf(3.1415f / density); }
 
 static constexpr int normal_map_channel_idx = 1;
 

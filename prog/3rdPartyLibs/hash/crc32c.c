@@ -37,7 +37,9 @@
 #define SHORT_SHIFT 256
 
 
-#if defined(_MSC_VER) && !defined(_M_ARM64)
+// Gaijin change
+#if defined(_MSC_VER) && !defined(_M_ARM64) && !defined(_M_ARM64EC)
+// ~Gaijin change
 
 #include <intrin.h>
 #include <nmmintrin.h>
@@ -74,7 +76,9 @@ static __inline uint64_t wrap_crc32_u64(uint64_t crc, uint64_t val)
 }
 #endif
 
-#elif defined(__x86_64__) || defined(__i386__)
+// Gaijin change
+#elif (defined(__x86_64__) && !defined(_M_ARM64EC)) || defined(__i386__)
+// ~Gaijin change
 
 #define CRC32_INLINE inline
 #define CRC32_HW_SUPPORT 1

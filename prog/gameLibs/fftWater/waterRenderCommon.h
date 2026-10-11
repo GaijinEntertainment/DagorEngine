@@ -19,7 +19,7 @@ struct WaterRenderCommon
   void init();
   bool isInited() const { return inited; };
 
-  void setGlobalShaderConsts(bool is_chop_water) const;
+  void setGlobalShaderConsts(bool is_chop_water, float max_wave_height) const;
 
   WaterRenderCommon::SavedStates setCachedStates(TEXTUREID distanceTex) const;
   void resetCachedStates(const WaterRenderCommon::SavedStates &states) const;
@@ -27,7 +27,6 @@ struct WaterRenderCommon
   void setWakeHtTex(TEXTUREID wake_ht_tex) { wakeHtTexId = wake_ht_tex; }
   void setWaterLevel(float water_level) { waterLevel = water_level; }
   void setWind(float wind_dir_x, float wind_dir_y, float wind_speed);
-  void setMaxWaveHeight(float max_wave_height);
 
   float getShoreWaveThreshold() const { return shoreWaveThreshold; }
   void setShoreWaveThreshold(float value);
@@ -37,12 +36,8 @@ struct WaterRenderCommon
   bool isShoreEnabled() const { return shoreEnabled; }
   void shoreEnable(bool enable);
 
-  void setChopEnabled(bool chop_enabled) { chopEnabled = chop_enabled; }
-  bool getChopEnabled() const { return chopEnabled; }
-
 private:
   bool inited = false;
-  bool chopEnabled = false;
 
   TEXTUREID wakeHtTexId = BAD_TEXTUREID;
 
@@ -50,8 +45,6 @@ private:
   float windDirX = 1.0f;
   float windDirY = 0.0f;
   float windSpeed = 0.0f;
-
-  float maxWaveHeight = 0.0f;
 
   bool shoreEnabled = false;
   float shoreWaveThreshold = 0.4f;

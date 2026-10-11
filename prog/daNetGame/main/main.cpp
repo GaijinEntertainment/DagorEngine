@@ -38,6 +38,7 @@
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
 #include <statsd/statsd.h>
 #include <startup/dag_globalSettings.h>
+#include <startup/dag_purgeLogs.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_splashScreen.h>
 #include <quirrel/quirrelHost/memtrace.h>
@@ -47,13 +48,13 @@
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_workCyclePerf.h>
 #include <util/dag_delayedAction.h>
-#include <util/dag_stlqsort.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include <rendInst/rendInstGen.h>
 #include <asyncHTTPClient/asyncHTTPClient.h>
 #include <asyncHTTPClient/curl_global.h>
+#include <websocket/websocket.h>
 #include <publicConfigs/publicConfigs.h>
 #include <userSystemInfo/systemInfo.h>
 #include <userSystemInfo/userSystemInfo.h>
@@ -70,6 +71,7 @@
 
 #include "game/gameScripts.h"
 #include "input/inputControls.h"
+#include "input/uiInput.h"
 #include "main/appProfile.h"
 #include "main/console.h"
 #include "main/circuit.h"
@@ -432,6 +434,7 @@ static void post_shutdown_handler()
   cpujobs::term(true);
   clear_settings();
   watchdog::shutdown();
+  websocket::shutdown();
   if (do_fatal_on_logerr_on_exit)
     visual_err_log_check_any();
   telemetry_shutdown();
@@ -726,96 +729,6 @@ static void quirrel_huge_alloc_hook(unsigned int size, unsigned cur_threshold, H
   }
 }
 
-#if _TARGET_PC
-static void purge_obsolete_logs(const DataBlock &purgeLogCfg)
-{
-  int refms = get_time_msec();
-  String logDir(get_log_dir());
-  int64_t maxSize = purgeLogCfg.getInt64("maxSizeKB", 512 << 10) << 10;
-  bool dryRun = purgeLogCfg.getBool("dryRun", DAGOR_DBGLEVEL > 0);
-#if DAGOR_DBGLEVEL > 0
-  bool logVerbose = purgeLogCfg.getBool("logVerbose", false);
-#else
-  constexpr bool logVerbose = false;
-#endif
-  time_t curTime = time(nullptr);
-  int eraseTimeDelta = purgeLogCfg.getInt("eraseTimeDeltaSec", /*week*/ 7 * 24 * 60 * 60);
-  time_t eraseTime = eraseTimeDelta ? (curTime - eraseTimeDelta) : 0;
-  time_t timeLimit = curTime + purgeLogCfg.getInt("timeLimitDeltaSec", /*2min*/ 120);
-  int64_t totalSize = 0, removedSize = 0;
-  int nfound = 0, nremoved = 0;
-  char tmpPath[DAGOR_MAX_PATH];
-  const char *func = __FUNCTION__;
-  auto removef = [&](const alefind_t &alf, bool bytime) {
-    SNPRINTF(tmpPath, sizeof(tmpPath), "%s/%s", logDir.c_str(), alf.name);
-    if (logVerbose)
-    {
-      if (bytime)
-        debug("%s: %sremove '%s' of size=%dK because it's ctime %lld <= eraseTime %lld", func, dryRun ? "would " : "", tmpPath,
-          alf.size >> 10, alf.mtime, eraseTime);
-      else
-        debug("%s: %sremove '%s' of size=%dK because it doesn't fit in size limit of %dK", func, dryRun ? "would " : "", tmpPath,
-          alf.size >> 10, maxSize >> 10);
-    }
-    if (!dryRun)
-      dd_erase(tmpPath);
-    ++nremoved;
-    removedSize += alf.size;
-  };
-  Tab<alefind_t> fileList(framemem_ptr());
-  SNPRINTF(tmpPath, sizeof(tmpPath), "%s/*", logDir.c_str());
-
-  for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE)) // To consider: what about dirs?
-  {
-    ++nfound;
-    if (eraseTime && ff.mtime <= eraseTime)
-      removef(ff, /*bytime*/ true);
-    else
-    {
-      fileList.push_back(ff);
-      totalSize += ff.size;
-    }
-    if (interlocked_acquire_load_ptr(quit_reason) || timeLimit < time(nullptr))
-    {
-      maxSize = 0;
-      break;
-    }
-  }
-  if (nfound == 0)
-  {
-    logwarn("%s: failed to find any files at '%s'", func, logDir.c_str());
-    return;
-  }
-
-  if (maxSize && totalSize > maxSize)
-  {
-    // sort from oldest to newest
-    stlsort::sort_branchless(fileList.begin(), fileList.end(), [](const auto &a, const auto &b) { return a.mtime < b.mtime; });
-    for (auto &it : fileList)
-    {
-      removef(it, /*bytime*/ false);
-      if ((totalSize -= it.size) < maxSize)
-        break;
-      if (interlocked_acquire_load_ptr(quit_reason) || timeLimit < time(nullptr))
-        break;
-    }
-  }
-
-  debug("%s: %s %d/%d/%d files/total/KB at %d ms", func, dryRun ? "would remove" : "removed", nremoved, nfound, removedSize >> 10,
-    get_time_msec() - refms);
-}
-static void start_purge_logs_thread()
-{
-  const DataBlock &purgeLogCfg = *dgs_get_settings()->getBlockByNameEx("purgeLog");
-  if (purgeLogCfg.getBool("enabled", !dedicated::is_dedicated())) // in dev it's started in "dry run mode" by default
-    execute_in_new_thread([&](auto) { purge_obsolete_logs(purgeLogCfg); }, "PurgeLogThread",
-      DaThread::DEFAULT_STACK_SZ * 4, // for sorting
-      cpujobs::DEFAULT_THREAD_PRIORITY + cpujobs::THREAD_PRIORITY_LOWER_STEP);
-}
-#else
-static inline void start_purge_logs_thread() {}
-#endif
-
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 {
 #if _TARGET_IOS
@@ -966,7 +879,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_PC_WIN && !_TARGET_C4 && (DAGOR_DBGLEVEL == 0)
   if (!dedicated::is_dedicated() && !::dgs_execute_quiet)
   {
-    if (::dgs_get_argv("forcestart") == NULL &&
+    if (::dgs_get_argv("forcestart") == NULL && !app_profile::get().devMode &&
         !dgs_get_settings()->getBlockByNameEx("debug")->getBool("allowRunWithoutLauncher", false))
     {
       debug("start without launcher is forbidden");
@@ -979,7 +892,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   }
 #endif
 
-  start_purge_logs_thread(); // as soon as settings loaded & cpujobs inited, after setting up log handlers
+#if _TARGET_PC
+  // after settings are loaded and the log handlers are set up
+  start_purge_logs_thread(*dgs_get_settings()->getBlockByNameEx("purgeLog"), /*def_enabled*/ !dedicated::is_dedicated());
+#endif
 
   g_entity_mgr->broadcastEventImmediate(OnStoreApiInit{});
 
@@ -1292,6 +1208,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     FrameSleeper _sleep;
 #endif
     wait_additional_game_job_done();
+    uiinput::flush_dainput_calls();
     update_webui(); // webui can run game logic, which needs emgr ownership returned by the PUFD job
     gameproj::update_before_dagor_work_cycle();
     ::dagor_work_cycle();

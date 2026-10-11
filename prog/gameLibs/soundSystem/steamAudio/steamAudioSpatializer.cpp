@@ -11,7 +11,6 @@
 
 #include "../internal/steamAudio/steamAudioSpatializer_internal.h"
 #include "../internal/steamAudio/steamAudio_internal.h"
-#include "../internal/events_internal.h"
 
 static WinCritSec g_cs;
 #define SPATIALIZER_BLOCK WinAutoLock lock(g_cs);
@@ -20,15 +19,69 @@ static WinCritSec g_cs;
 
 namespace sndsys::steam_audio::spatializer
 {
+struct BypassedDsp
+{
+  FMOD::DSP *dsp;
+  bool wasBypassed;
+};
+
 struct Entry
 {
   FMOD::Studio::EventInstance *instance;
   FMOD::DSP *dsp;
   Point3 pos;
+  eastl::vector<BypassedDsp> builtinPanDsps;
 };
 
 static eastl::vector<Entry> g_entries;
 static bool g_inited = false;
+
+static void bypass_builtin_pan_dsps(Entry &entry)
+{
+  if (!entry.instance->isValid())
+    return;
+
+  FMOD::ChannelGroup *group = nullptr;
+  if (entry.instance->getChannelGroup(&group) != FMOD_OK || !group)
+    return;
+
+  int numDsps = 0;
+  if (group->getNumDSPs(&numDsps) != FMOD_OK)
+    return;
+
+  for (int i = 0; i < numDsps; ++i)
+  {
+    FMOD::DSP *dsp = nullptr;
+    FMOD_DSP_TYPE type = FMOD_DSP_TYPE_UNKNOWN;
+    if (group->getDSP(i, &dsp) != FMOD_OK || !dsp || dsp->getType(&type) != FMOD_OK)
+      continue;
+    if (type != FMOD_DSP_TYPE_PAN && type != FMOD_DSP_TYPE_OBJECTPAN)
+      continue;
+
+    bool wasBypassed = false;
+    dsp->getBypass(&wasBypassed);
+    dsp->setBypass(true);
+    entry.builtinPanDsps.push_back({dsp, wasBypassed});
+  }
+}
+
+static void restore_builtin_pan_dsps(Entry &entry)
+{
+  if (entry.instance->isValid())
+    for (BypassedDsp &bypassed : entry.builtinPanDsps)
+      bypassed.dsp->setBypass(bypassed.wasBypassed);
+  entry.builtinPanDsps.clear();
+}
+
+static void reset_entry_dsp(Entry &entry)
+{
+  restore_builtin_pan_dsps(entry);
+  if (entry.dsp)
+  {
+    entry.dsp->release();
+    entry.dsp = nullptr;
+  }
+}
 
 void init(const DataBlock &, FMOD::System *fmod_sys)
 {
@@ -52,10 +105,7 @@ void close()
 {
   SPATIALIZER_BLOCK;
   for (Entry &entry : g_entries)
-  {
-    if (entry.dsp)
-      entry.dsp->release();
-  }
+    reset_entry_dsp(entry);
   g_entries.clear();
   g_inited = false;
 }
@@ -90,8 +140,7 @@ void release(FMOD::Studio::EventInstance *instance)
   for (Entry &entry : g_entries)
     if (entry.instance == instance)
     {
-      if (entry.dsp)
-        entry.dsp->release();
+      reset_entry_dsp(entry);
       g_entries.erase(&entry);
       return;
     }
@@ -124,35 +173,29 @@ static __declspec(noinline) bool validate_entry(Entry *entry)
   if (!group)
     return false;
 
-  int numDsps = 0;
-  if (group->getNumDSPs(&numDsps) == FMOD_OK)
-    for (int i = 0; i < numDsps; ++i)
-    {
-      FMOD::DSP *existingDsp = nullptr;
-      FMOD_DSP_TYPE type = FMOD_DSP_TYPE_UNKNOWN;
-      if (group->getDSP(i, &existingDsp) == FMOD_OK && existingDsp && existingDsp->getType(&type) == FMOD_OK &&
-          (type == FMOD_DSP_TYPE_PAN || type == FMOD_DSP_TYPE_OBJECTPAN))
-        logerr(SPATIALIZER_MSG("event \"%s\" has a built-in %s effect alongside the binaural spatializer, "
-                               "expect double-panning; remove Spatializer/3D Panner/Pan/Stereo Pan from the event"),
-          get_debug_name(*entry->instance).c_str(), type == FMOD_DSP_TYPE_PAN ? "Pan" : "3D Object Panner");
-    }
+  bypass_builtin_pan_dsps(*entry);
 
   FMOD::System *fmod_sys = nullptr;
   if (group->getSystemObject(&fmod_sys) != FMOD_OK || !fmod_sys)
+  {
+    reset_entry_dsp(*entry);
     return false;
+  }
 
   res = fmod_sys->createDSP(&desc, &entry->dsp);
   if (res != FMOD_OK || !entry->dsp)
   {
     debug(SPATIALIZER_MSG("createDSP failed: %d"), res);
+    entry->dsp = nullptr;
+    reset_entry_dsp(*entry);
     return false;
   }
 
   res = group->addDSP(FMOD_CHANNELCONTROL_DSP_HEAD, entry->dsp);
   if (res != FMOD_OK)
   {
-    entry->dsp->release();
     debug(SPATIALIZER_MSG("addDSP failed: %d"), res);
+    reset_entry_dsp(*entry);
     return false;
   }
 
@@ -169,8 +212,7 @@ void update()
     Entry *entry = &g_entries[i];
     if (!validate_entry(entry))
     {
-      if (entry->dsp)
-        entry->dsp->release();
+      reset_entry_dsp(*entry);
       g_entries.erase(entry);
     }
     else if (entry->dsp)

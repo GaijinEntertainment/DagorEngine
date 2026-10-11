@@ -9,6 +9,10 @@
 #include <debug/dag_hwExcept.h>
 #include <debug/dag_except.h>
 #include <debug/dag_debug.h>
+#include "../hid_commonCode/dsPadIds.h"
+#include <dirent.h>
+#include <unistd.h>
+#include <stdio.h>
 
 #include <string.h>
 
@@ -18,8 +22,8 @@ UDev HidJoystickClassDriver::udev(HidJoystickClassDriver::on_device_action, NULL
 Tab<HidJoystickClassDriver *> HidJoystickClassDriver::udev_users;
 
 
-HidJoystickClassDriver::HidJoystickClassDriver(bool exclude_xinput, bool remap_360) :
-  enabled(false), excludeXInput(exclude_xinput), remapAsX360(remap_360)
+HidJoystickClassDriver::HidJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads) :
+  enabled(false), excludeXInput(exclude_xinput), remapAsX360(remap_360), excludeSonyPads(exclude_sony_pads)
 {
   defJoy = NULL;
   enableAutoDef = true;
@@ -183,10 +187,36 @@ void HidJoystickClassDriver::refreshDeviceList()
     sort(device, &cmp_dev_name);
 }
 
+// constraint: a system without the udev rules denies the hidraw access hid_dspad_pc needs, so the pad stays an evdev joystick
+static bool hidraw_node_accessible(const char *evdev_node)
+{
+  const char *name = strrchr(evdev_node, '/');
+  char path[320];
+  snprintf(path, sizeof(path), "/sys/class/input/%s/device/device/hidraw", name ? name + 1 : evdev_node);
+  DIR *dir = opendir(path);
+  if (!dir)
+    return false;
+  bool ok = false;
+  while (dirent *e = readdir(dir))
+    if (strncmp(e->d_name, "hidraw", 6) == 0)
+    {
+      snprintf(path, sizeof(path), "/dev/%s", e->d_name);
+      ok |= access(path, R_OK | W_OK) == 0;
+    }
+  closedir(dir);
+  return ok;
+}
+
 void HidJoystickClassDriver::onDeviceAction(const UDev::Device &dev, UDev::Action action)
 {
   if (dev.devClass != UDev::JOYSTICK)
     return;
+  if (action == UDev::ADDED && excludeSonyPads && sonypad::is_sony_pad(dev.id.vendor, dev.id.product) &&
+      hidraw_node_accessible(dev.devnode))
+  {
+    JOY_LOG("skip %04X:%04X '%s': hid_dspad_pc reads it over hidraw", dev.id.vendor, dev.id.product, dev.name);
+    return;
+  }
 
   JOY_LOG("DEVICE EVENT node: %s model: '%s' name: '%s' action: %s this: %p devices count, %lu, excludeXInput %d", dev.devnode,
     dev.model, dev.name, action == UDev::Action::ADDED ? "added" : "removed", this, device.size(), excludeXInput);

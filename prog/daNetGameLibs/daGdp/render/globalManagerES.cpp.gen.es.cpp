@@ -64,9 +64,9 @@ static constexpr ecs::ComponentDesc dagdp_on_render_settings_change_es_comps[] =
 };
 static void dagdp_on_render_settings_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_FAST_ASSERT(evt.is<OnRenderSettingsReady>());
+  G_FAST_ASSERT(evt.is<OnRenderSettingsUpdated>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    dagdp::dagdp_on_render_settings_change_es(static_cast<const OnRenderSettingsReady&>(evt)
+    dagdp::dagdp_on_render_settings_change_es(static_cast<const OnRenderSettingsUpdated&>(evt)
         , ECS_RW_COMP(dagdp_on_render_settings_change_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
     );
   while (++comp != compE);
@@ -80,7 +80,7 @@ static ecs::EntitySystemDesc dagdp_on_render_settings_change_es_es_desc
   empty_span(),
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  ecs::EventSetBuilder<OnRenderSettingsUpdated>::build(),
   0
 ,"render");
 static constexpr ecs::ComponentDesc dagdp_on_render_features_change_es_comps[] =

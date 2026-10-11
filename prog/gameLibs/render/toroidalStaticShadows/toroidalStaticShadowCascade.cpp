@@ -211,7 +211,7 @@ void ToroidalStaticShadowCascade::invalidate(bool force)
   }
   else
   {
-    helper.curOrigin = IPoint2(-1000000, 100000);
+    helper.resetOrigin();
     setShadervarsToInvalid();
     isRenderingRegionFirstTime = true;
     scrolledDepthMin = 0;
@@ -304,6 +304,9 @@ bool ToroidalStaticShadowCascade::isInside(const BBox3 &box) const
 void ToroidalStaticShadowCascade::setShaderVars()
 {
   if (!helper.texSize)
+    return;
+
+  if (!helper.isOriginSet())
     return;
 
   const FrameData &fr = getReadFrameData();
@@ -551,6 +554,7 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
     uint32_t texelsUpdated = (uint32_t)max((int)0, toroidal_update(newTexelsOrigin, helper, fullUpdateThresholdTexels, shadowcb));
     current.torOfs = point2((helper.mainOrigin - helper.curOrigin) % helper.texSize) / helper.texSize;
     current.alignedOrigin = point2(helper.curOrigin) * texelSize;
+    originRefHeight = clipPointToWorld(pos).y;
 
     G_ASSERT(texelsUpdated > 0);
     clip_list_to(notRenderedRegions, get_texture_box(helper));

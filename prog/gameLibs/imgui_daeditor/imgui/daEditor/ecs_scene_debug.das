@@ -16,6 +16,7 @@ require daslib/algorithm
 require %gameLibs.imgui_daeditor.daEditor.daEditor_common
 require %gameLibs.imgui_daeditor.imgui.imgui_common
 require %gameLibs.imgui_daeditor.imgui.daEditor.ecs_inspectors_common
+require ecs.find_common
 
 
 struct EntityData
@@ -33,16 +34,6 @@ def DasHelpMarker(desc : string)
     TextUnformatted(desc)
     PopTextWrapPos()
     EndTooltip()
-
-def get_max_mismatches_by_filter_length(filter_length : int)
-  let allowedMismatchesByFilterLength <- fixed_array(3, 3, 5, 8, 10, 13)
-  var maxMismatches = 0
-  for m in allowedMismatchesByFilterLength
-    if filter_length > m
-      maxMismatches ++
-    else
-      break
-  return maxMismatches
 
 def get_entity_displayed_name(template_str : string; extra_str : string)
   return strip(extra_str) == "" ? template_str : "{template_str} / {extra_str}"

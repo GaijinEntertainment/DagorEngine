@@ -16,7 +16,10 @@
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include "drv_log_defs.h"
 #include <EASTL/array.h>
+#include <EASTL/optional.h>
 #include <EASTL/variant.h>
+#include <EASTL/fixed_vector.h>
+#include <EASTL/sort.h>
 #include <generic/dag_bitset.h>
 #include <memory/dag_framemem.h>
 #include <osApiWrappers/dag_atomic.h>
@@ -1502,8 +1505,11 @@ class ScriptedShadersBinDumpManager
   using ShaderHashLookup = ska::flat_hash_map<dxil::HashValue, uint32_t, ShaderHashValueHasher>;
   struct ScriptedShadersBinDumpState
   {
+    // randomly chosen, sounds like a good value
+    static constexpr uint32_t active_slot_vector_fixed_size = 8;
     ScriptedShadersBinDumpOwner *owner = nullptr;
     eastl::unique_ptr<UncompressedMemoryProvider[]> decompressedShaders;
+    eastl::fixed_vector<uint32_t, active_slot_vector_fixed_size> activeSlots;
     size_t decompressedShadersSize = 0;
     eastl::string name;
     ShaderHashLookup vprHashToIndex;
@@ -1567,6 +1573,7 @@ public:
     target.decompressedShadersSize = 0;
     target.name = name;
     target.buildShaderHashLookup();
+    target.activeSlots.clear(true);
   }
   void resetDumpOfGroup(uint32_t shaderGroup)
   {
@@ -1577,6 +1584,7 @@ public:
     target.name.clear();
     ShaderHashLookup{}.swap(target.vprHashToIndex);
     ShaderHashLookup{}.swap(target.computeHashToIndex);
+    target.activeSlots.clear(true);
   }
   // returned memory range is valid until the end of the frame, after that its undefined.
   struct GetShaderByteCodeResult
@@ -1606,8 +1614,8 @@ public:
       auto src = dump.owner->getCodeById(compression_index);
       src.uncompress(shader);
       dump.decompressedShadersSize += shader.size();
-      ByteUnits uncompressedByteSize = shader.size();
       cacheHit = false;
+      dump.activeSlots.push_back(compression_index);
     }
     return {.metadata = src.metadata, .byteCode = {shader.begin(), shader.end()}, .cacheHit = cacheHit};
   }
@@ -1617,10 +1625,17 @@ public:
     OSSpinlockScopedLock lock{decompressionCacheLock};
     for (auto &dump : dumps)
     {
-      if (!dump.decompressedShaders || !dump.decompressedShadersSize)
+      if (dump.activeSlots.empty())
         continue;
-      for (uint32_t i = 0; i < dump.owner->getDump()->shaders.size(); ++i)
+      // sort them first to make the access pattern predictable and improve cache hit rate
+      eastl::sort(dump.activeSlots.begin(), dump.activeSlots.end());
+      for (auto &i : dump.activeSlots)
+      {
         UncompressedMemoryProvider{}.swap(dump.decompressedShaders[i]);
+      }
+
+      // free overflow memory as soon as we no longer need it
+      dump.activeSlots.clear(dump.activeSlots.size() < dump.activeSlots.max_size());
       dump.decompressedShadersSize = 0;
     }
   }
@@ -2155,6 +2170,17 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
     });
   }
 
+  template <typename T>
+  static eastl::optional<uint32_t> firstCodeForVariant(const T &variant_table, uint32_t variant)
+  {
+    eastl::optional<uint32_t> result;
+    variant_table.enumerateCodesForVariant(variant, [&result](uint32_t code) {
+      if (!result)
+        result = code;
+    });
+    return result;
+  }
+
   template <typename U>
   void visitForShaderClassCodes(const shaderbindump::ShaderClass &shader_class, uint32_t static_index, uint32_t dynamic_index,
     bool use_static_state_override, bool use_null_pixel_shader, bool use_with_pixel_shader_override, bool is_pixel_shader_override,
@@ -2162,16 +2188,15 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
   {
     auto &sVar = shader_class.code[static_index];
 
-    shader_class.stVariants.enumerateCodesForVariant(static_index,
-      [&shader_class, &sVar, dynamic_index, &handler, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
-        is_pixel_shader_override](uint32_t s_code) {
-        sVar.dynVariants.enumerateCodesForVariant(dynamic_index,
-          [&shader_class, s_code, &handler, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
-            is_pixel_shader_override](uint32_t d_code) {
-            handler(shader_class, s_code, d_code, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
-              is_pixel_shader_override);
-          });
-      });
+    auto sCode = firstCodeForVariant(shader_class.stVariants, static_index);
+    if (!sCode)
+      return;
+    auto dCode = firstCodeForVariant(sVar.dynVariants, dynamic_index);
+    if (!dCode)
+      return;
+
+    handler(shader_class, *sCode, *dCode, use_static_state_override, use_null_pixel_shader, use_with_pixel_shader_override,
+      is_pixel_shader_override);
   }
 
 

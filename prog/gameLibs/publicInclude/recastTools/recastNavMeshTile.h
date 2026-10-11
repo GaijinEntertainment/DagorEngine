@@ -448,7 +448,7 @@ inline void rcVnormalizeSafe(float *v)
 {
   float l = rcSqrt(rcSqr(v[0]) + rcSqr(v[1]) + rcSqr(v[2]));
 
-  if (l <= 1e-3)
+  if (l <= 1e-3f)
     return;
 
   float d = 1.0f / l;
@@ -477,7 +477,7 @@ inline void calcTriNormalSafe(const float *v0, const float *v1, const float *v2,
 inline void rcMarkWalkableTrianglesSafe(const float walkableSlopeAngle, const float *verts, const int *tris, int nt,
   unsigned char *areas)
 {
-  const float walkableThr = cosf(walkableSlopeAngle / 180.0f * M_PI);
+  const float walkableThr = cosf(walkableSlopeAngle / 180.0f * PI);
 
   float norm[3];
 

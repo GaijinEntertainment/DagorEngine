@@ -566,6 +566,21 @@ static bool is_implicit_cbuf_variable(NodePointer<NodeOpVariable> var)
   return isGlobals || isB0;
 }
 
+static uint32_t resolve_ps_color_target_mask(ModuleBuilder &builder)
+{
+  uint32_t mask = 0;
+  builder.enumerateAllGlobalVariables([&](auto var) {
+    if (as<NodeOpTypePointer>(var->resultType)->storageClass != StorageClass::Output)
+      return;
+    auto location = find_property<PropertyLocation>(var);
+    if (!location)
+      return;
+    auto index = find_property<PropertyIndex>(var);
+    mask |= 1u << (location->location.value + (index ? index->index.value : 0));
+  });
+  return mask;
+}
+
 static NodePointer<NodeOpTypeStruct> find_implicit_cbuf_struct(ModuleBuilder &builder)
 {
   NodePointer<NodeOpTypeStruct> node = {};
@@ -822,6 +837,13 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
         // but analysis must be run after fixDXCBugs, because it may remove a field from the global cbuf
         auto implicitCbufNode = find_implicit_cbuf_struct(module);
 
+        if (profile[0] == 'p')
+          module.enumerateExecutionModes([&](auto, auto em) {
+            if (em->mode == ExecutionMode::DepthReplacing || em->mode == ExecutionMode::DepthGreater ||
+                em->mode == ExecutionMode::DepthLess)
+              result.psOutput.writesDepth = true;
+          });
+
         auto validateImplicitCbufSize = [&](const auto &global_consts_info) {
           if (implicit_cbuf_size < global_consts_info.implicitCbufRegSize)
           {
@@ -862,6 +884,11 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
           resolveSemantics(module, inputSemantics.data(), inLen, outputSemantics.data(), outLen, errorHandler);
 
           result.header = compileHeader(module, flags, errorHandler);
+          if (profile[0] == 'p')
+          {
+            result.psOutput.colorTargetMask = resolve_ps_color_target_mask(module);
+            result.psOutput.valid = true;
+          }
 
           fixDXCBugs(module, errorHandler);
 

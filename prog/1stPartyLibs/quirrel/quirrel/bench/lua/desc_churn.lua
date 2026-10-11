@@ -1,6 +1,8 @@
 -- component-description churn: build and discard small string-keyed tables
 -- with nested arrays, the shape of a daRg builder re-evaluation
-local N = 100000
+local vmBench <const> = require("profile").vmBench
+
+local N <const> = 100000
 
 local function mkChild(i)
   return {
@@ -32,12 +34,13 @@ local function mkDesc(i)
   }
 end
 
-for rep = 1, 5 do
-  local t0 = os.clock()
+local function churn()
   local sum = 0
   for i = 0, N - 1 do
     local d = mkDesc(i)
     sum = sum + d.zOrder + #d.children
   end
-  print("BENCH desc_churn " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. sum .. ")")
+  return sum
 end
+
+vmBench("desc_churn", churn)

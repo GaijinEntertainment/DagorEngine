@@ -43,7 +43,7 @@ static constexpr uint16_t INVALID_TEX_STREAMING_GENERATION = 65534;
 
 static constexpr uint32_t PACKED_STCODE_BITS = 10;
 static constexpr uint32_t BUFFER_BITS = 6;
-static constexpr uint32_t GLOBAL_STATE_BITS = 16;
+static constexpr uint32_t GLOBAL_STATE_BITS = BINDLESS_GLOBAL_STATE_BITS;
 
 enum class PackedStcodeId : uint16_t
 {
@@ -217,8 +217,6 @@ public:
   uint32_t getLocalStateOffset() const;
 
   PackedBufferId getBufferId() const { return static_cast<PackedBufferId>((stateId >> GLOBAL_STATE_BITS) & ((1 << BUFFER_BITS) - 1)); }
-
-  uint32_t getMaterialId() const { return (stateId >> GLOBAL_STATE_BITS) & ((1 << (PACKED_STCODE_BITS + BUFFER_BITS)) - 1); }
 
   operator ConstStateIdx() const { return static_cast<ConstStateIdx>(stateId); }
 };
@@ -752,12 +750,6 @@ uint32_t get_material_offset(ConstStateIdx const_state_idx)
   const PackedConstsState state(const_state_idx);
   G_ASSERT(state.getPackedStcodeId() != PackedStcodeId::Invalid);
   return state.getLocalStateOffset();
-}
-
-uint32_t get_material_id(ConstStateIdx const_state_idx)
-{
-  const PackedConstsState state(const_state_idx);
-  return state.getMaterialId();
 }
 
 bool is_packed_material(ConstStateIdx const_state_idx) { return PLATFORM_HAS_BINDLESS && get_material_id(const_state_idx) != 0; }

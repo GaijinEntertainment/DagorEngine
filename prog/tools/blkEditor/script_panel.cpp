@@ -10,8 +10,6 @@
 
 #include "script_panel.h"
 
-using hdpi::_pxScaled;
-
 const unsigned UPDATE_TIME_SHIFT_MS = 300;
 
 ScriptPanelEditor::ScriptPanelEditor(BlkHandler *handler) :
@@ -94,9 +92,10 @@ const char *ScriptPanelEditor::getTarget(const char *old_choise, const char *typ
 const char *ScriptPanelEditor::selectText(const char *old_choise)
 {
   static String result;
-  PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(NULL, _pxScaled(250), _pxScaled(130), "Select text");
+  PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(NULL, hdpi::Px::ZERO, hdpi::Px::ZERO, "Select text");
   dialog->getPanel()->createEditBox(0, "Text", old_choise);
 
+  dialog->autoSize(/*auto_center = */ !dialog->hasEverBeenShown(), /*use_preferred_size = */ true);
   if (dialog->showDialog() == PropPanel::DIALOG_ID_OK)
     result = dialog->getPanel()->getText(0);
   delete dialog;

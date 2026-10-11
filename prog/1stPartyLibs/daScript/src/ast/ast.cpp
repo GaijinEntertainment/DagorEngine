@@ -2,53 +2,9 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/simulate/standalone_ctx_utils.h"
 
 namespace das {
-
-    // AOT
-
-    AotListBase * AotListBase::head = nullptr;
-
-    SimNode* AotFactory::operator()(Context& ctx) const
-    {
-        if (is_jit) {
-            return makeAotJitNode(ctx, fn);
-        } else if (is_cmres) {
-            return ctx.code->makeNode<SimNode_AotCMRES>(fn, wrappedFn);
-        } else {
-            return ctx.code->makeNode<SimNode_Aot>(fn, wrappedFn);
-        }
-    }
-
-    AotListBase::AotListBase( RegisterAotFunctions prfn ) {
-        tail = head;
-        head = this;
-        regFn = prfn;
-    }
-
-    void AotListBase::registerAot ( AotLibrary & lib ) {
-        auto it = head;
-        while ( it ) {
-            (*it->regFn)(lib);
-            it = it->tail;
-        }
-    }
-
-    // aot library
-
-    DAS_THREAD_LOCAL(unique_ptr<AotLibrary>) g_AOT_lib;
-
-    AotLibrary & getGlobalAotLibrary() {
-        if ( !*g_AOT_lib ) {
-            *g_AOT_lib = make_unique<AotLibrary>();
-            AotListBase::registerAot(**g_AOT_lib);
-        }
-        return **g_AOT_lib;
-    }
-
-    void clearGlobalAotLibrary() {
-        g_AOT_lib->reset();
-    }
 
     // annotations
 
@@ -96,7 +52,7 @@ namespace das {
     }
 
     TypeDeclPtr Enumeration::makeBaseType() const {
-        return new TypeDecl(baseType);
+        return new TypeDecl(baseType, at);
     }
 
     Type Enumeration::getEnumType() const {
@@ -124,21 +80,23 @@ namespace das {
         switch (baseType) {
         case Type::tInt8:
         case Type::tUInt8:
-            res = new TypeDecl(Type::tEnumeration8); break;
+            res = new TypeDecl(Type::tEnumeration8, at); break;
         case Type::tInt16:
         case Type::tUInt16:
-            res = new TypeDecl(Type::tEnumeration16); break;
+            res = new TypeDecl(Type::tEnumeration16, at); break;
         case Type::tInt:
         case Type::tUInt:
-            res = new TypeDecl(Type::tEnumeration); break;
+            res = new TypeDecl(Type::tEnumeration, at); break;
         case Type::tInt64:
         case Type::tUInt64:
-            res = new TypeDecl(Type::tEnumeration64); break;
+            res = new TypeDecl(Type::tEnumeration64, at); break;
         default:
             DAS_ASSERTF(0, "we should not be here. unsupported enumeration base type.");
             return nullptr;
         }
         res->enumType = const_cast<Enumeration*>(this);
+        // a das enum knows where it was declared; a C++-registered one has no source at all
+        res->at = at.fileInfo ? at : cppBindingLineInfo();
         return res;
     }
 
@@ -229,7 +187,10 @@ namespace das {
         auto cs = new Structure(name);
         cs->fields.reserve(fields.size());
         for ( auto & fd : fields ) {
-            cs->fields.emplace_back(fd.name, new TypeDecl(*fd.type), fd.init ? fd.init->clone() : nullptr, fd.annotation, fd.moveSemantics, fd.at);
+            // the copied field type inherits the field's own location when it has none
+            auto fdT = new TypeDecl(*fd.type);
+            if ( !fdT->at.fileInfo ) fdT->at = fd.at;
+            cs->fields.emplace_back(fd.name, fdT, fd.init ? fd.init->clone() : nullptr, fd.annotation, fd.moveSemantics, fd.at);
             cs->fields.back().flags = fd.flags;
         }
         aliases.foreach([&](const TypeDeclPtr & atype) -> bool {
@@ -532,6 +493,15 @@ namespace das {
         return nullptr;
     }
 
+    Function * Structure::findMethodFunction ( const string & name ) const {
+        auto field = findField(name);
+        if ( !field || !field->classMethod || !field->init ) return nullptr;
+        Expression * addr = field->init;
+        if ( addr->rtti_isCast() ) addr = static_cast<ExprCast*>(addr)->subexpr;
+        if ( !addr->rtti_isAddr() ) return nullptr;
+        return static_cast<ExprAddr*>(addr)->func;
+    }
+
     const Structure * Structure::findFieldParent ( const string & na ) const {
         if ( parent ) {
             if ( parent->findField(na) ) {
@@ -698,7 +668,7 @@ namespace das {
     }
 
     uint64_t Variable::getMNHash(const string &mangledName) {
-        return hash_blockz64((uint8_t *)mangledName.c_str());
+        return mangledNameHashOf(mangledName);
     }
 
     bool Variable::isAccessUnused() const {
@@ -748,7 +718,6 @@ namespace das {
         cfun->annotations = cloneAnnotationList(annotations);
         cfun->result = new TypeDecl(*result);
         cfun->body = body->clone();
-        cfun->index = -1;
         cfun->totalStackSize = 0;
         cfun->totalGenLabel = totalGenLabel;
         cfun->at = at;
@@ -1156,6 +1125,7 @@ namespace das {
         cexpr->foldedNonConst = foldedNonConst;
         cexpr->promotedFromInt = promotedFromInt;
         cexpr->inexactFloatPromotion = inexactFloatPromotion;
+        cexpr->isConstLiteral = isConstLiteral;
         return expr;
     }
 
@@ -1313,6 +1283,7 @@ namespace das {
         auto cexpr = clonePtr<ExprNullCoalescing>(expr);
         ExprPtr2Ref::clone(cexpr);
         cexpr->defaultValue = defaultValue->clone();
+        cexpr->no_promotion = no_promotion;
         return cexpr;
     }
 
@@ -1574,6 +1545,7 @@ namespace das {
         Expression::clone(cexpr);
         cexpr->subexpr = subexpr->clone();
         cexpr->typeexpr = new TypeDecl(*typeexpr);
+        cexpr->no_promotion = no_promotion;
         return cexpr;
     }
 
@@ -1812,14 +1784,18 @@ namespace das {
     }
 
     TypeDeclPtr ExprBlock::makeBlockType () const {
-        auto eT = new TypeDecl(Type::tBlock);
+        // the block's own location stands for every slot copied here - an inferred block type
+        // or argument type has none of its own, and this is where the copy is allocated
+        auto eT = new TypeDecl(Type::tBlock, at);
         eT->constant = true;
         if ( type ) {
             eT->firstType = new TypeDecl(*type);
+            if ( !eT->firstType->at.fileInfo ) eT->firstType->at = at;
         }
         for ( auto & arg : arguments ) {
             if ( arg->type ) {
                 eT->argTypes.push_back(new TypeDecl(*arg->type));
+                if ( !eT->argTypes.back()->at.fileInfo ) eT->argTypes.back()->at = at;
                 eT->argNames.push_back(arg->name);
             }
         }
@@ -1944,6 +1920,7 @@ namespace das {
         Expression::clone(cexpr);
         cexpr->mask = mask;
         cexpr->value = value->clone();
+        cexpr->no_promotion = no_promotion;
         return cexpr;
     }
 
@@ -2309,6 +2286,7 @@ namespace das {
     ExpressionPtr ExprClone::clone( ExpressionPtr expr ) const {
         auto cexpr = clonePtr<ExprClone>(expr);
         ExprOp2::clone(cexpr);
+        cexpr->cloneFlags = cloneFlags;
         return cexpr;
     }
 
@@ -2339,9 +2317,11 @@ namespace das {
 
     ExpressionPtr ExprTryCatch::visit(Visitor & vis) {
         vis.preVisit(this);
-        try_block = try_block->visit(vis);
-        vis.preVisitCatch(this,catch_block);
-        catch_block = catch_block->visit(vis);
+        if ( vis.canVisitTryCatchBody(this) ) {
+            try_block = try_block->visit(vis);
+            vis.preVisitCatch(this,catch_block);
+            catch_block = catch_block->visit(vis);
+        }
         return vis.visit(this);
     }
 
@@ -2903,6 +2883,7 @@ namespace das {
         }
         cexpr->gen2 = gen2;
         cexpr->makeArrayOnHeap = makeArrayOnHeap;
+        cexpr->constValues = constValues;
         return cexpr;
     }
 
@@ -2913,16 +2894,21 @@ namespace das {
             makeType = makeType->visit(vis);
             makeType = vis.visit(makeType);
         }
-        int index = 0;
-        for ( auto it = values.begin(); it != values.end(); ) {
-            auto & value = *it;
-            vis.preVisitMakeArrayIndex(this, index, value, index==int(values.size()-1));
-            value = value->visit(vis);
-            if ( value ) {
-                value = vis.visitMakeArrayIndex(this, index, value, index==int(values.size()-1));
+        if ( vis.canVisitMakeArray(this) ) {
+            int index = 0;
+            for ( auto it = values.begin(); it != values.end(); ) {
+                auto & value = *it;
+                bool last = index==int(values.size()-1);
+                vis.preVisitMakeArrayIndex(this, index, value, last);
+                if ( vis.canVisitMakeArrayIndex(this, index, value, last) ) {
+                    value = value->visit(vis);
+                }
+                if ( value ) {
+                    value = vis.visitMakeArrayIndex(this, index, value, last);
+                }
+                if ( value ) ++it; else it = values.erase(it);
+                index ++;
             }
-            if ( value ) ++it; else it = values.erase(it);
-            index ++;
         }
         return vis.visit(this);
     }

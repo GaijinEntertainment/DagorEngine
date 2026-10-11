@@ -1,4 +1,4 @@
-# ast_match — AST Pattern Matching (Reverse Reification)
+# ast_match - AST Pattern Matching (Reverse Reification)
 
 ## Overview
 
@@ -87,15 +87,15 @@ struct QMatchResult {
 ## Type Matching
 
 `ExprTypeDecl` nodes (`type<T>`) are matched structurally via `generate_type_match`:
-- `baseType` — enum comparison
-- `flags` — const, ref, temporary, smartPtr, isExplicit
-- `structType`, `enumType`, `annotation` — by name
-- `firstType`, `secondType` — recursive
-- `argTypes` — element-wise recursive
-- `dim` — fixed dimension comparison
-- `dimExpr` — expression matching (supports `$e`/`$v`/`$i` captures inside type expressions)
-- `$t(var)` — captures entire TypeDecl when `isTag` flag is set
-- `auto` — wildcard, matches any type in that position
+- `baseType` - enum comparison
+- `flags` - const, ref, temporary, smartPtr, isExplicit
+- `structType`, `enumType`, `annotation` - by name
+- `firstType`, `secondType` - recursive
+- `argTypes` - element-wise recursive
+- `dim` - fixed dimension comparison
+- `dimExpr` - expression matching (supports `$e`/`$v`/`$i` captures inside type expressions)
+- `$t(var)` - captures entire TypeDecl when `isTag` flag is set
+- `auto` - wildcard, matches any type in that position
 
 ### `auto` (type wildcard)
 
@@ -107,7 +107,7 @@ qmatch(expr, type<table<string; auto>>)    // matches table with string keys, an
 qmatch(expr, type<table<auto; auto>>)      // matches any table
 ```
 
-`auto` can be combined with `$t` — use `auto` when you don't need the matched type, `$t(var)` when you want to capture it.
+`auto` can be combined with `$t` - use `auto` when you don't need the matched type, `$t(var)` when you want to capture it.
 
 ## Argument & Return Type Matching
 
@@ -120,39 +120,39 @@ Pattern block arguments match Function's arguments (filtering hidden `fakeContex
 ## Architecture
 
 ### Compile-time: Macro code generation
-- `generate_match(pattern, actual_var, body, index, at)` — recursive, walks pattern AST via annotation reflection (`get_expression_annotation` + `for_each_field`)
-- `generate_type_match(pat_type, td_var, expr_var, body, index, at)` — hardcoded TypeDecl field matching
-- `generate_block_match(pat_block, actual_var, body, index, at)` — statement list matching with wildcards + scan
-- `generate_pattern_args_match(pat_block, target_var, ret_field, expr_var, body, index, at)` — argument name/type + return type matching
+- `generate_match(pattern, actual_var, body, index, at)` - recursive, walks pattern AST via annotation reflection (`get_expression_annotation` + `for_each_field`)
+- `generate_type_match(pat_type, td_var, expr_var, body, index, at)` - hardcoded TypeDecl field matching
+- `generate_block_match(pat_block, actual_var, body, index, at)` - statement list matching with wildcards + scan
+- `generate_pattern_args_match(pat_block, target_var, ret_field, expr_var, body, index, at)` - argument name/type + return type matching
 
 ### Runtime helpers
-- `qm_run(expr, block)` — clones expression, invokes matching block
-- `qm_run_function(func, block)` — passes body + Function? to matching block
-- `qm_scan(blk_expr, pos, len, matcher)` — forward scan for wildcard matching
-- `qm_extract(expr, var)` — overloaded for int/float/bool/string/int64/uint/double
-- `qm_extract_name(expr)` — extracts identifier name from common expression types
-- `qm_extract_type(expr, var)` — extracts TypeDeclPtr from ExprTypeDecl
-- `qm_extract_call_name(expr)` — extracts call name from ExprCall
-- `qm_extract_field_name(expr)` — extracts field name from ExprField/ExprSafeField/variant
-- `qm_extract_stmts(blk_expr, from, to, result)` — extracts statement range [from, to) into `array<ExpressionPtr>`
-- `qm_count_real_args(args)` / `qm_real_arg_index(args, idx)` — filter fakeContext/fakeLineInfo
-- `qm_extract_remaining_args(args, from_logical, result)` — collect remaining real args into `array<VariablePtr>`
+- `qm_run(expr, block)` - clones expression, invokes matching block
+- `qm_run_function(func, block)` - passes body + Function? to matching block
+- `qm_scan(blk_expr, pos, len, matcher)` - forward scan for wildcard matching
+- `qm_extract(expr, var)` - overloaded for int/float/bool/string/int64/uint/double
+- `qm_extract_name(expr)` - extracts identifier name from common expression types
+- `qm_extract_type(expr, var)` - extracts TypeDeclPtr from ExprTypeDecl
+- `qm_extract_call_name(expr)` - extracts call name from ExprCall
+- `qm_extract_field_name(expr)` - extracts field name from ExprField/ExprSafeField/variant
+- `qm_extract_stmts(blk_expr, from, to, result)` - extracts statement range [from, to) into `array<ExpressionPtr>`
+- `qm_count_real_args(args)` / `qm_real_arg_index(args, idx)` - filter fakeContext/fakeLineInfo
+- `qm_extract_remaining_args(args, from_logical, result)` - collect remaining real args into `array<VariablePtr>`
 
 ### Field handling
-- `smart_ptr<Expression>` — recursive `generate_match`
-- `smart_ptr<TypeDecl>` — recursive `generate_type_match`
-- `das_string` — literal comparison
-- `dasvector<smart_ptr<Expression>>` — length check + element-wise matching
-- `dasvector<smart_ptr<Variable>>` — name (with `$i` tag support), type, init expression
-- `dasvector<das_string>` — length check + element-wise string comparison
-- `int`, `uint`, `bool` — literal comparison
-- `qm_skip_field(rtti, field)` — per-type skip list for compiler-internal fields
+- `smart_ptr<Expression>` - recursive `generate_match`
+- `smart_ptr<TypeDecl>` - recursive `generate_type_match`
+- `das_string` - literal comparison
+- `dasvector<smart_ptr<Expression>>` - length check + element-wise matching
+- `dasvector<smart_ptr<Variable>>` - name (with `$i` tag support), type, init expression
+- `dasvector<das_string>` - length check + element-wise string comparison
+- `int`, `uint`, `bool` - literal comparison
+- `qm_skip_field(rtti, field)` - per-type skip list for compiler-internal fields
 
 ### Special expression handlers
-- `ExprConst*` — RTTI + value comparison
-- `ExprTypeDecl` — delegates to `generate_type_match`
-- `ExprFor` — custom handler for `iteratorsTags` ($i capture on iterators)
-- `ExprTag` with `$i` + `value=ExprLet` — clears placeholder name, matches ExprLet, captures variable name
+- `ExprConst*` - RTTI + value comparison
+- `ExprTypeDecl` - delegates to `generate_type_match`
+- `ExprFor` - custom handler for `iteratorsTags` ($i capture on iterators)
+- `ExprTag` with `$i` + `value=ExprLet` - clears placeholder name, matches ExprLet, captures variable name
 
 ## Test Files (153 tests)
 

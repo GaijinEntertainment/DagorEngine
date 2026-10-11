@@ -3,6 +3,9 @@
 
 #include "platform.h"
 
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_driverDesc.h>
+
 namespace drv3d_dx12::issues::external
 {
 /// Issues of the core runtime
@@ -12,6 +15,8 @@ namespace core
 /// With Agility SDK 618 the D3D Core runtime will crash when trying to get or store pipeline cache for pipelines that use stream
 /// output and have no geometry shader stage.
 inline bool broken_pipeline_cache_with_so_without_gs() { return 618 == Direct3D12Enviroment::getD3D12SdkVersion(); }
+// AddToStateObject hangs for unknown reason
+inline bool broken_rt_state_object_additions() { return GpuVendor::AMD == d3d::get_driver_desc().info.vendor; }
 #else
 inline constexpr bool broken_pipeline_cache_with_so_without_gs() { return false; }
 #endif

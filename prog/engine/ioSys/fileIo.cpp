@@ -149,13 +149,15 @@ bool FullFileSaveCB::open(const char *fname, int mode)
   return fileHandle != NULL;
 }
 
-void FullFileSaveCB::close()
+bool FullFileSaveCB::close()
 {
+  int res = 0;
   if (fileHandle)
   {
-    df_close(fileHandle);
+    res = df_close(fileHandle);
     fileHandle = NULL;
   }
+  return res == 0;
 }
 
 #define EXPORT_PULL dll_pull_iosys_fileIo

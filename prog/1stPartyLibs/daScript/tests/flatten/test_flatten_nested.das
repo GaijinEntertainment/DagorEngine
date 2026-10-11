@@ -119,12 +119,7 @@ def f_nested_accum(x : int; y : int) : int {
 
 // ----- driver -----
 
-var GRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-5, -1, 0, 1, 5]
-}
+var GRID <- [-5, -1, 0, 1, 5]
 
 [test]
 def test_flatten_nested(t : T?) {

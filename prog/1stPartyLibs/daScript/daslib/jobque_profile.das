@@ -27,7 +27,6 @@ require daslib/build_const
 //! ``static_if (JOBQUE_PROFILING_ENABLED)`` so it erases when off.
 let public JOBQUE_PROFILING_ENABLED = build_flag("--jobque-profiling", "JOBQUE_PROFILING")
 
-// dark-theme viewer hues first (lane-timeline palette), then 4 extra distinct hues
 let private DEFAULT_PALETTE = fixed_array<uint>(
     0x5E96DEu, 0x43B08Au, 0xAC82E4u, 0xC39536u, 0xE08563u, 0x4FC3D0u,
     0xD678B4u, 0x8385E8u, 0xD8626Au, 0x9BB556u, 0x7A9AAEu, 0xB08968u)
@@ -99,7 +98,7 @@ def public profile_category(name : string; color : uint = 0u) : int {
     return id
 }
 
-[cold_path]   // once per marker name: register with the que + remember the id
+[cold_path]
 def private profile_marker_register(name : string) : int {
     let id = jobque_trace_marker_name(name)
     g_markerIds[name] = id

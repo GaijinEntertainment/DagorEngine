@@ -30,8 +30,8 @@
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <coolConsole/coolConsole.h>
 #include <EditorCore/ec_IEditorCore.h>
-#include <sceneRay/dag_sceneRay.h>
-#include <sceneRay/dag_sceneRayBuildable.h>
+#include <daBVH/dag_meshBLAS.h>
+#include <daBVH/dag_swBLAS_soa4Queries.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 
 #include <oldEditor/de_workspace.h>
@@ -1160,35 +1160,50 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
 
     con.setActionDesc("smoothing borders (%.0f m) of detailed HMAP with landmesh %@...", gridCellSize * 2, detRectC);
 
-    BuildableStaticSceneRayTracer lrt(Point3(256, 128, 256), 4);
-    lrt.setCullFlags(StaticSceneRayTracer::CULL_BOTH);
-    G_VERIFY(lrt.addmesh(mesh.vert.data(), mesh.vert.size(), (unsigned *)mesh.face.data(), elem_size(mesh.face), mesh.face.size(),
-      NULL, true));
-    for (int y = detRectC[0].y; y < detRectC[1].y; y++)
-      for (int x = detRectC[0].x; x < detRectC[1].x; x++)
-      {
-        int min_border_dist = min<int>(y - detRectC[0].y, detRectC[1].y - y - 1);
-        min_border_dist = min<int>(min_border_dist, x - detRectC[0].x);
-        min_border_dist = min<int>(min_border_dist, detRectC[1].x - x - 1);
-        if (min_border_dist > detDivisor * 2)
-          continue;
+    dag::Vector<uint32_t> lmIdx(mesh.face.size() * 3);
+    for (int i = 0; i < mesh.face.size(); i++)
+      for (int j = 0; j < 3; j++)
+        lmIdx[i * 3 + j] = mesh.face[i].v[j];
 
-        float ht0 = heightMapDet.getInitialData(x, y), ht = ht0 - 200;
-        Point3 pos = ofs + Point3::xVy(Point2(x, y) * csz, ht0 + 200);
-        if (x + 1 == detRectC[1].x)
-          pos.x += csz;
-        if (y + 1 == detRectC[1].y)
-          pos.z += csz;
+    MeshSoa4BLAS lmBlas;
+    // the walk takes root untested, so a refused build must not reach it
+    if (!build_mesh_soa4_blas(lmBlas, make_span_const(mesh.vert), make_span_const(lmIdx)))
+      DAEDITOR3.conError("landmesh BLAS refused %d verts and %d faces: detailed HMAP borders keep their heights", mesh.vert.size(),
+        mesh.face.size());
+    else
+    {
+      const float lmScaleY = v_extract_y(lmBlas.scale), lmOfsY = v_extract_y(lmBlas.ofs);
+      for (int y = detRectC[0].y; y < detRectC[1].y; y++)
+        for (int x = detRectC[0].x; x < detRectC[1].x; x++)
+        {
+          int min_border_dist = min<int>(y - detRectC[0].y, detRectC[1].y - y - 1);
+          min_border_dist = min<int>(min_border_dist, x - detRectC[0].x);
+          min_border_dist = min<int>(min_border_dist, detRectC[1].x - x - 1);
+          if (min_border_dist > detDivisor * 2)
+            continue;
 
-        if (lrt.getHeightBelow(pos, ht) < 0)
-          ht = ht0;
-        ht = lerp(ht, ht0, max(min_border_dist - 1, 0) * 0.5f / detDivisor);
-        // heightMapDet.setInitialData(x, y, ht);
-        heightMapDet.setFinalData(x, y, ht);
-      }
-    DAEDITOR3.conNote("updated heightMap/heightMapDet finalData for %.2f sec", (dagTools->getTimeMsec() - time0l) / 1000.f);
-    updateHeightMapTex(false);
-    updateHeightMapTex(true);
+          float ht0 = heightMapDet.getInitialData(x, y), ht = ht0 - 200;
+          Point3 pos = ofs + Point3::xVy(Point2(x, y) * csz, ht0 + 200);
+          if (x + 1 == detRectC[1].x)
+            pos.x += csz;
+          if (y + 1 == detRectC[1].y)
+            pos.z += csz;
+
+          // the highest surface at or below pos; the ray's old reach becomes the floor below
+          soa4::HeightAcc acc;
+          acc.limit = pos.y * lmScaleY + lmOfsY;
+          const vec3f posBox = v_madd(v_ldu_p3(&pos.x), lmBlas.scale, lmBlas.ofs);
+          soa4::heightWalk</*CULL_DOWN*/ false>(lmBlas.tree.data(), (uint32_t)lmBlas.root.v, posBox, acc);
+          const float hitHt = (acc.maxHt - lmOfsY) / lmScaleY; // a miss leaves maxHt at -1e30
+          ht = (acc.hit && hitHt >= ht) ? hitHt : ht0;
+          ht = lerp(ht, ht0, max(min_border_dist - 1, 0) * 0.5f / detDivisor);
+          // heightMapDet.setInitialData(x, y, ht);
+          heightMapDet.setFinalData(x, y, ht);
+        }
+      DAEDITOR3.conNote("updated heightMap/heightMapDet finalData for %.2f sec", (dagTools->getTimeMsec() - time0l) / 1000.f);
+      updateHeightMapTex(false);
+      updateHeightMapTex(true);
+    }
   }
 
   float epsilon = 0.00001f;

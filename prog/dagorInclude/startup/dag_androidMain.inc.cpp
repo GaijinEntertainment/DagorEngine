@@ -34,6 +34,7 @@
 #include <EASTL/fixed_vector.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_atomic_types.h>
+#include <osApiWrappers/dag_mutex.h>
 #include <mutex>
 
 
@@ -202,12 +203,12 @@ static dag::AtomicInteger<int32_t> g_android_pending_command(-1);
 // It could only happen if case our DagorMainThread is very laggy
 // In case of big lags do not buffer more than 128 events
 
-static std::mutex g_android_input_mutex;
+static dag::mutex g_android_input_mutex;
 static int g_android_next_input_call_id = 0;
 using InputCallsArray = eastl::array<MainWindowProcCall, 128>;
 static InputCallsArray g_android_input_calls;
 
-static std::mutex g_android_joystick_events_mutex;
+static dag::mutex g_android_joystick_events_mutex;
 static eastl::bitset<128> g_android_joystick_events_free;
 static eastl::array<android::JoystickEvent, 128> g_android_joystick_events_storage;
 
@@ -215,7 +216,7 @@ static android::JoystickEvent *allocate_android_joystick_event(void *event)
 {
   int eventId = -1;
   {
-    std::unique_lock<std::mutex> lock(g_android_joystick_events_mutex);
+    std::unique_lock lock(g_android_joystick_events_mutex);
     eventId = g_android_joystick_events_free.find_first();
     if (eventId < g_android_joystick_events_free.size())
       g_android_joystick_events_free.set(eventId, false);
@@ -238,7 +239,7 @@ static void free_android_joystick_events(const InputCallsArray &input_calls, int
   if (input_calls_size <= 0)
     return;
 
-  std::unique_lock<std::mutex> lock(g_android_joystick_events_mutex);
+  std::unique_lock lock(g_android_joystick_events_mutex);
   for (int i = 0; i < input_calls_size; ++i)
   {
     const MainWindowProcCall &call = input_calls[i];
@@ -449,7 +450,7 @@ struct DagorInputThread final : public DaThread
 static DagorMainThread g_dagor_main_thread;
 static DagorInputThread g_dagor_input_thread;
 
-static std::mutex g_android_cmd_mode_mutex;
+static dag::mutex g_android_cmd_mode_mutex;
 static bool g_android_cmd_on_main_thread = false;
 
 
@@ -466,7 +467,7 @@ static void dagor_android_restart_input_thread(struct android_app *app)
 
 void dagor_android_set_window_cmd_processing_on_main_thread(bool on_main_thread)
 {
-  std::lock_guard<std::mutex> lock(g_android_cmd_mode_mutex);
+  std::lock_guard lock(g_android_cmd_mode_mutex);
   if (g_android_cmd_on_main_thread == on_main_thread)
     return;
 
@@ -480,7 +481,7 @@ static int push_android_input(const AndroidProcessResult &result)
   if (result.wndCalls.empty())
     return result.status;
 
-  std::unique_lock<std::mutex> lock(g_android_input_mutex);
+  std::unique_lock lock(g_android_input_mutex);
   if (g_android_next_input_call_id + result.wndCalls.size() < g_android_input_calls.size())
   {
     eastl::copy(result.wndCalls.begin(), result.wndCalls.end(), g_android_input_calls.begin() + g_android_next_input_call_id);
@@ -644,7 +645,7 @@ static bool dagor_android_handle_cmd_nonblocking(struct android_app *app, int32_
     return false;
 
   {
-    std::lock_guard<std::mutex> lock(g_android_cmd_mode_mutex);
+    std::lock_guard lock(g_android_cmd_mode_mutex);
     if (g_android_cmd_on_main_thread)
       return false;
 
@@ -1338,7 +1339,7 @@ void dagor_process_sys_messages(bool /*input_only*/)
   InputCallsArray inputCalls;
 
   {
-    std::unique_lock<std::mutex> lock(g_android_input_mutex);
+    std::unique_lock lock(g_android_input_mutex);
     if (g_android_next_input_call_id > 0)
     {
       inputCallsSize = g_android_next_input_call_id;

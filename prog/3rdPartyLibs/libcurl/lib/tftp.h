@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -24,7 +24,10 @@
  *
  ***************************************************************************/
 #ifndef CURL_DISABLE_TFTP
-extern const struct Curl_handler Curl_handler_tftp;
+extern const struct Curl_protocol Curl_protocol_tftp;
 #endif
+
+#define TFTP_BLKSIZE_MIN 8
+#define TFTP_BLKSIZE_MAX 65464
 
 #endif /* HEADER_CURL_TFTP_H */

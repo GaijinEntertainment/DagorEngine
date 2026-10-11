@@ -294,7 +294,7 @@ shader land_mesh//, land_mesh_combined
           sample_clipmaps(worldPos.xz, worldPosGradients, diffuseColor, clipNormalXY, smoothness, ao,
                           reflectance, emission, detailNo, smooth_mip);
           //ao *= baseAo;
-          float waterLevel = wind_dir_water_level_ocean_density.z;//fixme: move to common code
+          float waterLevel = wind_dir_water_level.z;//fixme: move to common code
           get_water_height(worldPos.xz, waterLevel);
           float wetnessAbove = 1.05, smoothnessBelow = 0.15;
 

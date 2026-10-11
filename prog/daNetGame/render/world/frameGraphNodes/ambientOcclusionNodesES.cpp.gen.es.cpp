@@ -137,9 +137,10 @@ static ecs::EntitySystemDesc create_ssao_camera_main_view_nodes_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc create_ssao_camera_view_nodes_es_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 4 ro components at [0]
   {ECS_HASH("dng_ao_camera_nodes__w"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dng_ao_camera_nodes__h"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dng_ao_camera_nodes__creation_flags"), ecs::ComponentTypeInfo<uint32_t>()},
   {ECS_HASH("dng_ao_camera_nodes__useGTAO"), ecs::ComponentTypeInfo<bool>()}
 };
 static void create_ssao_camera_view_nodes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -149,6 +150,7 @@ static void create_ssao_camera_view_nodes_es_all_events(const ecs::Event &__rest
     create_ssao_camera_view_nodes_es(static_cast<const OnCameraPerViewNodeConstruction&>(evt)
         , ECS_RO_COMP(create_ssao_camera_view_nodes_es_comps, "dng_ao_camera_nodes__w", int)
     , ECS_RO_COMP(create_ssao_camera_view_nodes_es_comps, "dng_ao_camera_nodes__h", int)
+    , ECS_RO_COMP(create_ssao_camera_view_nodes_es_comps, "dng_ao_camera_nodes__creation_flags", uint32_t)
     , ECS_RO_COMP(create_ssao_camera_view_nodes_es_comps, "dng_ao_camera_nodes__useGTAO", bool)
     );
   while (++comp != compE);
@@ -159,7 +161,7 @@ static ecs::EntitySystemDesc create_ssao_camera_view_nodes_es_es_desc
   "prog/daNetGame/render/world/frameGraphNodes/ambientOcclusionNodesES.cpp.inl",
   ecs::EntitySystemOps(nullptr, create_ssao_camera_view_nodes_es_all_events),
   empty_span(),
-  make_span(create_ssao_camera_view_nodes_es_comps+0, 3)/*ro*/,
+  make_span(create_ssao_camera_view_nodes_es_comps+0, 4)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<OnCameraPerViewNodeConstruction>::build(),

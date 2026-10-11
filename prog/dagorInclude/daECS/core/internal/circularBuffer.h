@@ -10,13 +10,6 @@
 #include <daECS/core/event.h>
 #include <daECS/core/internal/asserts.h>
 #include <osApiWrappers/dag_atomic.h>
-#ifndef RESTRICT_FUN
-#ifdef _MSC_VER
-#define RESTRICT_FUN __declspec(restrict)
-#else
-#define RESTRICT_FUN
-#endif
-#endif
 
 namespace ecs
 {
@@ -55,7 +48,7 @@ struct EventCircularBuffer
     // buffer. It requires to fill buffer end by dummy event to make next masked read/write position set to zero.
     return fillEndAndCanWrite(sz);
   }
-  RESTRICT_FUN uint8_t *__restrict push(EntityId eid, uint32_t sz)
+  uint8_t *__restrict push(EntityId eid, uint32_t sz)
   {
     G_FAST_ASSERT(canWrite(sz + sizeof(EntityId)));
     G_UNREFERENCED(sz);
@@ -65,7 +58,7 @@ struct EventCircularBuffer
     return ret + sizeof(eid);
   }
   void commitPush(uint32_t event_sz) { interlocked_add(writeAt, sizeof(EntityId) + event_sz); }
-  RESTRICT_FUN uint8_t *__restrict reading() { return data.get() + readIndex(); }
+  uint8_t *__restrict reading() { return data.get() + readIndex(); }
   uint32_t *justRead(uint32_t sz)
   {
     DAECS_EXT_FAST_ASSERT(canRead(sz));
@@ -147,7 +140,7 @@ struct DeferredEventsStorage
     active.commitPush(eventSize); // make event visible to readers only after data is written
   }
 
-  RESTRICT_FUN void *__restrict allocateUntypedEvent(EntityId eid, uint32_t eventSize) // untyped event
+  void *__restrict allocateUntypedEvent(EntityId eid, uint32_t eventSize) // untyped event
   {
     // we can't send untyped events that require non-trivial move (not relocatable)
     // currently just assume it is same as non-trivial destruction.
@@ -162,7 +155,5 @@ struct DeferredEventsStorage
   static constexpr size_t maxEventSize() { return EventsBuffer::capacity - sizeof(EntityId); }
   size_t capacity() const { return active.capacity + active.capacity * buffers.size(); }
 };
-
-#undef RESTRICT_FUN
 
 }; // namespace ecs

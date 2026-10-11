@@ -55,7 +55,7 @@ public:
     else
       angVel.z = 0.f;
 
-    if (fabsf(angVel.x) > 1.0e-6 || fabsf(angVel.y) > 1.0e-6 || fabsf(angVel.z) > 1.0e-6)
+    if (fabsf(angVel.x) > 1.0e-6f || fabsf(angVel.y) > 1.0e-6f || fabsf(angVel.z) > 1.0e-6f)
     {
       ang.x += angVel.x;
       ang.y += angVel.y;
@@ -96,7 +96,7 @@ public:
 
     real in = (mov == Point3(0, 0, 0) ? stopInertia : moveInertia);
     linVel = linVel * in + mov * (v * (1 - in));
-    if (lengthSq(linVel) > 1.0E-8)
+    if (lengthSq(linVel) > 1.0E-8f)
     {
       posPrecise += linVel * dt;
       itm.setcol(3, Point3(posPrecise));

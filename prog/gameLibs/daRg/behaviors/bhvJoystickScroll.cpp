@@ -45,7 +45,7 @@ int BhvJoystickScroll::update(UpdateStage, darg::Element *elem, float dt)
   {
     HSQUIRRELVM vm = onJoystickScroll.GetVM();
     Sqrat::Table payload(vm);
-    payload.SetValue("target", elem->getRef(vm));
+    payload.SetValue(elem->csk->target, elem->getRef(vm));
     payload.SetValue("delta", *scrollDelta);
     payload.SetValue("screenX", pointerPos.x);
     payload.SetValue("screenY", pointerPos.y);

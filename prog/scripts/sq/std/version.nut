@@ -16,7 +16,7 @@ function mkVersionFromString(versionRaw): array|null {
   return null
 }
 
-function mkVersionFromInt(version: int): array {
+function [pure] mkVersionFromInt(version: int): array {
   return [version>>24, ((version>>16)&255), ((version>>8)&255), (version&255)]
 }
 

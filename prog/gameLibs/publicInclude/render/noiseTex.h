@@ -29,3 +29,34 @@ extern void release_blue_noise();       // decrement counter and call close if c
 
 // noise LUT texture by @Dave_Hoskins, www.shadertoy.com/view/4sfGzS
 extern void release_hash_128_noise(); // decrement counter and call close if counter is 0
+
+// Holds one counter of the blue noise texture. Movable.
+class BlueNoiseRef
+{
+public:
+  BlueNoiseRef() = default;
+  BlueNoiseRef(BlueNoiseRef &&other) noexcept : acquired(other.acquired) { other.acquired = false; }
+  BlueNoiseRef &operator=(BlueNoiseRef &&other) noexcept
+  {
+    const bool wasAcquired = acquired;
+    acquired = other.acquired;
+    other.acquired = wasAcquired;
+    return *this;
+  }
+  ~BlueNoiseRef()
+  {
+    if (acquired)
+      release_blue_noise();
+  }
+
+  void acquire()
+  {
+    if (acquired)
+      return;
+    init_and_get_blue_noise();
+    acquired = true;
+  }
+
+private:
+  bool acquired = false;
+};

@@ -91,7 +91,8 @@ public:
   //! writes *.<TYPE>.blk to assets folder, filtering out those assets for which virtual blk is not changed
   //! non-modified assets are not saved to preserve timestamps (asset treated non-modified if its BLK in
   //! text form coinsides *exactly* with text file on disk, or with virtual BLK generated for this asset)
-  bool saveAssetsMetadata(int folder_idx = -1);
+  //! skip_asset is not written, even if it is changed
+  bool saveAssetsMetadata(int folder_idx = -1, const DagorAsset *skip_asset = nullptr);
 
   //! writes *.<TYPE>.blk for specified assets (applies only for non-virtual assets)
   //! non-modified assets are not saved to preserve timestamps
@@ -401,7 +402,7 @@ protected:
 
   void updateGlobUniqueFlags();
   void syncTracker();
-  bool saveAssetsMetadataImpl(int start_idx, int end_idx);
+  bool saveAssetsMetadataImpl(int start_idx, int end_idx, const DagorAsset *skip_asset = nullptr);
 
   inline eastl::vector<AssetMap>::const_iterator findAssetByName(unsigned name) const;
   void rebuildAssetMap() const;

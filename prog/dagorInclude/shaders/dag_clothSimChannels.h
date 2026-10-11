@@ -14,7 +14,7 @@
 // Must be consistent with cloth_sim_skinning_inc.dshl (extra[58]/extra[59]) and dynamic_cloth_sim.dshl (extra[54]).
 // Taken SCUSAGE_EXTRA indices: 0-3 bone channels and 100 tangents (shSkinMeshData, 2 bone channels per 4 bones),
 // 50/51 texture space (shaderMeshData), 52 sun bump (nsb_StaticVisualScene), 53 vertex colour, 55 two-sided side
-// and 100-102 AO (dynSceneResSrc), 56/57 domain UV (rendInstResSrc).
+// and 100-102 AO (dynSceneResSrc), 56/57 domain UV (rendInstResSrc), 60 center of rotation (dag_corSkinningChannel.h).
 #ifdef __cplusplus
 enum ClothSimExtraChannel
 {

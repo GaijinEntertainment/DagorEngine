@@ -11,6 +11,7 @@
 #include <EASTL/unordered_map.h>
 #include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_sampler.h>
+#include <osApiWrappers/dag_mutex.h>
 
 #include <mutex>
 #include <vector>
@@ -307,7 +308,7 @@ public:
     HazardTracker *resource = nullptr;
     id metal_resource = nil;
     uint32_t offset = 0;
-    uint32_t stage : 2 = STAGE_VS;
+    uint32_t stage : 3 = STAGE_VS;
     uint32_t uav : 1 = false;
     uint32_t is_from_vs : 1 = false;
     uint32_t slot : 6 = 0;
@@ -316,6 +317,7 @@ public:
   };
   typedef dag::Vector<Render::Resource, framemem_allocator> ResourceArray;
   static_assert(sizeof(Resource) == 24);
+  static_assert(STAGE_TOTAL <= (1 << 3), "Resource::stage is too narrow");
 
   struct ClearTexOnCreate
   {
@@ -516,14 +518,14 @@ public:
       int shader;
       int program;
       id<MTLResource> native_resource;
-      id<MTLHeap> heap;
+      ResourceHeap *heap;
       RaytraceAccelerationStructure *as;
     };
   };
 
   MTLViewport cached_viewport;
 
-  std::mutex dynamic_buffer_lock, delete_lock, copy_tex_lock;
+  dag::mutex dynamic_buffer_lock, delete_lock, copy_tex_lock;
   Tab<DeletedResource> resources2delete;
   Tab<DeletedResource> residency2delete;
 
@@ -541,7 +543,7 @@ public:
   Tab<eastl::pair<Buffer *, Buffer::BufTex *>> buffers2clear;
 
   Tab<SamplerState> sampler_states;
-  std::mutex samplerStatesMutex;
+  dag::mutex samplerStatesMutex;
 
   int getSampler(SamplerState sampler_state);
 
@@ -561,9 +563,9 @@ public:
     {
       if (constant_buffer.buf)
       {
-        std::lock_guard<std::mutex> scopedLock(dynamic_buffer_lock);
+        std::lock_guard scopedLock(dynamic_buffer_lock);
         frame_callback.push_back([this, cb = constant_buffer] {
-          std::lock_guard<std::mutex> scopedLock(dynamic_buffer_lock);
+          std::lock_guard scopedLock(dynamic_buffer_lock);
           constant_buffers_free.push_back(cb);
 
           constexpr uint32_t max_const_buffers = 4;
@@ -600,9 +602,17 @@ public:
 
   id<MTLBuffer> AllocateDynamicBuffer(uint32_t size, int &offset, int sizeLeft = 0)
   {
-    G_ASSERT(size <= RingBufferItem::max_dynamic_size);
+    std::lock_guard scopedLock(dynamic_buffer_lock);
 
-    std::lock_guard<std::mutex> scopedLock(dynamic_buffer_lock);
+    const uint32_t chunkSize = max<uint32_t>(size, sizeLeft);
+    if (DAGOR_UNLIKELY(chunkSize > RingBufferItem::max_dynamic_size))
+    {
+      id<MTLBuffer> buf = createBuffer(chunkSize, MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared,
+        "dynamic buffer above ring chunk");
+      frame_callback.push_back([buf] { [buf release]; });
+      offset = 0;
+      return buf;
+    }
 
     size = (size + 31) & ~31; // align size since we're padding anyways
     if (!dynamic_buffer.buf || dynamic_buffer.offset + size > RingBufferItem::max_dynamic_size ||
@@ -611,7 +621,7 @@ public:
       if (dynamic_buffer.buf)
       {
         frame_callback.push_back([this, db = dynamic_buffer] {
-          std::lock_guard<std::mutex> scopedLock(dynamic_buffer_lock);
+          std::lock_guard scopedLock(dynamic_buffer_lock);
           dynamic_buffers_free.push_back(db);
 
           constexpr uint32_t max_dynamic_buffers = 3;
@@ -1098,13 +1108,17 @@ public:
     {.stage = STAGE_CS}, {.stage = STAGE_PS}, {.stage = STAGE_VS}, {.stage = STAGE_MS}, {.stage = STAGE_OS}};
   BindlessManager bindlessManager;
 
+  // mesh and object storages apply from the STAGE_VS binding set, see applyStates
+  __forceinline StageBinding &bindingOf(const StageStorage &storage) { return stages[storage.is_vertex() ? STAGE_VS : storage.stage]; }
+
   __forceinline void markDirty(StageStorage &storage, Shader *shader, Texture *tex)
   {
     G_ASSERT(tex);
 
-    for (uint32_t slot = 0; slot < MAX_SHADER_TEXTURES; ++slot)
+    // UAV slots too: a view or backing change affects them as well
+    for (uint32_t slot = 0; slot < MAX_STAGE_TEXTURES; ++slot)
     {
-      auto &cache = stages[storage.stage].textures[slot];
+      auto &cache = bindingOf(storage).textures[slot];
       if (cache.texture == tex && shader->tex_slot_remap[slot] >= 0)
         storage.texture_dirty_mask |= 1ull << shader->tex_slot_remap[slot];
     }
@@ -1115,7 +1129,7 @@ public:
     G_ASSERT(buf);
     for (int i = 0; i < BUFFER_POINT_COUNT; i++)
     {
-      if (stages[storage.stage].buffers[i] != buf)
+      if (bindingOf(storage).buffers[i] != buf)
         continue;
       if (buf && buf->getTexture())
       {
@@ -1225,6 +1239,7 @@ public:
   Program::RenderState cur_rstate;
   id<MTLRenderPipelineState> cur_state;
   Program::RenderState last_rstate;
+  uint64_t last_vdecl_hash = 0;
   uint32_t forcedSampleCount = 1;
 
   Program *cur_prog;
@@ -1317,7 +1332,7 @@ public:
     float bias = 0;            // Sampler only
     uint64_t samplerResId = 0; // Sampler only
   };
-  std::mutex pending_bindless_lock;
+  dag::mutex pending_bindless_lock;
   eastl::vector<PendingBindlessUpdate> pending_bindless_updates;
   std::atomic<uint32_t> pending_bindless_count{0};
 
@@ -1348,6 +1363,9 @@ public:
   void flush(bool wait, bool present = false);
 
   bool applyHdrModeChange();
+#if _TARGET_IOS
+  bool applyBackbufferResize();
+#endif
 
   void flushTexture(Texture *tex);
 
@@ -1367,7 +1385,7 @@ public:
   void uploadTexture(Texture *tex_ptr, id<MTLTexture> tex, int level, int layer, int x, int y, int z, int w, int h, int d,
     id<MTLBuffer> buf, int pitch, int imageSize);
   void queueResourceForDeletion(id<MTLResource> buf);
-  void queueHeapForDeletion(id<MTLHeap> heap);
+  void queueHeapForDeletion(ResourceHeap *heap);
   void queueCopyBuffer(Buffer *dst_buf, Buffer::BufTex *buf_tex, id<MTLBuffer> src, int src_offset, id<MTLBuffer> dst, int dst_offset,
     int size);
   void queueUpdateBuffer(id<MTLBuffer> src, int src_offset, Buffer *dst_buf, int dst_offset, int size);
@@ -1435,7 +1453,7 @@ public:
     int dest_level, int dest_x, int dest_y, int dest_z);
   void executeSpatialUpscale(Texture *color, Texture *output, uint32_t colorMode);
   void executeTemporalUpscale(Texture *color, Texture *motion, Texture *depth, Texture *output, float jitterX, float jitterY,
-    float motionScaleX, float motionScaleY);
+    float motionScaleX, float motionScaleY, bool reset);
 
   int setSampler(unsigned stage, int slot, int sampler, float bias = 0.f);
 
@@ -1549,7 +1567,7 @@ public:
     encoder_type = type;
   }
 
-  std::mutex command_buffer_mutex;
+  dag::mutex command_buffer_mutex;
   std::vector<std::string> command_buffer_labels;
   std::unordered_map<void *, std::vector<std::string>> command_buffers;
   bool enable_postmortem = false;

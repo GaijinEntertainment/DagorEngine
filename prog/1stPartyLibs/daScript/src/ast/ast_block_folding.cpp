@@ -184,7 +184,7 @@ namespace das {
             }
             return false;
         }
-        void collect ( vector<ExpressionPtr> & list, vector<ExpressionPtr> & blockList ) {
+        void collect ( vector<ExpressionPtr> & list, vector<ExpressionPtr> & blockList, ExprBlock * parent ) {
             bool stopAtExit = !hasLabels(blockList);
             bool skipTilLabel = false;
             for ( auto & expr : blockList ) {
@@ -229,8 +229,11 @@ namespace das {
                     if ( pBlock->generated ) {
                         for ( auto & st : pBlock->list ) if ( st && st->rtti_isLet() ) { keepScope = true; break; }
                     }
-                    if ( !pBlock->isClosure && !pBlock->finalList.size() && !keepScope ) {
-                        collect(list, pBlock->list);
+                    bool intoFunctionBody = func && parent==func->body;
+                    if ( !pBlock->isClosure && !pBlock->finalList.size() && !keepScope && (pBlock->annotations.empty() || intoFunctionBody) ) {
+                        parent->annotations.insert(parent->annotations.end(), pBlock->annotations.begin(), pBlock->annotations.end());
+                        pBlock->annotations.clear();
+                        collect(list, pBlock->list, parent);
                     } else {
                         list.push_back(expr);
                         // a kept scope which always exits ends the enclosing flow too; without this
@@ -264,13 +267,13 @@ namespace das {
     // ExprBlock
         virtual ExpressionPtr visit ( ExprBlock * block ) override {
             vector<ExpressionPtr> list;
-            collect(list, block->list);
+            collect(list, block->list, block);
             if ( list!=block->list ) {
                 swap ( block->list, list );
                 reportFolding();
             }
             vector<ExpressionPtr> finalList;
-            collect(finalList, block->finalList);
+            collect(finalList, block->finalList, block);
             if ( finalList!=block->finalList ) {
                 swap ( block->finalList, finalList );
                 reportFolding();

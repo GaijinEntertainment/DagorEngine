@@ -115,6 +115,11 @@ public:
   // first checkbox while holding the left mouse button.
   static bool checkboxWithDragSelection(const char *label, bool *value);
 
+  // A checkbox drawn as a switch between two labels: "label_off [switch] label_on". The label of the current state is
+  // shown with the normal text color, the other one with the disabled text color.
+  // Returns true when the user changes the state. In that case "value" holds the new state.
+  static bool toggleSwitch(const char *str_id, const char *label_off, const char *label_on, bool &value);
+
   // Similar to the ToolbarToggleButton or to ImGui::Checkbox, but looks like a regular button (text instead of icons)
   // and also supports toggling multiple buttons at once by dragging the mouse cursor from the
   // first toggle button while holding the left mouse button.
@@ -309,8 +314,6 @@ public:
   static bool menuItemExWithLeftSideCheckmark(const char *label, const char *icon, const char *shortcut = nullptr,
     bool selected = false, bool enabled = true, bool bullet = false, bool menu_item_selected = false,
     const MenuStyle &menu_style = DEFAULT_MENU_STYLE, bool secondary_is_comment = false);
-
-  static float getDefaultRightSideEditWidth();
 
   // This functions returns with ImGui::GetCursorPosY() minus the item spacing added by the last control.
   // Simply using ImGui::GetCursorPosY() and subtracting the current GetStlye().ItemSpacing.y could be incorrect for

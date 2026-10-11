@@ -50,14 +50,15 @@ private:
   void fillParametersGroup(PropPanel::ContainerPropertyControl &group, const CompositeEditorTreeDataNode &treeDataNode,
     bool canEditParameters);
 
-  void updateParameter(int id, real x, CompositeEditorTreeDataNode &treeDataNode);
+  void updateParameterControl(int index, real x, const CompositeEditorTreeDataNode &treeDataNode);
   void fillGlobalParametersGroup(PropPanel::ContainerPropertyControl &group, const CompositeEditorTreeDataNode &treeDataNode);
   void fillGlobalParametersGroup(PropPanel::ContainerPropertyControl &group, const CompositeEditorTreeDataNode &treeDataNode,
     const bool useTransformationMatrix, const Point3 &position, const Point3 &rotation, const Point3 &scale);
   void shouldRefillParam(bool &refill, int index, const CompositeEditorTreeDataNode &treeDataNode, real tmValue, real def);
-  void updateGlobalTransformParameters(CompositeEditorTreeDataNode &treeDataNode, const bool useTransformationMatrix,
+  void updateGlobalTransformParameters(const CompositeEditorTreeDataNode &treeDataNode, const bool useTransformationMatrix,
     const Point3 &position, Point3 const &rotation, const Point3 &scale);
   void addNonDefaultParam(int index, CompositeEditorTreeDataNode &treeDataNode, real tmValue, real def);
+  void removeTransformParamsWithoutRandomRange(CompositeEditorTreeDataNode &treeDataNode);
 
   void fillInternal(const CompositeEditorTreeDataNode &treeDataNode, PropPanel::IDropTargetHandler *dropTargetHandler,
     bool isRootNode);
@@ -69,6 +70,9 @@ private:
 
   int saveState(DataBlock &datablk, bool by_name = false) override;
 
+  bool entitiesMinimized = true;
+  bool childrenMinimized = true;
+  bool parametersMinimized = false;
   bool splitMinimized = false;
   bool splitRecursive = false;
 

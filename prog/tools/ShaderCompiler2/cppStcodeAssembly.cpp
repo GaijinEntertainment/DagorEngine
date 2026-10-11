@@ -157,7 +157,6 @@ void StcodeExpression::specifyNextExprElement(ElementType elem_type, const void 
         (const char *)arg1, (const char *)arg2);
     }
     break;
-      break;
     case ElementType::FUNC:
     {
       G_ASSERT(arg1 && arg2 && !arg3 && !arg4);

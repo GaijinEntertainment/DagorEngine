@@ -151,15 +151,17 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
 
   virtual void onToggleInteractive(int iflags)
   {
-    uiinput::mask_dainput_pointers(iflags, int(uiinput::DaInputMaskLayers::OverlayUiPointers));
+    uiinput::call_dainput([iflags] {
+      uiinput::mask_dainput_pointers(iflags, int(uiinput::DaInputMaskLayers::OverlayUiPointers));
 
-    // Need the code below to allow implementing User UI scripts in Overlay UI VM
-    // Assuming there are no two scenes using "HUD" action set at the same time
-    // This function is essentially the same as onToggleInteractive in HUD VM
-    bool active = (iflags & (IF_MOUSE | IF_KEYBOARD)) != 0;
-    dainput::action_set_handle_t s = dainput::get_action_set_handle("HUD");
-    if (s != dainput::BAD_ACTION_SET_HANDLE)
-      dainput::activate_action_set(s, active);
+      // Need the code below to allow implementing User UI scripts in Overlay UI VM
+      // Assuming there are no two scenes using "HUD" action set at the same time
+      // This function is essentially the same as onToggleInteractive in HUD VM
+      bool active = (iflags & (IF_MOUSE | IF_KEYBOARD)) != 0;
+      dainput::action_set_handle_t s = dainput::get_action_set_handle("HUD");
+      if (s != dainput::BAD_ACTION_SET_HANDLE)
+        dainput::activate_action_set(s, active);
+    });
   }
 
   virtual bool useInputConsumersCallback() override { return true; }
@@ -167,14 +169,8 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
   virtual void onInputConsumersChange(
     dag::ConstSpan<darg::HotkeyButton> buttons, dag::ConstSpan<String> event_hotkeys, bool consume_text_input) override
   {
-    bool isDaInputInited = dainput::get_action_sets_count() > 0;
-    if (!isDaInputInited) // handle UI scene cleanup after dainput was shut down
-      return;
-
-    uiinput::mask_dainput_buttons(buttons, consume_text_input, int(uiinput::DaInputMaskLayers::OverlayUiButtons));
-
     // Enable processing of events specified in UI scene layout
-    Tab<dainput::action_handle_t> actions(framemem_ptr());
+    Tab<dainput::action_handle_t> actions;
     actions.reserve(event_hotkeys.size());
     for (const String &s : event_hotkeys)
     {
@@ -183,8 +179,14 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
         actions.push_back(a);
     }
 
-    dainput::action_set_handle_t set = dainput::setup_action_set("UI.overlay.dynamic", actions);
-    dainput::activate_action_set(set, actions.size() > 0);
+    uiinput::call_dainput([consumedButtons = Tab<darg::HotkeyButton>(buttons), actions = eastl::move(actions), consume_text_input] {
+      if (!dainput::get_action_sets_count()) // UI scene cleanup after dainput shutdown
+        return;
+
+      uiinput::mask_dainput_buttons(consumedButtons, consume_text_input, int(uiinput::DaInputMaskLayers::OverlayUiButtons));
+      dainput::action_set_handle_t set = dainput::setup_action_set("UI.overlay.dynamic", actions);
+      dainput::activate_action_set(set, actions.size() > 0);
+    });
   }
 } gui_scene_cb;
 
@@ -346,6 +348,7 @@ void init_ui()
   dargScene->runScriptScene(script_fn);
   end_es_loading();
   debug("run scripted scene. done");
+  uishared::resend_input_state();
 
   ecs::EntityId curCam = get_cur_cam_entity();
   if (g_entity_mgr->has(curCam, ECS_HASH("camera__input_enabled")))

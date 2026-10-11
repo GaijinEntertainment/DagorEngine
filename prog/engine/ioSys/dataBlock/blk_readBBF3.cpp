@@ -23,6 +23,8 @@ static inline unsigned string_hash(const char *name)
   return hash;
 }
 
+static constexpr uint64_t MAX_BBF3_NAME_ID = 0xFFFFFF;
+
 static bool namemap_loadCompact(DataBlockShared &nameMap, eastl::vector<int> &conv, class IGenLoad &crd)
 {
   const bool load_le = true;
@@ -59,7 +61,9 @@ static bool namemap_loadCompact(DataBlockShared &nameMap, eastl::vector<int> &co
     str[len] = 0;
     allStringsLen += len;
     unsigned hash = string_hash(str) % bucketsCnt;
-    const int oldNameId = bucketsNames[hash] * bucketsCnt + hash;
+    const uint64_t oldNameId = uint64_t(bucketsNames[hash]) * bucketsCnt + hash;
+    if (oldNameId > MAX_BBF3_NAME_ID)
+      return false;
     if (conv.size() <= oldNameId)
       conv.resize(oldNameId + 1, -1);
     conv[oldNameId] = len ? nameMap.addNameId(str, len) : -1;
@@ -130,10 +134,10 @@ bool DataBlock::doLoadFromStreamBBF3(IGenLoad &crd)
     issue_error_load_failed(crd.getTargetName(), "bad strings table in BBF\\3 format");
     return false;
   }
-  return loadFromStreamBBF3(crd, conv.begin(), conv.end(), stringMap);
+  return loadFromStreamBBF3(crd, conv.begin(), conv.end(), stringMap, 0);
 }
 
-bool DataBlock::loadFromStreamBBF3(IGenLoad &crd, const int *cnv, const int *cnvEnd, const DBNameMap &strings)
+bool DataBlock::loadFromStreamBBF3(IGenLoad &crd, const int *cnv, const int *cnvEnd, const DBNameMap &strings, int depth)
 {
   const bool load_le = true;
   uint16_t paramsNum = readInt16(crd, load_le);
@@ -236,13 +240,18 @@ bool DataBlock::loadFromStreamBBF3(IGenLoad &crd, const int *cnv, const int *cnv
     }
     G_ASSERT(complexParamsData == complexParamsSize());
   }
+  if (blocksNum && depth >= dblk::MAX_BLOCK_DEPTH)
+  {
+    issue_error_load_failed(crd.getTargetName(), "blocks nesting depth exceeds maximum value");
+    return false;
+  }
   for (int i = 0; i < blocksNum; ++i)
   {
     int oldNameId = readInt32(crd, load_le);
     if (oldNameId < 0 || oldNameId >= cnvEnd - cnv)
       return false;
     int newNameId = cnv[oldNameId];
-    if (!addNewBlock(newNameId < 0 ? "" : shared->getName(newNameId))->loadFromStreamBBF3(crd, cnv, cnvEnd, strings))
+    if (!addNewBlock(newNameId < 0 ? "" : shared->getName(newNameId))->loadFromStreamBBF3(crd, cnv, cnvEnd, strings, depth + 1))
       return false;
   }
 

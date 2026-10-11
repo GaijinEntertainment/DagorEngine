@@ -15,7 +15,7 @@ def strcati(var a : string&; b : string) {
 def test_ref(t : T?) {
     t |> run("string + and +=") @(t : T?) {
         var a = "hello "
-        var b = "world"
+        let b = "world"
         let c = strcat(a, b)
         strcati(a, b)
         t |> equal("hello world", c)

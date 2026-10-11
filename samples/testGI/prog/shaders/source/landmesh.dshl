@@ -2,6 +2,11 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "lmesh_normalmap.dshl"
 
+texture cache_tex0 always_referenced;
+texture cache_tex1 always_referenced;
+texture cache_tex2 always_referenced;
+texture last_clip_tex always_referenced;
+
 shader land_mesh_landclass_detailed{dont_render;}
 shader land_mesh_combined_decal{dont_render;}
 shader land_mesh_height_decal{dont_render;}

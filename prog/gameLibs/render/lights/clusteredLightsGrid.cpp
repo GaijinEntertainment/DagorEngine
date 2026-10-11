@@ -12,8 +12,6 @@
 #include <EASTL/unique_ptr.h>
 #include <3d/dag_lockSbuffer.h>
 #include <util/dag_string.h>
-#include <startup/dag_globalSettings.h>
-#include <ioSys/dag_dataBlock.h>
 #include <render/lights/renderLights.hlsli>
 #include <render/lights/clusteredLightsGrid.hlsli>
 #include <generic/dag_carray.h>
@@ -35,33 +33,30 @@ CLG_GLOBAL_VARS_OPT_LIST
 #undef VAR
 #undef CLG_GLOBAL_VARS_OPT_LIST
 
-bool ClusteredLightsGrid::isGPU() const
+DynLightsFeatures ClusteredLightsGrid::getRuntimeFeatures() const
 {
-  return static_cast<bool>(precalculate_clustered_frustum_data_cs) && static_cast<bool>(precalculate_grid_lights_data_cs) &&
-         static_cast<bool>(fill_items_spheres_cs) && static_cast<bool>(cull_spots_cs);
+  const bool isGpuGridConfigured = static_cast<bool>(precalculate_clustered_frustum_data_cs) &&
+                                   static_cast<bool>(precalculate_grid_lights_data_cs) && static_cast<bool>(fill_items_spheres_cs) &&
+                                   static_cast<bool>(cull_spots_cs) && lightsGridPrecalculatedData && lightsGridFrustumPoints;
+  return isGpuGridConfigured ? DynLightsFeatures::GpuClusteredLightsGrid : DynLightsFeatures::CpuOnly;
 }
-bool ClusteredLightsGrid::hasOmni() const { return storedOmniCount != 0; }
-bool ClusteredLightsGrid::hasSpot() const { return storedSpotCount != 0; }
-bool ClusteredLightsGrid::newFrameHasLights() const { return hasOmni() || hasSpot(); }
-bool ClusteredLightsGrid::lastFrameHasLights() const { return frameState != FrameState::NO_CLUSTERED_LIGHTS; }
 uint32_t ClusteredLightsGrid::getOmniWords() const { return dag::divide_align_up(storedOmniCount, 32); }
 uint32_t ClusteredLightsGrid::getSpotWords() const { return dag::divide_align_up(storedSpotCount, 32); }
-int ClusteredLightsGrid::getOmniCount() const { return storedOmniCount; }
-int ClusteredLightsGrid::getSpotCount() const { return storedSpotCount; }
-
 
 ClusteredLightsGrid::ClusteredLightsGrid(FrustumClusters &clusters_, const LightsResourcesManager *lights_res_mgr,
   int initial_light_density) :
-  clusters(&clusters_), lightsResMgr(lights_res_mgr)
+  clusters(&clusters_), lightsResMgr(lights_res_mgr), initialLightDensity(initial_light_density)
 {
-  bool useGpuLights = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("gpuLights", true);
-  if (useGpuLights)
+  ShaderGlobal::set_int(clusteredLightsShrinkSpheresVarId, SHRINK_SPHERE);
+}
+
+void ClusteredLightsGrid::init(DynLightsFeatures requested_features)
+{
+  if (static_cast<bool>(requested_features & DynLightsFeatures::GpuClusteredLightsGrid))
   {
     fill_items_spheres_cs = ComputeShader("clustered_lights_fill_items_spheres_cs", true);
     cull_spots_cs = ComputeShader("clustered_lights_cull_spots_cs", true);
   }
-
-  ShaderGlobal::set_int(clusteredLightsShrinkSpheresVarId, SHRINK_SPHERE);
 
   if (fill_items_spheres_cs)
   {
@@ -88,7 +83,7 @@ ClusteredLightsGrid::ClusteredLightsGrid(FrustumClusters &clusters_, const Light
   }
 
   const uint32_t words =
-    clamp((initial_light_density + 31) / 32, (int)2, (int)(MAX_CLUSTERED_SPOT_LIGHTS + MAX_CLUSTERED_OMNI_LIGHTS + 31) / 32);
+    clamp((initialLightDensity + 31) / 32, (int)2, (int)(MAX_CLUSTERED_SPOT_LIGHTS + MAX_CLUSTERED_OMNI_LIGHTS + 31) / 32);
   validateDensity(words);
 }
 
@@ -104,7 +99,6 @@ void ClusteredLightsGrid::reset()
   clusters = nullptr;
   allocatedWords = 0;
   lightsGridFrame = 0;
-  frameState = FrameState::NOT_INITED;
 }
 
 void ClusteredLightsGrid::validateDensity(uint32_t words)
@@ -113,9 +107,9 @@ void ClusteredLightsGrid::validateDensity(uint32_t words)
     return;
   allocatedWords = words;
   // GPU path: UAV + SRV (no CPU write access). CPU path: dynamic CPU-writable SRV.
-  const uint32_t bufFlags = isGPU() ? (SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED)
+  const uint32_t bufFlags = isGpu() ? (SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED)
                                     : (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED);
-  const int numBuffers = isGPU() ? 1 : (int)lightsFullGridCB.size();
+  const int numBuffers = isGpu() ? 1 : (int)lightsFullGridCB.size();
   for (int i = 0; i < numBuffers; ++i)
   {
     String name(128, "lights_full_grid_%d", i);
@@ -125,15 +119,10 @@ void ClusteredLightsGrid::validateDensity(uint32_t words)
   }
 }
 
-void ClusteredLightsGrid::advanceFrameState()
-{
-  frameState = newFrameHasLights() ? FrameState::HAS_CLUSTERED_LIGHTS : FrameState::NO_CLUSTERED_LIGHTS;
-}
-
 void ClusteredLightsGrid::prepareGPUCulling(mat44f_cref view, mat44f_cref proj, float znear, float zfar, float close_dist,
   float max_dist, uint32_t omni_bounds_size, uint32_t spot_bounds_size)
 {
-  G_ASSERT(isGPU());
+  G_ASSERT(isGpu());
   storedOmniCount = omni_bounds_size;
   storedSpotCount = spot_bounds_size;
 
@@ -155,7 +144,7 @@ void ClusteredLightsGrid::cullCPU(mat44f_cref view, mat44f_cref proj, float znea
   dag::ConstSpan<vec4f> omni_bounds, dag::ConstSpan<FrustumClusters::SpotsCullingData> spot_lights_culling_data,
   dag::ConstSpan<vec4f> spot_bounds, Occlusion *occlusion)
 {
-  G_ASSERT(!isGPU());
+  G_ASSERT(!isGpu());
   storedOmniCount = omni_bounds.size();
   storedSpotCount = spot_lights_culling_data.size();
   const uint32_t omniWords = getOmniWords();
@@ -189,7 +178,10 @@ void ClusteredLightsGrid::fill()
   const uint32_t omniWords = getOmniWords();
   const uint32_t spotWords = getSpotWords();
 
-  if (!isGPU())
+  if ((omniWords + spotWords) == 0)
+    return;
+
+  if (!isGpu())
     fillClusteredCB(clustersOmniGrid.data(), omniWords, clustersSpotGrid.data(), spotWords);
   else
     executeGPUFillingPipeline();
@@ -197,7 +189,7 @@ void ClusteredLightsGrid::fill()
 
 void ClusteredLightsGrid::executeGPUFillingPipeline()
 {
-  G_ASSERT(isGPU());
+  G_ASSERT(isGpu());
   TIME_D3D_PROFILE(clusteredFill_GPU);
   validateDensity(getSpotWords() + getOmniWords());
 
@@ -278,9 +270,9 @@ void ClusteredLightsGrid::clusteredCullLights(mat44f_cref view, mat44f_cref proj
   has_omni_lights = clusteredOmniLights != 0;
 }
 
-bool ClusteredLightsGrid::fillClusteredCB(uint32_t *source_omni, uint32_t omni_words, uint32_t *source_spot, uint32_t spot_words)
+void ClusteredLightsGrid::fillClusteredCB(uint32_t *source_omni, uint32_t omni_words, uint32_t *source_spot, uint32_t spot_words)
 {
-  G_ASSERT(!isGPU());
+  G_ASSERT(!isGpu());
   TIME_D3D_PROFILE(clusteredFill_CPU);
   validateDensity(spot_words + omni_words);
 
@@ -290,8 +282,7 @@ bool ClusteredLightsGrid::fillClusteredCB(uint32_t *source_omni, uint32_t omni_w
   LockedBuffer<uint32_t> masks =
     lock_sbuffer<uint32_t>(lightsFullGridCB[lightsGridFrame].getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   if (!masks)
-    return false;
+    return;
   masks.updateDataRange(0, source_omni, omni_words * CLUSTERS_PER_GRID);
   masks.updateDataRange(CLUSTERS_PER_GRID * omni_words, source_spot, spot_words * CLUSTERS_PER_GRID);
-  return true;
 }

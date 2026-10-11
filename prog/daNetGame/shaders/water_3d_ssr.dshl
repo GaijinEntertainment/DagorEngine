@@ -6,7 +6,6 @@ include "heightmap_common.dshl"
 include "ssr_use.dshl"
 include "ffx_sssr.dshl"
 include "water_3d_overrides.dshl"
-include "underwater_fog.dshl"
 include "camera_in_camera.dshl"
 include "postfx_inc.dshl"
 include "viewVecVS.dshl"
@@ -16,6 +15,8 @@ define_macro_if_not_defined GET_ALTERNATE_REFLECTIONS_WATER(code)
   SKIP_INIT_CLOUDS_SHADOWS()
   GET_ALTERNATE_REFLECTIONS(code)
 endmacro
+
+interval water_quality: low<1, medium<2, high;
 
 int water_ssr_enabled_prev_frame;
 texture prev_frame_tex;
@@ -59,7 +60,6 @@ macro WATER_SSR()
   {
     globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     prev_frame_tex@tex2d = prev_frame_tex;
-    water_quality@f1 = (water_quality);
   }
   hlsl(ps) {
     #define NUM_STEPS 16
@@ -275,18 +275,20 @@ macro WATER_SSR()
 
     float4 rayMarch(float3 world_pos, float3 reflect_dir, float4x4 mat, out float4 backSurfaceBeginPos, out float3 backSurfaceEndPos)
     {
-      float4 result = float4(0, 0, 0, HIT_INVALID);
-      BRANCH
-      if (water_quality == water_quality_low)
-        result = rayMarchLow(world_pos, reflect_dir, mat);
-      else if (water_quality == water_quality_medium)
-        result = rayMarchMedium(world_pos, reflect_dir, mat);
-      else
-        result = rayMarchHigh(world_pos, reflect_dir, mat, backSurfaceBeginPos, backSurfaceEndPos);
-
+    ##if water_quality == high
       // rayMarchHigh doesn't rely on sample interpolating, so it looks good without the need for discarding
+      return rayMarchHigh(world_pos, reflect_dir, mat, backSurfaceBeginPos, backSurfaceEndPos);
+    ##else
+      backSurfaceBeginPos = 0;
+      backSurfaceEndPos = 0;
+      ##if water_quality == low
+        float4 result = rayMarchLow(world_pos, reflect_dir, mat);
+      ##else
+        float4 result = rayMarchMedium(world_pos, reflect_dir, mat);
+      ##endif
+
       BRANCH
-      if (water_quality == water_quality_high || IS_HIT_INVALID(result))
+      if (IS_HIT_INVALID(result))
         return result;
 
       float3 viewDir = getViewVecOptimized(result.xy);
@@ -299,6 +301,7 @@ macro WATER_SSR()
         return result;
       else
         return float4(0, 0, 0, HIT_INVALID);
+    ##endif
     }
 
     half3 sample_vignetted_color(float2 hit_uv)
@@ -438,8 +441,9 @@ macro WATER_SSR()
           }
         ##endif
       }
+    ##if water_quality == high
       BRANCH
-      if (water_quality == water_quality_high && !isSkyHit && !isHitValid && objectReflection.a == 0)
+      if (!isSkyHit && !isHitValid && objectReflection.a == 0)
       {
         float3 cameraToPoint = -pointToEye;
         float rayHitDist = 0;
@@ -452,8 +456,9 @@ macro WATER_SSR()
         }
       }
       BRANCH
-      if (water_quality == water_quality_high && backSurfaceBeginPos.w > 0 && !isSkyHit && !isHitValid && objectReflection.a == 0)
+      if (backSurfaceBeginPos.w > 0 && !isSkyHit && !isHitValid && objectReflection.a == 0)
           applyBackSurfaceColorFix(objectReflection, screenPos, backSurfaceBeginPos.xyz, backSurfaceEndPos);
+    ##endif
 
       return objectReflection;
     }

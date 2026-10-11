@@ -58,6 +58,14 @@ half static_shadow_sample_fxaa(float2 pos, float z, STATIC_SHADOW_TEXTURE_REF te
    return saturate(dot(grad, half3(0.2h, 0.4h, 0.4h) ));
 }
 
+#ifndef STATIC_SHADOW_NORMAL_OFFSET
+#define STATIC_SHADOW_NORMAL_OFFSET 0
+#endif
+
+#ifndef STATIC_SHADOW_NORMAL_OFFSET_TEXELS
+#define STATIC_SHADOW_NORMAL_OFFSET_TEXELS 2.0f
+#endif
+
 #if STATIC_SHADOW_DITHERED
 #ifndef NUM_STATIC_SHADOW_SAMPLES
 #define NUM_STATIC_SHADOW_SAMPLES 8
@@ -102,8 +110,8 @@ half static_shadow_sample_8_tap(float2 pos, float z, STATIC_SHADOW_TEXTURE_REF t
   return shadow * half(1./NUM_SAMPLES);
 }
 
-half static_shadow_sample_8_tap_normal_adj(float3 tc, float3 worldPos, float3 normal, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_samplerstate, float layer, float texel_size,
-  float dither, float radius_scale, float2 harden_param, float3 mat_0, float3 mat_1, float3 mat_2, float3 mat_3, float2 tor_ofs, float max_ht_range, float bias)
+half static_shadow_sample_8_tap_normal_adj(float3 tc, float3 normal, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_samplerstate, float layer, float texel_size,
+  float dither, float radius_scale, float2 harden_param, float3 mat_0, float3 mat_1, float3 mat_2, float max_ht_range)
 {
   // here we perform sampling alongside the surface, instead of just TC space
   // it greatly reduce acne, due to half of samples are not stuck "inside" geometry
@@ -128,21 +136,21 @@ half static_shadow_sample_8_tap_normal_adj(float3 tc, float3 worldPos, float3 no
 #endif
 
   float3 tangent = normalize(cross(abs(normal.y) > 0.5 ? float3(1, 0, 0) : float3(0, 1, 0), normal));
-  float3 bitangent = normalize(cross(tangent, normal));
+  float3 bitangent = cross(tangent, normal);
 
   float2x2 mat = calc_rotation_matrix(dither);
   mat *= radius;
 
+  float2x3 axes = mul(mat, float2x3(tangent, bitangent));
+  float3 axisX = get_static_shadow_tc_no_vignette(get_static_shadow_tc_base(axes[0], mat_0, mat_1, mat_2, 0), 0);
+  float3 axisY = get_static_shadow_tc_no_vignette(get_static_shadow_tc_base(axes[1], mat_0, mat_1, mat_2, 0), 0);
+  float2x3 uvAxes = float2x3(axisX, axisY);
+
   half shadow = half(0.0);
+  UNROLL
   for (uint i = 0; i < NUM_STATIC_SHADOW_SAMPLES; ++i)
   {
-    float2 sampleOffset = mul(g_poisson_disc_8[i], mat);
-    float3 worldSpaceOfs = tangent * sampleOffset.x + bitangent * sampleOffset.y; // we can move it to matrix, but then its need to be 3x3 instad of 2x2. this way is cheaper
-
-    float3 tc_base = get_static_shadow_tc_base(worldPos + worldSpaceOfs, mat_0, mat_1, mat_2, mat_3);
-    float3 uv = get_static_shadow_tc_no_vignette(tc_base, tor_ofs);
-    uv.z += bias;
-
+    float3 uv = tc + mul(g_poisson_disc_8[i], uvAxes);
     shadow += 1.f - static_shadow_sample(uv.xy, uv.z, tex, tex_samplerstate, layer);
   }
 
@@ -161,7 +169,7 @@ half static_shadow_sample_8_tap_normal_adj(float3 tc, float3 worldPos, float3 no
 #endif
 
 
-half getStaticShadowMask(float3 worldPos, float3 normal, float dither, out uint cascade_id, out half mask, float radius_scale, float2 harden_param, float2 depth_bias_per_cascade)
+half getStaticShadowMask(float3 worldPos, float3 normal, float3 from_sun_dir, float dither, out uint cascade_id, out half mask, float radius_scale, float2 harden_param, float2 depth_bias_per_cascade)
 {
   cascade_id = 2;
   mask = 0.h;
@@ -175,11 +183,17 @@ half getStaticShadowMask(float3 worldPos, float3 normal, float dither, out uint 
   float3 mat_0 = static_shadow_matrix_0_0.xyz;
   float3 mat_1 = static_shadow_matrix_1_0.xyz;
   float3 mat_2 = static_shadow_matrix_2_0.xyz;
-  float3 mat_3 = static_shadow_matrix_3_0.xyz;
-  float2 tor_ofs = static_shadow_cascade_0_tor;
   float bias = depth_bias_per_cascade.x;
 
-  float3 baseTc0 = get_static_shadow_tc_base(worldPos, static_shadow_matrix_0_0.xyz, static_shadow_matrix_1_0.xyz, static_shadow_matrix_2_0.xyz, static_shadow_matrix_3_0.xyz);
+  float3 normalOffsetDir = 0;
+#if STATIC_SHADOW_NORMAL_OFFSET
+  {
+    float NoL = saturate(dot(normal, -from_sun_dir));
+    normalOffsetDir = (STATIC_SHADOW_NORMAL_OFFSET_TEXELS * (1.0f - NoL)) * normal;
+  }
+#endif
+
+  float3 baseTc0 = get_static_shadow_tc_base(worldPos + normalOffsetDir * static_shadow_matrix_1_0.w, static_shadow_matrix_0_0.xyz, static_shadow_matrix_1_0.xyz, static_shadow_matrix_2_0.xyz, static_shadow_matrix_3_0.xyz);
   float4 tc = get_static_shadow_tc(baseTc0, static_shadow_cascade_0_tor, dither, hardVignette0);
   float tex_size_rcp = static_shadow_matrix_0_0.w;
   float texel_size = static_shadow_matrix_1_0.w;
@@ -190,7 +204,7 @@ half getStaticShadowMask(float3 worldPos, float3 normal, float dither, out uint 
     #if STATIC_SHADOW_NO_VIGNETTE
     hardVignette1 = true;
     #endif
-    float3 baseTc1 = get_static_shadow_tc_base(worldPos, static_shadow_matrix_0_1.xyz, static_shadow_matrix_1_1.xyz, static_shadow_matrix_2_1.xyz, static_shadow_matrix_3_1.xyz);
+    float3 baseTc1 = get_static_shadow_tc_base(worldPos + normalOffsetDir * static_shadow_matrix_1_1.w, static_shadow_matrix_0_1.xyz, static_shadow_matrix_1_1.xyz, static_shadow_matrix_2_1.xyz, static_shadow_matrix_3_1.xyz);
     float4 tc1 = get_static_shadow_tc(baseTc1, static_shadow_cascade_1_tor.xy, dither, hardVignette1);
     FLATTEN
     if ( !(tc.w > 0 && tc.z > static_shadow_scrolled_depth_min_0) || (tc.z >= static_shadow_scrolled_depth_max_0 && tc1.z < 1))
@@ -203,8 +217,6 @@ half getStaticShadowMask(float3 worldPos, float3 normal, float dither, out uint 
       mat_0 = static_shadow_matrix_0_1.xyz;
       mat_1 = static_shadow_matrix_1_1.xyz;
       mat_2 = static_shadow_matrix_2_1.xyz;
-      mat_3 = static_shadow_matrix_3_1.xyz;
-      tor_ofs = static_shadow_cascade_1_tor;
       bias = depth_bias_per_cascade.y;
     }
   #endif
@@ -217,7 +229,7 @@ half getStaticShadowMask(float3 worldPos, float3 normal, float dither, out uint 
     cascade_id = layer;
 #if STATIC_SHADOW_DITHERED_NORMAL_ADJ
     ret = half(1.h - static_shadow_sample_8_tap_normal_adj(
-      tc.xyz, worldPos, normal, static_shadow_tex, static_shadow_tex_cmpSampler, layer, texel_size, dither, radius_scale, harden_param, mat_0, mat_1, mat_2, mat_3, tor_ofs, max_ht_range, bias));
+      tc.xyz, normal, static_shadow_tex, static_shadow_tex_cmpSampler, layer, texel_size, dither, radius_scale, harden_param, mat_0, mat_1, mat_2, max_ht_range));
 #else
     ret = half(1.h - static_shadow_sample_opt(
       tc.xy, tc.z, static_shadow_tex, static_shadow_tex_cmpSampler, layer, tex_size_rcp, dither, radius_scale));
@@ -229,29 +241,30 @@ half getStaticShadowMask(float3 worldPos, float3 normal, float dither, out uint 
   return ret;
 }
 
-half getStaticShadowWithBias(float3 worldPos, float3 normal, float dither, out uint cascade_id, float radius_scale, float2 harden_param, float2 depth_bias_per_cascade)
+half getStaticShadowWithBias(float3 worldPos, float3 normal, float3 from_sun_dir, float dither, out uint cascade_id, float radius_scale, float2 harden_param, float2 depth_bias_per_cascade)
 {
   half mask;
-  half ret = getStaticShadowMask(worldPos, normal, dither, cascade_id, mask, radius_scale, harden_param, depth_bias_per_cascade);
+  half ret = getStaticShadowMask(worldPos, normal, from_sun_dir, dither, cascade_id, mask, radius_scale, harden_param, depth_bias_per_cascade);
   return half((1.h - 1.h*mask) + ret*mask);
 }
 
 #if STATIC_SHADOW_DITHERED_NORMAL_ADJ // TODO: if all project will pass normal, we can remove this define
-half getStaticShadow(float3 worldPos, float3 normal, float dither, out uint cascade_id, float radius_scale)
+half getStaticShadow(float3 worldPos, float3 normal, float3 from_sun_dir, float dither, out uint cascade_id, float radius_scale)
 {
-  return getStaticShadowWithBias(worldPos, normal, dither, cascade_id, radius_scale, float2(0,0), float2(0,0));
+  return getStaticShadowWithBias(worldPos, normal, from_sun_dir, dither, cascade_id, radius_scale, float2(0,0), float2(0,0));
 }
 #else
 half getStaticShadow(float3 worldPos, float dither, out uint cascade_id, float radius_scale)
 {
-  return getStaticShadowWithBias(worldPos, 0, dither, cascade_id, radius_scale, float2(0,0), float2(0,0));
+  // a zero normal cancels the normal offset, so no sun direction is needed here
+  return getStaticShadowWithBias(worldPos, float3(0,0,0), float3(0,0,0), dither, cascade_id, radius_scale, float2(0,0), float2(0,0));
 }
 #endif
 
 half getStaticShadow(float3 worldPos)
 {
   uint cascadeId;
-  return getStaticShadowWithBias(worldPos, float3(0, 0, 0), 0, cascadeId, 1, float2(0,0), float2(0, 0));
+  return getStaticShadowWithBias(worldPos, float3(0, 0, 0), float3(0, 0, 0), 0, cascadeId, 1, float2(0,0), float2(0, 0));
 }
 
 #endif

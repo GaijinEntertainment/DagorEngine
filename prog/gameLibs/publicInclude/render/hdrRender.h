@@ -25,6 +25,8 @@ bool is_active();
 HdrOutputMode get_hdr_output_mode();
 
 Texture *get_render_target_tex();
+// the texture set_render_target() binds: the hdr target, or the backbuffer when hdr is off
+Texture *get_render_target_tex_or_backbuffer();
 TEXTUREID get_render_target_tex_id();
 const ManagedTex &get_render_target();
 

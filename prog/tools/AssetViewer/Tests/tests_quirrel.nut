@@ -20,10 +20,11 @@ tr.registerTest("quirrel_yield", function(runtime) {
   println("Success, Yield!")
 })
 
-tr.registerTest("quirrel_fail", function(runtime) {
-  runtime.markFailed()
-  println("Success, Test FAILED!")
-})
+// Test case that intentionally fails.
+// tr.registerTest("quirrel_fail", function(runtime) {
+//   runtime.markFailed("intentional failure")
+//   println("Success, Test FAILED!")
+// })
 
 function printItemInfo(msg, item) {
   local max = item.bb.Max
@@ -33,7 +34,9 @@ function printItemInfo(msg, item) {
   local controlTypeStr = item.controlType != null ? $", controlType = {item.controlType}" : ", controlType = <null>"
   local bbStr = $"[Min: ({min.x}, {min.y}), Max: ({max.x}, {max.y})]"
   println("".concat($"{msg}: id = {item.id}, bb = {bbStr}, parentId = {item.parentId}",
-    labelStr, displayNameStr, controlTypeStr, $", controlId = {item.controlId}"))
+    labelStr, displayNameStr, controlTypeStr, $", controlId = {item.controlId}",
+    $", hovered = {item.hovered}, active = {item.active}, visible = {item.visible}, toggledOpen = {item.toggledOpen}",
+    $", isWindow = {item.isWindow}"))
 }
 
 tr.registerTest("quirrel_query_item", function(runtime) {
@@ -42,11 +45,11 @@ tr.registerTest("quirrel_query_item", function(runtime) {
   if (item != null) {
     printItemInfo("Query item", item);
   } else {
-    runtime.markFailed();
+    runtime.markFailed("queryItem() did not find an existing item");
   }
   item = runtime.queryItem("Root/*/*/No such GUI Item")
   if (item != null) {
-    runtime.markFailed();
+    runtime.markFailed("queryItem() found an item that does not exist");
   }
   println($"Success, Query Item!")
 })
@@ -60,11 +63,11 @@ tr.registerTest("quirrel_query_children", function(runtime) {
       printItemInfo("Query children", item);
     }
   } else {
-    runtime.markFailed();
+    runtime.markFailed("queryChildren() did not find an existing item");
   }
   children = runtime.queryChildren("Root/*/*/No such GUI Item")
   if (children != null) {
-    runtime.markFailed();
+    runtime.markFailed("queryChildren() found an item that does not exist");
   }
   println($"Success, Query Children!")
 })
@@ -124,10 +127,10 @@ tr.registerTest("quirrel_mouse_modifier_click", function(runtime) {
     if (checkTop && checkBottom && checkTopAgain) {
       println("Success, Mouse Modifier Click!");
     } else {
-      runtime.markFailed();
+      runtime.markFailed($"shift click scroll: top {checkTop}, bottom {checkBottom}, top again {checkTopAgain}");
     }
   } else {
-    runtime.markFailed();
+    runtime.markFailed("Assets Tree or its Collapse all button not found");
   }
 })
 
@@ -178,7 +181,7 @@ tr.registerTest("quirrel_character_input", function(runtime) {
 tr.registerTest("quirrel_mouse_drag", function(runtime) {
   local viewport = runtime.queryItem("Root/*/*/Viewport")
   if (viewport == null) {
-    runtime.markFailed()
+    runtime.markFailed("Viewport not found")
     return
   }
   local min = viewport.bb.Min
@@ -189,4 +192,200 @@ tr.registerTest("quirrel_mouse_drag", function(runtime) {
   local to = Point2(max.x - startx, cy)
   runtime.input().mouseDrag(Mouse.Middle, from, to, 5.0)
   println("Success, Mouse drag!")
+})
+
+// Checks that only the button under the mouse is hovered, and that both buttons are visible.
+// queryChildren() must also report the hovered button.
+tr.registerTest("quirrel_item_hovered", function(runtime) {
+  let collapsePath = "Root/*/*/Assets Tree/Collapse all"
+  let expandPath = "Root/*/*/Assets Tree/Expand all"
+  foreach ([underMousePath, otherPath] in [[collapsePath, expandPath], [expandPath, collapsePath]]) {
+    runtime.input().mouseMoveItem(underMousePath, 1.0)
+    runtime.yieldTime(1.0)
+    let underMouse = runtime.queryItem(underMousePath)
+    let other = runtime.queryItem(otherPath)
+    if (underMouse == null || other == null) {
+      runtime.markFailed("Collapse all or Expand all not found")
+      return
+    }
+    if (!underMouse.hovered || other.hovered) {
+      runtime.markFailed($"mouse on {underMousePath}: hovered {underMouse.hovered}, {otherPath} hovered {other.hovered}")
+      return
+    }
+    if (!underMouse.visible || !other.visible) {
+      runtime.markFailed($"{underMousePath} visible {underMouse.visible}, {otherPath} visible {other.visible}")
+      return
+    }
+    let children = runtime.queryChildren("Root/*/*/Assets Tree")
+    if (children == null) {
+      runtime.markFailed("queryChildren() did not find Assets Tree")
+      return
+    }
+    let child = children.findvalue(@(c) c.id == underMouse.id)
+    if (child == null || !child.hovered) {
+      runtime.markFailed($"queryChildren(): {underMousePath} found {child != null}, hovered {child?.hovered}")
+      return
+    }
+  }
+  println("Success, Item Hovered!")
+})
+
+// Checks that a window is hovered while the mouse is on one of its items, and not while it is on another window.
+// Also checks that the window is a window item and its button is not.
+tr.registerTest("quirrel_window_hovered", function(runtime) {
+  let windowPath = "Root/*/*/Assets Tree"
+  let buttonPath = $"{windowPath}/Collapse all"
+  runtime.input().mouseMoveItem(buttonPath, 1.0)
+  runtime.yieldTime(1.0)
+  let inside = runtime.queryItem(windowPath)
+  let button = runtime.queryItem(buttonPath)
+  runtime.input().mouseMoveItem("Root/*/*/Viewport", 1.0)
+  runtime.yieldTime(1.0)
+  let outside = runtime.queryItem(windowPath)
+  if (inside == null || outside == null || button == null) {
+    runtime.markFailed("Assets Tree or its Collapse all button not found")
+  } else if (!inside.isWindow || button.isWindow) {
+    runtime.markFailed($"isWindow: Assets Tree {inside.isWindow}, Collapse all {button.isWindow}")
+  } else if (inside.visible) {
+    runtime.markFailed("Assets Tree reports visible, but a window item never does")
+  } else if (!inside.hovered || outside.hovered) {
+    runtime.markFailed($"Assets Tree hovered: mouse inside {inside.hovered}, mouse on Viewport {outside.hovered}")
+  } else {
+    println("Success, Window Hovered!")
+  }
+})
+
+// Checks that a button is active only while the mouse button holds it down, and that a window is never active.
+tr.registerTest("quirrel_item_active", function(runtime) {
+  let path = "Root/*/*/Assets Tree/Expand all"
+  runtime.input().mouseMoveItem(path, 1.0)
+  runtime.yieldTime(1.0)
+  let before = runtime.queryItem(path)
+  runtime.input().mouseButtonDown(Mouse.Left)
+  runtime.yieldTime(1.0)
+  let held = runtime.queryItem(path)
+  runtime.input().mouseButtonUp(Mouse.Left)
+  runtime.yieldTime(1.0)
+  let released = runtime.queryItem(path)
+  if (before == null || held == null || released == null) {
+    runtime.markFailed("Expand all not found")
+    return
+  }
+  if (before.active || !held.active || released.active) {
+    runtime.markFailed($"Expand all active: before {before.active}, held {held.active}, released {released.active}")
+    return
+  }
+
+  // The property panel sets ImGui ActiveId to its window ID while the middle mouse button is down on it.
+  let panelPath = "Root/*/*/Properties"
+  if (!runtime.input().mouseMoveItem(panelPath, 1.0))
+    return
+  runtime.input().mouseButtonDown(Mouse.Middle)
+  runtime.yieldTime(0.5)
+  let heldPanel = runtime.queryItem(panelPath)
+  runtime.input().mouseButtonUp(Mouse.Middle)
+  runtime.yieldTime(0.5)
+  if (heldPanel == null || !heldPanel.isWindow || heldPanel.active != false) {
+    runtime.markFailed($"Properties held with the middle mouse button: found {heldPanel != null}, active {heldPanel?.active}")
+    return
+  }
+  println("Success, Item Active!")
+})
+
+// The property panel shows the "Common parameters" group only while an asset is selected.
+function selectAsset(runtime, name) {
+  let searchPath = "Root/*/*/Assets Tree/##searchInput"
+  runtime.input().mouseClickItem(searchPath, Mouse.Left)
+  runtime.yieldTime(1.0)
+  runtime.input().characterInput(name, 0.2)
+  runtime.yieldTime(1.0)
+  runtime.input().mouseClickItem($"**/{name}", Mouse.Left)
+  runtime.yieldTime(1.0)
+  runtime.input().mouseClickItem(searchPath, Mouse.Left)
+  runtime.yieldTime(1.0)
+  runtime.input().keyPressModifier(Keys.A, Modifier.Ctrl)
+  runtime.yieldTime(1.0)
+  runtime.input().keyPress(Keys.Delete)
+  runtime.yieldTime(1.0)
+}
+
+// Checks that a group header reports toggledOpen only in the frame of the click that opens or closes it.
+tr.registerTest("quirrel_item_toggled_open", function(runtime) {
+  let path = "**/Common parameters"
+  if (runtime.queryItem(path) == null)
+    selectAsset(runtime, "cdk_building_doors")
+  runtime.input().mouseMoveItem(path, 1.0)
+  runtime.yieldTime(1.0)
+  // Two clicks, so the group ends in the state it started in.
+  for (local i = 0; i < 2; i++) {
+    let before = runtime.queryItem(path)
+    runtime.input().mouseButtonDown(Mouse.Left)
+    runtime.yieldTime(1.0)
+    // The group header toggles on the release, and mouseButtonUp() returns after that frame.
+    runtime.input().mouseButtonUp(Mouse.Left)
+    let toggled = runtime.queryItem(path)
+    runtime.yieldFrame()
+    let after = runtime.queryItem(path)
+    if (before == null || toggled == null || after == null) {
+      runtime.markFailed("Common parameters group not found")
+      return
+    }
+    if (before.toggledOpen || !toggled.toggledOpen || after.toggledOpen) {
+      runtime.markFailed("".concat($"click {i + 1}: toggledOpen before {before.toggledOpen}, ",
+        $"on release {toggled.toggledOpen}, next frame {after.toggledOpen}"))
+      return
+    }
+    runtime.yieldTime(1.0)
+  }
+  println("Success, Item Toggled Open!")
+})
+
+// The menu item opens the dialog if it is closed, and closes it if it is open.
+function toggleEnvironmentSettings(runtime) {
+  runtime.input().mouseClickItem("##MainMenuBar/Settings", Mouse.Left)
+  runtime.yieldTime(1.0)
+  runtime.input().mouseClickItem("**/Environment settings...", Mouse.Left)
+  runtime.yieldTime(1.0)
+}
+
+// Checks the state of a window that only the previous frame submitted. ImGui still reports the closed window as
+// HoveredWindow in the frame after it closed, but the query must not report it hovered.
+tr.registerTest("quirrel_previous_frame_window", function(runtime) {
+  let dialogPath = "Environment Settings"
+  let wasOpen = runtime.queryItem(dialogPath) != null
+  if (!wasOpen)
+    toggleEnvironmentSettings(runtime)
+  runtime.input().mouseMoveItem($"{dialogPath}/Close", 1.0)
+  runtime.yieldTime(1.0)
+  runtime.input().mouseButtonDown(Mouse.Left)
+  runtime.yieldTime(0.2)
+  runtime.input().mouseButtonUp(Mouse.Left)
+
+  // TODO: we need a yield that waits for actObjects() because the ButtonPropertyControl uses a delayed callback.
+  runtime.yieldTime(0.2)
+
+  let lastFrame = runtime.queryItem(dialogPath)
+  runtime.yieldFrame()
+  let previousFrame = runtime.queryItem(dialogPath)
+  let previousChildren = runtime.queryChildren(dialogPath)
+  runtime.yieldFrame()
+  let closed = runtime.queryItem(dialogPath)
+  if (wasOpen)
+    toggleEnvironmentSettings(runtime)
+
+  let childWithState = previousChildren?.findvalue(@(c) c.hovered != null || c.active != null)
+  if (lastFrame == null || lastFrame.hovered != true) {
+    runtime.markFailed($"Environment Settings in its last frame: found {lastFrame != null}, hovered {lastFrame?.hovered}")
+  } else if (previousFrame == null || !previousFrame.isWindow || previousFrame.hovered != null
+      || previousFrame.active != null) {
+    runtime.markFailed("".concat($"Environment Settings in the next frame: found {previousFrame != null}, ",
+      $"isWindow {previousFrame?.isWindow}, hovered {previousFrame?.hovered}, active {previousFrame?.active}"))
+  } else if (previousChildren == null || previousChildren.len() == 0 || childWithState != null) {
+    runtime.markFailed("".concat($"Environment Settings children in the next frame: count {previousChildren?.len()}, ",
+      $"{childWithState?.label} hovered {childWithState?.hovered}, active {childWithState?.active}"))
+  } else if (closed != null) {
+    runtime.markFailed("Environment Settings is still found two frames after it closed")
+  } else {
+    println("Success, Previous Frame Window!")
+  }
 })

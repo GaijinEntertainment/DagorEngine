@@ -86,10 +86,10 @@ ECS_TRACK(render_settings__ssssQuality,
   render_settings__antialiasing_mode)
 static void ssss_settings_tracking_es(const ecs::Event &,
   ecs::EntityManager &manager,
-  const ecs::string render_settings__ssssQuality,
+  const ecs::string &render_settings__ssssQuality,
   bool render_settings__combinedShadows,
   bool render_settings__rayReconstruction,
-  const ecs::string render_settings__antialiasing_mode)
+  const ecs::string &render_settings__antialiasing_mode)
 {
   G_UNUSED(render_settings__rayReconstruction);
   G_UNUSED(render_settings__antialiasing_mode);

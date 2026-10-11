@@ -64,6 +64,10 @@ bool compute_rt_rigen_tight_ht_limits(int layer_idx, int cx, int cz, float &out_
 void set_sun_dir_for_global_shadows(const Point3 &sun_dir);
 void set_global_shadows_needed(bool need);
 
+// Renders the global shadow textures again, for example after a device reset left them empty.
+// Does nothing while global shadows are not needed, see set_global_shadows_needed().
+void update_global_shadows();
+
 void get_layer_idx_and_ri_idx_from_pregen_id(int pregen_id, int &layer_idx, int &ri_idx);
 int get_pregen_id_from_layer_idx_and_ri_idx(int layer_idx, int ri_idx);
 

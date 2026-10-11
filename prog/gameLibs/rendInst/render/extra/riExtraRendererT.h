@@ -697,6 +697,63 @@ public:
       gpu_instancing);
   }
 
+  void initSortedTransparent(int pools_count)
+  {
+    init(pools_count, LayerFlag::Transparent, RenderPass::Normal, OptimizeDepthPrepass::No, OptimizeDepthPass::No,
+      IgnoreOptimizationLimits::Yes, 1);
+  }
+
+  // Keeps the list order: it is the blend order, so no sort by material like the opaque path.
+  // Returns the number of runs (adjacent elems with equal pool and lod).
+  int addSortedTransparentElems(const RiGenExtraVisibility &v, int begin, int end, const TexStreamingContext &texCtx)
+  {
+    const auto &elems = v.sortedTransparentElems;
+    int runs = 0;
+    for (int i = begin; i < end; i++)
+    {
+      const RiGenExtraVisibility::PerInstanceElem &elem = elems[i];
+      int count = 1;
+      while (i + 1 < end && elems[i + 1].poolId == elem.poolId && elems[i + 1].lod == elem.lod)
+      {
+        i++;
+        count++;
+      }
+      const float dist2 = bitwise_cast<float>(elem.partitionFlagDist2 & (uint32_t(-1) >> 1));
+      addObjectToRender(elem.poolId, 0, false, true, IPoint2(elem.vbOffset, count), elem.lod, elem.poolOrder, texCtx, dist2, 0.0f, {});
+      runs++;
+    }
+    if (debug_mesh::is_enabled())
+      coalesceDrawcalls<true>(false);
+    else
+      coalesceDrawcalls<false>(false);
+    return runs;
+  }
+
+#if DAGOR_DBGLEVEL > 0
+  // A mismatch means an interval the riex shaders select on differs between the snapshot node and
+  // the submit: a node in between left it changed, or the submitting node binds it itself.
+  void checkVariantsAgainstCurrentGlobals(const char *where) const
+  {
+    dag::Vector<const RIExRenderRecord *, framemem_allocator> records;
+    records.reserve(list.size() + multidrawList.size());
+    for (const RIExRenderRecord &r : list)
+      records.push_back(&r);
+    for (const RIExRenderRecord &r : multidrawList)
+      records.push_back(&r);
+    stlsort::sort(records.begin(), records.end(), [](const auto *a, const auto *b) { return a->curShader < b->curShader; });
+    const ShaderElement *checked = nullptr;
+    for (const RIExRenderRecord *r : records)
+    {
+      if (r->curShader == checked)
+        continue;
+      checked = r->curShader;
+      const shaders::CombinedDynVariantState now = get_dynamic_variant_states(r->curShader->native());
+      if (now.program != r->dvState.program || now.state_index != r->dvState.state_index)
+        LOGERR_ONCE("%s: prebuilt variant of '%s' differs from the one selected at submit", where, r->curShader->getShaderClassName());
+    }
+  }
+#endif
+
 private:
   template <class ListT, class MultiListT>
   void addObjectToRenderImpl(ListT &dst_list, MultiListT &dst_multidraw, const DynamicVariantsPolicy &policy, uint16_t ri_idx,

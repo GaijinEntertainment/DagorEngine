@@ -27,6 +27,15 @@ public:
 
   const char *getImguiTypeName() const override { return "RadioButton"; }
 
+  Point2 getPreferredSize([[maybe_unused]] float max_width_px) const override
+  {
+    // Same as the item size in ImGui::RadioButton().
+    const ImGuiStyle &style = ImGui::GetStyle();
+    const ImVec2 labelSize = ImGui::CalcTextSize(controlCaption.begin(), controlCaption.end(), true);
+    const float width = ImGui::GetFrameHeight() + (labelSize.x > 0.0f ? (style.ItemInnerSpacing.x + labelSize.x) : 0.0f);
+    return Point2(width, labelSize.y + style.FramePadding.y * 2.0f);
+  }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);

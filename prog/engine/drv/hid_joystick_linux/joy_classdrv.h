@@ -17,7 +17,7 @@ class UDevJoystick;
 class HidJoystickClassDriver : public IGenJoystickClassDrv
 {
 public:
-  HidJoystickClassDriver(bool exclude_xinput, bool remap_360);
+  HidJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads);
   ~HidJoystickClassDriver();
 
   bool init();
@@ -74,6 +74,7 @@ protected:
   bool enableAutoDef;
   bool remapAsX360;
   bool excludeXInput;
+  bool excludeSonyPads;
 
 private:
   static UDev udev;

@@ -118,8 +118,8 @@ def compress_channel(gray : array<float>; w, h : int; quality : int; var recon :
 
 def psnr(a, b : array<float>) : float {
     var se = 0.0lf
-    for (i in range(length(a))) {
-        let d = double(a[i] - b[i])
+    for (av, bv in a, b) {
+        let d = double(av - bv)
         se += d * d
     }
     let mse = se / double(max(length(a), 1))

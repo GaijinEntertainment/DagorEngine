@@ -513,15 +513,15 @@ shader postfx
         concussion_effect(sceneUV, frame);
       }
 
+      float3 bloom = getBloom(input.tc);
+
+      apply_postfx_modifiers(sceneUV, frame, bloom);
+
       BRANCH
       if (flash_blind_remaining_time > 0.0)
       {
         flash_blind_effect(sceneUV, frame);
       }
-
-      float3 bloom = getBloom(input.tc);
-
-      apply_postfx_modifiers(sceneUV, frame, bloom);
 
       half3 result = common_postfx_with_precalculated_bloom(frame, input.tc, get_local_exposure(frame, input.tc), bloom);
 

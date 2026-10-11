@@ -205,10 +205,10 @@ DynamicMirrorRenderer::CameraData DynamicMirrorRenderer::get_common_camera_data(
   TMatrix mirroredViewTm;
   mirroredViewTm = orthonormalized_inverse(mirroredViewItm);
   TMatrix4 mirrorProjTm;
-  G_ASSERT(d3d::calcproj(mirrorPersp, mirrorProjTm));
+  G_VERIFY(d3d::calcproj(mirrorPersp, mirrorProjTm));
   TMatrix4 mirrorGlobTm = TMatrix4(mirroredViewTm) * mirrorProjTm;
   TMatrix4 prepassProjTm;
-  G_ASSERT(d3d::calcproj(prepassPersp, prepassProjTm));
+  G_VERIFY(d3d::calcproj(prepassPersp, prepassProjTm));
   return {mirrorGlobTm, mirrorProjTm, prepassProjTm, mirrorRenderViewItm, mirroredViewItm, mirroredViewTm, Frustum(mirrorGlobTm),
     mirrorPersp, prepassPersp, mirroredCameraPos};
 }

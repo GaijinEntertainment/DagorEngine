@@ -65,7 +65,7 @@ enum
   EXP_HLP = 0x0020,
   EXP_MAT = 0x0040,
   // EXP_ANI = 0x0080,   // unused
-  // EXP_ARNG = 0x0100, // no longer used
+  EXP_ARNG = 0x0100,
   // EXP_LTARG = 0x0200, // no longer used
   // EXP_CTARG = 0x0400, // no longer used
   // EXP_UKEYS = 0x0800, // no longer used
@@ -74,10 +74,10 @@ enum
   // EXP_DONTCHKKEYS = 0x4000, // no longer used
   EXP_NO_VNORM = 0x8000,
 
-  // EXP_DONT_REDUCE_POS = 0x00010000, // no longer used
-  // EXP_DONT_REDUCE_ROT = 0x00020000, // no longer used
-  // EXP_DONT_REDUCE_SCL = 0x00040000, // no longer used
-  // EXP_LOOPED_ANIM = 0x00080000,     // no longer used
+  EXP_DONT_REDUCE_POS = 0x00010000,
+  EXP_DONT_REDUCE_ROT = 0x00020000,
+  EXP_DONT_REDUCE_SCL = 0x00040000,
+  EXP_LOOPED_ANIM = 0x00080000,
   EXP_MATOPT = 0x00100000,
 
   EXP_DONT_CALC_MOMJ = 0x01000000,

@@ -147,7 +147,8 @@ macro READ_WORLD_SDF_USE(code)
       out float distAtRayStart,
       float stepBiasK = 1,
       bool reflectionRay = false,
-      float surfaceBiasScale = 1)
+      float surfaceBiasScale = 1,
+      bool offSurfaceStart = false)
     {
       float surfaceBias = world_sdf_get_surface_bias(clip);
       float maxEncodedDist = sample_world_sdf_lt(clip).w * MAX_WORLD_SDF_VOXELS_BAND;
@@ -160,7 +161,7 @@ macro READ_WORLD_SDF_USE(code)
       float atT = minT;
       float3 rayStartTc = world_pos_to_world_sdf_tc(clip, rayStart);
       float3 rayDirTc = (world_pos_to_world_sdf_tc(clip, rayStart + rayDir*maxT) - rayStartTc)/maxT;
-      float maxSurfaceDistance = 0;
+      float maxSurfaceDistance = offSurfaceStart ? 2*surfaceBiasScale*surfaceBias : 0;
       distAtRayStart = -1;
       LOOP
       for(;;)
@@ -282,6 +283,9 @@ macro READ_WORLD_SDF_USE(code)
             ret = true;
             break;
           }
+          // the ray ends inside this clip, so its miss is final: the voxel step back is for rays that leave the box
+          if (maxT <= dd.y)
+            minT = maxT;
         }
         ++i;// moving that to while () causes invalid sahder compilation on dx11
         if (i >= world_sdf_num_cascades() || minT >= maxT)
@@ -313,7 +317,8 @@ macro READ_WORLD_SDF_USE(code)
       float stepBiasK = 1,
       float minT = 0,
       bool reflectionRay = false,
-      float surfaceBiasScale = 1)
+      float surfaceBiasScale = 1,
+      bool offSurfaceStart = false)
     {
       t = 0;
       distAtRayStart = -1;
@@ -330,7 +335,8 @@ macro READ_WORLD_SDF_USE(code)
           float2 dd = rayBoxIntersect(b0, b1, rayStart, rayDir);
           float endAt = min(maxT, dd.y);
           float clipDistAtRayStart = -1;
-          bool hit = world_sdf_trace_clip(i, rayStart, rayDir, minT, endAt, t, clipDistAtRayStart, stepBiasK, reflectionRay, surfaceBiasScale);
+          bool hit = world_sdf_trace_clip(i, rayStart, rayDir, minT, endAt, t, clipDistAtRayStart, stepBiasK, reflectionRay, surfaceBiasScale,
+            offSurfaceStart);
           distAtRayStart = distAtRayStart < 0 ? clipDistAtRayStart : distAtRayStart;
           if (hit)
           {
@@ -338,6 +344,9 @@ macro READ_WORLD_SDF_USE(code)
             ret = true;
             break;
           }
+          // the ray ends inside this clip, so its miss is final: the voxel step back is for rays that leave the box
+          if (maxT <= dd.y)
+            minT = maxT;
         }
         ++i;// moving that to while () causes invalid sahder compilation on dx11
         if (i >= world_sdf_num_cascades() || minT >= maxT)
@@ -357,11 +366,13 @@ macro READ_WORLD_SDF_USE(code)
       inout float t,   //only correct when ret true
       inout uint clip, //only correct when ret true
       float stepBiasK = 1,
-      bool reflectionRay = false)
+      bool reflectionRay = false,
+      bool offSurfaceStart = false)
     {
       uint i = world_sdf_find_clip(rayStart);//to reduce divirgence between threads
       float distAtRayStart;
-      return i < MAX_WORLD_SDF_CLIPS ? world_sdf_trace_start(i, rayStart, rayDir, maxT, t, distAtRayStart, clip, stepBiasK, 0, reflectionRay) : false;
+      return i < MAX_WORLD_SDF_CLIPS ? world_sdf_trace_start(i, rayStart, rayDir, maxT, t, distAtRayStart, clip, stepBiasK, 0, reflectionRay, 1,
+        offSurfaceStart) : false;
     }
 
     float inside_point_distance_to_box(float3 bmin, float3 bmax, float3 p)

@@ -15,7 +15,7 @@ let mkCheckBox = require("components/mkCheckBox.nut")
 let { makeVertScroll } = require("%daeditor/components/scrollbar.nut")
 let textInput = require("%daeditor/components/textInput.nut")
 let { getSceneLoadTypeText } = require("%daeditor/daeditor_es.nut")
-let { addModalWindow, removeModalWindow } = require("%daeditor/components/modalWindows.nut")
+let { addModalWindow, removeModalWindow, getPopupZOrder } = require("%daeditor/components/modalWindows.nut")
 let { Point3 } = require("dagor.math")
 let { isStringFloat } = require("%sqstd/string.nut")
 let { fileName } = require("%sqstd/path.nut")
@@ -1604,11 +1604,6 @@ function mkFilterOptionsButton() {
   let toggleDropDown = @() dropDownOpen.get() ? dropDownOpen.set(false) : dropDownOpen.set(true)
   let doHideDropDown = @() dropDownOpen.set(false)
 
-  local popupLayer = 1
-  if ("Layers" in getconsttable()) {
-    popupLayer = getconsttable()?["Layers"].ComboPopup ?? 1
-  }
-
   let isAnyFilterOptionEnabled = Computed(function() {
     return !showEntities.get() || !showClientScenes.get() || !showCommonScenes.get() || !showImportScenes.get() || !showOtherScenes.get()
   })
@@ -1688,7 +1683,7 @@ function mkFilterOptionsButton() {
     }
 
     return {
-      zOrder = popupLayer
+      zOrder = getPopupZOrder()
       size = flex()
       children = [
         dropdownBgOverlay(doHideDropDown)

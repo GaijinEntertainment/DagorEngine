@@ -759,9 +759,9 @@ void get_memory_stats(char *buf, int buflen)
     d3d_dump_memory_stat(lbw);
 
 #else
-  lbw.aprintf("%dK in %d ptrs (+CRT: %dK)\n", dagor_memory_stat::get_memory_allocated(false),
+  lbw.aprintf("%dK in %d ptrs (+CRT: %dK)\n", dagor_memory_stat::get_memory_allocated_kb(false),
     dagor_memory_stat::get_memchunk_count(false),
-    dagor_memory_stat::get_memory_allocated(true) - dagor_memory_stat::get_memory_allocated(false));
+    dagor_memory_stat::get_memory_allocated_kb(true) - dagor_memory_stat::get_memory_allocated_kb(false));
 #endif
 
 #if MEMUSAGE_COUNT == 2

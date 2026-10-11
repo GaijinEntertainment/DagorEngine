@@ -45,7 +45,36 @@ class IDaEditor3Engine
 {
 public:
   static constexpr unsigned HUID = 0x814F7714u; // IDaEditor3Engine
-  static const int DAEDITOR3_VERSION = 0x108;
+  static const int DAEDITOR3_VERSION = 0x109;
+
+  //! Calls imguiBegin() in the constructor and imguiEnd() in the destructor, so imguiEnd() cannot be missed on an early
+  //! return. Declare it as a variable that stays in scope until the last widget of the window.
+  //! Usage: "if (auto window = IDaEditor3Engine::ScopedImguiWindow(...); window.canSubmitContents())".
+  //! [[nodiscard]] because a discarded temporary would End() the window instantly, and the widgets would go to the wrong window.
+  class [[nodiscard]] ScopedImguiWindow
+  {
+  public:
+    explicit ScopedImguiWindow(const char *name, bool *open = nullptr, unsigned window_flags = 0) :
+      canSubmit(get().imguiBegin(name, open, window_flags))
+    {}
+
+    explicit ScopedImguiWindow(PropPanel::PanelWindowPropertyControl &panel_window, bool *open = nullptr, unsigned window_flags = 0) :
+      canSubmit(get().imguiBegin(panel_window, open, window_flags))
+    {}
+
+    ScopedImguiWindow(const ScopedImguiWindow &) = delete;
+    ScopedImguiWindow &operator=(const ScopedImguiWindow &) = delete;
+
+    ~ScopedImguiWindow() { get().imguiEnd(); }
+
+    bool canSubmitContents() const & { return canSubmit; }
+
+    //! Prevent temporary instance usage. E.g.: ScopedImguiWindow(...).canSubmitContents()
+    bool canSubmitContents() const && = delete;
+
+  private:
+    const bool canSubmit;
+  };
 
   // generic version compatibility check
   inline bool checkVersion() const { return (daEditor3InterfaceVer == DAEDITOR3_VERSION); }
@@ -113,9 +142,13 @@ public:
   virtual bool getTexAssetBuiltDDSx(const char *a_name, const DataBlock &a_props, ddsx::Buffer &dest, unsigned target,
     const char *profile, ILogWriter *log) = 0;
 
-  //! False when the window is hidden and its items are no-ops. Call imguiEnd() either way: ImGui pairs every Begin with an End.
-  virtual bool imguiBegin(const char *name, bool *open = nullptr, unsigned window_flags = 0) = 0;
-  virtual bool imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open = nullptr, unsigned window_flags = 0) = 0;
+  //! imguiBegin() returns with false when the window skips its items, for example when it is collapsed, fully
+  //! clipped, on an inactive dock tab, or hidden.
+  //! Always call imguiEnd() after imguiBegin(), regardless of the return value.
+  //! It is recommended to use ScopedImguiWindow instead of calling these directly.
+  [[nodiscard]] virtual bool imguiBegin(const char *name, bool *open = nullptr, unsigned window_flags = 0) = 0;
+  [[nodiscard]] virtual bool imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open = nullptr,
+    unsigned window_flags = 0) = 0;
   virtual void imguiEnd() = 0;
 
   virtual PropPanel::IPropPanelService *getPropPanelService() = 0;
@@ -145,7 +178,9 @@ public:
 
   //! Routed via the engine because PropPanel::set_toast_message pulls
   //! ImGui render symbols linked only into the editor exe.
-  virtual void showToast(PropPanel::ToastType type, const char *text) = 0;
+  //! The toast's pivot lands on position (screen pixels), as in ToastMessage::setPosition; null puts it on the mouse.
+  virtual void showToast(PropPanel::ToastType type, const char *text, const IPoint2 *position = nullptr,
+    const Point2 &pivot = Point2(0.5f, 0.5f)) = 0;
 
 #define DSA_OVERLOADS_PARAM_DECL
 #define DSA_OVERLOADS_PARAM_PASS

@@ -94,4 +94,47 @@ assert(threw, "strtr with non-string from must throw")
 println("Section 5 PASSED")
 
 
+// ============================================================
+// Section 6: capitalize / capitalizeWords
+// ============================================================
+println("--- Section 6: capitalize / capitalizeWords ---")
+
+assert(utf8("hello world").capitalize() == "Hello world", "capitalize ascii")
+assert(utf8("\xd1\x91\xd0\xbb\xd0\xba\xd0\xb0").capitalize() == "\xd0\x81\xd0\xbb\xd0\xba\xd0\xb0", "capitalize cyrillic")
+assert(utf8("").capitalize() == "", "capitalize empty")
+assert(utf8("1abc").capitalize() == "1abc", "capitalize digit first")
+assert(utf8("hELLO world").capitalize() == "HELLO world", "capitalize keeps the case of the tail")
+assert(utf8("hello  big world").capitalizeWords() == "Hello  Big World", "capitalizeWords keeps empty words")
+assert(utf8(" \xc3\xa9t\xc3\xa9 ").capitalizeWords() == " \xc3\x89t\xc3\xa9 ", "capitalizeWords two-byte chars")
+assert(utf8("ab\xff cd ef").capitalizeWords() == "Ab", "capitalizeWords cuts the string at the first bad byte")
+
+println("Section 6 PASSED")
+
+
+// ============================================================
+// Section 7: intToChar / charToInt
+// ============================================================
+println("--- Section 7: intToChar / charToInt ---")
+
+foreach (code in [0x41, 0xE9, 0x20AC, 0x1F600, 0x10FFFF])
+  assert(utf8.charToInt(utf8.intToChar(code)) == code, $"char round-trip {code}")
+assert(utf8.intToChar(0x20AC) == "\xe2\x82\xac", "intToChar bytes of a three-byte char")
+assert(utf8.intToChar(0x110000) == "", "intToChar above 0x10FFFF")
+assert(utf8.intToChar(-1) == "\xff", "intToChar below 0")
+assert(utf8.charToInt("ab") == 0, "charToInt of two chars")
+assert(utf8.charToInt("") == 0, "charToInt of empty string")
+assert(utf8.charToInt("\xc3") == 0, "charToInt of a cut char")
+assert(utf8.charToInt("\xc3\x41") == 0 && utf8.charToInt("abcde") == 0, "charToInt of a bad continuation byte and of 5 bytes")
+
+threw = false
+try {
+  utf8.charToInt([0x41])
+} catch (e) {
+  threw = true
+}
+assert(threw, "charToInt with non-string must throw")
+
+println("Section 7 PASSED")
+
+
 println("ALL TESTS PASSED")

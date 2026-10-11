@@ -4,6 +4,9 @@
 //
 #pragma once
 
+#include <math/dag_mathBase.h>
+#include <math/dag_Point3.h>
+
 class IObjEntity;
 
 class ICompositObj
@@ -51,3 +54,11 @@ public:
   //! giving a placed object one whatever autoInstSeed:b says
   virtual bool canCompositUseInstSeed() { return true; }
 };
+
+// In a composite the Y axis scale is scale * yScale.
+inline real composit_y_scale_param(real scale, real y_axis_scale) { return scale > 0 ? y_axis_scale / scale : 1.f; }
+inline real composit_y_axis_scale(real scale, real y_scale_param) { return scale * y_scale_param; }
+
+// In a composite the rot_x/rot_y/rot_z parameters have the opposite sign to the euler angles of the node matrix.
+inline Point3 composit_rotation_params(const Point3 &matrix_rotation) { return -matrix_rotation; }
+inline Point3 composit_matrix_rotation(const Point3 &rotation_params) { return -rotation_params; }

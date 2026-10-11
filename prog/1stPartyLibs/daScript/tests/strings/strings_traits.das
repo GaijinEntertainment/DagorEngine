@@ -12,6 +12,8 @@ def test_traits(t : T?) {
         t |> success(is_new_line('\n'))
         t |> success(!is_new_line(' '))
         t |> success(is_white_space('\n'))
+        t |> success(is_white_space('\f'))
+        t |> success(is_white_space(11))     // vertical tab - the char-literal lexer has no \v escape
         t |> success(!is_white_space('#'))
         t |> success(is_number('3'))
         t |> success(!is_number('A'))

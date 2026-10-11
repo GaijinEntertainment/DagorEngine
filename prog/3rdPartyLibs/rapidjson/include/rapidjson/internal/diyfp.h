@@ -22,7 +22,9 @@
 #include "../rapidjson.h"
 #include <limits>
 
-#if defined(_MSC_VER) && defined(_M_AMD64)
+// Gaijin change
+#if defined(_MSC_VER) && defined(_M_AMD64) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #include <intrin.h>
 #pragma intrinsic(_BitScanReverse64)
 #pragma intrinsic(_umul128)
@@ -69,7 +71,9 @@ struct DiyFp {
     }
 
     DiyFp operator*(const DiyFp& rhs) const {
-#if defined(_MSC_VER) && defined(_M_AMD64)
+// Gaijin change
+#if defined(_MSC_VER) && defined(_M_AMD64) && !defined(_M_ARM64EC)
+// ~Gaijin change
         uint64_t h;
         uint64_t l = _umul128(f, rhs.f, &h);
         if (l & (uint64_t(1) << 63)) // rounding
@@ -100,7 +104,9 @@ struct DiyFp {
     }
 
     DiyFp Normalize() const {
-#if defined(_MSC_VER) && defined(_M_AMD64)
+// Gaijin change
+#if defined(_MSC_VER) && defined(_M_AMD64) && !defined(_M_ARM64EC)
+// ~Gaijin change
         unsigned long index;
         _BitScanReverse64(&index, f);
         return DiyFp(f << (63 - index), e - (63 - index));

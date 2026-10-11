@@ -15,6 +15,8 @@
 #endif
 #include <image/dag_jpeg.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <webui/helpers.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -51,12 +53,15 @@ static void make_screenshot(RequestInfo *params)
   YAMemSave save;
 #if _TARGET_PC
   ScreenShotSystem::setWriteImageCB(save_jpeg32_shot_cb, "jpg");
-  ScreenShotSystem::ScreenShot screen;
-  if (ScreenShotSystem::makeScreenShot(screen))
+  bool saved;
+  check_and_restore_3d_device();
   {
-    if (ScreenShotSystem::saveScreenShotTo(screen, (char *)&save) && save.offset)
-      return jpeg_response(params->conn, save);
+    d3d::GpuAutoLock gpuLock;
+    ScreenShotSystem::ScreenShot screen;
+    saved = ScreenShotSystem::makeScreenShot(screen) && ScreenShotSystem::saveScreenShotTo(screen, (char *)&save) && save.offset;
   }
+  if (saved)
+    return jpeg_response(params->conn, save);
 #else
   // do nothing
   (void)(params);

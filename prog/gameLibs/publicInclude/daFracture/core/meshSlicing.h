@@ -53,7 +53,7 @@ struct PlaneShatterFlavorSettings
   // no specific settings, used as default flavor
 
   void loadFromBlk(const DataBlock &) {}
-  void saveToBlk(DataBlock &) const {}
+  void saveToBlk(DataBlock &, const PlaneShatterFlavorSettings * = nullptr) const {}
 };
 
 // Feature parameters for the organic (heightmap-cut) flavor -- surface look only; the structural knobs stay
@@ -88,7 +88,7 @@ struct RoughShatterFlavorSettings
                                    // this fraction of the PIECE size (would drift off the target)
 
   void loadFromBlk(const DataBlock &blk);
-  void saveToBlk(DataBlock &blk) const;
+  void saveToBlk(DataBlock &blk, const RoughShatterFlavorSettings *base = nullptr) const;
 };
 
 struct ShatterMaterialProfile
@@ -98,6 +98,8 @@ struct ShatterMaterialProfile
     float weight = 1.f;
     Point2 powerRange = Point2::ZERO;
     Point2 sizeRange = Point2::ZERO;
+
+    bool operator==(const SizeMode &) const = default;
   };
   dag::RelocatableFixedVector<SizeMode, 2> sizeModes;
 
@@ -105,6 +107,8 @@ struct ShatterMaterialProfile
   {
     float weight = 1.f;
     Point2 cosineRange = Point2::ZERO;
+
+    bool operator==(const CutPlaneMode &) const = default;
   };
   dag::RelocatableFixedVector<CutPlaneMode, 1> cutPlaneModes;
 
@@ -116,7 +120,7 @@ struct ShatterMaterialProfile
   eastl::variant<PlaneShatterFlavorSettings, RoughShatterFlavorSettings> flavor;
 
   void loadFromBlk(const DataBlock &blk);
-  void saveToBlk(DataBlock &blk) const;
+  void saveToBlk(DataBlock &blk, const ShatterMaterialProfile *base = nullptr) const;
 };
 
 // Plane-cut shatter (flat cut faces).

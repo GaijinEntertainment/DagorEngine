@@ -1,5 +1,5 @@
 ---
-see_also: [modules.get_native_module_names, modules.reset_static_memos]
+see_also: [modules.get_native_module_names]
 ---
 
 Registers a callback to run when the module system tears down.

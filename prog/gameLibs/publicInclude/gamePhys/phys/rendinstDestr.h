@@ -215,12 +215,22 @@ bool unregister_restorable_rendinst_cb(restorable_rendinst_callback cb);
 CollisionObject &get_tree_collision();
 void clear_tree_collision();
 
+// Fallback collision proxy for a bush-flagged RI with no registered collision resource
+// (CollisionInfo.handle == 0), mirroring get_tree_collision()'s role for handle-less trees.
+// The capsule is shared by all bushes and created once, so the caller must size and place it for
+// the current bush before every test: dacoll::set_vert_capsule_shape_size() and
+// dacoll::set_collision_object_tm() (see WrapperRendInstCollisionImplCB::addNonDestrBushCheck).
+CollisionObject &get_nondestr_bush_collision();
+void clear_nondestr_bush_collision();
+
 CachedCollisionObjectInfo *get_cached_collision_object(const rendinst::RendInstDesc &ri_desc);
 CachedCollisionObjectInfo *get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time);
 CachedCollisionObjectInfo *get_or_add_cached_collision_object(const rendinst::RendInstDesc &ri_desc, float at_time,
   const rendinst::CollisionInfo &coll_info);
 CachedCollisionObjectInfo *get_or_add_cached_tree_collision_object(const rendinst::RendInstDesc &ri_desc, float impulse, float at_time,
   const rendinst::CollisionInfo &coll_info);
+CachedCollisionObjectInfo *get_or_add_cached_nondestr_bush_collision_object(const rendinst::RendInstDesc &ri_desc, float impulse,
+  float at_time);
 
 int test_dynobj_to_ri_phys_collision(const CollisionObject &coA, const TMatrix &tmA, float max_rad);
 int test_dynobj_to_ri_phys_collision(const CollisionObject &coA, float max_rad);
@@ -237,30 +247,30 @@ void clear_phys_objs();
 bbox3f get_ri_phys_containing_bbox(const bbox3f &intersect_bbox, const Frustum &intersect_frustum, bool only_trees);
 void debug_draw_ri_phys();
 
-using calc_expl_damage_cb = eastl::fixed_function<3 * sizeof(void *), float(const rendinst::CollisionInfo &coll_info, float distance)>;
+using calc_expl_damage_cb_t = dag::FunctionRef<float(const rendinst::CollisionInfo &coll_info, float distance) const>;
 
 // will do both deferred destruction and try perform delayed sync from server
 void perform_delayed_destruction(int quota_usec = -1);
 
 void doRIExtraDamageInBox(const BBox3 &box, float at_time, bool create_destr_effects, const Point3 &view_pos,
-  calc_expl_damage_cb calc_expl_dmg_cb, const BSphere3 *check_sphere, const TMatrix *check_itm, rendinst::DestrOptionFlags flags);
+  calc_expl_damage_cb_t calc_expl_dmg_cb, const BSphere3 *check_sphere, const TMatrix *check_itm, rendinst::DestrOptionFlags flags);
 
 inline void doRendinstDamage(const BSphere3 &sphere, bool, uint32_t frameNo, float at_time, bool create_destr_effects,
-  const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
+  const Point3 &view_pos, calc_expl_damage_cb_t calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
 {
   rendinst::doRIGenDamage(sphere, frameNo, {0.f, 0.f, 0.f}, create_destr_effects);
   doRIExtraDamageInBox(BBox3(sphere), at_time, create_destr_effects, view_pos, calc_expl_dmg_cb, &sphere, nullptr, flags);
 }
 
 inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, float at_time, bool create_destr_effects,
-  const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
+  const Point3 &view_pos, calc_expl_damage_cb_t calc_expl_dmg_cb, rendinst::DestrOptionFlags flags)
 {
   rendinst::doRIGenDamage(box, frameNo, {0.f, 0.f, 0.f}, create_destr_effects);
   doRIExtraDamageInBox(box, at_time, create_destr_effects, view_pos, calc_expl_dmg_cb, nullptr, nullptr, flags);
 }
 
 inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, float at_time, bool create_destr_effects,
-  const Point3 &view_pos, calc_expl_damage_cb calc_expl_dmg_cb, const TMatrix &check_itm, rendinst::DestrOptionFlags flags)
+  const Point3 &view_pos, calc_expl_damage_cb_t calc_expl_dmg_cb, const TMatrix &check_itm, rendinst::DestrOptionFlags flags)
 {
   rendinst::doRIGenDamage(box, frameNo, check_itm, {0.f, 0.f, 0.f}, create_destr_effects);
   doRIExtraDamageInBox(box, at_time, create_destr_effects, view_pos, calc_expl_dmg_cb, nullptr, &check_itm, flags);

@@ -614,7 +614,7 @@ void SplinePointObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyCont
 
       if (pid == PID_FUSE_POINTS)
         o->setPos(newPos);
-      else if (pid == PID_LEVEL_POINTS)
+      else
         o->setPos(Point3::xVz(o->getPt(), newPos.y));
     }
     IEditorCoreEngine::get()->invalidateViewportCache();

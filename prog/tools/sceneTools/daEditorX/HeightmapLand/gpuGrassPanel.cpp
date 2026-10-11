@@ -528,7 +528,7 @@ void GPUGrassPanel::addGrassDecal(const GPUGrassDecal &decal)
 
 bool GPUGrassPanel::showNameDialog(const char *title, eastl::string &res, const eastl::function<bool(const char *)> &findName)
 {
-  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), title));
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createAutoSizedDialog(title));
   dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
   PropPanel::ContainerPropertyControl *dlgPanel = dialog->getPanel();
   enum
@@ -540,6 +540,7 @@ bool GPUGrassPanel::showNameDialog(const char *title, eastl::string &res, const 
   dlgPanel->setFocusById(PCB_EDIT);
   while (true)
   {
+    dialog->autoSize(/*auto_center = */ !dialog->hasEverBeenShown(), /*use_preferred_size = */ true);
     int ret = dialog->showDialog();
     if (ret == PropPanel::DIALOG_ID_OK)
     {

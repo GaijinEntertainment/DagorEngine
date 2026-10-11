@@ -44,6 +44,7 @@ public:
     return secDrv ? secDrv->isDeviceConfigChanged() : false;
   }
   virtual void useDefClient(IGenJoystickClient *cli);
+  virtual int getVendorId() const { return deviceNum > 0 || !secDrv ? GAMEPAD_VENDOR_MICROSOFT : secDrv->getVendorId(); }
 
   virtual IGenJoystick *getDefaultJoystick() { return defJoy; }
   virtual void setDefaultJoystick(IGenJoystick *ref);

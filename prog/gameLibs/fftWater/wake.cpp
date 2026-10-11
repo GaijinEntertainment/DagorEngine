@@ -23,7 +23,6 @@ static int wake_dtVarId = -1, wake_alphaVarId = -1;
 static int wake_resolutionVarId = -1;
 static int wake_move_ofsVarId = -1;
 static int wake_gradients_texVarId = -1;
-static int wake_gradients_tex_samplerstateVarId = -1;
 static int next_wake_ofsVarId = -1;
 static int world_to_wakeVarId = -1;
 static int wake_impulses_const_no = -1;
@@ -78,7 +77,6 @@ Wake::Wake()
   wake_resolutionVarId = get_shader_variable_id("wake_resolution", false);
   wake_move_ofsVarId = get_shader_variable_id("wake_move_ofs", false);
   wake_gradients_texVarId = get_shader_variable_id("wake_gradients_tex", false);
-  wake_gradients_tex_samplerstateVarId = get_shader_variable_id("wake_gradients_tex_samplerstate", false);
   next_wake_ofsVarId = get_shader_variable_id("next_wake_ofs", false);
   world_to_wakeVarId = get_shader_variable_id("world_to_wake", false);
   regionSize = 48.0f;
@@ -145,7 +143,6 @@ bool Wake::init(int res)
     ShaderGlobal::set_sampler(wake_ht_tex_samplerstateVarId, smp);
     ShaderGlobal::set_sampler(wake_pht_tex_samplerstateVarId, smp);
     ShaderGlobal::set_sampler(wake_cht_tex_samplerstateVarId, smp);
-    ShaderGlobal::set_sampler(wake_gradients_tex_samplerstateVarId, smp);
   }
   {
     d3d::SamplerInfo smpInfo;

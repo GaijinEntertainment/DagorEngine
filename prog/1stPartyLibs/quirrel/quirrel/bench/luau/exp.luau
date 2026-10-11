@@ -1,21 +1,16 @@
-local function expLoop(n:number)
-    local sum : number = 0
-    for i = 0, n do
-      sum = sum + math.exp(1./(1.+i))
-    end
-    return sum
-end
+--!strict
+local profile = require("./profile")
 
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
+local N = 10000000
+
+local function expLoop(n: number): number
+  local sum = 0.0
+  for i = 0, n - 1 do
+    sum += math.exp(1.0 / (1.0 + i))
   end
-  return res
+  return sum
 end
 
-
-print(string.format("\"exp loop\", %.8f, 20", profile_it(20, function () expLoop(10000000) end)))
+profile.benchmark("exp loop", 20, function()
+  return string.format("%.6f", expLoop(N))
+end)

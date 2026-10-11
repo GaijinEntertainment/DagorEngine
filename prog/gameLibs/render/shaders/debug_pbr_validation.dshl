@@ -1,0 +1,163 @@
+// PBR gbuffer value checker, compiled only into the debug shader dump
+// (shaders_pc12_debug.blk). Flags out-of-range material values UE-style.
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+int pbr_validation_mode = 2; // 0 = albedo, 1 = smoothness, 2 = all
+float4 pbr_albedo_range = (0.04, 0.8, 0.5, 0.98); // xy = non-metal min/max, zw = metal min/max (linear luminance)
+float4 pbr_smoothness_range = (0.05, 0.95, 0, 0);
+float pbr_overlay_opacity = 0.7;
+int pbr_neutral_base = 0;
+float pbr_neutral_base_level = 0.12;
+int pbr_write_probe = 1; // 0 while a CPU readback is in flight, keeps the fenced buffer isolated
+int pbr_crosshair = 0;
+buffer pbr_probe_output;
+
+shader debug_pbr_validation
+{
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  POSTFX_VS_TEXCOORD(1, tc)
+
+  (ps) {
+    viewport@f4 = get_viewport();
+    pbr_validation_mode@i1 = (pbr_validation_mode);
+    pbr_albedo_range@f4 = pbr_albedo_range;
+    pbr_smoothness_range@f4 = pbr_smoothness_range;
+    pbr_overlay_opacity@f1 = (pbr_overlay_opacity);
+    pbr_neutral_base@i1 = (pbr_neutral_base);
+    pbr_neutral_base_level@f1 = (pbr_neutral_base_level);
+    pbr_write_probe@i1 = (pbr_write_probe);
+    pbr_crosshair@i1 = (pbr_crosshair);
+    pbr_probe_output@uav = pbr_probe_output hlsl {
+      RWStructuredBuffer<float4> pbr_probe_output@uav;
+    };
+  }
+
+  hlsl(ps) {
+    #include "debug_pbr_validation.hlsli"
+
+    static const half3 COLOR_ALBEDO_TOO_DARK   = half3(PBR_COLOR_ALBEDO_DARK_R, PBR_COLOR_ALBEDO_DARK_G, PBR_COLOR_ALBEDO_DARK_B);
+    static const half3 COLOR_ALBEDO_TOO_BRIGHT = half3(PBR_COLOR_ALBEDO_BRIGHT_R, PBR_COLOR_ALBEDO_BRIGHT_G, PBR_COLOR_ALBEDO_BRIGHT_B);
+    static const half3 COLOR_METAL_ALBEDO_LOW  = half3(PBR_COLOR_METAL_LOW_R, PBR_COLOR_METAL_LOW_G, PBR_COLOR_METAL_LOW_B);
+    static const half3 COLOR_SMOOTHNESS_HIGH   = half3(PBR_COLOR_SMOOTH_HIGH_R, PBR_COLOR_SMOOTH_HIGH_G, PBR_COLOR_SMOOTH_HIGH_B);
+    static const half3 COLOR_SMOOTHNESS_LOW    = half3(PBR_COLOR_SMOOTH_LOW_R, PBR_COLOR_SMOOTH_LOW_G, PBR_COLOR_SMOOTH_LOW_B);
+    static const half3 COLOR_NAN               = half3(PBR_COLOR_NAN_R, PBR_COLOR_NAN_G, PBR_COLOR_NAN_B);
+    static const half3 COLOR_CROSSHAIR         = half3(PBR_COLOR_CROSSHAIR_R, PBR_COLOR_CROSSHAIR_G, PBR_COLOR_CROSSHAIR_B);
+
+    static const float3 LUMA_BT709 = float3(PBR_LUMA_BT709_R, PBR_LUMA_BT709_G, PBR_LUMA_BT709_B);
+
+    float4 debug_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
+    {
+      float2 screenpos = GET_SCREEN_POS(input.pos).xy - viewport.xy;
+      float2 tc = screenpos / viewport.zw;
+
+      // integer compare: a float distance window can match several fragments
+      int2 centerPixel = int2(viewport.zw * 0.5);
+      bool isCenterPixel = all(int2(screenpos) == centerPixel);
+
+      int2 crossOfs = abs(int2(screenpos) - centerPixel);
+      bool onCrosshair = (crossOfs.x <= PBR_CROSSHAIR_HALF_LEN && crossOfs.y <= PBR_CROSSHAIR_HALF_THICKNESS) ||
+                         (crossOfs.y <= PBR_CROSSHAIR_HALF_LEN && crossOfs.x <= PBR_CROSSHAIR_HALF_THICKNESS);
+      float crosshairAlpha = (pbr_crosshair != 0 && onCrosshair) ? PBR_CROSSHAIR_ALPHA : 0.0;
+
+      float rawDepth = readGbufferDepth(tc);
+      BRANCH
+      if (rawDepth <= 0)
+      {
+        if (isCenterPixel && pbr_write_probe != 0)
+        {
+          pbr_probe_output[PBR_PROBE_SLOT_ALBEDO_AO] = float4(0, 0, 0, 0);
+          pbr_probe_output[PBR_PROBE_SLOT_PARAMS] = float4(0, 0, 0, 0);
+          pbr_probe_output[PBR_PROBE_SLOT_FLAGS] = float4(0, 0, 0, 0); // .x = valid flag
+        }
+        return float4(lerp(half3(0, 0, 0), COLOR_CROSSHAIR, crosshairAlpha), 1);
+      }
+
+      UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(tc));
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+
+      if (isCenterPixel && pbr_write_probe != 0)
+      {
+        pbr_probe_output[PBR_PROBE_SLOT_ALBEDO_AO] = float4(gbuf.albedo, gbuf.ao);
+        pbr_probe_output[PBR_PROBE_SLOT_PARAMS] = float4(gbuf.smoothness, gbuf.metalness, gbuf.reflectance, gbuf.material);
+        pbr_probe_output[PBR_PROBE_SLOT_FLAGS] = float4(1, 0, 0, 0);
+      }
+
+      float lum = dot(gbuf.albedo, LUMA_BT709);
+      if (isnan(lum) || isnan(dot(gbuffer.normal, float3(1, 1, 1))))
+      {
+        uint2 tile = uint2(screenpos) / PBR_NAN_CHECKER_TILE;
+        bool checkerOn = ((tile.x + tile.y) & 1) != 0;
+        return float4(lerp(checkerOn ? COLOR_NAN : half3(0, 0, 0), COLOR_CROSSHAIR, crosshairAlpha), 1);
+      }
+
+      half3 overlay = half3(0, 0, 0);
+      float severity = 0;
+
+      // foliage(2), subsurface(1) and selfillum(3) are never metals
+      bool isMetal = gbuf.metalness > PBR_METAL_METALNESS_MIN && gbuf.material == SHADING_NORMAL;
+
+      if (pbr_validation_mode == PBR_VALIDATION_MODE_ALBEDO || pbr_validation_mode == PBR_VALIDATION_MODE_ALL)
+      {
+        if (isMetal)
+        {
+          if (lum < pbr_albedo_range.z)
+          {
+            overlay = COLOR_METAL_ALBEDO_LOW;
+            severity = saturate((pbr_albedo_range.z - lum) / pbr_albedo_range.z);
+          }
+          else if (lum > pbr_albedo_range.w)
+          {
+            overlay = COLOR_ALBEDO_TOO_BRIGHT;
+            severity = saturate((lum - pbr_albedo_range.w) / (1.0 - pbr_albedo_range.w));
+          }
+        }
+        else if (lum < pbr_albedo_range.x)
+        {
+          overlay = COLOR_ALBEDO_TOO_DARK;
+          severity = saturate((pbr_albedo_range.x - lum) / pbr_albedo_range.x);
+        }
+        else if (lum > pbr_albedo_range.y)
+        {
+          overlay = COLOR_ALBEDO_TOO_BRIGHT;
+          severity = saturate((lum - pbr_albedo_range.y) / (1.0 - pbr_albedo_range.y));
+        }
+      }
+
+      if (pbr_validation_mode == PBR_VALIDATION_MODE_SMOOTHNESS || pbr_validation_mode == PBR_VALIDATION_MODE_ALL)
+      {
+        float sev = 0;
+        half3 col = half3(0, 0, 0);
+        if (gbuf.smoothness >= pbr_smoothness_range.y)
+        {
+          col = COLOR_SMOOTHNESS_HIGH;
+          sev = saturate((gbuf.smoothness - pbr_smoothness_range.y) / (1.0 - pbr_smoothness_range.y));
+        }
+        else if (gbuf.smoothness <= pbr_smoothness_range.x)
+        {
+          col = COLOR_SMOOTHNESS_LOW;
+          sev = saturate((pbr_smoothness_range.x - gbuf.smoothness) / pbr_smoothness_range.x);
+        }
+        if (sev > severity)
+        {
+          overlay = col;
+          severity = sev;
+        }
+      }
+
+      half3 sceneColor = pow(abs(gbuf.albedo), 1.0 / PBR_SRGB_GAMMA) * (pbr_neutral_base != 0 ? pbr_neutral_base_level : 1.0);
+      half3 outColor = lerp(sceneColor, overlay, severity * pbr_overlay_opacity);
+      return half4(lerp(outColor, COLOR_CROSSHAIR, crosshairAlpha), 1);
+    }
+  }
+  compile("target_ps", "debug_ps");
+}

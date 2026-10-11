@@ -22,7 +22,7 @@ def test_resize_array(t : T?) {
         resize(a, 10)
         var failed = false
         try {
-            for (x in a) {
+            for (_x in a) {
                 resize(a, 10)           // exception: can't resize locked array
             }
         } recover {
@@ -36,7 +36,7 @@ def test_resize_array(t : T?) {
         resize(a[0], 10)
         var failed = false
         try {
-            for (x in a[0]) {
+            for (_x in a[0]) {
                 erase(a, 3)             // exception: object contains locked elements and can't be resized
             }
         } recover {
@@ -50,8 +50,8 @@ def test_resize_array(t : T?) {
         resize(a[0].foo.a, 10)
         var failed = false
         try {
-            for (x in a[0].foo.a) {
-                a |> emplace(Bar()) // this is fine, memory after 'resize' stays allocated in the very safe context
+            for (_x in a[0].foo.a) {
+                a |> emplace(Bar()) // nolint:PERF006 - emplace under iteration is the tested construct; a reserve would defeat it
             }
         } recover {
             failed = true
@@ -78,13 +78,10 @@ struct Bag {
 [test]
 def test_resize_table(t : T?) {
     t |> run("basic locked table") @(t : T?) {
-        var a : table<int; int>
-        for (tt in range(10)) {
-            a |> insert(tt, tt)
-        }
+        var a <- {for (tt in range(10)); tt => tt}
         var failed = false
         try {
-            for (x in values(a)) {
+            for (_x in values(a)) {
                 a |> insert(13, 133)            // can't insert into locked table
             }
         } recover {
@@ -93,14 +90,11 @@ def test_resize_table(t : T?) {
         t |> success(failed)
     }
     t |> run("nested locked table") @(t : T?) {
-        var a : table<int; array<int>>
-        for (tt in range(10)) {
-            a[tt] <- [for (x in range(tt + 1)); x]
-        }
+        var a <- {for (tt in range(10)); tt => [for (x in range(tt + 1)); x]}
         var failed = false
         try {
             for (x in a[3]) {
-                a[13] <- [for (q in range(3)); x]   // this is fine in the very safe context, afaik
+                a[13] <- [for (_q in range(3)); x]   // this is fine in the very safe context, afaik
             }
         } recover {
             failed = true
@@ -123,7 +117,7 @@ def test_resize_table(t : T?) {
         )
         var failed = false
         try {
-            for (x in values(a[10].foo.a)) {    // this fails on exit of the loop, since element gets erased
+            for (_x in values(a[10].foo.a)) {    // this fails on exit of the loop, since element gets erased
                                                 // 'table was modified during iteration'
                 a |> erase(10)
             }

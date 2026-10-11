@@ -524,7 +524,6 @@ struct Variants
           continue;
         }
 
-        G_ASSERT(ct.interval);
         int id = varMap.getNameId(ivalname);
         G_ASSERT(id >= 0);
         ival.nameId = varMap.xmap[id];
@@ -879,13 +878,32 @@ struct ShaderCodes
       sr.threadGroupSizeX = pt.rpass->threadGroupSizes[0];
       sr.threadGroupSizeY = pt.rpass->threadGroupSizes[1];
       sr.threadGroupSizeZ = pt.rpass->threadGroupSizes[2];
-      sr.branchlessCppStblkcodeId = pt.rpass->branchlessCppStblkcodeId;
-      if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
-        sr.branchedCppStcodeRegisterTableOffset = pt.rpass->branchedCppStcodeTableOffset;
-      else
-        sr.branchlessCppStcodeId = pt.rpass->branchlessCppStcodeId;
       G_ASSERT(pt.rpass->threadGroupSizes[2] < (1 << 15));
       sr.scarlettWave32 = pt.rpass->scarlettWave32;
+      using ShRefT = shader_layout::detail::ShRef;
+      // Nothing reads the branched stblkcode offset of the union, so both fields are written in either mode.
+      sr.branchlessCppStblkcodeId = pt.rpass->branchlessCppStblkcodeId;
+      if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
+      {
+        G_ASSERT(!pt.rpass->renderPassOptIn.hasOptIn());
+        sr.branchedCppStcodeRegisterTableOffset = pt.rpass->branchedCppStcodeTableOffset;
+      }
+      else
+      {
+        sr.branchlessCppStcodeId = pt.rpass->branchlessCppStcodeId;
+        const RenderPassOptInRef &optIn = pt.rpass->renderPassOptIn;
+        if (optIn.isGroup())
+        {
+          G_ASSERT(optIn.groupId <= ShRefT::RP_MAX_INDEX);
+          sr.setGroup(optIn.groupId);
+        }
+        else if (optIn.hasOptIn())
+        {
+          G_ASSERT(optIn.passId <= ShRefT::RP_MAX_INDEX);
+          G_ASSERT(optIn.subpassIdx >= 0 && optIn.subpassIdx < ShRefT::RP_GROUP_SUBPASS);
+          sr.setPass(optIn.passId, optIn.subpassIdx);
+        }
+      }
       bindump::Span<shader_layout::ShaderCode<>::ShRef> rpass;
       shrefStorage.getRef(rpass, &sr, 1);
       p.rpass = rpass;
@@ -1181,6 +1199,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
           auto &p = cd->allPasses[0];
           p.stblkcodeNo = p.stcodeNo = p.branchlessCppStblkcodeId = p.branchlessCppStcodeId = p.renderStateNo = p.fsh = p.vprog = -1;
           p.branchedCppStblkcodeTableOffset = p.branchedCppStcodeTableOffset = -1;
+          p.renderPassOptIn = {};
           p.threadGroupSizes = {};
           p.scarlettWave32 = false;
         }
@@ -1479,7 +1498,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   // write shaders binary dump
   //
   bindump::Master<shader_layout::ScriptedShadersBinDumpCompressed> shaders_dump_compressed;
-  bindump::Master<shader_layout::ScriptedShadersBinDumpV5> shaders_dump;
+  bindump::Master<shader_layout::ScriptedShadersBinDumpV6> shaders_dump;
   shaders_dump.refinedBlockStcodeId = refined_block_stcode_id;
   shaders_dump.cppRefinedBlockStcodeId = targetCtx.refinedBlockLayout().getCppStcodeId().value_or(-1);
 
@@ -1742,6 +1761,167 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
   if (!strip_shaders_and_stcode)
   {
+    // Must stay fnv1a-32: dumps built by different compiler revisions resolve each other's group members by it.
+    auto strHash = [](const char *s) { return uint32_t(str_hash_fnv1a(s)); };
+    auto claimNameHash = [](ska::flat_hash_map<uint32_t, eastl::string> &claimed, const char *space, const char *kind,
+                           const eastl::string &key) {
+      const uint32_t h = uint32_t(str_hash_fnv1a(key.c_str()));
+      if (h == shader_layout::RP_INVALID_NAME_HASH)
+        sh_debug(SHLOG_FATAL, "The name hash of %s '%s' is the reserved invalid id, try renaming it", kind, key.c_str());
+      auto [it, inserted] = claimed.emplace(h, key);
+      if (!inserted && it->second != key)
+        sh_debug(SHLOG_FATAL,
+          "Hash collision detected for the names '%s' and '%s' (%s), try renaming one of them: %s share one name namespace",
+          it->second.c_str(), key.c_str(), kind, space);
+    };
+
+    Tab<FramebufferLayoutObject *> framebufferLayouts = targetCtx.framebufferLayouts().release();
+    ska::flat_hash_map<int, int> layoutDumpIdxByName;
+    ska::flat_hash_map<uint32_t, eastl::string> layoutHashes;
+    auto appendDumpLayout = [&](const char *name, const eastl::string &hash_key, int target_count, auto &&fill_target) {
+      claimNameHash(layoutHashes, "framebuffer layouts", "framebuffer_layout", hash_key);
+      shaders_dump.framebufferLayouts.resize(shaders_dump.framebufferLayouts.size() + 1);
+      auto &dst = shaders_dump.framebufferLayouts[shaders_dump.framebufferLayouts.size() - 1];
+      dst.name = name;
+      dst.nameHash = strHash(hash_key.c_str());
+      dst.targets.resize(target_count);
+      for (int t = 0; t < target_count; ++t)
+        fill_target(dst.targets[t], t);
+    };
+    for (int li = 0; li < framebufferLayouts.size(); ++li)
+    {
+      const FramebufferLayoutObject &src = *framebufferLayouts[li];
+      if (src.isGroup())
+        continue;
+      layoutDumpIdxByName.emplace(int(src.name), int(shaders_dump.framebufferLayouts.size()));
+      appendDumpLayout(src.nameStr(), eastl::string(src.nameStr()), int(src.entries.size()), [&](auto &t, int e) {
+        t.name = src.str(src.entries[e].name);
+        t.format = src.entries[e].format;
+        t.samples = uint8_t(src.entries[e].samples);
+      });
+    }
+    auto layoutEntryIdx = [&](int dump_idx, const RenderPassObject &rp, int target) {
+      const auto &layout = shaders_dump.framebufferLayouts[dump_idx];
+      for (int i = 0; i < int(layout.targets.size()); ++i)
+        if (strcmp(layout.targets[i].name.c_str(), rp.targetName(target)) == 0)
+          return i;
+      return -1;
+    };
+
+    Tab<RenderPassObject *> renderPasses = targetCtx.renderPasses().release();
+    Tab<::RenderPassGroup *> renderPassGroups = targetCtx.renderPassGroups().release();
+    {
+      ska::flat_hash_map<uint32_t, eastl::string> passHashes;
+      for (const RenderPassObject *p : renderPasses)
+        claimNameHash(passHashes, "render passes and subpass groups", "render_pass", eastl::string(p->nameStr()));
+      for (const ::RenderPassGroup *g : renderPassGroups)
+        claimNameHash(passHashes, "render passes and subpass groups", "subpass group", eastl::string(g->nameStr()));
+    }
+
+    shaders_dump.renderPasses.resize(renderPasses.size());
+    for (int pi = 0; pi < renderPasses.size(); ++pi)
+    {
+      const RenderPassObject &src = *renderPasses[pi];
+      auto &dst = shaders_dump.renderPasses[pi];
+      dst.name = src.nameStr();
+      dst.nameHash = strHash(src.nameStr());
+      dst.flags = src.allowSplit ? shader_layout::RP_ALLOW_SPLIT : 0;
+      dst.targets.resize(src.targets.size());
+      for (int t = 0; t < src.targets.size(); ++t)
+      {
+        dst.targets[t].name = src.targetName(t);
+        dst.targets[t].flags = src.targets[t].multisampled ? shader_layout::RP_TARGET_MULTISAMPLED : 0;
+      }
+      dst.resolves.resize(src.resolves.size());
+      for (int r = 0; r < src.resolves.size(); ++r)
+      {
+        dst.resolves[r].srcTargetIndex = uint16_t(src.resolves[r].srcTargetIdx);
+        dst.resolves[r].dstTargetIndex = uint16_t(src.resolves[r].dstTargetIdx);
+      }
+      dst.subpasses.resize(src.subpasses.size());
+      ska::flat_hash_map<uint32_t, const char *> subpassByHash;
+      for (int s = 0; s < src.subpasses.size(); ++s)
+      {
+        const RenderPassObject::Subpass &ssp = src.subpasses[s];
+        const char *spName = src.subpassName(s);
+        auto &dsp = dst.subpasses[s];
+        dsp.name = spName;
+        dsp.nameHash = strHash(spName);
+        if (dsp.nameHash == shader_layout::RP_INVALID_NAME_HASH)
+          sh_debug(SHLOG_FATAL, "The name hash of subpass '%s.%s' is the reserved invalid id, try renaming it", src.nameStr(), spName);
+        if (auto [it, inserted] = subpassByHash.emplace(dsp.nameHash, spName); !inserted && strcmp(it->second, spName) != 0)
+          sh_debug(SHLOG_FATAL,
+            "Hash collision detected for the subpass names '%s' and '%s' of render_pass '%s', try renaming one of them", it->second,
+            spName, src.nameStr());
+        dsp.depthTargetIndex = ssp.depthTargetIdx < 0 ? uint16_t(0xFFFF) : uint16_t(ssp.depthTargetIdx);
+        dsp.flags = (ssp.depthReadOnly() ? shader_layout::RP_SUBPASS_DEPTH_READ_ONLY : 0) |
+                    (ssp.depthSampled ? shader_layout::RP_SUBPASS_DEPTH_SAMPLED : 0);
+        dsp.colors.resize(ssp.colors.size());
+        for (int c = 0; c < ssp.colors.size(); ++c)
+          dsp.colors[c] = uint16_t(ssp.colors[c]);
+        dsp.reads.resize(ssp.reads.size());
+        for (int r = 0; r < ssp.reads.size(); ++r)
+          dsp.reads[r] = uint16_t(ssp.reads[r]);
+        dsp.vrsTargetIndex = ssp.vrsTargetIdx < 0 ? uint16_t(0xFFFF) : uint16_t(ssp.vrsTargetIdx);
+      }
+
+      Tab<int> supported;
+      if (src.framebuffers.empty())
+      {
+        G_ASSERT(src.hasInlineFormats());
+        supported.push_back(shaders_dump.framebufferLayouts.size());
+        appendDumpLayout(src.nameStr(), eastl::string(eastl::string::CtorSprintf{}, "render_pass:%s", src.nameStr()),
+          int(src.targets.size()), [&](auto &t, int i) {
+            t.name = src.targetName(i);
+            t.format = src.targets[i].format;
+            t.samples = uint8_t(src.targets[i].formatSamples);
+          });
+      }
+      else
+        for (int fb : src.framebuffers)
+        {
+          auto it = layoutDumpIdxByName.find(fb);
+          G_ASSERTF(it != layoutDumpIdxByName.end(), "render_pass '%s' supports framebuffer_layout '%s', which is not in the dump",
+            src.nameStr(), src.str(fb));
+          supported.push_back(it->second);
+        }
+      dst.framebuffers.resize(supported.size());
+      dst.framebufferTargetEntries.resize(supported.size() * src.targets.size());
+      for (int f = 0; f < supported.size(); ++f)
+      {
+        dst.framebuffers[f] = uint16_t(supported[f]);
+        for (int t = 0; t < src.targets.size(); ++t)
+        {
+          const int e = layoutEntryIdx(supported[f], src, t);
+          G_ASSERTF(e >= 0, "render_pass '%s' target '%s' has no entry in its supported framebuffer layout", src.nameStr(),
+            src.targetName(t));
+          dst.framebufferTargetEntries[f * src.targets.size() + t] = uint16_t(e);
+        }
+      }
+    }
+
+    shaders_dump.renderPassGroups.resize(renderPassGroups.size());
+    for (int gi = 0; gi < renderPassGroups.size(); ++gi)
+    {
+      const ::RenderPassGroup &src = *renderPassGroups[gi];
+      auto &dst = shaders_dump.renderPassGroups[gi];
+      dst.name = src.nameStr();
+      dst.nameHash = strHash(src.nameStr());
+      dst.members.resize(src.members.size());
+      for (int m = 0; m < src.members.size(); ++m)
+      {
+        G_ASSERT(src.members[m].passIdx >= 0 && src.members[m].passIdx < renderPasses.size());
+        dst.members[m].passNameHash = strHash(renderPasses[src.members[m].passIdx]->nameStr());
+        dst.members[m].subpassIdx = uint16_t(src.members[m].subpassIdx);
+      }
+      delete renderPassGroups[gi];
+    }
+
+    for (int pi = 0; pi < renderPasses.size(); ++pi)
+      delete renderPasses[pi];
+    for (int li = 0; li < framebufferLayouts.size(); ++li)
+      delete framebufferLayouts[li];
+
     auto [samplers, immutableSamplers] = targetCtx.samplers().releaseSamplers();
 
     if (samplers.size() >= UINT16_MAX)
@@ -1938,14 +2118,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
     struct CompressionJob : shc::Job
     {
-      bindump::Master<shader_layout::ScriptedShadersBinDumpV5> *outDump;
+      bindump::Master<shader_layout::ScriptedShadersBinDumpV6> *outDump;
       dag::ConstSpan<uint32_t> src;
       ZSTD_CDict_s *dict;
       dag::ConstSpan<ZSTD_CCtx_s *> contexts;
       int compressionLevel;
       int id;
 
-      CompressionJob(bindump::Master<shader_layout::ScriptedShadersBinDumpV5> &out_dump, dag::ConstSpan<uint32_t> src,
+      CompressionJob(bindump::Master<shader_layout::ScriptedShadersBinDumpV6> &out_dump, dag::ConstSpan<uint32_t> src,
         ZSTD_CDict_s &dict, dag::ConstSpan<ZSTD_CCtx_s *> contexts, int compression_level, int i) :
         outDump{&out_dump}, src{src}, dict{&dict}, contexts{contexts}, compressionLevel{compression_level}, id{i}
       {}

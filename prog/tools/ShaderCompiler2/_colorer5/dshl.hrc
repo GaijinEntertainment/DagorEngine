@@ -1,0 +1,709 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hrc PUBLIC "-//Cail Lomecb//DTD Colorer HRC take5//EN"
+  "http://colorer.sf.net/2003/hrc.dtd">
+<hrc version="take5" xmlns="http://colorer.sf.net/2003/hrc"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://colorer.sf.net/2003/hrc http://colorer.sf.net/2003/hrc.xsd">
+
+<annotation>
+   <documentation>
+      Dagor shader language (*.dshl), ported to take5 from the 4ever description that ships with Far 2.0
+      (Plugins/Colorer/hrc/base/dshl.hrc), so that Far3 and Far 2.0 colour .dshl files identically.
+
+      4ever aliased its regions as below (the &lt;define/&gt; block at the top of the original); the
+      take5 parents reproduce the same colours out of the shared palette:
+        dNamespace     = dString    -&gt; def:String
+        dState         = dString    -&gt; def:String
+        dStateValue    = dNumDec    -&gt; def:NumberDec
+        dType          = dNumDec    -&gt; def:NumberDec  (4ever *overrode* dType)
+        dHlslKeyword   = dParam     -&gt; def:Parameter
+        dHlslIntrinsic = dParam     -&gt; def:Parameter
+        dHlslType      = dParam     -&gt; def:Parameter
+        dHlslSemantic  = dNumDec    -&gt; def:NumberDec
+        dHlslPreProc   = dDirective -&gt; def:Directive
+        dHlslPreProc2  = dNumHex    -&gt; def:NumberHex
+      plus the plain ones: dComment/dError/dString/dSymbol/dKeyword to
+      def:Comment/def:Error/def:String/def:Symbol/def:Keyword, dSymbol2 to def:SymbolStrong,
+      dpOpenStruct/dpCloseStruct to def:PairStart/def:PairEnd.
+
+      Two spellings differ besides the names: 4ever declares a region alias as
+      &lt;define name="dX" value="dY"/&gt; where take5 declares &lt;region name="X" parent="def:Y"/&gt;, and
+      4ever writes &lt;virtual subst="s"/&gt; where take5 writes &lt;virtual subst-scheme="s"/&gt;; take5
+      ignores the 4ever spelling in silence, which leaves everything inside the substituted scheme unstyled.
+
+      Names had to be spelled exactly here, because take5 resolves them case sensitively while 4ever
+      does not: 4ever compares region names with stricmp (shared/colorer/ccdata.cpp,
+      CColorData::getregion), so its "dKeyWord" reached the region defined as "dKeyword" and its scheme
+      reference "cPrePro"/"cPrePro2" reached "CPrePro"/"CPrePro2".  Neither would resolve in take5, so
+      the canonical spellings are used on both sides: def:Keyword here, dKeyword in the 4ever file.
+
+      4ever helper schemes map onto take5 as mCHexNumb/mFloatNumb/mDecNumb to
+      def:CHexNumber/def:FloatNumber/def:DecNumber and Comment to def:Comment. mPairedBrackets becomes a
+      local PairedBrackets copy below rather than def:PairedBrackets, so the &lt;virtual/&gt; and the
+      scheme it substitutes live in the same type.  mStdStr is inlined below so the quotes keep the literal's
+      colour, exactly as 4ever painted them.
+
+      Install: copy this file to &lt;Far3&gt;\Plugins\FarColorer\base\auto\ and reload the base
+      (F11 -&gt; FarColorer -&gt; Reload base). base\auto\ is a stock folder already registered in
+      base\catalog.xml, and this file carries its own &lt;prototype&gt;, so nothing else needs editing.
+      Dagor shader (dshl) then stands in the file-type list, which is what shows the prototype registered;
+      the schema-library test parses every scheme but iterates registered types only, so it passes without
+      proving that this one loaded. A FarColorer update that replaces the whole base folder drops the copy.
+
+      Four take5 traps, none of which reports an error - the rule simply never matches:
+        a &lt;prototype&gt; counts only as a direct child of &lt;hrc&gt;. Stock files keep one inside
+          &lt;annotation&gt;&lt;appinfo&gt;, but that copy only feeds their build; a type put there loads
+          and matches no file.
+        a bare '{' or '}' inside a character class is not a literal, so [^\s;${}] has to be written
+          [^\s;$\{\}] or the class swallows the brace that ends a block.
+        every branch of an alternation is bracketed: (a)|(b)|(c) matches in both engines, while 4ever
+          matches nothing at all for a bare a|b|c. This holds for a block start and end as well as for
+          &lt;regexp match=.../&gt;, which is why the generated @-binding rules bracket each type name.
+          The two inherited preprocessor block ends are the exception on record: they keep their original
+          unbracketed form, which renders the same either way.
+        word boundaries differ: 4ever reads \b as start-of-word, \B as end-of-word and \c as
+          non-word-before, while take5 reads Perl's \b and \B.
+   </documentation>
+</annotation>
+
+<prototype name="dshl" group="main" description="Dagor shader (dshl)">
+   <location link="dshl.hrc"/>
+   <filename>/\.dshl$/i</filename>
+</prototype>
+
+<type name="dshl">
+
+   <import type="def"/>
+
+   <region name="Comment"       parent="def:Comment"/>
+   <region name="Error"         parent="def:Error"/>
+   <region name="String"        parent="def:String"/>
+   <region name="Symbol"        parent="def:Symbol"/>
+   <region name="StructSymbol"  parent="def:SymbolStrong"/>
+   <region name="Keyword"       parent="def:Keyword"/>
+   <region name="Directive"     parent="def:Directive"/>
+   <region name="Namespace"     parent="def:String"/>
+   <region name="State"         parent="def:String"/>
+   <region name="StateValue"    parent="def:NumberDec"/>
+   <region name="Type"          parent="def:NumberDec"/>
+   <region name="HlslKeyword"   parent="def:Parameter"/>
+   <region name="HlslIntrinsic" parent="def:Parameter"/>
+   <region name="HlslType"      parent="def:Parameter"/>
+   <region name="HlslSemantic"  parent="def:NumberDec"/>
+   <region name="HlslPreProc"   parent="def:Directive"/>
+   <region name="HlslPreProc2"  parent="def:NumberHex"/>
+
+   <!-- 4ever mStdStr: quotes share the literal's colour -->
+   <!-- 4ever inherited the shared mPairedBrackets and substituted it with the enclosing scheme.  A
+        local copy is used here rather than def:PairedBrackets, so the substitution and the scheme it
+        substitutes live in the same type, and re-entering the dshl / hlsl scheme inside braces is
+        unambiguous. -->
+   <scheme name="PairedBrackets">
+      <block start="/(\{)/" end="/(\})/" scheme="PairedBrackets"
+             region00="StructSymbol" region01="def:PairStart"
+             region10="StructSymbol" region11="def:PairEnd"/>
+      <block start="/(\()/" end="/(\))/" scheme="PairedBrackets"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd"/>
+      <block start="/(\[)/" end="/(\])/" scheme="PairedBrackets"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd"/>
+   </scheme>
+
+   <scheme name="StdString">
+      <regexp match='/".*?"/' region0="String"/>
+      <regexp match="/'.*?'/" region0="String"/>
+   </scheme>
+
+   <scheme name="commonSyntax">
+      <inherit scheme="def:CHexNumber"/>
+      <inherit scheme="def:FloatNumber"/>
+      <inherit scheme="def:DecNumber"/>
+      <inherit scheme="StdString"/>
+      <regexp match="/\b(0x[\da-fA-F]*?([^\s\W\da-fA-F]).*?)\b/i" region0="Error"/>
+
+      <regexp match="/\/\/.*$/" region0="Comment"/>
+      <block  start="/\/\*/" end="/\*\//" scheme="def:Comment"
+              region="Comment" region00="def:PairStart" region10="def:PairEnd"/>
+
+      <!-- @-binding types, one rule per PRESHADER_VARIABLE_TYPE_LIST_* group in variantSemantic.h
+           plus the state-block binding types. Generated by _colorer_keywords.py. Longest
+           alternative first (texCubeArray before texCube before tex), and every branch bracketed:
+           4ever matches nothing at all for a bare a|b|c in a match regexp. -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((f43)|(f44)|(f1)|(f2)|(f3)|(f4))\b/' region1="Keyword" region2="String"/> <!-- FLOAT -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((i1)|(i2)|(i3)|(i4))\b/' region1="Keyword" region2="String"/> <!-- INT -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((u1)|(u2)|(u3)|(u4))\b/' region1="Keyword" region2="String"/> <!-- UINT -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((cbuf)|(buf))\b/' region1="Keyword" region2="String"/> <!-- BUF -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((texCubeArray)|(texArray)|(texCube)|(tex2d)|(tex3d)|(tex))\b/' region1="Keyword" region2="String"/> <!-- TEX -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((cmpSampler)|(smpArray)|(sampler)|(smp2d)|(smp3d))\b/' region1="Keyword" region2="String"/> <!-- SMP -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((staticSmpCubeArray)|(staticSmpArray)|(staticSmpCube)|(staticSmp3D)|(staticSmp))\b/' region1="Keyword" region2="String"/> <!-- STATIC_SMP -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((staticTexCubeArray)|(staticTexArray)|(staticTexCube)|(staticTex3D)|(staticTex))\b/' region1="Keyword" region2="String"/> <!-- STATIC_TEX -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((tlas)|(uav))\b/' region1="Keyword" region2="String"/> <!-- OTHER -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((bindlessTexCubeArray)|(bindlessByteBuffer)|(bindlessTexArray)|(bindlessSampler)|(bindlessTexCube)|(bindlessTex2D)|(bindlessTex3D))\b/' region1="Keyword" region2="String"/> <!-- BINDLESS -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((subpass_read))\b/' region1="Keyword" region2="String"/> <!-- SUBPASS_READ -->
+      <regexp match='/\b[a-zA-Z_]\w*\s*(@)((ps_output))\b/' region1="Keyword" region2="String"/> <!-- STATE_BLOCK -->
+
+      <keywords region="HlslPreProc2">
+         <word name="globtm"/>
+         <word name="immediate_dword_count"/>
+         <word name="local_view_pos"/>
+         <word name="local_view_x"/>
+         <word name="local_view_y"/>
+         <word name="local_view_z"/>
+         <word name="projtm"/>
+         <word name="viewprojtm"/>
+         <word name="world_local_pos"/>
+         <word name="world_local_x"/>
+         <word name="world_local_y"/>
+         <word name="world_local_z"/>
+      </keywords>
+
+      <keywords region="Symbol">
+         <symb name=";"/>
+         <symb name="="/>
+         <symb name="+"/>
+         <symb name="-"/>
+         <symb name="/"/>
+         <symb name="*"/>
+         <symb name="&amp;"/>
+         <symb name="|"/>
+         <symb name="^"/>
+         <symb name="("/>
+         <symb name=")"/>
+         <symb name="["/>
+         <symb name="]"/>
+         <symb name=","/>
+         <symb name="."/>
+         <symb name=":"/>
+         <symb name="!"/>
+         <symb name="~"/>
+         <symb name="&lt;"/>
+         <symb name="&gt;"/>
+         <symb name="%"/>
+         <symb name="?"/>
+         <symb name="#"/>
+      </keywords>
+   </scheme>
+
+   <!-- the stage block gets a scheme of its own so the braces of a '@f44 = { ... }' binding value
+        open a nested block; without one the block's own end takes the '}' of that value and closes
+        early. It cannot live in commonSyntax: hlsl reaches that through hlslBase, and a brace inside
+        an hlsl body would switch to it and lose every HLSL keyword. -->
+   <scheme name="stageBlock">
+      <inherit scheme="commonSyntax"/>
+      <inherit scheme="PairedBrackets">
+         <virtual scheme="PairedBrackets" subst-scheme="stageBlock"/>
+      </inherit>
+   </scheme>
+
+   <scheme name="CPrePro">
+      <inherit scheme="commonSyntax"/>
+
+      <keywords region="HlslPreProc">
+         <word name="declare"/>
+         <word name="elif"/>
+         <word name="else"/>
+         <word name="endif"/>
+         <word name="error"/>
+         <word name="if"/>
+      </keywords>
+   </scheme>
+
+   <scheme name="CPrePro2">
+      <inherit scheme="commonSyntax"/>
+
+      <keywords region="HlslPreProc2">
+         <word name="pragma"/>
+         <word name="define"/>
+         <word name="undef"/>
+         <word name="elif"/>
+         <word name="else"/>
+         <word name="endif"/>
+         <word name="error"/>
+         <word name="if"/>
+         <word name="ifdef"/>
+         <word name="ifndef"/>
+         <word name="include"/>
+         <word name="line"/>
+         <word name="__LINE__"/>
+         <word name="__FILE__"/>
+      </keywords>
+   </scheme>
+
+   <scheme name="hlslBase">
+      <block  start="/^\s*##/" end="/^ | ([^\\]?#1) $/x" scheme="CPrePro"  region="HlslPreProc"/>
+      <block  start="/^\s*#/"  end="/^ | ([^\\]?#1) $/x" scheme="CPrePro2" region="HlslPreProc2"/>
+      <inherit scheme="commonSyntax"/>
+
+      <regexp match="/\b((bool)|(int)|(uint)|(fixed)|(half)|(float)|(double))[1-4]\b/" region0="HlslType"/>
+      <regexp match="/\b((bool)|(int)|(uint)|(fixed)|(half)|(float)|(double))[1-4]x[1-4]\b/" region0="HlslType"/>
+
+      <keywords region="HlslKeyword" ignorecase="yes">
+         <word name="BlendState"/>
+         <word name="Bool"/>
+         <word name="Break"/>
+         <word name="Case"/>
+         <word name="CBuffer"/>
+         <word name="Class"/>
+         <word name="Compile"/>
+         <word name="Const"/>
+         <word name="Continue"/>
+         <word name="Default"/>
+         <word name="DepthStencilState"/>
+         <word name="DepthStencilView"/>
+         <word name="Discard"/>
+         <word name="Do"/>
+         <word name="Double"/>
+         <word name="Else"/>
+         <word name="Enum"/>
+         <word name="Extern"/>
+         <word name="False"/>
+         <word name="Float"/>
+         <word name="For"/>
+         <word name="GeometryShader"/>
+         <word name="Half"/>
+         <word name="If"/>
+         <word name="In"/>
+         <word name="Inline"/>
+         <word name="Inout"/>
+         <word name="Int"/>
+         <word name="Matrix"/>
+         <word name="Namespace"/>
+         <word name="Nointerpolation"/>
+         <word name="Operator"/>
+         <word name="Out"/>
+         <word name="Pass"/>
+         <word name="PixelShader"/>
+         <word name="RasterizerState"/>
+         <word name="RenderTargetView"/>
+         <word name="Return"/>
+         <word name="Register"/>
+         <word name="Sampler"/>
+         <word name="sampler"/>
+         <word name="Sampler1D"/>
+         <word name="Sampler2D"/>
+         <word name="Sampler3D"/>
+         <word name="SamplerCUBE"/>
+         <word name="hsampler"/>
+         <word name="hsampler1D"/>
+         <word name="hsampler2D"/>
+         <word name="hsampler3D"/>
+         <word name="hsamplerCUBE"/>
+         <word name="fxsampler"/>
+         <word name="fxsampler1D"/>
+         <word name="fxsampler2D"/>
+         <word name="fxsampler3D"/>
+         <word name="fxsamplerCUBE"/>
+         <word name="fltsampler"/>
+         <word name="fltsampler1D"/>
+         <word name="fltsampler2D"/>
+         <word name="fltsampler3D"/>
+         <word name="fltsamplerCUBE"/>
+         <word name="sampler_state"/>
+         <word name="SamplerComparisonState"/>
+         <word name="Shared"/>
+         <word name="Sizeof"/>
+         <word name="Stateblock"/>
+         <word name="Stateblock_state"/>
+         <word name="Static"/>
+         <word name="String"/>
+         <word name="Struct"/>
+         <word name="Switch"/>
+         <word name="TBuffer"/>
+         <word name="Technique"/>
+         <word name="Technique10"/>
+         <word name="Template"/>
+         <word name="texture1"/>
+         <word name="Texture1D"/>
+         <word name="Texture1D"/>
+         <word name="Texture1DArray"/>
+         <word name="texture2D"/>
+         <word name="Texture2D"/>
+         <word name="Texture2DArray"/>
+         <word name="Texture2DMS"/>
+         <word name="Texture2DMSArray"/>
+         <word name="texture3D"/>
+         <word name="Texture3D"/>
+         <word name="texturecube"/>
+         <word name="TextureCube"/>
+         <word name="This"/>
+         <word name="True"/>
+         <word name="Typedef"/>
+         <word name="Typename"/>
+         <word name="Uniform"/>
+         <word name="Unsigned"/>
+         <word name="Using"/>
+         <word name="Vector"/>
+         <word name="VertexShader"/>
+         <word name="Void"/>
+         <word name="Volatile"/>
+         <word name="While"/>
+      </keywords>
+
+      <keywords region="HlslIntrinsic">
+         <word name="abs"/>
+         <word name="acos"/>
+         <word name="all"/>
+         <word name="any"/>
+         <word name="asfloat"/>
+         <word name="asin"/>
+         <word name="asint"/>
+         <word name="asuint"/>
+         <word name="atan"/>
+         <word name="atan2"/>
+         <word name="ceil"/>
+         <word name="clamp"/>
+         <word name="clip"/>
+         <word name="cos"/>
+         <word name="cosh"/>
+         <word name="cross"/>
+         <word name="D3DCOLORtoUBYTE4"/>
+         <word name="ddx"/>
+         <word name="ddy"/>
+         <word name="degrees"/>
+         <word name="determinant"/>
+         <word name="distance"/>
+         <word name="dot"/>
+         <word name="exp"/>
+         <word name="exp2"/>
+         <word name="faceforward"/>
+         <word name="floor"/>
+         <word name="fmod"/>
+         <word name="frac"/>
+         <word name="frexp"/>
+         <word name="fwidth"/>
+         <word name="GetRenderTargetSampleCount"/>
+         <word name="GetRenderTargetSamplePosition"/>
+         <word name="isfinite"/>
+         <word name="isinf"/>
+         <word name="isnan"/>
+         <word name="ldexp"/>
+         <word name="length"/>
+         <word name="lerp"/>
+         <word name="lit"/>
+         <word name="log"/>
+         <word name="log10"/>
+         <word name="log2"/>
+         <word name="max"/>
+         <word name="min"/>
+         <word name="modf"/>
+         <word name="mul"/>
+         <word name="noise"/>
+         <word name="normalize"/>
+         <word name="pow"/>
+         <word name="radians"/>
+         <word name="reflect"/>
+         <word name="refract"/>
+         <word name="round"/>
+         <word name="rsqrt"/>
+         <word name="saturate"/>
+         <word name="sign"/>
+         <word name="sin"/>
+         <word name="sincos"/>
+         <word name="sinh"/>
+         <word name="smoothstep"/>
+         <word name="sqrt"/>
+         <word name="step"/>
+         <word name="tan"/>
+         <word name="tanh"/>
+         <word name="tex1D"/>
+         <word name="tex1Dbias"/>
+         <word name="tex1Dgrad"/>
+         <word name="tex1Dlod"/>
+         <word name="tex1Dproj"/>
+         <word name="tex2D"/>
+         <word name="tex2Dbias"/>
+         <word name="tex2Dgrad"/>
+         <word name="tex2Dlod"/>
+         <word name="tex2Dproj"/>
+         <word name="tex3D"/>
+         <word name="tex3Dbias"/>
+         <word name="tex3Dgrad"/>
+         <word name="tex3Dlod"/>
+         <word name="tex3Dproj"/>
+         <word name="texCUBE"/>
+         <word name="texCUBEbias"/>
+         <word name="texCUBEgrad"/>
+         <word name="texCUBElod"/>
+         <word name="texCUBEproj"/>
+         <word name="h4tex2D"/>
+         <word name="h4tex2Dbias"/>
+         <word name="h4tex2Dgrad"/>
+         <word name="h4tex2Dlod"/>
+         <word name="h4tex2Dproj"/>
+         <word name="h4tex3D"/>
+         <word name="h4tex3Dbias"/>
+         <word name="h4tex3Dgrad"/>
+         <word name="h4tex3Dlod"/>
+         <word name="h4tex3Dproj"/>
+         <word name="h4texCUBE"/>
+         <word name="h4texCUBEbias"/>
+         <word name="h4texCUBEgrad"/>
+         <word name="h4texCUBElod"/>
+         <word name="h4texCUBEproj"/>
+         <word name="transpose"/>
+      </keywords>
+
+      <!-- Reserved keywords -->
+      <keywords region="Error">
+         <word name="catch"/>
+         <word name="char"/>
+         <word name="const_cast"/>
+         <word name="delete"/>
+         <word name="dynamic_cast"/>
+         <word name="explicit"/>
+         <word name="friend"/>
+         <word name="goto"/>
+         <word name="long"/>
+         <word name="mutable"/>
+         <word name="new"/>
+         <word name="private"/>
+         <word name="protected"/>
+         <word name="public"/>
+         <word name="reinterpret_cast"/>
+         <word name="short"/>
+         <word name="signed"/>
+         <word name="static_cast"/>
+         <word name="throw"/>
+         <word name="try"/>
+         <word name="union"/>
+         <word name="virtual"/>
+      </keywords>
+
+      <regexp match="/\b((SV_IsFrontFace)|(SV_InstanceID)|(SV_Depth)|(SV_Position)|(SV_Target)|(COLOR)|(NORMAL)|(POSITION))[0-1]\b/" region0="HlslSemantic"/>
+      <regexp match="/\bTEXCOORD[0-9]\b/" region0="HlslSemantic"/>
+      <regexp match="/\bTEXCOORD1[0-5]\b/" region0="HlslSemantic"/>
+
+      <keywords region="HlslSemantic">
+         <word name="BINORMAL"/>
+         <word name="BINORMAL0"/>
+         <word name="BLENDINDICES"/>
+         <word name="BLENDINDICES0"/>
+         <word name="BLENDWEIGHT"/>
+         <word name="BLENDWEIGHT0"/>
+         <word name="COLOR"/>
+         <word name="NORMAL"/>
+         <word name="POSITION"/>
+         <word name="POSITIONT"/>
+         <word name="PSIZE"/>
+         <word name="TANGENT"/>
+         <word name="TANGENT0"/>
+         <word name="TEXCOORD"/>
+         <word name="FOG"/>
+         <word name="PSIZE"/>
+         <word name="PSIZE0"/>
+         <word name="TESSFACTOR"/>
+         <word name="TESSFACTOR0"/>
+         <word name="VFACE"/>
+         <word name="VPOS"/>
+         <word name="DEPTH"/>
+         <word name="DEPTH0"/>
+      </keywords>
+   </scheme>
+
+   <scheme name="hlslBlock">
+      <inherit scheme="hlslBase"/>
+      <!-- The braces take their pair regions from a regexp rather than a block: a block would consume
+           the '}' aligned with the 'hlsl' keyword, which the enclosing block has to close on. A regexp
+           only marks, so that block still sees its end, and the marks are matched by nesting. -->
+      <regexp match="/(\{)/" region0="StructSymbol" region1="def:PairStart"/>
+      <regexp match="/(\})/" region0="StructSymbol" region1="def:PairEnd"/>
+   </scheme>
+
+   <scheme name="hlsl">
+      <inherit scheme="hlslBase"/>
+      <inherit scheme="PairedBrackets">
+         <virtual scheme="PairedBrackets" subst-scheme="hlsl"/>
+      </inherit>
+   </scheme>
+
+   <scheme name="dshl">
+      <inherit scheme="PairedBrackets">
+         <virtual scheme="PairedBrackets" subst-scheme="dshl"/>
+      </inherit>
+
+      <block start="/^\s*(hlsl)\s*(\(\s*(([acdeghlmpv]s)|([A-Za-z_][A-Za-z0-9_]{2,}))\s*\))?\s*(\{)\s*/" end="/\s*(\})/"
+             scheme="hlsl"
+             region00="StructSymbol" region06="def:PairStart"
+             region10="StructSymbol" region11="def:PairEnd"/>
+      <block start="/^\s*\(\s*(([cpvm]s)|([A-Za-z_][A-Za-z0-9_]{2,}))\s*\)\s*(\{)\s*/" end="/\s*(\})/"
+             scheme="stageBlock"
+             region00="StructSymbol" region04="def:PairStart"
+             region10="StructSymbol" region11="def:PairEnd"/>
+
+      <!-- hlsl / hlsl(vs) with the opening brace on the following line. \y1 links the end regexp
+           back to bracket 1 of start (the indentation), so the block closes on the '}' aligned
+           with 'hlsl'. Its def:PairEnd is answered by the def:PairStart that hlslBlock puts on the
+           first brace, the one a line below the header, so the pair spans the whole body. -->
+      <block start="/^(\s*)(hlsl)\s*(\(\s*(([acdeghlmpv]s)|([A-Za-z_][A-Za-z0-9_]{2,}))\s*\))?\s*$/" end="/^\y1(\})/"
+             scheme="hlslBlock"
+             region02="Keyword"
+             region10="StructSymbol" region11="def:PairEnd"/>
+      <regexp match="/^\s*(hlsl)\s*(\(\s*((([acdeghlmpv]s)|([A-Za-z_][A-Za-z0-9_]{2,}))\s*\))?![^)]*\))\s*\{?\s*$/" region2="Error"/>
+      <regexp match="/^\s*(\(\s*((([cpvm]s)|([A-Za-z_][A-Za-z0-9_]{2,}))\s*\))?![^)]*\))\s*\{?\s*$/" region1="Error"/>
+
+      <inherit scheme="commonSyntax"/>
+
+      <keywords region="Keyword">
+         <word name="allow_opacity_micromaps"/>
+         <word name="always_referenced"/>
+         <word name="assume"/>
+         <word name="assume_if_not_assumed"/>
+         <word name="block"/>
+         <word name="bounding_pack"/>
+         <word name="buffer"/>
+         <word name="channel"/>
+         <word name="compile"/>
+         <word name="const"/>
+         <word name="const_buffer"/>
+         <word name="dont_render"/>
+         <word name="dynamic"/>
+         <word name="else"/>
+         <word name="error"/>
+         <word name="framebuffer_layout"/>
+         <word name="global"/>
+         <word name="hardware"/>
+         <word name="if"/>
+         <word name="immediate_dword_count"/>
+         <word name="interval"/>
+         <word name="literal"/>
+         <word name="local"/>
+         <word name="material"/>
+         <word name="max_recursion"/>
+         <word name="maybe"/>
+         <word name="mul_16k"/>
+         <word name="mul_1k"/>
+         <word name="mul_2k"/>
+         <word name="mul_32767"/>
+         <word name="mul_4k"/>
+         <word name="mul_8k"/>
+         <word name="multi_render_pass"/>
+         <word name="no_ablend"/>
+         <word name="no_dynstcode"/>
+         <word name="no_warnings"/>
+         <word name="pass"/>
+         <word name="pixel"/>
+         <word name="real_two_sided"/>
+         <word name="register"/>
+         <word name="render_pass"/>
+         <word name="render_stage"/>
+         <word name="render_trans"/>
+         <word name="sampler"/>
+         <word name="shader"/>
+         <word name="signed_pack"/>
+         <word name="static"/>
+         <word name="subpass"/>
+         <word name="supports"/>
+         <word name="texture"/>
+         <word name="tlas"/>
+         <word name="two_sided"/>
+         <word name="unsigned_pack"/>
+         <word name="vertex"/>
+      </keywords>
+
+      <keywords region="Type">
+         <word name="bool"/>
+         <word name="color8"/>
+         <word name="dec3n"/>
+         <word name="float"/>
+         <word name="float1"/>
+         <word name="float2"/>
+         <word name="float3"/>
+         <word name="float4"/>
+         <word name="float4x3"/>
+         <word name="float4x4"/>
+         <word name="half2"/>
+         <word name="half4"/>
+         <word name="int"/>
+         <word name="int4"/>
+         <word name="short2"/>
+         <word name="short2n"/>
+         <word name="short4"/>
+         <word name="short4n"/>
+         <word name="ubyte4"/>
+         <word name="udec3"/>
+         <word name="ushort2n"/>
+         <word name="ushort4n"/>
+      </keywords>
+
+      <keywords region="State">
+         <word name="alpha_to_coverage"/>
+         <word name="ambient"/>
+         <word name="blend_adst"/>
+         <word name="blend_aop"/>
+         <word name="blend_asrc"/>
+         <word name="blend_dst"/>
+         <word name="blend_factor"/>
+         <word name="blend_op"/>
+         <word name="blend_src"/>
+         <word name="color_write"/>
+         <word name="cull_mode"/>
+         <word name="diffuse"/>
+         <word name="emissive"/>
+         <word name="extra"/>
+         <word name="norm"/>
+         <word name="pos"/>
+         <word name="slope_z_bias"/>
+         <word name="specular"/>
+         <word name="stencil"/>
+         <word name="stencil_fail"/>
+         <word name="stencil_func"/>
+         <word name="stencil_pass"/>
+         <word name="stencil_ref"/>
+         <word name="stencil_zfail"/>
+         <word name="tc"/>
+         <word name="vcol"/>
+         <word name="view_instances"/>
+         <word name="z_bias"/>
+         <word name="z_func"/>
+         <word name="z_test"/>
+         <word name="z_write"/>
+      </keywords>
+
+      <keywords region="StateValue">
+         <word name="NULL"/>
+         <word name="android"/>
+         <word name="bindless"/>
+         <word name="dx11"/>
+         <word name="dx12"/>
+         <word name="false"/>
+         <word name="fsh_4_0"/>
+         <word name="fsh_5_0"/>
+         <word name="fsh_6_0"/>
+         <word name="fsh_6_2"/>
+         <word name="fsh_6_6"/>
+         <word name="globtm"/>
+         <word name="local_view_pos"/>
+         <word name="local_view_x"/>
+         <word name="local_view_y"/>
+         <word name="local_view_z"/>
+         <word name="mesh"/>
+         <word name="metal"/>
+         <word name="metaliOS"/>
+         <word name="none"/>
+         <word name="pc"/>
+         <word name="projtm"/>
+         <word name="ps4"/>
+         <word name="ps5"/>
+         <word name="scarlett"/>
+         <word name="true"/>
+         <word name="viewprojtm"/>
+         <word name="vulkan"/>
+         <word name="world_local_pos"/>
+         <word name="world_local_x"/>
+         <word name="world_local_y"/>
+         <word name="world_local_z"/>
+         <word name="xbox"/>
+      </keywords>
+
+      <keywords region="Directive">
+         <word name="define_macro_if_not_defined"/>
+         <word name="endmacro"/>
+         <word name="include"/>
+         <word name="include_optional"/>
+         <word name="macro"/>
+      </keywords>
+   </scheme>
+
+</type>
+</hrc>

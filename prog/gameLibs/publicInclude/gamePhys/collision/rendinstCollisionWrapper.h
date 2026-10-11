@@ -33,6 +33,7 @@ struct WrapperRendInstCollisionImplCB : public rendinst::RendInstCollisionCB
 
   virtual void addCollisionCheck(const rendinst::CollisionInfo &coll_info) override;
   virtual void addTreeCheck(const rendinst::CollisionInfo &coll_info) override;
+  virtual void addNonDestrBushCheck(const rendinst::CollisionInfo &coll_info);
 };
 
 template <typename ContactCallbackType>

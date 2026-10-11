@@ -18,6 +18,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_watchdog.h>
+#include "../hid_commonCode/dsPadIds.h"
 
 using namespace HumanInput;
 
@@ -106,9 +107,10 @@ static BOOL CALLBACK add_di8_device(const DIDEVICEINSTANCE *inst, VOID *user_dat
   }
 
   const auto &blacklist = self->blacklist;
-  if (blacklist.end() != eastl::find(blacklist.begin(), blacklist.end(), inst->guidProduct.Data1))
+  if (blacklist.end() != eastl::find(blacklist.begin(), blacklist.end(), inst->guidProduct.Data1) ||
+      (self->excludeSonyPads && sonypad::is_sony_pad(LOWORD(inst->guidProduct.Data1), HIWORD(inst->guidProduct.Data1))))
   {
-    debug("[HID][DI8][ENUM] found blacklisted device vid:pid=%04x:%04x, ignoring", LOWORD(inst->guidProduct.Data1),
+    debug("[HID][DI8][ENUM] skip device vid:pid=%04x:%04x: blacklisted or an excluded Sony pad", LOWORD(inst->guidProduct.Data1),
       HIWORD(inst->guidProduct.Data1));
     return DIENUM_CONTINUE;
   }
@@ -120,9 +122,18 @@ static BOOL CALLBACK add_di8_device(const DIDEVICEINSTANCE *inst, VOID *user_dat
   RET_CONT_ON_FAIL(d.device->GetCapabilities(&d.caps), HID_DI8_GetCapabilities);
 
   d.joy = create_new_joystick(d, self->remapAsX360);
-  if (d.joy && !self->isThreadTerminating())
+  if (d.joy)
     self->found.push_back(d);
   return self->isThreadTerminating() ? DIENUM_STOP : DIENUM_CONTINUE;
+}
+
+
+void DeviceEnumerator::releaseFound()
+{
+  WinAutoLock l(cs);
+  for (Di8Device &d : found)
+    delete d.joy;
+  found.clear();
 }
 
 
@@ -140,13 +151,14 @@ void DeviceEnumerator::execute()
 
   WinAutoLock l(cs);
   this->blacklist = devicesToIgnore;
-  this->found.clear();
+  releaseFound();
   this->startedAtMs = get_time_msec();
   dinput8->EnumDevices(DI8DEVCLASS_GAMECTRL, add_di8_device, this, DIEDFL_ATTACHEDONLY);
 
   if (shouldAbort())
   {
     debug("[HID][DI8][ENUM] aborted during or after enumeration, will not report devices");
+    releaseFound();
     return;
   }
 
@@ -185,6 +197,8 @@ void Di8JoystickClassDriver::refreshDeviceList()
       d.joy->setId(device.size(), devNames.addNameId(d.instance.tszInstanceName) + 256);
       debug("[HID][DI8] adding joystick #%d - [%s] '%s' (%d axes, %d buttons, %d hats)", device.size(), d.joy->getDeviceID(),
         d.joy->getName(), d.joy->getAxisCount(), d.joy->getButtonCount(), d.joy->getPovHatCount());
+      for (int s = 0; s < 2; s++)
+        d.joy->setStickDeadZoneScale(s, stickDeadZoneScale[s]);
       device.push_back(d.joy);
     }
     if (stg_joy.sortDevices)
@@ -193,6 +207,9 @@ void Di8JoystickClassDriver::refreshDeviceList()
 
   if (secDrv && secDrv->isDeviceConfigChanged())
   {
+    // secDrv deletes its devices on refresh, and defJoy can be one of them
+    if (defJoy && find_value_idx(device, defJoy) < 0)
+      setDefaultJoystick(nullptr);
     secDrv->refreshDeviceList();
     secDrv->setDefaultJoystick(defJoy);
   }
@@ -218,6 +235,12 @@ void Di8JoystickClassDriver::refreshDeviceList()
 }
 
 
+// Some devices incorrectly report themselves as gamepads but don't match the axis/button convention
+static constexpr const char *DEFINITELY_JOYSTICKS[] = {
+  "10F5:7012" // VelocityOne Rudder
+};
+
+
 static BOOL CALLBACK detect_hid_usage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
 {
   TIME_PROFILE(HID_DI8_detect_hid_usage);
@@ -228,8 +251,13 @@ static BOOL CALLBACK detect_hid_usage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID
   bool isCollection = (pdidoi->dwType & DIDFT_COLLECTION) == DIDFT_COLLECTION;
   if (isCollection && pdidoi->wUsagePage == GENERIC_DESKTOP_PAGE)
   {
-    bool isGamepad = pdidoi->wUsage == USAGE_GAMEPAD;
-    debug("[HID][DI8][ENUM][%s] '%s' is %sgamepad", joy.getDeviceID(), joy.getName(), isGamepad ? "a " : "not a ");
+    const char *vidpid = joy.getDeviceID();
+    bool isJoystick = false;
+    for (int i = 0, total = countof(DEFINITELY_JOYSTICKS); !isJoystick && i < total; ++i)
+      isJoystick |= !strcmp(vidpid, DEFINITELY_JOYSTICKS[i]);
+
+    bool isGamepad = !isJoystick && pdidoi->wUsage == USAGE_GAMEPAD;
+    debug("[HID][DI8][ENUM][%s] '%s' is %sgamepad, usage=0x%02X", vidpid, joy.getName(), isGamepad ? "a " : "not a ", pdidoi->wUsage);
     joy.markAsGamepad(isGamepad);
     return DIENUM_STOP;
   }
@@ -323,10 +351,10 @@ static BOOL CALLBACK add_joystick_inputs(const DIDEVICEOBJECTINSTANCE *pdidoi, V
     //   pdidoi->wUsage);
     joy.addPovHat(pdidoi->tszName);
   }
-  else
+  else if ((pdidoi->dwType & DIDFT_NODATA) == 0)
   {
-    debug("[HID][DI8][ENUM][%s] UNKNOWN %s usagePage %04X usage %04X", joy.getDeviceID(), pdidoi->tszName, pdidoi->wUsagePage,
-      pdidoi->wUsage);
+    debug("[HID][DI8][ENUM][%s] UNKNOWN %s usagePage 0x%04X usage 0x%04X dwType 0x%08X", joy.getDeviceID(), pdidoi->tszName,
+      pdidoi->wUsagePage, pdidoi->wUsage, pdidoi->dwType);
   }
   // else
   //   debug("[HID][DI8][ENUM] unknown obj: %ph <%s> guid=%p:%p:%p:%p dwFlags=%ph",

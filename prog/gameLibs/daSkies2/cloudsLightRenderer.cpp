@@ -27,11 +27,6 @@ void CloudsLightRenderer::init()
     texfmt = TEXFMT_A32B32G32R32F;
   clouds_light_color = dag::create_voltex(8, 8, 2 * CLOUDS_LIGHT_TEXTURE_WIDTH, texfmt | texflags | TEXCF_CLEAR_ON_CREATE, 1,
     "clouds_light_color", RESTAG_DASKIES2);
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = d3d::AddressMode::Clamp;
-  smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-  smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-  ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_light_color_samplerstate"), d3d::request_sampler(smpInfo));
   invalidate();
 }
 

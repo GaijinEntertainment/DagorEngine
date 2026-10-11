@@ -103,7 +103,7 @@ public:
   inline ~FullFileSaveCB() { close(); }
 
   KRNLIMP bool open(const char *fname, int mode);
-  KRNLIMP void close();
+  KRNLIMP bool close();
   KRNLIMP virtual const char *getTargetName() { return targetFilename.str(); }
 };
 

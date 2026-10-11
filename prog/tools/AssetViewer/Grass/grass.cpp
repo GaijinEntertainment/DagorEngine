@@ -37,7 +37,7 @@ public:
       IGrassPlanting *gp = grass->queryInterface<IGrassPlanting>();
       if (gp)
       {
-        gp->startGrassPlanting(0, 0, 0.71 * float(20));
+        gp->startGrassPlanting(0, 0, 0.71f * 20);
 
         for (int i = -10; i < 10; i++)
           for (int j = -10; j < 10; j++)
@@ -72,7 +72,7 @@ public:
   void actObjects(float dt) override {}
   void beforeRenderObjects() override {}
   void renderObjects() override {}
-  void renderTransObjects() override {}
+  void renderTransObjects(BaseTexture *) override {}
 
   bool supportAssetType(const DagorAsset &asset) const override { return strcmp(asset.getTypeStr(), "grass") == 0; }
 

@@ -35,6 +35,7 @@ interval chop_detail_waves_enabled : off < 0, on;
 texture tex_w_array;
 texture tex_foam_dissolve;
 texture tex_noise_white_64x64;
+texture perlin_noise;
 
 float4 spectrum_domain_scale;
 float4 spectrum_domain_max_wave_height;

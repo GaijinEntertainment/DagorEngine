@@ -65,7 +65,7 @@ if $(PlatformArch) in x86 x86_64 {
   ;
 }
 
-if $(PlatformArch) in arm64 arm64-v8a  {
+if $(PlatformArch) in arm64 arm64ec arm64-v8a  {
   CPPopt += -DWEBRTC_HAS_NEON=1 -DWEBRTC_ARCH_ARM64=1 ;
 
   Sources +=

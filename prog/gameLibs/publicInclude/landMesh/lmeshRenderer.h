@@ -171,6 +171,9 @@ public:
   bool checkVerLabel() { return verLabel == VER_LABEL; }
 
   void resetOptSceneAndStates();
+  // a runtime edit of the landclasses named `name` ("*" = all); returns matches. The size is
+  // not overridable, and the caller invalidates its clipmap: baked tiles keep the old map
+  int applyDetileOverride(const char *name, int clusters, float angle_rad, float spread_rad);
   // Heightmap per-frame upkeep (texture uploads, pending terrain edits) is not done here; call
   // HeightmapHandler::makeBookKeeping() once per frame before render() or the terrain renders stale.
   void prepare(LandMeshManager &provider, const HmapOrigin &origin);

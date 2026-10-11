@@ -13,7 +13,6 @@
 
 #include <dafx_globals.hlsli>
 
-extern int dafx_gravity_zone_count;
 extern GravityZoneDescriptor_buffer dafx_gravity_zone_buffer;
 
 namespace dafx_sparks

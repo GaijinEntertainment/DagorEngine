@@ -1,7 +1,7 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
 include "globtm.dshl"
-include "project_trace.dshl"
+include "heightmap_max_grid.dshl"
 
 float4 view_vecLT;
 float4 view_vecRT;
@@ -24,7 +24,7 @@ shader testgi_hmap_trace_debug
   z_test = true;
   cull_mode = none;
 
-  TESTGI_HEIGHTMAP_MAX_GRID(ps)
+  INIT_AND_USE_HEIGHTMAP_MAX_GRID(ps)
   INIT_AND_USE_GLOBTM(ps)
   (ps) {
     view_vecLT@f3 = view_vecLT;
@@ -66,8 +66,8 @@ shader testgi_hmap_trace_debug
       bool backFace = false;
       bool hit = false;
       #if HAS_HEIGHTMAP_MAX_GRID_TRACE
-      // terrain is absent outside the grid window: clamp the ray to it so the
-      // view verifies the march, not the window border
+      // terrain is absent outside the grid window and past the region of a clamped
+      // heightmap: clamp the ray to the window so the view verifies the march, not its border
       float2 windowLt = heightmap_max_grid_lt.xy*heightmap_max_grid_cell.x;
       float2 windowRb = (heightmap_max_grid_lt.xy + heightmap_max_grid_lt.z)*heightmap_max_grid_cell.x;
       float2 safeDir = select(abs(dir.xz) > 1e-7, dir.xz, 1e-7);
@@ -82,11 +82,7 @@ shader testgi_hmap_trace_debug
       // coincident landmesh, anything taller still occludes
       float4 imagePos = mulPointTm(world_view_pos + dir*t*0.999, globtm);
       out_depth = imagePos.z/max(imagePos.w, 1e-9);
-      const float e = 1.0;
-      float2 dh = float2(
-        heightmap_max_grid_get_height(worldPos + float3(e, 0, 0)) - heightmap_max_grid_get_height(worldPos - float3(e, 0, 0)),
-        heightmap_max_grid_get_height(worldPos + float3(0, 0, e)) - heightmap_max_grid_get_height(worldPos - float3(0, 0, e)));
-      float3 normal = normalize(float3(-dh.x, 2*e, -dh.y));
+      float3 normal = heightmap_max_grid_get_normal(worldPos);
       int2 cell = int2(floor(worldPos.xz*heightmap_max_grid_cell.y));
       half3 albedo = ((cell.x ^ cell.y) & 1) ? half3(0.1, 0.65, 0.1) : half3(0.55, 0.1, 0.55);
       if (backFace)

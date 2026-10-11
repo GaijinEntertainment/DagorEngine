@@ -91,8 +91,6 @@ void Module_dasQUIRREL::initMain() {
 
     addExtern<DAS_BIND_FUN(sqdas_register)>(*this,lib,"sqdas_register",
         SideEffects::modifyExternal, "sqdas_register");
-
-    // fixup module functions, so that there is a string cast
 }
 
 ModuleAotType Module_dasQUIRREL::aotRequire ( TextWriter & tw ) const {

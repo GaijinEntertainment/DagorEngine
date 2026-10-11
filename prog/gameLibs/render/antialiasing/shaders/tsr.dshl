@@ -97,10 +97,16 @@ shader tsr_cs
     }
   }
 
+  if (tsr_use_stochastic_rounding == yes)
+  {
+    (cs) { frameNo@f1 = tsr_frame_no; }
+  }
+
   hlsl(cs)
   {
     #include <pixelPacking/yCoCgSpace.hlsl>
     #include <tex2d_bicubic.hlsl>
+    #include <interleavedGradientNoise.hlsl>
 
     static const float EPS = 1e-9;
 
@@ -432,6 +438,17 @@ shader tsr_cs
       return float3(uvz.xy, prevDepth - raw_depth);
     }
 
+    // Rounds the input color up or down to the R11G11B10F number grid with probability of rounding up
+    // proportional to how close the value is to the next grid number. Doesn't account for subnormal numbers.
+    float3 roundStochasticR11G11B10F(float3 color, float noise)
+    {
+      const uint3 TARGET_MANTISSA_BITS = uint3(6, 6, 5);
+      const uint3 FRACTION_MASK = (1u << (23 - TARGET_MANTISSA_BITS)) - 1u;
+      const uint3 QUANTIZATION_MASK = ~FRACTION_MASK;
+      uint3 roundUp = uint3((asuint(color) & FRACTION_MASK) > uint3(noise * (FRACTION_MASK + 1u)));
+      return asfloat((asuint(color) & QUANTIZATION_MASK) + (roundUp << (23 - TARGET_MANTISSA_BITS)));
+    }
+
     [numthreads( TSR_CS_WORKGROUP_SIZE, TSR_CS_WORKGROUP_SIZE, 1)]
     void tsr_cs(uint2 dtId : SV_DispatchThreadID, uint2 tid : SV_GroupThreadID, uint2 gId : SV_GroupID, uint flatTid : SV_GroupIndex)
     {
@@ -493,7 +510,12 @@ shader tsr_cs
 
       TemporalSuperResolutionOutput result = calcResult(inputColor, depthStats.depth, inputConfidence, rectifiedhistoryColor, historyDepth, historyConfidence);
 
+    ##if tsr_use_stochastic_rounding == yes
+      float noise = interleavedGradientNoiseFramed(dtId + 0.5, frameNo);
+      texture2DAt(outColor, dtId) = float4(roundStochasticR11G11B10F(result.color, noise), 0);
+    ##else
       texture2DAt(outColor, dtId) = float4(result.color, 0);
+    ##endif
       texture2DAt(outDepth, dtId) = result.depth;
       texture2DAt(outConfidence, dtId) = result.confidence;
 

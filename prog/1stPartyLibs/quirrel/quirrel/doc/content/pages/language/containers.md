@@ -41,15 +41,15 @@ The copy is shallow. A slot holding a [weakref](sym:types.WeakRef) arrives as
 the value it points at, the same value a reader of that slot gets. The copy
 is made in the order the literal is written: a key that comes after a spread
 replaces the same key the spread brought in, and a spread that comes after a
-key replaces that key. In an ordinary literal two identical keys written by
-hand stay a compile error, spread or not. A `const` initializer does not run
-that check, and there the later key wins.
+key replaces that key.
+
+You cannot write the same key twice. This is a compile error, in a `const`
+initializer too. The check does not count the keys a spread brings in.
 
 The result is a new container, never the source. A spread of a
-[frozen](sym:freeze) source gives a copy that can be written to, unless the
-module sets `#allow-auto-freeze`, which freezes every literal, including this
-one. Values stay frozen if they came from a frozen source, since the
-immutable flag follows the reference.
+[frozen](sym:freeze) source gives a copy that can be written to. Values stay
+frozen if they came from a frozen source, since the immutable flag follows
+the reference.
 
 {{example:language/containers-spread}}
 

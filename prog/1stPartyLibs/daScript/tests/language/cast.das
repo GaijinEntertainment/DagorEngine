@@ -89,12 +89,10 @@ def test_cast(t : T?) {
         }
     }
     t |> run("reinterpret struct") @(t : T?) {
-        let f2i = Int2Float(iv = uint(0x3f400000), fv = 1.0)
-        unsafe {
-            let i2f = reinterpret<Float2Int>(f2i)
-            t |> equal(i2f.fv, 0.75)
-            t |> equal(i2f.iv, uint(0x3f800000))
-        }
+        let f2i = Int2Float(iv = 0x3f400000, fv = 1.0)
+        let i2f = unsafe(reinterpret<Float2Int>(f2i))
+        t |> equal(i2f.fv, 0.75)
+        t |> equal(i2f.iv, 0x3f800000)
     }
 }
 

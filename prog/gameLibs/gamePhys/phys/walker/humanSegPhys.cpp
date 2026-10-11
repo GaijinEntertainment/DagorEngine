@@ -162,6 +162,10 @@ bool SegmentedHumanPhysics::LoadFromTemplate(const DataBlock &blk)
           seg.blendTwoTrajectories = paramsBlk->getBool("blendTwoTrajectories", seg.blendTwoTrajectories);
           seg.blendTrajMinHeight = paramsBlk->getReal("blendTrajMinHeight", seg.blendTrajMinHeight);
           seg.blendTrajMaxHeight = paramsBlk->getReal("blendTrajMaxHeight", seg.blendTrajMaxHeight);
+          seg.smoothFirstPersonTimeToTau = paramsBlk->getPoint3("smoothFirstPersonTimeToTau", seg.smoothFirstPersonTimeToTau);
+          seg.smoothFirstPersonOffsetMultVel =
+            paramsBlk->getReal("smoothFirstPersonOffsetMultVel", seg.smoothFirstPersonOffsetMultVel);
+          seg.smoothFirstPersonOffsetMult = paramsBlk->getReal("smoothFirstPersonOffsetMult", seg.smoothFirstPersonOffsetMult);
         }
 
         const DataBlock *trajBlk = segBlk->getBlockByName("trajectory");

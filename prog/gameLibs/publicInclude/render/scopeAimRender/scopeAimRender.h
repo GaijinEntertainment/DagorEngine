@@ -111,7 +111,7 @@ void render_scope_crosshair_gui(const AimRenderingData &scopeAimData, const Came
 
 void render_lens_frame(const ScopeAimRenderingData &scopeAimData, BaseTexture *frameTex, BaseTexture *lensSourceTex,
   const TexStreamingContext &texCtx);
-void render_lens_optics(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx,
+void render_lens_optics(const ScopeAimRenderingData &scopeAimData, const float scope_lens_radius, const TexStreamingContext &texCtx,
   const PostFxRenderer &fadingRenderer);
 
 class ComputeShaderElement;

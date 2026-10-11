@@ -11,7 +11,7 @@
 #include <generic/dag_smallTab.h>
 #include <shaders/dag_shaderMesh.h>
 #include <util/dag_delayedAction.h>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 #include <util/dag_multicastEvent.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
@@ -90,7 +90,8 @@ struct BufPool
   int maxVbSize = 64 << 20;
   bool allowRebuild = true, allowDelRes = false;
   char nameChar;
-  std::mutex updateMutex;
+  dag::mutex updateMutex;
+  uint32_t layoutGen = 0; // written under appendMutex and updateMutex
 
   volatile int64_t blasTotalBytes = 0;
 
@@ -154,12 +155,12 @@ public:
   void stopPendingJobs();
   void rebuildBuffersAfterReset();
 
-  void onBeforeD3dReset()
+  void onBeforeD3dReset() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
   {
     stopPendingJobs();
     appendMutex.lock();
   }
-  void onAfterD3dReset()
+  void onAfterD3dReset() DAG_TS_NO_THREAD_SAFETY_ANALYSIS
   {
     appendMutex.unlock();
     rebuildBuffersAfterReset();
@@ -176,7 +177,7 @@ public:
   void buildStatusStrThrottled(String &out_str, unsigned period_usec);
   void buildStatusStr(String &out_str, bool full_res_list, bool (*resolve_res_name)(String &nm, const RES *r) = nullptr)
   {
-    std::lock_guard<std::mutex> scopedLock(appendMutex);
+    dag::lock_guard scopedLock(appendMutex);
     buildStatusStrNoLock(out_str, full_res_list, resolve_res_name);
   }
   void dumpMemBlocks(String *out_str_summary = nullptr);
@@ -216,7 +217,7 @@ public:
 protected:
   unitedvdata::BufPool buf;
   PtrTab<RES> resList;
-  std::mutex appendMutex;
+  dag::mutex appendMutex;
   bool allowSepTightVdata = false;
   volatile int pendingRebuildCount = 0;
   Tab<SmallTab<unitedvdata::BufChunk, MidmemAlloc>> resUsedChunks;
@@ -229,7 +230,7 @@ protected:
   int64_t lastStatusReft = 0; // written under appendMutex by buildStatusStrThrottled
   volatile int pendingVdataReloadResCount = 0;
   unitedvdata::BufConfig hints;
-  mutable std::mutex hintsMutex;
+  mutable dag::mutex hintsMutex;
   int requestLodsByDistanceFrames = 0;
 
   unitedvdata::BufConfig getHints() const;
@@ -240,14 +241,14 @@ protected:
   void rebuildUnitedVdata(dag::Span<RES *> res, bool in_d3d_reset);
   void addResToTightVdata(RES *r, Tab<int> &dviOfs, Tab<uint8_t> &buf_stor, String &tight_stats, bool &bad_tight_detected);
   static void updateVdata(RES *r, unitedvdata::BufPool &buf, Tab<int> &dviOfs_stor, Tab<uint8_t> &buf_stor,
-    dag::ConstSpan<unitedvdata::BufChunk> c);
+    dag::ConstSpan<unitedvdata::BufChunk> c, uint32_t layout_gen);
 
   bool shouldDowngradeRes(int idx, int upper_lod);
   void doDowngradeRes(int idx, int upper_lod);
 
   static void prepareVdataBaseOfs(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, Tab<int> &dviOfs);
-  static void updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf, Tab<uint8_t> &buf_stor,
-    dag::ConstSpan<unitedvdata::BufChunk> c);
+  static bool updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf, Tab<uint8_t> &buf_stor,
+    dag::ConstSpan<unitedvdata::BufChunk> c, uint32_t layout_gen);
   static void rebaseElemOfs(const RES *r, dag::ConstSpan<int> dviOfs);
 
   inline dag::ConstSpan<unitedvdata::BufChunk> getBufChunks(int i) const
@@ -270,6 +271,7 @@ protected:
     Tab<int> dviOfs;
     Ptr<RES> res = nullptr;
     unsigned reqLod = 16;
+    uint32_t layoutGen = 0;
   };
   struct ReleaseUpdateDA final : public DelayedAction, public UpdateModelCtx
   {

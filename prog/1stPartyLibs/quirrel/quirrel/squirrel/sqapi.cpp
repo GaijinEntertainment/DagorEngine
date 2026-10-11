@@ -16,6 +16,7 @@
 #include "compiler/arena.h"
 #include "compiler/ast.h"
 #include "ast_tools/ast_indent_render.h"
+#include "ast_tools/ast_json_render.h"
 #include "compiler/static_analyzer/analyzer.h"
 #include "compiler/static_analyzer/config.h"
 
@@ -2020,6 +2021,11 @@ void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLoca
     rv.render(astData->root);
 }
 
+void sq_dumpastjson(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQStreamWriteFunc write, void *ud)
+{
+    JsonTreeRenderer(write, ud).render(astData->root, astData->sourceName, astData->comments);
+}
+
 void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void *ud, int instruction_index)
 {
     if (sq_isfunction(obj)) {
@@ -2031,16 +2037,6 @@ void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void
     }
     else {
         write("Object is not a FunctionProto", ud);
-    }
-}
-
-void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func)
-{
-    if (sq_isfunction(func)) {
-        ResetStaticMemos(_funcproto(func), _ss(v));
-    }
-    else if (sq_isclosure(func)) {
-        ResetStaticMemos(_closure(func)->_function, _ss(v));
     }
 }
 

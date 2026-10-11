@@ -13,7 +13,7 @@ def is_one(b : bits123) {
 }
 
 def set_one(var b : bits123) {
-    b |= bits123.one
+    b |= bits123.one    // nolint:STYLE022 -- the |= codegen is the JIT shape under test
     return b
 }
 

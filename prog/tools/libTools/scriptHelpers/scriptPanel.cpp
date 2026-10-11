@@ -117,7 +117,12 @@ public:
   }
 
 
-  ~ScriptHelpersPropPanelBar() override { del_it(mPanel); }
+  ~ScriptHelpersPropPanelBar() override
+  {
+    // A destroyed control sends no change finish, so the gesture has to be closed from here.
+    editGesture.end();
+    del_it(mPanel);
+  }
 
 
   PropPanel::ContainerPropertyControl *getPanelWindow() { return mPanel; }
@@ -171,6 +176,11 @@ public:
 
       if (obj_editor && !isUndoChange)
       {
+        // A held spin button, a gradient key drag and a curve point drag change many times, so the
+        // per-change operations below are nested in one operation per edit. Undo then reverts the
+        // whole edit.
+        editGesture.begin(*obj_editor->getUndoSystem(), pcb_id, "changeTunedElementParam");
+
         obj_editor->getUndoSystem()->begin();
         int pid = START_PID;
         TunedElement *undoElement = elem->findById(pcb_id, pid);
@@ -189,6 +199,16 @@ public:
       updateArrayItemCaption(pcb_id, *panel);
       on_param_change();
     }
+  }
+
+
+  void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  {
+    G_UNUSED(panel);
+
+    // The value already arrived through onChange. Closing by id leaves a gesture another control
+    // opened in between alone, it is still being edited.
+    editGesture.end(pcb_id);
   }
 
 
@@ -239,6 +259,10 @@ public:
     G_ASSERT(mPanel && "ScriptHelpersPropPanelBar: There is no panel found!");
     PropPanel::ContainerPropertyControl *_pp = mPanel->getContainer();
     G_ASSERT(_pp && "ScriptHelpersPropPanelBar: There is no container found!");
+
+    // The controls below go away, and a destroyed one sends no change finish.
+    editGesture.end();
+
     _pp->clear();
 
     int pid = START_PID;
@@ -258,6 +282,9 @@ public:
 protected:
   PropPanel::ContainerPropertyControl *mPanel;
   bool isUndoChange = false;
+
+  // One undo operation per edit, so a drag that changes per frame undoes as a whole.
+  UndoEditGesture editGesture;
 };
 
 
@@ -392,6 +419,13 @@ void *ScriptHelpers::on_wm_create_window(int type)
 
 void ScriptHelpers::removeWindows()
 {
+  if (wnd_manager)
+  {
+    wnd_manager->removeWindow(tree_list);
+    if (prop_bar)
+      wnd_manager->removeWindow(prop_bar->getPanelWindow());
+  }
+
   del_it(tree_list);
   del_it(tree_callback);
   del_it(prop_bar);

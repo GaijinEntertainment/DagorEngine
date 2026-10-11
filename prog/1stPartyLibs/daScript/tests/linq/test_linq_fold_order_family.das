@@ -26,13 +26,11 @@ require dastest/testing_boost public
 def test_order_by_reverse_take_via_pattern_table(t : T?) {
     t |> run("order_by + reverse + take splices to descending top-N (single_name preserves the normalize swap)") @(tt : T?) {
         let scores <- [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
-        unsafe {
-            let top3 <- _fold(each(scores)._order_by(_).reverse().take(3).to_array())
-            tt |> equal(length(top3), 3)
-            tt |> equal(top3[0], 9)
-            tt |> equal(top3[1], 6)
-            tt |> equal(top3[2], 5)
-        }
+        let top3 <- _fold(each(scores)._order_by(_).reverse().take(3).to_array())
+        tt |> equal(length(top3), 3)
+        tt |> equal(top3[0], 9)
+        tt |> equal(top3[1], 6)
+        tt |> equal(top3[2], 5)
     }
 }
 
@@ -40,10 +38,8 @@ def test_order_by_reverse_take_via_pattern_table(t : T?) {
 def test_order_by_descending_reverse_first_via_pattern_table(t : T?) {
     t |> run("order_by_descending + reverse + first splices to ascending min (streaming_min path post-normalize)") @(tt : T?) {
         let scores <- [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
-        unsafe {
-            let lo = _fold(each(scores)._order_by_descending(_).reverse().first())
-            tt |> equal(lo, 1)
-        }
+        let lo = _fold(each(scores)._order_by_descending(_).reverse().first())
+        tt |> equal(lo, 1)
     }
 }
 
@@ -53,14 +49,12 @@ def test_order_by_descending_reverse_first_via_pattern_table(t : T?) {
 def test_chained_wheres_then_order_take(t : T?) {
     t |> run("two consecutive _where calls compose via collapse_chained_wheres, then route through fused_prefilter") @(tt : T?) {
         let scores <- [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        unsafe {
-            // _ > 2 → [3..10]; _ < 9 → [3..8]; order_by → [3,4,5,6,7,8]; take(3) → [3,4,5].
-            let buf <- _fold(each(scores)._where(_ > 2)._where(_ < 9)._order_by(_).take(3).to_array())
-            tt |> equal(length(buf), 3)
-            tt |> equal(buf[0], 3)
-            tt |> equal(buf[1], 4)
-            tt |> equal(buf[2], 5)
-        }
+        // _ > 2 → [3..10]; _ < 9 → [3..8]; order_by → [3,4,5,6,7,8]; take(3) → [3,4,5].
+        let buf <- _fold(each(scores)._where(_ > 2)._where(_ < 9)._order_by(_).take(3).to_array())
+        tt |> equal(length(buf), 3)
+        tt |> equal(buf[0], 3)
+        tt |> equal(buf[1], 4)
+        tt |> equal(buf[2], 5)
     }
 }
 
@@ -70,14 +64,12 @@ def test_chained_wheres_then_order_take(t : T?) {
 def test_order_then_plain_distinct(t : T?) {
     t |> run("order_by then plain distinct: whole-tuple equality is position-invariant; deduped sorted result") @(tt : T?) {
         let scores <- [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
-        unsafe {
-            let buf <- _fold(each(scores)._order_by(_) |> distinct() |> to_array())
-            // Ascending [1,1,2,3,3,4,5,5,5,6,9] then distinct → [1,2,3,4,5,6,9].
-            tt |> equal(length(buf), 7)
-            tt |> equal(buf[0], 1)
-            tt |> equal(buf[1], 2)
-            tt |> equal(buf[6], 9)
-        }
+        let buf <- _fold(each(scores)._order_by(_) |> distinct() |> to_array())
+        // Ascending [1,1,2,3,3,4,5,5,5,6,9] then distinct → [1,2,3,4,5,6,9].
+        tt |> equal(length(buf), 7)
+        tt |> equal(buf[0], 1)
+        tt |> equal(buf[1], 2)
+        tt |> equal(buf[6], 9)
     }
 }
 
@@ -87,14 +79,12 @@ def test_order_then_plain_distinct(t : T?) {
 def test_streaming_min_with_where(t : T?) {
     t |> run("where + order_by + first_or_default: streaming-min with prefilter, default on empty") @(tt : T?) {
         let scores <- [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
-        unsafe {
-            let lo = _fold(each(scores)._where(_ > 4)._order_by(_).first_or_default(-1))
-            // _ > 4 → [5,9,6,5,5]; ascending min → 5
-            tt |> equal(lo, 5)
-            var empty_arr : array<int>
-            let dflt = _fold(each(empty_arr)._where(_ > 4)._order_by(_).first_or_default(-1))
-            tt |> equal(dflt, -1)
-        }
+        let lo = _fold(each(scores)._where(_ > 4)._order_by(_).first_or_default(-1))
+        // _ > 4 → [5,9,6,5,5]; ascending min → 5
+        tt |> equal(lo, 5)
+        var empty_arr : array<int>
+        let dflt = _fold(each(empty_arr)._where(_ > 4)._order_by(_).first_or_default(-1))
+        tt |> equal(dflt, -1)
     }
 }
 
@@ -104,13 +94,57 @@ def test_streaming_min_with_where(t : T?) {
 def test_bounded_heap_with_distinct(t : T?) {
     t |> run("distinct + order_by + take: bounded-heap with dset gate; single-pass dedup-then-top-N") @(tt : T?) {
         let scores <- [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
-        unsafe {
-            let top3 <- _fold(each(scores) |> distinct() |> _order_by(_) |> take(3) |> to_array())
-            // distinct [3,1,4,5,9,2,6] → ascending [1,2,3,4,5,6,9] → top 3 → [1,2,3]
-            tt |> equal(length(top3), 3)
-            tt |> equal(top3[0], 1)
-            tt |> equal(top3[1], 2)
-            tt |> equal(top3[2], 3)
+        let top3 <- _fold(each(scores) |> distinct() |> _order_by(_) |> take(3) |> to_array())
+        // distinct [3,1,4,5,9,2,6] → ascending [1,2,3,4,5,6,9] → top 3 → [1,2,3]
+        tt |> equal(length(top3), 3)
+        tt |> equal(top3[0], 1)
+        tt |> equal(top3[1], 2)
+        tt |> equal(top3[2], 3)
+    }
+}
+
+[test]
+def test_order_take_nonpositive_then_first(t : T?) {
+    t |> run("order_by + take(0) + first_or_default returns the default") @(tt : T?) {
+        let scores <- [5, 1, 4]
+        let v = _fold(each(scores)._order_by(_).take(0).first_or_default(-7))
+        tt |> equal(v, -7)
+    }
+    t |> run("where + order_by + take(0) + first_or_default returns the default") @(tt : T?) {
+        let scores <- [5, 1, 4]
+        let v = _fold(each(scores)._where(_ > 0)._order_by(_).take(0).first_or_default(-7))
+        tt |> equal(v, -7)
+    }
+    t |> run("order_by + take(negative) + first_or_default returns the default") @(tt : T?) {
+        let scores <- [5, 1, 4]
+        let v = _fold(each(scores)._order_by(_).take(-3).first_or_default(-7))
+        tt |> equal(v, -7)
+    }
+    t |> run("order_by + take(positive) + first_or_default still finds the min") @(tt : T?) {
+        let scores <- [5, 1, 4]
+        let v = _fold(each(scores)._order_by(_).take(2).first_or_default(-7))
+        tt |> equal(v, 1)
+    }
+    t |> run("order_by + take(0) + first panics like plain") @(tt : T?) {
+        let scores <- [5, 1, 4]
+        var didPanic = false
+        try {
+            let v = _fold(each(scores)._order_by(_).take(0).first())
+            tt |> success(false, "expected panic; got {v}")
+        } recover {
+            didPanic = true
         }
+        tt |> success(didPanic, "take(0) |> first() panicked")
+    }
+    t |> run("where + order_by + take(0) + first panics like plain") @(tt : T?) {
+        let scores <- [5, 1, 4]
+        var didPanic = false
+        try {
+            let v = _fold(each(scores)._where(_ > 0)._order_by(_).take(0).first())
+            tt |> success(false, "expected panic; got {v}")
+        } recover {
+            didPanic = true
+        }
+        tt |> success(didPanic, "fused take(0) |> first() panicked")
     }
 }

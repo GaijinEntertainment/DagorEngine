@@ -93,7 +93,7 @@ void makeTifMask(const char *fname, int w, int h, int bpp, real cell_size, Tab<G
       real x = (c[i].pos.x - offs.x) / cell_size;
       real y = (c[i].pos.y - offs.y) / cell_size;
 
-      img.setMaskPixel8((int)x, (int)(height - y + 1), c[i].density * 255.0);
+      img.setMaskPixel8((int)x, (int)(height - y + 1), c[i].density * 255.0f);
     }
   }
 
@@ -232,7 +232,7 @@ int convertFile(const char *in_leveldir, const char *out_filename, bool hmap_siz
       DataBlock *o = out.addNewBlock("obj_plant_generate");
 
       o->addBool("place_on_collision", true);
-      o->addReal("density", g.getReal("density", 0) / 100.0);
+      o->addReal("density", g.getReal("density", 0) / 100.0f);
       o->addReal("intersection", g.getReal("intersection", 0));
       o->addInt("rseed", g.getInt("rseed", 0));
 

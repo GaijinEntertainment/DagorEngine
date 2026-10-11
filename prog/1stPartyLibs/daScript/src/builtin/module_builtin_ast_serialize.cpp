@@ -1,5 +1,7 @@
 #include "daScript/misc/das_common.h"
 #include "daScript/misc/platform.h"
+
+#include "daScript/misc/dep_recorder.h"
 #include "daScript/misc/performance_time.h"
 
 #include "daScript/ast/ast_serialize_macro.h"
@@ -7,7 +9,29 @@
 #include "daScript/ast/ast_handle.h"
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/misc/anyhash.h"
+#include "daScript/misc/sysos.h"
+#include "daScript/misc/env_cfg.h"
+#include "daScript/simulate/aot_builtin.h"
 #include <cstdarg>
+#include <cstdio>
+#include <sys/stat.h>
+#include <algorithm>
+#if !DAS_NO_FILEIO
+#ifdef _WIN32
+#include <io.h>
+#include <process.h>
+#include <sys/utime.h>
+#else
+#include <dirent.h>
+#include <unistd.h>
+#include <utime.h>
+#endif
+#endif
+#ifdef _WIN32
+#include <direct.h>
+#include <stdlib.h>
+#endif
 #include <stdexcept>
 #include <type_traits>
 
@@ -23,6 +47,7 @@ namespace das {
         }
         writing = isWriting;
         buffer = storage;
+        bufferAsVector = storage->asVector();
     }
 
     void AstSerializer::collectFileInfo ( vector<FileInfoPtr> & orphanedFileInfos ) {
@@ -65,31 +90,6 @@ namespace das {
         }
     }
 
-    template <typename TT>
-    void patchRefs ( vector<pair<TT**,SerializeNodeId>> & refs, const das_hash_map<SerializeNodeId, smart_ptr<TT>> & objects) {
-        for ( auto & p : refs ) {
-            auto it = objects.find(p.second);
-            if ( it == objects.end() ) {
-                throw dasException{"ast serializer function ref not found", LineInfo()};
-            } else {
-                *p.first = it->second.get();
-            }
-        }
-        refs.clear();
-    }
-
-    template <typename TT>
-    void patchRefs ( vector<pair<TT**,SerializeNodeId>> & refs, const das_hash_map<SerializeNodeId, TT*> & objects) {
-        for ( auto & p : refs ) {
-            auto it = objects.find(p.second);
-            if ( it == objects.end() ) {
-                throw dasException{"ast serializer function ref not found", LineInfo()};
-            } else {
-                *p.first = it->second;
-            }
-        }
-        refs.clear();
-    }
 
     void throw_formatted_error ( const char * fmt, ... ) {
         va_list args;
@@ -110,21 +110,38 @@ namespace das {
         }                                                   \
     }
 
+    void AstSerializer::clearNodeIds () {
+        writeIds.clear();
+        writtenIds.clear();
+        readNodes.clear();
+        pendingRefs.clear();
+        writeMangledNames.clear();
+        writeStrings.clear();
+        emptyStringNumber = -1;
+        readStrings.clear();
+        stringArena.clear();
+        writeFileInfos.clear();
+        readFileInfos.clear();
+        lastWriteFileInfo = nullptr;
+        lineBaseFile = nullptr;
+        lineBaseLine = 0;
+        writeTypes.clear();
+        writeFreshTypeCount = 0;
+        readTypes.clear();
+        writeExprClasses.clear();
+        readExprClasses.clear();
+        writeModules.clear();
+        readModules.clear();
+    }
+
     void AstSerializer::patch () {
-        patchRefs(functionRefs, smartFunctionMap);
-        patchRefs(variableRefs, smartVariableMap);
-        patchRefs(structureRefs, smartStructureMap);
-        patchRefs(enumerationRefs, smartEnumerationMap);
-    // finally, patch block refs (differenct container)
-        for ( auto & p : blockRefs ) {
-            auto it = exprBlockMap.find(p.second);
-            if ( it == exprBlockMap.end() ) {
-                throw_formatted_error("ast serializer block ref not found");
-            } else {
-                *p.first = it->second;
-            }
+        for ( auto & p : pendingRefs ) {
+            auto node = readNodes[p.second.index];
+            if ( !node ) throw_formatted_error("ast serializer ref #%u not found", p.second.index);
+            memcpy(p.first, &node, sizeof(node));   // the slot is some TT *, not a void *; a typed store through void ** would alias it
+
         }
-        blockRefs.clear();
+        pendingRefs.clear();
 
         for ( auto & [field, mod, name, fieldname] : fieldRefs ) {
             auto struct_ = moduleLibrary->findStructure(name, mod);
@@ -139,14 +156,14 @@ namespace das {
         fieldRefs.clear();
     }
 
-    void AstSerializer::write ( const void * data, size_t size ) {
-        buffer->write(data, size);
-    }
-
     void AstSerializer::read ( void * data, size_t size ) {
         if ( !buffer->read(data, size) ) {
             throw_formatted_error("ast serializer read overflow");
         }
+    }
+
+    void AstSerializer::onReadFailure () {
+        throw dasException{"ast serializer read overflow", LineInfo()};
     }
 
     void AstSerializer::serialize ( void * data, size_t size ) {
@@ -170,49 +187,244 @@ namespace das {
     #define HASH_TAG(tag)   tag,hash_tag(tag)
 
     void AstSerializer::tag ( const char * name, uint32_t hash ) {
+        DAS_SER_PROFILE(*this, "tag");
         if ( writing ) {
-            *this << hash;
+            serialize(hash);
         } else  {
             uint32_t hash2 = 0;
-            *this << hash2;
+            serialize(hash2);
             if ( hash != hash2 ) {
                 throw_formatted_error("ast serializer tag '%s' mismatch", name);
             }
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////
+#if DAS_SERIALIZE_PROFILE
+    void AstSerializer::profBegin ( const char * name ) {
+        if ( profNodes.empty() ) {
+            profNodes.push_back({});
+            profStartTicks = ref_time_ticks();
+        }
+        uint32_t nameId = ~0u;
+        for ( auto & [ptr, id] : profNameIds ) {
+            if ( ptr == name ) { nameId = id; break; }
+        }
+        if ( nameId == ~0u ) {
+            nameId = uint32_t(profNames.size());
+            profNames.push_back(name);
+            profAgg.push_back({});
+            profNameIds.push_back({name, nameId});
+        }
+        uint32_t parent = profStack.empty() ? 0 : profStack.back().node;
+        uint32_t node = ~0u;
+        for ( auto child : profNodes[parent].children ) {
+            if ( profNodes[child].nameId == nameId ) { node = child; break; }
+        }
+        if ( node == ~0u ) {
+            node = uint32_t(profNodes.size());
+            profNodes.push_back({nameId, parent, 0, 0, 0, {}});
+            profNodes[parent].children.push_back(node);
+        }
+        profStack.push_back({nameId, node, profPosition(), 0, ref_time_ticks()});
+    }
 
-    // Encode numbers by their size:
-    //      0...254 (just value) => 1 byte
-    //      254 (tag) + 2 bytes value => 3 bytes
-    //      255 (tag) + 4 bytes value => 5 bytes
-    void AstSerializer::serializeAdaptiveSize32 ( uint32_t & size ) {
-        if ( writing ) {
-            if ( size < 254 ) {
-                uint8_t sz = static_cast<uint8_t>(size);
-                *this << sz;
-            } else if ( size <= 65535 ) {
-                uint8_t tag = 254;
-                uint16_t sz = static_cast<uint16_t>(size);
-                *this << tag << sz;
-            } else {
-                uint8_t tag = 255;
-                uint32_t sz = static_cast<uint32_t>(size);
-                *this << tag << sz;
+    void AstSerializer::profEnd () {
+        auto frame = profStack.back();
+        profStack.pop_back();
+        uint64_t bytes = profPosition() - frame.startBytes;
+        int64_t ticks = get_time_nsec(frame.startTicks);
+        auto & node = profNodes[frame.node];
+        node.inclBytes += bytes;
+        node.count += 1;
+        node.inclTicks += ticks;
+        auto & agg = profAgg[frame.nameId];
+        agg.count += 1;
+        agg.selfBytes += bytes - frame.childBytes;
+        bool outermost = true;
+        for ( auto & f : profStack ) {
+            if ( f.nameId == frame.nameId ) { outermost = false; break; }
+        }
+        if ( outermost ) {
+            agg.outermostInclBytes += bytes;
+            agg.outermostInclTicks += ticks;
+        }
+        if ( !profStack.empty() ) profStack.back().childBytes += bytes;
+    }
+
+    void AstSerializer::profString ( const string & str ) {
+        profStrings[str] += 1;
+    }
+
+    void AstSerializer::profType ( const TypeDecl * type, uint64_t bytes ) {
+        profTypes[type->getMangledName(true)] += 1;
+        profTypeBytes += bytes;
+    }
+
+    static string profFmtBytes ( uint64_t b ) {
+        char buf[64];
+        if ( b >= 10*1024*1024 ) snprintf(buf, sizeof(buf), "%.1f MB", double(b) / (1024.0*1024.0));
+        else if ( b >= 10*1024 ) snprintf(buf, sizeof(buf), "%.1f KB", double(b) / 1024.0);
+        else snprintf(buf, sizeof(buf), "%llu B", (unsigned long long) b);
+        return buf;
+    }
+
+    // src/builtin/ARCHITECTURE.md#serialization-profile-rail
+    void AstSerializer::profReport ( TextWriter & tw ) const {
+        if ( profNodes.empty() ) return;
+        uint64_t total = 0;
+        int64_t totalTicks = 0;
+        for ( auto & n : profNodes ) {
+            if ( n.parent == 0 && &n != &profNodes[0] ) { total += n.inclBytes; totalTicks += n.inclTicks; }
+        }
+        if ( total == 0 ) total = 1;
+        auto pct = [&](uint64_t b) { return 100.0 * double(b) / double(total); };
+        tw << "=== serialization profile (" << (writing ? "writing" : "reading") << "): "
+           << profFmtBytes(total) << " (" << total << " bytes), " << (totalTicks / 1000000.0) << " ms inside frames ===\n";
+        das_hash_map<string, ProfAgg> byText;
+        for ( size_t i = 0; i != profNames.size(); ++i ) {
+            auto & a = byText[profNames[i]];
+            a.selfBytes += profAgg[i].selfBytes;
+            a.outermostInclBytes += profAgg[i].outermostInclBytes;
+            a.count += profAgg[i].count;
+            a.outermostInclTicks += profAgg[i].outermostInclTicks;
+        }
+        vector<pair<string, ProfAgg>> rows(byText.begin(), byText.end());
+        auto printRows = [&](const char * title, uint64_t ProfAgg::* field, bool showTicks) {
+            sort(rows.begin(), rows.end(), [&](auto & a, auto & b) { return a.second.*field > b.second.*field; });
+            tw << "-- " << title << " --\n";
+            char line[256];
+            int shown = 0;
+            for ( auto & r : rows ) {
+                uint64_t v = r.second.*field;
+                if ( v == 0 || shown++ >= 48 ) break;
+                if ( showTicks ) {
+                    snprintf(line, sizeof(line), "%-28s %12llu %6.2f%% %10llu x %8.1f  %8.2f ms\n", r.first.c_str(),
+                        (unsigned long long) v, pct(v), (unsigned long long) r.second.count,
+                        double(v) / double(r.second.count ? r.second.count : 1), r.second.outermostInclTicks / 1000000.0);
+                } else {
+                    snprintf(line, sizeof(line), "%-28s %12llu %6.2f%% %10llu x %8.1f\n", r.first.c_str(),
+                        (unsigned long long) v, pct(v), (unsigned long long) r.second.count,
+                        double(v) / double(r.second.count ? r.second.count : 1));
+                }
+                tw << line;
             }
-        } else {
-            uint8_t tag = 0; *this << tag;
-            if ( tag < 254 ) {
-                size = tag;
-            } else if ( tag == 254 ) {
-                uint16_t sz = 0; *this << sz;
-                size = sz;
-            } else {
-                uint32_t sz = 0; *this << sz;
-                size = sz;
+        };
+        printRows("self bytes by frame (name, bytes, %, count, avg)", &ProfAgg::selfBytes, false);
+        printRows("inclusive bytes by frame, outermost only (name, bytes, %, count, avg, ms)", &ProfAgg::outermostInclBytes, true);
+        tw << "-- tree (depth<=6, >=0.5%) --\n";
+        vector<vector<uint32_t>> children(profNodes.size());
+        for ( uint32_t i = 1; i < uint32_t(profNodes.size()); ++i ) children[profNodes[i].parent].push_back(i);
+        for ( auto & c : children ) sort(c.begin(), c.end(), [&](uint32_t a, uint32_t b) { return profNodes[a].inclBytes > profNodes[b].inclBytes; });
+        vector<pair<uint32_t,int>> walk;
+        for ( auto it = children[0].rbegin(); it != children[0].rend(); ++it ) walk.push_back({*it, 0});
+        char line[512];
+        while ( !walk.empty() ) {
+            auto [ni, depth] = walk.back(); walk.pop_back();
+            auto & n = profNodes[ni];
+            if ( pct(n.inclBytes) < 0.5 ) continue;
+            snprintf(line, sizeof(line), "%*s%-*s %12llu %6.2f%% %9llu x %8.1f  %8.2f ms\n", depth*2, "", 30 - depth*2,
+                profNames[n.nameId].c_str(), (unsigned long long) n.inclBytes, pct(n.inclBytes), (unsigned long long) n.count,
+                double(n.inclBytes) / double(n.count ? n.count : 1), n.inclTicks / 1000000.0);
+            tw << line;
+            if ( depth < 6 ) {
+                for ( auto it = children[ni].rbegin(); it != children[ni].rend(); ++it ) walk.push_back({*it, depth + 1});
             }
         }
+        {
+            uint64_t occ = 0, bytes = 0, distinct = profStrings.size(), distinctBytes = 0;
+            for ( auto & [s, c] : profStrings ) { occ += c; bytes += uint64_t(s.size()) * c; distinctBytes += s.size(); }
+            tw << "-- strings: " << occ << " occurrences, " << profFmtBytes(bytes) << " payload, "
+               << distinct << " distinct (" << profFmtBytes(distinctBytes) << "); a per-record string table would take ~"
+               << profFmtBytes(distinctBytes + distinct + occ * 2) << "\n";
+            vector<pair<string,uint32_t>> top(profStrings.begin(), profStrings.end());
+            sort(top.begin(), top.end(), [](auto & a, auto & b) { return uint64_t(a.first.size()) * a.second > uint64_t(b.first.size()) * b.second; });
+            for ( size_t i = 0; i < top.size() && i < 24; ++i ) {
+                snprintf(line, sizeof(line), "   %8u x %5u B  %.60s\n", top[i].second, unsigned(top[i].first.size()), top[i].first.c_str());
+                tw << line;
+            }
+        }
+        {
+            uint64_t occ = 0;
+            for ( auto & [s, c] : profTypes ) occ += c;
+            tw << "-- TypeDecl payloads: " << occ << " written, " << profFmtBytes(profTypeBytes) << ", "
+               << profTypes.size() << " distinct mangled types; a per-record type table would take ~"
+               << profFmtBytes(profTypes.size() ? profTypeBytes * profTypes.size() / (occ ? occ : 1) + occ * 2 : 0) << "\n";
+            vector<pair<string,uint32_t>> top(profTypes.begin(), profTypes.end());
+            sort(top.begin(), top.end(), [](auto & a, auto & b) { return a.second > b.second; });
+            for ( size_t i = 0; i < top.size() && i < 16; ++i ) {
+                snprintf(line, sizeof(line), "   %8u x  %.80s\n", top[i].second, top[i].first.c_str());
+                tw << line;
+            }
+        }
+        if ( !profRecords.empty() ) {
+            auto recs = profRecords;
+            sort(recs.begin(), recs.end(), [](auto & a, auto & b) { return a.payloadBytes > b.payloadBytes; });
+            uint64_t sum = 0;
+            for ( auto & r : recs ) sum += r.lengthWordBytes + r.payloadBytes;
+            tw << "-- records: " << recs.size() << ", " << profFmtBytes(sum) << " (payload, length word, ms, file) --\n";
+            for ( auto & r : recs ) {
+                snprintf(line, sizeof(line), "%12llu %6llu %8.2f  %s\n", (unsigned long long) r.payloadBytes,
+                    (unsigned long long) r.lengthWordBytes, r.usec / 1000.0, r.file.c_str());
+                tw << line;
+            }
+        }
+    }
+#endif
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
+    void AstSerializer::serializeAdaptiveSize32 ( uint32_t & size ) {
+        if ( writing ) {
+            uint8_t enc[5];
+            write(enc, encodeAdaptiveSize32(enc, size));
+        } else {
+            if ( bufferAsVector ) {
+                auto & pos = bufferAsVector->bufferPos;
+                auto & buf = bufferAsVector->buffer;
+                if ( buf.size() - pos >= 5 ) {
+                    const uint8_t * p = buf.data() + pos;
+                    uint32_t b = p[0];
+                    if ( b < 0x80 ) {
+                        size = b;
+                        pos += 1;
+                        return;
+                    }
+                    uint32_t value = b & 0x7f;
+                    size_t n = 1;
+                    for ( ;; ) {
+                        b = p[n];
+                        value |= (b & 0x7f) << (7 * n);
+                        n ++;
+                        if ( b < 0x80 ) break;
+                        SERIALIZER_VERIFYF(n < 5, "corrupt stream: adaptive size runs past five bytes");
+                    }
+                    size = value;
+                    pos += n;
+                    return;
+                }
+            }
+            uint32_t value = 0;
+            for ( size_t n = 0; ; ++n ) {
+                SERIALIZER_VERIFYF(n < 5, "corrupt stream: adaptive size runs past five bytes");
+                uint8_t b = 0; *this << b;
+                value |= uint32_t(b & 0x7f) << (7 * n);
+                if ( b < 0x80 ) break;
+            }
+            size = value;
+        }
+    }
+
+    // a stream-backed length can never exceed the bytes left (every element costs at
+    // least one byte) - a corrupted length must fail HERE, as a recoverable throw,
+    // not as a layout-dependent wild allocation later (SIGSEGV under one allocator,
+    // clean bad_alloc under another - the module-cache corruption CI red). Called at
+    // the sites that ALLOCATE from a deserialized count - not inside the varint codec,
+    // which also carries plain values (line diffs, sourceLength of a file that is not
+    // in the stream) where the invariant does not hold
+    void AstSerializer::verifyLength ( uint64_t size ) {
+        SERIALIZER_VERIFYF(size <= buffer->readRemaining(),
+            "corrupt stream: size %llu exceeds remaining bytes", (unsigned long long)size);
     }
 
     void AstSerializer::serializeAdaptiveSize64 ( uint64_t & size ) {
@@ -228,77 +440,80 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( SerializeNodeId & value ) {
         dtag(HASH_TAG("SerializeNodeId"));
-        // 64-bit user-space pointers fit in 48 bits (canonical form on x86-64
-        // and AArch64 Linux/macOS — top 16 bits are sign-extended copies of
-        // bit 47, and we only ever see user-space addresses here, so they are
-        // zero — but we mask them on write regardless, since ptr is an identity
-        // key only). Pack a small epoch into those unused top 16 bits so the
-        // common case is a single 8-byte word. Reserve sentinel 0xFFFF for
-        // "epoch overflow" — fall back to a separate adaptive-size write.
-        // 32-bit hosts have no headroom; always emit ptr + adaptive epoch.
-        if constexpr ( sizeof(void *) == 8 ) {
-            constexpr uint64_t kPtrMask  = (uint64_t(1) << 48) - 1;
-            constexpr uint64_t kEpochOverflowTag = 0xFFFFull << 48;
-            if ( writing ) {
-                uintptr_t pbits = reinterpret_cast<uintptr_t>(value.ptr) & kPtrMask;
-                if ( value.epoch < 0xFFFFull ) {
-                    uint64_t packed = (uint64_t(value.epoch) << 48) | uint64_t(pbits);
-                    *this << packed;
-                } else {
-                    uint64_t packed = kEpochOverflowTag | uint64_t(pbits);
-                    *this << packed;
-                    uint32_t epoch32 = uint32_t(value.epoch);
-                    serializeAdaptiveSize32(epoch32);
-                }
+        DAS_SER_PROFILE(*this, "NodeId");
+        serializeAdaptiveSize32(value.index);
+        if ( !writing ) {
+            // numbers arrive in first-mention order, so a first sight is exactly the next
+            // slot; anything past it is a corrupt stream, not a resize
+            if ( readNodes.empty() ) readNodes.push_back(nullptr);
+            if ( value.index == readNodes.size() ) {
+                readNodes.push_back(nullptr);
             } else {
-                uint64_t packed = 0;
-                *this << packed;
-                uint64_t topBits = packed & ~kPtrMask;
-                value.ptr = reinterpret_cast<void *>(uintptr_t(packed & kPtrMask));
-                if ( topBits == kEpochOverflowTag ) {
-                    uint32_t epoch32 = 0;
-                    serializeAdaptiveSize32(epoch32);
-                    value.epoch = size_t(epoch32);
-                } else {
-                    value.epoch = size_t(topBits >> 48);
-                }
-            }
-        } else {
-            // 32-bit: pointer fills the word; epoch goes in its own adaptive int.
-            if ( writing ) {
-                uint32_t pbits = uint32_t(reinterpret_cast<uintptr_t>(value.ptr));
-                uint32_t epoch32 = uint32_t(value.epoch);
-                *this << pbits;
-                serializeAdaptiveSize32(epoch32);
-            } else {
-                uint32_t pbits = 0;
-                *this << pbits;
-                uint32_t epoch32 = 0;
-                serializeAdaptiveSize32(epoch32);
-                value.ptr = reinterpret_cast<void *>(uintptr_t(pbits));
-                value.epoch = size_t(epoch32);
+                SERIALIZER_VERIFYF(value.index < readNodes.size(), "corrupt stream: node #%u past the %u numbered so far",
+                    value.index, unsigned(readNodes.size()));
             }
         }
         return *this;
     }
 
-    AstSerializer & AstSerializer::operator << ( string & str ) {
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
+    AstSerializer & AstSerializer::serializeString ( string & str, bool temp ) {
         dtag(HASH_TAG("string"));
+        DAS_SER_PROFILE(*this, "string");
         if ( writing ) {
-            uint64_t size = str.size();
-            serializeAdaptiveSize64(size);
-            write((void *)str.data(), size);
+#if DAS_SERIALIZE_PROFILE
+            profString(str);
+#endif
+            SERIALIZER_VERIFYF(uint64_t(str.size()) < (uint64_t(1) << 32), "string too long");
+            uint32_t length = uint32_t(str.size());
+            if ( length == 0 && emptyStringNumber >= 0 ) {
+                uint32_t known = uint32_t(emptyStringNumber);
+                serializeAdaptiveSize32(known);
+                return *this;
+            }
+            StringView view { str.data(), length };
+            if ( auto it = writeStrings.find(view); it != writeStrings.end() ) {
+                serializeAdaptiveSize32(it->second);
+                return *this;
+            }
+            if ( temp ) {
+                stringArena.push_back(make_unique<string>(str));
+                view.data = stringArena.back()->data();
+            }
+            uint32_t index = uint32_t(writeStrings.size());
+            writeStrings.emplace(view, index);
+            if ( length == 0 ) emptyStringNumber = int32_t(index);
+            serializeAdaptiveSize32(index);
+            serializeAdaptiveSize32(length);
+            write(str.data(), length);
         } else {
-            uint64_t size = 0;
-            serializeAdaptiveSize64(size);
-            str.resize(size);
-            read(&str[0], size);
+            uint32_t index = 0;
+            serializeAdaptiveSize32(index);
+            if ( index < readStrings.size() ) {
+                auto & view = readStrings[index];
+                str.assign(view.data, view.length);
+                return *this;
+            }
+            SERIALIZER_VERIFYF(index == readStrings.size(), "corrupt stream: string #%u past the %u numbered so far",
+                index, unsigned(readStrings.size()));
+            uint32_t length = 0;
+            serializeAdaptiveSize32(length);
+            verifyLength(length);
+            str.resize(length);
+            if ( length ) read(&str[0], length);
+            const char * data = str.data();
+            if ( temp ) {
+                stringArena.push_back(make_unique<string>(str));
+                data = stringArena.back()->data();
+            }
+            readStrings.push_back({data, length});
         }
         return *this;
     }
 
     AstSerializer & AstSerializer::operator << ( const char * & value ) {
         dtag(HASH_TAG("const char *"));
+        DAS_SER_PROFILE(*this, "cstring");
         bool is_null = value == nullptr;
         *this << is_null;
         if ( is_null ) {
@@ -312,6 +527,7 @@ namespace das {
         } else {
             uint64_t len = 0;
             serializeAdaptiveSize64(len);
+            verifyLength(len);
             auto data = new char [len + 1]();
             read(static_cast<void*>(data), len);
             data[len] = '\0';
@@ -323,6 +539,7 @@ namespace das {
     template <typename V, typename VT>
     AstSerializer & AstSerializer::operator << ( safebox<V,VT> & box ) {
         dtag(HASH_TAG("Safebox"));
+        DAS_SER_PROFILE(*this, "Safebox");
         if ( writing ) {
             uint64_t size = box.unlocked_size(); *this << size;
             box.foreach_with_hash ([&](VT obj, uint64_t hash) {
@@ -344,18 +561,20 @@ namespace das {
     template <typename K, typename V, typename H, typename E>
     void AstSerializer::serialize_hash_map ( das_hash_map<K, V, H, E> & value ) {
         dtag(HASH_TAG("DasHashmap"));
+        DAS_SER_PROFILE(*this, "HashMap");
         if ( writing ) {
             uint64_t size = value.size(); *this << size;
             for ( auto & item : value ) {
-                *this << item.first << item.second;
+                serializeTemp(item.first); serializeTemp(item.second);
             }
             return;
         }
         uint64_t size = 0; *this << size;
+        verifyLength(size);
         das_hash_map<K, V, H, E> deser;
         deser.reserve(size);
         for ( uint64_t i = 0; i < size; i++ ) {
-            K k; V v; *this << k << v;
+            K k; V v; serializeTemp(k); serializeTemp(v);
             deser.emplace(das::move(k),das::move(v));
         }
         value = das::move(deser);
@@ -373,18 +592,20 @@ namespace das {
     template <typename K, typename V, typename H, typename E>
     void AstSerializer::serialize_hash_map ( das_insert_only_hash_map<K, V, H, E> & value ) {
         dtag(HASH_TAG("DasHashmap"));
+        DAS_SER_PROFILE(*this, "HashMap");
         if ( writing ) {
             uint64_t size = value.size(); *this << size;
             for ( auto & item : value ) {
-                *this << item.first << item.second;
+                serializeTemp(item.first); serializeTemp(item.second);
             }
             return;
         }
         uint64_t size = 0; *this << size;
+        verifyLength(size);
         das_insert_only_hash_map<K, V, H, E> deser;
         deser.reserve(size);
         for ( uint64_t i = 0; i < size; i++ ) {
-            K k; V v; *this << k << v;
+            K k; V v; serializeTemp(k); serializeTemp(v);
             deser.emplace(das::move(k),das::move(v));
         }
         value = das::move(deser);
@@ -436,87 +657,51 @@ namespace das {
         return ptr->module == thisModule;
     }
 
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     void AstSerializer::writeIdentifications ( Function * & func ) {
-        string mangeldName = func->getMangledName();
-        uint64_t moduleName = func->module->nameHash;
-        *this << moduleName << mangeldName;
+        auto & name = writeMangledNames[func];
+        if ( name.empty() ) name = func->getMangledName();
+        Module * module = func->module;
+        *this << module;
+        serializeTemp(name);
     }
 
     void AstSerializer::writeIdentifications ( Enumeration * & ptr ) {
-        *this << ptr->module->nameHash;
+        Module * module = ptr->module;
+        *this << module;
         uint64_t nameHash = hash64z(ptr->name.c_str());
         *this << nameHash;
     }
 
     void AstSerializer::writeIdentifications ( Structure * & ptr ) {
-        *this << ptr->module->nameHash;
+        Module * module = ptr->module;
+        *this << module;
         uint64_t nameHash = hash64z(ptr->name.c_str());
         *this << nameHash;
     }
 
     void AstSerializer::writeIdentifications ( Variable * & ptr ) {
-        *this << ptr->module->nameHash << ptr->name;
+        Module * module = ptr->module;
+        *this << module << ptr->name;
     }
 
     void AstSerializer::writeIdentifications ( TypeInfoMacro * & ptr ) {
-        *this << ptr->module->nameHash << ptr->name;
-    }
-
-    void AstSerializer::fillOrPatchLater ( Function * & func, SerializeNodeId id ) {
-        auto it = smartFunctionMap.find(id);
-        if ( it == smartFunctionMap.end() ) {
-            func = ( Function * ) 1;
-            functionRefs.emplace_back(&func, id);
-        } else {
-            func = it->second;
-        }
-    }
-
-    void AstSerializer::fillOrPatchLater ( Enumeration * & ptr, SerializeNodeId id ) {
-        auto it = smartEnumerationMap.find(id);
-        if ( it == smartEnumerationMap.end() ) {
-            ptr = ( Enumeration * ) 1;
-            enumerationRefs.emplace_back(&ptr, id);
-        } else {
-            ptr = it->second;
-        }
-    }
-
-    void AstSerializer::fillOrPatchLater ( Structure * & ptr, SerializeNodeId id ) {
-        auto it = smartStructureMap.find(id);
-        if ( it == smartStructureMap.end() ) {
-            ptr = ( Structure * ) 1;
-            structureRefs.emplace_back(&ptr, id);
-        } else {
-            ptr = it->second;
-        }
-    }
-
-    void AstSerializer::fillOrPatchLater ( Variable * & ptr, SerializeNodeId id ) {
-        auto it = smartVariableMap.find(id);
-        if ( it == smartVariableMap.end() ) {
-            ptr = ( Variable * ) 1;
-            variableRefs.emplace_back(&ptr, id);
-        } else {
-            ptr = it->second;
-        }
+        Module * module = ptr->module;
+        *this << module << ptr->name;
     }
 
     auto AstSerializer::readModuleAndNameHash () -> pair<Module *, uint64_t> {
-        uint64_t moduleNameHash = 0;
+        Module * funcModule = nullptr;
         uint64_t mangledNameHash = 0;
-        *this << moduleNameHash << mangledNameHash;
-        auto funcModule = moduleLibrary->findModuleByMangledNameHash(moduleNameHash);
-        SERIALIZER_VERIFYF(ignoreEmptyExternal || funcModule, "module '%llu' is not found", moduleNameHash);
+        *this << funcModule << mangledNameHash;
         return {funcModule, mangledNameHash};
     }
 
     auto AstSerializer::readModuleAndName () -> pair<Module *, string> {
-        uint64_t moduleNameHash = 0;
+        Module * funcModule = nullptr;
         string mangledName;
-        *this << moduleNameHash << mangledName;
-        auto funcModule = moduleLibrary->findModuleByMangledNameHash(moduleNameHash);
-        SERIALIZER_VERIFYF(ignoreEmptyExternal || funcModule, "module '%llu' is not found", moduleNameHash);
+        *this << funcModule;
+        serializeTemp(mangledName);
         return {funcModule, mangledName};
     }
 
@@ -579,11 +764,19 @@ namespace das {
         SERIALIZER_VERIFYF(ptr!=nullptr, "type info macro '%s' is not found", mangledName.c_str());
     }
 
+#if DAS_SERIALIZE_PROFILE
+    static const char * serializePointerName ( Function * ) { return "Pointer<Function>"; }
+    static const char * serializePointerName ( Enumeration * ) { return "Pointer<Enumeration>"; }
+    static const char * serializePointerName ( Structure * ) { return "Pointer<Structure>"; }
+    static const char * serializePointerName ( Variable * ) { return "Pointer<Variable>"; }
+#endif
+
     template<typename TT>
     AstSerializer & AstSerializer::serializePointer ( TT * & ptr ) {
+        DAS_SER_PROFILE(*this, serializePointerName(ptr));
         auto fid = getSerializeId(ptr);
         *this << fid;
-        if ( !fid.ptr ) {
+        if ( !fid.index ) {
             if ( !writing ) ptr = nullptr;
             return *this;
         }
@@ -606,36 +799,36 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( FunctionPtr & func ) {
         dtag(HASH_TAG("FunctionPtr"));
+        DAS_SER_PROFILE(*this, "FunctionPtr");
         if ( writing && func ) {
             SERIALIZER_VERIFYF(!func->builtIn, "cannot serialize built-in function");
         }
         auto id = getSerializeId(func);
         *this << id;
-        if ( id.ptr == 0 ) {
+        if ( id.index == 0 ) {
             if ( !writing ) func = nullptr;
             return *this;
         }
         if ( writing ) {
-            if ( smartFunctionMap.find(id) == smartFunctionMap.end() ) {
-                smartFunctionMap[id] = func;
+            if ( !isWritten(id) ) {
+                markWritten(id);
                 func->serialize(*this);
             }
         } else {
-            auto it = smartFunctionMap.find(id);
-            if ( it == smartFunctionMap.end() ) {
-                func = new Function();
-                smartFunctionMap[id] = func;
-                func->serialize(*this);
+            if ( auto node = readNode<Function>(id) ) {
+                func = node;
             } else {
-                func = it->second;
+                func = new Function();
+                setReadNode(id, func);
+                func->serialize(*this);
             }
         }
         if ( func ) {
+            DAS_SER_PROFILE(*this, "FunctionPtr.nameCheck");
             if ( writing ) {
-                string name = func->name;
-                *this << name;
+                *this << func->name;
             } else {
-                string name; *this << name;
+                string name; serializeTemp(name);
                 string expect = func->name;
                 SERIALIZER_VERIFYF(name == expect, "expected different function %s %s", name.c_str(), expect.c_str());
             }
@@ -645,6 +838,7 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( TypeInfoMacro * & ptr ) {
         dtag(HASH_TAG("TypeInfoMacroPtr"));
+        DAS_SER_PROFILE(*this, "TypeInfoMacro*");
         // TypeInfoMacro is not gc_node and is always external (lives in another
         // module). It is identified by name+module hash, so the wire form only
         // needs a presence bit — no pointer/id leaks into the stream.
@@ -668,41 +862,142 @@ namespace das {
         return *this;
     }
 
+    static uint32_t aliasCacheFlagsMask () {
+        static const uint32_t mask = [] {
+            TypeDecl probe;
+            probe.flags = 0;
+            probe.aliasCacheValid = true;
+            probe.aliasCacheHasAlias = true;
+            return probe.flags;
+        }();
+        return mask;
+    }
+
+    static bool typeTableable ( const TypeDecl * t ) {
+        if ( t->fixedDimExpr || !t->typeMacroExpr.empty() ) return false;
+        if ( t->firstType && !typeTableable(t->firstType) ) return false;
+        if ( t->secondType && !typeTableable(t->secondType) ) return false;
+        for ( auto & a : t->argTypes ) {
+            if ( a && !typeTableable(a) ) return false;
+        }
+        return true;
+    }
+
+    static uint64_t hashTypeContent ( const TypeDecl * t ) {
+        // FNV-1a over the words: hash_combine64 runs wyhash per word and costs 4 ms of a 16 ms write
+        uint64_t h = 14695981039346656037ull;
+        auto mix = [&h]( uint64_t v ) { h = (h ^ v) * 1099511628211ull; };
+        mix(uint32_t(t->baseType));
+        mix(t->flags & ~aliasCacheFlagsMask());
+        mix(uint32_t(t->fixedDim));
+        mix(uintptr_t(t->structType) >> 4);
+        mix(uintptr_t(t->enumType) >> 4);
+        mix(uintptr_t(t->annotation) >> 4);
+        mix(uintptr_t(t->module) >> 4);
+        if ( !t->alias.empty() ) mix(hash_block64((const uint8_t *) t->alias.data(), t->alias.size()));
+        mix(t->firstType ? hashTypeContent(t->firstType) : 7);
+        mix(t->secondType ? hashTypeContent(t->secondType) : 11);
+        mix(t->argTypes.size());
+        for ( auto & a : t->argTypes ) mix(a ? hashTypeContent(a) : 13);
+        mix(t->argNames.size());
+        for ( auto & n : t->argNames ) mix(hash_block64((const uint8_t *) n.data(), n.size()));
+        return h;
+    }
+
+    static bool sameTypeContent ( const TypeDecl * a, const TypeDecl * b ) {
+        if ( a == b ) return true;
+        if ( a->baseType != b->baseType ) return false;
+        if ( ((a->flags ^ b->flags) & ~aliasCacheFlagsMask()) != 0 ) return false;
+        if ( a->fixedDim != b->fixedDim ) return false;
+        if ( a->structType != b->structType || a->enumType != b->enumType || a->annotation != b->annotation || a->module != b->module ) return false;
+        if ( a->alias != b->alias ) return false;
+        if ( (a->firstType == nullptr) != (b->firstType == nullptr) ) return false;
+        if ( a->firstType && !sameTypeContent(a->firstType, b->firstType) ) return false;
+        if ( (a->secondType == nullptr) != (b->secondType == nullptr) ) return false;
+        if ( a->secondType && !sameTypeContent(a->secondType, b->secondType) ) return false;
+        if ( a->argTypes.size() != b->argTypes.size() ) return false;
+        for ( size_t i = 0; i != a->argTypes.size(); ++i ) {
+            if ( (a->argTypes[i] == nullptr) != (b->argTypes[i] == nullptr) ) return false;
+            if ( a->argTypes[i] && !sameTypeContent(a->argTypes[i], b->argTypes[i]) ) return false;
+        }
+        if ( a->argNames != b->argNames ) return false;
+        return true;
+    }
+
+    size_t AstSerializer::TypeHash::operator () ( const TypeDecl * t ) const noexcept {
+        return size_t(hashTypeContent(t));
+    }
+
+    bool AstSerializer::TypeEqual::operator () ( const TypeDecl * a, const TypeDecl * b ) const noexcept {
+        return sameTypeContent(a, b);
+    }
+
+    enum TypeRef : uint32_t { TypeRefNull = 0, TypeRefInline = 1, TypeRefFresh = 2, TypeRefFirstEntry = 3 };
+
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     AstSerializer & AstSerializer::operator << ( TypeDeclPtr & type ) {
         dtag(HASH_TAG("TypeDeclPtr"));
-        bool is_null = type == nullptr;
-        *this << is_null;
-        if ( is_null ) {
-            if ( !writing ) type = nullptr;
-            return *this;
-        }
-        auto id = getSerializeId(type);
-        *this << id;
+        DAS_SER_PROFILE(*this, "TypeDeclPtr");
         if ( writing ) {
-            if ( smartTypeDeclMap[id] == nullptr ) {
-                smartTypeDeclMap[id] = type;
-                type->serialize(*this);
+            if ( !type ) {
+                uint32_t ref = TypeRefNull;
+                serializeAdaptiveSize32(ref);
+                return *this;
             }
+            if ( !typeTableable(type) ) {
+                uint32_t ref = TypeRefInline;
+                serializeAdaptiveSize32(ref);
+                type->serialize(*this);
+                return *this;
+            }
+            if ( auto it = writeTypes.find(type); it != writeTypes.end() ) {
+                uint32_t known = it->second;
+                serializeAdaptiveSize32(known);
+                *this << type->at;
+                return *this;
+            }
+            uint32_t ref = TypeRefFresh;
+            serializeAdaptiveSize32(ref);
+            type->serialize(*this);
+            writeFreshTypeCount ++;
+            writeTypes.emplace(type, writeFreshTypeCount - 1 + TypeRefFirstEntry);
         } else {
-            if ( smartTypeDeclMap[id] == nullptr ) {
-                type = new TypeDecl();
-                smartTypeDeclMap[id] = type;
-                type->serialize(*this);
-            } else {
-                type = smartTypeDeclMap[id];
+            uint32_t number = 0;
+            serializeAdaptiveSize32(number);
+            if ( number == TypeRefNull ) {
+                type = nullptr;
+                return *this;
             }
+            if ( number == TypeRefInline ) {
+                type = new TypeDecl();
+                type->serialize(*this);
+                return *this;
+            }
+            if ( number == TypeRefFresh ) {
+                type = new TypeDecl();
+                type->serialize(*this);
+                readTypes.push_back(type);
+                return *this;
+            }
+            uint32_t index = number - TypeRefFirstEntry;
+            SERIALIZER_VERIFYF(index < readTypes.size(), "corrupt stream: type #%u past the %u numbered so far",
+                number, unsigned(readTypes.size()));
+            type = new TypeDecl(*readTypes[index]);
+            *this << type->at;
         }
         return *this;
     }
 
     AstSerializer & AstSerializer::operator << ( AnnotationArgument & arg ) {
         dtag(HASH_TAG("AnnotationArgument"));
+        DAS_SER_PROFILE(*this, "AnnotationArgument");
         arg.serialize(*this);
         return *this;
     }
 
     AstSerializer & AstSerializer::operator << ( AnnotationDeclarationPtr & annotation_decl ) {
         dtag(HASH_TAG("AnnotationDeclarationPtr"));
+        DAS_SER_PROFILE(*this, "AnnotationDecl");
         if ( !writing ) annotation_decl = new AnnotationDeclaration();
         annotation_decl->serialize(*this);
         return *this;
@@ -740,7 +1035,8 @@ namespace das {
                     ser.serialize_enum(op);
                     anno->serialize(ser);
                 } else {
-                    ser << anno->module->nameHash;
+                    Module * module = anno->module;
+                    ser << module;
                 }
             } else {
                 // das-declared distinct-type entities round-trip with the module itself
@@ -763,16 +1059,15 @@ namespace das {
             ser << inThisModule;
             if ( !inThisModule ) {
                 string name;
-                ser << name;
+                ser.serializeTemp(name);
                 if ( isLogicAnnotation(name) ) {
                     LogicAnnotationOp op; ser.serialize_enum(op);
                     anno = newLogicAnnotation(op);
                     anno->serialize(ser);
                 } else {
-                    uint64_t moduleNameHash = 0;
-                    ser << moduleNameHash;
-                    auto mod = ser.moduleLibrary->findModuleByMangledNameHash(moduleNameHash);
-                    SERIALIZER_VERIFYF(mod!=nullptr, "module '%llu' is not found", moduleNameHash);
+                    Module * mod = nullptr;
+                    ser << mod;
+                    SERIALIZER_VERIFYF(mod!=nullptr, "module of annotation '%s' is not found", name.c_str());
                     anno = mod->findAnnotation(name);
                     SERIALIZER_VERIFYF(anno!=nullptr, "annotation '%s' is not found", name.c_str());
                 }
@@ -781,7 +1076,7 @@ namespace das {
                 ser << isDistinct;
                 if ( isDistinct ) {
                     string name;
-                    ser << name;
+                    ser.serializeTemp(name);
                     anno = ser.thisModule->findAnnotation(name);
                     SERIALIZER_VERIFYF(anno!=nullptr && anno->rtti_isDistinctTypeAnnotation(),
                         "distinct type '%s' is not found in module '%s'", name.c_str(), ser.thisModule->name.c_str());
@@ -792,6 +1087,7 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( AnnotationPtr & anno ) {
         dtag(HASH_TAG("AnnotationPtr"));
+        DAS_SER_PROFILE(*this, "AnnotationPtr");
         serializeAnnotationPointer(*this, anno);
         return *this;
     }
@@ -801,68 +1097,112 @@ namespace das {
         return *this;
     }
 
+
+    enum LineShape : uint8_t { LineSameFile = 0x80, LineOneLine = 0x40, LineDeltaMask = 0x3f, LineDeltaBias = 31, LineDeltaEscape = 63 };
+
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     AstSerializer & AstSerializer::operator << ( LineInfo & at ) {
         dtag(HASH_TAG("LineInfo"));
-        *this << at.fileInfo;
-
-        serializeAdaptiveSize32(at.line);
-
+        DAS_SER_PROFILE(*this, "LineInfo");
         if ( writing ) {
-            uint32_t diff = at.last_line - at.line;
-            serializeAdaptiveSize32(diff);
+            int32_t lineDelta = int32_t(at.line) - int32_t(lineBaseLine);
+            bool sameFile = at.fileInfo == lineBaseFile;
+            bool oneLine = at.last_line == at.line;
+            bool smallDelta = lineDelta >= -LineDeltaBias && lineDelta <= LineDeltaBias;
+            uint8_t shape = uint8_t(smallDelta ? lineDelta + LineDeltaBias : LineDeltaEscape);
+            if ( oneLine ) shape |= LineOneLine;
+            if ( sameFile ) shape |= LineSameFile;
+            write(&shape, 1);
+            if ( !sameFile ) *this << at.fileInfo;
+            uint8_t enc[20];
+            size_t n = 0;
+            if ( !smallDelta ) n += encodeAdaptiveSize32(enc + n, AstSerializer::zigzag32(lineDelta));
+            if ( !oneLine ) n += encodeAdaptiveSize32(enc + n, at.last_line - at.line);
+            n += encodeAdaptiveSize32(enc + n, at.column);
+            n += encodeAdaptiveSize32(enc + n, AstSerializer::zigzag32(int32_t(at.last_column) - int32_t(at.column)));
+            write(enc, n);
         } else {
-            uint32_t diff; serializeAdaptiveSize32(diff);
-            at.last_line = at.line + diff;
+            uint8_t shape = 0;
+            read(&shape, 1);
+            if ( shape & LineSameFile ) {
+                at.fileInfo = lineBaseFile;
+            } else {
+                *this << at.fileInfo;
+            }
+            int32_t lineDelta;
+            if ( (shape & LineDeltaMask) == LineDeltaEscape ) {
+                uint32_t z; serializeAdaptiveSize32(z);
+                lineDelta = AstSerializer::unzigzag32(z);
+            } else {
+                lineDelta = int32_t(shape & LineDeltaMask) - LineDeltaBias;
+            }
+            at.line = uint32_t(int32_t(lineBaseLine) + lineDelta);
+            if ( shape & LineOneLine ) {
+                at.last_line = at.line;
+            } else {
+                uint32_t diff; serializeAdaptiveSize32(diff);
+                at.last_line = at.line + diff;
+            }
+            serializeAdaptiveSize32(at.column);
+            uint32_t span; serializeAdaptiveSize32(span);
+            at.last_column = uint32_t(int32_t(at.column) + AstSerializer::unzigzag32(span));
         }
-
-        // if ( writing ) {
-        //     DAS_ASSERTF(at.column <= 255 && at.last_column <= 255, "unexpected long line");
-        //     uint8_t column = at.column, last_column = at.last_column;
-        //     *this << column << last_column;
-        // } else {
-        //     uint8_t column, last_column;
-        //     *this << column << last_column;
-        //     at.column = column; at.last_column = last_column;
-        // }
-
+        lineBaseFile = at.fileInfo;
+        lineBaseLine = at.line;
         return *this;
     }
 
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     AstSerializer & AstSerializer::operator << ( FileInfo * & info ) {
         dtag(HASH_TAG("FileInfo *"));
-        bool is_null = info == nullptr;
-        *this << is_null;
-        if ( is_null ) {
-            if ( !writing ) { info = nullptr; }
-            return *this;
-        }
+        DAS_SER_PROFILE(*this, "FileInfo*");
         if ( writing ) {
-            if ( writingFileInfoMap[info] == 0 ) {
-                uint64_t curOffset = buffer->writingSize() + sizeof(curOffset);
-                *this << curOffset;
-                writingFileInfoMap[info] = curOffset;
+            if ( !info ) {
+                uint32_t null = 0;
+                serializeAdaptiveSize32(null);
+                return *this;
+            }
+            if ( info == lastWriteFileInfo ) {
+                serializeAdaptiveSize32(lastWriteFileInfoNumber);
+                return *this;
+            }
+            auto & number = writeFileInfos[info];
+            if ( number == 0 ) {
+                DAS_SER_PROFILE(*this, "FileInfo.payload");
+                number = uint32_t(writeFileInfos.size());
+                serializeAdaptiveSize32(number);
                 info->serialize(*this);
             } else {
-                *this << writingFileInfoMap[info];
+                serializeAdaptiveSize32(number);
             }
+            lastWriteFileInfo = info;
+            lastWriteFileInfoNumber = number;
         } else {
-            uint64_t curOffset = 0; *this << curOffset;
-            if ( readingFileInfoMap[curOffset] == nullptr ) {
-                uint64_t savedOffset = readOffset;
-                readOffset = curOffset;
-                uint8_t tag = 0; *this << tag;
-                switch ( tag ) {
-                    case 0: info = new FileInfo; break;
-                    case 1: info = new TextFileInfo; break;
-                    default: SERIALIZER_VERIFYF(false, "Unreachable");
-                }
-                info->serialize(*this);
-                readingFileInfoMap[curOffset] = info;
-                if ( curOffset != savedOffset )
-                    readOffset = savedOffset;
-            } else {
-                info = readingFileInfoMap[curOffset];
+            uint32_t number = 0;
+            serializeAdaptiveSize32(number);
+            if ( number == 0 ) {
+                info = nullptr;
+                return *this;
             }
+            if ( number <= readFileInfos.size() ) {
+                info = readFileInfos[number - 1];
+                return *this;
+            }
+            SERIALIZER_VERIFYF(number == readFileInfos.size() + 1, "corrupt stream: file info #%u past the %u numbered so far",
+                number, unsigned(readFileInfos.size()));
+            uint8_t tag = 0; *this << tag;
+            switch ( tag ) {
+                case 0: info = new FileInfo; break;
+                case 1: info = new TextFileInfo; break;
+                default: SERIALIZER_VERIFYF(false, "Unreachable");
+            }
+            info->serialize(*this);
+            if ( fileAccess && !info->name.empty() && !isCppBindingAt(LineInfo(info, 0, 0, 0, 0)) ) {
+                if ( FileInfo * live = fileAccess->getFileInfo(info->name) ) {
+                    info = live;
+                }
+            }
+            readFileInfos.push_back(info);
         }
         return *this;
     }
@@ -874,6 +1214,12 @@ namespace das {
             *this << info_ptr;
         } else {
             FileInfo * info_ptr = nullptr; *this << info_ptr;
+            if ( fileAccess && info_ptr ) {
+                if ( auto owned = fileAccess->letGoOfFileInfo(info_ptr->name) ) {
+                    info = das::move(owned);
+                    return *this;
+                }
+            }
             info.reset(info_ptr);
             doNotDelete.insert(info_ptr);
         }
@@ -881,25 +1227,25 @@ namespace das {
     }
 
     AstSerializer & AstSerializer::operator << ( StructurePtr & struct_ ) {
+        DAS_SER_PROFILE(*this, "StructurePtr");
         auto id = getSerializeId(struct_);
         *this << id;
-        if ( id.ptr == 0 ) {
+        if ( id.index == 0 ) {
             if ( !writing ) struct_ = nullptr;
             return *this;
         }
         if ( writing ) {
-            if ( smartStructureMap.find(id) == smartStructureMap.end() ) {
-                smartStructureMap[id] = struct_;
+            if ( !isWritten(id) ) {
+                markWritten(id);
                 struct_->serialize(*this);
             }
         } else {
-            auto it = smartStructureMap.find(id);
-            if ( it == smartStructureMap.end() ) {
-                struct_ = new Structure();
-                smartStructureMap[id] = struct_;
-                struct_->serialize(*this);
+            if ( auto node = readNode<Structure>(id) ) {
+                struct_ = node;
             } else {
-                struct_ = it->second;
+                struct_ = new Structure();
+                setReadNode(id, struct_);
+                struct_->serialize(*this);
             }
         }
         return *this;
@@ -932,43 +1278,43 @@ namespace das {
         if ( writing ) {
             auto p = getSerializeId(ptr.get());
             *this << p;
-            if ( fileAccessMap[p] == nullptr ) {
-                fileAccessMap[p] = ptr.get();
+            if ( !isWritten(p) ) {
+                markWritten(p);
                 ptr->serialize(*this);
             }
         } else {
             SerializeNodeId p; *this << p;
-            if ( fileAccessMap[p] == nullptr ) {
+            if ( auto node = readNode<FileAccess>(p) ) {
+                ptr.orphan();
+                FileAccessPtr t = node;
+                ptr = t;
+            } else {
                 uint8_t tag = 0; *this << tag;
                 switch ( tag ) {
                     case 0: ptr = make_smart<FileAccess>(); break;
                     case 1: ptr = make_smart<ModuleFileAccess>(); break;
                     default: SERIALIZER_VERIFYF(false, "Unreachable");
                 }
-                fileAccessMap[p] = ptr.get();
+                setReadNode(p, ptr.get());
                 ptr->serialize(*this);
-            } else {
-                ptr.orphan();
-                FileAccessPtr t = fileAccessMap[p];
-                ptr = t;
             }
         }
         return *this;
     }
 
     AstSerializer & AstSerializer::operator << ( EnumerationPtr & enum_type ) {
+        DAS_SER_PROFILE(*this, "EnumerationPtr");
         if ( writing ) {
             bool builtin = enum_type->module->builtIn && !enum_type->module->promoted;
             *this << builtin;
             if ( builtin ) {
-                uint64_t module = enum_type->module->nameHash;
-                string name = enum_type->name;
-                *this << module << name;
+                Module * module = enum_type->module;
+                *this << module << enum_type->name;
             } else {
                 auto id = getSerializeId(enum_type);
                 *this << id;
-                if ( smartEnumerationMap.find(id) == smartEnumerationMap.end() ) {
-                    smartEnumerationMap[id] = enum_type;
+                if ( !isWritten(id) ) {
+                    markWritten(id);
                     enum_type->serialize(*this);
                 }
             }
@@ -976,24 +1322,23 @@ namespace das {
             bool builtin = false;
             *this << builtin;
             if ( builtin ) {
-                uint64_t module = 0;
+                Module * pModule = nullptr;
                 string name;
-                *this << module << name;
-                auto pModule = this->moduleLibrary->findModuleByMangledNameHash(module);
-                SERIALIZER_VERIFYF(pModule, "expected to find module '%llu'", module);
+                *this << pModule;
+                serializeTemp(name);
+                SERIALIZER_VERIFYF(pModule, "expected to find the module of enumeration '%s'", name.c_str());
                 enum_type = pModule->findEnum(name);
-                SERIALIZER_VERIFYF(enum_type, "expected to find enumeration '%llu'::'%s'", module, name.c_str());
+                SERIALIZER_VERIFYF(enum_type, "expected to find enumeration '%s'::'%s'", pModule->name.c_str(), name.c_str());
             } else {
                 SerializeNodeId id;
                 *this << id;
-                SERIALIZER_VERIFYF(id.ptr != 0, "expected non-null enumeration id");
-                auto it = smartEnumerationMap.find(id);
-                if ( it == smartEnumerationMap.end() ) {
-                    enum_type = new Enumeration();
-                    smartEnumerationMap[id] = enum_type;
-                    enum_type->serialize(*this);
+                SERIALIZER_VERIFYF(id.index != 0, "expected non-null enumeration id");
+                if ( auto node = readNode<Enumeration>(id) ) {
+                    enum_type = node;
                 } else {
-                    enum_type = it->second;
+                    enum_type = new Enumeration();
+                    setReadNode(id, enum_type);
+                    enum_type->serialize(*this);
                 }
                 SERIALIZER_VERIFYF(enum_type, "expected to find enumeration");
             }
@@ -1016,45 +1361,75 @@ namespace das {
     }
 
     AstSerializer & AstSerializer::operator << ( VariablePtr & var ) {
+        DAS_SER_PROFILE(*this, "VariablePtr");
         auto id = getSerializeId(var);
         *this << id;
-        if ( id.ptr == 0 ) {
+        if ( id.index == 0 ) {
             if ( !writing ) var = nullptr;
             return *this;
         }
         if ( writing ) {
-            if ( smartVariableMap.find(id) == smartVariableMap.end() ) {
-                smartVariableMap[id] = var;
+            if ( !isWritten(id) ) {
+                markWritten(id);
                 var->serialize(*this);
             }
         } else {
-            auto it = smartVariableMap.find(id);
-            if ( it == smartVariableMap.end() ) {
-                var = new Variable();
-                smartVariableMap[id] = var;
-                var->serialize(*this);
+            if ( auto node = readNode<Variable>(id) ) {
+                var = node;
             } else {
-                var = it->second;
+                var = new Variable();
+                setReadNode(id, var);
+                var->serialize(*this);
             }
         }
         return *this;
     }
 
+    // a read no prerequisite walk precedes meets a deferred C++ module here (src/ast/ARCHITECTURE.md#module-scan-manifest)
+    static Module * requireBuiltinModule ( const string & name ) {
+        auto m = Module::require(name);
+        if ( !m ) {
+            if ( auto loader = getDeferredModuleLoader(); loader && loader(name) ) m = Module::require(name);
+        }
+        return m;
+    }
+
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     AstSerializer & AstSerializer::operator << ( Module * & module ) {
-        bool is_null = module == nullptr;
-        *this << is_null;
+        DAS_SER_PROFILE(*this, "Module*");
         if ( writing ) {
-            if ( !is_null ) {
+            if ( !module ) {
+                uint32_t null = 0;
+                serializeAdaptiveSize32(null);
+                return *this;
+            }
+            auto & number = writeModules[module];
+            if ( number == 0 ) {
+                number = uint32_t(writeModules.size());
+                serializeAdaptiveSize32(number);
                 *this << module->nameHash;
+            } else {
+                serializeAdaptiveSize32(number);
             }
         } else {
-            if ( !is_null ) {
-                uint64_t nameHash; *this << nameHash;
-                module = moduleLibrary->findModuleByMangledNameHash(nameHash);
-                SERIALIZER_VERIFYF(module, "expected to fetch module %llu from library", nameHash);
-            } else {
+            uint32_t number = 0;
+            serializeAdaptiveSize32(number);
+            if ( number == 0 ) {
                 module = nullptr;
+                return *this;
             }
+            if ( number <= readModules.size() ) {
+                module = readModules[number - 1].first;
+                SERIALIZER_VERIFYF(module || ignoreEmptyExternal, "expected to fetch module %llu from library",
+                    (unsigned long long) readModules[number - 1].second);
+                return *this;
+            }
+            SERIALIZER_VERIFYF(number == readModules.size() + 1, "corrupt stream: module #%u past the %u numbered so far",
+                number, unsigned(readModules.size()));
+            uint64_t nameHash = 0; *this << nameHash;
+            module = moduleLibrary->findModuleByMangledNameHash(nameHash);
+            SERIALIZER_VERIFYF(module || ignoreEmptyExternal, "expected to fetch module %llu from library", nameHash);
+            readModules.push_back({module, nameHash});
         }
         return *this;
     }
@@ -1066,17 +1441,19 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( ReaderMacroPtr & ptr ) {
         dtag(HASH_TAG("ReaderMacroPtr"));
+        DAS_SER_PROFILE(*this, "ReaderMacroPtr");
         if ( writing ) {
-            SERIALIZER_VERIFYF(ptr, "did not expext to see null ReaderMacroPtr");
+            SERIALIZER_VERIFYF(ptr, "did not expect to see null ReaderMacroPtr");
             SERIALIZER_VERIFYF(!(ptr->module == thisModule), "did not expect to find macro from the current module");
-            *this << ptr->module->nameHash;
+            Module * module = ptr->module;
+            *this << module;
             *this << ptr->name;
         } else {
-            uint64_t moduleNameHash = 0;
+            Module * mod = nullptr;
             string name;
-            *this << moduleNameHash << name;
-            auto mod = moduleLibrary->findModuleByMangledNameHash(moduleNameHash);
-            SERIALIZER_VERIFYF(mod!=nullptr, "module '%llu' not found", moduleNameHash);
+            *this << mod;
+            serializeTemp(name);
+            SERIALIZER_VERIFYF(mod!=nullptr, "module of reader macro '%s' not found", name.c_str());
             ptr = mod->findReaderMacro(name);
             SERIALIZER_VERIFYF(ptr, "Reader macro '%s' not found in the module '%s'",
                 name.c_str(), mod->name.c_str()
@@ -1087,22 +1464,25 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( ExprBlock * & block ) {
         dtag(HASH_TAG("ExprBlock*"));
+        DAS_SER_PROFILE(*this, "ExprBlock*");
         auto id = getSerializeId(block);
         *this << id;
-        if ( !writing && id.ptr ) {
-            block = ( ExprBlock * ) 1;
-            blockRefs.emplace_back(&block, id);
+        if ( !writing ) {
+            if ( id.index ) fillOrPatchLater(block, id);
+            else block = nullptr;
         }
         return *this;
     }
 
     AstSerializer & AstSerializer::operator << ( InferHistory & history ) {
         dtag(HASH_TAG("InferHistory"));
+        DAS_SER_PROFILE(*this, "InferHistory");
         history.serialize(*this);
         return *this;
     }
 
     AstSerializer & AstSerializer::operator << ( CaptureEntry & entry ) {
+        DAS_SER_PROFILE(*this, "CaptureEntry");
         *this << entry.name;
         serialize_enum<CaptureMode>(entry.mode);
         return *this;
@@ -1110,6 +1490,7 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( MakeFieldDeclPtr & ptr ) {
         dtag(HASH_TAG("MakeFieldDeclPtr"));
+        DAS_SER_PROFILE(*this, "MakeFieldDecl");
         bool is_null = ptr == nullptr;
         *this << is_null;
         if ( is_null ) {
@@ -1128,6 +1509,7 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( MakeStructPtr & ptr ) {
         dtag(HASH_TAG("MakeStructPtr"));
+        DAS_SER_PROFILE(*this, "MakeStruct");
         bool is_null = ptr == nullptr;
         *this << is_null;
         if ( is_null ) {
@@ -1145,14 +1527,27 @@ namespace das {
     }
 
     AstSerializer & AstSerializer::operator << ( Module & module ) {
-        thisModule = &module;
-        module.serialize(*this, /*already_exists*/false);
-        return *this;
+        return serializeModule(module, /*already_exists*/false);
     }
 
     AstSerializer & AstSerializer::serializeModule ( Module & module, bool already_exists ) {
         thisModule = &module;
-        module.serialize(*this, already_exists);
+        if ( writing ) {
+            module.serialize(*this, already_exists);
+            return *this;
+        }
+        // reading: Module::serialize restores moduleFlags - builtIn among them - before the body
+        // is read, so a record that throws partway would leave a module flagged builtIn that was
+        // never linked into the environment's module list, where ~Module's unlink walk finds
+        // nothing and asserts. Put the flag back before the exception reaches a caller that
+        // disposes of the module; the callers that keep it re-establish builtIn via promoteToBuiltin
+        const bool wasBuiltIn = module.builtIn;
+        try {
+            module.serialize(*this, already_exists);
+        } catch ( ... ) {
+            module.builtIn = wasBuiltIn;
+            throw;
+        }
         return *this;
     }
 
@@ -1167,6 +1562,14 @@ namespace das {
 
     void TypeDecl::serialize ( AstSerializer & ser ) {
         ser.dtag(HASH_TAG("TypeDecl"));
+        DAS_SER_PROFILE(ser, "TypeDecl");
+#if DAS_SERIALIZE_PROFILE
+        uint64_t profStart = ser.profPosition();
+        struct ProfTypeEnd {
+            AstSerializer & ser; const TypeDecl * type; uint64_t start;
+            ~ProfTypeEnd () { if ( ser.writing ) ser.profType(type, ser.profPosition() - start); }
+        } profTypeEnd { ser, this, profStart };
+#endif
         ser << baseType;
         switch ( baseType ) {
             case Type::typeMacro:
@@ -1339,7 +1742,13 @@ namespace das {
         // autoinfer firstType (FIXED_ARRAY_REWORK.md, 1b)
         ser << typeMacroExpr;
 
-        ser << flags << at << module;
+        if ( ser.writing ) {
+            uint32_t streamed = flags & ~aliasCacheFlagsMask();
+            ser << streamed;
+        } else {
+            ser << flags;
+        }
+        ser << at << module;
     }
 
     void AnnotationArgument::serialize ( AstSerializer & ser ) {
@@ -1354,7 +1763,12 @@ namespace das {
 
     void AnnotationDeclaration::serialize ( AstSerializer & ser ) {
         ser.dtag(HASH_TAG("AnnotationDeclaration"));
-        ser << annotation << arguments << at << flags;
+        ser << annotation;
+        {
+            DAS_SER_PROFILE(ser, "AnnotationDecl.arguments");
+            ser << arguments;
+        }
+        ser << at << flags;
     }
 
     void ptr_ref_count::serialize ( AstSerializer & ser ) {
@@ -1364,6 +1778,7 @@ namespace das {
 
     void Structure::FieldDeclaration::serialize ( AstSerializer & ser ) {
         ser.dtag(HASH_TAG("FieldDeclaration"));
+        DAS_SER_PROFILE(ser, "FieldDecl");
         ser << name << at;
         ser << type;
         ser.ignoreEmptyExternal = true;
@@ -1374,10 +1789,12 @@ namespace das {
 
     void Enumeration::EnumEntry::serialize( AstSerializer & ser ) {
         ser.dtag(HASH_TAG("EnumEntry"));
+        DAS_SER_PROFILE(ser, "EnumEntry");
         ser << name << cppName << at << value;
     }
 
     void serializeAnnotationList ( AstSerializer & ser, AnnotationList & list ) {
+        DAS_SER_PROFILE(ser, "AnnotationList");
         if ( ser.writing ) {
             uint64_t size = 0;
         // count the real size without generated annotations
@@ -1401,6 +1818,7 @@ namespace das {
     }
 
     void Enumeration::serialize ( AstSerializer & ser ) {
+        DAS_SER_PROFILE(ser, "Enumeration");
         ser.tag(HASH_TAG("Enumeration"));
         ser << name     << cppName  << at << list << module
             << external << baseType << isPrivate;
@@ -1408,10 +1826,18 @@ namespace das {
     }
 
     void Structure::serialize ( AstSerializer & ser ) {
+        DAS_SER_PROFILE(ser, "Structure");
         ser.tag(HASH_TAG("Structure"));
         ser << name;
         ser << at     << module;
-        ser << fields << fieldLookup;
+        {
+            DAS_SER_PROFILE(ser, "Structure.fields");
+            ser << fields;
+        }
+        {
+            DAS_SER_PROFILE(ser, "Structure.fieldLookup");
+            ser << fieldLookup;
+        }
         ser << aliases;
         // A cross-module parent may live in another module whose content is NOT in this
         // stream; serializePointer binds it by name to the real library structure, avoiding
@@ -1429,13 +1855,15 @@ namespace das {
     }
 
     void Variable::serialize ( AstSerializer & ser ) {
+        DAS_SER_PROFILE(ser, "Variable");
         ser.tag(HASH_TAG("Variable"));
-        ser << name << aka << type << init << source << at << index << stackTop
+        ser << name << aka << type << init << source << at << stackTop
             << extraLocalOffset << module
             << initStackSize << flags << access_flags << access_info << annotation;
     }
 
     void Function::AliasInfo::serialize ( AstSerializer & ser ) {
+        DAS_SER_PROFILE(ser, "AliasInfo");
         ser.tag(HASH_TAG("AliasInfo"));
         // var is often a global owned by ANOTHER module (deriveAliasing pulls
         // useGlobalVariables transitively across modules). The owning module's content is
@@ -1460,26 +1888,60 @@ namespace das {
 
 // function
 
+    // a function has a restorable identity only while its module still lists it
+    static bool moduleListsFunction ( Function * fn ) {
+        if ( !fn || !fn->module ) return false;
+        auto hName = hash64z(fn->name.c_str());
+        if ( auto it = fn->module->functionsByName.find(hName) ) {
+            for ( auto & f : it->second ) if ( f==fn ) return true;
+        }
+        if ( auto it = fn->module->genericsByName.find(hName) ) {
+            for ( auto & f : it->second ) if ( f==fn ) return true;
+        }
+        return false;
+    }
+
     void Function::serialize ( AstSerializer & ser ) {
+        DAS_SER_PROFILE(ser, "Function");
         ser.tag(HASH_TAG("Function"));
         ser << name;
         // Note: important fields are placed separately for easier debugging
         serializeAnnotationList(ser, annotations);
-        ser.ignoreEmptyExternal = true;
-        ser << arguments;
-        ser.ignoreEmptyExternal = false;
-        ser << result;
-        ser << body;
+        {
+            DAS_SER_PROFILE(ser, "Function.arguments");
+            ser.ignoreEmptyExternal = true;
+            ser << arguments;
+            ser.ignoreEmptyExternal = false;
+        }
+        {
+            DAS_SER_PROFILE(ser, "Function.result");
+            ser << result;
+        }
+        {
+            DAS_SER_PROFILE(ser, "Function.body");
+            ser << body;
+        }
+        DAS_SER_PROFILE(ser, "Function.tail");
         // cross-module by name, else inline smart-map — see Structure::serialize (parent)
         bool classParentCross = ser.writing && classParent && classParent->module && classParent->module != ser.thisModule;
         ser << classParentCross;
         if ( classParentCross ) ser.serializePointer(classParent);
         else                    ser << classParent;
-        //ser << fromGeneric;
-        ser << index         << totalStackSize  << totalGenLabel;
+        // usually another module's generic, so it binds by name - see Structure::serialize
+        // (parent). an origin its module no longer lists has no identity to write
+        if ( ser.writing ) {
+            Function * origin = moduleListsFunction(fromGeneric) ? fromGeneric : nullptr;
+            ser.serializePointer(origin);
+        } else {
+            ser.serializePointer(fromGeneric);
+        }
+        ser << totalStackSize  << totalGenLabel;
         ser << at            << atDecl          << module;
         ser << hash          << aotHash;  // do not serialize inferStack
-        ser << resultAliases << argumentAliases << resultAliasesGlobals;
+        {
+            DAS_SER_PROFILE(ser, "Function.aliases");
+            ser << resultAliases << argumentAliases << resultAliasesGlobals;
+        }
         ser << flags         << moreFlags       << moreFlags2      << sideEffectFlags;
     }
 
@@ -1608,7 +2070,7 @@ namespace das {
 
     void SerializeVisitor::serializeConst ( ExprConst * expr ) {
         serializeBase(expr);
-        ser << expr->baseType << expr->value << expr->foldedNonConst << expr->promotedFromInt << expr->inexactFloatPromotion;
+        ser << expr->baseType << expr->value << expr->foldedNonConst << expr->promotedFromInt << expr->inexactFloatPromotion << expr->isConstLiteral;
     }
 
     void SerializeVisitor::serializeMakeLocal ( ExprMakeLocal * expr ) {
@@ -1651,7 +2113,7 @@ namespace das {
                 mangledName = expr->value->type->structType->getMangledName();
                 ser << expr->value->type->structType->module;
             }
-            ser << mangledName;
+            ser.serializeTemp(mangledName);
             if ( expr->annotation != nullptr && expr->annotation->getFieldOffset(expr->name) == static_cast<uint32_t>(-1) ) {
                 LOG(LogLevel::warning) << "das: serialize: Field '" << expr->name << "' not found in '" << expr->annotation->name << "'";
             }
@@ -1662,14 +2124,14 @@ namespace das {
             bool has_field = false; ser << has_field;
             if ( !has_field ) return;
             Module * module = nullptr; ser << module;
-            string mangledName; ser << mangledName;
+            string mangledName; ser.serializeTemp(mangledName);
             ser.fieldRefs.emplace_back(&expr->fieldRef, module, das::move(mangledName), expr->name);
         }
     }
 
     void SerializeVisitor::serializeMakeArray ( ExprMakeArray * expr ) {
         serializeMakeLocal(expr);
-        ser << expr->recordType << expr->values << expr->gen2 << expr->makeArrayOnHeap;
+        ser << expr->recordType << expr->values << expr->gen2 << expr->makeArrayOnHeap << expr->constValues;
     }
 
     void SerializeVisitor::preVisitExpression ( Expression * expr ) {
@@ -1728,7 +2190,7 @@ namespace das {
     void SerializeVisitor::preVisit ( ExprNullCoalescing * expr ) {
         ser.dtag(HASH_TAG("ExprNullCoalescing"));
         serializePtr2Ref(expr);
-        ser << expr->defaultValue;
+        ser << expr->defaultValue << expr->no_promotion;
     }
 
     void SerializeVisitor::preVisit ( ExprDelete * expr ) {
@@ -1755,7 +2217,7 @@ namespace das {
             ser << thisBlockId;
         } else {
             SerializeNodeId thisBlockId; ser << thisBlockId;
-            ser.exprBlockMap.emplace(thisBlockId, expr);
+            ser.setReadNode(thisBlockId, expr);
         }
 
         ser << expr->list << expr->finalList << expr->returnType << expr->arguments << expr->stackTop
@@ -1784,7 +2246,8 @@ namespace das {
                 ser << expr->variable; // serialize as smart pointer
             } else {
                 ser << expr->variable->name;
-                ser << expr->variable->module->nameHash;
+                Module * module = expr->variable->module;
+                ser << module;
             }
         } else {
 
@@ -1793,10 +2256,10 @@ namespace das {
                 ser << expr->variable;
             } else {
                 string varname;
-                uint64_t modname = 0;
-                ser << varname << modname;
-                auto mod = ser.moduleLibrary->findModuleByMangledNameHash(modname);
-                SERIALIZER_VERIFYF(mod, "expected to find module '%llu'", modname);
+                Module * mod = nullptr;
+                ser.serializeTemp(varname);
+                ser << mod;
+                SERIALIZER_VERIFYF(mod, "expected to find the module of variable '%s'", varname.c_str());
                 expr->variable = mod->findVariable(varname);
             }
 
@@ -1871,6 +2334,7 @@ namespace das {
 
     void SerializeVisitor::preVisit ( ExprClone * expr ) {
         serializeOp2(expr);
+        ser << expr->cloneFlags;
     }
 
     void SerializeVisitor::preVisit ( ExprOp3 * expr ) {
@@ -1994,7 +2458,7 @@ namespace das {
 
     void SerializeVisitor::preVisit ( ExprIs * expr ) {
         serializeBase(expr);
-        ser << expr->subexpr << expr->typeexpr;
+        ser << expr->subexpr << expr->typeexpr << expr->no_promotion;
     }
 
     void SerializeVisitor::preVisit ( ExprAscend * expr ) {
@@ -2057,26 +2521,50 @@ namespace das {
         ser << expr->typeexpr;
     }
 
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     AstSerializer & AstSerializer::operator << ( ExpressionPtr & expr ) {
         dtag(HASH_TAG("ExpressionPtr"));
-        bool is_null = expr == nullptr;
-        *this << is_null;
-        if ( is_null ) {
-            if ( !writing ) expr = nullptr;
-            return *this;
-        }
+        DAS_SER_PROFILE(*this, "ExpressionPtr");
         SerializeVisitor sv(*this);
         if ( writing ) {
+            if ( !expr ) {
+                uint32_t null = 0;
+                serializeAdaptiveSize32(null);
+                return *this;
+            }
             uint32_t rtti = hash_tag(expr->__rtti);
             DAS_ASSERT(rtti);
-            *this << rtti;
+            auto & number = writeExprClasses[rtti];
+            if ( number == 0 ) {
+                number = uint32_t(writeExprClasses.size());
+                serializeAdaptiveSize32(number);
+                serialize(rtti);
+            } else {
+                serializeAdaptiveSize32(number);
+            }
+            DAS_SER_PROFILE(*this, expr->__rtti);
             expr->dispatch(sv);
         } else {
-            uint32_t rtti = 0; *this << rtti;
-            auto itA = rttiHash2Annotation.find(rtti);
-            SERIALIZER_VERIFYF(itA != rttiHash2Annotation.end(), "annotation '%u' is not found", rtti);
-            auto annotation = itA->second;
+            uint32_t number = 0;
+            serializeAdaptiveSize32(number);
+            if ( number == 0 ) {
+                expr = nullptr;
+                return *this;
+            }
+            Annotation * annotation;
+            if ( number <= readExprClasses.size() ) {
+                annotation = readExprClasses[number - 1];
+            } else {
+                SERIALIZER_VERIFYF(number == readExprClasses.size() + 1, "corrupt stream: expression class #%u past the %u numbered so far",
+                    number, unsigned(readExprClasses.size()));
+                uint32_t rtti = 0; serialize(rtti);
+                auto itA = rttiHash2Annotation.find(rtti);
+                SERIALIZER_VERIFYF(itA != rttiHash2Annotation.end(), "annotation '%u' is not found", rtti);
+                annotation = itA->second;
+                readExprClasses.push_back(annotation);
+            }
             expr = (Expression *) static_cast<TypeAnnotation*>(annotation)->factory();
+            DAS_SER_PROFILE(*this, annotation->name.c_str());
             expr->dispatch(sv);
         }
         dtag(HASH_TAG("/ExpressionPtr"));
@@ -2124,17 +2612,19 @@ namespace das {
 
     AstSerializer & AstSerializer::operator << ( CallMacro * & ptr ) {
         dtag(HASH_TAG("CallMacro *"));
+        DAS_SER_PROFILE(*this, "CallMacro*");
         if ( writing ) {
             SERIALIZER_VERIFYF ( ptr, "did not expect to see a nullptr CallMacro *" );
             SERIALIZER_VERIFYF ( !(ptr->module == thisModule), "did not expect to find macro from the current module" );
-            *this << ptr->module->nameHash;
+            Module * module = ptr->module;
+            *this << module;
             *this << ptr->name;
         } else {
-            uint64_t moduleName = 0;
+            Module * mod = nullptr;
             string name;
-            *this << moduleName << name;
-            auto mod = moduleLibrary->findModuleByMangledNameHash(moduleName);
-            SERIALIZER_VERIFYF(mod!=nullptr, "module '%llu' not found", moduleName);
+            *this << mod;
+            serializeTemp(name);
+            SERIALIZER_VERIFYF(mod!=nullptr, "module of call macro '%s' not found", name.c_str());
         // perform a litte dance to access the internal macro;
         // for details see: src/builtin/module_builtin_ast_adapters.cpp
         // 1564: void addModuleCallMacro ( .... CallMacroPtr & .... )
@@ -2189,6 +2679,8 @@ namespace das {
                 program->thisModuleGroup = ser.thisModuleGroup;
                 program->thisModuleName.clear();
                 program->library.reset();
+                program->policies.jit_enabled = ser.readJitEnabled;     // the two things the cold path's program also carries
+                program->options = ser.readOptions;
                 program->policies.stack = 64 * 1024;
                 program->thisModule.release();
                 program->thisModule.reset(this_mod);
@@ -2220,9 +2712,10 @@ namespace das {
     }
 
     void serializeUseFunctions ( AstSerializer & ser, const FunctionPtr & f ) {
+        DAS_SER_PROFILE(ser, "UseFunctions");
         ser.tag(HASH_TAG("serializeUseFunctions"));
         if ( ser.writing ) {
-            string fname = f->name; ser << fname;
+            ser << f->name;
             uint64_t sz = f->useFunctions.size();
             ser << sz;
             for ( auto & usedFun : f->useFunctions ) {
@@ -2230,19 +2723,19 @@ namespace das {
                 bool builtin = usedFun->module->builtIn || usedFun->module != f->module;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = usedFun->module->nameHash;
+                    Module * module = usedFun->module;
                     uint64_t mnh = usedFun->getMangledNameHash();
                     ser << module << mnh;
                 } else {
                     auto fid = ser.getSerializeId(usedFun);
-                    if ( ser.smartFunctionMap.find(fid) == ser.smartFunctionMap.end() )
+                    if ( !ser.isWritten(fid) )
                         LOG(LogLevel::warning) << "das: serialize: [write] unregistered id for function '" << usedFun->name
                             << "' of module '" << usedFun->module->name << "' in use-set of fn '" << f->name << "' - will be unresolvable on read\n";
                     ser << fid;
                 }
             }
         } else {
-            string fname; ser << fname;
+            string fname; ser.serializeTemp(fname);
             SERIALIZER_VERIFYF(fname == f->name, "expected to serialize in the same order: %s != %s", fname.c_str(), f->name.c_str());
             uint64_t size = 0; ser << size;
             f->useFunctions.reserve(size);
@@ -2250,21 +2743,20 @@ namespace das {
                 bool builtin = false;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = 0;
+                    Module * pModule = nullptr;
                     uint64_t mnh = 0;
-                    ser << module << mnh;
-                    auto pModule = ser.moduleLibrary->findModuleByMangledNameHash(module);
-                    SERIALIZER_VERIFYF(pModule, "expected to find module '%llu' (useFunctions[%llu/%llu] of function '%s')",
-                        (unsigned long long) module, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    ser << pModule << mnh;
+                    SERIALIZER_VERIFYF(pModule, "expected to find the module (useFunctions[%llu/%llu] of function '%s')",
+                        (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     auto fun = pModule->findFunctionByMangledNameHash(mnh);
                     SERIALIZER_VERIFYF(fun, "expected to find function (mnh %llu in module '%s', useFunctions[%llu/%llu] of function '%s')",
                         (unsigned long long) mnh, pModule->name.c_str(), (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useFunctions.emplace(fun);
                 } else {
                     SerializeNodeId fid; ser << fid;
-                    auto fun = ser.smartFunctionMap[fid];
-                    SERIALIZER_VERIFYF(fun, "expected to find function (id %p:%llu, useFunctions[%llu/%llu] of function '%s')",
-                        fid.ptr, (unsigned long long) fid.epoch, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    auto fun = ser.readNode<Function>(fid);
+                    SERIALIZER_VERIFYF(fun, "expected to find function (id #%u, useFunctions[%llu/%llu] of function '%s')",
+                        fid.index, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useFunctions.emplace(fun);
                 }
             }
@@ -2272,9 +2764,10 @@ namespace das {
     }
 
     void serializeUseFunctions ( AstSerializer & ser, const VariablePtr & f ) {
+        DAS_SER_PROFILE(ser, "UseFunctions");
         ser.tag(HASH_TAG("serializeUseFunctions"));
         if ( ser.writing ) {
-            string name = f->name; ser << name;
+            ser << f->name;
             uint64_t sz = f->useFunctions.size();
             ser << sz;
             for ( auto & usedFun : f->useFunctions ) {
@@ -2282,19 +2775,19 @@ namespace das {
                 bool builtin = usedFun->module->builtIn || usedFun->module != f->module;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = usedFun->module->nameHash;
+                    Module * module = usedFun->module;
                     uint64_t mnh = usedFun->getMangledNameHash();
                     ser << module << mnh;
                 } else {
                     auto fid = ser.getSerializeId(usedFun);
-                    if ( ser.smartFunctionMap.find(fid) == ser.smartFunctionMap.end() )
+                    if ( !ser.isWritten(fid) )
                         LOG(LogLevel::warning) << "das: serialize: [write] unregistered id for function '" << usedFun->name
                             << "' of module '" << usedFun->module->name << "' in use-set of global '" << f->name << "' - will be unresolvable on read\n";
                     ser << fid;
                 }
             }
         } else {
-            string name; ser << name;
+            string name; ser.serializeTemp(name);
             SERIALIZER_VERIFYF(name == f->name, "expected to serialize in the same order: %s != %s", name.c_str(), f->name.c_str());
             uint64_t size = 0; ser << size;
             f->useFunctions.reserve(size);
@@ -2302,21 +2795,20 @@ namespace das {
                 bool builtin = false;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = 0;
+                    Module * pModule = nullptr;
                     uint64_t mnh = 0;
-                    ser << module << mnh;
-                    auto pModule = ser.moduleLibrary->findModuleByMangledNameHash(module);
-                    SERIALIZER_VERIFYF(pModule, "expected to find module '%llu' (useFunctions[%llu/%llu] of global '%s')",
-                        (unsigned long long) module, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    ser << pModule << mnh;
+                    SERIALIZER_VERIFYF(pModule, "expected to find the module (useFunctions[%llu/%llu] of global '%s')",
+                        (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     auto fun = pModule->findFunctionByMangledNameHash(mnh);
                     SERIALIZER_VERIFYF(fun, "expected to find function (mnh %llu in module '%s', useFunctions[%llu/%llu] of global '%s')",
                         (unsigned long long) mnh, pModule->name.c_str(), (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useFunctions.emplace(fun);
                 } else {
                     SerializeNodeId fid; ser << fid;
-                    auto fun = ser.smartFunctionMap[fid];
-                    SERIALIZER_VERIFYF(fun, "expected to find function (id %p:%llu, useFunctions[%llu/%llu] of global '%s')",
-                        fid.ptr, (unsigned long long) fid.epoch, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    auto fun = ser.readNode<Function>(fid);
+                    SERIALIZER_VERIFYF(fun, "expected to find function (id #%u, useFunctions[%llu/%llu] of global '%s')",
+                        fid.index, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useFunctions.emplace(fun);
                 }
             }
@@ -2324,9 +2816,10 @@ namespace das {
     }
 
     void serializeUseVariables ( AstSerializer & ser, const FunctionPtr & f ) {
+        DAS_SER_PROFILE(ser, "UseVariables");
         ser.tag(HASH_TAG("serializeUseVariables"));
         if ( ser.writing ) {
-            string name = f->name; ser << name;
+            ser << f->name;
             uint64_t sz = f->useGlobalVariables.size();
             ser << sz;
             for ( auto & use : f->useGlobalVariables ) {
@@ -2337,19 +2830,18 @@ namespace das {
                 bool builtin = use->module->builtIn || use->module != f->module;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = use->module->nameHash;
-                    string varname = use->name;
-                    ser << module << varname;
+                    Module * module = use->module;
+                    ser << module << use->name;
                 } else {
                     auto vid = ser.getSerializeId(use);
-                    if ( ser.smartVariableMap.find(vid) == ser.smartVariableMap.end() )
+                    if ( !ser.isWritten(vid) )
                         LOG(LogLevel::warning) << "das: serialize: [write] unregistered id for variable '" << use->name
                             << "' of module '" << use->module->name << "' in use-set of fn '" << f->name << "' - will be unresolvable on read\n";
                     ser << vid;
                 }
             }
         } else {
-            string name; ser << name;
+            string name; ser.serializeTemp(name);
             SERIALIZER_VERIFYF(name == f->name, "expected to serialize in the same order: %s %s", name.c_str(), f->name.c_str());
             uint64_t size = 0; ser << size;
             f->useGlobalVariables.reserve(size);
@@ -2357,21 +2849,21 @@ namespace das {
                 bool builtin = false;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = 0;
+                    Module * pModule = nullptr;
                     string varname;
-                    ser << module << varname;
-                    auto pModule = ser.moduleLibrary->findModuleByMangledNameHash(module);
-                    SERIALIZER_VERIFYF(pModule, "expected to find module '%llu' (useGlobalVariables[%llu/%llu] of function '%s')",
-                        (unsigned long long) module, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    ser << pModule;
+                    ser.serializeTemp(varname);
+                    SERIALIZER_VERIFYF(pModule, "expected to find the module (useGlobalVariables[%llu/%llu] of function '%s')",
+                        (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     auto var = pModule->findVariable(varname);
                     SERIALIZER_VERIFYF(var, "expected to find variable '%s::%s' (useGlobalVariables[%llu/%llu] of function '%s')",
                         pModule->name.c_str(), varname.c_str(), (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useGlobalVariables.emplace(var);
                 } else {
                     SerializeNodeId vid; ser << vid;
-                    auto var = ser.smartVariableMap[vid];
-                    SERIALIZER_VERIFYF(var, "expected to find variable (id %p:%llu, useGlobalVariables[%llu/%llu] of function '%s')",
-                        vid.ptr, (unsigned long long) vid.epoch, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    auto var = ser.readNode<Variable>(vid);
+                    SERIALIZER_VERIFYF(var, "expected to find variable (id #%u, useGlobalVariables[%llu/%llu] of function '%s')",
+                        vid.index, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useGlobalVariables.emplace(var);
                 }
             }
@@ -2379,9 +2871,10 @@ namespace das {
     }
 
     void serializeUseVariables ( AstSerializer & ser, const VariablePtr & f ) {
+        DAS_SER_PROFILE(ser, "UseVariables");
         ser.tag(HASH_TAG("serializeUseVariables"));
         if ( ser.writing ) {
-            string name = f->name; ser << name;
+            ser << f->name;
             uint64_t sz = f->useGlobalVariables.size();
             ser << sz;
             for ( auto & use : f->useGlobalVariables ) {
@@ -2389,19 +2882,18 @@ namespace das {
                 bool builtin = use->module->builtIn || use->module != f->module;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = use->module->nameHash;
-                    string varname = use->name;
-                    ser << module << varname;
+                    Module * module = use->module;
+                    ser << module << use->name;
                 } else {
                     auto vid = ser.getSerializeId(use);
-                    if ( ser.smartVariableMap.find(vid) == ser.smartVariableMap.end() )
+                    if ( !ser.isWritten(vid) )
                         LOG(LogLevel::warning) << "das: serialize: [write] unregistered id for variable '" << use->name
                             << "' of module '" << use->module->name << "' in use-set of global '" << f->name << "' - will be unresolvable on read\n";
                     ser << vid;
                 }
             }
         } else {
-            string name; ser << name;
+            string name; ser.serializeTemp(name);
             SERIALIZER_VERIFYF(name == f->name, "expected to serialize in the same order: %s != %s", name.c_str(), f->name.c_str());
             uint64_t size = 0; ser << size;
             f->useGlobalVariables.reserve(size);
@@ -2409,21 +2901,21 @@ namespace das {
                 bool builtin = false;
                 ser << builtin;
                 if ( builtin ) {
-                    uint64_t module = 0;
+                    Module * pModule = nullptr;
                     string varname;
-                    ser << module << varname;
-                    auto pModule = ser.moduleLibrary->findModuleByMangledNameHash(module);
-                    SERIALIZER_VERIFYF(pModule, "expected to find module '%llu' (useGlobalVariables[%llu/%llu] of global '%s')",
-                        (unsigned long long) module, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    ser << pModule;
+                    ser.serializeTemp(varname);
+                    SERIALIZER_VERIFYF(pModule, "expected to find the module (useGlobalVariables[%llu/%llu] of global '%s')",
+                        (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     auto var = pModule->findVariable(varname);
                     SERIALIZER_VERIFYF(var, "expected to find variable '%s::%s' (useGlobalVariables[%llu/%llu] of global '%s')",
                         pModule->name.c_str(), varname.c_str(), (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useGlobalVariables.emplace(var);
                 } else {
                     SerializeNodeId vid; ser << vid;
-                    auto var = ser.smartVariableMap[vid];
-                    SERIALIZER_VERIFYF(var, "expected to find variable (id %p:%llu, useGlobalVariables[%llu/%llu] of global '%s')",
-                        vid.ptr, (unsigned long long) vid.epoch, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
+                    auto var = ser.readNode<Variable>(vid);
+                    SERIALIZER_VERIFYF(var, "expected to find variable (id #%u, useGlobalVariables[%llu/%llu] of global '%s')",
+                        vid.index, (unsigned long long) i, (unsigned long long) size, f->name.c_str());
                     f->useGlobalVariables.emplace(var);
                 }
             }
@@ -2469,12 +2961,16 @@ namespace das {
             uint64_t size = functions.unlocked_size(); ser << size;
             functions.foreach ( [&] ( FunctionPtr g ) {
                 string name = g->getMangledName();
-                ser << name << g;
+                {
+                    DAS_SER_PROFILE(ser, "Functions.mangledName");
+                    ser.serializeTemp(name);
+                }
+                ser << g;
             });
         } else {
             uint64_t size = 0; ser << size;
             for ( uint64_t i = 0; i < size; i++ ) {
-                string name; ser << name;
+                string name; ser.serializeTemp(name);
                 FunctionPtr g = nullptr; ser << g;
                 SERIALIZER_VERIFYF(g!=nullptr, "expected to find function");
                 functions.insert(name, g);
@@ -2491,12 +2987,14 @@ namespace das {
         } else {
             uint64_t size = 0;
             ser.serializeAdaptiveSize64(size);
+            ser.verifyLength(size);
             functions.resize(size);
             for ( auto & f : functions ) ser.serializePointer(f);
         }
     }
 
     void serializeFunctionsByName ( AstSerializer & ser, fragile_hash<vector<Function *>> & functionsByName ) {
+        DAS_SER_PROFILE(ser, "FunctionsByName");
         if ( ser.writing ) {
             uint32_t capacity = functionsByName.capacity();
             uint32_t size = functionsByName.size();
@@ -2511,6 +3009,9 @@ namespace das {
         } else {
             uint32_t capacity = 0; ser << capacity;
             uint32_t size = 0; ser << size;
+            // capacity is deliberately NOT length-checked: an over-reserved table's bucket
+            // count can legitimately exceed the bytes left; size is a true element count
+            ser.verifyLength(size);
             functionsByName.reserve(capacity);
             for ( uint32_t i = 0; i < size; i++ ) {
                 uint64_t nameHash = 0; ser << nameHash;
@@ -2522,8 +3023,21 @@ namespace das {
     }
 
     void Module::serialize ( AstSerializer & ser, bool already_exists ) {
+        DAS_SER_PROFILE(ser, "Module");
         ser.tag(HASH_TAG("Module"));
-        ser << name << nameHash << moduleFlags;
+        // builtIn / promoted say whether this module is linked into daScriptEnvironment::modules,
+        // which is a fact about the running process, not about the stream. Restoring them hands
+        // back a module that claims to be a promoted builtin without ever having been linked, and
+        // the next promoteToBuiltin trips its own assert on it
+        const bool selfBuiltIn = builtIn;
+        const bool selfPromoted = promoted;
+        if ( ser.writing ) {
+            builtIn = false;
+            promoted = false;
+        }
+        ser << name << nameHash << moduleFlags << inlineTempIndex;
+        builtIn = selfBuiltIn;
+        promoted = selfPromoted;
         ser << annotationData << requireModule;
         // das-declared distinct types round-trip with the module (C++-module annotations
         // re-register on load, parser-created ones don't). they stream BEFORE aliasTypes and
@@ -2550,14 +3064,23 @@ namespace das {
                 LineInfo dat;
                 bool dpriv = false;
                 TypeDeclPtr dunder = nullptr;
-                ser << dname << dcppName << dat << dpriv << dunder;
+                ser.serializeTemp(dname);
+                ser.serializeTemp(dcppName);
+                ser << dat << dpriv << dunder;
                 auto dann = new DistinctTypeAnnotation(dname, dunder, dcppName);
                 dann->at = dat;
                 dann->isPrivate = dpriv;
                 addAnnotation(dann, true);
             }
         }
-        ser << aliasTypes     << enumerations;
+        {
+            DAS_SER_PROFILE(ser, "Module.aliasTypes");
+            ser << aliasTypes;
+        }
+        {
+            DAS_SER_PROFILE(ser, "Module.enumerations");
+            ser << enumerations;
+        }
         /*
         // serialize handleTypes (annotation lookup table)
         if ( ser.writing ) {
@@ -2582,23 +3105,48 @@ namespace das {
             }
         }
         */
-        ser << keywords;
-        ser << typeFunctions;
-        serializeGlobals(ser, globals); // globals require insertion in the same order
-        serializeStructures(ser, structures);
-        serializeFunctions(ser, functions);
+        {
+            DAS_SER_PROFILE(ser, "Module.keywords");
+            ser << keywords;
+        }
+        {
+            DAS_SER_PROFILE(ser, "Module.typeFunctions");
+            ser << typeFunctions;
+        }
+        {
+            DAS_SER_PROFILE(ser, "Module.globals");
+            serializeGlobals(ser, globals); // globals require insertion in the same order
+        }
+        {
+            DAS_SER_PROFILE(ser, "Module.structures");
+            serializeStructures(ser, structures);
+        }
+        {
+            DAS_SER_PROFILE(ser, "Module.functions");
+            serializeFunctions(ser, functions);
+        }
         if ( ser.failed ) return;
-        serializeFunctions(ser, generics);
+        {
+            DAS_SER_PROFILE(ser, "Module.generics");
+            serializeFunctions(ser, generics);
+        }
         if ( ser.failed ) return;
-        serializeFunctionsByName(ser, functionsByName);
-        serializeFunctionsByName(ser, genericsByName);
+        {
+            DAS_SER_PROFILE(ser, "Module.functionsByName");
+            serializeFunctionsByName(ser, functionsByName);
+        }
+        {
+            DAS_SER_PROFILE(ser, "Module.genericsByName");
+            serializeFunctionsByName(ser, genericsByName);
+        }
         ser << ownFileInfo;     //<< promotedAccess;
 
+        DAS_SER_PROFILE(ser, "Module.useSets");
         functions.foreach ([&] ( FunctionPtr f ) {
             if ( ser.writing ) {
                 ser << f->name;
             } else {
-                string fname; ser << fname;
+                string fname; ser.serializeTemp(fname);
                 SERIALIZER_VERIFYF(fname == f->name, "expected to walk in the same order: %s != %s", fname.c_str(), f->name.c_str());
             }
             serializeUseVariables(ser, f);
@@ -2609,7 +3157,7 @@ namespace das {
             if ( ser.writing ) {
                 ser << f->name;
             } else {
-                string fname; ser << fname;
+                string fname; ser.serializeTemp(fname);
                 SERIALIZER_VERIFYF(fname == f->name, "expected to walk in the same order: %s != %s", fname.c_str(), f->name.c_str());
             }
             serializeUseVariables(ser, f);
@@ -2633,7 +3181,9 @@ namespace das {
 
         // Now we need to restore the internal state in case this has been a macro module
 
+        auto finalize0 = ref_time_ticks();
         finalizeModule(ser, *ser.moduleLibrary, this, already_exists);
+        if ( !ser.writing ) ser.totFinalizeTime += get_time_usec(finalize0);
     }
 
     class TopSort {
@@ -2649,10 +3199,11 @@ namespace das {
             return das::move(sorted);
         }
 
-        vector<Module*> getDependecyOrdered() {
+        vector<Module*> getDependecyOrderedEndingWith(Module * last) {
             for ( auto mod : input ) {
-                visit(mod);
+                if ( mod != last ) visit(mod);
             }
+            visit(last);
             return das::move(sorted);
         }
 
@@ -2685,97 +3236,48 @@ namespace das {
     };
 
 
+    #define DAS_MODULE_CACHE_POLICY_FIELDS(X) \
+        X(aot) X(aot_module) X(aot_macros) X(tune_frozen) X(completion) X(building_documentation) \
+        X(export_all) X(serialize_main_module) X(keep_alive) X(very_safe_context) X(max_infer_passes) \
+        X(max_call_depth) X(verify_infer_types) X(stack) X(intern_strings) X(persistent_heap) \
+        X(multiple_contexts) X(heap_size_hint) X(string_heap_size_hint) X(solid_context) \
+        X(macro_context_persistent_heap) X(macro_context_collect) X(max_static_variables_size) \
+        X(max_heap_allocated) X(max_string_heap_allocated) X(max_unreserved_size) X(track_allocations) \
+        X(rtti) X(unsafe_table_lookup) X(relaxed_pointer_const) X(version_2_syntax) X(gen2_make_syntax) \
+        X(relaxed_assign) X(no_unsafe) X(local_ref_is_unsafe) X(with_module_is_unsafe) \
+        X(no_global_variables) X(no_global_variables_at_all) X(no_global_heap) X(only_fast_aot) \
+        X(aot_order_side_effects) X(no_unused_function_arguments) X(no_unused_block_arguments) \
+        X(allow_block_variable_shadowing) X(allow_local_variable_shadowing) X(allow_shared_lambda) \
+        X(ignore_shared_modules) X(default_module_public) X(no_deprecated) X(no_aliasing) \
+        X(strict_smart_pointers) X(no_init) X(strict_unsafe_delete) X(no_members_functions_in_struct) \
+        X(no_local_class_members) X(no_unsafe_uninitialized_structures) X(default_init_containers) \
+        X(strict_properties) X(no_writing_to_nameless) X(no_optimizations) X(no_fold_unsafe) X(fast_math) X(disable_dse) \
+        X(disable_cse) X(disable_temp_string_reclaim) X(disable_inline) X(disable_auto_inline) \
+        X(auto_inline_functions) X(auto_inline_cost) X(disable_run) X(no_infer_time_folding) \
+        X(fail_on_no_aot) X(fail_on_lack_of_aot_export) X(no_fast_call) X(max_fast_call_depth) X(fusion) X(scoped_stack_allocator) \
+        X(force_inscope_pod) X(log_inscope_pod) X(debugger) X(profiler) X(jit_enabled) \
+        X(jit_jit_all_functions) X(jit_debug_info) X(jit_opt_level) X(jit_size_level) X(jit_dll_mode) \
+        X(jit_output_path) X(jit_path_to_shared_lib) X(jit_path_to_linker) X(threadlock_context) \
+        X(lint_check) X(no_lint) X(abi_stamp) X(paranoid_validation) X(cross_platform) X(aot_result) \
+        X(no_init_check) X(always_report_candidates_threshold) X(jit_exe_mode) X(jit_emit_object) \
+        X(jit_emit_prologue) X(dll_search_paths) X(aot_lib) X(standalone_context) X(gc_infer_collect) \
+        X(gc_infer_collect_nodes) X(gc_infer_collect_pct) X(report_invisible_functions) \
+        X(report_private_functions) X(log_compile_time) X(log_total_compile_time) \
+        X(log_module_compile_time) X(log_optimization) X(log_optimization_passes) X(force_escape_free) \
+        X(force_allocate_on_stack) X(force_partial_escape_free) X(log_escape_analysis) X(log_gc_time) \
+        X(debug_infer_flag) X(temp_table_lint_warning) X(module_cache)
+
+    static bool cachedPoliciesMatch ( const CodeOfPolicies & a, const CodeOfPolicies & b ) {
+    #define DAS_POLICY_FIELD_SAME(f) if ( !(a.f == b.f) ) return false;
+        DAS_MODULE_CACHE_POLICY_FIELDS(DAS_POLICY_FIELD_SAME)
+    #undef DAS_POLICY_FIELD_SAME
+        return true;
+    }
+
     AstSerializer & AstSerializer::operator << ( CodeOfPolicies & value ) {
-        // This is like so because of several fields with strings
-        *this << value.aot
-              << value.aot_module
-              << value.aot_macros
-              << value.tune_frozen
-              << value.completion
-              << value.building_documentation
-              << value.export_all
-              << value.serialize_main_module
-              << value.keep_alive
-              << value.very_safe_context
-              << value.max_infer_passes
-              << value.max_call_depth
-              << value.verify_infer_types
-              << value.stack
-              << value.intern_strings
-              << value.persistent_heap
-              << value.multiple_contexts
-              << value.heap_size_hint
-              << value.string_heap_size_hint
-              << value.solid_context
-              << value.macro_context_persistent_heap
-              << value.macro_context_collect
-              << value.max_static_variables_size
-              << value.max_heap_allocated
-              << value.max_string_heap_allocated
-              << value.max_unreserved_size
-              << value.track_allocations
-              << value.rtti
-              << value.unsafe_table_lookup
-              << value.relaxed_pointer_const
-              << value.version_2_syntax
-              << value.gen2_make_syntax
-              << value.relaxed_assign
-              << value.no_unsafe
-              << value.local_ref_is_unsafe
-              << value.with_module_is_unsafe
-              << value.no_global_variables
-              << value.no_global_variables_at_all
-              << value.no_global_heap
-              << value.only_fast_aot
-              << value.aot_order_side_effects
-              << value.no_unused_function_arguments
-              << value.no_unused_block_arguments
-              << value.allow_block_variable_shadowing
-              << value.allow_local_variable_shadowing
-              << value.allow_shared_lambda
-              << value.ignore_shared_modules
-              << value.default_module_public
-              << value.no_deprecated
-              << value.no_aliasing
-              << value.strict_smart_pointers
-              << value.no_init
-              << value.strict_unsafe_delete
-              << value.no_members_functions_in_struct
-              << value.no_local_class_members
-              << value.no_unsafe_uninitialized_structures
-              << value.default_init_containers
-              << value.strict_properties
-              << value.no_writing_to_nameless
-              << value.no_optimizations
-              << value.fast_math
-              << value.disable_dse
-              << value.disable_cse
-              << value.disable_temp_string_reclaim
-              << value.disable_inline
-              << value.disable_auto_inline
-              << value.auto_inline_functions
-              << value.auto_inline_cost
-              << value.disable_run
-              << value.no_infer_time_folding
-              << value.fail_on_no_aot
-              << value.fail_on_lack_of_aot_export
-              << value.no_fast_call
-              << value.fusion
-              << value.scoped_stack_allocator
-              << value.force_inscope_pod
-              << value.log_inscope_pod
-              << value.debugger
-              << value.profiler
-              << value.jit_enabled
-              << value.jit_jit_all_functions
-              << value.jit_debug_info
-              << value.jit_opt_level
-              << value.jit_size_level
-              << value.jit_dll_mode
-              << value.jit_output_path
-              << value.jit_path_to_shared_lib
-              << value.jit_path_to_linker
-              << value.threadlock_context;
+    #define DAS_POLICY_FIELD_STREAM(f) serializeTemp(value.f);
+        DAS_MODULE_CACHE_POLICY_FIELDS(DAS_POLICY_FIELD_STREAM)
+    #undef DAS_POLICY_FIELD_STREAM
         return *this;
     }
 
@@ -2799,11 +3301,12 @@ namespace das {
     // embedders are built without exception handling, so nothing may escape this
     // rail: contain dasException here (truncated/corrupt cache streams throw from
     // the stream readers) and report failure through the failed/failToCompile flags
+    // src/builtin/ARCHITECTURE.md#module-cache-record-bytes
     void AstSerializer::serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept {
         try {
             serializeProgramImpl(program, libGroup);
         } catch ( const dasException & r ) {
-            LOG(LogLevel::warning) << "das: serialize: program " << (writing ? "write" : "read") << " failed: " << r.what() << "\n";
+            if ( !quietCache ) LOG(LogLevel::warning) << "das: serialize: program " << (writing ? "write" : "read") << " failed: " << r.what() << "\n";
             failed = true;
             seenNewModule = true;
             if ( program ) program->failToCompile = true;
@@ -2813,47 +3316,115 @@ namespace das {
             // this method is noexcept for embedders built without EH; a non-das
             // exception (e.g. std::bad_alloc deep in deserialization) escaping here
             // would std::terminate. Contain it the same way and report failure.
-            LOG(LogLevel::warning) << "das: serialize: program " << (writing ? "write" : "read") << " failed: unknown exception\n";
+            if ( !quietCache ) LOG(LogLevel::warning) << "das: serialize: program " << (writing ? "write" : "read") << " failed: unknown exception\n";
             failed = true;
             seenNewModule = true;
             if ( program ) program->failToCompile = true;
         }
+        // per-record scratch must never survive into the next record: a failed or
+        // early-returned record leaves refs whose targets die with it (throwaway root,
+        // `delete deser`), and its node table would make the next record's patch()
+        // resolve those refs INTO FREED MEMORY. The success path cleared the table
+        // already and patch() cleared the refs - re-clearing is free.
+        fieldRefs.clear();
+        clearNodeIds();
+        if ( writing ) buffer->flush();
     }
+
+    struct SerializerRecordScope {
+        AstSerializer & ser;
+        SerializerRecordScope ( AstSerializer & s ) : ser(s) { ser.recordDepth ++; }
+        ~SerializerRecordScope () { ser.recordDepth --; }
+    };
 
     void AstSerializer::serializeProgramImpl ( ProgramPtr program, ModuleGroup & libGroup ) {
         auto & ser = *this;
-        // version gate — the module-cache path (trySerializeProgramModule) checks only
-        // mtime+filename before this; a cache written by a different serializer version must
+        SerializerRecordScope record(ser);
+        // version gate — the module-cache path (trySerializeProgramModule) checks only the
+        // file name and content stamp before this; a cache written by a different serializer version must
         // fail cleanly here (the caller falls back to a full parse on ser.failed), not misparse
         // every field after the first layout difference
         uint32_t version = getVersion();
         ser << version;
         if ( !ser.writing && version != getVersion() ) {
-            LOG(LogLevel::warning) << "das: deserialize: module cache version " << version
+            if ( !ser.quietCache ) LOG(LogLevel::warning) << "das: deserialize: module cache version " << version
                 << " does not match serializer version " << getVersion() << "\n";
             ser.failed = true;
             return;
         }
-        // Bump epoch so reused pointer addresses across program boundaries
-        // get distinct SerializeNodeIds on this persistent serializer.
-        ser.epoch++;
+        ser.builtinHashDrift = false;   // per-record flavor bit, read by the resume path
+        ser.clearNodeIds();             // numbering restarts with every program, on both sides
 
+        DAS_SER_PROFILE(ser, "Program");
+#if DAS_SERIALIZE_PROFILE
+        ser.profBegin("Program.header");
+#endif
         ser << program->thisNamespace << program->thisModuleName;
 
         ser << program->totalFunctions      << program->totalVariables << program->newLambdaIndex;
         ser << program->globalInitStackSize << program->globalStringHeapSize;
         ser << program->flags;
 
-        ser << program->options << program->policies;
+        if ( writing ) {
+            ser << program->options << program->policies;
+        } else {
+            ser << program->options;
+            CodeOfPolicies stored = program->policies;
+            ser << stored;
+            if ( !cachedPoliciesMatch(stored, program->policies) ) {
+                ser.policyMismatch = true;
+                ser.failed = true;
+#if DAS_SERIALIZE_PROFILE
+                ser.profEnd();
+#endif
+                return;
+            }
+            ser.readJitEnabled = program->policies.jit_enabled;
+            ser.readOptions = program->options;
+        }
+#if DAS_SERIALIZE_PROFILE
+        ser.profEnd();
+#endif
 
         if ( writing ) {
             moduleLibrary = &program->library;  // Module::serialize binds *moduleLibrary (finalizeModule)
-            TopSort ts(program->library.getModules());
-            auto modules = ts.getDependecyOrdered(program->thisModule.get());
+            vector<Module *> modules;
+            uint64_t thisAt = 0;    // program module's position in the LIVE library
+            if ( !program->isDependency ) {
+                // MAIN record: this list becomes the deserialized program's library
+                // insertion order, which drives foreach_in_order - module [init] order at
+                // runtime and the jit's partition/chain order. Write the LIVE library order
+                // (thisModule moved last: forward refs from its body resolve only after its
+                // dependencies' records are read), NOT a re-derived TopSort - any other
+                // valid topological order still reorders [init]s and re-keys every jit obj
+                // partition. The live order also already carries the ambient extra modules
+                // (-jit's just_in_time chain, the profiler) that a reachability walk drops -
+                // their simulate macros (the jit hook) ride the library walk at simulate.
+                // thisAt records where the program module REALLY sits, so the reader can
+                // put it back: raw library order feeds func->index and with it the
+                // cross-module [init] sequence, which must not differ cached vs fresh.
+                auto & lib = program->library.getModules();
+                for ( size_t i = 0; i != lib.size(); ++i ) {
+                    if ( lib[i] == program->thisModule.get() ) thisAt = uint64_t(i);
+                    else modules.push_back(lib[i]);
+                }
+                modules.push_back(program->thisModule.get());
+            } else {
+                // dependency record: the reachable closure only. The full library here would
+                // make the FIRST record mentioning a later module embed its whole payload
+                // early, dragging not-yet-valid state (lazy builtin hashes) into the record.
+                // Dependency programs never run a context, so their record position (last)
+                // doubles as the restore position - no reorder on read.
+                TopSort ts(program->library.getModules());
+                modules = ts.getDependecyOrdered(program->thisModule.get());
+                thisAt = modules.empty() ? 0 : uint64_t(modules.size() - 1);
+            }
 
             uint64_t size = modules.size(); *this << size;
+            *this << thisAt;
 
             for ( auto & m : modules ) {
+                DAS_SER_PROFILE(ser, "Program.moduleRef");
                 bool builtin = m->builtIn, promoted = m->promoted;
                 *this << builtin << promoted;
                 *this << m->name;
@@ -2872,6 +3443,7 @@ namespace das {
             }
         } else {
             uint64_t size = 0; ser << size;
+            uint64_t thisAt = 0; ser << thisAt;
 
             // parseDaScript runs with the placeholder thisModule's gc root as the
             // thread-active root; library.reset() below deletes that module (and its
@@ -2890,18 +3462,26 @@ namespace das {
             moduleLibrary = &program->library;
 
             for ( uint64_t i = 0; i < size; i++ ) {
+                DAS_SER_PROFILE(ser, "Program.moduleRef");
                 bool builtin = false, promoted = false;
                 ser << builtin << promoted;
-                string name; ser << name;
+                string name; ser.serializeTemp(name);
 
                 if ( builtin && !promoted ) {
-                    auto m = Module::require(name);
+                    auto m = requireBuiltinModule(name);
+                    // a corrupted record can hand this arm a garbage name - require()
+                    // answers null, and the deref was a SIGSEGV (recoverable throw now;
+                    // the resume reparses the record in place)
+                    SERIALIZER_VERIFYF(m != nullptr, "builtin module '%s' not found", name.c_str());
                     uint64_t savedHash = 0, moduleHash = m->cumulativeHash;
                     *this << savedHash;
 
                     if ( moduleHash != savedHash ) {
-                        LOG(LogLevel::warning) << "das: serialize: cumulative hash for module '" << m->name
-                                               << "' differs" << " (" << moduleHash << " vs " << savedHash << ") ";
+                        if ( !ser.quietCache ) {
+                            LOG(LogLevel::warning) << "das: serialize: cumulative hash for module '" << m->name
+                                                   << "' differs" << " (" << moduleHash << " vs " << savedHash << ") ";
+                        }
+                        ser.builtinHashDrift = true;    // per-process-deterministic drift, not damage
                         program->failToCompile = true;
                         return;
                     }
@@ -2918,14 +3498,14 @@ namespace das {
                         program->library.addModule(existing);
                         continue;
                     }
-                    LOG(LogLevel::warning) << "das: serialize: module '" << name << "' not found";
+                    if ( !ser.quietCache ) LOG(LogLevel::warning) << "das: serialize: module '" << name << "' not found";
                     program->failToCompile = true;
                     return;
                 }
 
                 Module* deser = nullptr;
                 try {
-                    deser = new Module();
+                    deser = new ModuleDas();     // the parser's class: aotRequire answers cpp, a plain Module answers no_aot
                     deser->setModuleName(name);
                     if ( existing ) {
                         program->library.addModule(existing);
@@ -2943,7 +3523,7 @@ namespace das {
                 } catch ( const dasException & r ) {
                     if ( activeWasThisModule ) activeRoot = &gc_root::gc_get_thread_root();
                     delete deser;
-                    LOG(LogLevel::warning) << "das: serialize: reading module '" << name << "' (" << i << "/" << size
+                    if ( !ser.quietCache ) LOG(LogLevel::warning) << "das: serialize: reading module '" << name << "' (" << i << "/" << size
                                            << (existing ? ", already exists" : ", new") << "): " << r.what() << "\n";
                     program->failToCompile = true;
                     return;
@@ -2959,9 +3539,8 @@ namespace das {
                 }
             }
 
-            // corrupt stream can read module count as 0: back() on the empty list is UB
             if ( program->library.getModules().empty() ) {
-                LOG(LogLevel::warning) << "das: serialize: program stream has no modules\n";
+                if ( !ser.quietCache ) LOG(LogLevel::warning) << "das: serialize: program '" << program->thisModuleName << "' stream has no modules\n";
                 program->failToCompile = true;
                 return;
             }
@@ -2970,16 +3549,23 @@ namespace das {
             // the deserialized module is the program's module now — new nodes and the
             // ModuleGcFinalize collect belong on its root
             if ( activeWasThisModule ) activeRoot = program->thisModule->module_gc_root.get();
+            // the record serialized the program module LAST (its refs resolve only after
+            // its dependencies), but the LIVE library had it at thisAt - put it back, or
+            // func->index and with it the cross-module [init] order differ cached vs fresh
+            auto & libModules = program->library.getModules();
+            if ( thisAt + 1 < uint64_t(libModules.size()) ) {
+                libModules.pop_back();
+                libModules.insert(libModules.begin() + size_t(thisAt), program->thisModule.get());
+            } else if ( thisAt + 1 > uint64_t(libModules.size()) ) {
+                LOG(LogLevel::warning) << "das: serialize: program module index " << thisAt
+                    << " out of range (" << libModules.size() << " modules)\n";
+                program->failToCompile = true;
+                return;
+            }
         }
 
-        // drop ref_counts
-        smartEnumerationMap.clear();
-        smartStructureMap.clear();
-        smartVariableMap.clear();
-        smartFunctionMap.clear();
-        smartMakeStructMap.clear();
-        smartTypeDeclMap.clear();
-        exprBlockMap.clear();
+        // the node table is per program
+        clearNodeIds();
     }
 
     // Serializes the whole script as opposed to just one module
@@ -3002,6 +3588,7 @@ namespace das {
 
     // Used in daNetGame currently
     void Program::serialize ( AstSerializer & ser ) {
+        SerializerRecordScope record(ser);
         // version gate: any layout change shifts every subsequent field, so a stale stream must
         // fail cleanly here — not misparse into a patch() throw thousands of fields later
         uint32_t version = AstSerializer::getVersion();
@@ -3012,10 +3599,8 @@ namespace das {
             failToCompile = true;
             return;
         }
-        // Bump epoch so reused pointer addresses across program boundaries
-        // get distinct SerializeNodeIds on this persistent serializer.
-        ser.epoch++;
 
+        ser.clearNodeIds();             // numbering restarts with every program, on both sides
         ser << thisNamespace << thisModuleName;
 
         ser << totalFunctions      << totalVariables << newLambdaIndex;
@@ -3023,12 +3608,14 @@ namespace das {
         ser << flags;
 
         ser << options << policies;
+        ser.readJitEnabled = policies.jit_enabled;  // what finalizeModule hands the macro program a served module reinstantiates
+        ser.readOptions = options;
 
     // serialize library
         if ( ser.writing ) {
             ser.moduleLibrary = &library;
             TopSort ts(library.modules);
-            auto modules = ts.getDependecyOrdered();
+            auto modules = ts.getDependecyOrderedEndingWith(thisModule.get());
 
             vector<Module*> builtinModules;
             for ( auto m : modules ) {
@@ -3067,6 +3654,7 @@ namespace das {
             }
 
             ser << allRequireDecl;
+            ser.buffer->flush();
             return;
         }
 
@@ -3087,8 +3675,8 @@ namespace das {
 
         uint64_t size_builtin = 0; ser << size_builtin;
         for ( uint64_t i = 0; i < size_builtin; i++ ) {
-            string name; ser << name;
-            Module * m = Module::require(name);
+            string name; ser.serializeTemp(name);
+            Module * m = requireBuiltinModule(name);
             library.addModule(m);
         }
 
@@ -3096,7 +3684,10 @@ namespace das {
         for ( uint64_t i = 0; i < size; i++ ) {
             bool builtin = false, promoted = false;
             string name, fileName, promotedRequire;
-            ser << builtin << promoted << name << fileName << promotedRequire;
+            ser << builtin << promoted;
+            ser.serializeTemp(name);
+            ser.serializeTemp(fileName);
+            ser.serializeTemp(promotedRequire);
             if ( builtin && !promoted ) {
                 // pass
             } else if ( builtin && promoted ) {
@@ -3127,7 +3718,6 @@ namespace das {
                             throw;
                         }
                         if ( activeWasThisModule ) activeRoot = &throwaway_root;
-                        mod->builtIn = false; // suppress assert
                         mod->promoteToBuiltin(nullptr, promotedRequire);
                     }
                 } else {
@@ -3135,7 +3725,7 @@ namespace das {
                     library.addModule(m);
                 }
             } else {
-                auto mod = new Module;
+                auto mod = new ModuleDas;
                 mod->setModuleName(name);
                 mod->fileName = fileName;
                 library.addModule(mod);
@@ -3160,10 +3750,284 @@ namespace das {
         ser << allRequireDecl;
 
     // for the last module, mark symbols manually
+        auto setup0 = ref_time_ticks();
         markExecutableSymbolUse();
         removeUnusedSymbols();
         TextWriter logs;
         allocateStack(logs,true,false);
+        ser.totSetupTime += get_time_usec(setup0);
+    }
+
+#if !DAS_NO_FILEIO
+    static void ensureParentDirectories ( const string & path ) {
+        for ( size_t i = 1; i < path.size(); ++i ) {
+            if ( path[i] == '/' || path[i] == '\\' ) {
+                string dir = path.substr(0, i);
+#ifdef _WIN32
+                _mkdir(dir.c_str());
+#else
+                mkdir(dir.c_str(), 0755);
+#endif
+            }
+        }
+    }
+#endif
+
+#if !DAS_NO_FILEIO
+    static const char * MODULE_CACHE_DEFAULT_DIR = ".jitted_scripts/module_cache/";
+
+    // DAS_MODULE_CACHE_LIMIT, megabytes: 4096 unless set, 0 = no eviction; garbage keeps the default
+    static uint64_t moduleCacheLimitBytes () {
+        uint64_t mb = 4096;
+        if ( const char * env = get_dasenv_module_cache_limit() ) {
+            if ( *env ) {
+                char * end = nullptr;
+                unsigned long long v = strtoull(env, &end, 10);
+                if ( end && *end == 0 ) mb = uint64_t(v);
+            }
+        }
+        return mb * 1024ull * 1024ull;
+    }
+
+    struct CacheRecordInfo {
+        string      path;
+        uint64_t    size;
+        int64_t     mtime;
+    };
+
+    static void listCacheRecords ( const string & dir, vector<CacheRecordInfo> & out ) {
+#ifdef _WIN32
+        struct _finddata_t c_file;
+        string findPath = dir + "*.dascache";
+        intptr_t hFile = _findfirst(findPath.c_str(), &c_file);
+        if ( hFile != -1L ) {
+            do {
+                out.push_back({dir + c_file.name, uint64_t(c_file.size), int64_t(c_file.time_write)});
+            } while ( _findnext(hFile, &c_file) == 0 );
+            _findclose(hFile);
+        }
+#else
+        if ( DIR * d = opendir(dir.c_str()) ) {
+            while ( dirent * e = readdir(d) ) {
+                string name = e->d_name;
+                if ( name.size() < 9 || name.compare(name.size() - 9, 9, ".dascache") != 0 ) continue;
+                string p = dir + name;
+                struct stat st;
+                if ( stat(p.c_str(), &st) == 0 ) out.push_back({p, uint64_t(st.st_size), int64_t(st.st_mtime)});
+            }
+            closedir(d);
+        }
+#endif
+    }
+
+    static long long das_process_id () {
+#ifdef _WIN32
+        return (long long) _getpid();
+#else
+        return (long long) getpid();
+#endif
+    }
+
+    static void touchFile ( const string & path ) {
+#ifdef _WIN32
+        (void) _utime(path.c_str(), nullptr);
+#else
+        (void) utime(path.c_str(), nullptr);
+#endif
+    }
+
+    // LRU eviction of the DEFAULT cache directory down to the limit after a writeback; the record
+    // just written stays, and a record a run read was touched, so it is never the oldest. An
+    // explicit -module-cache path is the user's directory and is never pruned.
+    static void evictModuleCache ( const string & justWrote ) {
+        size_t dirLen = strlen(MODULE_CACHE_DEFAULT_DIR);
+        if ( justWrote.compare(0, dirLen, MODULE_CACHE_DEFAULT_DIR) != 0 ) return;
+        uint64_t limit = moduleCacheLimitBytes();
+        if ( limit == 0 ) return;
+        vector<CacheRecordInfo> recs;
+        listCacheRecords(MODULE_CACHE_DEFAULT_DIR, recs);
+        uint64_t total = 0;
+        for ( auto & r : recs ) total += r.size;
+        if ( total <= limit ) return;
+        sort(recs.begin(), recs.end(), [](const CacheRecordInfo & a, const CacheRecordInfo & b) {
+            return a.mtime != b.mtime ? a.mtime < b.mtime : a.path < b.path;
+        });
+        for ( auto & r : recs ) {
+            if ( total <= limit ) break;
+            if ( r.path == justWrote ) continue;
+            if ( remove(r.path.c_str()) == 0 ) total -= r.size;
+        }
+    }
+#endif
+
+    string ModuleFileCache::defaultPath ( const string & scriptPath, const string & hostBinary, const string & hostOptions ) {
+        string norm = normalizeFileName(scriptPath.c_str());
+        size_t slash = norm.find_last_of("/\\");
+        string stem = slash == string::npos ? norm : norm.substr(slash + 1);
+        size_t dot = stem.rfind('.');
+        if ( dot != string::npos && dot != 0 ) stem = stem.substr(0, dot);
+        struct stat bst;
+        char host[64];
+        if ( !hostBinary.empty() && stat(hostBinary.c_str(), &bst) == 0 ) {
+            snprintf(host, sizeof(host), "\n%lld:%lld", (long long) bst.st_mtime, (long long) bst.st_size);
+        } else {
+            host[0] = 0;
+        }
+        vector<string> envs;
+        for ( char * const * e = das_environ(); e && *e; ++e ) {
+            if ( strncmp(*e, "DAS", 3) == 0 && strncmp(*e, "DAS_MODULE_CACHE_LIMIT=", 23) != 0
+                && !das_dep_is_env_entry(*e) ) envs.push_back(*e);
+        }
+        sort(envs.begin(), envs.end());
+        string key = norm + host + "\n" + hostOptions;
+        for ( auto & e : envs ) {
+            key += "\n";
+            key += e;
+        }
+        char hex[17];
+        snprintf(hex, sizeof(hex), "%016llx", (unsigned long long) hash_blockz64((const uint8_t *) key.c_str()));
+        return string(".jitted_scripts/module_cache/") + stem + "-" + string(hex, 8) + ".dascache";
+    }
+
+    string ModuleFileCache::embeddedHostOptions ( const CodeOfPolicies & policies ) {
+        string key;
+        Array args;
+        getCommandLineArguments(args);
+        auto argv = (char **) args.data;
+        for ( uint32_t i=1; i<args.size; ++i ) {
+            const char * a = argv[i] ? argv[i] : "";
+            if ( strcmp(a, "--") == 0 ) break;
+            if ( int skip = das_dep_flag_argc(a) ) { i += uint32_t(skip) - 1; continue; }
+            key += a;
+            key += '\n';
+        }
+        SerializationStorageVector storage;
+        AstSerializer ser(&storage, true);
+        CodeOfPolicies streamed = policies;
+        ser << streamed;
+        storage.flush();
+        string jitTarget = commandLineArgumentOccurrences("--jit-target");   // NUL-separated; the key hashes as a C string
+        for ( auto & ch : jitTarget ) {
+            if ( ch == 0 ) ch = '\n';
+        }
+        key += jitTarget;
+        char hex[17];
+        snprintf(hex, sizeof(hex), "%016llx", (unsigned long long) hash_block64(storage.buffer.data(), storage.buffer.size()));
+        key += "policies:";
+        key += hex;
+        return key;
+    }
+
+    void ModuleFileCache::install ( const string & readFrom, const string & writeTo, bool quiet ) {
+        requested = !readFrom.empty() || !writeTo.empty();
+#if !DAS_NO_FILEIO
+        writePath = writeTo;
+        auto & env = *daScriptEnvironment::getBound();
+        if ( !readFrom.empty() ) {
+            if ( FILE * f = fopen(readFrom.c_str(), "rb") ) {
+                // 64-bit tell: plain ftell returns long (32-bit on Windows), where an
+                // oversized cache would read back negative and silently count as absent
+#ifdef _MSC_VER
+                int64_t size = (fseek(f, 0, SEEK_END) == 0) ? _ftelli64(f) : -1;
+#else
+                int64_t size = (fseek(f, 0, SEEK_END) == 0) ? int64_t(ftello(f)) : -1;
+#endif
+                if ( size > 0 && fseek(f, 0, SEEK_SET) == 0 ) {
+                    readStorage.buffer.resize(size_t(size));
+                    if ( fread(readStorage.buffer.data(), 1, size_t(size), f) != size_t(size) ) {
+                        readStorage.buffer.clear();     // short read - treat as no cache
+                    }
+                }
+                fclose(f);
+            }
+            if ( !readStorage.buffer.empty() ) {
+                reader = make_unique<AstSerializer>(&readStorage, false);
+                reader->quietCache = quiet;
+                env.serializer_read = reader.get();
+                touchFile(readFrom);    // a record in use is the newest for the eviction's LRU
+            }
+        }
+        if ( !writePath.empty() ) {
+            writer = make_unique<AstSerializer>(&writeStorage, true);
+            writer->quietCache = quiet;
+            env.serializer_write = writer.get();
+        }
+#else
+        (void) quiet;
+#endif
+    }
+
+    ModuleFileCache::Result ModuleFileCache::finish () {
+        Result res;
+#if DAS_NO_FILEIO
+        // no filesystem on this target: install() bound nothing and the compile parsed
+        // from source - answer 'unavailable' rather than a silent 'none'
+        if ( requested ) res.verdict = ReadVerdict::unavailable;
+#else
+        auto & env = *daScriptEnvironment::getBound();
+        // the debugger path (disableSerializationOnDebugger) may have cleared these
+        // mid-compile; clearing again is harmless, leaving them dangling is not
+        env.serializer_read = nullptr;
+        env.serializer_write = nullptr;
+        if ( reader ) {
+#if DAS_SERIALIZE_PROFILE
+            if ( !reader->quietCache ) { LOG tw(LogLevel::info); reader->profReport(tw); }
+#endif
+            if ( !reader->checkedStreamHeader ) {
+                res.verdict = ReadVerdict::none;    // nothing was ever read (rail disabled mid-compile)
+            } else if ( reader->failed || reader->seenNewModule ) {
+                res.verdict = ReadVerdict::fallback;
+            } else if ( reader->resumedModules != 0 ) {
+                res.verdict = ReadVerdict::partial;
+            } else {
+                res.verdict = ReadVerdict::clean;
+            }
+            res.resumed = reader->resumedModules;
+            res.served = reader->servedModules;
+            res.cutoffFile = reader->cutoffFile;
+            res.cutoffReason = reader->cutoffReason;
+            reader->moduleLibrary = nullptr;    // not ours to free
+            // claim the FileInfos the reader created that no module took ownership of -
+            // ~AstSerializer would DELETE them, and the deserialized AST's LineInfos still
+            // point at them (the crash is deferred to the first LineInfo::describe)
+            reader->collectFileInfo(orphanedFileInfos);
+            reader.reset();
+        }
+        if ( writer ) {
+#if DAS_SERIALIZE_PROFILE
+            if ( !writer->quietCache ) { LOG tw(LogLevel::info); writer->profReport(tw); }
+#endif
+            writer->moduleLibrary = nullptr;
+            writer.reset();     // releases the parsedModules program refs before the program runs
+            writeStorage.flush();
+            if ( !writeStorage.buffer.empty() ) {
+                // write-to-temp + rename: a concurrent reader on the same path sees a
+                // complete old or a complete new stream, never a torn one. The CRT rename
+                // cannot replace on Windows, so there is a missing-file blink there - a
+                // reader in that window just takes the cold path
+                static atomic<uint64_t> writebackSeq { 0 };
+                string tmpPath = writePath + "." + to_string(das_process_id()) + "." + to_string(writebackSeq.fetch_add(1)) + ".tmp";
+                ensureParentDirectories(writePath);
+                if ( FILE * f = fopen(tmpPath.c_str(), "wb") ) {
+                    res.wroteBytes = uint64_t(fwrite(writeStorage.buffer.data(), 1, writeStorage.buffer.size(), f));
+                    fclose(f);
+                    res.wrote = res.wroteBytes == uint64_t(writeStorage.buffer.size());
+                    if ( res.wrote ) {
+#ifdef _WIN32
+                        remove(writePath.c_str());
+#endif
+                        res.wrote = rename(tmpPath.c_str(), writePath.c_str()) == 0;
+                    }
+                    if ( !res.wrote ) remove(tmpPath.c_str());   // never leave a corpse
+                    res.saveFailed = !res.wrote;
+                    if ( res.wrote ) evictModuleCache(writePath);
+                } else {
+                    res.saveFailed = true;
+                }
+            }
+        }
+#endif
+        return res;
     }
 
     AstSerializerState * rtti_create_ast_serializer () {
@@ -3196,11 +4060,13 @@ namespace das {
         return !prog->failToCompile;
     }
 
-    void rtti_ast_serializer_deserialize_program (
-            AstSerializerState * state,
+    void rtti_ast_serializer_deserialize_program_ex (
+            AstSerializerState * state, smart_ptr<FileAccess> access, ModuleGroup * libGroup,
             const TBlock<void,bool,smart_ptr<Program>,const string> & block,
             Context * context, LineInfoArg * at ) {
         auto prog = make_smart<Program>();
+        prog->access = access;      // the reader's: a stream carries none (src/ast/ARCHITECTURE.md#require-after-walk)
+        state->serializer->thisModuleGroup = libGroup;
         {
             gc_guard deserialize_gc_scope;
             // same-version streams can still be truncated/corrupt: the stream readers throw
@@ -3243,10 +4109,26 @@ namespace das {
         bound.g_Program = savedProg;
     }
 
+    void rtti_ast_serializer_deserialize_program (
+            AstSerializerState * state, ModuleGroup * libGroup,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block,
+            Context * context, LineInfoArg * at ) {
+        rtti_ast_serializer_deserialize_program_ex(state, nullptr, libGroup, block, context, at);
+    }
+
+    int64_t rtti_ast_serializer_finalize_usec ( AstSerializerState * state ) {
+        return state ? int64_t(state->serializer->totFinalizeTime) : 0;
+    }
+
+    int64_t rtti_ast_serializer_setup_usec ( AstSerializerState * state ) {
+        return state ? int64_t(state->serializer->totSetupTime) : 0;
+    }
+
     void rtti_ast_serializer_get_data (
             AstSerializerState * state,
             const TBlock<void,TTemporary<TArray<uint8_t> const>> & block,
             Context * context, LineInfoArg * at ) {
+        state->storage->flush();
         Array arr;
         array_mark_locked(arr, state->storage->buffer.data(),
             uint64_t(state->storage->buffer.size()), uint64_t(state->storage->buffer.size()));

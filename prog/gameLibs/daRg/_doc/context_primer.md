@@ -101,7 +101,7 @@ let view = @() {
   `size = [x, y]` arrays and other constant tables/arrays should be marked
   `const` (Quirrel compile-time constant) or hoisted to `let` outside the
   builder, so a new array is not allocated on each rebuild - commits adding
-  `const` / `static` / hoisting literals out of builders are perf fixes.
+  `const` or hoisting literals out of builders are perf fixes.
 - `children` - array or single child; null children allowed.
 - `watch` - observable or array of observables (see above).
 - `behavior` - one or more of Behaviors.Button, .TextInput, .TextArea,
@@ -150,7 +150,7 @@ description table, or the same behavior list). Consequences:
   `$"text {expr}"` string interpolation; `?.` null-propagation; `??`
   null-coalesce.
 - `let` = immutable binding (preferred), `local` = mutable.
-- `const` = compile-time constant; `const [1,2]` / `static` table literals
+- `const` = compile-time constant; `const [1,2]` / `const {a = 1}` literals
   avoid per-call allocation.
 - Modules: `require("path.nut")` returns module exports (cached);
   `from "module" import name1, name2`; `import "module" as m`. Migration

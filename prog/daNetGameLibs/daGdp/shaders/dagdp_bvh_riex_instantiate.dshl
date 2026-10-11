@@ -117,7 +117,11 @@ shader dagdp_bvh_riex_instantiate
   (cs)
   {
     tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+  hlsl(cs) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
   INIT_FLUID_WIND(cs)
   INIT_AMBIENT_WIND(cs)

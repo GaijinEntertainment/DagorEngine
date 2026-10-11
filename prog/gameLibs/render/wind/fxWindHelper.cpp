@@ -20,6 +20,6 @@ void load_fx_wind_curve_params(const DataBlock *game_params_blk)
 // numbers are defined by curve_... params
 float apply_wind_strength_curve(float beaufort)
 {
-  return fmax(0.f, curve_falloff_start - logf(curve_falloff_strength + expf(-beaufort + curve_falloff_start)));
+  return fmaxf(0.f, curve_falloff_start - logf(curve_falloff_strength + expf(-beaufort + curve_falloff_start)));
 }
 } // namespace fxwindhelper

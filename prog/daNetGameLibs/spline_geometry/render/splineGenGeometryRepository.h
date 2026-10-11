@@ -38,6 +38,7 @@ private:
   ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryAsset>> assets;
   ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryManager>> managers;
   eastl::shared_ptr<SplineGenGeometryShapeManager> shapeManager = nullptr;
+  bool shapeBufferLost = false;
   bool transparentNodeRequested = false;
 };
 

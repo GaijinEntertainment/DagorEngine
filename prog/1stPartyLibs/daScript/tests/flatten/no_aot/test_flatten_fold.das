@@ -68,6 +68,7 @@ def private check_unit(t : T?; proj, path : string) : int {
                 // honor the unit's own `options _flatten_no_fast_math` — gated rewrites are
                 // skipped there by design, and the oracle must mirror that (no false flags)
                 let noFastMath = program._options |> find_arg("_flatten_no_fast_math") ?as tBool ?? false
+                let haddMinWidth = (program._options |> find_arg("_flatten_hadd_pack_pairs") ?as tBool ?? false) ? 2 : 3
                 program_for_each_module(program) $(mod) {
                     for_each_function(mod, "") $(func) {
                         if (func.body == null || func.flags.builtIn || !is_flatten_output(func)) {
@@ -76,7 +77,7 @@ def private check_unit(t : T?; proj, path : string) : int {
                         checked ++
                         let r <- flatten_fold_residuals(func, noFastMath)
                         t |> equal(length(r), 0, "{base_name(path)}::{func.name}: {r}")
-                        let optr <- flatten_opt_residuals(func, noFastMath)
+                        let optr <- flatten_opt_residuals(func, noFastMath, haddMinWidth)
                         t |> equal(length(optr), 0, "{base_name(path)}::{func.name} (opt): {optr}")
                     }
                 }
@@ -84,6 +85,33 @@ def private check_unit(t : T?; proj, path : string) : int {
         }
     }
     return checked
+}
+
+def private twin_opt_residuals(t : T?; path, twin : string; haddMinWidth : int) : array<string> {
+    var res : array<string>
+    var inscope access <- make_file_access("")
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
+            cop.threadlock_context = true
+            cop.version_2_syntax = true
+            compile_file(path, access, unsafe(addr(mg)), cop) $(ok; program; iss) {
+                if (!ok) {
+                    t |> failure("compile failed: {path}\n{iss}")
+                    return
+                }
+                program_for_each_module(program) $(mod) {
+                    for_each_function(mod, twin) $(func) {
+                        if (func.body == null || func.flags.builtIn) {
+                            return
+                        }
+                        let r <- flatten_opt_residuals(func, false, haddMinWidth)
+                        res |> push_clone_from(r)
+                    }
+                }
+            }
+        }
+    }
+    return <- res
 }
 
 // Compile `path` and return describe() of each `*_flat` twin body, keyed by twin name — the
@@ -262,6 +290,13 @@ def test_flatten_fold(t : T?) {  // nolint:STYLE038 — flat list of independent
         t |> success(p5 |> find("hadd(float3(") >= 0 && p5 |> find("hadd(float2(") >= 0,
                      "5-way must split into hadd3 + hadd2 under the option: {p5}")
         delete bodies
+    }
+    t |> run("the hadd residual oracle tracks the floor it is asked for, not a constant 3") @(t : T?) {
+        let hadd = "{root}/tests/flatten/test_flatten_hadd.das"
+        let at3 <- twin_opt_residuals(t, hadd, "h_two_flat", 3)
+        t |> equal(length(at3), 0, "h_two_flat is complete at the default floor: {at3}")
+        let at2 <- twin_opt_residuals(t, hadd, "h_two_flat", 2)
+        t |> equal(length(at2), 1, "the bare pair h_two_flat left scalar is an un-fused hadd at floor 2: {at2}")
     }
     t |> run("swizzle corpus folds clean (test_flatten_swizzle.das twins)") @(t : T?) {
         let n = check_unit(t, "", "{root}/tests/flatten/test_flatten_swizzle.das")

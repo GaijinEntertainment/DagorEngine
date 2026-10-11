@@ -126,6 +126,8 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 }
 <normal>"\/\/" {
     yyextra->last_token_end = tokAt(yyscanner,*yylloc_param);
+    yyextra->last_token_end.last_line = yyextra->last_token_end.line;
+    yyextra->last_token_end.last_column = yyextra->last_token_end.column;
     BEGIN(cpp_comment);
     if ( !yyextra->g_CommentReaders.empty() ) {
         auto tak = tokAt(yyscanner,*yylloc_param);
@@ -341,8 +343,10 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
             #ifdef FLEX_DEBUG
             printf("emit }\n");
             #endif
-            yylloc_param->first_line = yylloc_param->last_line;
-            yylloc_param->first_column = yylloc_param->last_column;
+            yylloc_param->first_line = yyextra->last_token_end.last_line;
+            yylloc_param->first_column = yyextra->last_token_end.last_column;
+            yylloc_param->last_line = yyextra->last_token_end.last_line;
+            yylloc_param->last_column = yyextra->last_token_end.last_column;
             return CLOSE_BRACE;
         } else {
             return 0;
@@ -1141,7 +1145,10 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 }
 <normal>(\/\/.*)*\n {
     if (yyextra->last_token_end.line != tokAt(yyscanner,*yylloc_param).line) {
-        yyextra->last_token_end = tokAt(yyscanner,*yylloc_param);
+        auto lineEnd = tokAt(yyscanner,*yylloc_param);
+        lineEnd.last_line = lineEnd.line;
+        lineEnd.last_column = lineEnd.column;
+        yyextra->last_token_end = lineEnd;
     }
     YYCOLUMN(yyextra->das_yycolumn = 0, "NEW LINE");
     das_accept_cpp_comment(yyextra->g_CommentReaders, yyscanner, *yylloc_param, yytext);
@@ -1166,6 +1173,12 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 }
 <normal><<EOF>>         {
     if ( yyextra->g_FileAccessStack.size()==1 ) {
+        if (yyextra->last_token_end.line != tokAt(yyscanner,*yylloc_param).line) {
+            auto lineEnd = tokAt(yyscanner,*yylloc_param);
+            lineEnd.line = lineEnd.last_line;
+            lineEnd.column = lineEnd.last_column;
+            yyextra->last_token_end = lineEnd;
+        }
         YYCOLUMN(yyextra->das_yycolumn = 0,"EOF");
         if  ( !yyextra->das_nested_parentheses && !yyextra->das_nested_curly_braces && !yyextra->das_nested_square_braces ) {
             bool ns = (yyextra->das_current_line_indent!=0) && yyextra->das_need_oxford_comma;

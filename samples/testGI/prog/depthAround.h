@@ -56,7 +56,7 @@ public:
   void invalidate() { origin = IPoint2(-100000, 100000); }
 
 protected:
-  UniqueTexWithShaderVar depth_above;
+  UniqueTex depth_above;
   IPoint2 origin = {-100000, 100000};
   float texelSize = 1, dist = 1024;
   int w = 1;

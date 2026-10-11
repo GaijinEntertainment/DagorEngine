@@ -175,6 +175,7 @@ namespace das {
         ann.addFieldEx("argumentsFailedToInfer", "argumentsFailedToInfer", offsetof(ExprLooksLikeCall, argumentsFailedToInfer), makeType<bool>(*ann.mlib));
         ann.addFieldEx("pipedCallArgument", "pipedCallArgument", offsetof(ExprLooksLikeCall, pipedCallArgument), makeType<bool>(*ann.mlib));
         ann.addFieldEx("atEnclosure", "atEnclosure", offsetof(ExprLooksLikeCall, atEnclosure), makeType<LineInfo>(*ann.mlib));
+        ann.addFieldEx("aliasSubstitution", "aliasSubstitution", offsetof(ExprLooksLikeCall, aliasSubstitution), makeType<TypeDeclPtr>(*ann.mlib));
     }
 
     bool canSubstituteExpr ( const TypeAnnotation* thisAnn, TypeAnnotation* ann ) {

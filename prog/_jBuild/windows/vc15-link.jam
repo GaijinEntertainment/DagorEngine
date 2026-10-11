@@ -58,7 +58,7 @@ rule ProcessLinkTarget
     local __sstype = windows ; local __ssver = 5.02 ;
     if $(ConsoleExe) = yes { __sstype = console ; }
     if $(PlatformArch) = x86 { __ssver = 5.01 ; }
-    else if $(PlatformArch) = arm64 { __ssver = 6.02 ; }
+    else if $(PlatformArch) in arm64 arm64ec { __ssver = 6.02 ; }
     _LINK_OPT += -subsystem:$(__sstype),\"$(__ssver)\" ;
 
     _LINK_OPT += -nodefaultlib:LIBMMT -nodefaultlib:LIBIRC -nodefaultlib:LIBC ;
@@ -139,7 +139,9 @@ rule ProcessLinkTarget
   {
     _LINK_OPT += -nologo -dll -subsystem:windows -base:$(BaseAddress) -incremental:no ;
     if $(PlatformArch) = x86 { _LINK_OPT += /LARGEADDRESSAWARE ; }
-    if $(Config) != dbg {
+    if $(Sanitize) = address {
+      _LINK_OPT += /opt:ref,noicf ;
+    } else if $(Config) != dbg {
       _LINK_OPT += -opt:ref ;
     }
 

@@ -2,6 +2,7 @@
 
 #include "device.h"
 #include "frontend_state.h"
+#include "external_issues.h"
 
 #if _TARGET_PC_WIN
 #include "debug/global_state.h"
@@ -10,6 +11,7 @@
 #include <dxgi_utils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_finally.h>
+#include <cinttypes>
 #include <gpuVendor.h>
 #include <gpuVendorNvidia.h>
 
@@ -455,8 +457,16 @@ raytrace_geometry_description_to_geometry_desc_triangles(const RaytraceGeometryD
 namespace drv3d_dx12
 {
 
+static void validate_acceleration_structure_build_flags([[maybe_unused]] RaytraceBuildFlags flags)
+{
+  [[maybe_unused]] const RaytraceBuildFlags fastTraceAndBuild = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::FAST_BUILD;
+  D3D_CONTRACT_ASSERTF_ONCE((flags & fastTraceAndBuild) != fastTraceAndBuild,
+    "DX12: RaytraceBuildFlags FAST_TRACE and FAST_BUILD are mutually exclusive (flags: 0x%X)", static_cast<uint32_t>(flags));
+}
+
 D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS to_acceleration_structure_build_flags(RaytraceBuildFlags flags, bool do_update)
 {
+  validate_acceleration_structure_build_flags(flags);
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS result = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
   if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::ALLOW_UPDATE))
     result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
@@ -485,6 +495,7 @@ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS to_acceleration_structure_bu
 NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS_EX to_acceleration_structure_build_flags_nvidia(RaytraceBuildFlags flags,
   bool do_update)
 {
+  validate_acceleration_structure_build_flags(flags);
   uint32_t result = 0;
   if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::ALLOW_UPDATE & flags))
   {
@@ -671,15 +682,15 @@ void to_debuglog(DXGIAdapter *adapter)
   adapter->GetDesc3(&info3);
 
   logdbg("DX12: Raw adapter 0x%p info:", adapter);
-  logdbg("DX12: -> Adapter luid: 0x%lx", pack_adapter_luid(info3.AdapterLuid));
+  logdbg("DX12: -> Adapter luid: 0x%" PRIX64, pack_adapter_luid(info3.AdapterLuid));
   logdbg("DX12: -> Description: %s", info3.Description);
   logdbg("DX12: -> VendorId: 0x%x", info3.VendorId);
   logdbg("DX12: -> DeviceId: 0x%x", info3.DeviceId);
   logdbg("DX12: -> SubSysId: 0x%x", info3.SubSysId);
   logdbg("DX12: -> Revision: 0x%x", info3.Revision);
-  logdbg("DX12: -> Dedicated video memory: %lu MB", info3.DedicatedVideoMemory / (1024 * 1024));
-  logdbg("DX12: -> Dedicated system memory: %lu MB", info3.DedicatedSystemMemory / (1024 * 1024));
-  logdbg("DX12: -> Dedicated shared memory: %lu MB", info3.SharedSystemMemory / (1024 * 1024));
+  logdbg("DX12: -> Dedicated video memory: %" PRIu64 " MB", info3.DedicatedVideoMemory / (1024 * 1024));
+  logdbg("DX12: -> Dedicated system memory: %" PRIu64 " MB", info3.DedicatedSystemMemory / (1024 * 1024));
+  logdbg("DX12: -> Shared system memory: %" PRIu64 " MB", info3.SharedSystemMemory / (1024 * 1024));
   logdbg("DX12: -> Flags: 0x%x", info3.Flags);
   logdbg("DX12: -> Graphics preemption granularity: %s", to_string(info3.GraphicsPreemptionGranularity));
   logdbg("DX12: -> Compute preemption granularity: %s", to_string(info3.ComputePreemptionGranularity));
@@ -784,6 +795,11 @@ bool is_threaded_command_execution(const char *name)
   }
   return false;
 }
+
+uint32_t get_texture_data_pitch_alignment(FormatStore fmt)
+{
+  return fmt.getPlanes().count() > 1 ? D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+}
 } // namespace
 
 TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, FormatStore fmt, FormatPlaneIndex plane_index)
@@ -794,8 +810,7 @@ TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, F
   result.rowCount = block_count(ext.height, blockY);
   result.rowByteSize = block_count(ext.width, blockX) * blockBytesPerPlane;
   result.footprint.Format = fmt.asDxGiFormat<true>();
-  if (fmt == FormatStore::fromDXGIDepthFormat(DXGI_FORMAT_D24_UNORM_S8_UINT) ||
-      fmt == FormatStore::fromDXGIDepthFormat(DXGI_FORMAT_D32_FLOAT_S8X24_UINT))
+  if (fmt.isStencil())
   {
     // https://microsoft.github.io/DirectX-Specs/d3d/PlanarDepthStencilDDISpec.html
     // DXGI_FORMAT_R24G8_TYPELESS -> DXGI_FORMAT_R32_TYPELESS depth (24 bits + 8 unused) + DXGI_FORMAT_R8_TYPELESS stencil
@@ -807,7 +822,7 @@ TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, F
   result.footprint.Width = align_value<uint32_t>(ext.width, blockX);
   result.footprint.Height = align_value<uint32_t>(ext.height, blockY);
   result.footprint.Depth = ext.depth;
-  result.footprint.RowPitch = align_value<uint32_t>(result.rowByteSize, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+  result.footprint.RowPitch = align_value<uint32_t>(result.rowByteSize, get_texture_data_pitch_alignment(fmt));
   result.totalByteSize =
     align_value<uint64_t>(uint64_t{result.rowCount} * result.footprint.RowPitch * ext.depth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
   return result;
@@ -847,6 +862,7 @@ uint64_t drv3d_dx12::calculate_texture_staging_buffer_size(Extent3D size, MipMap
   uint64_t totalSize = 0;
   uint32_t blockX = 1, blockY = 1;
   auto blockBytes = format.getBytesPerPixelBlock(&blockX, &blockY);
+  const auto pitchAlignment = get_texture_data_pitch_alignment(format);
 
   for (auto subres_index : subresource_range)
   {
@@ -854,7 +870,7 @@ uint64_t drv3d_dx12::calculate_texture_staging_buffer_size(Extent3D size, MipMap
     auto ext = mip_extent(size, mip);
     auto rowCount = block_count(ext.height, blockY);
     auto rowByteSize = block_count(ext.width, blockX) * blockBytes;
-    auto rowPitch = align_value<uint32_t>(rowByteSize, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+    auto rowPitch = align_value<uint32_t>(rowByteSize, pitchAlignment);
     totalSize += align_value<uint64_t>(uint64_t{rowCount} * rowPitch * ext.depth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
   }
 
@@ -1481,33 +1497,28 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
     cacheModes |= D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE;
   }
 
-  PipelineCache::SetupParameters pipelineCacheSetup;
-  pipelineCacheSetup.device = device.get();
-  pipelineCacheSetup.allowedModes = cacheModes;
-  pipelineCacheSetup.fileName = CACHE_FILE_NAME;
-  pipelineCacheSetup.deviceVendorID = adapter_info.info.VendorId;
-  pipelineCacheSetup.deviceID = adapter_info.info.DeviceId;
-  pipelineCacheSetup.subSystemID = adapter_info.info.SubSysId;
-  pipelineCacheSetup.revisionID = adapter_info.info.Revision;
-  pipelineCacheSetup.rawDriverVersion = driverVersion.raw();
-#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-  pipelineCacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
-#endif
-#if _TARGET_PC_WIN
-  pipelineCacheSetup.buildInCacheFileName = dxCfg.getStr("buildInCacheFileName", BUILD_IN_CACHE_FILE_NAME);
-  pipelineCacheSetup.blitByteCodeHash = get_build_in_blit_shaders_hash();
-  pipelineCacheSetup.clearByteCodeHash = get_build_in_clear_shaders_hash();
-  pipelineCacheSetup.recordBuildInCache = dxCfg.getBool("recordBuildInCache", true);
-#endif
-
-  pipelineCache.init(pipelineCacheSetup);
-
   pipelineManagerSetup.device = this;
   pipelineManagerSetup.serializeRootSignature = d3d_env.D3D12SerializeRootSignature;
   pipelineManagerSetup.rootSignatureVersion = rootSignatureVersion.HighestVersion;
-  pipelineManagerSetup.pipelineCache = &pipelineCache;
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   pipelineManagerSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
+#endif
+  pipelineManagerSetup.cacheSetup.device = device.get();
+  pipelineManagerSetup.cacheSetup.allowedModes = cacheModes;
+  pipelineManagerSetup.cacheSetup.fileName = CACHE_FILE_NAME;
+  pipelineManagerSetup.cacheSetup.deviceVendorID = adapter_info.info.VendorId;
+  pipelineManagerSetup.cacheSetup.deviceID = adapter_info.info.DeviceId;
+  pipelineManagerSetup.cacheSetup.subSystemID = adapter_info.info.SubSysId;
+  pipelineManagerSetup.cacheSetup.revisionID = adapter_info.info.Revision;
+  pipelineManagerSetup.cacheSetup.rawDriverVersion = driverVersion.raw();
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  pipelineManagerSetup.cacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
+#endif
+#if _TARGET_PC_WIN
+  pipelineManagerSetup.cacheSetup.buildInCacheFileName = dxCfg.getStr("buildInCacheFileName", BUILD_IN_CACHE_FILE_NAME);
+  pipelineManagerSetup.cacheSetup.blitByteCodeHash = get_build_in_blit_shaders_hash();
+  pipelineManagerSetup.cacheSetup.clearByteCodeHash = get_build_in_clear_shaders_hash();
+  pipelineManagerSetup.cacheSetup.recordBuildInCache = dxCfg.getBool("recordBuildInCache", true);
 #endif
 
   pipeMan.init(pipelineManagerSetup);
@@ -1691,33 +1702,29 @@ void Device::shutdown()
 
   context.shutdownFrameStates();
 
-  pipeMan.unloadAll();
+  PipelineManager::ShutdownParameters pipelineShutdownParams{};
 
 #if _TARGET_PC_WIN
   DXGI_ADAPTER_DESC2 adapterDesc = {};
   adapter->GetDesc2(&adapterDesc);
 
-  PipelineCache::ShutdownParameters pipelineCacheSetup;
-  pipelineCacheSetup.fileName = CACHE_FILE_NAME;
-  pipelineCacheSetup.deviceVendorID = adapterDesc.VendorId;
-  pipelineCacheSetup.deviceID = adapterDesc.DeviceId;
-  pipelineCacheSetup.subSystemID = adapterDesc.SubSysId;
-  pipelineCacheSetup.revisionID = adapterDesc.Revision;
-  pipelineCacheSetup.rawDriverVersion = driverVersion.raw();
+  pipelineShutdownParams.cacheShutdown.fileName = CACHE_FILE_NAME;
+  pipelineShutdownParams.cacheShutdown.deviceVendorID = adapterDesc.VendorId;
+  pipelineShutdownParams.cacheShutdown.deviceID = adapterDesc.DeviceId;
+  pipelineShutdownParams.cacheShutdown.subSystemID = adapterDesc.SubSysId;
+  pipelineShutdownParams.cacheShutdown.revisionID = adapterDesc.Revision;
+  pipelineShutdownParams.cacheShutdown.rawDriverVersion = driverVersion.raw();
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-  pipelineCacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
+  pipelineShutdownParams.cacheShutdown.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
 #endif
   auto dxBlock = dgs_get_settings()->getBlockByNameEx("dx12");
-  pipelineCacheSetup.generateBlks = dxBlock->getBool("generateCacheBlks", pipeMan.needToUpdateCache);
-  pipelineCacheSetup.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", pipeMan.needToUpdateCache);
-#if _TARGET_PC_WIN
-  pipelineCacheSetup.buildInCacheFileName = dxBlock->getStr("buildInCacheFileName", BUILD_IN_CACHE_FILE_NAME);
-  pipelineCacheSetup.blitByteCodeHash = get_build_in_blit_shaders_hash();
-  pipelineCacheSetup.clearByteCodeHash = get_build_in_clear_shaders_hash();
+  pipelineShutdownParams.cacheShutdown.generateBlks = dxBlock->getBool("generateCacheBlks", pipeMan.needToUpdateCache);
+  pipelineShutdownParams.cacheShutdown.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", pipeMan.needToUpdateCache);
+  pipelineShutdownParams.cacheShutdown.buildInCacheFileName = dxBlock->getStr("buildInCacheFileName", BUILD_IN_CACHE_FILE_NAME);
+  pipelineShutdownParams.cacheShutdown.blitByteCodeHash = get_build_in_blit_shaders_hash();
+  pipelineShutdownParams.cacheShutdown.clearByteCodeHash = get_build_in_clear_shaders_hash();
 #endif
-
-  pipelineCache.shutdown(pipelineCacheSetup);
-#endif
+  pipeMan.shutdown(pipelineShutdownParams);
 
   resources.shutdown(getDXGIAdapter(), &bindlessManager);
   debug::DeviceState::teardown();
@@ -1888,7 +1895,8 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
     D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (driverDesc.shaderModel >= 6.5_sm);
   driverDesc.caps.hasSkipPrimitiveTypeInRayTracingShaders =
     D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (driverDesc.shaderModel >= 6.5_sm);
-  driverDesc.caps.hasNativeRayTracePipelineExpansion = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier;
+  driverDesc.caps.hasNativeRayTracePipelineExpansion =
+    D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && !issues::external::core::broken_rt_state_object_additions();
   driverDesc.caps.hasPersistentShaderHandles = driverDesc.caps.hasRayDispatch;
 
   driverDesc.caps.hasVariableRateShading = D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier;
@@ -2008,6 +2016,9 @@ void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides, [
 
 #else
   xbox_adjust_caps<Caps>(driverDesc, caps, config);
+
+  driverDesc.caps.hasRayDispatch = isDispatchRaysFeatureInited();
+  driverDesc.caps.hasIndirectRayDispatch = isDispatchRaysFeatureInited();
 #endif
 
   driverDesc.maxvertexsamplers = driverDesc.caps.hasBindless ? driverDesc.maxsimtex : D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
@@ -2191,7 +2202,7 @@ void Device::addBufferView(BufferState &buffer, BufferViewType view_type, Buffer
   // and the error has to be reported here.
   if (!viewResult.has_value())
   {
-    D3D_ERROR("DX12: Failed to add view to buffer of %u bytes, %s", buffer.size,
+    D3D_ERROR("DX12: Failed to add view to buffer of %llu bytes, %s", buffer.size,
       dxgi_error_code_to_string(viewResult.error().errorCode));
   }
 }
@@ -2266,7 +2277,7 @@ bool Device::processDefragmentation(const F &defragmentation_call, const char *d
     static constexpr float eps = 1e-3f;
     if (elem.first != newFreeSize || abs(elem.second - newFragmentation) > eps)
     {
-      logdbg("DX12: %s defragmentation group stats %d: free size %u -> %u, fragmentation %.2f%% -> %.2f%%",
+      logdbg("DX12: %s defragmentation group stats %d: free size %llu -> %llu, fragmentation %.2f%% -> %.2f%%",
         defragmentation_method_name, groupIdx, elem.first, newFreeSize, elem.second * 100.0f, newFragmentation * 100.0f);
     }
   }
@@ -2453,7 +2464,7 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(Raytr
     bottomLevelInputs.pGeometryDescs = geometryDesc.data();
     bottomLevelInputs.Flags = to_acceleration_structure_build_flags(flags, false);
 
-    device.as<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &prebuildInfo);
+    device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &prebuildInfo);
     G_ASSERT(prebuildInfo.ResultDataMaxSizeInBytes > 0);
 
 
@@ -2502,7 +2513,7 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint3
   topLevelInputs.Flags = to_acceleration_structure_build_flags(flags, false);
 
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
-  device.as<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
+  device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
   G_ASSERT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
   bool updateable = !!(topLevelInputs.Flags & D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE);
@@ -2766,7 +2777,6 @@ LUID Device::preRecovery()
   bindlessManager.preRecovery();
   frontendQueryManager.preRecovery();
   pipeMan.preRecovery();
-  pipelineCache.preRecovery();
   // Same ordering contract as in shutdown(): preRecover calls slShutdown, so it has to run while the
   // queues and the device are still alive.
   context.preRecoverStreamline();
@@ -2906,9 +2916,7 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
     cacheModes |= D3D12_SHADER_CACHE_SUPPORT_AUTOMATIC_DISK_CACHE;
   }
 
-  pipelineCache.recover(device.get(), cacheModes);
-
-  pipeMan.recover(device.get());
+  pipeMan.recover(device.get(), cacheModes);
 
   dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> unboundedTable;
   bindlessManager.visitSamplers([this, &unboundedTable](auto desc) { unboundedTable.push_back(getSampler(desc)); });
@@ -3092,6 +3100,10 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
 
 #if _TARGET_SCARLETT
   result.features.set(DeviceFeaturesConfig::REPORT_WAVE_64, cfg->getBool("scarlettWave64CompatibilityMode", true));
+  result.features.set(DeviceFeaturesConfig::ALLOCATE_DXR_STACK_BUFFER, cfg->getBool("scarlettAllocateDxrStackBuffer", true));
+  if (result.features.test(DeviceFeaturesConfig::ALLOCATE_DXR_STACK_BUFFER))
+    logdbg("DX12: Allocation of DXR stack buffer is enabled. Make sure 'DispatchRays' call is used on the project or disable it to "
+           "save memory");
 #endif
 
 #if DX12_CONFIGUREABLE_BARRIER_MODE
@@ -3237,31 +3249,23 @@ TextureTilingInfo Device::getTextureTilingInfo(BaseTex *tex, size_t subresource)
 #if !_TARGET_XBOXONE
 drv3d_dx12::ShaderLibrary *Device::createShaderLibrary(const ::ShaderLibraryCreateInfo &info)
 {
-  auto d5 = device.as<ID3D12Device5>();
-  if (!d5)
-  {
-    return nullptr;
-  }
-  return drv3d_dx12::ShaderLibrary::build(d5, info);
+  return drv3d_dx12::ShaderLibrary::build(device.get(), info);
 }
 #endif
 
 #if D3D_HAS_RAY_TRACING
+
 #if _TARGET_PC_WIN
 RayTracePipeline *Device::createPipeline(const Direct3D12Enviroment &env, const ::raytrace::PipelineCreateInfo &pci)
 {
-  if (!device.is<ID3D12Device5>())
-  {
-    return nullptr;
-  }
   // OMM is opt-in from the C++ create-info and from each library's DSHL block; build() ORs them and
   // applies the sole device-support gate (passed explicitly since build() has no Device to query).
   // The gate is core-DX12 only: the ALLOW_OPACITY_MICROMAPS pipeline flag is not used by the Nvidia
   // (nvapi) OMM path, so it must stay off unless OMM is implemented by core DX12.
   const bool deviceAllowsOmm = FeatureImplementation::Core == getOpacityMicroMapAvailability();
-  bool hasNativeExpand = false;
+  const bool allowNativeExpand = driverDesc.caps.hasNativeRayTracePipelineExpansion;
   auto pipe = eastl::make_unique<RayTracePipeline>();
-  if (!pipe->build(device, hasNativeExpand, deviceAllowsOmm, env.D3D12SerializeRootSignature, nullptr, pci))
+  if (!pipe->build(device, allowNativeExpand, deviceAllowsOmm, env.D3D12SerializeRootSignature, nullptr, pci))
   {
     return nullptr;
   }
@@ -3272,7 +3276,8 @@ RayTracePipeline *Device::createPipeline(const ::raytrace::PipelineCreateInfo &p
 {
   const bool deviceAllowsOmm = FeatureImplementation::Core == getOpacityMicroMapAvailability();
   auto pipe = eastl::make_unique<RayTracePipeline>();
-  if (!pipe->build(device, true, deviceAllowsOmm, D3D12SerializeRootSignature, nullptr, pci))
+  if (!pipe->build(device, driverDesc.caps.hasNativeRayTracePipelineExpansion, deviceAllowsOmm, D3D12SerializeRootSignature, nullptr,
+        pci))
   {
     return nullptr;
   }
@@ -3287,7 +3292,7 @@ RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrac
   {
     return nullptr;
   }
-  return base->expand(d7, pei);
+  return base->expand(d7, pei, driverDesc.caps.hasNativeRayTracePipelineExpansion);
 }
 
 ::raytrace::AccelerationStructureSizes Device::calculateAccelerationStructureSizes(

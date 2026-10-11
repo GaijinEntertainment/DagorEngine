@@ -476,6 +476,12 @@ VECTORCALL VECMATH_FINLINE bool v_test_mat44_nan(mat44f m)
 {
   return v_test_xyzw_nan(v_add(v_add(m.col0, m.col1), v_add(m.col2, m.col3)));
 }
+VECTORCALL VECMATH_FINLINE bool v_test_mat43_finite(mat44f_cref m)
+{
+  vec4f bad01 = v_or(v_is_not_finite(m.col0), v_is_not_finite(m.col1));
+  vec4f bad23 = v_or(v_is_not_finite(m.col2), v_is_not_finite(m.col3));
+  return v_check_xyz_all_false(v_or(bad01, bad23));
+}
 VECTORCALL VECMATH_FINLINE bool v_test_xyz_abs_lt(vec3f a, vec3f limit) { return v_check_xyz_all_true(v_cmp_abs_gt(limit, a)); }
 
 VECTORCALL VECMATH_FINLINE void v_mat33_transpose(mat33f &dest, mat33f_cref src)
@@ -919,6 +925,36 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_det43(mat44f_cref m)
 {
   return v_dot3(m.col2, v_cross3(m.col0, m.col1));
 }
+VECTORCALL VECMATH_FINLINE bool v_mat44_is_ident43(mat44f_cref m)
+{
+  // One reduction for all 12 lanes, not one per column: movmsk and its NEON emulation dominate.
+  vec4f eq01 = v_and(v_cmp_eq(m.col0, V_C_UNIT_1000), v_cmp_eq(m.col1, V_C_UNIT_0100));
+  vec4f eq23 = v_and(v_cmp_eq(m.col2, V_C_UNIT_0010), v_cmp_eq(m.col3, v_zero()));
+  return v_check_xyz_all_true(v_and(eq01, eq23));
+}
+VECTORCALL VECMATH_FINLINE bool v_mat44_is_equal43(mat44f_cref a, mat44f_cref b)
+{
+  vec4f eq01 = v_and(v_cmp_eq(a.col0, b.col0), v_cmp_eq(a.col1, b.col1));
+  vec4f eq23 = v_and(v_cmp_eq(a.col2, b.col2), v_cmp_eq(a.col3, b.col3));
+  return v_check_xyz_all_true(v_and(eq01, eq23));
+}
+VECTORCALL VECMATH_FINLINE bool v_mat44_is_signed_perm33(mat44f_cref m)
+{
+  // a * a == a holds for 0, 1 and +Inf (NaN fails). Test col0 alone first: a generic rotation
+  // fails there, and skipping the rest halves its cost.
+  vec4f a0 = v_abs(m.col0);
+  if (!v_check_xyz_all_true(v_cmp_eq(v_mul(a0, a0), a0)))
+    return false;
+  vec4f a1 = v_abs(m.col1), a2 = v_abs(m.col2);
+  vec4f zeroOrOne = v_and(v_cmp_eq(v_mul(a1, a1), a1), v_cmp_eq(v_mul(a2, a2), a2));
+  // With elements 0, 1 or +Inf the row sum is exact: 1 means one column hits the row, and Inf
+  // fails. The 1/2/4 tag of that column then differs across the rows iff the columns do.
+  vec4f oneColumn = v_cmp_eq(v_add(v_add(a0, a1), a2), V_C_ONE);
+  vec4f tag = v_madd(a1, V_C_TWO, a0);
+  tag = v_madd(a2, v_splats(4.f), tag);
+  vec4f distinct = v_cmp_neq(tag, v_perm_yzxw(tag));
+  return v_check_xyz_all_true(v_and(v_and(zeroOrOne, oneColumn), distinct));
+}
 VECTORCALL VECMATH_FINLINE vec3f v_mat44_scale43_sq(mat44f_cref tm)
 {
   // transpose puts col0..col2 x/y/z into rows, so one wide mul + 2 madd yields all
@@ -954,24 +990,28 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43(mat44f_cref tm)
 }
 VECTORCALL VECMATH_FINLINE void v_mat33_gram(vec3f &diag, vec3f &off, vec3f col0, vec3f col1, vec3f col2)
 {
-  // Transposing scatters each product's three components across lanes, so one column-wise add
-  // reduces all three dots at once. The transpose zeroes the fourth lane, so an unspecified .w
-  // in a column cannot reach a row.
-  mat33f rows, pairs;
+  // Rotating the transposed rows by a lane pairs each column with the next, so one madd chain
+  // gives the three pair dots; the last rotate puts each in the lane outside its own row. Sums go
+  // (x + z) + y like the SSE4.1 v_dot3_x, so lane-wise readers match it bit for bit without FMA.
+  // The transpose zeroes .w, so an unspecified column .w cannot reach a row.
+  mat33f rows;
   v_mat33_transpose(rows, col0, col1, col2);
-  v_mat33_transpose(pairs, v_mul(col1, col2), v_mul(col0, col2), v_mul(col0, col1));
   vec4f d = v_mul(rows.col0, rows.col0);
-  d = v_madd(rows.col1, rows.col1, d);
-  diag = v_madd(rows.col2, rows.col2, d);
-  off = v_add(pairs.col2, v_add(pairs.col0, pairs.col1));
+  d = v_madd(rows.col2, rows.col2, d);
+  diag = v_madd(rows.col1, rows.col1, d);
+  vec4f o = v_mul(rows.col0, v_perm_yzxx(rows.col0));
+  o = v_madd(rows.col2, v_perm_yzxx(rows.col2), o);
+  o = v_madd(rows.col1, v_perm_yzxx(rows.col1), o);
+  off = v_perm_yzxx(o);
 }
 VECTORCALL VECMATH_FINLINE vec4f v_mat33_gram_bound_x(vec3f diag, vec3f off)
 {
   // Every eigenvalue lies within sum_j |b_ij| of some b_ii, so the largest row sum bounds the
-  // largest of them. A row takes the two off-diagonals outside its own lane, hence the total
-  // less that lane, so off must be in v_mat33_gram's lane order.
+  // largest of them. Each row adds the two off-diagonals outside its own lane, so off must be in
+  // v_mat33_gram's lane order. Rotations, not total less own lane: an overflowed lane stays inf
+  // where inf - inf would give NaN.
   vec4f a = v_abs(off);
-  return v_hmax3(v_add(diag, v_sub(v_splat_x(v_hadd3_x(a)), a)));
+  return v_hmax3(v_add(diag, v_add(v_perm_yzxw(a), v_perm_zxyw(a))));
 }
 VECTORCALL VECMATH_INLINE vec4f v_mat44_spectral_norm43_x(mat44f_cref tm)
 {

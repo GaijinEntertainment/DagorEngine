@@ -760,7 +760,7 @@ int get_battery_capacity_mah() { return -1; }
 
 float get_battery() { return -1.f; }
 int get_is_charging() { return -1; };
-int get_gpu_freq() { return 0; }
+int get_gpu_freq() { return -1; }
 
 #elif _TARGET_PC_WIN
 
@@ -1050,7 +1050,7 @@ int get_battery_capacity_mah() { return -1; }
 
 float get_battery() { return -1.f; }
 int get_is_charging() { return -1; };
-int get_gpu_freq() { return 0; }
+int get_gpu_freq() { return -1; }
 
 #elif _TARGET_PC_LINUX
 
@@ -1272,7 +1272,7 @@ int get_battery_capacity_mah() { return -1; }
 
 float get_battery() { return -1.f; }
 int get_is_charging() { return -1; };
-int get_gpu_freq() { return 0; }
+int get_gpu_freq() { return -1; }
 
 #endif // _TARGET_PC_WIN, _TARGET_PC_MACOSX, _TARGET_PC_LINUX
 
@@ -1413,7 +1413,7 @@ int get_is_charging()
   return -1;
 };
 
-int get_gpu_freq() { return 0; }
+int get_gpu_freq() { return -1; }
 
 #elif _TARGET_ANDROID
 bool get_proc_mem_info_by_param(const char *name, int &result)
@@ -1622,11 +1622,12 @@ int get_gpu_freq()
         freq /= 1000000;
       else if (freq > 10000)
         freq /= 1000;
+
       return freq;
     }
   }
 
-  return 0;
+  return -1;
 }
 
 #else // !_TARGET_PC_MACOSX && !_TARGET_PC_WIN && !_TARGET_PC_LINUX && !_TARGET_C1 && !_TARGET_C2
@@ -1650,7 +1651,7 @@ int get_battery_capacity_mah() { return -1; }
 
 float get_battery() { return -1.f; }
 int get_is_charging() { return -1; };
-int get_gpu_freq() { return 0; }
+int get_gpu_freq() { return -1; }
 
 #endif
 

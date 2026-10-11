@@ -8,25 +8,6 @@
 #include <imgui/imgui.h>
 
 
-int GraphEdgeReconnect::pickEdgeAtPin(const GraphData &gd, int node_id, int pin_index)
-{
-  if (node_id < 0 || pin_index < 0)
-  {
-    return -1;
-  }
-
-  eastl::vector<PinEdge> pinEdges;
-  collect_pin_edges(gd, node_id, pin_index, pinEdges);
-  for (int i = static_cast<int>(pinEdges.size()) - 1; i >= 0; --i)
-  {
-    if (!pinEdges[i].muted)
-    {
-      return pinEdges[i].edgeId;
-    }
-  }
-  return -1;
-}
-
 bool GraphEdgeReconnect::beginForEdge(const GraphData &gd, int edge_id, int detach_node, int detach_pin)
 {
   if (active || detach_node < 0 || detach_pin < 0)
@@ -35,7 +16,7 @@ bool GraphEdgeReconnect::beginForEdge(const GraphData &gd, int edge_id, int deta
   }
 
   const GraphData::Edge *const edge = find_edge_by_id(gd, edge_id);
-  if (!edge || edge->muted)
+  if (!edge)
   {
     return false;
   }
@@ -49,7 +30,7 @@ bool GraphEdgeReconnect::beginForEdge(const GraphData &gd, int edge_id, int deta
 
   // The opposite end becomes the anchor; its role orients the eventual reconnection.
   const GraphData::Node *anchor = find_node_by_id(gd, oppositeNode);
-  if (!anchor || oppositePin < 0 || oppositePin >= static_cast<int>(anchor->pins.size()))
+  if (!anchor || !is_pin_reachable(*anchor, oppositePin))
   {
     return false;
   }

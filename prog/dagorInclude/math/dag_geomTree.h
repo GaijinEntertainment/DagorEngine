@@ -33,17 +33,28 @@ public:
   GeomNodeTree &operator=(const GeomNodeTree &from) = delete;
 
   // refills this tree, keeping the object itself and every pointer already bound to it.
-  // data of a make()/load() tree is one fixed block, so such a tree only takes an equally
+  // data of a make()/load()/build() tree is one fixed block, so such a tree only takes an equally
   // sized one, and clear() (an empty refill) is for separately owned data only
   void replaceContentFrom(const GeomNodeTree &from);
   void clear() { replaceContentFrom(GeomNodeTree()); }
 
-  // make()/load() return one block holding the instance and its data, released by destroy()
+  // make()/load()/build() return one block holding the instance and its data, released by destroy()
   static GeomNodeTree *make(const GeomNodeTree &from);
   static GeomNodeTree *load(IGenLoad &cb);
+
+  struct BuildNode
+  {
+    const char *name;
+    int parent; //< index in the list, negative for the root
+    mat44f tm;
+  };
+  // the nodes go in breadth-first order (the root first, parent indices never decrease), and
+  // tree node i is nodes[i]; the wtm is left uncalculated. Asserts and returns nullptr for an
+  // empty list, a list out of that order, or one with too many nodes or too much name text
+  static GeomNodeTree *build(dag::ConstSpan<BuildNode> nodes);
   void destroy();
 
-  // instances live only in co-allocated make()/load() blocks freed by destroy(); no raw heap new/delete
+  // instances live only in co-allocated make()/load()/build() blocks freed by destroy(); no raw heap new/delete
   static void *operator new(size_t) = delete;
   static void *operator new[](size_t) = delete;
   static void operator delete(void *) = delete;

@@ -49,7 +49,6 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <startup/dag_globalSettings.h>
-#include <startup/dag_loadSettings.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlockUtils.h>
@@ -63,6 +62,7 @@
 #include <daScript/ast/ast_serializer.h>
 #include <ecs/anim/slotAttach.h>
 #include <ecs/gameres/commonLoadingJobMgr.h>
+#include "main/workStatus.h"
 #include <daECS/net/connid.h>
 #include <daECS/io/blk.h>
 #include <ecs/scripts/scripts.h>
@@ -436,20 +436,14 @@ void load_package_files(const GamePackage &game_info, bool load_game_res)
 GamePackage load_game_package()
 {
   GamePackage gameInfo;
-  const char *settingsFn = gameproj::settings_fpath();
-  gameInfo.gameSettings.load(settingsFn);
 
-  String overrideFn = get_config_filename();
-  DataBlock cfg;
-  if (dd_file_exist(overrideFn))
-  {
-    dblk::load(cfg, overrideFn, dblk::ReadFlag::ROBUST);
-    debug("Load override config %s", overrideFn);
-  }
-  dgs_apply_changes_to_config(cfg, true);
-  dgs_apply_config_blk_ex(gameInfo.gameSettings, cfg, false, false);
+  // extract only needed blocks to gameInfo.gameSettings
+  static const char *stg_block_names[] = {"mountPoints", "vromList", "addonBasePath", "chunksMapping", "addons", "rawAddons"};
+  for (const char *blk_nm : stg_block_names)
+    if (const DataBlock *b = dgs_get_settings()->getBlockByName(blk_nm))
+      gameInfo.gameSettings.addNewBlock(b, blk_nm);
 
-  app_profile::apply_settings_blk(gameInfo.gameSettings);
+  app_profile::apply_settings_blk(*dgs_get_settings());
 
   console_keybindings::load_binds_from_file();
 
@@ -880,6 +874,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   net::ConnectParams &&connect_params,
   const UserGameModeContext &mods_ctx)
 {
+  workstatus::Scope wsScene("loading scene");
   TIME_PROFILE(load_scene_impl)
   debug("load_scene_impl");
 #if _TARGET_ANDROID || _TARGET_IOS
@@ -980,8 +975,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
 
   if (current_game.sceneName.empty() && !hasServerUrls)
   {
-    const char *sceneNm =
-      dgs_get_argv("scene", dgs_get_settings()->getStr("scene", current_game.gameSettings.getStr("scene", nullptr)));
+    const char *sceneNm = dgs_get_argv("scene", dgs_get_settings()->getStr("scene", nullptr));
     if (!sceneNm && is_server())
       DAG_FATAL("scene:t= is not specified neither in *.config.blk, *.patch or in commandline\n");
     else if (sceneNm)
@@ -1015,7 +1009,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   hdrrender::init(width, height, true, false);
 
   g_entity_mgr->broadcastEventImmediate(
-    EventOnBeforeSceneLoad(current_game.sceneName.c_str(), current_game.importScenes, current_game.gameSettings));
+    EventOnBeforeSceneLoad(current_game.sceneName.c_str(), current_game.importScenes, *dgs_get_settings()));
 
   load_scene(current_game.sceneName.c_str(), current_game.importScenes);
   net_replay_rewind();

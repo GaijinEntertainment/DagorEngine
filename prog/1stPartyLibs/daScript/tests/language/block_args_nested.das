@@ -25,12 +25,12 @@ def passthroughFoo(a : BlockFoo; blk : block<(b : BlockFoo) : void>) {
 [test]
 def test_block_args_nested(t : T?) {
     t |> run("nested int blocks") @(t : T?) {
-        passthrough(1) <| $(a) {
+        passthrough(1) $(a) {
             t |> equal(a, 1)
-            passthrough(2) <| $(b) {
+            passthrough(2) $(b) {
                 t |> equal(a, 1)
                 t |> equal(b, 2)
-                passthrough(3) <| $(c) {
+                passthrough(3) $(c) {
                     t |> equal(a, 1)
                     t |> equal(b, 2)
                     t |> equal(c, 3)
@@ -39,15 +39,15 @@ def test_block_args_nested(t : T?) {
         }
     }
     t |> run("nested ref blocks") @(t : T?) {
-        var A = 1
-        var B = 2
-        var C = 3
-        passthroughref(A) <| $(a) {
+        let A = 1
+        let B = 2
+        let C = 3
+        passthroughref(A) $(a) {
             t |> equal(a, 1)
-            passthroughref(B) <| $(b) {
+            passthroughref(B) $(b) {
                 t |> equal(a, 1)
                 t |> equal(b, 2)
-                passthroughref(C) <| $(c) {
+                passthroughref(C) $(c) {
                     t |> equal(a, 1)
                     t |> equal(b, 2)
                     t |> equal(c, 3)
@@ -60,12 +60,12 @@ def test_block_args_nested(t : T?) {
         var B = 2
         var C = 3
         unsafe {
-            passthroughptr(addr(A)) <| $(a) {
+            passthroughptr(addr(A)) $(a) {
                 t |> equal(*a, 1)
-                passthroughptr(addr(B)) <| $(b) {
+                passthroughptr(addr(B)) $(b) {
                     t |> equal(*a, 1)
                     t |> equal(*b, 2)
-                    passthroughptr(addr(C)) <| $(c) {
+                    passthroughptr(addr(C)) $(c) {
                         t |> equal(*a, 1)
                         t |> equal(*b, 2)
                         t |> equal(*c, 3)
@@ -75,12 +75,12 @@ def test_block_args_nested(t : T?) {
         }
     }
     t |> run("nested struct blocks") @(t : T?) {
-        passthroughFoo(BlockFoo(v = 1)) <| $(a) {
+        passthroughFoo(BlockFoo(v = 1)) $(a) {
             t |> equal(a.v, 1)
-            passthroughFoo(BlockFoo(v = 2)) <| $(b) {
+            passthroughFoo(BlockFoo(v = 2)) $(b) {
                 t |> equal(a.v, 1)
                 t |> equal(b.v, 2)
-                passthroughFoo(BlockFoo(v = 3)) <| $(c) {
+                passthroughFoo(BlockFoo(v = 3)) $(c) {
                     t |> equal(a.v, 1)
                     t |> equal(b.v, 2)
                     t |> equal(c.v, 3)

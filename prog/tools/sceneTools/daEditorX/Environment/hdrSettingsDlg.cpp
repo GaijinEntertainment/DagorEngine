@@ -26,7 +26,7 @@ enum
 HdrViewSettingsDialog::HdrViewSettingsDialog(DataBlock *hdr_blk, bool if_aces_plugin) :
   hdrBlk(hdr_blk), levelReloadRequired(false), hdrModeNone(false), isAcesEnvironment(if_aces_plugin)
 {
-  dlg = DAGORED2->createDialog(hdpi::_pxScaled(230), hdpi::_pxScaled(200), "HDR View Settings");
+  dlg = DAGORED2->createAutoSizedDialog("HDR View Settings");
   G_ASSERT(dlg && "HDR dialog not created!");
   G_ASSERT(hdrBlk && "HDR blk is NULL!");
 
@@ -84,11 +84,11 @@ int HdrViewSettingsDialog::showDialog()
       case HDR_RADIO_XBLADES: hdrMode = "xblades"; break;
     }
 
-    hdrBlk->setStr("mode", hdrMode);
-
     // flags
     levelReloadRequired = stricmp(hdrMode, hdrBlk->getStr("mode", "none"));
     hdrModeNone = (panel->getInt(HDR_RADIO_GROUP) == HDR_RADIO_NONE);
+
+    hdrBlk->setStr("mode", hdrMode);
   }
 
   return res;

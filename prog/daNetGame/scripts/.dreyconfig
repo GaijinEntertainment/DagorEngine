@@ -1,5 +1,3 @@
 {
-  "__disabled_checks":[
-    "not-a-const"
-  ]
+  "__disabled_checks":[]
 }

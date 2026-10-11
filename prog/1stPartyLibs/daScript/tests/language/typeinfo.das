@@ -8,8 +8,8 @@ struct Event {
 
 [test]
 def test_typeinfo(t : T?) {
-    let arg : int
-    let a = typeinfo sizeof(arg)
+    let _arg : int
+    let a = typeinfo sizeof(_arg)
     t |> equal(4, a)
     let b = typeinfo has_field<i>(type<Event>)
     t |> equal(true, b)

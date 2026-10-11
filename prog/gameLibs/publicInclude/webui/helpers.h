@@ -119,6 +119,9 @@ extern HttpPlugin rendinst_colors_http_plugin;
 void init_dmviewer_plugin();
 void init_ecsviewer_plugin();
 
+struct IDmViewerSource;
+// The plugin keeps the pointer, so source must outlive the plugin or be reset to nullptr first.
+void set_dmviewer_source(const IDmViewerSource *source);
 void set_ecsviewer_entity_manager(ecs::EntityManager *);
 
 }; // namespace webui

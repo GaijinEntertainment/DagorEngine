@@ -20,7 +20,7 @@ require daslib/algorithm
 [function_macro(name=constexpr)]
 class ConstExprAnnotation : AstFunctionAnnotation {
     //! Checks selected function arguments and fails when any receives a non-constant expression.
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         for (aa in args) {
             if (aa.basicType == Type.tBool) {
                 for (ca, ce in call.func.arguments, call.arguments) {
@@ -89,10 +89,8 @@ class ConstantExpressionMacro : AstFunctionAnnotation {
         if (expr.func.fromGeneric != null) {
             func_copy.body := null
             func_copy.result := null
-            unsafe {
-                func_copy.body = clone_expression(expr.func.fromGeneric.body)
-                func_copy.result = clone_type(expr.func.fromGeneric.result)
-            }
+            func_copy.body = clone_expression(expr.func.fromGeneric.body)
+            func_copy.result = clone_type(expr.func.fromGeneric.result)
         }
 
         apply_template(func_copy.body) $(rules) {
@@ -103,13 +101,11 @@ class ConstantExpressionMacro : AstFunctionAnnotation {
         for (i in argi) {
             func_copy.arguments |> erase(i)
         }
-        // func_copy.flags |= FunctionFlags exports
         func_copy.flags.generated = true
         func_copy.annotations |> erase(anni)
         compiling_module() |> add_function(func_copy)
         var new_call = clone_expression(expr)
         var ncall = new_call as ExprCall
-        // Resolve the generated specialization in thisModule (where add_function placed it below), not the call site's defining module. Matters when the annotated function is called from library-internal generic code (e.g. json_boost`from_json_row`'s apply_imm): such a call site lives in the generic's ORIGIN module, so a plain name would search there and miss the specialization in the program root.
         ncall.name := "__::{func_name}"
         for (i in argi) {
             ncall.arguments |> erase(i)

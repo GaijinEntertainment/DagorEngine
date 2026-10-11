@@ -196,7 +196,7 @@ struct FileSerializationWrite final : FileSerializationStorage
   virtual bool readOverflow(void *data, size_t size) override;
   virtual void write(const void *data, size_t size) override;
   virtual void finish() override;
-  void flush(ZSTD_EndDirective end_mode);
+  void compressBuffer(ZSTD_EndDirective end_mode);
 
   void init();
 };
@@ -242,11 +242,11 @@ void FileSerializationWrite::write(const void *data, size_t size)
     size -= bytesToWrite;
     totalSize += bytesToWrite;
     if (bufferPos == buffer.size())
-      flush(ZSTD_e_continue);
+      compressBuffer(ZSTD_e_continue);
   }
 }
 
-void FileSerializationWrite::flush(ZSTD_EndDirective end_mode)
+void FileSerializationWrite::compressBuffer(ZSTD_EndDirective end_mode)
 {
   int finished;
   do
@@ -277,7 +277,7 @@ void FileSerializationWrite::finish()
   if (!cctx)
     return;
 
-  flush(ZSTD_e_end);
+  compressBuffer(ZSTD_e_end);
 
   if (df_seek_to(file, 0) != 0 || df_write(file, &cksum, sizeof(cksum)) != sizeof(cksum))
   {

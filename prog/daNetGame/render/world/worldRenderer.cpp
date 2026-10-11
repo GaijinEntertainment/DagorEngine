@@ -95,7 +95,6 @@
 #include <screenSpaceReflections_api.h>
 #include <render/rendererFeatures.h>
 #include "render/rendinstTessellation.h"
-#include "render/world/dynModelRenderer.h"
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <render/volumetricLights/volumetricLights.h>
 #include <render/weather/fluidWind.h>
@@ -119,9 +118,11 @@
 #include "depthBounds.h"
 
 #include "render/screencap.h"
+#include "render/neuralRendering.h"
 
 #include "frameGraphNodes/frameGraphNodes.h"
 #include <render/world/frameGraphHelpers.h>
+#include <ssao_common_public.h>
 
 #include <render/deepLearningSuperSampling.h>
 #include <render/XeSuperSampling.h>
@@ -603,10 +604,10 @@ void WorldRenderer::unloadLevel()
 
   staticSceneCollisionResource = nullptr;
   shadowsManager.resetShadowsVisibilityTesting();
-  // free mission-sized cull buffers; visibilities are lazily recreated on next render
+  // free mission-sized cull and dynrend buffers (regrown on next render); shrinkRendinstVisibilities() waits the jobs
   shadowsManager.closeAllStaticShadowsVisibility();
   shrinkRendinstVisibilities();
-  dynmodel_renderer::shrink_states();
+  dynrend::shrink_all_contexts();
   lights.shrinkShadowVolumes();
   clearLegacyGPUObjectsVisibility();
 
@@ -1382,12 +1383,10 @@ void WorldRenderer::resetVsyncMode()
 
 void WorldRenderer::resetPerformanceMetrics()
 {
-  PerfDisplayMode mode = static_cast<PerfDisplayMode>(
+  const PerfDisplayMode mode = static_cast<PerfDisplayMode>(
     ::dgs_get_settings()->getBlockByNameEx("video")->getInt("perfMetrics", static_cast<int>(PerfDisplayMode::FPS)));
-  if (!lowlatency::is_available() && mode != PerfDisplayMode::OFF && mode != PerfDisplayMode::FPS)
-    mode = PerfDisplayMode::FPS;
   darg::bhv_fps_bar.setDisplayMode(mode);
-  darg::bhv_latency_bar.setDisplayMode(mode);
+  darg::bhv_latency_bar.setDisplayMode(lowlatency::is_available() ? mode : PerfDisplayMode::OFF);
 }
 
 void WorldRenderer::resetDynamicQuality()
@@ -1475,7 +1474,7 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
   }
 
   if (changed_fields.getNameId("graphics/lodsShiftDistMul") >= 0)
-    rendinst::setLodsShiftDistMult();
+    rendinst::setLodsShiftDistMul();
 
   if (changed_fields.getNameId("graphics/rendinstDistMul") >= 0)
     rendinst::updateSettingsDistMul();
@@ -2533,7 +2532,7 @@ int WorldRenderer::getSubPixels() const
   if (camera_in_camera::is_lens_render_active())
     return 1;
   if (!VariableMap::isGlobVariablePresent(sub_pixelsVarId) || isUpsampling() || applySettingsAfterResetDevice ||
-      isGeneratingFrames() || is_bvh_enabled())
+      isGeneratingFrames() || is_bvh_enabled() || is_neural_rendering_active())
     return 1;
   // TODO:: temporarily ignore resource hog settings in order to reduce audio out - of - sync / glitching issues
   if (is_recording())
@@ -2552,7 +2551,7 @@ int WorldRenderer::getSuperPixels() const
     return 1;
   if (!VariableMap::isGlobVariablePresent(super_pixelsVarId) || !VariableMap::isGlobVariablePresent(interleave_pixelsVarId) ||
       !VariableMap::isGlobVariablePresent(super_screenshot_texVarId) || isUpsampling() || applySettingsAfterResetDevice ||
-      isGeneratingFrames() || is_bvh_enabled())
+      isGeneratingFrames() || is_bvh_enabled() || is_neural_rendering_active())
     return 1;
   // TODO:: temporarily ignore resource hog settings in order to reduce audio out - of - sync / glitching issues
   if (is_recording())
@@ -2586,7 +2585,9 @@ void WorldRenderer::updateEnviCoverCompatibility()
   const int gbuffFmtCount = needMotionVectors() ? FULL_GBUFFER_RT_COUNT : NO_MOTION_GBUFFER_RT_COUNT;
   for (int i = 0; i < gbuffFmtCount; i++)
   {
-    if (!(d3d::get_texformat_usage(FULL_GBUFFER_FORMATS[i] | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD))
+    // envi cover loads and stores every layer except motion vectors through one UAV
+    const uint32_t usage = i < NO_MOTION_GBUFFER_RT_COUNT ? d3d::USAGE_UNORDERED_LOAD : d3d::USAGE_UNORDERED;
+    if (!(d3d::get_texformat_usage(FULL_GBUFFER_FORMATS[i] | TEXCF_UNORDERED) & usage))
     {
       isEnviCoverCompatible = false;
       return;
@@ -2860,6 +2861,7 @@ void WorldRenderer::ctorDeferred()
 
   initOverrideStates();
   init_and_get_hash_128_noise();
+  init_and_get_l8_64_noise(); // the de-tiled landclass noise; landMesh itself cannot link gameLibs/render
   Point3 min_r, max_r;
   init_and_get_perlin_noise_3d(min_r, max_r);
 
@@ -3246,6 +3248,7 @@ void WorldRenderer::close()
   shader_assert::close();
   free_gpu_hang_resources();
   release_hash_128_noise();
+  release_l8_64_noise();
   release_perline_noise_3d();
   waitAllJobs();
   flipCullStateId.reset();
@@ -3592,12 +3595,12 @@ void WorldRenderer::updateLodsScaling()
   if (camera_in_camera::is_lens_only_zoom_enabled())
   {
     rendinst::setImpostorsDistAddMul(defImpostorDistMul);
-    rendinst::setDistMul(defRiDistMul, 0.0f);
+    rendinst::setDynamicDistMul(defRiDistMul, 0.0f);
   }
   else
   {
     rendinst::setImpostorsDistAddMul(impostorsDistMul);
-    rendinst::setDistMul(riDistMul, 0.0f);
+    rendinst::setDynamicDistMul(riDistMul, 0.0f);
   }
 
   if (camera_in_camera::is_lens_render_active())
@@ -3931,6 +3934,13 @@ const char *fmt_csm_render_pass_name(int cascade, char tmps[], int csm_task_id =
   return tmps;
 }
 
+// Last cascade is the heaviest one, so split it finer (0th one is rendered in main thread)
+static inline int csm_cascade_jobs_count(int cascade, int num_cascades)
+{
+  return (cascade && cascade == num_cascades - 1) ? AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX
+                                                  : AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
+}
+
 void WorldRenderer::updateTransformations(const DPoint3 &move,
   const TMatrix4_vec4 &jittered_cam_pos_to_unjittered_history_clip,
   const TMatrix4_vec4 &prev_origo_relative_view_proj_tm) // move currentWorldPos - prevWorldPos
@@ -3970,11 +3980,23 @@ static void set_mip_bias(float bias_value)
 
 void WorldRenderer::draw(uint32_t frame_id, float realDt)
 {
+#if DA_PROFILER_ENABLED
   int renderResW, renderResH;
   getRenderingResolution(renderResW, renderResH);
   int displayResW, displayResH;
   getDisplayResolution(displayResW, displayResH);
   DA_PROFILE_TAG(resolution, "render:%d x %d, display:%d x %d", renderResW, renderResH, displayResW, displayResH);
+  if (da_profiler::get_active_mode() & da_profiler::TAGS)
+  {
+    const Point3 camPos = currentFrameCamera.viewItm.getcol(3), camDir = currentFrameCamera.viewItm.getcol(2);
+    DA_PROFILE_TAG(camera_position, "%f %f %f", camPos.x, camPos.y, camPos.z);
+    DA_PROFILE_TAG(camera_direction, "%f %f %f", camDir.x, camDir.y, camDir.z);
+    char mapNameBuf[DAGOR_MAX_PATH];
+    const char *mapName =
+      dd_get_fname_without_path_and_ext(mapNameBuf, sizeof(mapNameBuf), sceneload::get_current_game().sceneName.c_str());
+    DA_PROFILE_TAG(map_name, mapName);
+  }
+#endif
 
   debugRecreateNodes();
   processPendingFgRecreation();
@@ -4056,6 +4078,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 
   float firstPersonShadowDist = get_fpv_shadow_dist();
   shadowsManager.prepareShadowsMatrices(itm, persp, reinterpret_cast<const TMatrix4 &>(proj), frustum, firstPersonShadowDist);
+  g_entity_mgr->broadcastEventImmediate(BeforeStartVisibility());
 
   startVisibility();
   // debug("parallel for %d", get_time_usec(reft));
@@ -4299,18 +4322,20 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       TIME_PROFILE(animchar_shadows_parallel);
       G_ASSERT(g_entity_mgr->isConstrainedMTMode());
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
-      dynrend::ContextId ctxIds[AnimcharRenderAsyncFilter::ARF_IDX_COUNT][CascadeShadows::MAX_CASCADES];
+      dynrend::ContextId ctxIds[AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX][CascadeShadows::MAX_CASCADES];
       Frustum frustums[CascadeShadows::MAX_CASCADES];
-      // Pad to 2 cache lines to avoid false sharing
-      volatile int workLeft[CascadeShadows::MAX_CASCADES][(EA_CACHE_LINE_SIZE * 2) / sizeof(int)];
-#define CSM_CASCADE_JOBS_STARTED(i_) (*(eastl::end(workLeft[i_]) - 1)) // Via macros to avoid blow up sizeof capture context of labmda
+      struct
+      {
+        volatile int left, notStarted;
+      } jobsCnt[CascadeShadows::MAX_CASCADES];
       for (int i = 0; i < numCascades; ++i)
       {
         const TMatrix4 &csmViewTm = csm->getRenderViewMatrix(i);
         const TMatrix4 &csmProjTm = csm->getRenderProjMatrix(i);
         TMatrix4 csmViewTmRel = csmViewTm;
         csmViewTmRel.setrow(3, 0, 0, 0, 1);
-        for (int j = 0; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
+        const int jobsCount = csm_cascade_jobs_count(i, numCascades);
+        for (int j = 0; j < jobsCount; j++)
         {
           char tmps[] = "csm#000";
           ctxIds[j][i] = dynrend::get_or_create_context(fmt_csm_render_pass_name(RENDER_SHADOWS_CSM + i, tmps, j));
@@ -4318,16 +4343,18 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
           dynrend::set_context_view_proj(ctxIds[j][i], csmViewTmRel, csmProjTm, csmViewTmRel, csmProjTm);
         }
         frustums[i] = csm->getFrustum(i);
-        interlocked_relaxed_store(workLeft[i][0], AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
-        interlocked_relaxed_store(CSM_CASCADE_JOBS_STARTED(i), AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
+        interlocked_relaxed_store(jobsCnt[i].left, jobsCount);
+        interlocked_relaxed_store(jobsCnt[i].notStarted, jobsCount);
       }
       GlobalVariableStates globalVarsState(framemem_ptr());
       copy_current_global_variables_states(globalVarsState);
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
+      // Job index is `cascade * ARF_IDX_COUNT + filter`, only last cascade might have more than ARF_IDX_COUNT jobs
       auto render_shadow_cb = [&](int i) {
-        int cascade = i / AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
-        interlocked_decrement(CSM_CASCADE_JOBS_STARTED(cascade));
-        auto eidFilter = AnimcharRenderAsyncFilter(i & AnimcharRenderAsyncFilter::ARF_IDX_MASK);
+        int cascade = min(i / (int)AnimcharRenderAsyncFilter::ARF_IDX_COUNT, numCascades - 1);
+        interlocked_decrement(jobsCnt[cascade].notStarted);
+        auto eidFilter = AnimcharRenderAsyncFilter(i - cascade * AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
+        const int jobsCount = csm_cascade_jobs_count(cascade, numCascades);
         dynrend::ContextId ctx = ctxIds[eidFilter][cascade];
         // todo: interlocked_or uint8_t
         const animchar_visbits_t add_vis_bits = VISFLG_CSM_SHADOW_RENDERED; //(VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED)
@@ -4338,19 +4365,22 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
         g_entity_mgr->broadcastEventImmediate(AnimcharRenderAsyncEvent(ctx, &globalVarsState,
           NULL,              //&occlusion
           frustums[cascade], // : Frustum(currentFrameCamera.noJitterGlobtm),
-          add_vis_bits, require_any_vis_bits, reject_if_any_vis_bits, filterMask, false /*hasMotionVectors*/, eidFilter));
-        if (interlocked_decrement(workLeft[cascade][0]) == 0) // Last one finalizes and prepares for render
+          add_vis_bits, require_any_vis_bits, reject_if_any_vis_bits, filterMask, false /*hasMotionVectors*/, eidFilter,
+          TexStreamingContext(0), jobsCount - 1));
+        if (interlocked_decrement(jobsCnt[cascade].left) == 0) // Last one finalizes and prepares for render
         {
           TIME_PROFILE_DEV(finalize_render_csm);
-          for (int j = 1; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
+          for (int j = 1; j < jobsCount; j++)
             dynrend::merge_context(ctxIds[0][cascade], ctxIds[j][cascade]);
           dynrend::prepare_render_finalize(ctxIds[0][cascade]);
         }
       };
       using JobType = AnimcharRenderShadowsJob<decltype(render_shadow_cb)>;
-      alignas(JobType) char jobs_storage[sizeof(JobType) * CascadeShadows::MAX_CASCADES * AnimcharRenderAsyncFilter::ARF_IDX_COUNT];
+      constexpr int MAX_JOBS = CascadeShadows::MAX_CASCADES * AnimcharRenderAsyncFilter::ARF_IDX_COUNT +
+                               AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX - AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
+      alignas(JobType) char jobs_storage[sizeof(JobType) * MAX_JOBS];
       auto addCascadeJobs = [&](int ci) {
-        for (int i = 0; i < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; ++i)
+        for (int i = 0, n = csm_cascade_jobs_count(ci, numCascades); i < n; ++i)
         {
           int ji = ci * AnimcharRenderAsyncFilter::ARF_IDX_COUNT + i;
           auto jptr = jobs_storage + sizeof(JobType) * ji;
@@ -4363,9 +4393,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
           threadpool::add(job, threadpool::PRIO_HIGH, /*wake*/ false);
         }
       };
-      if (DAGOR_LIKELY(numCascades > 1))
-        addCascadeJobs(numCascades - 1); // Note: last cascade seems to be the longest, so add it first
-      for (int ci = 1; ci < numCascades - 1; ++ci)
+      for (int ci = 1; ci < numCascades; ++ci)
         addCascadeJobs(ci);
       threadpool::wake_up_all();
 
@@ -4390,9 +4418,10 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
                ++i, bit <<= 1, joffs += sizeof(JobType) * AnimcharRenderAsyncFilter::ARF_IDX_COUNT)
             if (bit & cascadesNotRenderedMask)
             {
-              bool haveUndoneJobs = interlocked_acquire_load(workLeft[i][0]) != 0;
+              const unsigned jobsCount = csm_cascade_jobs_count(i, numCascades);
+              bool haveUndoneJobs = interlocked_acquire_load(jobsCnt[i].left) != 0;
               if (!haveUndoneJobs)
-                for (unsigned j = 0; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
+                for (unsigned j = 0; j < jobsCount; j++)
                 {
                   auto job = reinterpret_cast<JobType *>(jobs_storage + joffs + j * sizeof(JobType));
                   if (!interlocked_acquire_load(job->done))
@@ -4403,21 +4432,21 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
                 }
               if (haveUndoneJobs)
               {
-                // Note: Last cascade is added first and usually quite big so try to avoid active wait until
+                // Note: Last cascade is added last and usually quite big so try to avoid active wait until
                 // all of it's jobs are started
-                if (spinsLeftBeforeWait > 0 && interlocked_acquire_load(CSM_CASCADE_JOBS_STARTED(num_cascades_to_render - 1)))
+                if (spinsLeftBeforeWait > 0 && interlocked_acquire_load(jobsCnt[numCascades - 1].notStarted))
                   continue;
                 TIME_PROFILE_DEV(wait_cascade);
-                for (unsigned j = 0; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
+                for (unsigned j = 0; j < jobsCount; j++)
                 {
                   auto job = reinterpret_cast<JobType *>(jobs_storage + joffs + j * sizeof(JobType));
                   threadpool::wait(job, 0, threadpool::PRIO_HIGH);
                 }
               }
-              if (__popcount(cascadesNotRenderedMask) == 3) // Before render of 2nd (#1) cascade
-                start_async_game_tasks(frame_id, AGT_DAFX);
               cascadesNotRenderedMask &= ~bit;
               csm->renderShadowCascadeDepth((int)i, clear_per_view);
+              if (__popcount(cascadesNotRenderedMask) == 1) // Before render of last (usually largest one) cascade
+                start_async_game_tasks(frame_id, AGT_DAFX);
             }
           if (!cascadesNotRenderedMask)
             break;
@@ -4428,7 +4457,6 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
           }
         } while (1);
       });
-#undef CSM_CASCADE_JOBS_STARTED
     }
     else
     {
@@ -4639,6 +4667,7 @@ void on_ui_finished()
 
 void WorldRenderer::onUIFinished()
 {
+  waitRiCullJobsAtFrameEnd();
   if (dynamicQuality)
     dynamicQuality->onFrameEnd();
   if (dynamicResolution)
@@ -5168,7 +5197,7 @@ struct HmapPatchesCallback
 static void render_toroidal_update_helper(Point2 alignedOrigin,
   float fullDistance,
   ToroidalHelper &displacementData,
-  eastl::fixed_function<sizeof(void *) * 4, void(float, const IPoint2 &, ToroidalHelper &, int)> rcb,
+  dag::FunctionRef<void(float, const IPoint2 &, ToroidalHelper &, int) const> rcb,
   bool force = false)
 {
   float texelSize = (fullDistance / displacementData.texSize);
@@ -6703,6 +6732,13 @@ void WorldRenderer::validateFeatures(FeatureRenderFlagMask &features, const Feat
     logerr("SSR currently not implemented for thinGBuffer");
     features.flip(FeatureRenderFlags::SSR);
   }
+  // normal repacking in downsample depth and blood puddles load and store gbuf_1 through one UAV
+  if (features.test(FeatureRenderFlags::GBUFFER_PACKED_NORMALS) &&
+      !(d3d::get_texformat_usage(FULL_GBUFFER_FORMATS[1] | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD))
+  {
+    debug("gbuffer normal packing is disabled: no UAV load support for gbuf_1 format");
+    features.reset(FeatureRenderFlags::GBUFFER_PACKED_NORMALS);
+  }
   // TODO: detect that other features toggling is not supported in special cases and disable them
 }
 
@@ -7332,6 +7368,13 @@ int WRDispatcher::getCurrentAntiAliasingMode()
   return static_cast<int>(wr->getAntiAliasingMode()); //-V522
 }
 
+CameraParams &WRDispatcher::getCurrentMagnificationCameraParams()
+{
+  auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
+  G_ASSERT_AND_DO(wr != nullptr, DAG_FATAL(WR_WAS_NULL_ERR_MSG));
+  return wr->camcamParams ? *wr->camcamParams : wr->currentFrameCamera; //-V522
+}
+
 CameraParams &WRDispatcher::getCurrentCameraParams()
 {
   auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
@@ -7748,6 +7791,7 @@ ECS_REGISTER_EVENT(UpdateStageInfoRenderTrans);
 ECS_REGISTER_EVENT(QueryHeroWtmAndBoxForRender);
 ECS_REGISTER_EVENT(AfterHeightmapChange);
 ECS_REGISTER_EVENT(BeforeDraw);
+ECS_REGISTER_EVENT(BeforeStartVisibility);
 
 bool have_renderer() { return true; }
 

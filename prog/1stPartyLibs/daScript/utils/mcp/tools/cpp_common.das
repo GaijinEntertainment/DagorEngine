@@ -19,7 +19,7 @@ let CPP_RULES_FILE = "tree-sitter-daslang/cpp_outline_rules.yml"
 let private CPP_SEARCH_CONFIG_PATH = "utils/mcp/cpp_search_config.das"
 
 struct CppMatch {
-    file : string         // relative to das_root, generic-path
+    file : string         // relative to server_root(), generic-path
     line : int            // 1-based start line
     end_line : int        // 1-based end line (inclusive); equals `line` for single-line matches
     kind : string         // function/class/struct/enum/union/typedef/namespace/macro
@@ -30,8 +30,11 @@ struct CppMatch {
     text : string         // first line of declaration (kept for fallback rendering)
 }
 
+[arch(at="../README.md#cpp-index-roots")]
 def cpp_default_search_dirs() : array<string> {
     let root = get_das_root()
+    let served = server_root()
+    if (served != root && served_tree_is_project(served)) return <- [served]
     var dirs : array<string>
     dirs |> reserve(length(CPP_SEARCH_DIRS))
     for (d in CPP_SEARCH_DIRS) {
@@ -63,6 +66,11 @@ def is_cpp_ident_char(ch : int) : bool {
     return is_alpha(ch) || is_number(ch) || ch == '_' || ch == ':' || ch == '~'
 }
 
+// the whitespace set this file's scanners recognize inside a C++ declaration
+def private is_cpp_space_char(ch : int) : bool {
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
 def is_cpp_op_char(ch : int) : bool {
     // chars that may appear as part of operator overloads (operator+, operator==, operator<<, etc.)
     return ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '%' || ch == '=' || ch == '<' || ch == '>' || ch == '!' || ch == '&' || ch == '|' || ch == '^' || ch == ',' || ch == '(' || ch == ')' || ch == '[' || ch == ']'
@@ -77,7 +85,7 @@ def cpp_first_line(text : string) : string {
 def find_open_paren(line : string) : int {
     var depth = 0
     for (i in range(length(line))) {
-        let ch = character_at(line, i) // nolint:PERF002,PERF003
+        let ch = character_at(line, i) // nolint:PERF002
         if (ch == '<') {
             depth++
         } elif (ch == '>') {
@@ -93,7 +101,7 @@ def find_open_paren(line : string) : int {
 // Best-effort. Misses some edge cases (function-pointer typedefs returning fn-ptrs,
 // trailing-return-type lambdas, complex template specializations).
 // Returns ("name", "qualified") — `qualified` includes ::-scope; `name` is the last segment.
-def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> {
+def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> { // nolint:STYLE037,STYLE038 — flat per-kind dispatch; each arm is a self-contained cursor walk over one C++ declaration form
     let line = cpp_first_line(text)
     var qualified = ""
     if (kind == "function") {
@@ -101,16 +109,16 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
         if (op > 0) {
             // Walk backwards from `op` over ident/op chars to find the function name span.
             var i = op - 1
-            while (i >= 0 && (character_at(line, i) == ' ' || character_at(line, i) == '\t')) { // nolint:PERF002,PERF003
+            while (i >= 0 && (character_at(line, i) == ' ' || character_at(line, i) == '\t')) { // nolint:PERF003
                 i--
             }
             let span_end = i + 1
             // First, check if this looks like an `operator<X>` form by walking back over op chars.
-            while (i >= 0 && is_cpp_op_char(character_at(line, i))) { // nolint:PERF002,PERF003
+            while (i >= 0 && is_cpp_op_char(character_at(line, i))) { // nolint:PERF003
                 i--
             }
             // Now walk back over ident chars (covers regular names + qualifiers + ~dtor + "operator")
-            while (i >= 0 && is_cpp_ident_char(character_at(line, i))) { // nolint:PERF002,PERF003
+            while (i >= 0 && is_cpp_ident_char(character_at(line, i))) { // nolint:PERF003
                 i--
             }
             let span_start = i + 1
@@ -122,40 +130,45 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
         let kw = kind == "class" ? "class " : (kind == "struct" ? "struct " : "union ")
         let kw_pos = find(line, kw)
         if (kw_pos >= 0) {
-            var rest = strip(slice(line, kw_pos + length(kw)))
-            // skip optional API macros (any UPPER_SNAKE token before the name)
-            while (!empty(rest) && (first_character(rest) >= 'A' && first_character(rest) <= 'Z')) { // nolint:PERF014
-                let first_space = find(rest, " ")
-                if (first_space < 0) break
-                let head = slice(rest, 0, first_space)
-                // Heuristic: if the head is all uppercase/underscore and ≥ 3 chars, treat it as macro.
-                var all_upper = true
-                for (i in range(length(head))) {
-                    let c = character_at(head, i) // nolint:PERF002,PERF003
-                    if (!((c >= 'A' && c <= 'Z') || c == '_' || is_number(c))) { // nolint:PERF014
-                        all_upper = false
+            // `line` is already stripped, so a leading-only cursor skip matches strip() here
+            peek_data(line) $(d) {
+                let n = length(d)
+                var pos = skip_white_space(d, kw_pos + length(kw))
+                // skip optional API macros (any UPPER_SNAKE token before the name)
+                while (pos < n && int(d[pos]) >= 'A' && int(d[pos]) <= 'Z') {
+                    let first_space = find(d, " ", pos)
+                    break if (first_space < 0)
+                    // Heuristic: if the head is all uppercase/underscore and ≥ 3 chars, treat it as macro.
+                    var all_upper = true
+                    for (i in range(pos, first_space)) {
+                        let c = int(d[i])
+                        if (!((c >= 'A' && c <= 'Z') || c == '_' || is_number(c))) {
+                            all_upper = false
+                            break
+                        }
+                    }
+                    break if (!all_upper || first_space - pos < 3)
+                    // Don't skip when the next token isn't another identifier — that would mean
+                    // the head is the actual class name (e.g. `class DAS_API LOG : public ...` —
+                    // we already skipped DAS_API; LOG looks like a macro by shape, but the
+                    // following `:` proves it's the class name).
+                    let after = skip_white_space(d, first_space + 1)
+                    break if (after >= n)
+                    let ac = int(d[after])
+                    break if (ac == ':' || ac == '<' || ac == '{' || ac == ';')
+                    pos = after
+                }
+                // name ends at '{', ':', '<', whitespace, or ';'
+                var nend = n
+                for (i in range(pos, n)) {
+                    let c = int(d[i])
+                    if (c == '{' || c == ':' || c == '<' || c == ' ' || c == '\t' || c == ';') {
+                        nend = i
                         break
                     }
                 }
-                if (!all_upper || length(head) < 3) break
-                // Don't skip when the next token isn't another identifier — that would mean
-                // `head` is the actual class name (e.g. `class DAS_API LOG : public ...` —
-                // we already skipped DAS_API; LOG looks like a macro by shape, but the
-                // following `:` proves it's the class name).
-                let after = strip(slice(rest, first_space + 1))
-                if (empty(after) || first_character(after) == ':' || first_character(after) == '<' || first_character(after) == '{' || first_character(after) == ';') break
-                rest = strip(slice(rest, first_space + 1))
+                qualified = slice(d, pos, nend)
             }
-            // name ends at '{', ':', '<', whitespace, or ';'
-            var nend = length(rest)
-            for (i in range(length(rest))) {
-                let c = character_at(rest, i) // nolint:PERF002,PERF003
-                if (c == '{' || c == ':' || c == '<' || c == ' ' || c == '\t' || c == ';') {
-                    nend = i
-                    break
-                }
-            }
-            qualified = slice(rest, 0, nend)
         }
     } elif (kind == "enum") {
         let kw_pos = find(line, "enum ")
@@ -169,7 +182,7 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
             if (!empty(rest) && first_character(rest) != '{') {
                 var nend = length(rest)
                 for (i in range(length(rest))) {
-                    let c = character_at(rest, i) // nolint:PERF002,PERF003
+                    let c = character_at(rest, i) // nolint:PERF002
                     if (c == '{' || c == ':' || c == ' ' || c == '\t' || c == ';') {
                         nend = i
                         break
@@ -184,7 +197,7 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
             let rest = strip(slice(line, kw_pos + 10))
             var nend = length(rest)
             for (i in range(length(rest))) {
-                let c = character_at(rest, i) // nolint:PERF002,PERF003
+                let c = character_at(rest, i) // nolint:PERF002
                 if (c == '{' || c == ' ' || c == '\t' || c == ';') {
                     nend = i
                     break
@@ -198,7 +211,7 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
             let rest = strip(slice(line, pos + 7))
             var nend = length(rest)
             for (i in range(length(rest))) {
-                let c = character_at(rest, i) // nolint:PERF002,PERF003
+                let c = character_at(rest, i) // nolint:PERF002
                 if (c == '(' || c == ' ' || c == '\t') {
                     nend = i
                     break
@@ -223,7 +236,7 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
                 let rest = strip(slice(line, star_paren + 2))
                 var nend = length(rest)
                 for (i in range(length(rest))) {
-                    let c = character_at(rest, i) // nolint:PERF002,PERF003
+                    let c = character_at(rest, i) // nolint:PERF002
                     if (c == ')' || c == ' ' || c == ',' || c == '\t') {
                         nend = i
                         break
@@ -239,11 +252,11 @@ def cpp_extract_name_pair(text : string; kind : string) : tuple<string; string> 
                 }
                 clean = strip(clean)
                 var ce = length(clean)
-                while (ce > 0 && !is_cpp_ident_char(character_at(clean, ce - 1))) { // nolint:PERF002,PERF003
+                while (ce > 0 && !is_cpp_ident_char(character_at(clean, ce - 1))) { // nolint:PERF003
                     ce--
                 }
                 var cs = ce
-                while (cs > 0 && is_cpp_ident_char(character_at(clean, cs - 1))) { // nolint:PERF002,PERF003
+                while (cs > 0 && is_cpp_ident_char(character_at(clean, cs - 1))) { // nolint:PERF003
                     cs--
                 }
                 qualified = slice(clean, cs, ce)
@@ -269,18 +282,20 @@ def cpp_extract_name(text : string; kind : string) : string {
 // Used to normalize multi-line declarations down to one display line.
 def cpp_collapse_whitespace(s : string) : string {
     var out : array<string>
-    let n = length(s)
-    var i = 0
-    while (i < n) {
-        while (i < n && (character_at(s, i) == ' ' || character_at(s, i) == '\t' || character_at(s, i) == '\n' || character_at(s, i) == '\r')) { // nolint:PERF002,PERF003
-            i++
+    peek_data(s) $(d) {
+        let n = length(d)
+        var i = 0
+        while (i < n) {
+            while (i < n && is_cpp_space_char(int(d[i]))) {
+                i++
+            }
+            break if (i >= n)
+            let start = i
+            while (i < n && !is_cpp_space_char(int(d[i]))) {
+                i++
+            }
+            out |> push(slice(d, start, i))
         }
-        if (i >= n) break
-        let start = i
-        while (i < n && character_at(s, i) != ' ' && character_at(s, i) != '\t' && character_at(s, i) != '\n' && character_at(s, i) != '\r') { // nolint:PERF002,PERF003
-            i++
-        }
-        out |> push(slice(s, start, i))
     }
     return join(out, " ")
 }
@@ -297,7 +312,7 @@ def cpp_extract_signature(full_text : string; kind : string) : string {
     var i = paren_open + 1
     let n = length(full_text)
     while (i < n && depth > 0) {
-        let ch = character_at(full_text, i) // nolint:PERF002,PERF003
+        let ch = character_at(full_text, i) // nolint:PERF003
         if (ch == '(') {
             depth++
         } elif (ch == ')') {
@@ -310,25 +325,25 @@ def cpp_extract_signature(full_text : string; kind : string) : string {
     // Walk back from '(' over whitespace, then over operator chars + identifier chars
     // to find the start of the function name.
     var j = paren_open - 1
-    while (j >= 0 && (character_at(full_text, j) == ' ' || character_at(full_text, j) == '\t' || character_at(full_text, j) == '\n')) { // nolint:PERF002,PERF003
+    while (j >= 0 && (character_at(full_text, j) == ' ' || character_at(full_text, j) == '\t' || character_at(full_text, j) == '\n')) { // nolint:PERF003
         j--
     }
-    while (j >= 0 && is_cpp_op_char(character_at(full_text, j))) { // nolint:PERF002,PERF003
+    while (j >= 0 && is_cpp_op_char(character_at(full_text, j))) { // nolint:PERF003
         j--
     }
-    while (j >= 0 && is_cpp_ident_char(character_at(full_text, j))) { // nolint:PERF002,PERF003
+    while (j >= 0 && is_cpp_ident_char(character_at(full_text, j))) { // nolint:PERF003
         j--
     }
     let name_start = j + 1
     // Return type spans from the previous statement boundary up to name_start.
     var ret_start = name_start
     while (ret_start > 0) {
-        let prev = character_at(full_text, ret_start - 1) // nolint:PERF002,PERF003
+        let prev = character_at(full_text, ret_start - 1) // nolint:PERF003
         if (prev == '{' || prev == '}' || prev == ';') break
         ret_start--
     }
     // Skip leading whitespace in return type.
-    while (ret_start < name_start && (character_at(full_text, ret_start) == ' ' || character_at(full_text, ret_start) == '\t' || character_at(full_text, ret_start) == '\n')) { // nolint:PERF002,PERF003
+    while (ret_start < name_start && (character_at(full_text, ret_start) == ' ' || character_at(full_text, ret_start) == '\t' || character_at(full_text, ret_start) == '\n')) { // nolint:PERF003
         ret_start++
     }
     let ret_type = strip(cpp_collapse_whitespace(slice(full_text, ret_start, name_start)))
@@ -337,7 +352,7 @@ def cpp_extract_signature(full_text : string; kind : string) : string {
     // Trailing qualifiers between ')' and '{' or ';'.
     var trailing_end = n
     for (k in range(paren_close + 1, n)) {
-        let ch = character_at(full_text, k) // nolint:PERF002,PERF003
+        let ch = character_at(full_text, k) // nolint:PERF002
         if (ch == '{' || ch == ';') {
             trailing_end = k
             break
@@ -372,7 +387,7 @@ def cpp_extract_template_args(full_text : string; kind : string; name : string) 
         }
     } elif (kind == "struct" || kind == "class" || kind == "union") {
         for (i in range(n)) {
-            let c = character_at(full_text, i) // nolint:PERF002,PERF003
+            let c = character_at(full_text, i) // nolint:PERF002
             if (c == '{' || c == ';') {
                 bound = i
                 break
@@ -389,7 +404,7 @@ def cpp_extract_template_args(full_text : string; kind : string; name : string) 
     var depth = 1
     var i2 = lt + 1
     while (i2 < n && depth > 0) {
-        let ch = character_at(full_text, i2) // nolint:PERF002,PERF003
+        let ch = character_at(full_text, i2) // nolint:PERF003
         if (ch == '<') {
             depth++
         } elif (ch == '>') {
@@ -406,15 +421,16 @@ def cpp_extract_template_args(full_text : string; kind : string; name : string) 
 // (e.g. operator overloads with `+` / `<` characters).
 def cpp_regex_escape(s : string) : string {
     return build_string() $(var w) {
-        let n = length(s)
-        for (i in range(n)) {
-            let c = character_at(s, i) // nolint:PERF002,PERF003
-            if (c == '.' || c == '+' || c == '*' || c == '?' || c == '(' || c == ')'
-                || c == '[' || c == ']' || c == '{' || c == '}' || c == '|'
-                || c == '^' || c == '$' || c == '\\') {
-                w |> write("\\")
+        peek_data(s) $(d) {
+            for (c in d) {
+                let ch = int(c)
+                if (ch == '.' || ch == '+' || ch == '*' || ch == '?' || ch == '(' || ch == ')'
+                    || ch == '[' || ch == ']' || ch == '{' || ch == '}' || ch == '|'
+                    || ch == '^' || ch == '$' || ch == '\\') {
+                    w |> write("\\")
+                }
+                w |> write_char(ch)
             }
-            w |> write(slice(s, i, i + 1))
         }
     }
 }
@@ -538,7 +554,7 @@ def cpp_push_glob_args(var args : array<string>; search_dirs : array<string>; ex
 
 // Run `sg scan` with cpp rules. Returns array of CppMatch.
 // On error, fills err_message and returns empty array.
-def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_message : string&) : array<CppMatch> {
+def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_message : string&) : array<CppMatch> { // nolint:STYLE038 — one linear sg-scan pipeline: build argv, invoke, parse, extract per-match fields
     var entries : array<CppMatch>
     let sg = get_ast_grep_cmd()
     if (empty(sg)) {
@@ -549,7 +565,7 @@ def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_mess
     let rules_path = path_join(das_root, CPP_RULES_FILE)
     var dirs_to_scan : array<string>
     if (empty(search_dirs)) {
-        dirs_to_scan <- cpp_default_search_dirs()
+        dirs_to_scan <- cpp_default_search_dirs()   // nolint:PERF030 - target is the fresh empty decl above; the two fills are mutually exclusive branches
     } else {
         dirs_to_scan |> push_from(search_dirs)
     }
@@ -606,7 +622,7 @@ def cpp_run_scan(search_dirs : array<string>; glob_filter : string; var err_mess
             let sig = cpp_extract_signature(lines, kind)
             let tmpl = cpp_extract_template_args(lines, kind, pair._1)
             entries |> emplace(CppMatch(
-                file = make_relative_path(file_path, das_root),
+                file = make_relative_path(file_path, server_root()),
                 line = line_num,
                 end_line = end_line_num,
                 kind = kind,
@@ -783,9 +799,9 @@ def ensure_cpp_index() {
         if (empty(e.name)) continue
         cpp_index_entries |> push(e)
         let new_idx = length(cpp_index_entries) - 1
-        cpp_index[e.name] |> push(new_idx) // nolint:PERF006
+        cpp_index[e.name] |> push(new_idx)
         if (!empty(e.qualified) && e.qualified != e.name) {
-            cpp_index[e.qualified] |> push(new_idx) // nolint:PERF006
+            cpp_index[e.qualified] |> push(new_idx)
         }
     }
     cpp_index_signature = sig // commit on success

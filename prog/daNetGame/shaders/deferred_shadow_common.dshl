@@ -307,7 +307,18 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float4 weights = sampleCloseUpscaleWeight(screenpos);
       SSAO_TYPE ssao = getSSAOUpscaleWeighted(weights, screenpos);
-      half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, weights);
+      ##if ssr_target != NULL
+      // getSSRWeighted reads the weights only below its first mip and with a non-zero roughness fade.
+      BRANCH
+      if (gbuffer.linearRoughness*SSR_MIPS < 1 && get_roughness_fade(gbuffer.linearRoughness) > 0)
+      {
+        float4 ssrFarRaw = downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, curViewTc);
+        // A texel with sky in its quad has no far material and its sky depth linearizes to zfar, so pass 0 for it.
+        float4 ssrFarLin = select(ssrFarRaw != 0, linearize_z4(ssrFarRaw, zn_zfar.zw), float4(0, 0, 0, 0));
+        weights = sampleCloseUpscaleWeightWithDepthMatch(screenpos, ssrFarLin, w);
+      }
+      ##endif
+      half4 ssrReflections = getSSRWeighted(gbuffer.linearRoughness, curViewTc, screenpos, half4(weights));
 
       half cockpitFade = half(saturate(dot(float4(worldPos.xyz, 1), hero_cockpit_vec)));
 
@@ -399,30 +410,36 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half shadow = apply_shadow_modifications(csmShadow, NoL);
       half enviAO = gbuffer.ao*ssao.x;//we still modulate by albedo color, so we don't need micro AO
       half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, ggx_alpha);// dice spec occlusion
-      //if ssr disabled, envi probe reflection should be dimmed when objects are in shadow
       ##if ssr_target == NULL
-        #define MIN_ENVI_SSR 0.25
-        half enviSSR = MIN_ENVI_SSR + shadow * (1 - MIN_ENVI_SSR);
+        half enviSSR = 1;
+        ##if gi_quality <= only_ao
+          // The sky cube misses the sun occluder.
+          #define MIN_ENVI_SSR 0.25
+          enviSSR = MIN_ENVI_SSR + shadow * (1 - MIN_ENVI_SSR);
+        ##endif
       ##else
         half enviSSR = (1-ssrReflections.a);
       ##endif
       enviSSR *= specularAOcclusion;
 
+      half3 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV);
+      half3 specularColorMS = gbuffer.specularColor * EnvBRDFMultiScatter(gbuffer.specularColor, AB.xy);
+
       //SUN
       BRANCH
       if (shadow > 0)
       {
-        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor;
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColorMS, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor;
         float lightningNoL = dot(gbuffer.normal, lightning_dir);
         BRANCH
         if (lightning_scene_illumination && lightningNoL > 0)
         {
-          result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
+          result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColorMS, gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
         }
       }
       ##if in_editor_assume == yes
         // view must be normalized: it goes into the BRDF half-vector
-        result += get_dynamic_lighting(gbuffer, worldPos.xyz, view, w, screenpos, NoV, gbuffer.specularColor, curViewTc, enviAO);
+        result += get_dynamic_lighting(gbuffer, worldPos.xyz, view, w, screenpos, NoV, specularColorMS, curViewTc, enviAO);
       ##else
         result += get_precomputed_dynamic_lighting(screenpos);
       ##endif
@@ -431,8 +448,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       //envi
       float3 lightProbeReflectionVec = reflectionVec;
-      half3 AB = getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV);
-      half3 enviBRDF = gbuffer.specularColor * AB.x + saturate( 50 * gbuffer.specularColor.g ) * AB.y;
+      half3 enviBRDF = specularColorMS * AB.x + saturate( 50 * specularColorMS.g ) * AB.y;
 
       float3 enviLightingNormal = normalize(getDiffuseDominantDir(gbuffer.normal, view, saturated_NdotV, ggx_alpha ));
       float fake_light_strength = 0.25;

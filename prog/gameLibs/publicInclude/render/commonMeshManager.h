@@ -76,12 +76,12 @@ struct ManagedMeshRef
   }
   ManagedMeshRef(const ManagedMeshRef &) = delete;
   void operator=(const ManagedMeshRef &) = delete;
-  ManagedMeshRef(ManagedMeshRef &&rhs) : mgr(rhs.mgr), resPtr(rhs.resPtr), mMesh(rhs.mMesh)
+  ManagedMeshRef(ManagedMeshRef &&rhs) noexcept : mgr(rhs.mgr), resPtr(rhs.resPtr), mMesh(rhs.mMesh)
   {
     rhs.resPtr = nullptr;
     rhs.mMesh.clear();
   }
-  ManagedMeshRef &operator=(ManagedMeshRef &&rhs);
+  ManagedMeshRef &operator=(ManagedMeshRef &&rhs) noexcept;
   ~ManagedMeshRef() { clear(); }
   ManagedMeshRef copyRef() const;
   void initMesh(const char *mesh_name, DynamicRenderableSceneLodsResource *res = nullptr);

@@ -8,7 +8,7 @@ module linq_fold_decs shared public
 //! linq_fold decs (ECS) source adapters: DecsAdapter / DecsJoinAdapter, the decs-bridge tuple
 //! scanners/rewriters, and the decs-specific emit hooks (count_shortcut, reverse-skip-into-tail,
 //! join, min_by/max_by). Terminators ride the generic lanes in linq_fold_common via DecsAdapter.
-//! Requires linq_fold_common. See daslib/linq_fold.md.
+//! Requires linq_fold_common. See daslib/ARCHITECTURE_LINQ.md sec. 37.
 
 require daslib/linq public
 require daslib/ast_boost
@@ -29,7 +29,6 @@ def finalize_decs_emission(var emission : Expression?; at : LineInfo; wrapToIter
     return emission
 }
 
-// Hashed equi-join payload — feeds the per-pair `let resBindName = result(tupA,tupB)` bind used by both GroupBy's decs-join arm and `emit_decs_join_impl`. The 2 consumers differ on whether the per-pair loop is the right granularity (GroupBy: yes; emit_decs_join_impl keeps a bucket-length fast path for count-no-where).
 struct DecsJoinShape {
     bridgeA, bridgeB : DecsBridgeShape?
     keyaLam, keybLam, resultLam : Expression?
@@ -40,9 +39,6 @@ struct DecsJoinShape {
 class DecsAdapter : SourceAdapter {
     bridge : DecsBridgeShape?
     tupName : string
-    // Terminator-path context (null/empty on the group_by/distinct path, where the chain + ranges are
-    // already baked into the body the group_by core hands to wrap_source_loop). When set, wrap_source_loop
-    // owns the decs in-loop ranges + chain-binding + range prelude + for_each{,_find} dispatch.
     chainInfo : DecsChainInfo?
     calls : array<tuple<ExprCall?; LinqCall?>>
     intermediateEnd : int
@@ -54,8 +50,6 @@ class DecsAdapter : SourceAdapter {
         return true
     }
     def override effective_dispatch(base : LoopDispatch) : LoopDispatch {
-        // take / take_while emit an early-exit `return true` from the inner-for, which only works inside a
-        // for_each_archetype_find bool-lambda — so an otherwise-Each terminator must walk via Find.
         if (rangeInfo != null && base is Each && (rangeInfo.takeExpr != null || rangeInfo.takeWhileCond != null)) {
             return LoopDispatch(Find = null)
         }
@@ -74,8 +68,7 @@ class DecsAdapter : SourceAdapter {
         return emit_decs_reverse_skip_into_tail(takeArg, bridge, tupName, isIter, termLam, termElemType, at)
     }
     def override emit_distinct_take_loop(bindName : string; takenName : string; takeLimName : string; var perElement : Expression?; at : LineInfo) : Expression? {
-        // take(N) early-exit: for_each_archetype_find returning bool stops the archetype walk (mirrors plan_decs_distinct).
-        if (bridge == null) return null   // bridge is non-null by construction; guard mirrors element_type() for the nullable field type
+        if (bridge == null) return null
         let archName = bridge.archName
         var innerBody : Expression? = qmacro_block() {
             break if ($i(takenName) >= $i(takeLimName))
@@ -118,14 +111,10 @@ class DecsAdapter : SourceAdapter {
         return emit_decs_join_impl(bridge, c, ctx, at)
     }
     def override count_shortcut(opName : string; at : LineInfo) : Expression? {
-        // Only plain count() — arch.size sum truncates to int, so long_count must walk for an int64-safe total.
         if (opName != "count") return null
         return emit_decs_count_archsize(bridge, at)
     }
     def override bind_name(at : LineInfo) : string {
-        // Terminator path: the post-chain element bind the generic lane's per-element work references
-        // (wrap_source_loop's chain-walk introduces it). Otherwise the raw source-tuple bind. Returned
-        // directly (not a fresh qn) so peeling can't desync from the loop if `at` ever differs.
         if (chainInfo != null) return chainInfo.finalBind
         return tupName
     }
@@ -137,9 +126,6 @@ class DecsAdapter : SourceAdapter {
         return clone_type(bridge.elementType)
     }
     def override wrap_source_loop(loopShape : LoopDispatch; var body : Expression?; at : LineInfo) : Expression? {
-        // Terminator path (chainInfo set): wrap decs in-loop ranges + chain-binding around the per-element
-        // body, prune unused columns, hoist the range prelude, and frame the walk per loopShape. group_by /
-        // distinct path (chainInfo null): the body is already complete — just prune + a plain for_each.
         let archName = bridge.archName
         let br = bridge
         var inner = body
@@ -232,7 +218,7 @@ class DecsJoinAdapter : SourceAdapter {
         let keyType = shape.keyType
         let tupBType = shape.tupBType
         return <- qmacro_block() {
-            var $i(jhashName) : table<$t(keyType); array<$t(tupBType)>>
+            $e(join_hash_decl(jhashName, keyType, tupBType))
             for_each_archetype($e(bridgeB.reqHashExpr), $e(bridgeB.erqExpr), $($i(bridgeB.archName) : Archetype) {
                 $e(collectInner)
             })
@@ -260,7 +246,6 @@ class DecsJoinAdapter : SourceAdapter {
 def private make_decs_term_adapter(var bridge : DecsBridgeShape?; var chainInfo : DecsChainInfo?;
                                    var rangeInfo : DecsRangeInfo?; var calls : array<tuple<ExprCall?; LinqCall?>>;
                                    intermediateEnd : int) : SourceAdapter? {
-    // var params so the const-bound context pointers can land in the adapter's non-const fields.
     return new DecsAdapter(bridge = bridge, tupName = chainInfo.tupName, chainInfo = chainInfo,
                            calls <- calls, intermediateEnd = intermediateEnd, rangeInfo = rangeInfo)
 }
@@ -274,14 +259,12 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
         termCall = c.single["term"]
         termName = c.single_name["term"]
     }
-    // D5 fast path: bare `count()` (1-arg, no chain) → arch.size sum, no entity walk.
     let noRangeOps = (!(c.single |> key_exists("skip")) && !(c.single |> key_exists("skip_while"))
         && !(c.single |> key_exists("take_while")) && !(c.single |> key_exists("take")))
     if (hasTerm && termName == "count" && length(termCall.arguments) == 1
             && (c.many["head"] |> empty) && noRangeOps) return ctx.src->count_shortcut("count", at)
-    // Reconstruct calls = head + range ops (canonical order) + term, so existing helpers (compute_decs_chain_info, extract_decs_ranges) work unchanged. LinqCall records come from the linqCalls registry by call_norm_name; addr() to convert ref→pointer matches flatten_linq's pattern.
     var calls : array<tuple<ExprCall?; LinqCall?>>
-    calls |> reserve(length(c.many["head"]) + 5)        // head + up to 4 range slots + term
+    calls |> reserve(length(c.many["head"]) + 5)
     for (call in c.many["head"]) {
         let nm = call_norm_name(call)
         if (!(linqCalls |> key_exists(nm))) return null
@@ -314,8 +297,6 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
         rangeInfo.postTakeWhereCond = peel_lambda_rename_var(ptwArg, chainInfo.finalBind)
         if (rangeInfo.postTakeWhereCond == null) return null
     }
-    // Terminator classification mirrors plan_decs_unroll imperative (linq_fold.das:5781-5791); differs from classify_terminator's 4-lane split because decs has dedicated min_max_by / walk / element_at emit fns with hoisted state.
-    // to_table is not implemented for decs — decline before the implicit-to_array arm mis-emits an array for a table-typed expr.
     if (termName == "to_table") return null
     let isAccum = (termName == "count" || termName == "long_count" || termName == "sum"
         || termName == "min" || termName == "max" || termName == "average")
@@ -333,8 +314,6 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
         let names <- make_range_names(at)
         var adapter = make_decs_term_adapter(bridge, chainInfo, rangeInfo, calls, rangeInfo.chainEnd)
         if (termName == "count" || termName == "long_count") {
-            // count / long_count → counter lane. The chain (incl. side-effecting selects) runs in
-            // wrap_source_loop; the body just increments. _count(pred) and post-take-where gate the bump.
             var loopBody : Expression? = qmacro_expr() {
                 $i(accName) ++
             }
@@ -346,7 +325,6 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
             loopBody = wrap_with_condition(loopBody, clone_expression(rangeInfo.postTakeWhereCond))
             return emit_counter_lane(adapter, accName, finalBind, names, null, null, null, loopBody, at, termName == "long_count")
         }
-        // sum / min / max / average require a projecting select (no sense summing the raw tuple).
         if (chainInfo.selectCount == 0 || elementType == null) return null
         var noBinds : array<Expression?>
         var noPre : array<Expression?>
@@ -355,9 +333,6 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
     }
     if (isMinMaxBy) return emit_decs_min_max_by(bridge, termName, chainInfo, rangeInfo, calls, rangeInfo.chainEnd, termCall, at)
     if (isEarlyExit || isWalk || isElementAt) {
-        // No-predicate `last()` / `last_or_default()` over indexable decs sources: read the last
-        // archetype's [size-1] directly (O(num_archetypes)), behavior-identical to the walk. Predicated/
-        // chained/ranged last can't random-index → keeps the walk. Gate: empty chain, no ranges, indexable.
         if ((termName == "last" || termName == "last_or_default")
                 && rangeInfo.chainEnd == 0
                 && rangeInfo.skipExpr == null && rangeInfo.takeExpr == null
@@ -368,9 +343,6 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
             var fast = emit_decs_last_random_index(bridge, termName, termCall, chainInfo.finalType, at)
             if (fast != null) return fast
         }
-        // first/first_or_default/any/all/contains/last/single/single_or_default/aggregate/element_at — the
-        // shared early-exit lane. The DecsAdapter walks (chain+ranges+for_each{,_find}); the lane supplies the
-        // per-op !supports_direct_return state path + the adapter's effective dispatch (Each→Find under take).
         var elementType = clone_type(chainInfo.finalType)
         let names <- make_range_names(at)
         var adapter = make_decs_term_adapter(bridge, chainInfo, rangeInfo, calls, rangeInfo.chainEnd)
@@ -379,9 +351,8 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
         return emit_early_exit_lane(termName, adapter, null, null, clone_expression(rangeInfo.postTakeWhereCond),
             noBinds, noPre, elementType, termCall, chainInfo.finalBind, names, null, null, null, null, at)
     }
-    // Implicit to_array: only when outer expr was array-typed (caller wrote `.to_array()`, peeled by linqCalls skip=true). Iterator-typed chains cascade to tier-2 here, matches imperative plan_decs_unroll line 5813.
-    if (ctx.expr_is_iterator) return null
-    // to_array → the shared fold-array lane: buf decl + push_clone(finalBind), tail moves it out.
+    let unknownTerminator = hasTerm && termName != "to_array"
+    if (unknownTerminator || ctx.expr_is_iterator) return null
     let finalBind = chainInfo.finalBind
     var elemType = clone_type(chainInfo.finalType)
     let bufName = qn("decs_buf", at)
@@ -412,8 +383,6 @@ def emit_loop_or_count_lane_decs(var bridge : DecsBridgeShape?; tupName : string
         dispatch = adapter->effective_dispatch(LoopDispatch(Each = null))), adapter, at)
 }
 
-// Decs `reverse |> take(N) [|> _select(F)] |> to_array` skip-into-tail: 2-pass walk (arch.size sum, then for_each_archetype_find with whole-arch-skip + partial-arch skip-counter + early-exit). Preserves PR #2834's 5.2× gain. When terminalSelectLam != null, projects the K reversed elements at the end (K push_clones of projection vs N push_clones of full tuple in the catch-all path).
-// `terminalSelectElemType` must be the typer-resolved element type of the termsel call result (caller reads it from `c.single["termsel"]._type.firstType`) — peel_lambda_rename_var's invoke-fallback shape for non-peelable lambdas has a null `_type` at macro stage, so deriving projType from the peeled body would mis-classify those as untyped and bail. Caller is responsible for ensuring termselElemType is non-null before this fast-path is selected; otherwise the gate falls through to the catch-all which has its own termsel handling.
 [macro_function]
 def emit_decs_reverse_skip_into_tail(var takeExpr : Expression?; bridge : DecsBridgeShape?; tupName : string; needIterWrap : bool; var terminalSelectLam : Expression?; terminalSelectElemType : TypeDeclPtr; at : LineInfo) : Expression? {
     let bufName = qn("buf", at)
@@ -435,9 +404,6 @@ def emit_decs_reverse_skip_into_tail(var takeExpr : Expression?; bridge : DecsBr
         projType = strip_const_ref(clone_type(terminalSelectElemType))
         if (projType == null) return null
     }
-    // Per-archetype tail collection. Indexable sources (get_ro): random-index the boundary archetype's
-    // tail [skipsLeft .. arch.size) instead of continue-walking its head (O(K), not O(N)). Iterator
-    // sources (default-init field → get_default_ro): keep the walk-and-skip. Both fill buf forward.
     var collectExpr : Expression?
     if (decs_can_random_index(bridge)) {
         collectExpr = build_decs_index_collect(bridge, bufName, skipsLeftName, actualName, at)
@@ -529,7 +495,6 @@ def emit_decs_reverse_skip_into_tail(var takeExpr : Expression?; bridge : DecsBr
 
 [macro_function]
 def build_decs_tup_bind(bridge : DecsBridgeShape?; tupName : string; at : LineInfo) : Expression? {
-    // Named-tuple bind: `var tup = (n1=iter1, n2=iter2, ...)` — peel_lambda_rename_var peels user lambdas substituting `_.userName` → `tup.userName`.
     var mkTup = new ExprMakeTuple(at = at)
     mkTup.recordNames |> resize(length(bridge.userNames))
     for (i in 0 .. length(bridge.userNames)) {
@@ -543,8 +508,6 @@ def build_decs_tup_bind(bridge : DecsBridgeShape?; tupName : string; at : LineIn
 
 [macro_function]
 def decs_can_random_index(bridge : DecsBridgeShape?) : bool {
-    // Random-index needs every component source to be an indexable array (get_ro). A [decs_template]
-    // field carrying a default-init compiles to get_default_ro → an iterator (not indexable) → bail.
     if (bridge == null || !(bridge.forExpr is ExprFor)) return false
     var fe = bridge.forExpr as ExprFor
     if (empty(fe.sources)) return false
@@ -556,9 +519,6 @@ def decs_can_random_index(bridge : DecsBridgeShape?) : bool {
 
 [macro_function]
 def build_decs_index_tup(bridge : DecsBridgeShape?; idxName : string; at : LineInfo) : Expression? {
-    // Named tuple `(userName_i = get_ro(arch, comp_i, def)[idx], ...)` — the bridge's component sources,
-    // indexed directly. get_ro is [unsafe_outside_of_for]; mark each source + the index read alwaysSafe
-    // (mirrors decs_boost append_index_lookup) so no `unsafe` wrap is needed.
     var fe = bridge.forExpr as ExprFor
     var mkTup = new ExprMakeTuple(at = at)
     mkTup.recordNames |> resize(length(bridge.userNames))
@@ -580,8 +540,6 @@ def build_decs_index_tup(bridge : DecsBridgeShape?; idxName : string; at : LineI
 [macro_function]
 def build_decs_index_collect(bridge : DecsBridgeShape?; bufName : string; skipsLeftName : string;
                              actualName : string; at : LineInfo) : Expression? {
-    // reverse|>take tail collect: random-index [skipsLeft .. arch.size) into buf. Boundary archetype skips
-    // its head by indexing past it; later archetypes have skipsLeft==0. get_ro lives inside the idx for-loop.
     let archName = bridge.archName
     let idxName = qn("decs_rix", at)
     var tup = build_decs_index_tup(bridge, idxName, at)
@@ -596,9 +554,6 @@ def build_decs_index_collect(bridge : DecsBridgeShape?; bufName : string; skipsL
 [macro_function]
 def emit_decs_last_random_index(bridge : DecsBridgeShape?; termName : string; var termCall : ExprCall?;
                                 elemType : TypeDeclPtr; at : LineInfo) : Expression? {
-    // No-predicate decs `last()` / `last_or_default()`: read the last non-empty archetype's [size-1]
-    // directly instead of walking all N. for_each_archetype visits in order + skips empties, so the last
-    // overwrite of res is the global-last (O(num_archetypes)). Caller gates trivial-chain + indexable.
     var bt = strip_const_ref(clone_type(elemType))
     if (bt == null) return null
     let archName = bridge.archName
@@ -607,7 +562,7 @@ def emit_decs_last_random_index(bridge : DecsBridgeShape?; termName : string; va
     let resName = qn("decs_rres", at)
     var tup = build_decs_index_tup(bridge, liName, at)
     var archBody = qmacro_block() {
-        let $i(liName) = $i(archName).size - 1_l   // arch.size is int64 — no int truncation for >INT_MAX archetypes
+        let $i(liName) = $i(archName).size - 1_l
         $i(resName) := $e(tup)
         $i(foundName) = true
     }
@@ -625,9 +580,6 @@ def emit_decs_last_random_index(bridge : DecsBridgeShape?; termName : string; va
             return <- $i(resName)
         }))
     } else {
-        // last_or_default: bind the user default EAGERLY before iteration (matches the walk lane's
-        // emit_default_bind, linq_fold_common) so its side effects fire even on a non-empty query;
-        // early-return it when empty. Lazy tail-only eval would diverge from the walk / iterator fallback.
         let dvalName = qn("decs_rdval", at)
         let dvCanCopy = (termCall.arguments[1]._type != null && termCall.arguments[1]._type.canCopy)
         var bindStmt = emit_default_bind(dvalName, termCall.arguments[1], dvCanCopy)
@@ -650,7 +602,6 @@ def emit_decs_last_random_index(bridge : DecsBridgeShape?; termName : string; va
 
 [macro_function]
 def build_decs_inner_for(bridge : DecsBridgeShape?; var tupBind : Expression?; var body : Expression?; at : LineInfo) : Expression? {
-    // Clone bridge's inner multi-iter for-loop; substitute body with [tupBind, body]. Reuses bridge.archName so cloned get_ro sources stay valid.
     var forBodyStmts <- [tupBind, body]
     var forBody = stmts_to_expr(forBodyStmts)
     var clonedForExpr = clone_expression(bridge.forExpr)
@@ -661,7 +612,6 @@ def build_decs_inner_for(bridge : DecsBridgeShape?; var tupBind : Expression?; v
     return clonedForExpr
 }
 
-// Walks a chain body to collect which fields of the decs_tup named-tuple bind are actually referenced. allFieldsUsed flips when the bind is referenced as a whole-var (not via field access) — e.g. push_clone(decs_tup) in a bare to_array, or pass-to-user-fn — so the helper falls back to unpruned emission and preserves the user-visible output shape. Also picks up bare iter-var refs (when `iterToUser` is non-empty) so the trivial-let-elision path — which rewrites `decs_sel_N`-bound projections to the iter var directly, bypassing `decs_tup` entirely — still hits the pruned arm instead of falling through to unpruned-default.
 class DecsTupUsageScanner : AstVisitor {
     tupName       : string
     iterToUser    : table<string; string>
@@ -700,7 +650,6 @@ class DecsTupUsageScanner : AstVisitor {
 
 [macro_function]
 def collect_decs_tup_usage(var e : Expression?; tupName : string; bridge : DecsBridgeShape?) : tuple<bool; array<string>> {
-    // Returns (allFieldsUsed, usedFieldNames). usedFieldNames is unordered — caller filters bridge.userNames in original order to preserve get_ro emission order. The bridge feeds an iter-var → user-name reverse map so bare iter-var refs (from trivial-let elision) count as field usage too.
     var allUsed = false
     var used : array<string>
     if (e == null) return (allUsed, used)
@@ -719,7 +668,6 @@ def collect_decs_tup_usage(var e : Expression?; tupName : string; bridge : DecsB
     return (allUsed, used)
 }
 
-// Rewrites every whole-var ref to `decs_tup` into a freshly synthesized `(userName1 = iterVar1, ...)` named-tuple literal — same shape build_decs_tup_bind produces, but inlined at each use site. Lets emitters that store the whole element (last/single/aggregate seed of element type, min_by/max_by, to_array push_clone) avoid forcing the unpruned bind path: after rewrite the body contains only `decs_tup.<field>` refs (flattenable) plus iter-var refs in the synthesized literals (picked up by the usage scanner). build_decs_inner_for_pruned then flattens + drops the bind entirely. Inside ExprField the inner ExprVar is left alone so the field path still matches.
 class DecsTupWholeRewriter : AstVisitor {
     tupName       : string
     userNames     : array<string>
@@ -773,7 +721,6 @@ def rewrite_decs_tup_wholes(var body : Expression?; tupName : string; bridge : D
     return any
 }
 
-// When the body only references `decs_tup` via field access (no whole-var refs), the named-tuple wrap plus every per-element `decs_tup.<field>` read are pure overhead — rewrite each field access to the matching iter var directly and skip the bind. Drops one tuple-make + one field-read per kept field per iteration.
 class DecsTupFieldFlattener : AstVisitor {
     tupName     : string
     fieldToIter : table<string; string>
@@ -811,15 +758,12 @@ def build_decs_inner_for_pruned(bridge : DecsBridgeShape?;
                                 tupName : string;
                                 var body : Expression?;
                                 at : LineInfo) : Expression? {
-    // Walks body for `tupName.<field>` references; when pruning is safe + beneficial, emits the inner multi-iter for with unused get_ro slots dropped and a matching shrunk named-tuple bind. Otherwise falls through to the unpruned path so user-visible shape stays intact (bare to_array, push_clone(decs_tup), pass-to-user-fn).
     var (allUsed, usedNames) = collect_decs_tup_usage(body, tupName, bridge)
-    // Whole-var refs (`lst := decs_tup`, `push_clone(buf, decs_tup)`, etc) would force the unpruned bind path — but they're all semantically equivalent to a synthesized `(userName1=iter1, ...)` literal. Rewrite them inline so the flatten + bind-elision path unlocks; saves the per-iteration `var decs_tup = (...)` wrap (~12 ns/op on last/single/select_where 100K-row benches).
     if (allUsed && rewrite_decs_tup_wholes(body, tupName, bridge)) {
         var (allUsed2, usedNames2) = collect_decs_tup_usage(body, tupName, bridge)
         allUsed = allUsed2
         usedNames <- usedNames2
     }
-    // Fallback to the unpruned bind ONLY for whole-var refs that survived rewrite (pass-to-user-fn) or the edge case where the body never touches decs_tup at all. The "all fields used via field access" case still benefits from flatten + bind elision — no slots dropped, but the per-iter tuple-make and field reads disappear.
     if (allUsed || empty(usedNames)) {
         var tupBind = build_decs_tup_bind(bridge, tupName, at)
         return build_decs_inner_for(bridge, tupBind, body, at)
@@ -831,14 +775,11 @@ def build_decs_inner_for_pruned(bridge : DecsBridgeShape?;
     var fieldToIter <- {for (i in 0 .. length(bridge.userNames));
         bridge.userNames[i] => bridge.iterNames[i];
         where key_exists(usedSet, bridge.userNames[i])}
-    // Diagnostic-friendly fallback when some `usedNames` entry has no bridge match. Today the typer pipeline checks user `_.<field>` lambdas before plan_decs_unroll runs, so this is unreachable in practice — but if a future macro ever synthesizes `decs_tup.<unknownField>`, the unpruned bind keeps the typer's "unknown field of <named-tuple>" diagnostic intact instead of degrading it to "unknown identifier decs_tup".
     if (length(fieldToIter) < length(usedSet)) {
         var tupBind = build_decs_tup_bind(bridge, tupName, at)
         return build_decs_inner_for(bridge, tupBind, body, at)
     }
-    // Pruned path: no whole-var ref → no need for the named tuple. Rewrite every `decs_tup.<userName>` in the body to the matching iter var, then drop the bind entirely. Eliminates one tuple-make + N per-element field reads per iter.
     flatten_decs_tup_to_iter(body, tupName, fieldToIter)
-    // Clone forExpr; drop the iter slots not in usedSet from all 5 parallel dasvectors (sources/iterators/iteratorsAt/iteratorsAka/iteratorsTags). iteratorVariables is cleared so the typer rebuilds it during re-type — same pattern as daslib/soa.das:381.
     var clonedForExpr = clone_expression(bridge.forExpr)
     var clonedFor = clonedForExpr as ExprFor
     let nSlots = length(bridge.userNames)
@@ -853,7 +794,6 @@ def build_decs_inner_for_pruned(bridge : DecsBridgeShape?;
         }
     }
     clonedFor.iteratorVariables |> clear()
-    // Install body — body now references iter vars directly; no tupBind needed.
     var newForBody = new ExprBlock(at = at)
     newForBody.list |> push(body)
     clonedFor.body = newForBody
@@ -861,12 +801,12 @@ def build_decs_inner_for_pruned(bridge : DecsBridgeShape?;
 }
 
 struct DecsChainInfo {
-    tupName     : string            // source bind the chain was peeled against — the inner-for bind name; make_decs_term_adapter passes this instead of regenerating qn("decs_tup", at)
-    bindAt      : array<string>    // bind name visible at each chain position
-    elidedAt    : array<bool>      // true when the select at position i was elided (peeled to a single decs_tup field access → reused iter var as next bind, no `let decs_sel_N = ...` emit needed)
-    finalBind   : string            // bind name AFTER full chain — what terminator references
-    finalType   : TypeDeclPtr       // element type AFTER full chain (constant + ref stripped)
-    selectCount : int               // number of `select` ops in chain; 0 means finalBind == tupName
+    tupName     : string
+    bindAt      : array<string>
+    elidedAt    : array<bool>
+    finalBind   : string
+    finalType   : TypeDeclPtr
+    selectCount : int
 }
 
 [macro_function]
@@ -875,7 +815,6 @@ def compute_decs_chain_info(var calls : array<tuple<ExprCall?; LinqCall?>>;
                             tupName : string;
                             bridge : DecsBridgeShape?;
                             at : LineInfo) : DecsChainInfo? {
-    // Each select introduces a fresh `decs_sel{N}` bind; subsequent ops peel against it. Returns null on any non-where_/select op.
     var info = new DecsChainInfo(
         tupName := tupName,
         finalBind := tupName,
@@ -895,7 +834,6 @@ def compute_decs_chain_info(var calls : array<tuple<ExprCall?; LinqCall?>>;
             info.selectCount ++
             var peeled = peel_lambda_rename_var(cll._0.arguments[1], info.bindAt[i])
             if (peeled == null || peeled._type == null) return null
-            // Trivial-let elision: `_select(_.userName)` against decs_tup → iter var directly. The pruned-for keeps the iter var (its name = bridge.iterNames[idx]) and the flattener would otherwise rewrite the synthetic `let decs_sel_N = decs_tup.userName` to `let decs_sel_N = <iterVar>` — a pure copy. Renaming finalBind to the iter var name skips the binding entirely and the action references it natively. Typer wraps both the projection root (`peeled` may be ExprRef2Value) AND the ExprVar inside the ExprField in ExprRef2Value — peel both.
             var elided = false
             if (curBind == tupName) {
                 var top = peeled
@@ -942,7 +880,6 @@ def wrap_decs_chain(var action : Expression?;
                     var calls : array<tuple<ExprCall?; LinqCall?>>;
                     intermediateEnd : int;
                     at : LineInfo) : Expression? {
-    // Reverse-walk chain, wrapping action with `if (pred) { ... }` for where_ and `let bindN+1 = proj; ...` for select.
     var current = action
     for (rev in 0 .. intermediateEnd) {
         let i = intermediateEnd - 1 - rev
@@ -958,7 +895,6 @@ def wrap_decs_chain(var action : Expression?;
                 }
             }
         } elif (opName == "select") {
-            // Skip emission entirely when this select was elided in compute_decs_chain_info — the next bind is already the iter var the flattener would have produced for `let nextBind = decs_tup.userName`. No copy needed; downstream `current` already references the iter var by the elided name.
             continue if (chainInfo.elidedAt[i])
             var proj = peel_lambda_rename_var(cll._0.arguments[1], bindHere)
             if (proj == null) return null
@@ -981,16 +917,16 @@ def wrap_decs_chain(var action : Expression?;
 struct DecsRangeInfo {
     skipExpr          : Expression?
     takeExpr          : Expression?
-    skipWhileCond     : Expression?    // Slice 5b: predicate peeled against tupName (source tuple)
-    takeWhileCond     : Expression?    // Slice 5b: predicate peeled against tupName (source tuple)
-    postTakeWhereCond : Expression?    // gates per-element work AFTER take cap ticks; peeled against chainInfo.finalBind (mirrors array-side postTakeWhereCond, Theme 2 5c)
+    skipWhileCond     : Expression?
+    takeWhileCond     : Expression?
+    postTakeWhereCond : Expression?
     chainEnd          : int
 }
 
 struct DecsRangeStateNames {
     skipName      : string
     takeCountName : string
-    takeLimitName : string    // decs adds an explicit take-limit local so the take(N) expression evaluates exactly once at invoke entry.
+    takeLimitName : string
     skippingName  : string
 }
 
@@ -1008,7 +944,6 @@ def extract_decs_ranges(var calls : array<tuple<ExprCall?; LinqCall?>>;  // noli
                         intermediateEnd : int;
                         tupName : string;
                         at : LineInfo) : DecsRangeInfo? {
-    // Slice 5a/5b: split intermediate chain into (where_/select prefix) + (skip? skip_while? take_while? take? suffix). Canonical order matches array-side (linq_fold.das:1607-1634): skip → skip_while → take_while → take, all after any where_. skip_while/take_while predicates use the SOURCE tuple (tupName); bail when a select appears in the prefix (matches array-side seenSelect bail).
     var info = new DecsRangeInfo(chainEnd = intermediateEnd)
     var firstRangeIdx = intermediateEnd
     for (i in 0 .. intermediateEnd) {
@@ -1019,7 +954,6 @@ def extract_decs_ranges(var calls : array<tuple<ExprCall?; LinqCall?>>;  // noli
         }
     }
     if (firstRangeIdx == intermediateEnd) return info
-    // Detect whether the suffix contains any predicate-driven range (skip_while/take_while) — if so, prefix must be select-free (mirrors array-side seenSelect bail at linq_fold.das:1615/1623).
     var hasWhilePred = false
     for (i in firstRangeIdx .. intermediateEnd) {
         let nm = calls[i]._1.name
@@ -1068,7 +1002,6 @@ def extract_decs_ranges(var calls : array<tuple<ExprCall?; LinqCall?>>;  // noli
 def wrap_inner_for_with_decs_ranges(var body : Expression?;
                                     rangeInfo : DecsRangeInfo?;
                                     names : DecsRangeStateNames) : Expression? {
-    // Slice 5a/5b: prefix per-element body with range guards in canonical order: take-cap → skip-counter → skip_while flag → take_while break → takeC++. Mirrors array-side wrap_with_ranges (linq_fold.das:556). All early exits (`return true`) work both for plain inner-for break AND for the bool-lambda archetype-find — caller switches outer iterator to for_each_archetype_find when takeExpr != null OR takeWhileCond != null. Counters / flags live at invoke scope (decs_range_prelude). Take limit is read from a hoisted local (takeLimitName) so the user's take(N) expression evaluates exactly once at invoke entry.
     if (rangeInfo.skipExpr == null && rangeInfo.takeExpr == null && rangeInfo.skipWhileCond == null && rangeInfo.takeWhileCond == null) return body
     let skipName      = names.skipName
     let takeCountName = names.takeCountName
@@ -1077,7 +1010,6 @@ def wrap_inner_for_with_decs_ranges(var body : Expression?;
     var stmts : array<Expression?>
     stmts |> reserve(6)
     if (rangeInfo.takeExpr != null) {
-        // `>=` so non-positive N short-circuits on first iteration. `return true` exits both inner for AND the archetype bool lambda.
         stmts |> push <| qmacro_expr() {
             if ($i(takeCountName) >= $i(takeLimitName)) {
                 return true
@@ -1103,7 +1035,6 @@ def wrap_inner_for_with_decs_ranges(var body : Expression?;
         }
     }
     if (rangeInfo.takeWhileCond != null) {
-        // First false ends iteration globally (across all archetypes). `return true` exits inner-for AND archetype-find lambda.
         stmts |> push <| qmacro_expr() {
             if (!($e(rangeInfo.takeWhileCond))) {
                 return true
@@ -1111,7 +1042,6 @@ def wrap_inner_for_with_decs_ranges(var body : Expression?;
         }
     }
     if (rangeInfo.takeExpr != null) {
-        // takeC++ AFTER skip_while / take_while so gated-out elements don't eat the take(N) budget (matches array-side comment at linq_fold.das:558).
         stmts |> push <| qmacro_expr() {
             $i(takeCountName) ++
         }
@@ -1122,7 +1052,6 @@ def wrap_inner_for_with_decs_ranges(var body : Expression?;
 
 [macro_function]
 def decs_range_prelude(rangeInfo : DecsRangeInfo?; names : DecsRangeStateNames) : array<Expression?> {
-    // Counter / flag init statements hoisted ABOVE the for_each_archetype call so they survive across archetypes (take cap, skip count, skip_while flag are all globally-stateful). takeLimit hoisted to a local so the user's take(N) expression evaluates exactly once (matches take(src, total:int) semantics).
     let skipName      = names.skipName
     let takeCountName = names.takeCountName
     let takeLimitName = names.takeLimitName
@@ -1140,7 +1069,6 @@ def decs_range_prelude(rangeInfo : DecsRangeInfo?; names : DecsRangeStateNames) 
         }
     }
     if (rangeInfo.skipWhileCond != null) {
-        // Slice 5b: skip_while flag is one-way (flips false on first non-matching elem, stays). Hoisted so the flag persists across archetypes.
         stmts |> push <| qmacro_expr() {
             var $i(skippingName) = true
         }
@@ -1150,10 +1078,8 @@ def decs_range_prelude(rangeInfo : DecsRangeInfo?; names : DecsRangeStateNames) 
 
 [macro_function]
 def emit_decs_count_archsize(bridge : DecsBridgeShape?; at : LineInfo) : Expression? {
-    // Bare count(): no chain ops, sum arch.size per archetype — skips the per-entity walk entirely.
     let accName = qn("decs_acc", at)
     let archName = qn("decs_arch", at)
-    // arch.size is int64; count() returns int and the += site truncates past INT_MAX — chain `long_count()` when an int64-safe total is required.
     var emission : Expression? = qmacro(invoke($() : int {
         var $i(accName) = 0
         for_each_archetype($e(bridge.reqHashExpr), $e(bridge.erqExpr), $($i(archName) : Archetype) {
@@ -1175,7 +1101,6 @@ def emit_decs_min_max_by(var bridge : DecsBridgeShape?;
                          intermediateEnd : int;
                          terminatorCall : ExprCall?;
                          at : LineInfo) : Expression? {
-    // Slice 4: min_by / max_by — track best (key, element) pair across archetypes. Element retained via `:=`, matches min_by_impl's empty→default semantics. Slice 5a adds take/skip ranges via rangeInfo.
     let firstName = qn("decs_first", at)
     let bestKeyName = qn("decs_bkey", at)
     let bestElemName = qn("decs_belem", at)
@@ -1213,8 +1138,6 @@ def emit_decs_min_max_by(var bridge : DecsBridgeShape?;
     let dispatch : LoopDispatch = ((rangeInfo.takeExpr != null || rangeInfo.takeWhileCond != null)
         ? LoopDispatch(Find = null)
         : LoopDispatch(Each = null))
-    // Each+tail walk over the generic terminator lane: the field-carrying DecsAdapter owns the chain +
-    // ranges + for_each{,_find} dispatch; postTakeWhereCond (if any) gates the per-element work innermost.
     var adapter = make_decs_term_adapter(bridge, chainInfo, rangeInfo, calls, intermediateEnd)
     var ptw : Expression?
     if (rangeInfo.postTakeWhereCond != null) {
@@ -1231,13 +1154,8 @@ def emit_decs_min_max_by(var bridge : DecsBridgeShape?;
         dispatch = dispatch), adapter, at)
 }
 
-// ── decs group_by splice (Slice 5e — state-table over for_each_archetype) ───────
-
 [macro_function]
 def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; ctx : EmitCtx; at : LineInfo) : Expression? {
-    // PR D2-A: keep collect+probe inline (not via adapter_wrap_source_loop) to preserve the count-no-where bucket-length fast path.
-    // Bail to tier-2 unless both sides are from_decs_template eager bridges and it's a plain join — group join
-    // over a decs source isn't spliced yet (the array adapter handles group joins).
     if (bridgeA == null || (c.single_name |> key_exists("join") && c.single_name["join"] == "group_join")) return null
     var joinCall = c.single["join"]
     var whereLam : Expression?
@@ -1255,11 +1173,9 @@ def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; ctx : Emit
     var leadWhereLam = extract_join_lead_where(c)
     if (c.single |> key_exists("lead_where") && leadWhereLam == null) return null
     let countOnly = c.single |> key_exists("term")
-    // Iterator-typed implicit-to-array: emission returns array<elemType> uniformly; iterator sink would need a wrap that's not applied here. Cascade.
     if (!countOnly && ctx.expr_is_iterator) return null
     var bridgeB = extract_decs_bridge(joinCall.arguments[1])
     if (bridgeB == null) return null
-    // keya/keyb are LinqJoin-macro-synthesized: $($i(la_fresh) : iterTypeA) => keya_body — 1-arg single-return. Block return type IS the key type.
     var keyaLam = joinCall.arguments[2]
     var keybLam = joinCall.arguments[3]
     if (keyaLam == null || keybLam == null || keyaLam._type == null) return null
@@ -1283,9 +1199,7 @@ def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; ctx : Emit
     var collectInner = build_decs_inner_for(bridgeB, tupBindB, stmts_to_expr(collectBody), at)
     var probeInner = build_decs_inner_for(bridgeA, tupBindA, pieces.probeOuter, at)
     var allStmts := pieces.preludeStmts
-    allStmts |> push <| qmacro_expr() {
-        var $i(hashName) : table<$t(keyType); array<$t(tupBType)>>
-    }
+    allStmts |> push(join_hash_decl(hashName, keyType, tupBType))
     allStmts |> push <| qmacro_expr() {
         for_each_archetype($e(bridgeB.reqHashExpr), $e(bridgeB.erqExpr), $($i(bridgeB.archName) : Archetype) {
             $e(collectInner)
@@ -1303,6 +1217,4 @@ def emit_decs_join_impl(bridgeA : DecsBridgeShape?; var c : Captures; ctx : Emit
     }))
     return finalize_decs_emission(emission, at, false)
 }
-
-// ── array join splice (chunk N+2 — array mirror of register_decs_join_rows) ───────
 

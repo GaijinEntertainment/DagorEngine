@@ -14,6 +14,12 @@ hlsl(code) {
     #define BACKFACE_CULLING 0
   #endif
 
+  // SWRT_SHADOW_SKIP_LEAF: the shadow walk drops a leaf this owner-defined function accepts from its W1 W2 W3
+  // (QUAD_LEAF_TRANSPARENT_FLAG, the user bits), and an instance whose TLAS leaf is light transparent.
+  #ifdef SWRT_SHADOW_SKIP_LEAF
+  bool swrt_shadow_skip_leaf(uint w1, uint w2, uint w3);
+  #endif
+
   #ifndef DECODE_BLAS_ELEM_RAW_DEFINED
   void decode_blas_elem_raw(ByteAddressBuffer blas_data, uint offset, out float3 elem1, out float3 elem2, out uint skip)
   {
@@ -66,11 +72,11 @@ hlsl(code) {
   // sign-extend the low `bits` of v (offset/base fields are stored 2's-complement)
   int swblas_sx(uint v, int bits) { int s = 32 - bits; return int(v << s) >> s; }
 
-  QuadLeafVerts decodeQuadLeafVerts(ByteAddressBuffer blas_data, uint dataOffset, uint skip, bool extract_winding = BACKFACE_CULLING)
+  // w1w2w3: the leaf's W1 (base + o3A high), W2, W3, contiguous after the box node -- one fetch
+  // instead of three, done by the caller so a shadow leaf can read its words before deciding to decode.
+  QuadLeafVerts decodeQuadLeafVertsW(ByteAddressBuffer blas_data, uint dataOffset, uint skip, uint3 w1w2w3, bool extract_winding)
   {
     QuadLeafVerts q;
-    // W1 (base + o3A high), W2, W3 are contiguous after the box node -- one fetch instead of three.
-    uint3 w1w2w3 = loadBuffer3(blas_data, dataOffset);
     uint w1 = w1w2w3.x, w2 = w1w2w3.y;
     // W3's top bits belong to the BLAS owner (QUAD_LEAF_USER_*), never to geometry. The offset
     // fields below sign-extend 13 bits and would discard them anyway; dropping them once here means
@@ -116,6 +122,10 @@ hlsl(code) {
       q.vb0 = q.vb1 = q.vb2 = q.vb3 = q.v0;
     }
     return q;
+  }
+  QuadLeafVerts decodeQuadLeafVerts(ByteAddressBuffer blas_data, uint dataOffset, uint skip, bool extract_winding = BACKFACE_CULLING)
+  {
+    return decodeQuadLeafVertsW(blas_data, dataOffset, skip, loadBuffer3(blas_data, dataOffset), extract_winding);
   }
 
   // Corners of sub-triangle 0..3 (0/1 = quad A tri 1/2, 2/3 = quad B tri 1/2).
@@ -191,20 +201,28 @@ hlsl(code) {
   int rayBLASUnordered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
                int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex);
 
+  // constraint: after the walk, call RayTriangleIntersect only through this, or fxc fails with X3531
+  bool rayTriangleIntersectAfterWalk(float3 orig, float3 dir, float3 v0, float3 v1, float3 v2, inout float t, out float2 bc)
+  {
+    return RayTriangleIntersect(orig, dir, v0, v1, v2, t, bc);
+  }
+
+  // leaf_user: the hit leaf's QUAD_LEAF_USER_* value, written on a hit only.
   bool rayBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
-               int startOffset, int blasSize, inout float t, inout float3 localTriNorm, inout float2 bCoord, inout int complex)
+               int startOffset, int blasSize, inout float t, inout float3 localTriNorm, inout float2 bCoord, inout int complex, inout uint leaf_user)
   {
     int bestTriOffset = rayBLASUnordered(blas_data, rayOrigin, rayDir, rayDirInv, startOffset, blasSize, t, bCoord, complex);
 
     if (bestTriOffset > 0)
     {
-      // Refetch the winning leaf to recover normal and bary. The RayTriangleIntersect call below
+      // Refetch the winning leaf to recover normal and bary. The rayTriangleIntersectAfterWalk call below
       // is run only for its bCoord side effect (the returned t in `ct` is discarded): bc is
       // written before the accept/reject test, so it is valid even though `ct == t` makes the test
       // reject. Do NOT add an early-out before the bc write to RayTriangleIntersect, or this breaks.
       int subTri = bestTriOffset & 3;
       bestTriOffset &= ~3;
       uint qskip = loadBuffer(blas_data, bestTriOffset - 4); // skip field is at node+12 = leaf-4
+      leaf_user = loadBuffer(blas_data, bestTriOffset + 8) >> QUAD_LEAF_USER_SHIFT; // W3
       // Closest-hit reports normal/bary, so it needs triB's winding even with culling off: pass
       // extract_winding=true to decode flip from the W2 the refetch already loads (no extra fetch).
       // Winning leaf only, mirrors the CPU rayLeaf_SoA.
@@ -213,7 +231,7 @@ hlsl(code) {
       getLeafTri(q, subTri, a, b, c);
       localTriNorm = cross(b - a, c - a);
       float ct = t;
-      RayTriangleIntersect(rayOrigin, rayDir, a, b, c, ct, bCoord);
+      rayTriangleIntersectAfterWalk(rayOrigin, rayDir, a, b, c, ct, bCoord);
       return true;
     }
     return false;
@@ -316,6 +334,10 @@ hlsl(code) {
     }
   }
   #endif
+  // any hit; far leaves hit as boxes
+  #ifndef SWRT_LEAF_ANY_HIT
+    #define SWRT_LEAF_ANY_HIT 0
+  #endif
   int rayBLASUnordered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
                       int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex)
   {
@@ -342,7 +364,9 @@ hlsl(code) {
       } else if (offsetToNextNode&QUAD_LEAF_FLAG)
       {
         ++complex;
-        rayBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, bboxMin, bboxMax, t, bCoord, bestTriOffset);
+        if (rayBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, bboxMin, bboxMax, t, bCoord, bestTriOffset) &&
+            SWRT_LEAF_ANY_HIT)
+          break;
         dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
       }
     }
@@ -356,7 +380,12 @@ hlsl(code) {
     // SoA 4-wide for shadow: one test over the whole double-quad leaf (4 sub-tris); any lane hit means
     // shadowed. Degenerate lanes (single quad / single tri / absent quad B collapse to zero area) are
     // rejected inside RayTriangle4_SoA_AnyHit via its absDet < 1e-37 guard, so no per-quad branch.
-    QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, skip);
+    uint3 w1w2w3 = loadBuffer3(blas_data, dataOffset);
+    #ifdef SWRT_SHADOW_SKIP_LEAF
+    if (swrt_shadow_skip_leaf(w1w2w3.x, w1w2w3.y, w1w2w3.z))
+      return false;
+    #endif
+    QuadLeafVerts q = decodeQuadLeafVertsW(blas_data, dataOffset, skip, w1w2w3, BACKFACE_CULLING);
     // Any-hit is winding-independent: triB uses the fixed strip (v1,v2,v3) with NO flipSecond select.
     // Nothing here reads q.flipSecond/q.flipSecondB, so the compiler drops the whole flip decode.
     float3 a0 = q.v0,  b0 = q.v1,  c0 = q.v2;

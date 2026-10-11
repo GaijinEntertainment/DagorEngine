@@ -167,7 +167,6 @@ static TexturePackingProfilingInfo get_packing_quality(IPoint2 tex_resolution, I
   ret.assetName = eastl::string{asset_name};
   ret.texWidth = tex_resolution.x;
   ret.texHeight = tex_resolution.y;
-  ret.sliceWidth = 0;
   ret.sliceHeight = tex_resolution.y;
   ret.sliceStretchX = xScale;
   ret.sliceStretchY_min = ret.sliceStretchY_max = double(slice_resolution.y) / slices[0].contentBbox.width().y;

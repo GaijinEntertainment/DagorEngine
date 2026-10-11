@@ -12,7 +12,7 @@ struct Node {
 def test_topological_sort(t : T?) {
     // 0 -> 1 -> 3
     // 0 -> 2 -> 3
-    var nodes <- [Node(
+    let nodes <- [Node(
         id=3, before <- {1, 2}), Node(
         id=0), Node(
         id=2, before <- {0}), Node(

@@ -27,29 +27,20 @@ public:
   ~PoolResourceAllocator() override;
 
 private:
-  D3dResource *getD3dResource(int frame, intermediate::ResourceIndex res_idx) const override;
-
   ResourceAllocationProperties getResourceAllocationProperties(const ResourceDescription &desc,
     bool force_not_on_chip = false) override;
   ResourceHeapGroupProperties getResourceHeapGroupProperties(ResourceHeapGroup *) override;
+  bool doHeapsCountObjects() const override { return true; }
+  bool doesResizeKeepContents() const override { return true; }
+  uint64_t getFreeMemoryBudget() const override { return UNKNOWN_MEMORY_BUDGET; }
 
-  DestroyedHeapSet allocateHeaps(const HeapRequests &heap_requests) override;
+  void allocateHeaps(const LayoutHeaps &layout_heaps, bool defer_destruction, ChangedHeaps &changed) override;
+  bool doesHeapAgree(HeapIndex heap_idx, const HeapRequest &req) const override;
 
-  void resetResourcePlacement() override;
-  void placeResource(int frame, intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &desc,
-    uint64_t offset, const ResourceAllocationProperties &properties, const DynamicResolution &dyn_resolution) override;
+  D3dResource *placeResource(intermediate::ResourceIndex res_idx, HeapIndex heap_idx, const ResourceDescription &desc, uint64_t offset,
+    const ResourceAllocationProperties &properties, const DynamicResolution &dyn_resolution) override;
 
   void shutdownInternal() override;
-
-  template <ResourceType RES_TYPE>
-  void prepareHeapType(eastl::span<uint32_t const> heapSizes);
-
-private:
-  eastl::array<IdIndexedMapping<intermediate::ResourceIndex, uint32_t>, SCHEDULE_FRAME_WINDOW> resourceIndexInCollection;
-
-  IdIndexedMapping<HeapIndex, uint32_t> heapStartOffsets;
-
-  dag::Vector<PoolResourceType> resourceTypes;
 };
 
 } // namespace dafg

@@ -25,7 +25,7 @@ inline void view_matrix_from_look(const Point3 &look, TMatrix &tm)
 
 inline Point3 tangent_to_world(const Point3 &vec, const Point3 &tangentZ)
 {
-  Point3 up = fabsf(tangentZ.z) < 0.999 ? Point3(0, 0, 1) : Point3(1, 0, 0);
+  Point3 up = fabsf(tangentZ.z) < 0.999f ? Point3(0, 0, 1) : Point3(1, 0, 0);
   Point3 tangentX = normalize(cross(up, tangentZ));
   Point3 tangentY = cross(tangentZ, tangentX);
   return tangentX * vec.x + tangentY * vec.y + tangentZ * vec.z;
@@ -34,7 +34,7 @@ inline Point3 tangent_to_world(const Point3 &vec, const Point3 &tangentZ)
 inline void view_matrix_from_tangentZ(const Point3 &tangentZ, TMatrix &tm)
 {
   tm.setcol(2, tangentZ);
-  Point3 up = fabsf(tangentZ.z) < 0.999 ? Point3(0, 0, 1) : Point3(1, 0, 0);
+  Point3 up = fabsf(tangentZ.z) < 0.999f ? Point3(0, 0, 1) : Point3(1, 0, 0);
   tm.setcol(0, normalize(cross(up, tangentZ)));
   tm.setcol(1, cross(tangentZ, tm.getcol(0)));
 }

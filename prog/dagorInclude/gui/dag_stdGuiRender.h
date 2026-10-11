@@ -589,6 +589,7 @@ public:
 
   // reset positions of all buffers
   void resetFrame();
+  void abandonFrame();
 
   // setup render parameters.
   // set screen logical resolution in pixels.
@@ -1126,6 +1127,9 @@ void init_render();
 
 // close renderer
 void close_render();
+
+//! refresh screen_size() from d3d::get_screen_size() after the backbuffer was resized without init_render()
+void update_screen_size();
 
 // should be called in beforeRender() of each frame to reset positions in GUI dynamic buffers
 // (unless target d3d driver natively supports lockless ring buffers)

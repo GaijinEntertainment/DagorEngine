@@ -12,7 +12,7 @@ def private add_one(var x : int&) { x++ }
 def test_oneliner_if(t : T?) {
     t |> run("if one-liner, no trailing semicolon") @(t : T?) {
         var x = 0
-        if (true) { x = 42 }
+        if (true) { x = 42 }     // nolint:STYLE010 - the always-taken if is the one-liner form under test
         t |> equal(x, 42)
     }
     t |> run("if/else one-liner, no trailing semicolons") @(t : T?) {
@@ -63,7 +63,7 @@ def test_oneliner_loops(t : T?) {
     t |> run("while one-liner") @(t : T?) {
         var n = 3
         var count = 0
-        while (n > 0) { count += 1; n -= 1 }
+        while (n > 0) { count ++; n -- }
         t |> equal(count, 3)
     }
 }
@@ -72,14 +72,14 @@ def test_oneliner_loops(t : T?) {
 def test_oneliner_last_statement_kinds(t : T?) {
     t |> run("call as last statement") @(t : T?) {
         var x = 0
-        if (true) { add_one(x) }
+        if (true) { add_one(x) }     // nolint:STYLE010 - the always-taken if is the one-liner form under test
         t |> equal(x, 1)
     }
     t |> run("multi-line still works (regression)") @(t : T?) {
         var x = 0
-        if (true) {
+        if (true) {     // nolint:STYLE010 - the always-taken if is the multi-line regression counterpart of the one-liner form
             x = 1
-            x += 1
+            x ++
         }
         t |> equal(x, 2)
     }

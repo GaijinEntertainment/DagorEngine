@@ -6,12 +6,10 @@
 
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector.h>
-#ifndef RESTRICT_FUN
 #ifdef _MSC_VER
 #define RESTRICT_FUN __declspec(restrict)
 #else
 #define RESTRICT_FUN
-#endif
 #endif
 
 // this is simple allocator, which works almost as region buffer (chain of chunks of equal size).
@@ -95,3 +93,5 @@ struct StackAllocator
     pushChunk();
   }
 };
+
+#undef RESTRICT_FUN

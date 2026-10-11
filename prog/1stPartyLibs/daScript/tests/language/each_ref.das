@@ -12,9 +12,7 @@ def make_lam() : lambda<(var a : int?&) : bool> {
         if (idx >= length(g_src)) {
             return false
         }
-        unsafe {
-            a = addr(g_src[idx])
-        }
+        a = unsafe(addr(g_src[idx]))
         idx++
         return true
     }
@@ -23,7 +21,7 @@ def make_lam() : lambda<(var a : int?&) : bool> {
 [test]
 def test_each_ref(t : T?) {
     t |> run("user lambda yields writable refs") @(t : T?) {
-        g_src <- [10, 20, 30]
+        g_src := [10, 20, 30]
         let lam <- make_lam()
         var sum = 0
         for (x in each_ref(lam)) {
@@ -36,7 +34,7 @@ def test_each_ref(t : T?) {
         t |> equal(300, g_src[2])
     }
     t |> run("ref generator lowers to each_ref") @(t : T?) {
-        g_src <- [1, 2, 3]
+        g_src := [1, 2, 3]
         var gen <- generator<int&> {
             for (i in range(length(g_src))) {
                 yield g_src[i]

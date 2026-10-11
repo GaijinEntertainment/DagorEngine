@@ -373,10 +373,16 @@ public:
   const Props &getProps() const { return props; }
   const int getLayer() const { return min(LAYER_ORDER_MAX - 1, props.layerOrder); }
 
+  bool hasCurve() const { return points.size() >= 2; }
+  bool reachesGame() const { return isExportable() && !points.empty() && EditLayerProps::layerProps[editLayerIdx].exp; }
+  bool isGameExportBlocked() const { return isExportable() && !points.empty() && !EditLayerProps::layerProps[editLayerIdx].exp; }
+  static bool isGameSplinesViewOn();
+
   static int splineSubtypeMask;
   static int tiledByPolygonSubTypeId;
   static int splineSubTypeId;
   static int roadsSubtypeMask;
+  static int gameSplineSubtypeMask;
 
   static bool isSplineCacheValid;
   static bool objectWasMoved, objectWasRotated, objectWasScaled;

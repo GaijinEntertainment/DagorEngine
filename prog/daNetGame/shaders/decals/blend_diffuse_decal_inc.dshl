@@ -30,9 +30,9 @@ macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
 endmacro
 
 macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
-  WRITE_GBUFFER_WITH_MIXING(true, true, false)
   if (!is_dynamic && rendinst_render_pass == rendinst_render_pass_impostor_voxel)
   {
+    WRITE_GBUFFER_WITH_MIXING(true, true, false)
     USE_VOXEL_BAKING_DECAL()
     no_ablend;
   }
@@ -40,6 +40,7 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
   {
     blend_src = sa; blend_dst = isa;
     blend_asrc = 0; blend_adst = 1;
+    WRITE_GBUFFER_WITH_MIXING(true, true, is_dynamic)
     DYNAMIC_FILTER_FOR_MIXING(is_dynamic, false)
   }
   if (deferred)

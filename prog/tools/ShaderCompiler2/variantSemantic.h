@@ -2,6 +2,7 @@
 #pragma once
 
 #include "shVariantContext.h"
+#include "subpassRead.h"
 #include <EASTL/variant.h>
 
 namespace semantic
@@ -56,6 +57,7 @@ eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
   TYPE(bindlessTexCubeArray)                    \
   TYPE(bindlessSampler)                         \
   TYPE(bindlessByteBuffer)
+#define PRESHADER_VARIABLE_TYPE_LIST_SUBPASS_READ() TYPE(subpass_read)
 
 #define PRESHADER_VARIABLE_TYPE_LIST        \
   PRESHADER_VARIABLE_TYPE_LIST_FLOAT()      \
@@ -67,7 +69,8 @@ eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
   PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX() \
   PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP() \
   PRESHADER_VARIABLE_TYPE_LIST_OTHER()      \
-  PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()
+  PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()   \
+  PRESHADER_VARIABLE_TYPE_LIST_SUBPASS_READ()
 
 // @NOTE: disallowing partial vectors due to packing, smpXXX and shdXXX because they are are 2 bindings each, and static textures
 #define ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST \
@@ -100,6 +103,7 @@ inline constexpr bool vt_is_numeric(VariableType vt)
     PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX()
     PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP()
     PRESHADER_VARIABLE_TYPE_LIST_OTHER()
+    PRESHADER_VARIABLE_TYPE_LIST_SUBPASS_READ()
     return false;
 #undef TYPE
   }
@@ -124,11 +128,25 @@ inline constexpr bool vt_is_integer(VariableType vt)
     PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX()
     PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP()
     PRESHADER_VARIABLE_TYPE_LIST_OTHER()
+    PRESHADER_VARIABLE_TYPE_LIST_SUBPASS_READ()
     return false;
 #undef TYPE
   }
 
   return false;
+}
+
+inline constexpr bool vt_is_subpass_read(VariableType vt)
+{
+  switch (vt)
+  {
+#define TYPE(type) case VariableType::type:
+    PRESHADER_VARIABLE_TYPE_LIST_SUBPASS_READ()
+    return true;
+#undef TYPE
+
+    default: return false;
+  }
 }
 
 inline constexpr bool vt_is_explicit_bindless(VariableType vt)
@@ -354,7 +372,6 @@ struct NamedConstInitializerElement
   {};
   struct GlobalVar : VarBase
   {};
-
   eastl::variant<ArithmeticExpr, ArithmeticConst, GlobalVar, MaterialVar, BuiltinVar> value;
   Symbol *symbol;
 
@@ -431,12 +448,13 @@ struct NamedConstDefInfo
   int registerSize = 0;
   int arrayElemCount = 0;
   int hardcodedRegister = -1;
+  semantic::SubpassReadResolution subpassRead;
 
-  VariableType type;
+  VariableType type = VariableType::Unknown;
   ShaderVarType shvarType = SHVT_UNKNOWN;
   ShaderVarTextureType shvarTexType = SHVT_TEX_UNKNOWN;
   HlslRegisterSpace regSpace = HLSL_RSPACE_INVALID;
-  ShaderStage stage;
+  ShaderStage stage = STAGE_MAX;
 
   Terminal *varTerm = nullptr;
   Terminal *nameSpaceTerm = nullptr;
@@ -479,11 +497,21 @@ inline VariableType parse_named_const_type(const state_block_stat &state_block)
     ns = state_block.reg->var->nameSpace;
   else if (state_block.reg_arr)
     ns = state_block.reg_arr->var->nameSpace;
+  if (!ns)
+    return VariableType::Unknown;
   return name_space_to_type(ns->text);
 }
 
 eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_block_stat &state_block, ShaderStage stage,
-  VariableType vt, shc::VariantContext &ctx, IMemAlloc *tmp_memory = nullptr);
+  VariableType vt, shc::VariantContext &ctx, IMemAlloc *tmp_memory = nullptr, SubpassReadResolution presolved = {});
+
+struct SubpassReadSourceRef
+{
+  Terminal *passTerm = nullptr;
+  Terminal *targetTerm = nullptr;
+};
+eastl::optional<SubpassReadSourceRef> parse_subpass_read_source_ref(const state_block_stat &state_block, Terminal *var_term,
+  Parser &parser);
 
 struct LocalVarDefInfo
 {

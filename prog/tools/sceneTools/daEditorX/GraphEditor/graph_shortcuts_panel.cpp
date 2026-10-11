@@ -3,10 +3,10 @@
 #include "graph_shortcuts_panel.h"
 
 #include "command_definitions.h"
+#include "graph_command_text.h"
 
 #include <oldEditor/de_cm.h>
 
-#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_interface.h>
 
 #include <imgui/imgui.h>
@@ -26,6 +26,8 @@ const ShortcutRow SHORTCUT_ROWS[] = {
   {nullptr, nullptr, "RMB", "Context menu for the node, pin, edge or empty space under the cursor"},
   {nullptr, CANVAS_TOGGLE_AUTOUPDATE, nullptr, "Toggle auto-update"},
   {nullptr, FORCE_REBUILD, nullptr, "Force rebuild"},
+  {nullptr, TOGGLE_GRAPH_PROPERTIES, nullptr,
+    "Toggle Properties between the selected node and the graph (in a subgraph window: its interface)"},
 
   {"View and Navigation", nullptr, "Mouse Wheel", "Zoom in / out"},
   {nullptr, nullptr, "Middle Mouse", "Pan the canvas (drag)"},
@@ -49,29 +51,26 @@ const ShortcutRow SHORTCUT_ROWS[] = {
   {nullptr, CANVAS_DUPLICATE, nullptr, "Duplicate selected"},
 
   {"Connections", CANVAS_REMOVE_EDGES_AT_PIN, nullptr, "Remove edges (cursor must be over a pin)"},
-  {nullptr, CANVAS_MODIFY_EDGE_AT_PIN, nullptr, "Modify edge (cursor must be over a pin)"},
+  {nullptr, CANVAS_MODIFY_EDGE_AT_PIN, nullptr, "Modify edge, several edges open a list (cursor must be over a pin)"},
   {nullptr, CANVAS_JUMP_OPPOSITE_PIN, nullptr, "Jump to the opposite pin, several edges open a list (cursor must be over a pin)"},
   {nullptr, CANVAS_COMMENT_PIN, nullptr, "Comment a pin (cursor must be over a pin)"},
   {nullptr, CANVAS_ADD_NODE_AT_PIN, nullptr, "Add a connected node (cursor must be over a pin or an edge)"},
   {nullptr, CANVAS_ADD_TRANSIT_NODE, nullptr, "Add a node into the connections (over a pin or an edge, or press and then aim)"},
   {nullptr, nullptr, "LMB Drag", "Drag a link to empty space to add a connected node"},
+
+  {"Subgraphs", CANVAS_CREATE_SUBGRAPH, nullptr, "Create a subgraph from the selected nodes (2 or more)"},
+  {nullptr, CANVAS_OPEN_SUBGRAPH, nullptr, "Open the selected subgraph, or focus its window (a pin under the cursor jumps instead)"},
+  {nullptr, CANVAS_EXPLODE_SUBGRAPH, nullptr, "Explode the selected subgraph into the graph"},
+  {nullptr, CANVAS_GO_TO_PARENT_GRAPH, nullptr, "Go to the parent graph (a subgraph window must be focused)"},
 };
 
-const char *row_key_text(IEditorCommandSystem *command_system, const ShortcutRow &row)
+const char *row_key_text(const ShortcutRow &row)
 {
   if (!row.commandId)
   {
     return row.staticKey ? row.staticKey : "";
   }
-  if (command_system)
-  {
-    const char *text = command_system->getCommandKeyChordsAsText(row.commandId);
-    if (text && *text)
-    {
-      return text;
-    }
-  }
-  return "";
+  return command_hint(row.commandId);
 }
 } // namespace
 
@@ -81,8 +80,6 @@ ShortcutsPanel::~ShortcutsPanel() { IEditorCoreEngine::get()->deleteCustomPanel(
 
 void ShortcutsPanel::updateImgui()
 {
-  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
-
   // Each section is its own 2-column table (key | action), so key columns size to the widest
   // chord within their group. The panel window provides scrolling when the list overflows.
   bool tableOpen = false;
@@ -109,7 +106,7 @@ void ShortcutsPanel::updateImgui()
     }
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
-    ImGui::TextUnformatted(row_key_text(commandSystem, row));
+    ImGui::TextUnformatted(row_key_text(row));
     ImGui::TableSetColumnIndex(1);
     ImGui::TextUnformatted(row.description);
   }

@@ -8,9 +8,10 @@ namespace darg
 {
 
 // Host-provided scope wrapping the async daScript worker compile. open() is
-// called on the cpujobs worker at the top of DasLoadAndCompileJob::doJob()
-// (returns an opaque host handle); close() runs on the worker on every doJob()
-// return path. Lets a host establish whatever thread-local state its compile-
+// called on the cpujobs worker before DasLoadAndCompileJob::doJob() compiles
+// (returns an opaque host handle); close() runs on the worker on every return
+// path after that. A job discarded before its compile runs neither hook.
+// Lets a host establish whatever thread-local state its compile-
 // time macros need on the worker thread - e.g. skyquake, which thread-pins its
 // ECS EntityManager, scopes a valid one here so the compile does not assert off
 // the pinned thread. Pure void* keeps daRg host/daScript-free; null in dargbox

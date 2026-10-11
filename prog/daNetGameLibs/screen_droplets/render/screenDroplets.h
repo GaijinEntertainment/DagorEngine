@@ -2,12 +2,8 @@
 #pragma once
 
 #include <daECS/core/event.h>
+#include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 
 ECS_BROADCAST_EVENT_TYPE(ScreenDropletsReset)
 
-namespace dafg
-{
-class NodeHandle;
-}
-
-dafg::NodeHandle makeWaterDropletsNode();
+resource_slot::NodeHandleWithSlotsAccess makeWaterDropletsNode();

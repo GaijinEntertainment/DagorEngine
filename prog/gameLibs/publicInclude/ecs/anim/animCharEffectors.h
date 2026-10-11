@@ -16,10 +16,11 @@ struct EffectorData
 
   int effId = -1;
   int effWtmId = -1;
+  int effWeightId = -1;
 
   float weight = 0.f;
 
-  EffectorData(int eff_id, int eff_wtm_id) : effId(eff_id), effWtmId(eff_wtm_id) {}
+  EffectorData(int eff_id, int eff_wtm_id, int eff_weight_id) : effId(eff_id), effWtmId(eff_wtm_id), effWeightId(eff_weight_id) {}
 };
 
 ECS_DECLARE_TYPE(EffectorData);

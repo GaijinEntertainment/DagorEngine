@@ -162,4 +162,13 @@ def test_const_lazy_cache(tt : T?) {
         let p2 = w as IReadable
         tt |> equal(unsafe(reinterpret<int64>(p1)), unsafe(reinterpret<int64>(p2)))
     }
+    tt |> run("the const getter's write reaches the object, in every tier") @(tt : T?) {
+        let w = new Widget(70, "store-visible")
+        tt |> equal(unsafe(reinterpret<int64>(w._interface_IReadable)), 0l, "the cache starts empty")
+        let p = w as IReadable
+        tt |> equal(unsafe(reinterpret<int64>(w._interface_IReadable)),
+                    unsafe(reinterpret<int64>(p)),
+                    "the getter's store through the const-stripped self must be visible on the object")
+        tt |> equal(p->get_value(), 70)
+    }
 }

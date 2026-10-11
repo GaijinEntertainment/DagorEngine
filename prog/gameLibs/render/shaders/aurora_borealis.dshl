@@ -50,8 +50,12 @@ shader aurora_borealis
       0
     );
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     skies_world_view_pos@f3 = skies_world_view_pos;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   if (clouds_alpha_panorama_tex != NULL)

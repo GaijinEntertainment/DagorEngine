@@ -1,9 +1,10 @@
-local function fibR(n)
+local benchmark <const> = require("profile").benchmark
 
-    if (n < 2) then return n end
-    return (fibR(n-2) + fibR(n-1))
+local function fib(n)
+  if n < 2 then
+    return n
+  end
+  return fib(n - 2) + fib(n - 1)
 end
 
-loadfile("profile.lua")()
-
-io.write(string.format("\"fibonacci recursive\", %.8f, 20\n", profile_it(20, function () fibR(31) end)))
+benchmark("fibonacci recursive", 20, function() return fib(31) end)

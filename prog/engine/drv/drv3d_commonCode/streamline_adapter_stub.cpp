@@ -12,7 +12,14 @@ bool StreamlineAdapter::init(eastl::optional<StreamlineAdapter> &, RenderAPI, Su
 void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D11Device *device) {}
 void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D12Device5 *device) {}
 void StreamlineAdapter::setVulkan() {}
-void *StreamlineAdapter::hook(IUnknown *object) { return object; }
+void *StreamlineAdapter::hook(IUnknown *object)
+{
+#if _TARGET_PC_WIN
+  if (object)
+    object->AddRef();
+#endif
+  return object;
+}
 void *StreamlineAdapter::unhook(IUnknown *object)
 {
 #if _TARGET_PC_WIN

@@ -29,9 +29,6 @@ class CodeGenVisitor : public Visitor {
     };
     ExprChainResolveMode _resolve_mode;
 
-    bool _inside_static_memo;
-    int _complexity_level;
-
     const char *_sourceName;
 
     Arena *_arena;
@@ -88,18 +85,8 @@ private:
     void emitSimpleBinaryOp(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3 = 0);
     void emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs);
     void emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lvalue, Expr *rvalue);
-    void emitStaticMemo(Expr *static_memo_arg, bool is_auto_memo = false);
     void emitInlineConst(Expr *const_initializer);
 
-    bool _visit_arrays_and_tables;
-    Node *_variable_node;
-    int getSubtreeConstScore(Node *node, bool visit_arrays_and_tables);
-    int getSubtreeConstScoreImpl(Node *node);
-    bool findConstScoredVar(const SQObjectPtr &name, SQCompiletimeVarInfo &varInfo,
-                            unsigned requiredFlags);
-    SQInteger inferReceiverType(Expr *receiver);
-    bool isConstScoredMethodCall(GetFieldExpr *getField);
-    bool isConstScoredDirectCall(CallExpr *callExpr);
     bool isConstEvaluable(Expr *expr);
 
     void emitNewSlot(Expr *lvalue, Expr *rvalue);
@@ -109,13 +96,8 @@ private:
     bool CanBeTypeMethod(const char *key);
     bool CanBeTableTypeMethod(const char *key);
     bool canBeLiteral(AccessExpr *expr);
-    SQObjectPtr GetTypeMethod(SQInteger sq_type, const char* key);
 
     void MoveIfCurrentTargetIsLocal();
-
-    bool IsSimpleConstant(const SQObject &name);
-    bool DoesObjectContainOnlySimpleObjects(const SQObject &obj, int depth);
-    bool IsGuaranteedPureFunction(Node *expr);
 
     SQObjectPtr convertLiteral(LiteralExpr *lit);
 
@@ -125,8 +107,7 @@ private:
 
     void visitForTarget(Node *n);
     void visitForValue(Node *n);
-    bool visitMaybeStaticMemo(Node *n);
-    bool visitForValueMaybeStaticMemo(Node *n);
+    void visitForFoldedValue(Node *n);
 
     void selectConstant(SQInteger target, const SQObjectPtr &constant);
     void addSetClassDocStringInstruction(Node *owner, const DocObject &docObject);
@@ -146,7 +127,6 @@ private:
 
     Expr *deparen(Expr *e) const;
     bool isFreezeCall(Expr *node);
-    Expr *skipConstFreezePure(Expr *expr);
     bool isPureFunctionCall(Expr *node);
 
     SQObjectPtr compileFunc(FunctionExpr *funcExpr, bool is_const, sqvector<SQObjectPtr> *out_defparam_values);

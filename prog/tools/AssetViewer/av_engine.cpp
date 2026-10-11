@@ -265,7 +265,7 @@ bool AssetViewerApp::unregisterPlugin(IGenEditorPlugin *p)
 
 
 //=============================================================================
-void AssetViewerApp::switchToPlugin(int id)
+bool AssetViewerApp::switchToPlugin(int id)
 {
   class InfoDrawStub : public IGenEventHandler
   {
@@ -287,9 +287,13 @@ void AssetViewerApp::switchToPlugin(int id)
   if (curAsset && curAsset->testUserFlags(ASSET_USER_FLG_NEEDS_RELOAD))
   {
     curAsset->clrUserFlags(ASSET_USER_FLG_NEEDS_RELOAD);
-    switchToPlugin(id);
+    if (!switchToPlugin(id))
+    {
+      curAsset->setUserFlags(ASSET_USER_FLG_NEEDS_RELOAD);
+      return false;
+    }
     reloadAsset(*curAsset, curAsset->getNameId(), curAsset->getType());
-    return;
+    return true;
   }
 
   IGenEditorPlugin *cur = curPlugin();
@@ -302,7 +306,7 @@ void AssetViewerApp::switchToPlugin(int id)
   if (cur && !cur->end())
   {
     curPluginId = oldCur;
-    return;
+    return false;
   }
 
   if (curAsset)
@@ -319,7 +323,7 @@ void AssetViewerApp::switchToPlugin(int id)
     showAdditinalToolWindow(cur && cur->haveToolPanel());
     if (cur)
       cur->begin(curAsset);
-    return;
+    return true;
   }
 
   ged.curEH = next ? next->getEventHandler() : (curAssetPackName.empty() ? NULL : &infoDrawStub);
@@ -331,6 +335,8 @@ void AssetViewerApp::switchToPlugin(int id)
     zoomAndCenter();
   else
     getCompositeEditor().applyPendingCameraTransform();
+
+  return true;
 }
 
 
@@ -425,6 +431,14 @@ PropPanel::DialogWindow *AssetViewerApp::createDialog(hdpi::Px w, hdpi::Px h, co
 }
 
 
+PropPanel::DialogWindow *AssetViewerApp::createAutoSizedDialog(const char *title, hdpi::Px min_width, hdpi::Px min_height)
+{
+  PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(0, min_width, min_height, title);
+  dialog->autoSize(/*auto_center = */ !dialog->hasEverBeenShown(), /*use_preferred_size = */ true);
+  return dialog;
+}
+
+
 void AssetViewerApp::deleteDialog(PropPanel::DialogWindow *dlg) { delete dlg; }
 
 
@@ -499,7 +513,7 @@ void AssetViewerApp::setupColliderParams(int, const BBox3 &) {}
 //==================================================================================================
 bool AssetViewerApp::traceRay(const Point3 &src, const Point3 &dir, float &dist, Point3 *out_norm, bool /*use_zero_plane*/)
 {
-  if (fabs(dir.y) < 0.0001)
+  if (fabsf(dir.y) < 0.0001f)
     return false;
 
   real t = -src.y / dir.y;
@@ -626,7 +640,7 @@ void AssetViewerApp::renderObjects()
 
 
 //==============================================================================
-void AssetViewerApp::renderTransObjects()
+void AssetViewerApp::renderTransObjects(BaseTexture *color_target)
 {
   if (skipRenderObjects)
     return;
@@ -636,8 +650,8 @@ void AssetViewerApp::renderTransObjects()
   {
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-    plugin[0]->renderTransObjects();
-    curPlug->renderTransObjects();
+    plugin[0]->renderTransObjects(color_target);
+    curPlug->renderTransObjects(color_target);
   }
 
   if (av_show_tex_helper.get())

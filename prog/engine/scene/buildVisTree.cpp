@@ -54,7 +54,7 @@ void BuildVisTree::buildHierVisData(SmallTab<HierVisNode> &buildList, dag::Span<
   for (int i = 0; i < leaves_count; ++i)
   {
     float sr = length(leaves[i].bbox.center() - leaves[i].bsph.c) + leaves[i].bsph.r;
-    float maxr2 = lengthSq(leaves[i].bbox.width()) * 0.25;
+    float maxr2 = lengthSq(leaves[i].bbox.width()) * 0.25f;
 
     buildList[i].bbox.bmin = v_make_vec4f(leaves[i].bbox.lim[0].x, leaves[i].bbox.lim[0].y, leaves[i].bbox.lim[0].z,
       leaves[i].maxSubobjRad * leaves[i].maxSubobjRad);
@@ -126,20 +126,15 @@ void BuildVisTree::recursiveBuild(SmallTab<HierVisNode> &buildList, int node_id)
   // debug("node count = %d, depth=%d", cnt, depth);
 
   fast_sort(buildList, start, cnt, VisTreeComparator(use_side));
-  const int maxChildsCount = 4;
-  HierVisNode childs[maxChildsCount];
-  int childsCount = 2;
-  if (cnt >= 8)
-  {
-    childsCount = maxChildsCount;
-    int next_side = (use_side + 1) % 3;
-    for (int i = 0; i < 3; ++i)
-      if (i != use_side)
-        if (widthS[next_side] < widthS[i])
-          next_side = i;
-    fast_sort(buildList, start, cnt / 2, VisTreeComparator(next_side));
-    fast_sort(buildList, start + cnt / 2, cnt - cnt / 2, VisTreeComparator(next_side));
-  }
+  const int childsCount = 4;
+  HierVisNode childs[childsCount];
+  int next_side = (use_side + 1) % 3;
+  for (int i = 0; i < 3; ++i)
+    if (i != use_side)
+      if (widthS[next_side] < widthS[i])
+        next_side = i;
+  fast_sort(buildList, start, cnt / 2, VisTreeComparator(next_side));
+  fast_sort(buildList, start + cnt / 2, cnt - cnt / 2, VisTreeComparator(next_side));
   for (int i = 0; i < childsCount; ++i)
   {
     childs[i].childFirst = start + i * cnt / childsCount;

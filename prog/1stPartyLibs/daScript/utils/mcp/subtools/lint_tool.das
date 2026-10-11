@@ -12,20 +12,26 @@ require strings
 
 //! Subprocess form of `lint`. Argv: <file> <project>.
 
-def has_expect_directive(file : string) : bool {
-    let text = fread(file)
-    return false if (empty(text))
-    let lines <- text |> split("\n")
-    for (line in lines) {
-        let trimmed = line |> strip
-        return true if (trimmed |> starts_with("expect "))
+
+// LINT019 (stale nolint) mirrors the CLI runner: it reads the consumption record the
+// three passes leave behind, so it must run AFTER them, and only on a clean compile.
+def stale_nolint_strings(file : string; disabled_codes, enabled_codes : table<string>;
+                         var issues : array<string>) : int {
+    let src = fread(file)
+    return 0 if (empty(src))
+    var stale : array<LintIssue>
+    let count = stale_nolint_collect(file, src, disabled_codes, enabled_codes, stale)
+    issues |> reserve(length(issues) + length(stale))
+    for (i in stale) {
+        issues |> push("{i.message} at {i.file}:{i.line}:{i.column}")
     }
-    return false
+    return count
 }
 
 def lint_single(file : string; project : string;
                 disabled_codes, enabled_codes : table<string>) : string {
-    return make_tool_result("SKIP {file} (intentional compile errors via `expect`)") if (has_expect_directive(file))
+    let content_skip = lint_file_skip_reason(file)
+    return make_tool_result("SKIP {file} {content_skip}") if (!empty(content_skip))
     return compile_only(file, true, true, project, true) $(program; issues) {
         var compile_warnings = ""
         if (!empty(issues)) {
@@ -35,15 +41,12 @@ def lint_single(file : string; project : string;
         var count = paranoid_collect(program, all_issues, disabled_codes, enabled_codes)
         var perf_issues : array<string>
         count += perf_lint_collect(program, perf_issues, disabled_codes, enabled_codes)
-        for (w in perf_issues) {
-            all_issues |> push(w)
-        }
+        all_issues |> push_from(perf_issues)
         var style_issues : array<string>
         let hygiene = program._options |> find_arg("_comment_hygiene") ?as tBool ?? false
         count += style_lint_collect(program, style_issues, disabled_codes, enabled_codes, hygiene)
-        for (w in style_issues) {
-            all_issues |> push(w)
-        }
+        all_issues |> push_from(style_issues)
+        count += stale_nolint_strings(file, disabled_codes, enabled_codes, all_issues)
         return "{compile_warnings}No lint issues." if (count == 0)
         return build_string() $(var w) {
             if (!empty(compile_warnings)) {
@@ -77,6 +80,7 @@ def lint_file(file : string; project : string;
             cop.export_all = true
             cop.lint_check = true
             cop.no_optimizations = true
+            cop.no_fold_unsafe = true
             cop.no_infer_time_folding = true
             compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; _issues) {
                 if (!ok) {
@@ -85,15 +89,12 @@ def lint_file(file : string; project : string;
                     result.count = paranoid_collect(program, result.errors, disabled_codes, enabled_codes)
                     var perf_issues : array<string>
                     result.count += perf_lint_collect(program, perf_issues, disabled_codes, enabled_codes)
-                    for (w in perf_issues) {
-                        result.errors |> push(w)
-                    }
+                    result.errors |> push_from(perf_issues)
                     var style_issues : array<string>
                     let hygiene = program._options |> find_arg("_comment_hygiene") ?as tBool ?? false
                     result.count += style_lint_collect(program, style_issues, disabled_codes, enabled_codes, hygiene)
-                    for (w in style_issues) {
-                        result.errors |> push(w)
-                    }
+                    result.errors |> push_from(style_issues)
+                    result.count += stale_nolint_strings(file, disabled_codes, enabled_codes, result.errors)
                 }
             }
         }
@@ -118,9 +119,10 @@ def run_lint(file : string; project : string = "") : string {
     var total_skipped = 0
     let output = build_string() $(var w) {
         for (f in files) {
-            if (has_expect_directive(f)) {
+            let content_skip = lint_file_skip_reason(f)
+            if (!empty(content_skip)) {
                 total_skipped++
-                w |> write("SKIP {f} (intentional compile errors via `expect`)\n")
+                w |> write("SKIP {f} {content_skip}\n")
                 continue
             }
             let result = lint_file(f, project, disabled_codes, enabled_codes)

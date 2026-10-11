@@ -1,0 +1,27 @@
+Root    ?= ../../../.. ;
+Platform ?= windows ;
+Location = prog/engine/drv/hid_dspad_pc ;
+
+TargetType  = lib ;
+Target      = engine/drv/hid_dspad_pc.lib ;
+
+Sources =
+  dsPadCreate.cpp
+  dsPadClassDrv.cpp
+  dsPadDevice.cpp
+  dsPadProtocol.cpp
+  dsPadSteam.cpp
+  touchpadGestureRecognizer.cpp
+;
+
+if $(Platform) = windows {
+  Sources += dsPadHidWin.cpp ;
+} else if $(Platform) = linux {
+  Sources += dsPadHidLinux.cpp ;
+} else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

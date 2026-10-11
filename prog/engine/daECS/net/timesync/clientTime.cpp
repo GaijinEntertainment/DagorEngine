@@ -41,8 +41,6 @@ public:
     // debug("%s skew=%d skd=%d offs=%d rdtus=%d", __FUNCTION__, timeSkewMs, skewDiff, (int)srvOfsUs, rdt_us);
   }
 
-  int getType4CC() const override { return _MAKE4C('CLIT'); }
-
   // ITimeManager
   double advance(float, float &rt_dt) override
   {
@@ -56,17 +54,9 @@ public:
     return curT;
   }
   double getSeconds() const override { return (curTimeUs + srvOfsUs) / 1000000.; }
-  int getMillis() const override { return (int)((curTimeUs + srvOfsUs) / 1000. + 0.5); }
   int getAsyncMillis() const override { return getUsec() / 1000; }
 
-  static void onReceiveTimeSyncResponseTrampoline(const net::IMessage *msg)
-  {
-    auto respMsg = msg->cast<TimeSyncResponse>();
-    G_ASSERT(respMsg);
-    static_cast<ClientTime &>(get_time_mgr()).onReceiveTimeSyncResponse(respMsg);
-  }
-
-  void onReceiveTimeSyncResponse(const TimeSyncResponse *rmsg)
+  void onReceiveTimeSyncResponse(const TimeSyncResponse *rmsg) override
   {
     int64_t absCurTimeUs = getUsec();
     int curTime = (absCurTimeUs + srvOfsUs) / 1000;
@@ -144,11 +134,9 @@ class ReplayTime final : public ITimeManager // similar to AccumTime but handle 
     return syncTime;
   }
   double getSeconds() const override { return syncTime; }
-  int getMillis() const override { return (int)(syncTime * 1000.0 + 0.5); }
   int getAsyncMillis() const override { return (int)(asyncTime * 1000.0 + 0.5); }
-  int getType4CC() const override { return _MAKE4C('RPLT'); }
 
-  void onReceiveTimeSyncResponse(const TimeSyncResponse *rmsg)
+  void onReceiveTimeSyncResponse(const TimeSyncResponse *rmsg) override
   {
     if (timeSyncResponseHandled)
       return; // ignore all time sync responses except initial one
@@ -166,25 +154,10 @@ class ReplayTime final : public ITimeManager // similar to AccumTime but handle 
 
   double syncTime = 0, asyncTime = 0;
   bool timeSyncResponseHandled = false;
-  friend void on_time_sync_response_received(const net::IMessage *msg);
 
 public:
   ReplayTime(double start_time = 0.0) : syncTime(start_time), asyncTime(start_time) {}
 };
-
-void on_time_sync_response_received(const net::IMessage *msg) // non-static due to friendship
-{
-  auto respMsg = msg->cast<TimeSyncResponse>();
-  G_ASSERT(respMsg);
-  ITimeManager &tmgr = get_time_mgr();
-  int t4cc = tmgr.getType4CC();
-  if (t4cc == _MAKE4C('CLIT'))
-    static_cast<ClientTime &>(tmgr).onReceiveTimeSyncResponse(respMsg);
-  else if (t4cc == _MAKE4C('RPLT'))
-    static_cast<ReplayTime &>(tmgr).onReceiveTimeSyncResponse(respMsg);
-  else
-    G_ASSERTF(0, "Unknown/unsupported time impl %x", t4cc);
-}
 
 ECS_NET_IMPL_UNTARGETED_MSG(TimeSyncResponse, net::ROUTING_SERVER_TO_CLIENT, &net::direct_connection_rcptf, UNRELIABLE,
   TIMESYNC_NET_CHANNEL, net::MF_URGENT, ECS_NET_NO_DUP, &on_time_sync_response_received);

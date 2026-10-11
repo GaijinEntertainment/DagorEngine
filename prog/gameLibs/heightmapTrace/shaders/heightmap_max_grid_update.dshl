@@ -16,6 +16,7 @@ shader heightmap_max_grid_update_cs
     heightmap_max_grid_lt@i4 = heightmap_max_grid_lt;
     heightmap_max_grid_cell@f4 = heightmap_max_grid_cell;
     heightmap_max_grid_update@i4 = heightmap_max_grid_update;
+    heightmap_max_grid_region@f4 = heightmap_region;
     // the real size from stcode: tex_hmap_inv_sizes is repurposed by game
     // shader configs (heightmap_common.dshl)
     tex_hmap_low_size@f4 = (get_dimensions(tex_hmap_low, 0).xy,
@@ -32,6 +33,13 @@ shader heightmap_max_grid_update_cs
         return;
       int2 cell = heightmap_max_grid_update.xy + int2(dtid);
       float cellSize = heightmap_max_grid_cell.x;
+      uint2 w = uint2(cell) & uint(heightmap_max_grid_lt.w);
+      uint addr = (w.y*uint(heightmap_max_grid_lt.z) + w.x)*4;
+      if (any((cell + 1)*cellSize < heightmap_max_grid_region.xy) || any(cell*cellSize > heightmap_max_grid_region.zw))
+      {
+        storeBuffer(heightmap_max_grid_uav, addr, asuint(-1e9));
+        return;
+      }
       float2 texSizeF = tex_hmap_low_size.xy;
       float2 invTexel = tex_hmap_low_size.zw;
       int2 texels = int2(texSizeF);
@@ -56,8 +64,7 @@ shader heightmap_max_grid_update_cs
         for (int tx = lo.x; tx <= hi.x; ++tx)
           h = max(h, decode_height(getHeightLowLod((int2(tx, ty) + 0.5)*invTexel, 0)));
       }
-      uint2 w = uint2(cell) & uint(heightmap_max_grid_lt.w);
-      storeBuffer(heightmap_max_grid_uav, (w.y*uint(heightmap_max_grid_lt.z) + w.x)*4, asuint(h));
+      storeBuffer(heightmap_max_grid_uav, addr, asuint(h));
     }
   }
   compile("target_cs", "heightmap_max_grid_update_cs");

@@ -52,4 +52,24 @@ def test_value_table_key(t : T?) {
     t |> success(!(set |> key_exists(EntityId(4))))
 }
 
-
+// A value type whose workhorse is vec4f rather than an integer: das compares the workhorse, so
+// the C++ type needs no operator == of its own, and a key is the same key in all three tiers.
+[test]
+def test_wide_value_table_key(t : T?) {
+    let a = unsafe(reinterpret<BigEntityId>(int4(1, 2, 3, 4)))
+    let b = unsafe(reinterpret<BigEntityId>(int4(9, 8, 7, 6)))
+    var tab : table<BigEntityId; string>  // nolint:STYLE031 — insert with value keys is under test
+    tab |> insert(a, "alpha")
+    tab |> insert(b, "beta")
+    t |> equal(length(tab), 2)
+    t |> success(tab |> key_exists(a))
+    t |> success(tab |> key_exists(b))
+    t |> success(!(tab |> key_exists(BigEntityId())))
+    let va = tab ?[a] ?? "none"
+    t |> equal(va, "alpha")
+    let vb = tab ?[b] ?? "none"
+    t |> equal(vb, "beta")
+    tab |> erase(a)
+    t |> equal(length(tab), 1)
+    t |> success(!(tab |> key_exists(a)))
+}

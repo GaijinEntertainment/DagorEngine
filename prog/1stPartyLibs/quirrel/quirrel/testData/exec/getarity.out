@@ -1,0 +1,22 @@
+allDefaults: num_params=2 num_required=0 varargs=false
+callableClass: num_params=3 num_required=2 varargs=false
+callableInstance: num_params=3 num_required=2 varargs=false
+nativeArrayAppend: num_params=1 num_required=1 varargs=true
+nativeClamp: num_params=3 num_required=3 varargs=false
+nativeFloor: num_params=1 num_required=1 varargs=false
+nativeFormat: num_params=1 num_required=1 varargs=true
+nativeMin: num_params=2 num_required=2 varargs=true
+nativePrint: num_params=0 num_required=0 varargs=true
+nativeSplit: num_params=3 num_required=2 varargs=false
+nativeStringSlice: num_params=0 num_required=0 varargs=true
+noParams: num_params=0 num_required=0 varargs=false
+notCallableClass: null
+notCallableInstance: null
+one: num_params=1 num_required=1 varargs=false
+onlyVarargs: num_params=0 num_required=0 varargs=true
+plainTable: null
+typed: num_params=2 num_required=1 varargs=false
+varargs: num_params=1 num_required=1 varargs=true
+withDefault: num_params=2 num_required=1 varargs=false
+ownInfosClass: num_params=3 num_required=2 varargs=false, own getfuncinfos() num_params=1
+ownInfosInstance: num_params=3 num_required=2 varargs=false, own getfuncinfos() num_params=1

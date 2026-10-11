@@ -5,7 +5,6 @@ require daslib/rtti
 
 require daslib/fuzzer
 require daslib/faker
-require daslib/math
 require daslib/constant_expression
 
 // NOTE: I commented out tests in this file until we'll

@@ -137,5 +137,10 @@ int make_exp_types_mask(Tab<bool> &exp_types_mask, DagorAssetMgr &mgr, const Dat
 // gameres_patch_desc() drops the whole layer unless base_md5 matches the base file, and resDiff sets it only where it had a diff
 void dabuild_set_desc_base_md5(DataBlock &desc_blk, const char *base_desc_fname);
 void dabuild_prepare_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock &build_blk);
+// saves the entries to fname (zero-length when none, so a missing file means lost entries) and clears them; fname=nullptr only clears
+bool dabuild_hand_over_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const char *fname);
+// a texture taken from the convert cache makes no desc entry, so the pack build makes the entries of all its textures
+void dabuild_make_tex_desc_entries(DataBlock &dest, DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, unsigned tc);
+void dabuild_make_job_desc_fname(String &fname, const char *cache_base, unsigned main_pid, bool grp, int pack_idx);
 void dabuild_finish_out_blk(DataBlock &dest, DagorAssetMgr &mgr, const DataBlock &build_blk, const DataBlock &export_blk,
   const char *app_dir, unsigned tc, const char *profile);

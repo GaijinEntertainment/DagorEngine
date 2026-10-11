@@ -5,12 +5,12 @@
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_string.h>
-#include <osApiWrappers/dag_atomic.h>
 
 Tab<dainput::action_set_handle_t> dainput::actionSetStack;
 dainput::action_set_handle_t dainput::breaking_set_handle = dainput::BAD_ACTION_SET_HANDLE;
 dainput::ActionGlobData dainput::agData;
 Tab<dainput::ActionSet> dainput::actionSets;
+unsigned dainput::actionSetsGen = 0;
 Tab<dainput::action_handle_t> dainput::actionsNativeOrdered;
 FastStrMap dainput::actionNameIdx;
 Tab<const char *> dainput::actionNameBackMap[3];
@@ -229,6 +229,7 @@ dag::ConstSpan<dainput::action_handle_t> dainput::get_action_set_actions(dainput
 }
 dainput::action_set_handle_t dainput::setup_action_set(const char *action_set_name, dag::ConstSpan<dainput::action_handle_t> actions)
 {
+  G_ASSERTF(on_control_thread(), "%s off the daInput control thread", __FUNCTION__);
   for (dainput::action_handle_t a : actions)
     if (!is_action_handle_valid(a))
     {
@@ -245,6 +246,7 @@ dainput::action_set_handle_t dainput::setup_action_set(const char *action_set_na
 }
 void dainput::clear_action_set_actions(dainput::action_set_handle_t set)
 {
+  G_ASSERTF(on_control_thread(), "%s off the daInput control thread", __FUNCTION__);
   if (is_action_set_handle_valid(set))
     clear_and_shrink(actionSets[set].actions);
 }
@@ -262,38 +264,42 @@ dainput::action_set_handle_t dainput::get_current_action_set()
 }
 dainput::action_set_handle_t dainput::set_breaking_action_set(dainput::action_set_handle_t set)
 {
+  G_ASSERTF(on_control_thread(), "%s off the daInput control thread", __FUNCTION__);
   action_set_handle_t h = breaking_set_handle;
   breaking_set_handle = set;
   return h;
 }
 
 
-void dainput::reset_action_set_stack() { actionSetStack.clear(); }
+void dainput::reset_action_set_stack()
+{
+  G_ASSERTF(on_control_thread(), "%s off the daInput control thread", __FUNCTION__);
+  actionSetStack.clear();
+}
 void dainput::activate_action_set(action_set_handle_t set, bool activate)
 {
-  if (set < actionSets.size() &&
-      ((!activate && find_value_idx(actionSetStack, set) >= 0) || (activate && interlocked_acquire_load(actionSets[set].pendingCnt))))
+  G_ASSERTF(on_control_thread(), "%s off the daInput control thread", __FUNCTION__);
+  if (set < actionSets.size() && (actionSets[set].pendingCnt || (!activate && find_value_idx(actionSetStack, set) >= 0)))
   {
-    // delay action set deactivation (and re-activation of pending set) to next frame
-    interlocked_increment(actionSets[set].pendingCnt);
-    add_delayed_action_buffered(make_delayed_action([set, activate]() {
+    // delay action set deactivation (and any switch of a pending set) to next frame
+    actionSets[set].pendingCnt++;
+    add_delayed_action_buffered(make_delayed_action([set, activate, gen = actionSetsGen]() {
+      if (gen != actionSetsGen)
+        return; // queued for sets reset_actions() dropped
       activate_action_set_immediate(set, activate);
-      if (set < actionSets.size())
-        interlocked_decrement(actionSets[set].pendingCnt);
+      actionSets[set].pendingCnt--;
     }));
   }
   else
     activate_action_set_immediate(set, activate);
 }
 #if DAGOR_DBGLEVEL > 0
-static Tab<unsigned> reported_excl_set_pairs;     // one report per pair, and a handle in it dies with the config
-static volatile int action_set_stack_changed = 0; // the stack decides the answer, and a worker can change it
+static Tab<unsigned> reported_excl_set_pairs; // one report per pair, and a handle in it dies with the config
 #endif
 void dainput::reset_exclusive_sets_reports()
 {
 #if DAGOR_DBGLEVEL > 0
   clear_and_shrink(reported_excl_set_pairs);
-  interlocked_release_store(action_set_stack_changed, 0);
 #endif
 }
 // input is processed against the stack a tick reads, and a set on its way off it carries a pending count,
@@ -301,20 +307,16 @@ void dainput::reset_exclusive_sets_reports()
 void dainput::check_exclusive_sets_on_stack()
 {
 #if DAGOR_DBGLEVEL > 0
-  if (!exclusiveSetLinks || !interlocked_exchange(action_set_stack_changed, 0))
-    return; // no config declares the relation, or the stack is the one the last look answered for
+  if (!exclusiveSetLinks || !on_control_thread())
+    return; // no exclusive sets, or off-thread tick
   for (int i = 0; i < actionSetStack.size(); i++)
     for (int j = i + 1; j < actionSetStack.size(); j++)
     {
       const action_set_handle_t a = actionSetStack[i], b = actionSetStack[j];
       if (!are_action_sets_exclusive(a, b))
         continue;
-      if (interlocked_acquire_load(actionSets[a].pendingCnt) || interlocked_acquire_load(actionSets[b].pendingCnt))
-      {
-        // one of them is leaving, so this is a stack mid-change; ask for another look once the change lands
-        interlocked_release_store(action_set_stack_changed, 1);
-        continue;
-      }
+      if (actionSets[a].pendingCnt || actionSets[b].pendingCnt)
+        continue; // one is leaving: the stack is mid-change
       const unsigned pair = a < b ? (unsigned(a) << 16) | b : (unsigned(b) << 16) | a;
       if (find_value_idx(reported_excl_set_pairs, pair) < 0)
       {
@@ -347,9 +349,6 @@ void dainput::activate_action_set_immediate(action_set_handle_t set, bool activa
           break;
         }
   }
-#if DAGOR_DBGLEVEL > 0
-  interlocked_release_store(action_set_stack_changed, 1);
-#endif
   if (dainput::actionset_logs && dainput::logscreen)
     dainput::logscreen(String(0, "dainput::activate_action_set(%s, %s), stack_len=%d (@%d, prio=%d)", get_action_set_name(set),
       activate ? "TRUE" : "false", actionSetStack.size(), find_value_idx(actionSetStack, set), actionSets[set].ordPriority));

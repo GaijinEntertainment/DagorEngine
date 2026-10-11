@@ -22,8 +22,7 @@ type method through a computed index instead, `str["clone"]()`, or write
 `clone str`. With
 [`#forbid-clone-operator`](page:language/directives#delete-and-clone) the
 word is an ordinary identifier and `str.$clone()` compiles.
-`types.String.constructor` is a reserved word too but the parser
-special-cases it, so it reads normally as `str.constructor`.
+`str.constructor` needs no directive: `constructor` is an ordinary name.
 
 ## Example
 

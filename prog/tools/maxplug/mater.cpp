@@ -7,9 +7,7 @@
 #include "texmaps.h"
 #include "resource.h"
 #include "common.h"
-#include <IHardwareMaterial.h>
 #include <iparamb2.h>
-#include <d3d9types.h>
 
 #include <string>
 
@@ -23,12 +21,12 @@ public:
   HWND hPanel;
   BOOL valid;
   BOOL isActive;
-  ISpinnerControl *iShin;
-  IColorSwatch *csa, *csd, *css, *cse;
-  ICustEdit *eclassname;
+  ControlPtr<ISpinnerControl> iShin;
+  ControlPtr<IColorSwatch> csa, csd, css, cse;
+  ControlPtr<ICustEdit> eclassname;
   BOOL creating;
   TexDADMgr dadmgr;
-  ICustButton *tbut[NUMTEXMAPS];
+  ControlPtr<ICustButton> tbut[NUMTEXMAPS];
 
   MaterDlg(HWND hwMtlEdit, IMtlParams *imp, DagorMat *m);
   ~MaterDlg() override;
@@ -59,10 +57,8 @@ public:
 
 class DagorMat : public Mtl, public IDagorMat
 {
-  void DiscardTexHandles();
   void updateViewportTexturesState();
   bool hasAlpha();
-  TexHandle *texHandle[NUMTEXMAPS];
 
 public:
   class MaterDlg *dlg;
@@ -76,7 +72,6 @@ public:
   TSTR classname, script;
 
   DagorMat(BOOL loading);
-  ~DagorMat() override;
   void NotifyChanged();
   void ClearDlg(MaterDlg *d)
   {
@@ -157,8 +152,6 @@ public:
   RefTargetHandle Clone(RemapDir &remap) override;
   RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
     BOOL propagate) override;
-  void SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb) override;
-  void ActivateTexDisplay(BOOL onoff) override;
 };
 
 
@@ -250,13 +243,8 @@ MaterDlg::MaterDlg(HWND hwMtlEdit, IMtlParams *imp, DagorMat *m)
   ip = imp;
   theMtl = m;
   valid = FALSE;
-  iShin = NULL;
+  isActive = FALSE;
   creating = TRUE;
-  eclassname = NULL;
-  for (int i = 0; i < NUMTEXMAPS; ++i)
-  {
-    tbut[i] = NULL;
-  }
   hPanel = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT), PanelDlgProc, GetString(IDS_DAGORMAT_LONG), (LPARAM)this);
   creating = FALSE;
 }
@@ -266,16 +254,6 @@ MaterDlg::~MaterDlg()
   SetWindowLongPtr(hPanel, GWLP_USERDATA, NULL);
   if (theMtl)
     theMtl->ClearDlg(this);
-  ReleaseISpinner(iShin);
-  ReleaseICustEdit(eclassname);
-  ReleaseIColorSwatch(csa);
-  ReleaseIColorSwatch(csd);
-  ReleaseIColorSwatch(css);
-  ReleaseIColorSwatch(cse);
-  for (int i = 0; i < NUMTEXMAPS; ++i)
-  {
-    ReleaseICustButton(tbut[i]);
-  }
 }
 
 int MaterDlg::FindSubTexFromHWND(HWND hw)
@@ -293,26 +271,26 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   {
     case WM_INITDIALOG:
     {
-      iShin = SetupFloatSpinner(hWnd, IDC_SHIN_S, IDC_SHIN, 0.0f, 100.0f, 30.0f, 1.0f);
+      iShin.reset(SetupFloatSpinner(hWnd, IDC_SHIN_S, IDC_SHIN, 0.0f, 100.0f, 30.0f, 1.0f));
       assert(iShin);
-      csa = GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), theMtl->cola, GetString(IDS_AMB_COLOR));
+      csa.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), theMtl->cola, GetString(IDS_AMB_COLOR)));
       assert(csa);
-      csd = GetIColorSwatch(GetDlgItem(hWnd, IDC_DIFF), theMtl->cold, GetString(IDS_DIFF_COLOR));
+      csd.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_DIFF), theMtl->cold, GetString(IDS_DIFF_COLOR)));
       assert(csd);
-      css = GetIColorSwatch(GetDlgItem(hWnd, IDC_SPEC), theMtl->cols, GetString(IDS_SPEC_COLOR));
+      css.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_SPEC), theMtl->cols, GetString(IDS_SPEC_COLOR)));
       assert(css);
-      cse = GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), theMtl->cole, GetString(IDS_EMIS_COLOR));
+      cse.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), theMtl->cole, GetString(IDS_EMIS_COLOR)));
       assert(cse);
 
       SendMessage(GetDlgItem(hWnd, IDC_ENUM_2SIDED), CB_SETCURSEL, WPARAM(theMtl->twosided), NULL);
 
-      eclassname = GetICustEdit(GetDlgItem(hWnd, IDC_CLASSNAME));
+      eclassname.reset(GetICustEdit(GetDlgItem(hWnd, IDC_CLASSNAME)));
       assert(eclassname);
       eclassname->SetText(theMtl->classname);
       SetDlgItemText(hWnd, IDC_SCRIPT, theMtl->script.data());
       for (int i = 0; i < NUMTEXMAPS; ++i)
       {
-        tbut[i] = GetICustButton(GetDlgItem(hWnd, texidc[i]));
+        tbut[i].reset(GetICustButton(GetDlgItem(hWnd, texidc[i])));
         tbut[i]->SetDADMgr(&dadmgr);
       }
     }
@@ -389,19 +367,19 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       switch (id)
       {
         case IDC_AMB:
-          cs = csa;
+          cs = csa.get();
           pbid = PB_AMB;
           break;
         case IDC_DIFF:
-          cs = csd;
+          cs = csd.get();
           pbid = PB_DIFF;
           break;
         case IDC_SPEC:
-          cs = css;
+          cs = css.get();
           pbid = PB_SPEC;
           break;
         case IDC_EMIS:
-          cs = cse;
+          cs = cse.get();
           pbid = PB_EMIS;
           break;
       }
@@ -528,11 +506,8 @@ DagorMat::DagorMat(BOOL loading)
   pblock = NULL;
   texmaps = NULL;
   ivalid.SetEmpty();
-  ::ZeroMemory(texHandle, sizeof(texHandle));
   Reset();
 }
-
-DagorMat::~DagorMat() { DiscardTexHandles(); }
 
 void DagorMat::Reset()
 {
@@ -595,7 +570,6 @@ void DagorMat::Shade(ShadeContext &sc)
       }
     }
   }
-  Color dc, ac;
   if (texmaps->texmap[0])
   {
     AColor mc = texmaps->texmap[0]->EvalColor(sc);
@@ -747,6 +721,7 @@ RefResult DagorMat::NotifyRefChanged(const Interval &changeInt, RefTargetHandle 
   switch (message)
   {
     case REFMSG_CHANGE:
+    case REFMSG_TARGET_DELETED:
       if (hTarget == pblock)
         ivalid.SetEmpty();
       if (dlg && dlg->theMtl == this && !dlg->isActive)
@@ -764,7 +739,6 @@ RefResult DagorMat::NotifyRefChanged(const Interval &changeInt, RefTargetHandle 
         case PB_SPEC:
         case PB_EMIS: gpd->dim = stdColor255Dim; break;
       }
-      DiscardTexHandles();
       return REF_STOP;
     }
 
@@ -772,11 +746,9 @@ RefResult DagorMat::NotifyRefChanged(const Interval &changeInt, RefTargetHandle 
     {
       GetParamName *gpn = (GetParamName *)partID;
       gpn->name.printf(_T("param#%d"), gpn->index);
-      DiscardTexHandles();
       return REF_STOP;
     }
   }
-  DiscardTexHandles();
   return REF_SUCCEED;
 }
 
@@ -854,73 +826,10 @@ IOResult DagorMat::Load(ILoad *iload)
     if (res != IO_OK)
       return res;
   }
-  DiscardTexHandles();
   return IO_OK;
 }
 
-void DagorMat::ActivateTexDisplay(BOOL onoff)
-{
-  if (!onoff)
-    DiscardTexHandles();
-}
-
-
-void DagorMat::SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb)
-{
-  if (!texmaps->gettex(0))
-    return;
-
-  if (cb.NumberTexturesSupported() < 1)
-    return;
-
-  if (!texHandle[0])
-  {
-    Interval valid;
-    texHandle[0] = make_vp_tex_handle(texmaps, t, cb, valid);
-    if (!texHandle[0])
-      return;
-  }
-
-  IHardwareMaterial *pIHWMat = (IHardwareMaterial *)GetProperty(PROPID_HARDWARE_MATERIAL);
-  if (pIHWMat)
-  {
-    pIHWMat->SetNumTexStages(1);
-    pIHWMat->SetTexture(0, texHandle[0]->GetHandle());
-    mtl->texture[0].useTex = 0;
-    cb.GetGfxTexInfoFromTexmap(t, mtl->texture[0], texmaps->texmap[0]);
-    pIHWMat->SetTextureColorArg(0, 1, D3DTA_TEXTURE);
-    pIHWMat->SetTextureColorArg(0, 2, D3DTA_CURRENT);
-    pIHWMat->SetTextureAlphaArg(0, 1, D3DTA_TEXTURE);
-    pIHWMat->SetTextureAlphaArg(0, 2, D3DTA_CURRENT);
-    pIHWMat->SetTextureColorOp(0, D3DTOP_SELECTARG1);
-    pIHWMat->SetTextureAlphaOp(0, D3DTOP_SELECTARG1);
-    pIHWMat->SetTextureTransformFlag(0, D3DTTFF_COUNT2);
-  }
-  else
-  {
-    cb.GetGfxTexInfoFromTexmap(t, mtl->texture[0], texmaps->texmap[0]);
-
-    mtl->texture[0].textHandle = texHandle[0]->GetHandle();
-    mtl->texture[0].colorOp = GW_TEX_REPLACE;
-    mtl->texture[0].colorAlphaSource = GW_TEX_TEXTURE;
-    mtl->texture[0].colorScale = GW_TEX_SCALE_1X;
-    mtl->texture[0].alphaOp = GW_TEX_REPLACE;
-    mtl->texture[0].alphaAlphaSource = GW_TEX_TEXTURE;
-    mtl->texture[0].alphaScale = GW_TEX_SCALE_1X;
-  }
-}
-
 bool DagorMat::hasAlpha() { return _tcsstr(script, _T("atest")) || _tcsstr(classname, _T("alpha")); }
-
-void DagorMat::DiscardTexHandles()
-{
-  for (int i = 0; i < NUMTEXMAPS; i++)
-    if (texHandle[i])
-    {
-      texHandle[i]->DeleteThis();
-      texHandle[i] = NULL;
-    }
-}
 
 void DagorMat::updateViewportTexturesState()
 {
@@ -941,7 +850,6 @@ void DagorMat::NotifyChanged()
 {
   updateViewportTexturesState();
   NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-  DiscardTexHandles();
 }
 
 void DagorMat::SetAmbient(Color c, TimeValue t)

@@ -17,21 +17,21 @@
 namespace objgenerator
 {
 
-#define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word)                                                             \
+#define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word) /*                                                       */ \
   float rndx, rndy;                                                                                                         \
   rnd_fvec2(seed, rndx, rndy);                                                                                              \
   pos.x = mx + (ou + rndx) * gstepx;                                                                                        \
   pos.y = init_y0;                                                                                                          \
   pos.z = my + (ov + rndy) * gstepy;                                                                                        \
-  if ((rect_test && !(rect & Point2(pos.x, pos.z))) ||                                                                      \
-      !mask.getClamped((pos.x - world0_x) * world2sampler, (pos.z - world0_y) * world2sampler) ||                           \
-      !is_place_allowed(pos.x + entity_ofs_x, pos.z + entity_ofs_z))                                                        \
+  if ((rect_test && !(rect & Point2(pos.x, pos.z))) || !internal::plant_spot_allowed(mask, pos))                            \
   {                                                                                                                         \
     skip6_rnd(seed);                                                                                                        \
     rnd(seed);                                                                                                              \
     ret_word;                                                                                                               \
   }                                                                                                                         \
-                                                                                                                            \
+  PLANT_ENTITY(ent, ret_word)
+
+#define PLANT_ENTITY(ent, ret_word)                                                                                         \
   float w = floorf(frnd(seed) * sgeg.sumWeight * 8192.0f + 0.5f) / 8192.0f;                                                 \
   int objId, entIdx = -1;                                                                                                   \
   for (objId = 0; objId < sgeg.obj.size(); ++objId)                                                                         \
@@ -67,6 +67,7 @@ namespace objgenerator
   {                                                                                                                         \
     TMatrix rot_tm = TMatrix::IDENT;                                                                                        \
     calc_matrix_33(sgeg.obj[objId], rot_tm, seed);                                                                          \
+    internal::walk.rotateTm(rot_tm);                                                                                        \
     mppRec = sgeg.obj[objId].mpRec;                                                                                         \
     place_multipoint(mppRec, pos, rot_tm, sgeg.aboveHt);                                                                    \
   }                                                                                                                         \
@@ -101,6 +102,7 @@ namespace objgenerator
     tm.setcol(1, norm);                                                                                                     \
     tm.setcol(2, normalize(tm.getcol(0) % norm));                                                                           \
   }                                                                                                                         \
+  internal::walk.rotateTmLocal(tm); /* the cluster yaw rides the basis: norm stays the up axis */                           \
   if (is_multi_place)                                                                                                       \
     rotate_multipoint(tm, mppRec);                                                                                          \
   calc_matrix_33(sgeg.obj[objId], tm, seed);                                                                                \
@@ -141,6 +143,14 @@ static int subtype, skip_test_rect;
 static float init_y0;
 static IHeightmap *hmap;
 static int skip_asset_type;
+static land_detile::ClusterWalk walk; // off outside the de-tiled pass below, like the other statics here
+
+template <class BitMask>
+inline bool plant_spot_allowed(const BitMask &mask, const Point3 &pos)
+{
+  return mask.getClamped((pos.x - world0_x) * world2sampler, (pos.z - world0_y) * world2sampler) &&
+         is_place_allowed(pos.x + entity_ofs_x, pos.z + entity_ofs_z);
+}
 } // namespace internal
 
 template <class BitMask>
@@ -236,9 +246,10 @@ struct GenObjCB
 };
 
 template <class BitMask>
-inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities &planted, int subtype, int editLayerIdx,
-  IHeightmap *hmap, dag::Span<landclass::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x,
-  float world0_y, float box_x, float box_y, float entity_ofs_x = 0, float entity_ofs_z = 0, float init_y0 = 0,
+// detile: the landclass map the objects follow, or null for the plain grid
+inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities &planted, const LandDetile *detile, int subtype,
+  int editLayerIdx, IHeightmap *hmap, dag::Span<landclass::SingleEntityPool> pools, const BitMask &mask, float world2sampler,
+  float world0_x, float world0_y, float box_x, float box_y, float entity_ofs_x = 0, float entity_ofs_z = 0, float init_y0 = 0,
   int skip_asset_type = -1)
 {
   Point3 pos;
@@ -338,6 +349,24 @@ inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities
     }
 
     GenObjCB<BitMask> cb(sgeg);
+    if (detile && detile->enabled())
+    {
+      const Point2 gcell = sgeg.densMapCellSz;
+      if (gcell.x <= 0.f || gcell.y <= 0.f || sgeg.densityMap->getW() <= 0 || sgeg.densityMap->getH() <= 0)
+        continue;
+      const land_detile::PlantGrid grid{sgeg.densMapOfs + Point2(entity_ofs_x, entity_ofs_z), gcell};
+      internal::walk = land_detile::ClusterWalk(detile, Point2(entity_ofs_x, entity_ofs_z));
+      land_detile::plant_world(
+        internal::walk, internal::rect, *sgeg.densityMap, nullptr, grid, cb.density, sgeg.rseed, [](const BBox2 &) { return true; },
+        [&](Point3 &pos) {
+          pos.y = init_y0;
+          return internal::plant_spot_allowed(mask, pos);
+        },
+        [&](Point3 pos, int seed) { PLANT_ENTITY(planted.ent, return) });
+      internal::walk = land_detile::ClusterWalk();
+      continue;
+    }
+
     real dx = sgeg.densMapSize.x;
     real dy = sgeg.densMapSize.y;
     real tx0 = floorf((internal::rect[0].x - sgeg.densMapOfs.x) / dx) * dx + sgeg.densMapOfs.x;
@@ -376,4 +405,5 @@ inline void generatePlantedEntitiesInMaskedRect(const landclass::PlantedEntities
 #undef SET_EDITLAYERIDX
 }
 #undef ADD_ENTITY_BYMASK
+#undef PLANT_ENTITY
 } // namespace objgenerator

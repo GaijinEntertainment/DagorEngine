@@ -9,6 +9,8 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
 #include <math/dag_mathUtils.h>
+#include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderVariableInfo.h>
 #include <startup/dag_globalSettings.h>
 
 #include <render/cameraParams.h>
@@ -16,6 +18,8 @@
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
+#include <render/neuralRendering.h>
+#include <render/world/frameGraphHelpers.h>
 
 // The DLSS-NR nodes live on the "neural_rendering" entity, this one does not: frame_after_aa needs
 // its renamer in every game, including those that never create that entity.
@@ -25,6 +29,12 @@ static nv::DlssNROptions neural_rendering_options;
 static uint32_t neural_rendering_options_version = 1;
 static uint32_t neural_rendering_pushed_options_version = 0;
 static bool neural_rendering_configured = false;
+
+static ShaderVariableInfo neural_rendering_control_mask_defaultVarId("neural_rendering_control_mask_default", true);
+static ShaderVariableInfo neural_rendering_control_mask_skinVarId("neural_rendering_control_mask_skin", true);
+static ShaderVariableInfo neural_rendering_control_mask_foliageVarId("neural_rendering_control_mask_foliage", true);
+
+bool is_neural_rendering_active() { return neural_rendering_configured; }
 
 static bool is_dlss_nr_supported()
 {
@@ -50,6 +60,24 @@ static dafg::NodeHandle make_neural_rendering_tonemap_node()
   });
 }
 
+static dafg::NodeHandle make_neural_rendering_control_mask_node()
+{
+  return dafg::register_node("neural_rendering_control_mask", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
+
+    read_gbuffer(registry, dafg::Stage::COMPUTE, readgbuffer::NORMAL | readgbuffer::MATERIAL);
+    read_gbuffer_depth(registry, dafg::Stage::COMPUTE);
+
+    const auto renderResolution = registry.getResolution<2>("main_view");
+    registry.create("neural_rendering_control_mask")
+      .texture({TEXFMT_R8G8B8A8 | TEXCF_UNORDERED, renderResolution})
+      .atStage(dafg::Stage::COMPUTE)
+      .bindToShaderVar("neural_rendering_control_mask_target");
+
+    registry.dispatchThreads("neural_rendering_control_mask").x<&IPoint2::x>(renderResolution).y<&IPoint2::y>(renderResolution).z(1);
+  });
+}
+
 static dafg::NodeHandle make_neural_rendering_dlss_nr_node()
 {
   return dafg::register_node("neural_rendering_dlss_nr", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -71,12 +99,19 @@ static dafg::NodeHandle make_neural_rendering_dlss_nr_node()
                                .atStage(dafg::Stage::PS_OR_CS)
                                .useAs(dafg::Usage::SHADER_RESOURCE)
                                .handle();
+    // Missing while neural_rendering__autoMask is on, DLSS-NR then masks on its own.
+    auto controlMaskHndl = registry.readTexture("neural_rendering_control_mask")
+                             .atStage(dafg::Stage::PS_OR_CS)
+                             .useAs(dafg::Usage::SHADER_RESOURCE)
+                             .optional()
+                             .handle();
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     auto cameraHistoryHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
     const auto renderResolution = registry.getResolution<2>("main_view");
 
-    return [sdrFrameHndl, outputFrameHndl, depthHndl, motionVectorsHndl, cameraHndl, cameraHistoryHndl, renderResolution]() {
+    return [sdrFrameHndl, outputFrameHndl, depthHndl, motionVectorsHndl, controlMaskHndl, cameraHndl, cameraHistoryHndl,
+             renderResolution]() {
       if (neural_rendering_pushed_options_version != neural_rendering_options_version)
       {
         int viewIndex = 0;
@@ -93,6 +128,7 @@ static dafg::NodeHandle make_neural_rendering_dlss_nr_node()
       params.outColor = outputFrameHndl.get();
       params.inDepth = depthHndl.get();
       params.inMotionVectors = motionVectorsHndl.get();
+      params.inControlMask = controlMaskHndl.get();
       params.inJitterOffsetX = camera.jitterOffset.x;
       params.inJitterOffsetY = camera.jitterOffset.y;
       // Motion vectors are already in {-1,1} here, same as the DLSS path.
@@ -152,7 +188,8 @@ static dafg::NodeHandle make_neural_rendering_inverse_tonemap_node()
 static dafg::NodeHandle make_neural_rendering_passthrough_node()
 {
   return dafg::register_node("neural_rendering_passthrough", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.multiplex(dafg::multiplexing::Mode::Viewport);
+    registry.multiplex(
+      dafg::multiplexing::Mode::SubSampling | dafg::multiplexing::Mode::SuperSampling | dafg::multiplexing::Mode::Viewport);
     // Only the tsr node reads this history; daFG drops it in the modes that do not.
     registry.rename("frame_after_aa", "frame_after_neural_rendering").texture().withHistory(dafg::History::ClearZeroOnFirstFrame);
   });
@@ -178,10 +215,12 @@ static void neural_rendering_nodes_es(const ecs::Event &,
 
   recreate_neural_rendering_nodes_ecs_query(manager,
     [&](dafg::NodeHandle &neural_rendering__tonemap_node, dafg::NodeHandle &neural_rendering__dlss_nr_node,
-      dafg::NodeHandle &neural_rendering__inverse_tonemap_node) {
+      dafg::NodeHandle &neural_rendering__inverse_tonemap_node, dafg::NodeHandle &neural_rendering__control_mask_node,
+      bool neural_rendering__autoMask) {
       neural_rendering__tonemap_node = {};
       neural_rendering__dlss_nr_node = {};
       neural_rendering__inverse_tonemap_node = {};
+      neural_rendering__control_mask_node = {};
       neural_rendering_configured = false;
 
       if (!enabled)
@@ -193,6 +232,8 @@ static void neural_rendering_nodes_es(const ecs::Event &,
       neural_rendering__tonemap_node = make_neural_rendering_tonemap_node();
       neural_rendering__dlss_nr_node = make_neural_rendering_dlss_nr_node();
       neural_rendering__inverse_tonemap_node = make_neural_rendering_inverse_tonemap_node();
+      neural_rendering__control_mask_node =
+        neural_rendering__autoMask ? dafg::NodeHandle{} : make_neural_rendering_control_mask_node();
       neural_rendering_configured = true;
     });
 
@@ -207,6 +248,17 @@ static void neural_rendering_ensure_passthrough_es(const ecs::Event &)
 {
   if (!neural_rendering_configured)
     neural_rendering_passthrough_node = make_neural_rendering_passthrough_node();
+}
+
+// The mask node reads the gbuffer, which is not there in every mode, so it may only exist next to the NR nodes.
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear)
+ECS_TRACK(neural_rendering__autoMask)
+static void neural_rendering_control_mask_node_es(
+  const ecs::Event &, bool neural_rendering__autoMask, dafg::NodeHandle &neural_rendering__control_mask_node)
+{
+  neural_rendering__control_mask_node =
+    neural_rendering_configured && !neural_rendering__autoMask ? make_neural_rendering_control_mask_node() : dafg::NodeHandle{};
 }
 
 
@@ -233,7 +285,10 @@ ECS_TRACK(neural_rendering__style,
   neural_rendering__localToneStrength,
   neural_rendering__localStructureStrength,
   neural_rendering__autoMask,
-  neural_rendering__skinStructureStrength)
+  neural_rendering__skinStructureStrength,
+  neural_rendering__controlMaskDefault,
+  neural_rendering__controlMaskSkin,
+  neural_rendering__controlMaskFoliage)
 static void neural_rendering_params_es(const ecs::Event &,
   int neural_rendering__style,
   const ecs::string &neural_rendering__preset,
@@ -241,8 +296,15 @@ static void neural_rendering_params_es(const ecs::Event &,
   float neural_rendering__localToneStrength,
   float neural_rendering__localStructureStrength,
   bool neural_rendering__autoMask,
-  float neural_rendering__skinStructureStrength)
+  float neural_rendering__skinStructureStrength,
+  const Point4 &neural_rendering__controlMaskDefault,
+  const Point4 &neural_rendering__controlMaskSkin,
+  const Point4 &neural_rendering__controlMaskFoliage)
 {
+  ShaderGlobal::set_float4(neural_rendering_control_mask_defaultVarId, neural_rendering__controlMaskDefault);
+  ShaderGlobal::set_float4(neural_rendering_control_mask_skinVarId, neural_rendering__controlMaskSkin);
+  ShaderGlobal::set_float4(neural_rendering_control_mask_foliageVarId, neural_rendering__controlMaskFoliage);
+
   neural_rendering_options.style = neural_rendering__style;
   neural_rendering_options.preset = neural_rendering_preset_from_string(neural_rendering__preset);
   neural_rendering_options.intensity = neural_rendering__intensity;

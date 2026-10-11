@@ -37,6 +37,7 @@ extern size_t pull_das_daFrameGraph_aot_lib();
   RS(decals)                 \
   RS(samplerHandle)          \
   RS(skiesSettings)          \
+  RS(cameraManagerClient)    \
   RS(camouflageOverrideParams)
 
 #define REG_SQM RS(bind_screencap) RS(bind_render) RS(bind_loading_screen)

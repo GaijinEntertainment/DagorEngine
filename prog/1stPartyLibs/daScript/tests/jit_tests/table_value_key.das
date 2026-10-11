@@ -12,10 +12,7 @@ def test_table(t : T?) {
 
         in_t |> success(!jit_enabled() || is_jit_function(@@test_table))
 
-        var tab : table<EntityId; string>
-        tab[EntityId(1)] = "hello"
-        tab[EntityId(2)] = "world"
-        tab[EntityId(3)] = "!"
+        var tab <- {EntityId(1) => "hello", EntityId(2) => "world", EntityId(3) => "!"}
         in_t |> equal(3, length(tab))
         tab |> erase(EntityId(3))
         in_t |> equal(2, length(tab))
@@ -55,10 +52,7 @@ def test_table(t : T?) {
     }
 
     t |> run("set") @(t : T?) {
-        var set : table<EntityId>
-        set |> insert(EntityId(1))
-        set |> insert(EntityId(2))
-        set |> insert(EntityId(3))
+        let set <- {EntityId(1), EntityId(2), EntityId(3)}
         t |> equal(3, length(set))
         if (!set |> key_exists(EntityId(3))) {
             t |> failure("key does not exist (3)")

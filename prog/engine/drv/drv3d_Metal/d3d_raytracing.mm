@@ -35,8 +35,12 @@ static uint32_t getASSizeData(MTLAccelerationStructureDescriptor *desc, uint32_t
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc, uint32_t count,
   RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType)
 {
-  MTLPrimitiveAccelerationStructureDescriptor *accDesc = acceleration_structure_descriptors::getBLASDescriptor(desc, count, flags);
-  uint32_t size = getASSizeData(accDesc, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
+  uint32_t size = 0;
+  @autoreleasepool
+  {
+    MTLPrimitiveAccelerationStructureDescriptor *accDesc = acceleration_structure_descriptors::getBLASDescriptor(desc, count, flags);
+    size = getASSizeData(accDesc, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
+  }
 
   return (RaytraceBottomAccelerationStructure *)drv3d_metal::render.createAccelerationStructure(flags, size, true);
 }
@@ -88,7 +92,11 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
   if (!validate_compaction_flags(basbi))
     return;
 
-  drv3d_metal::render.buildBLAS(as, basbi);
+  // the game loop never drains the thread pool, so autoreleased descriptors pile up
+  @autoreleasepool
+  {
+    drv3d_metal::render.buildBLAS(as, basbi);
+  }
 }
 
 void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelerationStructureBuildInfo* as_array, uint32_t as_count)
@@ -133,8 +141,12 @@ void d3d::write_raytrace_index_entries_to_memory(uint32_t count, const RaytraceG
 RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
   uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType)
 {
-  MTLInstanceAccelerationStructureDescriptor *accDesc = acceleration_structure_descriptors::getTLASDescriptor(elements, flags);
-  uint32_t size = getASSizeData(accDesc, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
+  uint32_t size = 0;
+  @autoreleasepool
+  {
+    MTLInstanceAccelerationStructureDescriptor *accDesc = acceleration_structure_descriptors::getTLASDescriptor(elements, flags);
+    size = getASSizeData(accDesc, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
+  }
   return (RaytraceTopAccelerationStructure *)drv3d_metal::render.createAccelerationStructure(flags, size, false);
 }
 
@@ -151,7 +163,10 @@ void d3d::delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStru
 
 void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as, const ::raytrace::TopAccelerationStructureBuildInfo &tasbi)
 {
-  drv3d_metal::render.buildTLAS(as, tasbi);
+  @autoreleasepool
+  {
+    drv3d_metal::render.buildTLAS(as, tasbi);
+  }
 }
 
 void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationStructureBuildInfo *as_array, uint32_t as_count)
@@ -269,6 +284,7 @@ namespace
   ::raytrace::AccelerationStructureSizes result;
 
   if (@available(macOS 11.0, iOS 15.0, *))
+  @autoreleasepool
   {
     MTLInstanceAccelerationStructureDescriptor *accDesc =
       acceleration_structure_descriptors::getTLASDescriptor(info.elementCount, info.flags);
@@ -283,6 +299,7 @@ namespace
   ::raytrace::AccelerationStructureSizes result;
 
   if (@available(macOS 11.0, iOS 15.0, *))
+  @autoreleasepool
   {
     MTLPrimitiveAccelerationStructureDescriptor *accDesc =
       acceleration_structure_descriptors::getBLASDescriptor(info.geometryDesc.data(), info.geometryDesc.size(), info.flags);

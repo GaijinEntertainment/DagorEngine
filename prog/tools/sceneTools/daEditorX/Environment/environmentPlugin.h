@@ -87,12 +87,12 @@ public:
   bool getStatusBarPos(Point3 &pos) const override { return false; }
 
   void clearObjects() override;
-  void onNewProject() override {}
+  void onNewProject() override;
   void autoSaveObjects(DataBlock &local_data) override;
   void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
   void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
   bool acceptSaveLoad() const override { return true; }
-  void loadBlk(bool ps3, const char *selectedName);
+  bool loadBlk(bool ps3, const char *selectedName);
 
   void selectAll() override {}
   void deselectAll() override {}
@@ -259,13 +259,16 @@ private:
   void importEnvi();
   void resetEnvi();
 
+  void resetEnvironmentState();
+  bool initAcesEnvironmentState(const DataBlock *blk, const DataBlock *local_data);
+
   void showPanel();
   void fillPanel();
   void updateLight();
 
   void setFogDefaults();
 
-  void recreatePanel(PropPanel::PanelWindowPropertyControl *panel, int wtype_id);
+  void recreatePanel(void *panel, int wtype_id);
   void recreatePostfxPanel();
   void recreateShGVPanel();
   void hdrViewSettings();

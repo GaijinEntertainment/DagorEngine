@@ -155,8 +155,6 @@
 "#allow-switch-statement"
 "#forbid-implicit-type-methods"
 "#allow-implicit-type-methods"
-"#forbid-auto-freeze"
-"#allow-auto-freeze"
 
 
 " "

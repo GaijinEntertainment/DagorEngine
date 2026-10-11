@@ -1,5 +1,6 @@
 Root    ?= ../../.. ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 Location = prog/gameLibs/render ;
@@ -19,6 +20,7 @@ Sources =
 #  bentCones.cpp
   giVerifierCapture.cpp
   giVerifierEnvExr.cpp
+  pbrValidationTool.cpp
   cameraPositions.cpp
   bigLightsShadows.cpp
   tdrGpu.cpp
@@ -31,10 +33,6 @@ Sources =
   noiseTexData.cpp
   gpuGrass.cpp
   fast_grass.cpp
-  ssao_common.cpp
-  ssao.cpp
-  gtao.cpp
-  mobile_ssao.cpp
   tireTracks.cpp
   clipmapDecals.cpp
   burningDecals.cpp

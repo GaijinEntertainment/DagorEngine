@@ -1,6 +1,8 @@
 let {Point2} = require("dagor.math")
 
 let TestInput = class {
+  function mouseButtonDown(button) { assert(type(button)=="integer") }
+  function mouseButtonUp(button) { assert(type(button)=="integer") }
   function mouseClick(button) { assert(type(button)=="integer") }
   function mouseClickModifier(button, modifier) { assert(type(button)=="integer" && type(modifier)=="integer") }
   function mousePosition(at) { assert(at instanceof Point2, "at should be Point2") }
@@ -9,6 +11,8 @@ let TestInput = class {
     assert(to instanceof Point2, "to should be Point2")
     assert(type(over_seconds)=="float")
   }
+  function keyDown(key) { assert(type(key)=="integer") }
+  function keyUp(key) { assert(type(key)=="integer") }
   function keyPress(key) { assert(type(key)=="integer") }
   function keyPressModifier(key, modifier) { assert(type(key)=="integer" && type(modifier)=="integer") }
   function keyHeld(key, over_seconds) { assert(type(key)=="integer" && type(over_seconds)=="float") }
@@ -41,7 +45,7 @@ let TestRuntime = class {
     func(this)
   }
   isRunning = @() true
-  markFailed = @() {}
+  function markFailed(reason=null) { assert(reason==null || type(reason)=="string") }
   yieldFrame = @() {}
   function yieldTime(seconds) { assert(type(seconds)=="float") }
   function queryItem(path) {
@@ -57,6 +61,11 @@ let TestRuntime = class {
         Max = Point2(4, 5)
       }
       parentId = 0
+      hovered = false // null when only the previous frame submitted the item
+      active = false // null when only the previous frame submitted the item
+      visible = true
+      toggledOpen = false
+      isWindow = false
     }
   }
   function queryChildren(path) {
@@ -72,6 +81,11 @@ let TestRuntime = class {
         Max = Point2(4, 5)
       }
       parentId = 1
+      hovered = false // null when only the previous frame submitted the item
+      active = false // null when only the previous frame submitted the item
+      visible = true
+      toggledOpen = false
+      isWindow = false
     }]
   }
   input = @() TestInput()

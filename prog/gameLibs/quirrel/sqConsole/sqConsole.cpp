@@ -98,7 +98,7 @@ private:
 
 public:
   SqConsoleProcessor() = default;
-  SqConsoleProcessor(SqConsoleProcessor &&rhs)
+  SqConsoleProcessor(SqConsoleProcessor &&rhs) noexcept
   {
     sqvm = rhs.sqvm;
 #ifdef EASTL_MOVE

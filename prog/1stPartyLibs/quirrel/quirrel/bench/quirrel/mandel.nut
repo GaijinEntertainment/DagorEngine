@@ -1,22 +1,21 @@
 // float-heavy inner loop
-let { clock } = require("datetime")
+from "profile.nut" import vmBench
 
 const W = 320
 const H = 160
 const MAXIT = 60
 
-for (local rep = 0; rep < 5; rep++) {
-  local t0 = clock()
+function mandel() {
   local inside = 0
   for (local py = 0; py < H; py++) {
-    local ci = py * 2.0 / H - 1.0
+    let ci = py * 2.0 / H - 1.0
     for (local px = 0; px < W; px++) {
-      local cr = px * 3.0 / W - 2.0
+      let cr = px * 3.0 / W - 2.0
       local zr = 0.0
       local zi = 0.0
       local it = 0
       while (it < MAXIT && zr * zr + zi * zi < 4.0) {
-        local nzr = zr * zr - zi * zi + cr
+        let nzr = zr * zr - zi * zi + cr
         zi = 2.0 * zr * zi + ci
         zr = nzr
         it++
@@ -25,5 +24,7 @@ for (local rep = 0; rep < 5; rep++) {
         inside++
     }
   }
-  println("BENCH mandel", ((clock() - t0) * 1000), $"ms (r={inside})")
+  return inside
 }
+
+vmBench("mandel", mandel)

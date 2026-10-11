@@ -17,6 +17,12 @@ using editorcore_extapi::dagRender;
 
 static const int MAX_RECENT_COUNT = CM_ECS_EDITOR_RECENT_FILE_END - CM_ECS_EDITOR_RECENT_FILE_START;
 
+ECSEditorPlugin::~ECSEditorPlugin()
+{
+  if (objEd)
+    objEd->reset();
+}
+
 void ECSEditorPlugin::loadSettings(const DataBlock &global_settings, const DataBlock &per_app_settings)
 {
   const DataBlock *recentBlk = per_app_settings.getBlockByName("recent");

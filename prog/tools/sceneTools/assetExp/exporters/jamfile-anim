@@ -27,7 +27,6 @@ UseProgLibs +=
 
   engine/lib3d
   engine/shaders
-  engine/sceneRay
   engine/gameRes
   engine/scene
   engine/drv/drv3d_null

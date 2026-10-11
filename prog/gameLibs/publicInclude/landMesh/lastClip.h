@@ -49,3 +49,4 @@ void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &las
 void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data);
 void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data,
   Point2 &tor_offsets, ToroidalHelper &tor_helper);
+void render_last_clip_to_tex(Texture *tex, LandMeshData &data, const Point3 &view_pos);

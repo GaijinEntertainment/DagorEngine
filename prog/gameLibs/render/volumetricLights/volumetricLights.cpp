@@ -133,7 +133,7 @@ static void fill_poisson_samples_tex(BaseTexture *tex)
   if (auto lockedTex = lock_texture<float>(tex, 0, TEXLOCK_WRITE))
   {
     for (int i = 0; i < POISSON_SAMPLES_32.size(); ++i)
-      lockedTex.at(i, 0) = POISSON_SAMPLES_32[i].z * 0.5 + 0.5;
+      lockedTex.at(i, 0) = POISSON_SAMPLES_32[i].z * 0.5f + 0.5f;
   }
 }
 
@@ -947,6 +947,7 @@ void VolumeLight::performDistantFogRaymarch(const bool is_main_view)
     return;
 
   ShaderGlobal::set_int(vars.distant_fog_use_static_shadows, hasDistantFogStaticShadows());
+  ShaderGlobal::set_int(vars.nbs_rtss_static_shadow, get_shadervar_interval(vars.force_rtss_shadows) >= 1);
 
   static constexpr float RAW_DEPTH_PRE_SCALE = 0.0001f; // TODO: use non-linear params instead (needs a wrapper to avoid calling pow
                                                         // every frame)
@@ -968,7 +969,7 @@ void VolumeLight::performDistantFogRaymarch(const bool is_main_view)
     filtering_max_threshold * RAW_DEPTH_PRE_SCALE, occlusion_threshold * RAW_DEPTH_PRE_SCALE, limit_pow_factor);
 
   ShaderGlobal::set_float4(vars.distant_fog_reconstruction_params_1,
-    min<float>(max_range, MAX_RAYMARCH_FOG_DIST) - DISTANT_FOG_FX_DIST_BIAS, 0, 0, 0);
+    min<float>(max_range, MAX_RAYMARCH_FOG_DIST) - float(DISTANT_FOG_FX_DIST_BIAS), 0, 0, 0);
 
   ShaderGlobal::set_int(vars.distant_fog_use_smart_raymarching_pattern, use_smart_raymarching_pattern ? 1 : 0);
   ShaderGlobal::set_int(vars.distant_fog_disable_occlusion_check, disable_occlusion_check ? 1 : 0);
@@ -1212,7 +1213,10 @@ Frustum VolumeLight::calcFrustum(const TMatrix4 &view_tm, const Driver3dPerspect
   return Frustum(view_tm * projTm);
 }
 
-bool VolumeLight::hasDistantFogStaticShadows() const { return get_shadervar_interval(vars.static_shadows_cascades) == 2; }
+bool VolumeLight::hasDistantFogStaticShadows() const
+{
+  return get_shadervar_interval(vars.force_rtss_shadows) >= 1 || get_shadervar_interval(vars.static_shadows_cascades) == 2;
+}
 
 bool VolumeLight::hasFroxelFogExperimentalOffscreenReprojection() const
 {

@@ -53,11 +53,13 @@ namespace auto_resolution
  *   The upscaling value is calculated as sqrt(rendering_area / display_area) * 100, rounded to nearest 5.
  * "Rendering resolution is used" means it is non-zero point.
  * \param antialiasing_method The method for which the settings will be returned. Incorrect methods are ignored (returns empty blk).
+ * \param output_resolution The display resolution the settings are selected for. Zero means the current screen size.
  * \return non-empty blk with antialiasing settings (with video/antialiasing_mode:t=antialiasing_method).
  * Use this blk as patch to override settings.
  */
 //
-DataBlock get_antialiasing_settings(const char *antialiasing_method, IPoint2 rendering_resolution);
+DataBlock get_antialiasing_settings(const char *antialiasing_method, IPoint2 rendering_resolution,
+  IPoint2 output_resolution = IPoint2::ZERO);
 } // namespace auto_resolution
 
 namespace auto_quality_preset

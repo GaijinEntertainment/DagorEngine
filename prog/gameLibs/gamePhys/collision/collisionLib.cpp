@@ -26,7 +26,7 @@
 #endif
 
 #include <startup/dag_globalSettings.h>
-#include <sceneRay/dag_sceneRay.h>
+#include <gameRes/dag_legacySceneRay.h>
 
 #include <landMesh/lmeshManager.h>
 #include <landMesh/landRayTracerSoA4.h>
@@ -38,7 +38,6 @@
 #include <gamePhys/collision/contactResultWrapper.h>
 
 #include <util/dag_lookup.h>
-#include <util/dag_roNameMap.h>
 
 #include <scene/dag_physMat.h>
 #include <physMap/physMap.h>
@@ -207,6 +206,15 @@ const PhysMap *dacoll::get_lmesh_phys_map() { return phys_map; }
 
 CollisionResource *dacoll::get_static_collision_resource() { return static_collres.get(); }
 
+// Extent a contact solver can still resolve. A near-singular authored node tm scales the stored
+// geometry by 1/det, and the float grid over such a box is coarser than the shapes that meet on it.
+// Only the extent: a level's static collision sits far from the origin by design.
+static constexpr float MAX_PHYS_NODE_EXTENT = 1e6f;
+static bool is_node_phys_usable(const BBox3 &node_box) // a NaN bound fails the compare
+{
+  return v_check_xyz_all_true(v_cmp_le(v_bbox3_size(v_ldu_bbox3(node_box)), v_splats(MAX_PHYS_NODE_EXTENT)));
+}
+
 static void push_static_tri(Tab<Point3> &verts, Tab<int> &indices, vec3f a, vec3f b, vec3f c)
 {
   const int base = verts.size();
@@ -247,7 +255,7 @@ void dacoll::init_phys_materials()
   }
 }
 
-static void add_static_collision_bodies(const CollisionResource &res)
+static void add_static_collision_bodies(const CollisionResource &res, [[maybe_unused]] const char *res_name)
 {
   using namespace dacoll;
   PhysBodyCreationData pbcd;
@@ -260,22 +268,39 @@ static void add_static_collision_bodies(const CollisionResource &res)
   const dag::ConstSpan<CollisionNode> nodes = res.getAllNodes();
   dag::Vector<uint8_t> chunkBodied(nodes.size(), 0);
   bool allBodied = true;
+#ifdef USE_JOLT_PHYSICS
+  // One body for all chunks: the compound's own tree culls them, so a unit's contact test is one
+  // pair test however many nodes the split made, not one per node.
+  PhysCompoundCollision chunks;
+#endif
   for (int i = 0, e = (int)nodes.size(); i < e; ++i)
   {
     if (!nodes[i].checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
       continue;
-#ifdef USE_JOLT_PHYSICS
-    if (PhysCollision *coll = create_phys_collision_from_coll_resource_node(res, i, /*compound_children*/ 1))
+    const BBox3 nodeBox = res.getNodeBBox(i);
+    if (!is_node_phys_usable(nodeBox))
     {
-      frtObj.push_back(new PhysBody(dacoll::get_phys_world(), 0.f, coll, TMatrix::IDENT, pbcd));
-      PhysCollision::clearAllocatedData(*coll);
-      delete coll;
+#if DAGOR_DBGLEVEL > 0 // per occurrence: the affected content must be enumerable
+      logerr("static collision <%s>: node <%s> spans %@; no body for it, fix the asset", res_name, res.getNodeName(i), nodeBox);
+#endif
+      chunkBodied[i] = 1; // and its triangles stay out of the static trimesh below
+      continue;
+    }
+#ifdef USE_JOLT_PHYSICS
+    // compound_children 0 sizes the sub shape ids for a child per node, an upper bound of this compound
+    if (PhysCollision *coll = create_phys_collision_from_coll_resource_node(res, i, /*compound_children*/ 0))
+    {
+      chunks.addChildCollision(coll, TMatrix::IDENT);
       chunkBodied[i] = 1;
       continue;
     }
 #endif
     allBodied = false;
   }
+#ifdef USE_JOLT_PHYSICS
+  if (chunks.getChildrenCount())
+    frtObj.push_back(new PhysBody(dacoll::get_phys_world(), 0.f, &chunks, TMatrix::IDENT, pbcd));
+#endif
   if (allBodied)
     return;
   Tab<Point3> verts(tmpmem);
@@ -324,12 +349,10 @@ static void install_static_collision(CollisionResource *res, const char *name)
 {
   static_collres = res;
   if (phys_world && phys_world->getScene())
-    add_static_collision_bodies(*res);
+    add_static_collision_bodies(*res, name);
 #if ENABLE_APEX == 1
   if (enable_apex)
     add_static_collision_apex(*res, name);
-#else
-  G_UNUSED(name);
 #endif
 }
 
@@ -337,18 +360,10 @@ bool dacoll::add_static_collision_frt(const StaticSceneRayTracer *frt, const cha
 {
   if (!frt || frt->getFacesCount() <= 0)
     return true;
-  CollisionResourceBuilder builder;
-  const int parts = builder.addStaticCollisionFrt(*frt, pmid ? *pmid : dag::ConstSpan<unsigned char>());
-  if (parts <= 0)
-  {
-    logerr("frt->collres: %d faces gave no static collision (%d parts)", frt->getFacesCount(), parts);
+  CollisionResource *res = build_static_collision_frt(*frt, pmid ? *pmid : dag::ConstSpan<unsigned char>(), name);
+  if (!res)
     return false;
-  }
-  builder.recomputeBounds();
-  builder.collapse(name);
-  builder.collisionFlags |= COLLISION_RES_FLAG_BLAS_TWO_SIDED; // the FRT walks cull nothing
-  install_static_collision(builder.build(name), name);
-  debug("frt->collres: %d faces -> %d parts -> %d nodes", frt->getFacesCount(), parts, (int)static_collres->getAllNodes().size());
+  install_static_collision(res, name);
   return true;
 }
 
@@ -384,60 +399,13 @@ bool dacoll::load_water_collision(IGenLoad &crd)
 
 bool dacoll::load_static_collision_frt(IGenLoad *crd)
 {
-  int versionId = crd->readInt();
-  (void)versionId;
-  int start_pos = crd->tell();
-  auto sceneRayTracer = DeserializedStaticSceneRayTracer::load(*crd);
-  if (!sceneRayTracer)
+  CollisionResource *res = nullptr;
+  if (!load_frt_block_as_collision(*crd, res))
     return false;
-
-  // load pmid
-  Tab<uint8_t> pmid(tmpmem);
-  clear_and_resize(pmid, sceneRayTracer->getFacesCount());
-  crd->readTabData(pmid);
-
-  // align on 4
-  start_pos = crd->tell() - start_pos;
-  if (start_pos & 3)
-    crd->seekrel(4 - (start_pos & 3));
-
-  // read mat names
-  int nm_sz = crd->readInt();
-  Tab<uint8_t> mem(framemem_ptr());
-  mem.resize(nm_sz);
-  crd->read(mem.data(), nm_sz);
-
-  RoNameMap &nm = *(RoNameMap *)mem.data();
-  nm.patchData(mem.data());
-
-  // resolve phys materials
-  Tab<uint8_t> matid(framemem_ptr());
-  matid.resize(nm.map.size());
-  for (int i = 0; i < nm.map.size(); ++i)
-  {
-    const char *matname = nm.map[i];
-    int id = PhysMat::getMaterialId(matname);
-    if (id == PHYSMAT_INVALID)
-    {
-      logwarn("physmat %s not found; setting as default", matname);
-      id = PHYSMAT_DEFAULT;
-    }
-    G_ASSERT(id >= 0 && id <= 255);
-    matid[i] = id;
-  }
-
-  // remap phys mat id for faces
-  for (int i = 0; i < pmid.size(); ++i)
-  {
-    G_ASSERT(pmid[i] < nm.map.size());
-    pmid[i] = matid[pmid[i]];
-  }
-
-  auto pmidSpan = make_span_const(pmid);
-  // A refused build is logged and leaves the level without static collision, as a tracer that gave
-  // no collision did: the stream read, so the level is not refused over it.
-  dacoll::add_static_collision_frt(sceneRayTracer, crd->getTargetName(), &pmidSpan);
-  destroy_it(sceneRayTracer);
+  // A block that builds nothing leaves the level without static collision: the stream read, so the
+  // level is not refused over it.
+  if (res)
+    install_static_collision(res, crd->getTargetName());
   return true;
 }
 
@@ -466,25 +434,6 @@ bool dacoll::make_water_collision(dag::ConstSpan<Point3_vec4> verts, dag::ConstS
 int dacoll::get_hmap_step() { return hmapObj ? phys_body_get_hmap_step(hmapObj) : -1; }
 
 int dacoll::set_hmap_step(int step) { return hmapObj ? phys_body_set_hmap_step(hmapObj, step) : -1; }
-
-void dacoll::add_collision_hmap_custom(const Point3 &collision_pos, const BBox3 &collision_box, const Point2 &hmap_offset,
-  float hmap_scale, int hmap_step)
-{
-  LandMeshManager *land = get_lmesh();
-  if (!phys_world || !phys_world->getScene() || !land || !land->getHmapHandler())
-    return;
-
-  PhysHeightfieldCollision coll(land->getHmapHandler(), hmap_offset, collision_box, hmap_scale, hmap_step, land->getHolesManager());
-  PhysBodyCreationData pbcd;
-  pbcd.useMotionState = false;
-  pbcd.materialId = -1;
-  pbcd.friction = 1.f;
-  pbcd.autoMask = false;
-  pbcd.group = EPL_STATIC, pbcd.mask = EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC);
-  TMatrix tm = TMatrix::IDENT;
-  tm.setcol(3, collision_pos);
-  frtObj.push_back(new PhysBody(dacoll::get_phys_world(), 0.f, &coll, tm, pbcd));
-}
 
 void dacoll::add_collision_hmap(LandMeshManager *land, float restitution, float margin)
 {
@@ -1108,6 +1057,17 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
     if (!coll_resource->checkNodeBehaviorFlags(meshNode.nodeIndex, CollisionNode::PHYS_COLLIDABLE))
       return;
 
+    // the chunk shape, the trimesh and the boxify below all build over these bounds
+    const BBox3 nodeBox = coll_resource->getNodeBBox(meshNode.nodeIndex);
+    if (!is_node_phys_usable(nodeBox))
+    {
+#if DAGOR_DBGLEVEL > 0 // per occurrence: the affected content must be enumerable
+      logerr("collision <%s>: node <%s> spans %@; no physics shape for it, fix the asset", debug_name ? debug_name : "?",
+        coll_resource->getNodeName(meshNode.nodeIndex), nodeBox);
+#endif
+      return;
+    }
+
     const char *nodeTypeName = props ? props->getStr(coll_resource->getNodeName(meshNode.nodeIndex), NULL) : NULL;
     if (props && !nodeTypeName)
       return;
@@ -1130,9 +1090,8 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
         if (coll_resource->getNodeVertCount(meshNode.nodeIndex) == 0)
           break;
         TMatrix tm = coll_resource->getNodeTm(meshNode.nodeIndex);
-        BBox3 bbox = coll_resource->getNodeBBox(meshNode.nodeIndex);
-        tm.setcol(3, tm * bbox.center());
-        Point3 width = bbox.width();
+        tm.setcol(3, tm * nodeBox.center());
+        Point3 width = nodeBox.width();
         shape.addChildCollision(new PhysBoxCollision(width.x, width.y, width.z), APPLY_PARENT_ITM(tm));
       }
       break;
@@ -1644,6 +1603,7 @@ bool dacoll::test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t 
   int prev_cont = out_contacts.size();
   physWorld->fetchSimRes(true);
 
+  uint64_t tmSetB = 0;
   for (int i = 0; i < co_a.size(); ++i)
   {
     const CollisionObject &coA = co_a[i];
@@ -1651,6 +1611,7 @@ bool dacoll::test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t 
       continue;
     else if ((cof_a & (1ull << i)) == 0)
       continue;
+    bool tmSetA = false;
     for (int j = 0; j < co_b.size(); ++j)
     {
       const CollisionObject &coB = co_b[j];
@@ -1663,8 +1624,12 @@ bool dacoll::test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t 
         continue;
       if (set_co_tms)
       {
-        coA.body->setTmInstant(tm_a);
-        coB.body->setTmInstant(tm_b);
+        if (!tmSetA)
+          coA.body->setTmInstant(tm_a);
+        tmSetA = true;
+        if (!(tmSetB & (1ull << j)))
+          coB.body->setTmInstant(tm_b);
+        tmSetB |= 1ull << j;
       }
 
       if ((flags & TestPairFlags::CheckInWorld) != TestPairFlags::None && (!coA.body->isInWorld() || !coB.body->isInWorld()))
@@ -1695,6 +1660,9 @@ bool dacoll::test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a
   const int prevCount = out_contacts.size();
   physWorld->fetchSimRes(true);
 
+  uint64_t tmSetB = 0;
+  TMatrix tmAPrev;
+  bool tmAPrevReady = false, sweepA = false;
   for (int i = 0; i < co_a.size(); ++i)
   {
     const CollisionObject &coA = co_a[i];
@@ -1702,6 +1670,7 @@ bool dacoll::test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a
       continue;
     else if ((cof_a & (1ull << i)) == 0)
       continue;
+    bool tmSetA = false;
     for (int j = 0; j < co_b.size(); ++j)
     {
       const CollisionObject &coB = co_b[j];
@@ -1712,8 +1681,12 @@ bool dacoll::test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a
 
       if (!coA || !coB)
         continue;
-      coA.body->setTmInstant(tm_a);
-      coB.body->setTmInstant(tm_b);
+      if (!tmSetA)
+        coA.body->setTmInstant(tm_a);
+      tmSetA = true;
+      if (!(tmSetB & (1ull << j)))
+        coB.body->setTmInstant(tm_b);
+      tmSetB |= 1ull << j;
 
       if (!coA.body->isInWorld() || !coB.body->isInWorld())
         continue;
@@ -1724,12 +1697,14 @@ bool dacoll::test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a
 
       if (out_contacts.size() == prevCountPair)
       {
-        TMatrix tmAPrev = tm_b * (inverse(tm_b_prev) * tm_a_prev);
-        const Point3 dir = tm_a.getcol(3) - tmAPrev.getcol(3);
-        if (dir.lengthSq() < distMinSq)
+        if (!tmAPrevReady)
+        {
+          tmAPrev = tm_b * (inverse(tm_b_prev) * tm_a_prev);
+          sweepA = !((tm_a.getcol(3) - tmAPrev.getcol(3)).lengthSq() < distMinSq);
+          tmAPrevReady = true;
+        }
+        if (!sweepA)
           continue;
-
-        coB.body->setTmInstant(tm_b);
 
         G_ASSERT_CONTINUE(coA.body->isConvexCollisionShape());
 
@@ -1752,9 +1727,6 @@ bool dacoll::test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a
   }
   return out_contacts.size() > prevCount;
 }
-
-PhysBody *dacoll::get_convex_shape(CollisionObject co) { return co.body && co.body->isConvexCollisionShape() ? co.body : nullptr; }
-
 
 void dacoll::shape_query_frt(const PhysBody *shape, const TMatrix &from, const TMatrix &to, dacoll::ShapeQueryOutput &out)
 {

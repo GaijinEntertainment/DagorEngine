@@ -6,6 +6,27 @@ require cpp_common public
 require daslib/strings_boost public
 require strings public
 
+def private render_grep_output(symbol : string; match_count, total : int; file_order : array<string>; var by_file : table<string; array<string>>) : string {
+    return build_string() $(var w) {
+        w |> write("Found {match_count} match")
+        if (match_count != 1) {
+            w |> write("es")
+        }
+        w |> write(" for '{symbol}' in {total} file")
+        if (total != 1) {
+            w |> write("s")
+        }
+        w |> write("\n\n")
+        for (fp in file_order) {
+            w |> write("{fp}:\n")
+            for (entry in by_file[fp]) {
+                w |> write("{entry}\n")
+            }
+            w |> write("\n")
+        }
+    }
+}
+
 // `do_cpp_grep_usage` — parse-aware C++ identifier search via `ast-grep scan`
 // driven by a generated multi-kind rule file.
 //
@@ -77,12 +98,12 @@ def do_cpp_grep_usage(symbol, directory, context_lines_str, glob_filter : string
             if (lines_val != null && (lines_val.value is _string)) {
                 context = strip(lines_val.value as _string)
             }
-            let display_path = make_relative_path(file_path, das_root)
+            let display_path = make_relative_path(file_path, server_root())
             let entry = "  {line_num}: {context}"
             if (!key_exists(by_file, display_path)) {
                 file_order |> push(display_path)
             }
-            by_file[display_path] |> push(entry) // nolint:PERF006
+            by_file[display_path] |> push(entry)
         }
     }
     unsafe { delete parsed; }
@@ -92,23 +113,5 @@ def do_cpp_grep_usage(symbol, directory, context_lines_str, glob_filter : string
     }
     let total = length(by_file)
     if (match_count == 0) return make_tool_result("No matches found for '{symbol}'")
-    let output = build_string() $(var w) {
-        w |> write("Found {match_count} match")
-        if (match_count != 1) {
-            w |> write("es")
-        }
-        w |> write(" for '{symbol}' in {total} file")
-        if (total != 1) {
-            w |> write("s")
-        }
-        w |> write("\n\n")
-        for (fp in file_order) {
-            w |> write("{fp}:\n")
-            for (entry in by_file[fp]) {
-                w |> write("{entry}\n")
-            }
-            w |> write("\n")
-        }
-    }
-    return make_tool_result(output)
+    return make_tool_result(render_grep_output(symbol, match_count, total, file_order, by_file))
 }

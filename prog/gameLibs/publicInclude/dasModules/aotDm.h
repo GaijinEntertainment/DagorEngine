@@ -132,6 +132,61 @@ static inline int get_part_physmat_id(const dm::DamageModelData &dm_data, int pa
   return props ? props->physMaterialId : -1;
 }
 
+static inline float get_part_armor_strength_voxel_size(const dm::DamageModelData &dm_data, int part_id)
+{
+  const dm::ArmorStrengthProps *props = dm::get_part_property(dm_data.props.parts.armorStrength, part_id);
+  return props ? props->voxelSize : 0.f;
+}
+
+static inline int get_part_armor_strength_voxel_count(const dm::DamageModelData &dm_data, int part_id)
+{
+  const dm::ArmorStrengthProps *props = dm::get_part_property(dm_data.props.parts.armorStrength, part_id);
+  return props ? props->voxelMapResolution : 0;
+}
+
+static inline void init_armor_strength_map(dm::DamageModelData &dm_data, int node_count) { dm_data.armorStrengthMap.init(node_count); }
+
+static inline void set_armor_strength_voxel_size(dm::DamageModelData &dm_data, int coll_node_id, float voxel_size)
+{
+  if ((unsigned)coll_node_id < (unsigned)dm_data.armorStrengthMap.voxelSizes.size())
+    dm_data.armorStrengthMap.voxelSizes[coll_node_id] = voxel_size;
+}
+
+static inline float get_armor_strength_voxel_size(const dm::DamageModelData &dm_data, int coll_node_id)
+{
+  const dag::Vector<float> &voxelSizes = dm_data.armorStrengthMap.voxelSizes;
+  return (unsigned)coll_node_id < (unsigned)voxelSizes.size() ? voxelSizes[coll_node_id] : 0.f;
+}
+
+static inline uint32_t build_voxel_key(const dm::DamageModelData &dm_data, const Point3 &pos_in_node_space, int coll_node_id,
+  const BBox3 &coll_node_bbox)
+{
+  return uint32_t(dm::build_voxel_key(dm_data.armorStrengthMap, pos_in_node_space, coll_node_id, coll_node_bbox).v);
+}
+
+static inline int get_voxel_key_coll_node_id(uint32_t voxel_key)
+{
+  dm::ArmorStrengthMap::VoxelKey key;
+  key.v = voxel_key;
+  return key.k.collNodeId;
+}
+
+static inline IPoint3 get_voxel_key_coords(uint32_t voxel_key)
+{
+  dm::ArmorStrengthMap::VoxelKey key;
+  key.v = voxel_key;
+  return IPoint3(key.k.x, key.k.y, key.k.z);
+}
+
+static inline void set_armor_strength(dm::DamageModelData &dm_data, uint32_t voxel_key, uint16_t strength)
+{
+  dm::ArmorStrengthMap::VoxelKey key;
+  key.v = voxel_key;
+  dm_data.armorStrengthMap.voxelMap[key].strength = strength;
+}
+
+static inline void clear_armor_strength(dm::DamageModelData &dm_data) { dm_data.armorStrengthMap.voxelMap.clear(); }
+
 static inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(const dm::effect::Preset &preset, bool on_kill,
   int damage_type_id, float damage)
 {

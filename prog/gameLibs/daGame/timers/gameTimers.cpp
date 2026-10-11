@@ -43,7 +43,7 @@ TimerManager::~TimerManager() {}
 
 void TimerManager::act(float dt)
 {
-  internalTime += dt;
+  internalTime += double(dt);
 
   while (!activeTimers.empty())
   {
@@ -68,7 +68,7 @@ void TimerManager::act(float dt)
       if (cur.loop && cur.status == Executing)
       {
         cur.status = Active;
-        cur.expireTime += callCount * cur.rate;
+        cur.expireTime += double(callCount * cur.rate);
         activeTimers.insert(eastl::move(cur));
         debugValidateTimers();
       }
@@ -103,7 +103,7 @@ void TimerManager::setTimer(Timer &handle, timer_cb_t &&cb, float rate, bool loo
   if (rate > 0.f || !loop)
   {
     handle.reset(++lastAssignedHandle);
-    TimerRec newTimer(eastl::move(cb), handle.get(), rate, loop, internalTime + (first_delay >= 0.f ? first_delay : rate));
+    TimerRec newTimer(eastl::move(cb), handle.get(), rate, loop, internalTime + double(first_delay >= 0.f ? first_delay : rate));
     activeTimers.insert(eastl::move(newTimer));
     debugValidateTimers();
   }
@@ -213,7 +213,7 @@ float TimerManager::getTimerElapsed(const Timer &handle) const
 {
   const TimerRec *td = findTimer(handle);
   if (td)
-    return td->rate - (td->status == Paused ? td->expireTime : (td->expireTime - internalTime));
+    return double(td->rate) - (td->status == Paused ? td->expireTime : (td->expireTime - internalTime));
   else
     return -1.f;
 }

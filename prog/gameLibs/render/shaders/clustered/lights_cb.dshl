@@ -204,7 +204,8 @@ endmacro
 
 macro INIT_CLUSTERED_LIGHTS(code)
   (code) {
-    depth_slice_params__shadow_atlas_texel@f4 = (depthSliceScale, depthSliceBias, shadowAtlasTexel.x, shadowAtlasTexel.y/max(1, shadowAtlasTexel.y));
+    depth_slice_params__shadow_atlas_texel@f4 = (depthSliceScale, depthSliceBias, shadowAtlasTexel.x, shadowAtlasTexel.y);
+    shadow_atlas_texel_aspect@f1 = (shadowAtlasTexel.y/max(shadowAtlasTexel.x, 0.000001));
     shadow_scale_bias_params@f2 = (shadowZBias, shadowSlopeZBias);
   }
 endmacro
@@ -217,7 +218,8 @@ macro USE_CLUSTERED_LIGHTS(code)
     #define spotLightsWordCount spot_lights_count.y
     #define depthSliceScale depth_slice_params__shadow_atlas_texel.x
     #define depthSliceBias depth_slice_params__shadow_atlas_texel.y
-    #define shadowAtlasTexel depth_slice_params__shadow_atlas_texel.zw
+    #define shadowAtlasTexelSize depth_slice_params__shadow_atlas_texel.z
+    #define shadowAtlasTexelAspect shadow_atlas_texel_aspect
     #define shadowZBias shadow_scale_bias_params.x
     #define shadowSlopeZBias shadow_scale_bias_params.y
   }
@@ -232,13 +234,13 @@ macro USE_CLUSTERED_LIGHTS_WORD_COUNTS(code)
   hlsl(code) {
     void get_clustered_light_word_counts(out uint words_per_omni, out uint words_per_spot)
     {
-      ##if dynamic_lights_count == lights_omnispot_1
+      ##if dynamic_lights_omni_1 && dynamic_lights_spot_1
         words_per_omni = 1;
         words_per_spot = 1;
-      ##elif dynamic_lights_count == lights_omni_1
+      ##elif dynamic_lights_omni_1
         words_per_omni = 1;
         words_per_spot = 0;
-      ##elif dynamic_lights_count == lights_spot_1
+      ##elif dynamic_lights_spot_1
         words_per_omni = 0;
         words_per_spot = 1;
       ##else
@@ -306,11 +308,14 @@ endmacro
 
 macro USE_OMNI_LIGHTS_BOUNDS(code)
   hlsl(code) {
-    float getOmniLightBoundingSphereRadius(RenderOmniLight l) {
-      return l.posRelToOrigin_cullRadius.w > 0.0f ? l.posRelToOrigin_cullRadius.w : l.posRadius.w;
+    float getOmniLightBoundingSphereRadius(float4 posRadius, float4 posRelToOrigin_cullRadius) {
+      return posRelToOrigin_cullRadius.w > 0.0f ? posRelToOrigin_cullRadius.w : posRadius.w;
+    };
+    float4 getOmniLightBoundingSphere(float4 posRadius, float4 posRelToOrigin_cullRadius) {
+      return float4(posRadius.xyz, getOmniLightBoundingSphereRadius(posRadius, posRelToOrigin_cullRadius));
     };
     float4 getOmniLightBoundingSphere(RenderOmniLight l) {
-      return float4(l.posRadius.xyz, getOmniLightBoundingSphereRadius(l));
+      return getOmniLightBoundingSphere(l.posRadius, l.posRelToOrigin_cullRadius);
     };
   }
 endmacro
@@ -337,8 +342,24 @@ macro USE_LIGHT_SHADOWS(code)
     }
 
     #include <interleavedGradientNoise.hlsl>
-    half dynamic_shadow_sample_8tap_dither(float2 screenpos, float2 pos, float z, half radius, float dither)
+    #include "noise/poisson_disc_8.hlsl"
+
+    #ifndef DYNAMIC_SHADOW_PCF
+      #define DYNAMIC_SHADOW_PCF dynamic_shadow_quad_4tap
+    #endif
+    #define OMNI_SHADOW_SAFE_MARGIN_TEXELS 2.5
+    half dynamic_shadow_penumbra_radius(float shadow_region_uv_width, float source_radius)
     {
+      const float MIN_PENUMBRA = 2.0 / 512;
+      const float MIN_SOURCE_RADIUS = 0.5;
+      float sizeScale = sqrt(max(source_radius, MIN_SOURCE_RADIUS) * (1.0 / MIN_SOURCE_RADIUS));
+      return half(sizeScale * MIN_PENUMBRA * shadow_region_uv_width);
+    }
+
+    half dynamic_shadow_quad_4tap(float2 screenpos, float2 pos, float z, float4 uv_bounds, float edge_margin_uv, float light_to_pos_dist, float source_radius, float frame)
+    {
+      float dither = interleavedGradientNoiseFramed(screenpos, frame);
+      half radius = 1.5h*shadowAtlasTexelSize*(0.75h+saturate(0.3h*half(light_to_pos_dist)));
       float2 rotation;
       sincos((2*PI)*frac(dither * 43758.5453), rotation.x, rotation.y);
       half2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
@@ -407,16 +428,33 @@ macro USE_LIGHT_SHADOWS(code)
       for (int i = 0; i < NUM_SAMPLES; ++i)
       {
         half2 sampleOffset = mul(offsets[i], rotationMatrix);
-        sampleOffset.y *= half(shadowAtlasTexel.y);
+        sampleOffset.y *= half(shadowAtlasTexelAspect);
         //sampleOffset = rotationMatrix[0]*((i+frame/8.0+1)/NUM_SAMPLES);
         shadow += min(centerShadowSample, dynamic_shadow_sample(pos.xy+sampleOffset, z));
       }
       return shadow*(1.h/NUM_SAMPLES);
     }
 
-    half dynamic_shadow_sample_8tap(float2 screenpos, float2 pos, float z, half radius, float frame)
+    half dynamic_shadow_poisson_8tap(float2 screenpos, float2 pos, float z, float4 uv_bounds, float edge_margin_uv, float light_to_pos_dist, float source_radius, float frame)
     {
-      return dynamic_shadow_sample_8tap_dither(screenpos, pos, z, radius, interleavedGradientNoiseFramed(screenpos, frame));
+      float dither = interleavedGradientNoiseFramed(screenpos, frame);
+      half radius = dynamic_shadow_penumbra_radius(uv_bounds.z - uv_bounds.x, source_radius);
+      float2 edgeDist = min(pos - uv_bounds.xy, uv_bounds.zw - pos) + edge_margin_uv;
+      radius = min(radius, half(max(min(edgeDist.x, edgeDist.y * rcp(shadowAtlasTexelAspect)), 0)));
+      float2 rotation;
+      sincos((2*PI)*frac(dither * 43758.5453), rotation.x, rotation.y);
+      half2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
+      const int NUM_SAMPLES = 8;
+      half shadow = 0;
+      rotationMatrix *= radius*half(dither*0.25h+0.75h);
+      UNROLL
+      for (int i = 0; i < NUM_SAMPLES; ++i)
+      {
+        half2 sampleOffset = mul(half2(g_poisson_disc_8[i]), rotationMatrix);
+        sampleOffset.y *= half(shadowAtlasTexelAspect);
+        shadow += dynamic_shadow_sample(pos.xy+sampleOffset, z);
+      }
+      return shadow*(1.h/NUM_SAMPLES);
     }
 
     #include <octahedral.hlsl>
@@ -426,7 +464,7 @@ macro USE_LIGHT_SHADOWS(code)
       return shadowTcToAtlas.xy + octahedralTc * shadowTcToAtlas.zw;
     }
 
-    half getOmniShadow(half4 shadowTcToAtlas, float4 posRadius, float3 worldPos, half NoL, half2 screenpos, float2 zn_zfar)
+    half getOmniShadow(half4 shadowTcToAtlas, float4 posRadius, float3 worldPos, half NoL, half2 screenpos, float2 zn_zfar, float source_radius = 0)
     {
       float3 lightToPos = worldPos - posRadius.xyz;
       #if OMNI_SHADOWS
@@ -456,7 +494,8 @@ macro USE_LIGHT_SHADOWS(code)
           #ifndef shadow_frame
           half shadow_frame = 0;
           #endif
-          return 1-dynamic_shadow_sample_8tap(screenpos, tc, biasedRawDistance, 1.5h*shadowAtlasTexel.x*(0.75h+saturate(0.3h*half(lightToPosDist))), shadow_frame);
+          return 1-DYNAMIC_SHADOW_PCF(screenpos, tc, biasedRawDistance, float4(shadowTcToAtlas.xy, shadowTcToAtlas.xy + shadowTcToAtlas.zw),
+            OMNI_SHADOW_SAFE_MARGIN_TEXELS * shadowAtlasTexelSize, lightToPosDist, source_radius, shadow_frame);
         #endif
       #else
         return 1;
@@ -473,10 +512,13 @@ endmacro
 macro INIT_COMMON_LIGHTS_SHADOWS_CB(code)
   (code) {
     common_lights_shadows@cbuf = common_lights_shadows hlsl {
+
+      #include <dynamicLightShadows.hlsli>
+
       cbuffer common_lights_shadows@cbuf
       {
         float4 spotCnt_omniCnt_firstOmni;
-        float4 common_light_shadows[MAX_CLUSTERED_SPOT_LIGHTS*5 + MAX_CLUSTERED_OMNI_LIGHTS];
+        float4 common_light_shadows[COMMON_LIGHTS_SHADOWS_POINT4_DATA_SIZE];
       };
     }
   }
@@ -484,24 +526,34 @@ endmacro
 
 macro USE_COMMON_LIGHTS_SHADOWS_CB(code)
   hlsl(code) {
+
+    #include <dynamicLightShadows.hlsli>
+
     float4x4 getSpotLightTm(uint index)
     {
-      index *= 5;
-      return float4x4(
-        common_light_shadows[index + 0],
-        common_light_shadows[index + 1],
-        common_light_shadows[index + 2],
-        common_light_shadows[index + 3]
+      uint count = uint(spotCnt_omniCnt_firstOmni.x);
+      uint safeIndex = min(index, count > 0 ? count - 1 : 0) * SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE;
+      float4x4 tm = float4x4(
+        common_light_shadows[safeIndex + 0],
+        common_light_shadows[safeIndex + 1],
+        common_light_shadows[safeIndex + 2],
+        common_light_shadows[safeIndex + 3]
       );
+      return index < count ? tm : DLS_DEFAULT_SPOT_LIGHT_TM;
     }
     float4 getSpotLightShadowUvBounds(uint index)
     {
-      return common_light_shadows[index * 5 + 4];
+      uint count = uint(spotCnt_omniCnt_firstOmni.x);
+      uint safeIndex = min(index, count > 0 ? count - 1 : 0) * SPOT_LIGHT_SHADOW_DATA_POINT4_STRIDE;
+      return index < count ? common_light_shadows[safeIndex + SPOT_LIGHT_SHADOW_UV_BOUNDS_POINT4_OFFSET]
+                           : DLS_DEFAULT_SPOT_LIGHT_SHADOW_UV_BOUNDS;
     }
     half4 getOmniLightShadowData(uint index)
     {
+      uint count = uint(spotCnt_omniCnt_firstOmni.y);
       uint baseIndex = spotCnt_omniCnt_firstOmni.z;
-      return half4(common_light_shadows[baseIndex + index]);
+      uint safeIndex = baseIndex + min(index, count > 0 ? count - 1 : 0) * OMNI_LIGHT_SHADOW_DATA_POINT4_STRIDE;
+      return index < count ? half4(common_light_shadows[safeIndex]) : half4(DLS_DEFAULT_OMNI_LIGHT_SHADOW_DATA);
     }
   }
 endmacro
@@ -545,18 +597,23 @@ macro USE_SPOT_LIGHTS_BOUNDS(code)
       return float4(direction*boundingDesc.y + position, boundingDesc.x);
     };
 
-    float getSpotLightBoundingSphereRadius(RenderSpotLight l) {
-      float2 radii = decode_spot_light_radius_and_culling_radius(l);
+    float getSpotLightBoundingSphereRadius(float4 lightPos_halfRadius_halfCullRadius) {
+      float2 radii = decode_spot_light_radius_and_culling_radius(lightPos_halfRadius_halfCullRadius.w);
       return radii.y < 0.0f ? radii.x : radii.y;
     };
+    float getSpotLightBoundingSphereRadius(RenderSpotLight l) {
+      return getSpotLightBoundingSphereRadius(l.lightPos_halfRadius_halfCullRadius);
+    };
 
-    float4 getSpotLightBoundingSphere(RenderSpotLight l){
-      float3 position = l.lightPos_halfRadius_halfCullRadius.xyz;
-      float4 lightDirectionAngleOffset = l.lightDirectionAngleOffset;
-      float cosHalfAngle = -lightDirectionAngleOffset.w / l.lightColorAngleScale.w;
+    float4 getSpotLightBoundingSphere(float4 lightPos_halfRadius_halfCullRadius, float4 lightColorAngleScale, float4 lightDirectionAngleOffset){
+      float3 position = lightPos_halfRadius_halfCullRadius.xyz;
+      float cosHalfAngle = -lightDirectionAngleOffset.w / lightColorAngleScale.w;
       float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
-      float lightRadius = getSpotLightBoundingSphereRadius(l);
+      float lightRadius = getSpotLightBoundingSphereRadius(lightPos_halfRadius_halfCullRadius);
       return getSpotLightBoundingSphere(position, lightDirectionAngleOffset.xyz, lightRadius, sinHalfAngle, cosHalfAngle);
+    };
+    float4 getSpotLightBoundingSphere(RenderSpotLight l){
+      return getSpotLightBoundingSphere(l.lightPos_halfRadius_halfCullRadius, l.lightColorAngleScale, l.lightDirectionAngleOffset);
     };
 
     // Orthonormal basis with dir as its Z axis. Mirrors v_view_matrix_from_tangentZ
@@ -616,14 +673,18 @@ macro USE_SPOT_LIGHTS_BOUNDS(code)
     // true radius; a down-rounded radius makes this box slightly smaller than the CPU one. An
     // hzb-occlusion consumer must treat that as non-conservative and budget for it
     // (e.g. a small fixed margin), rather than assume this box always contains the true cone.
+    void getSpotLightBoundingBox(float4 lightPos_halfRadius_halfCullRadius, float4 lightColorAngleScale, float4 lightDirectionAngleOffset,
+      out float3 bmin, out float3 bmax)
+    {
+      float3 position = lightPos_halfRadius_halfCullRadius.xyz;
+      float cosHalfAngle = -lightDirectionAngleOffset.w / lightColorAngleScale.w;
+      float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
+      float lightRadius = getSpotLightBoundingSphereRadius(lightPos_halfRadius_halfCullRadius);
+      getSpotLightBoundingBox(position, lightDirectionAngleOffset.xyz, lightRadius, sinHalfAngle, bmin, bmax);
+    };
     void getSpotLightBoundingBox(RenderSpotLight l, out float3 bmin, out float3 bmax)
     {
-      float3 position = l.lightPos_halfRadius_halfCullRadius.xyz;
-      float4 lightDirectionAngleOffset = l.lightDirectionAngleOffset;
-      float cosHalfAngle = -lightDirectionAngleOffset.w / l.lightColorAngleScale.w;
-      float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
-      float lightRadius = getSpotLightBoundingSphereRadius(l);
-      getSpotLightBoundingBox(position, lightDirectionAngleOffset.xyz, lightRadius, sinHalfAngle, bmin, bmax);
+      getSpotLightBoundingBox(l.lightPos_halfRadius_halfCullRadius, l.lightColorAngleScale, l.lightDirectionAngleOffset, bmin, bmax);
     };
   }
 endmacro

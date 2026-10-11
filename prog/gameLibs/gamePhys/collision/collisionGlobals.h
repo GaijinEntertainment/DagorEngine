@@ -2,7 +2,6 @@
 #pragma once
 
 #include <scene/dag_physMat.h>
-#include <sceneRay/dag_sceneRayDecl.h>
 
 class LandMeshManager;
 class Point2;

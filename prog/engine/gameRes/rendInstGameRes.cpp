@@ -18,6 +18,7 @@
 #include <debug/dag_log.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_mutex.h>
 #include <util/dag_console.h>
 #include <perfMon/dag_perfTimer.h>
 #include <util/dag_compilerDefs.h>
@@ -28,7 +29,7 @@ static constexpr unsigned VDATA_MT_RENDINST = 2;
 using unitedvdata::riUnitedVdata;
 
 static PtrTab<RenderableInstanceLodsResource> pendingReloadResList;
-static std::mutex pendingReloadResListMutex;
+static dag::mutex pendingReloadResListMutex;
 
 class RendInstGameResFactory : public GameResourceFactory
 {
@@ -127,7 +128,7 @@ public:
         continue;
       RenderableInstanceLodsResource *res = gameRes[i].sceneRes;
       {
-        std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
+        dag::lock_guard scopedLock(pendingReloadResListMutex);
         // 1 ref for riUnitedVdata, 1 ref for res
         if (res && res->getRefCount() > 1 + (ri_factory ? 1 : 0) + (find_value_idx(pendingReloadResList, res) >= 0 ? 1 : 0))
         {
@@ -260,7 +261,7 @@ static void batch_reload_res(void *)
   PtrTab<RenderableInstanceLodsResource> pendingReloadResListCopy;
   {
     // Move buffer away, so that we can release the lock before calling functions on riUnitedVdata
-    std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
+    dag::lock_guard scopedLock(pendingReloadResListMutex);
     pendingReloadResListCopy = eastl::move(pendingReloadResList);
   }
   riUnitedVdata.reloadResList(std::move(pendingReloadResListCopy));
@@ -310,7 +311,7 @@ static void on_higher_lod_required(RenderableInstanceLodsResource *res, unsigned
   if (req_lod >= res->getQlBestLod())
     return;
 
-  std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
+  dag::lock_guard scopedLock(pendingReloadResListMutex);
   if (res->getResLoadingFlag())
     return;
 #if DAGOR_DBGLEVEL > 0 && !defined(DAGOR_THREAD_SANITIZER)

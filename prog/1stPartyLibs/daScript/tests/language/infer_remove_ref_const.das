@@ -19,12 +19,12 @@ def irc_aliasLogT(x : auto(numT)&; y : numT) : string {
 }
 
 def irc_aliasLogTNoRef(x : auto(numT); y : numT -&) : string {
-    let z : auto(passT) = y
+    let _z : auto(passT) = y
     return typeinfo typename(type<passT>)
 }
 
 def irc_aliasLogTNoRefNoConst(x : auto(numT); y : numT -const -&) : string {
-    var z : auto(passT) = y
+    var _z : auto(passT) = y
     return typeinfo typename(type<passT>)
 }
 

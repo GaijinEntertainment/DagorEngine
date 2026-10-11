@@ -6,6 +6,7 @@
 #include <workCycle/dag_startupModules.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
+#include <startup/dag_globalSettings.h>
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiJoystick.h>
@@ -277,18 +278,10 @@ void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
       ::global_cls_drv_joy = HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true, /*remap_360*/ false);
     else
     {
-#if _TARGET_PC_WIN
-      ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(), /*is_xinput*/ true);
-#endif
-#if _TARGET_PC_LINUX
-      ::global_cls_composite_drv_joy->addClassDrv(
-        ::HumanInput::createJoystickClassDriver(/*exclude_xinput*/ false, /*remap_360*/ true),
-        /*is_xinput*/ true);
-#endif
-#if _TARGET_PC | _TARGET_ANDROID | _TARGET_IOS
-      ::global_cls_composite_drv_joy->addClassDrv(
-        ::HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true, /*remap_360*/ false),
-        /*is_xinput*/ false);
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX
+      ::global_cls_composite_drv_joy->addPcPadClassDrvs(::dgs_get_settings()->getBlockByNameEx("input")->getBool("useSonyPads", true));
+#elif _TARGET_PC | _TARGET_ANDROID | _TARGET_IOS
+      ::global_cls_composite_drv_joy->addClassDrv(HumanInput::createJoystickClassDriver(/*exclude_xinput*/ true), /*is_xinput*/ false);
 #endif
       ::global_cls_drv_joy = ::global_cls_composite_drv_joy;
     }

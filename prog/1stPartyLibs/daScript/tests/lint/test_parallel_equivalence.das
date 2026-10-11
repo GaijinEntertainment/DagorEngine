@@ -83,11 +83,8 @@ def test_parallel_matches_serial(t : T?) {
 def test_below_threshold_stays_serial(t : T?) {
     t |> run("--workers 8 on <16 files runs serially (no temp files leaked)") @(t : T?) {
         let all <- collect_fixtures()
-        // Drop down to 4 files — well under PARALLEL_THRESHOLD = 16.
-        var small : array<string>
-        for (i in range(min(4, length(all)))) {
-            small |> push(all[i])
-        }
+        // Drop down to 4 files — well under lint's 16-file default threshold.
+        let small <- [for (i in range(min(4, length(all)))); all[i]]
         // quiet=false so the banner is emitted; that's what we assert on.
         let argv <- build_argv(8, small, false)
         var output : string

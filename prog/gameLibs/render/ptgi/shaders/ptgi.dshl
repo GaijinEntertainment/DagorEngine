@@ -4,6 +4,7 @@ include "viewVecVS.dshl"
 include "bvh.dshl"
 include "rt_pipeline.dshl"
 include "rt/rt_lighting.dshl"
+include "rt/rt_prev_frame_sample.dshl"
 include "use_prefiltered_gf.dshl"
 include "postfx_inc.dshl"
 include "wetness_inc.dshl"
@@ -146,7 +147,7 @@ shader rt_gi
 
   INIT_AND_USE_RT_HALF_RATE(cs)
 
-  INIT_RT_LIGHTING(cs, false, true, false, true, false)
+  INIT_RT_LIGHTING(cs, false, true, false, true)
   USE_RT_LIGHTING(cs, 0, true)
 
   if (ptgi_pipeline_mode == inline)
@@ -504,7 +505,7 @@ shader rt_gi
             }
           ##endif
 
-          half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, 10000, RAY_FLAG_FORCE_OPAQUE);
+          half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, hitDistance, 10000, RAY_FLAG_FORCE_OPAQUE);
           half3 combinedLighting = diffuseLighting;
 
           giColor += combinedLighting * throughput;

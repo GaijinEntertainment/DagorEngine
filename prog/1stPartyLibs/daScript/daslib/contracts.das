@@ -33,12 +33,12 @@ class IsAnyType : AstFunctionAnnotation {
     def override appendToMangledName(func : FunctionPtr; decl : AnnotationDeclaration; var mangledName : das_string) : void {
         mangledName := "{class_info(self).name}:{describe(decl)}"
     }
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         if (args |> length != 1) {
             errors := "expecting at least one argument"
             return false
         }
-        for (argv in args) {// note: N^2
+        for (argv in args) {
             let val = get_annotation_argument_value(argv)
             if (!(val is tBool)) {
                 errors := "invalid argument type {argv.name}"
@@ -67,7 +67,7 @@ class IsAnyType : AstFunctionAnnotation {
 class IsAnyArrayMacro : IsAnyType {
     //! [expect_any_array(argname)] contract, which only accepts array<T>, T[], or das`vector<T>
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!(typ.baseType == Type.tArray || typ.baseType == Type.tFixedArray || isYetAnotherVectorTemplate(typ))) {
@@ -85,7 +85,7 @@ class IsAnyArrayMacro : IsAnyType {
 class IsAnyEnumMacro : IsAnyType {
     //! [expect_any_enum(argname)] contract, which only accepts enumerations
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tEnumeration && typ.baseType != Type.tEnumeration8 && typ.baseType != Type.tEnumeration16 && typ.baseType != Type.tEnumeration64) {
@@ -103,7 +103,7 @@ class IsAnyEnumMacro : IsAnyType {
 class IsAnyBitfieldMacro : IsAnyType {
     //! [expect_any_bitfield(argname)] contract, which only accepts bitfields
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!typ.isBitfield) {
@@ -122,7 +122,7 @@ class IsAnyBitfieldMacro : IsAnyType {
 class IsAnyVectorType : IsAnyType {
     //! [expect_any_vector_type(argname)] contract, which only accepts vector types, i.e. int2, float3, range, etc
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!isVectorType(typ.baseType)) {
@@ -140,7 +140,7 @@ class IsAnyVectorType : IsAnyType {
 class IsAnyStructMacro : IsAnyType {
     //! [expect_any_struct(argname)] contract, which only accepts structs (but not classes)
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tStructure || typ.structType == null || typ.structType.flags.isClass) {
@@ -158,7 +158,7 @@ class IsAnyStructMacro : IsAnyType {
 class IsAnyNumericMacro : IsAnyType {
     //! [expect_any_numeric(argname)] contract, which only accepts numeric types (int, float, etc)
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!typ.isNumeric) {
@@ -177,7 +177,7 @@ class IsAnyWorkhorse : IsAnyType {
     //! [expect_any_workhorse(argname)] contract, which only accepts workhorse types (int, float, etc)
     //! Workhorse types are: bool,int*,uint*,float*,double,range and urange, range64 and urange64, string,enumeration,and non-smart pointers
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!typ.isWorkhorseType) {
@@ -195,7 +195,7 @@ class IsAnyWorkhorse : IsAnyType {
 class IsAnyWorkhorseNonPtrMacro : IsAnyType {
     //! [expect_any_workhorse_raw(argname)] contract, which only accepts workhorse types which are raw (not pointer or bool)
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!typ.isCtorType && typ.baseType != Type.tBool) {
@@ -213,7 +213,7 @@ class IsAnyWorkhorseNonPtrMacro : IsAnyType {
 class IsAnyTupleNonPtrMacro : IsAnyType {
     //! [expect_any_tuple(argname)] contract, which only accepts tuples
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tTuple) {
@@ -231,7 +231,7 @@ class IsAnyTupleNonPtrMacro : IsAnyType {
 class IsAnyVariantNonPtrMacro : IsAnyType {
     //! [expect_any_variant(argname)] contract, which only accepts variants
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tVariant) {
@@ -249,7 +249,7 @@ class IsAnyVariantNonPtrMacro : IsAnyType {
 class IsAnyFunctionNonPtrMacro : IsAnyType {
     //! [expect_any_function(argname)] contract, which only accepts functions
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tFunction) {
@@ -267,7 +267,7 @@ class IsAnyFunctionNonPtrMacro : IsAnyType {
 class IsAnyLambdaMacro : IsAnyType {
     //! [expect_any_lambda(argname)] contract, which only accepts lambdas
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tLambda) {
@@ -285,7 +285,7 @@ class IsAnyLambdaMacro : IsAnyType {
 class IsRefMacro : IsAnyType {
     //! [expect_ref(argname)] contract, which only accepts references
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (!typ.isRef) {
@@ -303,7 +303,7 @@ class IsRefMacro : IsAnyType {
 class IsPointer : IsAnyType {
     //! [expect_pointer(argname)] contract, which only accepts pointers
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tPointer) {
@@ -321,7 +321,7 @@ class IsPointer : IsAnyType {
 class IsClass : IsAnyType {
     //! [expect_class(argname)] contract, which only accepts class instances
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tPointer || typ.firstType.baseType != Type.tStructure || !typ.firstType.structType.flags.isClass) {
@@ -339,7 +339,7 @@ class IsClass : IsAnyType {
 class IsValueHandle : IsAnyType {
     //! [expect_value_handle(argname)] contract, which only accepts value handles
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
-        for (fna, typ in func.arguments, types) {// note: N^2
+        for (fna, typ in func.arguments, types) {
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
                     if (typ.baseType != Type.tHandle || typ.isRefType) {

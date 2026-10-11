@@ -11,7 +11,6 @@
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
 #include <math/dag_mathBase.h>
-#include <scene/dag_frtdump.h>
 #include <libTools/util/appDirRelativePath.h>
 
 #define USE_BULLET_PHYSICS 1

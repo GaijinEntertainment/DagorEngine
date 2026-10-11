@@ -71,7 +71,7 @@ int GpuVisibilityTestManager::getAvailableSpace() const
 }
 
 void GpuVisibilityTestManager::getVisibilityTestResults(
-  const eastl::function<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/)> &tested_fn)
+  dag::FunctionRef<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/) const> tested_fn)
 {
   if (d3d::device_lost(nullptr))
     return;
@@ -189,7 +189,7 @@ void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
 }
 
 void GpuVisibilityTestManager::removeOutdatedObjectGroups(
-  const eastl::fixed_function<sizeof(void *) * 2, bool(const ViewTransformData & /*group_view*/)> &is_group_outdated)
+  dag::FunctionRef<bool(const ViewTransformData & /*group_view*/) const> is_group_outdated)
 {
   int groupId = findGroupByObjId(curObjectToTestId);
   while (groupId < objectGroups.size())

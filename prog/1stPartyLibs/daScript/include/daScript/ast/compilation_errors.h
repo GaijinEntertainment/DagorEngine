@@ -106,7 +106,7 @@ namespace das
     ,   invalid_argument                                            =   30104    // 6 site(s)
     ,   invalid_argument_global                                     =   30105    // 4 site(s)
     ,   invalid_argument_name                                       =   30106    // 3 site(s)
-    ,   invalid_argument_type                                       =   30107    // 3 site(s)
+    ,   invalid_argument_type                                       =   30107    // 4 site(s)
     ,   invalid_array                                               =   30108    // 6 site(s)
     ,   invalid_array_dimension                                     =   30109    // 5 site(s)
     ,   invalid_array_dimension_type                                =   30110    // 1 site(s)
@@ -266,7 +266,7 @@ namespace das
     ,   invalid_typeinfo                                            =   30265    // 1 site(s)
     ,   invalid_typeinfo_annotation                                 =   30266    // 1 site(s)
     ,   invalid_typeinfo_annotation_argument_type                   =   30267    // 1 site(s)
-    ,   invalid_typeinfo_dim                                        =   30268    // 1 site(s)
+    ,   invalid_typeinfo_dim                                        =   30268    // 2 site(s)
     ,   invalid_typeinfo_dim_table                                  =   30269    // 1 site(s)
     ,   invalid_typeinfo_dim_table_type                             =   30270    // 2 site(s)
     ,   invalid_typeinfo_function                                   =   30271    // 1 site(s)
@@ -353,7 +353,7 @@ namespace das
     ,   exceeds_new_argument                                        =   30509    // 1 site(s)
     ,   exceeds_structure                                           =   30510    // 1 site(s)
     ,   exceeds_tuple_index                                         =   30511    // 1 site(s)
-    ,   exceeds_type                                                =   30512    // 2 site(s)
+    ,   exceeds_type                                                =   30512    // 3 site(s)
     ,   exceeds_type_alias                                          =   30513    // 1 site(s)
     ,   exceeds_typeinfo_sizeof                                     =   30514    // 1 site(s)
     ,   exceeds_constant_range                                      =   30515    // 1 site(s)
@@ -690,7 +690,7 @@ namespace das
     ,   invalid_private                                             =   30345    // parser_impl.cpp private-modifier
     ,   invalid_static                                              =   30346    // parser_impl.cpp static-modifier
     ,   aot_side_effects                                            =   40500    // ast_lint AOT side-effects warning
-    // dasFormatter (utils/dasFormatter/ds_parser.ypp) — older parser, not audited
+    // dasFormatter (utils/gen1-to-gen2/ds_parser.ypp) — older parser, not audited
     ,   cant_pipe                                                   =   30347    // dasFormatter parser
     ,   enumeration_value_already_declared                          =   30348    // dasFormatter parser
     ,   invalid_escape_sequence                                     =   10005    // dasFormatter parser

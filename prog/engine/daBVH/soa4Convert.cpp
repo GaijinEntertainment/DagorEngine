@@ -428,7 +428,6 @@ struct ToStackless
   dag::Vector<uint8_t> &buf;
   int vertsOfs = 0;
   bool failed = false;
-  bool carved = false; // the sizing walk saw a dropped leaf
 
   ToStackless(dag::Vector<uint8_t> &out) : buf(out) {}
 
@@ -468,10 +467,7 @@ struct ToStackless
           failed = true;
           return 0;
         }
-        if (leafKept(bodyOfs, isShort))
-          bytes += BVH_BLAS_LEAF_SIZE;
-        else
-          carved = true;
+        bytes += leafKept(bodyOfs, isShort) ? BVH_BLAS_LEAF_SIZE : 0;
         bodyOfs += bodyBytes;
       }
       else
@@ -608,7 +604,7 @@ struct ToStackless
       return res;
     }
     memcpy(buf.data() + vertsOfs, src + srcVertsOfs, srcVertBytes);
-    res.status = carved ? StacklessResult::Status::EmittedCarved : StacklessResult::Status::Emitted;
+    res.status = StacklessResult::Status::Emitted;
     res.treeBytes = treeBytes;
     res.vertsOfs = vertsOfs;
     return res;

@@ -342,9 +342,9 @@ static void get_animchar_tight_matrix(const DataBlock &info, IconAnimcharWithAtt
     alignas(16) Point4 clipBox;
     v_st(&clipBox.x, clipScreenBox);
 
-    scaleX = 1. / (0.5 * (clipBox.y - clipBox.x)), scaleY = 1. / (0.5 * (clipBox.w - clipBox.z));
-    centerX = 0.5 * (clipBox.x + clipBox.y);
-    centerY = 0.5 * (clipBox.z + clipBox.w);
+    scaleX = 1.f / (0.5f * (clipBox.y - clipBox.x)), scaleY = 1.f / (0.5f * (clipBox.w - clipBox.z));
+    centerX = 0.5f * (clipBox.x + clipBox.y);
+    centerY = 0.5f * (clipBox.z + clipBox.w);
   }
   else
   {

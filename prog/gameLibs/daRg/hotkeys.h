@@ -24,7 +24,8 @@ class StringKeys;
 class HotkeyCombo
 {
 public:
-  bool updateOnCombo(HumanInput::IGenJoystick *joy);
+  // Only an event of one of the combo buttons can set isPressed; DEVID_NONE in event_btn allows any button
+  bool updateOnCombo(HumanInput::IGenJoystick *joy, HotkeyButton event_btn);
   bool forceReleaseButtons();
   bool updateOnEvent(IGuiScene *scene, Element *elem, const char *event_id, int id_str_len, bool pressed); //< return true if processed
   void triggerOnCombo(IGuiScene *scene, Element *elem);

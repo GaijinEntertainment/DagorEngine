@@ -96,7 +96,6 @@ class IndentedTreeRenderer : public Visitor {
         case TO_MULEQ: return "*=";
         case TO_DIVEQ: return "/=";
         case TO_MODEQ: return "%=";
-        case TO_STATIC_MEMO: return "STATIC_MEMO";
         case TO_INLINE_CONST: return "INLINE_CONST";
         case TO_SPREAD: return "...";
         case TO_PAREN: return "(";
@@ -194,7 +193,6 @@ public:
             case TO_CLONE:
             case TO_PAREN:
             case TO_DELETE:
-            case TO_STATIC_MEMO:
             case TO_SPREAD:
             case TO_INLINE_CONST: {
                 UnExpr* expr = static_cast<UnExpr*>(node);

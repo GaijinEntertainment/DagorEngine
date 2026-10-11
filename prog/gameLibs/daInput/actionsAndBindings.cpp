@@ -63,6 +63,7 @@ void dainput::reset_actions()
   clear_and_shrink(dainput::actionSetStack);
   agData = ActionGlobData();
   clear_and_shrink(actionSets);
+  actionSetsGen++;
   for (auto &m : actionNameBackMap)
     m.clear();
   actionsNativeOrdered.clear();

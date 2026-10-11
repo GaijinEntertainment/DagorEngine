@@ -76,35 +76,40 @@ static inline bool is_exact_axis_aligned_basis(const TMatrix &tm)
   return true;
 }
 
+// The upward rounding of the sigma_max forms; the trace's Gershgorin reject bound applies its square.
+static constexpr float SPECTRAL_NORM_UPWARD = 1.000002f;
+
 // Largest singular value, used where column lengths under-bound shear. Rounded up a few ULPs
-// only: an upper bound where the closed form is exact (uniform and axis-aligned bases), about
-// 1e-4 under near coincident singular values, which the shear-class stamps cover with their own
-// margin. Defined in collisionGameRes.cpp: its degenerate-scale diagnostic must latch once per
-// process, not once per translation unit.
+// only: exact for a uniform basis, elsewhere the closed form's error, up to 1e-4 near coincident
+// singular values, which the shear-class stamps cover with their own margin; a basis under
+// v_is_unsafe_divisor's 4e-19 reads its 3s cap. Defined in collisionGameRes.cpp: its
+// degenerate-scale diagnostic must latch once per process, not once per translation unit.
 float mat33_spectral_norm(mat44f_cref m_in);
 
-// Affine inverse with the determinant taken in double. The float determinants cannot represent
-// what their own matrices can: the legacy inverse() asserts below 1e-12 and v_mat33_inverse
-// substitutes an all-zero inverse below its reciprocal floor, while the determinant of any finite
-// float basis fits in double with room to spare. So this inverts whenever the result is
-// representable, and overflows to inf when it is not, which is what the finiteness probes expect.
+// Affine inverse with the math in double. The float determinants cannot represent what their own
+// matrices can: the legacy inverse() asserts below 1e-12 and v_mat33_inverse substitutes an
+// all-zero inverse below its reciprocal floor, while the determinant of any finite float basis
+// fits in double with room to spare. So this inverts whenever the result is representable, and
+// overflows to inf when it is not, which is what the finiteness probes expect.
+// Rows go in, their translation in .w: the columns of the inverse are the cross products of the
+// rows, so neither side transposes.
 static inline TMatrix collres_inverse(const TMatrix &a)
 {
-  double m[3][3];
-  for (int c = 0; c < 3; c++)
-    for (int r = 0; r < 3; r++)
-      m[c][r] = a.m[c][r];
-  const double adj[3][3] = {
-    {m[1][1] * m[2][2] - m[2][1] * m[1][2], m[2][1] * m[0][2] - m[0][1] * m[2][2], m[0][1] * m[1][2] - m[1][1] * m[0][2]},
-    {m[2][0] * m[1][2] - m[1][0] * m[2][2], m[0][0] * m[2][2] - m[2][0] * m[0][2], m[1][0] * m[0][2] - m[0][0] * m[1][2]},
-    {m[1][0] * m[2][1] - m[2][0] * m[1][1], m[2][0] * m[0][1] - m[0][0] * m[2][1], m[0][0] * m[1][1] - m[1][0] * m[0][1]}};
-  const double invD = 1.0 / (m[0][0] * adj[0][0] + m[1][0] * adj[0][1] + m[2][0] * adj[0][2]);
+  vec4d r0 = vd_make_vec4d(a.m[0][0], a.m[1][0], a.m[2][0], a.m[3][0]);
+  vec4d r1 = vd_make_vec4d(a.m[0][1], a.m[1][1], a.m[2][1], a.m[3][1]);
+  vec4d r2 = vd_make_vec4d(a.m[0][2], a.m[1][2], a.m[2][2], a.m[3][2]);
+  vec4d c0 = vd_cross3(r1, r2), c1 = vd_cross3(r2, r0), c2 = vd_cross3(r0, r1);
+  vec4d invDet = vd_splats(1.0 / vd_extract_x(vd_dot3_x(r0, c0)));
+  vec4d t = vd_mul(c0, vd_splats(vd_extract_w(r0)));
+  t = vd_add(t, vd_mul(c1, vd_splats(vd_extract_w(r1))));
+  t = vd_add(t, vd_mul(c2, vd_splats(vd_extract_w(r2))));
+  mat44f inv;
+  inv.col0 = vd_cvt_to_vec4f(vd_mul(c0, invDet));
+  inv.col1 = vd_cvt_to_vec4f(vd_mul(c1, invDet));
+  inv.col2 = vd_cvt_to_vec4f(vd_mul(c2, invDet));
+  inv.col3 = vd_cvt_to_vec4f(vd_mul(t, vd_neg(invDet)));
   TMatrix r;
-  for (int c = 0; c < 3; c++)
-    for (int w = 0; w < 3; w++)
-      r.m[c][w] = float(adj[c][w] * invD);
-  for (int w = 0; w < 3; w++)
-    r.m[3][w] = float(-(adj[0][w] * a.m[3][0] + adj[1][w] * a.m[3][1] + adj[2][w] * a.m[3][2]) * invD);
+  v_mat_43cu_from_mat44(r.array, inv);
   return r;
 }
 
@@ -112,40 +117,60 @@ static inline TMatrix collres_inverse(const TMatrix &a)
 // for the same single-latch reason.
 bool check_instance_owned_and_fresh(const CollisionResource *res, const CollisionResourceInstance &instance, const char *site);
 
-// Conditioning of one geometry matrix for the TLAS refit budget, spectral-norm-bounded
-// (column lengths under-read shear).
-static inline float collres_tlas_tm_conditioning(mat44f_cref gt)
+static inline float collres_box_max_abs(bbox3f_cref b) { return v_extract_x(v_hmax3(v_max(v_abs(b.bmin), v_abs(b.bmax)))); }
+
+// The orthonormal class band: every squared column length within eps of 1 and every Gram
+// off-diagonal under eps, since a unit-length shear passes a length-only test.
+static inline bool collres_gram_in_band(vec3f scale_sq, vec3f off, float eps)
+{
+  vec4f vEps = v_splats(eps);
+  vec4f inBand = v_and(v_cmp_gt(scale_sq, v_sub(V_C_ONE, vEps)), v_cmp_lt(scale_sq, v_add(V_C_ONE, vEps)));
+  return v_check_xyz_all_true(v_and(inBand, v_cmp_lt(v_abs(off), vEps)));
+}
+
+// A rigid frame's Gram is in this band, so its eigenvalues are within 3e-3 of 1: sigma_max is
+// under sqrt(1.003) and the TLAS conditioning under (1.003 / 0.997)^1.5, both rounded up here.
+inline constexpr float COLLRES_RIGID_GRAM_EPS = 1e-3f;
+inline constexpr float COLLRES_RIGID_SIGMA_MAX = 1.0016f;
+inline constexpr float COLLRES_RIGID_CONDITIONING = 1.0091f;
+
+// An overflowing Gram reads inf, and a Gram underflow comes after the det's, so either way the budget declines.
+static inline float collres_sigma_max_bound_sq(mat44f_cref m)
+{
+  vec3f diag, off;
+  v_mat33_gram(diag, off, m.col0, m.col1, m.col2);
+  return v_extract_x(v_mat33_gram_bound_x(diag, off)) * (SPECTRAL_NORM_UPWARD * SPECTRAL_NORM_UPWARD);
+}
+static inline float collres_sigma_max_bound(mat44f_cref m) { return sqrtf(collres_sigma_max_bound_sq(m)); }
+
+// Conditioning of one geometry matrix for the TLAS refit budget (column lengths under-read shear).
+static inline float collres_tlas_tm_conditioning(mat44f_cref gt, float sigma_max)
 {
   const float det = fabsf(v_extract_x(v_dot3_x(gt.col0, v_cross3(gt.col1, gt.col2))));
-  return collres_tlas_conditioning(mat33_spectral_norm(gt), det);
+  return collres_tlas_conditioning(sigma_max, det);
+}
+static inline float collres_tlas_tm_conditioning(mat44f_cref gt)
+{
+  return collres_tlas_tm_conditioning(gt, collres_sigma_max_bound(gt));
 }
 
 // Max basis deviation from orthonormality, |c_i . c_j - delta_ij| over the six pairs: length
 // AND pairwise orthogonality (a unit-length shear passes any length-only test).
 static inline float collres_mat33_ortho_dev(mat44f_cref m)
 {
-  const float e00 = fabsf(v_extract_x(v_dot3_x(m.col0, m.col0)) - 1.f);
-  const float e11 = fabsf(v_extract_x(v_dot3_x(m.col1, m.col1)) - 1.f);
-  const float e22 = fabsf(v_extract_x(v_dot3_x(m.col2, m.col2)) - 1.f);
-  const float e01 = fabsf(v_extract_x(v_dot3_x(m.col0, m.col1)));
-  const float e02 = fabsf(v_extract_x(v_dot3_x(m.col0, m.col2)));
-  const float e12 = fabsf(v_extract_x(v_dot3_x(m.col1, m.col2)));
-  return max(max(max(e00, e11), max(e22, e01)), max(e02, e12));
+  vec3f diag, off;
+  v_mat33_gram(diag, off, m.col0, m.col1, m.col2);
+  return v_extract_x(v_hmax3(v_max(v_abs(v_sub(diag, V_C_ONE)), v_abs(off))));
 }
 
 // Bit-exact signed-permutation bases (identity, axis-aligned rotations and reflections) are the
 // only rigid bases floats represent exactly; every other member of an epsilon class owes the
-// conservative pad. Within a near-orthogonal class three unit-axis columns are necessarily
-// distinct axes, so no orthogonality check is needed here.
-static inline bool is_exact_unit_axis_col(const Point3 &c)
-{
-  const float ax = fabsf(c.x), ay = fabsf(c.y), az = fabsf(c.z);
-  return (ax == 1.f && ay == 0.f && az == 0.f) || (ax == 0.f && ay == 1.f && az == 0.f) || (ax == 0.f && ay == 0.f && az == 1.f);
-}
-
+// conservative pad.
 static inline bool is_exact_rigid_basis(const TMatrix &tm)
 {
-  return is_exact_unit_axis_col(tm.getcol(0)) && is_exact_unit_axis_col(tm.getcol(1)) && is_exact_unit_axis_col(tm.getcol(2));
+  mat44f m;
+  v_mat44_make_from_43cu_unsafe(m, tm.array);
+  return v_mat44_is_signed_perm33(m);
 }
 
 // Row norm without squaring raw elements: a finite 2e20 component would overflow into an
@@ -158,14 +183,6 @@ static inline float conservative_row_norm(float x, float y, float z)
     return m == 0.f ? 0.f : m * 1.7320509f;
   const float ix = x / m, iy = y / m, iz = z / m;
   return m * sqrtf(ix * ix + iy * iy + iz * iz);
-}
-
-
-static inline bool is_exact_rigid_basis_v(mat44f_cref m)
-{
-  TMatrix t;
-  v_mat_43cu_from_mat44(t.array, m);
-  return is_exact_rigid_basis(t);
 }
 
 // Analytic AABB avoids the rotation inflation of corner-mapping a sphere.
@@ -185,10 +202,22 @@ static inline BBox3 composed_sphere_box(const TMatrix &tm, const Point3 &c, floa
 // boxes short while the node stays traceable.
 static inline void join_saturated_finite(bbox3f &dst, bbox3f b)
 {
-  if (!v_check_xyz_all_true(v_and(v_cmp_eq(b.bmin, b.bmin), v_cmp_eq(b.bmax, b.bmax))))
+  // v_is_nan, not x == x: -ffinite-math-only folds the self-compare to true
+  if (v_check_xyz_any_true(v_or(v_is_nan(b.bmin), v_is_nan(b.bmax))))
     return;
   const vec4f lim = v_splats(FLT_MAX);
   b.bmin = v_min(v_max(b.bmin, v_neg(lim)), lim);
   b.bmax = v_min(v_max(b.bmax, v_neg(lim)), lim);
   v_bbox3_add_box(dst, b);
 }
+
+// writeRaw and readRaw: the fields outside the block
+struct CollResRawHead
+{
+  vec4f boundingSphere, bindTraceSphere;
+  BBox3 boundingBox;
+  float boundingSphereRad;
+  uint32_t collisionFlags, blockBytes;
+  dag::Index16 bsphereCenterNode;
+  bool posedSinceBind;
+};

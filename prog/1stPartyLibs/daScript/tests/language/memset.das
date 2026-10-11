@@ -50,3 +50,50 @@ def test_memset(t : T?) {
     }
 }
 
+[test]
+def test_memmove(t : T?) {
+    t |> run("memmove overlapping ranges, every size spelling") @(t : T?) {
+        // shifting a[0..6] right by 2 overlaps itself: memmove keeps the source bytes, unlike memcpy
+        var a : uint8[10]
+        for (i in 0..10) {
+            a[i] = uint8(i)
+        }
+        unsafe {
+            memmove(addr(a[2]), addr(a[0]), 6)
+        }
+        for (i in 0..10) {
+            t |> equal(uint8(i >= 2 && i < 8 ? i - 2 : i), a[i])
+        }
+        unsafe {
+            memmove(addr(a[0]), addr(a[2]), 6u)
+        }
+        for (i in 0..6) {
+            t |> equal(uint8(i), a[i])
+        }
+        unsafe {
+            memmove(addr(a[2]), addr(a[0]), 6l)
+        }
+        t |> equal(0u8, a[2])
+        t |> equal(5u8, a[7])
+        unsafe {
+            memmove(addr(a[0]), addr(a[2]), 6ul)
+        }
+        for (i in 0..6) {
+            t |> equal(uint8(i), a[i])
+        }
+    }
+    t |> run("memmove between distinct buffers") @(t : T?) {
+        var src : int[4]
+        var dst : int[4]
+        for (i in 0..4) {
+            src[i] = i * 11
+        }
+        unsafe {
+            memmove(addr(dst[0]), addr(src[0]), 4 * 4)
+        }
+        for (i in 0..4) {
+            t |> equal(i * 11, dst[i])
+        }
+    }
+}
+

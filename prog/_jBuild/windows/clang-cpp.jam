@@ -64,8 +64,11 @@ rule ProcessCompileTarget
   include $(Root)/prog/_jBuild/_vc/add_fp_fast.jam ;
   $(Target)__CPP_OPT = -FImemory/dag_memBase.h $(post_opt) $(_CPP_OPT) -TP ;
 
-  if $(StrictCompile) = yes {
-    if ! [ MATCH /(3rdPartyLibs)/ : $(Location) ] { $(Target)__CPP_OPT += -Wunused-parameter -Wunused-variable -Wunused-lambda-capture -Wrange-loop-construct -Werror=unused-parameter -Werror=unused-variable -Werror=unused-lambda-capture -Werror=range-loop-construct /permissive- ; }
+  if $(StrictCompile) = yes && ! [ MATCH /(3rdPartyLibs)/ : $(Location) ] {
+    $(Target)__CPP_OPT += -Wunused-parameter -Wunused-variable -Wunused-lambda-capture -Wrange-loop-construct -Wpessimizing-move -Wredundant-move -Wself-move -Werror=unused-parameter -Werror=unused-variable -Werror=unused-lambda-capture -Werror=range-loop-construct -Werror=pessimizing-move -Werror=redundant-move -Werror=self-move /permissive- ;
+    # without /clang:, clang-cl drops the limit
+    # sanitizer redzones inflate frames, so their size says nothing about the shipped binary
+    if $(Config) in dev rel irel && $(CheckOnly) != yes && $(Sanitize) = disabled { $(Target)__CPP_OPT += /clang:-Wframe-larger-than=$(StrictCompileFrameLimit) -Werror=frame-larger-than ; }
   }
 
   $(Target)__C_OPT   = $(post_opt) $(Copt) $(_CPP_OPT) ;

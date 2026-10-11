@@ -17,7 +17,9 @@
 
 #include "../rapidjson.h"
 
-#if defined(_MSC_VER) && defined(_M_AMD64)
+// Gaijin change
+#if defined(_MSC_VER) && defined(_M_AMD64) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #include <intrin.h> // for _umul128
 #pragma intrinsic(_umul128)
 #endif
@@ -247,7 +249,9 @@ private:
 
     // Assume a * b + k < 2^128
     static uint64_t MulAdd64(uint64_t a, uint64_t b, uint64_t k, uint64_t* outHigh) {
-#if defined(_MSC_VER) && defined(_M_AMD64)
+// Gaijin change
+#if defined(_MSC_VER) && defined(_M_AMD64) && !defined(_M_ARM64EC)
+// ~Gaijin change
         uint64_t low = _umul128(a, b, outHigh) + k;
         if (low < k)
             (*outHigh)++;

@@ -33,17 +33,17 @@ auto NodeScheduler::schedule(const intermediate::Graph &graph, const PassColorin
 
   // "how many edges point into me?"
   IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> inDegree(graph.nodes.totalKeys());
-  for (auto [nodeId, node] : graph.nodes.enumerate())
+  for (const auto &node : graph.nodes.values())
     for (auto pred : node.predecessors)
       ++inDegree[pred];
 
   // "how many edges point into this pass from different passes?"
   IdIndexedMapping<PassColor, uint16_t, framemem_allocator> passInDegree;
   passInDegree.reserve(graph.nodes.totalKeys());
-  for (auto [nodeId, _] : graph.nodes.enumerate())
+  for (auto nodeId : graph.nodes.keys())
     passInDegree.expandMapping(pass_coloring[nodeId], 0);
 
-  for (auto [nodeId, node] : graph.nodes.enumerate())
+  for (const auto &[nodeId, node] : graph.nodes.enumerate())
     for (auto pred : node.predecessors)
       if (pass_coloring[nodeId] != pass_coloring[pred])
         ++passInDegree[pass_coloring[pred]];
@@ -122,7 +122,7 @@ auto NodeScheduler::schedule(const intermediate::Graph &graph, const PassColorin
     logwarn("daFG: Node scheduler could not schedule some passes to be contiguous! This is fine, but sub-optimal.");
 
 #if DAGOR_DBGLEVEL > 0
-  for (auto [from, to] : result.enumerate())
+  for (auto &&[from, to] : result.enumerate())
     G_ASSERTF(!graph.nodes.isMapped(from) || to != NOT_VISITED, "daFG: IR graph was not a DAG! This is an invariant that MUST hold!");
 #endif
 

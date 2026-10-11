@@ -35,4 +35,26 @@ namespace das {
         socket_t server_fd = 0;
         socket_t client_fd = 0;
     };
+
+    class DAS_API Client {
+    public:
+        Client ();
+        virtual ~Client();
+        bool connect ( const char * host, int port, int timeout_ms = 5000 );
+        bool is_connected() const;
+        void tick();
+        bool send_msg ( char * data, int size );
+        void disconnect();
+    protected:
+        virtual void onConnect();
+        virtual void onDisconnect();
+        virtual void onData ( char * buf, int size );
+        virtual void onError ( const char * msg, int code );
+        virtual void onLog ( const char * msg );
+    protected:
+        socket_t fd = 0;
+        bool connected = false;
+    };
+
+    DAS_API int probe_local_port ( const char * host, int port );
 }

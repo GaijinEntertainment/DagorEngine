@@ -31,7 +31,7 @@ AddIncludes +=
 
 include $(Root)/$(Location)/jamfile-dxc-ver ;
 
-if ! [ GLOB $(_DEVTOOL)/DXC-$(DXC_VERSION)/include : * ] { exit FATAL\: \"DXC-$(DXC_VERSION)/include\" not found! Please, update DEVTOOLS ; }
+if ! [ GLOB $(_DEVTOOL)/DXC-$(DXC_VERSION)/include : * ] { exit "FATAL: \"DXC-$(DXC_VERSION)/include\" not found! Please, update DEVTOOLS" ; }
 
 AddIncludes += $(_DEVTOOL)/DXC-$(DXC_VERSION)/include
 ;

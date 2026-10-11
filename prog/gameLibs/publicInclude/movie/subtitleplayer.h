@@ -217,7 +217,7 @@ public:
     if (line_cnt > nLines)
     {
       // for long text try maximum 85% screen width text area
-      scr_w = int(scrW * 0.85);
+      scr_w = int(scrW * 0.85f);
       ptr = lines, str = lines;
       line_cnt = 0;
       while ((ptr = get_last_fit(str, scr_w, max_lines)) != NULL)

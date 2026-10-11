@@ -380,6 +380,7 @@ void ShaderSemCode::convert_passes(SemanticShaderPass &semP, ShaderCode::Pass &p
   p.branchlessCppStcodeId = semP.preshader->cppStcodeId;
 
   p.renderStateNo = add_render_state(semP, ctx);
+  p.renderPassOptIn = semP.renderPassOptIn;
   p.threadGroupSizes = semP.threadGroupSizes;
   p.scarlettWave32 = semP.scarlettWave32;
 }

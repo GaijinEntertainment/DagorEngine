@@ -355,14 +355,14 @@ String HeightmapDebugShadingProperties::showNewGradientNamePicker(const char *di
     PID_GRADIENT_NAME = PropPanel::DIALOG_ID_FIRST_FREE,
   };
 
-  eastl::unique_ptr<PropPanel::DialogWindow> dialog(
-    EDITORCORE->createDialog(hdpi::_pxScaled(250), hdpi::_pxScaled(125), dialog_title));
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(EDITORCORE->createAutoSizedDialog(dialog_title));
   dialog->setInitialFocus(PID_GRADIENT_NAME);
   PropPanel::ContainerPropertyControl *dlgPanel = dialog->getPanel();
   dlgPanel->createEditBox(PID_GRADIENT_NAME, "Name");
 
   while (true)
   {
+    dialog->autoSize(/*auto_center = */ !dialog->hasEverBeenShown(), /*use_preferred_size = */ true);
     const int ret = dialog->showDialog();
     if (ret != PropPanel::DIALOG_ID_OK)
       return String();

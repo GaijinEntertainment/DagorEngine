@@ -19,7 +19,6 @@ namespace darg
 
 BhvVirtualList bhv_virtual_list;
 
-static const char *dataSlotName = "virtualList:data";
 // Marks a contributed child that is not one of the items: a spacer, or a tail
 // entry.
 static constexpr int NOT_AN_ITEM = -1;
@@ -29,7 +28,7 @@ BhvVirtualList::BhvVirtualList() : Behavior(STAGE_ACT, 0) {}
 
 static BhvVirtualListData *get_data(const Element *elem)
 {
-  return elem->props.storage.RawGetSlotValue<BhvVirtualListData *>(dataSlotName, nullptr);
+  return elem->props.storage.RawGetSlotValue<BhvVirtualListData *>(elem->csk->virtualListData, nullptr);
 }
 
 
@@ -108,7 +107,7 @@ void BhvVirtualList::onElemSetup(Element *elem, SetupMode)
   {
     // must exist before contributeChildren(), which runs before onAttach()
     data = new BhvVirtualListData();
-    elem->props.storage.SetValue(dataSlotName, data);
+    elem->props.storage.SetValue(elem->csk->virtualListData, data);
   }
 
   const Properties &props = elem->props;
@@ -191,7 +190,7 @@ void BhvVirtualList::onDetach(Element *elem, DetachMode)
 {
   if (BhvVirtualListData *data = get_data(elem))
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->virtualListData);
     delete data;
   }
 }

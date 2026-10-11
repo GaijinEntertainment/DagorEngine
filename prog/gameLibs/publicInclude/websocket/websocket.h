@@ -76,12 +76,10 @@ using ConnectCb = WebSocketCallback<ConnectStatus, const eastl::string & /* actu
 using CloseCb = WebSocketCallback<CloseStatusInt, Error && /* error */>;
 using MessageCb = WebSocketCallback<PayloadView, bool>; // payload, isText
 
-// WebSocketClient is CURL-based.
-//
-// * All class methods must be called from the same thread. They are not thread-safe.
-// * User or WebSocketClient must be ready that application-provided callbacks can be called from different threads.
-// * Callbacks can be also called directly from inside of methods `connect`, `send`, `close` and `poll`.
-// * User must not call `poll()` from inside of callbacks because `poll()` is not ready for this.
+// CURL-based. All clients share one I/O thread and one worker thread, which run while any client exists.
+// connect, send and close post a command from any thread and never call a callback: results come in a later poll.
+// poll runs the connect, close and onMessage callbacks on the one polling thread; never call it from a callback.
+// Destroy on the polling thread (a poll callback is fine), never in onMessageAsync; it waits for this client's callbacks.
 class WebSocketClient
 {
 public:
@@ -91,6 +89,7 @@ public:
   // `connect_ip_hint` should be empty string when no IP hint is provided
   virtual void connect(const eastl::string &uri, const eastl::string &connect_ip_hint, ConnectCb &&connect_cb,
     const Headers &additional_headers) = 0;
+  // The caller must not call send() after close() until a new connect() succeeds
   virtual void send(PayloadView message, bool is_text) = 0;
   virtual void close(CloseStatus) = 0;
   virtual void poll() = 0;
@@ -102,11 +101,21 @@ struct ClientConfig
   bool verifyHost = true;      // used only if `set_ca_bundle()` was called; value can be ignored on some platforms
   int connectTimeoutMs = 0;    // 0 means using default built-in connection timeout; value can be ignored on some platforms
   unsigned maxMessageSize = 0; // 0 means unlimited message size
+  // Wait for the peer's close frame after close(); 0 is no limit, on expiry onClose gets 1006.
+  // With a ws-capable libcurl, also the wait to flush our close frame after the peer's one or a failure; 1 s when 0.
+  int closeTimeoutMs = 0;
   MessageCb onMessage;
+  // Replaces onMessage when set. Runs on the worker thread in order, after the connect callback and before onClose.
+  MessageCb onMessageAsync;
   CloseCb onClose;
 };
 
 eastl::unique_ptr<WebSocketClient> create_client(ClientConfig &&config);
 
 void set_ca_bundle(const char *bundle_file);
+
+// Call at app shutdown: closes every client still alive with GoingAway and polls the ones this thread polls for up to
+// close_wait_ms, so their owners can release them in onClose; a client without a connection gets no onClose.
+// Reports each client left as an error; returns their count.
+unsigned shutdown(int close_wait_ms = 1000);
 } // namespace websocket

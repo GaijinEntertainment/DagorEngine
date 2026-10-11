@@ -124,9 +124,9 @@ macro USE_HEIGHTMAP_OFS(stage)
     float get_hmap_ofs_with_vignette_no_extras(float2 worldPosXZ)
     {
       float vignetteEffect;
-      float height = get_hmap_ofs_height_vignette(worldPosXZ, 0, vignetteEffect) * vignetteEffect;
+      float height = get_hmap_ofs_height_vignette(worldPosXZ, 0, vignetteEffect);
 
-      return height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w;
+      return (height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w) * vignetteEffect;
     }
 
     float get_hmap_ofs_no_grass_vignette(float2 worldPosXZ)
@@ -136,15 +136,16 @@ macro USE_HEIGHTMAP_OFS(stage)
 
       ##if grass_mask_tex != NULL
         BRANCH
-        if (vignetteEffect > 0 && vignetteEffect < 1)
+        if (vignetteEffect < 1)
         {
           float2 grass_mask_tc = worldPosXZ * world_to_grass.x + world_to_grass.zw;
           float grassHeight = tex2Dlod(grass_mask_tex, float4(grass_mask_tc,0,0)).z;
           height = lerp(grassHeight, height, vignetteEffect);
         }
+        return height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w;
+      ##else
+        return (height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w) * vignetteEffect;
       ##endif
-
-      return height * world_to_hmap_tex_ofs.z + world_to_hmap_tex_ofs.w;
     }
   }
 endmacro

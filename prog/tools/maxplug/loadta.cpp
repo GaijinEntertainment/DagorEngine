@@ -119,35 +119,55 @@ void _simplify_filename(char *s)
       }
 }
 
-void _append_slash(char *fn)
-{
-  if (!fn)
-    return;
-  int l = (int)strlen(fn);
-  if (l > 0)
-    if (fn[l - 1] != '\\' && fn[l - 1] != '/')
-    {
-      fn[l] = '\\';
-      fn[l + 1] = 0;
-    }
-}
-
-static char basepath[256], basefile[256];
-
-static void setbasefile(const wchar_t *fn)
+void TexAnimFile::setbasefile(const wchar_t *fn)
 {
   fs::path p(fn);
-  strcpy(basepath, wideToStr(p.parent_path().c_str()).c_str());
-  _append_slash(basepath);
-  strcpy(basefile, wideToStr(p.stem().c_str()).c_str());
+  basepath = wideToStr(p.parent_path().c_str());
+  if (!basepath.empty() && basepath.back() != '\\' && basepath.back() != '/')
+    basepath += '\\';
+  basefile = wideToStr(p.stem().c_str());
 }
 
-void TexAnimFile::add_frame(char *fname)
+static bool is_frame_template_valid(const std::string &templ)
 {
-  char fn[256];
-  strcpy(fn, basepath);
-  strcat(fn, fname);
-  _simplify_filename(fn);
+  auto skip_digits = [&](size_t &i) {
+    const size_t start = i;
+    while (i < templ.size() && templ[i] >= '0' && templ[i] <= '9')
+      ++i;
+    return i - start <= 3;
+  };
+
+  int conversions = 0;
+  for (size_t i = 0; i < templ.size(); ++i)
+  {
+    if (templ[i] != '%')
+      continue;
+    if (++i < templ.size() && templ[i] == '%')
+      continue;
+    while (i < templ.size() && std::string_view("-+ #0").find(templ[i]) != std::string_view::npos)
+      ++i;
+    if (!skip_digits(i))
+      return false;
+    if (i < templ.size() && templ[i] == '.' && !skip_digits(++i))
+      return false;
+    if (i >= templ.size() || std::string_view("diouxX").find(templ[i]) == std::string_view::npos || ++conversions > 1)
+      return false;
+  }
+  return true;
+}
+
+static std::string format_frame_name(const std::string &templ, int frame)
+{
+  std::string fn(snprintf(nullptr, 0, templ.c_str(), frame), '\0');
+  snprintf(fn.data(), fn.size() + 1, templ.c_str(), frame);
+  return fn;
+}
+
+void TexAnimFile::add_frame(const std::string &fname)
+{
+  std::string fn = basepath + fname;
+  _simplify_filename(fn.data());
+  fn.resize(strlen(fn.c_str()));
   std::wstring wfn = strToWide(fn);
 
   int i;
@@ -283,8 +303,7 @@ bool TexAnimFile::parse(char *text)
         skipcomm(text, true);
         if (*text != '"')
           error(L"expected \"");
-        char templ[256];
-        char *p = templ;
+        std::string templ;
         for (++text; *text; ++text)
         {
           if (*text == '"')
@@ -294,21 +313,24 @@ bool TexAnimFile::parse(char *text)
           if (*text == '~')
           {
             ++text;
+            if (!*text)
+              break;
             if (*text == 'r')
-              *p++ = '\r';
+              templ += '\r';
             else if (*text == 'n')
-              *p++ = '\n';
+              templ += '\n';
             else if (*text == 't')
-              *p++ = '\t';
+              templ += '\t';
             else
-              *p++ = *text;
+              templ += *text;
             continue;
           }
-          *p++ = *text;
+          templ += *text;
         }
-        *p = 0;
         if (*text != '"')
           error(L"unclosed string");
+        if (!is_frame_template_valid(templ))
+          error(L"the template takes at most one integer format, like %03d, with up to 3 digits of width and precision");
         ++text;
         for (;;)
         {
@@ -360,8 +382,7 @@ bool TexAnimFile::parse(char *text)
             int rep;
             if (!parse_int(text, &rep))
               error(L"expected integer number");
-            char fn[256];
-            sprintf(fn, templ, f1);
+            const std::string fn = format_frame_name(templ, f1);
             for (; rep > 0; --rep)
               add_frame(fn);
             continue;
@@ -379,32 +400,25 @@ bool TexAnimFile::parse(char *text)
               if (f < f2)
                 break;
             }
-            char fn[256];
-            sprintf(fn, templ, f);
-            add_frame(fn);
+            add_frame(format_frame_name(templ, f));
           }
         }
       }
       else
       {
-        char fn[256];
+        std::string fn;
         char *p = text;
         if (*p == '!')
         {
           ++p;
-          strcpy(fn, basefile);
-        }
-        else
-        {
-          fn[0] = 0;
+          fn = basefile;
         }
         for (; *text; ++text)
           if (*text == '\n' || *text == '\r')
             break;
-        if (text != p || fn[0])
+        if (text != p || !fn.empty())
         {
-          if (text != p)
-            strncat(fn, p, text - p);
+          fn.append(p, text - p);
           add_frame(fn);
         }
       }

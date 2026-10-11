@@ -1,0 +1,2 @@
+file:t = "render/raytracedToroidalStaticShadow/shaders/rtss_build.dshl"
+file:t = "render/raytracedToroidalStaticShadow/shaders/rtss_debug.dshl"

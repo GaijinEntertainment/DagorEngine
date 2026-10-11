@@ -2,7 +2,6 @@ options gen2
 
 require dastest/testing_boost public
 require daslib/linq_boost
-require strings
 
 // Table source (each_kv / keys / values) through _fold — fused TableAdapter lanes must agree with
 // hand loops over the same table. Slot order is unspecified but stable per table instance, so
@@ -80,7 +79,7 @@ def test_table_fold_accumulators(t : T?) {
 def test_table_fold_to_array_agreement(t : T?) {
     t |> run("kv where+select agrees with hand loop, in slot order") @(t : T?) {
         var tab <- make_pt_table()
-        var expected : array<int>
+        var expected : array<int> // nolint:STYLE027 hand loop is the reference the fold is checked against
         for (_k, v in keys(tab), values(tab)) {
             if (v.x > 1) {
                 expected |> push(v.y)
@@ -88,8 +87,8 @@ def test_table_fold_to_array_agreement(t : T?) {
         }
         var got <- _fold(each_kv(tab)._where(_.value.x > 1)._select(_.value.y).to_array())
         t |> equal(length(got), length(expected))
-        for (i in range(length(expected))) {
-            t |> equal(got[i], expected[i])
+        for (g, e in got, expected) {
+            t |> equal(g, e)
         }
         delete got
         delete expected
@@ -97,15 +96,15 @@ def test_table_fold_to_array_agreement(t : T?) {
     }
     t |> run("keys to_array in slot order") @(t : T?) {
         var tab <- make_pt_table()
-        var expected : array<string>
+        var expected : array<string> // nolint:STYLE027 hand loop is the reference the fold is checked against
         for (k in keys(tab)) {
             expected |> push(k)
         }
         // bare `<src>.to_array()` is not a recognized chain (any source) — keep a where on it
         var got <- _fold(keys(tab)._where(_ != "zzz").to_array())
         t |> equal(length(got), length(expected))
-        for (i in range(length(expected))) {
-            t |> equal(got[i], expected[i])
+        for (g, e in got, expected) {
+            t |> equal(g, e)
         }
         delete got
         delete expected
@@ -145,10 +144,7 @@ def test_table_fold_order_distinct_take(t : T?) {
         delete tab
     }
     t |> run("values distinct stays real") @(t : T?) {
-        var dup : table<int; int>
-        dup |> insert(1, 7)
-        dup |> insert(2, 7)
-        dup |> insert(3, 8)
+        var dup <- {1 => 7, 2 => 7, 3 => 8}
         t |> equal(_fold(values(dup).distinct().count()), 2)
         t |> equal(_fold(each_kv(dup)._select(_.value).distinct().count()), 2)
         delete dup
@@ -158,7 +154,7 @@ def test_table_fold_order_distinct_take(t : T?) {
         t |> equal(_fold(each_kv(tab)._select(_.value).take(3).count()), 3)
         t |> equal(_fold(each_kv(tab)._select(_.key).skip(4).count()), 6)
         var firstTwo <- _fold(keys(tab).take(2).to_array())
-        var expected : array<int>
+        var expected : array<int> // nolint:STYLE027 hand loop is the reference the fold is checked against
         for (k in keys(tab)) {
             if (length(expected) < 2) {
                 expected |> push(k)
@@ -195,10 +191,7 @@ def test_table_fold_iterator_result(t : T?) {
 [test]
 def test_table_fold_set_form(t : T?) {
     t |> run("keys over table<K> set") @(t : T?) {
-        var s : table<string>
-        s |> insert("alpha")
-        s |> insert("beta")
-        s |> insert("gamma")
+        var s : table<string> <- {"alpha", "beta", "gamma"}
         t |> equal(_fold(keys(s).count()), 3)
         t |> equal(_fold(keys(s)._where(_ |> length() > 4).count()), 2)
         delete s
@@ -215,7 +208,7 @@ def private bump_key(var c : int&) : int {
 // on hit AND miss; non-probe shapes (key-eq not the leftmost conjunct) must keep riding the scan.
 
 [test]
-def test_table_point_lookup(t : T?) {
+def test_table_point_lookup(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("kv any/count/first probes, hit and miss") @(t : T?) {
         var tab <- make_int_table(10)
         let k = 7
@@ -337,7 +330,7 @@ def flip_kv(kv : IKV) : tuple<int; int> {
 // keep lead duplicates; group joins stay outer.
 
 [test]
-def test_table_join_srcb_probe(t : T?) {
+def test_table_join_srcb_probe(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("inner join on the table key: count + rows in lead order") @(t : T?) {
         var ids <- [0, 1, 1, 4, 9, 2, 0, 7]   // dups stay, 9/7 miss
         var dtab <- make_int_table(5)
@@ -352,9 +345,9 @@ def test_table_join_srcb_probe(t : T?) {
                              |> to_array())
         var expected <- [(A = 0, V = 0), (A = 1, V = 10), (A = 1, V = 10), (A = 4, V = 40), (A = 2, V = 20), (A = 0, V = 0)]
         t |> equal(length(got), length(expected))
-        for (i in range(length(expected))) {
-            t |> equal(got[i].A, expected[i].A)
-            t |> equal(got[i].V, expected[i].V)
+        for (g, e in got, expected) {
+            t |> equal(g.A, e.A)
+            t |> equal(g.V, e.V)
         }
         delete got
         delete expected
@@ -456,7 +449,7 @@ def test_table_join_lead(t : T?) {
     t |> run("table lead to_array agrees with a hand loop in slot order") @(t : T?) {
         var ctab <- make_int_table(10)
         var darr <- [0, 2, 2, 4, 11]
-        var expected : array<int>
+        var expected : array<int> // nolint:STYLE027 hand loop is the reference the fold is checked against
         for (k, v in keys(ctab), values(ctab)) {
             for (d in darr) {
                 if (k == d) {
@@ -469,8 +462,8 @@ def test_table_join_lead(t : T?) {
                                                 $(c : IKV, d : int) => c.value + d)
                                        |> to_array())
         t |> equal(length(got), length(expected))
-        for (i in range(length(expected))) {
-            t |> equal(got[i], expected[i])
+        for (g, e in got, expected) {
+            t |> equal(g, e)
         }
         delete got
         delete expected
@@ -525,10 +518,7 @@ def test_table_join_lead(t : T?) {
 [test]
 def test_each_kv_tier2(t : T?) {
     t |> run("where/select/to_array over each_kv") @(t : T?) {
-        var tab : table<string; int>
-        tab |> insert("a", 1)
-        tab |> insert("b", 2)
-        tab |> insert("c", 3)
+        var tab <- {"a" => 1, "b" => 2, "c" => 3}
         var vals <- unsafe(each_kv(tab)) |> _where(_.value > 1) |> _select(_.value) |> to_array()
         vals |> sort()  // slot order is unspecified
         t |> equal(length(vals), 2)
@@ -537,20 +527,17 @@ def test_each_kv_tier2(t : T?) {
         delete vals
     }
     t |> run("keys participate in the chain") @(t : T?) {
-        var tab : table<int; int>
-        for (i in range(6)) {
-            tab |> insert(i, i * i)
-        }
+        var tab <- {for (i in range(6)); i => i * i}
         let n = unsafe(each_kv(tab)) |> _where(_.key % 2 == 0) |> count()
         t |> equal(n, 3)
     }
 }
 
 [test]
-def test_to_table_sink(t : T?) {
+def test_to_table_sink(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("kv pass-through + where agrees with a hand loop") @(t : T?) {
         var src <- make_int_table(6)
-        var expected : table<int; int>
+        var expected : table<int; int> // nolint:STYLE027 hand loop is the reference the fold is checked against
         for (k, v in keys(src), values(src)) {
             if (k > 1) {
                 expected[k] = v
@@ -668,7 +655,7 @@ def test_to_table_sink(t : T?) {
 }
 
 [test]
-def test_table_group_by(t : T?) {
+def test_table_group_by(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("kv lane: count + sum per group agrees with a hand loop") @(t : T?) {
         var tab <- make_int_table(20)
         let groups <- _fold(each_kv(tab)
@@ -764,15 +751,58 @@ def test_table_group_by(t : T?) {
                            .to_array())
         var tier2 <- unsafe(each_kv(tab)) |> _group_by(_.key % 4) |> _select((K = _._0, N = _._1 |> length)) |> to_array()
         t |> equal(length(fused), length(tier2))
-        var t2 : table<int; int>
-        for (g in tier2) {
-            t2[g.K] = g.N
-        }
+        var t2 <- {for (g in tier2); g.K => g.N}
         for (g in fused) {
             t |> equal(g.N, t2?[g.K] ?? -1)
         }
         delete t2
         delete tier2
         delete tab
+    }
+}
+
+[test]
+def test_table_kv_positional_fields(t : T?) {
+    t |> run("each_kv chains accept positional _0/_1 access") @(tt : T?) {
+        var tab <- { 1 => 10, 2 => 20, 3 => 30 }
+        let s = _fold(each_kv(tab)._select(_._1) |> sum())
+        tt |> equal(s, 60)
+        let ks = _fold(each_kv(tab)._select(_._0) |> sum())
+        tt |> equal(ks, 6)
+        let mixed = _fold(each_kv(tab)._select(_._0 * 100 + _._1) |> sum())
+        tt |> equal(mixed, 660)
+    }
+}
+
+def keys(var _t : table<int; string> ==const) : iterator<int> {
+    return [iterator for(_i in 0..1); 999]
+}
+
+[test]
+def test_user_keys_overload_not_hijacked(t : T?) {
+    t |> run("a user keys overload runs instead of folding to length(tab)") @(tt : T?) {
+        var tab <- { 1 => "a", 2 => "b", 3 => "c" }
+        var plainCount = 0
+        for (_k in keys(tab)) {
+            plainCount ++
+        }
+        tt |> equal(plainCount, 1)
+        let n = _fold(keys(tab) |> count())
+        tt |> equal(n, 1)
+    }
+}
+
+[test]
+def test_join_probe_kv_positional_fields(t : T?) {
+    t |> run("a table srcB joined on its key accepts positional _1 in the result") @(tt : T?) {
+        var tab <- { 1 => 100, 2 => 200 }
+        let leads = [1, 2, 2]
+        let rows <- _fold(each(leads)
+            |> _join(each_kv(tab), $(l, d) => l == d.key, $(l, d) => l * 1000 + d._1)
+            |> to_array())
+        tt |> equal(length(rows), 3)
+        tt |> equal(rows[0], 1100)
+        tt |> equal(rows[1], 2200)
+        tt |> equal(rows[2], 2200)
     }
 }

@@ -11,7 +11,7 @@ def iliketomoveitmoveit(var a) {
 def test_moves(t : T?) {
     t |> run("basic move it") @@(t : T?) {
         var a <- [for (x in range(10)); x]
-        a <- a
+        a <- a  // nolint:PERF030 - self-move is the tested construct
         if (t |> equal(length(a), 10)) {
             for (i, j in a, range(10)) {
                 t |> equal(i, j)
@@ -20,7 +20,7 @@ def test_moves(t : T?) {
     }
     t |> run("function move it") @@(t : T?) {
         var a <- [for (x in range(10)); x]
-        a <- iliketomoveitmoveit(a)
+        a <- iliketomoveitmoveit(a)  // nolint:PERF030 - move-from-call is the tested construct
         if (t |> equal(length(a), 10)) {
             for (i, j in a, range(10)) {
                 t |> equal(i, j)
@@ -45,8 +45,8 @@ def test_failed_moves(t : T?) {
         a[0] |> push(1)
         var failed = false
         try {
-            for (tt in a[0]) {
-                b <- a
+            for (_tt in a[0]) {
+                b <- a  // nolint:PERF030 - moving a locked array is the tested construct
             }
         } recover {
             failed = true
@@ -69,8 +69,8 @@ def test_failed_moves(t : T?) {
         a[0] |> push(1)
         var failed = false
         try {
-            for (tt in a[0]) {
-                b <- iliketomoveitmoveit(a)
+            for (_tt in a[0]) {
+                b <- iliketomoveitmoveit(a)  // nolint:PERF030 - moving a locked array is the tested construct
             }
         } recover {
             failed = true
@@ -92,7 +92,7 @@ def test_failed_moves(t : T?) {
         a[0] |> push(1)
         var failed = false
         try {
-            for (tt in a[0]) {
+            for (_tt in a[0]) {
                 consume(iliketomoveitmoveit(a))
             }
         } recover {

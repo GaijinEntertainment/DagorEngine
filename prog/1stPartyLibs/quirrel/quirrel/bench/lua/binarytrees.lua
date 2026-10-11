@@ -1,4 +1,9 @@
 -- allocation and collection pressure (binary-trees style)
+local vmBench <const> = require("profile").vmBench
+
+local DEPTH <const> = 13
+local TREES <const> = 10
+
 local function mkTree(depth)
   if depth == 0 then
     return { left = false, right = false }
@@ -7,15 +12,18 @@ local function mkTree(depth)
 end
 
 local function checkTree(t)
-  if not t.left then return 1 end
+  if not t.left then
+    return 1
+  end
   return 1 + checkTree(t.left) + checkTree(t.right)
 end
 
-for rep = 1, 5 do
-  local t0 = os.clock()
+local function trees()
   local sum = 0
-  for i = 1, 10 do
-    sum = sum + checkTree(mkTree(13))
+  for _ = 1, TREES do
+    sum = sum + checkTree(mkTree(DEPTH))
   end
-  print("BENCH binarytrees " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. sum .. ")")
+  return sum
 end
+
+vmBench("binarytrees", trees)

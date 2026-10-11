@@ -68,8 +68,8 @@ struct LandWeightAtlas
     return ((*cellRecord(cx, cy) >> LAND_WEIGHT_COUNT_SHIFT) & LAND_WEIGHT_COUNT_MASK) + 1;
   }
   // the cell's DET_NUM landclass id bytes, after the pages dword of its record
-  static uint8_t *recordLandclassIds(uint32_t *rec) { return (uint8_t *)(rec + 1); }
-  static const uint8_t *recordLandclassIds(const uint32_t *rec) { return (const uint8_t *)(rec + 1); }
+  static uint8_t *recordLandclassIds(uint32_t *rec) { return (uint8_t *)rec + LAND_WEIGHT_CELL_IDS_OFS; }
+  static const uint8_t *recordLandclassIds(const uint32_t *rec) { return (const uint8_t *)rec + LAND_WEIGHT_CELL_IDS_OFS; }
   // The atlas a level shipped packed (readPacked): its records and texture as
   // they are, nothing is re-encoded. Owns the texture from the call on, failure
   // returns included; null when the texture does not hold the pages this build

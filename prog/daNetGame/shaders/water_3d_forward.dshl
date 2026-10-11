@@ -164,7 +164,7 @@ shader water_nv2
       float waterDepth = abs(realWaterDepth);
 
       float4 oceanColor = get_ocean_color(worldPos.xz, 0);
-      float waterVolumeFog = exp2(oceanColor.w*waterDepth);
+      float waterVolumeFog = exp2(-oceanColor.w*waterDepth);
       float waterOpacity = saturate(1 - waterVolumeFog);
       #if PBR_FORWARD_SHADING
         half3 reflectionColor = pack_hdr(enviReflection * enviBRDF + sunReflection);

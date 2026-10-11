@@ -27,12 +27,22 @@
   VAR(scene_spot_managed_lights)                       \
   VAR(scene_spot_render_lights)                        \
   VAR(visible_lights_data_buf)                         \
-  VAR(visible_lights_counts_buf)
+  VAR(visible_lights_counts_buf)                       \
+  VAR(visible_lights_transit_buffer)                   \
+  VAR(partition_omni_lights_flags)                     \
+  VAR(partition_spot_lights_flags)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 LIGHTS_PARTITION_GLOBAL_VARS_LIST
 #undef VAR
 #undef LIGHTS_PARTITION_GLOBAL_VARS_LIST
+
+static_assert(VISIBLE_LIGHTS_TRANSIT_CONST_SIZE == sizeof(Point4));
+static_assert(RENDER_OMNI_LIGHT_STRIDE_SIZE % VISIBLE_LIGHTS_TRANSIT_CONST_SIZE == 0);
+static_assert(RENDER_SPOT_LIGHT_STRIDE_SIZE % VISIBLE_LIGHTS_TRANSIT_CONST_SIZE == 0);
+static_assert(sizeof(OmniLightMaskType) == 1 && sizeof(SpotLightMaskType) == 1);
+static_assert(MAX_CLUSTERED_OMNI_LIGHTS % VISIBLE_LIGHTS_TRANSIT_MASKS_PER_THREAD == 0);
+static_assert(MAX_CLUSTERED_SPOT_LIGHTS % VISIBLE_LIGHTS_TRANSIT_MASKS_PER_THREAD == 0);
 
 struct DispatchLightsPartitionBuffers
 {
@@ -82,42 +92,52 @@ LightsPartition::LightsPartition(OmniLightsManager &omni_lights, SpotLightsManag
   omniLights(&omni_lights), spotLights(&spot_lights), lightsResMgr(lights_res_mgr), lightsSorter(omni_lights, spot_lights)
 {}
 
-void LightsPartition::init(bool use_gpu_partition)
+using SlotNames = eastl::array<const char *, LIGHTS_BUFFER_SLOTS>;
+static constexpr SlotNames clustered_omni_lights_cb_names = {"clustered_omni_lights", "clustered_omni_lights_secondary"};
+static constexpr SlotNames clustered_spot_lights_cb_names = {"clustered_spot_lights", "clustered_spot_lights_secondary"};
+static constexpr SlotNames far_omni_lights_cb_names = {"far_omni_lights", "far_omni_lights_secondary"};
+static constexpr SlotNames far_spot_lights_cb_names = {"far_spot_lights", "far_spot_lights_secondary"};
+
+static UniqueBuf create_clustered_lights_masks_buffer(int max_lights, const char *name, bool gpu_filled)
 {
-  if (VariableMap::isVariablePresent(VariableMap::getVariableId("spot_lights_flags")))
-  {
-    static constexpr uint32_t spotMaskSizeInDwords = dag::divide_align_up(MAX_CLUSTERED_SPOT_LIGHTS, 4);
-    visibleClusteredSpotLightsMasksSB = dag::buffers::create_one_frame_sr_byte_address(spotMaskSizeInDwords,
-      lightsResMgr->getResName("spot_lights_flags"), RESTAG_LIGHTS);
-  }
+  const uint32_t sizeInDwords = dag::divide_align_up(max_lights, 4);
+  if (gpu_filled)
+    return dag::buffers::create_ua_sr_byte_address(sizeInDwords, name, d3d::buffers::Init::No, RESTAG_LIGHTS);
+  return dag::buffers::create_one_frame_sr_byte_address(sizeInDwords, name, RESTAG_LIGHTS);
+}
 
-  if (VariableMap::isVariablePresent(VariableMap::getVariableId("omni_lights_flags")))
-  {
-    static constexpr uint32_t omniMaskSizeInDwords = dag::divide_align_up(MAX_CLUSTERED_OMNI_LIGHTS, 4);
-    visibleClusteredOmniLightsMasksSB = dag::buffers::create_one_frame_sr_byte_address(omniMaskSizeInDwords,
-      lightsResMgr->getResName("omni_lights_flags"), RESTAG_LIGHTS);
-  }
+void LightsPartition::init(DynLightsFeatures requested_features)
+{
+  const bool gpuPartitionRequested = static_cast<bool>(requested_features & DynLightsFeatures::GpuLightsPartition);
+  lightsSorter.init(gpuPartitionRequested ? requested_features : DynLightsFeatures::CpuOnly);
 
-  visibleClusteredOmniLightsCB[0].reallocate(0, MAX_CLUSTERED_OMNI_LIGHTS, lightsResMgr->getResName("clustered_omni_lights"), true);
-  visibleClusteredOmniLightsCB[0].update(nullptr, 0);
-  visibleClusteredSpotLightsCB[0].reallocate(0, MAX_CLUSTERED_SPOT_LIGHTS, lightsResMgr->getResName("clustered_spot_lights"), true);
-  visibleClusteredSpotLightsCB[0].update(nullptr, 0);
+  bool useGPUPartition = gpuPartitionRequested && lightsSorter.isGpu();
 
-  visibleFarOmniLightsCB[0].reallocate(0, MAX_VISIBLE_FAR_LIGHTS, lightsResMgr->getResName("far_omni_lights"), true);
-  visibleFarOmniLightsCB[0].update(nullptr, 0);
-  visibleFarSpotLightsCB[0].reallocate(0, MAX_VISIBLE_FAR_LIGHTS, lightsResMgr->getResName("far_spot_lights"), true);
-  visibleFarSpotLightsCB[0].update(nullptr, 0);
-
-  useGPUPartition = use_gpu_partition;
   if (useGPUPartition)
   {
     partitionCS = ComputeShader("partition_lights_cs", true);
+    packConstantBuffersCS = ComputeShader("visible_lights_pack_constant_buffers_data", true);
 
-    if (!partitionCS)
+    if (!partitionCS || !packConstantBuffersCS)
     {
       useGPUPartition = false;
     }
   }
+
+  constexpr size_t mainSlot = size_t(LightBufferSlot::Main);
+  visibleClusteredOmniLightsCB[mainSlot].reallocate(0, MAX_CLUSTERED_OMNI_LIGHTS,
+    lightsResMgr->getResName(clustered_omni_lights_cb_names[mainSlot]), BaseReallocatableLightsConstBuffer::Flags::DefaultPersistent);
+  visibleClusteredOmniLightsCB[mainSlot].update(nullptr, 0);
+  visibleClusteredSpotLightsCB[mainSlot].reallocate(0, MAX_CLUSTERED_SPOT_LIGHTS,
+    lightsResMgr->getResName(clustered_spot_lights_cb_names[mainSlot]), BaseReallocatableLightsConstBuffer::Flags::DefaultPersistent);
+  visibleClusteredSpotLightsCB[mainSlot].update(nullptr, 0);
+
+  visibleFarOmniLightsCB[mainSlot].reallocate(0, MAX_VISIBLE_FAR_LIGHTS, lightsResMgr->getResName(far_omni_lights_cb_names[mainSlot]),
+    BaseReallocatableLightsConstBuffer::Flags::Default);
+  visibleFarOmniLightsCB[mainSlot].update(nullptr, 0);
+  visibleFarSpotLightsCB[mainSlot].reallocate(0, MAX_VISIBLE_FAR_LIGHTS, lightsResMgr->getResName(far_spot_lights_cb_names[mainSlot]),
+    BaseReallocatableLightsConstBuffer::Flags::Default);
+  visibleFarSpotLightsCB[mainSlot].update(nullptr, 0);
 
   if (useGPUPartition)
   {
@@ -130,13 +150,29 @@ void LightsPartition::init(bool use_gpu_partition)
     visibleLightsCountsBuffer = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), LIGHTS_COUNTS_BUF_RECORDS_COUNT,
       lightsResMgr->getResName("lights_counts"), d3d::buffers::Init::No, RESTAG_LIGHTS);
 
-    lightsSorter.initGpuMode();
+    visibleLightsTransitBuffer =
+      dag::buffers::create_ua_sr_byte_address(VISIBLE_LIGHTS_TRANSIT_OMNI_MASKS_OFFSET * sizeof(Point4) / sizeof(uint32_t),
+        lightsResMgr->getResName("visible_lights_transit"), d3d::buffers::Init::No, RESTAG_LIGHTS);
   }
+
+  useGPUPartition = isGpu();
+
+  if (VariableMap::isVariablePresent(VariableMap::getVariableId("spot_lights_flags")))
+    visibleClusteredSpotLightsMasksSB =
+      create_clustered_lights_masks_buffer(MAX_CLUSTERED_SPOT_LIGHTS, lightsResMgr->getResName("spot_lights_flags"), useGPUPartition);
+
+  if (VariableMap::isVariablePresent(VariableMap::getVariableId("omni_lights_flags")))
+    visibleClusteredOmniLightsMasksSB =
+      create_clustered_lights_masks_buffer(MAX_CLUSTERED_OMNI_LIGHTS, lightsResMgr->getResName("omni_lights_flags"), useGPUPartition);
 }
 
-bool LightsPartition::isGPU() const { return useGPUPartition; }
-
-bool LightsPartition::isGPUSortAvailable() const { return lightsSorter.isGPUSortAvailable(); }
+DynLightsFeatures LightsPartition::getRuntimeFeatures() const
+{
+  const bool isGpuPartitionConfigured = (partitionCS && packConstantBuffersCS && frustumPlanesCB && visibleLightsDataBuffer &&
+                                         visibleLightsCountsBuffer && visibleLightsTransitBuffer);
+  return isGpuPartitionConfigured ? (lightsSorter.getRuntimeFeatures() | DynLightsFeatures::GpuLightsPartition)
+                                  : DynLightsFeatures::CpuOnly;
+}
 
 void LightsPartition::executeLightsCPUPartition(LightType light_type, int max_index, const LightsVisibilityChecker &checker,
   Tab<uint16_t> &clustered_lights, Tab<uint16_t> &far_lights)
@@ -166,25 +202,25 @@ void LightsPartition::executeLightsCPUPartition(LightType light_type, int max_in
 };
 
 template <typename TRenderLight>
-static void update_render_lights_const_buffer(int elem_count, int max_count, Tab<TRenderLight> &render_lights,
+static void update_render_lights_const_buffer_cpu(int max_count, Tab<TRenderLight> &render_lights,
   ReallocatableLightsConstBuffer<sizeof(TRenderLight) / sizeof(vec4f), true> &cb, bool persistent, const char *name,
   const LightsResourcesManager *lights_res_mgr)
 {
-  G_ASSERT(elem_count <= render_lights.size());
   G_ASSERT(sizeof(TRenderLight) % sizeof(vec4f) == 0);
 
-  cb.reallocate(elem_count, max_count, lights_res_mgr->getResName(name), persistent);
-  cb.update(render_lights.data(), elem_count * sizeof(TRenderLight));
+  cb.reallocate(render_lights.size(), max_count, lights_res_mgr->getResName(name),
+    persistent ? BaseReallocatableLightsConstBuffer::Flags::DefaultPersistent : BaseReallocatableLightsConstBuffer::Flags::Default);
+  cb.update(render_lights.data(), data_size(render_lights));
 };
 
 template <typename TMaskType>
-static void update_masks_buffer(int elem_count, int max_count, Tab<TMaskType> &masks_list, Sbuffer *buf, TMaskType stub_mask_value)
+static void update_masks_buffer_cpu(int max_count, Tab<TMaskType> &masks_list, Sbuffer *buf, TMaskType stub_mask_value)
 {
   if (buf)
   {
     const TMaskType stubMask[1] = {stub_mask_value};
     G_ASSERT(masks_list.size() <= ((max_count + 3) & ~3));
-    dag::Span<const TMaskType> masks = elem_count > 0 ? make_span_const(masks_list) : make_span_const(stubMask);
+    dag::Span<const TMaskType> masks = !masks_list.empty() ? make_span_const(masks_list) : make_span_const(stubMask);
     // bound & used framemem buffer must be updated every frame
     buf->updateDataWithLock(0, data_size(masks), masks.data(), VBLOCK_DISCARD);
   }
@@ -201,6 +237,8 @@ void LightsPartition::executeLightsCPUPartition(const ExecuteLightsCPUPartitionP
 
 void LightsPartition::prepareClusteredAndFarLightBuffersCPU(const LightsVisibilityChecker &checker)
 {
+  G_ASSERT_RETURN(!isGpu(), );
+
   TIME_D3D_PROFILE(lightsPartition_cpu_prepareClusteredAndFarLightBuffers);
 
   executeLightsCPUPartition(LightType::Omni, omniLights->maxIndex(), checker, visibleClusteredOmniLightsIds, visibleFarOmniLightsIds);
@@ -262,7 +300,7 @@ void LightsPartition::unbindPartitionBuffers()
 void LightsPartition::executeLightsGPUPartition(const LightsVisibilityChecker::TestParameters &test_params, float zfar,
   bool update_variables)
 {
-  G_ASSERT_RETURN(isGPU(), );
+  G_ASSERT_RETURN(isGpu(), );
   G_ASSERT(zfar > 0.f);
 
   TIME_D3D_PROFILE(lightsPartition_gpu_executePartition);
@@ -289,8 +327,8 @@ void LightsPartition::executeLightsGPUPartition(const LightsVisibilityChecker::T
 
 void LightsPartition::prepareClusteredAndFarLightBuffersGPU(const LightsVisibilityChecker::TestParameters &test_params, float zfar)
 {
-  G_ASSERT_RETURN(isGPU(), );
-  G_ASSERT_RETURN(lightsSorter.isGPUSortAvailable(), );
+  G_ASSERT_RETURN(isGpu(), );
+  G_ASSERT_RETURN(lightsSorter.isGpu(), );
 
   TIME_D3D_PROFILE(lightsPartition_gpu_prepareClusteredAndFarLightBuffers);
 
@@ -305,7 +343,10 @@ void LightsPartition::prepareClusteredAndFarLightBuffersGPU(const LightsVisibili
   d3d::resource_barrier({{dataBuf, countsBuf},
     {RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE}});
 
-  lightsSorter.sortLightsGPU(dataBuf, countsBuf, MAX_VISIBLE_FAR_LIGHTS, /*update_variables*/ false);
+  lightsSorter.sortLightsGPU(dataBuf, countsBuf, /*update_variables*/ false);
+
+  d3d::resource_barrier({{dataBuf, countsBuf},
+    {RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE}});
 
   lightsSorter.unbindStageBuffers();
   unbindPartitionBuffers();
@@ -357,6 +398,7 @@ void LightsPartition::close()
 {
   visibleClusteredSpotLightsMasksSB.close();
   visibleClusteredOmniLightsMasksSB.close();
+  visibleLightsTransitBuffer.close();
 
   for (uint32_t slot = 0; slot < LIGHTS_BUFFER_SLOTS; ++slot)
   {
@@ -367,32 +409,109 @@ void LightsPartition::close()
   }
 }
 
-void LightsPartition::updateBuffersForVisibleFarLights(LightBufferSlot buffer_slot)
+void LightsPartition::updateBuffersForVisibleLightsCPU(LightBufferSlot buffer_slot)
 {
-  const size_t slot = size_t(buffer_slot);
-  const bool secondary = buffer_slot != LightBufferSlot::Main;
-  update_render_lights_const_buffer(renderSpotLightsFar.size(), MAX_VISIBLE_FAR_LIGHTS, renderSpotLightsFar,
-    visibleFarSpotLightsCB[slot], false, secondary ? "far_spot_lights_secondary" : "far_spot_lights", lightsResMgr);
-  update_render_lights_const_buffer(renderOmniLightsFar.size(), MAX_VISIBLE_FAR_LIGHTS, renderOmniLightsFar,
-    visibleFarOmniLightsCB[slot], false, secondary ? "far_omni_lights_secondary" : "far_omni_lights", lightsResMgr);
-}
+  G_ASSERT_RETURN(!isGpu(), );
 
-void LightsPartition::updateBuffersForVisibleClusteredLights(LightBufferSlot buffer_slot, int omni_count, int spot_count)
-{
+  TIME_D3D_PROFILE(lightsPartition_cpu_updateBuffersForVisibleLights);
+
   // FIXME: (workaround) buffers are persistent as it referenced by volume lights and eye caustics when data is not updated in
   // clustered lights
   const size_t slot = size_t(buffer_slot);
-  const bool secondary = buffer_slot != LightBufferSlot::Main;
-  update_render_lights_const_buffer(spot_count, MAX_CLUSTERED_SPOT_LIGHTS, renderSpotLightsClustered,
-    visibleClusteredSpotLightsCB[slot], true, secondary ? "clustered_spot_lights_secondary" : "clustered_spot_lights", lightsResMgr);
-  update_render_lights_const_buffer(omni_count, MAX_CLUSTERED_OMNI_LIGHTS, renderOmniLightsClustered,
-    visibleClusteredOmniLightsCB[slot], true, secondary ? "clustered_omni_lights_secondary" : "clustered_omni_lights", lightsResMgr);
+  update_render_lights_const_buffer_cpu(MAX_CLUSTERED_SPOT_LIGHTS, renderSpotLightsClustered, visibleClusteredSpotLightsCB[slot], true,
+    clustered_spot_lights_cb_names[slot], lightsResMgr);
+  update_render_lights_const_buffer_cpu(MAX_CLUSTERED_OMNI_LIGHTS, renderOmniLightsClustered, visibleClusteredOmniLightsCB[slot], true,
+    clustered_omni_lights_cb_names[slot], lightsResMgr);
 
-
-  update_masks_buffer(omni_count, MAX_CLUSTERED_OMNI_LIGHTS, visibleOmniLightsMasks, visibleClusteredOmniLightsMasksSB.getBuf(),
+  update_masks_buffer_cpu(MAX_CLUSTERED_OMNI_LIGHTS, visibleOmniLightsMasks, visibleClusteredOmniLightsMasksSB.getBuf(),
     OmniLightMaskType::OMNI_LIGHT_MASK_NONE);
-  update_masks_buffer(spot_count, MAX_CLUSTERED_SPOT_LIGHTS, visibleSpotLightsMasks, visibleClusteredSpotLightsMasksSB.getBuf(),
+  update_masks_buffer_cpu(MAX_CLUSTERED_SPOT_LIGHTS, visibleSpotLightsMasks, visibleClusteredSpotLightsMasksSB.getBuf(),
     SpotLightMaskType::SPOT_LIGHT_MASK_NONE);
+
+  update_render_lights_const_buffer_cpu(MAX_VISIBLE_FAR_LIGHTS, renderSpotLightsFar, visibleFarSpotLightsCB[slot], false,
+    far_spot_lights_cb_names[slot], lightsResMgr);
+  update_render_lights_const_buffer_cpu(MAX_VISIBLE_FAR_LIGHTS, renderOmniLightsFar, visibleFarOmniLightsCB[slot], false,
+    far_omni_lights_cb_names[slot], lightsResMgr);
+}
+
+void LightsPartition::updateBuffersForVisibleLightsGPU()
+{
+  G_ASSERT_RETURN(isGpu(), );
+
+  TIME_D3D_PROFILE(lightsPartition_gpu_updateBuffersForVisibleLights);
+
+  using Flags = BaseReallocatableLightsConstBuffer::Flags;
+  constexpr size_t mainSlot = size_t(LightBufferSlot::Main);
+
+  visibleClusteredOmniLightsCB[mainSlot].reallocate(MAX_CLUSTERED_OMNI_LIGHTS, MAX_CLUSTERED_OMNI_LIGHTS,
+    lightsResMgr->getResName(clustered_omni_lights_cb_names[mainSlot]), Flags::GpuRead);
+  visibleFarOmniLightsCB[mainSlot].reallocate(MAX_VISIBLE_FAR_LIGHTS, MAX_VISIBLE_FAR_LIGHTS,
+    lightsResMgr->getResName(far_omni_lights_cb_names[mainSlot]), Flags::GpuRead);
+  visibleClusteredSpotLightsCB[mainSlot].reallocate(MAX_CLUSTERED_SPOT_LIGHTS, MAX_CLUSTERED_SPOT_LIGHTS,
+    lightsResMgr->getResName(clustered_spot_lights_cb_names[mainSlot]), Flags::GpuRead);
+  visibleFarSpotLightsCB[mainSlot].reallocate(MAX_VISIBLE_FAR_LIGHTS, MAX_VISIBLE_FAR_LIGHTS,
+    lightsResMgr->getResName(far_spot_lights_cb_names[mainSlot]), Flags::GpuRead);
+
+  Sbuffer *dataBuf = visibleLightsDataBuffer.getBuf();
+  Sbuffer *countsBuf = visibleLightsCountsBuffer.getBuf();
+  Sbuffer *transitBuf = visibleLightsTransitBuffer.getBuf();
+  Sbuffer *omniMasksBuf = visibleClusteredOmniLightsMasksSB.getBuf();
+  Sbuffer *spotMasksBuf = visibleClusteredSpotLightsMasksSB.getBuf();
+
+  scene_omni_render_lightsVarId.set_buffer(omniLights->getSceneRenderLightsBuffer());
+  scene_spot_render_lightsVarId.set_buffer(spotLights->getSceneRenderLightsBuffer());
+  scene_omni_managed_lightsVarId.set_buffer(omniLights->getSceneManagedLightsBuffer());
+  scene_spot_managed_lightsVarId.set_buffer(spotLights->getSceneManagedLightsBuffer());
+  visible_lights_data_bufVarId.set_buffer(dataBuf);
+  visible_lights_counts_bufVarId.set_buffer(countsBuf);
+  visible_lights_transit_bufferVarId.set_buffer(transitBuf);
+  partition_omni_lights_flagsVarId.set_buffer(omniMasksBuf);
+  partition_spot_lights_flagsVarId.set_buffer(spotMasksBuf);
+
+  const uint32_t packThreadsCount =
+    (omniMasksBuf || spotMasksBuf) ? VISIBLE_LIGHTS_TRANSIT_CONSTS_COUNT : VISIBLE_LIGHTS_TRANSIT_OMNI_MASKS_OFFSET;
+  packConstantBuffersCS.dispatchThreads(packThreadsCount, 1, 1);
+
+  scene_omni_render_lightsVarId.set_buffer(nullptr);
+  scene_spot_render_lightsVarId.set_buffer(nullptr);
+  scene_omni_managed_lightsVarId.set_buffer(nullptr);
+  scene_spot_managed_lightsVarId.set_buffer(nullptr);
+  visible_lights_data_bufVarId.set_buffer(nullptr);
+  visible_lights_counts_bufVarId.set_buffer(nullptr);
+  visible_lights_transit_bufferVarId.set_buffer(nullptr);
+  partition_omni_lights_flagsVarId.set_buffer(nullptr);
+  partition_spot_lights_flagsVarId.set_buffer(nullptr);
+
+  Sbuffer *copyDstBufs[] = {
+    visibleClusteredOmniLightsCB[mainSlot].getBuf(),
+    visibleFarOmniLightsCB[mainSlot].getBuf(),
+    visibleClusteredSpotLightsCB[mainSlot].getBuf(),
+    visibleFarSpotLightsCB[mainSlot].getBuf(),
+  };
+  const uint32_t copySectionOffsets[] = {
+    VISIBLE_LIGHTS_TRANSIT_CLUSTERED_OMNI_OFFSET,
+    VISIBLE_LIGHTS_TRANSIT_FAR_OMNI_OFFSET,
+    VISIBLE_LIGHTS_TRANSIT_CLUSTERED_SPOT_OFFSET,
+    VISIBLE_LIGHTS_TRANSIT_FAR_SPOT_OFFSET,
+    VISIBLE_LIGHTS_TRANSIT_OMNI_MASKS_OFFSET,
+  };
+  static_assert(countof(copySectionOffsets) == countof(copyDstBufs) + 1);
+
+  Sbuffer *copyBarrierBufs[1 + countof(copyDstBufs)] = {transitBuf};
+  ResourceBarrier copyBarrierStates[1 + countof(copyDstBufs)] = {RB_RO_COPY_SOURCE};
+  uint32_t copyBarriersCount = 1;
+  for (Sbuffer *dstBuf : copyDstBufs)
+    if (dstBuf)
+    {
+      copyBarrierBufs[copyBarriersCount] = dstBuf;
+      copyBarrierStates[copyBarriersCount++] = RB_RW_COPY_DEST;
+    }
+  d3d::resource_barrier({copyBarrierBufs, copyBarrierStates, copyBarriersCount});
+
+  for (uint32_t i = 0; i < countof(copyDstBufs); ++i)
+    if (copyDstBufs[i])
+      transitBuf->copyTo(copyDstBufs[i], 0, copySectionOffsets[i] * sizeof(Point4),
+        (copySectionOffsets[i + 1] - copySectionOffsets[i]) * sizeof(Point4));
 }
 
 const Tab<uint16_t> &LightsPartition::getVisibleClusteredSpotLightsIds() const { return visibleClusteredSpotLightsIds; }
@@ -401,27 +520,29 @@ const Tab<uint16_t> &LightsPartition::getVisibleClusteredOmniLightsIds() const {
 const Tab<uint16_t> &LightsPartition::getVisibleFarSpotLightsIds() const { return visibleFarSpotLightsIds; }
 const Tab<uint16_t> &LightsPartition::getVisibleFarOmniLightsIds() const { return visibleFarOmniLightsIds; }
 
-const Tab<RenderOmniLight> &LightsPartition::getRenderOmniLightsFar() const { return renderOmniLightsFar; }
-const Tab<RenderSpotLight> &LightsPartition::getRenderSpotLightsFar() const { return renderSpotLightsFar; }
-
 const Tab<vec4f> &LightsPartition::getVisibleClusteredSpotLightsBounds() const { return visibleClusteredSpotLightsBounds; }
 const Tab<vec4f> &LightsPartition::getVisibleClusteredOmniLightsBounds() const { return visibleClusteredOmniLightsBounds; }
 
+size_t LightsPartition::getBufferSlotIndex(LightBufferSlot buffer_slot) const
+{
+  return size_t(isGpu() ? LightBufferSlot::Main : buffer_slot);
+}
+
 const LightsPartition::OmniLightsCB &LightsPartition::getVisibleClusteredOmniLightsCB(LightBufferSlot buffer_slot) const
 {
-  return visibleClusteredOmniLightsCB[size_t(buffer_slot)];
+  return visibleClusteredOmniLightsCB[getBufferSlotIndex(buffer_slot)];
 }
 const LightsPartition::OmniLightsCB &LightsPartition::getVisibleFarOmniLightsCB(LightBufferSlot buffer_slot) const
 {
-  return visibleFarOmniLightsCB[size_t(buffer_slot)];
+  return visibleFarOmniLightsCB[getBufferSlotIndex(buffer_slot)];
 }
 const LightsPartition::SpotLightsCB &LightsPartition::getVisibleClusteredSpotLightsCB(LightBufferSlot buffer_slot) const
 {
-  return visibleClusteredSpotLightsCB[size_t(buffer_slot)];
+  return visibleClusteredSpotLightsCB[getBufferSlotIndex(buffer_slot)];
 }
 const LightsPartition::SpotLightsCB &LightsPartition::getVisibleFarSpotLightsCB(LightBufferSlot buffer_slot) const
 {
-  return visibleFarSpotLightsCB[size_t(buffer_slot)];
+  return visibleFarSpotLightsCB[getBufferSlotIndex(buffer_slot)];
 }
 
 const UniqueBuf &LightsPartition::getVisibleClusteredSpotLightsMasksSB() const { return visibleClusteredSpotLightsMasksSB; }
@@ -429,12 +550,12 @@ const UniqueBuf &LightsPartition::getVisibleClusteredOmniLightsMasksSB() const {
 
 const UniqueBuf &LightsPartition::getVisibleLightsDataBuffer() const
 {
-  G_ASSERT(isGPU());
+  G_ASSERT(isGpu());
   return visibleLightsDataBuffer;
 }
 
 const UniqueBuf &LightsPartition::getVisibleLightsCountsBuffer() const
 {
-  G_ASSERT(isGPU());
+  G_ASSERT(isGpu());
   return visibleLightsCountsBuffer;
 }

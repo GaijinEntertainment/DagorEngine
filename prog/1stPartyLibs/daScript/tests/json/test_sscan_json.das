@@ -145,9 +145,7 @@ def test_struct_pointer(t : T?) {
         let ok = sscan_json("\{\"inner\":\{\"x\":7,\"y\":1.0\},\"tag\":\"ptr\"\}", v)
         t |> success(ok)
         t |> success(v.inner != null, "ptr not null")
-        unsafe {
-            t |> equal(v.inner.x, 7)
-        }
+        t |> equal(v.inner.x, 7)
         t |> equal(v.tag, "ptr")
     }
     t |> run("null pointer") @(t : T?) {
@@ -180,10 +178,8 @@ def test_arrays(t : T?) {
         t |> success(v.ptrs[0] != null, "ptrs[0] not null")
         t |> success(v.ptrs[1] == null, "ptrs[1] null")
         t |> success(v.ptrs[2] != null, "ptrs[2] not null")
-        unsafe {
-            t |> equal(v.ptrs[0].x, 10)
-            t |> equal(v.ptrs[2].x, 30)
-        }
+        t |> equal(v.ptrs[0].x, 10)
+        t |> equal(v.ptrs[2].x, 30)
     }
     t |> run("empty arrays") @(t : T?) {
         var v : WithArrays
@@ -192,9 +188,7 @@ def test_arrays(t : T?) {
         t |> equal(length(v.ints), 0)
     }
     t |> run("array clear on re-scan") @(t : T?) {
-        var v : WithArrays
-        v.ints |> push(99)
-        v.ints |> push(98)
+        var v <- WithArrays(ints <- [99, 98])
         let ok = sscan_json("\{\"ints\":[1,2,3],\"strings\":[],\"inners\":[],\"ptrs\":[]\}", v)
         t |> success(ok)
         t |> equal(length(v.ints), 3)
@@ -284,10 +278,8 @@ def test_deep_nesting(t : T?) {
         t |> success(ok)
         t |> equal(v.name, "deep")
         t |> success(v.l2 != null, "l2 not null")
-        unsafe {
-            t |> success(v.l2.l3 != null, "l3 not null")
-            t |> equal(v.l2.l3.value, 777)
-        }
+        t |> success(v.l2.l3 != null, "l3 not null")
+        t |> equal(v.l2.l3.value, 777)
     }
 }
 
@@ -302,12 +294,10 @@ def test_array_of_struct_ptrs(t : T?) {
         let ok = sscan_json("\{\"messages\":[\{\"id\":1,\"text\":\"hi\",\"from\":\"alice\"\},\{\"id\":2,\"text\":\"bye\",\"from\":\"bob\"\}]\}", v)
         t |> success(ok)
         t |> equal(length(v.messages), 2)
-        unsafe {
-            t |> equal(v.messages[0].id, 1l)
-            t |> equal(v.messages[0].text, "hi")
-            t |> equal(v.messages[0]._from, "alice")
-            t |> equal(v.messages[1].id, 2l)
-        }
+        t |> equal(v.messages[0].id, 1l)
+        t |> equal(v.messages[0].text, "hi")
+        t |> equal(v.messages[0]._from, "alice")
+        t |> equal(v.messages[1].id, 2l)
     }
 }
 
@@ -354,15 +344,8 @@ def test_number_coercion(t : T?) {
 [test]
 def test_round_trip(t : T?) {
     t |> run("sprint then sscan") @(t : T?) {
-        var src : RoundTrip
-        src.x = 42
-        src.y = 3.14
-        src.name = "test"
-        src.flag = true
-        src.inner = new Inner(x = 7, y = 8.5)
-        src.items |> push(10)
-        src.items |> push(20)
-        src.items |> push(30)
+        var src <- RoundTrip(x = 42, y = 3.14, name = "test", flag = true,
+            inner = new Inner(x = 7, y = 8.5), items <- [10, 20, 30])
         let json = sprint_json(src, false)
         var dst : RoundTrip
         let ok = sscan_json(json, dst)
@@ -372,9 +355,7 @@ def test_round_trip(t : T?) {
         t |> equal(dst.name, "test")
         t |> equal(dst.flag, true)
         t |> success(dst.inner != null, "rt inner")
-        unsafe {
-            t |> equal(dst.inner.x, 7)
-        }
+        t |> equal(dst.inner.x, 7)
         t |> equal(length(dst.items), 3)
         t |> equal(dst.items[1], 20)
     }
@@ -488,14 +469,9 @@ struct WithVectors {
 [test]
 def test_vector_types(t : T?) {
     t |> run("vectors in struct round-trip") @(t : T?) {
-        var src : WithVectors
-        src.i2 = int2(10, 20)
-        src.i3 = int3(1, 2, 3)
-        src.i4 = int4(1, 2, 3, 4)
-        src.f2 = float2(1.5, 2.5)
-        src.f3 = float3(1.0, 2.0, 3.0)
-        src.f4 = float4(1.0, 2.0, 3.0, 4.0)
-        src.u2 = uint2(100u, 200u)
+        let src = WithVectors(i2 = int2(10, 20), i3 = int3(1, 2, 3), i4 = int4(1, 2, 3, 4),
+            f2 = float2(1.5, 2.5), f3 = float3(1.0, 2.0, 3.0), f4 = float4(1.0, 2.0, 3.0, 4.0),
+            u2 = uint2(100u, 200u))
         let json = sprint_json(src, false)
         var dst : WithVectors
         let ok = sscan_json(json, dst)
@@ -530,11 +506,8 @@ struct WithRanges {
 [test]
 def test_range_types(t : T?) {
     t |> run("ranges in struct round-trip") @(t : T?) {
-        var src : WithRanges
-        src.r = range(10, 20)
-        src.ur = urange(5u, 15u)
-        src.r64 = range64(100l, 200l)
-        src.ur64 = urange64(50ul, 150ul)
+        let src = WithRanges(r = range(10, 20), ur = urange(5u, 15u),
+            r64 = range64(100l, 200l), ur64 = urange64(50ul, 150ul))
         let json = sprint_json(src, false)
         var dst : WithRanges
         let ok = sscan_json(json, dst)
@@ -568,9 +541,7 @@ struct WithBitfield {
 [test]
 def test_bitfields(t : T?) {
     t |> run("bitfield in struct round-trip") @(t : T?) {
-        var src : WithBitfield
-        src.bits = TestBits.flagA | TestBits.flagC
-        src.name = "test"
+        let src = WithBitfield(bits = TestBits.flagA | TestBits.flagC, name = "test")
         let json = sprint_json(src, false)
         var dst : WithBitfield
         let ok = sscan_json(json, dst)
@@ -636,7 +607,7 @@ struct WithInt2Table { data : table<int2; string>; }
 struct WithFloat2Table { data : table<float2; string>; }
 
 [test]
-def test_table_key_types(t : T?) {
+def test_table_key_types(t : T?) { // nolint:STYLE038 one flat arm per JIT_TABLE_FUNCTION key type
     t |> run("bool-keyed table") @(t : T?) {
         var src : WithBoolTable
         src.data <- { true => "yes", false => "no" }

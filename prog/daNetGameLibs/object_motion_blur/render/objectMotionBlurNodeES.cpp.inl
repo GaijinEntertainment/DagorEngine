@@ -102,7 +102,10 @@ inline void object_motion_blur_node_init_ecs_query(ecs::EntityManager &manager, 
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
-ECS_TRACK(render_settings__motionBlurStrength, render_settings__motionBlurRuntimeSwitch, render_settings__antialiasing_mode)
+ECS_TRACK(render_settings__motionBlurStrength,
+  render_settings__motionBlurRuntimeSwitch,
+  render_settings__antialiasing_mode,
+  render_settings__bare_minimum)
 ECS_REQUIRE(const ecs::string &render_settings__antialiasing_mode)
 static void init_object_motion_blur_es(const ecs::Event &,
   ecs::EntityManager &manager,

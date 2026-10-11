@@ -29,11 +29,6 @@ ECS_NET_DECL_MSG(ClientControlledEntityDasEventMsg, danet::BitStream /*payload*/
 
 ECS_NET_DECL_MSG(DasEventHandshakeMsg, /*proto_version*/ uint32_t);
 
-namespace ecs
-{
-extern const int MAX_STRING_LENGTH;
-}
-
 namespace net
 {
 
@@ -157,6 +152,48 @@ static int get_dasevent_error_level(ecs::event_type_t type)
   return netLiable == bind_dascript::DascriptEventDesc::NetLiable::Ignore ? LOGLEVEL_WARN : LOGLEVEL_ERR;
 }
 
+// pointer fields are set even on failure
+static bool deserialize_das_event_field(char *field, ecs::component_type_t type, const net::BitstreamDeserializer &deserializer,
+  int connection_id)
+{
+  ecs::EntityManager &mgr = deserializer.mgr;
+  if (type == ecs::ComponentTypeInfo<ecs::string>::type)
+  {
+    ecs::string str;
+    const bool isRead = ecs::read_string(deserializer, str);
+    *(char **)field = isRead ? str_dup(str.c_str(), strmem) : nullptr;
+    return isRead;
+  }
+  if (type == ecs::ComponentTypeInfo<ecs::Object>::type)
+  {
+    ecs::Object *obj = new ecs::Object();
+    *(ecs::Object **)field = obj;
+    if (!ecs::deserialize_component_typeless(obj, type, deserializer, mgr))
+      return false;
+    obj->addMember("fromconnid", connection_id);
+    return true;
+  }
+  if (type == ECS_HASH("danet::BitStream").hash)
+  {
+    danet::BitStream *stream = new danet::BitStream();
+    *(danet::BitStream **)field = stream;
+    return deserializer.bs.Read(*stream);
+  }
+
+#define DECL_LIST_TYPE(t, tn)                                                 \
+  if (type == ecs::ComponentTypeInfo<t>::type)                                \
+  {                                                                           \
+    t *obj = new t();                                                         \
+    *(t **)field = obj;                                                       \
+    return ecs::deserialize_component_typeless(obj, type, deserializer, mgr); \
+  }
+
+  DAS_EVENT_ECS_CONT_LIST_TYPES
+#undef DECL_LIST_TYPE
+
+  return ecs::deserialize_component_typeless(field, type, deserializer, mgr);
+}
+
 static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs, const net::IMessage *msg, char *buf, int buf_size)
 {
   ecs::EntityManager &mgr = msg->connection->getEntityManager();
@@ -199,48 +236,30 @@ static bind_dascript::DasEvent *deserialize_das_event(const danet::BitStream &bs
   const ecs::component_type_t *types = scheme.get<ecs::component_type_t>();
 
   net::BitstreamDeserializer deserializer(mgr, bs);
-  for (int i = 0, n = (int)scheme.size(); i < n; ++i)
-  {
-    if (types[i] == ecs::ComponentTypeInfo<ecs::string>::type)
-    {
-      Tab<char> tmp(framemem_ptr());
-      tmp.resize(ecs::MAX_STRING_LENGTH);
-      ecs::read_string(deserializer, tmp.data(), tmp.size());
-      *(char **)(data + offsets[i]) = str_dup(tmp.data(), strmem);
-    }
-    else if (types[i] == ecs::ComponentTypeInfo<ecs::Object>::type)
-    {
-      ecs::Object *obj = new ecs::Object();
-      ecs::deserialize_component_typeless(obj, types[i], deserializer, mgr);
-      obj->addMember("fromconnid", connectionId);
-      *(ecs::Object **)(data + offsets[i]) = obj;
-    }
-    else if (types[i] == ECS_HASH("danet::BitStream").hash)
-    {
-      danet::BitStream *stream = new danet::BitStream();
-      bs.Read(*stream);
-      *(danet::BitStream **)(data + offsets[i]) = stream;
-    }
-
-#define DECL_LIST_TYPE(t, tn)                                              \
-  else if (types[i] == ecs::ComponentTypeInfo<t>::type)                    \
-  {                                                                        \
-    t *obj = new t();                                                      \
-    ecs::deserialize_component_typeless(obj, types[i], deserializer, mgr); \
-    *(t **)(data + offsets[i]) = obj;                                      \
-  }
-
-    DAS_EVENT_ECS_CONT_LIST_TYPES
-#undef DECL_LIST_TYPE
-    else
-    {
-      ecs::deserialize_component_typeless(data + offsets[i], types[i], deserializer, mgr);
-    }
-  }
+  const int fieldsCount = (int)scheme.size();
+  int readFields = 0;
+  while (
+    readFields < fieldsCount && deserialize_das_event_field(data + offsets[readFields], types[readFields], deserializer, connectionId))
+    readFields++;
   bind_dascript::DasEvent *res = (bind_dascript::DasEvent *)data;
   const ecs::event_flags_t flags = eventsDb.getEventFlags(eventId);
   res->set(eventType, eventSize, flags);
-  return res;
+  if (DAGOR_LIKELY(readFields == fieldsCount))
+    return res;
+
+  remoteEventWithError[eventType].set(connectionId);
+  logmessage(get_dasevent_error_level(eventType), "das_net: failed to read field '%s' of event '%s' <0x%X> from connection '%d'",
+    scheme.get<eastl::string>()[readFields].c_str(), eventsDb.getEventName(eventId), eventType, connectionId);
+  if (flags & ecs::EVFLG_DESTROY)
+  {
+    const int firstUnreadField = readFields + 1;
+    if (firstUnreadField < fieldsCount)
+      memset(data + offsets[firstUnreadField], 0, eventSize - offsets[firstUnreadField]);
+    eventsDb.destroy(mgr, *res);
+  }
+  if (data != buf)
+    framemem_ptr()->free(data);
+  return nullptr;
 }
 
 static bool serialize_das_event(ecs::EntityManager &mgr, ecs::Event &evt, danet::BitStream &bs)

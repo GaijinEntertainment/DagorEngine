@@ -33,13 +33,12 @@ def read_source_snippet(file_path : string; line : int; context_lines : int = 3)
     while (!feof(f)) {
         var ln = fgets(f)
         // strip trailing newline/cr
-        while (!empty(ln)) {
-            let last_ch = character_at(ln, length(ln) - 1) // nolint:PERF003
-            if (last_ch == '\n' || last_ch == '\r') {
-                ln = slice(ln, 0, length(ln) - 1)
-            } else {
-                break
+        peek_data(ln) $(d) {
+            var keep = length(d)
+            while (keep > 0 && (int(d[keep - 1]) == '\n' || int(d[keep - 1]) == '\r')) {
+                keep--
             }
+            ln = slice(d, 0, keep)
         }
         lines |> push(ln)
     }
@@ -60,25 +59,52 @@ def lineinfo_file(at : LineInfo) : string {
     return ""
 }
 
-// Resolve definition from a CursorHit
-def resolve_definition(hit : CursorHit) : DefinitionResult {
+def variable_definition(variable : Variable const?) : DefinitionResult {
+    let file = lineinfo_file(variable.at)
+    let line = int(variable.at.line)
+    return DefinitionResult(
+        found = true,
+        kind = "variable",
+        name = source_name(string(variable.name)),
+        file = file,
+        line = line,
+        column = int(variable.at.column),
+        snippet = read_source_snippet(file, line)
+    )
+}
+
+//! the definition a declaration is; the cursor's own word column when the declaration sits on the cursor `line`
+def definition_of(d : DeclarationHit; line : int) : DefinitionResult {
+    return DefinitionResult() if (d.kind == DeclarationKind.none)
+    if (d.kind == DeclarationKind.variable) return variable_definition(d.variable)
+    if (d.kind == DeclarationKind.handled) return DefinitionResult(found = true, kind = "handled", name = d.name, cppName = string(d.annotation.cppName))
+    let kind = d.kind == DeclarationKind.func ? "function" : d.kind == DeclarationKind.structure ? "struct" : d.kind == DeclarationKind.enumeration ? "enum" : d.kind == DeclarationKind.field ? "field" : "typedef"
+    let decl_file = lineinfo_file(d.at)
+    let decl_line = int(d.at.line)
+    return DefinitionResult(
+        found = true,
+        kind = kind,
+        name = d.kind == DeclarationKind.func ? string(d.func.name) : d.name,
+        file = decl_file,
+        line = decl_line,
+        column = decl_line == line && d.word_column >= 0 ? d.word_column : declared_name_column(d.at, d.name),
+        snippet = read_source_snippet(decl_file, decl_line)
+    )
+}
+
+def type_definition(program : smart_ptr<Program>; td : TypeDecl const?) : DefinitionResult {
+    return definition_of(declaration_of(program, td), 0)
+}
+
+def resolve_definition(program : smart_ptr<Program>; hit : CursorHit) : DefinitionResult { // nolint:STYLE037,STYLE038 — exact-type `is` ladder over the AST node classes; each arm builds one DefinitionResult
+    if (hit.variable != null) return variable_definition(hit.variable)
+    if (hit.type_decl != null) return type_definition(program, hit.type_decl)
     let expr = hit.expr
     // ExprVar → variable declaration
     if (expr is ExprVar) {
         let v = expr as ExprVar
         if (v.variable != null) {
-            let variable = v.variable
-            let file = lineinfo_file(variable.at)
-            let line = int(variable.at.line)
-            return DefinitionResult(
-                found = true,
-                kind = "variable",
-                name = string(variable.name),
-                file = file,
-                line = line,
-                column = int(variable.at.column),
-                snippet = read_source_snippet(file, line)
-            )
+            return variable_definition(v.variable)
         }
     }
     // ExprCall / ExprCallFunc → function declaration
@@ -117,41 +143,22 @@ def resolve_definition(hit : CursorHit) : DefinitionResult {
     }
     // ExprField / ExprSafeField → struct field declaration
     if (expr is ExprField || expr is ExprSafeField) {
-        var field_name : string
-        var value_type : TypeDecl const?
-        if (expr is ExprField) {
-            let f = expr as ExprField
-            field_name = string(f.name)
-            if (f.value != null && f.value._type != null) {
-                value_type = f.value._type
+        let field_name = string(expr is ExprField ? (expr as ExprField).name : (expr as ExprSafeField).name)
+        let st = value_struct(expr is ExprField ? (expr as ExprField).value : (expr as ExprSafeField).value)
+        if (st != null) {
+            let method = find_method_function(st, field_name)
+            if (method != null) {
+                let file = lineinfo_file(method.at)
+                let line = int(method.at.line)
+                return DefinitionResult(found = true, kind = "function", name = string(method.name), file = file, line = line,
+                    column = int(method.at.column), snippet = read_source_snippet(file, line))
             }
-        } else {
-            let f = expr as ExprSafeField
-            field_name = string(f.name)
-            if (f.value != null && f.value._type != null) {
-                value_type = f.value._type
-            }
-        }
-        // unwrap pointer types (Foo? → Foo)
-        if (value_type != null && value_type.structType == null && value_type.firstType != null) {
-            value_type = value_type.firstType
-        }
-        if (value_type != null && value_type.structType != null) {
-            let st = value_type.structType
-            for (fld in st.fields) {
-                if (fld.name == field_name) {
-                    let file = lineinfo_file(fld.at)
-                    let line = int(fld.at.line)
-                    return DefinitionResult(
-                        found = true,
-                        kind = "field",
-                        name = "{st.name}.{field_name}",
-                        file = file,
-                        line = line,
-                        column = int(fld.at.column),
-                        snippet = read_source_snippet(file, line)
-                    )
-                }
+            let at = field_at(st, field_name)
+            if (int(at.line) > 0) {
+                let file = lineinfo_file(at)
+                let line = int(at.line)
+                return DefinitionResult(found = true, kind = "field", name = "{st.name}.{field_name}", file = file, line = line,
+                    column = int(at.column), snippet = read_source_snippet(file, line))
             }
         }
     }
@@ -173,63 +180,9 @@ def resolve_definition(hit : CursorHit) : DefinitionResult {
             )
         }
     }
-    // Type alias → resolve to typedef declaration
-    if (expr._type != null) {
-        let td = expr._type
-        if (!empty(td.alias)) {
-            let file = lineinfo_file(td.at)
-            let line = int(td.at.line)
-            return DefinitionResult(
-                found = true,
-                kind = "typedef",
-                name = string(td.alias),
-                file = file,
-                line = line,
-                column = int(td.at.column),
-                snippet = read_source_snippet(file, line)
-            )
-        }
-    }
     // Fallback: resolve type reference from _type
     if (expr._type != null) {
-        let td = expr._type
-        if (td.isHandle && td.annotation != null) {
-            let ann = td.annotation
-            return DefinitionResult(
-                found = true,
-                kind = "handled",
-                name = string(ann.name),
-                cppName = string(ann.cppName)
-            )
-        }
-        if (td.structType != null) {
-            let st = td.structType
-            let file = lineinfo_file(st.at)
-            let line = int(st.at.line)
-            return DefinitionResult(
-                found = true,
-                kind = "struct",
-                name = string(st.name),
-                file = file,
-                line = line,
-                column = int(st.at.column),
-                snippet = read_source_snippet(file, line)
-            )
-        }
-        if (td.enumType != null) {
-            let en = td.enumType
-            let file = lineinfo_file(en.at)
-            let line = int(en.at.line)
-            return DefinitionResult(
-                found = true,
-                kind = "enum",
-                name = string(en.name),
-                file = file,
-                line = line,
-                column = int(en.at.column),
-                snippet = read_source_snippet(file, line)
-            )
-        }
+        return type_definition(program, expr._type)
     }
     return DefinitionResult()
 }
@@ -278,7 +231,8 @@ def run_goto_definition(file : string; line_str, col_str, no_opt_str, with_cpp_s
     if (!empty(proj_err)) return make_tool_result(proj_err, true)
     let line = to_int(line_str)
     let col = to_int(col_str)
-    if (line <= 0 || col <= 0) return make_tool_result("Invalid line or column (must be >= 1)", true)
+    let col0 = col - 1
+    if (line <= 0 || col0 < 0) return make_tool_result("Invalid line or column (must be >= 1)", true)
     let no_opt = no_opt_str == "true"
     let with_cpp_source = with_cpp_source_str == "true"
     var cpp_dirs_arr : array<string>
@@ -291,10 +245,12 @@ def run_goto_definition(file : string; line_str, col_str, no_opt_str, with_cpp_s
         }
     }
     return compile_program(file, true, no_opt, project) $(program; _issues) {
-        var hits <- find_at_cursor(program, file, line, col)
+        let decl = definition_of(find_declaration_at_cursor(program, file, line, col0, source_line(file, line)), line)
+        if (decl.found) return format_result(decl, CursorHit(), with_cpp_source, cpp_dirs_arr)
+        var hits <- find_at_cursor(program, file, line, col0, true, source_line(file, line))
         if (empty(hits)) return "No expression found at {file}:{line}:{col}"
         for (hit in hits) {
-            let defn = resolve_definition(hit)
+            let defn = resolve_definition(program, hit)
             if (defn.found) return format_result(defn, hit, with_cpp_source, cpp_dirs_arr)
         }
         return build_string() $(var w) {

@@ -109,7 +109,7 @@ struct ImageInfo
     desc.Dimension = type;
     desc.Width = size.width;
     desc.MipLevels = mips.count();
-    desc.Alignment = calculate_texture_alignment(size.width, size.height, size.depth, 1, memoryLayout, usage, format);
+    desc.Alignment = calculate_texture_alignment(size.width, size.height, size.depth, sampleDesc.Count, memoryLayout, usage, format);
     switch (type)
     {
       default:

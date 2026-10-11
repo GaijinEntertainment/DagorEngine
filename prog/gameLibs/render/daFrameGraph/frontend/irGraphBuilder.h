@@ -38,6 +38,9 @@ public:
     IrNodesChanged irNodesChanged;
     IrResourcesChanged irResourcesChanged;
     IrResourcesChanged irResourceRequestsChanged;
+    // Keyed by the resource indices of the new graph, the values are indices
+    // of the graph before the build, RESOURCE_NOT_MAPPED when nothing pairs
+    intermediate::HistoryPairing irHistoryPairing;
   };
 
   // Returns an intermediate representation of the graph that
@@ -83,6 +86,8 @@ private:
     bool clearedInRenderPass = false;
     bool hasReaders = false;
     bool hasModifiers = false;
+    bool canBeUntracked = false;
+    bool historyZeroed = false;
   };
 
   using FirstUsageUpdatedFlagsAndUsageInfo = eastl::tuple<ResourceUsage, uint32_t, ResourceUsageInfo>;
@@ -90,7 +95,7 @@ private:
     D3DResourceType d3d_type) const;
 
   void addResourcesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping, const intermediate::Mapping &old_mapping,
-    const ResourcesChanged &resources_changed, const ResourcesChanged &resource_requests_changed,
+    const ResourcesChanged &resources_changed, const ResourcesChanged &resource_requests_changed, const NodesChanged &nodes_changed,
     IrResourcesChanged &ir_resources_changed, multiplexing::Extents extents) const;
   void addNodesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping, multiplexing::Extents extents,
     multiplexing::Extents prev_extents, const intermediate::Mapping &old_mapping, const NodesChanged &nodes_changed,

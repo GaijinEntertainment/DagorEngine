@@ -30,3 +30,5 @@ CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const r
 void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::CollisionInfo &) {}
 
 void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo &) {}
+
+void WrapperRendInstCollisionImplCB::addNonDestrBushCheck(const rendinst::CollisionInfo &) {}

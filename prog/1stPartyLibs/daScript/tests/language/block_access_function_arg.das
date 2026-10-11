@@ -9,9 +9,9 @@ def addValue(a, blk) {
 [test]
 def test_block_access_function_arg(t : T?) {
     t |> run("nested block accesses outer lambda var") @(t : T?) {
-        var CNT = 0
+        var CNT = 0     // nolint:LINT003 - `let` makes the lambda's captured copy const, breaking CNT++
         let counter <- @(extra : int) : int {
-            let e1 = addValue(1) <| $(extraBlock : int) : int {
+            let e1 = addValue(1) $(extraBlock : int) : int {
                 return extraBlock + CNT
             }
             return CNT++ + e1

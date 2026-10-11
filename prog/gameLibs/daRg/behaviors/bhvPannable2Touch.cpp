@@ -13,8 +13,6 @@ namespace darg
 
 BhvPannable2touch bhv_pannable_2touch;
 
-static const char *dataSlotName = "pannable2touch:data";
-
 
 BhvPannable2touch::BhvPannable2touch() : Behavior(0, F_HANDLE_TOUCH | F_ALLOW_AUTO_SCROLL) {}
 
@@ -22,16 +20,17 @@ BhvPannable2touch::BhvPannable2touch() : Behavior(0, F_HANDLE_TOUCH | F_ALLOW_AU
 void BhvPannable2touch::onAttach(Element *elem)
 {
   BhvPannable2touchData *panData = new BhvPannable2touchData();
-  elem->props.storage.SetValue(dataSlotName, panData);
+  elem->props.storage.SetValue(elem->csk->pannable2TouchData, panData);
 }
 
 
 void BhvPannable2touch::onDetach(Element *elem, DetachMode)
 {
-  BhvPannable2touchData *panData = elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(dataSlotName, nullptr);
+  BhvPannable2touchData *panData =
+    elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(elem->csk->pannable2TouchData, nullptr);
   if (panData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->pannable2TouchData);
     delete panData;
   }
 }
@@ -40,7 +39,8 @@ void BhvPannable2touch::onDetach(Element *elem, DetachMode)
 int BhvPannable2touch::pointingEvent(ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/,
   Point2 pos, int accum_res)
 {
-  BhvPannable2touchData *panData = elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(dataSlotName, nullptr);
+  BhvPannable2touchData *panData =
+    elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(elem->csk->pannable2TouchData, nullptr);
   G_ASSERT_RETURN(panData, 0);
 
   if (event == INP_EV_PRESS)
@@ -92,7 +92,8 @@ int BhvPannable2touch::onDeactivateInput(Element *elem, InputDevice device, int 
   if (device != DEVID_TOUCH)
     return 0;
 
-  BhvPannable2touchData *panData = elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(dataSlotName, nullptr);
+  BhvPannable2touchData *panData =
+    elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(elem->csk->pannable2TouchData, nullptr);
   G_ASSERT_RETURN(panData, 0);
 
   for (int slot = 0; slot < 2; ++slot)
@@ -106,7 +107,8 @@ int BhvPannable2touch::onDeactivateInput(Element *elem, InputDevice device, int 
 
 int BhvPannable2touch::onDeactivateAllInput(Element *elem)
 {
-  BhvPannable2touchData *panData = elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(dataSlotName, nullptr);
+  BhvPannable2touchData *panData =
+    elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(elem->csk->pannable2TouchData, nullptr);
   G_ASSERT_RETURN(panData, 0);
 
   panData->activeTouchIdx[0] = -1;

@@ -50,14 +50,14 @@ def accept_table(tab : table<string; int>) : int {
 [test]
 def test_table_literal_in_struct(t : T?) {
     t |> run("struct field assigned with braces") @(t : T?) {
-        var cfg = Config(name = "test", tags = {"a" => 1, "b" => 2})
+        let cfg = Config(name = "test", tags = {"a" => 1, "b" => 2})
         t |> equal(cfg.name, "test")
         t |> equal(length(cfg.tags), 2)
         t |> success(key_exists(cfg.tags, "a"))
         t |> success(key_exists(cfg.tags, "b"))
     }
     t |> run("nested braces in struct field") @(t : T?) {
-        var n = Nested(lookup = {1 => {"x" => 10}, 2 => {"y" => 20}})
+        let n = Nested(lookup = {1 => {"x" => 10}, 2 => {"y" => 20}})
         t |> equal(length(n.lookup), 2)
         t |> success(key_exists(n.lookup, 1))
         t |> success(key_exists(n.lookup, 2))
@@ -67,7 +67,7 @@ def test_table_literal_in_struct(t : T?) {
 [test]
 def test_table_literal_in_array(t : T?) {
     t |> run("array of tables [braces, braces]") @(t : T?) {
-        var arr = [{"a" => 1}, {"b" => 2, "c" => 3}]
+        let arr = [{"a" => 1}, {"b" => 2, "c" => 3}]
         t |> equal(length(arr), 2)
         t |> equal(length(arr[0]), 1)
         t |> equal(length(arr[1]), 2)
@@ -76,7 +76,7 @@ def test_table_literal_in_array(t : T?) {
         t |> success(key_exists(arr[1], "c"))
     }
     t |> run("array of tables [braces, braces, braces]") @(t : T?) {
-        var arr = [{"x" => 10}, {"y" => 20}, {"z" => 30}]
+        let arr = [{"x" => 10}, {"y" => 20}, {"z" => 30}]
         t |> equal(length(arr), 3)
         t |> success(key_exists(arr[0], "x"))
         t |> success(key_exists(arr[1], "y"))
@@ -115,7 +115,7 @@ def test_table_literal_return(t : T?) {
 [test]
 def test_table_literal_in_tuple(t : T?) {
     t |> run("braces as tuple element") @(t : T?) {
-        var tup = "config" => {"k" => 42}
+        let tup = "config" => {"k" => 42}
         t |> equal(tup._0, "config")
         t |> equal(length(tup._1), 1)
         t |> success(key_exists(tup._1, "k"))
@@ -125,7 +125,7 @@ def test_table_literal_in_tuple(t : T?) {
 [test]
 def test_table_literal_in_variant(t : T?) {
     t |> run("braces in variant alternative") @(t : T?) {
-        var s = Setting(as_map = {"x" => 5, "y" => 10})
+        let s = Setting(as_map = {"x" => 5, "y" => 10})
         t |> success(s is as_map)
         t |> equal(length(s as as_map), 2)
         t |> success(key_exists(s as as_map, "x"))
@@ -135,13 +135,13 @@ def test_table_literal_in_variant(t : T?) {
 [test]
 def test_nested_table_literals(t : T?) {
     t |> run("braces of braces tables") @(t : T?) {
-        var tab = {1 => {"A", "B"}, 3 => {"C", "D"}}
+        let tab = {1 => {"A", "B"}, 3 => {"C", "D"}}
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, 1))
         t |> success(key_exists(tab, 3))
     }
     t |> run("nested braces => braces => value") @(t : T?) {
-        var tab = {"x" => {"a" => 1, "b" => 2}, "y" => {"c" => 3}}
+        let tab = {"x" => {"a" => 1, "b" => 2}, "y" => {"c" => 3}}
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, "x"))
         t |> success(key_exists(tab, "y"))
@@ -151,53 +151,53 @@ def test_nested_table_literals(t : T?) {
 [test]
 def test_table_move_semantics(t : T?) {
     t |> run("var <- table literal") @(t : T?) {
-        var tab <- {"a" => 1, "b" => 2}
+        var tab <- {"a" => 1, "b" => 2}     // nolint:LINT003 - the arm's subject is the mutable `var <-` move-init form
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, "a"))
         t |> success(key_exists(tab, "b"))
     }
     t |> run("var <- nested table literal") @(t : T?) {
-        var tab <- {1 => {"x" => 100}, 2 => {"y" => 200}}
+        var tab <- {1 => {"x" => 100}, 2 => {"y" => 200}}     // nolint:LINT003 - the arm's subject is the mutable `var <-` move-init form
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, 1))
         t |> success(key_exists(tab, 2))
     }
     t |> run("var <- table comprehension") @(t : T?) {
-        var tab <- {for (i in range(4)); i => i * 10}
+        var tab <- {for (i in range(4)); i => i * 10}     // nolint:LINT003 - the arm's subject is the mutable `var <-` move-init form
         t |> equal(length(tab), 4)
         t |> success(key_exists(tab, 0))
         t |> success(key_exists(tab, 3))
     }
     t |> run("struct field <- table literal") @(t : T?) {
-        var cfg = Config(name = "moved", tags <- {"p" => 10, "q" => 20})
+        let cfg = Config(name = "moved", tags <- {"p" => 10, "q" => 20})
         t |> equal(cfg.name, "moved")
         t |> equal(length(cfg.tags), 2)
         t |> success(key_exists(cfg.tags, "p"))
         t |> success(key_exists(cfg.tags, "q"))
     }
     t |> run("struct nested field <- table literal") @(t : T?) {
-        var n = Nested(lookup <- {1 => {"a" => 10}, 2 => {"b" => 20}})
+        let n = Nested(lookup <- {1 => {"a" => 10}, 2 => {"b" => 20}})
         t |> equal(length(n.lookup), 2)
         t |> success(key_exists(n.lookup, 1))
         t |> success(key_exists(n.lookup, 2))
     }
     t |> run("assign <- table literal to existing var") @(t : T?) {
         var tab : table<string; int>
-        tab <- {"a" => 1, "b" => 2}
+        tab <- {"a" => 1, "b" => 2}     // nolint:STYLE011,PERF030 - the arm's subject is move-assign into an already-declared var
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, "a"))
         t |> success(key_exists(tab, "b"))
     }
     t |> run("assign <- nested table literal to existing var") @(t : T?) {
         var tab : table<int; table<string; int>>
-        tab <- {1 => {"x" => 10}, 2 => {"y" => 20}}
+        tab <- {1 => {"x" => 10}, 2 => {"y" => 20}}     // nolint:STYLE011,PERF030 - the arm's subject is move-assign into an already-declared var
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, 1))
         t |> success(key_exists(tab, 2))
     }
     t |> run("assign <- table comprehension to existing var") @(t : T?) {
         var tab : table<int; int>
-        tab <- {for (i in range(5)); i => i * 100}
+        tab <- {for (i in range(5)); i => i * 100}     // nolint:STYLE011,PERF030 - the arm's subject is move-assign into an already-declared var
         t |> equal(length(tab), 5)
         t |> success(key_exists(tab, 0))
         t |> success(key_exists(tab, 4))
@@ -207,27 +207,27 @@ def test_table_move_semantics(t : T?) {
 [test]
 def test_table_comprehension(t : T?) {
     t |> run("brace-for creates table") @(t : T?) {
-        var tab <- {for (i in range(3)); i => i * 10}
+        let tab <- {for (i in range(3)); i => i * 10}
         t |> equal(length(tab), 3)
         t |> success(key_exists(tab, 0))
         t |> success(key_exists(tab, 1))
         t |> success(key_exists(tab, 2))
     }
     t |> run("brace-for with string keys") @(t : T?) {
-        var tab <- {for (i in range(3)); "k{i}" => i}
+        let tab <- {for (i in range(3)); "k{i}" => i}
         t |> equal(length(tab), 3)
         t |> success(key_exists(tab, "k0"))
         t |> success(key_exists(tab, "k1"))
         t |> success(key_exists(tab, "k2"))
     }
     t |> run("brace-for with expression values") @(t : T?) {
-        var tab <- {for (i in range(4)); i => i * i}
+        let tab <- {for (i in range(4)); i => i * i}
         t |> equal(length(tab), 4)
         t |> success(key_exists(tab, 0))
         t |> success(key_exists(tab, 3))
     }
     t |> run("var <- brace-for with nested table value") @(t : T?) {
-        var tab <- {for (i in range(2)); i => {"v{i}" => i}}
+        var tab <- {for (i in range(2)); i => {"v{i}" => i}}     // nolint:LINT003 - the arm's subject is the mutable `var <-` move-init form
         t |> equal(length(tab), 2)
         t |> success(key_exists(tab, 0))
         t |> success(key_exists(tab, 1))
@@ -239,7 +239,7 @@ def test_table_literal_in_bare_block(t : T?) {
     t |> run("braces inside bare block") @(t : T?) {
         var found = false
         {
-            var tab = {"needle" => 1}
+            let tab = {"needle" => 1}
             found = key_exists(tab, "needle")
         }
         t |> success(found)
@@ -247,7 +247,7 @@ def test_table_literal_in_bare_block(t : T?) {
     t |> run("nested braces inside bare block") @(t : T?) {
         var n = 0
         {
-            var tab = {1 => {"a" => 42}}
+            let tab = {1 => {"a" => 42}}
             n = length(tab)
         }
         t |> equal(n, 1)
@@ -255,7 +255,7 @@ def test_table_literal_in_bare_block(t : T?) {
     t |> run("struct with braces field inside bare block") @(t : T?) {
         var tag_count = 0
         {
-            var cfg = Config(name = "block", tags = {"x" => 1, "y" => 2})
+            let cfg = Config(name = "block", tags = {"x" => 1, "y" => 2})
             tag_count = length(cfg.tags)
         }
         t |> equal(tag_count, 2)
@@ -263,7 +263,7 @@ def test_table_literal_in_bare_block(t : T?) {
     t |> run("move braces inside bare block") @(t : T?) {
         var n = 0
         {
-            var tab <- {"a" => 1, "b" => 2, "c" => 3}
+            let tab <- {"a" => 1, "b" => 2, "c" => 3}
             n = length(tab)
         }
         t |> equal(n, 3)
@@ -271,7 +271,7 @@ def test_table_literal_in_bare_block(t : T?) {
     t |> run("brace-for comprehension inside bare block") @(t : T?) {
         var n = 0
         {
-            var tab <- {for (i in range(4)); i => i}
+            let tab <- {for (i in range(4)); i => i}
             n = length(tab)
         }
         t |> equal(n, 4)

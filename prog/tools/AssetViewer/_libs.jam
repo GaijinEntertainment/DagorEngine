@@ -47,6 +47,7 @@ include $(Root)/prog/daNetGameLibs/hero_cockpit_render/_lib.jam ;
 include $(Root)/prog/gameLibs/daeditorPlotDebug/_lib.jam ;
 include $(Root)/prog/gameLibs/imgui_daeditor/_lib.jam ;
 include $(Root)/prog/gameLibs/anim/motionMatching/_lib.jam ;
+include $(Root)/prog/gameLibs/animTreeEditor/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/node_collapser/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/pathfinder/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/phys_helpers/_lib.jam ;

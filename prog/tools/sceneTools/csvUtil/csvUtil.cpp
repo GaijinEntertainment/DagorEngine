@@ -363,8 +363,6 @@ public:
         destroy_loc_key_dump(keyDump);
         return false;
       }
-      Tab<String> *v = new Tab<String>(tmpmem);
-
       if (keys.nameCount() == 0)
         for (int k = 0; k < loc_keys.size(); k++)
           if (keys.addNameId(loc_keys[k]) != k)
@@ -374,6 +372,7 @@ public:
             return false;
           }
 
+      Tab<String> *v = new Tab<String>(tmpmem);
       if (keys.nameCount() == loc_vals.size())
       {
         v->resize(loc_vals.size());

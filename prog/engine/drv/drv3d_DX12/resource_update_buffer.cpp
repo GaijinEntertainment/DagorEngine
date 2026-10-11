@@ -33,14 +33,14 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
 
   auto mipExtents = align_value(image->getMipExtents(mip), blockExtent);
   auto outline = extent + offset;
-  D3D_CONTRACT_ASSERTF_RETURN(0 == offset.x % blockExtent.width, nullptr, "DX12: 0 == offset.x: %u % blockExtent.width: %u", offset.x,
+  D3D_CONTRACT_ASSERTF_RETURN(0 == offset.x % blockExtent.width, nullptr, "DX12: 0 == offset.x: %u %% blockExtent.width: %u", offset.x,
     blockExtent.width);
-  D3D_CONTRACT_ASSERTF_RETURN(0 == offset.y % blockExtent.height, nullptr, "DX12: 0 == offset.y: %u % blockExtent.height: %u",
+  D3D_CONTRACT_ASSERTF_RETURN(0 == offset.y % blockExtent.height, nullptr, "DX12: 0 == offset.y: %u %% blockExtent.height: %u",
     offset.y, blockExtent.height);
-  D3D_CONTRACT_ASSERTF_RETURN(0 == extent.width % blockExtent.width, nullptr, "DX12: 0 == extent.width: %u % blockExtent.width: %u",
+  D3D_CONTRACT_ASSERTF_RETURN(0 == extent.width % blockExtent.width, nullptr, "DX12: 0 == extent.width: %u %% blockExtent.width: %u",
     extent.width, blockExtent.width);
   D3D_CONTRACT_ASSERTF_RETURN(0 == extent.height % blockExtent.height, nullptr,
-    "DX12: 0 == extent.height: %u % blockExtent.height: %u", extent.height, blockExtent.height);
+    "DX12: 0 == extent.height: %u %% blockExtent.height: %u", extent.height, blockExtent.height);
   D3D_CONTRACT_ASSERTF_RETURN(offset.x < mipExtents.width, nullptr, "DX12: offset.x: %u < mipExtents.width: %u", offset.x,
     mipExtents.width);
   D3D_CONTRACT_ASSERTF_RETURN(offset.y < mipExtents.height, nullptr, "DX12: offset.y: %u < mipExtents.height: %u", offset.y,

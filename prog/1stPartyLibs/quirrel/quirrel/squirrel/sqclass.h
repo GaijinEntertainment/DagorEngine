@@ -181,7 +181,7 @@ public:
         case SQNFT_FLOAT64: val = SQObjectPtr((SQFloat)*(const double *)p); break;
         case SQNFT_INT32:   val = SQObjectPtr((SQInteger)*(const int32_t *)p); break;
         case SQNFT_INT64:   val = SQObjectPtr((SQInteger)*(const int64_t *)p); break;
-        case SQNFT_BOOL:    val._type = OT_BOOL; val._unVal.nInteger = *(const bool *)p ? 1 : 0; break;
+        case SQNFT_BOOL:    val = SQObjectPtr(*(const bool *)p); break;
         }
     }
 

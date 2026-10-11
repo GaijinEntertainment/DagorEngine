@@ -222,9 +222,8 @@ void ObjectEditor::updateImgui()
     PropPanel::PanelWindowPropertyControl *panelWindow = objectPropBar->getPanel();
 
     bool open = true;
-    DAEDITOR3.imguiBegin(*panelWindow, &open);
-    panelWindow->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*panelWindow, &open); window.canSubmitContents())
+      panelWindow->updateImgui();
 
     if (!open && objectPropBar)
     {
@@ -1137,19 +1136,13 @@ bool ObjectEditor::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool
           // hit
           if (type & wingw::M_ALT)
             obj->selectObject(false);
-          else if (type & wingw::M_CTRL)
-            obj->selectObject();
           else
             obj->selectObject();
         }
         else
         {
           // missed
-          if (type & wingw::M_ALT)
-            ; // no-op
-          else if (type & wingw::M_CTRL)
-            ; // no-op
-          else
+          if (!(type & (wingw::M_ALT | wingw::M_CTRL)))
             obj->selectObject(false);
         }
       }
@@ -1330,11 +1323,6 @@ bool ObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool insi
     if (justCreated)
     {
       bool doTransform = false;
-      int wrapedX = 0;
-      int wrapedY = 0;
-
-      if (wrapedY)
-        lastY = y;
 
       switch (buttons)
       {

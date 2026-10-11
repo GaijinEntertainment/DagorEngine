@@ -15,6 +15,7 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_gameResHooks.h>
 #include <rendInst/rendInstGen.h>
+#include "main/workStatus.h"
 #if _TARGET_PC
 static void init_platform_specific(const DataBlock &) {}
 #else
@@ -69,12 +70,8 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
     [&inp, &argv_storage](int idx) { argv_storage.push_back(inp.getStr(idx)); });
 
   dgs_init_argv(argv_storage.size(), (char **)argv_storage.data());
-  {
-    const char *uid = inp.getStr(TEST_LOG_UID_ARG, "");
-    if (const char *s = ::dgs_get_argv(TEST_LOG_UID_ARG))
-      uid = s;
-    hosted_server_store_instance_uid(uid);
-  }
+  // Host always relays -test_log_uid:N in argv when it sets the int64 block param.
+  hosted_server_store_instance_uid(::dgs_get_argv(TEST_LOG_UID_ARG));
   init_platform_specific(inp);
   if (auto *shared_mem = (GlobalSharedMemStorage *)(void *)inp.getInt64("sharedMemPtr", 0))
   {
@@ -122,7 +119,10 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
     }
   }
 
-  DagorWinMainInit(0, debugmode);
+  {
+    workstatus::Scope wsInit("starting hosted server");
+    DagorWinMainInit(0, debugmode);
+  }
   int retcode = DagorWinMain(0, debugmode);
 
   if (auto *shared_mem = HeightmapPhysHandler::sharedMem)

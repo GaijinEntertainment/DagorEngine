@@ -15,6 +15,7 @@ Dagor Shading Language (DSHL) docs
    index/intrinsics.rst
    index/global-constants.rst
    index/pipeline-states.rst
+   index/render-passes.rst
    index/keywords.rst
    index/stream_output.rst
 

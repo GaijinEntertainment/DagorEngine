@@ -562,6 +562,37 @@ def cnum_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 roles.register_local_role('cnum', cnum_role)
 
 # ------------------------------------------------------------------------------
+# `:ilink:` role
+# ------------------------------------------------------------------------------
+
+def ilink_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    """
+    Role to insert an HTML link with an icon in the text.
+
+    Usage:
+
+    - In MyST Markdown:
+        {ilink}`word-list-add-on`
+
+    - In reStructuredText (rST):
+        :ilink:`word-list-add-on`
+
+    Generates HTML:
+        <a id="word-list-add-on" href="#word-list-add-on" class="headerlink"
+        title="Link to this entry">&#xf0c1;</a>
+
+    For non-HTML builders (e.g. latex), emits an empty node.
+    """
+    builder = inliner.document.settings.env.app.builder.name
+    if builder != 'html':
+        return [nodes.inline('', '')], []
+    html = f'<a id="{text}" href="#{text}" class="headerlink" title="Link to this entry">&#xf0c1;</a>'
+    node = nodes.raw('', html, format='html')
+    return [node], []
+
+roles.register_local_role('ilink', ilink_role)
+
+# ------------------------------------------------------------------------------
 # Factory function to create badge roles
 #
 # These roles render colored inline badges in HTML output.

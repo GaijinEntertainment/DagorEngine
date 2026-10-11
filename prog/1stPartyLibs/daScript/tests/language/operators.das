@@ -187,6 +187,102 @@ def test_index_operators(t : T?) {
     }
 }
 
+// ===== raw (original) operator family — `!` before an access/test operator bypasses the overload =====
+
+def operator [] (_a : array<float>; _i : int) : float {
+    return -999.0
+}
+
+def operator ?[] (_a : array<float>; _i : int) : float? {
+    return null
+}
+
+def operator [] =(var _a : array<float>; _i : int; _v : float) {
+    pass    // a lying setter: swallows the write
+}
+
+struct Qoo {
+    v : int
+}
+
+def operator ??(_p : Qoo? const; _d : Qoo const) : Qoo {
+    return Qoo(v = -777)
+}
+
+variant IntFloat {
+    i : int
+    f : float
+}
+
+def operator is i(_v : IntFloat) {
+    return false
+}
+
+def operator as i(_v : IntFloat) {
+    return -888
+}
+
+def operator ?as i(_v : IntFloat) : int? {
+    return null
+}
+
+def operator is int(_g : Goo) {
+    return true
+}
+
+[test]
+def test_raw_operators(t : T?) {
+    t |> run("!. and !?. reach the real field") @(t : T?) {
+        var g = Goo(a = "hello")
+        t |> equal("hello", g!.a)                    // g.GooBar promotes, g!.a does not
+        t |> equal("hello.GooBar", g.GooBar!.a)
+        t |> equal(g . . a, g!.a)                    // legacy spelling stays equivalent
+        var pg = unsafe(addr(g))
+        t |> equal("hello", pg!?.a ?? "dflt")
+        var ng : Goo?
+        t |> equal("dflt", ng!?.a ?? "dflt")
+    }
+    t |> run("![ and !?[ reach the real element") @(t : T?) {
+        let xs <- [1.0, 2.0, 3.0]
+        t |> equal(-999.0, xs[1])                    // the overload shadows builtin indexing
+        t |> equal(2.0, xs![1])
+        t |> equal(-1.0, xs?[1] ?? -1.0)             // the ?[] overload yields null
+        t |> equal(2.0, xs!?[1] ?? -1.0)
+        t |> equal(-1.0, xs!?[9] ?? -1.0)            // raw safe-index still bounds-checks
+    }
+    t |> run("![ bypasses the write path too") @(t : T?) {
+        var ws <- [1.0, 2.0, 3.0]
+        ws[1] = 55.0                                 // the lying []= swallows the write
+        t |> equal(2.0, ws![1])
+        ws![1] = 55.0                                // raw write reaches the real element
+        t |> equal(55.0, ws![1])
+        ws![1] += 1.0                                // nolint:PERF013 - raw compound write is the tested construct
+        t |> equal(56.0, ws![1])
+    }
+    t |> run("!?? reaches builtin pointer coalescing") @(t : T?) {
+        var q = Qoo(v = 13)
+        var pq = unsafe(addr(q))
+        t |> equal(-777, (pq ?? Qoo(v = 1)).v)       // the ?? overload wins
+        t |> equal(13, (pq !?? Qoo(v = 1)).v)
+        var nq : Qoo?
+        t |> equal(1, (nq !?? Qoo(v = 1)).v)
+    }
+    t |> run("!is, !as, !?as reach the real variant") @(t : T?) {
+        let vif = IntFloat(i = 42)
+        t |> success(!(vif is i))                    // the lying `is` operator wins
+        t |> success(vif !is i)
+        t |> equal(-888, vif as i)                   // the lying `as` operator wins
+        t |> equal(42, vif !as i)
+        t |> equal(-1, vif ?as i ?? -1)              // the lying `?as` operator wins
+        t |> equal(42, unsafe(vif !?as i) ?? -1)
+    }
+    t |> run("!is type form reaches the static check") @(t : T?) {
+        let g = Goo(a = "x")
+        t |> success(g is int)                       // the lying `is int` operator wins
+        t |> success(!(g !is int))
+    }
+}
+
 struct ArraySlots {
     slots : array<array<int>>
     def operator [] <-(index : int, var value : array<int>) {

@@ -12,6 +12,7 @@
 #include <EASTL/functional.h>
 #include <EASTL/optional.h>
 #include <shaders/dag_shaderHash.h>
+#include <drv/shadersMetaData/pixelShaderOutputInfo.h>
 
 // some headers define DOMAIN as macro which collides with enum names
 #if defined(DOMAIN)
@@ -287,6 +288,7 @@ struct ShaderHeaderCompileResult
   ShaderHeader header = {};
   ComputeShaderInfo computeShaderInfo = {};
   dag::Vector<StreamOutputComponentInfo> streamOutputComponents;
+  PixelShaderOutputInfo psOutput;
   bool isOk = true;
   eastl::string logMessage;
 };

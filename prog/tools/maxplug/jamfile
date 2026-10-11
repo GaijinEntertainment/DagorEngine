@@ -21,6 +21,7 @@ Sources =
   debug.cpp
   dllmain.cpp
   dummy.cpp
+  expanim2.cpp
   expUtil.cpp
   font.cpp
   freecam.cpp

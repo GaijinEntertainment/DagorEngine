@@ -88,7 +88,7 @@ def test_vector_swizzle(t : T?) {
         t |> equal(v, float4(1, 10, 9, 7))
     }
     t |> run("swizzle imm") @(t : T?) {
-        var v = float4(1, 2, 3, 4)
+        let v = float4(1, 2, 3, 4)
         t |> success(!jit_enabled() || is_jit_function(@@swizzle_xyz))
         t |> equal(float3(1, 2, 3), swizzle_xyz(v))
         t |> success(!jit_enabled() || is_jit_function(@@swizzle_xy))

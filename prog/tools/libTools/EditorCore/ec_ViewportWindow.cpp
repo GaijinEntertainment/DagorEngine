@@ -174,7 +174,7 @@ static int get_modifier_keys_for_window_messages()
 
 Tab<ViewportParams> ViewportWindow::viewportsParams(midmem);
 
-class ViewportWindow::ViewportClippingDlg : public PropPanel::DialogWindow
+class ViewportWindow::ViewportClippingDlg final : public PropPanel::DialogWindow
 {
 public:
   ViewportClippingDlg(float z_near, float z_far);
@@ -221,13 +221,14 @@ bool tryReadingDepthFromBuffer(int x, int y, BaseTexture *depth_buffer, real &de
 
 
 ViewportWindow::ViewportClippingDlg::ViewportClippingDlg(float z_near, float z_far) :
-  DialogWindow(0, _pxScaled(240), _pxScaled(135), "Viewport clipping")
+  DialogWindow(0, hdpi::Px::ZERO, hdpi::Px::ZERO, "Viewport clipping")
 {
   PropPanel::ContainerPropertyControl *_panel = getPanel();
   G_ASSERT(_panel && "No panel in ViewportWindow::ViewportClippingDlg");
 
   _panel->createEditFloat(Z_NEAR_ID, "Near z-plane:", z_near, 3);
   _panel->createEditFloat(Z_FAR_ID, "Far z-plane:", z_far, 0);
+  autoSize(/*auto_center = */ !hasEverBeenShown(), /*use_preferred_size = */ true);
 }
 
 
@@ -562,8 +563,6 @@ void ViewportWindow::processMaxCameraMouseMove(int mouse_x, int mouse_y, bool m_
           else
             setOrthogonalZoom(orthogonalZoom * (deltaY / 10.0 + 0.1f * multiplier));
         }
-
-        updatePluginCamera = true;
       }
       else
       {
@@ -2502,14 +2501,12 @@ void ViewportWindow::resizeViewportTexture()
   String name;
   name.printf(32, "viewport_window_%d_rt", vpId);
 
-  viewportTexture.close();
-  viewportTexture.set(d3d::create_tex(nullptr, viewportTextureSize.x, viewportTextureSize.y, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, name),
-    name);
+  viewportTexture = dag::create_tex(nullptr, viewportTextureSize.x, viewportTextureSize.y, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, name);
 
   OnChangePosition();
 }
 
-bool ViewportWindow::isViewportTextureReady() const { return viewportTexture.getTex() != nullptr; }
+bool ViewportWindow::isViewportTextureReady() const { return viewportTexture.getBaseTex() != nullptr; }
 
 void ViewportWindow::copyTextureToViewportTexture(BaseTexture &source_texture, int source_width, int source_height)
 {
@@ -2559,7 +2556,7 @@ void ViewportWindow::updateImgui(ImGuiID canvas_id, const Point2 &size, float it
   const ImVec2 imguiViewportSize = size;
   requestedViewportTextureSize = IPoint2(floorf(imguiViewportSize.x), floorf(imguiViewportSize.y));
 
-  const TEXTUREID viewportTextureId = viewportTexture.getId();
+  const TEXTUREID viewportTextureId = viewportTexture.getTexId();
   if (viewportTextureSize.x > 0 && viewportTextureSize.y > 0 && viewportTextureId != BAD_TEXTUREID)
   {
     processCameraStateOnFocusChange();
@@ -2568,7 +2565,7 @@ void ViewportWindow::updateImgui(ImGuiID canvas_id, const Point2 &size, float it
 
     ImGuiWindow *currentWindow = ImGui::GetCurrentWindow();
     const ImVec2 mousePosInCanvas = ImGui::GetMousePos() - ImGui::GetCursorScreenPos();
-    const bool itemMouseButtonHeld = add_viewport_canvas_item(canvas_id, ImGuiDagor::EncodeTexturePtr(viewportTexture.getTex()),
+    const bool itemMouseButtonHeld = add_viewport_canvas_item(canvas_id, ImGuiDagor::EncodeTexturePtr(viewportTexture.getBaseTex()),
       ImVec2(viewportTextureSize.x, viewportTextureSize.y), item_spacing, vr_mode);
     const bool itemHovered = ImGui::IsItemHovered();
     const bool wasActive = active;

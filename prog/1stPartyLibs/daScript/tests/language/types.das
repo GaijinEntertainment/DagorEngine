@@ -52,7 +52,7 @@ def ty_test_block_invoke(b : block<(var b_var_i : int; var b_var_f : float; var 
 }
 
 def ty_test_block_var(t : T?) {
-    ty_test_block_invoke() <| $(var b_var_i : int; var b_var_f : float; var b_var_s : string) {
+    ty_test_block_invoke() $(var b_var_i : int; var b_var_f : float; var b_var_s : string) {
         t |> equal(b_var_i, 1)
         b_var_i = b_var_i + 1
         t |> equal(b_var_i, 2)

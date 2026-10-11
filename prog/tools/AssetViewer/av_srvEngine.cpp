@@ -485,13 +485,20 @@ public:
 
   void revealInExplorer(const char *path) override { dag_reveal_in_explorer(String(path)); }
 
-  void showToast(PropPanel::ToastType type, const char *text) override
+  void showToast(PropPanel::ToastType type, const char *text, const IPoint2 *position, const Point2 &pivot) override
   {
     PropPanel::ToastMessage message;
     message.type = type;
     message.text = text;
     message.setHideOnMouseMove(true);
-    message.setToMousePos(Point2(0.5f, 0.5f));
+    if (position)
+    {
+      message.setPosition(*position, pivot);
+    }
+    else
+    {
+      message.setToMousePos(pivot);
+    }
     PropPanel::set_toast_message(message);
   }
 
@@ -622,7 +629,7 @@ class ServicesRenderPlugin : public IGenEditorPlugin, public ILightingChangeClie
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->renderService();
   }
-  void renderTransObjects() override
+  void renderTransObjects(BaseTexture *) override
   {
     for (int i = 0; i < srvPlugins.size(); i++)
       srvPlugins[i]->renderTransService();

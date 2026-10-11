@@ -2,8 +2,10 @@
 
 #include <osApiWrappers/dag_linuxGUI.h>
 #include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <debug/dag_logSys.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if USE_X11
 #include "x11.h"
@@ -62,20 +64,34 @@ void init_wayland()
 {
 #if USE_WAYLAND
   const char *xdg_session_type = getenv("XDG_SESSION_TYPE");
-  if (xdg_session_type && strstr(xdg_session_type, "wayland"))
-  {
-    debug("wayland: present because XDG_SESSION_TYPE value = %s", xdg_session_type);
-    bool useWayland = false;
+  if (!(xdg_session_type && strstr(xdg_session_type, "wayland")))
+    return;
+
+  debug("wayland: present because XDG_SESSION_TYPE value = %s", xdg_session_type);
+
+  bool useWayland = true;
 #if USE_X11
-    useWayland = ::dgs_get_settings()->getBlockByNameEx("linux")->getBool("wayland", false) || ::dgs_get_argv("wayland");
-#else
+  // prefer Wayland when it can present the selected window mode correctly
+  const DataBlock *linuxBlk = ::dgs_get_settings()->getBlockByNameEx("linux");
+  if (::dgs_get_argv("wayland"))
     useWayland = true;
-#endif
-    if (useWayland)
-      inited = wayland.init();
-    else
-      debug("wayland: use x11 due to configuration");
+  else if (linuxBlk->paramExists("wayland"))
+    useWayland = linuxBlk->getBool("wayland", false);
+  else
+  {
+    // dgs_get_window_mode() is not populated yet use direct read from config
+    const char *modeStr = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("mode", "");
+    const bool decorationsNeeded = !strcmp(modeStr, "windowed") || !strcmp(modeStr, "resizablewindowed");
+    useWayland = !decorationsNeeded || wayland.hasServerSideDecorations();
+    debug("wayland: default backend selection: video/mode='%s' decorationsNeeded=%d -> %s", modeStr, (int)decorationsNeeded,
+      useWayland ? "wayland" : "x11");
   }
+#endif
+
+  if (useWayland)
+    inited = wayland.init();
+  else
+    debug("wayland: fallback to x11");
 #endif
 }
 

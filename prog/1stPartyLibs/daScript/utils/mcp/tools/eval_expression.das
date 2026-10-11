@@ -8,15 +8,17 @@ require daslib/strings_boost
 def private extract_missing_prerequisites(output : string) : array<string> {
     var names : array<string>
     let marker = "missing prerequisite '"
-    var pos = 0
-    while (true) {
-        let i = find(output, marker, pos)
-        if (i < 0) break
-        let start = i + length(marker)
-        let endq = find(output, "'", start)
-        if (endq < 0) break
-        names |> push(slice(output, start, endq))
-        pos = endq + 1
+    peek_data(output) $(d) {
+        var pos = 0
+        while (true) {
+            let i = find(d, marker, pos)
+            break if (i < 0)
+            let start = i + length(marker)
+            let endq = find(d, "'", start)
+            break if (endq < 0)
+            names |> push(slice(d, start, endq))
+            pos = endq + 1
+        }
     }
     return <- names
 }

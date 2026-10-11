@@ -321,6 +321,54 @@ public:
   }
 
   /**
+   * \brief Requests the node to copy this texture into another texture
+   * whole, i.e. every mip and every slice, like BaseTexture::update does.
+   * The destination must have the same format, size, mip count and
+   * slice count, and must not be an array texture.
+   * Both requests get Usage::COPY at Stage::TRANSFER, so the node needs
+   * no execution callback and daFG can synchronize untracked resources
+   * for it.
+   *
+   * \param destination The name of the destination texture, which the
+   *   node requests for modification.
+   */
+  template <typename = void>
+    requires(eastl::is_same_v<Res, BaseTexture> &&
+             hasPolicy(RRP::Readonly, "ERROR: Please call .copyTo(...) on a read or history request!") &&
+             !hasPolicy(RRP::Optional, "ERROR: Please don't call .optional() before .copyTo(...)!") &&
+             !hasPolicy(RRP::HasUsageStage, "ERROR: Please don't call .atStage(usage stage) before .copyTo(...)!") &&
+             !hasPolicy(RRP::HasUsageType, "ERROR: Please don't call .useAs(usage type) before .copyTo(...)!"))
+  void copyTo(const char *destination) &&
+  {
+    Base::copyTo(destination);
+  }
+
+  /**
+   * \brief Requests the node to copy this texture into another texture
+   * whole, like the overload with a destination name does.
+   *
+   * \param destination A create, register, modify or rename request for
+   *   the destination texture, e.g. `registry.create("copy").texture(info)`.
+   */
+  template <RRP dstPolicy>
+    requires(
+      eastl::is_same_v<Res, BaseTexture> &&
+      hasPolicy(RRP::Readonly, "ERROR: Please call .copyTo(...) on a read or history request!") &&
+      !hasPolicy(RRP::Optional, "ERROR: Please don't call .optional() before .copyTo(...)!") &&
+      !hasPolicy(RRP::HasUsageStage, "ERROR: Please don't call .atStage(usage stage) before .copyTo(...)!") &&
+      !hasPolicy(RRP::HasUsageType, "ERROR: Please don't call .useAs(usage type) before .copyTo(...)!") &&
+      !VirtualResourceRequest<BaseTexture, dstPolicy>::hasPolicy(RRP::Readonly, "ERROR: Can't copy into a readonly resource!") &&
+      !VirtualResourceRequest<BaseTexture, dstPolicy>::hasPolicy(RRP::Optional, "ERROR: Can't copy into an optional resource!") &&
+      !VirtualResourceRequest<BaseTexture, dstPolicy>::hasPolicy(RRP::HasUsageStage,
+        "ERROR: Please don't call .atStage(usage stage) on the destination before .copyTo(...)!") &&
+      !VirtualResourceRequest<BaseTexture, dstPolicy>::hasPolicy(RRP::HasUsageType,
+        "ERROR: Please don't call .useAs(usage type) on the destination before .copyTo(...)!"))
+  void copyTo(VirtualResourceRequest<BaseTexture, dstPolicy> destination) &&
+  {
+    Base::copyTo(destination.resUid.resId);
+  }
+
+  /**
    * \brief Returns a handle that can be used to access the physical
    * resource underlying this virtual one during execution time. Note
    * that the physical resource will change throughout executions and

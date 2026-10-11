@@ -122,7 +122,7 @@ macro DYNAMIC_SIMPLE_VS_INPUT()
   // Optional second UV for vertex-deformation features (see INIT_MORPH_VSINPUT).
   // Declared here, not by the caller, because cooked vdata is matched against the
   // shader channel list positionally (ScriptedShaderMaterial::checkChannels), so
-  // the order must stay pos/norm/tc0/tc1/bones.
+  // the order must stay pos/norm/tc0/tc1/bones/cor.
   if (maybe(need_morph_uv_channel))
   {
     channel float2 tc[1] = tc[1];
@@ -134,6 +134,14 @@ macro DYNAMIC_SIMPLE_VS_INPUT()
     channel color8 tc[5] = extra[1];
     hlsl {
       #define HAS_SKINNING 1
+    }
+    // constraint: extra[60] is COR_SKINNING_EXTRA_CHANNEL (dag_corSkinningChannel.h)
+    if (cor_skinning_support == on)
+    {
+      channel color8 tc[8] = extra[60];
+      hlsl {
+        #define HAS_COR_SKINNING 1
+      }
     }
   }
 
@@ -156,6 +164,9 @@ macro DYNAMIC_SIMPLE_VS_INPUT()
       #if VERTEX_TANGENT
       float4 packedDu             : TEXCOORD2;
       float4 packedDv             : TEXCOORD3;
+      #endif
+      #if HAS_COR_SKINNING
+      float4 corOffset            : TEXCOORD8;
       #endif
       INIT_MORPH_VSINPUT(TEXCOORD1)
       INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)

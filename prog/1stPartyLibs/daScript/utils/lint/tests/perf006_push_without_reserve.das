@@ -244,3 +244,14 @@ def good_conditional_nested() {
 
 [export]
 def main() { }
+
+// ensure_capacity is the correct spelling for a dynamic accumulate - it satisfies
+// the reserve-before-loop contract
+def good_ensure_capacity(n : int) {
+    var result : array<int>
+    result |> ensure_capacity(n)
+    for (i in range(n)) {
+        result |> push(i)                       // no warning - capacity ensured
+    }
+    delete result
+}

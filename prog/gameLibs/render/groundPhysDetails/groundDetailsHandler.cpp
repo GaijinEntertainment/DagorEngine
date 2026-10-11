@@ -58,9 +58,8 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
     TEXFMT_R32F | TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXCF_CPU_CACHED_MEMORY);
 
   // detailed tex for depth above render (for small rendinsts/static scene)
-  groundPhysDetailsTex.set(
-    d3d::create_tex(NULL, 4 * bufferSize, 4 * bufferSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "ground_microdetails_tex", RESTAG_LAND),
-    "ground_microdetails_tex");
+  groundPhysDetailsTex =
+    dag::create_tex(NULL, 4 * bufferSize, 4 * bufferSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "ground_microdetails_tex", RESTAG_LAND);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
@@ -181,7 +180,7 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
       origin.y - 0.5f * worldSize);
 
     static int ground_physdetails_texVarId = ::get_shader_glob_var_id("ground_physdetails_tex");
-    ShaderGlobal::set_texture_fast(ground_physdetails_texVarId, groundPhysDetailsTex.getId());
+    ShaderGlobal::set_texture_fast(ground_physdetails_texVarId, groundPhysDetailsTex.getTexId());
 
     d3d::set_render_target({}, DepthAccess::RW, {{currentTarget, 0, 0}});
     renderHeightAndDisplacement.render();

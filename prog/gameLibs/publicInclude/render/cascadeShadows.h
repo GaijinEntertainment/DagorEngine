@@ -5,7 +5,7 @@
 #pragma once
 
 #include "cascadeShadowsDecl.h"
-#include <EASTL/fixed_function.h>
+#include <generic/dag_functionRef.h>
 #include <3d/dag_resPtr.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <generic/dag_span.h>
@@ -24,8 +24,8 @@ class String;
 class CascadeShadowsPrivate;
 class BaseTexture;
 
-typedef eastl::fixed_function<sizeof(void *) * 5, void(int num_cascades_to_render, bool clear_per_view)> csm_render_cascades_cb_t;
-typedef eastl::fixed_function<sizeof(void *) * 5, void()> csm_render_cascade_depth_cb_t;
+typedef dag::FunctionRef<void(int num_cascades_to_render, bool clear_per_view) const> csm_render_cascades_cb_t;
+typedef dag::FunctionRef<void() const> csm_render_cascade_depth_cb_t;
 
 class ICascadeShadowsClient
 {
@@ -122,9 +122,9 @@ public:
   void setDepthBiasSettings(const Settings &set);
   void setCascadeWidth(int cascadeWidth);
   void renderShadowsCascades();
-  void renderShadowsCascadesCb(const csm_render_cascades_cb_t &cb, BaseTexture *external_cascades = {}, bool clear_per_view = false);
+  void renderShadowsCascadesCb(csm_render_cascades_cb_t cb, BaseTexture *external_cascades = {}, bool clear_per_view = false);
   void renderShadowCascadeDepth(int cascadeNo, bool clearPerView, BaseTexture *external_cascades = {});
-  void renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &cb);
+  void renderShadowCascadeDepthCb(int cascadeNo, csm_render_cascade_depth_cb_t cb);
 
   void setSamplingBiasToShader(float value);
   void setCascadesToShader();

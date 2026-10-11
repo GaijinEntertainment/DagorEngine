@@ -33,6 +33,12 @@ public:
   // Convert all characters to upper case and return new string.
   const char *toUpper();
 
+  // Convert the first character to upper case and return new string.
+  const char *capitalize();
+
+  // Convert the first character of each word between spaces to upper case and return new string.
+  const char *capitalizeWords();
+
 private:
   String utf8;   // UTF8 string
   String result; // storage for return string (byte array)

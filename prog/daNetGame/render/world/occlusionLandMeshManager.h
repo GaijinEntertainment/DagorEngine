@@ -75,11 +75,11 @@ public:
       for (int j = 0; j < SIDE - 1; ++j)
       {
         indices[idx++] = i * SIDE + j;
+        indices[idx++] = (i + 1) * SIDE + (j + 1);
         indices[idx++] = i * SIDE + (j + 1);
-        indices[idx++] = (i + 1) * SIDE + (j + 1);
         indices[idx++] = (i + 1) * SIDE + j;
-        indices[idx++] = i * SIDE + j;
         indices[idx++] = (i + 1) * SIDE + (j + 1);
+        indices[idx++] = i * SIDE + j;
       }
     v_bbox3_init_empty(bbox);
   }

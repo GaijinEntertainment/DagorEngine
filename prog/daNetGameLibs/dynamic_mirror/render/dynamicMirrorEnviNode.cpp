@@ -16,7 +16,6 @@ CONSOLE_FLOAT_VAL("render", mirror_sky_prepare_altitude_tolerance, 100.0f);
 dafg::NodeHandle create_dynamic_mirror_prepare_envi_node(DynamicMirrorRenderer &mirror_renderer)
 {
   return get_dynamic_mirrors_namespace().registerNode("prepare_envi", DAFG_PP_NODE_SRC, [&mirror_renderer](dafg::Registry registry) {
-    registry.executionHas(dafg::SideEffects::External);
     registry.createBlob<OrderingToken>("mirror_skies_prepared_token");
 
     auto mirrorActiveHndl = registry.readBlob<bool>("is_mirror_active").handle();

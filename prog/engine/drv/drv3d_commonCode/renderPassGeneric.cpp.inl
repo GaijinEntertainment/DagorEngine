@@ -30,6 +30,8 @@ struct MSAAResolvePair
 {
   int32_t src;
   int32_t dst;
+  int32_t slot;
+  RenderPassTargetAction srcAction;
 };
 
 inline dag::RelocatableFixedVector<MSAAResolvePair, 16> msaaResolves;
@@ -111,6 +113,33 @@ static void reset_render_targets()
   rp_impl::depthAccess = DepthAccess::RW;
 }
 
+static void transition_untracked_resolve_source(BaseTexture *tex, int32_t slot, RenderPassTargetAction action)
+{
+  TextureInfo ti{};
+  tex->getinfo(ti);
+  if ((ti.cflg & TEXCF_NO_STATE_TRACKING) == 0)
+    return;
+
+  d3d::PipelineStageFlags stages = d3d::PipelineStageFlag::OutputMerging;
+  d3d::AccessFlags access = d3d::AccessFlag::RenderTargetWrite;
+  d3d::TextureLayout layout = d3d::TextureLayout::RenderTarget;
+  if (slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+  {
+    stages = d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests;
+    access = d3d::AccessFlag::DepthStencilWrite;
+    layout = d3d::TextureLayout::DepthRw;
+    if (action & RP_TA_SUBPASS_READ)
+    {
+      stages |= d3d::PipelineStageFlag::AllVertexShading | d3d::PipelineStageFlag::PixelShading;
+      access = d3d::AccessFlag::DepthStencilRead | d3d::AccessFlag::ShaderResource;
+      layout = d3d::TextureLayout::GenericRead;
+    }
+  }
+  enhanced_texture_barrier({{stages, d3d::PipelineStageFlag::Resolve}, {access, d3d::AccessFlag::ResolveRead},
+                             {layout, d3d::TextureLayout::ResolveSource}, {{0xffffffffu, 0}, {0, 0}, {0, 0}}},
+    tex);
+}
+
 void RenderPass::addSubpassToList(const RenderPassDesc &rp_desc, int32_t subpass)
 {
   for (auto &bind : eastl::span{rp_desc.binds, rp_desc.bindCount})
@@ -131,7 +160,9 @@ void RenderPass::execute(uint32_t idx)
   if (target.resource.tex)
     target.resource.tex->getinfo(ti);
 
-  resource_barrier({target.resource.tex, bind.dependencyBarrier, target.resource.layer * ti.mipLevels + target.resource.mip_level, 1});
+  if ((ti.cflg & TEXCF_NO_STATE_TRACKING) == 0)
+    resource_barrier(
+      {target.resource.tex, bind.dependencyBarrier, target.resource.layer * ti.mipLevels + target.resource.mip_level, 1});
 
   // do not bind targets on end subpassor if we not gonna RW to them
   if ((bind.subpass == RenderPassExtraIndexes::RP_SUBPASS_EXTERNAL_END) || (bind.action == RP_TA_NONE))
@@ -176,7 +207,7 @@ void RenderPass::execute(uint32_t idx)
       if (srcBind.slot == bind.slot && srcBind.subpass == bind.subpass &&
           (srcBind.action & render_pass_validation::resolve_source_actions(bind.slot)))
       {
-        rp_impl::msaaResolves.push_back({srcBind.target, bind.target});
+        rp_impl::msaaResolves.push_back({srcBind.target, bind.target, bind.slot, srcBind.action});
         break;
       }
   }
@@ -198,6 +229,7 @@ void RenderPass::resolveMSAATargets()
   {
     RenderPassTarget &srcTgt = rp_impl::targets[i.src];
     RenderPassTarget &dstTgt = rp_impl::targets[i.dst];
+    transition_untracked_resolve_source(srcTgt.resource.tex, i.slot, i.srcAction);
     // TODO: layer & mip is not handled!!!
     dstTgt.resource.tex->update(srcTgt.resource.tex);
   }

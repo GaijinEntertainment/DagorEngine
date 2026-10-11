@@ -28,12 +28,12 @@ macro UPSCALE_SAMPLING_CORE(code)
   }
 
   hlsl(code) {
+    #include "upscale_sampling_weights.hlsli"
+
     uint encodeMask(float linear_depth, float4 halfResLinearDepth)
     {
-      const float BASE_THRESHOLD = 0.02;
-
       float4 depthDiff = abs(halfResLinearDepth - linear_depth);
-      uint4 depthMatched = depthDiff < BASE_THRESHOLD * linear_depth;
+      uint4 depthMatched = depthDiff < UPSCALE_DEPTH_MATCH_THRESHOLD * linear_depth;
       depthMatched = all(depthMatched == 0) ? uint4(depthDiff == min4(depthDiff.x, depthDiff.y, depthDiff.z, depthDiff.w)) : depthMatched;
       return depthMatched.w | (depthMatched.z<<1) | (depthMatched.y<<2) | (depthMatched.x<<3);
     }

@@ -27,11 +27,11 @@ def edit_weights(var weights : FeatureWeights; nodes_name : StringList; predicti
     safe_slider("position##{name}{hash}", p, 0f, 10f)
     safe_slider("velocity##{name}{hash}", v, 0f, 10f)
 
-  for p, v, t in weights.rootPositions, weights.rootDirections, prediction_times
+  for p, d, t in weights.rootPositions, weights.rootDirections, prediction_times
     imgui::Text("prediction time {t}")
 
     safe_slider("position##{t}{hash}", p, 0f, 10f)
-    safe_slider("velocity##{t}{hash}", v, 0f, 10f)
+    safe_slider("direction##{t}{hash}", d, 0f, 10f)
   commit_feature_weights(weights)
 
 def edit_preset(var preset : TagPreset)
@@ -205,6 +205,7 @@ def edit_presets_root_motion(dataBaseEid : EntityId)
   var invalidateDatabase = false
   if imgui::BeginTabItem("root motion")
     query(dataBaseEid) <| $ [es] (var main_database__root_node : das_string&;
+                                  main_database__root_motion_a2d_node : das_string;
                                   var main_database__direction_nodes : StringList;
                                   var main_database__direction_weights : FloatList;
                                   var main_database__center_of_mass_nodes : StringList;
@@ -260,7 +261,8 @@ def edit_presets_root_motion(dataBaseEid : EntityId)
         main_database__center_of_mass_params |> resize(length(main_database__center_of_mass_params) + 1)
         invalidateDatabase = true
       if imgui::Button("save##rootMotions")
-        serialize_root_motions(rootMotionPath, main_database__root_node, main_database__direction_nodes, main_database__direction_weights, main_database__center_of_mass_nodes, main_database__center_of_mass_params)
+        serialize_root_motions(rootMotionPath, main_database__root_node, main_database__root_motion_a2d_node, main_database__direction_nodes,
+                               main_database__direction_weights, main_database__center_of_mass_nodes, main_database__center_of_mass_params)
     imgui::EndTabItem()
   return invalidateDatabase
 

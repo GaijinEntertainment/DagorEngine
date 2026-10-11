@@ -24,7 +24,7 @@
     #include <dlfcn.h>
 #endif
 
-// init_seg(lib) registers our atexit handler before any user-level static
+// init_seg(lib) / init_priority put our atexit handler before any user-level static
 // ctor — handler ends up at the bottom of the LIFO stack, fires after all
 // user static dtors so their allocations don't show as leaks.
 #if defined(_MSC_VER)
@@ -32,6 +32,13 @@
     #pragma warning(disable: 4073)
     #pragma init_seg(lib)
     #pragma warning(pop)
+#elif defined(__has_attribute)
+    #if __has_attribute(init_priority)
+        #define DAS_LEAK_DUMP_EARLY_INIT __attribute__((init_priority(101)))
+    #endif
+#endif
+#ifndef DAS_LEAK_DUMP_EARLY_INIT
+    #define DAS_LEAK_DUMP_EARLY_INIT
 #endif
 
 namespace das {
@@ -296,7 +303,7 @@ static void init_symbols() {}
 
 static void print_frame(FILE *out, void *addr) {
 #if defined(__linux__) || defined(__APPLE__)
-    Dl_info info;
+    Dl_info info = {};
     if (dladdr(addr, &info) && info.dli_sname) {
         int status = 0;
         char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
@@ -305,6 +312,9 @@ static void print_frame(FILE *out, void *addr) {
         fprintf(out, "    %p  %s+0x%lx   (%s)\n",
                 addr, name, (unsigned long)offset, info.dli_fname ? info.dli_fname : "?");
         std::free(demangled);
+    } else if (info.dli_fbase) {
+        fprintf(out, "    %p  %s+0x%lx\n", addr, info.dli_fname ? info.dli_fname : "?",
+                (unsigned long)((uintptr_t)addr - (uintptr_t)info.dli_fbase));
     } else {
         fprintf(out, "    %p  ?\n", addr);
     }
@@ -530,7 +540,7 @@ static void dump_alloc_leaks_atexit() {
 struct RegisterLeakDumpAtExit {
     RegisterLeakDumpAtExit() noexcept { std::atexit(&dump_alloc_leaks_atexit); }
 };
-static RegisterLeakDumpAtExit g_register_leak_dump_atexit;
+static RegisterLeakDumpAtExit g_register_leak_dump_atexit DAS_LEAK_DUMP_EARLY_INIT;
 
 } // namespace das
 

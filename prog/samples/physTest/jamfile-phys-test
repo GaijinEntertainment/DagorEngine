@@ -35,7 +35,6 @@ UseProgLibs =
   engine/guiBase
   engine/workCycle
   engine/scene
-  engine/sceneRay
   engine/coreUtil
   engine/drv/drv3d_pc_multi
 

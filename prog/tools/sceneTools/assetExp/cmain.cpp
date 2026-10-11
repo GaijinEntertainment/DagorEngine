@@ -27,7 +27,6 @@
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_sharedMem.h>
-#include <osApiWrappers/dag_messageBox.h>
 #include <debug/dag_debug.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,10 +57,7 @@ static int checkAssetReferences(DagorAsset *asset, Tab<IDagorAssetRefProvider::R
 class ConsoleLogWriterEx : public ConsoleLogWriter
 {
 public:
-  ConsoleLogWriterEx() : level(NOTE), errCount(0), impWarnCnt(0) {}
-
-  String impWarn;
-  int impWarnCnt;
+  ConsoleLogWriterEx() : level(NOTE), errCount(0) {}
 
   void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
   {
@@ -69,16 +65,6 @@ public:
       return;
     if (type == IMPORTANT_NOTE)
       type = NOTE;
-    if (unsigned(type) == (WARNING | 0x100))
-    {
-      if (impWarnCnt < 20)
-      {
-        impWarn.avprintf(128, fmt, arg, anum);
-        impWarn += '\n';
-      }
-      impWarnCnt++;
-      type = WARNING;
-    }
     AtomicPrintfMutex::inst.lock();
     ConsoleLogWriter::addMessageFmt(type, fmt, arg, anum);
     AtomicPrintfMutex::inst.unlock(stdout, true);
@@ -168,7 +154,6 @@ static void showUsage()
          "  -q                    quiet mode - show erros and progress bar only\n"
          "  -nopbar               show progress messages but not progress percents\n"
          "  -q0                   equivalent to \"-q -nopbar\"\n"
-         "  -show_warn            show important warnings in message box after build\n"
          "  -Q                    really quiet mode - show erros and hide progress bar\n"
          "  -e                    erase bad packs\n\n"
          "  -dumpExpVer           dumps exporter versions for used asset types and exits\n\n"
@@ -237,7 +222,6 @@ int DagorWinMain(bool debugmode)
   const char *progress_shm_name = nullptr;
   bool export_tex = true, export_res = true;
   bool showpbarpct = true;
-  bool show_important_warnings = false;
   int validate_pkg = 0;
   int validate_alpha_test = 0;
   int maintTexOp = 0, maintPackOp = 0;
@@ -367,8 +351,6 @@ int DagorWinMain(bool debugmode)
       quiet = true;
     else if (strcmp(__argv[i], "-nopbar") == 0)
       showpbarpct = false;
-    else if (strcmp(__argv[i], "-show_warn") == 0)
-      show_important_warnings = true;
     else if (strcmp(__argv[i], "-q0") == 0)
       quiet = true, showpbarpct = false;
     else if (strcmp(__argv[i], "-Q") == 0)
@@ -383,8 +365,8 @@ int DagorWinMain(bool debugmode)
       useSharedNm = -1;
     else if (strnicmp(__argv[i], "-progress_shm:", 14) == 0)
       progress_shm_name = __argv[i] + 14;
-    else if (strcmp(__argv[i], "-noeh") == 0)
-      ; // just ignore
+    else if (strcmp(__argv[i], "-noeh") == 0 || strcmp(__argv[i], "-show_warn") == 0)
+      ; // constraint: old command lines still pass these switches
     else if (stricmp(__argv[i], "-help") == 0)
     {
       showTitle();
@@ -1290,7 +1272,6 @@ int DagorWinMain(bool debugmode)
       jobMem->logLevel = quiet ? log.ERROR : log.NOTE;
       jobMem->nopbar = nopbar;
       jobMem->quiet = dgs_execute_quiet;
-      jobMem->showImportantWarnings = show_important_warnings;
       jobMem->expTex = export_tex;
       jobMem->expRes = export_res;
       jobMem->validateAlphaTest = validate_alpha_test;
@@ -1390,10 +1371,6 @@ int DagorWinMain(bool debugmode)
   dabuild->release();
   release_job_mem();
   ATOMIC_PRINTF("\n");
-  if (show_important_warnings && log.impWarnCnt)
-    os_message_box(String(2048, "daBuild registered %d serious warnings%s:\n\n%s", log.impWarnCnt,
-                     log.impWarnCnt > 20 ? ";\nfirst 20 assets are" : "", log.impWarn.str()),
-      "daBuild warnings", GUI_MB_OK | GUI_MB_ICON_ERROR);
   return !success;
 }
 

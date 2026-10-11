@@ -453,7 +453,7 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     }
   }
   PipelineBuilder(const ::raytrace::PipelineCreateInfo &ci, const drv3d_dx12::RayTracePipeline::BuildConfig &build_config,
-    bool device_allows_omm = false) :
+    bool device_allows_omm, bool allow_state_object_additions) :
     AutoLifetimeTimer<AFP_MSEC>{[&ci]() {
       eastl::string s;
       s = "DX12: PipelineBuilder: building pipeline <";
@@ -466,6 +466,7 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     minPayload{max<uint32_t>(4u, ci.maxPayloadSize)},
     minAttributes{max<uint32_t>(sizeof(float) * 2, ci.maxAttributeSize)},
     allowOpacityMicroMaps{ci.allowOpacityMicroMaps},
+    allowStateObjectAdditions{allow_state_object_additions},
     buildConfig{build_config},
     combineLibraryOmm{true},
     deviceAllowsOmm{device_allows_omm}
@@ -493,6 +494,7 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
   uint32_t minPayload = 4;
   uint32_t minAttributes = sizeof(float) * 2;
   bool allowOpacityMicroMaps = false;
+  bool allowStateObjectAdditions = true;
   // OR-reduced across the visited libraries: any library authored via a DSHL raytrace_pipeline block
   // forces a CPU-side pipeline config even when useEmbeddedObjects would otherwise trust the DXIL one.
   bool hasExplicitPipelineConfig = false;
@@ -685,8 +687,8 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     }
   }
 
-  bool createSignature(ID3D12Device *device, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer,
-    drv3d_dx12::RaytracePipelineSignature &target, drv3d_dx12::RayTracePipelineResourceTypeTable &type_table)
+  bool createSignature(D3DDevice *device, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer, drv3d_dx12::RaytracePipelineSignature &target,
+    drv3d_dx12::RayTracePipelineResourceTypeTable &type_table)
   {
     logdbg("DX12: Generating root signature...");
     RootSignatureGeneratorCallback generator;
@@ -721,13 +723,13 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     return true;
   }
 
-  ComPtr<ID3D12StateObject> createPipeline(ID3D12Device5 *device, ID3D12RootSignature *signature)
+  ComPtr<ID3D12StateObject> createPipeline(D3DDevice *device, ID3D12RootSignature *signature)
   {
     eastl::vector<D3D12_STATE_SUBOBJECT> subObjects;
     subObjects.reserve(4 + importInfos.size() + embeddedDxilLibraries.size() + hitGroups.size());
 
     D3D12_STATE_OBJECT_CONFIG config{};
-    if (pipelineInfo.expandable)
+    if (pipelineInfo.expandable && allowStateObjectAdditions)
       config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
     D3D12_STATE_SUBOBJECT configSubObject{D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, &config};
     subObjects.push_back(configSubObject);
@@ -848,59 +850,66 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     return o;
   }
 
-  template <typename T, typename U>
-  ComPtr<ID3D12StateObject> rebuildPipeline(ID3D12Device5 *device, ID3D12RootSignature *signature, const T &base_imports,
-    const U &base_hit_groups)
+  static ComPtr<ID3D12StateObject> rebuildPipeline(ID3D12Device7 *device, ID3D12RootSignature *signature,
+    const drv3d_dx12::RayTracePipelineRebuildData &data, const char *name)
   {
     eastl::vector<D3D12_STATE_SUBOBJECT> subObjects;
-    subObjects.reserve(4 + importInfos.size() + hitGroups.size() + base_imports.size() + base_hit_groups.size());
+    subObjects.reserve(4 + data.imports.size() + data.hitGroups.size());
 
     D3D12_STATE_OBJECT_CONFIG config{};
-    if (pipelineInfo.expandable)
-      config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
-    D3D12_STATE_SUBOBJECT configSubObject{D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, &config};
-    subObjects.push_back(configSubObject);
+    subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, &config});
 
     D3D12_GLOBAL_ROOT_SIGNATURE signatureInfo{signature};
-    D3D12_STATE_SUBOBJECT signatureSubObject{D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, &signatureInfo};
-    subObjects.push_back(signatureSubObject);
+    subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, &signatureInfo});
 
-    eastl::transform(begin(importInfos), end(importInfos), eastl::back_inserter(subObjects),
-      [](const auto &e) { return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, &e.desc}; });
-    eastl::transform(begin(base_imports), end(base_imports), eastl::back_inserter(subObjects),
-      [](const auto &e) { return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, &e}; });
-
-    D3D12_RAYTRACING_SHADER_CONFIG rtCFG{minPayload, minAttributes};
-    if (buildsShaderConfigCpuSide())
+    eastl::vector<D3D12_EXISTING_COLLECTION_DESC> collectionDescs;
+    collectionDescs.reserve(data.imports.size());
+    eastl::vector<eastl::vector<D3D12_EXPORT_DESC>> exportDescs;
+    exportDescs.reserve(data.imports.size());
+    for (const auto &import : data.imports)
     {
-      D3D12_STATE_SUBOBJECT rtCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &rtCFG};
-      subObjects.push_back(rtCFGSubObject);
+      auto &exports = exportDescs.emplace_back();
+      exports.reserve(import.exportNames.size());
+      for (const auto &name : import.exportNames)
+        exports.push_back({name.c_str(), nullptr, D3D12_EXPORT_FLAG_NONE});
+      auto &desc = collectionDescs.emplace_back();
+      desc.pExistingCollection = import.collection.Get();
+      desc.NumExports = exports.size();
+      desc.pExports = exports.data();
     }
+    for (const auto &desc : collectionDescs)
+      subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, &desc});
 
-    D3D12_RAYTRACING_PIPELINE_CONFIG pCFG{minRecursion};
+    D3D12_RAYTRACING_SHADER_CONFIG rtCFG{data.minPayload, data.minAttributes};
+    subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &rtCFG});
+
+    D3D12_RAYTRACING_PIPELINE_CONFIG pCFG{data.minRecursion};
 #if DX12_HAS_OMM_INTERFACE
-    D3D12_RAYTRACING_PIPELINE_CONFIG1 pCFG1{minRecursion,
-      allowOpacityMicroMaps ? D3D12_RAYTRACING_PIPELINE_FLAG_ALLOW_OPACITY_MICROMAPS : D3D12_RAYTRACING_PIPELINE_FLAG_NONE};
-    if (allowOpacityMicroMaps)
+    D3D12_RAYTRACING_PIPELINE_CONFIG1 pCFG1{data.minRecursion,
+      data.allowOpacityMicroMaps ? D3D12_RAYTRACING_PIPELINE_FLAG_ALLOW_OPACITY_MICROMAPS : D3D12_RAYTRACING_PIPELINE_FLAG_NONE};
+    if (data.allowOpacityMicroMaps)
     {
-      D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1, &pCFG1};
-      subObjects.push_back(pCFGSubObject);
+      subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1, &pCFG1});
     }
     else
 #endif
-      if (buildsPipelineConfigCpuSide())
     {
-      D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pCFG};
-      subObjects.push_back(pCFGSubObject);
+      subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pCFG});
     }
 
-    eastl::transform(begin(hitGroups), end(hitGroups), eastl::back_inserter(subObjects), [](const auto &desc) {
-      return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, &desc};
-    }); /*
-     eastl::transform(begin(base_hit_groups), end(base_hit_groups), eastl::back_inserter(subObjects),
-       [](const D3D12_HIT_GROUP_DESC &desc) {
-         return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, &desc};
-       });*/
+    eastl::vector<D3D12_HIT_GROUP_DESC> hitGroupDescs;
+    hitGroupDescs.reserve(data.hitGroups.size());
+    for (const auto &hg : data.hitGroups)
+    {
+      auto &desc = hitGroupDescs.emplace_back();
+      desc.HitGroupExport = hg.exportName.c_str();
+      desc.Type = hg.type;
+      desc.AnyHitShaderImport = hg.anyHitImport.empty() ? nullptr : hg.anyHitImport.c_str();
+      desc.ClosestHitShaderImport = hg.closestHitImport.empty() ? nullptr : hg.closestHitImport.c_str();
+      desc.IntersectionShaderImport = hg.intersectionImport.empty() ? nullptr : hg.intersectionImport.c_str();
+    }
+    for (const auto &desc : hitGroupDescs)
+      subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, &desc});
 
     ComPtr<ID3D12StateObject> o;
     D3D12_STATE_OBJECT_DESC desc{};
@@ -909,10 +918,64 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     desc.pSubobjects = subObjects.data();
     if (DX12_CHECK_FAIL(device->CreateStateObject(&desc, COM_ARGS(&o))))
     {
-      D3D_ERROR("DX12: Failed to create RT pipeline");
+      D3D_ERROR("DX12: Failed to rebuild RT pipeline for expansion");
     }
-    drv3d_dx12::debug::name_object(o.Get(), drv3d_dx12::debug::format_object_name("RebuiltRayTracePipeline:%s", name()));
+    drv3d_dx12::debug::name_object(o.Get(), drv3d_dx12::debug::format_object_name("RebuiltRayTracePipeline:%s", name));
     return o;
+  }
+
+  drv3d_dx12::RayTracePipelineRebuildData makeRebuildData() const
+  {
+    drv3d_dx12::RayTracePipelineRebuildData result;
+    for (const auto &import : importInfos)
+    {
+      auto &out = result.imports.emplace_back();
+      out.collection = import.desc.pExistingCollection;
+      for (const auto &e : import.exports)
+        out.exportNames.emplace_back(e.Name);
+    }
+    for (const auto &hg : hitGroups)
+    {
+      auto &out = result.hitGroups.emplace_back();
+      out.type = hg.Type;
+      out.exportName = hg.HitGroupExport;
+      if (hg.AnyHitShaderImport)
+        out.anyHitImport = hg.AnyHitShaderImport;
+      if (hg.ClosestHitShaderImport)
+        out.closestHitImport = hg.ClosestHitShaderImport;
+      if (hg.IntersectionShaderImport)
+        out.intersectionImport = hg.IntersectionShaderImport;
+    }
+    for (const auto &name : nameTable)
+      result.groupExportNames.emplace_back(name.data());
+    result.minRecursion = minRecursion;
+    result.minPayload = minPayload;
+    result.minAttributes = minAttributes;
+    result.allowOpacityMicroMaps = allowOpacityMicroMaps;
+    return result;
+  }
+
+  static void appendRebuildData(drv3d_dx12::RayTracePipelineRebuildData &target, drv3d_dx12::RayTracePipelineRebuildData &&addition)
+  {
+    for (auto &imp : addition.imports)
+    {
+      auto existing = eastl::find_if(target.imports.begin(), target.imports.end(),
+        [&imp](const auto &e) { return e.collection.Get() == imp.collection.Get(); });
+      if (existing == target.imports.end())
+      {
+        target.imports.emplace_back(eastl::move(imp));
+        continue;
+      }
+      for (auto &name : imp.exportNames)
+        if (eastl::find(existing->exportNames.begin(), existing->exportNames.end(), name) == existing->exportNames.end())
+          existing->exportNames.emplace_back(eastl::move(name));
+    }
+    eastl::move(addition.hitGroups.begin(), addition.hitGroups.end(), eastl::back_inserter(target.hitGroups));
+    eastl::move(addition.groupExportNames.begin(), addition.groupExportNames.end(), eastl::back_inserter(target.groupExportNames));
+    target.minRecursion = addition.minRecursion;
+    target.minPayload = addition.minPayload;
+    target.minAttributes = addition.minAttributes;
+    target.allowOpacityMicroMaps = addition.allowOpacityMicroMaps;
   }
 
   // visitor should return false to exit early
@@ -943,7 +1006,7 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
 };
 } // namespace
 
-bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_native_expand, bool device_allows_omm,
+bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool allow_native_expand, bool device_allows_omm,
   PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer, RayTracePipeline *base, const ::raytrace::PipelineCreateInfo &ci)
 {
   if (ci.name)
@@ -951,7 +1014,7 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
     debugName = ci.name;
   }
 
-  if (base && !base->isExpandable() && has_native_expand)
+  if (base && !base->isExpandable() && allow_native_expand)
   {
     // warns if base was provided, but base has no expandable flag.
     // this warning is not generated when the OS/HW/Device driver do not support it.
@@ -959,12 +1022,7 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
       base->debugName, debugName, base->debugName);
   }
 
-  auto d5 = device_ptr.as<ID3D12Device5>();
-  if (!d5)
-  {
-    return false;
-  }
-  PipelineBuilder pipelineBuilder{ci, {}, device_allows_omm};
+  PipelineBuilder pipelineBuilder{ci, {}, device_allows_omm, allow_native_expand};
 
   if (!pipelineBuilder.isOk)
   {
@@ -980,14 +1038,14 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
   }
   else
   {
-    if (!pipelineBuilder.createSignature(d5, serializer, rootSignature, resourceTypeTable))
+    if (!pipelineBuilder.createSignature(device_ptr.get(), serializer, rootSignature, resourceTypeTable))
     {
       pipelineBuilder.onError();
       return false;
     }
   }
 
-  if (base && base->isExpandable())
+  if (base && base->isExpandable() && allow_native_expand)
   {
     auto d7 = device_ptr.as<ID3D12Device7>();
     if (d7)
@@ -1006,7 +1064,7 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
   }
   if (!object)
   {
-    object = pipelineBuilder.createPipeline(d5, rootSignature.signature.Get());
+    object = pipelineBuilder.createPipeline(device_ptr.get(), rootSignature.signature.Get());
   }
   if (!object)
   {
@@ -1043,14 +1101,8 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
   }
 
   if (ci.expandable)
-  {
-    expansionData = ExpansionSupportData{
-      .minRecursion = pipelineBuilder.minRecursion,
-      .minPayload = pipelineBuilder.minPayload,
-      .minAttributes = pipelineBuilder.minAttributes,
-      .allowOpacityMicroMaps = pipelineBuilder.allowOpacityMicroMaps,
-    };
-  }
+    rebuildData = pipelineBuilder.makeRebuildData();
+
   return true;
 }
 
@@ -1065,7 +1117,7 @@ bool drv3d_dx12::RayTracePipeline::build(D3DDevice *device, const RaytracePipeli
     debugName = ci.name;
   }
 
-  PipelineBuilder pipelineBuilder{ci, build_config, device_allows_omm};
+  PipelineBuilder pipelineBuilder{ci, build_config, device_allows_omm, false};
 
   if (!pipelineBuilder.isOk)
   {
@@ -1123,16 +1175,16 @@ bool drv3d_dx12::RayTracePipeline::build(D3DDevice *device, const RaytracePipeli
   return true;
 }
 
-drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7 *device,
-  const ::raytrace::PipelineExpandInfo &ei) const
+drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7 *device, const ::raytrace::PipelineExpandInfo &ei,
+  bool allow_native_expand) const
 {
   if (!isExpandable())
   {
     logwarn("DX12: Attempted to expand ray trace pipeline that does not support expansion");
     return nullptr;
   }
-  PipelineBuilder pipelineBuilder{ei, expansionData->minRecursion, expansionData->minPayload, expansionData->minAttributes,
-    expansionData->allowOpacityMicroMaps, rootSignature, resourceTypeTable};
+  PipelineBuilder pipelineBuilder{ei, rebuildData->minRecursion, rebuildData->minPayload, rebuildData->minAttributes,
+    rebuildData->allowOpacityMicroMaps, rootSignature, resourceTypeTable};
 
   if (!pipelineBuilder.isOk)
   {
@@ -1157,8 +1209,18 @@ drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7
   newObject->debugName = ei.name;
   newObject->rootSignature = rootSignature;
   newObject->resourceTypeTable = resourceTypeTable;
+  if (!allow_native_expand)
+  {
+    newObject->rebuildData = rebuildData;
+    PipelineBuilder::appendRebuildData(*newObject->rebuildData, pipelineBuilder.makeRebuildData());
+  }
+  else if (ei.expandable)
+  {
+    newObject->rebuildData = pipelineBuilder.makeRebuildData();
+  }
 
-  if (device)
+  bool rebuilt = false;
+  if (device && allow_native_expand)
   {
     logdbg("DX12: Attempting to expand pipeline");
     newObject->object = pipelineBuilder.expandPipeline(device, newObject->rootSignature.signature.Get(), object.Get());
@@ -1167,6 +1229,17 @@ drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7
       logdbg("DX12: Expand pipeline failed, unable to expand pipeline");
       return nullptr;
     }
+  }
+  else if (device)
+  {
+    logdbg("DX12: Rebuilding pipeline <%s> from scratch for expansion (native additions disabled)", debugName.c_str());
+    newObject->object = PipelineBuilder::rebuildPipeline(device, newObject->rootSignature.signature.Get(), *newObject->rebuildData,
+      pipelineBuilder.name());
+    if (!newObject->object)
+    {
+      return nullptr;
+    }
+    rebuilt = true;
   }
 
   ComPtr<ID3D12StateObjectProperties> objectProperties;
@@ -1177,24 +1250,47 @@ drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7
     return nullptr;
   }
 
-  // In DX12 shaders in pipeline state objects are globally shared between all state objects they are used by
-  // eg, if we expand a pipeline, the shaders that where inherited from the base pipeline have the same
-  // shader header as the shaders at the base pipeline. With this, we can simply copy the existing table
-  // of the base pipeline and just append the new shaders added by the expansion.
-  newObject->shaderReferenceTableStorage.resize(
-    shaderReferenceTableStorage.size() + ei.groupMemebers.size() * D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-  memcpy(newObject->shaderReferenceTableStorage.data(), shaderReferenceTableStorage.data(), shaderReferenceTableStorage.size());
-  bool hadError =
-    !pipelineBuilder.visitShaderNames([target = newObject->shaderReferenceTableStorage.data() + shaderReferenceTableStorage.size(),
-                                        props = objectProperties.Get()](uint32_t index, const wchar_t *name) {
-      auto ptr = props->GetShaderIdentifier(name);
+  bool hadError = false;
+  if (rebuilt)
+  {
+    const auto &names = newObject->rebuildData->groupExportNames;
+    newObject->shaderReferenceTableStorage.resize(names.size() * D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    for (uint32_t i = 0; i < names.size(); ++i)
+    {
+      auto ptr = objectProperties->GetShaderIdentifier(names[i].c_str());
       if (!ptr)
       {
-        return false;
+        hadError = true;
+        break;
       }
-      memcpy(&target[index * D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES], ptr, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-      return true;
-    });
+      memcpy(&newObject->shaderReferenceTableStorage[i * D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES], ptr,
+        D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    }
+    // Don't keep rebuildData if final result is no longer expandable
+    if (!ei.expandable)
+      newObject->rebuildData.reset();
+  }
+  else
+  {
+    // In DX12 shaders in pipeline state objects are globally shared between all state objects they are used by
+    // eg, if we expand a pipeline, the shaders that where inherited from the base pipeline have the same
+    // shader header as the shaders at the base pipeline. With this, we can simply copy the existing table
+    // of the base pipeline and just append the new shaders added by the expansion.
+    newObject->shaderReferenceTableStorage.resize(
+      shaderReferenceTableStorage.size() + ei.groupMemebers.size() * D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    memcpy(newObject->shaderReferenceTableStorage.data(), shaderReferenceTableStorage.data(), shaderReferenceTableStorage.size());
+    hadError =
+      !pipelineBuilder.visitShaderNames([target = newObject->shaderReferenceTableStorage.data() + shaderReferenceTableStorage.size(),
+                                          props = objectProperties.Get()](uint32_t index, const wchar_t *name) {
+        auto ptr = props->GetShaderIdentifier(name);
+        if (!ptr)
+        {
+          return false;
+        }
+        memcpy(&target[index * D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES], ptr, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+        return true;
+      });
+  }
 
   if (hadError)
   {
@@ -1203,15 +1299,6 @@ drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7
     return nullptr;
   }
 
-  if (ei.expandable)
-  {
-    newObject->expansionData = ExpansionSupportData{
-      .minRecursion = pipelineBuilder.minRecursion,
-      .minPayload = pipelineBuilder.minPayload,
-      .minAttributes = pipelineBuilder.minAttributes,
-      .allowOpacityMicroMaps = pipelineBuilder.allowOpacityMicroMaps,
-    };
-  }
   return newObject.release();
 }
 #endif

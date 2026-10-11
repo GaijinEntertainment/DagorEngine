@@ -91,7 +91,7 @@ void EditModeRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riEle
   d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
   if (!occluderRiElements.empty() || !occluderDynmodelElements.empty())
   {
-    rendinst::VisibilityExternalIdFilter ri_occluder_filter = [&occluderRiElements](int ri_idx, const TMatrix &tm) -> bool {
+    auto ri_occluder_filter = [&occluderRiElements](int ri_idx, const TMatrix &tm) -> bool {
       auto range = occluderRiElements.equal_range(ri_idx);
       for (auto it = range.first; it != range.second; ++it)
         if (it->second == tm)
@@ -115,7 +115,7 @@ void EditModeRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riEle
   d3d::set_render_target({depthRt.getTex2D(), 0, 0}, DepthAccess::RW, {{colorRt.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
-  rendinst::VisibilityExternalIdFilter ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
+  auto ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
     auto range = riElements.equal_range(ri_idx);
     for (auto it = range.first; it != range.second; ++it)
       if (it->second == tm)

@@ -1,6 +1,7 @@
 Root    ?= ../../.. ;
 Location = prog/gameLibs/pathFinder ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 TargetType  = lib ;
 Target      = gameLibs/pathFinder.lib ;
 

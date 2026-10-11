@@ -5,9 +5,11 @@
 #pragma once
 
 #include <drv/3d/dag_buffers.h>
+#include <generic/dag_align.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_staticTab.h>
+#include <render/lights/lightsBase.h>
 #include <render/lights/omniLight.h>
 #include <render/lights/spotLight.h>
 #include <render/lights/shadowCastersFlags.h>
@@ -32,7 +34,7 @@ inline uint32_t pack_light_source_radius_cm(float radius)
 
 class ShadowSystem;
 
-class BaseLightsManager
+class BaseLightsManager : public IDynLightsPipelineSection
 {
 protected:
   BaseLightsManager(const char *name);
@@ -51,8 +53,8 @@ public:
   static constexpr float FLOAT_EPS = eastl::numeric_limits<float>::epsilon();
 
   IesTextureCollection::PhotometryData getPhotometryData(int texId) const;
+  DynLightsFeatures getRuntimeFeatures() const override;
 
-  bool isGPUManagementEnabled() const;
   void setShadowSystem(ShadowSystem *shadow_system);
   uint32_t getShadowId(uint32_t light_id) const;
   void closeShadows();
@@ -133,12 +135,13 @@ public:
   using Light = RawLightT;
   using RawLight = Light;
 
+  void init(DynLightsFeatures requested_features) override;
   bool tryInvalidateShadowsIfNeed(uint32_t light_id, const RawLightT &new_light);
   virtual const RawLightT &getLight(uint32_t light_id) const = 0;
   bool isLightValid(uint32_t light_id) const override;
   int maxIndex() const DAG_TS_NO_THREAD_SAFETY_ANALYSIS;
-  void setUpGpuManagement();
   void flushUpdatesForGPULights();
+  void afterResetDevice();
 
   ManagedLight getManagedLight(uint32_t light_id) const;
   LightMaskT getLightMask(uint32_t light_id) const;
@@ -313,13 +316,23 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::setLigh
 }
 
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
-void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::setUpGpuManagement()
+void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::init(DynLightsFeatures requested_features)
 {
-  sceneManagedLightsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(ManagedLight), MaxLightsCount,
-    eastl::string(eastl::string::CtorSprintf(), "%s_scene_managed_lights", name.c_str()).c_str(), d3d::buffers::Init::Zero);
-  sceneRenderLightsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(RenderLightT), MaxLightsCount,
-    eastl::string(eastl::string::CtorSprintf(), "%s_scene_render_lights", name.c_str()).c_str(), d3d::buffers::Init::Zero);
+  if (static_cast<bool>(requested_features & DynLightsFeatures::GpuLightsManagerPersistentStorage))
+  {
+    sceneManagedLightsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(ManagedLight), MaxLightsCount,
+      eastl::string(eastl::string::CtorSprintf(), "%s_scene_managed_lights", name.c_str()).c_str(), d3d::buffers::Init::Zero);
+    sceneRenderLightsBuffer = dag::buffers::create_persistent_sr_byte_address(
+      dag::divide_align_up(uint32_t(sizeof(RenderLightT)) * MaxLightsCount, d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE),
+      eastl::string(eastl::string::CtorSprintf(), "%s_scene_render_lights", name.c_str()).c_str(), d3d::buffers::Init::Zero);
 
+    fullSyncToGPULights = false;
+  }
+}
+
+template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
+void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::afterResetDevice()
+{
   fullSyncToGPULights = false;
 }
 
@@ -332,14 +345,13 @@ ManagedLight LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>:
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
 void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::flushUpdatesForGPULights()
 {
-  G_ASSERT(isGPUManagementEnabled());
+  G_ASSERT(isGpu());
 
-  const int maxIdx = maxIndex();
-  if (maxIdx >= 0 && !fullSyncToGPULights)
+  if (!fullSyncToGPULights)
   {
     fullSyncToGPULights = true;
 
-    for (uint32_t i = 0; i <= uint32_t(maxIdx); ++i)
+    for (uint32_t i = 0; i < MAX_LIGHTS; ++i)
     {
       markManagedLightDirty(i);
       markRenderLightDirty(i);
@@ -353,7 +365,7 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::flushUp
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
 void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::markRenderLightDirty(uint32_t light_id)
 {
-  if (isGPUManagementEnabled())
+  if (isGpu())
   {
     renderLightChanged[light_id] = true;
   }
@@ -362,7 +374,7 @@ void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::markRen
 template <typename RawLightT, typename RenderLightT, typename LightMaskT, uint32_t MaxLightsCount>
 void LightsManager<RawLightT, RenderLightT, LightMaskT, MaxLightsCount>::markManagedLightDirty(uint32_t light_id)
 {
-  if (isGPUManagementEnabled())
+  if (isGpu())
   {
     managedLightChanged[light_id] = true;
   }

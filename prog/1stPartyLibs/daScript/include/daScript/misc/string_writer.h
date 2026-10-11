@@ -104,6 +104,18 @@ namespace das {
         int32_t capacity = DAS_STRING_BUILDER_BUFFER_SIZE;
     };
 
+    // Where every TextPrinter lands, process-wide. It defaults to stdout, which
+    // is what a program's own output is; a program whose stdout carries a
+    // protocol instead (a stdio JSON-RPC server) points this elsewhere, so a
+    // leak dump or a fatal can never corrupt a frame. Set it before any thread
+    // can print.
+    typedef void ( * TextPrinterSink ) ( const char * text );
+    DAS_API void setTextPrinterSink ( TextPrinterSink sink );
+    DAS_API void textPrinterToStderr();
+    // Appends to a file instead, for a process whose launcher keeps no stderr
+    // either. False leaves the sink where it was: the file could not be opened.
+    DAS_API bool textPrinterToFile ( const char * path );
+
     class DAS_API TextPrinter : public TextWriter {
     public:
         TextPrinter() {}

@@ -399,7 +399,7 @@ shader skies_render_screen
         BRANCH
         if (skyLerp < 1 && use_tc)//
         {
-           get_scattering_tc_fog(scattering_lut_tc, -viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
+           get_scattering_tc_fog_on_ground(scattering_lut_tc, -viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
            if (skyLerp > 0)
             groundTransmittance = lerp(groundTransmittance, GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true), skyLerp);
           radiance.rgb = lerp(groundInscatter.rgb, skyInscatter.rgb, skyLerp);

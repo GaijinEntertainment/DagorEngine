@@ -218,7 +218,7 @@ public:
   ParallelOcclusionRasterizer(uint32_t width, uint32_t height);
   // Send meshes on rasterization
   void rasterizeMeshes(eastl::vector<RasterizationTaskData> &&tasks, float z_near,
-    MaskedOcclusionCulling::BackfaceWinding backface_winding = MaskedOcclusionCulling::BACKFACE_CW,
+    MaskedOcclusionCulling::BackfaceWinding backface_winding = MaskedOcclusionCulling::BACKFACE_CCW,
     eastl::fixed_function<sizeof(void *) * 3, void()> &&done_cb = {});
   // Merge rasterized geometry
   uint32_t mergeRasterizationResults(Occlusion &occlusion, bool active_wait = true);

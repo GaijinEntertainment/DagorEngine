@@ -4,6 +4,7 @@ neural_rendering{
   "neural_rendering__tonemap_node:dafg::NodeHandle"{}
   "neural_rendering__dlss_nr_node:dafg::NodeHandle"{}
   "neural_rendering__inverse_tonemap_node:dafg::NodeHandle"{}
+  "neural_rendering__control_mask_node:dafg::NodeHandle"{}
   _group{
     _track:b=yes
     // Pick a style first with everything else at 1, then tune tone, then structure.
@@ -13,7 +14,12 @@ neural_rendering{
     neural_rendering__localToneStrength:r=1
     neural_rendering__localStructureStrength:r=1
     // Auto masking lets skinStructureStrength apply to skin regions on its own.
+    // Without it a control mask is built from the gbuffer with the controlMask* values below.
     neural_rendering__autoMask:b=no
     neural_rendering__skinStructureStrength:r=1
+    // Per material multipliers, RGB = intensity, tone, structure.
+    neural_rendering__controlMaskDefault:p4=1, 1, 1, 1
+    neural_rendering__controlMaskSkin:p4=1, 1, 1, 1
+    neural_rendering__controlMaskFoliage:p4=1, 1, 1, 1
   }
 }

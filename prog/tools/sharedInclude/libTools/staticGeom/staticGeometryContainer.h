@@ -92,12 +92,15 @@ protected:
     inline ILogWriter *getLogWriter() const { return logWriter; }
     inline void setLogWriter(ILogWriter *log) { logWriter = log; }
 
+    inline void setDagMatList(const PtrTab<MaterialData> *list) { dagMatList = list; }
+
     StaticGeometryMaterial *getMaterial(MaterialData *m);
 
   private:
     String basePath;
     bool useNotFoundTex;
     ILogWriter *logWriter;
+    const PtrTab<MaterialData> *dagMatList = nullptr;
   };
 
   void loadDagNode(class Node &node, DagLoadData &dag);

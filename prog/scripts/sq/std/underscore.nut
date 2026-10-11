@@ -14,22 +14,22 @@ from "types" import Table, Array, String, Function, Integer, Float, Null, Bool, 
   make common iteratee function
 */
 
-let isTable = @(v) v instanceof Table
-let isArray = @(v) v instanceof Array
-let isString = @(v) v instanceof String
-let isFunction = @(v) v instanceof Function
-let isInteger = @(v) v instanceof Integer
-let isFloat = @(v) v instanceof Float
-let isNull = @(v) v instanceof Null
-let isBool = @(v) v instanceof Bool
+let isTable = @[pure](v): bool v instanceof Table
+let isArray = @[pure](v): bool v instanceof Array
+let isString = @[pure](v): bool v instanceof String
+let isFunction = @[pure](v): bool v instanceof Function
+let isInteger = @[pure](v): bool v instanceof Integer
+let isFloat = @[pure](v): bool v instanceof Float
+let isNull = @[pure](v): bool v instanceof Null
+let isBool = @[pure](v): bool v instanceof Bool
 // instanceof Instance does not match script class instances, keep the raw type check
-let isInstance = @(v) type(v) == "instance"
-let isGenerator = @(v) v instanceof Generator
-let isUserdata = @(v) v instanceof UserData
-let isThread = @(v) v instanceof Thread
-let isWeakref = @(v) v instanceof WeakRef
+let isInstance = @[pure](v): bool type(v) == "instance"
+let isGenerator = @[pure](v): bool v instanceof Generator
+let isUserdata = @[pure](v): bool v instanceof UserData
+let isThread = @[pure](v): bool v instanceof Thread
+let isWeakref = @[pure](v): bool v instanceof WeakRef
 
-function isDataBlock(obj): bool {
+function [pure] isDataBlock(obj): bool {
   //prefer this as it can handle any DataBlock binding and implementation
   if (obj?.paramCount!=null && obj?.blockCount != null)
     return true
@@ -45,12 +45,11 @@ function isCallable(v): bool {
 }
 
 function mkIteratee(func){
-  let infos = func.getfuncinfos()
-  let params = infos.parameters.len()-1
-  assert(params>0 && params<4)
-  if (params == 3)
+  let { num_params } = func.getarity()
+  assert(num_params>0 && num_params<4)
+  if (num_params == 3)
     return func
-  else if (params==2)
+  else if (num_params==2)
     return function(value, index, _list) {return func.pcall(null, value, index)}
   else
     return function(value, _index, _list) {return func.pcall(null, value)}
@@ -59,22 +58,11 @@ function mkIteratee(func){
 /**
   Check for proper iteratee and so on - under construction
 */
-function funcCheckArgsNum(func, numRequired): bool {
-  let infos = func.getfuncinfos()
-  let params = infos.parameters
-  local plen = params.len() - 1
-  let deplen = infos.defparams.len()
-  let isVargv = !!infos.varargs
-  if (isVargv && params.top()=="...")
-    plen -= 2
-  let mandatoryParams = plen - deplen
-  if (mandatoryParams > numRequired)
+function [pure] funcCheckArgsNum(func, numRequired): bool {
+  let { num_params, num_required, varargs } = func.getarity()
+  if (num_required > numRequired)
     return false
-  if ((mandatoryParams <= numRequired) && (plen >= numRequired))
-    return true
-  if (mandatoryParams <= numRequired && isVargv)
-    return true
-  return false
+  return num_params >= numRequired || varargs
 }
 
 
@@ -118,14 +106,6 @@ function pluck(list, propertyName){
       throw null
     return v[propertyName]
   })
-/*
-  let res = []
-  foreach (v in list) {
-    if (propertyName in v)
-      res.append(v[propertyName])
-  }
-  return res
-*/
 }
 
 /**
@@ -291,7 +271,7 @@ function arrayByRows(arr, columns): array {
 **Chunk a single array into multiple arrays, each containing count or fewer items.
 */
 
-function chunk(list, count): array {
+function chunk(list, count: number|null): array {
   if (count == null || count < 1) return []
   let result = []
   local i = 0

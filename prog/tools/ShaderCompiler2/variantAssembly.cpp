@@ -2,6 +2,7 @@
 
 #include "variantAssembly.h"
 #include "preshaderCompilation.h"
+#include "renderPassObject.h"
 #include "codeBlocks.h"
 #include "shExpr.h"
 #include "shExprParser.h"
@@ -47,7 +48,7 @@ void assemble_local_var(LocalVar *var, ShaderParser::ComplexExpression *rootExpr
   }
 }
 
-eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType vt)
+eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType vt, const semantic::SubpassReadResolution &subpass_read)
 {
   const char *varTypeStr = nullptr;
   const char *samplerTypeStr = nullptr;
@@ -116,6 +117,12 @@ eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType v
     case VariableType::sampler: varTypeStr = "SamplerState"; break;
     case VariableType::cmpSampler: varTypeStr = "SamplerComparisonState"; break;
     case VariableType::tlas: varTypeStr = "RaytracingAccelerationStructure"; break;
+    case VariableType::subpass_read:
+      if (subpass_read.multisampled)
+        varTypeStr = subpass_read.emulated ? "Texture2DMS<float4>" : "SubpassInputMS";
+      else
+        varTypeStr = subpass_read.emulated ? "Texture2D" : "SubpassInput";
+      break;
   }
   return {varTypeStr, samplerTypeStr};
 }
@@ -235,7 +242,7 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
   const char *baseVarName = def.varTerm->text;
   const char *nameSpaceName = def.nameSpaceTerm->text;
 
-  auto [varTypeStr, samplerTypeStr] = build_hlsl_type(def.type);
+  auto [varTypeStr, samplerTypeStr] = build_hlsl_type(def.type, def.subpassRead);
 
   {
     const eastl::string regSpecification =
@@ -251,7 +258,13 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
 
       const char *typeStr = def.isStaticBindless() ? "uint2" : varTypeStr;
       const char *nameStr = (def.isStaticBindless() || def.isExplicitBindless()) ? mangledVarName : baseVarName;
-      hlsl.definition.aprintf(0, "%s %s%s;", typeStr, nameStr, regSpecification.c_str());
+      if (semantic::vt_is_subpass_read(def.type) && !def.subpassRead.emulated)
+      {
+        const int attachmentIdx = render_pass_target_is_metal() ? def.subpassRead.targetIdx : def.subpassRead.readPos;
+        hlsl.definition.aprintf(0, "[[vk::input_attachment_index(%d)]] %s %s;", attachmentIdx, typeStr, nameStr);
+      }
+      else
+        hlsl.definition.aprintf(0, "%s %s%s;", typeStr, nameStr, regSpecification.c_str());
     }
   }
 
@@ -416,6 +429,11 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
 
   if (def.hardcodedRegister >= 0)
     return true;
+
+  if (semantic::vt_is_subpass_read(def.type))
+  {
+    return true;
+  }
 
   Parser &parser = ctx.tgtCtx().sourceParseState().parser;
   ExpressionParser exprParser{ctx};

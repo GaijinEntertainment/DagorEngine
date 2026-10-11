@@ -86,7 +86,7 @@ struct BVHConnection : public bvh::BVHConnection
 void init()
 {
   smokeTracersBvhConnection.init();
-  billboards.generateCs = new_compute_shader("bvh_smoke_tracers_cs");
+  billboards.generateCs = new_compute_shader("bvh_smoke_tracers_cs", true);
 
   // Two crossed planes (XZ and YZ) along the trail Z direction.
   const BillboardVertex vertices[] = {

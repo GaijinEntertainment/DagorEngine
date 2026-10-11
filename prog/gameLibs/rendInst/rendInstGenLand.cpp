@@ -262,6 +262,11 @@ void rendinst::gen::land::AssetData::load(IGenLoad &_crd)
   RoDataBlock *blk = RoDataBlock::load(crd);
 
   detailData.setFrom(*blk->getBlockByNameEx("detail"));
+  // the CPU-side mirror of the lmeshLandClasses.cpp check: dedicated has only this path
+  if (String err_msg; !detile.load(detailData, &err_msg))
+    logerr("landclass <%s>: %s", loadingAssetFname ? loadingAssetFname : "?", err_msg);
+  for (int k = 0; k < detile.clusters; k++)
+    detileClusterTable[k] = land_detile::cluster(detile, k);
   layerIdx = blk->getInt("layerIdx", blk->getBool("secondaryLayer", false) ? 1 : 0);
 
   riRes.resize(blk->getInt("riResCount", 0));
@@ -277,19 +282,27 @@ void rendinst::gen::land::AssetData::load(IGenLoad &_crd)
   if (blk->getBlockByName("resources"))
   {
     tiled = new (midmem) rendinst::gen::land::TiledEntities;
+    tiled->detile = &detile;
+    tiled->detileClusterTable = detileClusterTable;
     if (!loadTiledEntities(*blk))
       logerr("failed to load tiled entities properly");
+    if (detile.enabled())
+      for (SingleEntityPlaces &sep : tiled->data)
+        sep.byX.build(make_span_const(sep.tm));
   }
 
   if (blk->getBlockByName("obj_plant_generate"))
   {
     planted = new (midmem) rendinst::gen::land::PlantedEntities;
+    planted->detile = &detile;
+    planted->detileClusterTable = detileClusterTable;
 
     OAHashNameMap<true> dm_nm;
     Tab<IPoint2> dm_sz(tmpmem);
 
     dm_sz.resize(crd.readInt());
     planted->dmPool.resize(dm_sz.size());
+    planted->dmLeaves.resize(detile.enabled() ? dm_sz.size() : 0);
     for (int i = 0; i < planted->dmPool.size(); i++)
     {
       SimpleString s;
@@ -299,6 +312,8 @@ void rendinst::gen::land::AssetData::load(IGenLoad &_crd)
       planted->dmPool[i] = RoHugeHierBitMap2d<4, 3>::create(crd);
       dm_sz[i].x = planted->dmPool[i]->getW();
       dm_sz[i].y = planted->dmPool[i]->getH();
+      if (detile.enabled())
+        planted->dmLeaves[i].build(*planted->dmPool[i]);
     }
 
     if (!loadPlantedEntities(*blk, dm_nm, dm_sz))
@@ -563,6 +578,7 @@ bool rendinst::gen::land::AssetData::loadPlantedEntities(const RoDataBlock &blk,
       if (dmid >= 0)
       {
         group.densityMap = planted->dmPool[dmid];
+        group.densityLeaves = detile.enabled() ? &planted->dmLeaves[dmid] : nullptr;
         group.densMapCellSz.x = group.densMapSize.x / dmSz[dmid].x;
         group.densMapCellSz.y = group.densMapSize.y / dmSz[dmid].y;
 

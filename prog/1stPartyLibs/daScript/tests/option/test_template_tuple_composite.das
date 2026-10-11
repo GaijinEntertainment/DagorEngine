@@ -15,15 +15,12 @@ require _test_template_tuple_composite_mod
 [test]
 def template_tuple_composite_single_arg(t : T?) {
     t |> run("Bag<int>: default + concrete construction") @(t : T?) {
-        var b = default<Bag<int>>
+        let b = default<Bag<int>>
         t |> equal(b.count, 0)
         t |> equal(length(b.items), 0)
     }
     t |> run("Bag<int>: move payload, read fields") @(t : T?) {
-        var items : array<int>
-        items |> push(1)
-        items |> push(2)
-        items |> push(3)
+        var items <- [1, 2, 3]
         var b : Bag<int>
         b.count = length(items)
         b.items <- items
@@ -33,8 +30,7 @@ def template_tuple_composite_single_arg(t : T?) {
     }
     t |> run("Bag<string>: generic dispatch infers TT through array<T>") @(t : T?) {
         var b : Bag<string>
-        b.items |> push("a")
-        b.items |> push("b")
+        b.items <- ["a", "b"]
         t |> equal(bag_size(b), 2)
     }
 }
@@ -60,10 +56,8 @@ def template_tuple_top_level_multi_arg(t : T?) {
 def template_tuple_composite_multi_arg(t : T?) {
     t |> run("KVList<int, string>: concrete construction") @(t : T?) {
         var l : KVList<int, string>
-        l.keys |> push(1)
-        l.keys |> push(2)
-        l.values |> push("a")
-        l.values |> push("b")
+        l.keys <- [1, 2]
+        l.values <- ["a", "b"]
         t |> equal(length(l.keys), 2)
         t |> equal(length(l.values), 2)
         t |> equal(l.keys[0], 1)
@@ -71,12 +65,8 @@ def template_tuple_composite_multi_arg(t : T?) {
     }
     t |> run("KVList<int, string>: generic dispatch through both array<K> and array<V>") @(t : T?) {
         var l : KVList<int, string>
-        l.keys |> push(10)
-        l.keys |> push(20)
-        l.keys |> push(30)
-        l.values |> push("p")
-        l.values |> push("q")
-        l.values |> push("r")
+        l.keys <- [10, 20, 30]
+        l.values <- ["p", "q", "r"]
         t |> equal(kvlist_size(l), 3)
     }
 }

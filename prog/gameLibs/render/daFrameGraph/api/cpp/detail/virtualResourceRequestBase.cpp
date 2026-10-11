@@ -20,6 +20,9 @@ void VirtualResourceRequestBase::texture(const Texture2dCreateInfo &info)
   if (auto r = eastl::get_if<IPoint2>(&info.resolution); r && DAGOR_UNLIKELY(r->x == 0 || r->y == 0))
     logerr("daFG: Encountered zero-sized texture creation request (%dx%d) within '%s' frame graph node!", r->x, r->y,
       registry->knownNames.getName(nodeId));
+  if (DAGOR_UNLIKELY((info.creationFlags & TEXCF_CLEAR_ON_CREATE) != 0u))
+    logerr("daFG: Encountered TEXCF_CLEAR_ON_CREATE texture creation request within '%s' frame graph node!",
+      registry->knownNames.getName(nodeId));
 
   auto &createdRes = registry->resources.get(resUid.resId).createdResData;
 
@@ -36,6 +39,9 @@ void VirtualResourceRequestBase::texture(const Texture3dCreateInfo &info)
 {
   if (auto r = eastl::get_if<IPoint3>(&info.resolution); r && DAGOR_UNLIKELY(r->x == 0 || r->y == 0 || r->z == 0))
     logerr("daFG: Encountered zero-sized texture creation request (%dx%dx%d) within '%s' frame graph node!", r->x, r->y, r->z,
+      registry->knownNames.getName(nodeId));
+  if (DAGOR_UNLIKELY((info.creationFlags & TEXCF_CLEAR_ON_CREATE) != 0u))
+    logerr("daFG: Encountered TEXCF_CLEAR_ON_CREATE texture creation request within '%s' frame graph node!",
       registry->knownNames.getName(nodeId));
 
   auto &createdRes = registry->resources.get(resUid.resId).createdResData;
@@ -56,6 +62,9 @@ void VirtualResourceRequestBase::buffer(const BufferCreateInfo &info)
       info.elementSize, info.elementCount, registry->knownNames.getName(nodeId));
   if (DAGOR_UNLIKELY((info.flags & (SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_CPU_ACCESS_WRITE | SBCF_CPU_ACCESS_READ)) != 0u))
     logerr("daFG: Encountered CPU-accessed buffer creation request within '%s' frame graph node!",
+      registry->knownNames.getName(nodeId));
+  if (DAGOR_UNLIKELY((info.flags & SBCF_ZEROMEM) != 0u))
+    logerr("daFG: Encountered SBCF_ZEROMEM buffer creation request within '%s' frame graph node!",
       registry->knownNames.getName(nodeId));
 
   auto &createdRes = registry->resources.get(resUid.resId).createdResData;
@@ -238,6 +247,33 @@ void VirtualResourceRequestBase::useAs(Usage type)
   auto &request = thisRequest();
   request.usage.type = type;
   request.usageDeclared = true;
+}
+
+void VirtualResourceRequestBase::copyTo(const char *destination)
+{
+  copyTo(registry->knownNames.addNameId<ResNameId>(registry->knownNames.getParent(nodeId), destination));
+}
+
+void VirtualResourceRequestBase::copyTo(ResNameId destination)
+{
+  auto &node = registry->nodes[nodeId];
+
+  if (DAGOR_UNLIKELY(!eastl::holds_alternative<eastl::monostate>(node.executeRequirements)))
+  {
+    logerr("daFG: Node '%s' has already specified execute requirements, ignoring the copy into '%s'.",
+      registry->knownNames.getName(nodeId), registry->knownNames.getName(destination));
+    return;
+  }
+
+  const auto declareCopyUsage = [](ResourceRequest &request, Access access) {
+    request.usage = ResourceUsage{Usage::COPY, access, Stage::TRANSFER};
+    request.usageDeclared = true;
+  };
+  declareCopyUsage(thisRequest(), Access::READ_ONLY);
+  node.modifiedResources.insert(destination);
+  declareCopyUsage(node.resourceRequests[destination], Access::READ_WRITE);
+
+  node.executeRequirements = CopyRequirements{resUid.resId, destination, bool(resUid.history)};
 }
 
 const ResourceProvider *VirtualResourceRequestBase::provider() { return &registry->resourceProviderReference; }

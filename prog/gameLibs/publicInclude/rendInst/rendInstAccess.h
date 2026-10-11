@@ -51,6 +51,13 @@ struct AutoLockWritePrimaryAndExtra
   ~AutoLockWritePrimaryAndExtra();
 };
 
+// Monotone counter of rendinst geometry edits. It skips the riGen instances of a cell that streams in,
+// a dynamic-scene move and a deferred grid removal: registerRiGenCellLoadedCb and registerRiExtraCollisionMovedCb carry those.
+int getRiGenWorldVersion();
+// Edit bounds since version, grown 2 m a side, empty for none; false when the ring lost them. version moves
+// to now, so a reader calls this before it reads the geometry, or an edit between the two is lost.
+bool getRiGenWorldChanges(int &version, BBox3 &affected);
+
 int getRIGenMaterialId(const RendInstDesc &desc, bool need_lock = true);
 // Destruction strings of the pool, never null ("" when unset). They are owned by the pool
 // props, so use the result inside the call and never store it. Read without riRwCs, like

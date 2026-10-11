@@ -3,6 +3,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/dataComponent.h>
 #include <daECS/core/entityManager.h>
+#include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <ioSys/dag_dataBlock.h>
 #include "animationDataBase.h"
@@ -97,12 +98,9 @@ void AnimationDataBase::requestResources(const char *, const ecs::resource_reque
     for (int i = 0, n = clipsBlock->blockCount(); i < n; i++)
     {
       const char *clip_name = clipsBlock->getBlock(i)->getBlockName();
-#if DAGOR_DBGLEVEL > 0
-      // Do not preload missing animations because it will fail entity creation.
-      // There will be logerr about missing animations on MM database loading.
-      if (get_game_resource_pack_id_by_resource(clip_name) < 0)
+      // constraint: missing requested res fails entity creation
+      if (get_resource_type_id(clip_name) != Anim2DataGameResClassId)
         continue;
-#endif
       res_cb(clip_name, Anim2DataGameResClassId);
     }
   }

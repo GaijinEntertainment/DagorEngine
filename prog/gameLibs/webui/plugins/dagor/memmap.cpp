@@ -169,7 +169,7 @@ void build_mem_map(YAMemSave *buf, da_profiler::profile_mem_data_t detail_frame,
         ctx.buf.printf("]");
       if (sa)
         ctx.buf.printf(", \"sa\":%lld", (long long int)sa);
-      if (sa)
+      if (sp)
         ctx.buf.printf(", \"sp\":%lld", (long long int)sp);
       ctx.buf.printf("}");
     }

@@ -119,6 +119,7 @@ struct PeerQoSStat
   int lowestPing = 0;
   int highestPingVariance = 0;
   float packetLoss = 0; // [0..1]
+  int relayAveragePing = 0;
 };
 }; // namespace danet
 

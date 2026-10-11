@@ -8,7 +8,7 @@
 #include <util/dag_simpleString.h>
 #include <math/integer/dag_IPoint2.h>
 #include <generic/dag_relocatableFixedVector.h>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 class IGenLoad;
 
@@ -85,9 +85,9 @@ protected:
 
   SimpleString texName;
   Config config;
-  mutable std::mutex configMutex;
+  mutable dag::mutex configMutex;
   Tab<Pool> pools;
-  mutable std::mutex poolMutex;
+  mutable dag::mutex poolMutex;
   int texFlags;
   bool needRebuild = false;
 };

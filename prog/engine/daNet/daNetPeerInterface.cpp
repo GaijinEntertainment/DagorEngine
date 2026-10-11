@@ -440,6 +440,7 @@ danet::PeerQoSStat DaNetPeerInterface::GetPeerQoSStat(SystemIndex peerIdx) const
     ret.highestPingVariance = interlocked_relaxed_load(p->lastRoundTripTimeVariance);
     ret.packetLoss = interlocked_relaxed_load(p->packetLoss) / (float)ENET_PEER_PACKET_LOSS_SCALE;
   }
+  ret.relayAveragePing = interlocked_relaxed_load(p->relayRoundTripTime);
   return ret;
 }
 
@@ -521,6 +522,7 @@ void DaNetPeerInterface::updatePeerResponsiveness(DaNetTime currTime)
     interlocked_relaxed_store(pr.packetThrottleEpoch, peer->packetThrottleEpoch);
     interlocked_relaxed_store(pr.roundTripTime, peer->roundTripTime);
     interlocked_relaxed_store(pr.roundTripTimeVariance, peer->roundTripTimeVariance);
+    interlocked_relaxed_store(pr.relayRoundTripTime, peer->relayRoundTripTime);
     interlocked_relaxed_store(pr.lastRoundTripTime, peer->lastRoundTripTime);
     interlocked_relaxed_store(pr.lowestRoundTripTime, peer->lowestRoundTripTime);
     interlocked_relaxed_store(pr.lastRoundTripTimeVariance, peer->lastRoundTripTimeVariance);
@@ -659,6 +661,8 @@ void DaNetPeerInterface::receivePacket(SystemIndex sys_idx, const SystemAddress 
 /* static */
 int DaNetPeerInterface::client_update_last_server_receive_time_cb(_ENetHost *host, _ENetEvent *)
 {
+  if (DAGOR_UNLIKELY(enet_dagor_datagram_is_relay_pong(host->receivedData, host->receivedDataLength)))
+    return 0;
   DaNetPeerInterface *peerIf = ((DaNetPeerInterface *)host) - 1; //-V1027 intentional container-of pattern
   if (!peerIf->forcedHostAddr.host || peerIf->forcedHostAddr.host == host->receivedAddress.host)
     interlocked_relaxed_store(peerIf->peerResponsiveness[0].lastReceiveTime, host->serviceTime);

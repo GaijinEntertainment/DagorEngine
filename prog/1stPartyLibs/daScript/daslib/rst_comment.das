@@ -45,14 +45,6 @@ def private debug_rst ( _s : string ) {
     }
 }
 
-def error_rst ( s : string ) {
-    if (DEBUG_COMMENT_READER) {
-        error("{s} at {get_line_info(1) |> describe}\n")
-    } else {
-        error(s)
-    }
-}
-
 def panic_rst ( s : string ) {
     if (DEBUG_COMMENT_READER) {
         error("{s} at {get_line_info(1) |> describe}\n")
@@ -74,8 +66,6 @@ def private get_macro_name ( st:StructurePtr; mtype:string ) : string {
     return string(st.name)
 }
 
-
-var private modName : function<(): string>
 
 [macro_function]
 def get_module_name(prog, mod) {
@@ -189,12 +179,7 @@ class RstComment : AstCommentReader {
     }
     def override beforeEnumeration ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeEnumeration")
-        if (state != ParserState.none) {
-            panic_rst("expecting none, got {state}")
-        }
-        pending_comment = ""
-        pending_line = 0
-        state = ParserState.enum_decl
+        begin_decl(ParserState.enum_decl)
     }
     def override beforeEnumerationEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeEnumerationEntries")
@@ -229,12 +214,7 @@ class RstComment : AstCommentReader {
     }
     def override beforeBitfield ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeBitfield")
-        if (state != ParserState.none) {
-            panic_rst("expecting none, got {state}")
-        }
-        pending_comment = ""
-        pending_line = 0
-        state = ParserState.bitfield_alias
+        begin_decl(ParserState.bitfield_alias)
     }
     def override beforeBitfieldEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeBitfieldEntries")
@@ -269,12 +249,7 @@ class RstComment : AstCommentReader {
     }
     def override beforeVariant ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeVariant")
-        if (state != ParserState.none) {
-            panic_rst("expecting none, got {state}")
-        }
-        pending_comment = ""
-        pending_line = 0
-        state = ParserState.variant_alias
+        begin_decl(ParserState.variant_alias)
     }
     def override beforeVariantEntries ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeVariantEntries")
@@ -312,12 +287,7 @@ class RstComment : AstCommentReader {
     }
     def override beforeGlobalVariables ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("beforeGlobalVariables")
-        if (state != ParserState.none) {
-            panic_rst("expecting none, got {state}")
-        }
-        pending_comment = ""
-        pending_line = 0
-        state = ParserState.global
+        begin_decl(ParserState.global)
     }
     def override afterGlobalVariable ( name:string; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("afterGlobalVariable {name} // {global_comment}")
@@ -333,14 +303,19 @@ class RstComment : AstCommentReader {
         state = ParserState.none
         global_comment = ""
     }
-    def override beforeStructure ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
-        debug_rst("beforeStucture")
+    // every top-level declaration hook starts from `none` and resets the pending comment
+    def begin_decl(next_state : ParserState) : void {
         if (state != ParserState.none) {
             panic_rst("expecting none, got {state}")
         }
         pending_comment = ""
         pending_line = 0
-        state = ParserState.structure
+        state = next_state
+    }
+
+    def override beforeStructure ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
+        debug_rst("beforeStucture")
+        begin_decl(ParserState.structure)
     }
     def override afterStructure ( st:StructurePtr; prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
         debug_rst("afterStucture {st._module.name}::{st.name} // {structure_comment}")

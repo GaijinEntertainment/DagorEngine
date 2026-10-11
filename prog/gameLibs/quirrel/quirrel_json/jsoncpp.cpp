@@ -81,7 +81,7 @@ static Json::Value sqval_to_json(Sqrat::Object val)
   {
     case OT_NULL: return Json::Value::null;
     case OT_INTEGER: return Json::Value(Json::Value::Int64(val.Cast<int64_t>()));
-    case OT_FLOAT: return Json::Value(val.Cast<float>());
+    case OT_FLOAT: return Json::Value(double(val.Cast<float>()));
     case OT_STRING:
     {
       auto str = val.GetVar<const char *>();

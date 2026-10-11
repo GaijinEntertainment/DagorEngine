@@ -118,6 +118,31 @@ void TreeControlStandalone::drawNode(TreeNode *node, bool &double_clicked_on_ite
     .endData = endData,
     .allowBlockedHover = false});
 
+  // The arrow keys move from the nav cursor, so a selection set by code has to move it too.
+  if (node == moveNavCursorRequested && node == lastSelected)
+  {
+    moveNavCursorRequested = nullptr;
+
+    ImGuiWindow *window = ImGui::GetCurrentWindow();
+    if (g.NavWindow == window)
+    {
+      ImGui::SetFocusID(nodeId, window);
+    }
+    else
+    {
+      // Used when the tree gets the focus again. Same as the end of ImGui::SetFocusID(), but that would take the focus.
+      const ImGuiNavLayer navLayer = window->DC.NavLayerCurrent;
+      window->NavLastIds[navLayer] = nodeId;
+      if (g.LastItemData.ID == nodeId)
+        window->NavRectRel[navLayer] = ImGui::WindowRectAbsToRel(window, g.LastItemData.NavRect);
+    }
+
+    // ImGui keeps the range source and its selection state as a pair, and Ctrl+Shift ranges copy that state.
+    ImGuiMultiSelectState *storage = g.CurrentMultiSelect->Storage;
+    storage->RangeSrcItem = (ImGuiSelectionUserData)node;
+    storage->RangeSelected = 1;
+  }
+
   bool isItemHovered = false;
 
   if (endData.draw) // -V547
@@ -216,7 +241,22 @@ void TreeControlStandalone::drawNode(TreeNode *node, bool &double_clicked_on_ite
   if (node == ensureVisibleRequested)
   {
     ensureVisibleRequested = nullptr;
-    ImGui::SetScrollHereY();
+
+    // Scroll a partially visible row (for example the one that the user just clicked) only as much as needed, and
+    // center only a row that is not visible.
+    ImGuiWindow *window = ImGui::GetCurrentWindow();
+    const ImRect &visibleRect = window->InnerClipRect;
+    if (endData.draw // -V560 endData.draw is not always false
+        && endData.rowBB.Max.y > visibleRect.Min.y && endData.rowBB.Min.y < visibleRect.Max.y)
+    {
+      // Use the visible X range to prevent horizontal scrolling.
+      const ImRect rowRect(visibleRect.Min.x, endData.rowBB.Min.y, visibleRect.Max.x, endData.rowBB.Max.y);
+      ImGui::ScrollToRectEx(window, rowRect, ImGuiScrollFlags_KeepVisibleEdgeY | ImGuiScrollFlags_NoScrollParent);
+    }
+    else
+    {
+      ImGui::SetScrollHereY();
+    }
   }
 
   if (isOpen && hasChild)

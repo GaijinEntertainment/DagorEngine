@@ -15,8 +15,8 @@ constexpr const char *DEBUG_GEOM_TOOLTIP = "Splines, game objects, grid, etc.";
 ScreenshotSettingsDialog::ScreenshotSettingsDialog(ScreenshotConfig screenshot_cfg, ScreenshotConfig cube_screenshot_cfg,
   ScreenshotDlgMode mode, SettingsChangeHandler settings_change_handler) :
   DialogWindow(0, hdpi::_pxScaled(305), hdpi::_pxScaled(490), "Screenshot settings"),
-  screenshotCfg(std::move(screenshot_cfg)),
-  cubeScreenshotCfg(std::move(cube_screenshot_cfg)),
+  screenshotCfg(screenshot_cfg),
+  cubeScreenshotCfg(cube_screenshot_cfg),
   settingsChangeHandler(std::move(settings_change_handler)),
   screenshotTab(nullptr),
   cubeScreenshotTab(nullptr),
@@ -43,6 +43,13 @@ void ScreenshotSettingsDialog::fill()
 
   setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
   removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+}
+
+void ScreenshotSettingsDialog::selectTab(bool cube_screenshot)
+{
+  PropPanel::ContainerPropertyControl *panel = getPanel();
+  G_ASSERT_RETURN(panel, );
+  panel->setInt(PID_TAB_PANEL, cube_screenshot ? PID_CUBE_SCREENSHOT_TAB : PID_SCREENSHOT_TAB);
 }
 
 void ScreenshotSettingsDialog::updateImguiDialog(const PropPanel::DialogWindow::DialogFrameSizing &sizing)
@@ -111,7 +118,8 @@ void ScreenshotSettingsDialog::fillScreenshotTab()
   screenshotTab->createSeparatorText(0, "Display options");
   if (mode == ScreenshotDlgMode::ASSET_VIEWER)
   {
-    screenshotTab->createCheckBox(PID_TRANSP_BACK, TRANSP_BACK_CAPTION, screenshotCfg.enableTransparentBackground);
+    const bool isJpeg = screenshotCfg.format == ScreenshotFormat::JPEG;
+    screenshotTab->createCheckBox(PID_TRANSP_BACK, TRANSP_BACK_CAPTION, screenshotCfg.enableTransparentBackground && !isJpeg, !isJpeg);
   }
   screenshotTab->createCheckBox(PID_DBG_GEOM, DEBUG_GEOM_CAPTION, screenshotCfg.enableDebugGeometry);
   screenshotTab->setTooltipId(PID_DBG_GEOM, DEBUG_GEOM_TOOLTIP);
@@ -168,7 +176,9 @@ void ScreenshotSettingsDialog::fillCubeScreenshotTab()
   cubeScreenshotTab->createSeparatorText(0, "Display options");
   if (mode == ScreenshotDlgMode::ASSET_VIEWER)
   {
-    cubeScreenshotTab->createCheckBox(PID_CUBE_TRANSP_BACK, TRANSP_BACK_CAPTION, cubeScreenshotCfg.enableTransparentBackground);
+    const bool isJpeg = cubeScreenshotCfg.format == ScreenshotFormat::JPEG;
+    cubeScreenshotTab->createCheckBox(PID_CUBE_TRANSP_BACK, TRANSP_BACK_CAPTION,
+      cubeScreenshotCfg.enableTransparentBackground && !isJpeg, !isJpeg);
   }
   cubeScreenshotTab->createCheckBox(PID_CUBE_DBG_GEOM, DEBUG_GEOM_CAPTION, cubeScreenshotCfg.enableDebugGeometry);
   cubeScreenshotTab->setTooltipId(PID_CUBE_DBG_GEOM, DEBUG_GEOM_TOOLTIP);
@@ -188,9 +198,10 @@ void ScreenshotSettingsDialog::readCfgsFromControls()
   if (screenshotTab)
   {
     // regular screenshot
+    const bool wasJpeg = screenshotCfg.format == ScreenshotFormat::JPEG;
     screenshotCfg.width = screenshotTab->getInt(PID_SCRN_W);
     screenshotCfg.height = screenshotTab->getInt(PID_SCRN_H);
-    if (screenshotCfg.format == ScreenshotFormat::JPEG)
+    if (wasJpeg)
     {
       screenshotCfg.jpegQuality = screenshotTab->getInt(PID_JPEG_Q);
     }
@@ -198,7 +209,8 @@ void ScreenshotSettingsDialog::readCfgsFromControls()
     screenshotCfg.enableDebugGeometry = screenshotTab->getBool(PID_DBG_GEOM);
     if (mode == ScreenshotDlgMode::ASSET_VIEWER)
     {
-      screenshotCfg.enableTransparentBackground = screenshotTab->getBool(PID_TRANSP_BACK);
+      if (!wasJpeg) // For JPEG the checkbox is always unchecked.
+        screenshotCfg.enableTransparentBackground = screenshotTab->getBool(PID_TRANSP_BACK);
       screenshotCfg.nameAsCurrentAsset = screenshotTab->getBool(PID_NAME_ASSET);
     }
   }
@@ -206,9 +218,10 @@ void ScreenshotSettingsDialog::readCfgsFromControls()
   if (cubeScreenshotTab)
   {
     // cube screenshot
+    const bool wasJpeg = cubeScreenshotCfg.format == ScreenshotFormat::JPEG;
     const int pwr = cubeScreenshotTab->getInt(PID_CUBE_SIZE);
     cubeScreenshotCfg.size = pwr > -1 ? 1 << (pwr + ScreenshotConfig::MIN_CUBE_2_POWER) : 0;
-    if (cubeScreenshotCfg.format == ScreenshotFormat::JPEG)
+    if (wasJpeg)
     {
       cubeScreenshotCfg.jpegQuality = cubeScreenshotTab->getInt(PID_CUBE_JPEG_Q);
     }
@@ -216,7 +229,8 @@ void ScreenshotSettingsDialog::readCfgsFromControls()
     cubeScreenshotCfg.enableDebugGeometry = cubeScreenshotTab->getBool(PID_CUBE_DBG_GEOM);
     if (mode == ScreenshotDlgMode::ASSET_VIEWER)
     {
-      cubeScreenshotCfg.enableTransparentBackground = cubeScreenshotTab->getBool(PID_CUBE_TRANSP_BACK);
+      if (!wasJpeg) // For JPEG the checkbox is always unchecked.
+        cubeScreenshotCfg.enableTransparentBackground = cubeScreenshotTab->getBool(PID_CUBE_TRANSP_BACK);
       cubeScreenshotCfg.nameAsCurrentAsset = cubeScreenshotTab->getBool(PID_CUBE_NAME_ASSET);
     }
   }

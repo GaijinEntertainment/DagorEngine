@@ -443,13 +443,31 @@ public:
     // float C::addSingleResult(const C::contact_data_t &cp, C::obj_user_data_t *objA, C::obj_user_data_t *objB, <ANY> *objInfo)
     // void  C::visualDebugForSingleResult(const PhysBody *bodyA, const PhysBody *bodyB, const C::contact_data_t &c)
     // bool  C::needsCollision(C::obj_user_data_t *objB, bool b_is_static)
+    // constraint: C must not move either body during the test; AddHit reads each body transform once
     C &c;
     const PhysBody *pbA, *pb2;
+    const PhysBody *curPbB = nullptr;
+    JPH::BodyID curIdB;
+    JPH::Mat44 invTmA, invTmB;
+    bool haveInvTmA = false, haveCurB = false;
 
     ContactResultCB(C &_c, const PhysBody *pb_a, const PhysBody *pb_b = nullptr) : c(_c), pbA(pb_a), pb2(pb_b) {}
     void AddHit(const JPH::CollideShapeResult &cp) override
     {
-      auto *pbB = pb2 ? pb2 : PhysBody::from_body_id(cp.mBodyID2);
+      const JPH::BodyID idB = pb2 ? pb2->bodyId : cp.mBodyID2;
+      if (!haveCurB || idB != curIdB)
+      {
+        curIdB = idB;
+        curPbB = pb2 ? pb2 : PhysBody::from_body_id(idB);
+        invTmB = body_api().GetWorldTransform(idB).Inversed();
+        haveCurB = true;
+      }
+      if (!haveInvTmA)
+      {
+        invTmA = body_api().GetWorldTransform(pbA->bodyId).Inversed();
+        haveInvTmA = true;
+      }
+      auto *pbB = curPbB;
       void *userPtrA = pbA->getUserData();
       void *userPtrB = pbB ? pbB->getUserData() : nullptr;
 
@@ -458,8 +476,8 @@ public:
       cdata.wpos = to_point3(cp.mContactPointOn1);
       cdata.wposB = to_point3(cp.mContactPointOn2);
       cdata.wnormB = to_point3(-cp.mPenetrationAxis.Normalized());
-      cdata.posA = to_point3(body_api().GetWorldTransform(pbA->bodyId).Inversed() * cp.mContactPointOn1);
-      cdata.posB = to_point3(body_api().GetWorldTransform(pb2 ? pb2->bodyId : cp.mBodyID2).Inversed() * cp.mContactPointOn2);
+      cdata.posA = to_point3(invTmA * cp.mContactPointOn1);
+      cdata.posB = to_point3(invTmB * cp.mContactPointOn2);
       c.visualDebugForSingleResult(pbA, pbB, cdata);
       c.addSingleResult(cdata, (typename C::obj_user_data_t *)userPtrA, (typename C::obj_user_data_t *)userPtrB);
     }

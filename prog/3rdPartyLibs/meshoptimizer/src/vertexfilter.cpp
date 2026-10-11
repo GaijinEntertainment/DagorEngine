@@ -13,7 +13,9 @@
 #endif
 
 // MSVC supports compiling SSE2 code regardless of compile options; we assume all 32-bit CPUs support SSE2
-#if !defined(SIMD_SSE) && defined(_MSC_VER) && !defined(__clang__) && (defined(_M_IX86) || defined(_M_X64))
+// Gaijin change
+#if !defined(SIMD_SSE) && defined(_MSC_VER) && !defined(__clang__) && (defined(_M_IX86) || (defined(_M_X64) && !defined(_M_ARM64EC)))
+// ~Gaijin change
 #define SIMD_SSE
 #endif
 
@@ -23,7 +25,9 @@
 #endif
 
 // On MSVC, we assume that ARM builds always target NEON-capable devices
-#if !defined(SIMD_NEON) && defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
+// Gaijin change
+#if !defined(SIMD_NEON) && defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC))
+// ~Gaijin change
 #define SIMD_NEON
 #endif
 
@@ -382,7 +386,9 @@ static void decodeFilterExpSimd(unsigned int* data, size_t count)
 }
 #endif
 
-#if defined(SIMD_NEON) && !defined(__aarch64__) && !defined(_M_ARM64)
+// Gaijin change
+#if defined(SIMD_NEON) && !defined(__aarch64__) && !defined(_M_ARM64) && !defined(_M_ARM64EC)
+// ~Gaijin change
 inline float32x4_t vsqrtq_f32(float32x4_t x)
 {
 	float32x4_t r = vrsqrteq_f32(x);

@@ -2,9 +2,20 @@
 
 #include "compositeEditorTreeDataNode.h"
 #include <assets/asset.h>
+#include <de3_composit.h>
 #include <de3_dataBlockIdHolder.h>
 #include <de3_interface.h>
+#include <math/dag_mathAng.h>
 #include <util/dag_string.h>
+
+static void update_point2_parameter_value(CompositeEditorTreeDataNode &node, const char *name, real value)
+{
+  Point2 parameter;
+  if (!node.tryGetPoint2Parameter(name, parameter))
+    return;
+  parameter.x = value;
+  node.params.setPoint2(name, parameter);
+}
 
 CompositeEditorTreeDataNode::CompositeEditorTreeDataNode() { reset(); }
 
@@ -84,16 +95,47 @@ TMatrix CompositeEditorTreeDataNode::getTransformationMatrix() const
   return TMatrix::IDENT;
 }
 
+void CompositeEditorTreeDataNode::getTransformationComponents(Point3 &position, Point3 &rotation, Point3 &scale) const
+{
+  const TMatrix tm = getTransformationMatrix();
+  position = tm.getcol(3);
+
+  ::matrix_to_euler(tm, rotation.y, rotation.z, rotation.x);
+  rotation.x = RadToDeg(rotation.x);
+  rotation.y = RadToDeg(rotation.y);
+  rotation.z = RadToDeg(rotation.z);
+
+  scale = Point3(::length(tm.getcol(0)), ::length(tm.getcol(1)), ::length(tm.getcol(2)));
+}
+
 void CompositeEditorTreeDataNode::setIdentityTransformationMatrix() { params.setTm("tm", TMatrix::IDENT); }
 
-bool CompositeEditorTreeDataNode::canTransform() const
+void CompositeEditorTreeDataNode::updateTransformParamsFromMatrix()
 {
-  Point2 p2;
-  return getUseTransformationMatrix() && !tryGetPoint2Parameter("offset_x", p2) && !tryGetPoint2Parameter("offset_y", p2) &&
-         !tryGetPoint2Parameter("offset_z", p2) && !tryGetPoint2Parameter("rot_x", p2) && !tryGetPoint2Parameter("rot_y", p2) &&
-         !tryGetPoint2Parameter("rot_z", p2) && !tryGetPoint2Parameter("scale", p2) && !tryGetPoint2Parameter("xScale", p2) &&
-         !tryGetPoint2Parameter("yScale", p2);
+  if (!getUseTransformationMatrix())
+    return;
+
+  Point3 position, rotation, scale;
+  getTransformationComponents(position, rotation, scale);
+  rotation = composit_rotation_params(rotation);
+
+  update_point2_parameter_value(*this, "rot_x", rotation.x);
+  update_point2_parameter_value(*this, "rot_y", rotation.y);
+  update_point2_parameter_value(*this, "rot_z", rotation.z);
+
+  update_point2_parameter_value(*this, "offset_x", position.x);
+  update_point2_parameter_value(*this, "offset_y", position.y);
+  update_point2_parameter_value(*this, "offset_z", position.z);
+
+  update_point2_parameter_value(*this, "scale", scale.x);
+
+  // yScale is the Y size divided by scale. At a zero scale composit_y_scale_param() returns the default 1, which would
+  // overwrite the stored multiplier.
+  if (scale.x > 0)
+    update_point2_parameter_value(*this, "yScale", composit_y_scale_param(scale.x, scale.y));
 }
+
+bool CompositeEditorTreeDataNode::canTransform() const { return getUseTransformationMatrix(); }
 
 bool CompositeEditorTreeDataNode::tryGetPoint2Parameter(const char *name, Point2 &value) const
 {

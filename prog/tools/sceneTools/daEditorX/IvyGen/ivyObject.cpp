@@ -6,9 +6,7 @@
 #include <drv/3d/dag_driver.h>
 
 #include "plugin.h"
-#include <sceneRay/dag_sceneRay.h>
 #include <math/dag_traceRayTriangle.h>
-#include <scene/dag_frtdump.h>
 
 #include <oldEditor/pluginService/de_IDagorPhys.h>
 
@@ -85,69 +83,40 @@ enum
 static class MyCollisionCallback : public IvyObject::CollisionCallback
 {
 public:
-  Tab<int> faces;
-  MyCollisionCallback() : rt(NULL), hmap(NULL), faces(tmpmem) {}
+  MyCollisionCallback() : hmap(NULL) {}
+
+  static void adhere_to(const Point3 &v0, const Point3 &e1, const Point3 &e2, const Point3 &pos, real &minDist, real maxDist,
+    Point3 &norm, Point3 &adhesionVector)
+  {
+    Point3 n = e2 % e1;
+    const real nLen = n.length();
+    if (nLen < 1e-12f)
+      return;
+    n /= nLen;
+    real u, v;
+    if (!traceRayToTriangleNoCull(pos, n, minDist, v0, e1, e2, u, v))
+      return;
+    norm = -n;
+    adhesionVector = n * (1.0f - minDist / maxDist);
+  }
 
   /** compute the adhesion of scene objects at a point pos*/
   Point3 computeAdhesion(const Point3 &pos, real maxDist, Point3 &norm) override
   {
     float minDist = maxDist;
     Point3 adhesionVector = Point3(0, 0, 0);
-
-    if (rt)
-      computeAdhesion(adhesionVector, pos, minDist, maxDist, rt->getRt(), norm);
+    dagPhys->visitClipTriangles(BBox3(pos, maxDist), [&](const Point3 &v0, const Point3 &v1, const Point3 &v2) {
+      adhere_to(v0, v1 - v0, v2 - v0, pos, minDist, maxDist, norm, adhesionVector);
+    });
 
     if (hmap)
     {
       Tab<HeightmapTriangle> hmapFaces(tmpmem);
-      BBox3 ivyBB;
-      ivyBB.lim[0] = pos - Point3(1, 1, 1) * maxDist;
-      ivyBB.lim[1] = pos + Point3(1, 1, 1) * maxDist;
-      get_faces_from_midpoint_heightmap(*hmap, hmapFaces, ivyBB);
-
-      for (int i = 0; i < hmapFaces.size(); i++)
-      {
-        Point3 v0 = hmapFaces[i].v0;
-        Point3 e1 = hmapFaces[i].e1;
-        Point3 e2 = hmapFaces[i].e2;
-
-        Point3 n = e2 % e1;
-        n.normalize();
-
-        real u, v;
-        if (!traceRayToTriangleNoCull(pos, n, minDist, v0, e1, e2, u, v))
-          continue;
-
-        norm = -n;
-        adhesionVector = n;
-        adhesionVector *= 1.0f - minDist / maxDist;
-      }
+      get_faces_from_midpoint_heightmap(*hmap, hmapFaces, BBox3(pos, maxDist * 2.f)); // BBox3(p, s) is a cube of side s
+      for (const HeightmapTriangle &f : hmapFaces)
+        adhere_to(f.v0, f.e1, f.e2, pos, minDist, maxDist, norm, adhesionVector);
     }
-
     return adhesionVector;
-  }
-
-  void computeAdhesion(Point3 &adhesionVector, const Point3 &pos, real &minDist, real maxDist, StaticSceneRayTracer &rt, Point3 &norm)
-  {
-    faces.clear();
-    rt.getFaces(faces, pos, maxDist);
-    for (int i = 0; i < faces.size(); ++i)
-    {
-      int fi = faces[i];
-      const StaticSceneRayTracer::RTface &face = rt.faces(fi);
-      const StaticSceneRayTracer::RTfaceBoundFlags &bound = rt.facebounds(fi);
-      Point3 v0 = rt.verts(face.v[0]);
-
-      Point3 n = -bound.n;
-
-      real u, v;
-      if (!traceRayToTriangleNoCull(pos, n, minDist, v0, rt.verts(face.v[1]) - v0, rt.verts(face.v[2]) - v0, u, v))
-        continue;
-
-      norm = -n;
-      adhesionVector = n;
-      adhesionVector *= 1.0f - minDist / maxDist;
-    }
   }
 
   bool traceRay(const Point3 &p, const Point3 &dir, float &dist, Point3 &normal) override
@@ -155,13 +124,6 @@ public:
     return DAGORED2->traceRay(p, dir, dist, &normal, false);
   }
 
-  void init()
-  {
-    hmap = DAGORED2->getInterfaceEx<IHeightmap>();
-    rt = dagPhys->getFastRtDump();
-  }
-
-  FastRtDump *rt;
   IHeightmap *hmap;
 
 } ivyCb;
@@ -181,7 +143,7 @@ void IvyObject::initStatics()
 }
 
 
-void IvyObject::initCollisionCallback() { ivyCb.init(); }
+void IvyObject::initCollisionCallback() { ivyCb.hmap = DAGORED2->getInterfaceEx<IHeightmap>(); }
 
 
 IvyObject::IvyObject(int _uid) : uid(_uid), roots(midmem)

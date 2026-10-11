@@ -11,6 +11,10 @@
 
 namespace SQCompilation {
 
+static bool isConstructorName(const char *name) {
+    return strcmp(name, "constructor") == 0;
+}
+
 static bool isMetaMethodName(const char *name) {
     if (!name || name[0] != '_') return false;
 #define MM_IMPL(mm, mname) if (strcmp(name, mname) == 0) return true;
@@ -121,8 +125,6 @@ static const SQPragmaDescriptor pragmaDescriptors[] = {
   { "allow-switch-statement", 0, LF_FORBID_SWITCH_STMT },
   { "forbid-implicit-type-methods", LF_FORBID_IMPLICIT_TYPE_METHODS, 0 },
   { "allow-implicit-type-methods", 0, LF_FORBID_IMPLICIT_TYPE_METHODS },
-  { "forbid-auto-freeze", 0, LF_ALLOW_AUTO_FREEZE },
-  { "allow-auto-freeze", LF_ALLOW_AUTO_FREEZE, 0 },
   { "forbid-compiler-internals", 0, LF_ALLOW_COMPILER_INTERNALS },
   { "allow-compiler-internals", LF_ALLOW_COMPILER_INTERNALS, 0 },
 };
@@ -154,6 +156,7 @@ Statement* SQParser::parseDirectiveStatement()
     SQInteger setFlags = pragmaDesc->setFlags, clearFlags = pragmaDesc->clearFlags;
 
     DirectiveStmt *d = newNode<DirectiveStmt>(_lex.tokenSpan());
+    d->name = pragmaDesc->id;
     d->applyToDefault = applyToDefault;
     d->setFlags = setFlags;
     d->clearFlags = clearFlags;
@@ -174,6 +177,7 @@ void SQParser::checkBraceIndentationStyle()
 
 void SQParser::Lex()
 {
+    _prevTokEnd = _lex.currentPos();
     _token = _lex.Lex();
 
     while (_token == TK_DIRECTIVE)
@@ -201,35 +205,30 @@ void SQParser::Lex()
 Expr* SQParser::Expect(SQInteger tok)
 {
     if(_token != tok) {
-        if(_token == TK_CONSTRUCTOR && tok == TK_IDENTIFIER) {
-            //do nothing
+        if(tok > 255) {
+            const char *etypename;
+            switch(tok)
+            {
+            case TK_IDENTIFIER:
+                etypename = "IDENTIFIER";
+                break;
+            case TK_STRING_LITERAL:
+                etypename = "STRING_LITERAL";
+                break;
+            case TK_INTEGER:
+                etypename = "INTEGER";
+                break;
+            case TK_FLOAT:
+                etypename = "FLOAT";
+                break;
+            default:
+                etypename = _lex.Tok2Str(tok);
+            }
+            throwError("expected '%s'", etypename);
         }
         else {
-            if(tok > 255) {
-                const char *etypename;
-                switch(tok)
-                {
-                case TK_IDENTIFIER:
-                    etypename = "IDENTIFIER";
-                    break;
-                case TK_STRING_LITERAL:
-                    etypename = "STRING_LITERAL";
-                    break;
-                case TK_INTEGER:
-                    etypename = "INTEGER";
-                    break;
-                case TK_FLOAT:
-                    etypename = "FLOAT";
-                    break;
-                default:
-                    etypename = _lex.Tok2Str(tok);
-                }
-                throwError("expected '%s'", etypename);
-            }
-            else {
-                char s[2] = {(char)tok, 0};
-                throwError("expected '%s'", s);
-            }
+            char s[2] = {(char)tok, 0};
+            throwError("expected '%s'", s);
         }
     }
     Expr *ret = NULL;
@@ -290,7 +289,7 @@ Block* SQParser::parseStatements(SourceLoc start)
         result->addStatement(stmt);
         if(_lex._prevtoken != '}' && _lex._prevtoken != ';') OptionalSemicolon();
     }
-    result->setSpanEnd(_lex.currentPos());
+    result->setSpanEnd(result->statements().empty() ? start : _prevTokEnd);
     return result;
 }
 
@@ -698,11 +697,10 @@ Expr* SQParser::CompExp()
         case TK_IN: lhs = BIN_EXP(&SQParser::ShiftExp, TO_IN, lhs); break;
         case TK_INSTANCEOF: lhs = BIN_EXP(&SQParser::ShiftExp, TO_INSTANCEOF, lhs); break;
         case TK_NOT: {
-            SourceLoc notStart = _lex.tokenStart();
             Lex();
             if (_token == TK_IN) {
                 lhs = BIN_EXP(&SQParser::ShiftExp, TO_IN, lhs);
-                lhs = newNode<UnExpr>(TO_NOT, notStart, lhs);
+                lhs = newNode<UnExpr>(TO_NOT, lhs->sourceSpan().start, lhs);
             }
             else
                 throwError("expected 'in'");
@@ -1000,12 +998,6 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = newId(_lex._svalue);
         Lex();
         break;
-    case TK_CONSTRUCTOR: {
-        SourceSpan span = _lex.tokenSpan();
-        Lex();
-        r = newNode<Id>(span, "constructor");
-        break;
-    }
     case TK_THIS: {
         SourceSpan span = _lex.tokenSpan();
         Lex();
@@ -1182,12 +1174,6 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = newNode<UnExpr>(TO_CLONE, opStart, PrefixedExpr());
         break;
     }
-    case TK_STATIC: {
-        SourceLoc opStart = _lex.tokenStart();
-        Lex();
-        r = newNode<UnExpr>(TO_STATIC_MEMO, opStart, PrefixedExpr());
-        break;
-    }
     case TK_CONST: {
         SourceLoc opStart = _lex.tokenStart();
         Lex();
@@ -1271,7 +1257,7 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
         if (_token == TK_ASYNC) {
             asyncKeywordStart = _lex.tokenStart();
             Lex();
-            if (_token == TK_CONSTRUCTOR) {
+            if (_token == TK_IDENTIFIER && isConstructorName(_lex._svalue)) {
                 throwError("'async constructor' is not allowed: a constructor must return the new instance, not a Future");
             }
             else if (_token != TK_FUNCTION) {
@@ -1295,20 +1281,18 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
             decl->addMember(nullptr, newNode<UnExpr>(TO_SPREAD, spreadStart, source), flags);
             break;
         }
-        case TK_FUNCTION:
-        case TK_CONSTRUCTOR: {
-            SQInteger tk = _token;
+        case TK_FUNCTION: {
             SourceLoc funcStart = isAsync ? asyncKeywordStart : _lex.tokenStart();
             Lex();
             FuncAttrFlagsType attr = ParseFunctionAttributes();
-            if (isAsync && tk == TK_FUNCTION && _token == TK_IDENTIFIER && isMetaMethodName(_lex._svalue)) {
+            if (isAsync && _token == TK_IDENTIFIER && isMetaMethodName(_lex._svalue)) {
                 throwError("'async' is not allowed on metamethod");
             }
-            Id *funcName = tk == TK_FUNCTION ? (Id *)Expect(TK_IDENTIFIER) : newNode<Id>(_lex.tokenSpan(), "constructor");
+            Id *funcName = (Id *)Expect(TK_IDENTIFIER);
             assert(funcName);
             LiteralExpr *key = newNode<LiteralExpr>(funcName->sourceSpan(), funcName->name()); //-V522
             Expect('(');
-            FunctionExpr *f = CreateFunction(funcStart, funcName, false, tk == TK_CONSTRUCTOR);
+            FunctionExpr *f = CreateFunction(funcStart, funcName);
             f->setPure(attr & FATTR_PURE);
             f->setNodiscard(attr & FATTR_NODISCARD);
             if (isAsync)
@@ -1341,9 +1325,13 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
             assert(id);
             LiteralExpr *key = newNode<LiteralExpr>(keySpan, id->name()); //-V522
 
-            if ((otype == NEWOBJ_TABLE) &&
+            if (_token == '(' && isConstructorName(id->name())) {
+                Lex();
+                decl->addMember(key, CreateFunction(keySpan.start, id, false, true), flags);
+            }
+            else if ((otype == NEWOBJ_TABLE) &&
                 (_token == TK_IDENTIFIER || _token == separator || _token == terminator || _token == '['
-                    || _token == TK_FUNCTION)) {
+                    || _token == TK_FUNCTION || _token == TK_VARPARAMS)) {
                 decl->addMember(key, id, flags);
             }
             else {
@@ -1759,6 +1747,7 @@ ForeachStatement* SQParser::parseForEachStatement()
         valDestr = newNode<DestructuringDecl>(arena(), keywordStart, destructurer == '{' ? DT_TABLE : DT_ARRAY);
         parseDestructuringFields(valDestr);
         Expect(destructurer == '{' ? '}' : ']');
+        surrogateName->setSpanEnd(_prevTokEnd);
         valDestr->setExpression(surrogateName);
         return surrogateName;
     };
@@ -1841,17 +1830,16 @@ SwitchStatement* SQParser::parseSwitchStatement()
 
         Expr *cond = Expression(SQE_RVALUE);
         Expect(':');
-        SourceLoc caseBodyStart = _lex.currentPos();
+        SourceLoc caseBodyStart = _lex.tokenStart();
 
         checkBraceIndentationStyle();
-        Statement *caseBody = parseStatements(caseBodyStart);
-        switchStmt->addCases(cond, caseBody);
+        switchStmt->addCases(cond, parseStatements(caseBodyStart));
     }
 
     if(_token == TK_DEFAULT) {
         Consume(TK_DEFAULT);
         Expect(':');
-        SourceLoc defaultBodyStart = _lex.currentPos();
+        SourceLoc defaultBodyStart = _lex.tokenStart();
 
         checkBraceIndentationStyle();
         switchStmt->addDefault(parseStatements(defaultBodyStart));
@@ -1912,9 +1900,9 @@ LiteralExpr* SQParser::ExpectScalar()
 }
 
 
-ConstDecl* SQParser::parseConstFunctionExprStmt(bool global, SourceLoc globalStart)
+ConstDecl* SQParser::parseConstFunctionExprStmt(bool global, SourceLoc declStart)
 {
-    SourceLoc start = globalStart.isValid() ? globalStart : _lex.tokenStart();
+    SourceLoc funcStart = _lex.tokenStart();
 
     assert(_token == TK_FUNCTION);
     Lex();
@@ -1922,13 +1910,13 @@ ConstDecl* SQParser::parseConstFunctionExprStmt(bool global, SourceLoc globalSta
     FuncAttrFlagsType attr = ParseFunctionAttributes();
     Id *funcName = (Id *)Expect(TK_IDENTIFIER);
     Expect('(');
-    FunctionExpr *f = CreateFunction(start, funcName, false);
+    FunctionExpr *f = CreateFunction(funcStart, funcName, false);
     f->setPure(attr & FATTR_PURE);
     f->setNodiscard(attr & FATTR_NODISCARD);
 
     // Wrap function in const inline operator
-    Expr *constFunc = newNode<UnExpr>(TO_INLINE_CONST, start, f);
-    ConstDecl *d = newNode<ConstDecl>(start, funcName->name(), constFunc, global); //-V522
+    Expr *constFunc = newNode<UnExpr>(TO_INLINE_CONST, funcStart, f);
+    ConstDecl *d = newNode<ConstDecl>(declStart, funcName->name(), constFunc, global); //-V522
     return d;
 }
 
@@ -1939,7 +1927,7 @@ ConstDecl* SQParser::parseConstStatement(bool global, SourceLoc globalStart)
     Lex();
 
     if (_token == TK_FUNCTION) {
-        return parseConstFunctionExprStmt(global, globalStart);
+        return parseConstFunctionExprStmt(global, start);
     }
 
     Id *id = (Id *)Expect(TK_IDENTIFIER);
@@ -2043,7 +2031,7 @@ TryStatement* SQParser::parseTryCatchStatement()
         tryStmt->addCatch(type, exid, body);
     } while (_token == TK_CATCH);
 
-    tryStmt->finalize(_lex.currentPos());
+    tryStmt->finalize(_prevTokEnd);
     return tryStmt;
 }
 
@@ -2120,11 +2108,7 @@ ClassExpr* SQParser::ClassExp(SourceLoc classStart, Expr *key)
 {
     NestingChecker nc(this);
     Expr *baseExpr = NULL;
-    if(_token == TK_EXTENDS) {
-        Lex();
-        baseExpr = Expression(SQE_RVALUE);
-    }
-    else if (_token == '(') {
+    if (_token == '(') {
       Lex();
       baseExpr = Expression(SQE_RVALUE);
       Expect(')');
@@ -2243,7 +2227,6 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
         }
         else {
             if (_token == '{' || _token == '[') {
-                SourceSpan argSpan = _lex.tokenSpan();
                 SourceLoc keywordStart = _lex.tokenStart();
                 SQInteger destructurer = _token;
                 constexpr int maxLen = 16;
@@ -2258,7 +2241,9 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
                 parseDestructuringFields(destrDecl);
 
                 Expect(destructurer == '{' ? '}' : ']');
-                f->addParameter(argSpan, surrogateName->name(), nullptr);
+                surrogateName->setSpanEnd(_prevTokEnd);
+                destrDecl->setSpanEnd(_prevTokEnd);
+                f->addParameter(surrogateName->sourceSpan(), surrogateName->name(), nullptr);
                 ParamDecl *p = params.back();
                 p->setDestructuring(destrDecl);
                 p->setTypeMask(destructurer == '{' ? (_RT_TABLE | _RT_INSTANCE | _RT_CLASS) : (_RT_ARRAY));
@@ -2420,10 +2405,8 @@ ImportStmt* SQParser::parseImportStatement()
         importStmt->aliasCol = aliasCol;
     }
 
-    if (importStmt) {
-        // Set end position to current position (after the last parsed token)
-        importStmt->setSpanEnd(_lex.tokenStart());
-    }
+    if (importStmt)
+        importStmt->setSpanEnd(_prevTokEnd);
 
     return importStmt;
 }

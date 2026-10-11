@@ -30,11 +30,11 @@ bool net_init_early(ecs::EntityManager &mgr)
   G_ASSERT(is_main_thread());
   G_ASSERT(&mgr == g_entity_mgr);
 
-  net::INetDriver *drv = dedicated::create_listen_net_driver();
+  net::INetDriver *drv = dedicated::create_listen_net_driver(nullptr, dedicated::get_listen_max_connections());
   if (const char *listen = (!dedicated::is_dedicated() && DAGOR_DBGLEVEL > 0) ? dgs_get_argv("listen") : NULL)
   {
     uint16_t port = 0;
-    drv = net::create_net_driver_listen(listen, NET_MAX_PLAYERS, &port);
+    drv = net::create_net_driver_listen(listen, dedicated::get_listen_max_connections(), &port);
     if (drv)
     {
       register_listen_server_msg_handler();
@@ -99,7 +99,7 @@ bool net_init_late_client(net::ConnectParams &&connect_params, ecs::EntityManage
           DAG_FATAL("incorrect replay!");
       }
     }
-    if (is_dummy_time())
+    if (is_default_time())
       reset_time_mgr(!net ? create_server_time() : create_client_time());
     return true;
   }
@@ -118,7 +118,7 @@ void net_init_late_server(ecs::EntityManager &mgr)
   mgr.broadcastEventImmediate(EventQueryReplayPlayback{&hasReplayPlayback});
   if ((net && !net->isServer()) || hasReplayPlayback)
   {
-    G_ASSERT(!is_dummy_time());
+    G_ASSERT(!is_default_time());
     return;
   }
   if (net_context)
@@ -147,5 +147,5 @@ void net_init_late_server(ecs::EntityManager &mgr)
     reset_time_mgr(create_accum_time());
     mgr.broadcastEventImmediate(OnNetInitServer{});
   }
-  G_ASSERT(!is_dummy_time());
+  G_ASSERT(!is_default_time());
 }

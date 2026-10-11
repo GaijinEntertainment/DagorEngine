@@ -363,7 +363,7 @@ void close_states()
 
 ID3D11RasterizerState *RasterizerState::getStateObject()
 {
-  int depthBiasInt = (int)(depthBias / MINIMUM_REPRESENTABLE_D16);
+  int depthBiasInt = (int)(double(depthBias) / MINIMUM_REPRESENTABLE_D16);
   Key k = makeKey(depthBiasInt);
   drv3d_generic::COMProxyPtr<ID3D11RasterizerState> *proxy = rasterizer_state_cache.find(k);
   if (proxy != NULL)
@@ -750,8 +750,7 @@ bool TextureFetchState::Resources::flush(unsigned shader_stage, bool force, ID3D
   G_ASSERT(view_range_out.maxUsed < MAX_RESOURCES);
   if (state_range_out.maxUsed < 0)
     state_range_out.firstUsed = 0;
-  G_ASSERT(state_range_out.maxUsed < MAX_CS_SAMPLERS && state_range_out.maxUsed < MAX_PS_SAMPLERS &&
-           state_range_out.maxUsed < MAX_VS_SAMPLERS);
+  G_ASSERT(state_range_out.maxUsed < MAX_CS_SAMPLERS);
   modifiedMask = samplersModifiedMask = 0;
   // Reset modifications at the end of the flush because one texture can be set twice
   // or more to the different samplers
@@ -865,6 +864,7 @@ void TextureFetchState::flush_cs(bool force, bool async)
   const uint32_t stage = async ? (uint32_t)STAGE_CS_ASYNC_STATE : (uint32_t)STAGE_CS;
   UAV &stageUavState = uavState[stage];
 
+  ResAutoLock resLock;
   if (stageUavState.uavModifiedMask)
   {
     int first, count;
@@ -879,7 +879,6 @@ void TextureFetchState::flush_cs(bool force, bool async)
     stageUavState.uavModifiedMask = 0;
   }
 
-  ResAutoLock resLock;
   Resources &stageResources = resources[stage];
   SlotRange viewRange, samplerRange;
   ID3D11ShaderResourceView *views[MAX_RESOURCES];

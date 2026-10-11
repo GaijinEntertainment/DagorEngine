@@ -135,9 +135,8 @@ public:
   const char *geomObjectGetShaderName(const GeomObject &go, int idx) const override;
   ShaderMesh *geomObjectGetShaderMesh(const GeomObject &go, int idx) const override;
 
-  bool geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const override;
-  bool geomObjectReloadRayTracer(GeomObject &go) const override;
-  StaticSceneRayTracer *geomObjectGetRayTracer(GeomObject &go) const override;
+  bool geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &unnormalized_dir, real &maxt, Point3 *norm) const override;
+  bool geomObjectReloadCollision(GeomObject &go) const override;
 
   // StaticGeometryNode
   StaticGeometryNode *newStaticGeometryNode(IMemAlloc *alloc) override;
@@ -362,9 +361,6 @@ public:
 class EcScene : public IDagorScene
 {
 public:
-  // FastRtDump
-  int fastRtDumpTraceRay(FastRtDump &frt, int custom, const Point3 &p, const Point3 &dir, real &t, int &out_pmid) const override;
-
   // StaticSceneBuilder::StdTonemapper
   StaticSceneBuilder::StdTonemapper *newStdTonemapper(IMemAlloc *alloc) const override;
   StaticSceneBuilder::StdTonemapper *newStdTonemapper(const StaticSceneBuilder::StdTonemapper &from, IMemAlloc *alloc) const override;

@@ -193,7 +193,7 @@ of different objects.
 However, objects can be moved, rotated, or scaled in selected groups. When the
 script runs, it automatically updates all parameters inside user custom
 properties for all selected objects. If the script is not run during editing,
-parameters will automatically update when you press the **Export CMP** button.
+parameters will automatically update when you click the **Export CMP** button.
 Alternatively, run the script and select an object to update its parameters
 automatically.
 

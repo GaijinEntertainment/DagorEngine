@@ -65,7 +65,4 @@ public:
   BMMRES OpenOutput(BitmapInfo *bi, Bitmap *map) override;
   BMMRES Write(int frame) override;
   int Close(int flag) override;
-
-
-  BOOL Control(HWND, UINT, WPARAM, LPARAM);
 };

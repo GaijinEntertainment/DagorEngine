@@ -37,7 +37,7 @@ daslang ../../../utils/daspkg/main.das -- --root . build
 
 ## Packages used
 
-- **daspkg-example-c** — Pure C module using `daScriptC.h` (fast math functions)
-- **daspkg-example-cpp** — C++ module using `ManagedStructureAnnotation` (Counter type)
+- **daspkg-example-c** - Pure C module using `daScriptC.h` (fast math functions)
+- **daspkg-example-cpp** - C++ module using `ManagedStructureAnnotation` (Counter type)
 
 Both packages live under `../packages/` and are installed as local dependencies.

@@ -237,10 +237,28 @@ struct ObjectAnnotation final : das::ManagedStructureAnnotation<ecs::Object, fal
     else
       return context.code->makeNode<SimNodeAtObject<ecs::Object>>(at, rNode, idxNode, ofs);
   }
+  // the jit cannot call a SimNode: the same iterator and lookup as the nodes above, as C entry points
+  static void jit_each(das::Sequence *out, void *obj, das::Context *context, das::LineInfoArg *at)
+  {
+    using Iter = DasObjectIterator<ecs::Object>;
+    char *iter = context->allocateIterator(sizeof(Iter), "ecs::Object iterator", at);
+    new (iter) Iter((ecs::Object *)obj, at);
+    out->iter = (das::Iterator *)iter;
+  }
+  void *jitGetEach() const override { return (void *)&jit_each; }
+
+  static char *jit_at_string(void *obj, char *key, das::Context *, das::LineInfoArg *)
+  {
+    auto *pValue = (ecs::Object *)obj;
+    auto it = pValue->find_as(ECS_HASH_SLOW(key ? key : ""));
+    return it != pValue->end() ? (char *)&it->second : nullptr;
+  }
+  void *jitGetAt(das::Type indexType) const override { return indexType == das::Type::tString ? (void *)&jit_at_string : nullptr; }
+
   virtual bool isIndexable(const das::TypeDeclPtr &indexType) const override { return indexType->isSimpleType(das::Type::tString); }
   virtual das::TypeDeclPtr makeIndexType(das::ExpressionPtr rv, das::ExpressionPtr) const override
   {
-    auto ret = new das::TypeDecl(das::Type::tPointer);
+    auto ret = new das::TypeDecl(das::Type::tPointer, das::cppBindingLineInfo());
     ret->firstType = new das::TypeDecl(*atType);
     ret->firstType->constant = rv->type->isConst();
     return ret;
@@ -286,8 +304,8 @@ struct ObjectAnnotation final : das::ManagedStructureAnnotation<ecs::Object, fal
     memset(&tab, 0, sizeof(tab));
     if (!ati)
     {
-      auto dimType = new das::TypeDecl(das::Type::tTable);
-      dimType->firstType = new das::TypeDecl(das::Type::tString);
+      auto dimType = new das::TypeDecl(das::Type::tTable, das::cppBindingLineInfo());
+      dimType->firstType = new das::TypeDecl(das::Type::tString, das::cppBindingLineInfo());
       dimType->secondType = atType;
       ati = helpA.makeTypeInfo(nullptr, dimType);
     }
@@ -399,6 +417,34 @@ struct ArrayAnnotation final : das::ManagedStructureAnnotation<ecs::Array, false
     else
       return context.code->makeNode<SimNodeAtArray<ecs::Array>>(at, rNode, idxNode, ofs);
   }
+  static void jit_each(das::Sequence *out, void *arr, das::Context *context, das::LineInfoArg *at)
+  {
+    using Iter = DasArrayIterator<ecs::Array>;
+    char *iter = context->allocateIterator(sizeof(Iter), "ecs::Array iterator", at);
+    new (iter) Iter((ecs::Array *)arr, at);
+    out->iter = (das::Iterator *)iter;
+  }
+  void *jitGetEach() const override { return (void *)&jit_each; }
+
+  template <typename IndexType>
+  static char *jit_at(void *arr, IndexType index, das::Context *context, das::LineInfoArg *at)
+  {
+    auto *pValue = (ecs::Array *)arr;
+    uint32_t idx = uint32_t(index);
+    if (idx >= pValue->size())
+      context->throw_error_at(at, "Array index %d out of range %d", int(idx), int(pValue->size()));
+    return (char *)&(*pValue)[idx];
+  }
+  void *jitGetAt(das::Type indexType) const override
+  {
+    switch (indexType)
+    {
+      case das::Type::tInt: return (void *)&jit_at<int32_t>;
+      case das::Type::tUInt: return (void *)&jit_at<uint32_t>;
+      default: return nullptr;
+    }
+  }
+
   virtual bool isIndexable(const das::TypeDeclPtr &indexType) const override { return indexType->isIndex(); }
   virtual das::TypeDeclPtr makeIndexType(das::ExpressionPtr, das::ExpressionPtr) const override { return new das::TypeDecl(*vecType); }
   template <class Array>
@@ -530,66 +576,6 @@ struct ChildComponentAnnotation final : das::ManagedStructureAnnotation<ecs::Chi
 };
 
 
-// The jit lowers `.[]` only for arrays, tables and vectors; an ecs container is a handle, so it
-// needs an op with a native address to call. These are jitOnly, so interpreted and C++ AOT builds
-// keep resolving the index through the annotation.
-struct EcsIndexArgFn : das::defaultTempFn
-{
-  EcsIndexArgFn() : das::defaultTempFn() {}
-  bool operator()(das::Function *fn)
-  {
-    das::defaultTempFn::operator()(fn);
-    if (!fn->arguments.empty())
-      fn->arguments[0]->type->explicitConst = true;
-    fn->builtIn = true;
-    fn->generated = true;
-    fn->jitOnly = true;
-    return true;
-  }
-};
-
-static ecs::ChildComponent *ecs_object_at(ecs::Object &obj, const char *key, das::Context *, das::LineInfoArg *)
-{
-  auto it = obj.find_as(ECS_HASH_SLOW(key ? key : ""));
-  return it != obj.end() ? &it->second : nullptr;
-}
-
-static const ecs::ChildComponent *ecs_object_at_const(const ecs::Object &obj, const char *key, das::Context *, das::LineInfoArg *)
-{
-  auto it = obj.find_as(ECS_HASH_SLOW(key ? key : ""));
-  return it != obj.end() ? &it->second : nullptr;
-}
-
-static ecs::ChildComponent &ecs_array_at(ecs::Array &arr, int idx, das::Context *context, das::LineInfoArg *at)
-{
-  if (uint32_t(idx) >= arr.size())
-    context->throw_error_at(at, "Array index %d out of range %d", idx, arr.size());
-  return arr[idx];
-}
-
-static const ecs::ChildComponent &ecs_array_at_const(const ecs::Array &arr, int idx, das::Context *context, das::LineInfoArg *at)
-{
-  if (uint32_t(idx) >= arr.size())
-    context->throw_error_at(at, "Array index %d out of range %d", idx, arr.size());
-  return arr[idx];
-}
-
-static void registerEcsAtFunctions(das::Module &mod, das::ModuleLibrary &lib)
-{
-  das::addExtern<DAS_BIND_FUN(ecs_object_at), das::SimNode_ExtFuncCall, EcsIndexArgFn>(mod, lib, ".[]",
-    das::SideEffects::modifyArgument, "bind_dascript::ecs_object_at")
-    ->args({"obj", "key", "context", "at"});
-  das::addExtern<DAS_BIND_FUN(ecs_object_at_const), das::SimNode_ExtFuncCall, EcsIndexArgFn>(mod, lib, ".[]", das::SideEffects::none,
-    "bind_dascript::ecs_object_at_const")
-    ->args({"obj", "key", "context", "at"});
-  das::addExtern<DAS_BIND_FUN(ecs_array_at), das::SimNode_ExtFuncCallRef, EcsIndexArgFn>(mod, lib, ".[]",
-    das::SideEffects::modifyArgument, "bind_dascript::ecs_array_at")
-    ->args({"arr", "index", "context", "at"});
-  das::addExtern<DAS_BIND_FUN(ecs_array_at_const), das::SimNode_ExtFuncCallRef, EcsIndexArgFn>(mod, lib, ".[]", das::SideEffects::none,
-    "bind_dascript::ecs_array_at_const")
-    ->args({"arr", "index", "context", "at"});
-}
-
 void ECS::addContainerAnnotations(das::ModuleLibrary &lib)
 {
   addAnnotation(new ChildComponentAnnotation(lib));
@@ -601,7 +587,6 @@ void ECS::addContainerAnnotations(das::ModuleLibrary &lib)
   addAnnotation(new SharedArrayAnnotation(lib));
   addAnnotation(new SharedObjectAnnotation(lib));
 
-  registerEcsAtFunctions(*this, lib);
 
   das::addUsing<ecs::ChildComponent>(*this, lib, " ::ecs::ChildComponent");
 

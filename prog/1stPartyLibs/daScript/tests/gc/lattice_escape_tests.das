@@ -133,7 +133,7 @@ def test_escaping_control_grows(t : T?) {       // control: escaping allocations
     let grew = heap_bytes_allocated() - before
     t |> equal(s, 3 * ((N - 1) * N / 2))
     t |> equal(length(g_list), N)
-    t |> success(grew >= uint64(N) * (typeinfo sizeof(type<Node>)))
+    t |> success(grew >= uint64(N) * uint64(typeinfo sizeof(type<Node>)))
 }
 
 [test]
@@ -153,7 +153,7 @@ def test_param_alias_no_double_free(t : T?) {   // [NEW] param-alias result is n
 // captured into a GLOBAL lambda -> escapes via the global -> must NOT be freed
 def capture_into_global_lambda(i : int) {
     var p = new Node(x = i, y = i * 2)
-    g_lam <- @() : int { return p.x + p.y }
+    g_lam <- @() : int { return p.x + p.y }   // nolint:PERF030 - dropping the old lambda into the GC is the escape path under test
 }
 
 // captured into a LOCAL lambda, invoked and deleted in the same scope
@@ -271,7 +271,7 @@ def test_block_escape_grows(t : T?) {           // escape from inside a block st
     }
     let grew = heap_bytes_allocated() - before
     t |> equal(length(g_list), N)
-    t |> success(grew >= uint64(N) * (typeinfo sizeof(type<Node>)))
+    t |> success(grew >= uint64(N) * uint64(typeinfo sizeof(type<Node>)))
 }
 
 // ===== Adversarial: try to fool the analysis (aliasing, reassignment, conditional escape,
@@ -326,10 +326,8 @@ def use_ret_param(i : int) : int {
 def unsafe_addr_local(i : int) : int {
     var p = new Node(x = i, y = i * 2)
     var r = p.x + p.y
-    unsafe {
-        let pp = addr(p)               // taking the address marks the function unsafe -> excluded
-        if (pp == null) { r = -1 }     // never taken; consumes pp without a dead store
-    }
+    let pp = unsafe(addr(p))     // taking the address marks the function unsafe -> excluded
+    if (pp == null) { r = -1 }   // never taken; consumes pp without a dead store
     return r
 }
 
@@ -343,7 +341,7 @@ def test_alias_chain_escape_sound(t : T?) {
     var ok = true
     for (n in g_list) { if (n.y != n.x * 2) { ok = false } }
     t |> success(ok, "3-hop aliased objects survived intact")
-    t |> success(grew >= uint64(N) * (typeinfo sizeof(type<Node>)))
+    t |> success(grew >= uint64(N) * uint64(typeinfo sizeof(type<Node>)))
 }
 
 [test]
@@ -397,7 +395,7 @@ def test_unsafe_local_not_freed(t : T?) {
 def capture_alias_into_global(i : int) {
     var p = new Node(x = i, y = i * 2)
     var q = p
-    g_lam <- @() : int { return q.x + q.y }
+    g_lam <- @() : int { return q.x + q.y } // nolint:PERF030 - the escape path IS the tested shape
 }
 
 // a block aliases a fresh local and leaks the alias to a global from inside the block
@@ -413,7 +411,7 @@ def block_aliases_escape(i : int) {
 def lambda_in_block(i : int) {
     var p = new Node(x = i, y = i * 2)
     run() {
-        g_lam <- @() : int { return p.x }
+        g_lam <- @() : int { return p.x }   // nolint:PERF030 - dropping the old lambda into the GC is the escape path under test
     }
 }
 
@@ -437,7 +435,7 @@ def test_block_aliases_escape_grows(t : T?) {
     var ok = true
     for (n in g_list) { if (n.y != n.x * 2) { ok = false } }
     t |> success(ok, "block-aliased escaped objects intact")
-    t |> success(grew >= uint64(N) * (typeinfo sizeof(type<Node>)))
+    t |> success(grew >= uint64(N) * uint64(typeinfo sizeof(type<Node>)))
 }
 
 [test]

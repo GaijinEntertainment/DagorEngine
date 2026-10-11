@@ -172,6 +172,17 @@ namespace das
 
     void Program::normalizeOptionTypes () {
         NormalizeOptionTypes::run(this);
+        // the pass rewrote option types in place - Module::generics is keyed by the mangled
+        // name the generic was filed under, so re-file them or every lookup by name misses
+        auto oldGenerics = das::move(thisModule->generics);
+        thisModule->genericsByName.clear();
+        oldGenerics.foreach([&](FunctionPtr fn){
+            if ( !thisModule->addGeneric(fn, true) ) {
+                fn->module = thisModule.get();  // addGeneric leaves it null when the insert fails
+                error("duplicate generic after option-type normalization\n", fn->getMangledName(), "",
+                    fn->at, CompilationError::already_declared_function);
+            }
+        });
     }
 
     void Program::fixupAnnotations() {

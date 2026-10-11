@@ -1,7 +1,6 @@
 options gen2
 require daslib/linq
 require dastest/testing_boost public
-require math
 
 require daslib/linq
 
@@ -51,7 +50,7 @@ def test_empty(t : T?) {
     t |> run("basic empty") @(t : T?) {
         var query = empty(type<int>)
         var found = false
-        for (it in query) {
+        for (_it in query) {
             found = true
         }
         t |> success(!found)
@@ -59,7 +58,7 @@ def test_empty(t : T?) {
     t |> run("complex empty") @(t : T?) {
         var qcomplex = empty(type<ComplexType>)
         var found_complex = false
-        for (it in qcomplex) {
+        for (_it in qcomplex) {
             found_complex = true
         }
         t |> success(!found_complex)

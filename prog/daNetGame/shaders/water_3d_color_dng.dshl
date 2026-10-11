@@ -11,7 +11,12 @@ include "water_3d_color.dshl"
 include "camera_in_camera.dshl"
 
 assume use_water_fresnel_reflections = yes;
+
+int chop_water_enabled = 0;
+interval chop_water_enabled : no<1, yes;
 assume chop_water_enabled = no;
+
+texture perlin_noise;
 
 float water_refraction_base_mip = 1;
 float angle_to_roughness_scale = 0.1;
@@ -500,6 +505,7 @@ macro USE_SELECT_WATER_3D_DEFERRED_COLOR()
 if (water_tech == wt)
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+  WATER_3D_COMMON_PS()
   USE_WATER_3D_DEFERRED_COLOR()
   hlsl(ps)
   {

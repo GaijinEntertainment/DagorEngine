@@ -37,7 +37,6 @@ class RegexReader : AstReaderMacro {
         }
     }
     def override visit(prog : ProgramPtr; mod : Module?; expr : ExprReader?) : ExpressionPtr {
-        // parse optional flags: pattern~flags
         var pattern = "{expr.sequence}"
         var ci = false
         var da = false
@@ -68,7 +67,6 @@ class RegexReader : AstReaderMacro {
             macro_error(prog, expr.at, "regular expression did not compile {pattern}")
             return null
         }
-        // TODO: turn into AOT?
         var re_data = convert_to_expression(regex, expr.at)
         delete regex
         var creg = new ExprCall(at = expr.at, name := "regex::regex_compile")

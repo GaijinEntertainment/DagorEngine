@@ -218,8 +218,12 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
     visible_tiles_start_offset@u1 = dagdp_heightmap__visible_tiles_start_offset;
 
     grass_color_tex@smp2d = grass_color_tex;
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     blue_noise_tex@tex2d = blue_noise_tex;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+  hlsl(cs) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
   hlsl(cs) {
     #define blue_noise_tex_samplerstate global_linear_wrap_sampler

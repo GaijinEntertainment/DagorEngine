@@ -3,6 +3,7 @@ Location      = prog/gameLibs/jsonUtils ;
 TargetType    = lib ;
 Target        = gameLibs/jsonUtils.lib ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 

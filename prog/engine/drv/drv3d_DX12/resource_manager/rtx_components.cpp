@@ -51,7 +51,7 @@ RaytraceAccelerationStructurePoolProvider::AccelerationStructurePoolResult drv3d
     D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE, nullptr, COM_ARGS(&newPool->poolResource)));
   if (FAILED(errorCode))
   {
-    return unexpected_memory_allocation_error(errorCode);
+    return dag::Unexpected{makeResourceCreationError(errorCode, info.sizeInBytes, ResourceHeapProperties{})};
   }
 
   if (info.debugName) // info.debugName is not unique across pools, so the serial stays part of the D3D12 name.

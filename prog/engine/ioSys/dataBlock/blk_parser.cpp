@@ -138,7 +138,7 @@ public:
   bool skipWhite(bool allow_crlf = true, bool track_newline_after_param = false, bool parse_comments = true);
   bool getIdent(TempString &);
   bool getValue(TempString &);
-  bool parse(DataBlock &, bool isTop);
+  bool parse(DataBlock &, int depth);
 
 private:
   DataBlockParser &operator=(const DataBlockParser &) = delete;
@@ -952,7 +952,7 @@ int DataBlock::addParam(const char *name, int type, const char *value, const cha
   return at;
 }
 
-bool DataBlockParser::parse(DataBlock &blk, bool isTop)
+bool DataBlockParser::parse(DataBlock &blk, int depth)
 {
   blkRef = &blk;
   TempString name;
@@ -966,14 +966,14 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
 
     if (endOfText())
     {
-      if (!isTop)
+      if (depth > 0)
         SYNTAX_ERROR("unexpected EOF");
       break;
     }
 
     if (*curp == '}')
     {
-      if (isTop)
+      if (depth == 0)
         SYNTAX_ERROR("unexpected '}' in top block");
       ++curp;
       if (DAGOR_UNLIKELY(DataBlock::parseCommentsAsParams))
@@ -998,6 +998,8 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
     if (*curp == '{')
     {
       ++curp;
+      if (depth >= dblk::MAX_BLOCK_DEPTH)
+        SYNTAX_ERROR("blocks nesting depth exceeds maximum value");
       DataBlock *nb = NULL;
       if (DAGOR_UNLIKELY(DataBlock::parseCommentsAsParams))
       {
@@ -1117,7 +1119,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
 
       if (nb)
       {
-        if (!parse(*nb, false))
+        if (!parse(*nb, depth + 1))
           return false;
       }
       else
@@ -1126,7 +1128,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
         b.shared->setBlkRobustLoad(blk.shared->blkRobustLoad());
         if (const char *fn = blk.shared->getSrc())
           b.shared->setSrc(fn);
-        if (!parse(b, false))
+        if (!parse(b, depth + 1))
           return false;
       }
       blkRef = &blk;
@@ -1578,7 +1580,7 @@ static bool parse_from_text(DataBlock &blk, Tab<char> &text, const char *filenam
     memcpy(text.data(), "   ", 3);
 
   DataBlockParser parser(text, filename, robust_load, forbid_includes, fnotify);
-  return parser.parse(blk, true);
+  return parser.parse(blk, 0);
 }
 
 
@@ -1747,17 +1749,11 @@ bool DataBlock::loadFromStream(IGenLoad &crd, const char *fname, DataBlock::IFil
     {
       unsigned csz = 0;
       crd.read(&csz, 3);
-      ZstdLoadCB zcrd(crd, csz, nullptr, zstdtmp);
-      if (!shared->blkRobustLoad())
+      const int64_t targetSize = crd.getTargetDataSize();
+      if (csz && (targetSize < 0 || csz <= targetSize - crd.tell()))
       {
-        G_VERIFY(zcrd.readIntP<1>() == dblk::BBF_full_binary_in_stream);
-        valid = loadFromBinDump(zcrd, nullptr);
-      }
-      else
-      {
-        // In robust mode, allow parser to stop early on bad data without tripping
-        // zstd wrapper invariant asserts in its destructor.
-        FINALLY([&zcrd] { zcrd.ceaseReading(); }); // RAII wrapper for exception safety
+        ZstdLoadCB zcrd(crd, csz, nullptr, zstdtmp);
+        FINALLY([&zcrd] { zcrd.termDecoder(); }); // ceaseReading() seeks, which can throw here
         valid = zcrd.readIntP<1>() == dblk::BBF_full_binary_in_stream && loadFromBinDump(zcrd, nullptr);
       }
     }

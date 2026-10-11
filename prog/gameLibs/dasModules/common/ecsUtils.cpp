@@ -220,7 +220,10 @@ public:
       "bind_dascript::component_to_blk");
     das::addExtern<DAS_BIND_FUN(component_to_blk_param)>(*this, lib, "component_to_blk_param", das::SideEffects::modifyArgument,
       "bind_dascript::component_to_blk_param");
-
+    das::addExtern<DAS_BIND_FUN(component_to_blk_param_ex)>(*this, lib, "component_to_blk_param", das::SideEffects::modifyArgument,
+      "bind_dascript::component_to_blk_param_ex");
+    das::addExtern<DAS_BIND_FUN(ecs::is_component_blk_serializable)>(*this, lib, "is_component_blk_serializable",
+      das::SideEffects::none, "ecs::is_component_blk_serializable");
     das::addExtern<DAS_BIND_FUN(find_component)>(*this, lib, "find_component", das::SideEffects::accessExternal,
       "bind_dascript::find_component");
 

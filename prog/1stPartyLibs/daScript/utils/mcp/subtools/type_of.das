@@ -20,10 +20,11 @@ def run_type_of(file : string; line_str, col_str, no_opt_str, project : string) 
     if (!empty(proj_err)) return make_tool_result(proj_err, true)
     let line = to_int(line_str)
     let col = to_int(col_str)
-    if (line <= 0 || col <= 0) return make_tool_result("Invalid line or column (must be >= 1)", true)
+    let col0 = col - 1
+    if (line <= 0 || col0 < 0) return make_tool_result("Invalid line or column (must be >= 1)", true)
     let no_opt = no_opt_str == "true"
     return compile_program(file, true, no_opt, project) $(program; _issues) {
-        var hits <- find_at_cursor(program, file, line, col)
+        var hits <- find_at_cursor(program, file, line, col0, true, source_line(file, line))
         if (empty(hits)) return "No expression found at {file}:{line}:{col}"
         return build_string() $(var w) {
             for (hit in hits) {
@@ -31,10 +32,11 @@ def run_type_of(file : string; line_str, col_str, no_opt_str, project : string) 
                 if (!empty(hit.name)) {
                     write(w, "({hit.name})")
                 }
-                if (hit.expr != null && hit.expr._type != null) {
-                    write(w, " : {describe(hit.expr._type)}")
+                let hit_type = hit.variable != null ? hit.variable._type : hit.type_decl != null ? unsafe(reinterpret<TypeDecl?>(hit.type_decl)) : hit.expr != null ? hit.expr._type : null
+                if (hit_type != null) {
+                    write(w, " : {describe(hit_type)}")
                     // add extra detail for struct/enum types
-                    let td = hit.expr._type
+                    let td = hit_type
                     if (td.structType != null) {
                         let st = td.structType
                         let st_file = lineinfo_file(st.at)

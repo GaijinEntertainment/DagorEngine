@@ -5,7 +5,7 @@
 #include <debug/dag_debug.h>
 using namespace HumanInput;
 
-IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool)
+IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool, bool)
 {
   HidJoystickClassDriver *cd = new (inimem) HidJoystickClassDriver;
   if (!cd->init())

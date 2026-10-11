@@ -20,6 +20,8 @@ void ValueShaker::setup(float fadeKoeff_, float amp_)
 
 Point3 ValueShaker::getNextValue(float dt)
 {
+  if (dt <= 0.f)
+    return value;
   if (dt < 0.02f)
   {
     vel = approach(vel, Point3(0, 0, 0), dt, fadeKoeff) + Point3(gsrnd(), gsrnd(), gsrnd()) * dt * amp;

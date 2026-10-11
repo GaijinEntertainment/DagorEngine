@@ -525,34 +525,32 @@ void GraphEditor::processRequest(RequestInfo *params)
     if (params->params[2] && !strcmp(clientId.str(), params->params[2]))
     {
       const char *postContent = (const char *)params->read_POST_content();
-      G_ASSERT(postContent != NULL);
-      if (postContent)
+      if (!postContent)
+        return html_response_raw(params->conn, "error: graph is not saved, request data is lost");
+      String gid(tmpmem);
+      extractGraphId(postContent, gid);
+      if (gid.length() == 0 || currentGraphId.length() == 0 || !strcmp(gid.str(), currentGraphId.str()))
       {
-        String gid(tmpmem);
-        extractGraphId(postContent, gid);
-        if (gid.length() == 0 || currentGraphId.length() == 0 || !strcmp(gid.str(), currentGraphId.str()))
+        if (currentGraphId.length() == 0)
+          currentGraphId = gid;
+        receivedGraphJson.setStr(postContent);
+        if (char *pos = strstr(receivedGraphJson, "/*__INESSENTIAL_CHANGE*/"))
         {
-          if (currentGraphId.length() == 0)
-            currentGraphId = gid;
-          receivedGraphJson.setStr(postContent);
-          if (char *pos = strstr(receivedGraphJson, "/*__INESSENTIAL_CHANGE*/"))
+          inessentionalGraphChange = true;
+          pos += 2;
+          while (*pos != '*')
           {
-            inessentionalGraphChange = true;
-            pos += 2;
-            while (*pos != '*')
-            {
-              *pos = '-';
-              pos++;
-            }
+            *pos = '-';
+            pos++;
           }
-          else
-            inessentionalGraphChange = false;
-
-          graphJsonToSend = receivedGraphJson;
-          receivedGraphJsonChanged = true;
         }
-        tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
+        else
+          inessentionalGraphChange = false;
+
+        graphJsonToSend = receivedGraphJson;
+        receivedGraphJsonChanged = true;
       }
+      tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
     }
     html_response_raw(params->conn, "");
   }
@@ -561,13 +559,11 @@ void GraphEditor::processRequest(RequestInfo *params)
     if (params->params[2] && !strcmp(clientId.str(), params->params[2]))
     {
       const char *postContent = (const char *)params->read_POST_content();
-      G_ASSERT(postContent != NULL);
-      if (postContent)
-      {
-        receivedCompileJson.setStr(postContent);
-        receivedCompileJsonChanged = true;
-        tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
-      }
+      if (!postContent)
+        return html_response_raw(params->conn, "");
+      receivedCompileJson.setStr(postContent);
+      receivedCompileJsonChanged = true;
+      tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
     }
     html_response_raw(params->conn, "");
   }
@@ -579,12 +575,10 @@ void GraphEditor::processRequest(RequestInfo *params)
       const char *typeName = params->params[6];
       const char *creationInfo = params->params[8];
       const char *emptyGraph = (const char *)params->read_POST_content();
-      G_ASSERT(emptyGraph != NULL);
-      if (emptyGraph)
-      {
-        if (onNewGraphCallback)
-          onNewGraphCallback(descName, typeName, creationInfo, emptyGraph);
-      }
+      if (!emptyGraph)
+        return html_response_raw(params->conn, "");
+      if (onNewGraphCallback)
+        onNewGraphCallback(descName, typeName, creationInfo, emptyGraph);
 
       tmpmem->free((void *)emptyGraph); // read_POST_content() uses tmpmem to allocate this
     }
@@ -596,42 +590,37 @@ void GraphEditor::processRequest(RequestInfo *params)
     {
       const char *graphName = params->params[4];
       const char *postContent = (const char *)params->read_POST_content();
-      G_ASSERT(postContent != NULL);
-      if (postContent)
+      if (!postContent)
+        return html_response_raw(params->conn, "");
+      if (saveDir.empty())
+        sendCommand("error: saveDir is not inited");
+      else
       {
-        // String receivedSubgraph(tmpmem);
-        // receivedSubgraph.setStr(postContent);
-
-        if (saveDir.empty())
-          sendCommand("error: saveDir is not inited");
+        String path(128, "%s/%s.json", saveDir.str(), graphName);
+        if (dd_file_exists(path.str()))
+        {
+          String err(128, "error: graph '%s' already exists", graphName);
+          sendCommand(err.str());
+        }
         else
         {
-          String path(128, "%s/%s.json", saveDir.str(), graphName);
-          if (dd_file_exists(path.str()))
+          if (writeStringToFile(path.str(), postContent))
           {
-            String err(128, "error: graph '%s' already exists", graphName);
-            sendCommand(err.str());
+            debug("created graph %s", path.str());
+            if (onNeedReloadGraphsCallback)
+              onNeedReloadGraphsCallback();
+
+            sendCommand("replace_with_subgraph");
           }
           else
           {
-            if (writeStringToFile(path.str(), postContent))
-            {
-              debug("created graph %s", path.str());
-              if (onNeedReloadGraphsCallback)
-                onNeedReloadGraphsCallback();
-
-              sendCommand("replace_with_subgraph");
-            }
-            else
-            {
-              String err(128, "error: cannot write file '%s'", path.str());
-              sendCommand(err.str());
-            }
+            String err(128, "error: cannot write file '%s'", path.str());
+            sendCommand(err.str());
           }
         }
-
-        tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
       }
+
+      tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
     }
     html_response_raw(params->conn, "");
   }
@@ -675,27 +664,25 @@ void GraphEditor::processRequest(RequestInfo *params)
       else
       {
         const char *postContent = (const char *)params->read_POST_content();
-        G_ASSERT(postContent != NULL);
-        if (postContent)
-        {
-          String tmpName(128, "%s.tmp", fileName);
-          tmpName.replaceAll("SAVE-DIR", saveDir.str());
-          if (strstr(tmpName.str(), "ROOT: ") == tmpName.str())
-            tmpName = rootGraphFileName;
+        if (!postContent)
+          return html_response_raw(params->conn, "");
+        String tmpName(128, "%s.tmp", fileName);
+        tmpName.replaceAll("SAVE-DIR", saveDir.str());
+        if (strstr(tmpName.str(), "ROOT: ") == tmpName.str())
+          tmpName = rootGraphFileName;
 
-          if (strstr(tmpName.str(), "INCL: ") == tmpName.str())
-            tmpName = getFullIncludeFileName(tmpName);
+        if (strstr(tmpName.str(), "INCL: ") == tmpName.str())
+          tmpName = getFullIncludeFileName(tmpName);
 
-          bool ok = writeStringToFile(tmpName.str(), postContent);
-          if (!ok)
-            html_response_raw(params->conn, "error: cannot write file");
-          else if (rename(tmpName.str(), fileName) != 0)
-            html_response_raw(params->conn, "error: cannot rename file");
-          else
-            html_response_raw(params->conn, "");
+        bool ok = writeStringToFile(tmpName.str(), postContent);
+        if (!ok)
+          html_response_raw(params->conn, "error: cannot write file");
+        else if (rename(tmpName.str(), fileName) != 0)
+          html_response_raw(params->conn, "error: cannot rename file");
+        else
+          html_response_raw(params->conn, "");
 
-          tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
-        }
+        tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
       }
     }
     else
@@ -741,48 +728,44 @@ void GraphEditor::processRequest(RequestInfo *params)
     if (params->params[2] && !strcmp(clientId.str(), params->params[2]))
     {
       const char *postContent = (const char *)params->read_POST_content();
-      G_ASSERT(postContent != NULL);
-      if (postContent)
+      String s(tmpmem);
+      s.setStr(postContent);
+      Tab<String> fileNames;
+      for (int i = 0; i < s.length(); i++)
       {
-        String s(tmpmem);
-        s.setStr(postContent);
-        Tab<String> fileNames;
-        for (int i = 0; i < s.length(); i++)
-        {
-          char *delim = strchr(&s[i], '%');
-          int nextPos = delim ? int(delim - &s[i]) : s.length();
-          s[nextPos] = 0;
-          fileNames.push_back(String(&s[i]));
-          i = nextPos;
-        }
+        char *delim = strchr(&s[i], '%');
+        int nextPos = delim ? int(delim - &s[i]) : s.length();
+        s[nextPos] = 0;
+        fileNames.push_back(String(&s[i]));
+        i = nextPos;
+      }
 
-        clear_and_shrink(s);
+      clear_and_shrink(s);
 
-        for (int i = 0; i < fileNames.size(); i++)
+      for (int i = 0; i < fileNames.size(); i++)
+      {
+        fileNames[i].replaceAll("SAVE-DIR", saveDir.str());
+        const char *fileName = fileNames[i].str();
+        if (fileName[0] != 0 || strstr(fileName, "..") != NULL || strstr(fileName, ":") == fileName + 1)
         {
-          fileNames[i].replaceAll("SAVE-DIR", saveDir.str());
-          const char *fileName = fileNames[i].str();
-          if (fileName[0] != 0 || strstr(fileName, "..") != NULL || strstr(fileName, ":") == fileName + 1)
+          if (strstr(fileName, "ROOT: ") == fileName)
+            fileName = rootGraphFileName.str();
+
+          if (strstr(fileName, "INCL: ") == fileName)
+            fileName = getFullIncludeFileName(fileName);
+
+          // TODO: return errors
+          String file = readFileToString(fileName);
+          if (file.length() > 2)
           {
-            if (strstr(fileName, "ROOT: ") == fileName)
-              fileName = rootGraphFileName.str();
-
-            if (strstr(fileName, "INCL: ") == fileName)
-              fileName = getFullIncludeFileName(fileName);
-
-            // TODO: return errors
-            String file = readFileToString(fileName);
-            if (file.length() > 2)
-            {
-              s.aprintf(128, (i == fileNames.size() - 1) ? "%s" : "%s,", file);
-            }
+            s.aprintf(128, (i == fileNames.size() - 1) ? "%s" : "%s,", file);
           }
         }
-
-        html_response_raw(params->conn, s.str());
-        tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
-        return;                            // ok
       }
+
+      html_response_raw(params->conn, s.str());
+      tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
+      return;                            // ok
     }
 
     html_response_raw(params->conn, "");

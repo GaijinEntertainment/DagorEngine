@@ -48,7 +48,7 @@ def test_large_int_hit_miss(t : T?) {
     var expected <- [for (i in range(40)); i]
     check_int_keys(t, tab, expected)
     delete expected
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -82,7 +82,7 @@ def test_large_int_erase_tombstone(t : T?) {
         t |> equal(tab?[i] ?? -1, want)
     }
     t |> equal(length(tab), 40)
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -98,13 +98,13 @@ def test_large_int_grow_rehash(t : T?) {
         t |> equal(tab?[i] ?? -1, i * 2)
     }
     t |> equal(tab?[300] ?? -1, -1)
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
 def test_large_int_churn(t : T?) {
     // insert/erase churn builds tombstones -> same-capacity rehash on the control-byte path.
-    var tab : table<int; int>    // nolint:STYLE027  churn under test
+    var tab : table<int; int>    // churn under test
     let lastRound = 5
     for (round in range(lastRound + 1)) {
         for (i in range(50)) {
@@ -124,7 +124,7 @@ def test_large_int_churn(t : T?) {
             t |> equal(tab?[i] ?? -1, lastRound * 1000 + i)
         }
     }
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -148,7 +148,7 @@ def test_large_string(t : T?) {
     t |> equal(tab?[dkey(1000)] ?? -1, 7000)
     t |> equal(tab?[dkey(13)] ?? -1, -1)
     t |> equal(tab?[dkey(0)] ?? -1, 0)
-    unsafe { delete tab; }
+    delete tab
 }
 
 struct LargeVal {
@@ -176,7 +176,7 @@ def test_large_struct_value(t : T?) {
     }
     t |> equal(key_exists(tab, 10), false)
     t |> equal(length(tab), 38)
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -193,7 +193,7 @@ def test_promote_packed_to_large(t : T?) {
     for (i in range(9)) {
         t |> equal(tab?[i] ?? -1, i * 100)
     }
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -220,5 +220,5 @@ def test_keys_iter_packed_no_overread(t : T?) {
         n2++
     }
     t |> equal(n2, 0)
-    unsafe { delete tab; }
+    delete tab
 }

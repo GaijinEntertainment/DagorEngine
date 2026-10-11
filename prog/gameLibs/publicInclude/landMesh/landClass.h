@@ -6,6 +6,7 @@
 
 #include <3d/dag_texMgr.h>
 #include <math/integer/dag_IPoint4.h>
+#include "landDetile.h"
 
 class Sbuffer;
 
@@ -64,6 +65,7 @@ struct LandClassDetailTextures
 
   IPoint4 physmatIds;
   Point4 finalColorMul;
+  LandDetile detile; // the tile's de-tiling; landDetile.h is the CPU twin of the shader map
 
   enum
   {
@@ -87,6 +89,7 @@ struct LandClassDetailTextures
     tile = 1;
     weighMapMulOffset = {-1, -1, -1, -1};
     weightMapNoiseScale = 0;
+    detile = LandDetile();
     grassMaskTexId = colormapId = BAD_TEXTUREID; // normalMapId =
     detailsCB = 0;
     clear_and_shrink(lcDetailParamsVS);

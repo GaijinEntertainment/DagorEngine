@@ -42,6 +42,7 @@ class IGenJoystickClassDrv;
 
 // joystick force feedback effects
 struct JoyFfCreateParams;
+struct TriggerEffectParam;
 class IGenJoyFfEffect;
 class IJoyFfCondition;
 class IJoyFfConstForce;

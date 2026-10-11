@@ -79,6 +79,10 @@ struct AnalogStickAction
   float x, y;
   bool bActive, bActivePrev;
   bool bEnabled;
+  //! absolute_mouse only: stick deflection of the gamepad and joystick bindings this tick, brought to the unit circle,
+  //! after the inversion and the max buttons, before the binding dead zone, non-linearity, axis snap and scale; each
+  //! component is clamped to -1..+1 (lets a game shape the stick itself)
+  float gpadX, gpadY;
 };
 
 
@@ -409,8 +413,8 @@ void kbd_btn_event_occurs(int64_t t_usec, int btn_id, bool pressed);
 void mouse_btn_event_occurs(int64_t t_usec, int btn_id, bool pressed);
 //! notify dainput on mouse wheel event (wheel up/down)
 void mouse_wheel_event_occurs(int64_t t_usec, int wheel_inc);
-//! notify dainput on mouse move event
-void mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int scr_x, int scr_y);
+//! notify dainput on mouse move event; an injected move (another device driving the pointer) does not count as mouse use
+void mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int scr_x, int scr_y, bool injected = false);
 //! notify dainput on touch event (we need only touch begin event for switch control type)
 void touch_event_occurs(int64_t t_usec);
 //! notify dainput on gamepad event

@@ -301,11 +301,6 @@ void BlobMultiStorage::updateBlobOffsets()
   }
 
   int blobCount = getBlobCount();
-  if (blobCount < 0)
-  {
-    mode = EMBM_INVALID_DATA;
-    return;
-  }
 
   if (!blobCount)
     return;

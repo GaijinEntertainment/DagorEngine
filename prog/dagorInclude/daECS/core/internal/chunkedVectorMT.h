@@ -59,7 +59,7 @@ struct ChunkedVectorSingleThreaded
   {
     const char *curStack = top.data.get() + top.stackAt;
     const uint32_t currentlyUsed = (const char *)at - curStack;
-    G_FAST_ASSERT(at + step > end && end == getStackEnd() && at >= getStack() && at <= end && curStack <= (const char *)at);
+    G_FAST_ASSERT(end - at < step && end == getStackEnd() && at >= getStack() && at <= end && curStack <= (const char *)at);
     const uint32_t nextSize = (eastl::max(top.size << 1, uint32_t(top.size + sizeof(Type) * step)) + page_mask) & ~page_mask;
 
     Chunk nextTop;

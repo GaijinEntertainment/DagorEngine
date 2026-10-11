@@ -22,7 +22,11 @@ CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const r
 void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::CollisionInfo &coll_info)
 {
   if (!coll_info.handle)
+  {
+    if (coll_info.bushBehaviour && !(resultCallback.processBushBehaviour && resultCallback.processTreeBehaviour))
+      addNonDestrBushCheck(coll_info);
     return;
+  }
 
   if (coll_info.treeBehaviour)
   {
@@ -47,12 +51,34 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
   userInfo.tm = normalizedTm;
   userInfo.bushBehaviour = coll_info.bushBehaviour;
   userInfo.treeBehaviour = coll_info.treeBehaviour;
-  if (coll_info.isDestr && shouldProvideCollisionInfo)
+  if (shouldProvideCollisionInfo)
   {
-    CachedCollisionObjectInfo *objInfo = rendinstdestr::get_or_add_cached_collision_object(coll_info.desc, atTime, coll_info);
-    if (restoreImpulse)
-      objInfo->thresImpulse = objInfo->originalThreshold;
-    userInfo.objInfoData = objInfo;
+    if (coll_info.isDestr)
+    {
+      CachedCollisionObjectInfo *objInfo = rendinstdestr::get_or_add_cached_collision_object(coll_info.desc, atTime, coll_info);
+      if (restoreImpulse)
+        objInfo->thresImpulse = objInfo->originalThreshold;
+      userInfo.objInfoData = objInfo;
+    }
+    else if (coll_info.bushBehaviour && !(resultCallback.processBushBehaviour && resultCallback.processTreeBehaviour))
+    {
+      using namespace rendinstdestr;
+      const TreeDestr &treeDestr = get_tree_destr();
+      Point3 boxWidth = coll_info.localBBox.width();
+      float destrImpulse;
+      if (coll_info.destrImpulse > 0.f)
+      {
+        float widthScale = length(coll_info.tm.getcol(0)) * length(coll_info.tm.getcol(2));
+        destrImpulse = coll_info.destrImpulse * widthScale;
+      }
+      else
+      {
+        const float height = boxWidth.y * coll_info.tm.getcol(1).y;
+        destrImpulse = treeDestr.impulseThresholdMult * sqr(max(height - treeDestr.heightThreshold, 1.f));
+      }
+      destrImpulse *= treeDestr.getRadiusToImpulse(boxWidth.x * 0.5f);
+      userInfo.objInfoData = get_or_add_cached_nondestr_bush_collision_object(coll_info.desc, destrImpulse, atTime);
+    }
   }
 
   userInfo.prevUserPtrB = cobj.body->getUserData();
@@ -116,6 +142,75 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
       objInfo->thresImpulse = objInfo->originalThreshold;
     userInfo.objInfoData = objInfo;
   }
+  userInfo.prevUserPtrB = obj.body->getUserData();
+  obj.body->setUserData((void *)&userInfo);
+  PhysWorld *physWorld = dacoll::get_phys_world();
+  physWorld->fetchSimRes(true);
+  physWorld->contactTestPair(objA.body, obj.body, resultCallback);
+
+#if DAGOR_DBGLEVEL > 0
+  if (physdbg::isInDebugMode(physWorld))
+  {
+    physdbg::renderOneBody(physWorld, obj.body, normalizedTm, physdbg::RenderFlag::BODIES);
+    physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
+  }
+#endif
+  obj.body->setUserData(userInfo.prevUserPtrB);
+}
+
+// Mirrors addTreeCheck's handle-independent capsule proxy, for a bush-flagged RI with no
+// registered collision resource: get_tree_collision()'s shared capsule is sized from whichever
+// tree hits it first, which can be far larger than a bush, so this uses its own shared capsule
+// and resizes it to the current bush bbox before every test. Uses NonDestrBushImpulseThresholdData, not
+// TreeRendinstImpulseThresholdData, so the RI is never popped via create_tree_rend_inst_destr.
+void WrapperRendInstCollisionImplCB::addNonDestrBushCheck(const rendinst::CollisionInfo &coll_info)
+{
+  using namespace rendinstdestr;
+
+  float ht = coll_info.localBBox[1].y;
+  float rad = fabsf(coll_info.localBBox[0].x);
+  if (!get_nondestr_bush_collision())
+  {
+    CollisionObject &bushColl = get_nondestr_bush_collision();
+    bushColl = dacoll::create_coll_obj_from_shape(PhysCapsuleCollision(rad, ht + rad * 2, 1 /*Y*/), NULL, /*kinematic*/ false,
+      /* add to world */ false, /* auto mask */ true);
+  }
+
+  if (!get_nondestr_bush_collision())
+    return;
+
+  TMatrix normalizedTm = coll_info.tm;
+  CollisionObject obj = processCollisionInstance(coll_info, get_nondestr_bush_collision(), normalizedTm);
+  if (!obj) // PhysBody alloc failed?
+    return;
+
+  RendinstCollisionUserInfo userInfo(coll_info.desc);
+  userInfo.bbox = coll_info.localBBox;
+  userInfo.immortal = coll_info.isImmortal;
+  userInfo.isTree = false;
+  userInfo.tm = normalizedTm;
+  userInfo.bushBehaviour = coll_info.bushBehaviour;
+  userInfo.treeBehaviour = coll_info.treeBehaviour;
+  if (shouldProvideCollisionInfo)
+  {
+    const TreeDestr &treeDestr = get_tree_destr();
+    Point3 boxWidth = coll_info.localBBox.width();
+    float destrImpulse;
+    if (coll_info.destrImpulse > 0.f)
+    {
+      float widthScale = length(coll_info.tm.getcol(0)) * length(coll_info.tm.getcol(2));
+      destrImpulse = coll_info.destrImpulse * widthScale;
+    }
+    else
+    {
+      const float height = boxWidth.y * coll_info.tm.getcol(1).y;
+      destrImpulse = treeDestr.impulseThresholdMult * sqr(max(height - treeDestr.heightThreshold, 1.f));
+    }
+    destrImpulse *= treeDestr.getRadiusToImpulse(boxWidth.x * 0.5f);
+    userInfo.objInfoData = get_or_add_cached_nondestr_bush_collision_object(coll_info.desc, destrImpulse, atTime);
+  }
+  dacoll::set_vert_capsule_shape_size(obj, rad, ht);
+  dacoll::set_collision_object_tm(obj, normalizedTm);
   userInfo.prevUserPtrB = obj.body->getUserData();
   obj.body->setUserData((void *)&userInfo);
   PhysWorld *physWorld = dacoll::get_phys_world();

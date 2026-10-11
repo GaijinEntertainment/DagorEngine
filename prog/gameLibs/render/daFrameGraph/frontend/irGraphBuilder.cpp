@@ -8,6 +8,7 @@
 #include <generic/dag_enumerate.h>
 #include <generic/dag_fixedVectorSet.h>
 #include <perfMon/dag_statDrv.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <EASTL/stack.h>
 #include <EASTL/heap.h>
 
@@ -49,7 +50,11 @@ void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, in
   }
   auto activation = get_activation_from_usage(desiredBehavior, firstUsage, type, is_int);
 
+  if (resourceUsageInfo.canBeUntracked)
+    updatedFlags = add_no_state_tracking(updatedFlags, type);
   desc.asBasicRes.cFlags = drop_unsupported_no_state_tracking(updatedFlags, type);
+  if (type == ResourceType::Buffer && resourceUsageInfo.historyZeroed && (desc.asBasicRes.cFlags & SBCF_NO_STATE_TRACKING) != 0u)
+    desc.asBasicRes.cFlags |= SBCF_BIND_UNORDERED;
   if (activation.has_value())
   {
     if (clear_stage == intermediate::ClearStage::RenderPass && *activation == ResourceActivationAction::CLEAR_AS_RTV_DSV)
@@ -99,18 +104,27 @@ void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, in
 ResourceDescription IrGraphBuilder::createInfoToResDesc(ResNameId id, const Texture2dCreateInfo &info,
   intermediate::ClearStage &clear_stage) const
 {
-  TextureResourceDescription desc{};
-
-  desc.cFlags = info.creationFlags;
-  desc.mipLevels = info.mipLevels;
-
   ResourceDescription result;
+  if (info.arrayLayers > 1)
+  {
+    ArrayTextureResourceDescription desc{};
+    desc.cFlags = info.creationFlags;
+    desc.mipLevels = info.mipLevels;
+    desc.arrayLayers = info.arrayLayers;
+    result = desc;
+  }
+  else
+  {
+    TextureResourceDescription desc{};
+    desc.cFlags = info.creationFlags;
+    desc.mipLevels = info.mipLevels;
+    result = desc;
+  }
+
   // NOTE: auto-resolution + auto-mips is a special case handled
   // right before resource scheduling.
   if (auto p = eastl::get_if<IPoint2>(&info.resolution))
-    result = set_tex_desc_resolution(desc, *p, info.mipLevels == AUTO_MIP_COUNT);
-  else
-    result = desc;
+    result = set_tex_desc_resolution(result, *p, info.mipLevels == AUTO_MIP_COUNT);
   fixupFlagsAndActivation(id, ResourceType::Texture, clear_stage, result);
   return result;
 }
@@ -174,10 +188,10 @@ IrGraphBuilder::Changes IrGraphBuilder::build(intermediate::Graph &graph, multip
     max(registry.knownNames.nameCount<NodeNameId>() * irExtents, old_mapping.mappedNodeIndexCount()) + INTERNAL_FAKE_NODES;
   const auto irResMaxCount = max(registry.knownNames.nameCount<ResNameId>() * irExtents, old_mapping.mappedResourceIndexCount());
   // TODO: we must prune rawGraph.nodes in future
-  // Double the capacity for gaps
-  result.irNodesChanged.reserve(2 * max(irNodeMaxCount, rawGraph.nodes.totalKeys()));
+  result.irNodesChanged.reserve(graph.nodes.totalKeys() + max(irNodeMaxCount, rawGraph.nodes.totalKeys()));
   result.irResourcesChanged.reserve(irResMaxCount);
   result.irResourceRequestsChanged.reserve(irResMaxCount);
+  result.irHistoryPairing.reserve(irResMaxCount);
 
   FRAMEMEM_REGION;
 
@@ -254,11 +268,11 @@ IrGraphBuilder::Changes IrGraphBuilder::build(intermediate::Graph &graph, multip
     const auto dstIdx = newDisplacement[DESTINATION_SENTINEL_NODE_ID_IN_RAW_GRAPH];
 
     IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> hasIncomingEdges(graph.nodes.totalKeys(), false);
-    for (auto [nodeId, node] : graph.nodes.enumerate())
+    for (const auto &node : graph.nodes.values())
       for (auto pred : node.predecessors)
         hasIncomingEdges[pred] = true;
 
-    for (auto [nodeId, node] : graph.nodes.enumerate())
+    for (auto nodeId : graph.nodes.keys())
       if (!hasIncomingEdges[nodeId] && nodeId != dstIdx)
         graph.nodes[dstIdx].predecessors.insert(nodeId);
 
@@ -277,7 +291,14 @@ IrGraphBuilder::Changes IrGraphBuilder::build(intermediate::Graph &graph, multip
   IrResourcesChanged &irResourcesChanged = result.irResourcesChanged;
   irResourcesChanged.resize(mapping.mappedResourceIndexCount(), false);
   graph.resources.reserve(mapping.mappedResourceIndexCount());
-  addResourcesToGraph(graph, mapping, old_mapping, resources_changed, resource_requests_changed, irResourcesChanged, extents);
+  using OldKey = eastl::pair<ResNameId, intermediate::MultiplexingIndex>;
+  IdIndexedMapping<intermediate::ResourceIndex, OldKey, framemem_allocator> oldKeys(graph.resources.totalKeys(),
+    OldKey{ResNameId::Invalid, intermediate::MultiplexingIndex::Invalid});
+  for (auto &&[idx, res] : graph.resources.enumerate())
+    oldKeys[idx] = OldKey{res.frontendResources.back(), res.multiplexingIndex};
+
+  addResourcesToGraph(graph, mapping, old_mapping, resources_changed, resource_requests_changed, nodes_changed, irResourcesChanged,
+    extents);
 
   // Fixup requests for resources that moved.
   for (auto [nodeIdx, node] : graph.nodes.enumerate())
@@ -306,6 +327,47 @@ IrGraphBuilder::Changes IrGraphBuilder::build(intermediate::Graph &graph, multip
   for (auto resIdx : irResourcesChanged.trueKeys())
     if (!graph.resources.isMapped(resIdx))
       irResourcesChanged.set(resIdx, false);
+
+  // Recall that we transform the initial graph into an IR one. ResNameIds
+  // correspond to string resource names as seen by the user, IR ResourceIndexes
+  // correspond to the resources as seen by the backend. The relation is N-to-N
+  // between those, generally speaking, as multiple names get merged into a
+  // single IR resource when renames are involved, and a single name might
+  // have multiple IR resources due to multiplexing.
+  //
+  // Note that the following situations are possible:
+  // Let A,B,... be intermediate::ResourceIndexes, X,Y,... be ResNameIds.
+  // Before the recompilation the IR<->frontend mapping was:
+  //   A -> {X, Y}
+  // The graph changed, and now it is:
+  //   A -> X
+  //   B -> Y
+  // (here, {X, Y} means that the user did create(X) and rename(X, Y))
+  // So intermediate resources kind of "split", in which case we can't
+  // really provide the history for the new A/X, as it was rewritten
+  // via a rename on the previous frame, but for the new B/Y we CAN provide
+  // the old A/X/Y's history, as renames work such that only the history for
+  // the last resource in the rename chain is available.
+  // Inverse is possible too, we could've had this mapping:
+  //   A -> X
+  //   B -> Y
+  // And then a kind of a "merge" might have happened, and so we get:
+  //   A -> {X, Y}
+  // In this case, we use the old B/Y's history for the new A/X/Y.
+  //
+  // Ah, and don't forget that multiplexing exists.
+  auto &historyPairing = result.irHistoryPairing;
+  historyPairing.assign(eastl::max<size_t>(mapping.mappedResourceIndexCount(), graph.resources.totalKeys()),
+    intermediate::RESOURCE_NOT_MAPPED);
+  for (auto &&[idx, res] : graph.resources.enumerate())
+  {
+    const auto lastName = res.frontendResources.back();
+    if (!old_mapping.wasResMapped(lastName, res.multiplexingIndex))
+      continue;
+    const auto oldIdx = old_mapping.mapRes(lastName, res.multiplexingIndex);
+    if (oldKeys.isMapped(oldIdx) && oldKeys[oldIdx] == OldKey{lastName, res.multiplexingIndex})
+      historyPairing[idx] = oldIdx;
+  }
 
   IrResourcesChanged &irResourceRequestsChanged = result.irResourceRequestsChanged;
   irResourceRequestsChanged.resize(graph.resources.totalKeys(), false);
@@ -450,15 +512,22 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uin
     return valid;
   };
 
+  bool canBeUntracked = true;
+  const auto checkUntrackable = [&canBeUntracked](const NodeData &node) {
+    if (node.hasCustomExecution && node.sideEffect != SideEffects::None)
+      canBeUntracked = false;
+  };
+
   bool hasReaders = false;
-  const auto processReaders = [this, resourceType, &firstUsage, &initial_flags, &hasReaders, &updateCreationFlagsFromUsageSafe](
-                                NodeNameId node_id, ResNameId unresolved_res_id) {
+  const auto processReaders = [this, resourceType, &firstUsage, &initial_flags, &hasReaders, &updateCreationFlagsFromUsageSafe,
+                                &checkUntrackable](NodeNameId node_id, ResNameId unresolved_res_id) {
     hasReaders = true;
     const auto &node = registry.nodes[node_id];
 
     const auto res = node.resourceRequests.find(unresolved_res_id);
     G_ASSERTF(res != node.resourceRequests.cend(), "daFG: Node %s does not contain resource %d", registry.knownNames.getName(node_id),
       registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)));
+    checkUntrackable(node);
     if (!updateCreationFlagsFromUsageSafe(initial_flags, res->second.usage, resourceType))
       logerr("daFG: Reader %s has incompatible creation flags for resource %s", registry.knownNames.getName(node_id),
         registry.knownNames.getName(unresolved_res_id));
@@ -468,13 +537,17 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uin
         registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)), registry.knownNames.getName(node_id));
   };
 
-  const auto processHistoryReaders = [this, resourceType, &firstUsage, &initial_flags, &updateCreationFlagsFromUsageSafe](
-                                       NodeNameId node_id, ResNameId unresolved_res_id) {
+  bool historyZeroed = false;
+  const auto processHistoryReaders = [this, resourceType, &firstUsage, &initial_flags, &updateCreationFlagsFromUsageSafe,
+                                       &checkUntrackable, &historyZeroed](NodeNameId node_id, ResNameId unresolved_res_id) {
     const auto &node = registry.nodes[node_id];
 
     const auto res = node.historyResourceReadRequests.find(unresolved_res_id);
     G_ASSERTF(res != node.historyResourceReadRequests.cend(), "daFG: Node %s does not contain resource %d",
       registry.knownNames.getName(node_id), registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)));
+    checkUntrackable(node);
+    if (registry.resources[nameResolver.resolve(unresolved_res_id)].history == History::ClearZeroOnFirstFrame)
+      historyZeroed = true;
     if (!updateCreationFlagsFromUsageSafe(initial_flags, res->second.usage, resourceType))
       logerr("daFG: History reader %s has incompatible creation flags for resource %s", registry.knownNames.getName(node_id),
         registry.knownNames.getName(unresolved_res_id));
@@ -487,9 +560,11 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uin
   bool hasModifiers = producerUsesInRenderPass;
   const auto processModifiers = [this, resourceType, &firstUsage, &initial_flags, &modifierType, &modifiersConflictReported,
                                   &firstModifiedResId, &isModifiedByRp, producerUsesInRenderPass, &hasModifiers,
-                                  &updateCreationFlagsFromUsageSafe, producerNodeId](NodeNameId node_id, ResNameId unresolved_res_id) {
+                                  &updateCreationFlagsFromUsageSafe, &checkUntrackable,
+                                  producerNodeId](NodeNameId node_id, ResNameId unresolved_res_id) {
     const auto &node = registry.nodes[node_id];
     const auto usage = node.resourceRequests.find(unresolved_res_id)->second.usage;
+    checkUntrackable(node);
     if (!updateCreationFlagsFromUsageSafe(initial_flags, usage, resourceType))
       logerr("daFG: Modifier %s has incompatible creation flags for resource %s", registry.knownNames.getName(node_id),
         registry.knownNames.getName(unresolved_res_id));
@@ -532,7 +607,8 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uin
 
   scanPhysicalResourceUsages(res_id, processReaders, processModifiers, processHistoryReaders);
 
-  return {firstUsage, initial_flags, {modifierType == ModifierType::RenderPass, hasReaders, hasModifiers}};
+  return {
+    firstUsage, initial_flags, {modifierType == ModifierType::RenderPass, hasReaders, hasModifiers, canBeUntracked, historyZeroed}};
 }
 
 
@@ -546,15 +622,25 @@ static void flagResourceChanged(intermediate::Graph &graph, IrGraphBuilder::IrRe
 
 void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping,
   const intermediate::Mapping &old_mapping, const ResourcesChanged &resources_changed,
-  const ResourcesChanged &resource_requests_changed, IrResourcesChanged &ir_resources_changed, multiplexing::Extents extents) const
+  const ResourcesChanged &resource_requests_changed, const NodesChanged &nodes_changed, IrResourcesChanged &ir_resources_changed,
+  multiplexing::Extents extents) const
 {
-  const auto declarationOrLifetimeChanged = [&](ResNameId res_id) {
-    return resources_changed[res_id] || resource_requests_changed[res_id];
-  };
-
   TIME_PROFILE(addResourcesToGraph);
 
   FRAMEMEM_VALIDATE;
+
+  IdIndexedFlags<ResNameId, framemem_allocator> requesterChanged(registry.knownNames.nameCount<ResNameId>(), false);
+  for (auto nodeId : nodes_changed.trueKeys())
+  {
+    for (const auto &[unresolvedResId, _] : registry.nodes[nodeId].resourceRequests)
+      requesterChanged.set(nameResolver.resolve(unresolvedResId), true);
+    for (const auto &[unresolvedResId, _] : registry.nodes[nodeId].historyResourceReadRequests)
+      requesterChanged.set(nameResolver.resolve(unresolvedResId), true);
+  }
+
+  const auto declarationOrLifetimeChanged = [&](ResNameId res_id) {
+    return resources_changed[res_id] || resource_requests_changed[res_id] || requesterChanged.test(res_id, false);
+  };
 
   if (multiplexing_extents_to_ir(extents) != old_mapping.multiplexingExtent())
   {
@@ -566,7 +652,7 @@ void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediat
 
   IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> stale(graph.resources.totalKeys(), false);
   size_t staleCount = 0;
-  for (auto [idx, res] : graph.resources.enumerate())
+  for (auto &&[idx, res] : graph.resources.enumerate())
     for (auto frontendRes : res.frontendResources)
       if (declarationOrLifetimeChanged(frontendRes) && old_mapping.wasResMapped(frontendRes, res.multiplexingIndex) &&
           graph.resources.isMapped(old_mapping.mapRes(frontendRes, res.multiplexingIndex)))
@@ -619,7 +705,7 @@ void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediat
     return idx;
   };
 
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
   {
     if (!nodeValid[nodeId])
       continue;
@@ -780,7 +866,7 @@ void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediat
   }
 
   // Fill in mappings for resources produced via renaming
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
   {
     if (!nodeValid[nodeId])
       continue;
@@ -839,6 +925,11 @@ void IrGraphBuilder::addResourcesToGraph(intermediate::Graph &graph, intermediat
 
       res.frontendResources.push_back(current);
     }
+
+    // Any name of the renaming chain that contains "debug" in any letter case
+    res.debugRelated = false;
+    for (const auto userResId : res.frontendResources)
+      res.debugRelated = res.debugRelated || dd_stristr(registry.knownNames.getName(userResId), "debug") != nullptr;
   }
 
   for (const auto &[idx, oldValue] : rebuiltResources)
@@ -914,7 +1005,7 @@ void IrGraphBuilder::addNodesToGraph(intermediate::Graph &graph, intermediate::M
 
   dag::Vector<NodeNameId, framemem_allocator> validNodes;
   validNodes.reserve(registry.nodes.size());
-  for (auto [nodeId, _] : registry.nodes.enumerate())
+  for (auto nodeId : registry.nodes.keys())
     if (nodeValid[nodeId])
       validNodes.emplace_back(nodeId);
 
@@ -1025,20 +1116,16 @@ void IrGraphBuilder::addRequestsToGraph(intermediate::Graph &graph, intermediate
       // those must spell out a layout and an access, which an UNKNOWN usage
       // does not provide. A request that declares no usage at all is fine, it
       // simply does not access the resource.
-      // Custom execution nodes may still request untracked resources: allowing
-      // them only in draw/dispatch nodes would leave too few use cases, so
-      // instead such a node must access the resource exactly as it declared.
       G_ASSERT_LOG(!req.usageDeclared || req.usage.type != Usage::UNKNOWN || !graph.resources[resIndex].isUntracked(),
         "daFG: Node '%s' declared an UNKNOWN usage for untracked resource '%s'. "
         "daFG cannot derive a barrier from it: declare the real usage, or drop "
         "the NO_STATE_TRACKING creation flag to get automatic synchronization.",
         registry.knownNames.getName(*irNode.frontendNode), registry.knownNames.getName(resId));
 
-      // TODO: handle the debug texture snapshot node, it trips this on untracked textures.
       G_ASSERT_LOG(!banUntrackedRequests || !graph.resources[resIndex].isUntracked(),
         "daFG: Node '%s' requested untracked resource '%s', but executes a custom callback. "
         "daFG cannot see what such a callback does, so it cannot synchronize untracked resources "
-        "for it. Use draw/dispatch requests instead, or drop the NO_STATE_TRACKING creation flag.",
+        "for it. Use draw/dispatch/copy requests instead, or drop the NO_STATE_TRACKING creation flag.",
         registry.knownNames.getName(*irNode.frontendNode), registry.knownNames.getName(resId));
 
       // Note that name resolution might have mapped several requests
@@ -1155,7 +1242,7 @@ void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const interme
 
   bool anyMissingExplicitDependencies = false;
 
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
   {
     if (!nodeValid[nodeId])
       continue;
@@ -1208,7 +1295,7 @@ void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const interme
   // flushed) before the consumer binds it. Build block id -> forBlock producers.
   {
     dag::VectorMap<RefinedBlockNameId, dag::RelocatableFixedVector<NodeNameId, 4>> forBlockProducers;
-    for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+    for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
     {
       if (!nodeValid[nodeId])
         continue;
@@ -1216,7 +1303,7 @@ void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const interme
         forBlockProducers[blockId].push_back(nodeId);
     }
 
-    for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+    for (const auto &[nodeId, nodeData] : registry.nodes.enumerate())
     {
       if (!nodeValid[nodeId])
         continue;
@@ -1323,7 +1410,7 @@ void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const interme
         nodeId != DESTINATION_SENTINEL_NODE_ID_IN_RAW_GRAPH)
       node.predecessors.insert(SOURCE_SENTINEL_NODE_ID_IN_RAW_GRAPH);
 
-  for (auto [idx, node] : graph.nodes.enumerate())
+  for (auto &&[idx, node] : graph.nodes.enumerate())
     if (oldPredecessors[idx] != node.predecessors)
       ir_nodes_changed[idx] = true;
 }
@@ -1343,7 +1430,7 @@ auto IrGraphBuilder::findSinkIrNodes(const intermediate::Mapping &mapping, eastl
     }
   };
 
-  for (auto [id, node] : registry.nodes.enumerate())
+  for (const auto &[id, node] : registry.nodes.enumerate())
     if (node.sideEffect == SideEffects::External)
       findIrNodes(id);
 
@@ -1370,7 +1457,7 @@ auto IrGraphBuilder::findSinkIrNodes(const intermediate::Mapping &mapping, eastl
 IrGraphBuilder::DisplacementFmem IrGraphBuilder::rawNodePreviousPositions(const intermediate::Mapping &old_raw_mapping) const
 {
   DisplacementFmem result(rawGraph.nodes.totalKeys(), intermediate::NODE_NOT_MAPPED);
-  for (auto [idx, node] : rawGraph.nodes.enumerate())
+  for (const auto &[idx, node] : rawGraph.nodes.enumerate())
   {
     auto prevIdx = idx;
     if (node.frontendNode)
@@ -1586,7 +1673,7 @@ eastl::pair<IrGraphBuilder::DisplacementFmem, IrGraphBuilder::EdgesToBreakFmem> 
   {
     dumpRawUserGraph();
 
-    for (auto [nodeId, time] : displacement.enumerate())
+    for (auto &&[nodeId, time] : displacement.enumerate())
       if (time == NOT_VISITED)
         logerr("daFG: Node '%s' is pruned. See above for full user graph dump.", frontendNodeName(graph.nodes[nodeId]));
   }
@@ -1801,7 +1888,7 @@ void IrGraphBuilder::setIrGraphDebugNames(intermediate::Graph &graph, const IrNo
   };
 
   graph.nodeNames.reserve(graph.nodes.totalKeys());
-  for (auto [nodeIdx, irNode] : graph.nodes.enumerate())
+  for (auto &&[nodeIdx, irNode] : graph.nodes.enumerate())
   {
     if (!ir_nodes_changed[nodeIdx])
       continue;
@@ -1816,7 +1903,7 @@ void IrGraphBuilder::setIrGraphDebugNames(intermediate::Graph &graph, const IrNo
   }
 
   graph.resourceNames.reserve(graph.resources.totalKeys());
-  for (auto [resIdx, irRes] : graph.resources.enumerate())
+  for (auto &&[resIdx, irRes] : graph.resources.enumerate())
   {
     if (!ir_resources_changed[resIdx])
       continue;

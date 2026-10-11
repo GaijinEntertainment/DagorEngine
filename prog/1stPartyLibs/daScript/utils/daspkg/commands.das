@@ -34,7 +34,7 @@ struct DaspkgArgs {
     @clarg_doc = "Project root (default: current directory)"
     root : string = "."
 
-    @clarg_doc = "Force reinstall"
+    @clarg_doc = "Force reinstall; also installs a package whose manifest declares other platforms only"
     force : bool
 
     @clarg_name = "global"
@@ -66,20 +66,76 @@ struct DaspkgArgs {
     out : string = "."
 
     @clarg_name = "paranoid"
-    @clarg_doc = "During `release`, tune with the paranoid budget (3x rounds, 1% noise gate)"
+    @clarg_doc = "Accepted for compatibility: the tuner runs one margin-decided protocol; this flag no longer changes the budget"
     paranoid : bool
 
     @clarg_name = "quick"
     @clarg_doc = "During `release`, accept a complete existing sidecar instead of re-minting — the ONLY mode that inherits"
     quick : bool
 
+    @clarg_name = "fat"
+    @clarg_doc = "During `release`, build a FAT exe for this CPU class (x86-avx2, x86-vnni512, arm-neon, ...): the plain code targets the class, every [tune] kernel ships one clone per class the library has a profile for, and the exe picks the clone from cpuid at startup. No mint and no shipped sidecar - the kernels come from the profiles, and a kernel with no profile entry for the class refuses the release"
+    fat : string = ""
+
     @clarg_name = "wasm"
-    @clarg_doc = "Target wasm64 (memory64): `build --wasm` builds the wasm64 runtime + module archives; `release wasm` ships compiled .wasm artifacts"
+    @clarg_doc = "Target wasm64 (memory64, lowered to a 32-bit memory at link so every browser runs it): `build --wasm` builds the wasm64 runtime + module archives; `release wasm` ships compiled .wasm artifacts"
     wasm : bool
 
     @clarg_name = "wasm-lib-dir"
     @clarg_doc = "Directory holding the wasm64 archives (liblibDaScript_runtime.a + liblibDasModule*.a); default <das_root>/web/output64/lib"
     wasm_lib_dir : string
+
+    @clarg_name = "commit"
+    @clarg_doc = "During `update-index`, commit the refreshed index straight to the index repo's main branch instead of opening a PR (needs push access)"
+    commit : bool
+
+    @clarg_name = "dry-run"
+    @clarg_doc = "During `update-index`, print the refreshed packages.json as a diff against the index and change nothing"
+    dry_run : bool
+}
+
+//! Exit code of an install refused because the manifest declares other platforms only; `index_sweep.cmake` reads the literal 3 as a skip, not a failure.
+let RC_UNSUPPORTED_PLATFORM = 3
+
+//! Refuse a package whose declared platforms leave out `platform`: `RC_UNSUPPORTED_PLATFORM`, or 1 for a name outside the vocabulary. An empty declaration passes, and `force` turns the refusal into a warning - the declaration is not a build probe.
+def platform_gate(pkg_name, platform : string; platforms : array<string>; force : bool) : int {
+    if (empty(platforms)) return 0
+    let bad = unknown_platforms_error("'{pkg_name}'", platforms)
+    if (!empty(bad)) {
+        to_log(LOG_ERROR, bad)
+        return 1
+    }
+    if (find_index(platforms, platform) >= 0) return 0
+    if (force) {
+        log("Warning: '{pkg_name}' declares {join(platforms, ", ")} only; installing on {platform} because of --force\n")
+        return 0
+    }
+    to_log(LOG_ERROR, "Error: '{pkg_name}' supports {join(platforms, ", ")} only; this is {platform} (--force installs it anyway)\n")
+    return RC_UNSUPPORTED_PLATFORM
+}
+
+//! `platform_gate` over the manifest in `pkg_dir`; a directory without one passes.
+def platform_gate(pkg_dir, pkg_name, platform : string; force : bool) : int {
+    let das_package = "{pkg_dir}/.das_package"
+    if (!fexist(das_package)) return 0
+    var meta : PackageMeta
+    if (!run_das_package_meta(das_package, meta)) return 0
+    return platform_gate(pkg_name, platform, meta.platforms, force)
+}
+
+// undo a failed install: drop the directory, then the lock entry it referred to (only if one
+// was there, so a first-time failure does not rewrite the lock file for nothing)
+def private rollback_partial_install(root, target, pkg_name : string; var lf : LockFile; is_global : bool) : void {
+    log("Install failed for '{pkg_name}' — removing partial install\n")
+    force_rmdir(target)
+    if (has_package(lf, pkg_name)) {
+        remove_package(lf, pkg_name)
+        if (is_global) {
+            write_global_lock_file(lf)
+        } else {
+            write_lock_file(root, lf)
+        }
+    }
 }
 
 // Apply parsed flags that flip module-level globals.  Called by main after
@@ -142,12 +198,12 @@ def cmd_list(root : string; json : bool = false; is_global : bool = false) {
     return 0
 }
 
-def install_local(root, pkg_name, source : string; var lf : LockFile; is_global : bool = false) {
+def install_local(root, pkg_name, source : string; var lf : LockFile; is_global : bool = false; force : bool = false) {
     var visiting : table<string; bool>
-    return install_local(root, pkg_name, source, lf, visiting, [is_global = is_global])
+    return install_local(root, pkg_name, source, lf, visiting, [is_global = is_global, force = force])
 }
 
-def install_local(root, pkg_name, source : string; var lf : LockFile; var visiting : table<string; bool>; is_global : bool = false; is_root : bool = true) {
+def install_local(root, pkg_name, source : string; var lf : LockFile; var visiting : table<string; bool>; is_global : bool = false; is_root : bool = true; force : bool = false) {
     let modules_dir = is_global ? "{get_das_root()}/modules" : "{root}/modules"
     let target = "{modules_dir}/{pkg_name}"
     // relative "./" or "../" paths are resolved against `root`, not the current working directory
@@ -159,6 +215,8 @@ def install_local(root, pkg_name, source : string; var lf : LockFile; var visiti
         to_log(LOG_ERROR, "Error: local path '{full_source}' does not exist\n")
         return 1
     }
+    let gate_rc = platform_gate(full_source, pkg_name, get_platform_name(), force)
+    if (gate_rc != 0) return gate_rc
 
     mkdir(modules_dir)
 
@@ -174,34 +232,15 @@ def install_local(root, pkg_name, source : string; var lf : LockFile; var visiti
     }
 
     // install dependencies before build (matches install_git ordering)
-    let dep_rc = install_dependencies(root, pkg_name, lf, visiting, is_global)
+    let dep_rc = install_dependencies(root, pkg_name, lf, visiting, is_global, force)
     if (dep_rc != 0) {
-        log("Install failed for '{pkg_name}' — removing partial install\n")
-        force_rmdir(target)
-        if (has_package(lf, pkg_name)) {
-            remove_package(lf, pkg_name)
-            if (is_global) {
-                write_global_lock_file(lf)
-            } else {
-                write_lock_file(root, lf)
-            }
-        }
+        rollback_partial_install(root, target, pkg_name, lf, is_global)
         return dep_rc
     }
 
     let build_rc = try_build_package(target, pkg_name, is_global)
     if (build_rc != 0) {
-        log("Install failed for '{pkg_name}' — removing partial install\n")
-        force_rmdir(target)
-        // drop any prior lock entry — the directory it referred to is gone
-        if (has_package(lf, pkg_name)) {
-            remove_package(lf, pkg_name)
-            if (is_global) {
-                write_global_lock_file(lf)
-            } else {
-                write_lock_file(root, lf)
-            }
-        }
+        rollback_partial_install(root, target, pkg_name, lf, is_global)
         return build_rc
     }
 
@@ -236,7 +275,7 @@ def resolve_dep_source(root, source : string) : string {
     return source
 }
 
-def install_dependencies(root, pkg_name : string; var lf : LockFile; var visiting : table<string; bool>; is_global : bool = false) { // nolint:STYLE038
+def install_dependencies(root, pkg_name : string; var lf : LockFile; var visiting : table<string; bool>; is_global : bool = false; force : bool = false) { // nolint:STYLE038
     // `visiting` is a STACK of pkgs currently in flight on the install chain, not
     // a "visited" set — we erase pkg_name before returning so a sibling dep
     // (diamond graph) sees it via has_package, not via the cycle path.
@@ -303,9 +342,9 @@ def install_dependencies(root, pkg_name : string; var lf : LockFile; var visitin
                 }
                 var drc = 0
                 if (is_local_path(dep_source)) {
-                    drc = install_local(root, dep_name, dep_source, lf, visiting, [is_global = is_global, is_root = false])
+                    drc = install_local(root, dep_name, dep_source, lf, visiting, [is_global = is_global, is_root = false, force = force])
                 } else {
-                    drc = install_git(root, dep_name, dep_source, "", lf, visiting, [is_root = false, is_global = is_global])
+                    drc = install_git(root, dep_name, dep_source, "", lf, visiting, [is_root = false, is_global = is_global, force = force])
                 }
                 if (drc != 0) {
                     rc = drc
@@ -360,12 +399,17 @@ def private git_clone(url, dir : string) : bool {
     return true
 }
 
-def install_git(root, pkg_name, source, version : string; var lf : LockFile; is_root : bool = true; is_global : bool = false; branch : string = "") {
-    var visiting : table<string; bool>
-    return install_git(root, pkg_name, source, version, lf, visiting, [is_root = is_root, is_global = is_global, branch = branch])
+def private log_rename_locked_hint() {
+    if (get_platform_name() != "windows") return
+    to_log(LOG_ERROR, "  hint: a running process is holding the package's .shared_module - close daslang/daslang-live and retry\n")
 }
 
-def install_git(root, pkg_name, source, version : string; var lf : LockFile; var visiting : table<string; bool>; is_root : bool = true; is_global : bool = false; branch : string = "") { // nolint:STYLE037,STYLE038 — the install ladder: clone/resolve/checkout/move/lock/deps/build arms are one sequential flow
+def install_git(root, pkg_name, source, version : string; var lf : LockFile; is_root : bool = true; is_global : bool = false; branch : string = ""; force : bool = false) {
+    var visiting : table<string; bool>
+    return install_git(root, pkg_name, source, version, lf, visiting, [is_root = is_root, is_global = is_global, branch = branch, force = force])
+}
+
+def install_git(root, pkg_name, source, version : string; var lf : LockFile; var visiting : table<string; bool>; is_root : bool = true; is_global : bool = false; branch : string = ""; force : bool = false) { // nolint:STYLE037,STYLE038 — the install ladder: clone/resolve/checkout/move/lock/deps/build arms are one sequential flow
     let modules_dir = is_global ? "{get_das_root()}/modules" : "{root}/modules"
     let tmp_dir = "{modules_dir}/.daspkg_tmp/{pkg_name}"
     let target_dir = "{modules_dir}/{pkg_name}"
@@ -475,6 +519,13 @@ def install_git(root, pkg_name, source, version : string; var lf : LockFile; var
         }
     }
 
+    // step 2b: the manifest's platform declaration, before anything lands in modules/
+    let gate_rc = platform_gate(tmp_dir, pkg_name, get_platform_name(), force)
+    if (gate_rc != 0) {
+        force_rmdir(tmp_dir)
+        return gate_rc
+    }
+
     // step 3: move to final location
     log_debug("moving {tmp_dir} -> {target_dir}")
     if (fexist(target_dir)) {
@@ -483,24 +534,15 @@ def install_git(root, pkg_name, source, version : string; var lf : LockFile; var
     }
     if (!rename(tmp_dir, target_dir)) {
         to_log(LOG_ERROR, "Error: failed to move {tmp_dir} to {target_dir}\n")
+        log_rename_locked_hint()
         return 1
     }
 
     // step 4: install dependencies
     log_debug("checking dependencies for '{pkg_name}'")
-    let dep_rc = install_dependencies(root, pkg_name, lf, visiting, is_global)
+    let dep_rc = install_dependencies(root, pkg_name, lf, visiting, is_global, force)
     if (dep_rc != 0) {
-        log("Install failed for '{pkg_name}' — removing partial install\n")
-        force_rmdir(target_dir)
-        // only touch the lock file if we'd actually be removing a prior entry
-        if (has_package(lf, pkg_name)) {
-            remove_package(lf, pkg_name)
-            if (is_global) {
-                write_global_lock_file(lf)
-            } else {
-                write_lock_file(root, lf)
-            }
-        }
+        rollback_partial_install(root, target_dir, pkg_name, lf, is_global)
         return dep_rc
     }
 
@@ -508,16 +550,7 @@ def install_git(root, pkg_name, source, version : string; var lf : LockFile; var
     log_debug("checking build for '{pkg_name}'")
     let build_rc = try_build_package(target_dir, pkg_name, is_global)
     if (build_rc != 0) {
-        log("Install failed for '{pkg_name}' — removing partial install\n")
-        force_rmdir(target_dir)
-        if (has_package(lf, pkg_name)) {
-            remove_package(lf, pkg_name)
-            if (is_global) {
-                write_global_lock_file(lf)
-            } else {
-                write_lock_file(root, lf)
-            }
-        }
+        rollback_partial_install(root, target_dir, pkg_name, lf, is_global)
         return build_rc
     }
 
@@ -583,7 +616,7 @@ def cmd_install(root, spec : string; force : bool; is_global : bool = false; ver
             return 0
         }
         if (is_local_path(source)) {
-            return install_local(root, pkg_name, source, glf, [is_global = true])
+            return install_local(root, pkg_name, source, glf, [is_global = true, force = force])
         } elif (is_index_name(source)) {
             let url = resolve_from_index(root, source)
             if (empty(url)) {
@@ -592,10 +625,10 @@ def cmd_install(root, spec : string; force : bool; is_global : bool = false; ver
             }
             log("Resolved '{source}' -> {url}\n")
             var visiting : table<string; bool>
-            return install_git(root, pkg_name, url, version, glf, visiting, [is_root = true, is_global = true, branch = branch])
+            return install_git(root, pkg_name, url, version, glf, visiting, [is_root = true, is_global = true, branch = branch, force = force])
         } else {
             var visiting : table<string; bool>
-            return install_git(root, pkg_name, source, version, glf, visiting, [is_root = true, is_global = true, branch = branch])
+            return install_git(root, pkg_name, source, version, glf, visiting, [is_root = true, is_global = true, branch = branch, force = force])
         }
     }
 
@@ -648,7 +681,7 @@ def cmd_install(root, spec : string; force : bool; is_global : bool = false; ver
     }
 
     if (is_local_path(source)) {
-        return install_local(root, pkg_name, source, lf)
+        return install_local(root, pkg_name, source, lf, [force = force])
     } elif (is_index_name(source)) {
         // resolve from index
         log("Installing {source} from {source}...\n")
@@ -659,10 +692,10 @@ def cmd_install(root, spec : string; force : bool; is_global : bool = false; ver
         }
         log("Resolved '{source}' -> {url}\n")
         var visiting : table<string; bool>
-        return install_git(root, pkg_name, url, version, lf, visiting, [is_root = true, branch = branch])
+        return install_git(root, pkg_name, url, version, lf, visiting, [is_root = true, branch = branch, force = force])
     } else {
         var visiting : table<string; bool>
-        return install_git(root, pkg_name, source, version, lf, visiting, [is_root = true, branch = branch])
+        return install_git(root, pkg_name, source, version, lf, visiting, [is_root = true, branch = branch, force = force])
     }
 }
 
@@ -751,7 +784,7 @@ def cmd_remove(root, name : string; is_global : bool = false) {
     return 0
 }
 
-def cmd_update(root, name : string; is_global : bool = false) { // nolint:STYLE037,STYLE038 — flat per-entry update arms (root/dep/local/global) mirror the lock schema
+def cmd_update(root, name : string; is_global : bool = false; force : bool = false) { // nolint:STYLE037,STYLE038 — flat per-entry update arms (root/dep/local/global) mirror the lock schema
     var lf : LockFile
     if (is_global) {
         if (!read_global_lock_file(lf)) {
@@ -810,12 +843,13 @@ def cmd_update(root, name : string; is_global : bool = false) { // nolint:STYLE0
         }
         if (!rename(pkg_dir, backup_dir)) {
             to_log(LOG_ERROR, "Error: failed to backup '{name}'\n")
+            log_rename_locked_hint()
             return 1
         }
     }
     remove_package(lf, name)
     var visiting : table<string; bool>
-    let install_rc = install_git(root, name, source, version, lf, visiting, [is_root = is_root, is_global = is_global])
+    let install_rc = install_git(root, name, source, version, lf, visiting, [is_root = is_root, is_global = is_global, force = force])
     // check if install succeeded
     if (!has_package(lf, name)) {
         log_debug("install failed — restoring from {backup_dir}")
@@ -856,7 +890,7 @@ def private resolve_latest(source : string; var res : ResolveResult) : bool {
     return ok
 }
 
-def cmd_upgrade(root, name : string; is_global : bool = false) {
+def cmd_upgrade(root, name : string; is_global : bool = false; force : bool = false) {
     var lf : LockFile
     if (is_global) {
         if (!read_global_lock_file(lf)) {
@@ -911,13 +945,13 @@ def cmd_upgrade(root, name : string; is_global : bool = false) {
     }
     remove_package(lf, name)
     var visiting : table<string; bool>
-    let install_rc = install_git(root, name, source, "", lf, visiting, [is_root = is_root, is_global = is_global])
+    let install_rc = install_git(root, name, source, "", lf, visiting, [is_root = is_root, is_global = is_global, force = force])
     // check if deps need upgrading
-    upgrade_dependencies(root, name, lf, is_global)
+    upgrade_dependencies(root, name, lf, is_global, force)
     return install_rc
 }
 
-def upgrade_dependencies(root, pkg_name : string; var lf : LockFile; is_global : bool = false) {
+def upgrade_dependencies(root, pkg_name : string; var lf : LockFile; is_global : bool = false; force : bool = false) {
     let modules_dir = is_global ? "{get_das_root()}/modules" : "{root}/modules"
     let pkg_dir = "{modules_dir}/{pkg_name}"
     let das_package = "{pkg_dir}/.das_package"
@@ -932,7 +966,7 @@ def upgrade_dependencies(root, pkg_name : string; var lf : LockFile; is_global :
             let dep_source = resolve_dep_source(root, d.source)
             if (empty(dep_source)) continue
             var visiting : table<string; bool>
-            let drc = install_git(root, dep_name, dep_source, "", lf, visiting, [is_root = false, is_global = is_global])
+            let drc = install_git(root, dep_name, dep_source, "", lf, visiting, [is_root = false, is_global = is_global, force = force])
             if (drc != 0) {
                 to_log(LOG_ERROR, "Error: failed to install new dependency '{dep_name}' (rc={drc})\n")
             }
@@ -944,12 +978,12 @@ def upgrade_dependencies(root, pkg_name : string; var lf : LockFile; is_global :
         let dep_version = dep_entry.tag
         if (!satisfies_constraint(dep_version, d.version_constraint)) {
             log("  Dependency '{dep_name}' @ {dep_version} does not satisfy {d.version_constraint} — upgrading...\n")
-            cmd_upgrade(root, dep_name, is_global)
+            cmd_upgrade(root, dep_name, is_global, force)
         }
     }
 }
 
-def cmd_upgrade_all(root : string; is_global : bool = false) {
+def cmd_upgrade_all(root : string; is_global : bool = false; force : bool = false) {
     var lf : LockFile
     if (is_global) {
         if (!read_global_lock_file(lf)) {
@@ -970,7 +1004,7 @@ def cmd_upgrade_all(root : string; is_global : bool = false) {
     }
     var rc = 0
     for (name in names) {
-        let drc = cmd_upgrade(root, name, is_global)
+        let drc = cmd_upgrade(root, name, is_global, force)
         if (drc != 0) {
             rc = drc
         }
@@ -978,7 +1012,7 @@ def cmd_upgrade_all(root : string; is_global : bool = false) {
     return rc
 }
 
-def cmd_update_all(root : string; is_global : bool = false) {
+def cmd_update_all(root : string; is_global : bool = false; force : bool = false) {
     var lf : LockFile
     if (is_global) {
         if (!read_global_lock_file(lf)) {
@@ -999,7 +1033,7 @@ def cmd_update_all(root : string; is_global : bool = false) {
     }
     var rc = 0
     for (name in names) {
-        let drc = cmd_update(root, name, is_global)
+        let drc = cmd_update(root, name, is_global, force)
         if (drc != 0) {
             rc = drc
         }
@@ -1061,7 +1095,8 @@ def cmd_build(root : string; is_global : bool = false) {
 // that `daspkg release wasm` links against, and consolidate them into <lib_dir>
 // (default <das_root>/web/output64/lib). Requires an activated emscripten SDK
 // (emcc + cmake on PATH); CI activates emsdk_env before invoking.
-def cmd_build_wasm(_root : string; lib_dir_override : string) : int { // nolint:STYLE038 — the wasm build recipe: flat tool-invocation steps, one per stage
+[arch(at="README.md#wasm-archive-staging")]
+def cmd_build_wasm(_root : string; lib_dir_override : string) : int {
     let das_root = get_das_root()
     let lib_dir = empty(lib_dir_override) ? "{das_root}/web/output64/lib" : lib_dir_override
     let build_dir = "{das_root}/web/build64"
@@ -1089,7 +1124,7 @@ def cmd_build_wasm(_root : string; lib_dir_override : string) : int { // nolint:
 
     // Build the wasm64 runtime + the module archives release wasm links against.
     log("build --wasm: building wasm64 archives...\n")
-    let targets = "libDaScript_runtime libDasModuleOpenGL libDasModuleGlfw libDasModuleStbImage libDasModuleAudio libDasModuleMinfft libDasModuleLiveHost libDasModuleClipboard"
+    let targets = "libDaScript_runtime libDasModuleOpenGL libDasModuleGlfw libDasModuleStbImage libDasModuleMeshOptimizer libDasModuleAudio libDasModuleMinfft libDasModuleLiveHost libDasModuleClipboard"
     var bld_out : string
     let bld_rc = run_cmd("cmake --build \"{build_dir}\" --target {targets}", bld_out)
     if (bld_rc != 0) {
@@ -1097,37 +1132,36 @@ def cmd_build_wasm(_root : string; lib_dir_override : string) : int { // nolint:
         return 1
     }
 
-    // Consolidate every produced archive into one canonical lib_dir so
-    // `release wasm` resolves them in one place. The web build splits outputs:
-    // the runtime lands in web/output64/lib (DAS_WEB_OUTPUT_DIR), the module
-    // archives in <das_root>/lib. Copying both into lib_dir also insulates the
-    // release inputs from a later desktop build that overwrites <das_root>/lib
-    // with native-ABI archives.
+    // The web build pins every archive - runtime and modules - into {out_dir}/lib
+    // (das_pin_wasm_archives in web/CMakeLists.txt); <das_root>/lib belongs to the
+    // desktop build and is never read here.
+    let copied = stage_wasm_archives("{out_dir}/lib", lib_dir)
+    if (copied < 0) return 1
+    if (copied == 0) {
+        to_log(LOG_ERROR, "build --wasm: build succeeded but no archives found under {out_dir}/lib\n")
+        return 1
+    }
+    log("build --wasm: {copied} archive(s) -> {lib_dir}\n")
+    return 0
+}
+
+//! Stages the runtime and module archives of `src_dir` into `lib_dir` and returns how many
+//! there are; the same directory counts without copying. -1 when one is not a wasm archive or
+//! a copy fails. Other archives beside them (freetype, the dasImgui bake) are left alone.
+def stage_wasm_archives(src_dir, lib_dir : string) : int {
     mkdir_rec(lib_dir)
     var copied = 0
-    var copy_failed = false
-    // Runtime archive (web/output64/lib via DAS_WEB_OUTPUT_DIR).
-    let rt_src = "{out_dir}/lib/liblibDaScript_runtime.a"
-    if (fexist(rt_src)) {
-        let rt_dst = path_join(lib_dir, "liblibDaScript_runtime.a")
-        if (get_full_file_name(rt_src) == get_full_file_name(rt_dst)) {
-            copied ++
-        } else {
-            var err : string
-            if (copy_file(rt_src, rt_dst, true, err)) {
-                copied ++
-                log("  staged liblibDaScript_runtime.a\n")
-            } else {
-                to_log(LOG_ERROR, "build --wasm: copy_file({rt_src} -> {rt_dst}) failed: {err}\n")
-                copy_failed = true
-            }
-        }
-    }
-    // Module archives (<das_root>/lib).
-    glob("{das_root}/lib", "**/liblibDasModule*.a") $(rel_path, is_dir) {
-        if (is_dir) return
+    var failed = false
+    glob(src_dir, "*.a") $(rel_path, is_dir) {
+        return if (is_dir)
         let base = base_name(rel_path)
-        let src = path_join("{das_root}/lib", rel_path)
+        return if (base != "liblibDaScript_runtime.a" && !starts_with(base, "liblibDasModule"))
+        let src = path_join(src_dir, rel_path)
+        if (!looks_like_wasm_archive(src)) {
+            to_log(LOG_ERROR, "build --wasm: {src} is not a wasm archive - the web build directory was configured for another target; delete it and rerun\n")
+            failed = true
+            return
+        }
         let dst = path_join(lib_dir, base)
         if (get_full_file_name(src) == get_full_file_name(dst)) {
             copied ++
@@ -1136,19 +1170,66 @@ def cmd_build_wasm(_root : string; lib_dir_override : string) : int { // nolint:
         var err : string
         if (!copy_file(src, dst, true, err)) {
             to_log(LOG_ERROR, "build --wasm: copy_file({src} -> {dst}) failed: {err}\n")
-            copy_failed = true
+            failed = true
             return
         }
         copied ++
         log("  staged {base}\n")
     }
-    if (copy_failed) return 1
-    if (copied == 0) {
-        to_log(LOG_ERROR, "build --wasm: build succeeded but no archives found under {build_dir}\n")
-        return 1
+    return failed ? -1 : copied
+}
+
+//! the 8-byte wasm module magic ("\0asm" + version 1) at `at`
+def private wasm_magic_at(data : array<uint8>#; at : int) : bool {
+    return (at + 8 <= length(data) && data[at] == 0x00u8 && data[at + 1] == 0x61u8 && data[at + 2] == 0x73u8 && data[at + 3] == 0x6du8
+        && data[at + 4] == 0x01u8 && data[at + 5] == 0x00u8 && data[at + 6] == 0x00u8 && data[at + 7] == 0x00u8)
+}
+
+//! the decimal field of an ar member header at `at`, `width` bytes, space-padded
+def private ar_field(data : array<uint8>#; at, width : int) : int {
+    var value = 0
+    for (i in range(at, at + width)) {
+        let c = int(data[i])
+        return value if (!is_number(c))
+        value = value * 10 + (c - '0')
     }
-    log("build --wasm: {copied} archive(s) -> {lib_dir}\n")
-    return 0
+    return value
+}
+
+//! an archive whose first object member is a wasm module. The members are walked by their headers
+//! (`!<arch>`, then 60-byte headers: name[16] ... size[10] `\n, bodies 2-byte aligned), the symbol
+//! table and long-name table members (`/`, `//`, `/SYM64/`, `__.SYMDEF...`) skipped, a GNU `/<digits>`
+//! name read as the object it is and a BSD `#1/NN` name stepped over, so an index of any size cannot
+//! hide the first object; a native archive's first object carries Mach-O or ELF magic instead
+def looks_like_wasm_archive(path : string) : bool {
+    var found = false
+    let f = fopen(path, "rb")
+    return false if (f == null)
+    fmap(f) $(var data : array<uint8>#) {
+        let n = length(data)
+        return if (n < 68 || int(data[0]) != '!' || int(data[1]) != '<' || int(data[7]) != '\n')
+        var off = 8
+        while (off + 60 <= n) {
+            let size = ar_field(data, off + 48, 10)
+            var body = off + 60
+            let c0 = int(data[off])
+            let c1 = int(data[off + 1])
+            // GNU `/`, `//`, `/SYM64/` and BSD `__.SYMDEF` are tables; a GNU `/<digits>` is an object whose name lives in `//`
+            var is_index = (c0 == '/' && (c1 == ' ' || c1 == '/' || c1 == 'S')) || (c0 == '_' && c1 == '_')
+            if (c0 == '#' && c1 == '1' && int(data[off + 2]) == '/') {   // BSD long name: the name leads the body
+                let name_len = ar_field(data, off + 3, 13)
+                is_index = body + 9 <= n && int(data[body]) == '_' && int(data[body + 1]) == '_'
+                body += name_len
+            }
+            if (!is_index) {
+                found = wasm_magic_at(data, body)
+                return
+            }
+            off = off + 60 + size + (size & 1)
+        }
+    }
+    fclose(f)
+    return found
 }
 
 def check_tool(name, cmd : string) : bool {
@@ -1315,9 +1396,15 @@ def cmd_check(root : string; json : bool = false; is_global : bool = false) {
     return 0
 }
 
+//! The one gate a `.das_package` string passes before it reaches a path or a shell command line:
+//! letters, digits, `_`, `-` and `.`, and not `.` or `..` - an allowlist, because the strings
+//! are spliced unquoted into `run_cmd` lines, where a space splits argv and `;` or `$(` run.
 def private is_safe_pkg_name(name : string) : bool {
     if (empty(name) || name == "." || name == "..") return false
-    return !(find(name, "/") >= 0 || find(name, "\\") >= 0)
+    for (c in name) {
+        if (!(is_alpha(c) || is_number(c) || c == '_' || c == '-' || c == '.')) return false
+    }
+    return true
 }
 
 def cmd_cleanup(root : string; force : bool; is_global : bool = false) : int { // nolint:STYLE038 — flat removal checklist (modules/, lock, caches), one arm per artifact
@@ -1428,6 +1515,7 @@ struct private TuneScopeDep {
     tuner : string                  //!< tuner harness path ("" = none declared)
     complete : bool                 //!< every [tune] kernel of this scope has a fresh sidecar entry
     fallbacks : string              //!< fallback stamps selected by this same compile/host
+    fat_unprofiled : string         //!< fat builds: the [tune] kernels whose baseline clone came from no profile
 }
 
 struct private ReleaseDeps {
@@ -1466,6 +1554,149 @@ def private sidecar_provenance_line(manifest : string) : string {
     let line = "noise={doc?["provenance"]?["noise"] ?? "?"} mode={doc?["provenance"]?["mode"] ?? "?"} sha={doc?["provenance"]?["engine_sha"] ?? "?"} written={doc?["provenance"]?["written"] ?? "?"} box={doc?["provenance"]?["box"] ?? "?"}"
     delete_json(doc)
     return line
+}
+
+//! a companion's shared modules and das modules join the main program's, each once: the ship
+//! loops below key on the bundle-relative path and the module name, the dep walk on the package
+//! directory (a root script's module is named "", so the name cannot key it). Tune scopes do not
+//! merge: the mint ran on the main program's before any companion built, and a companion is
+//! refused a scope the main program lacks
+def private merge_release_deps(var deps : ReleaseDeps; extra : ReleaseDeps) {
+    for (e in extra.shared_modules) {
+        var seen = false
+        for (h in deps.shared_modules) {
+            seen = seen || (h.rel == e.rel && h.das_name == e.das_name)
+        }
+        if (!seen) {
+            deps.shared_modules |> push(SharedModuleEntry(rel = e.rel, abs = e.abs, das_name = e.das_name))
+        }
+    }
+    for (dm in extra.das_modules) {
+        var seen = false
+        for (h in deps.das_modules) {
+            seen = seen || h.package_dir == dm.package_dir
+        }
+        if (!seen) {
+            deps.das_modules |> push(DasModuleEntry(name = dm.name, file = dm.file, package_dir = dm.package_dir))
+        }
+    }
+}
+
+//! the env prefix that pins the tune manifest a build reads - the main program's minted sidecar,
+//! so a companion bakes the winners the main exe bakes instead of whatever sits beside its script
+def private release_manifest_env(manifest : string) : string {
+    return empty(manifest) ? "" : (get_platform_name() == "windows" ?
+        "set \"DAS_TUNE_MANIFEST={manifest}\"&& " :
+        "DAS_TUNE_MANIFEST=\"{manifest}\" ")
+}
+
+//! Bake one release_program companion: `<bundle_dir>/<name>.exe` (extensionless inside a macOS
+//! .app, like the main exe) under the same fat class and mode - or, in a plain release, under
+//! the main program's freshly minted manifest - its link residue dropped, its rpaths scrubbed,
+//! and its deps JSON gated: every tune scope it declares is one the main
+//! program declared (that is the scope the mint measured; a scope only the companion carries
+//! was never measured on this box), and under `--fat` the fat gate refuses the release the way
+//! the main exe's does. Returns 0, or 1 with the reason logged and the half-built files removed;
+//! `deps_file` is left for the caller to merge.
+def private release_build_program(daslang, main_path, bundle_dir, name, deps_file, fat, manifest, force_args : string; main_scopes : array<string>; is_mac_app : bool; var shipped : array<string>) : int {
+    let exe_path = path_join(bundle_dir, name)
+    let cmd = "{release_fat_env(fat)}{release_manifest_env(manifest)}\"{daslang}\" -exe -output \"{exe_path}\" --list-shared-modules \"{deps_file}\"{force_args} \"{main_path}\""
+    let mode_note = empty(fat) ? "" : " ({fat} class, fat)"
+    log("  build: companion {name} from {base_name(main_path)}{mode_note}\n")
+    let t0 = ref_time_ticks()
+    var output : string
+    let rc = run_cmd(cmd, output)
+    if (rc != 0) {
+        to_log(LOG_ERROR, "release: daslang -exe failed for companion {name} (rc={rc}):\n{output}\n")
+        release_drop_program_files(exe_path)
+        return 1
+    }
+    log("  build: companion {name} in {release_elapsed(t0)}s\n")
+    var pdeps : ReleaseDeps
+    if (!read_release_deps(deps_file, pdeps)) {
+        to_log(LOG_ERROR, "release: the companion {name}'s deps JSON {deps_file} cannot be read, so its tune scopes and its fat gate were never checked\n")
+        release_drop_program_files(exe_path)
+        return 1
+    }
+    for (ts in pdeps.tune_scopes) {
+        if (find_index(main_scopes, ts.name) < 0) {
+            to_log(LOG_ERROR, "release: companion {name} declares the tune scope `{ts.name}`, which the main program does not - the mint measured the main program's scopes only; release the companion from its own package, or give the main program that scope\n")
+            release_drop_program_files(exe_path)
+            return 1
+        }
+    }
+    if (!empty(fat)) {
+        let refusal = release_fat_gate(pdeps, fat)
+        if (!empty(refusal)) {
+            to_log(LOG_ERROR, "companion {name}: {refusal}\n")
+            release_drop_program_files(exe_path)
+            return 1
+        }
+        for (ts in pdeps.tune_scopes) {
+            log("  tune: companion {name} ships scope `{ts.name}`'s {fat}-and-up profile clones\n")
+        }
+    }
+    release_drop_link_residue(exe_path)
+    shipped |> push(is_mac_app ? name : "{name}.exe")
+    if (is_mac_app) {
+        var rerr : string
+        if (!rename("{exe_path}.exe", exe_path, rerr)) {
+            to_log(LOG_ERROR, "release: cannot rename {exe_path}.exe -> {exe_path}: {rerr}\n")
+            release_drop_program_files(exe_path)
+            return 1
+        }
+    }
+    scrub_external_rpaths(is_mac_app ? exe_path : "{exe_path}.exe")
+    return 0
+}
+
+//! `daslang -exe` leaves `<exe>.o` (the build-time object) and, on MSVC, the linker's `<exe>.map`,
+//! `<exe>.lib` and `<exe>.exp` beside the runnable binary. None serves at run time - the map
+//! resolves crash frames only against the object it was linked from, which never ships, and the
+//! import library links a consumer against the exe's exports, which nothing does - and left in
+//! place they ride into the archive.
+def private release_drop_link_residue(exe_path : string) {
+    for (suffix in [".o", ".map", ".lib", ".exp"]) {
+        let p = "{exe_path}{suffix}"
+        if (fexist(p)) {
+            remove(p)
+        }
+    }
+}
+
+//! a companion that failed after its build leaves nothing behind: the exe, its object file and
+//! the MSVC side artifacts are outside every manifest, so a later release would never sweep them
+def private release_drop_program_files(exe_path : string) {
+    for (suffix in [".exe", ".pdb"]) {
+        if (fexist("{exe_path}{suffix}")) {
+            remove("{exe_path}{suffix}")
+        }
+    }
+    release_drop_link_residue(exe_path)
+}
+
+// the env prefix a fat release builds its exe under: the baseline class and the fat tune mode
+def private release_fat_env(fat : string) : string {
+    return empty(fat) ? "" : (get_platform_name() == "windows" ?
+        "set \"DAS_JIT_BASELINE={fat}\"&& set \"DAS_TUNE_MODE=fat\"&& " :
+        "DAS_JIT_BASELINE={fat} DAS_TUNE_MODE=fat ")
+}
+
+// a fat release ships profile clones only: the refusal text for one scope whose baseline
+// clones came from no profile (`unprofiled` = the deps JSON's ';'-joined list), "" when empty
+def release_fat_refusal(scope, unprofiled, fat : string) : string {
+    if (empty(unprofiled)) return ""
+    return "release --fat {fat}: scope `{scope}` has no {fat} profile entry for {replace(unprofiled, ";", ", ")} - a fat exe ships profile clones, never fallback stamps; mint a {fat} profile for the library (a full mint on a {fat} box, then tune_profile_export) or release without --fat"
+}
+
+def private release_fat_gate(deps : ReleaseDeps; fat : string) : string {
+    for (ts in deps.tune_scopes) {
+        let refusal = release_fat_refusal(ts.name, ts.fat_unprofiled, fat)
+        if (!empty(refusal)) {
+            return refusal
+        }
+    }
+    return ""
 }
 
 def private release_tuner_cmd(daslang : string; ts : TuneScopeDep; paranoid : bool) : string {
@@ -1525,8 +1756,10 @@ def private sanitize_bundle_id_part(s : string) : string {
 // Minimal macOS .app Info.plist. Built with dasPUGIXML so values are
 // XML-escaped automatically — inputs (bundle_name, exe, bundle_id) are
 // otherwise unrestricted on the XML side. CFPropertyList accepts plist
-// without a DOCTYPE, so we omit it.
-def private build_info_plist(name, exe, bundle_id : string) : string {
+// without a DOCTYPE, so we omit it. `ui_element` marks a menu-bar-only app
+// (LSUIElement): no Dock tile, no application menu - the shape of a
+// supervisor launcher, whose only surface is its tray icon.
+def private build_info_plist(name, exe, bundle_id : string; ui_element : bool) : string {
     var out = ""
     with_doc() $(doc) {
         doc |> tag("plist") $(var pl) {
@@ -1536,6 +1769,10 @@ def private build_info_plist(name, exe, bundle_id : string) : string {
                 d |> tag("string", name)
                 d |> tag("key", "CFBundleExecutable")
                 d |> tag("string", exe)
+                if (ui_element) {
+                    d |> tag("key", "LSUIElement")
+                    d |> tag("true")
+                }
                 d |> tag("key", "CFBundleIdentifier")
                 d |> tag("string", bundle_id)
                 d |> tag("key", "CFBundlePackageType")
@@ -1947,22 +2184,17 @@ def private finalize_shipped_binary(src, dst : string; var shipped : array<strin
     ship_symbols_for(src, shipped)
 }
 
-// Copy each declared native shared library from the daslang install tree
-// (`<das_root>/bin/` on Windows, `<das_root>/lib/` on POSIX) into `dst_dir`.
-// Authors declared these via `release_include_dll(...)`; missing files are an
-// error — usually a typo or an out-of-sync install.
-//
-// Resolution order (deterministic so multi-config build trees can't ship the
-// wrong binary nondeterministically):
-//   1. Exact match at `<search_root>/<name>` (an installed layout has this).
-//   2. Build-tree config dirs in fixed preference: Release > RelWithDebInfo >
-//      MinSizeRel > Debug, e.g. `<search_root>/Release/<name>`.
-//   3. Fall through to `**/<name>` and pick the first match.
-// `release_include_from` entries, as "source@dest" (dest empty = source's file name). Source is
-// relative to <das_root>; dest to the bundle root. A missing source fails the release rather than
-// shipping a bundle that is quietly short a file.
-def private ship_external_files(bundle_name, dst_dir : string; external_files : array<string>;
-                                var shipped : array<string>) : int {
+def private valid_external_release_path(path : string; allow_parent : bool) : bool {
+    if (empty(path)) { return false }
+    for (segment in split(path, "/")) {
+        if (allow_parent && segment == "..") { continue }
+        if (!is_safe_pkg_name(segment)) { return false }
+    }
+    return true
+}
+
+def public ship_external_files(bundle_name, dst_dir : string; external_files : array<string>;
+                               var shipped : array<string>) : int {
     let das_root = get_das_root()
     shipped |> reserve(length(shipped) + length(external_files))
     for (entry in external_files) {
@@ -1971,9 +2203,13 @@ def private ship_external_files(bundle_name, dst_dir : string; external_files : 
             to_log(LOG_ERROR, "release: `{bundle_name}` has a malformed release_include_from entry `{entry}` (expected \"source@dest\")\n")
             return 1
         }
-        let source = slice(entry, 0, at)
-        let requested = slice(entry, at + 1)
+        let source = to_generic_path(slice(entry, 0, at))
+        let requested = to_generic_path(slice(entry, at + 1))
         let dest = empty(requested) ? base_name(source) : requested
+        if (!valid_external_release_path(source, true) || !valid_external_release_path(dest, false)) {
+            to_log(LOG_ERROR, "release: `{bundle_name}` has an invalid release_include_from path `{entry}`: use relative name segments; only the source may contain `..`\n")
+            return 1
+        }
         let src = path_join(das_root, source)
         if (!fexist(src)) {
             to_log(LOG_ERROR, "release: `{bundle_name}` declared release_include_from(\"{source}\") but `{src}` does not exist\n")
@@ -1992,6 +2228,38 @@ def private ship_external_files(bundle_name, dst_dir : string; external_files : 
     return 0
 }
 
+
+//! A built tool ships by bare name from `<das_root>/bin/` - the installed SDK and single-config
+//! trees - or `bin/Release/` in an MSVC tree, with the platform's `.exe`, to the bundle root.
+def public ship_tools(bundle_name, dst_dir : string; tools : array<string>; var shipped : array<string>; das_root : string) : int {
+    let ext = get_platform_name() == "windows" ? ".exe" : ""
+    shipped |> reserve(length(shipped) + length(tools))
+    for (name in tools) {
+        if (!is_safe_pkg_name(name)) {
+            to_log(LOG_ERROR, "release: `{bundle_name}` declared release_include_tool(\"{name}\") - a tool is a bare name, no path separators\n")
+            return 1
+        }
+        var src = path_join(das_root, "bin/{name}{ext}")
+        if (!fexist(src)) {
+            src = path_join(das_root, "bin/Release/{name}{ext}")
+        }
+        if (!fexist(src)) {
+            to_log(LOG_ERROR, "release: `{bundle_name}` declared release_include_tool(\"{name}\") but neither bin/{name}{ext} nor bin/Release/{name}{ext} exists under {das_root}\n")
+            return 1
+        }
+        let dst = path_join(dst_dir, "{name}{ext}")
+        var err : string
+        if (!copy_file(src, dst, true, err)) {
+            to_log(LOG_ERROR, "release: copy_file({src} -> {dst}) failed: {err}\n")
+            return 1
+        }
+        scrub_external_rpaths(dst)
+        ship_symbols_for(src, shipped)
+        shipped |> push("{name}{ext}")
+    }
+    log("  ship tools: {length(tools)} file(s)\n")
+    return 0
+}
 
 def private ship_native_dlls(dep_name, dst_dir : string; native_dlls : array<string>;
                              var shipped : array<string>; rel_prefix : string) : int {
@@ -2117,11 +2385,13 @@ def private release_note_ship_manifest(manifest : string; var ship_manifest : st
     }
 }
 
-def cmd_release(root : string; out_dir : string; paranoid = false; quick = false) : int { // nolint:STYLE037,STYLE038 — phased orchestrator sharing bundle state end to end; the real split belongs to the daspkg cleanup pass
+def cmd_release(root : string; out_dir : string; paranoid = false; quick = false; fat = "") : int { // nolint:STYLE037,STYLE038 — phased orchestrator sharing bundle state end to end; the real split belongs to the daspkg cleanup pass
     let release_t0 = ref_time_ticks()
     if (paranoid && quick) {
-        to_log(LOG_ERROR, "release: --paranoid and --quick contradict — pick one\n")
-        return 1
+        to_log(LOG_WARNING, "release: --paranoid no longer changes the tuner's budget; --quick wins\n")
+    }
+    if (!empty(fat) && quick) {
+        to_log(LOG_WARNING, "release: --quick means nothing under --fat - a fat exe mints nothing and inherits nothing; its kernels come from the class profiles\n")
     }
     // Reset the patchelf availability cache so a daspkg process that releases
     // multiple bundles can pick up a patchelf install between calls.
@@ -2162,13 +2432,61 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
             bundle_name = base_name(get_full_file_name(root))
         }
     }
+    let gate_rc = platform_gate(bundle_name, get_platform_name(), pkg.platforms, false)
+    if (gate_rc != 0) return gate_rc
     // bundle_name flows from .das_package metadata (release_name() /
     // package_name()) — possibly authored by a downloaded dep. Reject path
     // separators / `..` so a hostile or typo'd name can't escape out_dir
     // when path_join + force_rmdir run below.
     if (!is_safe_pkg_name(bundle_name)) {
-        to_log(LOG_ERROR, "Error: unsafe bundle name `{bundle_name}` (must not contain path separators or be `.` / `..`)\n")
+        to_log(LOG_ERROR, "Error: unsafe bundle name `{bundle_name}` (letters, digits, `_`, `-` and `.` only; not `.` or `..`)\n")
         return 1
+    }
+    // release_launcher() names the tool the macOS .app opens; checked on every platform so a
+    // typo fails the Linux and Windows releases too, not only the one that writes the plist
+    if (!empty(spec.launcher) && find_index(spec.tools, spec.launcher) < 0) {
+        to_log(LOG_ERROR, "release: release_launcher(\"{spec.launcher}\") names no shipped tool - add release_include_tool(\"{spec.launcher}\") beside it\n")
+        return 1
+    }
+    // release_program() companions are checked before anything builds: the name lands in the
+    // bundle as a file name, and a script that is not there would fail minutes into the release
+    var programs : array<tuple<name : string; script : string>>
+    programs |> reserve(length(spec.programs))
+    for (p in spec.programs) {
+        let at = find(p, "@")
+        if (at <= 0) {   // release_program() writes `name@script`; only an edit to daslib/daspkg.das breaks that
+            to_log(LOG_ERROR, "release: malformed companion entry `{p}` - release_program(name, script) records `name@script`\n")
+            return 1
+        }
+        let pname = slice(p, 0, at)
+        let pscript = slice(p, at + 1, length(p))
+        // the name is a file name the platform suffixes itself (`foo.exe.exe` otherwise), and one
+        // clean_previous_release never sweeps when it carries `..`
+        if (empty(pname) || !is_safe_pkg_name(pname) || pname == bundle_name || (pname |> ends_with(".exe")) || find(pname, "..") >= 0) {
+            to_log(LOG_ERROR, "release: release_program(\"{pname}\", ...) - the name is the companion's file name: letters, digits, `_`, `-` and `.` only, no `.exe` suffix, no `..`, and not the bundle's own `{bundle_name}`\n")
+            return 1
+        }
+        // the script path reaches the build command line quoted: every segment is a name, or `..`
+        // (a companion may live in another tree), so a quote or a shell character cannot ride in
+        var path_ok = !empty(pscript)
+        for (seg in split(replace(pscript, "\\", "/"), "/")) {
+            path_ok = path_ok && (seg == ".." || is_safe_pkg_name(seg))
+        }
+        if (!path_ok || !fexist(path_join(root, pscript))) {
+            to_log(LOG_ERROR, "release: release_program(\"{pname}\", \"{pscript}\") names no script under {root} (the path is `/`-separated segments of letters, digits, `_`, `-` and `.`, or `..`)\n")
+            return 1
+        }
+        // a shipped tool of the same name would land on the companion later and silently replace
+        // it; two companions of one name would build over each other
+        var taken = find_index(spec.tools, pname) >= 0
+        for (q in programs) {
+            taken = taken || q.name == pname
+        }
+        if (taken) {
+            to_log(LOG_ERROR, "release: release_program(\"{pname}\", ...) - the name is already a shipped tool's or another companion's\n")
+            return 1
+        }
+        programs |> push((name = pname, script = pscript))
     }
     // macOS: emit a clickable .app bundle. The exe + dylibs + modules go into
     // Contents/MacOS/, so all subsequent ship logic uses bundle_dir unchanged
@@ -2243,7 +2561,14 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
             writer |> write("\"")
         }
     }
-    let cmd = "\"{daslang}\" -exe -output \"{exe_path}\" --list-shared-modules \"{deps_file}\"{force_args} \"{main_path}\""
+    if (!empty(fat) && !is_safe_pkg_name(fat)) {   // the class name is spliced unquoted into the build line
+        to_log(LOG_ERROR, "release --fat: '{fat}' is not a CPU class name (letters, digits, '-', '_' and '.' only)\n")
+        return 1
+    }
+    let cmd = "{release_fat_env(fat)}\"{daslang}\" -exe -output \"{exe_path}\" --list-shared-modules \"{deps_file}\"{force_args} \"{main_path}\""
+    if (!empty(fat)) {
+        log("  build: fat exe for the {fat} class (DAS_JIT_BASELINE={fat}, DAS_TUNE_MODE=fat)\n")
+    }
     let build_t0 = ref_time_ticks()
     let rc = run_cmd(cmd, output)
     if (rc != 0) {
@@ -2260,7 +2585,31 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
     //     COMPLETE one (an incomplete/stale scope mints even under --quick: the frozen exe
     //     itself never tunes, so shipping it unmeasured is not an option).
     var ship_manifest = ""   // the resolved scope manifest step 2.6 ships (see there)
-    {
+    if (!empty(fat)) {
+        // a fat exe mints nothing: its kernels are the class profiles' clones, and a kernel the
+        // baseline class has no profile entry for would ship a fallback stamp forever
+        var deps0 : ReleaseDeps
+        if (read_release_deps(deps_file, deps0)) {
+            let refusal = release_fat_gate(deps0, fat)
+            if (!empty(refusal)) {
+                to_log(LOG_ERROR, "{refusal}\n")
+                if (fexist(deps_file)) {
+                    remove(deps_file)
+                }
+                return 1
+            }
+            for (ts in deps0.tune_scopes) {
+                log("  tune: scope `{ts.name}` ships its {fat}-and-up profile clones (fat: no mint, no sidecar - the exe races its runtime section at first start)\n")
+            }
+        } else {
+            // the deps JSON is the only place the fat gate can read; without it the gate never ran
+            to_log(LOG_ERROR, "release --fat {fat}: the release-deps JSON {deps_file} cannot be read, so the fat gate never ran - the build line above says why\n")
+            if (fexist(deps_file)) {
+                remove(deps_file)
+            }
+            return 1
+        }
+    } else {
         var deps0 : ReleaseDeps
         if (read_release_deps(deps_file, deps0)) {
             var tuned_any = false
@@ -2315,16 +2664,8 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
             }
         }
     }
-    // daslang -exe writes <exe_path>.exe (the runnable binary) and <exe_path>.o
-    // (a build-time object file). Drop the .o — it's not needed at runtime.
-    let obj_path = "{exe_path}.o"
-    if (fexist(obj_path)) {
-        remove(obj_path)
-    }
+    release_drop_link_residue(exe_path)
     shipped |> push(is_mac_app ? bundle_name : "{bundle_name}.exe")
-    if (fexist("{exe_path}.lib")) {   // MSVC linker side artifact lands next to the exe
-        shipped |> push("{bundle_name}.lib")
-    }
     // macOS .app: drop the .exe extension (Mac convention). Info.plist's
     // CFBundleExecutable matches the renamed binary.
     if (is_mac_app) {
@@ -2342,6 +2683,32 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
     // everywhere except a mac .app, where the rename above already dropped it.
     scrub_external_rpaths(is_mac_app ? exe_path : "{exe_path}.exe")
 
+    // 1.8 Companion programs (release_program): each bakes beside the main exe under the same
+    //     class and mode - and, after a mint, under the main program's manifest, so both exes
+    //     bake the winners this box measured - and its deps JSON joins the main one below, so a
+    //     shared module only the companion requires still ships.
+    var program_deps : array<string>
+    program_deps |> reserve(length(programs))
+    var main_deps : ReleaseDeps
+    let main_read = !empty(programs) && read_release_deps(deps_file, main_deps)
+    let main_scopes <- [for (ts in main_deps.tune_scopes); ts.name; where main_read]
+    for (p in programs) {
+        run_cmd_counter ++
+        let pdeps = "{get_das_root()}/_daspkg_release_deps_{run_cmd_counter}.json"
+        let rc_p = release_build_program(daslang, path_join(root, p.script), bundle_dir, p.name, pdeps, fat, ship_manifest, force_args, main_scopes, is_mac_app, shipped)
+        if (rc_p != 0) {
+            for (d in program_deps) {
+                remove(d)
+            }
+            if (fexist(pdeps)) {
+                remove(pdeps)
+            }
+            remove(deps_file)
+            return rc_p
+        }
+        program_deps |> push(pdeps)
+    }
+
     // 2. Parse deps JSON, ship dylibs at the relative path the exe expects.
     //    The writer has already merged force-included modules into shared_modules,
     //    so we just iterate.
@@ -2352,6 +2719,16 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
         return 1
     }
     remove(deps_file)
+    for (d in program_deps) {
+        var pd : ReleaseDeps
+        let ok = read_release_deps(d, pd)
+        remove(d)
+        if (!ok) {
+            to_log(LOG_ERROR, "release: cannot read a companion program's deps file at {d}\n")
+            return 1
+        }
+        merge_release_deps(deps, pd)
+    }
     for (e in deps.shared_modules) {
         if (empty(e.rel)) {
             to_log(LOG_WARNING, "release: skipping module `{e.das_name}` (no /modules/ in `{e.abs}`)\n")
@@ -2420,7 +2797,11 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
     // freshly-minted exe on M4's first standalone run
     let sidecar_default = "{slice(main_path, 0, length(main_path) - 4)}.tune.json"
     let sidecar_src = (!empty(ship_manifest) && fexist(ship_manifest)) ? ship_manifest : sidecar_default
-    if (fexist(sidecar_src)) {
+    if (!empty(fat)) {
+        // no sidecar ships with a fat exe: its kernels are baked per class, and it writes its own
+        // runtime section beside itself at first start on the box it runs on
+        log("  ship: no tune sidecar (fat exe - the runtime section is raced at first start)\n")
+    } elif (fexist(sidecar_src)) {
         let sidecar_rel = "{bundle_name}.tune.json"
         let sidecar_dst = path_join(bundle_dir, sidecar_rel)
         var serr : string
@@ -2439,6 +2820,23 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
         }
         log("  ship: {sidecar_rel} (tune sidecar)\n")
         shipped |> push(sidecar_rel)
+        // each companion resolves `<its stem>.tune.json` beside itself: the same sidecar, under
+        // its name, so its runtime section is the one the main exe reads
+        shipped |> reserve(length(shipped) + length(programs))
+        for (p in programs) {
+            let prel = "{p.name}.tune.json"
+            let pdst = path_join(bundle_dir, prel)
+            var perr : string
+            if (!copy_file(sidecar_dst, pdst, true, perr)) {
+                to_log(LOG_ERROR, "release: copy_file({sidecar_dst} -> {pdst}) failed: {perr}\n")
+                return 1
+            }
+            if (!set_mtime(pdst, ahead, terr)) {
+                to_log(LOG_WARNING, "release: cannot touch {pdst}: {terr} — the companion's sidecar may read as stale\n")
+            }
+            log("  ship: {prel} (tune sidecar, the companion's copy)\n")
+            shipped |> push(prel)
+        }
     }
     if (runtime_copies == 0) {
         to_log(LOG_ERROR, "release: no daslang runtime libs matched `{runtime_glob}` under `{runtime_lib_dir}`; bundle would not load on a relocated machine\n")
@@ -2517,6 +2915,10 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
         let rc4 = ship_external_files(bundle_name, bundle_dir, spec.external_files, shipped)
         if (rc4 != 0) return rc4
     }
+    if (!empty(spec.tools)) {
+        let rc5 = ship_tools(bundle_name, bundle_dir, spec.tools, shipped, get_das_root())
+        if (rc5 != 0) return rc5
+    }
 
     // 5. macOS .app: write Contents/Info.plist. Bundle ID source priority:
     //    explicit release_bundle_id() > derived com.<sanitized-author>.<sanitized-name>
@@ -2530,11 +2932,12 @@ def cmd_release(root : string; out_dir : string; paranoid = false; quick = false
             bundle_id = "com.{sanitize_bundle_id_part(author_raw)}.{sanitize_bundle_id_part(bundle_name)}"
         }
         let plist_path = path_join(app_root, "Contents/Info.plist")
-        if (!fwrite(plist_path, build_info_plist(bundle_name, bundle_name, bundle_id))) {
+        let launcher = empty(spec.launcher) ? bundle_name : spec.launcher
+        if (!fwrite(plist_path, build_info_plist(bundle_name, launcher, bundle_id, !empty(spec.launcher)))) {
             to_log(LOG_ERROR, "release: cannot write {plist_path}\n")
             return 1
         }
-        log("  wrote: Contents/Info.plist (CFBundleIdentifier={bundle_id})\n")
+        log("  wrote: Contents/Info.plist (CFBundleIdentifier={bundle_id}, CFBundleExecutable={launcher})\n")
     }
     // every release writes the ownership manifest — the .app too: the wipe path does not
     // consult it, but tooling and the migration semantics read one record everywhere
@@ -2682,10 +3085,16 @@ def private ensure_external_wasm_archives(pkg_dir, wasm_lib_dir : string; var bu
 // Build one app: cross-compile → discover modules → emcc-link → stage assets.
 def private release_one_wasm_app(root, out_dir, app_name, main_script : string; // nolint:STYLE037,STYLE038 — flat per-app wasm release steps + their error arms
                                  wasm_lib_dir, runtime_archive, shell_path : string;
-                                 include_globs, exclude_globs : array<string>) : int {
+                                 include_globs, exclude_globs, disabled_modules, app_emcc_args : array<string>; include_symbols : bool) : int {
     if (!is_safe_pkg_name(app_name)) {
-        to_log(LOG_ERROR, "release wasm: unsafe app name `{app_name}` (no path separators / `.` / `..`)\n")
+        to_log(LOG_ERROR, "release wasm: unsafe app name `{app_name}` (letters, digits, `_`, `-` and `.` only; not `.` or `..`)\n")
         return 1
+    }
+    for (m in disabled_modules) {   // a .das_package string that reaches the cross-compile command line
+        if (!is_safe_pkg_name(m)) {
+            to_log(LOG_ERROR, "release wasm: unsafe module name `{m}` in release_wasm_disable_module (letters, digits, `_`, `-` and `.` only; not `.` or `..`)\n")
+            return 1
+        }
     }
     let main_path = path_join(root, main_script)
     if (!fexist(main_path)) {
@@ -2717,7 +3126,14 @@ def private release_one_wasm_app(root, out_dir, app_name, main_script : string; 
     //    cross-compile scans the script's folder and misses the package's modules/<dep>.
     // --jit-threads: emit +atomics,+bulk-memory so the object's ABI matches the -pthread runtime
     // archive (the wasm build is threaded — see cmd_build_wasm). The link below adds -pthread.
-    let xc_cmd = "\"{daslang}\" -exe -output \"{obj_path}\" --list-shared-modules \"{deps_file}\" -project-root \"{root}\" --disable-module dashv \"{main_path}\" -- --jit-target=wasm64-unknown-emscripten --jit-emit-object --jit-threads --jit-runtime-lib=\"{runtime_archive}\""
+    let disable_args = build_string() $(w) {
+        write(w, "--disable-module dashv")
+        for (m in disabled_modules) {
+            write(w, " --disable-module {m}")
+        }
+    }
+    let debug_args = include_symbols ? " --jit-debug --jit-stack" : ""
+    let xc_cmd = "\"{daslang}\" -exe -output \"{obj_path}\" --list-shared-modules \"{deps_file}\" -project-root \"{root}\" {disable_args} \"{main_path}\" -- --jit-target=wasm64-unknown-emscripten --jit-emit-object --jit-check-abi --jit-threads{debug_args} --jit-runtime-lib=\"{runtime_archive}\""
     var xc_out : string
     let xc_rc = run_cmd(xc_cmd, xc_out)
     if (xc_rc != 0 || !fexist(obj_path)) {
@@ -2794,6 +3210,9 @@ def private release_one_wasm_app(root, out_dir, app_name, main_script : string; 
         }
     }
 
+    // the app's own release_emcc_arg() lines come last, after every module's: an app-level flag wins
+    emcc_args |> push_from(app_emcc_args)
+
     // 4. emcc link → <app>.{html,js,wasm}. run_cmd handles the Windows
     //    cmd.exe outer-quote wrapping, so quoted paths survive on every host.
     let html_out = path_join(app_out_dir, "{app_name}.html")
@@ -2804,7 +3223,9 @@ def private release_one_wasm_app(root, out_dir, app_name, main_script : string; 
             w |> write(" \"{a}\"")
         }
         w |> write(" \"{runtime_archive}\"")
-        // Release defaults: wasm64 + WebGL2/ES3 + modern wasm EH + filesystem + threads. -pthread
+        // Release defaults: wasm64 lowered to a 32-bit memory (-sMEMORY64=2: the objects and archives
+        // keep 8-byte pointers, and an engine without memory64 - WebKit - runs the module) + WebGL2/ES3
+        // + modern wasm EH + filesystem + threads. -pthread
         // matches the threaded runtime archive (new_thread / JobQue map to Web Workers); the pool is
         // pre-sized for the DAS_MAX_HW_JOBS-capped worker count. A -pthread module only instantiates
         // cross-origin-isolated, so the host page must send COOP same-origin + COEP require-corp.
@@ -2817,7 +3238,11 @@ def private release_one_wasm_app(root, out_dir, app_name, main_script : string; 
         // context/jobque mutexes). __wrap_emscripten_futex_wait (src/hal/wasm_thread_malloc.cpp)
         // busy-polls on the worklet instead, delegating all other threads to the real impl. No
         // emscripten fork needed — the wrap + shim live in libDaScript_runtime.a (like the malloc lock).
-        w |> write(" -sMEMORY64=1 -sFULL_ES3 -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1 -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=4MB -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0 -sEXIT_RUNTIME=0 -sFORCE_FILESYSTEM=1 -pthread -sPTHREAD_POOL_SIZE=16 -sAUDIO_WORKLET=1 -sWASM_WORKERS=1 -Wl,--wrap=emscripten_futex_wait")
+        // EXPORTED_RUNTIME_METHODS=FS,ENV,wasmMemory: a custom shell stages files into MEMFS and sets the
+        // program's environment knobs in Module.preRun (the C environment is built from Module.ENV at startup);
+        // wasmMemory: a page reads the linear memory's size (the dev rig's devlog tick) without an aborting getter.
+        w |> write(" -sMEMORY64=2 -sFULL_ES3 -sMAX_WEBGL_VERSION=2 -sGL_ENABLE_GET_PROC_ADDRESS=1 -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=4MB -fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0 -sEXIT_RUNTIME=0 -sFORCE_FILESYSTEM=1 -sEXPORTED_RUNTIME_METHODS=FS,ENV,wasmMemory -pthread -sPTHREAD_POOL_SIZE=16 -sAUDIO_WORKLET=1 -sWASM_WORKERS=1 -Wl,--wrap=emscripten_futex_wait")
+        if (include_symbols) {w |> write(" -g3 --emit-symbol-map")}
         for (a in emcc_args) {
             w |> write(" {a}")
         }
@@ -2857,8 +3282,30 @@ def private release_one_wasm_app(root, out_dir, app_name, main_script : string; 
             return 1
         }
     }
-    log("  released {app_name} -> {app_out_dir} ({app_name}.html / .js / .wasm)\n")
     return 0
+}
+
+[arch(at="README.md#web-build-stamp")]
+def private stamp_web_build(root, html_path : string) {
+    var rev = ""
+    if (run_cmd("git -C \"{root}\" describe --always --dirty=+ --abbrev=9", rev) != 0) {
+        rev = "unknown"
+    }
+    let stamp = "{strip(rev)} {format_time(get_clock(), "%Y-%m-%d %H:%M %z")}"     // the zone rides along, so two boxes' stamps order
+    var html = ""
+    fopen(html_path, "rb") $(f) {
+        if (f != null) {
+            html = fread(f)
+        }
+    }
+    return if (empty(html) || find(html, "__DAS_BUILD_STAMP__") < 0)
+    let stamped = replace(html, "__DAS_BUILD_STAMP__", stamp)
+    fopen(html_path, "wb") $(f) {
+        if (f != null) {
+            fwrite(f, stamped)
+        }
+    }
+    log("  build stamp: {stamp}\n")
 }
 
 // `daspkg release wasm` entry. Releases the single app the package's .das_package
@@ -2890,6 +3337,8 @@ def cmd_release_wasm(root : string; out_dir : string; wasm_lib_dir_override : st
     if (empty(bundle_name)) {
         bundle_name = (have_pkg && !empty(pkg.pkg_name)) ? pkg.pkg_name : base_name(get_full_file_name(root))
     }
+    let gate_rc = platform_gate(bundle_name, "emscripten", pkg.platforms, false)
+    if (gate_rc != 0) return gate_rc
 
     // Archive cache (`daspkg build --wasm` output) + the wasm64 runtime archive.
     let wasm_lib_dir = empty(wasm_lib_dir_override) ? "{get_das_root()}/web/output64/lib" : wasm_lib_dir_override
@@ -2909,5 +3358,13 @@ def cmd_release_wasm(root : string; out_dir : string; wasm_lib_dir_override : st
     }
 
     mkdir_rec(out_dir)
-    return release_one_wasm_app(root, out_dir, bundle_name, main_script, wasm_lib_dir, runtime_archive, shell_path, spec.include_globs, spec.exclude_globs)
+    let result = release_one_wasm_app(root, out_dir, bundle_name, main_script, wasm_lib_dir, runtime_archive, shell_path, spec.include_globs, spec.exclude_globs, spec.wasm_disabled_modules, spec.emcc_args, spec.include_symbols)
+    if (result != 0){return result}
+    var inscope shipped : array<string>
+    let app_out_dir = path_join(out_dir, bundle_name)
+    let staged = ship_external_files(bundle_name, app_out_dir, spec.external_files, shipped)
+    if (staged != 0) { return staged }
+    stamp_web_build(root, path_join(app_out_dir, "{bundle_name}.html"))      // after the external files land: one of them could be the page itself
+    log("  released {bundle_name} -> {app_out_dir} ({bundle_name}.html / .js / .wasm)\n")
+    return 0
 }

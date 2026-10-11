@@ -2,6 +2,7 @@ options gen2
 
 module llvm_tune_scope_client_lib public
 
+require daslib/tune public
 require llvm/daslib/llvm_tune public
 
 // Library-side fixture for llvm_tune_scope.das (no [test] on purpose — the suite just

@@ -11,6 +11,7 @@
 
 #include "daScript/misc/performance_time.h"
 #include "daScript/ast/ast_serializer.h"
+#include "daScript/ast/dyn_modules.h"
 #include "daScript/misc/gc_node.h"
 
 using namespace das;
@@ -371,7 +372,7 @@ namespace das {
     template <>
     struct typeFactory<RttiValue> {
         static TypeDeclPtr make(const ModuleLibrary & library ) {
-            auto vtype = new TypeDecl(Type::tVariant);
+            auto vtype = new TypeDecl(Type::tVariant, cppBindingLineInfo());
             vtype->alias = "RttiValue";
             vtype->aotAlias = false;
             vtype->addVariant("tBool",   typeFactory<RttiValue::NthType<RttiBool>>::make(library));
@@ -391,12 +392,13 @@ namespace das {
     };
 
     TypeDeclPtr makeModuleFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "ModuleFlags";
         ft->argNames = {
             "builtIn", "promoted", "isPublic", "isModule", "isSolidContext",
             "fromExtraDependency", "doNotAllowUnsafe",
-            "wasParsedNameless", "visibleEverywhere", "allowPodInscope"
+            "wasParsedNameless", "visibleEverywhere", "allowPodInscope",
+            "neverInline"
         };
         return ft;
     }
@@ -448,7 +450,7 @@ namespace das {
     };
 
     TypeDeclPtr makeContextCategoryFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "context_category_flags";
         ft->argNames = { "dead", "debug_context", "thread_clone", "job_clone", "opengl",
             "debugger_tick", "debugger_attached", "macro_context", "folding_context", "audio" };
@@ -494,7 +496,7 @@ namespace das {
     };
 
     TypeDeclPtr makeSimFunctionFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "SimFunctionFlags";
         ft->argNames = { "aot", "fastcall", "builtin", "jit", "unsafe", "cmres", "pinvoke" };
         return ft;
@@ -524,7 +526,7 @@ namespace das {
     };
 
     TypeDeclPtr makeProgramFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "ProgramFlags";
         ft->argNames = { "failToCompile", "_unsafe", "isCompiling", "isSimulating",
             "isCompilingMacros", "needMacroModule", "promoteToBuiltin",
@@ -540,10 +542,14 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(totalFunctions)>("totalFunctions");
             addField<DAS_BIND_MANAGED_FIELD(totalVariables)>("totalVariables");
             addField<DAS_BIND_MANAGED_FIELD(globalStringHeapSize)>("globalStringHeapSize");
+            addField<DAS_BIND_MANAGED_FIELD(globalInitStackSize)>("globalInitStackSize");
             addField<DAS_BIND_MANAGED_FIELD(initSemanticHashWithDep)>("initSemanticHashWithDep");
+            addField<DAS_BIND_MANAGED_FIELD(visitBuiltinFunctions)>("visitBuiltinFunctions");
             addFieldEx ( "flags", "flags", offsetof(Program, flags), makeProgramFlags() );
             addProperty<DAS_BIND_MANAGED_PROP(getThisModule)>("getThisModule");
             addProperty<DAS_BIND_MANAGED_PROP(getDebugger)>("getDebugger");
+            addProperty<DAS_BIND_MANAGED_PROP(getOptimize)>("getOptimize");
+            addProperty<DAS_BIND_MANAGED_PROP(failed)>("failed");
             addField<DAS_BIND_MANAGED_FIELD(errors)>("errors");
             addField<DAS_BIND_MANAGED_FIELD(options)>("_options","options");
             addField<DAS_BIND_MANAGED_FIELD(policies)>("policies","policies");
@@ -582,7 +588,7 @@ namespace das {
     };
 
     TypeDeclPtr makeAnnotationDeclarationFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "AnnotationDeclarationFlags";
         ft->argNames = { "inherited" };
         return ft;
@@ -658,6 +664,8 @@ namespace das {
                 "rtti_isFunctionAnnotation");
             addProperty<DAS_BIND_MANAGED_PROP(rtti_isEnumerationAnnotation)>("isEnumerationAnnotation",
                 "rtti_isEnumerationAnnotation");
+            addProperty<DAS_BIND_MANAGED_PROP(rtti_isDistinctTypeAnnotation)>("isDistinctTypeAnnotation",
+                "rtti_isDistinctTypeAnnotation");
         }
     };
 
@@ -733,6 +741,36 @@ namespace das {
             auto rv = simulateExpression(context, src);
             return context.code->makeNode<SimNode_AnyIterator<ST,DebugInfoIterator<VT,ST>>>(at, rv);
         }
+        virtual void * jitGetEach () const override {
+            return (void *) +[] ( Sequence * out, void * pInfo, Context * context, LineInfoArg * at ) {
+                using Iter = DebugInfoIterator<VT,ST>;
+                char * iter = context->allocateIterator(sizeof(Iter), "DebugInfo field iterator", at);
+                new (iter) Iter((ST *)pInfo, at);
+                out->iter = (Iterator *) iter;
+            };
+        }
+        virtual void * jitGetAt ( Type indexType ) const override {
+            switch ( indexType ) {
+            case Type::tInt:
+                return (void *) +[] ( void * pInfo, int32_t index, Context * context, LineInfoArg * at ) -> char * {
+                    auto * pValue = (ST *) pInfo;
+                    if ( uint32_t(index) >= pValue->count ) {
+                        context->throw_error_at(at, "field index out of range, %d of %u", index, pValue->count);
+                    }
+                    return (char *) pValue->fields[uint32_t(index)];
+                };
+            case Type::tUInt:
+                return (void *) +[] ( void * pInfo, uint32_t index, Context * context, LineInfoArg * at ) -> char * {
+                    auto * pValue = (ST *) pInfo;
+                    if ( index >= pValue->count ) {
+                        context->throw_error_at(at, "field index out of range, %u of %u", index, pValue->count);
+                    }
+                    return (char *) pValue->fields[index];
+                };
+            default:
+                return nullptr;
+            }
+        }
         virtual void gc_collect ( gc_root * target, gc_root * from ) override {
             ManagedStructureAnnotation<ST,false>::gc_collect(target, from);
             if ( fieldType ) fieldType->gc_collect(target, from);
@@ -775,7 +813,7 @@ namespace das {
 
 
     TypeDeclPtr makeStructInfoFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "StructInfoFlags";
         ft->argNames = { "_class", "_lambda", "heapGC", "stringHeapGC" };
         return ft;
@@ -808,7 +846,7 @@ namespace das {
     }
 
     TypeDeclPtr makeTypeInfoFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "TypeInfoFlags";
         ft->argNames = { "ref", "refType", "canCopy", "isPod", "isRawPod", "isConst", "isTemp", "isImplicit",
             "refValue", "hasInitValue", "isSmartPtr", "isSmartPtrNative", "isHandled",
@@ -875,7 +913,7 @@ namespace das {
     };
 
     TypeDeclPtr makeLocalVariableInfoFlagsFlags() {
-        auto ft = new TypeDecl(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield, cppBindingLineInfo());
         ft->alias = "LocalVariableInfoFlags";
         ft->argNames = { "cmres" };
         return ft;
@@ -887,6 +925,8 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
             addField<DAS_BIND_MANAGED_FIELD(visibility)>("visibility");
+            addField<DAS_BIND_MANAGED_FIELD(openPos)>("openPos");
+            addField<DAS_BIND_MANAGED_FIELD(closePos)>("closePos");
             addFieldEx ( "localFlags", "localFlags", offsetof(LocalVariableInfo, localFlags), makeLocalVariableInfoFlagsFlags());
             from("TypeInfo");
         }
@@ -906,6 +946,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(localCount)>("localCount");
             addField<DAS_BIND_MANAGED_FIELD(globalCount)>("globalCount");
             addField<DAS_BIND_MANAGED_FIELD(annotation_count)>("annotation_count");
+            addField<DAS_BIND_MANAGED_FIELD(spaceId)>("spaceId");
             fieldType = makeType<VarInfo>(*mlib);
             fieldType->ref = true;
         }
@@ -925,7 +966,6 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(aot)>("aot");
             addField<DAS_BIND_MANAGED_FIELD(aot_lib)>("aot_lib");
             addField<DAS_BIND_MANAGED_FIELD(paranoid_validation)>("paranoid_validation");
-            addField<DAS_BIND_MANAGED_FIELD(validate_ast)>("validate_ast");
             addField<DAS_BIND_MANAGED_FIELD(cross_platform)>("cross_platform");
             addField<DAS_BIND_MANAGED_FIELD(standalone_context)>("standalone_context");
             addField<DAS_BIND_MANAGED_FIELD(aot_module)>("aot_module");
@@ -938,6 +978,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(no_lint)>("no_lint");
             addField<DAS_BIND_MANAGED_FIELD(no_init_check)>("no_init_check");
             addField<DAS_BIND_MANAGED_FIELD(export_all)>("export_all");
+            addField<DAS_BIND_MANAGED_FIELD(export_public_functions)>("export_public_functions");
             addField<DAS_BIND_MANAGED_FIELD(serialize_main_module)>("serialize_main_module");
             addField<DAS_BIND_MANAGED_FIELD(keep_alive)>("keep_alive");
             addField<DAS_BIND_MANAGED_FIELD(very_safe_context)>("very_safe_context");
@@ -996,6 +1037,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(strict_properties)>("strict_properties");
         // environment
             addField<DAS_BIND_MANAGED_FIELD(no_optimizations)>("no_optimizations");
+            addField<DAS_BIND_MANAGED_FIELD(no_fold_unsafe)>("no_fold_unsafe");
             addField<DAS_BIND_MANAGED_FIELD(fast_math)>("fast_math");
             addField<DAS_BIND_MANAGED_FIELD(disable_dse)>("disable_dse");
             addField<DAS_BIND_MANAGED_FIELD(disable_cse)>("disable_cse");
@@ -1042,6 +1084,8 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(jit_output_path)>("jit_output_path");
             addField<DAS_BIND_MANAGED_FIELD(jit_path_to_shared_lib)>("jit_path_to_shared_lib");
             addField<DAS_BIND_MANAGED_FIELD(jit_path_to_linker)>("jit_path_to_linker");
+            addField<DAS_BIND_MANAGED_FIELD(module_cache)>("module_cache");
+            addField<DAS_BIND_MANAGED_FIELD(max_fast_call_depth)>("max_fast_call_depth");
         }
         virtual bool isLocal() const override { return true; }
     };
@@ -1050,8 +1094,8 @@ namespace das {
         vector<pair<string,Type>> options;
         Module dummyMod;
         ModuleLibrary dummy(&dummyMod);
-        auto cop = new CodeOfPoliciesAnnotation(dummy);
-        for ( auto & f : cop->fields ) {
+        CodeOfPoliciesAnnotation cop(dummy);
+        for ( auto & f : cop.fields ) {
             if ( f.second.decl->isWorkhorseType() ) {
                 auto bT = f.second.decl->baseType;
                 switch ( bT ) {
@@ -1103,9 +1147,9 @@ namespace das {
     // and read the sealed state back to write it into the artifact as constant data
     // a null lookup or an out-of-range slot stops the emitter: it is writing an artifact, and a
     // silently wrong word would only surface in the artifact's run
-    static NameLookup * nameLookupOf ( NameLookup * lookup, const char * what ) {
+    static NameLookup & nameLookupOf ( NameLookup * lookup, const char * what ) {
         if ( !lookup ) DAS_FATAL_ERROR("%s: null NameLookup\n", what);
-        return lookup;
+        return *lookup;
     }
     static uint32_t nameLookupAt ( uint32_t at, uint32_t count, const char * what ) {
         if ( at >= count ) DAS_FATAL_ERROR("%s: %u is past the %u the sealed table holds\n", what, at, count);
@@ -1118,60 +1162,65 @@ namespace das {
         delete lookup;
     }
     void rtti_name_lookup_insert ( NameLookup * lookup, uint64_t mnh, const char * name, uint32_t index, uint32_t value ) {
-        nameLookupOf(lookup, "name_lookup_insert")->insert(mnh, name, index, value);
+        nameLookupOf(lookup, "name_lookup_insert").insert(mnh, name, index, value);
     }
     void rtti_name_lookup_seal ( NameLookup * lookup, Context * context, LineInfoArg * at ) {
         string failure;
-        if ( !nameLookupOf(lookup, "name_lookup_seal")->seal(&failure) ) context->throw_error_at(at, "name lookup: %s", failure.c_str());
+        if ( !nameLookupOf(lookup, "name_lookup_seal").seal(&failure) ) context->throw_error_at(at, "name lookup: %s", failure.c_str());
     }
-    uint32_t rtti_name_lookup_count ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_count")->count; }
-    uint32_t rtti_name_lookup_mnh_buckets ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_mnh_buckets")->byMnh.nbuckets; }
-    uint32_t rtti_name_lookup_mnh_slots ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_mnh_slots")->byMnh.nslots; }
-    uint32_t rtti_name_lookup_name_buckets ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_name_buckets")->byName.nbuckets; }
-    uint32_t rtti_name_lookup_name_slots ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_name_slots")->byName.nslots; }
+    uint32_t rtti_name_lookup_count ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_count").count; }
+    uint32_t rtti_name_lookup_mnh_buckets ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_mnh_buckets").byMnh.nbuckets; }
+    uint32_t rtti_name_lookup_mnh_slots ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_mnh_slots").byMnh.nslots; }
+    uint32_t rtti_name_lookup_name_buckets ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_name_buckets").byName.nbuckets; }
+    uint32_t rtti_name_lookup_name_slots ( NameLookup * lookup ) { return nameLookupOf(lookup, "name_lookup_name_slots").byName.nslots; }
     uint32_t rtti_name_lookup_mnh_disp ( NameLookup * lookup, uint32_t bucket ) {
-        auto l = nameLookupOf(lookup, "name_lookup_mnh_disp");
-        return l->byMnh.disp[nameLookupAt(bucket, l->byMnh.nbuckets, "name_lookup_mnh_disp")];
+        auto & l = nameLookupOf(lookup, "name_lookup_mnh_disp");
+        return l.byMnh.disp[nameLookupAt(bucket, l.byMnh.nbuckets, "name_lookup_mnh_disp")];
     }
     uint32_t rtti_name_lookup_name_disp ( NameLookup * lookup, uint32_t bucket ) {
-        auto l = nameLookupOf(lookup, "name_lookup_name_disp");
-        return l->byName.disp[nameLookupAt(bucket, l->byName.nbuckets, "name_lookup_name_disp")];
+        auto & l = nameLookupOf(lookup, "name_lookup_name_disp");
+        return l.byName.disp[nameLookupAt(bucket, l.byName.nbuckets, "name_lookup_name_disp")];
     }
     uint64_t rtti_name_lookup_entry_mnh ( NameLookup * lookup, uint32_t slot ) {
-        auto l = nameLookupOf(lookup, "name_lookup_entry_mnh");
-        return l->entries[nameLookupAt(slot, l->byMnh.nslots, "name_lookup_entry_mnh")].mnh;
+        auto & l = nameLookupOf(lookup, "name_lookup_entry_mnh");
+        return l.entries[nameLookupAt(slot, l.byMnh.nslots, "name_lookup_entry_mnh")].mnh;
     }
     uint32_t rtti_name_lookup_entry_value ( NameLookup * lookup, uint32_t slot ) {
-        auto l = nameLookupOf(lookup, "name_lookup_entry_value");
-        return l->entries[nameLookupAt(slot, l->byMnh.nslots, "name_lookup_entry_value")].value;
+        auto & l = nameLookupOf(lookup, "name_lookup_entry_value");
+        return l.entries[nameLookupAt(slot, l.byMnh.nslots, "name_lookup_entry_value")].value;
     }
     uint32_t rtti_name_lookup_entry_index ( NameLookup * lookup, uint32_t slot ) {
-        auto l = nameLookupOf(lookup, "name_lookup_entry_index");
-        return l->entries[nameLookupAt(slot, l->byMnh.nslots, "name_lookup_entry_index")].index;
+        auto & l = nameLookupOf(lookup, "name_lookup_entry_index");
+        return l.entries[nameLookupAt(slot, l.byMnh.nslots, "name_lookup_entry_index")].index;
     }
     int32_t rtti_name_lookup_entry_next ( NameLookup * lookup, uint32_t slot ) {
-        auto l = nameLookupOf(lookup, "name_lookup_entry_next");
-        return l->entries[nameLookupAt(slot, l->byMnh.nslots, "name_lookup_entry_next")].next;
+        auto & l = nameLookupOf(lookup, "name_lookup_entry_next");
+        return l.entries[nameLookupAt(slot, l.byMnh.nslots, "name_lookup_entry_next")].next;
     }
     uint64_t rtti_name_lookup_name_hash ( NameLookup * lookup, uint32_t slot ) {
-        auto l = nameLookupOf(lookup, "name_lookup_name_hash");
-        return l->names[nameLookupAt(slot, l->byName.nslots, "name_lookup_name_hash")].nameHash;
+        auto & l = nameLookupOf(lookup, "name_lookup_name_hash");
+        return l.names[nameLookupAt(slot, l.byName.nslots, "name_lookup_name_hash")].nameHash;
     }
     int32_t rtti_name_lookup_name_head ( NameLookup * lookup, uint32_t slot ) {
-        auto l = nameLookupOf(lookup, "name_lookup_name_head");
-        return l->names[nameLookupAt(slot, l->byName.nslots, "name_lookup_name_head")].head;
+        auto & l = nameLookupOf(lookup, "name_lookup_name_head");
+        return l.names[nameLookupAt(slot, l.byName.nslots, "name_lookup_name_head")].head;
     }
 
+    void rtti_builtin_context_for_each_init_function ( Context & ctx, const TBlock<void,uint64_t> & block, Context * context, LineInfoArg * at ) {
+        for ( int i=0, is=ctx.getTotalInitFunctions(); i!=is; ++i ) {
+            vec4f args[1] = { cast<uint64_t>::from(ctx.getInitFunction(i)->mangledNameHash) };
+            context->invoke(block, args, nullptr, at);
+        }
+    }
 
     vec4f rtti_contextFunctionInfo ( Context & context, SimNode_CallBase * call, vec4f * args ) {
         Context * ctx = cast<Context *>::to(args[0]);
-        int32_t tf = ctx->getTotalFunctions();
         int32_t index = cast<int32_t>::to(args[1]);
-        if ( index<0 || index>=tf ) {
-            context.throw_error_at(call->debugInfo, "function index out of range, %i of %i", index, tf);
+        SimFunction * fn = ctx->getFunction(index);
+        if ( !fn ) {
+            context.throw_error_at(call->debugInfo, "function index out of range, %i of %i", index, ctx->getTotalFunctions());
         }
-        FuncInfo * fi = ctx->getFunction(index)->debugInfo;
-        return cast<FuncInfo *>::from(fi);
+        return cast<FuncInfo *>::from(fn->debugInfo);
     }
 
     vec4f rtti_contextVariableInfo ( Context & context, SimNode_CallBase * call, vec4f * args ) {
@@ -1210,8 +1259,29 @@ namespace das {
         return Module::require(name);
     }
 
+    // true for a module the tree has, loaded or waiting in a manifest row - this asks, it never loads
     bool rtti_has_module ( const char * name ) {
-        return Module::require(name) != nullptr;
+        return Module::require(name) != nullptr || is_dynamic_module_deferred(name);
+    }
+
+    // a member's guard answers as the require's would (src/ast/ARCHITECTURE.md#module-scan-manifest)
+    static bool moduleGroupMemberAvailable ( const ModuleGroupMember & m ) {
+        if ( m.guard.empty() ) return true;
+        if ( m.guard.find('/') == string::npos ) return guardModuleAvailable(m.guard);
+        auto env = daScriptEnvironment::getBound();
+        auto program = env->g_Program;
+        if ( !program || !program->access ) return false;
+        // the base the collector and the parser resolve a relative guard against: the file being compiled
+        auto ginfo = program->access->getModuleInfo(m.guard, env->g_compilingFileName ? env->g_compilingFileName : "");
+        return !ginfo.fileName.empty() && program->access->getFileInfo(ginfo.fileName) != nullptr;
+    }
+
+    void rtti_module_group_for_each_member ( const char * group, const TBlock<void,const char *> & block, Context * context, LineInfoArg * at ) {
+        for ( const auto & member : getModuleGroupMembers(group ? group : "") ) {
+            if ( !moduleGroupMemberAvailable(member) ) continue;
+            vec4f args[1] = { cast<const char *>::from(member.member.c_str()) };
+            context->invoke(block, args, nullptr, at);
+        }
     }
 
     void rtti_builtin_program_for_each_module ( smart_ptr_raw<Program> program, const TBlock<void,Module *> & block, Context * context, LineInfoArg * at ) {
@@ -1308,7 +1378,6 @@ namespace das {
             case Type::tUShort2:    case Type::tUShort3:    case Type::tUShort4:    case Type::tUShort8:
             case Type::tByte2:      case Type::tByte3:      case Type::tByte4:      case Type::tByte8:      case Type::tByte16:
             case Type::tUByte2:     case Type::tUByte3:     case Type::tUByte4:     case Type::tUByte8:     case Type::tUByte16:
-                def.index = RttiAny;
                 break;
             default:
                 DAS_VERIFYF(false,"unsupported type %i in rtti_builtin_variable_value for %s. i guess new Type::type has been added",
@@ -1690,21 +1759,21 @@ namespace das {
         Table * tab = (Table *) _table;
         switch ( baseType ) {
             case Type::tBool:           return tableFindValue<bool>        (tab,key,valueTypeSize,context);
-            case Type::tInt8:           return tableFindValue<int8_t>      (tab,key,valueTypeSize,context);
-            case Type::tUInt8:          return tableFindValue<uint8_t>     (tab,key,valueTypeSize,context);
-            case Type::tInt16:          return tableFindValue<int16_t>     (tab,key,valueTypeSize,context);
-            case Type::tUInt16:         return tableFindValue<uint16_t>    (tab,key,valueTypeSize,context);
-            case Type::tInt64:          return tableFindValue<int64_t>     (tab,key,valueTypeSize,context);
-            case Type::tUInt64:         return tableFindValue<uint64_t>    (tab,key,valueTypeSize,context);
-            case Type::tEnumeration:    return tableFindValue<int32_t>     (tab,key,valueTypeSize,context);
+            case Type::tInt8:
             case Type::tEnumeration8:   return tableFindValue<int8_t>      (tab,key,valueTypeSize,context);
-            case Type::tEnumeration16:  return tableFindValue<int16_t>     (tab,key,valueTypeSize,context);
-            case Type::tEnumeration64:  return tableFindValue<int64_t>     (tab,key,valueTypeSize,context);
-            case Type::tBitfield:       return tableFindValue<Bitfield>    (tab,key,valueTypeSize,context);
+            case Type::tUInt8:
             case Type::tBitfield8:      return tableFindValue<uint8_t>     (tab,key,valueTypeSize,context);
+            case Type::tInt16:
+            case Type::tEnumeration16:  return tableFindValue<int16_t>     (tab,key,valueTypeSize,context);
+            case Type::tUInt16:
             case Type::tBitfield16:     return tableFindValue<uint16_t>    (tab,key,valueTypeSize,context);
+            case Type::tInt64:
+            case Type::tEnumeration64:  return tableFindValue<int64_t>     (tab,key,valueTypeSize,context);
+            case Type::tUInt64:
             case Type::tBitfield64:     return tableFindValue<uint64_t>    (tab,key,valueTypeSize,context);
-            case Type::tInt:            return tableFindValue<int32_t>     (tab,key,valueTypeSize,context);
+            case Type::tBitfield:       return tableFindValue<Bitfield>    (tab,key,valueTypeSize,context);
+            case Type::tInt:
+            case Type::tEnumeration:    return tableFindValue<int32_t>     (tab,key,valueTypeSize,context);
             case Type::tInt2:           return tableFindValue<int2>        (tab,key,valueTypeSize,context);
             case Type::tInt3:           return tableFindValue<int3>        (tab,key,valueTypeSize,context);
             case Type::tInt4:           return tableFindValue<int4>        (tab,key,valueTypeSize,context);
@@ -1739,37 +1808,63 @@ namespace das {
     //   // nolint:CODE                          -> suppresses CODE
     //   // nolint:CODE1,CODE2,...               -> comma-separated list
     //   // nolint:CODE1 nolint:CODE2            -> repeated directives, space-separated
-    //   // free-form prose nolint:CODE more     -> directive anywhere after the `//`
-    // After the `//`, we walk the rest of the line looking for `nolint:` occurrences
-    // and parse a comma-list of codes after each one. Any match wins.
+    //   // nolint:CODE free-form reason         -> reason text after the directive
+    // The `//` must sit outside string/char literals, and `nolint:` must open the
+    // comment's FIRST token (after an optional `!`/`/` opener run) - a `nolint:` in
+    // mid-comment prose or a URL is not a directive. Further `nolint:`-led tokens
+    // then each open a comma-list of codes. daslib/lint.das's stale_nolint_collect
+    // (LINT019) mirrors this scan exactly - change them in lockstep.
+    // Known holes, accepted: a line inside a multi-line string literal, and nested
+    // string literals inside an interpolation `{...}`, confuse the per-line quote
+    // state; both fail toward the finding staying visible, never toward suppression.
     bool rtti_is_nolint_suppressed ( FileInfo * info, uint32_t line, const char * code, Context * /*context*/, LineInfoArg * /*at*/ ) {
         if ( !info || !code || !*code ) return false;
         const char * begin = nullptr;
         uint32_t len = 0;
         if ( !info->getLine(line, begin, len) ) return false;
         const char * end = begin + len;
-        // locate "//"
+        // locate "//", skipping string and char literals (backslash escapes honored)
         const char * p = begin;
-        while ( p + 1 < end && !(p[0] == '/' && p[1] == '/') ) p++;
+        while ( p < end ) {
+            char c = *p;
+            if ( c == '"' || c == '\'' ) {
+                p++;
+                while ( p < end && *p != c ) p += (*p == '\\' && p + 1 < end) ? 2 : 1;
+                if ( p < end ) p++;
+            } else if ( c == '/' && p + 1 < end && p[1] == '/' ) {
+                break;
+            } else {
+                p++;
+            }
+        }
         if ( p + 1 >= end ) return false;
         p += 2;
+        while ( p < end && (*p == '/' || *p == '!') ) p++;    // `//!` docs, `///` piles
+        while ( p < end && (*p == ' ' || *p == '\t') ) p++;
         static const char NOLINT[] = "nolint:";
         constexpr uint32_t NOLINT_LEN = sizeof(NOLINT) - 1;
         const uint32_t codeLen = uint32_t(strlen(code));
-        // walk the rest of the line; each `nolint:` opens a comma-list of codes.
-        while ( p + NOLINT_LEN <= end ) {
-            if ( memcmp(p, NOLINT, NOLINT_LEN) != 0 ) { p++; continue; }
-            p += NOLINT_LEN;
-            // comma-list parse
-            while ( p < end ) {
-                while ( p < end && (*p == ' ' || *p == '\t') ) p++;
-                const char * tokStart = p;
-                while ( p < end && *p != ',' && *p != ' ' && *p != '\t' ) p++;
-                uint32_t tokLen = uint32_t(p - tokStart);
-                if ( tokLen == codeLen && memcmp(tokStart, code, codeLen) == 0 ) return true;
-                while ( p < end && (*p == ' ' || *p == '\t') ) p++;
-                if ( p < end && *p == ',' ) { p++; continue; }
-                break;
+        // positional gate: the comment's first token must open a directive
+        if ( !(p + NOLINT_LEN <= end && memcmp(p, NOLINT, NOLINT_LEN) == 0) ) return false;
+        // whitespace-split tokens; each `nolint:`-led token opens a comma-list of codes
+        while ( p < end ) {
+            while ( p < end && (*p == ' ' || *p == '\t') ) p++;
+            if ( p >= end ) break;
+            if ( p + NOLINT_LEN <= end && memcmp(p, NOLINT, NOLINT_LEN) == 0 ) {
+                p += NOLINT_LEN;
+                // comma-list parse
+                while ( p < end ) {
+                    while ( p < end && (*p == ' ' || *p == '\t') ) p++;
+                    const char * tokStart = p;
+                    while ( p < end && *p != ',' && *p != ' ' && *p != '\t' ) p++;
+                    uint32_t tokLen = uint32_t(p - tokStart);
+                    if ( tokLen == codeLen && memcmp(tokStart, code, codeLen) == 0 ) return true;
+                    while ( p < end && (*p == ' ' || *p == '\t') ) p++;
+                    if ( p < end && *p == ',' ) { p++; continue; }
+                    break;
+                }
+            } else {
+                while ( p < end && *p != ' ' && *p != '\t' ) p++;
             }
         }
         return false;
@@ -1904,6 +1999,9 @@ namespace das {
             addExtern<DAS_BIND_FUN(rtti_contextTotalVariables)>(*this, lib, "get_total_variables",
                 SideEffects::modifyExternal, "rtti_contextTotalVariables")
                     ->arg("context");
+            addExtern<DAS_BIND_FUN(rtti_builtin_context_for_each_init_function)>(*this, lib, "for_each_init_function",
+                SideEffects::modifyExternal, "rtti_builtin_context_for_each_init_function")
+                    ->args({"ctx","block","context","line"});
             addInterop<rtti_contextFunctionInfo,const FuncInfo &,vec4f,int32_t>(*this, lib, "get_function_info",
                 SideEffects::modifyExternal, "rtti_contextFunctionInfo")
                     ->args({"context","index"});
@@ -1919,6 +2017,9 @@ namespace das {
             addExtern<DAS_BIND_FUN(rtti_has_module)>(*this, lib, "has_module",
                 SideEffects::modifyExternal, "rtti_has_module")
                     ->arg("name");
+            addExtern<DAS_BIND_FUN(rtti_module_group_for_each_member)>(*this, lib, "module_group_for_each_member",
+                SideEffects::modifyExternal, "rtti_module_group_for_each_member")
+                    ->args({"group","block","context","line"});
             addExtern<DAS_BIND_FUN(builtin_expected_errors)>(*this, lib, "for_each_expected_error",
                 SideEffects::modifyExternal, "builtin_expected_errors")
                     ->args({"program","block","context","line"});
@@ -1941,10 +2042,19 @@ namespace das {
                     ->args({"serializer","program"});
             addExtern<DAS_BIND_FUN(rtti_ast_serializer_deserialize_program)>(*this, lib, "deserialize_program",
                 SideEffects::modifyExternal, "rtti_ast_serializer_deserialize_program")
-                    ->args({"serializer","block","context","line"});
+                    ->args({"serializer","libGroup","block","context","line"});
+            addExtern<DAS_BIND_FUN(rtti_ast_serializer_deserialize_program_ex)>(*this, lib, "deserialize_program",
+                SideEffects::modifyExternal, "rtti_ast_serializer_deserialize_program_ex")
+                    ->args({"serializer","access","libGroup","block","context","line"});
             addExtern<DAS_BIND_FUN(rtti_ast_serializer_get_data)>(*this, lib, "ast_serializer_get_data",
                 SideEffects::modifyExternal, "rtti_ast_serializer_get_data")
                     ->args({"serializer","block","context","line"});
+            addExtern<DAS_BIND_FUN(rtti_ast_serializer_finalize_usec)>(*this, lib, "ast_serializer_finalize_usec",
+                SideEffects::none, "rtti_ast_serializer_finalize_usec")
+                    ->args({"serializer"});
+            addExtern<DAS_BIND_FUN(rtti_ast_serializer_setup_usec)>(*this, lib, "ast_serializer_setup_usec",
+                SideEffects::none, "rtti_ast_serializer_setup_usec")
+                    ->args({"serializer"});
             addExtern<DAS_BIND_FUN(introduceFile)>(*this, lib, "set_file_source",
                 SideEffects::modifyExternal, "introduceFile")
                     ->args({"access","fileName","text","context","line"});

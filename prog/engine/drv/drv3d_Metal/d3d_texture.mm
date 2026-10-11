@@ -274,16 +274,31 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint
   return true;
 }
 
+// UAV clear covers the whole mip of a volume texture (as on DX12/Vulkan), but
+// the render pass clear writes one depth plane, so clear each plane
+template <typename T>
+static void clear_rwtex(drv3d_metal::Texture *tex, const T val[4], uint32_t face, uint32_t mip_level)
+{
+  if (tex->type != D3DResourceType::VOLTEX)
+  {
+    render.clearTex(tex, val, mip_level, face);
+    return;
+  }
+  const int planes = max(1, tex->depth >> mip_level);
+  for (int plane = 0; plane < planes; ++plane)
+    render.clearTex(tex, val, mip_level, plane);
+}
+
 bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, uint32_t mip_level)
 {
-  render.clearTex((drv3d_metal::Texture*)tex, val, mip_level, face);
+  clear_rwtex((drv3d_metal::Texture*)tex, val, face, mip_level);
 
   return true;
 }
 
 bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint32_t mip_level)
 {
-  render.clearTex((drv3d_metal::Texture*)tex, val, mip_level, face);
+  clear_rwtex((drv3d_metal::Texture*)tex, val, face, mip_level);
 
   return true;
 }
@@ -367,7 +382,6 @@ static bool isReadWriteTier2Format(int fmt)
     case TEXFMT_R16F:
     case TEXFMT_R16UI:
     case TEXFMT_R8:
-    case TEXFMT_R8G8:
     case TEXFMT_R8UI:
       return true;
   }
@@ -378,11 +392,12 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
 {
   int fmt = cflg & TEXFMT_MASK;
 
+  // any writable format can be a UAV, only load and store in one shader (access::read_write) is tier-gated
   unsigned ret = 0;
   if (render.caps.readWriteTextureTier1 && isReadWriteTier1Format(fmt))
-    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
+    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED_LOAD;
   if (render.caps.readWriteTextureTier2 && isReadWriteTier2Format(fmt))
-    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
+    ret |= USAGE_PIXREADWRITE | USAGE_UNORDERED_LOAD;
 
   switch (fmt)
   {
@@ -390,7 +405,8 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
     case TEXFMT_R8G8:
       return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_UNORDERED | ret;
     case TEXFMT_R8G8B8A8:
-        return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE | ret;
+        return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE |
+               USAGE_UNORDERED | ret;
     case TEXFMT_A8R8G8B8:
       return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE |
              USAGE_UNORDERED | ret;
@@ -409,17 +425,23 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
     case TEXFMT_A2R10G10B10:
     case TEXFMT_A2B10G10R10: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
 
-    case TEXFMT_A16B16G16R16:
     case TEXFMT_R16F:
+      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
+    case TEXFMT_A16B16G16R16:
     case TEXFMT_A4R4G4B4:  return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | ret;
 
 
     case TEXFMT_L16: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
 
     case TEXFMT_A32B32G32R32UI:
+    case TEXFMT_A16B16G16R16UI:
     case TEXFMT_R32UI:
+    case TEXFMT_R16UI:
     case TEXFMT_R8UI:    return USAGE_RTARGET | USAGE_TEXTURE | USAGE_UNORDERED | ret;
     case TEXFMT_R32G32UI:   return USAGE_RTARGET | USAGE_TEXTURE | USAGE_UNORDERED | ret;
+    case TEXFMT_R32SI:
+      return USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_BLEND | USAGE_VERTEXTEXTURE | USAGE_UNORDERED |
+             ret;
     case TEXFMT_G16R16:
     case TEXFMT_G16R16F: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
     case TEXFMT_R8G8S:   return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_UNORDERED | ret;
@@ -460,9 +482,9 @@ int d3d::get_max_sample_count(int cflg)
 
 bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned> formats)
 {
-  const uint32_t UAV_OPERATIONS = d3d::USAGE_UNORDERED | d3d::USAGE_UNORDERED_LOAD;
+  // image processing shaders only store to their UAV, so no USAGE_UNORDERED_LOAD
   for (unsigned format : formats)
-    if ((d3d::get_texformat_usage(format, D3DResourceType::TEX) & UAV_OPERATIONS) != UAV_OPERATIONS)
+    if (!(d3d::get_texformat_usage(format, D3DResourceType::TEX) & d3d::USAGE_UNORDERED))
     {
       logdbg("d3d::should_use_compute_for_image_processing is false due to lack of UAV support for %u.", (format & TEXFMT_MASK));
       return false;

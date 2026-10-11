@@ -29,13 +29,13 @@ struct CommandStreamSet
   uint32_t listsInUse = 0;
   debug::ObjectName name;
 
-  void init(ID3D12Device *device, debug::ObjectName set_name)
+  void init(D3DDevice *device, debug::ObjectName set_name)
   {
     name = set_name;
     DX12_CHECK_RESULT(device->CreateCommandAllocator(CommandListTypeName, COM_ARGS(&pool)));
     debug::name_object(pool.Get(), debug::format_object_name("%s.Allocator", name.c_str()));
   }
-  CommandListResultType allocateList(ID3D12Device *device)
+  CommandListResultType allocateList(D3DDevice *device)
   {
     CommandListResultType result = {};
     if (!pool)

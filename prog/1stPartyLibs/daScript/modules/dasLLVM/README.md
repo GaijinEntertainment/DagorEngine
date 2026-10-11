@@ -81,6 +81,72 @@ cached DLL for instant execution.
 - By default, the `dll` is stored in `.jitted_scripts/`.
 - This can be changed using `jit_output_path`.
 
+## Native library with a C API (`-lib`)
+`-lib` emits a native library plus the C header a host calls it through, so a
+program that only needs to *call* one script links no daslang API:
+
+```sh
+./bin/daslang -lib script.das -output build/script
+```
+
+writes `build/script.so` (`.dylib` / `.dll`) and `build/script.h`. Add
+`-- --jit-lib-static` for a `.a` / `.lib` archive instead; the generated header
+records what a host then links.
+
+Which functions cross the boundary, in three forms: `[export_c]` marks them one
+at a time; `-- --jit-lib-export-marked` takes whatever the program already marks
+`[export]`, so a script with a host API needs no new annotation; and
+`-lib-export-all` offers every public function of the entry module whose
+signature C can spell (naming the ones it skips). The first two are a selection
+only - a signature C cannot spell stays a hard error - while export-all skips it
+with a warning. `examples/c_api_library/` builds one library each way and loads
+all three at once through dasbind.
+
+`-- --jit-lib-bindings out/script_c.das` writes the daslang twin of the header
+alongside it: one `[extern(cdecl, late, ...)]` per entry point, plus a das struct
+per structure that crosses. A daslang host then `require`s that file instead of
+hand-writing the declarations or binding the C header through clang, and because
+the externs are `late` the bindings compile before the library exists - which is
+what lets a build system generate them as an ordinary output. The example's
+CMakeLists does exactly that for its three libraries. Every library gets the same four entry points,
+prefixed with the output name, so they always match the header they are declared in:
+
+```c
+script_ctx * script_create(void);
+void script_destroy(script_ctx * ctx);
+const char * script_last_error(script_ctx * ctx);
+void script_shutdown_runtime(void);
+```
+
+One instance owns one daslang context - its own globals, heap and string heap - and `_create`
+works on any thread. Several such libraries coexist in one process, as does one inside a host that
+registered the daslang modules itself: the first there registers the runtime, the rest bind to it.
+Scalars, `string`, pointers and enums cross by value; structures and the
+`float2`..`uint4` / `range` families cross as `const T *` and return through a
+trailing `T * out`. A daslang panic returns zero, leaves `out` untouched, and
+shows up in `script_last_error(ctx)` until the next call clears it.
+
+Codegen is the same as `-exe`: the same private wrappers, the same
+load-resolved globals, no DLL cache. Cross-compilation is not supported here -
+build the library on its target host.
+
+## Standalone contexts, and which tier writes one
+
+A standalone context is a script that carries its own `Context` and needs no
+compiler at run time. Two tiers write one, from the same script:
+
+- **AOT** - `daslang utils/aot/main.das -- -ctx script.das out/` emits C++ the
+  host compiles itself: `class Standalone : public Context` plus one method per
+  `[export]` function, next to the same C entry points `-lib` emits - one
+  describer writes both. The host owns the build, so it cross-compiles
+  anywhere its own toolchain reaches.
+- **LLVM** - `-lib` and `-exe` above emit the binary directly, no C++ compiler
+  in the loop and no daslang sources shipped. `-exe` can cross-compile, since
+  codegen picks the target triple; `-lib` is host-only.
+
+Both answer the same C API, so a host can move between them without editing a
+call site. `skills/cpp_integration.md` covers choosing one.
+
 ## Cross-compilation (WebAssembly)
 The JIT pipeline can emit a non-host target instead of running on the host.
 The supported cross-target is `wasm32-unknown-emscripten` (the default when no
@@ -89,7 +155,7 @@ explicit triple is passed).
 ### How it works
 `-exe` mode usually emits a host object via LLVM and links it with the host linker (`lld-link` on Windows-MSVC, `c++`/`clang` elsewhere).
 When a cross-compile target is selected, dasLLVM instead:
-1. Initializes the WebAssembly LLVM target (lazy — no JIT-startup overhead when unused).
+1. Initializes the WebAssembly LLVM target (lazy - no JIT-startup overhead when unused).
 2. Builds a `TargetMachine` for the requested triple and pins the module's data
    layout / triple so codegen sizes pointers as 32-bit.
 3. Emits a `wasm32` object file via `LLVMTargetMachineEmitToFile`.
@@ -101,19 +167,19 @@ The runtime archive is auto-located at
 `<das_root>/web/output/lib/liblibDaScript_runtime.a` and is produced by the
 existing emscripten build (`web/CMakeLists.txt`). If a program references
 runtime symbols but the archive is missing, the link still proceeds and emits
-a warning — the resulting `.wasm` will fail at load time on unresolved
+a warning - the resulting `.wasm` will fail at load time on unresolved
 imports for every runtime symbol that is actually used.
 
 ### Linker tools
 The wasm link always goes through `emcc`. dasLLVM resolves it in this order:
 1. Explicit override (set `cop.jit_path_to_linker` programmatically).
-2. `<das_root>/bin/emcc[.bat]` — bundled next to `daslang`.
+2. `<das_root>/bin/emcc[.bat]` - bundled next to `daslang`.
 3. `emcc` on `PATH` (typically provided by an activated emsdk).
 
 ### Building libDaScript_runtime for wasm
 The runtime archive needed by the emcc path is a side-effect of the
 emscripten build documented in `web/README.md`. One-time setup (assumes
-`emcc` is on `PATH` — see `web/README.md` for install options, e.g.
+`emcc` is on `PATH` - see `web/README.md` for install options, e.g.
 `sudo apt install emscripten` on Ubuntu):
 
 ```sh
@@ -145,7 +211,7 @@ def add(a, b : int) : int { return a + b; }
 [export] def main() : int { return add(2, 3); }
 ```
 Pick a triple via either the script or the CLI (only one is required; both
-are optional — CLI wins when both present):
+are optional - CLI wins when both present):
 
 **Script-level option:**
 ```
@@ -169,7 +235,7 @@ For pure-arithmetic programs (no runtime linked):
 node -e 'WebAssembly.instantiate(require("fs").readFileSync("add.wasm"),{env:new Proxy({},{get:()=>()=>0})}).then(r=>console.log(r.instance.exports.main()))'
 ```
 Prints `5`.
-The `Proxy` supplies a `()=>0` stub for every wasm import — needed because
+The `Proxy` supplies a `()=>0` stub for every wasm import - needed because
 `--allow-undefined` leaves daslang-runtime symbols as imports.
 
 For programs that pull in `libDaScript_runtime` (auto-detected, see *How it
@@ -177,7 +243,7 @@ works*), the output is `-sSTANDALONE_WASM` and the only imports are wasi
 syscalls. Run under any wasi-capable host:
 ```
 wasmtime add.wasm
-# or with Node ≥ 20:
+# or with Node >= 20:
 node --experimental-wasi-unstable-preview1 -e \
   'const {WASI}=require("node:wasi");const fs=require("fs");\
    const w=new WASI({version:"preview1"});\

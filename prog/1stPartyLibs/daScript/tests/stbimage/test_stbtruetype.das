@@ -14,8 +14,8 @@ def font_path() : string {
 
 def load_font_data() : array<uint8> {
     var data : array<uint8>
-    fopen(font_path(), "rb") <| $(f) {
-        fmap(f) <| $(mapped) {
+    fopen(font_path(), "rb") $(f) {
+        fmap(f) $(mapped) {
             let sz = length(mapped)
             data |> resize(sz)
             unsafe {
@@ -32,7 +32,7 @@ def load_font_data() : array<uint8> {
 def test_get_number_of_fonts(t : T?) {
     t |> run("stbtt_num_fonts returns 1 for single-font TTF") <| @(tt : T?) {
         var data <- load_font_data()
-        tt |> success(length(data) > 0, "font data loaded")
+        tt |> success(!empty(data), "font data loaded")
         tt |> equal(stbtt_num_fonts(data), 1)
     }
 }
@@ -341,7 +341,7 @@ def test_codepoint_shape(t : T?) {
         stbtt_init(info, data)
         var count = 0
         var has_move = false
-        stbtt_codepoint_shape(info, 65) <| $(v) {
+        stbtt_codepoint_shape(info, 65) $(v) {
             count++
             if (int(v.vtype) == STBTT_vmove) {
                 has_move = true
@@ -359,7 +359,7 @@ def test_codepoint_shape(t : T?) {
 [test]
 def test_load_font(t : T?) {
     t |> run("load_font loads font without atlas") <| @(tt : T?) {
-        var font <- load_font(font_path())
+        let font <- load_font(font_path())
         tt |> success(is_valid(font), "font is valid")
         tt |> success(font.pixel_height == 0.0, "no default pixel_height")
         tt |> success(empty(font.chardata), "no chardata")
@@ -369,7 +369,7 @@ def test_load_font(t : T?) {
 [test]
 def test_load_font_invalid(t : T?) {
     t |> run("load_font returns invalid for missing file") <| @(tt : T?) {
-        var font <- load_font("nonexistent.ttf")
+        let font <- load_font("nonexistent.ttf")
         tt |> success(!is_valid(font), "font is not valid")
     }
 }
@@ -418,7 +418,7 @@ def test_font_codepoint_shape(t : T?) {
     t |> run("codepoint_shape on Font iterates vertices") <| @(tt : T?) {
         var font <- load_font(font_path())
         var count = 0
-        font |> codepoint_shape(65) <| $(v) {
+        font |> codepoint_shape(65) $(v) {
             count++
         }
         tt |> success(count > 0, "has vertices")

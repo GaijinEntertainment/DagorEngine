@@ -41,7 +41,7 @@ struct LensFlareVertex
 };
 #pragma pack(pop)
 
-LensFlareRenderer::LensFlareData::LensFlareData(const eastl::string config_name, const Params &_params) :
+LensFlareRenderer::LensFlareData::LensFlareData(eastl::string config_name, const Params &_params) :
   configName(eastl::move(config_name)), params(_params)
 {}
 

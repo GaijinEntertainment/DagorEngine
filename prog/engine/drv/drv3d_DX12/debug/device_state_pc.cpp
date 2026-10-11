@@ -248,7 +248,7 @@ void DeviceState::nameResource(ID3D12Resource *resource, eastl::wstring_view nam
 void DeviceState::nameObject(ID3D12Object *object, eastl::string_view name)
 {
   globalState->captureTool().nameObject(object, name);
-  // globalState->postmortemTrace().nameObject(object, name);
+  globalState->postmortemTrace().nameObject(object, name);
   if (isValidationActive)
     set_object_name(object, name);
 }
@@ -256,12 +256,15 @@ void DeviceState::nameObject(ID3D12Object *object, eastl::string_view name)
 void DeviceState::nameObject(ID3D12Object *object, eastl::wstring_view name)
 {
   globalState->captureTool().nameObject(object, name);
-  // globalState->postmortemTrace().nameObject(object, name);
+  globalState->postmortemTrace().nameObject(object, name);
   if (isValidationActive)
     set_object_name(object, name);
 }
 
-bool DeviceState::isObjectNamingActive() const { return isValidationActive || globalState->captureTool().isAnyActive(); }
+bool DeviceState::isObjectNamingActive() const
+{
+  return isValidationActive || globalState->captureTool().isAnyActive() || globalState->postmortemTrace().isAnyActive();
+}
 
 TraceCheckpoint DeviceState::getTraceCheckpoint() { return globalState->postmortemTrace().getTraceCheckpoint(); }
 
@@ -291,7 +294,7 @@ void DeviceState::onDeviceRemoved(D3DDevice *device, HRESULT remove_reason)
 
 void DeviceState::preRecovery()
 {
-  globalState->postmortemTrace().teardown();
+  globalState->postmortemTrace().onDeviceRecovery();
   unregister_message_callback(debugQueue.Get(), callbackCookie);
   debugQueue.Reset();
 }

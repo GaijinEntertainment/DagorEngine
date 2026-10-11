@@ -1169,3 +1169,15 @@ def test_env_config_default_doc_and_path(t : T?) {
         }
     }
 }
+
+[test]
+def test_get_host_binary(t : T?) {
+    let host = get_host_binary()
+    if (fexist(host)) {
+        t |> equal(get_full_file_name(host), host, "a host found by path is absolute")
+    } else {
+        t |> equal(host, base_name(host), "a host the shell found on PATH stays a bare name: {host}")
+    }
+    let bare = "no-such-binary-7f37b1e9"
+    t |> success(!fexist(get_full_file_name(bare)), "a bare name resolves beside the cwd, where nothing sits - get_host_binary keeps such a name bare for PATH")
+}

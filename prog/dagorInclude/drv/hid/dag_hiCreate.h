@@ -14,14 +14,18 @@ namespace HumanInput
 IGenKeyboardClassDrv *createWinKeyboardClassDriver();
 IGenPointingClassDrv *createWinMouseClassDriver();
 
-IGenJoystickClassDrv *createJoystickClassDriver(bool exclude_xinput = false, bool remap_360 = false);
+//! exclude_sony_pads: DirectInput skips every pad of dsPadIds.h by its ids, whether or not the raw HID driver of
+//! createSonyPadJoystickClassDriver() opened it; evdev skips it only when the game can read and write its hidraw
+//! node (the udev rules), else the pad stays an evdev joystick; the other backends ignore the flag
+IGenJoystickClassDrv *createJoystickClassDriver(bool exclude_xinput = false, bool remap_360 = false, bool exclude_sony_pads = false);
 IGenJoystickClassDrv *createXinputJoystickClassDriver(bool should_mix_input = false);
+//! DualSense, DualSense Edge and DualShock 4 over raw HID (Windows hid.dll, Linux hidraw); device id "ds4"
+IGenJoystickClassDrv *createSonyPadJoystickClassDriver();
 IGenJoystickClassDrv *createGameInputJoystickClassDriver(bool should_mix_input = false);
 IGenJoystickClassDrv *createGameInputFlightStickClassDriver();
 CompositeJoystickClassDriver *createGameInputCompositeJoystickClassDriver(bool should_mix_input = false, bool add_flight_stick = true);
 IGenKeyboardClassDrv *createGameInputKeyboardClassDriver();
 IGenPointingClassDrv *createGameInputPointingClassDriver(bool emu_mouse = false, bool hw_mouse = false);
-IGenJoystickClassDrv *createSteamJoystickClassDriver(const char *absolute_path_to_controller_config);
 
 CompositeJoystickClassDriver *createPS4CompositeJoystickClassDriver();
 IGenJoystickClassDrv *createPS4JoystickClassDriver();

@@ -85,12 +85,16 @@ shader blood_projective_decal_decals
   }
   (ps) {
     blood_decals_diff_tex@tex2d = blood_decals_diff_tex;
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     blood_decal_begin_color@f4 = blood_begin_color;
     blood_decal_end_color@f4 = blood_end_color;
     blood_decal_timings@f4 = blood_decal_timings;
     blood_decals_depth_atlas_tex@tex2d = blood_decals_depth_atlas_tex;
     blood_decals_depth_atlas_tex_cmpSampler@cmpSampler = blood_decals_depth_atlas_tex_samplerstate;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   hlsl {

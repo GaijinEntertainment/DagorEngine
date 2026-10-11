@@ -1,31 +1,29 @@
-//-file:plus-string
-function dict(tab, src) {
-  local maxOcc = 0
-  foreach (l in src) {
-    if (!(l in tab))
-      tab[l] <- 0
-    local tabV = ++tab[l]
-    maxOcc = tabV > maxOcc ? tabV : maxOcc
+from "profile.nut" import benchmark
+
+const KEYS = 500000
+const PASSES = 10
+
+let wordList = array(KEYS)
+for (local i = 0; i < KEYS; i++)
+  wordList[i] = $"_{(271828183 ^ (i * 119)) % KEYS}"
+
+function maxCount(words) {
+  let counts = {}
+  local best = 0
+  foreach (w in words) {
+    let n = (counts?[w] ?? 0) + 1
+    counts[w] <- n
+    if (n > best)
+      best = n
   }
-  return maxOcc
+  return best
 }
 
-local PASSES = 10
-local TAB = {}
-local SRC = []
-local n = 500000
-local modn = n
-for (local i = 0; i < n; ++i) {
-  local num = (271828183 ^ i*119)%modn
-  SRC.append("_" + num)
+function passes() {
+  local best = 0
+  for (local i = 0; i < PASSES; i++)
+    best = maxCount(wordList)
+  return best
 }
 
-
-local profile_it
-try {
-  profile_it = getroottable()["loadfile"]("profile.nut")()
-  if (profile_it == null)
-    throw "no loadfile"
-} catch(e) profile_it = require("profile.nut")
-
-print("\"dictionary\", " + profile_it(25, function () { for (local r = 0; r < PASSES; ++r) { TAB = {}; dict(TAB, SRC) } }) + ", 25\n")
+benchmark("dictionary", 20, passes)

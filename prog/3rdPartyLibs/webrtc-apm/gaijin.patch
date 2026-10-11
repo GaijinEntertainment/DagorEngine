@@ -50,3 +50,69 @@ index 825c68670fb4..2013c3e08718 100644
  }
  
  }  // namespace
+diff --git a/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/system/arch.h b/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/system/arch.h
+index 261df23a8287..6689462cfdb9 100644
+--- a/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/system/arch.h
++++ b/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/system/arch.h
+@@ -19,12 +19,16 @@
+ //   https://www.agner.org/optimize/calling_conventions.pdf
+ //   https://sourceforge.net/p/predef/wiki/Architectures/
+ //   or with gcc, run: "echo | gcc -E -dM -"
+-#if defined(_M_X64) || defined(__x86_64__)
++// Gaijin change
++#if (defined(_M_X64) || defined(__x86_64__)) && !defined(_M_ARM64EC)
++// ~Gaijin change
+ #define WEBRTC_ARCH_X86_FAMILY
+ #define WEBRTC_ARCH_X86_64
+ #define WEBRTC_ARCH_64_BITS
+ #define WEBRTC_ARCH_LITTLE_ENDIAN
+-#elif defined(_M_ARM64) || defined(__aarch64__)
++// Gaijin change
++#elif defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__aarch64__)
++// ~Gaijin change
+ #define WEBRTC_ARCH_ARM_FAMILY
+ #define WEBRTC_ARCH_64_BITS
+ #define WEBRTC_ARCH_LITTLE_ENDIAN
+diff --git a/prog/3rdPartyLibs/webrtc-apm/webrtc/system_wrappers/source/denormal_disabler.cc b/prog/3rdPartyLibs/webrtc-apm/webrtc/system_wrappers/source/denormal_disabler.cc
+index bb9c05643c12..a465e7d0ad34 100644
+--- a/prog/3rdPartyLibs/webrtc-apm/webrtc/system_wrappers/source/denormal_disabler.cc
++++ b/prog/3rdPartyLibs/webrtc-apm/webrtc/system_wrappers/source/denormal_disabler.cc
+@@ -19,8 +19,11 @@ namespace {
+ #define WEBRTC_DENORMAL_DISABLER_X86_SUPPORTED
+ #endif
+ 
++// Gaijin change
+ #if defined(WEBRTC_DENORMAL_DISABLER_X86_SUPPORTED) || \
+-    defined(WEBRTC_ARCH_ARM_FAMILY)
++    (defined(WEBRTC_ARCH_ARM_FAMILY) &&                 \
++     (defined(__clang__) || !defined(_MSC_VER)))
++// ~Gaijin change
+ #define WEBRTC_DENORMAL_DISABLER_SUPPORTED
+ #endif
+ 
+diff --git a/prog/3rdPartyLibs/webrtc-apm/webrtc/third_party/pffft/src/pffft.c b/prog/3rdPartyLibs/webrtc-apm/webrtc/third_party/pffft/src/pffft.c
+index bdac4d784999..5e9cb3bf9ab1 100644
+--- a/prog/3rdPartyLibs/webrtc-apm/webrtc/third_party/pffft/src/pffft.c
++++ b/prog/3rdPartyLibs/webrtc-apm/webrtc/third_party/pffft/src/pffft.c
+@@ -131,7 +131,9 @@ inline v4sf ld_ps1(const float *p) { v4sf v=vec_lde(0,p); return vec_splat(vec_p
+ /*
+   SSE1 support macros
+ */
+-#elif !defined(PFFFT_SIMD_DISABLE) && (defined(__x86_64__) || defined(_M_X64) || defined(i386) || defined(__i386__) || defined(_M_IX86))
++// Gaijin change
++#elif !defined(PFFFT_SIMD_DISABLE) && (defined(__x86_64__) || defined(_M_X64) || defined(i386) || defined(__i386__) || defined(_M_IX86)) && !defined(_M_ARM64EC)
++// ~Gaijin change
+ 
+ #include <xmmintrin.h>
+ typedef __m128 v4sf;
+@@ -151,7 +153,9 @@ typedef __m128 v4sf;
+ /*
+   ARM NEON support macros
+ */
+-#elif !defined(PFFFT_SIMD_DISABLE) && (defined(__arm__) || defined(__ARMEL__) || defined(__aarch64__) || defined(_M_ARM64))
++// Gaijin change
++#elif !defined(PFFFT_SIMD_DISABLE) && (defined(__arm__) || defined(__ARMEL__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC))
++// ~Gaijin change
+ #  include <arm_neon.h>
+ typedef float32x4_t v4sf;
+ #  define SIMD_SZ 4

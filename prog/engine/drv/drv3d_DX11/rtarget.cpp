@@ -106,6 +106,7 @@ void flush_rendertargets(RenderState &rs)
   }
   if (rs.rtModified || rs.texFetchState.uavState[STAGE_PS].uavModifiedMask)
   {
+    ResAutoLock resLock;
     Driver3dRenderTarget &rt = rs.nextRtState;
 
     if ((rt.used & Driver3dRenderTarget::TOTAL_MASK) == 0 && !rs.texFetchState.uavState[STAGE_PS].uavsUsed)
@@ -846,15 +847,15 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_r
       Point2 toLT, toRB, fromLT, fromRB;
       if (from_rect)
       {
-        fromLT = Point2(from_rect->left / (srcw - 0.f), 1. - from_rect->top / (srch - 0.f));
-        fromRB = Point2(from_rect->right / (srcw - 0.f), 1. - from_rect->bottom / (srch - 0.f));
+        fromLT = Point2(from_rect->left / (srcw - 0.f), 1.f - from_rect->top / (srch - 0.f));
+        fromRB = Point2(from_rect->right / (srcw - 0.f), 1.f - from_rect->bottom / (srch - 0.f));
       }
       else
         fromLT = Point2(0, 1), fromRB = Point2(1, 0);
       if (to_rect)
       {
-        toLT = Point2(to_rect->left / (dstw - 0.f), 1. - to_rect->top / (dsth - 0.f));
-        toRB = Point2(to_rect->right / (dstw - 0.f), 1. - to_rect->bottom / (dsth - 0.f));
+        toLT = Point2(to_rect->left / (dstw - 0.f), 1.f - to_rect->top / (dsth - 0.f));
+        toRB = Point2(to_rect->right / (dstw - 0.f), 1.f - to_rect->bottom / (dsth - 0.f));
       }
       else
         toLT = Point2(0, 1), toRB = Point2(1, 0);

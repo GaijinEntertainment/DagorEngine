@@ -196,12 +196,6 @@ public:
     return clamp(ret, 0, max((int)track.size() - 1, 0));
   }
 
-  bool shouldRender(const Point3 &origin) const
-  {
-    G_UNUSED(origin);
-    return true;
-  }
-
   TrackEmitter() :
     lastNorm(0, 1, 0),
     trackWidth(defaultTrackWidth),
@@ -419,9 +413,8 @@ static void loadRange(DataBlock *blk, const char *name, RealRange &result)
   }
 }
 
-static int tires_drift_texVarId = -1, tires_diffuse_texVarId = -1, tires_normal_texVarId = -1, tires_base_yVarId = -1,
-           track_smoothness_reflectanceVarId = -1, tires_texture_widthVarId = -1, tires_start_instVarId = -1,
-           tires_frame_countVarId = -1, tires_tcY_stepVarId = -1;
+static int tires_drift_texVarId = -1, tires_diffuse_texVarId = -1, tires_normal_texVarId = -1, track_smoothness_reflectanceVarId = -1,
+           tires_texture_widthVarId = -1, tires_start_instVarId = -1, tires_frame_countVarId = -1, tires_tcY_stepVarId = -1;
 
 static uint32_t nodeCount = MAX_ALLOWED_TRACKS * (4 + MAX_NODES_PER_TRACK);
 
@@ -494,7 +487,6 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
   tires_normal_texVarId = get_shader_variable_id("tires_normal_tex", true);
   track_smoothness_reflectanceVarId = get_shader_variable_id("track_smoothness_reflectance", true);
   tires_texture_widthVarId = get_shader_variable_id("tires_texture_width", true);
-  tires_base_yVarId = get_shader_variable_id("tires_base_y", true);
   tires_frame_countVarId = get_shader_variable_id("tires_frame_count", true);
   tires_start_instVarId = get_shader_variable_id("tires_start_inst", true);
   tires_tcY_stepVarId = get_shader_variable_id("tires_tcY_step", true);
@@ -549,8 +541,9 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
       unsigned writeSmoothness = trackBlk->getBool("writeSmoothness", false) ? (WRITEMASK_BLUE1) : 0;
       unsigned writeMicrodetail = trackBlk->getBool("writeMaterial", false) ? (WRITEMASK_BLUE2) : 0;
       unsigned writeReflectance = trackBlk->getBool("writeReflectance", false) ? (WRITEMASK_GREEN2) : 0;
+      unsigned writeAO = trackBlk->getBool("writeAO", false) ? (WRITEMASK_RED2) : 0;
 
-      unsigned writemask = writeAlbedo | writeNormal | writeMicrodetail | writeSmoothness | writeReflectance;
+      unsigned writemask = writeAlbedo | writeNormal | writeMicrodetail | writeSmoothness | writeReflectance | writeAO;
 
       shaders::OverrideState state;
       state.colorWr = writemask;
@@ -638,7 +631,7 @@ void clear(bool completeClear)
   }
 }
 
-void before_render(float /*dt*/, const Point3 &origin, bool need_deform_pressure_buffer)
+void before_render(float /*dt*/, bool need_deform_pressure_buffer)
 {
   if (!renderDataVS.getBuf())
     return;
@@ -653,7 +646,7 @@ void before_render(float /*dt*/, const Point3 &origin, bool need_deform_pressure
   {
     for (const auto &tr : emitters)
     {
-      if (tr.trackTypeNo != renderType || tr.track.size() == 0 || !tr.shouldRender(origin))
+      if (tr.trackTypeNo != renderType || tr.track.size() == 0)
         continue;
 
       if (!fadeTrackEnds)
@@ -693,8 +686,6 @@ void before_render(float /*dt*/, const Point3 &origin, bool need_deform_pressure
     renderCount[renderType] = renderData.size() - lastSize;
     lastSize = renderData.size();
   }
-
-  ShaderGlobal::set_float(tires_base_yVarId, origin.y);
 
   uint32_t lockCount = min(renderData.size(), nodeCount);
 

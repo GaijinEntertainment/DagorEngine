@@ -2,7 +2,7 @@ options gen2
 require daslib/decs_boost
 require dastest/testing_boost public
 
-[test]
+[test, unused_argument(t)]
 def test_globals(t : T?) {
     feint("hello")
 }

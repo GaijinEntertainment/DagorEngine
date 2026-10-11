@@ -58,7 +58,7 @@ public:
   void actObjects(float dt) override { mFastPhysEditor.update(dt); }
   void beforeRenderObjects() override { mFastPhysEditor.beforeRender(); }
   void renderObjects() override { mFastPhysEditor.render(); }
-  void renderTransObjects() override { mFastPhysEditor.renderTrans(); }
+  void renderTransObjects(BaseTexture *) override { mFastPhysEditor.renderTrans(); }
   void renderGeometry(Stage stage) override { mFastPhysEditor.renderGeometry(stage); }
   void updateImgui() override;
 

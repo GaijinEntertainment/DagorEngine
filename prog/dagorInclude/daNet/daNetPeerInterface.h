@@ -196,6 +196,7 @@ private:
     volatile uint32_t lowestRoundTripTime;
     volatile uint32_t lastRoundTripTimeVariance;
     volatile uint32_t packetLoss;
+    volatile uint32_t relayRoundTripTime;
   };
   Tab<PeerResponsiveness> peerResponsiveness;
   DaNetTime responsivenessUpdateStamp;

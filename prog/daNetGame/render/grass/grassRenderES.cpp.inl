@@ -84,7 +84,8 @@ public:
     Sbuffer *eraser_instance_buffer,
     ShaderElement *grass_eraser,
     PostFxRenderer &sdf_eraser,
-    bool useSdfEraser) :
+    bool useSdfEraser,
+    IRandomGrassRenderHelper *extra_helper) :
     renderer(r),
     provider(p),
     oviewproj(),
@@ -95,7 +96,8 @@ public:
     eraserInstanceBuffer(eraser_instance_buffer),
     grassEraser(grass_eraser),
     sdfEraser(sdf_eraser),
-    useSdfEraser(useSdfEraser)
+    useSdfEraser(useSdfEraser),
+    extraHelper(extra_helper)
   {}
   ~RandomGrassRenderHelper() {}
   bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &glob_tm, const TMatrix4 &proj_tm) override;
@@ -113,6 +115,7 @@ private:
   ShaderElement *grassEraser;
   PostFxRenderer &sdfEraser;
   bool useSdfEraser;
+  IRandomGrassRenderHelper *extraHelper;
 };
 
 
@@ -149,6 +152,9 @@ bool RandomGrassRenderHelper::beginRender(const Point3 &center_pos, const BBox3 
   oblock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
 
+  if (extraHelper)
+    extraHelper->beginRender(center_pos, box, glob_tm, proj);
+
   return true;
 }
 
@@ -159,6 +165,9 @@ void RandomGrassRenderHelper::endRender()
   // restore the ambient mode shadervar for passes that still rely on inheriting it
   renderer.setLMeshRenderingMode(omode);
   ShaderGlobal::setBlock(oblock, ShaderGlobal::LAYER_FRAME);
+
+  if (extraHelper)
+    extraHelper->endRender();
 }
 
 void RandomGrassRenderHelper::renderMask()
@@ -169,6 +178,15 @@ void RandomGrassRenderHelper::renderMask()
   desc.invGeomLodDist = renderer.getInvGeomLodDist();
   renderer.render(reinterpret_cast<mat44f_cref>(globTm), projTm, frustum, provider, LandMeshRenderer::RENDER_GRASS_MASK, desc,
     ::grs_cur_view.pos, HmapOrigin(hmapOrigin), LandMeshRenderer::RENDER_FOR_GRASS);
+
+  if (extraHelper)
+  {
+    static const int lmgmBlockId = ShaderGlobal::getBlockId("land_mesh_grass_mask");
+    FRAME_LAYER_GUARD(globalFrameBlockId);
+    SCENE_LAYER_GUARD(lmgmBlockId);
+    extraHelper->renderMask();
+  }
+
   if (eraserCount > 0 && eraserInstanceBuffer && grassEraser)
   {
     TIME_D3D_PROFILE(grass_erasers);
@@ -193,6 +211,14 @@ void RandomGrassRenderHelper::renderColor()
   desc.invGeomLodDist = renderer.getInvGeomLodDist();
   renderer.render(reinterpret_cast<mat44f_cref>(globTm), projTm, frustum, provider, LandMeshRenderer::RENDER_CLIPMAP, desc,
     ::grs_cur_view.pos, HmapOrigin(hmapOrigin), LandMeshRenderer::RENDER_FOR_GRASS);
+
+  if (extraHelper)
+  {
+    static const int lmpcBlockId = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
+    FRAME_LAYER_GUARD(globalFrameBlockId);
+    SCENE_LAYER_GUARD(lmpcBlockId);
+    extraHelper->renderColor();
+  }
 }
 ECS_REGISTER_RELOCATABLE_TYPE(GrassRenderer, nullptr);
 
@@ -387,7 +413,7 @@ void GrassRenderer::generateGrassPerCamera(const TMatrix &itm)
     const float rendInstHeightmapMaxHt = get_rendinst_heightmap_max_ht(rendInstHeightmap.get());
 
     RandomGrassRenderHelper rhlp(*lmeshRenderer, *lmeshManager, rendInstHeightmapMaxHt, min(grassErasersActualSize, MAX_GRASS_ERASERS),
-      grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser, useSdfEraser);
+      grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser, useSdfEraser, extraMaskColorHelper);
 
     grass.generatePerCamera(itm.getcol(3), rhlp);
   }
@@ -409,7 +435,7 @@ void GrassRenderer::generateGrassPerView(
   const float rendInstHeightmapMaxHt = get_rendinst_heightmap_max_ht(rendInstHeightmap.get());
 
   RandomGrassRenderHelper rhlp(*lmeshRenderer, *lmeshManager, rendInstHeightmapMaxHt, min(grassErasersActualSize, MAX_GRASS_ERASERS),
-    grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser, useSdfEraser);
+    grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser, useSdfEraser, extraMaskColorHelper);
 
   grass.generatePerView(view, frustum, itm.getcol(3), prev_itm.getcol(3), itm.getcol(2), rhlp);
 
@@ -872,24 +898,20 @@ static void reinit_grass_on_settings_appear_es(const ecs::Event &, ecs::EntityMa
 ECS_ON_EVENT(EventRendinstsLoaded)
 void init_grass_ri_clipmap_es(const ecs::Event &, GrassRenderer &grass_render) { grass_render.initGrassRendinstClipmap(); }
 
-ECS_ON_EVENT(OnRenderSettingsReady)
-ECS_TRACK(render_settings__bare_minimum, render_settings__grassQuality)
-static void grass_quiality_es(const ecs::Event &,
-  ecs::EntityManager &manager,
-  bool render_settings__bare_minimum,
-  const ecs::string &render_settings__grassQuality)
+template <typename Callable>
+static void get_render_settings_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
+
+ECS_ON_EVENT(on_appear, OnRenderSettingsUpdated)
+static void apply_grass_render_settings_es(const ecs::Event &evt, ecs::EntityManager &manager, GrassRenderer &grass_render)
 {
-  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) {
-    const GrassQuality newQuality =
-      render_settings__bare_minimum ? GrassQuality::GRASS_QUALITY_LOW : str_to_grass_quality(render_settings__grassQuality.c_str());
-    grass_render.grass.setQuality(newQuality);
-  });
+  grass_render.grass.applyAnisotropy();
+  get_render_settings_ecs_query(manager, get_render_settings(evt),
+    [&grass_render](bool render_settings__bare_minimum, const ecs::string &render_settings__grassQuality) {
+      const GrassQuality newQuality =
+        render_settings__bare_minimum ? GrassQuality::GRASS_QUALITY_LOW : str_to_grass_quality(render_settings__grassQuality.c_str());
+      grass_render.grass.setQuality(newQuality);
+    });
 }
-
-
-ECS_TRACK(render_settings__anisotropy)
-ECS_REQUIRE(int render_settings__anisotropy)
-static void track_anisotropy_change_es(const ecs::Event &, GrassRenderer &grass_render) { grass_render.grass.applyAnisotropy(); }
 
 void grass_prepare(const CameraParams &main_view,
   const CameraParams &prev_main_view,
@@ -963,3 +985,8 @@ static void reset_grass_render(bool full_reset)
 }
 
 REGISTER_D3D_AFTER_RESET_FUNC(reset_grass_render);
+
+void grass_set_extra_helper(IRandomGrassRenderHelper *helper)
+{
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.extraMaskColorHelper = helper; });
+}

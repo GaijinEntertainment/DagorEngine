@@ -252,7 +252,7 @@ CPPopt =
 
 if $(Platform) in windows {
   CPPopt +=
-    /d2Zi+
+    -d2Zi+
     -DWIN32
   ;
 }

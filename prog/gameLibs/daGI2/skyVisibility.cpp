@@ -245,6 +245,7 @@ bool SkyVisibility::updateClip(uint32_t clip_no, const Point3 &world_pos, bool u
 
   setClipVars(clip_no, probeSize);
   setTraceDist(clip_no);
+  ShaderGlobal::set_int(dagi_sky_vis_use_sim_bounceVarId, clip_no < simulatedBounceCascadesCount ? 1 : 0);
   {
     TIME_D3D_PROFILE(skyvis_interpolate);
     // todo:implement split interpolate!
@@ -359,7 +360,7 @@ void SkyVisibility::initTemporal(uint32_t frames_to_update_clip)
     if (!supportUnorderedLoad)
       debug("SkyVis: unordered load is not supported. filtering with multiplass");
     dagi_sky_visibility_probabilities = dag::create_sbuffer(sizeof(uint32_t), DAGI_MAX_SKY_VIS_CLIPS * 2 + 1,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | debug_flag, 0, "dagi_sky_visibility_probabilities", RESTAG_DAGI2);
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_ZEROMEM | debug_flag, 0, "dagi_sky_visibility_probabilities", RESTAG_DAGI2);
     debug("SkyVis: selectedProbesBufferSize: %d", selectedProbesBufferSize);
     debug("SkyVis: dagi_sky_visibility_probabilities buffer size: %d", DAGI_MAX_SKY_VIS_CLIPS * 2 + 1);
   }

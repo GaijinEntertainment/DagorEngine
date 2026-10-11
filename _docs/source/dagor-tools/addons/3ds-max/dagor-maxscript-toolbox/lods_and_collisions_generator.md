@@ -14,7 +14,7 @@ This script requires **3ds Max 2018 or later**.
 
 This script provides superior triangle optimization compared to tools like
 MultiRes or ProOptimizer. It simplifies the process by requiring only a single
-button press. The script more accurately preserves texture coordinates and
+button click. The script more accurately preserves texture coordinates and
 texture coordinate edges. Additionally, the advanced features support
 high-quality collision generation and specific settings tailored for the Dagor
 Engine.
@@ -170,7 +170,7 @@ visual quality loss, consider exploring the advanced settings detailed below.
 
 3. **Collision Height Cutoff**
 
-   Enabling **Collision Cut From Top** checkbox {cnum}`8` allows you to cut off
+   Selecting the **Collision Cut From Top** checkbox {cnum}`8` allows you to cut off
    the collision mesh at a specified height, set in **Collision Cut Height**
    parameter {cnum}`13`. This can be useful for optimizing performance by
    removing unnecessary upper parts of the collision mesh, such as branches or

@@ -19,7 +19,7 @@ struct BulkItem {
 def test_bulk_create_long_entity_count(t : T?) {
     restart()
     let N = 100_000
-    create_entities(N) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(N) $(_eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, BulkItem(payload = uint8(i & int(0xFF))))
     }
     commit()

@@ -699,6 +699,7 @@ struct Mesh
   uint32_t colorOffset = 0;
   uint32_t indicesOffset = 0;
   uint32_t weightsOffset = 0;
+  uint32_t corOffset = MeshInfo::invalidOffset;
   uint32_t vertexStride = 0;
   uint32_t baseVertex = 0;
   uint32_t startVertex = 0;

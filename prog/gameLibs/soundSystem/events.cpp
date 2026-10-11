@@ -1103,8 +1103,6 @@ bool play_oneshot(const char *name, const char *path, const Point3 *position, ie
     return true;
   }
 
-  start_impl(*descAndInstance.second);
-
   if (position && attributes.is3d())
     steam_audio::spatializer::append(descAndInstance.second, *position);
 
@@ -1113,6 +1111,7 @@ bool play_oneshot(const char *name, const char *path, const Point3 *position, ie
     occlusion::append(descAndInstance.second, descAndInstance.first, *position);
     occlusion_gpu::append_new_instance(descAndInstance.second, descAndInstance.first, *position);
   }
+  start_impl(*descAndInstance.second);
   abandon_impl(*descAndInstance.second, attributes);
 
   if (!attributes.isOneshot() || attributes.hasSustainPoint())

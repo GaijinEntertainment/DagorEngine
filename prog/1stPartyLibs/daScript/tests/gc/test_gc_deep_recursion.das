@@ -37,8 +37,6 @@ def chain_len(head : Node?) : int {
 def test_gc_deep_chain_no_overflow(t : T?) {
     let depth = 200000
     build_chain(depth)
-    unsafe {
-        heap_collect(true, true)    // validate=true: no overflow, no dangling pointers
-    }
+    unsafe(heap_collect(true, true))    // validate=true: no overflow, no dangling pointers
     t |> equal(chain_len(g_head), depth)    // whole chain survived GC (reachable, not swept)
 }

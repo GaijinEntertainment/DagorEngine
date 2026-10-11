@@ -3,7 +3,9 @@ options gen2
 require dastest/testing_boost public
 require strings
 require math
+require daslib/defer
 require daslib/fio
+require daslib/command_line
 require daslib/json_boost
 
 require canonical
@@ -16,21 +18,9 @@ require report
 require ../common/parallel_workers.das
 
 
-// ── helpers ──────────────────────────────────────────────────────────
-
 def make_record(name : string; canonical : string; line : int; want_sigs : bool) : FuncRecord {
-    var rec = FuncRecord()
-    rec.ref.name := name
-    rec.ref.file := "test.das"
-    rec.ref.line = line
-    // Default to a 5-line synthetic body. Tests that care about the
-    // exact span override .ref.end_line directly. Required to satisfy
-    // is_well_formed's `end_line >= line` check on the import path.
-    rec.ref.end_line = line + 5
-    rec.ref.is_lambda = false
-    rec.canonical := canonical
-    derive_sig_and_count(rec, want_sigs, 0)
-    return <- rec
+    return <- make_record(MemberRef(file = "test.das", name = name, line = line, end_line = line + 5, is_lambda = false),
+        canonical, want_sigs, 0)
 }
 
 
@@ -66,9 +56,9 @@ def find_cluster_with_member(clusters : array<Cluster>; name : string) : int {
 }
 
 
-def compile_fixture(file : string; var records : array<FuncRecord>; lambdas_only : bool; want_sigs : bool) : bool {
+def parse_fixture(file : string; var records : array<FuncRecord>; lambdas_only : bool; want_sigs : bool) : bool {
     var seen_loc : table<string; void?>
-    return compile_and_collect(file, records, seen_loc, false, lambdas_only, want_sigs, 0)
+    return parse_and_collect(file, records, seen_loc, false, lambdas_only, want_sigs, 0)
 }
 
 
@@ -77,28 +67,19 @@ def fabs_f(x : float) : float {
 }
 
 
-// Compile fixture/canonical_cases.das for the canonical-visitor tests.
-// Wraps the failure assertion so individual tests can early-return on
-// compile failure instead of cascading into "" == "" false positives.
-def compile_canonical_fixture(t : T?; var records : array<FuncRecord>) : bool {
-    let ok = compile_fixture(CANONICAL_FIXTURE, records, false, false)
-    t |> success(ok, "canonical_cases.das compiled")
+def parse_canonical_fixture(t : T?; var records : array<FuncRecord>) : bool {
+    let ok = parse_fixture(CANONICAL_FIXTURE, records, false, false)
+    t |> success(ok, "canonical_cases.das parsed")
     return ok
 }
 
 
-// Look up a function's canonical AND assert it's non-empty in one call.
-// Defends against silent passes where the fixture changed (function
-// renamed, removed) and `find_canonical_by_name` returns "" — naked
-// `t |> equal(a, b)` would still pass for "" == "".
 def find_canonical_required(t : T?; records : array<FuncRecord>; name : string) : string {
     let canon = find_canonical_by_name(records, name)
     t |> success(!empty(canon), "canonical present for {name}")
     return canon
 }
 
-
-// ── tokenize_canonical ───────────────────────────────────────────────
 
 [test]
 def test_tokenize_basic(t : T?) {
@@ -128,14 +109,10 @@ def test_tokenize_collapses_whitespace(t : T?) {
 
 [test]
 def test_tokenize_trailing_space(t : T?) {
-    // CanonicalVisitor.emit() always trails a space; tokenize must drop
-    // that empty tail, not produce a phantom "" token.
     let toks <- tokenize_canonical("FN ENDFN ")
     t |> equal(length(toks), 2)
 }
 
-
-// ── minhash + jaccard ────────────────────────────────────────────────
 
 [test]
 def test_minhash_signature_length(t : T?) {
@@ -147,8 +124,6 @@ def test_minhash_signature_length(t : T?) {
 
 [test]
 def test_minhash_padding_for_short_input(t : T?) {
-    // 1 token is below N_GRAM (=5) — padding kicks in so we still get
-    // a stable 64-slot signature.
     let toks <- ["only_one"]
     let sig <- minhash_signature(toks)
     t |> equal(length(sig), 64)
@@ -168,8 +143,8 @@ def test_minhash_deterministic(t : T?) {
     let sig_a <- minhash_signature(toks_a)
     let sig_b <- minhash_signature(toks_b)
     var all_match = true
-    for (i in range(length(sig_a))) {
-        if (sig_a[i] != sig_b[i]) {
+    for (a, b in sig_a, sig_b) {
+        if (a != b) {
             all_match = false
         }
     }
@@ -209,9 +184,6 @@ def test_jaccard_length_mismatch(t : T?) {
 
 [test]
 def test_jaccard_unrelated_low(t : T?) {
-    // Not asserting exactly 0 — MinHash with K=64 has ~1.5% slot
-    // resolution and rare collisions are normal. Just check the
-    // estimate is far below "duplicate" territory.
     var toks_a : array<string>
     var toks_b : array<string>
     toks_a |> reserve(30)
@@ -227,8 +199,6 @@ def test_jaccard_unrelated_low(t : T?) {
 }
 
 
-// ── exact_buckets ────────────────────────────────────────────────────
-
 [test]
 def test_exact_groups_duplicates(t : T?) {
     var records <- array<FuncRecord>(
@@ -237,8 +207,6 @@ def test_exact_groups_duplicates(t : T?) {
         <- make_record("c", "FN ARG <var_0> RET LIT ENDFN", 3, false),
         <- make_record("d", "FN ARG <var_0> RET <var_0> ENDFN", 4, false))
     let clusters <- exact_buckets(records, 0)
-    // 3 records share canonical → 1 cluster of size 3; record "c" is
-    // alone → not reported.
     t |> equal(length(clusters), 1)
     t |> equal(length(clusters[0].members), 3)
     t |> success(cluster_has_member(clusters[0], "a"), "cluster contains a")
@@ -251,12 +219,11 @@ def test_exact_groups_duplicates(t : T?) {
 [test]
 def test_exact_min_tokens_filter(t : T?) {
     var records <- array<FuncRecord>(
-        <- make_record("a", "FN ENDFN", 1, false),                          // 2 tokens
-        <- make_record("b", "FN ENDFN", 2, false),                          // 2 tokens
+        <- make_record("a", "FN ENDFN", 1, false),
+        <- make_record("b", "FN ENDFN", 2, false),
         <- make_record("c", "FN BODY BLK STMT ENDBLK ENDFN", 3, false),
         <- make_record("d", "FN BODY BLK STMT ENDBLK ENDFN", 4, false))
     let clusters <- exact_buckets(records, 5)
-    // a/b at 2 tokens are below min_tokens=5; only c/d remain.
     t |> equal(length(clusters), 1)
     t |> equal(length(clusters[0].members), 2)
     t |> success(cluster_has_member(clusters[0], "c"), "c clustered")
@@ -290,12 +257,9 @@ def test_exact_singleton_not_reported(t : T?) {
 }
 
 
-// ── sort_clusters / sort_pairs ───────────────────────────────────────
-
 [test]
 def test_sort_clusters_by_size(t : T?) {
     var records <- array<FuncRecord>(
-        // Two clusters: AAA size 2, BBB size 3. After sort, BBB comes first.
         <- make_record("a1", "FN AAA ENDFN", 1, false),
         <- make_record("a2", "FN AAA ENDFN", 2, false),
         <- make_record("b1", "FN BBB ENDFN", 3, false),
@@ -315,19 +279,19 @@ def test_sort_pairs_by_similarity(t : T?) {
     var pairs : array<FuzzyPair>
     var p1 : FuzzyPair
     p1.similarity = 0.75f
-    p1.a.name := "low_a"
-    p1.a.file := "f"
+    p1.a.name = "low_a"
+    p1.a.file = "f"
     p1.a.line = 1
-    p1.b.name := "low_b"
-    p1.b.file := "f"
+    p1.b.name = "low_b"
+    p1.b.file = "f"
     p1.b.line = 2
     var p2 : FuzzyPair
     p2.similarity = 0.95f
-    p2.a.name := "hi_a"
-    p2.a.file := "f"
+    p2.a.name = "hi_a"
+    p2.a.file = "f"
     p2.a.line = 3
-    p2.b.name := "hi_b"
-    p2.b.file := "f"
+    p2.b.name = "hi_b"
+    p2.b.file = "f"
     p2.b.line = 4
     pairs |> emplace(p1)
     pairs |> emplace(p2)
@@ -337,12 +301,9 @@ def test_sort_pairs_by_similarity(t : T?) {
 }
 
 
-// ── fuzzy_pairs ──────────────────────────────────────────────────────
-
 [test]
 def test_fuzzy_near_duplicates_pair(t : T?) {
     var records : array<FuncRecord>
-    // Two long, very similar canonicals — differ in one operator token.
     let canon_a = "FN ARG <var_0> TYP BODY BLK STMT LET LET_VAR <var_1> LIT STMT FOR FOR_VAR <var_2> <var_0> FOR_BODY BLK STMT OP2:+= <var_1> <var_2> ENDBLK STMT RET <var_1> ENDBLK ENDFN"
     let canon_b = "FN ARG <var_0> TYP BODY BLK STMT LET LET_VAR <var_1> LIT STMT FOR FOR_VAR <var_2> <var_0> FOR_BODY BLK STMT OP2:*= <var_1> <var_2> ENDBLK STMT RET <var_1> ENDBLK ENDFN"
     records |> emplace <| make_record("a", canon_a, 1, true)
@@ -355,8 +316,6 @@ def test_fuzzy_near_duplicates_pair(t : T?) {
 
 [test]
 def test_fuzzy_skips_identical(t : T?) {
-    // Same canonical text → exact-cluster territory; fuzzy pass must
-    // skip them so they're not double-counted.
     var records : array<FuncRecord>
     let canon = "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN"
     records |> emplace <| make_record("a", canon, 1, true)
@@ -368,8 +327,6 @@ def test_fuzzy_skips_identical(t : T?) {
 
 [test]
 def test_fuzzy_skips_same_cluster(t : T?) {
-    // After exact_buckets stamps cluster_id on duplicates, fuzzy must
-    // skip intra-cluster pairs (avoids double-reporting).
     var records : array<FuncRecord>
     let canon = "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN"
     records |> emplace <| make_record("a", canon, 1, true)
@@ -383,8 +340,6 @@ def test_fuzzy_skips_same_cluster(t : T?) {
 
 [test]
 def test_fuzzy_length_ratio_gate(t : T?) {
-    // Very different lengths → length_ratio gate drops the pair regardless
-    // of MinHash similarity.
     let records <- array<FuncRecord>(
         <- make_record(
             "short",
@@ -408,13 +363,6 @@ def test_fuzzy_min_tokens_filter(t : T?) {
     t |> equal(length(pairs), 0)
 }
 
-
-// ── exchange (export/import round-trip) ──────────────────────────────
-//
-// Each test creates its own temp file via `create_temp_file_result`
-// so the suite is portable across platforms (Windows CI has no /tmp)
-// and immune to leftover files from previous runs. The `remove(path)`
-// at the end cleans up.
 
 def make_temp_export_path(t : T?) : string {
     let r = create_temp_file_result("detect_dupe_test", ".json")
@@ -492,8 +440,6 @@ def test_export_import_skips_sig_when_no_fuzzy(t : T?) {
 
 [test]
 def test_import_missing_file(t : T?) {
-    // Create a temp file, immediately remove it — the path is now
-    // guaranteed-nonexistent and unique to this run.
     let path = make_temp_export_path(t)
     if (empty(path)) return
     remove(path)
@@ -544,11 +490,6 @@ def test_import_bad_schema_version(t : T?) {
 }
 
 
-// is_well_formed must reject v2 records that are missing or have a
-// degenerate `end_line` — otherwise downstream consumers (e.g.
-// find-dupe's source extractor) silently fall back to
-// single-line peeks. Build a v2 envelope by hand so the writer's
-// out-of-the-box defaults don't paper over the missing field.
 [test]
 def test_import_rejects_zero_end_line(t : T?) {
     let path = make_temp_export_path(t)
@@ -561,7 +502,8 @@ def test_import_rejects_zero_end_line(t : T?) {
     }
     var loaded : array<FuncRecord>
     var err : string
-    let ok = read_import(path, loaded, false, 0, err, /*quiet=*/ true)
+    let quiet = true
+    let ok = read_import(path, loaded, false, 0, err, quiet)
     t |> success(ok, "read_import succeeds (envelope is valid; record is dropped as malformed)")
     t |> equal(length(loaded), 0)
     remove(path)
@@ -580,14 +522,13 @@ def test_import_rejects_zero_line(t : T?) {
     }
     var loaded : array<FuncRecord>
     var err : string
-    let ok = read_import(path, loaded, false, 0, err, /*quiet=*/ true)
+    let quiet = true
+    let ok = read_import(path, loaded, false, 0, err, quiet)
     t |> success(ok, "envelope is valid; line=0 record is dropped as malformed")
     t |> equal(length(loaded), 0)
     remove(path)
 }
 
-
-// ── path-list helpers (read_path_lines) ──────────────────────────────
 
 [test]
 def test_read_path_lines_basic(t : T?) {
@@ -628,12 +569,6 @@ def test_read_path_lines_missing_file(t : T?) {
 }
 
 
-// ── input-file dedup (scan_das_files cache) ──────────────────────────
-//
-// `scan_das_files` shares a cache table across multiple seed paths so
-// overlapping `-p` + `--paths-from` entries don't double-count. This
-// is the load-bearing invariant for the union semantics in main.das.
-
 let SCAN_FIXTURE_DIR = "utils/detect-dupe/fixture"
 
 
@@ -645,18 +580,29 @@ def test_scan_das_files_dedup(t : T?) {
     let n1 = length(files1)
     t |> success(n1 > 0, "fixture dir scan picked up at least one file")
     if (n1 == 0) return
-    // Re-scan the same dir using the same cache — must yield zero new entries.
     let before = length(files1)
     scan_das_files(SCAN_FIXTURE_DIR, files1, cache1)
     t |> equal(length(files1), before, "second scan with same cache adds nothing")
-    // Re-scan via a different seed (same dir) using the same cache.
     var files2 : array<string>
     scan_das_files(SCAN_FIXTURE_DIR, files2, cache1)
     t |> equal(length(files2), 0, "second scan with different out-array but same cache yields zero")
 }
 
 
-// ── chunk_files ──────────────────────────────────────────────────────
+[test]
+def test_skip_ast_fuzz_selftest(t : T?) {
+    t |> success(is_skip_file("repo/tools/ast-fuzz/selftest/alias.das", "alias.das"),
+        "ast-fuzz selftest victims are excluded")
+    t |> success(is_skip_file("repo\\tools\\ast-fuzz\\selftest\\cycle.das", "cycle.das"),
+        "backslash paths normalize before the check")
+    t |> success(!is_skip_file("repo/tools/ast-fuzz/main.das", "main.das"),
+        "the ast-fuzz driver itself stays in the corpus")
+    var files : array<string>
+    var cache : table<string; void?>
+    scan_das_files("{SCAN_FIXTURE_DIR}/ast-fuzz/selftest", files, cache)
+    t |> equal(length(files), 0, "directory scan yields nothing from a selftest dir")
+}
+
 
 def synth_paths(n : int) : array<string> {
     var out : array<string>
@@ -673,12 +619,10 @@ def test_chunk_files_contiguous_and_complete(t : T?) {
     let files <- synth_paths(11)
     let chunks <- chunk_files(files, 4)
     t |> equal(length(chunks), 4, "11 files / 4 workers => 4 chunks")
-    // Round-up per-chunk = ceil(11/4) = 3, last chunk shorter.
     t |> equal(length(chunks[0]), 3)
     t |> equal(length(chunks[1]), 3)
     t |> equal(length(chunks[2]), 3)
     t |> equal(length(chunks[3]), 2)
-    // Concat must equal original.
     var rebuilt : array<string>
     rebuilt |> reserve(11)
     for (c in chunks) {
@@ -718,8 +662,6 @@ def test_chunk_files_empty_input(t : T?) {
     t |> equal(length(chunks), 0, "empty input => empty chunk list")
 }
 
-
-// ── merge_envelope_files ─────────────────────────────────────────────
 
 def write_shard(t : T?; functions : array<ExportedFunction>; schema : int) : string {
     let path = make_temp_export_path(t)
@@ -796,7 +738,7 @@ def test_merge_envelope_files_rejects_bad_schema(t : T?) {
     let good <- [make_export_func("ok", 10)]
     let bad <- [make_export_func("nope", 20)]
     let p_good = write_shard(t, good, EXCHANGE_SCHEMA_VERSION)
-    let p_bad = write_shard(t, bad, /*schema=*/ 99)
+    let p_bad = write_shard(t, bad, 99)
     if (empty(p_good) || empty(p_bad)) return
 
     let out = make_temp_export_path(t)
@@ -828,12 +770,10 @@ def test_merge_envelope_files_missing_shard(t : T?) {
 }
 
 
-// ── derive_sig_and_count ─────────────────────────────────────────────
-
 [test]
 def test_derive_sig_and_count_no_sigs(t : T?) {
     var rec = FuncRecord()
-    rec.canonical := "FN A B C D E ENDFN"
+    rec.canonical = "FN A B C D E ENDFN"
     derive_sig_and_count(rec, false, 0)
     t |> equal(rec.token_count, 7)
     t |> equal(length(rec.sig), 0)
@@ -843,7 +783,7 @@ def test_derive_sig_and_count_no_sigs(t : T?) {
 [test]
 def test_derive_sig_and_count_with_sigs(t : T?) {
     var rec = FuncRecord()
-    rec.canonical := "FN A B C D E F G H I J K ENDFN"
+    rec.canonical = "FN A B C D E F G H I J K ENDFN"
     derive_sig_and_count(rec, true, 0)
     t |> equal(length(rec.sig), 64)
 }
@@ -852,19 +792,12 @@ def test_derive_sig_and_count_with_sigs(t : T?) {
 [test]
 def test_derive_sig_and_count_below_floor(t : T?) {
     var rec = FuncRecord()
-    rec.canonical := "FN A B ENDFN"  // 4 tokens, below floor=100
+    rec.canonical = "FN A B ENDFN"
     derive_sig_and_count(rec, true, 100)
     t |> equal(length(rec.sig), 0)
     t |> equal(rec.token_count, 4)
 }
 
-
-// ── canonical visitor (compile fixture/canonical_cases.das) ──────────
-//
-// Each [test] re-compiles canonical_cases.das because non-copyable
-// `array<FuncRecord>` cannot be shared across `t |> run` lambda blocks
-// without unsafe-by-move capture. The fixture is small (~13 functions),
-// so per-test overhead is acceptable.
 
 let CANONICAL_FIXTURE = "utils/detect-dupe/fixture/canonical_cases.das"
 
@@ -872,7 +805,7 @@ let CANONICAL_FIXTURE = "utils/detect-dupe/fixture/canonical_cases.das"
 [test]
 def test_canonical_alpha_rename(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_add_baseline")
     let b = find_canonical_required(t, records, "case_add_renamed")
     t |> equal(a, b)
@@ -882,7 +815,7 @@ def test_canonical_alpha_rename(t : T?) {
 [test]
 def test_canonical_type_collapse(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_add_baseline")
     let c = find_canonical_required(t, records, "case_add_typed_float")
     t |> equal(a, c)
@@ -892,7 +825,7 @@ def test_canonical_type_collapse(t : T?) {
 [test]
 def test_canonical_literal_collapse(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_lit_one")
     let b = find_canonical_required(t, records, "case_lit_big")
     t |> equal(a, b)
@@ -903,7 +836,7 @@ def test_canonical_literal_collapse(t : T?) {
 [test]
 def test_canonical_call_name_preserved(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_call_push")
     let b = find_canonical_required(t, records, "case_call_reserve")
     t |> success(a != b, "different called fns must produce different canonical")
@@ -915,25 +848,26 @@ def test_canonical_call_name_preserved(t : T?) {
 [test]
 def test_canonical_field_marker(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_field_read")
     t |> success(find(a, ".FLD") >= 0, ".FLD token present in: {a}")
 }
 
 
 [test]
-def test_canonical_swizzle_marker(t : T?) {
+def test_canonical_swizzle_is_a_field_before_infer(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_swizzle")
-    t |> success(find(a, ".SWZ") >= 0, ".SWZ token present in: {a}")
+    t |> success(find(a, ".FLD") >= 0, "`v.xy` is a plain field access to the parser: {a}")
+    t |> success(find(a, ".SWZ") < 0, "no .SWZ token before infer: {a}")
 }
 
 
 [test]
 def test_canonical_for_vs_while(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let f = find_canonical_required(t, records, "case_for_loop")
     let w = find_canonical_required(t, records, "case_while_loop")
     t |> success(find(f, "FOR") >= 0, "FOR token in for-loop")
@@ -946,7 +880,7 @@ def test_canonical_for_vs_while(t : T?) {
 [test]
 def test_canonical_lambda_emits_mk_blk(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let l = find_canonical_required(t, records, "case_lambda_use")
     t |> success(find(l, "MK_BLK") >= 0, "MK_BLK present in lambda use: {l}")
 }
@@ -955,13 +889,11 @@ def test_canonical_lambda_emits_mk_blk(t : T?) {
 [test]
 def test_canonical_let_var_token(t : T?) {
     var records : array<FuncRecord>
-    if (!compile_canonical_fixture(t, records)) return
+    if (!parse_canonical_fixture(t, records)) return
     let a = find_canonical_required(t, records, "case_let_var")
     t |> success(find(a, "LET_VAR") >= 0, "LET_VAR present in: {a}")
 }
 
-
-// ── end-to-end pipeline against fixture/synth.das ────────────────────
 
 let SYNTH_FIXTURE = "utils/detect-dupe/fixture/synth.das"
 
@@ -969,10 +901,9 @@ let SYNTH_FIXTURE = "utils/detect-dupe/fixture/synth.das"
 [test]
 def test_pipeline_synth_collects_functions(t : T?) {
     var records : array<FuncRecord>
-    let ok = compile_fixture(SYNTH_FIXTURE, records, false, false)
-    t |> success(ok, "synth.das compiled")
-    // 8 user functions + main = 9 records when min_tokens=0.
-    t |> equal(length(records), 9)
+    let ok = parse_fixture(SYNTH_FIXTURE, records, false, false)
+    t |> success(ok, "synth.das parsed")
+    t |> equal(length(records), 10)
     t |> success(find_record_by_name(records, "add_int") >= 0, "add_int present")
     t |> success(find_record_by_name(records, "loop_sum") >= 0, "loop_sum present")
     t |> success(find_record_by_name(records, "with_lambda") >= 0, "with_lambda present")
@@ -982,16 +913,14 @@ def test_pipeline_synth_collects_functions(t : T?) {
 [test]
 def test_pipeline_synth_exact_clusters(t : T?) {
     var records : array<FuncRecord>
-    compile_fixture(SYNTH_FIXTURE, records, false, false)
+    parse_fixture(SYNTH_FIXTURE, records, false, false)
     var clusters <- exact_buckets(records, 0)
     sort_clusters(clusters)
     t |> equal(length(clusters), 2)
-    // First cluster: the three add_* functions (largest)
     t |> equal(length(clusters[0].members), 3)
     t |> success(cluster_has_member(clusters[0], "add_int"), "add_int in first cluster")
     t |> success(cluster_has_member(clusters[0], "add_int_renamed_args"), "add_int_renamed_args")
     t |> success(cluster_has_member(clusters[0], "add_float"), "add_float")
-    // Second cluster: the two with_lambda variants
     t |> equal(length(clusters[1].members), 2)
     t |> success(cluster_has_member(clusters[1], "with_lambda"), "with_lambda")
     t |> success(cluster_has_member(clusters[1], "with_lambda_renamed"), "with_lambda_renamed")
@@ -1001,7 +930,7 @@ def test_pipeline_synth_exact_clusters(t : T?) {
 [test]
 def test_pipeline_synth_fuzzy_pair(t : T?) {
     var records : array<FuncRecord>
-    compile_fixture(SYNTH_FIXTURE, records, false, true)
+    parse_fixture(SYNTH_FIXTURE, records, false, true)
     let clusters <- exact_buckets(records, 0)
     let pairs <- fuzzy_pairs(records, 0.7f, 0)
     t |> equal(length(pairs), 1)
@@ -1016,20 +945,29 @@ def test_pipeline_synth_fuzzy_pair(t : T?) {
 [test]
 def test_pipeline_lambdas_only_mode(t : T?) {
     var records : array<FuncRecord>
-    let ok = compile_fixture(SYNTH_FIXTURE, records, true, false)
-    t |> success(ok, "compile in lambdas-only mode")
-    // synth.das uses `$(...)` block syntax (not `@(...)` lambdas), so
-    // lambdas-only mode produces zero records. The point of this test
-    // is to verify the filter excludes top-level `def`s — no add_int,
-    // no main, regardless of how many actual lambdas the fixture has.
+    let ok = parse_fixture(SYNTH_FIXTURE, records, true, false)
+    t |> success(ok, "parse in lambdas-only mode")
     t |> equal(find_record_by_name(records, "add_int"), -1)
     t |> equal(find_record_by_name(records, "main"), -1)
     t |> equal(find_record_by_name(records, "loop_sum"), -1)
     t |> equal(find_record_by_name(records, "with_lambda"), -1)
-    // Every surviving record (if any) must have is_lambda set.
+    t |> equal(length(records), 4, "one record per make-block: with_lambda, with_lambda_renamed, two on one line")
+    var same_line : array<string>
+    var with_lambda_name = ""
     for (rec in records) {
         t |> success(rec.ref.is_lambda, "lambdas-only record has is_lambda=true: {rec.ref.name}")
+        if (rec.ref.name |> starts_with("two_lambdas_one_line`lambda@")) {
+            same_line |> push(rec.ref.name)
+        } elif (rec.ref.name |> starts_with("with_lambda`lambda@")) {
+            with_lambda_name = rec.ref.name
+        }
     }
+    t |> success(!empty(with_lambda_name), "a lambda record is named <function>`lambda@<column>")
+    t |> equal(length(same_line), 2, "two make-blocks on one source line are two records, not one")
+    t |> success(length(same_line) == 2 && same_line[0] != same_line[1],
+        "the two records on one line differ by column in the name, so reports and baselines keep them apart: {same_line}")
+    let a = find_canonical_by_name(records, with_lambda_name)
+    t |> success(find(a, "MK_BLK") >= 0 && find(a, "BLK_ARG") >= 0, "a lambda record is the make-block's own canonical: {a}")
 }
 
 
@@ -1037,48 +975,42 @@ def test_pipeline_lambdas_only_mode(t : T?) {
 def test_pipeline_export_import_clusters_match(t : T?) {
     let path = make_temp_export_path(t)
     if (empty(path)) return
-    var records_compiled : array<FuncRecord>
-    compile_fixture(SYNTH_FIXTURE, records_compiled, false, true)
-    write_export(records_compiled, path)
+    var records_parsed : array<FuncRecord>
+    parse_fixture(SYNTH_FIXTURE, records_parsed, false, true)
+    write_export(records_parsed, path)
 
     var records_imported : array<FuncRecord>
     var err : string
     let read_ok = read_import(path, records_imported, true, 0, err)
     t |> success(read_ok, "read_import OK; err={err}")
 
-    var c_compiled <- exact_buckets(records_compiled, 0)
+    var c_parsed <- exact_buckets(records_parsed, 0)
     var c_imported <- exact_buckets(records_imported, 0)
-    sort_clusters(c_compiled)
+    sort_clusters(c_parsed)
     sort_clusters(c_imported)
-    t |> equal(length(c_compiled), length(c_imported))
-    for (i in range(length(c_compiled))) {
-        t |> equal(c_compiled[i].canonical_sample, c_imported[i].canonical_sample)
-        t |> equal(length(c_compiled[i].members), length(c_imported[i].members))
+    t |> equal(length(c_parsed), length(c_imported))
+    for (cc, ci in c_parsed, c_imported) {
+        t |> equal(cc.canonical_sample, ci.canonical_sample)
+        t |> equal(length(cc.members), length(ci.members))
     }
 
-    var p_compiled <- fuzzy_pairs(records_compiled, 0.7f, 0)
+    var p_parsed <- fuzzy_pairs(records_parsed, 0.7f, 0)
     var p_imported <- fuzzy_pairs(records_imported, 0.7f, 0)
-    sort_pairs(p_compiled)
+    sort_pairs(p_parsed)
     sort_pairs(p_imported)
-    t |> equal(length(p_compiled), length(p_imported))
-    for (i in range(length(p_compiled))) {
-        let diff = fabs_f(p_compiled[i].similarity - p_imported[i].similarity)
-        t |> success(diff < 1.0e-5f, "similarity matches: {p_compiled[i].similarity} vs {p_imported[i].similarity}")
-        t |> equal(p_compiled[i].canonical_a, p_imported[i].canonical_a)
-        t |> equal(p_compiled[i].canonical_b, p_imported[i].canonical_b)
+    t |> equal(length(p_parsed), length(p_imported))
+    for (pc, pi in p_parsed, p_imported) {
+        let diff = fabs_f(pc.similarity - pi.similarity)
+        t |> success(diff < 1.0e-5f, "similarity matches: {pc.similarity} vs {pi.similarity}")
+        t |> equal(pc.canonical_a, pi.canonical_a)
+        t |> equal(pc.canonical_b, pi.canonical_b)
     }
     remove(path)
 }
 
 
-// ── candidate filter (B1 baseline + B2 against modes) ────────────────
-
-
 [test]
 def test_candidate_filter_drops_pure_corpus_clusters(t : T?) {
-    // Three identical records, none flagged as candidate. With the
-    // filter active, the cluster should be dropped (no candidate
-    // member). Without the filter, the cluster would be kept.
     var records : array<FuncRecord> <- [
         <- make_record("a", "FN A B C D E F G H ENDFN", 1, false),
         <- make_record("b", "FN A B C D E F G H ENDFN", 2, false),
@@ -1094,9 +1026,6 @@ def test_candidate_filter_drops_pure_corpus_clusters(t : T?) {
 
 [test]
 def test_candidate_filter_keeps_mixed_clusters(t : T?) {
-    // Same canonical, but one record is flagged. Cluster kept; all
-    // three members reported (the filter is at the cluster level, not
-    // member level).
     var records : array<FuncRecord> <- [
         <- make_record("a", "FN A B C D E F G H ENDFN", 1, false),
         <- make_record("b", "FN A B C D E F G H ENDFN", 2, false),
@@ -1111,9 +1040,6 @@ def test_candidate_filter_keeps_mixed_clusters(t : T?) {
 
 [test]
 def test_candidate_filter_intra_candidate_pair(t : T?) {
-    // Two near-duplicate candidates, no corpus around them. With the
-    // candidate filter active the pair must still appear (intra-PR
-    // duplicates are real signal).
     var records : array<FuncRecord> <- [
         <- make_record("a", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 1, true),
         <- make_record("b", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT LIT ENDBLK ENDFN", 2, true)]
@@ -1122,7 +1048,6 @@ def test_candidate_filter_intra_candidate_pair(t : T?) {
 
     let pairs <- fuzzy_pairs(records, 0.7f, 0, true)
     t |> equal(length(pairs), 1)
-    // Pair ordering: lower-index record is `a`.
     t |> equal(pairs[0].a.name, "a")
     t |> equal(pairs[0].b.name, "b")
 }
@@ -1130,19 +1055,13 @@ def test_candidate_filter_intra_candidate_pair(t : T?) {
 
 [test]
 def test_candidate_filter_fuzzy_skips_pure_corpus(t : T?) {
-    // Three near-duplicate corpus records and one candidate that
-    // resembles none of them. The pure-corpus pairs must NOT appear;
-    // only pairs involving the candidate are eligible (and the
-    // candidate is dissimilar to all → empty result).
     var records : array<FuncRecord> <- [
         <- make_record("x", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 1, true),
         <- make_record("y", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT LIT ENDBLK ENDFN", 2, true),
         <- make_record("z", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT LIT LIT ENDBLK ENDFN", 3, true),
-        // Candidate has a totally different shape — no fuzzy match expected.
         <- make_record("cand", "FN ARG <var_0> TYP BODY BLK STMT FOR FOR_VAR <var_1> CALL:range LIT FOR_BODY BLK ENDBLK ENDBLK ENDFN", 4, true)]
     records[3].is_candidate = true
 
-    // Sanity: without the filter, x/y/z would produce pairs.
     let legacy <- fuzzy_pairs(records, 0.7f, 0)
     t |> success(!empty(legacy), "legacy mode: at least one corpus pair: got {length(legacy)}")
 
@@ -1158,7 +1077,7 @@ def test_baseline_load_canonical_set(t : T?) {
     let records : array<FuncRecord> <- [
         <- make_record("a", "FN AAA ENDFN", 1, false),
         <- make_record("b", "FN BBB ENDFN", 2, false),
-        <- make_record("c", "FN AAA ENDFN", 3, false)]// dup canonical
+        <- make_record("c", "FN AAA ENDFN", 3, false)]
     write_export(records, path)
 
     var canonicals : table<string; void?>
@@ -1166,12 +1085,9 @@ def test_baseline_load_canonical_set(t : T?) {
     var err : string
     let ok = load_baseline_canonicals(path, canonicals, members, err)
     t |> success(ok, "load_baseline_canonicals returned true; err={err}")
-    // Two distinct canonicals — duplicates collapse, matching exact-cluster equivalence.
     t |> equal(length(canonicals), 2)
     t |> success(key_exists(canonicals, "FN AAA ENDFN"), "AAA in set")
     t |> success(key_exists(canonicals, "FN BBB ENDFN"), "BBB in set")
-    // Three members — `c` is a separate identity from `a` even though
-    // they share a canonical (member-level diff catches growth).
     t |> equal(length(members), 3)
     t |> success(key_exists(members, "test.das:1:a"), "a member-id present")
     t |> success(key_exists(members, "test.das:2:b"), "b member-id present")
@@ -1204,15 +1120,13 @@ def test_baseline_load_rejects_bad_schema(t : T?) {
 
 [test]
 def test_drop_records_under_files(t : T?) {
-    // Build a record set spanning two files; drop one file's records
-    // and verify the other survives.
     var records : array<FuncRecord> <- [
         <- make_record("a", "FN A ENDFN", 1, false),
         <- make_record("b", "FN B ENDFN", 2, false),
         <- make_record("c", "FN C ENDFN", 3, false)]
-    records[0].ref.file := "src/keep.das"
-    records[1].ref.file := "src/drop.das"
-    records[2].ref.file := "src/drop.das"
+    records[0].ref.file = "src/keep.das"
+    records[1].ref.file = "src/drop.das"
+    records[2].ref.file = "src/drop.das"
 
     var against : table<string; void?>
     against |> insert("src/drop.das", null)
@@ -1227,8 +1141,6 @@ def test_drop_records_under_files(t : T?) {
 
 [test]
 def test_collect_candidate_refs(t : T?) {
-    // Helper used by the per-candidate report writer and by the MCP
-    // tool — verify it picks out exactly the flagged records.
     var records : array<FuncRecord> <- [
         <- make_record("a", "FN A ENDFN", 1, false),
         <- make_record("b", "FN B ENDFN", 2, false),
@@ -1245,8 +1157,6 @@ def test_collect_candidate_refs(t : T?) {
 
 [test]
 def test_per_candidate_rollup_shape(t : T?) {
-    // Build a small report with one exact cluster and one fuzzy pair
-    // both involving a candidate, then pivot via build_per_candidate_report.
     var records : array<FuncRecord> <- [
         <- make_record("cand", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 1, true),
         <- make_record("exact_sib", "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 2, true),
@@ -1276,8 +1186,6 @@ def test_per_candidate_rollup_shape(t : T?) {
 }
 
 
-// ── patterns / classify ──────────────────────────────────────────────
-
 [test]
 def test_pattern_dispatch_three_identical_stmts(t : T?) {
     let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ADDR STMT CALL:run <var_0> LIT ADDR STMT CALL:run <var_0> LIT ADDR ENDBLK ENDFN"
@@ -1289,7 +1197,6 @@ def test_pattern_dispatch_three_identical_stmts(t : T?) {
 
 [test]
 def test_pattern_dispatch_two_identical_stmts(t : T?) {
-    // ≥ 2 is the documented threshold; verify the boundary fires.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ADDR STMT CALL:run <var_0> LIT ADDR ENDBLK ENDFN"
     let hit = classify("", canon)
     t |> equal(hit.name, "dispatch")
@@ -1299,7 +1206,6 @@ def test_pattern_dispatch_two_identical_stmts(t : T?) {
 
 [test]
 def test_pattern_single_stmt_not_dispatch(t : T?) {
-    // One statement is not a uniform-call list — keep the function.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ADDR ENDBLK ENDFN"
     let hit = classify("", canon)
     t |> equal(hit.name, "")
@@ -1316,7 +1222,6 @@ def test_pattern_empty_body_not_dispatch(t : T?) {
 
 [test]
 def test_pattern_mixed_stmts_not_dispatch(t : T?) {
-    // Mixed call names (run / bench) — body isn't uniform, don't classify.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ADDR STMT CALL:bench <var_0> LIT ADDR ENDBLK ENDFN"
     let hit = classify("", canon)
     t |> equal(hit.name, "")
@@ -1325,10 +1230,6 @@ def test_pattern_mixed_stmts_not_dispatch(t : T?) {
 
 [test]
 def test_pattern_nested_block_not_dispatch(t : T?) {
-    // Outer body has ONE top-level statement — an if/then with two nested
-    // STMTs inside. The inner STMTs must not be treated as top-level
-    // boundaries; otherwise we'd wrongly count 2 identical "STMT CALL:foo"
-    // chunks and classify as dispatch.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT IF <var_0> THEN BLK STMT CALL:foo <var_0> ENDBLK ELSE BLK STMT CALL:foo <var_0> ENDBLK ENDBLK ENDFN"
     let hit = classify("", canon)
     t |> equal(hit.name, "")
@@ -1337,8 +1238,6 @@ def test_pattern_nested_block_not_dispatch(t : T?) {
 
 [test]
 def test_pattern_real_code_not_dispatch(t : T?) {
-    // The "real test" canonical from strings_convert.das — long, mixed
-    // STMTs, definitely not a dispatcher.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT LET LET_VAR <var_1> STMT RET OP2:+ <var_1> LIT ENDBLK ENDFN"
     let hit = classify("", canon)
     t |> equal(hit.name, "")
@@ -1347,8 +1246,6 @@ def test_pattern_real_code_not_dispatch(t : T?) {
 
 [test]
 def test_pattern_visitor_visit_method(t : T?) {
-    // Visitor methods classify by NAME alone, regardless of body — the
-    // dispatch contract makes cross-class duplication structural.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT LET LET_VAR <var_1> STMT RET <var_1> ENDBLK ENDFN"
     let hit = classify("CppAot`visitExprCopy", canon)
     t |> equal(hit.name, "visitor")
@@ -1366,7 +1263,6 @@ def test_pattern_visitor_previsit_method(t : T?) {
 
 [test]
 def test_pattern_visitor_before_after_hooks(t : T?) {
-    // RstComment uses `before*`/`after*` lifecycle hooks — same family.
     let canon = "FN ARG <var_0> TYP BODY BLK ENDBLK ENDFN"
     let hit = classify("RstComment`beforeStructure", canon)
     t |> equal(hit.name, "visitor")
@@ -1377,9 +1273,6 @@ def test_pattern_visitor_before_after_hooks(t : T?) {
 
 [test]
 def test_pattern_non_visitor_keeps(t : T?) {
-    // A class method whose hook name doesn't match the visitor prefix
-    // set must NOT be skipped — `apply` is a macro entry point, not
-    // a visitor override.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT LET LET_VAR <var_1> ENDBLK ENDFN"
     let hit = classify("SqlMacro`apply", canon)
     t |> equal(hit.name, "")
@@ -1388,9 +1281,6 @@ def test_pattern_non_visitor_keeps(t : T?) {
 
 [test]
 def test_pattern_free_function_not_visitor(t : T?) {
-    // Free function whose name happens to start with `visit` (no
-    // backtick) must not be classified — visitor matcher requires the
-    // class-qualified shape.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT RET <var_0> ENDBLK ENDFN"
     let hit = classify("visitNode", canon)
     t |> equal(hit.name, "")
@@ -1399,8 +1289,6 @@ def test_pattern_free_function_not_visitor(t : T?) {
 
 [test]
 def test_pattern_visitor_wins_over_emit(t : T?) {
-    // A visitor method whose body happens to fit the `emit` shape
-    // gets classified under the more semantic `visitor` bucket.
     let canon = "FN ARG <var_0> TYP ARG <var_1> TYP BODY BLK STMT CALL:write P2R <var_0> .FLD LIT STMT RET <var_1> ENDBLK ENDFN"
     let hit = classify("CppAot`visitExprCopy", canon)
     t |> equal(hit.name, "visitor")
@@ -1409,8 +1297,6 @@ def test_pattern_visitor_wins_over_emit(t : T?) {
 
 [test]
 def test_pattern_emit_when_no_visitor_name(t : T?) {
-    // Same body as visitor_wins_over_emit, but a free function name
-    // — `emit` matcher fires.
     let canon = "FN ARG <var_0> TYP ARG <var_1> TYP BODY BLK STMT CALL:write P2R <var_0> .FLD LIT STMT RET <var_1> ENDBLK ENDFN"
     let hit = classify("emit_close_paren", canon)
     t |> equal(hit.name, "emit")
@@ -1418,54 +1304,28 @@ def test_pattern_emit_when_no_visitor_name(t : T?) {
 
 
 [test]
-def test_pattern_test_wrapper_single_run(t : T?) {
-    // Real-world canonical of `def test_xxx(t : T?) { t |> run("X") @(t) { ... } }`.
+def test_pattern_no_test_wrapper_bucket(t : T?) {
     let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ASC MK_STR ADDR ADDR ENDBLK ENDFN"
     let hit = classify("test_something", canon)
-    t |> equal(hit.name, "test_wrapper")
+    t |> equal(hit.name, "", "the post-infer `run` + ADDR shape is no pattern - there is no test_wrapper bucket")
 }
 
 
 [test]
-def test_pattern_test_wrapper_requires_test_prefix(t : T?) {
-    // Same canonical, but the function isn't a dastest — keep it.
-    let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ASC MK_STR ADDR ADDR ENDBLK ENDFN"
-    let hit = classify("dispatch_runner", canon)
-    t |> equal(hit.name, "")
-}
-
-
-[test]
-def test_pattern_test_wrapper_requires_addr(t : T?) {
-    // Test function that calls `run` with no lambda body — exotic but
-    // shouldn't fire test_wrapper (the body has no ADDR).
-    let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ASC MK_STR ENDBLK ENDFN"
-    let hit = classify("test_no_lambda", canon)
-    t |> equal(hit.name, "")
-}
-
-
-[test]
-def test_pattern_test_wrapper_yields_to_dispatch(t : T?) {
-    // Two `t |> run(...)` calls: dispatch fires first (≥ 2 identical
-    // statements). test_wrapper requires exactly one — so dispatch wins.
-    let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT ADDR STMT CALL:run <var_0> LIT ADDR ENDBLK ENDFN"
-    let hit = classify("test_two_subtests", canon)
-    t |> equal(hit.name, "dispatch")
+def test_pattern_single_run_with_body_is_signal(t : T?) {
+    let canon = "FN ARG <var_0> TYP BODY BLK STMT CALL:run <var_0> LIT MK_BLK BLK BLK_ARG <var_1> STMT CALL:equal <var_1> LIT LIT ENDBLK ENDBLK ENDFN"
+    let hit = classify("test_something", canon)
+    t |> equal(hit.name, "", "a test wrapper carries its lambda body inline, so it is real signal, not a pattern")
 }
 
 
 [test]
 def test_split_top_level_stmts_skips_nested(t : T?) {
-    // One top-level for-loop body containing N statements should yield
-    // exactly ONE chunk at the top level — confirms BLK depth tracking.
     let canon = "FN ARG <var_0> TYP BODY BLK STMT FOR FOR_VAR <var_1> <var_0> FOR_BODY BLK STMT CALL:foo <var_1> STMT CALL:bar <var_1> ENDBLK ENDBLK ENDFN"
     let stmts <- split_top_level_stmts(canon)
     t |> equal(length(stmts), 1)
 }
 
-
-// ── apply_pattern_filter ─────────────────────────────────────────────
 
 [test]
 def test_apply_pattern_filter_drops_dispatch(t : T?) {
@@ -1486,8 +1346,6 @@ def test_apply_pattern_filter_drops_dispatch(t : T?) {
 
 [test]
 def test_apply_pattern_filter_keep_all_passthrough(t : T?) {
-    // keep_all=true short-circuits classification entirely — both
-    // records survive, and skip_counts is empty.
     var records : array<FuncRecord> <- [
         <- make_record("real",
             "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 1, false),
@@ -1502,7 +1360,6 @@ def test_apply_pattern_filter_keep_all_passthrough(t : T?) {
 
 [test]
 def test_apply_pattern_filter_explicit_keep_dispatch(t : T?) {
-    // kept_set contains "dispatch" → dispatcher record is kept, no drops.
     var records : array<FuncRecord> <- [
         <- make_record("real",
             "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 1, false),
@@ -1518,8 +1375,6 @@ def test_apply_pattern_filter_explicit_keep_dispatch(t : T?) {
 
 [test]
 def test_apply_pattern_filter_preserves_candidate_flag(t : T?) {
-    // Records that survive must keep their is_candidate flag (relied on
-    // by --against / --baseline modes).
     var records : array<FuncRecord> <- [
         <- make_record("real",
             "FN ARG <var_0> TYP BODY BLK STMT RET OP2:+ <var_0> LIT ENDBLK ENDFN", 1, false)]
@@ -1531,50 +1386,29 @@ def test_apply_pattern_filter_preserves_candidate_flag(t : T?) {
 }
 
 
-// ── generics visibility (fixture/generics_cases.das) ─────────────────
-//
-// pipeline.das walks BOTH `for_each_generic` (templates) AND
-// `for_each_function` (reified instances) so generics are visible
-// regardless of whether they're called. The walk order matters: the
-// generics pass runs first, so a called generic is recorded under its
-// source-level name (the unmangled template wins the per-source-line
-// `seen_loc` dedup against the reified `` `name`<hash> `` copies).
-//
-// Historical gap: pre-fix, only `for_each_function` was walked, so
-// uncalled generics were invisible and called generics surfaced under
-// the mangled symbol. The tests below pin both directions.
-
 let GENERICS_FIXTURE = "utils/detect-dupe/fixture/generics_cases.das"
 
 
 [test]
 def test_generics_mono_baseline_visible(t : T?) {
-    // Sanity check: non-generic function reaches the records list.
     var records : array<FuncRecord>
-    let ok = compile_fixture(GENERICS_FIXTURE, records, false, false)
-    t |> success(ok, "generics_cases.das compiled")
+    let ok = parse_fixture(GENERICS_FIXTURE, records, false, false)
+    t |> success(ok, "generics_cases.das parsed")
     if (!ok) return
     let canon = find_canonical_by_name(records, "case_mono_baseline")
     t |> success(!empty(canon), "non-generic baseline visible")
 }
 
 
-// Called generic must be findable by source name (not by the mangled
-// `` `name`<hash> `` form daslang's reifier produces). The fix in
-// `collect_from_program` walks `for_each_generic` BEFORE
-// `for_each_function`, so the unmangled template wins the per-line
-// dedup; the reified copies are then suppressed by `seen_loc`.
 [test]
 def test_generics_called_visible(t : T?) {
     var records : array<FuncRecord>
-    let ok = compile_fixture(GENERICS_FIXTURE, records, false, false)
-    t |> success(ok, "generics_cases.das compiled")
+    let ok = parse_fixture(GENERICS_FIXTURE, records, false, false)
+    t |> success(ok, "generics_cases.das parsed")
     if (!ok) return
     let canon = find_canonical_by_name(records, "case_generic_called")
     t |> success(!empty(canon),
         "called generic must be findable by source-level name")
-    // Mangled reified copies must NOT leak into the records — there
-    // should only be one entry per template, under the source name.
     var saw_mangled = false
     for (rec in records) {
         if (find(rec.ref.name, "case_generic_called") >= 0 && rec.ref.name != "case_generic_called") {
@@ -1586,14 +1420,11 @@ def test_generics_called_visible(t : T?) {
 }
 
 
-// Uncalled generic must be visible. Templates with no call site never
-// reach `module->functions`; the fix walks `for_each_generic` so they
-// also produce a record.
 [test]
 def test_generics_uncalled_visible(t : T?) {
     var records : array<FuncRecord>
-    let ok = compile_fixture(GENERICS_FIXTURE, records, false, false)
-    t |> success(ok, "generics_cases.das compiled")
+    let ok = parse_fixture(GENERICS_FIXTURE, records, false, false)
+    t |> success(ok, "generics_cases.das parsed")
     if (!ok) return
     let canon = find_canonical_by_name(records, "case_generic_uncalled")
     t |> success(!empty(canon),
@@ -1601,18 +1432,116 @@ def test_generics_uncalled_visible(t : T?) {
 }
 
 
-// Sanity: the called and uncalled generics have identical bodies, so
-// after the fix they should have identical canonical token streams
-// (the canonicalizer collapses all types to `TYP`). This is what the
-// duplicate-detector ultimately cares about — that two structurally
-// identical generics will cluster.
 [test]
 def test_generics_called_and_uncalled_canonicalize_equal(t : T?) {
     var records : array<FuncRecord>
-    let ok = compile_fixture(GENERICS_FIXTURE, records, false, false)
-    t |> success(ok, "generics_cases.das compiled")
+    let ok = parse_fixture(GENERICS_FIXTURE, records, false, false)
+    t |> success(ok, "generics_cases.das parsed")
     if (!ok) return
     let a = find_canonical_required(t, records, "case_generic_called")
     let b = find_canonical_required(t, records, "case_generic_uncalled")
     t |> equal(a, b)
+}
+
+
+let BROKEN_FIXTURE = "utils/detect-dupe/fixture/_fixture_broken_cases.das"
+let UNRESOLVED_FIXTURE = "utils/detect-dupe/fixture/_fixture_unresolved_cases.das"
+let READER_FIXTURE = "utils/detect-dupe/fixture/_fixture_reader_cases.das"
+
+[test]
+def test_parse_failure_still_collects(t : T?) {
+    var records : array<FuncRecord>
+    let ok = parse_fixture(BROKEN_FIXTURE, records, false, false)
+    t |> success(!ok, "broken_cases.das must fail to parse")
+    let canon = find_canonical_by_name(records, "case_broken_survivor")
+    t |> success(!empty(canon),
+        "a function parsed before the syntax error is still collected")
+}
+
+
+[test]
+def test_unresolved_lookups_are_not_failures(t : T?) {
+    var records : array<FuncRecord>
+    let ok = parse_fixture(UNRESOLVED_FIXTURE, records, false, false)
+    t |> success(ok, "a require, annotation and parent class the parse cannot resolve do not fail the file")
+    t |> success(!empty(find_canonical_by_name(records, "case_unresolved_annotated")),
+        "the annotated function is collected")
+    t |> success(!empty(find_canonical_by_name(records, "CaseUnresolvedParent`visit")),
+        "the method of a class with an unknown parent is collected")
+}
+
+
+[test]
+def test_unknown_reader_macro_does_not_end_the_parse(t : T?) {
+    var records : array<FuncRecord>
+    let ok = parse_fixture(READER_FIXTURE, records, false, false)
+    t |> success(ok, "a `%name~ ... %%` whose reader no module provides reads to its `%%` and is not a failure")
+    t |> success(!empty(find_canonical_by_name(records, "case_before_reader")), "the function before it is collected")
+    t |> success(!empty(find_canonical_by_name(records, "case_after_reader")), "the function after it is collected")
+}
+
+
+def export_daslib_corpus(t : T?; workers : string; out : string) : string {
+    let argv <- [get_das_exe(), "-dasroot", get_das_root(), "{get_das_root()}/utils/detect-dupe/main.das", "--",
+                 "-p", "{get_das_root()}/daslib", "-j", workers, "--export-functions", out]
+    var output : string
+    let rc = run_and_capture(argv, output)
+    t |> equal(rc, 0, "daslib export with -j {workers} exits 0:\n{output}")
+    return output
+}
+
+
+// The real daslib as a corpus, both sides of the 128-file fan-out: the parallel run and the
+// sequential run agree byte for byte, nothing fails to parse, and the record count is a body of
+// code rather than a fixture.
+[test]
+def test_export_daslib_parallel_equals_sequential(t : T?) {
+    set_env_variable("DAS_LOG_LEVEL", "info")
+    defer() {
+        set_env_variable("DAS_LOG_LEVEL", "")
+    }
+    let out_par = make_temp_export_path(t)
+    let out_seq = make_temp_export_path(t)
+    if (empty(out_par) || empty(out_seq)) return
+    let log_par = export_daslib_corpus(t, "0", out_par)
+    let log_seq = export_daslib_corpus(t, "1", out_seq)
+    t |> success(find(log_par, "parallel export:") >= 0, "daslib is past the fan-out threshold, so -j 0 fans out:\n{log_par}")
+    t |> success(find(log_seq, "0 parse failure(s)") >= 0, "every daslib file parses:\n{log_seq}")
+    t |> equal(fread(out_par), fread(out_seq), "parallel and sequential exports are byte-identical")
+    var records : array<FuncRecord>
+    var err = ""
+    let ok = read_import(out_seq, records, false, 0, err, true)
+    t |> success(ok, "the export file is readable: {err}")
+    t |> success(length(records) > 4000, "daslib yields thousands of records, got {length(records)}")
+    remove(out_par)
+    remove(out_seq)
+}
+
+
+// --export-functions over a file that fails to parse exits 0 and writes the survivors - the
+// sharding scripts read the file, not a partial-run exit code
+[test]
+def test_export_cli_survives_parse_failure(t : T?) {
+    let out = make_temp_export_path(t)
+    if (empty(out)) return
+    let argv <- [get_das_exe(), "-dasroot", get_das_root(), "{get_das_root()}/utils/detect-dupe/main.das", "--",
+                 "-p", "{get_das_root()}/{BROKEN_FIXTURE}", "--export-functions", out]
+    var output : string
+    let rc = run_and_capture(argv, output)
+    t |> equal(rc, 0, "an export over a broken file exits 0 (the run is not partial-failed):\n{output}")
+    var records : array<FuncRecord>
+    var err = ""
+    let ok = read_import(out, records, false, 0, err, true)
+    t |> success(ok, "the export file is readable: {err}")
+    t |> success(!empty(find_canonical_by_name(records, "case_broken_survivor")),
+        "the function parsed before the syntax error is in the export")
+    remove(out)
+}
+
+[test]
+def test_worker_count_auto_is_physical_cores(t : T?) {
+    t |> equal(compute_worker_count(1000, 0), min(get_total_hw_cores(), MAX_AUTO_WORKERS),
+        "0 = auto means the box's cores under the ceiling; get_total_hw_threads is the jobque's own lane count")
+    t |> equal(compute_worker_count(1000, MAX_AUTO_WORKERS * 4), MAX_AUTO_WORKERS * 4,
+        "an explicit count is not capped")
 }

@@ -2,7 +2,7 @@ options gen2
 require dastest/testing_boost
 
 def test_for {
-    return <- generator<int>() <| $() {
+    return <- generator<int> {
         for (t in range(10)) {
             yield t
         }

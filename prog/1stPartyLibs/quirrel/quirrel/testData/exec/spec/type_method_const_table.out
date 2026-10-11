@@ -1,0 +1,14 @@
+slot integer:3 integer:3
+method function function
+subMethod function function
+enum integer:5 function function
+afterAnd function function
+compared bool:false bool:false
+called integer:5
+noMethod E:the index 'other' (type='string') does not exist
+noField E:the index 'bogus' (type='string') does not exist
+forbidden function function function function
+forbiddenSlot E:the index 'x' (type='string') does not exist
+plainSlot E:the index 'x' (type='string') does not exist
+ofGetter integer:2
+methodOfGetter E:the index 'y' (type='string') does not exist

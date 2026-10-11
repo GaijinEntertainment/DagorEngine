@@ -192,14 +192,9 @@ bool ScriptPanelContainer::scriptExtFactory(PropPanel::ContainerPropertyControl 
   else
     panel_param = new ScriptExtContainer(mPanelWrapper, this, name, caption);
 
-  if (panel_param)
-  {
-    mItems.push_back(panel_param);
-    panel_param->fillParameter(panel, pid, param);
-    return true;
-  }
-
-  return false;
+  mItems.push_back(panel_param);
+  panel_param->fillParameter(panel, pid, param);
+  return true;
 }
 
 

@@ -11,18 +11,9 @@ require math public
 require strings public
 require daslib/fio public
 require daslib/command_line public
+require ../tool_result.das public
 
 var ast_grep_cmd : string
-
-struct ContentItem {
-    @rename = "type" _type : string
-    text : string
-}
-
-struct ToolResult {
-    content : array<ContentItem>
-    isError : bool
-}
 
 // query matching: case-insensitive substring by default, "=foo" for exact case-sensitive
 def symbol_matches(name, query : string) : bool {
@@ -43,13 +34,6 @@ struct TryResult {
     text : string
     ok : bool
     retryable : bool
-}
-
-def make_tool_result(text : string; is_error : bool = false) : string {
-    var result : ToolResult
-    result.isError = is_error
-    result.content |> emplace(ContentItem(_type = "text", text = text))
-    return sprint_json(result, false)
 }
 
 // ── Cross-tree guard ─────────────────────────────────────────────────
@@ -239,16 +223,7 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
     var had_error = false
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
-            cop.threadlock_context = true
-            cop.ignore_shared_modules = true
-            cop.auto_inline_functions = false   // introspection describes the SOURCE - splices rewrite bodies/references
-            if (_export_all) {
-                cop.export_all = true
-            }
-            if (_no_opt) {
-                cop.no_optimizations = true
-                cop.no_infer_time_folding = true
-            }
+            setup_introspection_policies(cop, _export_all, _no_opt)
             compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; issues) {
                 if (!ok) {
                     result = "Compilation failed:\n{issues}"
@@ -269,6 +244,21 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
     return make_tool_result(result, had_error)
 }
 
+// policies every introspection compile shares. auto_inline_functions stays off because these
+// tools describe the SOURCE and splices rewrite bodies and references.
+def private setup_introspection_policies(var cop : CodeOfPolicies; _export_all, _no_opt : bool) : void {
+    cop.threadlock_context = true
+    cop.ignore_shared_modules = true
+    cop.auto_inline_functions = false
+    if (_export_all) {
+        cop.export_all = true
+    }
+    if (_no_opt) {
+        cop.no_optimizations = true
+        cop.no_infer_time_folding = true
+    }
+}
+
 def compile_only(file : string; _export_all : bool; project : string = ""; blk : block<(program : smart_ptr<Program>; issues : string) : string>) : string {
     return compile_only(file, _export_all, false, project, false) <| blk
 }
@@ -281,16 +271,7 @@ def compile_only(file : string; _export_all : bool; _no_opt : bool; project : st
     var had_error = false
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
-            cop.threadlock_context = true
-            cop.ignore_shared_modules = true
-            cop.auto_inline_functions = false   // introspection describes the SOURCE - splices rewrite bodies/references
-            if (_export_all) {
-                cop.export_all = true
-            }
-            if (_no_opt) {
-                cop.no_optimizations = true
-                cop.no_infer_time_folding = true
-            }
+            setup_introspection_policies(cop, _export_all, _no_opt)
             if (_lint) {
                 cop.lint_check = true
             }
@@ -411,6 +392,23 @@ def get_daslang_exe() : string {
     return get_das_exe()
 }
 
+// ── Source text ──────────────────────────────────────────────────────
+
+var private SOURCE_LINES : table<string; array<string>>
+
+//! the source line (1-based) of a file, "" past its end, without its line ending on a CRLF checkout; a file is read once per process
+def public source_line(file : string; line : int) : string {
+    if (!key_exists(SOURCE_LINES, file)) {
+        SOURCE_LINES[file] <- [for (l in split(fread(file), "\n")); rtrim(l, "\r")]
+    }
+    var text = ""
+    let lines & = unsafe(SOURCE_LINES[file])
+    if (line >= 1 && line <= length(lines)) {
+        text = lines[line - 1]
+    }
+    return text
+}
+
 // ── MCP subtool runner ──────────────────────────────────────────────
 //
 // Why subprocess: in-process compile_file / RTTI walks leak C++-side
@@ -426,6 +424,7 @@ def get_daslang_exe() : string {
 //   - Exits 0 on success AND on tool-level failure (e.g. compile errors are a
 //     successful tool run that reports isError=true). Exit non-0 ONLY on
 //     catastrophic failure (cannot read args, internal panic).
+
 // Inside an MCP subtool's `[export] def main`, locate the caller-supplied
 // args inside daslang's full argv. Conventional invocation:
 //   daslang.exe utils/mcp/subtools/<name>.das -- <arg1> <arg2> ...
@@ -463,8 +462,12 @@ def subtool_user_args(args : array<string>) : array<string> {
 def public build_subtool_argv(exe, subtool_path : string;
                               args : array<string>;
                               project_root : string;
-                              load_modules : array<string> = array<string>()) : array<string> {
+                              load_modules : array<string> = array<string>();
+                              eager : bool = false) : array<string> {
     var argv <- [exe]
+    if (eager) {
+        argv |> push("-ignore-manifest")
+    }
     if (!empty(project_root)) {
         argv |> push("-project_root")
         argv |> push(project_root)
@@ -483,11 +486,12 @@ def public build_subtool_argv(exe, subtool_path : string;
 def run_mcp_subtool(subtool_name : string; args : array<string>;
                     project_root : string = "";
                     load_modules : array<string> = array<string>();
-                    timeout_sec : float = 120.0) : string {
+                    timeout_sec : float = 120.0;
+                    eager : bool = false) : string {
     let exe = get_daslang_exe()
     if (empty(exe)) return make_tool_result("Cannot determine daslang executable path", true)
     let subtool_path = path_join(get_das_root(), "utils/mcp/subtools/{subtool_name}.das")
-    let argv <- build_subtool_argv(exe, subtool_path, args, project_root, load_modules)
+    let argv <- build_subtool_argv(exe, subtool_path, args, project_root, load_modules, eager)
     var output : string
     let exit_code = run_and_capture(argv, output, timeout_sec)
     if (exit_code == popen_timed_out) return make_tool_result("MCP subtool '{subtool_name}' timed out after {timeout_sec}s:\n{output}", true)
@@ -516,16 +520,28 @@ def make_temp_das_file() : string {
 
 // ── File path utilities ──────────────────────────────────────────────
 
+[arch(at="../README.md#served-tree")]
+def server_root() : string {
+    return to_generic_path(getcwd())
+}
+
+//! the files that make a served tree a project: one of them at its root is what the C++ index follows
+let CPP_PROJECT_MARKERS = fixed_array(".git", "CMakeLists.txt", ".mcp.json", "compile_commands.json")
+
+[arch(at="../README.md#cpp-index-roots")]
+def served_tree_is_project(served : string) : bool {
+    for (marker in CPP_PROJECT_MARKERS) {
+        if (stat(path_join(served, marker)).is_valid) return true
+    }
+    return false
+}
+
 def resolve_path(path : string) : string {
-    if (empty(path)) return get_das_root()
-    // `find(path, ":") == 1` preserves Windows drive-relative paths (`C:foo`):
-    // std::filesystem doesn't classify them as absolute (no trailing separator),
-    // so they'd otherwise be joined under das_root and produce an invalid path.
+    //! `""` and `"."` both give the bare served root: a trailing `/.` makes ast-grep's `--globs` match nothing
+    if (empty(path) || path == ".") return server_root()
+    //! `C:foo` is drive-relative, which std::filesystem does not call absolute, so it passes through unjoined
     if (is_absolute(path) || find(path, ":") == 1) return path
-    // Deliberately NOT normalize()d: lexically_normal rewrites every separator to the
-    // platform preferred one, so on Windows it would turn the forward slashes of
-    // get_das_root() into backslashes and break callers that compare against it.
-    return path_join(get_das_root(), path)
+    return path_join(server_root(), path)
 }
 
 def make_relative_path(path, root : string) : string {

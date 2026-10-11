@@ -85,7 +85,7 @@ class LineInstrumentAgent : DapiDebugAgent {
     }
 }
 
-[export]
+[export, unused_argument(ctx)]
 def install_line_agent(ctx : Context) {
     install_new_debug_agent(new LineInstrumentAgent(), "line_inst")
 }
@@ -96,7 +96,7 @@ def target_function(n : int) : int {
         result += i
     }
     result *= 2
-    result += 1
+    result++
     return result
 }
 
@@ -160,7 +160,7 @@ class FunctionProfileAgent : DapiDebugAgent {
     }
 }
 
-[export]
+[export, unused_argument(ctx)]
 def install_func_agent(ctx : Context) {
     install_new_debug_agent(new FunctionProfileAgent(), "func_prof")
 }
@@ -191,7 +191,7 @@ def demo_function_instrumentation() {
     // Instrument all functions BEFORE forking the agent, so
     // the agent receives onInstrumentFunction callbacks.
     var func_index = 0
-    instrument_all_functions(this_context()) $(fn, sfn) {
+    instrument_all_functions(this_context()) $(_fn, _sfn) {
         let idx = func_index
         func_index++
         return uint64(idx)

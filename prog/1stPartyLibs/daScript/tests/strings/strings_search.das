@@ -6,7 +6,7 @@ require daslib/fuzzer
 require daslib/regex
 
 [test]
-def test_search(t : T?) {
+def test_search(t : T?) { // nolint:STYLE038 one flat pin+fuzz arm per search entry point under test
 
     t |> equal(find("123", "23"), 1)
     t |> equal(find("123", "22"), -1)

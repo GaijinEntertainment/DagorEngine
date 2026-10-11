@@ -69,6 +69,9 @@ struct DaGISettings
     uint8_t clips = 0;        // autodetect, sdf.clips - firstSDFClip basically
     bool anisotropy = true;   // 6x more memory, but more accurate in terms of light leaks
     bool onlyLuma = false;    // 2x times less memory, but stores only luma in radiance lit scene
+    // a hint telling voxel lit scene stores only emission, so it's added on top of sampled GI radiance
+    // instead of replacing it
+    bool onlyEmission = false;
   };
 
   struct AlbedoScene

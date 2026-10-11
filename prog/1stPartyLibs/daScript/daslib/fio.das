@@ -69,12 +69,12 @@ def fload(file : file; size : int64; blk : block<(data : array<uint8>) : void>) 
 
 [generic]
 def fload(f : file; buf : auto(BufType) -const) {
-    var dfh : df_header
+    var dfh : df_header // nolint:LINT003,LINT019 - In generic instantiations, _builtin_read writes this raw output buffer.
     let r1 = _builtin_read(f, dfh, typeinfo sizeof(type<df_header>))
     if (r1 < 0 || dfh.magic != df_magic || dfh.size < 0) return false
     var loaded = false
     _builtin_load(f, int64(dfh.size)) $(data : array<uint8>) {
-        if (length(data) != 0) {
+        if (!empty(data)) {
             binary_load(buf, data)
             loaded = true
         }
@@ -93,7 +93,7 @@ def fsave(f : file; buf : auto(BufType) const) {
         let len = int(len64)
         let dfh = df_header(magic = df_magic, size = len)
         r1 = _builtin_write(f, dfh, typeinfo sizeof(type<df_header>))
-        if (len > 0) {   // addr(data[0]) on an empty payload is out of bounds
+        if (len > 0) {
             unsafe {
                 r2 = _builtin_write(f, addr(data[0]), len)
             }
@@ -115,8 +115,8 @@ def fread(f : file; buf : auto(BufType) const implicit) {
 [generic]
 def fread(f : file; buf : array<auto(BufType)> const implicit) {
     concept_assert(typeinfo is_raw(type<BufType>), "'fread' accepts only raw POD type arrays")
-    return 0 if (empty(buf))   // a 0-byte read; addr(buf[0]) on an empty array is out of bounds
-    let nbytes = long_length(buf) * typeinfo sizeof(type<BufType>)
+    return 0 if (empty(buf))
+    let nbytes = long_length(buf) * int64(typeinfo sizeof(type<BufType>))
     if (nbytes > int64(INT_MAX)) {
         panic("fread: {nbytes} bytes does not fit the int byte count - use long_fread")
     }
@@ -130,9 +130,9 @@ def fread(f : file; buf : array<auto(BufType)> const implicit) {
 [generic]
 def long_fread(f : file; buf : array<auto(BufType)> const implicit) : int64 {
     concept_assert(typeinfo is_raw(type<BufType>), "'long_fread' accepts only raw POD type arrays")
-    return 0l if (empty(buf))   // a 0-byte read; addr(buf[0]) on an empty array is out of bounds
+    return 0l if (empty(buf))
     unsafe {
-        return _builtin_read64(f, addr(buf[0]), long_length(buf) * typeinfo sizeof(type<BufType>))
+        return _builtin_read64(f, addr(buf[0]), long_length(buf) * int64(typeinfo sizeof(type<BufType>)))
     }
 }
 
@@ -147,8 +147,8 @@ def fwrite(f : file; buf : auto(BufType) const implicit) {
 [generic]
 def fwrite(f : file; buf : array<auto(BufType)> const implicit) {
     concept_assert(typeinfo is_raw(type<BufType>), "'fwrite' accepts only raw POD type arrays")
-    return 0 if (empty(buf))   // a 0-byte write; addr(buf[0]) on an empty array is out of bounds
-    let nbytes = long_length(buf) * typeinfo sizeof(type<BufType>)
+    return 0 if (empty(buf))
+    let nbytes = long_length(buf) * int64(typeinfo sizeof(type<BufType>))
     if (nbytes > int64(INT_MAX)) {
         panic("fwrite: {nbytes} bytes does not fit the int byte count - use long_fwrite")
     }
@@ -162,9 +162,9 @@ def fwrite(f : file; buf : array<auto(BufType)> const implicit) {
 [generic]
 def long_fwrite(f : file; buf : array<auto(BufType)> const implicit) : int64 {
     concept_assert(typeinfo is_raw(type<BufType>), "'long_fwrite' accepts only raw POD type arrays")
-    return 0l if (empty(buf))   // a 0-byte write; addr(buf[0]) on an empty array is out of bounds
+    return 0l if (empty(buf))
     unsafe {
-        return _builtin_write64(f, addr(buf[0]), long_length(buf) * typeinfo sizeof(type<BufType>))
+        return _builtin_write64(f, addr(buf[0]), long_length(buf) * int64(typeinfo sizeof(type<BufType>)))
     }
 }
 
@@ -174,7 +174,7 @@ def mkdir_rec(path : string) : bool {
     var st : FStat
     return true if (stat(path, st) && st.is_dir)
     let parent = dir_name(path)
-    return true if (parent == path)   // reached a root (e.g. a Windows drive root "E:") — nothing above to create
+    return true if (parent == path)
     mkdir_rec(parent)
     return mkdir(path)
 }
@@ -185,12 +185,11 @@ def mkdir_rec(path : string; var error : string&) : bool {
     var st : FStat
     return true if (stat(path, st) && st.is_dir)
     let parent = dir_name(path)
-    return true if (parent == path)   // reached a root (e.g. a Windows drive root "E:") — nothing above to create
+    return true if (parent == path)
     if (!mkdir_rec(parent, error)) return false
     return mkdir(path, error)
 }
 
-// convenience: read entire file by path, returns empty string on failure
 [generic]
 def fread(path : string) : string {
     var result : string
@@ -202,7 +201,6 @@ def fread(path : string) : string {
     return result
 }
 
-// convenience: write string to file by path, returns true on success
 [generic]
 def fwrite(path : string; text : string) : bool {
     var ok = false
@@ -215,7 +213,13 @@ def fwrite(path : string; text : string) : bool {
     return ok
 }
 
-// recursive directory iteration
+[generic]
+def fwrite_if_changed(path : string; text : string) : bool {
+    //! Writes `text` to `path` unless the file already holds it; returns whether it wrote.
+    if (fread(path) == text) return false
+    return fwrite(path, text)
+}
+
 [generic]
 def dir_rec(path : string; blk : block<(filename : string; is_dir : bool) : void>) {
     var error : string
@@ -227,19 +231,13 @@ def dir_rec(path : string; blk : block<(filename : string; is_dir : bool) : void
     builtin_dir_rec(path, blk, error)
 }
 
-// ===== glob =====
-
-// `[...]` character-class arm of the glob matcher: matches one source byte and
-// advances pi past the class (and si past the byte) on success.
 def private _match_glob_class(p : array<uint8> const#; var pi : int&; s : array<uint8> const#; var si : int&) : bool {
     let plen = length(p)
     let slen = length(s)
-    // POSIX fnmatch: `[` without a closing `]` matches the literal `[`.
     var scan = pi + 1
     if (scan < plen && (p[scan] == uint8('!') || p[scan] == uint8('^'))) {
         scan++
     }
-    // A `]` immediately after `[` or `[!`/`[^` is a literal class member, not the terminator (POSIX rule for closing brackets in classes).
     if (scan < plen && p[scan] == uint8(']')) {
         scan++
     }
@@ -247,7 +245,6 @@ def private _match_glob_class(p : array<uint8> const#; var pi : int&; s : array<
         scan++
     }
     if (scan >= plen) {
-        // No closing `]` — treat the `[` as a literal character.
         return false if (si >= slen || int(s[si]) != '[')
         pi++
         si++
@@ -263,7 +260,6 @@ def private _match_glob_class(p : array<uint8> const#; var pi : int&; s : array<
         pi++
     }
     var matched = false
-    // POSIX: `]` right after `[` (or `[!`/`[^`) is a literal class member, not the terminator.
     if (pi < plen && p[pi] == uint8(']')) {
         if (sc == ']') {
             matched = true
@@ -293,8 +289,6 @@ def private _match_glob_class(p : array<uint8> const#; var pi : int&; s : array<
     return true
 }
 
-// Byte-level pathname-glob matcher. `/` is a hard segment boundary that single
-// `*` and `?` may not cross; `**` matches across `/`.
 def private _match_glob_bytes(p : array<uint8> const#; var pi : int; s : array<uint8> const#; var si : int) : bool {
     let plen = length(p)
     let slen = length(s)
@@ -303,7 +297,6 @@ def private _match_glob_bytes(p : array<uint8> const#; var pi : int; s : array<u
         if (pc == '*') {
             let is_double = (pi + 1 < plen && p[pi + 1] == uint8('*'))
             if (is_double) {
-                // `**/` semantics: the `/` is optional only when `**` matches empty. Otherwise `**` must consume one or more segments ending in `/`, so the source must have a `/` boundary.
                 if (pi + 2 < plen && p[pi + 2] == uint8('/')) {
                     if (_match_glob_bytes(p, pi + 3, s, si)) return true
                     var k = si
@@ -351,7 +344,6 @@ def match_glob(pattern : string; path : string) : bool {
     let slen = length(path)
     return true if (plen == 0 && slen == 0)
     return false if (plen == 0)
-    // Empty path matches a pattern only when every char is `*` (any number of stars or **).
     if (slen == 0) return empty(replace(pattern, "*", ""))
     var result = false
     peek_data(pattern) $(parr) {
@@ -360,6 +352,63 @@ def match_glob(pattern : string; path : string) : bool {
         }
     }
     return result
+}
+
+def private is_path_start_delimiter(b : int) : bool {
+    return (is_white_space(b) || b == '=' || b == '"' || b == '\'' || b == '(' || b == '[' ||
+        b == ',' || b == ';' || b == ':')
+}
+
+//! Every home directory in `text` - `/Users/<name>/`, `/home/<name>/`, `<drive>:\\Users\\<name>\\`,
+//! `<drive>:/Users/<name>/` - rewritten as `~/` (`~\\` on the drive form) wherever it starts a
+//! path: the path under the home survives, the user name does not; a bare home stays.
+def tilde_home(text : string) : string {
+    return build_string() $(var b : StringBuilderWriter) {
+        peek_data(text) $(d) {
+            let n = length(d)
+            var start = 0
+            var i = 0
+            while (i < n) {
+                var hit = -1
+                var plen = 0
+                var sep = '/'
+                for (needle, len, sp in ["/Users/", "/home/", ":\\Users\\", ":/Users/"], [7, 6, 8, 8], ['/', '/', '\\', '/']) {
+                    let k = find(d, needle, i)
+                    if (k >= 0 && (hit < 0 || k < hit)) {
+                        hit = k
+                        plen = len
+                        sep = sp
+                    }
+                }
+                break if (hit < 0)
+                var mstart = hit
+                if (int(d[hit]) == ':') {
+                    if (hit == 0 || !is_alpha(int(d[hit - 1]))) {
+                        i = hit + 1
+                        continue
+                    }
+                    mstart = hit - 1
+                }
+                if (mstart > 0 && !is_path_start_delimiter(int(d[mstart - 1]))) {
+                    i = hit + 1
+                    continue
+                }
+                var e = hit + plen
+                while (e < n && int(d[e]) != sep && !is_white_space(int(d[e])) && int(d[e]) != '"' && int(d[e]) != '\'') {
+                    e++
+                }
+                if (e == hit + plen || e >= n || int(d[e]) != sep) {
+                    i = hit + 1
+                    continue
+                }
+                b |> write(slice(d, start, mstart))
+                b |> write(sep == '/' ? "~/" : "~\\")
+                i = e + 1
+                start = i
+            }
+            b |> write(slice(d, start, n))
+        }
+    }
 }
 
 //! Convert a path to use forward slashes regardless of host OS.
@@ -420,7 +469,6 @@ def expand_glob(pattern : string; var result : array<string>) {
     let split = _split_literal_prefix(normalized_pattern)
     let dir_part = split._0
     let file_pattern = split._1
-    // Pattern is already `/`-normalized (see normalize above), so no need to also check for `\` here.
     let recursive = (find(file_pattern, "**") >= 0
                      || find(file_pattern, "/") >= 0)
     var matches : array<string>
@@ -430,8 +478,6 @@ def expand_glob(pattern : string; var result : array<string>) {
             matches |> push(_join_path(dir_part, fname))
         }
     } else {
-        // Shallow walk: `dir(...)` yields names without an `is_dir` flag, so stat each match
-        // and skip directories — callers expect file paths only.
         dir(dir_part) $(fname) {
             if (fname == "." || fname == "..") return
             if (match_glob(file_pattern, fname)) {
@@ -446,17 +492,12 @@ def expand_glob(pattern : string; var result : array<string>) {
     result |> push_from(matches)
 }
 
-// Join `dir_part` and `fname` with `/`, but skip the inserted separator when `dir_part`
-// is `.` or already ends with `/` or `\` (filesystem root, drive root).
 def private _join_path(dir_part : string; fname : string) : string {
     if (dir_part == ".") return fname
     if (dir_part |> ends_with("/") || dir_part |> ends_with("\\")) return "{dir_part}{fname}"
     return "{dir_part}/{fname}"
 }
 
-// Split a pattern into (literal_dir, glob_remainder) at the last separator before the first
-// glob metacharacter. Pattern with no metacharacters splits at its last separator. Returned
-// dir_part is "." when no separator precedes the meta.
 def private _split_literal_prefix(pattern : string) : tuple<string; string> {
     var first_meta = find(pattern, '*')
     let qmark = find(pattern, '?')
@@ -476,9 +517,7 @@ def private _split_literal_prefix(pattern : string) : tuple<string; string> {
     let raw_dir = slice(pattern, 0, sep)
     let raw_sep = slice(pattern, sep, sep + 1)
     let remainder = slice(pattern, sep + 1)
-    // POSIX absolute root: pattern starts with `/` (or `\`). Empty prefix would tell `glob`/`dir` to walk an empty path; keep the separator.
     if (empty(raw_dir)) return raw_sep => remainder
-    // Windows drive root like `C:` (or `C:/foo` after normalization with sep at index 2).
     if (length(raw_dir) == 2 && raw_dir |> ends_with(":")) return "{raw_dir}{raw_sep}" => remainder
     return raw_dir => remainder
 }
@@ -508,7 +547,6 @@ def parse_file_list(file : string; var result : array<string>) {
     }
 }
 
-// convenience: disk_space returning struct
 [generic]
 def disk_space(path : string) : DiskSpaceInfo {
     var info = DiskSpaceInfo()
@@ -524,8 +562,6 @@ def disk_space(path : string; var error : string&) : DiskSpaceInfo {
     return info
 }
 
-// ---- result variants for error reporting ----
-
 variant fs_result_bool {
     value : bool;
     error : string;
@@ -540,8 +576,6 @@ variant fs_result_string {
     value : string;
     error : string;
 }
-
-// ---- _result wrappers ----
 
 [generic]
 def file_size_result(path : string) : fs_result_int64 {
@@ -568,6 +602,14 @@ def is_symlink_result(path : string) : fs_result_bool {
 }
 
 [generic]
+def is_reparse_point_result(path : string) : fs_result_bool {
+    var error : string
+    let res = is_reparse_point(path, error)
+    if (!empty(error)) return fs_result_bool(error = error)
+    return fs_result_bool(value = res)
+}
+
+[generic]
 def copy_file_result(src : string; dst : string; overwrite : bool) : fs_result_bool {
     var error : string
     let res = copy_file(src, dst, overwrite, error)
@@ -576,7 +618,7 @@ def copy_file_result(src : string; dst : string; overwrite : bool) : fs_result_b
 }
 
 [generic]
-def set_mtime_result(path : string; time : clock) : fs_result_bool {  // clock = the builtin Time handled type ("Time" resolves to nothing — this overload was uncallable)
+def set_mtime_result(path : string; time : clock) : fs_result_bool {
     var error : string
     let res = set_mtime(path, time, error)
     if (!empty(error)) return fs_result_bool(error = error)
@@ -655,10 +697,26 @@ def rmdir_rec_result(path : string) : fs_result_bool {
     return fs_result_bool(value = res)
 }
 
+typedef process = SubProcess?
+
+def with_process(argv : array<string>; cwd : string; env : array<string>; blk : block<(var p : process) : void>) {
+    //! Spawn `argv` as a long-lived child (no shell; a forward-slash ``argv[0]`` spawns everywhere), run `blk` with
+    //! the handle, then close it on scope exit - closing kills a child still running (the Windows job tree, the POSIX
+    //! group). `cwd` empty inherits; `env` is ``KEY=VALUE`` overrides. A binary that cannot start never throws: the handle reads as an exited child, exit 127, no output.
+    var p = unsafe(spawn_process(argv, cwd, env))
+    invoke(blk, p)
+    unsafe(close_process(p))
+}
+
+def with_process(argv : array<string>; blk : block<(var p : process) : void>) {
+    //! `with_process` inheriting the parent's directory and environment.
+    let noenv : array<string>
+    with_process(argv, "", noenv, blk)
+}
+
 def run_and_capture(args : array<string>; var output : string&; timeout_sec : float = 0.0) : int {
     //! Run an external command and capture its stdout+stderr (merged into one pipe by the underlying ``popen_argv``). Returns the process exit code;
-    //! -1 means the spawn itself failed. No shell is involved, but on Windows the program path (``args[0]``) must use backslashes —
-    //! CreateProcess does not resolve ``bin/daslang``-style forward-slash relative paths (probe-verified); ``replace(exe, "/", "\\")`` first.
+    //! -1 means the spawn itself failed. No shell is involved, and a forward-slash ``args[0]`` spawns on every platform (``popen_argv`` hands Windows the backslash spelling).
     var captured : string
     let exit_code = unsafe(popen_argv(args, timeout_sec, $(f) {
         if (f != null) {
@@ -667,4 +725,11 @@ def run_and_capture(args : array<string>; var output : string&; timeout_sec : fl
     }))
     output = captured
     return exit_code
+}
+
+def executable_on_path(name : string) : bool {
+    //! True when the shell finds ``name`` as a command - ``where`` on Windows, ``command -v`` elsewhere - so a program on PATH answers, and so does a shell builtin; the exit code decides.
+    //! ``name`` travels as an argument, never as shell text, so no character in it runs anything.
+    let probe <- get_running_platform_name() == "windows" ? ["where", name] : ["sh", "-c", "command -v \"$1\"", "sh", name]
+    return unsafe(popen_argv(probe, 30.0, $(_f) {})) == 0
 }

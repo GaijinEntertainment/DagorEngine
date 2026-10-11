@@ -59,7 +59,7 @@ static void polys2mesh(Set<Polygon *> &polygons, Mesh &mesh)
   }
   Tab<int> degenerates(tmpmem);
   // G_ASSERT(sizeof(FaceT) == elem_size(mesh.face));
-  optimize_verts(&mesh.face[0], mesh.face.size(), mesh.vert, length(box.width()) * 0.0005, &degenerates);
+  optimize_verts(&mesh.face[0], mesh.face.size(), mesh.vert, length(box.width()) * 0.0005f, &degenerates);
   optimize_verts(&mesh.tface[0][0], mesh.tface[0].size(), mesh.tvert[0], 0.0001);
   invertV(&mesh.tvert[0][0], mesh.tvert[0].size());
 

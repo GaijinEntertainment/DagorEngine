@@ -660,10 +660,10 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
     case Drv3dCommand::EXECUTE_METALFX_UPSCALE:
     {
       MtlFxUpscaleParams *params = static_cast<MtlFxUpscaleParams*>(par1);
-      if (params->temporal)
+      if (params->isTemporal)
         render.executeTemporalUpscale((drv3d_metal::Texture*)params->color, (drv3d_metal::Texture*)params->motion,
           (drv3d_metal::Texture*)params->depth, (drv3d_metal::Texture*)params->output, params->jitterX, params->jitterY,
-          params->motionScaleX, params->motionScaleY);
+          params->motionScaleX, params->motionScaleY, params->doReset);
       else
         render.executeSpatialUpscale((drv3d_metal::Texture*)params->color, (drv3d_metal::Texture*)params->output,
           (uint32_t)params->colorMode);
@@ -696,7 +696,11 @@ bool d3d::is_window_occluded() { return false; }
 
 bool d3d::reset_device()
 {
+#if _TARGET_IOS
+  return render.applyBackbufferResize();
+#else
   return true;
+#endif
 }
 
 bool d3d::setstencil(uint32_t ref)
@@ -966,6 +970,15 @@ static ResourceHeapGroup *g_heap_group_rt = (ResourceHeapGroup *)2;
 static ResourceHeapGroup *g_heap_group_ds = (ResourceHeapGroup *)3;
 static ResourceHeapGroup *g_heap_group_buf = (ResourceHeapGroup *)4;
 
+static uint32_t get_placed_buffer_size(const ResourceDescription &desc)
+{
+  uint32_t size = desc.asBufferRes.elementSizeInBytes * desc.asBufferRes.elementCount;
+  if (size == 0 || desc.asBufferRes.viewFormat == 0)
+    return size;
+  int w, h, row_bytes;
+  return drv3d_metal::Buffer::getTexelViewLayout(size, desc.asBufferRes.viewFormat, w, h, row_bytes);
+}
+
 ResourceAllocationProperties get_resource_allocation_properties(const ResourceDescription &desc)
 {
   ResourceAllocationProperties ret {};
@@ -989,7 +1002,7 @@ ResourceAllocationProperties get_resource_allocation_properties(const ResourceDe
     break;
     case D3DResourceType::SBUF:
     {
-      size_and_align = [render.device heapBufferSizeAndAlignWithLength : desc.asBufferRes.elementSizeInBytes * desc.asBufferRes.elementCount
+      size_and_align = [render.device heapBufferSizeAndAlignWithLength : get_placed_buffer_size(desc)
                                                                options : MTLResourceStorageModePrivate];
       ret.heapGroup = g_heap_group_buf;
     }
@@ -1032,9 +1045,8 @@ void destroy_resource_heap(ResourceHeap *heap)
 
   TEXQL_ON_PERSISTENT_RELEASE_SZ(heap->size);
 
-  render.queueHeapForDeletion(heap->heap);
-
-  delete heap;
+  // constraint: placed resources and recorded commands point at the heap until the current submit completes
+  render.queueHeapForDeletion(heap);
 }
 
 Sbuffer *place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
@@ -1053,13 +1065,14 @@ Sbuffer *place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescrip
   D3D_CONTRACT_ASSERTF(!(desc.asBufferRes.cFlags & SBCF_MISC_ALLOW_RAW) || desc.asBufferRes.elementSizeInBytes == 4,
     "Metal: SBCF_MISC_ALLOW_RAW requires 4 byte elements, got %u", desc.asBufferRes.elementSizeInBytes);
 
-  id<MTLBuffer> buf = [heap->heap newBufferWithLength : desc.asBufferRes.elementSizeInBytes * desc.asBufferRes.elementCount
+  id<MTLBuffer> buf = [heap->heap newBufferWithLength : get_placed_buffer_size(desc)
                                                  options : MTLResourceStorageModePrivate
                                                   offset : offset];
   if (buf == nullptr)
     return nullptr;
 
-  drv3d_metal::Buffer *buffer = new drv3d_metal::Buffer(buf, desc.asBasicRes.cFlags, name);
+  drv3d_metal::Buffer *buffer = new drv3d_metal::Buffer(buf, desc.asBufferRes.elementSizeInBytes, desc.asBasicRes.cFlags,
+    desc.asBufferRes.viewFormat, name);
   buffer->heap_offset = uint32_t(offset);
   buffer->heap_size = alloc_info.sizeInBytes;
   buffer->heap = heap;

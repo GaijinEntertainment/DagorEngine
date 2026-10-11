@@ -34,10 +34,13 @@ namespace controls
 void global_init();
 void global_destroy();
 void init_drivers();
-void init_control(const char *user_game_mode_input_cfg_fn = nullptr);
+void init_control(const char *user_game_mode_input_cfg_fn);
+void reinit_control();
 void destroy();
 
 void process_input(double dt);
+void send_console_actions();
+void clear_console_actions();
 void check_system_keys();
 void bind_script_api(SqModules *moduleMgr);
 } // namespace controls

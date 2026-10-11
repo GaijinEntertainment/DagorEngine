@@ -114,7 +114,7 @@ def set_with_2_extra_which_touches_global(var b : Foo; e1, e2 : int) : Foo {
 }
 
 [test]
-def test_aliasing(t : T?) {
+def test_aliasing(t : T?) {     // nolint:STYLE038 - one flat arm per aliasing scenario
     t |> run("straight up aliasing") @(t : T?) {
         var a = Foo(a = 1)
         var b : Foo
@@ -249,7 +249,7 @@ def test_aliasing(t : T?) {
     t |> run("pointer argument false aliasing") @(t : T?) {
         var a = new Foo(a = 1)
         var b : Foo
-        b = set(*a)         // (16) 40211: function set result aliases argument a
+        b = set(*a)         // nolint:STYLE011 - (16) 40211: function set result aliases argument a
                                 // note - false aliasing
         t |> equal(14, b.a)
     }
@@ -346,7 +346,7 @@ def test_aliasing(t : T?) {
             b.a += g_a.a + e1 + e2
             return b
         }
-        fn <- @(var b : Foo; e1, e2 : int) : Foo {
+        fn <- @(var b : Foo; e1, e2 : int) : Foo {     // nolint:PERF030 - re-pointing fn is the aliasing scenario
             var a = Foo(a = e1 + e2)
             a.a += b.a
             return a

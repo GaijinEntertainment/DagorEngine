@@ -5,40 +5,25 @@ include "heightmap_max_grid.dshl"
 int use_hw_rt_gi;
 interval use_hw_rt_gi : off < 1, on;
 
-// the max grid march over the base heightmap: the height, texel size and up
-// cull providers the lib macro needs. Self sufficient: the heightmap base
-// macros are once guarded, shaders that already hold them lose nothing
-macro TESTGI_HEIGHTMAP_MAX_GRID(code)
-  INIT_WORLD_HEIGHTMAP_BASE(code)
-  USE_HEIGHTMAP_COMMON_BASE(code)
-  if (tex_hmap_low != NULL)
-  {
-    // stcode: texel size in meters and the up cull, the sine of the worst
-    // slope (sqrt2 covers the diagonal; tex_hmap_inv_sizes is repurposed)
-    local float hmap_grid_texel = 1.0 / max(get_dimensions(tex_hmap_low, 0).x * world_to_hmap_low.x, 1e-9);
-    local float hmap_grid_grad = 1.4142136 * min(heightmap_scale.x / hmap_grid_texel, hmap_max_gradient);
-    (code) {
-      heightmap_max_grid_texel_upcull@f2 = (hmap_grid_texel, hmap_grid_grad / sqrt(1 + hmap_grid_grad * hmap_grid_grad));
-    }
+macro TESTGI_TRACE_COLLISION(code)
+  (code) {
+    bvhLruCollision@tlas = bvh_lru_collision;
+    bvhLruCollisionValid@u1 = bvh_lru_collision_valid;
+    bvh_origin@f3 = bvh_origin;
   }
   hlsl(code) {
-    ##if tex_hmap_low != NULL
-    #define HEIGHTMAP_MAX_GRID_HAS_HEIGHT 1
-    float heightmap_max_grid_get_height(float3 world_pos)
+    // constraint: a ray from inside a collision sheet hits its back face, so the two-sided closest hit keeps buried probes occluded
+    #define TESTGI_COLLISION_RAY_FLAGS (RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES)
+    bool testgi_trace_collision(float3 origin_rel, float3 dir, float max_t, inout RayQuery<TESTGI_COLLISION_RAY_FLAGS> query)
     {
-      return decode_height(getHeightLowLod(calcTcLow(world_pos.xz), 0));
+      if (!bvhLruCollisionValid)
+        return false;
+      RayDesc ray = {origin_rel, 0, dir, max_t};
+      query.TraceRayInline(bvhLruCollision, TESTGI_COLLISION_RAY_FLAGS, 0xFF, ray);
+      query.Proceed();
+      return query.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
     }
-    float heightmap_max_grid_get_texel_size()
-    {
-      return heightmap_max_grid_texel_upcull.x;
-    }
-    float heightmap_max_grid_get_up_cull()
-    {
-      return heightmap_max_grid_texel_upcull.y;
-    }
-    ##endif
   }
-  USE_HEIGHTMAP_MAX_GRID(code)
 endmacro
 
 macro PROJECT_TRACE(code, supports_raygen)
@@ -46,16 +31,12 @@ macro PROJECT_TRACE(code, supports_raygen)
   bool dagi_project_use_raygen = false;
   if (dagi_project_use_rt)
   {
-    (code) {
-      bvhLruCollision@tlas = bvh_lru_collision;
-      bvhLruCollisionValid@u1 = bvh_lru_collision_valid;
-      bvh_origin@f3 = bvh_origin;
-    }
+    TESTGI_TRACE_COLLISION(code)
     INIT_BVH_LRU_COLLISION_NORMALS(code)
     USE_BVH_LRU_COLLISION_NORMALS(code)
     // the collision tlas carries no terrain: the heightfield march completes
     // the trace, a closer terrain hit replaces the committed one
-    TESTGI_HEIGHTMAP_MAX_GRID(code)
+    INIT_AND_USE_HEIGHTMAP_MAX_GRID(code)
 
     hlsl (code) {
       #define DAGI_PROJECT_TRACE_HAS_RADIANCE 0
@@ -77,25 +58,10 @@ macro PROJECT_TRACE(code, supports_raygen)
       };
       bool dagi_project_trace_collision(float3 cam_from, float3 origin, float3 worldDir, float maxT, inout DaGiProjectHitRes hit)
       {
-        if (!bvhLruCollisionValid)
-          return false;
         //fixme: (sp_world_view_pos - bvh_origin) is constant that should be calculated in doubles!
         float3 bvhFrom = (origin - bvh_origin) + cam_from;
-
-        // two-sided closest hit: collision is a single sheet, so a ray from
-        // inside geometry must hit the back face and keep buried probes occluded
-        const uint flags = RAY_FLAG_FORCE_OPAQUE | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
-        RayQuery<flags> query;
-
-        RayDesc ray;
-        ray.Origin    = bvhFrom;
-        ray.Direction = worldDir;
-        ray.TMin      = 0;
-        ray.TMax      = maxT;
-
-        query.TraceRayInline(bvhLruCollision, flags, 0xFF, ray);
-        query.Proceed();
-        if (query.CommittedStatus() != COMMITTED_TRIANGLE_HIT)
+        RayQuery<TESTGI_COLLISION_RAY_FLAGS> query;
+        if (!testgi_trace_collision(bvhFrom, worldDir, maxT, query))
           return false;
 
         hit.hitAt = query.CommittedRayT();
@@ -120,11 +86,7 @@ macro PROJECT_TRACE(code, supports_raygen)
         hit.hitCamPos = cam_from + dir*t;
         hit.hitBackFace = backFace;
         float3 pos = cam_from + origin + dir*t;
-        const float e = 1.0;
-        float2 dh = float2(
-          heightmap_max_grid_get_height(pos + float3(e, 0, 0)) - heightmap_max_grid_get_height(pos - float3(e, 0, 0)),
-          heightmap_max_grid_get_height(pos + float3(0, 0, e)) - heightmap_max_grid_get_height(pos - float3(0, 0, e)));
-        float3 n = normalize(float3(-dh.x, 2*e, -dh.y));
+        float3 n = heightmap_max_grid_get_normal(pos);
         // faces the ray origin like the collision hit normal: a buried origin
         // shooting up must see the far side of the ground sheet
         hit.hitNormal = dot(n, dir) > 0 ? -n : n;

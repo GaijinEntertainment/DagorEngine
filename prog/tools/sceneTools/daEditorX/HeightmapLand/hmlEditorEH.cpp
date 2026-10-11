@@ -466,7 +466,7 @@ bool HmapLandObjectEditor::usesRendinstPlacement() const
     return false;
   for (int i = 0; i < selection.size(); i++)
   {
-    LandscapeEntityObject *leo = RTTI_cast<LandscapeEntityObject>(selection[0]);
+    LandscapeEntityObject *leo = RTTI_cast<LandscapeEntityObject>(selection[i]);
     if (!leo || !leo->usesRendinstPlacement())
       return false;
   }
@@ -1060,8 +1060,6 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       updateGizmo();
       break;
 
-    case CM_SHOW_PANEL: HmapLandPlugin::self->onPluginMenuClick(pcb_id); break;
-
     case CM_SHOW_LAND_OBJECTS:
       areLandHoleBoxesVisible = !areLandHoleBoxesVisible;
       updateToolbarButtons();
@@ -1084,6 +1082,7 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
         IEditorCoreEngine::get()->setShowMessageAt(0, 0, SimpleString());
       break;
     case CM_SHOW_PHYSMAT_COLORS: showPhysMatColors = !showPhysMatColors; break;
+    case CM_SHOW_PANEL:
     case CM_HILL_UP:
     case CM_HILL_DOWN:
     case CM_ALIGN:
@@ -1129,6 +1128,7 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       break;
 
     case CM_REFINE_SPLINE:
+    case CM_SPLIT_POLY:
       setEditMode(pcb_id);
       curPt = new SplinePointObject;
       curPt->visible = false;
@@ -1150,12 +1150,6 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       // setEditMode(cmd);
       // curPt = new SplinePointObject;
       // curPt->visible = false;
-      break;
-
-    case CM_SPLIT_POLY:
-      setEditMode(pcb_id);
-      curPt = new SplinePointObject;
-      curPt->visible = false;
       break;
 
     case CM_REVERSE_SPLINE:
@@ -1657,7 +1651,7 @@ void HmapLandObjectEditor::autoAttachSplines()
     FLOAT_EDIT_ID = 100,
   };
 
-  PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(100), "Attach points maximum distance");
+  PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Attach points maximum distance");
   PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
   panel->createEditFloat(FLOAT_EDIT_ID, "Attach distance:", 0.3);
 
@@ -1752,7 +1746,7 @@ void HmapLandObjectEditor::makeBottomSplines()
     return;
   }
 
-  PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(180), "Bottom splines properties");
+  PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Bottom splines properties");
   PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
   panel->createStatic(-1, String(128, "%d polygons selected", poly.size()));
   panel->createEditFloat(1, "Border width:", 40);
@@ -2000,9 +1994,8 @@ void HmapLandObjectEditor::updateImgui()
     return;
 
   bool open = true;
-  DAEDITOR3.imguiBegin("Outliner", &open);
-  outlinerWindow->updateImgui();
-  DAEDITOR3.imguiEnd();
+  if (auto window = IDaEditor3Engine::ScopedImguiWindow("Outliner", &open); window.canSubmitContents())
+    outlinerWindow->updateImgui();
 
   if (!open)
     showOutlinerWindow(false);

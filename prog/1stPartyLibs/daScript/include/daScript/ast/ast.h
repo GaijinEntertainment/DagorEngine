@@ -8,6 +8,7 @@
 #include "daScript/misc/rangetype.h"
 #include "daScript/simulate/data_walker.h"
 #include "daScript/simulate/debug_info.h"
+#include "daScript/simulate/code_of_policies.h"
 #include "daScript/ast/ast_serialize_macro.h"
 #include "daScript/ast/compilation_errors.h"
 #include "daScript/ast/ast_typedecl.h"
@@ -74,50 +75,6 @@ namespace das
     DAS_API AnnotationPtr newLogicAnnotation ( LogicAnnotationOp op,
         const AnnotationDeclarationPtr & arg0, const AnnotationDeclarationPtr & arg1 );
 
-
-    //      [annotation (value,value,...,value)]
-    //  or  [annotation (key=value,key,value,...,key=value)]
-    struct DAS_API AnnotationArgument {
-        Type    type;       // only tInt, tFloat, tBool, and tString are allowed
-        string  name;
-        string  sValue;
-        union {
-            bool    bValue;
-            int     iValue;
-            float   fValue;
-            AnnotationArgumentList * aList; // only used during parsing
-        };
-        LineInfo    at;
-        AnnotationArgument () : type(Type::tVoid), iValue(0) {}
-        //explicit copy is required to avoid copying union as float and cause FPE
-        AnnotationArgument ( const AnnotationArgument & a )
-            : type(a.type), name(a.name), sValue(a.sValue), iValue(a.iValue), at(a.at) {}
-        AnnotationArgument & operator = ( const AnnotationArgument & a ) {
-            type=a.type; name=a.name; sValue=a.sValue; iValue=a.iValue; at=a.at; return *this;
-        }
-        AnnotationArgument ( const string & n, const string & s, const LineInfo & loc = LineInfo() )
-            : type(Type::tString), name(n), sValue(s), iValue(0), at(loc) {}
-        AnnotationArgument ( const string & n, bool b, const LineInfo & loc = LineInfo() )
-            : type(Type::tBool), name(n), bValue(b), at(loc) {}
-        AnnotationArgument ( const string & n, int i, const LineInfo & loc = LineInfo() )
-            : type(Type::tInt), name(n), iValue(i), at(loc) {}
-        AnnotationArgument ( const string & n, float f, const LineInfo & loc = LineInfo() )
-            : type(Type::tFloat), name(n), fValue(f), at(loc) {}
-        AnnotationArgument ( const string & n, AnnotationArgumentList * al, const LineInfo & loc = LineInfo() )
-            : type(Type::none), name(n), aList(al), at(loc) {}
-        void serialize ( AstSerializer & ser );
-    };
-
-    typedef vector<AnnotationArgument> AnnotationArguments;
-
-    struct DAS_API AnnotationArgumentList : AnnotationArguments {
-        const AnnotationArgument * find ( const string & name, Type type ) const;
-        bool getBoolOption(const string & name, bool def = false) const;
-        int32_t getIntOption(const string & name, int32_t def = false) const;
-        uint64_t getUInt64Option(const string & name, uint64_t def = false) const;
-        uint64_t getUInt64OptionEx (const string & name, const string & name2, uint64_t def = false) const;
-        void serialize ( AstSerializer & ser );
-    };
 
     struct DAS_API Annotation : BasicAnnotation {
         Annotation ( const string & n, const string & cpn = "" ) : BasicAnnotation(n,cpn) {}
@@ -252,6 +209,7 @@ namespace das
         StructurePtr clone() const;
         bool isCompatibleCast ( const Structure & castS ) const;
         const FieldDeclaration * findField ( const string & name ) const;
+        Function * findMethodFunction ( const string & name ) const;
         const Structure * findFieldParent ( const string & name ) const;
         FieldDeclarationRef findFieldRef ( const string & name ) const;
         int getSizeOf() const;
@@ -327,10 +285,12 @@ namespace das
             uint32_t    flags = 0;
         };
         mutable bool circularGuard = false;   // we prevent circular lookups with this guard. Do not serialize, do not expose to daslang
+        mutable int32_t cachedGcFlags = -1;   // gc flags of the whole structure, -1 until a top-level walk fills it. Not serialized
     };
 
     struct DAS_API Variable : gc_node {
         Variable() { gc_magic = GC_MAGIC_VARIABLE; }
+        explicit Variable( const LineInfo & at ) : at(at) { gc_magic = GC_MAGIC_VARIABLE; }
         VariablePtr clone() const;
         string getMangledName() const;
         uint64_t getMangledNameHash() const;
@@ -347,7 +307,6 @@ namespace das
         ExpressionPtr   source = nullptr;     // if its interator variable, this is where the source is
         Expression *    loop_source = nullptr; // weak ref to ExprFor::sources[i], used for read/write propagation
         LineInfo        at;
-        int             index = -1;
         uint32_t        stackTop = 0;
         uint32_t        extraLocalOffset = 0;   // this is here for fake variables only
         Module *        module = nullptr;
@@ -358,7 +317,6 @@ namespace das
             struct {
                 bool    init_via_move : 1;
                 bool    init_via_clone : 1;
-                bool    used : 1;
                 bool    aliasCMRES : 1;
                 bool    marked_used : 1;
                 bool    global_shared : 1;
@@ -445,31 +403,31 @@ namespace das
         FunctionAnnotation ( const string & n ) : Annotation(n) {}
         virtual bool rtti_isFunctionAnnotation() const override { return true; }
         virtual bool apply ( const FunctionPtr & func, ModuleGroup & libGroup,
-                            const AnnotationArgumentList & args, string & err ) = 0;
+                            AnnotationArgumentList & args, string & err ) = 0;
         virtual bool generic_apply ( const FunctionPtr &, ModuleGroup &,
-                            const AnnotationArgumentList &, string & ) { return true; };
+                            AnnotationArgumentList &, string & ) { return true; };
         virtual bool finalize ( const FunctionPtr & func, ModuleGroup & libGroup,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & err ) = 0;
         virtual bool apply ( ExprBlock * block, ModuleGroup & libGroup,
-                            const AnnotationArgumentList & args, string & err ) = 0;
+                            AnnotationArgumentList & args, string & err ) = 0;
         virtual bool finalize ( ExprBlock * block, ModuleGroup & libGroup,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & err ) = 0;
         virtual bool patch ( const FunctionPtr &, ModuleGroup &,
-                               const AnnotationArgumentList &,
+                               AnnotationArgumentList &,
                                const AnnotationArgumentList &, string &, bool & ) { return true; }
         virtual bool fixup ( const FunctionPtr &, ModuleGroup &,
-                               const AnnotationArgumentList &,
+                               AnnotationArgumentList &,
                                const AnnotationArgumentList &, string & ) { return true; }
         virtual bool lint ( const FunctionPtr &, ModuleGroup &,
-                               const AnnotationArgumentList &,
+                               AnnotationArgumentList &,
                                const AnnotationArgumentList &, string & ) { return true; }
         virtual SimNode * simulate ( Context *, Function *,
                             const AnnotationArgumentList &, string & ) { return nullptr; }
         virtual void complete ( Context *, const FunctionPtr & ) { }
         virtual bool simulate ( Context *, SimFunction * ) { return true; }
-        virtual bool verifyCall ( ExprCallFunc * /*call*/, const AnnotationArgumentList & /*args*/,
+        virtual bool verifyCall ( ExprCallFunc * /*call*/, AnnotationArgumentList & /*args*/,
             const AnnotationArgumentList & /*progArgs */, string & /*err*/ ) { return true; }
         virtual ExpressionPtr transformCall ( ExprCallFunc * /*call*/, string & /*err*/ ) { return nullptr; }
         virtual string aotName ( ExprCallFunc * call );
@@ -486,16 +444,16 @@ namespace das
     struct TransformFunctionAnnotation : FunctionAnnotation {
         TransformFunctionAnnotation ( const string & n ) : FunctionAnnotation(n) {}
         virtual ExpressionPtr transformCall ( ExprCallFunc * /*call*/, string & /*err*/ ) override = 0;
-        virtual bool apply ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string & ) override {
+        virtual bool apply ( const FunctionPtr &, ModuleGroup &, AnnotationArgumentList &, string & ) override {
             return false;
         }
-        virtual bool finalize ( const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+        virtual bool finalize ( const FunctionPtr &, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
             return false;
         }
-        virtual bool apply ( ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, string & ) override {
+        virtual bool apply ( ExprBlock *, ModuleGroup &, AnnotationArgumentList &, string & ) override {
             return false;
         }
-        virtual bool finalize ( ExprBlock *, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
+        virtual bool finalize ( ExprBlock *, ModuleGroup &, AnnotationArgumentList &, const AnnotationArgumentList &, string & ) override {
             return false;
         }
     };
@@ -520,6 +478,7 @@ namespace das
             return hb.getHash();
         }
         virtual int32_t getGcFlags(das_set<Structure *> &, das_set<Annotation *> &) const { return 0; }
+        mutable int32_t cachedGcFlags = -1;   // gc flags of the handled type, -1 until a top-level walk fills it
         virtual bool canAot(das_set<Structure *> &) const { return true; }
         virtual bool canMove() const {
             return !hasNonTrivialCopy();
@@ -590,6 +549,8 @@ namespace das
         virtual void * jitGetNew () const { return nullptr; }
         virtual void * jitGetDelete () const { return nullptr; }
         virtual void * jitGetClone () const { return nullptr; }
+        virtual void * jitGetEach () const { return nullptr; }
+        virtual void * jitGetAt ( Type /*indexType*/ ) const { return nullptr; }
         uint64_t ownSemanticHash = 0;
     };
 
@@ -597,11 +558,11 @@ namespace das
         StructureAnnotation ( const string & n ) : Annotation(n) {}
         virtual bool rtti_isStructureAnnotation() const override { return true; }
         virtual bool touch ( const StructurePtr & st, ModuleGroup & libGroup,
-                            const AnnotationArgumentList & args, string & err ) = 0;    // this one happens before infer. u can change structure here
+                            AnnotationArgumentList & args, string & err ) = 0;    // this one happens before infer. u can change structure here
         virtual bool look (const StructurePtr & st, ModuleGroup & libGroup,
-            const AnnotationArgumentList & args, string & err ) = 0;                    // this one happens after infer. structure is read-only, or at-least infer-safe
+            AnnotationArgumentList & args, string & err ) = 0;                    // this one happens after infer. structure is read-only, or at-least infer-safe
         virtual bool patch (const StructurePtr &, ModuleGroup &,
-            const AnnotationArgumentList &, string &, bool & /*astChanged*/ ) { return true; } // this one happens after infer. this can restart infer by setting astChange
+            AnnotationArgumentList &, string &, bool & /*astChanged*/ ) { return true; } // this one happens after infer. this can restart infer by setting astChange
         virtual void complete ( Context *, const StructurePtr & ) { }
         virtual void aotPrefix ( const StructurePtr &, const AnnotationArgumentList &, TextWriter & ) { }
         virtual void aotBody   ( const StructurePtr &, const AnnotationArgumentList &, TextWriter & ) { }
@@ -613,7 +574,7 @@ namespace das
         EnumerationAnnotation ( const string & n ) : Annotation(n) {}
         virtual bool rtti_isEnumerationAnnotation() const override { return true; }
         virtual bool touch ( const EnumerationPtr & st, ModuleGroup & libGroup,
-                            const AnnotationArgumentList & args, string & err ) = 0;    // this one happens before infer. u can change enum here
+                            AnnotationArgumentList & args, string & err ) = 0;    // this one happens before infer. u can change enum here
     };
     typedef EnumerationAnnotation * EnumerationAnnotationPtr;
 
@@ -769,13 +730,14 @@ namespace das
         virtual void dispatch ( Visitor & vis ) override;
         // Copies ExprConst's own fields (value + per-constant flags) on top of Expression::clone.
         // Concrete ExprConst subclasses must route through here, not Expression::clone directly,
-        // or per-constant metadata (foldedNonConst, promotedFromInt, inexactFloatPromotion) is lost.
+        // or per-constant metadata is lost.
         ExpressionPtr clone ( ExpressionPtr expr ) const override;
         Type    baseType = Type::none;
         vec4f   value = v_zero();
         bool    foldedNonConst = false;
         bool    promotedFromInt = false;
         bool    inexactFloatPromotion = false;
+        bool    isConstLiteral = false;
       };
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -897,7 +859,6 @@ namespace das
         vector<VariablePtr> arguments;
         TypeDeclPtr         result = nullptr;
         ExpressionPtr       body = nullptr;
-        int32_t             index = -1;
         uint32_t            totalStackSize = 0;
         int32_t             totalGenLabel = 0;
         LineInfo            at, atDecl;
@@ -930,7 +891,6 @@ namespace das
 
                 bool    init : 1;
                 bool    addr : 1;
-                bool    used : 1;
                 bool    fastCall : 1;
                 bool    knownSideEffects : 1;
                 bool    hasToRunAtCompileTime : 1;
@@ -1003,6 +963,7 @@ namespace das
                 bool    localFunction : 1;           // @@{} local function body - generated, but the block is verbatim user code
                 bool    tempStringResult : 1;        // [temp_string_result] - result is always a fresh string allocation (or null), never a passthrough of an input, never retained by the callee
                 bool    mayQueueTempString : 1;      // executing the BODY may hit a temp-string queue site (builder or wrappable call, transitively) - a caller must not hold a parked temp across a call to this
+                bool    needCallerStackFrame : 1;    // may reach a collect point - its caller must keep a real stack frame, so carriers are denied fastcall (closure: ast_unused.cpp)
                 bool    nttp : 1;                    // extern bound via addExternInline - per-function NTTP interpreter node, callee eligible to inline into the call site
             };
             uint32_t moreFlags2 = 0;
@@ -1150,6 +1111,18 @@ namespace das
 
     DAS_API bool isValidBuiltinName ( const string & name, bool canPunkt = false );
 
+    // src/ast/ARCHITECTURE.md#module-scan-manifest
+    typedef bool (*DeferredModuleLoader) ( const string & name );
+    DAS_API void setDeferredModuleLoader ( DeferredModuleLoader loader );
+    DAS_API DeferredModuleLoader getDeferredModuleLoader ();
+    DAS_API bool guardModuleAvailable ( const string & name );
+    struct ModuleGroupMember {
+        string member;      // the require path
+        string guard;       // `require ?guard member` when set - a module name, or a path when it holds a '/'
+    };
+    DAS_API void registerModuleGroupMember ( const string & group, const string & member, const string & guard = string() );
+    DAS_API vector<ModuleGroupMember> getModuleGroupMembers ( const string & group );
+
     class DAS_API Module {
     public:
         Module ( const string & n = "" );
@@ -1202,8 +1175,11 @@ namespace das
         static Module * require ( const string & name );
         static Module * requireEx ( const string & name, bool allowPromoted, const string & requireName = string(), const string & expectedFileName = string() );
         static void Initialize();
+        static bool InitializeDependencies ( string & notInitialized );
         static void CollectFileInfo(das::vector<FileInfoPtr> &accesses);
-        static void Shutdown( bool dumpHandleLeaks = true );
+        // resetFusion=false orphans the fusion table: for a host whose process ends right after, the
+        // teardown is time spent on memory the OS reclaims anyway; a host that initializes again must reset
+        static void Shutdown( bool dumpHandleLeaks = true, bool resetFusion = true );
         // Runtime-only shutdown — for standalone exes built with `daslang -exe`,
         // which link libDaScript*_runtime without the fusion engine. See issue #2583.
         static void ShutdownStandalone( bool dumpHandleLeaks = false );
@@ -1266,9 +1242,9 @@ namespace das
         vector<unique_ptr<PassMacro>>               macros;             // infer macros (clean infer, assume no errors)
         vector<unique_ptr<PassMacro>>               inferMacros;        // infer macros (dirty infer, assume half-way-there tree)
         vector<unique_ptr<PassMacro>>               optimizationMacros; // optimization macros
-        vector<unique_ptr<PassMacro>>               preInferMacros;     // run before (re-)inference, on a possibly dirty tree
-        vector<unique_ptr<PassMacro>>               postInferMacros;    // run once inference is done, before lint / folding / codegen
         vector<unique_ptr<PassMacro>>               lintMacros;         // lint macros (assume read-only)
+        vector<unique_ptr<PassMacro>>               postRewriteMacros;
+        vector<unique_ptr<PassMacro>>               postCompileMacros;  // run once the module is compiled and its gc root collected
         vector<unique_ptr<PassMacro>>               globalLintMacros;   // lint macros which work everywhere
         vector<unique_ptr<VariantMacro>>            variantMacros;      //  X is Y, X as Y expression handler
         vector<unique_ptr<ForLoopMacro>>            forLoopMacros;      // for loop macros (for every for loop)
@@ -1286,6 +1262,7 @@ namespace das
         string                                      name;
         string                                      cppClassName;       // C++ class name (e.g. "Module_Math"), set by REGISTER_MODULE
         uint64_t                                    nameHash = 0;
+        int                                         inlineTempIndex = 0; // next free _inl<N> id (ast_inline.cpp)
         string                                      fileName;           // where the module was found, if not built-in
         string                                      promotedRequire;    // canonical require string a shared module was promoted with (e.g. "daslib/fio"); identity-matched in requireEx so a cross-directory `require` resolves it, while a mis-qualified one (bare `require fio`) does not
         union {
@@ -1300,9 +1277,13 @@ namespace das
                 bool    wasParsedNameless : 1;
                 bool    visibleEverywhere : 1;
                 bool    allowPodInscope : 1;
+                bool    neverInline : 1;    // `options never_inline` (ast_inline.cpp)
             };
             uint32_t        moduleFlags = 0;
         };
+        // src/ast/ARCHITECTURE.md#module-cache-read; after the das-visible fields
+        bool registersAtCompile = false;
+        void noteRegistrationAtCompile () { if ( !macroContext ) registersAtCompile = true; }
     private:
         Module * next = nullptr;
         unique_ptr<FileInfo>    ownFileInfo;
@@ -1334,6 +1315,9 @@ namespace das
                 module_##ClassName->cppClassName = #ClassName; \
                 return module_##ClassName; \
             } \
+            DAS_EXPORT_DLL uint64_t vintage_dyn_##ExtName () { \
+                return das::das_abi_vintage(); \
+            } \
         }
     #else
         #define REGISTER_DYN_MODULE(ClassName, ExtName)
@@ -1341,6 +1325,10 @@ namespace das
 
     static inline string getDynModuleRegistratorName(const string &mod) {
         return "register_dyn_" + mod;
+    }
+
+    static inline string getDynModuleVintageName(const string &mod) {
+        return "vintage_dyn_" + mod;
     }
 
     #define REGISTER_MODULE_IN_NAMESPACE(ClassName,Namespace) \
@@ -1413,10 +1401,14 @@ namespace das
         Module* getThisModule() const { return thisModule; }
         void reset();
         void renameModule ( Module * module, const string & newName );
+        bool hasFunctionOrGenericNamed ( const string & name ) const;
     protected:
         vector<Module *>                modules;
         safebox_map<Module *>           moduleLookupByHash;
         Module *                        thisModule = nullptr;
+        mutable das_hash_map<uint64_t, bool>    functionNameCache;
+        mutable uint64_t                functionNameCacheGeneration = 0;
+        mutable size_t                  functionNameCacheModuleCount = 0;
     };
 
     struct DAS_API ModuleGroupUserData {
@@ -1522,16 +1514,26 @@ namespace das
         VarInfo * makeVariableDebugInfo ( const Variable & var );
         VarInfo * makeVariableDebugInfo ( const Structure & st, const Structure::FieldDeclaration & var );
         StructInfo * makeStructureDebugInfo ( const Structure & st );
-        FuncInfo * makeFunctionDebugInfo ( const Function & fn );
+        // unique=true builds a fresh, uncached info - block frames under gc/debugger carry
+        // per-instance locals and intervals, so same-typed blocks must not share one
+        FuncInfo * makeFunctionDebugInfo ( const Function & fn, bool unique = false );
         EnumInfo * makeEnumDebugInfo ( const Enumeration & en );
-        FuncInfo * makeInvokeableTypeDebugInfo ( const TypeDeclPtr & blk, const LineInfo & at );
+        FuncInfo * makeInvokeableTypeDebugInfo ( const TypeDeclPtr & blk, const LineInfo & at, bool unique = false );
         AnnotationArgumentInfo * makeAnnotationArguments ( const AnnotationArgumentList & list, uint32_t & count );
         AnnotationInfo * makeAnnotationList ( const AnnotationList & list, uint32_t & count );
         void appendLocalVariables ( FuncInfo * info, ExpressionPtr body );
         void appendGlobalVariables ( FuncInfo * info, const FunctionPtr & body );
+        void stampFramePositions ( ExpressionPtr body, uint32_t spaceId );
+        // no-op for unrecorded expressions or outside a stamped function's simulate.
+        // the AST's `at` is never written - it outlives simulate (macro modules, lint, LSP)
+        void stampSimNode ( const Expression * expr, LineInfo & nodeAt );
         void logMemInfo ( TextWriter & tw );
     public:
         shared_ptr<DebugInfoAllocator>  debugInfo;
+        das_hash_map<Variable *, FramePosInterval> varFramePos;    // filled by stampFramePositions, read by appendLocalVariables
+        das_hash_map<const Expression *, uint32_t> exprFramePos;   // filled by stampFramePositions, read by stampSimNode
+        bool framePosStamping = false;  // on from stampFramePositions until the last function's sim nodes are built
+        uint32_t currentSpaceId = 0;    // owner of the function being simulated; block frames inherit it
     public:
         das_hash_map<string,StructInfo *>        smn2s;
         das_hash_map<string,TypeInfo *>          tmn2t;
@@ -1541,159 +1543,7 @@ namespace das
 
         das_hash_map<TypeInfo *,string>          t2cppTypeName;
         das_hash_map<StructInfo *,string>        s2cppTypeName;
-    };
-
-    struct CodeOfPolicies {
-    // Aot config
-        bool        aot = false;                        // enable AOT
-        /*option*/ bool        aot_lib = false;
-        /*option*/ bool        standalone_context = false;         // generate standalone context class in aot mode
-        bool        aot_module = false;                 // this is how AOT tool knows module is module, and not an entry point
-        bool        aot_macros = false;                 // enables aot of macro code (like 'qmacro_block')
-        bool        tune_frozen = false;                // never apply per-box [tune] stamps to this compile (cross-box artifacts: -aot generation, AST serialization)
-        bool        paranoid_validation = false;        // todo
-        bool        validate_ast = false;               // validate AST after compilation (uniqueness, etc.)
-        bool        cross_platform = false;             // aot supports platform independent mode
-        string      aot_result;                         // Path where to store cpp-result of aot
-    // End aot config
-        bool        completion = false;                 // this code is being compiled for 'completion' mode
-        /*option*/ bool building_documentation = false; // source/reflection docs: disable build-machine-specific transforms
-        bool        lint_check = false;                 // this code is being compiled for lint/style checking
-        bool        no_lint = false;                    // skip Program::lint() entirely
-        bool        no_init_check = false;              // skip the Module::Initialize() assert, most of the time should be false (except maybe dynamic-module discovery)
-        bool        export_all = false;                 // when user compiles, export all (public?) functions
-        bool        serialize_main_module = true;       // if false, then we recompile main module each time
-        bool        keep_alive = false;                 // produce keep-alive noodes
-        /*option*/ bool        very_safe_context = false;          // context is very safe (does not release old memory from array or table grow, leaves it to GC)
-    // error reporting
-        int32_t     always_report_candidates_threshold = 6; // always report candidates if there are less than this number
-    // infer passes
-        /*option*/ int32_t     max_infer_passes = 50;              // maximum number of infer passes
-        /*option*/ int32_t     max_call_depth = 50;                // maximum call expression nesting depth during inference
-        bool verify_infer_types = false;                       // verify inferred types (to see if there is internal consistency). note - this adds errors to failing tests
-    // memory
-        /*option*/ uint32_t    stack = 16*1024;                    // 0 for unique stack
-        /*option*/ bool        intern_strings = false;             // use string interning lookup for regular string heap
-        /*option*/ bool        persistent_heap = false;
-        /*option*/ bool        multiple_contexts = false;          // code supports context safety
-        /*option*/ uint32_t    heap_size_hint = 65536;
-        /*option*/ uint32_t    string_heap_size_hint = 65536;
-        /*option*/ bool        solid_context = false;              // all access to varable and function lookup to be context-dependent (via index)
-                                                        // this is slightly faster, but prohibits AOT or patches
-        bool        macro_context_persistent_heap = true;   // if true, then persistent heap is used for macro context
-        bool        macro_context_collect = false;          // GC collect macro context after major passes
-    // per-pass AST gc during infer: collect the working root's live tree into a fresh root and
-    // swap it in (O(1)), letting the old root's dtor sweep that pass's garbage. Caps the compile
-    // memory peak (infer churns many throwaway TypeDecls/Expressions) at ~no time cost.
-        /*option*/ bool        gc_infer_collect = true;            // enable per-pass collect+swap during inference
-        /*option*/ int32_t     gc_infer_collect_nodes = 25000;     // fire when the root grew by this many nodes since the last collect (~2 MB)
-        /*option*/ int32_t     gc_infer_collect_pct = 50;          // ...or by this percent of the live set, whichever comes first
-        uint64_t    max_static_variables_size = 0x100000000;   // 4GB
-        /*option*/ uint64_t    max_heap_allocated = 0;
-        /*option*/ uint64_t    max_string_heap_allocated = 0;
-        /*option*/ uint64_t    max_unreserved_size = 64ull<<20;    // a growing array resize past this byte size without a prior reserve panics
-        /*option*/ bool        track_allocations = false;          // track where heap allocations came from (line info + comment)
-    // rtti
-        /*option*/ bool rtti = false;                              // create extended RTTI
-    // language
-        /*option*/ bool unsafe_table_lookup = false;                // table lookup (tab[key]) to be unsafe
-        /*option*/ bool relaxed_pointer_const = false;             // allow const correctness to be relaxed on pointers
-        // dagor: gen1 stays the default (upstream defaults it to true) until the tree is converted.
-        // Game scripts take the syntax from the loader, but the C++ embedded builtin modules and the
-        // .das_project files parse with default policies and are gen1; a gen2 one opts in with
-        // `options gen2`.
-        bool version_2_syntax = false;                  // use syntax version 2
-        bool gen2_make_syntax = false;                  // only new make syntax is allowed (no [[...]] or [{...}])
-        /*option*/ bool relaxed_assign = true;                     // allow = to <- substitution, in certain expressions
-        bool no_unsafe = false;
-        bool local_ref_is_unsafe = true;                // var a & = ... unsafe. should be
-        /*option*/ bool with_module_is_unsafe = false;             // user-written with (module foo) requires unsafe (inliner-generated ones are exempt)
-        /*option*/ bool no_global_variables = false;
-        /*option*/ bool no_global_variables_at_all = false;
-        /*option*/ bool no_global_heap = false;
-        /*option*/ bool only_fast_aot = false;
-        /*option*/ bool aot_order_side_effects = false;
-        /*option*/ bool no_unused_function_arguments = false;
-        /*option*/ bool no_unused_block_arguments = false;
-        bool allow_block_variable_shadowing = false;
-        bool allow_local_variable_shadowing = false;
-        bool allow_shared_lambda = false;
-        bool ignore_shared_modules = false;
-        bool default_module_public = true;              // by default module is 'public', not 'private'
-        /*option*/ bool no_deprecated = false;
-        /*option*/ bool no_aliasing = false;                       // if true, aliasing will be reported as error, otherwise will turn off optimization
-        /*option*/ bool strict_smart_pointers = true;              // collection of tests for smart pointers, like van inscope for any local, etc
-        /*option*/ bool no_init = false;                           // if true, then no [init] is allowed in any shape or form
-        /*option*/ bool strict_unsafe_delete = true;              // if true, delete of type which contains 'unsafe' delete is unsafe // TODO: enable when need be
-        bool no_members_functions_in_struct = false;    // structures can't have member functions
-        /*option*/ bool no_local_class_members = true;             // members of the class can't be classes
-        /*option*/ bool report_invisible_functions = true;         // report invisible functions (report functions not visible from current module)
-        /*option*/ bool report_private_functions = true;           // report private functions (report functions which are not accessible due to private module)
-        /*option*/ bool no_unsafe_uninitialized_structures = true; // if true, then unsafe uninitialized structures are not allowed
-        /*option*/ bool default_init_containers = true;            // if true, containers construct their elements (resize inits new slots, table index inits fresh slots)
-        /*option*/ bool strict_properties = false;                 // if true, then properties are strict, i.e. a.prop = b does not get promoted to a.prop := b
-        /*option*/ bool no_writing_to_nameless = true;             // if true, then writing to nameless variables (intermediate on the stack) is not allowed
-    // environment
-        /*option*/ bool no_optimizations = false;                  // disable optimizations, regardless of settings
-        /*option*/ bool fast_math = false;                         // allow VALUE-SAFE float optimizations with bit differences (reassociation, FMA contraction, signed-zero laxity); inf/NaN semantics are preserved — no rcp division, no nan-compare flips (JIT stamps reassoc|nsz|contract only). doubles stay bit-exact unless this is on
-        /*option*/ bool disable_dse = false;                       // disable the dead-store-elimination pass
-        /*option*/ bool disable_cse = false;                       // disable the common-subexpression-elimination pass
-        /*option*/ bool disable_inline = false;                    // disable the [inline] function inliner (calls stay regular calls; declaration-level contract checks - shape, recursion, @@ - still lint)
-        /*option*/ bool disable_auto_inline = false;               // disable automatic inlining of block-literal call sites and invoke-of-literal devirtualization ([inline] splicing is unaffected)
-        /*option*/ bool auto_inline_functions = true;              // heuristic best-effort inlining of plain calls and operator sites of small same-module [inline]-shaped functions (default ON; silent declines; optimized builds only; disable_auto_inline overrides)
-        /*option*/ int32_t auto_inline_cost = 32;                  // auto_inline_functions budget: a callee body up to this many AST nodes is worth splicing (private single-call callees are exempt)
-        /*option*/ bool disable_run = false;                       // disable compile-time function evaluation (RunFolding of pure calls over constants)
-        /*option*/ bool disable_temp_string_reclaim = false;       // disable the temp-string reclaim pass (fresh-string call results riding the 1-slot dispose queue)
-        /*option*/ bool no_infer_time_folding = false;             // disable infer-time constant folding
-        bool fail_on_no_aot = true;                     // AOT link failure is error
-        bool fail_on_lack_of_aot_export = false;        // remove_unused_symbols = false is missing in the module, which is passed to AOT
-        /*option*/ bool log_compile_time = false;                  // if true, then compile time will be printed at the end of the compilation
-        /*option*/ bool log_total_compile_time = false;            // if true, then detailed compile time will be printed at the end of the compilation
-        /*option*/ bool log_module_compile_time = false;           // if true, every required module logs its own parse / infer (with pass count) / optimize / macro (in infer) / macro mods breakdown + function count; also enables per-context simulate timing and the top-level aggregate summary (CLI: -log-compile-time)
-        /*option*/ bool log_optimization = false;                  // log optimizer rewrites (per-pass fired/nothing lines, inline/devirt sites and declines)
-        /*option*/ bool log_optimization_passes = false;           // log the AST after every optimizer pass (verbose)
-        /*option*/ bool no_fast_call = false;                      // disable fastcall
-        /*option*/ bool fusion = true;                             // fuse interpreter nodes into wider superinstructions at simulate time
-        /*option*/ bool scoped_stack_allocator = true;             // reuse stack memory after variables out of scope
-        /*option*/ bool force_inscope_pod = false;                 // force in-scope for POD-like types
-        /*option*/ bool log_inscope_pod = false;                   // log in-scope for POD-like types
-        /*option*/ bool force_escape_free = false;                 // escape analysis: statically free non-escaping new-pointer locals at scope exit
-        /*option*/ bool force_allocate_on_stack = true;            // escape analysis: stack-allocate non-escaping new-pointer locals (no heap)
-        /*option*/ bool force_partial_escape_free = false;         // flow-sensitive escape: build a CFG and free objects on the paths where they don't escape (off = simple EA only, no CFG)
-        /*option*/ bool log_escape_analysis = false;               // log escape-analysis static frees
-        /*option*/ bool log_gc_time = false;                       // log gc time
-    // debugger
-        //  when enabled
-        //      1. disables [fastcall]
-        //      2. invoke of blocks will have extra prologue overhead
-        //      3. context always has context mutex
-        bool debugger = false;
-        /*option*/ bool debug_infer_flag = false;  // set this to true to debug macros for missing "not_inferred"
-    // profiler
-        // only enabled if profiler is disabled
-        // when enabled
-        //      1. disables [fastcall]
-        bool profiler = false;
-    // pinvoke
-        /*option*/ bool threadlock_context = false;               // has context mutex
-    // jit
-        bool jit_enabled = false;                // enable JIT
-        // todo: add this params to serialization?
-        bool jit_jit_all_functions = true;       // JIT all functions by default
-        bool jit_debug_info = false;             // Add debug info to generate binary code
-        bool jit_dll_mode = true;                // Create if missing and reuse DLL or JIT compile
-        bool jit_exe_mode = false;                // Create executable
-        bool jit_emit_object = false;            // Offline AOT: emit a .o (this module only) + a load ctor registering its functions into the AOT library, for static linking into a host
-        bool jit_emit_prologue = false;          // Emit prologue for all functions and blocks
-        string jit_output_path;                  // Folder to store compiled dll's. By default it'll be _das_root_/.jitted_scripts
-        int32_t jit_opt_level = 3u;              // Opt level for LLVM to codegen and IR optimizations
-        int32_t jit_size_level = 0u;             // Opt level for LLVM for binary size
-        string jit_path_to_shared_lib;           // Path to libDaScript. Optional, we'll try to find it in _das_root_/lib/ if not provided.
-        string jit_path_to_linker;               // Path to linker. Optional, we'll use lld-link from LLVM on Windows (MSVC), clang on mingw, c++ otherwise.
-    // dll loading
-        vector<string> dll_search_paths;          // additional search paths for dll loading
-    // one-liners
-        /*option*/ bool temp_table_lint_warning = false;
+        bool collectCppNames = true;    // the C++ spellings above are read only through debug_helper_find_*_cppname, by the AOT emitter's own helper; a simulate's helper turns this off
     };
 
     struct CommentReader {
@@ -1774,14 +1624,15 @@ namespace das
         bool optimizationDeadStores(int32_t round);
         bool optimizationCSE(int32_t round);
         void buildAccessFlags(TextWriter & logs);
+        void astChanged() { accessFlagsValid = false; }
         bool verifyAndFoldContracts();
-        void validateAst();
         bool inScopePodAnalysis(TextWriter & logs);
         void markSymbolUse(bool builtInSym, bool forceAll, bool initThis, Module * macroModule, TextWriter * logs = nullptr);
         void markModuleSymbolUse(TextWriter * logs = nullptr);
         void markMacroSymbolUse(TextWriter * logs = nullptr);
         void markExecutableSymbolUse(TextWriter * logs = nullptr);
         void markFoldingSymbolUse(const vector<Function *> & needRun, TextWriter * logs = nullptr);
+        void markFunctionDependencies(Function * fun);
         void removeUnusedSymbols();
         void clearSymbolUse();
         void dumpSymbolUse(TextWriter & logs);
@@ -1803,6 +1654,7 @@ namespace das
         TypeDecl * makeTypeDeclaration ( const LineInfo & at, const string & name, Module * perspective = nullptr );    // perspective defaults to thisModule
         StructurePtr visitStructure(Visitor & vis, Structure *);
         EnumerationPtr visitEnumeration(Visitor & vis, Enumeration *);
+        VariablePtr visitGlobalVariable(Visitor & vis, const VariablePtr & var);
         void visitModule(Visitor & vis, Module * thatModule, bool visitGenerics = false, bool sortStructures = false);
         void visitModulesInOrder(Visitor & vis, bool visitGenerics = false);
         void visitModules(Visitor & vis, bool visitGenerics = false);
@@ -1827,8 +1679,6 @@ namespace das
         void linkCppAot ( Context & context, AotLibrary & aotLib, TextWriter & logs );
         void linkError ( const string & str, const string & extra );
     public:
-        UpdateAliasMapCallback updateAliasMapCallback;
-    public:
         template <typename TT>
         string describeCandidates ( const TT & result, bool needHeader = true ) const {
             if ( !result.size() ) return "";
@@ -1848,8 +1698,26 @@ namespace das
         unique_ptr<Module>          thisModule;
         ModuleLibrary               library;
         ModuleGroup *               thisModuleGroup = nullptr;
+        FileAccessPtr               access;             // the access this program parses through
         int                         totalFunctions = 0;
         int                         totalVariables = 0;
+        // src/ast/ARCHITECTURE.md#program-scoped-symbol-state
+        das_hash_set<const Function *>          usedFunctions;
+        das_hash_set<const Variable *>          usedVariables;
+        das_hash_map<const Function *, int32_t> functionIndices;
+        das_hash_map<const Variable *, int32_t> variableIndices;
+        __forceinline bool isUsed ( const Function * fn ) const { return usedFunctions.find(fn) != usedFunctions.end(); }
+        __forceinline bool isUsed ( const Variable * var ) const { return usedVariables.find(var) != usedVariables.end(); }
+        __forceinline void setUsed ( const Function * fn, bool used ) { if ( used ) usedFunctions.insert(fn); else usedFunctions.erase(fn); }
+        __forceinline void setUsed ( const Variable * var, bool used ) { if ( used ) usedVariables.insert(var); else usedVariables.erase(var); }
+        __forceinline int32_t indexOf ( const Function * fn ) const { auto it = functionIndices.find(fn); return it != functionIndices.end() ? it->second : -1; }
+        __forceinline int32_t indexOf ( const Variable * var ) const { auto it = variableIndices.find(var); return it != variableIndices.end() ? it->second : -1; }
+        __forceinline void setIndex ( const Function * fn, int32_t index ) { functionIndices[fn] = index; }
+        __forceinline void setIndex ( const Variable * var, int32_t index ) { variableIndices[var] = index; }
+        das_hash_set<const Function *>          jitSelected;
+        __forceinline bool isJitSelected ( const Function * fn ) const { return jitSelected.find(fn) != jitSelected.end(); }
+        __forceinline void setJitSelected ( const Function * fn, bool selected ) { if ( selected ) jitSelected.insert(fn); else jitSelected.erase(fn); }
+        __forceinline void clearJitSelection () { jitSelected.clear(); }
         int                         newLambdaIndex = 1;
         int                         inferPassesUsed = 0;   // sum of inferTypesDirty inner-loop pass counts across all inferTypes calls (incl. restartInfer legs) for this module; reset by parseDaScript once per module-compile; used by per-module compile-time log
         vector<Error>               errors;
@@ -1880,7 +1748,20 @@ namespace das
         CodeOfPolicies              policies;
         vector<tuple<Module *,string,string,bool,LineInfo>> allRequireDecl;
         das_hash_map<uint64_t,TypeDecl *> astTypeInfo;
+        // compile-time inputs a macro pinned via add_module_cache_dependency: (path, byte size,
+        // content hash) - a file, or a virtual `env:NAME` / `arg:--flag` input. The module cache
+        // stores and re-validates them, so a changed input invalidates the cached record instead
+        // of serving what a compile folded from the old value.
+        vector<tuple<string,int64_t,uint64_t>> moduleCacheDependencies;
+        UpdateAliasMapCallback      updateAliasMapCallback;
+        bool                        accessFlagsValid = false;
     };
+
+    // the shared capture/validate stat for Program::moduleCacheDependencies: size -1 + hash 0
+    // when the input is absent (file unreadable, variable unset, flag not given), else (byte
+    // size, hash_block64 of the content - the file's bytes, the variable's value, the flag's
+    // occurrences)
+    DAS_API void statAndHashFileDependency ( const string & path, int64_t & size, uint64_t & hash );
 
     // access function from class adapter
     DAS_API int adapt_field_offset ( const char * fName, const StructInfo * info );
@@ -1892,19 +1773,36 @@ namespace das
     DAS_CC_API ProgramPtr parseDaScript ( const string & fileName, const string & moduleName, const FileAccessPtr & access,
         TextWriter & logs, ModuleGroup & libGroup, bool exportAll = false, bool isDep = false, CodeOfPolicies policies = CodeOfPolicies() );
 
+    DAS_CC_API ProgramPtr parseDaScriptNoInfer ( const string & fileName, const string & moduleName,
+        const FileAccessPtr & access, TextWriter & logs, ModuleGroup & libGroup, bool exportAll = false,
+        bool isDep = false, CodeOfPolicies policies = CodeOfPolicies() );
+
+    DAS_CC_API ProgramPtr parseDaScriptWithPrerequisits ( const string & fileName, const FileAccessPtr & access,
+        TextWriter & logs, ModuleGroup & libGroup, CodeOfPolicies policies = CodeOfPolicies() );
+
     // this one collectes dependencies and compiles with modules
     DAS_CC_API ProgramPtr compileDaScript ( const string & fileName, const FileAccessPtr & access,
         TextWriter & logs, ModuleGroup & libGroup, CodeOfPolicies policies = CodeOfPolicies() );
     DAS_CC_API ProgramPtr compileDaScriptSerialize ( const string & fileName, const FileAccessPtr & access,
         TextWriter & logs, ModuleGroup & libGroup, CodeOfPolicies policies = CodeOfPolicies() );
+    // src/ast/ARCHITECTURE_BUILT.md#built-programs
+    DAS_CC_API ProgramPtr requireDefaultModules ( const FileAccessPtr & access, TextWriter & logs, ModuleGroup & libGroup,
+        CodeOfPolicies & policies );
+    DAS_CC_API ProgramPtr buildDaScriptModule ( const string & moduleName, const FileAccessPtr & access, TextWriter & logs,
+        ModuleGroup & libGroup, CodeOfPolicies & policies, const callable<void (Program *)> & fill );
+    DAS_CC_API ProgramPtr buildDaScriptProgram ( const FileAccessPtr & access, TextWriter & logs, ModuleGroup & libGroup,
+        CodeOfPolicies policies, const callable<void (Program *)> & fill );
+    // src/ast/ARCHITECTURE.md#require-after-walk
+    DAS_CC_API Module * requireModuleNow ( const string & requireName, const FileAccessPtr & access,
+        TextWriter & logs, CodeOfPolicies policies = CodeOfPolicies() );
 
     // optimization pass (compiler lib); runs after type inference
     void optimizeProgram ( Program * program, TextWriter & logs, ModuleGroup & libGroup );
 
     // [inline] shape contract (ast_inline.cpp); shared between the patch pass (skips
     // non-conforming callees) and the annotation lint hook (reports them as errors)
-    bool checkInlineShape ( Function * fn, string & err );
-    bool checkInlineRecursion ( Function * fn, string & err );
+    bool canFunctionInline ( Function * fn, string & err );
+    bool isInlineRecursionFree ( Function * fn, string & err );
 
     // compile an embedded builtin module's source into `module` (compiler lib)
     DAS_CC_API bool compileBuiltinModule ( Module * module, const string & name, const unsigned char * const str, unsigned int str_len );
@@ -1977,6 +1875,7 @@ namespace das
         ProgramPtr      g_Program;
         bool            g_isInAot = false;
         Module *        modules = nullptr;
+        uint64_t        functionNameGeneration = 0;    // bumped when any module gains a new function or generic name
         int             das_def_tab_size = 4;
         bool            g_resolve_annotations = true;
         TextWriter *    g_compilerLog = nullptr;
@@ -1990,7 +1889,6 @@ namespace das
         inline static DAS_THREAD_LOCAL(DebugAgentInstance *) g_threadLocalDebugAgent;
         uint64_t        dataWalkerStringLimit = 0;
         bool            g_modulesInitialized = false;
-
 
         static daScriptEnvironment *getBound();
         static void setBound(daScriptEnvironment *bnd);
@@ -2006,6 +1904,25 @@ namespace das
         inline static DAS_THREAD_LOCAL(daScriptEnvironment *) bound;
         inline static DAS_THREAD_LOCAL(daScriptEnvironment *) owned;
     };
+
+    // The module-vintage stamp: DAS_BUILD_ID changes only at releases, so a shared module built
+    // against DIFFERENT headers of the SAME version passes the build-id gate and is silently,
+    // subtly wrong (ABI drift surfaces as behavior/perf skew, not a crash). This folds the sizeof
+    // of the core ABI surface; REGISTER_DYN_MODULE exports it per module and the loader compares
+    // (warning, not refusal). Computed per-TU from the including binary's own headers.
+    constexpr DAS_ABI_LOCAL uint64_t das_abi_vintage () {
+        constexpr uint64_t sizes[] = {
+            uint64_t(DAS_BUILD_ID),
+            sizeof(Module), sizeof(Context), sizeof(SimNode), sizeof(Program),
+            sizeof(TypeDecl), sizeof(Function), sizeof(Structure), sizeof(Variable),
+            sizeof(Expression), sizeof(TypeAnnotation), sizeof(CodeOfPolicies),
+            sizeof(daScriptEnvironment), sizeof(StructInfo), sizeof(TypeInfo),
+            sizeof(FuncInfo), sizeof(LineInfo),
+        };
+        uint64_t h = 14695981039346656037ul;    // FNV-1a over the size list
+        for ( auto v : sizes ) h = (h ^ v) * 1099511628211ul;
+        return h;
+    }
 
     struct DAS_API daScriptEnvironmentGuard {
         das::daScriptEnvironment *initialBound;

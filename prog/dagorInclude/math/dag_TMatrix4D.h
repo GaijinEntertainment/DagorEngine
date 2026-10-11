@@ -37,19 +37,12 @@ public:
 
   INLINE TMatrix4D() = default;
   constexpr INLINE explicit TMatrix4D(double a) : m{{a, 0, 0, 0}, {0, a, 0, 0}, {0, 0, a, 0}, {0, 0, 0, a}} {}
-  INLINE TMatrix4D(const TMatrix &tm)
-  {
-    m[0][0] = tm.m[0][0], m[0][1] = tm.m[0][1], m[0][2] = tm.m[0][2], m[0][3] = 0;
-    m[1][0] = tm.m[1][0], m[1][1] = tm.m[1][1], m[1][2] = tm.m[1][2], m[1][3] = 0;
-    m[2][0] = tm.m[2][0], m[2][1] = tm.m[2][1], m[2][2] = tm.m[2][2], m[2][3] = 0;
-    m[3][0] = tm.m[3][0], m[3][1] = tm.m[3][1], m[3][2] = tm.m[3][2], m[3][3] = 1;
-  }
+  INLINE TMatrix4D(const TMatrix &tm) : TMatrix4D(TMatrix4(tm)) {}
   INLINE TMatrix4D(const TMatrix4 &tm)
   {
-    m[0][0] = tm.m[0][0], m[0][1] = tm.m[0][1], m[0][2] = tm.m[0][2], m[0][3] = tm.m[0][3];
-    m[1][0] = tm.m[1][0], m[1][1] = tm.m[1][1], m[1][2] = tm.m[1][2], m[1][3] = tm.m[1][3];
-    m[2][0] = tm.m[2][0], m[2][1] = tm.m[2][1], m[2][2] = tm.m[2][2], m[2][3] = tm.m[2][3];
-    m[3][0] = tm.m[3][0], m[3][1] = tm.m[3][1], m[3][2] = tm.m[3][2], m[3][3] = tm.m[3][3];
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
+        m[i][j] = double(tm.m[i][j]);
   }
   INLINE TMatrix4D(double _m00, double _m01, double _m02, double _m03, double _m10, double _m11, double _m12, double _m13, double _m20,
     double _m21, double _m22, double _m23, double _m30, double _m31, double _m32, double _m33)
@@ -139,10 +132,8 @@ public:
 
   INLINE void setcol(int i, const Point4 &v)
   {
-    m[0][i] = v[0];
-    m[1][i] = v[1];
-    m[2][i] = v[2];
-    m[3][i] = v[3];
+    for (int j = 0; j < 4; j++)
+      m[j][i] = double(v[j]);
   }
   INLINE void setcol(int i, double x, double y, double z, double w)
   {
@@ -156,10 +147,8 @@ public:
 
   INLINE void setrow(int i, const Point4 &v)
   {
-    m[i][0] = v[0];
-    m[i][1] = v[1];
-    m[i][2] = v[2];
-    m[i][3] = v[3];
+    for (int j = 0; j < 4; j++)
+      m[i][j] = double(v[j]);
   }
   INLINE void setrow(int i, double x, double y, double z, double w)
   {

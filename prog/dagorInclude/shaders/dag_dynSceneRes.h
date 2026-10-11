@@ -13,8 +13,8 @@
 #include <startup/dag_globalSettings.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/optional.h>
-#include <EASTL/fixed_function.h>
 #include <EASTL/array.h>
+#include <generic/dag_functionRef.h>
 #include <shaders/dag_bindposeBufferManager.h>
 
 
@@ -109,10 +109,8 @@ public:
   dag::ConstSpan<int> getSkinNodes() const { return skinNodes; }
   int getSkinsCount() const { return skins.size(); }
 
-  void findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names,
-    const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const;
-  void findSkinNodesWithMaterials(dag::ConstSpan<const char *> material_names,
-    const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const;
+  void findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names, dag::FunctionRef<void(int) const> cb) const;
+  void findSkinNodesWithMaterials(dag::ConstSpan<const char *> material_names, dag::FunctionRef<void(int) const> cb) const;
 
   template <typename T>
   void findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names, const T &cb) const
@@ -490,6 +488,12 @@ public:
       data[bone_id / 32] |= 1u << (bone_id % 32);
     }
 
+    void merge(const NodeCollapserBits &other)
+    {
+      for (size_t i = 0; i < data.size(); i++)
+        data[i] |= other.data[i];
+    }
+
     bool isBoneMarked(uint32_t bone_id) const { return bone_id < 256 && (data[bone_id / 32] & (1u << (bone_id % 32))) != 0; }
 
     bool isEmpty() const
@@ -560,10 +564,11 @@ public:
 
   const NodeCollapserBits &getNodeCollapserBits() const { return nodeCollapserBits; }
   NodeCollapserBits &getRWNodeCollapserBits() { return nodeCollapserBits; }
-  void setNodeCollapserBits(const NodeCollapserBits &bits) { nodeCollapserBits = bits; }
+  void mergeNodeCollapserBits(const NodeCollapserBits &bits) { nodeCollapserBits.merge(bits); }
 
   void setNodeWtm(uint32_t n_id, const TMatrix &wtm)
   {
+    dropSkinBoneRows(false);
     if (n_id < getNodeCount())
     {
       nodeWtm()[n_id] = wtm;
@@ -584,12 +589,17 @@ public:
     prevOrig = tmp;
 
     originPrev = origin;
+
+    if (skinBoneRows)
+      skinBoneRows->cur ^= 1;
+    dropSkinBoneRows(false);
   }
 
   const TMatrix &getPrevNodeWtm(int n_id) const { return nodePrevWtm()[n_id]; }
 
   void setPrevNodeWtm(int n_id, const TMatrix &wtm)
   {
+    dropSkinBoneRows(true);
     if (n_id < getNodeCount())
     {
       TMatrix &m = nodePrevWtm_ptr()[n_id];              //-V758
@@ -601,6 +611,7 @@ public:
 
   void setNodeWtm(uint32_t n_id, const mat44f &wtm)
   {
+    dropSkinBoneRows(false);
     if (n_id < getNodeCount())
     {
       TMatrix &m = nodeWtm()[n_id];              //-V758
@@ -620,6 +631,7 @@ public:
 
   void setNodeWtmRelToOrigin(uint32_t n_id, const TMatrix &wtm_rel_to_origin)
   {
+    dropSkinBoneRows(false);
     if (n_id < getNodeCount())
     {
       nodeWtm()[n_id] = wtm_rel_to_origin;
@@ -630,6 +642,7 @@ public:
 
   void setNodeWtmRelToOrigin(uint32_t n_id, const mat44f &wtm_rel_to_origin)
   {
+    dropSkinBoneRows(false);
     if (n_id < getNodeCount())
     {
       TMatrix &m = nodeWtm()[n_id];              //-V758
@@ -731,10 +744,21 @@ public:
 
   void clipNodes(const Frustum &frustum, dag::Vector<int, framemem_allocator> &node_list);
 
-  void findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names,
-    const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const;
+  void findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names, dag::FunctionRef<void(int) const> cb) const;
 
   uint32_t getUniqueId() const { return uniqueId; }
+
+  // The skin bone rows that a renderer built from the node wtms of one skin mesh, kept so that each pass of a frame
+  // copies them: one set for the current wtms and one for the previous. A node wtm write drops the set it changes,
+  // savePrevNodeWtm() moves the current set to the previous one. Empty when the set is dropped or is of another mesh.
+  dag::ConstSpan<vec4f> getSkinBoneRows(const ShaderSkinnedMesh *mesh, bool prev) const
+  {
+    if (!skinBoneRows || skinBoneRows->mesh[skinBoneRows->cur ^ int(prev)] != mesh)
+      return {};
+    return make_span_const(skinBoneRows->rows[skinBoneRows->cur ^ int(prev)]);
+  }
+  // Returns the storage of rows_count rows to fill.
+  dag::Span<vec4f> resetSkinBoneRows(const ShaderSkinnedMesh *mesh, int rows_count, bool prev);
 
 protected:
   Ptr<DynamicRenderableSceneResource> sceneResource;
@@ -757,6 +781,19 @@ protected:
 
   NodeCollapserBits nodeCollapserBits;
   int nodeCollapserTargetNode = -1;
+
+  struct SkinBoneRows
+  {
+    SmallTab<vec4f, MidmemAlloc> rows[2];
+    const ShaderSkinnedMesh *mesh[2] = {};
+    int cur = 0;
+  };
+  eastl::unique_ptr<SkinBoneRows> skinBoneRows;
+  void dropSkinBoneRows(bool prev)
+  {
+    if (skinBoneRows)
+      skinBoneRows->mesh[skinBoneRows->cur ^ int(prev)] = nullptr;
+  }
 
   enum Offsets
   {

@@ -16,7 +16,7 @@ def test_lambda_copy_aliases_capture(t : T?) {
     t |> run("copy assignment shares capture frame") @(t : T?) {
         var counter = 0 // nolint:LINT003 -- captured by lambda, mutated inside body
         var inc <- @() : int {
-            counter += 1   // mutates the lambda's own captured counter
+            counter++      // mutates the lambda's own captured counter
             return counter
         }
         let inc2 = inc     // copy — aliases the same capture frame
@@ -32,7 +32,7 @@ def test_lambda_pass_by_value(t : T?) {
     t |> run("lambda passes by value (one capture frame, two refs)") @(t : T?) {
         var lam <- @() : int {
             var x = 0
-            x += 1
+            x++
             return x
         }
         // pass-by-value: the parameter is a separate variable holding the same pointer
@@ -51,7 +51,7 @@ def test_lambda_struct_field_copy(t : T?) {
     t |> run("struct copy aliases lambda field") @(t : T?) {
         var s1 = Holder(action <- @() : int {
             var n = 0
-            n += 1
+            n++
             return n
         })
         let s2 = s1                    // copies the struct; lambda field is aliased
@@ -70,7 +70,7 @@ def test_lambda_implicit_capture(t : T?) {
         // lambda value is a pointer-alias, copy-capture is fine implicitly.
         var inner <- @() : int {
             var n = 0
-            n += 1
+            n++
             return n
         }
         var outer <- @() : int {

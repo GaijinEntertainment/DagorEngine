@@ -76,11 +76,9 @@ def test_iterate_via_long_enumerate(t : T?) {
     arr |> resize(HUGE_N)
     var last_index = -1_l
     var count = 0_l
-    unsafe {
-        for ((i, _v) in long_enumerate(each(arr))) {
-            last_index = i
-            count++
-        }
+    for ((i, _v) in long_enumerate(unsafe(each(arr)))) {
+        last_index = i
+        count++
     }
     t |> equal(count, HUGE_N)
     t |> equal(last_index, HUGE_N - 1_l)

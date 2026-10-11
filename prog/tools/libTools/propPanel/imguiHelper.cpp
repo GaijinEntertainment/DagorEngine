@@ -5,12 +5,9 @@
 #include <propPanel/propPanel.h>
 #include <propPanel/focusHelper.h>
 #include <propPanel/colors.h>
-#include <propPanel/control/spinEditStandalone.h>
-#include "c_constants.h"
 #include "imageHelper.h"
 #include <drv/3d/dag_resId.h>
 #include <gui/dag_imguiUtil.h>
-#include <libTools/util/hdpiUtil.h>
 #include <drv/3d/dag_sampler.h>
 
 using namespace ImGui;
@@ -31,12 +28,6 @@ void ImguiHelper::afterNewFrame()
 
   if (buttonDragSelectionInProgress && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
     buttonDragSelectionInProgress = false;
-}
-
-float ImguiHelper::getDefaultRightSideEditWidth()
-{
-  return hdpi::_pxS(DEFAULT_CONTROL_WIDTH) + SpinEditControlStandalone::getSpaceBeforeSpinButtons() +
-         SpinEditControlStandalone::getSpinButtonsSize().x;
 }
 
 // Taken from imgui_widgets.cpp.
@@ -206,6 +197,64 @@ bool ImguiHelper::checkboxWithDragSelection(const char *label, bool *value)
   }
 
   return changed;
+}
+
+bool ImguiHelper::toggleSwitch(const char *str_id, const char *label_off, const char *label_on, bool &value)
+{
+  ImGuiWindow *window = ImGui::GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  const ImGuiStyle &style = ImGui::GetStyle();
+  const ImGuiID id = window->GetID(str_id);
+  const ImVec2 offLabelSize = ImGui::CalcTextSize(label_off, nullptr, true);
+  const ImVec2 onLabelSize = ImGui::CalcTextSize(label_on, nullptr, true);
+  const float spacing = style.ItemInnerSpacing.x;
+  const float trackHeight = ImGui::GetFontSize();
+  const float trackWidth = IM_TRUNC(trackHeight * 2.0f);
+
+  const ImVec2 pos = window->DC.CursorPos;
+  const ImRect bb(pos, pos + ImVec2(offLabelSize.x + spacing + trackWidth + spacing + onLabelSize.x, ImGui::GetFrameHeight()));
+  ImGui::ItemSize(bb, style.FramePadding.y);
+  if (!ImGui::ItemAdd(bb, id))
+    return false;
+
+  bool hovered, held;
+  const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+  if (pressed)
+  {
+    value = !value;
+    ImGui::MarkItemEdited(id);
+  }
+
+  const float contentTop = bb.Min.y + style.FramePadding.y;
+  const ImU32 activeTextColor = ImGui::GetColorU32(ImGuiCol_Text);
+  const ImU32 inactiveTextColor = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+
+  ImGui::RenderNavCursor(bb, id);
+
+  ImGui::PushStyleColor(ImGuiCol_Text, value ? inactiveTextColor : activeTextColor);
+  ImGui::RenderText(ImVec2(bb.Min.x, contentTop), label_off);
+  ImGui::PopStyleColor();
+
+  const ImVec2 trackMin(bb.Min.x + offLabelSize.x + spacing, contentTop);
+  const ImVec2 trackMax(trackMin.x + trackWidth, contentTop + trackHeight);
+  window->DrawList->AddRectFilled(trackMin, trackMax, inactiveTextColor, style.FrameRounding);
+
+  const float knobInset = ImMax(1.0f, IM_TRUNC(trackHeight * 0.125f));
+  const float knobSize = trackHeight - (knobInset * 2.0f);
+  const ImVec2 knobMin(value ? (trackMax.x - knobInset - knobSize) : (trackMin.x + knobInset), trackMin.y + knobInset);
+  const ImU32 knobColor = (held && hovered)
+                            ? ImGui::GetColorU32(ImGuiCol_FrameBgActive)
+                            : (hovered ? ImGui::GetColorU32(ImGuiCol_FrameBgHovered) : ImGui::GetColorU32(IM_COL32_WHITE));
+  window->DrawList->AddRectFilled(knobMin, knobMin + ImVec2(knobSize, knobSize), knobColor,
+    ImMax(0.0f, style.FrameRounding - knobInset));
+
+  ImGui::PushStyleColor(ImGuiCol_Text, value ? activeTextColor : inactiveTextColor);
+  ImGui::RenderText(ImVec2(trackMax.x + spacing, contentTop), label_on);
+  ImGui::PopStyleColor();
+
+  return pressed;
 }
 
 bool ImguiHelper::toggleButtonWithDragSelection(const char *label, bool *value, float hovered_border_size, ImU32 col_text_active)

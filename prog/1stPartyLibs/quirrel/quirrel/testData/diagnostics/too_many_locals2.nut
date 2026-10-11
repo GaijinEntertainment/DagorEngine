@@ -946,10 +946,10 @@ try {
     if (c != ' ') v140 += c.tochar()
   }  // [string_build_filtered]
   let v141_fn = function(x) {
-    local cached = static({v = -2147483647 * 4294967296})
+    local cached = const({v = -2147483647 * 4294967296})
     return x + cached.v
   }
-  let v141 = v141_fn(v114)  // [static_complex]
+  let v141 = v141_fn(v114)  // [const_complex]
   let v142 = v97.totable()  // [array_totable]
   let v143_fn = function(x, s, cfg = {
       fmt = @(n, t) $"{n}:{t}",
@@ -1003,10 +1003,10 @@ try {
   let v155 = v97.totable()  // [array_totable]
   let v156 = v5 >= v99  // [int_cmp_ge]
   let v157_fn = function(x) {
-    local cached = static({v = -4294967296 * 2147483648})
+    local cached = const({v = -4294967296 * 2147483648})
     return x + cached.v
   }
-  let v157 = v157_fn(v9)  // [static_complex]
+  let v157 = v157_fn(v9)  // [const_complex]
   enum S126_E6 { LOW = 0, MID = 1, HIGH = 2 }
   let v158 = (v79 & 3) == S126_E6.MID  // [enum_compare]
   let v159 = {}  // [empty_table]

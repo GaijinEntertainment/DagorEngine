@@ -18,6 +18,11 @@
 #include <quirrel/udp/udp.h>
 
 #include <util/dag_delayedAction.h>
+#include <daRg/dag_guiScene.h>
+#include <drv/hid/dag_hiPointingData.h>
+#include <dag/dag_vector.h>
+#include <EASTL/optional.h>
+#include <math/dag_Point2.h>
 
 #include "vr.h"
 #include "main.h"
@@ -31,6 +36,58 @@
 extern void reload_scripts(bool full_reinit);
 
 static auto delayed_reload_scripts = make_delayed_func(reload_scripts);
+
+static int find_name(const char *name, dag::ConstSpan<const char *> names)
+{
+  for (int i = 0; i < names.size(); i++)
+    if (strcmp(name, names[i]) == 0)
+      return i;
+  return -1;
+}
+
+struct QueuedTouchPadGesture
+{
+  int state = 0;
+  HumanInput::Gesture gesture;
+  eastl::optional<Point2> cursor;
+};
+static dag::Vector<QueuedTouchPadGesture> queued_touch_pad_gestures;
+
+// constraint: input must not reach the scene inside a script call, so it is queued
+static void send_touch_pad_gesture(const char *type, const char *state, Sqrat::Table params)
+{
+  static const char *typeNames[] = {"none", "tap", "drag", "hold", "pinch", "rotate", "flick", "double_tap"};
+  static const char *stateNames[] = {"inactive", "begin", "active", "end", "cancelled"};
+  const int typeIdx = find_name(type, make_span_const(typeNames, countof(typeNames)));
+  const int stateIdx = find_name(state, make_span_const(stateNames, countof(stateNames)));
+  G_ASSERTF_RETURN(typeIdx > 0 && stateIdx > 0, , "send_touch_pad_gesture: unknown type '%s' or state '%s'", type, state);
+
+  QueuedTouchPadGesture &q = queued_touch_pad_gestures.push_back();
+  q.state = stateIdx;
+  q.gesture.type = HumanInput::Gesture::Type(typeIdx);
+  q.gesture.x = params.RawGetSlotValue("x", 0.f);
+  q.gesture.y = params.RawGetSlotValue("y", 0.f);
+  q.gesture.x0 = params.RawGetSlotValue("x0", 0.f);
+  q.gesture.y0 = params.RawGetSlotValue("y0", 0.f);
+  q.gesture.deltaX = params.RawGetSlotValue("dx", 0.f);
+  q.gesture.deltaY = params.RawGetSlotValue("dy", 0.f);
+  q.gesture.scale = params.RawGetSlotValue("scale", 1.f);
+  q.gesture.angle = params.RawGetSlotValue("angle", 0.f);
+  if (params.RawHasKey("cursor"))
+    q.cursor = params.RawGetSlotValue("cursor", Point2(0, 0));
+}
+
+void send_queued_touch_pad_gestures(darg::IGuiScene *scene)
+{
+  dag::Vector<QueuedTouchPadGesture> gestures;
+  gestures.swap(queued_touch_pad_gestures);
+  for (const QueuedTouchPadGesture &q : gestures)
+  {
+    if (q.cursor)
+      scene->onMouseEvent(darg::INP_EV_POINTER_MOVE, 0, q.cursor->x, q.cursor->y, 0);
+    scene->onTouchPadGesture(q.state, q.gesture);
+  }
+}
 
 
 void bind_dargbox_script_api(SqModules *module_mgr)
@@ -82,6 +139,7 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   Sqrat::Table sqDargbox(vm);
   /* qdox @module dargbox Available in dargbox tools */
   sqDargbox.Func("reload_scripts", [](bool full_reinit) { delayed_reload_scripts(full_reinit); });
+  sqDargbox.Func("send_touch_pad_gesture", send_touch_pad_gesture);
   module_mgr->addNativeModule("dargbox", sqDargbox);
   /// @module dargbox.vr
   Sqrat::Table sqVR(vm);

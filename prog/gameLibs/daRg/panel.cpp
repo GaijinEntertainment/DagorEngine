@@ -258,24 +258,18 @@ void Panel::syncCanvas()
     if (canvas)
     {
       TextureInfo texInfo;
-      canvas->getTex2D()->getinfo(texInfo);
+      canvas.getTex2D()->getinfo(texInfo);
       if (texInfo.w == targetSize.x && texInfo.h == targetSize.y)
         return;
-
-      canvas->close();
     }
-    else
-      canvas = eastl::make_unique<TextureIDHolder>();
 
     eastl::string canvasName;
     canvasName.eastl::string::sprintf("panelCanvas_%d", index);
     const int flags = TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_RTARGET;
-    canvas->set(d3d::create_tex(nullptr, targetSize.x, targetSize.y, flags, 1, canvasName.data(), RESTAG_GUI));
+    canvas = dag::create_tex(nullptr, targetSize.x, targetSize.y, flags, 1, canvasName.data(), RESTAG_GUI);
   }
-  else if (canvas)
-  {
-    canvas.release();
-  }
+  else
+    canvas.close();
 }
 
 
@@ -293,7 +287,7 @@ void Panel::updateTexture(GuiScene &gui_scene, BaseTexture *target)
     if (!target)
     {
       syncCanvas();
-      target = canvas->getTex2D();
+      target = canvas.getTex2D();
     }
 
     TextureInfo texInfo;
@@ -309,15 +303,11 @@ void Panel::updateTexture(GuiScene &gui_scene, BaseTexture *target)
     gui_scene.refreshGuiContextState();
     gui_scene.buildPanelRender(index);
 
-    // basically, the same as GuiScene::flushRenderImpl() / GuiScene::flushPanelRender()
-    gui_scene.getGuiContext()->setTarget();
-    StdGuiRender::acquire();
-    gui_scene.getGuiContext()->flushData();
-    gui_scene.getGuiContext()->end_render();
+    const bool flushed = gui_scene.flushGuiContext();
 
     ShaderGlobal::setBlock(savedBlockId, ShaderGlobal::LAYER_FRAME);
 
-    isDirty = false;
+    isDirty = !flushed;
   }
 }
 

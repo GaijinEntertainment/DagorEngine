@@ -142,7 +142,7 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
     {
       applyHmModifiers(false, true, false);
 
-      PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(300), _pxScaled(400), "Rescale heightmap");
+      PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Rescale heightmap");
       PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
       float mMin = 0, mMax = 0, dMin = 0, dMax = 0;
 
@@ -297,7 +297,7 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
     case CM_EXPORT_LOFT_MASKS:
     {
-      PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(350), _pxScaled(705), "Loft mask export props");
+      PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Loft mask export props");
       PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
       panel.createCheckBox(11, "Build main HMAP loft masks", lastExpLoftMain);
       panel.createEditInt(12, "Main HMAP masks tex size", lastExpLoftMainSz);
@@ -562,7 +562,7 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
     case CM_SET_PT_VIS_DIST:
     {
-      PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(250), _pxScaled(100), "Set visibility range for points");
+      PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Set visibility range for points");
       PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
       panel.createEditFloat(1, "Visibility range", objEd.maxPointVisDist);
       int ret = dlg->showDialog();
@@ -608,7 +608,6 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
       if (DAGORED2->isBrushPainting() && DAGORED2->getBrush())
       {
         int cnt = sizeof(brushIncTable) / sizeof(BrushIncrementer);
-        G_ASSERT(cnt > 0);
 
         real radius = DAGORED2->getBrush()->getRadius(), incr = 0;
 
@@ -642,7 +641,6 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
       if (DAGORED2->isBrushPainting() && DAGORED2->getBrush())
       {
         int cnt = sizeof(brushIncTable) / sizeof(BrushIncrementer);
-        G_ASSERT(cnt > 0);
 
         real radius = DAGORED2->getBrush()->getRadius(), incr = 0;
 

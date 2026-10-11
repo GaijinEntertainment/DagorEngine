@@ -219,7 +219,7 @@ inline uint64_t get_next_resource_alignment(uint64_t alignment, uint32_t samples
 }
 
 // NOTE: may adjust desc.Alignment if the requested alignment could not be used
-inline D3D12_RESOURCE_ALLOCATION_INFO get_resource_allocation_info(ID3D12Device *device, D3D12_RESOURCE_DESC &desc)
+inline D3D12_RESOURCE_ALLOCATION_INFO get_resource_allocation_info(D3DDevice *device, D3D12_RESOURCE_DESC &desc)
 {
   G_ASSERTF(desc.Alignment != 0, "DX12: desc.Alignment should not be 0!");
   auto result = device->GetResourceAllocationInfo(0, 1, &desc);

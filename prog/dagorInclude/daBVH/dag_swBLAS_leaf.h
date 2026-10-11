@@ -27,7 +27,7 @@ struct RayData // -V730
 {
   vec3f rayOrigin, rayDir;
   const uint8_t *data = nullptr;
-  float t = 0;
+  float t = 0; // ray extent; must not exceed BVH_MISS_T
   Point2 bCoord;
   int bestTriOffset = 0;
   int8_t bestSubTri = 0; // sub-triangle hit, 0..3: 0/1 = quad A tri 1/2, 2/3 = quad B tri 1/2
@@ -66,6 +66,22 @@ struct Vert21StrideLoaderRaw // returns unscaled raw coords; caller scales its q
   __forceinline vec3f operator()(const uint8_t *d, int baseOfs, int vertIdx) const
   {
     return RayData::unpackVert21Raw(d + baseOfs + vertIdx * Stride);
+  }
+};
+// returns q * invScale + bmin: the vert decoded into the metric frame whose box minimum q = 0 packs.
+// constraint: the walker's ray must be in that frame too, since the leaf test compares the two
+struct Vert21MetricLoader
+{
+  vec3f invScale, bmin;
+  // the frame of a pack b = w * scale + ofs, which the BLAS builders write
+  static __forceinline Vert21MetricLoader fromPack(vec3f scale, vec3f ofs)
+  {
+    const vec3f invScale = v_rcp(scale);
+    return {invScale, v_neg(v_mul(ofs, invScale))};
+  }
+  __forceinline vec3f operator()(const uint8_t *d, int baseOfs, int vertIdx) const
+  {
+    return v_madd(Vert21StrideLoader<BVH_BLAS_VERT21_STRIDE>{}(d, baseOfs, vertIdx), invScale, bmin);
   }
 };
 
@@ -112,6 +128,36 @@ inline bool RayIntersectsBoxT0T1(vec3f t0, vec3f t1, float ray_extent)
   vec4f tminMax = v_hmax(tmin);
   return v_test_vec_x_le(tminMax, tmaxMin);
 }
+// A ray in the frame a BLAS encodes its node boxes in, b = w * scale + ofs, which is what the node
+// filter of a leaf walk tests against. The parameter is invariant under the per-axis scaling, since
+// the direction is scaled with the origin, so one max t prunes both frames.
+struct BlasBoxRay
+{
+  vec3f dirInv, originScaled;
+  // for a caller whose ray is already in that frame and holds the reciprocal the walk uses
+  static __forceinline BlasBoxRay fromBox(vec3f box_origin, vec3f box_dir_inv)
+  {
+    BlasBoxRay r;
+    r.dirInv = box_dir_inv;
+    r.originScaled = v_neg(v_mul(box_origin, box_dir_inv));
+    return r;
+  }
+  static __forceinline BlasBoxRay make(vec3f src_from, vec3f src_dir, vec3f blas_scale, vec3f blas_ofs)
+  {
+    const vec3f d = v_mul(src_dir, blas_scale);
+    return fromBox(v_madd(src_from, blas_scale, blas_ofs), v_rcp(v_sel(v_splats(1e-32f), d, v_cmp_gt(v_abs(d), v_splats(1e-32f)))));
+  }
+  // One box-space cell of pad: a box folded from decoded verts carries up to half a source cell of
+  // quantization error, and an axis-collapsed leaf must still admit a tangent ray. The callers run
+  // exact tests behind it. padded_q_box of collisionGameRes.cpp pads a query box for that reason.
+  __forceinline bool admits(vec3f bmn, vec3f bmx, float t) const
+  {
+    bmn = v_sub(bmn, V_C_ONE);
+    bmx = v_add(bmx, V_C_ONE);
+    return RayIntersectsBoxT0T1(v_madd(bmn, dirInv, originScaled), v_madd(bmx, dirInv, originScaled), t);
+  }
+};
+
 inline bool RayIntersectsBoxInf(vec3f t0, vec3f t1)
 {
   const vec3f tmax = v_max(t0, t1);
@@ -132,10 +178,13 @@ inline bool RayIntersectsBoxNearT(vec3f t0, vec3f t1, float ray_extent, float &n
   return v_test_vec_x_le(tminMax, tmaxMin);
 }
 
-#define kEpsilon                    0.00001
+#define kEpsilon                    0.00001f
+// no-hit lane t; a ray t must not exceed it
+#define BVH_MISS_T                  3.4e38f
 #define BVH_TRACE_ONE_PLUS_EPSILON  (1.f + BVH_TRACE_EPSILON)
 #define BVH_TRACE_ONE_PLUS_EPSILON2 (1.f + 2.f * BVH_TRACE_EPSILON)
 
+// eps-band kernel: BVH_TRACE_EPSILON on the barycentrics, t is the parameter of orig + t * dir windowed to [0, t)
 template <bool CullCCW = false>
 inline bool RayTriangleIntersect(vec3f orig, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float &t, Point2 &bc)
 {
@@ -164,6 +213,7 @@ inline bool RayTriangleIntersect(vec3f orig, vec3f dir, vec3f v0, vec3f v1, vec3
   t = ct;
   return true;
 }
+// eps-band kernel, t unbounded; not the watertight RayTriangleIntersectInf of swRTCommon.hlsl
 template <bool CullCCW = false>
 inline bool RayTriangleIntersectInf(vec3f orig, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float &t, Point2 &bc)
 {
@@ -188,69 +238,138 @@ inline bool RayTriangleIntersectInf(vec3f orig, vec3f dir, vec3f v0, vec3f v1, v
   bc = b;
   return true;
 }
+// the sign-exact edge test of three projected corners, read from lanes x and y of a, b and c: a zero
+// admits; bary is UVW / det and bc its last two lanes, both written on a hit alone.
+// constraint: the edge functions are v_cross3 z lanes, unfused on every build: a shared edge's lane is one value on both, up to sign
+static __forceinline bool watertight_edge_test(vec3f a, vec3f b, vec3f c, float degenerate_det, vec3f &bary, Point2 &bc)
+{
+  const vec3f cb = v_cross3(c, b), ac = v_cross3(a, c), ba = v_cross3(b, a);
+  vec3f UVW = v_perm_xzac(v_perm_zwcd(cb, ac), v_splat_z(ba));
+  if (v_check_xyz_any_true(v_cmp_lt(UVW, v_zero())) & v_check_xyz_any_true(v_cmp_lt(v_zero(), UVW))) // -V792
+    return false;
+  vec3f detV = v_hadd3_x(UVW);
+  if (v_test_vec_x_lt(v_abs(detV), v_splats(degenerate_det)))
+    return false;
+  bary = v_div(UVW, v_splat_x(detV));
+  bc.x = v_extract_y(bary);
+  bc.y = v_extract_z(bary);
+  return true;
+}
+// watertight kernel for a vertical line: sign-exact edge functions in XZ, t is the hit height, unbounded
 inline bool RayTriangleIntersectInfXZ(vec3f orig, vec3f v0, vec3f v1, vec3f v2, float &t, Point2 &bc)
 {
   vec3f a = v_perm_zxyw(v_sub(v0, orig));
   vec3f b = v_perm_zxyw(v_sub(v1, orig));
   vec3f c = v_perm_zxyw(v_sub(v2, orig));
   vec3f v012y = v_perm_ywbd(v_perm_xyab(v0, v1), v2);
-  vec3f cab_x = v_perm_xyab(v_perm_xaxa(c, a), b);
-  vec3f cab_y = v_perm_ywbd(v_perm_xyab(c, a), b);
-  vec3f UVW = v_sub(v_mul(cab_x, v_perm_zxyw(cab_y)), v_mul(cab_y, v_perm_zxyw(cab_x)));
-  if (v_check_xyz_any_true(v_cmp_lt(UVW, v_zero())) & v_check_xyz_any_true(v_cmp_lt(v_zero(), UVW))) // -V792
+  vec3f bary;
+  if (!watertight_edge_test(a, b, c, 1e-9f, bary, bc)) // the guard of swRTCommon.hlsl's XZ form
     return false;
-  vec3f detV = v_hadd3_x(UVW);
-  if (v_test_vec_x_lt(v_abs(detV), v_splats(1e-9f)))
-    return false;
-  UVW = v_div(UVW, v_splat_x(detV));
-  bc.x = v_extract_y(UVW);
-  bc.y = v_extract_z(UVW);
-  t = v_extract_x(v_dot3_x(v012y, UVW));
+  t = v_extract_x(v_dot3_x(v012y, bary));
   return true;
 }
+// watertight kernel for any direction, the CPU form of swRTCommon.hlsl's RayTriangleIntersectInf: a
+// shared edge's lane is one exact value on both triangles, negated when the pair is mirrored, so for a
+// ray past the edge a zero admits it from each and a rounded nonzero one admits it from one of them when
+// the third corners lie on opposite sides of the edge, and from both or neither when they lie on the same side.
+// t is the parameter of orig + t * dir, unbounded and possibly negative, so a caller windows it; a
+// facing test replaces the siblings' cull
+inline bool RayTriangleIntersectInfWT(vec3f orig, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float &t, Point2 &bc)
+{
+  vec3f a = v_sub(v0, orig), b = v_sub(v1, orig), c = v_sub(v2, orig), d = dir;
+  const vec3f ad = v_abs(dir);
+  const float ax = v_extract_x(ad), ay = v_extract_y(ad), az = v_extract_z(ad);
+  if (ax >= ay && ax >= az) // the dominant axis goes to z, so the shear stays small
+    a = v_perm_yzxw(a), b = v_perm_yzxw(b), c = v_perm_yzxw(c), d = v_perm_yzxw(d);
+  else if (ay >= az)
+    a = v_perm_zxyw(a), b = v_perm_zxyw(b), c = v_perm_zxyw(c), d = v_perm_zxyw(d);
+  const vec4f rcpDz = v_rcp(v_splat_z(d));
+  const vec4f shear = v_neg(v_mul(d, rcpDz)); // -d.xy / d.z in x and y
+  const vec3f abcZ = v_perm_xzac(v_perm_zwcd(a, b), v_splat_z(c));
+  a = v_madd(shear, v_splat_z(a), a);
+  b = v_madd(shear, v_splat_z(b), b);
+  c = v_madd(shear, v_splat_z(c), c);
+  vec3f bary;
+  if (!watertight_edge_test(a, b, c, 1e-18f, bary, bc)) // the guard of the HLSL form
+    return false;
+  t = v_extract_x(v_mul_x(v_dot3_x(abcZ, bary), rcpDz));
+  return true;
+}
+// the watertight kernel windowed to [0, len) as RayTriangleIntersect windows the band one; unit_dir, so t reads as a length
+inline bool RayTriangleIntersectWT(vec3f orig, vec3f unit_dir, float len, vec3f v0, vec3f v1, vec3f v2)
+{
+  float t;
+  Point2 bc;
+  return RayTriangleIntersectInfWT(orig, unit_dir, v0, v1, v2, t, bc) && t >= 0.f && t < len;
+}
 
-// closest point on triangle (barycentric projection + edge clamp)
+// Closest point to p on triangle abc by Ericson's Voronoi regions (RTCD 5.1.5). A sliver answers its
+// nearest edge point, off by at most its width. The edges run as SoA lanes and pick the region
+// without a branch: the region of a query point changes from triangle to triangle.
+// constraint: point_distance.hlsl closestPointOnTriangleBarycentric picks the same regions, without the sliver branch
 inline vec3f closestPointOnTriVec(vec3f p, vec3f a, vec3f b, vec3f c)
 {
-  vec3f ba = v_sub(b, a), pa = v_sub(p, a);
-  vec3f cb = v_sub(c, b), pb = v_sub(p, b);
-  vec3f ac = v_sub(a, c), pc = v_sub(p, c);
+  vec3f ab = v_sub(b, a), ac = v_sub(c, a), bc = v_sub(c, b);
+  vec3f ap = v_sub(p, a), bp = v_sub(p, b);
+  vec3f n = v_cross3(ab, ac);
 
-  vec3f n = v_cross3(ba, ac);
-  vec3f q = v_cross3(n, pa);
-  float d = 1.f / v_extract_x(v_dot3_x(n, n));
-  float u = d * v_extract_x(v_dot3_x(q, ac));
-  float v = d * v_extract_x(v_dot3_x(q, ba));
-  float w = 1.f - u - v;
+  vec4f ex = ab, ey = ac, ez = bc, ew = n; // rows become x, y, z of (ab, ac, bc, n)
+  v_mat44_transpose(ex, ey, ez, ew);
+  vec4f px = ap, py = ap, pz = bp, pw = v_zero(); // the same for each edge start offset
+  v_mat44_transpose(px, py, pz, pw);
 
-#define DOT3(a, b)  v_extract_x(v_dot3_x(a, b))
-#define SATURATE(x) ((x) < 0.f ? 0.f : ((x) > 1.f ? 1.f : (x)))
-  if (u < 0.f)
+  vec4f len = v_mul(ex, ex); // (|ab|^2, |ac|^2, |bc|^2, |n|^2)
+  len = v_madd(ey, ey, len);
+  len = v_madd(ez, ez, len);
+  // A zero-length edge or a zero area would divide by 0 below: such a triangle, and any sliver
+  // (sin^2 of the corner angle under 1e-10), is its edges.
+  if (v_extract_w(len) <= 1e-10f * v_extract_x(len) * v_extract_y(len))
   {
-    w = SATURATE(DOT3(pc, ac) / DOT3(ac, ac));
-    u = 0.f;
-    v = 1.f - w;
+    vec3f best = v_closest_point_on_segment(p, a, b);
+    vec3f onBc = v_closest_point_on_segment(p, b, c);
+    vec3f onAc = v_closest_point_on_segment(p, a, c);
+    if (v_extract_x(v_length3_sq_x(v_sub(onBc, p))) < v_extract_x(v_length3_sq_x(v_sub(best, p))))
+      best = onBc;
+    if (v_extract_x(v_length3_sq_x(v_sub(onAc, p))) < v_extract_x(v_length3_sq_x(v_sub(best, p))))
+      best = onAc;
+    return best;
   }
-  else if (v < 0.f)
-  {
-    u = SATURATE(DOT3(pa, ba) / DOT3(ba, ba));
-    v = 0.f;
-    w = 1.f - u;
-  }
-  else if (w < 0.f)
-  {
-    v = SATURATE(DOT3(pb, cb) / DOT3(cb, cb));
-    w = 0.f;
-    u = 1.f - v;
-  }
-#undef SATURATE
-#undef DOT3
+  vec4f num = v_mul(ex, px); // e_k . (p - start_k): Ericson's d1, d2, d4 - d3
+  num = v_madd(ey, py, num);
+  num = v_madd(ez, pz, num);
 
-  return v_add(v_add(v_mul(v_splats(u), b), v_mul(v_splats(v), c)), v_mul(v_splats(w), a));
+  // (n x e_k) . (p - start_k) = (vc, -vb, va). Ericson's d1 * d4 - d3 * d2 form is equal by
+  // Lagrange's identity, but its error does not scale with |n| and swamps a thin triangle.
+  vec4f nx = v_splat_x(n), ny = v_splat_y(n), nz = v_splat_z(n);
+  vec4f cx = v_sub(v_mul(ny, ez), v_mul(nz, ey));
+  vec4f cy = v_sub(v_mul(nz, ex), v_mul(nx, ez));
+  vec4f cz = v_sub(v_mul(nx, ey), v_mul(ny, ex));
+  vec4f area = v_mul(cx, px);
+  area = v_madd(cy, py, area);
+  area = v_madd(cz, pz, area);
+
+  vec4f q = v_div(v_perm_xyzd(num, V_C_ONE), len); // (tAB, tAC, tBC, 1 / |n|^2)
+  vec4f faceW = v_mul(area, v_splat_w(q));         // (weight of c, -weight of b, _, _)
+
+  vec4f zero = v_zero();
+  vec4f lo = v_cmp_le(num, zero), hi = v_cmp_ge(num, len);
+  vec4f outside = v_cmp_le(v_perm_xbzw(area, v_neg(area)), zero);
+  vec4f onEdge = v_andnot(v_or(v_cmp_lt(num, zero), v_cmp_gt(num, len)), outside);
+
+  // Lowest priority first: each later select overrides, in Ericson's test order.
+  vec3f res = v_madd(ac, v_splat_x(faceW), a);
+  res = v_sub(res, v_mul(ab, v_splat_y(faceW)));
+  res = v_sel(res, v_madd(bc, v_splat_z(q), b), v_splat_z(onEdge));
+  res = v_sel(res, v_madd(ac, v_splat_y(q), a), v_splat_y(onEdge));
+  res = v_sel(res, c, v_and(v_splat_y(hi), v_splat_z(hi)));
+  res = v_sel(res, v_madd(ab, v_splat_x(q), a), v_splat_x(onEdge));
+  res = v_sel(res, b, v_and(v_splat_x(hi), v_splat_z(lo)));
+  res = v_sel(res, a, v_and(v_splat_x(lo), v_splat_y(lo)));
+  return res;
 }
 
 // Jolt-style 4-wide SoA ray-vs-triangle. Tests 4 triangles in parallel; returns 4 distances
-// (FLT_MAX for misses). u,v bary coords per lane in outU/outV. Lanes the caller wants to ignore
+// (BVH_MISS_T for misses). u,v bary coords per lane in outU/outV. Lanes the caller wants to ignore
 // (e.g. degenerate padding) should have all-zero vertex data so det == 0 -> miss.
 // CullCCW = true rejects lanes where det <= eps (backfacing or degenerate), matching the
 // behavior of RayTriangleIntersect<true>.
@@ -297,7 +416,7 @@ __forceinline vec4f rayTriangle4_SoA(vec3f orig, vec3f dir, vec4f v0x, vec4f v0y
   outU = v_mul(u, invDet);
   outV = v_mul(vp, invDet);
   vec4f tDist = v_mul(t, invDet);
-  return v_sel(tDist, v_splats(3.4e38f), noHit);
+  return v_sel(tDist, v_splats(BVH_MISS_T), noHit);
 }
 
 inline void distBLASLeafTri(DistData &d, vec3f v0, vec3f v1, vec3f v2, int dataOffset)
@@ -355,6 +474,7 @@ struct QuadLeafFields
   bool hasB;             // leaf carries a 2nd quad (sub-tris 2,3); sentinel o1b != o2b
   bool isSingleB;        // quad B 2nd sub-tri degenerate (o3b == o2b)
   bool flipSecondB;      // quad B 2nd sub-tri winding
+  bool lightTransparent; // QUAD_LEAF_TRANSPARENT_FLAG: the shadow walk skips the leaf
   uint32_t user;         // per-leaf user bits, opaque here (0 unless the producer stamped them)
 };
 
@@ -374,6 +494,7 @@ __forceinline QuadLeafFields decodeQuadLeafFields(uint32_t skip, uint32_t w1, ui
   f.hasB = (f.o1b != f.o2b);
   f.isSingleB = (f.o3b == f.o2b);
   f.flipSecondB = (w2 & QUAD_FLIPB_FLAG) != 0;
+  f.lightTransparent = (w2 & QUAD_LEAF_TRANSPARENT_FLAG) != 0;
   f.user = (w3 >> QUAD_LEAF_USER_SHIFT) & QUAD_LEAF_USER_MASK;
   return f;
 }
@@ -552,7 +673,7 @@ static __forceinline bool swblas_rayLeaf_SoA(RayData &r, int dataOffset, uint32_
   vec4f us, vs;
   vec4f ts = rayTriangle4_SoA<CullCCW>(r.rayOrigin, r.rayDir, c0x, c0y, c0z, c1x, c1y, c1z, c2x, c2y, c2z, us, vs);
   // Branchless best-lane pick: min-reduce the 4 t's, then the lowest lane bitwise-equal to the min
-  // wins (same first-lane tie-break as a scalar < scan; misses carry FLT_MAX-like t, never NaN --
+  // wins (same first-lane tie-break as a scalar < scan; misses carry BVH_MISS_T, never NaN --
   // rayTriangle4_SoA sel's them). A min at or past r.t rejects the leaf, which also makes any
   // pre-masking of farther lanes against r.t unnecessary.
   vec4f tMin = v_hmin(ts);

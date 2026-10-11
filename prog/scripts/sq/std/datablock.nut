@@ -32,9 +32,9 @@ function eachBlock(db, callback, thisArg = null) {
 
   assert(isDataBlock(db))
   assert(isFunction(callback))
-  let {parameters, varargs} = callback.getfuncinfos()
-  let numArgs = parameters.len() - 1
-  assert((numArgs >= 1 && numArgs <= 3) || varargs)
+  let arity = callback.getarity()
+  let numArgs = arity.num_params
+  assert((numArgs >= 1 && numArgs <= 3) || arity.varargs)
 
   let l = db.blockCount()
   for (local i = 0; i < l; i++) {
@@ -55,7 +55,7 @@ function eachParam(db, callback, thisArg = null) {
 
   assert(isDataBlock(db))
   assert(isFunction(callback))
-  let numArgs = callback.getfuncinfos().parameters.len() - 1
+  let numArgs = callback.getarity().num_params
   assert(numArgs >= 1 && numArgs <= 3)
 
   let l = db.paramCount()

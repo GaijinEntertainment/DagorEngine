@@ -2,6 +2,7 @@
 
 #include <daSkies2/daSkies.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderRenderPass.h>
 #include <shaders/dag_shaderVar.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
@@ -37,7 +38,7 @@ static const int panorma_temporal_frames = panorma_temporal_upsample * panorma_q
 const int frames_to_exp_validate = 12;
 static uint32_t panorama_async_pipe_feedback = 0;
 
-static uint32_t panoramaFmt = TEXFMT_R11G11B10F; // TEXCF_SRGBREAD|TEXCF_SRGBWRITE;// TEXFMT_A16B16G16R16F;//TEXFMT_R11G11B10F;
+static uint32_t panoramaFmt = TEXFMT_R11G11B10F; // must equal the panorama target format of clouds_panorama_multipass
 
 #define GLOBAL_VARS_LIST                       \
   VAR(render_sun, false)                       \
@@ -170,43 +171,50 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
   }
 }
 
+static const char *const clouds_panorama_rp_name = "clouds_panorama_multipass";
+static const char *const clouds_panorama_rp_trace = "trace_scratch";
+static const char *const clouds_panorama_rp_out = "panorama";
+
 void DaSkies::destroyCloudsPanoramaSplitResources()
 {
   cloudsPanoramaSplitTex.close();
-  if (cloudsPanoramaSplitRP)
-  {
-    d3d::delete_render_pass(cloudsPanoramaSplitRP);
-    cloudsPanoramaSplitRP = nullptr;
-  }
+  cloudsPanoramaSplitRP = ShaderRenderPass::Pass();
+  cloudsPanoramaSplitRPId = ShaderRenderPass::Id::Invalid;
+  allowCloudsPanoramaSplit = false;
 }
 
 void DaSkies::createCloudsPanoramaSplitTex(int resolution_width, int resolution_height)
 {
-  cloudsPanoramaSplitTex = dag::create_tex(NULL, resolution_width, resolution_height,
-    TEXCF_RTARGET | TEXFMT_A32B32G32R32F | TEXCF_TRANSIENT, 1, "clouds_panorama_split_tex", RESTAG_DASKIES2);
+  const ShaderRenderPass::TargetFormatInfo fmt = ShaderRenderPass::get_framebuffer_target_format(cloudsPanoramaSplitRPId,
+    ShaderRenderPass::get_only_framebuffer(cloudsPanoramaSplitRPId),
+    ShaderRenderPass::get_target_slot(cloudsPanoramaSplitRPId, clouds_panorama_rp_trace));
+  cloudsPanoramaSplitTex = dag::create_tex(NULL, resolution_width, resolution_height, TEXCF_RTARGET | fmt.format | TEXCF_TRANSIENT, 1,
+    "clouds_panorama_split_tex", RESTAG_DASKIES2);
 }
 
-void DaSkies::createCloudsPanoramaSplitResources(int resolution_width, int resolution_height)
+bool DaSkies::createCloudsPanoramaSplitResources(int resolution_width, int resolution_height)
 {
   cloudsPanoramaSplitTex.close();
+  cloudsPanoramaSplitRPId = ShaderRenderPass::find_id(clouds_panorama_rp_name);
+  if (cloudsPanoramaSplitRPId == ShaderRenderPass::Id::Invalid)
+  {
+    logerr("daSkies2: render_pass '%s' is not in the shader dump; the clouds panorama keeps its single-draw path",
+      clouds_panorama_rp_name);
+    return false;
+  }
+
   // do not keep split tex allocated on TBDR devices without lazy memory (budget costly!)
   cleanupPanoramaSplitTex = !d3d::get_driver_desc().caps.hasLazyMemory && d3d::get_driver_desc().caps.hasTileBasedArchitecture;
   if (!cleanupPanoramaSplitTex)
     createCloudsPanoramaSplitTex(resolution_width, resolution_height);
 
-  if (!cloudsPanoramaSplitRP)
-  {
-    RenderPassTargetDesc targets[] = {
-      {nullptr, TEXCF_RTARGET | TEXFMT_A32B32G32R32F | TEXCF_TRANSIENT, false}, {nullptr, TEXCF_RTARGET | panoramaFmt, false}};
-    RenderPassBind binds[] = {{0, 0, 0, RP_TA_LOAD_CLEAR | RP_TA_SUBPASS_WRITE, RB_STAGE_PIXEL | RB_RW_RENDER_TARGET},
-      {0, 1, 0, RP_TA_SUBPASS_READ, RB_STAGE_PIXEL | RB_RO_SRV},
-      {1, 1, 0, RP_TA_LOAD_READ | RP_TA_SUBPASS_WRITE, RB_STAGE_PIXEL | RB_RW_RENDER_TARGET},
-      {0, RenderPassExtraIndexes::RP_SUBPASS_EXTERNAL_END, 0, RP_TA_STORE_NONE, RB_STAGE_PIXEL | RB_RO_SRV},
-      {1, RenderPassExtraIndexes::RP_SUBPASS_EXTERNAL_END, 0, RP_TA_STORE_WRITE, RB_STAGE_PIXEL | RB_RO_SRV}};
-
-    cloudsPanoramaSplitRP = d3d::create_render_pass(
-      {"clouds_panorama_multipass", sizeof(targets) / sizeof(targets[0]), sizeof(binds) / sizeof(binds[0]), targets, binds});
-  }
+  if (cloudsPanoramaSplitRP.valid())
+    return true;
+  ShaderRenderPass::Actions plan;
+  plan.clear(clouds_panorama_rp_trace).store(clouds_panorama_rp_trace, ShaderRenderPass::RpStore::DontCare);
+  cloudsPanoramaSplitRP = ShaderRenderPass::Pass(cloudsPanoramaSplitRPId,
+    ShaderRenderPass::get_only_framebuffer(cloudsPanoramaSplitRPId), clouds_panorama_rp_name, &plan);
+  return cloudsPanoramaSplitRP.valid();
 }
 
 void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int resolution_height)
@@ -240,9 +248,10 @@ void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int 
   };
 
   allowCloudsPanoramaSplit = d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses &&
-                             d3d::get_driver_desc().caps.hasTileBasedArchitecture && d3d::get_driver_code().is(d3d::vulkan);
-  if (allowCloudsPanoramaSplit)
-    createCloudsPanoramaSplitResources(resolution_width, resolution_height);
+                             d3d::get_driver_desc().caps.hasTileBasedArchitecture && d3d::get_driver_code().is(d3d::vulkan) &&
+                             !ShaderRenderPass::device_breaks_subpass_reads();
+  if (allowCloudsPanoramaSplit && !createCloudsPanoramaSplitResources(resolution_width, resolution_height))
+    allowCloudsPanoramaSplit = false;
 
   create(0, resolution_width, resolution_height, max(8, resolution_height / 16), max(8, resolution_height / 16));
   // create(2, (resolutionW+panorama_temporal_scale_x-1)/panorama_temporal_scale_x,
@@ -577,22 +586,23 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
         if (cleanupPanoramaSplitTex)
           createCloudsPanoramaSplitTex(rpArea.width, rpArea.height);
 
-        RenderPassTarget targets[] = {{{cloudsPanoramaSplitTex.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)},
-          {{to.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
+        ShaderRenderPass::Targets targets;
+        targets.tex(clouds_panorama_rp_trace, cloudsPanoramaSplitTex.getTex2D())
+          .clear(clouds_panorama_rp_trace, make_clear_value(0, 0, 0, 0))
+          .tex(clouds_panorama_rp_out, to.getTex2D());
+        {
+          ShaderRenderPass::Scope pass(cloudsPanoramaSplitRP, targets, &rpArea);
 
-        d3d::begin_render_pass(cloudsPanoramaSplitRP, rpArea, make_span_const(targets));
+          // clouds trace part
+          ShaderGlobal::set_int(clouds_panorama_splitVarId, 1);
+          cloudsPanorama.render();
 
-        // clouds trace part
-        ShaderGlobal::set_int(clouds_panorama_splitVarId, 1);
-        cloudsPanorama.render();
+          pass.nextSubpass();
 
-        d3d::next_subpass();
-
-        // followup blending part
-        ShaderGlobal::set_int(clouds_panorama_splitVarId, 2);
-        cloudsPanorama.render();
-
-        d3d::end_render_pass();
+          // followup blending part
+          ShaderGlobal::set_int(clouds_panorama_splitVarId, 2);
+          cloudsPanorama.render();
+        }
 
         if (cleanupPanoramaSplitTex)
           cloudsPanoramaSplitTex.close();

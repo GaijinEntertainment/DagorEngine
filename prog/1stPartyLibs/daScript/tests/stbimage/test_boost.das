@@ -5,7 +5,6 @@ options indenting = 4
 
 require stbimage/stbimage_boost
 require daslib/safe_addr
-require strings
 require daslib/fio
 require dastest/testing_boost public
 
@@ -18,7 +17,7 @@ def test_image_path(name : string) : string {
 [test]
 def test_default_image_invalid(t : T?) {
     t |> run("freshly declared Image is not valid") <| @(tt : T?) {
-        var img : Image
+        let img : Image
         tt |> success(!img.valid(), "default image not valid")
     }
 }
@@ -188,7 +187,7 @@ def test_load_failure(t : T?) {
         var img : Image
         let (ok, error) = img.load(test_image_path("does_not_exist.png"))
         tt |> success(!ok, "load should fail")
-        tt |> success(length(error) > 0, "error message not empty")
+        tt |> success(!empty(error), "error message not empty")
         tt |> success(!img.valid(), "image not valid after failure")
     }
 }
@@ -223,7 +222,7 @@ def test_load_from_memory_failure(t : T?) {
         var img : Image
         let (ok, error) = img.load_from_memory(garbage)
         tt |> success(!ok, "should fail")
-        tt |> success(length(error) > 0, "error not empty")
+        tt |> success(!empty(error), "error not empty")
     }
 }
 
@@ -264,14 +263,14 @@ def test_load_hdr_from_memory(t : T?) {
         tt |> success(ok1, "initial load_hdr ok: {err1}")
         // read the raw .hdr file bytes
         var file_bytes : array<uint8>
-        fopen(test_image_path("test.hdr"), "rb") <| $(f) {
+        fopen(test_image_path("test.hdr"), "rb") $(f) {
             if (f != null) {
-                fmap(f) <| $(var data : array<uint8>#) {
+                fmap(f) $(var data : array<uint8>#) {
                     file_bytes := data
                 }
             }
         }
-        tt |> success(length(file_bytes) > 0, "read .hdr file bytes")
+        tt |> success(!empty(file_bytes), "read .hdr file bytes")
         var img2 : Image
         let (ok2, err2) = img2.load_hdr_from_memory(file_bytes)
         tt |> success(ok2, "load_hdr_from_memory ok: {err2}")
@@ -355,7 +354,7 @@ def test_save_invalid_image(t : T?) {
         var img : Image
         let (ok, error) = img.save(test_image_path("_test_out.png"))
         tt |> success(!ok, "should fail")
-        tt |> success(length(error) > 0, "error not empty")
+        tt |> success(!empty(error), "error not empty")
     }
 }
 
@@ -414,7 +413,7 @@ def test_encode_tga(t : T?) {
         var out : array<uint8>
         let (ok, error) = img.encode("tga", out)
         tt |> success(ok, "encode ok: {error}")
-        tt |> success(length(out) > 0, "has data")
+        tt |> success(!empty(out), "has data")
     }
 }
 
@@ -426,7 +425,7 @@ def test_encode_invalid_format(t : T?) {
         var out : array<uint8>
         let (ok, error) = img.encode("gif", out)
         tt |> success(!ok, "should fail")
-        tt |> success(length(error) > 0, "error not empty")
+        tt |> success(!empty(error), "error not empty")
     }
 }
 
@@ -437,7 +436,7 @@ def test_with_pixels_uint8(t : T?) {
     t |> run("with_pixels uint8 reads corner pixels") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        img |> with_pixels() <| $(var pixels : array<uint8>#) {
+        img |> with_pixels() $(var pixels : array<uint8>#) {
             // pixel(0,0) = R=0, G=0, B=128, A=255
             tt |> equal(int(pixels[0]), 0)
             tt |> equal(int(pixels[1]), 0)
@@ -457,7 +456,7 @@ def test_with_pixels_float(t : T?) {
     t |> run("with_pixels float reads HDR data") <| @(tt : T?) {
         var img : Image
         img.load_hdr(test_image_path("test.hdr"), 4)
-        img |> with_pixels() <| $(var pixels : array<float>#) {
+        img |> with_pixels() $(var pixels : array<float>#) {
             // pixel(0,0): R~0, G~0, B~0.5, A~1.0
             tt |> success(pixels[0] < 0.05f, "R near 0")
             tt |> success(pixels[1] < 0.05f, "G near 0")
@@ -472,7 +471,7 @@ def test_with_pixels_16(t : T?) {
     t |> run("with_pixels uint16 reads 16-bit data") <| @(tt : T?) {
         var img : Image
         img.load_16(test_image_path("test.png"))
-        img |> with_pixels() <| $(var pixels : array<uint16>#) {
+        img |> with_pixels() $(var pixels : array<uint16>#) {
             // pixel(0,0) in 16-bit: R=0, G=0
             tt |> equal(int(pixels[0]), 0)
             tt |> equal(int(pixels[1]), 0)
@@ -487,11 +486,11 @@ def test_with_pixels_modify(t : T?) {
     t |> run("mutable with_pixels modifies pixel data") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        img |> with_pixels() <| $(var pixels : array<uint8>#) {
+        img |> with_pixels() $(var pixels : array<uint8>#) {
             pixels[0] = uint8(42)
         }
         // verify change persisted
-        img |> with_pixels() <| $(var pixels : array<uint8>#) {
+        img |> with_pixels() $(var pixels : array<uint8>#) {
             tt |> equal(int(pixels[0]), 42)
         }
     }
@@ -502,7 +501,7 @@ def test_with_pixels_named_f(t : T?) {
     t |> run("with_pixels_f explicit name on HDR") <| @(tt : T?) {
         var img : Image
         img.load_hdr(test_image_path("test.hdr"), 4)
-        img |> with_pixels_f() <| $(var pixels : array<float>#) {
+        img |> with_pixels_f() $(var pixels : array<float>#) {
             tt |> success(pixels[3] > 0.9f, "alpha near 1.0")
         }
     }
@@ -513,7 +512,7 @@ def test_with_pixels_named_16(t : T?) {
     t |> run("with_pixels_16 explicit name") <| @(tt : T?) {
         var img : Image
         img.load_16(test_image_path("test.png"))
-        img |> with_pixels_16() <| $(var pixels : array<uint16>#) {
+        img |> with_pixels_16() $(var pixels : array<uint16>#) {
             tt |> success(length(pixels) == 64 * 64 * 4, "correct length")
         }
     }
@@ -526,7 +525,7 @@ def test_with_row(t : T?) {
     t |> run("with_row reads first row") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        img |> with_row(0) <| $(var row : array<uint8>#) {
+        img |> with_row(0) $(var row : array<uint8>#) {
             tt |> equal(length(row), 64 * 4)
             // first pixel row 0: R=0, G=0
             tt |> equal(int(row[0]), 0)
@@ -540,7 +539,7 @@ def test_with_row_last(t : T?) {
     t |> run("with_row reads last row") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        img |> with_row(63) <| $(var row : array<uint8>#) {
+        img |> with_row(63) $(var row : array<uint8>#) {
             tt |> equal(length(row), 64 * 4)
             // last row, first pixel: R=0, G=252
             tt |> equal(int(row[0]), 0)
@@ -554,7 +553,7 @@ def test_with_row_float(t : T?) {
     t |> run("with_row float on HDR image") <| @(tt : T?) {
         var img : Image
         img.load_hdr(test_image_path("test.hdr"), 4)
-        img |> with_row(0) <| $(var row : array<float>#) {
+        img |> with_row(0) $(var row : array<float>#) {
             tt |> equal(length(row), 64 * 4)
             tt |> success(row[2] > 0.3f && row[2] < 0.7f, "B near 0.5")
         }
@@ -566,10 +565,10 @@ def test_with_row_modify(t : T?) {
     t |> run("mutable with_row modifies row data") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        img |> with_row(0) <| $(var row : array<uint8>#) {
+        img |> with_row(0) $(var row : array<uint8>#) {
             row[0] = uint8(99)
         }
-        img |> with_row(0) <| $(var row : array<uint8>#) {
+        img |> with_row(0) $(var row : array<uint8>#) {
             tt |> equal(int(row[0]), 99)
         }
     }
@@ -582,7 +581,7 @@ def test_resize_downscale(t : T?) {
     t |> run("resize 64x64 to 32x32") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        var small <- img.resize(32, 32)
+        let small <- img.resize(32, 32)
         tt |> equal(small.width, 32)
         tt |> equal(small.height, 32)
         tt |> equal(small.channels, 4)
@@ -596,7 +595,7 @@ def test_resize_upscale(t : T?) {
     t |> run("resize 64x64 to 128x128") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        var big <- img.resize(128, 128)
+        let big <- img.resize(128, 128)
         tt |> equal(big.width, 128)
         tt |> equal(big.height, 128)
         tt |> equal(big.channels, 4)
@@ -606,17 +605,13 @@ def test_resize_upscale(t : T?) {
 [test]
 def test_resize_uniform_color(t : T?) {
     t |> run("resize uniform white stays white") <| @(tt : T?) {
-        var img : Image
-        img.width = 2
-        img.height = 2
-        img.channels = 4
-        img.bpc = 1
+        var img = Image(width = 2, height = 2, channels = 4, bpc = 1)
         img.bytes |> resize(2 * 2 * 4)
         for (i in range(16)) {
             img.bytes[i] = uint8(255)
         }
         var big <- img.resize(4, 4)
-        big |> with_pixels() <| $(var pixels : array<uint8>#) {
+        big |> with_pixels() $(var pixels : array<uint8>#) {
             for (i in range(length(pixels))) {
                 tt |> equal(int(pixels[i]), 255)
             }
@@ -627,18 +622,14 @@ def test_resize_uniform_color(t : T?) {
 [test]
 def test_resize_with_filter(t : T?) {
     t |> run("resize with POINT_SAMPLE filter") <| @(tt : T?) {
-        var img : Image
-        img.width = 1
-        img.height = 1
-        img.channels = 4
-        img.bpc = 1
+        var img = Image(width = 1, height = 1, channels = 4, bpc = 1)
         img.bytes |> resize(4)
         img.bytes[0] = uint8(255)
         img.bytes[1] = uint8(0)
         img.bytes[2] = uint8(0)
         img.bytes[3] = uint8(255)
         var big <- img.resize(2, 2, stbir_filter.STBIR_FILTER_POINT_SAMPLE)
-        big |> with_pixels() <| $(var pixels : array<uint8>#) {
+        big |> with_pixels() $(var pixels : array<uint8>#) {
             for (p in range(4)) {
                 tt |> equal(int(pixels[p * 4 + 0]), 255)
                 tt |> equal(int(pixels[p * 4 + 1]), 0)
@@ -654,7 +645,7 @@ def test_resize_hdr(t : T?) {
     t |> run("resize HDR preserves bpc=4") <| @(tt : T?) {
         var img : Image
         img.load_hdr(test_image_path("test.hdr"), 4)
-        var small <- img.resize(32, 32)
+        let small <- img.resize(32, 32)
         tt |> equal(small.bpc, 4)
         tt |> equal(small.width, 32)
         tt |> equal(small.height, 32)
@@ -671,13 +662,13 @@ def test_flip_vertical(t : T?) {
         img.load(test_image_path("test.png"))
         var flipped <- img.flip_vertical()
         // original pixel(0,0) = R=0,G=0 should now be at row 63
-        flipped |> with_row(63) <| $(var row : array<uint8>#) {
+        flipped |> with_row(63) $(var row : array<uint8>#) {
             tt |> equal(int(row[0]), 0)
             tt |> equal(int(row[1]), 0)
             tt |> equal(int(row[2]), 128)
         }
         // original pixel(0,63) = R=0,G=252 should now be at row 0
-        flipped |> with_row(0) <| $(var row : array<uint8>#) {
+        flipped |> with_row(0) $(var row : array<uint8>#) {
             tt |> equal(int(row[0]), 0)
             tt |> equal(int(row[1]), 252)
         }
@@ -690,7 +681,7 @@ def test_flip_vertical_roundtrip(t : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
         var flipped <- img.flip_vertical()
-        var restored <- flipped.flip_vertical()
+        let restored <- flipped.flip_vertical()
         for (i in range(16)) {
             tt |> equal(int(img.bytes[i]), int(restored.bytes[i]))
         }
@@ -702,7 +693,7 @@ def test_flip_vertical_hdr(t : T?) {
     t |> run("flip vertical on HDR preserves bpc") <| @(tt : T?) {
         var img : Image
         img.load_hdr(test_image_path("test.hdr"), 4)
-        var flipped <- img.flip_vertical()
+        let flipped <- img.flip_vertical()
         tt |> equal(flipped.bpc, 4)
         tt |> equal(flipped.width, 64)
         tt |> equal(flipped.height, 64)
@@ -714,7 +705,7 @@ def test_flip_vertical_hdr(t : T?) {
 [test]
 def test_load_image_convenience(t : T?) {
     t |> run("load_image convenience returns valid Image") <| @(tt : T?) {
-        var img <- load_image(test_image_path("test.png"))
+        let img <- load_image(test_image_path("test.png"))
         tt |> success(img.valid(), "loaded and valid")
         tt |> equal(img.width, 64)
     }
@@ -724,9 +715,9 @@ def test_load_image_convenience(t : T?) {
 def test_load_image_with_error(t : T?) {
     t |> run("load_image with error out-param") <| @(tt : T?) {
         var error : string
-        var img <- load_image(test_image_path("does_not_exist.png"), error)
+        let img <- load_image(test_image_path("does_not_exist.png"), error)
         tt |> success(!img.valid(), "not valid")
-        tt |> success(length(error) > 0, "error populated")
+        tt |> success(!empty(error), "error populated")
     }
 }
 
@@ -816,7 +807,7 @@ def test_encode_decode_roundtrip(t : T?) {
 [test]
 def test_make_image(t : T?) {
     t |> run("make_image creates blank image") <| @(tt : T?) {
-        var img <- make_image(32, 16, 4)
+        let img <- make_image(32, 16, 4)
         tt |> equal(img.width, 32)
         tt |> equal(img.height, 16)
         tt |> equal(img.channels, 4)
@@ -836,7 +827,7 @@ def test_make_image(t : T?) {
 [test]
 def test_make_image_hdr(t : T?) {
     t |> run("make_image with bpc=4 creates HDR image") <| @(tt : T?) {
-        var img <- make_image(8, 8, 3, 4)
+        let img <- make_image(8, 8, 3, 4)
         tt |> equal(img.bpc, 4)
         tt |> success(img.is_hdr(), "is HDR")
         tt |> equal(length(img.bytes), 8 * 8 * 3 * 4)
@@ -876,16 +867,16 @@ def test_save_jpg_quality(t : T?) {
         tt |> success(ok2, "save q100 ok: {err2}")
         // higher quality should produce a larger file
         var sz_low, sz_high : int
-        fopen(out_low, "rb") <| $(f) {
+        fopen(out_low, "rb") $(f) {
             if (f != null) {
-                fmap(f) <| $(var data : array<uint8>#) {
+                fmap(f) $(var data : array<uint8>#) {
                     sz_low = length(data)
                 }
             }
         }
-        fopen(out_high, "rb") <| $(f) {
+        fopen(out_high, "rb") $(f) {
             if (f != null) {
-                fmap(f) <| $(var data : array<uint8>#) {
+                fmap(f) $(var data : array<uint8>#) {
                     sz_high = length(data)
                 }
             }
@@ -914,7 +905,7 @@ def test_is_16_bit_from_memory_standalone(t : T?) {
 [test]
 def test_make_image_16(t : T?) {
     t |> run("make_image with bpc=2 creates 16-bit image") <| @(tt : T?) {
-        var img <- make_image(8, 8, 4, 2)
+        let img <- make_image(8, 8, 4, 2)
         tt |> equal(img.bpc, 2)
         tt |> equal(img.channels, 4)
         tt |> equal(length(img.bytes), 8 * 8 * 4 * 2)

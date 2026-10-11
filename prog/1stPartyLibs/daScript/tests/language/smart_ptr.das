@@ -47,7 +47,7 @@ def ref_count_test(t : T?) {
     t |> equal(smart_ptr_use_count(sptr), 1u)
     var ptr = get_ptr(sptr)
     var pptr : TestObjectSmart?
-    pptr = get_ptr(sptr)
+    pptr = get_ptr(sptr)                    // nolint:STYLE011 - assignment (not init) from get_ptr is the tested construct
     t |> equal(sptr, ptr)
     t |> equal(get_const_ptr(sptr), ptr)
     var inscope qptr : smart_ptr<TestObjectSmart>
@@ -64,21 +64,15 @@ def ref_count_test(t : T?) {
     t |> equal(fptr, sptr)
     t |> equal(smart_ptr_use_count(sptr), 3u)
     t |> equal(getTotalTestObjectSmart(), 1)
-    unsafe {
-        delete sptr                             // ref_count = 2
-    }
+    delete sptr                             // ref_count = 2
     t |> equal(getTotalTestObjectSmart(), 1)
     t |> equal(smart_ptr_use_count(sptr), 0u)
     t |> equal(smart_ptr_use_count(qptr), 2u)
-    unsafe {
-        delete qptr                             // ref_count = 1
-    }
+    delete qptr                             // ref_count = 1
     t |> equal(getTotalTestObjectSmart(), 1)
     t |> equal(smart_ptr_use_count(qptr), 0u)
     t |> equal(smart_ptr_use_count(fptr), 1u)
-    unsafe {
-        delete fptr                             // physical delete
-    }
+    delete fptr                             // physical delete
     t |> equal(getTotalTestObjectSmart(), 0)
     t |> equal(smart_ptr_use_count(fptr), 0u)
 }
@@ -91,9 +85,7 @@ def access_test(t : T?) {
     t |> equal(val, 1234)
     ptr ?. fooData ?? val = 13        // ?? lvalue
     t |> equal(ptr.fooData, 13)
-    unsafe {
-        delete ptr
-    }
+    delete ptr
     val = ptr ?. fooData ?? 2
     t |> equal(val, 2)
     unsafe {
@@ -102,10 +94,8 @@ def access_test(t : T?) {
     }
     t |> equal(ptr.first.fooData, 1234)
     t |> equal(ptr ?. first ?. fooData ?? 13, 1234)
-    unsafe {
-        delete ptr.first
-        delete ptr
-    }
+    delete ptr.first
+    delete ptr
     t |> equal(getTotalTestObjectSmart(), 0)
 }
 
@@ -114,9 +104,7 @@ def fn_test(t : T?) {
     var inscope ptr <- makeTestObjectSmart()
     t |> equal(countTestObjectSmart(ptr), 1u)
     t |> equal(getTotalTestObjectSmart(), 1)
-    unsafe {
-        delete ptr
-    }
+    delete ptr
     t |> equal(getTotalTestObjectSmart(), 0)
 }
 

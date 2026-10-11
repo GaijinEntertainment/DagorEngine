@@ -71,6 +71,12 @@ namespace das
         gc_magic = GC_MAGIC_TYPEDECL;
     }
 
+    TypeDecl::TypeDecl(Enumeration * ep, const LineInfo & att)
+        : baseType(ep->getEnumType()), enumType(ep), at(att)
+    {
+        gc_magic = GC_MAGIC_TYPEDECL;
+    }
+
     LineInfo TypeDecl::getDeclarationLocation() const {
         if ( !at.empty() ) return at;
         switch ( baseType ) {
@@ -303,7 +309,7 @@ namespace das
         if ( autoT->baseType==Type::option ) {
             for ( size_t i=0, is=autoT->argTypes.size(); i!=is; ++i ) {
                 // we copy type qualifiers for each option
-                auto & TT = autoT->argTypes[i];
+                TypeDeclPtr TT = new TypeDecl(*autoT->argTypes[i]);
                 TT->ref = TT->ref || autoT->ref;
                 TT->constant = TT->constant || autoT->constant;
                 TT->temporary = TT->temporary || autoT->temporary;
@@ -542,7 +548,7 @@ namespace das
             hb.update(enumType->baseType);
             for ( auto & e : enumType->list ) {
                 hb.updateString(e.name);
-                wr << *(e.value);
+                hb.update(e.value ? getConstExprIntOrUInt(e.value) : int64_t(-1));   // the folded constant, not the printer's text
             }
         } else if ( annotation ) {
             DAS_ASSERT(annotation->ownSemanticHash!=0);
@@ -598,7 +604,7 @@ namespace das
             hb.update(enumType->baseType);
             for ( auto & e : enumType->list ) {
                 hb.updateString(e.name);
-                wr << *(e.value);
+                hb.update(e.value ? getConstExprIntOrUInt(e.value) : int64_t(-1));   // the folded constant, not the printer's text
             }
         } else if ( annotation ) {
             if ( adep.find(annotation) == adep.end() ) {
@@ -950,8 +956,8 @@ namespace das
 
     void TypeDecl::clone ( TypeDeclPtr & dest, const TypeDeclPtr & src ) {
         // this only works when there are no duplicated types whatsoever
-        // there is CodeOfPolicies::validate_ast that checks for that, but its off by default (slow)
-        // if you suspect this is whats causing a problem, disable the optimization, enable the validation and find the duplicated type
+        // daslib/ast_verify reports a duplicated type; if you suspect this is whats causing a
+        // problem, disable the optimization and compile with --ast-verify to find it
 #if 0
         dest = new TypeDecl(*src);
 #else
@@ -1029,6 +1035,7 @@ namespace das
         return hasAny;
     }
     TypeDecl * TypeDecl::findAlias ( const string & name, bool allowAuto, bool * constUnderDim ) {
+        if (name.empty()) return nullptr;
         if (!aliasCacheValid) computeAliasCache();
         if (!aliasCacheHasAlias) return nullptr;        // proven no aliases anywhere
         if (baseType == Type::alias) {
@@ -1589,14 +1596,20 @@ namespace das
 
     int32_t TypeDecl::gcFlags(das_set<Structure *> & dep, das_set<Annotation *> & depA) const {
         int32_t gcf = 0;
+        // a structure's or a handled type's flags are cached on the owner, but only from a
+        // top-level walk: a walk that reaches the owner mid-cycle takes the cycle cut (0 for
+        // an owner already visited) and that partial value must not be what later asks read
         if ( baseType==Type::tStructure ) {
             if ( structType ) {
                 if (dep.find(structType) != dep.end()) return 0;
+                if ( structType->cachedGcFlags >= 0 ) return structType->cachedGcFlags;
+                bool topLevel = dep.empty() && depA.empty();
                 dep.insert(structType);
                 if ( structType->isLambda || structType->isClass ) gcf |= gcFlag_heap | gcFlag_stringHeap;
                 for ( auto fld : structType->fields ) {
                     gcf |= fld.type->gcFlags(dep,depA);
                 }
+                if ( topLevel ) structType->cachedGcFlags = gcf;
             }
         } else if ( baseType==Type::tTuple || baseType==Type::tVariant || baseType == Type::option ) {
             for ( const auto & arg : argTypes ) {
@@ -1612,9 +1625,12 @@ namespace das
             if ( firstType ) gcf |= firstType->gcFlags(dep,depA);
         } else if ( baseType==Type::tHandle ) {
             if (depA.find(annotation) != depA.end()) return 0;
-            depA.insert(annotation);
             auto ann = static_cast<TypeAnnotation *>(annotation);
+            if ( ann->cachedGcFlags >= 0 ) return ann->cachedGcFlags;
+            bool topLevel = dep.empty() && depA.empty();
+            depA.insert(annotation);
             gcf |= ann->getGcFlags(dep,depA);
+            if ( topLevel ) ann->cachedGcFlags = gcf;
         } else if ( baseType==Type::tString ) {
             gcf |= gcFlag_stringHeap;
         } else if ( baseType==Type::tPointer ) {
@@ -2698,8 +2714,8 @@ namespace das
     }
 
     bool TypeDecl::isTableKeyType() const {
-        if ( baseType==Type::tDistinct ) {  // nominal opacity: never hashable, by design
-            return false;
+        if ( baseType==Type::tDistinct ) {
+            return firstType && firstType->isTableKeyType();
         } else if ( baseType>=Type::tFloat16 && baseType<=Type::tUByte16 ) {
             // 16/8-bit lattice types are workhorse but not table keys (yet) — the runtime
             // table key machinery (runtime_table.cpp, jit_abi.h, daScriptC.cpp) has no rows
@@ -3470,6 +3486,8 @@ namespace das
     uint64_t TypeDecl::getCountOf64() const {
         uint64_t size = 1;
         for ( const TypeDecl * t = this; t && t->baseType==Type::tFixedArray; t = t->firstType ) {
+            // dimAuto (-1) and dimConst (-2) are valid unresolved dims, not counts; uint64_t wraps them
+            if ( t->fixedDim<=0 ) return 0;
             size *= uint64_t(t->fixedDim);
         }
         return size;
@@ -3774,7 +3792,7 @@ namespace das
         aMain.first = td;
         aMain.second |= viaPointer;
         if ( td->isBaseVectorType() ) {
-            auto bt = new TypeDecl(td->getVectorBaseType());
+            auto bt = new TypeDecl(td->getVectorBaseType(), td->at);
             auto & aSub = aliases[bt->getMangledName()];
             aSub.first = bt;
             aSub.second |= viaPointer;
@@ -4018,9 +4036,15 @@ namespace das
         {   Type::tVariant,     "Variant"  }
     };
 
+    static string g_aotMainModuleName;
+
+    void setAotMainModuleName ( const string & name ) {
+        g_aotMainModuleName = name;
+    }
+
     string aotModuleName ( Module * pm  ) {
         if ( pm->name.empty() ) {
-            return "";
+            return g_aotMainModuleName;
         } else if ( pm->name=="$" ) {
             return "_builtin_";
         } else {
@@ -4194,10 +4218,11 @@ namespace das
             stream << ">";
         } else if ( baseType==Type::tStructure ) {
             if ( type->structType ) {
-                if ( type->structType->module->name.empty() ) {
+                auto structNs = aotModuleName(type->structType->module);
+                if ( structNs.empty() ) {
                     stream << aotStructName(type->structType);
                 } else {
-                    stream << aotModuleName(type->structType->module) << "::" << aotStructName(type->structType);
+                    stream << structNs << "::" << aotStructName(type->structType);
                 }
             } else {
                 stream << "DAS_COMMENT(unspecified structure) ";
@@ -4220,12 +4245,13 @@ namespace das
             }
         } else if ( type->isEnumT() ) {
             if ( type->enumType ) {
+                auto enumNs = type->enumType->external ? string() : aotModuleName(type->enumType->module);
                 if ( type->enumType->external ) {
                     stream << "DAS_COMMENT(bound_enum) " << type->enumType->cppName;
-                } else if ( type->enumType->module->name.empty() ) {
+                } else if ( enumNs.empty() ) {
                     stream << "DAS_COMMENT(enum) " << type->enumType->name;
                 } else {
-                    stream << "DAS_COMMENT(enum) " << aotModuleName(type->enumType->module) << "::" << type->enumType->name;
+                    stream << "DAS_COMMENT(enum) " << enumNs << "::" << type->enumType->name;
                 }
             } else {
                 stream << "DAS_COMMENT(unspecified enumeration)";
@@ -4321,7 +4347,7 @@ namespace das
                 ch ++;
                 int di = atoi(numT.c_str());
                 if ( neg ) di = -di;
-                auto pt = new TypeDecl(Type::tFixedArray);
+                auto pt = new TypeDecl(Type::tFixedArray, at);
                 pt->fixedDim = di;
                 // fullName remove-suffixes emitted right after this node's [d] land back on it
                 for ( ;; ) {
@@ -4364,7 +4390,7 @@ namespace das
             };
             case 'H': {
                 ch ++;
-                auto pt = new TypeDecl(Type::tHandle);
+                auto pt = new TypeDecl(Type::tHandle, at);
                 auto annName = parseAnyNameInBrackets(ch,true);
                 auto ann = library.findAnnotation(annName,thisModule);
                 if ( thisModule && ann.size()==0 ) {
@@ -4391,7 +4417,7 @@ namespace das
             };
             case 'Q': {
                 ch ++;
-                auto pt = new TypeDecl(Type::tDistinct);
+                auto pt = new TypeDecl(Type::tDistinct, at);
                 auto annName = parseAnyNameInBrackets(ch,true);
                 auto ann = library.findAnnotation(annName,thisModule);
                 if ( thisModule && ann.size()==0 ) {
@@ -4418,7 +4444,7 @@ namespace das
             case 'S': {
                 ch ++;
                 auto sname = parseAnyNameInBrackets(ch,true);
-                auto pt = new TypeDecl(Type::tStructure);
+                auto pt = new TypeDecl(Type::tStructure, at);
                 auto stt = library.findStructure(sname, thisModule);
                 if ( thisModule && stt.size()==0 ) {
                     if ( auto tstt = thisModule->findStructure(sname) ) {
@@ -4463,15 +4489,15 @@ namespace das
                 TypeDeclPtr pt = nullptr;
                 if ( *ch=='8' ) {
                     ch ++;
-                    pt = new TypeDecl(Type::tEnumeration8);
+                    pt = new TypeDecl(Type::tEnumeration8, at);
                 } else if ( ch[0]=='1' && ch[1]=='6' ) {
                     ch += 2;
-                    pt = new TypeDecl(Type::tEnumeration16);
+                    pt = new TypeDecl(Type::tEnumeration16, at);
                 } else if ( ch[0]=='6' && ch[1]=='4' ) {
                     ch += 2;
-                    pt = new TypeDecl(Type::tEnumeration64);
+                    pt = new TypeDecl(Type::tEnumeration64, at);
                 } else {
-                    pt = new TypeDecl(Type::tEnumeration);
+                    pt = new TypeDecl(Type::tEnumeration, at);
                 }
                 if ( *ch=='<' ) {
                     auto sname = parseAnyNameInBrackets(ch,true);
@@ -4494,66 +4520,66 @@ namespace das
                 return pt;
             };
             case '_': {
-                        if ( ch[1]=='c' )                   { ch+=2; return new TypeDecl(Type::fakeContext); }
-                else    if ( ch[1]=='l' )                   { ch+=2; return new TypeDecl(Type::fakeLineInfo); }
+                        if ( ch[1]=='c' )                   { ch+=2; return new TypeDecl(Type::fakeContext, at); }
+                else    if ( ch[1]=='l' )                   { ch+=2; return new TypeDecl(Type::fakeLineInfo, at); }
                 else                                        { error("unsupported mangled name format - expecting fake...", ch); return new TypeDecl(); }
             }
             case 'i': {
-                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tInt2); }
-                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tInt3); }
-                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tInt4); }
-                else    if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tInt8); }
-                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tInt16); }
-                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tInt64); }
-                else                                        { ch+=1; return new TypeDecl(Type::tInt); }
+                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tInt2, at); }
+                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tInt3, at); }
+                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tInt4, at); }
+                else    if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tInt8, at); }
+                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tInt16, at); }
+                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tInt64, at); }
+                else                                        { ch+=1; return new TypeDecl(Type::tInt, at); }
             }
             case 'u': {
-                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tUInt2); }
-                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tUInt3); }
-                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tUInt4); }
-                else    if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tUInt8); }
-                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tUInt16); }
-                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tUInt64); }
-                else                                        { ch+=1; return new TypeDecl(Type::tUInt); }
+                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tUInt2, at); }
+                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tUInt3, at); }
+                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tUInt4, at); }
+                else    if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tUInt8, at); }
+                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tUInt16, at); }
+                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tUInt64, at); }
+                else                                        { ch+=1; return new TypeDecl(Type::tUInt, at); }
             }
             case 'f': {
-                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tFloat2); }
-                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tFloat3); }
-                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tFloat4); }
-                else                                        { ch+=1; return new TypeDecl(Type::tFloat); }
-            case '.':   ch++; return new TypeDecl(Type::autoinfer);
-            case '|':   ch++; return new TypeDecl(Type::option);
-            case 'D':   ch++; return new TypeDecl(Type::typeDecl);
-            case '^':   ch++; return new TypeDecl(Type::typeMacro);
-            case '*':   ch++; return new TypeDecl(Type::anyArgument);
-            case 'L':   ch++; return new TypeDecl(Type::alias);
-            case 'A':   ch++; return new TypeDecl(Type::tArray);
-            case 'T':   ch++; return new TypeDecl(Type::tTable);
-            case 'G':   ch++; return new TypeDecl(Type::tIterator);
-            case '$':   ch++; return new TypeDecl(Type::tBlock);
-            case 'U':   ch++; return new TypeDecl(Type::tTuple);
-            case 'V':   ch++; return new TypeDecl(Type::tVariant);
+                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tFloat2, at); }
+                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tFloat3, at); }
+                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tFloat4, at); }
+                else                                        { ch+=1; return new TypeDecl(Type::tFloat, at); }
+            case '.':   ch++; return new TypeDecl(Type::autoinfer, at);
+            case '|':   ch++; return new TypeDecl(Type::option, at);
+            case 'D':   ch++; return new TypeDecl(Type::typeDecl, at);
+            case '^':   ch++; return new TypeDecl(Type::typeMacro, at);
+            case '*':   ch++; return new TypeDecl(Type::anyArgument, at);
+            case 'L':   ch++; return new TypeDecl(Type::alias, at);
+            case 'A':   ch++; return new TypeDecl(Type::tArray, at);
+            case 'T':   ch++; return new TypeDecl(Type::tTable, at);
+            case 'G':   ch++; return new TypeDecl(Type::tIterator, at);
+            case '$':   ch++; return new TypeDecl(Type::tBlock, at);
+            case 'U':   ch++; return new TypeDecl(Type::tTuple, at);
+            case 'V':   ch++; return new TypeDecl(Type::tVariant, at);
             case 't':   {
-                        if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tBitfield8); }
-                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tBitfield16); }
-                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tBitfield64); }
-                else                                        { ch++; return new TypeDecl(Type::tBitfield); }
+                        if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tBitfield8, at); }
+                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tBitfield16, at); }
+                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tBitfield64, at); }
+                else                                        { ch++; return new TypeDecl(Type::tBitfield, at); }
             }
             case 'r':   {
-                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tRange64); }
-                else                                        { ch+=1; return new TypeDecl(Type::tRange); }
+                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tRange64, at); }
+                else                                        { ch+=1; return new TypeDecl(Type::tRange, at); }
             }
             case 'z':   {
-                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tURange64); }
-                else                                        { ch+=1; return new TypeDecl(Type::tURange); }
+                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tURange64, at); }
+                else                                        { ch+=1; return new TypeDecl(Type::tURange, at); }
             }
-            case 'd':   ch++; return new TypeDecl(Type::tDouble);
-            case 's':   ch++; return new TypeDecl(Type::tString);
-            case 'v':   ch++; return new TypeDecl(Type::tVoid);
-            case 'b':   ch++; return new TypeDecl(Type::tBool);
+            case 'd':   ch++; return new TypeDecl(Type::tDouble, at);
+            case 's':   ch++; return new TypeDecl(Type::tString, at);
+            case 'v':   ch++; return new TypeDecl(Type::tVoid, at);
+            case 'b':   ch++; return new TypeDecl(Type::tBool, at);
             case '?':   {
                 ch++;
-                auto pt = new TypeDecl(Type::tPointer);
+                auto pt = new TypeDecl(Type::tPointer, at);
                 if ( *ch=='M' ) {
                     pt->smartPtr = true;
                     pt->smartPtrNative = false;
@@ -4568,10 +4594,10 @@ namespace das
             case '@':   {
                 if ( ch[1]=='@' ) {
                     ch+=2;
-                    return new TypeDecl(Type::tFunction);
+                    return new TypeDecl(Type::tFunction, at);
                 } else {
                     ch++;
-                    return new TypeDecl(Type::tLambda);
+                    return new TypeDecl(Type::tLambda, at);
                 }
             };
             case '&': {
@@ -4660,11 +4686,6 @@ namespace das
         }
         error("unsupported mangled name format symbol", ch);
         return new TypeDecl();
-    }
-
-    TypeDeclPtr parseTypeFromMangledName ( const char * & ch, const ModuleLibrary & library, Module * thisModule ) {
-        MangledNameParser parser;
-        return parser.parseTypeFromMangledName(ch, library, thisModule);
     }
 
     bool hasImplicit ( const TypeDeclPtr & type ) {

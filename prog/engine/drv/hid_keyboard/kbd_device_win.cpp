@@ -34,6 +34,7 @@ extern unsigned char unix_hid_scancode_to_key[256];
 #include <osApiWrappers/dag_unicode.h>
 #include <workCycle/threadedWindow.h>
 #include <generic/dag_smallTab.h>
+#include <hidusage.h>
 #include <stdio.h>
 static STICKYKEYS kbd_saved_sticky_keys = {sizeof(STICKYKEYS), 0};
 static TOGGLEKEYS kbd_saved_toggle_keys = {sizeof(TOGGLEKEYS), 0};
@@ -211,32 +212,11 @@ WinKeyboardDevice::WinKeyboardDevice() : pendingKeyDownCode(0), layoutChangeTrac
   dgs_inpdev_rawinput_kbd_inited = false;
   if (dgs_inpdev_allow_rawinput && !win32_rdp_compatible_mode)
   {
-    unsigned int ridNum = 0;
-    GetRegisteredRawInputDevices(NULL, &ridNum, sizeof(RAWINPUTDEVICE));
-
-    RAWINPUTDEVICE *rid = new RAWINPUTDEVICE[ridNum + 1];
-    GetRegisteredRawInputDevices(rid, &ridNum, sizeof(RAWINPUTDEVICE));
-
-    for (int i = 0; i < ridNum; i++)
-    {
-      if (rid[i].usUsagePage == 0x01 && rid[i].usUsage == 0x06)
-      {
-        delete[] rid;
-        return; // keyboard device already registered
-      }
-    }
-
-    // add HID keyboard
-    rid[ridNum].usUsagePage = 0x01;
-    rid[ridNum].usUsage = 0x06;
-    rid[ridNum].dwFlags = 0; // RIDEV_NOLEGACY
-    rid[ridNum].hwndTarget = (HWND)win32_get_main_wnd();
-
-    if (RegisterRawInputDevices(&rid[ridNum], 1, sizeof(RAWINPUTDEVICE)))
+    RAWINPUTDEVICE rid = {HID_USAGE_PAGE_GENERIC, HID_USAGE_GENERIC_KEYBOARD, 0, (HWND)win32_get_main_wnd()};
+    if (RegisterRawInputDevices(&rid, 1, sizeof(rid)))
       dgs_inpdev_rawinput_kbd_inited = true;
     else
-      logerr("Keyboard: RegisterRawInputDevices() failed hr=%08X hwnd=%p ridNum=%d", GetLastError(), win32_get_main_wnd(), ridNum);
-    delete[] rid;
+      logerr("Keyboard: RegisterRawInputDevices() failed hr=%08X hwnd=%p", GetLastError(), rid.hwndTarget);
   }
   else
     debug("Keyboard: rawinput disabled");

@@ -65,7 +65,7 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 41
+#define SQUIRREL_VERSION_NUMBER_MINOR 44
 #define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
@@ -202,7 +202,6 @@ typedef void (*SQPRINTFUNCTION)(HSQUIRRELVM,const char * ,...);
 typedef void (*SQDEBUGHOOK)(HSQUIRRELVM /*v*/, SQInteger /*type*/, const char * /*sourcename*/, SQInteger /*line*/, const char * /*funcname*/);
 typedef void (*SQCOMPILELINEHOOK)(HSQUIRRELVM /*v*/, const char * /*sourcename*/, SQInteger /*line*/);
 typedef SQInteger (*SQGETTHREAD)();
-typedef void (*SQSQCALLHOOK)(HSQUIRRELVM);
 typedef bool (*SQWATCHDOGHOOK)(HSQUIRRELVM, bool kick);
 
 typedef SQInteger (*SQLEXREADFUNC)(SQUserPointer);
@@ -308,9 +307,8 @@ typedef void (*SQStreamWriteFunc)(const char *s, void *userdata);
 inline void sq_stream_write_file(const char *s, void *ud) { fputs(s, (FILE*)ud); }
 
 SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, SQStreamWriteFunc write, void *ud);
+SQUIRREL_API void sq_dumpastjson(HSQUIRRELVM v, SQCompilation::SqASTData *astData, SQStreamWriteFunc write, void *ud);
 SQUIRREL_API void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void *ud, int instruction_index = -1);
-
-SQUIRREL_API void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func);
 
 SQUIRREL_API SQCompilation::SqASTData *sq_allocateASTData(HSQUIRRELVM v);
 SQUIRREL_API void sq_releaseASTData(HSQUIRRELVM v, SQCompilation::SqASTData *astData);
@@ -521,7 +519,6 @@ SQUIRREL_API SQRESULT sq_stackinfos(HSQUIRRELVM v,SQInteger level,SQStackInfos *
 SQUIRREL_API void sq_setdebughook(HSQUIRRELVM v);
 SQUIRREL_API void sq_setnativedebughook(HSQUIRRELVM v,SQDEBUGHOOK hook);
 SQUIRREL_API SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD func);
-SQUIRREL_API SQSQCALLHOOK sq_set_sq_call_hook(HSQUIRRELVM v, SQSQCALLHOOK hook);
 SQUIRREL_API SQCOMPILELINEHOOK sq_set_compile_line_hook(HSQUIRRELVM v, SQCOMPILELINEHOOK hook);
 SQUIRREL_API void sq_forbidglobalconstrewrite(HSQUIRRELVM v, SQBool on);
 

@@ -113,6 +113,18 @@ Materials
 - render_stage
 - render_trans
 
+-------------
+Render passes
+-------------
+
+:ref:`render-passes`
+
+- render_pass
+- multi_render_pass
+- framebuffer_layout
+- subpass
+- pass
+
 --------
 Hardware
 --------

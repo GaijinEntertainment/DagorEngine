@@ -6,7 +6,7 @@
 #include <supp/dag_math.h>
 using namespace HumanInput;
 
-IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput, bool remap_360)
+IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool, bool)
 {
   JoyAccelGyroInpClassDriver *cd = new (inimem) JoyAccelGyroInpClassDriver;
   if (!cd->init())

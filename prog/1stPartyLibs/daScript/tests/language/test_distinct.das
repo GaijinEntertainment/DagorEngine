@@ -99,9 +99,7 @@ def test_distinct_operators_and_overloads(t : T?) {
 [test]
 def test_distinct_containers(t : T?) {
     t |> run("array of distinct") @(t : T?) {
-        var arr : array<Id>
-        arr |> push(Id(1))
-        arr |> push(Id(2))
+        let arr <- [Id(1), Id(2)]
         t |> equal(*arr[1], 2)
         t |> success(arr[0] == Id(1))
     }
@@ -150,5 +148,163 @@ def test_distinct_cross_module(t : T?) {
         t |> equal(pub_id_value(id), 11)
         t |> success(id == PubId(11))
         t |> success(id != PubId(12))
+    }
+}
+
+typedef distinct Conn = int
+
+var g_conn_eq_calls = 0
+
+def operator ==(a, b : Conn) : bool {
+    g_conn_eq_calls++
+    return *a == *b
+}
+
+[test]
+def test_distinct_user_operator_beats_borrow(t : T?) {
+    t |> run("a user-defined == on the distinct type is the one called") @(t : T?) {
+        g_conn_eq_calls = 0
+        let a = Conn(1)
+        let b = Conn(1)
+        let c = Conn(2)
+        t |> success(a == b)
+        t |> success(!(a == c))
+        t |> equal(g_conn_eq_calls, 2)
+    }
+    t |> run("!= still borrows when only == is defined") @(t : T?) {
+        g_conn_eq_calls = 0
+        let a = Conn(1)
+        let c = Conn(2)
+        t |> success(a != c)
+        t |> success(!(a != Conn(1)))
+        t |> equal(g_conn_eq_calls, 0)
+    }
+}
+
+typedef distinct Cid = int
+
+var g_cid_ops : string
+
+def operator +(a, b : Cid) : Cid {
+    g_cid_ops += "+,"
+    return Cid(*a + *b)
+}
+def operator -(a, b : Cid) : Cid {
+    g_cid_ops += "-,"
+    return Cid(*a - *b)
+}
+def operator *(a, b : Cid) : Cid {
+    g_cid_ops += "*,"
+    return Cid(*a * *b)
+}
+def operator /(a, b : Cid) : Cid {
+    g_cid_ops += "/,"
+    return Cid(*a / *b)
+}
+def operator %(a, b : Cid) : Cid {
+    g_cid_ops += "%,"
+    return Cid(*a % *b)
+}
+def operator -(a : Cid) : Cid {
+    g_cid_ops += "neg,"
+    return Cid(-*a)
+}
+def operator !(a : Cid) : bool {
+    g_cid_ops += "!,"
+    return *a == 0
+}
+def operator <(a, b : Cid) : bool {
+    g_cid_ops += "<,"
+    return *a < *b
+}
+def operator <=(a, b : Cid) : bool {
+    g_cid_ops += "<=,"
+    return *a <= *b
+}
+def operator >(a, b : Cid) : bool {
+    g_cid_ops += ">,"
+    return *a > *b
+}
+def operator >=(a, b : Cid) : bool {
+    g_cid_ops += ">=,"
+    return *a >= *b
+}
+def operator +=(var a : Cid&; b : Cid) {
+    g_cid_ops += "+=,"
+    a = Cid(*a + *b)
+}
+def operator -=(var a : Cid&; b : Cid) {
+    g_cid_ops += "-=,"
+    a = Cid(*a - *b)
+}
+def operator [] (a : Cid; i : int) : int {
+    g_cid_ops += "[],"
+    return *a * i
+}
+def operator ++(var a : Cid&) {
+    g_cid_ops += "p++,"
+    a = Cid(*a + 1)
+}
+def ++operator(var a : Cid &) {
+    g_cid_ops += "++p,"
+    a = Cid(*a + 1)
+}
+def operator --(var a : Cid&) {
+    g_cid_ops += "p--,"
+    a = Cid(*a - 1)
+}
+def --operator(var a : Cid &) {
+    g_cid_ops += "--p,"
+    a = Cid(*a - 1)
+}
+
+struct Counter {
+    ops : string
+}
+
+def operator ++(var c : Counter) {
+    c.ops += "p++,"
+}
+def ++operator(var c : Counter) {
+    c.ops += "++p,"
+}
+
+[test]
+def test_distinct_user_operators(t : T?) {
+    t |> run("arithmetic, ordering, unary, index") @(t : T?) {
+        g_cid_ops = ""
+        let a = Cid(6)
+        let b = Cid(3)
+        t |> equal(*(a + b), 9)
+        t |> equal(*(a - b), 3)
+        t |> equal(*(a * b), 18)
+        t |> equal(*(a / b), 2)
+        t |> equal(*(a % b), 0)
+        t |> equal(*(-a), -6)
+        t |> success(!Cid(0))
+        t |> success(b < a)
+        t |> success(b <= a)
+        t |> success(a > b)
+        t |> success(a >= b)
+        t |> equal(a[2], 12)
+        t |> equal(g_cid_ops, "+,-,*,/,%,neg,!,<,<=,>,>=,[],")
+    }
+    t |> run("compound assignment and both increment forms take the reference") @(t : T?) {
+        g_cid_ops = ""
+        var a = Cid(6)
+        a += Cid(4)
+        a -= Cid(1)
+        a++
+        ++a
+        a--
+        --a
+        t |> equal(*a, 9)
+        t |> equal(g_cid_ops, "+=,-=,p++,++p,p--,--p,")
+    }
+    t |> run("postfix and prefix increments are separate operators on a struct too") @(t : T?) {
+        var c : Counter
+        c++
+        ++c
+        t |> equal(c.ops, "p++,++p,")
     }
 }

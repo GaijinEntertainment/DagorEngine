@@ -57,7 +57,7 @@ def test_flip_h_px1(t : T?) {
         tt |> equal(int(flipped.bytes[0]), 3)
         tt |> equal(int(flipped.bytes[3]), 0)
         // roundtrip
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -74,7 +74,7 @@ def test_flip_h_px2(t : T?) {
         var flipped <- img.flip_horizontal()
         tt |> equal(int(flipped.bytes[0]), 3)
         tt |> equal(int(flipped.bytes[1]), int(uint8(0xAB)))  // second byte preserved
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -90,7 +90,7 @@ def test_flip_h_px3(t : T?) {
         tt |> equal(int(flipped.bytes[0]), 3)
         tt |> equal(int(flipped.bytes[1]), int(uint8(0xAB)))
         tt |> equal(int(flipped.bytes[2]), int(uint8(0xAB)))
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -105,7 +105,7 @@ def test_flip_h_px4(t : T?) {
         var flipped <- img.flip_horizontal()
         tt |> equal(int(flipped.bytes[0]), 252)
         tt |> equal(int(flipped.bytes[63 * 4]), 0)
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -119,7 +119,7 @@ def test_flip_h_px6(t : T?) {
         var flipped <- img.flip_horizontal()
         // pixel(0,0) of flipped = pixel(3,0) of original, first byte = 3
         tt |> equal(int(flipped.bytes[0]), 3)
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -132,7 +132,7 @@ def test_flip_h_px8(t : T?) {
         fill_pattern(img)
         var flipped <- img.flip_horizontal()
         tt |> equal(int(flipped.bytes[0]), 3)
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -145,7 +145,7 @@ def test_flip_h_px12(t : T?) {
         fill_pattern(img)
         var flipped <- img.flip_horizontal()
         tt |> equal(int(flipped.bytes[0]), 3)
-        var restored <- flipped.flip_horizontal()
+        let restored <- flipped.flip_horizontal()
         verify_equal(tt, img, restored)
     }
 }
@@ -159,12 +159,12 @@ def test_flip_h_px16(t : T?) {
         var flipped <- img.flip_horizontal()
         tt |> equal(flipped.bpc, 4)
         // pixel(0,0) of flipped = pixel(63,0) of original: R=63/64~0.98
-        flipped |> with_pixels() <| $(var pixels : array<float>#) {
+        flipped |> with_pixels() $(var pixels : array<float>#) {
             tt |> success(pixels[0] > 0.9f, "flipped(0,0) R near 1.0")
         }
         var restored <- flipped.flip_horizontal()
         // restore should match original
-        restored |> with_pixels() <| $(var rpx : array<float>#) {
+        restored |> with_pixels() $(var rpx : array<float>#) {
             tt |> success(rpx[0] < 0.05f, "restored(0,0) R near 0")
         }
     }
@@ -313,7 +313,7 @@ def test_blit_px16(t : T?) {
     t |> run("blit px=16 (RGBA float)") <| @(tt : T?) {
         var dst <- make_image(16, 16, 4, 4)
         var src <- make_image(4, 4, 4, 4)
-        src |> with_pixels() <| $(var pixels : array<float>#) {
+        src |> with_pixels() $(var pixels : array<float>#) {
             for (i in range(4 * 4)) {
                 pixels[i * 4 + 0] = 0.75f
                 pixels[i * 4 + 1] = 0.5f
@@ -322,7 +322,7 @@ def test_blit_px16(t : T?) {
             }
         }
         dst.blit(src, 2, 2)
-        dst |> with_pixels() <| $(var pixels : array<float>#) {
+        dst |> with_pixels() $(var pixels : array<float>#) {
             let idx = (2 * 16 + 2) * 4
             tt |> success(pixels[idx + 0] > 0.7f && pixels[idx + 0] < 0.8f, "R=0.75")
             tt |> success(pixels[idx + 1] > 0.45f && pixels[idx + 1] < 0.55f, "G=0.5")
@@ -389,7 +389,7 @@ def test_crop(t : T?) {
     t |> run("crop extracts sub-region with pixel verification") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        var cropped <- img.crop(10, 20, 16, 16)
+        let cropped <- img.crop(10, 20, 16, 16)
         tt |> equal(cropped.width, 16)
         tt |> equal(cropped.height, 16)
         tt |> equal(cropped.channels, 4)
@@ -407,7 +407,7 @@ def test_crop_clamp(t : T?) {
     t |> run("crop clamps to image bounds") <| @(tt : T?) {
         var img : Image
         img.load(test_image_path("test.png"))
-        var cropped <- img.crop(60, 60, 16, 16)
+        let cropped <- img.crop(60, 60, 16, 16)
         tt |> equal(cropped.width, 4)
         tt |> equal(cropped.height, 4)
     }
@@ -444,7 +444,7 @@ def test_crop_hdr(t : T?) {
         tt |> equal(cropped.width, 16)
         tt |> equal(cropped.height, 16)
         tt |> equal(cropped.bpc, 4)
-        cropped |> with_pixels() <| $(var pixels : array<float>#) {
+        cropped |> with_pixels() $(var pixels : array<float>#) {
             tt |> success(pixels[0] > 0.1f && pixels[0] < 0.25f, "R near 0.156")
             tt |> success(pixels[1] > 0.1f && pixels[1] < 0.25f, "G near 0.156")
         }
@@ -456,7 +456,7 @@ def test_crop_grey(t : T?) {
     t |> run("crop on 1-channel image") <| @(tt : T?) {
         var img <- make_image(8, 8, 1, 1)
         fill_pattern(img)
-        var cropped <- img.crop(2, 2, 4, 4)
+        let cropped <- img.crop(2, 2, 4, 4)
         tt |> equal(cropped.width, 4)
         tt |> equal(cropped.height, 4)
         tt |> equal(cropped.channels, 1)

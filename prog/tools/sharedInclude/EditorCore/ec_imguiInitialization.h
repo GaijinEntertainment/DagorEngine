@@ -11,8 +11,6 @@ class DataBlock;
 // It must be called after dagor_init_keyboard_win() and dagor_init_mouse_win().
 void editor_core_initialize_input_handler();
 
-void editor_core_initialize_test_runtime();
-
 void editor_core_initialize_imgui();
 
 // The tools don't use dag imgui's imgui.blk, instead they store hand-picked settings from it.
@@ -57,7 +55,9 @@ void editor_core_update_imgui_style_editor();
 // - auto focuses the window on hover
 // - limits the maximum size of the window
 // - it sets tab title color for the daEditorX Classic style
-bool editor_core_imgui_begin(const char *name, bool *open, unsigned window_flags);
+// Like ImGui::Begin() it returns with false when the window skips its items, for example when it is collapsed,
+// fully clipped, on an inactive dock tab, or hidden.
+[[nodiscard]] bool editor_core_imgui_begin(const char *name, bool *open, unsigned window_flags);
 
 // This is the cursor that is shown when clicking on the viewport will just activate the viewport,
 // and the next click will be the first one that actually "counts".

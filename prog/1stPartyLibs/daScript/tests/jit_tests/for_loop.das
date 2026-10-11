@@ -124,7 +124,7 @@ def array_and_range_for(var a : array<int>) {
 }
 
 def gen_range(value : int) {
-    return <- generator<int>() <| $() {
+    return <- generator<int> {
         for (i in range(value)) {
             yield i
         }

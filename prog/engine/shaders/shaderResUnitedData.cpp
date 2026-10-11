@@ -18,6 +18,7 @@
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <gameRes/dag_resourceNameResolve.h>
+#include <mutex>
 
 #if CAM_STUB
 static const TMatrix &get_cam_itm() { return TMatrix::IDENT; }
@@ -320,7 +321,7 @@ BufChunk unitedvdata::BufPool::allocChunkForStride(int s, int req_avail_sz, cons
     return BufChunk();
 
   { // To avoid colliding with `addRes/updateVdata`
-    std::lock_guard<std::mutex> lock(updateMutex);
+    std::lock_guard lock(updateMutex);
     sbuf.push_back(nullptr);
     pool.push_back(PoolSize());
   }
@@ -621,6 +622,8 @@ void unitedvdata::BufPool::resetVdataBufPointers(dag::ConstSpan<Ptr<ShaderMatVda
 }
 void unitedvdata::BufPool::clear()
 {
+  std::lock_guard lock(updateMutex);
+  interlocked_increment(layoutGen);
   for (Sbuffer *b : sbuf)
     del_d3dres(b);
   pool.resize(0);
@@ -714,17 +717,13 @@ void ShaderResUnitedVdata<RES>::prepareVdataBaseOfs(dag::ConstSpan<Ptr<ShaderMat
 }
 
 template <class RES>
-void ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf,
-  Tab<uint8_t> &buf_stor, dag::ConstSpan<BufChunk> chunks)
+bool ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf,
+  Tab<uint8_t> &buf_stor, dag::ConstSpan<BufChunk> chunks, uint32_t layout_gen)
 {
+  if (layout_gen != interlocked_acquire_load(buf.layoutGen))
+    return false;
   StaticTab<int, MAX_CHUNK_CNT * 3> start_end_stride_triples;
-  int bufUsed[MAX_VBIDX_CNT];
-  if (!chunks.size())
-  {
-    for (int i = 0; i < buf.pool.size(); i++)
-      bufUsed[i] = buf.pool[i].getUsed();
-  }
-  else
+  if (chunks.size())
   {
     StaticTab<char, MAX_CHUNK_CNT> usedStride;
 
@@ -746,7 +745,13 @@ void ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> 
     }
   }
 
-  buf.updateMutex.lock();
+  std::unique_lock updateLock(buf.updateMutex);
+  if (layout_gen != buf.layoutGen)
+    return false;
+  int bufUsed[MAX_VBIDX_CNT];
+  if (!chunks.size())
+    for (int i = 0; i < buf.pool.size(); i++)
+      bufUsed[i] = buf.pool[i].getUsed();
   for (ShaderMatVdata *smvd : smvd_list)
     if (smvd && smvd->getGlobVDataCount() > 0)
       smvd->unpackBuffersTo(make_span(buf.sbuf), chunks.size() ? nullptr : bufUsed, make_span(start_end_stride_triples), buf_stor);
@@ -769,11 +774,12 @@ void ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> 
         "chunk[%d] vbIdx=%d ofs=%d sz=%d written_sz=%d stride=%d", i, chunks[i].vbIdx, chunks[i].ofs, chunks[i].sz,
         start_end_stride_triples[i * 3 + 0] - chunks[i].ofs, start_end_stride_triples[i * 3 + 2]);
     }
-  buf.updateMutex.unlock();
+  updateLock.unlock();
 
   for (ShaderMatVdata *smvd : smvd_list)
     if (smvd)
       smvd->clearVdataSrc();
+  return true;
 }
 
 template <class RES>
@@ -822,10 +828,11 @@ void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> 
 
 template <class RES>
 void ShaderResUnitedVdata<RES>::updateVdata(RES *r, unitedvdata::BufPool &buf, Tab<int> &dviOfs_stor, Tab<uint8_t> &buf_stor,
-  dag::ConstSpan<unitedvdata::BufChunk> c)
+  dag::ConstSpan<unitedvdata::BufChunk> c, uint32_t layout_gen)
 {
   prepareVdataBaseOfs(r->getSmvd(), dviOfs_stor);
-  updateVdata(r->getSmvd(), buf, buf_stor, c);
+  if (!updateVdata(r->getSmvd(), buf, buf_stor, c, layout_gen))
+    return;
   rebaseElemOfs(r, dviOfs_stor);
   load_voxel_data(r, r->getQlBestLod());
 }
@@ -902,7 +909,7 @@ void ShaderResUnitedVdata<RES>::addResToTightVdata(RES *r, Tab<int> &dviOfs, Tab
           tb_size += bc.sz;
         if (r->lods.size() > 1 || tb_size < (1 << 20))
           bad_tight_detected = true;
-        updateVdata(r, tmp_buf, dviOfs, buf_stor, c);
+        updateVdata(r, tmp_buf, dviOfs, buf_stor, c, tmp_buf.layoutGen);
 
         // reset vbIdx to mark buffers as not combined
         for (ShaderMatVdata *r_smvd : r->getSmvd())
@@ -970,7 +977,7 @@ void ShaderResUnitedVdata<RES>::rebuildUnitedVdata(dag::Span<RES *> res, bool in
   Tab<uint8_t> buf_stor;
   dviOfs.reserve(8 * 2);
   for (int i = 0; i < resList.size(); i++)
-    updateVdata(resList[i], buf, dviOfs, buf_stor, getBufChunks(i));
+    updateVdata(resList[i], buf, dviOfs, buf_stor, getBufChunks(i), buf.layoutGen);
 
   if (unarrangedRes.size())
   {
@@ -1020,7 +1027,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
   ctx.reqLod = ctx.res->getQlReqLodEff();
   if (ctx.reqLod >= prev_lod)
   {
-    // std::lock_guard<std::mutex> scopedLock(appendMutex);
+    // std::lock_guard scopedLock(appendMutex);
     // if (ctx.reqLod > prev_lod)
     //   downgradeRes(ctx.res, ctx.reqLod);
     ceaseUpdateJob(ctx);
@@ -1035,7 +1042,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
   unitedvdata::BufConfig local_hints = getHints();
 
   {
-    std::lock_guard<std::mutex> scopedLock(appendMutex);
+    std::lock_guard scopedLock(appendMutex);
     bool already_in_failed = failedVdataReloadResSet.count(ctx.res.get()) != 0;
 
     int vb_to_free = 0, ib_to_free = 0;
@@ -1093,6 +1100,7 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
     }
     ctx.cPrev = resUsedChunks[idx];
     resUsedChunks[idx] = c_new;
+    ctx.layoutGen = buf.layoutGen;
   }
 
   ctx.dviOfs.reserve(8 * 2);
@@ -1102,8 +1110,8 @@ inline void ShaderResUnitedVdata<RES>::doUpdateJob(UpdateModelCtx &ctx)
     logerr("unitedVdata<%s>: failed allocate one or more pre-reserved buffers (%d VBs, %s)", RES::getStaticClassName(),
       buf.getVbCount(), buf.getStatStr());
   Tab<uint8_t> buf_stor;
-  updateVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), buf, buf_stor, c_new);
-  load_voxel_data(ctx.res.get(), ctx.reqLod);
+  if (updateVdata(make_span_const(ctx.tmp_smvd, res_smvd.size()), buf, buf_stor, c_new, ctx.layoutGen))
+    load_voxel_data(ctx.res.get(), ctx.reqLod);
   ShaderMatVdata::closeTlsReloadCrd();
 }
 template <class RES>
@@ -1114,7 +1122,7 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
 
   if (!ctx.dviOfs.size()) // doUpdateJob() was not called
   {
-    // std::lock_guard<std::mutex> scopedLock(appendMutex);
+    // std::lock_guard scopedLock(appendMutex);
     ceaseUpdateJob(ctx);
     return;
   }
@@ -1132,10 +1140,20 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
 
 
 
+
 #else
   d3d::GpuAutoLock render_lock;
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
 #endif
+
+  if (ctx.layoutGen != buf.layoutGen) // its chunks predate the last clear()
+  {
+    for (int lod = ctx.reqLod, best = ctx.res->getQlBestLod(); lod < best; lod++)
+      if (auto vd = ctx.res->lods[lod].getVoxelSurface())
+        vd->releaseAtlas();
+    ceaseUpdateJob(ctx);
+    return;
+  }
 
   int idx = find_value_idx(resList, ctx.res);
   if (idx < 0)
@@ -1192,7 +1210,7 @@ void ShaderResUnitedVdata<RES>::reloadResList(PtrTab<RES> &&resources)
     return;
   if (interlocked_acquire_load(reloadJobMgrId) < 0)
   {
-    std::unique_lock<std::mutex> scopedLock(appendMutex);
+    std::unique_lock scopedLock(appendMutex);
     initReloadJobMgrIdNoLock();
   }
   struct ReloadVdataListJob : public cpujobs::IJob
@@ -1204,7 +1222,7 @@ void ShaderResUnitedVdata<RES>::reloadResList(PtrTab<RES> &&resources)
     {
       Tab<cpujobs::IJob *> jobs;
       {
-        std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex);
+        std::unique_lock scopedLock(unitedVdata->appendMutex);
         jobs.reserve(resources.size());
         for (const Ptr<RES> &res : resources)
           if (cpujobs::IJob *j = unitedVdata->reloadResNoLock(res.get()))
@@ -1229,7 +1247,7 @@ void ShaderResUnitedVdata<RES>::reloadRes(RES *res)
 {
   cpujobs::IJob *j = nullptr;
   {
-    std::unique_lock<std::mutex> scopedLock(appendMutex);
+    std::unique_lock scopedLock(appendMutex);
     if (reloadJobMgrId < 0)
       initReloadJobMgrIdNoLock();
     j = reloadResNoLock(res);
@@ -1312,10 +1330,10 @@ template <class RES>
 void ShaderResUnitedVdata<RES>::doDowngradeRes(int idx, int upper_lod)
 {
   RES *res = resList[idx];
-  G_ASSERTF(is_main_thread() || res->getQlReqLFU() + *buf.noDiscardFramesCv <= dagor_frame_no() || res->getRefCount() <= 2 ||
-              get_inst_count(res) == 0,
-    "res=%p upper_lod=%d res->getQlBestLod()=%d relLFU=%d rc=%d inst=%d", res, upper_lod, res->getQlBestLod(),
-    int(dagor_frame_no() - res->getQlReqLFU()), res->getRefCount(), get_inst_count(res));
+  // LFU can be restamped after the gather
+  if (!is_main_thread() && res->getQlReqLFU() + *buf.noDiscardFramesCv > dagor_frame_no() && res->getRefCount() > 2 &&
+      get_inst_count(res) != 0)
+    return;
 
   BufChunkTab out_c1, out_c2;
   if (upper_lod < res->getQlReqLodEff())
@@ -1426,7 +1444,7 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemImpl(bool lock, bool
     void doJob() override
     {
       interlocked_release_store(unitedVdata->discardJobIsPending, 0);
-      std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex, std::defer_lock);
+      std::unique_lock scopedLock(unitedVdata->appendMutex, std::defer_lock);
       if (isAsyncJob)
         scopedLock.lock();
       int prevVbSizeToFree = unitedVdata->vbSizeToFree;
@@ -1446,7 +1464,7 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemImpl(bool lock, bool
     }
     void releaseJob() override
     {
-      std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex, std::defer_lock);
+      std::unique_lock scopedLock(unitedVdata->appendMutex, std::defer_lock);
       if (isAsyncJob)
       {
         if (!scopedLock.try_lock())
@@ -1502,7 +1520,7 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemImpl(bool lock, bool
   }
   else
   {
-    std::unique_lock<std::mutex> scopedLock(appendMutex, std::defer_lock);
+    std::unique_lock scopedLock(appendMutex, std::defer_lock);
     if (lock)
       scopedLock.lock();
     DiscardUnusedResJob job(this, /* async job */ false);
@@ -1514,7 +1532,7 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemImpl(bool lock, bool
 template <class RES>
 void ShaderResUnitedVdata<RES>::debugEvictUnrequestedToCoarsest(int idle_frames)
 {
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
   RES::lockClonesList();
   for (int idx = 0; idx < resList.size(); idx++)
   {
@@ -1594,7 +1612,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
 {
   int64_t reft = ref_time_ticks();
   unitedvdata::BufConfig local_hints = getHints();
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  dag::lock_guard scopedLock(appendMutex);
   int prev_res_count = resList.size();
   Tab<RES *> unarranged_res;
   Tab<int> dviOfs;
@@ -1637,10 +1655,11 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
     for (int i = prev_res_count, n = resList.size(); i < n; i++)
     {
       auto r = resList[i];
-      auto chunks = getBufChunks(i);
+      const BufChunkTab chunks(getBufChunks(i));
+      const uint32_t layoutGen = buf.layoutGen;
       appendMutex.unlock(); // Unlock to avoid stalling main thread (e.g. in `releaseUpdateJob`)
 
-      updateVdata(r, buf, dviOfs, buf_stor, chunks);
+      updateVdata(r, buf, dviOfs, buf_stor, make_span_const(chunks), layoutGen);
 
       appendMutex.lock(); // Re-lock
     }
@@ -1673,9 +1692,10 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
 
       resList.push_back(r);
       resUsedChunks.push_back() = c;
+      const uint32_t layoutGen = buf.layoutGen;
       appendMutex.unlock(); // Unlock to avoid stalling main thread (e.g. in `releaseUpdateJob`)
 
-      updateVdata(r, buf, dviOfs, buf_stor, c);
+      updateVdata(r, buf, dviOfs, buf_stor, c, layoutGen);
 
       appendMutex.lock(); // Re-lock
     }
@@ -1785,7 +1805,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
 template <class RES>
 void ShaderResUnitedVdata<RES>::rebuildBuffersAfterReset()
 {
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
   Tab<RES *> new_res;
   new_res.resize(resList.size());
   for (int i = 0; i < resList.size(); i++)
@@ -1811,7 +1831,7 @@ template <class RES>
 bool ShaderResUnitedVdata<RES>::delRes(RES *res)
 {
   G_ASSERT_RETURN(buf.allowDelRes, false);
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
   int idx = find_value_idx(resList, res);
   if (idx < 0)
     return false;
@@ -1858,8 +1878,8 @@ void ShaderResUnitedVdata<RES>::stopPendingJobs()
 template <class RES>
 void ShaderResUnitedVdata<RES>::releaseUnusedBuffers()
 {
-  std::lock_guard<std::mutex> scopedLock1(appendMutex);
-  std::lock_guard<std::mutex> scopedLock2(buf.updateMutex);
+  std::lock_guard scopedLock1(appendMutex);
+  std::lock_guard scopedLock2(buf.updateMutex);
   for (int i = buf.pool.size() - 1; i > 0; i--)
     if (buf.pool[i].getUsed() || buf.freeChunks[i].size() > 1 ||
         (buf.freeChunks[i].size() == 1 && (buf.freeChunks[i][0].ofs != 0 || buf.freeChunks[i][0].sz != buf.pool[i].getSize())))
@@ -1882,7 +1902,7 @@ void ShaderResUnitedVdata<RES>::clear()
   stopPendingJobs();
   G_ASSERTF(!getPendingReloadResCount(), "pendingVdataReloadResCount=%d", getPendingReloadResCount());
 
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
   if (buf.getIB())
   {
     if (buf.allowDelRes)
@@ -1929,7 +1949,7 @@ static inline int calc_chunks_total_size(dag::ConstSpan<unitedvdata::BufChunk> c
 template <class RES>
 void ShaderResUnitedVdata<RES>::buildStatusStrThrottled(String &out_str, unsigned period_usec)
 {
-  std::lock_guard<std::mutex> scopedLock(appendMutex); // reload jobs mutate the failed set under it
+  std::lock_guard scopedLock(appendMutex); // reload jobs mutate the failed set under it
   // a failed reload is the event this status exists for; it must not wait out the period
   if (lastStatusReft && failedVdataReloadResSet.empty() && !profile_usec_passed(lastStatusReft, period_usec))
     return;
@@ -2028,7 +2048,7 @@ void ShaderResUnitedVdata<RES>::buildStatusStrNoLock(String &out_str, bool full_
 template <class RES>
 void ShaderResUnitedVdata<RES>::dumpMemBlocks(String *out_str_summary)
 {
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
   if (out_str_summary)
     *out_str_summary = buf.getStatStr();
   debug("");
@@ -2063,7 +2083,7 @@ template <class RES>
 void ShaderResUnitedVdata<RES>::availableRElemsAccessor(availableRElemsAccessorFct access_cb)
 {
   static_assert(sizeof(Ptr<RES>) == sizeof(RES *));
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
+  std::lock_guard scopedLock(appendMutex);
   access_cb(make_span((RES **)resList.data(), resList.size()));
 }
 

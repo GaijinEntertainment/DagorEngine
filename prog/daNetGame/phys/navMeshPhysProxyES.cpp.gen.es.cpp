@@ -26,18 +26,19 @@ static ecs::EntitySystemDesc clear_navmeshproxy_collision_es_event_handler_es_de
 );
 static constexpr ecs::ComponentDesc navphys_collision_data_ecs_query_comps[] =
 {
-//start of 5 ro components at [0]
+//start of 6 ro components at [0]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("nphys_coll__capsuleRadius"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("nphys_coll__capsuleHeight"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("navmesh_phys__currentWalkVelocity"), ecs::ComponentTypeInfo<Point3>()},
-  {ECS_HASH("nphys__mass"), ecs::ComponentTypeInfo<float>()}
+  {ECS_HASH("nphys__mass"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("nphys_coll__capsuleOffset"), ecs::ComponentTypeInfo<Point3>()}
 };
 static ecs::CompileTimeQueryDesc navphys_collision_data_ecs_query_desc
 (
   "navphys_collision_data_ecs_query",
   empty_span(),
-  make_span(navphys_collision_data_ecs_query_comps+0, 5)/*ro*/,
+  make_span(navphys_collision_data_ecs_query_comps+0, 6)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -54,6 +55,7 @@ inline bool navphys_collision_data_ecs_query(ecs::EntityManager &manager, ecs::E
             , ECS_RO_COMP(navphys_collision_data_ecs_query_comps, "nphys_coll__capsuleHeight", float)
             , ECS_RO_COMP(navphys_collision_data_ecs_query_comps, "navmesh_phys__currentWalkVelocity", Point3)
             , ECS_RO_COMP(navphys_collision_data_ecs_query_comps, "nphys__mass", float)
+            , ECS_RO_COMP(navphys_collision_data_ecs_query_comps, "nphys_coll__capsuleOffset", Point3)
             );
 
         }

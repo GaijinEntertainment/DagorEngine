@@ -13,6 +13,17 @@ include "heightmap_common.dshl"
 include "shader_global.dshl"
 include "make_clipmap_common.dshl"
 
+hlsl(ps) {
+  //normalize(half3(0.299,0.587,0.114)), as WT
+  #define adaptive_lumaC half3(0.4472331058763405, 0.8780128198976986, 0.1705169701334543)
+  half adaptive_luminance(half3 color) {return dot(color, adaptive_lumaC);}
+}
+
+// WT packs these into its land_bump_scale; here that vector carries the displacement range
+macro INIT_COLORMAP_BUMP()
+  (ps) { colormap_bump@f2 = ((2 * 0.6685551585321885) / land_bump_scale, land_bump_scale / (4 * 0.6685551585321885)); }
+endmacro
+
 int render_land_translucency = 0;
 interval render_land_translucency: no<1, yes;
 
@@ -73,7 +84,7 @@ macro GET_DETAILED_PS()
   hlsl(ps) {
     void get_detailed_base(out half height, out half3 diffuseColor, out half3 normal, out half gloss, out half colormapA, float2 diffusetc, float2 detailTc, float bump_scale)
     {
-      half4 combinedDiffuse  = h4tex2D(colormapTex, diffusetc.xy);
+      half4 combinedDiffuse  = (half4)detile_sample(colormapTex, colormapTex_samplerstate, diffusetc.xy, land_detile_ps_state);
       half4 detailColor = h4tex2D(detailTex, detailTc);
       combinedDiffuse.rgb *= COLOR_CORRECTION_MULTIPLIER;
       diffuseColor.rgb = combinedDiffuse.rgb*lerp(detailColor.rgb, half3(1,1,1), saturate(detailColor.a*1.5-1));
@@ -201,8 +212,12 @@ shader land_mesh_landclass_simple, land_mesh_landclass_detailed
     INIT_HARDCODED_TEX_INFO_ONE_LC()
     //GET_DETAIL_TEX()
     GET_ONE_LC_DETAIL_TEX()
+    INIT_LAND_DETILE()
+    USE_LAND_DETILE()
+    USE_LAND_DETILE_COLORMAP_STATE()
     blend_src = one; blend_dst = one;
     INIT_HARDCODED_INV_TEX_SIZES()
+    INIT_COLORMAP_BUMP()
     if (shader == land_mesh_landclass_simple)
     {
       USE_DERIVATIVE_MAPS()
@@ -236,15 +251,25 @@ shader land_mesh_landclass_simple, land_mesh_landclass_detailed
       {
         VTEX_MRT ret;
         half weight = get_detail_tex_weight(input.worldPos.xz);
+        land_detile_colormap_state(input.worldPos.xz, input.tiledTexcoord0.xy);
         ##if shader == land_mesh_landclass_detailed
           half height, smoothness, colormapA;
           half3 diffuseColor, normal;
           get_detailed(height, diffuseColor, normal, smoothness, colormapA, input.tiledTexcoord0.xy, input.tiledTexcoord0.zw, land_bump_scale.y);
         ##elif shader == land_mesh_landclass_simple
-          half4 diffuseColor  = h4tex2D(colormapTex, input.tiledTexcoord0.xy);
+          half4 diffuseColor  = (half4)detile_sample(colormapTex, colormapTex_samplerstate, input.tiledTexcoord0.xy, land_detile_ps_state);
           half height = diffuseColor.x;
           half smoothness = 0;
           half3 normal = half3(0,0,1);
+          ##if (render_with_normalmap != render_displacement)
+            // the diagonal taps of WT's AdaptiveSampleColorTexture; the offsets turn with the cluster
+            #define COLORMAP_LUMA(ofs) adaptive_luminance(detile_sample_ofs(colormapTex, colormapTex_samplerstate, input.tiledTexcoord0.xy, ofs, land_detile_ps_state).rgb)
+            const float2 invSize = texsizes03.xx;
+            half swMinusNe = COLORMAP_LUMA(float2(-invSize.x, invSize.y)) - COLORMAP_LUMA(float2(invSize.x, -invSize.y));
+            half seMinusNw = COLORMAP_LUMA(invSize) - COLORMAP_LUMA(-invSize);
+            #undef COLORMAP_LUMA
+            normal = normalize(half3((swMinusNe - seMinusNw) * colormap_bump.y, 1, (swMinusNe + seMinusNw) * colormap_bump.y)).xzy;
+          ##endif
         ##endif
 
         ##if (render_with_normalmap == render_displacement)
@@ -255,8 +280,6 @@ shader land_mesh_landclass_simple, land_mesh_landclass_detailed
           set_diffuse(vtex, diffuseColor.rgb);
           set_normal(vtex, normal);
           set_smoothness(vtex, smoothness);
-          set_reflectance(vtex, 1); // fix-me?
-          set_ao(vtex, 0); // fix-me?
           set_micro_detail(vtex, 0.5); // fix-me?
 
           ret = create_render_vtex(vtex);
@@ -323,9 +346,12 @@ shader land_mesh_landclass_trivial
     NUM_DETAIL_TEX()
     INIT_HARDCODED_TEX_INFO()
     GET_WEIGHTS()
-    GET_DETAIL_TEX_WEIGHTED()
+    INIT_LAND_DETILE()
+    USE_LAND_DETILE()
+    GET_DETILED_DETAIL_TEX_WEIGHTED()
     USE_DERIVATIVE_MAPS()
     INIT_HARDCODED_INV_TEX_SIZES()
+    INIT_COLORMAP_BUMP()
 
     hlsl {
       struct VsOutput
@@ -351,7 +377,8 @@ shader land_mesh_landclass_trivial
         half3 weight2;
         get_weights(input.worldPos.xz, weight1, weight2);
 
-        half3 diffuseColor = get_detail_tex_weighted(input.tiledTexcoord0,
+        const DetilePixel detilePx = detile_pixel(input.worldPos.xz); // one bundle for the five calls
+        half3 diffuseColor = get_detail_tex_weighted_px(detilePx, input.tiledTexcoord0,
                                             input.tiledTexcoord1,
                                             input.tiledTexcoord2,
                                             input.tiledTexcoord3,
@@ -361,10 +388,23 @@ shader land_mesh_landclass_trivial
           half height = diffuseColor.r;
           ret.height = height;
         ##else
+          // as WT: the normal from the red height of the blend, its steps taken along the world
+          float3 texOfs0 = float3(texsizes03.x, texsizes03.y, 0);
+          float3 texOfs1 = float3(texsizes03.z, texsizes03.w, 0);
+          float3 texOfs2 = float3(texsizes47.x, texsizes47.y, 0);
+          float3 texOfs3 = float3(texsizes47.z, texsizes47.w, 0);
+          #define HEIGHT_TAP(sign, swz) get_detail_tex_weighted_px_ofs(detilePx, input.tiledTexcoord0, input.tiledTexcoord1, input.tiledTexcoord2, input.tiledTexcoord3, sign texOfs0.swz, sign texOfs1.swz, sign texOfs2.swz, sign texOfs3.swz, weight1, weight2).rgb
+          half3 s01 = HEIGHT_TAP(-, xzyz);
+          half3 s21 = HEIGHT_TAP(+, xzyz);
+          half3 s10 = HEIGHT_TAP(-, zxzy);
+          half3 s12 = HEIGHT_TAP(+, zxzy);
+          #undef HEIGHT_TAP
+          half3 normal = half3(0,0,1);
+          normal.xzy = normalize(half3(adaptive_luminance(s10)-adaptive_luminance(s12), colormap_bump.x, adaptive_luminance(s01)-adaptive_luminance(s21)));
+
           Vtex vtex = create_vtex();
           set_diffuse(vtex, diffuseColor.rgb);
-          set_reflectance(vtex, 1); // fix-me?
-          set_ao(vtex, 0); // fix-me?
+          set_normal(vtex, normal);
           set_micro_detail(vtex, 0.5); // fix-me?
 
           ret = create_render_vtex(vtex);
@@ -405,7 +445,9 @@ shader land_mesh_landclass_trivial
     INIT_HARDCODED_TEX_INFO()
     NUM_DETAIL_TEX()
     GET_WEIGHTS()
-    GET_DETAIL_TEX_WEIGHTED()
+    INIT_LAND_DETILE()
+    USE_LAND_DETILE()
+    GET_DETILED_DETAIL_TEX_WEIGHTED()
     //USE_CLIPMAP_NONORMAL()
     //USE_CLIPMAP_LAST()
     color_write = rgb;
@@ -441,7 +483,7 @@ shader land_mesh_landclass_trivial
         half3 weight2;
         get_weights(input.worldPos.xz, weight1, weight2);
         half3 mask = get_detail_tex_weighted(tiledTexcoord[0], tiledTexcoord[1], tiledTexcoord[2], tiledTexcoord[3],
-          weight1, weight2).rgb;
+          weight1, weight2, input.worldPos.xz).rgb;
 
         float maskScale = max(max(mask.r, mask.g), mask.b);
         float grassChannel = (maskScale == mask.r) ? 0 : (maskScale == mask.g ? 1./255. : 2./255);

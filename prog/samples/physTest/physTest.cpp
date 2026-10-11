@@ -31,13 +31,10 @@
 #include <startup/dag_startupTex.h>
 #include <math/dag_capsule.h>
 #include <math/dag_math3d.h>
-#include <scene/dag_frtdumpMgr.h>
 #include <heightmap/heightmapHandler.h>
 #include <scene/dag_physMat.h>
-#include <perfMon/dag_visClipMesh.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <ioSys/dag_fileIo.h>
-#include <obsolete/dag_cfg.h>
 #include <gui/dag_stdGuiRender.h>
 #include <startup/dag_fatalHandler.inc.cpp>
 #include <util/dag_threadPool.h>
@@ -74,7 +71,6 @@
 static PhysWorld *physWorld = NULL;
 
 #define ALLOW_STATIC_SCENE_DUMP 0
-#define ALLOW_FRT_DUMP          0
 #define ALLOW_HMAP_DUMP         0
 #define ALLOW_DYNMODEL_RENDER   0 // obsolete and requres shaders
 #define ALLOW_ZERO_PLANE        1
@@ -789,9 +785,6 @@ static Ptr<DynamicRenderableSceneLodsResource> dynamicSceneResource;
 static DynamicRenderableSceneInstance *dynamicScene = NULL;
 #endif
 
-#if ALLOW_FRT_DUMP
-static FastRtDumpManager *frt_mgr = NULL;
-#endif
 #if ALLOW_HMAP_DUMP
 static HeightmapHandler hmap;
 #endif
@@ -850,25 +843,6 @@ static void loadPhysTestScene(const char *filename)
 #if ALLOW_ZERO_PLANE
   PhysBody *b = createBox(Point3(0, -21, 0), Point3(1000, 4, 1000), 3, 0.0f);
 #endif
-#if ALLOW_FRT_DUMP
-  const char *frt_file = mainBlk.getStr("frt_dump", NULL);
-  if (frt_file)
-  {
-    FullFileLoadCB crd(frt_file);
-    if (!crd.fileHandle)
-      DAG_FATAL("cannot open: <%s>", frt_file);
-
-    frt_mgr = new FastRtDumpManager;
-    if (frt_mgr->loadRtDump(crd, 0) < 0)
-      DAG_FATAL("cannot load frtdump from: <%s>", frt_file);
-
-    ::create_visclipmesh(CfgReader(""));
-    ::set_vcm_rad(mainBlk.getReal("visClipMeshVisibilityRad", 200));
-    ::set_vcm_visible(true);
-    ::grs_draw_wire = true;
-  }
-#endif
-
 #if ALLOW_STATIC_SCENE_DUMP
   const char *phys_file = mainBlk.getStr("phys_scene_dump", NULL);
   if (phys_file)
@@ -1186,9 +1160,6 @@ public:
     }
 #endif
 
-#if ALLOW_FRT_DUMP
-    render_visclipmesh(*frt_mgr, ::grs_cur_view.pos);
-#endif
     if (!draw_phys_debug)
       physdbg::renderWorld(physWorld,
         physdbg::RenderFlag::BODIES | physdbg::RenderFlag::CONSTRAINTS | physdbg::RenderFlag::CONSTRAINT_LIMITS |

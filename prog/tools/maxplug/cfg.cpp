@@ -37,14 +37,6 @@ std::wstring CfgReader::GetKeyValue(const std::wstring &key, const std::wstring 
   return std::wstring(buf.asArrayPtr());
 }
 
-
-bool CfgReader::WriteKeyVal(const std::wstring &key, const std::wstring &sec, const TCHAR *new_val)
-{
-  bool ret = MaxSDK::Util::WritePrivateProfileString(sec.c_str(), key.c_str(), new_val, filename.c_str()) ? true : false;
-  return ret;
-}
-
-
 CfgShader::CfgShader(const std::wstring &name) : CfgReader(name) {}
 
 StringVector *CfgShader::GetShaderNames()

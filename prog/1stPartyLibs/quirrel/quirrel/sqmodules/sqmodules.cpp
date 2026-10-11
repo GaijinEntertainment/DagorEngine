@@ -99,6 +99,7 @@ SqModules::SqModules(HSQUIRRELVM vm, ISqModulesFileAccess *file_access)
 {
   compilationOptions.raiseError = true;
   compilationOptions.doStaticAnalysis = false;
+  compilationOptions.keepCommentsInAst = false;
 
   sq_enablesyntaxwarnings(false);
 
@@ -149,7 +150,8 @@ bool SqModules::compileScriptImpl(const sqm::span<char> buf, const char *resolve
     onCompileFile_cb(sqvm, resolved_fn);
 
   SQCompilation::SqASTData *ast =
-    sq_parsetoast(sqvm, buf.data(), buf.size(), resolved_fn, compilationOptions.doStaticAnalysis, compilationOptions.raiseError);
+    sq_parsetoast(sqvm, buf.data(), buf.size(), resolved_fn,
+      compilationOptions.doStaticAnalysis || compilationOptions.keepCommentsInAst, compilationOptions.raiseError);
 
   if (return_ast)
     *return_ast = ast;
@@ -539,9 +541,7 @@ bool SqModules::requireModule(const char *requested_fn, bool must_exist, const c
   sq_pushobject(vm, scriptClosure.GetObject());
   sq_pushnull(vm); // module 'this'
 
-  runningScriptClosuresStack.push_back(scriptClosure);
   SQRESULT callRes = sq_call(vm, 1, true, true);
-  runningScriptClosuresStack.pop_back();
 
   if (SQ_FAILED(callRes))
   {
@@ -595,6 +595,9 @@ bool SqModules::reloadModule(const char *fn, bool must_exist, const char *__name
 
   string errMsg;
   bool res = requireModule(fn, must_exist, __name__, exports, out_err_msg);
+
+  for (ModuleReloadCallback cb : onModuleReloadNative)
+    cb(this);
 
   prevModules.clear();
 
@@ -775,8 +778,6 @@ void SqModules::registerIoLib()
 
 void SqModules::callAndClearUnloadHandlers(bool is_closing)
 {
-  resetStaticMemos();
-
   vector<Sqrat::Object> unloadHandlers;
   unloadHandlers.swap(onModuleUnload);
 
@@ -810,6 +811,13 @@ void SqModules::addModuleUnloadCallback(ModuleUnloadCallback cb)
 }
 
 
+void SqModules::addModuleReloadCallback(ModuleReloadCallback cb)
+{
+  if (SQRAT_STD::find(onModuleReloadNative.begin(), onModuleReloadNative.end(), cb) == onModuleReloadNative.end())
+    onModuleReloadNative.push_back(cb);
+}
+
+
 SQInteger SqModules::register_on_module_unload(HSQUIRRELVM vm)
 {
   SQInteger nparams = 0, nfreevars = 0;
@@ -831,18 +839,6 @@ SQInteger SqModules::register_on_module_unload(HSQUIRRELVM vm)
   return 0;
 }
 
-void SqModules::resetStaticMemos()
-{
-  for (Module &module : modules)
-    sq_reset_static_memos(sqvm, module.scriptClosure.GetObject());
-
-  for (Module &module : prevModules)
-    sq_reset_static_memos(sqvm, module.scriptClosure.GetObject());
-
-  for (Sqrat::Object &f : runningScriptClosuresStack)
-    sq_reset_static_memos(sqvm, f.GetObject());
-}
-
 
 void SqModules::registerModulesLib()
 {
@@ -856,8 +852,6 @@ void SqModules::registerModulesLib()
     .Func(
       "get_native_module_names", [this]() { return this->getNativeModuleNames(); },
       SQ_DOC("Returns an array with a list of names of native modules."))
-    .Func(
-      "reset_static_memos", [this]() { return this->resetStaticMemos(); }, SQ_DOC("Reset static memo expressions cache."))
     .SquirrelFunc("on_module_unload", register_on_module_unload, 2, ".c",
       SQ_DOC("Register module unload callback. "
         "Example: on_module_unload( function(is_app_closing) {println(is_app_closing ? \"Closing\" : \"Soft reloading\")} )"),

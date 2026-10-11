@@ -1,3 +1,4 @@
+--!strict
 --[[
 MIT License
 
@@ -21,59 +22,41 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+local profile = require("./profile")
 
-local N = tonumber((arg and arg[1]) or 8)    -- board size
+local N = 8
+local BOARDS = 50
 
-
--- check whether position (n,c) is free from attacks
-local function isplaceok (a, n, c)
-  for i = 1, n - 1 do   -- for each queen already placed
-    if (a[i] == c) or                -- same column?
-       (a[i] - i == c - n) or        -- same diagonal?
-       (a[i] + i == c + n) then      -- same diagonal?
-      return false            -- place can be attacked
+local function isPlaceOk(board: { number }, n: number, c: number): boolean
+  for i = 1, n - 1 do
+    local qi = board[i]
+    if qi == c or qi - i == c - n or qi + i == c + n then
+      return false
     end
   end
-  return true    -- no attacks; place is OK
+  return true
 end
 
-local solutions_count = 0
-
-
--- add to board 'a' all queens from 'n' to 'N'
-local function addqueen (a, n)
-  if n > N then    -- all queens have been placed?
-    solutions_count = solutions_count + 1
-  else  -- try to place n-th queen
-    for c = 1, N do
-      if isplaceok(a, n, c) then
-        a[n] = c    -- place n-th queen at column 'c'
-        addqueen(a, n + 1)
-      end
+local function addQueen(board: { number }, n: number): number
+  if n > N then
+    return 1
+  end
+  local solutions = 0
+  for c = 1, N do
+    if isPlaceOk(board, n, c) then
+      board[n] = c
+      solutions += addQueen(board, n + 1)
     end
   end
+  return solutions
 end
 
-
-local REPEATS = 50
-
-function test()
-  for r = 1, REPEATS do
-    solutions_count = 0
-    addqueen({},1);
-    if ( solutions_count~=92 ) then print("failed\n", solutions_count ); end
+local function boards(): number
+  local solutions = 0
+  for _ = 1, BOARDS do
+    solutions = addQueen(table.create(N, 0), 1)
   end
+  return solutions
 end
 
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
-  end
-  return res
-end
-
-print(string.format("\"queen\", %.8f, %d", profile_it(20, test) / REPEATS, 20 * REPEATS))
+profile.benchmark("queen", 20, boards, BOARDS)

@@ -1,8 +1,9 @@
 include "land_weight_inc.dshl"
+include "land_detile_inc.dshl"
 
 int num_detail_textures = 7;
-interval num_detail_textures : 
-   num_detail_textures_1 < 2, num_detail_textures_2 < 3, num_detail_textures_3 < 4, 
+interval num_detail_textures :
+  num_detail_textures_1 < 2, num_detail_textures_2 < 3, num_detail_textures_3 < 4,
   num_detail_textures_4 < 5, num_detail_textures_5 < 6, num_detail_textures_6 < 7, num_detail_textures_7;
 
 macro NUM_DETAIL_TEX()
@@ -22,45 +23,5 @@ hlsl(ps) {
   ##elif num_detail_textures == num_detail_textures_7
     #define num_tex_count 7
   ##endif
-}
-endmacro
-
-
-macro GET_DETAIL_TEX_WEIGHTED()
-hlsl(ps) {
-  half4 get_detail_tex_weighted(
-    float4 tiledtexcoord0,
-    float4 tiledtexcoord1,
-    float4 tiledtexcoord2,
-    float4 tiledtexcoord3,
-    half4 weight1, half3 weight2)
-  {
-    #if (num_tex_count==0)
-      return 1;
-    #elif (num_tex_count==1)
-      return h4tex2D(land_detail_tex_n0, tiledtexcoord0.xy);
-    #else
-      half4 det = weight1.x*h4tex2D(land_detail_tex_n0, tiledtexcoord0.xy);
- 
-      #define ADD_DETAIL_TEX(ti, weight, ttc) det += weight * (1e-7 + h4tex2D(land_detail_tex_n##ti, ttc))  // Touch NVidia drivers with the 1e-7 of magic.
-      ADD_DETAIL_TEX(1, weight1.y, tiledtexcoord0.zw);
-      #if (num_tex_count>2)
-         ADD_DETAIL_TEX(2, weight1.z, tiledtexcoord1.xy);
-      #endif
-      #if (num_tex_count>3)
-         ADD_DETAIL_TEX(3, weight1.w, tiledtexcoord1.zw);
-      #endif
-      #if (num_tex_count>4)
-        ADD_DETAIL_TEX(4, weight2.x, tiledtexcoord2.xy);
-      #endif
-      #if (num_tex_count>5)
-        ADD_DETAIL_TEX(5, weight2.y, tiledtexcoord2.zw);
-      #endif
-      #if (num_tex_count>6)
-        ADD_DETAIL_TEX(6, weight2.z, tiledtexcoord3.xy);
-      #endif
-      return det;
-    #endif
-  }
 }
 endmacro

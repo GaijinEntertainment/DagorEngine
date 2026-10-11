@@ -16,6 +16,8 @@ struct PreparedSkies
   float rangeScale = 1.0f, minRange = 100.f;
   float froxelsMaxDist = 32000.f; // current
   float skiesLastTcZ = 1;
+  Color4 froxelsGroundRay = {0, 0, 0, 1};
+  float froxelsHorizonDiscBand = 0;
   Color4 precomputedTcDist = {1. / 80000, 0, 0, 0};
   bool multiStageScattering = false;
 

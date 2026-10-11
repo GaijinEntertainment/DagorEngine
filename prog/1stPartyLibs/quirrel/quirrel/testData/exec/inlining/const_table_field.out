@@ -1,0 +1,13 @@
+ofParam -> 9
+ofParam missing -> E:the index 'size' (type='string') does not exist
+ofEnumParam -> 7
+ofOuter -> 8
+ofConst -> 4
+call slot -> E:attempt to call 'integer'
+call enum -> E:attempt to call 'integer'
+assign -> E:trying to modify immutable 'table'
+increment -> E:trying to modify immutable 'table'
+new slot -> E:trying to modify immutable 'table'
+assign enum -> E:trying to modify immutable 'table'
+assign len -> E:trying to modify immutable 'table'
+new slot len -> E:trying to modify immutable 'table'

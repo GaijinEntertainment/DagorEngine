@@ -95,7 +95,7 @@ struct DSA
   }
   void set(float v)
   {
-    varValue.d = v;
+    varValue.d = double(v);
     varType = TYPE_DOUBLE;
   }
   void set(double v)

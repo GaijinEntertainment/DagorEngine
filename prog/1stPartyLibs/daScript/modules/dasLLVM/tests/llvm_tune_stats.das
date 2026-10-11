@@ -8,9 +8,10 @@ require daslib/json_boost
 require strings   // find — the history-archive content asserts
 require math
 
-// The measurement-statistics + noise-gate surface: median/cv math, the env-driven threshold,
-// and the provenance-note round-trip through a sidecar write. All model-free and in-process
-// (the env knobs are set BEFORE their first read — the read-once caches latch what we set).
+// The measurement-statistics + noise-gate surface: median/cv math, the noise threshold,
+// and the provenance-note round-trip through a sidecar write. All model-free and in-process.
+// The DAS_TUNE_* env loads ONCE at context init (g_env_tune), so in-process overrides go
+// through the tune setters — which also arm the child environment, the path the tuner uses.
 
 [test]
 def test_tune_median(t : T?) {
@@ -45,11 +46,15 @@ def test_tune_cv_pct(t : T?) {
 
 [test]
 def test_tune_noise_env(t : T?) {
-    // set BEFORE the first threshold read — the cache latches this value for both flavors
-    set_env_variable("DAS_TUNE_NOISE_CV", "3.5")
+    // one protocol: the paranoid argument is ignored
+    t |> equal(tune_noise_threshold_pct(false), tune_noise_threshold_pct(true))
+    // the env half loads at context init; the setters are the in-process override rail
+    // (they also arm DAS_TUNE_* for tuner children)
+    tune_set_noise_cv(3.5)
     t |> equal(tune_noise_threshold_pct(false), 3.5lf)
     t |> equal(tune_noise_threshold_pct(true), 3.5lf)
-    set_env_variable("DAS_TUNE_NOISE_OVERRIDE", "1")
+    t |> success(tune_noise_threshold_overridden())
+    tune_set_noise_override(true)
     t |> success(tune_noise_override())
 }
 
@@ -61,7 +66,7 @@ def test_tune_sidecar_section_merge(t : T?) {
         return
     }
     let sidecar = tmpRes as value
-    set_env_variable("DAS_TUNE_MANIFEST", sidecar)
+    set_tune_manifest_runtime_path(sidecar)
     t |> success(tune_manifest_set("some_fn", "vec8_u2"))
     var partA <- { "dot" => JV((med_us = 100.0lf, best_us = 98.0lf)) }
     t |> success(tune_sidecar_section_merge("race", partA))
@@ -88,7 +93,7 @@ def test_tune_history_archive(t : T?) {
         return
     }
     let hdir = dirRes as value
-    set_env_variable("DAS_TUNE_HISTORY", hdir)   // before the first read — the location latches
+    tune_set_history_dir(hdir)
     t |> equal(tune_history_dir(), hdir)
     let tmpRes = create_temp_file_result("llvm_tune_hist_", ".tune.json")
     if (tmpRes is error) {
@@ -96,7 +101,7 @@ def test_tune_history_archive(t : T?) {
         return
     }
     let sidecar = tmpRes as value
-    set_env_variable("DAS_TUNE_MANIFEST", sidecar)
+    set_tune_manifest_runtime_path(sidecar)
     t |> success(tune_manifest_set("hist_fn", "vec8_u2"))
     let okPath = tune_history_archive(sidecar, "ok", "")
     t |> success(!empty(okPath), "ok mint archives")
@@ -117,7 +122,7 @@ def test_tune_provenance_note_roundtrip(t : T?) {
         return
     }
     let sidecar = tmpRes as value
-    set_env_variable("DAS_TUNE_MANIFEST", sidecar)
+    set_tune_manifest_runtime_path(sidecar)
     tune_provenance_note("noise", "overridden")
     tune_provenance_note("box", "spoofed-box")   // identity keys must win over notes
     t |> success(tune_manifest_set("stats_probe_fn", "vec8_u2"))

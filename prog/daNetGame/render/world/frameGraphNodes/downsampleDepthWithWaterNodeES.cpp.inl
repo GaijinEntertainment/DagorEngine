@@ -44,10 +44,10 @@ dafg::NodeHandle makeDownsampleDepthWithWaterNode()
       auto [renderingWidth, renderingHeight] = mainViewResolution.get();
       if (makeCheckerboardDepth)
         downsample_depth::downsamplePS(depth, renderingWidth, renderingHeight, nullptr /*far_depth*/, nullptr /*close_depth*/,
-          nullptr /*far_normals*/, nullptr /*normal_gbuffer*/, nullptr /*motion_vectors*/, downsampledDepthWithWaterTex);
+          nullptr /*normals*/, nullptr /*normal_gbuffer*/, nullptr /*motion_vectors*/, downsampledDepthWithWaterTex);
       else
         downsample_depth::downsamplePS(depth, renderingWidth, renderingHeight, downsampledDepthWithWaterTex, nullptr /*close_depth*/,
-          nullptr /*far_normals*/, nullptr /*normal_gbuffer*/, nullptr /*motion_vectors*/, nullptr /*checkerboard_depth*/);
+          nullptr /*normals*/, nullptr /*normal_gbuffer*/, nullptr /*motion_vectors*/, nullptr /*checkerboard_depth*/);
     };
   });
 }

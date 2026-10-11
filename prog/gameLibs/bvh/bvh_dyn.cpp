@@ -492,6 +492,7 @@ void on_unload_scene(ContextId context_id)
       context_id->freeMetaRegion(buffer.second.metaAllocId);
     }
   context_id->uniqueSkinBuffers.clear();
+  context_id->freeUniqueSkinBLASes.clear();
 
   for (auto &buffers : context_id->uniqueHeliRotorBuffers)
     for (auto &buffer : buffers.second)
@@ -673,7 +674,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
 
   ++ctx->count;
 
-  if (!keep_instance_by_voxel_age(inst, relative_to_camera, ctx))
+  if (!(inst_render_data.flags & dynrend::BVH_NO_VOXEL_CULL) && !keep_instance_by_voxel_age(inst, relative_to_camera, ctx))
     return;
 
   auto &instances = bvh_context_id->dynrendInstances[dynrend_context_id];

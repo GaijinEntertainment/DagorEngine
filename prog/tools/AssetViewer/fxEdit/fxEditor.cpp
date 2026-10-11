@@ -492,8 +492,8 @@ public:
 
     if (effect)
     {
-      particles_debug_tm = rotyTM(-particles_debug_rot_x * 3.14);
-      particles_debug_tm *= rotzTM(-particles_debug_rot_y * 3.14);
+      particles_debug_tm = rotyTM(-particles_debug_rot_x * 3.14f);
+      particles_debug_tm *= rotzTM(-particles_debug_rot_y * 3.14f);
 
       if (!effectDafxSetupDone && dafx_helper_globals::ctx)
       {
@@ -662,7 +662,7 @@ public:
       end_draw_cached_debug_lines();
     }
   }
-  void renderTransObjects() override
+  void renderTransObjects(BaseTexture *) override
   {
     if (ScriptHelpers::obj_editor)
       ScriptHelpers::obj_editor->renderTrans();
@@ -1270,10 +1270,11 @@ public:
     if (!mToolPanel)
       return;
 
-    DAEDITOR3.imguiBegin(*mToolPanel);
-    mToolPanel->updateImgui();
-    ScriptHelpers::updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*mToolPanel); window.canSubmitContents())
+    {
+      mToolPanel->updateImgui();
+      ScriptHelpers::updateImgui();
+    }
   }
 
 protected:
@@ -1544,7 +1545,7 @@ protected:
     if (effect)
     {
       Matrix3 gravityTm;
-      gravityTm.rotzTM(-particles_debug_grav_rot * 3.14);
+      gravityTm.rotzTM(-particles_debug_grav_rot * 3.14f);
       effect->setParam(_MAKE4C('GZTM'), (void *)&gravityTm);
     }
 
@@ -1552,7 +1553,7 @@ protected:
       return;
 
     TMatrix gravityTm;
-    gravityTm.rotzTM(-particles_debug_grav_rot * 3.14);
+    gravityTm.rotzTM(-particles_debug_grav_rot * 3.14f);
 
     if (get_app().dngBasedSceneRenderUsed())
     {

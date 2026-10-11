@@ -124,6 +124,7 @@ enum
 int SplineObject::splineSubtypeMask = -1;
 int SplineObject::tiledByPolygonSubTypeId = -1;
 int SplineObject::roadsSubtypeMask = -1;
+int SplineObject::gameSplineSubtypeMask = -1;
 int SplineObject::splineSubTypeId = -1;
 bool SplineObject::isSplineCacheValid = false;
 bool SplineObject::isSplineObjectsAreLoading = false;
@@ -134,6 +135,11 @@ static float opac_gen_base = 1, opac_gen_var = 0;
 static float width_gen_base = 1, width_gen_var = 0, width_gen_min = 0.1;
 
 static int spline_unique_buf_idx = 0;
+
+static const E3DCOLOR GAME_SPLINE_COLOR(255, 160, 0, 255);
+static const E3DCOLOR GAME_POLYGON_COLOR(255, 220, 0, 255);
+static const E3DCOLOR GAME_SPLINE_BLOCKED_COLOR(255, 0, 200, 255);
+static const E3DCOLOR GAME_SPLINE_SINGLE_POINT_COLOR(255, 40, 40, 255);
 
 //==================================================================================================
 SplineObject::SplineObject(bool make_poly) : points(tmpmem), poly(make_poly), segSph(midmem)
@@ -492,6 +498,9 @@ void SplineObject::renderLines(bool opaque_pass, const Frustum &frustum)
   for (int i = 0; i < points.size() && !any_pt_sel; i++)
     any_pt_sel = points[i]->isSelected();
 
+  const bool game_view = isGameSplinesViewOn();
+  const bool reaches_game = game_view && reachesGame();
+
   E3DCOLOR col;
   if (isSelected())
     col = E3DCOLOR(255, 255, 255, 255);
@@ -499,8 +508,21 @@ void SplineObject::renderLines(bool opaque_pass, const Frustum &frustum)
     col = E3DCOLOR(128, 128, 128, 255);
   else if (any_pt_sel)
     col = E3DCOLOR(170, 200, 200, 255);
+  else if (reaches_game)
+    col = !hasCurve() ? GAME_SPLINE_SINGLE_POINT_COLOR : (poly ? GAME_POLYGON_COLOR : GAME_SPLINE_COLOR);
+  else if (game_view && isGameExportBlocked())
+    col = GAME_SPLINE_BLOCKED_COLOR;
   else
     col = poly ? (props.navmeshIdx >= 0 ? E3DCOLOR(14, 9, 245, 255) : E3DCOLOR(0, 200, 0, 255)) : E3DCOLOR(170, 170, 170, 255);
+
+  if (game_view && isExportable() && !hasCurve() && opaque_pass)
+  {
+    const Point3 p = points[0]->getPt();
+    const float r = 3.f;
+    dagRender->renderLine(p - Point3(r, 0, 0), p + Point3(r, 0, 0), col);
+    dagRender->renderLine(p - Point3(0, 0, r), p + Point3(0, 0, r), col);
+    dagRender->renderLine(p, p + Point3(0, 2 * r, 0), col);
+  }
 
   // a plain polygon or polyline spline is fully described by the straight overlay below, a fillet rounds corners it cannot show
   const bool show_curve = ((!poly || props.poly.smooth) && props.cornerType != -1) || hasFilletPoints();
@@ -535,6 +557,11 @@ void SplineObject::renderLines(bool opaque_pass, const Frustum &frustum)
       dagRender->renderLinesFromVbuffer(*bezierBuf, col);
     }
   }
+}
+
+bool SplineObject::isGameSplinesViewOn()
+{
+  return IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER) & gameSplineSubtypeMask;
 }
 
 void SplineObject::regenerateVBuf()
@@ -609,6 +636,33 @@ void SplineObject::render(DynRenderBuffer *db, const TMatrix4 &gtm, const Point2
   }
 }
 
+
+static String get_game_export_warning(dag::ConstSpan<RenderableEditableObject *> objects)
+{
+  int flagged = 0, bad = 0;
+  const SplineObject *lastBad = nullptr;
+  for (RenderableEditableObject *o : objects)
+    if (const SplineObject *s = RTTI_cast<SplineObject>(o); s && s->isExportable())
+    {
+      flagged++;
+      if (s->isGameExportBlocked() || !s->hasCurve())
+      {
+        bad++;
+        lastBad = s;
+      }
+    }
+  if (!bad)
+    return {};
+  if (flagged > 1)
+    return String(160,
+      "%d of %d splines with \"Export to game\" have a problem: a layer that is not exported, or fewer than two points", bad, flagged);
+  if (lastBad->isGameExportBlocked())
+    return String(256, "'%s' does not reach the game: layer '%s' is not exported", lastBad->getName(),
+      EditLayerProps::layerName(lastBad->getEditLayerIdx()));
+  if (lastBad->points.empty())
+    return String(128, "'%s' does not reach the game: it has no points", lastBad->getName());
+  return String(128, "'%s' is exported, but has a single point, so it has no curve", lastBad->getName());
+}
 
 void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID for_class_id,
   dag::ConstSpan<RenderableEditableObject *> objects)
@@ -696,7 +750,20 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
       commonGrp->setEnabledById(PID_BBOX_ALIGN_STEP, props.poly.altGeom);
       commonGrp->createSeparator(0);
     }
-    commonGrp->createCheckBox(PID_EXPORTABLE, "Export to game", props.exportable);
+    const String exportWarning = get_game_export_warning(objects);
+    if (exportWarning.empty())
+      commonGrp->createCheckBox(PID_EXPORTABLE, "Export to game", props.exportable);
+    else
+    {
+      PropPanel::ContainerPropertyControl *row = commonGrp->createContainer(-1);
+      row->setUseFixedWidthColumnsWithZeroWidthStretch();
+      row->createCheckBox(PID_EXPORTABLE, "Export to game", props.exportable);
+      row->createStaticWithIcon(-1, nullptr, false);
+      PropPanel::PropertyControlBase *icon = row->getByIndex(row->getChildCount() - 1);
+      icon->setWidth(hdpi::_pxScaled(24));
+      icon->setButtonPictureValues("warning");
+      icon->setTooltip(exportWarning);
+    }
 
     commonGrp->createCheckBox(PID_USE_FOR_NAVMESH, "Use for NavMesh", props.useForNavMesh);
     commonGrp->createEditFloat(PID_NAVMESH_STRIPE_WIDTH, "Width", props.navMeshStripeWidth);
@@ -1106,6 +1173,7 @@ void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerP
   else if (pid == PID_EXPORTABLE)
   {
     CHANGE_VAL(bool, props.exportable, getBool)
+    getObjEditor()->invalidateObjectProps();
   }
   else if (pid == PID_USE_FOR_NAVMESH)
   {

@@ -7,7 +7,7 @@ require daslib/regex
 
 
 [test]
-def test_modifications(t : T?) {
+def test_modifications(t : T?) { // nolint:STYLE038 one flat pin+fuzz arm per modification entry point under test
     t |> equal(repeat("ab", 3), "ababab")
     t |> run("fuzz repeat") @@(t : T?) {
         var fake <- Faker()

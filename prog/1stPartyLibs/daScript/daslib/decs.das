@@ -56,7 +56,7 @@ struct public Component {
 struct public EntityId {
     //! Unique identifier of the entity. Consists of id (index in the data array) and generation.
     id : uint               //! index of the entity
-    generation : int        /// generation of the entity
+    generation : int
 }
 
 struct public Archetype {
@@ -148,7 +148,7 @@ var private insideQuery : int
 
 let INVALID_ENTITY_ID = decs::EntityId()  //! Entity ID which represents invalid entity.
 
-let private MAX_ENTITY_ID = int64(0xFFFF_FFFF_l)  // EntityId.id : uint -> UINT_MAX entries. Allocation panics past this; widening is an architectural followup.
+let private MAX_ENTITY_ID = int64(0xFFFF_FFFF_l)
 
 def operator ==(a, b : decs::EntityId implicit) {
     //! Equality operator for entity IDs.
@@ -178,6 +178,7 @@ def public operator .(var cmp : ComponentMap; name : string) : ComponentValue& {
 
 def public set(var cv : ComponentValue; val : auto) {
     //! Sets individual component value. Verifies that the value is of the correct type.
+    concept_assert(typeinfo sizeof(val) <= typeinfo sizeof(cv.data), "component type {typeinfo typename(val)} is too big for ComponentValue.data, which holds float4[4]")
     let cval = make_component(cv.name, val)
     assert(cv.info.hash == 0ul || cv.info.hash == cval.info.hash)
     cv = cval
@@ -362,7 +363,7 @@ def public register_decs_stage_call(name : string; pcall : PassFunction) {
         decsPasses[idx].calls |> push(pcall)
     } else {
         dpass.calls |> push(pcall)
-        decsPasses |> emplace(dpass, idx)    // insert new one
+        decsPasses |> emplace(dpass, idx)
     }
 }
 
@@ -406,7 +407,6 @@ def private new_entity_id() {
         eid = decsState.entityFreeList[long_length(decsState.entityFreeList) - 1_l]
         decsState.entityFreeList |> pop
     } else {
-        // EntityId.id is uint; cap at UINT_MAX entities to avoid silent wrap to INVALID_ENTITY_ID. Widening EntityId.id to uint64 is an architectural followup; for now the panic surfaces the limit loudly instead of corrupting state.
         let next_id = long_length(decsState.entityLookup)
         if (next_id > MAX_ENTITY_ID) {
             panic("decs: entityLookup reached UINT_MAX entries ({next_id}); EntityId.id (uint) widening is required to allocate more")
@@ -468,10 +468,8 @@ def public debug_dump_writer(var writer : StringBuilderWriter) {
             for (c in arch.components) {
                 if (c.info.dumper != null) {
                     let offset = index * int64(c.stride)
-                    unsafe {
-                        let dump = invoke(c.info.dumper, addr(c.data[offset]))
-                        writer |> write("\t\t{c.name} : {describe(c.info)} = {dump}\n")
-                    }
+                    let dump = invoke(c.info.dumper, unsafe(addr(c.data[offset])))
+                    writer |> write("\t\t{c.name} : {describe(c.info)} = {dump}\n")
                 } else {
                     writer |> write("\t\t{c.name} : {describe(c.info)}\n")
                 }
@@ -560,7 +558,7 @@ def private create_entity(var arch : Archetype; eid : EntityId; cmp : ComponentM
 def private remove_entity(var arch : Archetype; di : int64) {
     //! Removes entity at specified index from the archetype.
     arch.size --
-    if (di != arch.size) {// copy last one in the hole
+    if (di != arch.size) {
         let eid_last_id = get_eid(arch, arch.size).id
         decsState.entityLookup[eid_last_id].index = di
         for (c in arch.components) {
@@ -612,8 +610,8 @@ def private can_process_request(var erq : EcsRequest; arch : Archetype) {
 
 def public verify_request(var erq : EcsRequest) : tuple<ok : bool; error : string> {
     //! Verifies ECS request. Returns pair of boolean (true for OK) and error message.
-    if (erq.hash == 0ul || (empty(erq.req) && empty(erq.reqn))) return (ok = true, error = "")     // this queries just about everything
-    for (N in erq.reqn) {// assuming require_not is typically shorter
+    if (erq.hash == 0ul || (empty(erq.req) && empty(erq.reqn))) return (ok = true, error = "")
+    for (N in erq.reqn) {
         if (erq.req |> binary_search(N)) return (ok = false, error = "duplicate req and neq {N}")
     }
     return (ok = true, error = "")
@@ -673,7 +671,6 @@ def public for_eid_archetype(eid : EntityId implicit; hash : ComponentHash; var 
     if (binary_search(decsState.ecsQueries[qi].archetypes, aidx - 1)) {
         var arch & = unsafe(decsState.allArchetypes[aidx - 1])
         assert(arch.size > 0_l)
-        // blk takes index:int — public API stability. After the cascade widening (commit 2), lookup.index can hold int64 values up to UINT_MAX, so the cast below would silently truncate past INT_MAX. Loudly panic instead;
         if (lookup.index > int64(INT_MAX)) {
             panic("decs: for_eid_archetype index {lookup.index} exceeds INT_MAX (blk takes int); widening blk to int64 is a follow-up")
         }
@@ -725,14 +722,11 @@ def public for_each_archetype_find(hash : ComponentHash; var erq : function<() :
     return false
 }
 
-// [template(atype)]
 [unsafe_operation]
 def decs_array(atype : auto(TT); src : array<uint8>; capacity : int64) {
     //! Low level function returns temporary array of component given specific type of component.
     //! capacity is int64 — archetypes can hold >INT_MAX entities (Phase 8c widening).
     assert(!empty(src))
-    // TT is the full component type either way - a generic alias binds the whole
-    // matched type, fixed arrays included
     var dest : array<TT -const -& -#>
     unsafe {
         _builtin_make_temp_array_i64(dest, addr(src[0]), capacity)
@@ -797,8 +791,6 @@ def public get_default_ro(arch : Archetype; name : string; value : auto(TT)) : i
             }
         }
     }
-    // repeat_ref takes int count (daslib/functional.das). Cap at INT_MAX with a loud
-    // panic on overflow — widening repeat/repeat_ref to int64 is a separate followup.
     if (arch.size > int64(INT_MAX)) {
         panic("decs: get_default_ro fallback over {arch.size} entities exceeds INT_MAX (repeat_ref int64 widening is a follow-up)")
     }
@@ -825,8 +817,6 @@ def public get_optional(arch : Archetype; name : string; value : auto(TT)?) : it
             return <- it
         }
     }
-    // repeat takes int count (daslib/functional.das). Cap at INT_MAX with a loud
-    // panic on overflow — widening repeat/repeat_ref to int64 is a separate followup.
     if (arch.size > int64(INT_MAX)) {
         panic("decs: get_optional fallback over {arch.size} entities exceeds INT_MAX (repeat int64 widening is a follow-up)")
     }
@@ -840,7 +830,7 @@ def private update_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var 
     let arch_index = unsafe(decsState.archetypeLookup[lookup.archetype]) - 1
     let eidx = decsState.entityLookup[eid.id].index
     var old_ahash = 0ul    // nolint:LINT010 — written inside the inner scope below, but must outlive that scope
-    {// note - this scope is for arch &
+    {
         var arch & = unsafe(decsState.allArchetypes[arch_index])
         cmp |> reserve(length(arch.components))
         for (c in arch.components) {
@@ -853,7 +843,7 @@ def private update_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var 
         old_ahash = arch.hash
     }
     invoke(blk, eid, cmp)
-    cmp |> set("eid", eid)  // necessary?
+    cmp |> set("eid", eid)
     let new_ahash = cmp_archetype_hash(cmp)
     if (old_ahash == new_ahash) {
         for (c, comp in decsState.allArchetypes[arch_index].components, cmp) {
@@ -878,7 +868,7 @@ def private create_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var 
     var cmp : ComponentMap
     cmp |> push <| make_component("eid", eid)
     invoke(blk, eid, cmp)
-    cmp |> set("eid", eid)       // necessary?
+    cmp |> set("eid", eid)
     let ahash = cmp_archetype_hash(cmp)
     with_archetype(ahash) $(var arch; idx; isNew) {
         if (isNew) {
@@ -918,6 +908,16 @@ def public create_entity(var blk : lambda<(eid : EntityId; var cmp : ComponentMa
     return eid
 }
 
+def private store_entity_row(var arch : Archetype; var cmp : ComponentMap; index : int64;
+                             eid : EntityId; ahash : uint64) {
+    for (c, comp in arch.components, cmp) {
+        unsafe {
+            memcpy(addr(c.data[index * int64(c.stride)]), addr(comp.data), c.stride)
+        }
+    }
+    decsState.entityLookup[eid.id] = (generation = eid.generation, archetype = ahash, index = index)
+}
+
 def private grow_components(var arch : Archetype; entity_count : int) {
     for (c in arch.components) {
         let newSize = long_length(c.data) + int64(c.stride) * int64(entity_count)
@@ -932,7 +932,6 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
     if (insideQuery != 0) {
         panic("decs: can't call `create_entities` from inside query")
     }
-    // First entity: build component map to establish archetype
     var cmp : ComponentMap
     var first_eid = new_entity_id()
     cmp |> push <| make_component("eid", first_eid)
@@ -945,14 +944,7 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
         }
         let base = arch.size
         arch |> grow_components(count)
-        // Fill first entity
-        for (c, comp in arch.components, cmp) {
-            unsafe {
-                memcpy(addr(c.data[base * int64(c.stride)]), addr(comp.data), c.stride)
-            }
-        }
-        decsState.entityLookup[first_eid.id] = (generation = first_eid.generation, archetype = ahash, index = base)
-        // Fill remaining entities (reuse cmp — set overwrites existing entries)
+        store_entity_row(arch, cmp, base, first_eid, ahash)
         for (i in range(1, count)) {
             var eid = new_entity_id()
             cmp |> set("eid", eid)
@@ -962,12 +954,7 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
                 panic("decs: create_entities - all entities must have the same components (entity {i} differs from entity 0)")
             }
             let eidx = base + int64(i)
-            for (c, comp in arch.components, cmp) {
-                unsafe {
-                    memcpy(addr(c.data[eidx * int64(c.stride)]), addr(comp.data), c.stride)
-                }
-            }
-            decsState.entityLookup[eid.id] = (generation = eid.generation, archetype = ahash, index = eidx)
+            store_entity_row(arch, cmp, eidx, eid, ahash)
         }
         arch.size += int64(count)
     }
@@ -984,7 +971,6 @@ def public create_entities_from_cmp(count : int; var cmp : ComponentMap;
     if (insideQuery != 0) {
         panic("decs: can't call `create_entities_from_cmp` from inside query")
     }
-    // Ensure eid component is present for archetype hash computation
     cmp |> set("eid", INVALID_ENTITY_ID)
     let ahash = cmp_archetype_hash(cmp)
     with_archetype(ahash) $(var arch; arch_idx; isNew) {
@@ -993,19 +979,13 @@ def public create_entities_from_cmp(count : int; var cmp : ComponentMap;
         }
         let base = arch.size
         arch |> grow_components(count)
-        // Bulk-create: same UINT_MAX cap as the per-entity path. Widening
-        // EntityId.id to uint64 is an architectural followup.
         let id_base_long = long_length(decsState.entityLookup)
-        // The highest id allocated is id_base + count - 1; panic only if THAT
-        // exceeds MAX_ENTITY_ID, so the boundary case (last allocatable id ==
-        // UINT_MAX) still succeeds.
         if (id_base_long + int64(count) - 1_l > MAX_ENTITY_ID) {
             panic("decs: create_entities_from_cmp would push entityLookup past UINT_MAX (current = {id_base_long}, count = {count}); EntityId.id (uint) widening is required")
         }
         let id_base = uint(id_base_long)
         decsState.entityLookup |> ensure_capacity(id_base_long + int64(count))
         decsState.entityLookup |> resize(id_base_long + int64(count))
-        // After the cascade widening, base + count can exceed INT_MAX, so a per-iteration int(eidx) cast would silently truncate. Hoist the cap check before the loop — fill_blk is part of the public API and macro- generated callers in decs_boost.das emit `eidx : int`; widening blk to int64 is the followup. Highest eidx is `base + count - 1`; the boundary case (max eidx == INT_MAX) still succeeds.
         if (base + int64(count) - 1_l > int64(INT_MAX)) {
             panic("decs: create_entities_from_cmp eidx range [{base} .. {base + int64(count)}) exceeds INT_MAX (fill_blk takes int); widening fill_blk to int64 is a follow-up")
         }
@@ -1110,7 +1090,7 @@ def public get(var cmp : ComponentMap; name : string; var value : auto(TT)) {
     return value
 }
 
-def private make_callbacks(var cv : ComponentValue; value : auto(TT)) {   // nolint:STYLE038 - one no-capture lambda per ComponentValue callback slot
+def private make_callbacks(var cv : ComponentValue; value : auto(TT)) {
     cv.info.mkTypeInfo = @@() : TypeInfo const? {
         return unsafe(addr(typeinfo rtti_typeinfo(type<array<TT -const -& -#>>)))
     }
@@ -1120,7 +1100,6 @@ def private make_callbacks(var cv : ComponentValue; value : auto(TT)) {   // nol
         return "{*pTT}"
     }
     cv.info.gc = @@(var src : array<uint8>) : lambda {
-        // the idea with this one is that we make a lambda which would capture an array of the right size and type which points to the right data and when lambda is deleted - we memzero the temp array
         var gc_dummy : array<TT -const -& -#>
         let stride = typeinfo sizeof(type<TT -const -& -#>)
         let size = length(src) / stride
@@ -1208,16 +1187,16 @@ def private make_component(name : string; value : auto(TT)) {
 def public set(var cmp : ComponentMap; name : string; value : auto(TT)) {
     //! Set component value specified by name and type.
     //! If value already exists, it is overwritten. If already existing value type is not the same - panic.
-    concept_assert(typeinfo sizeof(value) <= typeinfo sizeof(cmp[0].data), "unsupported component type {typeinfo typename(value)} (its too big)")
+    concept_assert(typeinfo sizeof(value) <= typeinfo sizeof(cmp[0].data), "component type {typeinfo typename(value)} is too big for ComponentValue.data, which holds float4[4]")
     let cv = make_component(name, value)
     let idx = lower_bound(cmp, ComponentValue(name = name)) <| $(x, y) => x.name < y.name
     if (idx < length(cmp) && cmp[idx].name == name) {
         if (cmp[idx].info.hash != cv.info.hash) {
             panic("decs: set component {name} type mismatch, expecting {describe(cmp[idx].info)} vs vs {describe(cv.info)} MNH={cv.info.mangledName} hash={cv.info.hash} size={cv.info.size}")
         }
-        cmp[idx] = cv           // overwrite
+        cmp[idx] = cv
     } else {
-        cmp |> push(cv, idx)    // insert new one
+        cmp |> push(cv, idx)
     }
 }
 

@@ -254,6 +254,19 @@ def test_parse_errors(t : T?) {
         var js = read_json("   ", error)
         t |> equal(js == null, true)
     }
+    t |> run("RFC 8259 whitespace between tokens is accepted") @(t : T?) {
+        for (name, ws in ["space", "tab", "newline", "carriage return"], [" ", "\t", "\n", "\r"]) {
+            var error : string
+            var js = read_json("[1,{ws}2]", error)
+            t |> success(js != null, "{name} separates tokens")
+            t |> equal(error, "")
+        }
+    }
+    t |> run("form feed and vertical tab are NOT json whitespace") @(t : T?) {
+        // the shared is_white_space classifier accepts both; the json lexer must not
+        parse_expect_fail("[1,\f2]", t)
+        parse_expect_fail("[1,\v2]", t)
+    }
     t |> run("unterminated string") @(t : T?) {
         parse_expect_fail("\"hello", t)
     }
@@ -274,6 +287,22 @@ def test_parse_errors(t : T?) {
     }
     t |> run("trailing comma in array rejected") @(t : T?) {
         parse_expect_fail("[1, 2, ]", t)
+    }
+    t |> run("a string that looks like a close bracket does not open an empty array") @(t : T?) {
+        parse_expect_fail("[[1 \"]\"]", t)
+        parse_expect_fail("[[1 \"] fake\"]]", t)
+        parse_expect_fail("[\{\"a\":1 \"] fake\"}]", t)
+    }
+    t |> run("a value after an open bracket is still required") @(t : T?) {
+        parse_expect_fail("[\{]", t)
+        parse_expect_fail("[[\{]]", t)
+    }
+    t |> run("empty array nests and mixes") @(t : T?) {
+        var js = parse("[[], \{\}, []]", t)
+        t |> equal(length(js as _array), 3)
+        t |> equal((js as _array)[0] is _array, true)
+        t |> equal(length((js as _array)[0] as _array), 0)
+        t |> equal((js as _array)[1] is _object, true)
     }
     t |> run("duplicate keys rejected by default") @(t : T?) {
         let input = "\{ \"a\": 1, \"a\": 2 \}"
@@ -523,31 +552,31 @@ def operator ==(a, b : TestStruct) {
 def test_from_jv(t : T?) {
     t |> run("from_JV int") @(t : T?) {
         var js = JV(42)
-        t |> equal(from_JV(js, type<int>), 42)
+        t |> equal(from_JV(js, type<int>), 42) // nolint:STYLE020 from_JV is the subject; ?? would assert its own default
     }
     t |> run("from_JV float") @(t : T?) {
         var js = JV(3.14)
-        t |> equal(from_JV(js, type<float>) > 3.0, true)
+        t |> equal(from_JV(js, type<float>) > 3.0, true) // nolint:STYLE020 from_JV is the subject
     }
     t |> run("from_JV string") @(t : T?) {
         var js = JV("hello")
-        t |> equal(from_JV(js, type<string>), "hello")
+        t |> equal(from_JV(js, type<string>), "hello") // nolint:STYLE020 from_JV is the subject
     }
     t |> run("from_JV bool") @(t : T?) {
         var js = JV(true)
-        t |> equal(from_JV(js, type<bool>), true)
+        t |> equal(from_JV(js, type<bool>), true) // nolint:STYLE020 from_JV is the subject
     }
     t |> run("from_JV null returns default") @(t : T?) {
         var js : JsonValue?
-        t |> equal(from_JV(js, type<int>), 0)
-        t |> equal(from_JV(js, type<string>), "")
-        t |> equal(from_JV(js, type<bool>), false)
+        t |> equal(from_JV(js, type<int>), 0) // nolint:STYLE020 from_JV's own default is the subject
+        t |> equal(from_JV(js, type<string>), "") // nolint:STYLE020 from_JV's own default is the subject
+        t |> equal(from_JV(js, type<bool>), false) // nolint:STYLE020 from_JV's own default is the subject
     }
     t |> run("from_JV struct") @(t : T?) {
         let input = "\{ \"name\": \"test\", \"value\": 42, \"score\": 3.14 \}"
         var error : string
         var js = read_json(input, error)
-        var result = from_JV(js, type<TestStruct>)
+        let result = from_JV(js, type<TestStruct>)
         t |> equal(result.name, "test")
         t |> equal(result.value, 42)
         t |> equal(result.score > 3.0, true)
@@ -555,7 +584,7 @@ def test_from_jv(t : T?) {
     t |> run("from_JV array") @(t : T?) {
         var error : string
         var js = read_json("[1, 2, 3]", error)
-        var result = from_JV(js, type<array<int>>)
+        let result = from_JV(js, type<array<int>>)
         t |> equal(length(result), 3)
         t |> equal(result[0], 1)
         t |> equal(result[1], 2)
@@ -572,17 +601,17 @@ def test_jv_complex(t : T?) {
     t |> run("JV struct roundtrip") @(t : T?) {
         let s = TestStruct(name = "test", value = 42, score = 1.5)
         var js = JV(s)
-        var result = from_JV(js, type<TestStruct>)
+        let result = from_JV(js, type<TestStruct>)
         t |> equal(result, s)
     }
     t |> run("JV array") @(t : T?) {
-        var arr <- array<int>(1, 2, 3)
+        let arr <- array<int>(1, 2, 3)
         var js = JV(arr)
         t |> equal(js is _array, true)
         t |> equal(length(js as _array), 3)
     }
     t |> run("JV table") @(t : T?) {
-        var tab <- {"one" => 1, "two" => 2}
+        let tab <- {"one" => 1, "two" => 2}
         var js = JV(tab)
         t |> equal(js is _object, true)
     }
@@ -771,6 +800,16 @@ def test_fix_broken_json(t : T?) {
         var js = read_json(fixed, error)
         t |> success(js != null)
     }
+    t |> run("input ending in a backslash outside a string") @(t : T?) {
+        let backslash = "\\"
+        t |> equal(try_fixing_broken_json(backslash), backslash)
+        t |> equal(try_fixing_broken_json("[1,2]" + backslash), "[1,2]" + backslash)
+        t |> equal(try_fixing_broken_json("\{\}" + backslash), "\{\}" + backslash)
+    }
+    t |> run("a unicode escape outside a string is still skipped") @(t : T?) {
+        let backslash = "\\"
+        t |> equal(try_fixing_broken_json("[1," + backslash + "u0020 2]"), "[1, 2]")
+    }
 }
 
 // ============================================================
@@ -797,13 +836,13 @@ def test_variant_json(t : T?) {
         let s = Shape(circle = 5.0)
         var js = JV(s)
         t |> equal(js is _object, true)
-        var result = from_JV(js, type<Shape>)
+        let result = from_JV(js, type<Shape>)
         t |> equal(result, s)
     }
     t |> run("variant rect roundtrip") @(t : T?) {
         let s = Shape(rect = float2(3.0, 4.0))
         var js = JV(s)
-        var result = from_JV(js, type<Shape>)
+        let result = from_JV(js, type<Shape>)
         t |> equal(result, s)
     }
 }

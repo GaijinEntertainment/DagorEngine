@@ -14,7 +14,7 @@ def verify_match(t : T?; a : BoolArray; b : array<bool>; context_msg : string) {
 }
 
 [test]
-def test_basic(t : T?) {
+def test_basic(t : T?) {   // nolint:STYLE038 - flat list of independent BoolArray operation arms
     t |> run("clear_and_length") @@(t : T?) {
         var a : BoolArray
         t |> equal(a.length(), 0)
@@ -117,7 +117,7 @@ def test_basic(t : T?) {
 }
 
 [test]
-def test_resize(t : T?) {
+def test_resize(t : T?) {   // nolint:STYLE038 - flat list of independent resize arms
     t |> run("resize_grow_zeros") @@(t : T?) {
         var a : BoolArray
         for (size in range(0, 130)) {
@@ -185,11 +185,8 @@ def test_resize(t : T?) {
     }
     t |> run("resize_boundary_31_32_33") @@(t : T?) {
         var a : BoolArray
-        var boundaries : array<int>
-        boundaries |> push(31); boundaries |> push(32); boundaries |> push(33)
-        boundaries |> push(63); boundaries |> push(64); boundaries |> push(65)
-        for (bi in range(length(boundaries))) {
-            let boundary = boundaries[bi]
+        let boundaries = [31, 32, 33, 63, 64, 65]
+        for (boundary in boundaries) {
             a.clear()
             a.resize(boundary)
             for (j in range(boundary)) {
@@ -208,7 +205,7 @@ def test_resize(t : T?) {
 }
 
 [test]
-def test_erase(t : T?) {
+def test_erase(t : T?) {   // nolint:STYLE038 - flat list of independent erase arms
     t |> run("erase_vs_reference") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
@@ -216,6 +213,7 @@ def test_erase(t : T?) {
             for (erase_i in range(len)) {
                 a.clear()
                 b |> clear()
+                b |> reserve(len)
                 for (i in range(len)) {
                     a.push(i % 2 == 0)
                     b |> push(i % 2 == 0)
@@ -229,15 +227,13 @@ def test_erase(t : T?) {
     t |> run("erase_all_true") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
-        var lens : array<int>
-        lens |> push(1); lens |> push(31); lens |> push(32); lens |> push(33)
-        lens |> push(63); lens |> push(64); lens |> push(65)
-        for (li in range(length(lens))) {
-            let len = lens[li]
+        let lens = [1, 31, 32, 33, 63, 64, 65]
+        for (len in lens) {
             for (erase_i in range(len)) {
                 a.clear()
                 b |> clear()
-                for (i in range(len)) {
+                b |> reserve(len)
+                for (_i in range(len)) {
                     a.push(true)
                     b |> push(true)
                 }
@@ -250,15 +246,13 @@ def test_erase(t : T?) {
     t |> run("erase_all_false") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
-        var lens : array<int>
-        lens |> push(1); lens |> push(31); lens |> push(32); lens |> push(33)
-        lens |> push(63); lens |> push(64); lens |> push(65)
-        for (li in range(length(lens))) {
-            let len = lens[li]
+        let lens = [1, 31, 32, 33, 63, 64, 65]
+        for (len in lens) {
             for (erase_i in range(len)) {
                 a.clear()
                 b |> clear()
-                for (i in range(len)) {
+                b |> reserve(len)
+                for (_i in range(len)) {
                     a.push(false)
                     b |> push(false)
                 }
@@ -271,14 +265,13 @@ def test_erase(t : T?) {
     t |> run("erase_single_true_bit") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
-        var lens : array<int>
-        lens |> push(2); lens |> push(31); lens |> push(32); lens |> push(33)
-        for (li in range(length(lens))) {
-            let len = lens[li]
+        let lens = [2, 31, 32, 33]
+        for (len in lens) {
             for (true_pos in range(len)) {
                 for (erase_i in range(len)) {
                     a.clear()
                     b |> clear()
+                    b |> reserve(len)
                     for (i in range(len)) {
                         a.push(i == true_pos)
                         b |> push(i == true_pos)
@@ -294,6 +287,7 @@ def test_erase(t : T?) {
         var a : BoolArray
         var b : array<bool>
         let len = 67
+        b |> reserve(len)
         for (i in range(len)) {
             a.push(i % 3 == 0)
             b |> push(i % 3 == 0)
@@ -309,6 +303,7 @@ def test_erase(t : T?) {
         var a : BoolArray
         var b : array<bool>
         let len = 67
+        b |> reserve(len)
         for (i in range(len)) {
             a.push(i % 5 == 0)
             b |> push(i % 5 == 0)
@@ -325,14 +320,11 @@ def test_erase(t : T?) {
         var a : BoolArray
         var b : array<bool>
         let len = 96
-        var positions : array<int>
-        positions |> push(0); positions |> push(30); positions |> push(31); positions |> push(32)
-        positions |> push(33); positions |> push(62); positions |> push(63); positions |> push(64)
-        positions |> push(65)
-        for (pi in range(length(positions))) {
-            let erase_at = positions[pi]
+        let positions = [0, 30, 31, 32, 33, 62, 63, 64, 65]
+        for (erase_at in positions) {
             a.clear()
             b |> clear()
+            b |> reserve(len)
             for (i in range(len)) {
                 a.push(i % 2 == 0)
                 b |> push(i % 2 == 0)
@@ -345,7 +337,7 @@ def test_erase(t : T?) {
 }
 
 [test]
-def test_insert(t : T?) {
+def test_insert(t : T?) {   // nolint:STYLE038 - flat list of independent insert arms
     t |> run("insert_vs_reference") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
@@ -354,6 +346,7 @@ def test_insert(t : T?) {
                 // test both true and false
                 a.clear()
                 b |> clear()
+                b |> reserve(len + 1)
                 for (i in range(len)) {
                     a.push(i % 2 == 0)
                     b |> push(i % 2 == 0)
@@ -377,15 +370,13 @@ def test_insert(t : T?) {
     t |> run("insert_all_true") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
-        var lens : array<int>
-        lens |> push(1); lens |> push(31); lens |> push(32); lens |> push(33)
-        lens |> push(63); lens |> push(64); lens |> push(65)
-        for (li in range(length(lens))) {
-            let len = lens[li]
+        let lens = [1, 31, 32, 33, 63, 64, 65]
+        for (len in lens) {
             for (insert_i in range(len)) {
                 a.clear()
                 b |> clear()
-                for (i in range(len)) {
+                b |> reserve(len + 1)
+                for (_i in range(len)) {
                     a.push(true)
                     b |> push(true)
                 }
@@ -398,6 +389,7 @@ def test_insert(t : T?) {
     t |> run("insert_at_zero_repeatedly") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
+        b |> reserve(67)
         a.push(false)
         b |> push(false)
         for (i in range(1, 67)) {
@@ -411,15 +403,12 @@ def test_insert(t : T?) {
         var a : BoolArray
         var b : array<bool>
         let len = 96
-        var positions : array<int>
-        positions |> push(0); positions |> push(30); positions |> push(31); positions |> push(32)
-        positions |> push(33); positions |> push(62); positions |> push(63); positions |> push(64)
-        positions |> push(65)
-        for (pi in range(length(positions))) {
-            let insert_at = positions[pi]
+        let positions = [0, 30, 31, 32, 33, 62, 63, 64, 65]
+        for (insert_at in positions) {
             // test true
             a.clear()
             b |> clear()
+            b |> reserve(len + 1)
             for (i in range(len)) {
                 a.push(i % 2 == 0)
                 b |> push(i % 2 == 0)
@@ -443,7 +432,8 @@ def test_insert(t : T?) {
         var a : BoolArray
         var b : array<bool>
         let len = 96
-        for (i in range(len)) {
+        b |> reserve(len + 1)
+        for (_i in range(len)) {
             a.push(true)
             b |> push(true)
         }
@@ -454,13 +444,11 @@ def test_insert(t : T?) {
     t |> run("insert_then_erase_roundtrip") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
-        var lens : array<int>
-        lens |> push(1); lens |> push(31); lens |> push(32); lens |> push(33)
-        lens |> push(64); lens |> push(65)
-        for (li in range(length(lens))) {
-            let len = lens[li]
+        let lens = [1, 31, 32, 33, 64, 65]
+        for (len in lens) {
             a.clear()
             b |> clear()
+            b |> reserve(len)
             for (i in range(len)) {
                 a.push(i % 3 == 0)
                 b |> push(i % 3 == 0)
@@ -475,13 +463,11 @@ def test_insert(t : T?) {
     t |> run("erase_then_insert_roundtrip") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
-        var lens : array<int>
-        lens |> push(2); lens |> push(31); lens |> push(32); lens |> push(33)
-        lens |> push(64); lens |> push(65)
-        for (li in range(length(lens))) {
-            let len = lens[li]
+        let lens = [2, 31, 32, 33, 64, 65]
+        for (len in lens) {
             a.clear()
             b |> clear()
+            b |> reserve(len)
             for (i in range(len)) {
                 a.push(i % 3 == 0)
                 b |> push(i % 3 == 0)
@@ -506,6 +492,7 @@ def test_push(t : T?) {
                 // test true
                 a.clear()
                 b |> clear()
+                b |> reserve(len + 1)
                 for (i in range(len)) {
                     a.push(i % 2 == 0)
                     b |> push(i % 2 == 0)
@@ -529,6 +516,7 @@ def test_push(t : T?) {
     t |> run("push_at_end") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
+        b |> reserve(67)
         for (i in range(67)) {
             let val = i % 4 == 0
             a.push(val, a.length())
@@ -538,7 +526,7 @@ def test_push(t : T?) {
     }
     t |> run("push_pop_cycle") @@(t : T?) {
         var a : BoolArray
-        for (cycle in range(3)) {
+        for (_cycle in range(3)) {
             for (i in range(100)) {
                 a.push(i % 2 == 0)
             }
@@ -557,19 +545,32 @@ def test_iterator(t : T?) {
     t |> run("iterator_empty") @@(t : T?) {
         var a : BoolArray
         var count = 0
-        for (b in a) {
-            count += 1
+        for (_b in a) {
+            count ++
         }
         t |> equal(count, 0)
     }
+    t |> run("iterator_whole_words") @@(t : T?) {
+        var a : BoolArray
+        let sizes = [32, 64, 96, 128]
+        for (size in sizes) {
+            a.clear()
+            a.resize(size)
+            for (i in range(size)) {
+                a[i] = (i % 7) == 0
+            }
+            var idx = 0
+            for (b in a) {
+                t |> equal(b, (idx % 7) == 0)
+                idx ++
+            }
+            t |> equal(idx, size)
+        }
+    }
     t |> run("iterator_various_sizes") @@(t : T?) {
         var a : BoolArray
-        var sizes : array<int>
-        sizes |> push(1); sizes |> push(2); sizes |> push(31); sizes |> push(32)
-        sizes |> push(33); sizes |> push(63); sizes |> push(64); sizes |> push(65)
-        sizes |> push(100)
-        for (si in range(length(sizes))) {
-            let size = sizes[si]
+        let sizes = [1, 2, 31, 32, 33, 63, 64, 65, 96, 100, 128]
+        for (size in sizes) {
             a.clear()
             for (i in range(size)) {
                 a.push(i % 3 == 0)
@@ -577,32 +578,32 @@ def test_iterator(t : T?) {
             var idx = 0
             for (b in a) {
                 t |> equal(b, idx % 3 == 0)
-                idx += 1
+                idx ++
             }
             t |> equal(idx, size)
         }
     }
     t |> run("iterator_all_true") @@(t : T?) {
         var a : BoolArray
-        for (i in range(65)) {
+        for (_i in range(65)) {
             a.push(true)
         }
         var count = 0
         for (b in a) {
             t |> equal(b, true)
-            count += 1
+            count ++
         }
         t |> equal(count, 65)
     }
     t |> run("iterator_all_false") @@(t : T?) {
         var a : BoolArray
-        for (i in range(65)) {
+        for (_i in range(65)) {
             a.push(false)
         }
         var count = 0
         for (b in a) {
             t |> equal(b, false)
-            count += 1
+            count ++
         }
         t |> equal(count, 65)
     }
@@ -613,6 +614,7 @@ def test_stress(t : T?) {
     t |> run("build_with_insert_only") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
+        b |> reserve(100)
         a.push(false)
         b |> push(false)
         for (i in range(1, 100)) {
@@ -625,6 +627,7 @@ def test_stress(t : T?) {
     t |> run("alternating_insert_erase") @@(t : T?) {
         var a : BoolArray
         var b : array<bool>
+        b |> reserve(50)
         for (i in range(50)) {
             a.push(i % 2 == 0)
             b |> push(i % 2 == 0)
@@ -650,7 +653,8 @@ def test_stress(t : T?) {
         var a : BoolArray
         var b : array<bool>
         var seed = 12345u
-        for (i in range(200)) {
+        b |> reserve(200)
+        for (_i in range(200)) {
             seed = seed * 1103515245u + 12345u
             let val = (seed & 0x10000u) != 0u
             a.push(val)

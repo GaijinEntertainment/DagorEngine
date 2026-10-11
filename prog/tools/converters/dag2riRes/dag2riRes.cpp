@@ -94,7 +94,7 @@ static inline void addComposit(const char *name, const TMatrix &tm, const char *
 
 static inline void generateComposit(DataBlock &compositBlk)
 {
-  Point3 c0((boxX.x + boxX.y) / 2.0, 0, (boxY.x + boxY.y) / 2.0);
+  Point3 c0((boxX.x + boxX.y) / 2.0f, 0, (boxY.x + boxY.y) / 2.0f);
 
   const int cnt = compObj.size();
   for (int i = 0; i < cnt; i++)
@@ -235,9 +235,9 @@ static bool convertTexture(const char *src_fn, const char *dest_fn, bool fast_te
   cnv.mipmapCount = ddstexture::Converter::AllMipMaps;
 
   FullFileSaveCB cwr(dest_fn);
-  if (!cwr.fileHandle)
-    return false;
-  return cnv.convertImage(cwr, (TexPixel32 *)(img + 1), img->w, img->h, img->w * 4, true, 0);
+  const bool ok = cwr.fileHandle && cnv.convertImage(cwr, (TexPixel32 *)(img + 1), img->w, img->h, img->w * 4, true, 0);
+  memfree(img, tmpmem);
+  return ok;
 }
 
 static void addObject(Node &n, const char *name, const DataBlock &obj_blk)

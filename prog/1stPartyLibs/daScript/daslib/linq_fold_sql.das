@@ -10,9 +10,9 @@ module linq_fold_sql shared public
 //! materialized full-table ``array<Row>`` in memory. There is no emitting adapter — ``_sql`` is a
 //! complete parallel lowering; this module only recognizes the source. Companion to
 //! ``daslib/linq_fold``; provider-neutral (matches the ``[sql_table]`` annotation, not a runner
-//! type), so it loads unconditionally. See daslib/linq_fold.md.
+//! type), so it loads unconditionally. See daslib/ARCHITECTURE_LINQ.md sec. 37.
 
-require daslib/linq_fold_common public   // get_call_short_name + AST types
+require daslib/linq_fold_common public
 require daslib/ast_boost
 require daslib/ast
 
@@ -31,7 +31,6 @@ def sql_linq_loaded(prog : ProgramPtr) : bool {
 }
 
 def private is_sql_table_select(c : ExprCall?) : bool {
-    // Gate on a SQL-table annotation so an unrelated `select_from`-named function is never mistaken for SQL.
     if (c._type == null || !c._type.isGoodArrayType || c._type.firstType == null) return false
     let st = c._type.firstType.structType
     if (st == null) return false
@@ -42,9 +41,6 @@ def private is_sql_table_select(c : ExprCall?) : bool {
     return false
 }
 
-// Walk the chain's `arguments[0]` (piped-source) spine to its bottom, looking for a `[sql_table]`
-// `select_from`. Not linq_fold's flattened `top`: the SQL DSL ops (`_where`/`_select`/`_join`/...) aren't
-// in `linqCalls`, so flatten stops at the first one and never reaches the source. Returns it, or null.
 [macro_function]
 def extract_sql_source(var expr : Expression?) : ExprCall? {
     var e = expr

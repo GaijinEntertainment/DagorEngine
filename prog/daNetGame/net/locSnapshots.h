@@ -9,11 +9,16 @@
 
 struct LocSnapshot
 {
-  Quat quat;
-  Point3 pos;
-  double atTime;
-  float interval;
-  bool blink;
+  Quat quat = Quat(0, 0, 0, 1);
+  Point3 pos = Point3(0, 0, 0);
+  // not decoded by common DNG code
+  uint8_t wishVelocityYaw = 0;
+  uint8_t wishSpeed = 0;
+  uint8_t wishLookYaw = 0;
+  bool hasWish = false;
+  double atTime = 0;
+  float interval = 0;
+  bool blink = false;
 
   bool operator==(const LocSnapshot &rhs) const
   {

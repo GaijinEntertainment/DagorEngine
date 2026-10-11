@@ -6,9 +6,9 @@
 
 using namespace HumanInput;
 
-IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput, bool remap_360)
+IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads)
 {
-  HidJoystickClassDriver *cd = new (inimem) HidJoystickClassDriver(exclude_xinput, remap_360);
+  HidJoystickClassDriver *cd = new (inimem) HidJoystickClassDriver(exclude_xinput, remap_360, exclude_sony_pads);
   if (!cd->init())
   {
     delete cd;

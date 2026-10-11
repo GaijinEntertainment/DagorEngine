@@ -7,8 +7,11 @@
 #include "daScript/daScriptModule.h"
 #include "daScript/misc/handle_registry.h"
 #include "daScript/simulate/simulate_fusion.h"
+#include "daScript/ast/dyn_modules.h"
+#include "daScript/ast/ast_serializer.h"
 
 #include <atomic>
+#include <mutex>
 
 namespace das {
 
@@ -59,35 +62,9 @@ namespace das {
         }
     }
 
-    // ANNOTATION
-
-    const AnnotationArgument * AnnotationArgumentList::find ( const string & name, Type type ) const {
-        auto it = find_if(begin(), end(), [&](const AnnotationArgument & arg){
-            return (arg.name==name) && (type==Type::tVoid || type==arg.type);
-        });
-        return it==end() ? nullptr : &*it;
-    }
-
-    bool AnnotationArgumentList::getBoolOption(const string & name, bool def) const {
-        auto arg = find(name, Type::tBool);
-        return arg ? arg->bValue : def;
-    }
-
-    int32_t AnnotationArgumentList::getIntOption(const string & name, int32_t def) const {
-        auto arg = find(name, Type::tInt);
-        return arg ? arg->iValue : def;
-    }
-
-    uint64_t AnnotationArgumentList::getUInt64Option(const string & name, uint64_t def) const {
-        auto arg = find(name, Type::tInt);
-        return arg ? uint64_t(arg->iValue) : def;
-    }
-
-    uint64_t AnnotationArgumentList::getUInt64OptionEx(const string & name, const string & name2, uint64_t def) const {
-        auto arg = find(name, Type::tInt);
-        if (arg) return uint64_t(arg->iValue);
-        arg = find(name2, Type::tInt);
-        return arg ? uint64_t(arg->iValue) : def;
+    bool isPlainIdentifier ( const string & name ) {
+        if ( name.empty() ) return false;
+        return isalpha(uint8_t(name[0])) || name[0]=='_';
     }
 
     // MODULE
@@ -114,6 +91,17 @@ namespace das {
 
     FileInfo * Module::getFileInfo() const {
         return ownFileInfo.get();
+    }
+
+    TypeAnnotation * TypeInfo::getAnnotation() const {
+        if ( type != Type::tHandle ) {
+            return nullptr;
+        }
+        return Module::resolveAnnotation(this);
+    }
+
+    void TypeInfo::resolveAnnotation() const {
+        if ( daScriptEnvironment::getBound()->modules ) Module::resolveAnnotation(this);
     }
 
     TypeAnnotation * Module::resolveAnnotation ( const TypeInfo * info ) {
@@ -143,25 +131,18 @@ namespace das {
     }
 
     atomic<int> g_envTotal(0);
+    atomic<bool> g_exitingNow(false);
 
     static void daslang_atexit_audit() {
         int n = g_envTotal.load();
-        if ( n != 0 ) {
+        if ( n != 0 && !g_exitingNow.load() ) {
             fprintf(stderr, "[daslang atexit] FATAL: g_envTotal=%d at exit (Initialize/Shutdown not balanced)\n", n);
             _Exit(1);
         }
     }
 
-    void Module::Initialize() {
-        daScriptEnvironment::ensure();
-        static bool atexit_registered = (atexit(daslang_atexit_audit), true);
-        (void)atexit_registered;
-        g_envTotal ++;
-
-        if (daScriptEnvironment::getBound()->modules == nullptr) {
-            DAS_FATAL_ERROR("No modules founds. You should add modules before call that function.");
-        }
-
+    bool Module::InitializeDependencies ( string & notInitialized ) {
+        notInitialized.clear();
         // InitDependencies do not add new modules.
         vector<bool> mod_state;
         bool any = true;
@@ -184,17 +165,81 @@ namespace das {
                 }
             }
         }
-        if (!any) {
-            // Some modules was not initialized!
-            size_t i = 0;
-            string error = "";
-            for ( auto m = daScriptEnvironment::getBound()->modules; m ; m = m->next, i++ ) {
-                DAS_ASSERT(mod_state.size() == i);
-                if (!mod_state.at(i)) {
-                    error += " " + m->name;
-                }
+        if ( all ) return true;
+        size_t i = 0;
+        for ( auto m = daScriptEnvironment::getBound()->modules; m ; m = m->next, i++ ) {
+            DAS_ASSERT(mod_state.size() > i);
+            if (!mod_state.at(i)) {
+                notInitialized += " " + m->name;
             }
-            DAS_FATAL_ERROR("Unable to initialize some modules:%s\n", error.c_str());
+        }
+        // A module that never initializes usually failed Module::require on a dependency
+        // whose .shared_module dlopen failed QUIETLY during the startup scan. Name those
+        // load failures (with their dlerror) so this doesn't read as a missing C++ module.
+        auto pendingNote = describe_pending_dynamic_modules();
+        if ( !pendingNote.empty() ) {
+            notInitialized += "\nnote: these dynamic modules failed to load - an unresolved dependency may live in one of them:\n" + pendingNote;
+        }
+        return false;
+    }
+
+    static std::atomic<DeferredModuleLoader> g_deferredModuleLoader { nullptr };
+
+    void setDeferredModuleLoader ( DeferredModuleLoader loader ) {
+        g_deferredModuleLoader.store(loader);
+    }
+
+    DeferredModuleLoader getDeferredModuleLoader () {
+        return g_deferredModuleLoader.load();
+    }
+
+    bool guardModuleAvailable ( const string & name ) {
+        if ( Module::requireEx(name, false) ) return true;
+        auto loader = g_deferredModuleLoader.load();
+        return loader && loader(name) && Module::requireEx(name, false);
+    }
+
+    // src/ast/ARCHITECTURE.md#module-scan-manifest - process-wide, like the native paths: a descriptor registers once per process
+    static das_map<string, vector<ModuleGroupMember>> g_moduleGroups;
+    static mutex g_moduleGroupsMutex;
+
+    void registerModuleGroupMember ( const string & group, const string & member, const string & guard ) {
+        lock_guard<mutex> guard_(g_moduleGroupsMutex);
+        auto & members = g_moduleGroups[group];
+        for ( auto & m : members ) {
+            if ( m.member == member ) return;
+        }
+        members.push_back({member, guard});
+    }
+
+    vector<ModuleGroupMember> getModuleGroupMembers ( const string & group ) {
+        lock_guard<mutex> guard(g_moduleGroupsMutex);
+        auto it = g_moduleGroups.find(group);
+        if ( it == g_moduleGroups.end() ) return vector<ModuleGroupMember>();
+        vector<ModuleGroupMember> members = it->second;
+        sort(members.begin(), members.end(), [](const ModuleGroupMember & a, const ModuleGroupMember & b){
+            return a.member < b.member;
+        });
+        return members;
+    }
+
+    void Module::Initialize() {
+        daScriptEnvironment::ensure();
+        static bool atexit_registered = (atexit(daslang_atexit_audit), true);
+        (void)atexit_registered;
+        g_envTotal ++;
+
+        if (daScriptEnvironment::getBound()->modules == nullptr) {
+            DAS_FATAL_ERROR("No modules founds. You should add modules before call that function.");
+        }
+
+        string notInitialized;
+        if ( !InitializeDependencies(notInitialized) ) {
+            // a half-warm tree: a descriptor compiled cold loaded its module, its dependency's replayed row waits (src/ast/ARCHITECTURE.md#module-scan-manifest)
+            load_all_deferred_dynamic_modules();
+            if ( !InitializeDependencies(notInitialized) ) {
+                DAS_FATAL_ERROR("Unable to initialize some modules:%s\n", notInitialized.c_str());
+            }
         }
         // Collect reachable TypeDecl from thread root into module roots, sweep the rest.
         auto & threadRoot = gc_root::gc_get_thread_root();
@@ -223,7 +268,8 @@ namespace das {
         DAS_ASSERT(daScriptEnvironment::getOwned()!=nullptr);
         DAS_ASSERT(daScriptEnvironment::getBound()!=nullptr);
         g_envTotal --;
-        if ( g_envTotal==0 ) {
+        const bool lastEnvironment = g_envTotal==0;
+        if ( lastEnvironment ) {
             shutdownDebugAgent();
         }
         auto m = daScriptEnvironment::getBound()->modules;
@@ -239,21 +285,32 @@ namespace das {
         if ( dumpHandleLeaks ) handleRegistry_dumpAll();
         // Free allocated structures for dynamic modules (unloads DLLs).
         delete daScriptEnvironment::getBound()->g_dyn_modules_resolve;
+        clear_deferred_dynamic_modules();
+        setDeferredModuleLoader(nullptr);
 
         clearGlobalAotLibrary();
+        // the standalone runtime links no fusion library and sets no hook; with one, a
+        // shutdown that does not reset orphans the table instead of leaving it to the
+        // thread-local's destructor at exit, which would free it all the same
         if ( resetFusion ) {
             DAS_ASSERTF(g_resetFusionEngineFn, "fusion library not loaded");
-            g_resetFusionEngineFn();
+            g_resetFusionEngineFn(false);
+        } else if ( g_resetFusionEngineFn ) {
+            g_resetFusionEngineFn(true);
         }
         daScriptEnvironment::setBound(nullptr);
         if ( daScriptEnvironment::getOwned() ) {
             delete daScriptEnvironment::getOwned();
             daScriptEnvironment::setOwned(nullptr);
         }
+        // Last one out frees the c++ binding LineInfo cache. It has to happen after the modules
+        // above are gone, since their TypeDecl::at point into it, and a host with its own leak
+        // detector reports every chunk still outstanding at exit.
+        if ( lastEnvironment ) shutdownCppBindingLineInfo();
     }
 
-    void Module::Shutdown( bool dumpHandleLeaks ) {
-        shutdownInternal(dumpHandleLeaks, /*resetFusion=*/true);
+    void Module::Shutdown( bool dumpHandleLeaks, bool resetFusion ) {
+        shutdownInternal(dumpHandleLeaks, resetFusion);
     }
 
     // Standalone exes built with `daslang -exe` link only libDaScript*_runtime
@@ -628,7 +685,9 @@ namespace das {
             }
         }
         if ( functions.insert(mangledName, fn) ) {
-            functionsByName[hash64z(fn->name.c_str())].push_back(fn);
+            auto & overloads = functionsByName[hash64z(fn->name.c_str())];
+            if ( overloads.empty() ) daScriptEnvironment::getBound()->functionNameGeneration++;
+            overloads.push_back(fn);
             fn->module = this;
             return true;
         } else {
@@ -674,7 +733,9 @@ namespace das {
         auto mangledName = fn->getMangledName();
         fn->module = nullptr;
         if ( generics.insert(mangledName, fn) ) {
-            genericsByName[hash64z(fn->name.c_str())].push_back(fn);
+            auto & overloads = genericsByName[hash64z(fn->name.c_str())];
+            if ( overloads.empty() ) daScriptEnvironment::getBound()->functionNameGeneration++;
+            overloads.push_back(fn);
             fn->module = this;
             return true;
         } else {
@@ -800,9 +861,9 @@ namespace das {
         for (auto & m : ptm->macros) target->macros.push_back(std::move(m));
         for (auto & m : ptm->inferMacros) target->inferMacros.push_back(std::move(m));
         for (auto & m : ptm->optimizationMacros) target->optimizationMacros.push_back(std::move(m));
-        for (auto & m : ptm->preInferMacros) target->preInferMacros.push_back(std::move(m));
-        for (auto & m : ptm->postInferMacros) target->postInferMacros.push_back(std::move(m));
         for (auto & m : ptm->lintMacros) target->lintMacros.push_back(std::move(m));
+        for (auto & m : ptm->postRewriteMacros) target->postRewriteMacros.push_back(std::move(m));
+        for (auto & m : ptm->postCompileMacros) target->postCompileMacros.push_back(std::move(m));
         for (auto & m : ptm->globalLintMacros) target->globalLintMacros.push_back(std::move(m));
         for ( auto & rm : ptm->readMacros ) {
             rm.second->seal(target);
@@ -1027,6 +1088,27 @@ namespace das {
         return it != moduleLookupByHash.end() ? it->second : nullptr;
     }
 
+    bool ModuleLibrary::hasFunctionOrGenericNamed ( const string & name ) const {
+        auto gen = daScriptEnvironment::getBound()->functionNameGeneration;
+        if ( gen != functionNameCacheGeneration || modules.size() != functionNameCacheModuleCount ) {
+            functionNameCache.clear();
+            functionNameCacheGeneration = gen;
+            functionNameCacheModuleCount = modules.size();
+        }
+        auto nameHash = hash64z(name.c_str());
+        auto it = functionNameCache.find(nameHash);
+        if ( it != functionNameCache.end() ) return it->second;
+        bool exists = false;
+        for ( auto pm : modules ) {
+            if ( pm->functionsByName.find(nameHash) || pm->genericsByName.find(nameHash) ) {
+                exists = true;
+                break;
+            }
+        }
+        functionNameCache[nameHash] = exists;
+        return exists;
+    }
+
     void ModuleLibrary::findWithCallback ( const string & name, Module * inWhichModule, const callable<void (Module * pm, const string &name, Module * inWhichModule)> & func ) const {
         string moduleName, funcName;
         splitTypeName(name, moduleName, funcName);
@@ -1148,10 +1230,11 @@ namespace das {
     }
 
     TypeDeclPtr ModuleLibrary::makeStructureType ( const string & name ) const {
-        auto t = new TypeDecl(Type::tStructure);
+        auto t = new TypeDecl(Type::tStructure, cppBindingLineInfo(name.c_str()));
         auto structs = findStructure(name,nullptr);
         if ( structs.size()==1 ) {
             t->structType = structs.back();
+            if ( t->structType->at.fileInfo ) t->at = t->structType->at;
         } else {
             DAS_FATAL_ERROR("makeStructureType(%s) failed\n", name.c_str());
             return nullptr;
@@ -1172,7 +1255,7 @@ namespace das {
     }
 
     TypeDeclPtr ModuleLibrary::makeHandleType ( const string & name ) const {
-        auto t = new TypeDecl(Type::tHandle);
+        auto t = new TypeDecl(Type::tHandle, cppBindingLineInfo(name.c_str()));
         auto handles = findAnnotation(name,nullptr);
 #if DAS_ALLOW_ANNOTATION_LOOKUP
         bool need_require = false;
@@ -1233,10 +1316,11 @@ namespace das {
             return nullptr;
         }
         auto dann = static_cast<DistinctTypeAnnotation *>(handles.back());
-        auto t = new TypeDecl(Type::tDistinct);
+        auto t = new TypeDecl(Type::tDistinct, cppBindingLineInfo(name.c_str()));
         t->annotation = dann;
         if ( dann->underlyingType ) {
             t->firstType = new TypeDecl(*dann->underlyingType);
+            t->firstType->at = cppBindingLineInfo(name.c_str());
         }
         return t;
     }
@@ -1259,6 +1343,7 @@ namespace das {
         }
         modules.clear();
         moduleLookupByHash.clear();
+        functionNameCache.clear();
     }
 
     // Module group

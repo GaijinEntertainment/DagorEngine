@@ -40,6 +40,7 @@ public:
   virtual void eval_external_block(external_state_block &) = 0;
   virtual void eval(immediate_const_block &) = 0;
   virtual void eval_supports(supports_stat &) = 0;
+  virtual void eval_render_pass(render_pass_use_stat &) {}
   virtual void eval_render_stage(render_stage_stat &) = 0;
   // Only AssembleShaderEvalCB authors RT pipeline config; other callbacks ignore the block.
   virtual void eval_raytrace_pipeline(raytrace_pipeline_stat &) {}

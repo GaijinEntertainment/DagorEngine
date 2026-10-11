@@ -61,30 +61,34 @@ void rendinst::gen::RotationPaletteManager::createPalette(const RendintsInfo &ri
   {
     const RendInstGenData::LandClassRec &landClass = ri_info.landClasses[i];
     const rendinst::gen::land::AssetData &land = *landClass.asset;
-    if (!land.planted)
+    if (!land.planted && !land.tiled)
       continue;
     debug("[RI] Registering vegetation assets with rotation palette for landclass: <%s>", landClass.landClassName.get());
-    for (const rendinst::gen::land::SingleGenEntityGroup &group : land.planted->data)
-    {
-      for (const rendinst::gen::land::SingleGenEntityGroup::Obj &obj : group.obj)
-      {
-        if (obj.entityIdx == -1) // perfectly valid case for no-RI entities referenced by land class
-          continue;
-        const int poolId = landClass.riResMap[obj.entityIdx];
-        EntryId id = {layerId, poolId};
-        if (!ri_info.rtData->riPaletteRotation[poolId])
-          continue;
-        uint32_t count = ri_info.rtData->riRes[poolId]->getRotationPaletteSize();
-        G_ASSERTF(count > 0, "An RI is supposed to have a rotation palette, but its size is set to 0 <%s>",
-          ri_info.rtData->riResName[poolId]);
-        G_ASSERTF(count <= PALETTE_ID_MULTIPLIER, "An RI has invalid palette size <%s> (given: %d, max: %d)",
-          ri_info.rtData->riResName[poolId], count, PALETTE_ID_MULTIPLIER);
-        if (entityIdToPaletteInfo.find(id) != entityIdToPaletteInfo.end())
-          continue;
-        count = clamp(count, 1u, uint32_t(PALETTE_ID_MULTIPLIER));
-        addPalette(ri_info.rtData->riResName[poolId], ri_info.rtData->riRes[poolId]->getImpostorParams(), id, count);
-      }
-    }
+    // a de-tiled landclass turns its objects, and a posInst keeps that turn only as a palette id
+    auto registerEntity = [&](int entity_idx) {
+      if (entity_idx == -1) // perfectly valid case for no-RI entities referenced by land class
+        return;
+      const int poolId = landClass.riResMap[entity_idx];
+      EntryId id = {layerId, poolId};
+      if (!ri_info.rtData->riPaletteRotation[poolId])
+        return;
+      uint32_t count = ri_info.rtData->riRes[poolId]->getRotationPaletteSize();
+      G_ASSERTF(count > 0, "An RI is supposed to have a rotation palette, but its size is set to 0 <%s>",
+        ri_info.rtData->riResName[poolId]);
+      G_ASSERTF(count <= PALETTE_ID_MULTIPLIER, "An RI has invalid palette size <%s> (given: %d, max: %d)",
+        ri_info.rtData->riResName[poolId], count, PALETTE_ID_MULTIPLIER);
+      if (entityIdToPaletteInfo.find(id) != entityIdToPaletteInfo.end())
+        return;
+      count = clamp(count, 1u, uint32_t(PALETTE_ID_MULTIPLIER));
+      addPalette(ri_info.rtData->riResName[poolId], ri_info.rtData->riRes[poolId]->getImpostorParams(), id, count);
+    };
+    if (land.planted)
+      for (const rendinst::gen::land::SingleGenEntityGroup &group : land.planted->data)
+        for (const rendinst::gen::land::SingleGenEntityGroup::Obj &obj : group.obj)
+          registerEntity(obj.entityIdx);
+    if (land.tiled)
+      for (const rendinst::gen::land::SingleEntityPlaces &places : land.tiled->data)
+        registerEntity(places.entityIdx);
   }
 
   // Add manually placed assets, which were not present in the landclass (regardless of rotation palette)

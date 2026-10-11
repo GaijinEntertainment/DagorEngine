@@ -29,6 +29,7 @@ public:
   virtual void updateIRGraphVisualization() {}
   virtual void updateResourceVisualization() {}
   virtual void updateTextureVisualization() {}
+  virtual void updateDebugNodes() {}
 
   virtual void sendBlobData(NodeNameId, ResNameId, const BlobView &) {}
 

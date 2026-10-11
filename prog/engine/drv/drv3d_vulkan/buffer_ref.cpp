@@ -10,14 +10,15 @@
 
 using namespace drv3d_vulkan;
 
-BufferRef BufferRef::discard(DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags, uint32_t dynamic_size)
+BufferRef BufferRef::discard(DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags, uint32_t dynamic_size,
+  uint32_t visible_size)
 {
   BufferRef ret;
 
   if (bufFlags & SBCF_FRAMEMEM)
   {
     D3D_CONTRACT_ASSERTF(dynamic_size, "vulkan: framemem discard size must be > 0");
-    ret = Frontend::frameMemBuffers.acquire(dynamic_size, bufFlags);
+    ret = Frontend::frameMemBuffers.acquire(dynamic_size, bufFlags, visible_size);
     if (ret.buffer != buffer)
       Frontend::frameMemBuffers.swapRefCounters(buffer, ret.buffer);
     if (buffer)

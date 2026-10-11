@@ -27,10 +27,11 @@ float d3d::get_display_scale()
 }
 #elif _TARGET_IOS
 #import <UIKit/UIKit.h>
+#include <osApiWrappers/dag_iosWindowScene.h>
 
 float d3d::get_display_scale()
 {
-  return [[UIScreen mainScreen] nativeScale];
+  return ios_get_screen().nativeScale;
 }
 #else
 float d3d::get_display_scale() { return 1.f; }

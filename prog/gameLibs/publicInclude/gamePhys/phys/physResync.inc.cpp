@@ -443,8 +443,8 @@ void send_authority_state(IPhysActor *unit, PhysImpl &phys, float state_send_per
     danet::BitStream stateData(phys.sizeOfPartialState());
     savedState.serialize(stateData);
     phys.forEachCustomStateSyncer([&](auto ss) {
-      ss->savePartialAuthState(phys.authorityApprovedState->atTick);
-      ss->serializePartialAuthState(stateData, phys.authorityApprovedState->atTick);
+      ss->savePartialAuthState(savedState.atTick);
+      ss->serializePartialAuthState(stateData, savedState.atTick);
     });
     send_part_auth_state_cb(unit, eastl::move(stateData), savedState.atTick);
 

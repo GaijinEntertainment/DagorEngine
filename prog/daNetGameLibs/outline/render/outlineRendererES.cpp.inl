@@ -118,7 +118,8 @@ static void render_outline_stencil(
     dynModelElements, colors,
     [&ctx](const OutlinedDynModel &e) {
       add_animchar(ctx, 0, ShaderMesh::STG_imm_decal, e.dynModel,
-        animchar_additional_data::get_optional_data(e.animcharAdditionalData));
+        animchar_additional_data::get_optional_data(e.animcharAdditionalData), NeedPreviousMatrices::No, {},
+        PathFilterView(e.nodeFilter), OUTLINE_NODE_FILTER_MASK);
     },
     [&ctx]() {
       if (prepare_render_current(ctx))

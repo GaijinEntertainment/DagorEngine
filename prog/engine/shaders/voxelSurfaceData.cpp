@@ -4,11 +4,11 @@
 #include <shaders/dag_shaders.h>
 #include <generic/dag_ptrTab.h>
 #include <ioSys/dag_zstdIo.h>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 
 static PtrTab<VoxelSurfaceData> all_data(midmem_ptr());
-static std::mutex data_mutex;
+static dag::mutex data_mutex;
 
 namespace vars
 {
@@ -49,7 +49,7 @@ void VoxelSurfaceData::onAfterD3dReset()
   voxeldata::rgbaAtlasManager.onAfterD3dReset();
   voxeldata::normAtlasManager.onAfterD3dReset();
 
-  std::lock_guard guard(::data_mutex);
+  dag::lock_guard guard(::data_mutex);
   bool failed = false;
   for (auto &p : ::all_data)
     if (p)
@@ -67,7 +67,7 @@ VoxelSurfaceData::VoxelSurfaceData() {}
 
 VoxelSurfaceData::~VoxelSurfaceData()
 {
-  std::lock_guard guard(::data_mutex);
+  dag::lock_guard guard(::data_mutex);
   if (id < ::all_data.size())
     ::all_data[id] = nullptr;
   compressed = {};
@@ -83,7 +83,7 @@ VoxelSurfaceData *VoxelSurfaceData::load(IGenLoad &crd, int size)
   crd.read(res->dumpStartPtr(), size);
   res->compressed = make_span((char *)res->dataStartPtr(), size - ((uint8_t *)res->dataStartPtr() - (uint8_t *)res->dumpStartPtr()));
 
-  std::lock_guard guard(::data_mutex);
+  dag::lock_guard guard(::data_mutex);
   for (uint32_t i = 0, n = ::all_data.size(); i < n; i++)
     if (!::all_data[i])
     {
@@ -101,7 +101,7 @@ VoxelSurfaceData *VoxelSurfaceData::getById(uint32_t id)
 {
   if (id == INVALID_ID)
     return nullptr;
-  std::lock_guard guard(::data_mutex);
+  dag::lock_guard guard(::data_mutex);
   if (id < ::all_data.size())
     return ::all_data[id].get();
   return nullptr;

@@ -1,0 +1,13 @@
+array.each: true
+array.findindex: true
+array.findvalue: true
+array.map: true
+array.apply: true
+array.filter: true
+array.reduce: true
+table.each: true
+table.findindex: true
+table.findvalue: true
+table.map: true
+table.filter: true
+table.reduce: true

@@ -318,6 +318,42 @@ bool find_nearest_triangle_by_pos(const Point3 &pos, const dtPolyRef poly_id, fl
 int squash_jumplinks(const TMatrix &tm, const BBox3 &bbox);
 bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius,
   float height_half_offset);
+
+// Walking distance from one origin to many polys at once (sound detour hint). Cost is plain metric length:
+// area weights and custom nav are not applied, and a jump link or a ladder is crossed at its length,
+// so the value is a distance and not an AI preference.
+// dist is the length of a route that ends exactly at pos, so the two are read together:
+// pos is the portal the flood first reached this poly through, and the cost of every later route that improved on it ends there.
+// The legs are chords between portal points, so dist is off from the true walk by up to about one poly's width, either way,
+// and the leg from parent's pos to pos need not lie on the mesh. Follow parent to the origin to draw it.
+struct NavMeshWalkDist
+{
+  dtPolyRef ref;
+  dtPolyRef parent; // the poly the best route came from, 0 at the origin
+  Point3 pos;       // where dist stops, on the border with the poly that first reached this one
+  float dist;       // walking distance from the flood origin
+};
+// One Dijkstra from origin inside a circle of radius metres in the horizontal plane: a poly
+// outside it is missing with out_truncated false, one inside it when its only route leaves the
+// circle. out_polys is sorted by ref and holds at most max_polys; the search runs on the query's
+// node pool, at least 2048 nodes and never smaller than the largest ever asked for, and
+// out_truncated says that pool or the list ran out, so a missing poly is then unknown. origin is
+// moved onto the mesh. Returns false, out_polys empty, for no mesh, max_polys <= 0, an origin over
+// no poly within extents, or a Detour refusal, not told apart.
+//
+// One flood at a time, on the thread that owns the navmesh. The query these two keep is one per
+// navmesh and is not locked, and the library holds no lock over its tiles either, so a flood beside
+// anything that mutates the mesh reads tiles that thread can free. A caller that has to ration the
+// cost rations the calls it makes, which is what the server's act ES does.
+bool flood_walk_distance_ex(int nav_mesh_idx, Point3 &origin, const Point3 &extents, float radius, int max_polys,
+  dag::Vector<NavMeshWalkDist> &out_polys, bool &out_truncated);
+bool flood_walk_distance(Point3 &origin, const Point3 &extents, float radius, int max_polys, dag::Vector<NavMeshWalkDist> &out_polys,
+  bool &out_truncated);
+// Poly under pos with the filter flood_walk_distance uses; pos is moved onto the mesh.
+// A nearest-poly search reads tiles and no node pool, so it runs on navQuery beside a flood or a route in flight;
+// the tiles are as unlocked as for the flood.
+bool find_walk_distance_poly_ex(int nav_mesh_idx, Point3 &pos, const Point3 &extents, dtPolyRef &out_poly);
+bool find_walk_distance_poly(Point3 &pos, const Point3 &extents, dtPolyRef &out_poly);
 bool is_navmesh_position_suitable_ex(int nav_mesh_idx, const Point3 &pos, float horz_extents, float vert_extents, int min_polys,
   int max_depth);
 

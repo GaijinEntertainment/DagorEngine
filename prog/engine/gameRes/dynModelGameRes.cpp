@@ -15,6 +15,7 @@
 #include <debug/dag_log.h>
 #include <generic/dag_initOnDemand.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_mutex.h>
 #include <util/dag_console.h>
 #include <perfMon/dag_perfTimer.h>
 
@@ -275,7 +276,7 @@ void DynModelGameResFactory::loadGameResourceData(int res_id, IGenLoad &cb)
 
 static InitOnDemand<DynModelGameResFactory> dynmodel_factory;
 static PtrTab<DynamicRenderableSceneLodsResource> pendingReloadResList;
-static std::mutex pendingReloadResListMutex;
+static dag::mutex pendingReloadResListMutex;
 
 namespace
 {
@@ -337,7 +338,7 @@ static void batch_reload_res(void *)
   PtrTab<DynamicRenderableSceneLodsResource> pendingReloadResListCopy;
   {
     // Move buffer away, so that we can release the lock before calling functions on dmUnitedVdata
-    std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
+    dag::lock_guard scopedLock(pendingReloadResListMutex);
     rcnt = pendingReloadResList.size();
     pendingReloadResListCopy = eastl::move(pendingReloadResList);
   }
@@ -391,7 +392,7 @@ static void on_higher_lod_required(DynamicRenderableSceneLodsResource *res, unsi
   if (res0 != res)
     return res0->updateReqLod(req_lod);
 
-  std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
+  dag::lock_guard scopedLock(pendingReloadResListMutex);
   if (res->getResLoadingFlag())
     return;
   mss.ohlr_rcnt.add(1);

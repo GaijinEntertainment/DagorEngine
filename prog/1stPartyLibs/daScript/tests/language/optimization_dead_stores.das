@@ -79,9 +79,9 @@ def target_loop_live(x : int) : int {
 [export]
 def target_chain(x : int) : int {
     var a = 0 // nolint:LINT010 -- deliberate dead init
-    var b = 0 // nolint:LINT010 -- deliberate dead init
-    a = x + 13 // nolint:LINT010 -- dead: only read by the dead store below
-    b = a * 2 // nolint:LINT010 -- dead: b never read
+    var b = 0 // deliberate dead init
+    a = x + 13 // dead: only read by the dead store below
+    b = a * 2 // dead: b never read
     return x
 }
 
@@ -96,8 +96,8 @@ def target_impure(x : int) : int {
 def target_impure_reads(x : int) : int {
     var u = 0 // nolint:LINT010 -- deliberate dead init
     u = x * 109 // LIVE: the kept bare rhs below still reads u
-    var t = 0 // nolint:LINT010 -- deliberate dead init
-    t = bump() + u // nolint:LINT010 -- dead store, but operator-topped impure rhs: stays WHOLE
+    var t = 0 // deliberate dead init
+    t = bump() + u // dead store, but operator-topped impure rhs: stays WHOLE
     return x
 }
 
@@ -178,7 +178,7 @@ def target_increment_gen(x : int) : int {
     var t = x
     t ++ // gen: reads t, so the init above stays live
     let r = t * 4
-    t = x * 107 // nolint:LINT010 -- dead: t never read again
+    t = x * 107 // dead: t never read again
     return r
 }
 
@@ -280,7 +280,7 @@ def body_of(t : T?; nm : string) : string {
 }
 
 [test]
-def test_dead_stores_fired(t : T?) {
+def test_dead_stores_fired(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     ast_gc_guard() {
         t |> run("overwritten store is removed") @(t : T?) {
             let b = body_of(t, "target_overwrite")

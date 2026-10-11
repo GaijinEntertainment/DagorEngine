@@ -205,7 +205,7 @@ struct Color4
 colorinline real rgbsum(Color4 c) { return c.r + c.g + c.b; }
 colorinline real average(Color4 c) { return rgbsum(c) / 3.0f; }
 // NTSC brightness Weights: r=.299 g=.587 b=.114
-colorinline real brightness(Color4 c) { return c.r * .299f + c.g * .587f + c.b * .114; }
+colorinline real brightness(Color4 c) { return c.r * .299f + c.g * .587f + c.b * .114f; }
 
 colorinline real lengthSq(Color4 c) { return (c.r * c.r + c.g * c.g + c.b * c.b); }
 colorinline real length(Color4 c) { return sqrtf(lengthSq(c)); }
@@ -379,7 +379,7 @@ struct Color3
 colorinline real rgbsum(const Color3 &c) { return c.r + c.g + c.b; }
 colorinline real average(const Color3 &c) { return rgbsum(c) / 3.0f; }
 // NTSC brightness Weights: r=.299 g=.587 b=.114
-colorinline real brightness(const Color3 &c) { return c.r * .299f + c.g * .587f + c.b * .114; }
+colorinline real brightness(const Color3 &c) { return c.r * .299f + c.g * .587f + c.b * .114f; }
 
 colorinline real lengthSq(const Color3 &c) { return (c.r * c.r + c.g * c.g + c.b * c.b); }
 colorinline real length(const Color3 &c) { return sqrtf(lengthSq(c)); }

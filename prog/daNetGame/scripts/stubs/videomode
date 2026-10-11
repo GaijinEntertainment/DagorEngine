@@ -9,7 +9,6 @@ return {
   is_nvidia_gpu = @() false
   is_amd_gpu = @() false
   is_intel_gpu = @() false
-  get_performance_display_mode_support = @(...) false
   get_settings_override_for_auto_resolution = @(...) DataBlock()
   get_auto_selected_antialiasing_method = @(...) null
   should_use_upscaling_method = @(...) false

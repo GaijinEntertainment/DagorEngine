@@ -99,6 +99,8 @@ bool get_triangle_by_poly(const dtPolyRef, NavMeshTriangle &) { return {}; }
 bool find_nearest_triangle_by_pos(const Point3 &, const dtPolyRef, float, NavMeshTriangle &) { return {}; }
 int squash_jumplinks(const TMatrix &, const BBox3 &) { return {}; }
 bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &, const Point3 &, float, float) { return {}; }
+bool flood_walk_distance(Point3 &, const Point3 &, float, int, dag::Vector<NavMeshWalkDist> &, bool &) { return {}; }
+bool find_walk_distance_poly(Point3 &, const Point3 &, dtPolyRef &) { return {}; }
 bool is_navmesh_position_suitable_ex(int, const Point3 &, float, float, int, int) { return true; }
 void clear_nav_mesh(int, bool) {}
 bool load_nav_mesh_ex(int, const char *, IGenLoad &, NavMeshType, tile_check_cb_t, const char *) { return {}; }
@@ -122,6 +124,8 @@ bool get_triangle_by_pos_ex(int, const Point3 &, NavMeshTriangle &, float, int, 
 bool set_poly_flags_ex(int, dtPolyRef, unsigned short) { return {}; }
 bool get_poly_flags_ex(int, dtPolyRef, unsigned short &) { return {}; }
 bool find_polys_in_circle_ex(int, dag::Vector<dtPolyRef, framemem_allocator> &, const Point3 &, float, float) { return {}; }
+bool flood_walk_distance_ex(int, Point3 &, const Point3 &, float, int, dag::Vector<NavMeshWalkDist> &, bool &) { return {}; }
+bool find_walk_distance_poly_ex(int, Point3 &, const Point3 &, dtPolyRef &) { return {}; }
 FindPathResult set_path_corridor_ex(int, dtPathCorridor &, const CorridorInput &, const CustomNav *) { return {}; }
 bool set_corridor_agent_position_ex(int, dtPathCorridor &, const Point3 &, dag::ConstSpan<Point2> *, const CustomNav *) { return {}; }
 FindCornersResult find_corridor_corners_ex(int, dtPathCorridor &, Tab<Point3> &, int, const CustomNav *) { return {}; }

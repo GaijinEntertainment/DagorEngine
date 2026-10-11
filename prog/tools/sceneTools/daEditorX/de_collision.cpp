@@ -7,11 +7,8 @@
 #include <de3_interface.h>
 #include <de3_entityFilter.h>
 
-#include <sceneRay/dag_sceneRay.h>
-
-#include <scene/dag_physMat.h>
-#include <scene/dag_frtdump.h>
-#include <scene/dag_frtdumpInline.h>
+#include <gameRes/dag_collisionResource.h>
+#include <gameRes/collResStream.h>
 
 #include <math/dag_mesh.h>
 #include <ioSys/dag_dataBlock.h>
@@ -21,12 +18,9 @@
 
 #include <libTools/dagFileRW/dagFileNode.h>
 
-#include <debug/dag_debug.h>
-#include <debug/dag_log.h>
-
 
 bool(__stdcall *external_traceRay_for_rigen)(const Point3 &from, const Point3 &dir, float &current_t, Point3 *out_norm) = NULL;
-static FastRtDump *rtdump = NULL;
+static Ptr<CollisionResource> clipColl;
 
 
 static Tab<IDagorEdCustomCollider *> colliders(midmem_ptr());
@@ -299,20 +293,22 @@ static void customClipCapsule(Capsule &c, Point3 &lpt, Point3 &wpt, real &md, co
 
 
 //==============================================================================
-StaticSceneRayTracer *DagorPhys::load_binary_raytracer(IGenLoad &crd)
+bool DagorPhys::load_binary_collision(IGenLoad &crd)
 {
-  if (!rtdump)
-    rtdump = new (midmem) FastRtDump(crd);
-  else
-    rtdump->loadData(crd);
-
-  if (!rtdump->isDataValid())
-    del_it(rtdump);
-
-  if (rtdump)
-    return &rtdump->getRt();
-
-  return nullptr;
+  clipColl = nullptr;
+  DAGOR_TRY
+  {
+    const int labelPos = crd.tell();
+    const int label = crd.readInt();
+    crd.seekto(labelPos);
+    if ((label & COLLRES_STREAM_MAGIC_MASK) != COLLRES_STREAM_MAGIC)
+      return false;
+    clipColl = new CollisionResource(crd, /*res_id*/ -1, "editor clip");
+  }
+  DAGOR_CATCH(IGenLoad::LoadException) { return false; }
+  if (clipColl && clipColl->getAllNodes().empty())
+    clipColl = nullptr;
+  return clipColl.get() != nullptr;
 }
 
 
@@ -354,68 +350,23 @@ real DagorPhys::clip_capsule_static(Capsule &c, Point3 &cap_pt, Point3 &world_pt
   real md = MAX_REAL;
   ::customClipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0));
 
-  if (!rtdump)
-    return md;
-
-  int phmatid;
-  rtdump->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0), phmatid);
+  if (clipColl)
+    clipColl->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0));
 
   return md;
 }
 
 
 //==============================================================================
-real DagorPhys::clip_capsule_static(Capsule &c, Point3 &cap_pt, Point3 &world_pt, Point3 &norm)
-{
-  if (!rtdump)
-    return MAX_REAL;
-
-  int phmatid;
-  real md = MAX_REAL;
-  rtdump->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0), phmatid, norm);
-
-  return md;
-}
+BBox3 DagorPhys::get_bounding_box() { return clipColl ? clipColl->boundingBox : BBox3(); }
 
 
 //==============================================================================
-BBox3 DagorPhys::get_bounding_box()
-{
-  if (!rtdump)
-    return BBox3();
-
-  return rtdump->getRt().getBox();
-}
+void DagorPhys::close_collision() { clipColl = nullptr; }
 
 
 //==============================================================================
-void init_tps_physmat(const char *physmatFileName) { PhysMat::init(physmatFileName); }
-
-
-//==============================================================================
-void close_tps_physmat() { PhysMat::release(); }
-
-
-//==============================================================================
-void DagorPhys::close_collision() { del_it(rtdump); }
-
-
-//==============================================================================
-void DagorPhys::init_collision_binary(StaticSceneRayTracer *rt)
-{
-  del_it(rtdump);
-
-  if (!rt)
-    return;
-
-
-  rtdump = new (midmem) FastRtDump(rt);
-  DEBUG_CTX("binary rtdump: %p", rt);
-}
-
-
-//==============================================================================
-FastRtDump *DagorPhys::getFastRtDump() { return rtdump; }
+const CollisionResource *DagorPhys::getClipCollision() { return clipColl.get(); }
 
 
 const char *DagorPhys::get_collision_name() { return DAGORED2->getWorkspace().getCollisionName(); }
@@ -430,5 +381,5 @@ void reset_colliders_data()
   editorColliders.clear();
   editorFilterMask = 0;
 
-  del_it(rtdump);
+  clipColl = nullptr;
 }

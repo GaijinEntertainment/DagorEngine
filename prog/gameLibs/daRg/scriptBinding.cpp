@@ -169,6 +169,12 @@ static void register_constants(HSQUIRRELVM vm)
     .CONST(O_HORIZONTAL)
     .CONST(O_VERTICAL)
 
+    .CONST(SAMPLER_DEFAULT)
+    .CONST(SAMPLER_LINEAR_CLAMP)
+    .CONST(SAMPLER_LINEAR_WRAP)
+    .CONST(SAMPLER_POINT_CLAMP)
+    .CONST(SAMPLER_POINT_WRAP)
+
     .Const("TEXFMT_SRGB_IN_UNORM", SRGB_IN_UNORM)
     .Const("TEXFMT_UNORM", UNORM)
     .Const("TEXFMT_SRGB_DECAL", SRGB_DECAL)
@@ -189,6 +195,9 @@ static void register_constants(HSQUIRRELVM vm)
     .Const("GESTURE_DETECTOR_DRAG", GestureDetector::Type::DRAG)
     .Const("GESTURE_DETECTOR_PINCH", GestureDetector::Type::PINCH)
     .Const("GESTURE_DETECTOR_ROTATE", GestureDetector::Type::ROTATE)
+    .Const("GESTURE_DETECTOR_TAP", GestureDetector::Type::TAP)
+    .Const("GESTURE_DETECTOR_DOUBLE_TAP", GestureDetector::Type::DOUBLE_TAP)
+    .Const("GESTURE_DETECTOR_HOLD", GestureDetector::Type::HOLD)
 
     ///@const Linear
     /// Easing function for prebuilt animations functions.
@@ -554,6 +563,8 @@ static void register_std_behaviors(SqModules *module_mgr)
   REG_BHV_DATA(BhvPieMenuData)
   REG_BHV_DATA(BhvBoundPropsData)
   REG_BHV_DATA(BhvVirtualListData)
+  REG_BHV_DATA(BhvParallaxData)
+  REG_BHV_DATA(GestureDetector)
 #undef REG_BHV_DATA
 
   Sqrat::Table tblBhv(vm);
@@ -765,10 +776,10 @@ static SQInteger resolve_button(HSQUIRRELVM vm)
     return 0;
 
   sq_newtableex(vm, 2);
-  sq_pushstring(vm, "devId", 5);
+  sq_pushobject(vm, scene->getStringKeys()->devId.GetObject());
   sq_pushinteger(vm, btn.devId);
   G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
-  sq_pushstring(vm, "btnId", 5);
+  sq_pushobject(vm, scene->getStringKeys()->btnId.GetObject());
   sq_pushinteger(vm, btn.btnId);
   G_VERIFY(SQ_SUCCEEDED(sq_rawset(vm, -3)));
   return 1;
@@ -1086,7 +1097,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .SquirrelFunc("locate_element_source", locate_element_source, 2, ".x")
     .SquirrelFunc("get_element_info", get_element_info, 2, ".x")
     .SquirrelFunc("resolve_button", resolve_button, 2, ".s")
-    .SquirrelFuncDeclString(get_font_metrics, "pure get_font_metrics(fontId: int, [fontHt: number]): table")
+    .SquirrelFuncDeclString(get_font_metrics, "get_font_metrics(fontId: int, [fontHt: number]): table")
     /* qdox
     @param fontId i
     @param fontHt f : optional, default is _def_fontHt font height set in font

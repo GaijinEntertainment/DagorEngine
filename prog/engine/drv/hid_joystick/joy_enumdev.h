@@ -32,14 +32,17 @@ using Di8Devices = eastl::vector<Di8Device>;
 
 struct DeviceEnumerator : public DaThread
 {
-  DeviceEnumerator(int timeout_ms, bool exclude_xinput, bool remap_as_x360) :
+  DeviceEnumerator(int timeout_ms, bool exclude_xinput, bool remap_as_x360, bool exclude_sony_pads) :
     DaThread("Di8Enumerator", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK),
     timeoutMs{timeout_ms},
     excludeXinputDevices{exclude_xinput},
+    excludeSonyPads{exclude_sony_pads},
     remapAsX360{remap_as_x360}
   {}
+  ~DeviceEnumerator() { releaseFound(); }
 
   void execute() override;
+  void releaseFound();
 
   bool foundChanges() const { return !isThreadRunnning() && ::interlocked_acquire_load(modifiedDevices) != 0; }
   const Di8Devices fetch()
@@ -59,6 +62,7 @@ struct DeviceEnumerator : public DaThread
 
   VidPidList blacklist;
   bool excludeXinputDevices = false;
+  bool excludeSonyPads = false;
   bool remapAsX360 = false;
 
   WinCritSec cs;

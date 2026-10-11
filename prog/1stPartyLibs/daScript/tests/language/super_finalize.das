@@ -1,6 +1,7 @@
 // Tests `delete super.self` — calling the base class/struct finalizer from a derived finalizer.
 options gen2
 require dastest/testing_boost public
+require daslib/ast_verify   // the lowered `delete cast<Base>(self)` must carry source locations - a verify finding here is a compile error
 
 var class2_del_base = 0
 var class2_del_derived = 0

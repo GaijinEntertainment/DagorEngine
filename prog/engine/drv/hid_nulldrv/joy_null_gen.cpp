@@ -4,7 +4,12 @@
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiCreate.h>
 
-HumanInput::IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool)
+HumanInput::IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool, bool)
+{
+  return HumanInput::createNullJoystickClassDriver();
+}
+
+HumanInput::IGenJoystickClassDrv *HumanInput::createSonyPadJoystickClassDriver()
 {
   return HumanInput::createNullJoystickClassDriver();
 }

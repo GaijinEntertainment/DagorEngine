@@ -130,6 +130,7 @@ public:
   virtual void shutdownDasEnvironment() = 0;
   // Call on the scene's API thread before unloading shared das modules: in-flight jobs reference them.
   virtual void waitAllDasJobsDone() = 0;
+  virtual bool isDasJobsInFlight() const = 0;
 
   // Need this to perform additional binding
   virtual HSQUIRRELVM getScriptVM() const = 0;
@@ -149,6 +150,7 @@ public:
   virtual void refreshGuiContextState() = 0;
 
   virtual HumanInput::IGenJoystick *getJoystick(int16_t /*ord_id*/ = -1) const { return nullptr; }
+  virtual Point2 getGamepadStick(int /*axis_h*/, int /*axis_v*/, float /*min_dead_zone*/) const { return Point2(0, 0); }
   // returns a combination of BehaviorResult flags
   virtual int onMouseEvent(InputEvent event, int data, short mx, short my, int buttons, int prev_result = 0) = 0;
   // returns a combination of BehaviorResult flags
@@ -164,6 +166,10 @@ public:
     const HumanInput::ButtonBits &buttons, int prev_result = 0) = 0;
   // returns a combination of BehaviorResult flags
   virtual int onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result = 0) = 0;
+  // returns a combination of BehaviorResult flags; state is HumanInput::Gesture::State, gesture is in pad pixels
+  virtual int onTouchPadGesture(int state, const HumanInput::Gesture &gesture, int prev_result = 0) = 0;
+  // GestureDetector::Type mask that the elements under the active pointer take
+  virtual int getTouchPadGesturesAtPointer() const = 0;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) = 0;
 
@@ -179,7 +185,8 @@ public:
 
   virtual bool hasInteractiveElements() const = 0;
   virtual bool hasInteractiveElements(int bhv_flags) const = 0;
-  virtual bool hasActiveCursor() const = 0; //< for WT mouse mode management
+  virtual bool hasActiveCursor() const = 0;    //< for WT mouse mode management
+  virtual Point2 activePointerPos() const = 0; //< screen pixels of the mouse or gamepad cursor used last
   virtual bool getForcedCursorMode(bool &out_value) const = 0;
 
   virtual void activateProfiler(bool on) = 0;

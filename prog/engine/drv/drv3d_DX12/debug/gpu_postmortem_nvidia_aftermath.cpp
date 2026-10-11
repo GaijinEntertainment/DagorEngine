@@ -2,14 +2,17 @@
 
 #include "gpu_postmortem_nvidia_aftermath.h"
 #include "names.h"
+#include <d3d12_error_handling.h>
 #include <device.h>
 #include <platform.h>
 
 #include <debug/dag_logSys.h>
 #include <generic/dag_enumerate.h>
 #include <json/json.h>
+#include <supp/dag_comPtr.h>
 #include <util/dag_watchdog.h>
 #include <drv/3d/dag_info.h>
+#include <cinttypes>
 
 
 namespace
@@ -417,7 +420,7 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       meta["page-fault-engine"] = to_string(pageFaultInfo->engine);
       meta["page-fault-client"] = to_string(pageFaultInfo->client);
 
-      logdbg("DX12: GPU page fault address %016X", pageFaultInfo->faultingGpuVA);
+      logdbg("DX12: GPU page fault address 0x%016" PRIX64, pageFaultInfo->faultingGpuVA);
       logdbg("DX12: GPU page fault type %s", to_string(pageFaultInfo->faultType));
       logdbg("DX12: GPU page fault access type %s", to_string(pageFaultInfo->accessType));
       logdbg("DX12: GPU page engine %s", to_string(pageFaultInfo->engine));
@@ -446,8 +449,8 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
           item["page-fault-resource-create-destroy-tick-count"] = resourceInfo.createDestroyTickCount;
 
           logdbg("DX12: Resource Info[%d]", i);
-          logdbg("DX12: Resource address %016X", resourceInfo.gpuVa);
-          logdbg("DX12: Resource size %u", resourceInfo.size);
+          logdbg("DX12: Resource address 0x%016" PRIX64, resourceInfo.gpuVa);
+          logdbg("DX12: Resource size %llu", resourceInfo.size);
           logdbg("DX12: Resource width %u", resourceInfo.width);
           logdbg("DX12: Resource height %u", resourceInfo.height);
           logdbg("DX12: Resource depth %u", resourceInfo.depth);
@@ -455,12 +458,12 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
           logdbg("DX12: Resource format id %u", resourceInfo.format);
           logdbg("DX12: Resource DXGI format %s", dxgi_format_name(static_cast<DXGI_FORMAT>(resourceInfo.format)));
           logdbg("DX12: Resource is BufferHeap %s", resourceInfo.bIsBufferHeap ? "Yes" : "No");
-          logdbg("DX12: Resource is StaticTextureHeap", resourceInfo.bIsStaticTextureHeap ? "Yes" : "No");
-          logdbg("DX12: Resource is RenderTargetViewHeap or DepthStencilViewHeap",
+          logdbg("DX12: Resource is StaticTextureHeap %s", resourceInfo.bIsStaticTextureHeap ? "Yes" : "No");
+          logdbg("DX12: Resource is RenderTargetViewHeap or DepthStencilViewHeap %s",
             resourceInfo.bIsRenderTargetOrDepthStencilViewHeap ? "Yes" : "No");
           logdbg("DX12: Resource is PlacedResource %s", resourceInfo.bPlacedResource ? "Yes" : "No");
           logdbg("DX12: Resource wasDestroyed %s", resourceInfo.bWasDestroyed ? "Yes" : "No");
-          logdbg("DX12: Resource create destroy tick count", resourceInfo.createDestroyTickCount);
+          logdbg("DX12: Resource create destroy tick count %u", resourceInfo.createDestroyTickCount);
         }
       }
       else
@@ -486,8 +489,8 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       _snprintf(keyName, sizeof(keyName), "shader-type-%u", index);
       meta[keyName] = to_string(info.shaderType);
 
-      logdbg("DX12: Shader %u hash %016X", index, info.shaderHash);
-      logdbg("DX12: Shader %u instance %u", index, info.shaderDebugInfoUid);
+      logdbg("DX12: Shader %u hash 0x%016" PRIX64, index, info.shaderHash);
+      logdbg("DX12: Shader %u instance %llu", index, info.shaderDebugInfoUid);
       logdbg("DX12: Shader %u is internal %s", index, info.isInternal ? "Yes" : "No");
       logdbg("DX12: Shader %u shader type %u %u", index, info.shaderType, to_string(info.shaderType));
     });
@@ -508,7 +511,7 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
       auto cp = (const char *)info.markerData;
       meta[keyName] = {cp, cp + info.markerDataSize};
 
-      logdbg("DX12: Event marker %u context id %u", index, info.contextId);
+      logdbg("DX12: Event marker %u context id %llu", index, info.contextId);
       logdbg("DX12: Event marker %u context status %s", index, to_string(info.contextStatus));
       logdbg("DX12: Event marker %u '%s'", index, eastl::string_view(cp, info.markerDataSize));
     });
@@ -520,6 +523,14 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
   if (auto netManager = drv3d_dx12::get_device().netManager.get(); netManager)
     netManager->sendHttpEventLog("gpu_crash_dump", dump, size, &meta);
 }
+
+constexpr GUID resource_registration_guid = {0x42c6ba22, 0xddc0, 0x403b, {0x8b, 0xb8, 0x0f, 0x44, 0x1e, 0x3b, 0x3d, 0x7d}};
+
+struct ResourceRegistration
+{
+  GFSDK_Aftermath_ResourceHandle handle;
+  UINT callbackId;
+};
 } // namespace
 
 namespace drv3d_dx12::debug::gpu_postmortem::nvidia
@@ -777,6 +788,12 @@ void GFSDK_AFTERMATH_CALL Aftermath::onResolveMarkerCallbackProxy(const void *ma
     object->onResolveMarkerCallback(marker_id, marker_id_size, resolveMarker);
 }
 
+void Aftermath::onResourceDestroyedProxy(void *handle)
+{
+  if (auto object = proxy.object)
+    AFTHERMATH_CALL(object->api.unregisterResource(static_cast<GFSDK_Aftermath_ResourceHandle>(handle)));
+}
+
 Aftermath::~Aftermath()
 {
   if (lastError != S_OK && lastError != DXGI_ERROR_INVALID_CALL)
@@ -880,17 +897,44 @@ bool Aftermath::onDeviceSetup(D3DDevice *device, const Configuration &config, co
   return true;
 }
 
+void Aftermath::registerResource(ID3D12Resource *resource)
+{
+  ComPtr<ID3DDestructionNotifier> notifier;
+  if (DX12_DEBUG_FAIL(resource->QueryInterface(COM_ARGS(&notifier))))
+  {
+    return;
+  }
+
+  ResourceRegistration registration{};
+  UINT size = sizeof(registration);
+  if (SUCCEEDED(resource->GetPrivateData(resource_registration_guid, &size, &registration)))
+  {
+    DX12_DEBUG_RESULT(notifier->UnregisterDestructionCallback(registration.callbackId));
+    AFTHERMATH_CALL(api.unregisterResource(registration.handle));
+    DX12_DEBUG_RESULT(resource->SetPrivateData(resource_registration_guid, 0, nullptr));
+  }
+
+  if (!AFTHERMATH_CALL(api.registerResource(resource, &registration.handle)))
+  {
+    return;
+  }
+  if (DX12_DEBUG_FAIL(notifier->RegisterDestructionCallback(&onResourceDestroyedProxy, registration.handle, &registration.callbackId)))
+  {
+    AFTHERMATH_CALL(api.unregisterResource(registration.handle));
+    return;
+  }
+  DX12_DEBUG_RESULT(resource->SetPrivateData(resource_registration_guid, sizeof(registration), &registration));
+}
+
 void Aftermath::nameResource(ID3D12Resource *resource, eastl::string_view name)
 {
   set_object_name(resource, name);
-  GFSDK_Aftermath_ResourceHandle handle;
-  api.registerResource(resource, &handle);
+  registerResource(resource);
 }
 
 void Aftermath::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
 {
   set_object_name(resource, name);
-  GFSDK_Aftermath_ResourceHandle handle;
-  api.registerResource(resource, &handle);
+  registerResource(resource);
 }
 } // namespace drv3d_dx12::debug::gpu_postmortem::nvidia

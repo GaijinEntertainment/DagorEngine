@@ -13,6 +13,21 @@ without compilation. Each workload repeats the load inside one process and keeps
 its best time, because the best time has the least noise from other work on the
 machine.
 
+Each language has its own port of every workload, written as an expert writes
+current code in that language: modern Quirrel with `import`, `const` and pure
+functions; Squirrel 3.2 as Squirrel; Lua 5.5 with constants and integers; Luau
+with type annotations; modern JavaScript. All ports do the same work with the same
+algorithm and the same data shapes, and use only the generic containers of their
+language. Each workload except fibonacci-loop and float2string prints its result,
+and the harness checks that all interpreters computed the same one. Quirrel and
+Squirrel use 32-bit floats and the others use 64-bit floats, so their float
+results agree to about three digits.
+
+Luau is measured at its three optimization levels, `-O0`, `-O1` (the default)
+and `-O2`, because the level changes its speed a lot on some workloads:
+exp-loop is 2.7 times faster at `-O1` than at `-O0`, and spectral-norm is 1.8
+times faster at `-O2` than at `-O1`.
+
 Each cell in Benchmarks below is measured three times. The harness starts three
 processes one after another, all pinned to the same logical CPU, and the page
 shows the fastest of the three.
@@ -42,13 +57,17 @@ Shorter bars are better.
 
 {{benchmarks}}
 
-## VM acceptance
+## Against Lua and Luau
 
-This is the head-to-head harness used for interpreter work. It runs Quirrel
-against Lua and Luau on paired workloads with identical algorithms: general
-interpreter loads (fib, binarytrees, life, mandel, strings) and daRg-UI-shaped
-loads (desc_churn, probe_storm, nullable_probe, closure_storm, method_calls).
-Run it before and after any change to the VM.
+This head-to-head harness runs Quirrel against Lua and Luau (at `-O0`, `-O1`
+and `-O2`) on paired workloads with identical algorithms: general interpreter
+loads (fib, binarytrees, life, mandel, strings) and daRg-UI-shaped loads
+(desc_churn, probe_storm, nullable_probe, closure_storm, method_calls).
+
+On some CPUs, code layout alone moves these numbers by up to 17%, so one run
+before and one after a VM change do not show what the change does. To measure
+a change, `bench/vmperf` builds each version in four code layouts and compares
+the means.
 
 Times are milliseconds. The ratio is Quirrel over the other interpreter, so a
 value above 1.0 means Quirrel is slower.
@@ -58,10 +77,11 @@ value above 1.0 means Quirrel is slower.
 ## What was built, and how
 
 Everything is built for Windows 64-bit with clang-cl where the source allows it.
-The Quirrel rows measure the release build of the interpreter from the Dagor
-engine tree, which is the shipped runtime configuration: clang and mimalloc. A
-build on the CRT heap, such as a plain cmake `sq.exe`, is up to twice as slow on
-table-sweep workloads, so it would not measure shipped performance.
+The Quirrel rows measure the release build of `csq`, the console interpreter of
+the Dagor engine tree, which is the shipped runtime configuration: clang and
+mimalloc. A build on the CRT heap, such as a plain cmake `sq.exe`, is up to twice
+as slow on table-sweep workloads, so it would not measure shipped performance.
+`csq` runs with closure hoisting on, as the game runtime does.
 
 The third-party interpreters are committed next to their workloads. Each is a
 release console exe that imports KERNEL32 only. Two of them need a change to get
@@ -81,13 +101,15 @@ per millisecond, which is about the time one rep takes.
 Every workload, harness and prebuilt interpreter is in `bench/` next to `doc/`
 in the [Dagor engine](https://github.com/GaijinEntertainment/DagorEngine) tree,
 under `prog/1stPartyLibs/quirrel/quirrel`, one folder per language:
-`bench/quirrel`, `bench/lua`, `bench/luau`, `bench/js`.
+`bench/quirrel`, `bench/squirrel`, `bench/lua`, `bench/luajit`, `bench/luau`,
+`bench/js`.
 
 - `bench/benchmarks.py` - the cross-language suite above. It writes
   `doc/content/_bench.json`, which this page renders.
-- `bench/run_vm_bench.py` - the VM acceptance harness. It writes
+- `bench/run_vm_bench.py` - the comparison with Lua and Luau above. It writes
   `doc/content/_vm_bench.json`.
+- `bench/vmperf/vmperf.py` - measures one change to the VM or the compiler.
 
-Both need the Windows interpreters, so the numbers are refreshed by hand and
-committed. The site itself builds anywhere. `bench/README.md` says how to run
+`benchmarks.py` and `run_vm_bench.py` need the Windows interpreters, so the
+numbers are refreshed by hand and committed. The site itself builds anywhere. `bench/README.md` says how to run
 them and how each committed binary was built.

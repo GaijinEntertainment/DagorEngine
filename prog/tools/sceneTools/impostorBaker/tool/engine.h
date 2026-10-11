@@ -143,7 +143,7 @@ public:
   Outliner::OutlinerWindow *createOutlinerWindow() override { DUMMY_IMPL_0; }
 
   void revealInExplorer(const char *path) override { DUMMY_IMPL; }
-  void showToast(PropPanel::ToastType type, const char *text) override { DUMMY_IMPL; }
+  void showToast(PropPanel::ToastType type, const char *text, const IPoint2 *position, const Point2 &pivot) override { DUMMY_IMPL; }
 
 private:
   ConsoleLogWriter console;

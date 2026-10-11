@@ -62,6 +62,9 @@ namespace das {
         alignMask = 15;
         totalAllocated = 0;
         maxAllocated = 0;
+#if DAS_ASAN
+        maxShoeAllocation = 0;
+#endif
     }
 
     MemoryModel::~MemoryModel() {
@@ -89,7 +92,7 @@ namespace das {
         DAS_ASSERTF(totalAllocated == 0 && bigStuff.empty() && shoe.depth() == 0,
             "setTrackAllocations must be called before any allocation");
         trackAllocations = on;
-        maxShoeAllocation = on ? 0u : uint32_t(DAS_MAX_SHOE_ALLOCATION);
+        maxShoeAllocation = (on || DAS_ASAN) ? 0u : uint32_t(DAS_MAX_SHOE_ALLOCATION);
 #else
         (void)on;
         DAS_ASSERTF(!on, "DAS_TRACK_ALLOCATIONS=0 at compile time, cannot enable at runtime");
@@ -361,6 +364,7 @@ namespace das {
         }
         for ( ;; ) {
             if ( char * res = chunk->allocate(s) ) {
+                DAS_ASAN_UNPOISON(res, s);
                 return res;
             }
             auto nc = new HeapChunk ( capChunk(das::max(grow(chunk->size), s)), chunk);
@@ -381,6 +385,7 @@ namespace das {
             chunk = nullptr;
         } else if ( chunk ) {
             chunk->offset = 0;
+            DAS_ASAN_POISON(chunk->data, chunk->size);
         }
     }
 

@@ -8,9 +8,6 @@
 
 class String;
 
-
-SQInteger sq_cross_call(HSQUIRRELVM from, HSQUIRRELVM to, HSQOBJECT namespace_obj);
-
 // Make deep copy of squirrel data object in another VM.
 // Has the following assumptions/limitations:
 // * not all squirrel types are supported (i.e. only data types, not functions, weakrefs, etc...)

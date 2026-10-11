@@ -197,6 +197,8 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(climbPosBehindObstacle)>("climbPosBehindObstacle");
     addField<DAS_BIND_MANAGED_FIELD(climbDeltaHt)>("climbDeltaHt");
     addField<DAS_BIND_MANAGED_FIELD(climbStartAtTime)>("climbStartAtTime");
+    addField<DAS_BIND_MANAGED_FIELD(climbHangTargetHt)>("climbHangTargetHt");
+    addField<DAS_BIND_MANAGED_FIELD(climbHangStartAtTime)>("climbHangStartAtTime");
 
     addField<DAS_BIND_MANAGED_FIELD(gunBackoffAmount)>("gunBackoffAmount");
     addField<DAS_BIND_MANAGED_FIELD(gunTraceTimer)>("gunTraceTimer");
@@ -254,6 +256,21 @@ struct PrecomputedWeaponPositionsAnnotation : das::ManagedStructureAnnotation<Pr
   }
 };
 
+struct ClimbQueryResultsAnnotation : das::ManagedStructureAnnotation<ClimbQueryResults, false>
+{
+  ClimbQueryResultsAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ClimbQueryResults", ml)
+  {
+    cppName = " ::ClimbQueryResults";
+
+    addField<DAS_BIND_MANAGED_FIELD(canClimb)>("canClimb");
+    addField<DAS_BIND_MANAGED_FIELD(isClimbThrough)>("isClimbThrough");
+    addField<DAS_BIND_MANAGED_FIELD(climbToPos)>("climbToPos");
+    addField<DAS_BIND_MANAGED_FIELD(climbNorm)>("climbNorm");
+    addField<DAS_BIND_MANAGED_FIELD(climbDir)>("climbDir");
+  }
+  virtual bool isLocal() const { return true; }
+};
+
 struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
 {
   HumanPhysAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("HumanPhys", ml)
@@ -270,7 +287,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addProperty<DAS_BIND_MANAGED_PROP(getAuthorityApprovedState)>("authorityApprovedState", "getAuthorityApprovedState");
     addField<DAS_BIND_MANAGED_FIELD(authorityApprovedPartialState)>("authorityApprovedPartialState");
     addField<DAS_BIND_MANAGED_FIELD(visualLocation)>("visualLocation");
-    addField<DAS_BIND_MANAGED_FIELD(visualLocation)>("visualLocationError");
+    addField<DAS_BIND_MANAGED_FIELD(visualLocationError)>("visualLocationError");
     addField<DAS_BIND_MANAGED_FIELD(visualLocationErrorProductionTime)>("visualLocationErrorProductionTime");
     // NOTE: please add new field according to fields order
     // PhysicsBase end
@@ -385,6 +402,8 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(climbHorzBrake)>("climbHorzBrake");
     addField<DAS_BIND_MANAGED_FIELD(climbBrakeHeight)>("climbBrakeHeight");
     addField<DAS_BIND_MANAGED_FIELD(climbTimeout)>("climbTimeout");
+    addField<DAS_BIND_MANAGED_FIELD(climbHangDepth)>("climbHangDepth");
+    addField<DAS_BIND_MANAGED_FIELD(climbHangStandoff)>("climbHangStandoff");
     addField<DAS_BIND_MANAGED_FIELD(climbDistance)>("climbDistance");
     addField<DAS_BIND_MANAGED_FIELD(climbOverDistance)>("climbOverDistance");
     addField<DAS_BIND_MANAGED_FIELD(climbFinishDistance)>("climbFinishDistance");
@@ -523,6 +542,8 @@ public:
     addAnnotation(new HumanPhysStateAnnotation(lib));
     addAnnotation(new PrecomputedWeaponPositionsAnnotation(lib));
     addAnnotation(new HumanPhysAnnotation(lib));
+    addAnnotation(new ClimbQueryResultsAnnotation(lib));
+    das::addCtor<ClimbQueryResults>(*this, lib, "ClimbQueryResults", "::ClimbQueryResults");
     das::addUsing<::HumanPhysState>(*this, lib, "::HumanPhysState");
 
     das::addEnumFlagOps<HumanPhysState::StateFlag>(*this, lib, "HumanPhysState::StateFlag");
@@ -556,6 +577,8 @@ public:
       das::SideEffects::modifyArgument, "bind_dascript::human_phys_calcGunTm");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_isGoProneAllowed)>(*this, lib, "human_phys_isGoProneAllowed",
       das::SideEffects::none, "bind_dascript::human_phys_isGoProneAllowed");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_get_segphys_smooth_cam_coefs)>(*this, lib,
+      "human_phys_get_segphys_smooth_cam_coefs", das::SideEffects::none, "bind_dascript::human_phys_get_segphys_smooth_cam_coefs");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_get_segphys_num_anims)>(*this, lib, "human_phys_get_segphys_num_anims",
       das::SideEffects::none, "bind_dascript::human_phys_get_segphys_num_anims");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_get_segphys_anim_name)>(*this, lib, "human_phys_get_segphys_anim_name",
@@ -630,6 +653,14 @@ public:
       "human_phys_state_set_forceWeaponDown", das::SideEffects::modifyArgument, "bind_dascript::human_phys_state_set_forceWeaponDown");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_get_isClimbing)>(*this, lib, "human_phys_state_get_isClimbing",
       das::SideEffects::none, "bind_dascript::human_phys_state_get_isClimbing");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_get_cancelledClimb)>(*this, lib, "human_phys_state_get_cancelledClimb",
+      das::SideEffects::none, "bind_dascript::human_phys_state_get_cancelledClimb");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_get_climbHangPhase)>(*this, lib, "human_phys_state_get_climbHangPhase",
+      das::SideEffects::none, "bind_dascript::human_phys_state_get_climbHangPhase");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_climb_query_along)>(*this, lib, "human_phys_climb_query_along",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::human_phys_climb_query_along");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_start_climb)>(*this, lib, "human_phys_start_climb",
+      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::human_phys_start_climb");
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_phys_state_get_isClimbingOverObstacle)>(*this, lib,
       "human_phys_state_get_isClimbingOverObstacle", das::SideEffects::none,
       "bind_dascript::human_phys_state_get_isClimbingOverObstacle");

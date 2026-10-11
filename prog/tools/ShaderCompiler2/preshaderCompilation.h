@@ -6,6 +6,7 @@
 #include "shaderTab.h"
 #include "shErrorReporting.h"
 #include "namedConst.h"
+#include "subpassRead.h"
 #include "cppStcodeAssembly.h"
 #include "variablesMerger.h"
 #include <EASTL/optional.h>
@@ -25,14 +26,15 @@ class VariantContext;
 
 struct PreshaderStat
 {
-  ShaderTerminal::state_block_stat *stat;
-  ShaderStage stage;
-  semantic::VariableType vt;
+  ShaderTerminal::state_block_stat *stat = nullptr;
+  ShaderStage stage = {};
+  semantic::VariableType vt = {};
+  semantic::SubpassReadResolution subpassRead{};
 };
 
 inline bool operator==(const PreshaderStat &s1, const PreshaderStat &s2)
 {
-  return s1.stat == s2.stat && s1.stage == s2.stage && s1.vt == s2.vt;
+  return s1.stat == s2.stat && s1.stage == s2.stage && s1.vt == s2.vt && s1.subpassRead == s2.subpassRead;
 }
 
 struct PreshaderCompilationInput
@@ -42,7 +44,10 @@ struct PreshaderCompilationInput
   Tab<PreshaderStat> staticTextureStats{};
   Tab<PreshaderStat> dynamicResourceStats{};
   Tab<PreshaderStat> hardcodedStats{};
+  Tab<PreshaderStat> subpassReadStats{};
   bool isCompute = false;
+
+  RenderPassOptIn subpassReadWindow{};
 
   // @NOTE: this is not used for codegen. However, this is required for unique identification, as different var maps lead to different
   // bytecodes, and they only consolidate at eval end (and we want caching while it is ongoing)
@@ -54,14 +59,15 @@ inline bool operator==(const PreshaderCompilationInput &i1, const PreshaderCompi
   if (i1.supportStats.size() != i2.supportStats.size() || i1.scalarStats.size() != i2.scalarStats.size() ||
       i1.staticTextureStats.size() != i2.staticTextureStats.size() ||
       i1.dynamicResourceStats.size() != i2.dynamicResourceStats.size() || i1.hardcodedStats.size() != i2.hardcodedStats.size() ||
-      i1.staticVarDecls.size() != i2.staticVarDecls.size() || i1.isCompute != i2.isCompute)
+      i1.subpassReadStats.size() != i2.subpassReadStats.size() || i1.staticVarDecls.size() != i2.staticVarDecls.size() ||
+      i1.isCompute != i2.isCompute || !(i1.subpassReadWindow == i2.subpassReadWindow))
   {
     return false;
   }
 
   return i1.supportStats == i2.supportStats && i1.scalarStats == i2.scalarStats && i1.staticTextureStats == i2.staticTextureStats &&
          i1.dynamicResourceStats == i2.dynamicResourceStats && i1.hardcodedStats == i2.hardcodedStats &&
-         i1.staticVarDecls == i2.staticVarDecls;
+         i1.subpassReadStats == i2.subpassReadStats && i1.staticVarDecls == i2.staticVarDecls;
 }
 
 namespace eastl
@@ -76,6 +82,10 @@ struct hash<PreshaderStat>
     hash_into(h, uintptr_t(stat.stat));
     hash_into(h, int(stat.stage));
     hash_into(h, stat.vt);
+    hash_into(h, stat.subpassRead.readPos);
+    hash_into(h, stat.subpassRead.targetIdx);
+    hash_into(h, int(stat.subpassRead.emulated));
+    hash_into(h, int(stat.subpassRead.multisampled));
     return h;
   }
 };
@@ -88,6 +98,9 @@ struct hash<PreshaderCompilationInput>
     constexpr size_t MAGIC = 0xFADEDEED;
     size_t h = 0;
     hash_into(h, inp.isCompute);
+    hash_into(h, uintptr_t(inp.subpassReadWindow.pass));
+    hash_into(h, inp.subpassReadWindow.subpassIdx);
+    hash_into(h, uintptr_t(inp.subpassReadWindow.group));
     hash_into(h, MAGIC);
     for (const auto *s : inp.supportStats)
       hash_into(h, uintptr_t(s));
@@ -109,6 +122,9 @@ struct hash<PreshaderCompilationInput>
     }
     hash_into(h, MAGIC);
     for (const auto &s : inp.staticTextureStats)
+      hash_into(h, s);
+    hash_into(h, MAGIC);
+    for (const auto &s : inp.subpassReadStats)
       hash_into(h, s);
     hash_into(h, MAGIC);
     for (const auto &s : inp.dynamicResourceStats)
@@ -135,8 +151,8 @@ struct CompiledPreshader
 
   Tab<Terminal *> stcodeVars;
 
-  bool isCompute;
-  int requiredRegCount;
+  bool isCompute = false;
+  int requiredRegCount = 0;
 
   Tab<String> dynamicSamplerImplicitVars;
   Tab<int> usedMaterialVarIds;

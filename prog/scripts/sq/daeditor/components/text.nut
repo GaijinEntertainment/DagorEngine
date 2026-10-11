@@ -2,22 +2,12 @@ from "%sqstd/frp.nut" import *
 from "daRg" import *
 from "types" import Table, Array, String
 
-function dtext(val, params={}, addchildren = null) {
+function dtext(val, params={}) {
   if (val == null)
     return null
   if (val instanceof Table) {
     params = val.__merge(params)
     val = params?.text
-  }
-  local children = params?.children
-  if (children && !(children instanceof Array))
-    children = [children]
-  if (addchildren) {
-    children = children ?? []
-    if (addchildren instanceof Array)
-      children.extend(addchildren)
-    else
-      children.append(addchildren)
   }
 
   let watch = params?.watch
@@ -37,7 +27,6 @@ function dtext(val, params={}, addchildren = null) {
     size = SIZE_TO_CONTENT
     halign = ALIGN_LEFT
   }.__update(params, {text = txt})
-  ret.__update({children=children})
   if (watchedtext) {
     let baseWatch = watch ? (watch instanceof Array ? watch : [watch]) : []
     return function() {

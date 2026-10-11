@@ -221,11 +221,9 @@ Expression folding and the AST optimizations, merged here.
 - Hoisting: closure hoisting, behind the `-optCH` compile option
   (`CO_CLOSURE_HOISTING_OPT`), moves an inner function out of the loop or
   function that creates it when the move is safe, so the closure is not built
-  again on every pass. Hoisting an immutable value out of a loop is the
-  [static](page:language/operators#the-static-memoisation-operator) operator,
-  which evaluates an expression once per code location and caches the result;
-  the compiler applies it on its own to a large enough constant subtree.
-- Loop unrolling, `filter` + `map` fusion and dead-code elimination: not done.
+  again on every pass.
+- Hoisting a loop-invariant value, loop unrolling, `filter` + `map` fusion and
+  dead-code elimination: not done.
 
 **Status**: Partly implemented. The rest needs a detailed RFC.
 

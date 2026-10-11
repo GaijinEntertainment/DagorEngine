@@ -11,7 +11,7 @@ struct ProfilerDescriptions
   DescriptionStorage storage;
   UniqueHashedNames<uint64_t> uniqueNames;              // assume no collisions for 64 bit hashes
   HashedKeyMap<uint64_t, uint32_t, 0ULL> descToStorage; // we assume no collisions for 64 bit hashes of Descriptions
-  mutable std::mutex lock;
+  mutable dag::mutex lock;
   enum
   {
     FrameNo = DescCount,
@@ -48,7 +48,7 @@ protected:
 
 inline size_t ProfilerDescriptions::memAllocated() const
 {
-  std::lock_guard<std::mutex> guard(lock);
+  dag::lock_guard guard(lock);
   return storage.memAllocated() + uniqueNames.totalAllocated() + descToStorage.bucket_count() * (sizeof(uint64_t) + sizeof(uint32_t));
 }
 
@@ -76,12 +76,12 @@ inline uint32_t ProfilerDescriptions::create(const char *name, const char *file_
 {
   if ((flags & 0xFF) == 0xFF) // invalid flags! fix it!
     flags = 0;
-  std::lock_guard<std::mutex> guard(lock);
+  dag::lock_guard guard(lock);
   return emplaceInternal(EventDescription{name, file_name, line, (color & 0xFFFFFF) | (flags << 24)});
 }
 inline uint32_t ProfilerDescriptions::createCopy(const char *name, const char *file_name, int line, uint32_t flags, uint32_t color)
 {
-  std::lock_guard<std::mutex> guard(lock);
+  dag::lock_guard guard(lock);
   file_name = file_name ? uniqueNames.addName(file_name) : nullptr;
   name = uniqueNames.addName(name);
   return emplaceInternal(EventDescription{name, file_name, line, (color & 0xFFFFFF) | (flags << 24)});

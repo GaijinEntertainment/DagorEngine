@@ -25,6 +25,8 @@ public:
     AddTransitNode,
     AddTransitNodeAtEdge,
     CreateSubgraph,
+    OpenSubgraph,
+    ExplodeSubgraph,
     Remove,
     RemoveKeepConnections,
     Duplicate,
@@ -51,13 +53,13 @@ public:
     int detachPin = -1;
     int jumpNode = -1; // Jump: the destination pin
     int jumpPin = -1;
-    int targetNode = -1; // the pin the menu was opened for, or an edge target's source pin
+    int targetNode = -1; // the node or pin the menu was opened for, or an edge target's source pin
     int targetPin = -1;
   };
 
   // The popup anchors itself to the cursor, so these must be called on the frame the right-click was
   // reported.
-  void openForNode(int selected_node_count, bool can_paste);
+  void openForNode(int node_id, int selected_node_count, bool can_paste, bool node_is_subgraph, bool subgraph_open);
   void openForPin(const GraphData &gd, int node_id, int pin_index);
   void openForEdges(const GraphData &gd, const eastl::vector<int> &edge_ids);
   void openForBackground(bool auto_update_on);
@@ -65,6 +67,13 @@ public:
   // Standing, or still delivering the click it was closed on: updateImgui drops the menu only once
   // renderContextMenu reports both.
   bool isOpen() const { return menu != nullptr; }
+
+  // Dropped without delivering anything, for a tab that stops being shown.
+  void close()
+  {
+    menu.reset();
+    picked = Result();
+  }
 
   // Call between ne::Suspend() and ne::Resume(): the popup anchors to ImGui's mouse position, which
   // is only in screen space while the canvas is suspended.
@@ -77,12 +86,11 @@ public:
 private:
   int onMenuItemClick(unsigned id) override;
 
-  // Live drops muted edges (a re-route resolves as delete + create, so the edge would come back
-  // unmuted); Reachable drops edges whose opposite pin the renderer never submits, so it has no position.
+  // Reachable drops edges whose opposite pin the renderer never submits, so it has no position: the
+  // rows that navigate to that pin or anchor a re-route on it need one.
   enum class EdgeFilter
   {
     Any,
-    Live,
     Reachable,
   };
 
@@ -124,7 +132,7 @@ private:
   eastl::unique_ptr<PropPanel::IMenu> menu;
   eastl::vector<Entry> entries;
   eastl::vector<int> targetEdges; // every edge the target touches, in submenu order
-  int targetNode = -1;            // pin target: the pin's node; edge target: the edge's source pin
+  int targetNode = -1;            // node target: the node; pin target: the pin's node; edge target: the edge's source pin
   int targetPin = -1;
   Result picked;
 };

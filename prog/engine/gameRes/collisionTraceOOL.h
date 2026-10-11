@@ -14,7 +14,7 @@
 // On a hit: returns true, out_data_ofs = accepted leaf body offset, out_sub_tri = winning sub-tri
 // 0..3 (0/1 = quad A tri 1/2, 2/3 = quad B tri 1/2), r.t = hit distance in the ray's t-parameterization.
 // Feed an UNNORMALIZED box-space ray (origin = local*scale+ofs, dir = local_dir*scale) so t ==
-// resource-local t (see BlasBoxRay in collisionGameRes.cpp).
+// resource-local t (see BlasBoxRay in daBVH/dag_swBLAS_leaf.h).
 namespace collision_blas
 {
 // (ctx, leaf body offset) -> true if the leaf's source node passes the caller's filter.

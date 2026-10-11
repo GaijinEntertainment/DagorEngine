@@ -225,8 +225,15 @@ void delete_blob(OcclusionBlobHandle &) {}
 void set_pos(OcclusionBlobHandle, const Point3 &) {}
 void set_blob_active_range(OcclusionBlobHandle, float) {}
 void attach_to_blob(EventHandle, OcclusionBlobHandle) {}
+void create_blob_template(float, float, const char *) {}
+void set_preferred_blob_template(EventHandle, const char *) {}
 void drop_instance(EventHandle) {}
 bool is_inside_active_range(const Point3 &) { return {}; }
+void suspend_backend(bool) {}
+void set_backend(const Backend &) {}
+void level_loaded() {}
+void level_unloaded() {}
+void debug_render_imgui() {}
 } // namespace occlusion_gpu
 
 } // namespace sndsys

@@ -52,7 +52,7 @@ DataBlock::DataBlock(DataBlockShared *s, int nid, uint16_t pcnt, uint16_t bcnt, 
   shared(s), nameIdAndFlags(nid + 1), paramsCount(pcnt), blocksCount(bcnt), firstBlockId(fBlock), ofs(ofs_)
 {}
 
-DataBlock::DataBlock(DataBlock &&a)
+DataBlock::DataBlock(DataBlock &&a) noexcept
 {
   if (a.topMost())
   {
@@ -66,13 +66,13 @@ DataBlock::DataBlock(DataBlock &&a)
   }
   else
   {
-    shared = new DataBlockShared;
+    shared = new DataBlockShared; //-V509 operator new never throws, OOM is fatal
     nameIdAndFlags |= IS_TOPMOST;
     setFrom(&a);
   }
 }
 
-DataBlock &DataBlock::operator=(DataBlock &&a)
+DataBlock &DataBlock::operator=(DataBlock &&a) noexcept
 {
   if (a.topMost())
   {

@@ -108,7 +108,7 @@ HRESULT check_result_no_oom_report(HRESULT result, const char *expr, const char 
 
 void report_resource_alloc_info_error(const D3D12_RESOURCE_DESC &desc)
 {
-  D3D_ERROR("DX12: Error while querying resource allocation info, resource desc: %s, %u, %u x %u x "
+  D3D_ERROR("DX12: Error while querying resource allocation info, resource desc: %s, %llu, %llu x %u x "
             "%u, %u, %s, %u by %u, %u, %08X",
     to_string(desc.Dimension), desc.Alignment, desc.Width, desc.Height, desc.DepthOrArraySize, desc.MipLevels,
     dxgi_format_name(desc.Format), desc.SampleDesc.Count, desc.SampleDesc.Quality, desc.Layout, desc.Flags);

@@ -1518,11 +1518,9 @@ bool d3d::set_const(unsigned stage, unsigned reg_base, const void *data, unsigne
   else if (stage == STAGE_CS)
     D3D_CONTRACT_ASSERTF(reg_base + num_regs <= g_csbin_max_size, "CS: Writing %u regs with base=%u over the hard limit=%u", num_regs,
       reg_base, g_csbin_max_size);
-  else if (stage == STAGE_VS)
+  else
     D3D_CONTRACT_ASSERTF(reg_base + num_regs <= g_vsbin_max_size, "VS: Writing %u regs with base=%u over the hard limit=%u", num_regs,
       reg_base, g_vsbin_max_size);
-  else
-    D3D_CONTRACT_ASSERT_FAIL("Invalid stage %d", stage);
 #endif
 
   if (reg_base < 32 && !cb.constantsModified[stage]) // only do this for first 32 constants. it is unlikely, that later constants won't

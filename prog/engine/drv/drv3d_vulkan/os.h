@@ -29,7 +29,8 @@ bool get_monitors_list(Tab<String> &monitors);
 // Returns user-friendly info about a monitor (nullptr/empty monitor_name selects the default monitor).
 // friendly_name and monitor_index are optional. Returns false if the monitor was not found.
 bool get_monitor_info(const char *monitor_name, String *friendly_name, int *monitor_index);
-// Fills resolutions with available modes ("W x H") for a single monitor. Returns true if at least one was found.
+// Fills resolutions ("W x H") for a single monitor, as linux_GUI::get_resolutions_from_monitor on Linux (on Wayland the
+// list also holds the standard window sizes that fit the output). Returns true if at least one was found.
 bool get_resolutions_from_monitor(const char *monitor_name, Tab<String> &resolutions);
 
 bool validate_vulkan_signature(void *file);

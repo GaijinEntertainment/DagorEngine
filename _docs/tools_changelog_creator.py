@@ -15,7 +15,7 @@ import git
 import requests
 
 MARKDOWN_FILE_EXTENSION = ".md"
-PATHS_TO_CHECK_FOR_CHANGES = "prog/tools/AssetViewer prog/tools/sceneTools/assetExp prog/tools/sceneTools/daEditorX prog/tools/sceneTools/daEditorX_extPlugins prog/tools/libTools prog/tools/sharedInclude skyquake/prog/tools/daEditorX"
+PATHS_TO_CHECK_FOR_CHANGES = "prog/tools/AssetViewer prog/gameLibs/animTreeEditor prog/tools/sceneTools/assetExp prog/tools/sceneTools/daEditorX prog/tools/libTools prog/tools/sharedInclude skyquake/prog/tools/daEditorX"
 DATABASE_DIRECTORY_OLD = "old"
 DATABASE_DIRECTORY_EDITED = "edited"
 DATABASE_DIRECTORY_TO_EDIT = "to-edit"

@@ -26,7 +26,6 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/binDumpUtil.h>
 
-#include <scene/dag_frtdumpMgr.h>
 #include <gameRes/dag_collisionResource.h>
 
 
@@ -51,14 +50,11 @@ static int physType = 0;
 static Ptr<PhysicsResource> simObjRes = NULL;
 static float curSimDt = 0.01;
 
-static FastRtDumpManager phys_frt;              // an old level's FRT block
-static Ptr<CollisionResource> phys_static_coll; // a current level's SCol block
+static Ptr<CollisionResource> phys_static_coll;
 static const mat44f phys_coll_tm = {V_C_UNIT_1000, V_C_UNIT_0100, V_C_UNIT_0010, V_C_UNIT_0001};
 static inline bool phys_traceray_normal(const Point3 &p, const Point3 &dir, real &t, Point3 &n, int &pmid)
 {
-  if (phys_static_coll)
-    return phys_static_coll->traceRay(phys_coll_tm, p, dir, t, &n, pmid);
-  return phys_frt.traceray(p, dir, t, pmid, n);
+  return phys_static_coll && phys_static_coll->traceRay(phys_coll_tm, p, dir, t, &n, pmid);
 }
 
 
@@ -157,13 +153,11 @@ bool setCollisionsToWorld(mkbindump::BinDumpSaveCB &cwr)
   // loading dump
   DAEDITOR3.conNote("+++ Loading ...");
 
-  // The trace reads the resource before the tracer, so a level that carries only an FRT block must
-  // not find the last one's resource still here.
+  // constraint: a build that writes no SCol must not leave the last one's resource installed
   phys_static_coll = nullptr;
 
   MemoryLoadCB crd(cwr.getRawWriter().getMem(), false);
   int tag = 0;
-  unsigned bindump_id = 0xFFFFFFFF;
 
   for (;;)
   {
@@ -172,15 +166,6 @@ bool setCollisionsToWorld(mkbindump::BinDumpSaveCB &cwr)
 
     switch (tag)
     {
-      case _MAKE4C('FRT'):
-      {
-        int id = phys_frt.loadRtDump(crd, bindump_id);
-        if (id == -1)
-          break;
-        phys_bullet_install_tracer(&phys_traceray_normal);
-      }
-      break;
-
       case _MAKE4C('SCol'):
       {
         phys_static_coll = CollisionResource::loadResource(crd, -1); // a refused stream lands empty, never null
@@ -281,8 +266,7 @@ void end()
   needSimulate = false;
 
   phys_bullet_install_tracer(nullptr);
-  phys_frt.delAllRtDumps();
-  phys_static_coll = nullptr; // a closed level holds no collision, as the dumps above
+  phys_static_coll = nullptr;
   phys_bullet_close();
 }
 

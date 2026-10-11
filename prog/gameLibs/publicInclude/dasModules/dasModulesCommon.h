@@ -15,26 +15,26 @@
 
 namespace das
 {
-#define MAKE_TYPE_FACTORY_ALIAS(TYPE, DAS_DECL_TYPE, DAS_TYPE) \
-  template <>                                                  \
-  struct typeFactory<TYPE>                                     \
-  {                                                            \
-    static TypeDeclPtr make(const ModuleLibrary &lib)          \
-    {                                                          \
-      G_UNUSED(lib);                                           \
-      auto t = new TypeDecl(Type::DAS_DECL_TYPE);              \
-      t->alias = #TYPE;                                        \
-      t->aotAlias = true;                                      \
-      return t;                                                \
-    }                                                          \
-  };                                                           \
-  template <>                                                  \
-  struct typeName<TYPE>                                        \
-  {                                                            \
-    static string name() { return #TYPE; }                     \
-  };                                                           \
-  template <>                                                  \
-  struct das_alias<TYPE> : das::das_alias_vec<TYPE, DAS_TYPE>  \
+#define MAKE_TYPE_FACTORY_ALIAS(TYPE, DAS_DECL_TYPE, DAS_TYPE)               \
+  template <>                                                                \
+  struct typeFactory<TYPE>                                                   \
+  {                                                                          \
+    static TypeDeclPtr make(const ModuleLibrary &lib)                        \
+    {                                                                        \
+      G_UNUSED(lib);                                                         \
+      auto t = new TypeDecl(Type::DAS_DECL_TYPE, das::cppBindingLineInfo()); \
+      t->alias = #TYPE;                                                      \
+      t->aotAlias = true;                                                    \
+      return t;                                                              \
+    }                                                                        \
+  };                                                                         \
+  template <>                                                                \
+  struct typeName<TYPE>                                                      \
+  {                                                                          \
+    static string name() { return #TYPE; }                                   \
+  };                                                                         \
+  template <>                                                                \
+  struct das_alias<TYPE> : das::das_alias_vec<TYPE, DAS_TYPE>                \
   {};
 
 MAKE_TYPE_FACTORY_ALIAS(Point4, tFloat4, float4)

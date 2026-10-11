@@ -20,6 +20,11 @@ if $(PlatformSpec) in gcc {
   CPPopt += -Wno-stringop-overflow ;
 }
 
+# das locks dag::mutex via std::unique_lock/lock_guard, which have no TSA annotations
+if $(ClangThreadSafety) = yes && $(PlatformSpec) = clang {
+  CPPopt += -Wno-thread-safety-analysis ;
+}
+
 TargetType  = lib ;
 Target      = 1stPartyLibs/daScript.lib ;
 AddIncludes =
@@ -62,6 +67,11 @@ if $(daScript_keepalive) = 1 {
   CPPopt += -DDAS_ENABLE_KEEPALIVE=0 ;
 }
 
+if $(NeedDasJitRuntime) = yes {
+  Target = $(Target:S=~jit.lib) ;
+  CPPopt += -DDAS_JIT_RUNTIME ;
+}
+
 if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
@@ -72,6 +82,10 @@ if $(Config) in rel irel {
 
 # Fix for fmt library Unicode compilation errors
 CPPopt += -DFMT_UNICODE=0 ;
+
+# upstream's CMake defines this for every libDaScript target; src/builtin/jit_runtime.cpp
+# calls describe_pending_dynamic_modules outside the guard that includes its header
+CPPopt += -DDAS_ENABLE_DYN_INCLUDES=1 ;
 
 if $(daScript_ConsoleExe) = yes {
   Target = $(Target:S=~s$(Target:S)) ;
@@ -100,6 +114,7 @@ local AllSrcFolder_CPP =
 # engine/kernel/linux/linuxCpuFreq.cpp). Compiling it into the lib produces duplicate
 # strong symbols at link time, so exclude it too - dagor's kernel supplies these on every platform.
 AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources : (project_specific_file_info\\.cpp|performance_time\\.cpp|\\.cpp\\.gen\\.es\\.cpp)$ ;
+Sources += dagorAdapter/das_jit_runtime.cpp ;
 
 local ExcOpt ;
 if $(Platform) in windows xboxOne scarlett {

@@ -135,7 +135,7 @@ public:
     doRecalcAnimAndWtm();
 
     float charDepScale = mgr.getOr(eid, ECS_HASH("animchar__scale"), 1.0f);
-    if (fabsf(charDepScale - 1) > 1e-3)
+    if (fabsf(charDepScale - 1) > 1e-3f)
       if (!applyCharDepScale(charDepScale))
         logerr("animchar %s: cannot apply charDep scale=%.4f", animCharRes, charDepScale);
     if (mgr.has(eid, ECS_HASH("animchar__animStateNames")))
@@ -196,7 +196,7 @@ bool AnimcharNodesMat44::onLoaded(ecs::EntityManager &mgr, ecs::EntityId eid)
   if (DAGOR_UNLIKELY(nwtm.empty()))
     return false;
   acBase.copyNodesTo(*this);
-  mgr.set<vec3f>(eid, ECS_HASH("animchar_render__root_pos"), nwtm[0].col3);
+  mgr.set<vec3f>(eid, ECS_HASH("animchar_render__root_pos"), v_add(nwtm[0].col3, wofs));
   return true;
 }
 

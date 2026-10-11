@@ -122,11 +122,11 @@ def public run_find_dupe_judge(input_path : string;
     if (dry_run) return make_tool_result(sprint_json(envelope, false))
     let json_path = path_join(resolved_out, "find_dupe_verdicts.json")
     let md_path = path_join(resolved_out, "find_dupe_verdicts.md")
-    envelope.json_path := json_path
-    envelope.md_path := md_path
+    envelope.json_path = json_path
+    envelope.md_path = md_path
     let verdict_text = fread(json_path)
     if (empty(verdict_text)) return make_tool_result("find-dupe completed but verdict JSON missing or empty: {json_path}\nSubprocess output:\n{output}", true)
-    envelope.verdicts := verdict_text
+    envelope.verdicts = verdict_text
     return make_tool_result(sprint_json(envelope, false))
 }
 

@@ -7,8 +7,8 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 2015 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
- * Copyright (C) 2012 - 2014, Linus Nielsen Feltzing, <linus@haxx.se>
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Linus Nielsen Feltzing, <linus@haxx.se>
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -24,97 +24,144 @@
  * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
-
-/*
- * All accesses to struct fields and changing of data in the connection cache
- * and connectbundles must be done with the conncache LOCKED. The cache might
- * be shared.
- */
-
-#include "timeval.h"
+#include "curlx/timeval.h"
 
 struct connectdata;
+struct Curl_easy;
+struct curl_pollfds;
+struct Curl_waitfds;
+struct Curl_multi;
+struct Curl_share;
 
-struct conncache {
-  struct Curl_hash hash;
+/**
+ * Close and destroy the connection.
+ * If the connection is in a cpool, remove it.
+ * If a `cshutdn` is available (e.g. data has a multi handle),
+ * pass the connection to that for controlled shutdown.
+ * Otherwise terminate it right away.
+ * Takes ownership of `conn`.
+ * `data` should not be attached to a connection.
+ */
+void Curl_conn_close(struct Curl_easy *data,
+                     struct connectdata *conn,
+                     bool aborted);
+
+struct cpool {
+  /* the pooled connections, bundled per destination */
+  struct Curl_hash dest2bundle;
   size_t num_conn;
-  long next_connection_id;
+  curl_off_t next_connection_id;
+  curl_off_t next_easy_id;
   struct curltime last_cleanup;
-  /* handle used for closing cached connections */
-  struct Curl_easy *closure_handle;
+  struct Curl_share *share; /* != NULL if pool belongs to share */
+  BIT(locked);
+  BIT(initialized);
 };
 
-#define BUNDLE_NO_MULTIUSE -1
-#define BUNDLE_UNKNOWN     0  /* initial value */
-#define BUNDLE_MULTIPLEX   2
+/* Get connection pool instance for data or NULL if none exists */
+struct cpool *Curl_cpool_get_instance(struct Curl_easy *data);
 
-#ifdef CURLDEBUG
-/* the debug versions of these macros make extra certain that the lock is
-   never doubly locked or unlocked */
-#define CONNCACHE_LOCK(x)                                               \
-  do {                                                                  \
-    if((x)->share) {                                                    \
-      Curl_share_lock((x), CURL_LOCK_DATA_CONNECT,                      \
-                      CURL_LOCK_ACCESS_SINGLE);                         \
-      DEBUGASSERT(!(x)->state.conncache_lock);                          \
-      (x)->state.conncache_lock = TRUE;                                 \
-    }                                                                   \
-  } while(0)
+/* Init the pool, pass multi only if pool is owned by it.
+ * Cannot fail.
+ */
+void Curl_cpool_init(struct cpool *cpool,
+                     struct Curl_share *share,
+                     size_t size);
 
-#define CONNCACHE_UNLOCK(x)                                             \
-  do {                                                                  \
-    if((x)->share) {                                                    \
-      DEBUGASSERT((x)->state.conncache_lock);                           \
-      (x)->state.conncache_lock = FALSE;                                \
-      Curl_share_unlock((x), CURL_LOCK_DATA_CONNECT);                   \
-    }                                                                   \
-  } while(0)
-#else
-#define CONNCACHE_LOCK(x) if((x)->share)                                \
-    Curl_share_lock((x), CURL_LOCK_DATA_CONNECT, CURL_LOCK_ACCESS_SINGLE)
-#define CONNCACHE_UNLOCK(x) if((x)->share)              \
-    Curl_share_unlock((x), CURL_LOCK_DATA_CONNECT)
-#endif
+/* Destroy all connections and free all members */
+void Curl_cpool_destroy(struct cpool *cpool,
+                        struct Curl_easy *admin);
 
-struct connectbundle {
-  int multiuse;                 /* supports multi-use */
-  size_t num_connections;       /* Number of connections in the bundle */
-  struct Curl_llist conn_list;  /* The connectdata members of the bundle */
-};
+/* Init the transfer to be used within its connection pool.
+ * Assigns `data->id`. */
+void Curl_cpool_xfer_init(struct Curl_easy *data);
 
-/* returns 1 on error, 0 is fine */
-int Curl_conncache_init(struct conncache *, int size);
-void Curl_conncache_destroy(struct conncache *connc);
+/* Get the connection with the given id from `data`'s conn pool. */
+struct connectdata *Curl_cpool_get_conn(struct Curl_easy *data,
+                                        curl_off_t conn_id);
 
-/* return the correct bundle, to a host or a proxy */
-struct connectbundle *Curl_conncache_find_bundle(struct Curl_easy *data,
-                                                 struct connectdata *conn,
-                                                 struct conncache *connc);
-/* returns number of connections currently held in the connection cache */
-size_t Curl_conncache_size(struct Curl_easy *data);
+/* Add the connection to the pool. */
+CURLcode Curl_cpool_add(struct Curl_easy *data,
+                        struct connectdata *conn) WARN_UNUSED_RESULT;
 
-bool Curl_conncache_return_conn(struct Curl_easy *data,
-                                struct connectdata *conn);
-CURLcode Curl_conncache_add_conn(struct Curl_easy *data) WARN_UNUSED_RESULT;
-void Curl_conncache_remove_conn(struct Curl_easy *data,
-                                struct connectdata *conn,
-                                bool lock);
-bool Curl_conncache_foreach(struct Curl_easy *data,
-                            struct conncache *connc,
-                            void *param,
-                            int (*func)(struct Curl_easy *data,
-                                        struct connectdata *conn,
-                                        void *param));
+/**
+ * Return if the pool has reached its configured limits for adding
+ * the given connection. Try to discard the oldest, idle connections
+ * to make space.
+ */
+#define CPOOL_LIMIT_OK     0
+#define CPOOL_LIMIT_DEST   1
+#define CPOOL_LIMIT_TOTAL  2
+int Curl_cpool_check_limits(struct Curl_easy *data,
+                            struct connectdata *conn,
+                            const struct curltime *pnow);
 
-struct connectdata *
-Curl_conncache_find_first_connection(struct conncache *connc);
+/* Return of conn is suitable. If so, stops iteration. */
+typedef bool Curl_cpool_conn_match_cb(struct connectdata *conn,
+                                      void *userdata);
 
-struct connectdata *
-Curl_conncache_extract_bundle(struct Curl_easy *data,
-                              struct connectbundle *bundle);
-struct connectdata *
-Curl_conncache_extract_oldest(struct Curl_easy *data);
-void Curl_conncache_close_all_connections(struct conncache *connc);
-void Curl_conncache_print(struct conncache *connc);
+/* Act on the result of the find, may override it. */
+typedef bool Curl_cpool_done_match_cb(void *userdata);
+
+/**
+ * Find a connection in the pool matching `destination`.
+ * All callbacks are invoked while the pool's lock is held.
+ * @param data        current transfer
+ * @param destination match against `conn->destination` in pool
+ * @param conn_cb     must be present, called for each connection in the
+ *                    bundle until it returns TRUE
+ * @return combined result of last conn_db and result_cb or FALSE if no
+                      connections were present.
+ */
+bool Curl_cpool_find(struct Curl_easy *data,
+                     const char *destination,
+                     Curl_cpool_conn_match_cb *conn_cb,
+                     Curl_cpool_done_match_cb *done_cb,
+                     void *userdata);
+
+/*
+ * A connection (already in the pool) is now idle. Do any
+ * cleanups in regard to the pool's limits.
+ *
+ * Return TRUE if idle connection kept in pool, FALSE if closed.
+ */
+bool Curl_cpool_conn_now_idle(struct Curl_easy *data,
+                              struct connectdata *conn);
+
+/**
+ * Scans the connection pool for half-open/dead
+ * connections, closes and removes them.
+ * The cleanup is done at most once per second.
+ */
+void Curl_cpool_prune_dead(struct cpool *cpool,
+                           struct Curl_easy *data);
+
+/**
+ * Perform upkeep actions on connections in the transfer's pool.
+ */
+CURLcode Curl_cpool_upkeep(struct Curl_easy *data);
+
+typedef void Curl_cpool_conn_do_cb(struct connectdata *conn,
+                                   struct Curl_easy *data,
+                                   void *cbdata);
+
+/**
+ * Invoked the callback for the given data + connection under the
+ * connection pool's lock.
+ * The callback is always invoked, even if the transfer has no connection
+ * pool associated.
+ */
+void Curl_cpool_do_locked(struct Curl_easy *data,
+                          struct connectdata *conn,
+                          Curl_cpool_conn_do_cb *cb, void *cbdata);
+
+/* Close all unused connections, prevent reuse of existing ones. */
+void Curl_cpool_nw_changed(struct cpool *cpool, struct Curl_easy *admin);
+
+/* Return TRUE iff the given connection is considered healthy, e.g.
+ * usable for more transfers. */
+bool Curl_cpool_conn_seems_healthy(struct connectdata *conn,
+                                   struct Curl_easy *data,
+                                   const struct curltime *pnow);
 
 #endif /* HEADER_CURL_CONNCACHE_H */

@@ -603,8 +603,8 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
       }
       else if (bind.subpass == lastSubpassWithAccess)
       {
-        G_ASSERTF(lastSubpassWithAccessAction == bind.action,
-          "vulkan: parallel binding of target %u at subpass %u must have same actions, got %u expected %u", i, bind.subpass,
+        G_ASSERTF((lastSubpassWithAccessAction & RP_TA_SUBPASS_ACCESS_MASK) == (bind.action & RP_TA_SUBPASS_ACCESS_MASK),
+          "vulkan: parallel binding of target %u at subpass %u must have same subpass actions, got %u expected %u", i, bind.subpass,
           bind.action, lastSubpassWithAccessAction);
       }
 

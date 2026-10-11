@@ -74,7 +74,8 @@ void calc_rocket_motor_thrust_mass(const RocketMotorProps &,
   Point3 &,
   Point3 &,
   Point3 &,
-  float &)
+  float &,
+  float)
 {
   G_ASSERT(0);
 }

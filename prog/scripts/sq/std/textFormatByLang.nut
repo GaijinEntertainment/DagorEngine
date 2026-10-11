@@ -9,14 +9,14 @@ function simpleKeys(table): table {
   return res
 }
 
-let decimalFormatDefault = @(value) intToStrWithDelimiter(value, " ")
+let decimalFormatDefault = @[pure](value: number): string intToStrWithDelimiter(value, " ")
 let decimalFormatByLangs = simpleKeys({
-  [["German", "Italian", "Spanish", "Turkish"]] = @(value) intToStrWithDelimiter(value, "."),
-  [["English", "Japanese", "Korean"]] = @(value) intToStrWithDelimiter(value, ","),
-  [["Chinese", "TChinese", "HChinese"]] = @(value) intToStrWithDelimiter(value, ",", 4),
+  [["German", "Italian", "Spanish", "Turkish"]] = @[pure](value: number): string intToStrWithDelimiter(value, "."),
+  [["English", "Japanese", "Korean"]] = @[pure](value: number): string intToStrWithDelimiter(value, ","),
+  [["Chinese", "TChinese", "HChinese"]] = @[pure](value: number): string intToStrWithDelimiter(value, ",", 4),
 })
 
-function shortTextFromNumDefault(num: number): string {
+function [pure] shortTextFromNumDefault(num: number): string {
   let needSymbol = num >= 9999.5
   let roundNum = roundToDigits(num, needSymbol ? 3 : 4)
   if (!needSymbol)
@@ -28,7 +28,7 @@ function shortTextFromNumDefault(num: number): string {
   return $"{0.001 * roundNum}K"
 }
 
-let mkChineseStyleNumberCut = @(char10k, char100m) function(num: number): string {
+let mkChineseStyleNumberCut = @(char10k, char100m) function [pure](num: number): string {
   let needSymbol = num >= 99999.5
   let roundNum = roundToDigits(num, needSymbol ? 4 : 5)
   if (!needSymbol)

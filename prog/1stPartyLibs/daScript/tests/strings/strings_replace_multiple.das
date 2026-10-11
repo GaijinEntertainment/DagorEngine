@@ -1,8 +1,6 @@
 options gen2
 require dastest/testing_boost
 require daslib/strings_boost
-require daslib/faker
-require daslib/fuzzer
 
 [test]
 def test_replace_multiple(t : T?) {

@@ -1002,6 +1002,12 @@ uint8_t *BaseTex::allocSysCopyForDDSX(ddsx::Header &hdr, int quality_id)
 void BaseTex::copyImage(Image *dst, const VkImageCopy *regions, uint32_t region_count, uint32_t src_mip, uint32_t dst_mip,
   uint32_t mip_count, bool unordered)
 {
+  if (Globals::lock.isAcquired() && !unordered)
+    if (RenderPassResource *rp =
+          Frontend::State::pipe.getRO<StateFieldRenderPassResource, RenderPassResource *, FrontGraphicsState, FrontRenderPassState>())
+      DAG_FATAL("vulkan: copy texture %p:%s -> %p:%s called inside native render pass %p:%s! fix application logic to avoid this!",
+        image, getName(), dst, dst->getDebugName(), rp, rp->getDebugName());
+
   CmdCopyImage cmd;
   cmd.src = image;
   cmd.dst = dst;

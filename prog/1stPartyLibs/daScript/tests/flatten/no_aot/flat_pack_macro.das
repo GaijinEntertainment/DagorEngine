@@ -18,34 +18,20 @@ require daslib/rtti
 
 let private PACK_PRIMS : table<string> <- { "sin", "cos", "sqrt", "min", "max" }
 
-def private pack_phase(func : FunctionPtr) : int {
-    for (ann in func.annotations) {
-        if (ann.annotation.name == "flat_pack") {
-            let pv = find_arg(ann.arguments, "phase")
-            if (pv is tInt) return pv as tInt
+def private set_pack_phase(var args : AnnotationArgumentList; ph : int) {
+    for (a in args) {
+        if (a.name == "phase") {
+            a.iValue = ph
+            return
         }
     }
-    return -1
-}
-
-def private set_pack_phase(var func : FunctionPtr; ph : int) {
-    for (ann in func.annotations) {
-        if (ann.annotation.name != "flat_pack") continue
-        var found = false
-        for (a in ann.arguments) {
-            if ("{a.name}" == "phase") {
-                a.iValue = ph
-                found = true
-            }
-        }
-        if (!found) ann.arguments |> add_annotation_argument("phase", ph)
-    }
+    args |> add_annotation_argument("phase", ph)
 }
 
 [function_macro(name="flat_pack")]
 class FlatPackMacro : AstFunctionAnnotation {
     def override apply(var func : FunctionPtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         let tn = "{func.name}_packflat"
         if (find_unique_function(compiling_module(), tn, true) == null) {
             var fn = clone_function(func)
@@ -59,11 +45,11 @@ class FlatPackMacro : AstFunctionAnnotation {
         return true
     }
     def override patch(var func : FunctionPtr; var group : ModuleGroup;
-                       args, progArgs : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         // Skip under lint (the twin is irrelevant to linting source); mirrors [flatten] / the backend.
         if (is_in_lint_check()) return true
-        let ph = pack_phase(func)
+        let ph = args |> find_arg("phase") ?as tInt ?? -1
         if (ph >= 3) return true
         var twin = find_unique_function(compiling_module(), "{func.name}_packflat", true)
         if (twin == null) {
@@ -73,14 +59,14 @@ class FlatPackMacro : AstFunctionAnnotation {
         if (ph == 2) {
             // Cycle 2 finish: fold the packed body the way the backend does after packing.
             flatten_fold(twin)
-            set_pack_phase(func, 3)
+            set_pack_phase(args, 3)
             astChanged = true
             return true
         }
         if (ph == 1) {
             // Re-inferred after flattening: run the PUBLIC pack entry PRE-fold (backend order).
             flatten_pack(twin, false)
-            set_pack_phase(func, 2)
+            set_pack_phase(args, 2)
             astChanged = true
             return true
         }
@@ -89,7 +75,7 @@ class FlatPackMacro : AstFunctionAnnotation {
             errors := ctx.err
             return false
         }
-        set_pack_phase(func, 1)
+        set_pack_phase(args, 1)
         astChanged = true
         return true
     }

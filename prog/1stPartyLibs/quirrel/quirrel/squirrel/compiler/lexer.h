@@ -45,7 +45,6 @@ private:
 private:
     SQInteger _curtoken = -1;
     SQTable *_keywords = nullptr;
-    SQBool _reached_eof = SQFalse;
     SQCompilation::SQCompilationContext &_ctx;
     const char *_sourceText = nullptr;
     size_t _sourceTextSize = 0;
@@ -71,8 +70,6 @@ public:
 
     SQInteger _prevtoken = -1;
     SQInteger _currentline = 1;
-    SQInteger _lasttokenline = -1;
-    SQInteger _lasttokencolumn = 0;
     SQInteger _currentcolumn = 0;
     SQInteger _tokencolumn = 0;
     SQInteger _tokenline = 1;

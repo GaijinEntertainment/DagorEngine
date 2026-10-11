@@ -1,5 +1,6 @@
 #include "compiler/ast.h"
 #include "compiler/compilationcontext.h"
+#include "ast_helpers.h"
 #include "name_shadowing_checker.h"
 #include "symbol_info.h"
 
@@ -80,6 +81,10 @@ void NameShadowingChecker::declareSymbol(const char *name, SymbolInfo *info) {
         if (varinit == funcdecl) {
           warn = false;
         }
+      }
+      if (info->kind == SK_FUNCTION && existedInfo->kind == SK_CONST &&
+          deparenInlineConst(existedInfo->declaration.c->value()) == info->declaration.f) {
+        warn = false;
       }
     }
 

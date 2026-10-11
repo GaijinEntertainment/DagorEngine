@@ -1,0 +1,1 @@
+return { cos = @(x) x }

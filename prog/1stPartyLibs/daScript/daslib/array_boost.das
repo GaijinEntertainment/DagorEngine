@@ -136,7 +136,6 @@ def array_view(bytes : array<auto(TT)> ==const; offset, length : int | int64; bl
     //! creates a view of the array, which is a temporary array that is valid only within the block
     unsafe {
         static_if (typeinfo is_int(offset)) {
-            // Validate non-negativity before the sum to avoid signed overflow UB.
             if (offset < 0 || length < 0 || uint(offset) + uint(length) > uint(_::length(bytes))) {
                 panic("array_view: out of range")
             }

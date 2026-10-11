@@ -19,7 +19,6 @@
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_ioUtils.h>
 #include <ioSys/dag_fileIo.h>
-#include <ioSys/dag_memIo.h>
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_btagCompr.h>
 
@@ -31,11 +30,10 @@
 
 #include <util/dag_bitArray.h>
 #include <scene/dag_physMat.h>
-#include <scene/dag_frtdumpInline.h>
 #include <shaders/dag_shaderMesh.h>
 
 #include <math/dag_capsule.h>
-#include <perfMon/dag_visClipMesh.h>
+#include <debug/dag_collResDebugDraw.h>
 #include <obsolete/dag_cfg.h>
 #include <osApiWrappers/dag_direct.h>
 
@@ -111,7 +109,7 @@ const char *CollisionPlugin::getPhysMatPath(ILogWriter *rep)
 static bool is_p3_eq(const Point3 &a, const Point3 &b) { return (a - b).lengthSq() < 1e-8f; }
 static bool is_bad_wtm(const TMatrix &tm)
 {
-  if (lengthSq(tm.getcol(0)) < 1e-8 || lengthSq(tm.getcol(1)) < 1e-8 || lengthSq(tm.getcol(2)) < 1e-8)
+  if (lengthSq(tm.getcol(0)) < 1e-8f || lengthSq(tm.getcol(1)) < 1e-8f || lengthSq(tm.getcol(2)) < 1e-8f)
     return true;
   return false;
 }
@@ -126,7 +124,7 @@ CollisionPlugin::CollisionPlugin() :
   showVcmWire = true;
   showGameFrt = false;
   collisionReady = false;
-  dagRtDumpReady = false;
+  dagCollReady = false;
 }
 
 
@@ -226,7 +224,6 @@ bool CollisionPlugin::begin(int toolbar_id, unsigned menu_id)
   IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
   manager->registerWindowHandler(this);
 
-  ::set_vcm_visible(isVisible ? showVcm : false);
   if (mPanelVisible && panelClient)
     panelClient->showPropPanel(true);
 
@@ -237,14 +234,13 @@ bool CollisionPlugin::begin(int toolbar_id, unsigned menu_id)
 //==============================================================================
 bool CollisionPlugin::end()
 {
-  mPanelVisible = panelClient->isVisible();
+  mPanelVisible = panelClient && panelClient->isVisible();
 
   if (mPanelVisible)
     panelClient->showPropPanel(false);
 
   IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
   manager->unregisterWindowHandler(this);
-  ::set_vcm_visible(false);
   return true;
 }
 
@@ -256,7 +252,7 @@ void *CollisionPlugin::onWmCreateWindow(int type)
   {
     case PROPBAR_EDITOR_WTYPE:
     {
-      if (panelClient->getPanelWindow())
+      if (!panelClient || panelClient->getPanelWindow())
         return nullptr;
 
       PropPanel::PanelWindowPropertyControl *_panel_window = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
@@ -281,7 +277,7 @@ void *CollisionPlugin::onWmCreateWindow(int type)
 
 bool CollisionPlugin::onWmDestroyWindow(void *window)
 {
-  if (window == panelClient->getPanelWindow())
+  if (panelClient && window == panelClient->getPanelWindow())
   {
     mainPanelState.reset();
     panelClient->getPanelWindow()->saveState(mainPanelState);
@@ -309,9 +305,8 @@ void CollisionPlugin::updateImgui()
     if (panelWindow)
     {
       bool open = true;
-      DAEDITOR3.imguiBegin(*panelWindow, &open);
-      panelWindow->updateImgui();
-      DAEDITOR3.imguiEnd();
+      if (auto window = IDaEditor3Engine::ScopedImguiWindow(*panelWindow, &open); window.canSubmitContents())
+        panelWindow->updateImgui();
 
       if (!open && panelClient)
       {
@@ -336,8 +331,6 @@ void *CollisionPlugin::queryInterfacePtr(unsigned huid)
 void CollisionPlugin::setVisible(bool vis)
 {
   isVisible = vis;
-
-  ::set_vcm_visible((isVisible && this == DAGORED2->curPlugin()) ? showVcm : false);
   DAGORED2->invalidateViewportCache();
 }
 
@@ -354,32 +347,19 @@ void CollisionPlugin::renderObjects()
 
 bool CollisionPlugin::catchEvent(unsigned ev_huid, void *userData)
 {
-  if (ev_huid == HUID_PostRenderObjects && showVcm)
+  if (ev_huid == HUID_PostRenderObjects && showVcm && isVisible && DAGORED2->curPlugin() == this)
   {
     if (showGameFrt)
       makeGameFrtPreviewCollision(false);
-    FastRtDump *rt = showGameFrt ? nullptr : DagorPhys::getFastRtDump();
+    const CollisionResource *coll = showGameFrt ? gameStaticColl.get() : DagorPhys::getClipCollision();
     IGenViewportWnd *vp = DAGORED2->getRenderViewport();
-    if (showGameFrt && gameStaticColl && vp)
+    if (coll && vp)
     {
-      const CollisionResource *coll = gameStaticColl.get();
       TMatrix cameraTm;
       vp->getCameraTransform(cameraTm);
-      // the stream draws what it is handed, so the panel's radius bounds the walk
       bbox3f box;
-      v_bbox3_init_by_bsph(box, v_ldu(&cameraTm.getcol(3).x), v_splats(get_vcm_rad()));
-      ::render_visclipmesh_stream([coll, &box](const VisClipMeshEmit &emit) {
-        coll->visitTrianglesInBox(box, CollisionNode::PHYS_COLLIDABLE, [&emit](vec3f a, vec3f b, vec3f c, int mat, int) {
-          emit(a, b, c, mat);
-          return false; //-V657 draw everything the box holds
-        });
-      });
-    }
-    else if (rt && vp)
-    {
-      TMatrix cameraTm;
-      vp->getCameraTransform(cameraTm);
-      ::render_visclipmesh(*rt, cameraTm.getcol(3));
+      v_bbox3_init_by_bsph(box, v_ldu(&cameraTm.getcol(3).x), v_splats(vcmRad));
+      ::draw_collres_debug(*coll, box, CollisionNode::PHYS_COLLIDABLE, showVcmWire);
     }
   }
   return false;
@@ -409,7 +389,7 @@ void CollisionPlugin::importClipDag()
   if (!dagName.length())
     return;
 
-  dagRtDumpReady = false;
+  dagCollReady = false;
   ::simplify_fname(dagName);
 
   String oldDagName(dagName);
@@ -562,7 +542,10 @@ void CollisionPlugin::addClipNode(Node &n, ICollisionDumpBuilder *rt, const char
           }
         }
 
-        rt->addCapsule(c, -1, 1, (pmid == PHYSMAT_DEFAULT) ? NULL : PhysMat::getMaterial(pmid).name.str());
+        if (rt->supportMask & rt->SUPPORT_CAPSULE)
+          rt->addCapsule(c, -1, 1, (pmid == PHYSMAT_DEFAULT) ? NULL : PhysMat::getMaterial(pmid).name.str());
+        else
+          DAEDITOR3.conWarning("node <%s> is a capsule, which this cook cannot make: it is left out", n.name.str());
         n.setobj(NULL);
 
         return;
@@ -634,8 +617,8 @@ void CollisionPlugin::addClipNode(Node &n, ICollisionDumpBuilder *rt, const char
         if (!add_not_mesh)
         {
           if (report_stats)
-            DAEDITOR3.conNote("FRT.mesh(%5d faces, %4d verts) %s(%s) at %@ pmid=%d[%s] %s", //
-              mh.mesh->face.size(), mh.mesh->vert.size(), n.name, dag_fn, n.wtm.getcol(3),  //
+            DAEDITOR3.conNote("collision mesh(%5d faces, %4d verts) %s(%s) at %@ pmid=%d[%s] %s", //
+              mh.mesh->face.size(), mh.mesh->vert.size(), n.name, dag_fn, n.wtm.getcol(3),        //
               pmid, PhysMat::getMaterial(pmid).name, pmid_force ? "(forced)" : "");
           rt->addMesh(*mh.mesh, n.mat, n.wtm, 0, 1, pmid, pmid_force);
         }
@@ -988,8 +971,8 @@ bool CollisionPlugin::checkMetrics(const DataBlock &metrics_blk)
   if (totalSize > maxSize)
   {
     DAEDITOR3.conError("Metrics validation failed: collision file(s) size %s (%i bytes) more "
-                       "than maximum %s (%i bytes), packed=%dK (for leafSize=%@ levels=%d)",
-      ::bytes_to_mb(totalSize), totalSize, ::bytes_to_mb(maxSize), maxSize, packedSize >> 10, rtStg.leafSize(), rtStg.levels);
+                       "than maximum %s (%i bytes), packed=%dK",
+      ::bytes_to_mb(totalSize), totalSize, ::bytes_to_mb(maxSize), maxSize, packedSize >> 10);
 
     return false;
   }
@@ -1015,11 +998,9 @@ void CollisionPlugin::clearObjects()
   rtStg.defaults();
   gameStaticColl = nullptr;
 
-  close_tps_physmat();
   DagorPhys::close_collision();
-  initCollision(false);
   collisionReady = false;
-  dagRtDumpReady = false;
+  dagCollReady = false;
 }
 
 
@@ -1060,7 +1041,7 @@ bool CollisionPlugin::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool i
 //==============================================================================
 void CollisionPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path)
 {
-  local_data.setReal("vcm_rad", get_vcm_rad());
+  local_data.setReal("vcm_rad", vcmRad);
   local_data.setBool("showVcm", showVcm);
   local_data.setBool("showDags", showDags);
   local_data.setBool("showGameFrt", showGameFrt);
@@ -1069,7 +1050,7 @@ void CollisionPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const c
   for (i = 0; i < clipDag.size(); ++i)
     blk.addStr("dag", clipDag[i]);
 
-  blk.setPoint3("rt_leafSize", rtStg.leafSize());
+  blk.setPoint3("rt_leafSize", rtStg.leafSize);
   blk.setInt("rt_levels", rtStg.levels);
 
   DataBlock *plugBlk = blk.addBlock("EditClipPlugNames");
@@ -1089,13 +1070,10 @@ void CollisionPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const c
 //==============================================================================
 void CollisionPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path)
 {
-  vcmRad = local_data.getReal("vcm_rad", get_vcm_rad());
+  vcmRad = local_data.getReal("vcm_rad", get_collres_debug_draw_radius());
   showVcm = local_data.getBool("showVcm", true);
   showDags = local_data.getBool("showDags", false);
   showGameFrt = local_data.getBool("showGameFrt", false);
-
-  if (vcmRad != get_vcm_rad())
-    set_vcm_rad(vcmRad);
 
   int dagNid = blk.getNameId("dag");
   int i;
@@ -1118,7 +1096,7 @@ void CollisionPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_d
     }
 
   rtStg.defaults();
-  rtStg.leafSize() = blk.getPoint3("rt_leafSize", rtStg.leafSize());
+  rtStg.leafSize = blk.getPoint3("rt_leafSize", rtStg.leafSize);
   rtStg.levels = blk.getInt("rt_levels", rtStg.levels);
 
   const DataBlock *plugBlk = blk.getBlockByName("EditClipPlugNames");
@@ -1157,15 +1135,10 @@ void CollisionPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_d
 
   initCollision(false);
   setVisible(isVisible);
-  dagRtDumpReady = false;
+  dagCollReady = false;
 }
 
 
-static void addMeshCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bool for_game, bool need_kill, bool report_stats);
-static void addBoxCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bool report_stats);
-static void addSphereCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bool report_stats);
-static void addCapsuleCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bool report_stats);
-static void addConvexCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bool report_stats);
 static const char *deducePhysMat(StaticGeometryNode &n)
 {
   const char *physmat = n.script.getStr("phmat", NULL);
@@ -1219,7 +1192,7 @@ static void addMeshCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, b
   Mesh mesh = n.mesh->mesh;
   const TMatrix *wtm = &n.wtm;
   Point3 pos = n.wtm.getcol(3);
-  if (report_stats && mesh.vert.size() && pos.lengthSq() < 1e-6)
+  if (report_stats && mesh.vert.size() && pos.lengthSq() < 1e-6f)
   {
     pos.set(0, 0, 0);
     for (const auto &p : mesh.vert)
@@ -1294,7 +1267,7 @@ static void addMeshCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, b
     }
 
     if (report_stats)
-      DAEDITOR3.conNote("FRT.mesh(%5d faces, %4d verts) %s at %@ pmid=%d[%s]", //
+      DAEDITOR3.conNote("collision mesh(%5d faces, %4d verts) %s at %@ pmid=%d[%s]", //
         mesh.face.size(), mesh.vert.size(), n.name, pos, pmid, PhysMat::getMaterial(pmid).name);
     rt->addMesh(mesh, NULL, *wtm, 0, 1, pmid, false, n.mesh);
   }
@@ -1312,10 +1285,7 @@ static void addBoxCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bo
 {
   if (!(rt->supportMask & rt->SUPPORT_BOX))
   {
-    if (rt->supportMask & rt->SUPPORT_CONVEX)
-      addConvexCollision(rt, n, report_stats);
-    else
-      addMeshCollision(rt, n, false, false, report_stats);
+    addMeshCollision(rt, n, false, false, report_stats);
     return;
   }
 
@@ -1348,10 +1318,7 @@ static void addSphereCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n,
 {
   if (!(rt->supportMask & rt->SUPPORT_SPHERE))
   {
-    if (rt->supportMask & rt->SUPPORT_CONVEX)
-      addConvexCollision(rt, n, report_stats);
-    else
-      addMeshCollision(rt, n, false, false, report_stats);
+    addMeshCollision(rt, n, false, false, report_stats);
     return;
   }
 
@@ -1370,10 +1337,7 @@ static void addCapsuleCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n
 {
   if (!(rt->supportMask & rt->SUPPORT_CAPSULE))
   {
-    if (rt->supportMask & rt->SUPPORT_CONVEX)
-      addConvexCollision(rt, n, report_stats);
-    else
-      addMeshCollision(rt, n, false, false, report_stats);
+    addMeshCollision(rt, n, false, false, report_stats);
     return;
   }
 
@@ -1390,8 +1354,12 @@ static void addCapsuleCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n
 static void addConvexCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, bool report_stats)
 {
   G_UNUSED(report_stats);
+  // the box, sphere and capsule paths fall back to the mesh; this one drops the node
   if (!(rt->supportMask & rt->SUPPORT_CONVEX))
+  {
+    DAEDITOR3.conWarning("node <%s> asks for convex collision, which this cook cannot make: it is left out", n.name.str());
     return;
+  }
 
   // remove degenerate triangles
   Mesh mesh = n.mesh->mesh;
@@ -1407,7 +1375,7 @@ static void addConvexCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n,
     Point3 v2 = v[2] - v[0];
 
     const real lenSq = sqrtf(v1.lengthSq() * v2.lengthSq());
-    if (lenSq < 0.00001)
+    if (lenSq < 0.00001f)
       erase_items(mesh.face, ntri--, 1);
   }
   rt->addConvexHull(mesh, NULL, n.wtm, 0, 1, PHYSMAT_DEFAULT, false, n.mesh);
@@ -1427,7 +1395,6 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, unsigned 
     return false;
   }
 
-  // the editor's own clip stays a tracer dump (DagorPhys traces it); the game's is the stream
   if (for_game)
   {
     // the same gate the asset cook of every other collision reads
@@ -1436,10 +1403,10 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, unsigned 
                             ->getBlockByNameEx("build")
                             ->getBlockByNameEx("collision")
                             ->getBool("joltDegenerativeTriFailExport", false);
-    rt = ::create_static_collision_dump_builder(CollisionPlugin::getPhysMatPath(), joltFail);
+    rt = ::create_static_collision_builder(CollisionPlugin::getPhysMatPath(), joltFail);
   }
   else
-    rt = ::create_dagor_raytracer_dump_builder();
+    rt = ::create_editor_collision_builder("editor clip");
 
   if (!rt)
   {
@@ -1447,7 +1414,6 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, unsigned 
     return false;
   }
 
-  rt->start(rtStg);
   bool report_stats = for_game;
 
   int i;
@@ -1585,7 +1551,6 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, unsigned 
 
   IObjEntityFilter::setSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION, prevSubtype);
 
-  String tmpFname;
   String clipFname;
 
   if (for_game)
@@ -1595,23 +1560,27 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, unsigned 
 
   if (report_stats)
     DAEDITOR3.conNote("--- finished gathering the collision geom");
-  tmpFname = DAGORED2->getPluginFilePath(this, "temp_rtdump");
 
+  if (!for_game)
+    DagorPhys::close_collision(); // the cook rewrites the clip this holds
+
+  bool ok, wroteAny;
   {
-    bool ok = false;
-    {
-      FullFileSaveCB cwr(clipFname);
-      ok = cwr.fileHandle && rt->finishAndWrite(tmpFname, cwr, target_code);
-    }
-    if (!ok)
-    {
-      debug("Errors while compile collision");
-      // The file is closed by now: a refused write leaves an empty one, which the build would
-      // still find and ship as an empty block.
-      ::dd_erase(clipFname);
-      rt->destroy();
-      return false;
-    }
+    FullFileSaveCB cwr(clipFname);
+    if (!cwr.fileHandle)
+      DAEDITOR3.conError("Cannot open %s to write the collision", clipFname.str());
+    ok = cwr.fileHandle && rt->finishAndWrite(cwr);
+    wroteAny = ok && cwr.tell() > 0;
+  }
+  if (!for_game)
+    ::dd_erase(DAGORED2->getPluginFilePath(this, "editor_clip.frt.bin")); // the tracer-era clip, which nothing reads
+  if (!ok || (!wroteAny && !for_game))
+    ::dd_erase(clipFname);
+  if (!ok)
+  {
+    debug("Errors while compile collision");
+    rt->destroy();
+    return false;
   }
 
   if (for_game)
@@ -1639,8 +1608,9 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, unsigned 
 
   clear_and_shrink(csgBox);
 
-  if (!for_game)
-    initCollision(false);
+  // a cook that wrote nothing erased clipFname, so a reload would only report it missing
+  if (!for_game && wroteAny)
+    return initCollision(false);
 
   return true;
 }
@@ -1653,15 +1623,12 @@ bool CollisionPlugin::initCollision(bool for_game)
 
   if (for_game)
   {
-    debug("initCollision(for_game): the game collision is not a tracer dump, nothing installed");
+    debug("initCollision(for_game): the game clip is not loaded by the editor, nothing installed");
     return false;
   }
   getEditorClipPath(clipFname);
 
-  close_tps_physmat();
   DagorPhys::close_collision();
-
-  ::init_tps_physmat(CollisionPlugin::getPhysMatPath());
 
   if (IDagorEd2Engine::get())
   {
@@ -1674,64 +1641,18 @@ bool CollisionPlugin::initCollision(bool for_game)
   debug("Try to load collision from file %s", (const char *)clipFname);
 
   if (!fl.fileHandle)
+  {
+    DAEDITOR3.conWarning("No %s: compile the collision to trace against it", (const char *)clipFname);
     return false;
-
-  bool success = true;
-
-  try
-  {
-    if (!DagorPhys::load_binary_raytracer(fl))
-      success = false;
-    else
-      debug("Collision successfully loaded");
-  }
-  catch (...)
-  {
-    success = false;
   }
 
-  if (!success)
-    debug("Unable to load file %s. Perhaps file is corrupted.", (const char *)clipFname);
+  const bool success = DagorPhys::load_binary_collision(fl);
+  if (success)
+    debug("Collision successfully loaded");
+  else
+    DAEDITOR3.conError("Unable to load %s: compile the collision again", (const char *)clipFname);
 
   return success;
-}
-
-FastRtDump *CollisionPlugin::getFrt()
-{
-  String clipFname;
-  getEditorClipPath(clipFname);
-
-  FullFileLoadCB fl((const char *)clipFname);
-
-  if (!fl.fileHandle)
-  {
-    debug("Unable to find file %s. Perhaps file is corrupted.", (const char *)clipFname);
-    return NULL;
-  }
-
-  bool success = true;
-
-  FastRtDump *frt = new (midmem) FastRtDump;
-
-  try
-  {
-    frt->loadData(fl);
-  }
-  catch (...)
-  {
-    success = false;
-  }
-
-  if (!success)
-    debug("Unable to loadData from file %s. Perhaps file is corrupted.", (const char *)clipFname);
-
-  if (!frt->isDataValid())
-  {
-    delete frt;
-    debug("File %s is corrupted - isDataValid=false", (const char *)clipFname);
-    return NULL;
-  }
-  return frt;
 }
 
 //==============================================================================
@@ -1780,18 +1701,16 @@ bool CollisionPlugin::compileEditClip()
 
 void CollisionPlugin::prepareDAGcollision()
 {
-  dagRtDumpReady = true;
-  dagRtDump.unloadData();
+  dagCollReady = true;
+  dagColl = nullptr;
 
-  ICollisionDumpBuilder *rt = ::create_dagor_raytracer_dump_builder();
+  ICollisionDumpBuilder *rt = ::create_editor_collision_builder("DAG collision");
 
   if (!rt)
   {
-    DAEDITOR3.conError("Cannot create FRT collision dump builder");
+    DAEDITOR3.conError("Cannot create the DAG collision builder");
     return;
   }
-
-  rt->start(rtStg);
 
   for (int i = 0; i < clipDag.size(); ++i)
   {
@@ -1815,22 +1734,11 @@ void CollisionPlugin::prepareDAGcollision()
     DAEDITOR3.conNote("add clip DAG: %s", dagPath.str());
   }
 
+  dagColl = rt->finishAndBuild();
+  if (dagColl && dagColl->getAllNodes().empty())
   {
-    MemorySaveCB cwr;
-    if (rt->finishAndWrite(NULL, cwr, _MAKE4C('PC')))
-    {
-      if (cwr.getSize())
-      {
-        MemoryLoadCB crd(cwr.getMem(), false);
-        dagRtDump.loadData(crd);
-        if (!dagRtDump.isDataValid())
-          DAEDITOR3.conError("Errors reading built DAG collision");
-      }
-      else
-        DAEDITOR3.conNote("No data in DAG collision");
-    }
-    else
-      DAEDITOR3.conError("Errors while compiling DAG collision");
+    dagColl = nullptr;
+    DAEDITOR3.conError("DAG collision built an empty resource");
   }
 
   rt->destroy();
@@ -1876,7 +1784,7 @@ void CollisionPlugin::clearDags()
   }
 
   clipDag.clear();
-  dagRtDumpReady = false;
+  dagCollReady = false;
 }
 
 
@@ -1900,21 +1808,12 @@ void CollisionPlugin::manageCustomColliders()
 //==============================================================================
 bool CollisionPlugin::traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm)
 {
-  if (!dagRtDumpReady)
+  if (!dagCollReady)
     prepareDAGcollision();
-  if (!dagRtDump.isDataValid())
+  if (!dagColl)
     return false;
-
-  bool clip = false;
-  FastRtDump *rt = DagorPhys::getFastRtDump();
-
-  int phmatid;
-  Point3 normal;
-
-  if (dagRtDump.traceray(p, dir, maxt, phmatid, norm ? *norm : normal) >= 0)
-    return true;
-
-  return false;
+  return trace_via_unit_dir(dir, maxt,
+    [&](const Point3 &unit_dir, real &t) { return dagColl->traceRay(TMatrix::IDENT, p, unit_dir, t, norm); });
 }
 
 //==============================================================================

@@ -2,7 +2,7 @@
 #ifndef __GAIJIN_PROTOIO_VECTORSERIALIZATIONBLK__
 #define __GAIJIN_PROTOIO_VECTORSERIALIZATIONBLK__
 
-#include "blkSerialization.h"
+#include "blkValueWrapper.h"
 
 namespace proto
 {

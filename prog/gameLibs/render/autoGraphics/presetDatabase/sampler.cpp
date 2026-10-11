@@ -102,7 +102,7 @@ AutoPreset PresetDatabaseSampler::getAutoPreset() const
       double rate;
       d3d::driver_command(Drv3dCommand::GET_VSYNC_REFRESH_RATE, &rate);
       constexpr int DEFAULT_REFRESH_RATE = 60;
-      targetFps = rate > 0.f ? static_cast<int>(round(rate)) : DEFAULT_REFRESH_RATE;
+      targetFps = rate > 0.0 ? static_cast<int>(round(rate)) : DEFAULT_REFRESH_RATE;
     }
     break;
   }

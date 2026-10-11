@@ -2,6 +2,7 @@
 #pragma once
 
 #include <driver.h>
+#include <cinttypes>
 
 #include <dag/dag_vector.h>
 #include <debug/dag_log.h>
@@ -128,14 +129,14 @@ private:
   static eastl::string to_string(D3D12_CPU_DESCRIPTOR_HANDLE arg)
   {
     eastl::string result;
-    result.sprintf("0x%x", arg.ptr);
+    result.sprintf("0x%" PRIX64, arg.ptr);
     return result;
   }
 
   static eastl::string to_string(D3D12_GPU_DESCRIPTOR_HANDLE arg)
   {
     eastl::string result;
-    result.sprintf("0x%x", arg.ptr);
+    result.sprintf("0x%" PRIX64, arg.ptr);
     return result;
   }
 
@@ -214,14 +215,14 @@ private:
   static eastl::string to_string(const D3D12_GPU_VIRTUAL_ADDRESS_RANGE &gpu_virtual_address_range)
   {
     eastl::string result;
-    result.sprintf("{0x%" PRIX64 ", %u}", gpu_virtual_address_range.StartAddress, gpu_virtual_address_range.SizeInBytes);
+    result.sprintf("{0x%" PRIX64 ", %llu}", gpu_virtual_address_range.StartAddress, gpu_virtual_address_range.SizeInBytes);
     return result;
   }
 
   static eastl::string to_string(const D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE &gpu_virtual_address_range_and_stride)
   {
     eastl::string result;
-    result.sprintf("{0x%" PRIX64 ", %u, %u}", gpu_virtual_address_range_and_stride.StartAddress,
+    result.sprintf("{0x%" PRIX64 ", %llu, %llu}", gpu_virtual_address_range_and_stride.StartAddress,
       gpu_virtual_address_range_and_stride.SizeInBytes, gpu_virtual_address_range_and_stride.StrideInBytes);
     return result;
   }

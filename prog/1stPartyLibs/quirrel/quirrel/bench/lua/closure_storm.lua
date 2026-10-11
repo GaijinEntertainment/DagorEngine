@@ -1,24 +1,29 @@
 -- closure creation and invocation with captured locals, the shape of daRg
 -- @() builder components
-local N = 1000000
+local create <const> = table.create
+local vmBench <const> = require("profile").vmBench
 
-for rep = 1, 5 do
-  local t0 = os.clock()
+local N <const> = 1000000
+local KEEP_EVERY <const> = 1000
+
+local function storm()
   local sum = 0
-  local kept = {}
-  local nk = 0
+  local kept = create(N // KEEP_EVERY)
+  local keptCount = 0
   for i = 0, N - 1 do
     local a = i
     local b = i * 2
     local f = function() return a + b end
     sum = sum + f()
-    if i % 1000 == 0 then
-      nk = nk + 1
-      kept[nk] = f
+    if i % KEEP_EVERY == 0 then
+      keptCount = keptCount + 1
+      kept[keptCount] = f
     end
   end
-  for _, f in ipairs(kept) do
-    sum = sum + f()
+  for i = 1, keptCount do
+    sum = sum + kept[i]()
   end
-  print("BENCH closure_storm " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. sum .. ")")
+  return sum
 end
+
+vmBench("closure_storm", storm)

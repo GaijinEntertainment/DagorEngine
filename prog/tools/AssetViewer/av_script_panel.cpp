@@ -191,7 +191,7 @@ const char *AVScriptPanelEditor::selectAsset(const char *old_choise, dag::ConstS
 const char *AVScriptPanelEditor::selectGroupName(const char *old_choise)
 {
   static String result;
-  PropPanel::DialogWindow *dialog = new PropPanel::DialogWindow(NULL, hdpi::_pxScaled(250), hdpi::_pxScaled(130), "Select group name");
+  PropPanel::DialogWindow *dialog = EDITORCORE->createAutoSizedDialog("Select group name");
   dialog->getPanel()->createEditBox(0, "Name", old_choise);
 
   if (dialog->showDialog() == PropPanel::DIALOG_ID_OK)

@@ -17,7 +17,6 @@
 #include <gameRes/dag_gameResSystem.h>
 #include "modfx/modfx_flags_decl.hlsli"
 
-int dafx_gravity_zone_count = 0;
 GravityZoneDescriptor_buffer dafx_gravity_zone_buffer = nullptr;
 
 enum

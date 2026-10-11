@@ -64,11 +64,6 @@ shader draw_collision_swrt
 
   supports none;
   supports global_frame;
-  if (hardware.dx11)
-  {
-    //for some reason, dx11 is uncapable to compile this code (it says it is forced to unroll nested loop)
-    dont_render;
-  }
 
   cull_mode  = none;
 

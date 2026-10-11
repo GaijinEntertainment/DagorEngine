@@ -3,6 +3,8 @@ options indenting = 4
 options no_unused_block_arguments = false
 options no_unused_function_arguments = false
 options _comment_hygiene = true
+options _cyclomatic_complexity = 25
+options _function_length = 137
 
 module linq_fold_table shared public
 
@@ -13,7 +15,7 @@ module linq_fold_table shared public
 //! field-pruning); bare ``count()`` folds to O(1) ``length(tab)``; a plain ``distinct`` over raw keys/kv
 //! elements is dropped (keys are unique by construction). In-tree companion to ``daslib/linq_fold``
 //! (required unconditionally; the matcher returns null for non-table chains). Emits ``keys`` / ``values``
-//! / the kv zip BY NAME at the user's splice site. See history/linq_fold/LINQ_TO_TABLE.md.
+//! / the kv zip BY NAME at the user's splice site. See daslib/ARCHITECTURE_LINQ.md sec. 37.
 
 require daslib/ast_boost
 require daslib/ast_match
@@ -28,8 +30,6 @@ enum TableLane {
     VALUES
 }
 
-// Per-element table walk; the KV lane prunes to the cheapest iterator set from the body's
-// `it.key` / `it.value` usage (the table analog of XML field-pruning, see LINQ_TO_TABLE.md).
 [macro_function]
 def private build_table_walk(lane : TableLane; srcName, bindName : string; var body : Expression?;
                              var breakGuard : Expression?; at : LineInfo) : Expression? {
@@ -39,7 +39,6 @@ def private build_table_walk(lane : TableLane; srcName, bindName : string; var b
             break if ($e(breakGuard))
         }
     }
-    // keys() deliberately yields NON-const elements (writable temp copies), so the engine-visible bind is a `let` rebind of the loop var — keys are workhorse types, the copy is free, and downstream ==const composition (push_clone of a bare projected key) needs the const.
     let kIter = qn("tkvk", at)
     let vIter = qn("tkvv", at)
     if (lane == TableLane.KEYS) {
@@ -54,7 +53,6 @@ def private build_table_walk(lane : TableLane; srcName, bindName : string; var b
         }
     }
     if (lane == TableLane.VALUES) {
-        // values over the const table param yield `V& const` — bind directly, no rebind copy
         inner |> push(body)
         return <- qmacro_block() {
             for ($i(bindName) in values($i(srcName))) {
@@ -62,15 +60,15 @@ def private build_table_walk(lane : TableLane; srcName, bindName : string; var b
             }
         }
     }
-    // KV lane
     var (allUsed, usedFields) = collect_row_usage(body, bindName)
+    allUsed = needs_full_row_bind(usedFields, allUsed)
     if (allUsed) {
         inner |> push <| qmacro_expr() {
             let $i(bindName) = (key = $i(kIter), value = $i(vIter))
         }
         inner |> push(body)
         return <- qmacro_block() {
-            for ($i(kIter), $i(vIter) in keys($i(srcName)), values($i(srcName))) { // nolint:LINT002 parallel-for must bind both vars
+            for ($i(kIter), $i(vIter) in keys($i(srcName)), values($i(srcName))) {
                 $b(inner)
             }
         }
@@ -95,53 +93,47 @@ def private build_table_walk(lane : TableLane; srcName, bindName : string; var b
     }
     if (useKey && useValue) {
         return <- qmacro_block() {
-            for ($i(kIter), $i(vIter) in keys($i(srcName)), values($i(srcName))) { // nolint:LINT002 parallel-for must bind both vars
+            for ($i(kIter), $i(vIter) in keys($i(srcName)), values($i(srcName))) {
                 $b(inner)
             }
         }
     }
-    // key-only AND no-field-touched (e.g. bare count walk) both ride the cheaper keys iterator
     return <- qmacro_block() {
-        for ($i(kIter) in keys($i(srcName))) { // nolint:LINT002 body may not read the key (bare-count walk)
+        for ($i(kIter) in keys($i(srcName))) {
             $b(inner)
         }
     }
 }
 
-// Single flat for-loop over the table inside a 1-param invoke binding the table, like ArrayAdapter over
-// an array — except the loop iterator(s) derive from the table param at the splice site.
 class TableAdapter : SourceAdapter {
-    tabExpr  : Expression?      // the table expression (argument of each_kv/keys/values)
-    srcName  : string           // invoke param name binding the table
-    elemType : TypeDeclPtr      // KV: tuple<key:K;value:V>; KEYS: K; VALUES: V
+    tabExpr  : Expression?
+    srcName  : string
+    elemType : TypeDeclPtr
     lane     : TableLane
     def override name_prefix() : string {
         return "tab_"
     }
     def override supports_direct_return() : bool {
-        return true   // single flat for-loop inside the invoke; a mid-loop `return` exits the invoke
+        return true
     }
     def override can_reserve_by_length() : bool {
-        return true   // length(tab) is O(1); the shared reserve hint reads loop_source_expr/loop_source_name
+        return true
     }
     def override const can_join() : bool {
-        return true   // rides emit_array_join: direct-return lead loop via wrap_source_loop
+        return true
     }
     def override const can_group_by() : bool {
-        return true   // plan_group_by_core drives the bucket-fill through wrap_source_loop (kv pruning free)
+        return true
     }
     def override emit_join_hook(var c : Captures; var ctx : EmitCtx; at : LineInfo) : Expression? {
         return emit_array_join(c, ctx, at)
     }
     def override build_group_by_adapter(var c : Captures; var ctx : EmitCtx; at : LineInfo) : SourceAdapter? {
-        // join |> group_by over a table lead stays a deferred edge (LINQ_TO_TABLE.md) — null bails to tier-2
         if (c.single |> key_exists("upstream_join")) return null
         return new TableAdapter(tabExpr = clone_expression(tabExpr), srcName = qn("tsrc", at),
                                 elemType = clone_type(elemType), lane = lane)
     }
     def override loop_source_expr() : Expression? {
-        // Feeds the reserve hint (type_has_length covers tables). The backward-index reverse lanes that
-        // also read loop_source_expr gate on array_source, which is false here — matchTop stays iterator-typed.
         return tabExpr
     }
     def override loop_source_name() : string {
@@ -164,7 +156,6 @@ class TableAdapter : SourceAdapter {
         return build_table_walk(lane, srcName, bindName, perElement, breakGuard, at)
     }
     def override invoke_param_type() : TypeDeclPtr {
-        // Const-accepting param: the source table is often a `let`, and a non-const source adds-const cleanly.
         var tabType = strip_const_ref(clone_type(tabExpr._type))
         tabType.flags.constant = true
         return tabType
@@ -193,13 +184,8 @@ class TableAdapter : SourceAdapter {
     }
 }
 
-// ===== Point-lookup folds — `where(kv.key == X [&& residual])` + terminator → O(1) key probe =====
-// any/contains → key_exists, count → key_exists?1:0, first[_or_default] (± select) → tab?[X] probe, with the
-// scan's exact semantics; residual conjuncts run on the probed element only. Table: linq_fold_patterns.rst.
-
 [macro_function]
 def private match_key_probe_side(var keySide, otherSide : Expression?; lane : TableLane; bindName : string) : Expression? {
-    // X must be loop-invariant AND side-effect free — the scan evaluates X per element, a probe once
     if (!is_bare_key_ref(keySide, bindName, lane == TableLane.KV)
             || expr_uses_var(otherSide, bindName) || has_sideeffects(otherSide)) {
         return null
@@ -207,12 +193,8 @@ def private match_key_probe_side(var keySide, otherSide : Expression?; lane : Ta
     return clone_expression(otherSide)
 }
 
-// Decompose a peeled predicate body (binder renamed to bindName) as `<key-ref> == X [&& conjunct …]`;
-// returns cloned X, AND-rebuilds the rest into residual. Key-equality must be LEFTMOST: keys are unique, so
-// right of it runs at most once on both paths (no purity gate); a LEFT conjunct runs per scan element — decline.
 [macro_function]
 def private extract_key_probe(var pred : Expression?; lane : TableLane; bindName : string; var residual : Expression?&) : Expression? {
-    // peel the left-assoc `&&` spine; right arms collect outermost-first (= reversed source order)
     var leaf = pred
     var conjuncts : array<Expression?>
     while (leaf != null && leaf is ExprOp2 && (leaf as ExprOp2).op == "&&") {
@@ -234,7 +216,6 @@ def private extract_key_probe(var pred : Expression?; lane : TableLane; bindName
     return probe
 }
 
-// Miss-path emission per terminator: any → false, count → 0, first_or_default → bound default, first → panic.
 [macro_function]
 def private make_probe_miss(termName : string; dName : string) : Expression? {
     if (termName == "any") {
@@ -271,21 +252,17 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
     let kName = qn("plk_k", at)
     let dName = qn("plk_d", at)
     let pName = qn("plk_p", at)
-    // keys-lane elements ARE the key, so the probe local doubles as the residual/projection binder
     let bindName = adapter.lane == TableLane.KEYS ? kName : qn("plk_kv", at)
     var predArg : Expression?
     if (n == 1) {
-        // predicate-form terminators, and the keys-lane contains
         if ((termName == "any" || termName == "count") && termArgs == 2) {
             predArg = termCall.arguments[1]
         } elif (termName == "contains" && termArgs == 2 && adapter.lane == TableLane.KEYS) {
-            // element evaluated exactly once on both paths — no invariance/purity gate needed
             keyX = clone_expression(termCall.arguments[1])
         } else {
             return null
         }
     } else {
-        // collapse_chained_wheres ran at flatten time, so a leading where run is already ONE call here
         if (calls[0]._1.name != "where_" || length(calls[0]._0.arguments) != 2) return null
         predArg = calls[0]._0.arguments[1]
         if (n == 3) {
@@ -305,7 +282,6 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
     }
     if (keyX == null) return null
     let sn = adapter.srcName
-    // residual-free boolean / counting probes — bare key_exists, no element touch
     if (residual == null && (termName == "any" || termName == "contains")) {
         var anyStmts <- qmacro_block_to_array() {
             return key_exists($i(sn), $e(keyX))
@@ -318,7 +294,6 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
         }
         return adapter->wrap_invoke(cntStmts, null, false, at)
     }
-    // element probes: first / first_or_default ± select, and any/count carrying a residual conjunct
     var retT : TypeDeclPtr
     if (termName == "first" || termName == "first_or_default") {
         retT = strip_const_ref(clone_type(termCall._type))
@@ -326,7 +301,6 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
     }
     var stmts : array<Expression?>
     if (termName == "first_or_default") {
-        // eager default bind, matching linq.das argument evaluation order
         stmts |> push <| qmacro_expr() {
             let $i(dName) = $e(termCall.arguments[1])
         }
@@ -341,8 +315,6 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
             }
         }
     } else {
-        // KV lane: probe the value pointer, materialize the (key, value) pair on hit. Table safe-index is
-        // unsafe (the pointer dangles on rehash) — fine here, the generated invoke never mutates the table.
         stmts |> push_from <| qmacro_block_to_array() {
             let $i(pName) = unsafe($i(sn)?[$i(kName)])
             if ($i(pName) == null) {
@@ -355,7 +327,6 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
             }
         }
     }
-    // residual conjuncts evaluate on the probed element only — false routes to the same miss path
     if (residual != null) {
         stmts |> push <| qmacro_expr() {
             if (!$e(residual)) {
@@ -396,15 +367,13 @@ def try_table_point_lookup(var calls : array<tuple<ExprCall?; LinqCall?>>; var a
     return adapter->wrap_invoke(stmts, retT, false, at)
 }
 
-// Recognize an `each_kv(tab)` / `keys(tab)` / `values(tab)` chain top. Returns the call (caller reads
-// arguments[0] = the table, `_type.firstType` = element); null otherwise. Name + table-typed-arg match,
-// like extract_json_source — the strong arg-type gate keeps an unrelated user `keys` from firing this.
 [macro_function]
 def extract_table_source(var top : Expression?) : ExprCall? {
     if (top == null || !(top is ExprCall)) return null
     var c = top as ExprCall
     let name = get_call_short_name(c)
     if ((name != "each_kv" && name != "keys" && name != "values")
+            || match_call_in_module(top, name, "builtin") == null
             || c._type == null || !c._type.isIterator || c._type.firstType == null
             || (c.arguments |> length) != 1) {
         return null
@@ -414,9 +383,6 @@ def extract_table_source(var top : Expression?) : ExprCall? {
     return c
 }
 
-// Drop plain `distinct` over raw keys/kv elements — table keys are unique by construction, so the whole
-// dedup-set machinery is a no-op. Only when every call BEFORE the distinct preserves element uniqueness
-// (filters/ranges/reorders — never a `select`, which reshapes elements). `distinct_by` keeps its own key.
 [macro_function]
 def drop_redundant_distinct(var calls : array<tuple<ExprCall?; LinqCall?>>) {
     var dropIdx = -1
@@ -426,12 +392,11 @@ def drop_redundant_distinct(var calls : array<tuple<ExprCall?; LinqCall?>>) {
             dropIdx = i
             break
         }
-        // uniqueness-preserving prefix ops only
         if (name != "where_" && name != "skip" && name != "take"
                 && name != "skip_while" && name != "take_while" && name != "reverse") {
             return
         }
     }
-    if (dropIdx < 0 || length(calls) <= 1) return   // keep a bare `distinct`-only chain for the generic lanes
+    if (dropIdx < 0 || length(calls) <= 1) return
     calls |> erase(dropIdx)
 }

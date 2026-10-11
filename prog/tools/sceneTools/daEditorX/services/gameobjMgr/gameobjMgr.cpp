@@ -174,7 +174,7 @@ public:
         }
         else
         {
-          spot_light__cone_angle *= PI / 180.0;
+          spot_light__cone_angle *= PI / 180.0f;
         }
       }
 

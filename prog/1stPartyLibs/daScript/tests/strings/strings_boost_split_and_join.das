@@ -101,6 +101,24 @@ def test_join_block_forms(t : T?) {
     }
 }
 
+[test]
+def test_join_iterator_elements(t : T?) {
+    t |> run("numeric elements join as numbers, exactly as the array form does") @@(t : T?) {
+        let ints <- [ 1, 2, 3 ]
+        t |> equal(join(ints, ","), "1,2,3")
+        t |> equal(join(unsafe(each(ints)), ","), "1,2,3")
+        let floats <- [ 1.5, 2.5 ]
+        t |> equal(join(unsafe(each(floats)), ","), "1.5,2.5")
+    }
+    t |> run("string elements survive the iterator overload") @@(t : T?) {
+        let words <- [ "a", "b" ]
+        t |> equal(join(unsafe(each(words)), "-"), "a-b")
+    }
+    t |> run("a string is still joined character by character") @@(t : T?) {
+        t |> equal(join("abc", "-"), "a-b-c")
+    }
+}
+
 
 [test]
 def tricky_test_split_and_join(t : T?) {

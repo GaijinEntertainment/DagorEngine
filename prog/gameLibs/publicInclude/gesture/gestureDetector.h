@@ -32,6 +32,10 @@ public:
     PINCH = 0x1,
     ROTATE = 0x2,
     DRAG = 0x4,
+    // touch pad only, the detector does not find these
+    TAP = 0x8,
+    DOUBLE_TAP = 0x10,
+    HOLD = 0x20,
 
     ALL = 0xFFFFFFFF
   };

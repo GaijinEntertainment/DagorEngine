@@ -4,6 +4,7 @@
 #include "d3d12_error_handling.h"
 #include "debug/names.h"
 
+#include <drv/3d/dag_driverDesc.h>
 #include <perfMon/dag_autoFuncProf.h>
 
 
@@ -103,7 +104,7 @@ public:
     ci{create_info}
   {}
 
-  drv3d_dx12::ShaderLibrary *build(ID3D12Device5 *device, bool embeddable)
+  drv3d_dx12::ShaderLibrary *build(D3DDevice *device, bool embeddable)
   {
     eastl::string libName;
     if (ci.debugName)
@@ -165,10 +166,11 @@ public:
     D3D12_STATE_OBJECT_CONFIG config{};
     // we allow state objects to be incomplete so that they can be used to glue stuff together
     // we have to see if this is possible with other APIs
-    config.Flags = D3D12_STATE_OBJECT_FLAGS(
-      D3D12_STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITIONS |
-      D3D12_STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS |
-      (ci.mayBeUsedByExpandablePipeline ? D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS : D3D12_STATE_OBJECT_FLAG_NONE));
+    const bool allowAdditions = ci.mayBeUsedByExpandablePipeline && d3d::get_driver_desc().caps.hasNativeRayTracePipelineExpansion;
+    config.Flags =
+      D3D12_STATE_OBJECT_FLAGS(D3D12_STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITIONS |
+                               D3D12_STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS |
+                               (allowAdditions ? D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS : D3D12_STATE_OBJECT_FLAG_NONE));
 
     D3D12_STATE_SUBOBJECT objectRefs[2]{};
     objectRefs[0].Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;
@@ -205,8 +207,7 @@ eastl::wstring_view drv3d_dx12::ShaderLibrary::nameOf(uint32_t index) const
   return {nameTable[index].begin(), nameTable[index].size() - 1};
 }
 
-drv3d_dx12::ShaderLibrary *drv3d_dx12::ShaderLibrary::build(ID3D12Device5 *device, const ::ShaderLibraryCreateInfo &ci,
-  bool embeddable)
+drv3d_dx12::ShaderLibrary *drv3d_dx12::ShaderLibrary::build(D3DDevice *device, const ::ShaderLibraryCreateInfo &ci, bool embeddable)
 {
   ShaderLibraryBuilder shaderLibraryBuilder{ci};
   return shaderLibraryBuilder.build(device, embeddable);

@@ -4,16 +4,17 @@
 #include <gamePhys/collision/collisionCache.h>
 #include <gamePhys/collision/collisionInstances.h>
 #include "../collisionLibPrivate.h"
+#include <gameLibs/gamePhys/bundleAllHits_api.h>
 
 namespace dacoll
 {
 bool traceray_normalized(const Point3 &, const Point3 &, real &, int *, Point3 *, int, rendinst::RendInstDesc *, int,
-  const TraceMeshFaces *)
+  const TraceMeshFaces *, rendinst::riex_handle_t)
 {
   G_ASSERT_RETURN(false, false);
 }
 bool traceray_normalized_coll_type(const Point3 &, const Point3 &, real &, int *, Point3 *, int, rendinst::RendInstDesc *, int *, int,
-  const TraceMeshFaces *)
+  const TraceMeshFaces *, rendinst::riex_handle_t)
 {
   G_ASSERT_RETURN(false, false);
 }
@@ -46,6 +47,11 @@ bool traceray_water_at_time(const Point3 &, const Point3 &, float, float &) { G_
 bool get_min_max_hmap_in_circle(const Point2 &, float, float &, float &) { G_ASSERT_RETURN(false, false); }
 void get_min_max_hmap_list_in_circle(const Point2 &, float, Tab<Point2> &) { G_ASSERT(0); };
 bool rayhit_normalized_lmesh(const Point3 &, const Point3 &, real) { G_ASSERT_RETURN(false, false); }
+int trace_bundle_all_hits(dag::ConstSpan<BundleSegment>, int, int, dag::Span<BundleHit>, dag::Span<BundleRange>, uint32_t, bool)
+{
+  G_ASSERT_RETURN(false, 0);
+}
+bool bundle_segment_any_hit(const Point3 &, const Point3 &, int, int) { G_ASSERT_RETURN(false, false); }
 bool rayhit_normalized(const Point3 &, const Point3 &, real, int, int, const TraceMeshFaces *, rendinst::riex_handle_t)
 {
   G_ASSERT_RETURN(false, false);
@@ -93,7 +99,6 @@ CollisionObject add_dynamic_cylinder_collision(const TMatrix &, float, float, vo
 {
   G_ASSERT_RETURN(false, CollisionObject());
 }
-void add_collision_hmap_custom(const Point3 &, const BBox3 &, const Point2 &, float, int) { G_ASSERT(0); }
 
 void destroy_dynamic_collision(CollisionObject) { G_ASSERT(0); }
 bool test_pair_collision(dag::ConstSpan<CollisionObject>, uint64_t, const TMatrix &, dag::ConstSpan<CollisionObject>, uint64_t,
@@ -132,7 +137,6 @@ bool test_capsule_collision_world(const TMatrix &, float, float, int, Tab<gameph
 {
   G_ASSERT_RETURN(false, false);
 }
-PhysBody *get_convex_shape(struct CollisionObject) { G_ASSERT_RETURN(false, nullptr); }
 void shape_query_frt(const PhysBody *, class TMatrix const &, class TMatrix const &, dacoll::ShapeQueryOutput &) { G_ASSERT(0); }
 void shape_query_lmesh(const PhysBody *, class TMatrix const &, class TMatrix const &, dacoll::ShapeQueryOutput &) { G_ASSERT(0); }
 void shape_query_ri(const PhysBody *, class TMatrix const &, class TMatrix const &, float, dacoll::ShapeQueryOutput &, int,

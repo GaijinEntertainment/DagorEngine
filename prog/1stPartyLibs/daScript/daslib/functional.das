@@ -44,7 +44,6 @@ def filter(var src : iterator<auto(TT)>; blk : lambda<(what : TT -&) : bool>) {
     return <- filter_any(src, blk)
 }
 
-// filter with function
 def filter(var src : iterator<auto(TT)>; blk : function<(what : TT -&) : bool>) {
     //! iterates over `src` and yields only those elements for which `blk` returns true
     return <- filter_any(src, blk)
@@ -82,19 +81,16 @@ def private map_any(var src : iterator<auto(TT)>; var blk) {
 }
 
 
-// map with lambda
 def map(var src : iterator<auto(TT)>; blk : lambda<(what : TT -&) : auto(QQ)>) {
     //! iterates over `src` and yields the result of `blk` for each element
     return <- map_any(src, blk)
 }
 
-// map with function
 def map(var src : iterator<auto(TT)>; blk : function<(what : TT -&) : auto(QQ)>) {
     //! iterates over `src` and yields the result of `blk` for each element
     return <- map_any(src, blk)
 }
 
-// reduce value, any invokable
 def private reduce_any(var it : iterator<auto(TT)>; functor) {
     //! iterates over `it` and yields the reduced (combined) result of `functor` for each element
     var left : TT -&
@@ -117,28 +113,24 @@ def private reduce_any(var it : iterator<auto(TT)>; functor) {
     return left
 }
 
-// reduce with lambda
 def reduce(var it : iterator<auto(TT)>; blk : lambda<(left, right : TT -&) : TT const -&>) {
     //! iterates over `it` and yields the reduced (combined) result of `blk` for each element
     //! and previous reduction result
     return reduce_any(it, blk)
 }
 
-// reduce with function
 def reduce(var it : iterator<auto(TT)>; blk : function<(left, right : TT -&) : TT const -&>) {
     //! iterates over `it` and yields the reduced (combined) result of `blk` for each element
     //! and previous reduction result
     return reduce_any(it, blk)
 }
 
-// reduce with block
 def reduce(var it : iterator<auto(TT)>; blk : block<(left, right : TT -&) : TT const -&>) {
     //! iterates over `it` and yields the reduced (combined) result of `blk` for each element
     //! and previous reduction result
     return reduce_any(it, blk)
 }
 
-// summ of all elements
 def sum(var it : iterator<auto(TT)>) {
     //! iterates over `it` and yields the sum of all elements
     //! same as reduce(it, @(a,b) => a + b)
@@ -149,7 +141,6 @@ def sum(var it : iterator<auto(TT)>) {
     return temp
 }
 
-// any
 def any(it) {
     //! iterates over `it` and yields true if any element is true
     static_if (!typeinfo is_iterable(it)) {
@@ -171,7 +162,6 @@ def any(var it : iterator<auto(TT)>) {
     return false
 }
 
-// all
 def all(it) {
     //! iterates over `it` and yields true if all elements are true
     static_if (!typeinfo is_iterable(it)) {
@@ -249,7 +239,6 @@ def islice(var src : iterator<auto(TT)>; start, stop : int) {
     }
 }
 
-// [[ value; value; value; .... count times ]]
 def repeat_ref(value : auto(TT); var total : int) {
     //! yields `value` by reference `count` times
     return <- generator<TT const&> {
@@ -261,7 +250,6 @@ def repeat_ref(value : auto(TT); var total : int) {
     }
 }
 
-// [[ value; value; value; .... count times ]]
 def repeat(value : auto(TT); var count : int = -1) {
     //! yields `value` `count` times. If `count` is negative, repeats forever.
     return <- generator<TT const -&> {
@@ -351,10 +339,6 @@ def sorted(var it : iterator<auto(TT)>) {
     }
 }
 
-// ===========================
-//  reduce_or_default — safe reduce that returns a default on empty input
-// ===========================
-
 def private reduce_or_default_any(var it : iterator<auto(TT)>; functor; default_value : TT -&) {
     //! like reduce, but returns `default_value` instead of panicking on empty input
     var left : TT -&
@@ -390,10 +374,6 @@ def reduce_or_default(var it : iterator<auto(TT)>; default_value : TT -&; blk : 
     return reduce_or_default_any(it, blk, default_value)
 }
 
-// ===========================
-//  fold — reduce with explicit initial value (seed)
-// ===========================
-
 def private fold_any(var it : iterator<auto(TT)>; seed : auto(AGG); functor) {
     //! combines elements left-to-right starting from `seed`
     var acc : AGG -& = seed
@@ -422,10 +402,6 @@ def fold(var it : iterator<auto(TT)>; seed : auto(AGG); blk : block<(acc : AGG -
     return fold_any(it, seed, blk)
 }
 
-// ===========================
-//  scan — running reduce, yields every intermediate value
-// ===========================
-
 def private scan_any(var src : iterator<auto(TT)>; seed : auto(AGG); var functor) {
     //! like fold, but yields every intermediate accumulator value
     return <- generator<AGG -&> capture(<- src, <- functor) {
@@ -453,10 +429,6 @@ def scan(var src : iterator<auto(TT)>; seed : auto(AGG); blk : function<(acc : A
     return <- scan_any(src, seed, blk)
 }
 
-// ===========================
-//  enumerate — pair each element with its index
-// ===========================
-
 def enumerate(var src : iterator<auto(TT)>) {
     //! yields tuples of `(index, element)` for each element in `src`
     return <- generator<tuple<int, TT -&>> capture(<- src) {
@@ -481,10 +453,6 @@ def long_enumerate(var src : iterator<auto(TT)>) {
     }
 }
 
-// ===========================
-//  for_each — apply side-effect to every element
-// ===========================
-
 def private for_each_any(var src : iterator<auto(TT)>; blk) {
     //! invokes `blk` on every element of `src`
     for (x in src) {
@@ -506,10 +474,6 @@ def for_each(var src : iterator<auto(TT)>; blk : block<(what : TT -&) : void>) {
     //! invokes `blk` on every element of `src`
     for_each_any(src, blk)
 }
-
-// ===========================
-//  find — first matching element
-// ===========================
 
 def private find_any(var src : iterator<auto(TT)>; predicate; default_value : TT -&) {
     //! returns the first element for which `predicate` returns true, or `default_value`
@@ -533,10 +497,6 @@ def find(var src : iterator<auto(TT)>; default_value : TT -&; blk : block<(what 
     //! returns the first element for which `blk` returns true, or `default_value` (block version, `default_value` before block for `<|` syntax)
     return find_any(src, blk, default_value)
 }
-
-// ===========================
-//  find_index — index of first matching element
-// ===========================
 
 def private find_index_any(var src : iterator<auto(TT)>; predicate) : int {
     //! returns the index of the first element for which `predicate` returns true, or -1
@@ -562,10 +522,6 @@ def find_index(var src : iterator<auto(TT)>; blk : block<(what : TT -&) : bool>)
     //! returns the index of the first element for which `blk` returns true, or -1
     return find_index_any(src, blk)
 }
-
-// ===========================
-//  partition — split by predicate
-// ===========================
 
 def private partition_any(var src : iterator<auto(TT)>; predicate) : tuple<array<TT -const -&>, array<TT -const -&>> {
     //! splits elements into `(matching, non_matching)` arrays
@@ -595,10 +551,6 @@ def partition(var src : iterator<auto(TT)>; blk : block<(what : TT -&) : bool>) 
     //! splits elements into `(matching, non_matching)` arrays
     return partition_any(src, blk)
 }
-
-// ===========================
-//  tap — side-effect passthrough for debugging
-// ===========================
 
 def private tap_any(var src : iterator<auto(TT)>; var blk) {
     //! yields every element unchanged, calling `blk` on each as a side-effect
@@ -630,10 +582,6 @@ def tap(var src : iterator<auto(TT)>; blk : function<(what : TT -&) : void>) {
     //! yields every element unchanged, calling `blk` on each as a side-effect
     return <- tap_any(src, blk)
 }
-
-// ===========================
-//  iterate — infinite sequence from seed + function
-// ===========================
 
 def iterate(seed : auto(TT); var blk : lambda<(what : TT -&) : TT const -&>) {
     //! yields `seed`, `f(seed)`, `f(f(seed))`, ... infinitely.
@@ -668,10 +616,6 @@ def iterate(seed : auto(TT); var blk : function<(what : TT -&) : TT const -&>) {
     }
 }
 
-// ===========================
-//  chain — concatenate two iterators
-// ===========================
-
 def chain(var a : iterator<auto(TT)>; var b : iterator<auto(TT)>) {
     //! yields all elements of `a`, then all elements of `b`
     static_if (!typeinfo is_ref_type(type<TT>)) {
@@ -697,10 +641,6 @@ def chain(var a : iterator<auto(TT)>; var b : iterator<auto(TT)>) {
     }
 }
 
-// ===========================
-//  pairwise — consecutive pairs
-// ===========================
-
 def pairwise(var src : iterator<auto(TT)>) {
     //! yields consecutive pairs: `(a,b)`, `(b,c)`, `(c,d)`, ...
     return <- generator<tuple<TT -&, TT -&>> capture(<- src) {
@@ -718,10 +658,6 @@ def pairwise(var src : iterator<auto(TT)>) {
         return false
     }
 }
-
-// ===========================
-//  flat_map — map then flatten one level
-// ===========================
 
 def private flat_map_any(var src : iterator<auto(TT)>; var blk) {
     //! maps each element to an iterator, then flattens the results one level

@@ -104,7 +104,7 @@ def finally_goto(tt : T?; yes : bool = true) {
     tt |> success(!fail)
 }
 
-[sideeffects, no_lint]
+[sideeffects]
 def gotoN(n : int) {
     var res = -1
     goto n

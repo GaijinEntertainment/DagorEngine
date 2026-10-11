@@ -37,11 +37,10 @@ namespace das {
     void collectInvokeIndVariables ( const ProgramPtr & program, const TypeDeclPtr & inv, IndirectSources & sources ) {
         das_hash_set<Function *> accessed;
         program->library.foreach([&](Module * mod){
-            ExpressionSources globSrc;
             mod->functions.foreach([&](const FunctionPtr & gfunc){
                 // not built-in, used, address taken, can potentially alias, compatible
                 if ( gfunc->isTemplate ) return;
-                if ( !gfunc->builtIn && gfunc->used && gfunc->addressTaken && !gfunc->aliasCMRES && isCompatibleFunction(gfunc, inv) ) {
+                if ( !gfunc->builtIn && gfunc->addressTaken && !gfunc->aliasCMRES && program->isUsed(gfunc) && isCompatibleFunction(gfunc, inv) ) {
                     appendIndVariables(gfunc, sources, accessed);
                 }
             });
@@ -65,11 +64,10 @@ namespace das {
     void collectInvokeIndLambdaVariables ( const ProgramPtr & program, const TypeDeclPtr & inv, IndirectSources & sources ) {
         das_hash_set<Function *> accessed;
         program->library.foreach([&](Module * mod){
-            ExpressionSources globSrc;
             mod->functions.foreach([&](const FunctionPtr & gfunc){
                 // not built-in, used, address taken, can potentially alias, compatible
                 if ( gfunc->isTemplate ) return;
-                if ( !gfunc->builtIn && gfunc->used && gfunc->addressTaken && !gfunc->aliasCMRES && gfunc->lambda && isCompatibleLambdaFunction(gfunc, inv) ) {
+                if ( !gfunc->builtIn && gfunc->addressTaken && !gfunc->aliasCMRES && gfunc->lambda && program->isUsed(gfunc) && isCompatibleLambdaFunction(gfunc, inv) ) {
                     appendIndVariables(gfunc, sources, accessed);
                 }
             });
@@ -317,15 +315,18 @@ namespace das {
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * var ) override {
             if ( var->aliasesResolved ) return false;
-            if ( !var->used && !isEverything ) return false;
+            if ( !program->isUsed(var) && !isEverything ) return false;
             var->aliasesResolved = isPermanent;
             return true;
+        }
+        virtual bool canVisitStructure ( Structure * st ) override {
+            return !st->isTemplate;
         }
         virtual bool canVisitFunction ( Function * fun ) override {
             if ( fun->stub ) return false;
             if ( fun->isTemplate ) return false;
             if ( fun->aliasesResolved ) return false;
-            if ( !fun->used && !isEverything ) return false;
+            if ( !program->isUsed(fun) && !isEverything ) return false;
             fun->aliasesResolved = isPermanent;
             return true;
         }
@@ -620,17 +621,11 @@ namespace das {
         library.foreach([&](Module * mod){
             if ( logAliasing ) logs << "module " << mod->name << ":\n";
             mod->functions.foreach([&](const FunctionPtr & func){
-                if ( func->builtIn || !func->used || func->isTemplate ) return;
+                if ( func->builtIn || !isUsed(func) || func->isTemplate ) return;
                 deriveAliasing(func, logs, logAliasing);
             });
             return true;
         },"*");
-        /*
-        thisModule->functions.foreach([&](const FunctionPtr & func) {
-            if ( func->builtIn || !func->used ) return;
-            deriveAliasing(func, logs, logAliasing);
-        });
-        */
         AliasMarker marker(this, permanent, everything, logs);
         visit(marker);
         if ( logAliasing ) logs << "\n";

@@ -6,7 +6,6 @@ options persistent_heap
 require dastest/testing_boost public
 require daslib/defer
 require daslib/static_let
-require strings
 
 // ============================================================
 // defer tests

@@ -15,7 +15,6 @@ namespace das {
     TypeDecl *isFullyInferredBlock ( ExprBlock * block );
 
     // make sure generated code contains line information etc
-    void verifyGenerated ( ExpressionPtr expr );
 
     // make sure fake context and fake line info are pre-assigned
     void assignDefaultArguments ( Function * func );
@@ -30,6 +29,7 @@ namespace das {
 
     // gives combined region for all subexpressions
     DAS_CC_API LineInfo encloseAt ( ExpressionPtr expr );
+    DAS_CC_API void stampMissingAt ( const ExpressionPtr & expr, const LineInfo & at );
 
     // replaces all occurrences of block argument name
     void renameBlockArgument ( ExprBlock * block, const string & name, const string & newName );
@@ -104,6 +104,7 @@ namespace das {
         ...
     */
     DAS_CC_API FunctionPtr makeClone ( Structure * str );
+    bool isPromotedInitCall ( Expression * init );
 
     /*
      def clone(var a:tuple<...>; var b:tuple<...>)
@@ -132,7 +133,8 @@ namespace das {
         a->b(args) is short for invoke(a.b, a, args)
      */
     struct ExprInvoke;
-    ExprInvoke * makeInvokeMethod ( const LineInfo & at, Expression * a, const string & b );
+    ExprInvoke * makeInvokeMethod ( const LineInfo & at, Expression * a, const string & b, bool no_promo = false );
+    ExprInvoke * makeInvokeMethod ( const LineInfo & at, const LineInfo & atField, Expression * a, const string & b, bool no_promo = false );
 
     /*
         this is short for invoke(type<callStruct>.b, a, args)
@@ -273,7 +275,7 @@ namespace das {
         give variables in the scope of 'expr' block unique names
         only for the top-level block
      */
-    void giveBlockVariablesUniqueNames  ( ExpressionPtr expr );
+    bool giveBlockVariablesUniqueNames  ( ExpressionPtr expr );
 
     /*
         replace break and continue of a particular loop

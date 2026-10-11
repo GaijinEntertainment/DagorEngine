@@ -12,6 +12,8 @@
 class ECSEditorPlugin : public IGenEditorPlugin, public IGenEventHandlerWrapper, public IOnExportNotify
 {
 public:
+  ~ECSEditorPlugin() override;
+
   // IGenEditorPlugin
   const char *getInternalName() const override { return "ecsEditor"; }
   const char *getMenuCommandName() const override { return "ECS Editor"; }

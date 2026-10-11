@@ -6,7 +6,7 @@
 #include <debug/dag_debug.h>
 using namespace HumanInput;
 
-IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput, bool remap_360)
+IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads)
 {
   if (!dinput8)
   {
@@ -14,7 +14,7 @@ IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool exclude_xinput,
     return NULL;
   }
 
-  Di8JoystickClassDriver *cd = new (inimem) Di8JoystickClassDriver(exclude_xinput, remap_360);
+  Di8JoystickClassDriver *cd = new (inimem) Di8JoystickClassDriver(exclude_xinput, remap_360, exclude_sony_pads);
   if (!cd->init())
   {
     delete cd;

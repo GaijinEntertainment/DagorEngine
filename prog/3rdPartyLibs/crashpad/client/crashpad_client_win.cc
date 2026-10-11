@@ -376,6 +376,15 @@ class ScopedCallSetHandlerStartupState {
   bool successful_;
 };
 
+// Gaijin: the ping has no timeout, a handler that hangs on start blocks the
+// client forever and stays alive after the client exit.
+constexpr DWORD kHandlerPingTimeoutMs = 30 * 1000;
+
+VOID CALLBACK TerminateStuckHandler(PVOID handler_process, BOOLEAN) {
+  LOG(ERROR) << "crash server did not answer the ping, terminating it";
+  SafeTerminateProcess(handler_process, kTerminationCodeCrashNoDump);
+}
+
 bool StartHandlerProcess(
     std::unique_ptr<BackgroundHandlerStartThreadData> data) {
   CHECK(!IsThreadInLoaderLock());
@@ -548,8 +557,8 @@ bool StartHandlerProcess(
   rv = CloseHandle(process_info.hThread);
   PLOG_IF(WARNING, !rv) << "CloseHandle thread";
 
-  rv = CloseHandle(process_info.hProcess);
-  PLOG_IF(WARNING, !rv) << "CloseHandle process";
+  // Gaijin: kept open for TerminateStuckHandler().
+  ScopedKernelHANDLE handler_process(process_info.hProcess);
 
   // It is important to close our side of the pipe here before confirming that
   // we can communicate with the server. By doing so, the only remaining copy of
@@ -558,11 +567,29 @@ bool StartHandlerProcess(
   // the connection loop will not detect that it will never be serviced.
   data->ipc_pipe_handle.reset();
 
+  // Gaijin: the end of the handler process breaks the pipe and so the ping.
+  HANDLE ping_timer = nullptr;
+  if (!CreateTimerQueueTimer(&ping_timer,
+                             nullptr,
+                             &TerminateStuckHandler,
+                             handler_process.get(),
+                             kHandlerPingTimeoutMs,
+                             0,
+                             WT_EXECUTEINTIMERTHREAD | WT_EXECUTEONLYONCE)) {
+    PLOG(WARNING) << "CreateTimerQueueTimer";
+    ping_timer = nullptr;
+  }
+
   // Confirm that the server is waiting for connections before continuing.
   ClientToServerMessage message = {};
   message.type = ClientToServerMessage::kPing;
   ServerToClientMessage response = {};
-  if (!SendToCrashHandlerServer(data->ipc_pipe, message, &response)) {
+  const bool ping_ok =
+      SendToCrashHandlerServer(data->ipc_pipe, message, &response);
+  // Gaijin: INVALID_HANDLE_VALUE waits for the callback that is in progress.
+  if (ping_timer)
+    DeleteTimerQueueTimer(nullptr, ping_timer, INVALID_HANDLE_VALUE);
+  if (!ping_ok) {
     return false;
   }
 

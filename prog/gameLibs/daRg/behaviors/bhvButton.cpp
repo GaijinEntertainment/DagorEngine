@@ -88,8 +88,6 @@ bool BhvButtonData::isDoubleClick(int cur_time, const Point2 &pos, float pos_thr
 
 BhvButton bhv_button;
 
-static const char *dataSlotName = "btn:data";
-
 
 BhvButton::BhvButton() :
   Behavior(STAGE_ACT,
@@ -100,7 +98,7 @@ BhvButton::BhvButton() :
 void BhvButton::onAttach(Element *elem)
 {
   BhvButtonData *btnData = new BhvButtonData();
-  elem->props.storage.SetValue(dataSlotName, btnData);
+  elem->props.storage.SetValue(elem->csk->btnData, btnData);
 }
 
 
@@ -109,7 +107,7 @@ void BhvButton::onDetach(Element *elem, DetachMode)
   BhvButtonData *btnData = BhvButton::getData(elem);
   if (btnData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->btnData);
     delete btnData;
   }
 }
@@ -403,7 +401,7 @@ int BhvButton::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, int
 
 BhvButtonData *BhvButton::getData(Element *elem)
 {
-  return elem->props.storage.RawGetSlotValue<BhvButtonData *>(dataSlotName, nullptr);
+  return elem->props.storage.RawGetSlotValue<BhvButtonData *>(elem->csk->btnData, nullptr);
 }
 
 } // namespace darg

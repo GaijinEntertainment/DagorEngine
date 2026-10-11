@@ -1,7 +1,7 @@
 options gen2
 
 require dastest/testing_boost
-require ../../modules/dasLLVM/daslib/llvm_code.das
+require daslib/tune
 
 // [llvm_code] external-codegen rail: the selftest generator (llvm/daslib/llvm_code_selftest,
 // wired via llvm/daslib/llvm_user_modules) emits `a + b` for (int, int) : int stubs and

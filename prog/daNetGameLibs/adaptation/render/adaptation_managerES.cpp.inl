@@ -34,6 +34,7 @@ ECS_AUTO_REGISTER_COMPONENT(AdaptationManager, "adaptation__manager", nullptr, 0
 
 ECS_BROADCAST_EVENT_TYPE(AdaptationRebuildNodes)
 ECS_REGISTER_EVENT(AdaptationRebuildNodes)
+ECS_REGISTER_EVENT(AdaptationSettingsChanged)
 
 static ShaderVariableInfo g_ExposureVarId("Exposure", true);
 static ShaderVariableInfo adaptation_sample_tm_xyVarId("adaptation_sample_tm_xy", true);
@@ -99,7 +100,8 @@ bool AdaptationManager::getExposure(float &exp) const
   return exposure.hasReadback();
 }
 
-static inline eastl::array<Point2, 3> get_adaptation_sample_tm(const AdaptationSettings &settings, const CameraParams &prev_main_view)
+static inline eastl::array<Point2, 3> get_adaptation_sample_tm(const AdaptationSettings &settings,
+  const CameraParams &prev_cockpit_view)
 {
   eastl::array<Point2, 3> adaptation_sample_tm = {Point2{0.5, 0}, Point2{0, 0.5}, Point2{0.5, 0.5}};
   if (!settings.focusOnAim)
@@ -113,7 +115,7 @@ static inline eastl::array<Point2, 3> get_adaptation_sample_tm(const AdaptationS
   {
     if (aimData.entityWithScopeLensEid == ecs::INVALID_ENTITY_ID)
     { // With collimator or without scope
-      adaptation_sample_tm[0] *= prev_main_view.noJitterPersp.wk / prev_main_view.noJitterPersp.hk * settings.focusAimScale.x;
+      adaptation_sample_tm[0] *= prev_cockpit_view.noJitterPersp.wk / prev_cockpit_view.noJitterPersp.hk * settings.focusAimScale.x;
       adaptation_sample_tm[1] *= settings.focusAimScale.y;
     }
     return adaptation_sample_tm;
@@ -132,8 +134,8 @@ static inline eastl::array<Point2, 3> get_adaptation_sample_tm(const AdaptationS
   const Point3 rightWpos = centerWpos + lensRight;
   const Point3 upWpos = centerWpos + lensUp;
 
-  const auto worldToUV = [&prev_main_view](const Point3 &wpos) {
-    const Point4 posCs = Point4::xyz1(wpos) * prev_main_view.viewRotJitterProjTm;
+  const auto worldToUV = [&prev_cockpit_view](const Point3 &wpos) {
+    const Point4 posCs = Point4::xyz1(wpos) * prev_cockpit_view.viewRotJitterProjTm;
     return safediv(Point2::xy(posCs), posCs.w);
   };
 
@@ -144,9 +146,9 @@ static inline eastl::array<Point2, 3> get_adaptation_sample_tm(const AdaptationS
   return adaptation_sample_tm;
 }
 
-static inline void set_adaptation_sample_tm_vars(const AdaptationSettings &settings, const CameraParams &prev_main_view)
+static inline void set_adaptation_sample_tm_vars(const AdaptationSettings &settings, const CameraParams &prev_cockpit_view)
 {
-  eastl::array<Point2, 3> adaptation_sample_tm = get_adaptation_sample_tm(settings, prev_main_view);
+  eastl::array<Point2, 3> adaptation_sample_tm = get_adaptation_sample_tm(settings, prev_cockpit_view);
   ShaderGlobal::set_float4(adaptation_sample_tm_xyVarId, adaptation_sample_tm[0], adaptation_sample_tm[1].x,
     adaptation_sample_tm[1].y);
   ShaderGlobal::set_float4(adaptation_sample_tm_aVarId, adaptation_sample_tm[2]);
@@ -215,8 +217,6 @@ void AdaptationManager::adaptExposure() { exposure.adaptExposure(settings, adapt
 
 void AdaptationManager::updateReadbackExposure()
 {
-  updateExposure();
-
   if (isFixedExposure())
     return;
 
@@ -271,14 +271,14 @@ static resource_slot::NodeHandleWithSlotsAccess makeGenHistogramNode(AdaptationM
       registry.readTexture("prev_frame_tex").atStage(dafg::Stage::COMPUTE).bindToShaderVar("no_effects_frame_tex").optional();
       registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("no_effects_frame_tex_samplerstate").optional();
       registry.modify("raw_exposure_histogram").buffer().atStage(dafg::Stage::CS).bindToShaderVar("RawHistogram");
-      auto prevMainCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
+      auto prevCockpitCameraHndl = registry.readBlobHistory<CameraParams>("current_cockpit_camera").handle();
 
-      return [&adaptation__manager, full_deferred, prevMainCameraHndl]() {
+      return [&adaptation__manager, full_deferred, prevCockpitCameraHndl]() {
         if (adaptation__manager.isFixedExposure())
           return;
 
         const bool useBaseColorAdaptation = !adaptationIlluminance.get() && full_deferred;
-        set_adaptation_sample_tm_vars(adaptation__manager.getSettings(), prevMainCameraHndl.ref());
+        set_adaptation_sample_tm_vars(adaptation__manager.getSettings(), prevCockpitCameraHndl.ref());
 
         adaptation__manager.genHistogramFromSource(useBaseColorAdaptation);
       };
@@ -327,12 +327,18 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
 
       // Set exposure at beginnig of frame
       adaptation__set_exposure_node = dafg::register_node("set_exposure", DAFG_PP_NODE_SRC,
-        [&adaptation__manager, render_settings__gpuResidentAdaptation](dafg::Registry registry) {
+        [&adaptation__manager, render_settings__gpuResidentAdaptation, render_settings__adaptation](dafg::Registry registry) {
           registry.orderMeBefore("setup_world_rendering_node");
-          registry.modify("exposure_normalization_factor").buffer().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE);
+          registry.executionHas(dafg::SideEffects::External);
+          registry.modify("exposure_normalization_factor")
+            .texture()
+            .atStage(dafg::Stage::PS_OR_CS)
+            .useAs(dafg::Usage::SHADER_RESOURCE);
 
-          return [&adaptation__manager, render_settings__gpuResidentAdaptation]() {
+          return [&adaptation__manager, render_settings__gpuResidentAdaptation, render_settings__adaptation]() {
             adaptation__manager.clearNormalizationFactor();
+            if (render_settings__adaptation)
+              adaptation__manager.updateExposure();
 
             if (!render_settings__gpuResidentAdaptation)
             {
@@ -449,7 +455,7 @@ ECS_REQUIRE(ecs::Object adaptation_default_settings)
 static void adaptation_default_settings_es(const ecs::Event &, ecs::EntityManager &manager) { updateSettings(manager); }
 
 ECS_TAG(render)
-ECS_ON_EVENT(on_appear, on_disappear)
+ECS_ON_EVENT(on_appear, on_disappear, AdaptationSettingsChanged)
 ECS_TRACK(adaptation_override_settings)
 ECS_REQUIRE(ecs::Object adaptation_override_settings)
 static void adaptation_override_settings_es(const ecs::Event &, ecs::EntityManager &manager) { updateSettings(manager); }

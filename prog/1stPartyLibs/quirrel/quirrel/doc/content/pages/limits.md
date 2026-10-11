@@ -75,17 +75,3 @@ active traps per function
 Nesting `try` that deeply exhausts the parser's depth budget first, so this
 message is hard to reach from source. A bytecode generator that emits traps
 without matching source nesting can still hit it.
-
-## Static memos per function
-
-A function may contain **32768** distinct
-[static](page:language/operators#the-static-memoisation-operator) expressions.
-This is the width of the index field in the instruction.
-
-```
-too many static memos in function
-```
-
-Only generated code approaches this limit. It counts places in the code, not
-evaluations. A `static` inside a loop is one memo however many times the loop
-runs.

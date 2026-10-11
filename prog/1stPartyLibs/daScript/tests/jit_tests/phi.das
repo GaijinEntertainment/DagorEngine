@@ -1,21 +1,20 @@
 options gen2
 require dastest/testing_boost
 
-require daslib/fuzzer
 require daslib/faker
 require daslib/constant_expression
 
 [jit, sideeffects]
 def test_min(a, b : int) {
-    return a < b ? a : b
+    return a < b ? a : b    // nolint:PERF015 -- the ternary is the PHI shape under test; min() would not emit one
 }
 
 [jit, sideeffects]
 def test_min(a, b, c : int) {
     if (a < b) {
-        return a < c ? a : c
+        return a < c ? a : c    // nolint:PERF015 -- the ternary is the PHI shape under test; min() would not emit one
     } else {
-        return b < c ? b : c
+        return b < c ? b : c    // nolint:PERF015 -- the ternary is the PHI shape under test; min() would not emit one
     }
 }
 
@@ -36,16 +35,16 @@ def test_phi(t : T?) {
 
     t |> run("min2") @(t : T?) {
         var fake <- Faker()
-        var a = fake |> random_int
-        var b = fake |> random_int
-        t |> equal(test_min(a, b), a < b ? a : b)
+        let a = fake |> random_int
+        let b = fake |> random_int
+        t |> equal(test_min(a, b), a < b ? a : b)    // nolint:PERF015 -- the oracle mirrors the ternary under test
     }
 
     t |> run("min3") @(t : T?) {
         var fake <- Faker()
-        var a = fake |> random_int
-        var b = fake |> random_int
-        var c = fake |> random_int
-        t |> equal(test_min(a, b, c), a < b ? (a < c ? a : c) : (b < c ? b : c))
+        let a = fake |> random_int
+        let b = fake |> random_int
+        let c = fake |> random_int
+        t |> equal(test_min(a, b, c), a < b ? (a < c ? a : c) : (b < c ? b : c))    // nolint:PERF015 -- the oracle mirrors the ternaries under test
     }
 }

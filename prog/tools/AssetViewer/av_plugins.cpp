@@ -112,6 +112,6 @@ void IGenEditorPlugin::initScriptPanelEditor(const char *scheme, const char *pan
 {
   del_it(spEditor);
   spEditor = new AVScriptPanelEditor(scheme, panel_caption);
-  if (spEditor && !spEditor->scriptExists())
+  if (!spEditor->scriptExists())
     del_it(spEditor);
 }

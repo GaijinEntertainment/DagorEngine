@@ -48,6 +48,8 @@ rendinst::AutoLockWritePrimaryAndExtra::AutoLockWritePrimaryAndExtra() { rendins
 
 rendinst::AutoLockWritePrimaryAndExtra::~AutoLockWritePrimaryAndExtra() { rendinst::ccExtra.unlockWrite(); }
 
+int rendinst::getRiGenWorldVersion() { return riutil::world_version_get(); }
+
 int rendinst::getRIGenMaterialId(const RendInstDesc &desc, bool need_lock)
 {
   int pool = desc.isRiExtra() ? rendinst::riExtra[desc.pool].riPoolRef : desc.pool;
@@ -212,7 +214,7 @@ bool rendinst::isValidRILayerAndPool(const RendInstDesc &desc)
   if (desc.isRiExtra())
     return rendinst::riExtra.isValid(desc.pool);
   const RendInstGenData *rgl = rendinst::getRgLayer(desc.layer);
-  return rgl != nullptr && rgl->rtData != nullptr && unsigned(desc.pool) < rgl->rtData->rtPoolData.size();
+  return rgl != nullptr && rgl->rtData != nullptr && unsigned(desc.pool) < rgl->rtData->riRes.size();
 }
 
 bool rendinst::isDestroyedRIExtraFromNextRes(const RendInstDesc &desc)

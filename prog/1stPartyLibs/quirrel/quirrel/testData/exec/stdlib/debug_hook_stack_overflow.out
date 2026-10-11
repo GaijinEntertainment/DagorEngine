@@ -1,0 +1,3 @@
+call: stack overflow, cannot resize stack
+resume: stack overflow, cannot resize stack
+hook called: true

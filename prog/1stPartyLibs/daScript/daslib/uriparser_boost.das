@@ -153,7 +153,5 @@ def uri_compose(scheme, userInfo, hostText, portText, path, query, fragment : st
             tw |> write(fragment)
         }
     }
-    unsafe {
-        return <- Uri(text)
-    }
+    return <- Uri(text)
 }

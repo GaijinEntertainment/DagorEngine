@@ -60,7 +60,7 @@ def test_auto_infer(t : T?) {
     t |> run("fixed array copy and const") @(t : T?) {
         let a : int[10]
         let b = a
-        let c : auto const = b
+        let _c : auto const = b
         t |> equal(length(a), 10)
     }
     t |> run("array size deduction") @(t : T?) {
@@ -75,32 +75,32 @@ def test_auto_infer(t : T?) {
     }
     t |> run("container auto-infer") @(t : T?) {
         var TT_A : array<int>
-        let TT_iA : array<auto> <- TT_A
+        let _TT_iA : array<auto> <- TT_A
         var TT_T : table<string; int>
-        let TT_iT : table<auto; auto> <- TT_T
-        let TT_ikT : table<auto; int> <- TT_T
-        let TT_ivT : table<string; auto> <- TT_T
+        let _TT_iT : table<auto; auto> <- TT_T
+        let _TT_ikT : table<auto; int> <- TT_T
+        let _TT_ivT : table<string; auto> <- TT_T
     }
     t |> run("block return type infer") @(t : T?) {
-        let f1 = foo() <| $(arg : int) {
+        let f1 = foo() $(arg : int) {
             return arg + 1
         }
         t |> equal(f1, 4)
     }
     t |> run("block argument default infer") @(t : T?) {
-        let f2 = foo() <| $(arg = 5) {
+        let f2 = foo() $(arg = 5) {
             return arg + 2
         }
         t |> equal(f2, 5)
     }
     t |> run("block full forward infer") @(t : T?) {
-        let f3 = foo() <| $(arg) {
+        let f3 = foo() $(arg) {
             return arg + 3
         }
         t |> equal(f3, 6)
     }
     t |> run("block two arguments infer") @(t : T?) {
-        let blah = foobar() <| $(ia, fb) {
+        let blah = foobar() $(ia, fb) {
             t |> equal(ia, 1)
             t |> equal(fb, 2.0)
             return "foo"
@@ -115,9 +115,9 @@ def test_auto_infer(t : T?) {
         t |> equal(madd(1.0, 2.0, 3.0), 5.0)
     }
     t |> run("tuple auto-infer") @(t : T?) {
-        let ZZT = ("two", 2)
+        let ZZT = ("two", 2)                // nolint:LINT002 - read by typeinfo below
         t |> equal(typeinfo is_dim(ZZT), false)
-        let ZZA = fixed_array(("two", 2))
+        let ZZA = fixed_array(("two", 2))   // nolint:LINT002 - read by typeinfo below
         t |> equal(typeinfo is_dim(ZZA), true)
         t |> equal(typeinfo dim(ZZA), 1)
     }

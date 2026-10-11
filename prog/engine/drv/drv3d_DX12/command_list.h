@@ -376,9 +376,9 @@ class CopyCommandListImplementation : public debug::CommandListLogger
 protected:
   T list;
 
-  ComPtr<ID3D12Device> getDevice()
+  ComPtr<D3DDevice> getDevice()
   {
-    ComPtr<ID3D12Device> result;
+    ComPtr<D3DDevice> result;
     if (list)
     {
       list->GetDevice(COM_ARGS(&result));
@@ -785,12 +785,12 @@ public:
           auto sz = getBufferSize(desc);
           // buffers can not have a size of 0
           DX12_VALIDATE_CONDITION(sz > 0, "dst->pResource is not a buffer");
-          DX12_VALIDATE_CONDITION(dst->PlacedFootprint.Offset < sz, "dst->PlacedFootprint.Offset %u is out of range %u",
+          DX12_VALIDATE_CONDITION(dst->PlacedFootprint.Offset < sz, "dst->PlacedFootprint.Offset %llu is out of range %llu",
             dst->PlacedFootprint.Offset, sz);
 
           auto totalSize = uint64_t(dst->PlacedFootprint.Footprint.RowPitch) * dstSize.depth;
           DX12_VALIDATE_CONDITION(dst->PlacedFootprint.Offset + totalSize <= sz,
-            "dst->PlacedFootprint.Offset %u plus totalSize %u = %u is out of range %u", dst->PlacedFootprint.Offset, totalSize,
+            "dst->PlacedFootprint.Offset %llu plus totalSize %llu = %llu is out of range %llu", dst->PlacedFootprint.Offset, totalSize,
             dst->PlacedFootprint.Offset + totalSize, sz);
         }
         else if (D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX == dst->Type) // -V547
@@ -854,11 +854,11 @@ public:
           auto sz = getBufferSize(desc);
           // buffers can not have a size of 0
           DX12_VALIDATE_CONDITION(sz > 0, "src->pResource is not a buffer");
-          DX12_VALIDATE_CONDITION(src->PlacedFootprint.Offset < sz, "src->PlacedFootprint.Offset %u is out of range %u",
+          DX12_VALIDATE_CONDITION(src->PlacedFootprint.Offset < sz, "src->PlacedFootprint.Offset %llu is out of range %llu",
             src->PlacedFootprint.Offset, sz);
           auto totalSize = uint64_t(src->PlacedFootprint.Footprint.RowPitch) * srcSize.depth;
           DX12_VALIDATE_CONDITION(src->PlacedFootprint.Offset + totalSize <= sz,
-            "src->PlacedFootprint.Offset %u plus totalSize %u = %u is out of range %u", src->PlacedFootprint.Offset, totalSize,
+            "src->PlacedFootprint.Offset %llu plus totalSize %llu = %llu is out of range %llu", src->PlacedFootprint.Offset, totalSize,
             src->PlacedFootprint.Offset + totalSize, sz);
         }
         else if (D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX == src->Type) // -V547
@@ -1022,9 +1022,9 @@ public:
       auto size = getBufferSize(desc);
       // buffers can not have a size of 0
       DX12_VALIDATE_CONDITION(size > 0, "dst is not a buffer");
-      DX12_VALIDATE_CONDITION(dst_offset < size, "dst_offset %u is out of range %u", dst_offset, size);
-      DX12_VALIDATE_CONDITION(dst_offset + num_bytes <= size, "dst_offset %u + num_bytes %u = %u is out of range %u", dst_offset,
-        num_bytes, dst_offset + num_bytes, size);
+      DX12_VALIDATE_CONDITION(dst_offset < size, "dst_offset %llu is out of range %llu", dst_offset, size);
+      DX12_VALIDATE_CONDITION(dst_offset + num_bytes <= size, "dst_offset %llu + num_bytes %llu = %llu is out of range %llu",
+        dst_offset, num_bytes, dst_offset + num_bytes, size);
     }
 
     if (src)
@@ -1033,9 +1033,9 @@ public:
       auto size = getBufferSize(desc);
       // buffers can not have a size of 0
       DX12_VALIDATE_CONDITION(size > 0, "src is not a buffer");
-      DX12_VALIDATE_CONDITION(src_offset < size, "src_offset %u is out of range %u", src_offset, size);
-      DX12_VALIDATE_CONDITION(src_offset + num_bytes <= size, "src_offset %u + num_bytes %u = %u is out of range %u", src_offset,
-        num_bytes, src_offset + num_bytes, size);
+      DX12_VALIDATE_CONDITION(src_offset < size, "src_offset %llu is out of range %llu", src_offset, size);
+      DX12_VALIDATE_CONDITION(src_offset + num_bytes <= size, "src_offset %llu + num_bytes %llu = %llu is out of range %llu",
+        src_offset, num_bytes, src_offset + num_bytes, size);
     }
 
     DX12_FINALIZE_VALIDATION();
@@ -1109,14 +1109,14 @@ public:
       auto desc = destination_buffer->GetDesc();
       auto bufferSize = getBufferSize(desc);
       DX12_VALIDATE_CONDITION(0 != bufferSize, "destination resource has to be a buffer");
-      DX12_VALIDATE_CONDITION(0 == (aligned_destination_buffer_offset % 8), "destination offset (%u) has to be multiples of 8",
+      DX12_VALIDATE_CONDITION(0 == (aligned_destination_buffer_offset % 8), "destination offset (%llu) has to be multiples of 8",
         aligned_destination_buffer_offset);
       DX12_VALIDATE_CONDITION(aligned_destination_buffer_offset < bufferSize,
-        "destination offset (%u) is outside of the buffer bounds (%u)", aligned_destination_buffer_offset, bufferSize);
+        "destination offset (%llu) is outside of the buffer bounds (%llu)", aligned_destination_buffer_offset, bufferSize);
 
       static constexpr uint32_t queryResultSize = sizeof(uint64_t);
       DX12_VALIDATE_CONDITION(aligned_destination_buffer_offset + num_queries * queryResultSize <= bufferSize,
-        "destination offset plus memory needed to store all query results (%u) (%u) is out of the buffer bounds (%u)", num_queries,
+        "destination offset plus memory needed to store all query results (%u) (%llu) is out of the buffer bounds (%llu)", num_queries,
         aligned_destination_buffer_offset + num_queries * queryResultSize, bufferSize);
     }
     DX12_FINALIZE_VALIDATION();
@@ -1404,21 +1404,21 @@ public:
 
     DX12_VALIDATE_CONDITION(nullptr != command_signature, "Command signature can not be null");
     DX12_VALIDATE_CONDITION(nullptr != argument_buffer, "Argument buffer can not be null");
-    DX12_VALIDATE_CONDITION(0 == (argument_buffer_offset % 4), "Argument buffer offset %u has to be multiples of 4",
+    DX12_VALIDATE_CONDITION(0 == (argument_buffer_offset % 4), "Argument buffer offset %llu has to be multiples of 4",
       argument_buffer_offset);
     if (argument_buffer)
     {
       auto size = getBufferSize(argument_buffer->GetDesc());
       DX12_VALIDATE_CONDITION(0 < size, "Argument buffer resource has be a buffer");
-      DX12_VALIDATE_CONDITION(argument_buffer_offset < size, "Argument buffer offset %u is out of bounds %u", argument_buffer_offset,
-        size);
+      DX12_VALIDATE_CONDITION(argument_buffer_offset < size, "Argument buffer offset %llu is out of bounds %llu",
+        argument_buffer_offset, size);
     }
-    DX12_VALIDATE_CONDITION(0 == (count_buffer_offset % 4), "Count buffer offset %u has to be multiples of 4", count_buffer_offset);
+    DX12_VALIDATE_CONDITION(0 == (count_buffer_offset % 4), "Count buffer offset %llu has to be multiples of 4", count_buffer_offset);
     if (count_buffer)
     {
       auto size = getBufferSize(count_buffer->GetDesc());
       DX12_VALIDATE_CONDITION(0 < size, "Count buffer resource has be a buffer");
-      DX12_VALIDATE_CONDITION(count_buffer_offset < size, "Count buffer offset %u is out of bounds %u", count_buffer_offset, size);
+      DX12_VALIDATE_CONDITION(count_buffer_offset < size, "Count buffer offset %llu is out of bounds %llu", count_buffer_offset, size);
     }
     DX12_FINALIZE_VALIDATION();
 #undef DX12_VALIDATION_CONTEXT
@@ -1509,14 +1509,14 @@ public:
       auto desc = destination_buffer->GetDesc();
       auto bufferSize = getBufferSize(desc);
       DX12_VALIDATE_CONDITION(0 != bufferSize, "destination resource has to be a buffer");
-      DX12_VALIDATE_CONDITION(0 == (aligned_destination_buffer_offset % 8), "destination offset (%u) has to be multiples of 8",
+      DX12_VALIDATE_CONDITION(0 == (aligned_destination_buffer_offset % 8), "destination offset (%llu) has to be multiples of 8",
         aligned_destination_buffer_offset);
       DX12_VALIDATE_CONDITION(aligned_destination_buffer_offset < bufferSize,
-        "destination offset (%u) is outside of the buffer bounds (%u)", aligned_destination_buffer_offset, bufferSize);
+        "destination offset (%llu) is outside of the buffer bounds (%llu)", aligned_destination_buffer_offset, bufferSize);
 
       static constexpr uint32_t queryResultSize = sizeof(uint64_t);
       DX12_VALIDATE_CONDITION(aligned_destination_buffer_offset + num_queries * queryResultSize <= bufferSize,
-        "destination offset plus memory needed to store all query results (%u) (%u) is out of the buffer bounds (%u)", num_queries,
+        "destination offset plus memory needed to store all query results (%u) (%llu) is out of the buffer bounds (%llu)", num_queries,
         aligned_destination_buffer_offset + num_queries * queryResultSize, bufferSize);
     }
     DX12_FINALIZE_VALIDATION();
@@ -1567,12 +1567,13 @@ public:
   {
 #define DX12_VALIDATION_CONTEXT "setPredication"
     DX12_BEGIN_VALIDATION();
-    DX12_VALIDATE_CONDITION(0 == (aligned_buffer_offset % 8), "buffer offset %u has to be multiples of 8", aligned_buffer_offset);
+    DX12_VALIDATE_CONDITION(0 == (aligned_buffer_offset % 8), "buffer offset %llu has to be multiples of 8", aligned_buffer_offset);
     if (buffer)
     {
       auto size = getBufferSize(buffer->GetDesc());
       DX12_VALIDATE_CONDITION(size > 0, "resource has to be a buffer");
-      DX12_VALIDATE_CONDITION(size >= aligned_buffer_offset + 8, "buffer offset %u is out of bounds %u", aligned_buffer_offset, size);
+      DX12_VALIDATE_CONDITION(size >= aligned_buffer_offset + 8, "buffer offset %llu is out of bounds %llu", aligned_buffer_offset,
+        size);
     }
     DX12_FINALIZE_VALIDATION();
 #undef DX12_VALIDATION_CONTEXT
@@ -1668,14 +1669,14 @@ public:
     if (dst)
     {
       DX12_VALIDATE_CONDITION(0 == (dst->DestAccelerationStructureData % D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT),
-        "dst.DestAccelerationStructureData (%u) has to be aligned to %u", dst->DestAccelerationStructureData,
+        "dst.DestAccelerationStructureData (%llu) has to be aligned to %u", dst->DestAccelerationStructureData,
         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(0 != dst->DestAccelerationStructureData, "dst.DestAccelerationStructureData can not be null");
       if (D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE !=
           (dst->Inputs.Flags & D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE))
       {
         DX12_VALIDATE_CONDITION(0 == (dst->SourceAccelerationStructureData % D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT),
-          "dst.SourceAccelerationStructureData (%u) has to be aligned to %u", dst->SourceAccelerationStructureData,
+          "dst.SourceAccelerationStructureData (%llu) has to be aligned to %u", dst->SourceAccelerationStructureData,
           D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT);
         DX12_VALIDATE_CONDITION(0 != dst->SourceAccelerationStructureData,
           "dst.SourceAccelerationStructureData can not be null when updating");
@@ -1772,39 +1773,39 @@ public:
     if (desc)
     {
       DX12_VALIDATE_CONDITION(0 == (desc->RayGenerationShaderRecord.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.RayGenerationShaderRecord.StartAddress (%u) has to be aligned to %u", desc->RayGenerationShaderRecord.StartAddress,
+        "desc.RayGenerationShaderRecord.StartAddress (%llu) has to be aligned to %u", desc->RayGenerationShaderRecord.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->RayGenerationShaderRecord.SizeInBytes,
-        "desc.RayGenerationShaderRecord.SizeInBytes (%u) has to be less or equal to 4096",
+        "desc.RayGenerationShaderRecord.SizeInBytes (%llu) has to be less or equal to 4096",
         desc->RayGenerationShaderRecord.SizeInBytes);
       DX12_VALIDATE_CONDITION(0 != desc->RayGenerationShaderRecord.SizeInBytes,
         "desc.RayGenerationShaderRecord.SizeInBytes can not be 0");
 
       DX12_VALIDATE_CONDITION(0 == (desc->MissShaderTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.MissShaderTable.StartAddress (%u) has to be aligned to %u", desc->MissShaderTable.StartAddress,
+        "desc.MissShaderTable.StartAddress (%llu) has to be aligned to %u", desc->MissShaderTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->MissShaderTable.StrideInBytes,
-        "desc.MissShaderTable.StrideInBytes (%u) has to be less or equal to 4096", desc->MissShaderTable.StrideInBytes);
+        "desc.MissShaderTable.StrideInBytes (%llu) has to be less or equal to 4096", desc->MissShaderTable.StrideInBytes);
       DX12_VALIDATE_CONDITION(0 == (desc->MissShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
-        "desc.MissShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->MissShaderTable.StrideInBytes,
+        "desc.MissShaderTable.StrideInBytes (%llu) has to be aligned to %u", desc->MissShaderTable.StrideInBytes,
         D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
       DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.HitGroupTable.StartAddress (%u) has to be aligned to %u", desc->HitGroupTable.StartAddress,
+        "desc.HitGroupTable.StartAddress (%llu) has to be aligned to %u", desc->HitGroupTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->HitGroupTable.StrideInBytes,
-        "desc.HitGroupTable.StrideInBytes (%u) has to be less or equal to 4096", desc->HitGroupTable.StrideInBytes);
+        "desc.HitGroupTable.StrideInBytes (%llu) has to be less or equal to 4096", desc->HitGroupTable.StrideInBytes);
       DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
-        "desc.HitGroupTable.StrideInBytes (%u) has to be aligned to %u", desc->HitGroupTable.StrideInBytes,
+        "desc.HitGroupTable.StrideInBytes (%llu) has to be aligned to %u", desc->HitGroupTable.StrideInBytes,
         D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
       DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
-        "desc.CallableShaderTable.StartAddress (%u) has to be aligned to %u", desc->CallableShaderTable.StartAddress,
+        "desc.CallableShaderTable.StartAddress (%llu) has to be aligned to %u", desc->CallableShaderTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
       DX12_VALIDATE_CONDITION(4096 >= desc->CallableShaderTable.StrideInBytes,
-        "desc.CallableShaderTable.StrideInBytes (%u) has to be less or equal to 4096", desc->CallableShaderTable.StrideInBytes);
+        "desc.CallableShaderTable.StrideInBytes (%llu) has to be less or equal to 4096", desc->CallableShaderTable.StrideInBytes);
       DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
-        "desc.CallableShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->CallableShaderTable.StrideInBytes,
+        "desc.CallableShaderTable.StrideInBytes (%llu) has to be aligned to %u", desc->CallableShaderTable.StrideInBytes,
         D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
       DX12_VALIDATE_CONDITION(desc->Width * uint64_t(desc->Height) * desc->Depth < (uint64_t(1) << 30),
@@ -2149,10 +2150,10 @@ public:
       auto desc = destination_buffer->GetDesc();
       auto bufferSize = getBufferSize(desc);
       DX12_VALIDATE_CONDITION(0 != bufferSize, "destination resource has to be a buffer");
-      DX12_VALIDATE_CONDITION(0 == (aligned_destination_buffer_offset % 8), "destination offset (%u) has to be multiples of 8",
+      DX12_VALIDATE_CONDITION(0 == (aligned_destination_buffer_offset % 8), "destination offset (%llu) has to be multiples of 8",
         aligned_destination_buffer_offset);
       DX12_VALIDATE_CONDITION(aligned_destination_buffer_offset < bufferSize,
-        "destination offset (%u) is outside of the buffer bounds (%u)", aligned_destination_buffer_offset, bufferSize);
+        "destination offset (%llu) is outside of the buffer bounds (%llu)", aligned_destination_buffer_offset, bufferSize);
       uint32_t queryResultSize = 0;
       if (D3D12_QUERY_TYPE_OCCLUSION == type || D3D12_QUERY_TYPE_BINARY_OCCLUSION == type || D3D12_QUERY_TYPE_TIMESTAMP == type)
       {
@@ -2175,7 +2176,7 @@ public:
       }
 #endif
       DX12_VALIDATE_CONDITION(aligned_destination_buffer_offset + num_queries * queryResultSize <= bufferSize,
-        "destination offset plus memory needed to store all query results (%u) (%u) is out of the buffer bounds (%u)", num_queries,
+        "destination offset plus memory needed to store all query results (%u) (%llu) is out of the buffer bounds (%llu)", num_queries,
         aligned_destination_buffer_offset + num_queries * queryResultSize, bufferSize);
     }
     DX12_FINALIZE_VALIDATION();

@@ -11,6 +11,13 @@ require debugapi public
 
 require daslib/rtti public
 
+//! Every hook runs under the process-wide agent registry lock, and so does every context
+//! creation (`onCreateContext` walks the registry). A hook therefore never waits on another
+//! thread that has yet to create a context - `new_thread`, a fresh `Context` - or the process
+//! deadlocks. A hook also runs under its own context's mutex, the same one `invoke_in_context`
+//! takes, so a callback and a pinvoke into the agent context never overlap;
+//! `try_invoke_in_context` is the non-blocking form - it returns false, running nothing,
+//! while that mutex is held.
 class DapiDebugAgent {
     def abstract onInstall(agent : DebugAgent?) : void
     def abstract onUninstall(agent : DebugAgent?) : void
@@ -68,7 +75,6 @@ def install_new_thread_local_debug_agent(var agentPtr) {
     }
 }
 
-// das::Array. should we bind C++ structure?
 struct DapiArray {
     data : void?
     size : uint64
@@ -79,36 +85,32 @@ struct DapiArray {
     _pad_after_flags : uint
 }
 
-// das::Table. should we bind C++ structure?
 struct DapiTable : DapiArray {
     keys : void?
     hashes : uint?
     tombstones : uint64
 }
 
-// das::Block
 struct DapiBlock {
     stackOffset : uint
     argumentsOffset : uint
-    body : void?                    // SimNode *
+    body : void?
     aotFunction : void?
+    jitFunction : void?
     functionArguments : float4?
     info : FuncInfo?
 }
 
-// das::Func
 struct DapiFunc {
     index : int
 }
 
-// das::Lambda
 struct DapiLambda {
     captured : void?
 }
 
-// das::Sequence
 struct DapiSequence {
-    iter : void?        // Iterator *
+    iter : void?
 }
 
 class DapiDataWalker {

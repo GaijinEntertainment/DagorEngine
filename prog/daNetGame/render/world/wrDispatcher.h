@@ -52,6 +52,7 @@ struct WRDispatcher
 
   static int getCurrentAntiAliasingMode();
 
+  static struct CameraParams &getCurrentMagnificationCameraParams();
   static struct CameraParams &getCurrentCameraParams();
   static const CameraParams &getPreviousCameraParams();
   static const CameraParams &getCurrentCockpitCameraParams();

@@ -4,12 +4,14 @@
 #include <libTools/util/makeBindump.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_clothSimChannels.h>
+#include <shaders/dag_corSkinningChannel.h>
 #include <math/dag_mesh.h>
 #include <math/dag_meshBones.h>
 #include <generic/dag_tabUtils.h>
 #include <ioSys/dag_genIo.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
+#include "corSkinning.h"
 
 //************************************************************************
 //* common parameters
@@ -271,18 +273,21 @@ static bool material_uses_cloth_skinning(ShaderMaterial **shmat_tab, int mat_cou
   return cb.clothIndex && cb.clothWeight;
 }
 
-static bool material_uses_cloth_sim_weights(ShaderMaterial **shmat_tab, int mat_count)
+// Probes the variant each material selects now, so set num_bones before asking about a skin channel.
+static bool material_uses_extra_channel(ShaderMaterial **shmat_tab, int mat_count, int usage_index)
 {
-  class WeightChanCB : public ShaderChannelsEnumCB
+  class ExtraChanCB : public ShaderChannelsEnumCB
   {
   public:
+    int usageIndex = 0;
     bool found = false;
     void enum_shader_channel(int u, int ui, int, int, int, ChannelModifier, int) override
     {
-      found |= (u == SCUSAGE_EXTRA && ui == CLOTH_SIM_WEIGHT_EXTRA_CHANNEL);
+      found |= (u == SCUSAGE_EXTRA && ui == usageIndex);
     }
   } cb;
 
+  cb.usageIndex = usage_index;
   for (int i = 0; i < mat_count; i++)
     if (shmat_tab[i])
     {
@@ -290,6 +295,67 @@ static bool material_uses_cloth_sim_weights(ShaderMaterial **shmat_tab, int mat_
       shmat_tab[i]->enum_channels(cb, flags);
     }
   return cb.found;
+}
+
+// constraint: must match cor_offset_decode in cor_skinning.hlsl
+static Point4 encode_cor_offset(const Point3 &offset)
+{
+  const float maxAbs = max(max(fabsf(offset.x), fabsf(offset.y)), fabsf(offset.z));
+  const int w = maxAbs > 0 ? min((int)ceilf(8 * log2f(maxAbs / 127)) + 200, 255) : 0;
+  if (w < 1)
+    return Point4(0, 0, 0, 0);
+  const float scale = exp2f((w - 200) / 8.f);
+  auto signedByte = [scale](float v) { return ((int)roundf(v / scale) & 255) / 255.f; };
+  return Point4(signedByte(offset.x), signedByte(offset.y), signedByte(offset.z), w / 255.f);
+}
+
+static bool add_cor_skinning_channel(Mesh &mesh, dag::ConstSpan<SkinVert> svert, int max_skin_bones)
+{
+  const int id = mesh.add_extra_channel(MeshData::CHT_FLOAT4, SCUSAGE_EXTRA, COR_SKINNING_EXTRA_CHANNEL);
+  if (id < 0)
+    return false;
+
+  Tab<CorSkinWeights> skin(tmpmem);
+  skin.resize(svert.size());
+  for (int i = 0; i < svert.size(); i++)
+  {
+    CorSkinWeights &d = skin[i];
+    memcpy(d.bone, svert[i].b, sizeof(d.bone));
+    memcpy(d.weight, svert[i].w, sizeof(d.weight));
+#if !defined(HI_PRECISION)
+    ChannelData quantized;
+    quantized.convertWeight(svert[i]);
+    d.weight[0] = quantized.weightData[0].r / 255.f;
+    d.weight[1] = quantized.weightData[0].g / 255.f;
+    d.weight[2] = quantized.weightData[0].b / 255.f;
+    d.weight[3] = max(1.f - d.weight[0] - d.weight[1] - d.weight[2], 0.f);
+#endif
+    d.count = 0;
+    for (int j = 0; j < max_skin_bones; j++)
+      if (d.weight[j] > 0)
+      {
+        d.bone[d.count] = d.bone[j];
+        d.weight[d.count++] = d.weight[j];
+      }
+  }
+
+  // splitRealTwoSided copies would weigh their area twice
+  const int sideId = mesh.find_extra_channel(SCUSAGE_EXTRA, 55);
+  dag::ConstSpan<Face> faces = mesh.getFace();
+  MeshData::ExtraChannel &ch = mesh.getMeshData().extra[id];
+  ch.resize_verts(svert.size());
+  Tab<Face> oneSided(tmpmem);
+  for (int i = 0; i < faces.size(); i++)
+  {
+    ch.fc[i] = {faces[i].v[0], faces[i].v[1], faces[i].v[2]};
+    if (sideId < 0 || mesh.getExtra(sideId).fc[i].t[0] == 0)
+      oneSided.push_back(faces[i]);
+  }
+  dag::Span<Point4> corOffsets = make_span((Point4 *)ch.vt.data(), svert.size());
+  compute_centers_of_rotation(mesh.getVert(), oneSided, skin, corOffsets);
+  for (Point4 &o : corOffsets)
+    o = encode_cor_offset(Point3::xyz(o));
+  return true;
 }
 
 // build mesh data
@@ -300,7 +366,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
     return false;
 
   const bool build_cloth_skinning_channels = material_uses_cloth_skinning(shmat_tab, mat_count);
-  const bool build_cloth_sim_weight_channel = material_uses_cloth_sim_weights(shmat_tab, mat_count);
+  const bool build_cloth_sim_weight_channel = material_uses_extra_channel(shmat_tab, mat_count, CLOTH_SIM_WEIGHT_EXTRA_CHANNEL);
 
 #if OUTPUT_DEBUG_LEVEL >= 2
   debug("SkinnedMeshDataImpl::build started");
@@ -357,6 +423,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
   Tab<SkinVert> svert(tmpmem);
   svert.resize(mesh.getVert().size());
+  mem_set_0(svert);
   Tab<int> numvb(tmpmem);
   numvb.resize(max_skin_bones + 1);
 
@@ -554,6 +621,15 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
     }
   }
 
+  if (material_uses_extra_channel(tmpMatTab.data(), tmpMatTab.size(), COR_SKINNING_EXTRA_CHANNEL))
+  {
+    if (max_skin_bones > 4)
+      logwarn("cor skinning: node '%s' has %d bones per vertex and the centers need up to 4, its offsets stay zero",
+        uv_err_node ? uv_err_node : "?", max_skin_bones);
+    if (!add_cor_skinning_channel(mesh, svert, max_skin_bones > 4 ? 0 : max_skin_bones))
+      logerr("cor skinning for '%s': the mesh already has extra[%d]", tmpMatTab[0]->getShaderClassName(), COR_SKINNING_EXTRA_CHANNEL);
+  }
+
   // build material desc's; separate materials, if max bone count reached
 
   int maxBoneCount = maxSupportedBoneCount;
@@ -682,7 +758,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
   Tab<ChannelData> dataTable(tmpmem);
   const int boneDataVecCount = max_skin_bones / 4;
 
-  ChannelData chData;
+  ChannelData chData{};
   for (i = 0; i < matTab.size(); i++)
   {
     MaterialBuildDesc &materialDesc = matTab[i];

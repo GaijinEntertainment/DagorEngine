@@ -155,7 +155,7 @@ INLINE int signbitf(float x) { return FP_SIGN_BIT(x); }
 
 INLINE bool float_nonzero(float x) { return rabs(x) >= FLT_EPSILON; }
 INLINE float flt_epsion_threshold(float v) { return fabsf(v) < FLT_EPSILON ? 0.f : v; }
-INLINE double flt_epsion_threshold(double v) { return fabs(v) < FLT_EPSILON ? 0.0 : v; }
+INLINE double flt_epsion_threshold(double v) { return fabs(v) < double(FLT_EPSILON) ? 0.0 : v; }
 
 /// @endcond
 
@@ -275,11 +275,11 @@ INLINE float fastsqrt(float x) { return sqrtf(x); }
 #pragma warning(push)
 #pragma warning(disable : 4723) // potential division by zero
 #endif
-INLINE float safediv(float a, float b) { return b > VERY_SMALL_NUMBER ? a / b : (b < -VERY_SMALL_NUMBER ? a / b : 0.f); }
-INLINE double safediv(double a, double b) { return b > VERY_SMALL_NUMBER ? a / b : (b < -VERY_SMALL_NUMBER ? a / b : 0.0); }
+INLINE float safediv(float a, float b) { return fabsf(b) > VERY_SMALL_NUMBER ? a / b : 0.f; }
+INLINE double safediv(double a, double b) { return fabs(b) > double(VERY_SMALL_NUMBER) ? a / b : 0.0; }
 
 INLINE float safeinvsqrtfast(float x) { return x > 0.f ? fastinvsqrt(x) : 1.f; }
-INLINE double safeinvsqrtfast(double x) { return x > 0.0 ? fastinvsqrt(x) : 1.0; }
+INLINE double safeinvsqrtfast(double x) { return x > 0.0 ? double(fastinvsqrt(float(x))) : 1.0; }
 
 INLINE float safe_asin(float x) { return ::asinf(clamp(x, -1.f, 1.f)); }
 INLINE double safe_asin(double x) { return ::asin(clamp(x, -1.0, 1.0)); }
@@ -294,7 +294,7 @@ INLINE float unsafe_acos(float x) { return ::acosf(x); }
 INLINE double unsafe_acos(double x) { return ::acos(x); }
 
 INLINE float safe_atan2(float y, float x) { return (x != 0.f || y != 0.f) ? ::atan2f(y, x) : 0.f; }
-INLINE double safe_atan2(double y, double x) { return (x != 0.0 || y != 0.0) ? ::atan2(y, x) : 0.f; }
+INLINE double safe_atan2(double y, double x) { return (x != 0.0 || y != 0.0) ? ::atan2(y, x) : 0.0; }
 
 INLINE float unsafe_atan2(float y, float x) { return ::atan2f(y, x); }
 INLINE double unsafe_atan2(double y, double x) { return ::atan2(y, x); }

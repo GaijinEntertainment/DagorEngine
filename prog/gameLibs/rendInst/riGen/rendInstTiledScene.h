@@ -171,7 +171,7 @@ public:
     G_ASSERT(dw_cnt * 4 + 4 <= sizeof(mat44f));
     G_ASSERTF_AND_DO(user_cmd < DeferredCommand::SET_USER_DATA, user_cmd = DeferredCommand::SET_USER_DATA - 1, "user_cmd=0x%X",
       user_cmd);
-    std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+    dag::lock_guard scopedLock(mDeferredSetTransformMutex);
     if (isInWritingThread() && mDeferredCommand.empty())
     {
       WriteLockRAII lock(*this);
@@ -279,6 +279,7 @@ struct TiledScenePoolInfo
   uint32_t lodLimits, poolIdx;
   uint16_t boxOccluder, quadOccluder;
   bool isDynamic;
+  bool tallCombined; // RiExtraPool::isTallCombined, so the node loop reads no pool
 };
 
 inline const TiledScenePoolInfo *get_pool_info_if_ready(const eastl::vector<TiledScenePoolInfo> &pools, scene::pool_index pool_id)

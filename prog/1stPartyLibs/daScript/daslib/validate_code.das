@@ -31,6 +31,7 @@ def check_recursive(at : LineInfo; var fun : Function?; var call_graph : array<F
         macro_error(compiling_program(), at, sb)
         return
     }
+    if (visited |> key_exists(fun)) return
     visited |> insert(fun)
     call_graph |> push(fun)
     fun |> get_use_functions() $(f) {
@@ -80,7 +81,6 @@ class ValidateCompletionVisitor : AstVisitor {
                 }
             }
         }
-                // TODO: add support for more known finite sources
         if (!srcOk) {
             macro_error(compiling_program(), expr.at, "we don't know if this `for` loop ever finishes. add explicit range")
         }
@@ -101,7 +101,7 @@ class ValidateCompletionVisitor : AstVisitor {
 [function_macro(name="verify_completion")]
 class VerifyCompletion : AstFunctionAnnotation {
     //! Verify that the function completes without infinite loops or recursion This annotation checks for potential infinite loops and recursive calls within the annotated function. If any are detected, a compile-time error is generated, preventing the code from compiling.
-    def override lint(var func : FunctionPtr; var group : ModuleGroup; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override lint(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         var visited : table<Function?>
         var astVisitor = new ValidateCompletionVisitor()
         make_visitor(*astVisitor) $(adapter) {
@@ -141,12 +141,12 @@ class JIT_LLVM : AstSimulateMacro {
         make_visitor(*astVisitor) $(adapter) {
             prog |> for_each_module() $(mod) {
                 mod |> for_each_function("") $(f) {
-                    if (f.flags.used) {
+                    if (is_used(prog, f)) {
                         visit(f, adapter)
                     }
                 }
                 mod |> for_each_global() $(g) {
-                    if (g.flags.used) {
+                    if (is_used(prog, g)) {
                         if (!g._type.isNoHeapType) {
                             macro_error(compiling_program(), g.at, "global variable {g.name} requires heap")
                         } elif (g.init != null) {

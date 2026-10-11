@@ -30,44 +30,39 @@ namespace das
         static_assert ( is_base_of<SimNode_CallBase, SimNodeT>::value, "only call-based nodes allowed" );
     public:
         FuncT fn;
-        // the JIT-callable address, captured at the bind site where fn is still a
-        // compile-time constant: the raw fn for plain-ABI binds, an ImplWrapCall
-        // wrapper for cmres and vector-ABI binds
-        void * jitAddress = nullptr;
+        void * builtinAddress = nullptr;
         // out-of-line on purpose: the construction body is per-signature COMDAT,
         // so each bind site costs a call, not an inlined copy of constructExternal
-        ___noinline ExternalFn(FuncT fnp, void * jitAddr, const char * name, const ModuleLibrary & lib, const char * cppName = nullptr)
-        : ExternalFnBase(name,cppName), fn(fnp), jitAddress(jitAddr) {
+        ___noinline ExternalFn(FuncT fnp, void * builtinAddr, const char * name, const ModuleLibrary & lib, const char * cppName = nullptr)
+        : ExternalFnBase(name,cppName), fn(fnp), builtinAddress(builtinAddr) {
             constructExternal(makeFuncArgs<FuncArgT>::make(lib));
         }
-        ___noinline ExternalFn(FuncT fnp, void * jitAddr, const char * name, const char * cppName = nullptr)
-        : ExternalFnBase(name,cppName), fn(fnp), jitAddress(jitAddr) {
+        ___noinline ExternalFn(FuncT fnp, void * builtinAddr, const char * name, const char * cppName = nullptr)
+        : ExternalFnBase(name,cppName), fn(fnp), builtinAddress(builtinAddr) {
         }
         virtual SimNode * makeSimNode ( Context & context, const vector<ExpressionPtr> & ) override {
             const char * fnName = context.code->allocateName(this->name);
             return context.code->makeNode<SimNodeT>(at, fnName, fn);
         }
         virtual void * getBuiltinAddress() const override {
-            return jitAddress;
+            return builtinAddress;
         }
     };
 
-    // captures the JIT-callable address for a bind while fn is a compile-time
-    // constant; the per-function wrapper code only materializes for cmres and
-    // vector-ABI signatures
+    // the JIT-callable address for a bind: the raw fn for plain-ABI binds, an
+    // ImplWrapCall wrapper (per-function code) only for cmres and vector-ABI binds
     template <typename SimNodeType, typename FuncT, FuncT fn>
     __forceinline void * makeJitAddress () {
         return ImplWrapCall<SimNodeType::IS_CMRES, NeedVectorWrap<FuncT>::value, FuncT, fn>::get_builtin_address();
     }
 
-    // registration for the NTTP node flavor (SimNode_ExtFuncCallInline)
     template  <typename FuncT, FuncT fn, typename SimNodeT, typename FuncArgT>
     class ExternalFnInline : public ExternalFnBase {
         static_assert ( is_base_of<SimNode_CallBase, SimNodeT>::value, "only call-based nodes allowed" );
     public:
-        void * jitAddress = nullptr;
-        ___noinline ExternalFnInline(void * jitAddr, const char * name, const ModuleLibrary & lib, const char * cppName = nullptr)
-        : ExternalFnBase(name,cppName), jitAddress(jitAddr) {
+        void * builtinAddress = nullptr;
+        ___noinline ExternalFnInline(void * builtinAddr, const char * name, const ModuleLibrary & lib, const char * cppName = nullptr)
+        : ExternalFnBase(name,cppName), builtinAddress(builtinAddr) {
             this->nttp = true;
             constructExternal(makeFuncArgs<FuncArgT>::make(lib));
         }
@@ -76,7 +71,7 @@ namespace das
             return context.code->makeNode<SimNodeT>(at, fnName);
         }
         virtual void * getBuiltinAddress() const override {
-            return jitAddress;
+            return builtinAddress;
         }
     };
 
@@ -288,9 +283,8 @@ namespace das
         return fnX;
     }
 
-    // the NTTP flavor: same contract as addExtern, but the bind gets its own
-    // SimNode_ExtFuncCallInline<FuncT, fn> so the callee can inline into the
-    // interpreter's call node; opt-in for hot, inline-friendly functions
+    // same contract as addExtern, but the bind gets its own NTTP node so the
+    // callee can inline into it; opt-in for hot, inline-friendly functions
     template <typename FuncT, FuncT fn, typename QQ = defaultTempFn>
     inline auto addExternInline ( Module & mod, const ModuleLibrary & lib, const char * name, SideEffects seFlags,
                                   const char * cppName = nullptr, QQ && tempFn = QQ() ) {

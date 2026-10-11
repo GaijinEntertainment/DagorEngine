@@ -20,8 +20,8 @@ def test_null_coalescing(t : T?) {
         var i = 13
         var pi = unsafe(addr(i))
         var pj : int?
-        var n1 = nullc(pi, 1)
-        var n2 = nullc(pj, 2)
+        let n1 = nullc(pi, 1)
+        let n2 = nullc(pj, 2)
         t |> equal(13, n1)
         t |> equal(2, n2)
     }
@@ -162,8 +162,8 @@ def safe_as_pi(a : IOrF?; b : int) {
 def test_safe_variant_as(t : T?) {
     t |> run("safe variant as") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@safe_as_i))
-        var i = IOrF(i = 1)
-        var f = IOrF(f = 1.)
+        let i = IOrF(i = 1)
+        let f = IOrF(f = 1.)
         t |> equal(1, safe_as_i(i, 42))
         t |> equal(42, safe_as_i(f, 42))
     }

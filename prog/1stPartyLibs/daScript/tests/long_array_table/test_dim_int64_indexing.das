@@ -136,18 +136,11 @@ def test_dim_i64_safe_at(t : T?) {
     let good : int64 = 3_l
     let bad : int64 = 99_l
     let neg : int64 = -1_l
-    var val : int
-    unsafe {
-        val = arr?[good] ?? -1
-    }
+    var val = arr?[good] ?? -1
     t |> equal(val, 30)
-    unsafe {
-        val = arr?[bad] ?? -1
-    }
+    val = arr?[bad] ?? -1
     t |> equal(val, -1)
-    unsafe {
-        val = arr?[neg] ?? -1
-    }
+    val = arr?[neg] ?? -1
     t |> equal(val, -1)
 }
 
@@ -159,13 +152,8 @@ def test_dim_u64_safe_at(t : T?) {
     }
     let good : uint64 = 4_ul
     let bad : uint64 = 100_ul
-    var val : int
-    unsafe {
-        val = arr?[good] ?? -1
-    }
+    var val = arr?[good] ?? -1
     t |> equal(val, 40)
-    unsafe {
-        val = arr?[bad] ?? -1
-    }
+    val = arr?[bad] ?? -1
     t |> equal(val, -1)
 }

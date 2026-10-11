@@ -260,8 +260,6 @@ def RttiValue_nothing {
     return t
 }
 
-// LINT019 support: every suppression hit is recorded so the stale-nolint scan can
-// tell live directives from dead ones. Keyed "{file}:{line}:{code}", per process.
 var private nolint_consumed : table<string>
 
 //! Returns true when the source line at `at` carries a `// nolint:CODE` (or `// nolint:CODE1,CODE2,...`) directive listing `code`. Null-safe wrapper around the C-side scanner; returns false if `at.fileInfo == null` or `at.line == 0`. Canonical entry point for lint visitors.

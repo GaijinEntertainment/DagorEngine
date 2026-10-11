@@ -1,34 +1,35 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "main/hostedServerLauncher.h"
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
+#include <atomic>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
-#include <daECS/core/componentTypes.h>
 #include <daECS/core/event.h>
-#include <sqrat.h>
-#include <sqstdblob.h>
-#include <osApiWrappers/dag_dynLib.h>
-#include <osApiWrappers/dag_threads.h>
-#include <osApiWrappers/dag_files.h>
-#include <osApiWrappers/dag_direct.h>
-#include <debug/dag_hwExcept.h>
-#include <osApiWrappers/dag_symHlp.h>
-#include "main/hostedServerLauncher.h"
-#include <util/dag_console.h>
-#include <util/dag_string.h>
-#include <startup/dag_globalSettings.h>
-#include <ioSys/dag_dataBlock.h>
-#include <sqmodules/sqmodules.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_hwExcept.h>
 #include <debug/dag_log.h>
 #include <debug/dag_logSys.h>
-#include <util/dag_delayedAction.h>
-#include <string.h>
+#include <ioSys/dag_dataBlock.h>
 #include <mutex>
-#include <atomic>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_dynLib.h>
+#include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_symHlp.h>
+#include <osApiWrappers/dag_threads.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <sqmodules/sqmodules.h>
+#include <sqrat.h>
+#include <sqstdblob.h>
+#include <startup/dag_globalSettings.h>
+#include <stdlib.h>
+#include <string.h>
+#include <util/dag_console.h>
+#include <util/dag_delayedAction.h>
+#include <util/dag_string.h>
 #if _TARGET_C2
 
 #else
@@ -37,8 +38,8 @@ static void fill_platform_specific_init_values(DataBlock &) {}
 #include <gameRes/dag_gameResProxyTable.h>
 
 #if _TARGET_PC | _TARGET_XBOX
-#include <supp/dag_dllexport.h>
 #include <memory/dag_dbgMem.h>
+#include <supp/dag_dllexport.h>
 DAG_DLL_EXPORT IMemAlloc *shared_stdmem;
 DAG_DLL_EXPORT IMemAllocExtAPI *shared_stdmem_extapi;
 IMemAlloc *shared_stdmem = nullptr;
@@ -53,7 +54,7 @@ ECS_REGISTER_EVENT(EventHostedInternalServerDidStop);
 ECS_REGISTER_EVENT(EventHostedInternalServerToStart);
 ECS_REGISTER_EVENT(EventHostedInternalServerToStop);
 
-static void(__cdecl *invoke_try_start_relay_and_subscribe)(void(__cdecl *)(bool)) = nullptr;
+static void(__cdecl *invoke_try_start_relay)() = nullptr;
 static const char *(__cdecl *get_local_server_connection_url)(eastl::string &) = nullptr;
 
 void set_mirror_hosted_dedic_logs(bool on)
@@ -100,6 +101,13 @@ static void dll_set_log_forwarder(void *dll, void *cb, bool dll_side_override_ex
   using Fn = void(__cdecl *)(void *, bool);
   if (Fn fn = (Fn)os_dll_get_symbol(dll, "hosted_server_set_log_forwarder"))
     fn(cb, dll_side_override_expect_later);
+}
+
+static void dll_set_work_status_callback(void *dll, void *cb)
+{
+  using Fn = void(__cdecl *)(void *);
+  if (Fn fn = (Fn)os_dll_get_symbol(dll, "hosted_server_set_work_status_callback"))
+    fn(cb);
 }
 
 static std::atomic<void *> hosted_log_mirror_override{nullptr};
@@ -193,37 +201,39 @@ static InternalServerState current_state();
 void schedule_new_internal_server_with_args(int external_argc, char **external_argv);
 void schedule_new_internal_server_with_args_block(DataBlock &args);
 
-// no need to lock scope, since the return value is useless if not taken already in a lock
+// no need to lock scope, since the return value is useless if not taken already
+// in a lock
 bool is_hosting_api_available() { return current_state() > CREATED && current_state() < TERMINATING; }
 
-// no need to lock scope, since the return value is useless if not taken already in a lock
+// no need to lock scope, since the return value is useless if not taken already
+// in a lock
 bool is_ingame_api_available() { return current_state() == RUNNING; }
-
 
 static void hosted_server_did_start();
 static void __cdecl on_internal_server_detected_memory_leak(const char *msg) { debug("%s: %s", __FUNCTION__, msg); }
-
 
 static DataBlock new_server_start_params;
 static bool is_new_server_scheduled() { return new_server_start_params.paramCount() > 0; }
 static void remove_current_new_server_request() { new_server_start_params.reset(); }
 
 static bool hosted_server_start_pending = false;
-static String hosted_server_pending_uid;
-static String hosted_server_preset_start_uid;
-static String hosted_server_resolved_uid;
+static HostedServerUid hosted_server_pending_uid = HOSTED_SERVER_UID_NONE;
+static HostedServerUid hosted_server_preset_start_uid = HOSTED_SERVER_UID_NONE;
 static std::atomic<uint64_t> hosted_server_uid_seq{1};
 
-static bool uid_empty(const char *s) { return !s || !*s; }
-
-static bool uid_eq(const char *a, const char *b)
+static bool parse_hosted_server_uid(const char *val, HostedServerUid &out)
 {
-  if (uid_empty(a) || uid_empty(b))
+  if (!val || !*val)
     return false;
-  return strcmp(a, b) == 0;
+  char *end = nullptr;
+  const unsigned long long v = strtoull(val, &end, 10);
+  if (*end || v == 0)
+    return false;
+  out = (HostedServerUid)v;
+  return true;
 }
 
-static bool extract_test_log_uid_value(const char *arg, String &out)
+static bool extract_test_log_uid_value(const char *arg, HostedServerUid &out)
 {
   if (!arg || arg[0] != '-')
     return false;
@@ -239,44 +249,53 @@ static bool extract_test_log_uid_value(const char *arg, String &out)
   const char *val = match_name(arg, TEST_SERVER_LOG_UID_ARG);
   if (!val)
     val = match_name(arg, TEST_LOG_UID_ARG);
-  if (uid_empty(val))
-    return false;
-  out = val;
-  return true;
+  return parse_hosted_server_uid(val, out);
 }
 
-static const char *allocate_hosted_server_uid_unlocked()
+static HostedServerUid allocate_hosted_server_uid_unlocked()
 {
-  hosted_server_resolved_uid.printf(0, "%llu", (unsigned long long)hosted_server_uid_seq.fetch_add(1, std::memory_order_relaxed));
-  return hosted_server_resolved_uid.str();
+  return (HostedServerUid)hosted_server_uid_seq.fetch_add(1, std::memory_order_relaxed);
 }
 
-const char *allocate_hosted_server_uid()
+// Keep the monotonic sequence above any caller-supplied id so the next allocate cannot collide.
+// Callers hold server_state_lock.
+static void reserve_hosted_server_uid_unlocked(HostedServerUid uid)
+{
+  if (uid == HOSTED_SERVER_UID_NONE)
+    return;
+  const uint64_t next = (uint64_t)uid + 1;
+  if (hosted_server_uid_seq.load(std::memory_order_relaxed) < next)
+    hosted_server_uid_seq.store(next, std::memory_order_relaxed);
+}
+
+HostedServerUid allocate_hosted_server_uid()
 {
   SCOPED_STATE_LOCK();
   return allocate_hosted_server_uid_unlocked();
 }
 
-void set_hosted_server_start_uid(const char *uid)
+void set_hosted_server_start_uid(HostedServerUid uid)
 {
   SCOPED_STATE_LOCK();
-  hosted_server_preset_start_uid = uid ? uid : "";
+  hosted_server_preset_start_uid = uid;
+  reserve_hosted_server_uid_unlocked(uid);
 }
 
-const char *resolve_hosted_server_start_uid(const char *passed)
+HostedServerUid resolve_hosted_server_start_uid(HostedServerUid passed)
 {
   SCOPED_STATE_LOCK();
-  if (!uid_empty(passed))
+  if (passed != HOSTED_SERVER_UID_NONE)
   {
-    hosted_server_preset_start_uid = "";
-    hosted_server_resolved_uid = passed;
-    return hosted_server_resolved_uid.str();
+    hosted_server_preset_start_uid = HOSTED_SERVER_UID_NONE;
+    reserve_hosted_server_uid_unlocked(passed);
+    return passed;
   }
-  if (!hosted_server_preset_start_uid.empty())
+  if (hosted_server_preset_start_uid != HOSTED_SERVER_UID_NONE)
   {
-    hosted_server_resolved_uid = hosted_server_preset_start_uid;
-    hosted_server_preset_start_uid = "";
-    return hosted_server_resolved_uid.str();
+    const HostedServerUid uid = hosted_server_preset_start_uid;
+    hosted_server_preset_start_uid = HOSTED_SERVER_UID_NONE;
+    reserve_hosted_server_uid_unlocked(uid);
+    return uid;
   }
   return allocate_hosted_server_uid_unlocked();
 }
@@ -285,7 +304,8 @@ static String get_valid_dll_fn()
 {
   if (!dedicated_server_dll_fn)
   {
-    logerr("client is built without hosted-internal-server support, try building with -sUseHostedInternalServer=yes");
+    logerr("client is built without hosted-internal-server support, try "
+           "building with -sUseHostedInternalServer=yes");
     return String();
   }
   String dll_fn;
@@ -312,7 +332,7 @@ static void create_start_params(DataBlock &start_params, int argc, char **argv)
 {
   start_params.reset();
   start_params.addStr("arg", get_valid_dll_fn());
-  String hisUid;
+  HostedServerUid hisUid = HOSTED_SERVER_UID_NONE;
   String relayedStamp;
   for (int i = 0; i < argc; i++)
   {
@@ -320,7 +340,7 @@ static void create_start_params(DataBlock &start_params, int argc, char **argv)
     if (is_host_identity_uid_argv(argv[i]))
     {
       if (extract_test_log_uid_value(argv[i], hisUid))
-        relayedStamp.printf(0, "%s%s", TEST_LOG_UID_STAMP_PREFIX, hisUid.str());
+        relayedStamp.printf(0, "%s%llu", TEST_LOG_UID_STAMP_PREFIX, (unsigned long long)hisUid);
       continue;
     }
     start_params.addStr("arg", argv[i]);
@@ -330,8 +350,8 @@ static void create_start_params(DataBlock &start_params, int argc, char **argv)
     start_params.addStr("arg", relayedStamp.str());
   else
     append_relayed_test_log_uid_arg(start_params);
-  if (!hisUid.empty())
-    start_params.setStr(TEST_LOG_UID_ARG, hisUid.str());
+  if (hisUid != HOSTED_SERVER_UID_NONE)
+    start_params.setInt64(TEST_LOG_UID_ARG, (int64_t)hisUid);
 }
 
 static void set_server_request(DataBlock &args)
@@ -339,7 +359,6 @@ static void set_server_request(DataBlock &args)
   remove_current_new_server_request();
   new_server_start_params = eastl::move(args);
 }
-
 
 struct InternalDedicatedServerMainThread final : public DaThread
 {
@@ -352,10 +371,9 @@ private:
   bool isWaitingShutdown = false;
   void(__cdecl *exit_internal_server)(const char *exit_reason) = nullptr;
   bool(__cdecl *is_internal_server_terminating)() = nullptr;
-  const char *(__cdecl *dll_get_uid)() = nullptr;
   InternalServerState state = CREATED;
   int hostedReadyDeadlineMs = 0;
-  String hisUid;
+  HostedServerUid hisUid = HOSTED_SERVER_UID_NONE;
 
   void setHostedReadyDeadline(int deadline_ms)
   {
@@ -406,25 +424,20 @@ public:
     startParams.setInt64("gameResProxyTablePtr", (intptr_t)(void *)&gameres_proxy_table);
     startParams.setInt64("gameResProxyTableSz", sizeof(gameres_proxy_table));
 
-    hisUid = startParams.getStr(TEST_LOG_UID_ARG, "");
+    hisUid = (HostedServerUid)startParams.getInt64(TEST_LOG_UID_ARG, 0);
     internal_server_did_start = false;
   }
 
-  const char *query_uid() const
+  HostedServerUid query_uid() const
   {
-    if (dll_get_uid)
-    {
-      const char *fromDll = dll_get_uid();
-      if (!uid_empty(fromDll))
-        return fromDll;
-    }
-    return hisUid.str();
+    // Host stamped this at launch; do not call into the dedic DLL.
+    return hisUid;
   }
 
   InternalServerState get_state()
   {
     SCOPED_STATE_LOCK();
-    if (state == RUNNING && (is_internal_server_terminating() || shutdownRequested))
+    if (state == RUNNING && (shutdownRequested || (is_internal_server_terminating && is_internal_server_terminating())))
       state = TERMINATING;
     return state;
   }
@@ -437,7 +450,8 @@ public:
     if (wait)
     {
       debug("%s - wait", __FUNCTION__);
-      // prevents attempts to lock mutex by the thread while shutting down - otherwise terminating thread would cause deadlock
+      // prevents attempts to lock mutex by the thread while shutting down -
+      // otherwise terminating thread would cause deadlock
       isWaitingShutdown = true;
       DaThread::terminate(true, -1);
       current_running_internal_server.reset();
@@ -465,6 +479,7 @@ public:
       current_running_internal_server.reset();
       return;
     }
+    dll_set_work_status_callback(dllHandle, (void *)&default_hosted_work_status_callback);
 
     auto start_internal_server =
       (bool(__cdecl *)(const DataBlock &, void(__cdecl *)(const char *)))os_dll_get_symbol(dllHandle, "start_internal_server");
@@ -474,14 +489,13 @@ public:
       SCOPED_STATE_LOCK_IF_NOT(isWaitingShutdown);
       exit_internal_server = (void(__cdecl *)(const char *exit_reason))os_dll_get_symbol(dllHandle, "exit_game_exported");
       is_internal_server_terminating = (bool(__cdecl *)())os_dll_get_symbol(dllHandle, "dng_is_app_terminating_exported");
-      invoke_try_start_relay_and_subscribe =
-        (void(__cdecl *)(void(__cdecl *)(bool)))os_dll_get_symbol(dllHandle, "try_start_relay_and_subscribe");
+      invoke_try_start_relay = (void(__cdecl *)())os_dll_get_symbol(dllHandle, "try_start_relay");
       get_local_server_connection_url =
         (const char *(__cdecl *)(eastl::string &))os_dll_get_symbol(dllHandle, "local_server_connection_url");
-      dll_get_uid = (const char *(__cdecl *)())os_dll_get_symbol(dllHandle, "hosted_server_get_uid");
     }
-    // Optional: re-emit dedic logs on the host. Default: DLL arms after visual_err_log_setup.
-    // Eden override (expect_later): DLL skips default arm; Eden dedic forwards from its on_log.
+    // Optional: re-emit dedic logs on the host. Default: DLL arms after
+    // visual_err_log_setup. Eden override (expect_later): DLL skips default
+    // arm; Eden dedic forwards from its on_log.
     if (get_mirror_hosted_dedic_logs())
       dll_set_log_forwarder(dllHandle, get_hosted_log_mirror(), hosted_log_mirror_expects_dll_override());
     debug_flush(false);
@@ -504,20 +518,26 @@ public:
       state = RUNNING;
       if (shutdownRequested)
         send_exit_signal_to_server();
-      debug("[LIFECYCLE] %s: calling start_internal_server (blocks until server shuts down)", func_label);
+      debug("[LIFECYCLE] %s: calling start_internal_server (blocks until "
+            "server shuts down)",
+        func_label);
       start_internal_server(startParams, on_internal_server_detected_memory_leak);
-      debug("[LIFECYCLE] %s: internal server main finished, returned from DLL entry", func_label);
+      debug("[LIFECYCLE] %s: internal server main finished, returned from DLL "
+            "entry",
+        func_label);
     }
     else
-      logerr("%s: missing exports: %s=%p %s=%p %s=%p %s=%p %s=%p", func_label,         //
-        "start_internal_server", (void *)start_internal_server,                        //
-        "hosted_server_on_loaded", (void *)hosted_server_on_loaded,                    //
-        "try_start_relay_and_subscribe", (void *)invoke_try_start_relay_and_subscribe, //
-        "exit_game_exported", (void *)exit_internal_server,                            //
+      logerr("%s: missing exports: %s=%p %s=%p %s=%p %s=%p %s=%p",
+        func_label,                                                 //
+        "start_internal_server", (void *)start_internal_server,     //
+        "hosted_server_on_loaded", (void *)hosted_server_on_loaded, //
+        "try_start_relay", (void *)invoke_try_start_relay,          //
+        "exit_game_exported", (void *)exit_internal_server,         //
         "local_server_connection_url", (void *)get_local_server_connection_url);
-    // Start used debug_flush(false) so HIS mirror spam does not fsync every line.
-    // Leave it off after stop and "hosted internal server stopped" stays in the
-    // host buffer; log-tail tests sit until the next fill or process exit.
+    // Start used debug_flush(false) so HIS mirror spam does not fsync every
+    // line. Leave it off after stop and "hosted internal server stopped" stays
+    // in the host buffer; log-tail tests sit until the next fill or process
+    // exit.
     debug_flush(true);
     {
       SCOPED_STATE_LOCK_IF_NOT(isWaitingShutdown);
@@ -525,26 +545,32 @@ public:
       internal_server_did_start = false;
       setHostedReadyDeadline(0);
       exit_internal_server = nullptr;
-      invoke_try_start_relay_and_subscribe = nullptr;
+      invoke_try_start_relay = nullptr;
       is_internal_server_terminating = nullptr;
       get_local_server_connection_url = nullptr;
     }
 
     debug("%s: unload dll=%p {%s}", func_label, dllHandle, dllPath);
-    // Clear dedic forwarder before unmap so a late dedic log cannot call into the host after close.
+    // Clear dedic forwarder before unmap so a late dedic log cannot call into
+    // the host after close.
     dll_set_log_forwarder(dllHandle, nullptr, false);
+    dll_set_work_status_callback(dllHandle, nullptr);
     bool result = os_dll_close(dllHandle);
     debug("%s: unload dll result=%s", func_label, result ? "SUCCESS" : "FAIL");
-#if DAGOR_DBGLEVEL <= 0 // skip unloading symbols in non-release build to report memory leaks properly
+#if DAGOR_DBGLEVEL <= 0 // skip unloading symbols in non-release build to report
+                        // memory leaks properly
     ::symhlp_unload(dllPath);
     dedicated_server_dll_pdb_loaded = false;
 #endif
     dllHandle = nullptr;
+    // Capture before reset: DidStop is queued and must name this instance, not
+    // a rehost.
+    const HostedServerUid stoppedUid = hisUid;
     SCOPED_STATE_LOCK_IF_NOT(isWaitingShutdown);
     if (!isWaitingShutdown)
       current_running_internal_server.reset();
-    return run_action_on_main_thread([] {
-      g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStop());
+    return run_action_on_main_thread([stoppedUid] {
+      g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStop{stoppedUid});
       debug_flush(true);
       if (is_new_server_scheduled())
       {
@@ -556,33 +582,37 @@ public:
 
 static void hosted_server_did_start()
 {
-  debug("[LIFECYCLE] hosted_server_did_start: invoked by dedic DLL (engine-owned ready ES)");
-  bool publishDidStart = false;
+  debug("[LIFECYCLE] hosted_server_did_start: invoked by dedic DLL "
+        "(engine-owned ready ES)");
+  HostedServerUid startedUid = HOSTED_SERVER_UID_NONE;
   {
     SCOPED_STATE_LOCK();
     if (!current_running_internal_server)
     {
-      debug("[LIFECYCLE] hosted_server_did_start: no active server instance, discarding late hosted-ready signal");
+      debug("[LIFECYCLE] hosted_server_did_start: no active server instance, "
+            "discarding late hosted-ready signal");
       return;
     }
     const InternalServerState st = current_running_internal_server->get_state();
     if (st >= TERMINATING)
     {
-      debug("[LIFECYCLE] hosted_server_did_start: server already in state=%d (terminating/terminated), discarding late "
+      debug("[LIFECYCLE] hosted_server_did_start: server already in state=%d "
+            "(terminating/terminated), discarding late "
             "hosted-ready signal",
         (int)st);
       return;
     }
+    startedUid = current_running_internal_server->query_uid();
     internal_server_did_start = true;
     current_running_internal_server->disarm_hosted_ready_watchdog();
     debug("[LIFECYCLE] hosted_server_did_start: hosted-ready watchdog disarmed");
-    publishDidStart = true;
   }
-  if (publishDidStart)
-    run_action_on_main_thread([&] {
-      debug("[LIFECYCLE] hosted_server_did_start: broadcasting EventHostedInternalServerDidStart on main thread");
-      g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStart());
-    });
+  run_action_on_main_thread([startedUid] {
+    debug("[LIFECYCLE] hosted_server_did_start: broadcasting "
+          "EventHostedInternalServerDidStart uid=%llu on main thread",
+      (unsigned long long)startedUid);
+    g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStart{startedUid});
+  });
 }
 
 InternalServerState current_state()
@@ -600,42 +630,51 @@ void kill_internal_server(bool wait)
     current_running_internal_server->kill_server(wait);
 }
 
-void kill_internal_server_uid(const char *uid, bool wait)
+void kill_internal_server_uid(HostedServerUid uid, bool wait)
 {
   SCOPED_STATE_LOCK();
-  if (uid_empty(uid))
+  if (uid == HOSTED_SERVER_UID_NONE)
     return;
-  if (hosted_server_start_pending && uid_eq(hosted_server_pending_uid.str(), uid))
+  if (hosted_server_start_pending && hosted_server_pending_uid == uid)
   {
     hosted_server_start_pending = false;
-    hosted_server_pending_uid = "";
+    hosted_server_pending_uid = HOSTED_SERVER_UID_NONE;
   }
   if (is_new_server_scheduled())
   {
-    if (uid_eq(new_server_start_params.getStr(TEST_LOG_UID_ARG, ""), uid))
+    if ((HostedServerUid)new_server_start_params.getInt64(TEST_LOG_UID_ARG, 0) == uid)
       remove_current_new_server_request();
   }
   if (!current_running_internal_server)
     return;
-  const char *current = current_running_internal_server->query_uid();
-  if (!uid_eq(current, uid))
+  // Already exiting/exited: exit export may be cleared while the thread still
+  // owns current_running until unload finishes (scene reload races ToStop).
+  if (current_running_internal_server->get_state() >= TERMINATING)
   {
-    debug("[LIFECYCLE] kill_internal_server_uid: skip uid=%s current=%s", uid, current ? current : "");
+    debug("[LIFECYCLE] kill_internal_server_uid: already stopping uid=%llu", (unsigned long long)uid);
+    return;
+  }
+  const HostedServerUid current = current_running_internal_server->query_uid();
+  if (current != uid)
+  {
+    debug("[LIFECYCLE] kill_internal_server_uid: skip uid=%llu current=%llu", (unsigned long long)uid, (unsigned long long)current);
     return;
   }
   current_running_internal_server->kill_server(wait);
 }
 
-const char *get_hosted_internal_server_uid()
+HostedServerUid get_hosted_internal_server_uid()
 {
   SCOPED_STATE_LOCK();
+  // Pending/scheduled win over a still-current dying HIS so rehost callers
+  // (ownership checks, end_lobby_session) see the claimed uid, not the old one.
+  if (hosted_server_start_pending)
+    return hosted_server_pending_uid;
+  if (is_new_server_scheduled())
+    return (HostedServerUid)new_server_start_params.getInt64(TEST_LOG_UID_ARG, 0);
   if (current_running_internal_server)
     return current_running_internal_server->query_uid();
-  if (is_new_server_scheduled())
-    return new_server_start_params.getStr(TEST_LOG_UID_ARG, "");
-  if (hosted_server_start_pending)
-    return hosted_server_pending_uid.str();
-  return "";
+  return HOSTED_SERVER_UID_NONE;
 }
 
 void cancel_scheduled_internal_server_start()
@@ -654,14 +693,22 @@ bool is_hosted_internal_server_active()
   return (current_state() > NONE && current_state() < TERMINATED) || is_new_server_scheduled() || hosted_server_start_pending;
 }
 
-bool try_begin_hosted_server_start(const char *uid)
+bool try_begin_hosted_server_start(HostedServerUid uid)
 {
   SCOPED_STATE_LOCK();
-  if (is_hosted_internal_server_active())
+  // A live or dying HIS is fine: EventHostedInternalServerToStart -> schedule
+  // kills and relaunches. Only refuse a second start while one is already
+  // pending.
+  if (hosted_server_start_pending)
+  {
+    debug("[LIFECYCLE] try_begin_hosted_server_start: busy pending uid=%llu "
+          "(asked=%llu)",
+      (unsigned long long)hosted_server_pending_uid, (unsigned long long)uid);
     return false;
+  }
   hosted_server_start_pending = true;
-  hosted_server_pending_uid = uid ? uid : "";
-  debug("[LIFECYCLE] try_begin_hosted_server_start uid=%s", hosted_server_pending_uid.str());
+  hosted_server_pending_uid = uid;
+  debug("[LIFECYCLE] try_begin_hosted_server_start uid=%llu", (unsigned long long)hosted_server_pending_uid);
   return true;
 }
 
@@ -669,7 +716,7 @@ void clear_hosted_server_start_pending()
 {
   SCOPED_STATE_LOCK();
   hosted_server_start_pending = false;
-  hosted_server_pending_uid = "";
+  hosted_server_pending_uid = HOSTED_SERVER_UID_NONE;
 }
 
 bool is_hosted_server_start_pending()
@@ -685,7 +732,6 @@ static void make_sure_no_current_server_running()
   kill_internal_server(true);
   debug("%s: before reset", __FUNCTION__);
 }
-
 
 static void launch_internal_server_with_args_block(DataBlock args)
 {
@@ -710,7 +756,8 @@ static void kill_current_internal_server_and_relaunch_after(DataBlock &args)
   // first of all we clear out existing schedule if it exists
   remove_current_new_server_request();
 
-  if (current_running_internal_server) // if there's current server schedule a new server to run after
+  if (current_running_internal_server) // if there's current server schedule a
+                                       // new server to run after
   {
     set_server_request(argsCopy);
     kill_internal_server(false);
@@ -744,7 +791,6 @@ void schedule_new_internal_server_with_args_block(DataBlock &args)
   debug("%s", __FUNCTION__);
   kill_current_internal_server_and_relaunch_after(args);
 }
-
 
 eastl::string cached_internal_server_url;
 static const char *get_internal_server_url()
@@ -791,20 +837,13 @@ static SQRESULT launch_internal_server(HSQUIRRELVM vm)
 
 static void kill_internal_server_from_script() { kill_internal_server(false); }
 
-void __cdecl on_relay_try_start_result(bool success)
-{
-  debug("client: receive confirmation of relay %s", success ? "succesfully established" : "failed to be established");
-}
-
-
 static void manual_start_relay()
 {
   SCOPED_STATE_LOCK();
   debug("manual_start_relay");
-  if (invoke_try_start_relay_and_subscribe)
-    invoke_try_start_relay_and_subscribe(on_relay_try_start_result);
+  if (invoke_try_start_relay)
+    invoke_try_start_relay();
 }
-
 
 void bind_hosting_internal_server(Sqrat::Table &ns)
 {
@@ -815,7 +854,6 @@ void bind_hosting_internal_server(Sqrat::Table &ns)
   ns.Func("manual_relay_start", manual_start_relay);
 }
 
-
 void shutdown_internal_server_on_host_exit()
 {
   SCOPED_STATE_LOCK();
@@ -823,7 +861,6 @@ void shutdown_internal_server_on_host_exit()
   make_sure_no_current_server_running();
   hosted_internal_server_term_shared_memory();
 }
-
 
 static bool debug_host_mode_console_handler(const char *argv[], int argc)
 {
@@ -858,7 +895,6 @@ void prelaunch_internal_server_if_needed()
   schedule_new_internal_server_with_args(argc, argv);
 }
 
-
 bool poll_hosted_ready_watchdog()
 {
   if (!interlocked_relaxed_load(hosted_ready_watchdog_armed))
@@ -869,12 +905,12 @@ bool poll_hosted_ready_watchdog()
   return current_running_internal_server->consume_hosted_ready_watchdog_expiry(get_time_msec());
 }
 
-
 void hosted_internal_server_management_update()
 {
   if (poll_hosted_ready_watchdog())
   {
-    logwarn("hosted_server_ready_watchdog: server did not report ready in time -- killing internal server");
+    logwarn("hosted_server_ready_watchdog: server did not report ready in time "
+            "-- killing internal server");
     kill_internal_server(/*wait*/ false);
   }
 }

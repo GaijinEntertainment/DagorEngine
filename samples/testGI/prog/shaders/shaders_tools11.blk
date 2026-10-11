@@ -29,6 +29,7 @@ Compile
   fsh:t = 5.0
   assume_static {
     normal_repacking_needed:i = 0
+    downsample_far_normals:i = 0
     use_hw_rt_gi:i=0
     supports_barycentrics:i = 0
     in_editor_assume:i=1

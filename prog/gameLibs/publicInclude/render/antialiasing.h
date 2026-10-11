@@ -13,7 +13,6 @@
 #include <EASTL/optional.h>
 
 class TemporalAA;
-class TemporalSuperResolution;
 struct GameSettings;
 class FlightControlMode;
 
@@ -24,6 +23,8 @@ struct RenderView;
 
 namespace render::antialiasing
 {
+
+class TemporalSuperResolution;
 
 enum class UpscalingQuality
 {
@@ -165,6 +166,18 @@ struct AppGlue
     G_UNUSED(registry);
     return eastl::nullopt;
   }
+  virtual eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, true>> requestMotionVectors(
+    dafg::Registry registry) const
+  {
+    G_UNUSED(registry);
+    return eastl::nullopt;
+  }
+  virtual eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, true>> requestPrevMotionVectors(
+    dafg::Registry registry) const
+  {
+    G_UNUSED(registry);
+    return eastl::nullopt;
+  }
 };
 
 void migrate(const char *config_name);
@@ -228,7 +241,7 @@ void apply_fxaa(AntialiasingMethod method, Texture *src_color, Texture *src_dept
 void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, Texture *depth_tex, const ApplyContext &ctx);
 
 const char *get_available_methods(bool is_vr, bool names_only);
-const char *get_available_upscaling_options(const char *method);
+const char *get_available_upscaling_options(const char *method, IPoint2 output_resolution = IPoint2::ZERO);
 
 int process_console_cmd(const char *argv[], int argc);
 

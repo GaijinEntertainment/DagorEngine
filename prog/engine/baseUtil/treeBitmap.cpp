@@ -324,7 +324,6 @@ void TreeBitmapNode::create(dag::ConstSpan<uint8_t> data, const IPoint2 &data_di
             numUsed++;
           }
       G_ASSERT(numUsed > 1);
-      mapDataSkip = 1;
       fillColor = MAPDATA_PIX1X1;
       break;
     case RES_MAPDATA2X2:
@@ -380,8 +379,6 @@ void TreeBitmapNode::load(IGenLoad &cb)
       size = finalMipSize * finalMipSize / 8 + 2;
     else if (fillColor & MAPDATA_2BIT)
       size = finalMipSize * finalMipSize / 4 + 4;
-    else
-      size = finalMipSize * finalMipSize;
     uint8_t *mapData = new uint8_t[size];
     cb.read(mapData, size);
     subnodesOrMapdata = mapData;

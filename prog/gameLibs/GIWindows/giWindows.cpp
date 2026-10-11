@@ -123,7 +123,7 @@ bool GIWindows::calc()
       cData.count = cBox.size() - cData.first;
       v_st(&cData.box[0].x, wholeBox.bmin);
       v_st(&cData.box[1].x, wholeBox.bmax);
-      cData.box[1].resv = v_extract_x(v_length3(maxSize)) * 0.5;
+      cData.box[1].resv = v_extract_x(v_length3(maxSize)) * 0.5f;
     }
 
   if (currentIndSize < cBox.size() || !currentWindowsSBInd.getBuf())

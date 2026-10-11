@@ -3,6 +3,7 @@
 
 #include <dasModules/aotDagorConsole.h>
 #include <EASTL/hash_map.h>
+#include <osApiWrappers/dag_mutex.h>
 
 struct ConsoleProcessorFunction
 {
@@ -23,21 +24,21 @@ struct ConsoleProcessorHintAnnotation : das::ManagedStructureAnnotation<ConsoleP
 struct ConsoleProcessorFunctionAnnotation : das::FunctionAnnotation, console::ICommandProcessor
 {
   ConsoleProcessorRegistry &registry;
-  das::recursive_mutex &registryMutex;
+  dag::recursive_mutex &registryMutex;
 
-  ConsoleProcessorFunctionAnnotation(ConsoleProcessorRegistry &reg, das::recursive_mutex &regMutex) :
+  ConsoleProcessorFunctionAnnotation(ConsoleProcessorRegistry &reg, dag::recursive_mutex &regMutex) :
     FunctionAnnotation("console_processor"), registry(reg), registryMutex(regMutex)
   {}
 
   ~ConsoleProcessorFunctionAnnotation() { del_con_proc(this); }
 
-  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override;
+  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override;
 
-  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &argTypes,
+  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &argTypes,
     const das::AnnotationArgumentList &, eastl::string &err) override;
 
-  bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override;
-  bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override;
+  bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     eastl::string &err) override;
 
   using das::FunctionAnnotation::simulate;

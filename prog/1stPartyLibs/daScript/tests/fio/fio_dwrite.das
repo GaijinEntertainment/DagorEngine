@@ -95,9 +95,7 @@ def test_dwrite(t : T?) {
             }
             var bp = unsafe(reinterpret<uint8?>(band))
             for (i in range(take)) {
-                unsafe {
-                    bp[i] = dwrite_pattern(total + i)
-                }
+                unsafe(bp[i]) = dwrite_pattern(total + i)
             }
             ok = ok && unsafe(dwrite_commit(w, uint64(take)))
             total += take
@@ -131,9 +129,7 @@ def test_dwrite(t : T?) {
             }
             var bp = unsafe(reinterpret<uint8?>(band))
             for (i in range(100)) {
-                unsafe {
-                    bp[i] = dwrite_pattern(total + i)
-                }
+                unsafe(bp[i]) = dwrite_pattern(total + i)
             }
             ok = ok && unsafe(dwrite_commit(w, 100ul))
             total += 100
@@ -148,6 +144,24 @@ def test_dwrite(t : T?) {
         // a directory that cannot exist — open returns null, no throw
         let w = unsafe(dwrite_open("Z:/no/such/dir/ever/fio_dwrite_probe.bin", 0ul, 0ul))
         t |> success(w == null, "impossible path declines with null")
+    }
+    t |> run("a preallocation no volume can hold declines and leaves no file (Apple)") @(t : T?) {
+        // the Apple arm RESERVES total_bytes up front (F_PREALLOCATE + F_ALLOCATEALL), so an
+        // impossible reservation fails the open — and the open unlinks the file it just created
+        // rather than leaving an empty stub behind. The POSIX and Windows arms take the
+        // preallocation as a hint and keep going, so only this arm has a decline to assert.
+        if (get_platform_name() != "darwin") {
+            t |> success(true, "skipped — only the Apple arm reserves the preallocation up front")
+            return
+        }
+        let fname = make_probe_path("prealloc")
+        let w = unsafe(dwrite_open(fname, 1ul << 50ul, 0ul))   // 1 PiB
+        t |> success(w == null, "a preallocation past the volume declines with null")
+        t |> success(!stat(fname).is_valid, "and the declined open leaves no file at the path")
+        if (w != null) {
+            unsafe(dwrite_close(w))
+            remove(fname)
+        }
     }
     t |> run("a single append past 2 GiB survives (DASTEST_BIG_IO=1)") @(t : T?) {
         // macOS write(2) REJECTS nbyte > INT_MAX with EINVAL (Linux merely truncates), so an

@@ -200,24 +200,24 @@ class BindlessSetManager
   uint32_t samplerDescriptorWidth = 0;
 
 public:
-  void init(ID3D12Device *device);
+  void init(D3DDevice *device);
   void shutdown();
   void preRecovery();
-  void recover(ID3D12Device *device, const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &bindless_samplers);
+  void recover(D3DDevice *device, const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &bindless_samplers);
 
-  void setResourceDescriptor(ID3D12Device *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+  void setResourceDescriptor(D3DDevice *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   // Defers a resource descriptor update to be applied after the current frame's command list is submitted.
   // Used by defragmentation moves to avoid updating the GPU-visible descriptor heap for the current frame.
   void deferResourceDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   // Applies all deferred resource descriptor updates to the staging heap. Should be called after command list submission.
-  void applyDeferredResourceDescriptors(ID3D12Device *device);
+  void applyDeferredResourceDescriptors(D3DDevice *device);
   // This is supposed to be called after descriptor space for bindless was reserved (this->reserveResourceHeap),
   // all regular SRV and UAV descriptors where pushed and migrated to the active heap.
   // This will then write the current bindless heap revision to the active descriptor heap.
-  void pushToResourceHeap(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &target);
+  void pushToResourceHeap(D3DDevice *device, ShaderResourceViewDescriptorHeapManager &target);
 
-  void setSamplerDescriptor(ID3D12Device *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
-  void pushToSamplerHeaps(ID3D12Device *device, SamplerDescriptorHeapManager &target);
+  void setSamplerDescriptor(D3DDevice *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+  void pushToSamplerHeaps(D3DDevice *device, SamplerDescriptorHeapManager &target);
 
   uint32_t getResourceDescriptorCount() const { return resourceDescriptorSize; }
   uint32_t getResourceDescriptorRevision() const { return resourceDescriptorHeapRevision; }

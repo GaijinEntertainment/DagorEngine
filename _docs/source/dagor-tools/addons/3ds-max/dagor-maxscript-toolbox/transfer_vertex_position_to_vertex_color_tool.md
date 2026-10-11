@@ -173,7 +173,7 @@ indicates no positional change.
 
 3. **Display the Result**
 
-   Check the **Show VColor Result** {cnum}`4` option to display the vColor in
+   Select the **Show VColor Result** {cnum}`4` checkbox to display the vColor in
    the Viewport. If needed, specify a different channel {cnum}`5` for the
    output, such as channel 8 (used for Ambient Occlusion in Dagor Engine).
 
@@ -254,12 +254,12 @@ This scene requires **3ds Max 2024 or later**.
 
 3. **Specify the Dented Car as the Target**
 
-   With the undamaged car still selected, press the selection button {cnum}`3`
+   With the undamaged car still selected, click the selection button {cnum}`3`
    to specify the dented car as the target for the transformation.
 
 4. **Run the Script**
 
-   Press the execute button {cnum}`4` and wait for the script to complete its
+   Click the execute button {cnum}`4` and wait for the script to complete its
    process.
 
    The car should now display a vertex color indicative of the deformation
@@ -274,7 +274,7 @@ This scene requires **3ds Max 2024 or later**.
 
 5. **Verify the Results**
 
-   To verify the process, make a copy of the undamaged car {cnum}`1` and press
+   To verify the process, make a copy of the undamaged car {cnum}`1` and click
    the button {cnum}`2` to apply the vertex color transformation.
 
    ```{eval-rst}

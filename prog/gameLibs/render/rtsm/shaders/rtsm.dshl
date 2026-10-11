@@ -693,6 +693,7 @@ shader rt_shadows_fill_low, rt_shadows_fill_high_prepass
 include "use_tiled_lights.dshl"
 include "ssao_use.dshl"
 include "rtao_use.dshl"
+include "use_prefiltered_gf.dshl"
 include_optional "ssss/ssss_transmittance_profile.dshl"
 
 float ssao_affect_on_landmesh = 1;
@@ -864,6 +865,8 @@ shader rt_direct_lights
 
   USE_SSSS_TRANSMITTANCE_PROFILE(cs)
   INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(cs, shadow_callback)
+  INIT_PREINTEGRATED_GF(cs)
+  BASE_USE_PREINTEGRATED_GF(cs)
 
   hlsl(cs)
   {
@@ -935,6 +938,8 @@ shader rt_direct_lights
       half specularAOcclusion = computeSpecOcclusion(NoV, enviAO, processedGbuffer.ggx_alpha);
       specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
       half3 specularColor = processedGbuffer.specularColor * (specularAOcclusion * processedGbuffer.extracted_albedo_ao);
+      half3 AB = getEnviBRDF_AB_LinearRoughness(processedGbuffer.linearRoughness, NoV);
+      specularColor *= EnvBRDFMultiScatter(processedGbuffer.specularColor, AB.xy);
 
       float3 result = get_dynamic_lighting(processedGbuffer, worldPos, -viewVect, w, pixelCenter, NoV, specularColor, uv, enviAO, context);
 

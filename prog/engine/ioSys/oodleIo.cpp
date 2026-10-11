@@ -223,7 +223,11 @@ void OodleLoadCB::read(void *ptr, int size)
   if (tryRead(ptr, size) != size)
   {
     isFinished = true;
+#if DAGOR_EXCEPTIONS_ENABLED
     DAGOR_THROW(LoadException("Oodle read error", -1));
+#else
+    DAG_FATAL("exception: LoadException(\"Oodle read error in '%s'\", -1)", getTargetName());
+#endif
   }
 }
 void OodleLoadCB::seekrel(int ofs)

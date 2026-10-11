@@ -148,7 +148,8 @@ block(scene) dynamic_scene
   INIT_FLUID_WIND(vs)
   (vs)
   {
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
+    perlin_noise3d_samplerstate@sampler = global_linear_wrap_sampler;
   }
 
   (vs) {
@@ -186,7 +187,8 @@ block(scene) dynamic_depth_scene
   INIT_FLUID_WIND(vs)
   (vs)
   {
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
+    perlin_noise3d_samplerstate@sampler = global_linear_wrap_sampler;
   }
 }
 

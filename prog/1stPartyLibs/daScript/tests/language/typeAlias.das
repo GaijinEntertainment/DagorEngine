@@ -25,11 +25,8 @@ def swizzleFail(battleAreaPoints : Point3Array) {
 
 [export]
 def arrayAliasFail(t : T?) {
-    var foo : array<Point3>
-    push(foo, float3(1, 2, 3))
-    push(foo, float3(2, 3, 4))
-    push(foo, float3(3, 4, 5))
-    temp_array_alias_example(foo) <| $(tfoo) {
+    let foo : array<Point3> <- [float3(1, 2, 3), float3(2, 3, 4), float3(3, 4, 5)]
+    temp_array_alias_example(foo) $(tfoo) {
         var f = float3(0)
         for (it in tfoo) {
             f += it
@@ -40,7 +37,7 @@ def arrayAliasFail(t : T?) {
 
 [test]
 def test_type_alias(t : T?) {
-    var a = UnitTest::getSamplePoint3()
+    var a = UnitTest::getSamplePoint3()  // nolint:LINT003 - `let` would make typename "float3 const" and break the assert below
     t |> equal(typeinfo typename(a), "float3")
     t |> equal(UnitTest::doubleSamplePoint3(a), float3(0, 2, 4))
     // also swizzle
@@ -48,13 +45,13 @@ def test_type_alias(t : T?) {
     t |> success(typeinfo is_dim(foo.fooArray) && typeinfo dim(foo.fooArray) == 3)
     foo.hit = UnitTest::getSamplePoint3()
     t |> success(foo.hit.x == 0.0 && foo.hit.y == 1.0 && foo.hit.z == 2.0)
-    var qq = foo.hit
+    let qq = foo.hit
     t |> success(qq.x == 0.0 && qq.y == 1.0 && qq.z == 2.0)
-    var qq1 = UnitTest::getSamplePoint3()
+    let qq1 = UnitTest::getSamplePoint3()
     t |> success(qq1.x == 0.0 && qq1.y == 1.0 && qq1.z == 2.0)
     let qq2 = foo.hitPos
     t |> success(qq2.x == 0.0 && qq2.y == 1.0 && qq2.z == 2.0)
-    var qq3 = foo.hitPos
+    var qq3 = foo.hitPos  // nolint:LINT003 - the var twin of qq2 is the tested construct
     t |> success(qq3.x == 0.0 && qq3.y == 1.0 && qq3.z == 2.0)
     let qq4 = foo.hitPosRef * float3(1)
     t |> success(qq4.x == 0.0 && qq4.y == 1.0 && qq4.z == 2.0)
@@ -66,7 +63,7 @@ def test_type_alias(t : T?) {
     t |> success(hitDir.x == nhdh.x && hitDir.y == nhdh.y && hitDir.z == nhdh.z)
     t |> equal(foo.wordFoo, "foo")
 
-    testPoint3Array() <| $(arr) {
+    testPoint3Array() $(arr) {
         t |> equal(arr |> length, 10)
         for (p in arr) {
             t |> success(p.x == 1.0 && p.y == 2.0 && p.z == 3.0)

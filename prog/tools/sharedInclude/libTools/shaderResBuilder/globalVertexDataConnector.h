@@ -42,8 +42,9 @@ public:
   // get result list with vertex datas
   inline const PtrTab<GlobalVertexDataSrc> &getResult() const { return vdataDest; }
 
-  static bool allowVertexMerge; // =false by default
-  static bool allowBaseVertex;  // =false by default
+  static bool allowVertexMerge;            // =false by default
+  static bool allowBaseVertex;             // =false by default
+  static bool disableBaseVertexSizeLimits; // =false by default
 
 private:
   friend class GatherVertexData;

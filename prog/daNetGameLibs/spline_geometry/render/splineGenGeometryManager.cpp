@@ -154,7 +154,6 @@ void SplineGenGeometryManager::updateBuffers()
     return;
 
   allocateBuffers();
-  uploadIndirectionBuffer();
   attachmentMaxNo = 0;
   objBatchIdData.clear();
   currentBufferIndex = (currentBufferIndex + 1) % 2;
@@ -238,6 +237,8 @@ void SplineGenGeometryManager::uploadGenerateData()
   pendingInstanceWrites.clear();
   uploadSplineBuffer();
   uploadObjBatchIdBuffer();
+  if (getCurrentInstanceCount() > 0)
+    uploadIndirectionBuffer();
 }
 
 void SplineGenGeometryManager::generate()
@@ -646,7 +647,7 @@ void SplineGenGeometryManager::setInstancingShaderVarsForRendering(int cascade)
 
 void SplineGenGeometryManager::setInstancingShaderVars()
 {
-  ShaderGlobal::set_int(var::spline_gen_has_generation_phase, vertex_gen_phase_exists ? 1 : 0);
+  ShaderGlobal::set_int(var::spline_gen_has_generation_phase, needsVertexGeneration ? 1 : 0);
   ShaderGlobal::set_int(var::spline_gen_slices, slices);
   ShaderGlobal::set_int(var::spline_gen_stripes, stripes);
   ShaderGlobal::set_int(var::spline_gen_vertex_count, getInstanceVertexCount());

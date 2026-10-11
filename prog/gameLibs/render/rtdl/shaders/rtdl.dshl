@@ -1,0 +1,2109 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "bvh.dshl"
+include "rtsm_sun_dir.dshl"
+include "blue_noise.dshl"
+include "bvh_common_includes.dshl"
+include "camera_in_camera.dshl"
+include "contact_shadows.dshl"
+include "use_tiled_lights.dshl"
+include "ssao_use.dshl"
+include "rtao_use.dshl"
+include_optional "ssss/ssss_transmittance_profile.dshl"
+
+define_macro_if_not_defined USE_SSSS_TRANSMITTANCE_PROFILE(stage)
+endmacro
+
+texture precomputed_dynamic_lights;
+texture rt_direct_lighting_sun_shadow;
+texture rt_direct_lighting_radiance;
+texture rt_direct_lighting_unshadowed;
+texture rt_direct_lighting_shadow_samples;
+texture rt_direct_lighting_normals;
+buffer rt_direct_lighting_shadows;
+buffer rt_direct_lighting_shadows_prev;
+texture rt_direct_lighting_motion_vectors;
+texture rt_direct_lighting_history;
+texture rt_direct_lighting_history_prev;
+buffer rt_direct_lighting_sun_samples;
+texture rt_direct_lighting_tiles;
+texture rt_direct_lighting_tiles_dilated;
+texture rt_direct_lighting_tiles_dilated_prev;
+texture rt_direct_lighting_change_tiles;
+texture rt_direct_lighting_change_tiles_prev;
+texture rt_direct_lighting_sun_spatial;
+texture rt_direct_lighting_sun_hit;
+
+float4 rt_direct_lighting_resolution = (1, 1, 1, 1);
+int4 rt_direct_lighting_resolutionI = (1, 1, 1, 1);
+int4 rt_direct_lighting_full_resolutionI = (1, 1, 0, 0);
+float4 rt_direct_lighting_params = (0.1, 2, 8, 1.5);
+int rtsm_add_far_screen_space_shadows = 0;
+interval rtsm_add_far_screen_space_shadows : no < 1, yes;
+float4 rtsm_tree_area;
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
+sampler depth_gbuf_samplerstate;
+float4 rt_direct_lighting_sun_params = (0.5, 1, 24, 3);
+float4 rt_direct_lighting_stabilize_params = (16, 3, 4, 8);
+int4 rt_direct_lighting_frame_params = (0, 0, 1, 0);
+int rt_direct_lighting_sun_quality = 1;
+interval rt_direct_lighting_sun_quality : high < 1, medium < 2, low;
+int rt_direct_lighting_dynamic_lights = 1;
+interval rt_direct_lighting_dynamic_lights : off < 1, on;
+
+float4 big_light_pos_rad_0;
+float4 big_light_pos_rad_1;
+float4 big_light_color_0;
+float4 big_light_color_1;
+int rtsm_has_nuke = 0;
+float4 nuke_pos_wave;
+float foliage_offset_distance = 1;
+float ssao_affect_on_landmesh = 1;
+int rstm_direct_light_has_ao = 0;
+float rtsm_dynamic_minimum_output_value = 0.001;
+texture rt_direct_lighting_output;
+texture rt_direct_lighting_debug;
+int4 rt_direct_lighting_debug_params = (0, 0, 0, 0);
+float4 rt_direct_lighting_debug_scale = (1, 8, 0, 0);
+
+macro RT_DIRECT_LIGHTING_PACKING()
+  (cs) {
+    resolution@u2 = rt_direct_lighting_resolutionI.xy;
+    full_resolution@u2 = rt_direct_lighting_full_resolutionI.xy;
+    frame_params@i4 = rt_direct_lighting_frame_params;
+  }
+
+  hlsl(cs) {
+    #include <rtdl_consts.hlsli>
+
+    #define RTDL_SUN_NO_DATA 0u
+    #define RTDL_SUN_HIT 1u
+    #define RTDL_SUN_VISIBLE 2u
+    #define RTDL_SUN_FACING_AWAY 3u
+    #define RTDL_SUN_TILE_BLOCKS ((RTDL_TILE_W / RTDL_SUN_BLOCK) * (RTDL_TILE_H / RTDL_SUN_BLOCK))
+
+    #define RTDL_TILE_HIT_T_MASK 0x3FFFFFFFu
+    #define RTDL_TILE_ANY_HIT (1u << 30)
+    #define RTDL_TILE_ANY_MISS (1u << 31)
+
+    #define frame_number uint(frame_params.x)
+
+    struct Shadows
+    {
+      uint key[RTDL_SHADOW_SLOTS];
+      float visibility[RTDL_SHADOW_SLOTS];
+      float length[RTDL_SHADOW_SLOTS];
+      uint uncertain;
+    };
+
+    uint pack_length(float length) { return uint(clamp(length, 0, 63.75) * 4 + 0.5); }
+    uint pack_visibility(float visibility, bool unsettled) { return uint(saturate(visibility) * 127 + 0.5) | (unsettled ? 0x80u : 0u); }
+    float unpack_visibility(uint v) { return float(v & 0x7F) / 127.0; }
+
+    uint shadows_offset(uint2 px) { return (px.y * full_resolution.x + px.x) * (RTDL_SHADOW_DWORDS * 4); }
+
+    uint3 pack_shadows(Shadows sh)
+    {
+      uint v0 = pack_visibility(sh.visibility[0], (sh.uncertain & 1) != 0);
+      uint v1 = pack_visibility(sh.visibility[1], (sh.uncertain & 2) != 0);
+      uint v2 = pack_visibility(sh.visibility[2], (sh.uncertain & 4) != 0);
+      uint3 p;
+      p.x = (sh.key[0] & 0xFFFF) | ((sh.key[1] & 0xFFFF) << 16);
+      p.y = (sh.key[2] & 0xFFFF) | (v0 << 16) | (v1 << 24);
+      p.z = v2 | (pack_length(sh.length[0]) << 8) | (pack_length(sh.length[1]) << 16) | (pack_length(sh.length[2]) << 24);
+      return p;
+    }
+
+    Shadows unpack_shadows(uint3 p)
+    {
+      Shadows sh;
+      uint v0 = (p.y >> 16) & 0xFF;
+      uint v1 = p.y >> 24;
+      uint v2 = p.z & 0xFF;
+      sh.key[0] = p.x & 0xFFFF;
+      sh.key[1] = p.x >> 16;
+      sh.key[2] = p.y & 0xFFFF;
+      sh.visibility[0] = unpack_visibility(v0);
+      sh.visibility[1] = unpack_visibility(v1);
+      sh.visibility[2] = unpack_visibility(v2);
+      sh.length[0] = float((p.z >> 8) & 0xFF) / 4.0;
+      sh.length[1] = float((p.z >> 16) & 0xFF) / 4.0;
+      sh.length[2] = float(p.z >> 24) / 4.0;
+      sh.uncertain = (v0 >> 7) | ((v1 >> 7) << 1) | ((v2 >> 7) << 2);
+      return sh;
+    }
+
+    Shadows empty_shadows()
+    {
+      Shadows sh;
+      UNROLL
+      for (uint i = 0; i < RTDL_SHADOW_SLOTS; ++i)
+      {
+        sh.key[i] = 0;
+        sh.visibility[i] = 1;
+        sh.length[i] = 0;
+      }
+      sh.uncertain = 0;
+      return sh;
+    }
+
+    #define RTDL_SAMPLE_NONE 0
+    #define RTDL_SAMPLE_OCCLUDED 1
+    #define RTDL_SAMPLE_VISIBLE 2
+
+    struct ShadowSamples
+    {
+      uint key[RTDL_SHADOW_SLOTS];
+      uint result[RTDL_SHADOW_SLOTS];
+      uint depth10;
+    };
+
+    uint2 pack_shadow_samples(ShadowSamples ss)
+    {
+      uint2 p;
+      p.x = (ss.key[0] & 0xFFFF) | (ss.key[1] << 16);
+      p.y = (ss.key[2] & 0xFFFF) | (ss.result[0] << 16) | (ss.result[1] << 18) | (ss.result[2] << 20) | (ss.depth10 << 22);
+      return p;
+    }
+
+    ShadowSamples unpack_shadow_samples(uint2 p)
+    {
+      ShadowSamples ss;
+      ss.key[0] = p.x & 0xFFFF;
+      ss.key[1] = p.x >> 16;
+      ss.key[2] = p.y & 0xFFFF;
+      ss.result[0] = (p.y >> 16) & 3;
+      ss.result[1] = (p.y >> 18) & 3;
+      ss.result[2] = (p.y >> 20) & 3;
+      ss.depth10 = p.y >> 22;
+      return ss;
+    }
+
+    #define RTDL_HIT_LOG_MIN -7.0
+    #define RTDL_HIT_LOG_RANGE 21.0
+
+    uint pack_hit8(float t)
+    {
+      if (t <= 0)
+        return 0;
+      float u = saturate((log2(max(t, 1e-3)) - RTDL_HIT_LOG_MIN) / RTDL_HIT_LOG_RANGE);
+      return 1 + uint(u * 254 + 0.5);
+    }
+
+    float unpack_hit8(uint v) { return v == 0 ? 0 : exp2((float(v) - 1) / 254 * RTDL_HIT_LOG_RANGE + RTDL_HIT_LOG_MIN); }
+
+    struct History
+    {
+      float sunVisibility;
+      float sunLength;
+      float sunOccluder;
+      uint surface;
+    };
+
+    uint2 pack_history(History h)
+    {
+      return uint2(f32tof16(saturate(h.sunVisibility)) | (pack_length(h.sunLength) << 16) | (pack_hit8(h.sunOccluder) << 24), h.surface);
+    }
+
+    History unpack_history(uint2 p)
+    {
+      History h;
+      h.sunVisibility = f16tof32(p.x & 0xFFFF);
+      h.sunLength = float((p.x >> 16) & 0xFF) / 4.0;
+      h.sunOccluder = unpack_hit8(p.x >> 24);
+      h.surface = p.y;
+      return h;
+    }
+
+    History empty_history()
+    {
+      History h;
+      h.sunVisibility = 1;
+      h.sunLength = 0;
+      h.sunOccluder = 0;
+      h.surface = 0;
+      return h;
+    }
+
+    uint2 sun_checkerboard_pixel(uint2 tid, bool traced_half)
+    {
+      uint2 dtid = uint2(tid.x * 2, tid.y);
+      bool evenFrame = (frame_number & 1) == 0;
+      bool evenLine = (dtid.y & 1) == 0;
+      if ((evenFrame == evenLine) == traced_half)
+        ++dtid.x;
+      return dtid;
+    }
+
+    struct SunTiles
+    {
+      bool anyHit;
+      bool anyMiss;
+      float maxHitT;
+    };
+
+    int2 sun_tile_count()
+    {
+      int2 tileSize = int2(RTDL_TILE_W, RTDL_TILE_H);
+      return (int2(resolution) + tileSize - 1) / tileSize;
+    }
+
+    uint pack_sun_tiles(SunTiles st)
+    {
+      return ((asuint(st.maxHitT) >> 2) & RTDL_TILE_HIT_T_MASK) | (st.anyHit ? RTDL_TILE_ANY_HIT : 0) | (st.anyMiss ? RTDL_TILE_ANY_MISS : 0);
+    }
+
+    SunTiles unpack_sun_tiles(uint v)
+    {
+      SunTiles st;
+      st.anyHit = (v & RTDL_TILE_ANY_HIT) != 0;
+      st.anyMiss = (v & RTDL_TILE_ANY_MISS) != 0;
+      st.maxHitT = asfloat((v & RTDL_TILE_HIT_T_MASK) << 2);
+      return st;
+    }
+
+    bool sun_sample_informs(uint flags) { return flags == RTDL_SUN_HIT || flags == RTDL_SUN_VISIBLE; }
+
+    uint sun_sample_offset(uint2 px)
+    {
+      uint2 block = px / RTDL_SUN_BLOCK;
+      uint blocksPerRow = sun_tile_count().x * (RTDL_TILE_W / RTDL_SUN_BLOCK);
+      return (block.y * blocksPerRow + block.x) * 4;
+    }
+
+    uint sun_sample_shift(uint2 px)
+    {
+      uint2 inBlock = px % RTDL_SUN_BLOCK;
+      return 2 * (inBlock.y * RTDL_SUN_BLOCK + inBlock.x);
+    }
+
+    uint unpack_sun_sample(uint word, uint2 px) { return (word >> sun_sample_shift(px)) & 3; }
+
+    #define RTDL_DEPTH_LOG_MIN -4.0
+    #define RTDL_DEPTH_LOG_RANGE 20.0
+
+    uint encode_depth10(float depth)
+    {
+      if (depth <= 0)
+        return 0;
+      float t = saturate((log2(max(depth, 1e-3)) - RTDL_DEPTH_LOG_MIN) / RTDL_DEPTH_LOG_RANGE);
+      return 1 + uint(t * 1022 + 0.5);
+    }
+
+    float decode_depth10(uint v)
+    {
+      return v == 0 ? 0 : exp2((float(v) - 1) / 1022 * RTDL_DEPTH_LOG_RANGE + RTDL_DEPTH_LOG_MIN);
+    }
+
+    uint pack_surface(uint depth10, uint oct8) { return depth10 | (oct8 << 10); }
+    float surface_depth(uint p) { return decode_depth10(p & 0x3FF); }
+  }
+endmacro
+
+macro RT_DIRECT_LIGHTING_PENUMBRA()
+  hlsl(cs) {
+    #define RTDL_HARD_PENUMBRA_PX 2.5
+    #define RTDL_SOFT_PENUMBRA_PX 5.0
+
+    SunTiles load_sun_tiles(Texture2D<uint> dilated, uint2 dtid)
+    {
+      int2 tileSize = int2(RTDL_TILE_W, RTDL_TILE_H);
+      int2 tileCount = sun_tile_count();
+      SunTiles st = unpack_sun_tiles(texture2DAt(dilated, int2(dtid) / tileSize));
+      float2 pos = (float2(dtid) + 0.5) / float2(tileSize) - 0.5;
+      int2 t0 = int2(floor(pos));
+      float2 f = pos - float2(t0);
+      float hitT = 0;
+      float wsum = 0;
+      UNROLL
+      for (int i = 0; i < 4; ++i)
+      {
+        int2 t = clamp(t0 + int2(i & 1, i >> 1), int2(0, 0), tileCount - 1);
+        SunTiles corner = unpack_sun_tiles(texture2DAt(dilated, t));
+        if (!corner.anyHit)
+          continue;
+        float w = ((i & 1) ? f.x : 1 - f.x) * ((i >> 1) ? f.y : 1 - f.y);
+        hitT += corner.maxHitT * w;
+        wsum += w;
+      }
+      if (wsum > 0)
+        st.maxHitT = hitT / wsum;
+      return st;
+    }
+
+    float sun_penumbra_px(float occluder_t, float depth)
+    {
+      float sunTan = solViewTanRadialAngle * sun_angle_multiplier;
+      float pixelSize = depth * length(view_vecRT.xyz - view_vecLT.xyz) * inv_resolution.x;
+      return occluder_t * sunTan / max(pixelSize, 1e-6);
+    }
+
+    float sun_softness_px(float penumbra_px)
+    {
+      return saturate((penumbra_px - RTDL_HARD_PENUMBRA_PX) / (RTDL_SOFT_PENUMBRA_PX - RTDL_HARD_PENUMBRA_PX));
+    }
+  }
+endmacro
+
+macro RT_DIRECT_LIGHTING_COMMON()
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    prev_resolution@u2 = rt_direct_lighting_resolutionI.zw;
+    inv_resolution@f2 = (1.0 / rt_direct_lighting_resolution.x, 1.0 / rt_direct_lighting_resolution.y);
+    light_params@f4 = rt_direct_lighting_params;
+    sun_params@f4 = rt_direct_lighting_sun_params;
+    stabilize_params@f4 = rt_direct_lighting_stabilize_params;
+    ao_affect_on_landmesh@f1 = (ssao_affect_on_landmesh, 0, 0, 0);
+    direct_light_has_ao@i1 = rstm_direct_light_has_ao;
+    minimum_output_value@f1 = rtsm_dynamic_minimum_output_value;
+    big_light_pos_rad_0@f4 = big_light_pos_rad_0;
+    big_light_pos_rad_1@f4 = big_light_pos_rad_1;
+    big_light_color_0@f4 = big_light_color_0;
+    big_light_color_1@f4 = big_light_color_1;
+    has_nuke@i1 = rtsm_has_nuke;
+    nuke_pos_wave@f4 = nuke_pos_wave;
+    foliage_offset_distance@f1 = foliage_offset_distance;
+    impostor_shadow_offset@f1 = impostor_shadow_offset;
+  }
+
+  hlsl(cs) {
+    #define DISABLE_TOONSHADING 1
+    #define OMNI_CONTACT_SHADOWS 0
+    #define SPOT_MULTIPLIER 1
+    #define SPOT_CONTACT_SHADOWS 0
+    #define OMNI_SHADOWS 0
+    #define screen_size full_resolution
+    #define TRACE_RAY_EXTRA_FLAGS RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH
+  }
+
+  if (rtsm_add_far_screen_space_shadows == yes)
+  {
+    (cs) {
+      rtdl_tree_area@f4 = rtsm_tree_area;
+      rtdl_proj_tm@f44 = { projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3 };
+      rtdl_globtm_no_ofs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+      rtdl_gbuffer_uv_transform@f4 = gbuffer_uv_transform;
+      rtdl_depth_gbuf_samplerstate@sampler = depth_gbuf_samplerstate;
+    }
+  }
+
+  INIT_MAIN_BVH(cs, 0, false)
+  USE_MAIN_BVH(cs, 0, 0, 0, 0, 1, 0, 0, 0)
+
+  USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
+  USE_AND_INIT_VIEW_VEC_CS()
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_BVH_BINDLESS_GBUFFER(cs)
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, true)
+  USE_LOAD_BVH_FLAGS_BASE(cs)
+  USE_CALC_GEOMETRY_NORMAL(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
+
+  INIT_BVH_WATER_FADE_BASE(cs)
+  USE_BVH_WATER_FADE_BASE(cs)
+
+  INIT_UPSCALE_SAMPLING_BASE(cs)
+  USE_UPSCALE_SAMPLING_BASE(cs)
+
+  USING_SSAO_BASE(cs)
+  USING_RTAO(cs)
+
+  INIT_BLUE_NOISE(cs)
+  USE_BLUE_NOISE(cs)
+  RTSM_SUN_DIR()
+
+  hlsl(cs) {
+    #define RT_DYNAMIC_LIGHTS 1
+  }
+
+  USE_SSSS_TRANSMITTANCE_PROFILE(cs)
+  INIT_AND_USE_TILED_LIGHTS(cs)
+
+  hlsl(cs) {
+    ##if rtsm_add_far_screen_space_shadows == yes
+      #include "contactShadows.hlsl"
+    ##endif
+    #include <octahedral.hlsl>
+    #include <pcg_hash.hlsl>
+    #include <interleavedGradientNoise.hlsl>
+  }
+
+  RT_DIRECT_LIGHTING_PACKING()
+  RT_DIRECT_LIGHTING_PENUMBRA()
+
+  hlsl(cs) {
+    #define RTDL_TYPE_OMNI 1
+    #define RTDL_TYPE_SPOT 2
+    #define RTDL_TYPE_BIG 3
+
+    #define RTDL_MAX_M 63u
+
+    #define light_source_radius light_params.x
+    #define shadow_rays_per_pixel uint(light_params.y)
+    #define max_sun_history light_params.z
+    #define sun_blur_scale sun_params.x
+    #define sun_blur_min_radius sun_params.y
+    #define sun_blur_max_radius sun_params.z
+    #define sun_clamp_sigma sun_params.w
+    #define max_local_shadow_history stabilize_params.x
+    #define local_clamp_sigma stabilize_params.y
+    #define local_shadow_radius stabilize_params.z
+    #define shadow_retest_period max(uint(stabilize_params.w), 1u)
+    #define history_valid (frame_params.y != 0)
+    #define slot_hysteresis max(light_params.w, 1.0)
+    #define shadow_rest_lights (frame_params.z != 0)
+    #define change_tiles_retest (frame_params.w != 0)
+
+    uint pack_light_id(uint type, uint index) { return type | (index << 2); }
+    uint light_id_type(uint id) { return id & 3; }
+    uint light_id_index(uint id) { return id >> 2; }
+
+    uint make_light_key(uint type, uint id) { return type | ((id & 0x3FFF) << 2); }
+    #if MAX_SCENE_OMNI_LIGHTS > (1 << 14) || MAX_SCENE_SPOT_LIGHTS > (1 << 14)
+      #error the light key holds 14 id bits
+    #endif
+
+    uint big_light_key(float3 pos)
+    {
+      int3 cell = int3(floor(pos));
+      return pcg_hash(asuint(cell.x) + 7919u * asuint(cell.y) + 104729u * asuint(cell.z)) & 0x3FFF;
+    }
+
+    bool tap_in_view(int2 px)
+    {
+      BRANCH
+      if (!camera_has_sub_view())
+        return true;
+      return is_same_camera_view(get_camera_view((float2(px) + 0.5) * inv_resolution), get_camera_view_postfx());
+    }
+
+    uint pack_oct8(float3 normal)
+    {
+      float2 oct = saturate(octEncode(normal) * 0.5 + 0.5);
+      return uint(oct.x * 15 + 0.5) | (uint(oct.y * 15 + 0.5) << 4);
+    }
+
+    float3 unpack_oct8(uint p) { return octDecode(float2(p & 15, (p >> 4) & 15) * (2.0 / 15.0) - 1); }
+
+    float3 surface_normal(uint p) { return unpack_oct8(p >> 10); }
+
+    bool surface_matches(uint p, float expected_depth, float3 normal)
+    {
+      float depth = surface_depth(p);
+      float depthTolerance = 0.05 * max(expected_depth, depth) + 0.02;
+      return depth > 0 && abs(depth - expected_depth) < depthTolerance && dot(surface_normal(p), normal) > 0.7;
+    }
+
+    #define RTDL_SURFACE_IMPOSTOR 1
+    #define RTDL_SURFACE_GRASS 2
+
+    float rtdl_lum(float3 c) { return dot(c, float3(0.299, 0.587, 0.114)); }
+
+    uint rtdl_seed(uint2 px, uint salt)
+    {
+      return pcg_hash(px.x + 7919u * px.y + frame_number * 0x9E3779B9u + salt * 0x85EBCA6Bu);
+    }
+
+    uint rtdl_seed_still(uint2 px, uint salt) { return pcg_hash(px.x + 7919u * px.y + salt * 0x85EBCA6Bu); }
+
+    float rtdl_rand(inout uint state)
+    {
+      state = pcg_hash(state);
+      return float(state >> 8) * (1.0 / 16777216.0);
+    }
+
+    float load_linear_depth(int2 px)
+    {
+      float rawDepth = loadGbufferDepth(uint2(px));
+      return rawDepth <= 0 ? 0 : linearize_z(rawDepth, zn_zfar.zw);
+    }
+
+    bool is_in_nuke_range(float3 relPos)
+    {
+      if (!has_nuke)
+        return false;
+      float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
+      float nukeDistance = length(nukeBvhPos - relPos);
+      return nukeDistance - nuke_pos_wave.w < 0;
+    }
+
+    struct PixelData
+    {
+      float w;
+      float2 pixelCenter;
+      float3 relPos;
+      float3 worldPos;
+      uint localGroupMask;
+    };
+
+    float load_surface_depth(uint2 dtid)
+    {
+      float w = load_linear_depth(int2(dtid));
+      if (w <= 0)
+        return 0;
+      return calc_underwater_fade(w, dtid, inv_resolution, world_view_pos) == 0 ? 0 : w;
+    }
+
+    UnpackedGbuffer load_unpacked_gbuffer(uint2 dtid) { return unpackGbuffer(loadPackedGbuffer(dtid)); }
+
+    uint surface_flags(UnpackedGbuffer gbuffer)
+    {
+      return (gbuffer.impostorMask > 0.5 ? RTDL_SURFACE_IMPOSTOR : 0) | (gbuffer.isGrass ? RTDL_SURFACE_GRASS : 0);
+    }
+
+    PixelData make_pixel(uint2 dtid, float w, uint flags)
+    {
+      PixelData pd;
+      pd.w = w;
+      pd.pixelCenter = float2(dtid) + 0.5;
+      pd.relPos = lerp_view_vec(pd.pixelCenter * inv_resolution) * w;
+      pd.worldPos = world_view_pos + pd.relPos;
+      pd.localGroupMask = bvhGroupHardShadow;
+      if (flags & RTDL_SURFACE_IMPOSTOR)
+        pd.localGroupMask &= ~bvhGroupImpostor;
+      else if (flags & RTDL_SURFACE_GRASS)
+        pd.localGroupMask &= ~bvhGroupGrass;
+      return pd;
+    }
+
+    struct ShadingData
+    {
+      ProcessedGbuffer processed;
+      float2 uv;
+      float3 viewVect;
+      half NoV;
+      half3 specularColor;
+      half finalAO;
+    };
+
+    ShadingData make_shading(PixelData pd, UnpackedGbuffer gbuffer)
+    {
+      ShadingData sd = (ShadingData)0;
+      sd.processed = processGbuffer(gbuffer);
+      sd.uv = pd.pixelCenter * inv_resolution;
+      sd.viewVect = lerp_view_vec(sd.uv);
+
+      float NdotV = dot(sd.processed.normal, -normalize(pd.relPos));
+      sd.NoV = abs(NdotV) + 1e-5;
+
+      half ao = 1;
+      BRANCH
+      if (direct_light_has_ao > 0)
+      {
+        #if HAS_RTAO
+          BRANCH
+          if (isRTAOEnabled())
+            ao = getRTAO(pd.pixelCenter);
+          else
+        #endif
+            ao = getSSAO(pd.w, pd.pixelCenter).x;
+      }
+      ao = lerp(1, ao, sd.processed.isLandscape ? ao_affect_on_landmesh : 1);
+
+      half enviAO = sd.processed.ao * ao;
+      half specularAOcclusion = computeSpecOcclusion(sd.NoV, enviAO, sd.processed.ggx_alpha);
+      specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
+      sd.specularColor = sd.processed.specularColor * (specularAOcclusion * sd.processed.extracted_albedo_ao);
+      sd.finalAO = enviAO * dynamic_lights_ao_effect.x + dynamic_lights_ao_effect.y;
+      return sd;
+    }
+
+    struct SunPixel
+    {
+      UnpackedGbuffer gbuffer;
+      float w;
+      float3 relPos;
+      float3 geometryNormal;
+    };
+
+    bool load_sun_pixel(uint2 dtid, out SunPixel sp)
+    {
+      sp = (SunPixel)0;
+
+      sp.w = load_surface_depth(dtid);
+      if (sp.w <= 0)
+        return false;
+
+      sp.gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
+      sp.relPos = lerp_view_vec((float2(dtid) + 0.5) * inv_resolution) * sp.w;
+      sp.geometryNormal = calc_geometry_normal(dtid, inv_resolution, resolution);
+      return true;
+    }
+
+    float source_radius_or_default(float radius) { return radius > 0 ? radius : light_source_radius; }
+
+    struct LightGeometry
+    {
+      float3 pos;
+      float sourceRadius;
+      float shadowOffset;
+      uint key;
+      bool hasShadow;
+    };
+
+    bool light_geometry(uint type, uint index, out LightGeometry c)
+    {
+      c = (LightGeometry)0;
+
+      if (type == RTDL_TYPE_BIG)
+      {
+        float4 posRad = index == 0 ? big_light_pos_rad_0 : big_light_pos_rad_1;
+        if (posRad.w <= 0)
+          return false;
+        c.pos = posRad.xyz;
+        c.sourceRadius = light_source_radius;
+        c.key = make_light_key(RTDL_TYPE_BIG, big_light_key(posRad.xyz));
+        c.hasShadow = true;
+        return true;
+      }
+
+      ##if dynamic_lights_count != lights_off
+        if (type == RTDL_TYPE_OMNI)
+        {
+          if (index >= omniLightsCount)
+            return false;
+          RenderOmniLight ol = omni_lights_cb[index];
+          c.pos = ol.posRadius.xyz;
+          c.sourceRadius = source_radius_or_default(get_omni_light_source_radius(ol));
+          c.shadowOffset = ol.shadowZnZf_flags_packedDataBits.x;
+          c.key = make_light_key(RTDL_TYPE_OMNI, get_omni_light_id(ol));
+          c.hasShadow = any(ol.colorFlags.rgb > 0);
+          return true;
+        }
+        if (type == RTDL_TYPE_SPOT)
+        {
+          if (index >= spotLightsCount)
+            return false;
+          RenderSpotLight sl = spot_lights_cb[index];
+          c.pos = decode_spot_light_pos_radius(sl).xyz;
+          c.sourceRadius = source_radius_or_default(get_spot_light_source_radius(sl));
+          c.key = make_light_key(RTDL_TYPE_SPOT, get_spot_light_id(sl));
+          c.hasShadow = spot_light_has_shadow(get_spot_light_shadow_data_bits(sl));
+          return true;
+        }
+      ##endif
+
+      return false;
+    }
+
+    struct LightSample
+    {
+      float3 f;
+    };
+
+    bool eval_light(uint type, uint index, PixelData pd, ShadingData sd, out LightSample s)
+    {
+      s = (LightSample)0;
+
+      ProcessedGbuffer gbuffer = sd.processed;
+      float3 worldPos = pd.worldPos;
+      half3 view = -sd.viewVect;
+      half NoV = sd.NoV;
+      half3 specularColor = sd.specularColor;
+      half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
+      half dynamicAO = applyDynamicAoEffect(gbuffer.ao);
+      half2 screenpos = pd.pixelCenter;
+
+      if (type == RTDL_TYPE_BIG)
+      {
+        float4 posRad = index == 0 ? big_light_pos_rad_0 : big_light_pos_rad_1;
+        float4 color = index == 0 ? big_light_color_0 : big_light_color_1;
+        if (posRad.w <= 0)
+          return false;
+        s.f = perform_point_light(worldPos, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, gbuffer.ao, posRad, color, 0, float2(0, 1), screenpos);
+        return true;
+      }
+
+      ##if dynamic_lights_count != lights_off
+        if (type == RTDL_TYPE_OMNI)
+        {
+          if (index >= omniLightsCount)
+            return false;
+          RenderOmniLight ol = omni_lights_cb[index];
+          float4 posRad = ol.posRadius;
+          half4 colorSpec = getFinalColor(ol, worldPos);
+          float2 shadowZnZf = ol.shadowZnZf_flags_packedDataBits.xy;
+          half4 shadowTcToAtlas = 0;
+          bool cameraSpace = ol.posRelToOrigin_cullRadius.w > 0;
+          float3 fragmentPos = cameraSpace ? pd.relPos : worldPos;
+          float4 lightPosRadius = cameraSpace ? float4(ol.posRelToOrigin_cullRadius.xyz, posRad.w) : posRad;
+          s.f = perform_point_light(fragmentPos, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, lightPosRadius, colorSpec, shadowTcToAtlas, shadowZnZf, screenpos);
+          return true;
+        }
+        if (type == RTDL_TYPE_SPOT)
+        {
+          if (index >= spotLightsCount)
+            return false;
+          uint spot_light_index = index;
+          RenderSpotLight sl = spot_lights_cb[index];
+          float4 lightPosRadius = decode_spot_light_pos_radius(sl);
+          float4 lightColor = sl.lightColorAngleScale;
+          float4 lightDirection = sl.lightDirectionAngleOffset;
+          float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+          float ao = dynamicAO;
+          float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
+          float lightRollAngle = decode_light_roll_angle(sl);
+          float2 tc = sd.uv;
+          float3 ssssWorldPos = 0;
+          half3 result = 0;
+          #define EXIT_STATEMENT return false
+          #include <clustered/oneSpotLight.hlsl>
+          #undef EXIT_STATEMENT
+          s.f = lightBRDF;
+          return true;
+        }
+      ##endif
+
+      return false;
+    }
+
+    float3 light_disk_point(float3 lightPos, float3 receiverPos, float2 uv, float radius)
+    {
+      float3 d = normalize(receiverPos - lightPos);
+      float3 up = abs(d.y) < 0.99 ? float3(0, 1, 0) : float3(1, 0, 0);
+      float3 T = normalize(cross(up, d));
+      float3 B = cross(d, T);
+      float r = radius * sqrt(uv.x);
+      float a = 2 * PI * uv.y;
+      return lightPos + T * (r * cos(a)) + B * (r * sin(a));
+    }
+
+    bool light_sample_visible(PixelData pd, LightGeometry c, float2 disk_uv, float3 ray_origin)
+    {
+      if (!c.hasShadow)
+        return true;
+      if (!bvhMainValid)
+        return false;
+      if (is_in_nuke_range(pd.relPos))
+        return true;
+      float3 toSample = light_disk_point(c.pos, pd.worldPos, disk_uv, c.sourceRadius) - pd.worldPos;
+      float len = length(toSample);
+      float rayLength = len - c.shadowOffset;
+      if (rayLength <= 1e-3)
+        return true;
+      return !is_obstructed(bvhMain, ray_origin, toSample / len, 0, rayLength, pd.w, pd.localGroupMask);
+    }
+
+    float3 sun_direction(float2 rnd, float disc_scale)
+    {
+      float2 disc = GetRay(rnd).xy * (solViewTanRadialAngle * sun_angle_multiplier * disc_scale);
+      float3x3 sunBasis = GetBasis(-sun_dir_for_shadows);
+      return normalize(sunBasis[0] * disc.x + sunBasis[1] * disc.y + sunBasis[2]);
+    }
+
+    uint trace_sun(uint2 dtid, SunPixel sp, float2 rnd, float disc_scale, bool allow_ray, out float hit_t)
+    {
+      hit_t = 0;
+      if (!bvhMainValid)
+        return RTDL_SUN_VISIBLE;
+
+      float3 direction = sun_direction(rnd, disc_scale);
+      UnpackedGbuffer gbuffer = sp.gbuffer;
+      bool isImpostor = gbuffer.impostorMask > 0.5;
+      bool isGrass = gbuffer.isGrass;
+      bool isTerrain = gbuffer.isLandscape;
+      bool isFoliage = gbuffer.material == SHADING_FOLIAGE || gbuffer.isFoliage;
+      bool isCamoNet = gbuffer.isCamoNet;
+
+      if (!isGrass && !isImpostor && !isTerrain && !isFoliage && dot(gbuffer.normal, direction) <= 0)
+        return RTDL_SUN_FACING_AWAY;
+
+      float3 relPos = sp.relPos + impostor_shadow_offset * gbuffer.impostorMask * sun_dir_for_shadows;
+      relPos = applyAdaptiveRayOffset(relPos, sp.geometryNormal);
+
+      if (!allow_ray || is_in_nuke_range(relPos))
+        return RTDL_SUN_VISIBLE;
+
+      float minT = 0;
+      uint groupMask = bvhGroupSoftShadow;
+      if (isImpostor)
+        groupMask &= ~bvhGroupImpostor;
+      if (isCamoNet)
+        groupMask &= ~bvhGroupCamoNet;
+      if (isFoliage)
+      {
+        float dither = interleavedGradientNoiseFramed(dtid, frame_index);
+        float distStepToSun = min(foliage_offset_distance, sp.w);
+        minT = lerp(0.5, 1, dither) * gbuffer.translucency * distStepToSun;
+        groupMask &= ~bvhGroupGPUFoliage;
+      }
+
+      HitInfo hitInfo;
+      bool isHit = trace_ray(bvhMain, relPos, direction, minT, 10000, sp.w, groupMask, hitInfo);
+      if (isHit)
+      {
+        bvh_voxel_activity_mark(hitInfo.position);
+        hit_t = max(hitInfo.t, 1e-4);
+        return RTDL_SUN_HIT;
+      }
+
+      ##if rtsm_add_far_screen_space_shadows == yes
+        bool isFarTrees = any(relPos.xz < rtdl_tree_area.xy) || any(relPos.xz > rtdl_tree_area.zw);
+        BRANCH
+        if (isFarTrees)
+        {
+          const float rayLength = 24;
+          float2 hitUV;
+          float contactT = contactShadowRayCastWithScaleHitT(depth_gbuf_load, rtdl_depth_gbuf_samplerstate, relPos, direction, rayLength, 24, 0,
+            rtdl_proj_tm, sp.w, rtdl_globtm_no_ofs, hitUV, rtdl_gbuffer_uv_transform);
+          if (contactT < 1)
+          {
+            uint2 hitPx = uint2(clamp(hitUV * float2(resolution) + 0.5, 0, float2(resolution) - 1));
+            UnpackedGbuffer occluder = unpackGbuffer(loadPackedGbuffer(hitPx));
+            if (occluder.impostorMask > 0.5 || occluder.material == SHADING_FOLIAGE)
+            {
+              hit_t = max(rayLength * contactT, 1e-4);
+              return RTDL_SUN_HIT;
+            }
+          }
+        }
+      ##endif
+
+      return RTDL_SUN_VISIBLE;
+    }
+
+    SunTiles gather_sun_tiles(Texture2D<uint> tiles, int2 tile)
+    {
+      int2 tileCount = sun_tile_count();
+      SunTiles st;
+      st.anyHit = false;
+      st.anyMiss = false;
+      uint maxHitTBits = 0;
+      UNROLL
+      for (int y = -1; y <= 1; ++y)
+      {
+        UNROLL
+        for (int x = -1; x <= 1; ++x)
+        {
+          int2 t = tile + int2(x, y);
+          if (any(t < 0) || any(t >= tileCount))
+            continue;
+          uint v = texture2DAt(tiles, t);
+          if (v & RTDL_TILE_ANY_HIT)
+          {
+            st.anyHit = true;
+            maxHitTBits = max(maxHitTBits, v & RTDL_TILE_HIT_T_MASK);
+          }
+          if (v & RTDL_TILE_ANY_MISS)
+            st.anyMiss = true;
+        }
+      }
+      st.maxHitT = asfloat(maxHitTBits << 2);
+      return st;
+    }
+
+    float sun_blur_radius_px(float penumbra_px)
+    {
+      return clamp(penumbra_px * sun_blur_scale, sun_blur_min_radius, sun_blur_max_radius);
+    }
+
+    float2 sun_tap_offset(uint i, uint count, float rotation)
+    {
+      float r = sqrt((float(i) + 0.5) / count);
+      float a = 2.39996323 * float(i) + rotation;
+      return float2(cos(a), sin(a)) * r;
+    }
+
+    float sun_tap_weight(float2 unit_offset) { return exp(-1.5 * dot(unit_offset, unit_offset)); }
+
+    bool tap_in_plane(int2 px, float tap_depth, float3 center_pos, float3 center_normal, float center_depth, float tolerance)
+    {
+      if (tap_depth <= 0)
+        return false;
+      float3 tapPos = world_view_pos + lerp_view_vec((float2(px) + 0.5) * inv_resolution) * tap_depth;
+      return abs(dot(center_normal, tapPos - center_pos)) < tolerance * center_depth + 0.02;
+    }
+
+    bool tap_in_plane(int2 px, float tap_depth, float3 center_pos, float3 center_normal, float center_depth)
+    {
+      return tap_in_plane(px, tap_depth, center_pos, center_normal, center_depth, 0.01);
+    }
+  }
+endmacro
+
+macro RT_DIRECT_LIGHTING_REPROJECTION()
+  (cs) {
+    rt_history_prev@tex = rt_direct_lighting_history_prev hlsl { Texture2D<uint2> rt_history_prev@tex; };
+    rt_motion_vectors@tex2d = rt_direct_lighting_motion_vectors;
+  }
+
+  hlsl(cs) {
+    bool reproject_pixel(uint2 dtid, float w, float3 normal, out int2 px, out History h)
+    {
+      px = 0;
+      h = empty_history();
+      if (!history_valid)
+        return false;
+      float3 motion = texture2DAt(rt_motion_vectors, dtid).xyz;
+      float2 uv = (float2(dtid) + 0.5) * inv_resolution;
+      invalidate_mvec_to_invalid_view_area(uv, motion.xy);
+      float2 prevUV = uv + motion.xy;
+      px = int2(floor(prevUV * prev_resolution));
+      if (any(px < 0) || any(px >= int2(prev_resolution)))
+        return false;
+      h = unpack_history(texture2DAt(rt_history_prev, px));
+      return surface_matches(h.surface, w + motion.z, normal);
+    }
+  }
+endmacro
+
+macro RT_DIRECT_LIGHTING_SUN_CONE()
+  RT_DIRECT_LIGHTING_REPROJECTION()
+
+  (cs) {
+    rt_tiles_dilated_prev@tex = rt_direct_lighting_tiles_dilated_prev hlsl { Texture2D<uint> rt_tiles_dilated_prev@tex; };
+  }
+
+  hlsl(cs) {
+    float sun_cone(uint2 dtid, float w, float3 normal)
+    {
+      int2 prevPx;
+      History prev;
+      if (reproject_pixel(dtid, w, normal, prevPx, prev) && prev.sunOccluder > 0)
+        return sun_softness_px(sun_penumbra_px(prev.sunOccluder, w));
+      float farthest = load_sun_tiles(rt_tiles_dilated_prev, dtid).maxHitT;
+      return farthest > 0 ? sun_softness_px(sun_penumbra_px(farthest, w)) : 1;
+    }
+  }
+endmacro
+
+shader rt_direct_lighting_sun_trace
+{
+  RT_DIRECT_LIGHTING_COMMON()
+
+  (cs) {
+    rt_sun_samples@uav = rt_direct_lighting_sun_samples hlsl { RWByteAddressBuffer rt_sun_samples@uav; };
+    rt_tiles@uav = rt_direct_lighting_tiles hlsl { RWTexture2D<uint> rt_tiles@uav; };
+    rt_sun_hit@uav = rt_direct_lighting_sun_hit hlsl { RWTexture2D<uint> rt_sun_hit@uav; };
+  }
+
+  RT_DIRECT_LIGHTING_SUN_CONE()
+
+  hlsl(cs) {
+    groupshared uint s_tileMaxHitT;
+    groupshared uint s_tileFlags;
+    groupshared uint s_blocks[RTDL_SUN_TILE_BLOCKS];
+
+    void sun_sample(uint2 dtid, out uint flags, out float hit_t)
+    {
+      flags = RTDL_SUN_NO_DATA;
+      hit_t = 0;
+
+      if (any(dtid >= resolution))
+        return;
+
+      float2 tc = (float2(dtid) + 0.5) * inv_resolution;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc)
+
+      SunPixel sp;
+      if (!load_sun_pixel(dtid, sp))
+      {
+        flags = RTDL_SUN_NO_DATA;
+        return;
+      }
+
+      float softness = sun_cone(dtid, sp.w, sp.gbuffer.normal);
+      flags = trace_sun(dtid, sp, GetBlueNoise(dtid, false, 0), softness, true, hit_t);
+    }
+
+    ##if rt_direct_lighting_sun_quality == high
+      #define RTDL_TRACE_ALL_PIXELS 1
+      #define RTDL_SUN_TRACE_PIXELS (RTDL_TILE_W * RTDL_TILE_H)
+    ##else
+      #define RTDL_TRACE_ALL_PIXELS 0
+      #define RTDL_SUN_TRACE_PIXELS (RTDL_TILE_W * RTDL_TILE_H / 2)
+    ##endif
+    ##if hardware.scarlett
+      #define RTDL_SUN_TRACE_THREADS 64
+      [numthreads(8, 8, 1)]
+    ##elif rt_direct_lighting_sun_quality == high
+      #define RTDL_SUN_TRACE_THREADS (RTDL_TILE_W * RTDL_TILE_H)
+      [numthreads(RTDL_TILE_W, RTDL_TILE_H, 1)]
+    ##else
+      #define RTDL_SUN_TRACE_THREADS (RTDL_TILE_W * RTDL_TILE_H / 2)
+      [numthreads(RTDL_TILE_W / 2, RTDL_TILE_H, 1)]
+    ##endif
+    void rt_direct_lighting_sun_trace_cs(uint2 gid : SV_GroupID, uint gidx : SV_GroupIndex)
+    {
+      if (gidx == 0)
+      {
+        s_tileMaxHitT = 0;
+        s_tileFlags = 0;
+      }
+      if (gidx < RTDL_SUN_TILE_BLOCKS)
+        s_blocks[gidx] = 0;
+      GroupMemoryBarrierWithGroupSync();
+
+      UNROLL
+      for (uint k = 0; k < RTDL_SUN_TRACE_PIXELS / RTDL_SUN_TRACE_THREADS; ++k)
+      {
+        uint p = gidx + k * RTDL_SUN_TRACE_THREADS;
+        #if RTDL_TRACE_ALL_PIXELS
+          uint2 dtid = gid * uint2(RTDL_TILE_W, RTDL_TILE_H) + uint2(p % RTDL_TILE_W, p / RTDL_TILE_W);
+        #else
+          uint2 dtid = sun_checkerboard_pixel(gid * uint2(RTDL_TILE_W / 2, RTDL_TILE_H) + uint2(p % (RTDL_TILE_W / 2), p / (RTDL_TILE_W / 2)), true);
+        #endif
+        uint flags;
+        float hitT;
+        sun_sample(dtid, flags, hitT);
+        if (all(dtid < resolution))
+          texture2DAt(rt_sun_hit, dtid) = pack_hit8(hitT);
+        if (all(dtid < resolution) && flags != RTDL_SUN_NO_DATA)
+        {
+          uint2 block = (dtid - gid * uint2(RTDL_TILE_W, RTDL_TILE_H)) / RTDL_SUN_BLOCK;
+          InterlockedOr(s_blocks[block.y * (RTDL_TILE_W / RTDL_SUN_BLOCK) + block.x], flags << sun_sample_shift(dtid));
+        }
+
+        if (hitT > 0)
+          InterlockedMax(s_tileMaxHitT, asuint(hitT));
+        uint tileFlags = (hitT > 0 ? RTDL_TILE_ANY_HIT : 0u) | (flags == RTDL_SUN_VISIBLE ? RTDL_TILE_ANY_MISS : 0u);
+        if (tileFlags != 0)
+          InterlockedOr(s_tileFlags, tileFlags);
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      if (gidx == 0)
+        texture2DAt(rt_tiles, gid) = (s_tileMaxHitT >> 2) | s_tileFlags;
+      if (gidx < RTDL_SUN_TILE_BLOCKS)
+      {
+        uint2 block = gid * uint2(RTDL_TILE_W / RTDL_SUN_BLOCK, RTDL_TILE_H / RTDL_SUN_BLOCK) +
+                      uint2(gidx % (RTDL_TILE_W / RTDL_SUN_BLOCK), gidx / (RTDL_TILE_W / RTDL_SUN_BLOCK));
+        rt_sun_samples.Store(sun_sample_offset(block * RTDL_SUN_BLOCK), s_blocks[gidx]);
+      }
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_sun_trace_cs");
+}
+
+shader rt_direct_lighting_sun_fill
+{
+  if (rt_direct_lighting_sun_quality == high) { dont_render; }
+
+  RT_DIRECT_LIGHTING_COMMON()
+
+  (cs) {
+    rt_sun_samples@uav = rt_direct_lighting_sun_samples hlsl { RWByteAddressBuffer rt_sun_samples@uav; };
+    rt_sun_hit@uav = rt_direct_lighting_sun_hit hlsl { RWTexture2D<uint> rt_sun_hit@uav; };
+  }
+
+  RT_DIRECT_LIGHTING_SUN_CONE()
+
+  hlsl(cs) {
+    ##if rt_direct_lighting_sun_quality == medium
+      #define RTDL_FILL_RAYS 1
+    ##else
+      #define RTDL_FILL_RAYS 0
+    ##endif
+
+    [numthreads(RTDL_TILE_W / 2, RTDL_TILE_H, 1)]
+    void rt_direct_lighting_sun_fill_cs(uint2 tid : SV_DispatchThreadID)
+    {
+      uint2 dtid = sun_checkerboard_pixel(tid, false);
+      if (any(dtid >= resolution))
+        return;
+      texture2DAt(rt_sun_hit, dtid) = 0;
+
+      float2 tc = (float2(dtid) + 0.5) * inv_resolution;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc)
+
+      float depth = load_linear_depth(int2(dtid));
+      if (depth <= 0)
+        return;
+
+      ##if rt_direct_lighting_sun_quality == medium
+      float softness = sun_cone(dtid, depth, load_unpacked_gbuffer(dtid).normal);
+      bool exact = softness < 1;
+      ##else
+      float softness = 1;
+      bool exact = false;
+      ##endif
+      uint hits = 0;
+      uint misses = 0;
+      bool facingAway = false;
+      uint informed[4] = {0, 0, 0, 0};
+      float informedHit[4] = {0, 0, 0, 0};
+      uint informedCount = 0;
+      float hitT = 0;
+      if (!exact)
+      {
+        UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+          int2 offset = i == 0 ? int2(-1, 0) : i == 1 ? int2(1, 0) : i == 2 ? int2(0, -1) : int2(0, 1);
+          int2 px = int2(dtid) + offset;
+          if (any(px < 0) || any(px >= int2(resolution)) || !tap_in_view(px))
+            continue;
+          uint f = unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(uint2(px))), uint2(px));
+          float t = 0;
+          if (f == RTDL_SUN_VISIBLE)
+            ++misses;
+          else if (f == RTDL_SUN_HIT)
+          {
+            ++hits;
+            t = unpack_hit8(texture2DAt(rt_sun_hit, uint2(px)));
+            hitT = max(hitT, t);
+          }
+          else if (f == RTDL_SUN_FACING_AWAY)
+          {
+            facingAway = true;
+            continue;
+          }
+          else
+            continue;
+          informed[informedCount] = f;
+          informedHit[informedCount] = t;
+          ++informedCount;
+        }
+      }
+      uint flags;
+      if (exact || (hits > 0 && misses > 0 && RTDL_FILL_RAYS) || (informedCount == 0 && (!facingAway || RTDL_FILL_RAYS)))
+      {
+        SunPixel sp;
+        if (load_sun_pixel(dtid, sp))
+          flags = trace_sun(dtid, sp, GetBlueNoise(dtid, false, 0), softness, exact || RTDL_FILL_RAYS != 0, hitT);
+        else
+        {
+          flags = RTDL_SUN_NO_DATA;
+          hitT = 0;
+        }
+      }
+      else if (informedCount == 0)
+        flags = RTDL_SUN_FACING_AWAY;
+      else if (hits > 0 && misses == 0)
+        flags = RTDL_SUN_HIT;
+      else if (misses > 0 && hits == 0)
+        flags = RTDL_SUN_VISIBLE;
+      else
+      {
+        uint rng = rtdl_seed(dtid, 3);
+        uint pick = min(uint(rtdl_rand(rng) * informedCount), informedCount - 1);
+        flags = informed[pick];
+        hitT = informedHit[pick];
+      }
+
+      if (flags != RTDL_SUN_NO_DATA)
+        rt_sun_samples.InterlockedOr(sun_sample_offset(dtid), flags << sun_sample_shift(dtid));
+      texture2DAt(rt_sun_hit, dtid) = pack_hit8(hitT);
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_sun_fill_cs");
+}
+
+shader rt_direct_lighting_sun_tiles
+{
+  RT_DIRECT_LIGHTING_COMMON()
+
+  (cs) {
+    rt_tiles@tex = rt_direct_lighting_tiles hlsl { Texture2D<uint> rt_tiles@tex; };
+    rt_tiles_dilated@uav = rt_direct_lighting_tiles_dilated hlsl { RWTexture2D<uint> rt_tiles_dilated@uav; };
+  }
+  if (rt_direct_lighting_dynamic_lights == on)
+  {
+    (cs) {
+      rt_change_tiles_prev@tex = rt_direct_lighting_change_tiles_prev hlsl { Texture2D<uint> rt_change_tiles_prev@tex; };
+      rt_change_tiles@uav = rt_direct_lighting_change_tiles hlsl { RWTexture2D<uint> rt_change_tiles@uav; };
+    }
+  }
+
+  hlsl(cs) {
+    [numthreads(8, 8, 1)]
+    void rt_direct_lighting_sun_tiles_cs(uint2 tile : SV_DispatchThreadID)
+    {
+      if (any(int2(tile) >= sun_tile_count()))
+        return;
+      texture2DAt(rt_tiles_dilated, tile) = pack_sun_tiles(gather_sun_tiles(rt_tiles, int2(tile)));
+      ##if rt_direct_lighting_dynamic_lights == on
+      texture2DAt(rt_change_tiles, tile) = texture2DAt(rt_change_tiles_prev, tile);
+      ##endif
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_sun_tiles_cs");
+}
+
+shader rt_direct_lighting_sun_blur
+{
+  RT_DIRECT_LIGHTING_COMMON()
+
+  (cs) {
+    rt_sun_samples@buf = rt_direct_lighting_sun_samples hlsl { ByteAddressBuffer rt_sun_samples@buf; };
+    rt_tiles@tex = rt_direct_lighting_tiles_dilated hlsl { Texture2D<uint> rt_tiles@tex; };
+    rt_sun_hit@tex = rt_direct_lighting_sun_hit hlsl { Texture2D<uint> rt_sun_hit@tex; };
+    rt_sun_spatial@uav = rt_direct_lighting_sun_spatial hlsl { RWTexture2D<float> rt_sun_spatial@uav; };
+  }
+
+  hlsl(cs) {
+    #define RTDL_SUN_BLUR_TAPS 12u
+
+    [numthreads(8, 8, 1)]
+    void rt_direct_lighting_sun_blur_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      float2 tc = (float2(dtid) + 0.5) * inv_resolution;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc)
+
+      uint flags = unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(dtid)), dtid);
+      float depth = load_linear_depth(int2(dtid));
+      if (depth <= 0 || !sun_sample_informs(flags))
+      {
+        texture2DAt(rt_sun_spatial, dtid) = 0;
+        return;
+      }
+
+      SunTiles tiles = load_sun_tiles(rt_tiles, dtid);
+      float result = flags == RTDL_SUN_VISIBLE ? 1 : 0;
+      float own = unpack_hit8(texture2DAt(rt_sun_hit, dtid));
+      float farthest = max(own, tiles.maxHitT);
+      if (tiles.anyMiss && farthest > 0)
+      {
+        float penumbra = sun_penumbra_px(own > 0 ? own : farthest, depth);
+        float radius = sun_blur_radius_px(penumbra);
+        float3 normal = unpackGbuffer(loadPackedGbuffer(dtid)).normal;
+        float3 worldPos = world_view_pos + lerp_view_vec(tc) * depth;
+        uint rng = sun_softness_px(penumbra) > 0 ? rtdl_seed(dtid, 1) : rtdl_seed_still(dtid, 1);
+        float rotation = 2 * PI * rtdl_rand(rng);
+        float2 pixelCenter = float2(dtid) + 0.5;
+        float sum = result;
+        float weightSum = 1;
+        LOOP
+        for (uint k = 0; k < RTDL_SUN_BLUR_TAPS; ++k)
+        {
+          float2 o = sun_tap_offset(k, RTDL_SUN_BLUR_TAPS, rotation);
+          int2 px = int2(floor(pixelCenter + o * radius));
+          if (any(px < 0) || any(px >= int2(resolution)) || all(px == int2(dtid)) || !tap_in_view(px))
+            continue;
+          uint f = unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(uint2(px))), uint2(px));
+          if (!sun_sample_informs(f))
+            continue;
+          float tapDepth = load_linear_depth(px);
+          if (!tap_in_plane(px, tapDepth, worldPos, normal, depth))
+            continue;
+          if (f == RTDL_SUN_HIT)
+          {
+            // a shadow sample reaches as far as its own penumbra, so a contact shadow stays sharp inside a wide one
+            float reach = sun_blur_radius_px(sun_penumbra_px(unpack_hit8(texture2DAt(rt_sun_hit, uint2(px))), tapDepth));
+            o *= radius / reach;
+            if (dot(o, o) > 1)
+              continue;
+          }
+          float wgt = sun_tap_weight(o);
+          sum += f == RTDL_SUN_VISIBLE ? wgt : 0;
+          weightSum += wgt;
+        }
+        result = sum / weightSum;
+      }
+      texture2DAt(rt_sun_spatial, dtid) = result;
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_sun_blur_cs");
+}
+
+shader rt_direct_lighting_local
+{
+  RT_DIRECT_LIGHTING_COMMON()
+
+  if (rt_direct_lighting_dynamic_lights == off) { dont_render; }
+
+  (cs) {
+    rt_shadow_samples@uav = rt_direct_lighting_shadow_samples hlsl { RWTexture2D<uint2> rt_shadow_samples@uav; };
+    rt_normals@uav = rt_direct_lighting_normals hlsl { RWTexture2D<uint> rt_normals@uav; };
+    rt_radiance@uav = rt_direct_lighting_radiance hlsl { RWTexture2DArray<float3> rt_radiance@uav; };
+    rt_unshadowed@uav = rt_direct_lighting_unshadowed hlsl { RWTexture2D<float3> rt_unshadowed@uav; };
+    rt_change_tiles@tex = rt_direct_lighting_change_tiles_prev hlsl { Texture2D<uint> rt_change_tiles@tex; };
+  }
+
+  RT_DIRECT_LIGHTING_REPROJECTION()
+
+  (cs) { rt_shadows_prev@buf = rt_direct_lighting_shadows_prev hlsl { ByteAddressBuffer rt_shadows_prev@buf; }; }
+
+  hlsl(cs) {
+    ##if hardware.scarlett
+      #define RTDL_GROUP_W 8
+      #define RTDL_GROUP_H 8
+    ##else
+      #define RTDL_GROUP_W 16
+      #define RTDL_GROUP_H 8
+    ##endif
+
+    struct LightWalk
+    {
+      uint key[RTDL_SHADOW_SLOTS];
+      uint id[RTDL_SHADOW_SLOTS];
+      float lum[RTDL_SHADOW_SLOTS];
+      float3 f[RTDL_SHADOW_SLOTS];
+      float3 rest;
+      float3 unshadowed;
+    };
+
+    void walk_light(uint type, uint index, PixelData pd, ShadingData sd, Shadows prev, inout LightWalk lw)
+    {
+      LightGeometry g;
+      if (!light_geometry(type, index, g))
+        return;
+      LightSample s;
+      if (!eval_light(type, index, pd, sd, s))
+        return;
+      float3 f = type == RTDL_TYPE_BIG ? s.f : s.f * sd.finalAO;
+      float l = rtdl_lum(f);
+
+      if (!g.hasShadow)
+      {
+        lw.unshadowed += f;
+        return;
+      }
+      if (l <= minimum_output_value)
+      {
+        lw.rest += f;
+        return;
+      }
+
+      uint key = g.key;
+      uint id = pack_light_id(type, index);
+      float rank = l;
+      UNROLL
+      for (uint j = 0; j < RTDL_SHADOW_SLOTS; ++j)
+        if (prev.key[j] == key)
+          rank = l * slot_hysteresis;
+
+      UNROLL
+      for (uint i = 0; i < RTDL_SHADOW_SLOTS; ++i)
+      {
+        if (rank > lw.lum[i])
+        {
+          uint tKey = lw.key[i];
+          uint tId = lw.id[i];
+          float tRank = lw.lum[i];
+          float3 tF = lw.f[i];
+          lw.key[i] = key;
+          lw.id[i] = id;
+          lw.lum[i] = rank;
+          lw.f[i] = f;
+          key = tKey;
+          id = tId;
+          rank = tRank;
+          f = tF;
+        }
+      }
+      if (key != 0)
+        lw.rest += f;
+    }
+
+    bool tile_shadows_changing(uint2 dtid)
+    {
+      if (!change_tiles_retest)
+        return false;
+      int2 tile = int2(dtid / uint2(RTDL_TILE_W, RTDL_TILE_H));
+      int2 tileCount = sun_tile_count();
+      bool changing = false;
+      UNROLL
+      for (int dy = -1; dy <= 1; ++dy)
+      {
+        UNROLL
+        for (int dx = -1; dx <= 1; ++dx)
+        {
+          int2 t = tile + int2(dx, dy);
+          if (all(t >= 0) && all(t < tileCount))
+            changing = changing || frame_number - texture2DAt(rt_change_tiles, t) <= 1u;
+        }
+      }
+      return changing;
+    }
+
+    uint wanted_slots(uint2 dtid, LightWalk lw, Shadows prev, bool force, out uint unknown)
+    {
+      uint wanted = 0;
+      unknown = 0;
+      UNROLL
+      for (uint i = 0; i < RTDL_SHADOW_SLOTS; ++i)
+      {
+        if (lw.key[i] == 0)
+          continue;
+        bool known = false;
+        bool unsettled = false;
+        UNROLL
+        for (uint j = 0; j < RTDL_SHADOW_SLOTS; ++j)
+        {
+          if (prev.key[j] == lw.key[i])
+          {
+            known = true;
+            unsettled = (prev.uncertain & (1u << j)) != 0;
+          }
+        }
+        bool retest = (rtdl_seed(dtid, i) % shadow_retest_period) == 0;
+        if (!known)
+          unknown |= 1u << i;
+        if (!known || unsettled || retest || force)
+          wanted |= 1u << i;
+      }
+      return wanted;
+    }
+
+    [numthreads(RTDL_GROUP_W, RTDL_GROUP_H, 1)]
+    void rt_direct_lighting_local_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+
+      float2 tc = (float2(dtid) + 0.5) * inv_resolution;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc)
+
+      ShadowSamples samples = (ShadowSamples)0;
+      float w = load_surface_depth(dtid);
+      if (w <= 0)
+      {
+        texture2DAt(rt_shadow_samples, dtid) = pack_shadow_samples(samples);
+        texture2DAt(rt_normals, dtid) = 0;
+        UNROLL
+        for (uint layer = 0; layer < RTDL_RADIANCE_LAYERS; ++layer)
+          texture2DArrayAt(rt_radiance, uint3(dtid, layer)) = 0;
+        texture2DAt(rt_unshadowed, dtid) = 0;
+        return;
+      }
+
+      UnpackedGbuffer gbuffer = load_unpacked_gbuffer(dtid);
+      PixelData pd = make_pixel(dtid, w, surface_flags(gbuffer));
+      ShadingData sd = make_shading(pd, gbuffer);
+
+      int2 prevPx;
+      History prevHistory;
+      Shadows prev = empty_shadows();
+      if (reproject_pixel(dtid, w, gbuffer.normal, prevPx, prevHistory))
+        prev = unpack_shadows(rt_shadows_prev.Load3(shadows_offset(uint2(prevPx))));
+
+      LightWalk lw = (LightWalk)0;
+
+      ##if dynamic_lights_count != lights_off
+        uint2 tiledGridSize = (full_resolution + TILE_EDGE - 1) / TILE_EDGE;
+        float2 tileScreenPos = pd.pixelCenter * (float2(full_resolution) / float2(resolution));
+        uint2 tileIdx = screen_uv_to_tile_idx(tileScreenPos);
+        uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
+
+        ##if dynamic_lights_count != lights_spot_1
+          #define TILED_LIGHTS_WALK_SPOT 0
+          #define TILED_LIGHTS_WALK_DEPTH w
+          #define TILED_LIGHTS_WALK_TILE_OFFSET tileOffset
+          ##if (dynamic_lights_count == lights_omni_1 || dynamic_lights_count == lights_omnispot_1)
+            #define TILED_LIGHTS_WALK_SINGLE_WORD 1
+          ##endif
+          #define TILED_LIGHTS_WALK_LIGHT_BODY(omni_light_index) walk_light(RTDL_TYPE_OMNI, omni_light_index, pd, sd, prev, lw);
+          #include <tiled_lights_walk.hlsli>
+        ##endif
+
+        ##if dynamic_lights_count != lights_omni_1
+          #define TILED_LIGHTS_WALK_SPOT 1
+          #define TILED_LIGHTS_WALK_DEPTH w
+          #define TILED_LIGHTS_WALK_TILE_OFFSET tileOffset
+          ##if (dynamic_lights_count == lights_spot_1 || dynamic_lights_count == lights_omnispot_1)
+            #define TILED_LIGHTS_WALK_SINGLE_WORD 1
+          ##endif
+          #define TILED_LIGHTS_WALK_LIGHT_BODY(spot_light_index) walk_light(RTDL_TYPE_SPOT, spot_light_index, pd, sd, prev, lw);
+          #include <tiled_lights_walk.hlsli>
+        ##endif
+      ##endif
+
+      walk_light(RTDL_TYPE_BIG, 0, pd, sd, prev, lw);
+      walk_light(RTDL_TYPE_BIG, 1, pd, sd, prev, lw);
+
+      UNROLL
+      for (uint slot = 0; slot < RTDL_SHADOW_SLOTS; ++slot)
+        texture2DArrayAt(rt_radiance, uint3(dtid, slot)) = lw.f[slot];
+      texture2DArrayAt(rt_radiance, uint3(dtid, RTDL_SHADOW_SLOTS)) = lw.rest;
+      texture2DAt(rt_unshadowed, dtid) = lw.unshadowed;
+      texture2DAt(rt_normals, dtid) = pack_oct8(gbuffer.normal);
+
+      UNROLL
+      for (uint i = 0; i < RTDL_SHADOW_SLOTS; ++i)
+        samples.key[i] = lw.key[i];
+      samples.depth10 = encode_depth10(w);
+
+      uint unknown;
+      uint wanted = wanted_slots(dtid, lw, prev, tile_shadows_changing(dtid), unknown);
+      uint rotating = wanted & ~unknown;
+      uint rotatingCount = countbits(rotating);
+      uint rays = min(shadow_rays_per_pixel - min(shadow_rays_per_pixel, countbits(unknown)), rotatingCount);
+      if (wanted != 0)
+      {
+        uint first = 0;
+        if (rotatingCount > 0)
+          first = (frame_number + pcg_hash(dtid.x + 7919u * dtid.y)) % rotatingCount;
+        float2 diskUV = GetBlueNoise(dtid, false, 1);
+        float3 rayOrigin = applyAdaptiveRayOffset(pd.relPos, calc_geometry_normal(dtid, inv_resolution, resolution));
+        UNROLL
+        for (uint i = 0; i < RTDL_SHADOW_SLOTS; ++i)
+        {
+          if ((wanted & (1u << i)) == 0)
+            continue;
+          if ((unknown & (1u << i)) == 0)
+          {
+            uint rank = countbits(rotating & ((1u << i) - 1));
+            if ((rank + rotatingCount - first) % rotatingCount >= rays)
+              continue;
+          }
+          LightGeometry g;
+          if (!light_geometry(light_id_type(lw.id[i]), light_id_index(lw.id[i]), g))
+            continue;
+          samples.result[i] = light_sample_visible(pd, g, diskUV, rayOrigin) ? RTDL_SAMPLE_VISIBLE : RTDL_SAMPLE_OCCLUDED;
+        }
+      }
+
+      texture2DAt(rt_shadow_samples, dtid) = pack_shadow_samples(samples);
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_local_cs");
+}
+
+shader rt_direct_lighting_stabilize
+{
+  RT_DIRECT_LIGHTING_COMMON()
+
+  (cs) {
+    rt_sun_shadow@uav = rt_direct_lighting_sun_shadow hlsl { RWTexture2D<float> rt_sun_shadow@uav; };
+    rt_history@uav = rt_direct_lighting_history hlsl { RWTexture2D<uint2> rt_history@uav; };
+    rt_sun_samples@buf = rt_direct_lighting_sun_samples hlsl { ByteAddressBuffer rt_sun_samples@buf; };
+    rt_tiles@tex = rt_direct_lighting_tiles_dilated hlsl { Texture2D<uint> rt_tiles@tex; };
+    rt_sun_hit@tex = rt_direct_lighting_sun_hit hlsl { Texture2D<uint> rt_sun_hit@tex; };
+    rt_sun_spatial@tex = rt_direct_lighting_sun_spatial hlsl { Texture2D<float> rt_sun_spatial@tex; };
+  }
+  if (rt_direct_lighting_dynamic_lights == on)
+  {
+    (cs) {
+      rt_shadow_samples@tex = rt_direct_lighting_shadow_samples hlsl { Texture2D<uint2> rt_shadow_samples@tex; };
+      rt_normals@tex = rt_direct_lighting_normals hlsl { Texture2D<uint> rt_normals@tex; };
+      rt_radiance@texArray = rt_direct_lighting_radiance;
+      rt_unshadowed@tex = rt_direct_lighting_unshadowed hlsl { Texture2D<float3> rt_unshadowed@tex; };
+      rt_output@uav = precomputed_dynamic_lights hlsl { RWTexture2D<float3> rt_output@uav; };
+      rt_shadows@uav = rt_direct_lighting_shadows hlsl { RWByteAddressBuffer rt_shadows@uav; };
+      rt_change_tiles@uav = rt_direct_lighting_change_tiles hlsl { RWTexture2D<uint> rt_change_tiles@uav; };
+    }
+  }
+
+  RT_DIRECT_LIGHTING_REPROJECTION()
+
+  if (rt_direct_lighting_dynamic_lights == on)
+  {
+    (cs) { rt_shadows_prev@buf = rt_direct_lighting_shadows_prev hlsl { ByteAddressBuffer rt_shadows_prev@buf; }; }
+  }
+
+  hlsl(cs) {
+    #define RTDL_SUN_STABILIZE_TAPS 8u
+    #define RTDL_SHADOW_TAPS 8u
+    #define RTDL_SHADOW_INNER_TAPS 4u
+    ##if hardware.scarlett
+      #define RTDL_STABILIZE_GROUP 8
+    ##else
+      #define RTDL_STABILIZE_GROUP 16
+    ##endif
+    #define RTDL_SHADOW_MAX_RADIUS 8
+    #define RTDL_LDS_TILE (RTDL_STABILIZE_GROUP + 2 * RTDL_SHADOW_MAX_RADIUS)
+    #define RTDL_LDS_TILE_TEXELS (RTDL_LDS_TILE * RTDL_LDS_TILE)
+
+    ##if rt_direct_lighting_dynamic_lights == on
+    groupshared uint2 s_samples[RTDL_LDS_TILE_TEXELS];
+
+    ShadowSamples tile_samples(int2 tile_px) { return unpack_shadow_samples(s_samples[tile_px.y * RTDL_LDS_TILE + tile_px.x]); }
+    ##endif
+
+    float clamp_history(float hist, float mean, float sigma, float wsum, float clamp_sigma, inout float m)
+    {
+      float gamma = lerp(clamp_sigma, 1, 1 / (1 + m));
+      float nullVariance = max(min(hist * (1 - hist), sigma * sigma), 0.03);
+      float halfWindow = min(gamma * sqrt(nullVariance / wsum), 0.5);
+      m *= saturate(1 - (abs(hist - mean) - halfWindow) / halfWindow);
+      return clamp(hist, mean - halfWindow, mean + halfWindow);
+    }
+
+    float clamp_sun_history(float hist, float mean, float sigma, inout float m)
+    {
+      float gamma = lerp(sun_clamp_sigma, 1, 1 / (1 + m));
+      float halfWindow = max(min(gamma * sigma, 0.5), 1e-3);
+      m *= saturate(1 - (abs(hist - mean) - halfWindow) / halfWindow);
+      return clamp(hist, mean - halfWindow, mean + halfWindow);
+    }
+
+    float stabilize_sun(uint2 dtid, float3 world_pos, float3 normal, float depth, float sun_history, inout float history_length,
+      out float farthest)
+    {
+      float own = unpack_hit8(texture2DAt(rt_sun_hit, dtid));
+      farthest = max(own, load_sun_tiles(rt_tiles, dtid).maxHitT);
+      if (!sun_sample_informs(unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(dtid)), dtid)))
+      {
+        history_length = 0;
+        return 0;
+      }
+
+      float penumbra = sun_penumbra_px(own > 0 ? own : farthest, depth);
+      float softness = sun_softness_px(penumbra);
+      if (softness <= 0)
+      {
+        history_length = max_sun_history;
+        return texture2DAt(rt_sun_spatial, dtid);
+      }
+
+      float radius = sun_blur_radius_px(penumbra) * 0.5 * softness;
+      uint rng = rtdl_seed(dtid, 2);
+      float rotation = 2 * PI * rtdl_rand(rng);
+      float2 pixelCenter = float2(dtid) + 0.5;
+
+      float m1 = texture2DAt(rt_sun_spatial, dtid);
+      float weightSum = 1;
+      LOOP
+      for (uint k = 0; k < RTDL_SUN_STABILIZE_TAPS; ++k)
+      {
+        float2 o = sun_tap_offset(k, RTDL_SUN_STABILIZE_TAPS, rotation);
+        int2 px = int2(floor(pixelCenter + o * radius));
+        if (any(px < 0) || any(px >= int2(resolution)) || all(px == int2(dtid)) || !tap_in_view(px))
+          continue;
+        if (!sun_sample_informs(unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(uint2(px))), uint2(px))))
+          continue;
+        if (!tap_in_plane(px, load_linear_depth(px), world_pos, normal, depth))
+          continue;
+        float wgt = sun_tap_weight(o);
+        m1 += texture2DAt(rt_sun_spatial, px) * wgt;
+        weightSum += wgt;
+      }
+      m1 /= weightSum;
+
+      float result = m1;
+      float m = min(history_length, max_sun_history * softness);
+      if (m > 0.5)
+      {
+        float n1 = 0;
+        float n2 = 0;
+        float n = 0;
+        UNROLL
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+          UNROLL
+          for (int dx = -1; dx <= 1; ++dx)
+          {
+            uint2 px = uint2(clamp(int2(dtid) + int2(dx, dy), int2(0, 0), int2(resolution) - 1));
+            if (!sun_sample_informs(unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(px)), px)))
+              continue;
+            float v = texture2DAt(rt_sun_spatial, px);
+            n1 += v;
+            n2 += v * v;
+            n += 1;
+          }
+        }
+        n1 /= n;
+        float sigma3 = sqrt(max(n2 / n - n1 * n1, 0));
+        float historyClamped = clamp_sun_history(sun_history, n1, sigma3, m);
+        result = lerp(m1, historyClamped, m / (1 + m));
+      }
+      else
+        m = 0;
+      history_length = min(m + 1, max_sun_history);
+      return result;
+    }
+
+    bool slot_settled(float visibility, float length) { return length >= 4 && (visibility <= 0.02 || visibility >= 0.98); }
+
+    void stabilize_slot(float m1, float m2, float wsum, float hist_v, float hist_m, bool has_history, out float visibility, out float length,
+      out bool unsettled)
+    {
+      if (wsum <= 0)
+      {
+        visibility = has_history ? hist_v : 1;
+        length = has_history ? hist_m : 0;
+        unsettled = !has_history || !slot_settled(visibility, length);
+        return;
+      }
+
+      float mean = m1 / wsum;
+      float sigma = sqrt(max(m2 / wsum - mean * mean, 0));
+      float m = has_history ? min(hist_m, RTDL_MAX_M) : 0;
+      bool disagreed = sigma > 0.01 || (has_history && abs(hist_v - mean) >= 0.05);
+      visibility = mean;
+      if (m > 0.5)
+      {
+        float historyClamped = clamp_history(hist_v, mean, sigma, wsum, local_clamp_sigma, m);
+        visibility = lerp(mean, historyClamped, m / (1 + m));
+      }
+      else
+        m = 0;
+      length = min(m + 1, max_local_shadow_history);
+      unsettled = disagreed || !slot_settled(visibility, length);
+    }
+
+    [numthreads(RTDL_STABILIZE_GROUP, RTDL_STABILIZE_GROUP, 1)]
+    void rt_direct_lighting_stabilize_cs(uint2 dtid : SV_DispatchThreadID, uint2 gid : SV_GroupID, uint gidx : SV_GroupIndex)
+    {
+      ##if rt_direct_lighting_dynamic_lights == on
+      int2 tileOrigin = int2(gid) * RTDL_STABILIZE_GROUP - RTDL_SHADOW_MAX_RADIUS;
+      UNROLL
+      for (uint n = 0; n < RTDL_LDS_TILE_TEXELS / (RTDL_STABILIZE_GROUP * RTDL_STABILIZE_GROUP); ++n)
+      {
+        uint i = gidx + n * RTDL_STABILIZE_GROUP * RTDL_STABILIZE_GROUP;
+        int2 px = tileOrigin + int2(i % RTDL_LDS_TILE, i / RTDL_LDS_TILE);
+        uint2 loaded = uint2(0, 0);
+        if (all(px >= 0) && all(px < int2(resolution)))
+          loaded = texture2DAt(rt_shadow_samples, px);
+        s_samples[i] = loaded;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      ##endif
+
+      if (any(dtid >= resolution))
+        return;
+
+      float2 tc = (float2(dtid) + 0.5) * inv_resolution;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc)
+
+      ##if rt_direct_lighting_dynamic_lights == on
+      ShadowSamples own = tile_samples(int2(dtid) - tileOrigin);
+      uint depth10 = own.depth10;
+      uint oct8 = texture2DAt(rt_normals, dtid);
+      ##else
+      uint depth10 = encode_depth10(load_surface_depth(dtid));
+      uint oct8 = depth10 == 0 ? 0 : pack_oct8(load_unpacked_gbuffer(dtid).normal);
+      ##endif
+      if (depth10 == 0)
+      {
+        texture2DAt(rt_history, dtid) = pack_history(empty_history());
+        texture2DAt(rt_sun_shadow, dtid) = 1;
+        ##if rt_direct_lighting_dynamic_lights == on
+        rt_shadows.Store3(shadows_offset(dtid), pack_shadows(empty_shadows()));
+        texture2DAt(rt_output, dtid) = 0;
+        ##endif
+        return;
+      }
+
+      float w = load_linear_depth(int2(dtid));
+      float3 normal = unpack_oct8(oct8);
+      float3 worldPos = world_view_pos + lerp_view_vec(tc) * w;
+
+      float sunV = 0;
+      float sunM = 0;
+      ##if rt_direct_lighting_dynamic_lights == on
+      float histV[RTDL_SHADOW_SLOTS] = {0, 0, 0};
+      float histM[RTDL_SHADOW_SLOTS] = {0, 0, 0};
+      float histW[RTDL_SHADOW_SLOTS] = {0, 0, 0};
+      ##endif
+      int2 prevPx;
+      History prevHistory;
+      BRANCH
+      if (reproject_pixel(dtid, w, normal, prevPx, prevHistory))
+      {
+        sunV = prevHistory.sunVisibility;
+        sunM = prevHistory.sunLength;
+        ##if rt_direct_lighting_dynamic_lights == on
+        Shadows prev = unpack_shadows(rt_shadows_prev.Load3(shadows_offset(uint2(prevPx))));
+        UNROLL
+        for (uint a = 0; a < RTDL_SHADOW_SLOTS; ++a)
+        {
+          if (own.key[a] == 0)
+            continue;
+          UNROLL
+          for (uint b = 0; b < RTDL_SHADOW_SLOTS; ++b)
+          {
+            if (prev.key[b] == own.key[a])
+            {
+              histV[a] = prev.visibility[b];
+              histM[a] = prev.length[b];
+              histW[a] = 1;
+            }
+          }
+        }
+        ##endif
+      }
+
+      float sunLength = sunM;
+      float sunOccluder;
+      float sun = stabilize_sun(dtid, worldPos, normal, w, sunV, sunLength, sunOccluder);
+
+      ##if rt_direct_lighting_dynamic_lights == on
+      float2 pixelCenter = float2(dtid) + 0.5;
+      bool changed = false;
+      UNROLL
+      for (uint a = 0; a < RTDL_SHADOW_SLOTS; ++a)
+      {
+        if (own.key[a] == 0 || own.result[a] == RTDL_SAMPLE_NONE || histW[a] <= 0 || !slot_settled(histV[a], histM[a]))
+          continue;
+        bool sampleVisible = own.result[a] == RTDL_SAMPLE_VISIBLE;
+        changed = changed || (sampleVisible ? histV[a] < 0.5 : histV[a] > 0.5);
+      }
+      if (changed)
+        texture2DAt(rt_change_tiles, dtid / uint2(RTDL_TILE_W, RTDL_TILE_H)) = frame_number;
+
+      float m1[RTDL_SHADOW_SLOTS] = {0, 0, 0};
+      float m2[RTDL_SHADOW_SLOTS] = {0, 0, 0};
+      float wsum[RTDL_SHADOW_SLOTS] = {0, 0, 0};
+      UNROLL
+      for (uint a = 0; a < RTDL_SHADOW_SLOTS; ++a)
+      {
+        if (own.result[a] != RTDL_SAMPLE_NONE)
+        {
+          float v = own.result[a] == RTDL_SAMPLE_VISIBLE ? 1 : 0;
+          m1[a] = v;
+          m2[a] = v * v;
+          wsum[a] = 1;
+        }
+      }
+      uint taken = (own.key[0] != 0 ? 1 : 0) + (own.key[1] != 0 ? 1 : 0) + (own.key[2] != 0 ? 1 : 0);
+      if (taken > 0)
+      {
+        uint rng = rtdl_seed(dtid, 3);
+        float rotation = 2 * PI * rtdl_rand(rng);
+        float radius = min(local_shadow_radius, RTDL_SHADOW_MAX_RADIUS);
+        LOOP
+        for (uint k = 0; k < RTDL_SHADOW_TAPS; ++k)
+        {
+          if (k == RTDL_SHADOW_INNER_TAPS)
+          {
+            bool settled = true;
+            UNROLL
+            for (uint a = 0; a < RTDL_SHADOW_SLOTS; ++a)
+            {
+              if (own.key[a] == 0)
+                continue;
+              bool sameSamples = m2[a] * wsum[a] - m1[a] * m1[a] <= 1e-4;
+              bool agrees = histW[a] <= 0 || wsum[a] <= 0 || abs(histV[a] - m1[a] / wsum[a]) < 0.05;
+              settled = settled && sameSamples && agrees;
+            }
+            if (settled)
+              break;
+          }
+          float2 o = sun_tap_offset(k, RTDL_SHADOW_TAPS, rotation);
+          int2 px = int2(floor(pixelCenter + o * radius));
+          if (any(px < 0) || any(px >= int2(resolution)) || all(px == int2(dtid)) || !tap_in_view(px))
+            continue;
+          ShadowSamples tap = tile_samples(px - tileOrigin);
+          if (tap.depth10 == 0 || !tap_in_plane(px, decode_depth10(tap.depth10), worldPos, normal, w, 0.02))
+            continue;
+          float wgt = sun_tap_weight(o);
+          UNROLL
+          for (uint a = 0; a < RTDL_SHADOW_SLOTS; ++a)
+          {
+            if (own.key[a] == 0)
+              continue;
+            UNROLL
+            for (uint b = 0; b < RTDL_SHADOW_SLOTS; ++b)
+            {
+              if (tap.key[b] == own.key[a] && tap.result[b] != RTDL_SAMPLE_NONE)
+              {
+                float v = tap.result[b] == RTDL_SAMPLE_VISIBLE ? 1 : 0;
+                m1[a] += v * wgt;
+                m2[a] += v * v * wgt;
+                wsum[a] += wgt;
+              }
+            }
+          }
+        }
+      }
+
+      Shadows outShadows = empty_shadows();
+      float3 radiance0 = texture2DArrayAt(rt_radiance, uint3(dtid, 0)).xyz;
+      float3 radiance1 = texture2DArrayAt(rt_radiance, uint3(dtid, 1)).xyz;
+      float3 radiance2 = texture2DArrayAt(rt_radiance, uint3(dtid, 2)).xyz;
+      float3 local = texture2DArrayAt(rt_radiance, uint3(dtid, RTDL_SHADOW_SLOTS)).xyz;
+      float visibility[RTDL_SHADOW_SLOTS] = {1, 1, 1};
+      UNROLL
+      for (uint a = 0; a < RTDL_SHADOW_SLOTS; ++a)
+      {
+        if (own.key[a] == 0)
+          continue;
+        float length;
+        bool unsettled;
+        stabilize_slot(m1[a], m2[a], wsum[a], histV[a], histM[a], histW[a] > 0, visibility[a], length, unsettled);
+        outShadows.key[a] = own.key[a];
+        outShadows.visibility[a] = visibility[a];
+        outShadows.length[a] = length;
+        if (unsettled)
+          outShadows.uncertain |= 1u << a;
+      }
+      float restVisibility = 1;
+      if (shadow_rest_lights)
+      {
+        float lum0 = rtdl_lum(radiance0);
+        float lum1 = rtdl_lum(radiance1);
+        float lum2 = rtdl_lum(radiance2);
+        float lumSum = lum0 + lum1 + lum2;
+        if (lumSum > 0)
+          restVisibility = (lum0 * visibility[0] + lum1 * visibility[1] + lum2 * visibility[2]) / lumSum;
+      }
+      local = texture2DAt(rt_unshadowed, dtid) + local * restVisibility + radiance0 * visibility[0] + radiance1 * visibility[1] +
+              radiance2 * visibility[2];
+      ##endif
+
+      History history;
+      history.sunVisibility = sun;
+      history.sunLength = sunLength;
+      history.sunOccluder = sunOccluder;
+      history.surface = pack_surface(depth10, oct8);
+      texture2DAt(rt_history, dtid) = pack_history(history);
+      texture2DAt(rt_sun_shadow, dtid) = sqrt(saturate(sun));
+      ##if rt_direct_lighting_dynamic_lights == on
+      rt_shadows.Store3(shadows_offset(dtid), pack_shadows(outShadows));
+      texture2DAt(rt_output, dtid) = local;
+      ##endif
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_stabilize_cs");
+}
+
+shader rt_direct_lighting_debug
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+
+  RT_DIRECT_LIGHTING_PACKING()
+
+  (cs) {
+    inv_resolution@f2 = (1.0 / rt_direct_lighting_resolution.x, 1.0 / rt_direct_lighting_resolution.y);
+    debug_params@i4 = rt_direct_lighting_debug_params;
+    debug_scale@f4 = rt_direct_lighting_debug_scale;
+    rt_debug@uav = rt_direct_lighting_debug hlsl { RWTexture2D<float4> rt_debug@uav; };
+    rt_sun_samples@buf = rt_direct_lighting_sun_samples hlsl { ByteAddressBuffer rt_sun_samples@buf; };
+    rt_tiles@tex = rt_direct_lighting_tiles_dilated hlsl { Texture2D<uint> rt_tiles@tex; };
+    rt_sun_spatial@tex = rt_direct_lighting_sun_spatial hlsl { Texture2D<float> rt_sun_spatial@tex; };
+    rt_history@tex = rt_direct_lighting_history hlsl { Texture2D<uint2> rt_history@tex; };
+  }
+  if (rt_direct_lighting_dynamic_lights == on)
+  {
+    (cs) {
+      rt_shadow_samples@tex = rt_direct_lighting_shadow_samples hlsl { Texture2D<uint2> rt_shadow_samples@tex; };
+      rt_radiance@texArray = rt_direct_lighting_radiance;
+      rt_unshadowed@tex = rt_direct_lighting_unshadowed hlsl { Texture2D<float3> rt_unshadowed@tex; };
+      rt_output@tex = rt_direct_lighting_output hlsl { Texture2D<float3> rt_output@tex; };
+      rt_shadows@buf = rt_direct_lighting_shadows hlsl { ByteAddressBuffer rt_shadows@buf; };
+      rt_change_tiles@tex = rt_direct_lighting_change_tiles hlsl { Texture2D<uint> rt_change_tiles@tex; };
+    }
+  }
+
+  USE_AND_INIT_VIEW_VEC_CS()
+  RTSM_SUN_DIR()
+  RT_DIRECT_LIGHTING_PENUMBRA()
+
+  hlsl(cs) {
+    #include <pcg_hash.hlsl>
+
+    #define debug_view uint(debug_params.x)
+    #define debug_slot min(uint(debug_params.y), RTDL_SHADOW_SLOTS - 1u)
+    #define debug_sun_quality debug_params.z
+    #define debug_exposure debug_scale.x
+    #define debug_max_sun_history debug_scale.y
+
+    #define RTDL_DEBUG_NO_SURFACE float3(0, 0, 0.3)
+    #define RTDL_DEBUG_NO_SAMPLE float3(0.6, 0, 0.6)
+    #define RTDL_DEBUG_NOT_TRACED float3(0.5, 0.5, 0.5)
+    #define RTDL_DEBUG_FACING_AWAY float3(0.5, 0, 0)
+    #define RTDL_DEBUG_EMPTY_SLOT float3(0, 0.25, 0)
+    #define RTDL_DEBUG_CHANGE_FADE_FRAMES 8.0
+
+    float3 gray(float v) { return float3(v, v, v); }
+
+    float3 sun_sample_color(uint flags)
+    {
+      if (flags == RTDL_SUN_VISIBLE)
+        return gray(1);
+      if (flags == RTDL_SUN_HIT)
+        return gray(0);
+      return flags == RTDL_SUN_FACING_AWAY ? RTDL_DEBUG_FACING_AWAY : RTDL_DEBUG_NO_SAMPLE;
+    }
+
+    bool sun_sample_traced(uint2 px) { return debug_sun_quality == 0 || sun_checkerboard_pixel(uint2(px.x / 2, px.y), true).x == px.x; }
+
+    float3 tile_color(SunTiles tiles, float background)
+    {
+      float3 c = tiles.anyHit && tiles.anyMiss ? float3(1, 1, 0) : tiles.anyHit ? float3(1, 0, 0) : tiles.anyMiss ? float3(0, 1, 0) : gray(0);
+      return lerp(gray(background), c, 0.5);
+    }
+
+    float3 radiance_color(float3 c)
+    {
+      c = max(c, 0) * debug_exposure;
+      return sqrt(c / (1 + c));
+    }
+
+    float3 light_key_color(uint key)
+    {
+      uint h = pcg_hash(key);
+      return float3(h & 0xFF, (h >> 8) & 0xFF, (h >> 16) & 0xFF) / 255.0;
+    }
+
+    float3 debug_color(uint2 dtid, History history)
+    {
+      uint view = debug_view;
+      if (view == RTDL_DEBUG_SUN_TRACED && !sun_sample_traced(dtid))
+        return RTDL_DEBUG_NOT_TRACED;
+      if (view == RTDL_DEBUG_SUN_TRACED || view == RTDL_DEBUG_SUN_FILLED)
+        return sun_sample_color(unpack_sun_sample(rt_sun_samples.Load(sun_sample_offset(dtid)), dtid));
+      if (view == RTDL_DEBUG_SUN_TILES)
+        return tile_color(unpack_sun_tiles(texture2DAt(rt_tiles, dtid / uint2(RTDL_TILE_W, RTDL_TILE_H))), 0.3 * history.sunVisibility);
+      if (view == RTDL_DEBUG_SUN_SOFTNESS)
+        return gray(history.sunOccluder > 0 ? sun_softness_px(sun_penumbra_px(history.sunOccluder, surface_depth(history.surface))) : 1);
+      if (view == RTDL_DEBUG_SUN_BLURRED)
+        return gray(texture2DAt(rt_sun_spatial, dtid));
+      if (view == RTDL_DEBUG_SUN_STABILIZED)
+        return gray(saturate(history.sunVisibility));
+      if (view == RTDL_DEBUG_SUN_HISTORY)
+        return gray(saturate(history.sunLength / debug_max_sun_history));
+
+      ##if rt_direct_lighting_dynamic_lights == on
+      if (view == RTDL_DEBUG_LIGHTS_OUTPUT)
+        return radiance_color(texture2DAt(rt_output, dtid));
+      if (view == RTDL_DEBUG_LIGHTS_SHADOWLESS)
+        return radiance_color(texture2DAt(rt_unshadowed, dtid));
+      if (view == RTDL_DEBUG_LIGHTS_REST)
+        return radiance_color(texture2DArrayAt(rt_radiance, uint3(dtid, RTDL_SHADOW_SLOTS)).xyz);
+      if (view == RTDL_DEBUG_LIGHTS_CHANGE_TILES)
+      {
+        uint stamp = texture2DAt(rt_change_tiles, dtid / uint2(RTDL_TILE_W, RTDL_TILE_H));
+        float heat = stamp == 0 ? 0 : saturate(1 - float(frame_number - stamp) / RTDL_DEBUG_CHANGE_FADE_FRAMES);
+        return lerp(gray(0.3 * history.sunVisibility), float3(1, 0, 0), heat);
+      }
+      if (view == RTDL_DEBUG_SLOT_RADIANCE)
+        return radiance_color(texture2DArrayAt(rt_radiance, uint3(dtid, debug_slot)).xyz);
+
+      ShadowSamples samples = unpack_shadow_samples(texture2DAt(rt_shadow_samples, dtid));
+      uint key = samples.key[debug_slot];
+      if (key == 0)
+        return RTDL_DEBUG_EMPTY_SLOT;
+      if (view == RTDL_DEBUG_SLOT_LIGHT)
+        return light_key_color(key);
+      if (view == RTDL_DEBUG_SLOT_SAMPLES)
+      {
+        uint result = samples.result[debug_slot];
+        return result == RTDL_SAMPLE_VISIBLE ? gray(1) : result == RTDL_SAMPLE_OCCLUDED ? gray(0) : RTDL_DEBUG_NOT_TRACED;
+      }
+      if (view == RTDL_DEBUG_SLOT_VISIBILITY)
+      {
+        Shadows shadows = unpack_shadows(rt_shadows.Load3(shadows_offset(dtid)));
+        float3 c = gray(shadows.visibility[debug_slot]);
+        return (shadows.uncertain & (1u << debug_slot)) != 0 ? lerp(c, float3(1, 0, 0), 0.35) : c;
+      }
+      ##endif
+
+      return RTDL_DEBUG_NO_SAMPLE;
+    }
+
+    [numthreads(8, 8, 1)]
+    void rt_direct_lighting_debug_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      if (any(dtid >= resolution))
+        return;
+      uint2 packedHistory = texture2DAt(rt_history, dtid);
+      float3 color = packedHistory.y == 0 ? RTDL_DEBUG_NO_SURFACE : debug_color(dtid, unpack_history(packedHistory));
+      texture2DAt(rt_debug, dtid) = float4(color, 1);
+    }
+  }
+
+  compile("cs_6_5", "rt_direct_lighting_debug_cs");
+}

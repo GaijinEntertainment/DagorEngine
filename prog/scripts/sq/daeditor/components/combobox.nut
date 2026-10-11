@@ -2,11 +2,7 @@ from "%darg/ui_imports.nut" import *
 from "types" import Table
 let comboStyle = require("combobox.style.nut")
 let {setTooltip} = require("cursors.nut")
-
-local ComboPopupLayer = 1
-if ("Layers" in getconsttable()) {
-  ComboPopupLayer = getconsttable()?["Layers"].ComboPopup ?? 1
-}
+let { getPopupZOrder } = require("%daeditor/components/modalWindows.nut")
 
 let popupContentAnim = [
   { prop=AnimProp.opacity, from=0, to=1, duration=0.12, play=true, easing=InOutQuad }
@@ -200,7 +196,7 @@ function combobox(watches, options, tooltip=null, combo_style=comboStyle) {
 
 
     return {
-      zOrder = ComboPopupLayer
+      zOrder = getPopupZOrder()
       size = flex()
       watch = options
       children = [

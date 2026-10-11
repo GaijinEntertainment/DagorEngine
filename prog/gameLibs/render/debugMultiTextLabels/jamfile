@@ -1,0 +1,25 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../../.. ;
+Module = debugMultiTextLabels ;
+Location = prog/gameLibs/render/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+local AllSrcFolder_CPP = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP += . ;
+  UseProgLibs =
+    gameLibs/render
+    gameLibs/hudprim
+  ;
+} else {
+  AllSrcFolder_CPP += stub ;
+}
+
+include $(Root)/prog/gameLibs/build_module.jam ;

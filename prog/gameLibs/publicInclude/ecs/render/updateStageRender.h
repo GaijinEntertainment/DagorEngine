@@ -15,6 +15,7 @@
 #include <render/dynmodelRenderer.h>
 
 class Occlusion;
+class BaseTexture;
 
 
 struct UpdateStageInfoBeforeRender : public ecs::Event, public TransformHolder
@@ -115,5 +116,8 @@ struct UpdateStageInfoRenderDebug : public ecs::UpdateStageInfoRenderDebug
 {
   mat44f globtm;
   TMatrix viewItm;
-  UpdateStageInfoRenderDebug(mat44f_cref gtm, const TMatrix &itm) : globtm(gtm), viewItm(itm) {}
+  BaseTexture *target;
+  UpdateStageInfoRenderDebug(mat44f_cref gtm, const TMatrix &itm, BaseTexture *target_tex) :
+    globtm(gtm), viewItm(itm), target(target_tex)
+  {}
 };

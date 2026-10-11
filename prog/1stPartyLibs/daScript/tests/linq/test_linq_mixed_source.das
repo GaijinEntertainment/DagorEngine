@@ -31,8 +31,8 @@ def same(t : T?; name : string; refArr : array<int>; var got : iterator<int -con
     var g <- got |> to_array()
     t |> equal(length(g), length(refArr), name)
     if (length(g) == length(refArr)) {
-        for (i in range(length(refArr))) {
-            t |> equal(g[i], refArr[i], name)
+        for (gv, rv in g, refArr) {
+            t |> equal(gv, rv, name)
         }
     }
     delete g

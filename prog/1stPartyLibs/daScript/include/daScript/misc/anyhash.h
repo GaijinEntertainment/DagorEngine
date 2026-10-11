@@ -110,6 +110,15 @@ namespace das {
         }
     };
 
+    // Folds `value` into a running `hash`, i.e. HashBuilder::update with an explicit seed.
+    // Order-sensitive, and safe for any accumulator including 0 - which a bare _wymix is NOT:
+    // _wymix(0,x) is 0 for every x, so a zero accumulator would both stick and collapse every
+    // distinct value onto one result.
+    static __forceinline uint64_t hash_combine64 ( uint64_t hash, uint64_t value ) {
+        auto h = wyhash((const uint8_t *)&value, sizeof(value), hash);
+        return h <= HASH_KILLED64 ? UINT64_C(1099511628211) : h;
+    }
+
     inline uint64_t _builtin_hash_int8 ( int8_t value ) { return HashBuilder().update(value).getHash(); }
     inline uint64_t _builtin_hash_uint8 ( uint8_t value ) { return HashBuilder().update(value).getHash(); }
     inline uint64_t _builtin_hash_int16 ( int16_t value ) { return HashBuilder().update(value).getHash(); }

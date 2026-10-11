@@ -13,7 +13,7 @@ public:
   ~SettingsOverride();
   void useCustomConfigBlk(DataBlock &&blk);
   void useDefaultConfigBlk();
-  const DataBlock *getSettings() const;
+  void applyToSettings();
   bool isSettingOverriden(const char *setting_path) const;
 
 private:

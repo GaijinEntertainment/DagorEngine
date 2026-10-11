@@ -7,6 +7,7 @@
 #include "globals.h"
 #include "vk_format_utils.h"
 #include "driver_config.h"
+#include "physical_device_set.h"
 
 using namespace drv3d_vulkan;
 
@@ -150,6 +151,9 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
         result |= USAGE_VERTEXTEXTURE;
         if (features & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
           result |= USAGE_FILTER;
+        if ((features & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) ||
+            Globals::VK::phy.sampledImageDepthComparison[fmt.asVkFormat()])
+          result |= USAGE_SAMPLECMP;
       }
       if (features & (VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT))
         result |= USAGE_UNORDERED | USAGE_UNORDERED_LOAD;

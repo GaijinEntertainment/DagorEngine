@@ -70,7 +70,7 @@ class private MakeEmptyLetVar : AstCallMacro {
 [structure_macro(name = "bad_emit_function")]
 class private BadEmitFunction : AstStructureAnnotation {
     def override patch(var st : StructurePtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         var fn = new Function(at = st.at, atDecl = st.at, name := "",
                               result <- new TypeDecl(baseType = Type.tVoid))
@@ -87,7 +87,7 @@ class private BadEmitFunction : AstStructureAnnotation {
 [structure_macro(name = "bad_emit_structure")]
 class private BadEmitStructure : AstStructureAnnotation {
     def override patch(var st : StructurePtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         var bad <- new Structure(at = st.at, name := "")
         if (!(compiling_module() |> add_structure(bad))) {
@@ -102,7 +102,7 @@ class private BadEmitStructure : AstStructureAnnotation {
 [structure_macro(name = "bad_emit_struct_field")]
 class private BadEmitStructField : AstStructureAnnotation {
     def override patch(var st : StructurePtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         var bad <- new Structure(at = st.at, name := "BadFieldHost_{st.name}")
         add_structure_field(bad, "", new TypeDecl(baseType = Type.tInt), null)

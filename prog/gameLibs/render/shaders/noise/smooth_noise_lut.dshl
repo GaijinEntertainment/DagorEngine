@@ -1,0 +1,22 @@
+// Quintic value noise over the 64x64 L8 LUT of render/noiseTex.cpp; wraps every 64 units of P.
+// always_referenced: a register-pinned reader takes the LUT by get_tex, with no preshader use
+texture noise_64_tex_l8 always_referenced;
+sampler noise_64_tex_l8_samplerstate always_referenced;
+
+// the function alone: the caller declares noise_64_tex_l8 (a hardcoded
+// register or the shader var) before invoking
+macro SMOOTH_NOISE_USE(code)
+  hlsl(code) {
+    float smooth_noise_value(float2 P)
+    {
+      float2 Pi = floor(P);
+      float2 Pf = P - Pi;
+      int2 Pii = int2(Pi) & 63, Pii1 = (Pii + 1) & 63;
+      int4 Pc = int4(Pii, Pii1);
+      float4 hash = float4(noise_64_tex_l8[Pc.xy].x, noise_64_tex_l8[Pc.zy].x, noise_64_tex_l8[Pc.xw].x, noise_64_tex_l8[Pc.zw].x);
+      float2 blend = Pf * Pf * Pf * (Pf * (Pf * 6.0 - 15.0) + 10.0);
+      float4 blend2 = float4(blend, 1.0 - blend);
+      return dot(hash, blend2.zxzx * blend2.wwyy);
+    }
+  }
+endmacro

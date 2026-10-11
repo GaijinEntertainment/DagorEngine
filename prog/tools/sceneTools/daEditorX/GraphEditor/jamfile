@@ -20,8 +20,10 @@ Sources =
   curve_preview_control.cpp
   graph_add_node_popup.cpp
   graph_canvas_cull.cpp
+  graph_command_text.cpp
   graph_compile.cpp
   graph_context_menu.cpp
+  graph_create_subgraph_dialog.cpp
   graph_curve_value.cpp
   graph_dead_paths.cpp
   graph_document.cpp
@@ -34,9 +36,12 @@ Sources =
   graph_panel.cpp
   graph_pin_colors.cpp
   graph_pin_jump_menu.cpp
+  graph_resolutions.cpp
   graph_row_list.cpp
   graph_shortcuts_panel.cpp
   graph_status_bar.cpp
+  graph_subgraph_window.cpp
+  graph_tab.cpp
   graph_undo.cpp
   graph_validation.cpp
   histogram_panel.cpp

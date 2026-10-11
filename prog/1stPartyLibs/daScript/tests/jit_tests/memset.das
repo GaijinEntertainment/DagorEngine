@@ -3,34 +3,28 @@ require dastest/testing_boost
 
 require daslib/constant_expression
 
-def jit_memset8(data : void?; value : uint8; size : int) {
-    unsafe {
-        memset8(data, value, size)
-    }
+def jit_memset8(var data : void?; value : uint8; size : int) {
+    unsafe(memset8(data, value, size))
 }
 
-def jit_memset16(data : void?; value : uint16; size : int) {
-    unsafe {
-        memset16(data, value, size)
-    }
+def jit_memset16(var data : void?; value : uint16; size : int) {
+    unsafe(memset16(data, value, size))
 }
 
-def jit_memset32(data : void?; value : uint; size : int) {
-    unsafe {
-        memset32(data, value, size)
-    }
+def jit_memset32(var data : void?; value : uint; size : int) {
+    unsafe(memset32(data, value, size))
 }
 
-def jit_memset64(data : void?; value : uint64; size : int) {
-    unsafe {
-        memset64(data, value, size)
-    }
+def jit_memset64(var data : void?; value : uint64; size : int) {
+    unsafe(memset64(data, value, size))
 }
 
-def jit_memset128(data : void?; value : uint4; size : int) {
-    unsafe {
-        memset128(data, value, size)
-    }
+def jit_memset128(var data : void?; value : uint4; size : int) {
+    unsafe(memset128(data, value, size))
+}
+
+def jit_memmove(var dst : void?; src : void?; size : int) {
+    unsafe(memmove(dst, src, size))
 }
 
 [constant_expression(funcname), sideeffects]
@@ -99,5 +93,24 @@ def test_memset(t : T?) {
             t |> equal((i >= 2 && i < 5) ? uint4(0x12, 0x34, 0x56, 0x78) : uint4(0), a[i])
         }
         test_any_memset(t, uint4(0x12345678, 0x9abcdef0, 0x1ee7c00d, 0xdeadbeef), "jit_memset128")
+    }
+}
+
+[test]
+def test_memmove(t : T?) {
+    t |> run("memmove overlapping shift") @(t : T?) {
+        t |> success(!jit_enabled() || is_jit_function(@@jit_memmove))
+        var a : uint8[10]
+        for (i in 0..10) {
+            a[i] = uint8(i)
+        }
+        jit_memmove(unsafe(addr(a[2])), unsafe(addr(a[0])), 6)
+        for (i in 0..10) {
+            t |> equal(uint8(i >= 2 && i < 8 ? i - 2 : i), a[i])
+        }
+        jit_memmove(unsafe(addr(a[0])), unsafe(addr(a[2])), 6)
+        for (i in 0..6) {
+            t |> equal(uint8(i), a[i])
+        }
     }
 }

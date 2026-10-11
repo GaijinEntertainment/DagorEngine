@@ -1,0 +1,16 @@
+
+multi_render_pass clouds_panorama_multipass
+{
+  target trace_scratch = argb32f;
+  target panorama = r11g11b10f;
+
+  subpass trace
+  {
+    color(trace_scratch);
+  }
+  subpass blend
+  {
+    color(panorama);
+    read(trace_scratch);
+  }
+}

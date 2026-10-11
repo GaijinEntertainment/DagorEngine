@@ -113,7 +113,6 @@ UseProgLibs =
 
   engine/gameRes
   engine/libFx
-  engine/sceneRay
   engine/perfMon
   engine/consoleProc
   engine/imgui

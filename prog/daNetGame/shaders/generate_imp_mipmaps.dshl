@@ -3,6 +3,9 @@ include "shader_global.dshl"
 texture source_tex0;
 texture source_tex1;
 texture source_tex2;
+sampler source_tex0_samplerstate;
+sampler source_tex1_samplerstate;
+sampler source_tex2_samplerstate;
 
 float4 texel_size = (0,0,0,0); // xy-half of UV (V swap in shader), zw-texel size
 
@@ -36,9 +39,12 @@ shader generate_imp_mipmaps
   {
     (ps)
     {
-      source_tex0@smpArray = source_tex0;
-      source_tex1@smpArray = source_tex1;
-      source_tex2@smpArray = source_tex2;
+      source_tex0@texArray = source_tex0;
+      source_tex0_samplerstate@sampler = source_tex0_samplerstate;
+      source_tex1@texArray = source_tex1;
+      source_tex1_samplerstate@sampler = source_tex1_samplerstate;
+      source_tex2@texArray = source_tex2;
+      source_tex2_samplerstate@sampler = source_tex2_samplerstate;
     }
   }
 

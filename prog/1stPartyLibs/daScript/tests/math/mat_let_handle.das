@@ -4,7 +4,7 @@ require dastest/testing_boost public
 
 [sideeffects]
 def test_mat(t : T?; m : float3x4) {
-    var mat : float3x4 = m
+    var mat : float3x4 = m // nolint:LINT003 the mutable handle is the point - line below reads the same cells through the const param
     for (x in range(3)) {
         for (y in range(4)) {
             t |> equal(mat[y][x], float(y * 3 + x))
@@ -59,8 +59,6 @@ def get_col3(s : S?&) : float3 {
 def test_mat_field_idx_through_ptr(t : T?) {
     var s : S
     s.m[3] = float3(1.0, 2.0, 3.0)
-    unsafe {
-        var p : S? = addr(s)
-        t |> equal(get_col3(p), float3(1.0, 2.0, 3.0))
-    }
+    var p : S? = unsafe(addr(s))
+    t |> equal(get_col3(p), float3(1.0, 2.0, 3.0))
 }

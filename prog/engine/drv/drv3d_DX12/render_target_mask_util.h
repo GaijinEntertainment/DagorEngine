@@ -2,10 +2,15 @@
 #pragma once
 
 #include <cstdint>
+#include <compare>
+#include <math/dag_lsbVisitor.h>
 
-
+namespace drv3d_dx12
+{
+namespace detail
+{
 // Input is 4x8 bits color channel mask and output will be a 8bit mask of render targets
-inline uint32_t color_channel_mask_to_render_target_mask(uint32_t mask)
+inline constexpr uint32_t color_channel_mask_to_render_target_mask(uint32_t mask)
 {
   // For each color channel generate the used bit
   const uint32_t channel0 = mask >> 0;
@@ -29,7 +34,7 @@ inline uint32_t color_channel_mask_to_render_target_mask(uint32_t mask)
 
 // Inputs a 8 bit mask of render targets and outputs a 4x8 channel mask, where if a target bit is
 // set all corresponding channel bits will be set
-inline uint32_t render_target_mask_to_color_channel_mask(uint32_t mask)
+inline constexpr uint32_t render_target_mask_to_color_channel_mask(uint32_t mask)
 {
   // Spread out the individual target bits into the lowest bit of each corresponding 4 bit block,
   // which is the indicator bit for the first channel (r)
@@ -52,7 +57,9 @@ inline uint32_t render_target_mask_to_color_channel_mask(uint32_t mask)
 // Takes a 4x8 bit render target output channel mask and turns it into a 4x8 render target output mask
 // where if any channel of a target is enabled all channels of the result are enabled.
 // Simply speaking it turns all non 0 hex digits in the mask into F and all 0 are kept as 0.
-inline uint32_t spread_color_chanel_mask_to_render_target_color_channel_mask(uint32_t mask)
+// Yields the same value as render_target_mask_to_color_channel_mask(color_channel_mask_to_render_target_mask(mask)),
+// but more efficient.
+inline constexpr uint32_t spread_color_chanel_mask_to_render_target_color_channel_mask(uint32_t mask)
 {
   const uint32_t r = mask & 0x11111111;
   const uint32_t g = mask & 0x22222222;
@@ -64,3 +71,116 @@ inline uint32_t spread_color_chanel_mask_to_render_target_color_channel_mask(uin
   const uint32_t a1 = a | (a >> 1) | (a >> 2) | (a >> 3);
   return r1 | g1 | b1 | a1;
 }
+} // namespace detail
+
+class ColorChannelMask
+{
+  uint8_t value = 0;
+
+public:
+  constexpr static ColorChannelMask make(uint8_t value)
+  {
+    ColorChannelMask result;
+    result.value = value & 0xF;
+    return result;
+  }
+  constexpr explicit operator bool() const { return 0 != value; }
+  constexpr ColorChannelMask operator&(const ColorChannelMask &o) const { return make(value & o.value); }
+  constexpr ColorChannelMask operator|(const ColorChannelMask &o) const { return make(value | o.value); }
+  constexpr ColorChannelMask operator^(const ColorChannelMask &o) const { return make(value ^ o.value); }
+  constexpr ColorChannelMask operator~() const { return make(~value); }
+  constexpr auto operator<=>(const ColorChannelMask &) const = default;
+  constexpr void clear() { value = 0; }
+  constexpr auto visit() const { return LsbVisitor{value}; }
+  constexpr bool get(uint32_t index) const { return 0 != (value & (1u << index)); }
+  constexpr void set(uint32_t index) { value = (value | (1u << index)) & 0xF; }
+  constexpr void unset(uint32_t index) { value &= ~(1u << index); }
+  constexpr auto raw() const { return value; }
+  operator DagorSafeArg() const { return {value}; }
+};
+
+class FrameBufferColorChannelMask;
+class RenderTargetMask
+{
+  uint8_t value = 0;
+
+public:
+  constexpr static RenderTargetMask make(uint8_t value)
+  {
+    RenderTargetMask result;
+    result.value = value;
+    return result;
+  }
+  constexpr explicit operator bool() const { return 0 != value; }
+  constexpr FrameBufferColorChannelMask spread() const;
+  constexpr RenderTargetMask operator&(const RenderTargetMask &o) const { return make(value & o.value); }
+  constexpr RenderTargetMask operator|(const RenderTargetMask &o) const { return make(value | o.value); }
+  constexpr RenderTargetMask operator^(const RenderTargetMask &o) const { return make(value ^ o.value); }
+  constexpr RenderTargetMask operator~() const { return make(~value); }
+  constexpr auto operator<=>(const RenderTargetMask &) const = default;
+  constexpr void clear() { value = 0; }
+  constexpr bool get(uint32_t index) const { return 0 != (value & (1u << index)); }
+  constexpr void set(uint32_t index) { value |= 1u << index; }
+  constexpr void unset(uint32_t index) { value &= ~(1u << index); }
+  constexpr bool testAndUnset(uint32_t index)
+  {
+    auto pre = value;
+    value &= ~(1u << index);
+    return 0 != (pre & (1u << index));
+  }
+  constexpr bool anyOtherSet(uint32_t index) const { return 0 != (value & ~(1u << index)); }
+  constexpr auto visit() const { return LsbVisitor{value}; }
+  constexpr uint32_t getRequiredCount() const { return 32 - __clz(static_cast<uint32_t>(value)); }
+  constexpr auto raw() const { return value; }
+  operator DagorSafeArg() const { return {value}; }
+};
+
+class FrameBufferColorChannelMask
+{
+  uint32_t value = 0;
+
+public:
+  constexpr static FrameBufferColorChannelMask make(uint32_t value)
+  {
+    FrameBufferColorChannelMask result;
+    result.value = value;
+    return result;
+  }
+  constexpr explicit operator bool() const { return 0 != value; }
+  constexpr RenderTargetMask asRenderTargetMask() const
+  {
+    return RenderTargetMask::make(detail::color_channel_mask_to_render_target_mask(value));
+  }
+  constexpr FrameBufferColorChannelMask spread() const
+  {
+    return FrameBufferColorChannelMask::make(detail::spread_color_chanel_mask_to_render_target_color_channel_mask(value));
+  }
+  constexpr FrameBufferColorChannelMask operator&(const FrameBufferColorChannelMask &o) const { return make(value & o.value); }
+  constexpr FrameBufferColorChannelMask operator|(const FrameBufferColorChannelMask &o) const { return make(value | o.value); }
+  constexpr FrameBufferColorChannelMask operator^(const FrameBufferColorChannelMask &o) const { return make(value ^ o.value); }
+  constexpr FrameBufferColorChannelMask operator~() const { return make(~value); }
+  constexpr auto operator<=>(const FrameBufferColorChannelMask &) const = default;
+  constexpr ColorChannelMask get(uint32_t index) const
+  {
+    return ColorChannelMask::make(static_cast<uint8_t>((value >> (index * 4)) & 15));
+  }
+  constexpr void set(uint32_t index, ColorChannelMask mask)
+  {
+    value &= ~(0xFu << (index * 4));
+    value |= static_cast<uint32_t>(mask.raw()) << (index * 4);
+  }
+  constexpr void clear() { value = 0; }
+  // checks if all sets of 4 bits are equal
+  constexpr bool isUniform() const
+  {
+    return 0 == (((value ^ (value >> 16)) & 0xFFFFu) | ((value ^ (value >> 8)) & 0xFFu) | ((value ^ (value >> 4)) & 0xFu));
+  }
+  constexpr auto raw() const { return value; }
+  operator DagorSafeArg() const { return {value}; }
+};
+
+inline constexpr FrameBufferColorChannelMask RenderTargetMask::spread() const
+{
+  return FrameBufferColorChannelMask::make(detail::render_target_mask_to_color_channel_mask(value));
+}
+} // namespace drv3d_dx12

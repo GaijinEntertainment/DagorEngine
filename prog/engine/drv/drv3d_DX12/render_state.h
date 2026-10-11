@@ -6,6 +6,7 @@
 #include "dynamic_array.h"
 #include "tagged_handles.h"
 #include "format_store.h"
+#include "render_target_mask_util.h"
 
 #include <drv/3d/dag_decl.h>
 #include <drv/3d/dag_driverDesc.h>
@@ -16,6 +17,7 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_string.h>
 #include <util/dag_strUtil.h>
+#include <generic/dag_enumerate.h>
 
 
 #define MINIMUM_REPRESENTABLE_D32 3e-10
@@ -94,7 +96,7 @@ public:
     uint32_t stencilOnPass : 7 = 0; // 3 bit used, 4 free
 
     // third 32 bits
-    uint32_t colorWriteMask = 0;
+    FrameBufferColorChannelMask colorWriteMask = FrameBufferColorChannelMask::make(0);
 
     bool operator==(const StaticStateBits &) const = default;
   };
@@ -395,35 +397,31 @@ public:
       result.forcedSampleCountShift += def.forcedSampleCount > 4 ? 1 : 0;
       result.forcedSampleCountShift += def.forcedSampleCount > 8 ? 1 : 0;
 
-      result.colorWriteMask = def.colorWr;
+      result.colorWriteMask = FrameBufferColorChannelMask::make(def.colorWr);
 
       return result;
     }
 
-    static constexpr bool has_uniform_color_mask(uint32_t mask)
+    FrameBufferColorChannelMask adjustColorTargetMask(FrameBufferColorChannelMask frame_buffer_color_channel_mask) const
     {
-      // checks if all sets of 4 bits are equal
-      return 0 == (((mask ^ (mask >> 16)) & 0xFFFF) | ((mask ^ (mask >> 8)) & 0xFF) | ((mask ^ (mask >> 4)) & 0xF));
+      return colorWriteMask & frame_buffer_color_channel_mask;
     }
 
-    uint32_t adjustColorTargetMask(uint32_t frame_buffer_render_target_mask) const
+    FrameBufferColorChannelMask calculateMissingShaderOutputMask(FrameBufferColorChannelMask frame_buffer_color_channel_mask,
+      eastl::span<const FormatStore> rt_formats, FrameBufferColorChannelMask pipeline_output_mask) const
     {
-      return colorWriteMask & frame_buffer_render_target_mask;
-    }
-
-    uint32_t calculateMissingShaderOutputMask(uint32_t frame_buffer_render_target_mask, eastl::span<const FormatStore> rt_formats,
-      uint32_t pipeline_output_mask) const
-    {
-      auto finalColorTargetMask = adjustColorTargetMask(frame_buffer_render_target_mask);
+      auto finalColorTargetMask = adjustColorTargetMask(frame_buffer_color_channel_mask);
 
       // https://microsoft.github.io/DirectX-Specs/d3d/D3D12R9G9B9E5Format.html#interaction-with-rendertargetwritemask
-      uint32_t alphaMask = 0x8;
       const auto r9g9b9e5Store = FormatStore::fromDXGIFormat(DXGI_FORMAT_R9G9B9E5_SHAREDEXP);
-      for (const auto format : rt_formats)
+      for (auto [i, format] : enumerate(rt_formats))
       {
         if (format == r9g9b9e5Store)
-          finalColorTargetMask &= ~alphaMask;
-        alphaMask <<= 4;
+        {
+          auto mask = finalColorTargetMask.get(i);
+          mask.unset(3);
+          finalColorTargetMask.set(i, mask);
+        }
       }
 
       return finalColorTargetMask ^ (finalColorTargetMask & pipeline_output_mask);
@@ -435,17 +433,17 @@ public:
       InvokeEachTargetForUniformBlend,
     };
 
-    D3D12_BLEND_DESC getBlendDesc(uint32_t frame_buffer_render_target_mask) const
+    D3D12_BLEND_DESC getBlendDesc(FrameBufferColorChannelMask frame_buffer_color_channel_mask) const
     {
       D3D12_BLEND_DESC result = {
         .AlphaToCoverageEnable = 0 != enableAlphaToCoverage,
-        .IndependentBlendEnable = needsIndependentBlend(frame_buffer_render_target_mask),
+        .IndependentBlendEnable = needsIndependentBlend(frame_buffer_color_channel_mask),
       };
 
-      visitBlendSettings(frame_buffer_render_target_mask, BlendVisitMode::InvokePrimaryTargetOnlyForUniformBlend,
-        [&](auto index, const auto &info, bool mask_based_blend, uint32_t mask) {
+      visitBlendSettings(frame_buffer_color_channel_mask, BlendVisitMode::InvokePrimaryTargetOnlyForUniformBlend,
+        [&](auto index, const auto &info, bool mask_based_blend, ColorChannelMask mask) {
           result.RenderTarget[index] = {
-            .BlendEnable = mask_based_blend,
+            .BlendEnable = mask_based_blend ? TRUE : FALSE,
             .LogicOpEnable = FALSE,
             .SrcBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + info.blendFactors.Source),
             .DestBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + info.blendFactors.Destination),
@@ -454,63 +452,70 @@ public:
             .DestBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + info.blendAlphaFactors.Destination),
             .BlendOpAlpha = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + info.blendAlphaFunction),
             .LogicOp = D3D12_LOGIC_OP_NOOP,
-            .RenderTargetWriteMask = static_cast<UINT8>(mask & 15),
+            .RenderTargetWriteMask = mask.raw(),
           };
         });
 
       return result;
     }
 
-    uint32_t getBlendUseMask(uint32_t frame_buffer_render_target_mask) const
+    RenderTargetMask getBlendUseMask(FrameBufferColorChannelMask frame_buffer_color_channel_mask) const
     {
-      uint32_t result = 0;
-      visitBlendSettings(frame_buffer_render_target_mask, BlendVisitMode::InvokeEachTargetForUniformBlend,
-        [&result](auto index, const auto &, bool mask_based_blend, uint32_t) { result |= (mask_based_blend ? 1u : 0u) << index; });
+      auto result = RenderTargetMask::make(0);
+      visitBlendSettings(frame_buffer_color_channel_mask, BlendVisitMode::InvokeEachTargetForUniformBlend,
+        [&result](auto index, const auto &, bool mask_based_blend, ColorChannelMask) {
+          if (mask_based_blend)
+          {
+            result.set(index);
+          }
+        });
       return result;
     }
 
-    bool needsIndependentBlend(uint32_t frame_buffer_render_target_mask) const
+    bool needsIndependentBlend(FrameBufferColorChannelMask frame_buffer_color_channel_mask) const
     {
       // dual source blending requires blending to be enabled on render target 0 only,
       // so it must never use the independent blend path that replicates its params
       return !enableDualSourceBlending &&
-             (!has_uniform_color_mask(adjustColorTargetMask(frame_buffer_render_target_mask)) || enableIndependentBlend);
+             (!adjustColorTargetMask(frame_buffer_color_channel_mask).isUniform() || enableIndependentBlend);
     }
 
-    void visitBlendSettings(uint32_t frame_buffer_render_target_mask, BlendVisitMode mode, auto &&visitor) const
+    void visitBlendSettings(FrameBufferColorChannelMask frame_buffer_color_channel_mask, BlendVisitMode mode, auto &&visitor) const
     {
-      auto finalColorTargetMask = adjustColorTargetMask(frame_buffer_render_target_mask);
+      auto finalColorTargetMask = adjustColorTargetMask(frame_buffer_color_channel_mask);
 
-      auto getMaskBasedBlend = [](const auto &state, auto mask) { return (0 != state.enableBlending) && (0 != (mask & 15)); };
+      auto invoke = [&](uint32_t index, const auto &state, ColorChannelMask mask) {
+        visitor(index, state, (0 != state.enableBlending) && mask, mask);
+      };
 
       if (enableDualSourceBlending)
       {
-        return visitor(0, dualSourceBlend.params, getMaskBasedBlend(dualSourceBlend.params, finalColorTargetMask),
-          finalColorTargetMask & 15);
+        invoke(0, dualSourceBlend.params, finalColorTargetMask.get(0));
+        return;
       }
 
-      if (!needsIndependentBlend(frame_buffer_render_target_mask))
+      if (!needsIndependentBlend(frame_buffer_color_channel_mask))
       {
         if (BlendVisitMode::InvokeEachTargetForUniformBlend == mode)
         {
-          for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i, finalColorTargetMask >>= 4)
+          for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
           {
-            visitor(i, blendParams[0], getMaskBasedBlend(blendParams[0], finalColorTargetMask), finalColorTargetMask & 15);
+            invoke(i, blendParams[0], finalColorTargetMask.get(i));
           }
         }
         else // if (BlendVisitMode::InvokePrimaryTargetOnlyForUniformBlend == mode)
         {
-          visitor(0, blendParams[0], getMaskBasedBlend(blendParams[0], finalColorTargetMask), finalColorTargetMask & 15);
+          invoke(0, blendParams[0], finalColorTargetMask.get(0));
         }
       }
       else
       {
-        for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT && finalColorTargetMask; ++i, finalColorTargetMask >>= 4)
+        auto renderTargetMask = finalColorTargetMask.asRenderTargetMask();
+
+        for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT && renderTargetMask; renderTargetMask.unset(i++))
         {
           const auto blendParamsId = i < shaders::RenderState::NumIndependentBlendParameters && enableIndependentBlend ? i : 0;
-
-          visitor(i, blendParams[blendParamsId], getMaskBasedBlend(blendParams[blendParamsId], finalColorTargetMask),
-            finalColorTargetMask & 15);
+          invoke(i, blendParams[blendParamsId], finalColorTargetMask.get(i));
         }
       }
     }

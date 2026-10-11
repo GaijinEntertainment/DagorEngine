@@ -7,7 +7,7 @@ def vec_at_r2v(vec; idx : int) {
 
 def check_vec2_at_r2v(t : T?; v : auto(vecT); a1, a2 : auto(argT)) {
     t |> success(!jit_enabled() || is_jit_function(@@ < (vec : vecT; idx : int) : argT > vec_at_r2v))
-    var f2 = vecT(a1, a2)
+    let f2 = vecT(a1, a2)
     let i1 = vec_at_r2v(f2, 0)
     let i2 = vec_at_r2v(f2, 1)
     t |> equal(a1, i1)
@@ -16,7 +16,7 @@ def check_vec2_at_r2v(t : T?; v : auto(vecT); a1, a2 : auto(argT)) {
 
 def check_vec3_at_r2v(t : T?; v : auto(vecT); a1, a2, a3 : auto(argT)) {
     t |> success(!jit_enabled() || is_jit_function(@@ < (vec : vecT; idx : int) : argT > vec_at_r2v))
-    var f2 = vecT(a1, a2, a3)
+    let f2 = vecT(a1, a2, a3)
     let i1 = vec_at_r2v(f2, 0)
     let i2 = vec_at_r2v(f2, 1)
     let i3 = vec_at_r2v(f2, 2)
@@ -27,7 +27,7 @@ def check_vec3_at_r2v(t : T?; v : auto(vecT); a1, a2, a3 : auto(argT)) {
 
 def check_vec4_at_r2v(t : T?; v : auto(vecT); a1, a2, a3, a4 : auto(argT)) {
     t |> success(!jit_enabled() || is_jit_function(@@ < (vec : vecT; idx : int) : argT > vec_at_r2v))
-    var f2 = vecT(a1, a2, a3, a4)
+    let f2 = vecT(a1, a2, a3, a4)
     let i1 = vec_at_r2v(f2, 0)
     let i2 = vec_at_r2v(f2, 1)
     let i3 = vec_at_r2v(f2, 2)

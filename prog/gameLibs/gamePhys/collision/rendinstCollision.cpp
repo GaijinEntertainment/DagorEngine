@@ -179,7 +179,8 @@ bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<ga
 }
 
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
-  bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache, int mat_id, bool process_tree_behaviour)
+  bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache, int mat_id, bool process_tree_behaviour,
+  bool process_bush_behaviour)
 {
   if (!get_phys_world())
     return false;
@@ -191,7 +192,7 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
   TMatrix tm;
   co.body->getTmInstant(tm);
 
-  WrapperRendinstContactResultCB contactCb(out_contacts, 0, mat_id, process_tree_behaviour);
+  WrapperRendinstContactResultCB contactCb(out_contacts, 0, mat_id, process_tree_behaviour, process_bush_behaviour);
   WrapperRendInstCollisionCB callback(co, contactCb, provide_coll_info, at_time);
 
   if (trace_cache)

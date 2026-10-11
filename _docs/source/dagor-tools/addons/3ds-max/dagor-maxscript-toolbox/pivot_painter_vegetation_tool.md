@@ -75,7 +75,7 @@ The tool window will appear as shown below:
    developer if assistance is needed.
 
 7. **Group by Path Color** {cnum}`7`: If the number of hierarchy levels in
-   GrowFX object exceeds 4, this checkbox should be enabled. Also in GrowFX make
+   GrowFX object exceeds 4, select this checkbox. Also in GrowFX make
    colors of Paths not more than 4x. Hierarchy will be generated in accordance
    with the specified colors.
 
@@ -86,13 +86,13 @@ The tool window will appear as shown below:
    ```
 
 8. **Save Settings** {cnum}`8`: Saved current cettings to
-   `..base/GJ_Dagor2ppainter.ini` file. If you want reset to default please
-   delete this file.
+   `..base/GJ_Dagor2ppainter.ini` file. To restore the default settings, delete
+   this file.
 
 ### Workflow Example
 
 1. Use button {cnum}`2` to specify the output path for the resulting `.dds`
-   textures. Press **START CREATION** button {cnum}`4` to generate the textures
+   textures. Click **START CREATION** button {cnum}`4` to generate the textures
    `pivot_pos.dds` and `pivot_dir.dds`, along with a new **WIND** layer
    containing the completed object with the assigned name.
 

@@ -136,6 +136,23 @@ def test_wide_component_types(t : T?) {
     }
 }
 
+struct MaxSizeComponent {
+    a : float4
+    b : float4
+    c : float4
+    d : float4
+}
+
+[test]
+def test_component_map_max_size_component(t : T?) {
+    var cmp : ComponentMap
+    set(cmp.big, MaxSizeComponent(a = float4(1.0), d = float4(4.0)))
+    var v = MaxSizeComponent()
+    v = get(cmp, "big", v)
+    t |> equal(v.a, float4(1.0))
+    t |> equal(v.d, float4(4.0))
+}
+
 // === EntityId as component ===
 
 [test]

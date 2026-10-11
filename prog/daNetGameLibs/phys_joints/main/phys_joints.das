@@ -23,13 +23,11 @@ struct PhysBodyData
   omega : float3
   mass : float
   momentOfInertia : float3
-  lambdaLimit : float
 
 struct JointResult
   contactPt : float3
   addVel : float3
   addOmega : float3
-  deltaLen : float
   lambdaSum : float
 
 [es(before=phys_joint_update, after=after_net_phys_sync)]
@@ -40,14 +38,13 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
   if eid == INVALID_ENTITY_ID
     let res = invoke(b, PhysBodyData(transform = IDENT_TM, cog = float3(0, 0, 0),
                              velocity = float3(0, 0, 0), omega = float3(0, 0, 0),
-                             mass = 0f, momentOfInertia = float3(0, 0, 0),
-                             lambdaLimit = FLT_MAX))
+                             mass = 0f, momentOfInertia = float3(0, 0, 0)))
     if res.lambdaSum > 0f && riex_isRiGenExtraValid(ri_extra__handle)
       let dir = normalize(res.addVel)
       apply_impulse_to_riextra(ri_extra__handle, res.lambdaSum, dir, res.contactPt)
     return
 
-  query(eid) <| $ [es] (var vehicle_net_phys : VehiclePhysActor; joint__lambdaLimit : float = FLT_MAX)
+  query(eid) <| $ [es] (var vehicle_net_phys : VehiclePhysActor)
     assume phys = vehicle_net_phys.phys
     assume state = phys.currentState
 
@@ -56,8 +53,7 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
 
     let res = invoke(b, PhysBodyData(transform = transform, cog = phys.mass.state.centerOfGravity,
                                        velocity = float3(state.velocity), omega = float3(state.omega),
-                                       mass = phys.mass.state.mass, momentOfInertia = float3(phys.mass.state.momentOfInertia),
-                                       lambdaLimit = joint__lambdaLimit))
+                                       mass = phys.mass.state.mass, momentOfInertia = float3(phys.mass.state.momentOfInertia)))
 
     if length(res.addVel) > 0f
       state.velocity += DPoint3(res.addVel)
@@ -67,10 +63,7 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
       ground_control_state_setAxisValue(phys.producedCT, EGroundControlAxis.GCA_BRAKE_RIGHT, 0.f)
       wakeUp(phys)
 
-    query(eid) <| $ [es] (var joint__lambdaSum : float&)
-      joint__lambdaSum = res.lambdaSum
-
-  query(eid) <| $ [es] (var ship_net_phys : ShipActor; joint__lambdaLimit : float = FLT_MAX)
+  query(eid) <| $ [es] (var ship_net_phys : ShipActor)
     assume phys = ship_net_phys.phys
     assume state = phys.currentState
 
@@ -79,8 +72,7 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
 
     let res = invoke(b, PhysBodyData(transform = transform, cog = phys.mass.state.centerOfGravity,
                                        velocity = float3(state.velocity), omega = float3(state.omega),
-                                       mass = phys.mass.state.mass, momentOfInertia = float3(phys.mass.state.momentOfInertia),
-                                       lambdaLimit = joint__lambdaLimit))
+                                       mass = phys.mass.state.mass, momentOfInertia = float3(phys.mass.state.momentOfInertia)))
 
     if length(res.addVel) > 0f
       state.velocity += DPoint3(res.addVel)
@@ -88,7 +80,7 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
       ship_phys_set_anchor(phys, false)
       ship_phys_wake_up(phys)
 
-  query(eid) <| $ [es] (var plane_net_phys : PlaneActor; joint__lambdaLimit : float = FLT_MAX)
+  query(eid) <| $ [es] (var plane_net_phys : PlaneActor)
     assume phys = plane_net_phys.phys
     assume state = phys.currentState
 
@@ -97,14 +89,14 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
 
     let res = invoke(b, PhysBodyData(transform = transform, cog = phys.M.state.centerOfGravity,
                                        velocity = float3(state.velocity), omega = float3(state.omega),
-                                       mass = phys.M.state.mass, momentOfInertia = float3(phys.M.state.momentOfInertia),
-                                       lambdaLimit = joint__lambdaLimit))
+                                       mass = phys.M.state.mass, momentOfInertia = float3(phys.M.state.momentOfInertia)))
 
     if length(res.addVel) > 0f
       state.velocity += DPoint3(res.addVel)
       state.omega += DPoint3(res.addOmega)
+      wakeUp(phys)
 
-  query(eid) <| $ [es] (var human_net_phys : HumanActor; joint__lambdaLimit : float = FLT_MAX)
+  query(eid) <| $ [es] (var human_net_phys : HumanActor)
     assume phys = human_net_phys.phys
     assume state = phys.currentState
 
@@ -113,13 +105,12 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
 
     let res = invoke(b, PhysBodyData(transform = transform, cog = float3(0f, 1f, 0f),
                                        velocity = state.velocity, omega = float3(0),
-                                       mass = 80f, momentOfInertia = float3(0f),
-                                       lambdaLimit = joint__lambdaLimit))
+                                       mass = 80f, momentOfInertia = float3(0f)))
 
     if length(res.addVel) > 0f
       state.velocity += res.addVel
 
-  query(eid) <| $ [es] (var phys_obj_net_phys : PhysObjActor; joint__lambdaLimit : float = FLT_MAX; joint__minSpeed : float = 0f)
+  query(eid) <| $ [es] (var phys_obj_net_phys : PhysObjActor; joint__minSpeed : float = 0f)
     assume phys = phys_obj_net_phys.phys
     assume state = phys.currentState
 
@@ -128,8 +119,7 @@ def query_phys_body_data(eid : EntityId; ri_extra__handle : riex_handle_t; b : b
 
     let res = invoke(b, PhysBodyData(transform = transform, cog = phys.centerOfMass,
                                        velocity = state.velocity, omega = state.omega,
-                                       mass = phys.mass, momentOfInertia = phys.momentOfInertia,
-                                       lambdaLimit = joint__lambdaLimit))
+                                       mass = phys.mass, momentOfInertia = phys.momentOfInertia))
 
     if length(res.addVel) > joint__minSpeed
       state.velocity += res.addVel
@@ -149,8 +139,10 @@ def phys_joint_update(info : UpdateStageInfoAct;
                       phys_joint__extensionMax : float = FLT_EPSILON;
                       phys_joint__erpRatio : float2 = float2(1.1f, 1.5f);
                       phys_joint__erpRange : float2 = float2(0f, 8f);
+                      joint__lambdaLimit : float;
                       var joint__lambdaSum : float&;
                       ri_extra__handle : riex_handle_t)
+  joint__lambdaSum = 0f
   if phys_joint__jointLength < phys_joint__extensionMax
     return
   // query first body
@@ -159,8 +151,6 @@ def phys_joint_update(info : UpdateStageInfoAct;
     // query second body
     var addVel1 = float3(0)
     var addOmega1 = float3(0)
-    var deltaLen = phys_joint__jointLength
-    var lambdaSum = 0f
     query_phys_body_data(phys_joint__secondBody, ri_extra__handle) <| $(body2 : PhysBodyData)
       // evaluate constraint
       var addVel2 = float3(0)
@@ -168,7 +158,6 @@ def phys_joint_update(info : UpdateStageInfoAct;
       let secondAnchorWorld = body2.transform * phys_joint__secondBodyAnchor
       let worldDir = secondAnchorWorld - firstAnchorWorld
       let curJointLength = length(worldDir)
-      deltaLen -= curJointLength
       if curJointLength > phys_joint__jointLength
         // apply impulses
         let erpFactor = cvt(curJointLength / phys_joint__jointLength, phys_joint__erpRatio.x, phys_joint__erpRatio.y, phys_joint__erpRange.x, phys_joint__erpRange.y)
@@ -184,7 +173,6 @@ def phys_joint_update(info : UpdateStageInfoAct;
         let w1 = cross(phys_joint__firstBodyAnchor - body1.cog, rotate(invTm1, axis1))
         let w2 = cross(phys_joint__secondBodyAnchor - body2.cog, rotate(invTm2, axis2))
         let b = invMass1 + invMass2 + dot(w1, w1 * invMoi1) + dot(w2, w2 * invMoi2)
-        let lambdaLimit = min(body1.lambdaLimit, body2.lambdaLimit)
         for _ in range(5)
           let vel1 = body1.velocity + addVel1
           let vel2 = body2.velocity + addVel2
@@ -192,26 +180,25 @@ def phys_joint_update(info : UpdateStageInfoAct;
           let omega2 = body2.omega + addOmega2
 
           let a = dot(axis1, vel1) + dot(w1, omega1) + dot(axis2, vel2) + dot(w2, omega2)
-          let l = min(-safediv(a - erpFactor, b), lambdaLimit - lambdaSum)
-          lambdaSum += l
+          let l = min(-safediv(a - erpFactor, b), joint__lambdaLimit - joint__lambdaSum)
+          joint__lambdaSum += l
           if abs(l) < FLT_EPSILON
             break
           addVel1 += axis1 * l * invMass1
           addOmega1 += w1 * invMoi1 * l
           addVel2 += axis2 * l * invMass2
           addOmega2 += w2 * invMoi2 * l
-        joint__lambdaSum = lambdaSum
-      return JointResult(contactPt = secondAnchorWorld, addVel = addVel2, addOmega = addOmega2, deltaLen = deltaLen, lambdaSum = lambdaSum)
-    return JointResult(contactPt = firstAnchorWorld, addVel = addVel1, addOmega = addOmega1, deltaLen = deltaLen, lambdaSum = lambdaSum)
+      return JointResult(contactPt = secondAnchorWorld, addVel = addVel2, addOmega = addOmega2, lambdaSum = joint__lambdaSum)
+    return JointResult(contactPt = firstAnchorWorld, addVel = addVel1, addOmega = addOmega1, lambdaSum = joint__lambdaSum)
 
-def update_winch(dt : float; eid : EntityId; var phys_joint__jointLength : float&)
+def update_winch(dt : float; eid : EntityId; joint__lambdaSum : float; var joint__lambdaLimit : float&; var phys_joint__jointLength : float&)
   query(eid) <| $ [es] (winch__pulls, winch__extends : bool;
                         winch__rad, winch__omega : float;
-                        winch__torque, winch__brakeTorque, joint__lambdaSum : float;
-                        var joint__lambdaLimit : float&)
+                        winch__torque, winch__brakeTorque : float)
     let isOnBrake = winch__pulls == winch__extends
     let winchTorque = isOnBrake ? winch__brakeTorque : winch__torque
-    joint__lambdaLimit = winchTorque / winch__rad * dt
+    let winchLimit = winchTorque / winch__rad * dt
+    joint__lambdaLimit = min(joint__lambdaLimit, winchLimit)
     // a client needs the limit above for its own solve, but the joint length replicates from the server
     if !is_server()
       return
@@ -220,8 +207,8 @@ def update_winch(dt : float; eid : EntityId; var phys_joint__jointLength : float
     let extends = winch__extends && !isOnBrake
 
     let appliedLambda = max(0f, joint__lambdaSum)
-    let pullOmega = pulls ? -(winch__omega * (1f - safediv(appliedLambda, joint__lambdaLimit))) : 0f
-    let brakeOmega = isOnBrake ? safediv(max(0f, appliedLambda - joint__lambdaLimit), joint__lambdaLimit) * winch__omega : 0f
+    let pullOmega = pulls ? -(winch__omega * (1f - safediv(appliedLambda, winchLimit))) : 0f
+    let brakeOmega = isOnBrake ? safediv(max(0f, appliedLambda - winchLimit), winchLimit) * winch__omega : 0f
     let extendsOmega = extends ? winch__omega : 0f
     let omega = pullOmega + extendsOmega + brakeOmega
 
@@ -230,17 +217,20 @@ def update_winch(dt : float; eid : EntityId; var phys_joint__jointLength : float
     phys_joint__jointLength = max(phys_joint__jointLength + diff, 0.5f)
 
 
-[es(before=phys_joint_update)]
+[es(before=phys_joint_update, REQUIRE_NOT=phys_joint__extensionMax)]
 def phys_winch_update(info : UpdateStageInfoAct;
                       phys_joint__firstBody : EntityId;
                       phys_joint__firstAnchor : EntityId;
                       phys_joint__secondBody : EntityId;
                       phys_joint__secondAnchor : EntityId;
+                      joint__lambdaSum : float;
+                      var joint__lambdaLimit : float&;
                       var phys_joint__jointLength : float&)
+  joint__lambdaLimit = FLT_MAX
   query(phys_joint__firstAnchor) <| $ [es(REQUIRE=anchor__winch)] ()
-    update_winch(info.dt, phys_joint__firstBody, phys_joint__jointLength)
+    update_winch(info.dt, phys_joint__firstBody, joint__lambdaSum, joint__lambdaLimit, phys_joint__jointLength)
   query(phys_joint__secondAnchor) <| $ [es(REQUIRE=anchor__winch)] ()
-    update_winch(info.dt, phys_joint__secondBody, phys_joint__jointLength)
+    update_winch(info.dt, phys_joint__secondBody, joint__lambdaSum, joint__lambdaLimit, phys_joint__jointLength)
 
 def break_rope(eid : EntityId; curTime : float)
   query(eid) <| $ [es] (phys_joint__firstBody, phys_joint__secondBody : EntityId;

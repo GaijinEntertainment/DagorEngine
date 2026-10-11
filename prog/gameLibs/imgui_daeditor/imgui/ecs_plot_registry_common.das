@@ -6,7 +6,7 @@ typedef PlotSampleFn = function<(data : void?;
                                  var rows : int&; var row_idx : int&;
                                  var val : float&) : void>
 
-typedef PlotSetFn    = function<(data : void?;
+typedef PlotSetFn    = function<(var data : void?;
                                  comp_idx, row_idx : int;
                                  new_val : float) : void>
 
@@ -31,7 +31,7 @@ def try_sample_typed(data : void?; type_name : string;
   invoke(plot_samplers[type_name], data, dim, comp_idx, rows, row_idx, val)
   return true
 
-def try_set_typed(data : void?; type_name : string;
+def try_set_typed(var data : void?; type_name : string;
                   comp_idx, row_idx : int; new_val : float) : bool
   if data == null
     return false

@@ -343,8 +343,8 @@ static dafg::NodeHandle makeSinglePassResolveGbufferNode(const char *resolve_psh
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     registry.requestState().setFrameBlock("global_frame");
 
-    static constexpr const char *shaderVars[] = {"precomputed_dynamic_lights", "precomputed_dynamic_lights_mask",
-      "envi_cover_intensity_map", "droplets_8bit_tex", "distant_fog_result_inscatter"};
+    static constexpr const char *shaderVars[] = {
+      "precomputed_dynamic_lights", "envi_cover_intensity_map", "droplets_8bit_tex", "distant_fog_result_inscatter"};
     for (auto shaderVar : shaderVars)
       registry.readTexture("single_pass_shading_stub_black_tex").atStage(dafg::Stage::PS).bindToShaderVar(shaderVar);
 

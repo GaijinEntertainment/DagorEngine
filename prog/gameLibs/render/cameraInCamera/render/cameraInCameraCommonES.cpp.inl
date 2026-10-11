@@ -423,8 +423,12 @@ ApplyMasterState::ApplyMasterState(const bool is_main_view, const OpaqueFlags fl
 {
   set_uv_remapping_shvar(is_main_view);
   const bool isCamCamRenderActive = is_lens_render_active();
-  hasStencilTest = isCamCamRenderActive && (flags != OpaqueFlags::NoStencil);
-  hasScissor = isCamCamRenderActive && !is_main_view;
+
+  const bool noStencilBit = (int)flags & (int)OpaqueFlags::NoStencil;
+  const bool noScissorBit = (int)flags & (int)OpaqueFlags::NoScissor;
+
+  hasStencilTest = isCamCamRenderActive && !noStencilBit;
+  hasScissor = isCamCamRenderActive && !is_main_view && !noScissorBit;
 
   ShaderGlobal::set_float(var::camera_in_camera_active, isCamCamRenderActive ? 1.0f : 0.0f);
 

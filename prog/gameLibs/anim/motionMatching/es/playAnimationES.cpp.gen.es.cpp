@@ -43,11 +43,11 @@ static ecs::EntitySystemDesc mm_update_root_orientation_es_es_desc
 ,"render",nullptr,"before_animchar_update_sync","after_guns_update_sync,wait_motion_matching_job_es");
 static constexpr ecs::ComponentDesc mm_update_goal_features_es_comps[] =
 {
-//start of 1 rw components at [0]
+//start of 2 rw components at [0]
   {ECS_HASH("motion_matching__goalFeature"), ecs::ComponentTypeInfo<FrameFeatures>()},
-//start of 6 ro components at [1]
+  {ECS_HASH("motion_matching__goalNodesPrevWpos"), ecs::ComponentTypeInfo<ecs::Point3List>()},
+//start of 5 ro components at [2]
   {ECS_HASH("motion_matching__goalNodesIdx"), ecs::ComponentTypeInfo<ecs::IntList>()},
-  {ECS_HASH("motion_matching__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
   {ECS_HASH("mm_trajectory__featurePositions"), ecs::ComponentTypeInfo<ecs::Point3List>()},
@@ -60,7 +60,7 @@ static void mm_update_goal_features_es_all_events(const ecs::Event &__restrict e
     mm_update_goal_features_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
         , ECS_RW_COMP(mm_update_goal_features_es_comps, "motion_matching__goalFeature", FrameFeatures)
     , ECS_RO_COMP(mm_update_goal_features_es_comps, "motion_matching__goalNodesIdx", ecs::IntList)
-    , ECS_RO_COMP(mm_update_goal_features_es_comps, "motion_matching__enabled", bool)
+    , ECS_RW_COMP(mm_update_goal_features_es_comps, "motion_matching__goalNodesPrevWpos", ecs::Point3List)
     , ECS_RO_COMP(mm_update_goal_features_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(mm_update_goal_features_es_comps, "motion_matching__controller", MotionMatchingController)
     , ECS_RO_COMP(mm_update_goal_features_es_comps, "mm_trajectory__featurePositions", ecs::Point3List)
@@ -73,8 +73,8 @@ static ecs::EntitySystemDesc mm_update_goal_features_es_es_desc
   "mm_update_goal_features_es",
   "prog/gameLibs/anim/motionMatching/es/playAnimationES.cpp.inl",
   ecs::EntitySystemOps(nullptr, mm_update_goal_features_es_all_events),
-  make_span(mm_update_goal_features_es_comps+0, 1)/*rw*/,
-  make_span(mm_update_goal_features_es_comps+1, 6)/*ro*/,
+  make_span(mm_update_goal_features_es_comps+0, 2)/*rw*/,
+  make_span(mm_update_goal_features_es_comps+2, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),

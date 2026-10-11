@@ -50,8 +50,6 @@
 #define TK_3WAYSCMP 305
 #define TK_USHIFTR 306
 #define TK_CLASS 307
-#define TK_EXTENDS 308
-#define TK_CONSTRUCTOR 310
 #define TK_INSTANCEOF 311
 #define TK_VARPARAMS 312
 #define TK___LINE__ 313

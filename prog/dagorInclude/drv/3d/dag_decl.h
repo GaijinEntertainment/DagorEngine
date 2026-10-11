@@ -375,14 +375,17 @@ struct MtlFxUpscaleParams
 {
   BaseTexture *color = nullptr;
   BaseTexture *output = nullptr;
-  bool temporal = false;
-  // only for spatial
-  MtlfxColorMode colorMode = MtlfxColorMode::LINEAR;
   // only for temporal
   BaseTexture *motion = nullptr;
   BaseTexture *depth = nullptr;
   float jitterX = 0.f, jitterY = 0.f;
   float motionScaleX = 0.f, motionScaleY = 0.f;
+  // only for spatial
+  MtlfxColorMode colorMode = MtlfxColorMode::LINEAR;
+  // only for temporal
+  bool doReset = false;
+  // common, upscale mode
+  bool isTemporal = false;
 };
 
 #define STATE_GUARD_IMPL(ClassName, obj_name, func_call, val, default_value)                                              \

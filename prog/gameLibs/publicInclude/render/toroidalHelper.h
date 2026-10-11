@@ -13,7 +13,9 @@ struct ToroidalHelper
   ToroidalHelper() : texSize(1), curOrigin(IPoint2::ZERO), mainOrigin(IPoint2::ZERO) { resetOrigin(); }
   ToroidalHelper(const IPoint2 &origin, const IPoint2 &main, unsigned tsz) : texSize(tsz), curOrigin(origin), mainOrigin(main) {}
 
-  void resetOrigin() { curOrigin = IPoint2(-1000000, 100000); }
+  static IPoint2 get_reset_origin() { return IPoint2(-1000000, 100000); }
+  void resetOrigin() { curOrigin = get_reset_origin(); }
+  bool isOriginSet() const { return curOrigin != get_reset_origin(); }
 };
 
 struct ToroidalQuadRegion

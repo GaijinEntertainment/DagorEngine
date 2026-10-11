@@ -55,7 +55,9 @@
     #define IMPLOT_INLINE inline
 #endif
 
-#if defined __SSE__ || defined __x86_64__ || defined _M_X64
+// Gaijin change
+#if (defined __SSE__ || defined __x86_64__ || defined _M_X64) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #ifndef IMGUI_ENABLE_SSE
 #include <immintrin.h>
 #endif

@@ -62,6 +62,59 @@ def private check_arithmetics(t : T?) {
     t |> equal("49", context |> eval_test("0x12+0x1f"))
 }
 
+def private check_operators(t : T?) {
+    let context : table<string; Result>
+    let cases = fixed_array(
+        (src = "10-3-2", want = "5"),
+        (src = "100-10-1", want = "89"),
+        (src = "2-3+4", want = "3"),
+        (src = "20-4-3-2", want = "11"),
+        (src = "8/2", want = "4"),
+        (src = "7/2", want = "3"),
+        (src = "100/10/2", want = "5"),
+        (src = "2+12/4", want = "5"),
+        (src = "12/4*3", want = "9"),
+        (src = "1+2*3-4", want = "3"),
+        (src = "2/0", want = "runtime error, division by 0"),
+        (src = "1&&2", want = "true"),
+        (src = "2&&4", want = "true"),
+        (src = "2&&0", want = "false"),
+        (src = "0&&1", want = "false"),
+        (src = "1||0", want = "true"),
+        (src = "0||2", want = "true"),
+        (src = "0||0", want = "false"),
+        (src = "1^^1", want = "false"),
+        (src = "1^^0", want = "true"),
+        (src = "1&2", want = "0"),
+        (src = "1|2&3", want = "3"),
+        (src = "6&3|8", want = "10"),
+        (src = "1&&2||0", want = "true"),
+        (src = "0||1&&0", want = "false"),
+        (src = "8/-2", want = "-4"),
+        (src = "nosuchvar/-1", want = "unknown variable nosuchvar"),
+        (src = "1<2&&3<4", want = "true"),
+        (src = "1<2&&4<3", want = "false"),
+        (src = "1<2||4<3", want = "true"),
+        (src = "0&&2/0", want = "false"),
+        (src = "1||2/0", want = "true"),
+        (src = "0&&nosuchvar", want = "false"),
+        (src = "1||nosuchvar", want = "true"),
+        (src = "1&&nosuchvar", want = "unknown variable nosuchvar"),
+        (src = "0||nosuchvar", want = "unknown variable nosuchvar"),
+        (src = "1&&2/0", want = "runtime error, division by 0"),
+        (src = "1||", want = "unexpected end of stream"),
+        (src = "0&&", want = "unexpected end of stream"),
+        (src = "1||1+", want = "unexpected end of stream"),
+        (src = "0&&]", want = "unexpected character ], expecting number or ("),
+        (src = "1||]", want = "unexpected character ], expecting number or ("),
+        (src = "0&&#", want = "invalid token invalid character #, expecting number or ("),
+        (src = "1||(2", want = "expecting )")
+    )
+    for (c in cases) {
+        t |> equal(context |> eval_test(c.src), c.want, "eval '{c.src}'")
+    }
+}
+
 def private check_variable_operations(t : T?) {
     var context : table<string; Result>
     var temp_int : int = 13
@@ -118,6 +171,9 @@ def private check_variable_operations(t : T?) {
 def test_debug_eval(t : T?) {
     t |> run("arithmetics") @@(t : T?) {
         check_arithmetics(t)
+    }
+    t |> run("operator precedence and associativity") @@(t : T?) {
+        check_operators(t)
     }
     t |> run("variable operations") @@(t : T?) {
         check_variable_operations(t)

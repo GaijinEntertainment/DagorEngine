@@ -28,9 +28,10 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 // looks for known inherently-unsafe AST shapes:
 //   ExprCast(upcast|reinterpret), ExprDelete, ExprAddr, ExprRef2Ptr,
 //   ExprAsVariant, ExprSafeAsVariant (`?as`), ExprAt on table, ExprField
-//   on variant, and ExprCallFunc whose `func.flags.unsafeOperation` (or
-//   unsafeOutsideOfFor outside a for-loop source) is set. If nothing
-//   matches, the wrap is redundant.
+//   on variant, ExprCallFunc whose `func.flags.unsafeOperation` (or
+//   unsafeOutsideOfFor outside a for-loop source) is set, an ExprMove of
+//   a class or of a value that needs inscope, and a non-inscope local
+//   whose type needs inscope. If nothing matches, the wrap is redundant.
 //
 // Note: the parser-flag form (`unsafe(expr)`) only survives compile-time
 // folding when `no_optimizations + no_infer_time_folding` is set; the
@@ -38,9 +39,10 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 // only trip STYLE024 under `utils/lint/main.das`. The block form fires
 // under regular compile too.
 
-expect 31209:5
+expect 31209:6
 
 require daslib/style_lint
+require daslib/rtti
 
 // --- Bad patterns ---
 
@@ -137,4 +139,81 @@ def good_safe_as_on_value_variant() : void {
 
 def good_safe_index_of_scalar_pointer(p : float?; i : int64) : float {
     return unsafe(p?[i]) ?? -1.0
+}
+
+struct private Node {
+    a : int
+}
+
+def good_unsafe_block_delete_pointer() : void {
+    var p = new Node(a = 1)
+    unsafe {
+        delete p
+    }
+}
+
+def bad_unsafe_block_delete_container() : void {
+    var arr : array<int>
+    arr |> push(1)
+    unsafe {                                          // STYLE024 - a plain container is safe to delete
+        delete arr
+    }
+}
+
+// --- Regression: a reference bound to a non-local expression requires unsafe ---
+// `var r & = g_rack.items[i]` binds a local reference into storage a global pointer owns
+// (ast_infer_type.cpp's isLocalOrGlobal check), so a block whose only unsafe need is that
+// binding is NOT redundant: the compiler refuses the binding outside `unsafe`. STYLE024 must
+// NOT fire (the block frame carries the let-ref mark without an unsafe-op count).
+
+struct private Rack {
+    items : array<int>
+}
+
+var private g_rack : Rack?
+
+def good_block_binds_non_local_ref(i : int) : void {
+    unsafe {
+        var r & = g_rack.items[i]
+        r += 1
+    }
+}
+
+// --- Regression: moving a value that holds a smart pointer requires unsafe ---
+// infer refuses `a <- b` outside `unsafe` when b's type needs inscope (strict_smart_pointers is
+// on by default), and `unsafe(a <- b)` does not parse, so the block form is the only spelling:
+// neither STYLE024 nor STYLE025 may fire on it.
+
+struct private SmartHolder {
+    ctx : smart_ptr<Context>
+}
+
+var private g_holder : SmartHolder
+var private g_holder_src : SmartHolder
+
+def good_block_moves_smart_pointer_holder() : void {
+    unsafe {
+        g_holder <- g_holder_src
+    }
+}
+
+// --- Regression: moving classes, and declaring a smart-pointer holder local, require unsafe ---
+// infer refuses `a <- b` on class references outside `unsafe`, and a local whose type needs
+// inscope must be declared `inscope` or under `unsafe`: neither STYLE024 nor STYLE025 may fire.
+
+class private Widget {
+    id : int
+}
+
+def good_block_moves_class_refs(var a : Widget&; var b : Widget&) : void {
+    unsafe {
+        a <- b
+    }
+}
+
+def good_block_declares_smart_holder_local() : void {
+    unsafe {
+        var local : SmartHolder
+        g_holder <- local
+    }
 }

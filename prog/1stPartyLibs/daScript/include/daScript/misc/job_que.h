@@ -46,6 +46,9 @@ namespace das {
         void Clear(uint32_t count = 1);
         int addRef( LineInfo * at = nullptr );
         int releaseRef( LineInfo * at = nullptr );
+        // live refs; <=1 (the joiner's own) means no dispatched job/thread can
+        // ever notify — waitForJob's deadlock-vs-long-job discriminator
+        int refCount() const { return mRef.load(); }
         int size() const;
         int append(int size);
         bool isValid() const { return mMagic==uint32_t(STATUS_MAGIC); }
@@ -77,7 +80,7 @@ namespace das {
         void trackInsert();
         void trackRemove();
     protected:
-        mutable mutex       mCompleteMutex;
+        mutable std::mutex  mCompleteMutex;
         atomic<uint32_t>    mRemaining{0};  // atomic so Wait()'s spin phase can poll lock-free; all writes stay under mCompleteMutex for the condvar protocol
         condition_variable  mCond;
         atomic<int>         mRef{0};
@@ -110,6 +113,10 @@ namespace das {
         static int get_num_physical_cores();            // physical cores (SMT siblings collapsed); logical count where topology is unknown
         static void set_default_threads_cap(int cap);   // cap the DEFAULT worker count of a future JobQue (min with the stock rule); 0 = off. DAS_JOBQUE_THREADS still overrides
         static int get_default_threads_cap();
+        static void set_default_threads(int total);     // app-declared TOTAL lanes of a future JobQue (N-1 workers + the computing main) - the raise-capable twin of the cap, for workloads that want the slow tier too; <=1 = unset. DAS_JOBQUE_THREADS still overrides
+        static int get_default_threads();
+        static int get_num_perf_cores();                // fast-tier physical cores on heterogeneous boxes (Apple perflevel0); 0 = homogeneous or topology unknown
+        static bool is_slow_tier_compute();             // true only for a second-tier name on the compute allowlist ("Performance", "Super"); any other name - Efficiency, unknown, future - answers false
         static void set_default_affinity(int mode);     // affinity mode of a future JobQue: 0 off / 1 ideal-CPU hint / 2 hard mask (-1 = unset). DAS_JOBQUE_AFFINITY still overrides
         static int get_default_affinity();
         void EvalOnMainThread(Job && expr);
@@ -243,7 +250,7 @@ namespace das {
         atomic<bool>    mShutdown{false};
         atomic<int>     mThreadCount{0};
         static thread::id mTheMainThread;
-        mutex mFifoMutex;
+        std::mutex mFifoMutex;
     protected:
         deque<JobEntry> mFifo;
         vector<ThreadEntry> mThreads;
@@ -339,4 +346,5 @@ namespace das {
     void SetCurrentThreadName ( const string & str );
     void SetCurrentThreadPriority ( JobPriority priority );             // change priority of current thread, 0 - normal, >0 above normal, <0 below normal
     void SetCurrentThreadAffinityCpu ( int cpu, bool hard );            // bind current thread to a logical CPU: hard mask, or scheduler hint (Windows ideal processor); no-op where unsupported
+    int GetCurrentProcessorIndex ();                                    // logical CPU the calling thread is on right now (Windows: index within the thread's processor group); -1 where unsupported (macOS, Haiku, unknown platforms)
 }

@@ -16,7 +16,7 @@ enum class ShaderStateBlockId : uint32_t
   Invalid = 0
 };
 
-// Stupid compiler wants me to claim this version of get_dynamic_variant_states is static before friending it
+// C++ requires this overload of get_dynamic_variant_states to be declared static before friending it
 class GlobalVariableStates;
 static int get_dynamic_variant_states(const GlobalVariableStates &global_variants_state, const ScriptedShaderElement &, uint32_t &,
   ShaderStateBlockId &, shaders::RenderStateId &, shaders::ConstStateIdx &, shaders::TexStateIdx &, uint32_t &);

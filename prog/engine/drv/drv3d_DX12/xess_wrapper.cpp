@@ -182,7 +182,7 @@ public:
   {
     xefg_swapchain_handle_t dummy;
     bool result =
-      xefgSwapChainD3D12CreateContext(static_cast<ID3D12Device *>(d3d::get_device()), &dummy) == XEFG_SWAPCHAIN_RESULT_SUCCESS;
+      xefgSwapChainD3D12CreateContext(static_cast<D3DDevice *>(d3d::get_device()), &dummy) == XEFG_SWAPCHAIN_RESULT_SUCCESS;
     if (result)
       xefgSwapChainDestroy(dummy);
     return result;
@@ -193,7 +193,7 @@ public:
     logdbg("[XeFG] Creating XeFG context");
     G_ASSERT_RETURN(!m_xefgContext, false);
 
-    auto result = xefgSwapChainD3D12CreateContext(static_cast<ID3D12Device *>(d3d::get_device()), &m_xefgContext);
+    auto result = xefgSwapChainD3D12CreateContext(static_cast<D3DDevice *>(d3d::get_device()), &m_xefgContext);
     if (result < XEFG_SWAPCHAIN_RESULT_SUCCESS)
       logdbg("[XeFG] xefgSwapChainD3D12CreateContext failed with %d", result);
     else if (result > XEFG_SWAPCHAIN_RESULT_SUCCESS)
@@ -280,7 +280,7 @@ public:
     xellBackupState = false;
   }
 
-  bool init(ID3D12Device *device)
+  bool init(D3DDevice *device)
   {
     if (m_xessContext)
       return true;
@@ -737,7 +737,7 @@ XessWrapper::~XessWrapper()
 #endif
 }
 
-bool XessWrapper::xessInit(void *device) { return pImpl->init(static_cast<ID3D12Device *>(device)); }
+bool XessWrapper::xessInit(void *device) { return pImpl->init(static_cast<D3DDevice *>(device)); }
 
 bool XessWrapper::xessCreateFeature(int quality, uint32_t target_width, uint32_t target_height)
 {
@@ -833,7 +833,7 @@ public:
     if (!loadLibrary())
       return;
 
-    auto result = xellD3D12CreateContext((ID3D12Device *)d3d::get_device(), &handle);
+    auto result = xellD3D12CreateContext((D3DDevice *)d3d::get_device(), &handle);
     if (result == XELL_RESULT_SUCCESS)
     {
       modes = {Mode::Off, Mode::On};

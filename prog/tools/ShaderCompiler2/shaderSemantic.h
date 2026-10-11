@@ -54,8 +54,7 @@ inline bool compare_shader(ShaderTerminal::bool_value &e, const shc::ShaderConte
   const char *shname = ctx.name();
   switch (e.cmpop->op->num)
   {
-    case SHADER_TOKENS::SHTOK_eq:
-    case SHADER_TOKENS::SHTOK_assign: return strcmp(shname, e.shader->text) == 0;
+    case SHADER_TOKENS::SHTOK_eq: return strcmp(shname, e.shader->text) == 0;
     case SHADER_TOKENS::SHTOK_noteq: return strcmp(shname, e.shader->text) != 0;
     default: G_ASSERT(0);
   }

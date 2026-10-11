@@ -337,6 +337,7 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
     params.position_offset = args.positionOffset;
     params.skin_indices_offset = args.indicesOffset;
     params.skin_weights_offset = args.weightsOffset;
+    params.cor_offset = args.corOffset;
     params.color_offset = args.colorOffset;
     params.normal_offset = args.normalOffset;
     params.texcoord_offset = args.texcoordOffset;

@@ -1,0 +1,9 @@
+ERROR: duplicate key 'b'
+testData/diagnostics/compilation_errors/sema_errors/duplicate_key_in_const_after_spread.nut:6:4
+
+    ...SOURCE,
+    b = 2
+    ^
+}
+
+

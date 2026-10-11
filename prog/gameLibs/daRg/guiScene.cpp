@@ -30,6 +30,7 @@
 #include <drv/hid/dag_hiComposite.h>
 #include <drv/hid/dag_hiPointingData.h>
 #include <drv/hid/dag_hiGlobals.h>
+#include <drv/3d/dag_resetDevice.h>
 
 #include <quirrel/bindQuirrelEx/sqModulesDagor.h>
 
@@ -39,6 +40,7 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <drv/hid/dag_hiXInputMappings.h>
+#include <gesture/gestureDetector.h>
 
 #include "joystickAxisObservable.h"
 #include "cursor.h"
@@ -72,7 +74,6 @@
 #include <math/dag_mathAng.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_plane3.h>
-#include <3d/dag_textureIDHolder.h>
 #include <EASTL/optional.h>
 
 #include <osApiWrappers/dag_miscApi.h>
@@ -297,9 +298,8 @@ GuiScene::~GuiScene()
 
   sceneScriptHandlers.releaseFunctions();
 
-  // Drain in-flight das jobs before shutdownScript() closes sqvm: a failed async
-  // compile reports via onScriptError(), and the host error sink asserts the VM.
-  dasScriptsData->waitAllJobsDone();
+  // Before shutdownScript() closes sqvm: a failed compile reports via onScriptError() into it.
+  dasScriptsData->discardAllJobs();
 
   // Native nodes must be destroyed before sq_close() in shutdownScript().
   // Order: clear() already called frpGraph->shutdown() which released script refs;
@@ -317,6 +317,9 @@ void GuiScene::shutdownDasEnvironment() { dasScriptsData->shutdownDasEnvironment
 
 
 void GuiScene::waitAllDasJobsDone() { dasScriptsData->waitAllJobsDone(); }
+
+
+bool GuiScene::isDasJobsInFlight() const { return dasScriptsData && interlocked_acquire_load(dasScriptsData->numJobsInFlight) > 0; }
 
 
 void GuiScene::createNativeWatches()
@@ -1071,6 +1074,7 @@ void GuiScene::buildRender()
 
   AutoProfileScope profileTotal(profiler, M_RENDER_TOTAL);
 
+  applyPendingGuiContextAbandon();
   guiContext->resetFrame();
   guiContext->start_render();
 
@@ -1179,6 +1183,7 @@ void GuiScene::buildPanelRender(int panel_idx)
   ApiThreadCheck atc(this);
 
   // NOTE! This is not included in profiler metrics
+  applyPendingGuiContextAbandon();
   guiContext->resetFrame();
   guiContext->start_render();
 
@@ -1225,6 +1230,21 @@ void GuiScene::buildPanelRender(int panel_idx)
 }
 
 
+bool GuiScene::flushGuiContext()
+{
+  ApiThreadCheck atc(this);
+
+  if (applyPendingGuiContextAbandon())
+    return false;
+
+  guiContext->setTarget();
+  StdGuiRender::acquire();
+  guiContext->flushData();
+  guiContext->end_render();
+  return true;
+}
+
+
 void GuiScene::flushRenderImpl(FlushPart part)
 {
   ApiThreadCheck atc(this);
@@ -1232,10 +1252,8 @@ void GuiScene::flushRenderImpl(FlushPart part)
   if (part == FlushPart::MainScene)
     blurWorld();
 
-  guiContext->setTarget();
-  StdGuiRender::acquire();
-  guiContext->flushData();
-  guiContext->end_render();
+  if (!flushGuiContext())
+    return;
 
   if (needToDiscardPictures && pictureDiscardAllowed)
     needToDiscardPictures = !PictureManager::discard_unused_picture(/*force_lock*/ false);
@@ -1669,7 +1687,7 @@ int GuiScene::onMouseEvent(InputEvent event, int data, short mx, short my, int b
     if ((event == INP_EV_PRESS || event == INP_EV_RELEASE) && data != HumanInput::DBUTTON_SCROLLUP &&
         data != HumanInput::DBUTTON_SCROLLDOWN && !status.isShowingFullErrorDetails && isInputActive())
     {
-      if (updateHotkeys())
+      if (updateHotkeys(HotkeyButton(DEVID_MOUSE, data)))
         accumRes |= R_PROCESSED;
     }
 
@@ -1940,6 +1958,148 @@ int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *, int tou
 }
 
 
+static int touch_pad_gesture_type(HumanInput::Gesture::Type type)
+{
+  switch (type)
+  {
+    case HumanInput::Gesture::TAP: return GestureDetector::TAP;
+    case HumanInput::Gesture::DOUBLE_TAP: return GestureDetector::DOUBLE_TAP;
+    case HumanInput::Gesture::HOLD: return GestureDetector::HOLD;
+    case HumanInput::Gesture::DRAG: return GestureDetector::DRAG;
+    case HumanInput::Gesture::PINCH: return GestureDetector::PINCH;
+    case HumanInput::Gesture::ROTATE: return GestureDetector::ROTATE;
+    default: return 0;
+  }
+}
+
+
+static constexpr int touch_pad_hit_bhv_flags = Behavior::F_HANDLE_MOUSE | Behavior::F_HANDLE_TOUCH_PAD_GESTURE;
+
+
+static int send_touch_pad_gesture(Element *elem, int state, const TouchPadGesture &gesture, int accum_res)
+{
+  int res = 0;
+  for (Behavior *bhv : elem->behaviors)
+    if ((bhv->flags & Behavior::F_HANDLE_TOUCH_PAD_GESTURE) && (bhv->getTouchPadGestures(elem) & gesture.type))
+      res |= bhv->touchPadGestureEvent(elem->etree, elem, state, gesture, accum_res | res);
+  return res;
+}
+
+
+int GuiScene::onTouchPadGesture(int state, const HumanInput::Gesture &gesture, int prev_result)
+{
+  ApiThreadCheck atc(this);
+
+  DEBUG_TRACE_INPDEV("GuiScene::onTouchPadGesture(state=%d, type=%d)", state, gesture.type);
+
+  const int type = touch_pad_gesture_type(gesture.type);
+  if (!type || status.isShowingFullErrorDetails || !isInputActive())
+    return 0;
+
+  // constraint: a DOUBLE_TAP is one event, SystemGesture sends it as ACTIVE
+  if (type == GestureDetector::DOUBLE_TAP && state != HumanInput::Gesture::CANCELLED)
+    state = HumanInput::Gesture::END;
+
+  TouchPadGestureCapture &capture = touchPadGestures[gesture.type];
+  if (state == HumanInput::Gesture::BEGIN)
+    cancelTouchPadGesture(capture);
+  else if (!capture.elem && !(state == HumanInput::Gesture::END && type == GestureDetector::DOUBLE_TAP))
+    return prev_result;
+
+  Element *target = capture.elem;
+  Screen *screen = target ? target->etree->screen : focusedScreen;
+  if (!screen)
+    return prev_result;
+
+  // constraint: Sony touch pads are 1920 pad pixels wide
+  const float padToScreen = config.touchPadWidthInScreenHeights * StdGuiRender::screen_height() / 1920.f;
+  const TouchPadGesture &last = capture.last;
+
+  TouchPadGesture evt;
+  evt.type = type;
+  if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, evt.pos))
+    evt.pos = out_of_screen_pos;
+  evt.pos0 = target ? last.pos0 : evt.pos;
+  evt.delta = Point2(gesture.deltaX, gesture.deltaY) * padToScreen;
+  evt.drag = Point2(gesture.x - gesture.x0, gesture.y - gesture.y0) * padToScreen;
+  evt.scale = gesture.scale;
+  evt.deltaScale = gesture.scale - (target ? last.scale : 1.f);
+  evt.angle = gesture.angle;
+  evt.deltaAngle = gesture.angle - (target ? last.angle : 0.f);
+
+  int res = prev_result;
+  if (target)
+  {
+    if (state == HumanInput::Gesture::END || state == HumanInput::Gesture::CANCELLED)
+      capture.elem = nullptr;
+    else
+      capture.last = evt;
+    res |= send_touch_pad_gesture(target, state, evt, res);
+  }
+  else
+  {
+    for (Element *elem = screen->inputStack.hitTest(evt.pos, touch_pad_hit_bhv_flags, Element::F_STOP_POINTING); elem;
+         elem = elem->parent)
+    {
+      if (!elem->hasBehaviors(Behavior::F_HANDLE_TOUCH_PAD_GESTURE))
+        continue;
+      const int elemRes = send_touch_pad_gesture(elem, state, evt, res);
+      res |= elemRes;
+      if ((elemRes & R_PROCESSED) && state == HumanInput::Gesture::BEGIN)
+      {
+        capture.elem = elem;
+        capture.last = evt;
+      }
+      if (elemRes & (R_PROCESSED | R_STOPPED))
+        break;
+    }
+  }
+
+  callScriptHandlers();
+
+  if (res & R_PROCESSED)
+    rebuildInvalidatedParts();
+
+  if (res & R_REBUILD_RENDER_AND_INPUT_LISTS)
+    rebuildStacksAndNotify(screen, /*refresh_hotkeys_nav*/ false, /*update_global_hover*/ true);
+
+  return res;
+}
+
+
+int GuiScene::getTouchPadGesturesAtPointer() const
+{
+  ApiThreadCheck atc(this);
+
+  Point2 pos;
+  if (status.isShowingFullErrorDetails || !isInputActive() || !focusedScreen ||
+      !focusedScreen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, pos))
+    return 0;
+
+  int mask = 0;
+  for (Element *elem = focusedScreen->inputStack.hitTest(pos, touch_pad_hit_bhv_flags, Element::F_STOP_POINTING); elem;
+       elem = elem->parent)
+    for (Behavior *bhv : elem->behaviors)
+      if (bhv->flags & Behavior::F_HANDLE_TOUCH_PAD_GESTURE)
+        mask |= bhv->getTouchPadGestures(elem);
+  return mask;
+}
+
+
+void GuiScene::cancelTouchPadGesture(TouchPadGestureCapture &capture)
+{
+  Element *elem = capture.elem;
+  capture.elem = nullptr;
+  if (!elem || isClearing)
+    return;
+
+  TouchPadGesture evt = capture.last;
+  evt.delta = Point2(0, 0);
+  evt.deltaScale = evt.deltaAngle = 0;
+  send_touch_pad_gesture(elem, HumanInput::Gesture::CANCELLED, evt, 0);
+}
+
+
 int GuiScene::onServiceKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat, wchar_t wc, int prev_result)
 {
   G_UNUSED(repeat);
@@ -2033,7 +2193,7 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
   }
 
   if (!(resFlags & R_PROCESSED) && !repeat)
-    if (updateHotkeys())
+    if (updateHotkeys(HotkeyButton(DEVID_KEYBOARD, key_idx)))
       resFlags |= R_PROCESSED;
 
   if (config.kbCursorControl && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_KEYBOARD, key_idx))
@@ -2139,7 +2299,7 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
   }
 
   if (::dgs_app_active && !(resFlags & R_PROCESSED))
-    if (updateHotkeys())
+    if (updateHotkeys(HotkeyButton(DEVID_JOYSTICK, btn_idx)))
       resFlags |= R_PROCESSED;
 
   if (::dgs_app_active && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_JOYSTICK, btn_idx))
@@ -2696,7 +2856,7 @@ static bool is_hotkeys_subset(const HotkeyCombo *selected_combo, Element *candid
 }
 
 
-bool GuiScene::updateHotkeys()
+bool GuiScene::updateHotkeys(HotkeyButton event_btn)
 {
   Tab<eastl::pair<HotkeyCombo *, Element *>> updatedCombos(framemem_ptr());
   Tab<eastl::pair<HotkeyCombo *, Element *>> releasedCombos(framemem_ptr());
@@ -2718,7 +2878,7 @@ bool GuiScene::updateHotkeys()
       {
         if (!isStopped)
         {
-          if (combo->updateOnCombo(getJoystick()))
+          if (combo->updateOnCombo(getJoystick(), event_btn))
           {
             auto cmp = [&combo](eastl::pair<HotkeyCombo *, Element *> &item) {
               return is_hotkeys_subset(item.first, combo.get(), false);
@@ -3179,6 +3339,10 @@ void GuiScene::onElementDetached(Element *elem)
   // possibly could exist in these lists, but let's see
   G_ASSERT(eastl::find(allRebuiltElems.begin(), allRebuiltElems.end(), elem) == allRebuiltElems.end());
 
+  for (TouchPadGestureCapture &capture : touchPadGestures)
+    if (capture.elem == elem)
+      cancelTouchPadGesture(capture);
+
   auto it = eastl::find(invalidatedElements.begin(), invalidatedElements.end(), elem);
   if (it != invalidatedElements.end())
     invalidatedElements.erase(it);
@@ -3475,6 +3639,8 @@ void GuiScene::applyInputActivityChange()
     for (auto &[id, screen] : screens)
       screen->etree.deactivateAllInput();
     pressedClickButtons.clear();
+    for (TouchPadGestureCapture &capture : touchPadGestures)
+      cancelTouchPadGesture(capture);
   }
 
   notifyInputConsumersCallback();
@@ -3884,6 +4050,18 @@ void GuiScene::requestPerfStatsDump(bool reset)
 void GuiScene::requestProfilerActivation(bool on) { interlocked_release_store(pendingProfilerActivation, on ? 1 : 0); }
 
 
+void GuiScene::requestGuiContextAbandon() { interlocked_release_store(pendingGuiContextAbandon, 1); }
+
+
+bool GuiScene::applyPendingGuiContextAbandon()
+{
+  if (!interlocked_acquire_load(pendingGuiContextAbandon) || !interlocked_exchange(pendingGuiContextAbandon, 0))
+    return false;
+  guiContext->abandonFrame();
+  return true;
+}
+
+
 void dump_all_gui_scenes_perf_stats(bool reset_counters)
 {
   OSSpinlockScopedLock lock(all_gui_scenes_lock);
@@ -4163,6 +4341,8 @@ SQInteger GuiScene::add_panel(HSQUIRRELVM vm)
   G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 2, &idx)));
   if (idx < 0)
     return sq_throwerror(vm, "Panel id must be non-negative");
+  if (idx == MAIN_SCREEN_ID)
+    return sq_throwerror(vm, "Panel id must not be MAIN_SCREEN_ID, it is the id of the main screen");
 
   if (scene->panels.find(idx) != scene->panels.end())
     return sqstd_throwerrorf(vm, "Panel with id %d already exists", idx);
@@ -4512,10 +4692,10 @@ SQInteger GuiScene::get_comp_aabb_by_key(HSQUIRRELVM vm)
   EventDataRect resRect;
   calc_elem_rect_for_event_handler(resRect, elem);
   Sqrat::Table res(vm);
-  res.SetValue("l", resRect.l);
-  res.SetValue("b", resRect.b);
-  res.SetValue("r", resRect.r);
-  res.SetValue("t", resRect.t);
+  res.SetValue(elem->csk->l, resRect.l);
+  res.SetValue(elem->csk->b, resRect.b);
+  res.SetValue(elem->csk->r, resRect.r);
+  res.SetValue(elem->csk->t, resRect.t);
   sq_pushobject(vm, res);
   return 1;
 }
@@ -4570,7 +4750,7 @@ IWndProcComponent::RetCode GuiScene::process(void * /*hwnd*/, unsigned msg, uint
       mousePointer.onAppActivate();
       updateGlobalHover();
     }
-    updateHotkeys(); // to compensate skipped joystick presses
+    updateHotkeys(HotkeyButton(DEVID_NONE, 0)); // to compensate skipped joystick presses
   }
 #if _TARGET_PC_WIN
   else if (msg == WM_WINDOWPOSCHANGED || msg == WM_DISPLAYCHANGE)
@@ -4809,7 +4989,7 @@ void GuiScene::updateSpatialElements(const SpatialSceneData &spatial_scene)
   {
     panel->updateTexture(*this, nullptr);
     panel->renderInfo.isValid = true;
-    panel->renderInfo.texture = panel->canvas->getId();
+    panel->renderInfo.texture = panel->canvas.getTexId();
   }
 
   getGuiContext()->setBuffer(oldBuffer);
@@ -5140,6 +5320,8 @@ bool GuiScene::setFocusedScreen(Screen *screen)
     }
 
     focusedScreen->etree.deactivateAllInput();
+    for (TouchPadGestureCapture &capture : touchPadGestures)
+      cancelTouchPadGesture(capture);
   }
 
   focusedScreen = screen;
@@ -5165,6 +5347,15 @@ bool GuiScene::setFocusedScreenById(int id)
   }
   return setFocusedScreen(getGuiScreen(id));
 }
+
+static void darg_scenes_after_reset_device(bool)
+{
+  OSSpinlockScopedLock lock(all_gui_scenes_lock);
+  for (GuiScene *scene : all_gui_scenes)
+    scene->requestGuiContextAbandon();
+}
+
+REGISTER_D3D_AFTER_RESET_FUNC(darg_scenes_after_reset_device);
 
 SQInteger GuiScene::sqGetFocusedScreen(HSQUIRRELVM vm)
 {
@@ -5323,6 +5514,8 @@ void GuiScene::bindScriptClasses()
     V(allScreensAcceptInput)
     ///@var moveClickThreshold
     V(moveClickThreshold)
+    ///@var touchPadWidthInScreenHeights
+    V(touchPadWidthInScreenHeights)
     ///@var buttonTouchMargin
     V(buttonTouchMargin)
     .Prop("defSceneBgColor", &SceneConfig::getDefSceneBgColor, &SceneConfig::setDefSceneBgColor)

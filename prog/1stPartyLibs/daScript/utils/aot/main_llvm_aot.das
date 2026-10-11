@@ -1,6 +1,6 @@
 options gen2
 // LLVM object AOT driver. Sibling of utils/aot/main.das: instead of emitting C++ AOT stubs, it
-// emits one native object per input through the LLVM JIT backend. Each object self-registers its
+// emits one native .o per input through the LLVM JIT backend. Each object self-registers its
 // functions into the AOT library at load (das_aot_register), so linkCppAot binds them as
 // SimNode_Jit -- the same role the C++ AOT .cpp plays, with no interpreter penalty.
 // Requires dasLLVM, so only a build that links that module can run this driver.
@@ -20,7 +20,7 @@ struct Config {
     @clarg_doc = "Source .das to compile (repeatable); pairs by position with --aot-out"
     aot_in : array<string>
 
-    @clarg_doc = "Object path for the matching --aot-in, without the object suffix (repeatable)"
+    @clarg_doc = "Object path for the matching --aot-in, without the .o suffix (repeatable)"
     aot_out : array<string>
 
     @clarg_doc = "Parse the sources as gen1 syntax"
@@ -70,7 +70,7 @@ def aot_object_one(input : string, output : string, gen2 : bool, gen2_make : boo
             // pattern is marked instead of reported, so the object emits here and the host then
             // rejects the script at load.
             cop.no_aliasing = true
-            cop.jit_output_path := output     // the macro appends the object suffix
+            cop.jit_output_path := output     // the macro appends the .o suffix
             compile_file(input, access, unsafe(addr(mg)), cop) $(ok; var program : smart_ptr<Program>; issues) {
                 if (!ok || program == null) {
                     to_log(LOG_ERROR, "aot-object: failed to compile `{input}`\n{issues}\n")

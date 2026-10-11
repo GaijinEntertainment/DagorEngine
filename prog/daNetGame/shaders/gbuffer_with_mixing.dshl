@@ -39,6 +39,11 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
   if (compatibility_mode == compatibility_mode_on)
   {
     WRITE_GBUFFER_THIN()
+    hlsl(ps)
+    {
+      #define isGbufferEmissive(screen_pos) false
+      #define encode_gbuffer_alpha_cover_emission encode_gbuffer_alpha
+    }
   }
   else
   {
@@ -48,12 +53,12 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
       color_write[1] = rgba;
     }
 
+    if (packed_gbuf_normals == yes && allow_dynstcode)
+    {
+      INIT_GBUFFER_MIXING_UAV()
+    }
     if (!blending && packed_gbuf_normals == yes)
     {
-      if (allow_dynstcode)
-      {
-        INIT_GBUFFER_MIXING_UAV()
-      }
       hlsl(ps) { #define UAV_5th_TARGET 1 }
     }
     else
@@ -90,7 +95,7 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
         return ret;
       }
 
-      GBUFFER_OUTPUT encode_gbuffer_alpha_raw(UnpackedGbuffer gbuf, half alpha)
+      GBUFFER_OUTPUT encode_gbuffer_alpha_raw(UnpackedGbuffer gbuf, half alpha, half gbuf2_alpha)
       {
         GBUFFER_OUTPUT ret;
         PackedGbuffer packedGbuf = pack_gbuffer(gbuf);
@@ -100,7 +105,8 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
           ret.motion_reactive = packedGbuf.motion_reactive;
         #endif
         ret.normal = float4(gbuf.normal * 0.5f + 0.5f, alpha);
-        ret.albedo_ao.w = ret.smoothness_reflectance_metallTranslucency_shadow.w = alpha;
+        ret.albedo_ao.w = alpha;
+        ret.smoothness_reflectance_metallTranslucency_shadow.w = gbuf2_alpha;
         return ret;
       }
 
@@ -119,8 +125,33 @@ macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
         return ret;
       }
 
-      #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a, b)
-      #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a, b)
+      GBUFFER_OUTPUT encode_gbuffer_alpha_cover_emission_raw(UnpackedGbuffer gbuf, half alpha, bool is_on_emissive_surface)
+      {
+        if (!is_on_emissive_surface)
+          return encode_gbuffer_alpha_raw(gbuf, alpha, alpha);
+        const half SOLID_DECAL_MIN_ALPHA = 0.8;
+        bool isSolid = alpha >= SOLID_DECAL_MIN_ALPHA;
+        if (isSolid)
+          init_metalness(gbuf, 0); // emission in this case, not metalness
+        else
+          init_albedo(gbuf, 0);
+        return encode_gbuffer_alpha_raw(gbuf, alpha, isSolid ? 1 : 0);
+      }
+
+      ##if packed_gbuf_normals == yes
+        bool isEmissiveMaterial(half4 normal_material)
+        {
+          uint extra, material;
+          unpackMaterialExtra(normal_material, extra, material);
+          return isEmissiveShader(material);
+        }
+        #define isGbufferEmissive(screen_pos) isEmissiveMaterial(packed_gbuf_1[uint2((screen_pos).xy)])
+      ##else
+        #define isGbufferEmissive(screen_pos) false
+      ##endif
+      #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a, b, isGbufferEmissive(d) ? 0 : (b))
+      #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a, half3((b).xy, isGbufferEmissive(d) ? 0 : (b).z))
+      #define encode_gbuffer_alpha_cover_emission(a,b,c,d) encode_gbuffer_alpha_cover_emission_raw(a, b, isGbufferEmissive(d))
       #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a, c.xy)
     }
   }

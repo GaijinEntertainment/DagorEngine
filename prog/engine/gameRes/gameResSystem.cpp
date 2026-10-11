@@ -545,7 +545,7 @@ void gameresprivate::scanGameResPack(const char *filename)
     {
       debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-      DAG_FATAL("no GRP2 label in %s", filename);
+      DAG_FATAL("no GRP2 label in '%s'", cb.getTargetName());
 #endif
       DAGOR_THROW(IGenLoad::LoadException("no GRP2 label", cb.tell()));
     }
@@ -553,7 +553,7 @@ void gameresprivate::scanGameResPack(const char *filename)
     {
       debug("Corrupt file: hdr+restFileSize=%u != filesz=%d", unsigned(ghdr.restFileSize + sizeof(ghdr)), df_length(cb.fileHandle));
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-      DAG_FATAL("Corrupt file %s", filename);
+      DAG_FATAL("Corrupt file '%s'", cb.getTargetName());
 #endif
       DAGOR_THROW(IGenLoad::LoadException("Corrupt file: restFileSize", cb.tell()));
     }
@@ -561,7 +561,7 @@ void gameresprivate::scanGameResPack(const char *filename)
     {
       debug("Corrupt file: fullDataSize=%u, filesz=%d", ghdr.fullDataSize, df_length(cb.fileHandle));
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-      DAG_FATAL("Corrupt file %s", filename);
+      DAG_FATAL("Corrupt file '%s'", cb.getTargetName());
 #endif
       DAGOR_THROW(IGenLoad::LoadException("Corrupt file: fullDataSize", cb.tell()));
     }
@@ -907,7 +907,11 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
       {
         debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-        DAG_FATAL("no GRP2 label in %s", fileName.str());
+#if _TARGET_PC
+        // constraint: on PC a fatal handler truncates the quoted pack to repair it, and FastSeqReader denies write sharing
+        seq_cb.close();
+#endif
+        DAG_FATAL("no GRP2 label in '%s'", fileName.str());
 #endif
         DAGOR_THROW(IGenLoad::LoadException("no GRP2 label", cb.tell()));
       }
@@ -916,7 +920,10 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
         debug("Corrupt file: hdr+restFileSize=%u != filesz=%d, descOnlySize=%u", unsigned(ghdr.restFileSize + sizeof(ghdr)), file_sz,
           ghdr.descOnlySize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
-        DAG_FATAL("Corrupt file %s", fileName.str());
+#if _TARGET_PC
+        seq_cb.close();
+#endif
+        DAG_FATAL("Corrupt file '%s'", fileName.str());
 #endif
         DAGOR_THROW(IGenLoad::LoadException("Corrupt file: restFileSize", cb.tell()));
       }

@@ -7,57 +7,13 @@ Target      = tools/AssetViewer/animTree.lib ;
 AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
-  $(Root)/prog/tools/libTools
+  $(Root)/prog/gameLibs
 ;
 
 Sources =
   main.cpp
-  animTree.cpp
-  animTreeUtils.cpp
+  animTreePlugin.cpp
   animTreeAnimationPlayer.cpp
-  animTreeDragListHandler.cpp
-  childsDialog.cpp
-  animStates/animStatesTreeEventHandler.cpp
-  animStates/stateListSettingsEventHandler.cpp
-  animStates/stateDesc.cpp
-  animStates/chan.cpp
-  animStates/stateAlias.cpp
-  animStates/animStatesType.cpp
-  animStates/state.cpp
-  animStates/rootProps.cpp
-  animStates/initFifo3.cpp
-  animStates/postBlendCtrlOrder.cpp
-  animStates/morph.cpp
-  controllers/ctrlTreeEventHandler.cpp
-  controllers/ctrlListSettingsEventHandler.cpp
-  controllers/ctrlType.cpp
-  controllers/paramSwitch.cpp
-  controllers/randomSwitch.cpp
-  controllers/hub.cpp
-  controllers/linearPoly.cpp
-  controllers/footLockerIK.cpp
-  controllers/simpleControllers.cpp
-  controllers/nodesFromAttachement.cpp
-  controllers/effFromAttachment.cpp
-  controllers/attachNode.cpp
-  controllers/defClampCtrl.cpp
-  controllers/alias.cpp
-  controllers/aim.cpp
-  controllers/legsIK.cpp
-  controllers/twoBonesIK.cpp
-  controllers/multiChainFABRIK.cpp
-  controllers/animateNode.cpp
-  controllers/condHide.cpp
-  controllers/paramsCtrl.cpp
-  controllers/paramsCtrlDragDropHandlers.cpp
-  blendNodes/blendNodeType.cpp
-  blendNodes/single.cpp
-  blendNodes/continuous.cpp
-  blendNodes/still.cpp
-  blendNodes/parametric.cpp
-  blendNodes/resetRandomSwitchListEventHandler.cpp
-  blendNodes/blendNodeTreeEventHandler.cpp
-  nodeMasks/nodeMaskTreeEventHandler.cpp
 ;
 
 

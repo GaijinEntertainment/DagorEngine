@@ -301,8 +301,6 @@ void save_typed_vars(const Tab<TypedVar> &vars, DataBlock &blk)
 // Panel UI helpers
 // ---------------------------------------------------------------------------
 
-using hdpi::_pxScaled;
-
 static const char *kind_label(TypedVarKind k)
 {
   switch (k)
@@ -529,9 +527,8 @@ static bool ask_step2_float_or_range(TypedVar &v)
   const bool isRange = (v.kind == TypedVarKind::Range);
   const char *title = isRange ? "Range variable parameters" : "Float variable parameters";
 
-  PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(300), _pxScaled(isRange ? 260 : 220), title);
+  PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog(title);
   DlgGuard guard(dlg);
-  dlg->setManualModalSizingEnabled();
   PropPanel::ContainerPropertyControl *p = dlg->getPanel();
 
   p->createEditFloat(0, "Min", 0.f);
@@ -597,9 +594,8 @@ static bool ask_step2_mask(TypedVar &v)
 
 static bool ask_step2_curve(TypedVar &v)
 {
-  PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(280), _pxScaled(140), "Curve variable parameters");
+  PropPanel::DialogWindow *dlg = DAGORED2->createAutoSizedDialog("Curve variable parameters");
   DlgGuard guard(dlg);
-  dlg->setManualModalSizingEnabled();
   PropPanel::ContainerPropertyControl *p = dlg->getPanel();
 
   Tab<String> ct(tmpmem);
@@ -626,9 +622,8 @@ bool show_typed_var_add_dialog(TypedVar &out_var, const Tab<TypedVar> &existing)
     return false;
   }
 
-  PropPanel::DialogWindow *dlg1 = DAGORED2->createDialog(_pxScaled(300), _pxScaled(150), "Create typed variable");
+  PropPanel::DialogWindow *dlg1 = DAGORED2->createAutoSizedDialog("Create typed variable");
   DlgGuard guard(dlg1);
-  dlg1->setManualModalSizingEnabled();
   PropPanel::ContainerPropertyControl *p1 = dlg1->getPanel();
 
   p1->createEditBox(0, "Name");

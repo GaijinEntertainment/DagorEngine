@@ -10,6 +10,7 @@
 #include <render/lights/omniLightsManager.h>
 #include <render/lights/spotLightsManager.h>
 #include <render/lights/lightsPartition.h>
+#include <render/lights/lightsCounter.h>
 #include <render/lights/lightsSorter.h>
 #include <render/lights/frustumClusters.h>
 #include <render/lights/tiledLights.h>
@@ -39,24 +40,8 @@ class ComputeShaderElement;
 class Occlusion;
 class DistanceReadbackLights;
 
-// Uses optimized shader variants for frames where few lights are
-// visible. See dynamic_lights_count shader variable.
-// "Few" means less than the threshold, which is the size of a GPU
-// word in bits.
-// should match render\shaders\dynamic_lights_count.dshl
-enum class DynLightsOptimizationMode : int
-{
-  NO_LIGHTS,
-  NO_SPOTS_FEW_OMNI,
-  FEW_SPOTS_NO_OMNI,
-  FEW_SPOTS_FEW_OMNI,
-  FULL_CLUSTERED
-};
-
 struct ClusteredLights
 {
-  constexpr static int LIGHTS_OPTIMIZATION_THRESHOLD = 32;
-
   typedef OmniLightsManager::RawLight OmniLight;
   typedef SpotLightsManager::RawLight SpotLight;
   static const int MAX_SHADOW_PRIORITY = 15; // 15 times more important than anything else
@@ -121,12 +106,14 @@ struct ClusteredLights
   void setLightWithMask(uint32_t id, const OmniLight &light, OmniLightMaskType mask, bool invalidate_shadow);
   const OmniLight &getOmniLightNoLock(uint32_t id) const DAG_TS_REQUIRES(lightLock);
   OmniLight getOmniLight(uint32_t id) const;
+  OmniLightMaskType getOmniLightMask(uint32_t id) const;
 
   void setLightNoLock(uint32_t id_, const SpotLight &light, SpotLightMaskType mask, bool invalidate_shadow) DAG_TS_REQUIRES(lightLock);
   void setLight(uint32_t id_, const SpotLight &light, SpotLightMaskType mask, bool invalidate_shadow);
   uint32_t addSpotLight(const SpotLight &light, SpotLightMaskType mask);
   const SpotLight &getSpotLightNoLock(uint32_t id_) const DAG_TS_REQUIRES(lightLock);
   SpotLight getSpotLight(uint32_t id_) const;
+  SpotLightMaskType getSpotLightMask(uint32_t id) const;
   void getSpotLightShadowViewProj(uint32_t id, mat44f &view_itm, mat44f &proj);
 
   bool isLightVisible(uint32_t id) const;
@@ -219,6 +206,7 @@ protected:
   eastl::optional<LightsVisibilityChecker> lightVisibilityChecker DAG_TS_GUARDED_BY(lightLock);
 
   LightsPartition lightsPartition;
+  LightsCounter lightsCounter;
 
   float closeSliceDist = 4, maxClusteredDist = 500;
   eastl::unique_ptr<ShadowSystem> lightShadows DAG_TS_PT_GUARDED_BY(lightLock);
@@ -226,8 +214,10 @@ protected:
   // Per slot: a cull invalidates every slot, each fill consumes only its own.
   eastl::array<bool, LIGHTS_BUFFER_SLOTS> buffersFilled = {};
   bool lightsInitialized = false;
+  DynLightsFeatures dynLightsFeatures = DynLightsFeatures::CpuOnly;
 
   void initClustered(int initial_light_density);
+  void initTiledLights();
 
   eastl::unique_ptr<TiledLights> tiledLights;
   ClusteredLightsGrid lightsGrid;

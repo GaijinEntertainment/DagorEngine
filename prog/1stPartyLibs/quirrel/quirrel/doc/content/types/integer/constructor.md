@@ -30,9 +30,9 @@ placeholder receiver described on
 four or more arguments does not throw either; the extra ones are read but
 never used.
 
-`constructor` is a reserved word, but the parser special-cases it after a
-dot, so `x.constructor` parses like an ordinary field access - unlike
-[`clone`](sym:types.Integer.clone), which does not get that exception.
+`constructor` is an ordinary name, so `x.constructor` parses like any other
+field access. [`clone`](sym:types.Integer.clone) is a reserved word; see its
+Notes.
 
 ## Example
 

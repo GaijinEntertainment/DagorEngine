@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -26,212 +26,114 @@
 #include "curl_setup.h"
 
 struct connectdata;
-struct ssl_connect_data;
+struct ssl_config_data;
+struct ssl_primary_config;
+struct Curl_cfilter;
+struct Curl_easy;
+struct dynbuf;
 
-#define SSLSUPP_CA_PATH      (1<<0) /* supports CAPATH */
-#define SSLSUPP_CERTINFO     (1<<1) /* supports CURLOPT_CERTINFO */
-#define SSLSUPP_PINNEDPUBKEY (1<<2) /* supports CURLOPT_PINNEDPUBLICKEY */
-#define SSLSUPP_SSL_CTX      (1<<3) /* supports CURLOPT_SSL_CTX */
-#define SSLSUPP_HTTPS_PROXY  (1<<4) /* supports access via HTTPS proxies */
-#define SSLSUPP_TLS13_CIPHERSUITES (1<<5) /* supports TLS 1.3 ciphersuites */
-#define SSLSUPP_CAINFO_BLOB  (1<<6)
+#define SSLSUPP_CA_PATH      (1 << 0) /* supports CAPATH */
+#define SSLSUPP_CERTINFO     (1 << 1) /* supports CURLOPT_CERTINFO */
+#define SSLSUPP_PINNEDPUBKEY (1 << 2) /* supports CURLOPT_PINNEDPUBLICKEY */
+#define SSLSUPP_SSL_CTX      (1 << 3) /* supports CURLOPT_SSL_CTX */
+#define SSLSUPP_HTTPS_PROXY  (1 << 4) /* supports access via HTTPS proxies */
+#define SSLSUPP_TLS13_CIPHERSUITES (1 << 5) /* supports TLS 1.3 ciphersuites */
+#define SSLSUPP_CAINFO_BLOB  (1 << 6)
+#define SSLSUPP_ECH          (1 << 7)
+#define SSLSUPP_CA_CACHE     (1 << 8)
+#define SSLSUPP_CIPHER_LIST  (1 << 9) /* supports TLS 1.0-1.2 ciphersuites */
+#define SSLSUPP_SIGNATURE_ALGORITHMS (1 << 10) /* supports TLS sigalgs */
+#define SSLSUPP_ISSUERCERT   (1 << 11) /* supports CURLOPT_ISSUERCERT */
+#define SSLSUPP_SSL_EC_CURVES (1 << 12) /* supports CURLOPT_SSL_EC_CURVES */
+#define SSLSUPP_CRLFILE      (1 << 13) /* supports CURLOPT_CRLFILE */
+#define SSLSUPP_ISSUERCERT_BLOB (1 << 14) /* CURLOPT_ISSUERCERT_BLOB */
+
+#ifdef USE_ECH
+/* CURLECH_ values for the tls_ech option */
+#define CURLECH_DISABLE    0
+#define CURLECH_GREASE     1
+#define CURLECH_ENABLE     2
+#define CURLECH_HARD       3
+
+#define CURLECH_ENABLED(data) ((data)->set.tls_ech)
+#endif /* USE_ECH */
 
 #define ALPN_ACCEPTED "ALPN: server accepted "
 
-#define VTLS_INFOF_NO_ALPN                                      \
+#define VTLS_INFOF_NO_ALPN            \
   "ALPN: server did not agree on a protocol. Uses default."
-#define VTLS_INFOF_ALPN_OFFER_1STR              \
-  "ALPN: offers %s"
-#define VTLS_INFOF_ALPN_ACCEPTED_1STR           \
-  ALPN_ACCEPTED "%s"
-#define VTLS_INFOF_ALPN_ACCEPTED_LEN_1STR       \
+#define VTLS_INFOF_ALPN_OFFER_1STR    \
+  "ALPN: curl offers %s"
+#define VTLS_INFOF_ALPN_ACCEPTED      \
   ALPN_ACCEPTED "%.*s"
 
-struct Curl_ssl {
-  /*
-   * This *must* be the first entry to allow returning the list of available
-   * backends in curl_global_sslset().
-   */
-  curl_ssl_backend info;
-  unsigned int supports; /* bitfield, see above */
-  size_t sizeof_ssl_backend_data;
+#define VTLS_INFOF_NO_ALPN_DEFERRED   \
+  "ALPN: deferred handshake for early data without specific protocol."
+#define VTLS_INFOF_ALPN_DEFERRED      \
+  "ALPN: deferred handshake for early data using '%.*s'."
 
-  int (*init)(void);
-  void (*cleanup)(void);
+/* IETF defined version numbers used in TLS protocol negotiation */
+#define CURL_IETF_PROTO_UNKNOWN       0x0
+#define CURL_IETF_PROTO_SSL3          0x0300
+#define CURL_IETF_PROTO_TLS1          0x0301
+#define CURL_IETF_PROTO_TLS1_1        0x0302
+#define CURL_IETF_PROTO_TLS1_2        0x0303
+#define CURL_IETF_PROTO_TLS1_3        0x0304
+#define CURL_IETF_PROTO_DTLS1         0xFEFF
+#define CURL_IETF_PROTO_DTLS1_2       0xFEFD
 
-  size_t (*version)(char *buffer, size_t size);
-  int (*check_cxn)(struct connectdata *cxn);
-  int (*shut_down)(struct Curl_easy *data, struct connectdata *conn,
-                   int sockindex);
-  bool (*data_pending)(const struct connectdata *conn,
-                       int connindex);
+typedef enum {
+  CURL_SSL_PEER_DNS,
+  CURL_SSL_PEER_IPV4,
+  CURL_SSL_PEER_IPV6
+} ssl_peer_type;
 
-  /* return 0 if a find random is filled in */
-  CURLcode (*random)(struct Curl_easy *data, unsigned char *entropy,
-                     size_t length);
-  bool (*cert_status_request)(void);
-
-  CURLcode (*connect_blocking)(struct Curl_easy *data,
-                               struct connectdata *conn, int sockindex);
-  CURLcode (*connect_nonblocking)(struct Curl_easy *data,
-                                  struct connectdata *conn, int sockindex,
-                                  bool *done);
-
-  /* If the SSL backend wants to read or write on this connection during a
-     handshake, set socks[0] to the connection's FIRSTSOCKET, and return
-     a bitmap indicating read or write with GETSOCK_WRITESOCK(0) or
-     GETSOCK_READSOCK(0). Otherwise return GETSOCK_BLANK.
-     Mandatory. */
-  int (*getsock)(struct connectdata *conn, curl_socket_t *socks);
-
-  void *(*get_internals)(struct ssl_connect_data *connssl, CURLINFO info);
-  void (*close_one)(struct Curl_easy *data, struct connectdata *conn,
-                    int sockindex);
-  void (*close_all)(struct Curl_easy *data);
-  void (*session_free)(void *ptr);
-
-  CURLcode (*set_engine)(struct Curl_easy *data, const char *engine);
-  CURLcode (*set_engine_default)(struct Curl_easy *data);
-  struct curl_slist *(*engines_list)(struct Curl_easy *data);
-
-  bool (*false_start)(void);
-  CURLcode (*sha256sum)(const unsigned char *input, size_t inputlen,
-                    unsigned char *sha256sum, size_t sha256sumlen);
-
-  bool (*associate_connection)(struct Curl_easy *data,
-                               struct connectdata *conn,
-                               int sockindex);
-  void (*disassociate_connection)(struct Curl_easy *data, int sockindex);
+struct ssl_peer {
+  struct Curl_peer *origin; /* the authority we talk to */
+  struct Curl_peer *peer;   /* the machine we are connected to */
+  char *sni;             /* SNI version of hostname or NULL if not usable */
+  char *scache_key;      /* for lookups in session cache */
+  ssl_peer_type type;    /* type of the peer information */
+  uint8_t transport;     /* one of TRNSPRT_* defines */
 };
-
-#ifdef USE_SSL
-extern const struct Curl_ssl *Curl_ssl;
-#endif
-
-int Curl_none_init(void);
-void Curl_none_cleanup(void);
-int Curl_none_shutdown(struct Curl_easy *data, struct connectdata *conn,
-                       int sockindex);
-int Curl_none_check_cxn(struct connectdata *conn);
-CURLcode Curl_none_random(struct Curl_easy *data, unsigned char *entropy,
-                          size_t length);
-void Curl_none_close_all(struct Curl_easy *data);
-void Curl_none_session_free(void *ptr);
-bool Curl_none_data_pending(const struct connectdata *conn, int connindex);
-bool Curl_none_cert_status_request(void);
-CURLcode Curl_none_set_engine(struct Curl_easy *data, const char *engine);
-CURLcode Curl_none_set_engine_default(struct Curl_easy *data);
-struct curl_slist *Curl_none_engines_list(struct Curl_easy *data);
-bool Curl_none_false_start(void);
-bool Curl_ssl_tls13_ciphersuites(void);
 
 CURLsslset Curl_init_sslset_nolock(curl_sslbackend id, const char *name,
                                    const curl_ssl_backend ***avail);
 
-#include "openssl.h"        /* OpenSSL versions */
-#include "gtls.h"           /* GnuTLS versions */
-#include "nssg.h"           /* NSS versions */
-#include "gskit.h"          /* Global Secure ToolKit versions */
-#include "wolfssl.h"        /* wolfSSL versions */
-#include "schannel.h"       /* Schannel SSPI version */
-#include "sectransp.h"      /* SecureTransport (Darwin) version */
-#include "mbedtls.h"        /* mbedTLS versions */
-#include "bearssl.h"        /* BearSSL versions */
-#include "rustls.h"         /* rustls versions */
-
-#ifndef MAX_PINNED_PUBKEY_SIZE
-#define MAX_PINNED_PUBKEY_SIZE 1048576 /* 1MB */
-#endif
-
-#ifndef CURL_SHA256_DIGEST_LENGTH
-#define CURL_SHA256_DIGEST_LENGTH 32 /* fixed size */
-#endif
-
-/* see https://www.iana.org/assignments/tls-extensiontype-values/ */
-#define ALPN_HTTP_1_1_LENGTH 8
-#define ALPN_HTTP_1_1 "http/1.1"
-#define ALPN_H2_LENGTH 2
-#define ALPN_H2 "h2"
-
-/* set of helper macros for the backends to access the correct fields. For the
-   proxy or for the remote host - to properly support HTTPS proxy */
-#ifndef CURL_DISABLE_PROXY
-#define SSL_IS_PROXY()                                                  \
-  (CURLPROXY_HTTPS == conn->http_proxy.proxytype &&                     \
-   ssl_connection_complete !=                                           \
-   conn->proxy_ssl[conn->sock[SECONDARYSOCKET] ==                       \
-                   CURL_SOCKET_BAD ? FIRSTSOCKET : SECONDARYSOCKET].state)
-#define SSL_SET_OPTION(var)                                             \
-  (SSL_IS_PROXY() ? data->set.proxy_ssl.var : data->set.ssl.var)
-#define SSL_SET_OPTION_LVALUE(var)                                      \
-  (*(SSL_IS_PROXY() ? &data->set.proxy_ssl.var : &data->set.ssl.var))
-#define SSL_CONN_CONFIG(var)                                            \
-  (SSL_IS_PROXY() ? conn->proxy_ssl_config.var : conn->ssl_config.var)
-#define SSL_HOST_NAME()                                                 \
-  (SSL_IS_PROXY() ? conn->http_proxy.host.name : conn->host.name)
-#define SSL_HOST_DISPNAME()                                             \
-  (SSL_IS_PROXY() ? conn->http_proxy.host.dispname : conn->host.dispname)
-#define SSL_HOST_PORT()                                                 \
-  (SSL_IS_PROXY() ? conn->port : conn->remote_port)
-#define SSL_PINNED_PUB_KEY() (SSL_IS_PROXY()                            \
-  ? data->set.str[STRING_SSL_PINNEDPUBLICKEY_PROXY]                     \
-  : data->set.str[STRING_SSL_PINNEDPUBLICKEY])
-#else
-#define SSL_IS_PROXY() FALSE
-#define SSL_SET_OPTION(var) data->set.ssl.var
-#define SSL_SET_OPTION_LVALUE(var) data->set.ssl.var
-#define SSL_CONN_CONFIG(var) conn->ssl_config.var
-#define SSL_HOST_NAME() conn->host.name
-#define SSL_HOST_DISPNAME() conn->host.dispname
-#define SSL_HOST_PORT() conn->remote_port
-#define SSL_PINNED_PUB_KEY()                                            \
-  data->set.str[STRING_SSL_PINNEDPUBLICKEY]
-#endif
-
-char *Curl_ssl_snihost(struct Curl_easy *data, const char *host, size_t *olen);
-bool Curl_ssl_config_matches(struct ssl_primary_config *data,
-                             struct ssl_primary_config *needle);
-bool Curl_clone_primary_ssl_config(struct ssl_primary_config *source,
-                                   struct ssl_primary_config *dest);
-void Curl_free_primary_ssl_config(struct ssl_primary_config *sslc);
-/* An implementation of the getsock field of Curl_ssl that relies
-   on the ssl_connect_state enum. Asks for read or write depending
-   on whether conn->state is ssl_connect_2_reading or
-   ssl_connect_2_writing. */
-int Curl_ssl_getsock(struct connectdata *conn, curl_socket_t *socks);
+#define MAX_PINNED_PUBKEY_SIZE (1024 * 1024) /* 1 MiB */
 
 curl_sslbackend Curl_ssl_backend(void);
+
+/**
+ * Init SSL peer information for filter. Can be called repeatedly.
+ */
+CURLcode Curl_ssl_peer_init(struct ssl_peer *ssl_peer,
+                            struct Curl_peer *origin,
+                            struct Curl_peer *peer,
+                            struct ssl_primary_config *sslc,
+                            const char *tls_id,
+                            uint8_t transport);
+/**
+ * Free all allocated data and reset peer information.
+ */
+void Curl_ssl_peer_cleanup(struct ssl_peer *peer);
 
 #ifdef USE_SSL
 int Curl_ssl_init(void);
 void Curl_ssl_cleanup(void);
-CURLcode Curl_ssl_connect(struct Curl_easy *data, struct connectdata *conn,
-                          int sockindex);
-CURLcode Curl_ssl_connect_nonblocking(struct Curl_easy *data,
-                                      struct connectdata *conn,
-                                      bool isproxy,
-                                      int sockindex,
-                                      bool *done);
 /* tell the SSL stuff to close down all open information regarding
    connections (and thus session ID caching etc) */
 void Curl_ssl_close_all(struct Curl_easy *data);
-void Curl_ssl_close(struct Curl_easy *data, struct connectdata *conn,
-                    int sockindex);
-CURLcode Curl_ssl_shutdown(struct Curl_easy *data, struct connectdata *conn,
-                           int sockindex);
 CURLcode Curl_ssl_set_engine(struct Curl_easy *data, const char *engine);
 /* Sets engine as default for all SSL operations */
 CURLcode Curl_ssl_set_engine_default(struct Curl_easy *data);
 struct curl_slist *Curl_ssl_engines_list(struct Curl_easy *data);
 
-/* init the SSL session ID cache */
-CURLcode Curl_ssl_initsessions(struct Curl_easy *, size_t);
 void Curl_ssl_version(char *buffer, size_t size);
-bool Curl_ssl_data_pending(const struct connectdata *conn,
-                           int connindex);
-int Curl_ssl_check_cxn(struct connectdata *conn);
 
 /* Certificate information list handling. */
+#define CURL_X509_STR_MAX  100000
+#define MAX_ALLOWED_CERT_AMOUNT 100
 
 void Curl_ssl_free_certinfo(struct Curl_easy *data);
 CURLcode Curl_ssl_init_certinfo(struct Curl_easy *data, int num);
@@ -243,60 +145,9 @@ CURLcode Curl_ssl_push_certinfo(struct Curl_easy *data, int certnum,
 
 /* Functions to be used by SSL library adaptation functions */
 
-/* Lock session cache mutex.
- * Call this before calling other Curl_ssl_*session* functions
- * Caller should unlock this mutex as soon as possible, as it may block
- * other SSL connection from making progress.
- * The purpose of explicitly locking SSL session cache data is to allow
- * individual SSL engines to manage session lifetime in their specific way.
- */
-void Curl_ssl_sessionid_lock(struct Curl_easy *data);
-
-/* Unlock session cache mutex */
-void Curl_ssl_sessionid_unlock(struct Curl_easy *data);
-
-/* extract a session ID
- * Sessionid mutex must be locked (see Curl_ssl_sessionid_lock).
- * Caller must make sure that the ownership of returned sessionid object
- * is properly taken (e.g. its refcount is incremented
- * under sessionid mutex).
- */
-bool Curl_ssl_getsessionid(struct Curl_easy *data,
-                           struct connectdata *conn,
-                           const bool isProxy,
-                           void **ssl_sessionid,
-                           size_t *idsize, /* set 0 if unknown */
-                           int sockindex);
-/* add a new session ID
- * Sessionid mutex must be locked (see Curl_ssl_sessionid_lock).
- * Caller must ensure that it has properly shared ownership of this sessionid
- * object with cache (e.g. incrementing refcount on success)
- */
-CURLcode Curl_ssl_addsessionid(struct Curl_easy *data,
-                               struct connectdata *conn,
-                               const bool isProxy,
-                               void *ssl_sessionid,
-                               size_t idsize,
-                               int sockindex,
-                               bool *added);
-/* Kill a single session ID entry in the cache
- * Sessionid mutex must be locked (see Curl_ssl_sessionid_lock).
- * This will call engine-specific curlssl_session_free function, which must
- * take sessionid object ownership from sessionid cache
- * (e.g. decrement refcount).
- */
-void Curl_ssl_kill_session(struct Curl_ssl_session *session);
-/* delete a session from the cache
- * Sessionid mutex must be locked (see Curl_ssl_sessionid_lock).
- * This will call engine-specific curlssl_session_free function, which must
- * take sessionid object ownership from sessionid cache
- * (e.g. decrement refcount).
- */
-void Curl_ssl_delsessionid(struct Curl_easy *data, void *ssl_sessionid);
-
 /* get N random bytes into the buffer */
-CURLcode Curl_ssl_random(struct Curl_easy *data, unsigned char *buffer,
-                         size_t length);
+CURLcode Curl_ssl_random(struct Curl_easy *data,
+                         unsigned char *buffer, size_t length);
 /* Check pinned public key. */
 CURLcode Curl_pin_peer_pubkey(struct Curl_easy *data,
                               const char *pinnedpubkey,
@@ -304,41 +155,87 @@ CURLcode Curl_pin_peer_pubkey(struct Curl_easy *data,
 
 bool Curl_ssl_cert_status_request(void);
 
-bool Curl_ssl_false_start(void);
+/* The maximum size of the SSL channel binding is 85 bytes, as defined in
+ * RFC 5929, Section 4.1. The 'tls-server-end-point:' prefix is 21 bytes,
+ * and SHA-512 is the longest supported hash algorithm, with a digest length of
+ * 64 bytes.
+ * The maximum size of the channel binding is therefore 21 + 64 = 85 bytes.
+ */
+#define SSL_CB_MAX_SIZE 85
 
-void Curl_ssl_associate_conn(struct Curl_easy *data,
-                             struct connectdata *conn);
-void Curl_ssl_detach_conn(struct Curl_easy *data,
-                          struct connectdata *conn);
+/* Return the tls-server-end-point channel binding, including the
+ * 'tls-server-end-point:' prefix.
+ * If successful, the data is written to the dynbuf, and CURLE_OK is returned.
+ * The dynbuf MUST HAVE a minimum toobig size of SSL_CB_MAX_SIZE.
+ * If the dynbuf is too small, CURLE_OUT_OF_MEMORY is returned.
+ * If channel binding is not supported, binding stays empty and CURLE_OK is
+ * returned.
+ */
+CURLcode Curl_ssl_get_channel_binding(struct Curl_easy *data, int8_t sockindex,
+                                      struct dynbuf *binding);
 
 #define SSL_SHUTDOWN_TIMEOUT 10000 /* ms */
 
+CURLcode Curl_ssl_cfilter_add(struct Curl_easy *data,
+                              struct Curl_peer *origin,
+                              struct connectdata *conn,
+                              int8_t sockindex);
+
+CURLcode Curl_cf_ssl_insert_after(struct Curl_cfilter *cf_at,
+                                  struct Curl_easy *data,
+                                  struct Curl_peer *origin,
+                                  struct Curl_peer *peer);
+
+CURLcode Curl_ssl_cfilter_remove(struct Curl_easy *data,
+                                 int8_t sockindex, bool send_shutdown);
+
+#ifndef CURL_DISABLE_PROXY
+CURLcode Curl_cf_ssl_proxy_insert_after(struct Curl_cfilter *cf_at,
+                                        struct Curl_easy *data,
+                                        struct Curl_peer *peer);
+#endif /* !CURL_DISABLE_PROXY */
+
+/**
+ * True iff the underlying SSL implementation supports the option.
+ * Option is one of the defined SSLSUPP_* values.
+ * `data` maybe NULL for the features of the default implementation.
+ */
+bool Curl_ssl_supports(struct Curl_easy *data, unsigned int ssl_option);
+
+/**
+ * Get the ssl_config_data in `data` that is relevant for cfilter `cf`.
+ */
+struct ssl_config_data *Curl_ssl_cf_get_config(struct Curl_cfilter *cf,
+                                               struct Curl_easy *data);
+
+/**
+ * Get the primary config relevant for the filter from its connection.
+ */
+struct ssl_primary_config *Curl_ssl_cf_get_primary_config(
+  struct Curl_cfilter *cf);
+
+extern struct Curl_cftype Curl_cft_ssl;
+#ifndef CURL_DISABLE_PROXY
+extern struct Curl_cftype Curl_cft_ssl_proxy;
+#endif
+
 #else /* if not USE_SSL */
 
-/* When SSL support is not present, just define away these function calls */
+/* When SSL support is not present, define away these function calls */
 #define Curl_ssl_init() 1
 #define Curl_ssl_cleanup() Curl_nop_stmt
-#define Curl_ssl_connect(x,y,z) CURLE_NOT_BUILT_IN
 #define Curl_ssl_close_all(x) Curl_nop_stmt
-#define Curl_ssl_close(x,y,z) Curl_nop_stmt
-#define Curl_ssl_shutdown(x,y,z) CURLE_NOT_BUILT_IN
-#define Curl_ssl_set_engine(x,y) CURLE_NOT_BUILT_IN
+#define Curl_ssl_set_engine(x, y) CURLE_NOT_BUILT_IN
 #define Curl_ssl_set_engine_default(x) CURLE_NOT_BUILT_IN
 #define Curl_ssl_engines_list(x) NULL
-#define Curl_ssl_send(a,b,c,d,e) -1
-#define Curl_ssl_recv(a,b,c,d,e) -1
-#define Curl_ssl_initsessions(x,y) CURLE_OK
-#define Curl_ssl_data_pending(x,y) 0
-#define Curl_ssl_check_cxn(x) 0
 #define Curl_ssl_free_certinfo(x) Curl_nop_stmt
-#define Curl_ssl_connect_nonblocking(x,y,z,w,a) CURLE_NOT_BUILT_IN
-#define Curl_ssl_kill_session(x) Curl_nop_stmt
-#define Curl_ssl_random(x,y,z) ((void)x, CURLE_NOT_BUILT_IN)
+#define Curl_ssl_random(x, y, z) ((void)(x), CURLE_NOT_BUILT_IN)
 #define Curl_ssl_cert_status_request() FALSE
-#define Curl_ssl_false_start() FALSE
-#define Curl_ssl_tls13_ciphersuites() FALSE
-#define Curl_ssl_associate_conn(a,b) Curl_nop_stmt
-#define Curl_ssl_detach_conn(a,b) Curl_nop_stmt
+#define Curl_ssl_supports(a, b) FALSE
+#define Curl_ssl_cfilter_add(a, b, c, d) CURLE_NOT_BUILT_IN
+#define Curl_ssl_cfilter_remove(a, b, c) CURLE_OK
+#define Curl_ssl_cf_get_config(a, b) NULL
+#define Curl_ssl_cf_get_primary_config(a) NULL
 #endif
 
 #endif /* HEADER_CURL_VTLS_H */

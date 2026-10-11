@@ -183,7 +183,7 @@ struct RegisterComponentFilterAnnotation : das::FunctionAnnotation
 {
   RegisterComponentFilterAnnotation() : FunctionAnnotation("register_component_filter") {}
 
-  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
+  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override
   {
     das::Module *mod = fn->fromGeneric ? fn->fromGeneric->module : fn->module;
     if (mod && mod->isModule)
@@ -195,7 +195,7 @@ struct RegisterComponentFilterAnnotation : das::FunctionAnnotation
     return true;
   }
 
-  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &argTypes,
+  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &argTypes,
     const das::AnnotationArgumentList &, eastl::string &err) override
   {
     if (fn->arguments.size() != 3)
@@ -261,12 +261,12 @@ struct RegisterComponentFilterAnnotation : das::FunctionAnnotation
     return true;
   }
 
-  bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
+  bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override
   {
     err = "not a block annotation";
     return false;
   }
-  bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     eastl::string &err) override
   {
     err = "not a block annotation";

@@ -1235,7 +1235,7 @@ bool YuSession::TencentBuyGoldAction::run(const YuString& token, unsigned gold)
 //==================================================================================================
 bool YuSession::TencentPaymentConfAction::run()
 {
-  if (session.tencentGoldRate <= 0.0)
+  if (session.tencentGoldRate <= 0.0f)
   {
     YuHttpHandle http = YuHttp::self().get(session.getTencentPayConfUrl(), this);
     setHttpAct(http);

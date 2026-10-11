@@ -42,18 +42,38 @@ namespace das {
 #endif
 
     struct FStat {
-        das_filestat stats;
         bool        is_valid;
-        uint64_t size() const   { return stats.st_size; }
-        Time     atime() const  { return { stats.st_atime }; }
-        Time     ctime() const  { return { stats.st_ctime }; }
-        Time     mtime() const  { return { stats.st_mtime }; }
+        uint32_t    mode;
+        uint64_t    bytes;
+        int64_t     atime_sec;
+        int64_t     ctime_sec;
+        int64_t     mtime_sec;
+        void clear () {
+            is_valid = false;
+            mode = 0;
+            bytes = 0;
+            atime_sec = ctime_sec = mtime_sec = 0;
+        }
+        void set ( const das_filestat & st ) {
+            is_valid = true;
+            mode = uint32_t(st.st_mode);
+            bytes = uint64_t(st.st_size);
+            atime_sec = int64_t(st.st_atime);
+            ctime_sec = int64_t(st.st_ctime);
+            mtime_sec = int64_t(st.st_mtime);
+        }
+        uint64_t size() const   { return bytes; }
+        Time     atime() const  { return { time_t(atime_sec) }; }
+        Time     ctime() const  { return { time_t(ctime_sec) }; }
+        Time     mtime() const  { return { time_t(mtime_sec) }; }
 #if defined(_WIN32)
-        bool     is_reg() const { return stats.st_mode & _S_IFREG; }
-        bool     is_dir() const { return stats.st_mode & _S_IFDIR; }
+        bool     is_reg() const { return mode & _S_IFREG; }
+        bool     is_dir() const { return mode & _S_IFDIR; }
+        bool     is_exec() const { return mode & _S_IEXEC; }
 #else
-        bool     is_reg() const { return S_ISREG(stats.st_mode); }
-        bool     is_dir() const { return S_ISDIR(stats.st_mode); }
+        bool     is_reg() const { return S_ISREG(mode); }
+        bool     is_dir() const { return S_ISDIR(mode); }
+        bool     is_exec() const { return (mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0; }
 #endif
     };
 #else
@@ -67,6 +87,7 @@ namespace das {
         Time     mtime() const  { return Time{}; }
         bool     is_reg() const { return false; }
         bool     is_dir() const { return false; }
+        bool     is_exec() const { return false; }
     };
 #endif
 
@@ -78,6 +99,9 @@ namespace das {
     DAS_API char* builtin_fgets(const FILE* _f, Context* context, LineInfoArg * at );
     DAS_API void builtin_fwrite(const FILE * _f, char * str, Context * context, LineInfoArg * at );
     DAS_API bool builtin_feof(const FILE* _f);
+    DAS_API bool builtin_fpoll(const FILE* _f, int timeout_ms);
+    DAS_API void builtin_funbuffered(const FILE* _f);
+    DAS_API void builtin_fbinary(const FILE* _f);
     DAS_API int64_t builtin_ftell ( const FILE * f, Context * context, LineInfoArg * at );
     DAS_API int64_t builtin_fseek ( const FILE * f, int64_t offset, int32_t mode, Context * context, LineInfoArg * at );
     DAS_API vec4f builtin_read ( Context &, SimNode_CallBase * call, vec4f * args );
@@ -115,6 +139,18 @@ namespace das {
     DAS_API bool builtin_spawn_argv ( const Array & args_arr, Context * context, LineInfoArg * at );
     DAS_API int builtin_popen_argv ( const Array & args_arr, float timeout_sec, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API int builtin_popen_argv_pipe ( const Array & args_arr, const TBlock<void,const FILE *,const FILE *> & blk, Context * context, LineInfoArg * at );
+    // A long-lived child process: spawned once, polled and drained across many ticks, unlike the
+    // block-scoped popen_argv. The handle (das `SubProcess?`) is opaque; free it with close_process.
+    struct DasSubProcess;
+    DAS_API DasSubProcess * builtin_spawn_process ( const Array & argv, const char * cwd, const Array & env, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_process_drain ( DasSubProcess * p, const TBlock<void,char *> & blk, Context * context, LineInfoArg * at );
+    DAS_API int builtin_process_poll ( DasSubProcess * p, Context * context, LineInfoArg * at );
+    DAS_API int builtin_process_wait ( DasSubProcess * p, float timeout_sec, Context * context, LineInfoArg * at );
+    DAS_API void builtin_process_terminate ( DasSubProcess * p, Context * context, LineInfoArg * at );
+    DAS_API void builtin_process_kill ( DasSubProcess * p, Context * context, LineInfoArg * at );
+    DAS_API int builtin_process_pid ( DasSubProcess * p, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_process_alive ( int32_t pid, Context * context, LineInfoArg * at );
+    DAS_API void builtin_close_process ( DasSubProcess * p, Context * context, LineInfoArg * at );
     DAS_API char * get_full_file_name ( const char * path, Context * context, LineInfoArg * );
     DAS_API char * builtin_resolve_this_module_dir ( const char * baked_path, bool standalone, Context * context );
     DAS_API bool builtin_remove_file ( const char * path );
@@ -126,6 +162,7 @@ namespace das {
     DAS_API char * get_env_variable ( const char * var, Context * context, LineInfoArg * at );
     DAS_API void set_env_variable ( const char * var, const char * value, Context * context, LineInfoArg * at );
     DAS_API char * sanitize_command_line ( const char * cmd, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_describe_pending_dynamic_modules ( Context * context, LineInfoArg * at );
     // filesystem operations (C++17 <filesystem>)
     struct DiskSpaceInfo {
         uint64_t capacity = 0;
@@ -145,6 +182,7 @@ namespace das {
     DAS_API int64_t builtin_fs_file_size ( const char * path, char * & error, Context * context, LineInfoArg * at );
     DAS_API bool    builtin_fs_equivalent ( const char * a, const char * b, char * & error, Context * context, LineInfoArg * at );
     DAS_API bool    builtin_fs_is_symlink ( const char * path, char * & error, Context * context, LineInfoArg * at );
+    DAS_API bool    builtin_fs_is_reparse_point ( const char * path, char * & error, Context * context, LineInfoArg * at );
     // file operations
     DAS_API bool    builtin_fs_copy_file ( const char * src, const char * dst, bool overwrite, char * & error, Context * context, LineInfoArg * at );
     DAS_API bool    builtin_fs_set_mtime ( const char * path, Time time, char * & error, Context * context, LineInfoArg * at );

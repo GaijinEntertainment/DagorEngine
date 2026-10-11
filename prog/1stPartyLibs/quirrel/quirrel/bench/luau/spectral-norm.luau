@@ -1,3 +1,4 @@
+--!strict
 --[[
 MIT License
 
@@ -21,61 +22,55 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+local profile = require("./profile")
 
-function test()
+local N = 500
 
-    local function A(i, j)
-      local ij = i+j-1
-      return 1.0 / (ij * (ij-1) * 0.5 + i)
-    end
-
-    local function Av(x, y, N)
-      for i=1,N do
-        local a = 0
-        for j=1,N do a = a + x[j] * A(i, j) end
-        y[i] = a
-      end
-    end
-
-    local function Atv(x, y, N)
-      for i=1,N do
-        local a = 0
-        for j=1,N do a = a + x[j] * A(j, i) end
-        y[i] = a
-      end
-    end
-
-    local function AtAv(x, y, t, N)
-      Av(x, t, N)
-      Atv(t, y, N)
-    end
-
-    local N = 500
-    local u, v, t = {}, {}, {}
-    for i=1,N do u[i] = 1 end
-
-    for i=1,10 do AtAv(u, v, t, N) AtAv(v, u, t, N) end
-
-    local vBv, vv = 0, 0
-    for i=1,N do
-      local ui, vi = u[i], v[i]
-      vBv = vBv + ui*vi
-      vv = vv + vi*vi
-    end
-    return math.sqrt(vBv / vv)
-
+local function A(i: number, j: number): number
+  local ij = i + j - 2
+  return 1.0 / (ij * (ij + 1) / 2 + i)
 end
 
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
+local function Av(x: { number }, y: { number })
+  for i = 1, N do
+    local a = 0.0
+    for j = 1, N do
+      a += A(i, j) * x[j]
+    end
+    y[i] = a
   end
-  return res
 end
 
-print(string.format("\"spectral norm\", %.8f, 10", profile_it(10, function () test() end)))
+local function Atv(x: { number }, y: { number })
+  for i = 1, N do
+    local a = 0.0
+    for j = 1, N do
+      a += A(j, i) * x[j]
+    end
+    y[i] = a
+  end
+end
 
+local function AtAv(x: { number }, y: { number }, t: { number })
+  Av(x, t)
+  Atv(t, y)
+end
+
+local function spectralNorm(): string
+  local u = table.create(N, 1.0)
+  local v = table.create(N, 0.0)
+  local t = table.create(N, 0.0)
+  for _ = 1, 10 do
+    AtAv(u, v, t)
+    AtAv(v, u, t)
+  end
+  local vBv = 0.0
+  local vv = 0.0
+  for i = 1, N do
+    vBv += u[i] * v[i]
+    vv += v[i] * v[i]
+  end
+  return string.format("%.9f", math.sqrt(vBv / vv))
+end
+
+profile.benchmark("spectral norm", 10, spectralNorm)

@@ -30,7 +30,7 @@ enum Enum9 { AA BB = "enum_str2", }
 global enum Enum10 {CC = null}
 
 
-#allow-auto-freeze
+#forbid-delete-operator
 
 const cn0 = 201
 const cn1 = "const_str1"
@@ -82,6 +82,10 @@ let e6 = [509
 
 let e7 = [511 512]
 
+let e10 = [...e7]
+let e11 = [513, ...e7,]
+let e12 = [514 ...e7, 515, ...e1, ... (e2), ...(@() null)()]
+
 
 let t0 = {}
 let t1 = {x = 601}
@@ -93,6 +97,9 @@ let t6 = {a2}
 let t7 = {a3 a8}
 let t8 = {x = 1}.__merge({y = 607})
 let t9 = clone {z = 608}
+let t10 = {...t1}
+let t11 = {...t5, x = 609, ...t2, }
+let t12 = {...t5 x = 609, ...t2, ...(@() null)()}
 
 
 tab.x <- "new_slot_str1"
@@ -255,7 +262,6 @@ let i18 = ~(123)
 let i19 = !(123)
 let i20 = typeof 123
 let i21 = const 123
-let i22 = static 123
 let i23 = "x" in {x = 5}
 let i24 = "x" not in {x = 6}
 let i25 = 1 >> 2
@@ -404,7 +410,7 @@ catch (e) {
 }
 
 
-#forbid-auto-freeze
+#allow-delete-operator
 
 local w = getlocals()
 local res = []

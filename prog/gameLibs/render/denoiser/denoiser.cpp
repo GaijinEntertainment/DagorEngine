@@ -739,12 +739,6 @@ inline void clear_texture(Texture *tex)
     d3d::clear_rwtexi(tex, zeroI, 0, 0);
 };
 
-inline void clear_texture(const TextureIDPair &tex)
-{
-  if (tex.getTex2D())
-    clear_texture(tex.getTex2D());
-}
-
 template <typename T>
 inline void safe_delete(T *&ptr)
 {

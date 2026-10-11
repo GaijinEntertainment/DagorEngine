@@ -89,14 +89,17 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
     registry.readTextureHistory("close_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("prev_downsampled_close_depth_tex");
 
     // history is only needed for SSR/GI above onlyAO
-    auto downsampledNormalsOptHndl = params.needNormals
-                                       ? eastl::make_optional(registry.create("downsampled_normals")
-                                                                .texture({TEXCF_RTARGET | esramFlags, halfMainViewResolution})
-                                                                .withHistory(dafg::History::DiscardOnFirstFrame)
-                                                                .atStage(dafg::Stage::PS_OR_CS)
-                                                                .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                                                                .handle())
-                                       : eastl::nullopt;
+    auto createHalfresNormals = [&](const char *name) {
+      return params.needNormals ? eastl::make_optional(registry.create(name)
+                                                         .texture({TEXCF_RTARGET | esramFlags, halfMainViewResolution})
+                                                         .withHistory(dafg::History::DiscardOnFirstFrame)
+                                                         .atStage(dafg::Stage::PS_OR_CS)
+                                                         .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                                         .handle())
+                                : eastl::nullopt;
+    };
+    auto downsampledNormalsOptHndl = createHalfresNormals("downsampled_normals");
+    auto downsampledFarNormalsOptHndl = createHalfresNormals("downsampled_far_normals");
 
     auto ns = isNormalsPacked ? registry.root() / "opaque" / "mixing" : registry.root();
     auto normalGbuf1OptHandl =
@@ -150,12 +153,13 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
     struct Handles
     {
       decltype(checkerboardDepthOptHndl) checkerboardDepthOptHandle;
+      decltype(downsampledFarNormalsOptHndl) downsampledFarNormalsOptHandle;
       decltype(mainViewResolution) mainViewRes;
     };
+    auto hndls = eastl::unique_ptr<Handles>(new Handles{checkerboardDepthOptHndl, downsampledFarNormalsOptHndl, mainViewResolution});
 
     return [gbufDepthHndl, closeDepthHndl, farDownsampledDepthHndl, downsampledNormalsOptHndl, normalGbuf1OptHandl,
-             downsampledMotionVectorsOptHndl,
-             hndls = eastl::unique_ptr<Handles>(new Handles{checkerboardDepthOptHndl, mainViewResolution})] {
+             downsampledMotionVectorsOptHndl, hndls = eastl::move(hndls)] {
       BaseTexture *checkerboardDepth =
         hndls->checkerboardDepthOptHandle.has_value() ? hndls->checkerboardDepthOptHandle.value().get() : nullptr;
       BaseTexture *closeDepth = closeDepthHndl.get();
@@ -164,13 +168,17 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
 
       BaseTexture *downsampledNormals = downsampledNormalsOptHndl.has_value() ? downsampledNormalsOptHndl.value().get() : nullptr;
 
+      BaseTexture *downsampledFarNormals =
+        hndls->downsampledFarNormalsOptHandle.has_value() ? hndls->downsampledFarNormalsOptHandle.value().get() : nullptr;
+
       BaseTexture *normalGbuf1 = normalGbuf1OptHandl.has_value() ? normalGbuf1OptHandl.value().get() : nullptr;
 
       auto [renderingWidth, renderingHeight] = hndls->mainViewRes.get();
 
       downsample_depth::downsample(gbufDepthHndl.get(), renderingWidth, renderingHeight, farDownsampledDepth, closeDepth,
         downsampledNormals, normalGbuf1,
-        downsampledMotionVectorsOptHndl.has_value() ? downsampledMotionVectorsOptHndl.value().get() : nullptr, checkerboardDepth);
+        downsampledMotionVectorsOptHndl.has_value() ? downsampledMotionVectorsOptHndl.value().get() : nullptr, checkerboardDepth,
+        false /*external_barriers*/, downsampledFarNormals);
     };
   });
 

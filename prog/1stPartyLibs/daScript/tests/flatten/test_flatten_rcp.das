@@ -60,16 +60,9 @@ def i_div(n : int) : int {
 
 // ----- differential driver -----
 
-var GRID : array<float>
-var NZGRID : array<float>
-var IGRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-    NZGRID <- [-100.0, -3.5, -1.0, 1.0, 2.5, 7.0, 100.0]   // x/0 is inf (inf==inf) but 0/0 is NaN
-    IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
-}
+var GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
+var NZGRID <- [-100.0, -3.5, -1.0, 1.0, 2.5, 7.0, 100.0]   // x/0 is inf (inf==inf) but 0/0 is NaN
+var IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
 
 def fapprox(t : T?; a, b : float) {
     let m = max(max(abs(a), abs(b)), 1.0)
@@ -86,6 +79,10 @@ def cmp3f_approx(t : T?; a, b : float3) {
 
 [test]
 def test_flatten_rcp(t : T?) {
+    if (HOST_FAST_MATH) {
+        t |> skip("host runtime is built -ffast-math: the pow2 reciprocal rewrites this file pins are exact only in precise math")
+        return
+    }
     t |> run("x / 4.0 -> x * 0.25 (pow2 reciprocal, exact)") @(t : T?) {
         for (v in GRID) {
             t |> equal(r_pow2_flat(v), r_pow2(v))

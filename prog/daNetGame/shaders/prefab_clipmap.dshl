@@ -67,7 +67,7 @@ shader land_mesh_clipmap // aka prefab_clipmap
     normal_tex@staticSmp = normal;
 
     wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0);
-    wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
+    wind_dir_water_level@f3 = (wind_dir_x, wind_dir_y, water_level);
     shore_params1@f4 = (max_wave_height, scroll_time, shore_heightmap_min_max.z, shore_heightmap_min_max.w);
     lightmap_tex@smp2d = lightmap_tex;
   }

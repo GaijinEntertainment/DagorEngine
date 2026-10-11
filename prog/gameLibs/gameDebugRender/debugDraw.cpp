@@ -338,7 +338,7 @@ void draw(const System &sys, HudPrimitives *imm_prim, const TMatrix4 &globtm, co
     for (int l = 0; l < lines.size(); ++l)
     {
       int x = e.tm[3][0];
-      int y = e.tm[3][1] + l * (textPadding * 1.2);
+      int y = e.tm[3][1] + l * (textPadding * 1.2f);
       imm_prim->renderText(x + 1, y + 1, 0, 0xff000000, lines[l].data()); // shadow
       imm_prim->renderText(x, y, 0, e.color, lines[l].data());
     }
@@ -481,7 +481,7 @@ void render_square(const Point3 &pos, const Point3 &axis, float width, uint32_t 
   e.type = ElemType::SQUARE;
   TMatrix tm;
   Point3 y = normalize(axis);
-  Point3 x = y.x < 0.95 ? Point3{1, 0, 0} : Point3{0, 0, 1};
+  Point3 x = y.x < 0.95f ? Point3{1, 0, 0} : Point3{0, 0, 1};
   Point3 z = normalize(cross(x, y));
   x = normalize(cross(y, z));
   tm.setcol(0, x);
@@ -519,7 +519,7 @@ void render_cylinder(const Point3 &base_center, const Point3 &base_normal, float
   e.type = ElemType::CYLINDER;
   TMatrix tm;
   Point3 y = normalize(base_normal);
-  Point3 x = y.x < 0.95 ? Point3{1, 0, 0} : Point3{0, 0, 1};
+  Point3 x = y.x < 0.95f ? Point3{1, 0, 0} : Point3{0, 0, 1};
   Point3 z = normalize(cross(x, y));
   x = normalize(cross(y, z));
   tm.setcol(0, x);

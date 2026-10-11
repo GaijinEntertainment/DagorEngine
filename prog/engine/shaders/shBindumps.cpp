@@ -2,6 +2,7 @@
 
 #include "shBindumpsPrivate.h"
 #include "shStateBlk.h"
+#include "shaderRenderPassPrivate.h"
 #include "mapBinarySearch.h"
 #include <shaders/shLimits.h>
 #include <shaders/dag_shaders.h>
@@ -23,6 +24,7 @@ bool ScriptedShadersBinDumpOwner::linkAgaistGlobalData(ScriptedShadersGlobalData
   auto const &mainDumpOwner = *global_link_data.backing;
   auto const &mainDump = *mainDumpOwner.getDump();
   auto const &mainDumpV4 = *mainDumpOwner.getDumpV4();
+  auto const &mainDumpV3 = *mainDumpOwner.getDumpV3();
   auto const &gvState = global_link_data.globVarsState;
 
   Tab<int32_t> gvarLinkMap(mShaderDump->gvMap.size(), -1);
@@ -31,6 +33,8 @@ bool ScriptedShadersBinDumpOwner::linkAgaistGlobalData(ScriptedShadersGlobalData
   eastl::vector_map<uint32_t, uint32_t> newGvarInverseLinkMap{};
   eastl::vector_map<uint32_t, uint32_t> newIntervalInverseLinkMap{};
   eastl::vector_map<shader_layout::blk_word_t, shader_layout::blk_word_t> newBlockInverseLinkMap{};
+
+  auto lookupMainGvarName = [&](uint32_t gvar_id) { return mainDump.varMap[mainDump.globVars.v[gvar_id].nameId].c_str(); };
 
   // global vars
   for (uint32_t gvMapping : mShaderDump->gvMap)
@@ -86,7 +90,9 @@ bool ScriptedShadersBinDumpOwner::linkAgaistGlobalData(ScriptedShadersGlobalData
 
         // @TODO: here we also would want the AST hashes for expression-based fields, but they are not in the dump yet
         case SHVT_SAMPLER:
-          literalsAreEqual = mShaderDump->globVars.get<d3d::SamplerInfo>(dumpGvarId) == gvState.get<d3d::SamplerInfo>(mainDumpGvarId);
+          // Checking sampler handles is premature -- they are not inited in the additional dump
+          // Instead, the immutableSamplersMap-s will be cross referenced further in a separate loop
+          literalsAreEqual = true;
           break;
 
         default:
@@ -233,9 +239,28 @@ bool ScriptedShadersBinDumpOwner::linkAgaistGlobalData(ScriptedShadersGlobalData
 
   for (auto &mapping : mShaderDumpV3->immutableSamplersMap)
   {
-    if (mapping.globalVarId >= 0)
-      mapping.globalVarId = gvarLinkMap[dump_changed ? mapping.globalVarId : gvarInverseLinkMap[mapping.globalVarId]];
+    mapping.globalVarId = gvarLinkMap[dump_changed ? mapping.globalVarId : gvarInverseLinkMap[mapping.globalVarId]];
+
+    auto it = eastl::find_if(mainDumpV3.immutableSamplersMap.begin(), mainDumpV3.immutableSamplersMap.end(),
+      [&](auto main_mapping) { return main_mapping.globalVarId == mapping.globalVarId; });
+    if (it == mainDumpV3.immutableSamplersMap.end()) // Missing samplers should've been validated at this point
+    {
+      logerr(
+        "Failed to link additional dump, probably malformed main dump, gvar '%s' is supposed to be an immutable sampler but is not.",
+        lookupMainGvarName(mapping.globalVarId));
+      return false;
+    }
+    if (mShaderDumpV3->samplers[mapping.samplerId] != mainDumpV3.samplers[it->samplerId])
+    {
+      // Only look the name up on failure path
+      logerr("Failed to link additional dump, non-matching sampler info of static sampler gvar '%s'.",
+        lookupMainGvarName(mapping.globalVarId));
+      return false;
+    }
   }
+
+  if (!check_render_passes_against_main_dump(*this))
+    return false;
 
   // Finally, link blocks (can be done only after stcode patching for correct comparison)
   eastl::vector_map<shader_layout::blk_word_t, shader_layout::blk_word_t> blockUidToMainUidMap{};

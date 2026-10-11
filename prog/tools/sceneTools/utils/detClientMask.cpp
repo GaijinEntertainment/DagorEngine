@@ -94,6 +94,7 @@ bool detect_client_point(const char *cl_fname, NameMap &clients, Tab<signed char
   if (sample_count == -1)
   {
     printf("ERROR: can't find start of pass in %s\n", cl_fname);
+    fclose(fp);
     return false;
   }
 

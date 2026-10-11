@@ -20,8 +20,8 @@ public:
   Checker(const char *hash_algorithm, const unsigned char *public_key, int public_key_len);
   ~Checker();
 
-  Checker(Checker &&other);
-  Checker &operator=(Checker &&other);
+  Checker(Checker &&other) noexcept;
+  Checker &operator=(Checker &&other) noexcept;
 
   Checker(const Checker &) = delete;
   Checker &operator=(const Checker &) = delete;

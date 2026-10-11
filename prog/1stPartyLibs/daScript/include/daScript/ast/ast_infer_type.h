@@ -65,6 +65,7 @@ namespace das {
         bool savedFoldingForEnum = true;        // preVisitEnumerationValue / visitEnumerationValue save-restore
         bool savedFoldingForStaticIf = true;    // preVisit(ExprIfThenElse) / visit(ExprIfThenElse) save-restore (block hooks skipped for static_if)
         bool savedFoldingForStaticAssert = true; // preVisit(ExprStaticAssert) / visit(ExprStaticAssert) save-restore
+        bool foldingForcedForDim = false;       // preVisit(TypeDecl) / visit(TypeDecl) force-restore, for an array dimension
         bool disableAot = false;
         bool noHeapArrayLiterals = false;       // options no_heap_array_literals: disable building gen2 [..]/{..} literals directly on the heap
         bool multiContext = false;
@@ -114,6 +115,8 @@ namespace das {
         string describeType(const TypeDeclPtr &decl, AliasDefs * aliasDefs) const;
         string describeFunction(const FunctionPtr &fun) const;
         string describeFunction(const Function *fun) const;
+        string describeCandidate(const Function *fun) const;
+        string privateSetterInfo(ExprOp2 *expr) const;
 
     protected:
         void verifyType(const TypeDeclPtr &decl, bool allowExplicit = false, bool classMethod = false, bool allowTemplate = false) const;
@@ -129,6 +132,27 @@ namespace das {
         // find type alias name, and resolve it to type
         // within current context
         TypeDeclPtr findAlias(const string &name, bool *constUnderDim = nullptr) const;
+
+        // run every visible module's variant macros through visitFn (visitIs/visitAs/visitSafeAs)
+        // until one substitutes - the shared dispatch of the three variant-expression visitors
+        template <typename FN>
+        ExpressionPtr runVariantMacros ( FN && visitFn ) {
+            ExpressionPtr substitute = nullptr;
+            auto modMacro = [&](Module *mod) -> bool {
+                if (thisModule->isVisibleDirectly(mod) && mod != thisModule) {
+                    for (const auto &pm : mod->variantMacros) {
+                        if ((substitute = visitFn(pm))) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            };
+            Module::foreach (modMacro);
+            if (!substitute)
+                program->library.foreach (modMacro, "*");
+            return substitute;
+        }
 
         // infer alias type
         TypeDeclPtr inferAlias(const TypeDeclPtr &decl, const FunctionPtr &fptr = nullptr, AliasMap *aliases = nullptr, OptionsMap *options = nullptr, bool autoToAlias = false) const;
@@ -273,6 +297,13 @@ namespace das {
 
         MatchingFunctions getCloneFunc(const TypeDeclPtr &left, const TypeDeclPtr &right) const;
 
+        MatchingFunctions getAssignFunc(const string &opName, const TypeDeclPtr &left, const TypeDeclPtr &right, MatchingFunctions &generics) const;
+
+        ExpressionPtr inferAssignOperator(const string &opName, ExprOp2 *expr);
+        bool userCloneReplacesBuiltin(ExprClone *expr) const;
+
+        ExpressionPtr promoteInitToAssign(const string &opName, const TypeDeclPtr &varType, const ExpressionPtr &init, const LineInfo &at);
+
         bool verifyCloneFunc(const MatchingFunctions &fnList, const LineInfo &at) const;
 
         MatchingFunctions getFinalizeFunc(const TypeDeclPtr &subexpr) const;
@@ -282,6 +313,15 @@ namespace das {
         ExprWith *hasMatchingWith(const string &fieldName) const;
 
         ExpressionPtr promoteToProperty(ExprVar *expr, ExpressionPtr right);
+        struct PropertyProbe {
+            string  fnName;
+            string  fieldName;
+            bool    hasNamed = false;
+            bool    hasWithName = false;
+        };
+        bool hasPropertyFunction(const string &propFnName) const;
+        ExpressionPtr tryProperty(const PropertyProbe &probe, const LineInfo &at, ExpressionPtr value, ExpressionPtr right);
+        ExpressionPtr tryPropertyThroughDeref(const PropertyProbe &probe, const LineInfo &at, ExpressionPtr value, ExpressionPtr right);
 
         vector<TypeMacro *> findTypeMacro(const string &name) const;
 
@@ -289,6 +329,7 @@ namespace das {
 
     protected:
         // type
+        virtual void preVisit(TypeDecl *type) override;
         virtual TypeDeclPtr visit(TypeDecl *type) override;
 
         string saveAliasName;
@@ -494,7 +535,7 @@ namespace das {
         // Returns non-null on success (new ExprConst* of targetType, with promotedFromInt=true).
         // Sets rangeError=true and emits exceeds_constant_range when the literal exceeds the target range.
         // Returns nullptr+rangeError=false when promotion is not applicable.
-        ExpressionPtr tryPromoteConstInt(const ExpressionPtr &expr, const TypeDeclPtr &targetType, bool &rangeError);
+        ExpressionPtr tryPromoteConstInt(const ExpressionPtr &expr, const TypeDeclPtr &targetType, bool &rangeError, bool requireConstLiteral = false);
         string moveErrorInfo(ExprMove *expr) const;
         virtual void preVisit(ExprMove *expr) override;
         virtual ExpressionPtr visit(ExprMove *expr) override;
@@ -508,7 +549,6 @@ namespace das {
         virtual ExpressionPtr visit(ExprClone *expr) override;
         // ExprTryCatch
         void preVisit(ExprTryCatch *expr) override;
-        ExpressionPtr visit(ExprTryCatch *expr) override;
         // ExprReturn
         bool inferReturnType(TypeDeclPtr &resType, ExprReturn *expr);
         bool isVoidReturnValueSettled(Expression *subexpr) const;
@@ -525,8 +565,6 @@ namespace das {
         virtual ExpressionPtr visit(ExprContinue *expr) override;
         // ExprIfThenElse
         bool isConstExprFunc(Function *fun) const;
-        ExpressionPtr getConstExpr(Expression *expr);
-        das_set<Variable *> constExprFolding;   // globals whose init is mid-fold in getConstExpr — breaks init cycles (A = B + 1; B = A + 1)
         virtual bool canVisitIfSubexpr(ExprIfThenElse *expr) override;
         virtual void preVisit(ExprIfThenElse *expr) override;
         virtual ExpressionPtr visit(ExprIfThenElse *expr) override;
@@ -562,7 +600,8 @@ namespace das {
         bool canRelaxAssign(Expression *init) const;
         virtual ExpressionPtr visitLetInit(ExprLet *expr, const VariablePtr &var, Expression *init) override;
 
-        void expandTupleName(const string &name, const LineInfo &varAt);
+        void expandTupleName(const string &name, const LineInfo &varAt, bool canShadow = false,
+            CompilationError shadowError = CompilationError::already_declared_local_variable);
 
         virtual ExpressionPtr visit(ExprLet *expr) override;
         // ExprCallMacro
@@ -629,6 +668,7 @@ namespace das {
         enum class InferCallError {
             functionOrGeneric,
             operatorOp2,
+            operatorOp2Borrow,
             tryOperator
         };
 
@@ -658,6 +698,7 @@ namespace das {
         virtual bool canVisitMakeStructure ( ExprMakeStruct * expr ) override;
         virtual void preVisit(ExprMakeStruct *expr) override;
         bool convertCloneSemanticsToExpression(ExprMakeStruct *expr, int index, MakeFieldDecl *decl);
+        void convertCloneFieldToMove(const TypeDeclPtr &fieldType, MakeFieldDecl *decl);
         virtual MakeFieldDeclPtr visitMakeStructureField(ExprMakeStruct *expr, int index, MakeFieldDecl *decl, bool last) override;
         virtual ExpressionPtr structToTuple(const TypeDeclPtr &makeType, const MakeStructPtr &st, const LineInfo &at);
         virtual ExpressionPtr visit(ExprMakeStruct *expr) override;
@@ -667,6 +708,8 @@ namespace das {
         virtual ExpressionPtr visit(ExprMakeTuple *expr) override;
         // make array
         virtual void preVisit(ExprMakeArray *expr) override;
+        virtual bool canVisitMakeArray(ExprMakeArray *expr) override;
+        virtual bool canVisitMakeArrayIndex(ExprMakeArray *expr, int index, Expression *init, bool last) override;
         virtual ExpressionPtr visitMakeArrayIndex(ExprMakeArray *expr, int index, Expression *init, bool last) override;
         virtual ExpressionPtr visit(ExprMakeArray *expr) override;
         // array comprehension

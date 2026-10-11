@@ -335,11 +335,12 @@ HRESULT drv3d_dx12::default_swapchain_factory(DXGIFactory *factory, ID3D12Comman
   return S_OK;
 }
 
-HRESULT drv3d_dx12::nvidia_dlssg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue,
+HRESULT drv3d_dx12::streamline_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue,
   const SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
   const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
 {
-  return default_swapchain_factory(StreamlineAdapter::hook(factory), queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+  ComPtr<DXGIFactory> slFactory = StreamlineAdapter::hook(ComPtr<DXGIFactory>(factory));
+  return default_swapchain_factory(slFactory.Get(), queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
 }
 
 HRESULT drv3d_dx12::amd_fsrfg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue,

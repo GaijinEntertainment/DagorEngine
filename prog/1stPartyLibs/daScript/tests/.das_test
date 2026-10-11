@@ -5,6 +5,22 @@ require daslib/rtti
 
 [export, pinvoke]
 def can_visit_folder(folder_name : string; var result : bool?) {
+    // the probe suite runs on 64-bit hosts only - tests/dasbind/CMakeLists.txt builds its library nowhere
+    // else; a 64-bit tree missing that library fails the suite loudly. It skips the ser/deser sweep: a
+    // deserialized program never applies [extern], so the bound function it names is not in dasbind
+    if (folder_name == "dasbind") {
+        *result = typeinfo sizeof(type<void?>) == 8
+        if (*result) {
+            let args <- get_command_line_arguments()
+            for (arg in args) {
+                if (arg == "--ser" || arg == "--deser") {
+                    *result = false
+                    return
+                }
+            }
+        }
+        return
+    }
     if (folder_name == "clipboard") {
         *result = has_module("clipboard_core")
         return
@@ -13,8 +29,29 @@ def can_visit_folder(folder_name : string; var result : bool?) {
         *result = has_module("dashv")
         return
     }
+    // the supervisor polls health over dasHV's client, shows its tray through dasStdDlg and
+    // decodes the tray icon file through dasStbImage; its tests are no_aot (they spawn and time
+    // children), and the utils/watchdog module they require is not in the AOT set, so the AOT
+    // sweep would still fail the link on that module - interp and JIT only
+    if (folder_name == "watchdog") {
+        *result = has_module("dashv") && has_module("stddlg") && has_module("stbimage")
+        if (*result) {
+            let args <- get_command_line_arguments()
+            for (arg in args) {
+                if (arg == "--use-aot") {
+                    *result = false
+                    return
+                }
+            }
+        }
+        return
+    }
     if (folder_name == "dasPUGIXML") {
         *result = has_module("pugixml")
+        return
+    }
+    if (folder_name == "stddlg") {
+        *result = has_module("stddlg")
         return
     }
     if (folder_name == "dasSQLITE") {
@@ -40,8 +77,9 @@ def can_visit_folder(folder_name : string; var result : bool?) {
         *result = has_module("minfft")
         return
     }
+    // test_host_ready.das polls the spawned host over dasHV's client
     if (folder_name == "live_host") {
-        *result = has_module("live_host")
+        *result = has_module("live_host") && has_module("dashv")
         return
     }
     if (folder_name == "strudel") {
@@ -86,15 +124,14 @@ def can_visit_folder(folder_name : string; var result : bool?) {
             }
         }
     }
-    // GC tests are interp-only under JIT: jitted frames keep locals on the native stack,
-    // so heap_collect can't see a heap pointer whose only reference is a jitted local and
-    // frees it (double-free / reuse-after-collect; Debug memory_model.h assert catches it,
-    // Release passes by luck). Lift only once the JIT spills GC roots somewhere the
-    // collector can scan.
+    // GC tests are interp-only: compiled frames (JIT, AOT) keep locals where the collector
+    // can't scan them, and one entered from the interpreter is indistinguishable from an
+    // interpreted frame, so the walk would read never-written slots. Lift once compiled
+    // frames spill GC roots somewhere scannable.
     if (folder_name == "gc") {
         let args <- get_command_line_arguments()
         for (arg in args) {
-            if (arg == "-jit") {
+            if (arg == "-jit" || arg == "--use-aot") {
                 *result = false
                 return
             }

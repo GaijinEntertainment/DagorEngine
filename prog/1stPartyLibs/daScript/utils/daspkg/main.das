@@ -26,12 +26,12 @@ def print_usage() {
     print("  search [query]                     Search the package index\n")
     print("  introduce [url]                    Add a package to the index via PR\n")
     print("  withdraw <name>                    Remove a package from the index via PR\n")
-    print("  update-index                       Refresh all index metadata from repos\n")
+    print("  update-index [--commit | --dry-run] Refresh all index metadata from repos\n")
     print("  build                              Build C/C++ packages\n")
     print("  check                              Verify installed packages\n")
     print("  cleanup                            Remove modules/ and daspkg.lock for a fresh install\n")
     print("  doctor                             Check environment (git, cmake, gh)\n")
-    print("  release [--out <dir>] [--paranoid | --quick]\n")
+    print("  release [--out <dir>] [--paranoid | --quick | --fat <class>]\n")
     print("                                       Bundle project as a redistributable standalone\n\n")
     print(format_help_with_auto_help(get_command_info(type<DaspkgArgs>), "daspkg"))
 }
@@ -87,15 +87,15 @@ def main() { // nolint:STYLE037,STYLE038 — the subcommand dispatch table: one 
         }
     } elif (command == "update") {
         if (empty(command_arg)) {
-            rc = cmd_update_all(root, is_global)
+            rc = cmd_update_all(root, is_global, parsed.force)
         } else {
-            rc = cmd_update(root, command_arg, is_global)
+            rc = cmd_update(root, command_arg, is_global, parsed.force)
         }
     } elif (command == "upgrade") {
         if (empty(command_arg)) {
-            rc = cmd_upgrade_all(root, is_global)
+            rc = cmd_upgrade_all(root, is_global, parsed.force)
         } else {
-            rc = cmd_upgrade(root, command_arg, is_global)
+            rc = cmd_upgrade(root, command_arg, is_global, parsed.force)
         }
     } elif (command == "build") {
         if (parsed.wasm) {
@@ -111,7 +111,7 @@ def main() { // nolint:STYLE037,STYLE038 — the subcommand dispatch table: one 
         if (command_arg == "wasm") {
             rc = cmd_release_wasm(root, parsed.out, parsed.wasm_lib_dir)
         } else {
-            rc = cmd_release(root, parsed.out, parsed.paranoid, parsed.quick)
+            rc = cmd_release(root, parsed.out, parsed.paranoid, parsed.quick, parsed.fat)
         }
     } elif (command == "doctor") {
         rc = cmd_doctor()
@@ -122,7 +122,7 @@ def main() { // nolint:STYLE037,STYLE038 — the subcommand dispatch table: one 
             rc = cmd_search(root, command_arg, parsed.json)
         }
     } elif (command == "update-index") {
-        rc = cmd_update_index(root)
+        rc = cmd_update_index(root, parsed.commit, parsed.dry_run)
     } elif (command == "introduce") {
         rc = cmd_introduce(root, command_arg)
     } elif (command == "withdraw") {

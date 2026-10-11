@@ -63,7 +63,12 @@ void DriverNetworkManager::sendPsoCacheBlkSync(const DataBlock &cache_blk)
   DynamicMemGeneralSaveCB blkTxt(framemem_ptr());
   ZstdSaveCB zstdCompressor(blkTxt, 10); // Compression level 10 was chosen as a good trade-off between speed and ratio based on
                                          // experiments
-  cache_blk.printToTextStreamLimited(zstdCompressor);
+
+  if (!cache_blk.printToTextStreamLimited(zstdCompressor))
+  {
+    logerr("PSO cache blk serialization did not complete, not sending a partial cache");
+    return;
+  }
   zstdCompressor.finish();
   request.postData = dag::Span(reinterpret_cast<char *>(blkTxt.data()), blkTxt.size());
 

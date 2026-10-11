@@ -3,6 +3,11 @@
 
 #include <squirrel.h>
 class SqModules;
+namespace darg
+{
+struct IGuiScene;
+}
 
 void bind_dargbox_script_api(SqModules *module_mgr);
 void unbind_dargbox_script_api(HSQUIRRELVM vm);
+void send_queued_touch_pad_gestures(darg::IGuiScene *scene);

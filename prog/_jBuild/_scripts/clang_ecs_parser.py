@@ -375,7 +375,7 @@ def parse_ecs_functions(input_filename, search_filename, clang_args, should_pars
             libclangpath = os.path.join(libDir, libclang)
         if not os.path.isfile(libclangpath):
             for libclangname in ('libclang.%s.%s.1' % (soext, clangmajver), 'libclang.%s.%s' % (soext, clangmajver), libclang):
-                libclangpath = subprocess.check_output('clang --print-file-name %s' % libclangname , shell=True)[:-1] # :-1 to cut trailing \n
+                libclangpath = subprocess.check_output('clang --print-file-name %s' % libclangname , shell=True)[:-1].decode('utf-8') # :-1 to cut trailing \n
                 if libclangpath != libclangname:
                     break
         clang.cindex.conf.set_library_file(libclangpath)

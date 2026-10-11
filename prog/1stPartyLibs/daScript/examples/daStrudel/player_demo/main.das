@@ -3,8 +3,7 @@ options indenting = 4
 options persistent_heap
 
 require audio/audio_boost
-require audio/audio_wav
-require strudel/strudel
+require strudel/strudel_mini
 require strudel/strudel_player
 require daslib/fio
 

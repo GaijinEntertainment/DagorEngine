@@ -34,6 +34,8 @@ enum InitDeviceType
 #endif
 };
 
+//! settings input/useSonyPads:b=true adds the raw HID Sony pad driver (Windows, Linux); on Windows and Linux the
+//! composite's gamepad layout group is on, see CompositeJoystickClassDriver::setGamepadLayoutGroup
 void init_hid_drivers(int poll_thread_interval_msec, int init_dev_type = InitDeviceType::Default);
 void term_hid_drivers();
 

@@ -260,7 +260,7 @@ public:
     if (isempty())
     {
       c = b.center();
-      r2 = lengthSq(b.width()) * 0.25;
+      r2 = lengthSq(b.width()) * 0.25f;
       r = sqrtf(r2) * 1.01f;
       return *this;
     }

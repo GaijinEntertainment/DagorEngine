@@ -143,12 +143,7 @@ def api_mul0(x : int) : int {
     return acc
 }
 
-var GRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-5, -1, 0, 1, 5, 10, 20]
-}
+var GRID <- [-5, -1, 0, 1, 5, 10, 20]
 
 [test]
 def test_flatten_api(t : T?) {

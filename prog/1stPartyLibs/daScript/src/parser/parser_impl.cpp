@@ -15,6 +15,21 @@ namespace das {
 
     static __forceinline string inThisModule ( const string & name ) { return "_::" + name; }
 
+    struct UnknownReaderMacro : ReaderMacro {
+        UnknownReaderMacro () : ReaderMacro("unknown") {}
+        virtual bool accept ( Program *, Module *, ExprReader * expr, int ch, const LineInfo & ) override {
+            if ( ch == -1 ) return false;
+            expr->sequence += char(ch);
+            auto len = expr->sequence.size();
+            return !(len >= 2 && expr->sequence[len-2]=='%' && expr->sequence[len-1]=='%');
+        }
+    };
+
+    ReaderMacro * das_unknown_reader_macro () {
+        static UnknownReaderMacro macro;
+        return &macro;
+    }
+
     void das2_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr ) {
         yyextra->g_Program->error(error,"","",at,cerr);
     }
@@ -30,8 +45,7 @@ namespace das {
     }
 
     static TypeDecl * makeFixedArrayNode ( Expression * dimExpr, const LineInfo & at ) {
-        auto fa = new TypeDecl(Type::tFixedArray);
-        fa->at = at;
+        auto fa = new TypeDecl(Type::tFixedArray, at);
         if ( dimExpr ) {
             fa->fixedDim = TypeDecl::dimConst;
             if ( dimExpr->rtti_isConstant() ) {                // note: this shortcut is here so we don`t get extra infer pass on every array
@@ -414,6 +428,7 @@ namespace das {
                             }
                             if ( pDecl->isStatic ) {
                                 auto pVar = new Variable();
+                                pVar->at = name_at.at;
                                 pVar->name = pStruct->name + "`" + name_at.name;
                                 pVar->type = td;
                                 pVar->init = init;
@@ -455,7 +470,7 @@ namespace das {
                                     oldFd->init = pDecl->pInit; pDecl->pInit = nullptr;
                                 }
                             }
-                            oldFd->parentType = oldFd->type->isAuto();
+                            oldFd->parentType = oldFd->inherited && oldFd->type->isAuto();
                             oldFd->privateField = pDecl->isPrivate;
                             oldFd->sealed = pDecl->sealed;
                             oldFd->implemented = true;
@@ -735,12 +750,13 @@ namespace das {
                 func->name = yyextra->g_thisStructure->name + "`" + func->name;
                 auto vars = new vector<VariableNameAndPosition>();
                 vars->emplace_back(VariableNameAndPosition(varName,"",func->at));
-                TypeDecl * funcType = new TypeDecl(Type::tFunction);
+                TypeDecl * funcType = new TypeDecl(Type::tFunction, func->at);
                 funcType->at = func->at;
                 swap ( funcType->firstType, func->result );
                 funcType->argTypes.reserve ( func->arguments.size() );
                 if ( yyextra->g_thisStructure->isClass ) {
                     auto selfType = new TypeDecl(yyextra->g_thisStructure);
+                    selfType->at = func->at;
                     selfType->constant = cnst;
                     funcType->argTypes.push_back(selfType);
                     funcType->argNames.push_back("self");
@@ -804,11 +820,11 @@ namespace das {
                 das_yyerror(scanner,"can't override an operator " + func->getMangledName(),
                     func->at, CompilationError::invalid_function);
             }
+            func->privateFunction = isPrivate || yyextra->g_thisStructure->privateStructure;
             if ( isStatic ) {
                 func->isClassMethod = true;
                 func->isStaticClassMethod = true;
                 func->classParent = yyextra->g_thisStructure;
-                func->privateFunction = isPrivate || yyextra->g_thisStructure->privateStructure;
             } else {
                 modifyToClassMember(func, yyextra->g_thisStructure, false, cnst);
             }
@@ -835,15 +851,15 @@ namespace das {
                     vars->emplace_back(VariableNameAndPosition(varName,"",func->at));
                     Expression * finit = new ExprAddr(func->at, inThisModule(func->name));
                     if ( ovr == OVERRIDE_OVERRIDE ) {
-                        finit = new ExprCast(func->at, finit, new TypeDecl(Type::autoinfer));
+                        finit = new ExprCast(func->at, finit, new TypeDecl(Type::autoinfer, func->at));
                     } else if ( ovr == OVERRIDE_SEALED ) {
                         if ( yyextra->g_thisStructure->findField(varName) ) { // only if we are actually overriding a field
-                            finit = new ExprCast(func->at, finit, new TypeDecl(Type::autoinfer));
+                            finit = new ExprCast(func->at, finit, new TypeDecl(Type::autoinfer, func->at));
                         }
                     }
                     VariableDeclaration * decl = new VariableDeclaration(
                         vars,
-                        new TypeDecl(Type::autoinfer),
+                        new TypeDecl(Type::autoinfer, func->at),
                         finit
                     );
                     decl->override = ovr == OVERRIDE_OVERRIDE;
@@ -1090,6 +1106,9 @@ namespace das {
                     } else {
                         pVar->type->removeConstant = true;
                     }
+                    if ( decl->annotation ) {
+                        pVar->annotation = *decl->annotation;
+                    }
                     pLet->variables.push_back(pVar);
                 } else {
                     das_yyerror(scanner,"local variable is already declared " + name_at.name,name_at.at,
@@ -1218,36 +1237,55 @@ namespace das {
         }
     }
 
+    // src/ast/ARCHITECTURE.md#module-scan-manifest
+    static bool ast_requireGuardAvailable ( yyscan_t scanner, const string & guard ) {
+        if ( guard.empty() ) return true;
+        if ( guard.find('/') != string::npos ) {
+            auto ginfo = yyextra->g_Access->getModuleInfo(guard, yyextra->g_FileAccessStack.back()->name);
+            return !ginfo.fileName.empty() && yyextra->g_Access->getFileInfo(ginfo.fileName) != nullptr;
+        }
+        return guardModuleAvailable(guard);
+    }
+
+    static bool ast_requireGuardAvailable ( yyscan_t scanner, string * guard ) {
+        if ( !guard ) return true;
+        bool guardAvailable = ast_requireGuardAvailable(scanner, *guard);
+        delete guard;
+        return guardAvailable;
+    }
+
+    static void ast_requireOneModule ( yyscan_t scanner, const string & name, string * modalias, bool pub, const LineInfo & atName );
+
     void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName, string * guard ) {
-        // Optional require `require ?guard target`: when the guard module is not available, skip the
-        // require entirely (no error) — WITHOUT resolving the target (matches the collector; a
-        // skipped require must not probe file paths). A present guard with a missing target still
-        // errors below.
-        if ( guard ) {
-            // Path guard (contains '/'): availability = the guard's OWN file resolves — the rail for
-            // pure-das packages (nothing C++ to guard on) and cross-package dependencies the target's
-            // resolvability can't express. Plain-name guard: STRICT — the guard module is registered
-            // (a linked C++ module). No target-resolvability fallback: `require ?sqlite ...`-style
-            // guards mean "loaded only when <mod> is linked", and module source dirs are present in
-            // every checkout regardless of build config. Must match the require collector's rule
-            // (ast_parse.cpp getAllRequireReq).
-            bool guardAvailable;
-            if ( guard->find('/') != string::npos ) {
-                auto ginfo = yyextra->g_Access->getModuleInfo(*guard, yyextra->g_FileAccessStack.back()->name);
-                guardAvailable = !ginfo.fileName.empty() && yyextra->g_Access->getFileInfo(ginfo.fileName) != nullptr;
-            } else {
-                guardAvailable = Module::requireEx(*guard, false) != nullptr;
-            }
-            delete guard;
-            if ( !guardAvailable ) {
-                delete name;
-                if ( modalias ) delete modalias;
-                return;
+        if ( ast_requireGuardAvailable(scanner, guard) ) {
+            ast_requireOneModule(scanner, *name, modalias, pub, atName);
+        }
+        delete name;
+        if ( modalias ) delete modalias;
+    }
+
+    // src/ast/ARCHITECTURE.md#module-scan-manifest
+    void ast_requireModuleGroup ( yyscan_t scanner, string * group, bool pub, const LineInfo & atName, string * guard ) {
+        if ( ast_requireGuardAvailable(scanner, guard) ) {
+            for ( const auto & member : getModuleGroupMembers(*group) ) {
+                if ( !ast_requireGuardAvailable(scanner, member.guard) ) continue;
+                ast_requireOneModule(scanner, member.member, nullptr, pub, atName);
             }
         }
-        auto info = yyextra->g_Access->getModuleInfo(*name, yyextra->g_FileAccessStack.back()->name);
-        if ( auto mod = yyextra->g_Program->addModule(info.moduleName) ) {
-            yyextra->g_Program->allRequireDecl.push_back(make_tuple(mod,*name,info.fileName,pub,atName));
+        delete group;
+    }
+
+    static void ast_requireOneModule ( yyscan_t scanner, const string & name, string * modalias, bool pub, const LineInfo & atName ) {
+        auto info = yyextra->g_Access->getModuleInfo(name, yyextra->g_FileAccessStack.back()->name);
+        auto mod = yyextra->g_Program->addModule(info.moduleName);
+        if ( !mod ) {
+            // a parse with no prerequisite walk (compile of a string) meets a deferred module here (src/ast/ARCHITECTURE.md#module-scan-manifest)
+            if ( auto loader = getDeferredModuleLoader(); loader && loader(info.moduleName) ) {
+                mod = yyextra->g_Program->addModule(info.moduleName);
+            }
+        }
+        if ( mod ) {
+            yyextra->g_Program->allRequireDecl.push_back(make_tuple(mod,name,info.fileName,pub,atName));
             yyextra->g_Program->thisModule->addDependency(mod, pub);
             das_collect_all_keywords(mod,scanner);
             // an explicit `as` alias registers for every require form; the importName gate
@@ -1266,12 +1304,10 @@ namespace das {
                 }
             }
         } else {
-            yyextra->g_Program->allRequireDecl.push_back(make_tuple((Module *)nullptr,*name,info.fileName,pub,atName));
-            das_yyerror(scanner,"required module not found " + *name,atName,
+            yyextra->g_Program->allRequireDecl.push_back(make_tuple((Module *)nullptr,name,info.fileName,pub,atName));
+            das_yyerror(scanner,"required module not found " + name,atName,
                 CompilationError::lookup_module);
         }
-        delete name;
-        if ( modalias) delete modalias;
     }
 
     Expression * ast_forLoop ( yyscan_t,  vector<VariableNameAndPosition> * iters, Expression * srcs,
@@ -1368,7 +1404,13 @@ namespace das {
     }
 
     Expression * ast_rpipe ( yyscan_t scanner, Expression * arg, Expression * fncall, const LineInfo & locAt ) {
-        if ( fncall->rtti_isCallLikeExpr() ) {
+        if ( fncall->rtti_isOp1() || fncall->rtti_isOp2() || fncall->rtti_isOp3() ) {
+            auto pOp = (ExprOp *) fncall;
+            das_yyerror(scanner,"can't rpipe into operator '" + pOp->op + "'. the piped argument would be discarded",
+                locAt,CompilationError::cant_expression);
+            delete arg;
+            return fncall;
+        } else if ( fncall->rtti_isCallLikeExpr() ) {
             auto pCall = (ExprLooksLikeCall *) fncall;
             pCall->arguments.insert(pCall->arguments.begin(),arg);
             return fncall;
@@ -1392,6 +1434,7 @@ namespace das {
             return fncall;
         } else {
             das_yyerror(scanner,"can only rpipe into a function call",locAt,CompilationError::cant_expression);
+            delete arg;
             return fncall;
         }
     }
@@ -1410,6 +1453,7 @@ namespace das {
     ExprBlock * ast_wrapInBlock ( Expression * expr ) {
         auto block = new ExprBlock();
         block->at = expr->at;
+        block->generated = true;
         block->list.push_back(expr);
         return block;
     }

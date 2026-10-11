@@ -5,7 +5,6 @@
 #include "command_list_storage.h"
 #include "configuration.h"
 #include <driver.h>
-#include <pipeline.h>
 
 #include <EASTL/span.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -97,6 +96,9 @@ class Aftermath
   bool tryEnableDumps();
 
   void waitForDump() const;
+
+  void registerResource(ID3D12Resource *resource);
+  static void onResourceDestroyedProxy(void *handle);
 
   void onCrashDumpGenerate(const void *dump, const uint32_t size, bool manually_send);
   void onShaderDebugInfo(const void *dump, const uint32_t size);

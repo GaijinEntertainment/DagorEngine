@@ -744,17 +744,18 @@ public:
     bool ok = true;
     if (!authorityApprovedState || incomingState.atTick > authorityApprovedState->atTick)
     {
-      ok = forEachCustomStateSyncer([&](auto ss) { return ss->deserializeAuthState(bs, incomingState.atTick); });
       if (DAGOR_UNLIKELY(!authorityApprovedState))
       {
         auto paas = eastl::make_unique<PhysStateBase>();
         authorityApprovedState.swap(paas);
         paas.release(); // -V530 Force compiler to avoid gen dtor call here
       }
+      const int incomingTick = incomingState.atTick;
       *authorityApprovedState = eastl::move(incomingState);
       isAuthorityApprovedStateProcessed = false;
       authorityApprovedStateUnitVersion = unit_version;
       authorityApprovedStateDumpFromTime = from_time;
+      ok = forEachCustomStateSyncer([&](auto ss) { return ss->deserializeAuthState(bs, incomingTick); });
     }
     else
       ; // Otherwise assume that it's out-of-order packet and ignore it
@@ -767,9 +768,10 @@ public:
       return false;
     if (incomingPartialState.atTick > authorityApprovedPartialState.atTick)
     {
-      forEachCustomStateSyncer([&](auto ss) { return ss->deserializePartialAuthState(bs, incomingPartialState.atTick); });
+      const int incomingTick = incomingPartialState.atTick;
       authorityApprovedPartialState = eastl::move(incomingPartialState);
       authorityApprovedPartialState.isProcessed = false;
+      forEachCustomStateSyncer([&](auto ss) { return ss->deserializePartialAuthState(bs, incomingTick); });
     }
     else
       ; // Otherwise assume that it's out-of-order packet and ignore it

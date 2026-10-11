@@ -409,14 +409,19 @@ namespace drv3d_metal
       texture_size += slice_pitch * slises;
     }
 
-    texture = [render.device newTextureWithDescriptor : pTexDesc];
-    if (texture == nil)
+    // No store or resolve is done for these (see d3d_rtarget.mm), so the memoryless RT is the only storage
+    const bool memoryless_only = base->memoryless && ((base->cflg & TEXCF_TRANSIENT) || base->samples == 1);
+    if (!memoryless_only)
     {
-      int freeMemMb = 0;
+      texture = [render.device newTextureWithDescriptor : pTexDesc];
+      if (texture == nil)
+      {
+        int freeMemMb = 0;
 #if _TARGET_IOS
-      freeMemMb = os_proc_available_memory() >> 20;
+        freeMemMb = os_proc_available_memory() >> 20;
 #endif
-      DAG_FATAL("Failed to allocate texture %s of size %ukb, available %dMB, GPU occupies %llukb of %llukb", base->getName(), texture_size >> 10, freeMemMb, render.device.currentAllocatedSize >> 10, render.device.recommendedMaxWorkingSetSize >> 10);
+        DAG_FATAL("Failed to allocate texture %s of size %ukb, available %dMB, GPU occupies %llukb of %llukb", base->getName(), texture_size >> 10, freeMemMb, render.device.currentAllocatedSize >> 10, render.device.recommendedMaxWorkingSetSize >> 10);
+      }
     }
 
     if (base->metal_format != base->metal_rt_format)
@@ -436,6 +441,11 @@ namespace drv3d_metal
         rt_texture = [render.device newTextureWithDescriptor : pTexDesc];
         if (rt_texture == nil)
           DAG_FATAL("Failed to allocate memoryless texture %s", base->getName());
+        if (memoryless_only)
+        {
+          texture = rt_texture;
+          base->metal_type = pTexDesc.textureType;
+        }
       }
       else
         rt_texture = texture;
@@ -574,7 +584,7 @@ namespace drv3d_metal
       delete this;
     else
     {
-      std::lock_guard<std::mutex> scopedLock(render.delete_lock);
+      std::lock_guard scopedLock(render.delete_lock);
       render.resources2delete.push_back({ .type = Render::DeletedResource::Type::ApiTexture, .submit = render.submits_scheduled, .apiTexture = this });
     }
   }
@@ -939,6 +949,8 @@ namespace drv3d_metal
       other->apiTex->base = other;
       other->apiTex->applyName(other->getName());
     }
+    if (render.isRenderAcquiredInThisThread())
+      render.markTextureDirty(this);
     del_d3dres(other_tex);
     other_tex = nullptr;
   }
@@ -992,7 +1004,11 @@ namespace drv3d_metal
       D3D_CONTRACT_ASSERT(mipLevels >= 1);
       set_minlevel = min(set_minlevel, (int)mipLevels-1);
       set_maxlevel = min(set_maxlevel, (int)mipLevels);
-      apiTex->sub_texture = apiTex->allocateOrCreateSubmip(set_minlevel, set_maxlevel, false, 0);
+      id<MTLTexture> sub_texture = apiTex->allocateOrCreateSubmip(set_minlevel, set_maxlevel, false, 0);
+      // bound slots cache the view, so a new view must be rebound
+      if (apiTex->sub_texture != sub_texture && render.isRenderAcquiredInThisThread())
+        render.markTextureDirty(this);
+      apiTex->sub_texture = sub_texture;
     }
     return 1;
   }

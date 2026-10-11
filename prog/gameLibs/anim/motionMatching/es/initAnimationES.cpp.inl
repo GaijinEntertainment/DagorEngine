@@ -212,7 +212,7 @@ static void init_animations_es(const ecs::Event &, ecs::EntityManager &manager, 
   AnimV20::AnimcharBaseComponent &animchar, MotionMatchingController &motion_matching__controller, bool &motion_matching__enabled,
   int &motion_matching__presetIdx, ecs::EntityId &motion_matching__dataBaseEid,
   const ecs::string &motion_matching__dataBaseTemplateName, ecs::IntList &motion_matching__goalNodesIdx,
-  FrameFeatures &motion_matching__goalFeature)
+  ecs::Point3List &motion_matching__goalNodesPrevWpos, FrameFeatures &motion_matching__goalFeature)
 {
 #if DAGOR_DBGLEVEL > 0
   if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("disable_motion_matching", false))
@@ -274,6 +274,9 @@ static void init_animations_es(const ecs::Event &, ecs::EntityManager &manager, 
   motion_matching__goalNodesIdx.clear();
   for (const eastl::string &nodeName : dataBase.nodesName)
     motion_matching__goalNodesIdx.push_back((int)tree.findNodeIndex(nodeName.c_str()));
+  motion_matching__goalNodesPrevWpos.resize(motion_matching__goalNodesIdx.size());
+  for (int i = 0, e = motion_matching__goalNodesIdx.size(); i < e; ++i)
+    motion_matching__goalNodesPrevWpos[i] = animchar.getNodeTree().getNodeWposScalar(dag::Index16(motion_matching__goalNodesIdx[i]));
 
   animchar.setMotionMatchingController(&motion_matching__controller);
 

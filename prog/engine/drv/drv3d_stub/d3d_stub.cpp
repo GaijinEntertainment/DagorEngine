@@ -81,7 +81,11 @@ class ID3dDrawStatistic;
 namespace
 {
 class DummyTexture;
-}
+struct DummyRenderPass
+{
+  uint32_t dummy_payload;
+};
+} // namespace
 
 #define RETURN_NULL_ON_ZERO_SIZE(cond) \
   if (cond)                            \
@@ -2001,13 +2005,14 @@ bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
   return false;
 }
 
+
 d3d::RenderPass *d3d::create_render_pass(const RenderPassDesc &rp_desc)
 {
   G_UNUSED(rp_desc);
-  return nullptr;
+  return (RenderPass *)new DummyRenderPass{0};
 }
 
-void d3d::delete_render_pass(d3d::RenderPass *rp) { G_UNUSED(rp); }
+void d3d::delete_render_pass(d3d::RenderPass *rp) { delete ((DummyRenderPass *)rp); }
 
 void d3d::begin_render_pass(d3d::RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {

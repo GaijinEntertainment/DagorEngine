@@ -38,11 +38,8 @@ InputFile::InputFile(BaseLexicalAnalyzer *l) : lexer(l), incfile(tmpmem), incstk
 void InputFile::stream_set(BaseLexicalAnalyzer &l)
 {
   lexer = &l;
-  if (lexer)
-  {
-    lexer->set_cur_file(curfile);
-    lexer->set_cur_offset(curpos);
-  }
+  lexer->set_cur_file(curfile);
+  lexer->set_cur_offset(curpos);
 }
 
 const char *InputFile::get_filename(int f)
@@ -236,7 +233,8 @@ int InputFile::get_include_file_index(const char *fn)
     if (f < 0)
     {
       err_nomem();
-      return false;
+      df_close(fp);
+      return -1;
     }
   }
   else if (incfile[f].text)

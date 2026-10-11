@@ -21,7 +21,7 @@ class CollectorAgent : DapiDebugAgent {
 
 var collector_ready : bool = false
 
-def setup_collector(ctx : Context) {
+def setup_collector(_ctx : Context) {
     install_new_debug_agent(new CollectorAgent(), "collector")
     collector_ready = true
 }
@@ -34,16 +34,12 @@ def ensure_collector() {
 
 [export, pinvoke]
 def read_collect_count(var result : int?) {
-    unsafe {
-        *result = collect_count
-    }
+    *result = collect_count
 }
 
 [export, pinvoke]
 def read_variable_count(var result : int?) {
-    unsafe {
-        *result = variable_count
-    }
+    *result = variable_count
 }
 
 [export, pinvoke]
@@ -56,9 +52,7 @@ def reset_collector_state() {
 def test_on_collect_called(t : T?) {
     t |> run("collect_debug_agent_state triggers onCollect") @(t : T?) {
         ensure_collector()
-        unsafe {
-            invoke_in_context(get_debug_agent_context("collector"), "reset_collector_state")
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("collector"), "reset_collector_state"))
         collect_debug_agent_state(this_context(), get_line_info(1))
         var count = 0
         unsafe {
@@ -72,9 +66,7 @@ def test_on_collect_called(t : T?) {
 def test_on_collect_increments(t : T?) {
     t |> run("multiple collect calls increment counter") @(t : T?) {
         ensure_collector()
-        unsafe {
-            invoke_in_context(get_debug_agent_context("collector"), "reset_collector_state")
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("collector"), "reset_collector_state"))
         collect_debug_agent_state(this_context(), get_line_info(1))
         collect_debug_agent_state(this_context(), get_line_info(1))
         var count = 0

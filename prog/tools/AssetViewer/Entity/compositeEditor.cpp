@@ -122,6 +122,9 @@ bool CompositeEditor::end()
   if (expectingAssetReload())
     return true;
 
+  if (!editedAsset)
+    return true;
+
   if (!canSwitchToAnotherAsset())
   {
     if (subCompositeStack.isEntering())
@@ -169,6 +172,8 @@ bool CompositeEditor::end()
 
   updateGizmo();
 
+  undoEditGesture.end();
+
   UndoSystem *undoSystem = get_app().getUndoSystem();
   G_ASSERT(undoSystem);
   if (undoSystem)
@@ -191,31 +196,12 @@ void CompositeEditor::enterSubCompositeEditing()
   const TMatrix subCompositeTm = calcParentMatrix(selectedTreeDataNode);
   subCompositeStack.push(editedAsset, subCompositeTm, selectedTreeDataNode->dataBlockId);
 
-  // Compute the camera for the sub-composite editing session and store it as a pending
-  // transform in sub-composite local space, to be applied after the asset switch completes.
-  // With auto zoom enabled, zoom to the sub-composite content; otherwise only remap the
-  // current world-space camera into sub-composite local space (coordinate-space shift only).
+  // Remap the camera into sub-composite local space, applied after the asset switch. No auto zoom here. The user keeps
+  // editing the same area, so the view must not move on screen.
   if (IGenViewportWnd *vp = EDITORCORE->getCurrentViewport())
   {
-    TMatrix prevCamTm;
-    vp->getCameraTransform(prevCamTm);
-    TMatrix worldCamTm = prevCamTm;
-    if (get_app().useAutoZoomAndCenter())
-    {
-      IObjEntity *subEntity = getSubEntityByDataBlockId(selectedTreeDataNode->dataBlockId);
-      if (subEntity)
-      {
-        TMatrix entTm;
-        subEntity->getTm(entTm);
-        BBox3 bbox = entTm * subEntity->getBbox();
-        if (!bbox.isempty())
-        {
-          vp->zoomAndCenter(bbox);
-          vp->getCameraTransform(worldCamTm);
-          vp->setCameraTransform(prevCamTm);
-        }
-      }
-    }
+    TMatrix worldCamTm;
+    vp->getCameraTransform(worldCamTm);
     subCompositeStack.setPendingCameraTransform(inverse(subCompositeTm) * worldCamTm);
   }
 
@@ -321,7 +307,7 @@ void CompositeEditor::applyPendingUniqueAssetSwap()
   if (!node)
     return;
 
-  beginUndo(true);
+  beginUndo();
   node->params.setStr("name", newAssetName);
   endUndo("Composit Editor: Save sub-composite as unique");
 
@@ -447,6 +433,9 @@ void CompositeEditor::fillCompositeTree()
 
 void CompositeEditor::fillCompositePropPanel()
 {
+  // The property panel controls are about to be destroyed, and destroyed controls do not send the change finished event
+  undoEditGesture.end();
+
   if (compositePropPanel)
     compositePropPanel->fill(treeData, selectedTreeDataNode, childDropHandler.get());
 }
@@ -510,7 +499,7 @@ void CompositeEditor::makeSelectedParentRelation()
     return;
   int newIndex = newParent->nodeCount();
 
-  beginUndo(true);
+  beginUndo();
 
   int count = selectedTreeDataNodes.size();
   dag::Vector<CompositeEditorTreeDataNode *> nodesReparented(count, nullptr);
@@ -605,7 +594,7 @@ void CompositeEditor::clearSelectedParentRelation()
   if (!hasSelectedParentRelation())
     return;
 
-  beginUndo(true);
+  beginUndo();
 
   int count = selectedTreeDataNodes.size();
   dag::Vector<CompositeEditorTreeDataNode *> nodesReparented(count, nullptr);
@@ -770,6 +759,8 @@ void CompositeEditor::recalcMatrixInParentBase(CompositeEditorTreeDataNode *tree
   const int paramIndex = treeDataNode->params.findParam("tm");
   if (paramIndex >= 0 && treeDataNode->params.getParamType(paramIndex) == DataBlock::TYPE_MATRIX)
     treeDataNode->params.setTm(paramIndex, matrix);
+
+  treeDataNode->updateTransformParamsFromMatrix();
 }
 
 CompositeEditorTreeDataNode *CompositeEditor::getTreeNodeByDataBlockId(unsigned dataBlockId)
@@ -843,6 +834,9 @@ void CompositeEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
   if (!compositePropPanel || !selectedTreeDataNode)
     return;
 
+  if (UndoSystem *undoSystem = get_app().getUndoSystem())
+    undoEditGesture.begin(*undoSystem, pcb_id, "Composit Editor: Property editing");
+
   beginUndo();
 
   const CompositeEditorRefreshType refreshType = compositePropPanel->onChange(*selectedTreeDataNode, pcb_id);
@@ -850,6 +844,8 @@ void CompositeEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
 
   endUndo("Composit Editor: Property editing", /*accept = */ refreshType != CompositeEditorRefreshType::Nothing);
 }
+
+void CompositeEditor::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel) { undoEditGesture.end(pcb_id); }
 
 bool CompositeEditor::saveComposit()
 {
@@ -878,6 +874,14 @@ bool CompositeEditor::saveComposit()
     modified = false;
 
   return succeeded;
+}
+
+bool CompositeEditor::saveIfModified()
+{
+  if (!editedAsset || !modified)
+    return true;
+
+  return saveComposit();
 }
 
 namespace
@@ -1010,6 +1014,7 @@ void CompositeEditor::splitCompositeInternal(CompositeEditorTreeDataNode *treeDa
       if (splitNode->getUseTransformationMatrix())
         splitTm = splitNode->getTransformationMatrix();
       splitNode->params.setTm("tm", tm * splitTm);
+      splitNode->updateTransformParamsFromMatrix();
     }
   }
 
@@ -1156,7 +1161,7 @@ bool CompositeEditor::saveSelectedAsNewComposite()
       return false;
     }
 
-    beginUndo(true);
+    beginUndo();
     endUndo("Composit Editor: Replace selection with new composit");
 
     eastl::sort(indices.begin(), indices.end());
@@ -1675,7 +1680,6 @@ int CompositeEditor::onMenuItemClick(unsigned id)
     endUndo("Composit Editor: Adding entity");
 
     selectedTreeDataNode->insertEntBlock(-1);
-    selectedTreeDataNode = selectedTreeDataNode->nodes.back().get();
 
     updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
 
@@ -1887,6 +1891,7 @@ void CompositeEditor::updateMultipleNodesTransforms(const dag::Vector<CompositeE
   {
     G_ASSERT(nodes[i] && nodes[i]->getUseTransformationMatrix());
     nodes[i]->params.setTm("tm", tms[i]);
+    nodes[i]->updateTransformParamsFromMatrix();
   }
 
   if (compositePropPanel)
@@ -2038,7 +2043,7 @@ void CompositeEditor::pasteParamsToSelectedNode()
   if (!getNodeParamsFromClipboard(block))
     return;
 
-  beginUndo(true);
+  beginUndo();
 
   selectedTreeDataNode->params.setParamsFrom(&block);
   updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
@@ -2054,7 +2059,7 @@ void CompositeEditor::duplicateSelectedNodes()
   if (selectedTreeDataNodes.size() == 1 && isTreeDataNodeRootNode(selectedTreeDataNode))
     return;
 
-  beginUndo(true);
+  beginUndo();
 
   const bool cloned = cloneSelectedNodesInternal(CompositeEditorRefreshType::EntityAndCompositeEditor, nullptr);
 
@@ -2131,7 +2136,7 @@ void CompositeEditor::focusViewport()
     viewport->activate();
 }
 
-void CompositeEditor::beginUndo(bool save_selection)
+void CompositeEditor::beginUndo()
 {
   UndoSystem *undoSystem = get_app().getUndoSystem();
   G_ASSERT(undoSystem);
@@ -2139,7 +2144,6 @@ void CompositeEditor::beginUndo(bool save_selection)
     return;
 
   CompositeEditorUndoParams *undoParams = new CompositeEditorUndoParams();
-  undoParams->saveUndo(save_selection);
 
   undoSystem->begin(true);
   undoSystem->put(undoParams);
@@ -2158,28 +2162,61 @@ void CompositeEditor::endUndo(const char *operation_name, bool accept)
     undoSystem->cancel();
 }
 
-void CompositeEditor::saveForUndo(DataBlock &dataBlock) const { treeData.convertTreeDataToDataBlock(treeData.rootNode, dataBlock); }
+void CompositeEditor::saveForUndo(DataBlock &dataBlock, unsigned &primary_data_block_id, dag::Vector<unsigned> &data_block_ids) const
+{
+  treeData.convertTreeDataToDataBlock(treeData.rootNode, dataBlock);
 
-void CompositeEditor::loadFromUndo(const DataBlock &dataBlock, unsigned selected_tree_node_data_block_id,
-  const dag::Vector<unsigned> &multi_selected_tree_node_data_block_ids)
+  data_block_ids.clear();
+  primary_data_block_id = IDataBlockIdHolder::invalid_id;
+
+  PropPanel::TreeBaseWindow *tree = compositeTreeView.get();
+  if (!tree)
+    return;
+
+  dag::Vector<PropPanel::TLeafHandle> items;
+  tree->getSelectedItems(items);
+  for (PropPanel::TLeafHandle item : items)
+  {
+    const CompositeEditorTreeDataNode *node = static_cast<CompositeEditorTreeDataNode *>(tree->getItemData(item));
+    if (!node)
+      continue;
+
+    // The root has no data block ID, so the undo selection stores it as ROOT_NODE_UNDO_ID.
+    const unsigned dataBlockId = node == &treeData.rootNode ? ROOT_NODE_UNDO_ID : node->dataBlockId;
+    if (dataBlockId == IDataBlockIdHolder::invalid_id)
+      continue;
+
+    data_block_ids.push_back(dataBlockId);
+    if (node == selectedTreeDataNode)
+      primary_data_block_id = dataBlockId;
+  }
+}
+
+CompositeEditorTreeDataNode *CompositeEditor::getTreeDataNodeForUndo(unsigned data_block_id)
+{
+  if (data_block_id == ROOT_NODE_UNDO_ID)
+    return &treeData.rootNode;
+  if (data_block_id == IDataBlockIdHolder::invalid_id)
+    return nullptr;
+  return CompositeEditorTreeData::getTreeDataNodeByDataBlockId(treeData.rootNode, data_block_id);
+}
+
+void CompositeEditor::loadFromUndo(const DataBlock &dataBlock, unsigned primary_data_block_id,
+  const dag::Vector<unsigned> &data_block_ids)
 {
   G_ASSERT(editedAsset);
   treeData.convertAssetToTreeData(editedAsset, &dataBlock);
 
-  selectedTreeDataNode = nullptr;
-  if (selected_tree_node_data_block_id != IDataBlockIdHolder::invalid_id)
-    selectedTreeDataNode = CompositeEditorTreeData::getTreeDataNodeByDataBlockId(treeData.rootNode, selected_tree_node_data_block_id);
+  selectedTreeDataNode = getTreeDataNodeForUndo(primary_data_block_id);
 
   selectedTreeDataNodes.clear();
-  for (unsigned dataBlockId : multi_selected_tree_node_data_block_ids)
-  {
-    if (dataBlockId == IDataBlockIdHolder::invalid_id)
-      continue;
-    CompositeEditorTreeDataNode *multiSelectedNode =
-      CompositeEditorTreeData::getTreeDataNodeByDataBlockId(treeData.rootNode, dataBlockId);
-    if (multiSelectedNode)
-      selectedTreeDataNodes.push_back(multiSelectedNode);
-  }
+  for (unsigned dataBlockId : data_block_ids)
+    if (CompositeEditorTreeDataNode *node = getTreeDataNodeForUndo(dataBlockId))
+      selectedTreeDataNodes.push_back(node);
+
+  // The saved primary can have no data block ID. Use the first restored node then.
+  if (!selectedTreeDataNode && !selectedTreeDataNodes.empty())
+    selectedTreeDataNode = selectedTreeDataNodes.front();
 
   updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
 }

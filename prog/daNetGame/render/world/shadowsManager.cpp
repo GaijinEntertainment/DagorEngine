@@ -76,6 +76,8 @@ CONSOLE_INT_VAL("shadows", static_shadows_invalidation_merge_boxes_threshold, 25
 
 CONSOLE_BOOL_VAL("shadows", render_static_shadows_every_frame, false);
 CONSOLE_BOOL_VAL("shadows", always_render_all_cascades, false); // for debugging
+// -1 to disable the check
+CONSOLE_FLOAT_VAL_MINMAX("shadows", static_shadow_drop_cascade0_dist_m, 1000.f, -1.f, 4000.f);
 
 CONSOLE_FLOAT_VAL_MINMAX("shadow", depth_bias, 0.2f, -0.5, 0.5);
 CONSOLE_FLOAT_VAL_MINMAX("shadow", const_depth_bias, 0.0005, -0.5, 0.5);
@@ -548,6 +550,7 @@ static dag::RelocatableFixedVector<StaticShadowCullJob, 8, true, framemem_alloca
   static_shadow_jobs[ShadowsManager::MAX_NUM_STATIC_SHADOWS_CASCADES];
 void wait_static_shadows_cull_jobs()
 {
+  TIME_PROFILE(wait_static_shadows_cull_jobs);
   for (auto &jobs : static_shadow_jobs)
   {
     for (auto &j : jobs)
@@ -592,7 +595,7 @@ struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
     return job.readyToRenderWithFinalQuality;
   }
 
-  void renderStaticShadowDepth(const mat44f &cull_matrix, const ViewTransformData &curTransform, int region) override
+  RasterizedResult renderStaticShadowDepth(const mat44f &cull_matrix, const ViewTransformData &curTransform, int region) override
   {
     TMatrix4 lightGlobTm;
     v_mat_44cu_from_mat44(&lightGlobTm._11, curTransform.globtm);
@@ -605,6 +608,7 @@ struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
     {
       shadowsManager.riShadowCullBboxesLoader.addTest(cull_matrix, curTransform);
     }
+    return RasterizedResult::SomethingRendered;
   }
 
   void endRenderStaticShadow() override
@@ -738,6 +742,8 @@ bool ShadowsManager::updateStaticShadowAround(const Point3 &pos, bool update_onl
 
   if (always_render_all_cascades)
     update_only_last_cascade = false;
+
+  staticShadows->invalidateCascadeIfCameraTooFar(0, pos, static_shadow_drop_cascade0_dist_m.get());
 
   bool timeDynamicityChanged = isTimeDynamic != shadowInfoProvider.isTimeDynamic();
   if (timeDynamicityChanged)
@@ -998,8 +1004,8 @@ void ShadowsManager::shadowsInvalidate(const BBox3 *boxes, uint32_t cnt)
 
 void ShadowsManager::shadowsAddInvalidBBox(const BBox3 &box)
 {
-  std::lock_guard<std::mutex> scopedLock(staticShadowInvalidBboxes.lock); // Note: does this really needed? Could it be replaced
-                                                                          // with G_ASSERT(is_main_thread()) instead?
+  dag::lock_guard scopedLock(staticShadowInvalidBboxes.lock); // Note: does this really needed? Could it be replaced
+                                                              // with G_ASSERT(is_main_thread()) instead?
   staticShadowInvalidBboxes.list.push_back(box);
   if (staticShadowInvalidBboxes.list.size() == staticShadowInvalidBboxes.list.capacity()) // Keep 1 spare for v_ldu(&bbox[1].x) to work
   {
@@ -1020,7 +1026,7 @@ void ShadowsManager::shadowsInvalidateGatheredBBoxes()
   {
     if (staticShadowInvalidBboxes.lastApplyTicks == 0)
     {
-      std::lock_guard<std::mutex> scopedLock(staticShadowInvalidBboxes.lock);
+      dag::lock_guard scopedLock(staticShadowInvalidBboxes.lock);
       if (staticShadowInvalidBboxes.list.size())
         staticShadowInvalidBboxes.lastApplyTicks = ref_time_ticks();
       return;
@@ -1034,7 +1040,7 @@ void ShadowsManager::shadowsInvalidateGatheredBBoxes()
 
   decltype(staticShadowInvalidBboxes.list) boxes;
   {
-    std::lock_guard<std::mutex> scopedLock(staticShadowInvalidBboxes.lock);
+    dag::lock_guard scopedLock(staticShadowInvalidBboxes.lock);
     staticShadowInvalidBboxes.list.swap(boxes); // To consider: double buffering? framemem?
   }
 
@@ -1217,6 +1223,10 @@ void ShadowsManager::initVoxelShadows()
   if (WRDispatcher::isBareMinimum())
     return;
 
+  // copy padding and the temporal update load and store voxel_shadows_tex through one UAV
+  if (!(d3d::get_texformat_usage(TEXFMT_R8 | TEXCF_UNORDERED, D3DResourceType::VOLTEX) & d3d::USAGE_UNORDERED_LOAD))
+    return;
+
   const DataBlock *lvlSettings = shadowInfoProvider.getLevelSettings();
   VoxelShadows::Settings voxelShadowSettings;
   voxelShadowSettings.xzDim = lvl_override::getInt(lvlSettings, "voxelShadowsDimXZ", 64);
@@ -1317,7 +1327,7 @@ void ShadowsManager::initShadowsSettings()
 
   const DataBlock *lvlSettings = shadowInfoProvider.getLevelSettings();
 
-  const char *qualityOverride = lvl_override::getStr(lvlSettings, "shadowQuality", quality);
+  const char *qualityOverride = lvl_override::getStr(lvlSettings, "shadowsQuality", quality);
   always_render_dynamic_rendinsts.set(graphicsBlock->getBool("csmAlwaysRenderDynamicRendinsts", false));
 
   shadowQualityLoweringThreshold = lvl_override::getReal(lvlSettings, "shadowQualityLoweringThreshold", 0.25f);

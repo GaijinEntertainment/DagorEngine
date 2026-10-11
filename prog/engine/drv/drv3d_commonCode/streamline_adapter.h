@@ -116,13 +116,24 @@ public:
   uint64_t getMemorySize() const;
 
 private:
+  struct Options
+  {
+    bool retainResources;
+    int framesToGenerate;
+    IPoint2 displayResolution;
+    IPoint2 renderResolution;
+    bool operator==(const Options &) const = default;
+  };
+
+  void applyOptions(const Options &options, bool force_set_options);
   void updateCachedState(const sl::DLSSGState &state);
 
   int viewportId;
   FrameTracker &frameTracker;
   int framesToGenerate = 0;
   uint32_t lastPresentedFrames = 1;
-  // estimatedVRAMUsageInBytes, refreshed by the backend each frame FG runs.
+  eastl::optional<Options> appliedOptions;
+  // estimatedVRAMUsageInBytes, refreshed by the backend when the applied options change.
   dag::AtomicInteger<uint64_t> cachedMemorySize{0};
   static dag::AtomicPod<nv::DLSSFrameGenerationCapabilities> cachedFrameGenerationCapabilities;
 };
@@ -297,11 +308,14 @@ public:
   uint64_t getMemorySize() const;
 
 private:
+  void cacheDlssGSupport();
+
   eastl::unique_ptr<InitArgs> initArgs;
   SupportOverrideMap supportOverride;
 #if _TARGET_PC_WIN
   ComPtr<IDXGIAdapter1> adapter;
 #endif
+  dag::AtomicPod<nv::SupportState> dlssGSupport{nv::SupportState::NotSupported};
 
   FrameTracker frameTracker;
   static constexpr size_t MAX_VIEWPORTS = 2;

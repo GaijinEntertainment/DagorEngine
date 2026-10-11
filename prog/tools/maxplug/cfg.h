@@ -29,9 +29,6 @@ public:
 
   // give the key value for the specified key of a section
   std::wstring GetKeyValue(const std::wstring &key, const std::wstring &sec);
-
-  // set the key value for the specified key of a section
-  bool WriteKeyVal(const std::wstring &key, const std::wstring &sec, const TCHAR *new_val);
 };
 
 class CfgShader : public CfgReader

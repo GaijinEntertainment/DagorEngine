@@ -19,6 +19,8 @@ public:
 
   const char *getImguiTypeName() const override { return "Indent"; }
 
+  Point2 getPreferredSize([[maybe_unused]] float max_width_px) const override { return Point2(mW, mH); }
+
   void updateImgui() override { ImGui::Dummy(ImVec2(mW, mH)); }
 };
 

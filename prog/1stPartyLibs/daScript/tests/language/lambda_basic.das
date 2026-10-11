@@ -22,7 +22,7 @@ def test_lambda(t : T?) {
         let counter <- @(extra : int) : int {
             return CNT++ + extra
         }
-        var x = invoke(counter, 13)
+        let x = invoke(counter, 13)
         CNT = 100500
         let y = invoke(counter, 13)
         t |> equal(x, 13)

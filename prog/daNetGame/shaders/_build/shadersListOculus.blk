@@ -83,6 +83,7 @@
   file:t = "modfx_bvh.dshl"
   file:t = "antialiasing_fxaa.dshl"
   file:t = "tiledLights.dshl"
+  file:t = "clustered/lights_partition.dshl"
   file:t = "find_max_depth_2d.dshl"
 
   file:t = "hudprim/gui_aces.dshl"

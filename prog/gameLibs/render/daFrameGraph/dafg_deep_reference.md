@@ -72,7 +72,7 @@ NodeData {
   FixedVectorMap<ResNameId, ResourceRequest> historyResourceReadRequests;
 
   optional<VirtualPassRequirements> renderingRequirements;
-  variant<monostate, DispatchRequirements, DrawRequirements> executeRequirements;
+  variant<monostate, DispatchRequirements, DrawRequirements, CopyRequirements> executeRequirements;
   BindingsMap bindings;               // shader var ID -> Binding
   ShaderBlockLayersInfo shaderBlockLayers;
   optional<NodeStateRequirements> stateRequirements;
@@ -89,7 +89,7 @@ Post-multiplexing IR representation:
 
 `intermediate::Node` contains: `priority`, `resourceRequests` (list of `Request{resource, usage, fromLastFrame}`), `supressedRequests` (resources technically requested but suppressed for `SideEffects::None` nodes), `predecessors`, `frontendNode`, `multiplexingIndex`, `hasSideEffects`.
 
-`intermediate::Resource` contains: `ConcreteResource` (variant of `monostate|ScheduledResource|ExternalResource|DriverDeferredTexture`), `frontendResources` (rename chain of ResNameIds), `multiplexingIndex`.
+`intermediate::Resource` contains: `ConcreteResource` (variant of `monostate|ScheduledResource|ExternalResource|DriverDeferredTexture`), `frontendResources` (rename chain of ResNameIds), `multiplexingIndex`, `debugRelated` (a name of the chain contains "debug", such a resource never goes to the on-chip heap).
 
 ### Mapping (`intermediate::Mapping`)
 Maps frontend IDs to IR indices considering multiplexing:
@@ -212,10 +212,10 @@ be folded together. Enhanced barriers have no aliasing barrier type; the legacy 
 coarse decompress this whole scheme exists to avoid.
 
 Both barriers share stages: `SyncBefore` is the outgoing last use, `SyncAfter` the incoming
-first use. The partner is known only after the packer, so both stages stay empty until
+first use. The partner is known only after the pack, so both stages stay empty until
 `Runtime::applyAliasSyncStages()` fills them from the resources that share the memory, plus the
 resource itself, which reuses its memory each frame. Only the history teardown and re-init in
-`updateHistory()` keep `All`. A repack hands memory between graphs, which no barrier sees; DX12
+`updateHistory()` keep `All`. A defragmentation hands memory between graphs, and no barrier sees that. DX12
 needs none, because the graphs run in different `ExecuteCommandLists` scopes
 (D3D12EnhancedBarriers, "Resource Aliasing").
 
@@ -227,8 +227,23 @@ Synchronized with enhanced barriers only, and those need a layout and an access,
 does not access the resource and yields no barrier, only lifetime; an explicit
 `useAs(Usage::UNKNOWN)` asserts in `IrGraphBuilder::addRequestsToGraph`.
 
-**Limitation**: custom execution nodes may request untracked resources, but must then access
-them exactly as their requests declare, since daFG cannot see what the callback does.
+**Automatic detection**: `IrGraphBuilder::fixupFlagsAndActivation` sets the flag, unless a
+request along the rename chain (history reads included) comes from a custom execution node
+with side effects (daFG cannot see the callback). daFG resources do not support
+`TEXCF_CLEAR_ON_CREATE` and `SBCF_ZEROMEM` (logerr in `VirtualResourceRequestBase`): the fill
+at creation needs driver tracking, and aliasing overwrites it. For textures, use `.clear()`.
+An untracked buffer with `History::ClearZeroOnFirstFrame` gets `SBCF_BIND_UNORDERED`, because
+`Runtime::updateHistory` zeroes it with `d3d::zero_rwbufi`.
+A changed node rebuilds all resources it requests (`addResourcesToGraph`). The
+`Untracked Resources` imgui window (group `FrameGraph WIP`) lists them, and the
+`Resourse Visualizer` window labels their heaps `untracked`.
+
+**Resolves**: daFG cannot put a barrier in a pass, so `BarrierScheduler` gives each request a
+`ResolveRole`. A Vulkan pass resolves at the color output stage, also for depth. The DX12 pass
+(`resolveMSAATargets`) leaves the source in `ResolveSource`.
+
+**Manual flags**: `prog/codecheck.py` bans untracked flags outside daFG, the drivers and the
+driver tests. On a custom execution node they assert (`banUntrackedRequests`).
 
 **Fallback**: when `untracked_resources_supported()` (`common/untrackedResources.h`) is false,
 `IrGraphBuilder::fixupFlagsAndActivation` drops the creation flag and `Resource::isUntracked*()`
@@ -239,14 +254,15 @@ activate/`resource_barrier`/deactivate path. The same node code runs everywhere,
 ### Resource Scheduling (`ResourceScheduler`)
 Assigns physical memory locations to virtual resources:
 1. Gathers `ResourceAllocationProperties` from the driver
-2. Groups resources into heaps by `ResourceHeapGroup`
-3. Runs a **packer** algorithm to solve the dynamic storage allocation problem:
-   - `GreedyScanlinePacker` (default) -- greedy scanline sweep
-   - `BaselinePacker` -- no aliasing, one resource per slot
-   - `BoxingPacker` -- experimental
-4. Outputs `AllocationLocations` = per-resource `{HeapIndex, offset}`
+2. Groups resources into heaps by `ResourceHeapGroup` and by tracking: a heap holds only
+   tracked or only untracked resources (`HeapClass::untracked`)
+3. Runs `try_pack_into_layout` to solve the dynamic storage allocation problem around the
+   rects a heap already holds: a greedy scanline over the moments of the frame ring when all
+   of them wrap the frame boundary, first fit into the gaps otherwise. `dafg.no_aliasing`
+   turns every lifetime into the whole ring, so nothing shares memory.
+4. Writes the place of every frame resource into the `Layout` (`where` gives `{HeapIndex, offset}`)
 
-**Memory aliasing**: resources with non-overlapping lifetimes can share the same physical memory within a heap. The packer produces offsets that avoid temporal conflicts.
+**Memory aliasing**: resources with non-overlapping lifetimes can share the same physical memory within a heap. `try_pack_into_layout` produces offsets that avoid temporal conflicts.
 
 **History preservation**: `isResourcePreserved()` checks if a resource from the previous frame can be reused without reactivation.
 
@@ -313,10 +329,13 @@ Nodes can declare built-in draw/dispatch operations that replace the execution c
 - `dispatchIndirect(shader, buffer)` -- indirect compute dispatch
 - `dispatchMesh*` variants -- mesh shader dispatch via `MeshShader`
 - `postFx(shader)` -- convenience for fullscreen triangle (1 prim, 1 instance)
+- `read(tex).texture().copyTo(dst)` -- whole-texture copy, calls `BaseTexture::update()`
 
 Draw/dispatch parameters (primitive count, instance count, x/y/z, etc.) can be constant `uint32_t` or `BlobArg` (read from a blob at execution time). Dispatch-only parameters additionally support `DispatchAutoResolutionArg` (from auto-resolution) and `DispatchTextureResolutionArg` (from texture dimensions).
 
-When `executeRequirements` is set (draw/dispatch), the user-provided execution callback is REPLACED by the built-in one. `sideEffect` is forced to `Internal`. If the user also provided a custom execution callback (sideEffect != None), a logerr is emitted.
+When `executeRequirements` is set (draw/dispatch/copy), the user-provided execution callback is REPLACED by the built-in one. `sideEffect` is forced to `Internal`. If the user also provided a custom execution callback (sideEffect != None), a logerr is emitted.
+
+`copyTo(dst)` takes the destination like render pass attachments do: as a create, register, modify or rename request, or as a name, for which it adds a modify request. The source must be a read or history request. Both requests get `Usage::COPY` at `Stage::TRANSFER`. Since the node declares its accesses in full and runs no callback of its own, daFG can synchronize untracked (`NO_STATE_TRACKING`) resources for it, which a custom execution callback forbids (see `banUntrackedRequests` in `irGraphBuilder.cpp`).
 
 ## 12. Auto-Resolution System
 
@@ -361,14 +380,14 @@ Pruning: nodes with `Internal` side effects whose outputs are not consumed by an
 **Double-buffered frame window**: `SCHEDULE_FRAME_WINDOW = 2`. Resources alternate between even/odd frame slots. History resources span both frames.
 
 **Heap types**:
-- GPU heaps: `ResourceHeapGroup` from the driver, sized by packer output
+- GPU heaps: `ResourceHeapGroup` from the driver, sized by the layout
 - CPU heaps: `CPU_HEAP_GROUP` sentinel, stored as `Vector<char>` byte arrays
 
 **Resource allocators**:
 - `NativeResourceAllocator` -- for APIs with resource heaps (DX12, Vulkan). Uses native gAPI heaps (`ResourceHeap *`) with an LRU cache of D3D resources per heap. Supports dynamic resolution resizing.
 - `PoolResourceAllocator` -- for DX11. Simulates heaps via resource pools (`resourcePool/resourcePool.h`). Does NOT support dynamic resolution.
 
-**Packer interface**: `PackerInput{resources[], timelineSize, maxHeapSize}` -> `PackerOutput{offsets[], heapSize}`. Resources can wrap around (start >= end). Pinning forces a resource to a specific offset.
+**Pack interface**: `try_pack_into_layout(layout, heaps[], wanted[], limits, timeline, boundary)` returns a `ProposedPacking`. It holds the placed rects, the indices of the wanted rects that fit nowhere, and the proposed heaps. `apply_packing` commits it. Lifetimes can wrap around the frame ring. The rects the heaps come in with keep their offsets. A heap that holds a frame resource the next frame reads (a preserved rect) is pinned to its size, because a driver heap loses its contents when it is created again. A class whose resize keeps the contents (`HeapLimits::resizeKeepsContents`, the Dx11 pools) is not pinned. The other exception is a relocation that the policy chose. Then the preserved rects move into fresh heaps, and the allocator copies their contents from the old objects before the old heaps go (`dafg.relocation_max_mb`, 0 means never copy). The waste that triggers a defragmentation (a pack of the class from zero) is split by `measure_recoverable_waste` into what comes free and what is locked behind preserved rects. It is measured per heap too. `select_heaps_to_defragment` packs anew only the most wasteful heaps when their waste alone makes the class tight.
 
 ## 17. Debug & Validation
 

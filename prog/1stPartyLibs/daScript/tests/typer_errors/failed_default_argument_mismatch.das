@@ -6,7 +6,8 @@
 // ExprMakeStruct::visit. The guard now returns cleanly, so the bad default surfaces
 // as ordinary compile errors instead of a crash. (The former trailing 30341 was the
 // locked-instance-name dead end; the origin-generic fallback now re-resolves and the
-// broken default errors as 30511 instead.)
+// broken default errors as 30511 instead.) The 30254 reports twice - each of its two
+// sites carries its own location, so location-keyed dedupe keeps both.
 options gen2
 expect 30161, 30254, 30511, 30511
 

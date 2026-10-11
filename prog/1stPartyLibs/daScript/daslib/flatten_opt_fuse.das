@@ -21,11 +21,11 @@ require daslib/flatten_opt_common
 // A negated copy of a scalar/vector float/int const literal; null for any other node
 // (uint excluded — modular negation is value-correct but backend-hostile).
 def private negate_const(e : ExpressionPtr) : ExpressionPtr {
-    if (e is ExprConstDouble) return new ExprConstDouble(at = e.at, value = -(e as ExprConstDouble).value)   // double: outside the 32-bit grid
+    if (e is ExprConstDouble) return new ExprConstDouble(at = e.at, value = -(e as ExprConstDouble).value)
     var L = const_lanes(e)
     if (L.kind == CK_FLOAT) { L.f = -L.f; return make_const_lanes(L, e.at) }
     if (L.kind == CK_INT) { L.i = -L.i; return make_const_lanes(L, e.at) }
-    return null   // uint excluded — modular negation is value-correct but backend-hostile
+    return null
 }
 
 def private has_arity_named(mod : Module?; fname : string; argc : int) : bool {
@@ -55,14 +55,11 @@ def public fuse_callable(mod : Module?; fname : string; argc : int = 3) : bool {
     return found
 }
 
-// Match `m ± c` / `c ± m` (m = a*b; `-` needs a const-negatable side) against the das mad shapes;
-// out-params carry (a, b, c) with the vec-scalar swap + negation applied. The ONE gate for fuser AND
-// residual; no purity gate — flat-body calls are pure by contract (and has_sideeffects is timing-dependent).
 def private match_mad(var that : ExprOp2?; var ma, mb, mc : ExpressionPtr&) : bool {
     if (that == null) return false
     var fa, fb, other : ExpressionPtr
-    var negOther = false        // `m - C`  → c = -C
-    var negFactor = false       // `C - m`  → negate a const factor of m
+    var negOther = false
+    var negFactor = false
     if (qmatch(that, $e(fa) * $e(fb) + $e(other)).matched) {
         pass
     } elif (qmatch(that, $e(other) + $e(fa) * $e(fb)).matched) {
@@ -74,7 +71,6 @@ def private match_mad(var that : ExprOp2?; var ma, mb, mc : ExpressionPtr&) : bo
     } else {
         return false
     }
-    // types captured BEFORE negation — a fresh negated literal is untyped until re-infer
     var bta = expr_bt(fa)
     var btb = expr_bt(fb)
     let btc = expr_bt(other)
@@ -92,7 +88,6 @@ def private match_mad(var that : ExprOp2?; var ma, mb, mc : ExpressionPtr&) : bo
         other = negate_const(other)
         if (other == null) return false
     }
-    // a scalar-left mul swaps to the MadS (vec, scalar, vec) form
     if (vec_elem_bt(btb) != Type.none && bta == vec_elem_bt(btb)) {
         var tmp = fa
         fa = fb
@@ -108,24 +103,18 @@ def private match_mad(var that : ExprOp2?; var ma, mb, mc : ExpressionPtr&) : bo
     return true
 }
 
-// `(-a) + b` / `b + (-a)` → `b - a`: one sub node instead of neg + add. Reassoc no longer emits
-// the form (positives-first canonical order), so this catches the other producers — the `0 - x`
-// and `*-1` fold arms. Shared by fuser AND residual.
 def private match_neg_add(var that : ExprOp2?; var pos, neg : ExpressionPtr&) : bool {
     if (that == null || !is_mad_elem(expr_bt(that))) return false
-    return (qmatch(that, -$e(neg) + $e(pos)).matched ||    // nolint:STYLE016 (qmatch macro expansion)
-        qmatch(that, $e(pos) + -$e(neg)).matched)           // nolint:STYLE016 (qmatch macro expansion)
+    return (qmatch(that, -$e(neg) + $e(pos)).matched ||
+        qmatch(that, $e(pos) + -$e(neg)).matched)
 }
 
-// `mad(b - a, t, a)` → `lerp(a, b, t)`: the re-packed expansion shape, `a` matched by
-// describe-equality. The neg-add form is matched too (defense — reassoc no longer emits it).
-// Deliberately misses a CSE-shared `b - a` (behind a `_cse_` var — keeping the share IS the win).
 def private match_lerp(var cll : ExprCall?; var la, lb, lt : ExpressionPtr&) : bool {
     if (cll == null) return false
     var da, db, aa, tt : ExpressionPtr
     if (!qmatch(cll, mad($e(db) - $e(da), $e(tt), $e(aa))).matched &&     // nolint:STYLE016 (qmatch macro expansion)
-        !qmatch(cll, mad(-$e(da) + $e(db), $e(tt), $e(aa))).matched &&    // nolint:STYLE016 (qmatch macro expansion)
-        !qmatch(cll, mad($e(db) + -$e(da), $e(tt), $e(aa))).matched) return false  // nolint:STYLE016 (qmatch macro expansion)
+        !qmatch(cll, mad(-$e(da) + $e(db), $e(tt), $e(aa))).matched &&
+        !qmatch(cll, mad($e(db) + -$e(da), $e(tt), $e(aa))).matched) return false
     if (describe(da) != describe(aa) ||
         !lerp_shape(expr_bt(da), expr_bt(db), expr_bt(tt))) return false
     la = aa
@@ -135,13 +124,10 @@ def private match_lerp(var cll : ExprCall?; var la, lb, lt : ExpressionPtr&) : b
 }
 
 let private SIDE_NONE = 0
-let private SIDE_EQUAL = 1       // every lane carries the SAME scalar (describe-equal)
-let private SIDE_COMPONENT = 2   // lane i reads component_i of one shared vector base
-let private SIDE_GATHER = 3      // arbitrary scalars — packed into a fresh ctor (or const literal)
+let private SIDE_EQUAL = 1
+let private SIDE_COMPONENT = 2
+let private SIDE_GATHER = 3
 
-// Vectorize one side (lefts or rights) of a ctor whose lanes are same-op ExprOp2: classify the
-// d side-exprs and build the vector replacement from CLONES. SIDE_COMPONENT with the natural
-// full mask collapses to the base itself (no swizzle node).
 def private vectorize_side(var that : ExprCall?; d : int; takeLeft : bool; var node : ExpressionPtr&) : int {
     var sides : array<ExpressionPtr>
     sides |> reserve(d)
@@ -149,7 +135,6 @@ def private vectorize_side(var that : ExprCall?; d : int; takeLeft : bool; var n
         var li = that.arguments[i] as ExprOp2
         sides |> push(takeLeft ? li.left : li.right)
     }
-    // EQUAL — all lanes the same pure scalar
     if (expr_bt(sides[0]) == Type.tFloat) {
         let key0 = describe(sides[0])
         var eq = true
@@ -167,7 +152,6 @@ def private vectorize_side(var that : ExprCall?; d : int; takeLeft : bool; var n
             return SIDE_EQUAL
         }
     }
-    // COMPONENT — lane i reads a component of one shared base; the masks concatenate to a swizzle
     var baseKey = ""
     var base : ExpressionPtr
     var mask = ""
@@ -196,7 +180,6 @@ def private vectorize_side(var that : ExprCall?; d : int; takeLeft : bool; var n
         }
         return SIDE_COMPONENT
     }
-    // GATHER — pack the scalars into a fresh ctor (a const literal when every lane is const)
     var lanes <- [for (sd in sides); clone_expression(sd)]
     node = make_float_ctor(d, that.at, lanes)
     unsafe {
@@ -206,10 +189,7 @@ def private vectorize_side(var that : ExprCall?; d : int; takeLeft : bool; var n
     return SIDE_GATHER
 }
 
-def private ctor_fuse_rewrite(var that : ExprCall?; no_fast_math : bool) : ExpressionPtr {
-    let d = ctor_dim_by_name(that)
-    if (d < 2 || !is_float_vec(expr_bt(that))) return null
-    // re-vectorize same-op lanes: `floatN(v.x + c1, v.y + c2, …) → v + floatN(c1,c2,…)` (exact)
+def private ctor_fuse_same_op(var that : ExprCall?; d : int) : ExpressionPtr {
     var sameOp = ""
     if (that.arguments[0] is ExprOp2) {
         let op0 = "{(that.arguments[0] as ExprOp2).op}"
@@ -223,73 +203,69 @@ def private ctor_fuse_rewrite(var that : ExprCall?; no_fast_math : bool) : Expre
             }
         }
     }
-    if (sameOp != "") {
-        var aN : ExpressionPtr
-        var bN : ExpressionPtr
-        let ka = vectorize_side(that, d, true, aN)
-        let kb = vectorize_side(that, d, false, bN)
-        // profitability bar: a component pattern on a side (EQUAL/GATHER pairs are node-neutral)
-        if (ka == SIDE_COMPONENT || kb == SIDE_COMPONENT) {
-            // a lone EQUAL scalar broadcasts natively under * and /; + and - need a splat ctor
-            if (ka == SIDE_EQUAL && (sameOp == "+" || sameOp == "-")) {
-                aN = make_float_splat(d, that.at, aN)
-            }
-            if (kb == SIDE_EQUAL && (sameOp == "+" || sameOp == "-")) {
-                bN = make_float_splat(d, that.at, bN)
-            }
-            return new ExprOp2(at = that.at, op := sameOp, left = aN, right = bN)
-        }
+    if (sameOp == "") return null
+    var aN : ExpressionPtr
+    var bN : ExpressionPtr
+    let ka = vectorize_side(that, d, true, aN)
+    let kb = vectorize_side(that, d, false, bN)
+    if (ka != SIDE_COMPONENT && kb != SIDE_COMPONENT) return null
+    if (ka == SIDE_EQUAL && (sameOp == "+" || sameOp == "-")) {
+        aN = make_float_splat(d, that.at, aN)
     }
-    // shared factor / divisor, keyed on lane 0's candidates (describe equality across lanes)
-    if (that.arguments[0] is ExprOp2) {
-        var l0 = that.arguments[0] as ExprOp2
-        if (l0.op == "*" || l0.op == "/") {
-            for (ci in range(l0.op == "*" ? 2 : 1)) {
-                var cand = (l0.op == "/" || ci == 1) ? l0.right : l0.left
-                if (expr_bt(cand) != Type.tFloat) {
-                    continue
-                }
-                let key = describe(cand)
-                var rests : array<ExpressionPtr>
-                var allMatch = true
-                for (i in range(d)) {
-                    var ok = false
-                    if (that.arguments[i] is ExprOp2) {
-                        var li = that.arguments[i] as ExprOp2
-                        if (li.op == l0.op) {
-                            if (li.op == "*" && describe(li.left) == key && expr_bt(li.left) == Type.tFloat) {
-                                rests |> push(clone_expression(li.right))
-                                ok = true
-                            } elif (describe(li.right) == key && expr_bt(li.right) == Type.tFloat) {
-                                rests |> push(clone_expression(li.left))
-                                ok = true
-                            }
-                        }
+    if (kb == SIDE_EQUAL && (sameOp == "+" || sameOp == "-")) {
+        bN = make_float_splat(d, that.at, bN)
+    }
+    return new ExprOp2(at = that.at, op := sameOp, left = aN, right = bN)
+}
+
+def private ctor_fuse_shared_factor(var that : ExprCall?; d : int) : ExpressionPtr {
+    if (!(that.arguments[0] is ExprOp2)) return null
+    var l0 = that.arguments[0] as ExprOp2
+    if (l0.op != "*" && l0.op != "/") return null
+    for (ci in range(l0.op == "*" ? 2 : 1)) {
+        var cand = (l0.op == "/" || ci == 1) ? l0.right : l0.left
+        if (expr_bt(cand) != Type.tFloat) {
+            continue
+        }
+        let key = describe(cand)
+        var rests : array<ExpressionPtr>
+        var allMatch = true
+        for (i in range(d)) {
+            var ok = false
+            if (that.arguments[i] is ExprOp2) {
+                var li = that.arguments[i] as ExprOp2
+                if (li.op == l0.op) {
+                    if (li.op == "*" && describe(li.left) == key && expr_bt(li.left) == Type.tFloat) {
+                        rests |> push(clone_expression(li.right))
+                        ok = true
+                    } elif (describe(li.right) == key && expr_bt(li.right) == Type.tFloat) {
+                        rests |> push(clone_expression(li.left))
+                        ok = true
                     }
-                    if (!ok) {
-                        allMatch = false
-                        break
-                    }
                 }
-                if (allMatch) {
-                    var nc = make_float_ctor(d, that.at, rests)
-                    var sc = clone_expression(cand)
-                    unsafe {
-                        delete rests
-                    }
-                    return new ExprOp2(at = that.at, op := l0.op, left = nc, right = sc)
-                }
-                unsafe {
-                    delete rests
-                }
+            }
+            if (!ok) {
+                allMatch = false
+                break
             }
         }
+        if (allMatch) {
+            var nc = make_float_ctor(d, that.at, rests)
+            var sc = clone_expression(cand)
+            unsafe {
+                delete rests
+            }
+            return new ExprOp2(at = that.at, op := l0.op, left = nc, right = sc)
+        }
+        unsafe {
+            delete rests
+        }
     }
-    // majority const factor with compensation (fast-math): most frequent lane factor C ≠ 0,1 wins
-    if (no_fast_math) return null
-    var laneC : array<float>
-    var laneV : array<float>
-    var laneE : array<ExpressionPtr>
+    return null
+}
+
+def private lane_const_factors(var that : ExprCall?; d : int; var laneC, laneV : array<float>;
+                               var laneE : array<ExpressionPtr>) {
     for (i in range(d)) {
         var cv = 0.0
         if (scalar_float_const(that.arguments[i], cv)) {
@@ -316,7 +292,9 @@ def private ctor_fuse_rewrite(var that : ExprCall?; no_fast_math : bool) : Expre
         laneV |> push(0.0)
         laneE |> push(ei)
     }
-    var bestC = 0.0
+}
+
+def private majority_factor(laneC : array<float>; laneE : array<ExpressionPtr>; d : int; var bestC : float&) : int {
     var bestN = 0
     for (i in range(d)) {
         if (laneE[i] == null || laneC[i] == 1.0 || laneC[i] == 0.0) {
@@ -333,14 +311,16 @@ def private ctor_fuse_rewrite(var that : ExprCall?; no_fast_math : bool) : Expre
             bestC = laneC[i]
         }
     }
-    if (bestN < 2) {
-        delete laneC
-        delete laneV
-        unsafe {
-            delete laneE
-        }
-        return null
-    }
+    return bestN
+}
+
+def private ctor_fuse_majority_const(var that : ExprCall?; d : int) : ExpressionPtr {
+    var laneC : array<float>
+    var laneV : array<float>
+    var laneE : array<ExpressionPtr>
+    lane_const_factors(that, d, laneC, laneV, laneE)
+    var bestC = 0.0
+    let bestN = majority_factor(laneC, laneE, d, bestC)
     var before = 0
     var after = 1
     for (i in range(d)) {
@@ -351,43 +331,51 @@ def private ctor_fuse_rewrite(var that : ExprCall?; no_fast_math : bool) : Expre
             after ++
         }
     }
-    if (after >= before) {
-        delete laneC
-        delete laneV
+    var res : ExpressionPtr = null
+    if (bestN >= 2 && after < before) {
+        var lanes : array<ExpressionPtr>
+        for (i in range(d)) {
+            if (laneE[i] == null) {
+                lanes |> push(new ExprConstFloat(at = that.at, value = laneV[i] / bestC))
+            } elif (laneC[i] == bestC) {
+                lanes |> push(clone_expression(laneE[i]))
+            } else {
+                var comp : ExpressionPtr = new ExprConstFloat(at = that.at, value = laneC[i] / bestC)
+                lanes |> push(new ExprOp2(at = that.at, op := "*", left = clone_expression(laneE[i]), right = comp))
+            }
+        }
+        var nc = make_float_ctor(d, that.at, lanes)
+        res = new ExprOp2(at = that.at, op := "*", left = nc, right = new ExprConstFloat(at = that.at, value = bestC))
         unsafe {
-            delete laneE
-        }
-        return null
-    }
-    var lanes : array<ExpressionPtr>
-    for (i in range(d)) {
-        if (laneE[i] == null) {
-            lanes |> push(new ExprConstFloat(at = that.at, value = laneV[i] / bestC))
-        } elif (laneC[i] == bestC) {
-            lanes |> push(clone_expression(laneE[i]))
-        } else {
-            var comp : ExpressionPtr = new ExprConstFloat(at = that.at, value = laneC[i] / bestC)
-            lanes |> push(new ExprOp2(at = that.at, op := "*", left = clone_expression(laneE[i]), right = comp))
+            delete lanes
         }
     }
-    var nc = make_float_ctor(d, that.at, lanes)
     delete laneC
     delete laneV
     unsafe {
-        delete lanes
         delete laneE
     }
-    return new ExprOp2(at = that.at, op := "*", left = nc, right = new ExprConstFloat(at = that.at, value = bestC))
+    return res
+}
+
+def private ctor_fuse_rewrite(var that : ExprCall?; no_fast_math : bool) : ExpressionPtr {
+    let d = ctor_dim_by_name(that)
+    if (d < 2 || !is_float_vec(expr_bt(that))) return null
+    var r = ctor_fuse_same_op(that, d)
+    if (r != null) return r
+    r = ctor_fuse_shared_factor(that, d)
+    if (r != null) return r
+    if (no_fast_math) return null
+    return ctor_fuse_majority_const(that, d)
 }
 
 struct private DotGroup {
-    base : ExpressionPtr        // first lane's base node, reused as the dot's vector arg
+    base : ExpressionPtr
     dim : int
     weights : float4
     nterms : int
 }
 
-// One additive term as a (possibly const-weighted) lane read: `v.x`, `v.x * c`, `c * v.x`.
 def private dot_term_lane(var e : ExpressionPtr; var baseKey : string&; var base : ExpressionPtr&;
                           var lane : int&; var w : float&) : bool {
     var comp = ""
@@ -397,7 +385,7 @@ def private dot_term_lane(var e : ExpressionPtr; var baseKey : string&; var base
         return true
     }
     var l, r : ExpressionPtr
-    if (!qmatch(e, $e(l) * $e(r)).matched) return false    // nolint:STYLE016 (qmatch macro expansion)
+    if (!qmatch(e, $e(l) * $e(r)).matched) return false
     var c = 0.0
     if (scalar_float_const(r, c) && component_read_of(l, baseKey, base, comp)) {
         lane = lane_index(comp)
@@ -412,22 +400,19 @@ def private dot_term_lane(var e : ExpressionPtr; var baseKey : string&; var base
     return false
 }
 
-// Bucket a chain's terms into per-base lane groups; `tKey[i]` carries term i's group key ("" for
-// a non-lane term). Shared by the fuser and the residual oracle — ONE gate, so a survivor is
-// always a fuser miss.
 def private dot_chain_groups(var terms : array<ReTerm>; var groups : table<string; DotGroup>;
                              var tKey : array<string>) : bool {
     tKey |> resize(length(terms))
-    for (i in range(length(terms))) {
+    for (t, key in terms, tKey) {
         var baseKey = ""
         var base : ExpressionPtr
         var lane = 0
         var w = 0.0
-        if (!dot_term_lane(terms[i].e, baseKey, base, lane, w)) {
+        if (!dot_term_lane(t.e, baseKey, base, lane, w)) {
             continue
         }
-        tKey[i] = baseKey
-        if (terms[i].neg) {
+        key = baseKey
+        if (t.neg) {
             w = -w
         }
         if (!key_exists(groups, baseKey)) {
@@ -460,9 +445,6 @@ def private has_unfused_lane_dot(var that : ExprOp2?) : bool {
     return any
 }
 
-// Rebuild the chain with every ≥2-lane group collapsed to `dot(base, mask)` — emitted at the
-// group's first term, term order otherwise preserved; null when no group qualifies. Operand
-// nodes are reused (each lands in one slot); the fused lane reads just drop.
 def private dot_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>) : ExpressionPtr {
     var groups : table<string; DotGroup>
     var tKey : array<string>
@@ -475,15 +457,14 @@ def private dot_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>) 
     }
     var emitted : table<string>
     var newTerms : array<ReTerm>
-    for (i in range(length(terms))) {
-        let k = tKey[i]
+    for (t, k in terms, tKey) {
         if (k == "") {
-            newTerms |> push(terms[i])
+            newTerms |> push(t)
             continue
         }
         var g = groups?[k] ?? default<DotGroup>
         if (g.nterms < 2) {
-            newTerms |> push(terms[i])
+            newTerms |> push(t)
             continue
         }
         if (key_exists(emitted, k)) {
@@ -514,9 +495,6 @@ def private dot_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>) 
     return r
 }
 
-// Top-down rewrite over the closed post-flatten node set: fold each maximal `+`/`-` chain once
-// (a bottom-up visitor would fold a sub-chain first and strand the outer lanes), recursing into
-// chain leaves and every other child slot.
 def private dot_fold_expr(var e : ExpressionPtr; var changed : bool&) : ExpressionPtr {
     if (e == null) return null
     if (e is ExprOp2) {
@@ -525,7 +503,6 @@ def private dot_fold_expr(var e : ExpressionPtr; var changed : bool&) : Expressi
             var terms : array<ReTerm>
             collect_add(e, false, terms)
             for (t in terms) {
-                // a chain leaf is never itself a chain, so the result is always `t.e` back
                 dot_fold_expr(t.e, changed)
             }
             var r = dot_fold_chain(e, terms)
@@ -617,8 +594,7 @@ class private LerpFuseVisitor : AstVisitor {
     }
 }
 
-// A horizontal-reduce lane that no better fuser already claims: a plain scalar `s` (weight 1) OR a const-weighted scalar `s*c` / `c*s` (weight c). `s` must not be const, a runtime*runtime product (left for mad), or a fuse-pass output call (`mad`/`dot`/`lerp`/`hadd` — already optimally fused, and re-claiming one across re-infer rounds would make the pass non-idempotent). A group of these packs into `hadd(floatN(s))` when all weights are 1, else `dot(floatN(s), floatN(weights))` — the weighted reduction beats the mad-chain at width>=3 (combine + dot = 2 nodes vs the N-node mad-chain). The fuser packs groups of width >=3 by default (width-2 is +1 node on a node-graph backend — pure combine overhead — so a bare pair stays scalar; `options _flatten_hadd_pack_pairs = true` lowers the floor to 2 for a SIMD CPU backend). `stripped` = the term carried a `*const`, so its scalar must be cloned (the `*` wrapper drops). The residual oracle counts the same predicate, so it mirrors the fuser exactly.
-def private reduce_lane(var t : ReTerm; var s : ExpressionPtr&; var w : float&; var stripped : bool&) : bool {   // nolint:LINT014 — `var t` is needed for NON-CONST field access (t.e feeds is_all_const / scalar_float_const), not to write t
+def private reduce_lane(var t : ReTerm; var s : ExpressionPtr&; var w : float&; var stripped : bool&) : bool {
     if (t.neg) return false
     var e = t.e
     w = 1.0
@@ -635,7 +611,7 @@ def private reduce_lane(var t : ReTerm; var s : ExpressionPtr&; var w : float&; 
             w = c
             stripped = true
         } else {
-            return false   // runtime*runtime product -> leave for mad
+            return false
         }
     }
     if (is_all_const(e) || expr_bt(e) != Type.tFloat) return false
@@ -647,16 +623,11 @@ def private reduce_lane(var t : ReTerm; var s : ExpressionPtr&; var w : float&; 
     return true
 }
 
-// ===== producer-vectorization for hadd groups =====
-
-// Componentwise unary float->float builtins (their floatN overload is per-lane). NOT length/normalize/
-// dot/cross (vector->scalar or cross-lane) — vectorizing those would change the value.
 let private ELEMENTWISE_UNARY : table<string> <- {
     "sin", "cos", "sqrt", "exp", "log", "abs", "frac", "floor", "ceil",
     "sign", "saturate", "radians", "degrees", "one_minus"
 }
 
-// If every lane is `g(scalarFloat)` for the SAME whitelisted elementwise-unary g, return g; else "".
 def private shared_elementwise_unary(lanes : array<ExpressionPtr>) : string {
     var g = ""
     for (e in lanes) {
@@ -664,7 +635,7 @@ def private shared_elementwise_unary(lanes : array<ExpressionPtr>) : string {
         let c = e as ExprCall
         if (length(c.arguments) != 1 || expr_bt(c.arguments[0]) != Type.tFloat) return ""
         let fullname = "{c.name}"
-        if (find(fullname, 58, 0) >= 0) return ""   // 58 = ':' — a module qualifier (math::sin); see above
+        if (find(fullname, ':', 0) >= 0) return ""
         let nm = simple_name(fullname)
         if (!key_exists(ELEMENTWISE_UNARY, nm)) return ""
         if (g == "") {
@@ -686,9 +657,6 @@ def private mod_has_unary_vec(mod : Module?; fname : string; want : Type) : bool
     return found
 }
 
-// True if `fname` has a single-arg overload taking exactly `want` (a floatN) in `mod` or its deps —
-// the gate that keeps producer-vectorization from emitting an unresolvable `g(floatN)` on a backend
-// whose `g` is scalar-only (it falls back to leaf-packing rather than breaking a shader that compiled).
 def private has_unary_vec_overload(mod : Module?; fname : string; want : Type) : bool {
     if (mod == null) return false
     if (mod_has_unary_vec(mod, fname, want)) return true
@@ -705,8 +673,6 @@ def private float_vec_type(dim : int) : Type {
     return dim == 2 ? Type.tFloat2 : (dim == 3 ? Type.tFloat3 : Type.tFloat4)
 }
 
-// Build a hadd group's argument: the producer-vectorized `g(floatN(args))` when all `lanes` share an
-// elementwise-unary `g` with a floatN overload, else the plain `floatN(lanes)` leaf pack.
 def private make_hadd_arg(var lanes : array<ExpressionPtr>; w : int; at : LineInfo; mod : Module?) : ExpressionPtr {
     let g = shared_elementwise_unary(lanes)
     if (g == "" || !has_unary_vec_overload(mod, g, float_vec_type(w))) {
@@ -715,7 +681,7 @@ def private make_hadd_arg(var lanes : array<ExpressionPtr>; w : int; at : LineIn
     var args : array<ExpressionPtr>
     args |> reserve(w)
     for (ln in lanes) {
-        args |> push(clone_expression((ln as ExprCall).arguments[0]))   // clone: the g-call wrapper drops
+        args |> push(clone_expression((ln as ExprCall).arguments[0]))
     }
     var argCtor = make_float_ctor(w, at, args)
     var gcall = new ExprCall(at = at, name := g)
@@ -726,14 +692,9 @@ def private make_hadd_arg(var lanes : array<ExpressionPtr>; w : int; at : LineIn
     return gcall
 }
 
-// Pack the independent-scalar reduce lanes of a maximal `+`/`-` chain (see reduce_lane) into width [minWidth..4] groups via plan_groups; null when no group reaches minWidth. The dot fold above only reaches lanes of ONE vector (`v.x + v.y + …`); unrelated scalars (plasma's `v1 + v2 + v3 + v4`) have no shared base, so a combine + reduce is the collapse. Each group emits `hadd(floatN(s))` when all its weights are 1, else `dot(floatN(s), floatN(weights))` (a const-weighted sum like an fBm octave chain).
-def private hadd_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>; minWidth : int; mod : Module?) : ExpressionPtr {
-    // collect reduce lanes (scalar + const weight) in source order; a weighted lane emits `dot`, so it is only a candidate when dot is callable — else it stays for the mad walk (never break a shader)
-    let dotCallable = fuse_callable(mod, "dot", 2)
-    var cand : array<int>
-    var laneScalar : array<ExpressionPtr>
-    var laneWeight : array<float>
-    var laneStripped : array<bool>
+def private collect_reduce_lanes(var terms : array<ReTerm>; dotCallable : bool; var cand : array<int>;
+                                 var laneScalar : array<ExpressionPtr>; var laneWeight : array<float>;
+                                 var laneStripped : array<bool>) {
     for (i in range(length(terms))) {
         var s : ExpressionPtr
         var w = 1.0
@@ -748,12 +709,64 @@ def private hadd_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>;
             laneStripped |> push(stripped)
         }
     }
+}
+
+def private make_reduce_group_call(var terms : array<ReTerm>; cand : array<int>;
+                                   laneScalar : array<ExpressionPtr>; laneWeight : array<float>;
+                                   laneStripped : array<bool>; o, w : int; at : LineInfo;
+                                   mod : Module?) : ExpressionPtr {
+    var weighted = false
+    for (li in range(w)) {
+        if (laneStripped[o + li] || laneWeight[o + li] != 1.0) {
+            weighted = true
+        }
+    }
+    if (weighted) {
+        var scalars : array<ExpressionPtr>
+        var weights : array<ExpressionPtr>
+        scalars |> reserve(w)
+        weights |> reserve(w)
+        for (li in range(w)) {
+            scalars |> push(clone_expression(laneScalar[o + li]))
+            weights |> push(new ExprConstFloat(at = at, value = laneWeight[o + li]))
+        }
+        var vecArg = make_float_ctor(w, at, scalars)
+        var mask = make_float_ctor(w, at, weights)
+        var dcll = new ExprCall(at = at, name := "dot")
+        emplace(dcll.arguments, vecArg)
+        emplace(dcll.arguments, mask)
+        unsafe {
+            delete scalars
+            delete weights
+        }
+        return dcll
+    }
+    var lanes : array<ExpressionPtr>
+    lanes |> reserve(w)
+    for (li in range(w)) {
+        lanes |> push(terms[cand[o + li]].e)
+    }
+    var ctor = make_hadd_arg(lanes, w, at, mod)
+    var hcll = new ExprCall(at = at, name := "hadd")
+    emplace(hcll.arguments, ctor)
+    unsafe {
+        delete lanes
+    }
+    return hcll
+}
+
+def private hadd_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>; minWidth : int; mod : Module?) : ExpressionPtr {
+    var cand : array<int>
+    var laneScalar : array<ExpressionPtr>
+    var laneWeight : array<float>
+    var laneStripped : array<bool>
+    collect_reduce_lanes(terms, fuse_callable(mod, "dot", 2), cand, laneScalar, laneWeight, laneStripped)
     var groups <- plan_groups(length(cand), minWidth)
     var covered = 0
     for (w in groups) {
         covered += w
     }
-    if (covered == 0) {     // no group reached minWidth — the lanes (if any) stay scalar
+    if (covered == 0) {
         delete cand
         delete laneWeight
         delete laneStripped
@@ -763,7 +776,6 @@ def private hadd_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>;
         }
         return null
     }
-    // head term idx -> its group index in `groups`; groupOff[gi] = that group's first candidate slot
     var headGroup : table<int; int>
     var groupOff : array<int>
     groupOff |> reserve(length(groups))
@@ -783,49 +795,8 @@ def private hadd_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>;
         if (key_exists(dropped, i)) continue
         if (key_exists(headGroup, i)) {
             let gi = headGroup[i]
-            let w = groups[gi]
-            let o = groupOff[gi]
-            var weighted = false
-            for (li in range(w)) {
-                if (laneStripped[o + li] || laneWeight[o + li] != 1.0) {
-                    weighted = true
-                }
-            }
-            var cll : ExpressionPtr
-            if (weighted) {
-                // dot(floatN(scalars), const floatN(weights)) — clone scalars (the `*const` wrappers drop)
-                var scalars : array<ExpressionPtr>
-                var weights : array<ExpressionPtr>
-                scalars |> reserve(w)
-                weights |> reserve(w)
-                for (li in range(w)) {
-                    scalars |> push(clone_expression(laneScalar[o + li]))
-                    weights |> push(new ExprConstFloat(at = that.at, value = laneWeight[o + li]))
-                }
-                var vecArg = make_float_ctor(w, that.at, scalars)
-                var mask = make_float_ctor(w, that.at, weights)
-                var dcll = new ExprCall(at = that.at, name := "dot")
-                emplace(dcll.arguments, vecArg)
-                emplace(dcll.arguments, mask)
-                cll = dcll
-                unsafe {
-                    delete scalars
-                    delete weights
-                }
-            } else {
-                var lanes : array<ExpressionPtr>
-                lanes |> reserve(w)
-                for (li in range(w)) {
-                    lanes |> push(terms[cand[o + li]].e)   // reuse the leaf node (each used once)
-                }
-                var ctor = make_hadd_arg(lanes, w, that.at, mod)   // producer-vectorizes a shared unary
-                var hcll = new ExprCall(at = that.at, name := "hadd")
-                emplace(hcll.arguments, ctor)
-                cll = hcll
-                unsafe {
-                    delete lanes
-                }
-            }
+            var cll = make_reduce_group_call(terms, cand, laneScalar, laneWeight, laneStripped,
+                groupOff[gi], groups[gi], that.at, mod)
             newTerms |> push(ReTerm(neg = false, e = cll))
         } else {
             newTerms |> push(terms[i])
@@ -846,7 +817,6 @@ def private hadd_fold_chain(var that : ExpressionPtr; var terms : array<ReTerm>;
     return r
 }
 
-// Top-down rewrite mirroring dot_fold_expr: pack each maximal `+`/`-` chain once. A bottom-up visitor would pack an inner sub-chain into a narrow hadd and strand the outer lanes into a second one (e.g.
 def private hadd_fold_expr(var e : ExpressionPtr; var changed : bool&; minWidth : int; mod : Module?) : ExpressionPtr {
     if (e == null) return null
     if (e is ExprOp2) {
@@ -855,7 +825,6 @@ def private hadd_fold_expr(var e : ExpressionPtr; var changed : bool&; minWidth 
             var terms : array<ReTerm>
             collect_add(e, false, terms)
             for (t in terms) {
-                // a chain leaf is never itself a chain, so it mutates in place and returns `t.e`
                 hadd_fold_expr(t.e, changed, minWidth, mod)
             }
             var r = hadd_fold_chain(e, terms, minWidth, mod)
@@ -892,8 +861,7 @@ def private hadd_fold_stmt(var s : ExpressionPtr; var changed : bool&; minWidth 
     }
 }
 
-// A maximal `+`/`-` chain still carrying ≥3 reduce lanes the fuser should have packed (into hadd or a weighted dot) — the residual twin of the reduce fold, sharing `reduce_lane`. The >=3 gate is mode-agnostic on purpose: the fuser packs width>=3 in BOTH modes (the pack-pairs option only LOWERS the floor to 2), so a >=3-lane survivor is a real miss under either, while a 2-lane chain left scalar by the default is not flagged.
-def private has_unfused_hadd(var that : ExprOp2?; dotCallable : bool) : bool {
+def private has_unfused_hadd(var that : ExprOp2?; dotCallable : bool; minWidth : int) : bool {
     if (that == null || !(that.op == "+" || that.op == "-") || expr_bt(that) != Type.tFloat) return false
     var terms : array<ReTerm>
     collect_add(that, false, terms)
@@ -904,7 +872,7 @@ def private has_unfused_hadd(var that : ExprOp2?; dotCallable : bool) : bool {
         var stripped = false
         if (reduce_lane(t, s, w, stripped)) {
             if (stripped && !dotCallable) {
-                continue   // a weighted lane only packs (into dot) when dot is callable — mirror the fuser gate
+                continue
             }
             n ++
         }
@@ -912,17 +880,15 @@ def private has_unfused_hadd(var that : ExprOp2?; dotCallable : bool) : bool {
     unsafe {
         delete terms
     }
-    return n >= 3
+    return n >= minWidth
 }
 
-// Fusion residuals — mirror the fuser's matchers (same gates, same shapes), so a survivor means the
-// PHASE_FUSED pass missed, never that the gate was narrower here. (The hadd/reduce oracle uses a fixed
-// width-3 floor, mode-agnostic — see has_unfused_hadd — since the fuser packs width>=3 in both modes.)
 class public FuseResidualVisitor : AstVisitor {
     checkMad : bool
     checkLerp : bool
     checkDot : bool
     checkHadd : bool
+    haddMinWidth : int
     noFastMath : bool
     foundMad : bool
     foundLerp : bool
@@ -934,7 +900,7 @@ class public FuseResidualVisitor : AstVisitor {
         if (checkDot && has_unfused_lane_dot(expr)) {
             foundDot = true
         }
-        if (checkHadd && has_unfused_hadd(expr, checkDot)) {   // checkDot == dot-callable here (checkHadd ⟹ !no_fast_math)
+        if (checkHadd && has_unfused_hadd(expr, checkDot, haddMinWidth)) {
             foundHadd = true
         }
         if (!checkMad) {
@@ -971,7 +937,6 @@ def public fuse_body(var func : FunctionPtr; no_fast_math : bool = false; hadd_m
     //! PHASE_FUSED finishing pass: collapse same-vector lane sums into `dot(v, mask)` and independent scalar sums into `hadd(floatN(...))` — or `dot(floatN(s), floatN(weights))` when the lanes carry const weights (groups of width [hadd_min_width..4] via plan_groups — the default 3 keeps a bare pair scalar, 2 packs pairs too), re-pack ctor lane patterns (re-vectorize / shared factor), `a*b ± c` into `mad(a,b,c)`, and the expanded lerp shape back into `lerp(a, b, t)`. Caller re-infers after each round.
     if (!(func.body is ExprBlock)) return false
     var changed = false
-    // lane-dot fold first — the mad walk would otherwise steal a weighted lane (`v.x * w + rest`)
     if (!no_fast_math && fuse_callable(func._module, "dot", 2)) {
         var blk = func.body as ExprBlock
         var dchanged = false
@@ -982,9 +947,6 @@ def public fuse_body(var func : FunctionPtr; no_fast_math : bool = false; hadd_m
             changed = true
         }
     }
-    // ctor re-pack next — it claims same-op ctor lanes (`floatN(x+a, x+b, …)` → `splat(x) + floatN(a,b,…)`)
-    // BEFORE the hadd fold, so a hadd at width 2 can't pre-empt that vectorization by turning a lane into
-    // a `hadd(...)` call; its `ctor * s` / vector-op output also feeds the mad walk this same round.
     var cv = new CtorFuseVisitor()
     cv.noFastMath = no_fast_math
     make_visitor(*cv) $(adapter) {
@@ -996,7 +958,6 @@ def public fuse_body(var func : FunctionPtr; no_fast_math : bool = false; hadd_m
     unsafe {
         delete cv
     }
-    // then horizontal reduce: pack unrelated scalar lanes into hadd(floatN(...)) — or dot(floatN(s), floatN(weights)) when they carry const weights — in width-[hadd_min_width..4] groups via plan_groups.
     if (!no_fast_math && fuse_callable(func._module, "hadd", 1)) {
         var blk = func.body as ExprBlock
         var hchanged = false
@@ -1018,8 +979,6 @@ def public fuse_body(var func : FunctionPtr; no_fast_math : bool = false; hadd_m
     unsafe {
         delete v
     }
-    // lerp re-fusion is a separate walk over the fresh mads — a visitor never descends into
-    // the node it just returned, so the mad → lerp chain can't happen in one pass.
     if (fuse_callable(func._module, "lerp")) {
         var lv = new LerpFuseVisitor()
         make_visitor(*lv) $(adapter) {

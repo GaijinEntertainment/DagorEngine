@@ -119,14 +119,10 @@ public:
     if (!wordWrap)
       size.y += ImGui::GetStyle().FramePadding.y * 2.0f;
 
-    if (!wordWrap && !useTextWidth)
-    {
-      // updateImgui() clips the drawn item to mW (ellipsizing longer captions) instead of growing to fit them.
-      // With mW == 0 it fills the available width instead, so there is no fixed width to report, only the height.
-      if (mW > 0)
-        return Point2(min((float)mW, max_width_px), size.y);
-      return Point2(0.0f, size.y);
-    }
+    // updateImgui() clips the drawn item to mW (ellipsizing longer captions) instead of growing to fit them.
+    // With mW == 0 it fills the available width, and the full caption fits in the text width.
+    if (!wordWrap && !useTextWidth && mW > 0)
+      return Point2(min((float)mW, max_width_px), size.y);
 
     return Point2(size.x, size.y);
   }

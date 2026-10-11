@@ -172,6 +172,12 @@ void saveTexuredata(spirv_cross::CompilerMSL &msl, DataAccumulator &header, spir
     img_tp.type = translateImageType(imageType);
     img_tp.is_uint = img_type.basetype == spirv_cross::SPIRType::UInt;
     img_tp.is_int = img_type.basetype == spirv_cross::SPIRType::Int;
+    if (imageType.sampled == 2)
+    {
+      // compile() leaves these decorations matching the emitted access::read, access::write or access::read_write
+      img_tp.is_read = !msl.has_decoration(image.id, spv::DecorationNonReadable);
+      img_tp.is_written = !msl.has_decoration(image.id, spv::DecorationNonWritable);
+    }
 
     int binding = msl.get_decoration(image.id, spv::DecorationBinding);
     if (IsBindlessResource(msl, &image))
@@ -593,8 +599,13 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
         return compile_result;
       }
       output_mask |= 0xf << (4 * location);
+      compile_result.psOutputInfo.colorTargetMask |= 1u << (location + this->get_decoration(stgOutput.id, spv::DecorationIndex));
     }
     header.append(output_mask);
+    const spirv_cross::Bitset &modes = get_execution_mode_bitset();
+    compile_result.psOutputInfo.writesDepth = modes.get(spv::ExecutionModeDepthReplacing) ||
+                                              modes.get(spv::ExecutionModeDepthGreater) || modes.get(spv::ExecutionModeDepthLess);
+    compile_result.psOutputInfo.valid = true;
   }
 
   if (shaderType == ShaderType::Compute)

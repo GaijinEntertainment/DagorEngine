@@ -27,12 +27,12 @@ and various rendering formats.
   - `render VSM shadows`: Enables variance shadow map shadows.
   - `use SSAO`: Enables screen space ambient occlusion.
   - `use SSR`: Enables screen space reflections.
-  - `no sun, no amb, no envi refl, no transp, no postfx`: Enables sun,
+  - `no sun, no amb, no envi refl, no transp, no postfx`: Disables sun,
     ambient, environmental reflections, transparency, and post-processing
     effects, respectively.
 - `defaultRopt{}`: Sets the default rendering options.
   - `render VSM shadows`: Enables variance shadow map shadows.
-  - `no sun, no amb, no envi refl, no transp, no postfx`: Enables sun,
+  - `no sun, no amb, no envi refl, no transp, no postfx`: Disables sun,
     ambient, environmental reflections, transparency, and post-processing
     effects, respectively.
 - `dbgShow{}`: Configures debug display options with various rendering
@@ -145,26 +145,25 @@ parameters, and build configurations.
       - `reject_exp`: Specifies asset types to reject during export.
   - `destination{}`: Specifies export destinations for different
     platforms.
-      - `PC`: PC destination path.
-      - `"PC~~dedicatedServer"`: PC dedicated server destination path.
-      - `iOS`: iOS destination path.
-      - `allow_patch`: Disables patching.
-      - `additional{}`: Additional export settings.
-  - `destGrpHdrCache{}`: Configures the group header cache in VROMFS for
+    - `PC`: PC destination path.
+    - `"PC~~dedicatedServer"`: PC dedicated server destination path.
+    - `iOS`: iOS destination path.
+    - `allow_patch`: Enables patching.
+    - `additional{}`: Additional export settings.
+  - `destGrpHdrCache{}`: Configures the group header cache in vromfs for
     export.
   - `packages{}`: Manages asset packages.
     - `forceExplicitList`: Enables explicit package list usage.
-      - `outer_space{}`: Specifies settings for the *OuterSpace*
-        package.
-      - `outer_space_hq{}`: Specifies settings for the high-quality
-        *OuterSpace* package.
+    - `outer_space{}`: Specifies settings for the Outer Space
+      package.
+    - `outer_space_hq{}`: Specifies settings for the high-quality
+      Outer Space package.
   - `stripPrefix`: Specifies the prefix to strip from all package file paths.
   - `addTexPrefix`: Defines the prefix to add for texture packages.
   - `packlist`: Specifies the pack list file to maintain the current list of
     valid packs.
-  - `defaultDdsxTexPack`: Defines the default DDSX (DirectDraw Surface)
-    texture pack file.
-  - `rtMipGenAllowed`: Disables real-time mipmap generation.
+  - `defaultDdsxTexPack`: Defines the default DDSX texture pack file.
+  - `rtMipGenAllowed`: Enables real-time mipmap generation.
   - `folderDefaults{}`: Specifies default settings for directories when
     certain properties are not explicitly defined for a specific directory.
     - `ddsxTexPack`: Defines that if a directory does not have an explicitly
@@ -228,7 +227,7 @@ parameters, and build configurations.
       - `glass_refraction`: Sets mapping for `glass_refraction`.
       - `simple`: Sets mapping for `dynamic_simple`.
       - `dynamic_simple`: Sets mapping for `dynamic_simple`.
-      - `dynamic_null`:: Sets mapping for `dynamic_null`.
+      - `dynamic_null`: Sets mapping for `dynamic_null`.
       - `propeller_front`: Sets mapping for `propeller_front`.
       - `propeller_side`: Sets mapping for `propeller_side`.
       - `dynamic_glass_chrome`: Sets mapping for `dynamic_glass_chrome`.
@@ -262,11 +261,6 @@ parameters, and build configurations.
     - `processMat{}`: Specifies material processing settings.
   - `collision{}`: Defines settings for collision data.
     - `preferZSTD`: Enables a preference for ZSTD compression algorithm.
-    - `writePrecookedFmt`: Enables writing the collision data in a pre-cooked
-      format.
-    - `precookedFmtVersion`: Selects the pre-cooked format version: `2` (the
-      default, the stream of built chunks) or `1` (the raw format, a rollback
-      switch). Any other value logs an error and writes version 2.
   - `skeleton{}`: Defines settings for skeleton data compression.
     - `preferZSTD`: Enables a preference for ZSTD compression algorithm.
   - `a2d{}`: Defines settings for 2D assets data compression.
@@ -275,7 +269,7 @@ parameters, and build configurations.
     - `defMaxTexSz`: Sets the default maximum texture size.
     - `iOS{}`: Configures settings for iOS platform.
       - `defMaxTexSz`: Sets the maximum texture size.
-    - `and{}`: Configures settings for Android platform`
+    - `and{}`: Configures settings for Android platform.
       - `defMaxTexSz`: Sets the maximum texture size.
   - `physObj{}`: Configures physical object properties.
     - `ragdoll{}`: Specifies ragdoll physics for characters.
@@ -443,7 +437,7 @@ information used for static objects.
 
 Defines default project-wide settings.
 
-- `disableGrass`: Enables grass rendering.
+- `disableGrass`: Disables grass rendering.
 - `gpuGrass`: Enables grass rendering on the GPU
   - `riMgr{}`: Configures settings for render instance management.
     - `type`: Specifies the type of render instance manager to use.
@@ -494,10 +488,10 @@ Defines default project-wide settings.
 Global shader variables configuration.
 
 - `common{}`: Common settings for shaders.
-  - `assetViewer{}`: Specific settings for the *Asset Viewer*, including
+  - `assetViewer{}`: Specific settings for the Asset Viewer, including
     anti-aliasing options.
-    - `caption`: Defines the caption or label for a setting within the *Asset
-      Viewer*.
+    - `caption`: Defines the caption or label for a setting within the Asset
+      Viewer.
     - `show_no_aa`: Controls the display of assets without anti-aliasing.
 
 ### `heightMap{}`
@@ -505,10 +499,12 @@ Global shader variables configuration.
 Configures settings for heightmaps, which define terrain elevation and other
 surface details.
 
-- `useMeshSurface`: Enables mesh surface using for height map generation.
-- `requireTileTexe`: Enables tile textures required for height maps.
-- `hasColorTex`: Enables color textures presenting in the height map.
-- `hasLightmapTex`: Enables lightmap textures presenting in the height map.
+- `useMeshSurface`: Enables the optimized land mesh (lmap) terrain
+  representation.
+- `requireTileTex`: Indicates that tile textures are required for height maps.
+- `hasColorTex`: Indicates that a color texture is present in the height map.
+- `hasLightmapTex`: Indicates that a lightmap texture is present in the
+  height map.
 - `storeNxzInLtmapTex`: Enables storing normal and height (NxZ) data in the
   lightmap texture.
 - `genFwdRadius`: Defines the forward radius for height map generation.
@@ -552,6 +548,10 @@ Configures lighting assets, including dynamic cube textures and level of detail
 - `shader_var`: Shader variable for dynamic cube textures.
 - `blur_lods`: Enables LOD blurring.
 - `bound_with_camera`: Enables binding the lighting to the camera.
+- `environment_level_blk_fn`: Default path to a `level.blk` file that
+  the Asset Viewer reads for the global paint details texture and for
+  microdetails. The Asset Viewer's workspace settings file
+  (`develop/.asset-local/_av.blk`) can override this value.
 
 ### `defProjectLocal{}`
 

@@ -28,7 +28,7 @@ def private isConsumeArgument(expr : Expression?) : bool {
 class CheckConsumeArguments : AstFunctionAnnotation {
     //! This annotation ensures that all arguments to the function are passed as moved values.
     //! For example [consume(a,b)] ensures that both a and b are passed as moved values.
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         //! check if all specified arguments are passed as moved values
         let check_args <- {for (aa in args); string(aa.name)}
         for (ca, ce in call.func.arguments, call.arguments) {

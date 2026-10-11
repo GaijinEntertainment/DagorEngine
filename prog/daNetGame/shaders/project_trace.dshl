@@ -1,6 +1,6 @@
 include "bvh.dshl"
 include "rt_pipeline.dshl"
-include "rt/rt_lighting.dshl"
+include "rt/rt_surface_params.dshl"
 include "bvh_usable_inc.dshl"
 
 int use_hw_rt_gi;

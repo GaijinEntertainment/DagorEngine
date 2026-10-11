@@ -11,7 +11,7 @@ static inline Point4 point4(const Point3 &xyz, float w) { return Point4(xyz.x, x
 void AuroraBorealis::setVars()
 {
   ShaderGlobal::set_float4(aurora_borealis_bottomVarId, point4(params.bottom_color, params.bottom_height));
-  ShaderGlobal::set_float4(aurora_borealis_topVarId, point4(params.top_color, fmax(params.top_height, params.bottom_height + 1.0)));
+  ShaderGlobal::set_float4(aurora_borealis_topVarId, point4(params.top_color, fmax(params.top_height, params.bottom_height + 1.0f)));
   ShaderGlobal::set_float(aurora_borealis_brightnessVarId, params.brightness);
   ShaderGlobal::set_float(aurora_borealis_luminanceVarId, params.luminance);
   ShaderGlobal::set_float(aurora_borealis_speedVarId, params.speed);

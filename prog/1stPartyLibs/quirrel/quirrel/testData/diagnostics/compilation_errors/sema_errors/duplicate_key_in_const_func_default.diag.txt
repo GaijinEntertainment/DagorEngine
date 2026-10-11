@@ -1,0 +1,9 @@
+ERROR: duplicate key 'a'
+testData/diagnostics/compilation_errors/sema_errors/duplicate_key_in_const_func_default.nut:2:30
+
+// EXPECT_ERROR: "duplicate key"
+const function f(t = { a = 1, a = 2 }) {
+                              ^
+    return t
+
+

@@ -877,12 +877,10 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
   }
   IDagorAssetExporter *e = context.assetMgr->getAssetExporter(asset->getType());
   G_ASSERT(e);
-  bool verbose = true;
   DataBlock *storedBlock = impostorDataBlk.getBlockByName(asset->getName());
   if (storedBlock == nullptr)
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because it's not registered in impostor_data.impostorData.blk", asset->getName());
+    impostorBaker.conlog("Baking asset <%s>, because it's not registered in impostor_data.impostorData.blk", asset->getName());
     return true;
   }
   DataBlock assetBlk;
@@ -899,15 +897,13 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
   G_ASSERT(assetHashBlk != nullptr);
   if (storedHashBlk == nullptr)
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because cache stores param hashes in old style", asset->getName());
+    impostorBaker.conlog("Baking asset <%s>, because cache stores param hashes in old style", asset->getName());
     return true;
   }
   else if (storedHashBlk->paramCount() != assetHashBlk->paramCount())
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because cache stores a different number of parameters: %d != %d", asset->getName(),
-        storedHashBlk->paramCount(), assetHashBlk->paramCount());
+    impostorBaker.conlog("Baking asset <%s>, because cache stores a different number of parameters: %d != %d", asset->getName(),
+      storedHashBlk->paramCount(), assetHashBlk->paramCount());
     return true;
   }
   else
@@ -919,15 +915,13 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
       const char *paramName = assetHashBlk->getParamName(i);
       if (!storedHashBlk->paramExists(paramName))
       {
-        if (verbose)
-          impostorBaker.conlog("Baking asset <%s>, because cache doesn't store hash for param: %s", asset->getName(), paramName);
+        impostorBaker.conlog("Baking asset <%s>, because cache doesn't store hash for param: %s", asset->getName(), paramName);
         return true;
       }
       if (storedHashBlk->getInt(paramName) != assetHashBlk->getInt(paramName))
       {
-        if (verbose)
-          impostorBaker.conlog("Baking asset <%s>, because cache stores different value for param hash %s: %d -> %d", asset->getName(),
-            paramName, storedHashBlk->getInt(paramName), assetHashBlk->getInt(paramName));
+        impostorBaker.conlog("Baking asset <%s>, because cache stores different value for param hash %s: %d -> %d", asset->getName(),
+          paramName, storedHashBlk->getInt(paramName), assetHashBlk->getInt(paramName));
         return true;
       }
     }
@@ -940,8 +934,7 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
         strcmp(assetBlk.getStr("sourceHash", ""), storedBlock->getStr("sourceHash", "-")) == 0 &&
         strcmp(assetBlk.getStr("propsHash", ""), storedBlock->getStr("propsHash", "-")) == 0)
     {
-      if (verbose)
-        impostorBaker.conlog("Asset <%s> had MD5 hashes, added new ones", asset->getName());
+      impostorBaker.conlog("Asset <%s> had MD5 hashes, added new ones", asset->getName());
       storedBlock->setStr("exportHashXXH3", assetBlk.getStr("exportHashXXH3"));
       storedBlock->setStr("sourceHashXXH3", assetBlk.getStr("sourceHashXXH3"));
       storedBlock->setStr("propsHashXXH3", assetBlk.getStr("propsHashXXH3"));
@@ -961,30 +954,25 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
     String built_hash = getBuiltRIAssetCacheXXH3(*asset);
     if (strcmp(built_hash, storedBlock->getStr("builtRIHashXXH3", "-")) != 0)
     {
-      if (verbose)
-        impostorBaker.conlog("Baking asset <%s>, because the source files have changed (built: %s != %s)", asset->getName(),
-          built_hash, storedBlock->getStr("builtRIHashXXH3", "-"));
+      impostorBaker.conlog("Baking asset <%s>, because the source files have changed (built: %s != %s)", asset->getName(), built_hash,
+        storedBlock->getStr("builtRIHashXXH3", "-"));
       return true;
     }
-    else if (verbose)
-      impostorBaker.conlog("skip Baking asset <%s>, built data is the same (while source files changed)", asset->getName());
+    impostorBaker.conlog("skip Baking asset <%s>, built data is the same (while source files changed)", asset->getName());
   }
   if (strcmp(assetBlk.getStr("propsHashXXH3", ""), storedBlock->getStr("propsHashXXH3", "-")) != 0)
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because asset properties have changed", asset->getName());
+    impostorBaker.conlog("Baking asset <%s>, because asset properties have changed", asset->getName());
     return true;
   }
   if ((type & ImpostorBaker::FLAT) && assetBlk.getInt("impostorBakerVersion", 0) != storedBlock->getInt("impostorBakerVersion", -1))
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because impostor baker version has changed", asset->getName());
+    impostorBaker.conlog("Baking asset <%s>, because impostor baker version has changed", asset->getName());
     return true;
   }
   if ((type & ImpostorBaker::VOXEL) && assetBlk.getInt("voxelBakerVersion", 0) != storedBlock->getInt("voxelBakerVersion", -1))
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because voxel baker version has changed", asset->getName());
+    impostorBaker.conlog("Baking asset <%s>, because voxel baker version has changed", asset->getName());
     return true;
   }
   return false;

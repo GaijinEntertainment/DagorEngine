@@ -14,6 +14,14 @@
 #endif
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#define DAGOR_FORCE_INLINE_LAMBDA
+#define DAGOR_NOINLINE_LAMBDA
+#else
+#define DAGOR_FORCE_INLINE_LAMBDA __attribute__((always_inline))
+#define DAGOR_NOINLINE_LAMBDA     __attribute__((noinline))
+#endif
+
 #ifndef DAGOR_NO_VTABLE
 #if defined(__cplusplus) && (_MSC_VER >= 1100)
 #define DAGOR_NO_VTABLE __declspec(novtable)
@@ -79,6 +87,14 @@
 #define DAGOR_POINTER_LIKE [[gsl::Pointer]] // non-owning view type, so -Wdangling also sees assignment from a temporary
 #else
 #define DAGOR_POINTER_LIKE // MSVC and gcc do not know this attribute
+#endif
+
+// accesses through this type are not subject to type-based alias analysis,
+// they may alias any other type, like a character type does
+#if defined(__GNUC__) || defined(__clang__)
+#define DAGOR_MAY_ALIAS __attribute__((__may_alias__))
+#else
+#define DAGOR_MAY_ALIAS // msvc has no TBAA
 #endif
 
 // -Wunused-variable counts a non-trivial ctor/dtor call as a use; this turns the check back

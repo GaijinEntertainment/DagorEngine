@@ -7,6 +7,7 @@
 #include <Jolt/Jolt.h>
 
 #include "HeightField16Shape.h"
+#include "FastCollideConvexVsTriangles.h"
 #include <Jolt/Physics/Collision/Shape/ConvexShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaleHelpers.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -17,7 +18,6 @@
 #include <Jolt/Physics/Collision/ShapeFilter.h>
 #include <Jolt/Physics/Collision/CastConvexVsTriangles.h>
 #include <Jolt/Physics/Collision/CastSphereVsTriangles.h>
-#include <Jolt/Physics/Collision/CollideConvexVsTriangles.h>
 #include <Jolt/Physics/Collision/CollideSphereVsTriangles.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
 #include <Jolt/Physics/Collision/ActiveEdges.h>
@@ -688,7 +688,7 @@ public:
     // Precalculate values relating to block size
     uint max_level = mShape->mHData->htRangeBlocksLevels;
     uint32 block_size = sample_count >> max_level;
-    uint32 block_size_plus_1 = block_size + 1;
+    uint32 half_block_size = block_size >> 1;
     uint num_blocks = 1 << max_level;
     uint num_blocks_min_1 = num_blocks - 1;
 
@@ -696,8 +696,8 @@ public:
     uint range_block_offset, range_block_stride;
     sGetRangeBlockOffsetAndStride(num_blocks, max_level, range_block_offset, range_block_stride);
 
-    // Allocate space for vertices and 'no collision' flags
-    int array_size = Square(block_size_plus_1);
+    // Space for the vertices and 'no collision' flags of the widest quarter of a block
+    int array_size = Square(block_size - half_block_size + 1);
     Vec3 *vertices = reinterpret_cast<Vec3 *>(JPH_STACK_ALLOC(array_size * sizeof(Vec3))); //-V630
     bool *no_collision = reinterpret_cast<bool *>(JPH_STACK_ALLOC(array_size * sizeof(bool)));
 
@@ -721,130 +721,38 @@ public:
 
       if (level >= max_level)
       {
-        // Determine actual range of samples (minus one because we eventually want to iterate over the triangles, not the samples)
-        uint32 min_x = x * block_size;
-        uint32 max_x = min_x + block_size;
-        uint32 min_y = y * block_size;
-        uint32 max_y = min_y + block_size;
+        // The last block of a row or column has no next block, so one less triangle to test
+        uint32 min_x = x * block_size, mid_x = min_x + half_block_size;
+        uint32 min_y = y * block_size, mid_y = min_y + half_block_size;
+        uint32 max_x = min_x + (x < num_blocks_min_1 ? block_size : block_size - 1);
+        uint32 max_y = min_y + (y < num_blocks_min_1 ? block_size : block_size - 1);
 
-        // Decompress vertices of block at (x, y)
-        Vec3 *dst_vertex = vertices;
-        bool *dst_no_collision = no_collision;
-        for (uint32 v_y = min_y; v_y < max_y; ++v_y)
-        {
-          for (uint32 v_x = min_x; v_x < max_x; ++v_x)
-          {
-            *dst_vertex = mShape->GetPosition(v_x, v_y, dst_no_collision);
-            ++dst_vertex;
-            ++dst_no_collision;
-          }
-
-          // Skip last column, these values come from a different block
-          ++dst_vertex;
-          ++dst_no_collision;
-        }
-
-        // Decompress block (x + 1, y)
-        uint32 max_x_decrement = 0;
-        if (x < num_blocks_min_1)
-        {
-          dst_vertex = vertices + block_size;
-          dst_no_collision = no_collision + block_size;
-          for (uint32 v_y = min_y; v_y < max_y; ++v_y)
-          {
-            *dst_vertex = mShape->GetPosition(max_x, v_y, dst_no_collision);
-            dst_vertex += block_size_plus_1;
-            dst_no_collision += block_size_plus_1;
-          }
-        }
-        else
-          max_x_decrement = 1; // We don't have a next block, one less triangle to test
-
-        // Decompress block (x, y + 1)
-        if (y < num_blocks_min_1)
-        {
-          uint start = block_size * block_size_plus_1;
-          dst_vertex = vertices + start;
-          dst_no_collision = no_collision + start;
-          for (uint32 v_x = min_x; v_x < max_x; ++v_x)
-          {
-            *dst_vertex = mShape->GetPosition(v_x, max_y, dst_no_collision);
-            ++dst_vertex;
-            ++dst_no_collision;
-          }
-
-          // Decompress single sample of block at (x + 1, y + 1)
-          if (x < num_blocks_min_1)
-            *dst_vertex = mShape->GetPosition(max_x, max_y, dst_no_collision);
-        }
-        else
-          --max_y; // We don't have a next block, one less triangle to test
-
-        // Update max_x (we've been using it so we couldn't update it earlier)
-        max_x -= max_x_decrement;
-
-        // We're going to divide the vertices in 4 blocks to do one more runtime sub-division, calculate the ranges of those blocks
+        // We're going to divide the block in 4 quarters of samples to do one more runtime sub-division
         struct Range
         {
-          uint32 mMinX, mMinY, mNumTrianglesX, mNumTrianglesY;
+          uint32 mMinX, mMinY, mMaxX, mMaxY;
         };
-        uint32 half_block_size = block_size >> 1;
-        uint32 block_size_x = max_x - min_x - half_block_size;
-        uint32 block_size_y = max_y - min_y - half_block_size;
         Range ranges[] = {
-          {0, 0, half_block_size, half_block_size},
-          {half_block_size, 0, block_size_x, half_block_size},
-          {0, half_block_size, half_block_size, block_size_y},
-          {half_block_size, half_block_size, block_size_x, block_size_y},
-        };
+          {min_x, min_y, mid_x, mid_y}, {mid_x, min_y, max_x, mid_y}, {min_x, mid_y, mid_x, max_y}, {mid_x, mid_y, max_x, max_y}};
 
-        // Calculate the min and max of each of the blocks
+        // A quarter is bounded by the compression blocks under its samples, so the visitor rejects it before anything is decoded;
+        // 'no collision' samples only widen these bounds
         Mat44 block_min, block_max;
         for (int block = 0; block < 4; ++block)
         {
-          // Get the range for this block
           const Range &range = ranges[block];
-          uint32 start = range.mMinX + range.mMinY * block_size_plus_1;
-          uint32 size_x_plus_1 = range.mNumTrianglesX + 1;
-          uint32 size_y_plus_1 = range.mNumTrianglesY + 1;
-
-          // Calculate where to start reading
-          const Vec3 *src_vertex = vertices + start;
-          const bool *src_no_collision = no_collision + start;
-          uint32 stride = block_size_plus_1 - size_x_plus_1;
-
-          // Start range with a very large inside-out box
-          Vec3 value_min = Vec3::sReplicate(cLargeFloat);
-          Vec3 value_max = Vec3::sReplicate(-cLargeFloat);
-
-          // Loop over the samples to determine the min and max of this block
-          for (uint32 block_y = 0; block_y < size_y_plus_1; ++block_y)
-          {
-            for (uint32 block_x = 0; block_x < size_x_plus_1; ++block_x)
-            {
-              if (!*src_no_collision)
-              {
-                value_min = Vec3::sMin(value_min, *src_vertex);
-                value_max = Vec3::sMax(value_max, *src_vertex);
-              }
-              ++src_vertex;
-              ++src_no_collision;
-            }
-            src_vertex += stride;
-            src_no_collision += stride;
-          }
-          block_min.SetColumn4(block, Vec4(value_min));
-          block_max.SetColumn4(block, Vec4(value_max));
+          uint16 height_min, height_max;
+          GetHeightRange(range.mMinX, range.mMinY, range.mMaxX, range.mMaxY, height_min, height_max);
+          Vec3 corner_min = mShape->mOffset + mShape->mScale * Vec3(float(range.mMinX), float(height_min), float(range.mMinY));
+          Vec3 corner_max = mShape->mOffset + mShape->mScale * Vec3(float(range.mMaxX), float(height_max), float(range.mMaxY));
+          block_min.SetColumn4(block, Vec4(Vec3::sMin(corner_min, corner_max), 0.0f));
+          block_max.SetColumn4(block, Vec4(Vec3::sMax(corner_min, corner_max), 0.0f));
         }
 
 #ifdef JPH_DEBUG_HEIGHT_FIELD
         // Draw the bounding boxes of the sub-nodes
         for (int block = 0; block < 4; ++block)
-        {
-          AABox bounds(block_min.GetColumn3(block), block_max.GetColumn3(block));
-          if (bounds.IsValid())
-            DebugRenderer::sInstance->DrawWireBox(bounds, Color::sYellow);
-        }
+          DebugRenderer::sInstance->DrawWireBox(AABox(block_min.GetColumn3(block), block_max.GetColumn3(block)), Color::sYellow);
 #endif // JPH_DEBUG_HEIGHT_FIELD
 
         // Transpose so we have the mins and maxes of each of the blocks in rows instead of columns
@@ -863,25 +771,27 @@ public:
         int result = num_results - 1;
         while (result >= 0)
         {
-          // Calculate the min and max of this block
-          uint32 block = colliding_blocks[result];
-          const Range &range = ranges[block];
-          uint32 block_min_x = min_x + range.mMinX;
-          uint32 block_max_x = block_min_x + range.mNumTrianglesX;
-          uint32 block_min_y = min_y + range.mMinY;
-          uint32 block_max_y = block_min_y + range.mNumTrianglesY;
+          const Range &range = ranges[colliding_blocks[result]];
+          uint32 stride = range.mMaxX - range.mMinX + 1;
+
+          // Decompress the samples of this quarter, its far row and column included
+          Vec3 *dst_vertex = vertices;
+          bool *dst_no_collision = no_collision;
+          for (uint32 v_y = range.mMinY; v_y <= range.mMaxY; ++v_y)
+            for (uint32 v_x = range.mMinX; v_x <= range.mMaxX; ++v_x)
+              *dst_vertex++ = mShape->GetPosition(v_x, v_y, dst_no_collision++);
 
           // Loop triangles
-          for (uint32 v_y = block_min_y; v_y < block_max_y; ++v_y)
-            for (uint32 v_x = block_min_x; v_x < block_max_x; ++v_x)
+          for (uint32 v_y = range.mMinY; v_y < range.mMaxY; ++v_y)
+            for (uint32 v_x = range.mMinX; v_x < range.mMaxX; ++v_x)
             {
               // Get first vertex
-              const int offset = (v_y - min_y) * block_size_plus_1 + (v_x - min_x);
+              const int offset = (v_y - range.mMinY) * stride + (v_x - range.mMinX);
               const Vec3 *start_vertex = vertices + offset;
               const bool *start_no_collision = no_collision + offset;
 
               // Check if vertices shared by both triangles have collision
-              if (!start_no_collision[0] && !start_no_collision[block_size_plus_1 + 1])
+              if (!start_no_collision[0] && !start_no_collision[stride + 1])
               {
                 // Loop 2 triangles
                 for (uint t = 0; t < 2; ++t)
@@ -891,13 +801,13 @@ public:
                   if (t == 0)
                   {
                     // Check third vertex
-                    if (start_no_collision[block_size_plus_1])
+                    if (start_no_collision[stride])
                       continue;
 
                     // Get vertices for triangle
                     v0 = start_vertex[0];
-                    v1 = start_vertex[block_size_plus_1];
-                    v2 = start_vertex[block_size_plus_1 + 1];
+                    v1 = start_vertex[stride];
+                    v2 = start_vertex[stride + 1];
                   }
                   else
                   {
@@ -907,7 +817,7 @@ public:
 
                     // Get vertices for triangle
                     v0 = start_vertex[0];
-                    v1 = start_vertex[block_size_plus_1 + 1];
+                    v1 = start_vertex[stride + 1];
                     v2 = start_vertex[1];
                   }
 
@@ -994,6 +904,22 @@ public:
   JPH_INLINE bool IsDoneWalking() const { return mTop < 0; }
 
 private:
+  // Min and max sample over [inMinX, inMaxX] x [inMinY, inMaxY] (inclusive), from the compression blocks that hold them
+  JPH_INLINE void GetHeightRange(uint32 inMinX, uint32 inMinY, uint32 inMaxX, uint32 inMaxY, uint16 &outMin, uint16 &outMax) const
+  {
+    const CompressedHeightmap &hmap = *mShape->mHData;
+    uint32 shift = hmap.block_width_shift;
+    outMin = 0xffff;
+    outMax = 0;
+    for (uint32 by = inMinY >> shift, by_end = inMaxY >> shift; by <= by_end; ++by)
+      for (uint32 bx = inMinX >> shift, bx_end = inMaxX >> shift; bx <= bx_end; ++bx)
+      {
+        const CompressedHeightmap::BlockInfo &info = hmap.getBlockInfo(bx, by);
+        outMin = min(outMin, info.getMin());
+        outMax = max(outMax, info.getMax());
+      }
+  }
+
   const HeightField16Shape *mShape;
   int mTop = 0;
   uint32 mPropertiesStack[cStackSize];
@@ -1455,9 +1381,9 @@ void HeightField16Shape::sCollideConvexVsHeightField(const Shape *inShape1, cons
   const ConvexShape *shape1 = static_cast<const ConvexShape *>(inShape1);
   const HeightField16Shape *shape2 = static_cast<const HeightField16Shape *>(inShape2);
 
-  struct Visitor : public CollideConvexVsTriangles
+  struct Visitor : public FastCollideConvexVsTriangles
   {
-    using CollideConvexVsTriangles::CollideConvexVsTriangles;
+    using FastCollideConvexVsTriangles::FastCollideConvexVsTriangles;
 
     JPH_INLINE bool ShouldAbort() const { return mCollector.ShouldEarlyOut(); }
 

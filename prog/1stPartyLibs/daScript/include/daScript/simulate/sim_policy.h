@@ -124,6 +124,11 @@ namespace  das {
             else if ( a==INTMIN && b==-1 ) return 0;
             return a % b;
         }
+        static __forceinline void SetMod ( TT & a, TT b, Context & context, LineInfo * at ) {
+            if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
+            else if ( a==INTMIN && b==-1 ) a = 0;
+            else a %= b;
+        }
     };
 
     template <typename TT>
@@ -142,12 +147,12 @@ namespace  das {
          static __forceinline int32_t Mod ( int32_t a, int32_t b, Context & context, LineInfo * at ) {
             if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
             double A = a, B = b;
-            return a - int32_t(A/B)*b;
+            return int32_t(a - int64_t(A/B)*b);
         }
         static __forceinline void SetMod    ( int32_t & a, int32_t b, Context & context, LineInfo * at ) {
             if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
             double A = a, B = b;
-            a = a - int32_t(A/B)*b;
+            a = int32_t(a - int64_t(A/B)*b);
         }
     };
 
@@ -179,6 +184,7 @@ namespace  das {
     };
 
     struct SimPolicy_Double : SimPolicy_Type<double>, SimPolicy_MathTT<double> {
+        static __forceinline double Abs ( double a, Context &, LineInfo * ) { return fabs(a); }
         static __forceinline double Div ( double a, double b, Context &, LineInfo * ) { return a / b; }
         static __forceinline void SetDiv  ( double & a, double b, Context &, LineInfo * ) { a /= b; }
         static __forceinline double Mod ( double a, double b, Context &, LineInfo * ) { return fmod(a,b); }
@@ -230,9 +236,14 @@ namespace  das {
         }
     };
 
+    __forceinline vec4f v_pow_signed ( vec4f x, vec4f y ) {
+        vec4i odd = v_slli(v_andi(v_cvt_vec4i(y), v_splatsi(1)), 31);
+        return v_xor(v_pow(x, y), v_and(v_cast_vec4f(odd), x));
+    }
+
     struct SimPolicy_MathFloat {
         static __forceinline float Sign     ( float a, Context &, LineInfo * )          { return a == 0.0f ? 0.0f : (a > 0.0f) ? 1.0f : -1.0f; }
-        static __forceinline float Abs      ( float a, Context &, LineInfo * )          { return v_extract_x(v_abs(v_set_x(a))); }
+        static __forceinline float Abs      ( float a, Context &, LineInfo * )          { return fabsf(a); }
         static __forceinline float Floor    ( float a, Context &, LineInfo * )          { return v_extract_x(v_floor(v_set_x(a))); }
         static __forceinline float Ceil     ( float a, Context &, LineInfo * )          { return v_extract_x(v_ceil(v_set_x(a))); }
         static __forceinline float Round    ( float a, Context &, LineInfo * )          { return v_extract_x(v_round(v_set_x(a))); }
@@ -252,11 +263,19 @@ namespace  das {
         static __forceinline int Floori ( float a, Context &, LineInfo * )          { return v_extract_xi(v_cvt_floori(v_set_x(a))); }
         static __forceinline int Ceili  ( float a, Context &, LineInfo * )          { return v_extract_xi(v_cvt_ceili(v_set_x(a))); }
 
+#if defined(_MSC_VER) && defined(_M_IX86)
+        // constraint: MSVC x86 fails with C1001 when the CRT expf intrinsic is inlined next to vecmath code
         static __forceinline float Exp   ( float a, Context &, LineInfo * )          { return v_extract_x(v_exp(v_set_x(a))); }
-        static __forceinline float Log   ( float a, Context &, LineInfo * )          { return v_extract_x(v_log(v_set_x(a))); }
         static __forceinline float Exp2  ( float a, Context &, LineInfo * )          { return v_extract_x(v_exp2(v_set_x(a))); }
         static __forceinline float Log2  ( float a, Context &, LineInfo * )          { return v_extract_x(v_log2_est_p5(v_set_x(a))); }
         static __forceinline float Pow   ( float a, float b, Context &, LineInfo * ) { return v_extract_x(v_pow(v_set_x(a), v_set_x(b))); }
+#else
+        static __forceinline float Exp   ( float a, Context &, LineInfo * )          { return expf(a); }
+        static __forceinline float Exp2  ( float a, Context &, LineInfo * )          { return exp2f(a); }
+        static __forceinline float Log2  ( float a, Context &, LineInfo * )          { return log2f(a); }
+        static __forceinline float Pow   ( float a, float b, Context &, LineInfo * ) { return powf(a, b); }
+#endif
+        static __forceinline float Log   ( float a, Context &, LineInfo * )          { return v_extract_x(v_log(v_set_x(a))); }
         static __forceinline float Rcp   ( float a, Context &, LineInfo * )          { return v_extract_x(v_rcp_x(v_set_x(a))); }
         static __forceinline float RcpEst( float a, Context &, LineInfo * )          { return v_extract_x(v_rcp_est_x(v_set_x(a))); }
 
@@ -284,7 +303,7 @@ namespace  das {
             return v_or(v_and(v_splats(1.0f), v_cmp_gt(a, v_zero())), v_and(v_splats(-1.0f), v_cmp_lt(a, v_zero())));
         }
 
-        static __forceinline vec4f Abs      ( vec4f a, Context &, LineInfo * )          { return v_abs(a); }
+        static __forceinline vec4f Abs      ( vec4f a, Context &, LineInfo * )          { return v_andnot(v_msbit(), a); }
         static __forceinline vec4f Floor    ( vec4f a, Context &, LineInfo * )          { return v_floor(a); }
         static __forceinline vec4f Ceil     ( vec4f a, Context &, LineInfo * )          { return v_ceil(a); }
         static __forceinline vec4f Fract    ( vec4f a, Context &, LineInfo * )          { return v_sub(a, v_floor(a)); }
@@ -304,7 +323,8 @@ namespace  das {
         static __forceinline vec4f Log   ( vec4f a, Context &, LineInfo * )          { return v_log(a); }
         static __forceinline vec4f Exp2  ( vec4f a, Context &, LineInfo * )          { return v_exp2(a); }
         static __forceinline vec4f Log2  ( vec4f a, Context &, LineInfo * )          { return v_log2_est_p5(a); }
-        static __forceinline vec4f Pow   ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_pow(a, b); }
+        static __forceinline vec4f Pow   ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_pow_signed(a, b); }
+        static __forceinline vec4f PowEst( vec4f a, vec4f b, Context &, LineInfo * ) { return v_pow(a, b); }
         static __forceinline vec4f Rcp   ( vec4f a, Context &, LineInfo * )          { return v_rcp(a); }
         static __forceinline vec4f RcpEst( vec4f a, Context &, LineInfo * )          { return v_rcp_est(a); }
 

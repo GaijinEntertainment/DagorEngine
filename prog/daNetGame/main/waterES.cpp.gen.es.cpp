@@ -292,11 +292,12 @@ static constexpr ecs::ComponentDesc water_strength_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("water"), ecs::ComponentTypeInfo<FFTWater>()},
-//start of 4 ro components at [1]
+//start of 5 ro components at [1]
   {ECS_HASH("water__wind_dir"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("water__strength"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("water__max_tessellation"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("water__oneToFourFFTPeriodicDivisor"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("water__oneToFourFFTPeriodicDivisor"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("water__detail_presets"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void water_strength_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -307,6 +308,7 @@ static void water_strength_es_event_handler_all_events(const ecs::Event &__restr
     , ECS_RO_COMP(water_strength_es_event_handler_comps, "water__strength", float)
     , ECS_RO_COMP(water_strength_es_event_handler_comps, "water__max_tessellation", int)
     , ECS_RO_COMP_OR(water_strength_es_event_handler_comps, "water__oneToFourFFTPeriodicDivisor", float(1.0f))
+    , ECS_RO_COMP_OR(water_strength_es_event_handler_comps, "water__detail_presets", bool(false))
     );
   while (++comp != compE);
 }
@@ -316,11 +318,11 @@ static ecs::EntitySystemDesc water_strength_es_event_handler_es_desc
   "prog/daNetGame/main/waterES.cpp.inl",
   ecs::EntitySystemOps(nullptr, water_strength_es_event_handler_all_events),
   make_span(water_strength_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(water_strength_es_event_handler_comps+1, 4)/*ro*/,
+  make_span(water_strength_es_event_handler_comps+1, 5)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<EventLevelLoaded,
                        ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"water__oneToFourFFTPeriodicDivisor,water__strength,water__wind_dir");
+,nullptr,"water__detail_presets,water__oneToFourFFTPeriodicDivisor,water__strength,water__wind_dir");

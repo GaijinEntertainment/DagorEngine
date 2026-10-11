@@ -27,16 +27,7 @@ def public classify(name : string; canonical : string) : PatternHit {
     // the dispatch contract, not by the algorithm. Check first so that
     // a visitor whose body happens to match `dispatch`/`emit` is still
     // classified under the more semantic `visitor` bucket.
-    // Single-statement dastest test wrappers:
-    //   def test_xxx(t : T?) { t |> run("desc") @(t : T?) { ... } }
-    // The canonicalizer collapses the lambda body to ADDR, so every
-    // such test canonicalizes identically. `dispatch` only fires at
-    // N >= 2 statements, so a one-run-per-def test slips through —
-    // hence this name-tagged single-statement variant. Check before
-    // `emit` because `emit` is the more general "small N trivial calls"
-    // shape; `test_wrapper` is the more specific name+shape match.
-    if (try_visitor(name, hit) || try_dispatch(canonical, hit)
-        || try_test_wrapper(name, canonical, hit) || try_emit(canonical, hit)) return hit
+    if (try_visitor(name, hit) || try_dispatch(canonical, hit) || try_emit(canonical, hit)) return hit
     return hit
 }
 
@@ -60,8 +51,8 @@ def try_visitor(name : string; var hit : PatternHit) : bool {
             || method |> starts_with("visit")
             || method |> starts_with("before")
             || method |> starts_with("after")) {
-        hit.name := "visitor"
-        hit.note := "{method}"
+        hit.name = "visitor"
+        hit.note = "{method}"
         return true
     }
     return false
@@ -69,48 +60,16 @@ def try_visitor(name : string; var hit : PatternHit) : bool {
 
 
 // Dispatch shape: the function body is N >= 2 byte-identical top-level
-// statement chunks. Catches dastest's `t |> run("X") @(t) { … }` lists
-// and any other "uniform call list" outer function. Lambda bodies are
-// collapsed to a single `ADDR` token upstream by the canonicalizer, so
-// two `run` statements look identical regardless of what the lambdas
-// actually do — meaning the outer function carries zero unique
-// structure beyond "this many calls".
+// statement chunks - a uniform call list, repeated-init block, or a
+// dastest `t |> run("X") @(t) { … }` list whose bodies happen to match.
 def try_dispatch(canonical : string; var hit : PatternHit) : bool {
     let stmts <- split_top_level_stmts(canonical)
     if (length(stmts) < 2) return false
     for (i in range(1, length(stmts))) {
         if (stmts[i] != stmts[0]) return false
     }
-    hit.name := "dispatch"
-    hit.note := "{length(stmts)}x repeated"
-    return true
-}
-
-
-// Single-statement dastest test wrapper: a function whose name starts
-// with `test_` and whose body is exactly one top-level `t |> run(...)`
-// call carrying a lambda body (one or more `ADDR` tokens — captures +
-// the lambda function pointer). The canonicalizer collapses the lambda
-// body to `ADDR`, so every dastest with a single named subtest produces
-// the same canonical regardless of what the lambda actually does. This
-// pattern catches them; users opt back in via `--keep test_wrapper`.
-def try_test_wrapper(name : string; canonical : string; var hit : PatternHit) : bool {
-    if (!(name |> starts_with("test_"))) return false
-    let stmts <- split_top_level_stmts(canonical)
-    if (length(stmts) != 1) return false
-    let toks <- tokenize_canonical(stmts[0])
-    if (length(toks) < 2
-        || (toks[0] != "STMT" && toks[0] != "FIN_STMT")
-        || toks[1] != "CALL:run") return false
-    var addr_count = 0
-    for (i in range(2, length(toks))) {
-        if (toks[i] == "ADDR") {
-            addr_count++
-        }
-    }
-    if (addr_count == 0) return false
-    hit.name := "test_wrapper"
-    hit.note := "single t |> run(...) body"
+    hit.name = "dispatch"
+    hit.note = "{length(stmts)}x repeated"
     return true
 }
 
@@ -147,8 +106,8 @@ def try_emit(canonical : string; var hit : PatternHit) : bool {
         return false
     }
     if (emit_count == 0) return false
-    hit.name := "emit"
-    hit.note := "{emit_count} trivial-call stmt(s)"
+    hit.name = "emit"
+    hit.note = "{emit_count} trivial-call stmt(s)"
     return true
 }
 

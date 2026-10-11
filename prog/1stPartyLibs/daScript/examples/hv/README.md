@@ -1,15 +1,15 @@
-# hv/ — WebSocket Chat Example
+# hv/ - WebSocket Chat Example
 
 A WebSocket chat room powered by daslang's `dashv` module.
-The server hosts an HTML chat page *and* speaks WebSocket — open a
+The server hosts an HTML chat page *and* speaks WebSocket - open a
 browser tab and you're in the chat.
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `ws_chat_server.das` | Chat server — serves HTML at `/`, WebSocket at `/chat` |
-| `ws_chat_client.das` | Terminal chat client — type messages in the console |
+| `ws_chat_server.das` | Chat server - serves HTML at `/`, WebSocket at `/chat` |
+| `ws_chat_client.das` | Terminal chat client - type messages in the console |
 | `chat.html`          | Standalone HTML chat client (can also be opened as a local file) |
 
 ## Quick Start
@@ -51,7 +51,7 @@ terminal clients appear inline.
 
 ### 4. Mix and match
 
-Run any combination of browser tabs and terminal clients — they all
+Run any combination of browser tabs and terminal clients - they all
 share the same chat room.  The server broadcasts every message to all
 connected clients.
 
@@ -59,7 +59,7 @@ connected clients.
 
 | Command | Description |
 |---------|-------------|
-| `/nick <name>` | Change your display name (1–20 chars) |
+| `/nick <name>` | Change your display name (1-20 chars) |
 | `/quit`         | Disconnect (terminal client only) |
 
 ## Server Endpoints
@@ -74,20 +74,20 @@ connected clients.
 ## Architecture
 
 ```
-┌──────────────┐     ws://host/chat     ┌──────────────────┐
-│ Browser tab  │◄──────────────────────►│                  │
-└──────────────┘                        │  ws_chat_server  │
-┌──────────────┐     ws://host/chat     │   (daslang)      │
-│ Browser tab  │◄──────────────────────►│                  │
-└──────────────┘                        │  Broadcasts to   │
-┌──────────────┐     ws://host/chat     │  all clients     │
-│ Terminal     │◄──────────────────────►│                  │
-│ (das client) │                        └──────────────────┘
-└──────────────┘          ▲
-                          │ GET /
++--------------+     ws://host/chat     +------------------+
+| Browser tab  |<------------------------>|                  |
++--------------+                        |  ws_chat_server  |
++--------------+     ws://host/chat     |   (daslang)      |
+| Browser tab  |<------------------------>|                  |
++--------------+                        |  Broadcasts to   |
++--------------+     ws://host/chat     |  all clients     |
+| Terminal     |<------------------------>|                  |
+| (das client) |                        +------------------+
++--------------+          ^
+                          | GET /
                     serves chat.html
 ```
 
 The server uses `set_document_root(dir)` + `set_home_page("chat.html")`
 to serve the chat page at `/`.  The HTML file can also be opened directly
-as a local file (`file://...`) — it defaults to `ws://localhost:9090/chat`.
+as a local file (`file://...`) - it defaults to `ws://localhost:9090/chat`.

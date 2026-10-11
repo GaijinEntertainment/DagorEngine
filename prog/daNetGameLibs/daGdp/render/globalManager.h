@@ -33,6 +33,15 @@ struct GlobalConfig
   bool enabled = false;
   bool enableDynamicShadows = false;
   dynamic_shadow_render::QualityParams dynamicShadowQualityParams = {};
+
+  bool operator==(const GlobalConfig &other) const
+  {
+    const auto &a = dynamicShadowQualityParams;
+    const auto &b = other.dynamicShadowQualityParams;
+    return enabled == other.enabled && enableDynamicShadows == other.enableDynamicShadows &&
+           a.maxShadowsToUpdateOnFrame == b.maxShadowsToUpdateOnFrame &&
+           a.maxShadowViewsToUpdateOnFrame == b.maxShadowViewsToUpdateOnFrame && a.maxShadowDist == b.maxShadowDist;
+  }
 };
 
 #if DAGDP_DEBUG
@@ -94,6 +103,7 @@ public:
   }
   ~GlobalManager();
   void reconfigure(const GlobalConfig &new_config);
+  const GlobalConfig &getConfig() const { return config; }
   void destroyViews();
   void invalidateViews();
   void invalidateRules();

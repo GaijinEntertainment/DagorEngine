@@ -180,14 +180,14 @@ def test_stream_archive_variant(t : T?) {
             var last_ptr = 0ul
             s |> gather_archive() $(var c : CmdVariant) {
                 if (c is play) {
-                    plays += 1
+                    plays ++
                 } elif (c is stop) {
-                    stops += 1
+                    stops ++
                 } elif (c is handle) {
-                    handles += 1
+                    handles ++
                     last_ptr = (c as handle).ptr
                 } elif (c is shutdown) {
-                    shutdowns += 1
+                    shutdowns ++
                 }
             }
             t |> equal(1, plays)
@@ -221,6 +221,36 @@ def test_stream_try_pop_archive(t : T?) {
             }
             t |> equal(false, ok)
             t |> equal(false, got)
+        }
+    }
+}
+
+[test]
+def test_stream_pop_archive_with_timeout(t : T?) {
+    t |> run("pop_archive_with_timeout consumes a queued value") @(t : T?) {
+        with_stream() $(var s : Stream?) {
+            s |> push_archive(CmdStruct(id = 7, name = "y", payload <- [1, 2]))
+            var got = false
+            let ok = s |> pop_archive_with_timeout(1000) $(var c : CmdStruct) {
+                got = true
+                t |> equal(7, c.id)
+                t |> equal(2, length(c.payload))
+            }
+            t |> equal(true, ok)
+            t |> equal(true, got)
+        }
+    }
+    t |> run("pop_archive_with_timeout on an empty stream with a producer waits out its timeout") @(t : T?) {
+        with_stream(1) $(var s : Stream?) {   // a producer on the books; a stream with none answers empty at once
+            var got = false
+            let t0 = ref_time_ticks()
+            let ok = s |> pop_archive_with_timeout(50) $(var c : CmdStruct) {
+                got = true
+            }
+            let waited_us = get_time_usec(t0)
+            t |> equal(false, ok)
+            t |> equal(false, got)
+            t |> success(waited_us >= 40000, "the wait ran its timeout ({waited_us} us)")
         }
     }
 }

@@ -14,7 +14,7 @@ static inline void apply_twist_ctrl(GeomNodeTree &tree, dag::Index16 node0, dag:
 
   Point3 dir = (tree.getNodeWposRelScalar(node1) - tree.getNodeWposRelScalar(node0)) / twistNodes.size();
   float twist_ang =
-    (fabsf(normalize(as_point3(&tree.getNodeTm(node1).col0)).y) < 0.9999)
+    (fabsf(normalize(as_point3(&tree.getNodeTm(node1).col0)).y) < 0.9999f)
       ? safe_atan2(-normalize(as_point3(&tree.getNodeTm(node1).col2)).y, normalize(as_point3(&tree.getNodeTm(node1).col1)).y)
       : 0.f;
 

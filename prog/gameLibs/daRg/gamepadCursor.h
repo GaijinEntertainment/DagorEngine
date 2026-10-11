@@ -34,6 +34,8 @@ public:
 
   eastl::optional<Point2> scroll(const HumanInput::IGenJoystick *joy, float dt) const;
 
+  Point2 stick(const HumanInput::IGenJoystick *joy, int axis_h, int axis_v, float min_dead_zone) const;
+
 public:
   static const int SECTOR_NUM = 8; //[0..7]
   static const int SECTOR_NONE = -1;

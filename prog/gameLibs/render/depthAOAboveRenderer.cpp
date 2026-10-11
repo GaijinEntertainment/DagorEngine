@@ -52,8 +52,7 @@ CONSOLE_BOOL_VAL("depth_above", debug_clear_outdated_regions, false);
   VAR(heightmap_min_max)                      \
   VAR(depth_above_copy_layer)                 \
   VAR(depth_ao_extra_enabled)                 \
-  VAR(depth_above_blur_layer)                 \
-  VAR(depth_ao_tex_to_blur_samplerstate)
+  VAR(depth_above_blur_layer)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -101,7 +100,6 @@ DepthAOAboveRenderer::DepthAOAboveRenderer(const int tex_size, const float depth
     smpInfo.filter_mode = d3d::FilterMode::Point;
     d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
     ShaderGlobal::set_sampler(depth_around_samplerstateVarId, sampler);
-    ShaderGlobal::set_sampler(depth_ao_tex_to_blur_samplerstateVarId, sampler);
     ShaderGlobal::set_sampler(depth_around_transparent_samplerstateVarId, sampler);
   }
 

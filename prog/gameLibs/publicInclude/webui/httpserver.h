@@ -85,7 +85,6 @@ struct Config
 void startup(Config *cfg = NULL);
 void shutdown();
 void update();
-void update_sync();
 uint16_t get_binded_port();
 
 // post html response (<html> & <body> tags appended automatically, Content-type set as text/html)

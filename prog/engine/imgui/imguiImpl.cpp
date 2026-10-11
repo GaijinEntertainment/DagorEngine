@@ -944,6 +944,33 @@ bool imgui_window_is_collapsed(const char *, const char *name)
   return window ? window->Collapsed : true;
 }
 
+#if defined(ADD_NET_IMGUI) && !_TARGET_PC
+static void draw_netimgui_splash()
+{
+  if (imgui_state != ImGuiState::ACTIVE || NetImgui::IsConnected())
+    return;
+
+  const char *text = "Try the NetImGui server!";
+  ImGuiViewport *vp = ImGui::GetMainViewport();
+  ImDrawList *dl = ImGui::GetForegroundDrawList(vp);
+  ImFont *font = imgui_bold_font ? imgui_bold_font : ImGui::GetFont();
+
+  const float pulse = 1.0f + 0.06f * fabsf(sinf((float)ImGui::GetTime() * 6.0f));
+  const float fontSize = floorf(vp->Size.y * 0.05f);
+  const ImVec2 textSize = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, text);
+  const ImVec2 center(vp->Pos.x + vp->Size.x * 0.7f, vp->Pos.y + vp->Size.y * 0.25f);
+  const ImVec2 textPos(center.x - textSize.x * 0.5f, center.y - textSize.y * 0.5f);
+  const float shadowOfs = fontSize * 0.08f;
+
+  const int vtxStart = dl->VtxBuffer.Size;
+  dl->AddText(font, fontSize, ImVec2(textPos.x + shadowOfs, textPos.y + shadowOfs), IM_COL32(63, 63, 0, 255), text);
+  dl->AddText(font, fontSize, textPos, IM_COL32(255, 255, 0, 255), text);
+
+  const float angle = -0.35f;
+  ImGui::ShadeVertsTransformPos(dl, vtxStart, dl->VtxBuffer.Size, center, cosf(angle) * pulse, sinf(angle) * pulse, center);
+}
+#endif
+
 static int menu_bar_height = 0;
 
 int imgui_get_menu_bar_height() { return menu_bar_height; }
@@ -1086,6 +1113,10 @@ void imgui_perform_registered(bool with_menu_bar)
   }
   ++imgui_window_focus_pass;
   imgui_window_focus_in_perform = false;
+
+#if defined(ADD_NET_IMGUI) && !_TARGET_PC
+  draw_netimgui_splash();
+#endif
 }
 
 ImGuiFunctionQueue *ImGuiFunctionQueue::windowHead = nullptr;

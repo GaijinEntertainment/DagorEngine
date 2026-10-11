@@ -44,7 +44,7 @@ def init() {
 }
 
 [export]
-def update() {
+def update() {   // nolint:STYLE038 - one arm per reload phase; the phases read top-to-bottom as the test script
     if (reload_count == 0) {
         // First run: verify entities exist, then reload
         var count = 0

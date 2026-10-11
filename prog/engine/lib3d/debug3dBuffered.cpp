@@ -5,7 +5,7 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
 #include <vecmath/dag_vecMath.h>
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 struct BufferedLine
 {
@@ -17,13 +17,13 @@ struct BufferedLine
 };
 
 static Tab<BufferedLine> buffered_line_list(midmem_ptr()); // Note: sorted by deadline
-static std::mutex buffer_line_mutex;
+static dag::mutex buffer_line_mutex;
 static size_t current_frame = 0;
 static bool last_frame_game_was_paused = false;
 
 void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, size_t requested_frames)
 {
-  std::lock_guard lock(buffer_line_mutex);
+  dag::lock_guard lock(buffer_line_mutex);
   size_t frames = last_frame_game_was_paused ? 1 : requested_frames;
   size_t deadlineFrame = current_frame + frames;
   for (int last = buffered_line_list.size() - 1, i = last; i >= 0; --i) // lookup place to insert into (according to deadline)
@@ -53,7 +53,7 @@ void draw_debug_line_buffered(vec3f v0, vec3f dir, float t, E3DCOLOR c, size_t f
 
 void clear_buffered_debug_lines()
 {
-  std::lock_guard lock(buffer_line_mutex);
+  dag::lock_guard lock(buffer_line_mutex);
   clear_and_shrink(buffered_line_list);
 }
 
@@ -371,7 +371,7 @@ static int draw_buffered_lines(dag::ConstSpan<BufferedLine> lines, size_t cur_fr
 
 void flush_buffered_debug_lines(bool game_is_paused)
 {
-  std::lock_guard lock(buffer_line_mutex);
+  dag::lock_guard lock(buffer_line_mutex);
   last_frame_game_was_paused = game_is_paused;
   if (buffered_line_list.empty())
     return;

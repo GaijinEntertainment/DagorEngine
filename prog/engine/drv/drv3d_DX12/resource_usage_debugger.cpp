@@ -161,90 +161,32 @@ char *translate_to_string(char (&buf)[N], D3D12_RESOURCE_STATES state)
 template <size_t N>
 char *translate_to_string(char (&buf)[N], ResourceBarrier barrier)
 {
-  if (RB_NONE == barrier)
-  {
-    strcpy_s(buf, "RB_NONE");
-    return buf;
-  }
-
-  auto at = buf;
-  auto start = buf;
-  auto ed = buf + N - 1;
-  auto concat = [&at, ed, start](const auto &s) {
-    auto len = countof(s) - 1;
-    auto left = ed - at;
-    if (left >= 3 && start != at)
-    {
-      *at++ = ' ';
-      *at++ = '|';
-      *at++ = ' ';
-      left -= 3;
-    }
-    auto count = min<size_t>(len, left);
-
-    memcpy(at, s, count);
-    at += count;
+  auto writePos = buf;
+  // end is one earlier so we can safely add null terminator
+  const auto writeEnd = buf + N - 1;
+  auto append_to_buffer = [&](auto str) {
+    auto len = eastl::min<size_t>(writeEnd - writePos, str.length());
+    memcpy(writePos, str.data(), len);
+    writePos += len;
   };
-#define CAT_STATE_R(name)                                           \
-  if (uint64_t(name) == (uint64_t(name) & uint64_t(barrier)))       \
-  {                                                                 \
-    barrier = ResourceBarrier(uint64_t(barrier) & ~uint64_t(name)); \
-    concat(#name);                                                  \
+  auto leftOver = decode_to_strings(barrier, [&](auto name) {
+    if (writePos != buf)
+    {
+      append_to_buffer(eastl::string_view{" | "});
+    }
+    append_to_buffer(name);
+  });
+
+  if (RB_NONE != leftOver)
+  {
+    if (writePos != buf)
+    {
+      append_to_buffer(eastl::string_view{" | "});
+    }
+    append_to_buffer(eastl::string_view{"<unknown>"});
   }
-#define CAT_STATE_A2(name, name2)                                   \
-  if (uint64_t(name) == (uint64_t(name) & uint64_t(barrier)))       \
-  {                                                                 \
-    barrier = ResourceBarrier(uint64_t(barrier) & ~uint64_t(name)); \
-    concat(#name " / " #name);                                      \
-  }
 
-  CAT_STATE_R(RB_STAGE_ALL_SHADERS);
-  CAT_STATE_R(RB_STAGE_ALL_GRAPHICS);
-
-  CAT_STATE_R(RB_RO_GENERIC_READ_TEXTURE);
-  CAT_STATE_R(RB_RO_GENERIC_READ_BUFFER);
-
-  CAT_STATE_R(RB_RO_CONSTANT_DEPTH_STENCIL_TARGET);
-
-  CAT_STATE_R(RB_SOURCE_STAGE_ALL_SHADERS);
-  CAT_STATE_R(RB_SOURCE_STAGE_ALL_GRAPHICS);
-  CAT_STATE_R(RB_ALIAS_TO_AND_DISCARD);
-  CAT_STATE_R(RB_ALIAS_ALL);
-  CAT_STATE_R(RB_ALIAS_TO);
-  CAT_STATE_R(RB_ALIAS_FROM);
-  CAT_STATE_R(RB_SOURCE_STAGE_RAYTRACE);
-  CAT_STATE_R(RB_SOURCE_STAGE_COMPUTE);
-  CAT_STATE_R(RB_SOURCE_STAGE_PIXEL);
-  CAT_STATE_R(RB_SOURCE_STAGE_VERTEX);
-  CAT_STATE_R(RB_FLAG_DONT_PRESERVE_CONTENT);
-  CAT_STATE_R(RB_FLUSH_UAV);
-  CAT_STATE_R(RB_STAGE_RAYTRACE);
-  CAT_STATE_R(RB_STAGE_COMPUTE);
-  CAT_STATE_R(RB_STAGE_PIXEL);
-  CAT_STATE_R(RB_STAGE_VERTEX);
-  CAT_STATE_R(RB_FLAG_SPLIT_BARRIER_END);
-  CAT_STATE_R(RB_FLAG_SPLIT_BARRIER_BEGIN);
-  CAT_STATE_R(RB_FLAG_ACQUIRE_PIPELINE_OWNERSHIP);
-  CAT_STATE_R(RB_FLAG_RELEASE_PIPELINE_OWNERSHIP);
-  CAT_STATE_R(RB_RO_RAYTRACE_ACCELERATION_BUILD_SOURCE);
-  CAT_STATE_R(RB_RO_BLIT_SOURCE);
-  CAT_STATE_R(RB_RO_COPY_SOURCE);
-  CAT_STATE_R(RB_RO_VARIABLE_RATE_SHADING_TEXTURE);
-  CAT_STATE_R(RB_RO_INDIRECT_BUFFER);
-  CAT_STATE_R(RB_RO_INDEX_BUFFER);
-  CAT_STATE_R(RB_RO_VERTEX_BUFFER);
-  CAT_STATE_R(RB_RO_CONSTANT_BUFFER);
-  CAT_STATE_R(RB_RO_SRV);
-  CAT_STATE_R(RB_RO_OPACITY_MICRO_MAP_BUILD_INPUT_BUFFER);
-  CAT_STATE_R(RB_RO_OPACITY_MICRO_MAP_BUILD_DESCRIPTION_BUFFER);
-  CAT_STATE_R(RB_RW_BLIT_DEST);
-  CAT_STATE_R(RB_RW_COPY_DEST);
-  CAT_STATE_R(RB_RW_UAV);
-  CAT_STATE_A2(RB_RW_RENDER_TARGET, RB_RW_DEPTH_STENCIL_TARGET);
-#undef CAT_STATE_A2
-#undef CAT_STATE_R
-
-  *at = '\0';
+  *writePos = '\0';
   return buf;
 }
 } // namespace

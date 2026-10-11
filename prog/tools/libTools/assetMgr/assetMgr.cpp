@@ -1308,7 +1308,7 @@ static void save_asset_props_stripped(const DataBlock &blk, IGenSave &cwr, bool 
     blk.saveToTextStream(cwr);
 }
 
-bool DagorAssetMgr::saveAssetsMetadata(int folder_idx)
+bool DagorAssetMgr::saveAssetsMetadata(int folder_idx, const DagorAsset *skip_asset)
 {
   ReadGuard guard(mutex);
   if (folder_idx < -1 || folder_idx >= (int)folders.size())
@@ -1320,7 +1320,7 @@ bool DagorAssetMgr::saveAssetsMetadata(int folder_idx)
   int start_idx = 0, end_idx = assets.size();
   if (folder_idx >= 0) //-V1051
     getFolderAssetIdxRange(folder_idx, start_idx, end_idx);
-  return saveAssetsMetadataImpl(start_idx, end_idx);
+  return saveAssetsMetadataImpl(start_idx, end_idx, skip_asset);
 }
 bool DagorAssetMgr::saveAssetMetadata(DagorAsset &a)
 {
@@ -1340,7 +1340,7 @@ bool DagorAssetMgr::saveAssetMetadata(DagorAsset &a)
   idx += f_idx0;
   return saveAssetsMetadataImpl(idx, idx + 1);
 }
-bool DagorAssetMgr::saveAssetsMetadataImpl(int start_idx, int end_idx)
+bool DagorAssetMgr::saveAssetsMetadataImpl(int start_idx, int end_idx, const DagorAsset *skip_asset)
 {
   ReadGuard guard(mutex);
   DynamicMemGeneralSaveCB cwr_new(tmpmem, 0, 4 << 10), cwr_old(tmpmem, 0, 4 << 10);
@@ -1348,6 +1348,9 @@ bool DagorAssetMgr::saveAssetsMetadataImpl(int start_idx, int end_idx)
 
   int nsid1 = nspaceNames.getNameId("texHQ"), nsid2 = nspaceNames.addNameId("texTQ");
   for (int i = start_idx; i < end_idx; i++)
+  {
+    if (assets[i] == skip_asset)
+      continue;
     if (!assets[i]->isVirtual())
     {
       if ((nsid1 >= 0 && assets[i]->getNameSpaceId() == nsid1) || (nsid2 >= 0 && assets[i]->getNameSpaceId() == nsid2))
@@ -1387,6 +1390,7 @@ bool DagorAssetMgr::saveAssetsMetadataImpl(int start_idx, int end_idx)
     {
       //== handle saving of virtual assets properly
     }
+  }
 
   return true;
 }

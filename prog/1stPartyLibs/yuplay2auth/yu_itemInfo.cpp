@@ -19,10 +19,10 @@ bool YuItemInfo::assign(const YuString& guid, const YuParserVal& json)
   discountTill = json.at("discount_till").i();
 
   //Price 0.01 means free item
-  if (price <= 0.01)
+  if (price <= 0.01f)
     price = 0.0;
 
-  if (priceUsd <= 0.01)
+  if (priceUsd <= 0.01f)
     priceUsd = 0.0;
 
   title = json.at("title").s();

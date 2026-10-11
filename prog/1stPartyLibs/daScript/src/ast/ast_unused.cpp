@@ -2,6 +2,7 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/ast/ast_generate.h"
 
 namespace das {
 
@@ -579,6 +580,19 @@ namespace das {
                 }
                 if ( mayQueue ) fnc->mayQueueTempString = true;
             }
+            // need-caller-stack-frame: bottom-up like the two rules above, same cycle
+            // under-report. invoke edges are NOT closed over: a collect reached only
+            // through a block/lambda invoked from a fastcall body is the residual
+            // documented in contexts.rst
+            if ( !fnc->needCallerStackFrame ) {
+                for ( auto & depF : fnc->useFunctions ) {
+                    if ( depF == fnc ) continue;
+                    if ( depF->needCallerStackFrame ) {
+                        fnc->needCallerStackFrame = true;
+                        break;
+                    }
+                }
+            }
             fnc->sideEffectFlags |= flags;
             return flags;
         }
@@ -676,6 +690,7 @@ namespace das {
     // Op1
         virtual void preVisit ( ExprOp1 * expr ) override {
             Visitor::preVisit(expr);
+            if ( !expr->func ) return;
             auto sef = getSideEffects(expr->func);
             markPassMutableOperand(expr->func, 0, expr->subexpr);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
@@ -685,6 +700,7 @@ namespace das {
     // Op2
         virtual void preVisit ( ExprOp2 * expr ) override {
             Visitor::preVisit(expr);
+            if ( !expr->func ) return;
             auto sef = getSideEffects(expr->func);
             markPassMutableOperand(expr->func, 0, expr->left);
             markPassMutableOperand(expr->func, 1, expr->right);
@@ -702,12 +718,11 @@ namespace das {
     // Op3
         virtual void preVisit ( ExprOp3 * expr ) override {
             Visitor::preVisit(expr);
-            auto sef = expr->func ? getSideEffects(expr->func) : 0;
-            if ( expr->func ) {
-                markPassMutableOperand(expr->func, 0, expr->subexpr);
-                markPassMutableOperand(expr->func, 1, expr->left);
-                markPassMutableOperand(expr->func, 2, expr->right);
-            }
+            if ( !expr->func ) return;
+            auto sef = getSideEffects(expr->func);
+            markPassMutableOperand(expr->func, 0, expr->subexpr);
+            markPassMutableOperand(expr->func, 1, expr->left);
+            markPassMutableOperand(expr->func, 2, expr->right);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto condT = expr->subexpr->type;
                 if ( condT->isRefOrPointer() && !condT->constant ) {
@@ -945,6 +960,9 @@ namespace das {
                             if ( !expr->isGlobalVariable() || expr->variable->type->isConst() ) {
                                 reportFolding();
                                 auto cle = expr->variable->init->clone();
+                                // a C++-registered constant has no location, so the value
+                                // folded into this use reports where it was read
+                                stampMissingAt(cle, expr->at);
                                 if ( !cle->type ) {
                                     cle->type = new TypeDecl(*expr->variable->init->type);
                                 }
@@ -983,7 +1001,7 @@ namespace das {
                             } else if ( expr->type->baseType==Type::tString ) {
                                 reportFolding();
                                 auto exprV = new ExprConstString(expr->at);
-                                exprV->type = new TypeDecl(Type::tString);
+                                exprV->type = new TypeDecl(Type::tString, exprV->at);
                                 exprV->type->constant = true;
                                 return exprV;
                             } else {
@@ -1033,10 +1051,12 @@ namespace das {
     // program
 
     void Program::buildAccessFlags(TextWriter &) {
+        if ( accessFlagsValid ) return;
         markSymbolUse(true,false,true,nullptr);
         // determine function side-effects
         TrackFieldAndAtFlags faf;
         faf.MarkSideEffects(*thisModule);
+        accessFlagsValid = true;
     }
 
     bool Program::optimizationUnused(TextWriter & logs, int32_t round) {
@@ -1044,7 +1064,9 @@ namespace das {
         // remove itselft
         RemoveUnusedLocalVariables context(round);
         visit(context);
-        return context.didAnything();
+        bool changed = context.didAnything();
+        if ( changed ) astChanged();
+        return changed;
     }
 }
 

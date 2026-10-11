@@ -24,6 +24,7 @@ private:
   RenderableInstanceResource *nextToProcess = nullptr;
 
 public:
+  const ResourceState *find(RenderableInstanceResource *res) const;
   const ResourceState *ask(RenderableInstanceResource *res);
   RenderableInstanceResource *current() const { return nextToProcess; }
   void resetCurrent();

@@ -6,7 +6,6 @@
 
 #include <vecmath/dag_vecMath.h>
 #include <EASTL/fixed_vector.h>
-#include <EASTL/fixed_function.h>
 #include <daECS/core/ecsHash.h>
 #include <daECS/core/entityId.h>
 #include <daECS/core/componentType.h>
@@ -58,7 +57,7 @@ GridHolder *find_grid_holder(uint32_t grid_name_hash);
 GridHolder *find_grid_holder(ecs::HashedConstString grid_name_hash);
 inline const GridHolder *find_grid_holder(const GridHolder *gh) { return gh; };
 inline const GridHolder *find_grid_holder(const GridHolder &gh) { return &gh; };
-void for_each_grid_holder(const eastl::function<void(const GridHolder &)> &cb);
+void for_each_grid_holder(dag::FunctionRef<void(const GridHolder &) const> cb);
 
 GridHolder *find_grid_holder_opt(ecs::HashedConstString grid_name_hash);
 

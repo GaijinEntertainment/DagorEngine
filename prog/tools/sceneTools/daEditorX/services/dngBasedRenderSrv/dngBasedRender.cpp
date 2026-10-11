@@ -3,15 +3,18 @@
 #include <de3_dynRenderService.h>
 #include <de3_skiesService.h>
 #include <de3_gpuGrassService.h>
+#include <de3_interface.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <de3_hmapService.h>
 #include <de3_landmesh.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_testSystem.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
 #include <EditorCore/ec_wndPublic.h>
 #include <EditorCore/ec_shaders.h>
+#include <EditorCore/ec_startup.h>
 #include <libTools/renderViewports/cachedViewports.h>
 #include <propPanel/commonWindow/dialogManager.h>
 #include <dafxToolsHelper/dafxToolsHelper.h>
@@ -65,6 +68,8 @@
 #include "render/renderer.h"
 #include "render/renderEvent.h"
 #include "render/skies.h"
+#include "render/world/wrDispatcher.h"
+#include "render/world/shadowsManager.h"
 #include <render/grass/grassRender.h>
 #include <render/dynmodelRenderer.h>
 #include "camera/sceneCam.h"
@@ -97,6 +102,7 @@
 #include <3d/dag_resPtr.h>
 #include <camera/camShakerEvents.h>
 #include <libTools/util/appDirRelativePath.h>
+#include <winGuiWrapper/wgw_dialogs.h>
 
 #if _TARGET_PC_WIN
 #include <windows.h>
@@ -479,7 +485,7 @@ public:
     dagor_frame_no_increment();
   }
 
-  void renderScreenShot(const Driver3dPerspective &persp, bool isOrtho, [[maybe_unused]] bool force_disable_wireframe)
+  void renderScreenShot(const Driver3dPerspective &persp, bool isOrtho, bool force_disable_wireframe)
   {
     int viewportX, viewportY, viewportW, viewportH;
     float viewportMinZ, viewportMaxZ;
@@ -491,6 +497,54 @@ public:
 
     TMatrix viewTm;
     d3d::gettm(TM_VIEW, viewTm);
+
+
+    dafg::NodeHandle maskAlphaNode = dafg::register_node("screenshot_mask_alpha", DAFG_PP_NODE_SRC,
+      [this, skipDebugGeometry = force_disable_wireframe](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::None);
+        registry.executionHas(dafg::SideEffects::External);
+
+        if (skipDebugGeometry)
+        {
+          registry.requestRenderPass().color({"frame_to_present"}).depthReadTestOnly("depth_for_postfx");
+        }
+        // Handle debug geometry separately, otherwise it will get discarded when masking alpha with depth buffer
+        else
+        {
+          auto debugNs = registry.root() / "debug";
+          registry.requestRenderPass().color({debugNs.modifyTexture("target_for_debug")}).depthReadTestOnly("depth_for_postfx");
+          registry.orderMeBefore("show_scene_debug_node");
+        }
+
+        return [this]() {
+          // fill alpha mask using depthBuf
+
+          shaders::overrides::reset();
+          d3d::set_program(d3d::get_debug_program());
+          d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
+
+          static Vertex v[4];
+          v[0].p.set(-1, -1, 0);
+          v[1].p.set(+1, -1, 0);
+          v[2].p.set(-1, +1, 0);
+          v[3].p.set(+1, +1, 0);
+
+          shaders::render_states::set(alphaWriterRenderStateId);
+          v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
+          coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+          d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+          d3d::draw(PRIM_TRISTRIP, 0, 2);
+
+          shaders::render_states::set(depthMaskRenderStateId);
+          v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
+          coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+          d3d::draw(PRIM_TRISTRIP, 0, 2);
+          d3d::setvsrc(0, nullptr, 0);
+          d3d::set_program(BAD_PROGRAM);
+          shaders::overrides::reset();
+          shaders::render_states::set(defaultRenderStateId);
+        };
+      });
 
     dng_based_render::set_motion_blur_enabled(false);
     g_entity_mgr->tick(true);
@@ -506,47 +560,15 @@ public:
     dng_based_render::set_motion_blur_enabled(true);
     g_entity_mgr->tick(true);
 
-    Texture *finalRt = getRenderBuffer();
-
     RectInt r;
     r.left = viewportX;
     r.top = viewportY;
     r.right = viewportX + viewportW;
     r.bottom = viewportY + viewportH;
+
     d3d::set_srgb_backbuffer_write(srgb_backbuf_wr);
-    d3d::stretch_rect(finalRt, rt.getColor(0).tex, NULL, &r);
+    d3d::stretch_rect(getRenderBuffer(), rt.getColor(0).tex, NULL, &r);
     d3d::set_srgb_backbuffer_write(false);
-
-    // fill alfa mask using depthBuf
-    {
-      d3d::set_render_target({}, DepthAccess::RW, {{rt.getColor(0).tex, 0, 0}});
-      d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
-
-      shaders::overrides::reset();
-      d3d::set_program(d3d::get_debug_program());
-      d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
-
-      static Vertex v[4];
-      v[0].p.set(-1, -1, 0);
-      v[1].p.set(+1, -1, 0);
-      v[2].p.set(-1, +1, 0);
-      v[3].p.set(+1, +1, 0);
-
-      shaders::render_states::set(alphaWriterRenderStateId);
-      v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
-      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
-      d3d::draw(PRIM_TRISTRIP, 0, 2);
-
-      shaders::render_states::set(depthMaskRenderStateId);
-      v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
-      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-      d3d::draw(PRIM_TRISTRIP, 0, 2);
-      d3d::setvsrc(0, nullptr, 0);
-      d3d::set_program(BAD_PROGRAM);
-      shaders::overrides::reset();
-      shaders::render_states::set(defaultRenderStateId);
-    }
 
     d3d_err(d3d::set_render_target(rt));
     d3d::setview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
@@ -592,6 +614,7 @@ public:
     renderingService->updateImgui();
 
     editor_core_render_dag_imgui_windows();
+    editor_core_test_runtime_end_frame();
     imgui_endframe();
     imgui_render();
   }
@@ -835,6 +858,16 @@ public:
       if (LandMeshManager *landmeshMgr = landmesh->getLandMeshManager())
         if (HeightmapHandler *hmapHdlr = landmeshMgr->getHmapHandler())
           hmapHdlr->setMirroring(mirror);
+  }
+
+  void beforeProjectSceneReset() override
+  {
+    if (!get_world_renderer())
+      return;
+
+    auto &shadowsManager = WRDispatcher::getShadowsManager();
+    shadowsManager.resetShadowsVisibilityTesting();
+    shadowsManager.closeAllStaticShadowsVisibility();
   }
 
   void beforeD3DReset(bool full_reset) override
@@ -1232,13 +1265,13 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
     else
       reinit_grass(blk);
     dng_based_render::grass_last_reinit_gametime_sec = last_gametime_sec;
+
+    if (auto *ggsvc = EDITORCORE->queryEditorInterface<IGPUGrassService>())
+      grass_set_extra_helper(ggsvc->getGrassRenderHelper());
   }
 
   // this has to happen before setting constrained mt mode, because it calls tick between ECS entity deletion and creation
   update_delayed_weather_selection();
-
-  G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
-  g_entity_mgr->setConstrainedMTMode(true);
 
   before_render_daskies();
 
@@ -1262,6 +1295,10 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
     sync_dafx_helper_globals();
     phys_fetch_sim_res(true);
   }
+
+  // Allow constrained mt mode only after all settings are changed
+  G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
+  g_entity_mgr->setConstrainedMTMode(true);
 }
 
 static void dng_based_render::before_render(const Driver3dPerspective &persp, const TMatrix4D &proj_tm, int viewport_width)
@@ -1362,6 +1399,142 @@ static void dng_based_render::set_cinematic_mode_enabled(bool enabled)
 const char *gameproj::main_vromfs_fpath() { return dng_based_render::main_vromfs_fpath_str; }
 const char *gameproj::main_vromfs_mount_dir() { return dng_based_render::main_vromfs_mount_dir_str; }
 
+static String expand_path(const char *p)
+{
+  if (p == nullptr || *p == '\0' || (*p == '.' && p[1] == '\0')) // "" or "."
+    return String{};
+  String path(0, "%s/", p);
+  dd_simplify_fname_c(path);
+  path.shrink_to_fit();
+  return path;
+}
+
+static void validate_initial_vroms()
+{
+  DataBlock cfg;
+  if (String configFn = get_config_filename(); !configFn.empty() && dd_file_exist(configFn))
+    dblk::load(cfg, configFn, dblk::ReadFlag::ROBUST);
+  dgs_apply_command_line_to_config(&cfg);
+  bool useAddonVromSrc = cfg.getBlockByNameEx("debug")->getBool("useAddonVromSrc", false);
+
+  eastl::string missingVroms;
+
+  if (!useAddonVromSrc)
+  {
+    const char *mainVrom = gameproj::main_vromfs_fpath();
+    if (!mainVrom || !*mainVrom)
+    {
+      DAEDITOR3.conError("main_vromfs is not set in the application.blk game block");
+      missingVroms.append("game/main_vromfs is not set in application.blk\n");
+    }
+    else if (!dd_file_exists(mainVrom))
+    {
+      DAEDITOR3.conError("Missing required vrom: %s", mainVrom);
+      missingVroms.append_sprintf("%s\n", mainVrom);
+    }
+  }
+
+
+  DataBlock partnerConfig;
+  if (dblk::load(partnerConfig, "yupartner.blk", dblk::ReadFlag::ROBUST))
+  {
+    if (const char *op = partnerConfig.getStr("partner", nullptr); op && strcmp(op, "gaijin") != 0)
+    {
+      if (String partnerVrom(0, "%s.vromfs.bin", op); !dd_file_exists(partnerVrom))
+      {
+        DAEDITOR3.conError("Missing required partner vrom: %s", partnerVrom);
+        missingVroms.append_sprintf("%s\n", partnerVrom.c_str());
+      }
+    }
+  }
+
+  if (!missingVroms.empty() && !d3d::is_stub_driver() && !::dgs_execute_quiet)
+  {
+    const char *footer = "Rebuild the vroms, or download them using CVS, or enable useAddonVromSrc.\n"
+                         "Note: useAddonVromSrc doesn't make partner vroms optional.\n";
+    wingw::message_box(wingw::MBS_EXCL | wingw::MBS_OK, "Required game vroms are missing", "%s\n\n%s", missingVroms.c_str(), footer);
+    flush_debug_file();
+    terminate_process(1);
+  }
+}
+
+static void validate_vroms(DataBlock *config)
+{
+  const bool useAddonVromSrc = config->getBlockByNameEx("debug")->getBool("useAddonVromSrc", false);
+  if (const DataBlock *addons = config->getBlockByName("addonBasePath"); addons && !useAddonVromSrc)
+  {
+    eastl::string missingVroms;
+    bool missingHarmonizationVrom = false;
+    const bool isHarmRequired = config->getBool("harmonizationRequired", false);
+    const bool isHarmEnabled = config->getBool("harmonizationEnabled", false);
+
+    dblk::iterate_child_blocks_by_name(*addons, "addon", [&](const DataBlock &addon) {
+      bool vrom_optional = addon.getBool("vromOptional", !addon.getBool("vromed", true));
+      vrom_optional = addon.getBool("vromOptionalForClient", vrom_optional);
+
+      const bool isHarmonizationVrom = addon.getBool("harmonization", false);
+      if (isHarmonizationVrom)
+      {
+        if (isHarmRequired)
+          vrom_optional = false;
+        else if (isHarmEnabled)
+          vrom_optional = true;
+        else // gameLoad skips vrom if no harmonization is on
+          return;
+      }
+
+      const_cast<DataBlock &>(addon).setBool("vromOptional", true);
+      const_cast<DataBlock &>(addon).setBool("vromOptionalForClient", true);
+
+      const char *explicit_vrom_fn = addon.getStr("vrom", nullptr);
+      const char *folder = addon.getStr("folder", nullptr);
+      if (!explicit_vrom_fn && !folder)
+        return;
+      String vrom_fn =
+        explicit_vrom_fn ? String(explicit_vrom_fn) : String(0, "%s%s.vromfs.bin", expand_path(folder), dd_get_fname(folder));
+
+      if (!dd_file_exists(vrom_fn))
+      {
+        if (vrom_optional)
+        {
+          DAEDITOR3.conWarning("Missing optional vrom: %s", vrom_fn);
+          return;
+        }
+        else
+          DAEDITOR3.conError("Missing required vrom: %s", vrom_fn);
+
+        missingVroms.append_sprintf("%s\n", vrom_fn.c_str());
+        missingHarmonizationVrom |= isHarmonizationVrom;
+      }
+    });
+
+
+    if (missingHarmonizationVrom)
+    {
+      config->setBool("harmonizationRequired", false);
+      config->setBool("harmonizationEnabled", true);
+    }
+
+    if (!missingVroms.empty() && !d3d::is_stub_driver() && !::dgs_execute_quiet)
+    {
+      const char *footer = "Rebuild the vroms, or download them using CVS, or enable useAddonVromSrc,\n"
+                           "or mark vromfs files as optional in settings.blk.\n"
+                           "Do you wish to continue running the app? (Continuing might cause issues)";
+      if (wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNO, "Required vroms are missing", "%s\n\n%s", missingVroms.c_str(),
+            footer) != wingw::MB_ID_YES)
+      {
+        flush_debug_file();
+        terminate_process(1);
+      }
+      else if (d3d::is_inited())
+      {
+        // Redraw without act() so the closed popup does not stay on screen during the load
+        startup_editor_core_force_startup_scene_draw();
+      }
+    }
+  }
+}
+
 static void dng_based_render::init_dng_framework()
 {
   threadpool::shutdown();
@@ -1370,6 +1543,7 @@ static void dng_based_render::init_dng_framework()
   g_entity_mgr.demandInit(); // init it early to be able to use broadcast events for init
   folders::initialize(gameproj::game_codename());
 
+  validate_initial_vroms();
   initial_load_settings();
   if (auto *config = const_cast<DataBlock *>(dgs_get_settings()))
   {
@@ -1420,14 +1594,17 @@ static void dng_based_render::init_dng_framework()
       if (!giAlgorithm || String(giAlgorithm) == "high")
         graphics->setStr("giAlgorithm", "medium"); // TODO: high gi quality has broken screen probes
       // boost default shadow quality for editor
-      const auto shadowQuality = graphics->getStr("shadowQuality", NULL);
-      if (!shadowQuality || String(shadowQuality) == "low" || String(shadowQuality) == "medium")
+      const auto shadowsQuality = graphics->getStr("shadowsQuality", NULL);
+      if (!shadowsQuality || String(shadowsQuality) == "low" || String(shadowsQuality) == "medium")
       {
-        graphics->setStr("shadowQuality", "ultra");
+        graphics->setStr("shadowsQuality", "ultra");
         graphics->setInt("dynamicShadowsResolution", 4096);
         graphics->setReal("dynamicShadowsDistance", 700.0f);
       }
     }
+
+    validate_vroms(config);
+
     // TODO: debug visualization flickers in TSR
     if (auto *video = config->getBlockByName("video"))
     {
@@ -1473,6 +1650,7 @@ static void dng_based_render::term_dng_framework()
   PriorityShadervar::clear(chromatic_aberration_paramsVarId.get_var_id(), CINEMATIC_SUPPRESS_PRIORITY);
   PriorityShadervar::clear(vignette_strengthVarId.get_var_id(), CINEMATIC_SUPPRESS_PRIORITY);
 
+  grass_set_extra_helper(nullptr);
   sceneload::unload_current_game();
   game_scene::on_scene_deselected();
   destroy_world_renderer();
@@ -1495,31 +1673,13 @@ static void dng_based_render::setup_editor_heightmap(ILandmesh &landmesh, LandMe
       return;
   }
 
+  lmesh_mgr.forceHeightmapRendering = true;
+
   HeightmapHandler *h = lmesh_mgr.getHmapHandler();
   if (!h)
     return;
 
   h->initRender(!info.mirrorHmap, HeightmapHeightCulling::NO_WATER_ON_LEVEL);
-
-  static ShaderVariableInfo world_to_hmap_high("world_to_hmap_high", true);
-  static ShaderVariableInfo tex_hmap_high("tex_hmap_high", true);
-  static ShaderVariableInfo tex_hmap_high_samplerstate("tex_hmap_high_samplerstate", true);
-  if (info.detTexId != BAD_TEXTUREID && info.detSize.x > 0 && info.detSize.y > 0)
-  {
-    ShaderGlobal::set_float4(world_to_hmap_high, 1.f / info.detSize.x, 1.f / info.detSize.y, -info.detOrigin.x / info.detSize.x,
-      -info.detOrigin.y / info.detSize.y);
-    ShaderGlobal::set_texture(tex_hmap_high, info.detTexId);
-    ShaderGlobal::set_sampler(tex_hmap_high_samplerstate, info.detSampler);
-  }
-  else
-  {
-    // No detail rect: point high mapping far away so the shader's saturate() test never selects it.
-    ShaderGlobal::set_float4(world_to_hmap_high, 10e+3, 10e+3, 10e+10, 10e+10);
-    ShaderGlobal::set_texture(tex_hmap_high, BAD_TEXTUREID);
-  }
-
-  lmesh_mgr.forceHeightmapRendering = true;
-
   // Prime render state; per-frame prepareClipmap/renderGround update it afterwards.
   h->prepare(Point3(0, 0, 0), 1.f);
 

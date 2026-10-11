@@ -66,25 +66,17 @@ def update_rope_fixed_points_from_joints(info : UpdateStageInfoAct; var spline_g
                                          phys_joint__firstBodyAnchor : float3;
                                          phys_joint__secondBodyAnchor : float3)
   query(phys_joint__firstBody) <| $ [es] (transform : float3x4)
-    let p1 = transform * phys_joint__firstBodyAnchor
-    var secondExists = false
+    spline_gen_geometry__points[0] = transform * phys_joint__firstBodyAnchor
     query(phys_joint__secondBody) <| $ [es] (transform : float3x4)
-      let p2 = transform * phys_joint__secondBodyAnchor
-      spline_gen_geometry__points[0] = p1
-      spline_gen_geometry__points[length(spline_gen_geometry__points) - 1] = p2
-      secondExists = true
-    if !secondExists
-      let p2 = phys_joint__secondBodyAnchor
-      spline_gen_geometry__points[0] = p1
-      spline_gen_geometry__points[length(spline_gen_geometry__points) - 1] = p2
+      spline_gen_geometry__points[length(spline_gen_geometry__points) - 1] = transform * phys_joint__secondBodyAnchor
+    if phys_joint__secondBody == INVALID_ENTITY_ID
+      spline_gen_geometry__points[length(spline_gen_geometry__points) - 1] = phys_joint__secondBodyAnchor
 
 [es(before=update_rope_phys, after=after_net_phys_sync, REQUIRE_NOT=phys_joint__secondBody)]
 def update_detached_rope_fixed_point_from_joint(info : UpdateStageInfoAct; var spline_gen_geometry__points : Point3List&;
                                                 phys_joint__firstBody : EntityId;
                                                 phys_joint__firstBodyAnchor : float3)
-  var bodyExists = false
   query(phys_joint__firstBody) <| $ [es] (transform : float3x4)
-    bodyExists = true
     spline_gen_geometry__points[0] = transform * phys_joint__firstBodyAnchor
-  if !bodyExists
+  if phys_joint__firstBody == INVALID_ENTITY_ID
     spline_gen_geometry__points[0] = phys_joint__firstBodyAnchor

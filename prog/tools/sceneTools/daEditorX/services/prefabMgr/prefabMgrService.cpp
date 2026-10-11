@@ -15,6 +15,8 @@
 #include <oldEditor/de_collision.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
+#include <libTools/dagFileRW/dagMatRemapUtil.h>
+#include <osApiWrappers/dag_direct.h>
 #include <regExp/regExp.h>
 #include <oldEditor/de_common_interface.h>
 #include <scene/dag_occlusionMap.h>
@@ -325,8 +327,8 @@ public:
 
           if (node_flags == StaticGeometryNode::FLG_RENDERABLE)
           {
-            float objectScale = max(1.0f, sqrtf(0.5 * (n->wtm.getcol(1).lengthSq() + n->wtm.getcol(2).lengthSq())));
-            if (objectScale > 1.01)
+            float objectScale = max(1.0f, sqrtf(0.5f * (n->wtm.getcol(1).lengthSq() + n->wtm.getcol(2).lengthSq())));
+            if (objectScale > 1.01f)
               if (int tv_scaled_count = processNodeWithObjectScale(n, objectScale))
                 debug("prefab <%s>: scaled %d TCs with object scale %.2f", n->name, tv_scaled_count, objectScale);
           }
@@ -361,7 +363,7 @@ public:
           continue;
 
         float tm_det = tm.det();
-        if (fabsf(tm_det) < 1e-12)
+        if (fabsf(tm_det) < 1e-12f)
           continue;
         iwtm = inverse(tm, tm_det);
         Point3 transformedP = iwtm * p;
@@ -1014,7 +1016,92 @@ public:
     if (!geomObject)
       return;
 
-    geomObject->saveToDag(ent->getAsset()->getTargetFilePath());
+    DagorAsset *asset = ent->getAsset();
+    if (!asset)
+      return;
+
+    const String dagPath = asset->getTargetFilePath();
+
+    DagData dagData;
+    if (!load_scene(dagPath, dagData))
+    {
+      DAEDITOR3.conError("can't read prefab dag to save its materials: %s", dagPath.str());
+      return;
+    }
+
+    Tab<const StaticGeometryMaterial *> slotOwner(tmpmem);
+    slotOwner.resize(dagData.matlist.size());
+    mem_set_0(slotOwner);
+    bool changed = false;
+
+    for (StaticGeometryNode *node : geomObject->getGeometryContainer()->getNodes())
+    {
+      if (!node || !node->mesh)
+      {
+        continue;
+      }
+
+      for (int matIdx = 0; matIdx < node->mesh->mats.size(); ++matIdx)
+      {
+        const StaticGeometryMaterial *mat = node->mesh->mats[matIdx];
+        if (!mat)
+        {
+          continue;
+        }
+
+        if (mat->dagMatId < 0 || mat->dagMatId >= dagData.matlist.size())
+        {
+          DAEDITOR3.conError("prefab %s: material \"%s\" has no slot in %s, its changes are not saved", asset->getName(),
+            mat->name.str(), dagPath.str());
+          continue;
+        }
+
+        DagData::Material &dagMat = dagData.matlist[mat->dagMatId];
+        if (strcmp(dagMat.name, mat->name) != 0)
+        {
+          DAEDITOR3.conError(
+            "prefab %s: slot %d of %s holds \"%s\" and not \"%s\", the dag changed since it was loaded, nothing is saved",
+            asset->getName(), mat->dagMatId, dagPath.str(), dagMat.name.str(), mat->name.str());
+          return;
+        }
+
+        if (strcmp(dagMat.script, mat->scriptText) == 0)
+        {
+          continue;
+        }
+
+        const StaticGeometryMaterial *owner = slotOwner[mat->dagMatId];
+        if (owner)
+        {
+          DAEDITOR3.conError("prefab %s: \"%s\" and \"%s\" both change slot %d of %s, only the first is saved", asset->getName(),
+            owner->name.str(), mat->name.str(), mat->dagMatId, dagPath.str());
+          continue;
+        }
+
+        slotOwner[mat->dagMatId] = mat;
+        dagMat.script = mat->scriptText;
+        changed = true;
+      }
+    }
+
+    if (!changed)
+    {
+      return;
+    }
+
+    const String tmpPath(0, "%s_temp", dagPath.str());
+    if (!write_dag(tmpPath, dagData))
+    {
+      DAEDITOR3.conError("prefab %s: can't write %s", asset->getName(), tmpPath.str());
+      dd_erase(tmpPath);
+      return;
+    }
+
+    if (!dd_rename(tmpPath, dagPath))
+    {
+      DAEDITOR3.conError("can't move %s over prefab dag %s", tmpPath.str(), dagPath.str());
+      dd_erase(tmpPath);
+    }
   }
 
 protected:

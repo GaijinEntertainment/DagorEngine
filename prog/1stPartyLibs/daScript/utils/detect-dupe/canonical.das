@@ -461,12 +461,12 @@ class CanonicalVisitor : AstVisitor {
 }
 
 
-// canonicalize_function walks `fn` and returns its canonical text.
-def public canonicalize_function(fn : FunctionPtr) : string {
+// The canonical text of one function or one expression - `visit` picks the walk by the node type.
+def public canonicalize(node : auto) : string {
     return build_string() $(var sb) {
         var v = new CanonicalVisitor(writer = unsafe(addr(sb)))
         make_visitor(*v) $(adapter) {
-            visit(fn, adapter)
+            visit(node, adapter)
         }
         unsafe { delete v; }
     }

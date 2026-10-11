@@ -153,6 +153,7 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
   meshInfo.positionOffset = parser.positionOffset;
   meshInfo.indicesOffset = parser.indicesFormat != -1 ? parser.indicesOffset : MeshInfo::invalidOffset;
   meshInfo.weightsOffset = parser.weightsFormat != -1 ? parser.weightsOffset : MeshInfo::invalidOffset;
+  meshInfo.corOffset = parser.corFormat == VSDT_E3DCOLOR ? parser.corOffset : MeshInfo::invalidOffset;
   meshInfo.normalOffset = parser.normalFormat == VSDT_E3DCOLOR ? parser.normalOffset : MeshInfo::invalidOffset;
   meshInfo.colorOffset = parser.colorFormat == VSDT_E3DCOLOR ? parser.colorOffset : MeshInfo::invalidOffset;
   meshInfo.texcoordFormat = parser.texcoordFormat;

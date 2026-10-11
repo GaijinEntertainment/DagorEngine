@@ -1,5 +1,6 @@
 options gen2
 
+require daslib/tune
 require llvm_tune_scope_client_lib
 require llvm_tune_scope_client_lib2
 

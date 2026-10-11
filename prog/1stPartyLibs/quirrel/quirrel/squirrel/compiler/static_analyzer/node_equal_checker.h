@@ -411,7 +411,6 @@ public:
     case TO_BNOT:
     case TO_NEG:
     case TO_TYPEOF:
-    case TO_STATIC_MEMO:
     case TO_INLINE_CONST:
     case TO_RESUME:
     case TO_AWAIT:

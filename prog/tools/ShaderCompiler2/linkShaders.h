@@ -45,6 +45,9 @@ struct ShadersBindump
   IntervalList intervals;
   bindump::Ptr<ShaderStateBlock> empty_block;
   SerializableTab<ShaderStateBlock *> state_blocks;
+  SerializableTab<RenderPassObject *> render_passes;
+  SerializableTab<RenderPassGroup *> render_pass_groups;
+  SerializableTab<FramebufferLayoutObject *> framebuffer_layouts;
   SerializableTab<ShaderClass *> shaderClasses;
   SerializableTab<shaders::RenderState> renderStates;
   SerializableTab<TabFsh> shadersFsh;
@@ -99,6 +102,13 @@ void add_stcode_validation_mask(int stcode_id, shader_layout::StcodeConstValidat
 
 void count_shader_stats(unsigned &uniqueFshBytesInFile, unsigned &uniqueFshCountInFile, unsigned &uniqueVprBytesInFile,
   unsigned &uniqueVprCountInFile, unsigned &stcodeBytes, const shc::TargetContext &ctx);
+
+struct RenderPassLinkTables
+{
+  Tab<int> passes;
+  Tab<int> groups;
+};
+RenderPassLinkTables link_render_pass_tables(ShadersBindump &shaders, shc::TargetContext &ctx);
 
 bool load_shaders_bindump(ShadersBindump &shaders, ShadersBindumpHeader &header, bindump::IReader &full_file_reader,
   shc::TargetContext &ctx);

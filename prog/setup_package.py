@@ -84,7 +84,7 @@ def _processLibs(libs, *, kind, basePath, libsBasePath, mountPoint, jamSubdir,
 
     wildcards = ""
     for ext in extForVromfs:
-      if len(glob.glob(f'{libDirectory}/**/*{ext}', recursive=True)) > 0:
+      if any(os.path.basename(f) != '_shaders.blk' for f in glob.glob(f'{libDirectory}/**/*{ext}', recursive=True)):
         wildcards += f'  wildcard:t="*{ext}"\n'
 
     if len(wildcards) > 0:

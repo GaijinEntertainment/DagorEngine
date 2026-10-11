@@ -25,12 +25,13 @@ NavMeshPhysProxy::NavMeshPhysProxy(ecs::EntityId eid, float dt)
 
   if (navphys_collision_data_ecs_query(*g_entity_mgr, eid,
         [this](const TMatrix &transform, const float nphys_coll__capsuleRadius, const float nphys_coll__capsuleHeight,
-          const Point3 navmesh_phys__currentWalkVelocity, const float nphys__mass) {
+          const Point3 navmesh_phys__currentWalkVelocity, const float nphys__mass, const Point3 nphys_coll__capsuleOffset) {
           loc.fromTM(transform);
           mass = nphys__mass;
           velocity = navmesh_phys__currentWalkVelocity;
           radius = nphys_coll__capsuleRadius;
           height = nphys_coll__capsuleHeight;
+          capsuleOffset = nphys_coll__capsuleOffset;
         }))
   {
     return;
@@ -38,6 +39,7 @@ NavMeshPhysProxy::NavMeshPhysProxy(ecs::EntityId eid, float dt)
   // fallback code path
   mass = 0.f;
   velocity.zero();
+  capsuleOffset.zero();
   radius = 0.f;
   height = 0.f;
 }
@@ -55,6 +57,7 @@ dag::ConstSpan<CollisionObject> NavMeshPhysProxy::getCollisionObjects() const
 {
   TMatrix tm;
   loc.toTM(tm);
+  tm.setcol(3, tm * capsuleOffset);
   dacoll::set_collision_object_tm(nvmphys_capsule_coll, tm);
   dacoll::set_vert_capsule_shape_size(nvmphys_capsule_coll, radius, height);
   return dag::ConstSpan<CollisionObject>(&nvmphys_capsule_coll, 1);

@@ -88,6 +88,7 @@ public:
     SQString *GetDocString(SQDocStringId id) const;
     SQString *GetNativeDeclString(SQDocStringId id) const;
     SQUnsignedInteger32 GetDocStringRegistrySlotCount() const;
+    const SQObjectPtr &TypeName(SQObjectType type) const;
 #ifndef NO_GARBAGE_COLLECTOR
     SQInteger CollectGarbage(SQVM *vm);
     void RunMark(SQVM *vm,SQCollectable **tchain);
@@ -97,7 +98,6 @@ public:
     SQAllocContext _alloc_ctx;
     SQObjectPtrVec *_metamethodnames;
     SQObjectPtr _metamethodsmap;
-    SQObjectPtrVec *_systemstrings;
     SQObjectPtrVec *_types;
     SQStringTable *_stringtable;
     RefTable _refs_table;
@@ -129,6 +129,12 @@ public:
         SQObjectPtr func, source, line, awaited, kind, locals, localsMore;
         SQObjectPtr name, type, value, count, gstate, captured;
     } _traceSchema;
+
+    struct FuncInfosSchema {
+        SQObjectPtr native, pure, nodiscard, fastcall, name, freevars, src, line, parameters, defparams;
+        SQObjectPtr required_params, paramscheck, varargs, typecheck, return_type_mask, varargs_type_mask, doc;
+        SQObjectPtr num_params, num_required, thisParam;
+    } _funcInfosSchema;
 
     static const SQRegFunction _table_default_type_methods_funcz[];
     static const SQRegFunction _array_default_type_methods_funcz[];
@@ -163,11 +169,14 @@ public:
 
 #if SQ_STORE_DOC_OBJECTS
     sqvector<SQString *> *_docstrings;
+    SQObjectPtr _docstringids;
 #endif
     SQUnsignedInteger32 rand_seed;
     SQUnsignedInteger32 table_iter_seed;
     SQUnsignedInteger32 watchdog_last_alive_time_msec;
     SQUnsignedInteger32 watchdog_threshold_msec;
+    SQObjectPtr _typeNames[24]; // constraint: one per bit of _RT_MASK
+    SQObjectPtr _trueString, _falseString;
 private:
     char *_scratchpad;
     SQInteger _scratchpadsize;

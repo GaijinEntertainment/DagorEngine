@@ -8,6 +8,49 @@
 #include <libTools/dagFileRW/splineShape.h>
 
 
+void DagMapChannels::fill(const MeshData &mesh)
+{
+  count = 0;
+
+  if (mesh.cvert.size() && mesh.cface.size() >= mesh.face.size())
+  {
+    color.resize(mesh.cvert.size());
+    for (int cv = 0; cv < color.size(); ++cv)
+    {
+      color[cv] = Point3(mesh.cvert[cv].r, mesh.cvert[cv].g, mesh.cvert[cv].b);
+    }
+
+    channel[count].numtv = color.size();
+    channel[count].num_tv_coords = 3;
+    channel[count].channel_id = 0;
+    channel[count].tverts = &color[0].x;
+    channel[count].tface = reinterpret_cast<const DagBigTFace *>(mesh.cface.data());
+    ++count;
+  }
+
+  for (int m = 0; m < NUMMESHTCH; ++m)
+  {
+    if (!mesh.tvert[m].size() || mesh.tface[m].size() < mesh.face.size())
+    {
+      continue;
+    }
+
+    tc[m] = mesh.tvert[m];
+    for (int tv = 0; tv < tc[m].size(); ++tv)
+    {
+      tc[m][tv].y = 1 - tc[m][tv].y;
+    }
+
+    channel[count].numtv = tc[m].size();
+    channel[count].num_tv_coords = 2;
+    channel[count].channel_id = m + 1;
+    channel[count].tverts = &tc[m][0].x;
+    channel[count].tface = reinterpret_cast<const DagBigTFace *>(mesh.tface[m].data());
+    ++count;
+  }
+}
+
+
 DagSaver::DagSaver() : nodes(tmpmem) { rootofs = nodenum = 0; }
 
 
@@ -278,7 +321,17 @@ bool DagSaver::save_dag_bigmesh(int vertn, const Point3 *vert, int facen, const 
   cb.beginBlock();
   cb.writeInt(DAG_NODE_OBJ);
 
-  if ((vertn < 0xFFFF) && (facen < 0xFFFF))
+  bool narrowChannels = true;
+  for (int i = 0; i < numch; ++i)
+  {
+    if (texch[i].numtv >= 0xFFFF)
+    {
+      narrowChannels = false;
+      break;
+    }
+  }
+
+  if ((vertn < 0xFFFF) && (facen < 0xFFFF) && narrowChannels)
   {
     if (!saveMesh(vertn, vert, facen, face, numch, texch))
       return false;

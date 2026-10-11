@@ -85,7 +85,7 @@ public:
     addAnnotation(new DeformMatPropsAnnotation(lib));
 
     G_STATIC_ASSERT(sizeof(PhysMat::MatID) == sizeof(int32_t));
-    auto pType = new das::TypeDecl(das::Type::tInt);
+    auto pType = new das::TypeDecl(das::Type::tInt, das::cppBindingLineInfo());
     pType->alias = "MatID";
     addAlias(pType);
 

@@ -254,6 +254,13 @@ bool dirty_render_target()
     {
       render.setViewport(vp.x, vp.y, vp.w, vp.h, vp.minz, vp.maxz);
     }
+    else if (nextRtState.changed)
+    {
+      // setRT is skipped for equal targets, so reset the viewport here like the full path does
+      int w, h;
+      if (d3d::get_target_size(w, h))
+        render.setViewport(0, 0, w, h, 0.f, 1.f);
+    }
 
     nextRtState.changed = false;
 
@@ -538,6 +545,8 @@ bool d3d::getview(int &x, int &y, int &w, int &h, float &minz, float &maxz)
 
 bool d3d::setscissor(int x, int y, int w, int h)
 {
+  // a pending RT change resets the scissor when applied, so apply it first
+  dirty_render_target();
   render.setScissor(x,y,w,h);
   return true;
 }

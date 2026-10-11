@@ -594,18 +594,10 @@ def f_re_sortsub(a : int; b : int) : int {
 
 // ----- differential driver -----
 
-var GRID : array<float>
-var BOOLS : array<bool>
-var IGRID : array<int>
-var UGRID : array<uint>
-
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-    BOOLS <- [true, false]
-    IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
-    UGRID <- [0u, 1u, 3u, 42u, 1000u, 4294967295u]
-}
+var GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
+var BOOLS <- [true, false]
+var IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
+var UGRID <- [0u, 1u, 3u, 42u, 1000u, 4294967295u]
 
 // Componentwise compares for the vector differential arms.
 def cmp3f(t : T?; a, b : float3) {
@@ -632,7 +624,7 @@ def cmp3f_approx(t : T?; a, b : float3) {
 }
 
 [test]
-def test_flatten_const(t : T?) {
+def test_flatten_const(t : T?) {    // nolint:STYLE038 -- flat list of independent differential arms, one per const-fold rule
     t |> run("x * 1.0 -> x") @(t : T?) {
         for (v in GRID) {
             t |> equal(f_mul1_flat(v), f_mul1(v))

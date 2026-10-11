@@ -3,7 +3,7 @@ options gen2
 require dastest/testing_boost public
 
 def make_iter(n : int) : iterator<int> {
-    return <- generator<int>() <| $() {
+    return <- generator<int> {
         for (i in range(n)) {
             yield i
         }

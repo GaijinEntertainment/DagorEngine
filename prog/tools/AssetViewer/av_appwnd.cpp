@@ -94,6 +94,7 @@
 #include <propPanel/control/container.h>
 #include <propPanel/control/toolbarContainer.h>
 #include <propPanel/control/treeInterface.h>
+#include <propPanel/messageQueue.h>
 #include <propPanel/propPanel.h>
 #include <propPanel/toastManager.h>
 #include <propPanel/c_util.h>
@@ -145,6 +146,7 @@
 #include <osApiWrappers/dag_unicode.h>
 #include <Shlobj.h>
 #endif
+#include "av_riGenArea.h"
 
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
@@ -233,7 +235,6 @@ enum
   TOOLBAR_PLUGIN_TYPE,
   TOOLBAR_THEME_SWITCHER_TYPE,
   COMPOSITE_EDITOR_TREEVIEW_TYPE,
-  COMPOSITE_EDITOR_PPANEL_TYPE,
   CANOPY_EDITOR_TYPE,
   SHORTCUTS_EDITOR_TYPE,
 };
@@ -360,7 +361,7 @@ static inline float fov_to_deg(float fov) { return RAD_TO_DEG * 2.f * atan(1.f /
 
 
 AssetViewerApp::AssetViewerApp(IWndManager *manager, const char *open_fname) :
-  GenericEditorAppWindow(open_fname, manager),
+  GenericEditorAppWindow(open_fname, manager, ScreenshotDlgMode::ASSET_VIEWER),
   plugin(midmem),
   curPluginId(-1),
   curAsset(NULL),
@@ -403,6 +404,7 @@ AssetViewerApp::~AssetViewerApp()
     da_profiler::tick_frame();
   }
 
+  editor_core_shutdown_test_runtime(); // This is just a fallback. Normal shutdown already calls this in onClosing().
   texconvcache::build_on_demand_tex_factory_cease_loading(false);
   environment::destroyEnviEntity(assetLtData);
   switchToPlugin(-1);
@@ -420,6 +422,7 @@ AssetViewerApp::~AssetViewerApp()
   asset_back_reference_viewer_dialog.reset();
   release_suboptimal_asset_collector_dialog();
   getModelessWindowControllers().releaseAllWindows();
+  mManager->reset();
   mManager->unregisterWindowHandler(this);
   PropPanel::remove_delayed_callback(*this);
   PropPanel::release();
@@ -750,7 +753,7 @@ ModelessWindowControllerList AssetViewerApp::getModelessWindowControllers()
 {
   ModelessWindowControllerList controllers;
 
-  GenericEditorAppWindow::getModelessWindowControllers(controllers, ScreenshotDlgMode::ASSET_VIEWER);
+  GenericEditorAppWindow::getModelessWindowControllers(controllers);
 
   for (int i = 0; i < ged.getViewportCount(); ++i)
     ged.getViewport(i)->getModelessWindowControllers(controllers);
@@ -994,19 +997,10 @@ void *AssetViewerApp::onWmCreateWindow(int type)
       compositeEditor.compositeTreeView =
         eastl::make_unique<CompositeEditorTree>(&compositeEditor, nullptr, 0, 0, 0, 0, "CompositeEditorTree");
 
-      getMainMenu()->setCheckById(CM_WINDOW_COMPOSITE_EDITOR, isCompositeEditorShown());
-      return compositeEditor.compositeTreeView.get();
-    }
-    break;
-
-    case COMPOSITE_EDITOR_PPANEL_TYPE:
-    {
-      if (compositeEditor.compositePropPanel)
-        return nullptr;
-
       compositeEditor.compositePropPanel = eastl::make_unique<CompositeEditorPanel>(&compositeEditor, 0, 0, 0, 0);
 
-      return compositeEditor.compositePropPanel.get();
+      getMainMenu()->setCheckById(CM_WINDOW_COMPOSITE_EDITOR, true);
+      return compositeEditor.compositeTreeView.get();
     }
     break;
 
@@ -1035,15 +1029,6 @@ void *AssetViewerApp::onWmCreateWindow(int type)
 
     default: return nullptr;
   }
-}
-
-static void onDelayedRemoveCompositeEditorWindow(void *)
-{
-  CompositeEditor &compositeEditor = get_app().getCompositeEditor();
-  if (compositeEditor.compositeTreeView)
-    get_app().getWndManager()->removeWindow(compositeEditor.compositeTreeView.get());
-  else if (compositeEditor.compositePropPanel)
-    get_app().getWndManager()->removeWindow(compositeEditor.compositePropPanel.get());
 }
 
 bool AssetViewerApp::onWmDestroyWindow(void *window)
@@ -1114,27 +1099,11 @@ bool AssetViewerApp::onWmDestroyWindow(void *window)
     return true;
   }
 
-  if (compositeEditor.compositeTreeView && compositeEditor.compositePropPanel &&
-      (compositeEditor.compositeTreeView.get() == window || compositeEditor.compositePropPanel.get() == window))
+  if (compositeEditor.compositeTreeView && compositeEditor.compositeTreeView.get() == window)
   {
     getMainMenu()->setCheckById(CM_WINDOW_COMPOSITE_EDITOR, false);
 
-    // We can't call removeWindow directly here on the other window because it would cause a crash in two cases:
-    //   - when closing the tree window when it's movable (undocked)
-    //   - when closing the application (in the destructor of VirtualWindow)
-    add_delayed_callback((delayed_callback)&onDelayedRemoveCompositeEditorWindow, 0);
-
-    // Let the two ifs below handle the actual releasing of the windows.
-  }
-
-  if (compositeEditor.compositeTreeView && compositeEditor.compositeTreeView.get() == window)
-  {
     compositeEditor.compositeTreeView.reset();
-    return true;
-  }
-
-  if (compositeEditor.compositePropPanel && compositeEditor.compositePropPanel.get() == window)
-  {
     compositeEditor.compositePropPanel.reset();
     return true;
   }
@@ -1212,17 +1181,11 @@ void AssetViewerApp::showCompositeEditor(bool show)
   if (isCompositeEditorShown() == show)
     return;
 
-  // Ensure that both windows are either closed or shown.
-  if (compositeEditor.compositePropPanel)
-    mManager->removeWindow(compositeEditor.compositePropPanel.get());
   if (compositeEditor.compositeTreeView)
     mManager->removeWindow(compositeEditor.compositeTreeView.get());
 
   if (show)
-  {
     mManager->setWindowType(nullptr, COMPOSITE_EDITOR_TREEVIEW_TYPE);
-    mManager->setWindowType(nullptr, COMPOSITE_EDITOR_PPANEL_TYPE);
-  }
 
   compositeEditor.onCompositeEditorVisibilityChanged(show);
 }
@@ -1742,8 +1705,7 @@ bool AssetViewerApp::reloadAsset(const DagorAsset &asset, int asset_name_id, int
            (check_asset_depends_on_asset(curAsset, &asset) || (curPlugin() && curPlugin()->reloadOnAssetChanged(&asset))))
   {
     if (asset.getType() == DAEDITOR3.getAssetTypeId("rendInst"))
-      if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
-        rigenSrv->createRtRIGenData(-1024, -1024, 32, 8, 8, 8, {}, -1024, -1024);
+      av_create_rt_rigen_data();
     if (curPlugin() && !curPlugin()->reloadAsset(curAsset))
     {
       int id = curPluginId;
@@ -2010,6 +1972,8 @@ void AssetViewerApp::saveGlobalSettings()
 
 void AssetViewerApp::onClosing()
 {
+  editor_core_shutdown_test_runtime();
+
   if (!assetFile.empty()) // If a workspace has been selected and Asset Viewer has been "fully" started.
   {
     DAEDITOR3.saveAssetsTags();
@@ -2030,7 +1994,11 @@ bool AssetViewerApp::canCloseScene(const char *title)
   ::dagor_idle_cycle();
   IGenEditorPlugin *sup = getTypeSupporter(curAsset);
   if (curAsset)
+  {
     switchToPlugin(-1);
+    if (curPlugin()) // If the user canceled the save confirmation message box.
+      return false;
+  }
 
   ::dagor_idle_cycle();
 
@@ -2977,7 +2945,12 @@ bool AssetViewerApp::loadProject(const char *)
   if (!assetToInitiallySelect.empty())
   {
     if (const DagorAsset *asset = DAEDITOR3.getAssetByName(assetToInitiallySelect))
+    {
       selectAsset(*asset);
+
+      // The selection change notification is a delayed callback, and it creates the controls that loadState() below sets.
+      PropPanel::process_message_queue();
+    }
     assetToInitiallySelect.clear();
 
     if (mPropPanel)
@@ -3001,14 +2974,19 @@ bool AssetViewerApp::saveProject(const char *)
   if (blockSave)
     return true;
 
+  const DagorAsset *unsavedComposite = compositeEditor.saveIfModified() ? nullptr : compositeEditor.getEditedAsset();
+
   console->showConsole();
   console->startLog();
   console->startProgress();
 
+  if (unsavedComposite)
+    console->addMessage(ILogWriter::WARNING, "Composite <%s> is not saved", unsavedComposite->getNameTypified());
+
   for (int i = 0; i < plugin.size(); ++i)
     plugin[i]->onSaveLibrary();
 
-  assetMgr.saveAssetsMetadata();
+  assetMgr.saveAssetsMetadata(-1, unsavedComposite);
   DAEDITOR3.saveAssetsTags();
 
   bool showCon = (console->hasErrors() || console->hasWarnings());
@@ -3560,7 +3538,15 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
         getConsole().addMessage(ILogWriter::NOTE, "Saving asset <%s>", curAsset->getNameTypified());
         if (IGenEditorPlugin *p = curPlugin())
           p->onSaveLibrary();
-        assetMgr.saveAssetMetadata(*curAsset);
+
+        // When editing a sub-composite, save must do the same action as save from Composite Editor's viewport context
+        // menu. Normal saving would keep sub-composite editing active and reload the asset, dropping the editing state.
+        if (compositeEditor.isEditingSubComposite())
+          compositeEditor.saveSubCompositeEditing();
+        else if (curAsset == compositeEditor.getEditedAsset() && !compositeEditor.saveIfModified())
+          getConsole().addMessage(ILogWriter::WARNING, "Composite <%s> is not saved", curAsset->getNameTypified());
+        else
+          assetMgr.saveAssetMetadata(*curAsset);
       }
       return 1;
 
@@ -4011,8 +3997,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     }
       return 1;
 
-    case CM_WINDOW_PPANEL: showPropWindow(mPropPanel == nullptr); return 1;
-
+    case CM_WINDOW_PPANEL:
     case CM_WINDOW_PPANEL_ACCELERATOR: showPropWindow(mPropPanel == nullptr); return 1;
 
     case CM_WINDOW_VIEWPORT:
@@ -4385,12 +4370,17 @@ bool AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder
       changedAssetsList.delPtr(prev);
   }
 
+  const String prevPackName = curAssetPackName;
+  const String prevPkgName = curAssetPkgName;
+  const bool prevScriptChangeFlag = scriptChangeFlag;
+
   curAsset = asset;
   fillPropPanelHasBeenCalled = false;
 
   ec_set_busy(true);
   if (discardAssetTexMode && curAsset != prev)
     applyDiscardAssetTexMode();
+  bool switched = true;
   if (curAsset)
   {
     if (curAsset != prev)
@@ -4400,10 +4390,7 @@ bool AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder
       IGenEditorPlugin *sup = getTypeSupporter(curAsset);
       scriptChangeFlag = false;
 
-      if (sup)
-        switchToPlugin(getPluginIdx(sup));
-      else
-        switchToPlugin(-1);
+      switched = switchToPlugin(sup ? getPluginIdx(sup) : -1);
     }
   }
   else
@@ -4411,7 +4398,20 @@ bool AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder
     scriptChangeFlag = false;
     curAssetPackName = NULL;
     curAssetPkgName.clear();
-    switchToPlugin(-1);
+    switched = switchToPlugin(-1);
+  }
+
+  // The plugin keeps the previous asset when the user cancels the save confirmation message box.
+  if (!switched)
+  {
+    curAsset = prev;
+    curAssetPackName = prevPackName;
+    curAssetPkgName = prevPkgName;
+    scriptChangeFlag = prevScriptChangeFlag;
+    if (discardAssetTexMode)
+      applyDiscardAssetTexMode();
+    ec_set_busy(false);
+    return false;
   }
 
   if (canopyEditorWindow)
@@ -4430,7 +4430,11 @@ void AssetViewerApp::onAvSelectAsset(DagorAsset *asset, const char *name)
   if (asset)
   {
     if (!onAssetSelectionChanged(asset, nullptr))
+    {
+      if (curAsset)
+        mTreeView->setSelectedAssetInActiveTab(*curAsset);
       return;
+    }
   }
 
   if (mTagManager)
@@ -4920,18 +4924,18 @@ void AssetViewerApp::renderUI()
 
   if (mTreeView)
   {
-    DAEDITOR3.imguiBegin("Assets Tree");
-    mTreeView->updateImgui();
-    DAEDITOR3.imguiEnd();
+    IDaEditor3Engine::ScopedImguiWindow window("Assets Tree");
+    mTreeView->updateImgui(window.canSubmitContents());
   }
 
   if (mTagManager)
   {
     bool open = true;
-    DAEDITOR3.imguiBegin("Tag Management", &open);
-    if (!mTagManager->updateImgui())
-      open = false;
-    DAEDITOR3.imguiEnd();
+    {
+      IDaEditor3Engine::ScopedImguiWindow window("Tag Management", &open);
+      if (!mTagManager->updateImgui(window.canSubmitContents()))
+        open = false;
+    }
 
     if (!open)
       DAEDITOR3.showTagManagerWindow(false);
@@ -4940,9 +4944,8 @@ void AssetViewerApp::renderUI()
   if (mPropPanel)
   {
     bool open = true;
-    DAEDITOR3.imguiBegin(*mPropPanel, &open);
-    mPropPanel->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(*mPropPanel, &open); window.canSubmitContents())
+      mPropPanel->updateImgui();
 
     if (!open)
       showPropWindow(false);
@@ -4951,14 +4954,14 @@ void AssetViewerApp::renderUI()
   if (compositeEditor.compositeTreeView && compositeEditor.compositePropPanel)
   {
     bool open = true;
-    DAEDITOR3.imguiBegin("Composit Outliner", &open);
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow("Composit Outliner", &open); window.canSubmitContents())
+    {
+      if (ImGui::BeginChild("tree", ImVec2(0.0f, 250.0f), ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoBackground))
+        compositeEditor.compositeTreeView->updateImgui();
+      ImGui::EndChild();
 
-    if (ImGui::BeginChild("tree", ImVec2(0.0f, 250.0f), ImGuiChildFlags_ResizeY, ImGuiWindowFlags_NoBackground))
-      compositeEditor.compositeTreeView->updateImgui();
-    ImGui::EndChild();
-
-    compositeEditor.compositePropPanel->updateImgui();
-    DAEDITOR3.imguiEnd();
+      compositeEditor.compositePropPanel->updateImgui();
+    }
 
     if (!open)
       showCompositeEditor(false);
@@ -4967,9 +4970,10 @@ void AssetViewerApp::renderUI()
   if (canopyEditorWindow)
   {
     bool open = true;
-    DAEDITOR3.imguiBegin(*canopyEditorWindow, &open);
-    canopyEditorWindow->updateImgui();
-    DAEDITOR3.imguiEnd();
+    {
+      IDaEditor3Engine::ScopedImguiWindow window(*canopyEditorWindow, &open);
+      canopyEditorWindow->updateImgui(window.canSubmitContents());
+    }
 
     if (!open)
       showCanopyEditor(false);
@@ -4986,9 +4990,9 @@ void AssetViewerApp::renderUI()
 
     const bool canClose = console->isCanClose() && !console->isProgress();
     bool open = true;
-    DAEDITOR3.imguiBegin("AssetViewer console", canClose ? &open : nullptr);
-    console->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow("AssetViewer console", canClose ? &open : nullptr);
+        window.canSubmitContents())
+      console->updateImgui();
 
     if (!open)
       console->hide();
@@ -5000,9 +5004,8 @@ void AssetViewerApp::renderUI()
     ImGui::SetNextWindowPos(ImVec2(viewport->Size.x * 0.35f, viewport->Size.y * 0.15f), ImGuiCond_FirstUseEver);
 
     bool open = true;
-    DAEDITOR3.imguiBegin("Keyboard Shortcuts", &open);
-    mShortcutsPanel->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow("Keyboard Shortcuts", &open); window.canSubmitContents())
+      mShortcutsPanel->updateImgui();
 
     if (!open)
       mManager->removeWindow(mShortcutsPanel);
@@ -5075,8 +5078,6 @@ void AssetViewerApp::updateImgui()
   renderUI();
 
   PropPanel::before_end_frame();
-
-  editor_core_test_runtime_end_frame();
 
   renderingImGui = false;
 }

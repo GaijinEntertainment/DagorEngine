@@ -281,11 +281,7 @@ def test_array_return(t : T?) {
     t |> run("non-copyable return type (array)") @(tt : T?) {
         var del <- OnCollect()
         del += @(n : int) : array<int> {
-            var res : array<int>
-            for (i in range(n)) {
-                res |> push(i)
-            }
-            return <- res
+            return <- [for (i in range(n)); i]
         }
         let result <- del.invoke(3)
         tt |> equal(length(result), 3)

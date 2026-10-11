@@ -91,20 +91,39 @@ Context::Context()
   ShaderGlobal::set_sampler(inTexSmpVarId, d3d::request_sampler(smpInfo));
 }
 
-static void update_context_settings()
+MotionBlurSettings get_live_settings()
 {
-  if (g_ctx)
-  {
-    g_ctx->maxBlurPx = settingsFromConfig.maxBlurPx;
-    g_ctx->maxSamples = settingsFromConfig.maxSamples;
-    g_ctx->rampCutoff = settingsFromConfig.rampCutoff;
-    g_ctx->rampStrength = settingsFromConfig.rampStrength;
-    g_ctx->vignetteStrength = settingsFromConfig.vignetteStrength;
-    g_ctx->blurAmount = settingsFromConfig.strength;
-    g_ctx->cancelCameraMotion = settingsFromConfig.cancelCameraMotion;
-    g_ctx->useAllSamples = settingsFromConfig.useAllSamples;
-  }
+  MotionBlurSettings settings;
+  if (!g_ctx)
+    return settings;
+
+  settings.maxBlurPx = g_ctx->maxBlurPx;
+  settings.maxSamples = g_ctx->maxSamples;
+  settings.rampCutoff = g_ctx->rampCutoff;
+  settings.rampStrength = g_ctx->rampStrength;
+  settings.vignetteStrength = g_ctx->vignetteStrength;
+  settings.strength = g_ctx->blurAmount;
+  settings.cancelCameraMotion = g_ctx->cancelCameraMotion;
+  settings.useAllSamples = g_ctx->useAllSamples;
+  return settings;
 }
+
+void set_live_settings(const MotionBlurSettings &settings)
+{
+  if (!g_ctx)
+    return;
+
+  g_ctx->maxBlurPx = settings.maxBlurPx;
+  g_ctx->maxSamples = settings.maxSamples;
+  g_ctx->rampCutoff = settings.rampCutoff;
+  g_ctx->rampStrength = settings.rampStrength;
+  g_ctx->vignetteStrength = settings.vignetteStrength;
+  g_ctx->blurAmount = settings.strength;
+  g_ctx->cancelCameraMotion = settings.cancelCameraMotion;
+  g_ctx->useAllSamples = settings.useAllSamples;
+}
+
+static void update_context_settings() { set_live_settings(settingsFromConfig); }
 
 static void initialize()
 {
@@ -298,21 +317,12 @@ static void imguiWindow()
     static bool lastSaveResult = false;
     if (ImGui::Button("Save settings"))
     {
-      MotionBlurSettings settingsToSave;
-      settingsToSave.maxBlurPx = g_ctx->maxBlurPx;
-      settingsToSave.maxSamples = g_ctx->maxSamples;
-      settingsToSave.strength = g_ctx->blurAmount;
-      settingsToSave.rampCutoff = g_ctx->rampCutoff;
-      settingsToSave.rampStrength = g_ctx->rampStrength;
-      settingsToSave.vignetteStrength = g_ctx->vignetteStrength;
-      settingsToSave.cancelCameraMotion = g_ctx->cancelCameraMotion;
-      settingsToSave.useAllSamples = g_ctx->useAllSamples;
-
+      MotionBlurSettings settingsToSave = get_live_settings();
       lastSaveResult = save_config_callback(settingsToSave);
       saveResultTime = ImGui::GetTime();
     }
 
-    if (saveResultTime > 0.0f && ImGui::GetTime() - saveResultTime < 2.0f)
+    if (saveResultTime > 0.0 && ImGui::GetTime() - saveResultTime < 2.0)
     {
       ImGui::SameLine();
       ImGui::Text("Settings saved to config blk");

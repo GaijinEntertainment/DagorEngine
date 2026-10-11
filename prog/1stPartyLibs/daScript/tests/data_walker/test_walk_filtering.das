@@ -136,9 +136,7 @@ def test_can_visit_filtering(t : T?) {
         var walker = new SkipStructWalker()
         var s = SimpleStruct(x = 10, y = 2.5)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         // Should see canVisitStructure but NOT beforeStruct/afterStruct or field values
         t |> equal(find(walker.log, "canVisitStructure:false") != -1, true)
@@ -151,9 +149,7 @@ def test_can_visit_filtering(t : T?) {
         var walker = new SkipArrayWalker()
         var arr = [1, 2, 3]
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
-            }
+            adapter |> walk_data(unsafe(addr(arr)), typeinfo rtti_typeinfo(arr))
         }
         // Should NOT see any Int callbacks or beforeArray
         t |> equal(walker.log, "")
@@ -168,9 +164,7 @@ def test_can_visit_array_data(t : T?) {
         var walker = new SkipArrayDataWalker()
         var arr = [1, 2, 3]
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
-            }
+            adapter |> walk_data(unsafe(addr(arr)), typeinfo rtti_typeinfo(arr))
         }
         // Should see beforeArray/afterArray but no element callbacks
         t |> equal(find(walker.log, "beforeArray") != -1, true)
@@ -186,13 +180,9 @@ def test_can_visit_array_data(t : T?) {
 def test_can_visit_table_data(t : T?) {
     t |> run("skip table data entries") @(t : T?) {
         var walker = new SkipTableDataWalker()
-        var tab : table<string; int>
-        tab |> insert("a", 1)
-        tab |> insert("b", 2)
+        var tab <- {"a" => 1, "b" => 2}
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
-            }
+            adapter |> walk_data(unsafe(addr(tab)), typeinfo rtti_typeinfo(tab))
         }
         t |> equal(find(walker.log, "beforeTable") != -1, true)
         t |> equal(find(walker.log, "afterTable") != -1, true)
@@ -211,9 +201,7 @@ def test_can_visit_pointer(t : T?) {
         var s = SimpleStruct(x = 99, y = 1.0)
         var p : SimpleStruct? = unsafe(addr(s))
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
-            }
+            adapter |> walk_data(unsafe(addr(p)), typeinfo rtti_typeinfo(p))
         }
         // Should NOT walk through the pointer
         t |> equal(walker.log, "")
@@ -229,9 +217,7 @@ def test_selective_struct_visit(t : T?) {
         walker.skip_name = "SimpleStruct"
         var s = NestedStruct(inner = SimpleStruct(x = 1, y = 2.0), tag = "outer")
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         // Should visit NestedStruct but skip SimpleStruct
         t |> equal(find(walker.log, "visit:NestedStruct") != -1, true)

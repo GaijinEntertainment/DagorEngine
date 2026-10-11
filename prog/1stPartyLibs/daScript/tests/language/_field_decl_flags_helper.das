@@ -15,7 +15,7 @@ require daslib/ast_boost
 [structure_macro(name = "check_add_field_flags")]
 class private CheckAddFieldFlagsMacro : AstStructureAnnotation {
     def override apply(var st : StructurePtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         let expected_abstract = find_arg(args, "is_abstract") ?as tBool ?? false
         let expected_inherited = find_arg(args, "is_inherited") ?as tBool ?? false
         var found = false

@@ -9,6 +9,7 @@
 #include <generic/dag_functionRef.h>
 #include <ioSys/dag_genIo.h>
 #include <debug/dag_debug.h>
+#include <startup/dag_globalSettings.h>
 #include <meshoptimizer/include/meshoptimizer.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_info.h>
@@ -500,8 +501,10 @@ void ShaderMesh::patchData(void *base, ShaderMatVdata &smvd)
     int mat_idx = (int)(intptr_t)re.mat.get();
     if (mat_idx >= smvd.getMaterialCount())
     {
-      logerr("#%d material in RElem, %d material(s) in ShaderMatVdata - mismatched versions of *.grp and *desc.bin", mat_idx,
-        smvd.getMaterialCount());
+      char buf[4 << 10];
+      logerr(
+        "#%d material in RElem, %d material(s) in ShaderMatVdata - mismatched versions of *.grp and *desc.bin, re-export the asset%s",
+        mat_idx, smvd.getMaterialCount(), dgs_get_fatal_context(buf, sizeof(buf)));
       mat_idx = 0;
     }
     re.mat.init(smvd.getMaterial(mat_idx));

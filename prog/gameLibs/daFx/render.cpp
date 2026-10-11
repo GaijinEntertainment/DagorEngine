@@ -945,9 +945,9 @@ void render_debug_opt(ContextId cid)
     else
     {
       int rndSeed = i;
-      float c0 = _frnd(rndSeed) * 0.5 + 0.5;
-      float c1 = _frnd(rndSeed) * 0.5 + 0.5;
-      float c2 = _frnd(rndSeed) * 0.5 + 0.5;
+      float c0 = _frnd(rndSeed) * 0.5f + 0.5f;
+      float c1 = _frnd(rndSeed) * 0.5f + 0.5f;
+      float c2 = _frnd(rndSeed) * 0.5f + 0.5f;
       c = E3DCOLOR(c0 * 127, c1 * 127, c2 * 127, 127);
     }
 

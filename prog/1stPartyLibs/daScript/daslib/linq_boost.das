@@ -24,7 +24,6 @@ def private clone_iterator_type(it : TypeDeclPtr) : TypeDeclPtr {
     return <- res
 }
 
-// Bucket-surface lambda stamping. When the chain element is the group_by_lazy shape `tuple<K, array<E>>`, an untyped lambda passed to a direct `<bind>._1 |> <op>(<lambda>)` call can't infer against the fully generic tier-2 params (error 30303) — but the chain type knows E, so the macro stamps it, same as the outer-param injection in visit().
 class private BucketLambdaStamper : AstVisitor {
     bindName : string
     elemT : TypeDeclPtr
@@ -98,9 +97,7 @@ class private AstCallMacro_LinqPred2 : AstCallMacro {
         macro_verify(arg0type != null, prog, call.at, "input argument is not inferred yet")
         macro_verify(arg0type.isIterator || arg0type.isGoodArrayType, prog, call.at, "expecting iterator or array")
         macro_verify(!arg0type.firstType.isAutoOrAlias, prog, call.at, "iterable type cannot be auto or alias")
-        // replacing function
         var iterType = clone_iterator_type(arg0type)
-        // bucket-surface inner lambdas (`<bind>._1 |> select/max/…(<untyped lambda>)`) get the bucket element type stamped before the rewrite — see BucketLambdaStamper above
         var bucketBind = "_"
         if (call.arguments[1] is ExprMakeBlock) {
             var bblk = (call.arguments[1] as ExprMakeBlock)._block
@@ -111,7 +108,6 @@ class private AstCallMacro_LinqPred2 : AstCallMacro {
         stamp_bucket_reducer_lambdas(call.arguments[1], bucketBind, iterType)
         var res : ExpressionPtr
         if (call.arguments[1] is ExprMakeBlock) {
-            // named-variable form: the argument is already a `$(x) => …` block (e.g. emitted by linq_das).
             var blk = call.arguments[1] as ExprMakeBlock
             var inner = blk._block as ExprBlock
             macro_verify(length(inner.arguments) == 1, prog, call.at, "{predName}: block argument must take exactly one parameter")
@@ -122,7 +118,6 @@ class private AstCallMacro_LinqPred2 : AstCallMacro {
         } else {
             res = qmacro($c(predName)($e(arg0), $(_ : $t(iterType)) => $e(call.arguments[1])))
         }
-        // allow inner `_` to shadow an outer `_` when chains nest (e.g. `_where(_.x._in(arr |> _select(_.y)))`)
         (((res as ExprCall).arguments[1] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags.can_shadow = true
         res.force_at(call.at)
         return res
@@ -281,7 +276,6 @@ class private AstCallMacro_LinqOrderByKeys : AstCallMacro {
         var iterType = clone_iterator_type(arg0type)
         var res : ExpressionPtr
         if (call.arguments[1] is ExprMakeBlock) {
-            // named-variable form (e.g. emitted by linq_das): inject the element type onto the user's parameter and pass the `$(x) => (k1, k2, …)` block through verbatim.
             var blk = call.arguments[1] as ExprMakeBlock
             var inner = blk._block as ExprBlock
             macro_verify(length(inner.arguments) == 1, prog, call.at, "{predName}: key block must take exactly one parameter")
@@ -290,7 +284,6 @@ class private AstCallMacro_LinqOrderByKeys : AstCallMacro {
             }
             res = qmacro($c(predName)($e(arg0), $e(call.arguments[1]), $e(call.arguments[2])))
         } else {
-            // bare-expression form: wrap `(_.a, _.b)` into `$(_ : iterType) => (_.a, _.b)`.
             res = qmacro($c(predName)($e(arg0), $(_ : $t(iterType)) => $e(call.arguments[1]), $e(call.arguments[2])))
         }
         (((res as ExprCall).arguments[1] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags.can_shadow = true
@@ -325,11 +318,9 @@ class private AstCallMacro_LinqPredII2 : AstCallMacro {
         macro_verify(call.arguments[1]._type != null, prog, call.at, "expecting iterator or array")
         macro_verify(call.arguments[1]._type.isIterator || call.arguments[1]._type.isGoodArrayType, prog, call.at, "expecting iterator or array")
         macro_verify(!call.arguments[0]._type.firstType.isAutoOrAlias, prog, call.at, "iterator or array type cannot be auto or alias")
-        // replacing function
         var iterType = clone_iterator_type(call.arguments[0]._type)
         var res : ExpressionPtr
         if (call.arguments[2] is ExprMakeBlock) {
-            // named-variable form: the argument is already a `$(x) => …` block — inject the element type onto the user's parameter and pass it through (see AstCallMacro_LinqPred2 for rationale).
             var blk = call.arguments[2] as ExprMakeBlock
             var inner = blk._block as ExprBlock
             macro_verify(length(inner.arguments) == 1, prog, call.at, "{predName}: block argument must take exactly one parameter")
@@ -340,7 +331,6 @@ class private AstCallMacro_LinqPredII2 : AstCallMacro {
         } else {
             res = qmacro($c(predName)($e(call.arguments[0]), $e(call.arguments[1]), $(_ : $t(iterType)) => $e(call.arguments[2])))
         }
-        // allow inner `_` to shadow an outer `_` when chains nest
         (((res as ExprCall).arguments[2] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags.can_shadow = true
         res.force_at(call.at)
         return res
@@ -463,11 +453,6 @@ def private parse_equi_join_on(var on_pred : Expression?; prog : ProgramPtr; at 
     return parts
 }
 
-def private rename_var_in_expr(var src : Expression?; from_name, to_name : string) : Expression? {
-    // Clone ``src`` and rename every ``ExprVar`` named ``from_name`` to ``to_name``.
-    return clone_and_rename_var(src, from_name, to_name)
-}
-
 class private AstCallMacro_LinqJoinBase : AstCallMacro {
     //! Base call macro for ``_join`` and ``_left_join`` equi-join sugar.
     fnName = "join"
@@ -487,9 +472,8 @@ class private AstCallMacro_LinqJoinBase : AstCallMacro {
         var iterTypeB = clone_iterator_type(srcbType)
         let la_fresh = "__la__"
         let lb_fresh = "__lb__"
-        var keya_body = rename_var_in_expr(parts.keya_body, parts.larg_name, la_fresh)
-        var keyb_body = rename_var_in_expr(parts.keyb_body, parts.rarg_name, lb_fresh)
-        // Auto-type the result lambda's args when untyped — symmetric with `on`, which accepts `(l,r)=>...` without types. Lets users write `_join(..., $(l,r)=>l.id==r.id, $(l,r)=>(l.x,r.y))` against any source — including from_decs_template(type<T>) where the iterator element is a tuple<...> painful to spell by hand. param0 is always TA; param1 comes from `result_param1_type`: plain `_join` → TB; `_group_join` → array<TB>. `_left_join` / `_right_join` / `_full_outer_join` need Option<T> on one or both sides, so they return null and their untyped result lambdas stay user-spelled.
+        var keya_body = clone_and_rename_var(parts.keya_body, parts.larg_name, la_fresh)
+        var keyb_body = clone_and_rename_var(parts.keyb_body, parts.rarg_name, lb_fresh)
         var p1type = self.result_param1_type(iterTypeB, call.at)
         if (p1type != null) {
             var resultArg = call.arguments[3]
@@ -516,8 +500,6 @@ class private AstCallMacro_LinqJoinBase : AstCallMacro {
         res.force_at(call.at)
         return res
     }
-    // param1 element type for an untyped 2-arg result lambda, or null to leave it user-spelled (the Option-side
-    // outer joins). param0 is always TA. Plain join → TB; group join → array<TB>.
     def result_param1_type(iterTypeB : TypeDeclPtr; at : LineInfo) : TypeDeclPtr {
         return null
     }
@@ -537,7 +519,6 @@ class private LinqGroupJoin : AstCallMacro_LinqJoinBase {
     //! implements _group_join(srca, srcb, on, result) shorthand — C# GroupJoin (outer).
     override fnName = "group_join"
     def override result_param1_type(iterTypeB : TypeDeclPtr; at : LineInfo) : TypeDeclPtr {
-        // array<TB> — the match collection. Clear const/ref so it's a bare element array, matching the bucket type.
         var elemB = clone_type(iterTypeB)
         elemB.flags.constant = false
         elemB.flags.ref = false
@@ -576,7 +557,6 @@ class private LinqCrossJoin : AstCallMacro {
         macro_verify(srcbType.isIterator || srcbType.isGoodArrayType, prog, call.at, "second argument must be an iterator or array")
         macro_verify(!srcaType.firstType.isAutoOrAlias, prog, call.at, "first argument element type cannot be auto or alias")
         macro_verify(!srcbType.firstType.isAutoOrAlias, prog, call.at, "second argument element type cannot be auto or alias")
-        // Auto-type the result lambda's args when untyped — symmetric with _join's result lambda. Lets the linq_das reader (and users) write `_cross_join(a, b, $(x, y) => ...)` without spelling element types.
         var iterTypeA = clone_iterator_type(srcaType)
         var iterTypeB = clone_iterator_type(srcbType)
         var resultArg = call.arguments[2]
@@ -625,7 +605,6 @@ class private LinqSelectMany : AstCallMacro {
         var iterTypeA = clone_iterator_type(srcaType)
         inject_block_param_type(call.arguments[1], 0, iterTypeA)
         inject_block_param_type(call.arguments[2], 0, iterTypeA)
-        // make_call (not qmacro) so the deferred stage dispatches as a call-macro, not a plain function.
         var res = make_call(call.at, "_select_many_2")
         var rc = res as ExprCallMacro
         rc.arguments |> emplace <| call.arguments[0]
@@ -662,13 +641,13 @@ class private LinqSelectMany2 : AstCallMacro {
 
 [call_macro(name="_group_by_lazy")]
 class private LinqGroupByLazy : AstCallMacro_LinqPred2 {
-    //! implements _group_by_lazy(iterator, key) shorthand notation that expands into group_by_lazy(iterator, $(_) => key). Yields one ``tuple<key; array<elem>>`` per bucket — IGrouping shape, suitable for in-memory per-group processing (top-N per group, group-scoped filtering, grouped JSON emission). See spec ``history/dasSQLITE/API_REWORK.md "### 19-group_by"``.
+    //! implements _group_by_lazy(iterator, key) shorthand notation that expands into group_by_lazy(iterator, $(_) => key). Yields one ``tuple<key; array<elem>>`` per bucket — IGrouping shape, suitable for in-memory per-group processing (top-N per group, group-scoped filtering, grouped JSON emission).
     override predName = "group_by_lazy"
 }
 
 [call_macro(name="_group_by")]
 class private LinqGroupBy : AstCallMacro_LinqPred2 {
-    //! implements _group_by(iterator, key) shorthand notation that expands into group_by_lazy(iterator, $(_) => key) — same backing function as ``_group_by_lazy``. In-memory both names are aliases:
+    //! implements _group_by(iterator, key) shorthand notation that expands into group_by_lazy(iterator, $(_) => key) — the same macro as ``_group_by_lazy`` under two names
     override predName = "group_by_lazy"
 }
 

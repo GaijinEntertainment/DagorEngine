@@ -52,7 +52,7 @@ inline constexpr ContextId InvalidContextId = nullptr;
 extern bool use_batched_skinned_vertex_processor;
 
 inline constexpr size_t hardware_destructive_interference_size =
-#if defined(__x86_64__) || defined(_M_X64)
+#if (defined(__x86_64__) || defined(_M_X64)) && !defined(_M_ARM64EC)
   128;
 #else
   64;
@@ -463,6 +463,7 @@ struct MeshInfo
   // Only needed for skinned meshes
   uint32_t indicesOffset = invalidOffset; // only needed for skinned meshes
   uint32_t weightsOffset = invalidOffset; // only needed for skinned meshes
+  uint32_t corOffset = invalidOffset;     // center of rotation channel, invalid when the mesh has none
   // ~Only needed for skinned meshes
 
   // Only needed for meshes with textures
@@ -642,6 +643,8 @@ struct ChannelParser : public ShaderChannelsEnumCB
   uint32_t indicesOffset = 0;
   uint32_t weightsFormat = -1;
   uint32_t weightsOffset = 0;
+  uint32_t corFormat = -1;
+  uint32_t corOffset = 0;
 
   void enum_shader_channel(int usage, int usage_index, int type, int vb_usage, int vb_usage_index, ChannelModifier mod,
     int stream) override;
@@ -685,6 +688,7 @@ struct AdditionalSettings
   bool retainOmmBakeResults = false; // keep baked buffers alive for the OMM debug viewer
   int ommCacheRetentionFrames = 900; // frames an unreferenced OMM cache entry survives; 0 evicts at once
   int ommCacheIdleBudget = 64 << 20; // bytes the unreferenced OMM cache entries may hold together; 0 keeps none
+  int ommTextureWaitAttempts = 1000; // frames to wait for an OMM alpha texture to reach full quality
   bool strictAssetChecks = false;    // report bad assets in place of a work-around for them
   bool enableHair = true;            // hair is both VRAM and GPU time intensive
   // Cull fx particles projected smaller than this fraction of screen height, <= 0 keeps all

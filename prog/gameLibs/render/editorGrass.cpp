@@ -10,7 +10,6 @@
 EditorGrass::EditorGrass(const DataBlock &level_grass_blk, const DataBlock &params_blk) : RandomGrass(level_grass_blk, params_blk)
 {
   useSorting = false;
-  vboForMaxElements = true;
 
   landMask = new LandMask(level_grass_blk, GRID_SIZE, true);
 };
@@ -134,13 +133,6 @@ void EditorGrass::setLayerDensity(int layer_i, float new_density)
     const ShaderMesh::RElem &elem = lod.mesh->getAllElems()[0];
     numInstancesInCell = min(numInstancesInCell, (unsigned int)MAX_VERTICES_IN_CELL / elem.numv);
     lod.numInstancesInCell = numInstancesInCell;
-
-    if (numInstancesInCell == 0)
-      return;
-
-    lod.singleVb = (lod.numInstancesInCell >= INSTANCES_IN_SINGLE_VB);
-    lod.numv = lod.numInstancesInCell * elem.numv * (lod.singleVb ? 1 : VB_GRID_SIZE * VB_GRID_SIZE);
-    lod.numf = lod.numInstancesInCell * elem.numf;
   }
 }
 

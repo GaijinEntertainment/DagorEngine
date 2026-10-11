@@ -21,6 +21,8 @@ using WStringIndexRef = ExtraDataArray<const wchar_t>;
 using RaytraceGeometryDescriptionBufferResourceReferenceSetListRef =
   ExtraDataArray<const RaytraceGeometryDescriptionBufferResourceReferenceSet>;
 using D3D12_RAYTRACING_GEOMETRY_DESC_ListRef = ExtraDataArray<const D3D12_RAYTRACING_GEOMETRY_DESC>;
+using RaytraceBottomAccelerationStructureBuildEntryListRef = ExtraDataArray<const RaytraceBottomAccelerationStructureBuildEntry>;
+using RaytraceTopAccelerationStructureBuildEntryListRef = ExtraDataArray<const RaytraceTopAccelerationStructureBuildEntry>;
 #endif
 using ImageViewStateListRef = ExtraDataArray<const ImageViewState>;
 using ImagePointerListRef = ExtraDataArray<Image *const>;

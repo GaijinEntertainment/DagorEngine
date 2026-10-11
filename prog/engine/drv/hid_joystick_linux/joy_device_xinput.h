@@ -2,6 +2,7 @@
 #pragma once
 
 #include "joy_device.h"
+#include <drv/hid/dag_hiXInputMappings.h>
 #include <EASTL/unique_ptr.h>
 
 namespace HumanInput
@@ -43,6 +44,14 @@ public:
 
   bool isConnected() override { return joydev->isConnected(); }
   bool isXinputCompatible() const override { return true; }
+  bool isGamepadLayout() const override { return true; }
+
+  // fixed cut, ignores the scale setup
+  bool isStickDeadZoneSetupSupported() const override { return true; }
+  float getStickDeadZoneAbs(int stick_idx) const override
+  {
+    return float(stick_idx ? rThumbDeadZone : lThumbDeadZone) / JOY_XINPUT_MAX_AXIS_VAL;
+  }
 
   void updateDevice(UDev::Device const &dev) override { joydev->updateDevice(dev); }
   const char *getModel() const override { return joydev->getModel(); }

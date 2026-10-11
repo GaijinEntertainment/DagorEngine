@@ -9,7 +9,7 @@
 
 #include <debug/dag_debug.h>
 
-#define MINIMAL_LIGHT_MUL 0.01
+#define MINIMAL_LIGHT_MUL 0.01f
 
 
 //==================================================================================================
@@ -508,7 +508,7 @@ void NodeFlagsModfier::fillNodeGrp(PropPanel::ContainerPropertyControl &panel, c
 
   if (settings.showLinkedRes)
   {
-    if (!settings.disableLinkedRes || (settings.disableLinkedRes && flg.linkedRes && *flg.linkedRes))
+    if (!settings.disableLinkedRes || (flg.linkedRes && *flg.linkedRes))
     {
       subGrp = maxGroup->createGroup(getLinkedResGrpPid(idx), "Linked resource");
       G_ASSERT(subGrp);
@@ -605,7 +605,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
   {
     case PID_FLG_RENDERABLE:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_RENDERABLE, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_RENDERABLE);
@@ -613,7 +612,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_COLLIDABLE:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_COLLIDABLE, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_COLLIDABLE);
@@ -621,7 +619,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_CASTSHADOWS:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_CASTSHADOWS, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_CASTSHADOWS);
@@ -629,7 +626,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_CASTSHADOWS_ON_SELF:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_CASTSHADOWS_ON_SELF, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_CASTSHADOWS_ON_SELF);
@@ -637,7 +633,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_FADE:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_FADE, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_FADE);
@@ -645,7 +640,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_FADENULL:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_FADENULL, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_FADENULL);
@@ -653,7 +647,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_OCCLUDER:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_OCCLUDER, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_OCCLUDER);
@@ -666,7 +659,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_AUTOMATIC_VISRANGE:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       if (settings.showVisRange)
         panel.setEnabledById(getVisrangePid(nodeIdx), !(bool)iVal);
@@ -678,7 +670,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_BACK_FACE_DYNLIGHT:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_BACK_FACE_DYNAMIC_LIGHTING, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_BACK_FACE_DYNAMIC_LIGHTING);
@@ -686,7 +677,6 @@ bool NodeFlagsModfier::onPPChange(PropPanel::ContainerPropertyControl &panel, in
 
     case PID_FLG_DO_NOT_MIX_LODS:
       iVal = panel.getBool(pid);
-      G_ASSERT(iVal != -1);
 
       iVal ? client.onNodeFlagsChanged(nodeIdx, StaticGeometryNode::FLG_DO_NOT_MIX_LODS, ~0)
            : client.onNodeFlagsChanged(nodeIdx, 0, ~StaticGeometryNode::FLG_DO_NOT_MIX_LODS);
@@ -749,7 +739,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_RENDERABLE;
     setPids.push_back(PID_FLG_RENDERABLE);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_RENDERABLE;
     setPids.push_back(-PID_FLG_RENDERABLE);
@@ -761,7 +751,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_COLLIDABLE;
     setPids.push_back(PID_FLG_COLLIDABLE);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_COLLIDABLE;
     setPids.push_back(-PID_FLG_COLLIDABLE);
@@ -773,7 +763,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_CASTSHADOWS;
     setPids.push_back(PID_FLG_CASTSHADOWS);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_CASTSHADOWS;
     setPids.push_back(-PID_FLG_CASTSHADOWS);
@@ -785,7 +775,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_CASTSHADOWS_ON_SELF;
     setPids.push_back(PID_FLG_CASTSHADOWS_ON_SELF);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_CASTSHADOWS_ON_SELF;
     setPids.push_back(-PID_FLG_CASTSHADOWS_ON_SELF);
@@ -797,7 +787,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_FADE;
     setPids.push_back(PID_FLG_FADE);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_FADE;
     setPids.push_back(-PID_FLG_FADE);
@@ -809,7 +799,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_FADENULL;
     setPids.push_back(PID_FLG_FADENULL);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_FADENULL;
     setPids.push_back(-PID_FLG_FADENULL);
@@ -821,7 +811,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_OCCLUDER;
     setPids.push_back(PID_FLG_OCCLUDER);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_OCCLUDER;
     setPids.push_back(-PID_FLG_OCCLUDER);
@@ -833,7 +823,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_AUTOMATIC_VISRANGE;
     setPids.push_back(PID_FLG_AUTOMATIC_VISRANGE);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_AUTOMATIC_VISRANGE;
     setPids.push_back(-PID_FLG_AUTOMATIC_VISRANGE);
@@ -845,7 +835,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_BACK_FACE_DYNAMIC_LIGHTING;
     setPids.push_back(PID_FLG_BACK_FACE_DYNLIGHT);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_BACK_FACE_DYNAMIC_LIGHTING;
     setPids.push_back(-PID_FLG_BACK_FACE_DYNLIGHT);
@@ -857,7 +847,7 @@ bool NodeFlagsModfier::onPPBtnPressed(PropPanel::ContainerPropertyControl &panel
     orFlags |= StaticGeometryNode::FLG_DO_NOT_MIX_LODS;
     setPids.push_back(PID_FLG_DO_NOT_MIX_LODS);
   }
-  else if (!check)
+  else
   {
     andFlags |= StaticGeometryNode::FLG_DO_NOT_MIX_LODS;
     setPids.push_back(-PID_FLG_DO_NOT_MIX_LODS);

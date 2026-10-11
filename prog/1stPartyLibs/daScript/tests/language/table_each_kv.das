@@ -10,10 +10,7 @@ struct Pt {
 [test]
 def test_each_kv(t : T?) {
     t |> run("int keys, int values") @(t : T?) {
-        var tab : table<int; int>
-        for (i in range(10)) {
-            tab |> insert(i, i * 10)
-        }
+        var tab <- {for (i in range(10)); i => i * 10}
         var n = 0
         var ksum = 0
         var vsum = 0
@@ -27,9 +24,7 @@ def test_each_kv(t : T?) {
         t |> equal(vsum, 450)
     }
     t |> run("string keys, float values") @(t : T?) {
-        var tab : table<string; float>
-        tab |> insert("a", 1.5)
-        tab |> insert("b", 2.5)
+        var tab <- {"a" => 1.5, "b" => 2.5}
         var s = 0.0
         for (kv in each_kv(tab)) {
             s += kv.value
@@ -37,9 +32,7 @@ def test_each_kv(t : T?) {
         t |> equal(s, 4.0)
     }
     t |> run("struct values") @(t : T?) {
-        var tab : table<int; Pt>
-        tab |> insert(1, Pt(x = 10, y = 20))
-        tab |> insert(2, Pt(x = 30, y = 40))
+        var tab <- {1 => Pt(x = 10, y = 20), 2 => Pt(x = 30, y = 40)}
         var xs = 0
         var ys = 0
         for (kv in each_kv(tab)) {
@@ -58,14 +51,8 @@ def test_each_kv(t : T?) {
         t |> equal(n, 0)
     }
     t |> run("agrees with zipped keys/values") @(t : T?) {
-        var tab : table<int; string>
-        tab |> insert(1, "one")
-        tab |> insert(2, "two")
-        tab |> insert(3, "three")
-        var roundTrip : table<int; string>
-        for (kv in each_kv(tab)) {
-            roundTrip |> insert(kv.key, kv.value)
-        }
+        var tab <- {1 => "one", 2 => "two", 3 => "three"}
+        let roundTrip <- {for (kv in each_kv(tab)); kv.key => kv.value}
         t |> equal(length(roundTrip), length(tab))
         for (k, v in keys(tab), values(tab)) {
             t |> success(key_exists(roundTrip, k))

@@ -124,3 +124,13 @@ float TreeRendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &d
   CachedCollisionObjectInfo::onImpulse(impulse, dir, pos, point_vel, collision_normal, flags, user_data);
   return min(absorbedImpulse, impulse);
 }
+
+float NonDestrBushImpulseThresholdData::onImpulse(float impulse, const Point3 & /*dir*/, const Point3 & /*pos*/, float /*point_vel*/,
+  const Point3 & /*collision_normal*/, uint32_t flags, int32_t /*user_data*/)
+{
+  if (flags & CIF_NO_DAMAGE)
+    return impulse;
+
+  refreshTimeToLive();
+  return min(impulse, thresImpulse);
+}

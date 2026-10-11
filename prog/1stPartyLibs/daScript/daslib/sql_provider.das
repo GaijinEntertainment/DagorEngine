@@ -14,9 +14,9 @@ require strings
 //! everything dialect- or handle-specific routes through a `SqlProviderInfo` entry
 //! registered here. Registries live per macro context (see skills/das_macros.md "Macro
 //! modules each compile into their own context"), so each consulting macro module calls
-//! `sql_register_present_providers` (in `daslib/sql_boost`, which pulls each present
-//! provider's shim in via `require ?<mod>` — this core module stays provider-blind so
-//! shims can require it without cycling). Contract: modules/dasSQLITE/PROVIDER_CONTRACT.md.
+//! `sql_register_present_providers` (in `daslib/sql_boost`, which pulls every shim in
+//! through the `sql_provider` group — this core module stays provider-blind so shims
+//! can require it without cycling). Contract: modules/dasSQLITE/PROVIDER_CONTRACT.md.
 
 enum public SqlPkReport {
     //! How `insert(row)` learns the new row's primary key.
@@ -30,6 +30,7 @@ bitfield public SqlProviderCaps {
     client_udfs
     returning
     distinct_on
+    ci_like     //! set when the provider's LIKE ignores case
 }
 
 struct public SchemaFromCol {

@@ -1,6 +1,6 @@
 if ! $(__DEFAULTS_INCLUDED) {
   if $(JAMVERSION) != 2.5-G8 {
-    Exit Jam 2.5-G8 required (found: $(JAMVERSION))! Please, update. ;
+    Exit "Jam 2.5-G8 required, found: $(JAMVERSION). Please, update." ;
   }
   __DEFAULTS_INCLUDED = 1 ;
 
@@ -153,8 +153,8 @@ if ! $(__DEFAULTS_INCLUDED) {
     SSEVersion ?= 2 ;
   }
   VCMathOption ?= -fp:fast ;
-  # TBAA (-fstrict-aliasing): on by default for posix/sony compilers, off for *-windows-msvc triple
-  if $(Platform) in windows xboxOne scarlett android || $(VCMathOption) != -fp:fast { StrictAliasing ?= no ; } else { StrictAliasing ?= yes ; }
+  # TBAA (-fstrict-aliasing): on everywhere but non fast math (tools) builds
+  if $(VCMathOption) != -fp:fast { StrictAliasing ?= no ; } else { StrictAliasing ?= yes ; }
 
   if $(FullOOPEnabled) = yes {
     Exceptions ?= yes ;
@@ -188,7 +188,7 @@ if ! $(__DEFAULTS_INCLUDED) {
         echo Found Xcode at /Applications/$(XcodeVER).app/Contents/Developer ;
         GLOBAL_BuildDevtool = build_devtool_macosx_xcode ;
       } else {
-        exit FATAL\: Failed to find Xcode path ;
+        exit "FATAL: Failed to find Xcode path" ;
       }
     }
 
@@ -405,7 +405,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       _platform = $(_platform)-$(NSwitchSdkVer) ;
     } else if $(Platform) in windows {
       local ver = [ MATCH "([^\.]+)\.([^\.]+)\.(.*)" : $(WinSdkVer) ] ;
-      if ! $(ver[3] { ver = [ MATCH "([^\.]+)\.(.*)" : $(WinSdkVer) ] ; }
+      if ! $(ver[3]) { ver = [ MATCH "([^\.]+)\.(.*)" : $(WinSdkVer) ] ; }
       if ( ! $(ver[2]) ) || ( ! $(ver[1]) in win win32 ) { Exit bad WinSdkVer\=$(WinSdkVer) ; }
       if $(ver[2]) = sdk && $(ver[3]) { ver = $(ver[3]) ; } else { ver = $(ver[2-]:J) ; }
       _platform = $(_platform)-$(ver) ;

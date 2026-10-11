@@ -20,8 +20,7 @@ namespace soa4
 
 // Vertical-line (XZ) max-height accumulator: track the highest surface at the query XZ, optionally
 // only at or below `limit`. When wantNormal is set, normalBox holds the winning triangle's
-// unnormalized geometric normal in box space; positions map world->box as b = w * scale, so the
-// world normal is normalize(normalBox * scale) (diagonal-transform covariance).
+// unnormalized geometric normal in box space, which soa4::normalBoxToWorld maps to a world one.
 // CULL_DOWN on the height walkers skips downward-facing triangles (the vertical-query equivalent of
 // a backface cull); it is a template argument because every caller knows it statically.
 struct HeightAcc

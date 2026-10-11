@@ -28,6 +28,7 @@
 #include <3d/dag_lockSbuffer.h>
 
 #include <EASTL/utility.h>
+#include <EASTL/fixed_vector.h>
 
 #include <cstring>
 
@@ -855,9 +856,9 @@ static bool validate_program(const Context &ctx, uint32_t pipeline_index)
 }
 
 static bool execute_compute(Context &ctx, BarrierTracker &barriers, const Resources &resources, const ommGpuDispatchChain &chain,
-  const ommGpuComputeDesc &desc, d3d::SamplerHandle sampler)
+  const ommGpuComputeDesc &desc, const char *name, d3d::SamplerHandle sampler)
 {
-  TIME_D3D_PROFILE_NAME(omm_compute_dispatch, desc.name ? desc.name : "omm_compute_dispatch");
+  TIME_D3D_PROFILE_NAME(omm_compute_dispatch, name ? name : "omm_compute_dispatch");
 
   const auto *info = static_cast<const ommGpuPipelineInfoDesc *>(ctx.pipelineInfo);
   if (!info || desc.pipelineIndex >= info->pipelineNum || !validate_program(ctx, desc.pipelineIndex))
@@ -878,7 +879,7 @@ static bool execute_compute(Context &ctx, BarrierTracker &barriers, const Resour
   if (!ctx.computeShaders[desc.pipelineIndex].dispatchGroups(desc.gridWidth, desc.gridHeight, 1))
   {
     const char *shaderName = get_compute_shader_name(pipeline);
-    logerr("omm: compute dispatch <%s> failed for shader <%s>", desc.name ? desc.name : "", shaderName ? shaderName : "");
+    logerr("omm: compute dispatch <%s> failed for shader <%s>", name ? name : "", shaderName ? shaderName : "");
     return false;
   }
 
@@ -887,9 +888,9 @@ static bool execute_compute(Context &ctx, BarrierTracker &barriers, const Resour
 }
 
 static bool execute_compute_indirect(Context &ctx, BarrierTracker &barriers, const Resources &resources,
-  const ommGpuDispatchChain &chain, const ommGpuComputeIndirectDesc &desc, d3d::SamplerHandle sampler)
+  const ommGpuDispatchChain &chain, const ommGpuComputeIndirectDesc &desc, const char *name, d3d::SamplerHandle sampler)
 {
-  TIME_D3D_PROFILE_NAME(omm_compute_indirect_dispatch, desc.name ? desc.name : "omm_compute_indirect_dispatch");
+  TIME_D3D_PROFILE_NAME(omm_compute_indirect_dispatch, name ? name : "omm_compute_indirect_dispatch");
 
   const auto *info = static_cast<const ommGpuPipelineInfoDesc *>(ctx.pipelineInfo);
   if (!info || desc.pipelineIndex >= info->pipelineNum || !validate_program(ctx, desc.pipelineIndex))
@@ -916,7 +917,7 @@ static bool execute_compute_indirect(Context &ctx, BarrierTracker &barriers, con
   if (!ctx.computeShaders[desc.pipelineIndex].dispatchIndirect(indirect.buffer, static_cast<int>(desc.indirectArgByteOffset)))
   {
     const char *shaderName = get_compute_shader_name(pipeline);
-    logerr("omm: indirect compute dispatch <%s> failed for shader <%s>", desc.name ? desc.name : "", shaderName ? shaderName : "");
+    logerr("omm: indirect compute dispatch <%s> failed for shader <%s>", name ? name : "", shaderName ? shaderName : "");
     return false;
   }
 
@@ -1519,22 +1520,29 @@ static bool dispatch_internal(Context &ctx, const BakeInput &input, const Resour
 
   const d3d::SamplerHandle sampler = request_sampler(sdkConfig.runtimeSamplerDesc);
   BarrierTracker barriers;
+
+  eastl::fixed_vector<const char *, 8> labelNames;
   for (uint32_t i = 0; i < chain->numDispatches; ++i)
   {
     const ommGpuDispatchDesc &desc = chain->dispatches[i];
     switch (desc.type)
     {
       case ommGpuDispatchType_Compute:
-        if (!execute_compute(ctx, barriers, resources, *chain, desc.compute, sampler))
+        if (!execute_compute(ctx, barriers, resources, *chain, desc.compute,
+              labelNames.empty() ? desc.compute.name : labelNames.back(), sampler))
           return false;
         break;
       case ommGpuDispatchType_ComputeIndirect:
-        if (!execute_compute_indirect(ctx, barriers, resources, *chain, desc.computeIndirect, sampler))
+        if (!execute_compute_indirect(ctx, barriers, resources, *chain, desc.computeIndirect,
+              labelNames.empty() ? desc.computeIndirect.name : labelNames.back(), sampler))
           return false;
         break;
       case ommGpuDispatchType_DrawIndexedIndirect: logerr("omm: graphics dispatch is not supported"); return false;
-      case ommGpuDispatchType_BeginLabel:
-      case ommGpuDispatchType_EndLabel: break;
+      case ommGpuDispatchType_BeginLabel: labelNames.push_back(desc.beginLabel.debugName); break;
+      case ommGpuDispatchType_EndLabel:
+        if (!labelNames.empty())
+          labelNames.pop_back();
+        break;
       default: return false;
     }
   }

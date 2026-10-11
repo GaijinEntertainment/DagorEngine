@@ -40,7 +40,7 @@ def public temp_string(str : string; cb : block<(res : string#) : void>) {
 [tag_function_macro(tag="temp_string_tag")]
 class TempStringMacro : AstFunctionAnnotation {
     //! Function annotation that enables temporary string optimization.
-    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (call.arguments[0] is ExprStringBuilder) return true
 
         errors := "temp_string argument must be a string with substitutions (string builder)"

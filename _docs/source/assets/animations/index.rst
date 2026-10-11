@@ -7,5 +7,6 @@ Animations
    :caption: Contents:
 
    animation_export.md
+   cor_skinning.md
 
 

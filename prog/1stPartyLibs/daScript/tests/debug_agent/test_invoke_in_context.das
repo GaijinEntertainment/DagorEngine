@@ -32,12 +32,10 @@ def agent_reset() {
 
 [export, pinvoke]
 def agent_read_counter(var result : int?) {
-    unsafe {
-        *result = invoke_counter
-    }
+    *result = invoke_counter
 }
 
-def setup_invoke_agent(ctx : Context) {
+def setup_invoke_agent(_ctx : Context) {
     install_new_debug_agent(new DapiDebugAgent(), "invoke_test")
 }
 
@@ -103,13 +101,9 @@ def test_invoke_two_args(t : T?) {
 def test_invoke_multiple_calls(t : T?) {
     t |> run("multiple invoke_in_context calls accumulate") @(t : T?) {
         ensure_invoke_agent()
-        unsafe {
-            invoke_in_context(get_debug_agent_context("invoke_test"), "agent_reset")
-        }
-        for (i in range(10)) {
-            unsafe {
-                invoke_in_context(get_debug_agent_context("invoke_test"), "agent_inc")
-            }
+        unsafe(invoke_in_context(get_debug_agent_context("invoke_test"), "agent_reset"))
+        for (_i in range(10)) {
+            unsafe(invoke_in_context(get_debug_agent_context("invoke_test"), "agent_inc"))
         }
         var result = 0
         unsafe {
@@ -124,9 +118,7 @@ def test_local_unchanged(t : T?) {
     t |> run("local copy of global is unchanged by agent") @(t : T?) {
         ensure_invoke_agent()
         invoke_counter = 0
-        unsafe {
-            invoke_in_context(get_debug_agent_context("invoke_test"), "agent_add", 100)
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("invoke_test"), "agent_add", 100))
         // local copy should still be 0
         t |> equal(invoke_counter, 0)
     }

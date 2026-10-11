@@ -68,10 +68,10 @@ def test_block_invoke(t : T?) {
         var b = 0
         bi_twice() ${ a++; }
         t |> equal(a, 2)
-        b = bi_twice_good() <| ${ return a++; }
+        b = bi_twice_good() ${ return a++; }
         t |> equal(a, 4)
         t |> equal(b, 2 + 3)
-        b = bi_twice_good() <| $() {
+        b = bi_twice_good() {
             return a++
         }
         t |> equal(b, 4 + 5)
@@ -82,14 +82,14 @@ def test_block_invoke(t : T?) {
     t |> run("nested block chaining") @(t : T?) {
         var x = 0
         var y = 0
-        bi_func1() <| $() {
-            x += 1
+        bi_func1() {
+            x++
             y += 2
-            bi_func2() <| $() {
+            bi_func2() {
                 x++
                 y += 3
             }
-            bi_func4() <| $() {
+            bi_func4() {
                 x++
                 y += 4
             }
@@ -101,24 +101,24 @@ def test_block_invoke(t : T?) {
         var v1 = 1
         var res = bi_badd(1000, $(a1 : int) : int { return v1++ + a1; })
         t |> equal(res, 1001)
-        res = bi_badd(1000) <| $(a1 : int) : int { return v1 + a1; }
+        res = bi_badd(1000) $(a1 : int) : int { return v1 + a1; }
         t |> equal(res, 1002)
         v1 = 3
-        res = bi_badd(1000) <| $(a1 : int) : int {
+        res = bi_badd(1000) $(a1 : int) : int {
             return v1 + a1
         }
         t |> equal(res, 1003)
     }
     t |> run("nested badd") @(t : T?) {
-        var v1 = 4
-        var res = bi_badd(1000) <| $(a2 : int) : int {
+        let v1 = 4
+        let res = bi_badd(1000) $(a2 : int) : int {
             return bi_badd(2000, $(a3 : int) : int { return a3 + a2 + v1; })
         }
         t |> equal(res, 3004)
     }
     t |> run("radd with ref") @(t : T?) {
         var v1 = 3
-        var res = bi_radd(v1) <| $(var a : int&) : int {
+        let res = bi_radd(v1) $(var a : int&) : int {
             return a++
         }
         t |> equal(res, 3)

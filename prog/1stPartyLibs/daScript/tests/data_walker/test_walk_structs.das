@@ -16,9 +16,7 @@ def test_walk_struct(t : T?) {
         var walker = new LogWalker()
         var s = SimpleStruct(x = 10, y = 2.5)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         var expected = "beforeStruct:SimpleStruct\n"
         expected += "beforeField:x:false\n"
@@ -35,9 +33,7 @@ def test_walk_struct(t : T?) {
         var walker = new LogWalker()
         var s = NestedStruct(inner = SimpleStruct(x = 1, y = 2.0), tag = "test")
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         // Should see: NestedStruct → inner(SimpleStruct → x, y) → tag
         t |> equal(find(walker.log, "beforeStruct:NestedStruct") != -1, true)
@@ -52,9 +48,7 @@ def test_walk_struct(t : T?) {
         var walker = new LogWalker()
         var s = ManyFields(a = 1, b = 2, c = 3, d = 4)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         t |> equal(find(walker.log, "beforeField:a:false") != -1, true)
         t |> equal(find(walker.log, "beforeField:b:false") != -1, true)
@@ -71,9 +65,7 @@ def test_walk_class(t : T?) {
         var walker = new LogWalker()
         var a = new Animal(name = "cat")
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(a), typeinfo rtti_typeinfo(a))
-            }
+            adapter |> walk_data(unsafe(addr(a)), typeinfo rtti_typeinfo(a))
         }
         // Walking a class pointer: beforePtr → beforeStruct:Animal → field:name → afterStruct → afterPtr
         t |> equal(find(walker.log, "beforeStruct:Animal") != -1, true)
@@ -84,9 +76,7 @@ def test_walk_class(t : T?) {
         var walker = new LogWalker()
         var d = new Dog(name = "Rex", breed = "Shepherd")
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(d), typeinfo rtti_typeinfo(d))
-            }
+            adapter |> walk_data(unsafe(addr(d)), typeinfo rtti_typeinfo(d))
         }
         // Derived class should walk Dog fields including breed
         t |> equal(find(walker.log, "beforeStruct:Dog") != -1, true)
@@ -116,9 +106,7 @@ def test_walk_all_scalars_in_struct(t : T?) {
             u64 = 200ul
         )
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         // Verify all scalar callbacks fired
         t |> equal(find(walker.log, "Bool:true") != -1, true)
@@ -149,9 +137,7 @@ def test_walk_vectors_in_struct(t : T?) {
             r = range(10, 20)
         )
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         t |> equal(find(walker.log, "Float2:") != -1, true)
         t |> equal(find(walker.log, "Float3:") != -1, true)

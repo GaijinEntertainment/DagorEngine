@@ -12,11 +12,13 @@
 #include "daScript/simulate/runtime_range.h"
 #include "daScript/simulate/runtime_string_delete.h"
 #include "daScript/simulate/hash.h"
+#include "daScript/simulate/das_qsort_r.h"
 
 #include "daScript/simulate/simulate_nodes.h"
 
 #include "daScript/simulate/simulate_visit_op.h"
 #include "daScript/misc/gc_node.h"
+#include "daScript/simulate/aot_builtin.h"
 #include "daScript/simulate/standalone_ctx_utils.h"
 
 das::Context * get_context ( int stackSize=0 );//link time resolved dependencies
@@ -25,7 +27,20 @@ namespace das
 {
     // fusion function pointers (defined here in main lib, set by fusion lib)
     void (*g_fusionContextFn) ( Context & context, TextWriter & logs, bool enableFusion ) = nullptr;
-    void (*g_resetFusionEngineFn) () = nullptr;
+    void (*g_resetFusionEngineFn) ( bool orphan ) = nullptr;
+
+    // src/ast/ARCHITECTURE.md#program-scoped-symbol-state
+    static __forceinline int32_t programIndexOf ( const Context & context, const Function * fn ) {
+        return context.thisProgram ? context.thisProgram->indexOf(fn) : -1;
+    }
+    static __forceinline int32_t programIndexOf ( const Context & context, const Variable * var ) {
+        return context.thisProgram ? context.thisProgram->indexOf(var) : -1;
+    }
+    // the callee's SimFunction: the program's slot, or - simulating outside any program - the context's table by hash
+    static __forceinline SimFunction * programFunction ( Context & context, Function * fn ) {
+        if ( auto index = programIndexOf(context, fn); index>=0 ) return context.getFunction(index);
+        return context.thisProgram ? nullptr : context.fnByMangledName(fn->getMangledNameHash());
+    }
     // topological sort for the [init] nodes
 
     struct InitSort {
@@ -145,6 +160,8 @@ namespace das
 
         void setE ( const Expression * e, SimNode * n ) {
             e2v[e] = n;
+            // the GC locals gate and LineInfoArg externs read the position via &node->debugInfo
+            if ( n && context.thisHelper ) context.thisHelper->stampSimNode(e, n->debugInfo);
         }
 
         SimNode * getE ( const Expression * e ) {
@@ -612,6 +629,10 @@ namespace das
         if ( copyOnReturn || moveOnReturn ) {
             return context.code->makeNodeUnrollAny<SimNode_CallAndCopyOrMove>(int(arguments.size()), at);
         } else if ( fastCall ) {
+            // include/daScript/simulate/ARCHITECTURE.md#fastcall-depth-guard
+            if ( context.maxFastCallDepth ) {
+                return context.code->makeNodeUnrollAny<SimNode_FastCallChecked>(int(arguments.size()), at);
+            }
             return context.code->makeNodeUnrollAny<SimNode_FastCall>(int(arguments.size()), at);
         } else {
             return context.code->makeNodeUnrollAny<SimNode_Call>(int(arguments.size()), at);
@@ -695,9 +716,7 @@ namespace das
             int bytes = stride;
             SimNode * init0;
             if ( mkv->useCMRES ) {
-                if ( bytes==0 ) {
-                    init0 = nullptr;
-                } else if ( bytes <= 32 ) {
+                if ( bytes <= 32 ) {
                     init0 = context.code->makeNodeUnrollNZ<SimNode_InitLocalCMResN>(bytes, mkv->at, mkv->extraOffset);
                 } else {
                     init0 = context.code->makeNode<SimNode_InitLocalCMRes>(mkv->at, mkv->extraOffset, bytes);
@@ -707,7 +726,7 @@ namespace das
             } else {
                 init0 = context.code->makeNode<SimNode_InitLocal>(mkv->at, mkv->stackTop + mkv->extraOffset, bytes);
             }
-            if (init0) simlist.push_back(init0);
+            simlist.push_back(init0);
         }
         // now fields
         for ( const auto & decl : mkv->variants ) {
@@ -716,7 +735,7 @@ namespace das
             // lets set variant index
             uint32_t voffset = mkv->extraOffset + index*stride;
             auto vconst = new ExprConstInt(mkv->at, int32_t(fieldVariant));
-            vconst->type = new TypeDecl(Type::tInt);
+            vconst->type = new TypeDecl(Type::tInt, vconst->at);
             setE(vconst, context.code->makeNode<SimNode_ConstValue>(vconst->at, vconst->value));
             SimNode * svi;
             if ( mkv->useCMRES ) {
@@ -814,8 +833,8 @@ namespace das
                 if ( mks->constructor ) {
                     uint32_t offset = mks->extraOffset + index*stride;
                     SimNode_CallBase * pCall = (SimNode_CallBase *) context.code->makeNodeUnrollAny<SimNode_CallAndCopyOrMove>(0, mks->at);
-                    DAS_ASSERT(mks->constructor->index!=-1 && "should have failed in type infer otherwise");
-                    pCall->fnPtr = context.getFunction(mks->constructor->index);
+                    pCall->fnPtr = programFunction(context, mks->constructor);
+                    DAS_ASSERT(pCall->fnPtr && "should have failed in type infer otherwise");
                     if ( mks->useCMRES ) {
                         pCall->cmresEval = context.code->makeNode<SimNode_GetCMResOfs>(mks->at, offset);
                     } else if ( mks->useStackRef ) {
@@ -868,7 +887,7 @@ namespace das
             string fakeName = "__makelocal";
             auto fakeVariable = new Variable();
             fakeVariable->name = fakeName;
-            fakeVariable->type = new TypeDecl(Type::tHandle);
+            fakeVariable->type = new TypeDecl(Type::tHandle, fakeVariable->at);
             fakeVariable->type->annotation = ann;
             fakeVariable->at = mks->at;
             if ( mks->useCMRES ) {
@@ -894,9 +913,9 @@ namespace das
             if ( mks->useStackRef && total > 1 ) {
                 // if its stackRef with multiple indices, its actually var[total], and lookup is var[index]
                 indexExpr = new ExprConstInt(mks->at, 0);
-                indexExpr->type = new TypeDecl(Type::tInt);
+                indexExpr->type = new TypeDecl(Type::tInt, indexExpr->at);
                 fakeExpr = new ExprAt(mks->at, fakeExpr, indexExpr);
-                fakeExpr->type = new TypeDecl(Type::tHandle);
+                fakeExpr->type = new TypeDecl(Type::tHandle, fakeExpr->at);
                 fakeExpr->type->annotation = ann;
                 fakeExpr->type->ref = true;
             }
@@ -1205,7 +1224,7 @@ namespace das
             context.thisProgram->error("internal compilation error, ExprAddr func is null", "", "", at, CompilationError::internal_function);
             setE(expr, nullptr);
             return expr;
-        } else if ( expr->func->index<0 ) {
+        } else if ( programIndexOf(context,expr->func)<0 ) {
             context.thisProgram->error("internal compilation error, ExprAddr func->index is unused", "", "", at, CompilationError::internal_function);
             setE(expr, nullptr);
             return expr;
@@ -1217,8 +1236,9 @@ namespace das
         } temp;
         temp.cval = v_zero();
         if ( expr->func->module->isSolidContext ) {
-            DAS_ASSERT(expr->func->index>=0 && "address of unsued function? how?");
-            temp.mnh = expr->func->index;
+            auto index = programIndexOf(context,expr->func);
+            DAS_ASSERT(index>=0 && "address of unsued function? how?");
+            temp.mnh = index;
             setE(expr, context.code->makeNode<SimNode_FuncConstValue>(at,temp.cval));
         } else {
             temp.mnh = expr->func->getMangledNameHash();
@@ -1373,8 +1393,11 @@ namespace das
         auto blk = static_cast<ExprBlock*>(expr->block);
         uint32_t argSp = blk->stackTop;
         auto bt = blk->makeBlockType();
-        auto info = context.thisHelper->makeInvokeableTypeDebugInfo(bt, blk->at);
-        if ( context.gcEnabled || context.debugger  ) {
+        auto debuggerOrGC = context.gcEnabled || context.debugger;
+        // unique: the info cache is keyed by block TYPE, and this info carries per-instance locals
+        auto info = context.thisHelper->makeInvokeableTypeDebugInfo(bt, blk->at, debuggerOrGC);
+        if ( debuggerOrGC ) {
+            info->spaceId = context.thisHelper->currentSpaceId;
             context.thisHelper->appendLocalVariables(info, (Expression *)expr);
         }
         setE(expr, context.code->makeNode<SimNode_MakeBlock>(at, getE(expr->block), argSp, expr->stackTop, info));
@@ -1452,6 +1475,8 @@ namespace das
             }
         }
         pInvoke->debugInfo = at;
+        // the invoked frame reads &pInvoke->debugInfo, not the keep-alive wrapper setE gets
+        if ( context.thisHelper ) context.thisHelper->stampSimNode(expr, pInvoke->debugInfo);
         int nArg = (int) expr->arguments.size();
         if ( expr->isInvokeMethod ) nArg --;
         if ( nArg ) {
@@ -1480,12 +1505,8 @@ namespace das
         auto val = getE(expr->arguments[1]);
         if ( expr->arguments[0]->type->isGoodTableType() ) {
             uint32_t valueTypeSize = expr->arguments[0]->type->secondType->getSizeOf();
-            Type valueType;
-            if ( expr->arguments[0]->type->firstType->isWorkhorseType() ) {
-                valueType = expr->arguments[0]->type->firstType->baseType;
-            } else {
-                auto valueT = expr->arguments[0]->type->firstType->annotation->makeValueType();
-                valueType = valueT->baseType;
+            Type valueType = expr->arguments[0]->type->firstType->getR2VType();
+            if ( !expr->arguments[0]->type->firstType->isWorkhorseType() ) {
                 val = context.code->makeNode<SimNode_CastToWorkhorse>(at, val);
             }
             setE(expr, context.code->makeTableKeyValueNode<SimNode_TableErase>(valueType, at, cont, val, valueTypeSize));
@@ -1503,12 +1524,8 @@ namespace das
         auto val = getE(expr->arguments[1]);
         if ( expr->arguments[0]->type->isGoodTableType() ) {
             DAS_ASSERTF(expr->arguments[0]->type->secondType->getSizeOf()==0,"Expecting value type size to be 0 for set insert");
-            Type valueType;
-            if ( expr->arguments[0]->type->firstType->isWorkhorseType() ) {
-                valueType = expr->arguments[0]->type->firstType->baseType;
-            } else {
-                auto valueT = expr->arguments[0]->type->firstType->annotation->makeValueType();
-                valueType = valueT->baseType;
+            Type valueType = expr->arguments[0]->type->firstType->getR2VType();
+            if ( !expr->arguments[0]->type->firstType->isWorkhorseType() ) {
                 val = context.code->makeNode<SimNode_CastToWorkhorse>(at, val);
             }
             setE(expr, context.code->makeTableKeyValueNode<SimNode_TableSetInsert>(valueType, at, cont, val));
@@ -1531,12 +1548,8 @@ namespace das
                 setE(expr, context.code->makeNode<SimNode_TableFind_WithHash>(at, cont, keyStr, keyHash, valueTypeSize));
             } else {
                 auto val = getE(expr->arguments[1]);
-                Type valueType;
-                if ( keyT->isWorkhorseType() ) {
-                    valueType = keyT->baseType;
-                } else {
-                    auto valueT = keyT->annotation->makeValueType();
-                    valueType = valueT->baseType;
+                Type valueType = keyT->getR2VType();
+                if ( !keyT->isWorkhorseType() ) {
                     val = context.code->makeNode<SimNode_CastToWorkhorse>(at, val);
                 }
                 setE(expr, context.code->makeTableKeyValueNode<SimNode_TableFind>(valueType, at, cont, val, valueTypeSize));
@@ -1560,12 +1573,8 @@ namespace das
                 setE(expr, context.code->makeNode<SimNode_KeyExists_WithHash>(at, cont, keyStr, keyHash, valueTypeSize));
             } else {
                 auto val = getE(expr->arguments[1]);
-                Type valueType;
-                if ( keyT->isWorkhorseType() ) {
-                    valueType = keyT->baseType;
-                } else {
-                    auto valueT = keyT->annotation->makeValueType();
-                    valueType = valueT->baseType;
+                Type valueType = keyT->getR2VType();
+                if ( !keyT->isWorkhorseType() ) {
                     val = context.code->makeNode<SimNode_CastToWorkhorse>(at, val);
                 }
                 setE(expr, context.code->makeTableKeyValueNode<SimNode_KeyExists>(valueType, at, cont, val, valueTypeSize));
@@ -1993,12 +2002,8 @@ namespace das
                 res = context.code->makeNode<SimNode_TableIndex_WithHash>(at, prv, keyStr, keyHash, valueTypeSize, 0);
             } else {
                 auto pidx = getE(expr->index);
-                Type keyType;
-                if ( keyT->isWorkhorseType() ) {
-                    keyType = keyT->baseType;
-                } else {
-                    auto keyValueType = keyT->annotation->makeValueType();
-                    keyType = keyValueType->baseType;
+                Type keyType = keyT->getR2VType();
+                if ( !keyT->isWorkhorseType() ) {
                     pidx = context.code->makeNode<SimNode_CastToWorkhorse>(at, pidx);
                 }
                 res = context.code->makeTableKeyValueNode<SimNode_TableIndex>(keyType, at, prv, pidx, valueTypeSize, 0);
@@ -2012,7 +2017,7 @@ namespace das
             if ( expr->r2v ) {
                 setE(expr, sv_trySimulate(expr, 0, expr->type));
             } else {
-                gc_local<TypeDecl> noneType = new TypeDecl(Type::none);
+                gc_local<TypeDecl> noneType = new TypeDecl(Type::none, expr->at);
                 setE(expr, sv_trySimulate(expr, 0, noneType));
             }
         }
@@ -2040,12 +2045,8 @@ namespace das
                     setE(expr, context.code->makeNode<SimNode_SafeTableIndex_WithHash>(at, prv, keyStr, keyHash, valueTypeSize));
                 } else {
                     auto pidx = getE(expr->index);
-                    Type valueType;
-                    if ( seT->firstType->isWorkhorseType() ) {
-                        valueType = seT->firstType->baseType;
-                    } else {
-                        auto valueT = seT->firstType->annotation->makeValueType();
-                        valueType = valueT->baseType;
+                    Type valueType = seT->firstType->getR2VType();
+                    if ( !seT->firstType->isWorkhorseType() ) {
                         pidx = context.code->makeNode<SimNode_CastToWorkhorse>(at, pidx);
                     }
                     setE(expr, context.code->makeTableKeyValueNode<SimNode_SafeTableIndex>(valueType, at, prv, pidx, valueTypeSize, 0));
@@ -2100,12 +2101,8 @@ namespace das
                     setE(expr, context.code->makeNode<SimNode_SafeTableIndex_WithHash>(at, prv, keyStr, keyHash, valueTypeSize));
                 } else {
                     auto pidx = getE(expr->index);
-                    Type valueType;
-                    if ( seT->firstType->isWorkhorseType() ) {
-                        valueType = seT->firstType->baseType;
-                    } else {
-                        auto valueT = seT->firstType->annotation->makeValueType();
-                        valueType = valueT->baseType;
+                    Type valueType = seT->firstType->getR2VType();
+                    if ( !seT->firstType->isWorkhorseType() ) {
                         pidx = context.code->makeNode<SimNode_CastToWorkhorse>(at, pidx);
                     }
                     setE(expr, context.code->makeTableKeyValueNode<SimNode_SafeTableIndex>(valueType, at, prv, pidx, valueTypeSize, 0));
@@ -2341,7 +2338,7 @@ namespace das
             if ( expr->r2v ) {
                 setE(expr, sv_trySimulate(expr, 0, expr->type));
             } else {
-                gc_local<TypeDecl> noneType = new TypeDecl(Type::none);
+                gc_local<TypeDecl> noneType = new TypeDecl(Type::none, expr->at);
                 setE(expr, sv_trySimulate(expr, 0, noneType));
             }
         }
@@ -2358,7 +2355,7 @@ namespace das
             if ( expr->r2v ) {
                 setE(expr, sv_trySimulate(expr, 0, expr->type));
             } else {
-                gc_local<TypeDecl> noneType = new TypeDecl(Type::none);
+                gc_local<TypeDecl> noneType = new TypeDecl(Type::none, expr->at);
                 setE(expr, sv_trySimulate(expr, 0, noneType));
             }
         }
@@ -2506,28 +2503,30 @@ namespace das
         const auto &at = expr->at;
         if ( expr->block ) {
         } else if ( expr->local ) {
+            // extraLocalOffset is part of where the variable itself sits (a fake make-local var
+            // carries its slot inside the literal there), so it belongs to the variable and is
+            // added here alone - the chain of fields and indices above it never carries it
+            uint32_t varOffset = extraOffset + expr->variable->extraLocalOffset;
             if ( expr->variable->type->ref ) {
                 if ( r2vType->baseType!=Type::none ) {
                     return context.code->makeValueNode<SimNode_GetLocalRefOffR2V>(r2vType->getR2VType(), at,
-                                                    expr->variable->stackTop, extraOffset + expr->variable->extraLocalOffset);
+                                                    expr->variable->stackTop, varOffset);
                 } else {
                     return context.code->makeNode<SimNode_GetLocalRefOff>(at,
-                                                    expr->variable->stackTop, extraOffset + expr->variable->extraLocalOffset);
+                                                    expr->variable->stackTop, varOffset);
                 }
             } else if ( expr->variable->aliasCMRES ) {
-                // extraOffset already includes the var's extraLocalOffset (passed by the caller),
-                // which for fake CMRES-alias vars carries the make-struct element slot offset.
                 if ( r2vType->baseType!=Type::none ) {
-                    return context.code->makeValueNode<SimNode_GetCMResOfsR2V>(r2vType->getR2VType(), at, extraOffset);
+                    return context.code->makeValueNode<SimNode_GetCMResOfsR2V>(r2vType->getR2VType(), at, varOffset);
                 } else {
-                    return context.code->makeNode<SimNode_GetCMResOfs>(at, extraOffset);
+                    return context.code->makeNode<SimNode_GetCMResOfs>(at, varOffset);
                 }
             } else {
                 if ( r2vType->baseType!=Type::none ) {
                     return context.code->makeValueNode<SimNode_GetLocalR2V>(r2vType->getR2VType(), at,
-                                                                            expr->variable->stackTop + extraOffset);
+                                                                            expr->variable->stackTop + varOffset);
                 } else {
-                    return context.code->makeNode<SimNode_GetLocal>(at, expr->variable->stackTop + extraOffset);
+                    return context.code->makeNode<SimNode_GetLocal>(at, expr->variable->stackTop + varOffset);
                 }
             }
         } else if ( expr->argument ) {
@@ -2587,10 +2586,10 @@ namespace das
             }
         } else if ( expr->local ) {
             if ( expr->r2v ) {
-                setE(expr, sv_trySimulate(expr, expr->variable->extraLocalOffset, expr->type));
+                setE(expr, sv_trySimulate(expr, 0, expr->type));
             } else {
-                gc_local<TypeDecl> noneType = new TypeDecl(Type::none);
-                setE(expr, sv_trySimulate(expr, expr->variable->extraLocalOffset, noneType));
+                gc_local<TypeDecl> noneType = new TypeDecl(Type::none, expr->at);
+                setE(expr, sv_trySimulate(expr, 0, noneType));
             }
         } else if ( expr->argument) {
             if (expr->variable->type->isRef()) {
@@ -2614,12 +2613,12 @@ namespace das
             // (e.g. struct field defaults) bypass folding, so the original ExprVar reference
             // survives. Re-simulating it would emit a GetSharedMnh / GetGlobalMnh that looks
             // up a mnh the variable lookup does not hold -> crash. Emit the const init directly instead.
-            if ( expr->variable->index < 0 && expr->variable->init
+            if ( programIndexOf(context,expr->variable) < 0 && expr->variable->init
                  && expr->variable->init->rtti_isConstant() ) {
                 setE(expr, simulateExpression(expr->variable->init));
                 return expr;
             }
-            DAS_ASSERT(expr->variable->index >= 0 && "using variable which is not used. how?");
+            DAS_ASSERT(programIndexOf(context,expr->variable) >= 0 && "using variable which is not used. how?");
             uint64_t mnh = expr->variable->getMangledNameHash();
             if ( !expr->variable->module->isSolidContext ) {
                 if ( expr->variable->global_shared ) {
@@ -2665,7 +2664,7 @@ namespace das
         } else {
             auto pCall = static_cast<SimNode_CallBase *>(expr->func->makeSimNode(context, sarguments));
             pCall->debugInfo = at;
-            pCall->fnPtr = context.getFunction(expr->func->index);
+            pCall->fnPtr = programFunction(context, expr->func);
             pCall->arguments = (SimNode **) context.code->allocate(1 * sizeof(SimNode *));
             pCall->nArguments = 1;
             pCall->arguments[0] = getE(expr->subexpr);
@@ -2727,7 +2726,7 @@ namespace das
         } else {
             auto pCall = static_cast<SimNode_CallBase *>(expr->func->makeSimNode(context, sarguments));
             pCall->debugInfo = at;
-            pCall->fnPtr = context.getFunction(expr->func->index);
+            pCall->fnPtr = programFunction(context, expr->func);
             pCall->arguments = (SimNode **) context.code->allocate(2 * sizeof(SimNode *));
             pCall->nArguments = 2;
             pCall->arguments[0] = getE(expr->left);
@@ -3129,18 +3128,11 @@ namespace das
                         expr->sources[t]->at,
                         getE(expr->sources[t]));
                 } else if ( expr->sources[t]->type->isHandle() ) {
-                    if ( !result ) {
-                        context.thisProgram->error("integration error, simulateGetIterator returned null", "", "",
-                                                   at, CompilationError::internal_expression );
-                        setE(expr, nullptr);
-                        return expr;
-                    } else {
-                        result->source_iterators[t] = expr->sources[t]->type->annotation->simulateGetIterator(
-                            context,
-                            expr->sources[t]->at,
-                            expr->sources[t]
-                        );
-                    }
+                    result->source_iterators[t] = expr->sources[t]->type->annotation->simulateGetIterator(
+                        context,
+                        expr->sources[t]->at,
+                        expr->sources[t]
+                    );
                 } else if ( expr->sources[t]->type->baseType==Type::tFixedArray ) {
                     result->source_iterators[t] = context.code->makeNode<SimNode_FixedArrayIterator>(
                         expr->sources[t]->at,
@@ -3357,17 +3349,18 @@ namespace das
             if ( var->init && var->init->rtti_isMakeLocal() ) {
                 return getE(var->init);
             } else {
+                auto index = programIndexOf(context,var);
                 if ( !var->module->isSolidContext ) {
                     if ( var->global_shared ) {
-                        get = context.code->makeNode<SimNode_GetSharedMnh>(var->init->at, var->index, var->getMangledNameHash());
+                        get = context.code->makeNode<SimNode_GetSharedMnh>(var->init->at, index, var->getMangledNameHash());
                     } else {
-                        get = context.code->makeNode<SimNode_GetGlobalMnh>(var->init->at, var->index, var->getMangledNameHash());
+                        get = context.code->makeNode<SimNode_GetGlobalMnh>(var->init->at, index, var->getMangledNameHash());
                     }
                 } else {
                     if ( var->global_shared ) {
-                        get = context.code->makeNode<SimNode_GetShared>(var->init->at, var->index, var->getMangledNameHash());
+                        get = context.code->makeNode<SimNode_GetShared>(var->init->at, index, var->getMangledNameHash());
                     } else {
-                        get = context.code->makeNode<SimNode_GetGlobal>(var->init->at, var->index, var->getMangledNameHash());
+                        get = context.code->makeNode<SimNode_GetGlobal>(var->init->at, index, var->getMangledNameHash());
                     }
                 }
             }
@@ -3452,11 +3445,13 @@ namespace das
                 needTypeInfo = true;
         }
         pCall->debugInfo = expr->at;
+        // stamp here as well as setE: a wrapped call (keep-alive, NewArray) hands the
+        // WRAPPER to setE, but &pCall->debugInfo is what reaches the callee's prologue
+        if ( context.thisHelper ) context.thisHelper->stampSimNode(expr, pCall->debugInfo);
         if ( func->builtIn) {
             pCall->fnPtr = nullptr;
-        } else if ( func->index>=0 ) {
-            pCall->fnPtr = context.getFunction(func->index);
-            DAS_ASSERTF(pCall->fnPtr, "calling function which null. how?");
+        } else if ( auto sfn = programFunction(context, func) ) {
+            pCall->fnPtr = sfn;
         } else {
             DAS_ASSERTF(0, "calling function which is not used. how?");
         }
@@ -3569,8 +3564,9 @@ namespace das
     void Program::buildMNLookup ( Context & context, const vector<FunctionPtr> & lookupFunctions, TextWriter & logs ) {
         context.functionLookup = make_shared<NameLookup>();
         for ( const auto & fn : lookupFunctions ) {
-            auto & sfn = context.functions[fn->index];
-            context.functionLookup->insert(sfn.mangledNameHash, sfn.name, uint32_t(fn->index), uint32_t(fn->index));
+            auto index = indexOf(fn);
+            auto & sfn = context.functions[index];
+            context.functionLookup->insert(sfn.mangledNameHash, sfn.name, uint32_t(index), uint32_t(index));
         }
         string failure;
         if ( !context.functionLookup->seal(&failure) ) {
@@ -3605,7 +3601,7 @@ namespace das
     void Program::makeMacroModule ( TextWriter & logs ) {
         isCompilingMacros = true;
         int macroStackSize = getContextStackSize();
-        if ( policies.aot_macros || policies.jit_enabled || options.getBoolOption("aot_macros", false) ) {
+        if ( policies.aot_macros || options.getBoolOption("aot_macros", false) ) {
             // quote lowering (daslib/quote) is active (same triggers as its QuotePass gate,
             // including the per-module option): a lowered quote evaluates one large
             // construction frame per quote, and macro-called functions evaluate theirs on
@@ -3614,12 +3610,14 @@ namespace das
             macroStackSize = das::max(macroStackSize, 1 * 1024 * 1024);
         }
         thisModule->macroContext = get_context(macroStackSize);
-        thisModule->macroContext->category = uint32_t(das::ContextCategory::macro_context);
+        thisModule->macroContext->category = das::Bitfield(uint32_t(das::ContextCategory::macro_context));
+        thisModule->macroContext->contextMutex = new recursive_mutex;    // invoke_in_context locks its target (src/ast/ARCHITECTURE.md#require-after-walk)
         auto oldAot = policies.aot;
         auto oldHeap = policies.persistent_heap;
         policies.aot = false;
         policies.persistent_heap = policies.macro_context_persistent_heap;
         simulate(*thisModule->macroContext, logs);
+        thisModule->macroContext->thisProgram = nullptr;    // the context outlives this program (src/ast/ARCHITECTURE.md#program-scoped-symbol-state)
         policies.aot = oldAot;
         policies.persistent_heap = oldHeap;
         isCompilingMacros = false;
@@ -3646,7 +3644,7 @@ namespace das
         for ( auto mod : library.modules ) {
             mod->functions.foreach([&](FunctionPtr & fn){
                 if ( fn->builtIn ) return;
-                if ( !fn->used ) return;
+                if ( !isUsed(fn) ) return;
                 if ( fn->isTemplate ) return;
                 das_hash_set<Function *> visited;
                 fn->recursive = isRecursive(fn, visited);
@@ -3676,9 +3674,18 @@ namespace das
             updateKeepAliveFlags();
         }
         isSimulating = true;
+        // the simulate is this program's compile: its init script and its simulate macros run with it bound
+        auto bound_env = daScriptEnvironment::getBound();
+        struct RestoreBoundProgram {
+            daScriptEnvironment * env;
+            ProgramPtr program;
+            ~RestoreBoundProgram () { env->g_Program = program; }
+        } restoreBoundProgram { bound_env, bound_env->g_Program };
+        bound_env->g_Program = this;
         context.failed = true;
         context.verySafeContext = options.getBoolOption("very_safe_context",policies.very_safe_context);
         context.maxUnreservedSize = options.getUInt64Option("max_unreserved_size", policies.max_unreserved_size);
+        context.maxFastCallDepth = uint32_t(options.getIntOption("max_fast_call_depth", int32_t(policies.max_fast_call_depth)));
         astTypeInfo.clear();    // this is to be filled via typeinfo(ast_typedecl and such)
         auto disableInit = options.getBoolOption("no_init", policies.no_init);
         context.thisProgram = this;
@@ -3705,6 +3712,7 @@ namespace das
             context.constStringHeap->setInitialSize(globalStringHeapSize);
         }
         DebugInfoHelper helper(context.debugInfo);
+        helper.collectCppNames = false;     // nothing reads a simulate's C++ spellings (ast.h DebugInfoHelper)
         context.thisHelper = &helper;
         context.globalVariables = (GlobalVariable *) context.code->allocate( totalVariables*sizeof(GlobalVariable) );
         context.globalsSize = 0;
@@ -3712,14 +3720,15 @@ namespace das
         if ( totalVariables ) {
             for (auto & pm : library.modules ) {
                 pm->globals.foreach([&](auto pvar){
-                    if (!pvar->used)
+                    if (!isUsed(pvar))
                         return;
-                    if ( pvar->index<0 ) {
+                    auto index = indexOf(pvar);
+                    if ( index<0 ) {
                         error("Internal compiler errors. Simulating variable which is not used" + pvar->name,
                             "", "", LineInfo(), CompilationError::internal_variable);
                         return;
                     }
-                    auto & gvar = context.globalVariables[pvar->index];
+                    auto & gvar = context.globalVariables[index];
                     gvar.name = context.code->allocateName(pvar->name);
                     gvar.size = pvar->type->getSizeOf();
                     gvar.debugInfo = helper.makeVariableDebugInfo(*pvar);
@@ -3773,7 +3782,8 @@ namespace das
         if ( totalFunctions ) {
             for (auto & pm : library.modules) {
                 pm->functions.foreach([&](auto pfun){
-                    if (pfun->index < 0 || !pfun->used || pfun->isTemplate)
+                    auto index = indexOf(pfun);
+                    if (index < 0 || !isUsed(pfun) || pfun->isTemplate)
                         return;
                     if ( (pfun->init || pfun->shutdown) && disableInit ) {
                         error("[init] is disabled in the options or CodeOfPolicies",
@@ -3783,7 +3793,7 @@ namespace das
                     auto mangledName = pfun->getMangledName();
                     auto MNH = hash_blockz64((uint8_t *)mangledName.c_str());
                     fnByMnh[MNH] = pfun;
-                    auto & gfun = context.functions[pfun->index];
+                    auto & gfun = context.functions[index];
                     gfun.name = context.code->allocateName(pfun->name);
                     gfun.mangledName = context.code->allocateName(mangledName);
                     gfun.debugInfo = helper.makeFunctionDebugInfo(*pfun);
@@ -3791,6 +3801,12 @@ namespace das
                         gfun.debugInfo->flags &= ~ (FuncInfo::flag_init | FuncInfo::flag_shutdown);
                     }
                     if ( debuggerOrGC ) {
+                        // number the body BEFORE building sim nodes and locals info: the
+                        // positions stamp each expression's sim node as it is built (see
+                        // SimulateVisitor::setE), and the intervals feed the locals gate
+                        // (see LocalVariableInfo::openPos)
+                        gfun.debugInfo->spaceId = frameSpaceId(index);
+                        helper.stampFramePositions(pfun->body, gfun.debugInfo->spaceId);
                         helper.appendLocalVariables(gfun.debugInfo, pfun->body);
                         helper.appendGlobalVariables(gfun.debugInfo, pfun);
                     }
@@ -3815,13 +3831,16 @@ namespace das
                     lookupFunctionTable.push_back(pfun);
                 });
             }
+            // global inits and annotation simulate build nodes outside any position space
+            helper.exprFramePos.clear();
+            helper.framePosStamping = false;
         }
         if ( totalVariables ) {
             for (auto & pm : library.modules ) {
                 pm->globals.foreach([&](auto pvar){
-                    if (!pvar->used)
+                    if (!isUsed(pvar))
                         return;
-                    auto & gvar = context.globalVariables[pvar->index];
+                    auto & gvar = context.globalVariables[indexOf(pvar)];
                     if ( !folding && pvar->init ) {
                         if ( disableInit && !pvar->init->rtti_isConstant() ) {
                             error("[init] is disabled in the options or CodeOfPolicies",
@@ -3869,7 +3888,13 @@ namespace das
 #if DAS_FUSION
         if ( !folding ) {               // note: only run fusion when not folding
             DAS_ASSERTF(g_fusionContextFn, "fusion library not loaded, add call to NEED_FUSION macro.");
-            g_fusionContextFn(context, logs, options.getBoolOption("fusion", policies.fusion));
+            // under the jit the interpreter's nodes are the fallback, not the product, so a
+            // user context never fuses and a macro context fuses only when its module asks
+            // (options fusion = true); without the jit the option keeps its meaning.
+            // jit_emit_object must fuse exactly as the aot run that binds its object, or error[50101]
+            bool fusion = options.getBoolOption("fusion", policies.fusion);
+            if ( policies.jit_enabled && !policies.jit_emit_object ) fusion = isCompilingMacros && options.getBoolOption("fusion", false);
+            g_fusionContextFn(context, logs, fusion);
             context.relocateCode(true); // this to get better estimate on relocated size. its fust enough
         }
 #else
@@ -3887,9 +3912,10 @@ namespace das
         das_hash_map<int,Function *> indexToFunction;
         for (auto & pm : library.modules) {
             pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used || pfun->isTemplate)
+                auto index = indexOf(pfun);
+                if (index < 0 || !isUsed(pfun) || pfun->isTemplate)
                     return;
-                auto & gfun = context.functions[pfun->index];
+                auto & gfun = context.functions[index];
                 for ( const auto & an : pfun->annotations ) {
                     auto fna = static_cast<FunctionAnnotation*>(an->annotation);
                     if (!fna->simulate(&context, &gfun)) {
@@ -3897,7 +3923,7 @@ namespace das
                             LineInfo(), CompilationError::runtime_function_annotation);
                     }
                 }
-                indexToFunction[pfun->index] = pfun;
+                indexToFunction[index] = pfun;
             });
         }
         // verify code and string heaps
@@ -3944,7 +3970,7 @@ namespace das
                 allInitFunctions.push_back(&fn);
             }
         }
-        stable_sort(allInitFunctions.begin(), allInitFunctions.end(), [](auto a, auto b) { // sort them, so that late init is last
+        das_stable_sort(allInitFunctions.data(), allInitFunctions.data() + allInitFunctions.size(), [](auto a, auto b) {
             int lateA = a->debugInfo->flags & FuncInfo::flag_late_init;
             int lateB = b->debugInfo->flags & FuncInfo::flag_late_init;
             return lateA < lateB;
@@ -4027,16 +4053,11 @@ namespace das
             logs << "unique        " << context.getUniqueMemorySize() << "\n";
         }
 
-        isSimulating = false;
         context.thisHelper = &helper;   // note - we may need helper for the 'complete'
-        auto bound_env = daScriptEnvironment::getBound();
-        auto boundProgram = bound_env->g_Program;
-        bound_env->g_Program = this;   // node - we are calling macros
         library.foreach_in_order([&](Module * pm) -> bool {
             for ( auto & sm : pm->simulateMacros ) {
                 if ( !sm->preSimulate(this, &context) ) {
                     error("simulate macro " + pm->name + "::" + sm->name + " failed to preSimulate", "", "", LineInfo(), CompilationError::runtime_macro);
-                    bound_env->g_Program = boundProgram;
                     return false;
                 }
             }
@@ -4051,10 +4072,16 @@ namespace das
                 }
             }
         }
-        for ( int i=0, is=context.totalFunctions; i!=is; ++i ) {
-            Function * func = indexToFunction[i];
-            SimFunction & fn = context.functions[i];
-            func->hash = getFunctionHash(func, fn.code, &context);
+        // the semantic hash feeds getFunctionAotHash - the jit's keys, the AOT generator and
+        // linker - which only ever ask about a user program's functions; a macro context is
+        // never asked, and a function it shares with the user program gets hashed by that
+        // program's own simulate
+        if ( !isCompilingMacros ) {
+            for ( int i=0, is=context.totalFunctions; i!=is; ++i ) {
+                Function * func = indexToFunction[i];
+                SimFunction & fn = context.functions[i];
+                func->hash = getFunctionHash(func, fn.code, &context);
+            }
         }
         for (auto pm : library.modules) {
             pm->structures.foreach([&](auto st){
@@ -4070,14 +4097,13 @@ namespace das
             for ( auto & sm : pm->simulateMacros ) {
                 if ( !sm->simulate(this, &context) ) {
                     error("simulate macro " + pm->name + "::" + sm->name + " failed to simulate", "", "", LineInfo(), CompilationError::runtime_macro);
-                    bound_env->g_Program = boundProgram;
                     return false;
                 }
             }
             return true;
         }, thisModule.get());
         context.thisHelper = nullptr;
-        bound_env->g_Program = boundProgram;
+        isSimulating = false;   // the simulate macros are the simulate's (is_compiling answers for them)
         // dispatch about new inited context
         context.announceCreation();
         if ( options.getBoolOption("log_debug_mem",false) ) {
@@ -4085,6 +4111,13 @@ namespace das
         }
         if ( !options.getBoolOption("rtti",policies.rtti) ) {
             context.thisProgram = nullptr;
+            // a host may keep the program, so free its tables after the main simulate; the folder and the macro
+            // module simulate it mid-compile, AOT and JIT emitters read the tables later, hosts read usedVariables
+            if ( !folding && !isCompilingMacros && !is_in_aot() && !policies.jit_enabled ) {
+                usedFunctions = {};
+                functionIndices = {};
+                variableIndices = {};
+            }
         }
         if ( options.getBoolOption("log_total_compile_time",policies.log_total_compile_time)
              || options.getBoolOption("log_module_compile_time",policies.log_module_compile_time) ) {
@@ -4103,7 +4136,7 @@ namespace das
         globs.reserve(totalVariables);
         for (auto & pm : library.modules) {
             pm->globals.foreach([&](auto var){
-                if (var->used) {
+                if (isUsed(var)) {
                     globs.push_back(var);
                 }
             });
@@ -4113,7 +4146,7 @@ namespace das
         const uint64_t fnv_prime = 1099511628211ul;
         for (auto& pm : library.modules) {
             pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used || !pfun->init)
+                if (indexOf(pfun) < 0 || !isUsed(pfun) || !pfun->init)
                     return;
                 res = (res ^ pfun->aotHash) * fnv_prime;
             });
@@ -4130,18 +4163,20 @@ namespace das
         das_hash_map<int,Function *> indexToFunction;
         for (auto & pm : library.modules) {
             pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used || pfun->isTemplate)
+                if (indexOf(pfun) < 0 || !isUsed(pfun) || pfun->isTemplate)
                     return;
                 fnn.push_back(pfun);
-                indexToFunction[pfun->index] = pfun;
+                indexToFunction[indexOf(pfun)] = pfun;
             });
         }
         for ( int fni=0, fnis=context.totalFunctions; fni!=fnis; ++fni ) {
-            if ( !fnn[fni]->noAot && !(isLlvmAot && fnn[fni]->requestNoJit) ) {
+            if ( !fnn[fni]->noAot ) {
                 SimFunction & fn = context.functions[fni];
                 fnn[fni]->hash = getFunctionHash(fnn[fni], fn.code, &context);
             }
         }
+        vector<pair<int,uint64_t>> misses;
+        das_hash_map<Module *,int> linkedPerModule;
         for ( int fni=0, fnis=context.totalFunctions; fni!=fnis; ++fni ) {
             if ( !fnn[fni]->noAot && !(isLlvmAot && fnn[fni]->requestNoJit) ) {
                 SimFunction & fn = context.functions[fni];
@@ -4151,23 +4186,37 @@ namespace das
                     fn.code = (it->second)(context);
                     if ( fn.code->rtti_node_isJit() ) {
                         fn.jit = true;
+                        fn.jitFunction = fn.code->rtti_node_jitFunction();
                     } else {
                         fn.aot = true;
                         auto fcb = (SimNode_CallBase *) fn.code;
                         fn.aotFunction = fcb->aotFunction;
                     }
+                    linkedPerModule[fnn[fni]->module] += 1;
                     if ( logIt ) logs << fn.mangledName << " AOT=0x" << HEX << semHash << DEC << "\n";
                 } else {
                     if ( logIt ) logs << "NOT FOUND " << fn.mangledName << " AOT=0x" << HEX << semHash << DEC << "\n";
-                    TextWriter tp;
-                    tp << "semantic hash is " << HEX << semHash << DEC << "\n";
-                    tp << "did you forget to add this file (or a module it requires) to the AOT build?\n";
-                    tp << "otherwise the AOT artifact (C++ or LLVM object) is stale; regenerate it and rebuild\n";
-                    tp << "// " << getAotHashComment(fnn[fni]) << "\n";
-                    printSimFunction(tp, &context, indexToFunction[fni], fn.code, true);
-                    linkError(string(fn.mangledName), tp.str() );
+                    misses.emplace_back(fni, semHash);
                 }
             }
+        }
+        for ( auto & miss : misses ) {
+            int fni = miss.first;
+            SimFunction & fn = context.functions[fni];
+            auto fnModule = fnn[fni]->module;
+            TextWriter tp;
+            tp << "semantic hash is " << HEX << miss.second << DEC << "\n";
+            if ( linkedPerModule.find(fnModule) == linkedPerModule.end() ) {
+                tp << "no AOT stub links for any function of module '" << fnModule->name << "': its file is not in the AOT build, or its artifact predates every function in it\n";
+                tp << "list it in tests/aot/CMakeLists.txt (a tests/daslib file goes in AOT_DASLIB_FILES, one file per line; other test folders glob)\n";
+                tp << "options no_aot is only for a file a required module keeps out of AOT, and a file cannot be both listed and no_aot\n";
+            } else {
+                tp << "other functions of module '" << fnModule->name << "' link, so its AOT artifact (C++ or LLVM object) is stale for this one\n";
+                tp << "regenerate the artifact and rebuild (skills/internal/aot_hash_desync_debugging.md)\n";
+            }
+            tp << "// " << getAotHashComment(fnn[fni]) << "\n";
+            printSimFunction(tp, &context, indexToFunction[fni], fn.code, true);
+            linkError(string(fn.mangledName), tp.str() );
         }
     }
 }

@@ -31,9 +31,9 @@ def make_add_xb() : ExpressionPtr {
 [test]
 def test_result_types(t : T?) {
     ast_gc_guard() {
-        var r = qm_ok()
+        let r = qm_ok()
         t |> equal(r.matched, true)
-        var r2 = qm_fail_null()
+        let r2 = qm_fail_null()
         t |> equal(r2.matched, false)
         t |> equal(int(r2.error), int(QMatchError.null_expression))
     }
@@ -119,8 +119,8 @@ def test_capture_e_op2(t : T?) {
         let r = qmatch(expr, $e(left) + $e(right))
         t |> success(r.matched, "should match with $e captures")
         if (r.matched) {
-            t |> equal(string(left.__rtti), "ExprVar")
-            t |> equal(string(right.__rtti), "ExprVar")
+            t |> equal(left.__rtti, "ExprVar")
+            t |> equal(right.__rtti, "ExprVar")
         }
     }
 }

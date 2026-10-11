@@ -111,7 +111,7 @@ def test_concat3_fold(t : T?) {
         )
         t |> equal(typeinfo typename(q), "array<int>")
         t |> equal(length(q), 7)
-        let expected = [2, 4, 7, 8, 11, 21, 31]    // nolint:LINT003
+        let expected = [2, 4, 7, 8, 11, 21, 31]
         for (i, v in 0..7, q) {
             t |> equal(expected[i], v)
         }

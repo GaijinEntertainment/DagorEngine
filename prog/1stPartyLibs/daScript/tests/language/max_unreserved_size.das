@@ -91,14 +91,18 @@ def test_reserved_and_small_resizes_pass(t : T?) {
         a |> resize(1000000)            // 0 bytes total: the stride sub-guard skips
         t |> equal(length(a), 1000000)
     }
-    // upstream also covers to_bytes(string) reserving exactly; that builtin is past our
-    // vendored base, so the case is dropped until the next daScript sync brings it in
+    t |> run("to_bytes reserves exactly past the threshold") @(t : T?) {
+        let s = repeat("abcdefgh", 16384)   // 128 KB, past the 64 KB limit
+        let b <- to_bytes(s)
+        t |> equal(length(b), 131072)
+        t |> equal(capacity(b), 131072)     // exact reserve, no pow2 round-up
+    }
     t |> run("binary_load reserves exactly past the threshold") @(t : T?) {
         var src : BigPayload
         src.samples |> reserve(200000)
         src.samples |> resize(200000)
         var dst : BigPayload
-        binary_save(src) <| $(data) {
+        binary_save(src) $(data) {
             binary_load(dst, data)
         }
         t |> equal(length(dst.samples), 200000)

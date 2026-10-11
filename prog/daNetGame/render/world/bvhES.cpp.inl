@@ -115,8 +115,6 @@ CONSOLE_BOOL_VAL("raytracing", bvh_mem_overlay, false);
 CONSOLE_INT_VAL("raytracing", bvh_max_skinned_memory_mb, -1, -1, INT_MAX);
 CONSOLE_FLOAT_VAL_MINMAX("raytracing", bvh_animchar_lod_dist_mul, 1, 1, 4, "Only applies to objects failing frustum culling.");
 
-#define DENOISER_VALIDATION DAGOR_DBGLEVEL > 0 && _TARGET_PC
-
 // TODO move these to entity
 static bvh::ContextId bvhRenderingContextId;
 static BVHConnection *fxBvhConnection = nullptr;
@@ -133,6 +131,8 @@ static bool rigen_cull_dist_was_increased = false;
 static int bvhBuildingCountdown = -1;
 static constexpr int MAX_BVH_BUILDING_COUNTDOWN = 20;
 static BVHInstanceMapper *dagdpInstanceMapper = nullptr;
+static bool prev_rtr_validation_enabled = false;
+static bool prev_ptgi_validation_enabled = false;
 
 namespace var
 {
@@ -520,6 +520,11 @@ static void initBVH()
                                                    ->getInt("bvhOmmCacheRetentionFrames", additionalSettings.ommCacheRetentionFrames);
     additionalSettings.ommCacheIdleBudget =
       dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhOmmCacheIdleBudget", additionalSettings.ommCacheIdleBudget);
+    constexpr int SLOW_DISK_OMM_TEXTURE_WAIT_MUL = 4;
+    if (!is_rt_supported_on_disk())
+      additionalSettings.ommTextureWaitAttempts *= SLOW_DISK_OMM_TEXTURE_WAIT_MUL;
+    additionalSettings.ommTextureWaitAttempts =
+      dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhOmmTextureWaitAttempts", additionalSettings.ommTextureWaitAttempts);
     additionalSettings.strictAssetChecks = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhStrictAssetChecks", false);
     bvh_max_skinned_memory_mb = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhMaxSkinnedMemoryMB", -1);
     bvh_animchar_lod_dist_mul = dgs_get_settings()->getBlockByNameEx("graphics")->getReal("bvhAnimcharLodDistMul", 1);
@@ -999,8 +1004,8 @@ static void bvh_out_of_scope_riex_dist_es(const ecs::UpdateStageInfoAct &, bool 
   if (!is_bvh_enabled() || !bvh__initialized)
     return;
   float riDistMul = rendinst::getDefaultDistAddMul();
-  rendinst::setDistMul(riDistMul, 0.0f);
-  float cullDistSqMulOOC = rendinst::getCullDistSqMul();
+  rendinst::setDynamicDistMul(riDistMul, 0.0f);
+  float cullDistSqMulOOC = rendinst::getRiExtraDistSqScale();
   bvh::override_out_of_camera_ri_dist_mul(cullDistSqMulOOC);
 }
 
@@ -1217,9 +1222,8 @@ struct RtTexturesDescriptors
     RtTexturesDescriptors res;
 
     rtr::get_required_persistent_texture_descriptors(res.persistentTextures);
-#if DENOISER_VALIDATION
-    res.persistentTextures[::denoiser::ReflectionDenoiser::TextureNames::rtr_validation] = {};
-#endif
+    if (rtr::is_validation_layer_enabled())
+      res.persistentTextures[::denoiser::ReflectionDenoiser::TextureNames::rtr_validation] = {};
     rtr::get_required_transient_texture_descriptors(res.transientTextures);
     denoiser::get_required_persistent_texture_descriptors(res.denoiserTextures, false, rtr_mode == RTRMode::halfCheckerboardDepth,
       rtr_mode == RTRMode::halfSmartPattern);
@@ -1701,19 +1705,20 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
   denoiser::TexInfoMap persistentTextures;
   rtr::get_required_persistent_texture_descriptors(persistentTextures);
 
-#if DENOISER_VALIDATION
-  // TODO make this created and destroyed dynamically!
-  auto &validation = persistentTextures[::denoiser::ReflectionDenoiser::TextureNames::rtr_validation];
-  int width, height;
-  d3d::get_screen_size(width, height);
-  constexpr auto isHalfRes = true;
-  validation.w = isHalfRes ? width / 2 : width;
-  validation.h = isHalfRes ? height / 2 : height;
-  validation.a = 1;
-  validation.d = 1;
-  validation.cflg = TEXCF_UNORDERED;
-  validation.mipLevels = 1;
-#endif
+  prev_rtr_validation_enabled = rtr::is_validation_layer_enabled();
+  if (rtr::is_validation_layer_enabled())
+  {
+    auto &validation = persistentTextures[::denoiser::ReflectionDenoiser::TextureNames::rtr_validation];
+    int width, height;
+    d3d::get_screen_size(width, height);
+    constexpr auto isHalfRes = true;
+    validation.w = isHalfRes ? width / 2 : width;
+    validation.h = isHalfRes ? height / 2 : height;
+    validation.a = 1;
+    validation.d = 1;
+    validation.cflg = TEXCF_UNORDERED;
+    validation.mipLevels = 1;
+  }
 
   rt_persistent_textures.allocate(persistentTextures, RTPersistentTexturesECS::Type::RTR);
   bool isRR = is_rr_enabled();
@@ -1749,12 +1754,11 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
     registry.executionHas(dafg::SideEffects::External);
     registry.modifyBlob<OrderingToken>("rtr_undenoised_token");
 
-    registry.readTextureHistory("prev_frame_tex").atStage(dafg::Stage::CS).bindToShaderVar("prev_frame_tex");
-    registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate");
-    registry.historyFor("far_downsampled_depth").texture().atStage(dafg::Stage::CS).bindToShaderVar("prev_downsampled_far_depth_tex");
-    registry.read("far_downsampled_depth_sampler")
-      .blob<d3d::SamplerHandle>()
-      .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate");
+    registry.readTextureHistory("prev_frame_tex").atStage(dafg::Stage::CS).bindlessShaderVar("bvh_prev_frame_tex_index");
+    registry.historyFor("far_downsampled_depth")
+      .texture()
+      .atStage(dafg::Stage::CS)
+      .bindlessShaderVar("bvh_prev_downsampled_far_depth_tex_index");
 
     registry.readTexture("checkerboard_depth")
       .atStage(dafg::Stage::CS)
@@ -1948,19 +1952,20 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
   denoiser::TexInfoMap persistentTextures;
   ptgi::get_required_persistent_texture_descriptors(persistentTextures);
 
-#if DENOISER_VALIDATION
-  // TODO make this created and destroyed dynamically!
-  auto &validation = persistentTextures[::denoiser::GIDenoiser::TextureNames::gi_validation];
-  int width, height;
-  d3d::get_screen_size(width, height);
-  constexpr auto isHalfRes = true;
-  validation.w = isHalfRes ? width / 2 : width;
-  validation.h = isHalfRes ? height / 2 : height;
-  validation.a = 1;
-  validation.d = 1;
-  validation.cflg = TEXCF_UNORDERED;
-  validation.mipLevels = 1;
-#endif
+  prev_ptgi_validation_enabled = ptgi::is_validation_layer_enabled();
+  if (ptgi::is_validation_layer_enabled())
+  {
+    auto &validation = persistentTextures[::denoiser::GIDenoiser::TextureNames::gi_validation];
+    int width, height;
+    d3d::get_screen_size(width, height);
+    constexpr auto isHalfRes = true;
+    validation.w = isHalfRes ? width / 2 : width;
+    validation.h = isHalfRes ? height / 2 : height;
+    validation.a = 1;
+    validation.d = 1;
+    validation.cflg = TEXCF_UNORDERED;
+    validation.mipLevels = 1;
+  }
 
   rt_persistent_textures.allocate(persistentTextures, RTPersistentTexturesECS::Type::PTGI);
 
@@ -1974,22 +1979,24 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
     bvh_read_all_gbuffer_bindlessly(registry);
 
     auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
-    registry.readTextureHistory("prev_frame_tex").atStage(dafg::Stage::CS).bindToShaderVar("prev_frame_tex");
-    registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate");
-    registry.historyFor("far_downsampled_depth").texture().atStage(dafg::Stage::CS).bindToShaderVar("prev_downsampled_far_depth_tex");
-    registry.read("far_downsampled_depth_sampler")
-      .blob<d3d::SamplerHandle>()
-      .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate");
+    registry.readTextureHistory("prev_frame_tex").atStage(dafg::Stage::CS).bindlessShaderVar("bvh_prev_frame_tex_index");
+    registry.historyFor("far_downsampled_depth")
+      .texture()
+      .atStage(dafg::Stage::CS)
+      .bindlessShaderVar("bvh_prev_downsampled_far_depth_tex_index");
 
     // TODO remove this from the interface of ptgi::render
     auto closeDepthHndl =
       registry.read("close_depth").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+#if DAGOR_DBGLEVEL > 0
+    // For the debug view only
+    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
+#endif
 
     denoiser::TexInfoMap persistentTextures;
     ptgi::get_required_persistent_texture_descriptors(persistentTextures);
-#if DENOISER_VALIDATION
-    persistentTextures[::denoiser::GIDenoiser::TextureNames::gi_validation] = {};
-#endif
+    if (ptgi::is_validation_layer_enabled())
+      persistentTextures[::denoiser::GIDenoiser::TextureNames::gi_validation] = {};
     denoiser::TexInfoMap transientTextures;
     ptgi::get_required_transient_texture_descriptors(transientTextures);
     denoiser::TexInfoMap denoiserTextures;
@@ -2165,6 +2172,18 @@ void recreate_water_rt_node()
   RTFeatureChanged changed;
   changed.isRTWaterChanged = true;
   recreateBVHNodes(changed);
+}
+
+ECS_TAG(dev, render)
+static void rtr_ptgi_debug_view_recreate_es(const UpdateStageInfoBeforeRender &, const ResolvedRTSettings &resolved_rt_settings)
+{
+  RTFeatureChanged changed;
+  if (resolved_rt_settings.rtrMode != RTRMode::off && prev_rtr_validation_enabled != rtr::is_validation_layer_enabled())
+    changed.isRTRChanged = true;
+  if (resolved_rt_settings.isPTGIEnabled && prev_ptgi_validation_enabled != ptgi::is_validation_layer_enabled())
+    changed.isPTGIChanged = true;
+  if (changed != RTFeatureChanged{})
+    recreateBVHNodes(changed);
 }
 
 ECS_TAG(render)

@@ -46,9 +46,11 @@ shader fast_grass
     pre_dim@f2 = get_dimensions(fast_grass_pre_gmap, 0);
     pre_half_texel@f1 = 0.5 / get_dimensions(fast_grass_pre_gmap, 0).x;
     pre_levels@u1 = fast_grass_num_clips;
-    pre_hmap_tex@smpArray = fast_grass_pre_hmap;
+    pre_hmap_tex@texArray = fast_grass_pre_hmap;
+    pre_hmap_tex_samplerstate@sampler = fast_grass_pre_sampler;
     pre_gmap_tex@tex   = fast_grass_pre_gmap hlsl { Texture2DArray<uint> pre_gmap_tex@tex; };
-    pre_cmap_tex@smpArray = fast_grass_pre_cmap;
+    pre_cmap_tex@texArray = fast_grass_pre_cmap;
+    pre_cmap_tex_samplerstate@sampler = fast_grass_pre_sampler;
   }
 
   (ps)
@@ -58,9 +60,11 @@ shader fast_grass
     pre_dim@f2 = get_dimensions(fast_grass_pre_gmap, 0);
     pre_half_texel@f1 = 0.5 / get_dimensions(fast_grass_pre_gmap, 0).x;
     pre_levels@u1 = fast_grass_num_clips;
-    pre_hmap_tex@smpArray = fast_grass_pre_hmap;
+    pre_hmap_tex@texArray = fast_grass_pre_hmap;
+    pre_hmap_tex_samplerstate@sampler = fast_grass_pre_sampler;
     pre_gmap_tex@tex   = fast_grass_pre_gmap hlsl { Texture2DArray<uint> pre_gmap_tex@tex; };
-    pre_cmap_tex@smpArray = fast_grass_pre_cmap;
+    pre_cmap_tex@texArray = fast_grass_pre_cmap;
+    pre_cmap_tex_samplerstate@sampler = fast_grass_pre_sampler;
   }
 
   no_ablend;

@@ -1,0 +1,29 @@
+include "heightmapTrace/shaders/heightmap_max_grid.dshl"
+
+macro RTSS_TRACE_HMAP(code)
+  INIT_AND_USE_HEIGHTMAP_MAX_GRID(code)
+  hlsl(code) {
+    // the terrain of the max grid makes t shorter; a start plane inside a hill counts the hill
+    void rtss_trace_hmap(float3 origin, float3 dir, inout float t)
+    {
+      #if HAS_HEIGHTMAP_MAX_GRID_TRACE
+      // constraint: heightmap_max_grid_trace needs an origin inside the grid window, not on its edge
+      float cell = heightmap_max_grid_cell.x;
+      float2 lo = (float2(heightmap_max_grid_lt.xy) + 0.01) * cell, hi = lo + (heightmap_max_grid_lt.z - 0.02) * cell;
+      float2 invD = select(abs(dir.xz) < 1e-9, select(dir.xz >= 0, 1e30, -1e30), rcp(dir.xz)); // a ray just outside a slab misses it
+      float2 t0 = (lo - origin.xz) * invD, t1 = (hi - origin.xz) * invD;
+      float tEnter = max(max(min(t0.x, t1.x), min(t0.y, t1.y)), 0.0);
+      float tExit = min(min(max(t0.x, t1.x), max(t0.y, t1.y)), t);
+      if (dir.y < 0) // no terrain above the top of its encoding
+        tEnter = max(tEnter, (max(decode_height(0.0), decode_height(1.0)) - origin.y) / dir.y);
+      float ht;
+      bool backFace;
+      float3 start = origin + dir * tEnter;
+      if (heightmap_max_grid_lt.z != 0 && tEnter < tExit && heightmap_max_grid_get_height(start) >= start.y)
+        t = tEnter; // a start inside or on the terrain occludes the whole column, an underground receiver too
+      else if (heightmap_max_grid_trace(start, dir, tExit - tEnter, false, ht, backFace))
+        t = tEnter + ht;
+      #endif
+    }
+  }
+endmacro

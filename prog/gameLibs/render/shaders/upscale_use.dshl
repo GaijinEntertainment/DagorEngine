@@ -22,22 +22,60 @@ endmacro
 
 macro USE_UPSCALE_SAMPLING_BASE(code)
   hlsl(code) {
-    float4 sampleUpscaleWeightIndex(uint2 screenpos, uint weightIdx)
+    #include "upscale_sampling_weights.hlsli"
+
+    float4 applyUpscaleBilinearWeights(uint2 screenpos, float4 weights)
     {
-      float4 weights = upscale_sampling_weights[weightIdx];
       float4 bilWeights = select(screenpos.xyxy&1, float4(0.75,0.75, 0.25, 0.25), float4(0.25, 0.25, 0.75,0.75));
       bilWeights = bilWeights.zxzx*bilWeights.yyww;
       weights = weights*bilWeights.wzxy;
       return weights * rcp(dot(weights,1));
     }
+
+    float4 sampleUpscaleWeightIndex(uint2 screenpos, uint weightIdx)
+    {
+      return applyUpscaleBilinearWeights(screenpos, upscale_sampling_weights[weightIdx]);
+    }
+
     float4 SampleUpscaleWeight(uint2 screenpos)
     {
       return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x&0xF);
     }
+
+    float4 closeUpscaleWeightMask(uint2 screenpos)
+    {
+      return upscale_sampling_weights[texelFetch(upscale_sampling_tex, screenpos, 0).x>>4];
+    }
+
     float4 sampleCloseUpscaleWeight(uint2 screenpos)
     {
-      return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x>>4);
+      return applyUpscaleBilinearWeights(screenpos, closeUpscaleWeightMask(screenpos));
     }
+
+    float4 upscaleDepthMatchMask(float linear_depth, float4 halfres_linear_depth)
+    {
+      return abs(halfres_linear_depth - linear_depth) < UPSCALE_DEPTH_MATCH_THRESHOLD * linear_depth;
+    }
+
+    // A texel carries two surfaces: its ray starts at the close depth and it uses the material
+    // of the far depth, so a matching material wins over a matching ray origin.
+    // halfres_far_linear_depth must be in GatherRed order, as the close mask packs it.
+    float4 sampleCloseUpscaleWeightWithDepthMatch(uint2 screenpos, float4 halfres_far_linear_depth, float linear_depth)
+    {
+      float4 closeMask = closeUpscaleWeightMask(screenpos);
+      float4 farMask = upscaleDepthMatchMask(linear_depth, halfres_far_linear_depth);
+      // A texel with sky in its quad keeps the close material, so its close match is clean.
+      float4 skyMask = float4(halfres_far_linear_depth == 0);
+      float4 cleanMask = max(farMask, skyMask)*closeMask;
+
+      float4 mask = closeMask;
+      if (any(cleanMask))
+        mask = cleanMask;
+      else if (any(farMask))
+        mask = farMask;
+      return applyUpscaleBilinearWeights(screenpos, mask);
+    }
+
     bool isTrivialUpscaleWeight(uint2 screenpos)
     {
       uint weightIdx = texelFetch(upscale_sampling_tex, screenpos, 0).x&0xF;

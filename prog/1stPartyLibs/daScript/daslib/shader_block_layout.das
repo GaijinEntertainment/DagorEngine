@@ -11,6 +11,7 @@ module shader_block_layout shared public
 
 require math
 require daslib/ast
+require daslib/math_boost
 
 // daslang matrices are handled (tHandle) types named float<W>x<C> — W = column-vector width,
 // C = column count (MatrixAnnotation<floatW, C>, column-major: m[i] is column i). Returns the
@@ -24,26 +25,17 @@ def public matrix_info(t : TypeDecl?) : tuple<ok : bool; width : int; cols : int
     return (ok = false, width = 0, cols = 0)
 }
 
-// The base type a VALUE of this declaration carries: an enum has none of its own and lowers to the
-// OpTypeInt of its underlying integer, which the Type-keyed classifiers below cannot reach. A
-// 64-bit-based enum peels to tInt64/tUInt64, so arith_width_ok refuses it exactly like a bare one.
 def public value_base_type(t : TypeDecl?) : Type {
     if (t == null) return Type.none
     if (t.isEnum && t.enumType != null) return t.enumType.baseType
     return t.baseType
 }
 
-// The whole 16/8-bit type set of the shader arc: the lattice proper (contiguous appended
-// block in the Type enum) PLUS the pre-lattice small scalars, which live in the enum's old
-// region (near tInt) and are NOT covered by the range check.
 def public lattice_small_type(bt : Type) : bool {
     return ((int(bt) >= int(Type.tFloat16) && int(bt) <= int(Type.tUByte16))
         || bt == Type.tInt8 || bt == Type.tUInt8 || bt == Type.tInt16 || bt == Type.tUInt16)
 }
 
-// The 8/16-lane lattice forms (half8, short8/ushort8, byte8/16, ubyte8/16) are CPU-only by
-// design: shader vectors cap at 4 lanes on every target (SPIR-V OpTypeVector, GLSL vecN).
-// Both shader emitters key their dedicated fail-closed diagnostic on this predicate.
 def public cpu_only_lattice_width(bt : Type) : bool {
     return (bt == Type.tHalf8
         || bt == Type.tShort8 || bt == Type.tUShort8
@@ -51,7 +43,6 @@ def public cpu_only_lattice_width(bt : Type) : bool {
         || bt == Type.tUByte8 || bt == Type.tUByte16)
 }
 
-// Type -> scalar class: 0 signed int, 1 unsigned int, 2 float — scalars and their shader-legal vectors, INCLUDING the 16/8-bit lattice (scalar float16/int8/uint8/int16/uint16 + 2/3/4-lane half/short/ushort/byte/ubyte vectors); -1 for anything else (8/16-lane forms stay -1: CPU-only).
 def public scalar_class(bt : Type) : int {
     if (bt == Type.tInt || bt == Type.tInt2 || bt == Type.tInt3 || bt == Type.tInt4
             || bt == Type.tInt16 || bt == Type.tShort2 || bt == Type.tShort3 || bt == Type.tShort4
@@ -64,8 +55,6 @@ def public scalar_class(bt : Type) : int {
     return -1
 }
 
-// Scalar bit width of a classified type: 32/16/8; 0 for unclassified types. The third axis
-// next to scalar_class/component_count — emitters key op/type/layout decisions on it.
 def public scalar_width(bt : Type) : int {
     if (bt == Type.tFloat16 || bt == Type.tHalf2 || bt == Type.tHalf3 || bt == Type.tHalf4
             || bt == Type.tInt16 || bt == Type.tShort2 || bt == Type.tShort3 || bt == Type.tShort4
@@ -76,7 +65,6 @@ def public scalar_width(bt : Type) : int {
     return 0
 }
 
-// Lane count of a scalar/vector Type: 1/2/3/4; 0 for non-scalar/vector types.
 def public component_count(bt : Type) : int {
     if (bt == Type.tInt || bt == Type.tUInt || bt == Type.tFloat || bt == Type.tBool) return 1
     if (bt == Type.tInt2 || bt == Type.tUInt2 || bt == Type.tFloat2) return 2
@@ -89,9 +77,6 @@ def public component_count(bt : Type) : int {
     return 0
 }
 
-// Type -> (class, component bit WIDTH, lanes), extending the 32-bit classifiers above to the 64-bit
-// scalars they exclude (int64/uint64/double, which lay out as block members but carry no arithmetic).
-// Width travels with the class so a 32-bit-only consumer can test width, not just class.
 def public numeric_info(bt : Type) : tuple<ok : bool; cls : int; width : int; lanes : int> {
     if (bt == Type.tInt64) return (ok = true, cls = 0, width = 64, lanes = 1)
     if (bt == Type.tUInt64) return (ok = true, cls = 1, width = 64, lanes = 1)
@@ -101,22 +86,15 @@ def public numeric_info(bt : Type) : tuple<ok : bool; cls : int; width : int; la
     return (ok = true, cls = c, width = scalar_width(bt), lanes = component_count(bt))
 }
 
-// ===== interface-block layout rules =====
 enum public BlockLayoutRules {
     std140
     std430
 }
 
-// The widths the ARITHMETIC rail lowers: the 16/32-bit families (a native OpIAdd on OpTypeInt 16,
-// as glslang gives i16vec2) plus the 64-bit FLOAT (OpFAdd on OpTypeFloat 64, GLSL's double). A
-// 64-bit INT is excluded -- it lays out as a block member only, so it fails closed before an opcode.
 def public arith_width_ok(cls, width : int) : bool {
     return width <= 32 || (width == 64 && cls == 2)
 }
 
-// Class and lane count for the arithmetic rail, gated on arith_width_ok rather than a 32-bit width
-// (it carries no byte layout). The 32-bit-only scalar_class / component_count stay as they are, so
-// no 16-bit component or double can slip into the std140 layout whose sizes are hardcoded 4-byte.
 def public arith_class(bt : Type) : int {
     let ni = numeric_info(bt)
     return ni.ok && arith_width_ok(ni.cls, ni.width) ? ni.cls : -1
@@ -128,8 +106,6 @@ def public arith_lanes(bt : Type) : int {
     return ni.ok && arith_width_ok(ni.cls, ni.width) ? ni.lanes : 0
 }
 
-// ===== std140 layout for a UBO interface block =====
-// A 64-bit scalar (int64/uint64, GL_ARB_gpu_shader_int64) lays out like a double: align and size 8.
 def public std140_align(bt : Type) : int {
     if (bt == Type.tInt64 || bt == Type.tUInt64) return 8
     let cc = component_count(bt)
@@ -143,7 +119,6 @@ def public std140_size(bt : Type) : int {
     return component_count(bt) * 4
 }
 
-// Width-aware base size / alignment — the std430 generalization of std140_size/std140_align (identical values for 32-bit types). Size = lanes x bytes-per-lane; alignment = scalar -> 1 lane, vec2 -> 2 lanes, vec3/vec4 -> 4 lanes, scaled by the lane width (half3 -> size 6, align 8;
 def public block_scalar_size(bt : Type) : int {
     if (bt == Type.tInt64 || bt == Type.tUInt64) return 8
     return component_count(bt) * (scalar_width(bt) / 8)
@@ -155,10 +130,6 @@ def public block_scalar_align(bt : Type; rules : BlockLayoutRules) : int {
     let cc = component_count(bt)
     let lanes = cc == 1 ? 1 : (cc == 2 ? 2 : 4)
     return lanes * (scalar_width(bt) / 8)
-}
-
-def public round_up(off, a : int) : int {
-    return ((off + a - 1) / a) * a
 }
 
 //! One std140-laid-out field of a @uniform / @push_constant interface block. Returned by compute_block_layout and consumed by host-side bind macros (e.g. dasVulkan's SpirvVulkanShader and dasOpenGL's GlslOpenGLShader) to emit one write per field at the right byte offset.
@@ -176,7 +147,6 @@ struct public BlockField {
     is_composite      : bool   //!< convenience flag — true when is_array OR is_struct (host bind macros can't write this with a flat overload)
 }
 
-// Array element stride for a fixed-array element type. std140: scalars/vectors round up to vec4 (16 bytes). std430: tight — the element's base size rounded to its base alignment. Nested-struct elements take their laid-out struct size rounded to the struct alignment (handled by the caller).
 def public block_array_element_stride(bt : Type; rules : BlockLayoutRules) : int {
     if (rules == BlockLayoutRules.std140) return round_up(std140_size(bt), 16)
     return round_up(block_scalar_size(bt), block_scalar_align(bt, rules))
@@ -184,7 +154,7 @@ def public block_array_element_stride(bt : Type; rules : BlockLayoutRules) : int
 
 //! Compute the std140 layout of one interface block. Pure: takes a Structure?, fills `fields` with per-field offsets / sizes / matrix and composite flags, returns the block total size and max member alignment. Used by build_block_struct (SPIR-V type emit), the OpenGL UBO pack binder, and dasVulkan's mapped-memory binder. Rejects bool and non-numeric fields fail-closed (no physical std140 layout). `sname` is only used in error messages. `fields` is cleared at entry so reuse across calls and partial-failure returns can't bleed. Supported field shapes (PR-G complete):
 [macro_function]
-def public compute_block_layout(sname : string; st : Structure?; var fields : array<BlockField>; var errors : array<string>; rules : BlockLayoutRules = BlockLayoutRules.std140) : tuple<ok : bool; size : int; align : int> {
+def public compute_block_layout(sname : string; st : Structure?; var fields : array<BlockField>; var errors : array<string>; rules : BlockLayoutRules = BlockLayoutRules.std140) : tuple<ok : bool; size : int; align : int> {  // nolint:STYLE038 - one arm per field shape, each advancing the shared offset/alignment cursor and fail-closing the whole layout
     fields |> clear
     if (st == null || empty(st.fields)) {
         errors |> push("interface block '{sname}' must be a struct with at least one field")
@@ -193,7 +163,6 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
     var off = 0
     var max_align = 0
     for (fld in st.fields) {
-        // matrix field (terminal)
         let mi = matrix_info(fld._type)
         if (mi.ok) {
             off = round_up(off, 16)
@@ -203,7 +172,6 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
             max_align = max(max_align, 16)
             continue
         }
-        // nested struct field (PR-G): recurse. Base alignment = round_up(inner_align, 16);
         if (fld._type != null && fld._type.baseType == Type.tStructure && fld._type.structType != null) {
             var inner : array<BlockField>
             let inner_layout = compute_block_layout("{sname}.{fld.name}", fld._type.structType, inner, errors, rules)
@@ -223,7 +191,6 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
             max_align = max(max_align, struct_align)
             continue
         }
-        // fixed-array field (PR-G): element kind decides stride. Scalar/vector elements stride by their size rounded up to 16 (the std140 array padding rule — every array slot is at least vec4-wide). Nested-struct elements stride by their laid-out struct size. Matrix elements and nested-array elements (array of array) are rejected; wrap in a struct.
         if (fld._type != null && fld._type.baseType == Type.tFixedArray && fld._type.firstType != null) {
             let et = fld._type.firstType
             let nelem = fld._type.fixedDim
@@ -232,7 +199,6 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
                 fields |> clear
                 return (ok = false, size = 0, align = 0)
             }
-            // scalar / vector element
             if (et.baseType != Type.tStructure && et.baseType != Type.tFixedArray && !matrix_info(et).ok) {
                 let ebt = et.baseType
                 if (scalar_class(ebt) < 0 || (rules == BlockLayoutRules.std140 && scalar_width(ebt) != 32)) {
@@ -242,7 +208,7 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
                 }
                 let stride = block_array_element_stride(ebt, rules)
                 let abase = rules == BlockLayoutRules.std140 ? 16 : block_scalar_align(ebt, rules)
-                off = round_up(off, abase)     // std140 array base alignment is 16; std430 = element alignment
+                off = round_up(off, abase)
                 let total = stride * nelem
                 fields |> emplace(BlockField(name := string(fld.name), offset = off, size = total,
                     is_matrix = false, matrix_width = 0, matrix_cols = 0,
@@ -252,7 +218,6 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
                 max_align = max(max_align, abase)
                 continue
             }
-            // array-of-struct element
             if (et.baseType == Type.tStructure && et.structType != null) {
                 var inner : array<BlockField>
                 let inner_layout = compute_block_layout("{sname}.{fld.name}[]", et.structType, inner, errors, rules)
@@ -277,7 +242,6 @@ def public compute_block_layout(sname : string; st : Structure?; var fields : ar
             fields |> clear
             return (ok = false, size = 0, align = 0)
         }
-        // terminal scalar / vector field (32-bit numerics, or a 64-bit int64/uint64 scalar)
         let fbt = fld._type.baseType
         let is_int64 = fbt == Type.tInt64 || fbt == Type.tUInt64
         if (!is_int64 && (scalar_class(fbt) < 0 || (rules == BlockLayoutRules.std140 && scalar_width(fbt) != 32))) {

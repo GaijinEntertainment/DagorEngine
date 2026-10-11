@@ -80,6 +80,7 @@ enum class HlslSlotSemantic : uint8_t
   RESERVED_FOR_REFINED_BLOCK_CBUF,
   RESERVED_FOR_MATERIAL_PARAMS_CBUF,
   RESERVED_FOR_IMMEDIATE_CBUF,
+  RESERVED_FOR_SUBPASS_READS,
 };
 
 struct HlslRegRange
@@ -111,7 +112,8 @@ public:
     "implicit const buf",        // RESERVED_FOR_IMPLICIT_CONST_CBUF
     "refined block const buf",   // RESERVED_FOR_REFINED_BLOCK_CBUF
     "material params const buf", // RESERVED_FOR_MATERIAL_PARAMS_CBUF
-    "immediate const buf"        // RESERVED_FOR_IMMEDIATE_CBUF
+    "immediate const buf",       // RESERVED_FOR_IMMEDIATE_CBUF
+    "subpass read"               // RESERVED_FOR_SUBPASS_READS
   };
 
   static const allocator_scan_routine_t DEFAULT_SCAN, BACKWARDS_SCAN;

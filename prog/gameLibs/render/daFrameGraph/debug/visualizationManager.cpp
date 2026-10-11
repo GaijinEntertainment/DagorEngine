@@ -30,7 +30,9 @@ void VisManager::updateIRGraphVisualization() { irGraphVisualizer.updateVisualiz
 
 void VisManager::updateResourceVisualization() { resVisualizer.updateVisualization(); }
 
-void VisManager::updateTextureVisualization() {}
+void VisManager::updateTextureVisualization() { update_debug_copy_textures(); }
+
+void VisManager::updateDebugNodes() { apply_external_texture_visualization(); }
 
 
 void VisManager::sendBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &view)

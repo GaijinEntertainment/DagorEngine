@@ -39,7 +39,7 @@ auto ResourceLifetimeCalculator::recalculate(const intermediate::Graph &graph, c
   IdIndexedMapping<intermediate::ResourceIndex, UsageSpan, framemem_allocator> currentFrameSpans(newSize, UNUSED);
   IdIndexedMapping<intermediate::ResourceIndex, UsageSpan, framemem_allocator> historySpans(newSize, UNUSED);
 
-  for (auto [nodeIdx, node] : graph.nodes.enumerate())
+  for (const auto &[nodeIdx, node] : graph.nodes.enumerate())
     for (const auto &req : node.resourceRequests)
     {
       auto &span = req.fromLastFrame ? historySpans[req.resource] : currentFrameSpans[req.resource];

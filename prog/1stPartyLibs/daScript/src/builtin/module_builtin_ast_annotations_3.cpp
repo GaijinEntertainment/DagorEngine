@@ -209,6 +209,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
             addField<DAS_BIND_MANAGED_FIELD(refStackTop)>("refStackTop");
             addField<DAS_BIND_MANAGED_FIELD(returnFunc)>("returnFunc");
+            addField<DAS_BIND_MANAGED_FIELD(returnType)>("returnType");
             addField<DAS_BIND_MANAGED_FIELD(block)>("_block","block");
             addFieldEx ( "returnFlags", "returnFlags", offsetof(ExprReturn, returnFlags), makeExprReturnFlags() );
         }

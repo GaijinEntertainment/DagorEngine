@@ -6,7 +6,6 @@ include "shore.dshl"
 include "displacement_inc.dshl"
 include "heightmap_common.dshl"
 include "biomes.dshl"
-include "underwater_fog.dshl"
 
 float4 heightmap_min_max = (0, 0, 0, 0);
 
@@ -122,8 +121,7 @@ USE_SHORE(ps, 1, 1)
 hlsl(ps) {
   float get_land_wetness(float3 worldPos, out float shoreWavesMultiplier, float water_level)
   {
-    float2 wind_dir = wind_dir_water_level_ocean_density.xy;
-    float ocean_density = wind_dir_water_level_ocean_density.w;
+    float2 wind_dir = wind_dir_water_level.xy;
     float const_wet_above = 0.4;
     float wet_above = const_wet_above + max_wave_height/2;
     //fixme: wet_above = 0.2 + max(riversMultiplier * max_wave_height / 16, 2 * shoreWavesDisplacement.y);
@@ -181,7 +179,7 @@ block(scene) land_mesh_with_clipmap
   INIT_CLIPMAP_NORMAL()
 
   (ps) {
-    wind_dir_water_level_ocean_density@f4 = (wind_dir_x, wind_dir_y, water_level, -0.5*ocean_density);
+    wind_dir_water_level@f3 = (wind_dir_x, wind_dir_y, water_level);
     shore_params1@f4 = (max_wave_height, scroll_time, shore_heightmap_min_max.z, shore_heightmap_min_max.w);
     lightmap_tex@smp2d = lightmap_tex;
   }

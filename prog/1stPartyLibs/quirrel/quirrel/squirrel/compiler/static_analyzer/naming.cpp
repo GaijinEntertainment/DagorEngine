@@ -15,10 +15,10 @@ bool looksLikeElementCount(const Expr *e) {
     checkee = e->asGetField()->fieldName();
   }
   else if (e->op() == TO_GETSLOT) {
-    return looksLikeElementCount(deparenStatic(e->asGetSlot()->key()));
+    return looksLikeElementCount(deparen(e->asGetSlot()->key()));
   }
   else if (e->op() == TO_CALL) {
-    return looksLikeElementCount(deparenStatic(e->asCallExpr()->callee()));
+    return looksLikeElementCount(deparen(e->asCallExpr()->callee()));
   }
 
   if (!checkee)

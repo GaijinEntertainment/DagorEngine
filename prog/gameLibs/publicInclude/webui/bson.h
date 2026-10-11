@@ -77,7 +77,7 @@ struct BsonType<float, void>
   static const uint8_t type = 0x01;
   static void add(Tab<uint8_t> &stream, const float &value)
   {
-    double v = value;
+    double v = double(value);
     BsonType<double>::add(stream, v);
   }
 };

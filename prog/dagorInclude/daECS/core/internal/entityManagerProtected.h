@@ -121,6 +121,8 @@ OSSpinlock archetypeTrackingMutex, eidTrackingMutex;
 
 eastl::bitvector<> canBeReplicated;
 TrackedChangeArchetype archetypeTrackingQueue;
+uint32_t eidTrackingQueuePeak = 0; // peak size of the current shrink period
+uint8_t eidTrackingQueueFrames = 0;
 replication_cb_t replicationCb = NULL;
 
 void onChangeEvents(const TrackedChangesTemp &process);

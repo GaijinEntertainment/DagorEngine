@@ -100,7 +100,7 @@ def test_nested_if(max : int = 10) {
             if (x > 4) {
                 break
             } finally {
-                t += 1
+                t++
             }
         } finally {
             t += 10
@@ -120,13 +120,13 @@ def test_nested_if_else(max : int = 10) {
             } else {
                 break
             } finally {
-                t += 1
+                t++
             }
         } finally {
             t += 10
         }
     }
-    return t == 11 && p == false
+    return t == 11 && !p
 }
 
 [jit, sideeffects]
@@ -218,7 +218,7 @@ def test_func_finally() {
 [jit, sideeffects]
 def test_block_finally() {
     var t = 0
-    invoke() <| $() { t = 1; } finally { t = 2; }
+    invoke() $ { t = 1; } finally { t = 2; }
     return t == 2
 }
 

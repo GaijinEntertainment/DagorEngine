@@ -77,7 +77,7 @@ public:
     float curvStrength = 1.f;
     float minStep = 10.f, maxStep = 100.f;
     bool hmapAlign = false, smooth = false;
-    bool tiledObjsWorldAnchor = true, plantedObjsWorldAnchor = false;
+    bool tiledObjsWorldAnchor = true, plantedObjsWorldAnchor = false, objsFollowDetile = true;
     bool altGeom = false;
     float bboxAlignStep = 1.f;
   };

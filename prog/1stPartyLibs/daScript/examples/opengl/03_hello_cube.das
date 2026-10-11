@@ -3,7 +3,7 @@ options persistent_heap
 options gc
 require glfw/glfw_boost
 require opengl/opengl_boost
-require strings
+require daslib/strings_convert
 
 require daslib/safe_addr
 require daslib/math_boost
@@ -170,7 +170,7 @@ def parse_args() {
     let args <- get_command_line_arguments()
     for (i in range(length(args) - 1)) {
         if (args[i] == "--max-frames") {
-            max_frame_limit = to_int(args[i + 1])
+            max_frame_limit = try_to_int(args[i + 1]) ?? 0   // garbage = no cap
         }
     }
 }

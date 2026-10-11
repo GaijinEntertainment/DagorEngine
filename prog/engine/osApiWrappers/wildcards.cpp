@@ -21,10 +21,8 @@ static int asterisk(const char **wildcard, const char **test)
   while ('*' == (**wildcard))
     (*wildcard)++;
 
-  if (('\0' == (**test)) && ('\0' != (**wildcard)))
-    fit = 0;
-  else if (('\0' == (**test)) && ('\0' == (**wildcard)))
-    fit = 1;
+  if ('\0' == **test)
+    fit = '\0' == **wildcard;
   else
   {
     /* Neither test nor wildcard are empty!          */

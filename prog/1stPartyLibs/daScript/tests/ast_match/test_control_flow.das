@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options rtti
+options _cyclomatic_complexity = 0  // qmatch pattern blocks expand into matcher code; the count is not the test's own
 
 require daslib/ast
 require daslib/ast_match
@@ -107,7 +108,7 @@ def test_if_capture_cond(t : T?) {
         }
         t |> success(r.matched, "should match with $e capture on condition")
         if (r.matched) {
-            t |> equal(string(cond.__rtti), "ExprOp2")
+            t |> equal(cond.__rtti, "ExprOp2")
         }
     }
 }
@@ -173,7 +174,7 @@ def test_while_capture_cond(t : T?) {
         }
         t |> success(r.matched, "should capture while condition")
         if (r.matched) {
-            t |> equal(string(cond.__rtti), "ExprOp2")
+            t |> equal(cond.__rtti, "ExprOp2")
         }
     }
 }
@@ -253,7 +254,7 @@ def test_return_capture(t : T?) {
         }
         t |> success(r.matched, "should capture return value")
         if (r.matched) {
-            t |> equal(string(val.__rtti), "ExprOp2")
+            t |> equal(val.__rtti, "ExprOp2")
         }
     }
 }

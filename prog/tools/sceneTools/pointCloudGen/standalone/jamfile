@@ -44,7 +44,6 @@ UseProgLibs =
 
   engine/gameRes
   engine/scene
-  engine/sceneRay
   engine/guiBase
   engine/animChar
   engine/phys/physCommon

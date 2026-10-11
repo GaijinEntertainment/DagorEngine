@@ -1,6 +1,5 @@
 options gen2
-require jit
-require llvm/daslib/llvm_macro // This require will jit all functions
+require daslib/just_in_time // the JIT's entry, what -jit requires: every [jit] function is jitted
 
 [jit]
 def add(a, b : int) {

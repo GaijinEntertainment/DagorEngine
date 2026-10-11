@@ -33,6 +33,7 @@ Sources =
   colorChangeBuffer.cpp
   colorsInternal.cpp
   contextMenu.cpp
+  controlSizeHelper.cpp
   focusHelper.cpp
   imageHelper.cpp
   imguiHelper.cpp

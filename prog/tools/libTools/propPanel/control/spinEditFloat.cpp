@@ -2,16 +2,25 @@
 
 #include <propPanel/control/spinEditFloat.h>
 
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
 {
 
+unsigned SpinEditFloatPropertyControl::getWidth() const { return mW > 0 ? mW : ControlSizeHelper::getDefaultRightSideEditWidth(); }
+
+Point2 SpinEditFloatPropertyControl::getPreferredSize(float max_width_px) const
+{
+  return ControlSizeHelper::getSpinEditPreferredSize(widthIncludesLabel, mW, controlCaption.begin(), controlCaption.end(),
+    max_width_px);
+}
+
 void SpinEditFloatPropertyControl::updateImgui()
 {
   ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-  float spinEditWidth = ImguiHelper::getDefaultRightSideEditWidth();
+  float spinEditWidth = ControlSizeHelper::getDefaultRightSideEditWidth();
 
   if (widthIncludesLabel)
   {

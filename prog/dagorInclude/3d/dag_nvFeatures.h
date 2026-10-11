@@ -144,14 +144,14 @@ struct DlssNRParams
   HandleType *inColor = nullptr;         // tonemapped SDR, output resolution
   HandleType *inDepth = nullptr;         // render resolution
   HandleType *inMotionVectors = nullptr; // render resolution
-  // Optional. R, G and B are per pixel multipliers on intensity, tone strength and structure strength.
+  // Optional, render resolution. R, G and B are per pixel multipliers on intensity, tone strength and structure strength.
   HandleType *inControlMask = nullptr;
 
   float inJitterOffsetX = .0f;
   float inJitterOffsetY = .0f;
   float inMVScaleX = .0f;
   float inMVScaleY = .0f;
-  // Depth and motion vectors come at render resolution, the color pair does not.
+  // Depth, motion vectors and the control mask come at render resolution, the color pair does not.
   int inWidth = 0;
   int inHeight = 0;
   uint32_t frameId = 0;

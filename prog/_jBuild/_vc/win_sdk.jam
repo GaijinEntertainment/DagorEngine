@@ -3,8 +3,8 @@ _WIN_SDK_BIN = $(_WIN_SDK)/bin ;
 _WIN_SDK_INC = $(_WIN_SDK)/Include ;
 _WIN_SDK_LIB = $(_WIN_SDK)/lib ;
 
-if ! [ GLOB $(_VC_DIR) : * ] { exit FATAL\: _VC_DIR \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS ; }
-if ! [ GLOB $(_WIN_SDK) : * ] { exit FATAL\: _WIN_SDK \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_VC_DIR) : * ] { exit "FATAL: _VC_DIR \"$(_VC_DIR)\" not found!  Please, update DEVTOOLS" ; }
+if ! [ GLOB $(_WIN_SDK) : * ] { exit "FATAL: _WIN_SDK \"$(_WIN_SDK)\" not found!  Please, update DEVTOOLS" ; }
 
 if $(WinSdkVer) = win.sdk.81 {
   _WIN_SDK_TARGET_SUFFIX ?= x86 ;
@@ -12,11 +12,17 @@ if $(WinSdkVer) = win.sdk.81 {
   _WIN_SDK_INC = $(_WIN_SDK_INC)/$(include_subdir) ;
   _WIN_SDK_LIB = $(_WIN_SDK_LIB)/winv6.3/um ;
 }
+if $(PlatformArch) = arm64ec {
+  # constraint: older SDKs lack softintrin.h and ARM64X import libs
+  if $(WinSdkVer) != win.sdk.100 { exit "FATAL: PlatformArch=arm64ec requires WinSdkVer=win.sdk.100" ; }
+  WinSdkUpdateVer ?= 22621 ;
+  if $(WinSdkUpdateVer) < 22000 { exit "FATAL: PlatformArch=arm64ec requires WinSdkUpdateVer 22000+ ($(WinSdkUpdateVer) is set)" ; }
+}
 if $(WinSdkVer) = win.sdk.100 {
   WinSdkUpdateVer ?= 19041 ;
   local _inc = $(_DEVTOOL)/win.sdk.100/include/10.0.$(WinSdkUpdateVer).0 ;
   local _lib = $(_DEVTOOL)/win.sdk.100/lib/10.0.$(WinSdkUpdateVer).0 ;
-  if ! [ GLOB $(_inc) : * ] { exit FATAL\: WinSDK \"$(_inc)\" not found!  Please, update DEVTOOLS ; }
+  if ! [ GLOB $(_inc) : * ] { exit "FATAL: WinSDK \"$(_inc)\" not found!  Please, update DEVTOOLS" ; }
 
   if [ GLOB $(_WIN_SDK_BIN) : 10.0.$(WinSdkUpdateVer).0 ] { _WIN_SDK_BIN = $(_WIN_SDK_BIN)/10.0.$(WinSdkUpdateVer).0 ; }
 

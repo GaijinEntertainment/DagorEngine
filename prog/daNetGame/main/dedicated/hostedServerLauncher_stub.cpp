@@ -1,21 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "main/hostedServerLauncher.h"
-#include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
+#include <startup/dag_globalSettings.h>
 
 void bind_hosting_internal_server(Sqrat::Table &) {}
 void prelaunch_internal_server_if_needed() {}
 void shutdown_internal_server_on_host_exit() {}
 void kill_internal_server(bool) {}
-void kill_internal_server_uid(const char *, bool) {}
+void kill_internal_server_uid(HostedServerUid, bool) {}
 void cancel_scheduled_internal_server_start() {}
 bool is_hosted_internal_server_active() { return false; }
-const char *get_hosted_internal_server_uid() { return ""; }
-const char *allocate_hosted_server_uid() { return ""; }
-void set_hosted_server_start_uid(const char *) {}
-const char *resolve_hosted_server_start_uid(const char *) { return ""; }
-bool try_begin_hosted_server_start(const char *) { return false; }
+HostedServerUid get_hosted_internal_server_uid() { return HOSTED_SERVER_UID_NONE; }
+HostedServerUid allocate_hosted_server_uid() { return HOSTED_SERVER_UID_NONE; }
+void set_hosted_server_start_uid(HostedServerUid) {}
+HostedServerUid resolve_hosted_server_start_uid(HostedServerUid) { return HOSTED_SERVER_UID_NONE; }
+bool try_begin_hosted_server_start(HostedServerUid) { return false; }
 void clear_hosted_server_start_pending() {}
 bool is_hosted_server_start_pending() { return false; }
 bool poll_hosted_ready_watchdog() { return false; }

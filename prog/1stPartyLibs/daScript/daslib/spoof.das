@@ -38,19 +38,19 @@ def spoof_args(invocation : string; blk : block<(var res : array<tuple<argName :
             return (argName = e, init = "")
         }
         var sub_element : string
-        rule("\\", "{set(0..255)}" as Ch) {    // escape
+        rule("\\", "{set(0..255)}" as Ch) {
             return string(Ch)
         }
-        rule("#", string_ as e, commit) {      // contents of the string (do we need unescape?)
+        rule("#", string_ as e, commit) {
             return e
         }
-        rule(string_ as e, commit) {           // "e"
+        rule(string_ as e, commit) {
             return "\"{e}\""
         }
-        rule("(", element as e, ")") {         // (e)
+        rule("(", element as e, ")") {
             return "({e})"
         }
-        rule("{not_set(')',',')}" as e) {      // any character except ')' and ','
+        rule("{not_set(')',',')}" as e) {
             return e
         }
         var element_value : string
@@ -88,11 +88,10 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
         if (!empty(errors)) {
             error = errors |> join("\n")
         } else {
-            args <- res
+            args <- res  // nolint:PERF030 - target is the fresh empty decl above; the fill is inside a callback, so it cannot fold into the declaration
         }
     }
     if (empty(args)) return (result = error, ok = false)
-    // compare argument counts
     var instance_arguments : array<string>
     for (a, ai in args, count()) {
         if (ai < passed_arguments |> length) {
@@ -103,7 +102,6 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
             return (result = "invalid number of arguments", ok = false)
         }
     }
-    // skip to next line
     var it <- unsafe(each(temp))
     var Ch = -1
     while (next(it, Ch)) {
@@ -115,12 +113,11 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
         Ch = -1
     }
     if (Ch == -1) return (result = "unexpected end of file", ok = false)
-    // now, lets apply the arguments
     var result : array<uint8>
     var pendingCh : int
     Ch = 0
     while (Ch == -1 || next(it, Ch)) {
-        if (Ch == -1) {// we have pending character
+        if (Ch == -1) {
             Ch = pendingCh
         }
         if (Ch == SPOOF_SPEFICAL) {
@@ -135,7 +132,7 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
                         result |> push(uint8(c))
                     }
                 }
-                if (Ch != -1) {// pending after ident
+                if (Ch != -1) {
                     pendingCh = Ch
                     Ch = -1
                 }
@@ -143,7 +140,7 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
                 result |> push(uint8(SPOOF_SPEFICAL))
                 result |> push(uint8(SPOOF_SPEFICAL))
             } elif (Ch == -1) {
-                break   // eof
+                break
             } else {
                 return (result = "invalid sequence after %", ok = false)
             }
@@ -154,20 +151,24 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
     return (result = string(result), ok = true)
 }
 
+def private accept_until_double_percent(var expr : ExprReader?; ch : int) : bool {
+    if (ch != '\r') {
+        append(expr.sequence, ch)
+    }
+    if (ends_with(expr.sequence, "%%")) {
+        let len = length(expr.sequence)
+        resize(expr.sequence, len - 2)
+        return false
+    } else {
+        return true
+    }
+}
+
 [reader_macro(name="spoof_template")]
 class SpoofTemplateReader : AstReaderMacro {
     //! Reader macro that parses spoof template definitions.
     def override accept(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; ch : int; info : LineInfo) : bool {
-        if (ch != '\r') {
-            append(expr.sequence, ch)
-        }
-        if (ends_with(expr.sequence, "%%")) {
-            let len = length(expr.sequence)
-            resize(expr.sequence, len - 2)
-            return false
-        } else {
-            return true
-        }
+        return accept_until_double_percent(expr, ch)
     }
 
     def override visit(prog : ProgramPtr; mod : Module?; expr : ExprReader?) : ExpressionPtr {
@@ -200,19 +201,19 @@ def instance_args(invocation : string; blk : block<(var res : SpoofInvocation; e
             return e
         }
         var sub_element : string
-        rule("\\", "{set(0..255)}" as Ch) {    // escape
+        rule("\\", "{set(0..255)}" as Ch) {
             return string(Ch)
         }
-        rule("#", string_ as e, commit) {      // contents of the string (do we need unescape?)
+        rule("#", string_ as e, commit) {
             return e
         }
-        rule(string_ as e, commit) {           // "e"
+        rule(string_ as e, commit) {
             return "\"{e}\""
         }
-        rule("(", element as e, ")") {         // (e)
+        rule("(", element as e, ")") {
             return "({e})"
         }
-        rule("{not_set(')',',')}" as e) {      // any character except ')' and ','
+        rule("{not_set(')',',')}" as e) {
             return e
         }
         var element : string
@@ -237,16 +238,7 @@ def instance_args(invocation : string; blk : block<(var res : SpoofInvocation; e
 class SpoofInstanceReader : AstReaderMacro {
     //! Reader macro that instantiates a spoof template.
     def override accept(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; ch : int; info : LineInfo) : bool {
-        if (ch != '\r') {
-            append(expr.sequence, ch)
-        }
-        if (ends_with(expr.sequence, "%%")) {
-            let len = length(expr.sequence)
-            resize(expr.sequence, len - 2)
-            return false
-        } else {
-            return true
-        }
+        return accept_until_double_percent(expr, ch)
     }
 
     def override suffix(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; info : LineInfo; var outLine : int&; var outFile : FileInfo?&) : string {
@@ -259,11 +251,10 @@ class SpoofInstanceReader : AstReaderMacro {
                 prog |> macro_error(info, all_errors)
                 failed = true
             } else {
-                iargs <- res
+                iargs <- res  // nolint:PERF030 - target is the fresh empty decl above; the fill is inside a callback, so it cannot fold into the declaration
             }
         }
         return "" if (failed)
-        // lets find the variable for the template
         var vptr : VariablePtr
         find_matching_variable(get_ptr(prog), null, iargs.varName, false) $(vars) {
             if (empty(vars)) {
@@ -290,7 +281,6 @@ class SpoofInstanceReader : AstReaderMacro {
             prog |> macro_error(info, "variable {iargs.varName} is not a string")
             return ""
         }
-        // now, lets spoof the instance
         outLine = int(vptr.init.at.line) + 1
         outFile = vptr.init.at.fileInfo
         let result <- instance_spoof(vstr, iargs.args)

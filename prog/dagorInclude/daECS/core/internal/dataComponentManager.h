@@ -16,14 +16,6 @@
 #include <osApiWrappers/dag_virtualMem.h>
 // #include <math/dag_mathUtils.h>
 
-#ifndef RESTRICT_FUN
-#ifdef _MSC_VER
-#define RESTRICT_FUN __declspec(restrict)
-#else
-#define RESTRICT_FUN
-#endif
-#endif
-
 namespace ecs
 {
 // all data components to be stored in a very simple way.
@@ -81,11 +73,8 @@ public:
     const uint32_t components_cnt, const uint32_t entity_size, chunk_type_t &moved_from_chunk, chunk_type_t &moved_to_chunk,
     uint32_t &moved_at_id, uint32_t &moved_cnt);
 
-  RESTRICT_FUN
   void *__restrict getDataUnsafeNoCheck(uint32_t ofs, uint32_t sz, chunk_type_t chunkId, uint32_t id) const;
-  RESTRICT_FUN
   void *__restrict getDataUnsafe(uint32_t ofs, uint32_t sz, chunk_type_t chunkId, uint32_t id) const;
-  RESTRICT_FUN
   void *__restrict getData(uint32_t ofs, uint32_t sz, chunk_type_t chunkId, uint32_t id) const;
   uint32_t allocateChunk(const uint32_t entity_size, uint8_t capacity_bits);
 
@@ -98,7 +87,7 @@ public:
   bool removeFromChunk(chunk_type_t chunkId, uint32_t index, uint32_t entity_size, const uint16_t *__restrict component_sz,
     uint32_t &moved_index); // moved_index has became index
 
-  RESTRICT_FUN uint8_t *__restrict getChunkData(chunk_type_t chunkId, uint32_t &stride) const;
+  uint8_t *__restrict getChunkData(chunk_type_t chunkId, uint32_t &stride) const;
   uint32_t getChunksCount() const;
   uint32_t getChunkCapacity(uint32_t chunkId) const;
   uint32_t getChunkUsed(uint32_t chunkId) const;
@@ -109,8 +98,8 @@ public:
   __forceinline dag::Span<Chunk> getChunksPtr() { return getChunks(); }
   __forceinline dag::ConstSpan<Chunk> getChunksConstPtr() const { return getChunksConst(); }
 #else
-  RESTRICT_FUN __forceinline Chunk *getChunksPtr() { return aliasedChunks.getChunksPtr(); }
-  RESTRICT_FUN __forceinline const Chunk *getChunksConstPtr() const { return aliasedChunks.getChunksConstPtr(); }
+  __forceinline Chunk *getChunksPtr() { return aliasedChunks.getChunksPtr(); }
+  __forceinline const Chunk *getChunksConstPtr() const { return aliasedChunks.getChunksConstPtr(); }
 #endif
   const Chunk &getChunk(uint32_t chunk_id) const;
   Chunk &getChunk(uint32_t chunk_id);
@@ -343,7 +332,6 @@ __forceinline uint32_t DataComponentManager::getChunkCapacity(uint32_t chunkId) 
 }
 __forceinline uint32_t DataComponentManager::getChunkUsed(uint32_t chunkId) const { return getChunksConstPtr()[chunkId].getUsed(); }
 
-RESTRICT_FUN
 __forceinline void *__restrict DataComponentManager::getDataUnsafeNoCheck(uint32_t ofs, uint32_t sz, chunk_type_t chunkId,
   uint32_t id) const
 {
@@ -351,7 +339,6 @@ __forceinline void *__restrict DataComponentManager::getDataUnsafeNoCheck(uint32
   return getChunksConstPtr()[chunkId].getCompDataUnsafe(ofs) + id * sz;
 }
 
-RESTRICT_FUN
 __forceinline void *__restrict DataComponentManager::getDataUnsafe(uint32_t ofs, uint32_t sz, chunk_type_t chunkId, uint32_t id) const
 {
 #if DAECS_EXTENSIVE_CHECKS
@@ -362,7 +349,6 @@ __forceinline void *__restrict DataComponentManager::getDataUnsafe(uint32_t ofs,
   return getChunksConstPtr()[chunkId].getCompDataUnsafe(ofs) + id * sz;
 }
 
-RESTRICT_FUN
 inline void *__restrict DataComponentManager::getData(uint32_t ofs, uint32_t sz, chunk_type_t chunkId, uint32_t id) const
 {
   auto chunks = getChunksConst();
@@ -371,7 +357,6 @@ inline void *__restrict DataComponentManager::getData(uint32_t ofs, uint32_t sz,
   return chunks[chunkId].getCompDataUnsafe(ofs) + id * sz;
 }
 
-RESTRICT_FUN
 inline uint8_t *__restrict DataComponentManager::getChunkData(chunk_type_t chunkId, uint32_t &stride) const
 {
   auto &chunk = getChunk(chunkId);
@@ -380,5 +365,3 @@ inline uint8_t *__restrict DataComponentManager::getChunkData(chunk_type_t chunk
 }
 
 }; // namespace ecs
-
-#undef RESTRICT_FUN

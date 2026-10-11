@@ -15,6 +15,12 @@ def get_dargbox_exe():
       return exe
   return os.path.join(arch_dirs[0], "dargbox-dev.exe")
 
+def hidden_window_startupinfo():
+  si = subprocess.STARTUPINFO()
+  si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+  si.wShowWindow = subprocess.SW_HIDE
+  return si
+
 def gather_files_to_check(path, relative="", cwd=None):
   files2check=[]
   for root,dirs,files in os.walk(path):
@@ -40,6 +46,7 @@ MULTI_FRAME_TESTS = {
   "samples_prog/benchmarks/test_virtual_list_horiz.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
   "samples_prog/benchmarks/test_virtual_list_keepfocus.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
   "samples_prog/benchmarks/test_virtual_list_padding.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
+  "samples_prog/benchmarks/test_touch_pad_gestures.ui.nut": {"limit_updates": 200000, "act_rate": 1000},
 }
 
 def check(file_info):
@@ -59,7 +66,8 @@ def check(file_info):
 
   if file_info["rel"].endswith(".ui.nut"):
     try:
-      result = subprocess.run(cmd_darg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=DARG_TIMEOUT_SEC)
+      result = subprocess.run(cmd_darg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=DARG_TIMEOUT_SEC,
+                              startupinfo=hidden_window_startupinfo())
       if result.returncode != 0:
         failedBy = "dargbox"
         failText = failText + result.stdout + "\n" + result.stderr + "\n"
@@ -77,7 +85,7 @@ def check(file_info):
 
 def rerun_dargbox(dargboxFailedScript):
   cmd_darg = f'{get_dargbox_exe()} -quiet -silent -config:script:t={dargboxFailedScript} -config:debug/profiler:t=off -config:debug/limit_updates:i=1 -config:video/driver:t="stub" -config:workcycle/act_rate:i=0 -config:debug/useAddonVromSrc:b=yes -config:debug/fatalOnLogerrOnExit:b=no'
-  subprocess.run(cmd_darg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+  subprocess.run(cmd_darg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, startupinfo=hidden_window_startupinfo())
   with open(".log/last_debug", "r") as f:
     debugDir = f.read().strip()
   if os.path.exists(debugDir + "/fatalerr"):

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daScript/misc/das_asan.h"
+
 namespace das {
 
 #if DAS_TRACK_ALLOCATIONS
@@ -350,8 +352,10 @@ namespace das {
             size = s;
             offset = 0;
             next = n;
+            if ( data ) DAS_ASAN_POISON(data, size);
         }
         ~HeapChunk() {
+            if ( data ) DAS_ASAN_UNPOISON(data, size);
             das_aligned_free16(data);
             while (next) {
                 HeapChunk * toDelete = next;
@@ -369,6 +373,7 @@ namespace das {
         __forceinline void free ( char * ptr, uint64_t s ) {
             if ( ptr + s == data + offset ) {
                 offset -= s;
+                DAS_ASAN_POISON(ptr, s);
             }
         }
         __forceinline bool isOwnPtr ( const char * ptr ) const {

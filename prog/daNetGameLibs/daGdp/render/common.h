@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <EASTL/fixed_string.h>
+#include <EASTL/fixed_function.h>
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_texFlags.h>
 #include <daECS/core/entitySystem.h>

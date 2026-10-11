@@ -98,7 +98,7 @@ uint32_t BindlessManager::registerBindlessSampler(int index, float bias)
 
   id<MTLSamplerState> sampler = nil;
   {
-    std::lock_guard<std::mutex> lock(render.samplerStatesMutex);
+    std::lock_guard lock(render.samplerStatesMutex);
     sampler = render.sampler_states[index].sampler;
   }
 

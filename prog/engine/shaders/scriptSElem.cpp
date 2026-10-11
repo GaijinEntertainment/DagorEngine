@@ -8,6 +8,7 @@
 #include "scriptSMat.h"
 #include "mapBinarySearch.h"
 #include <shaders/shFunc.h>
+#include "shaderRenderPassPrivate.h"
 #include <shaders/shUtils.h>
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shOpcode.h>
@@ -40,12 +41,13 @@
 #include <math/dag_intrin.h>
 #include <math/dag_TMatrix4more.h>
 #include <3d/dag_texIdSet.h>
-#include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_rwLock.h>
 #include <supp/dag_cpuControl.h>
 #include <startup/dag_globalSettings.h>
 #include <perfMon/dag_statDrv.h>
-#include <EASTL/fixed_vector.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
 #include <drv/3d/dag_renderStates.h>
 #include <shaders/dag_shaderVarsUtils.h>
 #include <shaders/dag_shAssert.h>
@@ -361,8 +363,26 @@ void ScriptedShaderElement::preparePassIdOOL(ID_T &pass_id, int variant, unsigne
 __forceinline void ScriptedShaderElement::preparePassId(ID_T &pass_id, int variant, unsigned int variant_code,
   ScriptedShadersBinDumpOwner const &dump_owner) const
 {
-  if (pass_id.v.load(dag::memory_order_relaxed) == PackedPassId::DELETED_STATE_BLOCK_ID)
+  if (int(pass_id.v.load(dag::memory_order_relaxed)) < 0)
     preparePassIdOOL(pass_id, variant, variant_code, dump_owner);
+}
+
+__forceinline const ID_T &ScriptedShaderElement::lockReadPassId(int variant, unsigned int variant_code,
+  ScriptedShadersBinDumpOwner const &dump_owner) const
+{
+  ID_T &pass_id = passes[variant].id;
+  stateBlocksSpinLock.lockRead();
+  // Loop, as resetStateBlocks() may run between the write and read locks
+  while (int(pass_id.v.load(dag::memory_order_relaxed)) < 0) [[unlikely]]
+  {
+    stateBlocksSpinLock.unlockRead();
+    {
+      ScopedLockWriteTemplate<SpinLockReadWriteLock> lock(stateBlocksSpinLock);
+      preparePassId(pass_id, variant, variant_code, dump_owner);
+    }
+    stateBlocksSpinLock.lockRead();
+  }
+  return pass_id; //-V1020 caller unlocks
 }
 
 /*********************************
@@ -494,7 +514,7 @@ ScriptedShaderElement::ScriptedShaderElement(const shaderbindump::ShaderCode &ma
 
     if (otherPass.rpass)
     {
-      passes[i].id.v.store(PackedPassId::DELETED_STATE_BLOCK_ID);
+      passes[i].id.v.store(PackedPassId::NOT_INITED_STATE_BLOCK_ID);
       passes[i].id.pr = -2;
     }
   }
@@ -674,8 +694,11 @@ void ScriptedShaderElement::replaceVdecl(VDECL vDecl)
 {
   if (usedVdecl == vDecl)
     return;
-  usedVdecl = vDecl;
-  resetShaderPrograms();
+  // Programs are recreated only with the state block, so drop both
+  resetStateBlocks([&] {
+    usedVdecl = vDecl;
+    resetShaderPrograms();
+  });
 }
 VDECL ScriptedShaderElement::getEffectiveVDecl() const
 {
@@ -732,31 +755,32 @@ void ScriptedShaderElement::preCreateStateBlocks()
     preparePassId(passes[i].id, i, invalid_variant, dumpOwner);
 #endif
 }
-void ScriptedShaderElement::resetStateBlocks()
+template <typename Cb>
+void ScriptedShaderElement::resetStateBlocks(Cb &&cb)
 {
-  eastl::fixed_vector<ShaderStateBlockId, 32, true> toDelete;
-  // we need this spinlock, because we here invalidate pass_id.v and we can be creating in render thread.
-  // so, when we were creating we could potentially create it with old textures (BaseTexture*)
-  // we can't render with old texture*, because it is released in replaceTexture
-  //   (it can't be released in just destructor, because we can't render destructing shader anyway)
-  //   so, in order to remove this spin lock we have to stop delete textures immediately on replace.
-  //  We also have to guarantee that textures stateblocks were written with new textures
-  //    which we can do by just capture shaders_internal::BlockAutoLock autoLock in replaceTexture
-  while (!stateBlocksSpinLock.tryLock())
-    sleep_msec(1);
-  for (int i = 0; i < passes.size(); i++)
+  dag::RelocatableFixedVector<ShaderStateBlockId, 32, true, framemem_allocator> toDelete;
+  // Render threads may create a block from old vars (e.g. textures before replaceTexture) right now,
+  // so wait for it under the write lock, otherwise that stale block outlives this reset
   {
-    ShaderStateBlockId v = passes[i].id.v.load();
-    if (v != ShaderStateBlockId::Invalid && v != PackedPassId::DELETED_STATE_BLOCK_ID)
+    ScopedLockWriteTemplate<SpinLockReadWriteLock> lock(stateBlocksSpinLock);
+    cb();
+    for (int i = 0; i < passes.size(); i++)
     {
-      toDelete.push_back(v);
-      passes[i].id.v.store(PackedPassId::DELETED_STATE_BLOCK_ID);
+      ShaderStateBlockId v = passes[i].id.v.load();
+      if (v != ShaderStateBlockId::Invalid && v != PackedPassId::NOT_INITED_STATE_BLOCK_ID)
+      {
+        toDelete.push_back(v);
+        passes[i].id.v.store(PackedPassId::NOT_INITED_STATE_BLOCK_ID);
+      }
     }
   }
-  stateBlocksSpinLock.unlock();
 
   for (auto &b : toDelete)
     ShaderStateBlock::delBlock(b);
+}
+void ScriptedShaderElement::resetStateBlocks()
+{
+  resetStateBlocks([] {});
 }
 
 static void report_interval_not_found_error(const ScriptedShaderElement &self, unsigned variant_code)
@@ -970,21 +994,14 @@ void ScriptedShaderElement::getDynamicVariantStates(int variant_code, int cur_va
   ShaderStateBlockId &state_index, shaders::RenderStateId &render_state, shaders::ConstStateIdx &const_state,
   shaders::TexStateIdx &tex_state) const
 {
-  const PackedPassId *__restrict curPasses = &passes[cur_variant];
   auto const &dumpOwner = get_shaders_dump_owner(dumpHandle);
-  OSSpinlockScopedLock lock(stateBlocksSpinLock);
-  ID_T &pass_id = curPasses->id;
-  ShaderStateBlockId v = pass_id.v.load(dag::memory_order_relaxed);
-  if (v == PackedPassId::DELETED_STATE_BLOCK_ID)
-  {
-    preparePassIdOOL(pass_id, curPasses - passes.data(), variant_code, dumpOwner);
-    v = pass_id.v.load(dag::memory_order_relaxed);
-  }
-  state_index = v;
+  const ID_T &pass_id = lockReadPassId(cur_variant, variant_code, dumpOwner);
+  state_index = pass_id.v.load(dag::memory_order_relaxed);
   program = pass_id.pr;
   render_state = ShaderStateBlock::blocks[state_index].stateIdx;
   const_state = ShaderStateBlock::blocks[state_index].constIdx;
   tex_state = ShaderStateBlock::blocks[state_index].samplerIdx;
+  stateBlocksSpinLock.unlockRead();
 }
 
 bool ScriptedShaderElement::setStates() const
@@ -993,23 +1010,15 @@ bool ScriptedShaderElement::setStates() const
   int curVariant = chooseDynamicVariant(variant_code);
   if (curVariant < 0)
     return false;
-  const PackedPassId *curPasses = &passes[curVariant];
   auto const &dumpOwner = get_shaders_dump_owner(dumpHandle);
-
-  OSSpinlockScopedLock lock(stateBlocksSpinLock);
 
 #if DAGOR_DBGLEVEL > 0
   if (!code.suppBlockUid.empty())
     check_state_blocks_conformity(code, curVariant, shClass);
 #endif
-  ID_T &pass_id = curPasses->id;
-  ShaderStateBlockId v = pass_id.v.load(dag::memory_order_relaxed);
-  if (v == PackedPassId::DELETED_STATE_BLOCK_ID)
-  {
-    preparePassIdOOL(pass_id, curPasses - passes.data(), variant_code, dumpOwner);
-    v = pass_id.v.load(dag::memory_order_relaxed);
-  }
-  setStatesForVariant(curVariant, variant_code, pass_id.pr, v);
+  const ID_T &pass_id = lockReadPassId(curVariant, variant_code, dumpOwner);
+  setStatesForVariant(curVariant, variant_code, pass_id.pr, pass_id.v.load(dag::memory_order_relaxed));
+  stateBlocksSpinLock.unlockRead();
   return true;
 }
 
@@ -1029,19 +1038,34 @@ bool ScriptedShaderElement::isAnyPassWritesDepth() const
   return false;
 }
 
+#if DAGOR_DBGLEVEL > 0
+static void verify_variant_render_pass(const shaderbindump::ShaderCode::Pass &codeCp, const ScriptedShadersBinDumpOwner &dumpOwner,
+  const char *shader_name)
+{
+  if (!codeCp.rpass)
+    return;
+  const auto rp = codeCp.rpass->renderPassRef();
+  if (!rp)
+    return;
+  const auto *dumpV6 = dumpOwner.getDumpV6();
+  G_ASSERT(!dumpV6 || dumpV6->externalStcodeMode != shader_layout::ExternalStcodeMode::BRANCHED_CPP);
+  if (rp.group)
+    ShaderRenderPass::verify_active_pass_group(dumpOwner.selfHandle, rp.index, shader_name);
+  else
+    ShaderRenderPass::verify_active_pass(dumpOwner.selfHandle, rp.index, rp.subpassIdx, shader_name);
+}
+#endif
+
 void ScriptedShaderElement::setProgram(uint32_t variant)
 {
   auto const &dumpOwner = get_shaders_dump_owner(dumpHandle);
-  OSSpinlockScopedLock lock(stateBlocksSpinLock);
-  auto &pass = passes[variant];
-  ShaderStateBlockId v = pass.id.v.load(dag::memory_order_relaxed);
-  if (v == PackedPassId::DELETED_STATE_BLOCK_ID)
-  {
-    preparePassIdOOL(pass.id, &pass - passes.data(), 0, dumpOwner);
-    v = pass.id.v.load(dag::memory_order_relaxed);
-  }
-  ShaderStateBlock::blocks[v].apply(tex_level);
-  d3d::set_program(pass.id.pr);
+  const ID_T &pass_id = lockReadPassId(variant, 0, dumpOwner);
+  ShaderStateBlock::blocks[pass_id.v.load(dag::memory_order_relaxed)].apply(tex_level);
+#if DAGOR_DBGLEVEL > 0
+  verify_variant_render_pass(code.passes[variant], dumpOwner, (const char *)shClass.name);
+#endif
+  d3d::set_program(pass_id.pr);
+  stateBlocksSpinLock.unlockRead();
 }
 
 PROGRAM ScriptedShaderElement::getComputeProgram(const shaderbindump::ShaderCode::ShRef *p, int variant_code) const
@@ -1254,6 +1278,8 @@ void ScriptedShaderElement::setStatesForVariant(int curVariant, unsigned variant
 #if DAGOR_DBGLEVEL > 0
   if (!code.suppBlockUid.empty())
     check_state_blocks_conformity(code, curVariant, shClass);
+
+  verify_variant_render_pass(*codeCp, dumpOwner, (const char *)shClass.name);
 #endif
 
   d3d::set_program(program);

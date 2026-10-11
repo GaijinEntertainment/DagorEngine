@@ -114,7 +114,7 @@ def test_query_mutate_template(t : T?) {
     // mutate via template
     query() $(var p : Particle) {
         p.pos += p.vel
-        p.life -= 1
+        p.life --
     }
     // verify mutation
     var found = false

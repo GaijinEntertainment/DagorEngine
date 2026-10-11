@@ -15,6 +15,7 @@ AddIncludes =
 ;
 
 Sources += src/dasStdDlg.cpp src/dasStdDlgNotImplemented.cpp ;
+Sources += src/dasStdDlgTray.cpp src/dasStdDlgTrayNotImplemented.cpp ;
 
 
 UseProgLibs +=

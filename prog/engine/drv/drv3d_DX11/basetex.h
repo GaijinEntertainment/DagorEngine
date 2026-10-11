@@ -231,5 +231,6 @@ private:
 
   typedef dag::FixedMoveOnlyFunction<8, int()> CreateTexCallback;
   int recreate_if_stub_used(CreateTexCallback &&create_placeholder_tex);
+  void removeUavViewsFromStates();
 };
 }; // namespace drv3d_dx11

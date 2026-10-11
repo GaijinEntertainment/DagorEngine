@@ -64,12 +64,12 @@ def test_make_notification(t : T?) {
 [test]
 def test_make_batch(t : T?) {
     t |> run("two requests") @(t : T?) {
-        var msgs : array<string>
-        msgs |> push(make_request("a", "null", 1))
-        msgs |> push(make_request("b", "null", 2))
+        let msgs <- [make_request("a", "null", 1), make_request("b", "null", 2)]
         let r = make_batch(msgs)
-        t |> success(character_at(r, 0) == '[', "starts with [")
-        t |> success(character_at(r, length(r) - 1) == ']', "ends with ]")
+        peek_data(r) $(bytes) {
+            t |> success(!empty(bytes) && bytes[0] == uint8('['), "starts with [")
+            t |> success(!empty(bytes) && bytes[length(bytes) - 1] == uint8(']'), "ends with ]")
+        }
         t |> success(find(r, "\"method\":\"a\"") >= 0, "first method present")
         t |> success(find(r, "\"method\":\"b\"") >= 0, "second method present")
         // Order preserved
@@ -82,9 +82,7 @@ def test_make_batch(t : T?) {
         t |> equal(make_batch(msgs), "[]")
     }
     t |> run("mixed request + notification") @(t : T?) {
-        var msgs : array<string>
-        msgs |> push(make_request("rpc", "null", 1))
-        msgs |> push(make_notification("notif", "null"))
+        let msgs <- [make_request("rpc", "null", 1), make_notification("notif", "null")]
         let r = make_batch(msgs)
         t |> success(find(r, "\"id\":1") >= 0, "request id present")
         t |> success(find(r, "\"method\":\"notif\"") >= 0, "notification present")

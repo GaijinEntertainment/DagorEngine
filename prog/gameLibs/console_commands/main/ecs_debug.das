@@ -1,6 +1,8 @@
 options no_aot
+options persistent_heap
 require ecs
 require ecs.ecs_template
+require EcsUtils
 require ECSGlobalTags
 require math.base
 require DagorConsole
@@ -8,12 +10,19 @@ require DagorSystem
 require ecs.templates_common
 require strings
 require daslib/strings_boost
+require daslib/algorithm
+require DagorDataBlock
+require DagorFiles
 require gameLibs.console_commands.main.console_common
+require ecs.serialize_common
+require ecs.find_common
+require daslib/rtti
 
 
 [console_cmd(name="ecs.has_tag")]
 def check_ecs_has_tag(tag_name : string)
-  let msg = "ecs_has_tag(\"{tag_name}\") == {ecs_has_tag(tag_name)}"
+  let tagName = unquote_console_arg(tag_name)
+  let msg = "ecs_has_tag(\"{tagName}\") == {ecs_has_tag(tagName)}"
   if ecs_has_tag("render")
     console_print(msg)
   else
@@ -60,7 +69,7 @@ def create_entity(args : array<string>;
               cmd, inputs, /*hints_count*/ 20, /*threshold_cam_distance_sq*/ square(50.0), hints)
   elif args[0] == cmd
     let argc = args |> length()
-    let templateName = argc >= 2 ? args[1] : "#invalid_template_name"
+    let templateName = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
     let eid = argc >= 3 ? to_uint(args[2]) : 0u
     create(eid, templateName)
     return true
@@ -81,7 +90,7 @@ def create_entities(args : array<string>;
               cmd, inputs, /*hints_count*/ 20, /*threshold_cam_distance_sq*/ square(50.0), hints)
   elif args[0] == cmd
     let argc = args |> length()
-    let templateName = argc >= 2 ? args[1] : "#invalid_template_name"
+    let templateName = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
     let count = argc >= 3 ? to_int(args[2]) : 1
     let eid = argc >= 4 ? to_uint(args[3]) : 0u
     create(eid, templateName, count)
@@ -156,7 +165,7 @@ def add_sub_template_processor(args : array<string>;
   elif args[0] == cmd
     let argc = args |> length()
     let eid = argc >= 2 ? to_uint(args[1]) : 0u
-    let templateName = argc >= 3 ? args[2] : "#invalid_template_name"
+    let templateName = argc >= 3 ? unquote_console_arg(args[2]) : "#invalid_template_name"
     addSubTemplate(EntityId(eid), templateName)
     return true
 
@@ -175,7 +184,7 @@ def add_sub_template_for_selected_processor(args : array<string>;
     return false
   elif args[0] == cmd
     let argc = args |> length()
-    let templateName = argc >= 2 ? args[1] : "#invalid_template_name"
+    let templateName = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
     query() <| $ [es(REQUIRE=daeditor__selected)] (eid : EntityId)
       addSubTemplate(eid, templateName)
     return true
@@ -195,7 +204,7 @@ def remove_sub_template_for_selected_processor(args : array<string>;
     return false
   elif args[0] == cmd
     let argc = args |> length()
-    let templateName = argc >= 2 ? args[1] : "#invalid_template_name"
+    let templateName = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
     query() <| $ [es(REQUIRE=daeditor__selected)] (eid : EntityId)
       removeSubTemplate(eid, templateName)
     return true
@@ -214,7 +223,7 @@ def remove_sub_template_processor(args : array<string>;
   elif args[0] == cmd
     let argc = args |> length()
     let eid = argc >= 2 ? to_uint(args[1]) : 0u
-    let templateName = argc >= 3 ? args[2] : "#invalid_template_name"
+    let templateName = argc >= 3 ? unquote_console_arg(args[2]) : "#invalid_template_name"
     removeSubTemplate(EntityId(eid), templateName)
     return true
 
@@ -240,8 +249,8 @@ def add_sub_template_all_processor(args : array<string>;
     return false
   elif args[0] == cmd
     let argc = args |> length()
-    let srcTemplateName = argc >= 2 ? args[1] : "#invalid_template_name"
-    let templateName = argc >= 3 ? args[2] : "#invalid_template_name"
+    let srcTemplateName = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
+    let templateName = argc >= 3 ? unquote_console_arg(args[2]) : "#invalid_template_name"
     query() <| $ [es] (eid : EntityId)
       if find(getEntityTemplateName(eid), srcTemplateName) != -1
         addSubTemplate(eid, templateName)
@@ -260,8 +269,8 @@ def remove_sub_template_all_processor(args : array<string>;
     return false
   elif args[0] == cmd
     let argc = args |> length()
-    let srcTemplateName = argc >= 2 ? args[1] : "#invalid_template_name"
-    let templateName = argc >= 3 ? args[2] : "#invalid_template_name"
+    let srcTemplateName = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
+    let templateName = argc >= 3 ? unquote_console_arg(args[2]) : "#invalid_template_name"
     query() <| $ [es] (eid : EntityId)
       if find(getEntityTemplateName(eid), srcTemplateName) != -1
         removeSubTemplate(eid, templateName)
@@ -298,8 +307,8 @@ def parse_sub_template_system_console_args(args : array<string>;
                                            var out_src_template_name : string&;
                                            var out_template_name : string&)
   let argc = args |> length()
-  out_src_template_name = argc >= 2 ? args[1] : "#invalid_template_name"
-  out_template_name = argc >= 3 ? args[2] : "#invalid_template_name"
+  out_src_template_name = argc >= 2 ? unquote_console_arg(args[1]) : "#invalid_template_name"
+  out_template_name = argc >= 3 ? unquote_console_arg(args[2]) : "#invalid_template_name"
 
   let srcTemplate = getTemplateByName(out_src_template_name)
   if srcTemplate == null
@@ -520,6 +529,150 @@ def who_can_access_component_of_selected_entity(component : string)
   if !found
     console_print("No selected entity selected")
     return
+
+[console_cmd(name="ecs.serialize_entity_blk")]
+def serialize_entity_blk(eid : uint; file_name : string)
+  write_text_file(unquote_console_arg(file_name), entity_to_blk_text(EntityId(eid)))
+
+[console_cmd(name="ecs.serialize_entity_compact_blk")]
+def serialize_entity_compact_blk(eid : uint; file_name : string; dump_struct_fields : bool = true)
+  write_text_file(unquote_console_arg(file_name), entity_to_compact_blk_text(EntityId(eid), 10, dump_struct_fields))
+
+// value_filter in
+//   ecs.serialize_entity_filtered_compact_blk,
+//   ecs.query,
+//   ecs.query_entity
+// works like the ecs inspector filter:
+// it is a comma-separated list of substrings (case-insensitive)
+//   name / -name     - keep / drop components whose name contains the substring
+//   t:type / -t:type - keep / drop components whose type name contains the substring (t:EntityId, t:ecs::Object)
+//   f:t / f:r        - keep components that are tracked / replicated; -f:t / -f:r drop them
+// Same-kind tokens are OR'd, different kinds are AND'd, excludes always win; empty keeps everything.
+// With dump_struct_fields, name and type tokens also match nested fields of das-bound structs ("comp.field.subfield"); a matching field selects its whole component.
+// e.g. "transform,anim,-anim__nextFrame,t:EntityId,f:r"
+[console_cmd(name="ecs.serialize_entity_filtered_compact_blk")]
+def serialize_entity_filtered_compact_blk(eid : uint; file_name : string; value_filter : string = ""; dump_struct_fields : bool = true)
+  let e = EntityId(eid)
+  write_text_file(unquote_console_arg(file_name), entity_to_filtered_compact_blk_text(e, getEntityTemplateName(e), unquote_console_arg(value_filter), 10, dump_struct_fields))
+
+
+def private write_text_file(file_name, text : string)
+  df_open(file_name, DF_WRITE) <| $(f)
+    if f == null
+      console_print("Can't open '{file_name}' for writing")
+      return
+    df_write(f, text)
+
+
+// All filters are optional:
+//   template            - substring of the template name
+//   fuzzy               - fuzzy-match the template instead
+//   max_cam_distance    - auto-requires transform on entities if >= 0
+//   include/exclude_components - comma-separated component names required/forbidden on the entity
+[console_cmd(name="ecs.find_entities")]
+def find_entities(template_name : string = "";
+                  count : int = 20;
+                  fuzzy : bool = false;
+                  max_cam_distance : float = -1.0;
+                  include_components : string = "";
+                  exclude_components : string = "")
+  let nameFilter = unquote_console_arg(template_name)
+  let rq <- split_component_list(unquote_console_arg(include_components))
+  let no <- split_component_list(unquote_console_arg(exclude_components))
+
+  let useFuzzy = fuzzy && !empty(nameFilter)
+  var shingles : array<string>
+  let totalFilterLength = useFuzzy ? build_shingles(nameFilter, shingles) : 0
+
+  let useDistance = max_cam_distance >= 0.0
+  var camPos : float3
+  if useDistance
+    find_query() <| $ [es] (camera__active : bool; transform : float3x4)
+      if camera__active
+        camPos = transform[3]
+      return camera__active
+
+  var found : array<tuple<eid : EntityId; templateName : string; distance : float>>
+  ecs_dynamic_query(rq, no) <| $(eid : EntityId)
+    let templateName = getEntityTemplateName(eid)
+
+    var sortKey = 0.0
+    if !empty(nameFilter)
+      if useFuzzy
+        let score = compute_fuzzy_distance(templateName, shingles, totalFilterLength)
+        if score < 0.0
+          return
+        sortKey = score
+      elif find(templateName, nameFilter) == -1
+        return
+
+    if useDistance
+      var dist = -1.0
+      query(eid) <| $ [es] (transform : float3x4)
+        dist = distance(transform[3], camPos)
+      if dist < 0.0 || dist > max_cam_distance
+        return
+      sortKey = dist
+
+    found |> push((eid = eid, templateName = templateName, distance = sortKey))
+
+  found |> sort <| $(x, y) => x.distance != y.distance ? x.distance < y.distance : uint(x.eid) < uint(y.eid)
+  let shown = min(count, length(found))
+  for i in range(shown)
+    print("{found[i].eid}({found[i].templateName})\n")
+  print("ecs.find_entities: {shown} of {length(found)} matches\n")
+
+
+def private split_component_list(list : string) : array<string>
+  var res : array<string>
+  for part in split(list, ",")
+    let name = strip(part)
+    if !empty(name)
+      res |> push(name)
+  return <- res
+
+
+// required/excluded are comma-separated component lists. Empty value_filter falls back to required_components
+// used as name tokens, so only components whose names contain the required names are dumped
+[console_cmd(name="ecs.query")]
+def ecs_query(required_components : string; excluded_components : string = ""; value_filter : string = ""; max_dumped : int = 30;
+              dump_struct_fields : bool = true)
+  let requiredComponents = unquote_console_arg(required_components)
+  let valueFilter = unquote_console_arg(value_filter)
+  let rq <- split_component_list(requiredComponents)
+  let no <- split_component_list(unquote_console_arg(excluded_components))
+  if empty(rq)
+    print("usage: ecs.query <required_comps> [excluded_comps] [value_filter] [max_dumped] [dump_struct_fields]  (components comma-separated, at least one required)\n")
+    return
+  let dumpFilter = empty(valueFilter) ? requiredComponents : valueFilter
+  var matched = 0
+  var shown = 0
+  var annotations : table<string; BasicStructureAnnotation?>
+  ecs_dynamic_query(rq, no) <| $(eid : EntityId)
+    matched ++
+    if shown < max_dumped
+      let templateName = getEntityTemplateName(eid)
+      print("{eid}: <{templateName}>\n")
+      print(entity_to_filtered_compact_blk_text(eid, templateName, dumpFilter, annotations, 10, dump_struct_fields))
+      shown ++
+  print("ecs.query matched {matched} entities, dumped {shown}\n")
+
+
+[console_cmd(name="ecs.query_entity")]
+def ecs_query_entity(eid : uint; value_filter : string = ""; dump_struct_fields : bool = true)
+  let e = EntityId(eid)
+  let templateName = getEntityTemplateName(e)
+  print("{e}: <{templateName}>\n")
+  print(entity_to_filtered_compact_blk_text(e, templateName, unquote_console_arg(value_filter), 10, dump_struct_fields))
+
+
+[console_cmd(name="ecs.find_templates")]
+def find_templates(filter : string)
+  let nameFilter = unquote_console_arg(filter)
+  let names <- find_template_names_sorted(nameFilter)
+  for name in names
+    print("{name}\n")
+  print("Found {length(names)} templates matching <{nameFilter}>\n")
 
 
 [console_cmd(name="update_from_das_templates")]

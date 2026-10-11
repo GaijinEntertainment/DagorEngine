@@ -84,6 +84,7 @@ WsJsonRpcConnection::WsJsonRpcConnection(const WsJsonRpcConnectionConfig &config
 
 WsJsonRpcConnection::~WsJsonRpcConnection()
 {
+  wsClient.reset();
   if (state != State::INITIAL && state != State::CLOSED)
   {
     logwarn("%sWARN! WebSocket connection object was not closed properly! (state: %s)", logPrefix.c_str(), getStateName(state));
@@ -285,15 +286,13 @@ void WsJsonRpcConnection::onStateInitial()
   clientConfig.connectTimeoutMs = config.connectTimeoutMs;
   clientConfig.maxMessageSize = config.maxReceivedMessageSize;
 
-  clientConfig.onMessage = [weakSelf](websocket::WebSocketClient *, websocket::PayloadView payload, bool is_text) {
-    WsJsonRpcConnectionPtr sharedSelf = weakSelf.lock();
-    if (!sharedSelf)
-    {
-      logerr("[sep][websocket_jsonrpc][sep_error] ERROR! WsJsonRpcConnection object was found destroyed before calling onMessage!");
+  // constraint: runs on the worker thread; config, logPrefix and the event queue outlive it because the destructor
+  // resets wsClient first, which waits for it. A lock() here could drop the last reference inside the callback.
+  clientConfig.onMessageAsync = [this, weakSelf](websocket::WebSocketClient *, websocket::PayloadView payload, bool is_text) {
+    if (weakSelf.expired())
       return;
-    }
     const eastl::string_view payloadView{reinterpret_cast<const char *>(payload.data()), payload.size()};
-    sharedSelf->onMessageCallback(payloadView, is_text);
+    onMessageCallback(payloadView, is_text);
   };
 
   clientConfig.onClose = [weakSelf](websocket::WebSocketClient *, websocket::CloseStatusInt status, websocket::Error &&error) {

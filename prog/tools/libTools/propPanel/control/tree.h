@@ -3,6 +3,7 @@
 
 #include <propPanel/control/container.h>
 #include "treeStandalone.h"
+#include "../controlSizeHelper.h"
 #include <osApiWrappers/dag_localConv.h>
 
 namespace PropPanel
@@ -135,6 +136,15 @@ public:
   void setTreeFilter(ITreeFilter *filter) override { tree.setTreeFilter(filter); }
   void setTreeMessage(const char *value) override { tree.setMessage(value); }
   void filterTree() override { tree.filter(); }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const Point2 labelSize = ControlSizeHelper::getSeparateLineLabelPreferredSize(controlCaption.begin(), controlCaption.end());
+    const float width = min(max(labelSize.x, ControlSizeHelper::getPreferredTextInputWidth()), max_width_px);
+
+    // Without a set height the tree fills the remaining height, so there is no height to report.
+    return Point2(width, mH > 0 ? (labelSize.y + mH) : 0.0f);
+  }
 
   void updateImgui() override
   {

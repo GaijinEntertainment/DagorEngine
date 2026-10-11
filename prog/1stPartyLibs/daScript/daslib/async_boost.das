@@ -62,7 +62,7 @@ class AwaitCoroutineMacro : AstFunctionAnnotation {
 [function_macro(name="async")]
 class AsyncMacro : AstFunctionAnnotation {
     //! This macro converts function into generator.
-    [unused_argument(group, args)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    [unused_argument(group, args)] def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         if (func.result.baseType == Type.autoinfer) {
             macro_error(compiling_program(), func.at, "async function should have explicit return type")
             return true
@@ -80,14 +80,13 @@ class AsyncMacro : AstFunctionAnnotation {
 
             retT.argTypes |> resize(2)
             retT.argTypes[0] = clone_type(func.result)
-            retT.argTypes[1] = typeinfo ast_typedecl(type<bool>)
+            retT.argTypes[1] = qmacro_type(type<bool>)
         }
 
         var astVisitor = new CollectAndReplaceIteratorFields(voidRoutine = voidRoutine, retType := retT)
         make_visitor(*astVisitor) $(astVisitorAdapter) {
             visit(func.body, astVisitorAdapter)
         }
-        // gc handles TypeDecl lifetime
         unsafe {
             delete astVisitor
         }
@@ -95,7 +94,7 @@ class AsyncMacro : AstFunctionAnnotation {
         var blk = qmacro_expr() {
             return <- generator<$t(retT)> {
                 $e(func.body)
-                return false
+                return false        // nolint:LINT001,LINT019 - safety net; LINT001 fires only for bodies that already end in return, so most compiles leave the directive unconsumed
             }
         }
 
@@ -152,6 +151,25 @@ enum AssignOp {
 }
 
 [macro_function]
+def make_await_yield_step(voidRoutine : bool; retType : TypeDecl?) : ExpressionPtr {
+    if (voidRoutine) {
+        return <- qmacro_expr(${ yield true; })
+    }
+    return <- qmacro_expr(${ yield <- variant type<$t(retType)>(wait = true); })
+}
+
+[macro_function]
+def make_await_assign_step(var lhs : ExpressionPtr; name : string; useMove, useClone : bool) : ExpressionPtr {
+    if (useMove) {
+        return <- qmacro_expr(${ $e(lhs) <- $i(name) as res; })
+    }
+    if (useClone) {
+        return <- qmacro_expr(${ $e(lhs) := $i(name) as res; })
+    }
+    return <- qmacro_expr(${ $e(lhs) = $i(name) as res; })
+}
+
+[macro_function]
 def move_clone_copy(var expr; voidRoutine : bool; var retType : TypeDecl?&; assignOp : AssignOp) : ExpressionPtr {
     if (expr.right is ExprCall) {
         var call = expr.right as ExprCall
@@ -166,24 +184,15 @@ def move_clone_copy(var expr; voidRoutine : bool; var retType : TypeDecl?&; assi
                 }
 
                 let name = make_unique_private_name("_async_iterator", expr.at)
-                let useMove = assignOp == AssignOp.move
-                let useClone = assignOp == AssignOp.clone
+                var yieldStep <- make_await_yield_step(voidRoutine, retType)
+                var assignStep <- make_await_assign_step(expr.left, name,
+                    assignOp == AssignOp.move, assignOp == AssignOp.clone)
                 var blk = qmacro_block() {
                     for ($i(name) in $e(call.arguments[0])) {
                         if ($i(name) is res) {
-                            if ($v(useMove)) {
-                                $e(expr.left) <- $i(name) as res
-                            } elif ($v(useClone)) {
-                                $e(expr.left) := $i(name) as res
-                            } else {
-                                $e(expr.left) = $i(name) as res
-                            }
+                            $e(assignStep)
                         }
-                        if ($v(voidRoutine)) {
-                            yield true
-                        } else {
-                            yield <- variant type<$t(retType)>(wait = true)
-                        }
+                        $e(yieldStep)
                     }
                 }
                 blk |> force_at(expr.at)
@@ -232,15 +241,9 @@ class CollectAndReplaceIteratorFields : AstVisitor {
 
     def override visitExprCall(var expr : ExprCall?) : ExpressionPtr {
         if (expr.name == "await_next_frame") {
-            if (voidRoutine) {
-                var res = qmacro_expr(${ yield true; })
-                res |> force_at(expr.at)
-                return <- res
-            } else {
-                var res = qmacro_expr(${ yield <- variant type<$t(retType)>(wait = true); })
-                res |> force_at(expr.at)
-                return <- res
-            }
+            var res <- make_await_yield_step(voidRoutine, retType)
+            res |> force_at(expr.at)
+            return <- res
         }
         return <- expr
     }
@@ -288,25 +291,16 @@ class CollectAndReplaceIteratorFields : AstVisitor {
                     }
 
                     let name = make_unique_private_name("_async_iterator", expr.at)
-                    let useMove = v.flags.init_via_move
-                    let useClone = v.flags.init_via_clone
+                    var yieldStep <- make_await_yield_step(voidRoutine, retType)
+                    var assignStep <- make_await_assign_step(qmacro($i(v.name)), name,
+                        v.flags.init_via_move, v.flags.init_via_clone)
                     var blk = qmacro_block() {
                         var $i(v.name) : $t(v._type)
                         for ($i(name) in $e(call.arguments[0])) {
                             if ($i(name) is res) {
-                                if ($v(useMove)) {
-                                    $i(v.name) <- $i(name) as res
-                                } elif ($v(useClone)) {
-                                    $i(v.name) := $i(name) as res
-                                } else {
-                                    $i(v.name) = $i(name) as res
-                                }
+                                $e(assignStep)
                             }
-                            if ($v(voidRoutine)) {
-                                yield true
-                            } else {
-                                yield <- variant type<$t(retType)>(wait = true)
-                            }
+                            $e(yieldStep)
                         }
                     }
                     blk |> force_at(expr.at)

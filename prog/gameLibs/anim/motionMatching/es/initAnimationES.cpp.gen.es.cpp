@@ -120,15 +120,16 @@ static ecs::EntitySystemDesc load_animation_data_base_es_es_desc
 );
 static constexpr ecs::ComponentDesc init_animations_es_comps[] =
 {
-//start of 7 rw components at [0]
+//start of 8 rw components at [0]
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
   {ECS_HASH("motion_matching__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("motion_matching__presetIdx"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("motion_matching__dataBaseEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("motion_matching__goalNodesIdx"), ecs::ComponentTypeInfo<ecs::IntList>()},
+  {ECS_HASH("motion_matching__goalNodesPrevWpos"), ecs::ComponentTypeInfo<ecs::Point3List>()},
   {ECS_HASH("motion_matching__goalFeature"), ecs::ComponentTypeInfo<FrameFeatures>()},
-//start of 2 ro components at [7]
+//start of 2 ro components at [8]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("motion_matching__dataBaseTemplateName"), ecs::ComponentTypeInfo<ecs::string>()}
 };
@@ -145,6 +146,7 @@ static void init_animations_es_all_events(const ecs::Event &__restrict evt, cons
     , ECS_RW_COMP(init_animations_es_comps, "motion_matching__dataBaseEid", ecs::EntityId)
     , ECS_RO_COMP(init_animations_es_comps, "motion_matching__dataBaseTemplateName", ecs::string)
     , ECS_RW_COMP(init_animations_es_comps, "motion_matching__goalNodesIdx", ecs::IntList)
+    , ECS_RW_COMP(init_animations_es_comps, "motion_matching__goalNodesPrevWpos", ecs::Point3List)
     , ECS_RW_COMP(init_animations_es_comps, "motion_matching__goalFeature", FrameFeatures)
     );
   while (++comp != compE);
@@ -154,8 +156,8 @@ static ecs::EntitySystemDesc init_animations_es_es_desc
   "init_animations_es",
   "prog/gameLibs/anim/motionMatching/es/initAnimationES.cpp.inl",
   ecs::EntitySystemOps(nullptr, init_animations_es_all_events),
-  make_span(init_animations_es_comps+0, 7)/*rw*/,
-  make_span(init_animations_es_comps+7, 2)/*ro*/,
+  make_span(init_animations_es_comps+0, 8)/*rw*/,
+  make_span(init_animations_es_comps+8, 2)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<InvalidateAnimationDataBase,

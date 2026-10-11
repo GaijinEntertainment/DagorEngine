@@ -630,10 +630,7 @@ bool PolygonGenEntity::triangulate_poly(Geom &polyGeom, dag::ConstSpan<Point3> p
         if (border)
         {
           int tid = (i == points.size() - 1 ? 0 : i + 1);
-          bool extr = false;
-
-          if (!extr)
-            move_point_towards_normal(poly_pts, land, p2, tid, *flattenBySpline);
+          move_point_towards_normal(poly_pts, land, p2, tid, *flattenBySpline);
         }
 
         int isteps = 10;
@@ -897,6 +894,7 @@ static bool triangulate_arbitrary_poly(Tab<Point2> &pts, Tab<IPolygonGenObj::Geo
     if (0 >= (count--))
     {
       DAEDITOR3.conError(">> ERROR: bad polygon, can't triangulate %s", poly_name);
+      delete[] V;
       return false;
     }
 

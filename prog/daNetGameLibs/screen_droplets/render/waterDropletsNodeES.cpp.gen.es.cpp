@@ -7,7 +7,7 @@ ECS_DEF_PULL_VAR(waterDropletsNode);
 static constexpr ecs::ComponentDesc update_water_droplets_node_es_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<resource_slot::NodeHandleWithSlotsAccess>()},
   {ECS_HASH("screen_droplets__visible"), ecs::ComponentTypeInfo<bool>()}
 };
 static void update_water_droplets_node_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -15,7 +15,7 @@ static void update_water_droplets_node_es_all_events(const ecs::Event &__restric
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_water_droplets_node_es(evt
         , components.manager()
-    , ECS_RW_COMP(update_water_droplets_node_es_comps, "water_droplets_node", dafg::NodeHandle)
+    , ECS_RW_COMP(update_water_droplets_node_es_comps, "water_droplets_node", resource_slot::NodeHandleWithSlotsAccess)
     , ECS_RW_COMP(update_water_droplets_node_es_comps, "screen_droplets__visible", bool)
     );
   while (++comp != compE);

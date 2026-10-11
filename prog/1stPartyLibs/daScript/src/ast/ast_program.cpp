@@ -283,7 +283,7 @@ namespace das {
                             at,CompilationError::invalid_distinct_type);
                         return nullptr;
                     }
-                    auto pTD = new TypeDecl(Type::tDistinct);
+                    auto pTD = new TypeDecl(Type::tDistinct, at);
                     pTD->annotation = dann;
                     if ( dann->underlyingType ) {
                         pTD->firstType = new TypeDecl(*dann->underlyingType);
@@ -291,7 +291,7 @@ namespace das {
                     pTD->at = at;
                     return pTD;
                 } else if ( handles.back()->rtti_isHandledTypeAnnotation() ) {
-                    auto pTD = new TypeDecl(Type::tHandle);
+                    auto pTD = new TypeDecl(Type::tHandle, at);
                     pTD->annotation = static_cast<TypeAnnotation *>(handles.back());
                     pTD->at = at;
                     return pTD;
@@ -330,7 +330,7 @@ namespace das {
                 return nullptr;
             }
         } else {
-            auto tt = new TypeDecl(Type::alias);
+            auto tt = new TypeDecl(Type::alias, at);
             tt->alias = name;
             tt->at = at;
             return tt;
@@ -444,6 +444,21 @@ namespace das {
         }
     }
 
+    VariablePtr Program::visitGlobalVariable(Visitor & vis, const VariablePtr & var) {
+        vis.preVisitGlobalLet(var);
+        if ( var->type ) {
+            vis.preVisit(var->type);
+            var->type = var->type->visit(vis);
+            var->type = vis.visit(var->type);
+        }
+        if ( var->init ) {
+            vis.preVisitGlobalLetInit(var, var->init);
+            var->init = var->init->visit(vis);
+            var->init = vis.visitGlobalLetInit(var, var->init);
+        }
+        return vis.visitGlobalLet(var);
+    }
+
     StructurePtr Program::visitStructure(Visitor & vis, Structure * pst) {
         vis.preVisit(pst);
         pst->aliases.foreach([&](auto & alsv){
@@ -511,6 +526,8 @@ namespace das {
 
     static void collectStructDeps ( const TypeDeclPtr & type, Structure * owner, das_hash_set<Structure *> & deps ) {
         if ( !type ) return;
+        // a function, lambda or block value is a handle: the types in its signature are not stored by value
+        if ( type->baseType == Type::tFunction || type->baseType == Type::tLambda || type->baseType == Type::tBlock ) return;
         if ( type->baseType == Type::tStructure && type->structType && type->structType != owner ) {
             if ( type->isPointer() ) return;   // pointers don't need full definition
             if ( !deps.insert(type->structType).second ) return;   // already visited
@@ -569,7 +586,18 @@ namespace das {
                 }
             }
         }
-        if ( sorted.size() != structs.size() ) return; // cycle - keep original order
+        // a by-value cycle cannot exist (the layout would be infinite); what remains unsorted is a
+        // container-mediated cycle's members plus every struct that depends on one of them. The
+        // members need no definition order (TArray<T> holds no T), so they keep the original order
+        // after everything the sort did place; a by-value dependent of a cycle member still emits
+        // an incomplete type there, as it did before this fallback existed
+        if ( sorted.size() != structs.size() ) {
+            das_hash_set<Structure *> placed;
+            for ( auto s : sorted ) placed.insert(s);
+            for ( auto & sp : structs ) {
+                if ( !placed.count(sp) ) sorted.push_back(sp);
+            }
+        }
         // reorder structs to match sorted order
         das_hash_map<Structure *, StructurePtr> byPtr;
         for ( auto & sp : structs ) byPtr[sp] = sp;
@@ -637,18 +665,7 @@ namespace das {
         vis.preVisitGlobalLetBody(this);
         thatModule->globals.foreach([&](auto & var){
             if ( vis.canVisitGlobalVariable(var) ) {
-                vis.preVisitGlobalLet(var);
-                if ( var->type ) {
-                    vis.preVisit(var->type);
-                    var->type = var->type->visit(vis);
-                    var->type = vis.visit(var->type);
-                }
-                if ( var->init ) {
-                    vis.preVisitGlobalLetInit(var, var->init);
-                    var->init = var->init->visit(vis);
-                    var->init = vis.visitGlobalLetInit(var, var->init);
-                }
-                auto varn = vis.visitGlobalLet(var);
+                auto varn = visitGlobalVariable(vis, var);
                 if ( varn!=var ) {
                     thatModule->globals.replace(var->name, varn);
                     var = varn;
@@ -685,13 +702,12 @@ namespace das {
         vis.visitModule(thatModule);
     }
 
+    // three spellings of one switch; any that turns it off wins, the host policy is not a file's to override
     bool Program::getOptimize() const {
         if ( policies.no_optimizations ) return false;
-        auto arg = options.find("optimize",Type::tBool);
-        if ( arg ) return arg->bValue;
-        arg = options.find("no_optimization",Type::tBool);
-        if ( arg ) return !arg->bValue;
-        return true;
+        if ( options.getBoolOption("no_optimizations", false) ) return false;
+        if ( options.getBoolOption("no_optimization", false) ) return false;
+        return options.getBoolOption("optimize", true);
     }
 
     bool Program::getDebugger() const {

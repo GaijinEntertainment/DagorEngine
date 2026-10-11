@@ -6,6 +6,12 @@ require dastest/testing_boost public
 // and type conversions between vector types.
 // VEC_SEP is a built-in constant (default ",") used in vector printing.
 
+// globals, so the constant folder leaves the conversion chains below to codegen
+var g_f2 = float2(1, 2)
+var g_f3 = float3(1, 2, 3)
+var g_f4 = float4(1, 2, 3, 4)
+var g_i3 = int3(1, 2, 3)
+
 def test_vec2(tt : T?; a : auto(vec2) -const -&; isRange = false) {
     let f2_0  = vec2()
     let f2_x  = vec2(1.0, 2.0)
@@ -116,5 +122,20 @@ def test_vec_constructors(t : T?) {
         t |> equal(uint2(float2(1, 2)), uint2(1u, 2u))
         t |> equal(uint3(float3(1, 2, 3)), uint3(1u, 2u, 3u))
         t |> equal(uint4(float4(1, 2, 3, 4)), uint4(1u, 2u, 3u, 4u))
+    }
+    t |> run("chained type conversions") @(t : T?) {
+        // AOT writes these as cvt_pass(cvt_uint3(..)), which resolves only while each cvt_
+        // answers in its vector type - a vec4f argument matches every cvt_pass overload
+        t |> equal(g_f2 |> uint2 |> int2, int2(1, 2))
+        t |> equal(g_f3 |> uint3 |> int3, int3(1, 2, 3))
+        t |> equal(g_f4 |> uint4 |> int4, int4(1, 2, 3, 4))
+        t |> equal(g_f2 |> int2 |> uint2, uint2(1u, 2u))
+        t |> equal(g_f3 |> int3 |> uint3, uint3(1u, 2u, 3u))
+        t |> equal(g_f4 |> int4 |> uint4, uint4(1u, 2u, 3u, 4u))
+        t |> equal(g_i3 |> float3 |> int3, int3(1, 2, 3))
+        t |> equal(g_i3 |> uint3 |> float3, float3(1, 2, 3))
+        // three links: cvt_pass(cvt_pass(cvt_uint3(..))), so a cvt_pass feeds a cvt_pass
+        t |> equal(g_f3 |> uint3 |> int3 |> uint3, uint3(1u, 2u, 3u))
+        t |> equal(g_f2 |> int2 |> uint2 |> int2, int2(1, 2))
     }
 }

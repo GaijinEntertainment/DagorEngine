@@ -43,15 +43,16 @@ namespace das
         static __forceinline uint64_t y ( vec4f t ) { union { vec4f t; uint64_t T[2]; } temp; temp.t = t; return temp.T[1]; }
     };
 
+    // spelled in the element types vec2/vec3/vec4 actually hold, not in int/unsigned
     __forceinline vec4f vec_loadu_x(const float v) {return v_set_x(v);}
-    __forceinline vec4f vec_loadu_x(const int v) {return v_cast_vec4f(v_seti_x(v));}
-    __forceinline vec4f vec_loadu_x(const unsigned int v) {return v_cast_vec4f(v_seti_x(v));}
+    __forceinline vec4f vec_loadu_x(const int32_t v) {return v_cast_vec4f(v_seti_x(v));}
+    __forceinline vec4f vec_loadu_x(const uint32_t v) {return v_cast_vec4f(v_seti_x(int32_t(v)));}
     __forceinline vec4f vec_load(const float *v) {return v_ld(v);}
-    __forceinline vec4f vec_load(const int *v) {return v_cast_vec4f(v_ldi(v));}
-    __forceinline vec4f vec_load(const unsigned int *v) {return vec_load((const int *)v);}
+    __forceinline vec4f vec_load(const int32_t *v) {return v_cast_vec4f(v_ldi((const int *)v));}
+    __forceinline vec4f vec_load(const uint32_t *v) {return vec_load((const int32_t *)v);}
     __forceinline vec4f vec_loadu(const float *v) {return v_ldu(v);}
-    __forceinline vec4f vec_loadu(const int *v) {return v_cast_vec4f(v_ldui(v));}
-    __forceinline vec4f vec_loadu(const unsigned int *v) {return vec_loadu((const int *)v);}
+    __forceinline vec4f vec_loadu(const int32_t *v) {return v_cast_vec4f(v_ldui((const int *)v));}
+    __forceinline vec4f vec_loadu(const uint32_t *v) {return vec_loadu((const int32_t *)v);}
     __forceinline vec4f vec_loadu3(const float *v)
     {
 #ifdef __clang__
@@ -62,20 +63,20 @@ namespace das
       return v_ldu_p3(v);
 #endif
     }
-    __forceinline vec4f vec_loadu3(const int *v)
+    __forceinline vec4f vec_loadu3(const int32_t *v)
     {
 #ifdef __clang__
       vec4i vv = v_zeroi();
-      memcpy(&vv, v, sizeof(int) * 3);
+      memcpy(&vv, v, sizeof(int32_t) * 3);
       return v_cast_vec4f(vv);
 #else
-      return v_cast_vec4f(v_ldui_p3(v));
+      return v_cast_vec4f(v_ldui_p3((const int *)v));
 #endif
     }
-    __forceinline vec4f vec_loadu3(const unsigned int *v) {return vec_loadu3((const int *)v);}
+    __forceinline vec4f vec_loadu3(const uint32_t *v) {return vec_loadu3((const int32_t *)v);}
     __forceinline vec4f vec_loadu_half(const float *v) {return v_ldu_half(v);}
-    __forceinline vec4f vec_loadu_half(const int *v) {return v_cast_vec4f(v_ldui_half(v));}
-    __forceinline vec4f vec_loadu_half(const unsigned int *v) {return vec_loadu_half((const int *)v);}
+    __forceinline vec4f vec_loadu_half(const int32_t *v) {return v_cast_vec4f(v_ldui_half((const int *)v));}
+    __forceinline vec4f vec_loadu_half(const uint32_t *v) {return vec_loadu_half((const int32_t *)v);}
 
     template <typename TT>
     struct vec2 {
@@ -200,7 +201,7 @@ namespace das
         }
         uint32_t base, sh;
         if ( em < ((127u - 14u) << 23) ) {      // subnormal half
-            sh = 126u - (em >> 23) + 13u + 1u;
+            sh = 126u - (em >> 23);
             base = (em & 0x7fffffu) | 0x800000u;
         } else {                                // normal half
             sh = 13u;

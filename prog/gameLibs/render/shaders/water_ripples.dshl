@@ -110,9 +110,13 @@ hlsl
 
 macro USE_WATER_RIPPLES_NOISE(code)
   (code) {
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     noise_scale@f2 = water_ripples_noise_scale;
     noise_time@f1 = time_phase(0, 0);
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+  hlsl(code) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   hlsl (code)

@@ -82,13 +82,17 @@ shader fog_of_war
 
     fog_of_war_distance_field_reduce@f1 = fog_of_war_distance_field_reduce;
 
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
 
     fog_of_war_constraints@f4 = fog_of_war_constraints;
     fog_of_war_size@i3 = (fog_of_war_width, fog_of_war_height, 1);
     fog_of_war_bitset@buf = fog_of_war_bitset hlsl {
       StructuredBuffer<uint> fog_of_war_bitset@buf;
     }
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
   hlsl(ps)
   {

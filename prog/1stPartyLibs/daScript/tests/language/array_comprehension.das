@@ -38,7 +38,7 @@ def test_array_comprehension(t : T?) {
         }
     }
     t |> run("multiline filtered comprehension brace form") @(t : T?) {
-        var even_squares <- {
+        let even_squares <- {
             for (x in range(10));
             (x, x * x);
             where(x & 1) == 0

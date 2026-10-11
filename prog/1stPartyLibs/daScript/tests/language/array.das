@@ -66,7 +66,7 @@ def testIntArray(t : T?) {
     resize(arr, 4)
     t |> equal(capacity(arr), 33)
     t |> equal(length(arr), 4)
-    arr2 <- arr
+    arr2 <- arr     // nolint:PERF030 - array move-assign is the tested construct
     t |> equal(length(arr), 0)
     t |> equal(length(arr2), 4)
     var index = 0
@@ -74,7 +74,7 @@ def testIntArray(t : T?) {
         arr2[index++]++
     }
     verifyIntArray(t, arr2, 2, 4, 0)
-    arr <- arr2
+    arr <- arr2     // nolint:PERF030 - array move-assign is the tested construct
     verifyIntArray(t, arr, 2, 4, 0)
     resize(arr, 3)
     verifyIntArray(t, arr, 2, 3, 0)
@@ -116,7 +116,7 @@ def test_array(t : T?) {
             var b : array<int> <- a
             t |> equal(length(a), 0)
             verify_test_array(t, b)
-            a <- b
+            a <- b      // nolint:PERF030 - moving back into the emptied array is the tested construct
         }
         verify_test_array(t, a)
     }
@@ -197,7 +197,7 @@ def testMultiPush(t : T?) {
     t |> equal(length(a), 0)
     t |> equal(length(b), 0)
 
-    a <- [Foo(bar=1), Foo(bar=2)]
+    a <- [Foo(bar=1), Foo(bar=2)]   // nolint:PERF030 - a is still empty here; the empty-push case above must run first
     push(b, a)
     t |> equal(length(a), 2)
     t |> equal(length(b), 2)
@@ -221,7 +221,7 @@ def testMultiPush(t : T?) {
 def testMultiPushFrom(t : T?) {
     // 1. push_from(arr, array<T> source)
     var a <- [Foo(bar=10), Foo(bar=20)]
-    var b : array<Foo>
+    var b : array<Foo>      // nolint:STYLE032 - push_from into a fresh array is the tested construct
     push_from(b, a)
     t |> equal(length(a), 2)
     t |> equal(length(b), 2)
@@ -236,7 +236,7 @@ def testMultiPushFrom(t : T?) {
     t |> equal(b[3].bar, 40)
 
     // 3. push_clone_from(arr, array<T> source) — the array<numT> gap-fill
-    var d : array<Foo>
+    var d : array<Foo>      // nolint:STYLE032 - push_clone_from into a fresh array is the tested construct
     push_clone_from(d, a)
     t |> equal(length(d), 2)
     t |> equal(d[0].bar, 10)

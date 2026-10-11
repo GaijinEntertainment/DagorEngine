@@ -501,6 +501,10 @@ struct TextureFetchState
 
     uavState[stage].uavModifiedMask |= slot_mask;
     uavState[stage].uavs[slot] = uav;
+    if (uav)
+      uavState[stage].uavsSet |= slot_mask;
+    else
+      uavState[stage].uavsSet &= ~slot_mask;
 
     if (stage == STAGE_CS && d3d::get_driver_desc().caps.hasAsyncCompute)
     {

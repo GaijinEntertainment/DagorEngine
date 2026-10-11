@@ -222,15 +222,15 @@ bool CollisionPlugin::getSelectionBox(BBox3 &box) const
 
 bool CollisionPlugin::supportAssetType(const DagorAsset &asset) const { return strcmp(asset.getTypeStr(), "collision") == 0; }
 
-void CollisionPlugin::renderTransObjects()
+void CollisionPlugin::renderTransObjects(BaseTexture *color_target)
 {
   if (!collisionRes)
     return;
 
-  if (showFaceOrientation)
+  if (showFaceOrientation && color_target)
   {
-    updateFaceOrientationRenderDepthFromCurRT();
-    d3d::set_depth(faceOrientationRenderDepth.getTex2D(), DepthAccess::RW);
+    updateFaceOrientationRenderDepth(color_target);
+    d3d::set_render_target({faceOrientationRenderDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{color_target, 0, 0}});
     d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
   }
 
@@ -727,7 +727,7 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
     const BSphere3 annBSphere = collisionRes->getNodeBSphere(i);
     Point3 pos3 = annNode.type == COLLISION_NODE_TYPE_SPHERE ? annBSphere.c : collisionRes->getNodeTm(i) * annBSphere.c;
 
-    if (!wnd->worldToClient(pos3, pos, &z) || (z < 0.001))
+    if (!wnd->worldToClient(pos3, pos, &z) || (z < 0.001f))
       continue;
 
     append_items(nodesData, 1);
@@ -861,10 +861,11 @@ void CollisionPlugin::fillAssetStats()
   }
 }
 
-void CollisionPlugin::updateFaceOrientationRenderDepthFromCurRT()
+void CollisionPlugin::updateFaceOrientationRenderDepth(BaseTexture *color_target)
 {
-  int targetW, targetH;
-  d3d::get_target_size(targetW, targetH);
+  TextureInfo targetInfo;
+  color_target->getinfo(targetInfo);
+  const int targetW = targetInfo.w, targetH = targetInfo.h;
 
   if (faceOrientationRenderDepth)
   {

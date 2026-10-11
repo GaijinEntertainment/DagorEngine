@@ -14,11 +14,9 @@ def prevent_wall_sound_occlusion(pos, norm, listener : float3; offset = 0.15) {
 }
 
 def prevent_self_occlusion(pos, listener : float3; radius : float; var offset : float3&) : float3 {
-  offset = listener - pos
-  let distSq = length_sq(offset)
-  if (distSq > square(radius)) {
-    offset = (offset / sqrt(distSq)) * radius
-  }
+  let dir = listener - pos
+  let dist = length(dir)
+  offset = (dir * safeinv(dist)) * min(dist, radius)
   return pos + offset
 }
 
@@ -67,4 +65,32 @@ def prevent_self_occlusion(occluder_pos, sound_pos, listener_pos : float3; occlu
     return sound_pos
 
   return listener_pos + dir * newT
+}
+
+def prevent_self_occlusion(bbox_min, bbox_max : float3; tm : float3x4; listener, sound_pos : float3; offset : float = 0.) : float3 {
+  let itm = inverse(tm)
+  let localListener = itm * listener
+  let localDir = itm * sound_pos - localListener
+  var tNear = 0.
+  var tFar = 1.
+  for (i in range(3)) {
+    if (abs(localDir[i]) < 1e-6) {
+      if (localListener[i] < bbox_min[i] || localListener[i] > bbox_max[i])
+        return sound_pos
+    } else {
+      let invDir = 1. / localDir[i]
+      let t1 = (bbox_min[i] - localListener[i]) * invDir
+      let t2 = (bbox_max[i] - localListener[i]) * invDir
+      tNear = max(tNear, min(t1, t2))
+      tFar = min(tFar, max(t1, t2))
+    }
+  }
+
+  // listener is inside bbox or segment doesn't reach/cross bbox
+  if (tNear <= 0. || tNear > tFar)
+    return sound_pos
+
+  let toSound = sound_pos - listener
+  let t = max(tNear - max(offset, 0.) * safeinv(length(toSound)), 0.)
+  return listener + toSound * t
 }

@@ -5,7 +5,7 @@ require glfw/glfw_boost
 require opengl/opengl_boost
 require opengl/opengl_ttf
 require math
-require strings
+require daslib/strings_convert
 require daslib/math_boost
 require live/live_gc
 
@@ -27,16 +27,17 @@ def init() {
     glfwMakeContextCurrent(window)
     // create ttf internals, load font with oversampling=2 for GPU rendering
     create_ttf_objects()
-    font <- load_ttf("{get_das_root()}/examples/opengl/droidsansmono.ttf", [oversampling = 2])
-    if (!!empty(font.bitmap.bytes)) {
-        font <- load_ttf("{get_das_root()}/examples/opengl/media/droidsansmono.ttf", [oversampling = 2])
+    font <- load_ttf("{get_das_root()}/examples/opengl/droidsansmono.ttf", [oversampling = 2])   // nolint:PERF030 - module global, first write (init runs once)
+    if (empty(font.bitmap.bytes)) {
+        delete font
+        font <- load_ttf("{get_das_root()}/modules/dasStbImage/fonts/droidsansmono.ttf", [oversampling = 2])
     }
-    if (!!empty(font.bitmap.bytes)) {
+    if (empty(font.bitmap.bytes)) {
         panic("can't load droidsansmono.ttf")
     }
     upload_font_texture(font)
     // create vertex arrays with quads, which render particular text
-    hw_text <- font |> create_quads("Hello, world")
+    hw_text <- font |> create_quads("Hello, world")   // nolint:PERF030 - module global, first and only write (init runs once)
     // make a translate-scale matrix, so that text is in the middle, and 1.0 wide
     let dim = quads_dim(hw_text)
     model = quads_view(hw_text, float2(3. / (dim.vmax.x - dim.vmin.x)))
@@ -79,7 +80,7 @@ def parse_args() {
     let args <- get_command_line_arguments()
     for (i in range(length(args) - 1)) {
         if (args[i] == "--max-frames") {
-            max_frame_limit = to_int(args[i + 1])
+            max_frame_limit = try_to_int(args[i + 1]) ?? 0   // garbage = no cap
         }
     }
 }

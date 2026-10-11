@@ -37,14 +37,20 @@ macro USE_SPECIAL_VISION()
   hlsl(ps)
   {
 #if DISABLE_SPECIAL_VISION
+    float3 getSpecialVisionColor(float3 color) { return color; }
     void applySpecialVision(float4 v) {}
 #else
     #include <hsv_rgb_conversion.hlsl>
     #define USE_SPECIAL_VISION 1
+    float3 getSpecialVisionColor(float3 color)
+    {
+      float temperature = dot(float3(0.33, 0.33, 0.33), color) * 10.0f/255.0f;
+      return lerp(color, float3(temperature, 0, 0), sky_special_vision);
+    }
+
     void applySpecialVision(inout float4 result)
     {
-      float temperature = dot(float3(0.33, 0.33, 0.33), result.rgb) * 10.0f/255.0f;
-      result.rgb = lerp(result.rgb, float3(temperature, 0, 0), sky_special_vision);
+      result.rgb = getSpecialVisionColor(result.rgb);
 
       ##if shader == strata_clouds
         result.rgb = lerp(result.rgb, float3(0, 0, 0), sky_debug_color.a);

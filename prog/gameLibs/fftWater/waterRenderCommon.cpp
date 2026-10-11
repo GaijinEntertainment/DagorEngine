@@ -55,7 +55,7 @@ void WaterRenderCommon::init()
   inited = true;
 }
 
-void WaterRenderCommon::setGlobalShaderConsts(bool is_chop_water) const
+void WaterRenderCommon::setGlobalShaderConsts(bool is_chop_water, float max_wave_height) const
 {
   ShaderGlobal::set_float(water_levelVarId, waterLevel);
 
@@ -63,12 +63,8 @@ void WaterRenderCommon::setGlobalShaderConsts(bool is_chop_water) const
   ShaderGlobal::set_float(wind_dir_yVarId, windDirY);
   ShaderGlobal::set_float(wind_speedVarId, windSpeed);
 
-  float effectiveMaxWaveHeight = maxWaveHeight;
-  if (is_chop_water)
-  {
-    // more controllable shore wave visual, can be made per-bofort value
-    effectiveMaxWaveHeight = min(maxWaveHeight, 1.2f);
-  }
+  // chop water clamps the height to 1.2 for a more controllable shore wave
+  const float effectiveMaxWaveHeight = is_chop_water ? min(max_wave_height, 1.2f) : max_wave_height;
 
   float shoreDamp = max(min(6.0f, effectiveMaxWaveHeight * 2.0f), shoreDampMin);
   shoreDamp = max(shoreDamp, 1e-2f);
@@ -110,8 +106,6 @@ void WaterRenderCommon::setWind(float wind_dir_x, float wind_dir_y, float wind_s
   windDirY = wind_dir_y;
   windSpeed = wind_speed;
 }
-
-void WaterRenderCommon::setMaxWaveHeight(float max_wave_height) { maxWaveHeight = max_wave_height; }
 
 void WaterRenderCommon::setShoreWaveThreshold(float value) { shoreWaveThreshold = value; }
 

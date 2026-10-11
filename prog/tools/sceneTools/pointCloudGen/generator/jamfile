@@ -4,6 +4,7 @@ UseD3DMulti = yes ;
 
 Root ?= ../../../../.. ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 Location = prog/tools/sceneTools/pointCloudGen/generator ;

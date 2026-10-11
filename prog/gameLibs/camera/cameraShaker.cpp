@@ -79,6 +79,9 @@ Point3 CameraShaker::calcShakeFreqValue(const float wish_shake_freq)
 
 void CameraShaker::update(float dt, float eps)
 {
+  if (dt <= 0.f)
+    return;
+
   currentShake = approach(currentShake, wishShake, dt, 0.1);
   wishShake = approach(wishShake, 0.0f, dt, shakeZeroTau);
   shakerValue.zero();
@@ -90,10 +93,10 @@ void CameraShaker::update(float dt, float eps)
   if (currentShake < eps)
     wishShake = 0.0;
 
-  if (wishShakeHiFreq > 0.5)
+  if (wishShakeHiFreq > 0.5f)
     wishShakeHiFreq = 0.5;
 
-  if (wishShakeHiFreq < 0.001)
+  if (wishShakeHiFreq < 0.001f)
     wishShakeHiFreq = 0.0;
   else
   {
@@ -110,10 +113,10 @@ void CameraShaker::update(float dt, float eps)
     wishSmoothShakeHiFreq = approach(wishSmoothShakeHiFreq, 0.f, dt, shakeHiFreqSmoothZeroTau);
   }
 
-  if (currentShake > 0.15)
+  if (currentShake > 0.15f)
     currentShake = approach(currentShake, 0.15f, dt, 0.1);
 
-  if (currentShake > 0.35)
+  if (currentShake > 0.35f)
     currentShake = approach(currentShake, 0.35f, dt, 0.1);
 
   if (currentShake > globalCameraShakeLimit)

@@ -104,7 +104,7 @@ public:
     addBuiltinDependency(lib, require("math"));
     addBuiltinDependency(lib, require("DagorMath"));
     G_STATIC_ASSERT(sizeof(dtPolyRef) == sizeof(uint64_t));
-    auto pType = new das::TypeDecl(das::Type::tUInt64);
+    auto pType = new das::TypeDecl(das::Type::tUInt64, das::cppBindingLineInfo());
     pType->alias = "dtPolyRef";
     addAlias(pType);
 

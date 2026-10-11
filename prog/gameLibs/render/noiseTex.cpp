@@ -7,6 +7,7 @@
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_Point3.h>
 #include <dag_noise/dag_uint_noise.h>
+#include "l8_64_noise_lut_api.h"
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <generic/dag_carray.h>
@@ -47,7 +48,7 @@ enum
   INITIALIZED
 };
 static volatile int atomicForInit = NOT_INITIALIZED;
-static constexpr int NOISE_W = 64;
+static constexpr int NOISE_W = L8_64_NOISE_W;
 static constexpr int HASH_NOISE_W = 128;
 static constexpr int BLUE_NOISE_W = 128;
 
@@ -259,12 +260,11 @@ static bool init_l8_64_noise(const SharedTexWithShaderVar &t)
 {
   if (!t)
     return true;
-  int the_seed = 0x11231231;
   if (auto lockedTex = lock_texture<uint8_t>(t.getTex2D(), 0, TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY))
   {
-    for (int j = 0, pos = 0; j < NOISE_W; ++j)
-      for (int i = 0; i < NOISE_W; ++i, ++pos)
-        lockedTex.at(i, j) = uint_noise1D(pos, the_seed) & 0xFF;
+    for (int j = 0; j < NOISE_W; ++j)
+      for (int i = 0; i < NOISE_W; ++i)
+        lockedTex.at(i, j) = l8_64_noise_lut(i, j);
     return true;
   }
   return false; // we are in reset, so it will be called again anyway
@@ -306,13 +306,6 @@ static bool generate_perlin_noise_3d(SharedTexWithShaderVar &t, Point3 &min_r, P
     TexPtr perlinNoise3D = dag::create_voltex(noiseW, noiseW, noiseW, fmt, mips, "perlin_noise3d", RESTAG_NOISE);
     if (!perlinNoise3D)
       return false;
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-      smpInfo.address_mode_v = d3d::AddressMode::Wrap;
-      smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-      ShaderGlobal::set_sampler(::get_shader_variable_id("perlin_noise3d_samplerstate"), d3d::request_sampler(smpInfo));
-    }
     char *data;
     int row_pitch, slice_pitch, src_row_pitch;
     uint8_t *srcData = texData.data();
@@ -512,7 +505,8 @@ const SharedTexWithShaderVar &init_and_get_l8_64_noise()
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_64_tex_l8", true)))
       return false;
     t = dag::create_tex(NULL, NOISE_W, NOISE_W, TEXFMT_R8, 1, "noise_64_tex_l8", RESTAG_NOISE);
-    ShaderGlobal::set_sampler(get_shader_variable_id("noise_64_tex_l8_samplerstate"), d3d::request_sampler({}));
+    // optional: a dump whose readers load the LUT at a fixed register has no samplerstate var
+    ShaderGlobal::set_sampler(get_shader_variable_id("noise_64_tex_l8_samplerstate", true), d3d::request_sampler({}));
     return init_l8_64_noise(t);
   });
 }

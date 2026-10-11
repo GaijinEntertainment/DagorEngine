@@ -38,6 +38,24 @@ struct Template {
     tag2expr : table<string; Expression?>                                        //! tag expression replacement rules
 }
 
+def private stamp_type_missing_at(var typ : TypeDeclPtr; at : LineInfo) {
+    if (typ == null) {
+        return
+    }
+    if (typ.at.fileInfo == null) {
+        typ.at = at
+    }
+    if (typ.firstType != null) {
+        stamp_type_missing_at(typ.firstType, at)
+    }
+    if (typ.secondType != null) {
+        stamp_type_missing_at(typ.secondType, at)
+    }
+    for (arg in typ.argTypes) {
+        stamp_type_missing_at(arg, at)
+    }
+}
+
 def kaboomVarField(var self : Template; name, prefix, suffix : string) {
     //! Adds a rule to to the template to replace a variable field access with a prefix and suffix.
     //! I.e. foo.bar into prefix + bar + suffix
@@ -66,12 +84,7 @@ def replaceVariableWithList(var self : Template; name : string; expr : array<Exp
 
 def replaceVariableWithList(var self : Template; name : string; expr : dasvector`ptr`Expression) {
     //! Adds a rule to the template to replace a variable with an expression list.
-    var vec : array<Expression?>
-    unsafe {
-        for (e in expr) {
-            vec |> push(reinterpret<Expression?>(e))
-        }
-    }
+    var vec <- [for (e in expr); unsafe(reinterpret<Expression?>(e))]
     swap(self.var2exprList[name], vec)
 }
 
@@ -145,6 +158,7 @@ class private TemplateVisitor : AstVisitor {
                 if (key_exists(rules.tag2expr, tn)) {
                     var rexpr = clone_expression(unsafe(rules.tag2expr[tn]))
                     rexpr.at = expr.at
+                    stamp_missing_at(rexpr, expr.at)
                     return rexpr
                 }
             }
@@ -242,6 +256,7 @@ class private TemplateVisitor : AstVisitor {
         }
         if (in_r2v_direct_var == 0 && key_exists(rules.var2expr, vn)) {
             var rexpr = clone_expression(unsafe(rules.var2expr[vn]))
+            stamp_missing_at(rexpr, expr.at)
             rexpr.at = expr.at
             return rexpr
         }
@@ -255,6 +270,7 @@ class private TemplateVisitor : AstVisitor {
             let vn = string(vvar.name)
             if (key_exists(rules.var2expr, vn)) {
                 var rexpr = clone_expression(unsafe(rules.var2expr[vn]))
+                stamp_missing_at(rexpr, expr.at)
                 rexpr.at = expr.at
                 return rexpr
             }
@@ -266,7 +282,9 @@ class private TemplateVisitor : AstVisitor {
         if (typ.baseType == Type.alias) {
             let ta = string(typ.alias)
             if (key_exists(rules.type2etype, ta)) {
+                let oldAt = typ.at
                 typ = clone_type(unsafe(rules.type2etype[ta]))
+                stamp_type_missing_at(typ, oldAt)
             } elif (key_exists(rules.type2type, ta)) {
                 typ.alias := rules.type2type |> get_value(ta)
             }
@@ -274,8 +292,10 @@ class private TemplateVisitor : AstVisitor {
             let st = typ.structType
             if (key_exists(rules.struct2etype, st)) {
                 let oldFlags = typ.flags
+                let oldAt = typ.at
                 typ = clone_type(unsafe(rules.struct2etype[st]))
                 typ.flags = oldFlags
+                stamp_type_missing_at(typ, oldAt)
             }
         }
         if (typ.firstType != null) {
@@ -398,10 +418,8 @@ class private TemplateVisitor : AstVisitor {
 
 def visit_expression(var expr : Expression?&; var adapter : VisitorAdapter?) {
     //! Visits the expression with the given visitor adapter.
-    unsafe {
-        var newExpr = expr |> visit(adapter)
-        expr = newExpr
-    }
+    var newExpr = expr |> visit(adapter)
+    expr = newExpr
 }
 
 def apply_template(var rules : Template; at : LineInfo; var expr : Expression?; forceAt : bool = true) : Expression? {
@@ -421,14 +439,11 @@ def apply_template(var rules : Template; at : LineInfo; var expr : Expression?; 
 
 def private visit_type(var typ : TypeDeclPtr&; var adapter : VisitorAdapter?) {
     //! Visits the type declaration with the given visitor adapter.
-    unsafe {
-        // note: visit returns smart_ptr_raw, so we need to be careful with lifetime here
-        var newType <- typ |> visit(adapter)
-        if (typ != newType) {
-            typ := null
-        }
-        typ <- newType
+    var newType <- typ |> visit(adapter)
+    if (typ != newType) {
+        typ := null
     }
+    typ <- newType
 }
 
 [unused_argument(at)]
@@ -438,10 +453,6 @@ def apply_template(var rules : Template; at : LineInfo; var typ : TypeDecl?; for
     make_visitor(*astVisitor) $(astVisitorAdapter) {
         visit_type(typ, astVisitorAdapter)
     }
-    /*
-    if forceAt
-        expr |> force_at(at)
-    */
     unsafe {
         delete astVisitor
     }
@@ -472,6 +483,9 @@ def move_unquote_block(var expr : Expression?&) : ExprBlock? {
 def make_expression_block(var exprs : array<Expression?>) : ExprBlock? {
     //! Create ExprBlock and move all expressions from expr to the list of the block.
     var blk = new ExprBlock(uninitialized)
+    if (!empty(exprs) && exprs[0] != null) {
+        blk.at = exprs[0].at
+    }
     for (e in exprs) {
         blk.list |> emplace_new <| clone_to_move(e)
     }
@@ -481,6 +495,9 @@ def make_expression_block(var exprs : array<Expression?>) : ExprBlock? {
 def make_expression_block(var exprs : dasvector`ptr`Expression) : ExprBlock? {
     //! Create ExprBlock and move all expressions from expr to the list of the block.
     var blk = new ExprBlock(uninitialized)
+    if (!empty(exprs) && exprs[0] != null) {
+        blk.at = exprs[0].at
+    }
     for (e in exprs) {
         blk.list |> emplace_new <| clone_expression(e)
     }
@@ -559,7 +576,6 @@ def make_unique_private_name(prefix : string; vat : LineInfo) {
 def apply_template(at : LineInfo; var typ : TypeDecl?&; blk : block<(var rules : Template) : void>) : TypeDeclPtr {
     //! Applies the template to the given type declaration. If `forceAt` is set, the resulting type declaration will have the same line info as 'at'.
     unsafe {
-        // TODO: figure out why this is needed
         var rules : Template
         invoke(blk, rules)
         var res <- apply_template(rules, at, typ, true)
@@ -571,7 +587,6 @@ def apply_template(at : LineInfo; var typ : TypeDecl?&; blk : block<(var rules :
 def apply_template(at : LineInfo; var expr : Expression?&; blk : block<(var rules : Template) : void>) : Expression? {
     //! Applies the template to the given expression. If `forceAt` is set, the resulting expression will have the same line info as 'at'.
     unsafe {
-        // TODO: figure out why this is needed
         var rules : Template
         invoke(blk, rules)
         var res = apply_template(rules, at, expr, true)
@@ -583,7 +598,6 @@ def apply_template(at : LineInfo; var expr : Expression?&; blk : block<(var rule
 def apply_template(var expr : Expression?&; blk : block<(var rules : Template) : void>) : Expression? {
     //! Applies the template to the given expression.
     unsafe {
-        // TODO: figure out why this is needed
         var rules : Template
         invoke(blk, rules)
         var res = apply_template(rules, expr.at, expr, false)
@@ -631,6 +645,20 @@ def public remove_deref(varname : string; var expr : Expression?) {
     unsafe {
         delete astVisitor
     }
+}
+
+def public bind_block_argument(blk : ExprBlock?; argname : string; var bound : Expression?; at : LineInfo) : Expression? {
+    //! Clones the body of a block literal with its argument `argname` replaced by the expression
+    //! `bound`, and returns it as a plain (argument-less) block.
+    var body = clone_expression(blk)
+    var bblk = body as ExprBlock
+    while (!empty(bblk.arguments)) {
+        bblk.arguments |> erase(0)
+    }
+    remove_deref(argname, body)
+    var inscope rules : Template
+    rules |> replaceVariable(argname, bound)
+    return rules |> apply_template(at, body, false)
 }
 
 def public add_array_ptr_ref(var a : array<smart_ptr<auto(TT)>>) : array<smart_ptr<TT>> {
@@ -695,7 +723,6 @@ def private generatedVariable(var svar : VariablePtr) : VariablePtr {
     return <- svar
 }
 
-// Carry an `unsafe(...)` wrap from a $-tag node onto its substituted result. The parser sets alwaysSafe / userSaidItsSafe on the ExprTag, but $c substitution returns the inner node — so without this an `unsafe($c(name)(...))` (e.g. from_in's `unsafe($c("from_xml_node")(...))`) loses its safety and trips [unsafe_outside_of_for] wherever the result is used unfused.
 def private carry_tag_safe_flags(var node : ExpressionPtr; tag : ExprTag?) {
     if (tag.genFlags.alwaysSafe) { node.genFlags.alwaysSafe = true }
     if (tag.genFlags.userSaidItsSafe) { node.genFlags.userSaidItsSafe = true }
@@ -712,13 +739,11 @@ class private QRulesVisitor : AstVisitor {
     }
     def visitTD(var typ : TypeDeclPtr&) : void {
         //! Visits type declaration and processes type tags.
-        unsafe {
-            var newTyp <- visitTypeDecl(typ)
-            if (newTyp != typ) {
-                typ := null
-            }
-            typ <- newTyp
+        var newTyp <- visitTypeDecl(typ)
+        if (newTyp != typ) {
+            typ := null
         }
+        typ <- newTyp
     }
     def override visitTypeDecl(var typ : TypeDeclPtr) : TypeDeclPtr {
         //! Visits type declaration and processes type tags.
@@ -865,7 +890,6 @@ class private QRulesVisitor : AstVisitor {
                         new ExprConstString(at = expr.at, value := new_tag_name) |> generatedExpr(),
                         clone_expression(tag) |> generatedExpr()
                     ))
-                // rblock.list[length(rblock.list) - 1].flags |= VariableFlags generated
                 itn := new_tag_name
                 tag := null
             }
@@ -885,7 +909,7 @@ class private QRulesVisitor : AstVisitor {
                 ))
         }
     }
-    def override visitExprTag(var expr : ExprTag?) : Expression? {
+    def override visitExprTag(var expr : ExprTag?) : Expression? { // nolint:STYLE037 nolint:STYLE038 - one arm per tag spelling, a dispatch ladder
         //! Visits tag expression and processes variable/expression/argument/call tags.
         var new_tag_name = ""
         if (expr.name == "c") {
@@ -895,8 +919,7 @@ class private QRulesVisitor : AstVisitor {
         } else {
             new_tag_name = "temp`var`{tag_index++}`{expr.at.line}`{expr.at.column}"
         }
-        // print("replacing {new_tag_name} <- {describe(expr.subexpr)}\n") deppending on a tag now?
-        if (expr.name == "v") {// value
+        if (expr.name == "v") {
             rblock.list |> emplace_new <| new ExprCall(at = expr.at,
                 name := "replaceVariable",
                 arguments := array<Expression?>(
@@ -906,7 +929,7 @@ class private QRulesVisitor : AstVisitor {
                         arguments := array<Expression?>(clone_expression(expr.subexpr))
                     )
                 ))
-        } elif (expr.name == "" || expr.name == "e") {// expression
+        } elif (expr.name == "" || expr.name == "e") {
             rblock.list |> emplace_new <| new ExprCall(at = expr.at,
                 name := "replaceVariable",
                 arguments := array<Expression?>(
@@ -916,7 +939,7 @@ class private QRulesVisitor : AstVisitor {
                         arguments := array<Expression?>(clone_expression(expr.subexpr))
                     )
                 ))
-        } elif (expr.name == "a") {// arguments
+        } elif (expr.name == "a") {
             rblock.list |> emplace_new <| new ExprCall(at = expr.at,
                 name := "replaceVariableWithList",
                 arguments := array<Expression?>(
@@ -924,7 +947,7 @@ class private QRulesVisitor : AstVisitor {
                     new ExprConstString(at = expr.at, value := new_tag_name) |> generatedExpr(),
                     clone_expression(expr.subexpr) |> generatedExpr()
                 ))
-        } elif (expr.name == "b") {// expression block
+        } elif (expr.name == "b") {
             rblock.list |> emplace_new <| new ExprCall(at = expr.at,
                 name := "replaceVariable",
                 arguments := array<Expression?>(
@@ -932,7 +955,7 @@ class private QRulesVisitor : AstVisitor {
                     new ExprConstString(at = expr.at, value := new_tag_name) |> generatedExpr(),
                     new ExprCall(at = expr.at, name := "make_expression_block", arguments := array<Expression?>(clone_expression(expr.subexpr)))
                 ))
-        } elif (expr.name == "i") {// identificator
+        } elif (expr.name == "i") {
             rblock.list |> emplace_new <| new ExprCall(at = expr.at,
                 name := "renameVariable",
                 arguments := array<Expression?>(
@@ -953,7 +976,7 @@ class private QRulesVisitor : AstVisitor {
                     return expr
                 }
             }
-        } elif (expr.name == "f") {// field
+        } elif (expr.name == "f") {
             rblock.list |> emplace_new <| new ExprCall(at = expr.at,
                 name := "renameField",
                 arguments := array<Expression?>(
@@ -978,7 +1001,7 @@ class private QRulesVisitor : AstVisitor {
                 return expr
             }
             return fexpr
-        } elif (expr.name == "c") {// call
+        } elif (expr.name == "c") {
             if (expr.value == null) {
                 compiling_program() |> macro_error(expr.at, "expecting $c(name)(...), got null")
                 failed = true
@@ -1164,8 +1187,8 @@ class private AstQCallMacro : AstCallMacro {
     apply_call = "apply_qmacro" //! Default apply call, can be overridden in subclasses
     macro_call = "qmacro"       //! Default macro call, can be overridden in subclasses
     def override canVisitArgument(call : ExprCallMacro?; argIndex : int) : bool {
-        //! Only first argument is visited
-        return false    // nop, this one is just like quote
+        //! No argument is visited: like quote, the call is reified exactly as written.
+        return false
     }
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         //! Visit the macro call and generate the reified expression.
@@ -1346,7 +1369,7 @@ class private AstQMethodMacro : AstQNamedClassMacro {
     override apply_call = "apply_qmacro_method"
 }
 
-def public apply_qmacro_template_class(instance_name : string; var template_type : TypeDecl?; blk : block<(var rules : Template) : void>) : TypeDeclPtr {
+def public apply_qmacro_template_class(instance_name : string; var template_type : TypeDecl?; blk : block<(var rules : Template) : void>) : TypeDeclPtr { // nolint:STYLE038 - one linear reification pass, its phases share the instance state
     //! Implementation details for the expression reification. This is a template class instantiation reification.
     var mod = compiling_module()
     var template_structure = template_type.structType
@@ -1359,16 +1382,13 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
         baseType = Type.tStructure,
         structType = instance_structure
     )
-    // lets build renames for all methods in the module
     var method_renames : table<string, string>
     var template_module = template_structure._module
     for_each_function(template_module, "", $(func){
         if (func.classParent == template_structure) {
-            // we rename methods
             let func_name = string(func.name)
             var func_clone_name : string
             if (func_name == "{template_name}'__finalize") {
-                // Keep each compiler-generated class finalizer distinct so substitution can retarget its field initializer.
                 func_clone_name = "{instance_name}'__finalize"
             } else {
                 var method_name_parts = split(func_name, "`")
@@ -1376,7 +1396,7 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
                     method_name_parts[0] = instance_name
                 }
                 if (length(method_name_parts) == 2) {
-                    if (method_name_parts[1] == template_name) { // ctor
+                    if (method_name_parts[1] == template_name) {
                         method_name_parts[1] = instance_name
                     } elif (method_name_parts[1] == "clone" || method_name_parts[1] == "finalize" || method_name_parts[1] == "each") {
                         method_name_parts.erase(0)
@@ -1387,20 +1407,15 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
             method_renames.insert(func_name, func_clone_name)
         }
     })
-    // lets build rule block
     var inscope rules : Template
     invoke(blk, rules)
-    // Template -> Instance TypeDecl
     rules |> replaceTypeWithTypeDecl(template_name) <| clone_type(instance_type)
     rules |> replaceStructWithTypeDecl(template_structure) <| clone_type(instance_type)
-    // Template`Template class ctor rename
     rules |> renameCall("{template_name}`{template_name}") <| "{instance_name}`{instance_name}"
-    // method renames
     for (t_method, i_method in keys(method_renames), values(method_renames)) {
         rules |> renameVariable(t_method, i_method)
         rules |> renameVariable("_::{t_method}", "_::{i_method}")
     }
-    // now, lets clone all methods in the module
     for_each_function(template_module, "", $(func){
         if (func.classParent == template_structure) {
             let func_clone_name = method_renames[string(func.name)]
@@ -1409,8 +1424,6 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
             func_clone.moreFlags.isTemplate = false
             func_clone.classParent = instance_structure
             func_clone.result  = apply_template(rules, func.at, clone_type(func.result))
-            // expand $a() argument lists in function parameters (blkArg rules)
-            // preVisitFunctionArgument collects $a tags from function arguments.
             if (!empty(rules.blkArg)) {
                 let nfargs = func_clone.arguments |> length
                 for (ai in range(nfargs)) {
@@ -1434,7 +1447,6 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
                         }
                     }
                 }
-                // sync body block arguments from expanded function arguments
                 var body_block = func_clone.body as ExprBlock
                 if (body_block != null) {
                     body_block.arguments |> clear
@@ -1455,7 +1467,6 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
             mod |> add_function(func_clone)
         }
     })
-    // now we fix up fields
     for (fld in instance_structure.fields) {
         fld._type  = apply_template(rules, fld.at, clone_type(fld._type))
         if (fld.init != null) {
@@ -1463,8 +1474,6 @@ def public apply_qmacro_template_class(instance_name : string; var template_type
         }
     }
     mod |> add_structure(instance_structure)
-    delete rules
-    // template_type is gc-managed, no manual delete
     return instance_type
 }
 
@@ -1576,6 +1585,7 @@ def public add_structure_field(var cls : StructurePtr; name : string; var t : Ty
     cls.fields[fi].name := name
     cls.fields[fi]._type = t
     cls.fields[fi].init = init
+    cls.fields[fi].at = t != null && t.at.fileInfo != null ? t.at : cls.at
     return fi
 }
 

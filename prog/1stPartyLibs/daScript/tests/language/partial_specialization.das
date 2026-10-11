@@ -16,9 +16,9 @@ struct Far : Bar {
     c : int
 }
 
-def test(a : Foo; b : Foo) { return "foo foo"; }
-def test(a : Foo; b : Bar) { return "foo bar"; }
-def test(a : Bar; b : Foo) { return "bar foo"; }
+def test(_a : Foo; _b : Foo) { return "foo foo"; }
+def test(_a : Foo; _b : Bar) { return "foo bar"; }
+def test(_a : Bar; _b : Foo) { return "bar foo"; }
 
 def test_distance(t : T?) {
     t |> equal(test(Foo(uninitialized), Foo(uninitialized)), "foo foo")

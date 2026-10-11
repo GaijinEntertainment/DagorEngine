@@ -4,13 +4,17 @@
 #include <streaming/dag_streamingBase.h>
 #include <heightmap/heightmapHandler.h>
 #include <EASTL/utility.h>
-#include "dag_cur_view.h"
+#include "renderView.h"
 
 struct LMesh;
+struct LandMeshCullingData;
 void destroy_lmesh(LMesh *l);
 LMesh *create_lmesh(IGenLoad &cb);
-void render_lmesh(LMesh &l, const Point3 &vp, const BBox3 &);
+void render_lmesh(LMesh &l, const RenderView &view, const BBox3 &);
 BBox3 get_lmesh_box(const LMesh &l);
+// any thread; false when only render_lmesh draws the land mesh for globtm
+bool cull_lmesh(const LMesh &l, mat44f_cref globtm, const Point3 &vp, LandMeshCullingData &out);
+void render_lmesh_culled(LMesh &l, const LandMeshCullingData &culled, const RenderView &view);
 
 class StrmSceneHolder : public BaseStreamingSceneHolder
 {
@@ -35,6 +39,7 @@ public:
     Inited
   } state = No;
   void onSceneLoaded();
+  void afterDeviceReset();
   bool bdlCustomLoad(unsigned /*bindump_id*/, int tag, IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap) override;
   void bdlTextureMap(unsigned /*bindump_id*/, dag::ConstSpan<TEXTUREID> texId) override;
 
@@ -46,13 +51,12 @@ public:
   void loadHeightmapRaw16(const char *fn, float cell_size, float hMin, float hMax);
   void loadLMesh(IGenLoad &crd) { lMesh.reset(create_lmesh(crd)); }
   void initOnDemand();
-  void renderHeightmap(const vec4f &viewPos, const Frustum &frustum, const TMatrix4 &proj);
+  void renderHeightmap(const RenderView &view);
   bool getMinMax(float &minHt, float &maxHt) const;
-  bool getMinMax(const BBox3 &box, float &minHt, float &maxHt);
-  void renderLmesh(BBox3 box = BBox3())
+  void renderLmesh(const RenderView &view, BBox3 box = BBox3())
   {
     if (lMesh)
-      render_lmesh(*lMesh, ::grs_cur_view.itm.getcol(3), box);
+      render_lmesh(*lMesh, view, box);
   }
   bool getLmeshBBox3(BBox3 &box)
   {
@@ -71,10 +75,12 @@ public:
     Off,
     On
   };
-  void render(const VisibilityFinder &vf, Hmap hmap, Lmesh lmesh, const TMatrix4 &proj);
-  void render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask)
+  void render(const RenderView &view, Hmap hmap, Lmesh lmesh, const LandMeshCullingData *culled = nullptr);
+  void renderTrans(const RenderView &view);
+  void render(const RenderView &view, int render_id, unsigned render_flags_mask)
   {
-    base::render(vf, render_id, render_flags_mask);
+    view.bind();
+    base::render(view.visibility(), render_id, render_flags_mask);
   }
 
   bool getHeight(const Point2 &p, float &ht, Point3 *normal) const;

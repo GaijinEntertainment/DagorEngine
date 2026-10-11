@@ -322,12 +322,16 @@ public:
     SND_BIND_FUN_EX(occlusion_gpu__is_valid_handle_value, "is_valid_handle_value", das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(occlusion_gpu__attach_to_blob, "attach_to_blob", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(__occlusion_gpu__attach_to_blob, "attach_to_blob", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__create_blob_template, "create_blob_template", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__set_preferred_blob_template, "set_preferred_blob_template", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__occlusion_gpu__set_preferred_blob_template, "set_preferred_blob_template", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__detach_instance, "detach_occlusion", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(__occlusion_gpu__detach_instance, "detach_occlusion", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__drop_instance, "drop_occlusion", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(__occlusion_gpu__drop_instance, "drop_occlusion", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__is_inside_active_range, "is_inside_active_occlusion_range", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(occlusion_gpu__set_blob_active_range, "set_blob_active_range", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__suspend_backend, "suspend_occlusion_backend", das::SideEffects::modifyExternal);
 
     SND_BIND_FUN(get_music_spectrum, das::SideEffects::modifyArgumentAndExternal);
 

@@ -120,6 +120,35 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
     return new das::TypeDecl(*vecType);
   }
 
+  // the jit cannot call a SimNode: the same iterator and bound check as the nodes, as C entry points
+  static void jit_each(das::Sequence *out, void *arr, das::Context *context, das::LineInfoArg *at)
+  {
+    using Iter = DasArrayIterator<TJsonArray>;
+    char *iter = context->allocateIterator(sizeof(Iter), "json array iterator", at);
+    new (iter) Iter((TJsonArray *)arr, at);
+    out->iter = (das::Iterator *)iter;
+  }
+  void *jitGetEach() const override { return (void *)&jit_each; }
+
+  template <typename IndexType>
+  static char *jit_at(void *arr, IndexType index, das::Context *context, das::LineInfoArg *at)
+  {
+    auto *pValue = (TJsonArray *)arr;
+    uint32_t idx = uint32_t(index);
+    if (idx >= pValue->Size())
+      context->throw_error_at(at, "Array index %d out of range %d", int(idx), int(pValue->Size()));
+    return (char *)&(*pValue)[idx];
+  }
+  void *jitGetAt(das::Type indexType) const override
+  {
+    switch (indexType)
+    {
+      case das::Type::tInt: return (void *)&jit_at<int32_t>;
+      case das::Type::tUInt: return (void *)&jit_at<uint32_t>;
+      default: return nullptr;
+    }
+  }
+
   template<class Array>
   struct SimNodeAtArray : das::SimNode_At
   {

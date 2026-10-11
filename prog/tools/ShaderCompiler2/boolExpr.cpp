@@ -131,8 +131,7 @@ static bool compile_bool_expr_not_to_bytecode_impl(     //
     {
       switch (val.cmpop->op->num)
       {
-        case SHADER_TOKENS::SHTOK_eq:
-        case SHADER_TOKENS::SHTOK_assign: instr.comp = Interval::EXPR_EQ; break;
+        case SHADER_TOKENS::SHTOK_eq: instr.comp = Interval::EXPR_EQ; break;
         case SHADER_TOKENS::SHTOK_noteq: instr.comp = Interval::EXPR_NOT_EQ; break;
         case SHADER_TOKENS::SHTOK_greater: instr.comp = Interval::EXPR_GREATER; break;
         case SHADER_TOKENS::SHTOK_greatereq: instr.comp = Interval::EXPR_GREATER_EQ; break;

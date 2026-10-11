@@ -1,5 +1,7 @@
 include "node_based_common.dshl"
 include "clouds2/clouds_bsm_macros.dshl"
+// node based dumps link to its globals; constraint: the asset tools can lack the root of prog/gameLibs
+include "../raytracedToroidalStaticShadow/shaders/rtss_static_shadow.dshl"
 
 float clouds_start_altitude2;
 float clouds_thickness2;
@@ -72,6 +74,8 @@ float4 clouds_bsm_texel always_referenced;
 
 int fog_shader_type always_referenced;
 interval fog_shader_type: froxel < 1, raymarch < 2, shadow always_referenced;
+int nbs_rtss_static_shadow always_referenced; // volumetricLights sets it from force_rtss_shadows
+interval nbs_rtss_static_shadow: off < 1, on always_referenced;
 
 macro NBS_FOG_BLOCK()
   NBS_COMMON_BLOCK()

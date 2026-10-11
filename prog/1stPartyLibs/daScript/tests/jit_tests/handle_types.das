@@ -9,21 +9,19 @@ def handle_fun(var a : float4x4) {
 }
 
 def handle_ref_op1(a : float4x4) {
-    var c : float4x4
-    c = -a
+    let c = -a
     return c
 }
 
 def handle_ref_op2(a, b : float4x4) {
-    var c : float4x4
-    c = a * b
+    let c = a * b
     return c
 }
 
 def handle_val(var num : int&) {
-    var iid = make_invalid_id()
+    let iid = make_invalid_id()
     num = int(iid)
-    var iid2 = EntityId(13)
+    let iid2 = EntityId(13)
     return iid2
 }
 
@@ -55,21 +53,39 @@ def handle_index(var m : float4x4) {
     return m.y
 }
 
+def handle_vector_each(arr : Point3Array) {
+    var n = 0
+    var sum = 0.0
+    for (p in arr) {
+        n++
+        sum += p.x + p.y + p.z
+    }
+    return int(sum) * 100 + n
+}
+
+def handle_vector_at(arr : Point3Array) {
+    var sum = 0.0
+    for (i in range(arr |> length)) {
+        sum += arr[i].y * float(i + 1)
+    }
+    return int(sum)
+}
+
 [test]
 def test_handle_type(t : T?) {
     t |> run("handle val") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@handle_val))
         var num = 0
-        var iid = handle_val(num)
+        let iid = handle_val(num)
         t |> equal(13, int(iid))
         t |> equal(-1, num)
     }
     t |> run("handle eid") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@handle_eid))
-        var l <- @(var val : int) : EntityId {
+        let l <- @(var val : int) : EntityId {
             return EntityId(val)
         }
-        var eid = handle_eid(l)
+        let eid = handle_eid(l)
         t |> equal(13, int(eid))
     }
     t |> run("handle op1") @(t : T?) {
@@ -98,14 +114,14 @@ def test_handle_type(t : T?) {
         a[3][0] = 1.0
         a[3][1] = 2.0
         a[3][2] = 4.0
-        var b = handle_fun(a)
-        var c = inverse(a)
+        let b = handle_fun(a)
+        let c = inverse(a)
         t |> equal(c, b)
     }
     t |> run("handle fields") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@handle_fields))
         var m : float4x4
-        var my = handle_fields(m)
+        let my = handle_fields(m)
         t |> equal(float4(1, 0, 0, 0), m.x)
         t |> equal(float4(0, 2, 0, 0), m.y)
         t |> equal(float4(0, 0, 3, 0), m.z)
@@ -115,7 +131,7 @@ def test_handle_type(t : T?) {
     t |> run("handle index") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@handle_index))
         var m : float4x4
-        var my = handle_index(m)
+        let my = handle_index(m)
         t |> equal(float4(1, 0, 0, 0), m.x)
         t |> equal(float4(0, 2, 0, 0), m.y)
         t |> equal(float4(0, 0, 3, 0), m.z)
@@ -125,11 +141,27 @@ def test_handle_type(t : T?) {
     t |> run("handle fields ptr") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@handle_fields_ptr))
         var m : float4x4
-        var my = handle_fields_ptr(unsafe(addr(m)))
+        let my = handle_fields_ptr(unsafe(addr(m)))
         t |> equal(float4(1, 0, 0, 0), m.x)
         t |> equal(float4(0, 2, 0, 0), m.y)
         t |> equal(float4(0, 0, 3, 0), m.z)
         t |> equal(float4(0, 0, 0, 4), m.w)
         t |> equal(float4(0, 2, 0, 0), my)
+    }
+}
+
+[test]
+def test_handle_vector(t : T?) {
+    t |> run("handle vector each") @(t : T?) {
+        t |> success(!jit_enabled() || is_jit_function(@@handle_vector_each))
+        testPoint3Array() $(arr) {
+            t |> equal(6010, handle_vector_each(arr))
+        }
+    }
+    t |> run("handle vector at") @(t : T?) {
+        t |> success(!jit_enabled() || is_jit_function(@@handle_vector_at))
+        testPoint3Array() $(arr) {
+            t |> equal(110, handle_vector_at(arr))
+        }
     }
 }

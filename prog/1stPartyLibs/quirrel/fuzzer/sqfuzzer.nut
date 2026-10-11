@@ -113,7 +113,7 @@ function Fuzzer(allowLoops) {
   local int_expr, bool_bin_expr, bool_expr,
     int_field, int_delegate, int_array_value, int_3way, int_add, int_sub, int_or, int_and,
     int_identifier, int_var, int_param, int_function_call,
-    statement, statement_inner, statements, reset_memos,
+    statement, statement_inner, statements, collect_garbage,
     array_var, table_var, generator_var,
     void_function_call
 
@@ -142,14 +142,6 @@ function Fuzzer(allowLoops) {
   let cmp_expr = @() $"({e(int_expr)} {anyof(["<", ">", "<=", ">=", "!=", "=="])} {e(int_expr)})"
 
   let not_expr = @() $"(!({e(bool_expr)}))"
-  let static_memo = function() {
-    if (rand() % 3 == 1)
-      return $"static({e(int_expr)})"
-    else if (rand() % 2 == 1)
-      return $"static([1, 2, 3])[{rand() % 3}]"
-    else
-      return $"static(\{x = {e(int_expr)}\}).x"
-  }
 
   bool_bin_expr = @() $"(({e(bool_expr)}) {anyof(["&&", "||", "!=", "=="])} ({e(bool_expr)}))"
   bool_expr = @() e(anyof([cmp_expr, not_expr, bool_bin_expr], 20))
@@ -160,7 +152,7 @@ function Fuzzer(allowLoops) {
   let loop_cmp_op = @() anyof(["<", "<="])
 
   int_expr = @() e(anyof([int, int_field, int_delegate, int_array_value, int_var, int_3way, int_add, int_sub, int_or, int_and,
-                   int_ternary, int_identifier, int_var, int_paren, int_param, static_memo,
+                   int_ternary, int_identifier, int_var, int_paren, int_param,
                    int_function_call], treeDepth > 25 ? 90 : 32))
   let to_log = @() $"to_log({logId()}, {e(int_expr)})"
 
@@ -412,10 +404,8 @@ function Fuzzer(allowLoops) {
     return s
   }
 
-  reset_memos = function() {
+  collect_garbage = function() {
     if (rand() % 16 == 1)
-      return $"\{ to_log(\"reset_static_memos\"); require(\"modules\").reset_static_memos() \}"
-    else if (rand() % 16 == 2)
       return $"try \{ to_log(\"collectgarbage\"); require(\"debug\").collectgarbage() \} catch (gc_e) \{\}"
     else
       return statement_inner()
@@ -424,7 +414,7 @@ function Fuzzer(allowLoops) {
   statement_inner = function() {
     return e(anyof([to_log, void_function_call, if_then, if_then_else,
                       foreach_loop, for_loop, while_loop, do_while_loop,
-                      try_catch, break_continue, reset_memos], treeDepth > 25 ? 100 : 40))
+                      try_catch, break_continue, collect_garbage], treeDepth > 25 ? 100 : 40))
   }
 
   statement = function() {

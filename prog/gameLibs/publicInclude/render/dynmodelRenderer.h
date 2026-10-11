@@ -14,6 +14,7 @@
 #include <generic/dag_staticTab.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <generic/dag_functionRef.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_declAlign.h>
 #include <math/dag_Point2.h>
@@ -82,6 +83,7 @@ enum RenderFlags
   APPLY_OVERRIDE_STATE_ID_TO_OPAQUE_ONLY = 0x00000010,
   MERGE_OVERRIDE_STATE = 0x00000020,
   OVERRIDE_RENDER_SKINNED_CHECK = 0x00000040,
+  BVH_NO_VOXEL_CULL = 0x00000080,
 };
 
 struct Interval
@@ -122,14 +124,6 @@ inline void set_animchar_additional_data(PerInstanceRenderData &render_data,
 {
   render_data.additionalData.assign(additional_data.data(), additional_data.data() + additional_data.size());
 }
-
-struct InstanceContextData
-{
-  const DynamicRenderableSceneInstance *instance = NULL;
-  ContextId contextId = ContextId::Invalid;
-  int instanceOffsetRenderData = -1;
-  int nodeOffsetRenderData = -1;
-};
 
 struct Statistics
 {
@@ -209,16 +203,14 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
 
 void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj);
 void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, int &instanceToChunkOffset,
-  const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0),
-  dynrend::InstanceContextData *instanceContextData = NULL);
+  const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0));
 bool prepare_render_finalize(ContextId context_id);
 
 // offset_to_origin is used as a hint to the expected offset of the current view position
 // relative to the current origin in view space. The same offset is used for motion vectors calculations as well
 // so it is assumed that this offset doesn't change between frames.
 void prepare_render(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj,
-  const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0),
-  dynrend::InstanceContextData *instanceContextData = NULL);
+  const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0));
 
 void collect_used_resources(ContextId context_id, eastl::vector_set<const DynamicRenderableSceneLodsResource *> &resources);
 
@@ -226,6 +218,9 @@ void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage);
 void clear(ContextId context_id);
 
 void clear_all_contexts();
+// Clears each context, frees its CPU buffers and replaces a grown GPU ring buffer with one of the initial size,
+// so a buffer id or position taken before the call is stale. No job may fill or render a context during the call.
+void shrink_all_contexts();
 void reset_ring_buffers();
 
 void after_device_reset();
@@ -233,7 +228,7 @@ void after_device_reset();
 // Call once per frame before any rendering.
 void begin_frame();
 
-void set_reduced_render(ContextId context_id, float min_elem_radius, bool render_skinned);
+void set_reduced_render(ContextId context_id, float min_elem_radius, bool render_skinned, bool render_rigids = true);
 void set_instance_data_only(ContextId context_id, bool enable);
 void set_node_collapser_enabled(ContextId context_id, bool enable);
 
@@ -241,6 +236,7 @@ void set_prev_matrices(ContextId context_id, bool enable);
 void set_pass_expects_prev_matrices(bool enable);
 
 int get_skin_bones_start_in_vecs(ContextId context_id); // for reading render data from cpu
+// Returns vec4 rows per bone stored after each skin node; zero for shared dynmodel bones.
 int get_skin_bone_rows(ContextId context_id);
 
 // Globals snapshot for resolving multidraw variants while the context is filled
@@ -299,7 +295,7 @@ void update_reprojection_data(ContextId contextId);
 bool set_instance_data_buffer(unsigned stage, ContextId contextId, int node_offset_render_data, int instance_offset_render_data);
 
 // Returns the values set_instance_data_buffer would set, without touching any state.
-// Valid after prepare_render and until the next prepare_render on the context.
+// Valid after prepare_render and until the next prepare_render on the context or the next shrink_all_contexts().
 // Safe to call from worker threads within that window.
 bool get_instance_data_offsets(ContextId contextId, int node_offset_render_data, int instance_offset_render_data,
   uint32_t out_dwords[2], D3DRESID &out_buffer_id);
@@ -354,6 +350,10 @@ void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage
   RenderPriority priority = RenderPriority::DEFAULT, const GlobalVariableStates *gvars_state = nullptr,
   TexStreamingContext texCtx = TexStreamingContext(0), eastl::vector<int, framemem_allocator> *output_offsets = nullptr);
 
+// Builds the decomposed skin bone rows of the scene once, so that add_animchar copies them in each pass of the frame.
+// Call it after the node wtms of the frame are set. It does nothing when the bones go to the shaders as matrix rows.
+void cache_animchar_skin_bone_rows(DynamicRenderableSceneInstance &scene);
+
 // Context inspection helpers
 bool context_has_data(ContextId context_id);
 D3DRESID get_context_buffer_id(ContextId context_id);
@@ -364,8 +364,8 @@ int get_context_buffer_pos(ContextId context_id);
 // and then merged before prepare_render/render.  Clears src after merge.
 void merge_context(ContextId dst, ContextId src);
 
-using DipsIterator = eastl::function<void(const shaders::CombinedDynVariantState &, GlobalVertexData *data, ShaderElement *shader,
-  uint32_t base_vertex, uint32_t offset_and_size, uint32_t offset_to_chunk)>;
+using DipsIterator = dag::FunctionRef<void(const shaders::CombinedDynVariantState &, GlobalVertexData *data, ShaderElement *shader,
+  uint32_t base_vertex, uint32_t offset_and_size, uint32_t offset_to_chunk) const>;
 void iterate_dips(dynrend::ContextId context_id, DipsIterator iter);
 
 // Convenience: prepare_render using the current d3d view/proj matrices.

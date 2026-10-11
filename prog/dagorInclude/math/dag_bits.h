@@ -6,7 +6,10 @@
 
 #include <EASTL/type_traits.h> // eastl::is_integral_v
 
-#if _TARGET_PC_WIN | _TARGET_XBOX
+#if (_TARGET_PC_WIN | _TARGET_XBOX) && defined(_M_ARM64EC)
+// constraint: winnt.h remaps __popcnt* on ARM64EC, so local intrinsic declarations do not apply
+#include <intrin.h>
+#elif _TARGET_PC_WIN | _TARGET_XBOX
 #ifdef __cplusplus
 extern "C"
 {

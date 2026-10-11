@@ -164,7 +164,7 @@ public:
       if (can_resolve_symbols())
       {
         auto &symbols = the_profiler.symbolsCache;
-        std::lock_guard<std::mutex> lock(symbols.lock);
+        dag::lock_guard lock(symbols.lock);
         symbols.initModules();
         for (auto addr : addressSet)
         {

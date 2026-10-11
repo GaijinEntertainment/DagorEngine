@@ -50,6 +50,7 @@ void HeightmapMaxGrid::close()
   updateCs.reset();
   cells = 0;
   lt = IPoint2(INVALID_COORD, INVALID_COORD);
+  pending.setempty();
   ShaderGlobal::set_int4(heightmap_max_grid_ltVarId, 0, 0, 0, 0);
 }
 
@@ -75,6 +76,7 @@ void HeightmapMaxGrid::update(const Point3 &view_pos)
   ShaderGlobal::set_int4(heightmap_max_grid_ltVarId, newLt.x, newLt.y, int(cells), int(cells - 1));
   // no sync between the update's dispatches: overlapping rects store the same value
   const bool scrolled = newLt != lt;
+  bool dispatched = scrolled;
   if (scrolled)
   {
     const IPoint2 d = newLt - lt;
@@ -94,10 +96,25 @@ void HeightmapMaxGrid::update(const Point3 &view_pos)
     }
     lt = newLt;
   }
+  if (!pending.isempty())
+  {
+    // a cell's max reads a texel past its edges
+    const IPoint2 from = max(IPoint2(int(floorf(pending[0].x / cellSize)) - 1, int(floorf(pending[0].y / cellSize)) - 1), newLt);
+    const IPoint2 to =
+      min(IPoint2(int(floorf(pending[1].x / cellSize)) + 2, int(floorf(pending[1].y / cellSize)) + 2), newLt + IPoint2(cells, cells));
+    pending.setempty();
+    if (from.x < to.x && from.y < to.y)
+    {
+      if (dispatched)
+        d3d::resource_barrier({buf.getBuf(), RB_NONE});
+      dispatchRect(from, to - from);
+      dispatched = true;
+    }
+  }
   // fill inputs can change without a scroll (content streams in or is
   // re-rendered): a rolling row revisits the window over cells updates
   refreshRow = (refreshRow + 1) & (cells - 1);
-  if (scrolled)
+  if (dispatched)
     d3d::resource_barrier({buf.getBuf(), RB_NONE});
   dispatchRect(IPoint2(newLt.x, newLt.y + int(refreshRow)), IPoint2(int(cells), 1));
   d3d::resource_barrier({buf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_SOURCE_STAGE_COMPUTE});

@@ -196,13 +196,16 @@ void PolygonGenEntity::place_objects_inside_polygon(objgenerator::LandClassData 
     hmofs.set_xz(hmap->getHeightmapOffset());
   landClass.beginGenerate();
 
+  const bool followDetile = props.objsFollowDetile && landClass.data && landClass.data->followsDetile();
+
   if (landClass.data && landClass.data->tiled)
   {
     Point2 entOfs = props.objOffs + hmofs;
     if (!props.tiledObjsWorldAnchor)
       entOfs += Point2::xz(smooth_poly[0]);
     objgenerator::generateTiledEntitiesInsidePoly(*landClass.data->tiled, tiledByPolygonSubTypeId, editLayerIdx, hmap,
-      make_span(landClass.poolTiled), smooth_poly, DEG_TO_RAD * props.objRot, entOfs);
+      make_span(landClass.poolTiled), smooth_poly, DEG_TO_RAD * props.objRot, entOfs,
+      followDetile ? landClass.data->tiled->detile : nullptr);
   }
 
   if (landClass.data && landClass.data->planted)
@@ -219,7 +222,8 @@ void PolygonGenEntity::place_objects_inside_polygon(objgenerator::LandClassData 
     Point2 w0(0.f, 0.f), entOfs(ofs_x, ofs_z);
     if (props.plantedObjsWorldAnchor)
       w0.set(ofs_x + props.objOffs.x, ofs_z + props.objOffs.y), entOfs.set(-props.objOffs.x, -props.objOffs.y);
-    objgenerator::generatePlantedEntitiesInMaskedRect(*landClass.data->planted, tiledByPolygonSubTypeId, editLayerIdx, nullptr,
+    objgenerator::generatePlantedEntitiesInMaskedRect(*landClass.data->planted,
+      followDetile ? landClass.data->planted->detile : nullptr, tiledByPolygonSubTypeId, editLayerIdx, nullptr,
       make_span(landClass.poolPlanted), bmp, 1.0 / cell, w0.x, w0.y, bmp.getW() * cell, bmp.getH() * cell, entOfs.x, entOfs.y, mid_y);
   }
 

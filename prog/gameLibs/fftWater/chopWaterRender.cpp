@@ -35,7 +35,7 @@
 #include "chopWaterRender.h"
 
 static const char *water_hmap_tess_factor_name = "water_tess_factor";
-static const char *chop_water_shader_name = "water_chop";
+static const char *chop_water_shader_name[fft_water::RenderMode::MAX] = {"water_chop", "water_chop_depth", "water_chop"};
 
 static int waterChopBlockId = -1;
 
@@ -55,7 +55,6 @@ static const carray<carray<eastl::pair<float, int>, 7>, fft_water::RENDER_GOOD> 
   VAR(water_heightmap_region) \
   VAR(water_vertical_lod)     \
   VAR(tess_distance)          \
-  VAR(chop_output_normal)     \
   VAR(chop_detail_waves_enabled)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -111,7 +110,7 @@ ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_qualit
       if (rendererEnabled & (1 << i))
       {
         const bool isDrawSSR = i == fft_water::RenderMode::WATER_SSR_SHADER;
-        if (!chopWaterRenderer[i].init(chop_water_shader_name, NULL, water_hmap_tess_factor_name, isDrawSSR,
+        if (!chopWaterRenderer[i].init(chop_water_shader_name[i], NULL, water_hmap_tess_factor_name, isDrawSSR,
               water_dim_bits[geomQuality - 1]))
         {
           return;
@@ -156,7 +155,7 @@ void ChopWaterRender::setWaterDim(int dim_bits)
     if (chopWaterRenderer[i].isInited() && chopWaterRenderer[i].getDim() != 1 << dim_bits)
     {
       chopWaterRenderer[i].close();
-      chopWaterRenderer[i].init(chop_water_shader_name, NULL, water_hmap_tess_factor_name, true, dim_bits);
+      chopWaterRenderer[i].init(chop_water_shader_name[i], NULL, water_hmap_tess_factor_name, true, dim_bits);
     }
   }
 }
@@ -172,7 +171,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
     if (!chopWaterRenderer[render_mode].isInited())
     {
       const bool isDrawSSR = render_mode == fft_water::RenderMode::WATER_SSR_SHADER;
-      chopWaterRenderer[render_mode].init(chop_water_shader_name, NULL, water_hmap_tess_factor_name, isDrawSSR,
+      chopWaterRenderer[render_mode].init(chop_water_shader_name[render_mode], NULL, water_hmap_tess_factor_name, isDrawSSR,
         water_dim_bits[geomQuality - 1]);
     }
   }
@@ -187,7 +186,6 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   float originAlt = origin.y - waterHeight;
 
   ShaderGlobal::set_float(tess_distanceVarId, lod0AreaRadius * 0.66f);
-  ShaderGlobal::set_int(chop_output_normalVarId, render_mode == fft_water::RenderMode::WATER_DEPTH_SHADER ? 1 : 0);
 
   float chopFov = 2.0f * atanf(1.0f / persp.hk);
   ShaderGlobal::set_float(chop_fovVarId, chopFov);

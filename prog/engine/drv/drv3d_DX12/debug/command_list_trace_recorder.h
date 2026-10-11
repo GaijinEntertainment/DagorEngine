@@ -9,6 +9,7 @@
 
 #include <supp/dag_comPtr.h>
 #include <winapi_helpers.h>
+#include <cinttypes>
 
 
 namespace drv3d_dx12::debug
@@ -230,8 +231,8 @@ private:
     }
 
     newPool.bufferMemory = newPool.buffer->GetGPUVirtualAddress();
-    logdbg("DX12: New GPU trace recording pool buffer, memory at %p, heap %p, buffer %p at GPU address %016X", newPool.memory.get(),
-      newPool.memoryHeap.Get(), newPool.buffer.Get(), newPool.bufferMemory);
+    logdbg("DX12: New GPU trace recording pool buffer, memory at %p, heap %p, buffer %p at GPU address 0x%016" PRIX64,
+      newPool.memory.get(), newPool.memoryHeap.Get(), newPool.buffer.Get(), newPool.bufferMemory);
     return;
   }
 

@@ -9,7 +9,7 @@ struct LamIterFoo {
 [test]
 def test_lambda_to_iter(t : T?) {
     t |> run("int ref lambda as iterator") @(t : T?) {
-        var count = 0
+        var count = 0   // nolint:LINT003 - `let` makes the lambda's captured copy const, breaking count++
         let lam <- @(var a : int&) : bool {
             if (count < 10) {
                 a = count++
@@ -23,7 +23,7 @@ def test_lambda_to_iter(t : T?) {
         }
     }
     t |> run("struct lambda as iterator") @(t : T?) {
-        var count = 0
+        var count = 0   // nolint:LINT003 - `let` makes the lambda's captured copy const, breaking count++
         let lamF <- @(var a : LamIterFoo) : bool {
             if (count < 10) {
                 a.value = count++

@@ -5,6 +5,8 @@
 #include <de3_interface.h>
 #include <de3_editorEvents.h>
 #include <de3_dynRenderService.h>
+#include <de3_gpuGrassService.h>
+#include <de3_grassSrv.h>
 #include <de3_hmapService.h>
 #include <de3_skiesService.h>
 #include <de3_waterSrv.h>
@@ -39,7 +41,7 @@
 #include <animChar/dag_animCharacter2.h>
 #include <debug/dag_debug.h>
 #include <startup/dag_globalSettings.h>
-#include <perfMon/dag_visClipMesh.h>
+#include <debug/dag_collResDebugDraw.h>
 #include <obsolete/dag_cfg.h>
 
 #include <drv/3d/dag_resetDevice.h>
@@ -64,6 +66,7 @@ extern bool window_initing;
 
 bool is_generic_water_service_initialized();
 bool is_generic_hmap_service_initialized();
+bool is_generic_grass_service_initialized();
 
 static constexpr const char *INITIAL_CAPTION = "DaEditorX";
 static constexpr const char *INITIAL_ICON = "RES_DE_ICON";
@@ -94,6 +97,11 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
         hmapSrv->afterD3DReset(full_reset);
     if (IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
       drSrv->afterD3DReset(full_reset);
+    if (IGPUGrassService *gpuGrassSrv = EDITORCORE->queryEditorInterface<IGPUGrassService>())
+      gpuGrassSrv->afterD3DReset(full_reset);
+    if (is_generic_grass_service_initialized()) // Querying IGrassService initializes it.
+      if (IGrassService *grassSrv = EDITORCORE->queryEditorInterface<IGrassService>())
+        grassSrv->afterD3DReset(full_reset);
     if (ISkiesService *skiesSrv = EDITORCORE->queryEditorInterface<ISkiesService>())
       skiesSrv->afterD3DReset(full_reset);
 
@@ -406,7 +414,7 @@ void init3d(const char *window_layout_blk_path)
   load_exp_shaders_for_target(_MAKE4C('PC'));
 
   CfgReader cfr;
-  ::create_visclipmesh(cfr);
+  ::init_collres_debug_draw(cfr);
 }
 
 

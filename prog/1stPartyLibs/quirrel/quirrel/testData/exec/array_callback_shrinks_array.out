@@ -1,0 +1,4 @@
+filter: 1, 2, 3
+reduce: 6
+map: 10, 20, 30
+apply: 10, 20, 30 (3 calls)

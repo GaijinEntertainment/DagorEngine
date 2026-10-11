@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import tempfile
 from os import path
 import sys
@@ -182,6 +183,8 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
         for seed in (0, 255):
             runTestCommand(compiler, testFilePath, actualResultFilePath, expectedResultFilePath, kind, [f"-iter-seed:{seed}"], extraargs, stdoutFile)
 
+    return actualResultFilePath
+
 
 def runDiagTest(compiler, workingDir, dirname, name):
     runTestGeneric(compiler, workingDir, dirname, name, "Diagnostics", '.diag.txt', ["-diag-file"], False)
@@ -197,6 +200,23 @@ def runParseTypesTest(compiler, workingDir, dirname, name):
 
 def runASTTest(compiler, workingDir, dirname, name):
     runTestGeneric(compiler, workingDir, dirname, name, "AST", '.opt.txt', ["-ast-dump"], False)
+
+def runASTJsonTest(compiler, workingDir, dirname, name):
+    global numOfFailedTests
+    actualResultFilePath = runTestGeneric(compiler, workingDir, dirname, name, "AST JSON", '.ast.txt', ["--parse-only", "-ast-dump-json"], False)
+
+    # the text compare alone would accept a dump that no JSON reader can load
+    if not path.exists(actualResultFilePath):
+        return
+    # bytes, because a dump that is not valid UTF-8 is a failure of this test and not of the run
+    with open(actualResultFilePath, 'rb') as dump:
+        for lineNum, line in enumerate(dump, 1):
+            try:
+                json.loads(line.decode('utf-8'))
+            except (ValueError, UnicodeDecodeError) as err:
+                with printLock:
+                    numOfFailedTests += 1
+                    xprint(f"FAILED: {actualResultFilePath}:{lineNum} is not JSON: {err}", CRED)
 
 
 def runTestForData(filePath, compiler, workingDir, testMode):
@@ -214,6 +234,8 @@ def runTestForData(filePath, compiler, workingDir, testMode):
     if suffix == ".nut" or suffix == ".nut.txt":
         if testMode == 'ast':
             runASTTest(compiler, workingDir, dirname, name)
+        elif testMode == 'astjson':
+            runASTJsonTest(compiler, workingDir, dirname, name)
         elif testMode == 'diag':
             runDiagTest(compiler, workingDir, dirname, name)
         elif testMode == 'exec':
@@ -275,6 +297,7 @@ def main():
     allTests += collectTests('exec', 'exec')
     allTests += collectTests('diagnostics', 'diag')
     allTests += collectTests('ast', 'ast')
+    allTests += collectTests('ast_json', 'astjson')
     allTests += collectTests('static_analyzer', 'sa')
     allTests += collectTests('types', 'types')
     allTests += collectTests('examples', 'exec', root = 'doc')

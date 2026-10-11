@@ -11,6 +11,7 @@
 
 #include <daBVH/swCommon.h>
 #include <daBVH/swBVHDefine.hlsli>
+#include <daBVH/swBLASLeafDefs.hlsli>
 
 namespace build_bvh
 {
@@ -49,7 +50,7 @@ inline void writeStopTLASNode(WriteTLASTreeInfo &info)
 }
 
 static void writeTLASLeaf(WriteTLASTreeInfo &info, bbox3f_cref box, const mat43f &tm_, bbox3f_cref blas_box, int bvh_start,
-  uint32_t bvh_size, uint16_t dim_as_box_dist)
+  uint32_t bvh_size, uint16_t dim_as_box_dist, bool light_transparent, const uint8_t *box_user)
 {
   TLASNode *leafNode = (TLASNode *)writeTLASNode(info, box);
   leafNode->skip = info.leavesOffset | (1 << 31);
@@ -57,7 +58,9 @@ static void writeTLASLeaf(WriteTLASTreeInfo &info, bbox3f_cref box, const mat43f
   TLASLeaf *leaf = (TLASLeaf *)(info.bboxData + info.leavesOffset);
   const bool isBox = (bvh_size == 0);
   G_ASSERT(isBox == (dim_as_box_dist == 0)); // bvh_size==0 and distToTreatAsBox==0 must agree
-  const uint32_t leafBaseSize = isBox ? TLASLeaf::BOX_SIZE : sizeof(TLASLeaf);
+  // constraint: swTLAS.dshl reads a box leaf's additional data at 14*4.
+  const bool boxUserWord = box_user || info.leafExtraSize;
+  const uint32_t leafBaseSize = isBox ? (boxUserWord ? TLASLeaf::BOX_USER_SIZE : TLASLeaf::BOX_SIZE) : sizeof(TLASLeaf);
   info.leavesOffset += leafBaseSize + info.leafExtraSize;
   G_ASSERT(info.leavesOffset <= info.leavesSize && info.leavesOffset % 4 == 0);
   const vec3f ext = v_mul(V_C_HALF, v_max(v_bbox3_size(blas_box), v_splats(blas_size_eps)));
@@ -97,6 +100,8 @@ static void writeTLASLeaf(WriteTLASTreeInfo &info, bbox3f_cref box, const mat43f
     origin = v_sub(origin, halfExtWorld);
     scale = v_mul(scale, v_splats(32767.5f));
   }
+  if (light_transparent)
+    scale = v_xor(scale, v_cast_vec4f(v_make_vec4i(0, (int)0x80000000, 0, 0)));
 
   v_stu_p3(leaf->origin, origin);
   v_stu_p3(leaf->scale, scale);
@@ -113,6 +118,8 @@ static void writeTLASLeaf(WriteTLASTreeInfo &info, bbox3f_cref box, const mat43f
     leaf->blasStart = bvh_start;
     leaf->blasSize = bvh_size;
   }
+  else if (boxUserWord)
+    leaf->blasStart = box_user ? *box_user & QUAD_LEAF_USER_MASK : 0;
 }
 
 static int writeTLASTree(WriteTLASTreeInfo &info, int node, int depth)
@@ -146,7 +153,8 @@ static int writeTLASTree(WriteTLASTreeInfo &info, int node, int depth)
       (*info.tlasLeavesOffsets)[instanceId] = info.leavesOffset;
     if (bd.isBox())
       info.numBoxLeaves++;
-    writeTLASLeaf(info, info.nodes[node], info.tms[instanceId], info.blasBoxes[modelId], bd.start, bd.size, info.boxDist[modelId]);
+    writeTLASLeaf(info, info.nodes[node], info.tms[instanceId], info.blasBoxes[modelId], bd.start, bd.size, info.boxDist[modelId],
+      info.lightTransparent && info.lightTransparent[modelId], info.boxUser ? info.boxUser + modelId : nullptr);
     return 1;
   }
 }

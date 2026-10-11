@@ -36,7 +36,6 @@ class PrintVisitor : AstVisitor {
     extraTypeInfo : bool = true;
     printCStyle : bool = true;
     tab : int = 0;
-    // TODO: fixme
 
     function_annotation_flags = (
             (FunctionFlags.fastCall) |
@@ -59,7 +58,6 @@ class PrintVisitor : AstVisitor {
         }
     }
 
-// program
     def override preVisitProgram(prog : ProgramPtr) {
         //! Prints the program header comment.
         write(*writer, "// program\n");
@@ -72,7 +70,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the program body marker comment.
         write(*writer, "// program body\n");
     }
-// type
     ET : bool = false;
     def override preVisitTypeDecl(typ : TypeDeclPtr) {
         //! Prints the opening marker for an expression-type annotation.
@@ -88,12 +85,10 @@ class PrintVisitor : AstVisitor {
         }
         return typ;
     }
-// alias
     def override preVisitAlias(typ : TypeDeclPtr; name : das_string) {
         //! Prints a type alias declaration.
         write(*writer, "typedef {name} = {describe([decl=typ,extra=extraTypeInfo])}\n\n");
     }
-// enumeration
     def override preVisitEnumeration(enu : EnumerationPtr) {
         //! Prints the opening of an enumeration declaration.
         write(*writer, "enum {enu.name} : {get_das_type_name(enu.baseType)} \{\n");
@@ -112,7 +107,6 @@ class PrintVisitor : AstVisitor {
         write(*writer, "\}\n\n");
         return enu;
     }
-// structure
     def override preVisitStructure(str : StructurePtr) {
         //! Prints the opening of a struct or class declaration.
         if (str.annotations |> length != 0) {
@@ -143,20 +137,11 @@ class PrintVisitor : AstVisitor {
         write(*writer, "\}\n\n");
         return <- str;
     }
-// function
     def override preVisitFunction(fun : FunctionPtr) {
         //! Prints the function declaration header with annotations and name.
-        if (fun.flags.knownSideEffects) {
-            if (fun.sideEffectFlags == bitfield(0)) {
-                write(*writer, "// [nosideeffects]\n");
-            } else {
-                // // todo: describe_bitfield not supported in aot yet
-                // write(*writer, "// {describe_bitfield(fun.sideEffectFlags)}\n");
-            }
+        if (fun.flags.knownSideEffects && fun.sideEffectFlags == bitfield(0)) {
+            write(*writer, "// [nosideeffects]\n");
         }
-        // let bfa : FunctionFlags = fun.flags & function_annotation_flags;
-        // // todo: describe_bitfield not supported in aot yet
-        // write(*writer, "{describe_bitfield(bfa,"\n")}");
         if (!empty(fun.annotations)) {
             write(*writer, "[{describe(fun.annotations)}]\n");
         }
@@ -188,10 +173,7 @@ class PrintVisitor : AstVisitor {
         if (!arg._type.flags.constant) {
             write(*writer, "var ");
         }
-        if (arg.isAccessUnused) {
-            write(*writer, " /*unsued*/ ");
-        }
-        write(*writer, "{arg.name} : {describe([decl=arg._type,extra=extraTypeInfo])}");
+        write_variable_decl(arg);
     }
     def override visitFunctionArgument(fun : FunctionPtr; arg : VariablePtr; last : bool) {
         //! Prints the separator between function arguments.
@@ -204,7 +186,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the equals sign before an argument default value.
         write(*writer, " = ");
     }
-// block
     def override preVisitExprBlock(blk : ExprBlock?) {
         //! Prints the opening of a block expression, including closure arguments.
         if (blk.blockFlags.isClosure) {
@@ -214,7 +195,7 @@ class PrintVisitor : AstVisitor {
                     if (arg.annotation |> length != 0) {
                         write(*writer, "[{describe(arg.annotation)}] ");
                     }
-                    if (arg._type.flags.constant) {
+                    if (!arg._type.flags.constant) {
                         write(*writer, "var ");
                     }
                     write(*writer, "{arg.name} : {describe([decl=arg._type,extra=extraTypeInfo])}");
@@ -268,24 +249,27 @@ class PrintVisitor : AstVisitor {
         self.newLine();
         return expr;
     }
-// let
     def override preVisitExprLet(expr : ExprLet?) {
         //! Prints the let or var keyword for a variable declaration.
         var isLet = true;
         for (pv in expr.variables) {
-            if (pv._type != null && pv._type.flags.constant) {
+            if (pv._type != null && !pv._type.flags.constant) {
                 isLet = false;
                 break;
             }
         }
         write(*writer, "{isLet ? "let" : "var"} ");
     }
+    def write_variable_decl(arg : VariablePtr) : void {
+        if (arg.isAccessUnused) {
+            write(*writer, " /*unused*/ ")
+        }
+        write(*writer, "{arg.name} : {describe([decl=arg._type,extra=extraTypeInfo])}")
+    }
+
     def override preVisitExprLetVariable(expr : ExprLet?; arg : VariablePtr; lastArg : bool) {
         //! Prints a let-variable name and its type.
-        if (arg.isAccessUnused) {
-            write(*writer, " /*unused*/ ");
-        }
-        write(*writer, "{arg.name} : {describe([decl=arg._type,extra=extraTypeInfo])}");
+        write_variable_decl(arg)
     }
     def override visitExprLetVariable(expr : ExprLet?; arg : VariablePtr; lastArg : bool) {
         //! Prints the separator between let-variable declarations.
@@ -304,14 +288,10 @@ class PrintVisitor : AstVisitor {
             write(*writer, " = ");
         }
     }
-// global let
     def override preVisitGlobalLetVariable(arg : VariablePtr; lastArg : bool) {
         //! Prints a global variable declaration with its type.
         write(*writer, "{arg._type.flags.constant ? "let" : "var"}{arg.flags.global_shared ? " shared" : ""}\n{ident(1)}");
-        if (arg.isAccessUnused) {
-            write(*writer, " /*unused*/ ");
-        }
-        write(*writer, "{arg.name} : {describe([decl=arg._type,extra=extraTypeInfo])}");
+        write_variable_decl(arg)
     }
     def override visitGlobalLetVariable(arg : VariablePtr; lastArg : bool) {
         //! Prints trailing newlines after a global variable.
@@ -328,7 +308,6 @@ class PrintVisitor : AstVisitor {
             write(*writer, " = ");
         }
     }
-// string builder
     def override preVisitExprStringBuilder(expr : ExprStringBuilder?) {
         //! Prints the opening of a string builder expression.
         write(*writer, "string_builder(");
@@ -345,7 +324,6 @@ class PrintVisitor : AstVisitor {
         }
         return elem;
     }
-// new
     def override preVisitExprNew(expr : ExprNew?) {
         //! Prints the opening of a new-expression with its type.
         write(*writer, "new {describe(expr.typeexpr)}");
@@ -367,7 +345,6 @@ class PrintVisitor : AstVisitor {
         }
         return arg;
     }
-// named call
     def override preVisitExprNamedCall(expr : ExprNamedCall?) {
         //! Prints the opening of a named-argument call expression.
         write(*writer, "{expr.name}([");
@@ -388,7 +365,6 @@ class PrintVisitor : AstVisitor {
         }
         return arg;
     }
-// looks like call (debug,assert,verify,erase,find,key_exists,keys,values,invoke,memzero etc)
     def override preVisitExprLooksLikeCall(expr : ExprLooksLikeCall?) {
         //! Prints the opening of a looks-like-call expression (debug, assert, etc.).
         write(*writer, "{expr.name}(");
@@ -405,7 +381,6 @@ class PrintVisitor : AstVisitor {
         }
         return arg;
     }
-// call
     def override preVisitExprCall(expr : ExprCall?) {
         //! Prints the opening of a function call expression.
         write(*writer, "{expr.name}(");
@@ -422,12 +397,10 @@ class PrintVisitor : AstVisitor {
         }
         return arg;
     }
-// null coaelescing
     def override preVisitExprNullCoalescingDefault(expr : ExprNullCoalescing?; defval : ExpressionPtr) {
         //! Prints the null-coalescing operator (??).
-        write(*writer, " ?? ");
+        write(*writer, expr.no_promotion ? " !?? " : " ?? ");
     }
-// at
     def override visitExprAt(var expr : ExprAt?) : ExpressionPtr {
         //! Prints the closing bracket of an index-at expression.
         write(*writer, "]");
@@ -435,9 +408,8 @@ class PrintVisitor : AstVisitor {
     }
     def override preVisitExprAtIndex(expr : ExprAt?; index : ExpressionPtr) {
         //! Prints the opening bracket of an index-at expression.
-        write(*writer, "[");
+        write(*writer, expr.atFlags.no_promotion ? "![" : "[");
     }
-// safe at
     def override visitExprSafeAt(var expr : ExprSafeAt?) : ExpressionPtr {
         //! Prints the closing bracket of a safe-index expression.
         write(*writer, "]");
@@ -445,14 +417,12 @@ class PrintVisitor : AstVisitor {
     }
     def override preVisitExprSafeAtIndex(expr : ExprSafeAt?; index : ExpressionPtr) {
         //! Prints the opening safe-index operator (?[).
-        write(*writer, "?[");
+        write(*writer, expr.atFlags.no_promotion ? "!?[" : "?[");
     }
-// is
     def override preVisitExprIsType(expr : ExprIs?; typeDecl : TypeDeclPtr) {
         //! Prints the is-type check expression.
-        write(*writer, "is type<{describe([decl=typeDecl,extra=false,contracts=true])}>");
+        write(*writer, " {expr.no_promotion ? "!is" : "is"} type<{describe([decl=typeDecl,extra=false,contracts=true])}>");
     }
-// op2
     def override preVisitExprOp2(expr : ExprOp2?) {
         //! Prints the opening parenthesis of a binary operator expression.
         if (!noBracket(expr)) {
@@ -470,7 +440,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the binary operator between left and right operands.
         write(*writer, " {expr.op} ");
     }
-// op3
     def override preVisitExprOp3(expr : ExprOp3?) {
         //! Prints the opening parenthesis of a ternary operator expression.
         if (!noBracket(expr)) {
@@ -492,22 +461,18 @@ class PrintVisitor : AstVisitor {
         //! Prints the ternary ':' separator before the false branch.
         write(*writer, " : ");
     }
-// copy
     def override preVisitExprCopyRight(expr : ExprCopy?; right : ExpressionPtr) {
-        //! Prints the copy assignment operator (=).
-        write(*writer, " = ");
+        //! Prints the copy assignment operator (=), or its raw form (!==).
+        write(*writer, expr.copy_flags.no_promotion ? " !== " : " = ");
     }
-// move
     def override preVisitExprMoveRight(expr : ExprMove?; right : ExpressionPtr) {
-        //! Prints the move operator (<-).
-        write(*writer, " <- ");
+        //! Prints the move operator (<-), or its raw form (!<-).
+        write(*writer, expr.move_flags.no_promotion ? " !<- " : " <- ");
     }
-// clone
     def override preVisitExprCloneRight(expr : ExprClone?; right : ExpressionPtr) {
-        //! Prints the clone operator (:=).
-        write(*writer, " := ");
+        //! Prints the clone operator (:=), or its raw form (!:=).
+        write(*writer, expr.clone_flags.no_promotion ? " !:= " : " := ");
     }
-// with
     def override preVisitExprWith(expr : ExprWith?) {
         //! Prints the 'with' keyword of a with-expression.
         write(*writer, "with ");
@@ -519,7 +484,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the separator before the with-expression body.
         write(*writer, " ");
     }
-// while
     def override preVisitExprWhile(expr : ExprWhile?) {
         //! Prints the 'while' keyword of a while-loop.
         write(*writer, "while ");
@@ -528,7 +492,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the separator before the while-loop body.
         write(*writer, " ");
     }
-// try-catch
     def override preVisitExprTryCatch(expr : ExprTryCatch?) {
         //! Prints the 'try' keyword of a try-catch expression.
         write(*writer, "try ");
@@ -537,7 +500,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the 'recover' keyword before the catch block.
         write(*writer, " recover ");
     }
-// if-then-else
     def override preVisitExprIfThenElse(expr : ExprIfThenElse?) {
         //! Prints the 'if' keyword and opening parenthesis of an if-expression.
         write(*writer, "if (");
@@ -550,7 +512,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the 'else' keyword before the else block.
         write(*writer, " else ");
     }
-// for
     def override preVisitExprFor(expr : ExprFor?) {
         //! Prints the 'for' keyword and opening parenthesis of a for-loop.
         write(*writer, "for (");
@@ -570,7 +531,6 @@ class PrintVisitor : AstVisitor {
         //! Prints the closing parenthesis before the for-loop body.
         write(*writer, ") ");
     }
-// make variant
     def override preVisitExprMakeVariant(expr : ExprMakeVariant?) {
         //! Prints the opening of a make-variant expression.
         if (expr._type != null) {
@@ -594,7 +554,6 @@ class PrintVisitor : AstVisitor {
         }
         return decl;
     }
-// make structure
     def override preVisitExprMakeStruct(expr : ExprMakeStruct?) {
         //! Prints opening of a make-struct expression with type name.
         if (expr._type != null) {
@@ -625,7 +584,6 @@ class PrintVisitor : AstVisitor {
         }
         return decl;
     }
-// make array
     def override preVisitExprMakeArray(expr : ExprMakeArray?) {
         //! Prints opening of a fixed_array literal expression.
         write(*writer, "fixed_array");
@@ -646,7 +604,6 @@ class PrintVisitor : AstVisitor {
         }
         return <- init;
     }
-// make tuple
     def override preVisitExprMakeTuple(expr : ExprMakeTuple?) {
         //! Prints opening of a tuple literal expression.
         if (expr._type != null) {
@@ -666,7 +623,6 @@ class PrintVisitor : AstVisitor {
         }
         return <- init;
     }
-// array comprehension
     def override preVisitExprArrayComprehension(expr : ExprArrayComprehension?) {
         //! Prints opening bracket of an array or table comprehension.
         if (expr.tableSyntax) {
@@ -698,7 +654,6 @@ class PrintVisitor : AstVisitor {
         write(*writer, "type<{describe(expr.typeexpr)}>")
     }
 
-// type info
     def override preVisitExprTypeInfo(expr : ExprTypeInfo?) {
         //! Prints opening of a typeinfo expression with trait and subtrait.
         write(*writer, "typeinfo({expr.trait}");
@@ -718,7 +673,6 @@ class PrintVisitor : AstVisitor {
         write(*writer, ")");
         return <- expr;
     }
-// ptr to ref
     def override preVisitExprPtr2Ref(expr : ExprPtr2Ref?) {
         //! Prints opening of a pointer dereference (deref) expression.
         write(*writer, "deref(");
@@ -728,7 +682,6 @@ class PrintVisitor : AstVisitor {
         write(*writer, ")");
         return <- expr;
     }
-// label
     def override preVisitExprLabel(expr : ExprLabel?) {
         //! Prints a label statement with optional comment.
         write(*writer, "label {expr.labelName}:");
@@ -736,7 +689,6 @@ class PrintVisitor : AstVisitor {
             write(*writer, "/*{expr.comment}*/");
         }
     }
-// goto
     def override preVisitExprGoto(expr : ExprGoto?) {
         //! Prints a goto statement with target label.
         write(*writer, "goto ");
@@ -744,7 +696,6 @@ class PrintVisitor : AstVisitor {
             write(*writer, "label {expr.labelName}");
         }
     }
-// ref to value
     def override preVisitExprRef2Value(expr : ExprRef2Value?) {
         //! Prints opening of a reference-to-value conversion.
         write(*writer, "/*r2v*/ (");
@@ -754,7 +705,6 @@ class PrintVisitor : AstVisitor {
         write(*writer, ")");
         return <- expr;
     }
-// ref 2 ptr
     def override preVisitExprRef2Ptr(expr : ExprRef2Ptr?) {
         //! Prints opening of an addr (reference-to-pointer) expression.
         write(*writer, "addr(");
@@ -764,7 +714,6 @@ class PrintVisitor : AstVisitor {
         write(*writer, ")");
         return <- expr;
     }
-// @@
     def override preVisitExprAddr(expr : ExprAddr?) {
         //! Prints a @@ function pointer address expression.
         write(*writer, "@@");
@@ -773,7 +722,6 @@ class PrintVisitor : AstVisitor {
         }
         write(*writer, "{expr.target}");
     }
-// ascend
     def override preVisitExprAscend(expr : ExprAscend?) {
         //! Prints a new (heap allocation) expression.
         if (expr.ascType != null) {
@@ -782,7 +730,6 @@ class PrintVisitor : AstVisitor {
             write(*writer, "new ");
         }
     }
-// cast
     def override preVisitExprCast(expr : ExprCast?) {
         //! Prints a cast, upcast, or reinterpret expression.
         if (expr.castFlags.reinterpretCast) {
@@ -794,7 +741,6 @@ class PrintVisitor : AstVisitor {
         }
         write(*writer, "<{describe(expr.castType)}> ");
     }
-// delete
     def override preVisitExprDelete(expr : ExprDelete?) {
         //! Prints a delete expression.
         write(*writer, "delete ");
@@ -802,27 +748,23 @@ class PrintVisitor : AstVisitor {
             write(*writer, "/*native*/ ");
         }
     }
-// var
     def override preVisitExprVar(expr : ExprVar?) {
         //! Prints a variable name reference.
         write(*writer, "{expr.name}");
     }
-// field
     def override visitExprField(var expr : ExprField?) : ExpressionPtr {
         //! Prints a dot-field access expression.
-        write(*writer, ".{expr.name}");
+        write(*writer, "{expr.fieldFlags.no_promotion ? "!." : "."}{expr.name}");
         return <- expr;
     }
-// safe field
     def override visitExprSafeField(var expr : ExprSafeField?) : ExpressionPtr {
         //! Prints a safe-navigation (?.) field access expression.
-        write(*writer, "?.{expr.name}");
+        write(*writer, "{expr.fieldFlags.no_promotion ? "!?." : "?."}{expr.name}");
         return <- expr;
     }
-// swizzle
     def override visitExprSwizzle(var expr : ExprSwizzle?) : ExpressionPtr {
         //! Prints a vector swizzle access (e.g. .xyz).
-        write(*writer, ".");
+        write(*writer, expr.fieldFlags.no_promotion ? "!." : ".");
         let f2name = fixed_array<string>("x", "y", "z", "w");
         for (fch in expr.fields) {
             let f = int(fch);
@@ -830,25 +772,21 @@ class PrintVisitor : AstVisitor {
         }
         return <- expr;
     }
-// is variant
     def override visitExprIsVariant(var expr : ExprIsVariant?) : ExpressionPtr {
         //! Prints an `is` variant type check expression.
-        write(*writer, " is {expr.name}");
+        write(*writer, " {expr.fieldFlags.no_promotion ? "!is" : "is"} {expr.name}");
         return <- expr;
     }
-// as variant
     def override visitExprAsVariant(var expr : ExprAsVariant?) : ExpressionPtr {
         //! Prints an `as` variant type conversion expression.
-        write(*writer, " as {expr.name}");
+        write(*writer, " {expr.fieldFlags.no_promotion ? "!as" : "as"} {expr.name}");
         return <- expr;
     }
-// safe as variant
     def override visitExprSafeAsVariant(var expr : ExprSafeAsVariant?) : ExpressionPtr {
         //! Prints a safe `?as` variant type conversion expression.
-        write(*writer, " ?as {expr.name}");
+        write(*writer, " {expr.fieldFlags.no_promotion ? "!?as" : "?as"} {expr.name}");
         return <- expr;
     }
-// op1
     def override preVisitExprOp1(expr : ExprOp1?) : void {
         //! Prints prefix portion of a unary operator expression.
         let op = "{expr.op}";
@@ -870,7 +808,6 @@ class PrintVisitor : AstVisitor {
         }
         return <- expr;
     }
-// return
     def override preVisitExprReturn(expr : ExprReturn?) : void {
         //! Prints a return statement with optional move semantics.
         write(*writer, "return ");
@@ -881,7 +818,6 @@ class PrintVisitor : AstVisitor {
             write(*writer, "<- ");
         }
     }
-// yield
     def override preVisitExprYield(expr : ExprYield?) : void {
         //! Prints a yield expression with optional move semantics.
         write(*writer, "yield ");
@@ -889,17 +825,14 @@ class PrintVisitor : AstVisitor {
             write(*writer, "<- ");
         }
     }
-// break
     def override preVisitExprBreak(expr : ExprBreak?) : void {
         //! Prints a break statement.
         write(*writer, "break");
     }
-// continue
     def override preVisitExprContinue(expr : ExprContinue?) : void {
         //! Prints a continue statement.
         write(*writer, "continue");
     }
-// const ptr
     def override preVisitExprConstPtr(expr : ExprConstPtr?) : void {
         //! Prints a constant pointer value or null.
         if (expr.value != null) {
@@ -908,149 +841,118 @@ class PrintVisitor : AstVisitor {
             write(*writer, "null");
         }
     }
-// const int 8
     def override preVisitExprConstInt8(expr : ExprConstInt8?) : void {
         //! Prints an int8 constant value.
         write(*writer, "{expr.value}");
     }
-// const int 16
     def override preVisitExprConstInt16(expr : ExprConstInt16?) : void {
         //! Prints an int16 constant value.
         write(*writer, "{expr.value}");
     }
-// const float 16
     def override preVisitExprConstFloat16(expr : ExprConstFloat16?) : void {
         //! Prints a float16 constant value with its literal suffix.
         write(*writer, "{expr.value}h");
     }
-// const int 64
     def override preVisitExprConstInt64(expr : ExprConstInt64?) : void {
         //! Prints an int64 constant value.
         write(*writer, "{expr.value}");
     }
-// const int
     def override preVisitExprConstInt(expr : ExprConstInt?) : void {
         //! Prints an int constant value.
         write(*writer, "{expr.value}");
     }
-// const int2
     def override preVisitExprConstInt2(expr : ExprConstInt2?) : void {
         //! Prints an int2 vector constant value.
         write(*writer, "int2({expr.value})");
     }
-// const int3
     def override preVisitExprConstInt3(expr : ExprConstInt3?) : void {
         //! Prints an int3 vector constant value.
         write(*writer, "int3({expr.value})");
     }
-// const int4
     def override preVisitExprConstInt4(expr : ExprConstInt4?) : void {
         //! Prints an int4 vector constant value.
         write(*writer, "int4({expr.value})");
     }
-// const uint 8
     def override preVisitExprConstUInt8(expr : ExprConstUInt8?) : void {
         //! Prints a uint8 constant value.
         write(*writer, "{expr.value}");
     }
-// const uint 16
     def override preVisitExprConstUInt16(expr : ExprConstUInt16?) : void {
         //! Prints a uint16 constant value.
         write(*writer, "{expr.value}");
     }
-// const uint 64
     def override preVisitExprConstUInt64(expr : ExprConstUInt64?) : void {
         //! Prints a uint64 constant value.
         write(*writer, "{expr.value}");
     }
-// const uint
     def override preVisitExprConstUInt(expr : ExprConstUInt?) : void {
         //! Prints a uint constant value.
         write(*writer, "{expr.value}");
     }
-// const uint2
     def override preVisitExprConstUInt2(expr : ExprConstUInt2?) : void {
         //! Prints a uint2 vector constant value.
         write(*writer, "uint2({expr.value})");
     }
-// const uint3
     def override preVisitExprConstUInt3(expr : ExprConstUInt3?) : void {
         //! Prints a uint3 vector constant value.
         write(*writer, "uint3({expr.value})");
     }
-// const uint4
     def override preVisitExprConstUInt4(expr : ExprConstUInt4?) : void {
         //! Prints a uint4 vector constant value.
         write(*writer, "uint4({expr.value})");
     }
-// const range
     def override preVisitExprConstRange(expr : ExprConstRange?) : void {
         //! Prints a range constant value.
         write(*writer, "range({expr.value})");
     }
-// const urnage
     def override preVisitExprConstURange(expr : ExprConstURange?) : void {
         //! Prints a urange constant value.
         write(*writer, "urange({expr.value})");
     }
-// const range
     def override preVisitExprConstRange64(expr : ExprConstRange64?) : void {
         //! Prints a range64 constant value.
         write(*writer, "range64({expr.value})");
     }
-// const urnage
     def override preVisitExprConstURange64(expr : ExprConstURange64?) : void {
         //! Prints a urange64 constant value.
         write(*writer, "urange64({expr.value})");
     }
-// const bool
     def override preVisitExprConstBool(expr : ExprConstBool?) : void {
         //! Prints a boolean constant value.
         write(*writer, "{expr.value}");
     }
-// const float
     def override preVisitExprConstFloat(expr : ExprConstFloat?) : void {
         //! Prints a float constant value.
         write(*writer, "{expr.value}");
     }
-// const float2
     def override preVisitExprConstFloat2(expr : ExprConstFloat2?) : void {
         //! Prints a float2 vector constant value.
         write(*writer, "float2({expr.value})");
     }
-// const float3
     def override preVisitExprConstFloat3(expr : ExprConstFloat3?) : void {
         //! Prints a float3 vector constant value.
         write(*writer, "float3({expr.value})");
     }
-// const float4
     def override preVisitExprConstFloat4(expr : ExprConstFloat4?) : void {
         //! Prints a float4 vector constant value.
         write(*writer, "float4({expr.value})");
     }
-// const double
     def override preVisitExprConstDouble(expr : ExprConstDouble?) : void {
         //! Prints a double constant value with lf suffix.
         write(*writer, "{expr.value}lf");
     }
-// fake context
     def override preVisitExprFakeContext(expr : ExprFakeContext?) : void {
         //! Prints the __context__ intrinsic.
         write(*writer, "__context__");
     }
-// fake line info
     def override preVisitExprFakeLineInfo(expr : ExprFakeLineInfo?) : void {
         //! Prints the __lineinfo__ intrinsic.
         write(*writer, "__lineinfo__");
     }
-// string
     def override preVisitExprConstString(expr : ExprConstString?) : void {
         //! Prints a string constant with proper escaping.
-        peek(expr.value) $(str) {
-            write(*writer, "\"{escape(str)}\"");
-        }
+        write(*writer, "\"{escape(expr.value)}\"");
     }
-// const enumeraiton
     def override preVisitExprConstEnumeration(expr : ExprConstEnumeration?) : void {
         //! Prints a constant enumeration value with module prefix.
         let enumModule = expr.enumType._module;
@@ -1059,7 +961,6 @@ class PrintVisitor : AstVisitor {
         }
         write(*writer, "{expr.enumType.name}.{expr.value}");
     }
-// const bitfield
     def override preVisitExprConstBitfield(expr : ExprConstBitfield?) : void {
         //! Prints a constant bitfield value by name or numeric fallback.
         var name : string;
@@ -1115,55 +1016,42 @@ def add(a, b : int) {
 }
 
 [sideeffects, export, no_lint]
-def allExpr(arg : int) {
+def allExpr(arg : int) { // nolint:STYLE038 — coverage fixture: one of every expression node, flat by design
     //! Exercises all expression types for AST pretty-printer coverage.
     // ExprStringBuilder
     var sb = "arg = {arg}\n";
     sb = "";
-    // ExprNamedCall
     add([a=1, b=2]);
     add(3, 4, [a=1, b=2]);
-    // ExprNew
     var pFoo1 = new Foo;
     var pFoo2 = new Foo(1);
     var pFoo3 = new Foo(1, 2);
-    // ExprCall
     add(1, 2);
-    // ExprNullCoalescing
     var exprAt <- pFoo1 ?? Foo(a = 1);
-    exprAt <- Foo(a = 2);
-    // ExprAt
+    exprAt <- Foo(a = 2); // nolint:PERF030 — the move-assign shape itself is the printer coverage
     pFoo1.b[0] = pFoo2;
-    // ExprSafeAt
     var exprSafeAt = pFoo1.b?[0] ?? pFoo2;
     exprSafeAt = pFoo2;
-    // ExprIs
     if (exprAt is type<int>) {
         print("nada\n");
     }
-    // ExprOp2
     var aa = 1;
     aa = 3;
     var bb = 2;
     bb = 4;
     var cc = aa + bb;
-    // ExprOp3
     cc = aa == bb ? aa : bb;
-    // ExprWith
     with (exprAt) {
         aa = 3;
     }
-    // ExprWhile
     while (aa != 100) {
         aa++;
     }
-    // ExprTryRecover
     try {
         aa = 2;
     } recover {
         aa = 3;
     }
-    // ExprIfThenElse
     if (aa == 2) {
         aa = 2;
     }
@@ -1179,88 +1067,59 @@ def allExpr(arg : int) {
     } else {
         aa = 4;
     }
-    // ExprMakeVariant
     var mkv = IorF(i = 5);
     mkv = IorF(f = 1.0);
-    // ExprMakeStruct
     var mks <- [Foo(a=5, b <- array<Foo?>(null)), Foo(a = 6)];
     mks[1] <- Foo(a = 5);
-    // ExprMakeArray
     var mka = fixed_array<int>(1, 2, 3, 4);
     mka = fixed_array<int>(5, 6, 7, 8);
-    // ExprMakeTuple
     var mkt =  (1, 2.0, "three");
     mkt =  (2, 3.0, "four");
-    // ExprArrayCompehension
     var acomp <- [for (x in range(3)); x * x; where x != 1];
     var gcomp <- [iterator for(x in range(3)); x * x; where x != 1];
     for (ta, tg in acomp, gcomp) {
         verify(ta == tg);
     }
-    // ExprTypeInfo
     let tinfo = typeinfo rtti_typeinfo(type<int>).basicType;
     print("{tinfo}\n");
-    // ExprPtr2Ref
     print("{*pFoo1}");
-    // ExprLabel, ExprGoto
     goto label 1;
     print("nop");
     label 1:;
-    // ExprRef2Ptr
-    unsafe {
-        let aacomp = addr(acomp);
-        print("{aacomp}");
-    }
-    // ExprAddr
+    let aacomp = unsafe(addr(acomp));
+    print("{aacomp}");
     let eaddr = @@add;
     print("{eaddr}");
-    // ExprAssert, ExprStaticAssert
     assert(aa == 4, "assert here");
     verify(aa == 4, "verify here");
     static_assert(true, "static assert here");
     concept_assert(true, "concept assert here");
-    // ExprDebug
     debug(aa);
-    // ExprInvoke
     let atadd = @@add;
     invoke(atadd, 1, 2);
-    // ExprErase
     var tab <- { 1 => "one", 2 => "two" };
     erase(tab, 1);
-    // ExprFind
     get(tab, 2) $(argX) {
         print("{argX}");
     }
-    // ExprKeyExists
     assert(key_exists(tab, 2));
-    // ExprAscend
     let easc = new fixed_array(1, 2, 3, 4);
     print("{easc}");
-    // ExprCast
-    unsafe {
-        let aaf = reinterpret<float>(aa);
-        print("{aaf}");
-    }
-    // ExprDelete
+    let aaf = unsafe(reinterpret<float>(aa));
+    print("{aaf}");
     unsafe {
         delete pFoo1;
     }
-    // ExprSwizzle
     var fsw = float4(1, 2, 3, 4);
     fsw = fsw.yyzx;
-    // ExprOp1
     var eop1 = 1;
     eop1 ++;
     -- eop1;
-    // ExprMemZero
     memzero(eop1);
-    // ExprConstString
     var cstr = "hello\nworld\n";
     cstr += "\{..\}";
-    // ExprConstEnumeration
     var enc = Type.none;
     enc = Type.tInt;
-    // ExprConstBitfield
     var bfc = ExprPrintFlags.topLevel;
     bfc = ExprPrintFlags.argLevel;
 }
@@ -1272,23 +1131,6 @@ def test {
     make_visitor(*astVisitor) $(astVisitorAdapter) {
         visit(this_program(), astVisitorAdapter);
     }
-
-/*
-    // ast_typedecl
-    add_extra = 14
-    let td <- typeinfo(ast_typedecl type<Foo>)
-    print("td = {describe(td)}\n")
-    // ast_expression
-    var x = 1
-    var y = 2
-    x = 3
-    y = 4
-    let ed <- quote(x+y)
-    print("ed = {describe(ed)}\n")
-    // ast_function
-    let fd <- typeinfo(ast_function @@add)
-    print("fd = {describe(fd)}\n")
-*/
 
     return true;
 }

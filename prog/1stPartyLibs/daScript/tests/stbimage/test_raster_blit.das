@@ -191,6 +191,10 @@ def test_blit_alpha_detailed(t : T?) {
             }
         }
     }
+}
+
+[test]
+def test_blit_alpha_regions(t : T?) {
     t |> run("blit_alpha sub-rect positions are correct") <| @(tt : T?) {
         // 4x4 dest, 4x4 src alpha — blit a 2x2 sub-rect from src(1,1) to dst(2,2)
         var dst = make_image(4, 4, 4)

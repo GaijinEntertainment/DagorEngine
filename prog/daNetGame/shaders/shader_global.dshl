@@ -91,7 +91,7 @@ float4 screen_pos_to_texcoord = (0, 0, 0, 0);
 buffer emission_decode_color_map;
 texture downsampled_far_depth_tex;
 texture downsampled_close_depth_tex;
-texture downsampled_normals; // from pixels with downsampled_close_depth_tex
+texture downsampled_normals; // from pixels with downsampled_close_depth_tex; SSR binds downsampled_far_normals here
 
 macro USE_SCREENPOS_TO_TC()
   BEGIN_ONCE(use_screenpos_to_tc)

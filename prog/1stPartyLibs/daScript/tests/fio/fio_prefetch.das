@@ -52,8 +52,6 @@ def test_prefetch_map(t : T?) {
         remove(fname)
     }
     t |> run("degenerate arguments decline instead of crashing") @(t : T?) {
-        unsafe {
-            t |> success(!prefetch_map(null, 0ul), "null base + zero bytes declines")
-        }
+        t |> success(!unsafe(prefetch_map(null, 0ul)), "null base + zero bytes declines")
     }
 }

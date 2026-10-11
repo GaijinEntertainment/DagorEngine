@@ -131,12 +131,12 @@ if (shader != dafx_modfx_bboard_render_fom)
         fog_add = 0.0;
 
         // Calculate alpha as in shader underwater_fog.
-        // get_ocean_color(world_view_pos.xz, 0).w = -river_density
-        // We only need .w (alpha) component of ocean_color here. It's just `-river_density`.
-        float ocean_alpha = -river_density;
+        // get_ocean_color(world_view_pos.xz, 0).w = river_density
+        // We only need .w (alpha) component of ocean_color here. It's just `river_density`.
+        float ocean_alpha = river_density;
 
         // Next lines was copied from shader underwater_fog.
-        float waterVolumeFog = exp2(ocean_alpha * dist);
+        float waterVolumeFog = exp2(-ocean_alpha * dist);
         fog_mul = pow(waterVolumeFog, 1/2.2);
       }
     }

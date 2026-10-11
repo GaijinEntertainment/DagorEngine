@@ -20,8 +20,6 @@ public:
   virtual int getBtnCount() const;
   virtual const char *getBtnName(int idx) const;
 
-  virtual void setClipRect(int l, int t, int r, int b);
-
   virtual void setMouseCapture(void *handle);
   virtual void releaseMouseCapture();
 

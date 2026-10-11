@@ -22,7 +22,7 @@ switch $(OS) {
   case LINUX  : Platform  ?= linux ;
 }
 if $(OS) = NT {
-  if (64-bit) in $(PROCESSOR_IDENTIFIER) {
+  if "(64-bit)" in $(PROCESSOR_IDENTIFIER) {
     switch $(PROCESSOR_IDENTIFIER) {
       case ARMv* : WindowsHostArch = arm64 ; PlatformArch_windows ?= arm64 ;
     }
@@ -72,6 +72,7 @@ switch $(Platform)-$(PlatformArch) {
   case windows-x86    : LegacyPlatformSuffix = win32 ;
   case windows-x86_64 : LegacyPlatformSuffix = win64 ;
   case windows-arm64  : LegacyPlatformSuffix = win-arm64 ;
+  case windows-arm64ec : LegacyPlatformSuffix = win-arm64ec ;
   case macOS-x86_64   : LegacyPlatformSuffix = macosx ;
   case macOS-arm64    : LegacyPlatformSuffix = macosx ;
   case linux-x86_64   : LegacyPlatformSuffix = linux64 ;

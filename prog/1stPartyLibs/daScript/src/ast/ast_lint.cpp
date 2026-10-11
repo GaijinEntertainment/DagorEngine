@@ -190,13 +190,6 @@ namespace das {
         if ( expr->rtti_isCall() ) {
             auto call = static_cast<ExprCall*>(expr);
             if ( chainCall(call) ) return true;
-            if ( call->func && call->func->module && call->func->module->name == "$"
-                && call->func->name == "builtin_try_recover"
-                && call->arguments.size() >= 2
-                && call->arguments[0]->rtti_isMakeBlock() ) {
-                auto mb = static_cast<ExprMakeBlock*>(call->arguments[0]);
-                return subtreeHasSuperCall(mb->block, chainCall);
-            }
             return false;
         }
         if ( expr->rtti_isBlock() ) {
@@ -228,19 +221,6 @@ namespace das {
             auto call = static_cast<ExprCall*>(expr);
             if ( chainCall(call) ) {
                 return SuperCount::onlyFall(1, 1);
-            }
-            // JIT-mode rewrite of try/recover: ast_infer_type_op.cpp:1015 emits
-            // `builtin_try_recover(make_block(try), make_block(catch))` and the typer
-            // appends `context` + `at` (final arity = 4). Match the resolved function on
-            // its source module ($) to avoid colliding with any user shadow. Count super
-            // in the try block only; the recover block is fatal-panic-with-diagnostics,
-            // irrelevant to chain semantics (mirrors the direct ExprTryCatch handler below).
-            if ( call->func && call->func->module && call->func->module->name == "$"
-                && call->func->name == "builtin_try_recover"
-                && call->arguments.size() >= 2
-                && call->arguments[0]->rtti_isMakeBlock() ) {
-                auto mb = static_cast<ExprMakeBlock*>(call->arguments[0]);
-                return countSuperCalls(mb->block, chainCall);
             }
             return SuperCount::onlyFall(0, 0);
         }
@@ -429,7 +409,7 @@ namespace das {
             ExprCallFunc * found = nullptr;
         protected:
             void check ( ExprCallFunc * expr ) {
-                if ( !found && expr->func && expr->func->mustInline ) found = expr;
+                if ( !found && expr->func && expr->func->mustInline && !expr->generated ) found = expr;
             }
             virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
             virtual void preVisit ( ExprCall * expr ) override { Visitor::preVisit(expr); check(expr); }
@@ -613,6 +593,7 @@ namespace das {
                 }
             }
         }
+        das_hash_set<const Variable *> initializedGlobals;
         virtual void preVisitGlobalLetInit ( const VariablePtr & var, Expression * that ) override {
             Visitor::preVisitGlobalLetInit(var,that);
             globalVar = var;
@@ -640,16 +621,16 @@ namespace das {
                 program->error("[init] is disabled in the options or CodeOfPolicies", "", "",
                         var->at, CompilationError::cant_global);
             }
-            globalVar->index = -3; // initialized. -1 by default
+            initializedGlobals.insert(&*globalVar);
             globalVar = nullptr;
             return Visitor::visitGlobalLetInit(var,that);;
         }
         virtual void preVisit(ExprVar * expr) override {
             Visitor::preVisit(expr);
             if ( globalVar && expr->isGlobalVariable() ) {
-                if ( expr->variable->index!=-3 ) {
+                if ( initializedGlobals.find(&*expr->variable)==initializedGlobals.end() ) {
                     if ( expr->variable->module==globalVar->module ) {
-                        program->error("global variable " + expr->name + " is initialized after " + globalVar->name + " (" + to_string(expr->variable->index) + ")",
+                        program->error("global variable " + expr->name + " is initialized after " + globalVar->name,
                             "", "", expr->at, CompilationError::invalid_global);
                     }
                 }
@@ -845,21 +826,6 @@ namespace das {
                             break;
                         }
                     }
-                }
-            }
-            if (expr->name == "builtin_try_recover") {
-                DAS_ASSERTF(expr->arguments.size() == 4,
-                    "builtin_try_recover somehow called with wrong number of arguments = %i (%i), expected 2.",
-                    int(expr->arguments.size() - 2), int(expr->arguments.size()));
-                if (!expr->arguments.at(0)->rtti_isMakeBlock() ||
-                    !expr->arguments.at(1)->rtti_isMakeBlock()) {
-                    program->error("builtin_try_recover shouldn't be called directly.",
-                        "", "Use `try { ... } recover { ... }` instead.",
-                        expr->at, CompilationError::invalid_function_argument );
-                } else if (exprReturns(static_cast<ExprMakeBlock*>(expr->arguments.front())->block)) {
-                    program->error("try { ... } recover { ... } can't have return inside in jit mode",
-                        "This feature is not implemented yet.", "",
-                        expr->at, CompilationError::cant_result );
                 }
             }
             for ( size_t i=0, is=expr->arguments.size(); i!=is; ++i ) {
@@ -1108,6 +1074,10 @@ namespace das {
                 program->error("[init] is disabled in the options or CodeOfPolicies",  "", "",
                     fn->at, CompilationError::cant_function);
             }
+            if ( !fn->result->isAutoOrAlias() && fn->result->getSizeOf64()>0x7fffffff ) {
+                program->error("function result of '" + fn->name + "' is too big", "", "",
+                    fn->at, CompilationError::exceeds_type);
+            }
         }
         virtual FunctionPtr visit ( Function * fn ) override {
             // Derived class ctor: every CFG path must call super(...) exactly once,
@@ -1202,6 +1172,10 @@ namespace das {
         }
         virtual void preVisit ( ExprMakeStruct * mks ) override {
             Visitor::preVisit(mks);
+            if ( mks->makeType && mks->makeType->getSizeOf64()>0x7fffffff ) {
+                program->error("can't make a value of a type that is too big", "", "",
+                    mks->at, CompilationError::exceeds_type);
+            }
             if ( mks->constructor && mks->constructor->arguments.size() ) {
                 program->error("default arguments of constructors can't be used in make declarations", "its not yet implemented", "",
                     mks->at, CompilationError::cant_argument_structure);
@@ -1327,6 +1301,7 @@ namespace das {
     // optimization
         "optimize",                     Type::tBool,
         "no_optimization",              Type::tBool,
+        "never_inline",                 Type::tBool,    // module-wide inline opt-out (ast_inline.cpp)
         // fusion registered via its CodeOfPolicies field
         "remove_unused_symbols",        Type::tBool,
     // language

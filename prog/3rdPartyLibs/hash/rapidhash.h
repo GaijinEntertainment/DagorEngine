@@ -160,7 +160,9 @@
    *A=(uint64_t)r; *B=(uint64_t)(r>>64);
    #endif
  #elif defined(_MSC_VER) && (defined(_WIN64) || defined(_M_HYBRID_CHPE_ARM64))
-   #if defined(_M_X64)
+   // Gaijin change
+   #if defined(_M_X64) && !defined(_M_ARM64EC)
+   // ~Gaijin change
      #ifdef RAPIDHASH_PROTECTED
      uint64_t a, b;
      a=_umul128(*A,*B,&b);

@@ -188,7 +188,7 @@ static ecs::EntitySystemDesc reset_screen_droplets_for_new_level_es_es_desc
 static constexpr ecs::ComponentDesc destroy_screen_droplets_es_comps[] =
 {
 //start of 1 rq components at [0]
-  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<resource_slot::NodeHandleWithSlotsAccess>()}
 };
 static void destroy_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -212,7 +212,7 @@ static ecs::EntitySystemDesc destroy_screen_droplets_es_es_desc
 static constexpr ecs::ComponentDesc update_screen_droplets_es_comps[] =
 {
 //start of 1 rq components at [0]
-  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+  {ECS_HASH("water_droplets_node"), ecs::ComponentTypeInfo<resource_slot::NodeHandleWithSlotsAccess>()}
 };
 static void update_screen_droplets_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {

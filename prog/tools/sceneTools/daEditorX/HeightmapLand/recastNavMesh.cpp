@@ -2601,10 +2601,8 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
       int numTilesWithData = 0;
       int numTilesProcessed = 0;
       int numTilesProblems = 0;
+      int numObstaclesOverlinks = 0;
       int numObstacleProblems = 0;
-
-      int obstaclesAtNavMesh = 0;
-      int obstaclesOutOfNavMesh = 0;
 
       const int64_t overLinksRefTime = ref_time_ticks();
       if (haveDataForOverLinks)
@@ -2619,21 +2617,38 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
         for (const auto &obs : obstacles)
         {
           Point3 c = obs.box.center();
-
-          int tx, ty;
-          navMesh->calcTileLoc(&c.x, &tx, &ty);
-          static const int MAX_NEIS = 32;
-          const dtMeshTile *neis[MAX_NEIS];
-          const int nneis = navMesh->getTilesAt(tx, ty, neis, MAX_NEIS);
-          if (nneis <= 0)
-          {
-            ++obstaclesOutOfNavMesh;
-            continue;
-          }
-          ++obstaclesAtNavMesh;
-
           Point3 ext = obs.box.width() * 0.5f;
           pathfinder::tilecache_apply_obstacle_padding(nmParams.cellSize, Point2(nmParams.agentRadius, nmParams.agentHeight), c, ext);
+
+          Point3 pmin = c - ext;
+          Point3 pmax = c + ext;
+          int tileXMin, tileYMin;
+          int tileXMax, tileYMax;
+          navMesh->calcTileLoc(&pmin.x, &tileXMin, &tileYMin);
+          navMesh->calcTileLoc(&pmax.x, &tileXMax, &tileYMax);
+          tileXMax++;
+          tileYMax++;
+          const auto &params = *navMesh->getParams();
+          pmin.x = params.orig[0] + params.tileWidth * float(tileXMin);
+          pmin.y = -FLT_MAX;
+          pmin.z = params.orig[2] + params.tileHeight * float(tileYMin);
+          pmax.x = params.orig[0] + params.tileWidth * float(tileXMax);
+          pmax.y = FLT_MAX;
+          pmax.z = params.orig[2] + params.tileHeight * float(tileYMax);
+
+          bool shouldAdd = false;
+          if (ladders.get())
+          {
+            BBox3 box;
+            pathfinder::TileCacheMeshProcess::calcQueryLaddersBBox(box, &pmin.x, &pmax.x);
+            bbox3f bbox = v_ldu_bbox3(box);
+            ladders->boxCull<false, true>(bbox, 0, 0, [&](scene::node_index idx, mat44f_cref tm) { shouldAdd = true; });
+          }
+          if (!shouldAdd)
+            continue;
+
+          ++numObstaclesOverlinks;
+
           dtObstacleRef ref;
           dtStatus status = tileCache->addBoxObstacle(&c.x, &ext.x, obs.yAngle, &ref);
           if (dtStatusFailed(status))
@@ -2652,7 +2667,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
         }
         int tcObstacles = 0;
         if (numObstacleProblems > 0)
-          global_build_ctx.log(RC_LOG_ERROR, "Problems with adding Detour obstacles for overlinks!");
+          DAEDITOR3.conWarning("Problems with adding Detour obstacles for overlinks! (%d obstacles problems)", numObstacleProblems);
 
         tcMeshProc.setLadders(ladders.get());
         tcMeshProc.setNavMeshQuery(navQuery);
@@ -2695,7 +2710,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
           }
         }
         if (numTilesProblems > 0)
-          global_build_ctx.log(RC_LOG_ERROR, "Problems with rebuilding Detour tiles for overlinks!");
+          DAEDITOR3.conWarning("Problems with rebuilding Detour tiles for overlinks! (%d rebuild problems)", numTilesProblems);
 
         tcMeshProc.setNavMeshQuery(nullptr);
         tcMeshProc.setLadders(nullptr);
@@ -2707,13 +2722,13 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
         }
       }
 
-      if (numTilesProcessed > 0 || numTilesProblems > 0 || numObstacleProblems > 0 || obstaclesOutOfNavMesh > 0)
+      if (numTilesProcessed > 0 || numTilesProblems > 0 || numObstacleProblems > 0 || numObstaclesOverlinks > 0)
       {
         const int overLinksTimeUsec = get_time_usec(overLinksRefTime);
         debug("NavMesh: rebuilded %d tiles for overlinks in %.2f sec (%d problems, %d non-empty tiles, %d tiles with data, %d "
-              "obstacles at navmesh, %d obstacles out-of-navmesh)",
-          numTilesProcessed, overLinksTimeUsec / 1000000.0, numTilesProblems, numTilesNotEmpty, numTilesWithData, obstaclesAtNavMesh,
-          obstaclesOutOfNavMesh);
+              "obstacles at overlinks tiles, %d obstacles total)",
+          numTilesProcessed, overLinksTimeUsec / 1000000.0, numTilesProblems, numTilesNotEmpty, numTilesWithData,
+          numObstaclesOverlinks, (int)obstacles.size());
       }
     }
 

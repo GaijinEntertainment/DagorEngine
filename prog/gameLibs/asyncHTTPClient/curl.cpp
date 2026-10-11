@@ -160,7 +160,6 @@ static CURL *make_curl_handle(const char *url, const char *user_agent, bool veri
   curl_easy_setopt(curl, CURLOPT_SHARE, curlsh);
 
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, TCP_CONNECT_TIMEOUT_SEC);
-  curl_easy_setopt(curl, CURLOPT_DNS_USE_GLOBAL_CACHE, 0);
   curl_easy_setopt(curl, CURLOPT_HEADER, 0);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
   curl_easy_setopt(curl, CURLOPT_URL, url);

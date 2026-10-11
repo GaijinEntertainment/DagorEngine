@@ -95,7 +95,8 @@ LandMeshHolesManager::LandMeshHolesManager(const HeightmapHandler &hmap_handler,
 
 void LandMeshHolesManager::clearAndAddHoles(const Tab<HoleArgs> &holes)
 {
-  clearHoles();
+  ScopedLockWriteTemplate<OSReadWriteLock> guard(rewriteMutex);
+  clearCells();
   if (holes.empty())
     return;
 
@@ -127,6 +128,12 @@ void LandMeshHolesManager::clearAndAddHoles(const Tab<HoleArgs> &holes)
 }
 
 void LandMeshHolesManager::clearHoles()
+{
+  ScopedLockWriteTemplate<OSReadWriteLock> guard(rewriteMutex);
+  clearCells();
+}
+
+void LandMeshHolesManager::clearCells()
 {
   for (auto &c : cells)
     c.clear();

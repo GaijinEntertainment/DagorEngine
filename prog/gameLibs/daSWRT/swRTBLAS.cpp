@@ -43,6 +43,10 @@ void RenderSWRT::clearBLASBuiltData()
   blasBoxes.shrink_to_fit();
   blasDimAsBox.clear();
   blasDimAsBox.shrink_to_fit();
+  blasLightTransparent.clear();
+  blasLightTransparent.shrink_to_fit();
+  blasBoxUser.clear();
+  blasBoxUser.shrink_to_fit();
   blasTotalSizeInfo.clear();
   blasTotalSizeInfo.shrink_to_fit();
 }
@@ -60,11 +64,12 @@ void RenderSWRT::clearBLASBuffers()
   blasLeafRangesBuf.close();
 }
 
-int RenderSWRT::addBoxModel(vec4f bmin, vec4f bmax)
+int RenderSWRT::addBoxModel(vec4f bmin, vec4f bmax, bool light_transparent)
 {
   daSWRT::BuiltBLAS b;
   b.box.bmin = bmin;
   b.box.bmax = bmax;
+  b.lightTransparent = light_transparent;
   return addBuiltModel(eastl::move(b));
 }
 
@@ -197,6 +202,8 @@ int RenderSWRT::addBuiltModel(daSWRT::BuiltBLAS &&built)
   G_ASSERT(modelId == (int)blasBoxes.size());
   G_ASSERT(modelId == (int)blasDimAsBox.size());
   G_ASSERT(modelId == (int)blasTotalSizeInfo.size());
+  G_ASSERT(modelId == (int)blasLightTransparent.size());
+  G_ASSERT(modelId == (int)blasBoxUser.size());
 
   if (built.isBox())
   {
@@ -204,6 +211,8 @@ int RenderSWRT::addBuiltModel(daSWRT::BuiltBLAS &&built)
     blasDimAsBox.push_back(0);
     blasBoxes.push_back(built.box);
     blasTotalSizeInfo.push_back(0);
+    blasLightTransparent.push_back(built.lightTransparent ? 1 : 0);
+    blasBoxUser.push_back(built.boxUser);
     return modelId;
   }
 
@@ -228,42 +237,9 @@ int RenderSWRT::addBuiltModel(daSWRT::BuiltBLAS &&built)
   blasDimAsBox.push_back(built.dimAsBoxDist > 0 ? clamp<int>(ceilf(built.dimAsBoxDist + 0.001f), 1, 65535) : 65535);
   blasBoxes.push_back(built.box);
   blasTotalSizeInfo.push_back(totalBytes);
+  blasLightTransparent.push_back(built.lightTransparent ? 1 : 0);
+  blasBoxUser.push_back(0);
   return modelId;
-}
-
-int RenderSWRT::addPreBuiltModel(bbox3f box, dag::Vector<uint8_t> &&blas_data, int verts_count, int tree_nodes_count, int prims_count,
-  float dim_as_box_dist)
-{
-  // tree_nodes_count is not part of the byte check below: writeDoubleQuadBLAS suppresses the root
-  // node's box and interleaves 16-byte nodes with 28-byte leaves, so node count is not a clean multiple.
-  G_UNUSED(tree_nodes_count);
-  // Provenance contract: blas_data is freshly serialized in-memory by the current builder
-  // (CollisionResource CPU build -> SWRT, e.g. collisionSwrtFeeder), not an older on-disk BLAS read
-  // back. So although these are uint16 serialization-format bytes, the leaf layout is always the
-  // current 28-byte double-quad and the size checks below suffice. If a persisted/old-version BLAS
-  // load path is ever added, gate the leaf format/version here before reencodeQuadBlasToFP16 walks it.
-  // Validate everything BEFORE touching any state, so a rejected input leaves storage untouched.
-  G_ASSERT_RETURN(!blas_data.empty() && (blas_data.size() % 4) == 0, -1);
-  G_ASSERT_RETURN(verts_count > 0 && prims_count > 0, -1);
-  // [tree][float3 verts] layout: the tree holds prims_count 28-byte leaves (one per prim) plus the
-  // internal nodes, so the buffer is at least the leaves plus the float3 vertex pool. Lower bound, not
-  // exact: internal-node bytes vary, so this only catches a grossly truncated buffer.
-  G_ASSERT_RETURN((int64_t)blas_data.size() >= (int64_t)verts_count * 12 + (int64_t)prims_count * BVH_BLAS_LEAF_SIZE, -1);
-
-  const uint32_t treeBytes = (uint32_t)(blas_data.size() - (size_t)verts_count * 12);
-  // Caller handed us uint16-quantized bytes (the on-disk serialization format). Re-encode
-  // to FP16 here so the rest of the pipeline stays on a single in-memory representation. This also
-  // compacts verts to blasGpuVertStride(blasVertsFp16) bytes/vert, so trim the tail (treeBytes unchanged).
-  build_bvh::reencodeQuadBlasToFP16(blas_data.data(), 0, (int)treeBytes, verts_count, BVH_BLAS_LEAF_SIZE, blasVertsFp16);
-  blas_data.resize((size_t)treeBytes + (size_t)verts_count * build_bvh::blasGpuVertStride(blasVertsFp16));
-
-  daSWRT::BuiltBLAS built;
-  built.box = box;
-  built.data = eastl::move(blas_data);
-  built.treeBytes = treeBytes;
-  built.dimAsBoxDist = dim_as_box_dist;
-  built.vertsFp16 = blasVertsFp16; // reencoded just above into this instance's format
-  return addBuiltModel(eastl::move(built));
 }
 
 void RenderSWRT::destroy(BLASData *&d) { del_it(d); }
@@ -272,8 +248,7 @@ void RenderSWRT::copyToGPU(BLASData *d)
 {
   if (!d || d->data.empty())
     return;
-  // FP16 re-encode already happened per-model in buildBLAS / addPreBuiltModel, so this is a
-  // straight byte-for-byte upload.
+  // FP16 re-encode already happened per-model in buildBLAS, so this is a straight byte-for-byte upload.
   ensure_buf_size_and_update(bottomBuf, d->data, "bvh_bottom_structures");
   if (!d->leafRanges.empty())
   {

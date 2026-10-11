@@ -73,6 +73,7 @@ static const char *arch_name(StcodeTargetArch arch)
     case StcodeTargetArch::I386: return "i386";
     case StcodeTargetArch::E2K: return "e2k";
     case StcodeTargetArch::MAC_X86_64_ARM64_UNIVERSAL: return "x86_64";
+    case StcodeTargetArch::ARM64_EC: return "arm64ec";
   }
   return nullptr;
 }
@@ -93,6 +94,7 @@ static const char *arch_name_for_dll_name(StcodeTargetArch arch)
     case StcodeTargetArch::ARMEABI_V7A: return "armv7";
     case StcodeTargetArch::E2K: return "e2k";
     case StcodeTargetArch::MAC_X86_64_ARM64_UNIVERSAL: return "universal";
+    case StcodeTargetArch::ARM64_EC: return "arm64ec";
   }
   return nullptr;
 }
@@ -116,15 +118,16 @@ static bool validate_arch(StcodeTargetArch arch)
   if (shc::config().targetPlatform != dx12::dxil::Platform::PC)
     return arch == StcodeTargetArch::X86_64 || arch == StcodeTargetArch::ARM64;
   else
-    return item_is_in(arch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64});
+    return item_is_in(arch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64, StcodeTargetArch::ARM64_EC});
 #elif _CROSS_TARGET_DX11
-  return item_is_in(arch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64});
+  return item_is_in(arch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64, StcodeTargetArch::ARM64_EC});
 #elif _CROSS_TARGET_C1 | _CROSS_TARGET_C2
 
 #elif _CROSS_TARGET_SPIRV
 #if _TARGET_PC_WIN
-  return item_is_in(arch, {StcodeTargetArch::DEFAULT, StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::E2K,
-                            StcodeTargetArch::ARM64, StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A});
+  return item_is_in(arch,
+    {StcodeTargetArch::DEFAULT, StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::E2K, StcodeTargetArch::ARM64,
+      StcodeTargetArch::ARM64_EC, StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A});
 #elif _TARGET_PC_LINUX
   return item_is_in(arch, {StcodeTargetArch::DEFAULT, StcodeTargetArch::X86_64, StcodeTargetArch::E2K, StcodeTargetArch::ARM64,
                             StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A});
@@ -168,7 +171,7 @@ static bool validate_arch_for_platform(const shc::CompilerConfig &config, Stcode
            item_is_in(arch, {StcodeTargetArch::ARMEABI_V7A, StcodeTargetArch::ARM64_V8A})) ||
 #if _TARGET_PC_WIN
          (config.cppStcodePlatform == StcodeTargetPlatform::PC &&
-           item_is_in(arch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64}));
+           item_is_in(arch, {StcodeTargetArch::X86, StcodeTargetArch::X86_64, StcodeTargetArch::ARM64, StcodeTargetArch::ARM64_EC}));
 #elif _TARGET_PC_LINUX
          (config.cppStcodePlatform == StcodeTargetPlatform::PC && item_is_in(arch, {StcodeTargetArch::X86_64, StcodeTargetArch::E2K}));
 #elif _TARGET_PC_MACOSX

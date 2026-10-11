@@ -6,6 +6,11 @@ int dynmodel_node_collapser_data = 1 always_referenced;
 interval dynmodel_node_collapser_data : no < 1, yes;
 assume_if_not_assumed dynmodel_node_collapser_data = yes;
 
+// constraint: use_shared_skin_bones = yes requires dynmodel_node_collapser_data = no.
+int use_shared_skin_bones = 0 always_referenced;
+interval use_shared_skin_bones : no < 1, yes;
+assume_if_not_assumed use_shared_skin_bones = no;
+
 macro INIT_WORLD_LOCAL_BASE(code)
 (code) {
   context_gpu_data@cbuf = context_gpu_data hlsl {
@@ -57,8 +62,28 @@ hlsl(code) {
     #define NODE_CHUNK_SIZE_GETTER (get_immediate_dword_0() & 0xFF)
   #endif
 
+##if DEBUG && !hardware.metal
+  void checkDynrendNodeChunk(int node_chunk, int base, int stride, int rigid, uint dim, int file, int ln)
+  {
+    int bias = node_chunk - base;
+    ##assert(node_chunk >= 0, "[%s:%d] dynrend node chunk underflow: base %d + bias %d = %d, clamped to 0 (rigid %d, stride %d)",
+             file, ln, base, bias, node_chunk, rigid, stride);
+    ##assert(uint(node_chunk) < dim, "[%s:%d] dynrend node chunk overrun: base %d + bias %d = %d, buffer holds %u (rigid %d, stride %d)",
+             file, ln, base, bias, node_chunk, dim, rigid, stride);
+  }
+
+  #define CHECK_DYNREND_NODE_CHUNK(node_chunk, rigid_index)                                                              \
+    INSTANCE_DATA_BUFFER.GetDimensions(bounds_check_dim);                                                                \
+    checkDynrendNodeChunk(node_chunk, (int)OFFSET_TO_NODE_DATA(0), (int)NODE_CHUNK_SIZE_GETTER,                         \
+      (int)((rigid_index) * 255.0 + 0.5), bounds_check_dim, _FILE_, __LINE__);
+##else
+  #define CHECK_DYNREND_NODE_CHUNK(node_chunk, rigid_index)
+##endif
+
   #define SETUP_RENDER_VARS(rigid_index)                                                                                   \
-    uint offsetToNodeChunk = max((int)OFFSET_TO_NODE_DATA(rigid_index), 0);                                                \
+    int rawOffsetToNodeChunk = (int)OFFSET_TO_NODE_DATA(rigid_index);                                                      \
+    CHECK_DYNREND_NODE_CHUNK(rawOffsetToNodeChunk, rigid_index)                                                            \
+    uint offsetToNodeChunk = max(rawOffsetToNodeChunk, 0);                                                                 \
     float4 globtm_0 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToNodeChunk + 0);                                             \
     float4 globtm_1 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToNodeChunk + 1);                                             \
     float4 globtm_2 = loadBuffer(INSTANCE_DATA_BUFFER, offsetToNodeChunk + 2);                                             \
@@ -87,18 +112,17 @@ hlsl(code) {
     float3 unpack_pos_ofs = pos_ofs__cnt.xyz;                                                                              \
     float2 dynrend_params_offset_count = float2(offsetToInstanceChunk + 2.5, pos_ofs__cnt.w);
 
-  ##if dynmodel_node_collapser_data == yes
-    #define BONES_START (DYNREND_NODE_CHUNK_VECS + 2)
-  ##else
-    #define BONES_START DYNREND_NODE_CHUNK_VECS
-  ##endif
-
   struct bone_t { float4 r0, r1, r2; };
 
   float4 get_bone_row(int offset)
   {
-    uint offsetToNodeChunk = OFFSET_TO_NODE_DATA(0);
-    return loadBuffer(INSTANCE_DATA_BUFFER, offsetToNodeChunk + BONES_START + offset);
+    ##if dynmodel_node_collapser_data == yes
+      return loadBuffer(INSTANCE_DATA_BUFFER, OFFSET_TO_NODE_DATA(0) + DYNREND_NODE_CHUNK_VECS + 2 + offset);
+    ##elif use_shared_skin_bones == yes
+      return loadBuffer(INSTANCE_DATA_BUFFER, OFFSET_TO_INSTANCE_DATA - 1 - offset); // bones are stored in reversed order
+    ##else
+      return loadBuffer(INSTANCE_DATA_BUFFER, OFFSET_TO_NODE_DATA(0) + DYNREND_NODE_CHUNK_VECS + offset);
+    ##endif
   }
 
   bone_t get_bone(int bone_index)

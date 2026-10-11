@@ -18,6 +18,7 @@ namespace das {
         const TBlock<void, StackWalker *> & blk, Context * context, LineInfoArg * at );
 
     DAS_API vec4f pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API vec4f try_pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API vec4f pinvoke_impl2 ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API vec4f pinvoke_impl3 ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API vec4f invokeInDebugAgent ( Context & context, SimNode_CallBase * call, vec4f * args );

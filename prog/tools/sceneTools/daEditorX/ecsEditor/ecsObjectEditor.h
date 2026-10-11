@@ -31,6 +31,8 @@ public:
   //@{
   void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerViewportAccelerators(IWndManager &wndManager) override;
+  void initUi(int toolbar_id) override;
+  void closeUi() override;
   void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
   void updateToolbarButtons() override;
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
@@ -202,4 +204,5 @@ private:
 
   Ptr<ECSEntityObject> parentSelectionHoveredObject;
   eastl::unique_ptr<ECSSceneOutlinerPanel> sceneOutliner;
+  bool reopenSceneOutliner = false;
 };

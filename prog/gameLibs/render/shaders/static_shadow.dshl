@@ -95,7 +95,11 @@ endmacro
 macro USE_STATIC_SHADOW_BASE(code)
   if (!DEFINED(skip_use_static_shadow))
   {
-    if (static_shadows_cascades == two)
+    if (force_rtss_shadows == on)
+    {
+      USE_STATIC_SHADOW_RTSS(code)
+    }
+    else if (static_shadows_cascades == two)
     {
       USE_STATIC_SHADOW_BASE_NUM(code, 2)
     }
@@ -129,7 +133,14 @@ endmacro
 // only use it for shaders that are guaranteed to be rendered close to the camera
 macro USE_STATIC_SHADOW_ONE_CASCADE(code)
   hlsl(code) { #define HAS_STATIC_SHADOW 1}
-  USE_STATIC_SHADOW_BASE_NUM(code, 1)
+  if (force_rtss_shadows == on)
+  {
+    USE_STATIC_SHADOW_RTSS(code)
+  }
+  else
+  {
+    USE_STATIC_SHADOW_BASE_NUM(code, 1)
+  }
 endmacro
 
 macro USE_STATIC_SHADOW_VS()

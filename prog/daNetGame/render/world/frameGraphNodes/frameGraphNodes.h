@@ -3,7 +3,6 @@
 
 #include <EASTL/span.h>
 #include <EASTL/unique_ptr.h>
-#include <render/ssao_common.h>
 #include <render/deferredRenderer.h>
 #include <render/viewDependentResource.h>
 #include <render/world/waterRenderMode.h>

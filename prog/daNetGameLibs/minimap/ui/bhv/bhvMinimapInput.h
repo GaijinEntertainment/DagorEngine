@@ -17,7 +17,8 @@ public:
   SQ_PRECACHED_STRINGS_DECLARE(CachedStrings,
     cstr, //
     minimapTouchData,
-    panMouseButton);
+    panMouseButton,
+    minStickDeadZone);
 
   BhvMinimapInput();
   virtual void onAttach(darg::Element *) override;

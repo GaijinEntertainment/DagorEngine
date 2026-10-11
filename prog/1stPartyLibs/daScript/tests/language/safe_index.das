@@ -15,7 +15,7 @@ def safe_addr_val(var a : auto&) {
 }
 
 [test]
-def test_safe_index(t : T?) {
+def test_safe_index(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     t |> run("dynamic array safe index") @(t : T?) {
         var ar : array<int>
         var dummy : int
@@ -194,28 +194,28 @@ def test_safe_index_uint(t : T?) {
 [test]
 def test_safe_index_read(t : T?) {
     t |> run("array safe index read") @(t : T?) {
-        var ar <- [1, 2, 3]
+        let ar <- [1, 2, 3]
         var val = ar?[1] ?? 0
         t |> equal(val, 2)
         val = ar?[5] ?? 42
         t |> equal(val, 42)
     }
     t |> run("fixed array safe index read") @(t : T?) {
-        var di = fixed_array(10, 20, 30)
+        let di = fixed_array(10, 20, 30)
         var val = di?[1] ?? 0
         t |> equal(val, 20)
         val = di?[5] ?? 42
         t |> equal(val, 42)
     }
     t |> run("vector safe index read") @(t : T?) {
-        var vec = int3(10, 20, 30)
+        let vec = int3(10, 20, 30)
         var val = vec?[1] ?? 0
         t |> equal(val, 20)
         val = vec?[3] ?? 42
         t |> equal(val, 42)
     }
     t |> run("table safe index read") @(t : T?) {
-        var ta <- {"a" => 1, "b" => 2}
+        let ta <- {"a" => 1, "b" => 2}
         var val = ta?["a"] ?? 0
         t |> equal(val, 1)
         val = ta?["c"] ?? 42

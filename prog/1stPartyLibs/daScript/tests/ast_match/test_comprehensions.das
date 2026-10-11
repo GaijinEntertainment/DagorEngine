@@ -5,6 +5,7 @@ options no_coverage
 // the post-inference tests pin the compiled comprehension shell (invoke of the
 // comprehension generator) - auto block inlining legitimately dissolves it
 options disable_auto_inline
+options _cyclomatic_complexity = 0  // qmatch pattern blocks expand into matcher code; the count is not the test's own
 
 require daslib/ast
 require daslib/rtti

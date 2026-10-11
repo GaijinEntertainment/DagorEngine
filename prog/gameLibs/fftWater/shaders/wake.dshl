@@ -1,6 +1,13 @@
 include "wetness_inc.dshl"
 
 texture wake_gradients_tex;
+
+sampler wake_gradients_sampler
+{
+  address_u = border;
+  address_v = border;
+  border_color = (0, 0, 0, 0);
+};
 texture wake_ht_tex;
 float4 world_to_wake = (1,1,1,1);
 float wake_ht_scale = 0.075;
@@ -10,7 +17,8 @@ macro INIT_WAKE()
   if (wake_gradients_tex!=NULL)
   {
     (ps) {
-      wake_gradients_tex@smpArray = wake_gradients_tex;
+      wake_gradients_tex@texArray = wake_gradients_tex;
+      wake_gradients_tex_samplerstate@sampler = wake_gradients_sampler;
       world_to_wake@f4 = world_to_wake;
     }
   }

@@ -25,10 +25,11 @@
 #include <drvCommonConsts.h>
 
 NamedConstBlock::CstHandle NamedConstBlock::addConst(int stage, const char *name, Terminal *decl_term, Lexer &lexer,
-  HlslRegisterSpace reg_space, int sz, int hardcoded_reg, bool is_dynamic)
+  HlslRegisterSpace reg_space, int sz, int hardcoded_reg, bool is_dynamic, int preallocated_reg)
 {
   G_ASSERT(sz > 0);
   G_ASSERT(is_dynamic || hardcoded_reg == -1);
+  G_ASSERT(preallocated_reg < 0 || hardcoded_reg < 0);
 
   RegisterProperties NamedConstBlock::*propsField = nullptr;
   HlslRegAllocator *regAlloc = nullptr;
@@ -71,16 +72,15 @@ NamedConstBlock::CstHandle NamedConstBlock::addConst(int stage, const char *name
   if (id == -1)
   {
     int regIndex = 0;
-    if (hardcoded_reg >= 0)
+    if (preallocated_reg >= 0 || hardcoded_reg >= 0)
     {
+      const bool subpassRead = preallocated_reg >= 0;
+      const int reg = subpassRead ? preallocated_reg : hardcoded_reg;
+      const HlslSlotSemantic semantic = subpassRead ? HlslSlotSemantic::RESERVED_FOR_SUBPASS_READS : HlslSlotSemantic::HARDCODED;
       // @TODO: this would be nicer with monadic ops on Expected
-      if (auto res = regAlloc->reserve(HlslSlotSemantic::HARDCODED, hardcoded_reg, sz); !res)
-      {
-        report_reg_reserve_failed(name, hardcoded_reg, sz, reg_space, HlslSlotSemantic::HARDCODED, res.error(), *regAlloc,
-          infoProvider);
-      }
-
-      regIndex = hardcoded_reg;
+      if (auto res = regAlloc->reserve(semantic, reg, sz); !res)
+        report_reg_reserve_failed(name, reg, sz, reg_space, semantic, res.error(), *regAlloc, infoProvider);
+      regIndex = reg;
     }
     else
     {
@@ -742,49 +742,49 @@ void NamedConstBlock::patchHlsl(String &src, ShaderStage stage, const CompiledPr
     implicit_cbuf_size = regAllocators[HLSL_RSPACE_C].getRange().cap;
 }
 
-ShaderStateBlock::ShaderStateBlock(const char *nm, ShaderBlockLevel lev, NamedConstBlock &&ncb, dag::Span<int> stcode,
-  DynamicStcodeRoutine *cpp_stcode, int maxregsize, shc::TargetContext &a_ctx) :
-  shConst(eastl::move(ncb)), name(nm), nameId(-1), stcodeId(-1), cppStcodeId(-1), layerLevel(lev), regSize(maxregsize)
+ShaderStateBlock::ShaderStateBlock(const char *blk_name, ShaderBlockLevel lev, NamedConstBlock &&ncb, dag::Span<int> stcode,
+  DynamicStcodeRoutine &cpp_stcode, int maxregsize, shc::TargetContext &a_ctx) :
+  shConst(eastl::move(ncb)), name(blk_name), nameId(-1), stcodeId(-1), cppStcodeId(-1), layerLevel(lev), regSize(maxregsize)
 {
   if (stcode.size())
   {
     stcodeId = add_stcode(stcode, a_ctx);
   }
-  if (cpp_stcode->hasCode())
+  if (cpp_stcode.hasCode())
   {
     const HlslRegRange vsRegRange = shConst.vertexRegAllocators[HLSL_RSPACE_C].getRange(HlslSlotSemantic::ALLOCATED);
     const HlslRegRange psOrCsRegRange = shConst.pixelOrComputeRegAllocators[HLSL_RSPACE_C].getRange(HlslSlotSemantic::ALLOCATED);
-    cppStcodeId = a_ctx.cppStcode().addCode(eastl::move(*cpp_stcode), psOrCsRegRange, vsRegRange);
+    cppStcodeId = a_ctx.cppStcode().addCode(eastl::move(cpp_stcode), psOrCsRegRange, vsRegRange);
   }
-  if (shc::config().generateCppStcodeValidationData && cpp_stcode)
-    add_stcode_validation_mask(stcodeId, cpp_stcode->constMask.release(), a_ctx);
+  if (shc::config().generateCppStcodeValidationData)
+    add_stcode_validation_mask(stcodeId, cpp_stcode.constMask.release(), a_ctx);
 
   // shConst (moved in above) already has its consts and supp links; supp blocks are
   // lower-level and were cached when they were constructed, so this aggregates bottom-up.
   shConst.cacheExplicitBindlessSubtree();
 }
 
-int ShaderStateBlock::getVsNameId(const char *name) const
+int ShaderStateBlock::getVsNameId(const char *var_name) const
 {
-  int id = shConst.vertexProps.sn.getNameId(name);
+  int id = shConst.vertexProps.sn.getNameId(var_name);
   if (id != -1)
     return id;
   for (int i = 0; i < shConst.suppBlk.size(); i++)
   {
-    id = shConst.suppBlk[i]->getVsNameId(name);
+    id = shConst.suppBlk[i]->getVsNameId(var_name);
     if (id != -1)
       return id;
   }
   return -1;
 }
-int ShaderStateBlock::getPsNameId(const char *name) const
+int ShaderStateBlock::getPsNameId(const char *var_name) const
 {
-  int id = shConst.pixelProps.sn.getNameId(name);
+  int id = shConst.pixelProps.sn.getNameId(var_name);
   if (id != -1)
     return id;
   for (int i = 0; i < shConst.suppBlk.size(); i++)
   {
-    id = shConst.suppBlk[i]->getPsNameId(name);
+    id = shConst.suppBlk[i]->getPsNameId(var_name);
     if (id != -1)
       return id;
   }

@@ -43,8 +43,6 @@ void set_pie_menu_input_adapter(PieMenuInputAdapter *adapter) { input_adapter = 
 
 BhvPieMenu bhv_pie_menu;
 
-static const char *dataSlotName = "pie_menu:data";
-
 
 struct BhvPieMenuData
 {
@@ -151,16 +149,16 @@ BhvPieMenu::BhvPieMenu() : Behavior(STAGE_ACT, F_HANDLE_MOUSE | F_HANDLE_TOUCH |
 void BhvPieMenu::onAttach(Element *elem)
 {
   BhvPieMenuData *bhvData = new BhvPieMenuData();
-  elem->props.storage.SetValue(dataSlotName, bhvData);
+  elem->props.storage.SetValue(elem->csk->pieMenuData, bhvData);
 }
 
 
 void BhvPieMenu::onDetach(Element *elem, DetachMode)
 {
-  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(dataSlotName, nullptr);
+  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(elem->csk->pieMenuData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->pieMenuData);
     delete bhvData;
   }
 }
@@ -173,7 +171,7 @@ int BhvPieMenu::pointingEvent(ElementTree *etree, Element *elem, InputDevice dev
   if (pointingDevice != DEVID_MOUSE)
     return 0;
 
-  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(dataSlotName, nullptr);
+  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(elem->csk->pieMenuData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   int result = 0;
@@ -313,7 +311,7 @@ void BhvPieMenu::collectConsumableButtons(Element *elem, Tab<HotkeyButton> &inpu
 
 int BhvPieMenu::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
-  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(dataSlotName, nullptr);
+  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(elem->csk->pieMenuData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isPressedBy(device, pointer_id))
@@ -327,7 +325,7 @@ int BhvPieMenu::onDeactivateInput(Element *elem, InputDevice device, int pointer
 
 int BhvPieMenu::onDeactivateAllInput(Element *elem)
 {
-  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(dataSlotName, nullptr);
+  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(elem->csk->pieMenuData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isPressed())

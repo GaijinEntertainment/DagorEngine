@@ -196,7 +196,6 @@ HlslCompileClass parse_hlsl_compilation_info(ShaderTerminal::hlsl_compile_class 
   }
 
   HlslCompileDirective compileDirective{};
-  compileDirective.useHalfs = false;
 
   if (dd_stricmp(profile, "target_vs_for_gs") == 0)
   {

@@ -45,7 +45,7 @@ void BindlessSlotManager::rebuild(const intermediate::Graph &graph)
   // dedup marker and provisional in-range index. Samplers are driver-deduped.
   dag::Vector<intermediate::ResourceIndex, framemem_allocator> texResources;
   dag::Vector<intermediate::ResourceIndex, framemem_allocator> bufResources;
-  for (auto [nodeIdx, state] : graph.nodeStates.enumerate())
+  for (const auto &state : graph.nodeStates.values())
     for (const auto &[bindIdx, binding] : state.bindings)
     {
       if (binding.type != BindingType::BindlessShaderVar || !binding.resource)

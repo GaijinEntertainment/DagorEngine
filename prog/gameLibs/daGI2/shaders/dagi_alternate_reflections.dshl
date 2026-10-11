@@ -34,44 +34,48 @@ macro GET_ALTERNATE_REFLECTIONS(code)
   {
     READ_WORLD_SDF(code)
     WORLD_SDF_STEP_OUT(code)
-    PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
-    DAGI_ALBEDO_SAMPLE(code)
-    PROJECT_LIGHT_POINT_TRACE_HIT(code)
+    PROJECT_GET_WORLD_RADIANCE_AT(code)
 
     hlsl(code) {
       #define ALTERNATE_REFLECTIONS 1
       #include <interleavedGradientNoise.hlsl>
       //opaque only
-      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200)
+      void get_alternate_reflections_with_hit(inout half4 newTarget, inout float rayHitDist, out float3 rayHitPos, out float3 rayHitNorm, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200, bool start_on_ray = false, bool start_off_surface = false)
       {
         float maxT = max_dist;
         rayHitDist = maxT;
+        rayHitPos = cameraToPoint + rayDir*maxT;
+        rayHitNorm = -rayDir;
         BRANCH
         if (!hit)
         {
-          float len = length(cameraToPoint);
-          float3 origin = cameraToPoint*0.98 + world_view_pos.xyz + rayDir*max(0.01, len*0.02)*interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z));
-
-          uint startClip = world_sdf_find_clip(origin);
-          float sdfVoxelSize = startClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(startClip) : 1;
-          origin += normal*0.25*sdfVoxelSize;
-          world_sdf_step_out_clip(origin, startClip, 0.0, 0.5);
+          float3 origin = cameraToPoint + world_view_pos.xyz;
+          if (!start_on_ray)
+          {
+            float len = length(cameraToPoint);
+            origin = cameraToPoint*0.98 + world_view_pos.xyz + rayDir*max(0.01, len*0.02)*interleavedGradientNoiseFramed(pixelPos.xy, uint(SSRParams.z));
+          }
+          if (!start_off_surface)
+          {
+            uint startClip = world_sdf_find_clip(origin);
+            float sdfVoxelSize = startClip < MAX_WORLD_SDF_CLIPS ? world_sdf_voxel_size(startClip) : 1;
+            origin += normal*0.25*sdfVoxelSize;
+            world_sdf_step_out_clip(origin, startClip, 0.0, 0.5);
+          }
 
           float t = maxT;
           uint cascade;
-          if (world_sdf_trace(origin, rayDir, maxT, t, cascade, 1, true))
+          if (world_sdf_trace(origin, rayDir, maxT, t, cascade, 1, true, start_off_surface))
           {
             rayHitDist = t;
             float3 worldPos = origin + rayDir*t;
             float3 gradient = world_sdf_sample_gradient(cascade, worldPos);
             float gradLen = length(gradient);
             float3 hitNorm = gradLen > 0 ? -gradient.xzy/gradLen : -rayDir;
-            if (!dagi_get_voxels_lit_scene_radiance_at(worldPos, hitNorm, newTarget.rgb))
-            {
-              float3 albedo = DAGI_MISSED_ALBEDO;
-              dagi_sample_albedo_best(worldPos, albedo);
-              newTarget.rgb = project_get_lit_color_at_trace_hit(worldPos, hitNorm, albedo, float4(-rayDir, t));
-            }
+            rayHitPos = worldPos - world_view_pos.xyz;
+            rayHitNorm = hitNorm;
+
+            newTarget.rgb = dagi_get_radiance_at(worldPos, hitNorm, float4(-rayDir, t));
             newTarget.a = 1;
           } else
           {
@@ -80,12 +84,22 @@ macro GET_ALTERNATE_REFLECTIONS(code)
           }
         }
       }
+      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200, bool start_on_ray = false, bool start_off_surface = false)
+      {
+        float3 rayHitPos, rayHitNorm;
+        get_alternate_reflections_with_hit(newTarget, rayHitDist, rayHitPos, rayHitNorm, pixelPos, rayDir, cameraToPoint, normal, hit, hit_not_zfar, max_dist, start_on_ray, start_off_surface);
+      }
     }
   }
   else
   {
     hlsl(code) {
-      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200){}
+      void get_alternate_reflections_with_hit(inout half4 newTarget, inout float rayHitDist, out float3 rayHitPos, out float3 rayHitNorm, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200, bool start_on_ray = false, bool start_off_surface = false)
+      {
+        rayHitPos = cameraToPoint;
+        rayHitNorm = -rayDir;
+      }
+      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200, bool start_on_ray = false, bool start_off_surface = false){}
     }
   }
 endmacro

@@ -18,6 +18,7 @@
 #include <dag/dag_vectorSet.h>
 #include <dag/dag_relocatable.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <generic/dag_functionRef.h>
 #include <generic/dag_span.h>
 #include <memory/dag_framemem.h> // framemem_allocator, used by the rebuild scratch buffers
 #include <util/dag_jobPool.h>
@@ -25,7 +26,6 @@
 #include <EASTL/vector_set.h>
 #include <EASTL/bitvector.h>
 #include <EASTL/array.h>
-#include <EASTL/fixed_function.h>
 
 #if _TARGET_PC_MACOSX && __SSE__ // Disable vectorcall calling convention due to clang 15.0 code generation bug on macOS
 #undef VECTORCALL
@@ -1737,13 +1737,12 @@ public:
   template <typename print_func_t, typename object_t>
   DAGOR_NOINLINE void sortAndPrint(print_func_t print_func, dag::Span<object_t> objects, bool use_ext = false) const
   {
-    eastl::fixed_function<8, bool(object_t, object_t)> lessExtFunc = [this](object_t lhs, object_t rhs) {
+    auto lessExtFunc = [this](object_t lhs, object_t rhs) {
       return calcMaxMainCellExtForObject(lhs) > calcMaxMainCellExtForObject(rhs);
     };
-    eastl::fixed_function<8, bool(object_t, object_t)> lessRadFunc = [](object_t lhs, object_t rhs) {
-      return v_extract_w(lhs.getWBSph()) > v_extract_w(rhs.getWBSph());
-    };
-    stlsort::sort(objects.begin(), objects.end(), use_ext ? lessExtFunc : lessRadFunc);
+    auto lessRadFunc = [](object_t lhs, object_t rhs) { return v_extract_w(lhs.getWBSph()) > v_extract_w(rhs.getWBSph()); };
+    using less_func_t = dag::FunctionRef<bool(object_t, object_t) const>;
+    stlsort::sort(objects.begin(), objects.end(), use_ext ? less_func_t(lessExtFunc) : less_func_t(lessRadFunc));
     for (object_t obj : objects)
       print_func("\t%s " FMT_P3 " rad=%.2f ext=%.2f", obj.getDebugName(), V3D(obj.getWBSph()), v_extract_w(obj.getWBSph()),
         calcMaxMainCellExtForObject(obj));

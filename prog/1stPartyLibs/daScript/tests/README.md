@@ -12,16 +12,17 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_store.das | Persistent byte store — store/load round-trip, overwrite, missing keys, empty data, large data, multiple keys | |
-| test_lifecycle.das | Lifecycle functions — get_dt, get_uptime, get_fps, is_paused/set_paused, exit_requested, is_reload, is_live_mode | |
-| test_commands.das | Live command dispatch — [live_command] registration, JSON dispatch, args passing, null return, error handling | |
-| test_live_vars.das | `@live` variable viewer — annotation, archive round-trip, type coverage (int, float, string, bool) | |
+| test_store.das | Persistent byte store - store/load round-trip, overwrite, missing keys, empty data, large data, multiple keys | |
+| test_lifecycle.das | Lifecycle functions - get_dt, get_uptime, get_fps, is_paused/set_paused, exit_requested, is_reload, is_live_mode | |
+| test_commands.das | Live command dispatch - [live_command] registration, JSON dispatch, args passing, null return, error handling | |
+| test_live_vars.das | `@live` variable viewer - annotation, archive round-trip, type coverage (int, float, string, bool) | |
+| test_host_ready.das | daslang-live spawned beside the running daslang on `_fixture_host_ready.das` serves `/status` and ends on `/shutdown` - the LiveHost module loads before the host reads its exports | |
 
 ## algorithm/
 
 | File | Description | Expects errors |
 |---|---|---|
-| sets.das | Set operations — intersection, union, difference | |
+| sets.das | Set operations - intersection, union, difference | |
 | test_algorithm.das | unique, sort, erase, find, and other core algorithms | |
 | test_algorithm_new.das | upper_bound, lower_bound, custom comparators | |
 | test_algorithm_noncopyable.das | Algorithm operations on non-copyable structs (erase_all, sort, swap) | |
@@ -31,17 +32,20 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_aot_assert.das | AOT assert behavior — assert pass/fail, verify, static_assert | |
-| test_arithmetic.das | AOT arithmetic — basic ops, type promotion, AOT active check | |
-| test_lambdas.das | AOT lambda codegen — capture, invoke, nested | |
-| test_strings.das | AOT string operations — interpolation, comparison, builder | |
-| test_structures.das | AOT struct codegen — construction, fields, methods, inheritance | |
-| test_struct_decl_order.das | AOT required-module struct topo-sort (#3212) — by-value field of a later-declared struct | |
-| _aot_so_mod.das | *(helper)* #3212 fixture module — Outer holds Inner by value, declared Outer-first | |
-| t_invoke_void.das | AOT `invoke` dispatch — void-returning function pointer via AOT path | |
-| test_variant_alias_aot.das | AOT variant-alias codegen (#3269) — delete of handled variant alias, builtin push of a variant element | |
-| test_int64_ptr_index.das | AOT raw-pointer indexing by int64/uint64 (#3391) — at/safe_at through non-var (`T * const`), var (`T *`), and const-pointee pointers | |
-| test_range64_ctor_args.das | AOT most-vexing-parse — a for-source of constructor-style casts only (`range64(int64(a), int64(b))`) must emit a variable, not a function declaration | |
+| test_aot_assert.das | AOT assert behavior - assert pass/fail, verify, static_assert | |
+| test_arithmetic.das | AOT arithmetic - basic ops, type promotion, AOT active check | |
+| test_lambdas.das | AOT lambda codegen - capture, invoke, nested | |
+| test_strings.das | AOT string operations - interpolation, comparison, builder | |
+| test_structures.das | AOT struct codegen - construction, fields, methods, inheritance | |
+| test_struct_decl_order.das | AOT required-module struct topo-sort (#3212) - by-value field of a later-declared struct | |
+| _aot_so_mod.das | *(helper)* #3212 fixture module - Outer holds Inner by value, declared Outer-first | |
+| t_invoke_void.das | AOT `invoke` dispatch - void-returning function pointer via AOT path | |
+| test_variant_alias_aot.das | AOT variant-alias codegen (#3269) - delete of handled variant alias, builtin push of a variant element | |
+| test_int64_ptr_index.das | AOT raw-pointer indexing by int64/uint64 (#3391) - at/safe_at through non-var (`T * const`), var (`T *`), and const-pointee pointers | |
+| test_range64_ctor_args.das | AOT most-vexing-parse - a for-source of constructor-style casts only (`range64(int64(a), int64(b))`) must emit a variable, not a function declaration | |
+| test_op2_operand_order_emit.das | AOT binary-op operand sequencing - impure-operand ops wrap in `das_ordered2` (braced init = left-to-right), pure and short-circuit ops don't | |
+| _ordered_op2_fixture.das | *(helper)* the op2 shapes the sequencing test emits - impure policy/plain/xor, pure, `&&`/`\|\|` | |
+| test_struct_order.das | AOT structure emission order - an outer struct embeds a later-declared inner whose function-typed field names the outer in its signature; a signature is not a by-value dependency, so the topological sort must still place the inner first | |
 
 ## apply/
 
@@ -54,6 +58,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | File | Description | Expects errors |
 |---|---|---|
 | test_archive.das | mem_archive_save/load for variants, tables, arrays, structs | |
+| test_archive_scratch_churn.das | MemSerializer eager-grow opt-in under very_safe_context - round-trip + churn bound | |
 
 ## assert_once/
 
@@ -67,8 +72,8 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 |---|---|---|
 | test_async_await.das | let/var await, copy/move/clone assign await, void await, nested await, await in loops | |
 | test_async_basic.das | `[async]` annotation, void/typed async, await_next_frame, yield, early return | |
-| test_async_coroutine.das | async/coroutine interop — mixing `[async]` with `[coroutine]`, awaiting coroutines | |
-| test_async_iter.das | Iterating async generators — for-loop over typed async, zip with count() | |
+| test_async_coroutine.das | async/coroutine interop - mixing `[async]` with `[coroutine]`, awaiting coroutines | |
+| test_async_iter.das | Iterating async generators - for-loop over typed async, zip with count() | |
 | test_async_run.das | async_run, async_run_all, async_timeout, async_race | |
 
 ## base64/
@@ -81,38 +86,38 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_bitfield_boost.das | bitfield_boost — indexing, each_bit, &&= operator | |
+| test_bitfield_boost.das | bitfield_boost - indexing, each_bit, &&= operator | |
 
 ## bool_array/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_bool_array.das | BoolArray — push, index, clear, resize, iteration, operators | |
-| test_bool_array_iterator_crash.das | BoolArray iterator context mismatch repro — benchmark context isolation | |
+| test_bool_array.das | BoolArray - push, index, clear, resize, iteration, operators | |
+| test_bool_array_iterator_crash.das | BoolArray iterator context mismatch repro - benchmark context isolation | |
 
 ## class_boost/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_class_boost.das | class_boost annotations on classes — self injection, inheritance calls, explicit const overload dispatch | |
+| test_class_boost.das | class_boost annotations on classes - self injection, inheritance calls, explicit const overload dispatch | |
 | failed_explicit_const_non_static.das | Non-static method annotated with `explicit_const_class_method` is rejected | **expect** `30111` |
 
 ## bare_block/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_assumed_pipe.das | Assumed pipe — block invocation via `<\|` with `assume` aliases | |
-| test_piped_default_padding.das | Piped-call default padding — defaults filled in front of a trailing-piped block, overload ranking, class methods, C++ externs with fakeContext/fakeLineInfo | |
+| test_assumed_pipe.das | Assumed pipe - block invocation via `<\|` with `assume` aliases | |
+| test_piped_default_padding.das | Piped-call default padding - defaults filled in front of a trailing-piped block, overload ranking, class methods, C++ externs with fakeContext/fakeLineInfo | |
 | failed_piped_no_default.das | Piped block can't shift across a parameter without a default | **expect** `30341` |
 | failed_piped_block_mismatch.das | Piped block signature mismatch after padding | **expect** `30341` |
 | failed_piped_no_block_param.das | No block-like parameter for the piped block to land on | **expect** `30341` |
-| failed_piped_ambiguous.das | Two overloads with equal padding — ambiguous piped call | **expect** `30341` |
-| piped_named_call.das | Named-argument call + piped block — block pads across defaults to a later block param (free-fn, free-fn-via-dot, generic, and genuine class/struct-method forms, incl. implicit self) | |
-| failed_piped_named_padding.das | Piped block on a named call can't land — a non-default param blocks the pad, or there's no block param at all (free-fn and class-method forms) | **expect** `30341:4` |
+| failed_piped_ambiguous.das | Two overloads with equal padding - ambiguous piped call | **expect** `30341` |
+| piped_named_call.das | Named-argument call + piped block - block pads across defaults to a later block param (free-fn, free-fn-via-dot, generic, and genuine class/struct-method forms, incl. implicit self) | |
+| failed_piped_named_padding.das | Piped block on a named call can't land - a non-default param blocks the pad, or there's no block param at all (free-fn and class-method forms) | **expect** `30341:4` |
 | failed_piped_field.das | Field access + piped block is a parse error | **expect** `30347` |
-| test_bare_block.das | Bare lexical blocks — scoping, nesting, finally, control flow, name reuse | |
-| test_block_in_finally.das | Block locals + finally/defer — invoked from defer/plain finally, declared after defer, early-return path, loop-iterator capture, by-ref mutation visibility (AOT hoisted-block codegen) | |
-| test_nested_data.das | Table `{}` literals as sub-data — structs, arrays, functions, tuples, variants, comprehensions, move semantics | |
+| test_bare_block.das | Bare lexical blocks - scoping, nesting, finally, control flow, name reuse | |
+| test_block_in_finally.das | Block locals + finally/defer - invoked from defer/plain finally, declared after defer, early-return path, loop-iterator capture, by-ref mutation visibility (AOT hoisted-block codegen) | |
+| test_nested_data.das | Table `{}` literals as sub-data - structs, arrays, functions, tuples, variants, comprehensions, move semantics | |
 | _test_table_compat.das | Basic table literal compatibility tests | |
 
 ## constexpr/
@@ -125,12 +130,12 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| dw_common.das | *(helper)* Shared module — LogWalker class and test data types | |
+| dw_common.das | *(helper)* Shared module - LogWalker class and test data types | |
 | test_walk_containers.das | DapiDataWalker on arrays, dim, tables | |
 | test_walk_edge_cases.das | Null/non-null pointers, lambdas, edge values, deeply nested data | |
 | test_walk_filtering.das | canVisitStructure, canVisitArray, canVisitArrayData filtering | |
 | test_walk_mutation.das | In-place mutation via walker callbacks | |
-| test_walk_scalars.das | Walking scalar types — int, uint, float, double, bool, string, enum | |
+| test_walk_scalars.das | Walking scalar types - int, uint, float, double, bool, string, enum | |
 | test_walk_structs.das | Walking structures, classes, nested structs, field-last flags | |
 | test_walk_tuples_variants.das | Walking tuples and variants | |
 | test_walk_vectors_ranges.das | Walking int2/3/4, float2/3/4, range, urange, range64 | |
@@ -141,15 +146,15 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| _dashv_test_common.das | *(helper)* Shared module — port constants, `with_test_server` lifecycle, file helpers | |
-| test_client_basic.das | Fire-and-forget client API — GET, POST, PUT, PATCH, HTTP_DELETE, HEAD, headers, status_message, get_body_bytes | |
-| test_request_builder.das | Request builder — with_http_request, request(), set_header, timeouts, auth, params, redirect | |
-| test_server_routes.das | Server routing — GET/POST/PUT/DEL/PATCH/HEAD/ANY routes, path params, query params, JSON | |
-| test_server_advanced.das | Advanced server — STATIC, CORS, REDIRECT, DATA, custom content-type, status codes (201, 204, 404) | |
-| test_cookies.das | Cookie operations — add_cookie (simple + extended, req + resp), get_cookie, each_cookie | |
-| test_forms.das | Form data — set_form_data, set_form_file, get_form_data, save_form_file, each_form_field, URL-encoded | |
-| test_sse.das | SSE (Server-Sent Events) — server-side SSE handler, client-side streaming via request_cb | |
-| test_websockets.das | WebSocket client/server — connect, send, receive, broadcast, multiple clients, HTTP+WS coexistence | |
+| _dashv_test_common.das | *(helper)* Shared module - port constants, `with_test_server` lifecycle, file helpers | |
+| test_client_basic.das | Fire-and-forget client API - GET, POST, PUT, PATCH, HTTP_DELETE, HEAD, headers, status_message, get_body_bytes | |
+| test_request_builder.das | Request builder - with_http_request, request(), set_header, timeouts, auth, params, redirect | |
+| test_server_routes.das | Server routing - GET/POST/PUT/DEL/PATCH/HEAD/ANY routes, path params, query params, JSON | |
+| test_server_advanced.das | Advanced server - STATIC, CORS, REDIRECT, DATA, custom content-type, status codes (201, 204, 404) | |
+| test_cookies.das | Cookie operations - add_cookie (simple + extended, req + resp), get_cookie, each_cookie | |
+| test_forms.das | Form data - set_form_data, set_form_file, get_form_data, save_form_file, each_form_field, URL-encoded | |
+| test_sse.das | SSE (Server-Sent Events) - server-side SSE handler, client-side streaming via request_cb | |
+| test_websockets.das | WebSocket client/server - connect, send, receive, broadcast, multiple clients, HTTP+WS coexistence | |
 
 ## dasPUGIXML/
 
@@ -157,19 +162,19 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_pugixml_boost.das | PUGIXML_boost helpers — iteration (for_each, each, each_child, each_attribute), RAII, accessors, builders, serialization, operator is/as type conversions | |
-| test_pugixml_core.das | Core C++ bindings — node navigation, attribute/text properties, parse result, document ops, XPath evaluation | |
-| test_pugixml_mutation.das | XML mutation — node/attribute insert/remove/copy/move, text set, attribute set_value types | |
-| test_serial_struct.das | Struct serialization — XML()/from_XML()/to_XML() for simple, nested, and array-containing structs | |
-| test_serial_tuple.das | Tuple serialization — unnamed and named tuples, structs with tuple fields | |
-| test_serial_variant.das | Variant serialization — int/string variant cases, struct with variant field, _variant attribute | |
-| test_serial_dim.das | Fixed array (dim) serialization — int[N], string[N], struct with dim field | |
-| test_serial_table.das | Table and set serialization — table<string;int>, table<string>, key-only sets, empty tables | |
-| test_serial_enum.das | Enum serialization — string-based enum roundtrip, default values | |
-| test_serial_bitfield.das | Bitfield serialization — Perms (uint), Flags8 (uint8), Flags16 (uint16), Flags64 (uint64), high-bit test | |
-| test_serial_integers.das | Integer type serialization — int8, uint8, int16, uint16, int64, uint64, standalone and struct fields | |
-| test_serial_vectors.das | Vector/range serialization — float2/3/4, int2/3/4, uint4, range, urange, range64, urange64 | |
-| test_serial_annotations.das | Annotation support — @rename, @enum_as_int, mixed annotations, roundtrip with annotations | |
+| test_pugixml_boost.das | PUGIXML_boost helpers - iteration (for_each, each, each_child, each_attribute), RAII, accessors, builders, serialization, operator is/as type conversions | |
+| test_pugixml_core.das | Core C++ bindings - node navigation, attribute/text properties, parse result, document ops, XPath evaluation | |
+| test_pugixml_mutation.das | XML mutation - node/attribute insert/remove/copy/move, text set, attribute set_value types | |
+| test_serial_struct.das | Struct serialization - XML()/from_XML()/to_XML() for simple, nested, and array-containing structs | |
+| test_serial_tuple.das | Tuple serialization - unnamed and named tuples, structs with tuple fields | |
+| test_serial_variant.das | Variant serialization - int/string variant cases, struct with variant field, _variant attribute | |
+| test_serial_dim.das | Fixed array (dim) serialization - int[N], string[N], struct with dim field | |
+| test_serial_table.das | Table and set serialization - table<string;int>, table<string>, key-only sets, empty tables | |
+| test_serial_enum.das | Enum serialization - string-based enum roundtrip, default values | |
+| test_serial_bitfield.das | Bitfield serialization - Perms (uint), Flags8 (uint8), Flags16 (uint16), Flags64 (uint64), high-bit test | |
+| test_serial_integers.das | Integer type serialization - int8, uint8, int16, uint16, int64, uint64, standalone and struct fields | |
+| test_serial_vectors.das | Vector/range serialization - float2/3/4, int2/3/4, uint4, range, urange, range64, urange64 | |
+| test_serial_annotations.das | Annotation support - @rename, @enum_as_int, mixed annotations, roundtrip with annotations | |
 
 ## dasSQLITE/
 
@@ -177,10 +182,10 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_01_with_sqlite.das | Runner lifecycle — `with_sqlite`, `open_sqlite`, `query_scalar`, `try_open_sqlite` failure path, `try_exec` bad SQL, `try_query_scalar` zero rows, `last_insert_rowid` initial state, `sqlite_version` | |
+| test_01_with_sqlite.das | Runner lifecycle - `with_sqlite`, `open_sqlite`, `query_scalar`, `try_open_sqlite` failure path, `try_exec` bad SQL, `try_query_scalar` zero rows, `last_insert_rowid` initial state, `sqlite_version` | |
 | test_02_insert.das | `[sql_table]` macro emissions (table name, DDL, two INSERT shapes), `create_table` / `drop_table_if_exists` round-trip, single-row + array `insert`, `try_insert` constraint violation | |
-| test_03_last_rowid.das | `INTEGER PRIMARY KEY` ↔ ROWID — no-PK insert auto-assigns rowid, explicit-PK insert preserves Id, array insert returns last rowid, `_sql_pk_is_unset` predicate, drop+recreate resets rowid | |
-| test_04_user_types.das | User-defined SQL-mapped types — `sqlite_sql_type` / `sqlite_bind` overloads for a user `Color` struct, `[sql_table]` DDL emission with the user type, INSERT round-trip through the custom bind path | |
+| test_03_last_rowid.das | `INTEGER PRIMARY KEY` <-> ROWID - no-PK insert auto-assigns rowid, explicit-PK insert preserves Id, array insert returns last rowid, `_sql_pk_is_unset` predicate, drop+recreate resets rowid | |
+| test_04_user_types.das | User-defined SQL-mapped types - `sqlite_sql_type` / `sqlite_bind` overloads for a user `Color` struct, `[sql_table]` DDL emission with the user type, INSERT round-trip through the custom bind path | |
 | test_05_sql_macro.das | `_sql` bare `select_from` chain with `_where` / `_select` / `_to_array` composability (bind captures, literals, boolean ops) | |
 | test_05a_select_from_compat.das | Compatibility mode: `select_from(db, type<T>)` bare function vs `_sql` macro optimizer (client-side `_where` filtering via linq) | |
 | test_06_sql_text.das | `_sql_text` compile-time SQL emission (bare select, projections, WHERE with captures, AND/OR/NOT, composed chains, no-op `_to_array`) | |
@@ -194,7 +199,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_15_query_scalar_int.das | `query_scalar` scalar return types: int (positive, negative) | |
 | test_16_query_scalar_int64.das | `query_scalar` int64 (max value, COUNT(*) narrowing) | |
 | test_17_query_scalar_double.das | `query_scalar` double precision floating-point | |
-| test_18_query_scalar_bool.das | `query_scalar` boolean (1→true, 0→false, predicates) | |
+| test_18_query_scalar_bool.das | `query_scalar` boolean (1->true, 0->false, predicates) | |
 | test_19_query_scalar_opt.das | `query_scalar_opt` returns Option<T> (string, int, int64, double, bool; none on empty) | |
 | test_20_try_query_scalar_overloads.das | `try_query_scalar` all type overloads (int, int64, double, bool) and error on no rows | |
 | test_21_try_sql_macro.das | `_try_sql` wrapper (non-panicking Result sibling of `_sql`; array, `_first`, `_first_opt`, count, empty-table error handling) | |
@@ -205,7 +210,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_27_where_to_lower.das | `to_lower()` / `to_upper()` case-insensitive matching (emits LOWER/UPPER SQL functions) | |
 | test_28_where_length.das | `length()` string function in predicates (emits LENGTH SQL function) | |
 | test_29_where_abs.das | `abs()` mathematical function (emits ABS SQL function) | |
-| test_30_count_canary.das | `count()` aggregate canary — emits COUNT(*), empty table returns 0, `_select` pass-through | |
+| test_30_count_canary.das | `count()` aggregate canary - emits COUNT(*), empty table returns 0, `_select` pass-through | |
 | test_31_count_with_where.das | `count()` with `_where` filter (emits COUNT(*) FROM ... WHERE) | |
 | test_32_distinct.das | `distinct()` emits SELECT DISTINCT (full-row dedup, composes with `_where`) | |
 | test_33_take_skip.das | `take(n)` / `skip(n)` emit LIMIT / OFFSET; bind ordering, `_first` overrides take | |
@@ -235,7 +240,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_57_sql_unique.das | `@sql_unique` portable generated-index emission, named-table rewrite, constraint enforcement, distinct values allowed | |
 | test_58_sql_references.das | `@sql_references` / `@sql_on_delete` foreign-key relationships (DDL REFERENCES clause, CASCADE delete semantics) | |
 | test_59_sql_index.das | `[sql_index]` DDL emission (single-col, composite, unique indexes with auto-naming) | |
-| test_60_defaults_computed.das | Defaults (native field init → DEFAULT, `@sql_default_fn` built-ins) and computed columns (`@sql_computed` VIRTUAL/STORED) | |
+| test_60_defaults_computed.das | Defaults (native field init -> DEFAULT, `@sql_default_fn` built-ins) and computed columns (`@sql_computed` VIRTUAL/STORED) | |
 | test_61_custom_types.das | `sql_bind` / `sql_extract` adapter rail (DateTime via int64, Guid via array<uint8>, enum via int, Option<T> nullability) | |
 | test_62_blob.das | `array<uint8>` BLOB storage (DDL, byte-level round-trip, large blobs, Option<array<uint8>>) | |
 | test_63_exec_params.das | `exec` parameterized binds (0/1/2/3-arg variadic overloads for raw DDL/DML) | |
@@ -248,8 +253,8 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_70_sql_column_upsert.das | `@sql_column` rename across UPSERT (ON CONFLICT/DO UPDATE SET emit renamed SQL identifiers) | |
 | test_71_sql_column_index_fk.das | `@sql_column` rename with `[sql_index]` and `@sql_references` (FK target PK rename) | |
 | test_72_view_basic.das | `[sql_view]` read-only views (macro emit, `_create_view`, select_from on view type, named projections) | |
-| test_74_register_function_basic.das | `register_function("name", @@fn)` UDF registration (0–4-arg overloads, all scalar types) | |
-| test_75_register_function_null_panic.das | NULL short-circuit (no invocation on NULL arg → NULL result) and panic recovery | |
+| test_74_register_function_basic.das | `register_function("name", @@fn)` UDF registration (0-4-arg overloads, all scalar types) | |
+| test_75_register_function_null_panic.das | NULL short-circuit (no invocation on NULL arg -> NULL result) and panic recovery | |
 | test_76_register_function_use_in_chains.das | Registered UDFs usable in WHERE / ORDER BY / projection (deterministic UDF embed in `_sql` chains) | |
 | test_77_register_function_lifetime.das | UDF registration lifetime (re-register replaces binding, per-connection scope) | |
 | test_80_pragma_basic.das | `set_pragma` string/int64/bool values (journal_mode, busy_timeout, foreign_keys round-trip) | |
@@ -284,9 +289,9 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | File | Description | Expects errors |
 |---|---|---|
 | ast_cursor_fixture.das | *(helper)* Fixture file for ast_cursor tests | |
-| ast_cursor_test.das | `daslib/ast_cursor` — cursor-based AST navigation and query | |
-| clargs_test.das | `daslib/clargs` — string flags, `=`-style assignment, array flags, int/float flags, bool/help flags | |
-| keyword_test.das | `daslib/keyword` — `is_cpp_keyword`, `is_das_keyword`, `is_keyword` predicates | |
+| ast_cursor_test.das | `daslib/ast_cursor` - cursor-based AST navigation and query; with `declarations` a cursor on a `for`/`let` variable or a function argument is a variable hit, off by default; a class line yields no hit from its synthesized members; `find_declaration_at_cursor` on a class, its parent, a function and a method, the name-token rule and the line-only lookup; the text helpers; a cursor on a field name hits the access; given the line's text, a cursor on a type name is a type hit - on a forward-referenced class's `new` site too (the inferred type keeps the name's position), never on a builtin type, a method's implicit `self` or the class line's synthesized members, one per name and position; `declaration_of` resolves a type to its class, and an alias to the typedef whichever module declares it; a user field's initializer after the compiler's fields and a safe field access from its name are hits; a generic instance and a generator body are the user's; a method call through `->` or the implicit self is a hit on the method field, never on the conversions it desugars to; `find_method_function` follows a method field to the receiver's override or the inherited function, never a `@@func` data field; a field declares once across the hierarchy (`field_at`, `is_own_field`) and its own name is a `field` declaration, a lambda's capture struct never is | |
+| clargs_test.das | `daslib/clargs` - string flags, `=`-style assignment, array flags, int/float flags, bool/help flags | |
+| keyword_test.das | `daslib/keyword` - `is_cpp_keyword`, `is_das_keyword`, `is_keyword` predicates | |
 
 ## dastest/
 
@@ -296,24 +301,26 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | _fixture_fail.das | *(helper)* Failing test fixture | |
 | _fixture_pass.das | *(helper)* Passing test fixture | |
 | _fixture_skip.das | *(helper)* Skipped test fixture | |
-| test_json_output.das | dastest JSON output — `--json-file` report format, suite results, pass/fail/skip counts | |
+| test_json_output.das | dastest JSON output - `--json-file` report format, suite results, pass/fail/skip counts | |
+| test_dasfmt_exclude_mask.das | das-fmt `--exclude-mask` - masked build-dir files are excluded (separator-normalized) and reported; unmasked verify stays red | |
 
 ## debug/
 
 | File | Description | Expects errors |
 |---|---|---|
-| deval.das | debug_eval — expression evaluation in debug context | |
+| deval.das | debug_eval - expression evaluation in debug context | |
 | test_sprint_format.das | sprint/sprint_data gen2 output format for all types and fullTypeInfo flag | |
 
 ## debug_agent/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_invoke_in_context.das | invoke_in_context with `[pinvoke]` — cross-context function invocation | |
+| test_invoke_in_context.das | invoke_in_context with `[pinvoke]` - cross-context function invocation | |
 | test_invoke_method.das | invoke_debug_agent_method with various argument counts | |
-| test_lifecycle.das | Debug agent lifecycle — create, check, context access | |
+| test_lifecycle.das | Debug agent lifecycle - create, check, context access | |
 | test_on_log.das | to_log/print triggering onLog on debug agents | |
 | test_state_collection.das | State collection via onCollect and onVariable | |
+| test_thread_local_invoke.das | invoke_debug_agent_method/function with an empty (null) category - thread-local agent in a new_thread, its errors and calls | |
 | test_threadlock.das | threadlock_context option propagation | |
 
 ## dasPEG/
@@ -344,26 +351,26 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | failed_test_arguments.das | Invalid query arguments (optional with defaults, & + const) | **expect** `40104:4` `30103:2` |
 | failed_test_empty_template.das | Empty decs_template struct is rejected | **expect** `30111` |
 | test_archetype.das | Archetype creation, lookup, migration | |
-| test_bulk_create.das | Bulk entity creation — `create_entities` and `create_entities`T` direct path | |
-| test_arrays.das | Arrays as decs components — iterate, modify | |
+| test_bulk_create.das | Bulk entity creation - `create_entities` and `create_entities`T` direct path | |
+| test_arrays.das | Arrays as decs components - iterate, modify | |
 | test_boundaries.das | commit/restart inside query (expected failures) | |
-| test_commit_deferred.das | Deferred semantics — entities not visible until commit | |
+| test_commit_deferred.das | Deferred semantics - entities not visible until commit | |
 | test_component_map.das | ComponentMap set/get/has/remove | |
 | test_create_update_remove.das | Entity create, update, remove lifecycle | |
 | test_default_values.das | decs_template with default values | |
 | test_entity_lifecycle.das | Entity ID uniqueness, validity, invalidation after delete | |
-| test_gc.das | decs with GC — archive arrays, strings, gc_collect | |
+| test_gc.das | decs with GC - archive arrays, strings, gc_collect | |
 | test_objects.das | Creating objects/entities with set and clone syntax | |
 | test_optional_values.das | `@optional` query arguments | |
 | test_queries.das | Nested queries, by-eid, with different types | |
 | test_queries_comprehensive.das | Query across archetypes, mutation, const-correctness | |
 | test_query_eid_rw.das | Read-write query with eid parameter | |
-| test_serialize.das | decs serialization — save/load state | |
-| test_stages.das | decs_stage — update stage with velocity | |
+| test_serialize.das | decs serialization - save/load state | |
+| test_stages.das | decs_stage - update stage with velocity | |
 | test_stages_comprehensive.das | Physics/scoring stages, REQUIRE filtering | |
-| test_stages_extra.das | *(helper)* Extra stage functions — make_invisible, check_visible | |
-| test_templates_comprehensive.das | decs_template — default prefix, custom prefix, nested templates | |
-| test_update_entity_comprehensive.das | update_entity — modify, add/remove components, archetype migration | |
+| test_stages_extra.das | *(helper)* Extra stage functions - make_invisible, check_visible | |
+| test_templates_comprehensive.das | decs_template - default prefix, custom prefix, nested templates | |
+| test_update_entity_comprehensive.das | update_entity - modify, add/remove components, archetype migration | |
 | test_utility_functions.das | is_alive, INVALID_ENTITY_ID, entity counting | |
 
 ## dynamic_cast_rtti/
@@ -376,11 +383,13 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| fio_errors.das | Path manipulation and error handling — extension, dir_name, base_name, normalize, mkdir/rmdir edge cases | |
-| fio_file.das | File I/O — fopen, fread, fwrite with fuzzing | |
-| fio_utils.das | File utilities — fexist, rmdir, rmdir_rec, fread/fwrite by path, get_das_version | |
-| glob_test.das | Pathname glob — `match_glob` (literal, `*`, `**`, `?`, `[a-z]`, `[!abc]`, edge cases), `glob`, `glob_filtered` walk, `is_glob_pattern` | |
-| popen_argv.das | `popen_argv` — basic invocation, non-zero exit on unknown flag, exit code capture | |
+| fio_errors.das | Path manipulation and error handling - extension, dir_name, base_name, normalize, mkdir/rmdir edge cases | |
+| fio_file.das | File I/O - fopen, fread, fwrite with fuzzing | |
+| _fixture_poll_child.das | *(helper)* the child fio_poll.das polls - silent until a release file appears, then one line | |
+| fio_poll.das | `fpoll` on a pipe - false while the child is silent, true on its line, true at EOF; a regular file is always ready; `funbuffered` | |
+| fio_utils.das | File utilities - fexist, rmdir, rmdir_rec, fread/fwrite by path, get_das_version | |
+| glob_test.das | Pathname glob - `match_glob` (literal, `*`, `**`, `?`, `[a-z]`, `[!abc]`, edge cases), `glob`, `glob_filtered` walk, `is_glob_pattern` | |
+| popen_argv.das | `popen_argv` - basic invocation, non-zero exit on unknown flag, exit code capture, a forward-slash relative argv[0] | |
 
 ## fixed_array/
 
@@ -388,61 +397,61 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_layout.das | Memory layout — sizeof/alignof, element stride via addresses, 2D contiguity, FA field offsets in structs/tuples/variants, packed float3 stride | |
-| test_semantics.das | Value semantics — whole-array assign/init-copy/`:=`/`clone()`, 2D assign, zero-init, `fixed_array()` literal types, FA returns, struct-field deep copy, non-copyable elements + `finalize_dim` | |
-| test_indexing.das | Indexing — read/write at every depth, index expressions, partial 2D index yields row copy, const globals, struct fields, `subarray` + range-index sugar | |
-| test_iteration.das | Iteration — for-loops 1D/2D, mutation through loop ref, FA of structs, `each()`, parallel iteration with range/array | |
-| test_containers.das | `array<int[4]>` push/push_clone/emplace, `table<K;int[4]>` insert/get/get_value/values/insert_clone (get_key excluded — broken on master, see target spec) | |
-| test_generics_current.das | Must-survive inference — 1D FA prefers `auto[]` overload, dynamic containers bind whole to `auto(TT)`, unsized `int[]` params, `==const` | |
-| test_typeinfo.das | typeinfo surface — `dim`, non-alias typename strings, can_copy/is_pod, sizeof≡dim×elem | |
-| test_interop.das | C++ native-dim field (TestObjectFoo.fooArray) — read/write, typename, iteration, unsized param, copy-out. AOT-excluded: emitter bug #3077 | |
+| test_layout.das | Memory layout - sizeof/alignof, element stride via addresses, 2D contiguity, FA field offsets in structs/tuples/variants, packed float3 stride | |
+| test_semantics.das | Value semantics - whole-array assign/init-copy/`:=`/`clone()`, 2D assign, zero-init, `fixed_array()` literal types, FA returns, struct-field deep copy, non-copyable elements + `finalize_dim` | |
+| test_indexing.das | Indexing - read/write at every depth, index expressions, partial 2D index yields row copy, const globals, struct fields, `subarray` + range-index sugar | |
+| test_iteration.das | Iteration - for-loops 1D/2D, mutation through loop ref, FA of structs, `each()`, parallel iteration with range/array | |
+| test_containers.das | `array<int[4]>` push/push_clone/emplace, `table<K;int[4]>` insert/get/get_value/values/insert_clone (get_key excluded - broken on master, see target spec) | |
+| test_generics_current.das | Must-survive inference - 1D FA prefers `auto[]` overload, dynamic containers bind whole to `auto(TT)`, unsized `int[]` params, `==const` | |
+| test_typeinfo.das | typeinfo surface - `dim`, non-alias typename strings, can_copy/is_pod, sizeof==dimxelem | |
+| test_interop.das | C++ native-dim field (TestObjectFoo.fooArray) - read/write, typename, iteration, unsized param, copy-out. AOT-excluded: emitter bug #3077 | |
 | failed_zero_dim.das | dimension 0 rejected | **expect** 30109 |
 | failed_nonconst_dim.das | runtime dim value rejected | **expect** 30109, 30838 |
 | failed_void_array.das | array of void rejected | **expect** 30108 |
 | failed_typedecl_dim.das | `typedecl(...)[N]` rejected as array base | **expect** 30112 |
 | failed_new_fixed_array.das | `new` of FA type rejected | **expect** 30214 |
 | failed_copy_noncopyable.das | `=` on FA of array<int> rejected | **expect** 30950 |
-| _target_inference.das | *(skipped)* Stage 1 acceptance spec — `auto(TT)` binds whole FA, `auto(TT)[]` peels one level, get_key fix | |
-| _target_alias.das | *(skipped)* Stage 1 acceptance spec — typedef name survives declaration/indexing/generic binding | |
+| _target_inference.das | *(skipped)* Stage 1 acceptance spec - `auto(TT)` binds whole FA, `auto(TT)[]` peels one level, get_key fix | |
+| _target_alias.das | *(skipped)* Stage 1 acceptance spec - typedef name survives declaration/indexing/generic binding | |
 
 ## functional/
 
 | File | Description | Expects errors |
 |---|---|---|
 | test_functional.das | flatten on nested iterators | |
-| test_functional_edge.das | Edge cases — map, filter, reduce, zip, scan, take_while, skip_while, etc. | |
+| test_functional_edge.das | Edge cases - map, filter, reduce, zip, scan, take_while, skip_while, etc. | |
 
 ## fs/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_fs.das | Filesystem operations — extension, dir_name, base_name, normalize, scan_dir, stat, mkdir/rmdir | |
+| test_fs.das | Filesystem operations - extension, dir_name, base_name, normalize, scan_dir, stat, mkdir/rmdir | |
 
 ## handle_types/
 
 | File | Description | Expects errors |
 |---|---|---|
-| handle_vector.das | Point3Array handle type — indexing, each, custom operator [] | |
+| handle_vector.das | Point3Array handle type - indexing, each, custom operator [] | |
 
 ## hash_map/
 
 | File | Description | Expects errors |
 |---|---|---|
-| all_hash_table.das | flat_hash_table and cuckoo_hash_table — dispatch, generics | |
+| all_hash_table.das | flat_hash_table and cuckoo_hash_table - dispatch, generics | |
 
 ## delegate/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_delegate.das | C#-like delegate system — assign, append, invoke, void/non-void, multi-arg, zero-arg, utilities | |
+| test_delegate.das | C#-like delegate system - assign, append, invoke, void/non-void, multi-arg, zero-arg, utilities | |
 
 ## interfaces/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_const_interfaces.das | Const-only interfaces — all-const methods, mixed const/non-const, const dispatch | |
-| test_inheritance.das | Interface inheritance — IAnimal → IPet → IGuideDog | |
-| test_interfaces.das | `[interface]` macro — ITick, ILogger, IEmpty, `[implements]` | |
+| test_const_interfaces.das | Const-only interfaces - all-const methods, mixed const/non-const, const dispatch | |
+| test_inheritance.das | Interface inheritance - IAnimal -> IPet -> IGuideDog | |
+| test_interfaces.das | `[interface]` macro - ITick, ILogger, IEmpty, `[implements]` | |
 | test_missing_inherited.das | Completeness check catches missing inherited abstract methods | **expect** `30111` |
 | test_missing_method.das | Completeness check catches missing abstract methods | **expect** `30111` |
 
@@ -450,9 +459,9 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| bitfield64.das | 64-bit bitfield through the JIT — construction, pass/return, uint64 round-trip | |
+| bitfield64.das | 64-bit bitfield through the JIT - construction, pass/return, uint64 round-trip | |
 | lambda_return.das | Lambda returned from a function under the JIT | |
-| fast_math_specials.das | `options fast_math` stays value-safe for real infs — sigmoid/silu over the exp-overflow range (x64 rcp-NR NaN regression) | |
+| fast_math_specials.das | `options fast_math` stays value-safe for real infs - sigmoid/silu over the exp-overflow range (x64 rcp-NR NaN regression) | |
 
 ## jit_tests/
 
@@ -474,8 +483,8 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | compare.das | Comparison operators | |
 | dim.das | Fixed-size arrays (dim) | |
 | dim2d.das | 2D fixed arrays | |
-| default_fn_ptr.das | Default function pointer argument — invoke with default `@@noop_handler` | |
-| dll_cache.das | JIT DLL content-addressed caching — identical source → cache hit, changed source → cache miss | |
+| default_fn_ptr.das | Default function pointer argument - invoke with default `@@noop_handler` | |
+| dll_cache.das | JIT DLL content-addressed caching - identical source -> cache hit, changed source -> cache miss | |
 | extern_call.das | External function calls | |
 | finally.das | Finally blocks | |
 | for_loop.das | For loop codegen | |
@@ -486,14 +495,14 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | interop_call.das | Interop calls | |
 | intrinsics.das | Intrinsic functions | |
 | invoke.das | Invoke operations | |
-| jit_exe.das | JIT executable creation — compile and run standalone JIT binary | |
+| jit_exe.das | JIT executable creation - compile and run standalone JIT binary | |
 | labels.das | Label/goto codegen | |
 | memset.das | Memset operations | |
 | move.das | Move semantics | |
 | new_ascend_and_delete.das | New/delete heap operations | |
 | phi.das | Phi node (SSA) codegen | |
 | pointer.das | Pointer operations | |
-| ptr_ref_return.das | Pointer ref return — returning `int? const&` from array | |
+| ptr_ref_return.das | Pointer ref return - returning `int? const&` from array | |
 | range64.das | 64-bit range operations | |
 | ref.das | Reference semantics | |
 | safe_navigation.das | Safe navigation (?.) | |
@@ -502,7 +511,7 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | struct.das | Struct operations | |
 | table.das | Table operations | |
 | table_value_key.das | Table value/key access | |
-| trap_block_ann.das | Block with `annotationData` filled by a `[block_macro]` — runs under JIT, and a standalone exe is still emitted (the LLVM backend used to store a trap in the block's global instead) | |
+| trap_block_ann.das | Block with `annotationData` filled by a `[block_macro]` - runs under JIT, and a standalone exe is still emitted (the LLVM backend used to store a trap in the block's global instead) | |
 | _trap_block_ann_helper.das | *(helper)* `[block_macro]` whose `finish()` fills `annotationData`/`annotationDataSid` | |
 | try_recover.das | Try/recover codegen | |
 | tuple.das | Tuple operations | |
@@ -519,27 +528,28 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | File | Description | Expects errors |
 |---|---|---|
 | atomics.das | Atomic32/atomic64 set/get/inc/dec | |
-| test_jobque_atomics.das | with_atomic32/atomic64 — set, get, inc, dec, initial value | |
-| test_jobque_channels.das | Channel boost — push_clone, for_each_clone, with_channel | |
-| test_jobque_edge.das | Channel edge cases — single-item, large batch | |
+| test_runtime_memory.das | Owning context allocations, native allocator observations, and retained idle-fork memory | |
+| test_jobque_atomics.das | with_atomic32/atomic64 - set, get, inc, dec, initial value | |
+| test_jobque_channels.das | Channel boost - push_clone, for_each_clone, with_channel | |
+| test_jobque_edge.das | Channel edge cases - single-item, large batch | |
 | test_jobque_jobs.das | JobStatus, new_job with channels and messages | |
-| test_jobque_lockbox.das | LockBox basics — create, destroy, validity | |
-| test_jobque_lockbox_fill_grab.das | LockBox `fill`/`grab` — fill marks ready, grab returns data and resets, multi-element batch | |
+| test_jobque_lockbox.das | LockBox basics - create, destroy, validity | |
+| test_jobque_lockbox_fill_grab.das | LockBox `fill`/`grab` - fill marks ready, grab returns data and resets, multi-element batch | |
 | test_jobque_parallel.das | parallel_for, parallel work distribution | |
-| test_jobque_stream.das | Channel stream — push/pop bytes, structured data serialization via archive | |
-| test_jobque_try_pop.das | try_pop_clone — non-blocking pop, empty/data/drain | |
-| test_jobque_tracking.das | Job status leak tracking — channel create+remove leaves no leak, `--track-job-status` canary | |
-| test_jobque_wait_group.das | with_wait_group — convenience wrapper for job completion | |
+| test_jobque_stream.das | Channel stream - push/pop bytes, structured data serialization via archive | |
+| test_jobque_try_pop.das | try_pop_clone - non-blocking pop, empty/data/drain | |
+| test_jobque_tracking.das | Job status leak tracking - channel create+remove leaves no leak, `--track-job-status` canary | |
+| test_jobque_wait_group.das | with_wait_group - convenience wrapper for job completion | |
 
 ## json/
 
 | File | Description | Expects errors |
 |---|---|---|
 | broken.das | Parsing/round-tripping JSON with emoji and long strings | |
-| safe.das | Safe JSON operators — ?[], ?., ?? fallback | |
-| test_json_edge.das | JSON edge cases — parsing scalars, arrays, nested, whitespace, error recovery | |
-| test_sprint_json.das | sprint_json — basic types, structs, arrays, tables, variants, annotations, RTTI | |
-| test_sscan_json.das | sscan_json — scalars, structs, pointers, arrays, tables, tuples, variants, vectors, ranges, bitfields, enums, @rename, round-trip | |
+| safe.das | Safe JSON operators - ?[], ?., ?? fallback | |
+| test_json_edge.das | JSON edge cases - parsing scalars, arrays, nested, whitespace, error recovery | |
+| test_sprint_json.das | sprint_json - basic types, structs, arrays, tables, variants, annotations, RTTI | |
+| test_sscan_json.das | sscan_json - scalars, structs, pointers, arrays, tables, tuples, variants, vectors, ranges, bitfields, enums, @rename, round-trip | |
 | types.das | JV/from_JV JSON serialization for all basic/vector/struct types | |
 
 ## language/
@@ -550,35 +560,36 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | _helper_foo.das | *(helper)* Module providing `TestObjectFoo` struct and `testFoo` function | |
 | _helper_macro_uninferred.das | *(helper)* `[bad_emitter]` structure_macro that adds an un-inferred function during patch | |
 | _fixup_init_macro.das | *(helper)* `[fixup_init_capture]` function_macro whose fixup installs a call-shaped global init (to_array_move) | |
-| test_fixup_global_init.das | Pipeline contract — a call-shaped global init installed by an annotation's fixup() resolves via the post-fixup dirty re-infer and evaluates | |
-| _lambda_vis_inner.das | *(helper)* Non-public leaf module for lambda_in_generic_module_vis — provides `inner_dot` | |
+| test_fixup_global_init.das | Pipeline contract - a call-shaped global init installed by an annotation's fixup() resolves via the post-fixup dirty re-infer and evaluates | |
+| _lambda_vis_inner.das | *(helper)* Non-public leaf module for lambda_in_generic_module_vis - provides `inner_dot` | |
 | _lambda_vis_mid.das | *(helper)* Mid module hosting generics whose outlined lambdas/generators/local fns must resolve `inner_dot` | |
-| _module_a.das | *(helper)* Module for module_vis_fail — globals, types, functions | |
-| _module_b.das | *(helper)* Module for module_vis_fail — requires _module_a | |
+| _module_a.das | *(helper)* Module for module_vis_fail - globals, types, functions | |
+| _module_b.das | *(helper)* Module for module_vis_fail - requires _module_a | |
 | _operators_derived.das | *(helper)* Derived class BarOp | |
 | _operators_parent.das | *(helper)* Parent class FooOp with property operator | |
+| _private_property_helper.das | *(helper)* Class Gate with a private property setter and a private property getter, for private_property_setter / failed_private_property_setter | |
 | access_private_from_lambda.das | Class private field access from lambda + operator delete | |
-| add_property_ext_const.das | `isReadOnly` property on `TestObjectFoo` — const vs non-const dispatch | |
+| add_property_ext_const.das | `isReadOnly` property on `TestObjectFoo` - const vs non-const dispatch | |
 | aka.das | `aka` variable aliasing in various contexts | |
 | aliasing.das | Aliasing behavior with `no_aliasing = false` | |
-| array.das | Dynamic array ops — make, verify, pass, erase, push, sort, move, multi-push, const | |
-| array_comprehension.das | Array/iterator comprehension — square, filtered with `where` | |
+| array.das | Dynamic array ops - make, verify, pass, erase, push, sort, move, multi-push, const | |
+| array_comprehension.das | Array/iterator comprehension - square, filtered with `where` | |
 | ascend_ctor.das | `new` with class constructors and fields | |
 | assume.das | `assume` for deep field access | |
-| failed_assume_loop.das | Circular `assume` detection — direct and indirect loops | **expect** `30127:2` `30305:4` |
-| failed_auto_infer.das | Auto type inference failures — missing overloads, wrong types | **expect** `31101` `31102:8` `30304:2` `30105:1` `30102:2` `30106` `30113` `31300` |
-| auto_infer_success.das | Successful auto type inference — generics, dim, static_if, variants | |
+| failed_assume_loop.das | Circular `assume` detection - direct and indirect loops | **expect** `30127:2` `30305:4` |
+| failed_auto_infer.das | Auto type inference failures - missing overloads, wrong types | **expect** `31101` `31102:8` `30304:2` `30105:1` `30102:2` `30106` `30113` `31300` |
+| auto_infer_success.das | Successful auto type inference - generics, dim, static_if, variants | |
 | auto_ref_and_move_ret.das | Auto ref alias and move return of array | |
-| bin_serializer.das | `binary_save`/`binary_load` — struct with bool, int, float, array, fixed_array fields | |
-| bitfields.das | Bitfield operations — 32-bit and 64-bit, operators, `typeinfo` | |
+| bin_serializer.das | `binary_save`/`binary_load` - struct with bool, int, float, array, fixed_array fields; a null lambda field fails the save with an error | |
+| bitfields.das | Bitfield operations - 32-bit and 64-bit, operators, `typeinfo` | |
 | block.das | Block creation and invocation | |
-| block_invoke.das | Block invocation — twice, nested chaining, value capture, ref passing | |
+| block_invoke.das | Block invocation - twice, nested chaining, value capture, ref passing | |
 | block_access_function_arg.das | Nested block accessing outer lambda variable via helper | |
-| block_annotation_data.das | Block `annotationData` round-trip — `[block_ann_data]` writes it in finalize, `testBlockAnnotationData` reads it back off the runtime block; must agree across interpreter / C++ AOT (`adBySid`) / LLVM JIT (`jit_ad_by_sid`) | |
-| block_args_nested.das | Deeply nested blocks — int, ref, ptr, struct passthrough | |
-| block_variable.das | Local block variables — void/result × no-arg/with-arg × value/cmres | |
+| block_annotation_data.das | Block `annotationData` round-trip - `[block_ann_data]` writes it in finalize, `testBlockAnnotationData` reads it back off the runtime block; must agree across interpreter / C++ AOT (`adBySid`) / LLVM JIT (`jit_ad_by_sid`) | |
+| block_args_nested.das | Deeply nested blocks - int, ref, ptr, struct passthrough | |
+| block_variable.das | Local block variables - void/result x no-arg/with-arg x value/cmres | |
 | block_vs_local_block.das | Pipe `<\|` block vs local block variable invoke | |
-| bool_condition.das | Boolean condition in `if` — false skips body | |
+| bool_condition.das | Boolean condition in `if` - false skips body | |
 | cant_access_private_members.das | Private member access violations | **expect** `30503:3` `30301:1` |
 | cant_dereference_mix.das | Invalid dereference operations | **expect** `30501:5` |
 | cant_derive_from_sealed_class.das | Sealed class derivation error | **expect** `30115` |
@@ -586,84 +597,87 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | cant_have_local_variable.das | Non-local type as local variable (uses `ast::TypeDecl`) | **expect** `30108:4` `30101:2` `31300:3` |
 | cant_index.das | Invalid index operations | **expect** `30502:2` |
 | cant_override_sealed.das | Sealed method override errors | **expect** `30115:2` |
+| cant_scratch_outside_unsafe.das | Every scratch container primitive requires `unsafe` | **expect** `31013:6` |
 | cant_write_to_constant_value.das | Const value write violations | **expect** `30504:3` |
 | capture_as_ref.das | Class lambda capturing `self` as ref | |
 | capture_string.das | String capture in lambdas and string builder (module) | |
 | cast.das | `cast<>` struct inheritance, `reinterpret<>` memory reinterpretation | |
 | check_eid.das | `CheckEid`/`CheckEid2` on `TestObjectFoo` with custom `unit_test` option | |
-| clone.das | Clone complex nested structs, arrays, tables — deep copy verification | |
+| clone.das | Clone complex nested structs, arrays, tables - deep copy verification | |
 | clone_temp.das | Clone of temporary struct returned from function | |
-| clone_to_move.das | Clone-assign `:=` for arrays — global and local | |
+| clone_to_move.das | Clone-assign `:=` for arrays - global and local | |
 | copy_and_move_on_return.das | Copy on return + move on return + block return | |
 | ctor.das | Struct default initializer and custom constructor | |
 | chain_invoke_method.das | Chained `new Obj()->method1()->method2()` invocation | |
 | failed_comment_eof.das | Unterminated comment at end of file | **expect** `10007` |
 | failed_condition_must_be_bool.das | Non-bool condition in if/while | **expect** `30601:2` `30303` `30506` |
 | failed_const_and_block_folding.das | Constant folding side-effect errors | **expect** `40209:2` |
-| failed_const_ref.das | Const ref restrictions — write, move, copy, return | **expect** `30102` `30106` `30303:1` `30304:2` `30504:5` `30505:2` `30507:3` `30508:1` |
+| failed_const_ref.das | Const ref restrictions - write, move, copy, return | **expect** `30102` `30106` `30303:1` `30304:2` `30504:5` `30505:2` `30507:3` `30508:1` |
 | containers.das | Temporary container operations (with containers.inc) | |
 | failed_containers_failed.das | Container compile-time failures | **expect** `30304:4` |
-| contracts.das | `daslib/contracts` — expect_dim, expect_any_tuple, expect_any_variant | |
-| coroutines.das | Typed coroutines — count_up, count_down, yield, co_continue | |
-| cpp_layout.das | `[cpp_layout]` struct annotation — sizeof, offsetof, pod=false | |
-| das_string.das | `das_string` type — assign, peek, string conversion, interpolation | |
-| defer.das | Defer execution order, defer_delete, short pipe syntax | |
+| contracts.das | `daslib/contracts` - expect_dim, expect_any_tuple, expect_any_variant | |
+| coroutines.das | Typed coroutines - count_up, count_down, yield, co_continue | |
+| cpp_layout.das | `[cpp_layout]` struct annotation - sizeof, offsetof, pod=false | |
+| das_string.das | `das_string` type - assign, peek, string conversion, interpolation | |
+| defer.das | Defer execution order, defer_delete, short pipe syntax, bare-block defer inside a lambda | |
 | default_method_arguments.das | Default argument values in abstract/override methods | |
-| deref_ptr_fun.das | `deref(getPtr())` — function pointer dereference | |
-| dim.das | Fixed-size 2D arrays — indexing, pointer arithmetic, string representation | |
-| div_by_zero.das | Division/modulo by zero — int, uint, int64, uint64 via try/recover | |
-| dummy.das | `SomeDummyType` — sizeof, alignof with `@safe_when_uninitialized` | |
+| deref_ptr_fun.das | `deref(getPtr())` - function pointer dereference | |
+| dim.das | Fixed-size 2D arrays - indexing, pointer arithmetic, string representation | |
+| distinct_table_keys.das | Tables and sets keyed by distinct types - two distincts over `int` stay apart, erase, iteration, `keys()`, a distinct over `string` | |
+| div_by_zero.das | Division/modulo by zero - int, uint, int64, uint64 via try/recover | |
+| dummy.das | `SomeDummyType` - sizeof, alignof with `@safe_when_uninitialized` | |
 | failed_duplicate_keys.das | Duplicate table keys at compile time | **expect** `40300:4` |
-| dynamic_array.das | Dynamic array — push, resize, reserve, capacity, erase, move | |
+| dynamic_array.das | Dynamic array - push, resize, reserve, capacity, erase, move | |
 | dynamic_type_checking.das | dynamic_cast, is_instance_of with class hierarchies | |
-| each_std_vector.das | `testFooArray()` iteration over std::vector — length, capacity, find_index_if | |
-| enum.das | Enum ops — int16 base, negative values, typeinfo, enum_trait, C++ bindings | |
-| enumerations.das | Enum conversion — to/from string, enum_trait | |
-| erase_if.das | `erase_if` on dynamic arrays — remove negative values, stress patterns | |
+| each_std_vector.das | `testFooArray()` iteration over std::vector - length, capacity, find_index_if | |
+| enum.das | Enum ops - int16 base, negative values, typeinfo, enum_trait, C++ bindings | |
+| enumerations.das | Enum conversion - to/from string, enum_trait | |
+| erase_if.das | `erase_if` on dynamic arrays - remove negative values, stress patterns | |
 | failed_aka.das | Global aka and typedef aka produce errors | **expect** `20000:1` |
 | failed_aliasing.das | Aliasing errors with `no_aliasing` option | **expect** `40211:23` `40212:3` |
 | failed_block.das | Block variable initialization failures | **expect** `30108` `30113` |
 | failed_capture_self.das | Capturing `self` in lambda fails | **expect** `30508` `30124` |
 | failed_constants.das | Out-of-range numeric literal errors | **expect** `10006:12` `10010:4` |
-| failed_recursive_default.das | A struct method whose default argument calls itself — the recursive named call can't resolve and the auto return type can't be inferred through the recursion | **expect** `30161` `30237` `30341` `30344` `30805` |
-| failed_table_lookup_collision.das | Table lookup collision lint — same table indexed twice in one expression | **expect** `40216:7` |
-| finally.das | `finally` blocks — exceptions, loops, nested, return | |
+| failed_defer_in_lambda.das | `defer` at the top level of a lambda or generator body is rejected - it would become the finalizer, not a per-call cleanup | **expect** `50503:2` |
+| failed_recursive_default.das | A struct method whose default argument calls itself - the recursive named call can't resolve and the auto return type can't be inferred through the recursion | **expect** `30161` `30237` `30341` `30344` `30805` |
+| failed_table_lookup_collision.das | Table lookup collision lint - same table indexed twice in one expression | **expect** `40216:7` |
+| finally.das | `finally` blocks - exceptions, loops, nested, return | |
 | for_const_array.das | For-loop over `fixed_array` constant | |
 | for_continue.das | `continue` in while, for, and complex nested loops | |
-| for_loop.das | For-loop mechanics — range, collections, nested, iterators | |
+| for_loop.das | For-loop mechanics - range, collections, nested, iterators | |
 | for_single_element.das | For-loop over single-element dim array | |
 | fully_qualified_generic_name.das | Fully qualified `UnitTest::start_effect` generic call | |
-| func_addr.das | Function pointer via `@@` — invoke, comparison, null check | |
-| if_one_liner.das | One-liner `if` — postfix, prefix, break, continue on same line | |
-| if_not_null.das | `if_not_null` macro — null skips, non-null invokes block | |
-| ignore_deref.das | Pointer deref from array — by value and explicit type | |
-| index_types.das | Index `[]` operations across all types and index types — pointer, array, dim, string | |
-| infer_alias_and_alias_ctor.das | Auto alias inference — generic join, findObject | |
-| infer_alias_argument.das | Auto alias argument inference — fold | |
+| func_addr.das | Function pointer via `@@` - invoke, comparison, null check | |
+| if_one_liner.das | One-liner `if` - postfix, prefix, break, continue on same line | |
+| if_not_null.das | `if_not_null` macro - null skips, non-null invokes block | |
+| ignore_deref.das | Pointer deref from array - by value and explicit type | |
+| index_types.das | Index `[]` operations across all types and index types - pointer, array, dim, string | |
+| infer_alias_and_alias_ctor.das | Auto alias inference - generic join, findObject | |
+| infer_alias_argument.das | Auto alias argument inference - fold | |
 | infer_remove_ref_const.das | Auto ref/const removal inference | |
 | inscope_return_inscope.das | Early return with `finally` delete of inscope pointers | |
 | failed_function_already_declared.das | Duplicate function declaration | **expect** `30201` |
 | failed_function_argument_already_declared.das | Duplicate function argument name | **expect** `30202` |
-| failed_function_not_found_ambiguous.das | Ambiguous function call — same name in two modules | **expect** `30304` |
-| generators.das | Generator mechanics — yield, ranges, nested, early return | |
-| generic_class_method.das | `[class_method]` on generic static methods — verifies `isAppliedToGeneric` flag | |
+| failed_function_not_found_ambiguous.das | Ambiguous function call - same name in two modules | **expect** `30304` |
+| generators.das | Generator mechanics - yield, ranges, nested, early return | |
+| generic_class_method.das | `[class_method]` on generic static methods - verifies `isAppliedToGeneric` flag | |
 | failed_class_method_non_static.das | `[class_method]` rejected on non-static class method | **expect** `30111` |
 | failed_global_init_type_mismatch.das | Global variable type mismatch on init | **expect** `30113` |
 | global_order.das | Global variable initialization ordering with clone | |
 | global_ptr_init.das | Global pointer struct initialization | |
 | failed_global_variable_already_declared.das | Duplicate global variable declaration | **expect** `30204` |
-| failed_global_variable_init_loop.das | Global variable circular initialization — direct and indirect loops | **expect** `30305:5` |
+| failed_global_variable_init_loop.das | Global variable circular initialization - direct and indirect loops | **expect** `30305:5` |
 | failed_global_variable_order.das | Global variable initialization ordering | **expect** `30305:1` |
 | failed_global_variable_order_itself.das | Global variable self-initialization error | **expect** `30305:1` |
-| handle.das | Handled types — TestObjectFoo/Bar pointer ops, FancyClass, checkRange | |
+| handle.das | Handled types - TestObjectFoo/Bar pointer ops, FancyClass, checkRange | |
 | hash.das | Hash function for various types | |
 | init_order.das | `[init]` function ordering with before/tag | |
 | int_types.das | Integer literal types, char literal, small integer operators | |
 | intrinsics.das | clz, ctz, popcnt for u32/u64 with fuzzing | |
-| invoke_cmres.das | CMRES invoke — functions, hybrid, pointers, blocks, lambdas | |
+| invoke_cmres.das | CMRES invoke - functions, hybrid, pointers, blocks, lambdas | |
 | invalid_argument_count_mix.das | Wrong argument count in function calls | **expect** `30107:4` |
 | invalid_array_type_mix.das | Invalid array element types | **expect** `30105:2` |
-| invalid_block.das | Invalid block usage — wrong types, missing args | **expect** `30801` `30304:4` `32102` `32101` `30102` |
+| invalid_block.das | Invalid block usage - wrong types, missing args | **expect** `30801` `30304:4` `32102` `32101` `30102` |
 | invalid_escape_sequence.das | Invalid string escape sequence | **expect** `10008` |
 | invalid_index_type.das | Wrong index type for containers | **expect** `30110:3` `30106` |
 | invalid_infer_return_type.das | Return type inference failures | **expect** `30102` `32101` `32102` |
@@ -671,121 +685,134 @@ JIT compilation and code-generation tests. None have `expect` directives. The sl
 | invalid_structure_field_type_ref.das | Ref type in struct field | **expect** `30104` |
 | invalid_structure_field_type_void.das | Void type in struct field | **expect** `30104` |
 | invalid_table_type_mix.das | Invalid table key/value types | **expect** `30106:2` `30108` |
+| failed_type_inference_fuzz.das | Fuzzer-reached shapes that must be rejected - sealed redeclare of an inherited field, void argument, `typeinfo is_argument` outside a function, an `[expr]`-typed for-source, a function address with an `[expr]`-typed argument, `typeinfo vector_dim` of a non-vector | **expect** `30107` `30109` `30110:2` `30192` `30268` `30320` `30805` `30821` `30826` `30832` |
+| type_inference_fuzz.das | Fuzzer-reached shapes that must keep compiling - a block in a template structure's dim expression, a computed goto inside a captured block, `new` of a type macro in an option result type | |
 | invalid_type_ref_in_table_value.das | Ref type as table value | **expect** `30106` |
-| invalid_types.das | Oversized types and arguments | **expect** `30101:2` `30108:4` `30109:2` |
-| failed_jit_abi.das | JIT ABI correctness — `test_abi_mad` for float2/3/4, function pointers | |
-| labels.das | Labels and goto — control flow, nested loops, labeled break | |
+| invalid_types.das | Oversized types and arguments - declarations, `new`, ascend, `default<T>` | **expect** `30500:3` `30508` `30510` `30512:3` `30513` |
+| failed_jit_abi.das | JIT ABI correctness - `test_abi_mad` for float2/3/4, function pointers | |
+| _fast_call_depth_recursers.das | *(helper)* `no_aot` module of `[no_jit]` fastcall recursers (one, two, any-left, any-right, nine arguments) and their framed entries for `fast_call_depth.das` | |
+| fast_call_depth.das | `options max_fast_call_depth` - the message names the option, the cap is exact per fused shape, a thousand recovered overflows leave no drift, a host policy caps a program with no options line and a host catch restores the counter | |
+| labels.das | Labels and goto - control flow, nested loops, labeled break | |
 | lambda_basic.das | Lambda capture, invoke, null check, addX returning lambda | |
 | lambda_capture.das | Lambda capturing const values, finalizer behavior | |
 | lambda_capture_modes.das | Lambda capture ref/move/clone modes, capture with delete | |
 | lambda_in_generic_module_vis.das | Functions outlined from generic instances (lambda/generator/local fn/nested) keep the generic's origin module for name resolution | |
 | lambda_to_iter.das | Lambda as iterator via `each(lam)` for int& and struct | |
 | line_info.das | `testCallLine()` line info correctness (6 in script, 0 with AOT) | |
+| test_literal_nontrivial_elements.das | Array literals with non-trivial elements across tiers - moved-in iterator elements, fixed-array elements, comprehension moved into a ctor argument | |
+| test_ctor_literal_pointer_upcast.das | `array<Base?>(new Derived(), ...)` ctor literal upcasts elements to the declared type | |
 | failed_local_classes_failed.das | no_local_class_members restriction | **expect** `31300:1` |
-| lock_array.das | `lock`/`lock_data` on arrays — read-only iteration, mutable data access | |
+| lock_array.das | `lock`/`lock_data` on arrays - read-only iteration, mutable data access | |
 | loop_ret.das | Loop early return fills unique entries (random + tuple) | |
 | make_default.das | Default values for int, string, tuple, variant, struct, enum, array | |
-| make_handle.das | Handle construction — `TestObjectFoo(fooData=...)`, global/local/cmres/ascend | |
-| make_local.das | Struct local construction — defaults, `uninitialized`, fixed_array | |
+| make_handle.das | Handle construction - `TestObjectFoo(fooData=...)`, global/local/cmres/ascend | |
+| make_local.das | Struct local construction - defaults, `uninitialized`, fixed_array | |
 | make_struct_with_clone.das | Struct construction with clone `:=` for array fields | |
-| failed_macro_added_function_must_infer.das | structure_macro adds a function during patch without setting astChanged — compiler reports internal-error diagnostics with a hint, instead of crashing | **expect** `50100:2` |
-| map_to_a.das | `map_to_array` — reinterpret raw memory as typed array via unsafe block | |
+| failed_macro_added_function_must_infer.das | structure_macro adds a function during patch without setting astChanged - compiler reports internal-error diagnostics with a hint, instead of crashing | **expect** `50100:2` |
+| map_to_a.das | `map_to_array` - reinterpret raw memory as typed array via unsafe block | |
 | memset.das | memset8, memset16, memset32, memset64, memset128 | |
 | memzero.das | memzero for float and fixed_array | |
-| method_semantic.das | Struct with `@@` function pointer fields — magnitude, dot product | |
+| method_semantic.das | Struct with `@@` function pointer fields - magnitude, dot product | |
 | failed_mismatching_curly_bracers.das | Mismatched `{` `}` brackets | **expect** `20000` `10002` |
 | failed_mismatching_parentheses.das | Mismatched `(` `)` parentheses | **expect** `20000` `10001` |
 | mksmart_zero.das | `default<smart_ptr<TestObjectSmart>>` returns null smart pointer | |
 | failed_module_vis_fail.das | Module visibility and scope errors | **expect** `30304:4` `30305:2` `30301:2` |
-| move_and_return_move.das | Move semantics — self-move, function move, struct with arrays | |
+| move_and_return_move.das | Move semantics - self-move, function move, struct with arrays | |
 | move_lambda_local_ref.das | `capture(<- arr)` moving array into lambda | |
-| move_on_return.das | Move with `finally` delete — pipeline array return | |
-| failed_named_call.das | Named arguments — reordering, skipping, defaults, error cases | **expect** `30304:12` `30101:1` `30507:1` |
-| named_call.das | Bracket-less named call args — bare mixed `foo(pos, name=v)`, multi-named, bracketed regression, move `<-` / clone `:=`, overload + generic pick, piped block, free-fn-via-dot and genuine class-method forms (middle positional after self) | |
-| failed_named_call_bare.das | Bad named args — unknown/duplicate/missing/out-of-order name, overlap with a filled slot | **expect** `30341:5` |
-| failed_named_call_order.das | Named argument must be a strict suffix — a positional after a named arg is a syntax error | **expect** `30151` |
-| new_and_init.das | `new_and_init` — allocate and copy struct with `always_export_initializer` | |
-| new_delete.das | `delete` for arrays, tables, structs, handles, strings — heap tracking | |
-| new_with_init.das | `new` with struct constructors — zeroed, defaults, custom, array | |
+| move_on_return.das | Move with `finally` delete - pipeline array return | |
+| failed_named_call.das | Named arguments - reordering, skipping, defaults, error cases | **expect** `30304:12` `30101:1` `30507:1` |
+| named_call.das | Bracket-less named call args - bare mixed `foo(pos, name=v)`, multi-named, bracketed regression, move `<-` / clone `:=`, overload + generic pick, piped block, free-fn-via-dot and genuine class-method forms (middle positional after self) | |
+| failed_named_call_bare.das | Bad named args - unknown/duplicate/missing/out-of-order name, overlap with a filled slot | **expect** `30341:5` |
+| failed_named_call_order.das | Named argument must be a strict suffix - a positional after a named arg is a syntax error | **expect** `30151` |
+| new_and_init.das | `new_and_init` - allocate and copy struct with `always_export_initializer` | |
+| new_delete.das | `delete` for arrays, tables, structs, handles, strings - heap tracking | |
+| new_with_init.das | `new` with struct constructors - zeroed, defaults, custom, array | |
 | failed_new_type_infer.das | `new` type inference failures | **expect** `30109` `30301` |
 | no_default_initializer.das | `[no_default_initializer]` annotation | |
 | failed_no_init.das | `options no_init` preventing `[init]` functions | **expect** `40214:3` |
 | failed_not_all_paths_return_a_value.das | Missing return in some code paths | **expect** `40200` |
 | operator_overload.das | Custom `operator -`, `operator +`, `operator ==` on user struct | |
-| operators.das | Custom operators — `as`, `?as`, derived class operators | |
-| oop.das | Classes — constructors, finalizers, inheritance, RTTI, virtual dispatch | |
+| operators.das | Custom operators - `as`, `?as`, derived class operators | |
+| oop.das | Classes - constructors, finalizers, inheritance, RTTI, virtual dispatch | |
 | option_type.das | Option types (int& \| auto) ref preservation | |
 | override_field.das | Struct field `override` for function pointers in derived struct | |
 | partial_specialization.das | Generic function specialization dispatch | |
 | peek_and_modify_string.das | `peek_data` finds chars, `modify_data` replaces bytes | |
 | permissive_tuple_const.das | Tuple param with `const?` field accepts argument tuple with non-const `?` field (generic + exact overloads) | |
-| pointers.das | Pointer operations — new, deref, safe navigation, null checks | |
-| ptr_arithmetic.das | Pointer arithmetic — signed/unsigned int/int64/uint/uint64 | |
+| pointers.das | Pointer operations - new, deref, safe navigation, null checks | |
+| private_property_setter.das | Private property setter and getter of a class stay usable inside the declaring module | |
+| failed_private_property_setter.das | Private property setter, private getter, and an operator of a private class rejected from another module | **expect** `30915` `30928:2` |
+| ptr_arithmetic.das | Pointer arithmetic - signed/unsigned int/int64/uint/uint64 | |
 | ptr_index.das | Pointer deref and index, default null pointer argument | |
 | properties.das | Property operators (.res :=, getter/setter) | |
+| property_promotion_paths.das | Named and with-name property getters, `:=` and `+=` setters, through a value, a pointer and a `with` block | |
 | random_numbers.das | Random seeding, distributions, reproducibility | |
-| reflection.das | RTTI reflection — compile source, inspect modules/structs/enums/functions | |
+| reflection.das | RTTI reflection - compile source, inspect modules/structs/enums/functions | |
 | failed_reserved_names.das | Use of reserved identifier names | **expect** `30116:9` |
-| resize_locked.das | Locked array operations — resize-while-iterating protection | |
-| return_reference.das | Return reference — global ref, assign via ref, block returning ref | |
+| resize_locked.das | Locked array operations - resize-while-iterating protection | |
+| return_reference.das | Return reference - global ref, assign via ref, block returning ref | |
 | rpipe.das | Right pipe `\|>` and `<\|` operator chaining | |
 | failed_run_annotation_side_effects.das | `[run]` annotation side effects check | **expect** `40101` |
 | safe_index.das | Safe index `?[]` on arrays, tables, vectors, strings | |
-| safe_ptr_at.das | Safe index `?[]` on pointer types — null safety, struct pointer arrays | |
+| safe_ptr_at.das | Safe index `?[]` on pointer types - null safety, struct pointer arrays | |
 | safe_operators.das | Custom `operator []`, `?[]`, `.`, `?.` on user struct | |
-| serialization.das | Archive serialization — structs, custom serialize, arrays, tables | |
-| set_table.das | `table<int>` as set — insert, erase, keys iteration, clone, literal | |
+| scratch_containers.das | scratch one-shot semantics (exact reserve/resize/ensure_capacity) + inert-outside-very-safe control | |
+| scratch_very_safe_array.das | Array scratch bit under very_safe_context - eager vs deferred heap deltas, move/delete/clear lifecycle | |
+| scratch_very_safe_table.das | Table scratch bit under very_safe_context - rehash free, bit rides rehash (self-calibrating) | |
+| serialization.das | Archive serialization - structs, custom serialize, arrays, tables | |
+| set_table.das | `table<int>` as set - insert, erase, keys iteration, clone, literal | |
 | setand_and_setor_bool.das | Short-circuit `\|\|=` and `&&=` operators | |
-| shifts.das | Bit shift operators — <<, >>, <<<, >>> for int/uint/int64/uint64 | |
-| simple_string.das | String pass semantics — by value, by ref, clone, return, struct fields | |
+| shifts.das | Bit shift operators - <<, >>, <<<, >>> for int/uint/int64/uint64 | |
+| simple_string.das | String pass semantics - by value, by ref, clone, return, struct fields | |
 | failed_sizeof_reference.das | `sizeof` on reference types | **expect** `39902:2` |
-| smart_ptr.das | `smart_ptr<TestObjectSmart>` — scope, move, ref count, clone, use_count | |
-| sort.das | Sort on arrays/fixed_arrays — int, uint, int64, float, double, string, custom struct, vector | |
+| smart_ptr.das | `smart_ptr<TestObjectSmart>` - scope, move, ref count, clone, use_count | |
+| sort.das | Sort on arrays/fixed_arrays - int, uint, int64, float, double, string, custom struct, vector | |
 | static.das | Static class members and methods | |
 | failed_static_assert_in_infer.das | Static assertion during type inference | **expect** `40100` |
 | static_if.das | `static_if` with `has_field`, const false elimination | |
-| stdvec_r2v.das | `testFooArray()` — read-to-value iteration over std::vector binding | |
-| storage_types.das | int8, uint8, int16, uint16 storage struct — sizeof and roundtrip | |
-| strict_smart_ptr.das | strict_smart_pointers — emplace, inscope, smart_ptr operations | |
-| string_builder.das | String interpolation `{expr}` — nested, escaped braces | |
-| string_ops.das | String operations — case, find, strip, slice, conversions, fmt, iterator | |
-| struct.das | Struct operations — pointers, null-safe chains, typeinfo, variants | |
+| stdvec_r2v.das | `testFooArray()` - read-to-value iteration over std::vector binding | |
+| storage_types.das | int8, uint8, int16, uint16 storage struct - sizeof and roundtrip | |
+| strict_smart_ptr.das | strict_smart_pointers - emplace, inscope, smart_ptr operations | |
+| string_builder.das | String interpolation `{expr}` - nested, escaped braces | |
+| string_ops.das | String operations - case, find, strip, slice, conversions, fmt, iterator | |
+| struct.das | Struct operations - pointers, null-safe chains, typeinfo, variants | |
 | failed_structure_already_defined.das | Duplicate struct definition | **expect** `30206` |
 | failed_structure_field_already_declared.das | Duplicate struct field name | **expect** `30115` |
-| failed_structure_not_found_ambiguous.das | Ambiguous struct name — same name in two modules | **expect** `30302` |
-| super.das | `super` keyword — parent constructor calls, parent method calls, 3-level hierarchy | |
-| super_finalize.das | `delete super.self` — base-class finalizer chain (class, 3-level, free struct finalizer) | |
-| cant_delete_super_self.das | `delete super.self` misuse — outside finalizer, no base, wrong arg shape | **expect** `31002:6` `30305:6` `30503:6` |
+| failed_structure_not_found_ambiguous.das | Ambiguous struct name - same name in two modules | **expect** `30302` |
+| super.das | `super` keyword - parent constructor calls, parent method calls, 3-level hierarchy | |
+| super_finalize.das | `delete super.self` - base-class finalizer chain (class, 3-level, free struct finalizer); compiles under `daslib/ast_verify` so the lowered cast keeps its source locations | |
+| cant_delete_super_self.das | `delete super.self` misuse - outside finalizer, no base, wrong arg shape | **expect** `31002:6` `30305:6` `30503:6` |
 | table.das | Table tombstone handling and iteration | |
-| table_get_key.das | `get_key(table, value)` — retrieve key by iterator value for int↔float, string↔int, const table, tombstones, empty, single entry | |
+| table_get_key.das | `get_key(table, value)` - retrieve key by iterator value for int<->float, string<->int, const table, tombstones, empty, single entry | |
 | table_operations.das | Table find, insert, delete, key_exists, erase collision, lock panic, defaults, modify | |
-| test_value_table_key.das | `table<EntityId; string>` — value-type table key ops, set operations | |
+| test_cross_tier_table_hash.das | One `table<EntityId; int>` reached by both tiers in one AOT binary - a `[no_aot]` write and an AOT read must agree on the key's hash | |
+| test_value_table_key.das | Value-type table keys - `table<EntityId; string>` ops and set operations, plus a vec4f-workhorse key (`BigEntityId`) across all three tiers | |
 | testing_tools.das | Faker, fuzzer, testing_boost tools | |
-| to_array.das | `to_array` — from fixed_array, range, each(), static/dynamic arrays | |
-| to_table.das | `to_table` — from fixed_array of tuples | |
-| trailing_delimiters.das | Trailing commas — arrays, structs, tables, block syntax | |
-| try_recover.das | `try`/`recover` — null deref recovery, panic recovery | |
-| tuple.das | Tuple — creation, named/positional fields, sizeof, clone, fixed_array | |
-| tuple_expansion.das | Tuple expansion — `let (i, s, f) = foo()` | |
+| to_array.das | `to_array` - from fixed_array, range, each(), static/dynamic arrays | |
+| to_table.das | `to_table` - from fixed_array of tuples | |
+| trailing_delimiters.das | Trailing commas - arrays, structs, tables, block syntax | |
+| try_recover.das | `try`/`recover` - null deref recovery, panic recovery | |
+| tuple.das | Tuple - creation, named/positional fields, sizeof, clone, fixed_array | |
+| tuple_expansion.das | Tuple expansion - `let (i, s, f) = foo()` | |
 | failed_type_loop.das | Recursive type definition loop | **expect** `41000` |
 | failed_type_not_found.das | Unknown type name error | **expect** `30301` |
-| typeAlias.das | Type aliases — `Point3Array`, indexing, swizzle, array ops on aliased types | |
-| typefunction.das | `[type_function]` annotation — `type<T>` argument syntax | |
+| typeAlias.das | Type aliases - `Point3Array`, indexing, swizzle, array ops on aliased types | |
+| typefunction.das | `[type_function]` annotation - `type<T>` argument syntax | |
 | typeinfo.das | typeinfo sizeof, has_field, struct_get_annotation_argument | |
 | test_rtti_init_mnh.das | Named-module structure RTTI retains the generated initializer's mangled-name hash | |
-| typeinfo_annotations.das | Struct annotation queries — has_annotation, get_annotation_argument | |
-| typeinfo_traits.das | typeinfo trait queries — is_local, is_ref, is_numeric, etc. | |
-| typename.das | `typeinfo typename` for various types — generics, arrays, tables | |
-| types.das | Global, local, argument, block variable types — int, float, string | |
+| typeinfo_annotations.das | Struct annotation queries - has_annotation, get_annotation_argument | |
+| typeinfo_traits.das | typeinfo trait queries - is_local, is_ref, is_numeric, etc. | |
+| typename.das | `typeinfo typename` for various types - generics, arrays, tables | |
+| types.das | Global, local, argument, block variable types - int, float, string | |
 | failed_unused_argument.das | Unused function argument warnings | **expect** `40206:2` |
 | unused_arguments_annotation.das | `[unused_argument(b, c)]` annotation suppresses warnings | |
 | utility_patterns.das | defer, static_let utility patterns | |
-| variant.das | Variant type — typedef, struct sugar, `is`/`as`, `?as`, IorA, clone | |
-| variants.das | Variant type — construction, match, access | |
-| vec_constructors.das | Vector constructors — float/int/uint 2/3/4, range, type conversions | |
-| vec_index.das | Vector indexing — [], ?[], out-of-range, array-of-vectors | |
-| vec_ops.das | Vector arithmetic — *=, /= with scalar for float/int/uint | |
-| vec_swizzle.das | Vector swizzle — .xy, .yx, .xyz, struct member vectors | |
+| variant.das | Variant type - typedef, struct sugar, `is`/`as`, `?as`, IorA, clone | |
+| variants.das | Variant type - construction, match, access | |
+| vec_constructors.das | Vector constructors - float/int/uint 2/3/4, range, type conversions | |
+| vec_index.das | Vector indexing - [], ?[], out-of-range, array-of-vectors | |
+| vec_ops.das | Vector arithmetic - *=, /= with scalar for float/int/uint | |
+| vec_swizzle.das | Vector swizzle - .xy, .yx, .xyz, struct member vectors | |
 | vector_fields.das | float4 .r/.g/.b/.a fields and swizzle | |
 | with_statement.das | `with (struct) { field = val }` block scoping | |
 
@@ -795,30 +822,30 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 
 | File | Description | Expects errors |
 |---|---|---|
-| for_range.das | `for (x in range(n))` — plain, break, continue, return, nested, var inscope, empty | |
-| for_array.das | `for (x in array<int>)` — plain, break, continue, return, nested, var inscope, empty | |
-| for_fixed_array.das | `for (x in int[N])` — plain, break, continue, return, var inscope | |
-| for_iterator.das | `for (x in iterator<int>)` (generator-backed) — plain, break, continue, return, var inscope, empty | |
-| for_multi_source.das | `for (a, b in src1, src2)` — plain, break, continue, return, var inscope, empty, uneven sources | |
-| while.das | `while (cond)` — plain, break, continue, return, nested, var inscope, never-taken | |
-| nested.das | Mixed nested loops — for-in-for, while-in-for, for-in-while, triple-nested, break isolation | |
-| generator_loops.das | `for`/`while` inside a generator body — yield-from-finally interleaves with body yields per iteration; break, continue, return, nested, empty | |
+| for_range.das | `for (x in range(n))` - plain, break, continue, return, nested, var inscope, empty | |
+| for_array.das | `for (x in array<int>)` - plain, break, continue, return, nested, var inscope, empty | |
+| for_fixed_array.das | `for (x in int[N])` - plain, break, continue, return, var inscope | |
+| for_iterator.das | `for (x in iterator<int>)` (generator-backed) - plain, break, continue, return, var inscope, empty | |
+| for_multi_source.das | `for (a, b in src1, src2)` - plain, break, continue, return, var inscope, empty, uneven sources | |
+| while.das | `while (cond)` - plain, break, continue, return, nested, var inscope, never-taken | |
+| nested.das | Mixed nested loops - for-in-for, while-in-for, for-in-while, triple-nested, break isolation | |
+| generator_loops.das | `for`/`while` inside a generator body - yield-from-finally interleaves with body yields per iteration; break, continue, return, nested, empty | |
 
 ## linq/
 
 | File | Description | Expects errors |
 |---|---|---|
-| _common.das | *(helper)* Shared module — ComplexType, Person, Pet test data | |
+| _common.das | *(helper)* Shared module - ComplexType, Person, Pet test data | |
 | test_linq.das | to_table, core LINQ operations | |
 | test_linq_aggregation.das | count, long_count, sum, average, min, max | |
-| test_linq_bugs.das | LINQ bug fixes — unique_inplace empty, edge cases | |
+| test_linq_bugs.das | LINQ bug fixes - unique_inplace empty, edge cases | |
 | test_linq_concat.das | append, prepend, concat operations | |
 | test_linq_element.das | element_at, first, last, single | |
 | test_linq_fold.das | Comprehension fold, method chaining syntax | |
-| test_linq_fold_ast.das | Compile-time AST fold — `_where` rewrite to comprehension, pattern recognition in macro | |
+| test_linq_fold_ast.das | Compile-time AST fold - `_where` rewrite to comprehension, pattern recognition in macro | |
 | test_linq_from_decs.das | LINQ querying decs entities | |
 | test_linq_generation.das | default_empty, repeat, range generation | |
-| test_linq_group_by.das | `_group_by_lazy` on arrays — primitive key, string key, `_having` filter | |
+| test_linq_group_by.das | `_group_by_lazy` on arrays - primitive key, string key, `_having` filter | |
 | test_linq_join.das | join, group_join operations | |
 | test_linq_join_errors.das | `_join` / `_left_join` non-equi-join rejection (theta joins, AND-chained keys) | **expect** `40104:5` |
 | test_linq_partition.das | skip, take, skip_while, take_while | |
@@ -831,85 +858,99 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_pipes.das | lpipe macro — pipe into function calls, chain operators | |
+| test_pipes.das | lpipe macro - pipe into function calls, chain operators | |
+
+## lsp/
+
+| File | Description | Expects errors |
+|---|---|---|
+| _fixture_clean.das | *(helper)* the clean disk file the protocol test opens with broken buffer text | |
+| test_lsp_project_root.das | the validate subtool under -project_root sees a project's own descriptors | |
+| test_lsp_protocol.das | the LSP front over a stdio pipe, through the interpreter host and the static exe - handshake, overlay diagnostics, navigation, shutdown; every frame header byte-exact CRLF (a text-mode stdout on Windows writes `\r\r\n`); a cursor on a class name, on the parent named on its line, and on a user-written `finalize` resolves the declaration, never the synthesized finalizer sharing the class line; references to a class are its declaration, its `new` sites and its derived classes, without the implicit `self` of its methods; hover inside a lambda body answers its argument and its capture, not the enclosing function or the compiler's `__this`; a `for` loop variable and a lambda argument hover in their header, a body use navigates to the header, references pair the two; a type name in `new` and a declared variable's type hover and navigate to the class or typedef; an argument's enum type navigates and lists its references; call hierarchy from a def line; a method call navigates and hovers to the override the receiver runs, references to a base method count the receivers that do not override it, a field's declaration hovers and lists its accesses (never another struct's same-named field; from a use and from a call site too), documentSymbol lists a class's own fields and bare method names, and hover on a bare block answers nothing | |
 
 ## match/
 
 | File | Description | Expects errors |
 |---|---|---|
 | all_matches.das | match/multi_match/static_match on enums, variants, structs, tuples | |
-| test_match_edge.das | Match edge cases — nested, empty struct, wildcard, bindings, guards | |
+| test_match_edge.das | Match edge cases - nested, empty struct, wildcard, bindings, guards | |
 
 ## module_tests/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_modules.das | Module system integration — compiles and runs 9 module scenarios via compile_file + make_file_access (incl. file-path requires `./`, `../`, `%/`) | |
+| test_modules.das | Module system integration - compiles and runs 9 module scenarios via compile_file + make_file_access (incl. file-path requires `./`, `../`, `%/`) | |
 | _modules/ | *(helper directory)* Module source files for test_modules.das (dastest skips `_`-prefixed dirs) | |
-| _modules/filepath/ | *(helper)* Fixture for file-path require tests — main.das exercises `./`, `../`, `%/` plus dedup; main_missing.das exercises the failure path | |
+| _modules/filepath/ | *(helper)* Fixture for file-path require tests - main.das exercises `./`, `../`, `%/` plus dedup; main_missing.das exercises the failure path | |
 
 ## math/
 
 | File | Description | Expects errors |
 |---|---|---|
-| fake_numeric.das | *(helper)* Macro module — FakeNumericMacro for comprehensive faker tests | |
+| fake_numeric.das | *(helper)* Macro module - FakeNumericMacro for comprehensive faker tests | |
 | inf_and_nan.das | Infinity and NaN comparisons | |
-| double_math.das | `double` math functions — floor, ceil, round, fract, saturate, min/max, clamp, abs, sign, sqrt, large-cycle precision | |
-| math_matrix.das | Matrix operations — multiply, equality, transpose with fuzzing | |
+| double_math.das | `double` math functions - floor, ceil, round, fract, saturate, min/max, clamp, abs, sign, sqrt, large-cycle precision | |
+| math_matrix.das | Matrix operations - multiply, equality, transpose with fuzzing | |
 | math_numeric.das | Numeric math functions (sin, cos, tan, etc.) via fake_numeric macro | |
-| mat_ctors.das | Matrix constructors — float3x3, float3x4, float4x4, identity, sequence, row verification | |
-| mat_let_handle.das | Matrix let/handle — float3x4 element access, transpose folding | |
-| math_misc.das | Misc math — min, lerp, reflect, dot, length, cross, noise, ceili, saturate | |
+| mat_ctors.das | Matrix constructors - float3x3, float3x4, float4x4, identity, sequence, row verification | |
+| mat_let_handle.das | Matrix let/handle - float3x4 element access, transpose folding | |
+| math_misc.das | Misc math - min, lerp, reflect, dot, length, cross, noise, ceili, saturate | |
 | math_pack_unpack.das | pack_float_to_byte / unpack_byte_to_float with fuzzing | |
 | math_quaternions.das | Quaternion operations with fuzzing | |
 
 ## msl/
 
-> dasMetal's MSL text backend (pure das — runs on every platform).
+> dasMetal's MSL text backend (pure das - runs on every platform).
 
 | File | Description | Expects errors |
 |---|---|---|
-| _msl_common.das | *(helper)* Shared fixtures — the `[metal_kernel]` classes every suite reads + the declared census (gate B contract) | |
+| _msl_common.das | *(helper)* Shared fixtures - the `[metal_kernel]` classes every suite reads + the declared census (gate B contract) | |
 | test_msl_arith.das | Arithmetic/bitwise/shift/comparison/logical/ternary emission per scalar class + vector ops and broadcasts | |
-| test_msl_census.das | Census gate — union of emitted construct kinds across all fixtures == declared set, both directions | |
+| test_msl_census.das | Census gate - union of emitted construct kinds across all fixtures == declared set, both directions | |
 | test_msl_control.das | if/elif/else, while, break/continue, compound assign, ++/--, zero-init locals, void return | |
-| test_msl_fail_closed.das | Fail-closed gate — every `_fail_closed/_fc_*.das` fixture must be REJECTED with its specific diagnostic (written/array `@uniform`, value return, user-function call, bound/dynamic `@workgroup`, sgmat misuse, wide-lattice buffers, partial packed stores) | |
-| test_msl_lattice.das | 16/8-bit lattice types in buffers/uniforms/locals — `packed_T3` layout rail, fp16 literals, ctor/cvt/sat call family | |
-| test_msl_loops.das | range/urange for loops — non-const end hoisting, nesting, bounds-guard shape | |
+| test_msl_fail_closed.das | Fail-closed gate - every `_fail_closed/_fc_*.das` fixture must be REJECTED with its specific diagnostic (written/array `@uniform`, value return, user-function call, bound/dynamic `@workgroup`, sgmat misuse, wide-lattice buffers, partial packed stores) | |
+| test_msl_lattice.das | 16/8-bit lattice types in buffers/uniforms/locals - `packed_T3` layout rail, fp16 literals, ctor/cvt/sat call family | |
+| test_msl_loops.das | range/urange for loops - non-const end hoisting, nesting, bounds-guard shape | |
 | test_msl_math.das | Math builtin whitelist (exp/sqrt/rsqrt/sin/cos/tanh/abs/saturate/round, min/max) + i8 converts | |
-| test_msl_mul.das | a*b kernel text assertions — signature shape, buffer attributes, write-set const-ness, builtin param, companion globals, golden snapshot | |
-| test_msl_sgmat.das | simdgroup_matrix surface — tile locals as make_filled fills, load/store lowering (device + threadgroup), mac combos f32/f16/mixed | |
+| test_msl_mul.das | a*b kernel text assertions - signature shape, buffer attributes, write-set const-ness, builtin param, companion globals, golden snapshot | |
+| test_msl_sgmat.das | simdgroup_matrix surface - tile locals as make_filled fills, load/store lowering (device + threadgroup), mac combos f32/f16/mixed | |
 | test_msl_simd.das | simdgroup intrinsics (`simd_sum`, `simd_shuffle*` families) + subgroup builtin params | |
-| test_msl_threadgroup.das | `@workgroup` members → threadgroup declarations; `barrier()`/`memoryBarrierShared()` strengthening | |
+| test_msl_threadgroup.das | `@workgroup` members -> threadgroup declarations; `barrier()`/`memoryBarrierShared()` strengthening | |
 
 ## metal/
 
-> Real-GPU behavioral gate (Apple). Guarded requires — on non-Apple platforms the files compile and run the CPU-reference half only.
+> Real-GPU behavioral gate (Apple). Guarded requires - on non-Apple platforms the files compile and run the CPU-reference half only.
 
 | File | Description | Expects errors |
 |---|---|---|
 | _metal_common.das | *(helper)* GPU driver generics (device/pipeline/buffer/dispatch/download helpers instantiated only inside `static_if` Apple branches) | |
 | test_metal_arith.das | Arithmetic kernels on the GPU vs the CPU-reference run of the same method | |
 | test_metal_control.das | Control-flow kernels GPU vs CPU reference | |
-| test_metal_ids.das | Grid/threadgroup/subgroup ID builtins — readback-driven membership oracle (layout-agnostic) | |
+| test_metal_ids.das | Grid/threadgroup/subgroup ID builtins - readback-driven membership oracle (layout-agnostic) | |
 | test_metal_lattice.das | 16/8-bit lattice buffer round-trips; fp16 GPU parity pinned one-op-per-store (MTLMathModeSafe still contracts multi-op chains) | |
-| test_metal_loops.das | Loop kernels on a NON-exact grid with sentinel-filled pads — the bounds-guard proof | |
-| test_metal_math.das | Math builtins vs CPU (fastmath=false fixture — fast trig's absolute envelope swamps the oracle) | |
+| test_metal_loops.das | Loop kernels on a NON-exact grid with sentinel-filled pads - the bounds-guard proof | |
+| test_metal_math.das | Math builtins vs CPU (fastmath=false fixture - fast trig's absolute envelope swamps the oracle) | |
 | test_metal_mul_ab.das | Emitted a*b MSL executed on the GPU vs the CPU-reference run of the same method (driver loop feeds gl_GlobalInvocationID); leak gate | |
 | test_metal_plumbing.das | Pipeline cache + buffer pool + multi-dispatch encoder (hazard ordering) via the live-object counter | |
 | test_metal_reduce.das | Barrier reductions vs directly-computed per-group sums (sequential replay is meaningless under barriers) | |
-| test_metal_sgmat.das | simdgroup_matrix tile ops GPU vs CPU twins — bit-exact on exact-int values | |
+| test_metal_sgmat.das | simdgroup_matrix tile ops GPU vs CPU twins - bit-exact on exact-int values | |
 | test_metal_sgmat_tiled.das | Tiled sgmat GEMM (threadgroup staging + barriers) vs CPU reference | |
-| test_metal_simd.das | simd_sum/shuffle intrinsics under uniform flow — kernel reports width/lane/sgid (M1 width 32) | |
+| test_metal_simd.das | simd_sum/shuffle intrinsics under uniform flow - kernel reports width/lane/sgid (M1 width 32) | |
+
+## network/
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_client.das | the TCP client end against the server end in one process - connect, an echo both ways, the server's close seen by the client, the port probe on a free and a held port | |
 
 ## option/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_option.das | `Option<T>` — some/none constructors, map/filter/and_then/or_else/or_value, unwrap family, operators `??`/`==`, zip, if_some/if_none, chaining | |
-| test_option_non_copyable.das | `Option<array<int>>` — every constructor/combinator/unwrap/operator with a non-copyable payload, plus `move_some` | |
-| test_result.das | `Result<T, E>` — ok/err constructors, map/map_err/and_then/or_else, unwrap family, operators `??`/`==`, to_option/err_to_option bridges, if_ok/if_err, chaining | |
-| test_result_non_copyable.das | `Result<array<int>, string>` — every constructor/combinator/unwrap/operator with a non-copyable T, plus `move_ok` and `move_err` | |
+| test_option.das | `Option<T>` - some/none constructors, map/filter/and_then/or_else/or_value, unwrap family, operators `??`/`==`, zip, if_some/if_none, chaining | |
+| test_option_non_copyable.das | `Option<array<int>>` - every constructor/combinator/unwrap/operator with a non-copyable payload, plus `move_some` | |
+| test_result.das | `Result<T, E>` - ok/err constructors, map/map_err/and_then/or_else, unwrap family, operators `??`/`==`, to_option/err_to_option bridges, if_ok/if_err, chaining | |
+| test_result_non_copyable.das | `Result<array<int>, string>` - every constructor/combinator/unwrap/operator with a non-copyable T, plus `move_ok` and `move_err` | |
 
 ## quote/
 
@@ -918,20 +959,20 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | File | Description | Expects errors |
 |---|---|---|
 | _quote_entities.das | Shared enum/struct in a named module so describes qualify identically on both sides *(helper)* | |
-| _quote_shapes.das | Reference fixture — quote/qmacro shapes through the SimNode path *(helper)* | |
-| _quote_shapes_lowered.das | Lowered twin — identical body + `options aot_macros` *(helper)* | |
+| _quote_shapes.das | Reference fixture - quote/qmacro shapes through the SimNode path *(helper)* | |
+| _quote_shapes_lowered.das | Lowered twin - identical body + `options aot_macros` *(helper)* | |
 | test_quote_lowering.das | Per-shape describe equality: consts/escapes/non-ASCII, calls, splices, blocks+finally, make-struct, enum/struct/container types, table/tuple literals, capture lambdas, generators, block_to_array | |
-| test_quote_lowered_main.das | Lowered quotes in the anonymous main module — by-name alias fallback for local enum/struct types, splice substitution | |
+| test_quote_lowered_main.das | Lowered quotes in the anonymous main module - by-name alias fallback for local enum/struct types, splice substitution | |
 
 ## regex/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_regex_api.das | regex_match API — match, offset, empty string | |
-| test_regex_basic.das | Basic regex — literal, dot, star, plus, question mark | |
-| test_regex_charclass.das | Regex character classes — \w, \d, \s, negation, ranges | |
-| test_regex_edge.das | Regex edge cases — offset parameter, greedy/lazy, empty pattern | |
-| test_regex_newfeatures.das | Regex new features — ^, $, anchors, grouping | |
+| test_regex_api.das | regex_match API - match, offset, empty string | |
+| test_regex_basic.das | Basic regex - literal, dot, star, plus, question mark | |
+| test_regex_charclass.das | Regex character classes - \w, \d, \s, negation, ranges | |
+| test_regex_edge.das | Regex edge cases - offset parameter, greedy/lazy, empty pattern | |
+| test_regex_newfeatures.das | Regex new features - ^, $, anchors, grouping | |
 | test_regex_phase2.das | regex_search, regex_find_all, regex_replace | |
 | test_regex_phase3.das | Dot-newline, regex_replace with backreferences | |
 | test_strings_reexport.das | `require daslib/regex` re-exports strings module functions | |
@@ -940,23 +981,23 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_shared_addr.das | shared_addr — address of shared globals, iteration | |
+| test_shared_addr.das | shared_addr - address of shared globals, iteration | |
 
 ## soa/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_soa_basic.das | `[soa]` struct — creation, push, length, field access | |
-| test_soa_container.das | SOA container operations — erase, pop, resize, reserve, clear | |
-| test_soa_iteration.das | SOA iteration — for loop, index access | |
-| test_soa_noncopyable.das | SOA with non-copyable fields (array&lt;int&gt;) — push, erase, iterate | |
+| test_soa_basic.das | `[soa]` struct - creation, push, length, field access | |
+| test_soa_container.das | SOA container operations - erase, pop, resize, reserve, clear | |
+| test_soa_iteration.das | SOA iteration - for loop, index access | |
+| test_soa_noncopyable.das | SOA with non-copyable fields (array&lt;int&gt;) - push, erase, iterate | |
 
 ## spoof/
 
 | File | Description | Expects errors |
 |---|---|---|
-| basic_spoof.das | spoof_template — value substitution (number, literal, expression, string) | |
-| spoof_linked_list.das | TLinkedList spoof template — linked list iteration | |
+| basic_spoof.das | spoof_template - value substitution (number, literal, expression, string) | |
+| spoof_linked_list.das | TLinkedList spoof template - linked list iteration | |
 
 ## stbimage/
 
@@ -965,18 +1006,18 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 | File | Description | Expects errors |
 |---|---|---|
 | _gen_test_images.das | *(helper)* Generate 64x64 test PNG/JPG/BMP images for file-based tests | |
-| test_boost.das | stbimage_boost — safe image API, load/save wrappers, pixel access, format conversion | |
-| test_convert.das | Image format conversion — RGB↔RGBA, greyscale, channel operations | |
-| test_load_file.das | File-based image loading — PNG, JPG, BMP from disk | |
-| test_load_info.das | Image info queries — dimensions, channels, format detection without full load | |
-| test_raster.das | Rasterization — draw_line, draw_rect, fill_rect, draw_circle, pixel blending | |
-| test_raster_blit.das | Blit operations — copy, scale, alpha-blend, region transfer | |
-| scatter_gather.das | SIMD gather/scatter — `gather_scatter` for int, uint, float, float2/3/4, int2/3/4 via uint4 index pairs | |
-| test_resize.das | Image resize — nearest, bilinear, bicubic, different target sizes | |
-| test_settings.das | Image load/save settings — quality, compression, flip | |
-| test_stbimage_ttf.das | stbimage_ttf — safe TrueType font rendering via stbimage_boost + stbtruetype | |
-| test_stbtruetype.das | stbtruetype — font loading, glyph metrics, bitmap rendering, SDF | |
-| test_write.das | Image write — PNG, BMP, JPG, TGA output with verification | |
+| test_boost.das | stbimage_boost - safe image API, load/save wrappers, pixel access, format conversion | |
+| test_convert.das | Image format conversion - RGB<->RGBA, greyscale, channel operations | |
+| test_load_file.das | File-based image loading - PNG, JPG, BMP from disk | |
+| test_load_info.das | Image info queries - dimensions, channels, format detection without full load | |
+| test_raster.das | Rasterization - draw_line, draw_rect, fill_rect, draw_circle, pixel blending | |
+| test_raster_blit.das | Blit operations - copy, scale, alpha-blend, region transfer | |
+| scatter_gather.das | SIMD gather/scatter - `gather_scatter` for int, uint, float, float2/3/4, int2/3/4 via uint4 index pairs | |
+| test_resize.das | Image resize - nearest, bilinear, bicubic, different target sizes | |
+| test_settings.das | Image load/save settings - quality, compression, flip | |
+| test_stbimage_ttf.das | stbimage_ttf - safe TrueType font rendering via stbimage_boost + stbtruetype | |
+| test_stbtruetype.das | stbtruetype - font loading, glyph metrics, bitmap rendering, SDF | |
+| test_write.das | Image write - PNG, BMP, JPG, TGA output with verification | |
 
 ## sql_conformance/
 
@@ -984,74 +1025,74 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 
 | File | Description | Expects errors |
 |---|---|---|
-| _conformance_provider.das | *(shim)* Provider under test — `with_conf_db` scoped runner + `CONF_HAS_*` capability constants | |
+| _conformance_provider.das | *(shim)* Provider under test - `with_conf_db` scoped runner + `CONF_HAS_*` capability constants | |
 | test_conf_table_crud.das | `[sql_table]` DDL round-trip, check_schema, column_info, insert single+bulk, update / delete_ / delete_by_id | |
-| test_conf_sql_select.das | `_sql` reads — _where + captured binds, _order_by, take/skip, distinct, _first/_first_opt, _sql_text shape | |
+| test_conf_sql_select.das | `_sql` reads - _where + captured binds, _order_by, take/skip, distinct, _first/_first_opt, _sql_text shape | |
 | test_conf_projection_agg.das | _select forms (column / named-tuple / computed), scalar aggregates, one-scan `_aggregate`, _group_by + _having | |
 | test_conf_joins_subq.das | _join (including exact whole-source projections and `_aggregate`), _left_join (Option right side), _in / _not_in, _any / _none | |
-| test_conf_nullability.das | Option<T> columns — DDL nullability, some/none round-trip, is_some / is_none / unwrap_or | |
-| test_conf_adapters.das | sql_bind / sql_extract rail — custom type, enum, Option-over-custom, @sql_json + path descent | |
+| test_conf_nullability.das | Option<T> columns - DDL nullability, some/none round-trip, is_some / is_none / unwrap_or | |
+| test_conf_adapters.das | sql_bind / sql_extract rail - custom type, enum, Option-over-custom, @sql_json + path descent | |
 | test_conf_dml_macros.das | _sql_update / _sql_delete / _sql_upsert + returning variants (capability-checked) | |
-| test_conf_streaming_txn.das | _each_sql lifecycle incl. early break; transactions — commit, nesting, try_transaction | |
-| test_conf_views.das | [sql_view] + _create_view — typed reads through a view, captured-local inlining | |
-| test_conf_fts5.das | [sql_fts5] + text_match — file-gated on caps.fts5 | |
-| test_conf_sql_functions.das | [sql_function] UDF visible to `_sql` chains — file-gated on caps.client_udfs | |
+| test_conf_streaming_txn.das | _each_sql lifecycle incl. early break; transactions - commit, nesting, try_transaction | |
+| test_conf_views.das | [sql_view] + _create_view - typed reads through a view, captured-local inlining | |
+| test_conf_fts5.das | [sql_fts5] + text_match - file-gated on caps.fts5 | |
+| test_conf_sql_functions.das | [sql_function] UDF visible to `_sql` chains - file-gated on caps.client_udfs | |
 
 ## strings/
 
 | File | Description | Expects errors |
 |---|---|---|
-| delete_strings.das | delete_string — const heap string, heap string, empty string | |
+| delete_strings.das | delete_string - const heap string, heap string, empty string | |
 | delete_strings_persistent.das | Same as delete_strings but with persistent_heap option | |
-| strings_as_array.das | peek_data, modify_data — string as uint8 array | |
+| strings_as_array.das | peek_data, modify_data - string as uint8 array | |
 | strings_boost_split_and_join.das | split, join, and related boost functions with fuzzing | |
-| strings_builder.das | String builder — write, write_char, write_escape_string with fuzzing (format fuzz disabled) | |
-| strings_charset.das | Charset operations — is_char_in_set, set_total, set_element | |
-| strings_convert.das | Numeric string conversions — int, float, out-of-range, errors | |
+| strings_builder.das | String builder - write, write_char, write_escape_string with fuzzing (format fuzz disabled) | |
+| strings_charset.das | Charset operations - is_char_in_set, set_total, set_element | |
+| strings_convert.das | Numeric string conversions - int, float, out-of-range, errors | |
 | strings_distance.das | levenshtein_distance with fuzzing | |
 | strings_hash.das | Hash on das_string, hash_builder, builder vs direct hash | |
 | strings_levenshtein.das | levenshtein_distance_fast with fuzzing | |
 | strings_modifications.das | repeat, strip, replace, escape/unescape with fuzzing | |
 | strings_properties.das | length, empty, starts_with, ends_with with fuzzing | |
-| strings_replace_multiple.das | replace_multiple — multiple replacements, special chars, empty | |
+| strings_replace_multiple.das | replace_multiple - multiple replacements, special chars, empty | |
 | strings_search.das | find (string and char) with fuzzing | |
-| utf8_word_boundary.das | utf32_is_word_char / utf32_to_lower / each_word — Unicode word-boundary primitives | |
-| fts5_query.das | FTS5 query parser — terms, phrases, AND/OR/NOT, NEAR, parens, error reporting | |
-| fts5_query_eval.das | FTS5 query evaluator — match semantics including Unicode case-fold and prefix phrases | |
+| utf8_word_boundary.das | utf32_is_word_char / utf32_to_lower / each_word - Unicode word-boundary primitives | |
+| fts5_query.das | FTS5 query parser - terms, phrases, AND/OR/NOT, NEAR, parens, error reporting | |
+| fts5_query_eval.das | FTS5 query evaluator - match semantics including Unicode case-fold and prefix phrases | |
 | strings_traits.das | is_alpha, is_new_line, is_white_space, is_number with fuzzing | |
 | temporary_intern_strings.das | temp_string with intern_strings option | |
-| temporary_strings.das | temp_string, build_temp_string — no heap allocations | |
+| temporary_strings.das | temp_string, build_temp_string - no heap allocations | |
 | temporary_strings_failed.das | temp_string rejects variables and function calls | **expect** `40102:3` |
-| test_bug_fixes.das | C++ bug fixes — chop bounds checking, edge cases | |
-| test_cpp_functions.das | C++ string functions — fmt, safe_unescape, character_at | |
-| test_new_string_functions.das | New string utilities — contains, count_chars, pad_left/right, trim_chars | |
-| test_strings_boost_extra.das | Extra strings_boost — wide, is_character_at, eq, join overloads | |
-| test_strings_convert.das | `daslib/strings_convert` — `try_to_*` returning `Result<T; ConversionError>` | |
+| test_bug_fixes.das | C++ bug fixes - chop bounds checking, edge cases | |
+| test_cpp_functions.das | C++ string functions - fmt, safe_unescape, character_at | |
+| test_new_string_functions.das | New string utilities - contains, count_chars, pad_left/right, trim_chars | |
+| test_strings_boost_extra.das | Extra strings_boost - wide, is_character_at, eq, join overloads | |
+| test_strings_convert.das | `daslib/strings_convert` - `try_to_*` returning `Result<T; ConversionError>` | |
 
 ## template/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_template.das | `[template]` annotation — `type<T>` and `decltype` as template arguments | |
+| test_template.das | `[template]` annotation - `type<T>` and `decltype` as template arguments | |
 
 ## type_lattice/
 
-> GENERATED per-type conformance harness (do not hand-edit) — regen via `daslang utils/dasgen/gen_type_conformance.das`. Each file exercises one basic type through sizeof/alignof, zero-init, `default<>`, ctor+equality, copy, pass/return by value, `v[i]`, swizzles, struct field layout, array element, archive round-trip, print, and (where operators exist) arithmetic. Runs in all CI tiers (interp/jit/AOT) to pin cross-tier parity for the 16/8-bit type-lattice arc.
+> GENERATED per-type conformance harness (do not hand-edit) - regen via `daslang utils/internal/dasgen/gen_type_conformance.das`. Each file exercises one basic type through sizeof/alignof, zero-init, `default<>`, ctor+equality, copy, pass/return by value, `v[i]`, swizzles, struct field layout, array element, archive round-trip, print, and (where operators exist) arithmetic. Runs in all CI tiers (interp/jit/AOT) to pin cross-tier parity for the 16/8-bit type-lattice arc.
 
 | File | Description | Expects errors |
 |---|---|---|
 | test_float2.das | float2 conformance (control) | |
-| test_float3.das | float3 conformance (control — odd-size 12B layout) | |
+| test_float3.das | float3 conformance (control - odd-size 12B layout) | |
 | test_float4.das | float4 conformance (control) | |
 | test_int2.das | int2 conformance (control) | |
 | test_uint4.das | uint4 conformance (control) | |
-| test_int8.das | int8 scalar conformance (control — storage-only precedent) | |
-| test_uint16.das | uint16 scalar conformance (control — storage-only precedent) | |
-| test_float16.das | float16 scalar conformance (fp16 lattice — closed arithmetic, ordered compares) | |
+| test_int8.das | int8 scalar conformance (control - storage-only precedent) | |
+| test_uint16.das | uint16 scalar conformance (control - storage-only precedent) | |
+| test_float16.das | float16 scalar conformance (fp16 lattice - closed arithmetic, ordered compares) | |
 | test_half2.das | half2 conformance (fp16 lattice) | |
-| test_half3.das | half3 conformance (fp16 lattice — 6B odd size) | |
+| test_half3.das | half3 conformance (fp16 lattice - 6B odd size) | |
 | test_half4.das | half4 conformance (fp16 lattice) | |
-| test_half8.das | half8 conformance (fp16 lattice — full 128-bit slot) | |
+| test_half8.das | half8 conformance (fp16 lattice - full 128-bit slot) | |
 | test_short2.das | short2 conformance (int16 storage family) | |
 | test_short3.das | short3 conformance | |
 | test_short4.das | short4 conformance | |
@@ -1075,19 +1116,20 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_bitfields.das | bitfield_trait — each_bit_name iteration | |
-| test_traits.das | type_traits — fields_count for struct/derived struct | |
+| test_bitfields.das | bitfield_trait - each_bit_name iteration | |
+| test_traits.das | type_traits - fields_count for struct/derived struct | |
 
 ## typemacro/
 
-> Direct coverage of the raw `AstTypeMacro` payload surface (Stage 0 of `FIXED_ARRAY_REWORK.md` — the dimExpr payload migrates to a dedicated field at Stage 1b). Deep indirect coverage lives in option/hash_map/delegate suites via typemacro_boost.
+> Direct coverage of the raw `AstTypeMacro` payload surface (Stage 0 of `FIXED_ARRAY_REWORK.md` - the dimExpr payload migrates to a dedicated field at Stage 1b). Deep indirect coverage lives in option/hash_map/delegate suites via typemacro_boost.
 
 | File | Description | Expects errors |
 |---|---|---|
 | test_basic.das | All four grammar forms (`name(args)`, `$name(args)`, `name<types>(args)`, `$name<types>(args)`), const int/bool/string argument extraction, `typedecl(expr)` | |
 | test_template_structure_class.das | `[template_structure]` class specializations, inherited fields, virtual overrides, and distinct generated finalizers for multiple type arguments | |
+| test_template_struct_instance.das | `[template_struct_instance]` reification: constants, gates and calls bound from the instance, the method chain walked nearest ancestor first, a template-level override reifying under a concrete parent (the `ChainRoot` / `RootedLeaf` cell) | |
 | _template_structure_class_mod.das | *(helper)* inherited `class template ProbeScalarCommand<T>` definition | |
-| _typemacro_mod.das | *(helper)* `tm_make` raw AstTypeMacro — resolves `tm_make(type<T>, N, wrap, tag)` to `T[N]` or `T` | |
+| _typemacro_mod.das | *(helper)* `tm_make` raw AstTypeMacro - resolves `tm_make(type<T>, N, wrap, tag)` to `T[N]` or `T` | |
 
 ## unsafe/
 
@@ -1101,16 +1143,25 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 |---|---|---|
 | test_uri.das | URI parsing, normalize, rebase, query params, edge cases | |
 
+## watchdog/
+
+| File | Description | Expects errors |
+|---|---|---|
+| _fixture_watchdog_child.das | *(helper)* the supervised child - a run counter and a mode pick the story it acts out | |
+| test_lsp_front.das | the --lsp front's cross-tree guard over throwaway git-style trees - the three hints, the compiler's own tree, a scoping project_root | |
+| test_stdio_front.das | the --stdio front through both hosts - the server's own initialize result, local ping, lazy child, respawn after the server's shutdown | |
+| test_watchdog.das | the supervisor - restart backoff, exit-code policy, stages, crash bundles, the stop ladder, the tray | |
+
 ## verify/
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_verify_completion.das | `[verify_completion]` — rejects unbounded loops, recursion, keys() | **expect** `40104:8` |
+| test_verify_completion.das | `[verify_completion]` - rejects unbounded loops, recursion, keys() | **expect** `40104:8` |
 
 ---
 
 ## Summary
 
 - **47** test directories (2 empty: `_dasHV/`, `jitted_scripts/`)
-- **491** `.das` files total (~20 helper/module files, ~471 test files)
+- **492** `.das` files total (~20 helper/module files, ~472 test files)
 - **26** files with `expect` directives (expected compile errors), plus ~46 `failed_*` variants in `language/`

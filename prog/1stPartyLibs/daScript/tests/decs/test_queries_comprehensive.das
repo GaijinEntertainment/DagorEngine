@@ -84,28 +84,28 @@ def test_require_filters(t : T?) {
 
     // REQUIRE weapon — should get soldier + tank
     var withWeapon = 0
-    query <| $ [REQUIRE(weapon)] (hp : int) {
+    query() $ [REQUIRE(weapon)] (hp : int) {
         withWeapon++
     }
     t |> equal(withWeapon, 2)
 
     // REQUIRE_NOT weapon — should get medic only
     var withoutWeapon = 0
-    query <| $ [REQUIRE_NOT(weapon)] (hp : int) {
+    query() $ [REQUIRE_NOT(weapon)] (hp : int) {
         withoutWeapon++
     }
     t |> equal(withoutWeapon, 1)
 
     // REQUIRE heavy — should get only tank
     var heavyCount = 0
-    query <| $ [REQUIRE(heavy)] (hp : int) {
+    query() $ [REQUIRE(heavy)] (hp : int) {
         heavyCount++
     }
     t |> equal(heavyCount, 1)
 
     // REQUIRE weapon, REQUIRE_NOT heavy — should get soldier only
     var lightArmed = 0
-    query <| $ [REQUIRE(weapon), REQUIRE_NOT(heavy)] (hp : int) {
+    query() $ [REQUIRE(weapon), REQUIRE_NOT(heavy)] (hp : int) {
         lightArmed++
     }
     t |> equal(lightArmed, 1)
@@ -145,6 +145,7 @@ def test_find_query_result(t : T?) {
 def test_query_by_eid_returns_correct_entity(t : T?) {
     restart()
     var eids : array<EntityId>
+    eids |> reserve(5)
     for (i in range(5)) {
         let eid = create_entity() @(eid, cmp) {
             cmp.idx := i

@@ -1,6 +1,6 @@
 const numbers = "0123456789"
 
-let marks = {
+const marks = {
   P = {
     Y = "years"
     M = "months"
@@ -14,7 +14,7 @@ let marks = {
   }
 }
 
-function parse_duration(str): table {
+function [pure] parse_duration(str): table {
   let res = {}
   if (str == "")
     return res

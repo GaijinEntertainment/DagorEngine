@@ -5,7 +5,6 @@ require daslib/toml
 require daslib/json
 require daslib/json_boost   // ?["key"] ?? default lookups in the write_toml round-trip checks
 require daslib/math_bits
-require math            // is_nan: answers IEEE on every host, unlike a nan compare
 require strings
 
 // IEEE-754 bit-pattern constants, same as daslib/toml.das uses internally —
@@ -257,7 +256,7 @@ def test_inf_nan(t : T?) {
         }
         if (n != null && (n.value is _number)) {
             let nv = n.value as _number
-            t |> success(is_nan(nv))   // a nan compare would fold on a finite-math host
+            t |> success(nv != nv)   // NaN != NaN — only NaN survives this test
         }
     }
 }
@@ -356,7 +355,7 @@ def test_inf_nan_still_work_as_values(t : T?) {
         if (m != null && (m.value is _number)) t |> equal(m.value as _number, EXPECT_NEG_INF)
         if (q != null && (q.value is _number)) {
             let nv = q.value as _number
-            t |> success(is_nan(nv))
+            t |> success(nv != nv)
         }
     }
 }
@@ -659,7 +658,7 @@ def test_write_toml_exact(t : T?) {
 
 [test]
 def test_write_toml_round_trip(t : T?) {
-    t |> run("write ∘ read is stable across value classes") @@(t : T?) {
+    t |> run("write then read is stable across value classes") @@(t : T?) {
         let src = "i = 9007199254740993\nf = 4.0\npi = 3.141592653589793\nneg = -3\non = true\ns = \"a\\tb \\\"q\\\" \\u0001\"\narr = [\"a\", 3, 4.5, \{ nested = true }]\nempty_arr = []\ndate = 2024-01-15T10:00:00Z\n[tab.sub]\n\"weird key\" = \"x\"\n[[jobs]]\nsub = \{ a = 1, b = [1, 2] }\n"
         var v = expect_ok(t, "wt_rt", src)
         var err : string

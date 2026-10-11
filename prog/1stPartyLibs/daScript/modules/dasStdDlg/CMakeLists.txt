@@ -1,6 +1,21 @@
-# note - uncomment to support standard dialogs with linux\gtx
-# TODO: use CMAKE to detect linux\gtx\etc
+OPTION(DAS_STDDLG_GTK "dasStdDlg: GTK3 dialogs on Linux (links libgtk-3 into the module and its static consumers)" OFF)
 SET(LINUX_GTK FALSE)
+SET(LINUX_DBUS FALSE)
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    FIND_PACKAGE(PkgConfig QUIET)
+    IF(PKG_CONFIG_FOUND)
+        pkg_check_modules(DBUS1 QUIET dbus-1)
+        IF(DBUS1_FOUND)
+            SET(LINUX_DBUS TRUE)
+        ENDIF()
+        IF(DAS_STDDLG_GTK)
+            pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
+            SET(LINUX_GTK TRUE)
+        ENDIF()
+    ELSEIF(DAS_STDDLG_GTK)
+        MESSAGE(FATAL_ERROR "DAS_STDDLG_GTK needs pkg-config to find gtk+-3.0")
+    ENDIF()
+ENDIF()
 
 SET(DAS_STDDLG_DETECTED TRUE)
 
@@ -16,7 +31,19 @@ IF ((NOT DAS_STDDLG_INCLUDED) AND ((NOT ${DAS_STDDLG_DISABLED}) OR (NOT DEFINED 
 	SET(DAS_STDDLG_MODULE_SRC
 		${DAS_STDDLG_DIR}/src/dasStdDlg.h
 		${DAS_STDDLG_DIR}/src/dasStdDlg.cpp
+        ${DAS_STDDLG_DIR}/src/dasStdDlgTray.h
+        ${DAS_STDDLG_DIR}/src/dasStdDlgTray.cpp
 	)
+
+    IF(WIN32)
+        SET(DAS_STDDLG_TRAY_PLATFORM_SRC ${DAS_STDDLG_DIR}/src/dasStdDlgTrayWin.cpp)
+    ELSEIF(LINUX_DBUS)
+        SET(DAS_STDDLG_TRAY_PLATFORM_SRC ${DAS_STDDLG_DIR}/src/dasStdDlgTrayLinux.cpp)
+    ELSEIF(APPLE)
+        SET(DAS_STDDLG_TRAY_PLATFORM_SRC ${DAS_STDDLG_DIR}/src/dasStdDlgTrayOsx.mm)
+    ELSE()
+        SET(DAS_STDDLG_TRAY_PLATFORM_SRC ${DAS_STDDLG_DIR}/src/dasStdDlgTrayNotImplemented.cpp)
+    ENDIF()
 
 	IF(WIN32)
 		SET(DAS_STDDLG_MODULE_PLATFORM_SRC
@@ -38,7 +65,7 @@ IF ((NOT DAS_STDDLG_INCLUDED) AND ((NOT ${DAS_STDDLG_DISABLED}) OR (NOT DEFINED 
 
 	ADD_MODULE_CPP(StdDlg)
 	# ADD_MODULE_NATIVE(STDDLG_boost)
-	ADD_MODULE_LIB(libDasModuleStdDlg dasModuleStdDlg ${DAS_STDDLG_MODULE_SRC} ${DAS_STDDLG_MODULE_PLATFORM_SRC})
+    ADD_MODULE_LIB(libDasModuleStdDlg dasModuleStdDlg ${DAS_STDDLG_MODULE_SRC} ${DAS_STDDLG_MODULE_PLATFORM_SRC} ${DAS_STDDLG_TRAY_PLATFORM_SRC})
 	MACRO(SETUP_DLG_LIB lib)
 		TARGET_LINK_LIBRARIES(${lib} PUBLIC ${STDDLG_LIBRARIES})
 		# ADD_DEPENDENCIES(${lib})
@@ -48,13 +75,13 @@ IF ((NOT DAS_STDDLG_INCLUDED) AND ((NOT ${DAS_STDDLG_DISABLED}) OR (NOT DEFINED 
 			TARGET_LINK_LIBRARIES(${lib} PRIVATE ShLwApi)
 		ENDIF()
 
+        IF(LINUX_DBUS)
+            TARGET_INCLUDE_DIRECTORIES(${lib} PRIVATE ${DBUS1_INCLUDE_DIRS})
+            TARGET_LINK_LIBRARIES(${lib} PRIVATE ${CMAKE_DL_LIBS})
+        ENDIF()
+
 		IF(LINUX_GTK)
-			find_package(PkgConfig REQUIRED)
-			pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-			include_directories(${GTK3_INCLUDE_DIRS})
-			link_directories(${GTK3_LIBRARY_DIRS})
-			add_definitions(${GTK3_CFLAGS_OTHER})
-			TARGET_LINK_LIBRARIES(${lib} PUBLIC ${GTK3_LIBRARIES})
+            TARGET_LINK_LIBRARIES(${lib} PRIVATE PkgConfig::GTK3)
 		ENDIF()
 
 		IF(APPLE)

@@ -27,6 +27,8 @@ public:
       das::SideEffects::modifyExternal, "dedicated_matching::on_player_team_changed");
     das::addExtern<DAS_BIND_FUN(dedicated_matching::player_kick_from_room)>(*this, lib, "player_kick_from_room",
       das::SideEffects::modifyExternal, "dedicated_matching::player_kick_from_room");
+    das::addExtern<DAS_BIND_FUN(dedicated_matching::player_remove_from_room)>(*this, lib, "player_remove_from_room",
+      das::SideEffects::modifyExternal, "dedicated_matching::player_remove_from_room");
     das::addExtern<DAS_BIND_FUN(dedicated_matching::ban_player_in_room)>(*this, lib, "ban_player_in_room",
       das::SideEffects::modifyExternal, "dedicated_matching::ban_player_in_room");
     das::addExtern<DAS_BIND_FUN(dedicated_matching::leave_room)>(*this, lib, "leave_matching_room", das::SideEffects::modifyExternal,

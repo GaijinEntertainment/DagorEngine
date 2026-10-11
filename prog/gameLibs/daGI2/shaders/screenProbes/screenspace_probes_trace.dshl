@@ -70,6 +70,7 @@ shader calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   SP_SCREEN_RAY_CAST(cs)
   PROJECT_TRACE(cs, true)
+  PROJECT_GET_SKY_RADIANCE_AT(cs)
 
   if (shader == calc_screenspace_selected_radiance_cs)
   {

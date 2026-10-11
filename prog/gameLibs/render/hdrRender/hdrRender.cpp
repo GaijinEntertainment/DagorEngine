@@ -146,6 +146,11 @@ TEXTUREID hdrrender::get_render_target_tex_id() { return float_rt_tex.getTexId()
 
 const ManagedTex &hdrrender::get_render_target() { return float_rt_tex; }
 
+Texture *hdrrender::get_render_target_tex_or_backbuffer()
+{
+  return is_hdr_enabled() ? float_rt_tex.getTex2D() : d3d::get_backbuffer_tex();
+}
+
 void hdrrender::set_render_target()
 {
   if (is_hdr_enabled())

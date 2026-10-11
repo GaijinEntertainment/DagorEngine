@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <phys/dag_physics.h>
-#include <scene/dag_frtdump.h>
 #include <ioSys/dag_zlibIo.h>
 #include <scene/dag_physMat.h>
 #include <math/dag_Point4.h>

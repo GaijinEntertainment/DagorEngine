@@ -1,9 +1,7 @@
 options gen2
 options rtti
 
-require strings
 require math
-require daslib/strings_boost
 require daslib/json_boost
 require daslib/fio
 require cluster
@@ -154,10 +152,10 @@ def public build_per_candidate_report(report : Report;
     if (top_per_candidate >= 0) {
         for (r in rollups) {
             if (length(r.exact_matches) > top_per_candidate) {
-                unsafe(resize(r.exact_matches, top_per_candidate))
+                r.exact_matches |> resize(top_per_candidate)
             }
             if (length(r.fuzzy_matches) > top_per_candidate) {
-                unsafe(resize(r.fuzzy_matches, top_per_candidate))
+                r.fuzzy_matches |> resize(top_per_candidate)
             }
         }
     }

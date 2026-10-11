@@ -313,13 +313,16 @@ struct FrontendState
         gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsConstOrVertexBuffer(); });
         ConstBufferSetupInformationStream info;
         info.buffer = {get_any_buffer_ref(gbuf), 0, 0};
+        const char *bufName = "";
 #if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
         info.lastDiscardFrameIdx = gbuf->getDiscardFrame();
         info.isStreamBuffer = gbuf->isStreamBuffer();
+        if (info.isStreamBuffer) // only this check reads the name, and each static const buffer makes a new one
+          bufName = gbuf->getName();
 #endif
         G_ASSERT(info.buffer.size % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
         G_ASSERT(info.buffer.gpuPointer % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
-        ctx.setConstBuffer(stage, i, info, gbuf->getName());
+        ctx.setConstBuffer(stage, i, info, bufName);
       }
       else
       {

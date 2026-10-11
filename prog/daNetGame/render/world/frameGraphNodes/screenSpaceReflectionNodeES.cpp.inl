@@ -55,7 +55,7 @@ static inline void update_is_luminance_filter_required()
 
 static SsrNodesConfig resolve_ssr_config(SsrNodesConfig cfg)
 {
-  ScreenSpaceReflections::getRealQualityAndFmt(cfg.fmt, cfg.quality);
+  ssr_pass::get_real_quality_and_fmt(cfg.fmt, cfg.quality);
   if (cfg.quality != SSRQuality::Compute)
     cfg.fmt |= TEXCF_RTARGET;
 
@@ -71,6 +71,7 @@ static render::ssr::ResourceNames dng_ssr_resource_names()
 {
   return {
     .closeDepthResName = "close_depth",
+    .normalsResName = "downsampled_far_normals",
     .closeDepthSamplerResName = "close_depth_sampler",
     .normalsSamplerResName = "downsampled_normals_sampler",
     .motionVectorsSamplerResName = "downsampled_motion_vectors_tex_sampler",
@@ -116,7 +117,8 @@ static void create_ssr_camera_nodes_es(const OnCameraMainViewNodeConstruction &e
 // Project specific RAII context.
 struct SsrTraceContext
 {
-  SsrTraceContext(const CameraParams &camera, const render::ssr::FrameParams &, bool is_main_view) : camcam{is_main_view, camera}
+  SsrTraceContext(const CameraParams &camera, const ssr_pass::CameraState &, const render::ssr::FrameParams &, bool is_main_view) :
+    camcam{is_main_view, camera}
   {
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
     if (wr.hasSSRAlternateReflections())
@@ -138,18 +140,13 @@ static void create_ssr_camera_view_nodes_es(const OnCameraPerViewNodeConstructio
 
   auto ns = dafg::root() / evt.viewNsName;
 
-  evt.nodes->push_back(ns.registerNode("ssr_params_node", DAFG_PP_NODE_SRC, [view_ns = evt.viewNsName](dafg::Registry registry) {
+  evt.nodes->push_back(ns.registerNode("ssr_params_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.readBlob("after_prepare_lights_node_token");
-    auto cameraHndl = read_camera_view(registry, view_ns).handle();
     auto historyValidHndl = registry.readBlob<bool>("ssr_history_valid").handle();
     auto paramsHndl = registry.createBlob<render::ssr::FrameParams>(render::ssr::frame_params_blob_name).handle();
-    return [cameraHndl, historyValidHndl, paramsHndl]() {
-      const auto &camera = cameraHndl.ref();
+    render::ssr::create_camera_state_blob(registry);
+    return [historyValidHndl, paramsHndl]() {
       render::ssr::FrameParams params;
-      params.shouldRender = true;
-      params.viewTm = camera.viewTm;
-      params.projTm = camera.jitterProjTm;
-      params.worldPos = camera.cameraWorldPos;
       params.historyValid = historyValidHndl.ref();
 
       paramsHndl.ref() = params;

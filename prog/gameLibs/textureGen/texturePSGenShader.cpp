@@ -28,7 +28,7 @@
 #include <textureGen/textureGenLogger.h>
 #include <textureGen/textureGenerator.h>
 #include <textureGen/entitiesSaver.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <render/blkToConstBuffer.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shBindumps.h>
@@ -100,7 +100,7 @@ static Sbuffer *textureParamsCB = 0;
 static constexpr int TEXGEN_NODE_PARAMS_CB_REGS = 512;
 static Sbuffer *textureNodeParamsCB = 0;
 static String premain, postmain;
-static TextureIDHolder biggest_depth;
+static UniqueTex biggest_depth;
 static int bigW = 0, bigH = 0;
 
 static void create_biggest_depth(int w, int h)
@@ -109,9 +109,7 @@ static void create_biggest_depth(int w, int h)
     return;
   bigW = max(bigW, w);
   bigH = max(bigH, h);
-  biggest_depth.close();
-  biggest_depth.set(d3d::create_tex(NULL, bigW, bigH, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "texgen_depth", RESTAG_TEXGEN),
-    "texgen_depth");
+  biggest_depth = dag::create_tex(NULL, bigW, bigH, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "texgen_depth", RESTAG_TEXGEN);
 }
 
 static constexpr int MAX_PARAMS_SIZE = 128;

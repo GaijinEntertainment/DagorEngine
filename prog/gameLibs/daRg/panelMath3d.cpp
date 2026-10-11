@@ -29,7 +29,7 @@ Point2 uv_to_panel_pixels(const Panel &panel, const Point2 &uv)
   if (panel.canvas)
   {
     TextureInfo tinfo;
-    panel.canvas->getTex()->getinfo(tinfo);
+    panel.canvas.getBaseTex()->getinfo(tinfo);
     return {uv.x * tinfo.w, uv.y * tinfo.h};
   }
 
@@ -203,7 +203,7 @@ bool screen_to_panel_pixels(const Point2 &screen_pos, const Panel &panel, const 
   // UV to panel pixels
 
   // TextureInfo tinfo;
-  // panel.canvas->getTex()->getinfo(tinfo);
+  // panel.canvas.getBaseTex()->getinfo(tinfo);
 
   IPoint2 canvasSize;
   G_ASSERT_RETURN(panel.getCanvasSize(canvasSize), false);

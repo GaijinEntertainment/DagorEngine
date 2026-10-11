@@ -82,6 +82,31 @@ public:
 
   const char *getImguiTypeName() const override { return "Group"; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const ImGuiStyle &style = ImGui::GetStyle();
+
+    if (minimized)
+      ImGui::PushFont(imgui_get_bold_font(), 0.0f);
+    const ImVec2 labelSize = ImGui::CalcTextSize(controlCaption.begin(), controlCaption.end(), true);
+    const float fontSize = ImGui::GetFontSize();
+    if (minimized)
+      ImGui::PopFont();
+
+    // The arrow, the label and the frame padding of ImGui::CollapsingHeader().
+    const float headerWidth = fontSize + labelSize.x + style.FramePadding.x * 4.0f;
+    const float headerHeight = labelSize.y + style.FramePadding.y * 2.0f;
+    if (minimized)
+      return Point2(min(headerWidth, max_width_px), headerHeight);
+
+    // Same layout as updateImgui().
+    const float indent = floorf(style.IndentSpacing / 2.0f);
+    const Point2 contentSize = ContainerPropertyControl::getPreferredSize(max(max_width_px - indent, 0.0f));
+    const float width = max(headerWidth, indent + contentSize.x);
+    const float height = headerHeight + getVerticalSpaceBetweenControls() * 2.0f + contentSize.y + style.ItemSpacing.y;
+    return Point2(min(width, max_width_px), height);
+  }
+
   void updateImgui() override
   {
     // NOTE: if you modify this then you might have to modify the code in ExtGroupPropertyControl too!

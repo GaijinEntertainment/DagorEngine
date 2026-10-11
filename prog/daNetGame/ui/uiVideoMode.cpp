@@ -14,7 +14,6 @@
 #include <ioSys/dag_dataBlockUtils.h>
 #include <osApiWrappers/dag_winVersionQuery.h>
 #include <startup/dag_globalSettings.h>
-#include <frameTimeMetrics/aggregator.h>
 
 #include "main/main.h"
 #include "main/settings.h"
@@ -301,7 +300,16 @@ static SQInteger get_antialiasing_upscaling_options(HSQUIRRELVM vm)
   const char *method = nullptr;
   sq_getstring(vm, SQInteger(2), &method);
 
-  const char *options = render::antialiasing::get_available_upscaling_options(method);
+  IPoint2 outputResolution = IPoint2::ZERO;
+  if (sq_gettop(vm) >= 4)
+  {
+    SQInteger w = 0, h = 0;
+    sq_getinteger(vm, SQInteger(3), &w);
+    sq_getinteger(vm, SQInteger(4), &h);
+    outputResolution = IPoint2(int(w), int(h));
+  }
+
+  const char *options = render::antialiasing::get_available_upscaling_options(method, outputResolution);
 
   sq_pushstring(vm, options, -1);
 
@@ -376,21 +384,6 @@ static SQInteger get_low_latency_modes(HSQUIRRELVM vm)
 {
   int m = lowlatency::get_supported_latency_modes();
   sq_pushinteger(vm, m);
-  return 1;
-}
-
-static SQInteger get_performance_display_mode_support(HSQUIRRELVM vm)
-{
-  SQInteger mode_i;
-  sq_getinteger(vm, 2, &mode_i);
-  PerfDisplayMode mode = static_cast<PerfDisplayMode>(mode_i);
-  switch (mode)
-  {
-    case PerfDisplayMode::OFF:
-    case PerfDisplayMode::FPS: sq_pushinteger(vm, 1 /*true*/); break;
-    case PerfDisplayMode::COMPACT:
-    case PerfDisplayMode::FULL: sq_pushinteger(vm, lowlatency::is_available()); break;
-  }
   return 1;
 }
 
@@ -556,11 +549,10 @@ void bind_script(SqModules *moduleMgr)
     .SquirrelFunc("is_fullscreen_enabled", is_fullscreen_enabled, 1)
     .SquirrelFunc("set_frame_generation_suppressed", set_frame_generation_suppressed, 2, ".b")
     .SquirrelFunc("get_antialiasing_options", get_antialiasing_options, 1)
-    .SquirrelFunc("get_antialiasing_upscaling_options", get_antialiasing_upscaling_options, 2, ".s")
+    .SquirrelFunc("get_antialiasing_upscaling_options", get_antialiasing_upscaling_options, -2, ".sii")
     .SquirrelFunc("get_supported_generated_frames", get_supported_generated_frames, 3, ".sb")
     .SquirrelFunc("is_dynamic_mfg_supported", is_dynamic_mfg_supported, 3, ".sb")
     .SquirrelFunc("get_frame_generation_unsupported_reason", get_frame_generation_unsupported_reason, 3, ".sb")
-    .SquirrelFunc("get_performance_display_mode_support", get_performance_display_mode_support, 2, ".i")
     .Func("get_auto_selected_antialiasing_method", auto_graphics::auto_antialiasing::get_auto_selected_method)
     .Func("get_settings_override_for_auto_resolution", auto_graphics::auto_resolution::get_antialiasing_settings)
     .Func("should_use_upscaling_method", auto_graphics::auto_antialiasing::should_use_upscaling_method)

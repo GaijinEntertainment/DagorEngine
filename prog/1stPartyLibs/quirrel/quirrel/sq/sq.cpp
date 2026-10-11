@@ -64,12 +64,14 @@ void PrintUsage()
     fprintf(stderr,"Usage: sq <scriptpath [args]> [options]\n"
         "Available options are:\n"
         "  -ast-dump [out-file]      dump AST into console or file if specified\n"
+        "  -ast-dump-json [out-file] dump AST as one line of JSON into console or file if specified\n"
         "  -nodes-location           print AST nodes locations\n"
         "  -absolute-path            use absolute path when print diangostics\n"
         "  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n"
         "  -diag-file file           write diagnostics into specified file\n"
         "  -sa                       enable static analyzer\n"
-        "  --syntax-check            do not execute checked scripts\n"
+        "  --parse-only              parse scripts only, do not compile or run them\n"
+        "  --syntax-check            alias of --parse-only\n"
         "  --check-stack             check stack after each script execution\n"
         "  --warnings-list           print all warnings and exit\n"
         "  --parse-types             parse function types from file\n"
@@ -144,37 +146,47 @@ static bool check_stack(HSQUIRRELVM v, int expected_top)
 }
 
 struct DumpOptions {
-  bool astDump;
-  bool bytecodeDump;
-  bool nodesLocation;
-
+  enum AstFormat { AST_NONE, AST_TEXT, AST_JSON } astFormat;
+  bool nodesLocation; // text AST dump only
   const char *astDumpFileName;
+  bool astDumped;
+
+  bool bytecodeDump;
   const char *bytecodeDumpFileName;
 };
+
+static void dumpAstTo(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, const DumpOptions *dumpOpt, FILE *f)
+{
+    if (dumpOpt->astFormat == DumpOptions::AST_JSON)
+        sq_dumpastjson(vm, astData, &sq_stream_write_file, f);
+    else
+        sq_dumpast(vm, astData, dumpOpt->nodesLocation, &sq_stream_write_file, f);
+}
 
 static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, void *opts)
 {
     if (opts == NULL)
       return;
     DumpOptions *dumpOpt = (DumpOptions *)opts;
-    if (dumpOpt->astDump)
+    if (dumpOpt->astFormat != DumpOptions::AST_NONE && !dumpOpt->astDumped)
     {
+        dumpOpt->astDumped = true;
         if (dumpOpt->astDumpFileName)
         {
             FILE *f = fopen(dumpOpt->astDumpFileName, "wb");
             if (f)
             {
-                sq_dumpast(vm, astData, dumpOpt->nodesLocation, &sq_stream_write_file, f);
+                dumpAstTo(vm, astData, dumpOpt, f);
                 fclose(f);
             }
             else
             {
-                printf("Error: cannot open AST dump file '%s'\n", dumpOpt->astDumpFileName);
+                fprintf(stderr, "Error: cannot open AST dump file '%s'\n", dumpOpt->astDumpFileName);
             }
         }
         else
         {
-            sq_dumpast(vm, astData, dumpOpt->nodesLocation, &sq_stream_write_file, stdout);
+            dumpAstTo(vm, astData, dumpOpt, stdout);
         }
     }
 }
@@ -360,10 +372,13 @@ static bool check_syntax(HSQUIRRELVM v, const char *filename, bool static_analys
     module_mgr->bindRequireApi(hBindings);
     module_mgr->bindBaseLib(hBindings);
 
-    SQCompilation::SqASTData *ast =
-      sq_parsetoast(v, source.c_str(), source.length(), filename, static_analysis, /* raise error*/ true);
+    DumpOptions *dumpOpt = (DumpOptions *)module_mgr->up_data;
+    SQCompilation::SqASTData *ast = sq_parsetoast(v, source.c_str(), source.length(), filename,
+      static_analysis || module_mgr->compilationOptions.keepCommentsInAst, /* raise error*/ true);
     if (!ast)
         return false;
+
+    dumpAst_callback(v, ast, dumpOpt);
 
     if (static_analysis)
     {
@@ -385,10 +400,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
     assert(module_mgr != nullptr && "Module manager has to be initialized");
     const char *optArg = nullptr;
-    DumpOptions dumpOpt = { 0 };
+    DumpOptions dumpOpt = {};
     FILE *diagFile = nullptr;
     bool static_analysis = checkOption(argv, argc, "sa", optArg); // TODO: refact ugly loop below using this function
-    bool syntax_check_only = false;
+    bool parse_only = false;
     bool parse_types = false;
 
     if (static_analysis) {
@@ -408,9 +423,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             if (arg[0] == '-' && arg[1] == '-')
                 arg++;
 
-            if (strcmp("-ast-dump", arg) == 0)
+            if (strcmp("-ast-dump", arg) == 0 || strcmp("-ast-dump-json", arg) == 0)
             {
-                dumpOpt.astDump = true;
+                dumpOpt.astFormat = strcmp("-ast-dump-json", arg) == 0 ? DumpOptions::AST_JSON : DumpOptions::AST_TEXT;
                 if ((index + 1) < argc && argv[index + 1][0] != '-' && !ends_with(argv[index + 1], ".nut"))
                     dumpOpt.astDumpFileName = argv[++index];
             }
@@ -430,9 +445,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             {
                 parse_types = true;
             }
-            else if (strcmp("-syntax-check", arg) == 0)
+            else if (strcmp("-parse-only", arg) == 0 || strcmp("-syntax-check", arg) == 0)
             {
-                syntax_check_only = true;
+                parse_only = true;
             }
             else if (strcmp("-d", arg) == 0)
             {
@@ -505,6 +520,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         }
 
         module_mgr->up_data = &dumpOpt;
+        module_mgr->compilationOptions.keepCommentsInAst = dumpOpt.astFormat == DumpOptions::AST_JSON;
         module_mgr->onAST_cb = &dumpAst_callback;
         module_mgr->onBytecode_cb = &dumpBytecodeAst_callback;
 
@@ -513,7 +529,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         if (static_analysis) {
           sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, false);
         }
-        if (syntax_check_only)
+        if (parse_only)
           sq_setcompilationoption(v, CompilationOptions::CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION, true);
 
         if (diagFile)
@@ -556,7 +572,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             SqModules::string errMsg;
             int retCode = _DONE;
 
-            if (syntax_check_only) {
+            if (parse_only) {
                 if (!check_syntax(v, filename, static_analysis, errMsg))
                     retCode = _ERROR;
             }
@@ -568,7 +584,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 *retval = exports.GetObject()._unVal.nInteger;
             }
 
-            if (static_analysis && !syntax_check_only) {
+            if (static_analysis && !parse_only) {
               sq_checkglobalnames(v);
             }
 

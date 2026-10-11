@@ -58,14 +58,14 @@ struct ClosureInfo
 };
 
 eastl::vector<SimpleString> defStrings;
-static das::recursive_mutex scriptCommandsMutex;
+static dag::recursive_mutex scriptCommandsMutex;
 eastl::hash_map<eastl::string, ClosureInfo> scriptCommands;
 
 struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommandProcessor
 {
   void registerClosure(eastl::string const &n, ClosureInfo &&closure_info)
   {
-    das::lock_guard<das::recursive_mutex> lock(scriptCommandsMutex);
+    das::lock_guard lock(scriptCommandsMutex);
     debug("daScript: register console command %s with %d params%s", n.c_str(), closure_info.minParams - 1,
       scriptCommands.find(n) != scriptCommands.end() ? " - replacing existing" : "");
     scriptCommands[n] = eastl::move(closure_info);
@@ -75,18 +75,18 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
 
   ~ConsoleCmdFunctionAnnotation() override { del_con_proc(this); }
 
-  bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &err) override
+  bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &err) override
   {
     err = "not a block annotation";
     return false;
   }
-  bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &err) override
   {
     err = "not a block annotation";
     return false;
   }
-  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &err) override
+  bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &, das::string &err) override
   {
     auto mod = fn->fromGeneric ? fn->fromGeneric->module : fn->module;
     if (mod && mod->isModule)
@@ -108,7 +108,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
     fn->exports = true;
     return true;
   };
-  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &argTypes,
+  bool finalize(const das::FunctionPtr &fn, das::ModuleGroup &, das::AnnotationArgumentList &argTypes,
     const das::AnnotationArgumentList &, das::string &err) override
   {
     const das::AnnotationArgument *nameAnnotation = argTypes.find("name", das::Type::tString);
@@ -294,7 +294,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
       return false;
     }
     const uint32_t fnHash = ecs_str_hash(fn->code->debugInfo.fileInfo->name.c_str());
-    das::lock_guard<das::recursive_mutex> lock(scriptCommandsMutex);
+    das::lock_guard lock(scriptCommandsMutex);
     for (auto &command : scriptCommands)
       if (command.second.mangledNameHash == fn->mangledNameHash && command.second.fileNameHash == fnHash)
       {
@@ -308,7 +308,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
 
   bool processCommand(const char *argv[], int argc) override
   {
-    das::lock_guard<das::recursive_mutex> lock(scriptCommandsMutex);
+    das::lock_guard lock(scriptCommandsMutex);
     if (ICommandProcessor::cmdCollector)
     {
       for (auto const &cmd : scriptCommands)
@@ -438,7 +438,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
 namespace bind_dascript
 {
 ConsoleProcessorRegistry consoleProcessorFunctions;
-das::recursive_mutex consoleProcessorFunctionsMutex;
+dag::recursive_mutex consoleProcessorFunctionsMutex;
 
 class DagorConsole final : public das::Module
 {
@@ -463,13 +463,13 @@ public:
     addAnnotation(consoleProcessorFunctionAnnotation);
     das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
       {
-        das::lock_guard<das::recursive_mutex> lock(consoleProcessorFunctionsMutex);
+        das::lock_guard lock(consoleProcessorFunctionsMutex);
         for (auto &pair : consoleProcessorFunctions)
           if (pair.second.context == ctx)
             pair.second.context = nullptr;
       }
       {
-        das::lock_guard<das::recursive_mutex> lock(scriptCommandsMutex);
+        das::lock_guard lock(scriptCommandsMutex);
         for (auto &pair : scriptCommands)
           if (pair.second.context == ctx)
             pair.second.context = nullptr;

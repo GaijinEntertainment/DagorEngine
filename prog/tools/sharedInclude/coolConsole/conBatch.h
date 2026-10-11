@@ -46,4 +46,7 @@ ConBatch *get_cmd_queue_batch();
 void start_cmd_queue_idle_cycle();
 void stop_cmd_queue_idle_cycle();
 
+// Called when the current queue run fails. The queue clears the handler at the end of every run.
+void set_cmd_queue_abort_handler(void (*handler)());
+
 void register_cmd_queue_console_handler();

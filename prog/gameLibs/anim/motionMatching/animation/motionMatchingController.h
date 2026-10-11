@@ -34,6 +34,7 @@ public:
   float lastTransitionTime = 0.0f;
   float transitionBlendTime = 0.0f;
   float playSpeedMult = 1.0f;
+  float animcharScale = 1.0f;
 
   bool useTagsFromAnimGraph = false;
 

@@ -83,8 +83,19 @@ void soa4::computeEdgeFlags(uint8_t *tree, RootRef root, uint32_t verts_ofs, uns
     LeafRef ref;
     uint32_t firstTri, triCount;
   };
+  // counted first: framemem regrowth would leave holes
+  uint32_t leafCount = 0, triBound = 0;
+  iterateLeafRefs(
+    tree, root, [](vec3f, vec3f) { return true; },
+    [&](vec3f, vec3f, LeafRef, const LeafLoc &l) {
+      ++leafCount;
+      triBound += quadLeafTriCount(leafFields(tree, l));
+      return false;
+    });
   dag::Vector<Leaf, framemem_allocator> leaves;
   dag::Vector<uint32_t, framemem_allocator> tris; // the leaf walk's triangle order, the order a reader expands
+  leaves.reserve(leafCount);
+  tris.reserve(triBound * 3u);
   iterateLeafRefs(
     tree, root, [](vec3f, vec3f) { return true; },
     [&](vec3f, vec3f, LeafRef ref, const LeafLoc &l) {

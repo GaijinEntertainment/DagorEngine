@@ -22,6 +22,7 @@ __forceinline bool DEBUGCM_F(...) { return false; };
 
 bool GlobalVertexDataConnector::allowVertexMerge = false;
 bool GlobalVertexDataConnector::allowBaseVertex = false;
+bool GlobalVertexDataConnector::disableBaseVertexSizeLimits = false;
 
 struct VDataRemap
 {
@@ -512,8 +513,9 @@ void GlobalVertexDataConnector::connectData(bool allow_32_bit, GlobalVertexDataC
         continue;
       for (int j = i + 1; j < vdataSrcWork.size(); j++)
         if (vdataSrcWork[j] && vdataSrcWork[i]->stride == vdataSrcWork[j]->stride &&
-            vdataSrcWork[i]->is32bit() == vdataSrcWork[j]->is32bit() && vdataSrcWork[i]->numv + vdataSrcWork[j]->numv < (1 << 20) &&
-            vdataSrcWork[i]->numf + vdataSrcWork[j]->numf < (4 << 20))
+            vdataSrcWork[i]->is32bit() == vdataSrcWork[j]->is32bit() &&
+            (disableBaseVertexSizeLimits || (vdataSrcWork[i]->numv + vdataSrcWork[j]->numv < (1 << 20) &&
+                                              vdataSrcWork[i]->numf + vdataSrcWork[j]->numf < (4 << 20))))
         {
           vDataMap[j].sv = vdataSrcWork[i]->numv;
           vDataMap[j].si = vdataSrcWork[i]->numf * 3;

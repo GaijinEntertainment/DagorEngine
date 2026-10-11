@@ -57,7 +57,9 @@ void BEContext::reset(RenderWork *in_work)
   flushProcessed = false;
   renderAllowed = false;
   directDrawCount = 0;
-  directDrawCountInSurvey = 0;
+  directDrawCountAtSurveyBegin = 0;
+  surveyQueryActiveId = -1;
+  surveyQueryCompleted = true;
   actionIdx = 0;
   lastTimestampActionIdx = -1;
   lastReorderedTimestampIndex = 0;
@@ -1406,14 +1408,17 @@ void BEContext::popEventTracked()
 
 void BEContext::beginQuery(VulkanQueryPoolHandle pool, uint32_t index, VkQueryControlFlags flags)
 {
+  G_ASSERTF(surveyQueryCompleted, "vulkan: not completed survey %u", index);
   VULKAN_LOG_CALL(Backend::cb.wCmdBeginQuery(pool, index, flags));
-  directDrawCountInSurvey = directDrawCount;
+  directDrawCountAtSurveyBegin = directDrawCount;
+  surveyQueryActiveId = index;
+  surveyQueryCompleted = false;
 }
 
 void BEContext::endQuery(VulkanQueryPoolHandle pool, uint32_t index)
 {
-  directDrawCountInSurvey = directDrawCount - directDrawCountInSurvey;
   VULKAN_LOG_CALL(Backend::cb.wCmdEndQuery(pool, index));
+  surveyQueryCompleted = true;
 }
 
 void BEContext::wait(ThreadedFence *fence) { fence->wait(); }

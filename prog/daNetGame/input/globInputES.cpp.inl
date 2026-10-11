@@ -38,8 +38,21 @@
 
 extern bool grs_draw_wire;
 
+static void toggle_neural_rendering()
+{
+  ecs::EntityId eid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings"));
+  if (bool *neuralRendering = g_entity_mgr->getNullableRW<bool>(eid, ECS_HASH("render_settings__neuralRendering")))
+    *neuralRendering = !*neuralRendering;
+}
+
 static bool glob_input_process_top_level_key_down(int key_idx, unsigned key_modif)
 {
+  // Opt-in, so it is outside the dev-only block: demo builds can use it too.
+  if (key_idx == HumanInput::DKEY_F9 && ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("remapF9toDLSS5", false))
+  {
+    toggle_neural_rendering();
+    return true;
+  }
 #if DAGOR_DBGLEVEL > 0
   const bool ctrl = key_modif & HumanInput::KeyboardRawState::CTRL_BITS;
   const bool shift = key_modif & HumanInput::KeyboardRawState::SHIFT_BITS;

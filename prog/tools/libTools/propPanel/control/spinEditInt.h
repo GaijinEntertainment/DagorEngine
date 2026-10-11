@@ -7,6 +7,7 @@
 #include <propPanel/imguiHelper.h>
 #include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/control/spinEditStandalone.h>
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
@@ -37,7 +38,7 @@ public:
   unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_DATA_MIN_MAX_STEP | CONTROL_CAPTION; }
   unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
 
-  unsigned getWidth() const override { return mW > 0 ? mW : ImguiHelper::getDefaultRightSideEditWidth(); }
+  unsigned getWidth() const override { return mW > 0 ? mW : ControlSizeHelper::getDefaultRightSideEditWidth(); }
 
   int getIntValue() const override { return floor(spinEdit.getValue()); }
   void setIntValue(int value) override { spinEdit.setValue(value); }
@@ -80,11 +81,17 @@ public:
 
   const char *getImguiTypeName() const override { return "EditInt"; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    return ControlSizeHelper::getSpinEditPreferredSize(widthIncludesLabel, mW, controlCaption.begin(), controlCaption.end(),
+      max_width_px);
+  }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    float spinEditWidth = ImguiHelper::getDefaultRightSideEditWidth();
+    float spinEditWidth = ControlSizeHelper::getDefaultRightSideEditWidth();
 
     if (widthIncludesLabel)
     {

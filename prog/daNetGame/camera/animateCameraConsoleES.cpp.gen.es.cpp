@@ -5,6 +5,14 @@ static constexpr ecs::component_t camera_animator__origo_get_type();
 static ecs::LTComponentList camera_animator__origo_component(ECS_HASH("camera_animator__origo"), camera_animator__origo_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
 static constexpr ecs::component_t camera_animator__speed_get_type();
 static ecs::LTComponentList camera_animator__speed_component(ECS_HASH("camera_animator__speed"), camera_animator__speed_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
+static constexpr ecs::component_t camera_lerp_animator__duration_get_type();
+static ecs::LTComponentList camera_lerp_animator__duration_component(ECS_HASH("camera_lerp_animator__duration"), camera_lerp_animator__duration_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
+static constexpr ecs::component_t camera_lerp_animator__from_get_type();
+static ecs::LTComponentList camera_lerp_animator__from_component(ECS_HASH("camera_lerp_animator__from"), camera_lerp_animator__from_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
+static constexpr ecs::component_t camera_lerp_animator__startTime_get_type();
+static ecs::LTComponentList camera_lerp_animator__startTime_component(ECS_HASH("camera_lerp_animator__startTime"), camera_lerp_animator__startTime_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
+static constexpr ecs::component_t camera_lerp_animator__to_get_type();
+static ecs::LTComponentList camera_lerp_animator__to_component(ECS_HASH("camera_lerp_animator__to"), camera_lerp_animator__to_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
 static constexpr ecs::component_t camera_path_animator__distance_get_type();
 static ecs::LTComponentList camera_path_animator__distance_component(ECS_HASH("camera_path_animator__distance"), camera_path_animator__distance_get_type(), "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl", "", 0);
 static constexpr ecs::component_t camera_path_animator__transforms_get_type();
@@ -89,6 +97,44 @@ static ecs::EntitySystemDesc camera_path_animator_update_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,"*");
+static constexpr ecs::ComponentDesc camera_lerp_animator_update_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("camera_animator__prev_transform"), ecs::ComponentTypeInfo<TMatrix>()},
+//start of 5 ro components at [1]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("camera_lerp_animator__from"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("camera_lerp_animator__to"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("camera_lerp_animator__duration"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("camera_lerp_animator__startTime"), ecs::ComponentTypeInfo<int>()}
+};
+static void camera_lerp_animator_update_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
+  do
+    camera_lerp_animator_update_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
+    , ECS_RO_COMP(camera_lerp_animator_update_es_comps, "eid", ecs::EntityId)
+    , ECS_RO_COMP(camera_lerp_animator_update_es_comps, "camera_lerp_animator__from", TMatrix)
+    , ECS_RO_COMP(camera_lerp_animator_update_es_comps, "camera_lerp_animator__to", TMatrix)
+    , ECS_RO_COMP(camera_lerp_animator_update_es_comps, "camera_lerp_animator__duration", float)
+    , ECS_RO_COMP(camera_lerp_animator_update_es_comps, "camera_lerp_animator__startTime", int)
+    , ECS_RW_COMP(camera_lerp_animator_update_es_comps, "camera_animator__prev_transform", TMatrix)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc camera_lerp_animator_update_es_es_desc
+(
+  "camera_lerp_animator_update_es",
+  "prog/daNetGame/camera/animateCameraConsoleES.cpp.inl",
+  ecs::EntitySystemOps(camera_lerp_animator_update_es_all),
+  make_span(camera_lerp_animator_update_es_comps+0, 1)/*rw*/,
+  make_span(camera_lerp_animator_update_es_comps+1, 5)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  (1<<ecs::UpdateStageInfoAct::STAGE)
+,nullptr,nullptr,"*");
 static constexpr ecs::ComponentDesc camera_animator_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -118,5 +164,9 @@ static ecs::EntitySystemDesc camera_animator_es_event_handler_es_desc
 static constexpr ecs::component_t camera_animator__angle_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t camera_animator__origo_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
 static constexpr ecs::component_t camera_animator__speed_get_type(){return ecs::ComponentTypeInfo<float>::type; }
+static constexpr ecs::component_t camera_lerp_animator__duration_get_type(){return ecs::ComponentTypeInfo<float>::type; }
+static constexpr ecs::component_t camera_lerp_animator__from_get_type(){return ecs::ComponentTypeInfo<TMatrix>::type; }
+static constexpr ecs::component_t camera_lerp_animator__startTime_get_type(){return ecs::ComponentTypeInfo<int>::type; }
+static constexpr ecs::component_t camera_lerp_animator__to_get_type(){return ecs::ComponentTypeInfo<TMatrix>::type; }
 static constexpr ecs::component_t camera_path_animator__distance_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t camera_path_animator__transforms_get_type(){return ecs::ComponentTypeInfo<ecs::Array>::type; }

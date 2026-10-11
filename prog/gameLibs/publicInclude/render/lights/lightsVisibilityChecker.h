@@ -41,8 +41,8 @@ public:
   LightsVisibilityChecker(TestParameters &&test_parameters, LightsVisibilityChecker &&checker);
   ~LightsVisibilityChecker();
 
-  LightsVisibilityChecker(LightsVisibilityChecker &&checker);
-  LightsVisibilityChecker &operator=(LightsVisibilityChecker &&checker);
+  LightsVisibilityChecker(LightsVisibilityChecker &&checker) noexcept;
+  LightsVisibilityChecker &operator=(LightsVisibilityChecker &&checker) noexcept;
 
   LightsVisibilityChecker(const LightsVisibilityChecker &) = delete;
   LightsVisibilityChecker &operator=(const LightsVisibilityChecker &) = delete;

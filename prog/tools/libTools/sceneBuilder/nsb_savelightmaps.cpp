@@ -10,10 +10,8 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_ioUtils.h>
-#include <ioSys/dag_zlibIo.h>
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
-#include <image/dag_dxtCompress.h>
 #include <libTools/util/makeBindump.h>
 #include <ioSys/dag_memIo.h>
 #include <libTools/dtx/dtx.h>
@@ -25,9 +23,6 @@ namespace StaticSceneBuilder
 {
 int save_lightmap_files(const char *fname_base, TexImage32 *img, int scene_format, int target_code, mkbindump::BinDumpSaveCB &cwr,
   bool keep_ref_files);
-
-int save_lightmap_hdr(const char *fname_base, IPoint2 lm_sz, Color4 *img, StaticSceneBuilder::StdTonemapper &tonemapper,
-  mkbindump::BinDumpSaveCB &cwr, bool keep_ref_files);
 
 int save_lightmap_bump(const char *fname_base, TexImage32 *flat_img, TexImage32 *sunbump_color_img, mkbindump::BinDumpSaveCB &cwr,
   bool keep_ref_files);
@@ -673,100 +668,4 @@ int StaticSceneBuilder::save_lightmap_bump(const char *fname_base, TexImage32 *f
     mem_copy_to(original_pix[lightmapNo], (TexPixel32 *)(lightmaps[lightmapNo] + 1));
 
   return pos;
-}
-
-
-struct rgbe_header_info;
-extern int RGBE_WritePixels_RLE(file_ptr_t fp, float *data, int scanline_width, int num_scanlines);
-extern int RGBE_WriteHeader(file_ptr_t fp, int width, int height, rgbe_header_info *info);
-#define RGBE_RETURN_FAILURE -1
-
-int StaticSceneBuilder::save_lightmap_hdr(const char *fname_base, IPoint2 lm_sz, Color4 *img,
-  StaticSceneBuilder::StdTonemapper &tonemapper, mkbindump::BinDumpSaveCB &cwr, bool keep_ref_files)
-{
-  bool saveToRgbe = false;
-  if (saveToRgbe)
-  {
-    // Save hdr.
-    Tab<Color3> pixelList(tmpmem);
-    pixelList.resize(lm_sz.x * lm_sz.y);
-
-    for (int i = 0; i < pixelList.size(); i++, img++)
-      pixelList[i].set_rgb(tonemapper.transformColorHdr(*img));
-
-    String fname(260, "%sh.hdr", fname_base);
-    file_ptr_t file = df_open(fname, DF_WRITE | DF_CREATE);
-    if (!file)
-      return -1;
-
-    if (RGBE_WriteHeader(file, lm_sz.x, lm_sz.y, NULL) == RGBE_RETURN_FAILURE)
-    {
-      df_close(file);
-      return -1;
-    }
-
-    if (RGBE_WritePixels_RLE(file, (float *)&pixelList[0], lm_sz.x, lm_sz.y) == RGBE_RETURN_FAILURE)
-    {
-      df_close(file);
-      return -1;
-    }
-    df_close(file);
-
-    // copy lightmap to scene stream
-    int pos = cwr.tell();
-    file_ptr_t fp = df_open(fname, DF_READ);
-    cwr.writeInt32e(df_length(fp));
-    cwr.beginBlock();
-    ZlibSaveCB zlibCb(cwr.getRawWriter(), ZlibSaveCB::CL_BestSpeed + 5);
-    copy_file_to_stream(fp, zlibCb);
-    zlibCb.finish();
-    cwr.endBlock();
-    debug("HDR RGBE lightmap compression: %.2f", zlibCb.getCompressionRatio());
-    df_close(fp);
-
-    if (!keep_ref_files)
-      dd_erase(fname);
-    return pos;
-  }
-  else // saveToRgbe
-  {
-    Tab<TexPixel32> pixelList(tmpmem);
-    pixelList.resize(lm_sz.x * lm_sz.y);
-
-    // convert to RGBM
-    for (int i = 0; i < pixelList.size(); i++, img++)
-      pixelList[i].c = tonemapper.mapHdrToRgbmE3dcolor(*img);
-
-    int dataSize;
-    void *data = CompressDXT(MODE_DXT5, &pixelList[0], lm_sz.x * 4, lm_sz.x, lm_sz.y, 0, &dataSize);
-
-    // save DDS
-    if (keep_ref_files)
-    {
-      file_ptr_t file = df_open(String(fname_base) + "h.dds", DF_WRITE | DF_CREATE);
-      if (!file)
-        return -1;
-
-      if (df_write(file, data, dataSize) != dataSize)
-      {
-        df_close(file);
-        return -1;
-      }
-
-      df_close(file);
-    }
-
-    // copy lightmap to scene stream
-    int pos = cwr.tell();
-    cwr.writeInt32e(dataSize);
-    cwr.beginBlock();
-    ZlibSaveCB zlibCb(cwr.getRawWriter(), ZlibSaveCB::CL_BestSpeed + 5);
-    zlibCb.write(data, dataSize);
-    zlibCb.finish();
-    cwr.endBlock();
-    memfree(data, tmpmem);
-    debug("HDR DDS lightmap compression: %.2f", zlibCb.getCompressionRatio());
-
-    return pos;
-  }
 }

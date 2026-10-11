@@ -23,9 +23,7 @@ def safe_read_u64(p : float?; i : uint64) : float {
 }
 
 def write_i64(var p : float?; i : int64; v : float) {
-    unsafe {
-        p[i] = v
-    }
+    unsafe(p[i]) = v
 }
 
 def read_const_pointee_i64(p : float const?; i : int64) : float {

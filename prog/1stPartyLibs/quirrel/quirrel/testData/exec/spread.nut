@@ -79,6 +79,7 @@ dumpArray(SPREAD_CONST_ARRAY)
 const CONST_TABLE = { a = 1, b = 2 }
 const SPREAD_CONST_TABLE = { ...CONST_TABLE, b = 20, c = 3 }
 dumpTable(SPREAD_CONST_TABLE)
+dumpTable(const { ...CONST_TABLE, b = 20, c = 3 })
 
 const CONST_NOTHING = null
 const SPREAD_CONST_NULL_ARRAY = [1, ...CONST_NOTHING, 2]
@@ -146,3 +147,7 @@ expectError(@() copyTrailingSpread(frozenSource).p.q = 5)
 
 dumpTable(copyLeadingSpread(t))
 dumpTable(copyTrailingSpread(t))
+
+let shorthand = 0
+dumpTable({ shorthand
+  ...t })

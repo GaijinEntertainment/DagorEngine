@@ -308,7 +308,7 @@ shader debug_final_gbuffer
         float3 pointToEye = -cameraToPoint;
         float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
         uint cascadeId;
-        getStaticShadowWithBias(worldPos.xyz, gbuffer.normal, 0, cascadeId, 1, 0, 0);
+        getStaticShadowWithBias(worldPos.xyz, float3(0,0,0), float3(0,0,0), 0, cascadeId, 1, 0, 0);
 
         static const half3 CASCADE_COLORS[3] = {
           half3(1, 0, 0),

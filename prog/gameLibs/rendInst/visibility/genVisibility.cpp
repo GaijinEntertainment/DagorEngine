@@ -254,6 +254,9 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
         rr.vismask |= VIS_HAS_IMPOSTOR;
     filteredVis.vismask |= rr.vismask;
   }
+  for (uint16_t ri_idx : rtData->riResOrder)
+    if (filteredVis.renderRanges[ri_idx].vismask & (VIS_HAS_OPAQUE | VIS_HAS_TRANSP))
+      filteredVis.visiblePools.push_back(ri_idx);
 
   carray<int, RiGenVisibility::PER_INSTANCE_LODS> perInstanceData;
   mem_set_ff(perInstanceData);
@@ -440,7 +443,7 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
     return false;
   mem_set_0(visibility.instNumberCounter);
   float subCellOfsSize = grid2worldcellSz * ((rendinst::render::per_instance_visibility_for_everyone ? 0.75f : 0.25f) *
-                                              (rendinst::render::globalDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
+                                              (rendinst::render::riGenLodDistMul * 1.f / RendInstGenData::SUBCELL_DIV));
 
   static constexpr int MAX_PER_INSTANCE_CELLS = 7;
   vec3f v_cell_add[MAX_PER_INSTANCE_CELLS], v_cell_mul[MAX_PER_INSTANCE_CELLS];
@@ -551,11 +554,11 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
       const float transitionRange = defaultTransitionLodRange - rtData->riResLodRange(ri_idx, lastMeshLodNum, nullptr);
       const float transitionStart = lodDistancesSq_perInst[visibility.PI_IMPOSTOR_LOD] - transitionRange;
 
-      visibility.crossDissolveRange[ri_idx] = safediv(transitionStart, rendinst::render::lodsShiftDistMul);
+      visibility.crossDissolveRange[ri_idx] = safediv(transitionStart, rendinst::render::distMulInputs.lodsShiftMul);
     }
 
     for (int instanceLod = 1 + lodTranslation; instanceLod < RiGenVisibility::PER_INSTANCE_LODS - 1; ++instanceLod)
-      lodDistancesSq_perInst[instanceLod] = safediv(lodDistancesSq_perInst[instanceLod], rendinst::render::lodsShiftDistMul);
+      lodDistancesSq_perInst[instanceLod] = safediv(lodDistancesSq_perInst[instanceLod], rendinst::render::distMulInputs.lodsShiftMul);
 
     for (int instanceLod = 1 + lodTranslation; instanceLod < RiGenVisibility::PER_INSTANCE_LODS; ++instanceLod)
       lodDistancesSq_perInst[instanceLod] *= lodDistancesSq_perInst[instanceLod];
@@ -844,6 +847,9 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
 
     visibility.vismask |= riRenderRanges[ri_idx].vismask;
   }
+  for (uint16_t ri_idx : rtData->riResOrder)
+    if (riRenderRanges[ri_idx].vismask & (VIS_HAS_OPAQUE | VIS_HAS_TRANSP))
+      visibility.visiblePools.push_back(ri_idx);
 
   if (rendinst::render::per_instance_visibility)
   {

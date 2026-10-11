@@ -111,7 +111,7 @@ void scene::TiledScene::term()
 {
   // to avoid missing sync of command clear to adder threads
   // also keep lock order same as in adders, to avoid any lockup possible
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   G_ASSERT(isInWritingThread());
   WriteLockRAII lock(*this);
 
@@ -249,7 +249,7 @@ void scene::TiledScene::rearrange(int tx0, int tz0, int tx1, int tz1)
 
 void scene::TiledScene::setTransformNoScaleChange(node_index node, mat44f_cref transform)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -274,7 +274,7 @@ void scene::TiledScene::setTransformNoScaleChange(node_index node, mat44f_cref t
 
 void scene::TiledScene::setTransform(node_index node, mat44f_cref transform, bool do_not_wait)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this, do_not_wait);
@@ -302,7 +302,7 @@ void scene::TiledScene::setTransform(node_index node, mat44f_cref transform, boo
 
 void scene::TiledScene::setFlags(node_index node, uint16_t flags)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -319,7 +319,7 @@ void scene::TiledScene::setFlags(node_index node, uint16_t flags)
 
 void scene::TiledScene::unsetFlags(node_index node, uint16_t flags)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -344,7 +344,7 @@ void scene::TiledScene::unsetFlagsUnordered(dag::ConstSpan<node_index> node_indi
 
 void scene::TiledScene::setPoolBBox(pool_index pool, bbox3f_cref box)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -362,7 +362,7 @@ void scene::TiledScene::setPoolBBox(pool_index pool, bbox3f_cref box)
 
 void scene::TiledScene::setPoolDistanceSqScale(pool_index pool, float dist_scale_sq)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -426,7 +426,7 @@ void scene::TiledScene::applyReserves()
 
 void scene::TiledScene::destroy(node_index node)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -441,7 +441,7 @@ void scene::TiledScene::destroy(node_index node)
 
 void scene::TiledScene::reallocate(node_index node, const mat44f &transform, pool_index pool, uint16_t flags)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
@@ -458,7 +458,7 @@ void scene::TiledScene::reallocate(node_index node, const mat44f &transform, poo
 
 scene::node_index scene::TiledScene::allocate(const mat44f &transform, pool_index pool, uint16_t flags)
 {
-  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
+  dag::lock_guard scopedLock(mDeferredSetTransformMutex);
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);

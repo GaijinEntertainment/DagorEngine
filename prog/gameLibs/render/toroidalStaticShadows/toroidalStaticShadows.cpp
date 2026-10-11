@@ -184,6 +184,26 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadows::updateO
   return ToroidalStaticShadowCascade::BeforeRenderReturned{0, varsChanged};
 }
 
+void ToroidalStaticShadows::invalidateCascadeIfCameraTooFar(int cascade_no, const Point3 &pos, float max_distance_outside)
+{
+  G_ASSERT_RETURN(cascade_no >= 0 && cascade_no < cascades.size(), );
+  if (max_distance_outside < 0.f)
+    return;
+
+  ToroidalStaticShadowCascade &c = cascades[cascade_no];
+  if (!c.helper.isOriginSet())
+    return;
+
+  Point3 camAtOriginHeight = c.clipPointToWorld(pos);
+  camAtOriginHeight.y = c.originRefHeight; // otherwise the XZ position would be shifted due to sheared texture space
+  const Point3 camTexel = c.toTexelSpace(camAtOriginHeight);
+  const float halfSize = 0.5f * c.helper.texSize;
+  const Point2 outside(max(fabsf(camTexel.x - c.helper.curOrigin.x) - halfSize, 0.f),
+    max(fabsf(camTexel.y - c.helper.curOrigin.y) - halfSize, 0.f));
+  if (lengthSq(outside) * sqr(c.texelSize) > sqr(max_distance_outside))
+    c.invalidate(true);
+}
+
 int ToroidalStaticShadows::getRegionToRenderCount(int cascade) const { return cascades[cascade].getRegionToRenderCount(); }
 
 void ToroidalStaticShadows::clearRegionToRender(int cascade) { cascades[cascade].clearRegionToRender(); }
@@ -253,9 +273,12 @@ void ToroidalStaticShadows::setWorldBox(const BBox3 &box)
     c.setWorldBox(worldBox);
 }
 
-float ToroidalStaticShadows::getMaxWorldDistance() const { return 0.55f * max(worldBox.width().x, worldBox.width().z); }
+float ToroidalStaticShadows::getMaxWorldDistance(const BBox3 &world_box)
+{
+  return 0.55f * max(world_box.width().x, world_box.width().z);
+}
 
-float ToroidalStaticShadows::calculateCascadeDistance(int cascade, int cascade_count, float max_distance) const
+float ToroidalStaticShadows::calculateCascadeDistance(int cascade, int cascade_count, float max_distance, const BBox3 &world_box)
 {
   G_ASSERT_RETURN(cascade < cascade_count, 0.f);
   const bool isArray = cascade_count > 1;
@@ -263,7 +286,7 @@ float ToroidalStaticShadows::calculateCascadeDistance(int cascade, int cascade_c
   const bool isLastCascade = (cascade == cascade_count - 1);
   const float cDist = max_distance * (isLastCascade ? 1.f : (cascade + 1.f) / (cascade_count + 1.f));
 
-  const float maxWorldDistance = worldBox.isempty() ? cDist : getMaxWorldDistance();
+  const float maxWorldDistance = world_box.isempty() ? cDist : getMaxWorldDistance(world_box);
   return min(cDist, maxWorldDistance);
 };
 

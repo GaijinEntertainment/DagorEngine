@@ -103,8 +103,8 @@ public:
   //   instantly on every change
   virtual void createColorBox(int id, const char caption[], E3DCOLOR value = E3DCOLOR(0, 0, 0, 255), bool enabled = true,
     bool new_line = true, bool use_modal_color_selector = true);
-  // width: by default the color button width is getDefaultRightSideEditWidth() if there is a caption, otherwise it takes all the
-  //   available space. Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE can also be used.
+  // width: by default the color button width is the default right side edit width (ControlSizeHelper::getDefaultRightSideEditWidth) if
+  //   there is a caption, otherwise it takes all the available space. Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE can also be used.
   virtual void createSimpleColor(int id, const char caption[], E3DCOLOR value = E3DCOLOR(0, 0, 0, 255), bool enabled = true,
     bool new_line = true, hdpi::Px width = hdpi::Px::ZERO);
   virtual void createPoint2(int id, const char caption[], Point2 value = Point2(0, 0), int prec = 2, bool enabled = true,

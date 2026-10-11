@@ -32,7 +32,8 @@ block(scene) bvh_process_tree_vertices_block
     tree_wind_params@f4 = (tree_wind_time, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
     tree_wind_blend_params1@f4 = tree_wind_blend_params1;
 
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
+    perlin_noise3d_samplerstate@sampler = global_linear_wrap_sampler;
   }
   INIT_BVH_TREE_ANIMATION()
 }

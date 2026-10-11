@@ -51,6 +51,35 @@ def test_empty_array_io(t : T?) {
 }
 
 [test]
+def test_stat_is_exec(t : T?) {
+    t |> run("stat reports the execute bit: a data file has none, an executable has it") @(t : T?) {
+        var terr : string
+        let tmp = temp_directory(terr)
+        let dir = empty(tmp) ? "." : tmp
+        let plain = path_join(dir, "fio_exec_probe_{ref_time_ticks()}.txt")
+        t |> success(fwrite(plain, "x"), "the probe file is written")
+        let st_plain = stat(plain)
+        t |> success(st_plain.is_valid && st_plain.is_reg && !st_plain.is_exec, "a data file is not executable")
+        if (get_platform_name() == "windows") {
+            let exe = path_join(dir, "fio_exec_probe_{ref_time_ticks()}.exe")
+            t |> success(fwrite(exe, "x"), "the .exe probe is written")
+            t |> success(stat(exe).is_exec, "Windows: the .exe extension is the execute bit")
+            t |> success(remove(exe))
+        } else {
+            var out = ""
+            t |> equal(0, run_and_capture(["chmod", "755", plain], out, 10.0), "chmod runs")
+            t |> success(stat(plain).is_exec, "chmod 755 sets the bit stat reports")
+            t |> equal(0, run_and_capture(["chmod", "610", plain], out, 10.0), "chmod runs")
+            t |> success(stat(plain).is_exec, "a group-only execute bit counts too")
+            t |> equal(0, run_and_capture(["chmod", "600", plain], out, 10.0), "chmod runs")
+            t |> success(!stat(plain).is_exec, "and no execute bit at all reads false")
+            t |> success(stat(dir).is_exec && stat(dir).is_dir, "a directory carries the bit, so a program test pairs it with is_reg")
+        }
+        t |> success(remove(plain))
+    }
+}
+
+[test]
 def test_fopen(t : T?) {
     t |> run("fuzz fopen") @@(t : T?) {
         var fake <- Faker()

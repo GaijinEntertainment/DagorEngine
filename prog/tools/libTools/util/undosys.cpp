@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_globDef.h>
+#include <util/dag_stdint.h>
 #include <libTools/util/undo.h>
 #include <memory/dag_mem.h>
 #include <util/dag_hash.h>
@@ -8,6 +9,10 @@
 
 namespace
 {
+// A mark on an operation that is gone with its change still applied. Ids only go up from 1, so it
+// can never name one again and the owner reads modified until it marks anew.
+constexpr uint64_t MARK_UNREACHABLE = ~uint64_t(0);
+
 struct UndoMergeKeyHash
 {
   size_t operator()(const UndoMergeKey &k) const
@@ -56,6 +61,9 @@ public:
   // Opaque owner of this top-level operation, stamped from UndoSystemImpl::curOwner at accept().
   // The undo system never dereferences it; the editor app uses it to attribute the op to a plugin.
   void *owner = nullptr;
+  // Stamped with owner at accept(), and never reused, so it tells this operation from every other
+  // one the system ever accepted. That is what lets a save point name one.
+  uint64_t opId = 0;
 
   // The objects that each cover a slice, by merge key, so put() can find the one a new object would fold
   // into. Used only when this holder starts a fold scope; empty on the root, the only one that is trimmed.
@@ -67,6 +75,20 @@ public:
   bool canCancel = true;
 
   UndoRedoHolder() : obj(midmem), name(strmem) {}
+
+  // An operation changes saved data when anything it holds does, so a selection folded into an edit
+  // still leaves the document changed.
+  bool changes_saved_data() const override
+  {
+    for (int i = 0; i < obj.size(); ++i)
+    {
+      if (obj[i]->changes_saved_data())
+      {
+        return true;
+      }
+    }
+    return false;
+  }
 
   ~UndoRedoHolder() override
   {
@@ -183,6 +205,11 @@ public:
 
   // Stamped onto each operation at accept(); see set_op_owner.
   void *curOwner = nullptr;
+  // 0 is kept free, so it can stand for "this owner has nothing applied".
+  uint64_t nextOpId = 1;
+  // What each owner had applied when it last set its save point. An owner with no entry never
+  // set one, which reads the same as a mark of 0: at the save point while nothing of its own is applied.
+  ska::flat_hash_map<void *, uint64_t> ownerMarks;
 
 
   UndoSystemImpl(const char *nm, int sz, IUndoRedoWndClient *_wnd) :
@@ -203,9 +230,21 @@ public:
   {
     openOps = 0;
 
+    // An operation still being recorded is dropped without reverting it, so its change stays applied
+    // with no way back. A holder takes an owner only at accept, so the one stamped now answers for it.
+    for (int i = 1; i < stack.size(); ++i)
+    {
+      if (stack[i]->changes_saved_data())
+      {
+        ownerMarks[curOwner] = MARK_UNREACHABLE;
+        break;
+      }
+    }
+
     for (int i = stack.size() - 1; i > 0; --i)
       delete (stack[i]);
     safe_erase_items(stack, 1, stack.size() - 1);
+    freezeMarksOf(curop);
     stack[0]->clear_after(0);
     curop = 0;
     if (wnd)
@@ -232,12 +271,72 @@ public:
     return static_cast<UndoRedoHolder *>(stack.back()->obj[curop])->owner;
   }
 
+  void set_save_point(void *owner) override { ownerMarks[owner] = last_applied_op_id(owner); }
+
+  bool is_at_save_point(void *owner) override
+  {
+    // Ids are never reused, so this is equal only while that same operation is the applied one.
+    return markOf(owner) == last_applied_op_id(owner);
+  }
+
+  // An owner with no entry reads as marked at 0, which is what "nothing of mine is applied" answers.
+  uint64_t markOf(void *owner) const
+  {
+    const auto it = ownerMarks.find(owner);
+    return it != ownerMarks.end() ? it->second : 0;
+  }
+
+  // The oldest `count` operations are about to leave the history with what they changed still
+  // applied, so no owner can undo its way below them any more. One whose mark is among them is left
+  // at the state it saved, which is now the floor; one with an edit of its own above its mark can
+  // never undo that edit away, so it has to read modified until it saves again.
+  void freezeMarksOf(int count)
+  {
+    const UndoRedoHolder &root = *stack[0];
+    for (int i = 0; i < count; ++i)
+    {
+      const UndoRedoHolder *h = static_cast<const UndoRedoHolder *>(root.obj[i]);
+      if (!h->changes_saved_data())
+      {
+        continue;
+      }
+      const uint64_t marked = markOf(h->owner);
+      if (h->opId == marked)
+      {
+        ownerMarks[h->owner] = 0;
+      }
+      else if (h->opId > marked)
+      {
+        ownerMarks[h->owner] = MARK_UNREACHABLE;
+      }
+    }
+  }
+
+  // The newest operation of `owner` that changes saved data and that a later undo() would still
+  // reach, or 0 when it has none. Walks the root list, not stack.back(): an operation being recorded
+  // has a holder of its own, and this has to keep answering for what is accepted while one is held
+  // open across frames.
+  uint64_t last_applied_op_id(void *owner) const
+  {
+    const UndoRedoHolder &root = *stack[0];
+    for (int i = curop - 1; i >= 0; --i)
+    {
+      const UndoRedoHolder *h = static_cast<const UndoRedoHolder *>(root.obj[i]);
+      if (h->owner == owner && h->changes_saved_data())
+      {
+        return h->opId;
+      }
+    }
+    return 0;
+  }
+
   void remove_ops_by_owner(void *owner) override
   {
     if (is_holding())
     {
       return;
     }
+    ownerMarks.erase(owner); // the operation it named is about to go
     UndoRedoHolder *h = stack.back();
     for (int i = h->obj.size() - 1; i >= 0; --i)
     {
@@ -253,10 +352,7 @@ public:
         --curop;
       }
     }
-    if (curop > h->obj.size())
-    {
-      curop = h->obj.size();
-    }
+    G_ASSERT(curop <= h->obj.size());
     if (wnd)
     {
       wnd->updateUndoRedoMenu();
@@ -287,9 +383,12 @@ public:
       return;
 
     // really remove operations
+    freezeMarksOf(i);
     for (int j = 0; j < i; ++j)
       delete (h.obj[j]);
     erase_items(h.obj, 0, i);
+    // Every one of them sat below the current position, so it has to come down with them.
+    curop -= i;
   }
 
   // call this method to start operation,
@@ -415,6 +514,7 @@ public:
 
     h->name = nm;
     h->owner = curOwner;
+    h->opId = nextOpId++;
     h->accepted();
     stack.pop_back();
 
@@ -473,6 +573,10 @@ public:
     {
       // Nothing outside it covers what it holds, so this drops the record and leaves the change applied.
       G_ASSERT_FAIL("cancel of a top level operation opened without can_cancel in '%s'", name);
+      if (h->changes_saved_data())
+      {
+        ownerMarks[curOwner] = MARK_UNREACHABLE;
+      }
       h->accepted();
       stack.pop_back();
       delete h;
@@ -500,9 +604,7 @@ public:
   {
     if (is_holding())
       return false;
-    UndoRedoHolder *h = stack.back();
-    if (curop > h->obj.size())
-      curop = h->obj.size();
+    G_ASSERT(curop <= stack.back()->obj.size());
     if (curop <= 0)
       return false;
     return true;
@@ -529,11 +631,10 @@ public:
   {
     if (is_holding())
       return false;
+    G_ASSERT(curop >= 0);
     UndoRedoHolder *h = stack.back();
     if (curop >= h->obj.size())
       return false;
-    if (curop < 0)
-      curop = 0;
     return true;
   }
 
@@ -610,3 +711,50 @@ public:
 
 
 UndoSystem *create_undo_system(const char *name, int maxsz, IUndoRedoWndClient *wnd) { return new UndoSystemImpl(name, maxsz, wnd); }
+
+
+// ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
+
+
+void UndoEditGesture::begin(UndoSystem &undo, int edit_id, const char *operation_name)
+{
+  if (isOpenFor(edit_id))
+    return;
+
+  // A gesture that could not be closed keeps this change, rather than nesting a second one inside it.
+  if (!end())
+    return;
+
+  undo.begin(true);
+  undoSystem = &undo;
+  gestureId = edit_id;
+  gestureName = operation_name;
+  gestureDepth = undo.open_operation_count();
+}
+
+
+bool UndoEditGesture::end()
+{
+  if (!undoSystem)
+    return true;
+
+  const int openNow = undoSystem->open_operation_count();
+
+  // Accepting now would close what was opened inside the gesture instead of the gesture itself, and
+  // leave the gesture open for good. Whoever opened that one still has to close it, and the next
+  // attempt here gets the gesture once they have.
+  if (openNow > gestureDepth)
+    return false;
+
+  UndoSystem *undo = undoSystem;
+  undoSystem = nullptr;
+
+  // Fewer open than the gesture itself opened means its operation is gone: clear() drops every open
+  // operation without telling anyone. Accepting would commit an unrelated operation under this name.
+  if (openNow < gestureDepth)
+    return true;
+
+  // An empty operation is dropped by accept(), so a gesture that changed nothing leaves no record.
+  undo->accept(gestureName);
+  return true;
+}

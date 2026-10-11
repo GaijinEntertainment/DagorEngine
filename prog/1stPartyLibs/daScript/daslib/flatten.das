@@ -35,30 +35,21 @@ let private PHASE_OPTIMIZED = 3
 let private PHASE_FUSED = 4
 let private PHASE_DONE = 999
 
-// Calls that must stay per-pixel (can't run in the per-draw preshader). The [flatten] annotation
-// path is pure math (STD_WHITELIST), so these never appear here — listed for robustness; a backend
-// driving flatten_function directly passes its own sampler/intrinsic set to flatten_preshade_cse.
 let private FLATTEN_BARRIERS : table<string> <- {
     "tex2d", "noise"
 }
 
-// Leaf builtins permitted to survive into flattened output: pure, branch-safe,
-// GPU-expressible. Everything else (print, allocation, I/O, ...) is rejected.
-// Hardcoded for now; intended to become a FlattenConfig argument.
 let private STD_WHITELIST : table<string> <- {
     "min", "max", "abs", "clamp", "saturate", "sign", "floor", "ceil", "round", "trunc", "frac",
     "sqrt", "rsqrt", "pow", "exp", "exp2", "log", "log2",
     "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sincos",
-    "radians", "degrees",   // lowered to `x * K` by flatten_opt (no opcode needed)
+    "radians", "degrees",
     "dot", "cross", "length", "normalize", "distance", "reflect", "refract",
-    "hmin", "hmax", "hadd",   // horizontal reduces emitted by pack_map_reduce (flatten_opt_pack)
+    "hmin", "hmax", "hadd",
     "lerp", "mix", "step", "smooth_step", "rcp", "mad",
     "float2", "float3", "float4", "int2", "int3", "int4", "uint2", "uint3", "uint4"
 }
 
-// Compound-assignment operators → their base binary op. `acc += rhs` survives infer
-// as an `ExprOp2` (op="+="), not an `ExprCopy`; predicated lowering rewrites it to
-// `acc = P ? (acc + rhs) : acc` using the base op. This is the shader accumulator idiom.
 let private ASSIGN_BASE : table<string; string> <- {
     "+=" => "+", "-=" => "-", "*=" => "*", "/=" => "/", "%=" => "%",
     "&=" => "&", "|=" => "|", "^=" => "^", "<<=" => "<<", ">>=" => ">>"
@@ -68,28 +59,14 @@ def private twin_name(func : FunctionPtr) : string {
     return "{func.name}_flat"
 }
 
-def private get_flatten_phase(func : FunctionPtr) : int {
-    for (ann in func.annotations) {
-        if (ann.annotation.name == "flatten") {
-            let pv = find_arg(ann.arguments, "phase")
-            if (pv is tInt) return pv as tInt
+def private set_flatten_phase(var args : AnnotationArgumentList; ph : int) {
+    for (a in args) {
+        if (a.name == "phase") {
+            a.iValue = ph
+            return
         }
     }
-    return -1
-}
-
-def private set_flatten_phase(var func : FunctionPtr; ph : int) {
-    for (ann in func.annotations) {
-        if (ann.annotation.name != "flatten") continue
-        var found = false
-        for (a in ann.arguments) {
-            if ("{a.name}" == "phase") {
-                a.iValue = ph
-                found = true
-            }
-        }
-        if (!found) ann.arguments |> add_annotation_argument("phase", ph)
-    }
+    args |> add_annotation_argument("phase", ph)
 }
 
 //! Default cap on the product of nested constant-loop iteration counts a twin may unroll
@@ -97,23 +74,9 @@ def private set_flatten_phase(var func : FunctionPtr; ph : int) {
 //! `[flatten(max_unroll=N)]` overrides per-function.
 let public FLATTEN_MAX_UNROLL = 4096
 
-def private get_flatten_max_unroll(func : FunctionPtr) : int {
-    for (ann in func.annotations) {
-        if (ann.annotation.name == "flatten") {
-            let mv = find_arg(ann.arguments, "max_unroll")
-            if (mv is tInt) return mv as tInt
-        }
-    }
-    return FLATTEN_MAX_UNROLL
-}
-
-// ===== Predicated lowering (return-elim + if-conversion + call inlining) =====
-
-// One stack entry per enclosing flattened loop: loopLive = break mask (persists across
-// copies), iterLive = continue mask (re-declared each copy); "" when that flavor is absent.
 struct private LoopMask {
-    loopLive : string
-    iterLive : string
+    breakMaskName : string
+    continueMaskName : string
 }
 
 class private FlatCtx {
@@ -122,10 +85,10 @@ class private FlatCtx {
     retName   : string
     hasRet    : bool
     worklist  : array<string>
-    loopMasks : array<LoopMask>   // enclosing loops' break/continue masks (innermost last)
-    whitelist : table<string>     // leaf-builtin names allowed to survive (backend-supplied)
-    unrollFactor : int            // running product of enclosing loop iteration counts (1 at top)
-    maxUnroll : int               // cap on unrollFactor*count before bailing (FLATTEN_MAX_UNROLL default)
+    loopMasks : array<LoopMask>
+    whitelist : table<string>
+    unrollFactor : int
+    maxUnroll : int
     ok        : bool
     err      : string
 }
@@ -150,20 +113,17 @@ def private p_and(a, b : ExpressionPtr) : ExpressionPtr {
     return qmacro($e(a) && $e(b))
 }
 
-// The write predicate here: AND of every active mask (funcLive + each loop's loopLive/
-// iterLive) and structPred. `exclude` drops one mask (self-cancels in a narrow term);
-// null return = statically true.
 def private live_pred(ctx : FlatCtx?; structPred : ExpressionPtr; exclude : string = "") : ExpressionPtr {
     var acc : ExpressionPtr = null
     if (ctx.liveName != exclude) {
         acc = qmacro($i(ctx.liveName))
     }
     for (lm in ctx.loopMasks) {
-        if (lm.loopLive != "" && lm.loopLive != exclude) {
-            acc = acc == null ? qmacro($i(lm.loopLive)) : qmacro($e(acc) && $i(lm.loopLive))
+        if (lm.breakMaskName != "" && lm.breakMaskName != exclude) {
+            acc = acc == null ? qmacro($i(lm.breakMaskName)) : qmacro($e(acc) && $i(lm.breakMaskName))
         }
-        if (lm.iterLive != "" && lm.iterLive != exclude) {
-            acc = acc == null ? qmacro($i(lm.iterLive)) : qmacro($e(acc) && $i(lm.iterLive))
+        if (lm.continueMaskName != "" && lm.continueMaskName != exclude) {
+            acc = acc == null ? qmacro($i(lm.continueMaskName)) : qmacro($e(acc) && $i(lm.continueMaskName))
         }
     }
     if (structPred != null) {
@@ -172,9 +132,6 @@ def private live_pred(ctx : FlatCtx?; structPred : ExpressionPtr; exclude : stri
     return acc
 }
 
-// Emit a mask narrow `name = name && !(term)` on the executing path. A null term
-// means the path is statically reached → `name = false`. Shared by return / break
-// / continue (their only difference is which mask narrows and what term excludes).
 def private emit_narrow(var out : array<ExpressionPtr>; name : string; term : ExpressionPtr) {
     if (term == null) {
         out |> push <| qmacro_expr(${ $i(name) = false; })
@@ -189,7 +146,6 @@ def private is_user_call(e : ExpressionPtr) : bool {
     return c.func != null && !c.func.flags.builtIn && c.func.body != null
 }
 
-// Emit a callee frame into `out`; return an expr yielding the callee's result.
 def private inline_call(var ctx : FlatCtx?; call : ExprCall?; structPred : ExpressionPtr; var out : array<ExpressionPtr>) : ExpressionPtr {
     let callee = call.func
     let cname = string(callee.name)
@@ -203,12 +159,10 @@ def private inline_call(var ctx : FlatCtx?; call : ExprCall?; structPred : Expre
     var subst : Template
     for (p, ai in callee.arguments, count()) {
         let argN = fresh(ctx, "__flat_arg")
-        // Lift the arg first (own inline frame / whitelist check) so `f(g(x))` inlines g.
         let lifted = lift_expr(ctx, call.arguments[ai], structPred, out)
         out |> push <| qmacro_expr(${ var $i(argN) = $e(lifted); })
         subst |> replaceVariable(string(p.name)) <| qmacro($i(argN))
     }
-    // Uniquify the callee's locals per inline — else repeated inlining collides decls (30704).
     var seenLocals : array<string>
     let calleeLocals <- collect_let_names(callee.body)
     for (ln in calleeLocals) {
@@ -217,22 +171,19 @@ def private inline_call(var ctx : FlatCtx?; call : ExprCall?; structPred : Expre
             subst |> renameVariable(ln, fresh(ctx, "__flat_loc"))
         }
     }
-    // Seed the callee frame with the caller's full predicate; it lowers with an empty loop stack.
     let seed = live_pred(ctx, structPred)
     out |> push <| qmacro_expr(${ var $i(liveN) = $e(seed); })
-    // Result temp only for value-returning callees (a void callee has no value to bind).
     var retN = ""
     if (!isVoidCallee) {
         retN = fresh(ctx, "__flat_ret")
         var crt = clone_type(callee.result)
         crt.flags.constant = false
-        // Bare decl: das auto-inits to default<T>; the first write self-reads it.
         out |> push <| qmacro_expr(${ var $i(retN) : $t(crt); })
     }
     let savedLive = ctx.liveName
     let savedRet = ctx.retName
     let savedHas = ctx.hasRet
-    var savedLoops <- ctx.loopMasks   // move out → ctx.loopMasks is empty for the callee body
+    var savedLoops <- ctx.loopMasks
     ctx.liveName = liveN
     ctx.retName = retN
     ctx.hasRet = !isVoidCallee
@@ -249,16 +200,19 @@ def private inline_call(var ctx : FlatCtx?; call : ExprCall?; structPred : Expre
     return qmacro($i(retN))
 }
 
-// Lift every user call out of a value expression into inline frames, in eval order,
-// returning the call-free rewrite. Plain recursion, NOT a visitor — inlining recurses back
-// through the pipeline, and nested make_visitor traversals corrupt the visitor machinery.
 def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : ExpressionPtr; var out : array<ExpressionPtr>) : ExpressionPtr {   // nolint:STYLE037,STYLE038 - exact-type `is` ladder, one arm per expression kind
     if (e == null) return null
     if (e is ExprCall) {
         let c = e as ExprCall
         let bname = string(c.name)
-        // Whitelisted leaf primitive KEPT (args lifted); match simple name (generics mangle).
         if (key_exists(ctx.whitelist, simple_name(bname))) {
+            for (ai in range(length(c.arguments))) {
+                if (writes_through_argument(c.func, ai)) {
+                    ctx.ok = false
+                    ctx.err = "flatten: '{bname}' writes through by-reference argument '{c.func.arguments[ai].name}'; a predicated twin cannot carry a store the lowering does not own - use a value-returning form"
+                    return clone_expression(e)
+                }
+            }
             var n = clone_expression(e)
             var o = n as ExprCall
             for (ai in range(length(c.arguments))) {
@@ -266,11 +220,9 @@ def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : Expres
             }
             return n
         }
-        // A real user helper (resolved, non-builtin, has a body) → inline it.
         if (is_user_call(e)) {
             return inline_call(ctx, c, structPred, out)
         }
-        // All-const pure builtin folds at the post-infer fold (foldable-type-gated); keep it, lift arg calls.
         if (is_all_const(e) && eval_to_const_supported(e._type)) {
             var n = clone_expression(e)
             var o = n as ExprCall
@@ -279,7 +231,6 @@ def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : Expres
             }
             return n
         }
-        // Otherwise: a non-whitelisted leaf/builtin — not backend-expressible.
         ctx.ok = false
         ctx.err = "flatten: builtin '{bname}' is not on the whitelist (not GPU-expressible / may have side effects)"
         return clone_expression(e)
@@ -308,7 +259,6 @@ def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : Expres
         o.right = lift_expr(ctx, oe.right, structPred, out)
         return n
     }
-    // A user call can hide in a swizzle/field/cast/index/ctor operand — recurse so it inlines.
     if (e is ExprField) {
         var n = clone_expression(e)
         var o = n as ExprField
@@ -359,9 +309,9 @@ def private lift_expr(var ctx : FlatCtx?; e : ExpressionPtr; structPred : Expres
         for (vi in range(length(o.values))) {
             o.values[vi] = lift_expr(ctx, o.values[vi], structPred, out)
         }
+        o.constValues = false
         return n
     }
-    // Typer-inserted ref/value/ptr conversion wrappers — recurse through to the buried call.
     if (e is ExprRef2Value) {
         var n = clone_expression(e)
         var o = n as ExprRef2Value
@@ -395,9 +345,6 @@ def private lower_branch(var ctx : FlatCtx?; br : ExpressionPtr; structPred : Ex
     }
 }
 
-// Lower `break`/`continue` by narrowing the innermost loop's mask. The narrow term excludes
-// the target mask (self-cancels) and is gated by the other active masks + structPred, so a
-// prior exit on the same path suppresses this one.
 def private lower_loop_exit(var ctx : FlatCtx?; structPred : ExpressionPtr; var out : array<ExpressionPtr>; isBreak : bool) {
     if (empty(ctx.loopMasks)) {
         ctx.ok = false
@@ -405,13 +352,23 @@ def private lower_loop_exit(var ctx : FlatCtx?; structPred : ExpressionPtr; var 
         return
     }
     let lm = ctx.loopMasks[length(ctx.loopMasks) - 1]
-    let nm = isBreak ? lm.loopLive : lm.iterLive
+    let nm = isBreak ? lm.breakMaskName : lm.continueMaskName
     if (nm == "") {
         ctx.ok = false
         ctx.err = "flatten: internal error - {isBreak ? "break" : "continue"} mask was not allocated"
         return
     }
     emit_narrow(out, nm, live_pred(ctx, structPred, nm))
+}
+
+def private typed_one(at : LineInfo; bt : Type) : ExpressionPtr {
+    if (bt == Type.tInt) return new ExprConstInt(at = at, value = 1)
+    if (bt == Type.tUInt) return new ExprConstUInt(at = at, value = 1u)
+    if (bt == Type.tInt64) return new ExprConstInt64(at = at, value = 1l)
+    if (bt == Type.tUInt64) return new ExprConstUInt64(at = at, value = 1ul)
+    if (bt == Type.tFloat) return new ExprConstFloat(at = at, value = 1.0)
+    if (bt == Type.tDouble) return new ExprConstDouble(at = at, value = 1.0lf)
+    return null
 }
 
 def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {   // nolint:STYLE037 - exact-type `is` ladder, one arm per statement kind
@@ -422,7 +379,6 @@ def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : Ex
             let pred = live_pred(ctx, structPred)
             out |> push <| qmacro_expr(${ $i(ctx.retName) = $e(pred) ? $e(valExpr) : $i(ctx.retName); })
         }
-        // Narrow funcLive on the executing path (funcLive self-cancels in the term).
         emit_narrow(out, ctx.liveName, live_pred(ctx, structPred, ctx.liveName))
     } elif (stmt is ExprIfThenElse) {
         let ite = stmt as ExprIfThenElse
@@ -438,14 +394,12 @@ def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : Ex
         let pred = live_pred(ctx, structPred)
         out |> push <| qmacro_expr(${ $e(cp.left) = $e(pred) ? $e(rhs) : $e(cp.left); })
     } elif (stmt is ExprLet) {
-        // A local decl always executes; inline any user-call initializer (its frame is predicated).
         var letClone = clone_expression(stmt)
         var lc = letClone as ExprLet
         for (v in lc.variables) {
             if (v.init != null) {
                 v.init = lower_value(ctx, v.init, structPred, out)
             } else {
-                // materialize the implicit zero-init — the predicated store's false path READS it
                 v.init = zero_const_of(v._type, v.at)
             }
         }
@@ -456,16 +410,13 @@ def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : Ex
         ctx.ok = false
         ctx.err = "flatten: while loops are not supported; use a fixed range(N) or array-literal for loop"
     } elif (stmt is ExprBreak) {
-        // Narrow the loop's break mask: persists across copies, so a break masks off the rest.
         lower_loop_exit(ctx, structPred, out, true)
     } elif (stmt is ExprContinue) {
-        // Narrow the per-iteration mask: the rest of THIS copy masks off; next copy resets it.
         lower_loop_exit(ctx, structPred, out, false)
     } elif (stmt is ExprMove || stmt is ExprClone) {
         ctx.ok = false
         ctx.err = "flatten: move (<-) / clone (:=) cannot be predicated; only copyable-value assignment is supported"
     } elif (stmt is ExprOp2 && key_exists(ASSIGN_BASE, "{(stmt as ExprOp2).op}")) {
-        // Compound assignment `lhs OP= rhs` → `lhs = P ? (lhs OP rhs) : lhs`.
         let o = stmt as ExprOp2
         let bop = ASSIGN_BASE?["{o.op}"] ?? ""
         let pred = live_pred(ctx, structPred)
@@ -473,28 +424,26 @@ def private lower_stmt(var ctx : FlatCtx?; stmt : ExpressionPtr; structPred : Ex
             right = lower_value(ctx, o.right, structPred, out))
         out |> push <| qmacro_expr(${ $e(o.left) = $e(pred) ? $e(combined) : $e(o.left); })
     } elif (stmt is ExprOp1 && ("{(stmt as ExprOp1).op}" == "++" || "{(stmt as ExprOp1).op}" == "--")) {
-        // `x++`/`x--` statement → `x = P ? (x +/- 1) : x` (postfix value discarded at stmt level).
         let o = stmt as ExprOp1
+        var one = typed_one(o.at, expr_bt(o.subexpr))
+        if (one == null) {
+            ctx.ok = false
+            ctx.err = "flatten: {o.op} on {describe(o.subexpr._type)} cannot be predicated"
+            return
+        }
         let bop = "{o.op}" == "++" ? "+" : "-"
         let pred = live_pred(ctx, structPred)
-        var combined = new ExprOp2(at = o.at, op := bop, left = clone_expression(o.subexpr),
-            right = new ExprConstInt(at = o.at, value = 1))
+        var combined = new ExprOp2(at = o.at, op := bop, left = clone_expression(o.subexpr), right <- one)
         out |> push <| qmacro_expr(${ $e(o.subexpr) = $e(pred) ? $e(combined) : $e(o.subexpr); })
     } elif (stmt is ExprBlock) {
-        // Bare lexical scope — flatten its statements under the same predicate.
         lower_list(ctx, stmt as ExprBlock, structPred, out)
     } elif (stmt is ExprWith) {
-        // `with (x) { body }` is infer-time only; post-infer it simulates to its body — unwrap it.
         lower_branch(ctx, (stmt as ExprWith).body, structPred, out)
     } else {
-        // Bare expr statement: lift emits side-effecting frames; the unused pure value is dropped.
         lower_value(ctx, stmt, structPred, out)
     }
 }
 
-// Collects the names of every `let`/`var` declared anywhere in a loop body, so
-// each unrolled copy can rename them uniquely (they would otherwise all land in
-// the single flat scope and shadow each other).
 class private LetNameScan : AstVisitor {
     names : array<string>
     def override preVisitExprLet(expr : ExprLet?) : void {
@@ -516,9 +465,6 @@ def private collect_let_names(body : ExpressionPtr) : array<string> {
     return <- result
 }
 
-// Does THIS loop's body have a break/continue targeting it? A nested loop owns its own, so
-// count only at depth 0. Drives whether lower_for allocates the break/continue masks — a loop
-// with neither stays byte-identical to the pre-mask output.
 class private BreakContinueScan : AstVisitor {
     depth       : int
     hasBreak    : bool
@@ -565,23 +511,19 @@ def private scan_break_continue(body : ExpressionPtr; var hasBreak : bool&; var 
     }
 }
 
-// Build one substitution expression per iteration for a single for-source — a
-// constant `range`/`urange` (the index) or an array literal (each element). Sets
-// ctx.ok=false + ctx.err and returns an empty list on an unrollable source.
 def private for_source_substs(var ctx : FlatCtx?; src : Expression?; at : LineInfo) : array<ExpressionPtr> {
     var substs : array<ExpressionPtr>
     if (src is ExprConstRange) {
         for (i in (src as ExprConstRange).value) {
-            var e : ExpressionPtr = new ExprConstInt(at = at, value = i)
+            var e : ExpressionPtr = new ExprConstInt(at = at, value = i, isConstLiteral = true)
             substs |> push(e)   // nolint:PERF006 -- macro-time, count is the (small) unroll bound
         }
     } elif (src is ExprConstURange) {
         for (i in (src as ExprConstURange).value) {
-            var e : ExpressionPtr = new ExprConstUInt(at = at, value = i)
+            var e : ExpressionPtr = new ExprConstUInt(at = at, value = i, isConstLiteral = true)
             substs |> push(e)   // nolint:PERF006 -- macro-time, count is the (small) unroll bound
         }
     } else {
-        // Array-literal source (`for (v in [a,b,c])`): each element substitutes for one iteration.
         var mk : ExprMakeArray? = null
         if (src is ExprMakeArray) {
             mk = src as ExprMakeArray
@@ -599,17 +541,13 @@ def private for_source_substs(var ctx : FlatCtx?; src : Expression?; at : LineIn
     return <- substs
 }
 
-// Fixed-count loop unrolling: a `for` over a constant range/array literal clones its body once
-// per iteration (loop var → that iteration's constant), each copy lowered under the SAME
-// predicate; per-copy locals are renamed. break/continue allocate runtime masks. while errors.
-def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {   // nolint:STYLE038 - one linear unroll pass; the phases share the per-source value lists
+def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : ExpressionPtr; var out : array<ExpressionPtr>) {
     let nIter = length(efor.iterators)
     if (nIter == 0 || length(efor.sources) != nIter) {
         ctx.ok = false
         ctx.err = "flatten: a for loop needs one source per iterator"
         return
     }
-    // Per-iteration value list per source; parallel iterators unroll in lockstep (same count).
     var perSource : array<array<ExpressionPtr>>
     perSource |> reserve(nIter)
     var count = -1
@@ -626,7 +564,6 @@ def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : Expressi
         count = length(s)
         perSource |> emplace(s)
     }
-    // Unrolling multiplies across nesting; bail before cloning if the int64 product exceeds the cap.
     let projected = int64(ctx.unrollFactor) * int64(count)
     if (projected > int64(ctx.maxUnroll)) {
         ctx.ok = false
@@ -636,7 +573,6 @@ def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : Expressi
     let savedFactor = ctx.unrollFactor
     ctx.unrollFactor = int(projected)
     let localNames <- collect_let_names(efor.body)
-    // Allocate break/continue masks only if THIS loop uses them (depth-0 scan).
     var hasBreak = false
     var hasContinue = false
     scan_break_continue(efor.body, hasBreak, hasContinue)
@@ -645,27 +581,24 @@ def private lower_for(var ctx : FlatCtx?; efor : ExprFor?; structPred : Expressi
         var loopName = ""
         if (hasBreak) {
             loopName = fresh(ctx, "__flat_loop")
-            out |> push <| qmacro_expr(${ var $i(loopName) = true; })   // persists across copies
+            out |> push <| qmacro_expr(${ var $i(loopName) = true; })
         }
-        ctx.loopMasks |> push(LoopMask(loopLive = loopName, iterLive = ""))
+        ctx.loopMasks |> push(LoopMask(breakMaskName = loopName, continueMaskName = ""))
         pushed = true
     }
     for (k in range(count)) {
         if (pushed && hasContinue) {
-            // Fresh per-copy continue mask, reset to true at this copy's head.
             let iterName = fresh(ctx, "__flat_iter")
             out |> push <| qmacro_expr(${ var $i(iterName) = true; })
-            ctx.loopMasks[length(ctx.loopMasks) - 1].iterLive = iterName
+            ctx.loopMasks[length(ctx.loopMasks) - 1].continueMaskName = iterName
         }
         var iblk = clone_expression(efor.body)
         var rules : Template
-        // Substitute every iterator with its copy-k value (several for a lockstep parallel loop).
         for (vi in range(nIter)) {
             let van = "{efor.iterators[vi]}"
-            remove_deref(van, iblk)            // strip ExprRef2Value around the workhorse loop var
+            remove_deref(van, iblk)
             rules |> replaceVariable(van) <| perSource[vi][k]
         }
-        // Rename this copy's locals uniquely so unrolled bodies don't shadow in the flat scope.
         for (ln in localNames) {
             rules |> renameVariable(ln, "{ln}_{k}")
         }
@@ -695,17 +628,12 @@ def public flatten_function(var func : FunctionPtr; whitelist : table<string>; m
     ctx.whitelist := whitelist
     if (!(func.body is ExprBlock)) return ctx
     let bodyBlk = func.body as ExprBlock
-    // Build the lowered body on a scoped gc root: the unroll/fold intermediates are swept on
-    // scope exit, only the live twin body (func.body) is promoted to the enclosing root.
     ast_gc_collect_scope(func) {
         var out : array<ExpressionPtr>
         out |> push <| qmacro_expr(${ var $i(ctx.liveName) = true; })
         if (ctx.hasRet) {
             var rt = clone_type(func.result)
             rt.flags.constant = false
-            // The return accumulator is read self-referentially by every `__flat_ret = pred ? v :
-            // __flat_ret` write; the first (bare-decl) read is a discarded placeholder, so it is
-            // safeWhenUninitialized — else `var x : Struct` is rejected (error[31016]).
             rt.flags.safeWhenUninitialized = true
             out |> push <| qmacro_expr(${ var $i(ctx.retName) : $t(rt); })
         }
@@ -714,13 +642,11 @@ def public flatten_function(var func : FunctionPtr; whitelist : table<string>; m
             out |> push <| qmacro_expr(${ return $i(ctx.retName); })
         }
         if (ctx.ok) {
-            dse_pass(out)          // drop dead mask-kills (`__flat_live = false`) first…
-            copy_prop_pass(out)    // inline single-def temps AND const-fold the masks they expose
-                                   // (`__flat_live=true` → `true ? a:b` → a; `__flat_ret=c; return __flat_ret` → `return c`)
-            mask_const_prop_pass(out)  // flow-sensitive const-prop of the multi-def loop/iter masks:
-                                   // first unrolled iter unconditional (`true ? a:b → a`), `m = m && X → m = X`
-            dse_pass(out)          // remove anything left dead (collapsed mask decls, folded temps)
-            ssa_rename_pass(out)   // single-def-ify reassigned user locals → fold_body const-props the chain
+            dse_pass(out)
+            copy_prop_pass(out)
+            mask_const_prop_pass(out)
+            dse_pass(out)
+            ssa_rename_pass(out)
         }
         var newBody = new ExprBlock(at = func.body.at)
         for (s in out) {
@@ -730,8 +656,6 @@ def public flatten_function(var func : FunctionPtr; whitelist : table<string>; m
     }
     return ctx
 }
-
-// ===== Post-infer select folding =====
 
 [macro_function]
 def public flatten_no_fast_math : bool {
@@ -793,20 +717,16 @@ def public flatten_fuse(var func : FunctionPtr; no_fast_math : bool = false; had
     return fuse_body(func, no_fast_math, hadd_min_width)
 }
 
-def public flatten_opt_residuals(var func : FunctionPtr; no_fast_math : bool = false) : array<string> {
-    //! Completeness oracle for the optimize pass (delegates to `opt_residuals`): empty ⇒ the twin
-    //! has no un-extracted uniform subtree, no un-CSE'd repeat, no un-rcp'd uniform division,
-    //! no un-packed ctor lane pattern, no un-fused lane sum, no regroup-to-share miss.
+def public flatten_opt_residuals(var func : FunctionPtr; no_fast_math : bool = false;
+                                 hadd_min_width : int = 3) : array<string> {
+    //! Completeness oracle for the optimize pass (delegates to `opt_residuals`): empty ⇒ the twin has no un-extracted uniform subtree, no un-CSE'd repeat, no un-rcp'd uniform division, no un-packed ctor lane pattern, no un-fused lane sum, no regroup-to-share miss.
+    //! `hadd_min_width` MUST be the floor the `flatten_fuse` run used (`flatten_hadd_pack_pairs() ? 2 : 3`) — a floor-3 oracle over a floor-2 pass calls a unit with surviving width-2 misses complete.
     var res : array<string>
     ast_gc_guard() {
-        res <- opt_residuals(func, FLATTEN_BARRIERS, no_fast_math)
+        res <- opt_residuals(func, FLATTEN_BARRIERS, no_fast_math, hadd_min_width)
     }
     return <- res
 }
-
-// ===== Post-inference shape verification — twin must be branchless + call-free =====
-// A violation is a lowering bug (fail loudly). Runs cycle 2 (user-call detection needs the
-// resolved `call.func`); fold completeness is a separate, correctness-irrelevant concern.
 
 class private FlatVerify : AstVisitor {
     sawBranch   : bool
@@ -839,10 +759,6 @@ def private verify_flat(var twin : FunctionPtr) : string {
     }
     return msg
 }
-
-// ===== Fold-completeness validation (test-framework facing) =====
-// `flatten_fold_residuals` is the ONLY fold-completeness check — a missed fold is suboptimal,
-// not wrong, so it's validated over the COMPILED twin's AST, never gated at compile time.
 
 class private FoldResidualVisitor : AstVisitor {
     found : array<string>
@@ -894,8 +810,6 @@ def public flatten_fold_residuals(var func : FunctionPtr; no_fast_math : bool = 
     if (func == null || func.body == null) {
         return <- res
     }
-    // the probe matchers (recip_const, ctor_fuse_rewrite) clone AST nodes; at runtime (tests,
-    // fuzzer) those land on the thread root — guard the walk so they are swept, not leaked
     ast_gc_guard() {
         var v = new FoldResidualVisitor()
         v.noFastMath = no_fast_math
@@ -906,16 +820,12 @@ def public flatten_fold_residuals(var func : FunctionPtr; no_fast_math : bool = 
         unsafe {
             delete v
         }
-        // Statement-level (not a node pattern): a same-condition select-accumulation chain that
-        // fuse_select_chains should have collapsed to one select.
         if (func.body is ExprBlock && has_fusable_select_chain(func.body as ExprBlock)) {
             res |> push("an un-fused same-condition select chain (N selects should be 1)")
         }
     }
     return <- res
 }
-
-// ===== Annotation entry point =====
 
 [function_macro(name="flatten")]
 class FlattenAnnotation : AstFunctionAnnotation {
@@ -935,11 +845,10 @@ class FlattenAnnotation : AstFunctionAnnotation {
         return true
     }
     def override patch(var func : FunctionPtr; var group : ModuleGroup;
-                       args, progArgs : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
-        // Lint runs with const-folding off, so `range(N)` isn't an ExprConstRange yet and the twin is irrelevant to linting; leave it the inert clone from `apply` (mirrors unroll.das).
         if (is_in_lint_check()) return true
-        let ph = get_flatten_phase(func)
+        let ph = args |> find_arg("phase") ?as tInt ?? -1
         if (ph == PHASE_DONE) return true
         var twin = find_unique_function(compiling_module(), twin_name(func), true)
         if (twin == null) {
@@ -947,46 +856,42 @@ class FlattenAnnotation : AstFunctionAnnotation {
             return false
         }
         if (ph != PHASE_LOWERED && ph != PHASE_FOLDED && ph != PHASE_OPTIMIZED && ph != PHASE_FUSED) {
-            // Cycle 1: lower the twin with the std whitelist, then re-infer so call.func resolves. (Backends call flatten_function directly with their own primitive set instead of going through this annotation.)
-            var ctx = flatten_function(twin, STD_WHITELIST, get_flatten_max_unroll(func))
+            var ctx = flatten_function(twin, STD_WHITELIST, args |> find_arg("max_unroll") ?as tInt ?? FLATTEN_MAX_UNROLL)
             if (!ctx.ok) {
                 errors := ctx.err
                 return false
             }
-            set_flatten_phase(func, PHASE_LOWERED)
+            set_flatten_phase(args, PHASE_LOWERED)
             astChanged = true
             return true
         }
         if (ph == PHASE_LOWERED || ph == PHASE_FOLDED) {
-            // Cycle 2+: fold the inferred twin (const selects, algebraic identities, pure self- assigns), re-infer if anything changed. Iterate to a fixpoint — fold and the typer's re-infer const-fold are mutually-enabling, so one pass isn't enough.
             let folded = flatten_fold(twin, flatten_no_fast_math(), flatten_expand_lerp())
-            set_flatten_phase(func, PHASE_FOLDED)
+            set_flatten_phase(args, PHASE_FOLDED)
             if (folded) {
                 astChanged = true
                 return true
             }
-            // Fold fixpoint reached → run the optimize pass once on the canonical body: hoist uniform subtrees to top-of-body `_preshader_` lets, CSE-dedup repeated subtrees. Re-infer to type the new lets, then fuse next cycle.
-            set_flatten_phase(func, PHASE_OPTIMIZED)
+            set_flatten_phase(args, PHASE_OPTIMIZED)
             if (flatten_optimize(twin, FLATTEN_BARRIERS, flatten_no_fast_math(), flatten_log_cse())) {
                 astChanged = true
                 return true
             }
         }
-        if (get_flatten_phase(func) == PHASE_OPTIMIZED || get_flatten_phase(func) == PHASE_FUSED) {
-            // Optimize converged → re-pack `a*b ± c` into `mad` and the lerp shape back into `lerp`, re-inferring to resolve the new calls; iterates (each round strictly drops a `+`/`-`, so it converges), a clean round falls through to the shape check.
-            set_flatten_phase(func, PHASE_FUSED)
+        let phNow = args |> find_arg("phase") ?as tInt ?? -1
+        if (phNow == PHASE_OPTIMIZED || phNow == PHASE_FUSED) {
+            set_flatten_phase(args, PHASE_FUSED)
             if (flatten_fuse(twin, flatten_no_fast_math(), flatten_hadd_pack_pairs() ? 2 : 3)) {
                 astChanged = true
                 return true
             }
         }
-        // Final cycle: verify the twin is branchless and call-free.
         let problem = verify_flat(twin)
         if (problem != "") {
             errors := problem
             return false
         }
-        set_flatten_phase(func, PHASE_DONE)
+        set_flatten_phase(args, PHASE_DONE)
         return true
     }
 }

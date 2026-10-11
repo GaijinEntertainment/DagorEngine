@@ -77,8 +77,8 @@ These compile and run. Test a ported file; a build alone does not find them.
   compile time. Both are on the [modules](page:language/modules) page.
 - `.$method` calls a type method even when a slot has the same name, so
   `data.$len()` is the length no matter what `data.len` holds.
-- `not in`, `1_000_000`, docstrings written `@@"text"`, `static` for a value
-  computed once, type annotations, and compiler directives.
+- `not in`, `1_000_000`, docstrings written `@@"text"`, inline `const` for a
+  value folded at compile time, type annotations, and compiler directives.
 - `println` and `errorln`, and every print function takes several values.
 - String methods moved onto the type: `strip`, `split`, `startswith`, `endswith`,
   `indexof`, `subst`, `replace`, `join`, `escape`, `hash`. The

@@ -28,6 +28,7 @@
 #include <EASTL/fixed_vector.h>
 
 ComPtr<DXGISwapChain> get_fg_swapchain();
+ID3D12Resource *get_fg_present_color();
 
 namespace amd
 {
@@ -93,6 +94,17 @@ uint32_t convert(DXGI_FORMAT format)
   }
 }
 
+uint32_t backbuffer_transfer_function()
+{
+  switch (static_cast<HdrOutputMode>(d3d::driver_command(Drv3dCommand::HDR_OUTPUT_MODE)))
+  {
+    case HdrOutputMode::HDR10_AND_SDR:
+    case HdrOutputMode::HDR10_ONLY: return FFX_API_BACKBUFFER_TRANSFER_FUNCTION_PQ;
+    case HdrOutputMode::HDR_ONLY: return FFX_API_BACKBUFFER_TRANSFER_FUNCTION_SCRGB;
+    default: return FFX_API_BACKBUFFER_TRANSFER_FUNCTION_SRGB;
+  }
+}
+
 bool verify_dll_version(const char *dll, LibraryVersion version)
 {
   if (auto queriedVersion = get_library_version(dll))
@@ -115,6 +127,34 @@ public:
   using UpscalingMode = FSR::UpscalingMode;
   using UpscalingPlatformArgs = FSR::UpscalingPlatformArgs;
   using FrameGenPlatformArgs = FSR::FrameGenPlatformArgs;
+
+  struct BackBufferSetup
+  {
+    uint32_t format = FFX_API_SURFACE_FORMAT_UNKNOWN;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t transferFunction = FFX_API_BACKBUFFER_TRANSFER_FUNCTION_SRGB;
+    float minLuminance = 0.f;
+    float maxLuminance = 0.f;
+
+    bool hdr() const { return transferFunction != FFX_API_BACKBUFFER_TRANSFER_FUNCTION_SRGB; }
+    bool operator==(const BackBufferSetup &) const = default;
+  };
+
+  static BackBufferSetup describe(ID3D12Resource *back_buffer)
+  {
+    const auto desc = back_buffer->GetDesc();
+    float minLuminance = 0.f, maxLuminance = 0.f, maxFullFrameLuminance = 0.f;
+    d3d::driver_command(Drv3dCommand::GET_LUMINANCE, &minLuminance, &maxLuminance, &maxFullFrameLuminance);
+    return {
+      .format = convert(desc.Format),
+      .width = uint32_t(desc.Width),
+      .height = desc.Height,
+      .transferFunction = backbuffer_transfer_function(),
+      .minLuminance = minLuminance,
+      .maxLuminance = maxLuminance,
+    };
+  }
 
   Impl()
   {
@@ -165,7 +205,7 @@ public:
       .header{
         .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX12,
       },
-      .device = static_cast<ID3D12Device *>(d3d::get_device()),
+      .device = static_cast<D3DDevice *>(d3d::get_device()),
     };
 
     ffxCreateContextDescUpscaleVersion versionDesc{
@@ -233,7 +273,7 @@ public:
     if (d3d::get_driver_desc().shaderModel >= 6.2_sm)
       return true;
 
-    auto *device = static_cast<ID3D12Device *>(d3d::get_device());
+    auto *device = static_cast<D3DDevice *>(d3d::get_device());
     const auto sm = drv3d_dx12::shader_model_from_dx(drv3d_dx12::get_shader_model(device).HighestShaderModel);
 
     return sm >= 6.2_sm;
@@ -284,11 +324,28 @@ public:
     [[maybe_unused]] auto retCode = createContext(&swapchainContext, &createSwapChainDesc.header, nullptr);
     G_ASSERT_RETURN(retCode == FFX_API_RETURN_OK, false);
 
+    if (!createFrameGenerationContext({
+          .format = convert(swapchain_desc.Format),
+          .width = swapchain_desc.Width,
+          .height = swapchain_desc.Height,
+          .transferFunction = backbuffer_transfer_function(),
+        }))
+    {
+      G_ASSERT_RETURN(destroyContextIfNeeded(swapchainContext), false);
+      return false;
+    }
+
+    *swapchain = newDxgiSwapchain.Detach();
+    return true;
+  }
+
+  bool createFrameGenerationContext(const BackBufferSetup &back_buffer)
+  {
     ffxCreateBackendDX12Desc backendDesc{
       .header{
         .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX12,
       },
-      .device = static_cast<ID3D12Device *>(d3d::get_device()),
+      .device = static_cast<D3DDevice *>(d3d::get_device()),
     };
 
     ffxCreateContextDescFrameGeneration createFg{
@@ -296,29 +353,20 @@ public:
         .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATION,
         .pNext = &backendDesc.header,
       },
-      .flags =
-        (contextArgs.invertedDepth ? FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED : 0u) |
-        ((contextArgs.enableHdr || create_info.enableHdr || create_info.forceHdr) ? FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE
-                                                                                  : 0u),
-      .displaySize{
-        .width = swapchain_desc.Width,
-        .height = swapchain_desc.Height,
-      },
-      .maxRenderSize{
-        .width = swapchain_desc.Width,
-        .height = swapchain_desc.Height,
-      },
-      .backBufferFormat = convert(swapchain_desc.Format),
+      .flags = (contextArgs.invertedDepth ? FFX_FRAMEGENERATION_ENABLE_DEPTH_INVERTED : 0u) |
+               (back_buffer.hdr() ? FFX_FRAMEGENERATION_ENABLE_HIGH_DYNAMIC_RANGE : 0u),
+      .displaySize{back_buffer.width, back_buffer.height},
+      .maxRenderSize{back_buffer.width, back_buffer.height},
+      .backBufferFormat = back_buffer.format,
     };
 
-    retCode = createContext(&framegenContext, &createFg.header, nullptr);
-    if (retCode != FFX_API_RETURN_OK)
-    {
-      G_ASSERT_RETURN(destroyContextIfNeeded(swapchainContext), false);
+    ffxContext rebuilt = nullptr;
+    if (createContext(&rebuilt, &createFg.header, nullptr) != FFX_API_RETURN_OK)
       return false;
-    }
 
-    *swapchain = newDxgiSwapchain.Detach();
+    eastl::swap(framegenContext, rebuilt);
+    G_VERIFY(destroyContextIfNeeded(rebuilt));
+    contextBackBuffer = back_buffer;
     return true;
   }
 
@@ -335,35 +383,60 @@ public:
     if (!framegenContext || !swapchainContext)
       return;
 
-    if (enable == isFrameGenEnabled)
+    BackBufferSetup liveBackBuffer = contextBackBuffer;
+    if (enable)
+      if (auto *presentColor = get_fg_present_color())
+        liveBackBuffer = describe(presentColor);
+
+    const bool rebuild = liveBackBuffer != contextBackBuffer;
+
+    if (enable == isFrameGenEnabled && !rebuild)
       return;
 
     d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
     FINALLY([] { d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP); });
 
     d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+
+    if (rebuild)
+    {
+      logdbg("[AMDFSR] back buffer is now %ux%u format %u hdr %d, rebuilding the frame generation context", liveBackBuffer.width,
+        liveBackBuffer.height, liveBackBuffer.format, int(liveBackBuffer.hdr()));
+      if (!createFrameGenerationContext(liveBackBuffer))
+      {
+        D3D_ERROR("[AMDFSR] Failed to rebuild the frame generation context, frame generation is off");
+        isFrameGenEnabled = false;
+        configureFrameGenerationOff();
+        G_VERIFY(destroyContextIfNeeded(framegenContext));
+        return;
+      }
+    }
+
     isFrameGenEnabled = enable;
 
     if (!enable)
-    {
-      ComPtr<DXGISwapChain> dxgiSwapchain = get_fg_swapchain();
-      ffxConfigureDescFrameGeneration disableConfig{
-        .header{
-          .type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION,
-        },
-        .swapChain = dxgiSwapchain.Get(),
-        .frameGenerationEnabled = false,
-      };
-      [[maybe_unused]] auto retCode = configure(&framegenContext, &disableConfig.header);
-      G_ASSERT(retCode == FFX_API_RETURN_OK);
-    }
+      configureFrameGenerationOff();
+  }
+
+  void configureFrameGenerationOff()
+  {
+    ComPtr<DXGISwapChain> dxgiSwapchain = get_fg_swapchain();
+    ffxConfigureDescFrameGeneration disableConfig{
+      .header{
+        .type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION,
+      },
+      .swapChain = dxgiSwapchain.Get(),
+      .frameGenerationEnabled = false,
+    };
+    [[maybe_unused]] auto retCode = configure(&framegenContext, &disableConfig.header);
+    G_ASSERT(retCode == FFX_API_RETURN_OK);
   }
 
   void suppressFrameGeneration(bool suppress) { interlocked_relaxed_store(isFrameGenSuppressed, suppress); }
 
   void doScheduleGeneratedFrames(const FrameGenPlatformArgs &args, void *command_list)
   {
-    G_ASSERT_RETURN(framegenContext && swapchainContext, );
+    G_ASSERT_RETURN(framegenContext && swapchainContext && args.colorTexture, );
 
     const bool suppressed = interlocked_relaxed_load(isFrameGenSuppressed);
 
@@ -455,6 +528,8 @@ public:
         .presentColor = ffx_get_resource(args.colorTexture, FFX_API_RESOURCE_STATE_COMMON),
         .numGeneratedFrames = 1,
         .reset = args.reset,
+        .backbufferTransferFunction = contextBackBuffer.transferFunction,
+        .minMaxLuminance = {contextBackBuffer.minLuminance, contextBackBuffer.maxLuminance},
         .generationRect{
           .width = args.outputResolution.x,
           .height = args.outputResolution.y,
@@ -567,6 +642,8 @@ private:
   ffxContext upscalingContext = nullptr;
   ffxContext framegenContext = nullptr;
   ffxContext swapchainContext = nullptr;
+
+  BackBufferSetup contextBackBuffer = {};
 
   ffxConfigureDescFrameGeneration frameGenerationConfig = {};
 

@@ -1356,7 +1356,7 @@ void CanopyEditorWindow::onChange(int pcb_id, PropPanel::ContainerPropertyContro
     return;
 
   const int valueIndex = pcb_id - ID_CANOPY_VALUE_BASE;
-  if (valueIndex < 0 || valueIndex >= valuePaths.size())
+  if (valueIndex >= valuePaths.size())
     return;
 
   const ControlPath &path = valuePaths[valueIndex];
@@ -1491,30 +1491,35 @@ void CanopyEditorWindow::onClick(int pcb_id, PropPanel::ContainerPropertyControl
   rebuildParametersPanel();
 }
 
-void CanopyEditorWindow::updateImgui()
+void CanopyEditorWindow::updateImgui() { G_ASSERT(false); }
+
+void CanopyEditorWindow::updateImgui(bool can_submit_contents)
 {
-  const bool canSaveParameters = canEditParameters() && dirty && !pendingTextParse && !textParseError;
-  const float footerHeight = get_canopy_save_footer_height() + (textParseError ? ImGui::GetTextLineHeightWithSpacing() : 0.0f);
-  ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-  ImGui::BeginChild("##canopy_editor_scroll_region", ImVec2(0.0f, -footerHeight), false);
-  PropPanel::ContainerPropertyControl::updateImgui();
-  PropPanel::ImguiHelper::hookWindowScrollbarsForTestRuntime();
-  ImGui::Dummy(ImVec2(0.0f, 0.0f));
-  ImGui::EndChild();
-  ImGui::PopStyleColor();
+  if (can_submit_contents)
+  {
+    const bool canSaveParameters = canEditParameters() && dirty && !pendingTextParse && !textParseError;
+    const float footerHeight = get_canopy_save_footer_height() + (textParseError ? ImGui::GetTextLineHeightWithSpacing() : 0.0f);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+    ImGui::BeginChild("##canopy_editor_scroll_region", ImVec2(0.0f, -footerHeight), false);
+    PropPanel::ContainerPropertyControl::updateImgui();
+    PropPanel::ImguiHelper::hookWindowScrollbarsForTestRuntime();
+    ImGui::Dummy(ImVec2(0.0f, 0.0f));
+    ImGui::EndChild();
+    ImGui::PopStyleColor();
 
-  ImGui::Separator();
-  if (textParseError)
-    ImGui::TextUnformatted("Invalid BLK syntax.");
+    ImGui::Separator();
+    if (textParseError)
+      ImGui::TextUnformatted("Invalid BLK syntax.");
 
-  if (!canSaveParameters)
-    ImGui::BeginDisabled();
+    if (!canSaveParameters)
+      ImGui::BeginDisabled();
 
-  if (ImGui::Button("Save parameters to BLK", ImVec2(-FLT_MIN, 0.0f)))
-    saveCurrentParameters();
+    if (ImGui::Button("Save parameters to BLK", ImVec2(-FLT_MIN, 0.0f)))
+      saveCurrentParameters();
 
-  if (!canSaveParameters)
-    ImGui::EndDisabled();
+    if (!canSaveParameters)
+      ImGui::EndDisabled();
+  }
 
   if (pendingTextParse && get_time_msec() - lastTextChangeMs >= 500)
     applyEditorText(true);

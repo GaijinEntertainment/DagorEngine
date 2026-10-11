@@ -3,7 +3,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <digitalSignature/digitalSignatureCheck.h>
-#include <utility>
+#include <EASTL/utility.h>
 
 
 namespace digital_signature
@@ -15,17 +15,14 @@ enum
   CTX = 1
 };
 
-Checker::Checker(Checker &&other) { *this = std::move(other); }
+Checker::Checker(Checker &&other) noexcept { *this = eastl::move(other); }
 
-Checker &Checker::operator=(Checker &&other)
+Checker &Checker::operator=(Checker &&other) noexcept
 {
-  opaque[PKEY] = other.opaque[PKEY];
-  opaque[CTX] = other.opaque[CTX];
+  eastl::swap(opaque, other.opaque);
   failed = other.failed;
   done = other.done;
 
-  other.opaque[PKEY] = nullptr;
-  other.opaque[CTX] = nullptr;
   other.failed = true;
   other.done = true;
 

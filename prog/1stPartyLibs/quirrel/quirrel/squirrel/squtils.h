@@ -3,6 +3,9 @@
 #define _SQUTILS_H_
 
 #include <memory>
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <intrin.h>
+#endif
 
 typedef struct SQAllocContextT * SQAllocContext;
 
@@ -46,6 +49,17 @@ void sq_vm_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
   #endif
 #endif
 
+// floor(log2(x)); x must not be 0
+inline unsigned sq_log2(unsigned x)
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned long bit;
+    _BitScanReverse(&bit, x);
+    return bit;
+#else
+    return 31 - __builtin_clz(x);
+#endif
+}
 
 //sqvector mini vector class, supports objects by value
 template<typename T, typename SizeT = uint32_t> class sqvector

@@ -11,6 +11,22 @@
 #include <resourcePool/resourcePool.h>
 #include <generic/dag_carray.h>
 #include <render/dof/dofProperties.h>
+#include <drv/3d/dag_texFlags.h>
+
+struct DepthOfFieldTargets
+{
+  static constexpr int COC_COUNT = 3;
+  static constexpr uint32_t LAYER_FORMAT = TEXFMT_A16B16G16R16F;
+  static constexpr uint32_t COC_FORMAT = TEXFMT_R8;
+
+  BaseTexture *nearLayer = nullptr;
+  BaseTexture *farLayer = nullptr;
+  BaseTexture *nearLayerTemp = nullptr;
+  BaseTexture *farLayerTemp = nullptr;
+  eastl::array<BaseTexture *, COC_COUNT> coc = {};
+  BaseTexture *cocHistory = nullptr;
+  BaseTexture *maxCocFar = nullptr;
+};
 
 class DepthOfFieldPS
 {
@@ -22,6 +38,7 @@ public:
   // frame: frame or (w+1)/2 downsampled frame
   // fov_scale: can be just p.hk, which mean dof is set for 90 fov
   void perform(BaseTexture *frame, BaseTexture *close_depth, float zn, float zf, float fov_scale);
+  void perform(const DepthOfFieldTargets &targets, BaseTexture *frame, BaseTexture *close_depth, float zn, float zf, float fov_scale);
   void apply(); // to current render target
   void setBlendDepthTex(BaseTexture *tex);
   void setDoFParams(const DOFProperties &focus_) { nFocus = focus_; }
@@ -54,6 +71,7 @@ public:
   int getHeight() const { return height; }
   void releaseRTs();
   void closeTextures();
+  void resetOutputVars();
 
 protected:
   void initNear();
@@ -62,19 +80,22 @@ protected:
   void closeFar();
   void changeNearResolution();
   void changeFarResolution();
-  void resetOutputVars();
+  bool prepareFrame(BaseTexture *frame, float zn, float zf, float &fov_scale, bool &has_near_dof, bool &has_far_dof);
+  void renderLayers(const DepthOfFieldTargets &targets, BaseTexture *frame, BaseTexture *close_depth, float zn, float zf,
+    float fov_scale, bool has_near_dof, bool has_far_dof);
 
   bool useLinearBlend;
   bool useSimplifiedRendering = false;
   bool useCoCAccumulation = false;
   bool historyValid = false;
+  uint32_t historyFrame = 0;
   PostFxRenderer dofGather, dofComposite, dofDownscale, dofTile;
   int width, height;
   int originalWidth = 0, originalHeight = 0;
   ResizableTex dof_max_coc_far;
   ResizableRTargetPool::Ptr dofLayerRTPool;
   ResizableRTarget::Ptr dof_far_layer, dof_near_layer;
-  carray<ResizableTex, 3> dof_coc;
+  carray<ResizableTex, DepthOfFieldTargets::COC_COUNT> dof_coc;
   ResizableTex dof_coc_history;
   DOFProperties cFocus, nFocus;
   float bokehShapeKernelSize = 4, bokehShapeApertureBlades = 6;

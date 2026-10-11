@@ -74,18 +74,18 @@ def public parse_verdict(input : JsonValue?; n_members : int; var v : Verdict) {
     // carry stale data from a previous parse. Token counters are owned
     // by the caller (live_judge fills them from msg.usage), so we don't
     // touch those here.
-    v.error := ""
+    v.error = ""
     v.groups |> clear()
     v.false_positives |> clear()
-    v.reason := ""
+    v.reason = ""
     if (input == null) {
-        v.error := "tool input was null"
+        v.error = "tool input was null"
         return
     }
     var wire <- from_JV(input, type<VerdictWire>)
     v.groups <- wire.groups
     v.false_positives <- wire.false_positives
-    v.reason := wire.reason
+    v.reason = wire.reason
     // Normalize singleton groups: a `[i]` group is semantically the
     // same as `i` in `false_positives` (a function that doesn't match
     // anyone else), and the partition reads cleaner in the report
@@ -110,11 +110,11 @@ def public parse_verdict(input : JsonValue?; n_members : int; var v : Verdict) {
     for (g in v.groups) {
         for (idx in g) {
             if (idx < 0 || idx >= n_members) {
-                v.error := "verdict index {idx} out of range [0..{n_members - 1}]"
+                v.error = "verdict index {idx} out of range [0..{n_members - 1}]"
                 return
             }
             if (seen[idx]) {
-                v.error := "verdict index {idx} appeared more than once"
+                v.error = "verdict index {idx} appeared more than once"
                 return
             }
             seen[idx] = true
@@ -122,18 +122,18 @@ def public parse_verdict(input : JsonValue?; n_members : int; var v : Verdict) {
     }
     for (idx in v.false_positives) {
         if (idx < 0 || idx >= n_members) {
-            v.error := "verdict false_positive index {idx} out of range [0..{n_members - 1}]"
+            v.error = "verdict false_positive index {idx} out of range [0..{n_members - 1}]"
             return
         }
         if (seen[idx]) {
-            v.error := "verdict false_positive index {idx} appeared more than once"
+            v.error = "verdict false_positive index {idx} appeared more than once"
             return
         }
         seen[idx] = true
     }
     for (i in iter_range(seen)) {
         if (!seen[i]) {
-            v.error := "verdict missed index {i} (not in any group or false_positives)"
+            v.error = "verdict missed index {i} (not in any group or false_positives)"
             return
         }
     }

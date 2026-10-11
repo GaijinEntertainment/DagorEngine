@@ -20,8 +20,9 @@ inline constexpr const char *SAVE_TEXTURES = "Plugin.GraphEditor.SaveTextures";
 inline constexpr const char *SAVE_TEXTURES_BY_SUBSTRING = "Plugin.GraphEditor.SaveTexturesBySubstring";
 inline constexpr const char *RELOAD_TEXTURES = "Plugin.GraphEditor.ReloadTextures";
 inline constexpr const char *FORCE_REBUILD = "Plugin.GraphEditor.ForceRebuild";
+inline constexpr const char *TOGGLE_GRAPH_PROPERTIES = "Plugin.GraphEditor.ToggleGraphProperties";
 
-// Canvas-local shortcuts. Dispatched by graph_panel.cpp via ImGui::Shortcut with
+// Canvas-local shortcuts. Dispatched by graph_tab.cpp via ImGui::Shortcut with
 // RouteFocused; imgui-node-editor's matching built-ins are suppressed at editor
 // creation (see apply_editor_defaults).
 inline constexpr const char *CANVAS_DELETE_SELECTED = "Plugin.GraphEditor.Canvas.DeleteSelected";
@@ -40,3 +41,7 @@ inline constexpr const char *CANVAS_DUPLICATE = "Plugin.GraphEditor.Canvas.Dupli
 inline constexpr const char *CANVAS_TOGGLE_AUTOUPDATE = "Plugin.GraphEditor.Canvas.ToggleAutoUpdate";
 inline constexpr const char *CANVAS_ADD_NODE_AT_PIN = "Plugin.GraphEditor.Canvas.AddNodeAtPin";
 inline constexpr const char *CANVAS_ADD_TRANSIT_NODE = "Plugin.GraphEditor.Canvas.AddTransitNode";
+inline constexpr const char *CANVAS_CREATE_SUBGRAPH = "Plugin.GraphEditor.Canvas.CreateSubgraph";
+inline constexpr const char *CANVAS_OPEN_SUBGRAPH = "Plugin.GraphEditor.Canvas.OpenSubgraph";
+inline constexpr const char *CANVAS_EXPLODE_SUBGRAPH = "Plugin.GraphEditor.Canvas.ExplodeSubgraph";
+inline constexpr const char *CANVAS_GO_TO_PARENT_GRAPH = "Plugin.GraphEditor.Canvas.GoToParentGraph";

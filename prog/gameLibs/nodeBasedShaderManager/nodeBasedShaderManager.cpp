@@ -183,6 +183,10 @@ bool NodeBasedShaderManager::loadScriptedShadersFromResources(dag::Span<uint8_t>
 
   InPlaceMemLoadCB loadStream(data.data(), data_size(data));
 
+  eastl::vector<uint32_t> activeIdxBeforeReload;
+  if (keep_permutation)
+    activeIdxBeforeReload = permGroupActiveIdx;
+
   auto disablePermutations = [&, this] {
     permCount = 1;
     permGroupActiveIdx.clear();
@@ -213,10 +217,11 @@ bool NodeBasedShaderManager::loadScriptedShadersFromResources(dag::Span<uint8_t>
     }
   }
 
-  if (!keep_permutation)
+  if (keep_permutation && activeIdxBeforeReload.size() == permGroupActiveIdx.size())
   {
-    for (unsigned &idx : permGroupActiveIdx)
-      idx = 0;
+    for (auto [i, idx] : enumerate(activeIdxBeforeReload))
+      if (idx < permGroupSizes[i])
+        permGroupActiveIdx[i] = idx;
   }
 
   scriptedShadersDumpName = shader_name.c_str();

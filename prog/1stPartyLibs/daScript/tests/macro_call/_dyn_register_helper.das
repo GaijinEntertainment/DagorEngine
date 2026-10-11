@@ -33,7 +33,7 @@ class FortyTwoCallMacro : AstCallMacro {
 [function_macro(name = "dyn_register_42")]
 class DynRegisterFortyTwo : AstFunctionAnnotation {
     def override apply(var func : FunctionPtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         let name = string(func.name)
         var inst = new FortyTwoCallMacro(macro_name = name)
         compiling_module() |> add_call_macro(make_call_macro(name, inst))

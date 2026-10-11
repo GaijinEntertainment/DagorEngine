@@ -3,7 +3,7 @@
 #include "daProfilerMessageServer.h"
 // #include "daProfilePlatform.h"
 #include "stl/daProfilerVector.h"
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 // message server. Receives message from daProfiler GUI tool
 namespace da_profiler
@@ -12,7 +12,7 @@ namespace da_profiler
 class ProfilerMessageServer
 {
   vector<read_and_apply_message_cb_t> messages;
-  mutable std::recursive_mutex messageLock;
+  mutable dag::recursive_mutex messageLock;
 
 public:
   ~ProfilerMessageServer() { shutdown(); }
@@ -20,7 +20,7 @@ public:
   {
     if (type == uint16_t(~uint16_t(0)))
       return;
-    std::lock_guard<std::recursive_mutex> lock(messageLock);
+    dag::lock_guard lock(messageLock);
     if (type >= messages.size())
       messages.resize(type + 1);
     messages[type] = cb;
@@ -29,7 +29,7 @@ public:
   {
     read_and_apply_message_cb_t message = NULL;
     {
-      std::lock_guard<std::recursive_mutex> lock(messageLock);
+      dag::lock_guard lock(messageLock);
       if (type < messages.size())
         message = messages[type];
     }
@@ -41,7 +41,7 @@ public:
 
   void shutdown()
   {
-    std::lock_guard<std::recursive_mutex> lock(messageLock);
+    dag::lock_guard lock(messageLock);
     messages.clear();
   }
 };

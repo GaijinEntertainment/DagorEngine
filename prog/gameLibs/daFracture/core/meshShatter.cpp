@@ -123,56 +123,70 @@ void ShatterMaterialProfile::loadFromBlk(const DataBlock &blk)
 }
 
 
-void RoughShatterFlavorSettings::saveToBlk(DataBlock &blk) const
+#define SAVE_PARAM_IF_CHANGED(setter, field) \
+  if (!base || field != base->field)         \
+  blk.setter(#field, field)
+
+void RoughShatterFlavorSettings::saveToBlk(DataBlock &blk, const RoughShatterFlavorSettings *base) const
 {
-  blk.setReal("relCell", relCell);
-  blk.setReal("minCell", minCell);
-  blk.setReal("maxCell", maxCell);
-  blk.setReal("relAmpl", relAmpl);
-  blk.setInt("ridgeCells", ridgeCells);
-  blk.setPoint2("ridgeRange", ridgeRange);
-  blk.setReal("ridgeJitter", ridgeJitter);
-  blk.setReal("detailFrac", detailFrac);
-  blk.setReal("detailCells", detailCells);
-  blk.setReal("fadeCells", fadeCells);
-  blk.setReal("creaseFollowProb", creaseFollowProb);
-  blk.setReal("creaseBlendCells", creaseBlendCells);
-  blk.setReal("creaseMaxTiltDeg", creaseMaxTiltDeg);
-  blk.setReal("creaseTiltRnd", creaseTiltRnd);
-  blk.setReal("creaseMaxOffcenter", creaseMaxOffcenter);
+  SAVE_PARAM_IF_CHANGED(setReal, relCell);
+  SAVE_PARAM_IF_CHANGED(setReal, minCell);
+  SAVE_PARAM_IF_CHANGED(setReal, maxCell);
+  SAVE_PARAM_IF_CHANGED(setReal, relAmpl);
+  SAVE_PARAM_IF_CHANGED(setInt, ridgeCells);
+  SAVE_PARAM_IF_CHANGED(setPoint2, ridgeRange);
+  SAVE_PARAM_IF_CHANGED(setReal, ridgeJitter);
+  SAVE_PARAM_IF_CHANGED(setReal, detailFrac);
+  SAVE_PARAM_IF_CHANGED(setReal, detailCells);
+  SAVE_PARAM_IF_CHANGED(setReal, fadeCells);
+  SAVE_PARAM_IF_CHANGED(setReal, creaseFollowProb);
+  SAVE_PARAM_IF_CHANGED(setReal, creaseBlendCells);
+  SAVE_PARAM_IF_CHANGED(setReal, creaseMaxTiltDeg);
+  SAVE_PARAM_IF_CHANGED(setReal, creaseTiltRnd);
+  SAVE_PARAM_IF_CHANGED(setReal, creaseMaxOffcenter);
 }
 
 
-void ShatterMaterialProfile::saveToBlk(DataBlock &blk) const
+void ShatterMaterialProfile::saveToBlk(DataBlock &blk, const ShatterMaterialProfile *base) const
 {
-  blk.setInt("minPieces", minPieces);
-  blk.setInt("maxPieces", maxPieces);
-  blk.setInt("impactPointCuts", impactPointCuts);
-  blk.setPoint2("relativeSizeWindow", relativeSizeWindow);
-  blk.setReal("minCutRatio", minCutRatio);
+  SAVE_PARAM_IF_CHANGED(setInt, minPieces);
+  SAVE_PARAM_IF_CHANGED(setInt, maxPieces);
+  SAVE_PARAM_IF_CHANGED(setInt, impactPointCuts);
+  SAVE_PARAM_IF_CHANGED(setPoint2, relativeSizeWindow);
+  SAVE_PARAM_IF_CHANGED(setReal, minCutRatio);
 
-  for (const SizeMode &m : sizeModes)
-  {
-    DataBlock &b = *blk.addNewBlock("sizeMode");
-    b.setReal("weight", m.weight);
-    b.setPoint2("powerRange", m.powerRange);
-    b.setPoint2("sizeRange", m.sizeRange);
-  }
-  for (const CutPlaneMode &m : cutPlaneModes)
-  {
-    DataBlock &b = *blk.addNewBlock("cutPlaneMode");
-    b.setReal("weight", m.weight);
-    b.setPoint2("angleRangeDeg",
-      Point2(acosf(clamp(m.cosineRange.x, -1.f, 1.f)) * RAD_TO_DEG, acosf(clamp(m.cosineRange.y, -1.f, 1.f)) * RAD_TO_DEG));
-  }
+  if (!base || sizeModes != base->sizeModes)
+    for (const SizeMode &m : sizeModes)
+    {
+      DataBlock &b = *blk.addNewBlock("sizeMode");
+      b.setReal("weight", m.weight);
+      b.setPoint2("powerRange", m.powerRange);
+      b.setPoint2("sizeRange", m.sizeRange);
+    }
+  if (!base || cutPlaneModes != base->cutPlaneModes)
+    for (const CutPlaneMode &m : cutPlaneModes)
+    {
+      DataBlock &b = *blk.addNewBlock("cutPlaneMode");
+      b.setReal("weight", m.weight);
+      b.setPoint2("angleRangeDeg",
+        Point2(acosf(clamp(m.cosineRange.x, -1.f, 1.f)) * RAD_TO_DEG, acosf(clamp(m.cosineRange.y, -1.f, 1.f)) * RAD_TO_DEG));
+    }
 
   eastl::visit(
     [&](const auto &flavor_params) {
       using Settings = eastl::decay_t<decltype(flavor_params)>;
-      flavor_params.saveToBlk(*blk.addNewBlock(Settings::FLAVOR_NAME));
+      const Settings defaults{};
+      const Settings *baseSettings = base ? eastl::get_if<Settings>(&base->flavor) : nullptr;
+      const bool switchesFlavor = base && !baseSettings;
+      DataBlock flavorBlk;
+      flavor_params.saveToBlk(flavorBlk, switchesFlavor ? &defaults : baseSettings);
+      if (!base || switchesFlavor || !flavorBlk.isEmpty())
+        blk.addNewBlock(&flavorBlk, Settings::FLAVOR_NAME);
     },
     flavor);
 }
+
+#undef SAVE_PARAM_IF_CHANGED
 
 
 void shatter_into_pieces(DestrContext &ctx, DestrSystem &sys, int start_piece_idx, uint16_t interior_mat,

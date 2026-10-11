@@ -27,7 +27,7 @@ def test_per_entity_growth_crosses_the_limit(t : T?) {
         }
         commit()
         var total = 0
-        query <| $(git : GrowthItem) {
+        query() $(git : GrowthItem) {
             total += git.value
         }
         t |> equal(total, 3000)
@@ -38,12 +38,12 @@ def test_per_entity_growth_crosses_the_limit(t : T?) {
 def test_bulk_growth_crosses_the_limit(t : T?) {
     t |> run("bulk creation grows storage and the lookup past the limit") @(t : T?) {
         restart()
-        create_entities(3000) <| $(eid : EntityId; i : int; var cmp : ComponentMap) {
+        create_entities(3000) $(eid : EntityId; i : int; var cmp : ComponentMap) {
             apply_decs_template(cmp, GrowthItem(value = 1, pos = float3(float(i))))
         }
         commit()
         var total = 0
-        query <| $(git : GrowthItem) {
+        query() $(git : GrowthItem) {
             total += git.value
         }
         t |> equal(total, 3000)

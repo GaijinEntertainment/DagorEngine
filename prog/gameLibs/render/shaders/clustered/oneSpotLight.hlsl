@@ -1,3 +1,7 @@
+#ifndef SPOT_LIGHT_SOURCE_RADIUS
+  #define SPOT_LIGHT_SOURCE_RADIUS 0.0
+#endif
+
   half lightAngleScale = lightColor.a;
   half lightAngleOffset = lightDirection.a;
 
@@ -55,7 +59,7 @@
           float shadow_frame = 0;
           #endif
           if (shadowTcValid)
-            spotShadow = 1-dynamic_shadow_sample_8tap(screenpos, lightShadowTC.xy, lightShadowTC.z, 1.5*shadowAtlasTexel.x*(0.75+saturate(0.3*length(point2light))), shadow_frame);
+            spotShadow = 1-DYNAMIC_SHADOW_PCF(screenpos, lightShadowTC.xy, lightShadowTC.z, spotShadowUvBounds, 0, length(point2light), SPOT_LIGHT_SOURCE_RADIUS, shadow_frame);
         #endif
       #endif
     }

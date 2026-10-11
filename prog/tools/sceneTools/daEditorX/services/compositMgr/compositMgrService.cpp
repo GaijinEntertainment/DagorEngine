@@ -440,6 +440,11 @@ public:
             PendingCloneSeeds pending(entity->getAssetTypeId() == compositEntityClassId, seed, inst_seed);
             ePool.ent[e->entIdx + j] = IObjEntity::clone(entity);
           }
+          if (!ePool.ent[e->entIdx + j])
+          {
+            j++;
+            continue;
+          }
           // a child composit was seeded by cloneEntity() before its subtree was built
           if (!CompositEntity::castFrom(ePool.ent[e->entIdx + j]))
           {
@@ -451,13 +456,12 @@ public:
           }
           if (ICompositObj *ico = ePool.ent[e->entIdx + j]->queryInterface<ICompositObj>())
             ico->setCompositPlaceTypeOverride(place_type_override);
-          if (comp[i].defColorIdx != 0x400000 && ePool.ent[e->entIdx + j])
+          if (comp[i].defColorIdx != 0x400000)
             if (IColor *c = ePool.ent[e->entIdx + j]->queryInterface<IColor>())
               c->setColor(comp[i].defColorIdx);
           if (IDataBlockIdHolder *dbih = ePool.ent[e->entIdx + j]->queryInterface<IDataBlockIdHolder>())
             dbih->setDataBlockId(obj.dataBlockId);
-          if (ePool.ent[e->entIdx + j])
-            ePool.ent[e->entIdx + j]->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
+          ePool.ent[e->entIdx + j]->setSubtype(IObjEntity::ST_NOT_COLLIDABLE);
         }
         else
           ePool.ent[e->entIdx + j] = NULL;
@@ -1184,7 +1188,7 @@ protected:
       yScaleVal = 0;
 
     scaleTm.setcol(0, Point3(scaleVal, 0, 0));
-    scaleTm.setcol(1, Point3(0, scaleVal * yScaleVal, 0));
+    scaleTm.setcol(1, Point3(0, composit_y_axis_scale(scaleVal, yScaleVal), 0));
     scaleTm.setcol(2, Point3(0, 0, scaleVal));
 
     tm *= scaleTm;
@@ -1211,7 +1215,7 @@ protected:
     const real yScaleVal = gen.yScale.x < 0 ? 0 : gen.yScale.x;
 
     scaleTm.setcol(0, Point3(scaleVal, 0, 0));
-    scaleTm.setcol(1, Point3(0, scaleVal * yScaleVal, 0));
+    scaleTm.setcol(1, Point3(0, composit_y_axis_scale(scaleVal, yScaleVal), 0));
     scaleTm.setcol(2, Point3(0, 0, scaleVal));
 
     tm *= scaleTm;
@@ -1228,6 +1232,16 @@ protected:
     obj.ent = a ? DAEDITOR3.createEntity(*a, true) : NULL;
     obj.dataBlockId = dataBlockId;
     return obj.ent != NULL;
+  }
+
+  static bool hasParamInSubtree(const DataBlock &blk)
+  {
+    if (blk.paramCount() > 0)
+      return true;
+    for (int i = 0; i < blk.blockCount(); i++)
+      if (hasParamInSubtree(*blk.getBlock(i)))
+        return true;
+    return false;
   }
 
   void loadAssetData(const DataBlock &blk, unsigned &nextDataBlockId, const TMatrix &ptm = TMatrix::IDENT, bool need_generate = false,
@@ -1254,16 +1268,27 @@ protected:
       if (b.getBlockNameId() != node_nid)
         DAEDITOR3.conError("unsupported block name: '%s'", b.getBlockName());
 
+      // A block without a parameter in its subtree creates no component, and Composite Editor skips it too.
+      if (!hasParamInSubtree(b))
+        continue;
+
       TMatrix sztm(ptm);
 
       Component c;
       bool has_ent = false;
 
       // process entity list
+      bool hasName = false;
       for (int j = 0, nid = b.getNameId("name"); j < b.paramCount(); j++)
         if (b.getParamType(j) == DataBlock::TYPE_STRING && b.getParamNameId(j) == nid)
+        {
+          hasName = true;
           if (loadAddEnt(c, b.getStr(j), 1, nextDataBlockId++))
             has_ent = true;
+        }
+      // Composite Editor gives an ID to a node without a name too.
+      if (!hasName)
+        nextDataBlockId++;
       for (int j = 0; j < b.blockCount(); j++)
         if (b.getBlock(j)->getBlockNameId() == ent_nid)
           if (loadAddEnt(c, b.getBlock(j)->getStr("name", ""), b.getBlock(j)->getReal("weight", 1), nextDataBlockId++))
@@ -1317,7 +1342,7 @@ protected:
       if (b.paramExists("tm"))
       {
         c.ctm() = b.getTm("tm", TMatrix::IDENT);
-        if (c.ctm().getcol(0).lengthSq() < 1e-12 || c.ctm().getcol(1).lengthSq() < 1e-12 || c.ctm().getcol(2).lengthSq() < 1e-12)
+        if (c.ctm().getcol(0).lengthSq() < 1e-12f || c.ctm().getcol(1).lengthSq() < 1e-12f || c.ctm().getcol(2).lengthSq() < 1e-12f)
         {
           DynamicMemGeneralSaveCB blk_txt(tmpmem, 0, 4 << 10);
           dblk::print_to_text_stream_limited(b, blk_txt, 10, 0, 2);

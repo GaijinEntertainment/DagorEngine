@@ -591,7 +591,7 @@ bool SharedSplineClassAssetData::loadGenEntities(splineclass::GenEntities &gen, 
 
           DagorAsset *a = DAEDITOR3.getGenObjAssetByName(res);
           IObjEntity *entity = a ? DAEDITOR3.createEntity(*a, true) : NULL;
-          if (!entity && res && !*res) // skip empty name (used to generate blanks)
+          if (!entity && !*res) // skip empty name (used to generate blanks)
             entity = &stubEntity;
           if (!entity)
           {
@@ -637,7 +637,7 @@ bool SharedSplineClassAssetData::loadGenEntities(splineclass::GenEntities &gen, 
 
           sgegRec.weight = gen_rec_b.getReal("weight", 1);
           sgegRec.width = gen_rec_b.getReal("width",
-            (entity ? entity->getBbox().width().x : 0) * gen_rec_b.getReal("widthMul", 1.0f) + gen_rec_b.getReal("widthAdd", 0.0f));
+            entity->getBbox().width().x * gen_rec_b.getReal("widthMul", 1.0f) + gen_rec_b.getReal("widthAdd", 0.0f));
 
           if (tightFenceIntegralEndItems)
             sgeg.integralLastEntCount++;

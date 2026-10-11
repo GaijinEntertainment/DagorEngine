@@ -8,7 +8,7 @@ Sources =
   staticGeometry.cpp
   staticGeometryContainer.cpp
   staticGeometryNode.cpp
-  geomObjectTracer.cpp
+  geomObjectCollision.cpp
   geomObject.cpp
   staticGeomLoad.cpp
   staticGeomExport.cpp
@@ -20,6 +20,10 @@ Sources =
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  engine/daBVH
 ;
 
 CPPopt = ;

@@ -43,7 +43,7 @@ class IGreeter {
     def abstract greet_name : string
     // Default method — does not need to be overridden
     def greet : string {
-        return "Hello, {self->greet_name()}!"
+        return "Hello, {self.greet_name()}!"
     }
 }
 

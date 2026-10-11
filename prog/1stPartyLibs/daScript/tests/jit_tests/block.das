@@ -72,7 +72,7 @@ def test_make_block_nested(q : float) {
     test_invoke_block_void() $(a : int; b : float) : void {
         f.a = a
         f.b = b
-        test_invoke_block_void() $(c : int; d : float) : void {
+        test_invoke_block_void() $(c : int; _d : float) : void {
             f.a = c + 10
             f.b = b + q
         }
@@ -85,7 +85,7 @@ var g_a_i : array<int>
 def capture_args(var a : array<int>) {
     invoke() $(var b : array<int>) {
         invoke() {
-            g_a_i <- b
+            g_a_i <- b // nolint:PERF030 - the tested capture shape; the global starts empty
         }
     }
     lpipe(a)
@@ -136,20 +136,19 @@ def test_block(t : T?) {
     }
     t |> run("make block capture refval") @(t : T?) {
         verify(!jit_enabled() || is_jit_function(@@test_make_block_capture_refval))
-        var res = test_make_block_capture_refval()
+        let res = test_make_block_capture_refval()
         t |> equal(1, res.a)
         t |> equal(2., res.b)
     }
     t |> run("make block capture refval nested") @(t : T?) {
         verify(!jit_enabled() || is_jit_function(@@test_make_block_nested))
-        var res = test_make_block_nested(10.)
+        let res = test_make_block_nested(10.)
         t |> equal(11, res.a)
         t |> equal(12., res.b)
     }
     t |> run("make block capture refval nested") @(t : T?) {
         verify(!jit_enabled() || is_jit_function(@@capture_args))
         var a <- [ 1, 2, 3, 4]
-        g_a_i |> clear
         capture_args(a)
         t |> equal(4, g_a_i |> length)
         t |> equal(0, a |> length)

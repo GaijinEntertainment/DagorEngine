@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <math/dag_e3dColor.h>
 
 struct HeightmapColorGradient;
@@ -18,5 +18,5 @@ private:
 
   static constexpr int TEXTURE_WIDTH = 256;
 
-  TextureIDHolder gradientTexture;
+  UniqueTex gradientTexture;
 };

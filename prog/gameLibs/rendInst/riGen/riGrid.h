@@ -3,7 +3,21 @@
 
 #include <vecmath/dag_vecMathDecl.h>
 #include <math/dag_bounds3.h>
+#include <generic/dag_functionRef.h>
 #include <riGen/riGenExtra.h>
+
+inline bbox3f ri_extra_collision_world_box(const rendinst::RiExtraPool &pool, mat44f_cref tm44)
+{
+  bbox3f wbb;
+  v_bbox3_init(wbb, tm44, pool.collBb);
+  return wbb;
+}
+inline bbox3f ri_extra_collision_world_box(const rendinst::RiExtraPool &pool, mat43f_cref tm)
+{
+  mat44f tm44;
+  v_mat43_transpose_to_mat44(tm44, tm);
+  return ri_extra_collision_world_box(pool, tm44);
+}
 
 struct RiGridObject
 {
@@ -25,10 +39,7 @@ struct RiGridObject
     uint32_t riType = rendinst::handle_to_ri_type(handle);
     uint32_t riInstance = rendinst::handle_to_ri_inst(handle);
     const rendinst::RiExtraPool &pool = rendinst::riExtra.data()[riType];
-    mat44f tm;
-    v_mat43_transpose_to_mat44(tm, pool.riTm.data()[riInstance]);
-    bbox3f bbox;
-    v_bbox3_init(bbox, tm, pool.collBb);
+    const bbox3f bbox = ri_extra_collision_world_box(pool, pool.riTm.data()[riInstance]);
     // optimize by world sphere. box from sphere can be smaller for rotated objects.
     vec4f wbsph = getWBSph();
     bbox3f sphBox;
@@ -49,7 +60,7 @@ struct LinearGridMainCell;
 template <typename CellType>
 class LinearGrid;
 typedef LinearGrid<RiGridObject> RiGrid;
-typedef eastl::fixed_function<256, bool(RiGridObject)> RiGridObjPred;
+using RiGridObjPred = dag::FunctionRef<bool(RiGridObject) const>; // a view: the callable must outlive the predicate
 
 DAG_DECLARE_RELOCATABLE(RiGridObject);
 DAG_DECLARE_RELOCATABLE(LinearGridLeaf<RiGridObject>);
@@ -86,6 +97,8 @@ VECTORCALL RiGridObject rigrid_find_in_transformed_box_by_pos(const RiGrid &grid
   const RiGridObjPred &pred);
 VECTORCALL RiGridObject rigrid_find_in_transformed_box_by_bounding(const RiGrid &grid_holder, const TMatrix &tm, const BBox3 &bbox,
   const RiGridObjPred &pred);
+VECTORCALL RiGridObject rigrid_find_in_transformed_box_by_bounding_min(const RiGrid &grid_holder, const TMatrix &tm, const BBox3 &bbox,
+  const RiGridObjPred &pred, float min_radius);
 VECTORCALL RiGridObject rigrid_find_ray_intersections(const RiGrid &grid_holder, const Point3 &from, const Point3 &dir, float len,
   const RiGridObjPred &pred);
 // Closest hit. best_t points at the caller's current hit distance: pred traces and updates it, the

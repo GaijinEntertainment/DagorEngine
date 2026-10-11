@@ -9,7 +9,6 @@ enum
 };
 
 class CollisionPlugin;
-struct TpsPhysmatInfo;
 struct CollisionBuildSettings;
 struct E3DCOLOR;
 

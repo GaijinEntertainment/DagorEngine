@@ -16,9 +16,6 @@
 namespace rendinst
 {
 
-static float unitDistMul = 1.0f;
-static float unitDistOfs = 0.0f;
-
 //! reasonable default max 64K/cell (required for net sync in gameLibs/gamePhys/phys/rendinstDestr.cpp)
 int maxRiGenPerCell = 0x10000, maxRiExPerCell = 0x10000;
 bool tmInst12x32bit = false;
@@ -90,117 +87,158 @@ static void onSettingsChanged(RendInstGenData *rgl, const Point3 &sun_dir_0)
     rebuildRgRenderMasks();
 }
 
-void setRiExtraDistMul(float mul)
+// The only writer of the derived dist muls; call after any distMulInputs change.
+static void recomputeDistMuls()
 {
-  rendinst::riExtraLodDistSqMul = 1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalDistMul : 1.f) * mul);
-  float riExtraLodCullDistSqMul =
-    1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalLodCullDistMul : 1.f) * mul);
+  using namespace rendinst::render;
+  const DistMulInputs &in = distMulInputs;
+  const auto effClamp = [](float v, const DistMulBounds &b) { return clamp(v, b.effectiveMin, b.effectiveMax); };
 
-  rendinst::riExtraCullDistSqMul =
-    1.0f / ((rendinst::render::riExtraMulScale > 0.0f ? rendinst::render::globalCullDistMul : 1.f) * mul);
+  riGenLodDistMul = effClamp(in.dynamicMul * in.riGenSettingsMul + in.dynamicOfs, in.riGenBounds);
+  riGenCullDistMul = effClamp(in.dynamicMul * max(in.riGenSettingsMul, in.minCullMul) + in.dynamicOfs, in.riGenBounds);
 
-  rendinst::riExtraLodDistSqMul *= rendinst::riExtraLodDistSqMul;
-  rendinst::riExtraCullDistSqMul *= rendinst::riExtraCullDistSqMul;
-  riExtraLodCullDistSqMul *= riExtraLodCullDistSqMul;
-
-  // The distance used for LOD selection is already multiplied by riExtraCullDistSqMul.
-  // Here it's divided out so only the LOD specific multipliers are present when selecting LODs.
-  rendinst::render::riExtraLodsShiftDistMul = rendinst::render::lodsShiftDistMul * rendinst::render::additionalRiExtraLodDistMul *
-                                              rendinst::riExtraLodDistSqMul / rendinst::riExtraCullDistSqMul;
-
-  rendinst::render::riExtraLodsShiftDistMulForCulling = rendinst::render::lodsShiftDistMul *
-                                                        rendinst::render::additionalRiExtraLodDistMul * riExtraLodCullDistSqMul /
-                                                        rendinst::riExtraCullDistSqMul;
-}
-
-void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, float impostors_far_dist_additional_mul) // 0.2353, 0.0824
-                                                                                                                     // will remap 0.5
-                                                                                                                     // .. 2.2 to 0.2
-                                                                                                                     // .. 0.6
-{
-  unitDistMul = distMul;
-  unitDistOfs = distOfs;
-
-  // riExtra is culled past its last lod with the lod selection mul floored at the High preset value:
-  // lower presets may shorten lod switches but must not shorten draw distance.
-  constexpr float MIN_SETTINGS_DIST_MUL_FOR_LOD_CULL = 1.f;
-  rendinst::render::globalLodCullDistMul =
-    clamp(unitDistMul * max(MIN_SETTINGS_DIST_MUL_FOR_LOD_CULL, rendinst::render::settingsDistMul) + unitDistOfs,
-      MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
-
-  // For lod selection the graphics preset value applies directly
-  rendinst::render::globalDistMul = clamp(unitDistMul * rendinst::render::settingsDistMul + unitDistOfs,
-    MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
-
-  rendinst::render::globalCullDistMul =
-    clamp(unitDistMul * max(rendinst::render::settingsDistMul, rendinst::render::settingsMinCullDistMul) + unitDistOfs,
-      MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
+  // riExtra draw distance is floored at the High preset value: lower presets shorten
+  // lod switches but not the last lod end
+  constexpr float RIEXTRA_MIN_SETTINGS_CULL_MUL = 1.f;
+  float exLodMul = in.riExtraScaled ? effClamp(in.dynamicMul * in.riExtraSettingsMul + in.dynamicOfs, in.riExtraBounds) : 1.f;
+  float exCullMul =
+    in.riExtraScaled
+      ? effClamp(in.dynamicMul * max(in.riExtraSettingsMul, RIEXTRA_MIN_SETTINGS_CULL_MUL) + in.dynamicOfs, in.riExtraBounds)
+      : 1.f;
+  // the traversal scale keeps the riGen cull formula: texture streaming distances and
+  // access queries use it without the compare muls
+  float exBaseMul =
+    in.riExtraScaled ? effClamp(in.dynamicMul * max(in.riExtraSettingsMul, in.minCullMul) + in.dynamicOfs, in.riExtraBounds) : 1.f;
+  rendinst::riExtraDistSqScale = 1.f / (exBaseMul * exBaseMul);
+  // lodsShiftMul and riExtraAddLodMul scale a squared distance once: sqrt strength on riExtra
+  float lodRatio = exBaseMul / exLodMul, cullRatio = exBaseMul / exCullMul;
+  riExtraLodCompareMul = in.lodsShiftMul * in.riExtraAddLodMul * lodRatio * lodRatio;
+  riExtraCullCompareMul = in.lodsShiftMul * in.riExtraAddLodMul * cullRatio * cullRatio;
 
   FOR_EACH_RG_LAYER_DO (rgl)
     if (rgl->rtData)
-      rgl->rtData->setDistMul(clamp(rendinst::render::globalDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul),
-        clamp(rendinst::render::globalCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul), true, true,
-        force_impostors_and_mul, impostors_far_dist_additional_mul);
+      rgl->rtData->setDistMul(clamp(riGenLodDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul),
+        clamp(riGenCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul), true, true, false, in.impostorsFarDistAddMul);
+}
 
-  setRiExtraDistMul(1.f);
+void setDynamicDistMul(float mul, float ofs, float impostors_far_dist_additional_mul)
+{
+  rendinst::render::distMulInputs.dynamicMul = mul;
+  rendinst::render::distMulInputs.dynamicOfs = ofs;
+  rendinst::render::distMulInputs.impostorsFarDistAddMul = impostors_far_dist_additional_mul;
+  recomputeDistMuls();
+}
 
-  rendinst::render::forceImpostors = force_impostors_and_mul;
+// level init: the dynamic scale resets to identity, the other inputs stay
+void resetDynamicDistMul()
+{
+  rendinst::render::distMulInputs.dynamicMul = 1.f;
+  rendinst::render::distMulInputs.dynamicOfs = 0.f;
+  recomputeDistMuls();
+}
+
+void setPerFrameDistMuls(float mul, float ofs, float min_cull_mul, float lods_shift_mul, float impostors_far_dist_additional_mul)
+{
+  auto &in = rendinst::render::distMulInputs;
+  in.dynamicMul = mul;
+  in.dynamicOfs = ofs;
+  in.minCullMul = min_cull_mul;
+  in.lodsShiftMul = lods_shift_mul;
+  in.impostorsFarDistAddMul = impostors_far_dist_additional_mul;
+  recomputeDistMuls();
 }
 
 void updateSettingsDistMul()
 {
   const DataBlock *graphicsSettings = ::dgs_get_settings()->getBlockByNameEx("graphics");
-  updateSettingsDistMul(graphicsSettings->getReal("rendinstDistMul", 1.f));
+  float distMul = graphicsSettings->getReal("rendinstDistMul", 1.f);
+  updateSettingsRiGenDistMul(distMul);
+  // riExtra follows rendinstDistMul when not configured separately
+  updateSettingsRiExtraDistMul(graphicsSettings->getReal("rendinstExDistMul", distMul));
 }
 
 void updateSettingsDistMul(float v)
 {
-  rendinst::render::settingsDistMul = clamp(v, MIN_SETTINGS_RENDINST_DIST_MUL, MAX_SETTINGS_RENDINST_DIST_MUL);
-  setDistMul(unitDistMul, unitDistOfs);
+  updateSettingsRiGenDistMul(v);
+  updateSettingsRiExtraDistMul(v);
 }
 
-void updateMinSettingsDistMul(float v) { MIN_SETTINGS_RENDINST_DIST_MUL = min(v, MAX_SETTINGS_RENDINST_DIST_MUL); }
+void updateSettingsRiGenDistMul(float v)
+{
+  auto &in = rendinst::render::distMulInputs;
+  in.riGenSettingsMul = clamp(v, in.riGenBounds.settingsMin, in.riGenBounds.settingsMax);
+  recomputeDistMuls();
+}
 
-void updateMinEffectiveRendinstDistMul(float v) { MIN_EFFECTIVE_RENDINST_DIST_MUL = min(v, MAX_EFFECTIVE_RENDINST_DIST_MUL); }
+void updateSettingsRiExtraDistMul(float v)
+{
+  auto &in = rendinst::render::distMulInputs;
+  in.riExtraSettingsMul = clamp(v, in.riExtraBounds.settingsMin, in.riExtraBounds.settingsMax);
+  recomputeDistMuls();
+}
 
-void updateMaxSettingsDistMul(float v) { MAX_SETTINGS_RENDINST_DIST_MUL = max(v, MIN_SETTINGS_RENDINST_DIST_MUL); }
+void setSettingsDistMulMin(float v)
+{
+  auto &in = rendinst::render::distMulInputs;
+  in.riGenBounds.settingsMin = min(v, in.riGenBounds.settingsMax);
+  in.riExtraBounds.settingsMin = min(v, in.riExtraBounds.settingsMax);
+  recomputeDistMuls();
+}
 
-void updateMaxEffectiveRendinstDistMul(float v) { MAX_EFFECTIVE_RENDINST_DIST_MUL = max(v, MIN_EFFECTIVE_RENDINST_DIST_MUL); }
+void setEffectiveDistMulMin(float v)
+{
+  auto &in = rendinst::render::distMulInputs;
+  in.riGenBounds.effectiveMin = min(v, in.riGenBounds.effectiveMax);
+  in.riExtraBounds.effectiveMin = min(v, in.riExtraBounds.effectiveMax);
+  recomputeDistMuls();
+}
 
-float getSettingsDistMul() { return rendinst::render::settingsDistMul; }
+void setRiGenDistMulMax(float v)
+{
+  auto &b = rendinst::render::distMulInputs.riGenBounds;
+  b.settingsMax = max(v, b.settingsMin);
+  b.effectiveMax = max(v, b.effectiveMin);
+  recomputeDistMuls();
+}
 
-void updateMinCullSettingsDistMul(float v) { rendinst::render::settingsMinCullDistMul = v; }
+void setRiExtraDistMulMax(float v)
+{
+  auto &b = rendinst::render::distMulInputs.riExtraBounds;
+  b.settingsMax = max(v, b.settingsMin);
+  b.effectiveMax = max(v, b.effectiveMin);
+  recomputeDistMuls();
+}
+
+float getSettingsDistMul() { return rendinst::render::distMulInputs.riGenSettingsMul; }
+
+float getSettingsRiExtraDistMul() { return rendinst::render::distMulInputs.riExtraSettingsMul; }
 
 void updateRIExtraMulScale()
 {
-  rendinst::render::riExtraMulScale = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("riExtraMulScale", 1.0f);
-  setDistMul(unitDistMul, unitDistOfs);
+  rendinst::render::distMulInputs.riExtraScaled =
+    ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("riExtraMulScale", 1.0f) > 0.f;
+  recomputeDistMuls();
 }
 
-static float defaultLodsShiftDistMul = 1.0;
-void setLodsShiftDistMult()
+void setLodsShiftDistMul()
 {
   float value = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f);
   float clampedValue = clamp(value, 1.f, 1.3f);
   if (value != clampedValue)
     logerr("lodsShiftDistMul value (%f) clamped to %f", value, clampedValue);
-  rendinst::render::lodsShiftDistMul = defaultLodsShiftDistMul = clampedValue;
+  setLodsShiftDistMul(clampedValue);
 }
 
-void setLodsShiftDistMult(float mul) { rendinst::render::lodsShiftDistMul = mul; }
-void setAdditionalRiExtraLodDistMul(float mul) { rendinst::render::additionalRiExtraLodDistMul = mul; }
-
-void resetLodsShiftDistMult() { rendinst::render::lodsShiftDistMul = defaultLodsShiftDistMul; }
-
-void setZoomDistMul(float mul, bool scale_lod1, float impostors_far_dist_additional_mul)
+void setLodsShiftDistMul(float mul)
 {
-  FOR_EACH_RG_LAYER_DO (rgl)
-    if (rgl->rtData)
-      rgl->rtData->setDistMul(clamp(rendinst::render::globalDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul) * mul,
-        clamp(rendinst::render::globalCullDistMul, rgAttr[_layer].minDistMul, rgAttr[_layer].maxDistMul) * mul, scale_lod1, false,
-        false, impostors_far_dist_additional_mul);
+  rendinst::render::distMulInputs.lodsShiftMul = mul;
+  recomputeDistMuls();
+}
 
-  setRiExtraDistMul(mul);
+void setAdditionalRiExtraLodDistMul(float mul)
+{
+  rendinst::render::distMulInputs.riExtraAddLodMul = mul;
+  recomputeDistMuls();
 }
 
 void setImpostorsDistAddMul(float impostors_dist_additional_mul)
@@ -212,9 +250,8 @@ void setImpostorsDistAddMul(float impostors_dist_additional_mul)
 
 void setImpostorsFarDistAddMul(float impostors_far_dist_additional_mul)
 {
-  FOR_EACH_RG_LAYER_DO (rgl)
-    if (rgl->rtData)
-      rgl->rtData->setImpostorsFarDistAddMul(impostors_far_dist_additional_mul);
+  rendinst::render::distMulInputs.impostorsFarDistAddMul = impostors_far_dist_additional_mul;
+  recomputeDistMuls();
 }
 
 void setImpostorsMinRange(float impostors_min_range)
@@ -228,8 +265,7 @@ void onSettingsChanged(const Point3 &sun_dir_0)
 {
   updateSettingsDistMul();
   updateRIExtraMulScale();
-  setLodsShiftDistMult();
-  setDistMul(unitDistMul, unitDistOfs);
+  setLodsShiftDistMul();
   FOR_EACH_RG_LAYER_DO (rgl)
     onSettingsChanged(rgl, sun_dir_0);
 }

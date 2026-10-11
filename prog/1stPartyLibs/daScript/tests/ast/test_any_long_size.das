@@ -10,17 +10,13 @@ require dastest/testing_boost public
 [test]
 def test_any_array_long_size(t : T?) {
     var arr <- [10, 20, 30, 40, 50]
-    unsafe {
-        let p = addr<uint8 const?>(arr)
-        t |> equal(any_array_long_size(p), int64(5))
-    }
+    let p = unsafe(addr<uint8 const?>(arr))
+    t |> equal(any_array_long_size(p), int64(5))
 }
 
 [test]
 def test_any_table_long_size(t : T?) {
     var tab <- {1 => 100, 2 => 200, 3 => 300}
-    unsafe {
-        let p = addr<uint8 const?>(tab)
-        t |> equal(any_table_long_size(p), int64(3))
-    }
+    let p = unsafe(addr<uint8 const?>(tab))
+    t |> equal(any_table_long_size(p), int64(3))
 }

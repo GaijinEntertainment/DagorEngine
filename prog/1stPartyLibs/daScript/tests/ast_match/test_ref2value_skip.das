@@ -82,7 +82,7 @@ def test_capture_e_peels_wrapper(t : T?) {
         let r = qmatch(wrapped, $e(captured))
         t |> success(r.matched, "$e on wrapped expression should match")
         if (r.matched) {
-            t |> equal(string(captured.__rtti), "ExprField",
+            t |> equal(captured.__rtti, "ExprField",
                        "captured value should be the inner ExprField, not ExprRef2Value")
         }
     }

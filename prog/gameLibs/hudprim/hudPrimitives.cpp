@@ -737,20 +737,19 @@ Point2 HudPrimitives::getColoredTextBBox(const char *text, int font_no)
 {
   Point2 result;
   renderOrMeasureColoredTextFx(0, 0, font_no, E3DCOLOR_MAKE(255, 255, 255, 255), text, 0, -1, 0, 0, 0,
-    E3DCOLOR_MAKE(255, 255, 255, 255), 1.f, NULL, &result);
+    E3DCOLOR_MAKE(255, 255, 255, 255), 1.f, &result);
 
   return result;
 }
 
 void HudPrimitives::renderColoredTextFx(int x, int y, int font_no, E3DCOLOR color, const char *text, float pixelLen, int len,
-  int align, int fx_type, int fx_offset, E3DCOLOR fx_color, int fx_scale, const char *font_tex_2 /*= NULL*/)
+  int align, int fx_type, int fx_offset, E3DCOLOR fx_color, int fx_scale)
 {
-  renderOrMeasureColoredTextFx(x, y, font_no, color, text, pixelLen, len, align, fx_type, fx_offset, fx_color, fx_scale, font_tex_2);
+  renderOrMeasureColoredTextFx(x, y, font_no, color, text, pixelLen, len, align, fx_type, fx_offset, fx_color, fx_scale);
 }
 
 void HudPrimitives::renderOrMeasureColoredTextFx(int x, int y, int font_no, E3DCOLOR color, const char *text, float pixelLen, int len,
-  int align, int fx_type, int fx_offset, E3DCOLOR fx_color, int fx_scale, const char *font_tex_2 /*= NULL*/,
-  Point2 *out_size /*= NULL*/) // uses out_size to return text size or NULL to render it
+  int align, int fx_type, int fx_offset, E3DCOLOR fx_color, int fx_scale, Point2 *out_size /*= NULL*/)
 {
   G_UNREFERENCED(len);
   StdGuiFontContext c(font_no);
@@ -776,7 +775,7 @@ void HudPrimitives::renderOrMeasureColoredTextFx(int x, int y, int font_no, E3DC
         out_size->y = max(out_size->y, size.y);
       }
       else
-        renderTextFx(int(curX), y, font_no, curColor, subStr, len_, -1, fx_type, fx_offset, fx_color, fx_scale, font_tex_2);
+        renderTextFx(int(curX), y, font_no, curColor, subStr, len_, -1, fx_type, fx_offset, fx_color, fx_scale);
       curX += size.x;
     }
 
@@ -807,24 +806,33 @@ void HudPrimitives::renderOrMeasureColoredTextFx(int x, int y, int font_no, E3DC
   } while (1);
 }
 
-static uint32_t build_hash(const char *p, int font_id, float scale = 1.f)
+static uint64_t build_hash(const char *p, int font_id) { return str_hash_fnv1<64>(p, fnv1a_step<64>(font_id), fnv1a_step<64>); }
+
+static uint64_t build_hash(const char *p, int font_id, float scale, int fx_type, int fx_offset, int fx_scale)
 {
-  uint32_t result = fnv1_step<32>(font_id);
-  result = fnv1_step<32>(unsigned(scale * 64), result);
-  return str_hash_fnv1<32>(p, result);
+  uint64_t result = fnv1a_step<64>(bitwise_cast<int>(scale), build_hash(p, font_id));
+  result = fnv1a_step<64>(fx_type, result);
+  result = fnv1a_step<64>(fx_offset, result);
+  return fnv1a_step<64>(fx_scale, result);
 }
 
-static uint32_t build_hash(const char *p, int font_id, float scale, int fx_type, int fx_offset, E3DCOLOR fx_color, int fx_scale,
-  const char *font_tex_2)
+template <typename... Args>
+HudPrimitives::TextBuffer &HudPrimitives::getCachedTBuffer(TextBufferHandle *inout_handle, Args... args)
 {
-  uint32_t result = build_hash(p, font_id, scale);
-  result = fnv1_step<32>(fx_type, result);
-  result = fnv1_step<32>(fx_offset, result);
-  result = fnv1_step<32>(fx_color.u, result);
-  result = fnv1_step<32>(fx_scale, result);
-  if (font_tex_2)
-    result = str_hash_fnv1<32>(font_tex_2, result);
-  return result;
+  if (!inout_handle)
+    return scratchTextBuf.clear();
+  const TextBufferHandle hash = build_hash(args...);
+  if (inout_handle == &HANDLE_STATIC || *inout_handle == hash)
+    return textBuffersCached[hash];
+
+  TextBuffer reused;
+  if (auto it = textBuffersCached.find(*inout_handle); it != textBuffersCached.end())
+  {
+    reused = eastl::move(it->second);
+    textBuffersCached.erase(it); // erase first, so the map does not grow
+  }
+  *inout_handle = hash;
+  return textBuffersCached.emplace(hash, eastl::move(reused.clear())).first->second;
 }
 
 void HudPrimitives::renderTextEx(int x, int y, E3DCOLOR color, int font_id,
@@ -859,19 +867,7 @@ void HudPrimitives::renderText(int x, int y, int font_no, E3DCOLOR color, const 
   if (!text[0])
     return;
 
-  TextBuffer tmp, *buffer = &tmp;
-  if (inout_handle)
-  {
-    uint32_t hash = build_hash(text, font_no);
-    if (inout_handle != &HANDLE_STATIC)
-    {
-      if (*inout_handle != hash)
-        textBuffers.erase(*inout_handle);
-      *inout_handle = hash;
-    }
-    buffer = &textBuffers[hash];
-  }
-
+  TextBuffer *buffer = &getCachedTBuffer(inout_handle, text, font_no);
   if (!buffer->isReady || !StdGuiRender::check_str_buf_ready(buffer->tex_qcnt))
   {
     Tab<wchar_t> wbuf(framemem_ptr());
@@ -954,10 +950,10 @@ void HudPrimitives::renderBufferedText(int x, int y, E3DCOLOR color, const Buffe
   color = color;
 }
 
-void HudPrimitives::clear() { textBuffers.clear(); }
+void HudPrimitives::clear() { textBuffersCached.clear(); }
 
 void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, const char *text, int len, int align, int fx_type,
-  int fx_offset, E3DCOLOR fx_color, int fx_scale, const char *font_tex_2, float scale, int valign, bool round_coords, Pivot pivot,
+  int fx_offset, E3DCOLOR fx_color, int fx_scale, float scale, int valign, bool round_coords, Pivot pivot,
   TextBufferHandle *inout_handle)
 {
   G_ASSERT(isInHudRender);
@@ -969,19 +965,6 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
   {
     renderTextEx(x, y, color, font_no, align, text, -1, inout_handle);
     return;
-  }
-
-  TextBuffer tmp, *buffer = &tmp;
-  if (inout_handle)
-  {
-    uint32_t hash = build_hash(text, font_no, scale, fx_type, fx_offset, fx_color, fx_scale, font_tex_2);
-    if (inout_handle != &HANDLE_STATIC)
-    {
-      if (*inout_handle != hash)
-        textBuffers.erase(*inout_handle);
-      *inout_handle = hash;
-    }
-    buffer = &textBuffers[hash];
   }
 
   // ZMode is set externally to text rendering and we MUST restore it after changing buffers:
@@ -997,6 +980,7 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
   fx_color.a = (int)fx_color.a * color.a / 255;
   guiContext->set_draw_str_attr((FontFxType)fx_type, fx_offset, fx_offset, fx_color, fx_scale);
 
+  TextBuffer *buffer = &getCachedTBuffer(inout_handle, text, font_no, scale, fx_type, fx_offset, fx_scale);
   if (!buffer->isReady || !StdGuiRender::check_str_buf_ready(buffer->tex_qcnt))
   {
     Tab<wchar_t> wbuf(framemem_ptr());
@@ -1004,23 +988,6 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
     replace_tabs_with_zwspaces(wbuf.data());
     if (text_u && len > 0)
       len = (int)wcslen(text_u);
-
-    if (font_tex_2)
-    {
-      TEXTUREID fontTex2 = guiContext->guiState.fontAttr.getTex2();
-      TEXTUREID t2 = add_managed_texture(font_tex_2);
-      d3d::SamplerHandle fontSampler2 = guiContext->guiState.fontAttr.getTex2Sampler();
-      if (t2 != fontTex2)
-      {
-        if (fontTex2 != BAD_TEXTUREID)
-          release_managed_tex(fontTex2);
-        fontTex2 = t2;
-        fontSampler2 = get_texture_separate_sampler(fontTex2);
-        acquire_managed_tex(fontTex2);
-        guiContext->guiState.fontAttr.setTex2(fontTex2, fontSampler2);
-      }
-      guiContext->set_draw_str_texture(fontTex2, fontSampler2);
-    }
 
     guiContext->set_font(font_no);
 
@@ -1056,7 +1023,6 @@ void HudPrimitives::renderTextFx(float x, float y, int font_no, E3DCOLOR color, 
 
   guiContext->setBuffer(1);
   guiContext->setZMode(oldWriteToZ, oldTestDepth);
-  guiContext->reset_draw_str_texture();
 }
 
 void HudPrimitives::setMask(TEXTUREID texture_id, d3d::SamplerHandle smp_id, const Point3 &matrix_line_0, const Point3 &matrix_line_1,

@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daRg/dag_picture.h>
+#include <drv/3d/dag_sampler.h>
 #include "guiScene.h"
 #include "picAsyncLoad.h"
 
@@ -40,6 +41,32 @@ Picture::~Picture()
 
 
 IGuiScene *Picture::getScene() const { return guiScene; }
+
+
+static d3d::SamplerHandle request_sampler(PicSampler s)
+{
+  d3d::SamplerInfo info;
+  info.filter_mode = (s == SAMPLER_POINT_CLAMP || s == SAMPLER_POINT_WRAP) ? d3d::FilterMode::Point : d3d::FilterMode::Linear;
+  info.mip_map_mode = (info.filter_mode == d3d::FilterMode::Point) ? d3d::MipMapMode::Point : d3d::MipMapMode::Linear;
+  d3d::AddressMode addr = (s == SAMPLER_POINT_CLAMP || s == SAMPLER_LINEAR_CLAMP) ? d3d::AddressMode::Clamp : d3d::AddressMode::Wrap;
+  info.address_mode_u = info.address_mode_v = info.address_mode_w = addr;
+  return d3d::request_sampler(info);
+}
+
+
+void Picture::setSamplerOverrideOnce(PicSampler s)
+{
+  samplerOverride = (s == SAMPLER_DEFAULT) ? d3d::INVALID_SAMPLER_HANDLE : request_sampler(s);
+  applySampler();
+}
+
+
+// The pic desc is this picture's own copy, so the override stays local to it.
+void Picture::applySampler()
+{
+  if (samplerOverride != d3d::INVALID_SAMPLER_HANDLE && pic.tex != BAD_TEXTUREID)
+    pic.smp = samplerOverride;
+}
 
 
 // Reads pic directly instead of getPic(): must not kick the lazy load from observers.
@@ -129,6 +156,7 @@ bool Picture::load(const char *name)
   pic.pic = picId;
   pic.tex = texId;
   pic.smp = smpId;
+  applySampler();
   darg::free_texture(prevTexId, prevPicId);
 
   if (sync)
@@ -180,6 +208,8 @@ void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, con
     pic.tcLt.zero();
     pic.tcRb.zero();
   }
+
+  applySampler();
 
   loadReq = nullptr;
 

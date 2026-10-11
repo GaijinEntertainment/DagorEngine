@@ -7,14 +7,16 @@
 
  Features:
    - Unconnected messages  (ENET_PROTOCOL_COMMAND_DAGOR_SEND_UNCONNECTED)
-   - Manual immediate send (enet_dagor_manual_send_immediately)
+   - Manual framed send    (enet_dagor_manual_send_command / _immediately)
    - Relay ping-target     (enet_dagor_protocol_handle_ping_target_port_for_relay)
+   - Relay pong / 2nd RTT  (ENET_PROTOCOL_COMMAND_DAGOR_RELAY_PONG)
 */
 #include <stdio.h>
 #include <string.h>
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
 #include "enet/enet_dagor.h"
+#include "enet/time.h"
 /* inet_pton lives in <ws2tcpip.h> on Windows (not <winsock2.h>); on Unix it comes from
    <arpa/inet.h> via enet/unix.h which the platform header chain already pulls in. */
 #if defined(_WIN32) || defined(_WIN64) || _TARGET_PC_WIN || _TARGET_XBOX
@@ -157,54 +159,44 @@ enet_dagor_protocol_handle_send_unconnected (ENetHost * host, ENetProtocol * com
    ========================================================================= */
 
 /**
- Sends a single ENet-framed datagram directly without a peer.
-
- @param host         source host (socket + checksum callback used)
- @param command_type one of the supported ENetProtocolCommand values above
- @param addr         destination address
- @param ebuf         payload buffer (required for SEND_UNCONNECTED)
+ Sends a peerless ENet-framed datagram: protocol header + one command (+ optional payload).
+ Relay uses this for SEND_UNCONNECTED punches and for RELAY_PONG answers.
 */
 void
-enet_dagor_manual_send_immediately (ENetHost * host, const ENetAddress * addr, const ENetBuffer * ebuf)
+enet_dagor_manual_send_command (ENetHost * host, const ENetAddress * addr, const ENetProtocol * command,
+                                const ENetBuffer * ebuf)
 {
     enet_uint8 headerData [sizeof (ENetProtocolHeader) + sizeof (enet_uint32)];
     ENetProtocolHeader * protocolHeader = (ENetProtocolHeader *) headerData;
-    ENetProtocol command;
     size_t commandSize;
     int buffersCount;
     enet_uint16 flags;
     ENetBuffer immediate_send_buffers [3];
-    enet_uint32 emptyBufferPlaceholder = 0;
+
+    if (host == NULL || addr == NULL || command == NULL)
+      return;
 
     flags  = ENET_PROTOCOL_MAXIMUM_PEER_ID;
     flags |= ENET_PROTOCOL_HEADER_FLAG_SENT_TIME;
     protocolHeader -> peerID    = ENET_HOST_TO_NET_16 (flags);
     protocolHeader -> sentTime  = ENET_HOST_TO_NET_16 (host -> serviceTime & 0xFFFF);
 
-    command.header.command   = ENET_PROTOCOL_COMMAND_DAGOR_SEND_UNCONNECTED;
-    command.header.channelID = 0;
-    commandSize              = enet_protocol_command_size (command.header.command);
+    commandSize = enet_protocol_command_size (command -> header.command);
+    if (commandSize == 0)
+      return;
 
-    buffersCount = 3;
-
-    command.dagorSendUnconnected.dataLength = ENET_HOST_TO_NET_16 ((enet_uint16) (ebuf ? ebuf -> dataLength : 0));
-
-    /* Set up all buffers before computing the checksum so the checksum
-       covers the real payload, not uninitialised memory. */
     immediate_send_buffers [0].data       = (void *) protocolHeader;
     immediate_send_buffers [0].dataLength = sizeof (ENetProtocolHeader);
-    immediate_send_buffers [1].data       = (void *) & command;
+    immediate_send_buffers [1].data       = (void *) command;
     immediate_send_buffers [1].dataLength = commandSize;
     if (ebuf != NULL)
     {
         immediate_send_buffers [2].data       = ebuf -> data;
         immediate_send_buffers [2].dataLength = ebuf -> dataLength;
+        buffersCount = 3;
     }
     else
-    {
-        immediate_send_buffers [2].data       = &emptyBufferPlaceholder;
-        immediate_send_buffers [2].dataLength = 0;
-    }
+      buffersCount = 2;
 
     if (host -> checksum != NULL)
     {
@@ -218,7 +210,7 @@ enet_dagor_manual_send_immediately (ENetHost * host, const ENetAddress * addr, c
     {
         int i;
         int total = 0;
-        enet_logf ("enet_dagor_manual_send_immediately buffers:");
+        enet_logf ("enet_dagor_manual_send_command buffers:");
         for (i = 0; i < buffersCount; i++)
         {
             ENetDagorHexDebugDumpBuffer hexbuf;
@@ -232,9 +224,23 @@ enet_dagor_manual_send_immediately (ENetHost * host, const ENetAddress * addr, c
     }
 #endif
 
-    enet_logf ("manual_send_immediately: -> " HOSTPORT_FMT " dataLen=%d",
+    enet_logf ("manual_send_command: cmd=%u -> " HOSTPORT_FMT " payloadLen=%d",
+               (unsigned) (command -> header.command & ENET_PROTOCOL_COMMAND_MASK),
                HOSTPORT (addr -> host, addr -> port), (int) (ebuf ? ebuf -> dataLength : 0));
     enet_socket_send (host -> socket, addr, immediate_send_buffers, buffersCount);
+}
+
+/** SEND_UNCONNECTED convenience wrapper (payload optional). */
+void
+enet_dagor_manual_send_immediately (ENetHost * host, const ENetAddress * addr, const ENetBuffer * ebuf)
+{
+    ENetProtocol command;
+
+    memset (& command, 0, sizeof (command));
+    command.header.command   = ENET_PROTOCOL_COMMAND_DAGOR_SEND_UNCONNECTED;
+    command.header.channelID = 0;
+    command.dagorSendUnconnected.dataLength = ENET_HOST_TO_NET_16 ((enet_uint16) (ebuf ? ebuf -> dataLength : 0));
+    enet_dagor_manual_send_command (host, addr, & command, ebuf);
 }
 
 /* =========================================================================
@@ -263,6 +269,95 @@ enet_dagor_protocol_handle_ping_target_port_for_relay (ENetHost * host, ENetPeer
     return 0;
 }
 
+/* =========================================================================
+   Protocol handler - RELAY_PONG (second RTT on the session peer)
+   ========================================================================= */
+
+static ENetPeer *
+enet_dagor_find_connected_peer_by_address (ENetHost * host, const ENetAddress * addr)
+{
+    size_t i;
+    for (i = 0; i < host -> peerCount; ++ i)
+    {
+        ENetPeer * peer = & host -> peers [i];
+        if (peer -> state == ENET_PEER_STATE_CONNECTED &&
+            peer -> address.host == addr -> host &&
+            peer -> address.port == addr -> port)
+          return peer;
+    }
+    return NULL;
+}
+
+int
+enet_dagor_protocol_handle_relay_pong (ENetHost * host, ENetPeer * peer, const ENetProtocol * command)
+{
+    enet_uint32 receivedSentTime;
+    enet_uint32 sample;
+
+    if (peer == NULL)
+      peer = enet_dagor_find_connected_peer_by_address (host, & host -> receivedAddress);
+    if (peer == NULL || peer -> state != ENET_PEER_STATE_CONNECTED)
+      return 0;
+
+    /* Same 16-bit sentTime unwrap as enet_protocol_handle_acknowledge. */
+    receivedSentTime = ENET_NET_TO_HOST_16 (command -> dagorRelayPong.receivedSentTime);
+    receivedSentTime |= host -> serviceTime & 0xFFFF0000;
+    if ((receivedSentTime & 0x8000) > (host -> serviceTime & 0x8000))
+        receivedSentTime -= 0x10000;
+
+    if (ENET_TIME_LESS (host -> serviceTime, receivedSentTime))
+      return 0;
+
+    sample = ENET_TIME_DIFFERENCE (host -> serviceTime, receivedSentTime);
+    if (peer -> relayRoundTripTime == 0)
+      peer -> relayRoundTripTime = sample;
+    else if (sample >= peer -> relayRoundTripTime)
+      peer -> relayRoundTripTime += (sample - peer -> relayRoundTripTime) / 8;
+    else
+      peer -> relayRoundTripTime -= (peer -> relayRoundTripTime - sample) / 8;
+    return 0;
+}
+
+int
+enet_dagor_datagram_header_sent_time (const enet_uint8 * data, size_t data_length, enet_uint16 * out_sent_time)
+{
+    const ENetProtocolHeader * header;
+    enet_uint16 peerID;
+
+    if (data == NULL || out_sent_time == NULL || data_length < sizeof (ENetProtocolHeader))
+      return 0;
+
+    header = (const ENetProtocolHeader *) data;
+    peerID = ENET_NET_TO_HOST_16 (header -> peerID);
+    if ((peerID & ENET_PROTOCOL_HEADER_FLAG_SENT_TIME) == 0)
+      return 0;
+
+    * out_sent_time = ENET_NET_TO_HOST_16 (header -> sentTime);
+    return 1;
+}
+
+int
+enet_dagor_datagram_is_relay_pong (const enet_uint8 * data, size_t data_length)
+{
+    const ENetProtocolHeader * header;
+    const ENetProtocolCommandHeader * cmd;
+    enet_uint16 peerID;
+
+    if (data == NULL || data_length < sizeof (ENetProtocolHeader) + sizeof (ENetProtocolCommandHeader))
+      return 0;
+
+    header = (const ENetProtocolHeader *) data;
+    peerID = ENET_NET_TO_HOST_16 (header -> peerID);
+    if ((peerID & ENET_PROTOCOL_HEADER_FLAG_COMPRESSED) != 0)
+      return 0;
+    if ((peerID & ~ (ENET_PROTOCOL_HEADER_FLAG_MASK | ENET_PROTOCOL_HEADER_SESSION_MASK)) != ENET_PROTOCOL_MAXIMUM_PEER_ID)
+      return 0;
+    if ((peerID & ENET_PROTOCOL_HEADER_FLAG_SENT_TIME) == 0)
+      return 0;
+
+    cmd = (const ENetProtocolCommandHeader *) (data + sizeof (ENetProtocolHeader));
+    return ((cmd -> command & ENET_PROTOCOL_COMMAND_MASK) == ENET_PROTOCOL_COMMAND_DAGOR_RELAY_PONG) ? 1 : 0;
+}
 
 int
 enet_dagor_host_service_only_incoming_commands (ENetHost * host, ENetEvent * event)

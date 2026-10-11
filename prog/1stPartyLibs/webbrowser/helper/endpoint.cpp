@@ -64,7 +64,7 @@ struct Logger : public webbrowser::ILogger
     std::string formattedMessage = ts + " (" + pid + ")" + " [" + tag + "] " + msg;
     if (this->file)
     {
-      for (auto logLine : logCache)
+      for (const auto &logLine : logCache)
         this->file << logLine << std::endl;
       logCache.clear();
 

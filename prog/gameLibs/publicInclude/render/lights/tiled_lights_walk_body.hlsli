@@ -2,6 +2,7 @@
 #define tiled_lights_walk_body_hlsli
 
 #define TILED_LIGHTS_WALK_BODY_IMPL(SPOT_LIGHTS, IS_SINGLE_WORD, WALK_TILE_OFFSET, LIGHTS_WALK_DEPTH)                                          \
+if (!HW_IS_HELPER_LANE)                                                                                                                        \
 {                                                                                                                                              \
   uint tiled_walk_zbins = TILED_LIGHTS_WALK_BUFFER_AT(z_binning_lookup, depth_to_z_bin(LIGHTS_WALK_DEPTH) + (SPOT_LIGHTS ? Z_BINS_COUNT : 0)); \
   uint tiled_walk_binsBegin = tiled_walk_zbins >> 16;                                                                                          \
@@ -10,7 +11,8 @@
   uint tiled_walk_mergedBinsEnd = WAVE_MAX(tiled_walk_binsEnd);                                                                                \
   uint tiled_walk_dword_base = (SPOT_LIGHTS ? DWORDS_PER_TILE / 2 : 0);                                                                        \
   uint tiled_walk_wordsBegin = (tiled_walk_mergedBinsBegin >> 5) + tiled_walk_dword_base;                                                      \
-  uint tiled_walk_wordsEnd = (tiled_walk_mergedBinsEnd >> 5) + tiled_walk_dword_base;                                                          \
+  /* constraint: keep this bound; the wave op results above are undefined in helper lanes that HW_IS_HELPER_LANE misses */                     \
+  uint tiled_walk_wordsEnd = min(tiled_walk_mergedBinsEnd >> 5, uint(DWORDS_PER_TILE / 2 - 1)) + tiled_walk_dword_base;                        \
   uint tiled_walk_maskWidth = clamp((int)tiled_walk_binsEnd - (int)tiled_walk_binsBegin + 1, 0, 32);                                           \
   for (uint tiled_walk_word = tiled_walk_wordsBegin; tiled_walk_word <= tiled_walk_wordsEnd; ++tiled_walk_word)                                \
   {                                                                                                                                            \

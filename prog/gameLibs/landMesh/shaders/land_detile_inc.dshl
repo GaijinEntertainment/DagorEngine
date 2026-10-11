@@ -1,0 +1,273 @@
+include "noise/smooth_noise_lut.dshl"
+
+// De-tiling of a landclass tile: detiled_landclass.md
+int land_detile_on = 0;
+// fixed: the land renderer nulls a sampler range per draw, and an allocated slot could land in it
+int land_detile_params_const_no = 22 always_referenced;
+int land_detile_noise_tex_const_no = 23 always_referenced;
+float land_detile_noise_size = 497;
+
+macro INIT_LAND_DETILE()
+  (ps) {
+    noise_64_tex_l8@tex2d : register(land_detile_noise_tex_const_no);
+    land_detile_params_buf@buf : register(land_detile_params_const_no) hlsl {
+      ByteAddressBuffer land_detile_params_buf@buf;
+    }
+    land_detile_inv_noise_size@f1 = (1.0 / land_detile_noise_size);
+    land_detile_on@i1 = (land_detile_on);
+  }
+endmacro
+
+macro USE_LAND_DETILE()
+  SMOOTH_NOISE_USE(ps)
+  hlsl(ps) {
+    #include "land_detile.hlsli"
+    #include <pcg_hash.hlsl>
+
+    struct DetileParams
+    {
+      uint clusters; // 0 = off
+      float angle, spread, size;
+    };
+
+    DetileParams detile_params(uint lc_id)
+    {
+      uint4 d = loadBuffer4(land_detile_params_buf, lc_id * LAND_DETILE_PARAMS_STRIDE);
+      DetileParams p;
+      p.clusters = d[LAND_DETILE_PARAMS_CLUSTERS / 4];
+      p.angle = asfloat(d[LAND_DETILE_PARAMS_ANGLE / 4]);
+      p.spread = asfloat(d[LAND_DETILE_PARAMS_SPREAD / 4]);
+      p.size = asfloat(d[LAND_DETILE_PARAMS_SIZE / 4]);
+      return p;
+    }
+
+    // out of the one-hot weight selector consts of a per-landclass draw
+    uint detile_slot(float4 weight1_sel, float3 weight2_sel)
+    {
+      return (uint)(dot(weight1_sel, float4(0, 1, 2, 3)) + dot(weight2_sel, float3(4, 5, 6)));
+    }
+
+    // (sin, cos, offset) of q = rotate(p) + ofs, metres; the strata and the R2 offset: detiled_landclass.md
+    float4 detile_cluster(DetileParams p, uint k)
+    {
+      float ang = p.angle;
+      float2 ofs = 0;
+      if (k > 0)
+      {
+        uint h1 = pcg_hash(k + 1u);
+        float jitter = (h1 & 0xFFFFu) * (1.0 / 65535.0);
+        float t = (float(k - 1u) + 0.25 + 0.5 * jitter) / float(p.clusters - 1u);
+        ang += (t * 2.0 - 1.0) * p.spread;
+        ofs = frac(float2(LAND_DETILE_R2_X, LAND_DETILE_R2_Y) * k) * p.size;
+      }
+      float2 sc;
+      sincos(ang, sc.x, sc.y);
+      return float4(sc, ofs);
+    }
+
+    // s in [0, clusters-1]: floor(s) fades into floor(s)+1, hard core LAND_DETILE_HARDNESS each side
+    void detile_nodes(float s, out uint seed, out float w)
+    {
+      float fs = floor(s);
+      seed = uint(fs);
+      w = 1 - (s - fs);
+      if (w <= LAND_DETILE_HARDNESS)
+      {
+        seed += 1;
+        w = 1;
+      }
+      else if (w < 1 - LAND_DETILE_HARDNESS)
+      {
+        w = (w - LAND_DETILE_HARDNESS) * (1.0 / (1 - 2 * LAND_DETILE_HARDNESS));
+        w = w * w * (3 - 2 * w);
+      }
+      else
+        w = 1;
+    }
+
+    float2 detile_rotate(float2 v, float2 sc) { return float2(sc.y * v.x + sc.x * v.y, sc.y * v.y - sc.x * v.x); }
+
+    struct DetilePixel // one per pixel: every slot shares the fold and the noise
+    {
+      float2 world; // reflected into the map, as the weights fold it
+      float2 raw;   // the pixel's own position: the tc it samples at starts there
+      int2 cell;
+      float noise;
+      bool on;
+    };
+
+    DetilePixel detile_pixel(float2 world_pos_xz)
+    {
+      DetilePixel px = (DetilePixel)0;
+      px.on = land_detile_on != 0;
+      BRANCH
+      if (px.on) // uniform: an all-off level skips the fold
+      {
+        px.world = land_weight_reflected_world(world_pos_xz, px.cell);
+        px.raw = world_pos_xz;
+        px.noise = smooth_noise_value(px.world * land_detile_inv_noise_size);
+      }
+      return px;
+    }
+
+    struct DetileState
+    {
+      float2 ddx_uv, ddy_uv;
+      float2 fold;       // -1 on an axis a mirrored border cell reflects: the ground moves against the raw pixel
+      float4 rot0, rot1; // sin, cos, and the tap offset q - raw in metres, of the two clusters
+      float w;           // share of rot0; 1 = single cluster, 0 = off (plain tex2D)
+      float tile;        // tc per metre
+      float4 mean;       // keeps the contrast of a blend
+    };
+
+    DetileState detile_pixel_state(DetilePixel px, float2 uv, Texture2D tex, SamplerState tex_samplerstate, uint slot)
+    {
+      DetileState s = (DetileState)0;
+      s.fold = float2(px.world == px.raw) * 2 - 1;
+      s.ddx_uv = ddx(uv) * s.fold;
+      s.ddy_uv = ddy(uv) * s.fold;
+      DetileParams p = detile_params(land_weight_cell_slot_id(px.cell, slot));
+      BRANCH
+      if (p.clusters >= 1)
+      {
+        uint seed;
+        detile_nodes(px.noise * (p.clusters - 1), seed, s.w);
+        s.rot0 = detile_cluster(p, seed);
+        s.rot0.zw += detile_rotate(px.world, s.rot0.xy) - px.raw;
+        s.tile = rcp(p.size);
+        BRANCH
+        if (s.w < 1) // only the blend band reads the second cluster and the mean
+        {
+          s.rot1 = detile_cluster(p, seed + 1);
+          s.rot1.zw += detile_rotate(px.world, s.rot1.xy) - px.raw;
+          s.mean = tex2Dlod(tex, float4(0.5, 0.5, 0, 16)); // the coarsest mip; consoles have no SampleLevel method
+        }
+      }
+      return s;
+    }
+
+    // tc.y runs along -z, so the gradients turn by the rotation conjugated by that flip, and
+    // tc_ofs turns with them. The sampler must be named tex_samplerstate: tex2D* pastes the suffix
+    float4 detile_tap(Texture2D tex, SamplerState tex_samplerstate, float2 tc, float2 tc_ofs, DetileState s, float4 rot)
+    {
+      float2 sc = float2(-rot.x, rot.y);
+      float2 uv = tc + detile_rotate(tc_ofs * s.fold, sc) + rot.zw * float2(s.tile, -s.tile);
+      return tex2Dgrad(tex, uv, detile_rotate(s.ddx_uv, sc), detile_rotate(s.ddy_uv, sc));
+    }
+
+    // replaces tex2D(tex, tc + tc_ofs); the zero state (off, or a shader that never set it) takes exactly that
+    float4 detile_sample_ofs(Texture2D tex, SamplerState tex_samplerstate, float2 tc, float2 tc_ofs, DetileState s)
+    {
+      BRANCH
+      if (s.w <= 0)
+      {
+        BRANCH
+        if (s.fold.x == 0) // uniform: the zero state has no fold
+          return tex2D(tex, tc + tc_ofs);
+        return tex2Dgrad(tex, tc + tc_ofs, s.ddx_uv * s.fold, s.ddy_uv * s.fold); // a quad can straddle a de-tiled cell
+      }
+      float4 c0 = detile_tap(tex, tex_samplerstate, tc, tc_ofs, s, s.rot0);
+      BRANCH
+      if (s.w >= 1)
+        return c0;
+      float4 c1 = detile_tap(tex, tex_samplerstate, tc, tc_ofs, s, s.rot1);
+      return saturate((lerp(c1, c0, s.w) - s.mean) * rsqrt(s.w * s.w + (1 - s.w) * (1 - s.w)) + s.mean);
+    }
+    float4 detile_sample(Texture2D tex, SamplerState tex_samplerstate, float2 tc, DetileState s)
+    {
+      return detile_sample_ofs(tex, tex_samplerstate, tc, float2(0, 0), s);
+    }
+
+    float4 detile_slot_sample_ofs(DetilePixel px, uint slot, Texture2D tex, SamplerState tex_samplerstate, float2 tc, float2 tc_ofs)
+    {
+      BRANCH
+      if (!px.on)
+        return tex2D(tex, tc + tc_ofs);
+      return detile_sample_ofs(tex, tex_samplerstate, tc, tc_ofs, detile_pixel_state(px, tc, tex, tex_samplerstate, slot));
+    }
+    // set at shader entry, so SAMPLE_COLORMAP reads it with no signature change.
+    // A mutable file-scope static is per invocation in HLSL; both compilers scalarize it
+    static DetileState land_detile_ps_state = (DetileState)0;
+  }
+endmacro
+
+macro GET_DETILED_DETAIL_TEX_WEIGHTED()
+hlsl(ps) {
+  // ofs0..3 are detile_tap's world steps, a pair per slot in its own tc units; zero = the plain sample
+  half4 get_detail_tex_weighted_px_ofs(DetilePixel px,
+    float4 tiledtexcoord0,
+    float4 tiledtexcoord1,
+    float4 tiledtexcoord2,
+    float4 tiledtexcoord3,
+    float4 ofs0, float4 ofs1, float4 ofs2, float4 ofs3, // packed like the tc: two slots per register
+    half4 weight1, half3 weight2)
+  {
+    #define DETAIL_TAP(ti, ttc, tofs)       (half4)detile_slot_sample_ofs(px, ti, land_detail_tex_n##ti, land_detail_tex_n##ti##_samplerstate, ttc, tofs)
+    #if (num_tex_count==0)
+      return 1;
+    #elif (num_tex_count==1)
+      return DETAIL_TAP(0, tiledtexcoord0.xy, ofs0.xy);
+    #else
+      half4 det = weight1.x*DETAIL_TAP(0, tiledtexcoord0.xy, ofs0.xy);
+      // the 1e-7 touches NVidia drivers
+      #define ADD_DETAIL_TEX(ti, weight, ttc, tofs) det += weight * (1e-7 + DETAIL_TAP(ti, ttc, tofs))
+      ADD_DETAIL_TEX(1, weight1.y, tiledtexcoord0.zw, ofs0.zw);
+      #if (num_tex_count>2)
+         ADD_DETAIL_TEX(2, weight1.z, tiledtexcoord1.xy, ofs1.xy);
+      #endif
+      #if (num_tex_count>3)
+         ADD_DETAIL_TEX(3, weight1.w, tiledtexcoord1.zw, ofs1.zw);
+      #endif
+      #if (num_tex_count>4)
+        ADD_DETAIL_TEX(4, weight2.x, tiledtexcoord2.xy, ofs2.xy);
+      #endif
+      #if (num_tex_count>5)
+        ADD_DETAIL_TEX(5, weight2.y, tiledtexcoord2.zw, ofs2.zw);
+      #endif
+      #if (num_tex_count>6)
+        ADD_DETAIL_TEX(6, weight2.z, tiledtexcoord3.xy, ofs3.xy);
+      #endif
+      #undef ADD_DETAIL_TEX
+      return det;
+    #endif
+    #undef DETAIL_TAP
+  }
+
+  half4 get_detail_tex_weighted_px(DetilePixel px,
+    float4 tiledtexcoord0,
+    float4 tiledtexcoord1,
+    float4 tiledtexcoord2,
+    float4 tiledtexcoord3,
+    half4 weight1, half3 weight2)
+  {
+    return get_detail_tex_weighted_px_ofs(px, tiledtexcoord0, tiledtexcoord1, tiledtexcoord2, tiledtexcoord3, 0, 0, 0, 0, weight1,
+      weight2);
+  }
+
+  half4 get_detail_tex_weighted(
+    float4 tiledtexcoord0,
+    float4 tiledtexcoord1,
+    float4 tiledtexcoord2,
+    float4 tiledtexcoord3,
+    half4 weight1, half3 weight2, float2 world_pos_xz)
+  {
+    return get_detail_tex_weighted_px(detile_pixel(world_pos_xz),
+      tiledtexcoord0, tiledtexcoord1, tiledtexcoord2, tiledtexcoord3, weight1, weight2);
+  }
+}
+endmacro
+
+// the per-landclass draws: one call at shader entry sets the PS-scope state for SAMPLE_COLORMAP
+// needs weight1_dot and weight2_dot in scope: the caller expands GET_WEIGHT() first
+macro USE_LAND_DETILE_COLORMAP_STATE()
+hlsl(ps) {
+  void land_detile_colormap_state(float2 world_pos_xz, float2 uv)
+  {
+    BRANCH
+    if (land_detile_on == 0) // uniform: an all-off level keeps the zero state (plain colormap sample)
+      return;
+    land_detile_ps_state = detile_pixel_state(detile_pixel(world_pos_xz), uv, colormapTex, colormapTex_samplerstate,
+      detile_slot(weight1_dot, weight2_dot.xyz));
+  }
+}
+endmacro

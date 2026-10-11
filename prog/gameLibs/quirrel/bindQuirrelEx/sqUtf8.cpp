@@ -199,6 +199,32 @@ const char *apply_case_map(const String &srcUtf8, String &resUtf8)
   return resUtf8.str();
 }
 
+const char *apply_capitalize(const String &srcUtf8, String &resUtf8, bool each_word)
+{
+  std::call_once(caseMapsInitFlag, init_case_maps);
+
+  clear_and_shrink(resUtf8);
+
+  const int utf8_length = srcUtf8.length();
+  const char *utf8_begin = srcUtf8.str();
+
+  utf8::iterator<const char *> it(utf8_begin);
+  utf8::iterator<const char *> it_end(utf8_begin + utf8_length);
+
+  resUtf8.reserve(utf8_length);
+
+  bool wordStart = true;
+  for (; it != it_end; ++it)
+  {
+    const uint32_t ch = *it;
+    char add[5] = {0, 0, 0, 0, 0}; // max one UTF8 char size is 4 and plus '\0'
+    utf8::append(wordStart ? map_to_upper(ch) : ch, add);
+    resUtf8 += add;
+    wordStart = each_word && ch == ' ';
+  }
+  return resUtf8.str();
+}
+
 } // namespace
 
 namespace bindquirrel
@@ -229,6 +255,10 @@ int Utf8::charCount() const { return utf8::distance(utf8.str(), utf8.str() + utf
 const char *Utf8::toLower() { return apply_case_map<&map_to_lower>(utf8, result); }
 
 const char *Utf8::toUpper() { return apply_case_map<&map_to_upper>(utf8, result); }
+
+const char *Utf8::capitalize() { return apply_capitalize(utf8, result, false); }
+
+const char *Utf8::capitalizeWords() { return apply_capitalize(utf8, result, true); }
 
 // Translate characters or replace UTF8 substrings and return new string.
 const char *Utf8::strtr(const char *from, const char *to)
@@ -330,7 +360,7 @@ const char *Utf8::slice(HSQUIRRELVM v)
       to += cnt;
   }
 
-  result.reserve(min(2 * (to - from), utf8_length)); // size of ordinary UTF8 char is 2
+  result.reserve(max(0, min(2 * (to - from), utf8_length))); // size of ordinary UTF8 char is 2
 
   // foreach original string
   utf8::iterator<const char *> it(utf8.str());

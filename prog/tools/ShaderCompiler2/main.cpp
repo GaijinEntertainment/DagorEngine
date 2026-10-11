@@ -792,8 +792,7 @@ static String getDir(const char *filename)
   {
     res.resize(len + 1);
     res[len] = 0;
-    if (len > 0)
-      memcpy(&res[0], filename, len);
+    memcpy(&res[0], filename, len);
   }
 
   return res;

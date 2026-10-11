@@ -55,6 +55,7 @@ float water_reflection_margin_inv = 1;
 
 texture water_reflection_tex;
 texture water_refraction_tex;
+texture perlin_noise;
 
 float bump_dist_damp = 1500;
 

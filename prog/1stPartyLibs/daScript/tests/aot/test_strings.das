@@ -36,10 +36,7 @@ def test_string_functions(t : T?) {
         t |> equal(to_upper("hello"), "HELLO")
     }
     t |> run("join") @(t : T?) {
-        var arr : array<string>
-        arr |> push("a")
-        arr |> push("b")
-        arr |> push("c")
+        let arr <- ["a", "b", "c"]
         t |> equal(join(arr, ","), "a,b,c")
     }
 }
@@ -57,7 +54,7 @@ def test_first_character_empty_throws(t : T?) {
 
 def test_first_character_ds_empty_throws(t : T?) {
     var threw = false
-    with_das_string() <| $(var ds) {
+    with_das_string() $(var ds) {
         try {
             let ch = first_character(ds)
             t |> failure("should have thrown, got {ch}")
@@ -79,11 +76,11 @@ def test_first_character(t : T?) {
         test_first_character_empty_throws(t)
     }
     t |> run("first_character das_string") @(t : T?) {
-        with_das_string() <| $(var ds) {
+        with_das_string() $(var ds) {
             ds := "hello"
             t |> equal(first_character(ds), 'h')
         }
-        with_das_string() <| $(var ds) {
+        with_das_string() $(var ds) {
             ds := "Z"
             t |> equal(first_character(ds), 'Z')
         }
@@ -92,7 +89,7 @@ def test_first_character(t : T?) {
         test_first_character_ds_empty_throws(t)
     }
     t |> run("character_at bounds check") @(t : T?) {
-        t |> equal(character_at("hello", 0), 'h')
-        t |> equal(character_at("hello", 4), 'o')
+        t |> equal(character_at("hello", 0), 'h')    // nolint:PERF003 -- character_at at index 0 is the subject of this arm
+        t |> equal(character_at("hello", 4), 'o')    // nolint:PERF003 -- character_at is the subject of this arm
     }
 }

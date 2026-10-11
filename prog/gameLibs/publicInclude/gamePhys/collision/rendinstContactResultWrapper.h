@@ -24,6 +24,7 @@ struct WrapperRendinstContactResultCB : public WrapperContactResultCB
   Point3 originalRIPos;
   uint32_t frameNo = 0;
   bool processTreeBehaviour = true;
+  bool processBushBehaviour = true;
   struct RiGenDamage
   {
     Point3 pos, axis;
@@ -31,8 +32,11 @@ struct WrapperRendinstContactResultCB : public WrapperContactResultCB
   Tab<RiGenDamage> riGenDamage{framemem_ptr()};
 
   WrapperRendinstContactResultCB(Tab<gamephys::CollisionContactData> &stor, uint32_t frame_no, int check_mat_id = -1,
-    bool process_tree_behaviour = true) :
-    WrapperContactResultCB(stor, check_mat_id), frameNo(frame_no), processTreeBehaviour(process_tree_behaviour)
+    bool process_tree_behaviour = true, bool process_bush_behaviour = true) :
+    WrapperContactResultCB(stor, check_mat_id),
+    frameNo(frame_no),
+    processTreeBehaviour(process_tree_behaviour),
+    processBushBehaviour(process_bush_behaviour)
   {}
   void applyRiGenDamage() const;
   ~WrapperRendinstContactResultCB()

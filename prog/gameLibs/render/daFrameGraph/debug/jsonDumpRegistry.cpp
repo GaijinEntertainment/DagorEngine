@@ -380,7 +380,7 @@ void dump_registry_to_json(const InternalRegistry &registry)
     w.Key("nodes");
     {
       OBJECT_SCOPED
-      for (auto [nodeNameId, nodeData] : registry.nodes.enumerate())
+      for (const auto &[nodeNameId, nodeData] : registry.nodes.enumerate())
       {
         w.Key(get_name(registry, nodeNameId));
         {
@@ -699,6 +699,21 @@ void dump_registry_to_json(const InternalRegistry &registry)
                   }
                 }
 
+                else if constexpr (eastl::is_same_v<T, CopyRequirements>)
+                {
+                  w.String("CopyRequirements");
+                  const CopyRequirements &copyReqs = exec_reqs;
+
+                  w.Key("source");
+                  w.String(get_name(registry, copyReqs.source));
+
+                  w.Key("sourceIsHistory");
+                  w.Bool(copyReqs.sourceIsHistory);
+
+                  w.Key("destination");
+                  w.String(get_name(registry, copyReqs.destination));
+                }
+
                 else
                 {
                   w.String("<unknown>");
@@ -773,7 +788,7 @@ void dump_registry_to_json(const InternalRegistry &registry)
     w.Key("resources");
     {
       OBJECT_SCOPED
-      for (auto [resNameId, resData] : registry.resources.enumerate())
+      for (const auto &[resNameId, resData] : registry.resources.enumerate())
       {
         w.Key(get_name(registry, resNameId));
         {
@@ -852,6 +867,9 @@ void dump_registry_to_json(const InternalRegistry &registry)
 
                       w.Key("mipLevels");
                       w.Uint(tex2dCreateInfo.mipLevels);
+
+                      w.Key("arrayLayers");
+                      w.Uint(tex2dCreateInfo.arrayLayers);
                     }
 
                     else if constexpr (eastl::is_same_v<T, Texture3dCreateInfo>)
@@ -1031,7 +1049,7 @@ void dump_registry_to_json(const InternalRegistry &registry)
     w.Key("autoResTypes");
     {
       OBJECT_SCOPED
-      for (auto [autoResNameId, autoResData] : registry.autoResTypes.enumerate())
+      for (const auto &[autoResNameId, autoResData] : registry.autoResTypes.enumerate())
       {
         w.Key(get_name(registry, autoResNameId));
         {
@@ -1155,7 +1173,7 @@ void dump_registry_to_json(const InternalRegistry &registry)
     w.Key("autoResTypesChanged");
     {
       OBJECT_SCOPED
-      for (auto [autoResNameId, value] : registry.autoResTypesChanged.enumerate())
+      for (const auto &[autoResNameId, value] : registry.autoResTypesChanged.enumerate())
       {
         w.Key(get_name(registry, autoResNameId));
         w.Bool(value);
@@ -1165,7 +1183,7 @@ void dump_registry_to_json(const InternalRegistry &registry)
     w.Key("resourceSlots");
     {
       OBJECT_SCOPED
-      for (auto [resNameId, slotDataOpt] : registry.resourceSlots.enumerate())
+      for (const auto &[resNameId, slotDataOpt] : registry.resourceSlots.enumerate())
       {
         if (!slotDataOpt.has_value())
           continue;

@@ -98,12 +98,6 @@ das::FileAccessPtr get_file_access( char * pak );//link time resolved dependenci
 Context * get_context( int stackSize = 0 );
 DECLARE_FUSION;
 
-// PULL_MODULE declares the das_pull_* entry points where it expands, and a declaration inside an
-// unnamed namespace has internal linkage - so this pull must live at file scope
-static void initialize_modules_impl () {
-    PULL_ALL_DEFAULT_MODULES;
-}
-
 namespace {
     size_t c_string_length ( const char * text, const char * argument ) {
         if ( !text ) {
@@ -184,6 +178,12 @@ namespace {
         }
     }
 
+}
+
+// dagor: NEED_MODULE declares das_pull_<Module> at the scope where it expands, so the pull has
+// to sit at global scope - inside a namespace it declares a namespace-local symbol instead.
+static void initialize_modules_impl () {
+    PULL_ALL_DEFAULT_MODULES;
 }
 
 extern "C" {
@@ -377,6 +377,20 @@ int das_fileaccess_introduce_native_module_n ( das_file_access * access, const c
     return ((FsFileAccess *) access)->introduceNativeModule(req_string) ? 1 : 0;
 }
 
+void das_fileaccess_add_extra_module ( das_file_access * access, const char * module_name, const char * module_file ) {
+    das_fileaccess_add_extra_module_n(access,
+        module_name, c_string_length(module_name, "module_name"),
+        module_file, c_string_length(module_file, "module_file"));
+}
+
+void das_fileaccess_add_extra_module_n ( das_file_access * access,
+                                         const char * module_name, size_t module_name_length,
+                                         const char * module_file, size_t module_file_length ) {
+    auto module_name_string = string_from_range(module_name, module_name_length, "module_name");
+    auto module_file_string = string_from_range(module_file, module_file_length, "module_file");
+    ((FileAccess *) access)->addExtraModule(module_name_string, module_file_string);
+}
+
 void das_fileaccess_lock ( das_file_access * access ) {
     ((FileAccess *) access)->lock();
 }
@@ -405,6 +419,14 @@ void das_get_root_n ( char * root, size_t maxbuf ) {
     auto copy_length = das::min<size_t>(size_t(maxbuf - 1), r.size());
     if ( copy_length ) memcpy(root, r.data(), copy_length);
     root[copy_length] = 0;
+}
+
+void das_set_root ( const char * root ) {
+    das_set_root_n(root, c_string_length(root, "root"));
+}
+
+void das_set_root_n ( const char * root, size_t root_length ) {
+    setDasRoot(string_from_range(root, root_length, "root"));
 }
 
 das_program * das_program_compile ( char * program_file, das_file_access * access, das_text_writer * tout, das_module_group * libgroup ) {
@@ -680,7 +702,7 @@ void das_module_bind_interop_function_n ( das_module * mod, das_module_group * l
     auto fn = new CFunction(name_string.c_str(), *(ModuleLibrary *)lib, cpp_name_string.c_str(), fun);
     fn->setSideEffects((das::SideEffects) sideffects);
     vector <TypeDeclPtr> arguments;
-    MangledNameParser parser;
+    MangledNameParser parser(cppBindingLineInfo(name_string.c_str()));
     const char * arg = args_string.c_str();
     while ( *arg ) {
         auto tt = parser.parseTypeFromMangledName(arg, *(ModuleLibrary*)lib,(Module *)mod);
@@ -709,7 +731,7 @@ void das_module_bind_interop_function_unaligned_n ( das_module * mod, das_module
     auto fn = new CFunction_Unaligned(name_string.c_str(), *(ModuleLibrary *)lib, cpp_name_string.c_str(), fun);
     fn->setSideEffects((das::SideEffects) sideffects);
     vector <TypeDeclPtr> arguments;
-    MangledNameParser parser;
+    MangledNameParser parser(cppBindingLineInfo(name_string.c_str()));
     const char * arg = args_string.c_str();
     while ( *arg ) {
         auto tt = parser.parseTypeFromMangledName(arg, *(ModuleLibrary*)lib,(Module *)mod);
@@ -731,7 +753,7 @@ void das_module_bind_alias_n ( das_module * mod, das_module_group * lib,
                                const char * tname, size_t tname_length ) {
     auto alias_name = string_from_range(aname, aname_length, "aname");
     auto type_name = c_string_from_range(tname, tname_length, "tname");
-    MangledNameParser parser;
+    MangledNameParser parser(cppBindingLineInfo(alias_name.c_str()));
     auto tt = type_name.c_str();
     auto at = parser.parseTypeFromMangledName(tt, *(ModuleLibrary*)lib,(Module *)mod);
     DAS_ASSERT(at->alias.empty() && "already an alias");
@@ -786,7 +808,7 @@ void das_structure_add_field_n ( das_structure * st, das_module * mod, das_modul
     auto name_string = string_from_range(name, name_length, "name");
     auto cpp_name_string = string_from_range(cppname, cppname_length, "cppname");
     auto type_name = c_string_from_range(tname, tname_length, "tname");
-    MangledNameParser parser;
+    MangledNameParser parser(cppBindingLineInfo(name_string.c_str()));
     auto tt = type_name.c_str();
     auto at = parser.parseTypeFromMangledName(tt, *(ModuleLibrary*)lib,(Module *)mod);
     ((CStructureAnnotation *)st)->addFieldEx(name_string, cpp_name_string, checked_u32(offset, "offset"), at);
@@ -928,6 +950,8 @@ int das_policies_set_bool ( das_policies * policies, das_bool_policy flag, int v
         case DAS_POLICY_LOG_OPTIMIZATION_PASSES: p->log_optimization_passes = v; break;
         case DAS_POLICY_FUSION:                 p->fusion = v; break;
         case DAS_POLICY_AUTO_INLINE_FUNCTIONS:  p->auto_inline_functions = v; break;
+        case DAS_POLICY_JIT_ENABLED:            p->jit_enabled = v; break;
+        case DAS_POLICY_JIT_DLL_MODE:           p->jit_dll_mode = v; break;
         default: return 0;
     }
     return 1;
@@ -1024,6 +1048,7 @@ das_serialized_data * das_program_serialize_n ( das_program * program, const voi
         ((Program *)program)->serialize(ser);
         ser.moduleLibrary = nullptr;
     }
+    storage->flush();
     *out_data = storage->buffer.data();
     *out_size = storage->buffer.size();
     return (das_serialized_data *) storage;

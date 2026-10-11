@@ -123,7 +123,6 @@ static int64_t zstd_stream_compress_data_base(IGenSave &dest, IGenLoad &src, con
   G_VERIFY(ZSTD_CCtx_refCDict(strm, dict) == 0);
 
   inBuf.src = inBufStore;
-  inBuf.size = inBufStoreSz;
   inBuf.pos = 0;
   outBuf.dst = outBufStore;
   outBuf.size = outBufStoreSz;
@@ -203,7 +202,6 @@ static int64_t zstd_stream_decompress_data_base(IGenSave &dest, IGenLoad &src, c
   ZSTD_DCtx_refDDict(dstrm, dict);
 
   inBuf.src = inBufStore;
-  inBuf.size = inBufStoreSz;
   inBuf.pos = 0;
   outBuf.dst = outBufStore;
   outBuf.size = outBufStoreSz;

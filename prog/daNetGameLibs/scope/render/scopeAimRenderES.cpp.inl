@@ -3,6 +3,8 @@
 #include <render/scopeAimRender/scopeAimRender.h>
 
 #include <3d/dag_quadIndexBuffer.h>
+#include <dag/dag_vector.h>
+#include <memory/dag_framemem.h>
 #include <camera/sceneCam.h>
 #include <animChar/dag_animCharVis.h>
 #include <daECS/core/componentTypes.h>
@@ -45,18 +47,22 @@
 CONSOLE_BOOL_VAL("scope_debug", fire_assert, false);
 
 
-#define SCOPE_AIM_RENDER_VARS \
-  VAR(scope_mask)             \
-  VAR(scope_lens_local_x)     \
-  VAR(scope_lens_local_y)     \
-  VAR(scope_lens_local_z)     \
-  VAR(scope_reticle_tex)      \
-  VAR(scope_radius)           \
-  VAR(scope_length)           \
-  VAR(night_vision_tex)       \
-  VAR(use_depth_val_as_mask)  \
-  VAR(guiGlobTm)              \
-  VAR(use_gui_glob_tm)        \
+#define SCOPE_AIM_RENDER_VARS      \
+  VAR(scope_mask)                  \
+  VAR(scope_lens_local_x)          \
+  VAR(scope_lens_local_y)          \
+  VAR(scope_lens_local_z)          \
+  VAR(scope_lens_radius)           \
+  VAR(scope_exit_pupil_radius_mul) \
+  VAR(scope_eye_relief)            \
+  VAR(scope_fov_cos)               \
+  VAR(scope_reticle_tex)           \
+  VAR(scope_radius)                \
+  VAR(scope_length)                \
+  VAR(night_vision_tex)            \
+  VAR(use_depth_val_as_mask)       \
+  VAR(guiGlobTm)                   \
+  VAR(use_gui_glob_tm)             \
   VAR(gui_use_inv_viewport_tm)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -250,6 +256,9 @@ static void prepare_aim_occlusion_es(const UpdateStageInfoBeforeRender &info,
     });
 }
 
+// Arbitrary non-zero bit but RENDER_SHADOW as it zeroes the node collapser data:
+static constexpr uint8_t SCOPE_NODE_FILTER_MASK = UpdateStageInfoRender::RENDER_COLOR;
+
 static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
   uint32_t startStage,
   uint32_t endStage,
@@ -259,16 +268,19 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
   NeedPreviousMatrices need_previous_matrices,
   const TexStreamingContext &texCtx,
   int nodeId = -1,
+  PathFilterView path_filter = PathFilterView::NULL_FILTER,
   ShaderElement *shader_override = nullptr)
 {
+  G_ASSERT(nodeId < 0 || path_filter.empty());
   ContextId ctx = get_or_create_context("dynmodel_immediate");
   clear(ctx);
+  dag::Vector<uint8_t, framemem_allocator> singleNodeFilter;
   for (ecs::EntityId eid : eids)
   {
     if (eid) // Investigate: does this check really needed?
       process_animchar_ecs_query(*g_entity_mgr, eid,
-        [&ctx, startStage, endStage, nodeId, visMask, hide, need_previous_matrices, texCtx, shader_override](
-          AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t &animchar_visbits,
+        [&ctx, &singleNodeFilter, startStage, endStage, nodeId, path_filter, visMask, hide, need_previous_matrices, texCtx,
+          shader_override](AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t &animchar_visbits,
           const ecs::Point4List *additional_data ECS_REQUIRE(eastl::true_type animchar_render__enabled = true)) {
           // VISFLG_COCKPIT_VISIBLE not connected with cockpit render here.
           // Just if there is only VISFLG_COCKPIT_VISIBLE the animchar will
@@ -279,24 +291,16 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
           {
             auto optionalAditionalData = animchar_additional_data::get_optional_data(additional_data);
             auto scene = animchar_render.getSceneInstance();
-            if (DAGOR_LIKELY(nodeId < 0))
+            PathFilterView filter = path_filter;
+            if (nodeId >= 0)
             {
-              add_animchar(ctx, startStage, endStage, scene, optionalAditionalData, need_previous_matrices, {shader_override, nullptr},
-                PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr, texCtx);
+              singleNodeFilter.assign(scene->getNodeCount(), 0);
+              if (nodeId < (int)singleNodeFilter.size())
+                singleNodeFilter[nodeId] = SCOPE_NODE_FILTER_MASK;
+              filter = PathFilterView(&singleNodeFilter);
             }
-            else
-            {
-              eastl::bitset<256> nodeVisibility; // nodes count for scopes is small
-              for (int i = 0, n = scene->getNodeCount(); i < n; i++)
-              {
-                nodeVisibility.set(i, !scene->getNodeHidden(i));
-                scene->showNode(i, i == nodeId);
-              }
-              add_animchar(ctx, startStage, endStage, scene, optionalAditionalData, need_previous_matrices, {shader_override, nullptr},
-                PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr, texCtx);
-              for (int i = 0, n = scene->getNodeCount(); i < n; i++)
-                scene->showNode(i, nodeVisibility[i]);
-            }
+            add_animchar(ctx, startStage, endStage, scene, optionalAditionalData, need_previous_matrices, {shader_override, nullptr},
+              filter, SCOPE_NODE_FILTER_MASK, RenderPriority::DEFAULT, nullptr, texCtx);
             if (hide)
               mark_cockpit_visible(animchar_visbits);
           }
@@ -317,7 +321,7 @@ static __forceinline void render_scope_trans(ecs::EntityId eid,
 {
   G_ASSERT(nodeId >= 0);
   process_animchars_and_render(make_span_const(&eid, 1), ShaderMesh::STG_trans, ShaderMesh::STG_trans, block_id, 0, false,
-    NeedPreviousMatrices::No, texCtx, nodeId, shader_override);
+    NeedPreviousMatrices::No, texCtx, nodeId, PathFilterView::NULL_FILTER, shader_override);
 }
 
 static void render_scope_reticle_quad(ecs::EntityId eid, int lens_node_id)
@@ -381,26 +385,20 @@ void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, c
 {
   render_scope_trans_ecs_query(*g_entity_mgr, scopeAimData.entityWithScopeLensEid,
     [&](ECS_REQUIRE(ecs::Tag gunmod__drawScopeTrans) AnimV20::AnimcharRendComponent &animchar_render) {
-      if (!animchar_render.getSceneInstance())
+      const DynamicRenderableSceneInstance *scopeLensInst = animchar_render.getSceneInstance();
+      if (!scopeLensInst)
         return;
-      DynamicRenderableSceneInstance &scopeLensInst = *animchar_render.getSceneInstance();
-      bool lensVisible = false, crosshairVisible = false;
-      if (scopeAimData.lensNodeId >= 0)
-      {
-        lensVisible = !scopeLensInst.isNodeHidden(scopeAimData.lensNodeId);
-        scopeLensInst.showNode(scopeAimData.lensNodeId, false);
-      }
+      dag::Vector<uint8_t, framemem_allocator> nodeFilter(scopeLensInst->getNodeCount(), 0);
+      for (int i = 0, n = nodeFilter.size(); i < n; i++)
+        nodeFilter[i] = scopeLensInst->isNodeHidden(i) ? 0 : SCOPE_NODE_FILTER_MASK;
+      if (scopeAimData.lensNodeId >= 0 && scopeAimData.lensNodeId < (int)nodeFilter.size())
+        nodeFilter[scopeAimData.lensNodeId] = 0;
       for (int nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))
-      {
-        crosshairVisible |= !scopeLensInst.isNodeHidden(nodeId);
-        scopeLensInst.showNode(nodeId, false);
-      }
+        if (nodeId < (int)nodeFilter.size())
+          nodeFilter[nodeId] = 0;
       process_animchars_and_render(make_span_const(&scopeAimData.entityWithScopeLensEid, 1), ShaderMesh::STG_trans,
-        ShaderMesh::STG_trans, dynamicTransSceneBlockId, VISFLG_COCKPIT_VISIBLE, false, NeedPreviousMatrices::No, texCtx, -1);
-      if (scopeAimData.lensNodeId >= 0)
-        scopeLensInst.showNode(scopeAimData.lensNodeId, lensVisible);
-      for (int nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))
-        scopeLensInst.showNode(nodeId, crosshairVisible);
+        ShaderMesh::STG_trans, dynamicTransSceneBlockId, VISFLG_COCKPIT_VISIBLE, false, NeedPreviousMatrices::No, texCtx, -1,
+        PathFilterView(&nodeFilter));
     });
 }
 
@@ -575,12 +573,23 @@ void render_lens_frame(
   ShaderGlobal::set_texture(lens_frame_texVarId, nullptr);
 }
 
-void render_lens_optics(
-  const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx, const PostFxRenderer &fadingRenderer)
+void render_lens_optics(const ScopeAimRenderingData &scopeAimData,
+  const float scope_lens_radius,
+  const TexStreamingContext &texCtx,
+  const PostFxRenderer &fadingRenderer)
 {
   // fade area outside of scope with black color if we can't provide blur
   if (!renderer_has_feature(FeatureRenderFlags::BLOOM)) // todo: fix dof render implementation dependencies on bloom
     fadingRenderer.render();
+
+  const float eyeRelief = ECS_GET_OR(scopeAimData.entityWithScopeLensEid, gunmod__scopeEyeRelief, 0.0f);
+  const float visibleFovAngle = ECS_GET_OR(scopeAimData.entityWithScopeLensEid, gunmod__scopeVisibleFovAngle, 45.0f);
+  const float exitPupilRadiusMul = ECS_GET_OR(scopeAimData.entityWithScopeLensEid, gunmod__scopeExitPupilRadiusMul, 1.0f);
+
+  ShaderGlobal::set_float(scope_lens_radiusVarId, scope_lens_radius);
+  ShaderGlobal::set_float(scope_eye_reliefVarId, eyeRelief);
+  ShaderGlobal::set_float(scope_fov_cosVarId, cosf(visibleFovAngle * PI / 180.0f));
+  ShaderGlobal::set_float(scope_exit_pupil_radius_mulVarId, exitPupilRadiusMul);
 
   ShaderGlobal::set_int(lens_detail_levelVarId, LENS_DETAIL_FULL);
   ShaderGlobal::set_int(lens_render_modeVarId, LENS_RENDER_OPTICS);

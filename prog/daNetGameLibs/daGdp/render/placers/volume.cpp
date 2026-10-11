@@ -21,6 +21,7 @@
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
 #include "../../shaders/dagdp_volume.hlsli"
+#include "../../shaders/dagdp_heightmap.hlsli"
 #include "../block.h"
 #include "volume.h"
 #include <rendInst/rendInstExtra.h>
@@ -175,7 +176,7 @@ void DagdpRiexGatherJob::reset()
   localVolumeCount = 0;
   volumeCount = 0;
   worldVolumeCount = 0;
-  volumeHandlePool.clear();
+  meshPool.clear();
   riGenSourcePool.clear();
   for (size_t i = 0; i < viewportCount; ++i)
   {
@@ -222,25 +223,101 @@ DagdpRiexGatherJob::LocalVolumeSnapshot &DagdpRiexGatherJob::addLocalVolume()
   return localVolumePool[localVolumeCount++];
 }
 
-DagdpRiexGatherJob::VolumeEntry &DagdpRiexGatherJob::addVolumeEntry(
-  ecs::EntityId placer_eid, const TMatrix &tm, mat44f_cref tm44, float scale, int volume_type)
+DagdpRiexGatherJob::VolumeEntry &DagdpRiexGatherJob::addVolumeEntry(const VolumeEntry &e)
 {
   if (volumeCount >= volumePool.size())
     volumePool.emplace_back();
-  auto &e = volumePool[volumeCount++];
-  e.placerEid = placer_eid;
+  auto &slot = volumePool[volumeCount++];
+  slot = e;
+  return slot;
+}
+
+void init_volume_entry(DagdpRiexGatherJob::VolumeEntry &e,
+  const VolumeMappingItem *variant,
+  const TMatrix &tm,
+  mat44f_cref tm44,
+  float scale,
+  int volume_type,
+  float max_bounding_radius)
+{
+  e.variant = variant;
   e.tm = tm;
   e.scale = scale;
   e.volumeType = volume_type;
   e.box = volume_local_box(tm44, scale);
-  return e;
+  e.center = tm44.col3;
+  e.extent2 = volume_cull_extent2(tm44, scale, max_bounding_radius);
 }
 
-void DagdpRiexGatherJob::gatherVolumeHandles(VolumeEntry &e)
+void prepare_volume_entry(DagdpRiexGatherJob::VolumeEntry &e, mat44f_cref tm44)
 {
-  e.firstHandle = volumeHandlePool.size();
-  rendinst::gatherRIGenExtraCollidableMin(volumeHandlePool, e.box, MIN_GEOMETRY_SIZE);
-  e.handleCount = volumeHandlePool.size() - e.firstHandle;
+  // Reference: volumePlacerES.cpp.inl, VolumePlacer::updateVisibility
+  mat44f itm44;
+  v_mat44_inverse43(itm44, tm44);
+
+  mat43f itm43;
+  v_mat44_transpose_to_mat43(itm43, itm44);
+
+  G_ASSERT(e.scale > FLT_EPSILON);
+  const vec4f invScale = v_splats(1.0f / e.scale);
+  e.itmRow0 = v_mul(itm43.row0, invScale);
+  e.itmRow1 = v_mul(itm43.row1, invScale);
+  e.itmRow2 = v_mul(itm43.row2, invScale);
+
+  Point3 axis = e.variant->axis;
+  if (e.variant->axisLocal)
+    axis = e.tm * axis;
+  e.axis = normalize(axis);
+
+  const float instancePosDelta = 1.0f / sqrtf(e.variant->density);
+  const float tileWorldSize = TILE_INSTANCE_COUNT_1D * instancePosDelta;
+  e.instancePosDelta = instancePosDelta;
+  e.tileMin.x = static_cast<int>(floorf(v_extract_x(e.box.bmin) / tileWorldSize));
+  e.tileMin.y = static_cast<int>(floorf(v_extract_z(e.box.bmin) / tileWorldSize));
+  e.tileMax.x = static_cast<int>(ceilf(v_extract_x(e.box.bmax) / tileWorldSize));
+  e.tileMax.y = static_cast<int>(ceilf(v_extract_z(e.box.bmax) / tileWorldSize));
+}
+
+void DagdpRiexGatherJob::gatherVolume(VolumeEntry &e)
+{
+  e.firstMesh = meshPool.size();
+  e.firstUnprocessedRes = -1;
+  if (meshesEnabled)
+  {
+    handleScratch.clear();
+    rendinst::gatherRIGenExtraCollidableMin(handleScratch, e.box, MIN_GEOMETRY_SIZE);
+    e.firstUnprocessedRes = filter_volume_meshes(make_span_const(handleScratch), resolve_mesh_lod(*e.variant, targetMeshLod), &e.box,
+      *riexProcessor, meshPool);
+  }
+  e.meshCount = meshPool.size() - e.firstMesh;
+}
+
+// The record's instances concatenated, so the node emits them as one volume outside any loop.
+void DagdpRiexGatherJob::filterRecord(PlacerData &rec)
+{
+  handleScratch.clear();
+  for (size_t i = 0; i < rec.entryCount; ++i)
+  {
+    const auto &h = entryPool[rec.firstEntry + i].handles;
+    handleScratch.insert(handleScratch.end(), h.begin(), h.end());
+  }
+  rec.handleCount = handleScratch.size();
+
+  rec.firstMesh = meshPool.size();
+  rec.firstUnprocessedRes = -1;
+  if (meshesEnabled)
+    rec.firstUnprocessedRes = filter_volume_meshes(make_span_const(handleScratch), rec.meshLod, nullptr, *riexProcessor, meshPool);
+  rec.meshCount = meshPool.size() - rec.firstMesh;
+}
+
+void DagdpRiexGatherJob::initProfileMarkers(const char *view_name)
+{
+  TmpName name(TmpName::CtorSprintf(), "dagdp_volume_riex_gather@%s", view_name);
+  jobNameProfDesc = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, name.c_str());
+  name.sprintf("dagdp_volume_gather_start@%s", view_name);
+  startDesc = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, name.c_str());
+  name.sprintf("wait_dagdp_volume_riex_gather@%s", view_name);
+  waitDesc = DA_PROFILE_ADD_LOCAL_DESCRIPTION(0, name.c_str());
 }
 
 void DagdpRiexGatherJob::start(GatherMode mode)
@@ -253,7 +330,7 @@ void DagdpRiexGatherJob::start(GatherMode mode)
     doJob();
   else
   {
-    threadpool::add(this, threadpool::PRIO_NORMAL);
+    threadpool::add(this, threadpool::PRIO_NORMAL, /*wake_up*/ mode == GatherMode::Async);
     scheduled = true;
   }
 }
@@ -263,7 +340,7 @@ void DagdpRiexGatherJob::doJob()
   {
     TIME_PROFILE(dagdp_volume_gather_world_volumes);
     for (size_t i = 0; i < worldVolumeCount; ++i)
-      gatherVolumeHandles(volumePool[i]);
+      gatherVolume(volumePool[i]);
   }
 
   {
@@ -273,6 +350,9 @@ void DagdpRiexGatherJob::doJob()
       auto &e = entryPool[i];
       rendinst::getRiGenExtraInstances(e.handles, e.resIdx, e.box);
     }
+    for (size_t v = 0; v < viewportCount; ++v)
+      for (auto &rec : viewportDataPool[v].onRi)
+        filterRecord(rec);
   }
 
   {
@@ -282,8 +362,8 @@ void DagdpRiexGatherJob::doJob()
         gatherLocalVolumes(rec, v);
   }
 
-  DA_PROFILE_TAG(dagdp_volume_gather_job, "world=%d riex_entries=%d local=%d", (int)worldVolumeCount, (int)entryCount,
-    (int)(volumeCount - worldVolumeCount));
+  DA_PROFILE_TAG_DESC(jobNameProfDesc, "world=%d riex_entries=%d local=%d meshes=%d", (int)worldVolumeCount, (int)entryCount,
+    (int)(volumeCount - worldVolumeCount), (int)meshPool.size());
 }
 
 void DagdpRiexGatherJob::gatherLocalVolumes(AroundRiPlacerData &rec, size_t viewport_index)
@@ -310,6 +390,7 @@ void DagdpRiexGatherJob::gatherLocalVolumes(AroundRiPlacerData &rec, size_t view
   }
 
   const vec4f viewPos = viewportDataPool[viewport_index].worldPos;
+  const Frustum &frustum = viewportDataPool[viewport_index].frustum;
   const auto riGenSources = make_span_const(riGenSourcePool.data() + rec.firstRiGenSource, rec.riGenSourceCount);
   const auto riexSources = make_span_const(sourceTmScratch.data(), riexSourceCount);
   for (size_t localIndex = 0; localIndex < rec.localVolumeCount; ++localIndex)
@@ -324,10 +405,14 @@ void DagdpRiexGatherJob::gatherLocalVolumes(AroundRiPlacerData &rec, size_t view
 
         mat44f tm44;
         v_mat44_make_from_43cu_unsafe(tm44, tm.array);
-        if (!volume_in_draw_range(tm44, volume_cull_extent2(tm44, local.scale, maxBoundingRadius), viewPos, rec.drawRadius))
+        VolumeEntry e{};
+        init_volume_entry(e, rec.variant, tm, tm44, local.scale, local.volumeType, maxBoundingRadius);
+        if (!volume_in_draw_range(e.center, e.extent2, viewPos, rec.drawRadius) ||
+            !frustum.testBoxExtentB(v_add(e.center, e.center), e.extent2))
           continue;
 
-        gatherVolumeHandles(addVolumeEntry(rec.eid, tm, tm44, local.scale, local.volumeType));
+        prepare_volume_entry(e, tm44);
+        gatherVolume(addVolumeEntry(e));
       }
     };
     // RIGen sources first: the order the synchronous path emits in.
@@ -342,7 +427,7 @@ void DagdpRiexGatherJob::waitDone()
 {
   if (scheduled)
   {
-    TIME_PROFILE(wait_dagdp_volume_riex_gather);
+    DA_PROFILE_EVENT_DESC(waitDesc);
     threadpool::wait(this);
     scheduled = false;
   }
@@ -420,6 +505,7 @@ void create_volume_nodes(const ViewInfo &view_info,
   VolumeConstants &constants = persistentData->constants;
   constants.mapping = eastl::move(builder.mapping);
   constants.viewInfo = view_info;
+  persistentData->mutables.riexGatherJob.initProfileMarkers(view_info.uniqueName.c_str());
   constants.viewResourceName.append_sprintf("view@%s", constants.viewInfo.uniqueName.c_str());
   constants.numRenderables = view_builder.numRenderables;
   constants.numPlaceables = commonBufferInit.numPlaceables;
@@ -534,7 +620,8 @@ void create_volume_nodes(const ViewInfo &view_info,
 
       if (is_volume_early_riex_gather_enabled())
         gather_start(persistentData->mutables.riexGatherJob, constants.mapping, constants.viewInfo, view,
-          constants.maxPlaceableBoundingRadius, GatherMode::Synchronous);
+          constants.maxPlaceableBoundingRadius, constants.targetMeshLod, persistentData->mutables.riexProcessor,
+          GatherMode::Synchronous);
 
       persistentData->mutables.riexProcessor.resetCurrent();
 
@@ -1050,29 +1137,8 @@ void create_volume_nodes(const ViewInfo &view_info,
   node_inserter(createTerrainPlaceNode(false));
 }
 
-static bool populate_viewport_data_early(
-  ecs::EntityManager &manager, const ViewInfo &info, const Point3 &cam_pos, const Frustum &cam_frustum, ViewPerFrameData &out)
-{
-  switch (info.kind)
-  {
-    case ViewKind::MAIN_CAMERA:
-    case ViewKind::BVH:
-    {
-      auto &vp = out.viewports.emplace_back();
-      vp.worldPos = DPoint3(cam_pos.x, cam_pos.y, cam_pos.z);
-      vp.maxDrawDistance = FLT_MAX;
-      vp.frustum = info.kind == ViewKind::BVH ? Frustum(get_bvh_culling_matrix(cam_pos)) : cam_frustum;
-      return true;
-    }
-    case ViewKind::CSM_SHADOWS:
-      // shadowsManager.prepareShadowsMatrices runs earlier in draw_frame, so CSM state is valid.
-      populate_csm_viewports(out, manager, info.maxViewports);
-      return !out.viewports.empty();
-    default: return false;
-  }
-}
-
-void start_gather_before_draw_volumes(ecs::EntityManager &manager, const Point3 &cam_pos, const Frustum &cam_frustum)
+template <typename Populate>
+static void start_gather_views(GatherMode mode, const Populate &populate)
 {
   if (!is_volume_early_riex_gather_enabled())
     return;
@@ -1088,10 +1154,36 @@ void start_gather_before_draw_volumes(ecs::EntityManager &manager, const Point3 
     ++it;
 
     ViewPerFrameData viewData;
-    if (populate_viewport_data_early(manager, pd->constants.viewInfo, cam_pos, cam_frustum, viewData))
+    if (populate(pd->constants.viewInfo, viewData))
+    {
+      pd->mutables.riexGatherJob.waitDone(); // device lost leaves its start undrained
       gather_start(pd->mutables.riexGatherJob, pd->constants.mapping, pd->constants.viewInfo, viewData,
-        pd->constants.maxPlaceableBoundingRadius, GatherMode::Async);
+        pd->constants.maxPlaceableBoundingRadius, pd->constants.targetMeshLod, pd->mutables.riexProcessor, mode);
+    }
   }
+}
+
+void start_gather_camera_volumes(const Point3 &cam_pos, const Frustum &cam_frustum)
+{
+  start_gather_views(GatherMode::AsyncNoWake, [&](const ViewInfo &info, ViewPerFrameData &out) {
+    if (info.kind != ViewKind::MAIN_CAMERA && info.kind != ViewKind::BVH)
+      return false;
+    auto &vp = out.viewports.emplace_back();
+    vp.worldPos = DPoint3(cam_pos.x, cam_pos.y, cam_pos.z);
+    vp.maxDrawDistance = FLT_MAX;
+    vp.frustum = info.kind == ViewKind::BVH ? Frustum(get_bvh_culling_matrix(cam_pos)) : cam_frustum;
+    return true;
+  });
+}
+
+void start_gather_csm_volumes(ecs::EntityManager &manager)
+{
+  start_gather_views(GatherMode::Async, [&](const ViewInfo &info, ViewPerFrameData &out) {
+    if (info.kind != ViewKind::CSM_SHADOWS)
+      return false;
+    populate_csm_viewports(out, manager, info.maxViewports);
+    return true;
+  });
 }
 
 } // namespace dagdp

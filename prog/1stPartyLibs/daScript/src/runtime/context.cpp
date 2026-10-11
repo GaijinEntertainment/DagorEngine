@@ -3,6 +3,7 @@
 #include "daScript/misc/fpe.h"
 
 #include <stdarg.h>
+#include <thread>
 
 #ifdef __EMSCRIPTEN__
 // write(2) + _Exit for the allocation-free out-of-memory report below.
@@ -78,8 +79,19 @@ namespace das
     }
 
     void Context::setup(int totalVars, uint32_t globalStringHeapSize, CodeOfPolicies policies, AnnotationArgumentList options) {
+        // the ABI canary for hosts that construct policies WITHOUT compiling (standalone AOT,
+        // module-side contexts) - the compile entries carry their own check in ast_parse.cpp
+        if ( policies.abi_stamp != CodeOfPolicies::expected_abi_stamp() ) {
+            TextPrinter tp;
+            tp << "FATAL: CodeOfPolicies ABI stamp mismatch at Context::setup - the host wrote 0x" << HEX
+               << policies.abi_stamp << ", this libDaScript expects 0x" << CodeOfPolicies::expected_abi_stamp() << DEC
+               << "\nthe host binary was built against different daScript headers - relink it\n";
+            tp.output();
+            exit(1);
+        }
         verySafeContext = options.getBoolOption("very_safe_context",policies.very_safe_context);
         maxUnreservedSize = options.getUInt64Option("max_unreserved_size", policies.max_unreserved_size);
+        maxFastCallDepth = uint32_t(options.getIntOption("max_fast_call_depth", int32_t(policies.max_fast_call_depth)));
         breakOnException |= policies.debugger;
         gcEnabled = options.getBoolOption("gc", false);
         gcLogTime = options.getBoolOption("log_gc_time", policies.log_gc_time);
@@ -217,6 +229,7 @@ namespace das
         thisProgram = ctx.thisProgram;
         thisHelper = ctx.thisHelper;
         category.value = ctx.category.value;
+        maxFastCallDepth = ctx.maxFastCallDepth;
 
         // globals (on condition that all context globals are read-only)
         globals = ctx.globals;
@@ -288,6 +301,7 @@ namespace das
         ref_count_magic = TRACK_PTR_CONTEXT;
         verySafeContext = ctx.verySafeContext;
         maxUnreservedSize = ctx.maxUnreservedSize;
+        maxFastCallDepth = ctx.maxFastCallDepth;
         persistent = ctx.persistent;
         gcEnabled = ctx.gcEnabled;
         code = ctx.code;
@@ -366,7 +380,20 @@ namespace das
         restart();
     }
 
+    urange64 Context::getIdleForkMemory(int kind) {
+        lock_guard<mutex> guard(forkContextPoolMutex);
+        if (kind == 3) return urange64(forkContextPool.size(), 0);
+        urange64 result(0, 0);
+        for (auto * fork : forkContextPool) {
+            if (kind == 0) { result.from += fork->heap->bytesAllocated(); result.to += fork->heap->totalAlignedMemoryAllocated(); }
+            else if (kind == 1) { result.from += fork->stringHeap->bytesAllocated(); result.to += fork->stringHeap->totalAlignedMemoryAllocated(); }
+            else if (kind == 2) { result.from += fork->stack.size(); result.to += fork->getGlobalSize(); }
+        }
+        return result;
+    }
+
     Context * Context::acquireForkContext ( uint32_t category_ ) {
+        forkContextsBorrowed.fetch_add(1, std::memory_order_relaxed);
         Context * fork = nullptr;
         {
             lock_guard<mutex> guard(forkContextPoolMutex);
@@ -401,6 +428,7 @@ namespace das
         } else {
             delete forkContext;
         }
+        forkContextsBorrowed.fetch_sub(1, std::memory_order_release);   // last touch of this: the owner may be waiting to die
     }
 
     void Context::addGcRoot ( void * ptr, TypeInfo * type ) {
@@ -412,6 +440,10 @@ namespace das
     }
 
     Context::~Context() {
+        // src/builtin/ARCHITECTURE.md#thread-leaves-count-last
+        while ( forkContextsBorrowed.load(std::memory_order_acquire) ) {
+            std::this_thread::yield();
+        }
         // free any pooled job-fork contexts (idle by now — with_job_que has joined). They were
         // cloned skip-init, so their own destructors skip the shutdown script.
         for ( auto * fork : forkContextPool ) {
@@ -655,9 +687,9 @@ namespace das
         return functions + functionLookup->indexAt(slot);
     }
 
-    int Context::findVariable ( const char * varname ) const {
-        if ( !variableLookup || !varname ) return -1;
-        auto slot = variableLookup->headByName(varname);
+    int Context::findVariable ( const char * name ) const {
+        if ( !variableLookup || !name ) return -1;
+        auto slot = variableLookup->headByName(name);
         return slot>=0 ? int(variableLookup->indexAt(slot)) : -1;
     }
 
@@ -1034,10 +1066,15 @@ namespace das
 
     void Context::to_out ( const LineInfo * at, int level, const char * message ) {
         if (message) {
+            string messageOutlivingAgents;
             if ( !*g_inLogger ) {
                 *g_inLogger = true;
                 bool any = false;
                 for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+                    if ( messageOutlivingAgents.empty() ) {
+                        messageOutlivingAgents = message;
+                        message = messageOutlivingAgents.c_str();
+                    }
                     any |= pAgent->onLog(this, at, level, message);
                 });
                 *g_inLogger = false;

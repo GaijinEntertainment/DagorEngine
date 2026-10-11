@@ -100,6 +100,15 @@ namespace proto
       }
     };
 
+    template <>
+    struct JsonValueWriter<float>
+    {
+      static void write(Json::Value & dst, const float & val)
+      {
+        dst = double(val);
+      }
+    };
+
 
     template <typename T>
     struct JsonValueWriterAsString

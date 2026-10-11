@@ -31,7 +31,7 @@ def test_lpipe(t : T?) {
         t |> equal(3, g_add_res)
     }
     t |> run("lpipe into variable init") @(t : T?) {
-        var i = add(1)
+        let i = add(1)
         lpipe(2)
         t |> equal(3, i)
     }

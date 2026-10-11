@@ -36,47 +36,6 @@ inline double calcVariance(const float *data, double average, int count)
 
 inline double calcStd(double variance) { return sqrt(variance); }
 
-inline int GetMappedDOF(int dof)
-{
-  if (dof <= 0)
-  {
-    return 0;
-  }
-  else if (dof <= 30)
-  {
-    return dof;
-  }
-  else if (dof < 40)
-  {
-    return 31;
-  }
-  else if (dof < 50)
-  {
-    return 32;
-  }
-  else if (dof < 60)
-  {
-    return 33;
-  }
-  else if (dof < 80)
-  {
-    return 34;
-  }
-  else if (dof < 100)
-  {
-    return 35;
-  }
-  else if (dof < 120)
-  {
-    return 36;
-  }
-  else if (dof == 120)
-  {
-    return 37;
-  }
-  return 38;
-};
-
 static const double DOFs[][5] = {
   {1, 6.314, 12.71, 63.66, 636.6},
   {2, 2.92, 4.303, 9.925, 31.6},
@@ -122,8 +81,10 @@ inline double TCritical(unsigned dof, Confidence conf)
 {
   if (dof == 0)
     return DBL_MAX;
-  int mappedDOF = GetMappedDOF(dof);
-  return DOFs[mappedDOF][conf + 1];
+  int row = 0;
+  while (row + 1 < countof(DOFs) && DOFs[row][0] < dof)
+    row++;
+  return DOFs[row][conf + 1];
 }
 
 

@@ -3,6 +3,7 @@ include "rendinst_opaque_inc.dshl"
 include "static_shadow.dshl"
 include "rtr_use.dshl"
 include "unpack_unit_vector_inc.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
 
 macro INIT_RENDINST_INTERIOR_MAPPING()
   texture tex = material.texture.diffuse;
@@ -41,6 +42,7 @@ endmacro
 
 macro USE_RENDINST_INTERIOR_MAPPING(offset)
   RENDINST_BLOCK()
+  RI_NO_VOXELIZE()
 
   INIT_NUCLEAR_DESTRUCTION(offset)
 
@@ -326,7 +328,7 @@ macro USE_RENDINST_INTERIOR_MAPPING(offset)
           }
           init_albedo(gbuffer, diffuseColor);
           #if NUKEDESTR_ACTIVE
-            NUKEDESTR_CHARRING(gbuffer, checkerTC)
+            NUKEDESTR_CHARRING(gbuffer)
           #endif
 
         }
@@ -413,7 +415,7 @@ macro USE_RENDINST_INTERIOR_MAPPING(offset)
             init_glass(gbuffer);
 
           #if NUKEDESTR_ACTIVE
-            NUKEDESTR_CHARRING(gbuffer, checkerTC)
+            NUKEDESTR_CHARRING(gbuffer)
           #endif
         }
         return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));

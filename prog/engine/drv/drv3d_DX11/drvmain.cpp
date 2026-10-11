@@ -104,6 +104,7 @@ static int present_dest_idx = -1;
 #define MIN_LISTED_MODE_HEIGHT 600
 
 static constexpr int SWAPCHAIN_WAIT_TIMEOUT = 1000;
+static constexpr int SWAPCHAIN_TIMEOUTS_FOR_RESET = 5;
 
 namespace drv3d_dx11
 {
@@ -1150,17 +1151,35 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
   return 0;
 }
 
-static bool wait_on_swapchain(HANDLE waitable_object, DWORD timeout /*milliseconds*/)
+enum class SwapchainWaitResult
+{
+  REACHED,
+  TIMEOUT,
+  ERRED
+};
+
+static SwapchainWaitResult wait_on_swapchain(HANDLE waitable_object, DWORD timeout /*milliseconds*/)
 {
   TIME_PROFILE(wait_on_swapchain__present_dx11);
   DWORD result = WAIT_OBJECT_0;
   if (waitable_object)
-    result = WaitForSingleObjectEx(waitable_object, timeout, false);
+    result = WaitForSingleObjectEx(waitable_object, timeout, FALSE);
 
-  if (DAGOR_UNLIKELY(result != WAIT_OBJECT_0))
-    logwarn("Swaphchain waitable object is not signaled. [Timeout %ums][Result 0x%08X]", timeout, result);
-
-  return DAGOR_LIKELY(result == WAIT_OBJECT_0);
+  if (DAGOR_LIKELY(result == WAIT_OBJECT_0))
+  {
+    return SwapchainWaitResult::REACHED;
+  }
+  else if (result == WAIT_TIMEOUT)
+  {
+    logwarn("Swapchain waitable object is not signaled due to timeout. [Timeout %ums]", timeout);
+    return SwapchainWaitResult::TIMEOUT;
+  }
+  else
+  {
+    G_ASSERT(result == WAIT_FAILED);
+    D3D_ERROR("Swapchain waitable object erred. [Timeout %ums][Error code 0x%x]", timeout, GetLastError());
+    return SwapchainWaitResult::ERRED;
+  }
 }
 
 //---------------------------------------------------------------------------------
@@ -1236,12 +1255,33 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
     else
     {
       ContextAutoLock contextLock;
-      bool reset = !wait_on_swapchain(waitableObject.get(), SWAPCHAIN_WAIT_TIMEOUT);
+      auto waitResult = wait_on_swapchain(waitableObject.get(), SWAPCHAIN_WAIT_TIMEOUT);
+      bool timedOut = waitResult == SwapchainWaitResult::TIMEOUT;
+      if (DAGOR_UNLIKELY(timedOut))
+        ++consecutive_waitable_object_timeouts;
+      else
+        consecutive_waitable_object_timeouts = 0;
+      bool reset = waitResult == SwapchainWaitResult::ERRED || consecutive_waitable_object_timeouts >= SWAPCHAIN_TIMEOUTS_FOR_RESET;
       if (DAGOR_UNLIKELY(reset)) // Swapchain waitable object is not signaled.
       {                          // We reset device to avoid possible present freeze.
-        log_present_state("swapchain wait timeout");
-        set_pending_reset_reason("swapchain waitable object timeout");
+        if (timedOut)
+        {
+          consecutive_waitable_object_timeouts = 0;
+          log_present_state("swapchain wait timed out too many times");
+          set_pending_reset_reason("swapchain waitable object frozen");
+        }
+        else
+        {
+          log_present_state("swapchain wait erred");
+          set_pending_reset_reason("swapchain waitable object error");
+        }
         dagor_d3d_force_driver_reset = true;
+        return true;
+      }
+      else if (DAGOR_UNLIKELY(timedOut))
+      {
+        log_present_state("swapchain wait timed out");
+        gpu_frame_time = -1.f;
         return true;
       }
       update_frame_progress_unsafe();
@@ -1880,6 +1920,7 @@ static int get_or_create_window_swapchain(void *hwnd)
       if (rect.right - rect.left != r.w || rect.bottom - rect.top != r.h)
       {
         // recreate swapchain
+        discard_queued_swapchain_frames(r.sw);
         del_d3dres(r.buf);
         r.sw->Release();
         erase_items(swap_chain_pairs, i, 1);

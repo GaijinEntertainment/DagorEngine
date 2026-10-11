@@ -9,6 +9,8 @@
 
 #include <graphEditor/graph_data.h>
 
+#include "graph_resolutions.h"
+
 #include <stdint.h>
 
 class GraphEdgeReconnect;
@@ -19,22 +21,27 @@ class GraphPinJumpMenu;
 struct GraphNodeFrame
 {
   GraphNodeFrame(const GraphData &graph_data, const eastl::hash_set<uint64_t> &linked_pins, const eastl::hash_set<uint64_t> &live_pins,
-    const GraphPinJumpMenu &pin_jump_menu, GraphEdgeReconnect &edge_reconnect, eastl::string &truncated_tooltip,
-    uint64_t hovered_ne_node_id, int preview_node_id, uint64_t highlight_pin_id);
+    const GraphResolutions &node_resolutions, const GraphPinJumpMenu &pin_jump_menu, GraphEdgeReconnect &edge_reconnect,
+    eastl::string &hover_tooltip, uint64_t hovered_ne_node_id, int preview_node_id, uint64_t highlight_pin_id);
 
   const GraphData &graph;
   // Pins touched by any edge, and the subset touched by a live one, as make_pin_id keys.
   const eastl::hash_set<uint64_t> &linkedPins;
   const eastl::hash_set<uint64_t> &livePins;
+  // What each node produces, parallel to graph.nodes. GraphTab keeps it current.
+  const GraphResolutions &resolutions;
   const GraphPinJumpMenu &pinJumpMenu;
   GraphEdgeReconnect &edgeReconnect; // fed the anchor pin's screen centre as the pins are laid out
-  eastl::string &truncatedTooltip;   // out: full text of the ellipsized label under the cursor
+  eastl::string &hoverTooltip;       // out: an ellipsized label's full text, or the icon hint under the cursor
 
   const uint64_t hoveredNeNodeId;
   const int previewNodeId;
   // Pin to draw hovered whatever ne thinks: a node-library drag holds ActiveId so ne reports no
   // hover of its own, and the armed transit gesture marks its target the same way. 0 when none.
   const uint64_t highlightPinId;
+
+  ImTextureID subgraphIcon = ImTextureID{};
+  int clickedSubgraphNodeId = -1; // out: the instance whose header icon was clicked
 
   // LINEAR_METRICS_FONT_NAME, not the current font: every canvas text call has to use it, or its
   // advances move with the zoom. Falls back to the current font when the host registered none.
@@ -49,6 +56,8 @@ struct GraphNodeFrame
   float nodePad = 0.0f;
   float contentPadX = 0.0f;
   float titleDx = 0.0f;
+  float headerIconSize = 0.0f;
+  float headerIconGap = 0.0f;
   float nodeRounding = 0.0f;
   float dividerWidth = 0.0f;
   float dividerDx = 0.0f;
@@ -68,7 +77,6 @@ struct GraphNodeFrame
   float pinHoverHaloSize = 0.0f;
   float pinOutline = 0.0f;
   float pinCommentEdgeGap = 0.0f;
-  float shadowReach = 0.0f;
   // Selection-band geometry: bandMargin is the outer stroke, plateWidth the fill inside it, and
   // bandReach the total the node body has to keep clear.
   float bandMargin = 0.0f;
@@ -79,14 +87,17 @@ struct GraphNodeFrame
   float annotationPad = 0.0f;
 };
 
-// GraphPanel::syncBlockSizes reads the resized bounds back out, so it reverses both: the same floor,
+// GraphTab::syncBlockSizes reads the resized bounds back out, so it reverses both: the same floor,
 // and the gap subtracted from the height.
 inline constexpr float MIN_BLOCK_SIZE = 200.0f;
 inline constexpr float BLOCK_CONTAINMENT_GAP = 1.0f;
 
+// The design's floating drop shadow. It covers the rect too, so draw the fill after it; the clip rect must reach past the rect.
+void draw_soft_shadow(ImDrawList *dl, const ImVec2 &min, const ImVec2 &max, float rounding);
+
 // Pick by node.descName ("comment" / "block" are annotations); all must run between ne::Begin and
 // ne::End. reduced drops text and pin decoration but still declares pins, so links stay bound.
-void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, bool selected, bool reduced);
+void draw_graph_node(GraphNodeFrame &frame, const GraphData::Node &node, int node_index, bool selected, bool reduced);
 void draw_comment_node(const GraphNodeFrame &frame, const GraphData::Node &node, bool selected);
 // applied_group_sizes memoizes the group size pushed per block id; see draw_block_node.
 void draw_block_node(const GraphNodeFrame &frame, const GraphData::Node &node, bool selected,

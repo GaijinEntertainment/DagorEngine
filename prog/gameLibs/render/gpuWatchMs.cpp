@@ -33,6 +33,20 @@ GPUWatchMs::~GPUWatchMs()
   d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &endQuery);
 }
 
+GPUWatchMs &GPUWatchMs::operator=(GPUWatchMs &&other) noexcept
+{
+  if (this == &other)
+    return *this;
+
+  d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &startQuery);
+  d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &endQuery);
+  startQuery = other.startQuery;
+  endQuery = other.endQuery;
+  other.startQuery = nullptr;
+  other.endQuery = nullptr;
+  return *this;
+}
+
 void GPUWatchMs::start() { d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &startQuery); }
 
 void GPUWatchMs::stop() { d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &endQuery); }

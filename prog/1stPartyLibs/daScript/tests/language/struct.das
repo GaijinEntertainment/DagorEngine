@@ -66,7 +66,7 @@ def test_struct(t : T?) {
         t |> equal(typeinfo sizeof(type<Dummy>), 0)
     }
     t |> run("struct pointer and copy") @(t : T?) {
-        var b : Ball? = new Ball
+        var b : Ball? = new Ball  // nolint:STYLE013 - field writes through a Ball? pointer are the tested construct
         b.position = float3(1.0, 2.0, 3.0)
         b.radius = 5.0
         verify_default_ball(t, deref(b))

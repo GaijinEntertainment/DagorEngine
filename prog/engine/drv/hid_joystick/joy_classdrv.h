@@ -21,7 +21,7 @@ class Di8JoystickClassDriver final : public IGenJoystickClassDrv, public IWndPro
 public:
   using Di8DeviceList = Tab<Di8JoystickDevice *>;
 
-  Di8JoystickClassDriver(bool exclude_xinput, bool remap_360);
+  Di8JoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads);
   ~Di8JoystickClassDriver();
 
   bool init();
@@ -59,6 +59,11 @@ public:
       secDrv->enableAutoDefaultJoystick(enable);
   }
 
+  bool isStickDeadZoneSetupSupported() const override { return true; }
+  float getStickDeadZoneScale(int stick_idx, bool main_gamepad) const override;
+  void setStickDeadZoneScale(int stick_idx, bool main_gamepad, float scale) override;
+  float getStickDeadZoneAbs(int stick_idx, bool main_gamepad, IGenJoystick *for_joy) const override;
+
   virtual IGenJoystickClassDrv *setSecondaryClassDrv(IGenJoystickClassDrv *drv)
   {
     IGenJoystickClassDrv *prev = secDrv;
@@ -79,6 +84,7 @@ protected:
   bool deviceConfigChanged;
   bool enableAutoDef;
   bool excludeXinputDev, remapAsX360;
+  float stickDeadZoneScale[2] = {0, 0};
 
   DeviceEnumerator deviceEnumerator;
 };

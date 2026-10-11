@@ -175,6 +175,8 @@ namespace das {
     __forceinline float fsafe_acos (float a){return acos(a >= -1.0f ? (a <= 1.0f ? a : 1.0f) : -1.0f);}
     __forceinline float fatan (float a){return atan(a);}
     __forceinline float fatan_est (float a){return v_extract_x(v_atan_est_x(v_set_x(a)));}
+    __forceinline float fexp_std (float a){return expf(a);}
+    __forceinline float fexp_est (float a){return v_extract_x(v_exp2_est_p4(v_mul(v_set_x(a), v_splats(1.4426950408889634073599f))));}
     __forceinline float fatan2(float a,float b){return atan2(a,b);}
     __forceinline float fatan2_est(float a,float b){return v_extract_x(v_atan2_est_x(v_set_x(a), v_set_x(b)));}
     __forceinline float fsinh (float a){return sinh(a);}

@@ -37,6 +37,9 @@ struct MotionBlurSettings
 bool is_enabled();
 void on_settings_changed(const MotionBlurSettings &settings);
 
+MotionBlurSettings get_live_settings();
+void set_live_settings(const MotionBlurSettings &settings);
+
 bool needs_transparent_gbuffer();
 
 bool is_frozen_in_pause();

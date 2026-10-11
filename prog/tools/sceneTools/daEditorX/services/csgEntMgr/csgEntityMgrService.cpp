@@ -207,23 +207,8 @@ public:
       return;
     }
 
-    // prepare materials
-    MaterialDataList *mdl = new MaterialDataList;
-    carray<MaterialData *, 6> sm;
-    mem_set_0(sm);
-    if (IAssetService *assetSrv = EDITORCORE->queryEditorInterface<IAssetService>())
-    {
-      // sm[0] = NULL material
-      sm[1] = assetSrv->getMaterialData(a->props.getStr("walls_mat", ""));
-      sm[2] = assetSrv->getMaterialData(a->props.getStr("walls_inside_mat", a->props.getStr("walls_mat", "")));
-      sm[3] = assetSrv->getMaterialData(a->props.getStr("floor_mat", ""));
-      sm[4] = assetSrv->getMaterialData(a->props.getStr("ceiling_mat", ""));
-      sm[5] = assetSrv->getMaterialData(a->props.getStr("roof_mat", ""));
-    }
-    for (int i = 0; i < sm.size(); i++)
-      mdl->addSubMat(sm[i] ? sm[i] : new (tmpmem) MaterialData);
-
     // build CSG
+    MaterialDataList *mdl = NULL;
     Mesh *m = NULL;
     float y0 = 0, h = 10;
     for (int i = 0; i < p.size(); i++)
@@ -369,6 +354,22 @@ public:
               ceil_tc_mul, jointless_wall_m_in, p_in_tc_idx, sp_in_tc_idx, seg_in_tc_idx);
         }
       }
+
+      // prepare materials
+      mdl = new MaterialDataList;
+      carray<MaterialData *, 6> sm;
+      mem_set_0(sm);
+      if (IAssetService *assetSrv = EDITORCORE->queryEditorInterface<IAssetService>())
+      {
+        // sm[0] = NULL material
+        sm[1] = assetSrv->getMaterialData(a->props.getStr("walls_mat", ""));
+        sm[2] = assetSrv->getMaterialData(a->props.getStr("walls_inside_mat", a->props.getStr("walls_mat", "")));
+        sm[3] = assetSrv->getMaterialData(a->props.getStr("floor_mat", ""));
+        sm[4] = assetSrv->getMaterialData(a->props.getStr("ceiling_mat", ""));
+        sm[5] = assetSrv->getMaterialData(a->props.getStr("roof_mat", ""));
+      }
+      for (int i = 0; i < sm.size(); i++)
+        mdl->addSubMat(sm[i] ? sm[i] : new (tmpmem) MaterialData);
 
       int nid = a->props.getNameId("objectRow");
       int seed = rndSeed;
@@ -825,9 +826,7 @@ public:
         fblk = &cblk;
       if (const char *sel_type_str = fblk->getStr("selectType", cblk.getStr("selectType", NULL)))
       {
-        if (strcmp(sel_type_str, "random") == 0)
-          selType = SELTYPE_RANDOM;
-        else if (strcmp(sel_type_str, "once") == 0)
+        if (strcmp(sel_type_str, "once") == 0)
           selType = SELTYPE_ONCE;
         else if (strcmp(sel_type_str, "oncePerSeg") == 0)
           selType = SELTYPE_ONCE_SEG;

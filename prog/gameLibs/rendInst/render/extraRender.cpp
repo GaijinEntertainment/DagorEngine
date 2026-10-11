@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstExtraRender.h>
 #include <rendInst/rendInstRenderJob.h>
 
@@ -38,12 +39,12 @@ CONSOLE_BOOL_VAL("riExtra", parallel_lod_add_main_thread_only, false);
 CONSOLE_INT_VAL("riExtra", parallel_lod_add_min_pool_count, 300, 0, 2000);
 CONSOLE_INT_VAL("riExtra", parallel_lod_add_chunks_per_worker, 2, 0, 8); // 0 keeps a whole lod in one job
 CONSOLE_INT_VAL("riExtra", parallel_lod_add_min_chunk_pools, 64, 1, 2000);
+CONSOLE_BOOL_VAL("riExtra", async_sorted_transparent, true);
 
 
 #define USE_SHADOW_CULLING_HACK 1 // workaround for shadow occlusion culling bug // TODO: fix the root cause
 
-float rendinst::riExtraLodDistSqMul = 1.f;
-float rendinst::riExtraCullDistSqMul = 1.f;
+float rendinst::riExtraDistSqScale = 1.f;
 float rendinst::render::riExtraMinSizeForReflection = 25.f;
 float rendinst::render::riExtraMinSizeForDraftDepth = 25.f;
 int rendinst::render::instancingTexRegNo = -1;
@@ -148,7 +149,7 @@ void rendinst::gatherOcclusion(mat44f_cref globtm, vec4f vpos, RIOcclusionData &
   od.occluders.resize(0);
   od.occludersIdDist.resize(0);
   vec4f minRadius = v_splats(od.occluder_size_multiplier);
-  vec4f vpos_distscale = v_perm_xyzd(vpos, v_splats(rendinst::riExtraCullDistSqMul * od.occluder_dis_multiplier));
+  vec4f vpos_distscale = v_perm_xyzd(vpos, v_splats(rendinst::riExtraDistSqScale * od.occluder_dis_multiplier));
   int distancePassed = 0;
   for (const auto &tiled_scene : riExTiledScenes.scenes())
   {
@@ -582,9 +583,9 @@ void rendinst::add_ri_pool_to_tiled_scenes(rendinst::RiExtraPool &pool, int pool
   const bool isDynamic = name && rendinst::render::dynamicRiExtra.find_as(name) != rendinst::render::dynamicRiExtra.end();
   if (riExTiledScenes.size())
   {
-    TiledScenePoolInfo info = {pool.distSqLOD[0], pool.distSqLOD[1], pool.distSqLOD[2], pool.distSqLOD[3], pool.distSqLOD[4],
-      pool.distSqLOD[5], pool.distSqLOD[6], pool.distSqLOD[7], pool.lodLimits, static_cast<uint32_t>(pool_idx), 0xFFFF, 0xFFFF,
-      isDynamic};
+    TiledScenePoolInfo info = {{}, pool.lodLimits, static_cast<uint32_t>(pool_idx), 0xFFFF, 0xFFFF, isDynamic, pool.isTallCombined()};
+    G_STATIC_ASSERT(sizeof(info.distSqLOD) == sizeof(pool.distSqLOD));
+    memcpy(info.distSqLOD, pool.distSqLOD, sizeof(info.distSqLOD));
     auto &s = riExTiledScenes[0]; // this HAS to be first scene, to avoid racing condition
     s.setNodeUserData(pool_idx, RendinstTiledScene::POOL_ADDED, info, SetSceneUserData(s, riExTiledScenes));
     if (boxOccluder)
@@ -1174,16 +1175,13 @@ void rendinst::render::update_per_draw_gathered_data(uint32_t id)
   perDrawGatheredData.setBoundingSphere(0, 0, rendinst::riExtra[id].sphereRadius, rendinst::riExtra[id].sphereRadius,
     rendinst::riExtra[id].sphCenterY);
   vec4f bbox = v_sub(rendinst::riExtra[id].lbb.bmax, rendinst::riExtra[id].lbb.bmin);
-  Point4 bboxData;
-  v_stu(&bboxData, bbox);
   perDrawGatheredData.setBoundingBox(bbox);
   perDrawGatheredData.setRadiusFade(rendinst::riExtra[id].radiusFade, rendinst::riExtra[id].radiusFadeDrown);
-  float rendinstHeight = rendinst::riExtra[id].rendinstHeight == 0.0f ? bboxData.y : rendinst::riExtra[id].rendinstHeight;
   bbox = v_add(rendinst::riExtra[id].lbb.bmax, rendinst::riExtra[id].lbb.bmin);
+  Point4 bboxData;
   v_stu(&bboxData, bbox);
-  rendinstHeight = rendinst::riExtra[id].hasImpostor() ? rendinst::riExtra[id].sphereRadius : rendinstHeight;
-  rendinstHeight = rendinst::riExtra[id].indestructibleByNuke ? -1.0f : rendinstHeight;
-  perDrawGatheredData.setInteractionParams(rendinst::riExtra[id].softness, rendinstHeight, bboxData.x * 0.5, bboxData.z * 0.5);
+  perDrawGatheredData.setInteractionParams(rendinst::riExtra[id].softness, rendinst::riex_get_interaction_height(id), bboxData.x * 0.5,
+    bboxData.z * 0.5);
   if ((id + 1) * sizeof(rendinst::render::RiShaderConstBuffers) >
       rendinst::render::riExtraPerDrawData->getElementSize() * rendinst::render::riExtraPerDrawData->getNumElements())
     logerr("perDrawData buffer is not large enough for %d models (riMaxModelsPerLevel)", id);
@@ -1273,7 +1271,7 @@ void rendinst::gatherRIGenExtraRenderableNotCollidable(riex_pos_and_ri_tab_t &ou
 }
 
 void rendinst::gatherRIGenExtraRenderableNotCollidable(bbox3f_cref box, bool fast, SceneSelection s,
-  const eastl::fixed_function<sizeof(void *) * 2, void(scene::node_index, mat44f_cref)> &cb)
+  dag::FunctionRef<void(scene::node_index, mat44f_cref) const> cb)
 {
   if (!RendInstGenData::renderResRequired || !maxExtraRiCount || RendInstGenData::isLoading)
     return;
@@ -1562,32 +1560,51 @@ rendinst::render::RiExtraRendererBuilder::~RiExtraRendererBuilder() = default;
 
 void rendinst::render::RiExtraRendererBuilder::capture(int frame_stblk, int scene_stblk, TexStreamingContext tex_ctx)
 {
+  // blocks do not touch interval values, so the snapshot does not set them
+  // TODO: remove them from the API
+  G_UNUSED(frame_stblk);
+  G_UNUSED(scene_stblk);
+
   TIME_PROFILE(prepareToStartAsyncRIGenExtraOpaqueRender);
   G_ASSERT(is_main_thread());
   texContext = tex_ctx;
 
-  {
-    ShaderGlobal::set_float(globalTranspVarId, 1.f);
-    ShaderGlobal::set_int(globalRendinstRenderTypeVarId, RENDINST_RENDER_TYPE_RIEX_ONLY);
-
-    rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);
-    ShaderBlockSetter ssb(frame_stblk, ShaderGlobal::LAYER_FRAME);
-    SCENE_LAYER_GUARD(scene_stblk);
-    ShaderGlobal::set_int(rendinst::render::rendinstRenderPassVarId, eastl::to_underlying(renderPass));
-
-    G_ASSERT(gvars.empty());
-    gvars.set_allocator(framemem_ptr());
-    copy_current_global_variables_states(gvars);
-    riExRenderer->globalVarsState = &gvars;
-
-    ShaderGlobal::set_int(globalRendinstRenderTypeVarId, RENDINST_RENDER_TYPE_MIXED);
-  }
+  G_ASSERT(gvars.empty());
+  gvars.set_allocator(framemem_ptr());
+  snapshotIntervals(gvars);
+  riExRenderer->globalVarsState = &gvars;
+  isTransparentCaptured = isTransparentBuilt = false;
 
   rendinst::render::rebuildAllElems();
   // To consider: create with SBCF_FRAMEMEM (can't be more 256K at time of writing)
   // A vb made before maxExtraRiCount is known would stay zero sized, it is never re-created on its own
   if (maxExtraRiCount)
     rendinst::render::allocateRIGenExtra(rendinst::render::vbExtraCtx[vbExtraCtxId]);
+}
+
+void rendinst::render::RiExtraRendererBuilder::snapshotIntervals(GlobalVariableStates &dst)
+{
+  ShaderGlobal::set_float(globalTranspVarId, 1.f);
+  ShaderGlobal::set_int(globalRendinstRenderTypeVarId, RENDINST_RENDER_TYPE_RIEX_ONLY);
+  rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);
+  ShaderGlobal::set_int(rendinst::render::rendinstRenderPassVarId, eastl::to_underlying(renderPass));
+  copy_current_global_variables_states(dst);
+  ShaderGlobal::set_int(globalRendinstRenderTypeVarId, RENDINST_RENDER_TYPE_MIXED);
+}
+
+bool rendinst::render::RiExtraRendererBuilder::captureTransparent(dag::FunctionRef<void(bool partitioned) const> set_pass_bindings)
+{
+  G_ASSERT(is_main_thread());
+  if (isTransparentCaptured || renderPass != rendinst::RenderPass::Normal || !async_sorted_transparent.get())
+    return false;
+  isTransparentCaptured = true;
+  G_STATIC_ASSERT(eastl::tuple_size_v<decltype(transparentGvars)> == 2);
+  for (int i = 0; i < 2; i++)
+  {
+    set_pass_bindings(/*partitioned*/ i == 0);
+    snapshotIntervals(transparentGvars[i]);
+  }
+  return true;
 }
 
 bool rendinst::render::RiExtraRendererBuilder::build(RiGenVisibility &v, rendinst::RiExtraRenderingSubset subset)
@@ -1614,6 +1631,32 @@ bool rendinst::render::RiExtraRendererBuilder::build(RiGenVisibility &v, rendins
   return true;
 }
 
+void rendinst::render::RiExtraRendererBuilder::buildTransparent(const RiGenVisibility &v)
+{
+  TIME_PROFILE(ri_extra_sorted_build);
+  const RiGenExtraVisibility &riex = v.riex;
+  rendinst::ScopedRIExtraReadLock rl;
+  dag::ConstSpan<uint16_t> riResOrder = riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Transparent)];
+  const int ranges[3] = {0, (int)riex.partitionedElemsCount, (int)riex.sortedTransparentElems.size()};
+  G_STATIC_ASSERT(eastl::tuple_size_v<decltype(transparentRenderers)> == 2);
+  for (int i = 0; i < 2; i++)
+  {
+    if (ranges[i] == ranges[i + 1]) // the partitioned half is empty without a partition sphere: no list, the getter returns null
+    {
+      transparentRenderers[i].reset();
+      continue;
+    }
+    if (!transparentRenderers[i])
+      transparentRenderers[i].reset(new rendinst::render::RiExtraRenderer);
+    transparentRenderers[i]->globalVarsState = &transparentGvars[i];
+    transparentRenderers[i]->initSortedTransparent(riResOrder.size());
+    const int runs = transparentRenderers[i]->addSortedTransparentElems(riex, ranges[i], ranges[i + 1], texContext);
+    G_UNUSED(runs);
+    DA_PROFILE_TAG(ri_extra_sorted_build, "partitioned %d elems %d runs %d", int(i == 0), ranges[i + 1] - ranges[i], runs);
+  }
+  isTransparentBuilt = true;
+}
+
 void rendinst::render::RiExtraRendererBuilder::releaseCapture() { gvars.clear(); }
 
 void rendinst::render::RiExtraRendererBuilder::resetVbCtx() { rendinst::render::vbExtraCtx[vbExtraCtxId].resetUsage(); }
@@ -1634,7 +1677,9 @@ rendinst::render::RiExtraRenderer *rendinst::render::RiExtraRendererBuilder::bui
 
 RenderRiExtraJob::RenderRiExtraJob(int vb_extra_ctx_id, rendinst::RenderPass pass, rendinst::OptimizeDepthPass optimize_depth_pass) :
   builder(vb_extra_ctx_id, pass, optimize_depth_pass)
-{}
+{
+  transparentJob.owner = this;
+}
 
 void RenderRiExtraJob::prepare(RiGenVisibility &v, int frame_stblk, bool enable, TexStreamingContext texCtx)
 {
@@ -1644,7 +1689,7 @@ void RenderRiExtraJob::prepare(RiGenVisibility &v, int frame_stblk, bool enable,
 void RenderRiExtraJob::prepare(RiGenVisibility &v, int frame_stblk, int scene_stblk, bool enable, TexStreamingContext texCtx)
 {
   G_ASSERT(is_main_thread());
-  threadpool::wait(this); // It should not be running at this point
+  waitAllJobs(); // It should not be running at this point
 
   if (DAGOR_UNLIKELY(!enable))
   {
@@ -1674,6 +1719,18 @@ void RenderRiExtraJob::doJob()
     interlocked_release_store_ptr(vbase, (RiGenVisibility *)nullptr);
 }
 
+void RenderRiExtraJob::startTransparent(dag::FunctionRef<void(bool partitioned) const> set_pass_bindings)
+{
+  G_ASSERT(is_main_thread());
+  threadpool::wait(this); // the sorted entries get their vb offsets from the opaque build
+  RiGenVisibility *v = interlocked_acquire_load_ptr(vbase);
+  if (!v || v->riex.sortedTransparentElems.empty() || !builder.captureTransparent(set_pass_bindings))
+    return;
+  threadpool::add(&transparentJob, threadpool::PRIO_DEFAULT, true);
+}
+
+void RenderRiExtraJob::TransparentJob::doJob() { owner->builder.buildTransparent(*owner->vbase); }
+
 void RenderRiExtraJob::waitVbFill(const RiGenVisibility *vis)
 {
   uint32_t invalidGen = INVALID_VB_EXTRA_GEN;
@@ -1691,15 +1748,29 @@ rendinst::render::RiExtraRenderer *RenderRiExtraJob::wait(const RiGenVisibility 
   RiGenVisibility *vl = interlocked_acquire_load_ptr(vbase);
   G_FAST_ASSERT(!v || !vl || v == vl);
   G_UNUSED(v);
-  threadpool::wait(this);
+  threadpool::wait(this); // opaque only: called per frame by the opaque pass, so it must not stall on transparentJob
   G_ASSERT(is_main_thread());
   builder.releaseCapture();                    // Free framemem allocated data
   return vl ? builder.getRenderer() : nullptr; // zero vbase means that either job wasn't started, there is nothing to render or vb
                                                // lock failed
 }
 
+rendinst::render::RiExtraRenderer *RenderRiExtraJob::waitTransparent(bool partitioned)
+{
+  TIME_PROFILE(wait_riextra_transparent_render);
+  waitAllJobs();
+  return interlocked_acquire_load_ptr(vbase) ? builder.getTransparentRenderer(partitioned) : nullptr;
+}
+
+void RenderRiExtraJob::waitAllJobs()
+{
+  threadpool::wait(this); // the transparent job is queued only once this one is done, so it is the second wait
+  threadpool::wait(&transparentJob);
+}
+
 void RenderRiExtraJob::resetRiExtraCtx()
 {
+  waitAllJobs();
   builder.resetVbCtx();
   if (vbase)
     vbase->riex.vbexctx = nullptr;
@@ -1785,7 +1856,7 @@ void rendinst::render::renderRIGenExtra(const RiGenVisibility &vbase, RenderPass
 }
 
 void rendinst::render::renderRIGenExtraSortedTransparentInstanceElems(const RiGenVisibility &vbase, const TexStreamingContext &tex_ctx,
-  bool draw_partitioned_elems)
+  bool draw_partitioned_elems, const RiExtraRenderer *prebuilt)
 {
   TIME_D3D_PROFILE(render_ri_extra_per_instance_sorted);
 
@@ -1817,38 +1888,33 @@ void rendinst::render::renderRIGenExtraSortedTransparentInstanceElems(const RiGe
 
   dag::ConstSpan<uint16_t> riResOrder = riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Transparent)];
 
+  const auto doRender = [&riResOrder](const auto &any_renderer) {
+    any_renderer.renderSortedMeshesPacked(riResOrder);
+    any_renderer.template renderSortedMeshes<RiExtraRenderer::NO_GPU_INSTANCING>(riResOrder);
+  };
+
+  const int elemsBegin = draw_partitioned_elems ? 0 : v.partitionedElemsCount;
+  const int elemsEnd = draw_partitioned_elems ? v.partitionedElemsCount : v.sortedTransparentElems.size();
+
+  if (prebuilt)
   {
-    RiExtraRendererWithDynVarsCache riexr(riResOrder.size(), rendinst::LayerFlag::Transparent, rendinst::RenderPass::Normal,
-      rendinst::OptimizeDepthPrepass::No, rendinst::OptimizeDepthPass::No, rendinst::IgnoreOptimizationLimits::Yes, 1);
-
-    const auto &elems = v.sortedTransparentElems;
-    for (int i = draw_partitioned_elems ? 0 : v.partitionedElemsCount,
-             n = draw_partitioned_elems ? v.partitionedElemsCount : elems.size();
-         i < n; i++)
+#if DAGOR_DBGLEVEL > 0
+    prebuilt->checkVariantsAgainstCurrentGlobals("render_ri_extra_per_instance_sorted");
+#endif
+    DA_PROFILE_TAG(render_ri_extra_per_instance_sorted, "prebuilt elems %d", elemsEnd - elemsBegin);
+    doRender(*prebuilt);
+  }
+  else
+  {
+    RiExtraRendererWithDynVarsCache riexr;
+    riexr.initSortedTransparent(riResOrder.size());
+    int runs = 0;
     {
-      const RiGenExtraVisibility::PerInstanceElem &elem = elems[i];
-
-      int count = 1;
-      while (i + 1 < n && elems[i + 1].poolId == elem.poolId && elems[i + 1].lod == elem.lod)
-      {
-        i++;
-        count++;
-      }
-
-      int optimizationInstances = 0;
-      bool optimization_depth_prepass = false;
-      bool ignore_optimization_instances_limits = true;
-      IPoint2 ofsAndCount(elem.vbOffset, count);
-      float dist2 = bitwise_cast<float>(elem.partitionFlagDist2 & (uint32_t(-1) >> 1));
-      riexr.addObjectToRender(elem.poolId, optimizationInstances, optimization_depth_prepass, ignore_optimization_instances_limits,
-        ofsAndCount, elem.lod, elem.poolOrder, tex_ctx, dist2, 0.0f, {});
+      TIME_PROFILE(ri_extra_sorted_add_objects);
+      runs = riexr.addSortedTransparentElems(v, elemsBegin, elemsEnd, tex_ctx);
     }
-    if (debug_mesh::is_enabled())
-      riexr.coalesceDrawcalls<true>(false);
-    else
-      riexr.coalesceDrawcalls<false>(false);
-    riexr.renderSortedMeshesPacked(riResOrder);
-    riexr.renderSortedMeshes<RiExtraRenderer::NO_GPU_INSTANCING>(riResOrder);
+    DA_PROFILE_TAG(render_ri_extra_per_instance_sorted, "elems %d runs %d", elemsEnd - elemsBegin, runs);
+    doRender(riexr);
   }
 
   if (needToSetBlock)
@@ -1861,9 +1927,9 @@ void rendinst::render::renderRIGenExtraSortedTransparentInstanceElems(const RiGe
 }
 
 void rendinst::render::renderSortedTransparentRiExtraInstances(const RiGenVisibility &v, const TexStreamingContext &tex_ctx,
-  bool draw_partitioned_elems)
+  bool draw_partitioned_elems, const RiExtraRenderer *prebuilt)
 {
-  renderRIGenExtraSortedTransparentInstanceElems(v, tex_ctx, draw_partitioned_elems);
+  renderRIGenExtraSortedTransparentInstanceElems(v, tex_ctx, draw_partitioned_elems, prebuilt);
 }
 
 void rendinst::render::ensureElemsRebuiltRIGenExtra(bool gpu_instancing)

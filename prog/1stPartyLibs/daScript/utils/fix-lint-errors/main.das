@@ -45,6 +45,12 @@ struct Config {
     help : bool
 }
 
+enum EmptyPattern {
+    none            // not an empty()/!empty() comparison
+    is_empty
+    is_not_empty
+}
+
 struct SourceEdit {
     start_line : int    // 1-based, inclusive
     start_col : int     // 1-based, inclusive
@@ -137,7 +143,7 @@ class FixerVisitor : AstVisitor {
                 let lo = max(0, inner_start)
                 let hi = min(length(line), inner_end)
                 if (hi > lo) {
-                    result := slice(line, lo, hi)
+                    result = slice(line, lo, hi)
                 }
             }
             return strip(result)
@@ -147,15 +153,15 @@ class FixerVisitor : AstVisitor {
                 if (ln == start_line) {
                     let lo = max(0, inner_start)
                     if (lo < length(line)) {
-                        result := slice(line, lo)
+                        result = slice(line, lo)
                     }
                 } elif (ln == end_line) {
                     let hi = min(length(line), inner_end)
                     if (hi > 0) {
-                        result := "{result}\n{slice(line, 0, hi)}"
+                        result = "{result}\n{slice(line, 0, hi)}"
                     }
                 } else {
-                    result := "{result}\n{line}"
+                    result = "{result}\n{line}"
                 }
             }
         }
@@ -176,7 +182,7 @@ class FixerVisitor : AstVisitor {
                 let lo = max(0, s_col)
                 let hi = min(length(line), e_col)
                 if (hi > lo) {
-                    result := slice(line, lo, hi)
+                    result = slice(line, lo, hi)
                 }
             }
             return result
@@ -186,15 +192,15 @@ class FixerVisitor : AstVisitor {
                 if (ln == start_line) {
                     let lo = max(0, s_col)
                     if (lo < length(line)) {
-                        result := slice(line, lo)
+                        result = slice(line, lo)
                     }
                 } elif (ln == end_line) {
                     let hi = min(length(line), e_col)
                     if (hi > 0) {
-                        result := "{result}\n{slice(line, 0, hi)}"
+                        result = "{result}\n{slice(line, 0, hi)}"
                     }
                 } else {
-                    result := "{result}\n{line}"
+                    result = "{result}\n{line}"
                 }
             }
         }
@@ -244,7 +250,7 @@ class FixerVisitor : AstVisitor {
         ec = int(e.at.last_column)
     }
 
-    def rightmost_pos_of(e : Expression? const; var hi_line : int&; var hi_col : int&) : void {
+    def rightmost_pos_of(e : Expression? const; var hi_line : int&; var hi_col : int&) : void {  // nolint:STYLE037,STYLE038 — `is` on handled types is exact-type, so one arm per Expression class is irreducible
         //! Recursive rightmost source position. For explicit field syntax
         //! `obj.name`, ExprField.at covers just `.` and we add length(name).
         //! For IMPLICIT self-field access `name` (inside a class method),
@@ -495,7 +501,7 @@ class FixerVisitor : AstVisitor {
                 && field_at.last_column == v.at.last_column)
     }
 
-    def leftmost_pos_of(e : Expression? const; var lo_line : int&; var lo_col : int&) : void {
+    def leftmost_pos_of(e : Expression? const; var lo_line : int&; var lo_col : int&) : void {  // nolint:STYLE037,STYLE038 — `is` on handled types is exact-type, so one arm per Expression class is irreducible
         //! Recursive leftmost source position. ExprField.at points at the `.`
         //! separator and ExprAt.at at the `[`, so the user-source start lives
         //! in the chain root. Auto-deref wrappers (ExprPtr2Ref, ExprRef2Value)
@@ -596,7 +602,7 @@ class FixerVisitor : AstVisitor {
         return false
     }
 
-    def is_const_pm_one(e : Expression? const; var sign_out : int&) : bool {
+    def is_const_pm_one(e : Expression? const; var sign_out : int&) : bool {  // nolint:STYLE037 — one arm per const-literal class, each with its own suffixed literals
         //! True if `e` is the integer/float constant +1 or -1. Sign written to
         //! `sign_out`. Mirrors PERF013's `is_const_one` + `is_const_neg_one`.
         let inner = peel_ref2value(e)
@@ -801,6 +807,11 @@ class FixerVisitor : AstVisitor {
         if (opname == "==" || opname == "!=") {
             check_style018(expr, opname)
         }
+        check_perf017(expr, opname)
+    }
+
+    def check_perf017(expr : ExprOp2?; opname : string) : void {
+        //! length(x) compared against 0 or 1 → empty(x) / !empty(x).
         return if (opname != "==" && opname != "!=" && opname != "<"
                 && opname != "<=" && opname != ">" && opname != ">=")
         let lhs = peel_ref2value(expr.left)
@@ -817,35 +828,8 @@ class FixerVisitor : AstVisitor {
         let const_side = len_on_left ? rhs : lhs
         var k = 0
         return if (!const_int_value(const_side, k) || (k != 0 && k != 1))
-        // Canonicalize so length is on the left; flip op if needed.
-        var canon_op = opname
-        if (!len_on_left) {
-            if (opname == "<") {
-                canon_op = ">"
-            } elif (opname == "<=") {
-                canon_op = ">="
-            } elif (opname == ">") {
-                canon_op = "<"
-            } elif (opname == ">=") {
-                canon_op = "<="
-            }
-        }
-        var is_empty_pattern = false
-        var is_nonempty_pattern = false
-        if (k == 0) {
-            if (canon_op == "==" || canon_op == "<=") {
-                is_empty_pattern = true
-            } elif (canon_op == "!=" || canon_op == ">") {
-                is_nonempty_pattern = true
-            }
-        } else {
-            if (canon_op == "<") {
-                is_empty_pattern = true
-            } elif (canon_op == ">=") {
-                is_nonempty_pattern = true
-            }
-        }
-        return if ((!is_empty_pattern && !is_nonempty_pattern) || empty(len_call.arguments))
+        let pattern = perf017_pattern(opname, len_on_left, k)
+        return if (pattern == EmptyPattern.none || empty(len_call.arguments))
         let raw_arg = len_call.arguments[0]
         let arg = peel_ref2value(raw_arg)
         // Bail on compound / parenthesized / deref args — their source bounds
@@ -853,7 +837,7 @@ class FixerVisitor : AstVisitor {
         return if (!is_simple_subject(arg))
         let arg_text = extract_expr_source(arg, expr.at.fileInfo)
         return if (empty(arg_text))
-        let replacement = is_empty_pattern ? "empty({arg_text})" : "!empty({arg_text})"
+        let replacement = pattern == EmptyPattern.is_empty ? "empty({arg_text})" : "!empty({arg_text})"
         // ExprOp2.at covers only the operator token, not the full expression.
         // Worse, the typer may canonicalize Yoda comparisons so the AST left is
         // not the source left. Compute the actual source bounds via min/max of
@@ -875,6 +859,32 @@ class FixerVisitor : AstVisitor {
             end_col = r_ec
         }
         push_edit_span(start_line, start_col, end_line, end_col, replacement, "PERF017")
+    }
+
+    def perf017_pattern(opname : string; len_on_left : bool; k : int) : EmptyPattern {
+        //! Which empty()-shape a `length(x) <op> k` comparison is (k is 0 or 1).
+        //! Canonicalizes so length sits on the left, flipping the operator when
+        //! the source has it on the right.
+        var canon_op = opname
+        if (!len_on_left) {
+            if (opname == "<") {
+                canon_op = ">"
+            } elif (opname == "<=") {
+                canon_op = ">="
+            } elif (opname == ">") {
+                canon_op = "<"
+            } elif (opname == ">=") {
+                canon_op = "<="
+            }
+        }
+        if (k == 0) {
+            return EmptyPattern.is_empty if (canon_op == "==" || canon_op == "<=")
+            return EmptyPattern.is_not_empty if (canon_op == "!=" || canon_op == ">")
+            return EmptyPattern.none
+        }
+        return EmptyPattern.is_empty if (canon_op == "<")
+        return EmptyPattern.is_not_empty if (canon_op == ">=")
+        return EmptyPattern.none
     }
 
     def check_perf013(expr : ExprOp2?; opname : string) : void {
@@ -935,65 +945,69 @@ class FixerVisitor : AstVisitor {
         return if (n < 2)
         for (i in range(n - 1)) {
             let cur = blk.list[i]
-            let nxt = blk.list[i + 1]
             continue if (!(cur is ExprIfThenElse))
-            let outer_if = cur as ExprIfThenElse
-            // Postfix-desugared form: `return X if (cond)` parses into an
-            // ExprIfThenElse but the source line does NOT start with `if`.
-            // Skip — the span/replacement logic would clobber the leading
-            // `return X` token (corruption observed on utils/fix-lint-errors).
-            // Also bail when the condition contains an `is` operator (lowered
-            // by the typer to `__rtti == "..."` with a synthetic ExprConstString
-            // whose `at` no longer covers the source type name). Rightmost
-            // computation is unreliable across this lowering.
-            continue if (outer_if.if_false != null || outer_if.if_flags.isStatic
-                || !source_line_starts_with_if(outer_if.at)
-                || expr_contains_rtti_check(outer_if.cond))
-            var b1 = false
-            var b2 = false
-            continue if (!is_const_bool_return(outer_if.if_true, b1)
-                || !is_const_bool_return(nxt, b2)
-                || b1 == b2 || outer_if.cond == null)
-            let cond = peel_ref2value(outer_if.cond)
-            continue if (cond == null || cond_uses_property_call(cond))
-            var c_lo_l = 0; var c_lo_c = 0
-            var c_hi_l = 0; var c_hi_c = 0
-            leftmost_pos_of(cond, c_lo_l, c_lo_c)
-            rightmost_pos_of(cond, c_hi_l, c_hi_c)
-            if (cond is ExprOp2) {
-                let op = cond as ExprOp2
-                continue if (op.left == null || op.right == null)
-                leftmost_pos_of(op.left, c_lo_l, c_lo_c)
-                rightmost_pos_of(op.right, c_hi_l, c_hi_c)
-            }
-            continue if (c_lo_l == 0 || c_hi_l == 0)
-            let cond_text = extract_source_at(c_lo_l, c_lo_c, c_hi_l, c_hi_c, outer_if.at.fileInfo)
-            continue if (empty(cond_text))
-            // Sanity-check: if the extracted text starts with punctuation, the
-            // chain helper landed mid-token — skip rather than emit corruption.
-            let c0 = first_character(cond_text)
-            continue if (c0 == '.' || c0 == ']' || c0 == ',' || c0 == ')' || c0 == '}')
-            let replacement = (b1
-                ? "return {cond_text}"
-                : (cond is ExprOp2 ? "return !({cond_text})" : "return !{cond_text}"))
-            // Span: outer_if.at start to nxt.at end. nxt is ExprReturn whose
-            // .at covers `return`; the source end is past the const bool.
-            let start_line = int(outer_if.at.line)
-            let start_col = int(outer_if.at.column)
-            let end_line = int(nxt.at.last_line)
-            var end_col = int(nxt.at.last_column)
-            // Walk into the return to extend end past the const bool.
-            if (nxt is ExprReturn) {
-                let ret = nxt as ExprReturn
-                if (ret.subexpr != null) {
-                    let sub = peel_ref2value(ret.subexpr)
-                    if (sub != null && sub is ExprConstBool) {
-                        end_col = int(sub.at.last_column)
-                    }
+            try_style017b_pair(cur as ExprIfThenElse, blk.list[i + 1])
+        }
+    }
+
+    def try_style017b_pair(outer_if : ExprIfThenElse? const; nxt : Expression? const) : void {
+        //! One candidate pair from check_style017b's scan: pushes the edit when
+        //! the shape is safely rewritable, bails otherwise.
+        // Postfix-desugared form: `return X if (cond)` parses into an
+        // ExprIfThenElse but the source line does NOT start with `if`.
+        // Skip — the span/replacement logic would clobber the leading
+        // `return X` token (corruption observed on utils/fix-lint-errors).
+        // Also bail when the condition contains an `is` operator (lowered
+        // by the typer to `__rtti == "..."` with a synthetic ExprConstString
+        // whose `at` no longer covers the source type name). Rightmost
+        // computation is unreliable across this lowering.
+        return if (outer_if.if_false != null || outer_if.if_flags.isStatic
+            || !source_line_starts_with_if(outer_if.at)
+            || expr_contains_rtti_check(outer_if.cond))
+        var b1 = false
+        var b2 = false
+        return if (!is_const_bool_return(outer_if.if_true, b1)
+            || !is_const_bool_return(nxt, b2)
+            || b1 == b2 || outer_if.cond == null)
+        let cond = peel_ref2value(outer_if.cond)
+        return if (cond == null || cond_uses_property_call(cond))
+        var c_lo_l = 0; var c_lo_c = 0
+        var c_hi_l = 0; var c_hi_c = 0
+        leftmost_pos_of(cond, c_lo_l, c_lo_c)
+        rightmost_pos_of(cond, c_hi_l, c_hi_c)
+        if (cond is ExprOp2) {
+            let op = cond as ExprOp2
+            return if (op.left == null || op.right == null)
+            leftmost_pos_of(op.left, c_lo_l, c_lo_c)
+            rightmost_pos_of(op.right, c_hi_l, c_hi_c)
+        }
+        return if (c_lo_l == 0 || c_hi_l == 0)
+        let cond_text = extract_source_at(c_lo_l, c_lo_c, c_hi_l, c_hi_c, outer_if.at.fileInfo)
+        return if (empty(cond_text))
+        // Sanity-check: if the extracted text starts with punctuation, the
+        // chain helper landed mid-token — skip rather than emit corruption.
+        let c0 = first_character(cond_text)
+        return if (c0 == '.' || c0 == ']' || c0 == ',' || c0 == ')' || c0 == '}')
+        let replacement = (b1
+            ? "return {cond_text}"
+            : (cond is ExprOp2 ? "return !({cond_text})" : "return !{cond_text}"))
+        // Span: outer_if.at start to nxt.at end. nxt is ExprReturn whose
+        // .at covers `return`; the source end is past the const bool.
+        let start_line = int(outer_if.at.line)
+        let start_col = int(outer_if.at.column)
+        let end_line = int(nxt.at.last_line)
+        var end_col = int(nxt.at.last_column)
+        // Walk into the return to extend end past the const bool.
+        if (nxt is ExprReturn) {
+            let ret = nxt as ExprReturn
+            if (ret.subexpr != null) {
+                let sub = peel_ref2value(ret.subexpr)
+                if (sub != null && sub is ExprConstBool) {
+                    end_col = int(sub.at.last_column)
                 }
             }
-            push_edit_span(start_line, start_col, end_line, end_col, replacement, "STYLE017")
         }
+        push_edit_span(start_line, start_col, end_line, end_col, replacement, "STYLE017")
     }
 
     // --- PERF015 / PERF016: ternary min/max/abs ---
@@ -1254,7 +1268,7 @@ class FixerVisitor : AstVisitor {
                 let lo = max(0, sc)
                 let hi = min(length(line), ec)
                 if (hi > lo) {
-                    result := slice(line, lo, hi)
+                    result = slice(line, lo, hi)
                 }
             }
             return result
@@ -1264,15 +1278,15 @@ class FixerVisitor : AstVisitor {
                 if (ln == sl) {
                     let lo = max(0, sc)
                     if (lo < length(line)) {
-                        result := slice(line, lo)
+                        result = slice(line, lo)
                     }
                 } elif (ln == el) {
                     let hi = min(length(line), ec)
                     if (hi > 0) {
-                        result := "{result}\n{slice(line, 0, hi)}"
+                        result = "{result}\n{slice(line, 0, hi)}"
                     }
                 } else {
-                    result := "{result}\n{line}"
+                    result = "{result}\n{line}"
                 }
             }
         }
@@ -1436,18 +1450,10 @@ def try_compile(file : string) : bool {
     return ok_out
 }
 
-def apply_edits_to_file(file : string; var records : array<EditRecord>; dry_run : bool; no_verify : bool = false) : int {
-    //! Applies all edits to a file's source, returning the number written.
-    //! Sorts edits by descending end position so earlier-position edits stay
-    //! valid through later applications. Drops edits subsumed by a larger one
-    //! (e.g. STYLE005 inside STYLE017(b)) — outer wins. After writing, attempts
-    //! to recompile; restores the original file if the rewrite broke compile.
-    return 0 if (empty(records))
-    let original_text = fread(file)
-    return 0 if (empty(original_text))
-    var lines <- original_text |> split("\n")
-    // Sort by (end_line desc, end_col desc) — apply from end of file backwards.
-    // Daslang has `sort` from daslib/sort_boost; here we just bubble for small N.
+def sort_edits_end_desc(var records : array<EditRecord>) {
+    //! Sorts by (end_line desc, end_col desc) so earlier-position edits stay valid
+    //! through later applications. Daslang has `sort` from daslib/sort_boost; here
+    //! we just bubble for small N.
     let n0 = length(records)
     for (i in range(n0)) {
         for (j in range(i + 1, n0)) {
@@ -1462,8 +1468,12 @@ def apply_edits_to_file(file : string; var records : array<EditRecord>; dry_run 
             }
         }
     }
-    // Drop subsumed/overlapping edits: walk in order (now end-desc) and keep an
-    // edit only if it doesn't overlap any earlier (larger-end) kept edit.
+}
+
+def drop_overlapping_edits(var records : array<EditRecord>) {
+    //! Walks `records` in end-desc order and keeps an edit only if it doesn't
+    //! overlap an earlier (larger-end) kept one — outer wins, so a STYLE005 edit
+    //! nested inside a STYLE017(b) span is dropped.
     var keep : array<EditRecord>
     for (r in records) {
         var skip = false
@@ -1484,6 +1494,18 @@ def apply_edits_to_file(file : string; var records : array<EditRecord>; dry_run 
         var clone <- r
         records |> push(<- clone)
     }
+}
+
+def apply_edits_to_file(file : string; var records : array<EditRecord>; dry_run : bool; no_verify : bool = false) : int {
+    //! Applies all edits to a file's source, returning the number written.
+    //! After writing, attempts to recompile; restores the original file if the
+    //! rewrite broke compile.
+    return 0 if (empty(records))
+    let original_text = fread(file)
+    return 0 if (empty(original_text))
+    var lines <- original_text |> split("\n")
+    sort_edits_end_desc(records)
+    drop_overlapping_edits(records)
     let n = length(records)
     for (r in records) {
         let s_idx = r.start_line - 1
@@ -1514,6 +1536,7 @@ def apply_edits_to_file(file : string; var records : array<EditRecord>; dry_run 
                 new_lines |> push(merged)
             }
         }
+        delete lines  // the rebuild replaces the whole buffer; release it before the move
         lines <- new_lines
     }
     if (!dry_run) {
@@ -1529,6 +1552,30 @@ def apply_edits_to_file(file : string; var records : array<EditRecord>; dry_run 
         }
     }
     return n
+}
+
+def rule_summary(records : array<EditRecord>) : string {
+    //! ` RULE=count` per rule, for the per-file report line.
+    var rule_counts : table<string; int>
+    for (rec in records) {
+        if (key_exists(rule_counts, rec.rule)) {
+            rule_counts[rec.rule]++
+        } else {
+            rule_counts[rec.rule] = 1
+        }
+    }
+    // Collect the names first so the summary isn't built inside a keys() lock.
+    var rule_strs : array<string>
+    rule_strs |> reserve(length(rule_counts))
+    for (rule_name in keys(rule_counts)) {
+        rule_strs |> push(rule_name)
+    }
+    return build_string() $(w) {
+        for (rule_str in rule_strs) {
+            let cnt = rule_counts[rule_str]
+            w |> write(" {rule_str}={cnt}")
+        }
+    }
 }
 
 [export]
@@ -1583,27 +1630,7 @@ def main() : int {
             print("PASS {file}\n") if (!cfg.quiet)
             continue
         }
-        // Group by rule for the per-file report.
-        var rule_counts : table<string; int>
-        for (rec in records) {
-            if (key_exists(rule_counts, rec.rule)) {
-                rule_counts[rec.rule]++
-            } else {
-                rule_counts[rec.rule] = 1
-            }
-        }
-        // Build summary outside the keys() iteration to keep the table unlocked.
-        var rule_strs : array<string>
-        rule_strs |> reserve(length(rule_counts))
-        for (rule_name in keys(rule_counts)) {
-            rule_strs |> push(rule_name)
-        }
-        let summary = build_string() $(w) {
-            for (rule_str in rule_strs) {
-                let cnt = rule_counts[rule_str]
-                w |> write(" {rule_str}={cnt}")
-            }
-        }
+        let summary = rule_summary(records)
         let action = cfg.dry_run ? "WOULD FIX" : "FIX"
         print("{action} {file} ({length(records)} edits:{summary})\n")
         let n = apply_edits_to_file(file, records, cfg.dry_run, cfg.no_verify)

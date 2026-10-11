@@ -929,8 +929,3 @@ namespace das
 
     const LineInfo * SimFunction::getLineInfo() const { return &code->debugInfo; }
 }
-
-//workaround compiler bug in MSVC 32 bit
-#if defined(_MSC_VER) && !defined(__clang__) && INTPTR_MAX == INT32_MAX
-VECTORCALL vec4i v_ldu_ptr(const void * a) {return v_seti_x((int32_t)a);}
-#endif

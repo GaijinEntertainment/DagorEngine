@@ -164,8 +164,8 @@ public:
         else
         {
           h = to_real(argv[1]) / 100.0f;
-          if (h < 0.05)
-            h = 0.05;
+          if (h < 0.05f)
+            h = 0.05f;
           else if (h > 1.0f)
             h = 1.0f;
         }

@@ -11,6 +11,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <main/water.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
+#include <render/resourceSlot/ecs/nodeHandleWithSlotsAccess.h>
 #include <render/renderer.h>
 #include <render/weather/rain.h>
 #include <render/renderSettings.h>
@@ -135,11 +136,11 @@ static void reset_screen_droplets_for_new_level_es(const ecs::Event &)
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
-ECS_REQUIRE(dafg::NodeHandle &water_droplets_node)
+ECS_REQUIRE(resource_slot::NodeHandleWithSlotsAccess &water_droplets_node)
 static void destroy_screen_droplets_es(const ecs::Event &) { close_screen_droplets_mgr(); }
 
 ECS_TAG(render)
-ECS_REQUIRE(const dafg::NodeHandle &water_droplets_node)
+ECS_REQUIRE(const resource_slot::NodeHandleWithSlotsAccess &water_droplets_node)
 static void update_screen_droplets_es(const UpdateStageInfoBeforeRender &evt)
 {
   if (get_screen_droplets_mgr())

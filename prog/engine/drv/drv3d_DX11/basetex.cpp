@@ -934,10 +934,9 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
       ddsxNotLoaded = false;
 
     // clear view cache to switch to new texture object
+    removeUavViewsFromStates();
     viewCache.clear();
     hasUavViews = false;
-    other->viewCache.clear();
-    other->hasUavViews = false;
   }
   del_d3dres(other_tex);
 }
@@ -984,6 +983,18 @@ bool BaseTex::markTexelsUninitialized() const
   return true;
 }
 
+void BaseTex::removeUavViewsFromStates()
+{
+  if (!hasUavViews)
+    return;
+  for (auto &e : viewCache.table)
+  {
+    const uint32_t viewType = (e.key - 1) >> 24;
+    if (viewType == TextureView::UAV || viewType == TextureView::UAV_UINT)
+      remove_view_from_uav(e.val.uaView);
+  }
+}
+
 bool BaseTex::releaseTex(bool recreate_after)
 {
   if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
@@ -1002,6 +1013,7 @@ bool BaseTex::releaseTex(bool recreate_after)
   else
     found = remove_texture_from_states(this, recreate_after);
 
+  removeUavViewsFromStates();
   viewCache.clear();
   hasUavViews = false;
   //   if (!(cflg & TEXCF_RTARGET) || !releasePreallocatedRenderTarget(tex))
@@ -1466,7 +1478,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
         if (FAILED(hr))
         {
           D3D_ERROR("can't create staging tex");
-          if (!device_should_reset(last_hres, "CreateTexture3D"))
+          if (!device_should_reset(hr, "CreateTexture3D"))
             DXFATAL(hr, "CreateTexture3D(stagingTex3D)");
           *data = NULL; // -V1048
           return 0;

@@ -161,10 +161,10 @@ const char copy_ps_metal[] = ""
                              "float2 texCoord [[user(texturecoord)]];\n"
                              "} TriangleOutput;\n"
                              "fragment float4 texturedQuadFragment(TriangleOutput   inFrag  [[ stage_in ]],\n"
-                             "                  texture2d<float>  tex2D   [[ texture(0) ]],\n"
-                             "                  sampler tex_sampler[[sampler(0)]])\n"
+                             "                  texture2d<float>  tex2D   [[ texture(0) ]])\n"
                              "{\n"
-                             "  float4 color = tex2D.sample(tex_sampler, inFrag.texCoord);\n"
+                             "  constexpr sampler tex_sampler(filter::linear, address::clamp_to_edge);\n"
+                             "  float4 color = tex2D.sample(tex_sampler, inFrag.texCoord, level(0));\n"
                              "  return color;\n"
                              "};";
 } // namespace drv3d_metal

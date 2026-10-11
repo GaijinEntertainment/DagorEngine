@@ -228,42 +228,39 @@ public:
   INLINE bool operator==(const DPoint2 &a) const { return (x == a.x && y == a.y); }
   INLINE bool operator!=(const DPoint2 &a) const { return (x != a.x || y != a.y); }
   INLINE double lengthSq() const { return x * x + y * y; }
-  INLINE double length() const { return sqrtf(lengthSq()); }
+  INLINE double length() const { return sqrt(lengthSq()); }
   INLINE void normalize() { *this *= safeinv(length()); }
 
   template <class T>
   static DPoint2 xy(const T &a)
   {
-    return DPoint2(a.x, a.y);
+    return DPoint2(double(a.x), double(a.y));
   }
   template <class T>
   static DPoint2 xz(const T &a)
   {
-    return DPoint2(a.x, a.z);
+    return DPoint2(double(a.x), double(a.z));
   }
   template <class T>
   static DPoint2 yz(const T &a)
   {
-    return DPoint2(a.y, a.z);
+    return DPoint2(double(a.y), double(a.z));
   }
 
   template <class T>
   void set_xy(const T &a)
   {
-    x = a.x;
-    y = a.y;
+    *this = xy(a);
   }
   template <class T>
   void set_xz(const T &a)
   {
-    x = a.x;
-    y = a.z;
+    *this = xz(a);
   }
   template <class T>
   void set_yz(const T &a)
   {
-    x = a.y;
-    y = a.z;
+    *this = yz(a);
   }
 };
 

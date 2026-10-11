@@ -248,9 +248,8 @@ def test_sprint_null(t : T?) {
 //  sprint_json: human-readable formatting
 // ============================================================
 
-[test]
+[test, no_jit]
 def test_sprint_pretty(t : T?) {
-    if (jit_enabled()) return ;
     t |> run("pretty has newlines") @(t : T?) {
         let s = SimpleStruct(x = 1, name = "a")
         let json = sprint_json(s, true)

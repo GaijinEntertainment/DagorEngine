@@ -80,8 +80,18 @@ namespace das {
     int64_t FileAccess::getFileMtime ( const string & fileName) const {
 #if !defined(DAS_NO_FILEIO)
         struct stat st;
-        stat(fileName.c_str(), &st);
+        if ( stat(fileName.c_str(), &st) != 0 ) return -1;  // never key a cache on uninitialized stack
         return st.st_mtime;
+#else
+        return -1;
+#endif
+    }
+
+    int64_t FileAccess::getFileSize ( const string & fileName) const {
+#if !defined(DAS_NO_FILEIO)
+        struct stat st;
+        if ( stat(fileName.c_str(), &st) != 0 ) return -1;
+        return int64_t(st.st_size);
 #else
         return -1;
 #endif

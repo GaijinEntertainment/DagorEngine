@@ -57,11 +57,11 @@ struct public InputReport {
 def public read_input_report(path : string; var report : InputReport; var error : string&) : bool {
     let text = fread(path)
     if (empty(text)) {
-        error := "could not read detect-dupe JSON report (empty or missing): {path}"
+        error = "could not read detect-dupe JSON report (empty or missing): {path}"
         return false
     }
     if (!sscan_json(text, report)) {
-        error := "could not parse detect-dupe JSON report: {path}"
+        error = "could not parse detect-dupe JSON report: {path}"
         return false
     }
     // Sanity: end_line==0 across the board signals a v1 (pre-end_line)

@@ -185,6 +185,12 @@ void RendInstHeightmap::prepareRiVisibilityAsync()
   }
 }
 
+void wait_rendinst_heightmap_visibility_job()
+{
+  TIME_PROFILE(wait_rendinst_heightmap_visibility);
+  threadpool::wait(&visibility_job);
+}
+
 void RendInstHeightmap::updateToroidalTextureRegions(int globalFrameBlockId)
 {
   TIME_D3D_PROFILE(rendinst_heightmap_update_texture);

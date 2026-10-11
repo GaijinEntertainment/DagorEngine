@@ -45,6 +45,9 @@ namespace drv3d_metal
 
   void Program::release()
   {
+    // Compute programs own their shader; graphics vs/ps belong to the shaders table
+    if (cshader)
+      cshader->release();
     delete this;
   }
 }

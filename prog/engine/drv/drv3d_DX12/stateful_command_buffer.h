@@ -248,6 +248,9 @@ class StatefulCommandBuffer
     typedef Bitset<COUNT> Type;
   };
   GraphicsState graphicsState;
+#if !_TARGET_XBOXONE
+  ID3D12Resource *boundShadingRateTexture = nullptr;
+#endif
   ComputeState computeState;
 #if D3D_HAS_RAY_TRACING
   RaytraceState raytraceState;
@@ -507,6 +510,7 @@ public:
 #else
     activeFeatures.set(FeatureState::ALLOW_SHADING_RATE_T1, shading_rate_tier > 0);
     activeFeatures.set(FeatureState::ALLOW_SHADING_RATE_T2, shading_rate_tier > 1);
+    boundShadingRateTexture = nullptr;
 #endif
   }
 
@@ -1116,19 +1120,62 @@ public:
     MESH,
   };
 
+  void flushVrsState()
+  {
+#if !_TARGET_XBOXONE
+#if _TARGET_SCARLETT
+    constexpr bool allowShadingRateT2 = true;
+#else
+    // not all pc devices support vrs, ignore the flush if not supported
+    const bool allowShadingRateT2 = activeFeatures.test(FeatureState::ALLOW_SHADING_RATE_T2);
+
+    GraphicsState::DirtySet::type unsupportedMask;
+    unsupportedMask.set(GraphicsState::DirtySet::SHADING_RATE, !activeFeatures.test(FeatureState::ALLOW_SHADING_RATE_T1));
+    unsupportedMask.set(GraphicsState::DirtySet::SHADING_RATE_TEXTURE, !activeFeatures.test(FeatureState::ALLOW_SHADING_RATE_T2));
+
+    graphicsState.dirtyState &= ~unsupportedMask;
+#endif
+    if (graphicsState.dirtyState.test(GraphicsState::DirtySet::SHADING_RATE))
+    {
+      cmd.rsSetShadingRate(graphicsState.constantShadingRate, allowShadingRateT2 ? graphicsState.shadingRateCombiners : nullptr);
+      graphicsState.dirtyState.reset(GraphicsState::DirtySet::SHADING_RATE);
+    }
+    if (graphicsState.dirtyState.test(GraphicsState::DirtySet::SHADING_RATE_TEXTURE) &&
+        graphicsState.dirtyState.test(GraphicsState::DirtySet::RENDER_TARGETS) && boundShadingRateTexture)
+    {
+      cmd.rsSetShadingRateImage(nullptr);
+      boundShadingRateTexture = nullptr;
+    }
+#endif
+  }
+
+  void flushShadingRateTexture()
+  {
+#if !_TARGET_XBOXONE
+    if (!graphicsState.dirtyState.test(GraphicsState::DirtySet::SHADING_RATE_TEXTURE))
+      return;
+    graphicsState.dirtyState.reset(GraphicsState::DirtySet::SHADING_RATE_TEXTURE);
+    cmd.rsSetShadingRateImage(graphicsState.shadingRateTexture);
+    boundShadingRateTexture = graphicsState.shadingRateTexture;
+#endif
+  }
+
   void flushGraphics(PrimitivePipeline prim_pipe)
   {
     flushGlobalState();
 
+    // On Scarlett an SRI bound on OMSetRenderTargets clamps the scissor and the SRI is transcoded into the bound DSV HTile,
+    // so a changed SRI is unbound before the render targets and bound after them.
+    flushVrsState();
+
     flushRenderTargets();
+
+    flushShadingRateTexture();
 
     // this mask is used to mask off dirty bits of features the device does not support
 #if _TARGET_PC_WIN
     GraphicsState::DirtySet::type unsupportedMask;
     unsupportedMask.set(GraphicsState::DirtySet::DEPTH_BOUNDS, !activeFeatures.test(FeatureState::ALLOW_DEPTH_BOUNDS));
-
-    unsupportedMask.set(GraphicsState::DirtySet::SHADING_RATE, !activeFeatures.test(FeatureState::ALLOW_SHADING_RATE_T1));
-    unsupportedMask.set(GraphicsState::DirtySet::SHADING_RATE_TEXTURE, !activeFeatures.test(FeatureState::ALLOW_SHADING_RATE_T2));
 
     graphicsState.dirtyState &= ~unsupportedMask;
 #endif
@@ -1278,17 +1325,6 @@ public:
     {
       cmd.omSetStencilRef(graphicsState.dynamicState.stencilReference);
     }
-#if !_TARGET_XBOXONE
-    if (graphicsDirtyState.test(GraphicsState::DirtySet::SHADING_RATE))
-    {
-      cmd.rsSetShadingRate(graphicsState.constantShadingRate,
-        activeFeatures.test(FeatureState::ALLOW_SHADING_RATE_T2) ? graphicsState.shadingRateCombiners : nullptr);
-    }
-    if (graphicsDirtyState.test(GraphicsState::DirtySet::SHADING_RATE_TEXTURE))
-    {
-      cmd.rsSetShadingRateImage(graphicsState.shadingRateTexture);
-    }
-#endif
     graphicsState.dirtyState &= igonreMask;
   }
 

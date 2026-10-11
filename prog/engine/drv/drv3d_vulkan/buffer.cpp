@@ -213,7 +213,7 @@ uint32_t GenericBufferInterface::acquireStagingBuffer()
       (bufferLockedForRead() || stagingIsPersistent()) ? BufferMemoryFlags::NONE : BufferMemoryFlags::TEMP);
     stagingBuffer->setStagingDebugName(ref.buffer);
   }
-  return 0;
+  return stagingLockOffset();
 }
 
 void GenericBufferInterface::disposeStagingBuffer()
@@ -231,8 +231,10 @@ void GenericBufferInterface::processDiscardFlag()
   {
     // FIXME: clang on windows with dbg config, generates invalid code when .back() is used, used .stop instead
     uint32_t dynamic_size = (bufFlags & SBCF_FRAMEMEM) > 0 ? lockRange.stop : 0;
+    // shader reads the whole const buffer, so its bind range must stay at full size on a partial lock
+    uint32_t visible_size = (bufFlags & SBCF_BIND_CONSTANT) > 0 ? bufSize : 0;
 
-    ref = ref.discard(getMemoryClass(), uavFormat, bufFlags, dynamic_size);
+    ref = ref.discard(getMemoryClass(), uavFormat, bufFlags, dynamic_size, visible_size);
   }
 }
 

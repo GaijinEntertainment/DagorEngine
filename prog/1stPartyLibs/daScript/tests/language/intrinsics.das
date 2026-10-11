@@ -30,7 +30,7 @@ def test_bit_counting_everything(t : T?) {
     t |> run("popcnt") @(t : T?) {
         var fake <- Faker()
         fuzz() {
-            var x = fake |> random_uint()
+            let x = fake |> random_uint()
             var bits = x
             var count = 0u
             while (bits != 0u) {
@@ -43,7 +43,7 @@ def test_bit_counting_everything(t : T?) {
     t |> run("popcnt64") @(t : T?) {
         var fake <- Faker()
         fuzz() {
-            var x = fake |> random_uint64()
+            let x = fake |> random_uint64()
             var bits = x
             var count = 0ul
             while (bits != 0ul) {

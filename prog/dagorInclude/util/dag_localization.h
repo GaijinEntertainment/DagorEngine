@@ -107,7 +107,7 @@ const char *language_to_locale_code(const char *language);
 //! clears all localization data (keys and strings)
 void shutdown_localization();
 
-// Returns list of all keys (from the dump) and their current main-table values.
+// Returns list of all keys (from the dump) in load order and their current main-table values.
 // Multi-language ("full") keys loaded via the editor path are not returned --
 // they live in a separate table not indexed by main.
 // The dump must have been populated by startup_localization*/load_localization*

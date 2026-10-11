@@ -214,7 +214,7 @@ private:
     int soundId = -1;
     int lightId = -1;
     int pendingId = -1;
-    float distanceOffsetSq = 0; // TODO: move this to dafx or dafxCompound
+    float distanceOffset = 0; // TODO: move this to dafx or dafxCompound
     AcesEffect *extFx = nullptr;
     BaseEffectObject *obj = nullptr;
     TMatrix tm = TMatrix::IDENT;

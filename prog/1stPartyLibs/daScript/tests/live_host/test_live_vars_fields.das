@@ -47,7 +47,7 @@ def test_macro_emits_for_field_targets(t : T?) {
 // and one field value.
 
 [test]
-def test_per_field_archive_round_trip(t : T?) {
+def test_per_field_archive_round_trip(t : T?) {   // nolint:STYLE038 flat list of independent per-field round-trip arms
     t |> run("preserved_int round-trips via per-field key") <| @(t : T?) {
         let key = "__live_vars__mixed_global__preserved_int"
         let init_hash = int64(0)  // no init expr → hash 0
@@ -69,7 +69,7 @@ def test_per_field_archive_round_trip(t : T?) {
 
         // Load (mirrors generated load block)
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64
@@ -100,7 +100,7 @@ def test_per_field_archive_round_trip(t : T?) {
         mixed_global.preserved_str := ""
 
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64
@@ -144,7 +144,7 @@ def test_per_field_archive_round_trip(t : T?) {
 
         var restored = 0
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64
@@ -183,7 +183,7 @@ def test_per_field_archive_round_trip(t : T?) {
         // Reload as if source g.init changed: we expect combined_new.
         var restored = 0
         var load_data : array<uint8>
-        if (live_load_bytes(key, load_data) && length(load_data) > 0) {
+        if (live_load_bytes(key, load_data) && !empty(load_data)) {
             var deser = new MemSerializer(load_data)
             var arch2 = Archive(reading = true, stream = deser)
             var stored_hash : int64

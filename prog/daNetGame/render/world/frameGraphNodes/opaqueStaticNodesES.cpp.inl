@@ -157,6 +157,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
 
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
     registry.read("ri_update_token").blob<OrderingToken>();
+    registry.create("ri_opaque_rendered_token").blob<OrderingToken>();
 
     if (!debugTriangle)
     {

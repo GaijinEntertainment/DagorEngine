@@ -1,6 +1,6 @@
 from "%darg/ui_imports.nut" import *
 
-let { getNumberOfRegisteredWindows } = require("%daeditor/components/window.nut")
+let { getModalZOrder } = require("%daeditor/components/window.nut")
 
 let WND_PARAMS = const {
   key = null //generate automatically when not set
@@ -36,11 +36,16 @@ function removeModalWindow(key): bool {
   return true
 }
 
+// Each modal is 2 layers above the previous one: the layer between is for the popups
+// (dropdowns) of the previous modal, so a later modal still covers them
+let getTopZOrder = @() modalWindows.len() > 0 ? modalWindows.top().zOrder : getModalZOrder() - 1
+let getPopupZOrder = @() getTopZOrder() + 1
+
 local lastWndIdx = 0
 function addModalWindow(wnd = null) {
   wnd = WND_PARAMS.__merge(wnd ?? {})
   if (wnd?.zOrder == null) {
-    wnd.zOrder <- getNumberOfRegisteredWindows() + 1
+    wnd.zOrder <- getTopZOrder() + 2
   }
   if (wnd.key != null)
     removeModalWindow(wnd.key)
@@ -69,6 +74,7 @@ let modalWindowsComponent = @() {
 
 return {
   addModalWindow
+  getPopupZOrder
   removeModalWindow
   hideAllModalWindows
   modalWindowsComponent

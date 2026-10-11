@@ -73,7 +73,7 @@ class SoaCallMacro : AstFunctionAnnotation {
 [structure_macro(name=soa)]
 class SoaStructMacro : AstStructureAnnotation {
     //! Generates a Structure-of-Arrays layout from a regular struct.
-    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var st : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         if (is_in_completion()) {
             var tdef = new TypeDecl(at = st.at,
                 baseType = Type.tArray,
@@ -90,55 +90,39 @@ class SoaStructMacro : AstStructureAnnotation {
             errors := "soa macro expects at least one field"
             return false
         }
-        // soa
         var stype <- clone_structure(st)
         stype.name := "{stype.name}`SOA"
         for (fld in stype.fields) {
             fld._type = make_field_type(fld)
         }
-        // [] operator
         var idx_op = make_index_op(st, stype)
         compiling_module() |> add_function(idx_op)
-        // length()
         var length_op = make_length(st, stype)
         compiling_module() |> add_function(length_op)
-        // push
         var push_op = make_named_call(st, stype, "push", "push_clone", true)
         compiling_module() |> add_generic(push_op)
-        // push_clone
         var push_clone_op = make_named_call(st, stype, "push_clone", "push_clone", true)
         compiling_module() |> add_function(push_clone_op)
-        // emplace
         var emplace_op = make_named_call(st, stype, "emplace", "emplace", false)
         compiling_module() |> add_function(emplace_op)
-        // erase
         var erase_op = make_erase(st, stype)
         compiling_module() |> add_function(erase_op)
-        // resize
         var resize_op = make_int_call(st, stype, "resize", "resize")
         compiling_module() |> add_function(resize_op)
-        // reserve
         var reserve_op = make_int_call(st, stype, "reserve", "reserve")
         compiling_module() |> add_function(reserve_op)
-        // clear
         var clear_op = make_no_arg_call(st, stype, "clear", "clear")
         compiling_module() |> add_function(clear_op)
-        // pop
         var pop_op = make_no_arg_call(st, stype, "pop", "pop")
         compiling_module() |> add_function(pop_op)
-        // capacity
         var capacity_op = make_capacity(st, stype)
         compiling_module() |> add_function(capacity_op)
-        // swap
         var swap_op = make_swap(st, stype)
         compiling_module() |> add_function(swap_op)
-        // from_array
         var from_array_op = make_from_array(st, stype)
         compiling_module() |> add_function(from_array_op)
-        // to_array
         var to_array_op = make_to_array(st, stype)
         compiling_module() |> add_function(to_array_op)
-        // now types
         compiling_module() |> add_structure(stype)
         return true
     }
@@ -358,7 +342,7 @@ class SoaForLoop : AstForLoopMacro {
                 names |> push <| string(expr.sources[soa_index]._type.structType.fields[0].name)
             }
             for (itn in names) {
-                let si = new_for.iterators |> length            // das_string arrays use resize+assign
+                let si = new_for.iterators |> length
                 new_for.iterators |> resize(si + 1)
                 new_for.iterators[si] := "{it_prefix}`{itn}"
                 new_for.iteratorsAka |> resize(si + 1)

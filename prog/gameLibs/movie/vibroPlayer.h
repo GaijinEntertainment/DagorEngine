@@ -86,7 +86,7 @@ private:
     }
     else if (curMode == MODE_FADE)
     {
-      real amp = 1.0 - float(ms - curStart) / float(item.len);
+      real amp = 1.0f - float(ms - curStart) / float(item.len);
       ::global_cls_drv_joy->getDefaultJoystick()->doRumble(item.low * amp, item.high * amp);
     }
   }

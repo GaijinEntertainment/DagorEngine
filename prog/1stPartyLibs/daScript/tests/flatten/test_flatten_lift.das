@@ -72,12 +72,7 @@ def f_arg_call(x : int) : int {
     return addk(sq(x), sq(x + 1))
 }
 
-var GRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-7, -1, 0, 1, 3, 10, 42]
-}
+var GRID <- [-7, -1, 0, 1, 3, 10, 42]
 
 [test]
 def test_flatten_lift(t : T?) {

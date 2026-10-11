@@ -17,18 +17,17 @@ comment (see [Lexical structure](page:language/lexical)). It is also not an
 - `#forbid-clone-operator` / `#allow-clone-operator` - whether the `clone` operator may be used.
 - `#forbid-switch-statement` / `#allow-switch-statement` - whether `switch`/`case`/`default` parse as a statement.
 - `#forbid-implicit-type-methods` / `#allow-implicit-type-methods` - whether a missing slot falls back to a type method.
-- `#forbid-auto-freeze` / `#allow-auto-freeze` - whether array/table/class literals get frozen automatically.
 - `#forbid-compiler-internals` / `#allow-compiler-internals` - whether a `$${ ... }` block may be used as an expression.
 - `#disable-optimizer` / `#enable-optimizer` - whether the bytecode peephole optimizer runs.
 
-Four features start off and need an explicit `allow` (or `enable`) to turn
-on: the `delete` operator, the `switch` statement, `$${ ... }` blocks, and
-auto-freezing literals. The other four start on and need an explicit
-`forbid` (or `disable`) to turn off: root-table access, the `clone`
-operator, implicit type methods, and the bytecode optimizer.
+Three features start off and need an explicit `allow` (or `enable`) to turn
+on: the `delete` operator, the `switch` statement, and `$${ ... }` blocks.
+The other four start on and need an explicit `forbid` (or `disable`) to turn
+off: root-table access, the `clone` operator, implicit type methods, and the
+bytecode optimizer.
 
 `#strict` and `#relaxed` change only root-table access and `delete`. They
-do not change `switch`, auto-freeze, or any other feature.
+do not change `switch` or any other feature.
 
 ## Scope
 
@@ -37,11 +36,11 @@ the end of the block that contains it (a function body or a bare `{ }`). The
 old value comes back when that block ends. At the top level, the block is
 the rest of the file.
 
-Three directive pairs do not follow that rule: `#disable-optimizer` /
-`#enable-optimizer`, `#forbid-implicit-type-methods` /
-`#allow-implicit-type-methods`, and `#forbid-auto-freeze` /
-`#allow-auto-freeze`. The compiler resolves them while it generates code for
-the enclosing function, not while it parses the block that declares them.
+Two directive pairs do not follow that rule: `#disable-optimizer` /
+`#enable-optimizer` and `#forbid-implicit-type-methods` /
+`#allow-implicit-type-methods`. The compiler resolves them while it generates
+code for the enclosing function, not while it parses the block that declares
+them.
 Their effect lasts until that function ends (or the file ends, at the top
 level), even when the directive is inside a nested `{ }` that has already
 closed.
@@ -102,15 +101,6 @@ let params = { name = "alpha" }
 println(params.len)
 // the index 'len' (type='string') does not exist
 ```
-
-## Auto-freezing literals
-
-`#allow-auto-freeze` applies an implicit [freeze](sym:freeze) to every
-array, table or class literal when it is built. `let squad = { hp = 100 }`
-then creates an immutable table; [is_frozen](sym:types.Table.is_frozen)
-reports it. The directive does not change the rules on
-[Bindings and constants](page:language/bindings): the binding can still be
-`let` or `local`, and only the value becomes read-only.
 
 ## Compiler internals
 

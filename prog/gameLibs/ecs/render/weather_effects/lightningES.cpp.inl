@@ -107,7 +107,7 @@ float getCloudsAlt()
   auto skies = lightning_get_skies();
   if (skies)
   {
-    auto clouds_form = lightning_get_skies()->getCloudsForm();
+    const auto &clouds_form = skies->getCloudsForm();
     // mimics getCloudsStartAlt() from daskies, but with thickness term, since it also effects start alt
     return (clouds_form.layers[0].thickness / 10.0f + clouds_form.layers[0].startAt) * 1000.0f;
   }

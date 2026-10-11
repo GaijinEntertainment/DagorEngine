@@ -30,7 +30,6 @@ shader gen_shading_motion_vrs
     vrs_rate_tex@uav = vrs_rate_tex hlsl { RWTexture2D<uint> vrs_rate_tex@uav; };
     resolution@f2 = get_dimensions(vrs_rate_tex, 0);
 
-    gbuffer_view_size@i2 = gbuffer_view_size;
     prev_frame_uvz_to_uvz@f44 = prev_frame_uvz_to_uvz;
     vrs_depth_diff_threshold@f1 = vrs_depth_diff_threshold;
     vrs_shading_cutoff4@f1 = vrs_shading_cutoff4;
@@ -74,12 +73,9 @@ shader gen_shading_motion_vrs
       if (any(dtId >= resolution))
         return;
 
-      // Avoid OOB texture loads in shaders when gbuffer is odd.
-      // Resolution = (gbuffer_view_size / 2) / (mip coeff)
-      // divide by 2 since we are reading half-res depth
-      // and by (1 << DEPTH_MIP_LEVEL) to adjust for mip
-      bool isOnEdge = any(and(dtId == resolution - 1, gbuffer_view_size % (2 * (1 << DEPTH_MIP_LEVEL)) != 0));
-      if (isOnEdge || last_dt_msec > 25)
+      uint3 depthMipDim;
+      close_depth.GetDimensions(DEPTH_MIP_LEVEL, depthMipDim.x, depthMipDim.y, depthMipDim.z);
+      if (any(dtId >= depthMipDim.xy) || last_dt_msec > 25)
       {
         vrs_rate_tex[dtId] = encode_vrs_rate(1, 1, false);
         return;

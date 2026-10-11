@@ -576,6 +576,10 @@ shader deferred_simple
 include "heightmap_shadows_common.dshl"
 include "contact_shadows_new.dshl"
 
+int rtss_screen_filter_mode = 0;
+interval rtss_screen_filter_mode: dithered_harden < 1, tent;
+float rtss_screen_radius = 1.5;
+
 shader combine_shadows
 {
   no_ablend;
@@ -598,7 +602,6 @@ shader combine_shadows
   (vs) { screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0); }
   hlsl {
     #define EARLY_EXIT_CONTACT_SHADOWS 1
-    //#define FASTEST_STATIC_SHADOW_PCF 1
   }
 
   USE_POSTFX_VERTEX_POSITIONS()
@@ -608,8 +611,25 @@ shader combine_shadows
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
 
-  INIT_STATIC_SHADOW()
-  USE_STATIC_SHADOW()
+  if (rtss_screen_filter_mode == dithered_harden)
+  {
+    hlsl(ps) {
+      #define RTSS_SCREEN_HARDEN 1
+    }
+  }
+  else
+  {
+    hlsl(ps) {
+      #define RTSS_SCREEN_TENT 1
+    }
+  }
+  (ps) {
+    normal_gbuf_read@smp2d = normal_gbuf;
+    rtss_screen_radius@f1 = rtss_screen_radius;
+  }
+  USE_READ_GBUFFER_NORMAL()
+  INIT_RTSS(ps)
+  USE_RTSS(ps)
 
   INIT_CSM_SHADOW(ps)
   USE_CSM_SHADOW_DEF_NUM_DEFAULT()
@@ -654,12 +674,9 @@ shader combine_shadows
 ##if oculus == oculus_on
       pointToEye -= stereo_params.xyz;
 ##endif
-      float3 worldNormal = normalize(cross(ddx(pointToEye), ddy(pointToEye)));
-      float NoLAbs = abs(dot(from_sun_direction, worldNormal));
       float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
       //float frame = 0;
       float dither = interleavedGradientNoiseFramed(screenpos.xy, shadow_frame);
-      //return getStaticShadow(worldPos.xyz);
       //return getHmapShadow(worldPos.xyz);
 
       half hmapShadow = getHmapShadowDithered(worldPos.xyz, dither);
@@ -675,7 +692,11 @@ shader combine_shadows
       // Fade CSM out toward the last cascade edge (csmShadow.z), then let static
       // and heightmap shadows carry the far range. Matches WT combined_shadows.
       csmShadow.x = (half) lerp(half(1.0), csmShadow.x, csmFade);
-      csmShadow.x *= getStaticShadow(worldPos.xyz) * hmapShadow;
+      float3 gbufNormal;
+      half smoothness;
+      readPackedGbufferNormalSmoothness(input.texcoord.xy, gbufNormal, smoothness);
+      float2 harden = float2(0.5, 0.5 - abs(gbufNormal.y) * 0.5);
+      csmShadow.x *= rtss_sun_visibility_screen_rel(world_view_pos.xyz - rtss_origin - pointToEye, gbufNormal, dither, rtss_screen_radius, harden) * hmapShadow;
 
       float shlen = max(w * contact_shadow_len*0.5, min(0.1, w));
       int steps = 10;

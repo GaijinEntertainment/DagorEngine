@@ -1,0 +1,40 @@
+include "swBVH.dshl"
+include "rtss_trace_common.dshl"
+include "rtss_trace_hmap.dshl"
+
+shader rtss_trace_swrt_cs
+{
+  RTSS_TRACE_TEXEL(cs)
+  RTSS_TRACE_HMAP(cs)
+  hlsl(cs) {
+    // constraint: a TLAS of raw instance transforms holds mirrored instances, which the default decode drops
+    #define BVH_TLAS_DECODE_REFLECTION 1
+    static float rtss_box_half_extent = 0;
+    #define SWRT_LEAF_BOX_HALF_EXTENT rtss_box_half_extent
+  }
+  INIT_SW_BVH_RAYTRACING(cs)
+  USE_SW_BVH_RAYTRACING(cs)
+  hlsl(cs) {
+    [numthreads(RTSS_BUILD_GROUP, 1, 1)]
+    void rtss_trace_swrt(uint3 gid : SV_GroupID, uint tid : SV_GroupThreadID)
+    {
+      RtssTraceTexel tx;
+      if (!rtss_trace_texel(gid.x, tid, tx))
+        return;
+      float t = tx.t;
+      uint level = tx.job.levelSlot >> 16;
+      // constraint: xform row 1 is sy * ey (rtss_common.hlsli), so an atlas texel spans texel / sy metres along it
+      rtss_box_half_extent = 0.5 * rtss_texel(level) / length(rtss_level_row(level, (tx.job.flags & RTSS_JOB_BIT) * 3 + 1).xyz);
+      float3 dirInv = select(abs(tx.dir) < 1e-32f, select(tx.dir < 0, -1e32f, 1e32f), rcp(tx.dir));
+      float3 triNorm = 0;
+      float2 bCoord = 0;
+      int complex;
+      float hitT;
+      if (rayTLAS(tx.origin, tx.dir, dirInv, t, hitT, triNorm, bCoord, complex))
+        t = hitT;
+      rtss_trace_hmap(tx.origin, tx.dir, t);
+      rtss_trace_store(tx, t);
+    }
+  }
+  compile("target_cs", "rtss_trace_swrt");
+}

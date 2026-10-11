@@ -46,7 +46,7 @@ public:
     // When no tool is active try to load pix capture runtime to allow capturing even without a active frame debug tool.
     if (!aToolIsActive)
     {
-      if (config.loadPIXCapturer)
+      if (config.usePIXCapturer)
       {
         aToolIsActive = gpu_capture::PIX::load(config, d3d_env, issues, tool);
       }

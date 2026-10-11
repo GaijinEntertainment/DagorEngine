@@ -41,16 +41,16 @@ E3DCOLOR HeightmapDebugShading::getGradientColor(const HeightmapColorGradient &g
 
 void HeightmapDebugShading::updateGradientdTexture(const HeightmapColorGradient &gradient, float min_height, float max_height)
 {
-  if (!gradientTexture.getTex())
+  if (!gradientTexture.getBaseTex())
   {
-    gradientTexture.set(
-      d3d::create_tex(nullptr, TEXTURE_WIDTH, 1, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC | TEXCF_SRGBREAD, 1, "gradientLandTex"));
-    G_ASSERT_RETURN(gradientTexture.getTex(), );
+    gradientTexture =
+      dag::create_tex(nullptr, TEXTURE_WIDTH, 1, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC | TEXCF_SRGBREAD, 1, "gradientLandTex");
+    G_ASSERT_RETURN(gradientTexture.getBaseTex(), );
   }
 
   void *lockedTexture = nullptr;
   int stride = 0;
-  if (!gradientTexture.getTex()->lockimg(&lockedTexture, stride, 0, TEXLOCK_WRITE))
+  if (!gradientTexture.getBaseTex()->lockimg(&lockedTexture, stride, 0, TEXLOCK_WRITE))
     return;
 
   E3DCOLOR *colors = static_cast<E3DCOLOR *>(lockedTexture);
@@ -59,7 +59,7 @@ void HeightmapDebugShading::updateGradientdTexture(const HeightmapColorGradient 
     const float height = lerp(min_height, max_height, static_cast<float>(i) / (TEXTURE_WIDTH - 1));
     *colors = getGradientColor(gradient, height);
   }
-  gradientTexture.getTex()->unlockimg();
+  gradientTexture.getBaseTex()->unlockimg();
 }
 
 void HeightmapDebugShading::updateGradientShader(const HeightmapColorGradient *gradient_to_show)
@@ -75,7 +75,7 @@ void HeightmapDebugShading::updateGradientShader(const HeightmapColorGradient *g
     updateGradientdTexture(*gradient_to_show, minHeight, maxHeight);
 
     dagGeom->shaderGlobalSetInt(heightmap_show_gradient_land_gvid, 1);
-    dagGeom->shaderGlobalSetTexture(heightmap_gradient_land_tex_gvid, gradientTexture.getId());
+    dagGeom->shaderGlobalSetTexture(heightmap_gradient_land_tex_gvid, gradientTexture.getTexId());
 
     const float range = maxHeight - minHeight;
     const float invRange = range > 0.0f ? (1.0f / range) : 0.0f;

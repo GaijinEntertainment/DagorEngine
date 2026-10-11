@@ -100,6 +100,8 @@ public:
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::collres_capsuleHit_out_intersections");
     das::addExtern<DAS_BIND_FUN(collres_rayhit)>(*this, lib, "collres_rayhit", das::SideEffects::accessExternal,
       "bind_dascript::collres_rayhit");
+    das::addExtern<DAS_BIND_FUN(collres_rayhit_both_ways)>(*this, lib, "collres_rayhit_both_ways", das::SideEffects::accessExternal,
+      "bind_dascript::collres_rayhit_both_ways");
 
     das::addExtern<DAS_BIND_FUN(collres_get_node_index_by_name)>(*this, lib, "collres_get_node_index_by_name", das::SideEffects::none,
       "bind_dascript::collres_get_node_index_by_name");

@@ -40,8 +40,8 @@ def strudel_main() {
          e4 e4 f4 g4 | g4 f4 e4 d4 | c4 c4 d4 e4 | d4 c4 c4 ~"
     )
     // map note events to piano samples with pitch-shifting
-    var piano <- melody |> gain(0.6) |> fmap(@(e) => piano_map(e))
-    var drums <- s("bd ~ sd ~") |> gain(0.5)
+    let piano <- melody |> gain(0.6) |> fmap(@(e) => piano_map(e))
+    let drums <- s("bd ~ sd ~") |> gain(0.5)
     strudel_add_track(stack([piano, drums]))
     strudel_set_bpm(100.0lf)
     strudel_play()

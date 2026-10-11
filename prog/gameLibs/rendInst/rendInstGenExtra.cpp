@@ -44,6 +44,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <string.h>
 #include <EASTL/bitvector.h>
+#include <osApiWrappers/dag_mutex.h>
 
 #define DEBUG_RI_DESTR_LOD_UPDATE 0
 #if DEBUG_RI_DESTR_LOD_UPDATE
@@ -104,7 +105,7 @@ static union
 
 static eastl::unique_ptr<rendinst::RiExtraAdditionalDataManager> riextra_additional_data_manager;
 
-void rendinst::iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &cb)
+void rendinst::iterateRIExtraMap(dag::FunctionRef<void(int, const char *) const> cb)
 {
   ScopedRIExtraReadLock rd;
   iterate_names(rendinst::riExtraMap, cb);
@@ -145,7 +146,8 @@ unsigned rendinst::RiExtraPool::defLodLimits = 0xF0F0F0F0;
 static const float riex_session_time_0 = 0;
 const float *rendinst::RiExtraPool::session_time = &riex_session_time_0;
 carray<Tab<uint16_t>, rendinst::RIEX_STAGE_COUNT> rendinst::riExPoolIdxPerStage;
-static Tab<rendinst::add_riextra_cb> add_riextra_callbacks;
+static Tab<rendinst::add_riextra_cb> add_riextra_callbacks DAG_TS_GUARDED_BY(rendinst::ccExtra);
+static Tab<rendinst::ri_collision_moved_cb> riex_collision_moved_callbacks;
 static Tab<rendinst::invalidate_handle_cb> invalidate_handle_callbacks;
 static Tab<rendinst::ri_destruction_cb> riex_destruction_callbacks;
 static Tab<rendinst::ri_override_destr_data_cb> riex_override_destr_data_callbacks;
@@ -170,12 +172,12 @@ public:
 
   void push_back_threadsafe(const DeferredRiExPoolIdxPush &cmd)
   {
-    std::lock_guard scopedLock(mtx);
+    dag::lock_guard scopedLock(mtx);
     dag::Vector<DeferredRiExPoolIdxPush>::Vector::push_back(cmd);
   }
   bool empty() const { return interlocked_acquire_load(*(volatile int *)&mCount) == 0; }
 
-  std::mutex mtx;
+  dag::mutex mtx;
 };
 static DeferredRiExPools deferredRiExPools;
 
@@ -326,10 +328,10 @@ rendinst::RiExtraPool::~RiExtraPool()
 
 void rendinst::RiExtraPool::validateLodLimits()
 {
-  int maxl = min<int>(res->lods.size(), MAX_LODS) - 1;
-
-  // RiExtra does not support impostors. Need to skip impostor and transition lods.
-  maxl -= maxl ? hasTransitionLod + posInst : 0;
+  // RiExtra does not support impostors. Need to skip impostor and transition lods (before the MAX_LODS clamp, as they don't
+  // take riExtra lod slots).
+  const int meshLodCnt = (int)res->lods.size() - (posInst ? 1 + hasTransitionLod : 0);
+  const int maxl = max(min<int>(meshLodCnt, MAX_LODS) - 1, 0);
 
   for (int i = 0; i < 4; i++)
   {
@@ -443,7 +445,9 @@ bool rendinst::isRIGenExtraUsedInDestr(const char *nm)
 static inline float riResLodRange(RenderableInstanceLodsResource *riRes, int lod, const DataBlock *ri_ovr)
 {
   static const char *lod_nm[] = {"lod0", "lod1", "lod2", "lod3", "lod4", "lod5", "lod6", "lod7"};
-  G_STATIC_ASSERT(countof(lod_nm) == rendinst::RI_MAX_LODS);
+  G_STATIC_ASSERT(countof(lod_nm) >= rendinst::RI_MAX_LODS);
+  // both platform lists must agree: full 8 lods load as is, a reduced limit is enforced on load
+  G_STATIC_ASSERT(RenderableInstanceLodsResource::LOAD_MAX_LODS == (rendinst::RI_MAX_LODS == 8 ? 0 : rendinst::RI_MAX_LODS));
   if (lod < riRes->getQlMinAllowedLod())
     return -1; // lod = riRes->getQlMinAllowedLod();
 
@@ -493,7 +497,7 @@ void rendinst::update_deferred_push_res()
 {
   if (deferredRiExPools.empty())
     return;
-  std::lock_guard scopedLock(deferredRiExPools.mtx);
+  dag::lock_guard scopedLock(deferredRiExPools.mtx);
   for (const DeferredRiExPoolIdxPush &p : deferredRiExPools)
     push_res_idx_to_stage_imm(p.layerFlag, p.poolIdx);
 
@@ -521,8 +525,8 @@ static void init_relems_for_new_pool(int new_res_idx)
     rendinst::render::update_per_draw_gathered_data(new_res_idx);
 }
 
-void rendinst::requestRiExResources(const char *ri_res_name,
-  const eastl::fixed_function<sizeof(void *), void(const char *, unsigned)> &res_cb, AddRIFlags ri_flags)
+void rendinst::requestRiExResources(const char *ri_res_name, dag::FunctionRef<void(const char *, unsigned) const> res_cb,
+  AddRIFlags ri_flags)
 {
   res_cb(ri_res_name, RendInstGameResClassId);
 
@@ -893,7 +897,6 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   riExtra[id].hasOccluder = 0;
   riExtra[id].usedInLandmaskHeight = 0;
   riExtra[id].hideMask = rendinst::getResHideMask(ri_res_name, &riRes->bbox);
-  riExtra[id].validateLodLimits();
 
   if (RendInstGenData::renderResRequired)
   {
@@ -908,6 +911,7 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   int lod_cnt = riRes->lods.size();
   float max_lod_dist = lod_cnt ? riResLodRange(riRes, lod_cnt - 1, ri_ovr) : (RendInstGenData::renderResRequired ? 0.0f : 1e5f);
   // RiExtra does not support impostors. Need to skip impostor and transition lods.
+  riExtra[id].hasTransitionLod = false; // pool is reused on resource reload
   if (riExtra[id].isPosInst() && lod_cnt > 1)
   {
     Tab<ShaderMaterial *> mats;
@@ -919,6 +923,7 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
     }
     lod_cnt -= 1 + riExtra[id].hasTransitionLod;
   }
+  riExtra[id].validateLodLimits(); // needs hasTransitionLod
 
   if (lod_cnt > rendinst::RiExtraPool::MAX_LODS)
     logerr("riExtra[%d] %s, have %d lods but MAX_LODS are %d, please reduce number of lods", id, ri_res_name, lod_cnt,
@@ -1564,11 +1569,20 @@ void rendinst::riGenStat(int &out_count, int &out_memoryUsage)
       }
 }
 
+static inline bool riex_is_tm_finite(mat43f_cref tm) { return v_test_xyzw_finite(v_add(v_add(tm.row0, tm.row1), tm.row2)); }
+
 riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_collision, int orig_cell, int orig_offset,
   int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
   if (!riExtra.isValid(res_idx))
     return RIEX_HANDLE_NULL;
+
+  if (DAGOR_UNLIKELY(!riex_is_tm_finite(tm)))
+  {
+    logerr("riExtra: non-finite transform rejected on add: ri=%s rows=%@ %@ %@", riExtraMap.getName(res_idx), as_point4(&tm.row0),
+      as_point4(&tm.row1), as_point4(&tm.row2));
+    return RIEX_HANDLE_NULL;
+  }
 
   scene::node_index ni = scene::INVALID_NODE;
   riex_handle_t h = RIEX_HANDLE_NULL;
@@ -1614,8 +1628,7 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_co
 
     mat44f tm44;
     v_mat43_transpose_to_mat44(tm44, tm);
-    bbox3f wabb;
-    v_bbox3_init(wabb, tm44, pool.collBb);
+    const bbox3f wabb = ri_extra_collision_world_box(pool, tm44);
     v_bbox3_add_box(pool.fullWabb, wabb);
 
     const float nonCollThreshold = 1e-4f; // 1%
@@ -1638,9 +1651,8 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_co
     ni = (pool.tsIndex >= 0) ? alloc_instance_for_tiled_scene(pool, res_idx, idx, tm44, sphere) : scene::INVALID_NODE;
 
     ri_extra_max_height_on_ri_added_or_moved(pool, v_extract_y(wabb.bmax));
+    onRIGenExtraAdded(h, on_loading);
   }
-
-  onRIGenExtraAdded(h, on_loading);
 
   // after write lock
   if (ni != scene::INVALID_NODE)
@@ -1736,12 +1748,9 @@ void rendinst::removeFromTiledScene(riex_handle_t id)
 
 static bool ri_extra_defer_grid_update = false;                     // see setRIExtraDeferGridUpdate; checked by moveRIGenExtra43 below
 static Tab<rendinst::riex_handle_t> ri_extra_grid_deferred(inimem); // instances taken out of the grid while deferring
-bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait)
+static bool moveRIGenExtra43NoLock(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait, bool skip_tiled_scene)
 {
-  ScopedRIExtraWriteTryLock wr(do_not_wait);
-  if (!wr.isLocked())
-    return false;
-
+  using namespace rendinst;
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
   G_ASSERT_RETURN(riExtra.isValid(res_idx), true);
@@ -1753,20 +1762,28 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
     return true;
   }
 
+  if (DAGOR_UNLIKELY(!riex_is_tm_finite(tm)))
+  {
+    logerr("riExtra: non-finite transform rejected on move: ri=%s idx=%d rows=%@ %@ %@", riExtraMap.getName(res_idx), idx,
+      as_point4(&tm.row0), as_point4(&tm.row1), as_point4(&tm.row2));
+    return true;
+  }
+
   mat44f tm44;
   v_mat43_transpose_to_mat44(tm44, tm);
-  if (idx < pool.tsNodeIdx.size() && pool.tsNodeIdx[idx] != scene::INVALID_NODE)
+  if (idx < pool.tsNodeIdx.size() && pool.tsNodeIdx[idx] != scene::INVALID_NODE && !skip_tiled_scene)
     move_instance_in_tiled_scene(pool, res_idx, pool.tsNodeIdx[idx], tm44, do_not_wait);
 
   vec4f bsphere = make_pos_and_rad(tm44, pool.bsphXYZR);
-  bbox3f newWbb;
-  v_bbox3_init(newWbb, tm44, pool.collBb);
+  const bbox3f newWbb = ri_extra_collision_world_box(pool, tm44);
   if (moved && ri_extra_defer_grid_update && pool.collRes && pool.isInGrid(idx))
   {
+    const bbox3f oldWbb = ri_extra_collision_world_box(pool, pool.riTm[idx]);
     // Take the instance out of the grid for the whole deferral instead of re-inserting it at every step.
     // Being absent cannot put a query on the wrong geometry the way a stale entry would, and the next
     // moves of this instance are free because isInGrid() is now false.
     riExtraGrid.erase(id, pool.riXYZR[idx]);
+    onRiExtraCollisionMoved(oldWbb);
     ri_extra_grid_deferred.push_back(id);
     pool.riTm[idx] = tm;
     pool.riXYZR[idx] = v_perm_xyzd(bsphere, v_or(bsphere, V_CI_SIGN_MASK));
@@ -1794,13 +1811,9 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
     // todo: We need to correctly maintain cache for static and separate cache for dynamic, which is invalidate only if it is in
     // someone's cache
     if (pool.tsIndex != DYNAMIC_SCENE)
-    {
-      mat44f oldTm44;
-      bbox3f oldWbb;
-      v_mat43_transpose_to_mat44(oldTm44, oldTm);
-      v_bbox3_init(oldWbb, oldTm44, pool.collBb);
-      riutil::world_version_inc(v_bbox3_sum(oldWbb, newWbb));
-    }
+      riutil::world_version_inc(v_bbox3_sum(ri_extra_collision_world_box(pool, oldTm), newWbb));
+    else if (memcmp(&oldTm, &tm, sizeof(oldTm)) != 0)
+      onRiExtraCollisionMoved(v_bbox3_sum(ri_extra_collision_world_box(pool, oldTm), newWbb));
 
     ri_extra_max_height_on_ri_added_or_moved(pool, v_extract_y(newWbb.bmax));
   }
@@ -1811,6 +1824,20 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
   }
 
   return true;
+}
+
+bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait, bool write_locked,
+  bool skip_tiled_scene)
+{
+  if (!write_locked)
+  {
+    ScopedRIExtraWriteTryLock wr(do_not_wait);
+    if (!wr.isLocked())
+      return false;
+    return moveRIGenExtra43NoLock(id, tm, moved, do_not_wait, skip_tiled_scene);
+  }
+  else
+    return moveRIGenExtra43NoLock(id, tm, moved, do_not_wait, skip_tiled_scene);
 }
 
 static int ri_extra_bulk_update_depth = 0;
@@ -1841,8 +1868,7 @@ void rendinst::flushRIExtraGridDefer()
     if (!(v_extract_w(bsphere) > VERY_SMALL_NUMBER))
       continue;
 
-    bbox3f wabb;
-    v_bbox3_init(wabb, tm44, pool.collBb);
+    const bbox3f wabb = ri_extra_collision_world_box(pool, tm44);
     pool.riXYZR[idx] = bsphere;
     riExtraGrid.insert(id, pool.riXYZR[idx], wabb, false);
     riutil::world_version_inc(wabb);
@@ -1904,10 +1930,7 @@ bool rendinst::delRIGenExtra(riex_handle_t id)
 
   if (pool.collRes && pool.isInGrid(idx))
   {
-    mat44f tm44;
-    bbox3f wabb;
-    v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
-    v_bbox3_init(wabb, tm44, pool.collBb);
+    const bbox3f wabb = ri_extra_collision_world_box(pool, pool.riTm[idx]);
 
     riExtraGrid.erase(id, pool.riXYZR[idx]);
     pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_or(pool.riXYZR[idx], V_CI_SIGN_MASK));
@@ -2002,10 +2025,7 @@ bool rendinst::removeRIGenExtraFromGrid(riex_handle_t id)
   RiExtraPool &pool = riExtra[res_idx];
   if (pool.isValid(idx) && pool.collRes && pool.isInGrid(idx))
   {
-    mat44f tm44;
-    bbox3f wabb;
-    v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
-    v_bbox3_init(wabb, tm44, pool.collBb);
+    const bbox3f wabb = ri_extra_collision_world_box(pool, pool.riTm[idx]);
     riExtraGrid.erase(id, pool.riXYZR[idx]);
     pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_or(pool.riXYZR[idx], V_CI_SIGN_MASK));
     riutil::world_version_inc(wabb);
@@ -2021,15 +2041,20 @@ bool rendinst::restoreRIGenExtraInGrid(riex_handle_t id)
   uint32_t idx = handle_to_ri_inst(id);
   G_ASSERT_RETURN(riExtra.isValid(res_idx), false);
   RiExtraPool &pool = riExtra[res_idx];
-  if (pool.isValid(idx) && pool.collRes && !pool.isInGrid(idx) && -v_extract_w(pool.riXYZR[idx]) > VERY_SMALL_NUMBER)
+  if (pool.isValid(idx) && pool.collRes && !pool.isInGrid(idx))
   {
     mat44f tm44;
-    bbox3f wabb;
     v_mat43_transpose_to_mat44(tm44, pool.riTm[idx]);
-    v_bbox3_init(wabb, tm44, pool.collBb);
-    pool.riXYZR[idx] = v_perm_xyzd(pool.riXYZR[idx], v_xor(pool.riXYZR[idx], V_CI_SIGN_MASK));
+    const vec4f bsphere = make_pos_and_rad(tm44, pool.bsphXYZR);
+    if (!(v_extract_w(bsphere) > VERY_SMALL_NUMBER))
+      return false;
+
+    const bbox3f wabb = ri_extra_collision_world_box(pool, tm44);
+    pool.riXYZR[idx] = bsphere;
     riExtraGrid.insert(id, pool.riXYZR[idx], wabb, false);
     riutil::world_version_inc(wabb);
+    update_max_ri_extra_height(static_cast<int>(v_extract_y(wabb.bmax) - v_extract_y(wabb.bmin)) + 1);
+    ri_extra_max_height_on_ri_added_or_moved(pool, v_extract_y(wabb.bmax));
     return true;
   }
   return false;
@@ -2244,7 +2269,6 @@ void rendinst::gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const 
     eastl::sort(out_handles.begin(), out_handles.end());
 }
 
-
 template <typename Container>
 static void gather_riex_collidable_min(Container &out_handles, bbox3f_cref box, float min_bsph_rad)
 {
@@ -2268,6 +2292,17 @@ void rendinst::gatherRIGenExtraCollidableMin(riex_collidable_t &out_handles, bbo
 void rendinst::gatherRIGenExtraCollidableMin(Tab<riex_handle_t> &out_handles, bbox3f_cref box, float min_bsph_rad)
 {
   gather_riex_collidable_min(out_handles, box, min_bsph_rad);
+}
+
+void rendinst::gatherRIGenExtraCollidableMin(Tab<riex_handle_t> &out_handles, const TMatrix &tm, const BBox3 &box, float min_bsph_rad)
+{
+  ScopedRIExtraReadLock rd;
+  TIME_PROFILE_DEV(gather_riex_collidable_transformed_box_min);
+  rigrid_find_in_transformed_box_by_bounding(riExtraGrid, tm, box, [&](RiGridObject object) {
+    if (v_extract_w(object.getWBSph()) >= min_bsph_rad || riExtra[handle_to_ri_type(object.handle)].isTallCombined())
+      out_handles.push_back(object.handle);
+    return false;
+  });
 }
 
 void rendinst::gatherRIGenExtraCollidableMax(riex_collidable_t &out_handles, const BSphere3 &sphere, float max_bsph_rad)
@@ -2627,16 +2662,38 @@ bool rendinst::isRiGenExtraValid(riex_handle_t id)
 
 void rendinst::registerRIGenExtraAddedCb(add_riextra_cb cb)
 {
+  ScopedRIExtraWriteLock wr;
   if (find_value_idx(add_riextra_callbacks, cb) == -1)
     add_riextra_callbacks.push_back(cb);
 }
 
-bool rendinst::unregisterRIGenExtraAddedCb(add_riextra_cb cb) { return erase_item_by_value(add_riextra_callbacks, cb); }
+bool rendinst::unregisterRIGenExtraAddedCb(add_riextra_cb cb)
+{
+  ScopedRIExtraWriteLock wr;
+  return erase_item_by_value(add_riextra_callbacks, cb);
+}
 
 void rendinst::onRIGenExtraAdded(riex_handle_t id, bool on_loading)
 {
   for (auto cb : add_riextra_callbacks)
     cb(id, on_loading);
+}
+
+void rendinst::registerRiExtraCollisionMovedCb(ri_collision_moved_cb cb)
+{
+  if (find_value_idx(riex_collision_moved_callbacks, cb) == -1)
+    riex_collision_moved_callbacks.push_back(cb);
+}
+
+bool rendinst::unregisterRiExtraCollisionMovedCb(ri_collision_moved_cb cb)
+{
+  return erase_item_by_value(riex_collision_moved_callbacks, cb);
+}
+
+void rendinst::onRiExtraCollisionMoved(bbox3f_cref affected)
+{
+  for (auto cb : riex_collision_moved_callbacks)
+    cb(affected);
 }
 
 void rendinst::registerRIGenExtraInvalidateHandleCb(invalidate_handle_cb cb)

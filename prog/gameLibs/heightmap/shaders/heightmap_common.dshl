@@ -11,11 +11,7 @@ float4 tex_hmap_inv_sizes = (1/2048,1/2048,1/2048,1/2048);
 float4 heightmap_region = (-65536, -65536, 65536, 65536);
 float4 heightmap_scale = (1,0,1,0);
 hlsl {
-  ##if in_editor == yes || (allow_forced_in_editor == yes && force_in_editor == yes)
-    #define decode_height(a) a
-  ##else
-    #define decode_height(a) ((a)*heightmap_scale.x+heightmap_scale.y)
-  ##endif
+  #define decode_height(a) ((a)*heightmap_scale.x+heightmap_scale.y)
 }
 
 texture heightmap_holes_tex;
@@ -74,14 +70,12 @@ macro USE_HEIGHTMAP_COMMON_FOR_VERTICES(code)
   hlsl(code) {
   ##if in_editor != yes && !use_editor_render
     #define sizeInMeters (sizes.x)
+  ##else
+    #define sizeInMeters (2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x)
   ##endif
-  }
-  hlsl(code) {
+
     half3 getNormalLow(float2 pos)
     {
-      ##if in_editor == yes || use_editor_render
-      float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
-      ##endif
       float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
       half W = tex2Dlod(tex_hmap_low, float4(pos.xy - offset.xy,0,0)).x;
       half E = tex2Dlod(tex_hmap_low, float4(pos.xy + offset.xy,0,0)).x;
@@ -91,9 +85,6 @@ macro USE_HEIGHTMAP_COMMON_FOR_VERTICES(code)
     }
     half3 getNormalLod(float2 pos, float lod)
     {
-      ##if in_editor == yes || use_editor_render
-      float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
-      ##endif
       float lodScale = exp2(lod);
       float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y)*lodScale;
       half W = tex2Dlod(tex_hmap_low, float4(pos.xy - offset.xy,0,lod)).x;
@@ -173,6 +164,8 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
   ##if in_editor == no && !use_editor_render
     #define sizeInMeters (heightmap_scale.z)
     #define tex_hmap_inv_sizes (heightmap_scale.ww)
+  ##else
+    #define sizeInMeters (2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x)
   ##endif
 
     float getHeightLow(float2 pos)
@@ -229,9 +222,6 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
     }
     half3 getNormalLod(float2 pos, float lod)
     {
-      ##if in_editor == yes || use_editor_render
-      float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
-      ##endif
       float lodScale = exp2(lod);
       float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y)*lodScale;
       half W = (half)tex2Dlod(tex_hmap_low, float4(pos.xy - offset.xy,0,lod)).x;
@@ -245,9 +235,6 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
       #if NO_GRADIENTS_IN_SHADER
         return getNormalLod(pos, 0);
       #else
-      ##if in_editor == yes || use_editor_render
-      float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
-      ##endif
       float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
       half W = (half)tex2D(tex_hmap_low, float2(pos.xy - offset.xy)).x;
       half E = (half)tex2D(tex_hmap_low, float2(pos.xy + offset.xy)).x;
@@ -262,13 +249,13 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
       #if NO_GRADIENTS_IN_SHADER
         return getNormalLod(pos, 0);
       #else
-      float sizeInMeters = 2*tex_hmap_inv_sizes.z/world_to_hmap_high.x;
+      float sizeInMetersHigh = 2*tex_hmap_inv_sizes.z/world_to_hmap_high.x/heightmap_scale.x;
       float3 offset = float3(tex_hmap_inv_sizes.z, 0, tex_hmap_inv_sizes.w);
       half W = (half)tex2D(tex_hmap_high, float2(pos.xy - offset.xy)).x;
       half E = (half)tex2D(tex_hmap_high, float2(pos.xy + offset.xy)).x;
       half N = (half)tex2D(tex_hmap_high, float2(pos.xy - offset.yz)).x;
       half S = (half)tex2D(tex_hmap_high, float2(pos.xy + offset.yz)).x;
-      return normalize(half3(W-E, sizeInMeters, N-S));
+      return normalize(half3(W-E, sizeInMetersHigh, N-S));
       #endif
     }
     ##endif
@@ -316,7 +303,7 @@ macro HEIGHTMAP_CALCULATIONS()
       get_microdetail_effects(detailNo, porosityMul, waterSmoothnessMul, sparkles);
       float shoreWavesMultiplier;
       clipmap_color = result.albedo.rgb;
-      waterLevel = wind_dir_water_level_ocean_density.z;
+      waterLevel = wind_dir_water_level.z;
       get_water_height(world_pos.xz, waterLevel);
       wetness = get_land_wetness(world_pos, shoreWavesMultiplier, waterLevel);
       porosity = (1-result.smoothness)*porosityMul;
@@ -382,6 +369,7 @@ macro INIT_WORLD_HEIGHTMAP_FOR_VERTICES(code)
       world_to_hmap_high@f4 = world_to_hmap_high;
       tex_hmap_low@smp2d = tex_hmap_low;
       tex_hmap_high@smp2d = tex_hmap_high;
+      heightmap_scale@f4 = heightmap_scale;
     }
   } else
   {

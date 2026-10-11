@@ -55,8 +55,7 @@ inline LIGHTS_SORTER_UINT decode_sort_data_scene_index(LIGHTS_SORTER_UINT data) 
 
 inline uint next_power_of_two(uint x)
 {
-    if (x <= 1) return 1;
-    return 1u << (firstbithigh(x - 1) + 1);
+  return x <= 1 ? 1u : 1u << (firstbithigh(x - 1) + 1);
 }
 
 inline LIGHTS_SORTER_UINT get_default_sort_data()

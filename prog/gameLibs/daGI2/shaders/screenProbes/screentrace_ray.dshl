@@ -52,7 +52,7 @@ endmacro
 macro SP_SCREEN_RAY_CAST(code)
   SP_SCREEN_RAY_DEPTH_CAST(code)
   REPROJECT_SP_WEIGHTS(code)
-  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
+  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code, false)
   //SP_REPROJECT_MATH(code)
   hlsl(code) {
     #include <interleavedGradientNoise.hlsl>

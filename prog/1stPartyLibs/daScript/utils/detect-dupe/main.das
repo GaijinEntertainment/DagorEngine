@@ -15,6 +15,11 @@ require pipeline
 require ../common/parallel_workers.das
 
 
+// A file parses in a few milliseconds and a child process starts in a few hundred, so the
+// fan-out only pays past this many files (measured break-even on a 10-core box).
+let PARALLEL_FILES = 128
+
+
 [CommandLineArgs]
 struct Config {
     @clarg_short = "p"
@@ -28,7 +33,7 @@ struct Config {
     paths_stdin : bool
 
     @clarg_short = "j"
-    @clarg_doc = "Worker count for parallel --export-functions runs. 0 = auto (= hardware threads). 1 = sequential. Files are sorted, split into N contiguous chunks, each compiled by a child detect-dupe process; shards merged in chunk-index order so output is byte-identical across worker counts. Below 16 input files the export stays sequential regardless. Ignored without --export-functions."
+    @clarg_doc = "Worker count for parallel --export-functions runs. 0 = auto (= physical cores, at most 16). 1 = sequential. Files are sorted, split into N contiguous chunks, each parsed by a child detect-dupe process; shards merged in chunk-index order so output is byte-identical across worker counts. Below 128 input files the export stays sequential regardless. Ignored without --export-functions."
     workers : int
 
     @clarg_short = "t"
@@ -60,7 +65,7 @@ struct Config {
     @clarg_doc = "Write all extracted functions to JSON and exit before clustering"
     export_functions : string
 
-    @clarg_doc = "Load functions from a JSON file (produced by --export-functions) instead of compiling"
+    @clarg_doc = "Load functions from a JSON file (produced by --export-functions) instead of parsing"
     import_functions : string
 
     @clarg_doc = "Path to baseline JSON (an --export-functions output) — B1 mode: tag records whose member identity (file:line:name) is not in the baseline as candidates"
@@ -97,8 +102,7 @@ struct Config {
 // rules (`builtin.das`, debugger/profiler) apply.
 def resolve_against_files(against : array<string>; from_stdin : bool;
                           var out_set : table<string; void?>) {
-    var raw : array<string>
-    raw |> push_from(against)
+    var raw := against
     if (from_stdin) {
         read_path_lines(fstdin(), raw)
     }
@@ -161,6 +165,7 @@ def strict_drop_baseline_clusters(var clusters : array<Cluster>;
         if (key_exists(baseline_canonicals, c.canonical_sample)) continue
         kept |> push_clone(c)
     }
+    delete clusters
     clusters <- kept
 }
 
@@ -170,6 +175,47 @@ def strict_drop_baseline_clusters(var clusters : array<Cluster>;
 // supplied is by definition writable.
 def shard_path_for(out_path : string; tag : string; kind : string; index : int) : string {
     return "{out_path}.{tag}.{kind}-{index}"
+}
+
+
+// Write one chunk's file list as the newline-delimited `--paths-from`
+// input the child compiling that chunk reads.
+def write_chunk_file(path : string; entries : array<string>) : bool {
+    var ok = false
+    fopen(path, "wb") $(fw) {
+        if (fw == null) return
+        ok = true
+        for (entry in entries) {
+            fw |> fprint("{entry}\n")
+        }
+    }
+    return ok
+}
+
+
+// Child command line for one chunk: one chunk file in, one shard out,
+// `--workers 1` so the child never fans out again.
+def child_argv_for_chunk(spawn_prefix : array<string>; chunk_path : string;
+                         shard_path : string; cfg : Config) : array<string> {
+    var argv : array<string>
+    argv |> reserve(length(spawn_prefix) + 12)
+    argv |> push_from(spawn_prefix)
+    argv |> push("--")
+    argv |> push("--paths-from")
+    argv |> push(chunk_path)
+    argv |> push("--export-functions")
+    argv |> push(shard_path)
+    argv |> push("--workers")
+    argv |> push("1")
+    argv |> push("--min-tokens")
+    argv |> push("{cfg.min_tokens}")
+    if (cfg.lambdas_only) {
+        argv |> push("--lambdas-only")
+    }
+    if (cfg.no_fuzzy) {
+        argv |> push("--no-fuzzy")
+    }
+    return <- argv
 }
 
 
@@ -195,15 +241,7 @@ def run_parallel_export(files : array<string>; cfg : Config) {
     for (k in range(n_chunks)) {
         let cp = shard_path_for(cfg.export_functions, tag, "chunk", k) + ".txt"
         let sp = shard_path_for(cfg.export_functions, tag, "shard", k) + ".json"
-        var write_ok = false
-        fopen(cp, "wb") $(fw) {
-            if (fw == null) return
-            write_ok = true
-            for (entry in chunks[k]) {
-                fw |> fprint("{entry}\n")
-            }
-        }
-        if (!write_ok) {
+        if (!write_chunk_file(cp, chunks[k])) {
             for (p in chunk_paths) {
                 remove(p)
             }
@@ -212,24 +250,7 @@ def run_parallel_export(files : array<string>; cfg : Config) {
         }
         chunk_paths |> push(cp)
         shard_paths |> push(sp)
-        var argv : array<string>
-        argv |> reserve(length(spawn_prefix) + 12)
-        argv |> push_from(spawn_prefix)
-        argv |> push("--")
-        argv |> push("--paths-from")
-        argv |> push(cp)
-        argv |> push("--export-functions")
-        argv |> push(sp)
-        argv |> push("--workers")
-        argv |> push("1")
-        argv |> push("--min-tokens")
-        argv |> push("{cfg.min_tokens}")
-        if (cfg.lambdas_only) {
-            argv |> push("--lambdas-only")
-        }
-        if (cfg.no_fuzzy) {
-            argv |> push("--no-fuzzy")
-        }
+        var argv <- child_argv_for_chunk(spawn_prefix, cp, sp, cfg)
         argvs |> emplace(argv)
     }
 
@@ -278,7 +299,7 @@ def run_parallel_export(files : array<string>; cfg : Config) {
 
 
 [export]
-def main() {
+def main() { // nolint:STYLE037,STYLE038 — flat CLI validation ladder plus one linear pipeline; splitting hides the control flow
     var args_r <- parse_args(type<Config>)
     if (args_r |> is_err) {
         to_log(LOG_ERROR, "error: {args_r |> unwrap_err}\n\n")
@@ -379,8 +400,7 @@ def main() {
             }
         }
     } else {
-        var seeds : array<string>
-        seeds |> push_from(cfg.path)
+        var seeds := cfg.path
         if (!empty(cfg.paths_from)) {
             var perr : string
             if (!read_path_lines_from_file(cfg.paths_from, seeds, perr)) {
@@ -417,15 +437,15 @@ def main() {
         // sub-threshold, paying child-process startup for nothing.
         // Sequential mode also benefits: no per-iteration I/O for the
         // expect-check, just compile the filtered list.
-        var compile_files : array<string>
-        compile_files |> reserve(length(files))
+        var parse_files : array<string>
+        parse_files |> reserve(length(files))
         var n_skipped = 0
         for (f in files) {
             if (has_expect_directive(f)) {
                 n_skipped++
                 continue
             }
-            compile_files |> push(f)
+            parse_files |> push(f)
         }
         if (n_skipped > 0) {
             to_log(LOG_INFO, "{n_skipped} file(s) skipped (expect-directive)\n")
@@ -435,40 +455,34 @@ def main() {
         // Parallel export fast-path: skip the in-process compile loop
         // entirely. Workers see the pre-filtered list, so they don't
         // waste startup cost on fixtures.
-        if (exporting && should_parallelize(length(compile_files), cfg.workers)) {
-            if (empty(compile_files)) {
+        if (exporting && should_parallelize(length(parse_files), cfg.workers, PARALLEL_FILES)) {
+            if (empty(parse_files)) {
                 to_log(LOG_ERROR, "error: every input file contains an `expect` directive; nothing to export\n")
-                panic("detect-dupe export failed: no compilable files")
+                panic("detect-dupe export failed: no parsable files")
             }
-            run_parallel_export(compile_files, cfg)
+            run_parallel_export(parse_files, cfg)
             return
         }
 
-        if (!empty(compile_files)) {
-            to_log(LOG_INFO, "scanning {length(compile_files)} file(s)...\n")
+        if (!empty(parse_files)) {
+            to_log(LOG_INFO, "scanning {length(parse_files)} file(s)...\n")
         }
 
         var n_failed = 0
-        for (i in range(length(compile_files))) {
-            let file = compile_files[i]
+        for (i in range(length(parse_files))) {
+            let file = parse_files[i]
             if (cfg.verbose) {
-                to_log(LOG_INFO, "[{i + 1}/{length(compile_files)}] {file}\n")
+                to_log(LOG_INFO, "[{i + 1}/{length(parse_files)}] {file}\n")
             }
-            if (!compile_and_collect(file, records, seen_loc, cfg.verbose, cfg.lambdas_only, want_sigs, min_tokens)) {
+            if (!parse_and_collect(file, records, seen_loc, cfg.verbose, cfg.lambdas_only, want_sigs, min_tokens)) {
                 n_failed++
             }
         }
-        to_log(LOG_INFO, "collected {length(records)} function record(s); {n_failed} compile failure(s), {n_skipped} skipped (expect-directive)\n")
+        to_log(LOG_INFO, "collected {length(records)} function record(s); {n_failed} parse failure(s), {n_skipped} skipped (expect-directive)\n")
 
         if (exporting) {
-            // In export mode, treat compile failures as fatal —
-            // sharding scripts that merge multiple exports must be able
-            // to detect partial-failure runs, same reason write
-            // failures panic below. Best-effort export would silently
-            // ship an incomplete corpus.
             if (n_failed > 0) {
-                to_log(LOG_ERROR, "error: {n_failed} compile failure(s); refusing to write partial export\n")
-                panic("detect-dupe export failed: {n_failed} compile failure(s)")
+                to_log(LOG_WARNING, "{n_failed} file(s) failed to parse; the functions parsed before the syntax error are exported\n")
             }
             if (write_export(records, cfg.export_functions)) {
                 to_log(LOG_INFO, "wrote {length(records)} function(s) to {cfg.export_functions}\n")
@@ -490,7 +504,7 @@ def main() {
         mark_records_as_candidates(records, against_files)
         var n_against_failed = 0
         var n_against_skipped = 0
-        var n_against_compiled = 0
+        var n_against_parsed = 0
         // Sort the candidate file list so compile-and-report order is
         // deterministic across runs — `keys(table)` iteration order is
         // unspecified, which would make the per-candidate output (and the
@@ -514,7 +528,7 @@ def main() {
                 continue
             }
             let before = length(records)
-            if (!compile_and_collect(af, records, seen_loc, cfg.verbose, cfg.lambdas_only, want_sigs, min_tokens)) {
+            if (!parse_and_collect(af, records, seen_loc, cfg.verbose, cfg.lambdas_only, want_sigs, min_tokens)) {
                 n_against_failed++
                 continue
             }
@@ -522,10 +536,13 @@ def main() {
             for (i in range(before, length(records))) {
                 records[i].is_candidate = true
             }
-            n_against_compiled++
+            n_against_parsed++
         }
-        if (n_against_compiled > 0 || n_against_failed > 0 || n_against_skipped > 0) {
-            to_log(LOG_INFO, "--against: compiled {n_against_compiled}, failed {n_against_failed}, skipped {n_against_skipped}\n")
+        if (n_against_parsed > 0 || n_against_failed > 0 || n_against_skipped > 0) {
+            to_log(LOG_INFO, "--against: parsed {n_against_parsed}, failed {n_against_failed}, skipped {n_against_skipped}\n")
+        }
+        if (n_against_failed > 0) {
+            panic("detect-dupe --against failed: {n_against_failed} candidate file(s) did not parse - the report would be incomplete")
         }
     }
 
@@ -592,12 +609,6 @@ def main() {
         }
     }
     sort_clusters(clusters)
-    var pairs : array<FuzzyPair>
-    if (!cfg.no_fuzzy) {
-        to_log(LOG_INFO, "scanning {length(records)} records for fuzzy near-duplicates (threshold {threshold})...\n")
-        pairs <- fuzzy_pairs(records, threshold, min_tokens, filter_candidates)
-        sort_pairs(pairs)
-    }
 
     var rep : Report
     rep.summary.files_scanned = files_scanned
@@ -605,7 +616,11 @@ def main() {
     rep.summary.threshold = threshold
     rep.summary.min_tokens = min_tokens
     rep.exact_clusters <- clusters
-    rep.fuzzy_pairs <- pairs
+    if (!cfg.no_fuzzy) {
+        to_log(LOG_INFO, "scanning {length(records)} records for fuzzy near-duplicates (threshold {threshold})...\n")
+        rep.fuzzy_pairs <- fuzzy_pairs(records, threshold, min_tokens, filter_candidates)
+        sort_pairs(rep.fuzzy_pairs)
+    }
     rep.summary.exact_clusters = length(rep.exact_clusters)
     rep.summary.fuzzy_pairs = length(rep.fuzzy_pairs)
 

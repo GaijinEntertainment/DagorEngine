@@ -14,7 +14,7 @@
 #include <generic/dag_tab.h>
 #include <math/dag_Point3.h>
 #include <EASTL/functional.h>
-#include <EASTL/fixed_function.h>
+#include <generic/dag_functionRef.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_relocatableFixedVector.h>
 
@@ -34,7 +34,7 @@ void prepareRiExtraRefs(const DataBlock &riConf);
 void setRiExtraTiledSceneWritingThread(int64_t tid);
 
 int addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int ri_pool_ref_layer, AddRIFlags ri_flags);
-void requestRiExResources(const char *ri_res_name, const eastl::fixed_function<sizeof(void *), void(const char *, unsigned)> &res_cb,
+void requestRiExResources(const char *ri_res_name, dag::FunctionRef<void(const char *, unsigned) const> res_cb,
   AddRIFlags ri_flags = {});
 int getRIGenExtraResIdx(const char *ri_res_name);
 int getOrAddMissingRIGenExtraResIdx(const char *ri_res_name, AddRIFlags ri_flags);
@@ -52,7 +52,7 @@ dag::Vector<BBox3, framemem_allocator> getRIGenExtraInstancesWorldBboxesByGrid(i
 bbox3f getRIGenExtraOverallInstancesWorldBbox(int res_idx);
 
 const char *getRIGenExtraName(uint32_t res_idx);
-void iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &cb);
+void iterateRIExtraMap(dag::FunctionRef<void(int, const char *) const> cb);
 
 int getRIGenExtraInstancesCount();
 
@@ -77,12 +77,14 @@ riex_handle_t replaceRIGenWithRIExtra(const RendInstDesc &desc);
 void moveToOriginalScene(riex_handle_t id);
 void removeFromTiledScene(riex_handle_t id);
 // Returns true if lock succeed
-bool moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait);
-inline bool moveRIGenExtra44(riex_handle_t id, mat44f_cref tm, bool moved, bool do_not_wait)
+bool moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bool do_not_wait, bool write_locked = false,
+  bool skip_tiled_scene = false);
+inline bool moveRIGenExtra44(riex_handle_t id, mat44f_cref tm, bool moved, bool do_not_wait, bool write_locked = false,
+  bool skip_tiled_scene = false)
 {
   mat43f m43;
   v_mat44_transpose_to_mat43(m43, tm);
-  return moveRIGenExtra43(id, m43, moved, do_not_wait);
+  return moveRIGenExtra43(id, m43, moved, do_not_wait, write_locked, skip_tiled_scene);
 }
 
 // Batches the per-instance bookkeeping of a burst of moves (e.g. moving a whole composit of thousands of
@@ -144,10 +146,18 @@ bool delRIGenExtra(riex_handle_t id); // return true if ri exta was actually del
 void delRIGenExtraFromCell(riex_handle_t id, int cell_Id, int offset);
 void delRIGenExtraFromCell(const RendInstDesc &desc);
 
-using add_riextra_cb = void (*)(riex_handle_t, bool);
+using add_riextra_cb = void (*)(riex_handle_t, bool on_loading);
 void registerRIGenExtraAddedCb(add_riextra_cb cb);
 bool unregisterRIGenExtraAddedCb(add_riextra_cb cb);
-void onRIGenExtraAdded(riex_handle_t id, bool on_loading);
+void onRIGenExtraAdded(riex_handle_t id, bool on_loading) DAG_TS_REQUIRES(ccExtra);
+
+// A dynamic-scene move's collision box with no margin, or the one a deferred grid removal vacated;
+// the reinsertion at flush bumps the world version instead, so a reader watches both.
+using ri_collision_moved_cb = void (*)(bbox3f_cref affected);
+void registerRiExtraCollisionMovedCb(ri_collision_moved_cb cb);
+bool unregisterRiExtraCollisionMovedCb(ri_collision_moved_cb cb);
+// Its cbs run under the riExtra write lock.
+void onRiExtraCollisionMoved(bbox3f_cref affected);
 
 using invalidate_handle_cb = void (*)(riex_handle_t invalidate_handle);
 void registerRIGenExtraInvalidateHandleCb(invalidate_handle_cb cb);
@@ -241,6 +251,8 @@ void gatherRIGenExtraCollidable(riex_collidable_t &out_handles, const Point3 &p0
 void gatherRIGenExtraCollidableMin(riex_collidable_t &out_handles, bbox3f_cref box, float min_bsph_rad);
 // Heap-backed variant for results that cross threads (riex_collidable_t is framemem).
 void gatherRIGenExtraCollidableMin(Tab<riex_handle_t> &out_handles, bbox3f_cref box, float min_bsph_rad);
+// the bounding sphere against the box of tm (orthonormal), a piece of a tall combined rendinst at any radius; appends in grid order
+void gatherRIGenExtraCollidableMin(Tab<riex_handle_t> &out_handles, const TMatrix &tm, const BBox3 &box, float min_bsph_rad);
 void gatherRIGenExtraCollidableMax(riex_collidable_t &out_handles, const BSphere3 &sphere, float max_bsph_rad);
 void gatherRIGenExtraCollidable(dag::RelocatableFixedVector<RiGenCollidableData, 64, true, framemem_allocator> &out_data,
   const Point3 &pos, float radius, bool read_lock);
@@ -268,7 +280,7 @@ struct pos_and_render_info_t
 typedef dag::RelocatableFixedVector<pos_and_render_info_t, 128, true /*overflow*/> riex_pos_and_ri_tab_t;
 void gatherRIGenExtraRenderableNotCollidable(riex_pos_and_ri_tab_t &out, bbox3f_cref box, bool fast, SceneSelection s);
 void gatherRIGenExtraRenderableNotCollidable(bbox3f_cref box, bool fast, SceneSelection s,
-  const eastl::fixed_function<sizeof(void *) * 2, void(scene::node_index, mat44f_cref)> &cb);
+  dag::FunctionRef<void(scene::node_index, mat44f_cref) const> cb);
 bool gatherRIGenExtraBboxes(const RiGenVisibility *main_visibility, mat44f_cref volume_box,
   eastl::function<void(mat44f_cref, const BBox3 &, const char *)> callback);
 

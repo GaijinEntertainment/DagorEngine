@@ -6,7 +6,6 @@ options indenting = 4
 require stbimage
 require daslib/safe_addr
 require dastest/testing_boost public
-require strings
 
 // Helper: create a tiny 2x2 RGBA PNG in memory via write-to-memory, return the bytes
 def make_test_png(var out_data : array<uint8>) {
@@ -14,7 +13,7 @@ def make_test_png(var out_data : array<uint8>) {
     for (i in range(16)) {
         pixels[i] = uint8(i * 16)
     }
-    stbi_write_png_to_memory(2, 2, 4, safe_addr(pixels[0]), 8) <| $(data : array<uint8>#) {
+    stbi_write_png_to_memory(2, 2, 4, safe_addr(pixels[0]), 8) $(data : array<uint8>#) {
         out_data := data
     }
 }
@@ -25,7 +24,7 @@ def make_test_bmp(var out_data : array<uint8>) {
     for (i in range(12)) {
         pixels[i] = uint8(i * 20)
     }
-    stbi_write_bmp_to_memory(2, 2, 3, safe_addr(pixels[0])) <| $(data : array<uint8>#) {
+    stbi_write_bmp_to_memory(2, 2, 3, safe_addr(pixels[0])) $(data : array<uint8>#) {
         out_data := data
     }
 }
@@ -37,7 +36,7 @@ def test_load_from_memory_png(t : T?) {
     t |> run("load PNG from memory returns valid pixels") <| @(tt : T?) {
         var png_data : array<uint8>
         make_test_png(png_data)
-        tt |> success(length(png_data) > 0, "PNG data generated")
+        tt |> success(!empty(png_data), "PNG data generated")
         var x, y, comp : int
         var pixels = stbi_load_from_memory(unsafe(addr(png_data[0])), length(png_data), safe_addr(x), safe_addr(y), safe_addr(comp), 4)
         tt |> success(pixels != null, "pixels loaded")
@@ -70,8 +69,8 @@ def test_load_from_memory_invalid(t : T?) {
         var x, y, comp : int
         var pixels = stbi_load_from_memory(unsafe(addr(garbage[0])), 4, safe_addr(x), safe_addr(y), safe_addr(comp), 0)
         tt |> success(pixels == null, "null for invalid data")
-        var reason = stbi_failure_reason()
-        tt |> success(length(reason) > 0, "failure reason provided")
+        let reason = stbi_failure_reason()
+        tt |> success(!empty(reason), "failure reason provided")
     }
 }
 
@@ -83,7 +82,7 @@ def test_info_from_memory(t : T?) {
         var png_data : array<uint8>
         make_test_png(png_data)
         var x, y, comp : int
-        var ok = stbi_info_from_memory(unsafe(addr(png_data[0])), length(png_data), safe_addr(x), safe_addr(y), safe_addr(comp))
+        let ok = stbi_info_from_memory(unsafe(addr(png_data[0])), length(png_data), safe_addr(x), safe_addr(y), safe_addr(comp))
         tt |> success(ok != 0, "info returned ok")
         tt |> equal(x, 2)
         tt |> equal(y, 2)
@@ -96,7 +95,7 @@ def test_info_from_memory_invalid(t : T?) {
     t |> run("info_from_memory returns 0 for invalid data") <| @(tt : T?) {
         var garbage : uint8[4]
         var x, y, comp : int
-        var ok = stbi_info_from_memory(unsafe(addr(garbage[0])), 4, safe_addr(x), safe_addr(y), safe_addr(comp))
+        let ok = stbi_info_from_memory(unsafe(addr(garbage[0])), 4, safe_addr(x), safe_addr(y), safe_addr(comp))
         tt |> equal(ok, 0)
     }
 }
@@ -108,7 +107,7 @@ def test_is_hdr_from_memory(t : T?) {
     t |> run("PNG is not HDR") <| @(tt : T?) {
         var png_data : array<uint8>
         make_test_png(png_data)
-        var result = stbi_is_hdr_from_memory(unsafe(addr(png_data[0])), length(png_data))
+        let result = stbi_is_hdr_from_memory(unsafe(addr(png_data[0])), length(png_data))
         tt |> equal(result, 0)
     }
 }
@@ -120,7 +119,7 @@ def test_is_16_bit_from_memory(t : T?) {
     t |> run("8-bit PNG is not 16-bit") <| @(tt : T?) {
         var png_data : array<uint8>
         make_test_png(png_data)
-        var result = stbi_is_16_bit_from_memory(unsafe(addr(png_data[0])), length(png_data))
+        let result = stbi_is_16_bit_from_memory(unsafe(addr(png_data[0])), length(png_data))
         tt |> equal(result, 0)
     }
 }
@@ -168,7 +167,7 @@ def test_failure_reason(t : T?) {
         var x, y, comp : int
         var pixels = stbi_load_from_memory(unsafe(addr(garbage[0])), 4, safe_addr(x), safe_addr(y), safe_addr(comp), 0)
         tt |> success(pixels == null)
-        var reason = stbi_failure_reason()
-        tt |> success(length(reason) > 0, "got failure reason")
+        let reason = stbi_failure_reason()
+        tt |> success(!empty(reason), "got failure reason")
     }
 }

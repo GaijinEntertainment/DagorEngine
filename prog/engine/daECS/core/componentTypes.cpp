@@ -80,12 +80,7 @@ public:
     G_ASSERT(hint == ecs::ComponentTypeInfo<ecs::string>::type);
     G_UNUSED(hint);
     G_UNUSED(sz);
-    char buf[ecs::MAX_STRING_LENGTH];
-    int len = ecs::read_string(cb, buf, sizeof(buf));
-    if (len < 0)
-      return false;
-    *((ecs::string *)data) = buf;
-    return true;
+    return ecs::read_string(cb, *(ecs::string *)data);
   }
 };
 static StringSerializer string_serializer;

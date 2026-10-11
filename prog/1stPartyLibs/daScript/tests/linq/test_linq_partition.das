@@ -66,7 +66,7 @@ def test_skip(t : T?) {
 }
 
 [test]
-def test_take(t : T?) {
+def test_take(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic take") @(t : T?) {
         var query = take(
             [iterator for(x in 0..5); x],
@@ -167,17 +167,14 @@ def test_skip_last(t : T?) {
             [iterator for(x in 0..5); x],
             2
         )
-        var result : array<int>
-        for (c in query) {
-            result |> push(c)
-        }
+        let result <- [for (c in query); c]
         t |> equal(3, length(result))
         t |> equal(result[0], 0)
         t |> equal(result[1], 1)
         t |> equal(result[2], 2)
     }
     t |> run("skip last from array") @(t : T?) {
-        var arr = [0, 1, 2, 3, 4]
+        let arr = [0, 1, 2, 3, 4]
         var result = skip_last(arr, 2)
         t |> equal(3, length(result))
         for (c, i in result, 0..3) {
@@ -204,13 +201,13 @@ def test_skip_last(t : T?) {
         }
     }
     t |> run("skip last all") @(t : T?) {
-        var arr = [0, 1, 2]
-        var result = skip_last(arr, 5)
+        let arr = [0, 1, 2]
+        let result = skip_last(arr, 5)
         t |> equal(0, length(result))
     }
     t |> run("skip last zero") @(t : T?) {
-        var arr = [0, 1, 2]
-        var result = skip_last(arr, 0)
+        let arr = [0, 1, 2]
+        let result = skip_last(arr, 0)
         t |> equal(3, length(result))
     }
     t |> run("skip last with _fold") @(t : T?) {
@@ -234,17 +231,14 @@ def test_take_last(t : T?) {
             [iterator for(x in 0..5); x],
             2
         )
-        var result : array<int>
-        for (c in query) {
-            result |> push(c)
-        }
+        let result <- [for (c in query); c]
         t |> equal(2, length(result))
         t |> equal(result[0], 3)
         t |> equal(result[1], 4)
     }
     t |> run("take last from array") @(t : T?) {
-        var arr = [0, 1, 2, 3, 4]
-        var result = take_last(arr, 2)
+        let arr = [0, 1, 2, 3, 4]
+        let result = take_last(arr, 2)
         t |> equal(2, length(result))
         t |> equal(result[0], 3)
         t |> equal(result[1], 4)
@@ -257,7 +251,7 @@ def test_take_last(t : T?) {
         t |> equal(arr[1], 4)
     }
     t |> run("take last to array") @(t : T?) {
-        var result = take_last_to_array(
+        let result = take_last_to_array(
             [iterator for(x in 0..5); x],
             2
         )
@@ -267,17 +261,17 @@ def test_take_last(t : T?) {
         t |> equal(result[1], 4)
     }
     t |> run("take last all") @(t : T?) {
-        var arr = [0, 1, 2]
-        var result = take_last(arr, 5)
+        let arr = [0, 1, 2]
+        let result = take_last(arr, 5)
         t |> equal(3, length(result))
     }
     t |> run("take last zero") @(t : T?) {
-        var arr = [0, 1, 2]
-        var result = take_last(arr, 0)
+        let arr = [0, 1, 2]
+        let result = take_last(arr, 0)
         t |> equal(0, length(result))
     }
     t |> run("take last with _fold") @(t : T?) {
-        var result = (
+        var result = ( // nolint:LINT003 `typeinfo typename` below pins the non-const spelling
             [0, 1, 2, 3, 4]
             .take_last(2)
             ._fold()

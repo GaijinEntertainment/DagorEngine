@@ -1,0 +1,17 @@
+Module = animTreeEditor ;
+Root    ?= ../../.. ;
+Location = prog/gameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude # FIXME_BROKEN_DEP
+;
+
+local AllSrcFolder_CPP = . controllers blendNodes animStates nodeMasks ;
+
+UseProgLibs =
+  3rdPartyLibs/imgui
+  tools/libTools/propPanel
+  tools/libTools/winGuiWrapper
+;
+
+include $(Root)/prog/gameLibs/build_module.jam ;

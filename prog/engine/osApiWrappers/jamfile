@@ -168,6 +168,7 @@ if $(Platform) in windows {
   if $(Platform) in iOS {
     Sources +=
       ios/iOS_shell.mm
+      ios/iOS_windowScene.mm
     ;
     UseProgLibs =
       engine/osApiWrappers/messageBox
@@ -183,6 +184,7 @@ if $(Platform) in windows {
   } else if $(Platform) in tvOS {
     Sources +=
       ios/iOS_shell.mm
+      ios/iOS_windowScene.mm
       tvos/tvOS_storage.mm
       tvos/tvOS_appstore.mm
       tvos/tvOS_callbacks.mm
@@ -203,6 +205,7 @@ if $(Platform) in windows {
     macosx/macDbgStr.mm
     macosx/macSetTitle.mm
     macosx/macClipboard.mm
+    macosx/addressWaitOsSync.cpp
     convertUTF.cpp
     dynLib.cpp
   ;
@@ -273,7 +276,7 @@ if $(Platform) in windows {
 
 # Fallback std::condition_variable bucket impl for platforms without native futex
 # Update threadpool's HAVE_NATIVE_FUTEX and DAG_SPINLOCK_IS_FUTEX_MUTEX if you changing this
-if ! $(Platform) in windows xboxOne scarlett ps5 linux android { Sources += addressWaitStdCondVar.cpp ; }
+if $(Platform) in ps4 nswitch { Sources += addressWaitStdCondVar.cpp ; }
 
 AddIncludes +=
   $(Root)/prog/engine/sharedInclude

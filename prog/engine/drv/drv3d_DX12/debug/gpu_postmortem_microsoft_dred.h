@@ -21,15 +21,17 @@ namespace gpu_postmortem::microsoft
 class DeviceRemovedExtendedData
 {
   static bool try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env);
+  const bool hasPixRuntime : 1;
+  const bool writeEvents : 1; // when the PIX capturer writes the events too, each event takes two ops of the DRED ring
 
 public:
   // Have to delete move constructor, otherwise compiler / templated stuff of variant tries to be smart and results in compile errors.
   DeviceRemovedExtendedData(DeviceRemovedExtendedData &&) = delete;
   DeviceRemovedExtendedData &operator=(DeviceRemovedExtendedData &&) = delete;
-  DeviceRemovedExtendedData() = default;
+  DeviceRemovedExtendedData(const Configuration &config);
   ~DeviceRemovedExtendedData() { logdbg("DX12: Shutting down DRED"); }
   constexpr void configure() {}
-  void beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd);
+  void beginCommandBuffer(D3DDevice *device, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd);
   void endCommandBuffer(D3DGraphicsCommandList *);
   void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>, const eastl::string &);
   void endEvent(D3DGraphicsCommandList *, const eastl::string &);
@@ -85,7 +87,8 @@ public:
     {
       return false;
     }
-    target.template emplace<DeviceRemovedExtendedData>();
+
+    target.template emplace<DeviceRemovedExtendedData>(config);
     return true;
   }
 
@@ -97,6 +100,8 @@ public:
 
   void nameResource(ID3D12Resource *resource, eastl::string_view name);
   void nameResource(ID3D12Resource *resource, eastl::wstring_view name);
+  void nameObject(ID3D12Object *object, eastl::string_view name);
+  void nameObject(ID3D12Object *object, eastl::wstring_view name);
 };
 } // namespace gpu_postmortem::microsoft
 } // namespace debug

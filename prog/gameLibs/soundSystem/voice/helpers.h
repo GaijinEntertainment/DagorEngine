@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "rateHelpers.h"
 #include <fmod.hpp>
 #include <fmod_errors.h>
 #include <math/dag_mathBase.h>
@@ -43,16 +44,6 @@ inline int get_bits_from_format(FMOD_SOUND_FORMAT format)
 
 inline int get_bytes_from_format(FMOD_SOUND_FORMAT format) { return get_bits_from_format(format) / 8; }
 
-
-inline unsigned re_rate(unsigned value, unsigned rate_in, unsigned rate_out)
-{
-  unsigned quot = value / rate_in;
-  unsigned rem = value % rate_in;
-  return rem * rate_out / rate_in + quot * rate_out;
-}
-
-inline int samples_to_ms(int samples, unsigned rate) { return ceilf(samples * 1000.0f / rate); }
-inline int ms_to_samples(int ms, unsigned rate) { return rate * ms / 1000; }
 
 struct ReleaseDeleter
 {

@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#if (defined(_MSC_VER) && !defined(__clang__) && !defined(_M_ARM64)) || defined(__BMI__)
+#if (defined(_MSC_VER) && !defined(__clang__) && !defined(_M_ARM64) && !defined(_M_ARM64EC)) || defined(__BMI__)
 #include <immintrin.h>
 #endif
 
@@ -12,7 +12,7 @@ __forceinline unsigned __ctz_unsafe(unsigned long long value)
 {
 #if defined(__clang__) || defined(__GNUC__)
   return __builtin_ctzll(value); // tzcnt or rep bsf or rbit + clz
-#elif defined(_MSC_VER) && defined(_M_ARM64)
+#elif defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
   unsigned long res;
   _BitScanForward64(&res, value);
   return res;
@@ -37,7 +37,7 @@ __forceinline unsigned __ctz_unsafe(unsigned int value)
 {
 #if defined(__clang__) || defined(__GNUC__)
   return __builtin_ctz(value); // tzcnt or rep bsf
-#elif defined(_MSC_VER) && defined(_M_ARM64)
+#elif defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
   unsigned long res;
   _BitScanForward(&res, value);
   return res;

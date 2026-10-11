@@ -142,10 +142,14 @@ macro BLOOD_PUDDLES_COMMON_PS()
   (ps) {
     atlas_size@f2 = (blood_decals_atlas_size);
     blood_puddle_start_size@f1 = (blood_puddle_start_size);
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     blood_puddle_tex@tex2d = blood_puddle_tex;
     blood_puddle_flowmap_tex@smp2d = blood_puddle_flowmap_tex;
     blood_cooling_sec@f1 = blood_cooling_sec;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   hlsl(ps){

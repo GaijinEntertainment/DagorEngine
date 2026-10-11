@@ -59,6 +59,28 @@ static const ModifierToken modifier_tokens[] = {
 };
 
 
+struct PunctuationKey
+{
+  char name;
+  int keyCode;
+};
+
+
+static const PunctuationKey us_layout_punctuation_keys[] = {
+  {'-', HumanInput::DKEY_MINUS},
+  {'=', HumanInput::DKEY_EQUALS},
+  {'[', HumanInput::DKEY_LBRACKET},
+  {']', HumanInput::DKEY_RBRACKET},
+  {';', HumanInput::DKEY_SEMICOLON},
+  {'\'', HumanInput::DKEY_APOSTROPHE},
+  {'`', HumanInput::DKEY_GRAVE},
+  {'\\', HumanInput::DKEY_BACKSLASH},
+  {',', HumanInput::DKEY_COMMA},
+  {'.', HumanInput::DKEY_PERIOD},
+  {'/', HumanInput::DKEY_SLASH},
+};
+
+
 static const char *find_next_delimiter(const char *str)
 {
   for (; *str; str++)
@@ -105,6 +127,11 @@ static int get_key_code(const char *key_name)
       }
     }
   }
+
+  if (key_name[0] && !key_name[1])
+    for (const PunctuationKey &key : us_layout_punctuation_keys)
+      if (key.name == key_name[0])
+        return key.keyCode;
 
   return -1;
 }

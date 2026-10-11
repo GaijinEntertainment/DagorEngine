@@ -17,7 +17,7 @@ require tools/cpp_status public
 // The cpp/agnostic subset shared by main.das and cpp_main.das: ast-grep-backed
 // .das + .cpp search/outline plus the compile-DB-driven C++ build tools. None
 // require the daslang compiler at runtime.
-def build_cpp_tools(var reg : array<ToolDef>) {
+def build_cpp_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat registration table, one ToolDef per tool
     reg |> emplace(ToolDef(
         tool <- make_tool(
             "grep_usage",

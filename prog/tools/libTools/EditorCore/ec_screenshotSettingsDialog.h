@@ -17,6 +17,7 @@ public:
     SettingsChangeHandler settings_change_handler = nullptr);
 
   void fill();
+  void selectTab(bool cube_screenshot);
 
   const ScreenshotConfig &getScreenshotCfg() const { return screenshotCfg; }
   const ScreenshotConfig &getCubeScreenshotCfg() const { return cubeScreenshotCfg; }

@@ -177,7 +177,7 @@ static const char *sq_dump_action_set(const char *nm)
   using namespace dainput;
   static String s;
   action_handle_t h = get_action_set_handle(nm);
-  s.printf(0, "action set %s handle=%d prio=%d\n", nm, h, actionSets[h].ordPriority);
+  s.printf(0, "action set %s handle=%d prio=%d\n", nm, h, get_action_set_priority(h));
   if (h != dainput::BAD_ACTION_SET_HANDLE)
     for (action_handle_t a : dainput::get_action_set_actions(h))
       s.aprintf(0, "  %s { type=%X name=%X grp=\"%s\" }\n", get_action_name_fast(a), get_action_type(a), a,
@@ -725,6 +725,7 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
     .Func("get_action_set_handle_by_ord", get_action_set_handle_by_ord)
     .Func("get_action_set_priority", get_action_set_priority)
     .Func("are_action_sets_exclusive", are_action_sets_exclusive)
+    .Func("get_use_binding_action", get_use_binding_action)
 
     .Func("start_recording_bindings", start_recording_bindings)
     .Func("start_recording_bindings_for_single_button", start_recording_bindings_for_single_button)

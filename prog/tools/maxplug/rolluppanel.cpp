@@ -240,10 +240,9 @@ public:
     clearParam(hwnd, paramId);
     for (int i = 0; i < int(items.size()); i++)
     {
-      ICustButton *iEdit = GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i));
+      ControlPtr<ICustButton> iEdit(GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i)));
       iEdit->SetCheck(nodeBlk->getStr(name, "") == items[i]);
       iEdit->Enable();
-      ReleaseICustButton(iEdit);
     }
     return ECB_CONT;
   }
@@ -251,31 +250,28 @@ public:
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC)));
     iEdit->SetText(nodeBlk->getInt(name, 0));
-    ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
   int procReal(real val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC)));
     iEdit->SetText(nodeBlk->getReal(name, 0), 3);
-    ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
   int procStr(const char *val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC)));
 
     char *sz = (char *)nodeBlk->getStr(name, "");
 
     iEdit->SetText((TCHAR *)strToWide(sz).c_str());
 
-    ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
   int procPoint3(const Point3 &val) override
@@ -285,10 +281,9 @@ public:
     for (int i = 0; i < 3; i++)
     {
       clearParam(hwnd, paramId + i);
-      ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, (paramId + i) * PARAM_IDC_COUNT + PARAM_EDIT_IDC));
+      ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, (paramId + i) * PARAM_IDC_COUNT + PARAM_EDIT_IDC)));
 
       iEdit->SetText(val1[i], 3);
-      ReleaseICustEdit(iEdit);
     }
     return ECB_CONT;
   }
@@ -320,10 +315,9 @@ public:
     bool nc = false;
     for (int i = 0; i < int(items.size()); i++)
     {
-      ICustButton *iEdit = GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i));
+      ControlPtr<ICustButton> iEdit(GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i)));
       if (iEdit->IsChecked() != BOOL(nodeBlk->getStr(name, "") == items[i]))
         nc = true;
-      ReleaseICustButton(iEdit);
     }
     if (nc)
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
@@ -334,7 +328,7 @@ public:
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
     const int valNCIdc = paramId * PARAM_IDC_COUNT + PARAM_NC_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valEditIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valEditIdc)));
     bool nc = iEdit->GetInt() != nodeBlk->getInt(name, 0);
     if (nc)
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
@@ -345,7 +339,7 @@ public:
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
     const int valNCIdc = paramId * PARAM_IDC_COUNT + PARAM_NC_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valEditIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valEditIdc)));
     bool nc = iEdit->GetFloat() != nodeBlk->getReal(name, 0);
     if (nc)
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
@@ -356,11 +350,11 @@ public:
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
     const int valNCIdc = paramId * PARAM_IDC_COUNT + PARAM_NC_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valEditIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valEditIdc)));
 
-    TCHAR val1_sw[MAX_PATH];
-    iEdit->GetText(val1_sw, 32);
-    std::string val1 = wideToStr(val1_sw);
+    WStr text;
+    iEdit->GetText(text);
+    std::string val1 = wideToStr(text.data());
 
 
     bool nc = strcmp(nodeBlk->getStr(name, ""), val1.c_str()) != 0;
@@ -376,7 +370,7 @@ public:
     {
       const int valEditIdc = (paramId + i) * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
       const int valNCIdc = (paramId + i) * PARAM_IDC_COUNT + PARAM_NC_IDC;
-      ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valEditIdc));
+      ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valEditIdc)));
       bool nc = iEdit->GetFloat() != val1[i];
       if (nc)
         ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
@@ -497,10 +491,9 @@ public:
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     for (int i = 0; i < int(items.size()); i++)
     {
-      ICustButton *iEdit = GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i));
+      ControlPtr<ICustButton> iEdit(GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i)));
       if (iEdit->IsChecked())
         rezBlk->addStr(name, items[i].data());
-      ReleaseICustButton(iEdit);
     }
     return ECB_CONT;
   }
@@ -508,31 +501,28 @@ public:
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valControlIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valControlIdc)));
     rezBlk->addInt(name, iEdit->GetInt());
-    ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
   int procReal(real val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valControlIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valControlIdc)));
     rezBlk->addReal(name, iEdit->GetFloat());
-    ReleaseICustEdit(iEdit);
     return ECB_CONT;
   }
   int procStr(const char *val) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valControlIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valControlIdc)));
 
-    TCHAR wbuf[32];
-    iEdit->GetText(wbuf, 32);
+    WStr text;
+    iEdit->GetText(text);
 
-    rezBlk->addStr(name, wideToStr(wbuf).c_str());
-    ReleaseICustEdit(iEdit);
+    rezBlk->addStr(name, wideToStr(text.data()).c_str());
     return ECB_CONT;
   }
   int procPoint3(const Point3 &val) override
@@ -542,9 +532,8 @@ public:
     for (int i = 0; i < 3; i++)
     {
       const int valControlIdc = (paramId + i) * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-      ICustEdit *iEdit = GetICustEdit(GetDlgItem(hwnd, valControlIdc));
+      ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hwnd, valControlIdc)));
       p3[i] = iEdit->GetFloat();
-      ReleaseICustEdit(iEdit);
     }
     rezBlk->addPoint3(name, p3);
     return ECB_CONT;
@@ -684,7 +673,10 @@ private:
 RollupPanel *RollupPanel::instance = NULL;
 std::unique_ptr<DataBlock> RollupPanel::templateBlk;
 
-RollupPanel::RollupPanel(Interface *ip_, const HWND dlg_hwnd) : ip(ip_) { iRoll = GetIRollup(GetDlgItem(dlg_hwnd, IDC_ROLLUPWINDOW)); }
+RollupPanel::RollupPanel(Interface *ip_, const HWND dlg_hwnd) : ip(ip_)
+{
+  iRoll.reset(GetIRollup(GetDlgItem(dlg_hwnd, IDC_ROLLUPWINDOW)));
+}
 
 DataBlock &RollupPanel::getTemplateBlk()
 {
@@ -712,7 +704,7 @@ void RollupPanel::fillFromBlk(const DataBlock &blk, bool enable)
       if (is_parameter_block(*paramBlk))
         rowCount += get_scheme_type_id_count(get_scheme_type(*paramBlk));
     }
-    HWND hGroupNew = addGroup(iRoll, rowCount, groupBlk->getBlockName());
+    HWND hGroupNew = addGroup(iRoll.get(), rowCount, groupBlk->getBlockName());
     FillCB cb(hGroupNew, this, enable);
     enum_params(groupBlk, &cb);
   }
@@ -723,13 +715,13 @@ void RollupPanel::fillFromBlk(const DataBlock &blk, bool enable)
 
 void RollupPanel::updateFromBlk(const DataBlock &blk)
 {
-  UpdateCB cb(iRoll, &blk);
+  UpdateCB cb(iRoll.get(), &blk);
   enum_groups(&cb);
 }
 
 void RollupPanel::updateNCFromBlk(const DataBlock &blk)
 {
-  UpdateNCCB cb(iRoll, &blk);
+  UpdateNCCB cb(iRoll.get(), &blk);
   enum_groups(&cb);
 }
 
@@ -937,7 +929,7 @@ bool RollupPanel::updateFromUserPropBuffer(INode *n, UserProp &prop)
 void RollupPanel::saveToUserPropBuffer(INode *n, std::string_view additional)
 {
   DataBlock blk(std::make_shared<NameMap>());
-  UserPropCB cb(iRoll, &blk);
+  UserPropCB cb(iRoll.get(), &blk);
   enum_groups(&cb);
   saveBlkToUserPropBuffer(blk, n, additional);
 }
@@ -958,9 +950,8 @@ void RollupPanel::fillPanel()
 
 RollupPanel::~RollupPanel()
 {
-  ReleaseIRollup(iRoll);
   instance = NULL;
-  // dropped so that reopening the panel picks up edits to defparams.blk, as before
+  // dropped so that reopening the panel picks up edits to defparams.blk
   templateBlk.reset();
 }
 
@@ -993,12 +984,11 @@ BOOL RollupPanel::generalRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
         for (int i = 0; i < PARAM_EDITS_COUNT; i++)
         {
           const int btnId = valControlIdc + i;
-          ICustButton *iEdit = GetICustButton(GetDlgItem(hWnd, btnId));
+          ControlPtr<ICustButton> iEdit(GetICustButton(GetDlgItem(hWnd, btnId)));
           if (!iEdit)
             break;
 
           iEdit->SetCheck(btnId == LOWORD(wParam));
-          ReleaseICustButton(iEdit);
         }
         instance->onPPChange(group.c_str(), type, name.c_str());
       }
@@ -1059,13 +1049,12 @@ void RollupPanel::addButtons(const HWND group_hwnd, int idc, const char *name, c
       HWND hInputNew = ::CreateWindowEx(0, _T("CustButton"), _T(""), SS_RIGHT | WS_VISIBLE | WS_CHILD,
         PARAM_CTRL_LEFT1 - 2 * PARAM_CTRL_CAPTION_W / 3 + i * w, top, w, PARAM_CTRL_H, group_hwnd,
         (HMENU)(intptr_t)(idc + PARAM_EDIT_IDC + i), ::hInstance, NULL);
-      ICustButton *iEdit = GetICustButton(hInputNew);
+      ControlPtr<ICustButton> iEdit(GetICustButton(hInputNew));
       iEdit->SetText((TCHAR *)strToWide(items[i]).c_str());
       iEdit->SetType(CBT_CHECK);
       iEdit->SetCheck(val == items[i]);
       iEdit->Enable(enable);
       iEdit->SetButtonDownNotify(true);
-      ReleaseICustButton(iEdit);
     }
   }
   HWND hNCNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_LEFT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT3, top, PARAM_CTRL_W,
@@ -1087,20 +1076,18 @@ void RollupPanel::addIntInput(const HWND group_hwnd, int idc, const char *name, 
   HWND hInputNew = ::CreateWindowEx(0, _T("CustEdit"), _T(""), WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT1, top, PARAM_CTRL_W2,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_EDIT_IDC), ::hInstance, NULL);
   ::EnableWindow(hInputNew, enable);
-  ICustEdit *iEdit = GetICustEdit(hInputNew);
+  ControlPtr<ICustEdit> iEdit(GetICustEdit(hInputNew));
   iEdit->SetNotifyOnKillFocus(true);
   iEdit->SetText(val);
-  ReleaseICustEdit(iEdit);
 
   HWND hSpinNew = ::CreateWindowEx(0, _T("SpinnerControl"), _T(""), WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT4, top, PARAM_CTRL_H,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_SPIN_IDC), ::hInstance, NULL);
   ::EnableWindow(hSpinNew, enable);
-  ISpinnerControl *iSpin = GetISpinner(hSpinNew);
+  ControlPtr<ISpinnerControl> iSpin(GetISpinner(hSpinNew));
   iSpin->SetLimits(-MAX_REAL, MAX_REAL, FALSE);
   iSpin->LinkToEdit(hInputNew, EDITTYPE_INT);
   iSpin->SetValue(val, FALSE);
   iSpin->SetAutoScale(true);
-  ReleaseISpinner(iSpin);
 
   HWND hNCNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_LEFT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT3, top, PARAM_CTRL_W2,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_NC_IDC), ::hInstance, NULL);
@@ -1120,20 +1107,18 @@ void RollupPanel::addRealInput(const HWND group_hwnd, int idc, const char *name,
   HWND hInputNew = ::CreateWindowEx(0, _T("CustEdit"), _T(""), WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT1, top, PARAM_CTRL_W2,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_EDIT_IDC), ::hInstance, NULL);
   ::EnableWindow(hInputNew, enable);
-  ICustEdit *iEdit = GetICustEdit(hInputNew);
+  ControlPtr<ICustEdit> iEdit(GetICustEdit(hInputNew));
   iEdit->SetNotifyOnKillFocus(true);
   iEdit->SetText(val, 3);
-  ReleaseICustEdit(iEdit);
 
   HWND hSpinNew = ::CreateWindowEx(0, _T("SpinnerControl"), _T(""), WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT4, top, PARAM_CTRL_H,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_SPIN_IDC), ::hInstance, NULL);
   ::EnableWindow(hSpinNew, enable);
-  ISpinnerControl *iSpin = GetISpinner(hSpinNew);
+  ControlPtr<ISpinnerControl> iSpin(GetISpinner(hSpinNew));
   iSpin->SetLimits(-MAX_REAL, MAX_REAL, FALSE);
   iSpin->LinkToEdit(hInputNew, EDITTYPE_FLOAT);
   iSpin->SetValue(val, FALSE);
   iSpin->SetScale(0.1f);
-  ReleaseISpinner(iSpin);
 
   HWND hNCNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_LEFT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT3, top, PARAM_CTRL_W2,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_NC_IDC), ::hInstance, NULL);
@@ -1153,10 +1138,9 @@ void RollupPanel::addStrInput(const HWND group_hwnd, int idc, const char *name, 
   HWND hInputNew = ::CreateWindowEx(0, _T("CustEdit"), _T(""), WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT1, top, PARAM_CTRL_W,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_EDIT_IDC), ::hInstance, NULL);
   ::EnableWindow(hInputNew, enable);
-  ICustEdit *iEdit = GetICustEdit(hInputNew);
+  ControlPtr<ICustEdit> iEdit(GetICustEdit(hInputNew));
   iEdit->SetNotifyOnKillFocus(true);
   iEdit->SetText((TCHAR *)strToWide(val).c_str());
-  ReleaseICustEdit(iEdit);
 
   HWND hNCNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_LEFT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT3, top, PARAM_CTRL_W,
     PARAM_CTRL_H, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_NC_IDC), ::hInstance, NULL);
@@ -1208,13 +1192,11 @@ real RollupPanel::getRealInput(const char *group, const char *name)
     return 0;
 
   const int valControlIdc = paramID * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-  ICustEdit *iEdit = GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc));
+  ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc)));
   if (!iEdit)
     return 0;
 
-  real val = iEdit->GetFloat();
-  ReleaseICustEdit(iEdit);
-  return val;
+  return iEdit->GetFloat();
 }
 
 std::string RollupPanel::getCombo(const char *group, const char *name)
@@ -1228,17 +1210,16 @@ std::string RollupPanel::getCombo(const char *group, const char *name)
   std::string val;
   for (int i = 0; i < PARAM_EDITS_COUNT; i++)
   {
-    ICustButton *iEdit = GetICustButton(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc + i));
+    ControlPtr<ICustButton> iEdit(GetICustButton(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc + i)));
     if (!iEdit)
       break;
 
     if (iEdit->IsChecked())
     {
-      TCHAR sw[32];
-      iEdit->GetText(sw, 32);
-      val = wideToStr(sw);
+      WStr text;
+      iEdit->GetText(text);
+      val = wideToStr(text.data());
     }
-    ReleaseICustButton(iEdit);
   }
   return val;
 }
@@ -1250,16 +1231,14 @@ std::string RollupPanel::getInput(const char *group, const char *name)
     return std::string();
 
   const int valControlIdc = paramID * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-  ICustEdit *iEdit = GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc));
+  ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc)));
   if (!iEdit)
     return std::string();
 
-  TCHAR sw[32];
-  iEdit->GetText(sw, 32);
-  std::string val = wideToStr(sw);
+  WStr text;
+  iEdit->GetText(text);
 
-  ReleaseICustEdit(iEdit);
-  return val;
+  return wideToStr(text.data());
 }
 
 Point3 RollupPanel::getPoint3Input(const char *group, const char *name)
@@ -1272,12 +1251,11 @@ Point3 RollupPanel::getPoint3Input(const char *group, const char *name)
   for (int i = 0; i < 3; i++)
   {
     const int valControlIdc = (paramID + i) * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-    ICustEdit *iEdit = GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc));
+    ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(iRoll->GetPanelDlg(groupID), valControlIdc)));
     if (!iEdit)
       continue;
 
     val[i] = iEdit->GetFloat();
-    ReleaseICustEdit(iEdit);
   }
   return val;
 }

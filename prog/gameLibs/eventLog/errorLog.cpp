@@ -135,7 +135,7 @@ void send_error_log(const char *error_message, ErrorLogSendParams const &params)
   if (params.collection)
     currentCollection = params.collection;
 
-  if (fatal_probability > 0.0)
+  if (fatal_probability > 0.0f)
   {
     if (gfrnd() > fatal_probability)
     {

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <generic/dag_span.h>
+#include <drv/shadersMetaData/pixelShaderOutputInfo.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
@@ -13,8 +14,14 @@ struct ComputeShaderInfo
   uint32_t threadGroupSizeZ = 0;
 #if _CROSS_TARGET_DX12
   bool scarlettWave32 = false;
+  uint8_t pad_[3] = {0, 0, 0};
 #endif
 };
+#if _CROSS_TARGET_DX12
+static_assert(sizeof(ComputeShaderInfo) == 4 * sizeof(uint32_t));
+#else
+static_assert(sizeof(ComputeShaderInfo) == 3 * sizeof(uint32_t));
+#endif
 
 struct CompileResult
 {
@@ -24,6 +31,7 @@ struct CompileResult
   eastl::string errors;
   eastl::string logs;
   ComputeShaderInfo computeShaderInfo;
+  PixelShaderOutputInfo psOutputInfo;
 };
 
 struct ShaderStageData

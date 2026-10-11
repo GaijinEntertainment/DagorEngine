@@ -3,7 +3,7 @@ require math
 require dastest/testing_boost public
 
 def verifyIdentity(t : T?; mat : auto(matT)) {
-    let v : auto(vec) = mat[0]
+    let _v : auto(vec) = mat[0]
     let col = typeinfo sizeof(type<vec>) / 4
     let row = typeinfo sizeof(type<matT>) / col / 4
     for (y in range(row)) {
@@ -15,20 +15,20 @@ def verifyIdentity(t : T?; mat : auto(matT)) {
 }
 
 def verifySequence(t : T?; mat : auto(matT)) {
-    let v : auto(vec) = mat[0]
+    let _v : auto(vec) = mat[0]
     let col = typeinfo sizeof(type<vec>) / 4
     let row = typeinfo sizeof(type<matT>) / col / 4
     var val = 1.0
     for (y in range(row)) {
         for (x in range(col)) {
             t |> equal(mat[y][x], val)
-            val += 1.0
+            val ++
         }
     }
 }
 
 def verifyRows(t : T?; mat : auto(matT)) {
-    let v : auto(vec) = mat[0]
+    let _v : auto(vec) = mat[0]
     let col = typeinfo sizeof(type<vec>) / 4
     let row = typeinfo sizeof(type<matT>) / col / 4
     for (y in range(row)) {
@@ -75,7 +75,7 @@ def passx(a) {
 }
 
 def test_any(t : T?; var m : auto(matT)) {
-    let v : auto(vec) = m[0]
+    let _v : auto(vec) = m[0]
     let col = typeinfo sizeof(type<vec>) / 4
     let row = typeinfo sizeof(type<matT>) / col / 4
     identity(m)

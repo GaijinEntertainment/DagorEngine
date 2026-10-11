@@ -182,16 +182,6 @@ void FastGrassRenderer::initOrUpdate(dag::Span<GrassTypeDesc> grass_types, int d
 
   alreadyLoaded = false;
 
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-    smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
-    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-    smpInfo.anisotropic_max = 1;
-    ShaderGlobal::set_sampler(get_shader_variable_id("fast_grass_tex_a_samplerstate"), d3d::request_sampler(smpInfo));
-    ShaderGlobal::set_sampler(get_shader_variable_id("fast_grass_tex_n_samplerstate"), d3d::request_sampler(smpInfo));
-  }
-
   // init rendering
   const char *hmapShaderName = useLowShader ? "fast_grass_low" : "fast_grass";
   const char *curShaderName = hmapRenderer.getShElem() ? hmapRenderer.getShElem()->getShaderClassName() : nullptr;
@@ -285,13 +275,6 @@ void FastGrassRenderer::initOrUpdate(dag::Span<GrassTypeDesc> grass_types, int d
         "fast_grass_pre_gmap", RESTAG_GRASS);
       cmapTex = dag::create_array_tex(precompResolution, precompResolution, precompCascades, TEXCF_UNORDERED | TEXFMT_A8R8G8B8, 1,
         "fast_grass_pre_cmap", RESTAG_GRASS);
-
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Border;
-      smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-      smpInfo.anisotropic_max = 1;
-      ShaderGlobal::set_sampler(get_shader_variable_id("fast_grass_pre_hmap_samplerstate"), d3d::request_sampler(smpInfo));
-      ShaderGlobal::set_sampler(get_shader_variable_id("fast_grass_pre_cmap_samplerstate"), d3d::request_sampler(smpInfo));
     }
   }
   else
@@ -622,9 +605,9 @@ void FastGrassRenderer::prepare(PreparedData &pd, const TMatrix4 &globtm, Height
     cmapTex.setVar();
 
     precompShader.dispatchThreads(precompResolution, precompResolution, numClips);
-    d3d::resource_barrier({hmapTex.getArrayTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-    d3d::resource_barrier({gmapTex.getArrayTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-    d3d::resource_barrier({cmapTex.getArrayTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({hmapTex.getArrayTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
+    d3d::resource_barrier({gmapTex.getArrayTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
+    d3d::resource_barrier({cmapTex.getArrayTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
   }
 }
 

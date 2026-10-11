@@ -1,40 +1,32 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <dasModules/dasEvent.h>
-#include <daECS/net/network.h>
-#include "net/net.h"
-#include "net/time.h"
-#include "net/dedicated.h"
+#include "game/gameScripts.h"
 #include "main/app.h"
 #include "main/appProfile.h"
-#include <ecs/scripts/netsqevent.h>
-#include "net/recipientFilters.h"
-#include "game/gameScripts.h"
-#include "phys/gridCollision.h"
-#include "phys/netPhys.h"
-#include "phys/lagCompensation.h"
-#include "render/skies.h"
-#include "render/fx/fx.h"
-#include "render/fx/effectEntity.h"
-#include <levelSplines/levelSplines.h>
 #include "main/gameProjConfig.h"
-#include <render/dasModules/bvh.h>
+#include "net/dedicated.h"
+#include "net/net.h"
+#include "net/recipientFilters.h"
+#include "net/time.h"
+#include "phys/gridCollision.h"
+#include "phys/lagCompensation.h"
+#include "phys/netPhys.h"
+#include "render/fx/effectEntity.h"
+#include "render/fx/fx.h"
+#include "render/skies.h"
+#include <daECS/net/network.h>
+#include <dasModules/dasEvent.h>
+#include <ecs/scripts/netsqevent.h>
 #include <generic/dag_functionRef.h>
+#include <levelSplines/levelSplines.h>
+#include <render/dasModules/bvh.h>
 
 const char *gameproj::game_telemetry_name() { return nullptr; }
 
-bool NEED_DAS_AOT_COMPILE = false; // AOT compiler tool itself doesn't load AOT-compiled scripts at runtime
+bool NEED_DAS_AOT_COMPILE = false; // AOT compiler tool itself doesn't load
+                                   // AOT-compiled scripts at runtime
 
 float dagor_game_act_time = 0.f;
-
-class StubTimeManager final : public ITimeManager
-{
-  double advance(float dt, float &) override { return 0.0; }
-  double getSeconds() const override { return 0.0; }
-  int getMillis() const override { return 0; }
-  int getAsyncMillis() const override { return 0; }
-  int getType4CC() const override { return 0; }
-};
 
 void auth_get_country_code(ecs::EntityManager &, eastl::string &) { G_ASSERT(0); }
 
@@ -44,13 +36,6 @@ int get_sync_millis() { G_ASSERT_RETURN(false, 0); }
 int get_async_millis() { G_ASSERT_RETURN(false, 0); }
 double advance_time(float, float &) { G_ASSERT_RETURN(false, 0.); }
 void reset_time_mgr(ITimeManager *) { G_ASSERT(0); }
-bool is_dummy_time() { G_ASSERT_RETURN(false, true); }
-ITimeManager &get_time_mgr()
-{
-  G_ASSERT(0);
-  static DummyTimeManager d;
-  return d;
-}
 
 std::uint32_t get_current_server_route_id() { G_ASSERT_RETURN(false, {}); }
 const char *get_server_route_host(std::uint32_t) { G_ASSERT_RETURN(false, {}); }
@@ -61,8 +46,6 @@ void send_echo_msg(uint32_t) { G_ASSERT(0); }
 bool is_server() { G_ASSERT_RETURN(false, false); }
 bool is_true_net_server() { G_ASSERT_RETURN(false, false); }
 bool has_network() { G_ASSERT_RETURN(false, false); }
-bool is_main_thread_network() { G_ASSERT_RETURN(false, true); }
-NetworkVariant network_variant() { return NetworkVariant::MainNet; }
 namespace net
 {
 bool is_this_thread_net_em_owner() { G_ASSERT_RETURN(false, true); }
@@ -153,8 +136,8 @@ void Player::resetSyncData() { G_ASSERT(0); }
 int Player::calcControlsTickDelta(PhysTickRateType, bool) { G_ASSERT_RETURN(false, 0); }
 } // namespace game
 
-#include "jsonUtils/jsonUtils.h"
 #include "jsonUtils/decodeJwt.h"
+#include "jsonUtils/jsonUtils.h"
 namespace jsonutils
 {
 bool decode_jwt_block(const char *, int, rapidjson::Document &, JwtCompressionType) { G_ASSERT_RETURN(false, false); }
@@ -320,6 +303,7 @@ void add_debug_text_mark(
 }
 
 void add_debug_text_mark(const Point3 &wp, const char *str, int length, float line_ofs, E3DCOLOR frame_color) { G_ASSERT(0); }
+void add_debug_multitext_label(const Point3 &, const char *, E3DCOLOR) { G_ASSERT(0); }
 
 bool check_action_precondition(ecs::EntityId, int) { G_ASSERT_RETURN(false, false); }
 
@@ -385,6 +369,8 @@ bool is_lens_only_zoom_enabled() { G_ASSERT_RETURN(false, false); }
 } // namespace camera_in_camera
 
 bool is_looking_into_optics_scope() { return false; }
+bool get_weapon_scope_view_dir(const Point3 &, Point3 &) { return false; }
+int get_sniper_scope_crosshair_node_id(const int64_t, const int) { return -1; }
 
 #include "main/gameLoad.h"
 namespace sceneload
@@ -527,7 +513,6 @@ Tab<TMatrix> get_points_on_road_route(
   G_ASSERT_RETURN(false, {});
 }
 
-
 #include <forceFeedback/forceFeedback.h>
 namespace force_feedback
 {
@@ -535,6 +520,10 @@ namespace rumble
 {
 void add_event(const EventParams &) { G_ASSERT(0); }
 } // namespace rumble
+namespace trigger_effect
+{
+void set(const HumanInput::TriggerEffectParam &) { G_ASSERT(0); }
+} // namespace trigger_effect
 }; // namespace force_feedback
 
 #ifdef __cplusplus
@@ -583,13 +572,12 @@ namespace uishared
 TMatrix view_tm, view_itm;
 }
 
-#include <daECS/scene/scene.h>
 #include <daECS/io/blk.h>
+#include <daECS/scene/scene.h>
 namespace ecs
 {
 InitOnDemand<SceneManager> g_scenes;
 }
-
 
 #include <render/rendererFeatures.h>
 class BaseTexture;
@@ -657,7 +645,6 @@ eastl::string get_loc_text(const char *) { G_ASSERT_RETURN(false, {}); }
 eastl::string get_lang() { G_ASSERT_RETURN(false, {}); }
 } // namespace embeddedupdater
 
-
 namespace blood_decals
 {
 void add_decal(Point3, Point3)
@@ -700,12 +687,10 @@ bool get_cpu_info(String &, String &, String &, String &, int &) { G_ASSERT_RETU
 bool get_video_info(String &, String &, String &) { G_ASSERT_RETURN(false, false); }
 } // namespace systeminfo
 
-
 namespace lagcatcher
 {
 void stop() { G_ASSERT(0); }
 } // namespace lagcatcher
-
 
 #include <projectiveDecals/projectiveDecals.h>
 
@@ -777,6 +762,7 @@ void dedicated_matching::notify_network_is_up() { G_ASSERT(0); }
 void dedicated_matching::on_level_loaded() { G_ASSERT(0); }
 void dedicated_matching::on_player_team_changed(matching::UserId, int) { G_ASSERT(0); }
 void dedicated_matching::player_kick_from_room(matching::UserId) { G_ASSERT(0); }
+void dedicated_matching::player_remove_from_room(matching::UserId) { G_ASSERT(0); }
 void dedicated_matching::ban_player_in_room(matching::UserId) { G_ASSERT(0); }
 void dedicated_matching::leave_room() { G_ASSERT(0); }
 int dedicated_matching::get_room_members_count() { G_ASSERT_RETURN(false, 0); }
@@ -848,15 +834,17 @@ ILagCompensationMgr &get_lag_compensation()
 
 #include "main/hostedServerLauncher.h"
 bool is_hosted_internal_server_active() { G_ASSERT_RETURN(false, false); }
-const char *get_hosted_internal_server_uid() { G_ASSERT_RETURN(false, ""); }
-const char *allocate_hosted_server_uid() { G_ASSERT_RETURN(false, ""); }
-void set_hosted_server_start_uid(const char *) { G_ASSERT(0); }
-const char *resolve_hosted_server_start_uid(const char *) { G_ASSERT_RETURN(false, ""); }
-void kill_internal_server_uid(const char *, bool) { G_ASSERT(0); }
-bool try_begin_hosted_server_start(const char *) { G_ASSERT_RETURN(false, false); }
+HostedServerUid get_hosted_internal_server_uid() { G_ASSERT_RETURN(false, HOSTED_SERVER_UID_NONE); }
+HostedServerUid allocate_hosted_server_uid() { G_ASSERT_RETURN(false, HOSTED_SERVER_UID_NONE); }
+void set_hosted_server_start_uid(HostedServerUid) { G_ASSERT(0); }
+HostedServerUid resolve_hosted_server_start_uid(HostedServerUid) { G_ASSERT_RETURN(false, HOSTED_SERVER_UID_NONE); }
+void kill_internal_server_uid(HostedServerUid, bool) { G_ASSERT(0); }
+bool try_begin_hosted_server_start(HostedServerUid) { G_ASSERT_RETURN(false, false); }
 void clear_hosted_server_start_pending() { G_ASSERT(0); }
 void cancel_scheduled_internal_server_start() { G_ASSERT(0); }
 bool is_hosted_server_start_pending() { G_ASSERT_RETURN(false, false); }
+void __cdecl default_hosted_work_status_callback(bool, const char *) {}
+void for_each_hosted_work_status(void (*)(const char *, void *), void *) {}
 
 #include <perFrameStat/perFrameStat.h>
 namespace benchmark_perframe_stat

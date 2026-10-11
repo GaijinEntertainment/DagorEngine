@@ -17,6 +17,13 @@ public:
     cubeScreenshotCfg = cube_screenshot_cfg;
   }
 
+  void showTab(bool cube_screenshot)
+  {
+    showWindow();
+    if (dialog)
+      dialog->selectTab(cube_screenshot);
+  }
+
 private:
   const char *getWindowId() const override { return WindowIds::MAIN_SETTINGS_SCREENSHOT; }
 
@@ -40,3 +47,5 @@ private:
   ScreenshotConfig *screenshotCfg = nullptr;
   ScreenshotConfig *cubeScreenshotCfg = nullptr;
 };
+
+void ec_show_screenshot_settings_dialog(bool cube_screenshot);

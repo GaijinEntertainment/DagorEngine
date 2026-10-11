@@ -11,6 +11,9 @@ require log
 require daslib/jobque_boost
 require daslib/das_source_formatter
 require daslib/strings_boost
+require daslib/lint_config
+require daslib/ast
+require daslib/rtti
 
 
 def private normalize_line_endings(text : string) : string {
@@ -70,6 +73,10 @@ def private collect_input_paths(args : array<string>; key : string; var paths : 
 def private collect_files(input_paths : array<string>; var cache : table<string; void?>; var files : array<string>) : bool {
     for (path in input_paths) {
         if (path |> ends_with(".das")) {
+            if (!fexist(path)) {
+                log::error("Unable to open '{path}'")
+                return false
+            }
             if (!cache |> key_exists(path)) {
                 cache.insert(path, null)
                 files |> push <| path
@@ -113,9 +120,215 @@ def private get_arg(args : array<string>; name : string; def_val : int = 0) : in
 }
 
 
+def private drop_excluded_files(args : array<string>; var files : array<string>) {
+    var excludeMasks : array<string>
+    collect_input_paths(args, "--exclude-mask", excludeMasks)
+    var idx = length(files) - 1
+    while (idx >= 0) {
+        let path = files[idx] |> replace("\\", "/")
+        for (rawMask in excludeMasks) {
+            var excludePath = rawMask |> replace("\\", "/")
+            if (excludePath |> starts_with("./")) {
+                excludePath = slice(excludePath, 2)
+            }
+            continue if (empty(excludePath))
+            if (path |> find(excludePath) >= 0) {
+                log::info("Excluding file '{path}' mask '{excludePath}'")
+                files |> erase(idx)
+                break
+            }
+        }
+        idx--
+    }
+}
+
+
+def private stripped_source_compiles(file, text : string) : bool {
+    // coordinating-thread only: the compiler is not reentrant across job threads
+    var compiles = false
+    var inscope access <- make_file_access("")
+    set_file_source(access, file, text)
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
+            compile_file(file, access, unsafe(addr(mg)), cop) $(ok; _program; _issues) {
+                compiles = ok
+            }
+        }
+    }
+    return compiles
+}
+
+
+def private format_one_strip_file(file : string; verify, verbose : bool; var verified : bool&; var strip_failures, stripped_count : int&) {
+    var before : string
+    var after : string
+    var open = false
+    fopen(file, "rb") $(fr) {
+        if (fr != null) {
+            fmap(fr) $(data) {
+                open = true
+                before = string(data)
+                after = format_source(data, true)
+            }
+        }
+    }
+    let diff_result = collect_diff(before, after)
+    let changed = diff_result.differ
+    if (!open) {
+        if (!fexist(file)) {
+            log::warn("'{file}' no longer exists, skipped")
+            return
+        }
+        log::info("-- {file}")
+        log::error("Unable to open '{file}'")
+        strip_failures++
+        return
+    }
+    if (verify) {
+        if (changed) {
+            log::error("Unformatted file '{file}'")
+            log::info(diff_result.log)
+            verified = false
+        }
+        return
+    }
+    if (!changed) {
+        log::info("-- {file}")
+        return
+    }
+    if (!stripped_source_compiles(file, after)) {
+        log::info("-- {file}")
+        log::error("Comment strip broke compilation of '{file}'; file left unchanged")
+        strip_failures++
+        return
+    }
+    var write = false
+    fopen(file, "wb") $(fw) {
+        if (fw != null) {
+            fwrite(fw, after)
+            write = true
+        }
+    }
+    if (write) {
+        let stripped = after != format_source_string(before, false)
+        log::info(stripped ? "++ {file} (comments stripped)" : "++ {file}")
+        if (stripped) {
+            stripped_count++
+        }
+        if (verbose) {
+            log::info(diff_result.log)
+        }
+    } else {
+        log::info("-- {file}")
+        log::error("Unable to open '{file}' for writing")
+        strip_failures++
+    }
+}
+
+
+def private format_one_file(file : string; verify, verbose, strip_comments : bool; var verified : bool&) {
+    // Runs on a job thread: formats `file` in place, or (under --verify) reports
+    // it as unformatted and clears `verified`.
+    var before : string
+    var after : string
+    var open = false
+    fopen(file, "rb") $(fr) {
+        if (fr != null) {
+            fmap(fr) $(data) {
+                open = true
+                before = string(data)
+                after = format_source(data, strip_comments)
+            }
+        }
+    }
+    let diff_result = collect_diff(before, after)
+    let changed = diff_result.differ
+    if (!open) {
+        if (!fexist(file)) {
+            log::warn("'{file}' no longer exists, skipped")
+            return
+        }
+        log::info("-- {file}")
+        log::error("Unable to open '{file}'")
+    } elif (verify) {
+        if (changed) {
+            log::error("Unformatted file '{file}'")
+            log::info(diff_result.log)
+            verified = false
+        }
+    } elif (!changed) {
+        log::info("-- {file}")
+    } else {
+        var write = false
+        fopen(file, "wb") $(fw) {
+            if (fw != null) {
+                fwrite(fw, after)
+                write = true
+            }
+        }
+        if (write) {
+            log::info("++ {file}")
+            if (verbose) {
+                log::info(diff_result.log)
+            }
+        } else {
+            log::info("-- {file}")
+            log::error("Unable to open '{file}' for writing")
+        }
+    }
+}
+
+
+def private drop_format_disabled_files(var files : array<string>) : array<FormatJob> {
+    var skipped : array<string>
+    var jobs <- partition_by_format_policy(files, skipped)
+    for (file in skipped) {
+        log::info("-- {file} (format_enabled = false)")
+    }
+    return <- jobs
+}
+
+def private run_format_jobs(var jobs : array<FormatJob>; threadsNum : int; verify, verbose : bool; args : array<string>; var verified : bool&; var strip_failures, stripped_count : int&) {
+    var plain_files : array<string>
+    var strip_files : array<string>
+    for (job in jobs) {
+        if (job.strip_comments) {
+            strip_files |> push(job.file)
+        } else {
+            plain_files |> push(job.file)
+        }
+    }
+    delete jobs
+
+    with_job_que() $ {
+        while (!empty(plain_files)) {
+            let batchNum = min(length(plain_files), threadsNum)
+            with_job_status(batchNum) $(status) {
+                for (_ in range(batchNum)) {
+                    let file = plain_files[length(plain_files) - 1]
+                    plain_files |> pop()
+                    unsafe {
+                        new_job <| @ capture(& verified, := args) {
+                            log::init_log(args)
+                            format_one_file(file, verify, verbose, false, verified)
+                            status |> notify_and_release
+                        }
+                    }
+                }
+                status |> join
+            }
+        }
+    }
+
+    for (file in strip_files) {
+        format_one_strip_file(file, verify, verbose, verified, strip_failures, stripped_count)
+    }
+}
+
+
 [export]
 def main() {
-    var args <- get_command_line_arguments()
+    let args <- get_command_line_arguments()
     log::init_log(args)
     let threadsNum = max(args |> get_arg("--t") <| get_total_hw_threads(), 1)
     let verify = args |> find_index("--verify") >= 0
@@ -129,9 +342,7 @@ def main() {
     var files : array<string>
     if (!collect_files(inputPaths, seen, files)) {
         log::error("Unable to collect files list\n")
-        unsafe {
-            fio::exit(1)
-        }
+        unsafe(fio::exit(1))
         return
     }
 
@@ -140,107 +351,43 @@ def main() {
     for (lf in listPaths) {
         if (!collect_files_from_list(lf, seen, files)) {
             log::error("Unable to collect files list\n")
-            unsafe {
-                fio::exit(1)
-            }
+            unsafe(fio::exit(1))
             return
         }
     }
     delete seen
 
-    var excludeMasks : array<string>
-    collect_input_paths(args, "--exclude-mask", excludeMasks)
-    var idx = length(files) - 1
-    while (idx >= 0) {
-        let path = files[idx]
-        for (excludePath in excludeMasks) {
-            if (path |> find(excludePath) >= 0) {
-                log::info("Excluding file '{path}' mask '{excludePath}'")
-                files |> erase(idx)
-                break
-            }
-        }
-        idx--
+    drop_excluded_files(args, files)
+
+    var jobs <- drop_format_disabled_files(files)
+
+    let filesNum = length(jobs)
+    var verified = true
+    var strip_failures = 0
+    var stripped_count = 0
+    run_format_jobs(jobs, threadsNum, verify, verbose, args, verified, strip_failures, stripped_count)
+
+    if (stripped_count > 0) {
+        log::verdict("comments were deleted from {stripped_count} file(s) — before committing, run the harvester agent over their strip diff (the '(comments stripped)' files above)")
     }
 
-    let filesNum = length(files)
-    var verified = true
-
-    with_job_que() $ {
-        while (!empty(files)) {
-            let batchNum = min(length(files), threadsNum)
-            with_job_status(batchNum) $(status) {
-                for (_ in range(batchNum)) {
-                    let file = files[length(files) - 1]
-                    files |> pop()
-                    unsafe {
-                        new_job <| @ capture(& verified, := args) {
-                            log::init_log(args)
-                            var before : string
-                            var after : string
-                            var open = false
-                            fopen(file, "rb") $(fr) {
-                                if (fr != null) {
-                                    fmap(fr) $(data) {
-                                        open = true
-                                        before = string(data)
-                                        after = format_source(data)
-                                    }
-                                }
-                            }
-                            let diff_result = collect_diff(before, after)
-                            let changed = diff_result.differ
-                            if (!open) {
-                                log::info("-- {file}")
-                                log::error("Unable to open '{file}'")
-                            } elif (verify) {
-                                if (changed) {
-                                    log::error("Unformatted file '{file}'")
-                                    log::info(diff_result.log)
-                                    verified = false
-                                }
-                            } elif (!changed) {
-                                log::info("-- {file}")
-                            } else {
-                                var write = false
-                                fopen(file, "wb") $(fw) {
-                                    if (fw != null) {
-                                        fwrite(fw, after)
-                                        write = true
-                                    }
-                                }
-                                if (write) {
-                                    log::info("++ {file}")
-                                    if (verbose) {
-                                        log::info(diff_result.log)
-                                    }
-                                } else {
-                                    log::info("-- {file}")
-                                    log::error("Unable to open '{file}' for writing")
-                                }
-                            }
-                            status |> notify_and_release
-                        }
-                    }
-                }
-                status |> join
-            }
-        }
+    if (strip_failures > 0) {
+        log::verdict("Failed! {strip_failures} file(s) not stripped in {time_dt_hr(get_time_usec(startTime))}")
+        unsafe(fio::exit(1))
+        return
     }
 
     if (verify) {
         if (verified) {
-            log::info("Verified! {filesNum} files in {time_dt_hr(get_time_usec(startTime))}")
+            log::verdict("Verified! {filesNum} files in {time_dt_hr(get_time_usec(startTime))}")
             return
         } else {
-            log::info("Verification failed! {filesNum} files in {time_dt_hr(get_time_usec(startTime))}")
-            unsafe {
-                fio::exit(1)
-            }
+            log::verdict("Verification failed! {filesNum} files in {time_dt_hr(get_time_usec(startTime))}")
+            unsafe(fio::exit(1))
         }
     }
 
-    log::info("Complete! {filesNum} files in {time_dt_hr(get_time_usec(startTime))}")
+    log::verdict("Complete! {filesNum} files in {time_dt_hr(get_time_usec(startTime))}")
 }
 
 // options debugger

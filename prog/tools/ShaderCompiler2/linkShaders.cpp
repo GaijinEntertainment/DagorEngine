@@ -25,6 +25,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_direct.h>
 #include <math/random/dag_random.h>
+#include <util/dag_finally.h>
 #include <EASTL/vector.h>
 #include <EASTL/algorithm.h>
 #include "assemblyShader.h"
@@ -1169,6 +1170,15 @@ static void link_shaders_fsh_and_vpr(ShadersBindump &bindump, Tab<int> &fsh_lnkt
     vpr_lnktbl[i] = ld_add_vprog(bindump.shadersVpr[i], bindump.shadersVprMetadata[i], upper, ctx);
 }
 
+RenderPassLinkTables link_render_pass_tables(ShadersBindump &shaders, shc::TargetContext &ctx)
+{
+  RenderPassLinkTables tbls{Tab<int>(tmpmem), Tab<int>(tmpmem)};
+  ctx.framebufferLayouts().link(shaders.framebuffer_layouts);
+  ctx.renderPasses().link(shaders.render_passes, ctx.renderPassGroups(), tbls.passes);
+  ctx.renderPassGroups().link(shaders.render_pass_groups, ctx.renderPasses(), tbls.passes, tbls.groups);
+  return tbls;
+}
+
 bool load_shaders_bindump(ShadersBindump &shaders, ShadersBindumpHeader &header, bindump::IReader &full_file_reader,
   shc::TargetContext &ctx)
 {
@@ -1267,6 +1277,8 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   // Link blocks
   ctx.blocks().link(shaders.state_blocks, stcode_lnktbl, dynamicCppStcodeRemappingTable);
 
+  const RenderPassLinkTables renderPassLnktbls = link_render_pass_tables(shaders, ctx);
+
   // load shaders
   ctx.storage().shaderClass.reserve(shaders.shaderClasses.size());
 
@@ -1288,8 +1300,6 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
 
     for (ShaderCode *code : classFromFile->code)
     {
-      int id;
-
       code->link(ctx);
 
       code->dynVariants.setContextRef(ctx);
@@ -1312,17 +1322,13 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
         if (pass.fsh >= 0)
         {
           G_ASSERT(pass.fsh < fsh_lnktbl.size());
-          id = fsh_lnktbl[pass.fsh];
-          pass.fsh = id;
-          G_ASSERTF(pass.fsh == id, "pass.fsh=%d  id=%d", pass.fsh, id);
+          pass.fsh = fsh_lnktbl[pass.fsh];
         }
 
         if (pass.vprog >= 0)
         {
           G_ASSERT(pass.vprog < vpr_lnktbl.size());
-          id = vpr_lnktbl[pass.vprog];
-          pass.vprog = id;
-          G_ASSERTF(pass.vprog == id, "pass.vprog=%d  id=%d", pass.vprog, id);
+          pass.vprog = vpr_lnktbl[pass.vprog];
         }
 
         if (pass.stcodeNo >= 0)
@@ -1377,6 +1383,19 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
         {
           G_ASSERT(pass.renderStateNo < renderStateLinkTable.size());
           pass.renderStateNo = renderStateLinkTable[pass.renderStateNo];
+        }
+
+        RenderPassOptInRef &optIn = pass.renderPassOptIn;
+        if (optIn.isGroup())
+        {
+          G_ASSERT(optIn.groupId < renderPassLnktbls.groups.size());
+          optIn.setGroup(renderPassLnktbls.groups[optIn.groupId]);
+        }
+        else if (optIn.hasOptIn())
+        {
+          G_ASSERT(optIn.passId < renderPassLnktbls.passes.size());
+          // no subpassIdx remap: shapes that link as equal have equal subpass order
+          optIn.setPass(renderPassLnktbls.passes[optIn.passId], optIn.subpassIdx);
         }
       }
 
@@ -1478,6 +1497,17 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
   shaders.intervals = eastl::move(ctx.globVars().getMutableIntervalList());
   shaders.empty_block = ctx.blocks().releaseEmptyBlock();
   shaders.state_blocks = ctx.blocks().release();
+  shaders.render_passes = ctx.renderPasses().release();
+  shaders.render_pass_groups = ctx.renderPassGroups().release();
+  shaders.framebuffer_layouts = ctx.framebufferLayouts().release();
+  FINALLY([&shaders] {
+    for (RenderPassObject *p : shaders.render_passes)
+      delete p;
+    for (RenderPassGroup *g : shaders.render_pass_groups)
+      delete g;
+    for (FramebufferLayoutObject *l : shaders.framebuffer_layouts)
+      delete l;
+  });
   shaders.shaderClasses = eastl::move(ctx.storage().shaderClass);
   shaders.renderStates = eastl::move(ctx.storage().renderStates);
 

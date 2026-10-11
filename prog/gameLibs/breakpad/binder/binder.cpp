@@ -107,6 +107,10 @@ static ExHndl *handler = NULL;
 static Context *context = NULL;
 
 #if _TARGET_PC_WIN
+#if !_M_ARM64
+static bool mh_initialized = false;
+#endif
+
 // Some microsoft CRT functions reset our exception filter by calling SetUnhandledExceptionFilter(NULL)
 // Prevent this behaviour by disabling SetUnhandledExceptionFilter() and making sure that no fastfail supported in order
 // to force exception reported
@@ -122,7 +126,14 @@ static BOOL WINAPI no_fastfail_IsProcessorFeaturePresent(DWORD pf)
 static void setup_crt_hooks()
 {
 #if !_M_ARM64
-  G_VERIFY(MH_Initialize() == MH_OK);
+  if (auto result = MH_Initialize(); result != MH_OK && result != MH_ERROR_ALREADY_INITIALIZED)
+  {
+    logerr("Breakpad could not initialize minhook, result=%d", result);
+    return;
+  }
+  else
+    mh_initialized = result == MH_OK;
+
   if (MH_CreateHookApi(L"kernelbase", "SetUnhandledExceptionFilter", &noop_SetUnhandledExceptionFilter, NULL) ==
       MH_ERROR_MODULE_NOT_FOUND)
     MH_CreateHookApi(L"kernel32", "SetUnhandledExceptionFilter", &noop_SetUnhandledExceptionFilter, NULL);
@@ -193,7 +204,11 @@ void shutdown()
   del_it(handler);
   del_it(context);
 #if _TARGET_PC_WIN && !_M_ARM64
-  MH_Uninitialize();
+  if (mh_initialized)
+  {
+    MH_Uninitialize();
+    mh_initialized = false;
+  }
 #endif
 }
 

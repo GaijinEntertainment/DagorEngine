@@ -70,6 +70,12 @@ namespace das {
         __forceinline unsigned int use_count() const { return 1; }
     };
 
+    //! frees one node its caller owns exclusively, ahead of the sweep; only that node - its children stay on the root
+    inline void gc_free_now ( gc_node * node ) {
+        node->gc_unlink();
+        delete node;
+    }
+
     // Optional diagnostic hook: given a node, write a short source location
     // ("file.das:line:col") into buf. Installed by the AST layer (ast_gc_report.cpp),
     // which alone can downcast to the concrete subclass and read its `at`. nullptr by

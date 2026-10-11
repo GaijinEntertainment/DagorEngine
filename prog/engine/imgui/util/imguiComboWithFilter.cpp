@@ -149,7 +149,7 @@ eastl::optional<ImGuiDagor::ComboInfo> ImGuiDagor::BeginComboWithFilter(const ch
 
   const float arrow_size = (flags & ImGuiComboFlags_NoArrowButton) ? 0.0f : ImGui::GetFrameHeight();
   const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
-  const float expected_w = width + arrow_size + style.ScrollbarSize + 3. * style.WindowPadding.x;
+  const float expected_w = width + arrow_size + style.ScrollbarSize + 3.f * style.WindowPadding.x;
   const float w = (flags & ImGuiComboFlags_NoPreview) ? arrow_size : expected_w;
   const ImRect frame_bb(window->DC.CursorPos,
     ImVec2(window->DC.CursorPos.x + w, window->DC.CursorPos.y + label_size.y + style.FramePadding.y * 2.0f));

@@ -45,7 +45,7 @@ struct DecCreationCounterOnDestroy
   unsigned *entCreationCounter;
   uint8_t gen;
   DecCreationCounterOnDestroy(unsigned &cnt) : entCreationCounter(&cnt), gen(cnt >> 24) { cnt++; }
-  DecCreationCounterOnDestroy(DecCreationCounterOnDestroy &&rhs)
+  DecCreationCounterOnDestroy(DecCreationCounterOnDestroy &&rhs) noexcept
   {
     entCreationCounter = rhs.entCreationCounter;
     gen = rhs.gen;
@@ -540,7 +540,8 @@ void SceneManager::removeScene(Scene::SceneId id, const OnEntityDeleteCallback &
 
     const uint32_t importDepth = it->importDepth;
     auto lastChild = it + 1;
-    while (lastChild != scene.allScenes.end() && lastChild->importDepth > importDepth)
+    while (
+      lastChild != scene.allScenes.end() && lastChild->importDepth > importDepth && lastChild->parent != Scene::SceneRecord::NO_PARENT)
     {
       ++lastChild;
     }

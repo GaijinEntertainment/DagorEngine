@@ -1,36 +1,27 @@
-local function updateI(particles)
-	for i,p in ipairs(particles) do
-      p.pos.x=p.pos.x+p.vel.x
-      p.pos.y=p.pos.y+p.vel.y
-      p.pos.z=p.pos.z+p.vel.z
-	end
+--!strict
+local profile = require("./profile")
+
+type Particle = { x: number, y: number, z: number, vx: number, vy: number, vz: number }
+
+local COUNT = 50000
+local PASSES = 100
+
+local swarm: { Particle } = table.create(COUNT)
+for i = 0, COUNT - 1 do
+  swarm[i + 1] = { x = i + 0.1, y = i + 0.2, z = i + 0.3, vx = 1.1, vy = 2.1, vz = 3.1 }
 end
 
-local function update_several_timesI(particles, count)
-  for i = 0, count  do
-     updateI(particles)
+local function move(particles: { Particle }): string
+  for _ = 1, PASSES do
+    for _, p in particles do
+      p.x += p.vx
+      p.y += p.vy
+      p.z += p.vz
+    end
   end
+  return string.format("%.6f", particles[COUNT].z)
 end
 
-
-particles = {}
-for i = 1, 50000 do
-	table.insert(particles,
-		{
-			pos = {x = i + 0.1, y = i + 0.2, z = i + 0.3},
-			vel = {x = 1.1, y = 2.1,  z = 3.1}
-		})
-end
-
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
-  end
-  return res
-end
-
-print(string.format("\"particles kinematics\", %.8f, 20", profile_it(20, function () update_several_timesI(particles, 100) end)))
+profile.benchmark("particles kinematics", 20, function()
+  return move(swarm)
+end)

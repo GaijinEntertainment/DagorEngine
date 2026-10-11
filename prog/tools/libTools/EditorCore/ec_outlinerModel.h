@@ -384,11 +384,14 @@ public:
     if (const DataBlock *expansionState = state.getBlockByName("expansion"))
       loadTreeExpansionState(*expansionState, rootTreeItem);
 
-    if (const char *savedTextToSearch = state.getStr("textToSearch"))
-    {
+    const char *savedTextToSearch = state.getStr("textToSearch");
+    if (savedTextToSearch)
       textToSearch = savedTextToSearch;
+
+    showSelectedOnly = state.getBool("showSelectedOnly", false);
+
+    if (savedTextToSearch || showSelectedOnly)
       onFilterChanged(tree_interface);
-    }
   }
 
   void saveOutlinerState(DataBlock &state) const
@@ -398,6 +401,9 @@ public:
 
     if (!textToSearch.empty())
       state.addStr("textToSearch", textToSearch);
+
+    if (showSelectedOnly)
+      state.addBool("showSelectedOnly", true);
   }
 
   void fillTypesAndLayers(IOutliner &tree_interface)
@@ -598,8 +604,17 @@ public:
 
   void onFilterChanged(IOutliner &tree_interface)
   {
+    selectionFilterDirty = false;
+
     for (ObjectTypeTreeItem *objectTypeTreeItem : objectTypes)
       updateSearchMatch(tree_interface, *objectTypeTreeItem);
+  }
+
+  // Call it each frame before drawing the tree, otherwise the "Selected" filter shows the previous selection.
+  void updateSelectionFilter(IOutliner &tree_interface)
+  {
+    if (selectionFilterDirty)
+      onFilterChanged(tree_interface);
   }
 
   void addNewLayer(IOutliner &tree_interface, int type, const char *name)
@@ -642,10 +657,16 @@ public:
       --count;
 
     G_ASSERT(count >= 0);
+
+    // Ctrl+A and the range selection code (applySelectionRequests()) read the filtered tree while they change the
+    // selection. Updating the filter during that code would change the list they are reading.
+    if (showSelectedOnly)
+      selectionFilterDirty = true;
   }
 
   bool isAnyTypeSelected() const { return selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::ObjectType] > 0; }
   bool isAnyLayerSelected() const { return selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::Layer] > 0; }
+  bool isAnyObjectSelected() const { return selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::Object] > 0; }
 
   // Returns with the number of selected item types if only that item type is selected and nothing else.
   int getExclusiveSelectionCount(OutlinerTreeItem::ItemType item_type) const
@@ -871,6 +892,17 @@ public:
       onObjectAssetNameChanged(tree_interface, *it->first);
   }
 
+  bool getShowSelectedOnly() const { return showSelectedOnly; }
+
+  void setShowSelectedOnly(IOutliner &tree_interface, bool show)
+  {
+    if (show == showSelectedOnly)
+      return;
+
+    showSelectedOnly = show;
+    onFilterChanged(tree_interface);
+  }
+
   dag::Vector<RenderableEditableObject *> getSelectedObjects() const
   {
     dag::Vector<RenderableEditableObject *> objects;
@@ -1023,6 +1055,8 @@ private:
   OutlinerTreeItem *focusedTreeItem = nullptr; // Use getSelectionHead() instead!
   int selectionCountPerItemType[(int)OutlinerTreeItem::ItemType::Count];
   bool showAssetNameUnderObjects = true;
+  bool showSelectedOnly = false;
+  bool selectionFilterDirty = false;
   dag::Vector<OutlinerTreeItem *> linearizedTreeItems;
   bool linearizedTreeItemsDirty = false;
 };

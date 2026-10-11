@@ -26,6 +26,9 @@ hlsl(code) {
   //#define BVH_TLAS_BOXES 0
   //#define BVH_TLAS_BOXES_SHADOW 0
   #define BVH_TLAS_BOXES_SHADOW_THRESHOLD 1 // if ray originated from more than 10*10 distance from instance, it will be treated as box
+  #ifndef BVH_TLAS_BOX_DIST_MUL
+  #define BVH_TLAS_BOX_DIST_MUL 1 // this shader's multiple of the model's box distance
+  #endif
   #define SHADOW_OFFSET_ORIGIN_PART 0.004
   // Mirrored instances (det<0) encode the reflection in the sign bit of scale.x; the CPU decoder
   // (decodeLeafTransform) honors it. The GPU decode ignores it by default, because SWRT shadows
@@ -41,12 +44,13 @@ hlsl(code) {
     float3x3 invTm;
     uint maxScale__distToTreatAsBox;
     uint leafDataOffset; // for deferred blasStart/blasSize reads
+    bool lightTransparent; // the sign of scale.y; the shadow walk skips the instance under SWRT_SHADOW_SKIP_LEAF
     #ifdef TLAS_ADDITIONAL_LEAF_DATA_DEFINED
     TLASAdditionalLeafData additional;
     #endif
   };
   float get_leaf_max_scale(DecodedTLASLeaf l) {return f16tof32(l.maxScale__distToTreatAsBox);}
-  float get_leaf_box_dist(DecodedTLASLeaf l) {return (l.maxScale__distToTreatAsBox>>16);}
+  float get_leaf_box_dist(DecodedTLASLeaf l) {return (l.maxScale__distToTreatAsBox>>16) * BVH_TLAS_BOX_DIST_MUL;}
   bool is_leaf_box(DecodedTLASLeaf l) {return (l.maxScale__distToTreatAsBox>>16) == 0;}
 
   DecodedTLASLeaf decode_tlas_leaf(ByteAddressBuffer tlas_data, uint offset)
@@ -56,6 +60,8 @@ hlsl(code) {
     ret.leafDataOffset = offset;
     ret.origin = asfloat(loadBuffer3(tlas_data, offset));
     ret.scale = asfloat(loadBuffer3(tlas_data, offset + 3*4));
+    ret.lightTransparent = asuint(ret.scale.y) >> 31;
+    ret.scale.y = abs(ret.scale.y);
     ret.invTm[0] = asfloat(loadBuffer3(tlas_data, offset + 6*4));
     ret.invTm[1] = asfloat(loadBuffer3(tlas_data, offset + 9*4));
     #if BVH_TLAS_DECODE_REFLECTION
@@ -69,8 +75,8 @@ hlsl(code) {
     ret.maxScale__distToTreatAsBox = loadBuffer(tlas_data, offset + 12*4);
     // blasStart (offset+13*4) and blasSize (offset+14*4) are read on demand via load_leaf_blas_start/size
     #ifdef TLAS_ADDITIONAL_LEAF_DATA_DEFINED
-    // boxes don't use blasStart/blasSize, so additional data can start 8 bytes earlier
-    decode_tlas_leaf_additional(tlas_data, offset + (is_leaf_box(ret) ? 13*4 : 15*4), ret.additional);
+    // a box leaf keeps only the box user word of blasStart/blasSize, so its additional data starts 4 bytes earlier
+    decode_tlas_leaf_additional(tlas_data, offset + (is_leaf_box(ret) ? 14*4 : 15*4), ret.additional);
     #endif
     return ret;
   }
@@ -88,7 +94,9 @@ hlsl(code) {
     return blasY / scale.y + origin.y;
   }
 
-  bool rayTLASLeaf(ByteAddressBuffer tlas_data, ByteAddressBuffer blas_data, uint offset, float3 rayOrigin, float3 rayDir, inout float t, inout float2 bCoord, inout float3 triNorm, inout int complex)
+  // leaf_user: as rayBLAS; a box has no leaves and reads 0, or under SWRT_TLAS_BOX_USER the word at +52 of its
+  // leaf (RenderSWRT::tlasBoxUser must write it).
+  bool rayTLASLeaf(ByteAddressBuffer tlas_data, ByteAddressBuffer blas_data, uint offset, float3 rayOrigin, float3 rayDir, inout float t, inout float2 bCoord, inout float3 triNorm, inout int complex, inout uint leaf_user)
   {
     DecodedTLASLeaf leaf = decode_tlas_leaf(tlas_data, offset);
     rayOrigin -= leaf.origin;
@@ -106,6 +114,13 @@ hlsl(code) {
       //fixme: use local space size!
         BRANCH
         if (!is_leaf_box(leaf) && length_sq(rayOrigin) < OPTIMIZE_SMALL_BOXES_SQ_MUL*get_leaf_max_scale(leaf))
+      #elif SWRT_LEAF_ANY_HIT
+        BRANCH
+        if (!is_leaf_box(leaf) && length_sq(rayOriginTr) <= pow2(get_leaf_box_dist(leaf)))
+      #elif defined(SWRT_LEAF_BOX_HALF_EXTENT)
+        // constraint: get_leaf_max_scale is the largest half extent of the instance in metres
+        BRANCH
+        if (!is_leaf_box(leaf) && get_leaf_max_scale(leaf) > SWRT_LEAF_BOX_HALF_EXTENT)
       #else
         BRANCH
         if (!is_leaf_box(leaf))
@@ -115,15 +130,27 @@ hlsl(code) {
     #endif
     {
       uint2 blasStartSize = load_leaf_blas_start_size(tlas_data, leaf);
-      hit = rayBLAS(blas_data, rayOriginTr, rayDirTr, rayDirTrInv, blasStartSize.x, blasStartSize.y, t, localTriNorm, bCoord, complex);
+      hit = rayBLAS(blas_data, rayOriginTr, rayDirTr, rayDirTrInv, blasStartSize.x, blasStartSize.y, t, localTriNorm, bCoord, complex, leaf_user);
       BRANCH
       if (!hit)
         return false;
     } else
+    {
       t = localT;
+      #ifdef SWRT_TLAS_BOX_USER
+      leaf_user = is_leaf_box(leaf) ? loadBuffer(tlas_data, leaf.leafDataOffset + 13*4) & QUAD_LEAF_USER_MASK : 0;
+      #else
+      leaf_user = 0;
+      #endif
+    }
     float3x3 tm = transpose(leaf.invTm);
     triNorm = transform(tm, localTriNorm*leaf.scale).xyz;
     return true;
+  }
+  bool rayTLASLeaf(ByteAddressBuffer tlas_data, ByteAddressBuffer blas_data, uint offset, float3 rayOrigin, float3 rayDir, inout float t, inout float2 bCoord, inout float3 triNorm, inout int complex)
+  {
+    uint leafUser = 0;
+    return rayTLASLeaf(tlas_data, blas_data, offset, rayOrigin, rayDir, t, bCoord, triNorm, complex, leafUser);
   }
 
   bool rayTLAS(ByteAddressBuffer tlas_data, ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv, float rayMaxT, out float t, inout float3 triNorm, inout float2 bCoord, out int complex)
@@ -307,6 +334,10 @@ hlsl(code) {
   bool rayShadowTLASLeaf(ByteAddressBuffer tlas_data, ByteAddressBuffer blas_data, uint offset, float3 rayOrigin, float3 rayDir)
   {
     DecodedTLASLeaf leaf = decode_tlas_leaf(tlas_data, offset);
+    #ifdef SWRT_SHADOW_SKIP_LEAF
+    if (leaf.lightTransparent)
+      return false;
+    #endif
     rayOrigin -= leaf.origin;
 
     float3 rayOriginTr = transform(leaf.invTm, rayOrigin + rayDir*SHADOW_OFFSET_ORIGIN_PART*get_leaf_max_scale(leaf))*leaf.scale;
@@ -348,6 +379,10 @@ hlsl(code) {
     float rayMaxT)
   {
     DecodedTLASLeaf leaf = decode_tlas_leaf(tlas_data, offset);
+    #ifdef SWRT_SHADOW_SKIP_LEAF
+    if (leaf.lightTransparent)
+      return false;
+    #endif
     rayOrigin -= leaf.origin;
 
     float3 rayOriginTr = transform(leaf.invTm, rayOrigin + rayDir*SHADOW_OFFSET_ORIGIN_PART*get_leaf_max_scale(leaf))*leaf.scale;

@@ -10,7 +10,7 @@ module ast_boost shared public
 //! macro authors: ``[macro]``, ``[reader_macro]``, ``[call_macro]``,
 //! ``[function_macro]``, ``[block_macro]``, ``[variant_macro]``,
 //! ``[tag_function]``, ``[tag_structure]``, ``[infer_macro]``,
-//! ``[optimization_macro]``, ``[pre_infer_macro]``, ``[post_infer_macro]``,
+//! ``[optimization_macro]``, ``[post_rewrite_macro]``,
 //! ``[lint_macro]``, ``[global_lint_macro]`` and ``[macro_function]``.
 
 require daslib/rtti
@@ -115,8 +115,6 @@ def emplace_new(var vec : dasvector`ptr`Expression; var ptr : Expression?) {
     emplace(vec, ptr)
 }
 
-// add_ptr_ref for Expression? is in ast.das (needs to be visible to all macro modules)
-
 def emplace_new(var vec : VectorTypeDeclPtr; var ptr : TypeDecl?) {
     //! Emplaces a smart pointer to a TypeDecl into a vector.
     emplace(vec, ptr)
@@ -154,7 +152,7 @@ def override_method(var str : StructurePtr; name, funcName : string) : bool {
 
 class MacroMacro : AstFunctionAnnotation {
     //! Function annotation that guards the function body with an is_compiling_macros check.
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         //! Wraps function body in an `is_compiling_macros` guard and marks program as needing macro module.
         compiling_program().flags.needMacroModule = true
         func.flags.macroInit = true
@@ -169,7 +167,7 @@ class MacroMacro : AstFunctionAnnotation {
 
 class TagFunctionAnnotation : AstFunctionAnnotation {
     //! Function annotation that validates tag_function arguments are boolean tag names.
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         //! Validates that tag_function annotation arguments are boolean tag names.
         for (arg in args) {
             let val = get_annotation_argument_value(arg)
@@ -184,7 +182,7 @@ class TagFunctionAnnotation : AstFunctionAnnotation {
 
 class TagStructureAnnotation : AstStructureAnnotation {
     //! Structure annotation that validates tag_structure arguments are boolean tag names.
-    def override apply(var str : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var str : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         //! Validates that tag_structure annotation arguments are boolean tag names.
         for (arg in args) {
             let val = get_annotation_argument_value(arg)
@@ -257,6 +255,20 @@ def setup_tag_annotation(name, tag : string; var classPtr) {
     var ann = make_function_annotation(name, classPtr)
     apply_tag_annotation(tag, ann)
     this_module() |> add_function_annotation(ann)
+}
+
+def peel_distinct(typ : TypeDeclPtr) : TypeDeclPtr const {
+    //! The type under every distinct level; a non-distinct type comes back as is.
+    if (typ.baseType == Type.tDistinct && typ.firstType != null) {
+        return peel_distinct(typ.firstType)
+    }
+    return typ
+}
+
+def table_key_storage_base_type(keyT : TypeDeclPtr) : Type {
+    //! The base type a table key is stored and hashed as: a distinct peels to its underlying type, a handled type to its value type.
+    let storageT = peel_distinct(keyT)
+    return storageT.isWorkhorseType ? storageT.baseType : get_underlying_value_type(storageT).baseType
 }
 
 def find_unique_function(mod : Module?; name : string; canfail : bool = false) {
@@ -378,7 +390,7 @@ class SetupAnyAnnotation : AstStructureAnnotation {
         //! Populates the annotation setup call with the structure name argument.
         emplace_new(cll.arguments, new ExprConstString(at = st.at, value := name))
     }
-    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var st : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         //! Registers the annotated structure as a macro by generating the setup call.
         let argName = args |> find_arg("name")
         if (argName is nothing) {
@@ -481,16 +493,14 @@ class SetupDirtyInferMacro : SetupAnyAnnotation {
     override annotation_function_call : string = "add_new_dirty_infer_macro"
 }
 
-class SetupPreInferMacro : SetupAnyAnnotation {
-    //! Registers annotated structure as a pre-infer macro: runs before every
-    //! (re-)inference pass, on a tree a macro may have just made invalid.
-    override annotation_function_call : string = "add_new_pre_infer_macro"
+class SetupPostRewriteMacro : SetupAnyAnnotation {
+    override annotation_function_call : string = "add_new_post_rewrite_macro"
 }
 
-class SetupPostInferMacro : SetupAnyAnnotation {
-    //! Registers annotated structure as a post-inference macro: runs once inference is
-    //! done, before lint / folding / codegen, where every expression type is final.
-    override annotation_function_call : string = "add_new_post_infer_macro"
+class SetupPostCompileMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a post-compile macro: runs once the module is
+    //! compiled and its gc root collected, so every node it still owns is a live one.
+    override annotation_function_call : string = "add_new_post_compile_macro"
 }
 
 class SetupLintMacro : SetupAnyAnnotation {
@@ -517,7 +527,7 @@ class TagFunctionMacro : SetupAnyAnnotation {
         emplace_new(cll.arguments, new ExprConstString(at = st.at, value := name))
         emplace_new(cll.arguments, new ExprConstString(at = st.at, value := tag))
     }
-    def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var st : StructurePtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         //! Validates the tag argument and registers the structure as a tag function macro.
         let argTag = args |> find_arg("tag")
         if (argTag is nothing) {
@@ -579,8 +589,6 @@ def private makeAsOrSafeAs(expr; var enull : Expression?) {
     return tri
 }
 
-// replacing ExprIsVariant(value,name) => ExprOp2('==",value.__rtti,"name")
-// if value is ast_core::Expr*
 class BetterRttiVisitor : AstVariantMacro {
     //! Variant macro that optimizes `is` checks on AST expression types to __rtti string comparison.
     def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : ExprIsVariant?) : Expression? {
@@ -711,31 +719,25 @@ def private walk_and_convert_dim(data : uint8 const?; info : TypeDeclPtr; at : L
     }
     var mkArr = new ExprMakeArray(at = at, makeType = clone_type(info))
     for (x in range(total)) {
-        unsafe {
-            var elem = walk_and_convert(data + stride * x, einfo, at)
-            emplace(mkArr.values, elem)
-        }
+        var elem = walk_and_convert(unsafe(data + stride * x), einfo, at)
+        emplace(mkArr.values, elem)
     }
     return mkArr
 }
 
 def private walk_and_convert_pointer(data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : Expression? {
-    unsafe {
-        let pdata = *(reinterpret<uint8 const ??>(data))
-        var elem = walk_and_convert(pdata, info.firstType, at)
-        var mkAsc = new ExprAscend(at = at, subexpr = elem)
-        return mkAsc
-    }
+    let pdata = *(unsafe(reinterpret<uint8 const ??>(data)))
+    var elem = walk_and_convert(pdata, info.firstType, at)
+    var mkAsc = new ExprAscend(at = at, subexpr = elem)
+    return mkAsc
 }
 
 def private walk_and_convert_tuple(data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : Expression? {
     var mkArr = new ExprMakeTuple(at = at, recordType = clone_type(info))
     for (idx in range(info.argTypes |> length)) {
         let offset = get_tuple_field_offset(info, idx)
-        unsafe {
-            var elem = walk_and_convert(data + offset, info.argTypes[idx], at)
-            emplace(mkArr.values, elem)
-        }
+        var elem = walk_and_convert(unsafe(data + offset), info.argTypes[idx], at)
+        emplace(mkArr.values, elem)
     }
     return mkArr
 }
@@ -746,15 +748,13 @@ def private walk_and_convert_structure(data : uint8 const?; info : TypeDeclPtr; 
     var mkS = new MakeStruct(uninitialized)
     for (x in stype.fields) {
         if (x.annotation |> find_arg("do_not_convert") is nothing) {
-            unsafe {
-                let fdata = data + x.offset
-                var elem = walk_and_convert(fdata, x._type, at)
-                var mkF = new MakeFieldDecl(at = at, name := x.name, value = elem)
-                if (!x._type.canCopy) {
-                    mkF.flags = MakeFieldDeclFlags.moveSemantics
-                }
-                emplace_new(*mkS, mkF)
+            let fdata = unsafe(data + x.offset)
+            var elem = walk_and_convert(fdata, x._type, at)
+            var mkF = new MakeFieldDecl(at = at, name := x.name, value = elem)
+            if (!x._type.canCopy) {
+                mkF.flags = MakeFieldDeclFlags.moveSemantics
             }
+            emplace_new(*mkS, mkF)
         }
     }
     emplace(mkStruct.structs, mkS)
@@ -811,7 +811,7 @@ def private walk_and_convert_basic(data : uint8 const?; info : TypeDeclPtr; at :
         } elif (info.baseType == Type.tFloat16) {
             return new ExprConstFloat16(at = at, value = *reinterpret<float16?>(data))
         } elif (info.baseType == Type.tInt) {
-            return new ExprConstInt(at = at, value = *reinterpret<int?>(data))
+            return new ExprConstInt(at = at, value = *reinterpret<int?>(data), isConstLiteral = true)
         } elif (info.baseType == Type.tInt64) {
             return new ExprConstInt64(at = at, value = *reinterpret<int64?>(data))
         } elif (info.baseType == Type.tUInt8) {
@@ -819,8 +819,8 @@ def private walk_and_convert_basic(data : uint8 const?; info : TypeDeclPtr; at :
         } elif (info.baseType == Type.tUInt16) {
             return new ExprConstUInt16(at = at, value = *reinterpret<uint16?>(data))
         } elif (info.baseType == Type.tUInt) {
-            return new ExprConstUInt(at = at, value = *reinterpret<uint?>(data))
-        }  elif (info.baseType == Type.tUInt64) {
+            return new ExprConstUInt(at = at, value = *reinterpret<uint?>(data), isConstLiteral = true)
+        } elif (info.baseType == Type.tUInt64) {
             return new ExprConstUInt64(at = at, value = *reinterpret<uint64?>(data))
         } elif (info.baseType == Type.tFloat) {
             return new ExprConstFloat(at = at, value = *reinterpret<float?>(data))
@@ -868,7 +868,7 @@ def private walk_and_convert_enumeration(data : uint8 const?; info : TypeDeclPtr
     panic("can't find name of enum value {eval} in {describe(info)}") if (name == "")
     return new ExprConstEnumeration(
         enumType := unsafe(reinterpret<Enumeration?>(info.enumType)),
-        value := name)
+        value := name, at = at)
 }
 
 def walk_and_convert(data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : Expression? {
@@ -879,14 +879,12 @@ def walk_and_convert(data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : E
     } elif (info.baseType == Type.tArray) {
         return walk_and_convert_array(data, info, at)
     } elif (info.baseType == Type.tPointer) {
-        unsafe {
-            if (*reinterpret<uint8 const ??>(data) == null) {
-                return new ExprConstPtr(at = at)
-            } elif (info.firstType == null || info.firstType.isVoid) {
-                return new ExprConstPtr(at = at)
-            } else {
-                return walk_and_convert_pointer(data, info, at)
-            }
+        if (*(unsafe(reinterpret<uint8 const ??>(data))) == null) {
+            return new ExprConstPtr(at = at)
+        } elif (info.firstType == null || info.firstType.isVoid) {
+            return new ExprConstPtr(at = at)
+        } else {
+            return walk_and_convert_pointer(data, info, at)
         }
     } elif (info.baseType == Type.tStructure) {
         return walk_and_convert_structure(data, info, at)
@@ -931,6 +929,18 @@ def convert_to_expression(value : auto ==const) {
     return <- convert_to_expression(value, LineInfo())
 }
 
+def find_annotation(var fn : Function?; ann_name : string) : AnnotationDeclaration? {
+    if (fn == null) {
+        return null
+    }
+    for (ann in fn.annotations) {
+        if (ann != null && ann.annotation.name == ann_name) {
+            return ann
+        }
+    }
+    return null
+}
+
 def find_annotation(mod_name, ann_name : string) : Annotation const? {
     //! Finds an annotation by module name and annotation name in the compiling program.
     var mod = find_compiling_module(mod_name)
@@ -938,9 +948,7 @@ def find_annotation(mod_name, ann_name : string) : Annotation const? {
     var ann : Annotation const?
     module_for_each_annotation(mod) $(value) {
         if (value.name == ann_name) {
-            unsafe {
-                ann = addr(value)
-            }
+            ann = unsafe(addr(value))
         }
     }
     return ann
@@ -951,7 +959,7 @@ def append_annotation(mod_name, ann_name : string; args : array< tuple<argname :
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var decl = new AnnotationDeclaration(uninitialized)
-    unsafe { decl.annotation = reinterpret<Annotation?>(ann); }
+    decl.annotation = unsafe(reinterpret<Annotation?>(ann))
     for (argP in args) {
         let argName & = argP.argname
         let arg & = argP.argvalue
@@ -975,7 +983,7 @@ def append_annotation(mod_name, ann_name : string) {
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var decl = new AnnotationDeclaration(uninitialized)
-    unsafe { decl.annotation = reinterpret<Annotation?>(ann); }
+    decl.annotation = unsafe(reinterpret<Annotation?>(ann))
     return decl
 }
 
@@ -1149,8 +1157,8 @@ def private setup {
         add_new_structure_annotation("infer_macro", new SetupInferMacro())
         add_new_structure_annotation("dirty_infer_macro", new SetupDirtyInferMacro())
         add_new_structure_annotation("optimization_macro", new SetupOptimizationMacro())
-        add_new_structure_annotation("pre_infer_macro", new SetupPreInferMacro())
-        add_new_structure_annotation("post_infer_macro", new SetupPostInferMacro())
+        add_new_structure_annotation("post_rewrite_macro", new SetupPostRewriteMacro())
+        add_new_structure_annotation("post_compile_macro", new SetupPostCompileMacro())
         add_new_structure_annotation("lint_macro", new SetupLintMacro())
         add_new_structure_annotation("global_lint_macro", new SetupGlobalLintMacro())
         add_new_variant_macro("better_rtti_in_expr", new BetterRttiVisitor())
@@ -1170,8 +1178,6 @@ def public function_to_type(fn : FunctionPtr) : TypeDeclPtr {
     }
     return <- td
 }
-
-// visit_finally(blk : ExprBlock?; adapter) - now calls C++ directly, wrapper removed (ExprBlock? == ExprBlock*)
 
 def public isCMRES(fun : FunctionPtr) : bool {
     //! Returns true if the function returns by copy or move (CMRES).
@@ -1303,7 +1309,6 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
             }
         }
     }
-                // writer |> write(" {name}={describe(xtype)}")
     for_each_field(*ann) $(name, _cppName, xtype, offset) {
         if (offset != -1u) {
             let tstr = describe(xtype)
@@ -1311,7 +1316,7 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
             unsafe {
                 p8 = (reinterpret<int8?>(expr)) + int(offset)
             }
-            if (tstr == "$::dasvector`ptr`Expression") {
+            if (tstr |> ends_with("::dasvector`ptr`Expression")) {
                 let pv = unsafe(reinterpret<dasvector`ptr`Expression?>(p8))
                 if (!empty(*pv)) {
                     let ts = repeat("  ", tabs + 2)
@@ -1325,7 +1330,7 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
                     }
                     writer |> write("]")
                 }
-            } elif (tstr == "$::dasvector`ptr`Variable") {
+            } elif (tstr |> ends_with("::dasvector`ptr`Variable")) {
                 let pv = unsafe(reinterpret<dasvector`ptr`Variable?>(p8))
                 if (!empty(*pv)) {
                     let ts = repeat("  ", tabs + 2)
@@ -1355,9 +1360,6 @@ def public debug_expression(expr : Expression?; deFlags : DebugExpressionFlags =
         debug_expression_impl(writer, expr, deFlags, 0)
     }
 }
-
-// debug_expression(Expression?) and describe(Expression?) overloads removed —
-// the main overloads now take Expression? directly after gc_node migration
 
 def getVectorElementCount(bt : Type) {
     //! Returns the number of elements in a vector base type (2, 3, or 4), or 0 if not a vector.
@@ -1397,4 +1399,135 @@ def getVectorOffset(bt : Type; ident : string) {
     }
     let count = getVectorElementCount(bt)
     return ofs >= count ? -1 : ofs
+}
+
+class private CarrierProof : AstVisitor {
+    //! Walks one carrier and keeps the first reason its frame is not proven clean.
+    why : string
+    statements : table<Expression?>
+    block_depth : int
+    dirty_for_depth : int
+    for_dirty : array<bool>
+
+    def fail(reason : string) {
+        if (empty(why)) {
+            why = reason
+        }
+    }
+    def check_variable(variable : VariablePtr; kind : string) {
+        if (variable._type != null && (variable._type.flags.ref || variable._type.gcFlags != 0)) {
+            fail("{kind} '{variable.name}' of type {describe(variable._type)} holds a value the collector must walk")
+        }
+    }
+    def check_call(expr : Expression?; callee : Function?) {
+        if (callee == null || !callee.moreFlags2.needCallerStackFrame) return
+        if (block_depth != 0) {
+            fail("a block reaches '{callee.name}', and whatever invokes the block has a frame the proof can't see")
+        } elif (dirty_for_depth != 0) {
+            fail("'{callee.name}' is called inside a for loop whose source keeps an iterator the collector can't see")
+        } elif (!(statements |> key_exists(expr))) {
+            fail("the call to '{callee.name}' sits inside an expression, whose temporaries the collector can't see")
+        }
+    }
+    def override preVisitFunctionArgument(fn : FunctionPtr; arg : VariablePtr; last : bool) {
+        check_variable(arg, "argument")
+    }
+    def override preVisitExprLetVariable(expr : ExprLet?; arg : VariablePtr; last : bool) {
+        check_variable(arg, "local")
+    }
+    def override preVisitExprLetVariableInit(expr : ExprLet?; arg : VariablePtr; init : ExpressionPtr) {
+        statements |> insert(init)
+    }
+    def override preVisitExprBlockArgument(blk : ExprBlock?; arg : VariablePtr; last : bool) {
+        check_variable(arg, "block argument")
+    }
+    def override preVisitExprBlockExpression(blk : ExprBlock?; expr : ExpressionPtr) {
+        statements |> insert(expr)
+    }
+    def override preVisitExprReturn(expr : ExprReturn?) {
+        if (expr.subexpr != null) {
+            statements |> insert(expr.subexpr)
+        }
+    }
+    def override preVisitExprIfThenElse(expr : ExprIfThenElse?) {
+        statements |> insert(expr.cond)
+    }
+    def override preVisitExprWhile(expr : ExprWhile?) {
+        statements |> insert(expr.cond)
+    }
+    def override preVisitExprCopy(expr : ExprCopy?) {
+        if (expr.left.__rtti == "ExprVar") {
+            statements |> insert(expr.right)
+        }
+        check_call(expr, expr.func)
+    }
+    def override preVisitExprMove(expr : ExprMove?) {
+        if (expr.left.__rtti == "ExprVar") {
+            statements |> insert(expr.right)
+        }
+        check_call(expr, expr.func)
+    }
+    def override preVisitExprFor(expr : ExprFor?) {
+        var dirty = false
+        for (src in expr.sources) {
+            if (src._type == null || src._type.gcFlags == 0) continue
+            if (src.__rtti == "ExprVar") {
+                let flags = unsafe(reinterpret<ExprVar?>(src)).varFlags
+                if (!flags.local && !flags.argument && !flags._block) continue
+            }
+            dirty = true
+        }
+        for_dirty |> push(dirty)
+        if (dirty) {
+            dirty_for_depth++
+        }
+    }
+    def override preVisitExprForVariable(expr : ExprFor?; variable : VariablePtr; last : bool) {
+        check_variable(variable, "for-loop variable")
+    }
+    def override visitExprFor(var expr : ExprFor?) : ExpressionPtr {
+        if (for_dirty |> back) {
+            dirty_for_depth--
+        }
+        for_dirty |> pop
+        return <- expr
+    }
+    def override preVisitExprMakeBlock(expr : ExprMakeBlock?) {
+        block_depth++
+    }
+    def override visitExprMakeBlock(var expr : ExprMakeBlock?) : ExpressionPtr {
+        block_depth--
+        return <- expr
+    }
+    def override preVisitExprCall(expr : ExprCall?) {
+        check_call(expr, expr.func)
+    }
+    def override preVisitExprOp1(expr : ExprOp1?) {
+        check_call(expr, expr.func)
+    }
+    def override preVisitExprOp2(expr : ExprOp2?) {
+        check_call(expr, expr.func)
+    }
+    def override preVisitExprOp3(expr : ExprOp3?) {
+        check_call(expr, expr.func)
+    }
+}
+
+def public collect_carrier_violation(var fn : Function?) : string {
+    //! Empty when ``fn`` cannot reach a heap collection or its frame provably holds nothing the collector walks;
+    //! ``[unsafe_heap_collect]`` skips the proof. Otherwise the reason the proof fails.
+    // carriers are needCallerStackFrame, whose closure can miss a function reaching a collect only through recursion
+    if (fn == null || fn.flags.builtIn || !fn.moreFlags2.needCallerStackFrame || find_annotation(fn, "unsafe_heap_collect") != null) return ""
+    if (fn.moreFlags.addressTaken) return "its address is taken, so it can be called from a frame the proof can't see"
+    if (fn.flags._lambda || fn.flags._generator) return "it is a lambda or generator body, invoked from a frame the proof can't see"
+    if (fn.flags.isClassMethod && !fn.moreFlags.isStaticClassMethod) return "it is a class method, called through a function field from a frame the proof can't see"
+    var proof = new CarrierProof()
+    make_visitor(*proof) $(adapter) {
+        visit(fn, adapter)
+    }
+    let why = proof.why
+    unsafe {
+        delete proof
+    }
+    return why
 }

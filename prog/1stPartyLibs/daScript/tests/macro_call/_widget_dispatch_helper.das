@@ -26,12 +26,14 @@ struct StubState {
     pending : bool
 }
 
+[unused_argument(widget_ident)]
 def widget_prelude(widget_ident : string) {
     // No-op — real dasImgui uses PushID. For dispatch testing we just need
     // a name to call so the macro-injected `widget_prelude(widget_ident)`
     // resolves at typer time.
 }
 
+[unused_argument(widget_ident, kind)]
 def widget_finalize(widget_ident : string; kind : string; var state : StubState) {
     state.pending = true
 }
@@ -39,7 +41,7 @@ def widget_finalize(widget_ident : string; kind : string; var state : StubState)
 [function_macro(name = "widget")]
 class WidgetFunctionMacro : AstFunctionAnnotation {
     def override apply(var func : FunctionPtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         if (empty(func.arguments)) {
             errors := "[widget] requires at least one parameter (state struct)"
             return false
@@ -56,11 +58,11 @@ class WidgetFunctionMacro : AstFunctionAnnotation {
             return false
         }
         let stateStruct = stateArg._type.structType
-        func.flags |= FunctionFlags.generated
+        func.flags.generated = true
         var widgetIdentVar = new Variable(at = func.at,
             name := "widget_ident",
             _type <- new TypeDecl(baseType = Type.tString, at = func.at))
-        widgetIdentVar.flags |= VariableFlags.generated
+        widgetIdentVar.flags.generated = true
         func.arguments |> emplace(widgetIdentVar, 1)
         var fblk = new ExprBlock(at = func.body.at)
         fblk.list |> push(qmacro(widget_prelude($i("widget_ident"))))

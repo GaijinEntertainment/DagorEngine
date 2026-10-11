@@ -3,6 +3,7 @@
 #include "riGen/riUtil.h"
 #include "riGen/genObjUtil.h"
 #include "riGen/riGenData.h"
+#include <rendInst/rendInstAccess.h>
 
 #include <util/dag_convar.h>
 #include <debug/dag_debug3d.h>
@@ -37,6 +38,25 @@ void riutil::world_version_inc(bbox3f_cref mod_aabb)
 #endif
   WinAutoLock lock(worldVersionLock);
   worldVersionModBoxes[interlocked_increment(worldVersion) % NUM_WORLDVERSION_BOXES] = tmp;
+}
+
+bool rendinst::getRiGenWorldChanges(int &version, BBox3 &affected)
+{
+  affected.setempty();
+  if (version == riutil::world_version_get())
+    return true;
+  WinAutoLock lock(worldVersionLock);
+  const int previous = version;
+  version = riutil::world_version_get();
+  const uint32_t count = uint32_t(version) - uint32_t(previous);
+  if (count > NUM_WORLDVERSION_BOXES)
+    return false;
+  bbox3f acc;
+  v_bbox3_init_empty(acc);
+  for (uint32_t i = 1; i <= count; ++i)
+    v_bbox3_add_box(acc, worldVersionModBoxes[(uint32_t(previous) + i) % NUM_WORLDVERSION_BOXES]);
+  v_stu_bbox3(affected, acc);
+  return true;
 }
 
 bool riutil::world_version_check_slow(int &version, const BBox3 &query_aabb)

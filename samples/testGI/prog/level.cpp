@@ -7,6 +7,7 @@
 #include <util/dag_convar.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <scene/dag_visibility.h>
+#include <shaders/dag_renderScene.h>
 #include <memory/dag_framemem.h>
 
 #define GLOBAL_VARS_OPT_LIST     \
@@ -27,9 +28,9 @@ CONSOLE_INT_VAL("hmap", displacement_quality, 1, 1, 4);
 void set_lmesh_normalmap(LMesh *l, TEXTUREID id);
 bool load_lmesh_hmap(LMesh &l, IGenLoad &crd);
 bool init_lmesh(LMesh &l);
-bool get_lmesh_min_max(const LMesh &l, const BBox3 &box, float &minHt, float &maxHt);
 bool get_height(const LMesh &l, const Point2 &p, float &ht, Point3 *normal);
 const HeightmapHandler *get_lmesh_hmap(const LMesh &l);
+void lmesh_after_device_reset(LMesh &l);
 
 const HeightmapHandler *StrmSceneHolder::getHeightmap() const { return lMesh ? get_lmesh_hmap(*lMesh) : &heightmap; }
 
@@ -159,6 +160,16 @@ void StrmSceneHolder::initOnDemand()
   }
 }
 
+void StrmSceneHolder::afterDeviceReset()
+{
+  if (lMesh)
+    lmesh_after_device_reset(*lMesh);
+  if (state != Inited || !bool(heightmap.getCompressedData()))
+    return;
+  heightmap.afterDeviceReset();
+  heightmap.fillHmapTextures();
+}
+
 void StrmSceneHolder::onSceneLoaded()
 {
   set_lmesh_normalmap(lMesh.get(), normalmapTexId);
@@ -166,7 +177,7 @@ void StrmSceneHolder::onSceneLoaded()
 }
 
 
-void StrmSceneHolder::renderHeightmap(const vec4f &vp, const Frustum &frustum, const TMatrix4 &proj)
+void StrmSceneHolder::renderHeightmap(const RenderView &view)
 {
   if (state == No)
     return;
@@ -176,21 +187,20 @@ void StrmSceneHolder::renderHeightmap(const vec4f &vp, const Frustum &frustum, c
   if (!hmap_render)
     return;
 
-  Point3_vec4 viewPos;
-  v_st(&viewPos.x, vp);
   TIME_D3D_PROFILE(strm_heightmap);
   DA_PROFILE_GPU;
 
   heightmap.makeBookKeeping();
   heightmap.setVars();
-  if (heightmap.prepare(viewPos, 1.0f))
+  if (heightmap.prepare(view.position, 1.0f))
   {
     LodGridCullData cullData;
-    HeightmapMetricsQuality mq = {proj_to_distance_scale(proj)};
+    HeightmapMetricsQuality mq = {proj_to_distance_scale(view.lodProj)};
     if (mq.distanceScale == 0)
       mq.maxRelativeTexelTess = -4;
-    HeightmapFrustumCullingInfo fi{viewPos, frustum, NULL, NULL, true, mq};
+    HeightmapFrustumCullingInfo fi{view.position, Frustum(view.culling), NULL, NULL, true, mq};
     heightmap.frustumCulling(cullData, fi); // Independent from prepare for multithreading.
+    view.bind();
     heightmap.renderCulled(cullData);
   }
 }
@@ -214,27 +224,6 @@ bool StrmSceneHolder::getMinMax(float &minHt, float &maxHt) const
   return true;
 }
 
-bool StrmSceneHolder::getMinMax(const BBox3 &box, float &minHt, float &maxHt)
-{
-  if (state == No)
-    return false;
-  if (lMesh)
-    if (get_lmesh_min_max(*lMesh, box, minHt, maxHt))
-      return true;
-
-  initOnDemand();
-  if (!heightmap.heightmapHeightCulling)
-  {
-    minHt = heightmap.worldBox[0].y;
-    maxHt = heightmap.worldBox[1].y;
-    return true;
-  }
-  const float patchSz = max(box.width().z, box.width().x);
-  const int lod = floorf(heightmap.heightmapHeightCulling->getLod(patchSz));
-  heightmap.heightmapHeightCulling->getMinMax(lod, Point2::xz(box[0]), patchSz, minHt, maxHt);
-  return true;
-}
-
 bool StrmSceneHolder::getHeight(const Point2 &p, float &ht, Point3 *normal) const
 {
   if (!lMesh)
@@ -242,11 +231,28 @@ bool StrmSceneHolder::getHeight(const Point2 &p, float &ht, Point3 *normal) cons
   return get_height(*lMesh, p, ht, normal);
 }
 
-void StrmSceneHolder::render(const VisibilityFinder &vf, Hmap hmap, Lmesh lmesh, const TMatrix4 &proj)
+void StrmSceneHolder::render(const RenderView &view, Hmap hmap, Lmesh lmesh, const LandMeshCullingData *culled)
 {
+  view.bind();
+  const VisibilityFinder vf = view.visibility();
   base::render(vf);
   if (bool(hmap))
-    renderHeightmap(vf.getViewerPos(), vf.getFrustum(), proj);
+    renderHeightmap(view);
   if (bool(lmesh))
-    renderLmesh();
+  {
+    if (culled && lMesh)
+      render_lmesh_culled(*lMesh, *culled, view);
+    else
+      renderLmesh(view);
+  }
+}
+
+void StrmSceneHolder::renderTrans(const RenderView &view)
+{
+  const VisibilityFinder vf = view.visibility();
+  for (RenderScene *scene : getRsm().getScenes())
+    if (scene)
+      scene->prepareVisibility(vf);
+  view.bind();
+  base::renderTrans();
 }

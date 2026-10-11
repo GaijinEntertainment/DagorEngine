@@ -410,10 +410,11 @@ Usage: `water.fft_period <size>`
 
 ## water.spectrum
 
-Configures the water spectrum for wave patterns.
+Applies a built-in wave preset table at the given Beaufort scale.
 
-Usage: `water.spectrum <spectra index> <bf_scale>` where `<spectra index>`:
-phillips = 0, unified_directional = 1.
+Usage: `water.spectrum <preset table index> <bf_scale>` where
+`<preset table index>`: phillips = 0, unified_directional = 1,
+phillips_detail = 2.
 
 ## water.vs_samplers
 

@@ -3,6 +3,7 @@
 #include "bhvActivateActionSet.h"
 
 #include "ui/uiShared.h"
+#include "input/uiInput.h"
 
 #include <daRg/dag_element.h>
 
@@ -26,7 +27,7 @@ void BhvActivateActionSet::onAttach(darg::Element *elem)
     if (ash != dainput::BAD_ACTION_SET_HANDLE)
     {
       elem->props.storage.SetValue(strings->actionSet, ash);
-      uishared::activate_ui_elem_action_set(ash, true);
+      uiinput::call_dainput([ash] { uishared::activate_ui_elem_action_set(ash, true); });
     }
   }
 }
@@ -41,6 +42,6 @@ void BhvActivateActionSet::onDetach(darg::Element *elem, DetachMode)
   if (ash != dainput::BAD_ACTION_SET_HANDLE)
   {
     elem->props.storage.RawDeleteSlot(strings->actionSet);
-    uishared::activate_ui_elem_action_set(ash, false);
+    uiinput::call_dainput([ash] { uishared::activate_ui_elem_action_set(ash, false); });
   }
 }

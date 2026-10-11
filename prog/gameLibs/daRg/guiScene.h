@@ -33,7 +33,6 @@
 #include <quirrel/frp/dag_frp.h>
 
 class SqModules;
-class TextureIDHolder;
 
 namespace sqfrp
 {
@@ -81,6 +80,7 @@ public:
   virtual void initDasEnvironment(TGuiInitDas init_callback) override;
   virtual void shutdownDasEnvironment() override;
   virtual void waitAllDasJobsDone() override;
+  virtual bool isDasJobsInFlight() const override;
 
   // Need this to perform additional binding
   virtual HSQUIRRELVM getScriptVM() const override { return sqvm; }
@@ -111,6 +111,8 @@ public:
     const HumanInput::ButtonBits &buttons, int prev_result = 0) override;
   // returns a combination of BehaviorResult flags
   virtual int onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result = 0) override;
+  virtual int onTouchPadGesture(int state, const HumanInput::Gesture &gesture, int prev_result = 0) override;
+  virtual int getTouchPadGesturesAtPointer() const override;
 
   virtual void setVrStickScroll(int hand, const Point2 &scroll) override;
 
@@ -179,11 +181,14 @@ public:
   void dumpPerfStatsToLog();               // scene thread only
   void requestPerfStatsDump(bool reset);   // any thread
   void requestProfilerActivation(bool on); // any thread
+  void requestGuiContextAbandon();         // any thread
+  bool applyPendingGuiContextAbandon();    // scene thread only
+  bool flushGuiContext();                  // scene thread only; false when the frame was abandoned instead of flushed
   IGuiSceneCallback *getCb() const { return guiSceneCb; }
 
   CursorPosState &activePointerState();
   const CursorPosState &activePointerState() const;
-  Point2 activePointerPos() const;
+  virtual Point2 activePointerPos() const override;
   void setMousePos(const Point2 &p, bool reset_target);
   void moveActiveCursorToElem(Element *elem, bool use_transform);
   void moveActiveCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump);
@@ -210,6 +215,10 @@ public:
   virtual void setPictureDiscardAllowed(bool discardAllowed) override { pictureDiscardAllowed = discardAllowed; }
 
   HumanInput::IGenJoystick *getJoystick(int16_t ord_id = -1) const override;
+  Point2 getGamepadStick(int axis_h, int axis_v, float min_dead_zone) const override
+  {
+    return gamepadCursor.stick(getJoystick(), axis_h, axis_v, min_dead_zone);
+  }
 
   bool useCircleAsActionButton() const;
   bool isInputActive() const { return isInputEnabledByHost && isInputEnabledByScript; }
@@ -266,7 +275,7 @@ private:
   void saveToSqVm();
 
   void updateGlobalActiveCursor();
-  bool updateHotkeys();
+  bool updateHotkeys(HotkeyButton event_btn);
   void doUpdateJoystickAxesObservables();
   void updateJoystickAxesObservables()
   {
@@ -310,6 +319,13 @@ private:
   int onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputDevice device, int button_id, short mx, short my,
     int prev_result = 0);
   int onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short tx, short ty, int prev_result = 0);
+
+  struct TouchPadGestureCapture
+  {
+    Element *elem = nullptr;
+    TouchPadGesture last;
+  };
+  void cancelTouchPadGesture(TouchPadGestureCapture &capture);
 
   template <void (ElementTree::*method)(const Sqrat::Object &)>
   static SQInteger call_anim_method(HSQUIRRELVM vm);
@@ -406,6 +422,7 @@ private:
   InputDevice activePointingDevice = DEVID_MOUSE;
 
   eastl::vector_set<HotkeyButton> pressedClickButtons;
+  TouchPadGestureCapture touchPadGestures[HumanInput::Gesture::DOUBLE_TAP + 1];
 
   HSQUIRRELVM sqvm = nullptr;
 
@@ -452,6 +469,7 @@ private:
   PerfStats perfStats;
   int pendingPerfDumpFlags = 0;       // set by requestPerfStatsDump(), consumed by update()
   int pendingProfilerActivation = -1; // -1 none, else 0/1; set by requestProfilerActivation()
+  int pendingGuiContextAbandon = 0;   // set by requestGuiContextAbandon(), consumed by applyPendingGuiContextAbandon()
 
   Tab<Timer *> timers;
   bool lockTimersList = false; // lock for deletion/modification while iterating

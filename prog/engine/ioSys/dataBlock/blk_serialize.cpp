@@ -659,7 +659,7 @@ bool dblk::read_names_base(IGenLoad &cr, DBNameMapBase &names, uint64_t *names_h
     if (totalNames)
     {
       readCompressedUnsignedGeneric(totalNamesSize, cr);
-      if (!totalNamesSize || totalNamesSize > BLK_MAX_MEMORY_FOR_NAMES)
+      if (totalNamesSize > BLK_MAX_MEMORY_FOR_NAMES || totalNames > totalNamesSize)
         return false;
       auto page = names.allocator.addPageUnsafe(totalNamesSize + 1);
       cr.read(page->data.get(), totalNamesSize);
@@ -922,7 +922,8 @@ bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro, bool dedup_of
   readCompressedUnsignedGeneric(complexDataSize, cr);
   const uint64_t paramsBytes = uint64_t(paramsCnt) * sizeof(DataBlock::Param);
   const uint64_t blocksBytes = uint64_t(roDataBlocks) * sizeof(DataBlock);
-  if (complexDataSize > BLK_MAX_MEMORY_FOR_NAMES || paramsBytes > BLK_MAX_MEMORY_FOR_NAMES || blocksBytes > BLK_MAX_MEMORY_FOR_NAMES)
+  if (!roDataBlocks || complexDataSize > BLK_MAX_MEMORY_FOR_NAMES || paramsBytes > BLK_MAX_MEMORY_FOR_NAMES ||
+      blocksBytes > BLK_MAX_MEMORY_FOR_NAMES)
     return false;
   const uint32_t complexDataSizeAligned = dag::align_up<DataBlock::Param>(complexDataSize);
   const uint32_t blocksStartsAt = dag::align_up<DataBlock>(complexDataSizeAligned + paramsCnt * sizeof(DataBlock::Param));
@@ -966,17 +967,36 @@ bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro, bool dedup_of
 
   uint32_t cOfs = complexDataSizeAligned;
   uint32_t paramsSeen = 0;
+  uint32_t nextFirstBlock = 1; // consecutive child runs: root reaches no cycle
+  uint32_t levelEnd = 1;
+  int depth = 0;
   DataBlock *blData = shared->getROBlockUnsafe(0);
   for (uint32_t i = 0, e = shared->roDataBlocks; i < e; ++i, ++blData)
   {
+    if (i == levelEnd)
+    {
+      if (nextFirstBlock == i)
+      {
+        if (!dedup_ofs)
+          issue_error_load_failed(cr.getTargetName(), "BLK binary dump has blocks unreachable from the root");
+        return false;
+      }
+      if (++depth > dblk::MAX_BLOCK_DEPTH)
+      {
+        issue_error_load_failed(cr.getTargetName(), "BLK binary dump has too deep nesting");
+        return false;
+      }
+      levelEnd = nextFirstBlock;
+    }
     DataBlockInfo d;
     read_packed(d, cr);
-    if (d.nameId > nameCnt || (d.blocksCount && uint64_t(d.fBlock) + d.blocksCount > roDataBlocks))
+    if (d.nameId > nameCnt || (d.blocksCount && (d.fBlock != nextFirstBlock || uint64_t(d.fBlock) + d.blocksCount > roDataBlocks)))
     {
       if (!dedup_ofs)
         issue_error_load_failed(cr.getTargetName(), "BLK binary dump has inconsistent block layout");
       return false;
     }
+    nextFirstBlock += d.blocksCount;
 
     uint32_t blkOfs = cOfs;
     if (dedup_ofs) // param data offset is explicit, several blocks may share one param run

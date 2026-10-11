@@ -13,6 +13,15 @@ namespace dafg
 
 inline bool untracked_resources_supported() { return d3d::get_driver_desc().caps.hasEnhancedResourceBarriers; }
 
+inline uint32_t add_no_state_tracking(uint32_t flags, ResourceType res_type)
+{
+  if (res_type == ResourceType::Buffer)
+    return flags | SBCF_NO_STATE_TRACKING;
+  if (res_type == ResourceType::Texture)
+    return flags | TEXCF_NO_STATE_TRACKING;
+  return flags;
+}
+
 inline uint32_t drop_unsupported_no_state_tracking(uint32_t flags, ResourceType res_type)
 {
   if (untracked_resources_supported())

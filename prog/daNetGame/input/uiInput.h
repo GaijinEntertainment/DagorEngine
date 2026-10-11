@@ -3,6 +3,7 @@
 
 #include <ecs/input/hidEventRouter.h>
 #include <daInput/input_api.h>
+#include <EASTL/functional.h>
 
 namespace darg
 {
@@ -57,5 +58,9 @@ dag::ConstSpan<dainput::SingleButtonId> get_keys_consumed_by_console();
 dag::ConstSpan<dainput::SingleButtonId> get_keys_consumed_by_editbox();
 void mask_dainput_buttons(dag::ConstSpan<darg::HotkeyButton> buttons, bool consume_text_input, int layer);
 void mask_dainput_pointers(int darg_interactive_flags, int layer);
+bool is_mouse_used_by_ui();
 void update_joystick_input();
+// UI job runs during the input tick
+void call_dainput(eastl::function<void()> &&f);
+void flush_dainput_calls();
 } // namespace uiinput

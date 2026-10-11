@@ -162,7 +162,7 @@ bool NodesPlugin::begin(DagorAsset *asset)
     geomNodeTree->calcWtm();
     bbox.setempty();
     geomNodeTree->calcWorldBoxFromImportantNodes(bbox);
-    radius = getMinP3(bbox.width(), 0.5) * 0.05;
+    radius = getMinP3(bbox.width(), 0.5f) * 0.05f;
 
     if (EDITORCORE->getCurrentViewport())
     {
@@ -193,7 +193,7 @@ bool NodesPlugin::end()
   return true;
 }
 
-void NodesPlugin::renderTransObjects()
+void NodesPlugin::renderTransObjects(BaseTexture *)
 {
   if (!geomNodeTree)
     return;
@@ -447,7 +447,7 @@ void NodesPlugin::drawObjects(IGenViewportWnd *wnd)
       if (!nodesIsEnabledArray[i.index()])
         continue;
 
-      if (!wnd->worldToClient(geomNodeTree->getNodeWposRelScalar(i), pos, &z) || (z < 0.001))
+      if (!wnd->worldToClient(geomNodeTree->getNodeWposRelScalar(i), pos, &z) || (z < 0.001f))
         continue;
 
       append_items(nodesData, 1);
@@ -479,7 +479,7 @@ void NodesPlugin::drawObjects(IGenViewportWnd *wnd)
   }
   else if (selectedNodes.size())
   {
-    if (!wnd->worldToClient(geomNodeTree->getNodeWposRelScalar(selectedNodes[0]), pos, &z) || (z < 0.001))
+    if (!wnd->worldToClient(geomNodeTree->getNodeWposRelScalar(selectedNodes[0]), pos, &z) || (z < 0.001f))
       return;
 
     const char *name = geomNodeTree->getNodeName(selectedNodes[0]);

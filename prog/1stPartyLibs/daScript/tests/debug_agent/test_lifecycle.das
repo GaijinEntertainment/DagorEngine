@@ -12,7 +12,7 @@ class LifecycleAgent : DapiDebugAgent {
 
 var lifecycle_agent_installed : bool = false
 
-def setup_lifecycle_agent(ctx : Context) {
+def setup_lifecycle_agent(_ctx : Context) {
     install_new_debug_agent(new LifecycleAgent(), "lifecycle")
     lifecycle_agent_installed = true
 }
@@ -48,9 +48,7 @@ def test_get_agent_context_callable(t : T?) {
     t |> run("get_debug_agent_context returns callable context") @(t : T?) {
         ensure_lifecycle()
         // If this doesn't throw, the context is valid
-        unsafe {
-            invoke_in_context(get_debug_agent_context("lifecycle"), "lifecycle_noop")
-        }
+        unsafe(invoke_in_context(get_debug_agent_context("lifecycle"), "lifecycle_noop"))
         t |> equal(true, true)
     }
 }

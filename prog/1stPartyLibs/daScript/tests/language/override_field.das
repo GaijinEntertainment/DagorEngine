@@ -27,7 +27,7 @@ def OvFoo3D_setXY(var that : OvFoo3D; x, y : int) {
 
 def OvFoo3D_setXY2(var _that : OvFoo; x, y : int) {
     unsafe {
-        var that : OvFoo3D& = upcast<auto>(_that)
+        var that : OvFoo3D& = upcast<OvFoo3D&>(_that)
         that.x = x
         that.y = y
         that.z = 0
@@ -38,7 +38,7 @@ def OvFoo3D_setXY2(var _that : OvFoo; x, y : int) {
 def test_override(t : T?) {
     t |> run("base struct function pointer") @(t : T?) {
         var f = OvFoo()
-        f->set(1, 2)
+        f->set(1, 2)  // nolint:STYLE036 - the `-const` is on the cast the `->` desugar synthesizes
         t |> equal(f.x, 1)
         t |> equal(f.y, 2)
     }
@@ -47,7 +47,7 @@ def test_override(t : T?) {
         t |> equal(f3d.x, 0)
         t |> equal(f3d.y, 0)
         t |> equal(f3d.z, 3)
-        f3d->set(1, 2)
+        f3d->set(1, 2)  // nolint:STYLE036 - the `-const` is on the cast the `->` desugar synthesizes
         t |> equal(f3d.x, 1)
         t |> equal(f3d.y, 2)
         t |> equal(f3d.z, 0)
@@ -55,7 +55,7 @@ def test_override(t : T?) {
     t |> run("derived struct override with upcast") @(t : T?) {
         var f3d = OvFoo3D()
         f3d.z = 13
-        f3d->set2(3, 4)
+        f3d->set2(3, 4)  // nolint:STYLE036 - the `-const` is on the cast the `->` desugar synthesizes
         t |> equal(f3d.x, 3)
         t |> equal(f3d.y, 4)
         t |> equal(f3d.z, 0)

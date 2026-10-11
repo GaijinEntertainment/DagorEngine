@@ -63,29 +63,29 @@ void GraphPinJumpMenu::collectRows(const GraphData &gd, int node_id, int pin_ind
       continue;
     }
     Row &row = rows.push_back();
-    row.edgeId = pinEdge.edgeId;
-    row.node = pinEdge.oppositeNode;
-    row.pin = pinEdge.oppositePin;
+    row.choice.edgeId = pinEdge.edgeId;
+    row.choice.node = pinEdge.oppositeNode;
+    row.choice.pin = pinEdge.oppositePin;
     row.label = node_display_name(gd, pinEdge.oppositeNode);
     row.comment = pin_comment(gd, pinEdge.oppositeNode, pinEdge.oppositePin);
   }
 }
 
-GraphPinJumpMenu::Jump GraphPinJumpMenu::resolveJump(const GraphData &gd, int node_id, int pin_index, uint64_t graph_revision,
-  int &out_node, int &out_pin)
+GraphPinJumpMenu::Pick GraphPinJumpMenu::resolve(const GraphData &gd, Purpose menu_purpose, int node_id, int pin_index,
+  uint64_t graph_revision, Choice &out_choice)
 {
   close();
+  purpose = menu_purpose;
   collectRows(gd, node_id, pin_index);
   if (rows.empty())
   {
-    return Jump::None;
+    return Pick::None;
   }
   if (rows.size() == 1)
   {
-    out_node = rows[0].node;
-    out_pin = rows[0].pin;
+    out_choice = rows[0].choice;
     rows.clear();
-    return Jump::Single;
+    return Pick::Single;
   }
 
   const GraphData::Node *const src = find_node_by_id(gd, node_id);
@@ -99,7 +99,7 @@ GraphPinJumpMenu::Jump GraphPinJumpMenu::resolveJump(const GraphData &gd, int no
   // selection to be scrolled into view.
   scrollToSelected = true;
   revision = graph_revision;
-  return Jump::MenuOpened;
+  return Pick::MenuOpened;
 }
 
 void GraphPinJumpMenu::close()
@@ -119,23 +119,24 @@ int GraphPinJumpMenu::highlightedEdgeId() const
   {
     return -1;
   }
-  return rows[selected].edgeId;
+  return rows[selected].choice.edgeId;
 }
 
 bool GraphPinJumpMenu::draw(const GraphData &gd, uint64_t graph_revision, const ImVec2 &canvas_min, const ImVec2 &canvas_max,
-  const ImVec2 &pin_screen_pos, int &out_node, int &out_pin)
+  const ImVec2 &pin_screen_pos, Choice &out_choice)
 {
   if (!menuOpen)
   {
     return false;
   }
-  // Any graph write bumps the revision, so re-read the fan-out rather than close on it.
+  // Rows come from edges and pin comments, and every write to those bumps the structure revision,
+  // so re-read the fan-out rather than close on it.
   if (graph_revision != revision)
   {
     const int keepEdgeId = highlightedEdgeId();
     revision = graph_revision;
     collectRows(gd, sourceNode, sourcePin);
-    // One destination left is no longer a choice; the plain jump takes over on the next Tab.
+    // One edge left is no longer a choice; the plain command takes over on the next press.
     if (rows.size() < 2)
     {
       close();
@@ -144,7 +145,7 @@ bool GraphPinJumpMenu::draw(const GraphData &gd, uint64_t graph_revision, const 
     selected = 0;
     for (int i = 0; i < static_cast<int>(rows.size()); ++i)
     {
-      if (rows[i].edgeId == keepEdgeId)
+      if (rows[i].choice.edgeId == keepEdgeId)
       {
         selected = i;
         break;
@@ -290,8 +291,7 @@ bool GraphPinJumpMenu::draw(const GraphData &gd, uint64_t graph_revision, const 
 
   if (confirmed)
   {
-    out_node = rows[selected].node;
-    out_pin = rows[selected].pin;
+    out_choice = rows[selected].choice;
   }
   if (confirmed || cancelled)
   {

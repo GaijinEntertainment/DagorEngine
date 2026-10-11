@@ -154,12 +154,13 @@ function registerWindow(params) {
   return window
 }
 
-function getNumberOfRegisteredWindows(): int {
-  return registeredWindows.len()
+function getModalZOrder(): int {
+  return registeredWindows.len() + 1
 }
 
 return {
   registerWindow
+  getModalZOrder
   showWindow
   windowsManager
   hideAllWindows
@@ -168,5 +169,4 @@ return {
   isWindowVisible
   mkIsWindowVisible
   mkWindow
-  getNumberOfRegisteredWindows
 }

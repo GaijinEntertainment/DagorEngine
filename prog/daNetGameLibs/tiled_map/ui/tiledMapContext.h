@@ -119,7 +119,7 @@ using TilesHashMap = eastl::hash_map<QuadKey, TileHandle>;
  *    └───┴───┴───┴───┘                           └───┴───┴───┴───┘
  *   more info: https://docs.microsoft.com/en-us/bingmaps/articles/bing-maps-tile-system
  *
- * note: there is one special quadkey equal to empty string, it is corresponds to `combined.avif` file. It is used for
+ * note: there is one special quadkey equal to empty string, it corresponds to `combined.<tilesExt>` file. It is used for
  *       conviniance to setup small maps.
  */
 class TiledMapContext
@@ -211,6 +211,7 @@ private:
 
 public:
   eastl::string tilesPath;
+  eastl::string tilesExt = "avif";
   TilesHashMap tiles;
 
   bool canLoadTiles = true;
@@ -257,6 +258,7 @@ public:
   StdGuiRender::StdGuiShader fogOfWarTileShader;
   bool fogOfWarEnabled = false;
   bool fogOfWarTexInited = false;
+  bool fogOfWarBitsetLost = false;
   float fogOfWarResolution = 0.0f;
   Point2 fogOfWarLeftTop = Point2(0, 0);
   Point2 fogOfWarRightBottom = Point2(0, 0);

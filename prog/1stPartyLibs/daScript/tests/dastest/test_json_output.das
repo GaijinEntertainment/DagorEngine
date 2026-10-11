@@ -24,7 +24,11 @@ struct JsonReport {
 def run_dastest(fixture : string; extra_args : string = "") : JsonReport {
     let das_root = get_das_root()
     let dastest_path = "{das_root}/dastest/dastest.das"
-    let json_file = "{das_root}/tests/dastest/_temp_{fixture}.json"
+    let temp = create_temp_file_result("dastest_{fixture}", ".json")
+    if (!(temp is value)) {
+        panic("Failed to create a temporary JSON report file: {temp as error}")
+    }
+    let json_file = unsafe(temp.value)
     let test_file = "{das_root}/tests/dastest/_fixture_{fixture}.das"
     // argv, not a shell command line: cmd.exe /c strips the first and last quote
     // of a line that starts with one, which unquotes the interpreter path
@@ -139,6 +143,13 @@ def test_benchmark_json_output(tt : T?) {
         tt |> success(find(msg, "B/op") >= 0, "benchmark message should contain 'B/op'")
         tt |> success(find(msg, "add:") >= 0, "benchmark message should contain sub-bench name 'add'")
     }
+}
+
+[test]
+def test_test_only_filter(tt : T?) {
+    let fixture = "{get_das_root()}/tests/dastest/_fixture_pass.das"
+    tt |> equal(run_dastest("pass", "--test-only {fixture}").total, 2)
+    tt |> equal(run_dastest("pass", "--test-only {fixture}.other").total, 0)
 }
 
 [test]

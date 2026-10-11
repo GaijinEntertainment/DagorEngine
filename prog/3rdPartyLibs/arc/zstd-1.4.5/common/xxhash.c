@@ -65,7 +65,9 @@
  * is guaranteed to be aligned.
  */
 #ifndef XXH_FORCE_ALIGN_CHECK /* can be defined externally */
-#  if defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
+// Gaijin change
+#  if (defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #    define XXH_FORCE_ALIGN_CHECK 0
 #  else
 #    define XXH_FORCE_ALIGN_CHECK 1

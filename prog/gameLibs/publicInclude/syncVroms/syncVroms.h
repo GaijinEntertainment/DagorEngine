@@ -7,6 +7,7 @@
 #include <syncVroms/vromHash.h>
 
 #include <dag/dag_vector.h>
+#include <generic/dag_tab.h>
 #include <EASTL/string.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/functional.h>
@@ -50,7 +51,16 @@ struct LoadedSyncVrom
 
 using SyncVromsList = eastl::fixed_vector<SyncVrom, 8, true /* bEnableOverflow */>;
 
+struct AppliedVromDiff
+{
+  Tab<char> vromDump;
+  VromHash hash;
+};
+
+bool apply_vrom_diff(const VromDiff &diff, AppliedVromDiff &out_result);
 bool apply_vrom_diff(const VromDiff &diff, const char *save_vrom_to, const VromfsCompression &compr);
+
+void save_vrom_dump_async(const char *path, Tab<char> &&vrom_dump, const VromfsCompression &compr);
 
 SyncVromsList get_mounted_sync_vroms_list();
 
@@ -65,6 +75,8 @@ const char *get_base_vrom_name(const VromHash &vrom_hash);
 
 //! load vromfs from file into memory (optionally allow placing it into sharedmem storage, to be used for persistent vromfs)
 LoadedSyncVrom load_vromfs_dump(const char *path, const VromfsCompression &compr, bool allow_shared_mem = false);
+LoadedSyncVrom load_vromfs_dump(const AppliedVromDiff &applied, const char *path, const VromfsCompression &compr,
+  bool allow_shared_mem = false);
 
 // Returns diffs count and diffs total size in bytes
 eastl::pair<int, int> write_vrom_diffs(danet::BitStream &bs, const SyncVromsList &server_sync_vroms,

@@ -1,17 +1,14 @@
-local function fibI(n)
-    local last = 0
-    local cur = 1
-    n = n - 1
-    while (n > 0)
-    do
-        n = n - 1
-        local tmp = cur
-        cur = last + cur
-        last = tmp
-    end
-    return cur
+local benchmark <const> = require("profile").benchmark
+
+-- no result: the sum overflows
+local function fibLoop(n)
+  local last = 0
+  local cur = 1
+  for _ = 1, n - 1 do
+    local next = last + cur
+    last = cur
+    cur = next
+  end
 end
-loadfile("profile.lua")()
 
-io.write(string.format("\"fibonacci loop\", %.8f, 20\n", profile_it(20, function () fibI(6511134) end)))
-
+benchmark("fibonacci loop", 20, function() fibLoop(6511134) end)

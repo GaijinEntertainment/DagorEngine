@@ -16,7 +16,7 @@ def funV(v : int3) : int3 {
 
 def test_vec2_swizzle(tt : T?; a : auto(vec2) -const -&) {
     var f2_x = vec2(1, 2)
-    let x : auto(numT) = f2_x[0]
+    let _x : auto(numT) = f2_x[0]
     tt |> equal("{f2_x}", "1{VEC_SEP}2")
     var f2_y = f2_x.yx
     tt |> equal("{f2_y}", "2{VEC_SEP}1")
@@ -31,8 +31,8 @@ def test_vec2_swizzle(tt : T?; a : auto(vec2) -const -&) {
 
 def test_vec3_swizzle(tt : T?; a : auto(vec3) -const -&) {
     var f3_x = vec3(1, 2, 3)
-    let x : auto(numT) = f3_x[0]
-    let y : auto(vec2) = f3_x.xy
+    let _x : auto(numT) = f3_x[0]
+    let _y : auto(vec2) = f3_x.xy
     tt |> equal("{f3_x}", "1{VEC_SEP}2{VEC_SEP}3")
     var f3_y = f3_x.zyx
     tt |> equal("{f3_y}", "3{VEC_SEP}2{VEC_SEP}1")
@@ -53,9 +53,9 @@ def test_vec3_swizzle(tt : T?; a : auto(vec3) -const -&) {
 
 def test_vec4_swizzle(tt : T?; a : auto(vec4) -const -&) {
     var f4_x = vec4(1, 2, 3, 4)
-    let x : auto(numT) = f4_x[0]
-    let y : auto(vec2) = f4_x.xy
-    let z : auto(vec3) = f4_x.xyz
+    let _x : auto(numT) = f4_x[0]
+    let _y : auto(vec2) = f4_x.xy
+    let _z : auto(vec3) = f4_x.xyz
     tt |> equal("{f4_x}", "1{VEC_SEP}2{VEC_SEP}3{VEC_SEP}4")
     var f4_y = f4_x.wzyx
     tt |> equal("{f4_y}", "4{VEC_SEP}3{VEC_SEP}2{VEC_SEP}1")

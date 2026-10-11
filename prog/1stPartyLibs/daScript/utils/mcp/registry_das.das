@@ -8,6 +8,7 @@ require tools/list_types public
 require tools/run_test public
 require tools/list_module_api public
 require tools/list_modules public
+require tools/discover public
 require tools/find_symbol public
 require tools/format_file public
 require tools/run_script public
@@ -27,9 +28,9 @@ require tools/export_corpus public
 require tools/judge_duplicates public
 require tools/find_dupe public
 require tools/live public
+require tools/arch_of public
+require tools/arch_sites public
 
-// The full daslang compiler-backed tool set: compile/lint/AOT/introspection,
-// dupe detection, and the live-reload control surface.
 def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool-registration table, one emplace per tool
     reg |> emplace(ToolDef(
         tool <- make_tool(
@@ -76,14 +77,17 @@ def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool
     reg |> emplace(ToolDef(
         tool <- make_tool(
             "format_file",
-            "Format .das file(s) using the daslang code formatter. Supports single file, comma-separated list, or glob pattern (e.g. 'daslib/*.das'). Returns JSON array with file, status, and message fields; status is 'formatted', 'already_formatted', or 'error'.",
+            "Format .das file(s) using the daslang code formatter. Comment policy comes from the file's folder: each `.lint_config` `[format]` key is taken from the nearest file that declares it (`force_clean_comments = true` strips comments outside the kept set — leading header block, `//!` documentation, `//fmt:` directives, `nolint:` suppressions — fail-closed: a strip must pass compile_check or the original is restored; `format_enabled = false` exempts the tree). No per-call override. Supports single file, comma-separated list, or glob pattern (e.g. 'daslib/*.das'). Returns JSON array with file, status ('formatted' | 'already_formatted' | 'reverted' | 'skipped' | 'error' | 'rescue_advisory'), message, and comments_stripped; when any file in the batch had comments stripped, a final 'rescue_advisory' entry (no file) says to run the harvester agent over the strip diff of the comments_stripped entries before committing.",
             {
-                "file" => PropertySchema(_type = "string", description = "Path to .das file, comma-separated paths, or glob pattern (e.g. 'dir/*.das')")
+                "file" => PropertySchema(_type = "string", description = "Path to .das file, comma-separated paths, or glob pattern (e.g. 'dir/*.das')"),
+                "project" => PROJECT_PROP,
+                "project_root" => PROJECT_ROOT_PROP,
+                "load_modules" => LOAD_MODULES_PROP
             },
             ["file"]),
         required <- ["file"],
         arg_names <- ["file"],
-        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_format_file(arg1)))
+        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_format_file(arg1, project, project_root, load_modules)))
     reg |> emplace(ToolDef(
         tool <- make_tool(
             "run_script",
@@ -151,14 +155,29 @@ def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool
         handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_ast_dump(arg1, arg2, arg3, arg4, arg5, project, project_root, load_modules)))
     reg |> emplace(ToolDef(
         tool <- make_tool(
-            "list_modules",
-            "List all available daslang modules (builtin and daslib)",
+            "discover",
+            "Does the standard library already do this? Intent search over the module digest (skills/daslang/references/everything.md): every public symbol of every module with its one-line description. Plain words rank by where they hit - the symbol name first, the manual's group heading next, the description last - with a small synonym list (path/file, uri/url, dir/folder, ...). FTS5 syntax filters first and ranks the survivors: prefix uri*, phrase \"file name\", AND / OR / NOT, NEAR(). Call it before writing any helper.",
             {
-                "json" => PropertySchema(_type = "string", description = "If 'true', return structured JSON (ModuleList with builtin and daslib arrays)")
+                "query" => PropertySchema(_type = "string", description = "What the helper should do, in a few words ('convert uri to file path'), a name fragment, or an FTS5 expression"),
+                "limit" => PropertySchema(_type = "string", description = "Rows to return (default 12)"),
+                "module" => PropertySchema(_type = "string", description = "Restrict to one module ('fio', 'uriparser', ...)")
+            },
+            ["query"]),
+        required <- ["query"],
+        arg_names <- ["query", "limit", "module"],
+        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_discover(arg1, arg2, arg3)))
+    reg |> emplace(ToolDef(
+        tool <- make_tool(
+            "list_modules",
+            "List all available daslang modules: the C++ modules, the daslib files, and the require paths descriptors register (module/path). With project_root or load_modules the listing comes from a child that scanned those descriptors too.",
+            {
+                "json" => PropertySchema(_type = "string", description = "If 'true', return structured JSON (ModuleList with builtin, daslib and registered arrays)"),
+                "project_root" => PROJECT_ROOT_PROP,
+                "load_modules" => LOAD_MODULES_PROP
             },
             []),
         arg_names <- ["json"],
-        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_list_modules(arg1 == "true")))
+        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_list_modules(arg1 == "true", project_root, load_modules)))
     reg |> emplace(ToolDef(
         tool <- make_tool(
             "find_symbol",
@@ -195,7 +214,7 @@ def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool
     reg |> emplace(ToolDef(
         tool <- make_tool(
             "convert_to_gen2",
-            "Convert a daslang source file from v1 (indentation-based) syntax to gen2 (braces, parentheses) syntax using the gen1_to_gen2 converter. Returns converted code or writes in place.",
+            "Convert a daslang source file from v1 (indentation-based) syntax to gen2 (braces, parentheses) syntax using the gen1-to-gen2 converter. Returns converted code or writes in place.",
             {
                 "file" => PropertySchema(_type = "string", description = "Path to the .das file to convert"),
                 "inplace" => PropertySchema(_type = "string", description = "If 'true', overwrite the file in place. Otherwise return converted code to stdout.")
@@ -324,11 +343,11 @@ def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool
             "export_corpus",
             "Build a corpus.json from one or more .das files/dirs/globs. Output is the same shape `detect_duplicates` expects: a JSON dump of every user function's canonical token stream and source location. Run this once over a body of code (e.g. 'daslib', 'tests', or your project) to produce a corpus, then point `detect_duplicates` at it. Shells out to `daslang utils/detect-dupe/main.das` (daslang's `require` grammar can't use hyphenated path components, so the wrapper invokes the CLI as a subprocess). Pass `paths_file` to scope the export to an explicit precomputed list (e.g. files in a PR diff); pass `workers` to parallelize across child processes.",
             {
-                "paths" => PropertySchema(_type = "string", description = "Files, directories, or globs to scan. Comma- or newline-delimited. Directories are walked recursively. Skips `_*` directories, hidden directories, `builtin.das`, `daslib/debugger.das`, and `daslib/profiler.das`. Optional when `paths_file` is given; otherwise required."),
+                "paths" => PropertySchema(_type = "string", description = "Files, directories, or globs to scan. Comma- or newline-delimited. Directories are walked recursively. Skips `_*` directories, hidden directories, `builtin.das`, and anything under `ast-fuzz/selftest/`. Each file is parsed alone - no prerequisite walk, no infer, no macro run - so an unresolved require or annotation costs nothing and only a syntax error fails a file. Optional when `paths_file` is given; otherwise required."),
                 "paths_file" => PropertySchema(_type = "string", description = "Path to a newline-delimited file of paths. Skips blank lines and lines starting with `#`. Composes with `paths` (union; deduped). Use this for PR-scoped runs where you'd otherwise hit ARG_MAX (e.g. piping `git diff --name-only` to a file)."),
-                "out" => PropertySchema(_type = "string", description = "Output corpus.json path. Overwrites if it exists. Refuses to write a partial corpus when any input file fails to compile (matches the CLI's --export-functions behavior)."),
+                "out" => PropertySchema(_type = "string", description = "Output corpus.json path. Overwrites if it exists. A file with a syntax error is reported and counted; the functions parsed before the error are still exported (matches the CLI's --export-functions behavior)."),
                 "min_tokens" => PropertySchema(_type = "string", description = "Minimum canonical-token count per record (default 0 — keep every user function). Records below the threshold are dropped at export time. Most callers should leave this at 0 and let `detect_duplicates --min-tokens` filter at query time."),
-                "workers" => PropertySchema(_type = "string", description = "Worker count for parallel compilation. 0 = auto (= hardware threads). 1 = sequential. Files are split into N contiguous chunks; each chunk is compiled by a child detect-dupe process; shards are merged in chunk-index order so the output is byte-identical across worker counts. Below 16 input files the export stays sequential regardless.")
+                "workers" => PropertySchema(_type = "string", description = "Worker count for the parallel parse. 0 = auto (= physical cores, at most 16). 1 = sequential. Files are split into N contiguous chunks; each chunk is parsed by a child detect-dupe process; shards are merged in chunk-index order so the output is byte-identical across worker counts. Below 128 input files the export stays sequential regardless.")
             },
             ["out"]),
         required <- ["out"],
@@ -341,7 +360,7 @@ def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool
             "Find functions in `paths` that duplicate or closely resemble functions in a pre-built corpus (an `--export-functions` JSON from `detect-dupe`). Returns a per-candidate JSON report: each input function, its top exact-cluster siblings, and its top fuzzy partners with similarity scores. Use to answer 'did I just write something that already exists?' during PR authoring or review.",
             {
                 "paths" => PropertySchema(_type = "string", description = "One or more .das files to compare against the corpus. Comma- or newline-delimited list, or a glob (e.g. 'daslib/perf_lint.das' or 'src/foo/*.das'). Directories are not expanded — use a glob. Newline support lets `git diff --name-only` output be piped in directly."),
-                "corpus" => PropertySchema(_type = "string", description = "Path to a corpus.json produced by `detect-dupe --export-functions`. Records whose `file` matches a `paths` entry are dropped from the corpus and replaced by the freshly-compiled version (so the candidate file is compared against the rest of the world, not against itself)."),
+                "corpus" => PropertySchema(_type = "string", description = "Path to a corpus.json produced by `detect-dupe --export-functions`. Records whose `file` matches a `paths` entry are dropped from the corpus and replaced by the freshly-parsed version (so the candidate file is compared against the rest of the world, not against itself)."),
                 "threshold" => PropertySchema(_type = "string", description = "Fuzzy similarity floor 0..1 (default 0.7). Score is sqrt(jaccard × len_ratio)."),
                 "min_tokens" => PropertySchema(_type = "string", description = "Minimum canonical-token count per function (default 8). Filters trivial wrappers."),
                 "top" => PropertySchema(_type = "string", description = "Top-N similar matches per candidate (default 5)."),
@@ -383,6 +402,29 @@ def build_das_tools(var reg : array<ToolDef>) { // nolint:STYLE038 — flat tool
         required <- ["paths"],
         arg_names <- ["paths", "out", "model", "threshold", "max_clusters", "dry_run"],
         handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_find_dupe(arg1, arg2, arg3, arg4, arg5, arg6)))
+    reg |> emplace(ToolDef(
+        tool <- make_tool(
+            "arch_of",
+            "Read direction of the [arch] annotation: WHERE each citation a source file makes lands - one line per citation, `<file>:<line> <symbol> -> <doc>:<first>-<last> #<anchor>`, the section's heading line through its last line, so a Read of that range or an Edit in it follows directly. A .das file is read for its [arch(at=...)] annotations, a C/C++ source for its `// <doc>#<anchor>` pointers. A citation that does not resolve reports LINT026's own reason ('no such file', 'no such anchor', 'anchor appears N times', 'malformed citation'). Reads source, not the AST - works on a file that does not compile.",
+            {
+                "file" => PropertySchema(_type = "string", description = "Path to the .das file or C/C++ source - .c, .cpp, .cc, .cxx, .mm, .h, .hpp, .inl, .inc - repo-relative or absolute"),
+                "symbol" => PropertySchema(_type = "string", description = "Optional function/struct/class name — show only the citations annotating it")
+            },
+            ["file"]),
+        required <- ["file"],
+        arg_names <- ["file", "symbol"],
+        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_arch_of(arg1, arg2)))
+    reg |> emplace(ToolDef(
+        tool <- make_tool(
+            "arch_sites",
+            "Write direction of the [arch] annotation: the census of an architecture document - every source citing it, .das annotations and C/C++ `// <doc>#<anchor>` pointers alike, with file, line and the annotated symbol, each anchor with its section's line range. Searched from the folder that OWNS the document (its own subtree), the scope LINT026's reverse pass walks. Without an anchor, the census is grouped under the document's own headings in document order, uncited anchors and citations naming no declared anchor included; with one, only that section's citations are listed.",
+            {
+                "doc" => PropertySchema(_type = "string", description = "Path to the .md document, optionally with an anchor: 'utils/lint/ARCHITECTURE.md' or 'utils/lint/ARCHITECTURE.md#citations'")
+            },
+            ["doc"]),
+        required <- ["doc"],
+        arg_names <- ["doc"],
+        handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) => do_arch_sites(arg1)))
     reg |> emplace(ToolDef(
         tool <- make_tool(
             "live_status",

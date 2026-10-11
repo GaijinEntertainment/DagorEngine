@@ -384,8 +384,6 @@ static void collision_preprocessing(const DataBlock *nodes, Tab<GeomMeshHelperDa
 
 static bool preferZstdPacking = false;
 static bool allowOodlePacking = false;
-static bool writePrecookedFmt = false;
-static int precooked_fmt_version = 2; // 1 keeps the raw v1 writer (a rollback switch)
 
 // The vert21 grid frame for one node: the runtime BLAS reconstructs every vertex at a 21-bit cell center
 // (node-local -> resource-local via node_tm -> round(f*32) in the 65535/extent frame packVert21 uses
@@ -504,11 +502,8 @@ public:
   unsigned __stdcall getGameResClassId() const override { return 0xACE50000; }
   unsigned __stdcall getGameResVersion() const override
   {
-    // base_ver 6: the v3 stream (5 was v2); every older cook recooks. The v1 rollback keeps the v1
-    // numbering (base 3), so it recooks only the v2 and v3 packs and leaves the v1 ones alone.
-    const int base_ver = precooked_fmt_version == 1 ? 3 : 6;
-    return base_ver * 12 + 5 + (def_collidable ? 1 : 0) + 2 * (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 6)) +
-           (writePrecookedFmt ? 6 : 0);
+    // 6: the v3 stream; 11 keeps the version the precooked products had
+    return 6 * 12 + 11 + (def_collidable ? 1 : 0) + 2 * (!preferZstdPacking ? 0 : (allowOodlePacking ? 2 : 1 + 6));
   }
 
   void __stdcall onRegister() override {}
@@ -525,7 +520,7 @@ public:
   bool __stdcall isExportableAsset(DagorAsset &a) override { return true; }
 
   void readDataFromBlk(Tab<GeomMeshHelperDagObject> &dagObjectsList, const DataBlock &blk) { read_data_from_blk(dagObjectsList, blk); }
-  bool writeLegacyDump(DagorAsset &a, mkbindump::BinDumpSaveCB &final_cwr, ILogWriter &log, bool do_pack)
+  bool addDagNodes(DagorAsset &a, CollisionResourceBuilder &coll, ILogWriter &log)
   {
     Tab<GeomMeshHelperDagObject> dagObjectsList(tmpmem);
     String fpath(a.getTargetFilePath());
@@ -583,18 +578,6 @@ public:
       boundingSphere.r = boundingSphere.r2 = -1;
     }
 
-    final_cwr.writeInt32e(0xACE50000);
-    int versionPos = final_cwr.tell();
-    final_cwr.writeInt32e(0x20180510);
-
-    final_cwr.beginBlock();
-
-    final_cwr.write32ex(&boundingSphere, sizeof(BSphere3));
-
-    final_cwr.endBlock();
-
-    final_cwr.beginBlock();
-
     bool blkExist = false;
     int nameId = -1;
     if (a.props.blockCount() > 0)
@@ -603,11 +586,7 @@ public:
       nameId = a.props.getNameId("part");
     }
 
-    mkbindump::BinDumpSaveCB mcwr(128 << 10, final_cwr);
-    mkbindump::BinDumpSaveCB &cwr = do_pack ? mcwr : final_cwr;
-
     unsigned int numCollisionNodes = 0;
-    bool hasConvexes = false;
     bool collapseConvexes = a.props.getBool("collapseConvexes", false);
     bool nodesHaveFlags = false;
     bool def_coll = a.props.getBool("defCollidable", def_collidable);
@@ -671,10 +650,7 @@ public:
           else if (!stricmp(collision, "sphere"))
             type = COLLISION_NODE_TYPE_SPHERE;
           else if (!stricmp(collision, "convex"))
-          {
             type = COLLISION_NODE_TYPE_CONVEX;
-            hasConvexes = true;
-          }
         }
       }
       collisionObjectProps.objectCollisionType = type;
@@ -820,12 +796,10 @@ public:
     collisionFlags |= collapseConvexes ? COLLISION_RES_FLAG_COLLAPSE_CONVEXES : 0;
     collisionFlags |= nodesHaveFlags ? COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS : 0;
     collisionFlags |= (nodeTree.nodeCount() > 0) ? COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID : 0;
-    if (collisionFlags)
-      cwr.writeInt32e(collisionFlags);
+    coll.beginRawNodes(collisionFlags, boundingSphere);
 
     collision_preprocessing(a.props.getBlockByNameEx("nodes"), dagObjectsList, collisionObjectsProps, numCollisionNodes);
 
-    cwr.writeInt32e(numCollisionNodes);
     unsigned int numExportedNodes = 0;
     bool transparentContractOk = true;
     for (unsigned int objectNo = 0; objectNo < dagObjectsList.size(); objectNo++)
@@ -858,20 +832,20 @@ public:
       int kdopRotY = collisionObjectProps.objectKdopRotY;
       int kdopRotZ = collisionObjectProps.objectKdopRotZ;
       float kdopCutOffThreshold = collisionObjectProps.objectKdopCutOffThreshold;
-      // Write collision node header.
 
+      CollisionResourceBuilder::RawNode raw;
+      SimpleString nameWithoutSuffix;
       if (a.props.getBool("removeDMSuffix", false))
       {
-        SimpleString nameWithoutSuffix;
         remove_dm_suffix(dagObjectsList[objectNo].name, nameWithoutSuffix);
-        cwr.writeDwString(nameWithoutSuffix);
+        raw.name = nameWithoutSuffix.str();
       }
       else
-        cwr.writeDwString(dagObjectsList[objectNo].name);
+        raw.name = dagObjectsList[objectNo].name.str();
 
       const char *phmat =
         collisionObjectProps.physMat.empty() ? dagNodeScriptBlk.getStr("phmat", "") : collisionObjectProps.physMat.str();
-      cwr.writeDwString(phmat);
+      raw.physMat = phmat;
       // props, not the DAG script: a generated (refNodes) node inherits the request from its sources
       if (collisionObjectProps.isTransparent && !check_transparent_node_phmat(a, dagObjectsList[objectNo].name, phmat, log))
         transparentContractOk = false;
@@ -891,8 +865,8 @@ public:
       }
 
       BBox3 bbox = collisionObjectProps.boundingBoxs;
-      // The sphere is the center of its own vert box and the farthest vert from it, so the loader's
-      // fold keeps that radius. The FRAME is the one the loaded node keeps its radius in, which is
+      // The sphere is the center of its own vert box and the farthest vert from it, so the builder's
+      // fold keeps that radius. The FRAME is the one the built node keeps its radius in, which is
       // world for a SPHERE (the builder un-bakes the authored placement out of it) and node-local
       // for every other type, whose radius the runtime scales by the authored tm itself.
       const bool fitInWorld = type == COLLISION_NODE_TYPE_SPHERE;
@@ -934,17 +908,11 @@ public:
         }
       }
 
-      cwr.writeInt32e(type | (collisionObjectProps.behaviorFlags & 0xFF00));
-      if ((collisionFlags & COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS) == COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS)
-      {
-        uint8_t behFlagFirstByte = collisionObjectProps.behaviorFlags & 0xFF;
-        cwr.writeRaw(&collisionObjectProps.behaviorFlags, sizeof(behFlagFirstByte));
-      }
-
-      cwr.write32ex(tree_capsule ? &TMatrix::IDENT : &wtm, sizeof(TMatrix));
+      raw.type = (CollisionResourceNodeType)type;
+      raw.behaviorFlags = collisionObjectProps.behaviorFlags;
+      raw.tm = tree_capsule ? TMatrix::IDENT : wtm;
       if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
       {
-        TMatrix relGeomNodeTm = TMatrix::IDENT;
         String nodeName = dagObjectsList[objectNo].name;
         if (a.props.getBool("removeDMSuffix", false))
           remove_dm_suffix(dagObjectsList[objectNo].name, nodeName);
@@ -953,21 +921,15 @@ public:
         {
           TMatrix geomNodeWtm;
           nodeTree.getNodeWtmRelScalar(geomNodeIdx, geomNodeWtm);
-          relGeomNodeTm = inverse(geomNodeWtm) * wtm;
+          raw.relGeomTm = inverse(geomNodeWtm) * wtm;
         }
-        cwr.write32ex(&relGeomNodeTm, sizeof(TMatrix));
       }
+      raw.sphere = boundingSphere;
+      raw.box = bbox;
 
-      // write bouding sphere and box
-
-      cwr.write32ex(&boundingSphere, sizeof(BSphere3));
-      cwr.write32ex(&bbox, sizeof(BBox3));
-
-      // Write vertices and indices.
+      Tab<Plane3> convexPlanes(tmpmem);
       if (type == COLLISION_NODE_TYPE_CONVEX && !hasKdop)
       {
-        // First recreate planes
-        Tab<Plane3> convexPlanes(tmpmem);
         for (int i = 0; i < dagObjectsList[objectNo].mesh.faces.size(); ++i)
         {
           const GeomMeshHelper::Face &face = dagObjectsList[objectNo].mesh.faces[i];
@@ -983,124 +945,40 @@ public:
           }
           convexPlanes.push_back(plane);
         }
-        // Now we can save them
-        // TODO: think about throwing off any nonconvex planes. It'll take some performance, but it could reduce number of errors as
-        // well
-        cwr.writeInt32e(convexPlanes.size());
-        cwr.writeTabData32ex(convexPlanes);
       }
       else if (type == COLLISION_NODE_TYPE_CONVEX && hasKdop)
       {
-        Tab<Plane3> convexPlanes(tmpmem);
         for (int i = 0; i < kdop.planeDefinitions.size(); ++i)
-        {
           if (kdop.planeDefinitions[i].vertices.size() > 0)
-          {
-            Plane3 plane(kdop.planeDefinitions[i].planeNormal, kdop.planeDefinitions[i].vertices[0]);
-            convexPlanes.push_back(plane);
-          }
-        }
-        cwr.writeInt32e(convexPlanes.size());
-        cwr.writeTabData32ex(convexPlanes);
+            convexPlanes.push_back(Plane3(kdop.planeDefinitions[i].planeNormal, kdop.planeDefinitions[i].vertices[0]));
       }
+      raw.planes = make_span_const(convexPlanes);
 
-      if ((type == COLLISION_NODE_TYPE_MESH || type == COLLISION_NODE_TYPE_CONVEX) && !hasKdop)
+      if (type == COLLISION_NODE_TYPE_MESH || type == COLLISION_NODE_TYPE_CONVEX)
       {
-        if (!dagObjectsList[objectNo].mesh.faces.size())
+        const Tab<GeomMeshHelper::Face> &faces = dagObjectsList[objectNo].mesh.faces;
+        if (!hasKdop && !faces.size())
           log.addMessage(log.WARNING, "%s: node <%s> with type=%s contains empty mesh (face.count=%d vert.count=%d)", a.getName(),
-            dagObjectsList[objectNo].name, (type == COLLISION_NODE_TYPE_MESH) ? "mesh" : "convex",
-            dagObjectsList[objectNo].mesh.faces.size(), verts.size());
-        cwr.writeInt32e(verts.size());
-        cwr.writeTabData32ex(verts);
-        cwr.writeInt32e(dagObjectsList[objectNo].mesh.faces.size() * 3);
-        cwr.write32ex(dagObjectsList[objectNo].mesh.faces.data(), (int)(dagObjectsList[objectNo].mesh.faces.size() * sizeof(int) * 3));
+            dagObjectsList[objectNo].name, (type == COLLISION_NODE_TYPE_MESH) ? "mesh" : "convex", faces.size(), verts.size());
+        raw.verts = fitVerts;
+        raw.indices =
+          hasKdop ? make_span_const(kdop.indices) : make_span_const(faces.empty() ? nullptr : faces[0].v, faces.size() * 3);
       }
-      else if ((type == COLLISION_NODE_TYPE_MESH || type == COLLISION_NODE_TYPE_CONVEX) && hasKdop)
-      {
-        Tab<Point3> kdopVerts(tmpmem);
-        Tab<int> kdopFaces(tmpmem);
-        for (int i = 0; i < kdop.vertices.size(); ++i)
-        {
-          kdopVerts.push_back(kdop.vertices[i]);
-        }
-        for (int i = 0; i < kdop.indices.size(); ++i)
-        {
-          kdopFaces.push_back(kdop.indices[i]);
-        }
-        cwr.writeInt32e(kdopVerts.size());
-        cwr.writeTabData32ex(kdopVerts);
-        cwr.writeInt32e(kdopFaces.size());
-        cwr.writeTabData32ex(kdopFaces);
-      }
-      else
-      {
-        cwr.writeInt32e(0);
-        cwr.writeInt32e(0);
-      }
+      coll.addRawNode(raw, a.getName(), resolve_phmat);
     }
 
     G_ASSERT(numExportedNodes == numCollisionNodes);
-
-    if (!do_pack)
-      final_cwr.endBlock(btag_compr::NONE);
-    else if (cwr.getSize() < 512) // no sence in compressing
-    {
-      cwr.copyDataTo(final_cwr.getRawWriter());
-      final_cwr.endBlock(btag_compr::NONE);
-    }
-    else
-    {
-      mkbindump::BinDumpSaveCB mcwr(cwr.getSize(), final_cwr);
-      MemoryLoadCB mcrd(cwr.getRawWriter().getMem(), false);
-
-      if (allowOodlePacking)
-      {
-        mcwr.writeInt32e(cwr.getSize());
-        oodle_compress_data(mcwr.getRawWriter(), mcrd, cwr.getSize());
-      }
-      else
-        zstd_compress_data(mcwr.getRawWriter(), mcrd, cwr.getSize(), 256 << 10, 19);
-
-      if (mcwr.getSize() < cwr.getSize() * 8 / 10 && mcwr.getSize() + 256 < cwr.getSize()) // enough profit in compression
-      {
-        mcwr.copyDataTo(final_cwr.getRawWriter());
-        final_cwr.endBlock(allowOodlePacking ? btag_compr::OODLE : btag_compr::ZSTD);
-      }
-      else
-      {
-        cwr.copyDataTo(final_cwr.getRawWriter());
-        final_cwr.endBlock(btag_compr::NONE);
-      }
-    }
-
-    if (!hasConvexes || !collisionFlags)
-    {
-      final_cwr.seekto(versionPos);
-      final_cwr.writeInt32e(collisionFlags ? 0x20180510 : (hasConvexes ? 0x20160120 : 0x20150115));
-      final_cwr.seekToEnd();
-    }
-
+    coll.endRawNodes();
     return transparentContractOk;
   }
 
   bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     bool collapse_nodes = a.props.getBool("collapseNodes", a.props.getBool("collapseAndOptimize", false));
-    // Legacy raw dump: no weld / degenerate repair. The vert21 runtime re-quantizes this data at
-    // load, so products on the current engine should cook with writePrecookedFmt.
-    if (!writePrecookedFmt && !collapse_nodes) // legacy format
-      return writeLegacyDump(a, cwr, log, preferZstdPacking);
-
-    // modern (pre-cooked) format
     phmatNames.reset(); // this asset's material ids start at 0
 
-    // first we write legacy format and read it back into the builder's raw workspace
-    mkbindump::BinDumpSaveCB mcwr(128 << 10, cwr);
-    if (!writeLegacyDump(a, mcwr, log, false))
-      return false;
-    MemoryLoadCB mcrd(mcwr.getRawWriter().getMem(), false);
     CollisionResourceBuilder coll;
-    if (!coll.loadLegacy(mcrd, mcrd.readInt(), a.getName(), resolve_phmat))
+    if (!addDagNodes(a, coll, log))
       return false;
 
     // Gates the pre-serialization sort: stlsort is not stable, so re-sorting when nothing changed
@@ -1282,8 +1160,7 @@ public:
       // round whenever the snap drops nothing). The weld mutates in place, so re-snapping restarts each
       // survivor from its post-pass-1 state (snapPass1).
       const dag::Vector<MeshData> snapPass1 = meshes;
-      // Always snap in the modern path: the per-node chunks quantize this geometry at export, collapsed or
-      // not. (The pure-legacy writeLegacyDump path returned at the top of exportAsset and never reaches here.)
+      // Always snap: the per-node chunks quantize this geometry at export, collapsed or not.
       for (bool survivorsStable = false, firstRound = true; !survivorsStable; firstRound = false)
       {
         survivorsStable = true;
@@ -1478,27 +1355,21 @@ public:
       coll.sortNodes();
 
     // The vert21 weld/snap, edge-collapse, and DROP changed the geometry, so the resource-level bounds
-    // carried over from the pre-snap legacy load are stale. Refresh before serialization: the precooked
-    // runtime load reads them straight off disk, and the trace/inclusion early reject uses vBoundingSphere.
+    // of the DAG walk are stale. Refresh before serialization: the runtime load reads them straight
+    // off disk, and the trace/inclusion early reject uses vBoundingSphere.
     coll.recomputeBounds();
 
-    // write back uncompressed data in modern format
-    const unsigned label = 0xACE50000 | (precooked_fmt_version == 1 ? 1u : COLLRES_STREAM_VERSION);
-    mcwr.reset(128 << 10);
-    if (precooked_fmt_version == 1)
-      writeCollisionData(coll, mcwr);
-    else
+    const unsigned label = 0xACE50000 | COLLRES_STREAM_VERSION;
+    mkbindump::BinDumpSaveCB mcwr(128 << 10, cwr);
+    if (mcwr.WRITE_BE)
     {
-      if (mcwr.WRITE_BE)
-      {
-        log.addMessage(log.ERROR, "%s: the collision stream is little-endian only", a.getName());
-        return false;
-      }
-      if (!coll.write(mcwr.getRawWriter(), a.getName(), mat_name))
-      {
-        log.addMessage(log.ERROR, "%s: the collision stream cannot be written", a.getName());
-        return false;
-      }
+      log.addMessage(log.ERROR, "%s: the collision stream is little-endian only", a.getName());
+      return false;
+    }
+    if (!coll.write(mcwr.getRawWriter(), a.getName(), mat_name))
+    {
+      log.addMessage(log.ERROR, "%s: the collision stream cannot be written", a.getName());
+      return false;
     }
 
     // The shipped bytes back through the loader: the stream must be a fixpoint of load + write (anything
@@ -1512,22 +1383,18 @@ public:
       acwr.endBlock(btag_compr::NONE);
       MemoryLoadCB acrd(acwr.getRawWriter().getMem(), false);
       CollisionResource back(acrd, -1, a.getName(), resolve_phmat);
-      // Both arms: a refused landing leaves the twin empty, and an empty twin passes the Jolt check
-      // below. The v1 writer caps no node count, so without this the pack would ship to land empty.
+      // a refused landing leaves the twin empty, and an empty twin passes the Jolt check below
       if (back.getAllNodes().empty() && !coll.nodes.empty())
       {
         log.addMessage(log.ERROR, "%s: the written collision stream loads as an empty resource", a.getName());
         return false;
       }
-      if (precooked_fmt_version != 1)
+      mkbindump::BinDumpSaveCB bcwr(mcwr.getSize() + 16, mcwr);
+      if (!back.write(bcwr.getRawWriter(), mat_name) || bcwr.getSize() != mcwr.getSize() ||
+          !mcwr.getRawWriter().getMem()->cmpEq(bcwr.getRawWriter().getMem()))
       {
-        mkbindump::BinDumpSaveCB bcwr(mcwr.getSize() + 16, mcwr);
-        if (!back.write(bcwr.getRawWriter(), mat_name) || bcwr.getSize() != mcwr.getSize() ||
-            !mcwr.getRawWriter().getMem()->cmpEq(bcwr.getRawWriter().getMem()))
-        {
-          log.addMessage(log.ERROR, "%s: the collision stream is not a load/write fixpoint", a.getName());
-          return false;
-        }
+        log.addMessage(log.ERROR, "%s: the collision stream is not a load/write fixpoint", a.getName());
+        return false;
       }
       if (!a.props.getBool("skipJoltValidation", false) && !back.validateVerticesForJolt(a.getName()) && jolt_degenerate_fail_export)
       {
@@ -1548,7 +1415,7 @@ public:
     else
     {
       mkbindump::BinDumpSaveCB zcwr(mcwr.getSize(), cwr);
-      mcrd.setMem(mcwr.getRawWriter().getMem(), false);
+      MemoryLoadCB mcrd(mcwr.getRawWriter().getMem(), false);
 
       if (allowOodlePacking)
       {
@@ -1572,75 +1439,6 @@ public:
     return true;
   }
 
-  // The v1 rollback writer (precookedFmtVersion:i=1): the raw geometry, one material per node.
-  static void writeCollisionData(const CollisionResourceBuilder &c, mkbindump::BinDumpSaveCB &cwr)
-  {
-    cwr.write32ex(&c.vFullBBox, sizeof(c.vFullBBox));
-    cwr.write32ex(&c.vBoundingSphere, sizeof(c.vBoundingSphere));
-    cwr.write32ex(&c.boundingBox, sizeof(c.boundingBox));
-    cwr.writeFloat32e(c.boundingSphereRad);
-    // Strip legacy FRT-presence bits before writing: the runtime no longer builds or uses FRT, so
-    // new exports carry no FRT blocks. COLLISION_RES_FLAG_BLAS_TWO_SIDED is not stripped: it is the
-    // only on-disk signal the loader uses to restore the BLAS cull mode.
-    cwr.writeInt32e(c.collisionFlags & ~(COLLISION_RES_FLAG_HAS_TRACE_FRT | COLLISION_RES_FLAG_HAS_COLL_FRT));
-
-    cwr.writeInt32e((int)c.nodes.size());
-    for (const CollisionNode &n : c.nodes)
-    {
-      cwr.writeDwString(c.nodeName(n.nodeIndex));
-      const int physMatId = c.nodePhysMatId(n.nodeIndex, 0); // a set-holding node writes its first material
-      cwr.writeDwString(physMatId >= 0 ? phmatNames.getName(physMatId) : "");
-      BBox3 nodeBBox = c.nodeBBox(n.nodeIndex);
-      BSphere3 nodeBSphere = c.nodeBSphere(n.nodeIndex);
-      cwr.write32ex(&nodeBBox, sizeof(nodeBBox));
-      cwr.write32ex(&nodeBSphere, sizeof(nodeBSphere));
-      cwr.writeInt16e(n.behaviorFlags);
-      cwr.writeInt8e(n.flags);
-      cwr.writeInt8e(n.type);
-      cwr.writeFloat32e(c.nodeMaxTmScale(n.nodeIndex));
-      const TMatrix &sTm = c.authoredTm[n.nodeIndex];
-      cwr.write32ex(&sTm, sizeof(sTm));
-      cwr.writeInt16e(n.insideOfNode);
-
-      dag::ConstSpan<plane3f> planes = c.nodeConvexPlanes(n.nodeIndex);
-      cwr.writeInt16e(planes.size());
-      cwr.write32ex(planes.data(), data_size(planes));
-
-      dag::ConstSpan<Point3_vec4> verts = c.nodeVerts(n.nodeIndex);
-      cwr.writeInt32e((int)verts.size());
-      if (!verts.empty())
-        cwr.write32ex(verts.data(), data_size(verts));
-
-      dag::ConstSpan<uint32_t> idxs = c.nodeIndices(n.nodeIndex);
-      // The pack stores 16-bit node-local indices. The index workspace is uint32, but an export source
-      // node is <= 65536 verts, so the narrow is lossless. Drop (with logerr) any triangle violating
-      // this instead of silently truncating. Stage into a 16-bit temp the byte-swapping write16ex expects.
-      Tab<uint16_t> idx16(tmpmem);
-      idx16.reserve(idxs.size());
-      int skippedTris = 0;
-      for (int i = 0; i + 2 < idxs.size(); i += 3)
-      {
-        if (idxs[i] > 0xFFFF || idxs[i + 1] > 0xFFFF || idxs[i + 2] > 0xFFFF)
-        {
-          skippedTris++;
-          continue;
-        }
-        idx16.push_back((uint16_t)idxs[i]);
-        idx16.push_back((uint16_t)idxs[i + 1]);
-        idx16.push_back((uint16_t)idxs[i + 2]);
-      }
-      if (skippedTris)
-        logerr("collision node '%s': skipped %d triangle(s) with indices out of 16-bit range", c.nodeName(n.nodeIndex), skippedTris);
-      cwr.writeInt32e((int)idx16.size());
-      cwr.write16ex(idx16.data(), data_size(idx16));
-    }
-
-    if (c.collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
-    {
-      G_ASSERTF(c.relGeomTm.size() == c.nodes.size(), "nodes=%d relGeomTm=%d", (int)c.nodes.size(), (int)c.relGeomTm.size());
-      cwr.write32ex(c.relGeomTm.data(), data_size(c.relGeomTm));
-    }
-  }
   static FastNameMapTS<false> phmatNames;
   static int resolve_phmat(const char *nm) { return phmatNames.addNameId(nm); }
   static const char *mat_name(int id) { return phmatNames.getName(id); }
@@ -1663,14 +1461,6 @@ public:
     allowOodlePacking = collisionBlk->getBool("allowOODLE", false);
     if (allowOodlePacking)
       debug("collision allows OODLE");
-
-    writePrecookedFmt = collisionBlk->getBool("writePrecookedFmt", false);
-    precooked_fmt_version = collisionBlk->getInt("precookedFmtVersion", 2);
-    if (precooked_fmt_version != 1 && precooked_fmt_version != 2)
-    {
-      logerr("collision: precookedFmtVersion:i=%d is not a format this exporter writes (1 or 2); writing 2", precooked_fmt_version);
-      precooked_fmt_version = 2;
-    }
 
     const char *degen_strategy_str = collisionBlk->getStr("degenerativeMeshStrategy", "remove");
     if (strcmp(degen_strategy_str, "remove") == 0)

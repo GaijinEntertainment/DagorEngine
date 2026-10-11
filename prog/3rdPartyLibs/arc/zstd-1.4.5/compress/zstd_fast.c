@@ -103,7 +103,9 @@ ZSTD_compressBlock_fast_generic(
         const BYTE* match1 = base + matchIndex1;
         U32 offcode;
 
-#if defined(__aarch64__)
+// Gaijin change
+#if defined(__aarch64__) || defined(_M_ARM64EC)
+// ~Gaijin change
         PREFETCH_L1(ip0+256);
 #endif
 

@@ -32,6 +32,7 @@ class GridObject;
 class IWndManager;
 class IDagorEdCustomCollider;
 class EditorWorkspace;
+class BaseTexture;
 class BBox3;
 
 
@@ -601,6 +602,12 @@ public:
 
   /// Create dialog with property panel
   virtual PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) = 0;
+  /// Create dialog with property panel that is sized to its content, see DialogWindow::autoSize()
+  /// min_width and min_height are the minimum size of the dialog. Use zero for no minimum.
+  /// The dialog is auto-sized only for its first display.
+  /// Call DialogWindow::autoSize(!hasEverBeenShown(), true) if the panel content changes after the first display.
+  virtual PropPanel::DialogWindow *createAutoSizedDialog(const char *title, hdpi::Px min_width = hdpi::Px::ZERO,
+    hdpi::Px min_height = hdpi::Px::ZERO) = 0;
   /// Delete dialog
   virtual void deleteDialog(PropPanel::DialogWindow *dlg) = 0;
 
@@ -701,9 +708,11 @@ public:
 
   /// Do a ray tracing from world point to a given direction.
   /// @param[in] src - start point of ray tracing
-  /// @param[in] dir - ray tracing direction
-  /// @param[in] dist - max distance of ray tracing
-  /// @param[out] dist - the distance from start point to clipping point
+  /// @param[in] dir - ray tracing direction, not required to be unit
+  /// @param[in] dist - the end of the traced segment src + dir * [0, dist), in units of dir
+  /// @param[out] dist - the parameter t of the clipping point src + dir * t, in units of dir; for a
+  ///   near-vertical dir two colliders read and answer dist in world units instead, which
+  ///   IDagorEdCustomCollider::traceRay names
   /// @param[out] out_norm - surface normal in clipping point, NULL allowed.
   /// @param[in] use_zero_plane - trace to zero plane if no other collision occurred.
   /// @return @b true if intersection with collision surface occurred,
@@ -904,7 +913,7 @@ public:
   virtual void renderIslDecalObjects() = 0;
 
   /// Transparent objects in 'Render' stage
-  virtual void renderTransObjects() = 0;
+  virtual void renderTransObjects(BaseTexture *color_target) = 0;
   //@}
 
   /// Snap functions

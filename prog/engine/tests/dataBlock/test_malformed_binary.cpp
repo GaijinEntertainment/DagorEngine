@@ -80,6 +80,17 @@ TEST_CASE("DataBlock binary dump: block count beyond node array is rejected", "[
   CHECK(load_and_walk(b) == false);
 }
 
+TEST_CASE("DataBlock binary dump: dump with no blocks is rejected", "[datablock][binary][malformed]")
+{
+  Bytes b;
+  b.push_back(0x01);
+  put_names(b, {});
+  put_leb(b, 0); // no node, not even the root
+  put_leb(b, 0);
+  put_leb(b, 0);
+  CHECK(load_and_walk(b) == false);
+}
+
 TEST_CASE("DataBlock binary dump: param count desync is rejected", "[datablock][binary][malformed]")
 {
   Bytes b;
@@ -104,6 +115,67 @@ TEST_CASE("DataBlock binary dump: fBlock out of range is rejected", "[datablock]
   CHECK(load_and_walk(b) == false);
 }
 
+TEST_CASE("DataBlock binary dump: block that is its own child is rejected", "[datablock][binary][malformed]")
+{
+  Bytes b;
+  b.push_back(0x01);
+  put_names(b, {});
+  put_leb(b, 1);
+  put_leb(b, 0);
+  put_leb(b, 0);
+  put_node(b, 0, 0, 1, /*f_block*/ 0); // cycle: tree walks never end
+
+  FatalFlagsGuard guard;
+  guard.setAllNonFatal();
+  ErrorCollector rep;
+  DataBlock::InstallReporterRAII raii(&rep);
+  DataBlock blk;
+  InPlaceMemLoadCB crd(b.data(), (int)b.size());
+  CHECK_FALSE(blk.loadFromStream(crd, "cycle.blk"));
+}
+
+TEST_CASE("DataBlock binary dump: block with two parents is rejected", "[datablock][binary][malformed]")
+{
+  Bytes b;
+  b.push_back(0x01);
+  put_names(b, {});
+  put_leb(b, 3);
+  put_leb(b, 0);
+  put_leb(b, 0);
+  put_node(b, 0, 0, 2, /*f_block*/ 1);
+  put_node(b, 0, 0, 1, /*f_block*/ 2); // block 2 is also a child of the root
+  put_node(b, 0, 0, 0);
+  CHECK(load_and_walk(b) == false);
+}
+
+TEST_CASE("DataBlock binary dump: gap between child runs is rejected", "[datablock][binary][malformed]")
+{
+  Bytes b;
+  b.push_back(0x01);
+  put_names(b, {});
+  put_leb(b, 4);
+  put_leb(b, 0);
+  put_leb(b, 0);
+  put_node(b, 0, 0, 1, /*f_block*/ 1);
+  put_node(b, 0, 0, 1, /*f_block*/ 3); // block 2 is skipped
+  put_node(b, 0, 0, 0);
+  put_node(b, 0, 0, 0);
+  CHECK(load_and_walk(b) == false);
+}
+
+TEST_CASE("DataBlock binary dump: block that no parent reaches is rejected", "[datablock][binary][malformed]")
+{
+  Bytes b;
+  b.push_back(0x01);
+  put_names(b, {});
+  put_leb(b, 2);
+  put_leb(b, 0);
+  put_leb(b, 0);
+  put_node(b, 0, 0, 0);
+  put_node(b, 0, 0, 0);
+  CHECK(load_and_walk(b) == false);
+}
+
 TEST_CASE("DataBlock binary dump: param nameId beyond namemap is rejected", "[datablock][binary][malformed]")
 {
   Bytes b;
@@ -114,6 +186,20 @@ TEST_CASE("DataBlock binary dump: param nameId beyond namemap is rejected", "[da
   put_leb(b, 0);
   put_param(b, 0x7FFFFF, DataBlock::TYPE_INT, 1); // nameId far past the 1-entry namemap
   put_node(b, 0, 1, 0);
+  CHECK(load_and_walk(b) == false);
+}
+
+TEST_CASE("DataBlock binary dump: more names than name bytes is rejected", "[datablock][binary][malformed]")
+{
+  Bytes b;
+  b.push_back(0x01);
+  put_leb(b, 2);     // names count
+  put_leb(b, 1);     // names size
+  b.push_back(0x00); // one empty name
+  put_leb(b, 1);     // blocks_count
+  put_leb(b, 0);     // params_count
+  put_leb(b, 0);     // complex_data size
+  put_node(b, 0, 0, 0);
   CHECK(load_and_walk(b) == false);
 }
 

@@ -10,8 +10,8 @@ require opengl/opengl_cache
 require daslib/defer
 require daslib/safe_addr
 require daslib/decs_boost
-require live/decs_live    // nolint:STYLE030 — load-bearing for decs entity serialization across live reloads
-require live/opengl_live  // nolint:STYLE030 — load-bearing for OpenGL resource live-reload
+require live/decs_live
+require live/opengl_live
 require live/live_commands
 require live/live_api
 require daslib/json

@@ -10,7 +10,7 @@ struct IfnnFoo {
 var g_ifnn_called = false
 
 [sideeffects]
-def ifnn_take3(var pfoo : IfnnFoo; b, c : int) {
+def ifnn_take3(pfoo : IfnnFoo; b, c : int) {
     assert(pfoo.a == 1 && b == 2 && c == 3)
     g_ifnn_called = true
 }

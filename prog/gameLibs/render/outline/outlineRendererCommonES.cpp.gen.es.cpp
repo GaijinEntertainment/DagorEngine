@@ -9,11 +9,12 @@ static constexpr ecs::ComponentDesc outline_render_always_visible_ecs_query_comp
 //start of 2 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
-//start of 9 ro components at [2]
+//start of 10 ro components at [2]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
   {ECS_HASH("attaches_list"), ecs::ComponentTypeInfo<ecs::EidList>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__nodeFilter"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -24,7 +25,7 @@ static ecs::CompileTimeQueryDesc outline_render_always_visible_ecs_query_desc
 (
   "outline_render_always_visible_ecs_query",
   make_span(outline_render_always_visible_ecs_query_comps+0, 2)/*rw*/,
-  make_span(outline_render_always_visible_ecs_query_comps+2, 9)/*ro*/,
+  make_span(outline_render_always_visible_ecs_query_comps+2, 10)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -44,6 +45,7 @@ inline void outline_render_always_visible_ecs_query(ecs::EntityManager &manager,
             , ECS_RO_COMP(outline_render_always_visible_ecs_query_comps, "animchar_bbox", bbox3f)
             , ECS_RO_COMP_PTR(outline_render_always_visible_ecs_query_comps, "attaches_list", ecs::EidList)
             , ECS_RO_COMP_PTR(outline_render_always_visible_ecs_query_comps, "additional_data", ecs::Point4List)
+            , ECS_RO_COMP_PTR(outline_render_always_visible_ecs_query_comps, "outline__nodeFilter", ecs::UInt8List)
             , ECS_RO_COMP_OR(outline_render_always_visible_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_always_visible_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
             );
@@ -180,12 +182,13 @@ static constexpr ecs::ComponentDesc outline_render_z_pass_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
-//start of 14 ro components at [1]
+//start of 15 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
   {ECS_HASH("attaches_list"), ecs::ComponentTypeInfo<ecs::EidList>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__nodeFilter"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__depthDiffBlendStart"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
@@ -200,7 +203,7 @@ static ecs::CompileTimeQueryDesc outline_render_z_pass_ecs_query_desc
 (
   "outline_render_z_pass_ecs_query",
   make_span(outline_render_z_pass_ecs_query_comps+0, 1)/*rw*/,
-  make_span(outline_render_z_pass_ecs_query_comps+1, 14)/*ro*/,
+  make_span(outline_render_z_pass_ecs_query_comps+1, 15)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -220,6 +223,7 @@ inline void outline_render_z_pass_ecs_query(ecs::EntityManager &manager, Callabl
             , ECS_RW_COMP(outline_render_z_pass_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP_PTR(outline_render_z_pass_ecs_query_comps, "attaches_list", ecs::EidList)
             , ECS_RO_COMP_PTR(outline_render_z_pass_ecs_query_comps, "additional_data", ecs::Point4List)
+            , ECS_RO_COMP_PTR(outline_render_z_pass_ecs_query_comps, "outline__nodeFilter", ecs::UInt8List)
             , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
             , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__depthDiffBlendStart", float(1))
@@ -377,12 +381,13 @@ static constexpr ecs::ComponentDesc outline_render_z_fail_ecs_query_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("outline__frames_visible"), ecs::ComponentTypeInfo<int>()},
-//start of 12 ro components at [2]
+//start of 13 ro components at [2]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
   {ECS_HASH("attaches_list"), ecs::ComponentTypeInfo<ecs::EidList>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__nodeFilter"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__frames_history"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
@@ -395,7 +400,7 @@ static ecs::CompileTimeQueryDesc outline_render_z_fail_ecs_query_desc
 (
   "outline_render_z_fail_ecs_query",
   make_span(outline_render_z_fail_ecs_query_comps+0, 2)/*rw*/,
-  make_span(outline_render_z_fail_ecs_query_comps+2, 12)/*ro*/,
+  make_span(outline_render_z_fail_ecs_query_comps+2, 13)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -415,6 +420,7 @@ inline void outline_render_z_fail_ecs_query(ecs::EntityManager &manager, Callabl
             , ECS_RW_COMP(outline_render_z_fail_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP_PTR(outline_render_z_fail_ecs_query_comps, "attaches_list", ecs::EidList)
             , ECS_RO_COMP_PTR(outline_render_z_fail_ecs_query_comps, "additional_data", ecs::Point4List)
+            , ECS_RO_COMP_PTR(outline_render_z_fail_ecs_query_comps, "outline__nodeFilter", ecs::UInt8List)
             , ECS_RW_COMP(outline_render_z_fail_ecs_query_comps, "outline__frames_visible", int)
             , ECS_RO_COMP_OR(outline_render_z_fail_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_z_fail_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))

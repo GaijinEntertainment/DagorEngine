@@ -153,7 +153,7 @@ class SkipLeaf : SkipMid {
 }
 
 [test]
-def test_super(t : T?) {
+def test_super(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     t |> run("super() calls parent default constructor") @(t : T?) {
         unsafe {
             let d = Derived()

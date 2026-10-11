@@ -228,23 +228,26 @@ private:
     }
   }
 
-  void readTexture(BaseTexture *src_texture, eastl::vector<float> &dest_array, size_t map_size)
+  bool readTexture(BaseTexture *src_texture, eastl::vector<float> &dest_array)
   {
-    size_t map_byte_size = map_size * sizeof(float);
-    dest_array.resize(map_size);
+    size_t map_byte_size = h * w * sizeof(float);
+    dest_array.resize(h * w);
     TextureInfo texInfo;
-    src_texture->getinfo(texInfo);
-    if (texInfo.h != h || texInfo.w != w || (texInfo.cflg & TEXFMT_MASK) != TEXFMT_R32F)
+    if (src_texture)
+      src_texture->getinfo(texInfo);
+    if (!src_texture || texInfo.h != h || texInfo.w != w || (texInfo.cflg & TEXFMT_MASK) != TEXFMT_R32F)
     {
       memset(dest_array.data(), 0, map_byte_size);
-      return;
+      return true;
     }
     void *mapData = nullptr;
     int stride = 0;
-    if (!src_texture->lockimg(&mapData, stride, 0, TEXLOCK_READ) && mapData)
-      return;
-    memcpy(dest_array.data(), mapData, map_byte_size);
-    src_texture->unlockimg();
+    const bool locked = src_texture->lockimg(&mapData, stride, 0, TEXLOCK_READ);
+    if (locked && mapData)
+      memcpy(dest_array.data(), mapData, map_byte_size);
+    if (locked)
+      src_texture->unlockimg();
+    return locked && mapData;
   }
 
   void writeTexture(Texture *dest_texture, const eastl::optional<eastl::vector<float>> &src_array, Texture *temp_tex)
@@ -271,12 +274,12 @@ private:
     return eastl::nullopt;
   }
 
-  void cpu_algorithm(dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs)
+  bool cpu_algorithm(dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs)
   {
     size_t mapSize = h * w;
 
-    readTexture(inputs[0].tex, heightMap, mapSize);
-    readTexture(inputs[1].tex, hardnessMap, mapSize);
+    if (!inputs[0].tex || !readTexture(inputs[0].tex, heightMap) || !readTexture(inputs[1].tex, hardnessMap))
+      return false;
 
     sedimentMap = prepareCleanMap(outputs[1] != nullptr, mapSize);
     depositMap = prepareCleanMap(outputs[2] != nullptr, mapSize);
@@ -292,15 +295,14 @@ private:
       float maxSqLen = 0;
       for (int i = 0; i < mapSize; i++)
         maxSqLen = max(maxSqLen, (*flowMapX)[i] * (*flowMapX)[i] + (*flowMapY)[i] * (*flowMapY)[i]);
-      float maxLenInv = 1 / sqrt(maxSqLen);
+      float maxLenInv = maxSqLen > 0 ? 1 / sqrt(maxSqLen) : 0;
       for (int i = 0; i < mapSize; i++)
       {
         Point2 flow = Point2((*flowMapX)[i], (*flowMapY)[i]) * maxLenInv;
         if (flow_map_normalized)
         {
-          float flowLen = flow.lengthF();
-          float flowLenInv = flowLen < 0.00001f ? 1 / flowLen : 0;
-          flow *= flowLenInv;
+          float flowLenSq = flow.lengthSq();
+          flow *= flowLenSq < 1e-10f ? 0.f : fastinvsqrt(flowLenSq);
         }
         if (!flow_map_signed)
         {
@@ -320,6 +322,7 @@ private:
     writeTexture((Texture *)outputs[5], waterFlowMap, temp_tex);
 
     del_d3dres(temp_tex);
+    return true;
   }
 
   void gpu_algorithm(const TextureGenNodeData &data, TextureGenerator &gen, TextureRegManager &regs,
@@ -415,13 +418,10 @@ public:
     if (!data.params.getBool("use_gpu", false))
     {
       read_parameters(data.params, gen);
-      cpu_algorithm(inputs, outputs);
+      return cpu_algorithm(inputs, outputs);
     }
-    else
-    {
-      gpu_algorithm(data, gen, regs, inputs, outputs);
-    }
-    return true;
+    gpu_algorithm(data, gen, regs, inputs, outputs);
+    return inputs[0].tex != nullptr;
   }
 } texgen_erosion;
 

@@ -3,6 +3,7 @@ outDumpName:t="../../../../tools/dargbox/shaders/gameMTL"
 
 incDir:t="../../../gameLibs/render/shaders"
 incDir:t="../../../gameLibs/daRg/shaders"
+incDir:t="../../../gameLibs"
 
 source
 {

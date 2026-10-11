@@ -167,12 +167,8 @@ public:
       "bind_dascript::dacoll_rayhit_normalized");
     das::addExtern<DAS_BIND_FUN(dacoll_rayhit_normalized_trace_handle)>(*this, lib, "rayhit_normalized",
       das::SideEffects::accessExternal, "bind_dascript::dacoll_rayhit_normalized_trace_handle");
-    das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_frt)>(*this, lib, "traceray_normalized_frt",
-      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_traceray_normalized_frt");
     das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_lmesh)>(*this, lib, "traceray_normalized_lmesh",
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_traceray_normalized_lmesh");
-    das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_ri)>(*this, lib, "traceray_normalized_ri",
-      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_traceray_normalized_ri");
     das::addExtern<DAS_BIND_FUN(dacoll::rayhit_normalized_lmesh)>(*this, lib, "rayhit_normalized_lmesh",
       das::SideEffects::accessExternal, "dacoll::rayhit_normalized_lmesh");
 
@@ -213,7 +209,8 @@ public:
       das::SideEffects::invoke, "bind_dascript::get_min_max_hmap_list_in_circle");
 
     das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized_ex)>(*this, lib, "traceray_normalized",
-      das::SideEffects::modifyArgumentAndExternal, "bind_dascript::dacoll_traceray_normalized_ex");
+      das::SideEffects::modifyArgumentAndExternal, "bind_dascript::dacoll_traceray_normalized_ex")
+      ->arg_init(/*skip_riex_handle*/ 8, new das::ExprConstUInt64(rendinst::RIEX_HANDLE_NULL));
 
     das::addExtern<DAS_BIND_FUN(dacoll_sphere_query_ri)>(*this, lib, "sphere_query_ri", das::SideEffects::modifyArgumentAndExternal,
       "bind_dascript::dacoll_sphere_query_ri");
@@ -233,8 +230,6 @@ public:
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_add_dynamic_capsule_collision");
     das::addExtern<DAS_BIND_FUN(bind_dascript::dacoll_add_dynamic_cylinder_collision)>(*this, lib, "add_dynamic_cylinder_collision",
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_add_dynamic_cylinder_collision");
-    das::addExtern<DAS_BIND_FUN(dacoll::add_collision_hmap_custom)>(*this, lib, "add_collision_hmap_custom",
-      das::SideEffects::modifyExternal, "dacoll::add_collision_hmap_custom");
 
 
     das::addExtern<DAS_BIND_FUN(dacoll_destroy_dynamic_collision)>(*this, lib, "destroy_dynamic_collision",
@@ -257,9 +252,6 @@ public:
 
     das::addExtern<DAS_BIND_FUN(dacoll_test_collision_ri_sph)>(*this, lib, "test_collision_ri", das::SideEffects::modifyExternal,
       "bind_dascript::dacoll_test_collision_ri_sph");
-
-    das::addExtern<DAS_BIND_FUN(dacoll_test_collision_frt)>(*this, lib, "test_collision_frt", das::SideEffects::modifyExternal,
-      "bind_dascript::dacoll_test_collision_frt");
 
     das::addExtern<DAS_BIND_FUN(dacoll_test_sphere_collision_world)>(*this, lib, "test_sphere_collision_world",
       das::SideEffects::accessExternal, "bind_dascript::dacoll_test_sphere_collision_world");
@@ -297,15 +289,6 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::use_sphere_collision");
     das::addExtern<DAS_BIND_FUN(bind_dascript::use_capsule_collision)>(*this, lib, "dacoll_use_capsule_collision",
       das::SideEffects::modifyExternal, "bind_dascript::use_capsule_collision");
-
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_frt)>(*this, lib, "dacoll_shape_query_frt",
-      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_frt");
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_lmesh)>(*this, lib, "dacoll_shape_query_lmesh",
-      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_lmesh");
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_ri)>(*this, lib, "dacoll_shape_query_ri",
-      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_ri");
-    das::addExtern<DAS_BIND_FUN(dacoll_shape_query_world)>(*this, lib, "dacoll_shape_query_world",
-      das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::dacoll_shape_query_world");
 
     das::addExtern<DAS_BIND_FUN(dacoll::set_hmap_step)>(*this, lib, "dacoll_set_hmap_step", das::SideEffects::modifyExternal,
       "dacoll::set_hmap_step");

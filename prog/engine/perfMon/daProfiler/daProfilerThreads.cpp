@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_atomic.h>
-#include <mutex>
 #include "daProfilerInternal.h"
 #include "stl/daProfilerStl.h"
 #include "daProfilePlatform.h"
@@ -23,7 +22,7 @@ inline int ProfilerData::findThreadIndexUnsafe(uint64_t threadId) const
 
 int ProfilerData::findThreadIndex(uint64_t threadId) const
 {
-  std::lock_guard<std::mutex> lock(threadsLock);
+  dag::lock_guard lock(threadsLock);
   return findThreadIndexUnsafe(threadId);
 }
 
@@ -31,7 +30,7 @@ RegisterThreadResult ProfilerData::addThreadData(uint32_t description)
 {
   if (interlocked_acquire_load_ptr(tls_storage)) // already created
     return RegisterThreadResult::AlreadyRegistered;
-  std::lock_guard<std::mutex> lock(threadsLock);
+  dag::lock_guard lock(threadsLock);
   if (interlocked_acquire_load_ptr(tls_storage)) // already created
     return RegisterThreadResult::AlreadyRegistered;
 
@@ -97,7 +96,7 @@ bool ProfilerData::addFrameThread(const char *name, const char *file, uint32_t l
   const int64_t threadId = get_current_thread_id();
   if (interlocked_acquire_load_ptr(tls_storage))
   {
-    std::lock_guard<std::mutex> lock(threadsLock);
+    dag::lock_guard lock(threadsLock);
     u64_interlocked_release_store(frameThreadId, threadId);
     frame_thread = true;
   }
@@ -111,7 +110,7 @@ void ProfilerData::closeRemovedThreads() // should be called from addFrame
   // relaxed is fine - we don't care when it will happen, let it happen "eventually"
   if (!interlocked_relaxed_load(removedThreadsCount)) // no removed threads - all threads are active, none were removed
     return;
-  std::lock_guard<std::mutex> lock(threadsLock);
+  dag::lock_guard lock(threadsLock);
   if (!interlocked_acquire_load(removedThreadsCount)) // no removed threads - all threads are active, none were removed
     return;
   const int64_t removeThreadsEarlierThan = safe_first_needed_tick();
@@ -146,7 +145,7 @@ void ProfilerData::closeRemovedThreads() // should be called from addFrame
 
 bool ProfilerData::removeCurrentThread()
 {
-  std::lock_guard<std::mutex> lock(threadsLock); // to avoid race in shutdown, which also sets our tls_storage to 0
+  dag::lock_guard lock(threadsLock); // to avoid race in shutdown, which also sets our tls_storage to 0
   auto storage = interlocked_acquire_load_ptr(tls_storage);
   if (!storage) // not active thread already
     return false;
@@ -178,7 +177,7 @@ ThreadStorage *ProfilerData::initializeFrameThread()
 {
   const uint64_t id = get_current_thread_id();
   {
-    std::lock_guard<std::mutex> lock(threadsLock);
+    dag::lock_guard lock(threadsLock);
     // check under lock
     const uint64_t fid = u64_interlocked_acquire_load(frameThreadId);
     if (fid && fid != id)

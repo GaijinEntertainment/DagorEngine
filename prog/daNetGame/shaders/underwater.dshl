@@ -10,6 +10,8 @@ include "water_heightmap.dshl"
 int shadow_frame;
 texture water_heightmap_lowres;
 
+texture perlin_noise;
+
 float underwater_fog_base_spec = 0.3;
 float underwater_fog_strong_spec = 0.2;
 float underwater_fog_caustic = 0.5;
@@ -138,7 +140,7 @@ shader underwater_fog
 
 
       float4 oceanColor = get_ocean_color(world_view_pos.xz, 0);
-      float waterVolumeFog =  exp2((oceanColor.w*waterDepth));
+      float waterVolumeFog =  exp2((-oceanColor.w*waterDepth));
       float viewPointWeight = 0.25;
       float averageShadow = input.shadow.x*viewPointWeight;
       float startOffset = interleavedGradientNoiseFramed(pos.xy, frame)*0.85+0.1;

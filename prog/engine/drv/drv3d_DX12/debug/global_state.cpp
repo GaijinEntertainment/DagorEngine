@@ -11,6 +11,7 @@ namespace drv3d_dx12::debug
 {
 void GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &d3d_env)
 {
+  config = {};
   config.applyDefaults();
   config.applySettings(settings);
 
@@ -22,6 +23,7 @@ void GlobalState::setup(const DataBlock *settings, Direct3D12Enviroment &d3d_env
     logwarn("DX12: Detected issue with GPU capture tools and existing heaps feature, process is tainted and feature can not be used");
     config.enableDagorGPUTrace = false;
   }
+  config.usePIXCapturer = gpuCapture.isAnyPIXActive();
   gpuPostmortem.setup(config, d3d_env);
 
   if (!config.anyValidation())

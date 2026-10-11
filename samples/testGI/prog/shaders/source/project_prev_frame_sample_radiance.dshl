@@ -2,7 +2,7 @@ include "shader_global.dshl"
 texture prev_frame_tex;
 texture prev_downsampled_far_depth_tex;
 
-define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
+define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code, use_bindless)
   INIT_PREV_PRE_EXPOSURE(code)
   USE_PREV_PRE_EXPOSURE(code)
   (code) {

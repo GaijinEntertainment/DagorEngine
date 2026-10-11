@@ -27,8 +27,8 @@
 {"header":"squirrel.h","group":"compiler","name":"sq_getimports","qualified":"sq_getimports","ret":"SQRESULT","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","SQInteger *num","SQModuleImport **imports"],"note":""}
 {"header":"squirrel.h","group":"compiler","name":"sq_freeimports","qualified":"sq_freeimports","ret":"void","params":["HSQUIRRELVM v","SQInteger num","SQModuleImport *imports"],"note":""}
 {"header":"squirrel.h","group":"compiler","name":"sq_dumpast","qualified":"sq_dumpast","ret":"void","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","bool nodesLocation","SQStreamWriteFunc write","void *ud"],"note":""}
+{"header":"squirrel.h","group":"compiler","name":"sq_dumpastjson","qualified":"sq_dumpastjson","ret":"void","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData","SQStreamWriteFunc write","void *ud"],"note":""}
 {"header":"squirrel.h","group":"compiler","name":"sq_dumpbytecode","qualified":"sq_dumpbytecode","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT obj","SQStreamWriteFunc write","void *ud","int instruction_index = -1"],"note":""}
-{"header":"squirrel.h","group":"compiler","name":"sq_reset_static_memos","qualified":"sq_reset_static_memos","ret":"void","params":["HSQUIRRELVM v","HSQOBJECT func"],"note":""}
 {"header":"squirrel.h","group":"compiler","name":"sq_allocateASTData","qualified":"sq_allocateASTData","ret":"SQCompilation::SqASTData *","params":["HSQUIRRELVM v"],"note":""}
 {"header":"squirrel.h","group":"compiler","name":"sq_releaseASTData","qualified":"sq_releaseASTData","ret":"void","params":["HSQUIRRELVM v","SQCompilation::SqASTData *astData"],"note":""}
 {"header":"squirrel.h","group":"compiler","name":"sq_setcompilationoption","qualified":"sq_setcompilationoption","ret":"void","params":["HSQUIRRELVM v","enum CompilationOptions co","bool value"],"note":""}
@@ -185,7 +185,6 @@
 {"header":"squirrel.h","group":"debug","name":"sq_setdebughook","qualified":"sq_setdebughook","ret":"void","params":["HSQUIRRELVM v"],"note":""}
 {"header":"squirrel.h","group":"debug","name":"sq_setnativedebughook","qualified":"sq_setnativedebughook","ret":"void","params":["HSQUIRRELVM v","SQDEBUGHOOK hook"],"note":""}
 {"header":"squirrel.h","group":"debug","name":"sq_set_thread_id_function","qualified":"sq_set_thread_id_function","ret":"SQGETTHREAD","params":["HSQUIRRELVM v","SQGETTHREAD func"],"note":""}
-{"header":"squirrel.h","group":"debug","name":"sq_set_sq_call_hook","qualified":"sq_set_sq_call_hook","ret":"SQSQCALLHOOK","params":["HSQUIRRELVM v","SQSQCALLHOOK hook"],"note":""}
 {"header":"squirrel.h","group":"debug","name":"sq_set_compile_line_hook","qualified":"sq_set_compile_line_hook","ret":"SQCOMPILELINEHOOK","params":["HSQUIRRELVM v","SQCOMPILELINEHOOK hook"],"note":""}
 {"header":"squirrel.h","group":"debug","name":"sq_forbidglobalconstrewrite","qualified":"sq_forbidglobalconstrewrite","ret":"void","params":["HSQUIRRELVM v","SQBool on"],"note":""}
 {"header":"squirrel.h","group":"watchdog","name":"sq_set_watchdog_hook","qualified":"sq_set_watchdog_hook","ret":"SQWATCHDOGHOOK","params":["HSQUIRRELVM v","SQWATCHDOGHOOK hook"],"note":""}

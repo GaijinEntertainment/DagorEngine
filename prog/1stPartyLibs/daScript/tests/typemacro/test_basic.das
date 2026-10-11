@@ -55,8 +55,7 @@ def test_const_arguments(t : T?) {
 def test_typedecl_payload(t : T?) {
     t |> run("typedecl(expr) resolves to expression type") @(t : T?) {
         var _x = 5
-        var y : typedecl(_x)
-        y = 9
+        var y : typedecl(_x) = 9   // nolint:LINT003 - let would make typename read 'int const'
         t |> equal(typeinfo typename(y), "int")
         t |> equal(y, 9)
         var _f = 1.5

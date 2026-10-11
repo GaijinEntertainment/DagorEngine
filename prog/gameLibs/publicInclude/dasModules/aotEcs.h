@@ -415,6 +415,18 @@ inline EsContext &cast_es_context(das::Context &ctx)
   return esCtx;
 }
 
+struct EsQueryDesc;
+// A query block stores its descriptor as a generational handle in annotationData. The handle of a
+// descriptor that was freed (script reloaded or unloaded) throws a das error at `at` instead of
+// running the block on reused memory.
+struct EsQueryRef
+{
+  EsQueryDesc *desc;
+  ecs::QueryId query;
+};
+bool is_query_desc_handle(uint64_t value);
+EsQueryRef resolve_query_desc(uint64_t handle, das::Context *ctx, das::LineInfoArg *at);
+
 extern bool load_das_script(const char *fname);
 extern bool load_das_script_debugger(const char *fname);
 extern bool load_das_script_with_debugcode(const char *fname);

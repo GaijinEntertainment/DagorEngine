@@ -161,6 +161,8 @@ class CreateTemplateAnnotation : AstStructureAnnotation
             set(cmp, f, fieldName, (econst ?as ExprConstUInt)?.value ?? 0u)
           elif field._type.baseType == Type.tUInt64
             set(cmp, f, fieldName, (econst ?as ExprConstUInt64)?.value ?? uint64(0))
+          elif field._type.baseType == Type.tInt64
+            set(cmp, f, fieldName, (econst ?as ExprConstInt64)?.value ?? 0l)
           elif field._type.baseType == Type.tInt2
             set(cmp, f, fieldName, (econst ?as ExprConstInt2)?.value ?? int2(0))
           elif field._type.baseType == Type.tInt3
@@ -171,8 +173,6 @@ class CreateTemplateAnnotation : AstStructureAnnotation
             set(cmp, f, fieldName, (econst ?as ExprConstFloat2)?.value ?? float2(0.))
           elif field._type.baseType == Type.tFloat3
             set(cmp, f, fieldName, (econst ?as ExprConstFloat3)?.value ?? float3(0.))
-          elif field._type.baseType == Type.tFloat4
-            set(cmp, f, fieldName, (econst ?as ExprConstFloat4)?.value ?? float4(0.))
           elif field._type.baseType == Type.tFloat4
             set(cmp, f, fieldName, (econst ?as ExprConstFloat4)?.value ?? float4(0.))
           elif field._type.baseType == Type.tString

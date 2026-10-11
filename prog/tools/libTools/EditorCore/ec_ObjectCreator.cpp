@@ -579,16 +579,12 @@ bool PlaneCreator::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool insi
   if (stateFinished || !stageNo)
     return false;
 
-  if (stageNo)
-  {
-    int x1 = 0, x2, y1 = 0, y2;
-    wnd->getViewportSize(x2, y2);
-    wnd->clientToScreen(x1, y1);
-    wnd->clientToScreen(x2, y2);
-    EcRect rc = {x1, y1, x2, y2};
-
-    ::area_cursor_wrap(rc, x, y, wrapedX, wrapedY);
-  }
+  int x1 = 0, x2, y1 = 0, y2;
+  wnd->getViewportSize(x2, y2);
+  wnd->clientToScreen(x1, y1);
+  wnd->clientToScreen(x2, y2);
+  EcRect rc = {x1, y1, x2, y2};
+  ::area_cursor_wrap(rc, x, y, wrapedX, wrapedY);
 
   Point3 worldPoint, worldDir, point;
   wnd->clientToWorld(Point2(x + wrapedX, y + wrapedY), worldPoint, worldDir);

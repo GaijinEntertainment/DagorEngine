@@ -94,7 +94,7 @@ typedef int32x4_t __mwi;
 FORCE_INLINE int _mmw_movemask_ps(float32x4_t a)
 {
   uint32x4_t input = vreinterpretq_u32_f32(a);
-#if defined(__aarch64__)
+#if defined(__aarch64__) || (defined(__clang__) && defined(_M_ARM64EC))
   static const int32x4_t shift = {0, 1, 2, 3};
   uint32x4_t tmp = vshrq_n_u32(input, 31);
   return vaddvq_u32(vshlq_u32(tmp, shift));
@@ -250,7 +250,7 @@ FORCE_INLINE float32x4_t simd_cast<float32x4_t>(int32x4_t A)
 {
   return vreinterpretq_f32_s32(A);
 }
-#if !(defined(_M_ARM64) && defined(_MSC_VER) && !defined(__clang__))
+#if !((defined(_M_ARM64) || defined(_M_ARM64EC)) && defined(_MSC_VER) && !defined(__clang__))
 template <>
 FORCE_INLINE float32x4_t simd_cast<float32x4_t>(float32x4_t A)
 {

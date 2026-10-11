@@ -4,6 +4,7 @@
 
 #include <debug/dag_debug.h>
 #include <math/dag_Point4.h>
+#include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_string.h>
@@ -11,6 +12,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/hash_set.h>
+#include <EASTL/sort.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -25,7 +27,7 @@ constexpr const char *UNNAMED_NODE = "<unnamed>";
 // outputs hidden" rule and the per-(desc,pin) flat hidden table mirroring mainNodes.js's
 // `hidden:true` flags -- now live on the descriptor side: base_nodes.blk encodes
 // `pin{ hidden:b = yes }` directly, and the shader_editor visibility rule is evaluated by
-// graph_panel.cpp against the descriptor's `types:t` / `role:t`.
+// resolve_node_pins below, against the descriptor's `types:t` / `role:t`.
 
 // Walk the comma-delimited pin `types:t` value and append each token's PinType to `out`. Skips
 // whitespace around tokens; unknown tokens map to PinType::Unknown (still appended so the slot
@@ -100,36 +102,6 @@ const char *pin_role_to_string(PinRole r)
   return "in";
 }
 
-// Inverse of parse_pin_type. Returns "" for PinType::Unknown so callers can
-// skip emitting empty entries when building the CSV types list.
-const char *pin_type_to_string(PinType t)
-{
-  switch (t)
-  {
-    case PinType::Unknown: return "";
-    case PinType::Bool: return "bool";
-    case PinType::Int: return "int";
-    case PinType::Uint: return "uint";
-    case PinType::Float: return "float";
-    case PinType::Float2: return "float2";
-    case PinType::Float3: return "float3";
-    case PinType::Float4: return "float4";
-    case PinType::Texture1D: return "texture1D";
-    case PinType::Texture2D: return "texture2D";
-    case PinType::Texture3D: return "texture3D";
-    case PinType::Texture2DArray: return "texture2DArray";
-    case PinType::Texture2DShdArray: return "texture2D_shdArray";
-    case PinType::Particles: return "particles";
-    case PinType::BiomeData: return "BiomeData";
-    case PinType::NBSGbuffer: return "NBSGbuffer";
-    case PinType::MaterialT: return "material_t";
-    case PinType::LayerT: return "Layer_t";
-    case PinType::MaskT: return "mask_t";
-    case PinType::CtrlT: return "ctrl_t";
-  }
-  return "";
-}
-
 // Reconciles a freshly-loaded Node's templateUid + descName against the descriptor
 // registry. Runs once per node, after parse and before resolve_node_pins.
 //
@@ -154,18 +126,10 @@ void reconcile_template_uid(GraphData::Node &node, const DataBlock *base_nodes_b
 
   if (!node.templateUid.empty())
   {
-    for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
+    if (const DataBlock *const desc = find_node_desc(base_nodes_blk, node.templateUid.c_str()))
     {
-      const DataBlock *b = base_nodes_blk->getBlock(i);
-      if (strcmp(b->getBlockName(), "node") != 0)
-      {
-        continue;
-      }
-      if (strcmp(b->getStr("templateUid", ""), node.templateUid.c_str()) == 0)
-      {
-        node.descName = b->getStr("name", "");
-        return;
-      }
+      node.descName = desc->getStr("name", "");
+      return;
     }
     debug("graphEditor: node id=%d templateUid '%s' (descName '%s') not found in base_nodes.blk", node.id, node.templateUid.c_str(),
       node.descName.c_str());
@@ -355,9 +319,52 @@ PinType parse_pin_type(const char *type_name)
   return PinType::Unknown;
 }
 
-bool is_texture_or_particles(PinType t)
+const char *pin_type_to_string(PinType t)
 {
-  return t == PinType::Texture1D || t == PinType::Texture2D || t == PinType::Texture3D || t == PinType::Particles;
+  switch (t)
+  {
+    case PinType::Unknown: return "";
+    case PinType::Bool: return "bool";
+    case PinType::Int: return "int";
+    case PinType::Uint: return "uint";
+    case PinType::Float: return "float";
+    case PinType::Float2: return "float2";
+    case PinType::Float3: return "float3";
+    case PinType::Float4: return "float4";
+    case PinType::Texture1D: return "texture1D";
+    case PinType::Texture2D: return "texture2D";
+    case PinType::Texture3D: return "texture3D";
+    case PinType::Texture2DArray: return "texture2DArray";
+    case PinType::Texture2DShdArray: return "texture2D_shdArray";
+    case PinType::Particles: return "particles";
+    case PinType::BiomeData: return "BiomeData";
+    case PinType::NBSGbuffer: return "NBSGbuffer";
+    case PinType::MaterialT: return "material_t";
+    case PinType::LayerT: return "Layer_t";
+    case PinType::MaskT: return "mask_t";
+    case PinType::CtrlT: return "ctrl_t";
+  }
+  return "";
+}
+
+int texture_out_dimension(PinType t)
+{
+  switch (t)
+  {
+    case PinType::Texture1D: return 1;
+    case PinType::Particles:
+    case PinType::Texture2D: return 2;
+    case PinType::Texture3D: return 3;
+    default: return 0;
+  }
+}
+
+bool is_texture_or_particles(PinType t) { return texture_out_dimension(t) != 0; }
+
+bool is_texture_type_for_inherit(PinType t)
+{
+  return t == PinType::Texture1D || t == PinType::Texture2D || t == PinType::Texture3D || t == PinType::Texture2DArray ||
+         t == PinType::Texture2DShdArray;
 }
 
 const char *infer_prop_type(const DataBlock *prop_desc)
@@ -555,23 +562,7 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
   // unreachable, and we should NOT silently re-resolve by name -- that would mask
   // template-rename divergence the uid scheme is meant to prevent. Linear scan is
   // fine: this runs at load / insert, not per frame, and the registry is bounded (~100).
-  const DataBlock *desc = nullptr;
-  if (base_nodes_blk && !node.templateUid.empty())
-  {
-    for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
-    {
-      const DataBlock *b = base_nodes_blk->getBlock(i);
-      if (strcmp(b->getBlockName(), "node") != 0)
-      {
-        continue;
-      }
-      if (strcmp(b->getStr("templateUid", ""), node.templateUid.c_str()) == 0)
-      {
-        desc = b;
-        break;
-      }
-    }
-  }
+  const DataBlock *const desc = find_node_desc(base_nodes_blk, node.templateUid.c_str());
 
   const bool isShaderEditor = (node.plugin == "shader_editor");
 
@@ -612,22 +603,7 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
 
   for (GraphData::Pin &p : node.pins)
   {
-    // Match the descriptor pin by name. Descriptor pin counts are tiny (<= ~16) so a
-    // linear scan is fine and avoids hash-map churn.
-    const DataBlock *descPin = nullptr;
-    for (uint32_t i = 0; i < desc->blockCount(); ++i)
-    {
-      const DataBlock *b = desc->getBlock(i);
-      if (strcmp(b->getBlockName(), "pin") != 0)
-      {
-        continue;
-      }
-      if (strcmp(b->getStr("name", ""), p.name.c_str()) == 0)
-      {
-        descPin = b;
-        break;
-      }
-    }
+    const DataBlock *const descPin = find_pin_desc(desc, p.name.c_str());
     if (!descPin)
     {
       continue;
@@ -651,6 +627,47 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
     {
       p.hidden = true;
     }
+  }
+}
+
+void make_node_from_descriptor(const DataBlock &base_nodes_blk, const DataBlock &desc, float x, float y, GraphData::Node &out)
+{
+  out = GraphData::Node{};
+  out.x = x;
+  out.y = y;
+  // descName is a snapshot; the loader refreshes it from the descriptor by templateUid.
+  out.templateUid = desc.getStr("templateUid", "");
+  out.descName = desc.getStr("name", "");
+  out.plugin = desc.getStr("plugin", "");
+
+  // Descriptor order is for a fresh node only; the loader keeps the saved pin order because edges hold pin indices.
+  for (uint32_t i = 0; i < desc.blockCount(); ++i)
+  {
+    const DataBlock *child = desc.getBlock(i);
+    if (strcmp(child->getBlockName(), "pin") != 0)
+    {
+      continue;
+    }
+    GraphData::Pin pin;
+    pin.name = child->getStr("name", "");
+    out.pins.emplace_back(eastl::move(pin));
+  }
+  resolve_node_pins(out, &base_nodes_blk);
+
+  // A descriptor val is typed (val:i / val:r / val:b / val:p4 / val:t); propertyValues holds strings.
+  for (uint32_t i = 0; i < desc.blockCount(); ++i)
+  {
+    const DataBlock *child = desc.getBlock(i);
+    if (strcmp(child->getBlockName(), "property") != 0)
+    {
+      continue;
+    }
+    eastl::string name = child->getStr("name", "");
+    if (name.empty())
+    {
+      continue;
+    }
+    out.propertyValues.emplace_back(eastl::move(name), param_as_string(child, "val"));
   }
 }
 
@@ -683,23 +700,11 @@ void preprocess_node_descriptor(DataBlock &node_desc)
       continue;
     }
     const eastl::string firstType = first_type_token(pinBlk->getStr("types", ""));
-    int pinDim = 0;
-    if (firstType == "texture1D")
+    const PinType pinType = parse_pin_type(firstType.c_str());
+    const int pinDim = texture_out_dimension(pinType);
+    if (pinType == PinType::Particles)
     {
-      pinDim = 1;
-    }
-    else if (firstType == "texture2D")
-    {
-      pinDim = 2;
-    }
-    else if (firstType == "particles")
-    {
-      pinDim = 2;
       outParticles = true;
-    }
-    else if (firstType == "texture3D")
-    {
-      pinDim = 3;
     }
     if (pinDim > outDimension)
     {
@@ -877,12 +882,21 @@ bool validate_subgraph_schema(const GraphData &gd, eastl::vector<SubgraphSchemaE
     int nodeId;
   };
   eastl::vector<Seen> boundaries;
+  eastl::vector<Seen> separators;
 
   for (const GraphData::Node &n : gd.nodes)
   {
-    const char *dn = n.descName.c_str();
-    const bool isIn = strncmp(dn, "subgraph in:", 12) == 0;
-    const bool isOut = strcmp(dn, "subgraph out") == 0;
+    if (is_separator_boundary(n))
+    {
+      eastl::string label = effective_subgraph_boundary_name(gd, n.id);
+      if (!label.empty())
+      {
+        separators.push_back(Seen{eastl::move(label), false, n.id});
+      }
+      continue;
+    }
+    const bool isIn = is_input_boundary(n);
+    const bool isOut = is_output_boundary(n);
     if (!isIn && !isOut)
     {
       continue;
@@ -961,6 +975,23 @@ bool validate_subgraph_schema(const GraphData &gd, eastl::vector<SubgraphSchemaE
     }
   }
 
+  // Pin lookups go by name alone, so a separator named like a boundary takes that pin's place.
+  for (const Seen &s : separators)
+  {
+    for (const Seen &b : boundaries)
+    {
+      if (s.name == b.name)
+      {
+        SubgraphSchemaError err;
+        err.code = SubgraphSchemaError::SEPARATOR_NAME_CLASH;
+        err.nodeId = s.nodeId;
+        err.interfaceName = s.name;
+        out_errors.push_back(eastl::move(err));
+        break;
+      }
+    }
+  }
+
   return out_errors.size() == startSize;
 }
 
@@ -980,6 +1011,9 @@ eastl::string format_subgraph_schema_error(const SubgraphSchemaError &err)
       return eastl::string(eastl::string::CtorSprintf(),
         "node id=%d: duplicate %s boundary named '%s' (another boundary already exposes this name)", err.nodeId, roleStr,
         err.interfaceName.c_str());
+    case SubgraphSchemaError::SEPARATOR_NAME_CLASH:
+      return eastl::string(eastl::string::CtorSprintf(),
+        "node id=%d: separator label '%s' repeats a boundary name (pins are matched by name)", err.nodeId, err.interfaceName.c_str());
   }
   return eastl::string("unknown subgraph schema error");
 }
@@ -998,7 +1032,7 @@ void find_dead_input_boundaries(const GraphData &gd, eastl::vector<DeadInputBoun
 
   for (const GraphData::Node &startNode : gd.nodes)
   {
-    if (strncmp(startNode.descName.c_str(), "subgraph in:", 12) != 0)
+    if (!is_input_boundary(startNode))
     {
       continue;
     }
@@ -1025,7 +1059,7 @@ void find_dead_input_boundaries(const GraphData &gd, eastl::vector<DeadInputBoun
       const GraphData::Node &cur = gd.nodes[idxIt->second];
 
       // `subgraph out` boundary reached -- this input has a path to an output.
-      if (curId != startNode.id && cur.descName == "subgraph out")
+      if (curId != startNode.id && is_output_boundary(cur))
       {
         reachesOutput = true;
         break;
@@ -1145,6 +1179,204 @@ eastl::string effective_subgraph_boundary_name(const GraphData &gd, int boundary
   }
 
   return {};
+}
+
+void collect_subgraph_boundaries(const GraphData &gd, bool with_separators, eastl::vector<const GraphData::Node *> &out)
+{
+  out.clear();
+  for (const GraphData::Node &n : gd.nodes)
+  {
+    if (is_input_boundary(n) || (with_separators && is_separator_boundary(n)))
+    {
+      out.push_back(&n);
+    }
+  }
+  const size_t inputCount = out.size();
+  for (const GraphData::Node &n : gd.nodes)
+  {
+    if (is_output_boundary(n))
+    {
+      out.push_back(&n);
+    }
+  }
+  auto byY = [](const GraphData::Node *a, const GraphData::Node *b) { return a->y < b->y; };
+  eastl::stable_sort(out.begin(), out.begin() + inputCount, byY);
+  eastl::stable_sort(out.begin() + inputCount, out.end(), byY);
+}
+
+bool synthesize_subgraph_descriptor(const GraphData &child, const char *stem, const char *source_path, const char *location_label,
+  DataBlock &out_node_blk, eastl::vector<SubgraphDescriptorMessage> &out_messages)
+{
+  // Any schema error keeps the file out of the palette: the compile could not inline it.
+  eastl::vector<SubgraphSchemaError> schemaErrors;
+  const bool schemaOk = validate_subgraph_schema(child, schemaErrors);
+  for (const SubgraphSchemaError &err : schemaErrors)
+  {
+    out_messages.push_back({err.code != SubgraphSchemaError::NO_BOUNDARIES, format_subgraph_schema_error(err)});
+  }
+  if (!schemaOk)
+  {
+    return false;
+  }
+
+  // A dead input is only a warning: the other pins still work.
+  eastl::vector<DeadInputBoundary> dead;
+  find_dead_input_boundaries(child, dead);
+  for (const DeadInputBoundary &d : dead)
+  {
+    const char *label = !d.interfaceName.empty() ? d.interfaceName.c_str() : (!d.type.empty() ? d.type.c_str() : "<unnamed>");
+    out_messages.push_back(
+      {false, eastl::string(eastl::string::CtorSprintf(), "input '%s' (id=%d) does not propagate to any output", label, d.nodeId)});
+  }
+
+  eastl::string templateUid("subgraph::");
+  templateUid.append(stem);
+  out_node_blk.setStr("templateUid", templateUid.c_str());
+  out_node_blk.setStr("name", stem);
+  out_node_blk.setStr("category", "Subgraphs");
+  out_node_blk.setStr("plugin", SUBGRAPH_PLUGIN); // the expander finds instances by it
+  out_node_blk.setBool("generated", true);
+  out_node_blk.setInt("width", 200);
+  // Display only: the compile finds an instance's file by its stem.
+  out_node_blk.setStr("sourcePath", source_path);
+  out_node_blk.setStr("location", location_label);
+
+  // The validation above makes every name non-empty and unique per role.
+  eastl::vector<const GraphData::Node *> boundaries;
+  collect_subgraph_boundaries(child, /*with_separators=*/true, boundaries);
+  for (const GraphData::Node *n : boundaries)
+  {
+    DataBlock *pinBlk = out_node_blk.addNewBlock("pin");
+    pinBlk->setStr("name", effective_subgraph_boundary_name(child, n->id).c_str());
+    if (is_separator_boundary(*n))
+    {
+      // A label only: the validator skips it, so it can be unnamed.
+      pinBlk->setBool("separator", true);
+      continue;
+    }
+    const bool isInput = is_input_boundary(*n);
+    if (isInput)
+    {
+      // descName is "subgraph in: <type>".
+      const char *colon = strchr(n->descName.c_str(), ':');
+      const char *t = colon ? colon + 1 : "";
+      while (*t == ' ')
+      {
+        ++t;
+      }
+      pinBlk->setStr("types", t);
+    }
+    else
+    {
+      // Any type the parent can connect: the compile finds the real one from the child's producer.
+      pinBlk->setStr("types", "texture2D,particles,bool,int,float,float2,float3,float4");
+    }
+    pinBlk->setStr("role", isInput ? "in" : "out");
+    // The expander takes one parent edge per input, but rewires every consumer of an output.
+    pinBlk->setBool("singleConnect", isInput);
+  }
+  return true;
+}
+
+bool resync_subgraph_instance(const GraphData &gd, int node_id, const DataBlock &base_nodes_blk, GraphData::Node &out_node,
+  eastl::vector<GraphData::Edge> &out_incident_edges, eastl::vector<DroppedInstanceEdge> &out_dropped)
+{
+  out_incident_edges.clear();
+  out_dropped.clear();
+  const GraphData::Node *const node = find_node_by_id(gd, node_id);
+  if (!node || !is_subgraph_instance(*node))
+  {
+    return false;
+  }
+  const DataBlock *const desc = find_node_desc(&base_nodes_blk, node->templateUid.c_str());
+  if (!desc)
+  {
+    return false;
+  }
+
+  GraphData::Node fresh;
+  make_node_from_descriptor(base_nodes_blk, *desc, node->x, node->y, fresh);
+  // Resolved fields only: the per-instance ones are carried over below.
+  auto sameInterface = [](const GraphData::Pin &a, const GraphData::Pin &b) {
+    return a.name == b.name && a.role == b.role && a.types == b.types && a.typeGroup == b.typeGroup &&
+           a.singleConnect == b.singleConnect && a.hidden == b.hidden && a.separator == b.separator;
+  };
+  bool changed = fresh.pins.size() != node->pins.size();
+  for (size_t i = 0; !changed && i < node->pins.size(); ++i)
+  {
+    changed = !sameInterface(node->pins[i], fresh.pins[i]);
+  }
+  if (!changed)
+  {
+    return false;
+  }
+
+  eastl::vector<int> freshIndexOf(node->pins.size(), -1);
+  for (int i = 0; i < static_cast<int>(node->pins.size()); ++i)
+  {
+    const GraphData::Pin &old = node->pins[i];
+    for (int j = 0; j < static_cast<int>(fresh.pins.size()); ++j)
+    {
+      GraphData::Pin &p = fresh.pins[j];
+      if (p.name == old.name && p.role == old.role)
+      {
+        p.comment = old.comment;
+        p.customTextureName = old.customTextureName;
+        p.data = old.data;
+        freshIndexOf[i] = j;
+        break;
+      }
+    }
+  }
+
+  auto freshPin = [&](int pin_index) {
+    return pin_index >= 0 && pin_index < static_cast<int>(freshIndexOf.size()) ? freshIndexOf[pin_index] : -1;
+  };
+  for (const GraphData::Edge &e : gd.edges)
+  {
+    const bool atA = e.elemA == node_id;
+    const bool atB = e.elemB == node_id;
+    if (!atA && !atB)
+    {
+      continue;
+    }
+    GraphData::Edge moved = e;
+    moved.pinA = atA ? freshPin(e.pinA) : e.pinA;
+    moved.pinB = atB ? freshPin(e.pinB) : e.pinB;
+    if (moved.pinA < 0 || moved.pinB < 0)
+    {
+      const int lostPin = atA && moved.pinA < 0 ? e.pinA : e.pinB;
+      const bool known = lostPin >= 0 && lostPin < static_cast<int>(node->pins.size());
+      out_dropped.push_back({e.id, known ? node->pins[lostPin].name : eastl::string("?")});
+      continue;
+    }
+    out_incident_edges.push_back(moved);
+  }
+  out_node = *node;
+  out_node.pins = eastl::move(fresh.pins);
+  return true;
+}
+
+eastl::string graph_file_stem(const char *path, bool *out_is_subgraph)
+{
+  if (out_is_subgraph)
+  {
+    *out_is_subgraph = false;
+  }
+  // The return value skips the directory the buffer still holds, so a full path is fine here.
+  char buf[DAGOR_MAX_PATH] = {};
+  eastl::string stem(dd_get_fname_without_path_and_ext(buf, sizeof(buf), path));
+  constexpr char SUBGRAPH_SUFFIX[] = ".subgraph";
+  constexpr size_t SUFFIX_LEN = sizeof(SUBGRAPH_SUFFIX) - 1;
+  if (stem.size() > SUFFIX_LEN && stem.compare(stem.size() - SUFFIX_LEN, SUFFIX_LEN, SUBGRAPH_SUFFIX) == 0)
+  {
+    stem.resize(stem.size() - SUFFIX_LEN);
+    if (out_is_subgraph)
+    {
+      *out_is_subgraph = true;
+    }
+  }
+  return stem;
 }
 
 bool save_graph_data_blk(const GraphData &d, const char *blk_path)

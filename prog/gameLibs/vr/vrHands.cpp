@@ -180,7 +180,7 @@ static TMatrix get_aligned_hand_tm(const Point3 &fist_axis_dir, const Point3 &at
                        ? quat_to_matrix(Quat(fist_axis_dir % attachmentDir, safe_acos(cosBetweenAxes) - MAX_ANGLE))
                        : TMatrix::IDENT;
 
-  if (max_hand_dir_deviation_angle >= 0.)
+  if (max_hand_dir_deviation_angle >= 0.f)
   {
     Point3 handDir = tiletdTm % hand_dir;
     handDir = normalize(handDir - (attachment_dir * handDir) * attachment_dir);
@@ -248,7 +248,7 @@ static TMatrix get_attachment_tm(const GeomNodeTree &tree, const VrHands::GeomNo
     {
       const Point3 attachNormal = normalize(palmPosProjectionOnAxis - palmPos);
       grabAxisDir = cross(attachNormal, grabAxisDir);
-      out_attachment_radius = (attachment.b - attachment.a).length() * 0.5;
+      out_attachment_radius = (attachment.b - attachment.a).length() * 0.5f;
       attachmentAxisAnchorPoint = (attachment.a + attachment.b) * 0.5f - (attachNormal * (attachment.r - out_attachment_radius));
       toNewRootTm = get_aligned_hand_tm(fistAxis, grabAxisDir, out_attachment_radius, attachmentAxisAnchorPoint, palmNormal, grabPos,
         indexProximalWpos);
@@ -382,7 +382,7 @@ struct Ellipse
     const float angleF1CF2 = safe_acos(triangle_cos(f1f2, cf1, cf2));
     const float angleF1CF = safe_acos(triangle_cos(ellipseAxisLen, cf1, cf2));
 
-    const float tangentAngle = (angleF1CF - angleF1CF2) * 0.5;
+    const float tangentAngle = (angleF1CF - angleF1CF2) * 0.5f;
     const Quat rotToTangent(normal, -tangentAngle);
     return normalize(rotToTangent * (f2 - pos));
   }

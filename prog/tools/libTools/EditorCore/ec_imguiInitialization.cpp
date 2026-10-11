@@ -687,7 +687,8 @@ void editor_core_render_dag_imgui_windows()
         if (windows->getParamType(i) == DataBlock::TYPE_BOOL && windows->getBool(i))
         {
           bool open = true;
-          editor_core_imgui_begin(windows->getParamName(i), &open, ImGuiWindowFlags_None);
+          const bool visible = editor_core_imgui_begin(windows->getParamName(i), &open, ImGuiWindowFlags_None);
+          G_UNUSED(visible);
           ImGui::End();
 
           if (!open)

@@ -169,9 +169,10 @@ struct Capsule
   bool traceRay(const Point3 &from, const Point3 &dir, float &t, Point3 &norm) const
   {
     vec4f vNorm;
-    bool hit = traceRay(v_ldu(&from.x), v_ldu(&dir.x), t, vNorm);
+    if (!traceRay(v_ldu(&from.x), v_ldu(&dir.x), t, vNorm))
+      return false;
     v_stu_p3(&norm.x, vNorm);
-    return hit;
+    return true;
   }
   bool capsuleHit(vec3f from, vec3f dir, float len, float rad) const
   {

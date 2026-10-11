@@ -31,11 +31,16 @@ float density_for(float canvas_zoom, float max_font_size_px)
 }
 } // namespace
 
+float canvas_raster_density(float size_px)
+{
+  const float invZoom = ne::GetCurrentZoom(); // canvas units per screen pixel, the inverse of the zoom
+  return density_for(invZoom > 0.0f ? 1.0f / invZoom : 1.0f, size_px);
+}
+
 RasterizerDensityScope::RasterizerDensityScope(ImFont &font_, float max_font_size_px) :
   font(font_), prevContextDensity(ImGui::GetFontRasterizerDensity())
 {
-  const float invZoom = ne::GetCurrentZoom(); // canvas units per screen pixel, the inverse of the zoom
-  const float density = density_for(invZoom > 0.0f ? 1.0f / invZoom : 1.0f, max_font_size_px);
+  const float density = canvas_raster_density(max_font_size_px);
   ImGui::SetFontRasterizerDensity(density); // carries the ImGui widget path, which draws with the current font
   prevFontDensity = font.CurrentRasterizerDensity;
   font.CurrentRasterizerDensity = density;

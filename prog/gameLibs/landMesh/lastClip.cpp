@@ -246,6 +246,49 @@ void render_and_compress(const T &render_func, UniqueTexWithShaderVar &last_clip
   temp.close();
 }
 
+static constexpr int fixedClipRenderPartHeight = 128;
+
+static void fixed_clip_plain_render(BaseTexture *tex, LandMeshData &data, const Point3 &view_pos)
+{
+  d3d::GpuAutoLock acquire;
+  d3d::setwire(0);
+  {
+    SCOPE_RENDER_TARGET;
+    d3d::set_render_target({}, DepthAccess::RW, {{tex, 0, 0}});
+    d3d::clearview(CLEAR_TARGET, 0x00000000, 1.0f, 0);
+    for (int y = 0; y < data.texture_size; y += fixedClipRenderPartHeight)
+    {
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+      d3d::setview(0, y, data.texture_size - 1, fixedClipRenderPartHeight, 0, 1);
+      fixedClipPartialRenderCb(y, fixedClipRenderPartHeight, data.texture_size, (void *)&data, view_pos);
+    }
+  }
+  d3d::resource_barrier({tex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+}
+
+struct FixedClipRenderStateGuard
+{
+  ViewProjMatrixContainer viewProj;
+  FixedClipRenderStateGuard(HeightmapHandler *hmapHandler)
+  {
+    preload_textures_for_last_clip();
+    int render_normalmapVarId = get_shader_variable_id("render_with_normalmap", true);
+    ShaderGlobal::set_int(render_normalmapVarId, 0);
+    d3d_get_view_proj(viewProj);
+    d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+    // flush pending hmap texture uploads/edits so the bake below includes them; prepare() no longer does this bookkeeping
+    if (hmapHandler)
+      hmapHandler->makeBookKeeping();
+  }
+  ~FixedClipRenderStateGuard()
+  {
+    d3d_set_view_proj(viewProj);
+    if (::grs_draw_wire)
+      d3d::setwire(1);
+    d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
+  }
+};
+
 void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data,
   bool update_game_screen, const Point3 &view_pos)
 {
@@ -253,12 +296,9 @@ void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &las
   if (!data.lmeshMgr || !data.lmeshRenderer)
     return;
 
-  preload_textures_for_last_clip();
-
   data.texture_size = min(data.texture_size, min(d3d::get_driver_desc().maxtexw, d3d::get_driver_desc().maxtexh));
   int numMips = 1;
-  const int partHeight = 128;
-  for (int tsz = data.texture_size; tsz > partHeight; tsz >>= 1)
+  for (int tsz = data.texture_size; tsz > fixedClipRenderPartHeight; tsz >>= 1)
     numMips++;
   debug("create last clip of size %dx%d, %d mips", data.texture_size, data.texture_size, numMips);
   int64_t reft = ref_time_ticks();
@@ -296,61 +336,35 @@ void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &las
     dag::create_tex(NULL, data.texture_size, data.texture_size, TEXCF_SRGBREAD | flags, numMips, "last_clip_tex", RESTAG_LAND);
   d3d_err(last_clip.getTex2D());
 
-  int render_normalmapVarId = get_shader_variable_id("render_with_normalmap", true);
-  ShaderGlobal::set_int(render_normalmapVarId, 0); //==
-  // render
-  ViewProjMatrixContainer viewProj;
-  d3d_get_view_proj(viewProj);
-  // int64_t reft = ref_time_ticks();
-  bool gamma_mips = true;
+  {
+    FixedClipRenderStateGuard renderStateGuard(data.lmeshMgr->getHmapHandler());
+    // render
+    // int64_t reft = ref_time_ticks();
+    bool gamma_mips = true;
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
 
-  auto plain_render = [&](auto &tex) {
-    d3d::GpuAutoLock acquire;
-    d3d::setwire(0);
+    auto plain_render = [&](auto &tex) { fixed_clip_plain_render(tex.getBaseTex(), data, view_pos); };
+
+    // debug("total last clip time = %dus",get_time_usec(reft));
+
+    if (compression != LastClipComp::NONE)
     {
-      SCOPE_RENDER_TARGET;
-      d3d::set_render_target({}, DepthAccess::RW, {{tex.getTex2D(), 0, 0}});
-      d3d::clearview(CLEAR_TARGET, 0x00000000, 1.0f, 0);
-      for (int y = 0; y < data.texture_size; y += partHeight)
-      {
-        d3d::driver_command(Drv3dCommand::D3D_FLUSH);
-        d3d::setview(0, y, data.texture_size - 1, partHeight, 0, 1);
-        fixedClipPartialRenderCb(y, partHeight, data.texture_size, (void *)&data, view_pos);
-      }
+      if (supportsGpuCompression)
+        render_and_compress(plain_render, last_clip, data, numMips, compression);
+      else if (compression == LastClipComp::DXT) // -V547
+        PartialDxtRender(last_clip.getTex2D(), NULL, fixedClipRenderPartHeight, data.texture_size, data.texture_size, numMips,
+          (flags & TEXFMT_MASK) == TEXFMT_DXT5, false, &fixedClipPartialRenderCb, &data, view_pos, gamma_mips, update_game_screen);
+      else
+        logerr("Couldn't compress last clip, unsupported compression type");
     }
-    d3d::resource_barrier({tex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-  };
-
-  // debug("total last clip time = %dus",get_time_usec(reft));
-  d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
-
-  // flush pending hmap texture uploads/edits so the bake below includes them; prepare() no longer does this bookkeeping
-  if (HeightmapHandler *hmap = data.lmeshMgr->getHmapHandler())
-    hmap->makeBookKeeping();
-
-  if (compression != LastClipComp::NONE)
-  {
-    if (supportsGpuCompression)
-      render_and_compress(plain_render, last_clip, data, numMips, compression);
-    else if (compression == LastClipComp::DXT) // -V547
-      PartialDxtRender(last_clip.getTex2D(), NULL, partHeight, data.texture_size, data.texture_size, numMips,
-        (flags & TEXFMT_MASK) == TEXFMT_DXT5, false, &fixedClipPartialRenderCb, &data, view_pos, gamma_mips, update_game_screen);
     else
-      logerr("Couldn't compress last clip, unsupported compression type");
+    {
+      plain_render(last_clip);
+      last_clip.getTex2D()->generateMips();
+    }
   }
-  else
-  {
-    plain_render(last_clip);
-    last_clip.getTex2D()->generateMips();
-  }
-
-  d3d_set_view_proj(viewProj);
-  if (::grs_draw_wire)
-    d3d::setwire(1);
-  d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
   debug("last clip prepared in %dus", get_time_usec(reft));
 #if SAVE_RT
   save_rt_image_as_tga(last_clip, "last_clip.tga");
@@ -358,4 +372,11 @@ void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &las
 
   configure_last_clip_sampler(last_clip_sampler);
   configure_world_to_last_clip(data.lmeshMgr);
+}
+
+void render_last_clip_to_tex(Texture *tex, LandMeshData &data, const Point3 &view_pos)
+{
+  G_ASSERT(data.lmeshMgr && data.lmeshRenderer);
+  FixedClipRenderStateGuard renderStateGuard(data.lmeshMgr->getHmapHandler());
+  fixed_clip_plain_render(tex, data, view_pos);
 }

@@ -40,6 +40,8 @@ if $(ToolsHaveVR) = yes {
 
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 
+include $(Root)/prog/gameLibs/render/ambientOcclusion/_lib.jam ;
+
 include $(Root)/prog/_jBuild/build.jam ;
 
 SourceES = ;

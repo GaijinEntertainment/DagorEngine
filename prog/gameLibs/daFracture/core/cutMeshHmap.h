@@ -69,7 +69,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
 
   constexpr bool DBG_DRAW = false;
   constexpr bool DBG_PROJECT = true;
-  const auto dbgProj = [&](Point3 p) FORCE_INLINE_LAMBDA -> Point3 {
+  const auto dbgProj = [&](Point3 p) DAGOR_FORCE_INLINE_LAMBDA -> Point3 {
     if constexpr (DBG_PROJECT)
     {
       alignas(16) float pl[4];
@@ -80,22 +80,23 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     return p;
   };
   [[maybe_unused]] const auto dbgLine = [&](Point3 a, Point3 b, E3DCOLOR c)
-                                          FORCE_INLINE_LAMBDA { ctx.dbgDraw.drawLine(dbgProj(a), dbgProj(b), c); };
-  [[maybe_unused]] const auto dbgPoint = [&](Point3 p, E3DCOLOR c) FORCE_INLINE_LAMBDA { ctx.dbgDraw.drawPoint(dbgProj(p), c); };
+                                          DAGOR_FORCE_INLINE_LAMBDA { ctx.dbgDraw.drawLine(dbgProj(a), dbgProj(b), c); };
+  [[maybe_unused]] const auto dbgPoint = [&](Point3 p, E3DCOLOR c) DAGOR_FORCE_INLINE_LAMBDA { ctx.dbgDraw.drawPoint(dbgProj(p), c); };
   bool dbgFaceSolid = false; // used for debug draw in lambdas
 
   const float max_dist = hmap.maxHeight;
   vec4f basisU = v_ldu(&cut_face_data.basis.U.x);
   vec4f basisV = v_ldu(&cut_face_data.basis.V.x);
-  const auto projectUV = [&](vec4f vert) FORCE_INLINE_LAMBDA {
+  const auto projectUV = [&](vec4f vert) DAGOR_FORCE_INLINE_LAMBDA {
     vec4f p2 = v_perm_xaxa(v_dot3_x(vert, basisU), v_dot3_x(vert, basisV));
     return Point2(v_extract_x(p2), v_extract_y(p2));
   };
-  const auto projectUVv = [&](vec4f vert) FORCE_INLINE_LAMBDA { return v_perm_xaxa(v_dot3_x(vert, basisU), v_dot3_x(vert, basisV)); };
+  const auto projectUVv = [&](vec4f vert)
+                            DAGOR_FORCE_INLINE_LAMBDA { return v_perm_xaxa(v_dot3_x(vert, basisU), v_dot3_x(vert, basisV)); };
   vec4f vCellSize = v_splats(hmap.cellSize);
   vec4f invCellSize = v_splats(1.f / hmap.cellSize);
   const vec4f gridOriginUV = v_make_vec4f(hmap.gridOrigin.x, hmap.gridOrigin.y, hmap.gridOrigin.x, hmap.gridOrigin.y);
-  const auto uvToCell = [&](vec4f uv) FORCE_INLINE_LAMBDA { return v_mul(v_sub(uv, gridOriginUV), invCellSize); };
+  const auto uvToCell = [&](vec4f uv) DAGOR_FORCE_INLINE_LAMBDA { return v_mul(v_sub(uv, gridOriginUV), invCellSize); };
   const float eps = 1e-5f * max(hmap.cellSize, max_dist);
 
   // reserve face arrays
@@ -219,8 +220,8 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
   const float invL = 1.f / hmap.cellSize;
 
   const auto makeEdgeKey = [](uint32_t i1, uint32_t i2)
-                             FORCE_INLINE_LAMBDA { return i1 < i2 ? (uint64_t(i1) << 32) | i2 : (uint64_t(i2) << 32) | i1; };
-  const auto reindexVert = [&](bool up, uint32_t idx) FORCE_INLINE_LAMBDA {
+                             DAGOR_FORCE_INLINE_LAMBDA { return i1 < i2 ? (uint64_t(i1) << 32) | i2 : (uint64_t(i2) << 32) | i1; };
+  const auto reindexVert = [&](bool up, uint32_t idx) DAGOR_FORCE_INLINE_LAMBDA {
     uint32_t &__restrict remap = (up ? old2newUpPtr : old2newDownPtr)[idx];
     if (remap == uint32_t(-1))
     {
@@ -236,14 +237,14 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
   edgeData.reserve(candidateFacesVec.size() * 2);
   edgePts.reserve(candidateFacesVec.size());
 
-  const auto makeRootUnique = [&](uint32_t a, uint32_t b, float t) FORCE_INLINE_LAMBDA {
+  const auto makeRootUnique = [&](uint32_t a, uint32_t b, float t) DAGOR_FORCE_INLINE_LAMBDA {
     const uint32_t id = CUT_VERT_FLAG | cutVerts.size();
     cutVerts.push_back_noinit() = lerp_vertex_data(verts[a], verts[b], t);
     return id;
   };
 
   // full edge prepare, DDA and stuff
-  const auto prepareEdgeFull = [&](uint32_t i0, uint32_t i1, bool skinny) NOINLINE_LAMBDA -> EdgeData {
+  const auto prepareEdgeFull = [&](uint32_t i0, uint32_t i1, bool skinny) DAGOR_NOINLINE_LAMBDA -> EdgeData {
     const uint32_t a = i0 < i1 ? i0 : i1, b = i0 < i1 ? i1 : i0;
     EdgeData &__restrict edge = edgeData[makeEdgeKey(a, b)];
     if (edge.offset != -1)
@@ -265,7 +266,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     int edgePtPos = edgePts.size();
     // check next root
     float lastS = vertDist[a], lastT = 0.f;
-    const auto chkRoot = [&](float t, float s) FORCE_INLINE_LAMBDA -> void {
+    const auto chkRoot = [&](float t, float s) DAGOR_FORCE_INLINE_LAMBDA -> void {
       if (DAGOR_UNLIKELY(lastT == t))
         return;
       if (DAGOR_UNLIKELY((lastS < 0.f) != (s < 0.f))) // root push - slow path
@@ -287,7 +288,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
       lastS = s;
     };
     // push next point
-    const auto pushPt = [&](vec4f tttt, bool main_axis) FORCE_INLINE_LAMBDA {
+    const auto pushPt = [&](vec4f tttt, bool main_axis) DAGOR_FORCE_INLINE_LAMBDA {
       Point3_vec4 uvd;
       v_st(&uvd, v_lerp_vec4f(tttt, uvda, uvdb));
       const float t = v_extract_x(tttt);
@@ -325,7 +326,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
   };
 
   // prepare edge for small triangle, this edge must be skinny (small triangles are ones with all skinny edges)
-  const auto prepareEdgeSmallTriRoot = [&](uint32_t i0, uint32_t i1, float t) FORCE_INLINE_LAMBDA -> uint32_t {
+  const auto prepareEdgeSmallTriRoot = [&](uint32_t i0, uint32_t i1, float t) DAGOR_FORCE_INLINE_LAMBDA -> uint32_t {
     const uint32_t a = i0 < i1 ? i0 : i1, b = i0 < i1 ? i1 : i0;
     EdgeData &edge = edgeData[makeEdgeKey(a, b)];
     if (edge.cnt != -1)
@@ -337,7 +338,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     return edge.firstRootIdx;
   };
 
-  const auto emitWhole = [&](const DestrMesh::Face &face, bool toUp) FORCE_INLINE_LAMBDA {
+  const auto emitWhole = [&](const DestrMesh::Face &face, bool toUp) DAGOR_FORCE_INLINE_LAMBDA {
     DestrMesh::Face &f = (toUp ? up_mesh : down_mesh).faces.push_back_noinit();
     f.idx[0] = reindexVert(toUp, face.idx.data()[0]);
     f.idx[1] = reindexVert(toUp, face.idx.data()[1]);
@@ -346,7 +347,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
   };
 
   const auto trivialTriangleSplit = [&](uint32_t idx0, uint32_t idx1, uint32_t idx2, uint32_t cutIdx0, uint32_t cutIdx1, bool up,
-                                      uint16_t mat, bool solid) FORCE_INLINE_LAMBDA {
+                                      uint16_t mat, bool solid) DAGOR_FORCE_INLINE_LAMBDA {
     idx0 = reindexVert(up, idx0);
     idx1 = reindexVert(!up, idx1);
     idx2 = reindexVert(up, idx2);
@@ -377,7 +378,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     }
   };
 
-  const auto doFaceSplit = [&](const DestrMesh::Face face) FORCE_INLINE_LAMBDA {
+  const auto doFaceSplit = [&](const DestrMesh::Face face) DAGOR_FORCE_INLINE_LAMBDA {
     uint32_t idx0 = face.idx.data()[0];
     uint32_t idx1 = face.idx.data()[1];
     uint32_t idx2 = face.idx.data()[2];
@@ -469,12 +470,12 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     dag::Vector<FaceEdgeRoot, framemem_allocator> edgeRoots; // roots sorted in face winding order
   };
   FaceGrid fg = {};
-  const auto uvToBarycentric = [&](vec4f uv) FORCE_INLINE_LAMBDA -> vec4f {
+  const auto uvToBarycentric = [&](vec4f uv) DAGOR_FORCE_INLINE_LAMBDA -> vec4f {
     vec4f w = v_mul(v_perm_xyxy(v_sub(uv, fg.barySub)), fg.baryMult);
     vec4f w0w1 = v_sub(v_perm_xzxz(w), v_perm_ywyw(w)); // (w0, w1, w0, w1)
     return v_perm_xyab(w0w1, v_splat_y(v_sub(V_C_ONE, v_add(w0w1, v_splat_x(w0w1)))));
   };
-  const auto uvToVert = [&](vec4f uv) FORCE_INLINE_LAMBDA -> DestrMesh::Vertex {
+  const auto uvToVert = [&](vec4f uv) DAGOR_FORCE_INLINE_LAMBDA -> DestrMesh::Vertex {
     const vec4f w = uvToBarycentric(uv);
     DestrMesh::Vertex v;
     lerp_vertex_data_barycentric(v, verts[fg.vertIdx[0]], verts[fg.vertIdx[1]], verts[fg.vertIdx[2]], v_splat_x(w), v_splat_y(w),
@@ -483,7 +484,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
   };
 
   // prepare large triangle, allocate cells, fill edge cells and build sorted root list
-  const auto buildCellArray = [&]() NOINLINE_LAMBDA {
+  const auto buildCellArray = [&]() DAGOR_NOINLINE_LAMBDA {
     {
       vec4i cellMin = v_zeroi(), cellMax = v_zeroi();
       for (int k = 0; k < 3; k++)
@@ -514,7 +515,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
       fg.stepByBorder[3] = CellStepByBorder{0, -1, uint32_t(-fg.ofsSz.z), 1};
     }
 
-    const auto cellIdxOf = [&](int i, int j) FORCE_INLINE_LAMBDA { return (i - fg.ofsSz.x) + (j - fg.ofsSz.y) * fg.ofsSz.z; };
+    const auto cellIdxOf = [&](int i, int j) DAGOR_FORCE_INLINE_LAMBDA { return (i - fg.ofsSz.x) + (j - fg.ofsSz.y) * fg.ofsSz.z; };
     fg.cells.resize_noinit(fg.ofsSz.z * fg.ofsSz.w);
     mem_set_ff(fg.cells);
     fg.edgeRoots.resize_noinit(fg.edge[0].cnt + fg.edge[1].cnt + fg.edge[2].cnt + 3);
@@ -552,7 +553,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
         nextSpanRootIdx = pts->rootIdx;
       }
     }
-    const auto cmpRoot = [&](const FaceEdgeRoot &a, const FaceEdgeRoot &b) FORCE_INLINE_LAMBDA {
+    const auto cmpRoot = [&](const FaceEdgeRoot &a, const FaceEdgeRoot &b) DAGOR_FORCE_INLINE_LAMBDA {
       bool e = a.e < b.e;
       bool idx = a.isEdgeFwd ? a.idx < b.idx : b.idx < a.idx;
       return a.e == b.e ? idx : e;
@@ -576,9 +577,9 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     uint32_t prevCutVert;
     bool poisoned = false; // bail out
   };
-  const auto buildAndTraverseCell = [&](ChainWalkState &__restrict state, bool face_uv_ccw, bool dbg) NOINLINE_LAMBDA {
+  const auto buildAndTraverseCell = [&](ChainWalkState &__restrict state, bool face_uv_ccw, bool dbg) DAGOR_NOINLINE_LAMBDA {
     CellEntry &cell = fg.cells[state.cellIdx];
-    const auto getCornerS = [&](uint32_t c) FORCE_INLINE_LAMBDA -> float {
+    const auto getCornerS = [&](uint32_t c) DAGOR_FORCE_INLINE_LAMBDA -> float {
       const uint32_t ofs = c == 0 ? 0u : c == 1 ? uint32_t(fg.ofsSz.z) : c == 2 ? uint32_t(fg.ofsSz.z) + 1u : 1u;
       CellEntry &ce = fg.cells[state.cellIdx + ofs];
       if ((uint32_t &)ce.cornerS != ~uint32_t(0))
@@ -590,7 +591,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
       return ce.cornerS = fabsf(s) < eps ? (s < 0.f ? -eps : eps) : s; // tie-break
     };
     constexpr uint32_t NO_BORDER = uint32_t(-1);
-    const auto getCrossingBorder = [&](const EdgeData &edge, uint32_t idx, bool after_cell) FORCE_INLINE_LAMBDA {
+    const auto getCrossingBorder = [&](const EdgeData &edge, uint32_t idx, bool after_cell) DAGOR_FORCE_INLINE_LAMBDA {
       if (idx >= edge.cnt)
         return NO_BORDER;
       EdgePt pt = edgePts[edge.offset + idx];
@@ -617,12 +618,12 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     // stores triangle fan v0-v1-v2, v0-v2-v3, ... v0-v[N-2]-v[N-1]
     dag::RelocatableFixedVector<ScaffoldVert, 15, false> scaffoldVerts;
     int entry = -1;
-    const auto pushRim = [&](const ScaffoldVert &v) FORCE_INLINE_LAMBDA {
+    const auto pushRim = [&](const ScaffoldVert &v) DAGOR_FORCE_INLINE_LAMBDA {
       if (v.e == state.e)
         entry = int(scaffoldVerts.size());
       scaffoldVerts.push_back(v);
     };
-    const auto scaffoldToUv = [&](const ScaffoldVert &sv, uint32_t border) NOINLINE_LAMBDA -> vec4f {
+    const auto scaffoldToUv = [&](const ScaffoldVert &sv, uint32_t border) DAGOR_NOINLINE_LAMBDA -> vec4f {
       if (sv.kind == ScaffoldVert::FACE_VERT)
         return v_ldu(&fg.cornerUv[sv.e].x);
       if (sv.kind == ScaffoldVert::CORNER)
@@ -815,7 +816,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
 
   // earcut and emit polygon
   dag::Vector<int, framemem_allocator> ecNxt, ecPrv;
-  const auto emitRegion = [&](int from, int to, bool up, uint16_t mat, bool face_uv_ccw) NOINLINE_LAMBDA {
+  const auto emitRegion = [&](int from, int to, bool up, uint16_t mat, bool face_uv_ccw) DAGOR_NOINLINE_LAMBDA {
     const int n = to - from;
     if (n < 3)
       return;
@@ -824,7 +825,8 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     const auto inside = [&](Point2 a, Point2 b, Point2 c, Point2 p) {
       return cr(a, b, p) >= 0.f && cr(b, c, p) >= 0.f && cr(c, a, p) >= 0.f;
     };
-    const auto mapVert = [&](uint32_t tag, bool up) FORCE_INLINE_LAMBDA { return (tag & CUT_VERT_FLAG) ? tag : reindexVert(up, tag); };
+    const auto mapVert = [&](uint32_t tag, bool up)
+                           DAGOR_FORCE_INLINE_LAMBDA { return (tag & CUT_VERT_FLAG) ? tag : reindexVert(up, tag); };
     const auto emitTri = [&](int a, int b, int c) {
       // match each triangle's UV winding to the face's (ear-clip output can be reversed on non-convex regions)
       const Point2 pa = rv[a].uv, pb = rv[b].uv, pc = rv[c].uv;
@@ -882,7 +884,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
       emitTri(ecPrv[cur], cur, ecNxt[cur]);
   };
 
-  const auto traceChains = [&](bool face_uv_ccw, bool solid, uint16_t mat) NOINLINE_LAMBDA {
+  const auto traceChains = [&](bool face_uv_ccw, bool solid, uint16_t mat) DAGOR_NOINLINE_LAMBDA {
     chainsStack.clear();
     chainVerts.clear();
     const bool baseSign = vertDist[fg.vertIdx[0]] < 0.f;
@@ -906,7 +908,8 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
       }
       else
       {
-        const auto rootUv = [&](uint32_t id) FORCE_INLINE_LAMBDA { return projectUV(v_ldu(&cutVerts[id & ~CUT_VERT_FLAG].pos.x)); };
+        const auto rootUv = [&](uint32_t id)
+                              DAGOR_FORCE_INLINE_LAMBDA { return projectUV(v_ldu(&cutVerts[id & ~CUT_VERT_FLAG].pos.x)); };
         // trace new chain
         ChainWalkState state;
         state.cellX = roots->cellX;
@@ -1072,7 +1075,7 @@ DAGOR_NOINLINE static void cut_mesh_hmap_impl(const DestrContext &ctx, const Des
     }
   }
 
-  const auto finalizeCutFaces = [&](DestrMesh &dst_mesh, uint32_t cut_faces_start) FORCE_INLINE_LAMBDA {
+  const auto finalizeCutFaces = [&](DestrMesh &dst_mesh, uint32_t cut_faces_start) DAGOR_FORCE_INLINE_LAMBDA {
     DestrMesh::Face *__restrict faces = dst_mesh.faces.data();
     const uint32_t facesEnd = dst_mesh.faces.size();
     const uint32_t cutOfs = dst_mesh.verts.size();

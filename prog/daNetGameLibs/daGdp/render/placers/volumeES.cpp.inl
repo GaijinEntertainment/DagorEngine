@@ -19,9 +19,9 @@
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/renderEvent.h>
+#include <ecs/render/updateStageRender.h>
 #include "../riexProcessor.h"
 #include "../globalManager.h"
-#include "../../shaders/dagdp_heightmap.hlsli"
 #include "volume.h"
 
 ECS_REGISTER_BOXED_TYPE(dagdp::VolumeManager, nullptr);
@@ -240,10 +240,18 @@ ECS_NO_ORDER static inline void volume_view_finalize_es(const dagdp::EventViewFi
 }
 
 ECS_TAG(render)
-ECS_NO_ORDER
-static inline void dagdp_volume_before_draw_es(const BeforeDraw &evt, ecs::EntityManager &manager)
+ECS_AFTER(dagdp_update_es)            // view rebuild there frees the job
+ECS_BEFORE(animchar_before_render_es) // purely for optimization, p-for jobs wake the workers
+static inline void dagdp_volume_start_camera_gather_es(const UpdateStageInfoBeforeRender &evt)
 {
-  start_gather_before_draw_volumes(manager, evt.camPos, evt.frustum);
+  start_gather_camera_volumes(evt.camPos, evt.mainCullingFrustum);
+}
+
+ECS_TAG(render)
+ECS_NO_ORDER
+static inline void dagdp_volume_start_csm_gather_es(const BeforeStartVisibility &, ecs::EntityManager &manager)
+{
+  start_gather_csm_volumes(manager);
 }
 
 // Returns the largest local volume radius, for the frustum box the sources are searched in.
@@ -321,6 +329,8 @@ void gather_start(DagdpRiexGatherJob &job,
   const ViewInfo &view_info,
   const ViewPerFrameData &view_per_frame,
   float max_bounding_radius,
+  int target_mesh_lod,
+  const RiexProcessor &riex_processor,
   GatherMode mode)
 {
   if (job.launched)
@@ -330,11 +340,14 @@ void gather_start(DagdpRiexGatherJob &job,
   if (view_per_frame.viewports.empty())
     return;
 
-  TIME_PROFILE(dagdp_volume_gather_start);
+  DA_PROFILE_EVENT_DESC(job.startDesc);
 
   job.reset();
   job.rangeScale = get_global_range_scale();
   job.maxBoundingRadius = max_bounding_radius;
+  job.riexProcessor = &riex_processor;
+  job.targetMeshLod = target_mesh_lod;
+  job.meshesEnabled = !volume_placer_no_meshes;
   job.gridGathered = is_volume_early_grid_gather_enabled();
 
   for (uint32_t viewportIndex = 0; viewportIndex < view_per_frame.viewports.size(); ++viewportIndex)
@@ -352,16 +365,19 @@ void gather_start(DagdpRiexGatherJob &job,
     if (!v_test_xyz_finite(frustumBox.bmin) || !v_test_xyz_finite(frustumBox.bmax))
       continue;
 
+    viewportData.frustum = frustum;
     viewportData.frustumBox = frustumBox;
     viewportData.valid = true;
 
     on_ri_placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid,
                                              const ecs::IntList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
-      if (!placer_gather_variant(volume_mapping, eid, dagdp__csm_cascade_count, viewport.csmCascade))
+      const auto *variant = placer_gather_variant(volume_mapping, eid, dagdp__csm_cascade_count, viewport.csmCascade);
+      if (!variant)
         return;
 
       DagdpRiexGatherJob::PlacerData rec;
       rec.eid = eid;
+      rec.meshLod = resolve_mesh_lod(*variant, target_mesh_lod);
       job.addEntries(rec, dagdp__resource_ids, frustumBox);
       viewportData.onRi.push_back(rec);
     });
@@ -376,6 +392,7 @@ void gather_start(DagdpRiexGatherJob &job,
 
         DagdpRiexGatherJob::AroundRiPlacerData rec;
         rec.eid = eid;
+        rec.variant = variant;
         rec.drawRadius = variant->maxDrawDistance * job.rangeScale;
         rec.firstLocalVolume = job.localVolumeCount;
         LocalVolumeSnapshots localVolumes;
@@ -405,7 +422,8 @@ void gather_start(DagdpRiexGatherJob &job,
 
     mat44f tm44;
     v_mat44_make_from_43cu_unsafe(tm44, transform.array);
-    const vec4f extent2 = volume_cull_extent2(tm44, scale, max_bounding_radius);
+    DagdpRiexGatherJob::VolumeEntry e{};
+    init_volume_entry(e, &variant, transform, tm44, scale, volume_type, max_bounding_radius);
     const float drawRadius = variant.maxDrawDistance * job.rangeScale;
 
     // Only whether any viewport wants it: gather_process re-culls per viewport on the same inputs.
@@ -414,12 +432,14 @@ void gather_start(DagdpRiexGatherJob &job,
     {
       const auto &perViewport = job.viewportDataPool[v];
       anyViewport = perViewport.valid && !cascade_excluded(variant.csmCascadeCount, view_per_frame.viewports[v].csmCascade) &&
-                    volume_in_draw_range(tm44, extent2, perViewport.worldPos, drawRadius);
+                    volume_in_draw_range(e.center, e.extent2, perViewport.worldPos, drawRadius) &&
+                    perViewport.frustum.testBoxExtentB(v_add(e.center, e.center), e.extent2) != 0;
     }
     if (!anyViewport)
       return;
 
-    job.addVolumeEntry(placer_eid, transform, tm44, scale, volume_type);
+    prepare_volume_entry(e, tm44);
+    job.addVolumeEntry(e);
   };
 
   if (job.gridGathered)
@@ -429,10 +449,100 @@ void gather_start(DagdpRiexGatherJob &job,
     job.worldVolumeCount = job.volumeCount;
   }
 
-  DA_PROFILE_TAG(dagdp_volume_gather_start, "viewports=%d riex_entries=%d", (int)job.viewportCount, (int)job.entryCount);
-  DA_PROFILE_TAG(dagdp_volume_gather_start_volumes, "world=%d local=%d", (int)job.worldVolumeCount, (int)job.localVolumeCount);
+  DA_PROFILE_TAG_DESC(job.startDesc, "viewports=%d riex_entries=%d", (int)job.viewportCount, (int)job.entryCount);
+  DA_PROFILE_TAG_DESC(job.startDesc, "world=%d local=%d", (int)job.worldVolumeCount, (int)job.localVolumeCount);
 
   job.start(mode);
+}
+
+// The lod scene the placement filter reads for a riex resource: null for no resource, or while that lod is not loaded.
+static RenderableInstanceResource *placement_lod_scene(const RenderableInstanceLodsResource *res, int mesh_lod)
+{
+  if (!res)
+    return nullptr;
+  const int lod = min<int>(mesh_lod, res->lods.size() - 1);
+  if (res->getQlBestLod() > lod)
+    return nullptr;
+  return res->lods[lod].scene;
+}
+
+int filter_volume_meshes(dag::ConstSpan<rendinst::riex_handle_t> handles,
+  int mesh_lod,
+  const bbox3f *volume_box,
+  const RiexProcessor &riex_processor,
+  Tab<MeshIntersection> &out_meshes)
+{
+  int firstUnprocessedRes = -1;
+  rendinst::ScopedRIExtraReadLock rd;
+  for (const auto handle : handles)
+  {
+    const int resIndex = rendinst::handle_to_ri_type(handle);
+    if (rendinst::isRIGenExtraDynamic(resIndex))
+      continue;
+    const RenderableInstanceLodsResource *riLodsRes = rendinst::getRIGenExtraRes(resIndex);
+    RenderableInstanceResource *riRes = placement_lod_scene(riLodsRes, mesh_lod);
+    if (!riRes)
+      continue;
+
+    const mat43f &instTm = rendinst::getRIGenExtra43(handle);
+    mat44f instTm44;
+    v_mat43_transpose_to_mat44(instTm44, instTm);
+    if (v_extract_x((v_mat44_max_scale43_x(instTm44))) * riLodsRes->bsphRad < MIN_GEOMETRY_SIZE)
+      continue;
+
+    if (volume_box != nullptr)
+    {
+      bbox3f lbox, wbox;
+      v_bbox3_init_by_segment(lbox, v_ldu_p3(&riLodsRes->bbox[0].x), v_ldu_p3(&riLodsRes->bbox[1].x));
+      v_bbox3_init(wbox, instTm44, lbox);
+      if (!v_bbox3_test_box_intersect(wbox, *volume_box))
+        continue;
+    }
+
+    const auto *state = riex_processor.find(riRes);
+    if (!state)
+    {
+      if (firstUnprocessedRes < 0)
+        firstUnprocessedRes = resIndex;
+      continue;
+    }
+
+    const dag::ConstSpan<ShaderMesh::RElem> elems = riRes->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque);
+
+    G_ASSERT(elems.size() == state->areasIndices.size());
+    for (auto [i, elem] : enumerate(elems))
+    {
+      // NOTE: I disabled the is_rendinst_clipmap/enable_hmap_blend check below
+      // because it's not clear what its purpose is, and it prevents placement
+      // on the meshes we want to place on.
+      // This shouldn't affect anyone, because daGdp volume placers are not used
+      // anywhere except for some tests yet (unlike heightmap/biome placers).
+
+      // int isRendinstClipmap = 0;
+      // int isHeightmapBlended = 0;
+
+      // if (elem.mat->getIntVariable(material_var::is_rendinst_clipmap.get_var_id(), isRendinstClipmap) && isRendinstClipmap ||
+      //     elem.mat->getIntVariable(material_var::enable_hmap_blend.get_var_id(), isHeightmapBlended) && isHeightmapBlended)
+      // {
+      //   // Skip materials that are rendered into the clipmap. See RiExtraPool::isRendinstClipmap.
+      //   continue;
+      // }
+
+      auto &item = out_meshes.push_back();
+      item.startIndex = elem.si;
+      item.numFaces = elem.numf;
+      item.baseVertex = elem.baseVertex;
+      item.stride = elem.vertexData->getStride();
+      v_stu(&item.meshTmRow0.x, instTm.row0);
+      v_stu(&item.meshTmRow1.x, instTm.row1);
+      v_stu(&item.meshTmRow2.x, instTm.row2);
+      item.areasIndex = state->areasIndices[i];
+      item.vbIndex = elem.vertexData->getVbIdx();
+      item.volumeIndex = 0;
+      item.uniqueId = rendinst::handle_to_ri_inst(handle);
+    }
+  }
+  return firstUnprocessedRes;
 }
 
 void gather_process(DagdpRiexGatherJob &job,
@@ -449,77 +559,32 @@ void gather_process(DagdpRiexGatherJob &job,
 {
   TIME_PROFILE(dagdp_volume_gather_process);
 
+  // The one way meshes reach the output, so the processor is asked for emitted volumes only, in emission order: the
+  // first one asked is the resource processed this frame.
+  const auto emitMeshes = [&](dag::ConstSpan<MeshIntersection> meshes, int unprocessed_res, int mesh_lod, uint32_t volume_index) {
+    // Resolved here, because a resource reload in between frees the old lod scenes
+    if (unprocessed_res >= 0)
+    {
+      rendinst::ScopedRIExtraReadLock rd;
+      if (RenderableInstanceResource *scene = placement_lod_scene(rendinst::getRIGenExtraRes(unprocessed_res), mesh_lod))
+        riex_processor.ask(scene);
+    }
+
+    const size_t first = out_result.size();
+    out_result.insert(out_result.end(), meshes.begin(), meshes.end());
+    for (size_t i = first; i < out_result.size(); ++i)
+      out_result[i].volumeIndex = volume_index;
+  };
+
+  // The synchronous filter, for volumes the job did not gather.
   const auto processMeshes = [&](dag::ConstSpan<rendinst::riex_handle_t> handles, uint32_t volume_index, int mesh_lod,
-                               bbox3f *volume_bbox) {
+                               const bbox3f *volume_bbox) {
     if (volume_placer_no_meshes)
       return;
-    for (const auto handle : handles)
-    {
-      const uint32_t resIndex = rendinst::handle_to_ri_type(handle);
-      if (rendinst::isRIGenExtraDynamic(resIndex))
-        continue;
-      const RenderableInstanceLodsResource *riLodsRes = rendinst::getRIGenExtraRes(resIndex);
-      const int bestLod = riLodsRes->getQlBestLod();
-      const int actualLod = min<int>((mesh_lod >= 0 ? mesh_lod : target_mesh_lod), riLodsRes->lods.size() - 1);
-      if (bestLod > actualLod)
-        continue;
 
-      const mat43f &instTm = rendinst::getRIGenExtra43(handle);
-      mat44f instTm44;
-      v_mat43_transpose_to_mat44(instTm44, instTm);
-      if (v_extract_x((v_mat44_max_scale43_x(instTm44))) * riLodsRes->bsphRad < MIN_GEOMETRY_SIZE)
-        continue;
-
-      if (volume_bbox != nullptr)
-      {
-        bbox3f lbox, wbox;
-        v_bbox3_init_by_segment(lbox, v_ldu_p3(&riLodsRes->bbox[0].x), v_ldu_p3(&riLodsRes->bbox[1].x));
-        v_bbox3_init(wbox, instTm44, lbox);
-        if (!v_bbox3_test_box_intersect(wbox, *volume_bbox))
-          continue;
-      }
-
-      RenderableInstanceResource *riRes = riLodsRes->lods[actualLod].scene;
-      const auto *state = riex_processor.ask(riRes);
-
-      if (state)
-      {
-        const dag::ConstSpan<ShaderMesh::RElem> elems = riRes->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque);
-
-        G_ASSERT(elems.size() == state->areasIndices.size());
-        for (auto [i, elem] : enumerate(elems))
-        {
-          // NOTE: I disabled the is_rendinst_clipmap/enable_hmap_blend check below
-          // because it's not clear what its purpose is, and it prevents placement
-          // on the meshes we want to place on.
-          // This shouldn't affect anyone, because daGdp volume placers are not used
-          // anywhere except for some tests yet (unlike heightmap/biome placers).
-
-          // int isRendinstClipmap = 0;
-          // int isHeightmapBlended = 0;
-
-          // if (elem.mat->getIntVariable(material_var::is_rendinst_clipmap.get_var_id(), isRendinstClipmap) && isRendinstClipmap ||
-          //     elem.mat->getIntVariable(material_var::enable_hmap_blend.get_var_id(), isHeightmapBlended) && isHeightmapBlended)
-          // {
-          //   // Skip materials that are rendered into the clipmap. See RiExtraPool::isRendinstClipmap.
-          //   continue;
-          // }
-
-          auto &item = out_result.push_back();
-          item.startIndex = elem.si;
-          item.numFaces = elem.numf;
-          item.baseVertex = elem.baseVertex;
-          item.stride = elem.vertexData->getStride();
-          v_stu(&item.meshTmRow0.x, instTm.row0);
-          v_stu(&item.meshTmRow1.x, instTm.row1);
-          v_stu(&item.meshTmRow2.x, instTm.row2);
-          item.areasIndex = state->areasIndices[i];
-          item.vbIndex = elem.vertexData->getVbIdx();
-          item.volumeIndex = volume_index;
-          item.uniqueId = rendinst::handle_to_ri_inst(handle);
-        }
-      }
-    }
+    job.meshScratch.clear();
+    const int firstUnprocessedRes = filter_volume_meshes(handles, mesh_lod, volume_bbox, riex_processor, job.meshScratch);
+    emitMeshes(make_span_const(job.meshScratch), firstUnprocessedRes, mesh_lod, volume_index);
   };
 
   // Keep this outside any rendinst lock scope: the job's read locks queue behind writers.
@@ -563,106 +628,95 @@ void gather_process(DagdpRiexGatherJob &job,
       return;
   }
 
-  const auto addVolume = [&](const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform, float scale,
-                           int volume_type, const dag::ConstSpan<rendinst::riex_handle_t> *pre_handles) {
-    const auto iter = volume_mapping.find(dagdp_internal__volume_placer_eid);
-    if (iter == volume_mapping.end())
-      return;
-    const auto &variant = iter->second;
-
-    if (cascade_excluded(variant.csmCascadeCount, viewport.csmCascade))
-      return;
-
-    // Reference: volumePlacerES.cpp.inl, VolumePlacer::updateVisibility
-    mat44f tm44;
-    v_mat44_make_from_43cu_unsafe(tm44, transform.array);
-
-    mat44f itm44;
-    v_mat44_inverse43(itm44, tm44);
-
-    mat43f itm43;
-    v_mat44_transpose_to_mat43(itm43, itm44);
-
-    const vec4f extent2 = volume_cull_extent2(tm44, scale, max_bounding_radius);
-    const vec4f center2 = v_add(tm44.col3, tm44.col3);
+  const auto volumeVisible = [&](const DagdpRiexGatherJob::VolumeEntry &e) {
+    if (cascade_excluded(e.variant->csmCascadeCount, viewport.csmCascade))
+      return false;
 
     // cull by placeables draw range first
-    if (!volume_in_draw_range(tm44, extent2, cullViewPos, variant.maxDrawDistance * rangeScale))
-      return;
+    if (!volume_in_draw_range(e.center, e.extent2, cullViewPos, e.variant->maxDrawDistance * rangeScale))
+      return false;
 
     // TODO: Performance: can cull more with more precise checks (original box/ellipsoid instead of bbox).
-    if (!frustum.testBoxExtentB(center2, extent2))
-      return;
+    return frustum.testBoxExtentB(v_add(e.center, e.center), e.extent2) != 0;
+  };
 
-    debug_draw_volume(transform, scale, extent2, volume_type);
+  // Expects a prepared entry that passed the cull. Returns the volume index its meshes take.
+  const auto emitVolume = [&](const DagdpRiexGatherJob::VolumeEntry &e) {
+    debug_draw_volume(e.tm, e.scale, e.extent2, e.volumeType);
 
-    G_ASSERT(scale > FLT_EPSILON);
-    const vec4f invScale = v_splats(1.0f / scale);
     const uint32_t volumeIndex = out_volumes.size();
     auto &volume = out_volumes.push_back();
-    v_stu(&volume.itmRow0, v_mul(itm43.row0, invScale));
-    v_stu(&volume.itmRow1, v_mul(itm43.row1, invScale));
-    v_stu(&volume.itmRow2, v_mul(itm43.row2, invScale));
-    Point3 axis = variant.axis;
-    if (variant.axisLocal)
-      axis = transform * axis;
-    volume.axis = normalize(axis);
-    volume.volumeType = volume_type;
-    volume.variantIndex = variant.variantIndex;
-
-    // Reference: volumePlacerES.cpp.inl, VolumePlacer::gatherGeometryInBox
-    bbox3f bbox = volume_local_box(tm44, scale);
-    rendinst::riex_collidable_t gatheredHandles;
-    dag::ConstSpan<rendinst::riex_handle_t> handles;
-    if (pre_handles)
-      handles = *pre_handles;
-    else
-    {
-      rendinst::gatherRIGenExtraCollidableMin(gatheredHandles, bbox, MIN_GEOMETRY_SIZE);
-      handles = make_span_const(gatheredHandles);
-    }
+    v_stu(&volume.itmRow0, e.itmRow0);
+    v_stu(&volume.itmRow1, e.itmRow1);
+    v_stu(&volume.itmRow2, e.itmRow2);
+    volume.axis = e.axis;
+    volume.volumeType = e.volumeType;
+    volume.variantIndex = e.variant->variantIndex;
 
     if (!volume_placer_no_tiles)
-    {
-      const float instancePosDelta = 1.0f / sqrtf(variant.density);
-      const float tileWorldSize = TILE_INSTANCE_COUNT_1D * instancePosDelta;
-
-      int2 minPos;
-      int2 maxPos;
-      minPos.x = static_cast<int>(floorf(v_extract_x(bbox.bmin) / tileWorldSize));
-      minPos.y = static_cast<int>(floorf(v_extract_z(bbox.bmin) / tileWorldSize));
-      maxPos.x = static_cast<int>(ceilf(v_extract_x(bbox.bmax) / tileWorldSize));
-      maxPos.y = static_cast<int>(ceilf(v_extract_z(bbox.bmax) / tileWorldSize));
-
-      for (int x = minPos.x; x < maxPos.x; ++x)
-        for (int z = minPos.y; z < maxPos.y; ++z)
+      for (int x = e.tileMin.x; x < e.tileMax.x; ++x)
+        for (int z = e.tileMin.y; z < e.tileMax.y; ++z)
         {
           auto &tile = out_tiles.push_back();
           tile.intPosXZ.x = x;
           tile.intPosXZ.y = z;
-          tile.instancePosDelta = instancePosDelta;
+          tile.instancePosDelta = e.instancePosDelta;
           tile.volumeIndex = volumeIndex;
         }
-    }
 
-    processMeshes(handles, volumeIndex, variant.targetMeshLod, &bbox);
+    return volumeIndex;
   };
 
-  const auto addPreGatheredVolume = [&](const DagdpRiexGatherJob::VolumeEntry &e) {
-    const auto handles = job.volumeHandles(e);
-    addVolume(e.placerEid, e.tm, e.scale, e.volumeType, &handles);
+  const auto emitPreGatheredVolume = [&](const DagdpRiexGatherJob::VolumeEntry &e) {
+    if (!volumeVisible(e))
+      return;
+    const uint32_t volumeIndex = emitVolume(e);
+    emitMeshes(job.volumeMeshes(e), e.firstUnprocessedRes, resolve_mesh_lod(*e.variant, target_mesh_lod), volumeIndex);
   };
 
+  const auto addVolumeSync = [&](const VolumeMappingItem &variant, const TMatrix &transform, float scale, int volume_type) {
+    mat44f tm44;
+    v_mat44_make_from_43cu_unsafe(tm44, transform.array);
+    DagdpRiexGatherJob::VolumeEntry e{};
+    init_volume_entry(e, &variant, transform, tm44, scale, volume_type, max_bounding_radius);
+    if (!volumeVisible(e))
+      return;
+    prepare_volume_entry(e, tm44);
+
+    // Reference: volumePlacerES.cpp.inl, VolumePlacer::gatherGeometryInBox
+    rendinst::riex_collidable_t handles;
+    rendinst::gatherRIGenExtraCollidableMin(handles, e.box, MIN_GEOMETRY_SIZE);
+    const uint32_t volumeIndex = emitVolume(e);
+    processMeshes(make_span_const(handles), volumeIndex, resolve_mesh_lod(variant, target_mesh_lod), &e.box);
+  };
+
+  if (gridAsync)
   {
-    TIME_PROFILE(dagdp_volume_process_world_volumes);
-    if (gridAsync)
-      for (size_t i = 0; i < job.worldVolumeCount; ++i)
-        addPreGatheredVolume(job.volumePool[i]);
-    else
-      for_each_world_volume([&](ecs::EntityId placer_eid, const TMatrix &transform, float scale, int volume_type) {
-        addVolume(placer_eid, transform, scale, volume_type, nullptr);
-      });
+    TIME_PROFILE(dagdp_volume_process_world_volumes_async);
+    for (size_t i = 0; i < job.worldVolumeCount; ++i)
+      emitPreGatheredVolume(job.volumePool[i]);
   }
+  else
+  {
+    TIME_PROFILE(dagdp_volume_process_world_volumes_blocked);
+    for_each_world_volume([&](ecs::EntityId placer_eid, const TMatrix &transform, float scale, int volume_type) {
+      const auto iter = volume_mapping.find(placer_eid);
+      if (iter != volume_mapping.end())
+        addVolumeSync(iter->second, transform, scale, volume_type);
+    });
+  }
+
+  const auto emitFullVolume = [&](const VolumeMappingItem &variant) {
+    const uint32_t volumeIndex = out_volumes.size();
+    auto &volume = out_volumes.push_back();
+    v_stu(&volume.itmRow0, V_C_UNIT_1000);
+    v_stu(&volume.itmRow1, V_C_UNIT_0100);
+    v_stu(&volume.itmRow2, V_C_UNIT_0010);
+    volume.axis = variant.axis;
+    volume.volumeType = VOLUME_TYPE_FULL;
+    volume.variantIndex = variant.variantIndex;
+    return volumeIndex;
+  };
 
   size_t onRiIdx = 0;
   size_t aroundRiIdx = 0;
@@ -674,47 +728,38 @@ void gather_process(DagdpRiexGatherJob &job,
       return;
     const auto &variant = *variantPtr;
 
-    rendinst::riex_collidable_t out_handles;
     const auto *rec = viewportData ? next_placer_record(viewportData->onRi, onRiIdx, eid) : nullptr;
     if (rec)
     {
-      for (size_t i = 0; i < rec->entryCount; ++i)
-      {
-        const auto &h = job.entryPool[rec->firstEntry + i].handles;
-        out_handles.insert(out_handles.end(), h.begin(), h.end());
-      }
+      if (rec->handleCount == 0)
+        return;
+      const uint32_t volumeIndex = emitFullVolume(variant);
+      emitMeshes(job.recordMeshes(*rec), rec->firstUnprocessedRes, rec->meshLod, volumeIndex);
+      return;
     }
-    else
+
+    rendinst::riex_collidable_t out_handles;
+    Tab<rendinst::riex_handle_t> ri_handles;
+    for (auto resIdx : dagdp__resource_ids)
     {
-      Tab<rendinst::riex_handle_t> ri_handles;
-      for (auto resIdx : dagdp__resource_ids)
-      {
-        rendinst::getRiGenExtraInstances(ri_handles, resIdx, frustumBox);
-        out_handles.insert(out_handles.end(), ri_handles.begin(), ri_handles.end());
-        ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
-      }
+      rendinst::getRiGenExtraInstances(ri_handles, resIdx, frustumBox);
+      out_handles.insert(out_handles.end(), ri_handles.begin(), ri_handles.end());
+      ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
     }
 
     if (out_handles.empty())
       return;
 
-    const uint32_t volumeIndex = out_volumes.size();
-    auto &volume = out_volumes.push_back();
-    v_stu(&volume.itmRow0, V_C_UNIT_1000);
-    v_stu(&volume.itmRow1, V_C_UNIT_0100);
-    v_stu(&volume.itmRow2, V_C_UNIT_0010);
-    volume.axis = variant.axis;
-    volume.volumeType = VOLUME_TYPE_FULL;
-    volume.variantIndex = variant.variantIndex;
-
-    processMeshes(make_span_const(out_handles), volumeIndex, variant.targetMeshLod, nullptr);
+    const uint32_t volumeIndex = emitFullVolume(variant);
+    processMeshes(make_span_const(out_handles), volumeIndex, resolve_mesh_lod(variant, target_mesh_lod), nullptr);
   });
 
   around_ri_placers_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ecs::IntList &dagdp__resource_ids,
       const ecs::EidList &dagdp__volume_box_eids, const ecs::EidList &dagdp__volume_cylinder_eids,
       const ecs::EidList &dagdp__volume_sphere_eids, int dagdp__csm_cascade_count) {
-      if (!placer_gather_variant(volume_mapping, eid, dagdp__csm_cascade_count, viewport.csmCascade))
+      const auto *variant = placer_gather_variant(volume_mapping, eid, dagdp__csm_cascade_count, viewport.csmCascade);
+      if (!variant)
         return;
 
       const auto *rec = viewportData ? next_placer_record(viewportData->aroundRi, aroundRiIdx, eid) : nullptr;
@@ -724,7 +769,7 @@ void gather_process(DagdpRiexGatherJob &job,
       {
         for (size_t localIndex = 0; localIndex < rec->localVolumeCount; ++localIndex)
           for (const auto &e : job.localVolumeSources(job.localVolumePool[rec->firstLocalVolume + localIndex]))
-            addPreGatheredVolume(e);
+            emitPreGatheredVolume(e);
         return;
       }
 
@@ -761,7 +806,7 @@ void gather_process(DagdpRiexGatherJob &job,
 
       for (const auto &local : localVolumes)
         for (const TMatrix &sourceTm : sources)
-          addVolume(eid, sourceTm * local.transform, local.scale, local.volumeType, nullptr);
+          addVolumeSync(*variant, sourceTm * local.transform, local.scale, local.volumeType);
     });
 
   if (viewportData)

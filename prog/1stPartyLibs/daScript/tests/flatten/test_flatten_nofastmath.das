@@ -122,14 +122,8 @@ def nf_eq_inv(s : float) : float {
 
 // ----- differential driver -----
 
-var GRID : array<float>
-var IGRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-    IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
-}
+var GRID <- [-100.0, -3.5, -1.0, -0.0, 0.0, 1.0, 2.5, 7.0, 100.0]
+var IGRID <- [-100, -7, -1, 0, 1, 3, 42, 1000]
 
 def cmp3f(t : T?; a, b : float3) {
     t |> equal(a.x, b.x); t |> equal(a.y, b.y); t |> equal(a.z, b.z)

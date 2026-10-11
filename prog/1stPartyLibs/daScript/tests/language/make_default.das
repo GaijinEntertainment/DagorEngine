@@ -19,7 +19,7 @@ def test_make_default(t : T?) {
         t |> equal(t_int, 0)
     }
     t |> run("default string") @(t : T?) {
-        let t_string = string("")
+        let t_string = string("")  // nolint:PERF020 - the ctor form is the subject; string() has no zero-arg form
         t |> equal(t_string, "")
     }
     t |> run("default tuple") @(t : T?) {

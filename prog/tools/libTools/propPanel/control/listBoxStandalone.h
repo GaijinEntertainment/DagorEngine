@@ -37,7 +37,7 @@ public:
     return &values[selectedIndex];
   }
 
-  dag::ConstSpan<String> getValues() { return values; }
+  dag::ConstSpan<String> getValues() const { return values; }
 
   int getValues(Tab<String> &vals)
   {

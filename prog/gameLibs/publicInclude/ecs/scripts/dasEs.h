@@ -91,7 +91,6 @@ struct LoadingDasEcsContextRAII
 
 bool get_always_use_main_thread_env();
 void set_always_use_main_thread_env(bool value);
-void set_worker_threads_mode(bool on);
 
 struct RAIIDasEnvBound
 {
@@ -100,10 +99,7 @@ struct RAIIDasEnvBound
   ~RAIIDasEnvBound();
 };
 
-bool is_in_worker_threads_mode();
 bool is_in_documentation();
-bool enable_das_rtti();
-bool set_enable_das_rtti(bool);
 void set_is_in_documentation(bool value);
 void set_das_root(const char *root_path);
 void free_serializer_buffer(bool success);

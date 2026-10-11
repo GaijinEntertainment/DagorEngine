@@ -166,12 +166,30 @@ def draw_E3DCOLOR(eid : array<EntityId> implicit; flags : uint; name : string; r
 
 [ecs_inspector(type_name="float")]
 def draw_float(eid : array<EntityId> implicit; flags : uint; name : string; refs : array<ComponentRenderInfo#>#; level : int; var changed : bool?; sub_menu : block<(var changed : bool?) : bool>) : void
+  static_let <|
+    var dragSpeed = 0.01f
+    var drawAsDragWidget = false
   var val = unsafe(reinterpret<float?> refs[0].rawData)
-  let step = 1f
-  let fastStep = 5f
   SetNextItemWidth(-FLT_MIN)
-  *changed = InputScalar("##{name}", ImGuiDataType.Float, val, safe_addr(step), safe_addr(fastStep), "%.4f", ImGuiInputTextFlags.None) || *changed
-  default_menu(eid, name, "float", $() => to_string(*val), $(str) { update_value(to_float(str), val, changed); }, $() => to_string_via_blk(name, eid[0]), changed, sub_menu)
+  if drawAsDragWidget
+    *changed = imgui::DragFloat("##{name}", val, dragSpeed, 0f, 0f, "%.4f", ImGuiSliderFlags.None) || *changed
+  else
+    let step = 1f
+    let fastStep = 5f
+    *changed = InputScalar("##{name}", ImGuiDataType.Float, val, safe_addr(step), safe_addr(fastStep), "%.4f", ImGuiInputTextFlags.None) || *changed
+  default_menu(eid, name, "float", $() => to_string(*val), $(str) { update_value(to_float(str), val, changed); }, $() => to_string_via_blk(name, eid[0]), changed) <| $(var sub_changed)
+    let res = sub_menu |> invoke(sub_changed)
+    if !res
+      return res
+
+    imgui::Separator()
+    if imgui::Checkbox("Drag slider widget", unsafe(addr(drawAsDragWidget)))
+      *sub_changed = true
+    SetNextItemWidth(60f)
+    if imgui::InputFloat("Drag speed", unsafe(addr(dragSpeed)))
+      *sub_changed = true
+
+    return res
 
 
 [ecs_inspector(type_name="double")]
@@ -196,6 +214,7 @@ def draw_Point2(eid : array<EntityId> implicit; flags : uint; name : string; ref
   var val = unsafe(reinterpret<float2?> refs[0].rawData)
   SetNextItemWidth(-FLT_MIN)
   *changed = InputFloat2("##{name}", unsafe(addr((*val).x)), "%.4f", ImGuiInputTextFlags.None) || *changed
+  imgui_hint <| $() => "length: {length(*val)}"
   default_menu(eid, name, "Point2", $() => to_string(*val), $(str) { update_value(to_float2(str), val, changed); }, $() => to_string_via_blk(name, eid[0]), changed, sub_menu)
 
 
@@ -204,6 +223,7 @@ def draw_Point3(eid : array<EntityId> implicit; flags : uint; name : string; ref
   var val = unsafe(reinterpret<float3?> refs[0].rawData)
   SetNextItemWidth(-FLT_MIN)
   *changed = InputFloat3("##{name}", unsafe(addr((*val).x)), "%.4f", ImGuiInputTextFlags.None) || *changed
+  imgui_hint <| $() => "length: {length(*val)}"
 
   default_menu(eid, name, "Point3", $() => to_string(*val), $(str) { update_value(to_float3(str), val, changed); }, $() => to_string_via_blk(name, eid[0]), changed) <| $ [unused_argument(sub_changed)] (sub_changed)
 
@@ -225,6 +245,7 @@ def draw_Point4(eid : array<EntityId> implicit; flags : uint; name : string; ref
   var val = unsafe(reinterpret<float4?> refs[0].rawData)
   SetNextItemWidth(-FLT_MIN)
   *changed = InputFloat4("##{name}", unsafe(addr((*val).x)), "%.4f", ImGuiInputTextFlags.None) || *changed
+  imgui_hint <| $() => "length: {length(*val)}"
   default_menu(eid, name, "Point4", $() => to_string(*val), $(str) { update_value(to_float4(str), val, changed); }, $() => to_string_via_blk(name, eid[0]), changed, sub_menu)
 
 

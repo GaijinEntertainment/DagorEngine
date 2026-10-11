@@ -585,18 +585,10 @@ protected:
 
   PropPanel::PanelWindowPropertyControl *propPanel;
 
-  // Control being edited while its undo operation is open. The flag is separate because every int is a
-  // valid control id, so none of them can stand for "no gesture".
-  bool editGestureOpen = false;
-  int editGesturePid = -1;
-  int editGestureDepth = 0;
+  // One undo operation per edit, so a dragged spin box or slider undoes as a whole.
+  UndoEditGesture editGesture;
 
   void getObjects();
-
-  // Both are safe to call when no gesture is open. endEditGesture() returns false when it left the
-  // gesture open because an operation opened inside it is not closed yet.
-  void beginEditGesture(int pcb_id);
-  bool endEditGesture();
 
   void onTransformChange(int pcb_id, PropPanel::ContainerPropertyControl *panel, int mode);
 

@@ -9,7 +9,7 @@ using namespace dafg;
 DynamicResolutionUpdates dafg::collect_dynamic_resolution_updates(const InternalRegistry &registry)
 {
   DynamicResolutionUpdates result;
-  for (auto [id, dynResType] : registry.autoResTypes.enumerate())
+  for (const auto &[id, dynResType] : registry.autoResTypes.enumerate())
     if (dynResType.dynamicResolutionCountdown > 0)
     {
       eastl::visit(
@@ -24,7 +24,7 @@ DynamicResolutionUpdates dafg::collect_dynamic_resolution_updates(const Internal
 
 void dafg::track_applied_dynamic_resolution_updates(InternalRegistry &registry, const DynamicResolutionUpdates &updates)
 {
-  for (auto [id, val] : updates.enumerate())
+  for (const auto &[id, val] : updates.enumerate())
     if (!eastl::holds_alternative<NoDynamicResolutionUpdate>(val))
     {
       --registry.autoResTypes[id].dynamicResolutionCountdown;
@@ -40,7 +40,7 @@ void dafg::track_applied_dynamic_resolution_updates(InternalRegistry &registry, 
 DynamicResolutions dafg::collect_applied_dynamic_resolutions(const InternalRegistry &registry)
 {
   DynamicResolutions dynResolutions;
-  for (auto [id, dynResType] : registry.autoResTypes.enumerate())
+  for (const auto &[id, dynResType] : registry.autoResTypes.enumerate())
     eastl::visit(
       [&, id = id](const auto &values) {
         if constexpr (!eastl::is_same_v<eastl::decay_t<decltype(values)>, eastl::monostate>)

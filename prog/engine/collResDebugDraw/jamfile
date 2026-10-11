@@ -1,0 +1,7 @@
+Root    ?= ../../.. ;
+Location = prog/engine/collResDebugDraw ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = engine/collResDebugDraw.lib ;
+Sources = collResDebugDraw.cpp ;
+include $(Root)/prog/_jBuild/build.jam ;

@@ -30,7 +30,7 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
     w.Key("nodes");
     {
       OBJECT_SCOPED
-      for (auto [nodeIdx, node] : graph.nodes.enumerate())
+      for (const auto &[nodeIdx, node] : graph.nodes.enumerate())
       {
         w.Key(get_name(graph, nodeIdx));
         {
@@ -104,7 +104,7 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
     w.Key("nodeStates");
     {
       OBJECT_SCOPED
-      for (auto [nodeIdx, nodeState] : graph.nodeStates.enumerate())
+      for (const auto &[nodeIdx, nodeState] : graph.nodeStates.enumerate())
       {
         w.Key(get_name(graph, nodeIdx));
         {
@@ -248,7 +248,7 @@ void dump_ir_graph_to_json(const InternalRegistry &registry, const intermediate:
     w.Key("resources");
     {
       OBJECT_SCOPED
-      for (auto [resourceIdx, resource] : graph.resources.enumerate())
+      for (const auto &[resourceIdx, resource] : graph.resources.enumerate())
       {
         w.Key(get_name(graph, resourceIdx));
         {

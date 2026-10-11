@@ -5,34 +5,30 @@
 #pragma once
 
 #include <math/dag_e3dColor.h>
+#include <math/dag_Point3.h>
 
 #include <generic/dag_tab.h>
 
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
-#include <sceneRay/dag_sceneRayDecl.h>
 
 
 // forward declarations for external classes
 
 class IGenLoad;
-class Point3;
 class BBox3;
-class FastRtDump;
+class CollisionResource;
 
-struct TpsPhysmatInfo;
 struct Capsule;
-
-
-// phys material management
-void init_tps_physmat(const char *physmatFileName);
-void close_tps_physmat();
-void get_tps_physmat_info(TpsPhysmatInfo &info);
 
 
 class IDagorEdCustomCollider
 {
 public:
+  // traces p + dir * [0, maxt), an empty interval answering false; a hit writes its t into maxt and, when
+  // norm is not null, the hit normal
+  // constraint: the HeightMap collider's near-vertical arm and the rendinst service's vertical
+  // branch read and write maxt as a world-unit drop, not as the parameter t of a non-unit dir
   virtual bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) = 0;
   virtual const char *getColliderName() const = 0;
 
@@ -44,6 +40,22 @@ public:
     return;
   }
 };
+
+// traceRay's conversion for a backend that traces a unit direction over a distance. trace takes the
+// unit direction and a distance, and writes a hit's distance back into it; maxt reads and returns
+// the bound in units of dir. An empty interval answers false without tracing
+template <class TraceUnitDir>
+inline bool trace_via_unit_dir(const Point3 &dir, real &maxt, TraceUnitDir trace)
+{
+  const real len = length(dir);
+  if (len <= 0.f || maxt <= 0.f)
+    return false;
+  real t = maxt * len;
+  if (!trace(dir / len, t))
+    return false;
+  maxt = t / len;
+  return true;
+}
 
 
 // custom colliders register/unregister
@@ -76,7 +88,9 @@ namespace DagorPhys
 {
 extern bool use_only_visible_colliders;
 
-StaticSceneRayTracer *load_binary_raytracer(IGenLoad &crd);
+// drops the clip held, then reads the editor clip stream the cook writes; false for a foreign label,
+// a stream that throws or one that loads with no node, and getClipCollision answers null after it
+bool load_binary_collision(IGenLoad &crd);
 
 void setup_collider_params(int mode, const BBox3 &area);
 bool trace_ray_static(const Point3 &p, const Point3 &dir, real &maxt);
@@ -84,11 +98,9 @@ bool trace_ray_static(const Point3 &p, const Point3 &dir, real &maxt, Point3 &no
 bool ray_hit_static(const Point3 &p, const Point3 &dir, real maxt);
 
 real clip_capsule_static(Capsule &c, Point3 &cap_pt, Point3 &world_pt);
-real clip_capsule_static(Capsule &c, Point3 &cap_pt, Point3 &world_pt, Point3 &norm);
 
-FastRtDump *getFastRtDump();
-
-void init_collision_binary(StaticSceneRayTracer *rt);
+// dies on close_collision, so re-fetch per use
+const CollisionResource *getClipCollision();
 
 void close_collision();
 

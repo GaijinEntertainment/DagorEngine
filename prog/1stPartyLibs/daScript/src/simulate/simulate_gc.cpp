@@ -12,7 +12,13 @@ namespace das
     static TypeInfo lambda_type_info (Type::tLambda, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, nullptr,
         TypeInfo::flag_stringHeapGC | TypeInfo::flag_heapGC, sizeof(Lambda), 0 );
 
+#if DAS_HEAP_REPORT
     char * presentStr ( char * buf, char * ch, int size );
+#else
+    // heap.cpp compiles its escaped-preview helper away with reporting off;
+    // the GC dump keeps its shape and drops only the preview
+    static char * presentStr ( char * buf, char *, int ) { buf[0] = 0; return buf; }
+#endif
 
     using loop_point = pair<void *,uint64_t>;
 
@@ -624,7 +630,7 @@ namespace das
         }
         // mark stack
         char * sp = stack.ap();
-        const LineInfo * lineAt = at;
+        const LineInfo * handoff = at;
         while (  sp < stack.top() ) {
             Prologue * pp = (Prologue *) sp;
             Block * block = nullptr;
@@ -653,10 +659,10 @@ namespace das
                 }
                 if ( info->locals ) {
                     tp << "LOCALS:\n";
+                    uint32_t framePos = lineFramePos(handoff, info->spaceId);
                     for ( uint32_t i=0, is=info->localCount; i!=is; ++i ) {
                         auto lv = info->locals[i];
-                        bool inScope = lineAt ? lineAt->inside(lv->visibility) : false;
-                        if ( !inScope ) continue;
+                        if ( !isLiveAt(lv, framePos) ) continue;
                         char * addr = nullptr;
                         if ( lv->cmres ) {
                             addr = (char *)pp->cmres;
@@ -672,7 +678,7 @@ namespace das
                     }
                 }
             }
-            lineAt = info ? pp->line : nullptr;
+            handoff = info ? pp->line : nullptr;
             sp += info ? info->stackSize : pp->stackSize;
         }
     }
@@ -926,8 +932,74 @@ namespace das
         Context * ctx = nullptr;
     };
 
+    bool Context::collectHeapIfMostlyFree ( LineInfo * at ) {
+        if ( !persistent || !gcEnabled ) return false;
+        const uint64_t sUsed = stringHeap->bytesAllocated();
+        const uint64_t hUsed = heap->bytesAllocated();
+        const bool collectStrings = !stringHeap->isTrackingAllocations();
+        bool collect = false;
+        if (!gcPressureInitialized) {
+            const uint64_t sTotal = stringHeap->totalAlignedMemoryAllocated();
+            const uint64_t hTotal = heap->totalAlignedMemoryAllocated();
+            collect = (collectStrings && sTotal && sUsed < sTotal - sTotal / 3)
+                || (hTotal && hUsed < hTotal / 3);
+            gcPressureInitialized = true;
+#if DAS_ASAN
+            gcHeapBaseline = 0; gcStringBaseline = 0;
+#else
+            gcHeapBaseline = hUsed; gcStringBaseline = sUsed;
+#endif
+        }
+        collect |= (hUsed > gcHeapBaseline && hUsed - gcHeapBaseline >= gcHeapBudget)
+            || (collectStrings && sUsed > gcStringBaseline && sUsed - gcStringBaseline >= gcStringBudget);
+        if (collect) {
+            collectHeap(at, true, false);
+            return true;
+        }
+        return false;
+    }
+
+    static bool frameHoldsCollectable ( FuncInfo * info ) {
+        for ( uint32_t i=0, is=info->localCount; i!=is; ++i ) {
+            if ( info->locals[i]->flags & (TypeInfo::flag_heapGC | TypeInfo::flag_stringHeapGC | TypeInfo::flag_ref) ) return true;
+        }
+        return false;
+    }
+
     void Context::collectHeap ( LineInfo * at, bool sheap, bool validate ) {
+        // refuse unattributable frames BEFORE marking - the error path must leave both
+        // heaps unmarked. the check is owner-tagged positions (LINEINFO_FRAME_POS_TAG):
+        // a frameless carrier between two frames leaves its own position in the handoff,
+        // and the owner mismatch is exactly what this catches - the invoke edge the static
+        // fastcall denial can't see. gated on persistent+gc so a direct C++ collectHeap on
+        // a non-GC context keeps its old silent no-op (the mark() bail-outs below)
+        // incomplete: it sees only frames on the daslang stack, so of compiled code only the top-level
+        // entry frame - a compiled-to-compiled call pushes nothing here (proof: collect_carrier_violation)
+        if ( persistent && gcEnabled ) {
+            char * scanSp = stack.ap();
+            const LineInfo * scanHandoff = at;
+            while ( scanSp < stack.top() ) {
+                Prologue * pp = (Prologue *) scanSp;
+                FuncInfo * info = nullptr;
+                if ( pp->info ) {
+                    intptr_t iblock = intptr_t(pp->block);
+                    info = ( iblock & 1 ) ? ((Block *)(iblock & ~1))->info : pp->info;
+                }
+                if ( info && info->locals && info->localCount
+                        && !lineFramePos(scanHandoff, info->spaceId) && frameHoldsCollectable(info) ) {
+                    throw_error_at(at, "heap collection can't attribute locals of '%s' - "
+                        "the frame was entered through a compiled (AOT/JIT) frame, a "
+                        "position-less or embedder-crafted line, or a frameless (fastcall) "
+                        "carrier", info->name ? info->name : "?");
+                }
+                scanHandoff = info ? pp->line : nullptr;
+                scanSp += info ? info->stackSize : pp->stackSize;
+            }
+        }
         GcGuard guard(this);
+        const int64_t collectionStarted = ref_time_ticks();
+        const uint64_t heapBefore = heap->bytesAllocated();
+        const uint64_t stringsBefore = stringHeap->bytesAllocated();
         // clean up, so that all small allocations are marked as 'free'
         stringDisposeQue = nullptr;
         // When allocation tracking is on, entries in MemoryModel::bigStuffComment
@@ -972,7 +1044,7 @@ namespace das
         }
         // mark stack
         char * sp = stack.ap();
-        const LineInfo * lineAt = at;
+        const LineInfo * handoff = at;
         while (  sp < stack.top() ) {
             Prologue * pp = (Prologue *) sp;
             Block * block = nullptr;
@@ -988,16 +1060,18 @@ namespace das
                     info = pp->info;
                 }
             }
+            // dishonest frames (AOT/JIT, position-less or foreign-space entry) were refused
+            // by the pre-scan above
             if ( info ) {
                 for ( uint32_t i=0, is=info->count; i!=is; ++i ) {
                     walker.prepare();
                     walker.walk(pp->arguments[i], info->fields[i]);
                 }
-                if ( info->locals && lineAt ) {
+                uint32_t framePos = lineFramePos(handoff, info->spaceId);
+                if ( info->locals && framePos ) {
                     for ( uint32_t i=0, is=info->localCount; i!=is; ++i ) {
                         auto lv = info->locals[i];
-                        bool inScope = lineAt->inside(lv->visibility);
-                        if ( !inScope ) continue;
+                        if ( !isLiveAt(lv, framePos) ) continue;
                         char * addr = nullptr;
                         if ( lv->cmres ) {
                             addr = (char *)pp->cmres;
@@ -1011,7 +1085,7 @@ namespace das
                     }
                 }
             }
-            lineAt = info ? pp->line : nullptr;
+            handoff = info ? pp->line : nullptr;
             sp += info ? info->stackSize : pp->stackSize;
         }
         while ( !walker.deferred.empty() ) {
@@ -1033,6 +1107,17 @@ namespace das
                 (unsigned long long) heap->bytesAllocated());
             fflush(stdout);
         }
+        const uint64_t heapAfter = heap->bytesAllocated();
+        const uint64_t stringsAfter = stringHeap->bytesAllocated();
+        ++gcCollections;
+        gcLastUsec = uint64_t(get_time_usec(collectionStarted));
+        gcTotalUsec += gcLastUsec; gcPeakUsec = max(gcPeakUsec, gcLastUsec);
+        gcLastTick = ref_time_ticks();
+        gcHeapReclaimed += heapBefore > heapAfter ? heapBefore - heapAfter : 0;
+        gcStringReclaimed += stringsBefore > stringsAfter ? stringsBefore - stringsAfter : 0;
+        gcPressureInitialized = true;
+        gcHeapBaseline = heapAfter;
+        if (sheap) gcStringBaseline = stringsAfter;
         if ( !walker.failed.empty() ) {
             reportAnyHeap(at, sheap, true, true, true);
             TextWriter tw;
@@ -1043,98 +1128,5 @@ namespace das
             auto etext = allocateString(tw.str(),at);
             throw_error_at(at, "%s", etext);
         }
-    }
-
-    // this one frees data from under arrays and tables only
-    struct  GcPod : public DataWalker {
-        enum {
-            gcFlags = TypeInfo::flag_heapGC,
-            gcStructFlags = StructInfo::flag_heapGC
-        };
-        Context *  __context__ = nullptr;
-        LineInfo * __at__ = nullptr;
-        GcPod ( Context * ctx, LineInfo * at ) : __context__(ctx), __at__(at) {}
-        virtual bool canVisitHandle ( char *, TypeInfo * ) override { return false; }
-        virtual bool canVisitStructure ( char *, StructInfo * ) override { return true; }
-        virtual bool canVisitTuple ( char *, TypeInfo * ) override { return true; }
-        virtual bool canVisitVariant ( char *, TypeInfo * ) override { return true; }
-        virtual bool canVisitPointer ( TypeInfo * ) override { return false; }
-        virtual bool canVisitLambda ( TypeInfo * ) override { return false; }
-        virtual bool canVisitIterator ( TypeInfo * ) override { return true; }
-        virtual bool canVisitArrayData ( TypeInfo * ti, uint64_t ) override {
-            return ti->flags & gcFlags;
-        }
-        virtual bool canVisitTableData ( TypeInfo * ti ) override {
-            return (ti->secondType->flags & gcFlags);
-        }
-        virtual void afterArray ( Array * pa, TypeInfo * ti ) override {
-            if ( pa->data ) {
-                if ( !pa->isLocked() || pa->hopeless ) {
-                    uint64_t oldSize = pa->capacity*ti->firstType->size;
-                    __context__->free(pa->data, oldSize, __at__);
-                } else {
-                    __context__->throw_error_at(__at__, "can't delete locked array");
-                }
-                if ( pa->hopeless ) {
-                    memset ( pa, 0, sizeof(Array) );
-                    pa->hopeless = true;
-                } else {
-                    memset ( pa, 0, sizeof(Array) );
-                }
-            }
-        }
-        virtual void afterTable ( Table * pa, TypeInfo * ti ) override {
-            if ( pa->data ) {
-                if ( !pa->isLocked() || pa->hopeless ) {
-                    uint64_t oldSize = pa->capacity*uint64_t(ti->firstType->size+ti->secondType->size) + pa->capacity*tableHashSlotBytes(*pa);
-                    __context__->free(pa->data, oldSize, __at__);
-                } else {
-                    __context__->throw_error_at(__at__, "can't delete locked table");
-                }
-                if ( pa->hopeless ) {
-                    memset ( pa, 0, sizeof(Table) );
-                    pa->hopeless = true;
-                } else {
-                    memset ( pa, 0, sizeof(Table) );
-                }
-            }
-        }
-    };
-
-    vec4f builtin_collect_local_and_zero ( Context & context, SimNode_CallBase * call, vec4f * args ) {
-        if ( context.persistent ) {  // only doing any work if its a persistent heap
-            GcPod gcpod(&context, &call->debugInfo);
-            gcpod.walk(args[0], call->types[0]);
-            auto ptr = cast<void *>::to(args[0]);
-            auto tsize = cast<uint32_t>::to(args[1]);
-            memset ( ptr, 0, tsize );
-        }
-        return v_zero();
-    }
-
-    // the no-zero variant: frees the value's owned heap through the same GcPod walk (which
-    // by construction cannot run user code) but leaves the bytes alone - for container
-    // erase/clear/shrink, where the container itself disposes of or reuses the slot memory
-    vec4f builtin_collect_local ( Context & context, SimNode_CallBase * call, vec4f * args ) {
-        if ( context.persistent ) {  // only doing any work if its a persistent heap
-            GcPod gcpod(&context, &call->debugInfo);
-            gcpod.walk(args[0], call->types[0]);
-        }
-        return v_zero();
-    }
-
-    vec4f builtin_scope_free ( Context & context, SimNode_CallBase * call, vec4f * args ) {
-        if ( context.persistent ) {  // only persistent heaps free individually
-            auto ptr = cast<char *>::to(args[0]);
-            if ( ptr ) {
-                GcPod gcpod(&context, &call->debugInfo);
-                gcpod.walk(args[0], call->types[0]->firstType);  // free owned arrays/tables in the pointee
-                auto tsize = cast<uint32_t>::to(args[1]);
-                if ( !context.stack.is_stack_ptr(ptr) ) {  // the shell may live in the stack frame (allocate_on_stack)
-                    context.free(ptr, tsize, &call->debugInfo);
-                }
-            }
-        }
-        return v_zero();
     }
 }

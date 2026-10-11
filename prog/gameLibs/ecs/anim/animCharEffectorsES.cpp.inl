@@ -52,7 +52,11 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::En
     const ecs::string &effWtmName = obj[ECS_HASH("effectorWtmName")].get<ecs::string>();
     int effWtmId = animGraph->getParamId(effWtmName.c_str(), AnimV20::AnimGraphStateHolder::PT_InlinePtr);
 
-    animchar_effectors__effectorsState.addMember(ECS_HASH_SLOW(effName.c_str()), EffectorData(effId, effWtmId));
+    int effWeightId = -1;
+    if (const ecs::string *effWeightName = obj[ECS_HASH("effectorWeightName")].getNullable<ecs::string>())
+      effWeightId = animGraph->getParamId(effWeightName->c_str(), AnimV20::AnimGraphStateHolder::PT_ScalarParam);
+
+    animchar_effectors__effectorsState.addMember(ECS_HASH_SLOW(effName.c_str()), EffectorData(effId, effWtmId, effWeightId));
   }
 }
 
@@ -80,6 +84,8 @@ static void apply_animchar_effectors_state(AnimV20::AnimcharBaseComponent &animc
       reset_ik_effector(animchar, eff.effId);
       reset_ik_attnode(animchar, eff.effWtmId);
     }
+    if (eff.effWeightId >= 0)
+      animState->setParam(eff.effWeightId, eff.weight);
   }
 }
 

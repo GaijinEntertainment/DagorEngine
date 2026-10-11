@@ -5,8 +5,8 @@
 #pragma once
 
 #include <3d/dag_resPtr.h>
-#include <drv/3d/dag_renderPass.h>
 #include <shaders/dag_DynamicShaderHelper.h>
+#include <shaders/dag_shaderRenderPass.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_smallTab.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -401,6 +401,10 @@ public:
     const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, UpdateSky update_sky = UpdateSky::On,
     bool fixed_offset = false, float altitude_tolerance = SKY_PREPARE_THRESHOLD,
     const CloudsRenderFlags flags = CloudsRenderFlags::Default);
+  void renderEnvi(bool can_be_inside_clouds, const DPoint3 &origin, const DPoint3 &viewdir, uint32_t render_sun_moon,
+    BaseTexture *cloudsDepth, BaseTexture *prevCloudsDepth, BaseTexture *targetDepth, SkiesData *data, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, const Driver3dPerspective &persp, UpdateSky update_sky = UpdateSky::On, bool fixed_offset = false,
+    float altitude_tolerance = SKY_PREPARE_THRESHOLD, const CloudsRenderFlags flags = CloudsRenderFlags::Default);
 
   // fixed_offse: if true, cloud offset will be 0
   // cloudsDepth/prevCloudsDepth: must be 1/2 of target depth (with mips, if lower resolution is required)
@@ -661,8 +665,9 @@ protected:
   UniqueTex cloudsPanoramaSplitTex;
   bool cleanupPanoramaSplitTex = false;
   bool allowCloudsPanoramaSplit = false;
-  d3d::RenderPass *cloudsPanoramaSplitRP = nullptr;
-  void createCloudsPanoramaSplitResources(int resolution_width, int resolution_height);
+  ShaderRenderPass::Pass cloudsPanoramaSplitRP;
+  ShaderRenderPass::Id cloudsPanoramaSplitRPId = ShaderRenderPass::Id::Invalid;
+  bool createCloudsPanoramaSplitResources(int resolution_width, int resolution_height);
   void destroyCloudsPanoramaSplitResources();
   void createCloudsPanoramaSplitTex(int resolution_width, int resolution_height);
 

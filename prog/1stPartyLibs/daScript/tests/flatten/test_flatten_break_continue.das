@@ -249,12 +249,7 @@ def f_void_break(x : int) {
 
 // ----- driver -----
 
-var GRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-3, -1, 0, 1, 2, 3, 4, 5, 7, 10]
-}
+var GRID <- [-3, -1, 0, 1, 2, 3, 4, 5, 7, 10]
 
 [test]
 def test_flatten_break_continue(t : T?) {

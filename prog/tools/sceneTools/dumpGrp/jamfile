@@ -42,7 +42,6 @@ UseProgLibs =
 
   engine/coreUtil
   engine/shaders
-  engine/sceneRay
   gameLibs/rendInst
 #  engine/anim
 #  engine/animChar

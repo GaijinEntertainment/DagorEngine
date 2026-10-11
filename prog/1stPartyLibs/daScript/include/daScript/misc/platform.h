@@ -193,7 +193,7 @@
         return uint64_t(r);
     }
     __forceinline uint32_t das_popcount(uint32_t x) {
-    #if defined(_M_ARM64)
+    #if defined(_M_ARM64) || defined(_M_ARM64EC)
         return vaddlv_u8(vcnt_u8(vdup_n_u64(x)));
     #else
         return uint32_t(__popcnt(x));
@@ -202,7 +202,7 @@
     __forceinline uint64_t das_popcount64(uint64_t x) {
     #if defined(__i386__) || defined(_M_IX86)
         return uint64_t(__popcnt(uint32_t(x)) + __popcnt(uint32_t(x >> 32)));
-    #elif defined(_M_ARM64)
+    #elif defined(_M_ARM64) || defined(_M_ARM64EC)
         return vaddlv_u8(vcnt_u8(vdup_n_u64(x)));
     #else
         return uint64_t(__popcnt64(x));
@@ -304,8 +304,12 @@ __forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
 void DAS_API os_debug_break();
 void DAS_API print_current_stack_trace();
 
+// Lands wherever setTextPrinterSink points, so a fatal report follows every
+// other diagnostic off a stdout that carries a protocol.
+void DAS_API das_fatal_log ( const char * format, ... );
+
 #ifndef DAS_FATAL_LOG
-#define DAS_FATAL_LOG(...)   do { printf(__VA_ARGS__); fflush(stdout); } while(0)
+#define DAS_FATAL_LOG(...)   das_fatal_log(__VA_ARGS__)
 #endif
 
 #ifndef DAS_FATAL_ERROR
@@ -472,10 +476,22 @@ inline void *das_aligned_alloc16(size_t size) {
     p = _aligned_malloc(size, DAS_ALLOC_ALIGNMENT_WIN);
 #else
     p = nullptr;
+#if defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__) || defined(_EMSCRIPTEN_VER)
     if (posix_memalign(&p, das_alloc_alignment(size), size)) {
         DAS_ASSERTF(0, "posix_memalign returned nullptr");
         return nullptr;
     }
+#else
+    // no POSIX: C11 aligned_alloc, which unlike posix_memalign wants size rounded up
+    {
+        const size_t alignment = das_alloc_alignment(size);
+        p = aligned_alloc(alignment, (size + alignment - 1) & ~(alignment - 1));
+        if (!p) {
+            DAS_ASSERTF(0, "aligned_alloc returned nullptr");
+            return nullptr;
+        }
+    }
+#endif
 #if defined(__linux__)
     if (size >= 2*1024*1024) {
         // interior only (size rounded DOWN to 2MB): hinting the partial tail page would back
@@ -497,9 +513,12 @@ inline void das_aligned_free16(void *ptr) {
 }
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
-#elif defined (__linux__) || defined (_EMSCRIPTEN_VER) || defined __HAIKU__ || defined(_WIN32)
-// Windows: <malloc.h> declares _aligned_msize for MSVC and the MinGW-w64 CRT.
+#elif __has_include(<malloc.h>)
+// _aligned_msize on the MS CRT, malloc_usable_size everywhere else including newlib
 #include <malloc.h>
+#endif
+#if __has_include(<alloca.h>)
+#include <alloca.h>
 #endif
 inline size_t das_aligned_memsize(void * ptr){
 #if defined(_WIN32)
@@ -602,16 +621,28 @@ private:
 #define WIN_EH_NO_ASAN
 #endif
 
-// Upper bound on JobQue worker threads, and therefore on get_total_hw_threads / get_total_hw_jobs.
+// Upper bound on the JobQue's default pool, whose workers get_total_hw_threads / get_total_hw_jobs
+// report: a worker count on a desktop; on wasm the bound counts lanes (below), one more than the
+// workers it yields.
 // On wasm the persistent job pool spawns one Web Worker per thread (navigator.hardwareConcurrency
-// of them without a cap), so keep 4 there; everywhere else the cores-1 rule in job_que.cpp governs
-// and the cap is effectively off. Override in CMake (-DDAS_MAX_HW_JOBS=N) either way.
+// of them without a cap), so cap it at 8 there - inside the 16-worker pthread pool the wasm64
+// builds link, with room for the program's own threads; everywhere else the cores-1 rule in
+// job_que.cpp governs and the cap is effectively off. Override in CMake (-DDAS_MAX_HW_JOBS=N)
+// either way. On wasm both numbers count LANES - the workers plus the computing main, as
+// DAS_JOBQUE_THREADS counts - so the cap of 8 is 7 workers, the pool an 8-core desktop runs, and
+// the floor of 4 is 3 workers: a browser under fingerprint protection (Brave's shields, Firefox's
+// resistFingerprinting) reports two logical cores whatever the box has, and the cores-1 rule
+// would leave one worker; a two-core box is older than any browser that runs the wasm64 build.
+// Override with -DDAS_MIN_WEB_JOBS=N.
 #ifndef DAS_MAX_HW_JOBS
 #if defined(__EMSCRIPTEN__)
-#define DAS_MAX_HW_JOBS 4
+#define DAS_MAX_HW_JOBS 8
 #else
 #define DAS_MAX_HW_JOBS 1024
 #endif
+#endif
+#ifndef DAS_MIN_WEB_JOBS
+#define DAS_MIN_WEB_JOBS 4
 #endif
 
 #include "daScript/misc/smart_ptr.h"

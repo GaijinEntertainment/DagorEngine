@@ -5,13 +5,15 @@
 // In Visual Studio, _M_IX86_FP=1 means /arch:SSE was used, likewise
 // _M_IX86_FP=2 means /arch:SSE2 was used.
 // Also, enable both USE_SSE and USE_SSE2 if we're compiling for x86-64
-#if _M_IX86_FP >= 1 || defined(_M_X64)
+// Gaijin change
+#if _M_IX86_FP >= 1 || (defined(_M_X64) && !defined(_M_ARM64EC))
 #define USE_SSE
 #endif
 
-#if _M_IX86_FP >= 2 || defined(_M_X64)
+#if _M_IX86_FP >= 2 || (defined(_M_X64) && !defined(_M_ARM64EC))
 #define USE_SSE2
 #endif
+// ~Gaijin change
 
 // Visual Studio support alloca(), but it always align variables to 16-bit
 // boundary, while SSE need 128-bit alignment. So we disable alloca() when

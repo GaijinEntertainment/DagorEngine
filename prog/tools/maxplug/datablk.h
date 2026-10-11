@@ -95,9 +95,6 @@ public:
   /// Returns NULL if name id is not valid.
   const char *getName(int name_id) const;
 
-  /// Returns name id of this DataBlock.
-  int getBlockNameId() const { return nameId; }
-
   /// Returns name of this DataBlock.
   const char *getBlockName() const { return getName(nameId); }
 

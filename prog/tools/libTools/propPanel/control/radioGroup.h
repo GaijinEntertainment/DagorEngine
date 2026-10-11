@@ -76,6 +76,20 @@ public:
 
   bool isRealContainer() override { return false; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    Point2 size = ContainerPropertyControl::getPreferredSize(max_width_px);
+    if (controlCaption.empty())
+      return size;
+
+    // The caption is drawn with labelWithTooltip(), followed by the default item spacing.
+    const ImGuiStyle &style = ImGui::GetStyle();
+    const ImVec2 labelSize = ImGui::CalcTextSize(controlCaption.begin(), controlCaption.end());
+    size.x = min(max(size.x, labelSize.x), max_width_px);
+    size.y += labelSize.y + style.FramePadding.y * 2.0f + (size.y > 0.0f ? style.ItemSpacing.y : 0.0f);
+    return size;
+  }
+
   void updateImgui() override
   {
     if (!controlCaption.empty())

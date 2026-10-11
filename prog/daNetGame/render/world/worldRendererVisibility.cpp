@@ -43,6 +43,7 @@ extern void wait_static_shadows_cull_jobs();
 extern void wait_scene_shadow_ri_cull_jobs();
 extern void close_scene_shadow_ri_visibility();
 extern void shrink_scene_shadow_ri_visibility();
+extern void wait_rendinst_heightmap_visibility_job();
 
 void WorldRenderer::prepareLightProbeRIVisibilityAsync(const mat44f &globtm, const Point3 &view_pos)
 {
@@ -56,6 +57,20 @@ void WorldRenderer::waitAllJobs()
   camcamVisibilityMgr.waitAllJobs();
   wait_static_shadows_cull_jobs();
   wait_scene_shadow_ri_cull_jobs();
+  if (depthAOAboveCtx)
+    depthAOAboveCtx->waitCullJobs();
+  if (PortalRenderer *portalRenderer = portal_renderer_mgr::query_portal_renderer())
+    portalRenderer->waitVisibilityJob();
+}
+
+void WorldRenderer::waitRiCullJobsAtFrameEnd()
+{
+  TIME_PROFILE(wait_ri_cull_jobs_frame_end);
+  mainCameraVisibilityMgr.waitLodsByDistance();
+  mainCameraVisibilityMgr.waitLightProbeVisibility();
+  wait_static_shadows_cull_jobs();
+  wait_scene_shadow_ri_cull_jobs();
+  wait_rendinst_heightmap_visibility_job();
   if (depthAOAboveCtx)
     depthAOAboveCtx->waitCullJobs();
   if (PortalRenderer *portalRenderer = portal_renderer_mgr::query_portal_renderer())

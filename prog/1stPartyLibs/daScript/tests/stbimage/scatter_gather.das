@@ -1,5 +1,4 @@
 options gen2
-require math
 require raster
 require dastest/testing_boost public
 
@@ -68,7 +67,6 @@ def test_scatter(t : T?) {
 def test_scatter_mask(t : T?) {
     unsafe {
         let idx = uint4(1, 3, 7, 8)
-        let mask = uint4(1, 3, 2, 3)
         // int
         var arr : array<int>; arr |> resize(10)
         scatter_neq_mask(addr(arr[0]), idx, int4(11, 13, 17, 18), int4(1, 13, 2, 3))
@@ -151,7 +149,6 @@ def test_gather_store_mask(t : T?) {
 def test_gather_store_stride(t : T?) {
     unsafe {
         let idx = uint4(1, 3, 7, 8)
-        let ridx = uint4(0, 2, 6, 7)
         // int
         var arr <- array<int>(10, 11, 12, 13, 14, 15, 16, 17, 18, 19)
         var rarr : array<int>; rarr |> resize(10)

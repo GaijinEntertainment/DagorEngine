@@ -24,6 +24,7 @@ namespace das {
     DAS_API char * builtin_string_peek_and_modify ( const char * str, const TBlock<void,TTemporary<TArray<uint8_t>>> & block, Context * context, LineInfoArg * lineinfo );
 
     DAS_API char * builtin_string_escape ( const char *str, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_das_string_escape ( const string & str, Context * context, LineInfoArg * at );
     DAS_API char * builtin_string_unescape ( const char *str, Context * context, LineInfoArg * at );
     DAS_API char * builtin_string_safe_unescape ( const char *str, Context * context, LineInfoArg * at );
 
@@ -42,6 +43,7 @@ namespace das {
     DAS_API char* builtin_string_strip ( const char *str, Context * context, LineInfoArg * at );
     DAS_API char* builtin_string_strip_left ( const char *str, Context * context, LineInfoArg * at );
     DAS_API char* builtin_string_strip_right ( const char *str, Context * context, LineInfoArg * at );
+    DAS_API int builtin_string_skip_white_space ( const char * str, int from, Context * context );
     DAS_API int builtin_string_find1 ( const char *str, const char *substr, int start, Context * context );
     DAS_API int builtin_string_find2 (const char *str, const char *substr);
     DAS_API int builtin_string_rfind1 ( const char *str, const char *substr, int start, Context * context );
@@ -92,6 +94,8 @@ namespace das {
     DAS_API void builtin_string_split_by_char ( const char * str, const char * delim, const Block & sblk, Context * context, LineInfoArg * lineinfo );
     DAS_API void builtin_string_split ( const char * str, const char * delim, const Block & sblk, Context * context, LineInfoArg * lineinfo );
     DAS_API char * builtin_string_from_array ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API TArray<uint8_t> builtin_string_to_bytes ( const char * str, Context * context, LineInfoArg * at );
+    DAS_API TArray<uint8_t> builtin_das_string_to_bytes ( const string & str, Context * context, LineInfoArg * at );
     DAS_API char * builtin_string_replace ( const char * str, const char * toSearch, const char * replaceStr, Context * context, LineInfoArg * at );
     DAS_API char * builtin_string_rtrim ( char* s, Context * context, LineInfoArg * at );
     DAS_API char * builtin_string_rtrim_ts ( char* s, char * ts, Context * context, LineInfoArg * at );
@@ -99,6 +103,32 @@ namespace das {
     DAS_API char * builtin_string_trim ( char* s, Context * context, LineInfoArg * at );
 
     DAS_API char * builtin_reserve_string_buffer ( const char * str, int32_t length, Context * context );
+
+    // byte-view twins - same cores, length taken from the view instead of a terminator scan
+    DAS_API bool builtin_view_endswith ( const TArray<uint8_t> & bytes, const char * cmp, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_view_startswith ( const TArray<uint8_t> & bytes, const char * cmp, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_view_startswith2 ( const TArray<uint8_t> & bytes, const char * cmp, uint32_t cmpLen, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_view_startswith3 ( const TArray<uint8_t> & bytes, int32_t offset, const char * cmp, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_view_startswith4 ( const TArray<uint8_t> & bytes, int32_t offset, const char * cmp, uint32_t cmpLen, Context * context, LineInfoArg * at );
+    DAS_API char* builtin_view_strip ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API char* builtin_view_strip_left ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API char* builtin_view_strip_right ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_skip_white_space ( const TArray<uint8_t> & bytes, int from, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_find ( const TArray<uint8_t> & bytes, const char * substr, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_find_from ( const TArray<uint8_t> & bytes, const char * substr, int start, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_find_char_of ( const TArray<uint8_t> & bytes, int Ch, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_find_char_of2 ( const TArray<uint8_t> & bytes, int Ch, int start, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_rfind ( const TArray<uint8_t> & bytes, const char * substr, Context * context, LineInfoArg * at );
+    DAS_API int builtin_view_rfind_from ( const TArray<uint8_t> & bytes, const char * substr, int start, Context * context, LineInfoArg * at );
+    DAS_API char* builtin_view_chop ( const TArray<uint8_t> & bytes, int start, int length, Context * context, LineInfoArg * at );
+    DAS_API char* builtin_view_slice1 ( const TArray<uint8_t> & bytes, int start, int end, Context * context, LineInfoArg * at );
+    DAS_API char* builtin_view_slice2 ( const TArray<uint8_t> & bytes, int start, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_view_trim ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_view_ltrim ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_view_rtrim ( const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_view_rtrim_ts ( const TArray<uint8_t> & bytes, char * ts, Context * context, LineInfoArg * at );
+    DAS_API StringBuilderWriter & builtin_view_write_string ( StringBuilderWriter & writer, const TArray<uint8_t> & bytes, Context * context, LineInfoArg * at );
+    DAS_API StringBuilderWriter & builtin_view_write_string_range ( StringBuilderWriter & writer, const TArray<uint8_t> & bytes, int start, int end, Context * context, LineInfoArg * at );
 
     template <typename TT>
     __forceinline char * format ( const char * fmt, TT value, Context * context, LineInfoArg * at ) {
@@ -164,7 +194,7 @@ namespace das {
 
     __forceinline bool is_alpha ( int32_t ch ) { return (ch>='a' && ch<='z') || (ch>='A' && ch<='Z'); }
     __forceinline bool is_tab_or_space ( int32_t ch ) { return  ch==' ' || ch=='\t'; }
-    __forceinline bool is_white_space ( int32_t ch ) { return  ch==' ' || ch=='\n' || ch=='\r' || ch=='\t'; }
+    __forceinline bool is_white_space ( int32_t ch ) { return  ch==' ' || ch=='\n' || ch=='\r' || ch=='\t' || ch=='\f' || ch=='\v'; }
     __forceinline bool is_number ( int32_t ch ) { return (ch>='0' && ch<='9'); }
     __forceinline bool is_new_line ( int32_t ch ) { return ch=='\n' || ch=='\r'; }
     __forceinline bool is_hex(int32_t ch) { return isxdigit(ch); }
@@ -180,4 +210,15 @@ namespace das {
     DAS_API uint64_t convert_from_string_uint64 ( const char * str, ConversionResult & result, int32_t & offset, bool hex );
     DAS_API float convert_from_string_float ( const char * str, ConversionResult & result, int32_t & offset );
     DAS_API double convert_from_string_double ( const char * str, ConversionResult & result, int32_t & offset );
+
+    DAS_API int8_t convert_from_view_int8 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API uint8_t convert_from_view_uint8 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API int16_t convert_from_view_int16 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API uint16_t convert_from_view_uint16 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API int32_t convert_from_view_int32 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API uint32_t convert_from_view_uint32 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API int64_t convert_from_view_int64 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API uint64_t convert_from_view_uint64 ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, bool hex, Context * context, LineInfoArg * at );
+    DAS_API float convert_from_view_float ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, Context * context, LineInfoArg * at );
+    DAS_API double convert_from_view_double ( const TArray<uint8_t> & bytes, ConversionResult & result, int32_t & offset, Context * context, LineInfoArg * at );
 }

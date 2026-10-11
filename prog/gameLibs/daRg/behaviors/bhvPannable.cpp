@@ -16,8 +16,6 @@ namespace darg
 
 BhvPannable bhv_pannable;
 
-static const char *dataSlotName = "pannable:data";
-
 
 struct BhvPannableData
 {
@@ -61,17 +59,17 @@ BhvPannable::BhvPannable() : Behavior(0, F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_ALL
 void BhvPannable::onAttach(Element *elem)
 {
   BhvPannableData *bhvData = new BhvPannableData();
-  elem->props.storage.SetValue(dataSlotName, bhvData);
+  elem->props.storage.SetValue(elem->csk->pannableData, bhvData);
 }
 
 
 void BhvPannable::onDetach(Element *elem, DetachMode)
 {
   elem->etree->releaseOverscroll(elem);
-  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
+  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(elem->csk->pannableData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->pannableData);
     delete bhvData;
   }
 }
@@ -80,7 +78,7 @@ void BhvPannable::onDetach(Element *elem, DetachMode)
 int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
   Point2 pos, int accum_res)
 {
-  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
+  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(elem->csk->pannableData, nullptr);
   if (!bhvData)
     return 0;
 
@@ -168,7 +166,7 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
 
 int BhvPannable::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
-  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
+  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(elem->csk->pannableData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isActivatedBy(device, pointer_id))
@@ -181,7 +179,7 @@ int BhvPannable::onDeactivateInput(Element *elem, InputDevice device, int pointe
 
 int BhvPannable::onDeactivateAllInput(Element *elem)
 {
-  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
+  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(elem->csk->pannableData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isActive())

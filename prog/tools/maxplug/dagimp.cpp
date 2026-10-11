@@ -61,19 +61,6 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 
 extern void convertnew(Interface *ip, bool on_import);
-extern void collapse_materials(Interface *ip);
-
-static bool read_char_string(int len, FILE *h, std::wstring &out)
-{
-  out.clear();
-  if (len == 0)
-    return true;
-  std::string s(len, 0);
-  if (fread(&s[0], len, 1, h) != 1)
-    return false;
-  out = strToWide(s);
-  return true;
-}
 
 // isolate struct Block to avoid linker confusion with struct Block in expUtil.cpp
 
@@ -177,6 +164,20 @@ static uint blk_rest_items(int item_sz) { return uint(blk_rest()) / uint(item_sz
 // whatever follows it and a zero there would pass for a real count. Once it fits, only the storage
 // can leave the read short, so the result is still worth asking for.
 static bool read_blk_field(void *dest, int size, FILE *h) { return blk_rest() >= size && fread(dest, size, 1, h) == 1; }
+
+static bool read_char_string(int len, FILE *h, std::wstring &out)
+{
+  out.clear();
+  if (len < 0)
+    return false;
+  if (len == 0)
+    return true;
+  std::string s(len, 0);
+  if (!read_blk_field(&s[0], len, h))
+    return false;
+  out = strToWide(s);
+  return true;
+}
 
 //===============================================================================//
 
@@ -340,7 +341,7 @@ public:
   int DoImport(const TCHAR *name, ImpInterface *ii, Interface *i, BOOL suppressPrompts = FALSE) override;
   int doImportOne(const TCHAR *name, ImpInterface *ii, Interface *i, BOOL suppressPrompts);
 
-  static bool separateLayers; // Only used when suppressPrompts is set.
+  static bool separateLayers;
 
   static bool useLegacyImport;
   static bool searchInSubfolders;
@@ -1280,7 +1281,7 @@ void ImpUtil::BeginEditParams(Interface *ip, IUtil *iu)
   icex.dwICC = ICC_TAB_CLASSES | ICC_LISTVIEW_CLASSES;
   InitCommonControlsEx(&icex);
 
-  hImpHelp = add_rollup_page(ip, IDD_IMPUTIL_HELP, imp_help_dlg_proc, GetString(IDS_IMPUTIL_HELP_ROLL), 0, APPENDROLL_CLOSED);
+  hImpHelp = add_rollup_page(ip, IDD_IMPUTIL_HELP, imp_help_dlg_proc, GetString(IDS_IMPUTIL_HELP_ROLL), APPENDROLL_CLOSED);
   hImpParam = add_rollup_page(ip, IDD_IMPUTIL_PARAM, imp_param_dlg_proc, GetString(IDS_IMPUTIL_PARAM_ROLL));
   hImpPanel = add_rollup_page(ip, IDD_IMPUTIL, imp_dlg_proc, GetString(IDS_IMPUTIL_ROLL));
 }
@@ -1946,25 +1947,40 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
             int numNormals;
             rd(&numNormals, 4);
 
-            int rest = blk_rest();
+            const int rest = blk_rest();
 
-            if (numNormals > 0 && rest == numNormals * 12 + m.numFaces * 12)
+            if (numNormals > 0 && rest == int64_t(numNormals) * 12 + int64_t(m.numFaces) * 12)
             {
-              normalSpec->SetParent(&m);
-              normalSpec->CheckNormals();
-              normalSpec->SetNumNormals(numNormals);
-
-              normalSpec->SetAllExplicit(true);
-
-              rd(normalSpec->GetNormalArray(), numNormals * 12);
+              std::vector<Point3> normals(numNormals);
+              rd(normals.data(), numNormals * 12);
 
               std::vector<int> indices(m.numFaces * 3);
               rd(indices.data(), sizeof(int) * indices.size());
-              for (int i = 0; i < m.numFaces; i++)
+
+              const auto bad = std::ranges::find_if(indices, [numNormals](int id) { return id < 0 || id >= numNormals; });
+              if (bad != indices.end())
               {
-                normalSpec->SetNormalIndex(i, 0, indices[i * 3]);
-                normalSpec->SetNormalIndex(i, 1, indices[i * 3 + 2]);
-                normalSpec->SetNormalIndex(i, 2, indices[i * 3 + 1]);
+                DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning,
+                  L"%s: '%s': face %d points outside the %d normals, normals skipped\r\n", scene_name.data(), n->GetName(),
+                  int(bad - indices.begin()) / 3, numNormals);
+                DagorLogWindow::show();
+              }
+              else
+              {
+                normalSpec->SetParent(&m);
+                normalSpec->CheckNormals();
+                normalSpec->SetNumNormals(numNormals);
+
+                normalSpec->SetAllExplicit(true);
+
+                std::copy(normals.begin(), normals.end(), normalSpec->GetNormalArray());
+
+                for (int i = 0; i < m.numFaces; i++)
+                {
+                  normalSpec->SetNormalIndex(i, 0, indices[i * 3]);
+                  normalSpec->SetNormalIndex(i, 1, indices[i * 3 + 2]);
+                  normalSpec->SetNormalIndex(i, 2, indices[i * 3 + 1]);
+                }
               }
             }
           }
@@ -2155,8 +2171,6 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
       HWND focused = GetDlgItem(hwndDlg, lParam);
       if (focused)
         SetFocus(focused);
-
-      update_export_mode(DagImp::useLegacyImport);
     }
       return FALSE;
 
@@ -2164,18 +2178,21 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
       switch (LOWORD(wParam))
       {
         case IDC_USE_LEGACY_IMPORT:
-          DagImp::useLegacyImport = IsDlgButtonChecked(hwndDlg, IDC_USE_LEGACY_IMPORT);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_LOD), !DagImp::useLegacyImport && DagImp::detected.lod);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DP), !DagImp::useLegacyImport && DagImp::detected.dp);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DMG), !DagImp::useLegacyImport && DagImp::detected.dmg);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DESTR), !DagImp::useLegacyImport && DagImp::detected.destr);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DM), !DagImp::useLegacyImport && DagImp::detected.dm);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_RENAME_NEW_LAYER), !DagImp::useLegacyImport);
-          EnableWindow(GetDlgItem(hwndDlg, IDC_REPLACE_EXISTING_LAYER), !DagImp::useLegacyImport);
-          update_export_mode(DagImp::useLegacyImport);
+        {
+          const bool legacy = IsDlgButtonChecked(hwndDlg, IDC_USE_LEGACY_IMPORT);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_LOD), !legacy && DagImp::detected.lod);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DP), !legacy && DagImp::detected.dp);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DMG), !legacy && DagImp::detected.dmg);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DESTR), !legacy && DagImp::detected.destr);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DM), !legacy && DagImp::detected.dm);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_RENAME_NEW_LAYER), !legacy);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_REPLACE_EXISTING_LAYER), !legacy);
           break;
+        }
 
         case IDOK:
+          DagImp::useLegacyImport = IsDlgButtonChecked(hwndDlg, IDC_USE_LEGACY_IMPORT);
+          update_export_mode(DagImp::useLegacyImport);
           DagImp::checked.lod = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_LOD);
           DagImp::checked.dp = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_DP);
           DagImp::checked.dmg = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_DMG);
@@ -2313,6 +2330,13 @@ static ResolvedLayer resolveLayerNameCollision(const TSTR &layerName)
   return ResolvedLayer(layer, mangledLayerName);
 }
 
+static void logImportError(const fs::path &fname, const TSTR &layerName)
+{
+  DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Error, _T("%s: import failed, layer '%s' is kept\r\n"), fname.c_str(),
+    layerName.data());
+  DagorLogWindow::show();
+}
+
 void DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg)
 {
   static const int ext_length = 6; // ".lodNN"
@@ -2329,15 +2353,9 @@ void DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii
 
     TSTR root_layerName = layerName.Substr(0, layerName.length() - ext_length) + _T(".lods");
     ILayer *rootLayer = manager->GetLayer(root_layerName);
-    bool rootLayerJustCreated = false;
 
     if (!rootLayer)
-    {
-      ResolvedLayer root_resolved = resolveLayerNameCollision(root_layerName);
-      rootLayer = root_resolved.layer;
-      root_layerName = root_resolved.name;
-      rootLayerJustCreated = true;
-    }
+      rootLayer = resolveLayerNameCollision(root_layerName).layer;
 
     if (rootLayer && subLayer)
       subLayer->SetParentLayer(rootLayer);
@@ -2345,35 +2363,25 @@ void DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii
     manager->SetCurrentLayer(layerName);
 
     if (!doImportOne(fn.c_str(), ii, ip, nomsg))
-    {
-      manager->DeleteLayer(layerName);
-      if (rootLayerJustCreated)
-        manager->DeleteLayer(root_layerName);
-      DebugPrint(_T("import error '%s'\n"), fn.c_str());
-    }
+      logImportError(fn, layerName);
   }
 }
 
 void DagImp::makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
-  ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
-
   TSTR layerName = fname.stem().c_str();
 
   ResolvedLayer resolved = resolveLayerNameCollision(layerName);
   layerName = resolved.name;
 
   if (!doImportOne(fname.c_str(), ii, ip, nomsg))
-  {
-    manager->DeleteLayer(layerName);
-    DebugPrint(_T("import error '%s'\n"), fname.c_str());
-  }
+    logImportError(fname, layerName);
 }
 
 int DagImp::doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
   // show UI even on drag&drop
-  if (!nonInteractive)
+  if (!nonInteractive && !ip->GetQuietMode())
     nomsg = false;
 
   const fs::path dirPath = fname.parent_path();
@@ -2546,6 +2554,8 @@ int DagImp::doMaxscriptImport(const TSTR &fname, ImpInterface *ii, Interface *ip
 //
 int DagImp::DoImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOOL nomsg)
 {
+  nomsg = nomsg || ip->GetQuietMode();
+
   if (useLegacyImport)
     return doLegacyImport(fname, ii, ip, nomsg);
 
@@ -2858,6 +2868,8 @@ static IDagorImportUtil dagorimputiliface(Interface_ID(0x20906172, 0x435c11e0),
   _T("filename"), -1, TYPE_STRING,
   // f_keyArgDefault marks an optional keyArg param. The value
   // after that is its default value.
+  // separateLayers answers the layered DAGs question of the legacy import (useLegacyImport) when
+  // suppressPrompts is true or Max runs in quiet mode (3dsmaxbatch); otherwise the user is asked
   _T("separateLayers"), -1, TYPE_BOOL, f_keyArgDefault, true,
   _T("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false,
   _T("renameLayerCollision"), -1, TYPE_BOOL, f_keyArgDefault, true,

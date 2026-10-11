@@ -63,6 +63,8 @@ static void spline_gen_geometry_select_lod_es(const UpdateStageInfoBeforeRender 
       int lastIndex = spline_gen_geometry__points.size() - 1;
       if (lastIndex < 0)
       {
+        spline_gen_geometry_renderer.reset();
+        spline_gen_geometry__lod = -1;
         spline_gen_geometry__is_rendered = false;
         return;
       }

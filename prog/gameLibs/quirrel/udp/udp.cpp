@@ -149,8 +149,10 @@ static void update(void *)
   input_buffer->clear();
 }
 
-void init()
+static void init()
 {
+  if (input_buffer)
+    return;
   os_sockets_init();
   input_buffer = eastl::make_unique<InputBuffer>(INPUT_BUFFER_SIZE);
   input_buffer->clear();
@@ -274,6 +276,7 @@ static eastl::string socket_error(eastl::string_view socket_id)
 
 void bind(SqModules *module_mgr)
 {
+  init();
   Sqrat::Table apiNs(module_mgr->getVM());
   apiNs //
     .Func("send", send)

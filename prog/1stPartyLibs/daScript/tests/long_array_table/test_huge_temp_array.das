@@ -34,12 +34,10 @@ def test_temp_array_arr_huge(t : T?) {
     arr |> resize(HUGE_N)
     arr[0_l] = uint8(0xC0)
     arr[HUGE_N - 1_l] = uint8(0xDE)
-    unsafe {
-        let view <- temp_array(arr)
-        t |> equal(long_length(view), HUGE_N)
-        t |> equal(view[0_l], uint8(0xC0))
-        t |> equal(view[HUGE_N - 1_l], uint8(0xDE))
-    }
+    let view <- unsafe(temp_array(arr))
+    t |> equal(long_length(view), HUGE_N)
+    t |> equal(view[0_l], uint8(0xC0))
+    t |> equal(view[HUGE_N - 1_l], uint8(0xDE))
     delete arr
 }
 

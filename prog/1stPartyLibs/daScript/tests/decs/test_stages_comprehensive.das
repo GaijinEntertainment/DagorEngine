@@ -24,7 +24,7 @@ def apply_velocity(var pos : float3&; vel : float3) {
 
 [decs(stage = scoring, REQUIRE = scored)]
 def add_score(var score : int&) {
-    score += 1
+    score ++
 }
 
 // === Tests ===

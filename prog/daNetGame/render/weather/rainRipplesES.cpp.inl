@@ -12,6 +12,8 @@
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_renderStates.h>
+#include <ecs/render/resPtr.h>
+#include <3d/dag_texMgr.h>
 
 // we use this event localy to reduce amount of code which init/terminate rain ripples and track settings
 ECS_BROADCAST_EVENT_TYPE(OnRainToggle, bool /*enabled*/)
@@ -50,6 +52,16 @@ static void rain_ripples_toggle_es(const ecs::Event &event,
     manager.getOrCreateSingletonEntity(ECS_HASH("rain_ripples"));
 
   ShaderGlobal::set_int(get_shader_glob_var_id("water_rain_ripples_enabled", true), useRippleOnWater);
+}
+
+// Force the rain ripples texture to load.
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear)
+static void rain_ripples_texture_load_es(const ecs::Event &, const SharedTexWithShaderVar &rain_ripples_texture)
+{
+  TEXTUREID texId = rain_ripples_texture.getTexId();
+  mark_managed_textures_important({&texId, 1});
+  prefetch_managed_texture(texId);
 }
 
 template <typename Callable>

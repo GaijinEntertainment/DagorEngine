@@ -24,7 +24,7 @@
 //   bits 16-28: o1B (13, signed)
 //   bit 29:     flipA
 //   bit 30:     flipB
-//   bit 31:     spare (reserved)
+//   bit 31:     QUAD_LEAF_TRANSPARENT_FLAG (a light-transparent leaf)
 // W3 (leaf+24):
 //   bits 0-12:  o2B (13, signed)
 //   bits 13-25: o3B (13, signed)
@@ -71,6 +71,12 @@
 #define QUAD_LEAF_USER_SHIFT 26
 #define QUAD_LEAF_USER_BITS  6
 #define QUAD_LEAF_USER_MASK  ((1u << QUAD_LEAF_USER_BITS) - 1) // 0x3F
+
+// A light-transparent leaf: bit QUAD_LEAF_USER_BITS of face_user / QuadPrim::user, above the user value,
+// written to W2 bit 31 and kept one per leaf like the user value. The geometry fields sharing W2 mask it out;
+// the shadow walk's owner-defined skip (SWRT_SHADOW_SKIP_LEAF, swBLAS.dshl) reads it.
+#define QUAD_LEAF_USER_TRANSPARENT (1u << QUAD_LEAF_USER_BITS) // 0x40
+#define QUAD_LEAF_TRANSPARENT_FLAG (1u << 31)                  // W2 bit 31
 
 #define BVH_BLAS_NODE_SIZE 16
 #define BVH_BLAS_LEAF_SIZE 28

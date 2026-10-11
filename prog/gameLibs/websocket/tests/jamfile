@@ -1,0 +1,56 @@
+Root           ?= ../../../.. ;
+Location        = prog/gameLibs/websocket/tests ;
+ConsoleExe      = yes ;
+TargetType      = exe ;
+Target          = websocket-tests ;
+OutDir          = $(Root)/_output/dagorUnitTests ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+local AllSrcFolder_CPP =
+  .
+;
+
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/catch2/src
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/websocket
+;
+
+
+CPPopt += -DUSE_EASTL ;  # enable EASTL assertion interception in Catch2 (main.cpp)
+
+if $(Platform) in windows {
+  CPPopt += /FC ;        # enable full path in __FILE__ macro (useful when navigating output with for IDE)
+}
+
+if $(UseSystemLibcurl) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/libcurl/include ;
+  CPPopt += -DCURL_STATICLIB -DWEBSOCKET_TESTS_BUNDLED_CURL=1 ;
+} else if $(Platform) = linux {
+  AddLibs += -lcurl ;
+  if $(UseSystemOpenSSL) = yes { AddLibs += -lssl -lcrypto ; }
+}
+
+
+UseProgLibs +=
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/ioSys
+  engine/perfMon/daProfilerStub
+
+  3rdPartyLibs/catch2
+  3rdPartyLibs/eastl
+
+  gameLibs/websocket
+;
+
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1969,6 +1969,14 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
 
     bool simple_build_mode = false;
 
+    // these are globals that only get appended to, drop what an earlier buildVromfs() call left
+    // there; before the -D: scan below, which the build blk is preprocessed with
+    clear_and_shrink(reExcludeFile);
+    clear_and_shrink(reIncludeBlk);
+    clear_and_shrink(reExcludeBlk);
+    clear_and_shrink(reIncludeKeepLines);
+    preproc_defines.clear();
+
     const char *cmd_target_str = NULL;
     for (int i = 2; i < argc; i++)
       if (strnicmp("-D:", argv[i], 3) == 0)

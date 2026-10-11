@@ -3,18 +3,11 @@
 #include <ioSys/dag_ioUtils.h>
 #include <osApiWrappers/dag_files.h>
 
-#if _TARGET_PC
-static constexpr int BUF_SZ = 32 << 10;
-#else
 static constexpr int BUF_SZ = 16 << 10;
-#endif
 
 void write_zeros(IGenSave &cwr, int size)
 {
-
-  char zero[BUF_SZ];
-  memset(zero, 0, BUF_SZ);
-
+  static char zero[BUF_SZ]; // not const keeps it in .bss
   while (size > BUF_SZ)
   {
     cwr.write(zero, BUF_SZ);

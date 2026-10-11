@@ -560,7 +560,7 @@ bool DynamicRenderableSceneResource::hasRigidMesh(int node_id)
 }
 
 void DynamicRenderableSceneResource::findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names,
-  const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const
+  dag::FunctionRef<void(int) const> cb) const
 {
   auto checkRigid = [&](const RigidObject &ro) {
     for (auto &elem : ro.mesh->getMesh()->getAllElems())
@@ -577,7 +577,7 @@ void DynamicRenderableSceneResource::findRigidNodesWithMaterials(dag::ConstSpan<
 }
 
 void DynamicRenderableSceneResource::findSkinNodesWithMaterials(dag::ConstSpan<const char *> material_names,
-  const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const
+  dag::FunctionRef<void(int) const> cb) const
 {
   auto checkSkin = [&](int skinIndex) {
     const auto &sm = *skins[skinIndex];
@@ -1307,6 +1307,17 @@ void DynamicRenderableSceneInstance::changeLodsResource(DynamicRenderableSceneLo
     lods->delInstanceRef();
   }
   lods = new_lods;
+  skinBoneRows.reset();
+}
+
+dag::Span<vec4f> DynamicRenderableSceneInstance::resetSkinBoneRows(const ShaderSkinnedMesh *mesh, int rows_count, bool prev)
+{
+  if (!skinBoneRows)
+    skinBoneRows.reset(new SkinBoneRows);
+  const int set = skinBoneRows->cur ^ int(prev);
+  skinBoneRows->mesh[set] = mesh;
+  clear_and_resize(skinBoneRows->rows[set], rows_count);
+  return make_span(skinBoneRows->rows[set]);
 }
 
 int DynamicRenderableSceneInstance::getNodeId(const char *name) const
@@ -1473,7 +1484,7 @@ void DynamicRenderableSceneInstance::clipNodes(const Frustum &frustum, dag::Vect
 }
 
 void DynamicRenderableSceneInstance::findRigidNodesWithMaterials(dag::ConstSpan<const char *> material_names,
-  const eastl::fixed_function<2 * sizeof(void *), void(int)> &cb) const
+  dag::FunctionRef<void(int) const> cb) const
 {
   if (!sceneResource)
     return;

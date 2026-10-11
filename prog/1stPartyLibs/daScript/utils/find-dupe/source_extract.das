@@ -43,13 +43,13 @@ def public extract_source(var cache : FileCache; path : string;
                           var error : string&) : string {
     error = ""
     if (!load_file(cache, path)) {
-        error := "could not read file: {path}"
+        error = "could not read file: {path}"
         return ""
     }
     let lines & = unsafe(cache.files[path])
     let n = length(lines)
     if (start_line < 1 || start_line > n) {
-        error := "start_line {start_line} out of range [1..{n}] in {path}"
+        error = "start_line {start_line} out of range [1..{n}] in {path}"
         return ""
     }
     let lo = start_line - 1
@@ -67,11 +67,11 @@ def public extract_source(var cache : FileCache; path : string;
         // marks the cluster skipped with this error string.
         hi = end_line - 1
         if (hi >= n) {
-            error := "end_line {end_line} past EOF (file has {n} lines) in {path} — likely a stale report"
+            error = "end_line {end_line} past EOF (file has {n} lines) in {path} — likely a stale report"
             return ""
         }
         if (hi < lo) {
-            error := "end_line {end_line} < start_line {start_line} in {path} — degenerate range"
+            error = "end_line {end_line} < start_line {start_line} in {path} — degenerate range"
             return ""
         }
     }

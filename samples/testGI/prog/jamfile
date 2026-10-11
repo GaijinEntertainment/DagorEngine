@@ -31,9 +31,12 @@ OutDir = $(Root)/$(Location)/../game ;
 
 AddIncludes =
   $(Root)/prog/samples/commonFramework
+  $(Root)/prog/samples/levelCollision
+  $(Root)/prog/samples/levelSwrt
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/render/screenSpaceReflection
   $(Root)/prog/engine/sharedInclude
+  $(Root)/prog
 ;
 
 Sources =
@@ -60,7 +63,6 @@ UseProgLibs =
   engine/workCycle
   engine/guiBase
   engine/scene
-  engine/sceneRay
 
   engine/gameRes
   engine/perfMon
@@ -68,7 +70,8 @@ UseProgLibs =
   engine/screenShotSystem
 
   samples/commonFramework
-
+  samples/levelCollision
+  samples/levelSwrt
 
   gameLibs/daSWRT
   gameLibs/render/lruCollision
@@ -180,5 +183,8 @@ if $(Platform) in windows {
 }
 
 if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel ?= dbg ; }
+
+include $(Root)/prog/gameLibs/render/ambientOcclusion/_lib.jam ;
+include $(Root)/prog/gameLibs/render/raytracedToroidalStaticShadow/_lib.jam ;
 
 include $(Root)/prog/_jBuild/build.jam ;

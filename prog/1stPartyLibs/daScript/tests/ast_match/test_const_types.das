@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options rtti
+options _cyclomatic_complexity = 0  // qmatch pattern blocks expand into matcher code; the count is not the test's own
 
 require daslib/ast
 require daslib/rtti

@@ -5,6 +5,7 @@
 
 #include <EditorCore/ec_rect.h>
 #include <EditorCore/ec_wndPublic.h>
+#include <propPanel/commonWindow/dialogManager.h>
 #include <dag/dag_vector.h>
 
 #include <imgui/imgui.h>
@@ -119,6 +120,11 @@ public:
 
   unsigned processImguiAccelerator(ImGuiID active_viewport_canvas_id, bool &viewport_accelerator) override
   {
+    if (PropPanel::is_any_modal_dialog_open())
+    {
+      return 0;
+    }
+
     // Constraints:
     // - ImGui reports a RouteGlobal shortcut as pressed even while an item is active
     // - the viewport canvas is the active item for as long as fly mode lasts

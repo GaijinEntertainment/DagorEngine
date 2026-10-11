@@ -26,8 +26,6 @@
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 
-#include <memory/dag_framemem.h>
-
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_threadPool.h>
@@ -136,11 +134,13 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
 
   virtual void onToggleInteractive(int iflags) override
   {
-    uiinput::mask_dainput_pointers(iflags, int(uiinput::DaInputMaskLayers::UserUiPointers));
+    uiinput::call_dainput([iflags] {
+      uiinput::mask_dainput_pointers(iflags, int(uiinput::DaInputMaskLayers::UserUiPointers));
 
-    // User UI actions
-    bool active = (iflags & (IF_MOUSE | IF_KEYBOARD)) != 0;
-    dainput::activate_action_set(dainput::get_action_set_handle("HUD"), active);
+      // User UI actions
+      bool active = (iflags & (IF_MOUSE | IF_KEYBOARD)) != 0;
+      dainput::activate_action_set(dainput::get_action_set_handle("HUD"), active);
+    });
   }
 
   virtual void onShutdownScript(HSQUIRRELVM vm) override
@@ -156,9 +156,7 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
   virtual void onInputConsumersChange(
     dag::ConstSpan<darg::HotkeyButton> device_buttons, dag::ConstSpan<String> event_hotkeys, bool consume_text_input) override
   {
-    uiinput::mask_dainput_buttons(device_buttons, consume_text_input, int(uiinput::DaInputMaskLayers::UserUiButtons));
-
-    Tab<dainput::action_handle_t> actions(framemem_ptr());
+    Tab<dainput::action_handle_t> actions;
     actions.reserve(event_hotkeys.size());
     for (const String &s : event_hotkeys)
     {
@@ -166,8 +164,12 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
       if (a != dainput::BAD_ACTION_HANDLE)
         actions.push_back(a);
     }
-    dainput::action_set_handle_t set = dainput::setup_action_set("UI.dynamic", actions);
-    dainput::activate_action_set(set, actions.size() > 0);
+    uiinput::call_dainput(
+      [consumedButtons = Tab<darg::HotkeyButton>(device_buttons), actions = eastl::move(actions), consume_text_input] {
+        uiinput::mask_dainput_buttons(consumedButtons, consume_text_input, int(uiinput::DaInputMaskLayers::UserUiButtons));
+        dainput::action_set_handle_t set = dainput::setup_action_set("UI.dynamic", actions);
+        dainput::activate_action_set(set, actions.size() > 0);
+      });
   }
 } gui_scene_cb;
 

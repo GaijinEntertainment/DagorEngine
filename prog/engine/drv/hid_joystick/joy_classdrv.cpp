@@ -19,12 +19,12 @@ using namespace HumanInput;
 
 static const int ENUMERATION_TIMEOUT_MS = 30000;
 
-Di8JoystickClassDriver::Di8JoystickClassDriver(bool exclude_xinput, bool remap_360) :
+Di8JoystickClassDriver::Di8JoystickClassDriver(bool exclude_xinput, bool remap_360, bool exclude_sony_pads) :
   device(inimem),
   enabled(false),
   excludeXinputDev(exclude_xinput),
   remapAsX360(remap_360),
-  deviceEnumerator{ENUMERATION_TIMEOUT_MS, exclude_xinput, remap_360}
+  deviceEnumerator{ENUMERATION_TIMEOUT_MS, exclude_xinput, remap_360, exclude_sony_pads}
 {
   defJoy = NULL;
   enableAutoDef = true;
@@ -180,6 +180,30 @@ IGenJoystick *Di8JoystickClassDriver::getDevice(int idx) const
   if (idx >= 0 && idx < device.size())
     return device[idx];
   return NULL;
+}
+
+
+float Di8JoystickClassDriver::getStickDeadZoneScale(int stick_idx, bool main_gamepad) const
+{
+  G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, 0);
+  return main_gamepad ? 0 : stickDeadZoneScale[stick_idx];
+}
+
+
+void Di8JoystickClassDriver::setStickDeadZoneScale(int stick_idx, bool main_gamepad, float scale)
+{
+  if (main_gamepad)
+    return;
+  G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, );
+  stickDeadZoneScale[stick_idx] = scale;
+  for (Di8JoystickDevice *dev : device)
+    dev->setStickDeadZoneScale(stick_idx, scale);
+}
+
+
+float Di8JoystickClassDriver::getStickDeadZoneAbs(int stick_idx, bool main_gamepad, IGenJoystick * /*for_joy*/) const
+{
+  return getStickDeadZoneScale(stick_idx, main_gamepad) * Di8JoystickDevice::NOMINAL_STICK_DEAD_ZONE;
 }
 
 

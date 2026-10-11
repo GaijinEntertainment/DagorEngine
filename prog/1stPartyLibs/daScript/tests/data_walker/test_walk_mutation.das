@@ -42,9 +42,7 @@ def test_mutation(t : T?) {
         var walker = new Doubler()
         var x = 21
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(x, 42)
         unsafe { delete walker; }
@@ -53,9 +51,7 @@ def test_mutation(t : T?) {
         var walker = new Doubler()
         var s = SimpleStruct(x = 5, y = 1.5)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         t |> equal(s.x, 10)
         t |> equal(s.y, 3.0)
@@ -65,9 +61,7 @@ def test_mutation(t : T?) {
         var walker = new Doubler()
         var arr = [1, 2, 3]
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
-            }
+            adapter |> walk_data(unsafe(addr(arr)), typeinfo rtti_typeinfo(arr))
         }
         t |> equal(arr[0], 2)
         t |> equal(arr[1], 4)
@@ -83,9 +77,7 @@ def test_mutate_nested(t : T?) {
         var walker = new StringUpperWalker()
         var s = NestedStruct(inner = SimpleStruct(x = 1, y = 2.0), tag = "hello")
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         t |> equal(s.tag, "HELLO")
         unsafe { delete walker; }
@@ -94,9 +86,7 @@ def test_mutate_nested(t : T?) {
         var walker = new StringUpperWalker()
         var arr = ["abc", "def"]
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
-            }
+            adapter |> walk_data(unsafe(addr(arr)), typeinfo rtti_typeinfo(arr))
         }
         t |> equal(arr[0], "ABC")
         t |> equal(arr[1], "DEF")

@@ -374,8 +374,10 @@ enum AnimcharRenderAsyncFilter : int8_t
   ARF_ONLY_IDX3,
   ARF_IDX_COUNT,
   ARF_IDX_MASK = ARF_IDX_COUNT - 1,
+  ARF_IDX_COUNT_MAX = ARF_IDX_COUNT * 2, // Finer split for heaviest workloads (e.g. last csm cascade)
 };
-static_assert(is_pow2(AnimcharRenderAsyncFilter::ARF_IDX_COUNT), "AnimcharRenderAsyncFilter::EACH_ENTITY should be pow of 2");
+static_assert(is_pow2(AnimcharRenderAsyncFilter::ARF_IDX_COUNT));
+static_assert(is_pow2(AnimcharRenderAsyncFilter::ARF_IDX_COUNT_MAX));
 
 struct AnimcharRenderAsyncEvent : public ecs::Event
 {
@@ -387,6 +389,7 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
   const uint8_t filterMask;
   const bool needPrevious;
   const AnimcharRenderAsyncFilter eidFilter;
+  const uint8_t eidFilterMask;
   TexStreamingContext texCtx;
   ECS_INSIDE_EVENT_DECL(AnimcharRenderAsyncEvent, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE)
   AnimcharRenderAsyncEvent(dynrend::ContextId ctx_,
@@ -399,7 +402,8 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     uint8_t filter_mask,
     bool needPrevious_,
     AnimcharRenderAsyncFilter eid_filter,
-    TexStreamingContext tex_context = TexStreamingContext(0)) :
+    TexStreamingContext tex_context = TexStreamingContext(0),
+    uint8_t eid_filter_mask = AnimcharRenderAsyncFilter::ARF_IDX_MASK) :
     ECS_EVENT_CONSTRUCTOR(AnimcharRenderAsyncEvent),
     ctx(ctx_),
     globVarsState(gvars_state),
@@ -411,6 +415,7 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     filterMask(filter_mask),
     needPrevious(needPrevious_),
     eidFilter(eid_filter),
+    eidFilterMask(eid_filter_mask),
     texCtx(tex_context)
   {}
 };
@@ -583,7 +588,9 @@ ECS_BROADCAST_EVENT_TYPE(InvalidateClipmapBox, BBox2 /*box*/);
 ECS_BROADCAST_EVENT_TYPE(InvalidateBoxAfterHeightmapChange, BBox3 /*box*/);
 ECS_BROADCAST_EVENT_TYPE(OnClipmapTileRender, Frustum /*frustum*/);
 ECS_BROADCAST_EVENT_TYPE(AfterHeightmapChange);
+ECS_BROADCAST_EVENT_TYPE(BeforeStartVisibility);
 ECS_BROADCAST_EVENT_TYPE(RendinstLodRangeIncreasedEvent, bool /*impostor*/, bool /*rendinst*/);
+ECS_BROADCAST_EVENT_TYPE(AdaptationSettingsChanged);
 
 class TextureIDPair;
 ECS_UNICAST_EVENT_TYPE(CustomEnviProbeRender, const ManagedTex *, int)

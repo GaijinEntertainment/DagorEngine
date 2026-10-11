@@ -28,13 +28,7 @@ bool HmapHillLandBrush::updateFromPanelRef(PropPanel::ContainerPropertyControl &
 {
   switch (pid)
   {
-    case PID_BRUSH_LIMIT_USE:
-    {
-      int ar = panel.getBool(pid);
-      if (ar < 2)
-        limitValueUse = (bool)ar;
-      return true;
-    }
+    case PID_BRUSH_LIMIT_USE: limitValueUse = panel.getBool(pid); return true;
     case PID_BRUSH_LIMIT_VALUE: limitValue = panel.getFloat(pid); return true;
     case PID_BRUSH_POWER: power = panel.getFloat(pid); return true;
     default: return HmapLandBrush::updateFromPanelRef(panel, pid);

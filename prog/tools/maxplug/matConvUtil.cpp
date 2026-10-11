@@ -11,8 +11,6 @@
 
 #include <string>
 
-#define ERRMSG_DELAY 3000
-
 
 enum
 {
@@ -46,7 +44,7 @@ public:
   HWND hPanel;
   Tab<MatPair> convMats;
 
-  ICustEdit *atestEdit;
+  ControlPtr<ICustEdit> atestEdit;
 
   IDagorMat::Sides twosided;
   int atest;
@@ -119,7 +117,6 @@ MatConvUtil::MatConvUtil()
   iu = NULL;
   ip = NULL;
   hPanel = NULL;
-  atestEdit = NULL;
 
   twosided = IDagorMat::Sides::OneSided;
   atest = 0;
@@ -149,7 +146,7 @@ void MatConvUtil::Init(HWND hw)
   ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("Real 2 sided"));
   ::SendMessage(h2sided, CB_SETCURSEL, WPARAM(twosided), NULL);
 
-  atestEdit = GetICustEdit(GetDlgItem(hw, IDC_ATEST));
+  atestEdit.reset(GetICustEdit(GetDlgItem(hw, IDC_ATEST)));
   atestEdit->SetText(atest);
 }
 
@@ -157,11 +154,7 @@ void MatConvUtil::Destroy(HWND hWnd)
 {
   if (atestEdit)
     atest = atestEdit->GetInt();
-  if (atestEdit)
-  {
-    ReleaseICustEdit(atestEdit);
-    atestEdit = NULL;
-  }
+  atestEdit.reset();
 }
 
 

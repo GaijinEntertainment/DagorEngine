@@ -3,6 +3,8 @@
 
 #include <assetsGui/av_assetBrowser.h>
 #include <assetsGui/av_view.h>
+#include <propPanel/messageQueue.h>
+#include <util/dag_string.h>
 #include <EASTL/unique_ptr.h>
 
 class AssetBaseView;
@@ -19,7 +21,8 @@ class MainAssetSelector : public IAssetBaseViewClient,
                           public IAssetSelectorContextMenuHandler,
                           public IAssetSelectorFavoritesRecentlyUsedHost,
                           public IAssetBrowserHost,
-                          public IAssetTagsView
+                          public IAssetTagsView,
+                          public PropPanel::IDelayedCallbackHandler
 {
 public:
   class MainAllAssetsTab
@@ -69,6 +72,9 @@ public:
   void addAssetToFavorites(const DagorAsset &asset) override;
   void goToAsset(const DagorAsset &asset) override;
 
+  // Does not notify the client.
+  void setSelectedAssetInActiveTab(const DagorAsset &asset);
+
   void removeAssetFromFavorites(const DagorAsset &asset);
 
   void setAssetMgr(DagorAssetMgr &asset_mgr);
@@ -83,7 +89,11 @@ public:
   void saveAssetBrowserSettings(DataBlock &blk) const;
   void loadAssetBrowserSettings(DataBlock &blk);
 
-  void updateImgui();
+  // can_submit_contents: whether the contents of the Assets Tree window should be drawn. Basically the result of
+  // ImGui::Begin().
+  // Call updateImgui() even when ImGui::Begin() returns false.
+  // Beside the Assets Tree's contents, the method also draws the Asset Browser window.
+  void updateImgui(bool can_submit_contents);
 
   DagorAsset *getSelectedAsset() const;
   DagorAssetFolder *getSelectedAssetFolder() const;
@@ -125,6 +135,9 @@ private:
   AssetTagManager *getVisibleTagManager() override;
   void showTagManager(bool show) override;
 
+  // PropPanel::IDelayedCallbackHandler
+  void onImguiDelayedCallback(void *user_data) override;
+
   void setActiveTab(ActiveTab tab);
 
   static bool tabPage(const char *title, bool selected);
@@ -141,5 +154,7 @@ private:
   int favoritesFilledGenerationId = -1;
   int recentlyUsedFilledGenerationId = -1;
   bool allowChangingRecentlyUsedList = true;
+  bool notifyClientOnSelection = true;
   bool assetBrowserOpen = false;
+  DagorAsset *pendingSelectedAsset = nullptr;
 };

@@ -398,6 +398,61 @@ GeomNodeTree *GeomNodeTree::load(IGenLoad &_cb)
   return tree;
 }
 
+/* static */
+GeomNodeTree *GeomNodeTree::build(dag::ConstSpan<BuildNode> nodes)
+{
+  const int nodeCnt = nodes.size();
+  G_ASSERT_RETURN(nodeCnt > 0 && nodeCnt < Index16::INVALID && nodes[0].parent < 0, nullptr);
+  int name_pool_sz = 0;
+  for (int i = 0; i < nodeCnt; ++i)
+  {
+    const int parent = nodes[i].parent;
+    G_ASSERTF_RETURN(!i || (parent >= 0 && parent < i && parent >= nodes[i - 1].parent), nullptr,
+      "node '%s' breaks the breadth-first order", nodes[i].name);
+    name_pool_sz += (int)strlen(nodes[i].name) + 1;
+  }
+  G_ASSERT_RETURN(int(sizeof(uint16_t)) * nodeCnt + name_pool_sz <= UINT16_MAX, nullptr); // nameOfs holds uint16_t offsets
+
+  int wtm_ofs = 0;
+  int tm_ofs = wtm_ofs + int(sizeof(mat44f)) * nodeCnt;
+  int parentId_ofs = tm_ofs + int(sizeof(mat44f)) * nodeCnt;
+  int childrenRef_ofs = parentId_ofs + int(sizeof(Index16)) * nodeCnt;
+  int nameOfs_ofs = childrenRef_ofs + int(sizeof(ChildRef)) * nodeCnt;
+  int invalid_tm_ofs = nameOfs_ofs + int(sizeof(uint16_t)) * nodeCnt + name_pool_sz;
+  G_ASSERT_RETURN(invalid_tm_ofs < (1 << 20), nullptr); // invalidTmOfs is a 20-bit field
+
+  const intptr_t dataSz = invalid_tm_ofs + (nodeCnt + 7) / 8;
+  GeomNodeTree *tree = allocWithData(dataSz);
+  dag::Span<char> &data = tree->data;
+  if (dataSz)
+    memset(data.data(), 0, dataSz); // the child counts and the invalid-tm bits start at zero
+  tree->numNodes = nodeCnt;
+  tree->invalidTmOfs = invalid_tm_ofs;
+
+  auto tmA = tree->tm();
+  auto parentIdA = tree->parentId();
+  auto childrenRefA = tree->childrenRef();
+  auto nameOfsA = tree->nameOfs();
+  for (int i = 0, nm_cur_ofs = int(sizeof(uint16_t)) * nodeCnt; i < nodeCnt; ++i)
+  {
+    const BuildNode &n = nodes[i];
+    tmA[i] = n.tm;
+
+    nameOfsA[i] = nm_cur_ofs;
+    const int nm_len = (int)strlen(n.name);
+    memcpy((char *)nameOfsA.data() + nm_cur_ofs, n.name, nm_len + 1);
+    nm_cur_ofs += nm_len + 1;
+
+    parentIdA[i] = n.parent < 0 ? Index16() : Index16(n.parent);
+    if (n.parent >= 0 && !childrenRefA[n.parent].count++)
+      childrenRefA[n.parent].relOfs = i - n.parent;
+  }
+
+  tree->invalidateWtm();
+  tree->markPoseChanged();
+  return tree;
+}
+
 
 void GeomNodeTree::calcWorldBoxFromImportantNodes(bbox3f &box) const
 {

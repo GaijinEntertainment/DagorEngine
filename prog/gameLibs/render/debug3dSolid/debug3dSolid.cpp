@@ -344,7 +344,7 @@ void draw_debug_solid_cone(const Point3 pos, Point3 norm, float radius, float he
   indices.reserve(indexCount);
 
   norm.normalize(); // Just in case
-  Point3 noise = fabs(dot(norm, Point3(1, 0, 0))) < 0.5 ? Point3(1, 0, 0) : Point3(0, 1, 0);
+  Point3 noise = fabs(dot(norm, Point3(1, 0, 0))) < 0.5f ? Point3(1, 0, 0) : Point3(0, 1, 0);
   Point3 ax1 = cross(norm, norm + noise);
   Point3 ax2 = cross(norm, ax1);
   for (int i = 0; i < segments; i++)

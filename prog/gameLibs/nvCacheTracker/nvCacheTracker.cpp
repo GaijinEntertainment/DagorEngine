@@ -128,8 +128,9 @@ void init_nv_cache_tracker()
   if (!videoBlk.getBool("nvDxCacheTracker", true))
     return;
 
-  if (auto result = MH_Initialize(); result == MH_OK)
+  if (auto result = MH_Initialize(); result == MH_OK || result == MH_ERROR_ALREADY_INITIALIZED)
   {
+    bool mh_initialized = result == MH_OK;
     FARPROC createFileW = ::GetProcAddress(::GetModuleHandleW(L"KernelBase.dll"), "CreateFileW");
     if (result = MH_CreateHook(createFileW, &hooked_create_file_w, reinterpret_cast<LPVOID *>(&fp_create_file_w)); result == MH_OK)
     {
@@ -141,7 +142,10 @@ void init_nv_cache_tracker()
     else
       LOGERR_CTX("MH_CreateHook is failed with %d", result);
 
-    static Finally hookUninitializer{[] { MH_Uninitialize(); }};
+    static Finally hookUninitializer{[mh_initialized] {
+      if (mh_initialized)
+        MH_Uninitialize();
+    }};
   }
   else
     LOGERR_CTX("MH_Initialize is failed with %d", result);

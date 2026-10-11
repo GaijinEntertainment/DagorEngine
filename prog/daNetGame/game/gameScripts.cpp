@@ -101,6 +101,7 @@ void os_debug_break()
 }
 
 extern void pull_das();
+extern bool das_jit_runtime_enabled();
 
 namespace bind_dascript
 {
@@ -415,6 +416,10 @@ HSQUIRRELVM init()
   return vm;
 }
 
+static eastl::string serialized_data_prefix;
+
+void set_serialized_data_prefix(const char *prefix) { serialized_data_prefix = prefix; }
+
 const char *get_serialized_data_filename(char buf[DAGOR_MAX_PATH])
 {
 #if (defined(__x86_64__) && defined(__LP64__)) || defined(_M_X64)
@@ -439,7 +444,9 @@ const char *get_serialized_data_filename(char buf[DAGOR_MAX_PATH])
 
   const char *_ded = dedicated::is_dedicated() ? "_ded" : "";
 
-  snprintf(buf, DAGOR_MAX_PATH, "das_ast_%s_%s%s%s.bin", arch, build_type, _ded, sanitizer);
+  const char *jit = das_jit_runtime_enabled() ? "_jit" : "";
+
+  snprintf(buf, DAGOR_MAX_PATH, "%sdas_ast_%s_%s%s%s%s.bin", serialized_data_prefix.c_str(), arch, build_type, _ded, sanitizer, jit);
 
   return buf;
 }

@@ -1,0 +1,6 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_cameraManager_pull ;
+  UseProgLibs += gameLibs/cameraManager ;
+} else {
+  UseProgLibs += gameLibs/cameraManager/stub ;
+}

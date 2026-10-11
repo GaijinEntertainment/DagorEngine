@@ -21,7 +21,7 @@ def test_constkey_index(t : T?) {
     tab["foo"] = 11                                   // overwrite, no new slot
     t |> equal(tab["foo"], 11)
     t |> equal(length(tab), 3)
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -33,7 +33,7 @@ def test_constkey_safe_index(t : T?) {
     t |> equal(tab?["bar"] ?? -1, 2)
     t |> equal(tab?["missing"] ?? -1, -1)             // SafeTableIndex_WithHash (miss, no insert)
     t |> equal(length(tab), 2)                        // safe-index miss did not grow the table
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -44,7 +44,7 @@ def test_constkey_builtin_key_exists(t : T?) {
     t |> equal(__builtin_table_key_exists(tab, "foo"), true)    // KeyExists_WithHash (hit)
     t |> equal(__builtin_table_key_exists(tab, "bar"), true)
     t |> equal(__builtin_table_key_exists(tab, "missing"), false) // KeyExists_WithHash (miss)
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -59,7 +59,7 @@ def test_constkey_builtin_find(t : T?) {
     }
     let pm = __builtin_table_find(tab, "missing")    // TableFind_WithHash (miss)
     t |> equal(pm == null, true)
-    unsafe { delete tab; }
+    delete tab
 }
 
 // "k1832" and "k16303" share the same 32-bit table hashKey but differ in the full 64-bit hash.
@@ -77,5 +77,5 @@ def test_constkey_hashkey32_collision(t : T?) {
     t |> equal(__builtin_table_key_exists(tab, "k1832"), true)
     t |> equal(__builtin_table_key_exists(tab, "k16303"), true)
     t |> equal(tab?["k9999"] ?? -1, -1)
-    unsafe { delete tab; }
+    delete tab
 }

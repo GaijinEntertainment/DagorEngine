@@ -21,6 +21,7 @@ struct PhysicalDeviceSet // -V553
   VkPhysicalDeviceProperties properties{};
   dag::Vector<VkQueueFamilyProperties> queueFamilyProperties;
   carray<VkFormatProperties, VK_FORMAT_RANGE_SIZE> formatProperties{}; //-V730_NOINIT
+  carray<bool, VK_FORMAT_RANGE_SIZE> sampledImageDepthComparison{};
   VkPhysicalDeviceMemoryProperties memoryProperties{};
   VkPhysicalDeviceSubgroupProperties subgroupProperties{};
   dag::Vector<VkExtensionProperties> extensions;
@@ -1382,10 +1383,18 @@ struct PhysicalDeviceSet // -V553
     memoryProperties = pdmp.memoryProperties;
 
     VkFormatProperties2KHR fp = {VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2_KHR, nullptr};
+#if VK_KHR_format_feature_flags2
+    VkFormatProperties3KHR fp3 = {VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3_KHR, nullptr};
+    if (hasExtension<FormatFeatureFlags2KHR>())
+      chain_structs(fp, fp3);
+#endif
     for (uint32_t i = 0; i < formatProperties.size(); ++i)
     {
       VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceFormatProperties2KHR(device, (VkFormat)i, &fp));
       formatProperties[i] = fp.formatProperties;
+#if VK_KHR_format_feature_flags2
+      sampledImageDepthComparison[i] = (fp3.optimalTilingFeatures & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT_KHR) != 0;
+#endif
     }
     return true;
   }

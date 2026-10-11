@@ -1,0 +1,1664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De-tiling Landclasses</title>
+
+<style>
+:root{
+  --ground:#F1F2EE;
+  --surface:#FAFAF8;
+  --sunk:#E5E8E0;
+  --ink:#191F1C;
+  --ink-2:#5A6660;
+  --ink-3:#8B958E;
+  --line:#D3D7CE;
+  --line-2:#BFC5B9;
+  --accent:#A81E68;
+  --accent-ink:#FFFFFF;
+  --accent-wash:#F6E4EE;
+  --ok:#2C7A5B;
+  --ok-wash:#E1EEE7;
+  --warn:#A2610D;
+  --warn-wash:#F5E9D6;
+  --code-bg:#EBEDE6;
+  --shadow:0 1px 0 rgba(25,31,28,.06), 0 8px 24px -18px rgba(25,31,28,.5);
+
+  --f-display:"Archivo Narrow","Arial Narrow",Helvetica,Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#121614;
+    --surface:#1A201D;
+    --sunk:#222A26;
+    --ink:#E9ECE6;
+    --ink-2:#98A49C;
+    --ink-3:#6E7A73;
+    --line:#2E3833;
+    --line-2:#3E4A44;
+    --accent:#F076AF;
+    --accent-ink:#1A0512;
+    --accent-wash:#2E1522;
+    --ok:#5FC194;
+    --ok-wash:#152A21;
+    --warn:#DDA646;
+    --warn-wash:#2C2214;
+    --code-bg:#151B18;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 10px 28px -20px rgba(0,0,0,.9);
+  }
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---- reading grid: prose in the middle track, plates break out wider ---- */
+.grid{
+  display:grid;
+  grid-template-columns:
+    minmax(18px,1fr)
+    [wide-start] minmax(0,140px)
+    [text-start] min(66ch,100%)
+    [text-end] minmax(0,140px)
+    [wide-end] minmax(18px,1fr);
+}
+.grid > *{grid-column:text}
+.grid > .wide{grid-column:wide}
+
+/* ---- header ---- */
+header{
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+  padding:52px 0 40px;
+}
+.eyebrow{
+  font-family:var(--f-mono);
+  font-size:11.5px;
+  font-weight:500;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin:0 0 14px;
+}
+h1{
+  font-family:var(--f-display);
+  font-weight:700;
+  font-size:clamp(38px,7vw,62px);
+  line-height:1.02;
+  letter-spacing:-.015em;
+  margin:0 0 18px;
+  text-wrap:balance;
+}
+.lead{
+  font-size:19px;
+  line-height:1.5;
+  color:var(--ink-2);
+  margin:0;
+  max-width:52ch;
+}
+.lead b{color:var(--ink);font-weight:600}
+
+/* ---- sections ---- */
+section{padding:46px 0 8px}
+section + section{border-top:1px solid var(--line)}
+h2{
+  font-family:var(--f-display);
+  font-weight:700;
+  font-size:clamp(26px,3.6vw,36px);
+  line-height:1.08;
+  letter-spacing:-.01em;
+  margin:0 0 16px;
+  text-wrap:balance;
+}
+h3{
+  font-family:var(--f-display);
+  font-weight:600;
+  font-size:20px;
+  letter-spacing:.005em;
+  margin:34px 0 10px;
+}
+p{margin:0 0 16px}
+.dim{color:var(--ink-2)}
+ul,ol{margin:0 0 16px;padding-left:22px}
+li{margin:0 0 8px}
+li::marker{color:var(--ink-3)}
+code{
+  font-family:var(--f-mono);
+  font-size:.88em;
+  background:var(--code-bg);
+  border-radius:3px;
+  padding:1px 5px;
+  color:var(--ink);
+}
+
+
+/* ---- plate: the recurring figure object ---- */
+.plate{
+  margin:26px 0 30px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:4px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.plate-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  padding:11px 16px;
+  border-bottom:1px solid var(--line);
+  background:var(--sunk);
+}
+.plate-title{
+  font-family:var(--f-mono);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:var(--ink-2);
+}
+.plate-note{
+  font-family:var(--f-mono);
+  font-size:11.5px;
+  color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+}
+.plate-body{padding:0;background:var(--sunk)}
+.plate canvas{display:block;width:100%;height:auto}
+#cv1{touch-action:none}
+.plate-pair{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+@media (max-width:640px){.plate-pair{grid-template-columns:1fr}}
+.plate-pair figure{margin:0;background:var(--surface)}
+.plate-pair figcaption{
+  font-family:var(--f-mono);
+  font-size:11px;
+  letter-spacing:.06em;
+  color:var(--ink-2);
+  padding:8px 12px;
+  border-top:1px solid var(--line);
+}
+.plate-foot{
+  padding:14px 16px;
+  border-top:1px solid var(--line);
+  background:var(--surface);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.cap{
+  font-size:13.5px;
+  line-height:1.5;
+  color:var(--ink-2);
+  margin:0;
+}
+
+/* ---- controls ---- */
+.ctls{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 20px}
+.ctl{display:flex;flex-direction:column;gap:3px}
+.ctl label{
+  font-family:var(--f-mono);
+  font-size:11px;
+  letter-spacing:.04em;
+  color:var(--ink-2);
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+}
+.ctl .val{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:18px;background:transparent;margin:0;cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line-2);border-radius:2px}
+input[type=range]::-moz-range-track{height:3px;background:var(--line-2);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;background:var(--accent);
+  border:2px solid var(--surface);margin-top:-6px;
+}
+input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--surface);
+}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{
+  font-family:var(--f-mono);
+  font-size:11.5px;
+  font-weight:500;
+  letter-spacing:.05em;
+  color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  border-radius:3px;
+  padding:6px 11px;
+  cursor:pointer;
+}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tog{
+  font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;
+}
+.tog input{accent-color:var(--accent);margin:0;width:14px;height:14px}
+.sep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
+.hint{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);letter-spacing:.03em}
+
+/* ---- code ---- */
+pre{
+  margin:0 0 18px;
+  background:var(--code-bg);
+  border:1px solid var(--line);
+  border-radius:4px;
+  padding:14px 16px;
+  overflow-x:auto;
+  font-family:var(--f-mono);
+  font-size:13px;
+  line-height:1.62;
+  color:var(--ink);
+}
+pre .k{color:var(--accent);font-weight:600}
+pre .c{color:var(--ink-3)}
+pre code{background:none;padding:0;font-size:inherit}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+th{
+  font-family:var(--f-mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  background:var(--sunk);white-space:nowrap;
+}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--f-mono);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.mono b{color:var(--accent);font-weight:600}
+
+.tag{
+  display:inline-block;font-family:var(--f-mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:2px;white-space:nowrap;
+}
+.tag.ok{background:var(--ok-wash);color:var(--ok)}
+.tag.na{background:var(--sunk);color:var(--ink-3)}
+
+/* ---- callout ---- */
+.note{
+  border-left:2px solid var(--accent);
+  background:var(--accent-wash);
+  padding:13px 16px;
+  border-radius:0 3px 3px 0;
+  margin:0 0 20px;
+  font-size:14.5px;
+  line-height:1.55;
+}
+.note.warn{border-left-color:var(--warn);background:var(--warn-wash)}
+.note p:last-child{margin-bottom:0}
+.note strong{font-weight:600}
+
+/* ---- schematic ---- */
+.schem{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px;overflow-x:auto}
+.schem svg{display:block;min-width:560px;width:100%;height:auto}
+
+/* ---- pins strip ---- */
+.pins{
+  display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px;
+}
+.pin{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.02em;
+  border:1px solid var(--line);border-radius:2px;padding:4px 8px;
+  background:var(--surface);color:var(--ink-2);
+}
+.pin b{color:var(--ok);font-weight:600}
+
+footer{
+  border-top:1px solid var(--line);
+  background:var(--surface);
+  padding:38px 0 60px;
+  margin-top:40px;
+}
+footer .eyebrow{margin-bottom:12px}
+footer li{font-size:14px;color:var(--ink-2)}
+
+
+</style>
+</head>
+<body>
+
+<header class="grid">
+  <div>
+    <p class="eyebrow">landMesh &middot; landclass authoring</p>
+    <h1>De-tiling landclasses</h1>
+    <p class="lead">A tile texture repeats, and the eye finds the grid. De-tiling shows the same tile as up to eight turned and shifted copies, and blends between them. <b>You set three keys in the land.blk.</b> The level data does not change, and the trees and rocks the landclass plants from a tile or a density map move with the texture.</p>
+  </div>
+</header>
+
+<main class="grid">
+
+<!-- =============== 1. WHAT YOU GET =============== -->
+<section>
+  <p class="eyebrow">1 &middot; What you get</p>
+  <h2>The same texture, without the grid</h2>
+  <p>Drag the line. Left of it the landclass tiles the plain way. Right of it the same tile is de-tiled with four clusters, which is where you start. Turn on <b>tile grid</b> to see the period, or press <b>Blink</b> to flip the whole frame between the two, the way you would check any texture fix.</p>
+</section>
+
+<div class="wide">
+  <div class="plate">
+    <div class="plate-head">
+      <span class="plate-title">Plate 1 &middot; plain tiling vs de-tiled</span>
+      <span class="plate-note" id="p1note">3600 m across - tile 512 m - 4 clusters</span>
+    </div>
+    <div class="plate-body">
+      <canvas id="cv1" width="880" height="400" tabindex="0" aria-label="Top down ground. Plain tiling left of the wipe line, de-tiled right of it. Drag or use the left and right arrow keys to move the line."></canvas>
+    </div>
+    <div class="plate-foot">
+      <div class="ctls">
+        <div class="ctl"><label for="s1wipe">wipe <span class="val" id="v1wipe">50%</span></label><input type="range" id="s1wipe" min="0" max="100" step="1" value="50"></div>
+        <div class="ctl"><label for="s1cl">detileClusters <span class="val" id="v1cl">4</span></label><input type="range" id="s1cl" min="1" max="8" step="1" value="4"></div>
+      </div>
+      <div class="row">
+        <button id="b1blink" type="button">Blink A/B</button>
+        <span class="sep"></span>
+        <label class="tog"><input type="checkbox" id="t1grid"> tile grid</label>
+        <label class="tog"><input type="checkbox" id="t1mark"> object markers</label>
+      </div>
+      <p class="cap">The tile is drawn in your browser, so it is not a shipping asset. The de-tiling map is the engine's own: this page runs the same hash, the same 64&times;64 noise lookup table and the same cluster math as the shader and the object generators.</p>
+    </div>
+  </div>
+</div>
+
+<section style="padding-top:6px">
+  <p>What it costs you: one noise sample per pixel, a second texture tap inside the blend band, and a tile that has to be stochastic. What it costs the level: nothing. The keys travel inside the landclass asset, so daBuild and the editor copy them across with no re-export of the level and no change to the binary format.</p>
+  <p>Pixels cost the same from two clusters up, since a pixel reads at most two clusters; one cluster reads a single turned tile. Object generation costs a little more for each cluster. On WT avg_poland with every landclass de-tiled, it took <b>0.72 to 0.92 times</b> the plain time at one cluster and <b>1.14 to 1.15 times</b> at eight. Still, the smallest count that hides the period is the right one.</p>
+</section>
+
+<!-- =============== 2. HOW IT WORKS =============== -->
+<section>
+  <p class="eyebrow">2 &middot; How it works</p>
+  <h2>Clusters, and a noise that picks between them</h2>
+  <p>A <b>cluster</b> is the same tile, turned by some angle and shifted by some offset. Cluster 0 is the tile exactly as you authored it, turned to <code>detileMainDir</code>. The other clusters take one slice of the spread each, jittered inside it, and an offset from a sequence built to spread evenly, so no two come out near copies of each other. Every machine computes the same clusters from these keys, so no table is saved with the landclass.</p>
+  <p>A smooth world noise runs across the map. It picks which cluster shows, and near a transition it blends two of them. Left panel below is that map, one colour per cluster, dimmed where two of them blend, with an arrow on the tile axis. Right panel is the same ground, textured.</p>
+</section>
+
+<div class="wide">
+  <div class="plate">
+    <div class="plate-head">
+      <span class="plate-title">Plate 2 &middot; the cluster map and the ground it makes</span>
+      <span class="plate-note" id="p2note">noise 497 m - 5 clusters - dir 20, spread 60 deg</span>
+    </div>
+    <div class="plate-body plate-pair">
+      <figure>
+        <canvas id="cv2a" width="440" height="330" aria-label="The world coloured by which cluster shows there, with an arrow on each cluster's tile axis."></canvas>
+        <figcaption>which cluster shows, and its tile axis</figcaption>
+      </figure>
+      <figure>
+        <canvas id="cv2b" width="440" height="330" aria-label="The same ground textured with the de-tiled landclass, with object markers."></canvas>
+        <figcaption>the ground, with rendInst markers</figcaption>
+      </figure>
+    </div>
+    <div class="plate-foot">
+      <div class="ctls">
+        <div class="ctl"><label for="s2cl">detileClusters <span class="val" id="v2cl">5</span></label><input type="range" id="s2cl" min="1" max="8" step="1" value="5"></div>
+        <div class="ctl"><label for="s2ns">landDetileNoiseSize <span class="val" id="v2ns">497 m</span></label><input type="range" id="s2ns" min="150" max="1600" step="1" value="497"></div>
+      </div>
+      <div class="row">
+        <label class="tog"><input type="checkbox" id="t2band" checked> mark the blend band</label>
+        <label class="tog"><input type="checkbox" id="t2mark" checked> object markers</label>
+      </div>
+      <p class="cap">Every marker sits on the same painted ring inside the tile. That ring moves and turns with its cluster, which is the point: the objects read the cluster map the pixels read.</p>
+    </div>
+  </div>
+</div>
+
+<section style="padding-top:6px">
+  <p>Four things follow from this.</p>
+  <ul>
+    <li><b>A pixel reads at most two clusters</b>, whatever the count. The ground costs the same with eight as with two.</li>
+    <li><b>The blend band is wide.</b> 40% of the noise range shows a single cluster; the other 60% blends two. So most of your ground is a blend, not a corner case. More clusters switch more often, in narrower bands spread over the noise range.</li>
+    <li><b>The objects follow.</b> Tiled entities and planted objects with a density map take the cluster that shows where they stand, and turn with it. A tree authored on a tile stays on its tile.</li>
+    <li><b>The clusters do not get equal ground.</b> The noise spends most of its time near the middle of its range, so from three clusters up the middle ones cover most of the map and the first and last are rare; two clusters split it about evenly. With six clusters the engine selftest counts about 3% of the map for cluster 0. Raise the slider above and watch the map: every cluster's share narrows, and the new cluster takes the top of the noise range, the rare ground the last cluster held.</li>
+  </ul>
+</section>
+
+<!-- =============== 3. THE KEYS =============== -->
+<section>
+  <p class="eyebrow">3 &middot; The keys</p>
+  <h2>Three keys in the asset, one in the level</h2>
+  <p>The three landclass keys go in the <code>detail{}</code> block of <code>&lt;name&gt;.land.blk</code>, next to the <code>size</code> you already set. Leave them out and the landclass renders exactly as it does today.</p>
+
+<pre><code><span class="c">// &lt;name&gt;.land.blk</span>
+detail {
+  texture:t=<span class="k">"dunes_tex_d"</span>
+  size:p2=<span class="k">512,512</span>            <span class="c">// the tile size you already have, in metres</span>
+
+  detileClusters:i=<span class="k">3</span>        <span class="c">// 0 off (default), 1 plain turn, 2..8 de-tiled</span>
+  detileMainDir:r=<span class="k">30</span>         <span class="c">// degrees, the world direction of the tile U axis</span>
+  detileAngleSpread:r=<span class="k">20</span>     <span class="c">// degrees, how far cluster 1 and up may turn off that direction</span>
+}</code></pre>
+
+  <p>In War Thunder the keys reach the ground of a <b>simple, detailed or detailed_r</b> landclass; the DNG games de-tile the simple and the detailed ones only. It is the colormap that de-tiles: a detailed landclass's own detail texture and flowmap keep their tiling. On a mega (<code>splattingmap</code>) or an indexed (custom <code>shader</code>) landclass the keys are turned off when the asset loads, with an error in the tools console and in the game log, so its ground and its objects both stay plain: set them on a landclass whose ground can show them. The harness can still force one on with <code>lc.detile</code> or <code>landClassOverrides</code>: its combined shader covers the non-indexed mega variants too, so a mega tile de-tiles there and not in the game.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Key</th><th class="mono">Range</th><th class="mono">Default</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono"><b>detileClusters</b></td>
+          <td class="mono">0&ndash;8</td>
+          <td class="mono">0</td>
+          <td>How many copies of the tile the landclass shows. 0 is off. 1 turns the tile to <code>detileMainDir</code> and nothing else. Start at 4 and raise only while the repeat still shows: each cluster adds a little object generation time. A value outside the range is clamped and logs an error.</td>
+        </tr>
+        <tr>
+          <td class="mono"><b>detileMainDir</b></td>
+          <td class="mono">degrees</td>
+          <td class="mono">0</td>
+          <td>The world direction of the tile U axis, measured from world +X toward world +Z. Cluster 0 sits exactly here. This is where you point the wind, the plough or the slope.</td>
+        </tr>
+        <tr>
+          <td class="mono"><b>detileAngleSpread</b></td>
+          <td class="mono">degrees</td>
+          <td class="mono">180</td>
+          <td>How wide a sector clusters 1 and up may turn into, plus or minus. Each takes one stratum of it, so the farthest reaches the spread times 1 - 0.5 / (clusters - 1): at 2 clusters a 30 degree spread turns the copy by at most 15. Small values keep a directional texture pointing one way.</td>
+        </tr>
+        <tr>
+          <td class="mono">size <span class="tag na">existing</span></td>
+          <td class="mono">metres</td>
+          <td class="mono">1</td>
+          <td>Your tile size. It is also the range the cluster offsets are drawn from. <code>size</code> of zero or less keeps de-tiling off, whatever <code>detileClusters</code> says.</td>
+        </tr>
+        <tr>
+          <td class="mono"><b>landDetileNoiseSize</b><br><span class="hint">per level, not per landclass</span></td>
+          <td class="mono">metres</td>
+          <td class="mono">497</td>
+          <td>How far one cluster holds before another takes over. One value for the whole level, shared by every landclass and by the object generators. Change it and the objects move.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>Why 497 and not 512.</strong> The default noise size is deliberately not a power of two. A round number would beat against a power-of-two tile size and put the cluster changes on a visible rhythm.</p>
+  </div>
+
+  <h3>Setting it up</h3>
+  <ol>
+    <li>Open <code>&lt;name&gt;.land.blk</code> and find its <code>detail{}</code> block. <b>Check <code>size:p2</code> first.</b> It is the tile period in metres and the whole map is built on it, so a wrong size de-tiles at the wrong scale.</li>
+    <li>Add <code>detileClusters:i=4</code> and look at it. Four is what the harness gives a simple, detailed or detailed_r landclass whose asset sets no count. Raise it only while the repeat still shows.</li>
+    <li>For a directional texture add <code>detileMainDir</code>, keep the count at 2 to 4, and give it a small <code>detileAngleSpread</code>.</li>
+    <li>Rebuild the asset. The keys ride inside <code>detail{}</code>, so daBuild copies them with the block and no level is re-exported. The daEditor reads the asset source, so reloading the asset is enough there.</li>
+    <li>Set <code>landDetileNoiseSize:r</code> in the level blk only if 497 m does not suit the level. It applies to every landclass of that level.</li>
+    <li>Look at the result in the daEditor viewport or in the harness. In the harness, tune with <code>lc.detile</code> and <code>lc.noise</code> without a rebuild, then write the values you settled on back into the asset.</li>
+  </ol>
+
+  <h3>When it looks wrong</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>What you see</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Nothing changed at all</td><td>The landclass is off: <code>detileClusters:i=0</code>, or a <code>size</code> of 0. Or it is a mega or an indexed landclass: the tools console says <code>detileClusters ignored</code>, and the keys stay off for its ground and its objects (the harness can still force a non-indexed mega with <code>lc.detile</code>). Or the renderer never created the noise lookup table, which takes the whole level down the old path.</td></tr>
+        <tr><td>The texture goes soft in patches</td><td>The tile is structured. Those patches are the blend band. Do not de-tile it.</td></tr>
+        <tr><td>Dunes fight each other</td><td><code>detileAngleSpread</code> is too wide. Bring it back toward 10 degrees.</td></tr>
+        <tr><td>The ground moved but the objects did not</td><td>The ground is drawn every frame and the objects are generated once. Re-load the level, or re-generate, before comparing the two.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- =============== 4. DUNE RECIPE =============== -->
+<section>
+  <p class="eyebrow">4 &middot; Recipe &middot; a directional tile</p>
+  <h2>Dunes that keep one wind</h2>
+  <p>Barchan dunes are the hard case. Every crest reads as the same wind, so a cluster that turns 90 degrees does not hide the repeat, it breaks the desert. The fix is a narrow <code>detileAngleSpread</code> around the wind direction. The clusters then differ mostly by their offsets, which is enough to break the period, and every crest still reads as the same wind.</p>
+  <p>Keep the count low here, 2 to 4. Offsets do the work, so more clusters buy little for the generation time each one adds.</p>
+  <p>Move <b>detileAngleSpread</b> below. The rose on the right is the actual cluster angles, not a drawing. Watch the crests stop agreeing somewhere past 40 degrees.</p>
+</section>
+
+<div class="wide">
+  <div class="plate">
+    <div class="plate-head">
+      <span class="plate-title">Plate 3 &middot; barchan dunes, spread sweep</span>
+      <span class="plate-note" id="p3note">2600 m across - tile 512 m</span>
+    </div>
+    <div class="plate-body plate-pair" style="grid-template-columns:1fr 300px">
+      <figure><canvas id="cv3" width="560" height="380" aria-label="Top down dune field, de-tiled."></canvas></figure>
+      <figure><canvas id="cv3rose" width="300" height="380" aria-label="A rose showing the main direction, the allowed spread sector, and the actual angle of each cluster."></canvas><figcaption>cluster angles</figcaption></figure>
+    </div>
+    <div class="plate-foot">
+      <div class="ctls">
+        <div class="ctl"><label for="s3cl">detileClusters <span class="val" id="v3cl">3</span></label><input type="range" id="s3cl" min="0" max="8" step="1" value="3"></div>
+        <div class="ctl"><label for="s3dir">detileMainDir <span class="val" id="v3dir">0&deg;</span></label><input type="range" id="s3dir" min="0" max="359" step="1" value="0"></div>
+        <div class="ctl"><label for="s3sp">detileAngleSpread <span class="val" id="v3sp">10&deg;</span></label><input type="range" id="s3sp" min="0" max="180" step="1" value="10"></div>
+        <div class="ctl"><label for="s3ns">landDetileNoiseSize <span class="val" id="v3ns">497 m</span></label><input type="range" id="s3ns" min="150" max="1600" step="1" value="497"></div>
+      </div>
+      <div class="row">
+        <span class="hint">presets</span>
+        <button type="button" data-p3="0,0,180">off</button>
+        <button type="button" data-p3="3,0,10" class="on">dunes 3 / 0 / 10</button>
+        <button type="button" data-p3="4,0,25">desert 4 / 0 / 25</button>
+        <button type="button" data-p3="4,0,180">4 / 0 / 180 (breaks it)</button>
+        <span class="sep"></span>
+        <label class="tog"><input type="checkbox" id="t3grid"> tile grid</label>
+      </div>
+      <p class="cap">The dune tile is drawn here procedurally: crests across the wind, a lit windward slope and a dark lee. It is directional on purpose, so a wrong spread shows immediately.</p>
+    </div>
+  </div>
+</div>
+
+<section style="padding-top:6px">
+  <h3>What to paste</h3>
+  <p>Start at 10 degrees and open up only if the repeat still reads.</p>
+<pre><code><span class="c">// sand dunes: the wind runs along world +X</span>
+detail {
+  texture:t=<span class="k">"your_colormap"</span>      <span class="c">// your own, unchanged</span>
+  size:p2=<span class="k">512,512</span>
+  detileClusters:i=<span class="k">3</span>          <span class="c">// 2..4 for a directional tile</span>
+  detileMainDir:r=<span class="k">0</span>          <span class="c">// point this along the wind you painted</span>
+  detileAngleSpread:r=<span class="k">10</span>     <span class="c">// 10..30 keeps the crests reading as one wind</span>
+}</code></pre>
+  <ul>
+    <li><b>10 degrees</b> is the tight setting. Use it for barchan dunes, ripples, anything with a crest and a shadow.</li>
+    <li><b>25 degrees</b> is the open setting for a wider desert where the crests are softer.</li>
+    <li><b>Above about 40 degrees</b> a dune tile starts to fight itself, and the blend band shows crests crossing.</li>
+    <li>Same rule for leaning grass, wind-combed steppe, water ripples: point <code>detileMainDir</code> at the direction and keep the spread small.</li>
+  </ul>
+  <div class="note">
+    <p><strong>Setting only the direction.</strong> <code>detileClusters:i=1</code> turns the tile to <code>detileMainDir</code> and does nothing else. It aligns a texture to the world. It hides no repeat.</p>
+  </div>
+</section>
+
+<!-- =============== 5. FOREST RECIPE =============== -->
+<section>
+  <p class="eyebrow">5 &middot; Recipe &middot; an isotropic tile</p>
+  <h2>Forest, where any angle is a good angle</h2>
+  <p>A canopy from above has no direction, so it takes the easy setting: four to six clusters and the default 180 degree spread. You write one key. Start at four and go up only if the repeat still reads, because each cluster adds a little generation time for the trees.</p>
+  <p>The interesting part is the trees. A forest landclass plants rendInst objects from the same tile, and those follow the same clusters, as does a group planted through a density map. A planted group with neither scatters evenly and has no tile to follow. Turn de-tiling off below and the tree markers snap back to one grid, lined up with the texture repeat. Turn it on and both move together.</p>
+</section>
+
+<div class="wide">
+  <div class="plate">
+    <div class="plate-head">
+      <span class="plate-title">Plate 4 &middot; canopy, and the rendInsts on it</span>
+      <span class="plate-note" id="p4note">3000 m across - tile 512 m</span>
+    </div>
+    <div class="plate-body">
+      <canvas id="cv4" width="880" height="380" aria-label="Top down forest canopy with rendInst markers, de-tiled or plain."></canvas>
+    </div>
+    <div class="plate-foot">
+      <div class="ctls">
+        <div class="ctl"><label for="s4cl">detileClusters <span class="val" id="v4cl">4</span></label><input type="range" id="s4cl" min="0" max="8" step="1" value="4"></div>
+        <div class="ctl"><label for="s4sp">detileAngleSpread <span class="val" id="v4sp">180&deg;</span></label><input type="range" id="s4sp" min="0" max="180" step="1" value="180"></div>
+        <div class="ctl"><label for="s4ns">landDetileNoiseSize <span class="val" id="v4ns">497 m</span></label><input type="range" id="s4ns" min="150" max="1600" step="1" value="497"></div>
+      </div>
+      <div class="row">
+        <button type="button" data-p4="0,180">off</button>
+        <button type="button" data-p4="4,180" class="on">forest 4 / default spread</button>
+        <button type="button" data-p4="6,180">forest 6</button>
+        <span class="sep"></span>
+        <label class="tog"><input type="checkbox" id="t4mark" checked> rendInst markers</label>
+        <label class="tog"><input type="checkbox" id="t4grid"> tile grid</label>
+      </div>
+      <p class="cap">Markers stand for tiled entities and for planted objects that use a density map. Planted objects with no density map scatter evenly, so they have no tile to follow and nothing changes for them.</p>
+    </div>
+  </div>
+</div>
+
+<section style="padding-top:6px">
+<pre><code><span class="c">// forest canopy: isotropic, so the spread stays at its default</span>
+detail {
+  texture:t=<span class="k">"your_colormap"</span>      <span class="c">// your own, unchanged</span>
+  size:p2=<span class="k">512,512</span>
+  detileClusters:i=<span class="k">4</span>
+}</code></pre>
+  <p class="dim">The same one-key setting fits gravel, grass, scrub, rubble, snow and any other tile with no readable direction. Four to six is the working range. Two hide little, and past six the ground gains almost nothing while the generation cost keeps rising.</p>
+</section>
+
+<!-- =============== 6. WHAT NOT TO DE-TILE =============== -->
+<section>
+  <p class="eyebrow">6 &middot; The limit</p>
+  <h2>Structured tiles double-expose</h2>
+  <p>De-tiling blends two turned copies of one texture. If the eye continues the pattern, it sees both copies at once. Ploughed fields, paving, orchard rows, brickwork, anything with a straight edge that runs: the blend band turns into a double exposure, and it takes 60% of the noise range.</p>
+  <p>Below is a field tile with furrows and a track. Switch the band overlay on to see exactly where the two copies cross.</p>
+</section>
+
+<div class="wide">
+  <div class="plate">
+    <div class="plate-head">
+      <span class="plate-title">Plate 5 &middot; a structured tile, de-tiled badly</span>
+      <span class="plate-note">2200 m across - tile 512 m</span>
+    </div>
+    <div class="plate-body">
+      <canvas id="cv5" width="880" height="380" aria-label="Top down ploughed field with a track. Blend bands show two furrow directions crossing."></canvas>
+    </div>
+    <div class="plate-foot">
+      <div class="row">
+        <button type="button" data-p5="0" >de-tiling off</button>
+        <button type="button" data-p5="4" class="on">4 clusters, 180&deg; spread</button>
+        <button type="button" data-p5="4s">4 clusters, 10&deg; spread</button>
+        <span class="sep"></span>
+        <label class="tog"><input type="checkbox" id="t5band"> mark the blend band</label>
+      </div>
+      <p class="cap">Even the 10 degree version does not save it. A straight furrow shifted against itself still reads as two furrows. The answer for a structured tile is to leave <code>detileClusters</code> out, and break the repeat with masks, decals or a second landclass instead.</p>
+      <p class="cap">The blend band is not a thin seam. It takes 60% of the noise range, so this failure is the normal case for a structured tile, not an edge case.</p>
+    </div>
+  </div>
+</div>
+
+<section style="padding-top:6px">
+  <div class="note warn">
+    <p><strong>The test before you turn it on.</strong> Cover half the tile with the other half, turned 90 degrees, and look at the seam. If you can still tell where one ends, the tile is structured. Do not de-tile it.</p>
+  </div>
+</section>
+
+<!-- =============== 7. WHERE YOU SEE IT =============== -->
+<section>
+  <p class="eyebrow">7 &middot; Where you see it</p>
+  <h2>Three places, and what each one shows</h2>
+
+  <h3>AssetViewer</h3>
+  <p>The land plugin draws the ground the generated objects stand on and fills it with your colormap at the landclass size and offset, where the land shader starts it, so the repeat reads there as it does on terrain. It opens on one whole tile. Its property panel edits the polygon edge size (up to the 8 km square the preview generates objects in), the preview center with a <b>center on a tile</b> button, the presentation shape, and, for a landclass whose ground follows de-tiling, carries a <b>final look</b> checkbox and shows the three keys read-only. Save the <code>land.blk</code> and the panel and the preview reload with the new values; a new tile size or offset opens the view on a tile again.</p>
+  <p>Leave the checkbox off and the preview is the plain landclass: the plain tile, with the objects on the plain grid. That is the pattern you are tiling, at the scale you set it. Turn it on and the plugin composes the de-tiled ground on the CPU from the same clusters and the same noise the shader uses, and generates the objects on those clusters while that ground is shown (during a size drag both stay plain), so you tune the keys against the picture the game gives. One thing the preview cannot know is the level: it lays the pattern out at the default 497 m noise size, so on a level that sets another <code>landDetileNoiseSize</code> the patches are larger or smaller than this, while the three keys read the same. A landclass that generates the polygon's own surface gets no checkbox: that surface is drawn with its own material, which the keys never reach, so its objects stay on the plain grid. Grass is the other exception: the preview plants it on the plain grid, while in the game the grass mask follows the keys. A mega or an indexed landclass gets no checkbox either: its keys are turned off.</p>
+</section>
+
+<div class="wide">
+  <div class="schem">
+    <svg viewBox="0 0 720 380" role="img" aria-label="Schematic of the AssetViewer land plugin: the property panel on the left with polygon edge size, preview center, the final look checkbox and the de-tile keys, presentation type and the polygon tags, and the viewport on the right with the ground quad and the objects generated on it.">
+      <defs>
+        <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="var(--line-2)" stroke-width="1.6"></line>
+        </pattern>
+      </defs>
+
+      <!-- panel -->
+      <rect x="1" y="18" width="250" height="352" rx="3" fill="var(--sunk)" stroke="var(--line-2)"></rect>
+      <text x="10" y="12" fill="var(--ink-3)" font-family="var(--f-mono)" font-size="10" letter-spacing="1.4">PROPERTY PANEL</text>
+
+      <text x="14" y="42" fill="var(--ink-2)" font-family="var(--f-body)" font-size="12">polygon edge size</text>
+      <rect x="14" y="50" width="222" height="22" rx="2" fill="var(--surface)" stroke="var(--line-2)"></rect>
+      <text x="22" y="65" fill="var(--ink)" font-family="var(--f-mono)" font-size="12">100.0</text>
+      <text x="150" y="65" fill="var(--ink-3)" font-family="var(--f-mono)" font-size="10">10 .. 8192</text>
+
+      <text x="14" y="92" fill="var(--ink-2)" font-family="var(--f-body)" font-size="12">preview center</text>
+      <rect x="14" y="100" width="222" height="22" rx="2" fill="var(--surface)" stroke="var(--line-2)"></rect>
+      <text x="22" y="115" fill="var(--ink)" font-family="var(--f-mono)" font-size="12">0, 0</text>
+      <rect x="14" y="130" width="130" height="22" rx="2" fill="var(--surface)" stroke="var(--line-2)"></rect>
+      <text x="24" y="145" fill="var(--ink)" font-family="var(--f-body)" font-size="12">center on a tile</text>
+
+      <!-- the de-tiling control -->
+      <rect x="14" y="162" width="222" height="76" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.6"></rect>
+      <rect x="24" y="174" width="13" height="13" rx="2" fill="var(--accent)"></rect>
+      <path d="M27 180.5 l3 3 l6 -6.5" stroke="var(--sunk)" stroke-width="1.8" fill="none"></path>
+      <text x="45" y="185" fill="var(--ink)" font-family="var(--f-body)" font-size="12">final look (de-tiled ground)</text>
+      <text x="24" y="210" fill="var(--ink-3)" font-family="var(--f-mono)" font-size="10">de-tile clusters: 4</text>
+      <text x="24" y="226" fill="var(--ink-3)" font-family="var(--f-mono)" font-size="10">de-tile dir: 0 deg &plusmn; spread=10 deg</text>
+      <line x1="14" y1="248" x2="236" y2="248" stroke="var(--line-2)"></line>
+
+      <text x="14" y="270" fill="var(--ink-2)" font-family="var(--f-body)" font-size="12">presentation type:</text>
+      <circle cx="22" cy="286" r="5" fill="var(--accent)"></circle><text x="34" y="290" fill="var(--ink)" font-family="var(--f-body)" font-size="12">square</text>
+      <circle cx="22" cy="306" r="5" fill="none" stroke="var(--line-2)" stroke-width="1.5"></circle><text x="34" y="310" fill="var(--ink-2)" font-family="var(--f-body)" font-size="12">triangle</text>
+      <circle cx="22" cy="326" r="5" fill="none" stroke="var(--line-2)" stroke-width="1.5"></circle><text x="34" y="330" fill="var(--ink-2)" font-family="var(--f-body)" font-size="12">rhombus</text>
+
+      <line x1="14" y1="344" x2="236" y2="344" stroke="var(--line-2)"></line>
+      <text x="14" y="361" fill="var(--ink-3)" font-family="var(--f-body)" font-size="11.5" font-style="italic">Loft and polygon tags</text>
+
+      <!-- viewport -->
+      <rect x="276" y="18" width="443" height="352" rx="3" fill="var(--sunk)" stroke="var(--line-2)"></rect>
+      <text x="286" y="12" fill="var(--ink-3)" font-family="var(--f-mono)" font-size="10" letter-spacing="1.4">VIEWPORT</text>
+
+      <rect x="336" y="52" width="200" height="200" fill="url(#hatch)" stroke="var(--line-2)" stroke-width="1.5"></rect>
+      <text x="346" y="72" fill="var(--ink-2)" font-family="var(--f-mono)" font-size="10.5">the polygon, grown to whole tiles</text>
+      <text x="346" y="88" fill="var(--accent)" font-family="var(--f-mono)" font-size="10.5">the plain tile, or the de-tiled compose</text>
+
+      <!-- objects, turned -->
+      <g stroke="var(--accent)" stroke-width="1.8" fill="none">
+        <circle cx="382" cy="132" r="6"></circle><line x1="382" y1="132" x2="393" y2="127"></line>
+        <circle cx="446" cy="112" r="6"></circle><line x1="446" y1="112" x2="454" y2="121"></line>
+        <circle cx="504" cy="160" r="6"></circle><line x1="504" y1="160" x2="497" y2="170"></line>
+        <circle cx="404" cy="212" r="6"></circle><line x1="404" y1="212" x2="415" y2="216"></line>
+        <circle cx="478" cy="228" r="6"></circle><line x1="478" y1="228" x2="470" y2="236"></line>
+      </g>
+      <text x="346" y="242" fill="var(--accent)" font-family="var(--f-mono)" font-size="10.5">planted objects DO turn with their cluster</text>
+
+      <line x1="560" y1="132" x2="516" y2="150" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 3"></line>
+      <text x="566" y="128" fill="var(--ink-3)" font-family="var(--f-body)" font-size="11">objects and</text>
+      <text x="566" y="142" fill="var(--ink-3)" font-family="var(--f-body)" font-size="11">texture agree</text>
+    </svg>
+  </div>
+  <p class="cap" style="margin:8px 2px 26px">Schematic, drawn from the plugin source. Not a screenshot.</p>
+</div>
+
+<section style="padding-top:0">
+  <div class="tw">
+    <table>
+      <thead><tr><th>In the AssetViewer</th><th>What it shows</th></tr></thead>
+      <tbody>
+        <tr><td>The ground under the objects</td><td><span class="tag ok">both</span> the plain tile, or the de-tiled compose</td></tr>
+        <tr><td>Planted objects with a density map</td><td><span class="tag ok">final look</span> each spot reads the density map of the cluster it stands in, unless the landclass draws the surface</td></tr>
+        <tr><td>Tiled entities in the polygon</td><td><span class="tag ok">final look</span> follows, unless the polygon turns its own grid, or the landclass draws the surface</td></tr>
+        <tr><td>Planted objects with no density map</td><td><span class="tag na">n/a</span> even scatter, no tile to follow</td></tr>
+        <tr><td>Grass</td><td><span class="tag na">plain</span> here only; the game's grass mask follows the keys</td></tr>
+        <tr><td>De-tiling keys in the panel</td><td><span class="tag ok">read-only</span> edit them in the land.blk; a save reloads the preview</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The daEditor viewport</h3>
+  <p>The terrain in the daEditor viewport does de-tile, and the object generators and the colour bake follow it. Two things to know while you work there.</p>
+  <ul>
+    <li>The editor reads the level blk, so a level's <code>landDetileNoiseSize</code> reaches the viewport, the generators and the colour bake; a project with no level blk gets the 497 metre default.</li>
+    <li>Colour generation follows de-tiling for world-mapped images that are not clamped. Layered colour generation and grass placement do not follow yet.</li>
+  </ul>
+
+  <h3>The testLandClass harness</h3>
+  <p>This is where you tune without a re-export. It lives in <code>samples/testLandClass</code>: build <code>prog</code> with jam, compile its shaders (<code>../../../../tools/dagor_cdk/windows-x86_64/dsc2-dx12-dev.exe ./shaders_dx12.blk -shaderOn</code> in <code>prog/shaders</code>, which writes <code>game/compiledShaders/gameDX12</code>), run the exe in <code>game</code>, and point it at a level through <code>settings.blk</code> or a <code>-config</code> override. Then edit the de-tiling live from the console and look.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="mono">Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td class="mono"><b>lc.list</b></td><td>Print every landclass with its current de-tiling.</td></tr>
+        <tr><td class="mono"><b>lc.detile</b> &lt;name|*&gt; &lt;clusters&gt; [dir] [spread]</td><td>Edit one landclass, or all of them with <code>*</code>. Direction and spread are degrees. This is the fast loop.</td></tr>
+        <tr><td class="mono"><b>lc.noise</b> &lt;metres&gt;</td><td>Set the level noise size.</td></tr>
+        <tr><td class="mono"><b>lc.debug</b> [0|1]</td><td>Tint the clipmap by landclass family: red de-tiled, green mega, blue indexed.</td></tr>
+        <tr><td class="mono"><b>lc.checker</b> [0|1]</td><td>Swap every tile for a red and green checker, which shows the repeat and the cluster edges plainly. Indexed landclasses keep theirs: their textures are indices, not tiles.</td></tr>
+      </tbody>
+    </table>
+  </div>
+<pre><code><span class="c">// a tuning session, in order</span>
+lc.list
+lc.detile * 0                 <span class="c">// everything back to plain, to compare</span>
+lc.detile egypt_sand_dunes 3 0 10        <span class="c">// a name lc.list printed, not this one</span>
+lc.noise 497</code></pre>
+  <p>To make it stick across launches, put it in the harness <code>settings.blk</code> instead:</p>
+<pre><code>level:t="levels/avg_poland.bin"  <span class="c">// the level to load, under the harness basePath</span>
+landDetileNoiseSize:r=<span class="k">497</span>
+landClassOverrides{
+  egypt_sand_dunes{        <span class="c">// your landclass</span>
+    detileClusters:i=<span class="k">3</span>
+    detileMainDir:r=<span class="k">0</span>
+    detileAngleSpread:r=<span class="k">10</span>
+  }
+}</code></pre>
+  <p class="dim">Where the asset sets no count, the harness de-tiles a simple, detailed or detailed_r landclass with four clusters, so a level always starts with something to look at. An override wins by name.</p>
+</section>
+
+</main>
+
+<footer class="grid">
+  <div>
+    <p class="eyebrow">What this page fakes</p>
+    <ul>
+      <li>Every tile here is drawn in your browser from procedural noise. No shipping texture is used, and a real asset will read differently.</li>
+      <li>The de-tiling map is not faked. The hash, the 64&times;64 noise lookup table, the node weights and the cluster offsets are ported from the engine, and the strip below runs them against the values the rendInstMath selftest holds. No pin covers the cluster rotation: this page turns with <code>Math.sin</code> and <code>Math.cos</code>, the engine with vecmath's polynomial, so the two differ by about a ulp.</li>
+      <li>The blend uses each tile's own mean. The shader reads the coarsest mip of the colormap, which is the same quantity by another route.</li>
+      <li>The view is a flat top-down map with no terrain, no lighting, no clipmap mip selection and no streaming. Real ground is seen at an angle, and the repeat reads differently there.</li>
+      <li>The AssetViewer figure is a schematic drawn from the plugin source, not a screenshot.</li>
+      <li>Markers stand for generated objects, but they are not real rendInst assets. Each tiled marker keeps the cluster the texture shows at its spot, the rule of the tiled generator, though the page walks every cluster where the generator walks only those that can show; planted markers are schematic.</li>
+    </ul>
+    <div class="pins" id="pinStrip"></div>
+    <p class="cap">Source: <code>prog/gameLibs/landMesh/detiled_landclass.md</code> and the shader and CPU twins next to it.</p>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. The engine's de-tile math, ported and pinned.
+      landDetile.h + shaders/land_detile_inc.dshl
+   ============================================================ */
+var HARDNESS = 0.2;
+
+function pcg_hash(v){
+  var state = (Math.imul(v >>> 0, 747796405) + 2891336453) >>> 0;
+  var word = Math.imul(((state >>> ((state >>> 28) + 4)) ^ state) >>> 0, 277803737) >>> 0;
+  return ((word >>> 22) ^ word) >>> 0;
+}
+function uint_noise1D(pos, seed){
+  var m = pos >>> 0;
+  m = Math.imul(m, 0x68E31DA4) >>> 0;
+  m = (m + seed) >>> 0;
+  m = (m ^ (m >>> 8)) >>> 0;
+  m = (m + 0xB5297A4D) >>> 0;
+  m = (m ^ (m << 8)) >>> 0;
+  m = Math.imul(m, 0x1B56C4E9) >>> 0;
+  m = (m ^ (m >>> 8)) >>> 0;
+  return m;
+}
+/* l8_64_noise_lut(): render/l8_64_noise_lut_api.h */
+function l8_byte(x, y){ return uint_noise1D(((((y & 63) * 64) + (x & 63)) >>> 0), 0x11231231) & 0xFF; }
+var LUT = new Float32Array(64 * 64);
+for (var ly = 0; ly < 64; ly++)
+  for (var lx = 0; lx < 64; lx++) LUT[(ly << 6) | lx] = l8_byte(lx, ly) / 255;
+function lutAt(x, y){ return LUT[((y & 63) << 6) | (x & 63)]; }
+
+/* smooth_noise_value(): quintic value noise over the LUT */
+function dnoise(px, py){
+  var fx = Math.floor(px), fy = Math.floor(py);
+  var x = fx | 0, y = fy | 0;
+  var tx = px - fx, ty = py - fy;
+  var bx = tx*tx*tx*(tx*(tx*6-15)+10), by = ty*ty*ty*(ty*(ty*6-15)+10);
+  return lutAt(x,y)*(1-bx)*(1-by) + lutAt(x+1,y)*bx*(1-by) + lutAt(x,y+1)*(1-bx)*by + lutAt(x+1,y+1)*bx*by;
+}
+/* detile_nodes(): which cluster, and its share */
+var _nseed = 0, _nw = 1;
+function nodes(s){
+  var fs = Math.floor(s);
+  var seed = fs | 0, w = 1 - (s - fs);
+  if (w <= HARDNESS){ seed += 1; w = 1; }
+  else if (w < 1 - HARDNESS){ w = (w - HARDNESS) * (1 / (1 - 2*HARDNESS)); w = w*w*(3 - 2*w); }
+  else w = 1;
+  _nseed = seed; _nw = w;
+}
+function nodes_at(d, wx, wy, ns){ nodes(dnoise(wx / ns, wy / ns) * (d.clusters - 1)); }
+function dominant_cluster(d, wx, wy, ns){
+  if (d.clusters < 1) return 0;
+  nodes_at(d, wx, wy, ns);
+  return _nw >= 0.5 ? _nseed : _nseed + 1;
+}
+/* detile_cluster(): cluster 0 exact, the rest one stratum of the spread each plus an R2 offset */
+var R2X = 0.7548776662, R2Y = 0.5698402910;
+function cluster(d, k){
+  var ang = d.angle, ox = 0, oy = 0;
+  if (k > 0){
+    var jitter = (pcg_hash((k + 1) >>> 0) & 0xFFFF) / 65535;
+    var t = (k - 1 + 0.25 + 0.5 * jitter) / Math.max(d.clusters - 1, 1);
+    ang += (t * 2 - 1) * d.spread;
+    ox = (R2X * k % 1) * d.size;
+    oy = (R2Y * k % 1) * d.size;
+  }
+  return { s: Math.sin(ang), c: Math.cos(ang), ox: ox, oy: oy, ang: ang };
+}
+function to_pattern_x(c, x, y){ return c.c*x + c.s*y + c.ox; }
+function to_pattern_y(c, x, y){ return c.c*y - c.s*x + c.oy; }
+function to_world(c, x, y){ var vx = x - c.ox, vy = y - c.oy; return [c.c*vx - c.s*vy, c.c*vy + c.s*vx]; }
+
+var D2R = Math.PI / 180;
+function mkDetile(clusters, dirDeg, spreadDeg, sizeM){
+  return { clusters: clusters, angle: dirDeg * D2R, spread: spreadDeg * D2R, size: sizeM };
+}
+
+/* ---- the selftest pins, run in the browser ---- */
+function runPins(){
+  var r = [], f = 0;
+  function chk(name, ok){ r.push({ n: name, ok: ok }); if (!ok) f++; }
+  chk("pcg_hash", pcg_hash(2) === 0x7A7ECC88);
+  chk("lut byte 65", l8_byte(3, 5) === 65);
+  var c1 = cluster(mkDetile(2, 0, 0, 65535), 1);
+  chk("cluster offset", Math.abs(c1.ox - 49470.91) < 0.1 && Math.abs(c1.oy - 37344.48) < 0.1);
+  chk("to_pattern axes", to_pattern_x({s:1,c:0,ox:0,oy:0},1,0) === 0 && to_pattern_y({s:1,c:0,ox:0,oy:0},1,0) === -1);
+  var n0 = dnoise(1234.5/1024, -6789.25/1024);
+  chk("noise value", Math.abs(n0 - 0.326207131) <= 1e-5);
+  nodes(n0 * 5);
+  chk("node weight", _nseed === 1 && Math.abs(_nw - 0.193243474) <= 1e-4);
+  var d6 = mkDetile(6, 30, 70, 512);
+  chk("dominant picks",
+    dominant_cluster(d6, 100, 200, 1024) === 3 &&
+    dominant_cluster(d6, -5000.25, 12345.75, 1024) === 2 &&
+    dominant_cluster(d6, 30000, -25000.5, 1024) === 4);
+  return { list: r, fails: f };
+}
+(function(){
+  var res = runPins(), box = document.getElementById("pinStrip");
+  for (var i = 0; i < res.list.length; i++){
+    var s = document.createElement("span");
+    s.className = "pin";
+    s.innerHTML = (res.list[i].ok ? "<b>&#10003;</b> " : "&#10007; ") + res.list[i].n;
+    box.appendChild(s);
+  }
+  var t = document.createElement("span");
+  t.className = "pin";
+  t.innerHTML = res.fails === 0
+    ? "<b>" + res.list.length + " of " + res.list.length + "</b> pins: this page's math, against the values the engine selftest holds"
+    : res.fails + " pin(s) failed";
+  box.appendChild(t);
+})();
+
+/* ============================================================
+   2. Procedural tiles. These are the page's own, not the engine's.
+      Every one wraps exactly at its edge.
+   ============================================================ */
+var TRES = 256;
+
+function h2(ix, iy, seed){
+  var k = (Math.imul(ix & 1023, 1031) + (iy & 1023)) >>> 0;
+  return (pcg_hash((k ^ Math.imul(seed, 2654435761)) >>> 0) & 0xFFFF) / 65535;
+}
+/* value noise that wraps every `per` lattice units */
+function vnoise(x, y, per, seed){
+  var fx = Math.floor(x), fy = Math.floor(y);
+  var tx = x - fx, ty = y - fy;
+  var bx = tx*tx*tx*(tx*(tx*6-15)+10), by = ty*ty*ty*(ty*(ty*6-15)+10);
+  var x0 = ((fx % per) + per) % per, y0 = ((fy % per) + per) % per;
+  var x1 = (x0 + 1) % per, y1 = (y0 + 1) % per;
+  return h2(x0,y0,seed)*(1-bx)*(1-by) + h2(x1,y0,seed)*bx*(1-by)
+       + h2(x0,y1,seed)*(1-bx)*by + h2(x1,y1,seed)*bx*by;
+}
+function fbm(u, v, seed){
+  return 0.55 * vnoise(u*8, v*8, 8, seed)
+       + 0.28 * vnoise(u*16, v*16, 16, seed + 71)
+       + 0.12 * vnoise(u*32, v*32, 32, seed + 173)
+       + 0.05 * vnoise(u*64, v*64, 64, seed + 977);
+}
+function clamp01(v){ return v < 0 ? 0 : (v > 1 ? 1 : v); }
+
+/* the landmark every tile carries, so a marker can be checked against it */
+var ANCHORS = [[0.24, 0.28], [0.70, 0.71]];
+
+function blobW(buf, cx, cy, rad, r, g, b, a){
+  var x0 = Math.floor(cx - rad), x1 = Math.ceil(cx + rad);
+  var y0 = Math.floor(cy - rad), y1 = Math.ceil(cy + rad);
+  for (var y = y0; y <= y1; y++){
+    for (var x = x0; x <= x1; x++){
+      var dx = x - cx, dy = y - cy, dd = dx*dx + dy*dy;
+      if (dd > rad*rad) continue;
+      var t = 1 - Math.sqrt(dd) / rad;
+      var w = a * t * t * (3 - 2*t);
+      var o = (((y & 255) << 8) | (x & 255)) * 3;
+      buf[o]   += (r - buf[o])   * w;
+      buf[o+1] += (g - buf[o+1]) * w;
+      buf[o+2] += (b - buf[o+2]) * w;
+    }
+  }
+}
+function ringW(buf, cx, cy, rad, wdt, r, g, b, a){
+  var x0 = Math.floor(cx - rad - wdt), x1 = Math.ceil(cx + rad + wdt);
+  var y0 = Math.floor(cy - rad - wdt), y1 = Math.ceil(cy + rad + wdt);
+  for (var y = y0; y <= y1; y++){
+    for (var x = x0; x <= x1; x++){
+      var dx = x - cx, dy = y - cy;
+      var dist = Math.abs(Math.sqrt(dx*dx + dy*dy) - rad);
+      if (dist > wdt) continue;
+      var w = a * (1 - dist / wdt);
+      var o = (((y & 255) << 8) | (x & 255)) * 3;
+      buf[o]   += (r - buf[o])   * w;
+      buf[o+1] += (g - buf[o+1]) * w;
+      buf[o+2] += (b - buf[o+2]) * w;
+    }
+  }
+}
+
+function buildTile(kind){
+  var buf = new Float32Array(TRES * TRES * 3);
+  var x, y, u, v, o, n;
+
+  if (kind === "dunes"){
+    /* barchans: the crest runs across the wind, the slip face is short and
+       steep on the lee side, so the tile is strongly directional */
+    var ND = 4, WIND = 0.74;
+    for (y = 0; y < TRES; y++){
+      for (x = 0; x < TRES; x++){
+        u = x / TRES; v = y / TRES;
+        var warp = 0.13*(vnoise(u*2, v*2, 2, 31) - 0.5) + 0.06*(vnoise(u*4, v*4, 4, 57) - 0.5);
+        var ph = (u + warp) * ND;
+        var f = ph - Math.floor(ph);
+        var h, dh, t;
+        if (f < WIND){ t = f / WIND; h = t*t*(3-2*t); dh = 6*t*(1-t)/WIND; }
+        else { t = (f - WIND) / (1 - WIND); h = 1 - t*t*(3-2*t); dh = -6*t*(1-t)/(1-WIND); }
+        /* crescents: a dune dies out in places and leaves flat sand between its horns */
+        var amp = clamp01(1.7 * vnoise(u*3, v*3, 3, 11) - 0.25);
+        h *= amp; dh *= amp;
+        var crest = h > 0.72 ? (h - 0.72) / 0.28 : 0;
+        var rip = (f < WIND ? 1 : 0.2) * 0.030 * Math.sin((u*26 + 0.7*(vnoise(u*6, v*6, 6, 90) - 0.5)) * Math.PI * 2);
+        var grain = 0.045 * (fbm(u, v, 5) - 0.5);
+        var s = clamp01(0.54 + 0.08*dh + 0.17*(h - 0.5) + 0.15*crest*crest + rip + grain);
+        o = (y * TRES + x) * 3;
+        buf[o]   = 108 + 138*s;
+        buf[o+1] =  92 + 124*s;
+        buf[o+2] =  80 +  86*s;
+      }
+    }
+    /* gravel between the horns, and the landmarks */
+    for (var i = 0; i < 14; i++){
+      var gx = h2(i, 3, 401) * TRES, gy = h2(i, 9, 402) * TRES;
+      blobW(buf, gx, gy, 6 + 10 * h2(i, 17, 403), 104, 90, 74, 0.42);
+    }
+    for (var a = 0; a < ANCHORS.length; a++){
+      ringW(buf, ANCHORS[a][0]*TRES, ANCHORS[a][1]*TRES, 9, 2.6, 236, 226, 200, 0.95);
+      blobW(buf, ANCHORS[a][0]*TRES, ANCHORS[a][1]*TRES, 5, 96, 82, 66, 0.85);
+    }
+  }
+  else if (kind === "forest"){
+    for (y = 0; y < TRES; y++){
+      for (x = 0; x < TRES; x++){
+        u = x / TRES; v = y / TRES;
+        n = fbm(u, v, 21);
+        o = (y * TRES + x) * 3;
+        buf[o]   = 30 + 26 * n;
+        buf[o+1] = 44 + 34 * n;
+        buf[o+2] = 24 + 20 * n;
+      }
+    }
+    /* crowns */
+    for (var t = 0; t < 620; t++){
+      var cx = h2(t, 1, 700) * TRES, cy = h2(t, 2, 701) * TRES;
+      var rad = 3 + 6.5 * h2(t, 3, 702);
+      var tone = h2(t, 4, 703);
+      var gr = 58 + 62 * tone, rr = 34 + 40 * tone, bb = 26 + 30 * tone;
+      blobW(buf, cx, cy, rad, rr, gr, bb, 0.92);
+      blobW(buf, cx - rad*0.3, cy - rad*0.3, rad*0.45, rr + 34, gr + 40, bb + 24, 0.7); /* sun side */
+    }
+    /* a few clearings so the repeat is easy to spot when it is there */
+    for (var cl = 0; cl < 5; cl++){
+      blobW(buf, h2(cl, 5, 800)*TRES, h2(cl, 6, 801)*TRES, 12 + 12*h2(cl, 7, 802), 116, 118, 76, 0.85);
+    }
+    for (var a2 = 0; a2 < ANCHORS.length; a2++){
+      ringW(buf, ANCHORS[a2][0]*TRES, ANCHORS[a2][1]*TRES, 10, 3, 208, 206, 150, 0.95);
+      blobW(buf, ANCHORS[a2][0]*TRES, ANCHORS[a2][1]*TRES, 5.5, 132, 136, 92, 0.9);
+    }
+  }
+  else { /* field: structured on purpose, so the blend band fails visibly */
+    for (y = 0; y < TRES; y++){
+      for (x = 0; x < TRES; x++){
+        u = x / TRES; v = y / TRES;
+        /* furrows run along U, so they are straight lines the eye continues */
+        var fur = Math.pow(0.5 + 0.5 * Math.sin(v * 12 * Math.PI * 2), 0.65);
+        var soil = fbm(u, v, 44);
+        o = (y * TRES + x) * 3;
+        var lum = 0.20 + 0.58 * fur + 0.18 * soil;
+        buf[o]   = 88 + 104 * lum;
+        buf[o+1] = 68 +  86 * lum;
+        buf[o+2] = 50 +  60 * lum;
+        /* a headland and two tramlines: long straight edges, hard to miss when doubled */
+        if (y > 120 && y < 134){ buf[o] = 158; buf[o+1] = 150; buf[o+2] = 128; }
+        if ((x > 20 && x < 31) || (x > 148 && x < 157)){ buf[o] = 132; buf[o+1] = 122; buf[o+2] = 100; }
+      }
+    }
+    for (var a3 = 0; a3 < ANCHORS.length; a3++){
+      ringW(buf, ANCHORS[a3][0]*TRES, ANCHORS[a3][1]*TRES, 9, 2.6, 226, 216, 190, 0.9);
+    }
+  }
+
+  /* mip chain, so a minified plate does not alias */
+  var mips = [], res = TRES, cur = new Uint8ClampedArray(TRES * TRES * 3);
+  for (var q = 0; q < cur.length; q++) cur[q] = buf[q];
+  mips.push(cur);
+  while (res > 64){
+    var half = res >> 1, nx = new Uint8ClampedArray(half * half * 3), src = mips[mips.length - 1];
+    for (var yy = 0; yy < half; yy++)
+      for (var xx = 0; xx < half; xx++)
+        for (var ch = 0; ch < 3; ch++)
+          nx[(yy*half + xx)*3 + ch] = (
+            src[((yy*2)*res + xx*2)*3 + ch] + src[((yy*2)*res + xx*2+1)*3 + ch] +
+            src[((yy*2+1)*res + xx*2)*3 + ch] + src[((yy*2+1)*res + xx*2+1)*3 + ch]) * 0.25;
+    mips.push(nx);
+    res = half;
+  }
+  var mr = 0, mg = 0, mb = 0;
+  for (var m = 0; m < TRES * TRES; m++){ mr += mips[0][m*3]; mg += mips[0][m*3+1]; mb += mips[0][m*3+2]; }
+  var cnt = TRES * TRES;
+  return { mips: mips, mean: [mr/cnt, mg/cnt, mb/cnt] };
+}
+
+var TILES = { dunes: buildTile("dunes"), forest: buildTile("forest"), field: buildTile("field") };
+
+/* ============================================================
+   3. The per-pixel renderer
+   ============================================================ */
+var _tr = 0, _tg = 0, _tb = 0;
+function tap(mip, res, u, v){
+  var fu = u * res - 0.5, fv = v * res - 0.5;
+  var iu = Math.floor(fu), iv = Math.floor(fv);
+  var du = fu - iu, dv = fv - iv;
+  var m = res - 1;
+  var u0 = iu & m, u1 = (iu + 1) & m, v0 = iv & m, v1 = (iv + 1) & m;
+  var o00 = (v0*res + u0)*3, o10 = (v0*res + u1)*3, o01 = (v1*res + u0)*3, o11 = (v1*res + u1)*3;
+  var w00 = (1-du)*(1-dv), w10 = du*(1-dv), w01 = (1-du)*dv, w11 = du*dv;
+  _tr = mip[o00]*w00 + mip[o10]*w10 + mip[o01]*w01 + mip[o11]*w11;
+  _tg = mip[o00+1]*w00 + mip[o10+1]*w10 + mip[o01+1]*w01 + mip[o11+1]*w11;
+  _tb = mip[o00+2]*w00 + mip[o10+2]*w10 + mip[o01+2]*w01 + mip[o11+2]*w11;
+}
+
+var CLUSTER_HUE = [
+  [214,152,60], [86,150,176], [176,96,140], [110,168,104],
+  [188,120,90], [128,128,190], [200,180,86], [96,166,158]
+];
+
+/*
+  opt: tile, d, noiseSize, viewM, ox, oz, mode ("detiled"|"split"),
+       wipe, band (bool), clusterMap (bool)
+*/
+function renderField(img, W, H, opt){
+  var px = img.data;
+  var d = opt.d, ns = opt.noiseSize, tile = opt.tile;
+  var mpp = opt.viewM / W;
+  var size = d.size, inv = 1 / size;
+
+  /* one mip for the whole plate: the scale is constant here */
+  var tpp = mpp * TRES / size;
+  var lod = Math.max(0, Math.min(tile.mips.length - 1, Math.round(Math.log(Math.max(tpp, 1e-4)) / Math.LN2)));
+  var mip = tile.mips[lod], res = TRES >> lod;
+  var mean = tile.mean;
+
+  /* cluster transforms are per plate, not per pixel */
+  var cs = [];
+  for (var k = 0; k < 8; k++) cs.push(cluster(d, k));
+
+  var splitAt = opt.mode === "split" ? Math.round(W * opt.wipe) : -1;
+  var on = d.clusters >= 1;
+
+  for (var y = 0; y < H; y++){
+    var wz = opt.oz + (y + 0.5) * mpp;
+    for (var x = 0; x < W; x++){
+      var wx = opt.ox + (x + 0.5) * mpp;
+      var o = (y * W + x) * 4;
+      var detiled = on && (splitAt < 0 || x >= splitAt);
+
+      if (!detiled){
+        tap(mip, res, wx * inv, -wz * inv);
+        px[o] = _tr; px[o+1] = _tg; px[o+2] = _tb; px[o+3] = 255;
+        continue;
+      }
+
+      nodes_at(d, wx, wz, ns);
+      var seed = _nseed, w = _nw;
+
+      if (opt.clusterMap){
+        var kk = (w >= 0.5 ? seed : seed + 1) & 7;
+        var hue = CLUSTER_HUE[kk];
+        var shade = w >= 1 ? 1 : 0.72;
+        px[o] = hue[0]*shade; px[o+1] = hue[1]*shade; px[o+2] = hue[2]*shade; px[o+3] = 255;
+        continue;
+      }
+
+      var c0 = cs[Math.min(seed, cs.length - 1)];
+      var qx = to_pattern_x(c0, wx, wz), qy = to_pattern_y(c0, wx, wz);
+      tap(mip, res, qx * inv, -qy * inv);
+      var r = _tr, g = _tg, b = _tb;
+
+      if (w < 1){
+        var c1 = cs[Math.min(seed + 1, cs.length - 1)];
+        var q1x = to_pattern_x(c1, wx, wz), q1y = to_pattern_y(c1, wx, wz);
+        tap(mip, res, q1x * inv, -q1y * inv);
+        /* variance preserving, exactly as detile_sample does it */
+        var k2 = 1 / Math.sqrt(w*w + (1-w)*(1-w));
+        r = Math.min(255, Math.max(0, (_tr + (r - _tr) * w - mean[0]) * k2 + mean[0]));
+        g = Math.min(255, Math.max(0, (_tg + (g - _tg) * w - mean[1]) * k2 + mean[1]));
+        b = Math.min(255, Math.max(0, (_tb + (b - _tb) * w - mean[2]) * k2 + mean[2]));
+        if (opt.band){ r = r*0.90 + 196*0.10; g = g*0.90 + 34*0.10; b = b*0.90 + 118*0.10; }
+      }
+      px[o] = r; px[o+1] = g; px[o+2] = b; px[o+3] = 255;
+    }
+  }
+  return { splitAt: splitAt };
+}
+
+/* ---- the marker walk: ClusterWalk, cut down to what a picture needs ---- */
+function walkMarkers(d, opt, W, H, out){
+  var ns = opt.noiseSize, size = d.size;
+  var x0 = opt.ox, x1 = opt.ox + opt.viewM, z0 = opt.oz, z1 = opt.oz + opt.viewM * H / W;
+  var kMax = d.clusters >= 1 ? d.clusters : 1;
+
+  for (var k = 0; k < kMax; k++){
+    var c = d.clusters >= 1 ? cluster(d, k) : { s: 0, c: 1, ox: 0, oy: 0, ang: 0 };
+    /* the pattern rect that covers the view */
+    var bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+    var corners = [[x0,z0],[x1,z0],[x0,z1],[x1,z1]];
+    for (var i = 0; i < 4; i++){
+      var qx = to_pattern_x(c, corners[i][0], corners[i][1]);
+      var qy = to_pattern_y(c, corners[i][0], corners[i][1]);
+      if (qx < bx0) bx0 = qx; if (qx > bx1) bx1 = qx;
+      if (qy < by0) by0 = qy; if (qy > by1) by1 = qy;
+    }
+    for (var a = 0; a < ANCHORS.length; a++){
+      var au = ANCHORS[a][0], av = ANCHORS[a][1];
+      var i0 = Math.floor(bx0 / size - au) - 1, i1 = Math.ceil(bx1 / size - au) + 1;
+      var j0 = Math.floor(-by1 / size - av) - 1, j1 = Math.ceil(-by0 / size - av) + 1;
+        for (var ii = i0; ii <= i1; ii++){
+        for (var jj = j0; jj <= j1; jj++){
+          var pqx = (ii + au) * size, pqy = -(jj + av) * size;
+          var w = to_world(c, pqx, pqy);
+          if (w[0] < x0 || w[0] >= x1 || w[1] < z0 || w[1] >= z1) continue;
+          if (dominant_cluster(d, w[0], w[1], ns) !== k) continue;
+          out.push({ x: w[0], z: w[1], s: c.s, c: c.c });
+        }
+      }
+    }
+  }
+}
+
+/* ============================================================
+   4. Theme tokens for anything drawn with the 2d context
+   ============================================================ */
+var TOK = {};
+function readTokens(){
+  var cs = getComputedStyle(document.documentElement);
+  ["--ink-2","--ink-3","--line-2","--accent","--surface","--warn","--ok"].forEach(function(n){
+    TOK[n] = cs.getPropertyValue(n).trim();
+  });
+}
+readTokens();
+
+/* ============================================================
+   5. Plates
+   ============================================================ */
+function coalesce(fn){
+  var pending = false;
+  return function(){
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(function(){ pending = false; fn(); });
+  };
+}
+/* a group of preset buttons: apply(value) sets the plate, and the clicked one lights up */
+function wirePresets(attr, apply){
+  var all = document.querySelectorAll("[" + attr + "]");
+  Array.prototype.forEach.call(all, function(b){
+    b.addEventListener("click", function(){
+      apply(b.getAttribute(attr));
+      Array.prototype.forEach.call(all, function(o){ o.classList.remove("on"); });
+      b.classList.add("on");
+    });
+  });
+}
+function drawTileGrid(g, opt, W, H, clipX1){
+  var size = opt.d.size, mpp = opt.viewM / W;
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, clipX1, H);
+  g.clip();
+  g.strokeStyle = "rgba(255,255,255,.36)";
+  g.lineWidth = 1;
+  g.setLineDash([4, 4]);
+  var gx0 = Math.floor(opt.ox / size) * size;
+  for (var wx = gx0; wx < opt.ox + opt.viewM; wx += size){
+    var sx = Math.round((wx - opt.ox) / mpp) + 0.5;
+    g.beginPath(); g.moveTo(sx, 0); g.lineTo(sx, H); g.stroke();
+  }
+  var gz0 = Math.floor(opt.oz / size) * size;
+  for (var wz = gz0; wz < opt.oz + H * mpp; wz += size){
+    var sy = Math.round((wz - opt.oz) / mpp) + 0.5;
+    g.beginPath(); g.moveTo(0, sy); g.lineTo(W, sy); g.stroke();
+  }
+  g.restore();
+}
+function drawMarkers(g, opt, W, list){
+  var mpp = opt.viewM / W;
+  g.save();
+  g.lineWidth = 2;
+  for (var i = 0; i < list.length; i++){
+    var m = list[i];
+    var sx = (m.x - opt.ox) / mpp, sy = (m.z - opt.oz) / mpp;
+    g.strokeStyle = TOK["--accent"];
+    g.beginPath(); g.arc(sx, sy, 7, 0, Math.PI*2); g.stroke();
+    /* the stem shows the tile axis, the way rotate_tm turns an object */
+    g.beginPath();
+    g.moveTo(sx, sy);
+    g.lineTo(sx + m.c * 15, sy + m.s * 15);
+    g.stroke();
+  }
+  g.restore();
+}
+function labelBox(g, x, y, text){
+  g.save();
+  g.font = "600 11px 'IBM Plex Mono', monospace";
+  var w = g.measureText(text).width;
+  g.fillStyle = "rgba(0,0,0,.55)";
+  g.fillRect(x - 5, y - 13, w + 10, 19);
+  g.fillStyle = "#fff";
+  g.fillText(text, x, y);
+  g.restore();
+}
+
+/* ---------- Plate 1 ---------- */
+var P1 = (function(){
+  var cv = document.getElementById("cv1"), g = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var img = g.createImageData(W, H);
+  var st = { wipe: 0.5, clusters: 4, grid: false, mark: false, blink: null };
+
+  function opt(mode){
+    return {
+      tile: TILES.forest, d: mkDetile(mode === "plain" ? 0 : st.clusters, 0, 180, 512), noiseSize: 497,
+      viewM: 3600, ox: -1500, oz: -1200,
+      mode: mode, wipe: st.wipe
+    };
+  }
+  var draw = coalesce(function(){
+    var mode = st.blink === null ? "split" : (st.blink ? "detiled" : "plain");
+    var o = opt(mode);
+    var r = renderField(img, W, H, o);
+    g.putImageData(img, 0, 0);
+    if (st.grid) drawTileGrid(g, o, W, H, mode === "split" ? r.splitAt : W);
+    if (st.mark){
+      var list = [];
+      walkMarkers(o.d, o, W, H, list);
+      if (mode === "split"){
+        var plain = [];
+        walkMarkers(mkDetile(0,0,180,512), o, W, H, plain);
+        var mpp = o.viewM / W;
+        list = list.filter(function(m){ return (m.x - o.ox)/mpp >= r.splitAt; })
+          .concat(plain.filter(function(m){ return (m.x - o.ox)/mpp < r.splitAt; }));
+      }
+      drawMarkers(g, o, W, list);
+    }
+    if (mode === "split"){
+      g.save();
+      g.strokeStyle = TOK["--accent"]; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(r.splitAt + 0.5, 0); g.lineTo(r.splitAt + 0.5, H); g.stroke();
+      g.fillStyle = TOK["--accent"];
+      g.beginPath();
+      g.moveTo(r.splitAt, H/2 - 16); g.lineTo(r.splitAt - 9, H/2); g.lineTo(r.splitAt, H/2 + 16); g.fill();
+      g.beginPath();
+      g.moveTo(r.splitAt, H/2 - 16); g.lineTo(r.splitAt + 9, H/2); g.lineTo(r.splitAt, H/2 + 16); g.fill();
+      g.restore();
+      labelBox(g, 14, 24, "PLAIN TILING");
+      labelBox(g, r.splitAt + 14, 24, "DE-TILED  " + st.clusters + " CLUSTERS");
+    } else {
+      labelBox(g, 14, 24, mode === "plain" ? "A  PLAIN TILING" : "B  DE-TILED  " + st.clusters + " CLUSTERS");
+    }
+  });
+
+  function setWipe(v){
+    st.wipe = Math.max(0, Math.min(1, v));
+    document.getElementById("s1wipe").value = Math.round(st.wipe * 100);
+    document.getElementById("v1wipe").textContent = Math.round(st.wipe * 100) + "%";
+    draw();
+  }
+  function wipeAt(e){ var rc = cv.getBoundingClientRect(); setWipe((e.clientX - rc.left) / rc.width); }
+  var dragging = false;
+  cv.addEventListener("pointerdown", function(e){ dragging = true; cv.setPointerCapture(e.pointerId); wipeAt(e); });
+  cv.addEventListener("pointermove", function(e){ if (dragging) wipeAt(e); });
+  cv.addEventListener("pointerup", function(){ dragging = false; });
+  cv.addEventListener("keydown", function(e){
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight"){
+      setWipe(st.wipe + (e.key === "ArrowLeft" ? -0.04 : 0.04));
+      e.preventDefault();
+    }
+  });
+  document.getElementById("s1wipe").addEventListener("input", function(){ setWipe(this.value / 100); });
+  document.getElementById("s1cl").addEventListener("input", function(){
+    st.clusters = +this.value;
+    document.getElementById("v1cl").textContent = this.value;
+    document.getElementById("p1note").textContent = "3600 m across - tile 512 m - " + this.value + " clusters";
+    draw();
+  });
+  document.getElementById("t1grid").addEventListener("change", function(){ st.grid = this.checked; draw(); });
+  document.getElementById("t1mark").addEventListener("change", function(){ st.mark = this.checked; draw(); });
+
+  var blinkTimer = null;
+  var bBtn = document.getElementById("b1blink");
+  bBtn.addEventListener("click", function(){
+    if (blinkTimer){
+      clearInterval(blinkTimer); blinkTimer = null; st.blink = null;
+      bBtn.classList.remove("on"); bBtn.textContent = "Blink A/B";
+    } else {
+      st.blink = false;
+      bBtn.classList.add("on"); bBtn.textContent = "Stop blink";
+      blinkTimer = setInterval(function(){ st.blink = !st.blink; draw(); }, 900);
+    }
+    draw();
+  });
+  return { draw: draw };
+})();
+
+/* ---------- Plate 2 ---------- */
+var P2 = (function(){
+  var ca = document.getElementById("cv2a"), ga = ca.getContext("2d");
+  var cb = document.getElementById("cv2b"), gb = cb.getContext("2d");
+  var W = ca.width, H = ca.height;
+  var iA = ga.createImageData(W, H), iB = gb.createImageData(W, H);
+  var st = { clusters: 5, ns: 497, band: true, mark: true };
+
+  function baseOpt(){
+    return {
+      tile: TILES.dunes, d: mkDetile(st.clusters, 20, 60, 512), noiseSize: st.ns,
+      viewM: 2600, ox: -800, oz: -700, mode: "detiled", wipe: 1
+    };
+  }
+  var draw = coalesce(function(){
+    var o = baseOpt();
+
+    var oMap = Object.assign({}, o, { clusterMap: true });
+    renderField(iA, W, H, oMap);
+    ga.putImageData(iA, 0, 0);
+
+    /* one arrow per cluster, at the middle of the pixels it owns */
+    var acc = [], mpp = o.viewM / W;
+    for (var k = 0; k < st.clusters; k++) acc.push({ n: 0, x: 0, y: 0 });
+    for (var y = 4; y < H; y += 7){
+      for (var x = 4; x < W; x += 7){
+        var wx = o.ox + x * mpp, wz = o.oz + y * mpp;
+        var kk = dominant_cluster(o.d, wx, wz, o.noiseSize);
+        if (kk < st.clusters){ acc[kk].n++; acc[kk].x += x; acc[kk].y += y; }
+      }
+    }
+    ga.save();
+    ga.lineWidth = 2.5; ga.lineCap = "round";
+    for (var k2 = 0; k2 < st.clusters; k2++){
+      if (acc[k2].n < 24) continue;
+      var cx = acc[k2].x / acc[k2].n, cy = acc[k2].y / acc[k2].n;
+      var c = cluster(o.d, k2);
+      ga.strokeStyle = "rgba(20,24,22,.86)";
+      ga.beginPath(); ga.moveTo(cx - c.c*22, cy - c.s*22); ga.lineTo(cx + c.c*22, cy + c.s*22); ga.stroke();
+      ga.beginPath();
+      ga.moveTo(cx + c.c*22, cy + c.s*22);
+      ga.lineTo(cx + c.c*13 - c.s*7, cy + c.s*13 + c.c*7);
+      ga.lineTo(cx + c.c*13 + c.s*7, cy + c.s*13 - c.c*7);
+      ga.closePath(); ga.fillStyle = "rgba(20,24,22,.86)"; ga.fill();
+      labelBox(ga, cx - 8, cy - 27, "k" + k2);
+    }
+    ga.restore();
+
+    var oTex = Object.assign({}, o, { band: st.band });
+    renderField(iB, W, H, oTex);
+    gb.putImageData(iB, 0, 0);
+    if (st.mark){
+      var list = [];
+      walkMarkers(o.d, o, W, H, list);
+      drawMarkers(gb, o, W, list);
+    }
+    if (st.band) labelBox(gb, 12, 22, "TINTED = BLEND BAND");
+  });
+
+  document.getElementById("s2cl").addEventListener("input", function(){
+    st.clusters = +this.value;
+    document.getElementById("v2cl").textContent = this.value;
+    document.getElementById("p2note").textContent = "noise " + st.ns + " m - " + this.value + " clusters - dir 20, spread 60 deg";
+    draw();
+  });
+  document.getElementById("s2ns").addEventListener("input", function(){
+    st.ns = +this.value;
+    document.getElementById("v2ns").textContent = this.value + " m";
+    document.getElementById("p2note").textContent = "noise " + this.value + " m - " + st.clusters + " clusters - dir 20, spread 60 deg";
+    draw();
+  });
+  document.getElementById("t2band").addEventListener("change", function(){ st.band = this.checked; draw(); });
+  document.getElementById("t2mark").addEventListener("change", function(){ st.mark = this.checked; draw(); });
+  return { draw: draw };
+})();
+
+/* ---------- Plate 3: dunes + wind rose ---------- */
+var P3 = (function(){
+  var cv = document.getElementById("cv3"), g = cv.getContext("2d");
+  var rc = document.getElementById("cv3rose"), gr = rc.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var img = g.createImageData(W, H);
+  var st = { cl: 3, dir: 0, sp: 10, ns: 497, grid: false };
+
+  function opt(){
+    return {
+      tile: TILES.dunes, d: mkDetile(st.cl, st.dir, st.sp, 512), noiseSize: st.ns,
+      viewM: 2600, ox: -900, oz: -800, mode: "detiled", wipe: 1
+    };
+  }
+  function drawRose(d){
+    var w = rc.width, h = rc.height;
+    gr.clearRect(0, 0, w, h);
+    gr.fillStyle = TOK["--surface"]; gr.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = h / 2 - 8, R = Math.min(w, h) * 0.34;
+
+    /* the allowed sector */
+    if (d.clusters > 1){
+      gr.beginPath();
+      gr.moveTo(cx, cy);
+      gr.arc(cx, cy, R + 16, d.angle - d.spread, d.angle + d.spread);
+      gr.closePath();
+      gr.fillStyle = TOK["--accent"];
+      gr.globalAlpha = 0.13; gr.fill();
+      gr.globalAlpha = 1;
+    }
+    gr.strokeStyle = TOK["--line-2"]; gr.lineWidth = 1;
+    gr.beginPath(); gr.arc(cx, cy, R + 16, 0, Math.PI*2); gr.stroke();
+    gr.beginPath(); gr.moveTo(cx - R - 24, cy); gr.lineTo(cx + R + 24, cy); gr.stroke();
+    gr.beginPath(); gr.moveTo(cx, cy - R - 24); gr.lineTo(cx, cy + R + 24); gr.stroke();
+
+    gr.font = "500 10px 'IBM Plex Mono', monospace";
+    gr.fillStyle = TOK["--ink-3"];
+    gr.fillText("+X", cx + R + 27, cy + 4);
+    gr.fillText("+Z", cx - 8, cy + R + 36);
+
+    /* every cluster's real angle */
+    for (var k = 0; k < Math.max(d.clusters, 1); k++){
+      var c = cluster(d, k);
+      var isMain = k === 0;
+      gr.strokeStyle = isMain ? TOK["--accent"] : TOK["--ink-2"];
+      gr.lineWidth = isMain ? 3 : 1.6;
+      gr.globalAlpha = isMain ? 1 : 0.8;
+      gr.beginPath();
+      gr.moveTo(cx, cy);
+      gr.lineTo(cx + Math.cos(c.ang) * R, cy + Math.sin(c.ang) * R);
+      gr.stroke();
+      gr.globalAlpha = 1;
+      gr.fillStyle = isMain ? TOK["--accent"] : TOK["--ink-2"];
+      gr.beginPath();
+      gr.arc(cx + Math.cos(c.ang) * R, cy + Math.sin(c.ang) * R, isMain ? 4 : 3, 0, Math.PI*2);
+      gr.fill();
+    }
+    gr.fillStyle = TOK["--ink-2"];
+    gr.font = "500 11px 'IBM Plex Mono', monospace";
+    gr.fillText("mainDir " + st.dir + " deg", 12, h - 30);
+    gr.fillText("spread +-" + st.sp + " deg", 12, h - 14);
+    gr.fillStyle = st.sp <= 30 ? TOK["--ok"] : (st.sp <= 45 ? TOK["--warn"] : TOK["--accent"]);
+    gr.font = "600 11px 'IBM Plex Mono', monospace";
+    gr.fillText(st.sp <= 30 ? "WIND HOLDS" : (st.sp <= 45 ? "DRIFTING" : "WIND LOST"), w - 92, h - 14);
+  }
+  var draw = coalesce(function(){
+    var o = opt();
+    renderField(img, W, H, o);
+    g.putImageData(img, 0, 0);
+    if (st.grid) drawTileGrid(g, o, W, H, W);
+    labelBox(g, 12, 22, st.cl === 0 ? "DE-TILING OFF" : st.cl + " CLUSTERS  +-" + st.sp + " deg");
+    drawRose(o.d);
+  });
+
+  function sync(){
+    document.getElementById("v3cl").textContent = st.cl;
+    document.getElementById("v3dir").textContent = st.dir + " deg";
+    document.getElementById("v3sp").textContent = st.sp + " deg";
+    document.getElementById("v3ns").textContent = st.ns + " m";
+    document.getElementById("s3cl").value = st.cl;
+    document.getElementById("s3dir").value = st.dir;
+    document.getElementById("s3sp").value = st.sp;
+    document.getElementById("p3note").textContent = "2600 m across - tile 512 m - noise " + st.ns + " m";
+  }
+  document.getElementById("s3cl").addEventListener("input", function(){ st.cl = +this.value; sync(); draw(); });
+  document.getElementById("s3dir").addEventListener("input", function(){ st.dir = +this.value; sync(); draw(); });
+  document.getElementById("s3sp").addEventListener("input", function(){ st.sp = +this.value; sync(); draw(); });
+  document.getElementById("s3ns").addEventListener("input", function(){ st.ns = +this.value; sync(); draw(); });
+  document.getElementById("t3grid").addEventListener("change", function(){ st.grid = this.checked; draw(); });
+  wirePresets("data-p3", function(a){ var v = a.split(","); st.cl = +v[0]; st.dir = +v[1]; st.sp = +v[2]; sync(); draw(); });
+  sync();
+  return { draw: draw };
+})();
+
+/* ---------- Plate 4: forest ---------- */
+var P4 = (function(){
+  var cv = document.getElementById("cv4"), g = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var img = g.createImageData(W, H);
+  var st = { cl: 4, sp: 180, ns: 497, mark: true, grid: false };
+
+  function opt(){
+    return {
+      tile: TILES.forest, d: mkDetile(st.cl, 0, st.sp, 512), noiseSize: st.ns,
+      viewM: 3000, ox: -1300, oz: -900, mode: "detiled", wipe: 1
+    };
+  }
+  var draw = coalesce(function(){
+    var o = opt();
+    renderField(img, W, H, o);
+    g.putImageData(img, 0, 0);
+    if (st.grid) drawTileGrid(g, o, W, H, W);
+    if (st.mark){
+      var list = [];
+      walkMarkers(o.d, o, W, H, list);
+      drawMarkers(g, o, W, list);
+    }
+    labelBox(g, 12, 22, st.cl === 0
+      ? "DE-TILING OFF -  TREES REPEAT WITH THE TEXTURE"
+      : st.cl + " CLUSTERS -  TREES FOLLOW THE TEXTURE");
+  });
+  function sync(){
+    document.getElementById("v4cl").textContent = st.cl;
+    document.getElementById("v4sp").textContent = st.sp + " deg";
+    document.getElementById("v4ns").textContent = st.ns + " m";
+    document.getElementById("s4cl").value = st.cl;
+    document.getElementById("s4sp").value = st.sp;
+    document.getElementById("p4note").textContent = "3000 m across - tile 512 m - noise " + st.ns + " m";
+  }
+  document.getElementById("s4cl").addEventListener("input", function(){ st.cl = +this.value; sync(); draw(); });
+  document.getElementById("s4sp").addEventListener("input", function(){ st.sp = +this.value; sync(); draw(); });
+  document.getElementById("s4ns").addEventListener("input", function(){ st.ns = +this.value; sync(); draw(); });
+  document.getElementById("t4mark").addEventListener("change", function(){ st.mark = this.checked; draw(); });
+  document.getElementById("t4grid").addEventListener("change", function(){ st.grid = this.checked; draw(); });
+  wirePresets("data-p4", function(a){ var v = a.split(","); st.cl = +v[0]; st.sp = +v[1]; sync(); draw(); });
+  sync();
+  return { draw: draw };
+})();
+
+/* ---------- Plate 5: the structured failure ---------- */
+var P5 = (function(){
+  var cv = document.getElementById("cv5"), g = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var img = g.createImageData(W, H);
+  var st = { cl: 4, sp: 180, band: false };
+
+  function opt(){
+    return {
+      tile: TILES.field, d: mkDetile(st.cl, 0, st.sp, 512), noiseSize: 497,
+      viewM: 2200, ox: -700, oz: -600,
+      mode: "detiled", wipe: 1, band: st.band
+    };
+  }
+  var draw = coalesce(function(){
+    var o = opt();
+    renderField(img, W, H, o);
+    g.putImageData(img, 0, 0);
+    labelBox(g, 12, 22, st.cl === 0
+      ? "PLAIN TILING -  THE FURROWS ARE STRAIGHT"
+      : st.cl + " CLUSTERS +-" + st.sp + " deg -  THE BAND SHOWS TWO FURROW SETS");
+    if (st.band && st.cl > 0) labelBox(g, 12, H - 14, "TINTED = BLEND BAND, 60% OF THE NOISE RANGE");
+  });
+  wirePresets("data-p5", function(v){
+    if (v === "0") st.cl = 0;
+    else { st.cl = 4; st.sp = v === "4" ? 180 : 10; }
+    draw();
+  });
+  document.getElementById("t5band").addEventListener("change", function(){ st.band = this.checked; draw(); });
+  return { draw: draw };
+})();
+
+/* ---- everything is drawn once at load, so the page is complete at rest ---- */
+function drawAll(){ P1.draw(); P2.draw(); P3.draw(); P4.draw(); P5.draw(); }
+drawAll();
+
+/* theme changes recolour the canvas overlays */
+if (window.matchMedia){
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  var onTheme = function(){ readTokens(); drawAll(); };
+  mq.addEventListener ? mq.addEventListener("change", onTheme) : mq.addListener(onTheme);
+}
+</script>
+</body>
+</html>

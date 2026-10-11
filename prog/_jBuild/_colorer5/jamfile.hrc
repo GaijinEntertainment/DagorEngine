@@ -1,0 +1,1122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hrc PUBLIC "-//Cail Lomecb//DTD Colorer HRC take5//EN"
+  "http://colorer.sf.net/2003/hrc.dtd">
+<hrc version="take5" xmlns="http://colorer.sf.net/2003/hrc"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://colorer.sf.net/2003/hrc http://colorer.sf.net/2003/hrc.xsd">
+
+<annotation>
+   <documentation>
+      Jam / Jamfile syntax, ported to take5 from the 4ever description that ships with Far 2.0
+      (Plugins/Colorer/hrc/base/jamfile.hrc), so Far3 and Far 2.0 colour jamfiles identically.
+
+      Region mapping used for the port (4ever -&gt; take5):
+        dString  -&gt; def:String        dParam        -&gt; def:Parameter
+        dKeyword -&gt; def:Keyword       dSymbol       -&gt; def:Symbol
+        dSymbol2 -&gt; def:SymbolStrong  cStructOp     -&gt; def:SymbolStrong
+        dComment -&gt; def:Comment       dError        -&gt; def:Error
+        dPath    -&gt; def:Path          dText         -&gt; def:Text
+        dpOpenStruct -&gt; def:PairStart dpCloseStruct -&gt; def:PairEnd
+        dPod     -&gt; def:Directive (same light-gray slot in the 4ever palette)
+        dTag     -&gt; def:Tag           dString3      -&gt; def:StringContent
+        dVar2    -&gt; def:VarStrong     dType         -&gt; def:TypeKeyword
+        dString2 -&gt; def:Text (the Value region below; dText maps there too)
+      4ever's shared "Comment" helper scheme is take5's "def:Comment".
+
+      Names are spelled exactly here, because take5 resolves them case sensitively while 4ever does not:
+      4ever compares region names with stricmp (shared/colorer/ccdata.cpp, CColorData::getregion),
+      so its "dKeyWord" reached the region defined as "dKeyword". That would not resolve in take5,
+      so the canonical spelling is used on both sides: def:Keyword here, dKeyword in the 4ever file.
+
+      Install: copy this file to &lt;Far3&gt;/Plugins/FarColorer/base/auto/ and reload the base (F11 -&gt;
+      FarColorer -&gt; Reload base). It carries its own &lt;prototype&gt;,
+      so unlike the 4ever version it needs no edit to a central colorer.hrc.
+      Jamfile then stands in the file-type list (F11 -&gt; FarColorer -&gt; the type list), which is what shows the
+      &lt;prototype&gt; registered; the schema-library test parses the scheme but does not prove registration.
+
+      The predefined-variable list is maintained by hand - jam has no declaration site to generate it from.
+      The keyword list and the built-in rule list are jam's own tables, jam_src/jamgramtab.h and jam_src/builtins.c.
+      This file and ../_colorer4/jamfile.hrc describe the same colouring rule for rule;
+      change one and make the matching change in the other. The 4ever/take5 spellings that differ are tabulated
+      in the annotation of prog/tools/ShaderCompiler2/_colorer5/dshl.hrc.
+   </documentation>
+</annotation>
+
+<prototype name="jamfile" group="main" description="Jamfile">
+   <location link="jamfile.hrc"/>
+   <filename>/(\.(jam)$)|(jamfile[^\.]*$)|(j\~[^\.]*$)|(\-jam$)/i</filename>
+</prototype>
+
+<type name="jamfile">
+
+   <import type="def"/>
+
+   <region name="Variable"     parent="def:VarStrong"/>
+   <region name="Parameter"    parent="def:Parameter"/>
+   <region name="Keyword"      parent="def:Keyword"/>
+   <region name="Symbol"       parent="def:Symbol"/>
+   <region name="StructSymbol" parent="def:SymbolStrong"/>
+   <region name="Comment"      parent="def:Comment"/>
+   <region name="Error"        parent="def:Error"/>
+   <region name="Path"         parent="def:Path"/>
+   <region name="Pod"          parent="def:Directive"/>
+   <region name="Text"         parent="def:Text"/>
+   <!-- take5 has no <define/>, so the slots the 4ever file aliases are named regions here.
+        OtherVar is its jamOtherVar (dString3) and Rule below is its jamRule (dTag);
+        its jamBuiltinVar is Variable above and its jamBuiltinRule is simply Keyword.
+        Value and Modifier alias nothing in 4ever - they stand for dString2 and dType,
+        which the 4ever rules name directly. In the far20 HRD def:StringContent is light purple,
+        def:Text yellow and def:Tag grey. -->
+   <region name="OtherVar"     parent="def:StringContent"/>
+   <region name="Value"        parent="def:Text"/>
+   <region name="Modifier"     parent="def:TypeKeyword"/>
+   <!-- rules and actions this build defines; jam's own rules keep the keyword colour instead,
+        because they are part of the language and not of the build -->
+   <region name="Rule"         parent="def:Tag"/>
+
+   <scheme name="jamBracketCall">
+      <!-- a word opening with '[[' is a placeholder and no call: jam splits on whitespace, so
+           '[[PATH_TO_ROOT]]' is one argument. This match starts at the space, ahead of the blocks -->
+      <regexp match="/(^|\s)(\[\[[^\s]*)/" region2="Value"/>
+      <!-- [ RuleName args ] wherever the form appears, one scheme, defined before the jamBracketArgs that
+           inherits it - a forward inherit fails - or a nested call would end the outer at the inner ']' -->
+      <block start="/(^|\s)(\[)\s+((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE)|(NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile)|(ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE)|(NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO)|(EXIT)|(Echo)|(Exit)|(GLOB)|(Glob)|(echo)|(exit))((\s)|($))?=/" end="/(^|\s)((\])|(;))/" scheme="jamBracketArgs"
+             region00="StructSymbol" region02="def:PairStart" region03="Keyword"
+             region10="StructSymbol" region13="def:PairEnd" region14="Error"/>
+      <block start="/(^|\s)(\[)\s+([A-Za-z_][^\s\]]*)/" end="/(^|\s)((\])|(;))/" scheme="jamBracketArgs"
+             region00="StructSymbol" region02="def:PairStart" region03="Rule"
+             region10="StructSymbol" region13="def:PairEnd" region14="Error"/>
+      <!-- a call whose rule name the block above cannot read: one that comes from a variable, as [ $(RULE) a ],
+           from a quoted word, or from a name that does not open with a letter. The bracket is whole either way,
+           and pairs as the two above do - jam invokes a rule here just the same -->
+      <block start="/(^|\s)(\[)(\S)?!/" end="/(^|\s)((\])|(;))/" scheme="jamBracketArgs"
+             region00="StructSymbol" region02="def:PairStart"
+             region10="StructSymbol" region13="def:PairEnd" region14="Error"/>
+   </scheme>
+
+   <scheme name="jamGluedMarks">
+      <!-- jam reads ( ) { } as tokens of their own, so punctuation glued to a word is part of that word.
+           A block hides these from what it spans, so each scheme that needs them inherits this one. -->
+      <!-- a closing bracket glued to what stands before it is a missing space -->
+      <regexp match="/(^|\s)\s*((([^\s(#&quot;\\](\\\\)*)|([^\s(#&quot;][^\s(]*[^\s(\\](\\\\)*)|((\\\\)+))\))((\s)|($))?=/" region2="Error"/>
+      <!-- a brace glued to anything else is a missing space; a leading '#' or quote exempts the token, and an
+           odd run of backslashes escapes the brace -->
+      <regexp match="/(^|\s)\s*(([\{\}][^\s]+)|([^\s#&quot;\\](\\\\)*[\{\}][^\s]*)|([^\s#&quot;][^\s]*[^\s\\](\\\\)*[\{\}][^\s]*)|((\\\\)+[\{\}][^\s]*))/" region2="Error"/>
+   </scheme>
+
+   <scheme name="jamfileVariables">
+      <keywords region="Variable">
+         <word name="OS"/>
+         <word name="OSPLAT"/>
+         <word name="MAC"/>
+         <word name="NT"/>
+         <word name="OS2"/>
+         <word name="UNIX"/>
+         <word name="VMS"/>
+         <word name="JAMDATE"/>
+         <word name="JAMUNAME"/>
+         <word name="JAMVERSION"/>
+         <word name="JAMSHELL"/>
+         <word name="HDRSCAN"/>
+         <word name="HDRRULE"/>
+         <word name="SEARCH"/>
+         <word name="LOCATE"/>
+         <word name="SPLITPATH"/>
+         <word name="HDRPATTERN"/>
+      </keywords>
+
+      <keywords region="Parameter">
+         <word name="ASMopt"/>
+         <word name="AdMobAppIdentifier"/>
+         <word name="AddBundlePlist"/>
+         <word name="AddIncludes"/>
+         <word name="AddLibs"/>
+         <word name="AddPullVars"/>
+         <word name="AdditionalWinLibs"/>
+         <word name="AftermathSdkVer"/>
+         <word name="AgilitySdkVer"/>
+         <word name="AgsSdkVer"/>
+         <word name="AllSrcFolder_CPP"/>
+         <word name="AllSrcFolder_DAS"/>
+         <word name="AllSrcFolder_ES"/>
+         <word name="Analyze"/>
+         <word name="AndroidActivities"/>
+         <word name="AndroidApiMinVer"/>
+         <word name="AndroidApiVer"/>
+         <word name="AndroidAppID"/>
+         <word name="AndroidAppIconName"/>
+         <word name="AndroidAppProps"/>
+         <word name="AndroidBanner"/>
+         <word name="AndroidBuildEngine"/>
+         <word name="AndroidBundleCopyRecursively"/>
+         <word name="AndroidCopy"/>
+         <word name="AndroidCopyToDevice"/>
+         <word name="AndroidDefine"/>
+         <word name="AndroidExternalLibs"/>
+         <word name="AndroidGameID"/>
+         <word name="AndroidGenerateDebugSymbols"/>
+         <word name="AndroidGradleFile"/>
+         <word name="AndroidGradleOutDir"/>
+         <word name="AndroidHasNeon"/>
+         <word name="AndroidIcon"/>
+         <word name="AndroidIncludeSecondSourcesZip"/>
+         <word name="AndroidJavaClass"/>
+         <word name="AndroidJavaCode"/>
+         <word name="AndroidJavaSignatureVersion"/>
+         <word name="AndroidKey"/>
+         <word name="AndroidKeyAlias"/>
+         <word name="AndroidKeyPassw"/>
+         <word name="AndroidLayout"/>
+         <word name="AndroidLibs"/>
+         <word name="AndroidMakeAssetIndexMasks"/>
+         <word name="AndroidManifest"/>
+         <word name="AndroidMetaData"/>
+         <word name="AndroidNdkVer"/>
+         <word name="AndroidObfuscate"/>
+         <word name="AndroidOutputSuffix"/>
+         <word name="AndroidProguard"/>
+         <word name="AndroidResources"/>
+         <word name="AndroidRootGradleFile"/>
+         <word name="AndroidRoundIcon"/>
+         <word name="AndroidScreenOrientation"/>
+         <word name="AndroidSdkTarget"/>
+         <word name="AndroidSources"/>
+         <word name="AndroidStateNotNeed"/>
+         <word name="AndroidStore"/>
+         <word name="AndroidStrings"/>
+         <word name="AndroidUploadCrashlyticsSymbols"/>
+         <word name="AndroidUseSignalHandler"/>
+         <word name="AndroidUserPermissions"/>
+         <word name="AndroidZipSources"/>
+         <word name="AotCompilerBaseName"/>
+         <word name="AotJamfile"/>
+         <word name="ApplicationDescSrc"/>
+         <word name="ApplicationGenerateProjectMetaScript"/>
+         <word name="ApplicationSpecMeta"/>
+         <word name="ArchArg"/>
+         <word name="BaseAddress"/>
+         <word name="BuildApk"/>
+         <word name="BuildAsFramework"/>
+         <word name="BuildDagorEngineIndependentCode"/>
+         <word name="BuildJams"/>
+         <word name="BulletSdkVer"/>
+         <word name="BundleCopy"/>
+         <word name="BundleCopyMasks"/>
+         <word name="BundleCustomLang"/>
+         <word name="BundleDevOrient"/>
+         <word name="BundleDevOrientIPad"/>
+         <word name="BundleExe"/>
+         <word name="BundleFrameworks"/>
+         <word name="BundleID"/>
+         <word name="BundleIcon"/>
+         <word name="BundleLang"/>
+         <word name="BundleName"/>
+         <word name="BundlePlist"/>
+         <word name="BundlePng"/>
+         <word name="BundleSymlink"/>
+         <word name="BundleTitle"/>
+         <word name="BundleUiOrient"/>
+         <word name="BundleVersion"/>
+         <word name="BundleXib"/>
+         <word name="C"/>
+         <word name="CC"/>
+         <word name="CLangVer"/>
+         <word name="CLangVerMajor"/>
+         <word name="COMSPEC"/>
+         <word name="CPP"/>
+         <word name="CPPStd"/>
+         <word name="CPPopt"/>
+         <word name="CXX"/>
+         <word name="CamStub"/>
+         <word name="CatchSEH"/>
+         <word name="CheckCodeGen"/>
+         <word name="CheckOnly"/>
+         <word name="CheckedContainers"/>
+         <word name="ClangCoverage"/>
+         <word name="ClangThreadSafety"/>
+         <word name="CocoaPodFramework"/>
+         <word name="CocoaPodsAllowDownload"/>
+         <word name="CocoaPodsCacheDir"/>
+         <word name="CocoaPodsPrebuiltDir"/>
+         <word name="ComSpec"/>
+         <word name="CompilerWrapper"/>
+         <word name="CompilerWrapperOpt"/>
+         <word name="Config"/>
+         <word name="ConsoleExe"/>
+         <word name="ContentUpdater"/>
+         <word name="Copt"/>
+         <word name="CopyExcutableToFolder"/>
+         <word name="CopyFileRule"/>
+         <word name="CopyTo"/>
+         <word name="CreateMap"/>
+         <word name="CreateSubmissionPackage"/>
+         <word name="CxxStdLib"/>
+         <word name="DAS_AOT_COMPILER"/>
+         <word name="DAS_AOT_COMPILER_OPT"/>
+         <word name="DAS_AOT_CPP_OPT"/>
+         <word name="DAS_AOT_DRIVER"/>
+         <word name="DAS_AOT_LLVM_OBJ"/>
+         <word name="DEOPTIMIZER_SWITCH"/>
+         <word name="DISTCC"/>
+         <word name="DargWithSqDebugger"/>
+         <word name="DasModule"/>
+         <word name="DbgDigest"/>
+         <word name="Dedicated"/>
+         <word name="DefBulletSdkVer"/>
+         <word name="DefFreeTypeVer"/>
+         <word name="DefOpenSSLVer"/>
+         <word name="DefaultCPPStd"/>
+         <word name="Dependencies"/>
+         <word name="DestDir"/>
+         <word name="DigestDiff"/>
+         <word name="DisableFusion"/>
+         <word name="DisableUsingPCH"/>
+         <word name="DoNotCopyProgArtifacts"/>
+         <word name="DumpBuildCmds"/>
+         <word name="DynamicDeopt"/>
+         <word name="EcsGenOpt"/>
+         <word name="EmbeddedFrameworks"/>
+         <word name="EnableBreakpad"/>
+         <word name="EnableBreakpadSubmission"/>
+         <word name="EnableCrashpad"/>
+         <word name="EnableRenderDoc"/>
+         <word name="Exceptions"/>
+         <word name="ExplicitLicenseUsed"/>
+         <word name="ExportOptimus"/>
+         <word name="ExternalJams"/>
+         <word name="ExtraCompileDeps"/>
+         <word name="FidelityFXVer"/>
+         <word name="FileAlignLinkOption"/>
+         <word name="FmodEx"/>
+         <word name="FmodGdkVer"/>
+         <word name="FmodIncPath"/>
+         <word name="FmodLibPath"/>
+         <word name="FmodNSwitchSdkVer"/>
+         <word name="FmodPS4SdkVer"/>
+         <word name="FmodPS5SdkVer"/>
+         <word name="FmodPluginResonanceAudioPath"/>
+         <word name="FmodStudio"/>
+         <word name="FmodStudioApiLibPath"/>
+         <word name="FmodStudioCoreFolder"/>
+         <word name="FmodStudioLowLibPath"/>
+         <word name="FmodStudioRoot"/>
+         <word name="FmodStudioSharedLibs"/>
+         <word name="FmodStudioSoSuffix"/>
+         <word name="FmodStudioVersion"/>
+         <word name="FmodUseProgLib"/>
+         <word name="FmodUseResonanceAudio"/>
+         <word name="ForceCreateAAB"/>
+         <word name="ForceCreateNSP"/>
+         <word name="ForceGenES"/>
+         <word name="ForceLogs"/>
+         <word name="ForcePdb"/>
+         <word name="FortifySource"/>
+         <word name="FrameworkPList"/>
+         <word name="FrameworkResBundle"/>
+         <word name="FrameworkSignTarget"/>
+         <word name="FrameworkSignatureOpt"/>
+         <word name="FrameworkTarget"/>
+         <word name="FrameworksCopyRelPath"/>
+         <word name="FreeTypeVer"/>
+         <word name="FullOOPEnabled"/>
+         <word name="Fuzzer"/>
+         <word name="GDEVTOOL"/>
+         <word name="GDK_BIN_PATH"/>
+         <word name="GDK_C_CMDLINE"/>
+         <word name="GDK_DIR"/>
+         <word name="GDK_GAMEOS_PATH"/>
+         <word name="GDK_GEN"/>
+         <word name="GDK_INCLUDES"/>
+         <word name="GDK_INC_PATH"/>
+         <word name="GDK_LIBHTTPCLIENT_DLL_PATH"/>
+         <word name="GDK_LIBHTTPCLIENT_INC_PATH"/>
+         <word name="GDK_LIBPATHS"/>
+         <word name="GDK_LIBS_ABI_VERSION"/>
+         <word name="GDK_LIB_PATH"/>
+         <word name="GDK_PLATFORM_DIR"/>
+         <word name="GDK_SERVICES_BUNDLED_LIBS"/>
+         <word name="GDK_SERVICES_INC_PATH"/>
+         <word name="GDK_SERVICES_THUNK_DLL_PATH"/>
+         <word name="GDK_SERVICES_THUNK_LIB_PATH"/>
+         <word name="GLOBAL_BuildDevtool"/>
+         <word name="GLOBAL_CacheDryRun"/>
+         <word name="GLOBAL_CleanObj"/>
+         <word name="GLOBAL_IncludesNoCare"/>
+         <word name="GLOBAL_OmitDependencies"/>
+         <word name="GOUT_ROOT"/>
+         <word name="Game"/>
+         <word name="GdkServicesUseBundled"/>
+         <word name="GdkVer"/>
+         <word name="GdkWinSdk"/>
+         <word name="GlobalCPPopt"/>
+         <word name="GlobalLinkPrereqs"/>
+         <word name="GoogleInfoPlist"/>
+         <word name="HDRFS"/>
+         <word name="HOME"/>
+         <word name="HaveAssetManager"/>
+         <word name="HaveConsole"/>
+         <word name="HaveEditor"/>
+         <word name="HaveEmbeddedBrowser"/>
+         <word name="HaveFx"/>
+         <word name="HaveRenderer"/>
+         <word name="HaveSound"/>
+         <word name="HaveSoundNet"/>
+         <word name="HaveTamVoice"/>
+         <word name="HaveWebui"/>
+         <word name="HideExports"/>
+         <word name="IOSUploadCrashlyticsSymbols"/>
+         <word name="IOSUseCrashlytics"/>
+         <word name="ImportProgLibs"/>
+         <word name="ImportsRelativeDir"/>
+         <word name="IncludeMSVCDir"/>
+         <word name="IncludeSystemDir"/>
+         <word name="IsHeadless"/>
+         <word name="IsProgArtifact"/>
+         <word name="JAMFILESRC"/>
+         <word name="JAMTARGETS"/>
+         <word name="JAM_BUILTINS"/>
+         <word name="JAM_CWD"/>
+         <word name="JAM_EXE"/>
+         <word name="JamfilePath"/>
+         <word name="JamfileRoot"/>
+         <word name="KernelLinkage"/>
+         <word name="LIB"/>
+         <word name="LINK"/>
+         <word name="LINK_OPTIONS"/>
+         <word name="LINK_RESPONCE_FILE"/>
+         <word name="LINK_RESPONSE_MARKER"/>
+         <word name="LINKopt"/>
+         <word name="LegacyPlatformSuffix"/>
+         <word name="LinuxUseGUI"/>
+         <word name="Location"/>
+         <word name="LowLatencyFrameworkCompilation"/>
+         <word name="MAbi"/>
+         <word name="MArch"/>
+         <word name="MSVCVer"/>
+         <word name="MSVectorcall"/>
+         <word name="MacOSXMinVer"/>
+         <word name="MacOSXVer"/>
+         <word name="MacRelPath"/>
+         <word name="MacUniversalBinary"/>
+         <word name="MakeNspOnly"/>
+         <word name="MangledBundleID"/>
+         <word name="Manifest"/>
+         <word name="MasterPreInclude"/>
+         <word name="MimDebug"/>
+         <word name="Module"/>
+         <word name="ModuleDependsOnVars"/>
+         <word name="ModulePrefix"/>
+         <word name="MultiTarget"/>
+         <word name="NSwitchSdkVer"/>
+         <word name="NeedDasAotCompile"/>
+         <word name="NeedDasLLVMAotCompile"/>
+         <word name="NetPeerAuth"/>
+         <word name="NmetaAppId"/>
+         <word name="NmetaGameName"/>
+         <word name="NmetaHomeMenuImagePrefix"/>
+         <word name="NmetaLegalFile"/>
+         <word name="NmetaReleaseVersion"/>
+         <word name="NmetaStartupRequireUser"/>
+         <word name="NmetaVersion"/>
+         <word name="NoICF"/>
+         <word name="NoMemBaseInclude"/>
+         <word name="NoPDB"/>
+         <word name="NodeBasedManagerSupportCompiliation"/>
+         <word name="NswitchCopyToDevice"/>
+         <word name="NswitchDeployToConsole"/>
+         <word name="NvApiVer"/>
+         <word name="NvtxSdkVersion"/>
+         <word name="O3"/>
+         <word name="OpenSSLVer"/>
+         <word name="OpenXrSdkPath"/>
+         <word name="OpenXrVer"/>
+         <word name="OutDir"/>
+         <word name="OutputSuffix"/>
+         <word name="PROCESSOR_ARCHITECTURE"/>
+         <word name="PROCESSOR_IDENTIFIER"/>
+         <word name="PS4CrossGenSdkVer"/>
+         <word name="PS4SdkVer"/>
+         <word name="PS5SdkVer"/>
+         <word name="PYTHON_EXE"/>
+         <word name="ParallelCompilation"/>
+         <word name="PdbCompressOpt"/>
+         <word name="PhysName"/>
+         <word name="Platform"/>
+         <word name="PlatformArch"/>
+         <word name="PlatformArch_android"/>
+         <word name="PlatformArch_iOS"/>
+         <word name="PlatformArch_linux"/>
+         <word name="PlatformArch_macOS"/>
+         <word name="PlatformArch_nswitch"/>
+         <word name="PlatformArch_ps4"/>
+         <word name="PlatformArch_ps5"/>
+         <word name="PlatformArch_scarlett"/>
+         <word name="PlatformArch_tvOS"/>
+         <word name="PlatformArch_windows"/>
+         <word name="PlatformArch_xboxOne"/>
+         <word name="PlatformDataFormatCode"/>
+         <word name="PlatformOutputDir"/>
+         <word name="PlatformSpec"/>
+         <word name="PlatformSpec_android"/>
+         <word name="PlatformSpec_iOS"/>
+         <word name="PlatformSpec_linux"/>
+         <word name="PlatformSpec_macOS"/>
+         <word name="PlatformSpec_nswitch"/>
+         <word name="PlatformSpec_ps4"/>
+         <word name="PlatformSpec_ps5"/>
+         <word name="PlatformSpec_scarlett"/>
+         <word name="PlatformSpec_tvOS"/>
+         <word name="PlatformSpec_windows"/>
+         <word name="PlatformSpec_xboxOne"/>
+         <word name="PreAddIncludes"/>
+         <word name="PrecompiledName"/>
+         <word name="Profile"/>
+         <word name="ProfilerTrackerCompilation"/>
+         <word name="RCopt"/>
+         <word name="ReproducibleExeBuild"/>
+         <word name="Resources"/>
+         <word name="Root"/>
+         <word name="Rtti"/>
+         <word name="SED_DIR"/>
+         <word name="SSEVersion"/>
+         <word name="STDLIB_COMP"/>
+         <word name="STDLIB_LINK"/>
+         <word name="Sanitize"/>
+         <word name="SeparateDebugInfo"/>
+         <word name="SignTarget"/>
+         <word name="SignatureCopyRelPath"/>
+         <word name="SignatureID"/>
+         <word name="SignatureOpt"/>
+         <word name="SkipFlowAnCompoundPS"/>
+         <word name="SkipGenES"/>
+         <word name="SkipLicenseBuild"/>
+         <word name="SkipLicenseProcessing"/>
+         <word name="SourceES"/>
+         <word name="Sources"/>
+         <word name="SqDebugFloats"/>
+         <word name="SqVarTrace"/>
+         <word name="SrcDir"/>
+         <word name="SrcFiles"/>
+         <word name="SrcFilesEx"/>
+         <word name="StackProtection"/>
+         <word name="StreamlineFeatures"/>
+         <word name="StreamlineSdkPath"/>
+         <word name="StreamlineVer"/>
+         <word name="StrictAliasing"/>
+         <word name="StrictCompile"/>
+         <word name="StrictHeaderDeps"/>
+         <word name="StripLibrary"/>
+         <word name="StripType"/>
+         <word name="SubGame"/>
+         <word name="TEX_ATLAS_BUILD_TOOL"/>
+         <word name="Target"/>
+         <word name="TargetCodeName"/>
+         <word name="TargetType"/>
+         <word name="TemplateDescSrc"/>
+         <word name="TemplateSpecMeta"/>
+         <word name="TencentEnabled"/>
+         <word name="TitleID"/>
+         <word name="TitleLocation"/>
+         <word name="TmpDir"/>
+         <word name="UseD3DMulti"/>
+         <word name="UseD3DMultiForced"/>
+         <word name="UseD3DMultiList"/>
+         <word name="UseD3DMultiSingle"/>
+         <word name="UseFrameworkBundles"/>
+         <word name="UseGDK"/>
+         <word name="UseLLDLink"/>
+         <word name="UseLinkWholeOpt"/>
+         <word name="UseLtoJobs"/>
+         <word name="UseMOLDLink"/>
+         <word name="UseMetalfx"/>
+         <word name="UseNxProfiler"/>
+         <word name="UsePCH"/>
+         <word name="UseProgArtifacts"/>
+         <word name="UseProgLibs"/>
+         <word name="UseQuirrel"/>
+         <word name="UseRootLibs"/>
+         <word name="UseSharedLibs"/>
+         <word name="UseStreamline"/>
+         <word name="UseSyncAsyncRead"/>
+         <word name="UseSyncDebugLib"/>
+         <word name="UseSystemLibcurl"/>
+         <word name="UseSystemOpenSSL"/>
+         <word name="UseVersionSelector"/>
+         <word name="UseWholeOpt"/>
+         <word name="UseWholeOptDevirt"/>
+         <word name="UseZlibVer"/>
+         <word name="VCMathOption"/>
+         <word name="VCUpdateVer"/>
+         <word name="VC_SHOW_INCLUDES_FILTER_PREFIX"/>
+         <word name="VC_START_SHOW_INCLUDES_FILTER"/>
+         <word name="VRDeviceSupport"/>
+         <word name="VROMFS_BUILD_TOOL"/>
+         <word name="VersionSelectorMangledTarget"/>
+         <word name="VersionSelectorOutDir"/>
+         <word name="WError"/>
+         <word name="WinSdkUpdateVer"/>
+         <word name="WinSdkVer"/>
+         <word name="WindowsHostArch"/>
+         <word name="XboxAlwaysCopyBinaries"/>
+         <word name="XboxCopyMedia"/>
+         <word name="XboxDeviceFamily"/>
+         <word name="XboxManifest"/>
+         <word name="XboxManifestOutput"/>
+         <word name="XboxMsaAppId"/>
+         <word name="XboxStoreId"/>
+         <word name="XboxTitleDesc"/>
+         <word name="XboxTitleDisplayName"/>
+         <word name="XboxTitleId"/>
+         <word name="XboxTitleLogo"/>
+         <word name="XboxTitleLogoSmall"/>
+         <word name="XboxTitleLogoStore"/>
+         <word name="XboxTitleName"/>
+         <word name="XboxTitlePublisher"/>
+         <word name="XboxTitlePublisherDisplayName"/>
+         <word name="XboxTitleSplash"/>
+         <word name="XboxTitleVersion"/>
+         <word name="XcodeVER"/>
+         <word name="XessEnabled"/>
+         <word name="Yuplay2NoCurlInit"/>
+         <word name="ZstdVer"/>
+         <word name="_DEVTOOL"/>
+         <word name="_DEVTOOL_RE"/>
+         <word name="_OutputRoot"/>
+         <word name="iOSMinVer"/>
+         <word name="iOSVer"/>
+         <word name="tvOSMinVer"/>
+         <word name="tvOSVer"/>
+      </keywords>
+      <!-- names that exist only as a prefix of a composed name, in a reference as $(PlatformSpec_$(Platform))
+           and in an assignment name as 'PlatformSpec_$(Platform) ?= ...'. It lives here, in the list that
+           jamVarRef and jamAssignName both inherit, so the prefix takes one colour in either place. The
+           look-ahead keeps $(PlatformSpec_foo) from being highlighted as if it were a real variable. -->
+      <regexp match="/((RemoveCompilerSwitches_)|(CocoaPodSourceUrl_)|(CocoaPodLinkage_)|(ForceSignTarget_)|(PlatformArch_)|(PlatformSpec_)|(NEWLINE_STR_)|(DEBUG_PDB_)|(DEL_))(\$)?=/" region1="Parameter"/>
+   </scheme>
+
+   <scheme name="jamArgCommon">
+      <!-- what a condition and a bracket argument list both need: a block hides its content, so neither
+           the statement scheme's remark rule nor its escape reaches inside one. -->
+      <block start="/((\s)|(^))(#)/" end="/$/" scheme="def:Comment" region="Comment"/>
+      <regexp match="/\\./" region0="Text"/>
+   </scheme>
+
+   <scheme name="jamArgTerminators">
+      <!-- a terminator glued to the last argument: the statement runs on into the next one. The statement scheme
+           and a rule's arguments both want these. jamValues keeps its own copy of the first two and not the third: C++
+           embedded in a jam variable is parsed there, and the semicolon ending a C++ statement would trip it. The quote
+           is excluded from the first class for the same reason: it opens a quoted argument, where a ';' is text,
+           and consuming it here would leave the string block to open on the closing quote instead and run away. -->
+      <regexp match="/([^\s;]*[^\s;\\];)\s*$/" region1="Error"/>
+      <regexp match="/(\s;[^\s])/" region1="Error"/>
+      <regexp match="/((\s)|(^))([^\s;$\\()\{\}&quot;]+;)((\s)|($))/" region4="Error"/>
+   </scheme>
+
+   <scheme name="jamBracketArgs">
+      <!-- a ']' glued to what follows closes no call: jam splits a word on whitespace, so '[ Foo ]x' ends in
+           the argument ']x' and the call is never closed. This ties with the block ends above and wins, which is
+           what keeps such a bracket out of them -->
+      <regexp match="/(^|\s)(\][^\s]+)/" region2="Error"/>
+      <inherit scheme="jamArgTerminators"/>
+      <inherit scheme="jamGluedMarks"/>
+      <!-- a predefined name keeps its colour among the arguments too: a misspelling is otherwise
+           indistinguishable from any other word -->
+      <inherit scheme="jamfileVariables"/>
+      <inherit scheme="jamArgCommon"/>
+      <inherit scheme="jamBracketCall"/>
+      <!-- the arguments of [ RuleName ... ]: lists separated by ':', with no expression material, so a '('
+           here is ordinary text, as in the regex of [ MATCH (~) : $(x) ] -->
+      <!-- the quote and the escape come first, or a regex argument such as "($(x))" reads as a bare
+           expansion with a bracket glued after it -->
+      <block start="/(&quot;)/" end="/(&quot;)((:)+)?/" scheme="jamString" region="def:String" region00="def:String"
+             region10="def:String" region12="Error"/>
+      <!-- both ends absorb the glue, out of reach of any rule outside: jam appends a glued bracket to every
+           element, so '$(Sources))' compares against 'a.cpp) b.cpp)'. A nested '$(a$(b))' is left to jamVarRef -->
+      <block start="/(\$\()/" end="/(\))(([\)]+)|((:)+))?/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd" region12="Error"/>
+      <!-- the ':' separates the argument lists only as its own token: jam reads '"(a)":', ':$(f)' and '$(m):'
+           as one argument each, so the rule loses a list and returns nothing in silence. A C:/ path is left -->
+      <regexp match="/(^|\s)(:)((\s)|($))?=/" region2="Keyword"/>
+      <regexp match="/(^|\s)(:)([^\s])?=/" region2="Error"/>
+      <regexp match="/([^\s:]+)(:)((\s)|($))?=/" region1="Value" region2="Error"/>
+      <!-- argument text. A predefined name keeps its colour here, the inherit above bringing the lists in, so a
+           misspelling of one stands out; inside a condition the same bare name is a literal -->
+      <!-- a punctuation word standing as its own token is no argument: jam reads a rule's arguments as lists, where
+           every punctuation word of its table is a keyword; the ':' above separates the lists -->
+      <regexp match="/(^|\s)((!=)|(\+=)|(\?=)|(&lt;=)|(&gt;=)|(&amp;&amp;)|(\|\|)|(=)|(&lt;)|(&gt;)|(&amp;)|(\|)|(!)|(\()|(\))|(\{)|(\}))((\s)|($))?=/" region2="Error"/>
+      <regexp match="/[^\s;$\{\}&quot;\\\[\]]+/" region0="Value"/>
+   </scheme>
+
+   <scheme name="jamCondition">
+      <inherit scheme="jamArgCommon"/>
+      <!-- the expr of an if or while: = != < <= > >= & && | || in ! and ( expr ), so an '=' here compares.
+           It ends at the brace the grammar requires; a ';' or '}' bounds a malformed one, a line end does not -->
+      <inherit scheme="jamGluedMarks"/>
+      <!-- the end absorbs an operator glued to the bracket: jam reads '$(b)=yes' as 'no=yes', non-empty and so
+           true whatever the variable holds. An 'in' counts before space, '$' or line end, leaving '$(b)index' -->
+      <block start="/(\$\()/" end="/(\))(([=!&lt;&gt;&amp;|)]+)|((in)((\s)|(\$)|(\()|($))?=))?/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd" region12="Error"/>
+      <block start="/(&quot;)/" end="/(&quot;)/" scheme="jamString" region="def:String" region00="def:String" region10="def:String"/>
+      <inherit scheme="jamBracketCall"/>
+      <!-- 'in' is the one operator whose right side is a list rather than an expr (jam_src/jamgram.y), and a
+           list groups nothing: jam refuses 'if $(a) in ( b ) { }' where it takes 'if $(a) = ( b ) { }'. Marking
+           the bracket here keeps the block below from opening on it, this match starting a word earlier -->
+      <regexp match="/(^|\s)(in)\s+(\()/" region2="Keyword" region3="Error"/>
+      <!-- '( expr )' groups a condition, and jam reads each bracket as its own token, so the pair opens and
+           closes only where one stands alone. Recursing into this scheme nests a group; the end also stops, as a
+           look-ahead, where the condition itself does, so an unmatched '(' cannot run past the statement -->
+      <block start="/(^|\s)(\()((\s)|($))?=/" end="/((^|\s)(\)))|((((^|\s)\{((\s)|($)))|(\s;)|(\s\}))?=)/" scheme="jamCondition"
+             region00="Keyword" region02="def:PairStart"
+             region11="Keyword" region13="def:PairEnd"/>
+      <!-- a ( glued to what it opens: if ($(X) = yes) compares (<x> and can never be true. A ( inside
+           [ RuleName ... ] is text, which the blocks above claim before this rule can reach it. -->
+      <regexp match="/(^|\s)(\()[^\s)]/" region2="Error"/>
+      <!-- an operator counts only where it stands as its own token, jam comparing the whole word with its
+           table. A keywords list would paint the one inside a glued token too. -->
+      <regexp match="/(^|\s)((!=)|(&lt;=)|(&gt;=)|(&amp;&amp;)|(\|\|)|(=)|(&lt;)|(&gt;)|(&amp;)|(\|)|(!)|(in))((\s)|($))?=/" region2="Keyword"/>
+      <!-- punctuation glued into one token is no operator: jam reports 'syntax error at argument )||', at
+           '||(' and at '=='. Three or more of these characters cannot spell one. -->
+      <regexp match="/(^|\s)(([=!&lt;&gt;&amp;|()][=!&lt;&gt;&amp;|()][=!&lt;&gt;&amp;|()][^\s]*)|(==))((\s)|($))?=/" region2="Error"/>
+      <!-- an operator glued in front: jam reports 'syntax error at argument =$(S)', and at 'in$(S)'. The 'in'
+           rule asks for punctuation after the word, as the statement scheme's own does, so 'info' is left -->
+      <regexp match="/(^|\s)((!=)|(&lt;=)|(&gt;=)|(&amp;&amp;)|(\|\|)|(=)|(&lt;)|(&gt;)|(&amp;)|(\|)|(!))([^\s])?=/" region2="Error"/>
+      <regexp match="/(^|\s)(in)((\$\()|[()\[\];:=!|&amp;])?=/" region2="Error"/>
+      <!-- a ';' is no part of an expr, so one glued to an operand is a missing space: 'if $(b) = no;' compares
+           against 'no;' and is quietly false. An escaped '\;' is deliberate and left, as the sibling checks do -->
+      <regexp match="/(^|\s)([^\s;]*[^\s;\\];)((\s)|($))?=/" region2="Error"/>
+      <!-- a ')' that opens a longer token closes nothing either: jam reads the ')x' of 'if ( $(a) = b )x { }'
+           as one argument and refuses it. This match ties with the block's end and wins it, so the group stays
+           open and the bracket keeps no pair -->
+      <regexp match="/(^|\s)(\)[^\s]+)((\s)|($))?=/" region2="Error"/>
+      <!-- a ']' closes a call and is no part of an expr, so jam refuses one standing alone here as it
+           does in a value list; one glued to its argument is part of that argument and is left -->
+      <regexp match="/(^|\s)(\])((\s)|($))?=/" region2="Error"/>
+      <!-- argument text: a predefined name is a variable only inside $( ). Unlike the jamBracketArgs class
+           this one keeps a glued ']' inside the argument, that scheme excluding it so the closing bracket stays
+           out of its text. A call ends at a ']' only where a boundary stands before it.
+           The run cannot OPEN on a ')': at column 1 the block end above starts on the bracket too, and a rule
+           wins that tie, so a group closed on its own line would keep no pair -->
+      <regexp match="/[^\s$\{\}&quot;\\\[\)][^\s$\{\}&quot;\\\[]*/" region0="Value"/>
+   </scheme>
+
+   <scheme name="jamConditionTop">
+      <!-- the top level of a condition, where no group is open, so a ) closes nothing. Inside a group
+           the block recurses into jamCondition, which does not carry this rule and leaves its end the
+           bracket - a group may span lines, and jam takes it -->
+      <!-- a ')' that closes no group. Standing alone jam refuses it, 'syntax error at keyword )'; glued to
+           its argument, as in '(y)', jam takes the whole word, so the mark reads as a missing space, the '('
+           of the same token already carrying one. The ')' that does close a group is taken by the pair
+           block's end, whose match starts at the space before the bracket, a character earlier than this rule -->
+      <regexp match="/(\))((\s)|($))?=/" region1="Error"/>
+      <inherit scheme="jamCondition"/>
+   </scheme>
+
+   <scheme name="jamVarRef">
+      <!-- body of $(...) : predefined names first, then modifiers, then any other name -->
+      <inherit scheme="jamfileVariables"/>
+      <!-- the nested reference keeps the plain end: a guarded one would mark a ';' inside a quoted run
+           or an action body, where the text is no statement. -->
+      <block start="/(\$\()/" end="/(\))/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd"/>
+      <!-- a bracket in the NAME, as in $(Sources($(t))): jam counts bracket depth there, so the pair belongs to
+           the name. Without this block the outer end sees two brackets and takes the second for one glued on -->
+      <block start="/(\()/" end="/(\))/" scheme="jamVarRef"
+             region01="Symbol" region11="Symbol"/>
+      <!-- $(1) .. $(9) are the rule's positional arguments, so they get the same colour as its named parameters;
+           $(&lt;) and $(&gt;) are jam's built-in target and source lists.
+           The look-ahead keeps these from matching a digit or a bracket in the middle of an ordinary name. -->
+      <regexp match="/([1-9])((\[)|(\:)|(\)))?=/" region1="OtherVar"/>
+      <regexp match="/((&lt;)|(&gt;))((\[)|(\:)|(\)))?=/" region1="Variable"/>
+      <!-- [n] [n-] [n-m] element selection (jam_src/expand.c, "Look for [x-y] subscripting") -->
+      <regexp match="/(\[)([\d\-]+)(\])/" region0="Symbol" region1="def:PairStart" region2="Modifier" region3="def:PairEnd"/>
+      <regexp match="/(\:)([GBSMDPULEJRTW]+)((=)?)/" region1="Symbol" region2="Modifier" region3="Symbol"/>
+      <regexp match="/(\:)([A-Za-z]+)/" region1="Symbol" region2="Error"/>
+      <regexp match="/[A-Za-z_][\w\.]*/" region0="OtherVar"/>
+   </scheme>
+
+   <scheme name="jamAssignName">
+      <!-- the name on the left of an assignment. The statement scheme cannot colour it
+           itself: its rule matches from ^, an earlier position than the name, so wherever
+           the line is indented that rule wins and a regexp cannot ask a keyword list what
+           a word is. Here the lists decide, as they do inside $(...), and a name no list
+           knows falls through to an ordinary variable. -->
+      <inherit scheme="jamfileVariables"/>
+      <block start="/(\$\()/" end="/(\))/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd"/>
+      <regexp match="/[A-Za-z_][\w\.]*/" region0="OtherVar"/>
+   </scheme>
+
+   <scheme name="jamRuleParams">
+      <!-- the named parameters of a rule definition, up to its opening brace -->
+      <inherit scheme="jamGluedMarks"/>
+      <!-- the bracket rule is wider here: a parameter is never a name like Sources(x), so any bracket counts -->
+      <regexp match="/(^|\s)\s*(([()][^\s]*)|([^\s#&quot;\\](\\\\)*[()][^\s]*)|([^\s#&quot;][^\s]*[^\s\\](\\\\)*[()][^\s]*)|((\\\\)+[()][^\s]*))/" region2="Error"/>
+      <block start="/((\s)|(^))(#)/" end="/$/" scheme="def:Comment" region="Comment"/>
+      <regexp match="/(\:)/" region1="StructSymbol"/>
+      <regexp match="/[A-Za-z_][\w\.]*/" region0="OtherVar"/>
+   </scheme>
+
+   <scheme name="jamString">
+      <!-- a quoted run is one argument: the quotes are stripped and nothing inside is punctuation,
+           but a variable reference is still expanded (jam_src/scan.c, jam_src/expand.c) -->
+      <block start="/(\$\()/" end="/(\))/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd"/>
+      <regexp match="/\\./" region0="def:String"/>
+   </scheme>
+
+   <scheme name="jamValues">
+      <!-- a value list: the right hand side of an assignment, or the arguments of
+           an Echo or Exit, in both cases up to ';'. This end marks a ';' glued to the bracket, where
+           the line ends there or a space and then '}' or '#' follows. The space matters: game.jam
+           glues a ';' to the '}' closing embedded C and jBuild.jam to the '#' of a resource id, and
+           neither is a statement. -->
+      <block start="/(\$\()/" end="/(\))((;)((\s*$)|(\s+[\}#]))?=)?/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd" region12="Error"/>
+      <!-- jam starts a comment at '#' wherever a token may begin, so one can sit inside a value list as well
+           as between statements -->
+      <block start="/((\s)|(^))(#)/" end="/$/" scheme="def:Comment" region="Comment"/>
+      <inherit scheme="jamBracketCall"/>
+      <!-- an escaped character belongs to the value: jam reads anything starting with a backslash as an ordinary
+           argument, so \; \= \" are literals here -->
+      <regexp match="/\\./" region0="Value"/>
+      <!-- a terminator glued to the last value: the statement runs on into the next one -->
+      <regexp match="/([^\s;]*[^\s;\\];)\s*$/" region1="Error"/>
+      <regexp match="/(\s;[^\s])/" region1="Error"/>
+      <block start="/(&quot;)/" end="/(&quot;)/" scheme="jamString" region="def:String" region00="def:String" region10="def:String"/>
+      <!-- an operator standing as its own token is no value: jam reports 'syntax error at keyword =' and
+           the same for every word of its table; '==' is no word of it. Alphabetic ones stay values, jam looking
+           a word up inside a list only where it does not start with a letter. A ':' is marked for its own
+           reason: an assignment refuses it, and an Echo or Exit keeps only the list before it. A '{' is marked
+           for its own reason as well: no brace closes a list, so one here is a statement that misses its ';' -->
+      <regexp match="/(^|\s)((!=)|(\+=)|(\?=)|(&lt;=)|(&gt;=)|(&amp;&amp;)|(\|\|)|(=)|(&lt;)|(&gt;)|(&amp;)|(\|)|(!)|(\()|(\))|(\{)|(\})|(\])|(:))((\s)|($))?=/" region2="Error"/>
+      <!-- everything else in the list is a plain value. The braces are escaped inside the class because take5 does
+           not read a bare '{' or '}' there as a literal, and both descriptions carry this pattern: left bare,
+           [^\s;${}] would swallow the '{' the rule above marks. The quote and the backslash are excluded for the same
+           reason, and both must be: a quote glued to a token, as in $(OutDir).dSYM&quot;,
+           would be taken as part of the value and never open a string,
+           and with only the quote excluded the run would take the backslash of an escaped \&quot;
+           and leave the quote to open one. -->
+      <regexp match="/[^\s;$\{\}&quot;\\]+/" region0="Value"/>
+   </scheme>
+
+   <scheme name="varPairedBrackets">
+      <!-- a bracket or brace opens one only as its own token, and the leading boundary is CONSUMED rather than
+           asserted: Colorer 4ever reads the character before a token in column 1 as the last one of the LINE
+           ABOVE, so a look-behind refuses 'rule r' followed by '{ }', a form the tree uses throughout. The
+           trailing assertion still refuses one glued to what follows -->
+      <block start="/(^|\s)(\{)(\S)?!/" end="/(^|\s)(\})((\s+((elseif)|(elif)))(\s([^\{;#&quot;]*\s)?\{((\s)|($)))?=)?/" scheme="jamfile"
+             region00="StructSymbol" region02="def:PairStart"
+             region10="StructSymbol" region12="def:PairEnd" region13="Error"/>
+      <block start="/(\$\()/" end="/(\))((;)((\s*$)|(\s+[\}#]))?=)?/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd" region12="Error"/>
+        <!-- actions eflags NAME [ bind vars ] { ... } ; the header takes one of two forms, a brace on the same line
+             or the end of the line, and each gets its own block: the lazy run of eflags needs a definite anchor
+             after the name, which an alternation of '{' with a zero-length '$' does not give it. Writing that as
+             '(\{)|$' would parse as '(...\{)' or '($)', and neither branch serves both forms: anchored at the brace the
+             next-line form stops matching, anchored at the zero-length '$' the same-line form never matches and no name
+             group comes with it. The eflags (together, quietly, updated, ignore, piecemeal, existing) are keywords of
+             their own and are swept up as one group; the name is the first word that is not one of them, and a 'bind'
+             clause after it keeps its own keyword. Both forms are anchored at the head of the line so they match at the
+             same column as the bare invocation rule at the foot of the jamfile scheme; unanchored, that rule wins on
+             every indented header and the body is read as ordinary statements. jam takes a glued name such as 'Foo{' as
+             the ARG and the next brace as the LBRACE, so a body opens whichever line that brace sits on: here, or
+             through the next-line forms below. This form keeps the rule colour on the name, because a brace follows it
+             on the line; where nothing follows it, the mark stands. -->
+        <block start="/^\s*(\bactions)(((\s+\w+)*?)\s+)([A-Za-z_][^\s]*)((\s+bind\b)[^\{]*)?(\s+(\{))/" end="/(\})/" scheme="jamActions"
+               region01="Keyword" region03="Keyword" region05="Rule" region07="Keyword"
+               region08="StructSymbol" region09="def:PairStart"
+               region10="Symbol" region11="def:PairEnd"/>
+        <!-- A brace inside the body must not end it: jam counts nesting and stops at the one that brings the count
+             to zero (jam_src/scan.c, SCAN_STRING). A block cannot start its count at one,
+             so the end of this form is anchored instead - a body whose header ended the line closes with a brace first
+             on its own line, while the braces that must not close it are mid-line.
+             The same-line form keeps the plain end, since its body closes mid-line by construction. -->
+        <block start="/^\s*(\bactions)(((\s+\w+)*?)\s+)([A-Za-z_][^\s\{\}]*)((\s+bind\b)([^\{\}]*))?$/" end="/^\s*(\})/" scheme="jamActions"
+               region01="Keyword" region03="Keyword" region05="Rule" region07="Keyword"
+               region10="Symbol" region11="def:PairEnd"/>
+        <!-- '(bind\b)?!' is the suffix spelling of a negative look-ahead, not an optional group and
+             a literal '!': the eflags take any word but 'bind', which would otherwise be swallowed -->
+        <block start="/^\s*(\bactions)(((\s+(bind\b)?!\w+)*?)\s+)([A-Za-z_][^\s]*[\{\}][^\s]*)((\s+bind\b)([^\{\}]*))?$/" end="/^\s*(\})/" scheme="jamActions"
+               region01="Keyword" region03="Keyword" region06="Error" region08="Keyword"
+               region10="Symbol" region11="def:PairEnd"/>
+        <!-- the mark falls on the bind target, the word that carries the brace -->
+        <block start="/^\s*(\bactions)(((\s+\w+)*?)\s+)([A-Za-z_][^\s\{\}]*)((\s+bind\b)([^\{\}]*?)(\s[^\s]*[\{\}][^\s]*))$/" end="/^\s*(\})/" scheme="jamActions"
+               region01="Keyword" region03="Keyword" region05="Rule" region07="Keyword"
+               region09="Error"
+               region10="Symbol" region11="def:PairEnd"/>
+   </scheme>
+
+   <scheme name="jamActions">
+     <!-- the body's opening brace: it pairs with the closing one, not with the header -->
+     <regexp match="/^\s*(\{)/" region0="Symbol" region1="def:PairStart"/>
+     <inherit scheme="jamfileVariables"/>
+
+     <regexp match="/^(\s)*:[^\s]+/" region0="Path"/>
+
+     <block start="/(\$\()/" end="/(\))/" scheme="jamVarRef"
+             region00="Symbol" region01="def:PairStart"
+             region10="Symbol" region11="def:PairEnd"/>
+
+     <!-- the slash-flipping markers of an action line: jam strips them and rewrites the slashes
+          between (jam_src/execdmc.c). The contents are ordinary command text, not a comment. -->
+     <block start="/(\#\/\()/" end="/(\)\/\#)/" scheme="jamActions"
+            region00="Pod" region01="def:PairStart"
+            region10="Pod" region11="def:PairEnd"/>
+     <block start="/(\#\\\()/" end="/(\)\\\#)/" scheme="jamActions"
+            region00="Pod" region01="def:PairStart"
+            region10="Pod" region11="def:PairEnd"/>
+
+     <!-- A line whose first word starts with '#' is a remark and does nothing (jam_src/execdmc.c),
+          except the four directives below, which set a flag instead. Only the first word is dispatched,
+          so 'echo a # b' echoes the '#' and the rule is anchored at the head of the line.
+          '#async' is read from the start of the whole body, the other three from the start of a line.
+          '#sync' is not among them: it is an ordinary remark. -->
+     <regexp match="/^\s*((#async)|(#respfile-ln)|(#no-respfile)|(#respfile))\b/" region1="Keyword"/>
+     <block start="/^(\s*)(#)/" end="/$/" scheme="def:Comment" region="Comment"/>
+
+     <!-- A line of an action body must start with a command jam-G8 knows:
+          execdmc.c dispatches on the first word and any other is 'unknown command' with status 26.
+          '$(' is fine - the command comes from the expansion - as are a '#' line, a ':' goto label and a brace. -->
+     <regexp match="/^\s*((call_1core_filtered)|(call_1core)|(call_filtered)|(call)|(echo_cvt)|(echo)|(copyfile)|(clr_filters)|(mkdir)|(del)|(set_filter)|(set)|(goto)|(if)|(enter_critsec)|(leave_critsec))((\s)|($))?=/" region1="Keyword"/>
+
+     <!-- 'rem' is the one command that consumes its line: execdmc.c dispatches on the first word and
+          runs nothing, so what follows is a remark and must not read as command text. Kept out of the
+          list above so that only this rule can claim the line. -->
+     <regexp match="/^\s*(rem)(\s.*)?$/" region1="Keyword" region2="Comment"/>
+
+     <regexp match="/^\s*([^\s$#:\{\}][^\s]*)/" region1="Error"/>
+     <keywords region="Keyword">
+       <word name="quietly"/>
+       <word name="together"/>
+       <word name="echo"/>
+       <word name="echo_cvt"/>
+       <word name="mkdir"/>
+       <word name="copyfile"/>
+       <word name="del"/>
+       <word name="rem"/>
+       <word name="set"/>
+       <word name="goto"/>
+       <word name="if"/>
+       <word name="not"/>
+       <word name="exist"/>
+       <word name="call"/>
+       <word name="call_filtered"/>
+       <word name="set_filter"/>
+       <word name="clr_filters"/>
+       <word name="enter_critsec"/>
+       <word name="leave_critsec"/>
+     </keywords>
+
+     <keywords region="def:String">
+       <word name="ERRORLEVEL"/>
+       <word name="errorlevel"/>
+     </keywords>
+   </scheme>
+
+   <scheme name="jamfile">
+      <!-- Spacing at the head of a statement. These come before the inherited keyword lists because both match
+           at the same column, and an overlap there is settled by document order. -->
+      <!-- a builtin head keeps its own colour when the argument after it is refused: the rule for a user rule's head
+           would repaint it, and a mistake in an argument is no reason to restyle the head. A rule holds as many names
+           as the budget allows: a region index reaches group 9, each name costs a group, and the engine matches
+           alternatives only when each is parenthesised. -->
+      <regexp match="/^\s*((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE)|(NoUpdate)|(DEPENDS))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region1="Keyword" region9="Error"/>
+      <regexp match="/^\s*((Depends)|(NOTFILE)|(NotFile)|(ALWAYS)|(Always)|(LEAVES)|(Leaves))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region1="Keyword" region9="Error"/>
+      <regexp match="/^\s*((NOCARE)|(NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO)|(EXIT))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region1="Keyword" region9="Error"/>
+      <regexp match="/^\s*((Echo)|(Exit)|(GLOB)|(Glob)|(echo)|(exit))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region1="Keyword" region8="Error"/>
+      <!-- the same where the statement opens no line. Five names apiece, not seven: two groups stand before the name
+           list and a region index reaches 9. They open at the whitespace, or an Echo or Exit value list swallows the
+           keyword -->
+      <regexp match="/(\s[;\{\}])?#2(\s)((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(\s[;\{\}])?#2(\s)((NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(\s[;\{\}])?#2(\s)((ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(\s[;\{\}])?#2(\s)((NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(\s[;\{\}])?#2(\s)((EXIT)|(Echo)|(Exit)|(GLOB)|(Glob))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(\s[;\{\}])?#2(\s)((echo)|(exit))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region6="Error"/>
+      <!-- and the same where that opener stands in column 1: a space before it is not needed to write the
+           statement, so it cannot decide how the statement reads. A look-behind steps back a literal count, and the
+           shape above finds two characters there where it needs three, so this one steps one less and asks for the
+           line start -->
+      <regexp match="/(^[;\{\}])?#1(\s)((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(^[;\{\}])?#1(\s)((NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(^[;\{\}])?#1(\s)((ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(^[;\{\}])?#1(\s)((NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(^[;\{\}])?#1(\s)((EXIT)|(Echo)|(Exit)|(GLOB)|(Glob))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region9="Error"/>
+      <regexp match="/(^[;\{\}])?#1(\s)((echo)|(exit))\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Keyword" region6="Error"/>
+
+      <!-- the arguments of an Echo or Exit are a value list, so jamValues reads them and not the statement
+           scheme, whose assignment and terminator checks do not apply to prose. The verb counts wherever it stands -->
+      <block start="/(^|\s)\s*((ECHO)|(Echo)|(echo)|(EXIT)|(Exit)|(exit))((\s)|($))?=/" end="/(\s(;))|(^(;))/" scheme="jamValues"
+             region02="Keyword" region12="StructSymbol" region14="StructSymbol"/>
+      <regexp match="/^(\s*)([A-Za-z_][\w\.]*((\?=)|(\+=)|(=)))/" region2="Error"/>
+      <regexp match="/^(\s*)([A-Za-z_][\w\.]*)\s+(((\?=)|(\+=)|(=))[^\s])/" region3="Error"/>
+      <!-- the same two checks where a statement follows a whole-token ';', '{' or '}' rather than opening a line.
+           A look-behind reads a fixed number of characters, so each check needs both shapes: '?#3' refuses an escaped
+           opener, which is no token, and '?#2' takes the line-start opener that has only two characters before it -->
+      <regexp match="/((^)([;\{\}])(\s))?#2([A-Za-z_][\w\.]*((\?=)|(\+=)|(=)))/" region5="Error"/>
+      <regexp match="/((^)([;\{\}])(\s))?#2([A-Za-z_][\w\.]*)\s+(((\?=)|(\+=)|(=))[^\s])/" region6="Error"/>
+      <regexp match="/((\s)([;\{\}])(\s))?#3([A-Za-z_][\w\.]*((\?=)|(\+=)|(=)))/" region5="Error"/>
+      <regexp match="/((\s)([;\{\}])(\s))?#3([A-Za-z_][\w\.]*)\s+(((\?=)|(\+=)|(=))[^\s])/" region6="Error"/>
+      <!-- the expression of an if or while is read in its own scheme, where no assignment exists -->
+      <block start="/(^|\s)\s*((if)|(while))((\s)|($))?=/"
+             end="/(((^|\s)\{((\s)|($)))|(\s;)|(\s\}))?=/" scheme="jamConditionTop"
+             region02="Keyword"/>
+      <inherit scheme="jamGluedMarks"/>
+
+      <inherit scheme="jamfileVariables"/>
+
+      <inherit scheme="varPairedBrackets">
+         <virtual scheme="varPairedBrackets" subst-scheme="jamfile"/>
+      </inherit>
+
+      <!-- Statement-leading forms. Colorer resolves overlapping rules by position first and by document order only
+           on a tie, so everything that has to beat the bare invocation at the bottom of this scheme is anchored
+           at the start of the line as well - that puts them all at the same position,
+           where the order below decides. -->
+
+      <!-- rule NAME [ params ] { ... } : everything between the name and the brace is a parameter list,
+           and a rule's parameters are local variables inside it. The brace is only looked ahead at,
+           so varPairedBrackets still pairs it. -->
+      <block start="/^(\s*)(rule)\s+([A-Za-z_][^\s\{\}]*)((\s)|($))?=/" end="/((^|\s)\{((\s)|($)))?=/" scheme="jamRuleParams"
+             region02="Keyword" region03="Rule"/>
+      <!-- a glued name whose body brace still stands on the line: nothing reads as a missing space -->
+      <block start="/^(\s*)(rule)\s+([A-Za-z_][^\s]*[\{\}][^\s]*)(\s+\{)?=/" end="/((^|\s)\{((\s)|($)))?=/" scheme="jamRuleParams"
+             region02="Keyword" region03="Rule"/>
+
+      <!-- for NAME in list { ... } : the loop variable is local to the loop -->
+      <regexp match="/^(\s*)(for)\s+([A-Za-z_][\w\.]*)/" region2="Keyword" region3="OtherVar"/>
+
+      <!-- jam's alphabetic keywords, read wherever one stands as a whole token because jam splits on
+           whitespace (jam_src/scan.c). Claiming them here also keeps the invocation rule from reading
+           an indented 'if' or 'local' as a rule name. -->
+      <regexp match="/(^|\s)\s*((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(on)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))?=/" region2="Keyword"/>
+
+      <!-- 'elseif' and 'elif' are no keywords of jam's: either makes the statement a call of a rule so named,
+           which jam refuses wherever a '{' follows on the line. An assignment to such a name never ends in one -->
+      <regexp match="/^(\s*)((elseif)|(elif))(\s([^\{;#&quot;]*\s)?\{((\s)|($)))?=/" region2="Error"/>
+
+      <!-- jam reads the token after a rule name with its keyword table live: it cannot reduce the empty list that
+           turns the table off (jam_src/jamgram.y, jam_src/scan.c) until it has that token, so an alphabetic keyword
+           is refused there and nowhere else in a list. 'on' is left out because 'NAME on target = value' is an
+           assignment and legal, and this rule stands above the assignment head that would otherwise claim it -->
+      <regexp match="/^(\s*)([A-Za-z_][^\s]*)\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region2="Rule" region3="Error"/>
+      <!-- the same where the head is any other name -->
+      <regexp match="/(\s[;\{\}])?#2(\s)([A-Za-z_][^\s]*)\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Rule" region4="Error"/>
+      <!-- and the same in column 1 -->
+      <regexp match="/(^[;\{\}])?#1(\s)([A-Za-z_][^\s]*)\s+((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while))((\s)|($))/" region3="Rule" region4="Error"/>
+
+      <!-- and the same for jam's own rules, which are invoked exactly like any other -->
+      <block start="/^\s*((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE)|(NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile)|(ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE)|(NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO)|(EXIT)|(Echo)|(Exit)|(GLOB)|(Glob)|(echo)|(exit))((\s)|($))?=/" end="/(\s(;))|(^(;))/" scheme="jamBracketArgs"
+             region01="Keyword" region12="StructSymbol" region14="StructSymbol"/>
+      <!-- and a builtin invoked there, whose arguments are lists like any other invocation's -->
+      <block start="/(\s[;\{\}]\s)?#3((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE)|(NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile)|(ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE)|(NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO)|(EXIT)|(Echo)|(Exit)|(GLOB)|(Glob)|(echo)|(exit))((\s)|($))?=/" end="/(\s(;))|(^(;))/" scheme="jamBracketArgs"
+             region02="Keyword" region12="StructSymbol" region14="StructSymbol"/>
+      <!-- and the same in column 1 -->
+      <block start="/(^[;\{\}]\s)?#2((TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE)|(NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile)|(ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE)|(NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO)|(EXIT)|(Echo)|(Exit)|(GLOB)|(Glob)|(echo)|(exit))((\s)|($))?=/" end="/(\s(;))|(^(;))/" scheme="jamBracketArgs"
+             region02="Keyword" region12="StructSymbol" region14="StructSymbol"/>
+
+      <!-- either word glued to what follows is not that word: jam splits on whitespace (jam_src/scan.c), so
+           'include$(Root)/x.jam' is a single ARG and the statement is a call of a rule by that name, which is
+           always a typo for the keyword. The two rules above cannot reach it: each asks, through the
+           trailing ?= look-ahead, for whitespace or the line end where this has something else. -->
+      <regexp match="/(^|\s)\s*(((actions)|(bind)|(break)|(case)|(continue)|(default)|(else)|(existing)|(for)|(if)|(ignore)|(in)|(include)|(local)|(maxline)|(on)|(piecemeal)|(quietly)|(return)|(rule)|(switch)|(together)|(updated)|(while)|(TEMPORARY)|(Temporary)|(INCLUDES)|(Includes)|(NOUPDATE)|(NoUpdate)|(DEPENDS)|(Depends)|(NOTFILE)|(NotFile)|(ALWAYS)|(Always)|(LEAVES)|(Leaves)|(NOCARE)|(NOTIME)|(NoCare)|(MATCH)|(Match)|(ECHO)|(EXIT)|(Echo)|(Exit)|(GLOB)|(Glob)|(echo)|(exit))((\$\()|[()\[\];:=!|&amp;])[^\s]*)/" region2="Error"/>
+
+      <!-- NAME = value, and 'NAME on target = value': an assignment, not a call. The name is the whole token
+           before the operator, as jam splits on whitespace, so 'Sources($(t))' is one name and the expansion
+           inside it is still coloured. The trailing ?= is a look-ahead and is not consumed, so the start
+           matches the indent alone and leaves the name to jamAssignName. -->
+      <block start="/^(\s*)([A-Za-z_][^\s]*\s+(((\?=)|(\+=)|(=))|(on\s)))?=/"
+             end="/(\s)?=/" scheme="jamAssignName"/>
+      <!-- the value list runs to the ';' that ends the statement, each counted only as its own token: jam splits
+           on whitespace, so '\;', 'f(){' and the '=' of '-DFFXM_HALF=1' each belong to their argument, and the
+           operator opening this block is whole too. A whole-token '{' is no terminator: jam keeps reading the
+           list past it (jam_src/jamgram.y), so jamValues marks it and the list still runs to its ';' -->
+      <block start="/(^|\s)((\?=)|(\+=)|(=))((\s)|($))?=/" end="/(\s(;))|(^(;))/" scheme="jamValues"
+             region02="StructSymbol" region12="StructSymbol" region14="StructSymbol"/>
+      <!-- a '#' opens a comment only as the first character of a token:
+           jam skips whitespace and only then tests for it (jam_src/scan.c),
+           so the '#' of -outputresource:\"$(2)/$(t);#1\" is ordinary text. -->
+      <block start="/((\s)|(^))(#)/" end="/$/" scheme="def:Comment" region="Comment"/>
+      <!-- an escaped character is a literal, not punctuation: jam reads anything starting with a backslash
+           as an ordinary argument, so \= and \; must not trip the spacing checks below -->
+      <regexp match="/\\./" region0="Text"/>
+      <regexp match="/\:[SBDGJ]=/" region0="Text"/>
+      <!-- Spacing checks. jam splits on whitespace, so '=' and ';' are punctuation only where they stand as their own
+           token; inside an argument, as in -march=$(MArch) or "compiles; build this", they are ordinary text.
+           Each check below therefore fires only where the character cannot have been meant as anything else:
+           glued to the head of a statement, to the end of a line, or to a token beside one that does stand alone. -->
+      <inherit scheme="jamArgTerminators"/>
+      <regexp match="/((\s)|(^))(\$\([^)\s]*\)=)((\s)|($))/" region4="Error"/>
+
+      <!-- the punctuation half of the table in jam_src/jamgramtab.h, split by where jam accepts it:
+           the comparison and boolean operators belong to the expr of an if or while alone (jam_src/jamgram.y),
+           so one standing as its own token in a statement is refused, while = += ?= : ; do belong to a statement.
+           The alphabetic half of the table is read by the word-boundary rule further above instead. -->
+      <regexp match="/(^|\s)((!=)|(&lt;=)|(&gt;=)|(&amp;&amp;)|(\|\|)|(&lt;)|(&gt;)|(&amp;)|(\|)|(!))((\s)|($))?=/" region2="Error"/>
+      <keywords region="Keyword">
+         <word name="="/>
+         <word name=";"/>
+         <word name=":"/>
+         <word name="+="/>
+         <word name="?="/>
+      </keywords>
+      <!-- the rules jam itself provides (jam_src/builtins.c). They are rules and not keywords,
+           but they are part of the language rather than of this build,
+           so they keep the keyword colour and the rule colour is left to the project's own rules -->
+      <keywords region="Keyword">
+         <word name="Always"/>
+         <word name="ALWAYS"/>
+         <word name="Depends"/>
+         <word name="DEPENDS"/>
+         <word name="echo"/>
+         <word name="Echo"/>
+         <word name="ECHO"/>
+         <word name="exit"/>
+         <word name="Exit"/>
+         <word name="EXIT"/>
+         <word name="Glob"/>
+         <word name="GLOB"/>
+         <word name="Includes"/>
+         <word name="INCLUDES"/>
+         <word name="Leaves"/>
+         <word name="LEAVES"/>
+         <word name="Match"/>
+         <word name="MATCH"/>
+         <word name="NoCare"/>
+         <word name="NOCARE"/>
+         <word name="NOTIME"/>
+         <word name="NotFile"/>
+         <word name="NOTFILE"/>
+         <word name="NoUpdate"/>
+         <word name="NOUPDATE"/>
+         <word name="Temporary"/>
+         <word name="TEMPORARY"/>
+      </keywords>
+      <inherit scheme="jamBracketCall"/>
+      <!-- a name is a variable here only if a whole-token assignment operator follows: jam reads '__targets =;' as one
+           word, so that statement is an invocation. The look-ahead also keeps path components unpainted, and holds the
+           name's tail, so 'DefVars_$(Game)' still shows its pair -->
+      <regexp match="/([A-Za-z_][\w\.]*)([$()\w.\-]*\s+((on)\s+[^\s]+)?\s*((\?=)|(\+=)|(=))((\s)|($)))?=/" region1="OtherVar"/>
+      <block start="/(&quot;)/" end="/(&quot;)/" scheme="jamString" region="def:String" region00="def:String" region10="def:String"/>
+      <!-- whatever is left at the start of a statement is a rule invocation -->
+      <block start="/^(\s*)([A-Za-z_][^\s]*)((\s)|($))?=/" end="/(\s(;))|(^(;))/" scheme="jamBracketArgs"
+             region02="Rule" region12="StructSymbol" region14="StructSymbol"/>
+
+      <!-- the same where the statement opens no line. The terminator the look-behind reads has to be a whole token:
+           nothing starts after the glued '=;' above, so the name there is an argument -->
+      <block start="/((\s)([;\{\}])(\s))?#3([A-Za-z_][^\s]*)/" end="/(\s(;))|(^(;))/" scheme="jamBracketArgs"
+             region05="Rule" region12="StructSymbol" region14="StructSymbol"/>
+      <!-- and the same in column 1 -->
+      <block start="/((^)([;\{\}])(\s))?#2([A-Za-z_][^\s]*)/" end="/(\s(;))|(^(;))/" scheme="jamBracketArgs"
+             region05="Rule" region12="StructSymbol" region14="StructSymbol"/>
+   </scheme>
+
+</type>
+</hrc>

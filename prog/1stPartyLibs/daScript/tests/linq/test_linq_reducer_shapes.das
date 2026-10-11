@@ -51,10 +51,7 @@ def test_inner_select_untyped_param(t : T?) {
         let foldGot  <- _fold(arr._group_by(_ % 4)._select((K = _._0, S = _._1 |> select(@(x) => x + 1) |> sum)))
         let typedRef <- (arr._group_by(_ % 4)._select((K = _._0, S = _._1 |> select(@(x : int) => x + 1) |> sum)))
         tt |> equal(length(typedRef), length(foldGot))
-        var refMap : table<int; int>
-        for (r in typedRef) {
-            refMap[r.K] = r.S
-        }
+        var refMap <- {for (r in typedRef); r.K => r.S}
         for (f in foldGot) {
             tt |> equal(refMap[f.K], f.S)
         }
@@ -77,10 +74,7 @@ def test_two_arg_reducers_over_bucket(t : T?) {
         let a <- _fold(arr._group_by(_ % 3)._select((K = _._0, M = _._1 |> max(@(v) => v * 2))))
         let b <- _fold(arr._group_by(_ % 3)._select((K = _._0, M = _._1 |> select(@(x : int) => x * 2) |> max)))
         tt |> equal(length(b), length(a))
-        var refMap : table<int; int>
-        for (r in b) {
-            refMap[r.K] = r.M
-        }
+        var refMap <- {for (r in b); r.K => r.M}
         for (f in a) {
             tt |> equal(refMap[f.K], f.M)
         }
@@ -101,10 +95,7 @@ def test_two_arg_reducers_over_bucket(t : T?) {
         let foldGot <- _fold(arr._group_by(_ % 4)._select((K = _._0, M = _._1 |> max(@(v) => v + 5))))
         let refGot  <- (arr._group_by(_ % 4)._select((K = _._0, M = _._1 |> max(@(v) => v + 5))))
         tt |> equal(length(refGot), length(foldGot))
-        var refMap : table<int; int>
-        for (r in refGot) {
-            refMap[r.K] = r.M
-        }
+        var refMap <- {for (r in refGot); r.K => r.M}
         for (f in foldGot) {
             tt |> equal(refMap[f.K], f.M)
         }
@@ -118,10 +109,7 @@ def test_identity_lambda_canonicalizes(t : T?) {
         let a <- _fold(arr._group_by(_ % 3)._select((K = _._0, M = _._1 |> max(@(v) => v))))
         let b <- _fold(arr._group_by(_ % 3)._select((K = _._0, M = _._1 |> max())))
         tt |> equal(length(b), length(a))
-        var refMap : table<int; int>
-        for (r in b) {
-            refMap[r.K] = r.M
-        }
+        var refMap <- {for (r in b); r.K => r.M}
         for (f in a) {
             tt |> equal(refMap[f.K], f.M)
         }

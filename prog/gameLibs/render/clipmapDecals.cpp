@@ -98,10 +98,6 @@ void ClipmapDecals::init(bool stub_render_mode, const char *shader_name)
     DataBlock paramsBlk(clipmap_decals_config_filename);
     initDecalTypes(paramsBlk);
   }
-  d3d::SamplerHandle defaultSampler = d3d::request_sampler({});
-  ShaderGlobal::set_sampler(::get_shader_variable_id("clipmap_decal_diffuse_tex_samplerstate", true), defaultSampler);
-  ShaderGlobal::set_sampler(::get_shader_variable_id("clipmap_decal_normal_tex_samplerstate", true), defaultSampler);
-  ShaderGlobal::set_sampler(::get_shader_variable_id("clipmap_decal_material_tex_samplerstate", true), defaultSampler);
 }
 
 // release system

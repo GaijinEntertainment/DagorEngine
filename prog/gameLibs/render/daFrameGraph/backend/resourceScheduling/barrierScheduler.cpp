@@ -56,6 +56,21 @@ uint32_t BarrierScheduler::execution_rank(const Event &event)
   return 3;
 }
 
+static ResolveRole find_resolve_role(const intermediate::Graph &graph, intermediate::NodeIndex node_idx,
+  intermediate::ResourceIndex res_idx)
+{
+  if (!graph.nodeStates.isMapped(node_idx) || !graph.nodeStates[node_idx].pass)
+    return ResolveRole::None;
+  const auto &pass = *graph.nodeStates[node_idx].pass;
+  const bool depth = pass.depthAttachment && pass.depthAttachment->resource == res_idx;
+  if (pass.resolves.find(res_idx) != pass.resolves.end())
+    return depth ? ResolveRole::DepthSource : ResolveRole::ColorSource;
+  if (!pass.depthAttachment)
+    return ResolveRole::None;
+  const auto depthResolve = pass.resolves.find(pass.depthAttachment->resource);
+  return depthResolve != pass.resolves.end() && depthResolve->second == res_idx ? ResolveRole::DepthDest : ResolveRole::None;
+}
+
 // TODO: tracked resources still go through driver (de)activation actions.
 // Expressing them as enhanced barriers, the way untracked resources already
 // work, would match what is happening in HW more closely.
@@ -144,7 +159,7 @@ void BarrierScheduler::scheduleEvents(EventsCollection &node_events, const inter
       TIME_PROFILE(recordDebugBarriers);
       // Debug barrier recording: re-record from all cached events when anything is dirty
       debug_clear_resource_barriers();
-      for (auto [resIdx, placedEvents] : cachedResourceEvents.enumerate())
+      for (const auto &placedEvents : cachedResourceEvents)
         for (const auto &pe : placedEvents)
         {
           auto *barrier = eastl::get_if<Event::Barrier>(&pe.event.data);
@@ -299,6 +314,7 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
     intermediate::ResourceUsage usage;
     uint32_t frame;
     uint32_t nodeIndex;
+    ResolveRole resolveRole;
   };
 
   IdIndexedMapping<intermediate::ResourceIndex, uint32_t, framemem_allocator> perResourceUsageCount(graph.resources.totalKeys(), 0);
@@ -324,9 +340,9 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
 
   const auto processResourceInput = [&perFrameResourceUsageTimelines](int res_owner_frame, int event_frame,
                                       intermediate::NodeIndex node_idx, intermediate::ResourceIndex res_idx,
-                                      intermediate::ResourceUsage usage) {
+                                      intermediate::ResourceUsage usage, ResolveRole resolve_role) {
     perFrameResourceUsageTimelines[res_owner_frame][res_idx].push_back(
-      ResourceUsageOccurrence{usage, static_cast<uint32_t>(event_frame), node_idx});
+      ResourceUsageOccurrence{usage, static_cast<uint32_t>(event_frame), node_idx, resolve_role});
   };
 
   // We want to find the lifetime of every resource in terms
@@ -346,14 +362,14 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
 
       for (const auto &req : graph.nodes[idx].resourceRequests)
         if (req.fromLastFrame && dirtyResources.test(req.resource, false))
-          processResourceInput(frame, nextFrame, idx, req.resource, req.usage);
+          processResourceInput(frame, nextFrame, idx, req.resource, req.usage, ResolveRole::None);
     }
 
     for (auto idx : dag::ReverseView(graph.nodes.keys()))
     {
       for (const auto &req : graph.nodes[idx].resourceRequests)
         if (!req.fromLastFrame && dirtyResources.test(req.resource, false))
-          processResourceInput(frame, frame, idx, req.resource, req.usage);
+          processResourceInput(frame, frame, idx, req.resource, req.usage, find_resolve_role(graph, idx, req.resource));
     }
   }
 
@@ -395,11 +411,11 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
       const bool untrackedTexture = resource.isUntrackedTexture();
       const bool untracked = untrackedBuffer || untrackedTexture;
 
-      const auto declaredUsage = [](auto begin, auto end) -> eastl::optional<intermediate::ResourceUsage> {
+      const auto declaredOccurrence = [](auto begin, auto end) -> const ResourceUsageOccurrence * {
         const auto it = eastl::find_if(begin, end, [](const auto &occ) { return occ.usage.type != Usage::UNKNOWN; });
         if (it == end)
-          return eastl::nullopt;
-        return it->usage;
+          return nullptr;
+        return &*it;
       };
 
       // Carefully place split or regular barriers between usage
@@ -427,7 +443,8 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
           ResourceBarrier barrier = RB_NONE;
           intermediate::EnhancedBarrier enhancedBarrier;
           if (untracked)
-            enhancedBarrier = enhanced_barrier_for_transition(prev.usage, curr.usage, resource.getResType());
+            enhancedBarrier =
+              enhanced_barrier_for_transition(prev.usage, prev.resolveRole, curr.usage, curr.resolveRole, resource.getResType());
           else
             barrier = barrier_for_transition(prev.usage, curr.usage);
 
@@ -513,13 +530,14 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
 
       if (untracked)
       {
-        if (const auto lastUsage = declaredUsage(timeline.begin(), timeline.end()))
+        if (const auto *last = declaredOccurrence(timeline.begin(), timeline.end()))
           cacheLifetimeEvent(lifetime.release,
             untrackedBuffer
               ? Event::Payload{Event::EnhancedBufferBarrier{
-                  enhanced_buffer_barrier_for_release(*lastUsage, d3d::PipelineStageFlag::All), Event::BarrierKind::Release}}
+                  enhanced_buffer_barrier_for_release(last->usage, d3d::PipelineStageFlag::All), Event::BarrierKind::Release}}
               : Event::Payload{Event::EnhancedTextureBarrier{
-                  enhanced_texture_barrier_for_release(*lastUsage, d3d::PipelineStageFlag::All), Event::BarrierKind::Release}});
+                  enhanced_texture_barrier_for_release(last->usage, last->resolveRole, d3d::PipelineStageFlag::All),
+                  Event::BarrierKind::Release}});
       }
       else if (scheduledRes.isGpuResource())
         cacheLifetimeEvent(lifetime.release, Event::Deactivation{});
@@ -529,13 +547,14 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
       // First use
       if (untracked)
       {
-        if (const auto firstUsage = declaredUsage(timeline.rbegin(), timeline.rend()))
+        if (const auto *first = declaredOccurrence(timeline.rbegin(), timeline.rend()))
           cacheLifetimeEvent(lifetime.firstUse,
             untrackedBuffer
               ? Event::Payload{Event::EnhancedBufferBarrier{
-                  enhanced_buffer_barrier_for_activation(*firstUsage, d3d::PipelineStageFlag::All), Event::BarrierKind::FirstUse}}
+                  enhanced_buffer_barrier_for_activation(first->usage, d3d::PipelineStageFlag::All), Event::BarrierKind::FirstUse}}
               : Event::Payload{Event::EnhancedTextureBarrier{
-                  enhanced_texture_barrier_for_activation(*firstUsage, d3d::PipelineStageFlag::All), Event::BarrierKind::FirstUse}});
+                  enhanced_texture_barrier_for_activation(first->usage, first->resolveRole, d3d::PipelineStageFlag::All),
+                  Event::BarrierKind::FirstUse}});
       }
       else if (scheduledRes.isGpuResource())
         cacheLifetimeEvent(lifetime.firstUse,

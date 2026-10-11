@@ -84,14 +84,15 @@ void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, cons
 {
   prims.clear();
   prims.reserve(faceCount);
+  constexpr uint8_t userMax = QUAD_LEAF_USER_MASK | QUAD_LEAF_USER_TRANSPARENT;
 #if DAGOR_DBGLEVEL > 0
   for (int t = 0; face_user && t < faceCount; ++t)
-    G_ASSERTF(face_user[t] <= QUAD_LEAF_USER_MASK, "face_user[%d] = %u does not fit %d bits", t, face_user[t], QUAD_LEAF_USER_BITS);
+    G_ASSERTF(face_user[t] <= userMax, "face_user[%d] = %u does not fit %d bits", t, face_user[t], QUAD_LEAF_USER_BITS + 1);
 #endif
   // A value the field cannot hold names nothing, so it is never truncated into a different valid
   // index: 0 is the one index every owner has. Read through here rather than checked in a pass, so
   // a release build costs one compare per use and no walk of its own.
-  auto userOf = [face_user](int t) -> uint8_t { return face_user && face_user[t] <= QUAD_LEAF_USER_MASK ? face_user[t] : 0; };
+  auto userOf = [face_user](int t) -> uint8_t { return face_user && face_user[t] <= userMax ? face_user[t] : 0; };
   struct EdgeTris
   {
     int t0 = -1, t1 = -1;
@@ -381,11 +382,13 @@ static void writeDoubleQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const Do
     // is a contract the SoA4 converter and bvhIO both validate.
     G_ASSERTF(!d.hasB || d.a.user == d.b.user, "double-quad leaf mixes user values %u and %u", d.a.user, d.b.user);
     w3 |= ((uint32_t)d.a.user & QUAD_LEAF_USER_MASK) << QUAD_LEAF_USER_SHIFT;
+    if (d.a.user & QUAD_LEAF_USER_TRANSPARENT)
+      w2flip |= QUAD_LEAF_TRANSPARENT_FLAG;
   }
 
   writeQuadBox(blasData, dataOffset, nodes[node].bmin, nodes[node].bmax, scale, ofs, w0, useHalves);
   *(uint32_t *)(blasData + leafOfs) = w1;
-  *(uint32_t *)(blasData + leafOfs + 4) = w2hi | w2flip; // flipA shares W2 with quad B fields
+  *(uint32_t *)(blasData + leafOfs + 4) = w2hi | w2flip; // flipA and the transparent flag share W2 with quad B fields
   *(uint32_t *)(blasData + leafOfs + 8) = w3;
   dataOffset += BVH_BLAS_LEAF_SIZE;
 }
@@ -425,9 +428,6 @@ void buildDoubleQuadPrims(dag::Vector<DoubleQuadPrim> &out, const QuadPrim *prim
   out.clear();
   if (prims_count <= 0)
     return;
-  // The SAH build below releases its workspaces out of order; framemem returns only its newest
-  // block, so without a region every call leaves them in the arena.
-  FRAMEMEM_REGION;
   out.reserve(prims_count);
   Tab<bbox3f> boxes(framemem_ptr());
   boxes.resize(prims_count);

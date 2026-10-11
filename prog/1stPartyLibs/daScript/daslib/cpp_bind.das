@@ -10,11 +10,12 @@ module cpp_bind public
 //! that forwards virtual method calls from C++ into the daslang context.
 //! Used together with ``log_cpp_class_adapter``.
 
+require strings
 require daslib/fio
 require daslib/ast
 require daslib/ast_boost
 
-def private log_cpp_class_method(cpp_file : file; name : string; fntype : TypeDeclPtr) {
+def private log_cpp_class_method(var cpp_file : StringBuilderWriter; name : string; fntype : TypeDeclPtr) {
     var cft = clone_type(fntype.firstType)
     cft.flags.smartPtrNative = true
     let rettd = describe_cpp(cft)
@@ -36,7 +37,7 @@ def private log_cpp_class_method(cpp_file : file; name : string; fntype : TypeDe
 }
 
 [unused_argument(name)]
-def private log_cpp_class_method_call(cpp_file : file; name : string; fntype : TypeDeclPtr) {
+def private log_cpp_class_method_call(var cpp_file : StringBuilderWriter; name : string; fntype : TypeDeclPtr) {
     let rettd = describe_cpp(fntype.firstType)
     fwrite(cpp_file, "das_invoke_function<{rettd}>::invoke\n      <")
     for (_argN, argT, argI in fntype.argNames, fntype.argTypes, count()) {
@@ -66,7 +67,18 @@ def private log_cpp_class_method_call(cpp_file : file; name : string; fntype : T
     }
 }
 
+def private fwrite(var cpp_file : StringBuilderWriter; text : string) {
+    write(cpp_file, text)
+}
+
 def log_cpp_class_adapter(cpp_file : file; name : string; var cinfo : TypeDeclPtr) {
+    //! Generates C++ class adapter for the Daslang class.
+    fwrite(cpp_file, build_string() $(var writer) {
+        log_cpp_class_adapter(writer, name, cinfo)
+    })
+}
+
+def log_cpp_class_adapter(var cpp_file : StringBuilderWriter; name : string; var cinfo : TypeDeclPtr) {
     //! Generates C++ class adapter for the Daslang class.
     assert(cinfo.isClass, "can only make adapter out of a class")
     var methods : array<tuple<name : string; index : int>>
@@ -93,11 +105,9 @@ def log_cpp_class_adapter(cpp_file : file; name : string; var cinfo : TypeDeclPt
     }
     fwrite(cpp_file, "  \}\n")
     for (mn, mt in methods, types) {
-        // get
         fwrite(cpp_file, "  __forceinline Func get_{mn.name} ( void * self ) const \{\n")
         fwrite(cpp_file, "    return getDasClassMethod(self,_das_class_method_offset[__fn_{mn.name}]);\n")
         fwrite(cpp_file, "  \}\n")
-        // invoke
         fwrite(cpp_file, "  __forceinline ")
         log_cpp_class_method(cpp_file, "invoke_{mn.name}", mt)
         fwrite(cpp_file, " const \{\n")

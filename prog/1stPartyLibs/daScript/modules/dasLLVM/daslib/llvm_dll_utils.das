@@ -71,6 +71,18 @@ class UidGen : AstVisitor {
         add(expr.left._type)
     }
 
+    def override preVisitExprAt(expr : ExprAt?) {
+        if (expr.subexpr._type.isHandle) {
+            add(expr.subexpr._type)
+        }
+    }
+
+    def override preVisitExprForSource(var expr : ExprFor?, var source : ExpressionPtr, last : bool) {
+        if (source._type.isHandle) {
+            add(source._type)
+        }
+    }
+
     def override preVisitExprTypeInfo(expr : ExprTypeInfo?) {
         add(expr)
     }
@@ -121,7 +133,9 @@ class public UidNodes {
 
     def private get_base(ptr : void?; hint : string) {
         if (!(id_map |> key_exists(ptr))) {
-            panic("Key not found for {hint}")
+            let who = thisFunc != null ? "{describe(thisFunc.at)}: {thisFunc.name}" : "a global initializer"
+            panic("LLVM: {who} is outside the JIT function set - it fell back to the interpreter, " +
+                "so its `{hint}` has no id and cannot be emitted")
             return DllName()
         }
         let id = unsafe(id_map[ptr])
@@ -157,6 +171,14 @@ class public UidNodes {
 
     def get_clone_type(t : TypeDeclPtr) : DllName {
         return get_base(t, "clone`handle`{get_mangled_name(t)}")
+    }
+
+    def get_each_type(t : TypeDeclPtr) : DllName {
+        return get_base(t, "each`handle`{get_mangled_name(t)}")
+    }
+
+    def get_at_type(t : TypeDeclPtr; ixT : TypeDeclPtr) : DllName {
+        return get_base(t, "at`handle`{get_mangled_name(t)}`{get_mangled_name(ixT)}")
     }
 
     def get_tinfo(expr : ExprTypeInfo?) {
@@ -210,7 +232,7 @@ def public create_uid_nodes(prog : Program?; funcs : array<FunctionPtr>; gen_exe
         if (gen_exe) {
             prog |> for_each_module() $(m) {
                 m |> for_each_global() $(var glob) {
-                    if (glob.init != null && glob.flags.used) {
+                    if (glob.init != null && is_used(prog, glob)) {
                         visit_expression(glob.init, adapter)
                     }
                 }
@@ -281,19 +303,31 @@ class public DLLHandle {
 
 }
 
-// The object is emitted for the host triple, and jam names the target with the host toolchain's
-// object suffix, so the two must agree on .obj/.o.
-def public add_obj_extension(path : string) {
-    return get_platform_name() == "windows" ? "{path}.obj" : "{path}.o"
-}
-def public add_dll_extension(path : string) {
-    return "{path}.dll"
+enum public JitArtifact {
+    object
+    jit_dll
+    exe
+    shared_lib
+    static_lib
 }
 
-def public add_exe_extension(path : string) {
-    return "{path}.exe"
+
+def public artifact_path(path : string; kind : JitArtifact) : string {
+    let plat = get_platform_name()
+    var suffix = "o"
+    if (kind == JitArtifact.jit_dll) {
+        suffix = "dll"
+    } elif (kind == JitArtifact.exe) {
+        suffix = "exe"
+    } elif (kind == JitArtifact.static_lib) {
+        suffix = plat == "windows" ? "lib" : "a"
+    } elif (kind == JitArtifact.shared_lib) {
+        suffix = plat == "windows" ? "dll" : (plat == "darwin" ? "dylib" : "so")
+    }
+    return "{path}.{suffix}"
 }
+
 
 def public get_dll_by_path(path : string) : DLLHandle? {
-    return new DLLHandle(handle = load_dynamic_library(add_dll_extension(path)))
+    return new DLLHandle(handle = load_dynamic_library(artifact_path(path, JitArtifact.jit_dll)))
 }

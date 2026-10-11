@@ -11,12 +11,15 @@
 // Parameters:
 //   convention -- calling convention: stdcall (aka WINAPI), cdecl, opengl
 //   name       -- the exported symbol name in the library
-//   library    -- DLL / shared library to load
+//   library    -- DLL / shared library to load. Leave the extension off and the
+//                 running platform's is added (.dll / .dylib / .so), so one
+//                 binding serves all three: library="foo" finds foo.dll,
+//                 foo.dylib or foo.so
 //
 // The function body is a stub (never executed) -- the annotation
 // replaces it with a direct call to the native function at link time.
 //
-// Platform-specific libraries can be specified:
+// When the platforms disagree on the NAME, not just the extension, spell each:
 //   [extern(cdecl, name="foo",
 //           windows_library="foo.dll",
 //           macos_library="libfoo.dylib",

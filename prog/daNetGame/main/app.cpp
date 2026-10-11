@@ -10,6 +10,7 @@
 #include <asyncHTTPClient/asyncHTTPClient.h>
 #include <debug/dag_logSys.h>
 #include <debug/dag_textMarks.h>
+#include <render/debugMultiTextLabels/debugMultiTextLabels_api.h>
 #include <debug/dag_debugTextStream.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -653,6 +654,7 @@ void app_close()
   overlay_ui::shutdown_network_services();
   uishared::term();
 
+  term_camera_manager_client();
   imgui_shutdown();
   term_da_editor4(); // before ecs destroy since it's depends on entity manager
 
@@ -678,6 +680,7 @@ void app_close()
   threadpool::shutdown();
   propsreg::clear_registry();
   shutdown_debug_text_marks();
+  shutdown_debug_multitext_labels();
   game::g_timers_mgr.demandDestroy();
 
   dngsound::close();

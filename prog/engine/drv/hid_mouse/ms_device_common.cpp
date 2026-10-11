@@ -76,17 +76,6 @@ const char *GenericMouseDevice::getBtnName(int idx) const
   return btn_names[idx];
 }
 
-void GenericMouseDevice::setClipRect(int l, int t, int r, int b)
-{
-  clip.l = l;
-  clip.t = t;
-  clip.r = r;
-  clip.b = b;
-  // DEBUG_CTX("set clip rect: (%d,%d)-(%d,%d)", l, t, r, b);
-  if (clampStateCoord())
-    setPosition(state.mouse.x, state.mouse.y);
-}
-
 void GenericMouseDevice::setMouseCapture(void *handle) { ::mouse_api_SetCapture(handle); }
 void GenericMouseDevice::releaseMouseCapture() { ::mouse_api_ReleaseCapture(); }
 

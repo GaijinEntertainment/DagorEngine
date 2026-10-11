@@ -152,6 +152,8 @@ static const char *get_exe_arch_string()
 #else
 #if _TARGET_64BIT && _TARGET_SIMD_SSE
   return "x86_64";
+#elif _TARGET_64BIT && _TARGET_SIMD_NEON && defined(_M_ARM64EC)
+  return "arm64ec";
 #elif _TARGET_64BIT && _TARGET_SIMD_NEON
   return "arm64";
 #elif !_TARGET_64BIT && _TARGET_SIMD_SSE

@@ -12,10 +12,10 @@ buffer scene_spot_managed_lights;
 buffer scene_omni_render_lights;
 buffer scene_spot_render_lights;
 
-int visible_far_max_lights_count;
-
 buffer visible_lights_data_buf;
 buffer visible_lights_counts_buf;
+buffer partition_omni_lights_flags;
+buffer partition_spot_lights_flags;
 
 buffer partition_lights_frustum_planes;
 float partition_lights_cutoff_dist_sq;
@@ -57,7 +57,7 @@ shader partition_lights_cs
 
     scene_omni_render_lights@buf = scene_omni_render_lights hlsl {
       #include <renderLights.hlsli>
-      StructuredBuffer<RenderOmniLight> scene_omni_render_lights@buf;
+      ByteAddressBuffer scene_omni_render_lights@buf;
     };
 
     visible_lights_data_buf@uav = visible_lights_data_buf hlsl {
@@ -75,7 +75,7 @@ shader partition_lights_cs
 
     scene_spot_render_lights@buf = scene_spot_render_lights hlsl {
       #include <renderLights.hlsli>
-      StructuredBuffer<RenderSpotLight> scene_spot_render_lights@buf;
+      ByteAddressBuffer scene_spot_render_lights@buf;
     };
   }
 
@@ -101,6 +101,7 @@ shader partition_lights_cs
       uint kMaxLightsCount = isSpot ? MAX_SCENE_SPOT_LIGHTS : MAX_SCENE_OMNI_LIGHTS;
 
       uint sceneLightIndex = isSpot ? (dispatch_thread_id.x - MAX_SCENE_OMNI_LIGHTS) : dispatch_thread_id.x;
+      uint renderStructByteOffset = sceneLightIndex * (isSpot ? RENDER_SPOT_LIGHT_STRIDE_SIZE : RENDER_OMNI_LIGHT_STRIDE_SIZE);
 
       float4 lightBoundSphere = 0;
       bool validLight = false;
@@ -113,31 +114,38 @@ shader partition_lights_cs
       BRANCH
       if(isSpot)
       {
-        RenderSpotLight rl = structuredBufferAt(scene_spot_render_lights, sceneLightIndex);
-        float2 rad = decode_spot_light_radius_and_culling_radius(rl);
+        float4 lightPos_halfRadius_halfCullRadius = asfloat(
+          loadBuffer4(scene_spot_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_POS_HALF_RADIUS_HALF_CULL_RADIUS_OFFSET));
+        float2 rad = decode_spot_light_radius_and_culling_radius(lightPos_halfRadius_halfCullRadius.w);
         validLight = rad.x > 0.0f;
 
         BRANCH
         if(validLight)
         {
+          float4 lightColorAngleScale =
+            asfloat(loadBuffer4(scene_spot_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_COLOR_ANGLE_SCALE_OFFSET));
+          float4 lightDirectionAngleOffset =
+            asfloat(loadBuffer4(scene_spot_render_lights, renderStructByteOffset + RENDER_SPOT_LIGHT_DIRECTION_ANGLE_OFFSET_OFFSET));
           ManagedLight ml = structuredBufferAt(scene_spot_managed_lights, sceneLightIndex);
-          lightBoundSphere = getSpotLightBoundingSphere(rl);
+          lightBoundSphere = getSpotLightBoundingSphere(lightPos_halfRadius_halfCullRadius, lightColorAngleScale, lightDirectionAngleOffset);
           shadowIdMask = ml.shadowId_mask;
           ##if downsampled_far_depth_tex != NULL
-            getSpotLightBoundingBox(rl, occlusionBoxMin, occlusionBoxMax);
+            getSpotLightBoundingBox(lightPos_halfRadius_halfCullRadius, lightColorAngleScale, lightDirectionAngleOffset, occlusionBoxMin, occlusionBoxMax);
           ##endif
         }
       }
       else
       {
-        RenderOmniLight rl = structuredBufferAt(scene_omni_render_lights, sceneLightIndex);
-        validLight = rl.posRadius.w > 0.0f;
+        float4 posRadius = asfloat(loadBuffer4(scene_omni_render_lights, renderStructByteOffset + RENDER_OMNI_LIGHT_POS_RADIUS_OFFSET));
+        validLight = posRadius.w > 0.0f;
 
         BRANCH
         if(validLight)
         {
+          float4 posRelToOrigin_cullRadius = asfloat(
+            loadBuffer4(scene_omni_render_lights, renderStructByteOffset + RENDER_OMNI_LIGHT_POS_REL_TO_ORIGIN_CULL_RADIUS_OFFSET));
           ManagedLight ml = structuredBufferAt(scene_omni_managed_lights, sceneLightIndex);
-          lightBoundSphere = getOmniLightBoundingSphere(rl);
+          lightBoundSphere = getOmniLightBoundingSphere(posRadius, posRelToOrigin_cullRadius);
           shadowIdMask = ml.shadowId_mask;
           ##if downsampled_far_depth_tex != NULL
             occlusionBoxMin = lightBoundSphere.xyz - lightBoundSphere.w;
@@ -371,8 +379,6 @@ shader finalize_sort_lights_cs
     visible_lights_counts_buf@uav = visible_lights_counts_buf hlsl {
       RWStructuredBuffer<uint> visible_lights_counts_buf@uav;
     };
-
-    visible_far_max_lights_count@i1 = visible_far_max_lights_count;
   }
 
   hlsl (cs) {
@@ -397,10 +403,10 @@ shader finalize_sort_lights_cs
         uint overflowSpotLightsCount = max(actualSpotClusteredLightCount, (uint)MAX_CLUSTERED_SPOT_LIGHTS) - (uint)MAX_CLUSTERED_SPOT_LIGHTS;
 
         structuredBufferAt(visible_lights_counts_buf, FAR_OMNI_LIGHTS_COUNT_INDEX) =
-          min(naturalOmniFarLightsCount + overflowOmniLightsCount, (uint)visible_far_max_lights_count);
+          min(naturalOmniFarLightsCount + overflowOmniLightsCount, (uint)MAX_VISIBLE_FAR_LIGHTS);
 
         structuredBufferAt(visible_lights_counts_buf, FAR_SPOT_LIGHTS_COUNT_INDEX) =
-          min(naturalSpotFarLightsCount + overflowSpotLightsCount, (uint)visible_far_max_lights_count);
+          min(naturalSpotFarLightsCount + overflowSpotLightsCount, (uint)MAX_VISIBLE_FAR_LIGHTS);
       }
 
       bool isSpot = (dispatch_thread_id.x >= actualOmniClusteredLightCount);
@@ -421,7 +427,7 @@ shader finalize_sort_lights_cs
         if(lightIndex >= kMaxSceneLights)
         {
           uint farSlot = naturalFarLightsCount + (lightIndex - kMaxSceneLights);
-          if (farSlot < (uint)visible_far_max_lights_count)
+          if (farSlot < (uint)MAX_VISIBLE_FAR_LIGHTS)
             storeBuffer(visible_lights_data_buf, (farIdOffset + farSlot) * 4u, sceneIndex);
         }
       }
@@ -595,9 +601,9 @@ macro SORT_IMPL_LIGHTS_CORE(code, use_batching, max_lights_count_sort, thread_gr
         for (uint stride = block >> 1; stride >= 1u; stride >>= 1)
         {
           ##if use_batching
-            for(uint threadBatchOffset = 0; threadBatchOffset < lightsBatchPerThread; ++threadBatchOffset)
+            for(uint sortBatchOffset = 0; sortBatchOffset < lightsBatchPerThread; ++sortBatchOffset)
             {
-              uint lightThreadBatchIndex = baseLightThreadBatchIndex + threadBatchOffset;
+              uint lightThreadBatchIndex = baseLightThreadBatchIndex + sortBatchOffset;
               uint startLightIndexInBatch = lightThreadBatchIndex * 4u;
 
               uint4 batchedSortData = gs_sort_data_batched[lightThreadBatchIndex];
@@ -698,18 +704,18 @@ macro SORT_IMPL_LIGHTS_CORE(code, use_batching, max_lights_count_sort, thread_gr
 
 
       ##if use_batching
-        for(uint threadBatchOffset = 0; threadBatchOffset < lightsBatchPerThread; ++threadBatchOffset)
+        for(uint storeBatchOffset = 0; storeBatchOffset < lightsBatchPerThread; ++storeBatchOffset)
         {
-          uint lightThreadBatchIndex = baseLightThreadBatchIndex + threadBatchOffset;
+          uint lightThreadBatchIndex = baseLightThreadBatchIndex + storeBatchOffset;
           uint startLightIndexInBatch = lightThreadBatchIndex * 4u;
 
           uint4 batchedSortData = gs_sort_data_batched[lightThreadBatchIndex];
           storeBuffer4(visible_lights_data_buf, (startLightIndexInBatch + groupBaseGlobalLightIndex) * 4u + idsByteOffset, batchedSortData);
         }
       ##else
-        for(uint threadOffset = 0; threadOffset < lightsPerThread; ++threadOffset)
+        for(uint storeOffset = 0; storeOffset < lightsPerThread; ++storeOffset)
         {
-          uint lightThreadIndex = baseLightThreadIndex + threadOffset;
+          uint lightThreadIndex = baseLightThreadIndex + storeOffset;
           BRANCH
           if (lightThreadIndex < lightCountPowerOf2)
             storeBuffer(visible_lights_data_buf, (lightThreadIndex + groupBaseGlobalLightIndex) * 4u + idsByteOffset, gs_sort_data_scalar[lightThreadIndex]);
@@ -848,6 +854,185 @@ shader sort_batched_high_impl_lights_cs
   INIT_SORT_IMPL_LIGHTS_COMMON_PARAMS(cs)
   SORT_IMPL_LIGHTS_CORE(cs, true, MAX_SCENE_SORT_LIGHTS, LIGHTS_SORTER_HIGH_GROUP_SIZE, LIGHTS_SORTER_BATCHED_HIGH_STAGE_DATA_INDEX,
     LIGHTS_SORTER_MEDIUM_GROUP_SIZE)
+  compile("target_cs", "main");
+}
+
+buffer visible_lights_transit_buffer;
+
+shader visible_lights_pack_constant_buffers_data
+{
+  (cs) {
+    scene_omni_render_lights@buf = scene_omni_render_lights hlsl {
+      ByteAddressBuffer scene_omni_render_lights@buf;
+    };
+    scene_spot_render_lights@buf = scene_spot_render_lights hlsl {
+      ByteAddressBuffer scene_spot_render_lights@buf;
+    };
+    scene_omni_managed_lights@buf = scene_omni_managed_lights hlsl {
+      #include <lightsManager.hlsli>
+      StructuredBuffer<ManagedLight> scene_omni_managed_lights@buf;
+    };
+    scene_spot_managed_lights@buf = scene_spot_managed_lights hlsl {
+      #include <lightsManager.hlsli>
+      StructuredBuffer<ManagedLight> scene_spot_managed_lights@buf;
+    };
+    visible_lights_data_buf@buf = visible_lights_data_buf hlsl {
+      ByteAddressBuffer visible_lights_data_buf@buf;
+    };
+    visible_lights_counts_buf@buf = visible_lights_counts_buf hlsl {
+      StructuredBuffer<uint> visible_lights_counts_buf@buf;
+    };
+    visible_lights_transit_buffer@uav = visible_lights_transit_buffer hlsl {
+      RWByteAddressBuffer visible_lights_transit_buffer@uav;
+    };
+    partition_omni_lights_flags@uav = partition_omni_lights_flags hlsl {
+      RWByteAddressBuffer partition_omni_lights_flags@uav;
+    };
+    partition_spot_lights_flags@uav = partition_spot_lights_flags hlsl {
+      RWByteAddressBuffer partition_spot_lights_flags@uav;
+    };
+  }
+
+  hlsl(cs) {
+    #include <lightsPartition.hlsli>
+
+    ##if (partition_omni_lights_flags != NULL || partition_spot_lights_flags != NULL)
+      void pack_clustered_lights_masks(uint const_index)
+      {
+        bool isSpot = const_index >= VISIBLE_LIGHTS_TRANSIT_SPOT_MASKS_OFFSET;
+        uint sectionOffset = isSpot ? VISIBLE_LIGHTS_TRANSIT_SPOT_MASKS_OFFSET : VISIBLE_LIGHTS_TRANSIT_OMNI_MASKS_OFFSET;
+        uint countIndex = isSpot ? CLUSTERED_SPOT_LIGHTS_COUNT_INDEX : CLUSTERED_OMNI_LIGHTS_COUNT_INDEX;
+        uint idsOffset = isSpot ? CLUSTERED_SPOT_LIGHTS_IDS_OFFSET : CLUSTERED_OMNI_LIGHTS_IDS_OFFSET;
+        uint maxLights = isSpot ? MAX_CLUSTERED_SPOT_LIGHTS : MAX_CLUSTERED_OMNI_LIGHTS;
+
+        uint rawLightsCount = structuredBufferAt(visible_lights_counts_buf, countIndex);
+        ##assert(rawLightsCount <= maxLights, "clustered lights count %f exceeds max %f", rawLightsCount, maxLights);
+        uint lightsCount = min(rawLightsCount, maxLights);
+        uint maskIndex = const_index - sectionOffset;
+        uint firstLightIndex = maskIndex * VISIBLE_LIGHTS_TRANSIT_MASKS_PER_THREAD;
+
+        uint packedMask = 0u;
+        for (
+            uint i = 0u, lightIndex = firstLightIndex;
+            lightIndex < lightsCount && i < VISIBLE_LIGHTS_TRANSIT_MASKS_PER_THREAD;
+            ++i, ++lightIndex
+        )
+        {
+          uint sceneLightIndex = loadBuffer(visible_lights_data_buf, (idsOffset + lightIndex) * 4u);
+          uint shadowIdMask = 0u;
+          BRANCH
+          if (isSpot)
+          {
+            shadowIdMask = structuredBufferAt(scene_spot_managed_lights, sceneLightIndex).shadowId_mask;
+          }
+          else
+          {
+            shadowIdMask = structuredBufferAt(scene_omni_managed_lights, sceneLightIndex).shadowId_mask;
+          }
+          packedMask |= (decode_managed_mask(shadowIdMask) & 0xFFu) << (i * 8u);
+        }
+        BRANCH
+        if (isSpot)
+        {
+          ##if (partition_spot_lights_flags != NULL)
+            storeBuffer(partition_spot_lights_flags, maskIndex * 4u, packedMask);
+          ##endif
+        }
+        else
+        {
+          ##if (partition_omni_lights_flags != NULL)
+            storeBuffer(partition_omni_lights_flags, maskIndex * 4u, packedMask);
+          ##endif
+        }
+      }
+    ##endif
+
+    struct TransitSection
+    {
+      uint constsOffset;
+      uint countIndex;
+      uint idsOffset;
+      uint maxLights;
+      uint lightConsts;
+      bool isSpot;
+    };
+
+    TransitSection make_transit_section(uint consts_offset, uint count_index, uint ids_offset, uint max_lights, bool is_spot)
+    {
+      TransitSection section;
+      section.constsOffset = consts_offset;
+      section.countIndex = count_index;
+      section.idsOffset = ids_offset;
+      section.maxLights = max_lights;
+      section.lightConsts = is_spot ? RENDER_SPOT_LIGHT_CONSTS_COUNT : RENDER_OMNI_LIGHT_CONSTS_COUNT;
+      section.isSpot = is_spot;
+      return section;
+    }
+
+    TransitSection get_transit_section(uint const_index)
+    {
+      bool isSpot = const_index >= VISIBLE_LIGHTS_TRANSIT_CLUSTERED_SPOT_OFFSET;
+      bool isFar = const_index >= (isSpot ? VISIBLE_LIGHTS_TRANSIT_FAR_SPOT_OFFSET : VISIBLE_LIGHTS_TRANSIT_FAR_OMNI_OFFSET);
+
+      uint constsOffset = isSpot ? (isFar ? VISIBLE_LIGHTS_TRANSIT_FAR_SPOT_OFFSET : VISIBLE_LIGHTS_TRANSIT_CLUSTERED_SPOT_OFFSET)
+                                 : (isFar ? VISIBLE_LIGHTS_TRANSIT_FAR_OMNI_OFFSET : VISIBLE_LIGHTS_TRANSIT_CLUSTERED_OMNI_OFFSET);
+      uint countIndex = isSpot ? (isFar ? FAR_SPOT_LIGHTS_COUNT_INDEX : CLUSTERED_SPOT_LIGHTS_COUNT_INDEX)
+                               : (isFar ? FAR_OMNI_LIGHTS_COUNT_INDEX : CLUSTERED_OMNI_LIGHTS_COUNT_INDEX);
+      uint idsOffset = isSpot ? (isFar ? FAR_SPOT_LIGHTS_IDS_OFFSET : CLUSTERED_SPOT_LIGHTS_IDS_OFFSET)
+                              : (isFar ? FAR_OMNI_LIGHTS_IDS_OFFSET : CLUSTERED_OMNI_LIGHTS_IDS_OFFSET);
+      uint maxLights = isFar ? MAX_VISIBLE_FAR_LIGHTS : (isSpot ? MAX_CLUSTERED_SPOT_LIGHTS : MAX_CLUSTERED_OMNI_LIGHTS);
+
+      return make_transit_section(constsOffset, countIndex, idsOffset, maxLights, isSpot);
+    }
+
+    [numthreads(256, 1, 1)]
+    void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
+    {
+      uint constIndex = dispatch_thread_id.x;
+      BRANCH
+      if (constIndex >= VISIBLE_LIGHTS_TRANSIT_CONSTS_COUNT)
+        return;
+
+      ##if (partition_omni_lights_flags != NULL || partition_spot_lights_flags != NULL)
+        BRANCH
+        if (constIndex >= VISIBLE_LIGHTS_TRANSIT_OMNI_MASKS_OFFSET)
+        {
+          pack_clustered_lights_masks(constIndex);
+          return;
+        }
+      ##endif
+
+      TransitSection section = get_transit_section(constIndex);
+      uint lightsCount = min(structuredBufferAt(visible_lights_counts_buf, section.countIndex), section.maxLights);
+      uint constInSection = constIndex - section.constsOffset;
+
+      BRANCH
+      if (constInSection == 0)
+      {
+        uint4 header = uint4(lightsCount, (lightsCount + 31u) / 32u, lightsCount > 0u ? lightsCount - 1u : 0u, 0u);
+        storeBuffer4(visible_lights_transit_buffer, constIndex * VISIBLE_LIGHTS_TRANSIT_CONST_SIZE, header);
+        return;
+      }
+
+      uint lightIndex = (constInSection - 1u) / section.lightConsts;
+      BRANCH
+      if (lightIndex >= lightsCount)
+        return;
+
+      uint constInLight = (constInSection - 1u) % section.lightConsts;
+      uint sceneLightIndex = loadBuffer(visible_lights_data_buf, (section.idsOffset + lightIndex) * 4u);
+      uint srcByteOffset = (sceneLightIndex * section.lightConsts + constInLight) * VISIBLE_LIGHTS_TRANSIT_CONST_SIZE;
+
+      uint4 value;
+      BRANCH
+      if (section.isSpot)
+        value = loadBuffer4(scene_spot_render_lights, srcByteOffset);
+      else
+        value = loadBuffer4(scene_omni_render_lights, srcByteOffset);
+      storeBuffer4(visible_lights_transit_buffer, constIndex * VISIBLE_LIGHTS_TRANSIT_CONST_SIZE, value);
+    }
+  }
+
   compile("target_cs", "main");
 }
 

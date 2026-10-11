@@ -18,8 +18,6 @@ BhvMarquee bhv_marquee;
 
 const float BhvMarqueeData::defSpeed = 50.0f;
 
-static const char *dataSlotName = "marquee:data";
-
 
 BhvMarquee::BhvMarquee() : Behavior(STAGE_BEFORE_RENDER, 0) {}
 
@@ -32,10 +30,10 @@ void BhvMarquee::onAttach(Element *)
 
 void BhvMarquee::onDetach(Element *elem, DetachMode)
 {
-  BhvMarqueeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMarqueeData *>(dataSlotName, nullptr);
+  BhvMarqueeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMarqueeData *>(elem->csk->marqueeData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(dataSlotName);
+    elem->props.storage.DeleteSlot(elem->csk->marqueeData);
     delete bhvData;
   }
 }
@@ -45,12 +43,12 @@ void BhvMarquee::onElemSetup(Element *elem, SetupMode setup_mode)
 {
   BhvMarqueeData *bhvData = nullptr;
   if (setup_mode == SM_REBUILD_UPDATE)
-    bhvData = elem->props.storage.RawGetSlotValue<BhvMarqueeData *>(dataSlotName, nullptr);
+    bhvData = elem->props.storage.RawGetSlotValue<BhvMarqueeData *>(elem->csk->marqueeData, nullptr);
 
   if (setup_mode == SM_INITIAL || (setup_mode == SM_REBUILD_UPDATE && !bhvData))
   {
     bhvData = new BhvMarqueeData();
-    elem->props.storage.SetValue(dataSlotName, bhvData);
+    elem->props.storage.SetValue(elem->csk->marqueeData, bhvData);
   }
   G_ASSERT(setup_mode == SM_INITIAL || setup_mode == SM_REBUILD_UPDATE);
   G_ASSERT_RETURN(bhvData, );
@@ -93,7 +91,7 @@ int BhvMarquee::update(UpdateStage /*stage*/, darg::Element *elem, float dt)
 {
   TIME_PROFILE(bhv_marquee_update);
 
-  BhvMarqueeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMarqueeData *>(dataSlotName, nullptr);
+  BhvMarqueeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMarqueeData *>(elem->csk->marqueeData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   int axis = (bhvData->orient == O_HORIZONTAL) ? 0 : 1;

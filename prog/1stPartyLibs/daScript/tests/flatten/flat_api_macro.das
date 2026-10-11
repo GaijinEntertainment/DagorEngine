@@ -20,34 +20,20 @@ require daslib/rtti
 // precedence regressed, flatten would try to inline a recursive function and fail.
 let private MY_PRIMS : table<string> <- { "max", "min", "myrec", "g_writer" }
 
-def private api_phase(func : FunctionPtr) : int {
-    for (ann in func.annotations) {
-        if (ann.annotation.name == "flat_api") {
-            let pv = find_arg(ann.arguments, "phase")
-            if (pv is tInt) return pv as tInt
+def private set_api_phase(var args : AnnotationArgumentList; ph : int) {
+    for (a in args) {
+        if (a.name == "phase") {
+            a.iValue = ph
+            return
         }
     }
-    return -1
-}
-
-def private set_api_phase(var func : FunctionPtr; ph : int) {
-    for (ann in func.annotations) {
-        if (ann.annotation.name != "flat_api") continue
-        var found = false
-        for (a in ann.arguments) {
-            if ("{a.name}" == "phase") {
-                a.iValue = ph
-                found = true
-            }
-        }
-        if (!found) ann.arguments |> add_annotation_argument("phase", ph)
-    }
+    args |> add_annotation_argument("phase", ph)
 }
 
 [function_macro(name="flat_api")]
 class FlatApiMacro : AstFunctionAnnotation {
     def override apply(var func : FunctionPtr; var group : ModuleGroup;
-                       args : AnnotationArgumentList; var errors : das_string) : bool {
+                       var args : AnnotationArgumentList; var errors : das_string) : bool {
         let tn = "{func.name}_apiflat"
         if (find_unique_function(compiling_module(), tn, true) == null) {
             var fn = clone_function(func)
@@ -61,13 +47,13 @@ class FlatApiMacro : AstFunctionAnnotation {
         return true
     }
     def override patch(var func : FunctionPtr; var group : ModuleGroup;
-                       args, progArgs : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         // Skip under lint (const-fold off → the twin is irrelevant to linting source,
         // and re-running flatten under lint passes doubles the mask decls). Mirrors the
         // [flatten] annotation and the backend; the inert clone from apply is what lint sees.
         if (is_in_lint_check()) return true
-        let ph = api_phase(func)
+        let ph = args |> find_arg("phase") ?as tInt ?? -1
         if (ph >= 2) return true
         var twin = find_unique_function(compiling_module(), "{func.name}_apiflat", true)
         if (twin == null) {
@@ -78,7 +64,7 @@ class FlatApiMacro : AstFunctionAnnotation {
             // Cycle 2 (re-inferred): run the PUBLIC fold companion the same way a
             // backend would — collapse const selects + drop pure self-assigns.
             let folded = flatten_fold(twin)
-            set_api_phase(func, 2)
+            set_api_phase(args, 2)
             if (folded) {
                 astChanged = true
             }
@@ -89,7 +75,7 @@ class FlatApiMacro : AstFunctionAnnotation {
             errors := ctx.err
             return false
         }
-        set_api_phase(func, 1)
+        set_api_phase(args, 1)
         astChanged = true
         return true
     }

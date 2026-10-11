@@ -50,6 +50,9 @@ Semantic layer:
 - `preshaderCompilation.*` - CPU-evaluated preshader code.
 - `namedConst.*`, `samplers.*`, `hlslRegisters.*` - cbuffer constants,
   sampler state, register bookkeeping.
+- `renderPassObject.*`, `framebufferLayout.*`, `subpassRead.h` - render_pass
+  shapes, subpass groups, framebuffer layouts, `@subpass_read` and `(ps)`
+  output struct resolution.
 - `hlslStage.h`, `const3d.h` - stage enums, const-table limits/types.
 - `shCode.cpp`/`shcode.h`, `shFunc.*`, `shLocVar.*`, `varTypes.h`,
   `varMap.h`, `shVarBool.h`, `shVarVecTypes.h` - code containers,

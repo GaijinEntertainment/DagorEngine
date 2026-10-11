@@ -1,9 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "animTreeAnimationPlayer.h"
-#include "animTreeUtils.h"
-#include "animParamData.h"
-#include "blendNodes/blendNodeType.h"
+#include <animTreeEditor/animTreeUtils.h>
+#include <animTreeEditor/animParamData.h>
+#include <animTreeEditor/blendNodes/blendNodeType.h>
 #include <math/dag_mathUtils.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
@@ -285,7 +285,7 @@ void AnimTreeAnimationPlayer::animate(int key)
       blend_add_anim(nodeTm, origGeomTree->getNodeTm(animNode.skelIdx), tm);
     else
     {
-      if (lengthSq(tm.getcol(3)) < 1e-4)
+      if (lengthSq(tm.getcol(3)) < 1e-4f)
         v_stu_p3(&tm.col[3].x, nodeTm.col3);
       geomTree.setNodeTmScalar(animNode.skelIdx, tm);
     }

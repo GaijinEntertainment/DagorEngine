@@ -31,6 +31,7 @@ public:
     uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1) override;
   float getDestructionImpulse() const override { return thresImpulse; }
   bool isRICollision() const override { return true; }
+  bool isBushCollision() const override { return collInfo.bushBehaviour; }
 };
 
 class TreeRendinstImpulseThresholdData final : public CachedCollisionObjectInfo
@@ -51,4 +52,21 @@ public:
     uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1) override;
   float getDestructionImpulse() const override { return thresImpulse; }
   bool isTreeCollision() const override { return true; }
+  bool isBushCollision() const override { return collInfo.bushBehaviour; }
+};
+
+// For a bush-flagged RI with no destroyed model (immortal decorative bushes). Does not override
+// isRICollision(): callers that check that predicate downcast to RendinstImpulseThresholdData
+// and read its collInfo member, which this class does not have.
+class NonDestrBushImpulseThresholdData final : public CachedCollisionObjectInfo
+{
+public:
+  NonDestrBushImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time) :
+    CachedCollisionObjectInfo(impulse, ri_desc, at_time)
+  {}
+
+  float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 &collision_normal,
+    uint32_t flags = CIF_NONE, int32_t user_data = -1) override;
+  float getDestructionImpulse() const override { return thresImpulse; }
+  bool isBushCollision() const override { return true; }
 };

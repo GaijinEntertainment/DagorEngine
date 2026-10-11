@@ -36,7 +36,8 @@ Sbuffer *create_vb(int size_bytes, int flags, const char *name = "", ResourceTag
  *
  * @todo Make the name parameter mandatory.
  *
- * @param size_bytes The size of the index buffer in bytes.
+ * @param size_bytes The size of the index buffer in bytes. Must be a whole number of indices,
+ * so a multiple of 4 with SBCF_INDEX32 and a multiple of 2 without it.
  * @param flags The creation flags. Only SBCF_BIND_INDEX and SBCF_BIND_SHADER_RES bind flags are allowed;
  * create a buffer with other bind usage via create_sbuffer.
  * @param stat_name The name of the index buffer (temporarily optional).
@@ -49,7 +50,7 @@ Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name = "ib", Reso
  *
  * This function sets the vertex buffer as a stream source for the specified stream.
  *
- * @param stream The stream index.
+ * @param stream The stream index. Portable code must keep it below 2; only some backends go up to 4.
  * @param vb A pointer to the vertex buffer.
  * @param offset The offset in bytes from the start of the vertex buffer.
  * @param stride_bytes The stride in bytes between vertices.
@@ -62,7 +63,7 @@ bool setvsrc_ex(int stream, Sbuffer *vb, int offset, int stride_bytes);
  *
  * This function sets the vertex buffer as a stream source for the specified stream.
  *
- * @param stream The stream index.
+ * @param stream The stream index. Portable code must keep it below 2; only some backends go up to 4.
  * @param vb A pointer to the vertex buffer.
  * @param stride_bytes The stride in bytes between vertices.
  * @return True if the vertex stream source was set successfully, false otherwise.

@@ -67,7 +67,6 @@ void SQLexer::Init(const char *sourceText, size_t sourceTextSize)
     ADD_KEYWORD(default, TK_DEFAULT);
     ADD_KEYWORD(this, TK_THIS);
     ADD_KEYWORD(class,TK_CLASS);
-    ADD_KEYWORD(constructor,TK_CONSTRUCTOR);
     ADD_KEYWORD(instanceof,TK_INSTANCEOF);
     ADD_KEYWORD(true,TK_TRUE);
     ADD_KEYWORD(false,TK_FALSE);
@@ -85,12 +84,9 @@ void SQLexer::Init(const char *sourceText, size_t sourceTextSize)
     _sourceText = sourceText;
     _sourceTextSize = sourceTextSize;
     _sourceTextPtr = 0;
-    _lasttokenline = _currentline = 1;
-    _lasttokencolumn = _currentcolumn = 0;
     _prevtoken = -1;
     _tokencolumn = 0;
     _tokenline = 1;
-    _reached_eof = SQFalse;
     if (_comments)
       _comments->pushNewLine();
     Next();
@@ -99,7 +95,6 @@ void SQLexer::Init(const char *sourceText, size_t sourceTextSize)
 void SQLexer::Next()
 {
   if (_sourceTextPtr >= _sourceTextSize) {
-      _reached_eof = SQTrue;
       _currdata = SQUIRREL_EOB;
   }
   else {
@@ -188,9 +183,6 @@ void SQLexer::nextLine() {
 
 SQInteger SQLexer::LexSingleToken()
 {
-    _lasttokenline = _currentline;
-    _lasttokencolumn = _currentcolumn;
-
     if (_state == LS_TEMPLATE && _expectedToken != TK_TEMPLATE_PREFIX) {
       SQInteger stype = ReadString('"', false, false);
       if (stype != -1)
@@ -479,6 +471,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
                     _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "newline in a constant");
                 APPEND_CHAR(CUR_CHAR); NEXT();
                 nextLine();
+                _currentcolumn = 0;
                 break;
             case '\\':
                 if(verbatim) {
@@ -732,7 +725,7 @@ SQInteger SQLexer::ReadID()
     } while(sq_isalnum(CUR_CHAR) || CUR_CHAR == '_');
     TERMINATE_BUFFER();
     res = GetIDType(&_longstr[0],_longstr.size() - 1);
-    if(res == TK_IDENTIFIER || res == TK_CONSTRUCTOR) {
+    if(res == TK_IDENTIFIER) {
         SetStringValue();
     }
     return res;

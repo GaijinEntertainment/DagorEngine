@@ -16,6 +16,11 @@ macro LOTTES_TONEMAP_PARAMS(code)
       return LottesSCurveDirect( gradedColor, lottesParams.x, lottesParams.y, lottesParams.z, lottesParams.w, tonemapHdrMax ) ;
     }
 
+    float3 applyLottesCurveDirectInverse(float3 tonemappedColor)
+    {
+      return LottesSCurveDirectInverse( tonemappedColor, lottesParams.x, lottesParams.y, lottesParams.z, lottesParams.w, tonemapHdrMax ) ;
+    }
+
     float3 applyLottesCurveLuma(float3 gradedColor)
     {
       return LottesSCurveLuma( gradedColor, lottesParams.x, lottesParams.y, lottesParams.z, lottesParams.w, tonemapHdrMax ) ;

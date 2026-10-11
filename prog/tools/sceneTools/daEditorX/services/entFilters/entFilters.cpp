@@ -132,6 +132,8 @@ void init_entity_filter_service()
     new (inimem) EntityFilterService("snow_obj", "_rend_snow_obj", "(filter) Snow sources", false, true, true));
   IDaEditor3Engine::get().registerService(
     new (inimem) EntityFilterService("navmesh", "_navmesh", "(filter) Show navigation mesh", false, false, true));
+  IDaEditor3Engine::get().registerService(new (inimem)
+      EntityFilterService("game_spline", "_rend_game_spline", "(filter) Show 'Export to game' splines", false, false, true, false));
   IDaEditor3Engine::get().registerService(
     new (inimem) EntityFilterService("ground_obj", "_rend_ground_obj", "(filter) Show ground objects", false, false, true, false));
 }

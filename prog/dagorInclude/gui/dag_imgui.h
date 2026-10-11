@@ -14,6 +14,7 @@
 #include <EASTL/functional.h>
 #include <EASTL/optional.h>
 #include <util/dag_preprocessor.h>
+#include <util/dag_string.h>
 #include <drv/3d/dag_resId.h>
 
 class DataBlock;
@@ -98,6 +99,8 @@ struct ImGuiTestRuntimeOptions
   bool drawHovered = false;
   uint32_t drawItemId = 0;
   bool drawFakeMousePointer = false;
+  bool copyHoveredPath = false;
+  String hoveredPath; // Set by imgui_endframe. Lags one frame behind the hovered item.
 };
 
 // Extra information the application attaches to an ImGui item for the test runtime.
@@ -123,6 +126,31 @@ struct ImGuiTestItemExternalInfo
   int controlId = 0;
 };
 
+// ImGui state of a queried item.
+// hovered and active compare the item with the ImGui context, so they are valid only when the query runs after the
+// frame submitted all its items (as the EditorCore test thread does). They have no value for an item that only the
+// previous frame submitted, while visible and toggledOpen then describe that previous frame.
+struct ImGuiTestItemState
+{
+  // ImGui HoveredId is this item, or for a window, ImGui HoveredWindow is this window. Only the innermost window under
+  // the mouse is marked hovered, not its parent windows.
+  eastl::optional<bool> hovered;
+
+  // ImGui ActiveId is this item, for example a button that the mouse holds down. Always false for a window.
+  eastl::optional<bool> active;
+
+  // The item overlaps the clip rect of its window. Always false for a window, and for an item that ImGui registers
+  // without ItemAdd() (ImGui::ButtonBehavior() does this for a caller that did not call ItemAdd()).
+  bool visible = false;
+
+  // A tree node changed its open state in the frame that submitted it.
+  bool toggledOpen = false;
+
+  // The item is a window. ImGui::EndChild() also adds a second item for the child window to its parent window. That
+  // item is not a window.
+  bool isWindow = false;
+};
+
 bool imgui_test_runtime_set(bool enabled, ImGuiTestRuntimeOptions *options = nullptr);
 
 // Attaches the external information to the ImGui item with the given ImGui ID.
@@ -145,10 +173,11 @@ void imgui_test_runtime_set_last_item_info(const ImGuiTestItemExternalInfo &ext)
 // only until the next frame. ext.controlType is the static pointer the application registered, so it
 // has no such limit.
 bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, uint32_t &parent_id, const char **label = nullptr,
-  ImGuiTestItemExternalInfo *ext = nullptr);
+  ImGuiTestItemExternalInfo *ext = nullptr, ImGuiTestItemState *state = nullptr);
 // The label and ext given to the callback have the same lifetime as the ones imgui_test_runtime_query_item() returns.
+// The state is valid only until the callback returns.
 using OnTestChildItemInfoFoundFunc =
-  eastl::function<void(const char *, uint32_t, ImRect, uint32_t, const ImGuiTestItemExternalInfo &)>;
+  eastl::function<void(const char *, uint32_t, ImRect, uint32_t, const ImGuiTestItemExternalInfo &, const ImGuiTestItemState &)>;
 int imgui_test_runtime_query_children(const char *path, OnTestChildItemInfoFoundFunc func);
 
 #define REGISTER_IMGUI_WINDOW(group, name, func) \

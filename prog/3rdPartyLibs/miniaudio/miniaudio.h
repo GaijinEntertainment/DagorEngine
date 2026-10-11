@@ -17536,7 +17536,16 @@ MA_API ma_result ma_spinlock_unlock(volatile ma_spinlock* pSpinlock)
 
 typedef ma_thread_result (MA_THREADCALL * ma_thread_entry_proc)(void* pData);
 
+/* Gaijin change */
+#if defined(MA_THREAD_CUSTOM)
+/* Implemented by the application in the MINIAUDIO_IMPLEMENTATION translation unit. */
+static ma_result ma_thread_create__custom(ma_thread* pThread, ma_thread_priority priority, size_t stackSize, ma_thread_entry_proc entryProc, void* pData);
+static void ma_thread_wait__custom(ma_thread* pThread);
+#endif
+/* ~Gaijin change */
+
 #ifdef MA_POSIX
+#if !defined(MA_THREAD_CUSTOM) /* Gaijin change */
 static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority priority, size_t stackSize, ma_thread_entry_proc entryProc, void* pData)
 {
     int result;
@@ -17667,6 +17676,7 @@ static void ma_thread_wait__posix(ma_thread* pThread)
 {
     pthread_join((pthread_t)*pThread, NULL);
 }
+#endif /* Gaijin change: !MA_THREAD_CUSTOM */
 
 
 static ma_result ma_mutex_init__posix(ma_mutex* pMutex)
@@ -17825,6 +17835,7 @@ static ma_result ma_semaphore_release__posix(ma_semaphore* pSemaphore)
     return MA_SUCCESS;
 }
 #elif defined(MA_WIN32)
+#if !defined(MA_THREAD_CUSTOM) /* Gaijin change */
 static int ma_thread_priority_to_win32(ma_thread_priority priority)
 {
     switch (priority) {
@@ -17858,6 +17869,7 @@ static void ma_thread_wait__win32(ma_thread* pThread)
     WaitForSingleObject((HANDLE)*pThread, INFINITE);
     CloseHandle((HANDLE)*pThread);
 }
+#endif /* Gaijin change: !MA_THREAD_CUSTOM */
 
 
 static ma_result ma_mutex_init__win32(ma_mutex* pMutex)
@@ -18023,7 +18035,11 @@ static ma_result ma_thread_create(ma_thread* pThread, ma_thread_priority priorit
     pProxyData->pData     = pData;
     ma_allocation_callbacks_init_copy(&pProxyData->allocationCallbacks, pAllocationCallbacks);
 
-#if defined(MA_POSIX)
+/* Gaijin change */
+#if defined(MA_THREAD_CUSTOM)
+    result = ma_thread_create__custom(pThread, priority, stackSize, ma_thread_entry_proxy, pProxyData);
+#elif defined(MA_POSIX)
+/* ~Gaijin change */
     result = ma_thread_create__posix(pThread, priority, stackSize, ma_thread_entry_proxy, pProxyData);
 #elif defined(MA_WIN32)
     result = ma_thread_create__win32(pThread, priority, stackSize, ma_thread_entry_proxy, pProxyData);
@@ -18043,7 +18059,11 @@ static void ma_thread_wait(ma_thread* pThread)
         return;
     }
 
-#if defined(MA_POSIX)
+/* Gaijin change */
+#if defined(MA_THREAD_CUSTOM)
+    ma_thread_wait__custom(pThread);
+#elif defined(MA_POSIX)
+/* ~Gaijin change */
     ma_thread_wait__posix(pThread);
 #elif defined(MA_WIN32)
     ma_thread_wait__win32(pThread);

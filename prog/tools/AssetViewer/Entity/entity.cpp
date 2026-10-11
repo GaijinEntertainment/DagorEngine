@@ -64,6 +64,7 @@
 #include "objPropEditor.h"
 #include "../av_cm.h"
 #include "../assetStats.h"
+#include "../av_riGenArea.h"
 #include <assetsGui/av_assetTreeDragHandler.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <EASTL/bonus/fixed_ring_buffer.h>
@@ -657,8 +658,7 @@ public:
     }
     //*/
 
-    if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
-      rigenSrv->discardRIGenRect(0, 0, 64, 64);
+    av_discard_rigen_area();
 
     if (asset && riex.res && riex.impostor.enabled && riex.res->lods.size())
     {
@@ -766,15 +766,23 @@ public:
 
     return true;
   }
-  bool end() override
+
+  enum class EndEditorsRefusal
+  {
+    None,
+    CompositeEditor,
+    MaterialEditor,
+  };
+
+  EndEditorsRefusal endEditors()
   {
     // getCompositeEditor().end() must be called even if matEditor.end() returns with false, so this comes first.
     // Otherwise there could be an assert in the next getCompositeEditor().begin().
     if (!get_app().getCompositeEditor().end())
-      return false;
+      return EndEditorsRefusal::CompositeEditor;
 
     if (!matEditor.end())
-      return false;
+      return EndEditorsRefusal::MaterialEditor;
 
     fpsCamViewId = PID_FPSCAM_DEF;
     if (spEditor)
@@ -803,8 +811,11 @@ public:
 
     if (currentAnimcharEid)
       g_entity_mgr->destroyEntity(currentAnimcharEid);
-    return true;
+
+    return EndEditorsRefusal::None;
   }
+
+  bool end() override { return endEditors() == EndEditorsRefusal::None; }
 
   void registerEditorCommands(IEditorCommandSystem &command_system) override
   {
@@ -911,10 +922,14 @@ public:
       DAEDITOR3.conNote("reloading asset %s", asset->getName());
     DataBlock s;
     saveAnimState(s);
-    end();
+
+    // The Composite Editor refuses when the user selects cancel on its save changes dialog. Nothing has been
+    // released then, so keep the current state and report success to stop the caller from switching plugins.
+    if (endEditors() == EndEditorsRefusal::CompositeEditor)
+      return true;
+
     if (asset->getType() == DAEDITOR3.getAssetTypeId("rendInst"))
-      if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
-        rigenSrv->createRtRIGenData(-1024, -1024, 32, 8, 8, 8, {}, -1024, -1024);
+      av_create_rt_rigen_data();
     free_unused_game_resources();
     begin(asset);
     loadAnimState(s);
@@ -1315,7 +1330,7 @@ public:
     fillAssetStats();
   }
 
-  void renderTransObjects() override
+  void renderTransObjects(BaseTexture *) override
   {
     if (showOcclBox && (!occluderBox.isempty() || occluderQuad.size()))
     {
@@ -1437,10 +1452,10 @@ public:
           }
         });
       }
-      if (showWABB)
+      if (auto *ac_rend = showWABB ? animCtrl->getAnimCharRend() : nullptr)
       {
         bbox3f wbb;
-        if (animCtrl->getAnimCharRend()->calcWorldBox(wbb, *animCtrl->getAnimCharFinalWTM()))
+        if (ac_rend->calcWorldBox(wbb, *animCtrl->getAnimCharFinalWTM()))
         {
           Point3_vec4 b[2];
           v_st(&b[0].x, wbb.bmin);
@@ -2645,7 +2660,7 @@ public:
       float fullRotY = rotY;
       if (IAnimCharController *animCtrl = entity->queryInterface<IAnimCharController>())
       {
-        if (animPersCoursePid > 0 && fabsf(animCtrl->getAnimState()->getParam(animPersCoursePid) - rotY) > 1e-3)
+        if (animPersCoursePid > 0 && fabsf(animCtrl->getAnimState()->getParam(animPersCoursePid) - rotY) > 1e-3f)
           animCtrl->getAnimState()->setParam(animPersCoursePid, rotY);
         if (animPersCourseDeltaPid > 0)
           fullRotY += animCtrl->getAnimState()->getParam(animPersCourseDeltaPid);
@@ -3063,7 +3078,7 @@ void init_plugin_entities()
   IEditorCoreEngine::get()->registerPlugin(::plugin);
   if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
   {
-    rigenSrv->createRtRIGenData(-1024, -1024, 32, 8, 8, 8, {}, -1024, -1024);
+    av_create_rt_rigen_data();
     rigenSrv->setReinitCallback(&reinit_cb_dummy, NULL);
   }
   AnimCharV20::trace_static_multiray = animchar_trace_static_multiray;

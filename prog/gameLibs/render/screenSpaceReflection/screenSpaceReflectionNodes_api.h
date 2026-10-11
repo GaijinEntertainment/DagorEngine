@@ -4,8 +4,8 @@
 #include "screenSpaceReflections_api.h"
 #include <render/cameraParams.h>
 #include <render/daFrameGraph/daFG.h>
+#include <render/daFrameGraph/autoResolutionRequest.h>
 #include <drv/3d/dag_resource.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/variant.h>
 
 namespace render::ssr
@@ -14,10 +14,13 @@ namespace render::ssr
 struct ResourceNames
 {
   const char *closeDepthResName = nullptr;
+  const char *normalsResName = "downsampled_normals";
+  const char *motionVectorsResName = "downsampled_motion_vectors_tex";
 
   const char *closeDepthSamplerResName = nullptr;
   const char *normalsSamplerResName = nullptr;
   const char *motionVectorsSamplerResName = nullptr;
+  const char *prevFrameSamplerResName = "prev_frame_sampler";
 
   const char *motionVectorsVar = "downsampled_motion_vectors_tex";
 
@@ -27,18 +30,17 @@ struct ResourceNames
 };
 
 inline constexpr const char *frame_params_blob_name = "ssr_frame_params";
-inline constexpr const char *trace_reprojection_blob_name = "ssr_trace_reprojection";
+inline constexpr const char *camera_state_blob_name = "ssr_camera_state";
 
 struct FrameParams
 {
-  bool shouldRender = false; // false: skip rendering this frame and clear the target.
-  TMatrix viewTm;
-  TMatrix4 projTm;
-  DPoint3 worldPos;
-  // Set if viewTm above is a temporary rebase of the real view.
+  // Set when the project fills the camera state blob itself, the trace node takes it from current_camera otherwise.
   bool rebase = false;
   bool historyValid = false;
 };
+
+// Creates the camera the ssr traces with.
+dafg::VirtualResourceHandle<ssr_pass::CameraState, false, false> create_camera_state_blob(dafg::Registry registry);
 
 struct TargetDesc
 {
@@ -48,18 +50,21 @@ struct TargetDesc
   bool isFullres = false;
 };
 
+// Only the compute path reprojects the previous normals, the ps one has to see prev_downsampled_normals as NULL.
+inline bool ssr_needs_downsampled_normals_history(SSRQuality quality) { return quality == SSRQuality::Compute; }
+
 namespace detail
 {
 
 // Which parts of the shared input set a node reads.
 struct InputParameters
 {
+  TargetDesc target;
   dafg::Stage stage = dafg::Stage::PS_OR_CS;
   bool readPrevFrame = false;
-  bool readNormalsHistory = false;
   bool readCheckerboardDepth = false;
   bool readMaterialGbuf = false;
-  bool isFullres = false;
+  bool readNormalsHistory = false;
 };
 
 // The only place that maps the ssr shader inputs to daFG resources and shader var slots.
@@ -69,12 +74,6 @@ inline bool use_simple_denoiser(const TargetDesc &target, bool requested)
 {
   // The ps path doesn't support the simple denoiser for now.
   return requested && target.quality == SSRQuality::Compute;
-}
-
-inline bool use_normals_history(bool has_normals_history, const TargetDesc &target)
-{
-  // The ps path doesn't reproject the previous normals right, it has to see prev_downsampled_normals as NULL.
-  return has_normals_history && target.quality == SSRQuality::Compute;
 }
 
 } // namespace detail
@@ -87,7 +86,7 @@ struct ResourceProviderParameters
 };
 
 // Creates "ssr_target_before_denoise" (target-sized, mip count from
-// ScreenSpaceReflections::getMipCount(quality)) and "ssr_target_sampler".
+// ssr_pass::get_mip_count(quality)), "ssr_target_sampler" and the shaders every view shares.
 dafg::NodeHandle make_resource_provider_node(dafg::NameSpace ns, const ResourceProviderParameters &params);
 
 struct DenoiserParameters
@@ -98,8 +97,7 @@ struct DenoiserParameters
   TargetDesc target;
   bool useSimpleDenoiser = false;
   bool readMaterialGbuf = false;
-  // False if the project's downsampled_normals has no history: then no pass reprojects the previous normals.
-  bool hasNormalsHistory = true;
+  bool readNormalsHistory = true;
 };
 
 // Either renames ssr_target_before_denoise -> ssr_target (useSimpleDenoiser == false), or
@@ -112,8 +110,7 @@ struct TraceNodeParameters
   TargetDesc target;
   bool useSimpleDenoiser = false;
   bool readMaterialGbuf = false;
-  // False if the project's downsampled_normals has no history: then no pass reprojects the previous normals.
-  bool hasNormalsHistory = true;
+  bool readNormalsHistory = true;
   bool isMainView = true;
 };
 
@@ -124,24 +121,27 @@ namespace detail
 struct TraceResources
 {
   dafg::VirtualResourceHandle<BaseTexture, true, false> target;
-  dafg::VirtualResourceHandle<const BaseTexture, true, false> targetHistory;
-  dafg::VirtualResourceHandle<const SubFrameSample, false, true> subFrameSample;
   dafg::VirtualResourceHandle<const FrameParams, false, false> frameParams;
+  dafg::VirtualResourceHandle<ssr_pass::CameraState, false, false> ssrCamera;
+  dafg::VirtualResourceHandle<const ssr_pass::CameraState, false, false> prevSsrCamera;
   dafg::VirtualResourceHandle<const CameraParams, false, false> camera;
-  dafg::VirtualResourceHandle<ScreenSpaceReflections::Reprojection, false, false> traceReprojection;
+  dafg::VirtualResourceHandle<ssr_pass::RenderResources *const, false, false> renderResources;
+  dafg::AutoResolutionRequest<2> resolution;
+  int32_t targetMipCount = 1;
   bool useSimpleDenoiser = false;
   bool isMainView = true;
 };
 
 TraceResources declare_trace_resources(dafg::Registry registry, const TraceNodeParameters &params);
-bool prepare_ssr(const TraceResources &res, ScreenSpaceReflections &ssr);
-void render_ssr(const TraceResources &res, ScreenSpaceReflections &ssr, const dafg::multiplexing::Index &multiplexing_index);
+void prepare_ssr(const TraceResources &res);
+void render_ssr(const TraceResources &res, const dafg::multiplexing::Index &multiplexing_index);
 
 } // namespace detail
 
 // The trace node.
-// Context is an RAII guard around render() call, constructed as
-// Context(const CameraParams &camera, const FrameParams &params, bool is_main_view).
+// Context is an RAII guard around the trace call, constructed as
+// Context(const CameraParams &camera, const ssr_pass::CameraState &ssr_camera, const FrameParams &params, bool is_main_view).
+// An optional static Context::declare(dafg::Registry) adds the project's own requests to the node.
 // DoneToken types the done blob.
 template <class Context, class DoneToken = eastl::monostate>
 dafg::NodeHandle make_trace_node(dafg::NameSpace ns, const TraceNodeParameters &params)
@@ -149,15 +149,15 @@ dafg::NodeHandle make_trace_node(dafg::NameSpace ns, const TraceNodeParameters &
   return ns.registerNode("ssr_node", DAFG_PP_NODE_SRC, [params](dafg::Registry registry) {
     registry.createBlob<DoneToken>("after_ssr_node_token");
     const detail::TraceResources res = detail::declare_trace_resources(registry, params);
+    if constexpr (requires { Context::declare(registry); })
+      Context::declare(registry);
 
-    return [res, ssr = eastl::make_unique<ScreenSpaceReflections>(0, 0, 1, params.target.fmt, params.target.quality, SSRFlag::None)](
-             const dafg::multiplexing::Index &multiplexing_index) {
-      if (!detail::prepare_ssr(res, *ssr))
-        return;
+    return [res](const dafg::multiplexing::Index &multiplexing_index) {
+      detail::prepare_ssr(res);
 
       // Project specific context.
-      const Context ctx(res.camera.ref(), res.frameParams.ref(), res.isMainView);
-      detail::render_ssr(res, *ssr, multiplexing_index);
+      const Context ctx(res.camera.ref(), res.ssrCamera.ref(), res.frameParams.ref(), res.isMainView);
+      detail::render_ssr(res, multiplexing_index);
     };
   });
 }

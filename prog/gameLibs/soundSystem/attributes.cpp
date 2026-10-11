@@ -71,7 +71,7 @@ static bool is_delayable_impl(const FMOD::Studio::EventDescription &event_descri
   FMOD_STUDIO_USER_PROPERTY userProperty;
   const FMOD_RESULT res = event_description.getUserProperty("dstdel", &userProperty);
   if (res == FMOD_OK && userProperty.type == FMOD_STUDIO_USER_PROPERTY_TYPE_FLOAT)
-    return userProperty.floatvalue == 1.;
+    return userProperty.floatvalue == 1.f;
   return false;
 }
 

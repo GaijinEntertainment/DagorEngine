@@ -84,11 +84,11 @@ namespace das
         FuncInfo *  debugInfo;
         uint64_t    mangledNameHash;
         void *      aotFunction;
-        // native JIT entry (the SimNode_Jit::func mirror), type JitFunction. Set/cleared by
-        // das_instrument_jit / das_remove_jit only — mutually exclusive with aotFunction, so
-        // the invoke fastpaths test aot first, then jit, then fall to code->eval. Written at
-        // install time (before any dispatch); the team publish/claim seq_cst pair orders it
-        // for workers. Fork/clone contexts share the functions array, so one write is global.
+        // native JIT entry (the SimNode_Jit::func mirror), type JitFunction. Mutually exclusive
+        // with aotFunction, so the invoke fastpaths test aot first, then jit, then fall to
+        // code->eval. Written at install time (before any dispatch); the team publish/claim
+        // seq_cst pair orders it for workers. Fork/clone contexts share the functions array,
+        // so one write is global.
         void *      jitFunction;
         uint32_t    stackSize;
         union {
@@ -126,6 +126,7 @@ namespace das
         virtual bool rtti_node_isInstrument() const { return false; }
         virtual bool rtti_node_isInstrumentFunction() const { return false; }
         virtual bool rtti_node_isJit() const { return false; }
+        virtual void * rtti_node_jitFunction() const { return nullptr; }
         virtual bool rtti_node_isKeepAlive() const { return false; }
         virtual bool rtti_node_isCallBase() const { return false; }
         virtual bool rtti_node_isErrorMessage() const { return false; }
@@ -455,9 +456,9 @@ namespace das
         __forceinline void restart( ) {
             DAS_ASSERTF(insideContext==0,"can't reset locked context");
             stopFlags = 0;
-            fastCallDepth = 0;
             exception = nullptr;
             last_exception = nullptr;
+            fastCallDepth = 0;
         }
 
         __forceinline void restartHeaps() {
@@ -521,6 +522,12 @@ namespace das
         }
         __forceinline int32_t getTotalVariables() const {
             return totalVariables;
+        }
+        __forceinline int32_t getTotalInitFunctions() const {
+            return totalInitFunctions;
+        }
+        __forceinline SimFunction * getInitFunction ( int index ) const {
+            return (index>=0 && index<totalInitFunctions) ? initFunctions[index] : nullptr;
         }
 
         __forceinline uint32_t globalOffsetByMangledName ( uint64_t mnh ) const {
@@ -603,18 +610,19 @@ namespace das
             return result;
         }
 
+        __forceinline void enterCheckedFastCall ( const LineInfo & at, const SimFunction * fn ) {
+            if ( ++fastCallDepth > maxFastCallDepth ) {
+                throw_error_at(at, "stack overflow, max_fast_call_depth %u exceeded while calling %s", maxFastCallDepth, fn->mangledName);
+            }
+        }
+
         DAS_EVAL_ABI __forceinline vec4f callOrFastcall(const SimFunction * fn, vec4f * args, LineInfo * line) {
             if ( fn->fastcall ) {
-                if ( fastCallDepth * sizeof(Prologue) > stack.free_size() ) { // this is to catch stack overflow
-                    throw_error_at(line, "stack overflow, fast call depth limit exceeded while calling %s", fn->mangledName);
-                }
-                fastCallDepth ++;
                 auto aa = abiArg;
                 abiArg = args;
                 result = fn->code->eval(*this);
                 stopFlags = 0;
                 abiArg = aa;
-                fastCallDepth --;
                 return result;
             } else {
                 // PUSH
@@ -731,7 +739,7 @@ namespace das
                 throw_error_at(line, "stack overflow while calling %s",fn->mangledName);
             }
             // fill prologue
-            auto aa = abiArg; auto acm = cmres;
+            auto aa = abiArg; auto acm = abiCMRES;
             abiArg = args;  abiCMRES = cmres;
 #if DAS_SANITIZER
             memset(stack.sp(), 0xcd, fn->stackSize);
@@ -759,6 +767,7 @@ namespace das
         void relocateCode( bool pwh = false );
         void announceCreation();
         void collectHeap(LineInfo * at, bool stringHeap, bool validate);
+        bool collectHeapIfMostlyFree(LineInfo * at = nullptr);
         void reportAnyHeap(LineInfo * at, bool sth, bool rgh, bool rghOnly, bool errorsOnly);
         void instrumentFunction ( SimFunction * , bool isInstrumenting, uint64_t userData, bool threadLocal );
         void instrumentContextNode ( const Block & blk, bool isInstrumenting, Context * context, LineInfo * line );
@@ -827,7 +836,6 @@ namespace das
         char *                          globals = nullptr;
         char *                          shared = nullptr;
         StackAllocator                  stack;
-        uint32_t                        fastCallDepth = 0;
         uint32_t                        insideContext = 0;
         bool                            persistent = false;
         bool                            ownStack = false;
@@ -839,6 +847,12 @@ namespace das
         bool                            showArgumentsOnException = false;
         bool                            instrumentAllocations = false;
         bool                            gcEnabled = false;
+        uint64_t gcCollections = 0, gcTotalUsec = 0, gcLastUsec = 0, gcPeakUsec = 0;
+        uint64_t gcHeapReclaimed = 0, gcStringReclaimed = 0;
+        int64_t gcLastTick = 0;
+        bool gcPressureInitialized = false;
+        uint64_t gcHeapBaseline = 0, gcStringBaseline = 0;
+        uint64_t gcHeapBudget = 8ull << 20, gcStringBudget = 8ull << 20;
         bool                            gcLogTime = false;          // log per-phase heap GC timing
         bool                            failed = false;
         bool                            verySafeContext = false;    // when true, array and table reserves don't free memory (unless the container's scratch flag or a scratch_* one-shot opts out)
@@ -855,14 +869,12 @@ namespace das
         // Job-fork context pooling (opt-in via keepForkContexts). Forks are reused across new_job
         // dispatches instead of cloned/destroyed each time; acquire runs on the dispatching thread,
         // release on the worker thread, so the pool is mutex-guarded. Only safe for pure-data jobs.
+        urange64 getIdleForkMemory(int kind);
         Context * acquireForkContext ( uint32_t category );
         void releaseForkContext ( Context * forkContext );
-    protected:
-        vector<Context *>               forkContextPool;
-        mutex                           forkContextPoolMutex;
     public:
         string                          name;
-        Bitfield                        category = 0;
+        Bitfield                        category = Bitfield(0u);
     public:
         vec4f *         abiThisBlockArg;
         vec4f *         abiArg;
@@ -914,6 +926,8 @@ namespace das
     protected:
         das_hash_map<void *, TypeInfo *> gcRoots;
     public:
+        das_hash_map<TypeInfo *, TypeInfo *> captureByValueTypes;   // a job lambda's capture type with the ref stripped, one per clone function, owned by this context's code arena
+    public:
         int32_t         fnDepth = 0;
     public:
         // It's better to use shared memory + finalize for things like this.
@@ -924,6 +938,14 @@ namespace das
         };
         JitContext deleteJITOnFinish = {};
         vector<FileInfo*>  deleteUponFinish;
+    protected:
+        vector<Context *>               forkContextPool;
+        mutex                           forkContextPoolMutex;
+        atomic<int32_t>                 forkContextsBorrowed{0};    // acquired and not yet released; the destructor waits for zero
+    public:
+        // include/daScript/simulate/ARCHITECTURE.md#fastcall-depth-guard
+        uint32_t                        fastCallDepth = 0;
+        uint32_t                        maxFastCallDepth = 0;       //! fixed at simulate: 0 exactly when the program carries no guarded fastcall nodes
     };
 
     struct DebugAgentInstance {

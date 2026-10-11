@@ -3,10 +3,10 @@
 #include "graph_context_menu.h"
 
 #include "command_definitions.h"
+#include "graph_command_text.h"
 #include "graph_theme.h"
 #include "graph_validation.h"
 
-#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_interface.h>
 #include <oldEditor/de_cm.h>
 
@@ -31,17 +31,6 @@ constexpr int MENU_SHORTCUT_FONT_SIZE = 12;
 constexpr int MENU_DIVIDER_BAND = 8; // height of a divider row, rule included
 
 float scaled(int px) { return static_cast<float>(hdpi::_pxS(px)); }
-
-// Key hint of a row that is an editor command, so a rebind shows through and the menu cannot drift
-// from the Shortcuts panel. Rows whose hint is a mouse gesture keep their literal text.
-// The returned buffer is reused by the next call, so use it before asking again.
-const char *command_hint(const char *command_id)
-{
-  IEditorCommandSystem *const commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
-  const char *const text = commandSystem ? commandSystem->getCommandKeyChordsAsText(command_id) : nullptr;
-  return text ? text : "";
-}
-
 } // namespace
 
 void GraphContextMenu::beginMenu(const char *title, bool has_checkable_rows)
@@ -126,10 +115,6 @@ void GraphContextMenu::collectEdgeChoices(const GraphData &gd, const eastl::vect
     {
       continue;
     }
-    if (filter == EdgeFilter::Live && pinEdge.muted)
-    {
-      continue;
-    }
     if (filter == EdgeFilter::Reachable && !pinEdge.oppositePinReachable)
     {
       continue;
@@ -183,15 +168,24 @@ void GraphContextMenu::addPinEdgeRow(const GraphData &gd, const eastl::vector<Pi
   }
 }
 
-void GraphContextMenu::openForNode(int selected_node_count, bool can_paste)
+void GraphContextMenu::openForNode(int node_id, int selected_node_count, bool can_paste, bool node_is_subgraph, bool subgraph_open)
 {
-  beginMenu("Node context menu");
+  beginMenu(node_is_subgraph ? "Subgraph context menu" : "Node context menu");
+  targetNode = node_id;
+
+  if (node_is_subgraph)
+  {
+    addRow(PropPanel::ROOT_MENU_ITEM, subgraph_open ? "Focus" : "Open", command_hint(CANVAS_OPEN_SUBGRAPH),
+      Entry{Action::OpenSubgraph});
+    addRow(PropPanel::ROOT_MENU_ITEM, "Explode", command_hint(CANVAS_EXPLODE_SUBGRAPH), Entry{Action::ExplodeSubgraph});
+    menu->addSeparator(PropPanel::ROOT_MENU_ITEM);
+  }
 
   // A subgraph is folded out of a group of nodes, so the row only exists for a multi-node selection.
   if (selected_node_count > 1)
   {
-    addRow(PropPanel::ROOT_MENU_ITEM, "Create a subgraph from the selection", "Ctrl+G", Entry{Action::CreateSubgraph},
-      /*enabled=*/false);
+    addRow(PropPanel::ROOT_MENU_ITEM, "Create a subgraph from the selection", command_hint(CANVAS_CREATE_SUBGRAPH),
+      Entry{Action::CreateSubgraph});
     menu->addSeparator(PropPanel::ROOT_MENU_ITEM);
   }
   addRow(PropPanel::ROOT_MENU_ITEM, "Remove", command_hint(CANVAS_DELETE_SELECTED), Entry{Action::Remove});
@@ -242,7 +236,7 @@ void GraphContextMenu::openForPin(const GraphData &gd, int node_id, int pin_inde
   }
 
   addPinEdgeRow(gd, pinEdges, multiple ? "Re-route edges" : "Re-route edge", command_hint(CANVAS_MODIFY_EDGE_AT_PIN), nullptr,
-    Action::RerouteEdge, EdgeFilter::Live);
+    Action::RerouteEdge, EdgeFilter::Reachable);
   menu->addSeparator(PropPanel::ROOT_MENU_ITEM);
   addPinEdgeRow(gd, pinEdges, "Jump to the opposite pin", command_hint(CANVAS_JUMP_OPPOSITE_PIN), nullptr, Action::JumpToOppositePin,
     EdgeFilter::Reachable);
@@ -284,9 +278,8 @@ void GraphContextMenu::openForEdges(const GraphData &gd, const eastl::vector<int
       addRow(PropPanel::ROOT_MENU_ITEM, "Mute edge", "DClick", Entry{Action::MuteEdges});
     }
 
-    // The choice is which end to detach. A muted edge offers neither: the gesture resolves as delete
-    // + create, and the created edge comes back unmuted.
-    if (!e || e->muted)
+    // The choice is which end to detach.
+    if (!e)
     {
       addRow(PropPanel::ROOT_MENU_ITEM, "Re-route edge", "Click and move", Entry{Action::RerouteEdge}, /*enabled=*/false);
       return;

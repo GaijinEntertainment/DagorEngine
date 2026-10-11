@@ -22,44 +22,30 @@ int prepareArgs(FunctionId func, FuncArgument *args, int /*num*/)
   switch (func)
   {
     case BF_TIME_PHASE:
-      args[0].vt = shexpr::VT_REAL;
-      args[1].vt = shexpr::VT_REAL;
-      return 2;
-    case BF_SIN: args[0].vt = shexpr::VT_REAL; return 1;
-    case BF_COS: args[0].vt = shexpr::VT_REAL; return 1;
     case BF_POW:
+    case BF_MIN:
+    case BF_MAX:
+    case BF_WIND_COEFF:
       args[0].vt = shexpr::VT_REAL;
       args[1].vt = shexpr::VT_REAL;
       return 2;
+    case BF_SIN:
+    case BF_COS:
+    case BF_SQRT: args[0].vt = shexpr::VT_REAL; return 1;
     case BF_VECPOW:
       args[0].vt = shexpr::VT_COLOR4;
       args[1].vt = shexpr::VT_REAL;
       return 2;
-    case BF_SRGBREAD: args[0].vt = shexpr::VT_COLOR4; return 1;
+    case BF_SRGBREAD:
+    case BF_INT2:
+    case BF_INT3:
+    case BF_INT4: args[0].vt = shexpr::VT_COLOR4; return 1;
     case BF_FSEL:
       args[0].vt = shexpr::VT_REAL;
       args[1].vt = shexpr::VT_REAL;
       args[2].vt = shexpr::VT_REAL;
       return 3;
-    case BF_SQRT: args[0].vt = shexpr::VT_REAL; return 1;
-    case BF_MIN:
-      args[0].vt = shexpr::VT_REAL;
-      args[1].vt = shexpr::VT_REAL;
-      return 2;
-    case BF_MAX:
-      args[0].vt = shexpr::VT_REAL;
-      args[1].vt = shexpr::VT_REAL;
-      return 2;
     case BF_ANIM_FRAME:
-      args[0].vt = shexpr::VT_REAL;
-      args[1].vt = shexpr::VT_REAL;
-      args[2].vt = shexpr::VT_REAL;
-      args[3].vt = shexpr::VT_REAL;
-      return 4;
-    case BF_WIND_COEFF:
-      args[0].vt = shexpr::VT_REAL;
-      args[1].vt = shexpr::VT_REAL;
-      return 2;
     case BF_FADE_VAL:
       args[0].vt = shexpr::VT_REAL;
       args[1].vt = shexpr::VT_REAL;
@@ -70,7 +56,8 @@ int prepareArgs(FunctionId func, FuncArgument *args, int /*num*/)
       args[0].vt = shexpr::VT_TEXTURE;
       args[1].vt = shexpr::VT_REAL;
       return 2;
-    case BF_GET_SIZE: args[0].vt = shexpr::VT_BUFFER; return 1;
+    case BF_GET_SIZE:
+    case BF_EXISTS_BUF: args[0].vt = shexpr::VT_BUFFER; return 1;
     case BF_GET_VIEWPORT: return 0;
     case BF_REQUEST_SAMPLER:
       args[0].vt = shexpr::VT_REAL;
@@ -79,11 +66,6 @@ int prepareArgs(FunctionId func, FuncArgument *args, int /*num*/)
       args[3].vt = shexpr::VT_REAL;
       return 4;
     case BF_EXISTS_TEX: args[0].vt = shexpr::VT_TEXTURE; return 1;
-    case BF_EXISTS_BUF: args[0].vt = shexpr::VT_BUFFER; return 1;
-    case BF_INT2: args[0].vt = shexpr::VT_COLOR4; return 1;
-    case BF_INT3: args[0].vt = shexpr::VT_COLOR4; return 1;
-    case BF_INT4: args[0].vt = shexpr::VT_COLOR4; return 1;
-
     default: G_ASSERT(0);
   }
   return -1;
@@ -92,33 +74,9 @@ int prepareArgs(FunctionId func, FuncArgument *args, int /*num*/)
 // return operand count for specified function
 int getOpCount(FunctionId func)
 {
-  switch (func)
-  {
-    case BF_TIME_PHASE: return 2;
-    case BF_SIN: return 1;
-    case BF_COS: return 1;
-    case BF_POW: return 2;
-    case BF_SRGBREAD: return 1;
-    case BF_VECPOW: return 2;
-    case BF_FSEL: return 3;
-    case BF_SQRT: return 1;
-    case BF_MIN: return 2;
-    case BF_MAX: return 2;
-    case BF_ANIM_FRAME: return 4;
-    case BF_WIND_COEFF: return 2;
-    case BF_FADE_VAL: return 4;
-    case BF_GET_DIMENSIONS: return 2;
-    case BF_GET_SIZE: return 1;
-    case BF_GET_VIEWPORT: return 0;
-    case BF_REQUEST_SAMPLER: return 4;
-    case BF_EXISTS_TEX: return 1;
-    case BF_EXISTS_BUF: return 1;
-    case BF_INT2: return 1;
-    case BF_INT3: return 1;
-    case BF_INT4: return 1;
-    default: G_ASSERT(0);
-  }
-  return 0;
+  FuncArgument args[4];
+  const int count = prepareArgs(func, args, countof(args));
+  return count < 0 ? 0 : count;
 }
 
 // return value type for specified function

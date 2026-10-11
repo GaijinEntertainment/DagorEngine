@@ -1,5 +1,8 @@
 ## Introduction
 
+das-fmt ships in the SDK as a prebuilt exe - the `DAS_UTILS_SHIPPED_EXES` entry in `utils/CMakeLists.txt`
+(repo root); `utils/REVIEW.das` reads this line as the record of that decision.
+
 dasfmt is a tool that automatically formats daScript source code.
 
 ## Usage

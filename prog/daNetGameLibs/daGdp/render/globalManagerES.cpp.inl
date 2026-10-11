@@ -10,11 +10,11 @@
 #include <daECS/core/component.h>
 #include <daECS/core/componentsMap.h>
 #include <daECS/core/entityComponent.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <render/renderer.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
-#include <render/world/shadowsManager.h>
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include "globalManager.h"
 
@@ -56,18 +56,21 @@ static GlobalConfig get_current_config()
   // Not supporting forward rendering, which may be used on mobile.
   // TODO: more fine-grained configuration based on graphics settings.
 
-  config.enableDynamicShadows = wr->getSettingsShadowsQuality() >= ShadowsQuality::SHADOWS_HIGH;
+  const ecs::EntityId settingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings"));
+  const char *shadowsQuality = g_entity_mgr->getOr(settingsEid, ECS_HASH("render_settings__shadowsQuality"), "");
+  config.enableDynamicShadows = strcmp(shadowsQuality, "high") == 0 || strcmp(shadowsQuality, "ultra") == 0;
   config.dynamicShadowQualityParams = wr->getShadowRenderQualityParams();
 
   return config;
 }
 
 ECS_TAG(render)
-static void dagdp_on_render_settings_change_es(const OnRenderSettingsReady &, dagdp::GlobalManager &dagdp__global_manager)
+static void dagdp_on_render_settings_change_es(const OnRenderSettingsUpdated &, dagdp::GlobalManager &dagdp__global_manager)
 {
-  // Note: relying on this event to be broadcast at level load.
-
-  dagdp__global_manager.reconfigure(get_current_config());
+  const GlobalConfig newConfig = get_current_config();
+  if (newConfig == dagdp__global_manager.getConfig())
+    return;
+  dagdp__global_manager.reconfigure(newConfig);
 }
 
 ECS_TAG(render)

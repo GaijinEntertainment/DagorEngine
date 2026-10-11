@@ -34,6 +34,18 @@ class Element;
 class ElementTree;
 struct HotkeyButton;
 
+// Screen pixels of the element screen; angles in radians, clockwise positive
+struct TouchPadGesture
+{
+  int type = 0; // one GestureDetector::Type bit
+  Point2 pos;   // the cursor
+  Point2 pos0;  // the cursor at BEGIN
+  Point2 delta; // pad move since the last event
+  Point2 drag;  // pad move since the start; DRAG, PINCH, ROTATE only
+  float scale = 1, deltaScale = 0;
+  float angle = 0, deltaAngle = 0;
+};
+
 
 class Behavior
 {
@@ -60,6 +72,7 @@ public:
     F_FOCUS_ON_CLICK = 0x0200,
     F_USES_TOUCH_MARGIN = 0x400,
     F_ALLOW_AUTO_SCROLL = 0x800,
+    F_HANDLE_TOUCH_PAD_GESTURE = 0x1000,
   };
 
   enum DetachMode
@@ -92,6 +105,11 @@ public:
   {
     return 0;
   }
+
+  // state is HumanInput::Gesture::State; gets only the types of getTouchPadGestures()
+  virtual int touchPadGestureEvent(ElementTree *, Element *, int /*state*/, const TouchPadGesture &, int /*accum_res*/) { return 0; }
+  // a mask of GestureDetector::Type bits this behavior takes on the element
+  virtual int getTouchPadGestures(const Element *) { return 0; }
 
   virtual void onAttach(Element *) {}
   virtual void onDetach(Element *, DetachMode) {}

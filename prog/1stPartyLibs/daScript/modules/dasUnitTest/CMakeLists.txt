@@ -12,6 +12,7 @@ IF ((NOT DAS_UNIT_TEST_INCLUDED) AND ((NOT ${DAS_UNIT_TEST_DISABLED}) OR (NOT DE
 		${DAS_UNIT_TEST_DIR}/bytecode.h
 		${DAS_UNIT_TEST_DIR}/test_handles.cpp
 		${DAS_UNIT_TEST_DIR}/test_enum.cpp
+       ${DAS_UNIT_TEST_DIR}/test_crt_math.cpp
 		${DAS_UNIT_TEST_DIR}/module_unitTest.h
 		${DAS_UNIT_TEST_DIR}/unitTest.h
 		${DAS_UNIT_TEST_DIR}/unit_test.das.inc

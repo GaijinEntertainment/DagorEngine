@@ -22,7 +22,7 @@ def test_copy_semantics(t : T?) {
     t |> run("whole-array assignment copies") @(t : T?) {
         var a = make_iota()
         var b : int[4]
-        b = a
+        b = a   // nolint:STYLE011 - whole-array assignment is what this arm tests
         a[0] = 100
         t |> equal(b[0], 1)         // deep copy, not aliased
         t |> equal(b[3], 4)
@@ -36,7 +36,7 @@ def test_copy_semantics(t : T?) {
     t |> run("clone operator") @(t : T?) {
         let a = make_iota()
         var d : int[4]
-        d := a
+        d := a   // nolint:STYLE011 - clone-assign onto a declared FA is what this arm tests
         t |> equal(d[2], 3)
     }
     t |> run("clone() builtin returns FA") @(t : T?) {
@@ -51,7 +51,7 @@ def test_copy_semantics(t : T?) {
         m[0][0] = 1.0
         m[1][1] = 2.0
         var n : float[2][2]
-        n = m
+        n = m   // nolint:STYLE011 - 2D whole-array assignment is what this arm tests
         t |> equal(n[0][0], 1.0)
         t |> equal(n[1][1], 2.0)
     }
@@ -93,8 +93,7 @@ def test_init_and_return(t : T?) {
 def test_noncopyable_elements(t : T?) {
     t |> run("FA of array<int>: clone + finalize_dim") @(t : T?) {
         var na : array<int>[3]
-        na[0] |> push(1)
-        na[0] |> push(2)
+        na[0] <- [1, 2]
         na[2] |> push(9)
         var nb : array<int>[3]
         nb := na

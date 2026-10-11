@@ -2,7 +2,7 @@
 // Exercises every safe/unsafe set/get method, constructors, loadFromText, sub-blocks.
 
 import "DataBlock" as DataBlock
-from "dagor.math" import Point2, Point3, Point4, IPoint3, IPoint4, TMatrix, E3DCOLOR
+from "dagor.math" import Point2, Point3, Point4, IPoint2, IPoint3, IPoint4, TMatrix, E3DCOLOR, Color4
 
 // ============================================================
 // Section 1: Constructor, copy constructor, loadFromText
@@ -12,6 +12,7 @@ println("--- Section 1: Constructor, copy constructor, loadFromText ---")
 let blk = DataBlock()
 assert(blk.paramCount() == 0, "empty ctor paramCount")
 assert(blk.blockCount() == 0, "empty ctor blockCount")
+assert(blk.len() == 0, "empty ctor len")
 
 // Copy constructor
 blk.addStr("name", "hello")
@@ -306,6 +307,8 @@ assert(sub2.getInt("num", 0) == 123, "new sub-block addInt/getInt")
 let sub1_again = bb.addBlock("child1")
 assert(sub1_again.getStr("key", "") == "val1", "addBlock existing returns same block")
 assert(bb.blockCount() == 2, "blockCount unchanged after addBlock existing")
+bb.addStr("lenParam", "x")
+assert(bb.len() == 3, "len counts params and sub-blocks")
 
 // removeBlock
 assert(bb.removeBlock("child1") == true, "removeBlock returns true")
@@ -324,6 +327,31 @@ assert(bb.removeParam("no_such_param") == false, "removeParam non-existent retur
 assert(bb.removeBlock("no_such_block") == false, "removeBlock non-existent returns false")
 
 println("Section 6 PASSED")
+
+
+// ============================================================
+// Section 7: blk[key] = value replaces, blk[key] <- value appends
+// ============================================================
+println("--- Section 7: _set and _newslot for each value type ---")
+
+let slotValues = {
+  i = [5, 6], r = [1.5, 2.5], b = [true, false], s = ["text", "other"], p2 = [Point2(1, 2), Point2(3, 4)],
+  p3 = [Point3(1, 2, 3), Point3(4, 5, 6)], p4 = [Point4(1, 2, 3, 4), Point4(5, 6, 7, 8)], ip2 = [IPoint2(1, 2), IPoint2(3, 4)],
+  ip3 = [IPoint3(1, 2, 3), IPoint3(4, 5, 6)], ip4 = [IPoint4(1, 2, 3, 4), IPoint4(5, 6, 7, 8)], tm = [TMatrix(), TMatrix() * 2.0],
+  c = [Color4(1, 0, 0, 1), Color4(0, 1, 0, 1)]
+}
+let sameValue = @(a, b) type(a) == type(b) && (type(a) == "instance" ? a.tostring() == b.tostring() : a == b)
+foreach (name, vals in slotValues) {
+  let sb = DataBlock()
+  sb[name] = vals[0]
+  sb[name] = vals[1] //-assigned-twice
+  assert(sb.paramCount() == 1 && sameValue(sb[name], vals[1]), $"_set of '{name}' replaces")
+  sb[name] <- vals[0]
+  assert(sb.paramCount() == 2 && sameValue(sb.getParamValue(0), vals[1]) && sameValue(sb.getParamValue(1), vals[0]),
+    $"_newslot of '{name}' appends")
+}
+
+println("Section 7 PASSED")
 
 
 // ============================================================

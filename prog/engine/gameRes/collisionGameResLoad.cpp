@@ -27,6 +27,30 @@
 
 CollisionResource *CollisionResource::loadResource(IGenLoad &crd, int res_id) { return new CollisionResource(crd, res_id); }
 
+// The name guard is a LINK constraint: get_game_resource_name pulls the gameResSystem object into
+// links that lack its ddsx deps (assetsExp). Tools name their assets through res_name instead;
+// pack loads run where the kernel is static.
+static String game_res_name(int res_id)
+{
+  String name;
+#if _TARGET_STATIC_LIB
+  get_game_resource_name(res_id, name);
+#else
+  G_UNUSED(res_id);
+  name = "unknown";
+#endif
+  return name;
+}
+
+String CollisionResource::getGameResName() const
+{
+#if DAGOR_DBGLEVEL > 0
+  return game_res_name(gameResId);
+#else
+  return String();
+#endif
+}
+
 CollisionResource::CollisionResource(IGenLoad &_cb, int res_id, const char *res_name, int (*resolve_phmat)(const char *)) :
   CollisionResource()
 {
@@ -45,10 +69,13 @@ CollisionResource::CollisionResource(IGenLoad &_cb, int res_id, const char *res_
     rebuildNodeLists();
   };
 
+#if DAGOR_DBGLEVEL > 0
+  gameResId = res_id;
+#endif
   unsigned label = _cb.readInt();
-  G_ASSERTF_RETURN((label & 0xFFFF0000) == 0xACE50000, , "Invalid collision resource: 0x%8X", label);
+  G_ASSERTF_RETURN((label & COLLRES_STREAM_MAGIC_MASK) == COLLRES_STREAM_MAGIC, , "Invalid collision resource: 0x%8X", label);
 
-  int version = (label & 0xFFFF);
+  int version = (label & COLLRES_STREAM_VERSION_MASK);
   // 2 is spent: it named a stream layout (a 144-byte header) that never shipped, so a later layout
   // takes a new number rather than that one.
   if (version != 0 && version != 1 && version != COLLRES_STREAM_VERSION)
@@ -56,18 +83,10 @@ CollisionResource::CollisionResource(IGenLoad &_cb, int res_id, const char *res_
     logerr("Invalid collision resource version %d (label 0x%08X); the resource stays empty", version, label);
     return;
   }
-  // The name guard is a LINK constraint: get_game_resource_name pulls the gameResSystem object into
-  // links that lack its ddsx deps (assetsExp). Tools name their assets through res_name instead;
-  // pack loads run where the kernel is static.
   String resName;
   if (!res_name)
   {
-#if _TARGET_STATIC_LIB
-    get_game_resource_name(res_id, resName);
-#else
-    G_UNUSED(res_id);
-    resName = "unknown";
-#endif
+    resName = game_res_name(res_id);
     res_name = resName.c_str();
   }
 
@@ -217,11 +236,10 @@ void CollisionResource::buildAllNodesTLAS(const char *res_name)
     }
     v_bbox3_add_box(leafUnion, leafBoxes[idx]);
     instToNodeIdx[idx] = (uint16_t)nodeIdx;
-    const float rawMag = v_extract_x(v_hmax3(v_max(v_abs(rawBox.bmin), v_abs(rawBox.bmax))));
-    const float boxMag = v_extract_x(v_hmax3(v_max(v_abs(leafBoxes[idx].bmin), v_abs(leafBoxes[idx].bmax))));
     const float ampl = collres_tlas_tm_conditioning(gtm); // one derivation with the refit's budget
     amplMax = max(amplMax, ampl);
-    maxNodeOp = max(maxNodeOp, collres_tlas_node_op(defaultInstance.poseMeta[nodeIdx].maxTmScale, rawMag, boxMag, ampl));
+    maxNodeOp = max(maxNodeOp, collres_tlas_node_op(defaultInstance.poseMeta[nodeIdx].maxTmScale, collres_box_max_abs(rawBox),
+                                 collres_box_max_abs(leafBoxes[idx]), ampl));
     ++idx;
   }
   G_ASSERT(idx == instCount);
@@ -524,10 +542,10 @@ bool CollisionResource::loadStream(IGenLoad &crd, const char *res_name, int (*re
     mat44f tm;
     v_mat44_make_from_43cu(tm, data->authoredNodeTm()[i].array);
     PoseMeta &pm = defaultInstance.poseMeta[i];
-    pm.setPoseIdentity(collres_is_exact_identity_43(tm));
+    pm.setPoseIdentity(v_mat44_is_ident43(tm));
     if (!(pm.maxTmScale >= FLT_MIN && pm.maxTmScale <= 1.f / FLT_MIN))
       pm.maxTmScale = mat33SpectralNorm(tm);
-    if (!v_test_xyzw_finite(v_max(v_max(v_abs(tm.col0), v_abs(tm.col1)), v_max(v_abs(tm.col2), v_abs(tm.col3)))))
+    if (!v_test_mat43_finite(tm))
       pm.status &= ~(PoseMeta::TRACEABLE | PoseMeta::COMPOSABLE);
   }
   // The tail: records this loader does not know, skipped by their size. An uncompressed body is
@@ -729,6 +747,16 @@ bool CollisionResource::write(IGenSave &cwr, const char *(*mat_name)(int id)) co
       default: cwr.write((const char *)data.get() + data->arrays[id].byteOfs, (int)(h.counts[id] * Data::ELEM_SIZE[id])); break;
     }
   return true;
+}
+
+void CollisionResourceBuilder::writeRaw(const CollisionResource &res, IGenSave &cwr)
+{
+  const CollResRawHead h = {res.vBoundingSphere, res.vBindTraceSphere, res.boundingBox, res.boundingSphereRad, res.collisionFlags,
+    res.data->blockBytes(), res.bsphereCenterNode, res.defaultInstance.posedSinceBind};
+  cwr.write(&h, sizeof(h));
+  cwr.write(res.data.get(), h.blockBytes);
+  cwr.write(res.defaultInstance.poseMeta.data(), data_size(res.defaultInstance.poseMeta));
+  cwr.write(res.defaultInstance.nodeTm.data(), data_size(res.defaultInstance.nodeTm));
 }
 
 bool CollisionResource::writeChunks(IGenSave &cwr) const

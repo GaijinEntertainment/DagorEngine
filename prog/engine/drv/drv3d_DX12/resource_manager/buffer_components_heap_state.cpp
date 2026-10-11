@@ -56,7 +56,7 @@ size_t BufferHeap::BufferHeapState::freeBufferHeap(BufferHeap *manager, uint32_t
   return freeBufferHeap(manager, index, name, true);
 }
 
-BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device,
+BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBufferHeapInMemory(BufferHeap *manager, D3DDevice *device,
   uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, const D3D12_RESOURCE_DESC &desc,
   const ResourceMemory &allocation, ResourceHeapProperties allocatedProperties, bool can_suballocate)
 {
@@ -66,7 +66,7 @@ BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBuffer
     newHeap.create(device, desc, allocation, initial_state, allocatedProperties.isCPUVisible(manager->getFeatureSet()), {});
   if (DX12_CHECK_FAIL(errorCode))
   {
-    return unexpected_memory_allocation_error(errorCode);
+    return dag::Unexpected{manager->makeResourceCreationError(errorCode, allocation.size(), allocatedProperties)};
   }
 
   newHeap.init(allocation_size);
@@ -79,7 +79,7 @@ BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBuffer
 }
 
 BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter,
-  ID3D12Device *device, uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags,
+  D3DDevice *device, uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags,
   D3D12_RESOURCE_STATES initial_state, eastl::string_view name, bool can_suballocate, AllocationFlags allocation_flags)
 {
   auto [desc, allocInfo] = calculate_buffer_desc_allocation_info(device, allocation_size, flags);
@@ -114,8 +114,8 @@ BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBuffer
   return createResult;
 }
 
-eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> BufferHeap::calculate_buffer_desc_allocation_info(
-  ID3D12Device *device, uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags)
+eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> BufferHeap::calculate_buffer_desc_allocation_info(D3DDevice *device,
+  uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags)
 {
   D3D12_RESOURCE_DESC desc;
   desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;

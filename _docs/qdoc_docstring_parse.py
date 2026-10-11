@@ -353,7 +353,7 @@ if __name__ == "__main__":
         "pure nodiscard ph(percent: number): userdata",
         "nodiscard pure elemw(percent: number): userdata",
         "pure nodiscard fastcall elemh(percent: number): userdata",
-        "pure get_font_metrics(fontId: int, [fontHt: number]): table",
+        "get_font_metrics(fontId: int, [fontHt: number]): table",
     ]
     for declaration in declarations:
         print(parse_docstring(declaration))

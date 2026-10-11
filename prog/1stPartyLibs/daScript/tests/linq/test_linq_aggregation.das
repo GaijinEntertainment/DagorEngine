@@ -1,8 +1,6 @@
 options gen2
 require daslib/linq
 require dastest/testing_boost public
-require math
-require strings
 
 require daslib/linq_boost
 
@@ -11,60 +9,60 @@ require _common
 [test]
 def test_count(t : T?) {
     t |> run("basic count") @(t : T?) {
-        var total = count(
+        let total = count(
             [iterator for(x in 0..5); x]
         )
         t |> equal(total, 5) // its 5, because the range is 0..5 and range iteration goes up to but not including
     }
     t |> run("long count") @(t : T?) {
-        var ltotal = long_count(
+        let ltotal = long_count(
             [iterator for(x in 0..5); x]
         )
         t |> equal(ltotal, 5l)
     }
     t |> run("complex long count") @(t : T?) {
-        var totalComplex = long_count(
+        let totalComplex = long_count(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])]
         )
         t |> equal(totalComplex, 5l)
     }
     t |> run("count from array") @(t : T?) {
-        var arr = [for (x in 0..5); x]
-        var arrayTotal = count(arr)
+        let arr = [for (x in 0..5); x]
+        let arrayTotal = count(arr)
         t |> equal(arrayTotal, 5)
     }
     t |> run("long count from array") @(t : T?) {
-        var arr = [for (x in 0..5); x]
-        var arrayLongTotal = long_count(arr)
+        let arr = [for (x in 0..5); x]
+        let arrayLongTotal = long_count(arr)
         t |> equal(arrayLongTotal, 5l)
     }
     t |> run("count with predicate from iterator") @(t : T?) {
-        var total = count(
+        let total = count(
             [iterator for(x in 0..10); x],
             $(v) => v > 5
         )
         t |> equal(total, 4)  // 6,7,8,9
     }
     t |> run("count with predicate from array") @(t : T?) {
-        var arr = [for (x in 0..10); x]
-        var total = count(arr, $(v) => v % 2 == 0)
+        let arr = [for (x in 0..10); x]
+        let total = count(arr, $(v) => v % 2 == 0)
         t |> equal(total, 5)  // 0,2,4,6,8
     }
     t |> run("count with _count shorthand") @(t : T?) {
-        var total = _count(
+        let total = _count(
             [iterator for(x in 0..10); x],
             _ > 5
         )
         t |> equal(total, 4)
     }
     t |> run("count predicate none match") @(t : T?) {
-        var arr = [1, 2, 3]
-        var total = count(arr, $(v) => v > 10)
+        let arr = [1, 2, 3]
+        let total = count(arr, $(v) => v > 10)
         t |> equal(total, 0)
     }
     t |> run("count predicate all match") @(t : T?) {
-        var arr = [1, 2, 3]
-        var total = count(arr, $(v) => v > 0)
+        let arr = [1, 2, 3]
+        let total = count(arr, $(v) => v > 0)
         t |> equal(total, 3)
     }
 }
@@ -75,13 +73,13 @@ def test_min(t : T?) {
         var numbers = [
             5, 3, 8, 1, 4
         ]
-        var query_n = min(
+        let query_n = min(
             numbers.to_sequence()
         )
         t |> equal(query_n, 1)
     }
     t |> run("complex min by") @(t : T?) {
-        var query = _min_by(
+        let query = _min_by(
             people.to_sequence(),
             (_.name, _.age)
         )
@@ -89,7 +87,7 @@ def test_min(t : T?) {
         t |> equal(query.age, 25)
     }
     t |> run("complex min by") @(t : T?) {
-        var rquery = _min_by(
+        let rquery = _min_by(
             people.to_sequence(),
             (_.age, _.name)
         )
@@ -97,7 +95,7 @@ def test_min(t : T?) {
         t |> equal(rquery.age, 20)
     }
     t |> run("complex min by") @(t : T?) {
-        var qcomplex = _min_by(
+        let qcomplex = _min_by(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])],
             (_.a[0], _.a[1])
         )
@@ -105,12 +103,12 @@ def test_min(t : T?) {
     }
     t |> run("min from array of strings") @(t : T?) {
         var strings = ["banana", "apple", "cherry", "date"]
-        var minString = min(strings)
+        let minString = min(strings)
         t |> equal(minString, "apple")
     }
     t |> run("min by from array of strings") @(t : T?) {
         var strings = ["banana", "apple", "cherry", "date", "late"]
-        var minString = _min_by(strings, (length(_), _))
+        let minString = _min_by(strings, (length(_), _))
         t |> equal(minString, "date")
     }
 }
@@ -121,13 +119,13 @@ def test_max(t : T?) {
         var numbers = [
             5, 3, 8, 1, 4
         ]
-        var query_n = max(
+        let query_n = max(
             numbers.to_sequence()
         )
         t |> equal(query_n, 8)
     }
     t |> run("complex max by") @(t : T?) {
-        var query = _max_by(
+        let query = _max_by(
             people.to_sequence(),
             (_.name, _.age)
         )
@@ -135,7 +133,7 @@ def test_max(t : T?) {
         t |> equal(query.age, 35)
     }
     t |> run("complex max by") @(t : T?) {
-        var rquery = _max_by(
+        let rquery = _max_by(
             people.to_sequence(),
             (_.age, _.name)
         )
@@ -143,7 +141,7 @@ def test_max(t : T?) {
         t |> equal(rquery.age, 35)
     }
     t |> run("complex max by") @(t : T?) {
-        var qcomplex = _max_by(
+        let qcomplex = _max_by(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])],
             (_.a[0], _.a[1])
         )
@@ -151,12 +149,12 @@ def test_max(t : T?) {
     }
     t |> run("max from array of strings") @(t : T?) {
         var strings = ["banana", "apple", "cherry", "date"]
-        var maxString = max(strings.to_sequence())
+        let maxString = max(strings.to_sequence())
         t |> equal(maxString, "date")
     }
     t |> run("max by from array of strings") @(t : T?) {
         var strings = ["banana", "apple", "cherry", "date", "late"]
-        var maxString = _max_by(strings, (length(_), _))
+        let maxString = _max_by(strings, (length(_), _))
         t |> equal(maxString, "cherry")
     }
 }
@@ -226,19 +224,19 @@ def test_min_max_average(t : T?) {
 [test]
 def test_sum(t : T?) {
     t |> run("basic sum") @(t : T?) {
-        var query = sum(
+        let query = sum(
             [iterator for(x in 0..5); x]
         )
         t |> equal(query, 10)
     }
     t |> run("complex sum") @(t : T?) {
-        var qcomplex = sum(
+        let qcomplex = sum(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])]
         )
         t |> success(qcomplex.a.Equal([10, 100]))
     }
     t |> run("float sum from array") @(t : T?) {
-        var queryf = sum(
+        let queryf = sum(
             [for (x in 0..5); float(x)]
         )
         t |> equal(queryf, 10.0)
@@ -248,20 +246,20 @@ def test_sum(t : T?) {
 [test]
 def test_average(t : T?) {
     t |> run("basic average") @(t : T?) {
-        var query = average(
+        let query = average(
             [iterator for(x in 0..5); x]
         )
         t |> equal(query, 2.0lf)
     }
     t |> run("float average") @(t : T?) {
-        var queryf = average(
+        let queryf = average(
             [iterator for(x in 0..5); float(x)]
         )
         t |> equal(queryf, 2.0lf)
     }
     t |> run("average from array of floats") @(t : T?) {
         var floats = [1.0, 2.0, 3.0, 4.0, 5.0]
-        var avgFloat = average(floats.to_sequence())
+        let avgFloat = average(floats.to_sequence())
         t |> equal(avgFloat, 3.0lf)
     }
 }
@@ -269,7 +267,7 @@ def test_average(t : T?) {
 [test]
 def test_aggregate(t : T?) {
     t |> run("basic aggregate") @(t : T?) {
-        var query = aggregate(
+        let query = aggregate(
             [iterator for(x in 0..5); x],
             0,
             $(acc, x) => acc + x
@@ -277,7 +275,7 @@ def test_aggregate(t : T?) {
         t |> equal(query, 10)
     }
     t |> run("complex aggregate") @(t : T?) {
-        var qcomplex = aggregate(
+        let qcomplex = aggregate(
             [iterator for(x in 0..5); ComplexType(a = [x, x * 10])],
             ComplexType(a = [0, 0]),
             $(acc, x) => ComplexType(a = [acc.a[0] + x.a[0], acc.a[1] + x.a[1]])
@@ -286,7 +284,7 @@ def test_aggregate(t : T?) {
         t |> equal(qcomplex.a[1], 100)
     }
     t |> run("string aggregate") @(t : T?) {
-        var strAgg = aggregate(
+        let strAgg = aggregate(
             ["hello", " ", "world"],
             "",
             $(acc, x) => acc + x
@@ -294,7 +292,7 @@ def test_aggregate(t : T?) {
         t |> equal(strAgg, "hello world")
     }
     t |> run("type change aggregate") @(t : T?) {
-        var query = aggregate(
+        let query = aggregate(
             [for (x in 0..5); x],
             "",
             $(acc, x) => "{acc}{x}"

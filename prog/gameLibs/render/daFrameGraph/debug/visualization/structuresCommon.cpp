@@ -837,6 +837,17 @@ void format_pretty(ImDrawList *draw_list, const int format)
 #endif
 }
 
+const char *multi_line_name(const char *name)
+{
+  static String formatted;
+  formatted.clear();
+
+  formatted.printf(0, name);
+  formatted.replaceAll("/", "\n/");
+
+  return formatted.c_str() + (formatted[0] == '\n' ? 1 : 0);
+}
+
 
 static NodeNameId requestedFocusNode = NodeNameId::Invalid;
 void request_user_node_focus(const NodeNameId id) { requestedFocusNode = id; }

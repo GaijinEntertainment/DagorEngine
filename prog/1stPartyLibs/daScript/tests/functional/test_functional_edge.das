@@ -41,7 +41,7 @@ def test_filter(t : T?) {
     t |> run("filter with lambda") @(t : T?) {
         var src <- [iterator for(x in range(6)); x]
         var evens <- filter(src, @(x : int) : bool { return x % 2 == 0; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in evens) {
             result |> push(v)
         }
@@ -54,7 +54,7 @@ def test_filter(t : T?) {
     t |> run("filter with function") @(t : T?) {
         var src <- [iterator for(x in range(6)); x]
         var evens <- filter(src, @@is_even)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in evens) {
             result |> push(v)
         }
@@ -67,7 +67,7 @@ def test_filter(t : T?) {
     t |> run("filter removes all above 3") @(t : T?) {
         var src <- [iterator for(x in range(6)); x]
         var evens <- filter(src, @(x : int) : bool { return x > 3; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in evens) {
             result |> push(v)
         }
@@ -80,7 +80,7 @@ def test_filter(t : T?) {
         var src <- [iterator for(x in range(0)); x]
         var res <- filter(src, @(x : int) : bool { return true; })
         var cnt = 0
-        for (v in res) {
+        for (_v in res) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -90,7 +90,7 @@ def test_filter(t : T?) {
         var src <- [iterator for(x in range(5)); x]
         var res <- filter(src, @(x : int) : bool { return false; })
         var cnt = 0
-        for (v in res) {
+        for (_v in res) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -107,7 +107,7 @@ def test_map(t : T?) {
     t |> run("map with lambda") @(t : T?) {
         var src <- [iterator for(x in range(4)); x]
         var squared <- map(src, @(x : int) : int { return x * x; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in squared) {
             result |> push(v)
         }
@@ -121,7 +121,7 @@ def test_map(t : T?) {
     t |> run("map with function") @(t : T?) {
         var src <- [iterator for(x in range(4)); x]
         var squared <- map(src, @@square)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in squared) {
             result |> push(v)
         }
@@ -133,7 +133,7 @@ def test_map(t : T?) {
     t |> run("map doubling") @(t : T?) {
         var src <- [iterator for(x in range(3)); x]
         var doubled <- map(src, @(x : int) : int { return x * 2; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in doubled) {
             result |> push(v)
         }
@@ -146,7 +146,7 @@ def test_map(t : T?) {
     t |> run("map type conversion") @(t : T?) {
         var src <- [iterator for(x in range(3)); x]
         var as_float <- map(src, @(x : int) : float { return float(x); })
-        var result : array<float>
+        var result : array<float> // nolint:STYLE027 - the tested construct
         for (v in as_float) {
             result |> push(v)
         }
@@ -159,7 +159,7 @@ def test_map(t : T?) {
         var src <- [iterator for(x in range(0)); x]
         var res <- map(src, @(x : int) : int { return x + 1; })
         var cnt = 0
-        for (v in res) {
+        for (_v in res) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -175,7 +175,7 @@ def test_reduce(t : T?) {
 
     t |> run("reduce sum") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = reduce(src) $(a, b : int) : int {
+        let result = reduce(src) $(a, b : int) : int {
             return a + b
         }
         t |> equal(result, 10) // 1+2+3+4
@@ -183,7 +183,7 @@ def test_reduce(t : T?) {
 
     t |> run("reduce max") @(t : T?) {
         var src <- [iterator for(x in [3, 1, 4, 1, 5]); x]
-        var result = reduce(src) $(a, b : int) : int {
+        let result = reduce(src) $(a, b : int) : int {
             return a if (a > b)
             return b
         }
@@ -192,13 +192,13 @@ def test_reduce(t : T?) {
 
     t |> run("reduce with function") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = reduce(src, @@add)
+        let result = reduce(src, @@add)
         t |> equal(result, 10)
     }
 
     t |> run("reduce single element") @(t : T?) {
         var src <- [iterator for(x in [42]); x]
-        var result = reduce(src) $(a, b : int) : int {
+        let result = reduce(src) $(a, b : int) : int {
             return a + b
         }
         t |> equal(result, 42)
@@ -206,7 +206,7 @@ def test_reduce(t : T?) {
 
     t |> run("reduce with lambda") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = reduce(src, @(a, b : int) : int { return a + b; })
+        let result = reduce(src, @(a, b : int) : int { return a + b; })
         t |> equal(result, 10)
     }
 }
@@ -220,25 +220,25 @@ def test_reduce_or_default(t : T?) {
 
     t |> run("reduce_or_default non-empty") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = reduce_or_default(src, @(a, b : int) : int { return a + b; }, -1)
+        let result = reduce_or_default(src, @(a, b : int) : int { return a + b; }, -1)
         t |> equal(result, 10)
     }
 
     t |> run("reduce_or_default empty") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = reduce_or_default(src, @(a, b : int) : int { return a + b; }, -1)
+        let result = reduce_or_default(src, @(a, b : int) : int { return a + b; }, -1)
         t |> equal(result, -1)
     }
 
     t |> run("reduce_or_default with function") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = reduce_or_default(src, @@add, 99)
+        let result = reduce_or_default(src, @@add, 99)
         t |> equal(result, 99)
     }
 
     t |> run("reduce_or_default with block") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = reduce_or_default(src, -1) $(a, b : int) : int {
+        let result = reduce_or_default(src, -1) $(a, b : int) : int {
             return a + b
         }
         t |> equal(result, -1)
@@ -254,7 +254,7 @@ def test_fold(t : T?) {
 
     t |> run("fold sum with seed") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = fold(src, 100) $(acc, x : int) : int {
+        let result = fold(src, 100) $(acc, x : int) : int {
             return acc + x
         }
         t |> equal(result, 110) // 100+1+2+3+4
@@ -262,7 +262,7 @@ def test_fold(t : T?) {
 
     t |> run("fold empty with seed") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = fold(src, 42) $(acc, x : int) : int {
+        let result = fold(src, 42) $(acc, x : int) : int {
             return acc + x
         }
         t |> equal(result, 42) // just the seed
@@ -270,7 +270,7 @@ def test_fold(t : T?) {
 
     t |> run("fold string concat") @(t : T?) {
         var src <- [iterator for(x in [1, 2, 3]); x]
-        var result = fold(src, "numbers:") $(acc : string; x : int) : string {
+        let result = fold(src, "numbers:") $(acc : string; x : int) : string {
             return "{acc} {x}"
         }
         t |> equal(result, "numbers: 1 2 3")
@@ -278,13 +278,13 @@ def test_fold(t : T?) {
 
     t |> run("fold with lambda") @(t : T?) {
         var src <- [iterator for(x in range(1, 4)); x]
-        var result = fold(src, 0, @(acc, x : int) : int { return acc + x; })
+        let result = fold(src, 0, @(acc, x : int) : int { return acc + x; })
         t |> equal(result, 6) // 0+1+2+3
     }
 
     t |> run("fold product") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = fold(src, 1) $(acc, x : int) : int {
+        let result = fold(src, 1) $(acc, x : int) : int {
             return acc * x
         }
         t |> equal(result, 24) // 1*2*3*4
@@ -301,7 +301,7 @@ def test_scan(t : T?) {
     t |> run("scan running sum") @(t : T?) {
         var src <- [iterator for(x in [1, 2, 3, 4]); x]
         var sums <- scan(src, 0, @(acc, x : int) : int { return acc + x; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in sums) {
             result |> push(v)
         }
@@ -317,7 +317,7 @@ def test_scan(t : T?) {
     t |> run("scan empty") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
         var sums <- scan(src, 42, @(acc, x : int) : int { return acc + x; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in sums) {
             result |> push(v)
         }
@@ -328,7 +328,7 @@ def test_scan(t : T?) {
     t |> run("scan running max") @(t : T?) {
         var src <- [iterator for(x in [3, 1, 4, 1, 5, 9]); x]
         var maxs <- scan(src, 0, @(acc, x : int) : int { return acc if (acc > x); return x; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in maxs) {
             result |> push(v)
         }
@@ -353,19 +353,19 @@ def test_sum(t : T?) {
 
     t |> run("sum ints") @(t : T?) {
         var src <- [iterator for(x in range(1, 5)); x]
-        var result = sum(src)
+        let result = sum(src)
         t |> equal(result, 10) // 1+2+3+4
     }
 
     t |> run("sum empty") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = sum(src)
+        let result = sum(src)
         t |> equal(result, 0) // default int is 0
     }
 
     t |> run("sum floats") @(t : T?) {
         var src <- [iterator for(x in [1.0, 2.0, 3.0]); x]
-        var result = sum(src)
+        let result = sum(src)
         t |> equal(result, 6.0)
     }
 }
@@ -408,12 +408,12 @@ def test_any_all(t : T?) {
     }
 
     t |> run("any on array") @(t : T?) {
-        var arr = [true, false, true]
+        let arr = [true, false, true]
         t |> equal(any(arr), true)
     }
 
     t |> run("all on array") @(t : T?) {
-        var arr = [true, true, true]
+        let arr = [true, true, true]
         t |> equal(all(arr), true)
     }
 }
@@ -427,7 +427,7 @@ def test_repeat(t : T?) {
 
     t |> run("repeat N times") @(t : T?) {
         var src <- repeat(42, 3)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in src) {
             result |> push(v)
         }
@@ -440,7 +440,7 @@ def test_repeat(t : T?) {
     t |> run("repeat 0 times is empty") @(t : T?) {
         var src <- repeat(42, 0)
         var cnt = 0
-        for (v in src) {
+        for (_v in src) {
             cnt ++
         }
         t |> equal(cnt, 0) // BUG FIX: was infinite before
@@ -448,7 +448,7 @@ def test_repeat(t : T?) {
 
     t |> run("repeat 1 time") @(t : T?) {
         var src <- repeat("hello", 1)
-        var result : array<string>
+        var result : array<string> // nolint:STYLE027 - the tested construct
         for (v in src) {
             result |> push(v)
         }
@@ -490,7 +490,7 @@ def test_repeat_ref(t : T?) {
     t |> run("repeat_ref 0 is empty") @(t : T?) {
         var src <- repeat_ref(1, 0)
         var cnt = 0
-        for (v in src) {
+        for (_v in src) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -535,7 +535,7 @@ def test_islice(t : T?) {
     t |> run("islice basic") @(t : T?) {
         var src <- [iterator for(x in range(10)); x]
         var sliced <- islice(src, 2, 5)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in sliced) {
             result |> push(v)
         }
@@ -548,7 +548,7 @@ def test_islice(t : T?) {
     t |> run("islice start=0") @(t : T?) {
         var src <- [iterator for(x in range(5)); x]
         var sliced <- islice(src, 0, 3)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in sliced) {
             result |> push(v)
         }
@@ -560,7 +560,7 @@ def test_islice(t : T?) {
         var src <- [iterator for(x in range(5)); x]
         var sliced <- islice(src, 3, 3)
         var cnt = 0
-        for (v in sliced) {
+        for (_v in sliced) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -569,7 +569,7 @@ def test_islice(t : T?) {
     t |> run("islice beyond source") @(t : T?) {
         var src <- [iterator for(x in range(3)); x]
         var sliced <- islice(src, 0, 100)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in sliced) {
             result |> push(v)
         }
@@ -606,7 +606,7 @@ def test_enumerate(t : T?) {
         var src <- [iterator for(x in range(0)); x]
         var en <- enumerate(src)
         var cnt = 0
-        for (v in en) {
+        for (_v in en) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -648,19 +648,19 @@ def test_find(t : T?) {
 
     t |> run("find existing") @(t : T?) {
         var src <- [iterator for(x in [3, 7, 1, 8, 2]); x]
-        var result = find(src, @(x : int) : bool { return x > 5; }, -1)
+        let result = find(src, @(x : int) : bool { return x > 5; }, -1)
         t |> equal(result, 7)
     }
 
     t |> run("find missing") @(t : T?) {
         var src <- [iterator for(x in [1, 2, 3]); x]
-        var result = find(src, @(x : int) : bool { return x > 100; }, -1)
+        let result = find(src, @(x : int) : bool { return x > 100; }, -1)
         t |> equal(result, -1)
     }
 
     t |> run("find with block") @(t : T?) {
         var src <- [iterator for(x in [10, 20, 30]); x]
-        var result = find(src, -1) $(x : int) : bool {
+        let result = find(src, -1) $(x : int) : bool {
             return x > 15
         }
         t |> equal(result, 20)
@@ -668,7 +668,7 @@ def test_find(t : T?) {
 
     t |> run("find empty") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = find(src, 42) $(x : int) : bool {
+        let result = find(src, 42) $(x : int) : bool {
             return true
         }
         t |> equal(result, 42)
@@ -676,7 +676,7 @@ def test_find(t : T?) {
 
     t |> run("find first match only") @(t : T?) {
         var src <- [iterator for(x in [1, 2, 3, 4, 5]); x]
-        var result = find(src, @@is_even, -1)
+        let result = find(src, @@is_even, -1)
         t |> equal(result, 2)
     }
 }
@@ -690,19 +690,19 @@ def test_find_index(t : T?) {
 
     t |> run("find_index found") @(t : T?) {
         var src <- [iterator for(x in [10, 20, 30, 40]); x]
-        var idx = find_index(src, @(x : int) : bool { return x == 30; })
+        let idx = find_index(src, @(x : int) : bool { return x == 30; })
         t |> equal(idx, 2)
     }
 
     t |> run("find_index not found") @(t : T?) {
         var src <- [iterator for(x in [1, 2, 3]); x]
-        var idx = find_index(src, @(x : int) : bool { return x == 99; })
+        let idx = find_index(src, @(x : int) : bool { return x == 99; })
         t |> equal(idx, -1)
     }
 
     t |> run("find_index empty") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var idx = find_index(src) $(x : int) : bool {
+        let idx = find_index(src) $(x : int) : bool {
             return true
         }
         t |> equal(idx, -1)
@@ -710,7 +710,7 @@ def test_find_index(t : T?) {
 
     t |> run("find_index first match") @(t : T?) {
         var src <- [iterator for(x in [5, 3, 5, 3]); x]
-        var idx = find_index(src, @(x : int) : bool { return x == 3; })
+        let idx = find_index(src, @(x : int) : bool { return x == 3; })
         t |> equal(idx, 1) // first occurrence
     }
 }
@@ -724,7 +724,7 @@ def test_partition(t : T?) {
 
     t |> run("partition evens/odds") @(t : T?) {
         var src <- [iterator for(x in range(6)); x]
-        var result = partition(src, @@is_even)
+        let result = partition(src, @@is_even)
         t |> equal(length(result._0), 3)  // evens: 0,2,4
         t |> equal(length(result._1), 3)  // odds: 1,3,5
         t |> equal(result._0[0], 0)
@@ -735,28 +735,28 @@ def test_partition(t : T?) {
 
     t |> run("partition all match") @(t : T?) {
         var src <- [iterator for(x in [2, 4, 6]); x]
-        var result = partition(src, @@is_even)
+        let result = partition(src, @@is_even)
         t |> equal(length(result._0), 3)
         t |> equal(length(result._1), 0)
     }
 
     t |> run("partition none match") @(t : T?) {
         var src <- [iterator for(x in [1, 3, 5]); x]
-        var result = partition(src, @@is_even)
+        let result = partition(src, @@is_even)
         t |> equal(length(result._0), 0)
         t |> equal(length(result._1), 3)
     }
 
     t |> run("partition empty") @(t : T?) {
         var src <- [iterator for(x in range(0)); x]
-        var result = partition(src, @@is_even)
+        let result = partition(src, @@is_even)
         t |> equal(length(result._0), 0)
         t |> equal(length(result._1), 0)
     }
 
     t |> run("partition with block") @(t : T?) {
         var src <- [iterator for(x in range(5)); x]
-        var result = partition(src) $(x : int) : bool {
+        let result = partition(src) $(x : int) : bool {
             return x < 3
         }
         t |> equal(length(result._0), 3) // 0,1,2
@@ -774,7 +774,7 @@ def test_tap(t : T?) {
     t |> run("tap passthrough") @(t : T?) {
         var src <- [iterator for(x in [10, 20, 30]); x]
         var tapped <- tap(src, @(x : int) { feint("{x}\n"); })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in tapped) {
             result |> push(v)
         }
@@ -789,7 +789,7 @@ def test_tap(t : T?) {
         var src <- [iterator for(x in range(0)); x]
         var tapped <- tap(src, @(x : int) { feint("{x}\n"); })
         var cnt = 0
-        for (v in tapped) {
+        for (_v in tapped) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -853,7 +853,7 @@ def test_chain(t : T?) {
         var a <- [iterator for(x in range(1, 4)); x]
         var b <- [iterator for(x in range(4, 7)); x]
         var combined <- chain(a, b)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in combined) {
             result |> push(v)
         }
@@ -867,7 +867,7 @@ def test_chain(t : T?) {
         var a <- [iterator for(x in range(0)); x]
         var b <- [iterator for(x in range(7, 9)); x]
         var combined <- chain(a, b)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in combined) {
             result |> push(v)
         }
@@ -879,7 +879,7 @@ def test_chain(t : T?) {
         var a <- [iterator for(x in range(1, 3)); x]
         var b <- [iterator for(x in range(0)); x]
         var combined <- chain(a, b)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in combined) {
             result |> push(v)
         }
@@ -891,7 +891,7 @@ def test_chain(t : T?) {
         var b <- [iterator for(x in range(0)); x]
         var combined <- chain(a, b)
         var cnt = 0
-        for (v in combined) {
+        for (_v in combined) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -908,7 +908,7 @@ def test_pairwise(t : T?) {
     t |> run("pairwise basic") @(t : T?) {
         var src <- [iterator for(x in [1, 2, 3, 4]); x]
         var pairs <- pairwise(src)
-        var result : array<tuple<int; int>>
+        var result : array<tuple<int; int>> // nolint:STYLE027 - the tested construct
         for (v in pairs) {
             result |> push(v)
         }
@@ -926,7 +926,7 @@ def test_pairwise(t : T?) {
         var src <- [iterator for(x in [42]); x]
         var pairs <- pairwise(src)
         var cnt = 0
-        for (v in pairs) {
+        for (_v in pairs) {
             cnt ++
         }
         t |> equal(cnt, 0) // need at least 2 elements
@@ -936,7 +936,7 @@ def test_pairwise(t : T?) {
         var src <- [iterator for(x in range(0)); x]
         var pairs <- pairwise(src)
         var cnt = 0
-        for (v in pairs) {
+        for (_v in pairs) {
             cnt ++
         }
         t |> equal(cnt, 0)
@@ -945,7 +945,7 @@ def test_pairwise(t : T?) {
     t |> run("pairwise two elements") @(t : T?) {
         var src <- [iterator for(x in [10, 20]); x]
         var pairs <- pairwise(src)
-        var result : array<tuple<int; int>>
+        var result : array<tuple<int; int>> // nolint:STYLE027 - the tested construct
         for (v in pairs) {
             result |> push(v)
         }
@@ -963,13 +963,13 @@ def test_pairwise(t : T?) {
 def test_echo(t : T?) {
 
     t |> run("echo returns value") @(t : T?) {
-        var x = echo(42, "")
+        let x = echo(42, "")
         t |> equal(x, 42)
     }
 
     t |> run("echo non-destructive") @(t : T?) {
-        var original = 100
-        var copy = echo(original, "")
+        let original = 100
+        let copy = echo(original, "")
         t |> equal(original, 100) // should NOT be zeroed
         t |> equal(copy, 100)
     }
@@ -1007,7 +1007,7 @@ def test_sorted(t : T?) {
 
     t |> run("sorted array") @(t : T?) {
         var arr = [3, 1, 4, 1, 5]
-        var s <- sorted(arr)
+        let s <- sorted(arr)
         t |> equal(s[0], 1)
         t |> equal(s[1], 1)
         t |> equal(s[2], 3)
@@ -1018,7 +1018,7 @@ def test_sorted(t : T?) {
     t |> run("sorted iterator") @(t : T?) {
         var src <- [iterator for(x in [5, 3, 1, 4, 2]); x]
         var s <- sorted(src)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in s) {
             result |> push(v)
         }
@@ -1029,13 +1029,13 @@ def test_sorted(t : T?) {
 
     t |> run("sorted empty") @(t : T?) {
         var arr : array<int>
-        var s <- sorted(arr)
+        let s <- sorted(arr)
         t |> equal(length(s), 0)
     }
 
     t |> run("sorted already sorted") @(t : T?) {
         var arr = [1, 2, 3]
-        var s <- sorted(arr)
+        let s <- sorted(arr)
         t |> equal(s[0], 1)
         t |> equal(s[1], 2)
         t |> equal(s[2], 3)
@@ -1053,7 +1053,7 @@ def test_composition(t : T?) {
         var src <- [iterator for(x in range(6)); x]
         var evens <- filter(src, @(x : int) : bool { return x % 2 == 0; })
         var doubled <- map(evens, @(x : int) : int { return x * 2; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in doubled) {
             result |> push(v)
         }
@@ -1066,7 +1066,7 @@ def test_composition(t : T?) {
     t |> run("map then reduce") @(t : T?) {
         var src <- [iterator for(x in range(1, 4)); x]
         var squared <- map(src, @(x : int) : int { return x * x; })
-        var result = reduce(squared) $(a, b : int) : int {
+        let result = reduce(squared) $(a, b : int) : int {
             return a + b
         }
         t |> equal(result, 14) // 1+4+9
@@ -1076,7 +1076,7 @@ def test_composition(t : T?) {
         var src <- [iterator for(x in range(10)); x]
         var big <- filter(src, @(x : int) : bool { return x >= 5; })
         var doubled <- map(big, @(x : int) : int { return x * 2; })
-        var total = fold(doubled, 0) $(acc, x : int) : int {
+        let total = fold(doubled, 0) $(acc, x : int) : int {
             return acc + x
         }
         // 5*2+6*2+7*2+8*2+9*2 = 70
@@ -1087,7 +1087,7 @@ def test_composition(t : T?) {
         var src <- [iterator for(x in [10, 20, 30, 40, 50]); x]
         var en <- enumerate(src)
         var evens <- filter(en, @(t : tuple<int; int>) : bool { return t._0 % 2 == 0; })
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in evens) {
             result |> push(v._1)
         }
@@ -1103,7 +1103,7 @@ def test_composition(t : T?) {
         var b <- [iterator for(x in range(4, 7)); x]
         var combined <- chain(a, b)
         var evens <- filter(combined, @@is_even)
-        var result : array<int>
+        var result : array<int> // nolint:STYLE027 - the tested construct
         for (v in evens) {
             result |> push(v)
         }

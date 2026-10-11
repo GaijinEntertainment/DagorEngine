@@ -10,6 +10,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/io/blk.h>
 #include <ecs/renderEvents.h>
+#include <ecs/render/updateStageRender.h>
 #include <daECS/delayedAct/actInThread.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
@@ -99,8 +100,8 @@ public:
   {
     if (g_entity_mgr.get())
       g_entity_mgr->tick();
-    g_entity_mgr->update(ecs::UpdateStageInfoAct(dt, applicationTime));
-    g_entity_mgr->broadcastEventImmediate(ParallelUpdateFrameDelayed(dt, applicationTime));
+    g_entity_mgr->update(ecs::UpdateStageInfoAct(dt, double(applicationTime)));
+    g_entity_mgr->broadcastEventImmediate(ParallelUpdateFrameDelayed(dt, double(applicationTime)));
   }
 
   void beforeRenderService() override {}
@@ -129,7 +130,7 @@ public:
         break;
       case STG_RENDER_DYNAMIC_TRANS:
         g_entity_mgr->broadcastEventImmediate(RenderStage(RenderStage::Transparent, globtm, viewtm, nullptr));
-        g_entity_mgr->update(ecs::UpdateStageInfoRenderDebug());
+        g_entity_mgr->update(UpdateStageInfoRenderDebug(globtm, orthonormalized_inverse(viewtm), nullptr));
         ::flush_buffered_debug_lines();
         break;
       default: break;

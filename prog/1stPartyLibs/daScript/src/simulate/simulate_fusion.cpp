@@ -9,6 +9,8 @@
 #include "daScript/simulate/sim_policy.h"
 #include "daScript/simulate/simulate_visit_op.h"
 
+#include <mutex>
+
 namespace das {
 
     bool FusionPoint::is ( const SimNodeInfoLookup & info, SimNode * node, const char * name ) {
@@ -133,8 +135,12 @@ namespace das {
         return *g_fusionEngine;
     }
 
-    void resetFusionEngine() {
-        g_fusionEngine->reset();
+    void resetFusionEngine( bool orphan ) {
+        if ( orphan ) {
+            (void) g_fusionEngine->release();   // the thread-local's destructor would otherwise free it all at exit
+        } else {
+            g_fusionEngine->reset();
+        }
     }
 
     void createFusionEngine() {
@@ -252,8 +258,11 @@ namespace das {
 }
 
 DAS_CC_API void register_fusion () {
-    das::g_fusionContextFn = &das::fusionContext;
-    das::g_resetFusionEngineFn = &das::resetFusionEngine;
+    static std::once_flag fusionHooksOnce;
+    std::call_once(fusionHooksOnce, [] {
+        das::g_fusionContextFn = &das::fusionContext;
+        das::g_resetFusionEngineFn = &das::resetFusionEngine;
+    });
 }
 
 extern "C" DAS_CC_API void jit_register_fusion () {

@@ -45,7 +45,7 @@ class LatticeMutator : DapiDataWalker {
 // ============================================================
 
 [test]
-def test_walk_lattice_leaves(t : T?) {
+def test_walk_lattice_leaves(t : T?) { // nolint:STYLE038 - flat list of independent walker arms
     t |> run("half family") @(t : T?) {
         var walker = new LogWalker()
         var f16 = float16(1.5)
@@ -163,9 +163,7 @@ def test_walk_lattice_struct(t : T?) {
             bv = byte4(-1, 2, -3, 4),
             ubv = ubyte16(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16))
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
-            }
+            adapter |> walk_data(unsafe(addr(s)), typeinfo rtti_typeinfo(s))
         }
         t |> equal(find(walker.log, "beforeStruct:LatticeStruct") != -1, true)
         t |> equal(find(walker.log, "Float16:{s.h}") != -1, true)
@@ -191,9 +189,7 @@ def test_walk_lattice_arrays(t : T?) {
         a[0] = half4(1., 2., 3., 4.)
         a[1] = half4(5., 6., 7., 8.)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(a), typeinfo rtti_typeinfo(a))
-            }
+            adapter |> walk_data(unsafe(addr(a)), typeinfo rtti_typeinfo(a))
         }
         t |> equal(find(walker.log, "beforeDim") != -1, true)
         t |> equal(find(walker.log, "Half4:{a[0]}") != -1, true)
@@ -205,9 +201,7 @@ def test_walk_lattice_arrays(t : T?) {
         var walker = new LogWalker()
         var arr = [byte4(1, 2, 3, 4), byte4(5, 6, 7, 8)]
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
-            }
+            adapter |> walk_data(unsafe(addr(arr)), typeinfo rtti_typeinfo(arr))
         }
         t |> equal(find(walker.log, "beforeArray") != -1, true)
         t |> equal(find(walker.log, "Byte4:{arr[0]}") != -1, true)

@@ -348,7 +348,7 @@ static String resolve_workspace_for_app_blk_path(EditorWorkspace &wsp, const cha
 
 //==============================================================================
 DagorEdAppWindow::DagorEdAppWindow(IWndManager *manager, const char *open_fname) :
-  GenericEditorAppWindow(open_fname, manager),
+  GenericEditorAppWindow(open_fname, manager, ScreenshotDlgMode::DA_EDITOR),
   plugin(midmem),
   panelsToAdd(midmem),
   panelsToAddWidth(midmem),
@@ -429,12 +429,11 @@ DagorEdAppWindow::~DagorEdAppWindow()
     da_profiler::tick_frame();
   }
 
+  editor_core_shutdown_test_runtime();
+  switchToPlugin(-1);
   texconvcache::build_on_demand_tex_factory_cease_loading(false);
-  mManager->unregisterWindowHandler(this);
 
   clearProc.clear();
-
-  // delete_visclipmesh();
 
   const String editorBlkPathName = ::make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
 
@@ -516,6 +515,9 @@ DagorEdAppWindow::~DagorEdAppWindow()
 
   if (wsp)
     wsp->save();
+
+  mManager->reset();
+  mManager->unregisterWindowHandler(this);
 
   PropPanel::remove_delayed_callback(*this);
   PropPanel::release();
@@ -829,7 +831,7 @@ ModelessWindowControllerList DagorEdAppWindow::getModelessWindowControllers()
 {
   ModelessWindowControllerList controllers;
 
-  GenericEditorAppWindow::getModelessWindowControllers(controllers, ScreenshotDlgMode::DA_EDITOR);
+  GenericEditorAppWindow::getModelessWindowControllers(controllers);
 
   for (int i = 0; i < ged.getViewportCount(); ++i)
     ged.getViewport(i)->getModelessWindowControllers(controllers);
@@ -2859,6 +2861,12 @@ void DagorEdAppWindow::getDocTitleText(String &text)
 
 bool DagorEdAppWindow::canCloseScene(const char *title)
 {
+  // Before the project prompt and before the early return below: a plugin can hold documents of its
+  // own, saved or not, whether or not a project is open. Skipped when a console command answers for
+  // the project, since it promises no dialog at all.
+  if (!on_batch_exit && !mNeedSuppress && spawnEvent(HUID_KeepEditorOpen, nullptr))
+    return false;
+
   if (!sceneFname[0] || on_batch_exit)
     return true;
 
@@ -2909,7 +2917,7 @@ bool DagorEdAppWindow::handleNewProject(bool)
   if (dlg.showDialog() != PropPanel::DIALOG_ID_OK)
     return false;
 
-  ec_set_busy(true);
+  EcAutoBusy autoBusy;
   String fileName(260, "%s/%s/%s" LEVEL_FILE_EXTENSION, dlg.getLocation(), dlg.getName(), dlg.getName());
 
   ::simplify_fname(fileName);
@@ -3005,6 +3013,7 @@ bool DagorEdAppWindow::createNewProject(const char *filename)
   IDynRenderService *dynRender = queryEditorInterface<IDynRenderService>();
   const bool enableRendererAfter = !d3d::is_stub_driver();
   dynRender->enableRender(false);
+  dynRender->beforeProjectSceneReset();
 
   for (int i = 0; i < plugin.size(); ++i)
     if (plugin[i].p)
@@ -3147,7 +3156,9 @@ bool DagorEdAppWindow::loadProject(const char *filename)
     dagor_enable_idle_priority(false);
   }
   dagor_frame_no_increment();
-  queryEditorInterface<IDynRenderService>()->enableRender(false);
+  IDynRenderService *dynRender = queryEditorInterface<IDynRenderService>();
+  dynRender->enableRender(false);
+  dynRender->beforeProjectSceneReset();
   undoSystem->clear();
 
   CoolConsole &con = DAGORED2->getConsole();
@@ -3159,6 +3170,7 @@ bool DagorEdAppWindow::loadProject(const char *filename)
   String lastplugin;
   splitProjectFilename(filename, basePath, projectName);
 
+  showCameraPresets(false); // The manager keeps the panel handle, and the delete below frees the panel.
   del_it(mCameraPresets);
   mCameraPresets = new CameraPresetsManager(basePath);
   getMainMenu()->setCheckById(CM_CAMERA_PRESETS, false);
@@ -3473,6 +3485,12 @@ bool DagorEdAppWindow::loadProject(const char *filename)
     {
       debug("before main loop of %s", plugin[i].p->getMenuCommandName());
       DAGOR_TRY { plugin[i].p->beforeMainLoop(); }
+      DAGOR_CATCH(const DagorException &e)
+      {
+        console->addMessage(ILogWriter::ERROR, "Plugin \"%s\" failed during beforeMainLoop(): %s", plugin[i].p->getMenuCommandName(),
+          e.excDesc);
+        debug("%s", DAGOR_EXC_STACK_STR(e));
+      }
       DAGOR_CATCH(...)
       {
         console->addMessage(ILogWriter::ERROR, "Plugin \"%s\" failed during beforeMainLoop()", plugin[i].p->getMenuCommandName());
@@ -4307,9 +4325,8 @@ void DagorEdAppWindow::renderUI()
       ImGui::SetNextWindowPos(ImVec2(viewport->Size.x * 0.35f, viewport->Size.y * 0.15f), ImGuiCond_FirstUseEver);
 
       bool open = true;
-      DAEDITOR3.imguiBegin("Keyboard Shortcuts", &open);
-      mShortcutsPanel->updateImgui();
-      DAEDITOR3.imguiEnd();
+      if (auto window = IDaEditor3Engine::ScopedImguiWindow("Keyboard Shortcuts", &open); window.canSubmitContents())
+        mShortcutsPanel->updateImgui();
 
       if (!open)
         mManager->removeWindow(mShortcutsPanel);
@@ -4398,9 +4415,8 @@ void DagorEdAppWindow::renderUI()
 
     const bool canClose = console->isCanClose() && !console->isProgress();
     bool open = true;
-    DAEDITOR3.imguiBegin("DaEditorX console", canClose ? &open : nullptr);
-    console->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow("DaEditorX console", canClose ? &open : nullptr); window.canSubmitContents())
+      console->updateImgui();
 
     if (!open)
       console->hide();
@@ -4409,9 +4425,11 @@ void DagorEdAppWindow::renderUI()
   if (mTagManager)
   {
     bool open = true;
-    DAEDITOR3.imguiBegin("Tag Management", &open);
-    mTagManager->updateImgui();
-    DAEDITOR3.imguiEnd();
+    {
+      IDaEditor3Engine::ScopedImguiWindow window("Tag Management", &open);
+      if (!mTagManager->updateImgui(window.canSubmitContents()))
+        open = false;
+    }
 
     if (!open)
       DAEDITOR3.showTagManagerWindow(false);
@@ -4420,9 +4438,8 @@ void DagorEdAppWindow::renderUI()
   if (control_gallery)
   {
     bool open = true;
-    DAEDITOR3.imguiBegin(control_gallery->getPanel(), &open);
-    control_gallery->getPanel().updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow(control_gallery->getPanel(), &open); window.canSubmitContents())
+      control_gallery->getPanel().updateImgui();
 
     if (!open)
       control_gallery.reset();
@@ -4437,9 +4454,8 @@ void DagorEdAppWindow::renderUI()
     ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f), ImGuiCond_FirstUseEver);
 
     bool open = true;
-    DAEDITOR3.imguiBegin("Camera presets", &open);
-    mCameraPresets->getPanel()->updateImgui();
-    DAEDITOR3.imguiEnd();
+    if (auto window = IDaEditor3Engine::ScopedImguiWindow("Camera presets", &open); window.canSubmitContents())
+      mCameraPresets->getPanel()->updateImgui();
 
     if (!open)
       showCameraPresets(false);
@@ -4504,8 +4520,6 @@ void DagorEdAppWindow::updateImgui()
   renderUI();
 
   PropPanel::before_end_frame();
-
-  editor_core_test_runtime_end_frame();
 
   renderingImgui = false;
 }

@@ -1,11 +1,13 @@
 -- property-probe storm: repeated string-keyed reads over many small tables,
 -- the shape of Element::setup re-reading ~60 properties per element
-local TABLES = 2000
-local ROUNDS = 300
+local vmBench <const> = require("profile").vmBench
 
-local tables = {}
-for i = 1, TABLES do
-  tables[i] = {
+local TABLES <const> = 2000
+local ROUNDS <const> = 300
+
+local tables <const> = table.create(TABLES)
+for i = 0, TABLES - 1 do
+  tables[i + 1] = {
     rendObj = 1, size = i, color = 2, text = "x", padding = 3,
     margin = 4, flow = 5, halign = 6, valign = 7, gap = 8,
     opacity = 9, zOrder = 10, clipChildren = 11, behavior = 12, hotkeys = 13,
@@ -14,10 +16,9 @@ for i = 1, TABLES do
   }
 end
 
-for rep = 1, 5 do
-  local t0 = os.clock()
+local function probe()
   local sum = 0
-  for r = 1, ROUNDS do
+  for _ = 1, ROUNDS do
     for i = 1, TABLES do
       local t = tables[i]
       sum = sum + t.rendObj + t.size + t.color + t.padding + t.margin
@@ -26,5 +27,7 @@ for rep = 1, 5 do
           + t.animations + t.transitions + t.watch + t.onClick + t.onHover
     end
   end
-  print("BENCH probe_storm " .. ((os.clock() - t0) * 1000) .. " ms (r=" .. sum .. ")")
+  return sum
 end
+
+vmBench("probe_storm", probe)

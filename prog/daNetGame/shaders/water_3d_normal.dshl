@@ -1,6 +1,5 @@
 include "water_3d_geometry.dshl"
 include "heightmap_common.dshl"
-include "underwater_fog.dshl"
 include "water_3d_overrides.dshl"
 include "camera_in_camera.dshl"
 

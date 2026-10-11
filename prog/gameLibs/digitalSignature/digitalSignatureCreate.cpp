@@ -4,7 +4,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <digitalSignature/digitalSignatureCreate.h>
-#include <utility>
+#include <EASTL/utility.h>
 
 
 namespace digital_signature
@@ -12,17 +12,15 @@ namespace digital_signature
 
 static int password_cb_stub(char * /*buf*/, int /*size*/, int /*rwflag*/, void * /*u*/) { return -1; }
 
-Signer::Signer(Signer &&other) noexcept { *this = std::move(other); }
+Signer::Signer(Signer &&other) noexcept { *this = eastl::move(other); }
 
 Signer &Signer::operator=(Signer &&other) noexcept
 {
-  opaquePkey = other.opaquePkey;
-  opaqueCtx = other.opaqueCtx;
+  eastl::swap(opaquePkey, other.opaquePkey);
+  eastl::swap(opaqueCtx, other.opaqueCtx);
   failed = other.failed;
   done = other.done;
 
-  other.opaquePkey = nullptr;
-  other.opaqueCtx = nullptr;
   other.failed = true;
   other.done = true;
 

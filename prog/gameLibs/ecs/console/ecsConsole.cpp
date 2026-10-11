@@ -100,15 +100,6 @@ static void flatten_parents(const ecs::Template *root, eastl::vector<uint32_t> &
   }
 }
 
-static void merge_components(ecs::ComponentsMap &high_priority_source, const ecs::ComponentsMap &low_priority_arg)
-{
-  for (auto &c : low_priority_arg)
-  {
-    if (high_priority_source[c.first].isNull())
-      high_priority_source[c.first] = c.second;
-  }
-}
-
 static ecs::ComponentsMap gather_all_components(const char *template_name)
 {
   ecs::ComponentsMap result;
@@ -118,22 +109,22 @@ static ecs::ComponentsMap gather_all_components(const char *template_name)
     return result;
   }
 
-  const ecs::Template *templ = g_entity_mgr->getTemplateDB().buildTemplateByName(template_name);
+  ecs::TemplateDB &tdb = g_entity_mgr->getTemplateDB();
+  const ecs::Template *templ = tdb.buildTemplateByName(template_name);
   if (!templ)
   {
     console::print_d("Template '%s' not found", template_name);
     return result;
   }
 
-  merge_components(result, templ->getComponentsMap());
-  eastl::vector<uint32_t> parents;
-  flatten_parents(templ, parents);
-  for (const uint32_t p : parents)
-  {
-    auto pr = g_entity_mgr->getTemplateDB().getTemplateById(p);
-    if (pr != nullptr)
-      merge_components(result, pr->getComponentsMap());
-  }
+  const ecs::TemplatesData &tdata = tdb.data();
+  tdata.iterate_template_parents(*templ, [&](const ecs::Template &t) {
+    for (auto &c : t.getComponentsMap())
+    {
+      if (!result.find(c.first))
+        result[c.first] = c.second;
+    }
+  });
   return result;
 }
 
@@ -189,18 +180,7 @@ static bool check_query_processes_template(const ecs::BaseQueryDesc *query, cons
     {
       if ((desc.flags & ecs::CDF_OPTIONAL) != 0 || desc.name == ECS_HASH("eid").hash)
         continue;
-      bool componentFound = false;
-      for (auto tcomp : templ_comps)
-      {
-        if (desc.name == tcomp.first)
-        {
-          componentFound = true;
-          if (!include)
-            return false;
-          break;
-        }
-      }
-      if (!componentFound && include)
+      if ((templ_comps.find_as(desc.name) != templ_comps.end()) != include)
         return false;
     }
     return true;
@@ -238,29 +218,23 @@ static void does_system_process_template(const char *system_name, const char *te
     {
       if ((desc.flags & ecs::CDF_OPTIONAL) != 0 || desc.name == ECS_HASH("eid").hash)
         continue;
-      bool componentFound = false;
-      for (auto tcomp : compMap)
+      auto tcomp = compMap.find_as(desc.name);
+      if (tcomp != compMap.end())
       {
-        if (desc.name == tcomp.first)
+        const char *name = desc.nameStr;
+        name = name ? name : g_entity_mgr->getTemplateDB().getComponentName(tcomp->first);
+        if (!include)
         {
-          componentFound = true;
-          const char *name = desc.nameStr;
-          name = name ? name : g_entity_mgr->getTemplateDB().getComponentName(tcomp.first);
-          if (!include)
-          {
-            console::print_d("Problem: \n\t'%s' is REQUIRE_NOT but is present in '%s'", name, template_name);
-            hasProblems = true;
-            break;
-          }
-          if (check_type && tcomp.second.getUserType() != desc.type && tcomp.second.getUserType() > 0)
-          {
-            console::print_d("Problem: \n\t'%s'`s type is different to the one the system requires", name);
-            hasProblems = true;
-            break;
-          }
+          console::print_d("Problem: \n\t'%s' is REQUIRE_NOT but is present in '%s'", name, template_name);
+          hasProblems = true;
+        }
+        else if (check_type && tcomp->second.getUserType() != desc.type && tcomp->second.getUserType() > 0)
+        {
+          console::print_d("Problem: \n\t'%s'`s type is different to the one the system requires", name);
+          hasProblems = true;
         }
       }
-      if (!componentFound && include)
+      else if (include)
       {
         console::print_d("Problem: \n\t'%s' not found in the template", desc.nameStr);
         hasProblems = true;
@@ -456,45 +430,25 @@ static void diff_templates(const char *lhs, const char *rhs)
 
   auto findMissingComps = [&](const ecs::ComponentsMap &lhsMaps, const ecs::ComponentsMap &rhsMaps,
                             eastl::vector<eastl::string> &reportTo) {
-    for (auto lhsTcomp : lhsMaps)
-    {
-      bool exists = false;
-      for (auto rhsTcomp : rhsMaps)
-      {
-        if (lhsTcomp.first == rhsTcomp.first)
-        {
-          exists = true;
-          break;
-        }
-      }
-      if (!exists)
-      {
-        const char *name = g_entity_mgr->getTemplateDB().getComponentName(lhsTcomp.first);
-        reportTo.push_back(name);
-      }
-    }
+    for (const auto &lhsTcomp : lhsMaps)
+      if (rhsMaps.find_as(lhsTcomp.first) == rhsMaps.end())
+        reportTo.push_back(g_entity_mgr->getTemplateDB().getComponentName(lhsTcomp.first));
   };
 
   findMissingComps(lhsComps, rhsComps, lhsCompReports);
   findMissingComps(rhsComps, lhsComps, rhsCompReports);
 
   eastl::vector<eastl::string> mismatchReports;
-  for (auto lhsTcomp : lhsComps)
+  for (const auto &lhsTcomp : lhsComps)
   {
-    for (auto rhsTcomp : rhsComps)
-    {
-      if (lhsTcomp.first == rhsTcomp.first)
-      {
-        const char *name = g_entity_mgr->getTemplateDB().getComponentName(lhsTcomp.first);
-        eastl::string lhsValue = component_to_string(name, lhsTcomp.second.getEntityComponentRef());
-        eastl::string rhsValue = component_to_string(name, rhsTcomp.second.getEntityComponentRef());
-        if (lhsValue != rhsValue)
-        {
-          mismatchReports.push_back("\t" + lhsValue + "\tVS\t" + rhsValue);
-        }
-        break;
-      }
-    }
+    auto rhsTcomp = rhsComps.find_as(lhsTcomp.first);
+    if (rhsTcomp == rhsComps.end())
+      continue;
+    const char *name = g_entity_mgr->getTemplateDB().getComponentName(lhsTcomp.first);
+    eastl::string lhsValue = component_to_string(name, lhsTcomp.second.getEntityComponentRef());
+    eastl::string rhsValue = component_to_string(name, rhsTcomp->second.getEntityComponentRef());
+    if (lhsValue != rhsValue)
+      mismatchReports.push_back("\t" + lhsValue + "\tVS\t" + rhsValue);
   }
 
   report_diff_result(lhs, rhs, lhsCompReports, rhsCompReports, mismatchReports, lhsComps.size());
@@ -993,6 +947,12 @@ static void explore_template_structure(const char *template_name)
   debug("NB: This does not account for shared components.");
   debug("[P: this_parents / total_parents] [C: this_comps / (unique_comps_so_far) / total_comps] templateName");
   print_explored_template_routine(allStats, 0);
+}
+
+static eastl::string unquote_arg(const char *arg)
+{
+  const size_t len = strlen(arg);
+  return len >= 2 && arg[0] == '"' && arg[len - 1] == '"' ? eastl::string(arg + 1, len - 2) : eastl::string(arg);
 }
 
 #endif
@@ -1513,11 +1473,14 @@ static bool ecs_console_handler(const char *argv[], int argc)
   }
 #endif
 #if DAGOR_DBGLEVEL > 0
-  CONSOLE_CHECK_NAME("ecs", "does_system_process_template", 3, 3) { does_system_process_template(argv[1], argv[2]); }
+  CONSOLE_CHECK_NAME("ecs", "does_system_process_template", 3, 3)
+  {
+    does_system_process_template(unquote_arg(argv[1]).c_str(), unquote_arg(argv[2]).c_str());
+  }
   CONSOLE_CHECK_NAME("ecs", "does_system_process_entity", 3, 3)
   {
     ecs::EntityId eid = ecs::EntityId(atoi(argv[2]));
-    does_system_process_template(argv[1], g_entity_mgr->getEntityTemplateName(eid));
+    does_system_process_template(unquote_arg(argv[1]).c_str(), g_entity_mgr->getEntityTemplateName(eid));
   }
   CONSOLE_CHECK_NAME("ecs", "does_system_process_selected_entity", 2, 2)
   {
@@ -1525,35 +1488,42 @@ static bool ecs_console_handler(const char *argv[], int argc)
     if (selectedEid == ecs::INVALID_ENTITY_ID)
       console::print_d("No entity is selected");
     else
-      does_system_process_template(argv[1], g_entity_mgr->getEntityTemplateName(selectedEid));
+      does_system_process_template(unquote_arg(argv[1]).c_str(), g_entity_mgr->getEntityTemplateName(selectedEid));
   }
-  CONSOLE_CHECK_NAME("ecs", "diff_templates", 3, 3) { diff_templates(argv[1], argv[2]); }
+  CONSOLE_CHECK_NAME("ecs", "diff_templates", 3, 3) { diff_templates(unquote_arg(argv[1]).c_str(), unquote_arg(argv[2]).c_str()); }
   CONSOLE_CHECK_NAME("ecs", "diff_entities", 3, 3) { diff_entities(atoi(argv[1]), atoi(argv[2])); }
-  CONSOLE_CHECK_NAME("ecs", "who_can_change_component_of_template", 3, 3) { who_can_access_component_of_template(argv[1], argv[2]); }
+  CONSOLE_CHECK_NAME("ecs", "who_can_change_component_of_template", 3, 3)
+  {
+    who_can_access_component_of_template(unquote_arg(argv[1]).c_str(), unquote_arg(argv[2]).c_str());
+  }
   CONSOLE_CHECK_NAME("ecs", "who_can_access_component_of_template", 3, 3)
   {
-    who_can_access_component_of_template(argv[1], argv[2], false);
+    who_can_access_component_of_template(unquote_arg(argv[1]).c_str(), unquote_arg(argv[2]).c_str(), false);
   }
   CONSOLE_CHECK_NAME("ecs", "diff_systems_for_eids", 3, 5)
   {
-    diff_systems_for_eids(atoi(argv[1]), atoi(argv[2]), argc > 3 ? argv[3] : nullptr, argc > 4 ? argv[4] : nullptr);
+    diff_systems_for_eids(atoi(argv[1]), atoi(argv[2]), argc > 3 ? unquote_arg(argv[3]).c_str() : nullptr,
+      argc > 4 ? unquote_arg(argv[4]).c_str() : nullptr);
   }
   CONSOLE_CHECK_NAME("ecs", "search_for_eid_in_entities", 2, 2) { search_for_eid_in_entities(atoi(argv[1])); }
   CONSOLE_CHECK_NAME("ecs", "who_modifies_tracked_components_of_template", 2, 2)
   {
-    who_modifies_tracked_components_of_template(argv[1]);
+    who_modifies_tracked_components_of_template(unquote_arg(argv[1]).c_str());
   }
-  CONSOLE_CHECK_NAME("ecs", "explore_template_structure", 2, 2) { explore_template_structure(argv[1]); }
-  CONSOLE_CHECK_NAME("ecs", "who_added_component_to_template", 3, 3) { who_added_component_to_template(argv[1], argv[2]); }
+  CONSOLE_CHECK_NAME("ecs", "explore_template_structure", 2, 2) { explore_template_structure(unquote_arg(argv[1]).c_str()); }
+  CONSOLE_CHECK_NAME("ecs", "who_added_component_to_template", 3, 3)
+  {
+    who_added_component_to_template(unquote_arg(argv[1]).c_str(), unquote_arg(argv[2]).c_str());
+  }
   CONSOLE_CHECK_NAME("ecs", "who_added_component_to_selected_entity", 2, 2)
   {
     ecs::EntityId selectedEid = query_selected_eid();
     if (selectedEid == ecs::INVALID_ENTITY_ID)
       console::print_d("No entity is selected");
     else
-      who_added_component_to_template(argv[1], g_entity_mgr->getEntityTemplateName(selectedEid));
+      who_added_component_to_template(unquote_arg(argv[1]).c_str(), g_entity_mgr->getEntityTemplateName(selectedEid));
   }
-  CONSOLE_CHECK_NAME("ecs", "serialize_entity", 3, 3) { serialize_entity(atoi(argv[1]), argv[2]); }
+  CONSOLE_CHECK_NAME("ecs", "serialize_entity", 3, 3) { serialize_entity(atoi(argv[1]), unquote_arg(argv[2]).c_str()); }
   CONSOLE_CHECK_NAME_EX("ecs", "log_tracked_unchanged_components", 1, 2,
     "Logs components which were marked as possibly changed but the underlying data was the same.", "")
   {
@@ -1584,10 +1554,32 @@ static bool ecs_console_handler(const char *argv[], int argc)
     console::print("This command requires the game to be build with DAECS_EXTENSIVE_CHECKS flag.");
 #endif
   }
+  CONSOLE_CHECK_NAME("ecs", "dump_resolved_template", 1, 2)
+  {
+    if (argc > 1)
+    {
+      const eastl::string unquotedName = unquote_arg(argv[1]);
+      const char *name = unquotedName.c_str();
+      const ecs::ComponentsMap compMap = gather_all_components(name);
+      auto &db = g_entity_mgr->getTemplateDB().data();
+      eastl::string str;
+      str.append_sprintf("resolved template <%s> (%d components):\n", name, (int)compMap.size());
+      for (auto &c : compMap)
+      {
+        const char *cname = db.getComponentName(c.first);
+        str.append_sprintf("%s\n", component_to_string(cname ? cname : "?", c.second.getEntityComponentRef()).c_str());
+      }
+      debug("%s", str.c_str());
+      console::print("template<%s> resolved dump written to log", name);
+    }
+    else
+      console::print("usage: ecs.dump_resolved_template <template_name>");
+  }
 #endif
   return found;
 }
 
 REGISTER_CONSOLE_HANDLER(ecs_console_handler);
+
 
 EA_RESTORE_VC_WARNING()

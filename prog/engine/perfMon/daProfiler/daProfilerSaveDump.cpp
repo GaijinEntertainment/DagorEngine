@@ -8,6 +8,7 @@
 #include "daProfilePlatform.h"
 #include "dumpLayer.h"
 #include "stl/daProfilerAlgorithm.h"
+#include <time.h>
 
 
 namespace da_profiler
@@ -247,10 +248,12 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
 
       write_short_string(summary, "Time passed after launch");
       const uint32_t timeMs = dump.dumpAtMs;
-      if (timeMs > 3600000)
-        snprintf(buf, sizeof(buf), "%02d:%02d:%2.3f", (timeMs / 1000) / 3600, (timeMs / 1000) / 60, timeMs / 1000.);
+      const uint32_t hours = timeMs / 3600000, minutes = timeMs / 60000 % 60;
+      const double seconds = (timeMs % 60000) / 1000.;
+      if (hours)
+        snprintf(buf, sizeof(buf), "%02u:%02u:%06.3f", hours, minutes, seconds);
       else
-        snprintf(buf, sizeof(buf), "%02d:%2.3f", (timeMs / 1000) / 60, timeMs / 1000.);
+        snprintf(buf, sizeof(buf), "%02u:%06.3f", minutes, seconds);
       write_short_string(summary, buf);
 
       write_short_string(summary, nullptr); // end marker
@@ -404,7 +407,7 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
       ++eventsCount;
     };
 
-    // std::lock_guard<std::mutex> lock(threadsLock);
+    // dag::lock_guard lock(threadsLock);
     for (auto ti = threadsBegin; ti != threadsEnd; ++ti)
     {
       int threadEventsCount = 0;
@@ -676,7 +679,7 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
 
     DynamicMemGeneralSaveCB &symbolsStream = newStream(stream);
     {
-      std::lock_guard<std::mutex> lock(symbols.lock);
+      dag::lock_guard lock(symbols.lock);
       symbols.initModules();
       symbolsStream.writeInt(dump.board);
       write_modules(symbolsStream, symbols);

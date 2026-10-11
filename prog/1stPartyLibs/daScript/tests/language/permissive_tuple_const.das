@@ -25,7 +25,7 @@ def take(a : array<auto(TT)>; b : TT) {
     generic_hits ++
 }
 
-def takeng(a : array<tuple<string, Loc const?>>; b : tuple<string, Loc const?>) {
+def takeng(_a : array<tuple<string, Loc const?>>; _b : tuple<string, Loc const?>) {
     exact_hits ++
 }
 

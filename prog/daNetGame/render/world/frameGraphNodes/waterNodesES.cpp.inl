@@ -305,7 +305,7 @@ eastl::fixed_vector<dafg::NodeHandle, 3, false> makeWaterSSRNode(WaterRenderMode
       return [rtDepthHndl, downsampledDepthHndl, mainViewResolutionHndl](const dafg::multiplexing::Index &) {
         auto [renderingWidth, renderingHeight] = mainViewResolutionHndl.get();
         downsample_depth::downsamplePS(rtDepthHndl.get(), renderingWidth, renderingHeight, downsampledDepthHndl.get(),
-          nullptr /*close_depth*/, nullptr /*far_normals*/);
+          nullptr /*close_depth*/, nullptr /*normals*/);
       };
     }));
   }

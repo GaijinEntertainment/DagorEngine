@@ -58,7 +58,7 @@ def nested_match(n : Nested) {
 // Match on empty struct (no fields)
 // ===========================
 
-[sideeffects]
+[sideeffects, unused_argument(e)]
 def empty_struct_match(e : Empty) {
     match (e) {
         if (Empty()) {
@@ -97,10 +97,10 @@ def string_match(s : string) {
 [sideeffects]
 def bool_match(b : bool) {
     match (b) {
-        if (true) {
+        if (true) {   // nolint:STYLE018 - match arm pattern, not a boolean comparison
             return "yes"
         }
-        if (false) {
+        if (false) {   // nolint:STYLE018 - match arm pattern, not a boolean comparison
             return "no"
         }
     }
@@ -195,10 +195,10 @@ def match_expr_captured(p : Point) {
 [sideeffects]
 def dynamic_array_tail_literal(A : array<int>) {
     match (A) {
-        if (array<int>(..., 42)) {
+        if (array<int>(..., 42)) {   // nolint:PERF017 - length guard is emitted by the match macro
             return "ends with 42"
         }
-        if (array<int>(1, ...)) {
+        if (array<int>(1, ...)) {   // nolint:PERF017 - length guard is emitted by the match macro
             return "starts with 1"
         }
         if (_) {
@@ -565,7 +565,7 @@ def float_match(f : float) {
 // ===========================
 
 [test]
-def test_match_edge_cases(t : T?) {
+def test_match_edge_cases(t : T?) { // nolint:STYLE038 - flat list of independent match arms
 
     t |> run("nested struct match") @(t : T?) {
         t |> equal("origin labeled", nested_match(Nested(inner = Point(x = 0, y = 0), tag = "origin")))

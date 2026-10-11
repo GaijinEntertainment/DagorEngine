@@ -14,6 +14,7 @@ float4 foam_blur_extents0123 = (0,0,0,0);
 float4 foam_blur_extents4567 = (0,0,0,0);
 
 texture water_foam_texture0;
+sampler water_foam_texture0_samplerstate;
 texture water_foam_texture1;
 texture water_foam_texture2;
 texture water_foam_texture3;

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math/dag_plane3.h>
-#include <sceneRay/dag_sceneRay.h>
+#include <gameRes/dag_legacySceneRay.h>
 #include <scene/dag_physMat.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_chainedMemIo.h>
@@ -212,12 +212,19 @@ int CollisionResourceBuilder::addConvexNode(const char *name, int16_t phys_mat_i
 static constexpr float MAX_MESH_NODE_EXTENT = 4096.f;
 static constexpr uint32_t MAX_MESH_NODE_FACES = 256u << 10;
 static constexpr uint32_t MAX_MESH_NODE_VERTS = 65530;
+static constexpr float SPLIT_FINE_FACE_EXTENT = 512.f;
+static constexpr float SPLIT_COARSE_MIN_EDGE = 1.f; // stays apart at a coarse cell's cm vert21 step
+// a cell plus the overhang of faces up to 512 m fits the extent
+static constexpr float SPLIT_FINE_CELL = MAX_MESH_NODE_EXTENT - 2 * SPLIT_FINE_FACE_EXTENT;
+static constexpr float SPLIT_COARSE_CELL = 65536.f;
+static constexpr float SPLIT_MAX_CELL_COORD = float((1 << 21) - 1);
 
 namespace
 {
 struct SplitWorkspace
 {
-  dag::Vector<vec4f> centroid;
+  dag::Vector<vec4f> centroid; // w: the face's cell size
+  dag::Vector<uint64_t> cellKey;
   dag::Vector<uint32_t> order;
   dag::Vector<eastl::pair<uint32_t, uint32_t>> parts;
   dag::Vector<uint32_t> vertSeenGen, vertNewIdx;
@@ -268,6 +275,7 @@ int CollisionResourceBuilder::addSplitMeshNodes(dag::ConstSpan<uint16_t> class_f
   ws.centroid.resize(srcFaces);
   ws.order.reserve(srcFaces);
   uint32_t badFaces = 0;
+  vec3f origin = V_C_MAX_VAL;
   for (uint32_t f = 0; f < srcFaces; ++f)
   {
     const uint32_t *fi = &indices[f * 3u];
@@ -283,7 +291,14 @@ int CollisionResourceBuilder::addSplitMeshNodes(dag::ConstSpan<uint16_t> class_f
       ++badFaces;
       continue;
     }
-    ws.centroid[f] = v_mul(v_add(v0, v_add(v1, v2)), v_splats(1.f / 3.f));
+    const vec3f faceMin = v_min(v0, v_min(v1, v2));
+    const float faceExtent = v_extract_x(v_hmax3(v_sub(v_max(v0, v_max(v1, v2)), faceMin)));
+    const float shortestEdgeSq =
+      v_extract_x(v_min(v_length3_sq_x(v_sub(v1, v0)), v_min(v_length3_sq_x(v_sub(v2, v1)), v_length3_sq_x(v_sub(v0, v2)))));
+    const bool coarse = faceExtent > SPLIT_FINE_FACE_EXTENT && shortestEdgeSq >= SPLIT_COARSE_MIN_EDGE * SPLIT_COARSE_MIN_EDGE;
+    const float cell = coarse ? SPLIT_COARSE_CELL : SPLIT_FINE_CELL;
+    ws.centroid[f] = v_perm_xyzd(v_mul(v_add(v0, v_add(v1, v2)), v_splats(1.f / 3.f)), v_splats(cell));
+    origin = v_min(origin, faceMin);
     ws.order.push_back(f);
   }
   if (badFaces)
@@ -292,19 +307,37 @@ int CollisionResourceBuilder::addSplitMeshNodes(dag::ConstSpan<uint16_t> class_f
     return 0;
   ws.vertSeenGen.assign(verts.size(), 0u);
 
+  ws.cellKey.resize(srcFaces);
+  for (uint32_t f : ws.order)
+  {
+    const vec4f c = ws.centroid[f];
+    const vec4f coord = v_min(v_max(v_floor(v_div(v_sub(c, origin), v_splat_w(c))), v_zero()), v_splats(SPLIT_MAX_CELL_COORD));
+    const vec4i ci = v_cvt_vec4i(coord);
+    ws.cellKey[f] = (uint64_t(v_extract_w(c) > SPLIT_FINE_CELL) << 63) | (uint64_t(v_extract_xi(ci)) << 42) |
+                    (uint64_t(v_extract_yi(ci)) << 21) | uint64_t(v_extract_zi(ci));
+  }
+  stlsort::sort(ws.order.begin(), ws.order.end(),
+    [&](uint32_t a, uint32_t b) { return ws.cellKey[a] != ws.cellKey[b] ? ws.cellKey[a] < ws.cellKey[b] : a < b; });
+
   dag::Vector<eastl::pair<uint32_t, uint32_t>> stack;
-  stack.push_back({0u, (uint32_t)ws.order.size()});
+  for (uint32_t end = (uint32_t)ws.order.size(); end > 0;)
+  {
+    uint32_t begin = end - 1;
+    while (begin > 0 && ws.cellKey[ws.order[begin - 1]] == ws.cellKey[ws.order[end - 1]])
+      --begin;
+    stack.push_back({begin, end}); // the first cell pops first
+    end = begin;
+  }
   while (!stack.empty())
   {
     const uint32_t begin = stack.back().first, end = stack.back().second;
     stack.pop_back();
     const uint32_t count = end - begin;
     const PartStats stats = split_part_stats(ws, verts, indices, begin, end);
-    alignas(16) float ext[4];
-    v_st(ext, v_bbox3_size(stats.box));
-    if (count > 1 && (count > MAX_MESH_NODE_FACES || max(ext[0], max(ext[1], ext[2])) > MAX_MESH_NODE_EXTENT ||
-                       stats.distinctVerts > MAX_MESH_NODE_VERTS))
+    if (count > MAX_MESH_NODE_FACES || stats.distinctVerts > MAX_MESH_NODE_VERTS)
     {
+      alignas(16) float ext[4];
+      v_st(ext, v_bbox3_size(stats.box));
       const int axis = ext[0] >= ext[1] ? (ext[0] >= ext[2] ? 0 : 2) : (ext[1] >= ext[2] ? 1 : 2);
       alignas(16) float mid[4];
       v_st(mid, v_bbox3_center(stats.box));
@@ -388,17 +421,46 @@ int CollisionResourceBuilder::addSplitMeshNodes(dag::ConstSpan<uint16_t> class_f
   return addedNodes;
 }
 
+CollisionResource *build_static_collision_frt(const StaticSceneRayTracer &frt, dag::ConstSpan<uint8_t> face_pmid, const char *name)
+{
+  CollisionResourceBuilder builder;
+  const int parts = builder.addStaticCollisionFrt(frt, face_pmid);
+  if (parts <= 0)
+  {
+    logerr("frt->collres %s: %d faces gave no static collision (%d parts)", name, frt.getFacesCount(), parts);
+    return nullptr;
+  }
+  builder.recomputeBounds();
+  builder.collapse(name);
+  builder.collisionFlags |= COLLISION_RES_FLAG_BLAS_TWO_SIDED; // the FRT walks cull nothing
+  CollisionResource *res = builder.build(name);
+  debug("frt->collres %s: %d faces -> %d parts -> %d nodes", name, frt.getFacesCount(), parts, (int)res->getAllNodes().size());
+  return res;
+}
+
+bool load_frt_block_as_collision(IGenLoad &crd, CollisionResource *&out_res)
+{
+  out_res = nullptr;
+  Tab<uint8_t> pmid(tmpmem);
+  StaticSceneRayTracer *frt = load_frt_block(crd, pmid);
+  if (!frt)
+    return false;
+  if (frt->getFacesCount() > 0)
+    out_res = build_static_collision_frt(*frt, make_span_const(pmid), crd.getTargetName());
+  frt->destroy();
+  return true;
+}
+
 int CollisionResourceBuilder::addStaticCollisionFrt(const StaticSceneRayTracer &frt, dag::ConstSpan<uint8_t> face_pmid)
 {
   const uint32_t faces = (uint32_t)frt.getFacesCount();
   G_ASSERTF_RETURN(face_pmid.empty() || face_pmid.size() == faces, -1, "addStaticCollisionFrt: %u faces, %d face_pmid entries", faces,
     (int)face_pmid.size());
-  const unsigned skipMask = frt.getSkipFlags(), useMask = frt.getUseFlags();
   dag::Vector<uint8_t> faceClass(faces, 1);
-  for (int i = 0, e = frt.getFaceIndicesCount(); i < e; ++i) // face flags live only in grid leaves
+  for (int i = 0, e = frt.getFaceIndicesCount(); i < e; ++i) // face flags live only in these entries
   {
     const SceneRayI24F8 fi = frt.faceIndices(i);
-    if (fi.index < faces && !(fi.flags & skipMask) && (fi.flags & useMask))
+    if (fi.index < faces && !(fi.flags & StaticSceneRayTracer::USER_INVISIBLE) && (fi.flags & StaticSceneRayTracer::CULL_BOTH))
       faceClass[fi.index] = 0;
   }
   dag::Vector<int16_t> pmid(faces);
@@ -606,16 +668,15 @@ void CollisionResourceBuilder::setAuthoredNodeTm(int node_index, mat44f_cref tm,
   if (!(max_scale >= FLT_MIN && max_scale <= 1.f / FLT_MIN))
     max_scale = CollisionResource::mat33SpectralNorm(tm);
   pm.maxTmScale = max_scale;
-  pm.setPoseIdentity(collres_is_exact_identity_43(tm));
+  pm.setPoseIdentity(v_mat44_is_ident43(tm));
   pm.flags = class_flags & POSE_CLASS_BITS;
   // Capsule geometry is never exporter-baked, so epsilon-identity motion must still apply.
-  if ((pm.flags & CollisionNode::IDENT) && nodes[node_index].type == COLLISION_NODE_TYPE_CAPSULE && !collres_is_exact_identity_43(tm))
+  if ((pm.flags & CollisionNode::IDENT) && nodes[node_index].type == COLLISION_NODE_TYPE_CAPSULE && !v_mat44_is_ident43(tm))
     pm.flags = (pm.flags & ~CollisionNode::IDENT) | CollisionNode::TRANSLATE;
   // Authored mirrored placements remain valid; only singular placements are hidden.
-  // Any non-finite affine component (translation included) is unrealizable. Max-abs, not a
-  // column sum: finite components can overflow the intermediate sum near the scale bound. The
-  // exponent-bit test survives -ffinite-math-only, which folds float-domain tricks away.
-  const bool tmFinite = v_test_xyzw_finite(v_max(v_max(v_abs(tm.col0), v_abs(tm.col1)), v_max(v_abs(tm.col2), v_abs(tm.col3))));
+  // Any non-finite affine component (translation included) is unrealizable. Per lane, not a
+  // column sum: finite components can overflow the intermediate sum near the scale bound.
+  const bool tmFinite = v_test_mat43_finite(tm);
   // Scale-free gate on the matrix itself, not the serialized scale (a retained bake
   // serializes its effective scale); evaluated unconditionally so the log never reads an
   // unwritten ndet.
@@ -628,7 +689,7 @@ void CollisionResourceBuilder::setAuthoredNodeTm(int node_index, mat44f_cref tm,
     // huge-scale cofactors overflow it while the forward placement stays representable.
     mat44f inv;
     v_mat44_inverse43(inv, tm);
-    traceOk = v_test_xyzw_finite(v_max(v_max(v_abs(inv.col0), v_abs(inv.col1)), v_max(v_abs(inv.col2), v_abs(inv.col3))));
+    traceOk = v_test_mat43_finite(inv);
   }
   pm.setTraceable(traceOk);
   pm.setComposable(traceOk); // authored mirrors are load-traceable, so composable follows
@@ -846,20 +907,6 @@ BBox3 CollisionResourceBuilder::nodeBBox(int node_index) const
   for (int k = 0; k < 8; k++)
     out += tm * n.modelBBox.point(k);
   return out;
-}
-
-BSphere3 CollisionResourceBuilder::nodeBSphere(int node_index) const
-{
-  const CollisionNode &n = nodes[node_index];
-  const PoseMeta &pm = bindMeta[node_index];
-  if (n.radiusAroundBoxCenter < 0)
-    return BSphere3(); // empty: r = r2 = -1
-  // A retained bake is a valid poseable sphere: it composes through the compatibility
-  // transform like the bbox accessor, only a singular bake stays pinned at its baked frame.
-  if (n.type != COLLISION_NODE_TYPE_SPHERE || (pm.flags & CollisionNode::IDENT) || (pm.isGeometryBaked() && !pm.isRetainedBake()) ||
-      !pm.isComposable())
-    return BSphere3(n.bsphereCenter(), n.radiusAroundBoxCenter);
-  return BSphere3(geometryTm(node_index) * n.bsphereCenter(), n.radiusAroundBoxCenter * pm.maxTmScale);
 }
 
 // Capsule, box and sphere primitives store their shape data outside verts and indices, so they are
@@ -1100,6 +1147,7 @@ void CollisionResourceBuilder::mergeMeshNodes(const char *res_name, bool fuse_ma
     StaticTab<int, CollisionResource::MAX_NODE_PHYS_MATS - 1> mats;
     BBox3 box;
     uint32_t faces;
+    uint32_t verts;
   };
   Tab<Tab<uint16_t>> meshNodesByMat(tmpmem);
   Tab<BucketMeta> bucketMeta(tmpmem); // one entry per meshNodesByMat bucket
@@ -1126,6 +1174,7 @@ void CollisionResourceBuilder::mergeMeshNodes(const char *res_name, bool fuse_ma
       const int nodeMat = nodePhysMatId(m.nodeIndex, 0);
       intptr_t bucket = -1;
       const uint32_t nodeFaces = m.indicesCount / 3u;
+      const uint32_t nodeVerts = m.verticesCount;
       // Without fusion this reproduces the old key exactly: a bucket then holds one material and one behaviour class, so
       // equal-material nodes still meet and unlike ones never do.
       for (intptr_t b = 0; b < (intptr_t)meshNodesByMat.size(); ++b)
@@ -1148,7 +1197,8 @@ void CollisionResourceBuilder::mergeMeshNodes(const char *res_name, bool fuse_ma
         BBox3 grown = bm.box;
         grown += m.modelBBox;
         const Point3 w = grown.width();
-        if (max(w.x, max(w.y, w.z)) > MAX_MESH_NODE_EXTENT || bm.faces + nodeFaces > MAX_MESH_NODE_FACES)
+        if (max(w.x, max(w.y, w.z)) > MAX_MESH_NODE_EXTENT || bm.faces + nodeFaces > MAX_MESH_NODE_FACES ||
+            bm.verts + nodeVerts > MAX_MESH_NODE_VERTS)
         {
           ++boundsRefusals;
           continue;
@@ -1156,6 +1206,7 @@ void CollisionResourceBuilder::mergeMeshNodes(const char *res_name, bool fuse_ma
         bucket = b;
         bm.box = grown;
         bm.faces += nodeFaces;
+        bm.verts += nodeVerts;
         if (!known)
           bm.mats.push_back(nodeMat);
         break;
@@ -1163,7 +1214,8 @@ void CollisionResourceBuilder::mergeMeshNodes(const char *res_name, bool fuse_ma
       if (bucket == -1)
       {
         Tab<uint16_t> bucketNodes(tmpmem);
-        BucketMeta meta{isPhysCollidable, isTraceable, m.behaviorFlags, ownMaterial, (int)m.physMatId, {}, m.modelBBox, nodeFaces};
+        BucketMeta meta{
+          isPhysCollidable, isTraceable, m.behaviorFlags, ownMaterial, (int)m.physMatId, {}, m.modelBBox, nodeFaces, nodeVerts};
         if (ownMaterial)
           meta.mats.push_back(nodeMat);
         bucket = meshNodesByMat.size();
@@ -1496,7 +1548,7 @@ static inline void readTab(IGenLoad &cb, T &tab)
   }
 }
 
-static inline auto load_frt16(IGenLoad &cb) { return DeserializedStaticSceneRayTracerT<uint16_t>::load(cb); }
+static inline auto load_frt16(IGenLoad &cb) { return StaticSceneRayTracerT<uint16_t>::load(cb); }
 
 // Legacy on-disk bits in CollisionNode::flags signaling that the per-node mesh data was written
 // as an offset into the FRT vertex/face dump rather than as raw data. The runtime no longer keeps
@@ -1506,10 +1558,10 @@ static constexpr uint8_t LEGACY_FLAG_INDICES_ARE_REFS = 128;
 
 bool CollisionResourceBuilder::loadLegacy(IGenLoad &crd, unsigned label, const char *res_name, int (*resolve_phmat)(const char *))
 {
-  G_ASSERTF_RETURN((label & 0xFFFF0000) == 0xACE50000, false, "Invalid collision resource: 0x%8X", label);
+  G_ASSERTF_RETURN((label & COLLRES_STREAM_MAGIC_MASK) == COLLRES_STREAM_MAGIC, false, "Invalid collision resource: 0x%8X", label);
   if (!res_name)
     res_name = "?";
-  return (label & 0xFFFF) == 0 ? loadV0(crd, res_name, resolve_phmat) : loadV1(crd, res_name, resolve_phmat);
+  return (label & COLLRES_STREAM_VERSION_MASK) == 0 ? loadV0(crd, res_name, resolve_phmat) : loadV1(crd, res_name, resolve_phmat);
 }
 
 bool CollisionResourceBuilder::loadV1(IGenLoad &zcrd, const char *res_name, int (*resolve_phmat)(const char *))
@@ -1680,8 +1732,6 @@ bool CollisionResourceBuilder::loadV0(IGenLoad &_cb, const char *res_name, int (
   _cb.beginBlock();
   _cb.read(&resSphere, sizeof(BSphere3));
   _cb.endBlock();
-  vBoundingSphere = v_perm_xyzd(v_ldu(&resSphere.c.x), v_splats(resSphere.r2));
-  boundingSphereRad = resSphere.r;
 
   unsigned int blockFlags = 0;
   const int blockSize = _cb.beginBlock(&blockFlags);
@@ -1704,208 +1754,198 @@ bool CollisionResourceBuilder::loadV0(IGenLoad &_cb, const char *res_name, int (
   MemoryLoadCB crd(unpacked_data, true);
   IGenLoad &cb = blockFlags != btag_compr::NONE ? static_cast<IGenLoad &>(crd) : _cb;
 
-  if (hasCollisionFlags)
-    collisionFlags = cb.readInt();
-  unsigned int numNodes = cb.readInt();
-  // Sized once for the on-disk count: a dropped node frees its slot for the next one and the
-  // trim below drops the unused tail.
-  nodes.resize(numNodes);
-  authoredTm.resize(numNodes, TMatrix::IDENT);
-  bindMeta.resize(numNodes);
-  geom.resize(numNodes);
-  relGeomTm.resize((collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID) ? numNodes : 0u, TMatrix::IDENT);
-
+  beginRawNodes(hasCollisionFlags ? (uint32_t)cb.readInt() : collisionFlags, resSphere);
+  const unsigned int numNodes = cb.readInt();
+  String nodeName, matName;
   dag::RelocatableFixedVector<int, 4096> tempIndices;
   dag::RelocatableFixedVector<Point3, 1024> tempVertices;
   SmallTab<Plane3, TmpmemAlloc> tempConvexPlanes;
-  bbox3f totalBBox;
-  v_bbox3_init_empty(totalBBox); // recalc bbox from nodes
-  for (size_t nodeNo = 0; nodeNo < numNodes; nodeNo++)
+  for (unsigned int nodeNo = 0; nodeNo < numNodes; nodeNo++)
   {
-    CollisionNode &node = nodes[nodeNo];
-    node.nodeIndex = nodeNo;
-
-    String tmp_node_name;
-    cb.readString(tmp_node_name);
-    node.nameOfs = landName(tmp_node_name.c_str());
+    RawNode n;
+    cb.readString(nodeName);
     if (hasMaterialData)
-    {
-      String matName;
       cb.readString(matName);
-      node.physMatId = resolve_phmat ? resolve_phmat(matName.c_str()) : PhysMat::getMaterialId(matName.c_str());
-    }
-    else
-      node.physMatId = PHYSMAT_INVALID;
-
-    uint32_t typeAndBehFlags = cb.readInt();
-    node.type = (CollisionResourceNodeType)(typeAndBehFlags & 0xFFu);
-    if (node.type >= NUM_COLLISION_NODE_TYPES) // the type picks the record layout below; nothing past it can be read
+    const uint32_t typeAndBehFlags = cb.readInt();
+    n.type = (CollisionResourceNodeType)(typeAndBehFlags & 0xFFu);
+    if (n.type >= NUM_COLLISION_NODE_TYPES) // the type picks the record layout below; nothing past it can be read
     {
-      logerr("collision node <%s> of res <%s>: unknown node type %d, stream refused", tmp_node_name.c_str(), res_name, (int)node.type);
+      logerr("collision node <%s> of res <%s>: unknown node type %d, stream refused", nodeName.c_str(), res_name, (int)n.type);
       return false;
     }
     if ((collisionFlags & COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS) == COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS)
-    {
-      cb.read(&node.behaviorFlags, 1);
-      node.behaviorFlags = (typeAndBehFlags & 0xFF00) | (node.behaviorFlags & 0x00FF);
-    }
-
-    TMatrix nodeAuthoredTm;
-    cb.read(&nodeAuthoredTm, sizeof(TMatrix));
+      n.behaviorFlags = (uint16_t)((typeAndBehFlags & 0xFF00) | cb.readIntP<1>());
+    cb.read(&n.tm, sizeof(TMatrix));
     if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
-      cb.read(&relGeomTm[nodeNo], sizeof(TMatrix));
-    mat44f vNodeTm;
-    v_mat44_make_from_43cu_unsafe(vNodeTm, nodeAuthoredTm.array);
-    float authoredMaxScale;
-    node.flags = CollisionResource::classifyNodeTmFlags(vNodeTm, authoredMaxScale);
-    setAuthoredNodeTm((int)nodeNo, vNodeTm, node.flags, authoredMaxScale);
-
-    BSphere3 tmpSph;
-    cb.read(&tmpSph, sizeof(BSphere3));
-    cb.read(&node.modelBBox, sizeof(BBox3));
-    // Stage convex planes in tempConvexPlanes; they join the plane pool only after the
-    // bbox-validity check below, so dropped nodes do not orphan plane data.
-    if (node.type == COLLISION_NODE_TYPE_CONVEX)
-    {
+      cb.read(&n.relGeomTm, sizeof(TMatrix));
+    cb.read(&n.sphere, sizeof(BSphere3));
+    cb.read(&n.box, sizeof(BBox3));
+    if (n.type == COLLISION_NODE_TYPE_CONVEX)
       readTab(cb, tempConvexPlanes);
-      for (int i = 0; i < tempConvexPlanes.size(); ++i)
-        tempConvexPlanes[i].normalize();
-    }
     else
       tempConvexPlanes.clear();
     readTab(cb, tempVertices);
-    if (!tempVertices.empty())
-    {
-      if (tempVertices.size() > MAX_16BIT_INDEXED_VERTS)
-        DAG_FATAL("Mesh vertexes count %i > %i in node <%s> of res <%s>", tempVertices.size(), MAX_16BIT_INDEXED_VERTS,
-          tmp_node_name.c_str(), res_name);
-    }
-
     readTab(cb, tempIndices);
-    bbox3f nodeBBox = v_ldu_bbox3(node.modelBBox);
-    if (!tempIndices.empty() && !tempVertices.empty())
-    {
-      v_bbox3_init_empty(nodeBBox);
-      for (int i = 0, e = tempVertices.size(); i < e; i++) // the last vertex may end the heap buffer: no 16 B load there
-        v_bbox3_add_pt(nodeBBox, i + 1 < e ? v_ldu(&tempVertices[i].x) : v_ldu_p3_safe(&tempVertices[i].x));
+    n.name = nodeName.c_str();
+    n.physMat = hasMaterialData ? matName.c_str() : nullptr;
+    n.planes = make_span_const(tempConvexPlanes);
+    n.verts = make_span_const(tempVertices);
+    n.indices = make_span_const(tempIndices);
+    addRawNode(n, res_name, resolve_phmat);
+  }
+  _cb.endBlock();
+  endRawNodes();
+  return true;
+}
 
-      v_stu_bbox3(node.modelBBox, nodeBBox);
-    }
-    // Fold against the box this load KEEPS: the stored one is the exporter's world-frame box, and a
-    // geometry node's was just replaced by the node-local vert box, so folding earlier would add the
-    // authored placement to the radius.
-    collres_fold_legacy_sphere(node.type, node.modelBBox, node.radiusAroundBoxCenter, tmpSph.c, tmpSph.r);
-    nodeBBox = v_ldu_bbox3(node.modelBBox); // a SPHERE node's box is now its sphere's
+void CollisionResourceBuilder::beginRawNodes(uint32_t collision_flags, const BSphere3 &res_sphere)
+{
+  collisionFlags = collision_flags;
+  vBoundingSphere = v_perm_xyzd(v_ldu(&res_sphere.c.x), v_splats(res_sphere.r2));
+  boundingSphereRad = res_sphere.r;
+  v_bbox3_init_empty(vFullBBox); // the union of the node boxes
+}
 
-    if (!v_bbox3_is_empty(nodeBBox))
-    {
-      if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX || node.type == COLLISION_NODE_TYPE_CAPSULE)
-        v_bbox3_init(nodeBBox, vNodeTm, nodeBBox);
-      v_bbox3_add_box(totalBBox, nodeBBox);
-    }
+void CollisionResourceBuilder::addRawNode(const RawNode &src, const char *res_name, int (*resolve_phmat)(const char *))
+{
+  const int nodeNo = newNode(src.name);
+  CollisionNode &node = nodes[nodeNo];
+  if (src.physMat)
+    node.physMatId = resolve_phmat ? resolve_phmat(src.physMat) : PhysMat::getMaterialId(src.physMat);
+  else
+    node.physMatId = PHYSMAT_INVALID;
+  node.type = src.type;
+  if ((collisionFlags & COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS) == COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS)
+    node.behaviorFlags = src.behaviorFlags;
 
-    if (node.modelBBox.lim[0].x > node.modelBBox.lim[1].x) // Particle View 01, isempty() throws float exception.
-    {
-      // The next node re-reads this slot (geometry lands only past this check).
-      nodeNo--;
-      numNodes--;
-      continue;
-    }
+  if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
+    relGeomTm[nodeNo] = src.relGeomTm;
+  mat44f vNodeTm;
+  v_mat44_make_from_43cu_unsafe(vNodeTm, src.tm.array);
+  float authoredMaxScale;
+  node.flags = CollisionResource::classifyNodeTmFlags(vNodeTm, authoredMaxScale);
+  setAuthoredNodeTm(nodeNo, vNodeTm, node.flags, authoredMaxScale);
 
-    // Node is kept: commit its mesh data into the raw arrays.
-    if (!tempVertices.empty())
-    {
-      const uint32_t prev = (uint32_t)rawVerts.size();
-      geom[nodeNo].vertsOfs = prev;
-      node.verticesCount = (uint32_t)tempVertices.size();
-      rawVerts.resize(prev + tempVertices.size());
-      Point3_vec4 *dst = rawVerts.data() + prev;
-      for (int i = 0; i < tempVertices.size(); ++i)
-      {
-        dst[i] = tempVertices[i];
-        dst[i].resv = 1.0f;
-      }
-    }
-    if (!tempIndices.empty() && !tempVertices.empty())
-    {
-      const uint32_t prev = (uint32_t)rawIndices.size();
-      geom[nodeNo].indicesOfs = prev;
-      rawIndices.resize(prev + tempIndices.size());
-      uint32_t *dst = rawIndices.data() + prev;
-      // Drop faces with any out-of-range vertex index here, not at the chunk build: the exporter
-      // indexes the raw slices unchecked. A signed cast of a negative index wraps to a huge
-      // unsigned, so the unsigned compare catches both negatives and overflow.
-      const unsigned vcount = (unsigned)tempVertices.size();
-      uint32_t kept = 0, droppedFaces = 0;
-      for (int i = 0; i + 2 < tempIndices.size(); i += 3) // rotate (0,1,2)->(0,2,1)
-      {
-        if ((unsigned)tempIndices[i] >= vcount || (unsigned)tempIndices[i + 1] >= vcount || (unsigned)tempIndices[i + 2] >= vcount)
-        {
-          ++droppedFaces;
-          continue;
-        }
-        dst[kept + 0] = (uint32_t)tempIndices[i + 0];
-        dst[kept + 2] = (uint32_t)tempIndices[i + 1];
-        dst[kept + 1] = (uint32_t)tempIndices[i + 2];
-        kept += 3;
-      }
-      const uint32_t trailing = (uint32_t)(tempIndices.size() % 3);
-      if (droppedFaces)
-        logerr("collision node <%s> of res <%s>: %u faces reference an out-of-range vertex; dropped", tmp_node_name.c_str(), res_name,
-          droppedFaces);
-      if (trailing)
-        logerr("collision node <%s> of res <%s>: %u trailing indices (not a whole face); dropped", tmp_node_name.c_str(), res_name,
-          trailing);
-      rawIndices.resize(prev + kept);
-      node.indicesCount = kept;
-    }
+  node.modelBBox = src.box;
+  if (src.verts.size() > MAX_16BIT_INDEXED_VERTS)
+    DAG_FATAL("Mesh vertexes count %i > %i in node <%s> of res <%s>", (int)src.verts.size(), MAX_16BIT_INDEXED_VERTS, src.name,
+      res_name);
 
-    if (node.type == COLLISION_NODE_TYPE_BOX || node.type == COLLISION_NODE_TYPE_SPHERE)
-      unbakePrimNode(node, nodeAuthoredTm, bindMeta[nodeNo]);
-    if (node.type == COLLISION_NODE_TYPE_CAPSULE)
+  if (!src.indices.empty() && !src.verts.empty())
+  {
+    bbox3f vertBox;
+    v_bbox3_init_empty(vertBox);
+    for (int i = 0, e = src.verts.size(); i < e; i++) // the last vertex may end the heap buffer: no 16 B load there
+      v_bbox3_add_pt(vertBox, i + 1 < e ? v_ldu(&src.verts[i].x) : v_ldu_p3_safe(&src.verts[i].x));
+
+    v_stu_bbox3(node.modelBBox, vertBox);
+  }
+  // Fold against the box the builder KEEPS: the stored one is the exporter's world-frame box, and a
+  // geometry node's was just replaced by the node-local vert box, so folding earlier would add the
+  // authored placement to the radius.
+  collres_fold_legacy_sphere(node.type, node.modelBBox, node.radiusAroundBoxCenter, src.sphere.c, src.sphere.r);
+  bbox3f nodeBBox = v_ldu_bbox3(node.modelBBox); // a SPHERE node's box is now its sphere's
+
+  if (!v_bbox3_is_empty(nodeBBox))
+  {
+    if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX || node.type == COLLISION_NODE_TYPE_CAPSULE)
+      v_bbox3_init(nodeBBox, vNodeTm, nodeBBox);
+    v_bbox3_add_box(vFullBBox, nodeBBox);
+  }
+
+  if (node.modelBBox.lim[0].x > node.modelBBox.lim[1].x) // Particle View 01, isempty() throws float exception.
+  {
+    eraseNode(nodeNo); // its name stays in the pool
+    return;
+  }
+
+  if (!src.verts.empty())
+  {
+    const uint32_t prev = (uint32_t)rawVerts.size();
+    geom[nodeNo].vertsOfs = prev;
+    node.verticesCount = (uint32_t)src.verts.size();
+    rawVerts.resize(prev + src.verts.size());
+    Point3_vec4 *dst = rawVerts.data() + prev;
+    for (int i = 0; i < src.verts.size(); ++i)
     {
-      // node-local, no bake: T carries the placement (see the v1 reader)
-      Capsule c;
-      if (DAGOR_UNLIKELY(node.radiusAroundBoxCenter < 0.f))
-      {
-        // Zero-vert marker: see the v1 reader.
-        c.set(Point3(0, 0, 0), Point3(0, 0, 0), 0.f);
-        bindMeta[nodeNo].setTraceable(false);
-      }
-      else
-        c.set(node.modelBBox);
-      if (DAGOR_UNLIKELY(capsules.size() >= 0x10000u)) // capsuleIndex is 16-bit
-        DAG_FATAL("capsule pool overflow: %d capsules at node <%s>", (int)capsules.size(), tmp_node_name.c_str());
-      node.capsuleIndex = (uint16_t)capsules.size();
-      capsules.push_back(c);
-    }
-    else if (node.type == COLLISION_NODE_TYPE_CONVEX && !tempConvexPlanes.empty())
-    {
-      size_t prevSize = convexPlanes.size();
-      if (prevSize > eastl::numeric_limits<uint16_t>::max())
-        DAG_FATAL("Convex planes total %u exceeds uint16_t offset limit in node <%s> of res <%s>", (unsigned)prevSize,
-          tmp_node_name.c_str(), res_name);
-      node.planesOfs = (uint16_t)prevSize;
-      node.planesCount = (uint16_t)tempConvexPlanes.size();
-      convexPlanes.resize(prevSize + tempConvexPlanes.size());
-      for (int i = 0; i < tempConvexPlanes.size(); ++i)
-        convexPlanes[prevSize + i] = v_ldu(&tempConvexPlanes[i].n.x);
+      dst[i] = src.verts[i];
+      dst[i].resv = 1.0f;
     }
   }
-  nodes.resize(numNodes); // the dropped tail
-  authoredTm.resize(numNodes);
-  bindMeta.resize(numNodes);
-  geom.resize(numNodes);
-  if (!relGeomTm.empty())
-    relGeomTm.resize(numNodes);
+  if (!src.indices.empty() && !src.verts.empty())
+  {
+    const uint32_t prev = (uint32_t)rawIndices.size();
+    geom[nodeNo].indicesOfs = prev;
+    rawIndices.resize(prev + src.indices.size());
+    uint32_t *dst = rawIndices.data() + prev;
+    // Drop faces with any out-of-range vertex index here, not at the chunk build: the exporter
+    // indexes the raw slices unchecked. A signed cast of a negative index wraps to a huge
+    // unsigned, so the unsigned compare catches both negatives and overflow.
+    const unsigned vcount = (unsigned)src.verts.size();
+    uint32_t kept = 0, droppedFaces = 0;
+    for (int i = 0; i + 2 < src.indices.size(); i += 3) // rotate (0,1,2)->(0,2,1)
+    {
+      if ((unsigned)src.indices[i] >= vcount || (unsigned)src.indices[i + 1] >= vcount || (unsigned)src.indices[i + 2] >= vcount)
+      {
+        ++droppedFaces;
+        continue;
+      }
+      dst[kept + 0] = (uint32_t)src.indices[i + 0];
+      dst[kept + 2] = (uint32_t)src.indices[i + 1];
+      dst[kept + 1] = (uint32_t)src.indices[i + 2];
+      kept += 3;
+    }
+    const uint32_t trailing = (uint32_t)(src.indices.size() % 3);
+    if (droppedFaces)
+      logerr("collision node <%s> of res <%s>: %u faces reference an out-of-range vertex; dropped", src.name, res_name, droppedFaces);
+    if (trailing)
+      logerr("collision node <%s> of res <%s>: %u trailing indices (not a whole face); dropped", src.name, res_name, trailing);
+    rawIndices.resize(prev + kept);
+    node.indicesCount = kept;
+  }
 
-  vFullBBox = totalBBox;
-  v_stu_bbox3(boundingBox, totalBBox);
-  _cb.endBlock();
+  if (node.type == COLLISION_NODE_TYPE_BOX || node.type == COLLISION_NODE_TYPE_SPHERE)
+    unbakePrimNode(node, src.tm, bindMeta[nodeNo]);
+  if (node.type == COLLISION_NODE_TYPE_CAPSULE)
+  {
+    // node-local, no bake: T carries the placement (see the v1 reader)
+    Capsule c;
+    if (DAGOR_UNLIKELY(node.radiusAroundBoxCenter < 0.f))
+    {
+      // Zero-vert marker: see the v1 reader.
+      c.set(Point3(0, 0, 0), Point3(0, 0, 0), 0.f);
+      bindMeta[nodeNo].setTraceable(false);
+    }
+    else
+      c.set(node.modelBBox);
+    if (DAGOR_UNLIKELY(capsules.size() >= 0x10000u)) // capsuleIndex is 16-bit
+      DAG_FATAL("capsule pool overflow: %d capsules at node <%s>", (int)capsules.size(), src.name);
+    node.capsuleIndex = (uint16_t)capsules.size();
+    capsules.push_back(c);
+  }
+  else if (node.type == COLLISION_NODE_TYPE_CONVEX && !src.planes.empty())
+  {
+    size_t prevSize = convexPlanes.size();
+    if (prevSize > eastl::numeric_limits<uint16_t>::max())
+      DAG_FATAL("Convex planes total %u exceeds uint16_t offset limit in node <%s> of res <%s>", (unsigned)prevSize, src.name,
+        res_name);
+    node.planesOfs = (uint16_t)prevSize;
+    node.planesCount = (uint16_t)src.planes.size();
+    convexPlanes.resize(prevSize + src.planes.size());
+    for (int i = 0; i < src.planes.size(); ++i)
+    {
+      Plane3 p = src.planes[i];
+      p.normalize();
+      convexPlanes[prevSize + i] = v_ldu(&p.n.x);
+    }
+  }
+}
 
+void CollisionResourceBuilder::endRawNodes()
+{
+  v_stu_bbox3(boundingBox, vFullBBox);
   sortNodes();
   stampPoseScales();
-  return true;
 }
 
 void CollisionResourceBuilder::fromResource(const CollisionResource &res)
@@ -2366,7 +2406,7 @@ static int collres_synthetic_resolve_phmat(const char *name) { return name[0] ==
 CollisionResource *CollisionResourceBuilder::build(const char *res_name, void *inplace_mem)
 {
   DynamicMemGeneralSaveCB mem(tmpmem, 0, 64 << 10);
-  mem.writeInt(0xACE50000 | COLLRES_STREAM_VERSION);
+  mem.writeInt(COLLRES_STREAM_MAGIC | COLLRES_STREAM_VERSION);
   mem.beginBlock();
   write(mem, res_name, collres_synthetic_mat_name); // a refusal is logged; the truncated body loads as an empty resource
   mem.endBlock(btag_compr::NONE);

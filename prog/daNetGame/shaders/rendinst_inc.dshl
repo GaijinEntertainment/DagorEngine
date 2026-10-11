@@ -182,6 +182,9 @@ macro RENDINST_INSTANCING()
     #endif
 
     #ifndef INSTANCE_ID_DIVISOR
+      #ifdef RENDINST_VOXELIZE_ALBEDO_VARIANT
+        #error voxelize_albedo variant compiled without RI_VOXELIZE_ALBEDO() or RI_NO_VOXELIZE()
+      #endif
     #define INSTANCE_ID_DIVISOR 1
     #endif
     #ifndef PROCESS_OUTPUT
@@ -250,7 +253,9 @@ macro RENDINST_INSTANCING()
         rendinst_color_from = perDrawInstanceData[perDrawOffset + 10]; \
         rendinst_color_to = perDrawInstanceData[perDrawOffset + 11]; \
         rendinst_interaction_params = perDrawInstanceData[perDrawOffset + 12]; \
-      }
+      } \
+      if (rendinst_opacity.w == RI_CBUFFER_OPACITY__SCALE_BY_RI_DIST_MUL) \
+        rendinst_opacity.y /= ri_dist_mul_rcp;
 
     ##if  instancing_type == pos_cb
       #undef INSTANCING_BUFFERS
@@ -402,7 +407,7 @@ macro RENDINST_SCENE_COMMON()
     globtm@f44 = globtm;
     lods_shift_dist_mul@f1 = lods_shift_dist_mul;
     ri_dist_mul_rcp@f1 = ri_dist_mul_rcp;
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     impostor_data_buffer@buf = impostor_data_buffer hlsl {
       Buffer<float4> impostor_data_buffer@buf;
     };
@@ -415,6 +420,7 @@ macro RENDINST_SCENE_COMMON()
         ByteAddressBuffer ri_additional_instance_offsets@buf;
       }
     }
+    perlin_noise3d_samplerstate@sampler = global_linear_wrap_sampler;
   }
   (ps) {
     impostor_data_buffer@buf = impostor_data_buffer hlsl {

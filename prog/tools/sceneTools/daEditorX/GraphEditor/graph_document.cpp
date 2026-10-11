@@ -2,10 +2,12 @@
 
 #include "graph_document.h"
 
+#include <de3_interface.h>
 #include <EditorCore/ec_interface.h>
 #include <libTools/util/undo.h>
 
 #include "graph_panel.h"
+#include "graph_tab.h"
 #include "graph_undo.h"
 #include "graph_validation.h"
 #include "plugin.h"
@@ -31,66 +33,75 @@ bool heightmap_differs(const GraphSettings &a, const GraphSettings &b)
 {
   return a.heightmapScale != b.heightmapScale || a.heightmapMin != b.heightmapMin || a.heightmapCellSize != b.heightmapCellSize;
 }
+
+// A re-added id goes back to the index it is removed from. Those come first, in removal order, so each index
+// still holds when it is filled; the rest keep their order and append (-1).
+template <class T>
+void order_for_insert(const eastl::vector<T> &removed, const eastl::vector<int> &removed_indices, eastl::vector<T> &added,
+  eastl::vector<int> &out_indices)
+{
+  eastl::vector<T> ordered;
+  ordered.reserve(added.size());
+  out_indices.clear();
+  int dropped = 0;
+  for (size_t r = 0; r < removed.size(); ++r)
+  {
+    const auto it = eastl::find_if(added.begin(), added.end(), [&](const T &a) { return a.id == removed[r].id; });
+    if (it == added.end())
+    {
+      ++dropped;
+      continue;
+    }
+    out_indices.push_back(removed_indices[r] - dropped);
+    ordered.push_back(eastl::move(*it));
+    added.erase(it);
+  }
+  for (T &a : added)
+  {
+    out_indices.push_back(-1);
+    ordered.push_back(eastl::move(a));
+  }
+  added = eastl::move(ordered);
+}
 } // namespace
 
-GraphDocument::GraphDocument(GraphEditorPlg &plg) : plugin(plg) {}
+GraphDocument::GraphDocument(GraphEditorPlg &plg, GraphTab &canvas) : plugin(plg), view(canvas) {}
 
-void GraphDocument::reinsertNode(const GraphData::Node &node)
+void GraphDocument::activateTab() { plugin.getGraphPanel().activateTabOf(*this); }
+
+void GraphDocument::reinsertNode(const GraphData::Node &node, int index)
 {
-  if (view)
-  {
-    view->addNode(node);
-  }
-  else
-  {
-    mutateGraphData([&node](GraphData &gd) { gd.nodes.push_back(node); });
-  }
-  plugin.markGraphDirtyAndRegen();
+  view.addNode(node, index);
+  plugin.markGraphDirtyAndRegen(*this);
 }
 
-void GraphDocument::reinsertEdge(const GraphData::Edge &edge)
+void GraphDocument::reinsertEdge(const GraphData::Edge &edge, int index)
 {
-  if (view)
-  {
-    view->addEdge(edge); // mutates + marks dirty + cull
-  }
-  else
-  {
-    mutateGraphData([&edge](GraphData &gd) { gd.edges.push_back(edge); });
-    plugin.markGraphDirtyAndRegen();
-  }
+  view.addEdge(edge, index); // mutates + marks dirty + cull
 }
 
 void GraphDocument::eraseNode(int node_id)
 {
-  if (view)
-  {
-    view->removeNodeById(node_id); // strips incident edges + regens internally
-    return;
-  }
-  // Graph panel closed: mutate the canonical store directly so undo stays correct with no canvas.
-  bool erased = false;
-  mutateGraphData([node_id, &erased](GraphData &gd) { erased = erase_node_and_incident_edges(gd, node_id); });
-  if (erased)
-  {
-    plugin.markGraphDirtyAndRegen();
-  }
+  view.removeNodeById(node_id); // strips incident edges + regens internally
 }
 
-void GraphDocument::eraseEdge(int edge_id)
+int GraphDocument::eraseEdge(int edge_id)
 {
-  if (view)
+  const GraphData::Edge *const edge = find_edge_by_id(graphData, edge_id);
+  const int index = edge ? static_cast<int>(edge - graphData.edges.begin()) : -1;
+  view.removeEdgeById(edge_id); // mutates + marks dirty + cull
+  return index;
+}
+
+eastl::vector<int> GraphDocument::eraseEdges(const eastl::vector<GraphData::Edge> &edges)
+{
+  eastl::vector<int> indices;
+  indices.reserve(edges.size());
+  for (const GraphData::Edge &e : edges)
   {
-    view->removeEdgeById(edge_id); // mutates + marks dirty + cull
-    return;
+    indices.push_back(eraseEdge(e.id));
   }
-  // Graph panel closed: mutate the canonical store directly so undo stays correct with no canvas.
-  bool erased = false;
-  mutateGraphData([edge_id, &erased](GraphData &gd) { erased = erase_edge(gd, edge_id); });
-  if (erased)
-  {
-    plugin.markGraphDirtyAndRegen();
-  }
+  return indices;
 }
 
 void GraphDocument::eraseNodes(const eastl::vector<int> &node_ids)
@@ -101,16 +112,17 @@ void GraphDocument::eraseNodes(const eastl::vector<int> &node_ids)
   }
 }
 
-void GraphDocument::restoreNodesAndEdges(const eastl::vector<GraphData::Node> &nodes, const eastl::vector<GraphData::Edge> &edges)
+void GraphDocument::restoreNodesAndEdges(const eastl::vector<GraphData::Node> &nodes, const eastl::vector<int> &node_indices,
+  const eastl::vector<GraphData::Edge> &edges, const eastl::vector<int> &edge_indices)
 {
   // Nodes first, then edges, so a restored edge never references a not-yet-present node.
-  for (const GraphData::Node &n : nodes)
+  for (size_t i = 0; i < nodes.size(); ++i)
   {
-    reinsertNode(n);
+    reinsertNode(nodes[i], node_indices[i]);
   }
-  for (const GraphData::Edge &e : edges)
+  for (size_t i = 0; i < edges.size(); ++i)
   {
-    reinsertEdge(e);
+    reinsertEdge(edges[i], edge_indices[i]);
   }
 }
 
@@ -120,7 +132,20 @@ void GraphDocument::applyNodePositions(const eastl::vector<NodePos> &positions)
   {
     return;
   }
-  mutateGraphData([&positions](GraphData &gd) {
+  writeNodePositions(positions);
+  eastl::vector<int> ids;
+  ids.reserve(positions.size());
+  for (const NodePos &p : positions)
+  {
+    ids.push_back(p.nodeId);
+  }
+  view.markPositionsPending(ids);
+  // Node position is display-only -- do not markGraphDirtyAndRegen.
+}
+
+void GraphDocument::writeNodePositions(const eastl::vector<NodePos> &positions)
+{
+  mutateWithoutInvalidating([&positions](GraphData &gd) {
     for (const NodePos &p : positions)
     {
       for (GraphData::Node &n : gd.nodes)
@@ -134,22 +159,12 @@ void GraphDocument::applyNodePositions(const eastl::vector<NodePos> &positions)
       }
     }
   });
-  if (view)
-  {
-    eastl::vector<int> ids;
-    ids.reserve(positions.size());
-    for (const NodePos &p : positions)
-    {
-      ids.push_back(p.nodeId);
-    }
-    view->markPositionsPending(ids);
-  }
-  // Node position is display-only -- do not markGraphDirtyAndRegen.
+  ++positionsStamp;
 }
 
 void GraphDocument::applyBlockSizes(const eastl::vector<BlockSize> &sizes)
 {
-  mutateGraphData([&](GraphData &gd) {
+  mutateWithoutInvalidating([&](GraphData &gd) {
     for (const BlockSize &bs : sizes)
     {
       for (GraphData::Node &n : gd.nodes)
@@ -164,25 +179,16 @@ void GraphDocument::applyBlockSizes(const eastl::vector<BlockSize> &sizes)
     }
   });
   // The cull cache holds the pre-undo bounds; draw_block_node pushes the restored size to ne itself.
-  if (view)
-  {
-    view->markBlockSizesChanged();
-  }
+  view.markBlockSizesChanged();
   // Block size is display-only; no regen needed.
 }
 
-void GraphDocument::applySelection(const GraphSelection &selection)
-{
-  if (view)
-  {
-    view->setPendingSelection(selection);
-  }
-}
+void GraphDocument::applySelection(const GraphSelection &selection) { view.setPendingSelection(selection); }
 
 void GraphDocument::getNodeProperties(int node_id, eastl::vector<eastl::pair<eastl::string, eastl::string>> &out) const
 {
   out.clear();
-  // Main-thread read of node data (see the snapshot note in deleteNodes).
+  // Main-thread read of node data (see the snapshot note in replaceNodes).
   if (const GraphData::Node *const node = find_node_by_id(graphData, node_id))
   {
     out = node->propertyValues;
@@ -205,7 +211,7 @@ void GraphDocument::applyNodeProperties(int node_id, const eastl::vector<eastl::
   });
   if (found)
   {
-    plugin.markGraphDirtyAndRegen();
+    plugin.markGraphDirtyAndRegen(*this);
   }
   // The displayed controls still show the pre-undo values; force the panel to rebuild them.
   plugin.invalidatePropertiesPanel();
@@ -213,7 +219,7 @@ void GraphDocument::applyNodeProperties(int node_id, const eastl::vector<eastl::
 
 void GraphDocument::getGraphSettings(GraphSettings &out) const
 {
-  // Main-thread read of graph data (see the snapshot note in deleteNodes).
+  // Main-thread read of graph data (see the snapshot note in replaceNodes).
   out.renderDir = graphData.renderDir;
   out.entityDir = graphData.entityDir;
   out.heightmapScale = graphData.heightmapScale;
@@ -228,7 +234,7 @@ void GraphDocument::getGraphSettings(GraphSettings &out) const
 
 void GraphDocument::pushHeightmapParams()
 {
-  IGraphTexGenService *texGen = plugin.getTexGenService();
+  IGraphTexGenService *texGen = plugin.getGraphPanel().texGenServiceFor(*this);
   if (!texGen)
   {
     return;
@@ -258,11 +264,11 @@ void GraphDocument::writeGraphSettings(const GraphSettings &settings)
   // textures are saved, so a change to one needs neither pass.
   if (compile_inputs_differ(before, settings))
   {
-    plugin.markGraphDirtyAndRegen();
+    plugin.markGraphDirtyAndRegen(*this);
   }
   else if (heightmap_differs(before, settings))
   {
-    if (IGraphTexGenService *texGen = plugin.getTexGenService())
+    if (IGraphTexGenService *texGen = plugin.getGraphPanel().texGenServiceFor(*this))
     {
       texGen->requestRegenerate();
     }
@@ -287,6 +293,8 @@ void GraphDocument::setGraphSettings(const GraphSettings &settings)
   recordGraphSettingsChange(eastl::move(before));
 }
 
+// Invalidates on purpose: the pin jump menu re-collects its rows, comment text included, only when
+// the structure revision moves.
 void GraphDocument::applyPinComment(int node_id, int pin_index, const eastl::string &comment)
 {
   mutateGraphData([&](GraphData &gd) {
@@ -318,22 +326,22 @@ void GraphDocument::applyEdgeMuted(int edge_id, bool muted)
     return;
   }
   // Endpoints did not move, so the cull cache stays valid -- but the compile result does not.
-  // The canvas picks up the new dead-path set through the graph revision bumped above.
-  plugin.markGraphDirtyAndRegen();
+  // The canvas picks up the new dead-path set through the structure revision bumped above.
+  plugin.markGraphDirtyAndRegen(*this);
 }
 
-// The selection as of frame start, or null with the canvas closed.
-const GraphSelection *GraphDocument::recordedSelection() const { return view ? &view->getRecordedSelection() : nullptr; }
+// The selection as of frame start.
+const GraphSelection &GraphDocument::recordedSelection() const { return view.getRecordedSelection(); }
 
 // Folds this edit's selection change into the operation being recorded, so one Ctrl+Z covers both the
 // edit and the reselection. Must be called between begin() and accept().
 void GraphDocument::dropErasedLinksFromSelection(const eastl::vector<GraphData::Edge> &erased)
 {
-  const GraphSelection *const oldSel = recordedSelection();
-  if (!oldSel || erased.empty())
+  if (erased.empty())
   {
     return;
   }
+  const GraphSelection &oldSel = recordedSelection();
 
   eastl::hash_set<int> erasedIds;
   erasedIds.reserve(erased.size());
@@ -342,8 +350,8 @@ void GraphDocument::dropErasedLinksFromSelection(const eastl::vector<GraphData::
     erasedIds.insert(e.id);
   }
   GraphSelection newSel;
-  newSel.nodes = oldSel->nodes;
-  for (int id : oldSel->links)
+  newSel.nodes = oldSel.nodes;
+  for (int id : oldSel.links)
   {
     if (erasedIds.find(id) == erasedIds.end())
     {
@@ -356,91 +364,180 @@ void GraphDocument::dropErasedLinksFromSelection(const eastl::vector<GraphData::
 void GraphDocument::foldSelectionChange(GraphSelection new_selection)
 {
   G_ASSERT(EDITORCORE->getUndoSystem()->is_holding());
-  if (!view)
-  {
-    return;
-  }
-  const GraphSelection &oldSel = view->getRecordedSelection();
+  const GraphSelection &oldSel = view.getRecordedSelection();
   if (oldSel != new_selection)
   {
     EDITORCORE->getUndoSystem()->put<UndoSelection>(*this, oldSel, eastl::move(new_selection));
   }
-  view->suppressSelectionUndoThisFrame();
+  view.suppressSelectionUndoThisFrame();
 }
 
 void GraphDocument::deleteNodes(const eastl::vector<int> &node_ids)
 {
-  if (node_ids.empty())
-  {
-    return;
-  }
+  replaceNodes(node_ids, {}, {}, "Delete nodes", /*select_added=*/false);
+}
 
-  // Snapshot the removed sub-graph BEFORE erasing: the nodes plus every edge incident to any of
-  // them, so undo can restore the exact connections. This is a main-thread READ of node/edge data,
-  // which only the main thread ever writes (always under mutateGraphData). The texgen worker takes
-  // graphData by const ref and writes only the compiled-output BLKs, so at most it reads these
-  // concurrently -- and read-vs-read is not a race -- so no graph mutex is needed for the snapshot.
-  eastl::hash_set<int> idSet;
-  idSet.reserve(node_ids.size());
-  for (int id : node_ids)
+void GraphDocument::snapshotRemoval(const eastl::hash_set<int> &node_ids, eastl::vector<GraphData::Node> &out_nodes,
+  eastl::vector<int> &out_node_indices, eastl::vector<GraphData::Edge> &out_edges, eastl::vector<int> &out_edge_indices) const
+{
+  out_nodes.reserve(node_ids.size());
+  for (int i = 0; i < static_cast<int>(graphData.nodes.size()); ++i)
   {
-    idSet.insert(id);
+    if (node_ids.count(graphData.nodes[i].id))
+    {
+      out_nodes.push_back(graphData.nodes[i]);
+      out_node_indices.push_back(i);
+    }
   }
+  for (int i = 0; i < static_cast<int>(graphData.edges.size()); ++i)
+  {
+    const GraphData::Edge &e = graphData.edges[i];
+    if (node_ids.count(e.elemA) || node_ids.count(e.elemB))
+    {
+      out_edges.push_back(e);
+      out_edge_indices.push_back(i);
+    }
+  }
+}
+
+void GraphDocument::replaceNodes(const eastl::vector<int> &removed_node_ids, eastl::vector<GraphData::Node> added_nodes,
+  eastl::vector<GraphData::Edge> added_edges, const char *undo_name, bool select_added)
+{
+  // Snapshot before erasing, lock-free: only main writes nodes and edges, and the texgen worker only the compiled BLKs.
+  const eastl::hash_set<int> idSet(removed_node_ids.begin(), removed_node_ids.end());
   eastl::vector<GraphData::Node> removedNodes;
+  eastl::vector<int> removedNodeIndices;
   eastl::vector<GraphData::Edge> removedEdges;
-  removedNodes.reserve(node_ids.size());
-  for (const GraphData::Node &n : graphData.nodes)
-  {
-    if (idSet.find(n.id) != idSet.end())
-    {
-      removedNodes.push_back(n);
-    }
-  }
-  for (const GraphData::Edge &e : graphData.edges)
-  {
-    if (idSet.find(e.elemA) != idSet.end() || idSet.find(e.elemB) != idSet.end())
-    {
-      removedEdges.push_back(e);
-    }
-  }
-  if (removedNodes.empty())
+  eastl::vector<int> removedEdgeIndices;
+  snapshotRemoval(idSet, removedNodes, removedNodeIndices, removedEdges, removedEdgeIndices);
+  if (removedNodes.empty() && added_nodes.empty())
   {
     return;
   }
 
-  eraseNodes(node_ids);
+  eastl::vector<int> addedNodeIndices;
+  eastl::vector<int> addedEdgeIndices;
+  order_for_insert(removedNodes, removedNodeIndices, added_nodes, addedNodeIndices);
+  order_for_insert(removedEdges, removedEdgeIndices, added_edges, addedEdgeIndices);
 
-  // Incident-edge ids (for the link-selection fold below), captured before removedEdges is moved.
-  eastl::hash_set<int> removedEdgeIds;
-  removedEdgeIds.reserve(removedEdges.size());
-  for (const GraphData::Edge &e : removedEdges)
+  eraseNodes(removed_node_ids);
+  for (size_t i = 0; i < added_nodes.size(); ++i)
   {
-    removedEdgeIds.insert(e.id);
+    reinsertNode(added_nodes[i], addedNodeIndices[i]);
+  }
+  for (size_t i = 0; i < added_edges.size(); ++i)
+  {
+    reinsertEdge(added_edges[i], addedEdgeIndices[i]);
   }
 
-  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
-  undoSystem->begin();
-  undoSystem->put<UndoDeleteNodes>(*this, eastl::move(removedNodes), eastl::move(removedEdges));
-  if (const GraphSelection *oldSel = recordedSelection())
+  GraphSelection newSel;
+  if (select_added)
   {
-    GraphSelection newSel;
-    for (int id : oldSel->nodes)
+    for (const GraphData::Node &n : added_nodes)
     {
-      if (idSet.find(id) == idSet.end())
+      newSel.nodes.push_back(n.id);
+    }
+    eastl::sort(newSel.nodes.begin(), newSel.nodes.end());
+    view.setPendingSelection(newSel); // foldSelectionChange only records it
+  }
+  else
+  {
+    eastl::hash_set<int> removedEdgeIds;
+    removedEdgeIds.reserve(removedEdges.size());
+    for (const GraphData::Edge &e : removedEdges)
+    {
+      removedEdgeIds.insert(e.id);
+    }
+    // A re-added id (a re-synced instance) stays selected.
+    eastl::hash_set<int> addedNodeIds;
+    for (const GraphData::Node &n : added_nodes)
+    {
+      addedNodeIds.insert(n.id);
+    }
+    for (const GraphData::Edge &e : added_edges)
+    {
+      removedEdgeIds.erase(e.id);
+    }
+    const GraphSelection &oldSel = recordedSelection();
+    for (int id : oldSel.nodes)
+    {
+      if (!idSet.count(id) || addedNodeIds.count(id))
       {
         newSel.nodes.push_back(id);
       }
     }
-    for (int id : oldSel->links)
+    for (int id : oldSel.links)
     {
-      if (removedEdgeIds.find(id) == removedEdgeIds.end())
+      if (!removedEdgeIds.count(id))
       {
         newSel.links.push_back(id);
       }
     }
-    foldSelectionChange(eastl::move(newSel));
   }
-  undoSystem->accept("Delete nodes");
+
+  // Composed from the existing entries in apply order; undo replays them backwards.
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  if (!removedNodes.empty())
+  {
+    undoSystem->put<UndoDeleteNodes>(*this, eastl::move(removedNodes), eastl::move(removedNodeIndices), eastl::move(removedEdges),
+      eastl::move(removedEdgeIndices));
+  }
+  for (size_t i = 0; i < added_nodes.size(); ++i)
+  {
+    undoSystem->put<UndoCreateNode>(*this, eastl::move(added_nodes[i]), addedNodeIndices[i]);
+  }
+  for (size_t i = 0; i < added_edges.size(); ++i)
+  {
+    undoSystem->put<UndoCreateEdge>(*this, added_edges[i], addedEdgeIndices[i]);
+  }
+  foldSelectionChange(eastl::move(newSel));
+  undoSystem->accept(undo_name);
+}
+
+void GraphDocument::resyncSubgraphInstances(uint32_t since_generation)
+{
+  eastl::vector<int> candidateIds;
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    // Only subgraphs saved since; an older mismatch waits for its own save.
+    if (is_subgraph_instance(n) && plugin.getSubgraphRegistrationGeneration(n.templateUid.c_str()) > since_generation)
+    {
+      candidateIds.push_back(n.id);
+    }
+  }
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  bool recording = false;
+  for (int id : candidateIds)
+  {
+    // Read after the previous replaceNodes: an edge between two instances must keep both remaps.
+    GraphData::Node node;
+    eastl::vector<GraphData::Edge> edges;
+    eastl::vector<DroppedInstanceEdge> dropped;
+    if (!resync_subgraph_instance(graphData, id, plugin.getBaseNodesBlk(), node, edges, dropped))
+    {
+      continue;
+    }
+    for (const DroppedInstanceEdge &d : dropped)
+    {
+      DAEDITOR3.conWarning("GraphEditor: instance '%s' id=%d: edge %d dropped, pin '%s' no longer exists", node.descName.c_str(), id,
+        d.edgeId, d.pinName.c_str());
+    }
+    // One entry: each replaceNodes nests inside it.
+    if (!recording)
+    {
+      undoSystem->begin();
+      recording = true;
+    }
+    eastl::vector<GraphData::Node> added;
+    added.push_back(eastl::move(node));
+    replaceNodes({id}, eastl::move(added), eastl::move(edges), "Update subgraph instances", /*select_added=*/false);
+  }
+  if (recording)
+  {
+    undoSystem->accept("Update subgraph instances");
+  }
 }
 
 void GraphDocument::collectReplacedEdges(int node_id, int pin_index, int except_edge_id, eastl::vector<GraphData::Edge> &out) const
@@ -476,10 +573,7 @@ void GraphDocument::recordConnectEdge(GraphData::Edge edge)
   collectReplacedEdges(edge.elemA, edge.pinA, /*except_edge_id=*/-1, replacedEdges);
   collectReplacedEdges(edge.elemB, edge.pinB, /*except_edge_id=*/-1, replacedEdges);
 
-  for (const GraphData::Edge &replaced : replacedEdges)
-  {
-    eraseEdge(replaced.id);
-  }
+  eastl::vector<int> replacedIndices = eraseEdges(replacedEdges);
   reinsertEdge(edge);
 
   UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
@@ -488,7 +582,7 @@ void GraphDocument::recordConnectEdge(GraphData::Edge edge)
   if (!replacedEdges.empty())
   {
     dropErasedLinksFromSelection(replacedEdges);
-    undoSystem->put<UndoDeleteEdges>(*this, replacedEdges);
+    undoSystem->put<UndoDeleteEdges>(*this, replacedEdges, eastl::move(replacedIndices));
   }
   undoSystem->put<UndoCreateEdge>(*this, edge);
   undoSystem->accept("Create edge");
@@ -502,7 +596,7 @@ void GraphDocument::deleteEdges(const eastl::vector<int> &edge_ids)
   }
 
   // Snapshot the edges before erasing so undo can restore them. Main-thread read of edge data (see
-  // the snapshot note in deleteNodes).
+  // the snapshot note in replaceNodes).
   eastl::vector<GraphData::Edge> removedEdges;
   removedEdges.reserve(edge_ids.size());
   for (int id : edge_ids)
@@ -517,21 +611,18 @@ void GraphDocument::deleteEdges(const eastl::vector<int> &edge_ids)
     return;
   }
 
-  for (int id : edge_ids)
-  {
-    eraseEdge(id);
-  }
+  eastl::vector<int> removedIndices = eraseEdges(removedEdges);
 
   UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
   undoSystem->begin();
   dropErasedLinksFromSelection(removedEdges);
-  undoSystem->put<UndoDeleteEdges>(*this, eastl::move(removedEdges));
+  undoSystem->put<UndoDeleteEdges>(*this, eastl::move(removedEdges), eastl::move(removedIndices));
   undoSystem->accept("Delete edges");
 }
 
 void GraphDocument::toggleEdgeMuted(int edge_id)
 {
-  // Main-thread read of edge data (see the snapshot note in deleteNodes).
+  // Main-thread read of edge data (see the snapshot note in replaceNodes).
   const GraphData::Edge *const edge = find_edge_by_id(graphData, edge_id);
   if (!edge)
   {
@@ -549,7 +640,7 @@ void GraphDocument::toggleEdgeMuted(int edge_id)
 
 void GraphDocument::setEdgesMuted(const eastl::vector<int> &edge_ids, bool muted)
 {
-  // Main-thread read of edge data (see the snapshot note in deleteNodes). Edges already in
+  // Main-thread read of edge data (see the snapshot note in replaceNodes). Edges already in
   // the wanted state are skipped, or undo would restore ones this never touched.
   eastl::vector<int> wanted(edge_ids);
   eastl::sort(wanted.begin(), wanted.end());
@@ -568,7 +659,7 @@ void GraphDocument::setEdgesMuted(const eastl::vector<int> &edge_ids, bool muted
     return;
   }
 
-  // One mutation and one regen for the batch: applyEdgeMuted per edge would bump the graph revision
+  // One mutation and one regen for the batch: applyEdgeMuted per edge would bump the structure revision
   // and wake the compile worker once per edge.
   // Selected by the same test that built `changed`, off the sorted `wanted`: two filters that have
   // to agree would be one more thing to keep in step.
@@ -581,7 +672,7 @@ void GraphDocument::setEdgesMuted(const eastl::vector<int> &edge_ids, bool muted
       }
     }
   });
-  plugin.markGraphDirtyAndRegen();
+  plugin.markGraphDirtyAndRegen(*this);
 
   UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
   undoSystem->begin();
@@ -594,7 +685,7 @@ void GraphDocument::setEdgesMuted(const eastl::vector<int> &edge_ids, bool muted
 
 void GraphDocument::setPinComment(int node_id, int pin_index, const eastl::string &new_comment)
 {
-  // Read the current comment as the undo's old value (main-thread read; see deleteNodes).
+  // Read the current comment as the undo's old value (main-thread read; see replaceNodes).
   eastl::string oldComment;
   bool found = false;
   const GraphData::Node *const node = find_node_by_id(graphData, node_id);
@@ -615,7 +706,7 @@ void GraphDocument::setPinComment(int node_id, int pin_index, const eastl::strin
   undoSystem->accept("Edit pin comment");
 }
 
-void GraphDocument::setNodeProperty(int node_id, const eastl::string &prop_name, eastl::string value)
+void GraphDocument::setNodeProperty(int node_id, const eastl::string &prop_name, eastl::string value, bool record_undo)
 {
   if (!find_node_by_id(graphData, node_id))
   {
@@ -624,7 +715,10 @@ void GraphDocument::setNodeProperty(int node_id, const eastl::string &prop_name,
 
   UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
   undoSystem->begin();
-  undoSystem->put<UndoNodeProps>(*this, node_id);
+  if (record_undo)
+  {
+    undoSystem->put<UndoNodeProps>(*this, node_id);
+  }
 
   // Re-find the node inside mutateGraphData so the mutable reference comes from the locked-access
   // path. node_id is stable across the lambda; main is the only writer that could remove a node.
@@ -653,7 +747,7 @@ void GraphDocument::setNodeProperty(int node_id, const eastl::string &prop_name,
     }
   });
 
-  plugin.markGraphDirtyAndRegen();
+  plugin.markGraphDirtyAndRegen(*this);
   undoSystem->accept("Change property");
 }
 
@@ -730,10 +824,7 @@ int GraphDocument::recordAddConnectedNode(GraphData::Node node, int source_node,
     haveEdge = true;
   }
 
-  for (const GraphData::Edge &edge : replacedEdges)
-  {
-    eraseEdge(edge.id);
-  }
+  eastl::vector<int> replacedIndices = eraseEdges(replacedEdges);
   if (haveEdge)
   {
     reinsertEdge(added);
@@ -744,7 +835,7 @@ int GraphDocument::recordAddConnectedNode(GraphData::Node node, int source_node,
   // Put in apply order; undo replays it backwards, so the evicted edge comes back last.
   if (!replacedEdges.empty())
   {
-    undoSystem->put<UndoDeleteEdges>(*this, replacedEdges);
+    undoSystem->put<UndoDeleteEdges>(*this, replacedEdges, eastl::move(replacedIndices));
   }
   undoSystem->put<UndoCreateNode>(*this, eastl::move(node));
   if (haveEdge)
@@ -789,15 +880,13 @@ int GraphDocument::recordInsertNodeOnPin(GraphData::Node node, int anchor_node, 
   const bool feedIsOutput = feedPinDesc && feedPinDesc->role == PinRole::Out;
 
   eastl::vector<GraphData::Edge> erasedEdges;
+  eastl::vector<int> erasedIndices;
   eastl::vector<GraphData::Edge> addedEdges;
 
   // The feed goes in before the consumers are asked: check_type_correct narrows over the whole
   // graph, so a node whose pins share a typeGroup reports its real output type only once fed.
   collectReplacedEdges(ends.feed.node, ends.feed.pin, /*except_edge_id=*/-1, erasedEdges);
-  for (const GraphData::Edge &replaced : erasedEdges)
-  {
-    eraseEdge(replaced.id);
-  }
+  erasedIndices = eraseEdges(erasedEdges);
 
   GraphData::Edge feed;
   feed.id = next_edge_id(graphData);
@@ -827,7 +916,7 @@ int GraphDocument::recordInsertNodeOnPin(GraphData::Node node, int anchor_node, 
     if (const GraphData::Edge *const original = find_edge_by_id(graphData, consumer.edgeId))
     {
       erasedEdges.push_back(*original);
-      eraseEdge(consumer.edgeId);
+      erasedIndices.push_back(eraseEdge(consumer.edgeId));
     }
 
     GraphData::Edge moved;
@@ -849,7 +938,7 @@ int GraphDocument::recordInsertNodeOnPin(GraphData::Node node, int anchor_node, 
   undoSystem->begin();
   if (!erasedEdges.empty())
   {
-    undoSystem->put<UndoDeleteEdges>(*this, erasedEdges);
+    undoSystem->put<UndoDeleteEdges>(*this, erasedEdges, eastl::move(erasedIndices));
   }
   undoSystem->put<UndoCreateNode>(*this, eastl::move(node));
   for (const GraphData::Edge &added : addedEdges)
@@ -865,8 +954,8 @@ int GraphDocument::recordInsertNodeOnPin(GraphData::Node node, int anchor_node, 
   return wiredPin;
 }
 
-void GraphDocument::recordRemoveKeepingConnections(eastl::vector<GraphData::Node> removed_nodes,
-  eastl::vector<GraphData::Edge> removed_edges, eastl::vector<GraphData::Edge> bridge_edges)
+void GraphDocument::recordRemoveKeepingConnections(eastl::vector<GraphData::Node> removed_nodes, eastl::vector<int> node_indices,
+  eastl::vector<GraphData::Edge> removed_edges, eastl::vector<int> edge_indices, eastl::vector<GraphData::Edge> bridge_edges)
 {
   if (removed_nodes.empty())
   {
@@ -878,7 +967,8 @@ void GraphDocument::recordRemoveKeepingConnections(eastl::vector<GraphData::Node
   // bridges, then restore the sub-graph), reproducing/reverting the splice exactly.
   UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
   undoSystem->begin();
-  undoSystem->put<UndoDeleteNodes>(*this, eastl::move(removed_nodes), eastl::move(removed_edges));
+  undoSystem->put<UndoDeleteNodes>(*this, eastl::move(removed_nodes), eastl::move(node_indices), eastl::move(removed_edges),
+    eastl::move(edge_indices));
   for (const GraphData::Edge &e : bridge_edges)
   {
     undoSystem->put<UndoCreateEdge>(*this, e);
@@ -889,7 +979,7 @@ void GraphDocument::recordRemoveKeepingConnections(eastl::vector<GraphData::Node
   undoSystem->accept("Remove keeping connections");
 }
 
-void GraphDocument::recordReconnectEdge(const GraphData::Edge &removed_edge, const GraphData::Edge *added_edge)
+void GraphDocument::recordReconnectEdge(const GraphData::Edge &removed_edge, int removed_edge_index, const GraphData::Edge *added_edge)
 {
   // The caller dropped the rerouted edge and inserted the new one already, so only what that new
   // edge displaces is left, and it belongs in this same entry. A reroute stores a new edge rather
@@ -900,20 +990,17 @@ void GraphDocument::recordReconnectEdge(const GraphData::Edge &removed_edge, con
     collectReplacedEdges(added_edge->elemA, added_edge->pinA, added_edge->id, replacedEdges);
     collectReplacedEdges(added_edge->elemB, added_edge->pinB, added_edge->id, replacedEdges);
   }
-  for (const GraphData::Edge &replaced : replacedEdges)
-  {
-    eraseEdge(replaced.id);
-  }
+  eastl::vector<int> replacedIndices = eraseEdges(replacedEdges);
 
   UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
   undoSystem->begin();
   eastl::vector<GraphData::Edge> removed;
   removed.push_back(removed_edge);
-  undoSystem->put<UndoDeleteEdges>(*this, eastl::move(removed));
+  undoSystem->put<UndoDeleteEdges>(*this, eastl::move(removed), eastl::vector<int>{removed_edge_index});
   if (!replacedEdges.empty())
   {
     dropErasedLinksFromSelection(replacedEdges);
-    undoSystem->put<UndoDeleteEdges>(*this, replacedEdges);
+    undoSystem->put<UndoDeleteEdges>(*this, replacedEdges, eastl::move(replacedIndices));
   }
   if (added_edge)
   {

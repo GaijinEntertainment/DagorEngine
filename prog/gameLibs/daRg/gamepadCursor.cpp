@@ -26,20 +26,31 @@ static const int MAX_CURSOR_SPEED = 1000;
 static const float NO_FRICTION_KOEF = 1.f;
 
 
-static bool handle_stick_axis(const SceneConfig &config, float &ax, float &ay, float &angle)
+static bool apply_dead_zone(const HumanInput::IGenJoystick *joy, float dead_zone, int axis, float &ax, float &ay)
 {
-  float mag = sqrtf(ax * ax + ay * ay);
+  const float driverDeadZone = axis < 4 && joy->isStickDeadZoneSetupSupported() ? joy->getStickDeadZoneAbs(axis / 2) : 0.f;
+  // driver output already lacks its dead zone
+  dead_zone = dead_zone > driverDeadZone ? (dead_zone - driverDeadZone) / (1.f - driverDeadZone) : 0.f;
+  const float mag = sqrtf(ax * ax + ay * ay);
   const float eps = 1e-3f; // for zero deadzone
-  if (mag < config.gamepadCursorDeadZone + eps)
+  if (mag < dead_zone + eps)
+    return false;
+  const float scale = ::min(1.0f, (mag - dead_zone) / (1.0f - dead_zone)) / mag;
+  ax *= scale;
+  ay *= scale;
+  return true;
+}
+
+
+static bool handle_stick_axis(const SceneConfig &config, const HumanInput::IGenJoystick *joy, int axis, float &ax, float &ay)
+{
+  if (!apply_dead_zone(joy, config.gamepadCursorDeadZone, axis, ax, ay))
     return false;
 
-  angle = safe_atan2(ay, ax);
+  const float scale = powf(sqrtf(ax * ax + ay * ay), config.gamepadCursorNonLin);
 
-  mag = ::min(1.0f, (mag - config.gamepadCursorDeadZone) / (1.0f - config.gamepadCursorDeadZone));
-  mag = powf(mag, 1.0f + config.gamepadCursorNonLin);
-
-  ax = mag * cosf(angle);
-  ay = mag * sinf(angle);
+  ax *= scale;
+  ay *= scale;
 
   return true;
 }
@@ -77,15 +88,14 @@ Point2 GamepadCursor::moveOverElements(Screen *focused_screen, HumanInput::IGenJ
   float axisValueX = float(joy->getAxisPosRaw(config.gamepadCursorAxisH)) / JOY_XINPUT_MAX_AXIS_VAL;
   float axisValueY = -float(joy->getAxisPosRaw(config.gamepadCursorAxisV)) / JOY_XINPUT_MAX_AXIS_VAL;
 
-  float angle = 0;
-  if (!handle_stick_axis(config, axisValueX, axisValueY, angle))
+  if (!handle_stick_axis(config, joy, config.gamepadCursorAxisH, axisValueX, axisValueY))
   {
     currentSector = SECTOR_NONE;
     timeInCurrentSector = 0;
     return cursorPos;
   }
 
-  int newSector = calculate_current_sector(angle);
+  int newSector = calculate_current_sector(safe_atan2(axisValueY, axisValueX));
   if (newSector != currentSector)
   {
     currentSector = newSector;
@@ -179,8 +189,7 @@ eastl::optional<Point2> GamepadCursor::scroll(const HumanInput::IGenJoystick *jo
   float axisValueX = float(joy->getAxisPosRaw(config.joystickScrollAxisH)) / JOY_XINPUT_MAX_AXIS_VAL;
   float axisValueY = -float(joy->getAxisPosRaw(config.joystickScrollAxisV)) / JOY_XINPUT_MAX_AXIS_VAL;
 
-  float angle = 0;
-  if (!handle_stick_axis(config, axisValueX, axisValueY, angle))
+  if (!handle_stick_axis(config, joy, config.joystickScrollAxisH, axisValueX, axisValueY))
     return {};
 
   float scrollStep = 1000.0f * dt * StdGuiRender::screen_height() / 1080.0f;
@@ -192,18 +201,21 @@ eastl::optional<Point2> GamepadCursor::scroll(const HumanInput::IGenJoystick *jo
 
 bool GamepadCursor::isStickActive(HumanInput::IGenJoystick *joy, Screen *focused_screen) const
 {
-  using namespace HumanInput;
-
-  if (!joy)
-    return false;
-
   if (!isStickActionAllowedFor(focused_screen, config.gamepadCursorAxisH, config.gamepadCursorAxisV))
     return false;
+  return stick(joy, config.gamepadCursorAxisH, config.gamepadCursorAxisV, 0.f) != Point2(0, 0);
+}
 
-  float ax = float(joy->getAxisPosRaw(config.gamepadCursorAxisH)) / JOY_XINPUT_MAX_AXIS_VAL;
-  float ay = -float(joy->getAxisPosRaw(config.gamepadCursorAxisV)) / JOY_XINPUT_MAX_AXIS_VAL;
-  float mag = sqrtf(ax * ax + ay * ay);
-  return mag >= config.gamepadCursorDeadZone + 1e-3f;
+
+Point2 GamepadCursor::stick(const HumanInput::IGenJoystick *joy, int axis_h, int axis_v, float min_dead_zone) const
+{
+  if (!joy)
+    return Point2(0, 0);
+  float ax = float(joy->getAxisPosRaw(axis_h)) / HumanInput::JOY_XINPUT_MAX_AXIS_VAL;
+  float ay = float(joy->getAxisPosRaw(axis_v)) / HumanInput::JOY_XINPUT_MAX_AXIS_VAL;
+  if (!apply_dead_zone(joy, ::max(config.gamepadCursorDeadZone, min_dead_zone), axis_h, ax, ay))
+    return Point2(0, 0);
+  return Point2(ax, ay);
 }
 
 

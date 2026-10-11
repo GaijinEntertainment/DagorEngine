@@ -8,7 +8,6 @@ require daslib/strings_boost
 require dastest/testing_boost
 
 require daslib/debugger
-require daslib/fio
 require daslib/rtti
 require strings
 

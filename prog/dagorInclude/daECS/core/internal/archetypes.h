@@ -255,7 +255,7 @@ inline void *__restrict Archetypes::getComponentDataUnsafe(uint32_t archetype, u
 {
   DAECS_EXT_ASSERTF(archetype < archetypes.size() && componentId < getComponentsCount(archetype) &&
                       sz == archetypeComponents.get<DATA_SIZE>()[componentId + getArchetypeComponentOfs(archetype)],
-    "%d arch (%d); compId %d (%d); requested %d, componentSz %d", archetype, archetypes.size(), componentId, componentId,
+    "%d arch (%d); compId %d (%d); requested %d, componentSz %d", archetype, archetypes.size(), componentId,
     getComponentsCount(archetype), sz,
     componentId < getComponentsCount(archetype)
       ? archetypeComponents.get<DATA_SIZE>()[componentId + getArchetypeComponentOfs(archetype)]
@@ -270,7 +270,7 @@ inline void *__restrict Archetypes::getComponentData(uint32_t archetype, uint32_
     return nullptr;
   DAECS_EXT_ASSERTF(componentId < getComponentsCount(archetype) &&
                       sz == archetypeComponents.get<DATA_SIZE>()[componentId + getArchetypeComponentOfs(archetype)],
-    "%d arch (%d); compId %d (%d); requested %d, componentSz %d", archetype, archetypes.size(), componentId, componentId,
+    "%d arch (%d); compId %d (%d); requested %d, componentSz %d", archetype, archetypes.size(), componentId,
     getComponentsCount(archetype), sz,
     componentId < getComponentsCount(archetype)
       ? archetypeComponents.get<DATA_SIZE>()[componentId + getArchetypeComponentOfs(archetype)]

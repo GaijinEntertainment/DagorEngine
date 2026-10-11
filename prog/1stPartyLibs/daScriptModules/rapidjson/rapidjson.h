@@ -142,11 +142,14 @@ namespace bind_dascript
   }
 
   template <typename T>
+  using JsonNumber = eastl::conditional_t<eastl::is_same_v<T, float>, double, T>;
+
+  template <typename T>
   inline void PushBackVal(rapidjson::Value &value, T member, rapidjson::Document &doc,
                             das::Context *context, das::LineInfoArg *at)
   {
     if (DAGOR_LIKELY(value.IsArray()))
-      value.PushBack(rapidjson::Value(member), doc.GetAllocator());
+      value.PushBack(rapidjson::Value(JsonNumber<T>(member)), doc.GetAllocator());
     else
       context->throw_error_at(at, "Array expected, instead got %d", value.GetType());
   }
@@ -166,7 +169,7 @@ namespace bind_dascript
                            das::Context *context, das::LineInfoArg *at)
   {
     if (DAGOR_LIKELY(value.IsObject()))
-      value.AddMember({key ? key : "", doc.GetAllocator()}, rapidjson::Value{member}, doc.GetAllocator());
+      value.AddMember({key ? key : "", doc.GetAllocator()}, rapidjson::Value{JsonNumber<T>(member)}, doc.GetAllocator());
     else
       context->throw_error_at(at, "Can add member '%s' to object only", key);
   }

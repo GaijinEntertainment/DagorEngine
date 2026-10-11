@@ -3,6 +3,7 @@
 
 #include <propPanel/c_common.h>
 #include <propPanel/c_window_event_handler.h>
+#include <propPanel/commonWindow/colorDialog.h>
 #include <propPanel/messageQueue.h>
 #include <math/dag_e3dColor.h>
 #include <math/integer/dag_IPoint2.h>
@@ -17,7 +18,7 @@ class GradientControlStandalone;
 class IMenu;
 class GradientControlContextMenuEventHandler;
 
-class TrackGradientButton
+class TrackGradientButton : public IColorDialogChangeHandler
 {
 public:
   TrackGradientButton(WindowControlEventHandler *event_handler, E3DCOLOR color, bool moveable, GradientControlStandalone *owner,
@@ -42,6 +43,12 @@ public:
   bool updateImgui(const Point2 &view_offset, const Point2 &mouse_pos, bool gradient_control_hovered);
 
 private:
+  // IColorDialogChangeHandler
+  void onColorDialogChange(E3DCOLOR color) override;
+
+  void applyColor(E3DCOLOR new_color);
+
+  bool colorChangeStarted = false;
   bool canMove;
   bool moving;
   bool useful;
@@ -81,11 +88,14 @@ public:
   bool canRemove();
   void setSelected(bool value);
 
+  // Remembers a key's open color picker, so this control can detach it before it deletes that key.
+  void beginColorPicker(ColorDialog &dialog);
+
   int getGradientDisplayWidth() const { return gradientDisplaySize.x; }
 
-  // True while a key is grabbed. updateImgui() claims the mouse buttons for its own canvas id, so
-  // this control never takes ImGui's active item.
-  bool isGestureActive() const { return mouseClickKeyIndex >= 0; }
+  // True while a key is grabbed or its color picker is open. updateImgui() claims the mouse buttons
+  // for its own canvas id, so this control never takes ImGui's active item.
+  bool isGestureActive() const { return mouseClickKeyIndex >= 0 || showColorPickerForKeyIndex >= 0; }
 
   void updateImgui(int width, int height);
 
@@ -95,6 +105,7 @@ private:
   void onRButtonDown();
   void calculateSizes(int total_width, int total_height);
   void cancelColorPickerShowRequest();
+  void detachOpenColorPicker();
   void handleKeyPresses(unsigned canvas_id);
   void copyGradient();
   void pasteGradient();
@@ -118,6 +129,7 @@ private:
   Point2 lastMouseDragPosInCanvas = Point2(-1.0f, -1.0f);
   int mouseClickKeyIndex = -1;
   int showColorPickerForKeyIndex = -1;
+  ColorDialog *openColorPicker = nullptr; // a key's picker, for as long as its modal loop runs
   eastl::unique_ptr<IMenu> contextMenu;
   eastl::unique_ptr<GradientControlContextMenuEventHandler> contextMenuEventHandler;
 };

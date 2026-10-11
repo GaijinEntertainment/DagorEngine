@@ -8,7 +8,7 @@
 #include <util/dag_stdint.h>
 #include <EASTL/vector.h>
 #include <EASTL/fixed_vector.h>
-#include <EASTL/fixed_function.h>
+#include <generic/dag_functionRef.h>
 #include <generic/dag_span.h>
 #include <memory/dag_framemem.h>
 #include "entityId.h"
@@ -34,9 +34,9 @@ enum class QueryCbResult
   Continue
 };
 
-// Queries are considered perfomance critical therefore it should not allocate memory on execution (hence fixed_function)
-typedef eastl::fixed_function<sizeof(void *) * 2, void(const QueryView &)> query_cb_t;
-typedef eastl::fixed_function<sizeof(void *) * 2, QueryCbResult(const QueryView &)> stoppable_query_cb_t;
+// Non-owning: callback is called only within perform_query, so no need to copy captures (and no size limit for them)
+typedef dag::FunctionRef<void(const QueryView &) const> query_cb_t;
+typedef dag::FunctionRef<QueryCbResult(const QueryView &) const> stoppable_query_cb_t;
 #if DAGOR_DBGLEVEL > 1
 #define QUERY_FAST_ASSERT \
   G_FAST_ASSERT // there is no reason to check type correctness, as we generate our queries using codegen. do that only in
@@ -45,11 +45,6 @@ typedef eastl::fixed_function<sizeof(void *) * 2, QueryCbResult(const QueryView 
 #else
 #define ECS_VALIDATE_QUERY_TYPES 0
 #define QUERY_FAST_ASSERT(...)
-#endif
-#ifdef _MSC_VER
-#define DECL_RESTRICT __declspec(restrict)
-#else
-#define DECL_RESTRICT
 #endif
 typedef uint32_t QueryIterator;
 
@@ -67,7 +62,7 @@ struct QueryView
 
   uint32_t getEntitiesCount() const { return chunkEntitiesEnd - chunkEntitiesStart; }
 
-  DECL_RESTRICT ComponentsData getComponentUntypedData(uint16_t compId) const { return componentData[compId]; }
+  ComponentsData getComponentUntypedData(uint16_t compId) const { return componentData[compId]; }
 
   template <class T>
   const typename PtrComponentType<T>::cptr_type getComponentRawRO(uint16_t compId) const
@@ -108,13 +103,13 @@ struct QueryView
     return p ? ref<T, U, /*bConst*/ true>(p, idInChunk) : def;
   }
   template <class T, typename U = T>
-  DECL_RESTRICT const U *__restrict getComponentROOpt(uint16_t compId, uint32_t idInChunk) const
+  const U *__restrict getComponentROOpt(uint16_t compId, uint32_t idInChunk) const
   {
     auto p = getComponentUntypedData(compId);
     return p ? &ref<T, U, /*bConst*/ true>(p, idInChunk) : nullptr;
   }
   template <class T, typename U = T>
-  DECL_RESTRICT U *__restrict getComponentRWOpt(uint16_t compId, uint32_t idInChunk) const
+  U *__restrict getComponentRWOpt(uint16_t compId, uint32_t idInChunk) const
   {
     auto p = getComponentUntypedData(compId);
     return p ? &ref<T, U>(p, idInChunk) : nullptr;
@@ -377,8 +372,17 @@ struct QueryStackData
   void collapse();
 };
 
+// True while current thread runs a parallel job that is not the initiating thread's own share.
+// Script VMs use it to pick per-thread contexts for ES called from such jobs.
+bool is_in_parallel_job();
+struct ScopedParallelJob
+{
+  ScopedParallelJob();
+  ~ScopedParallelJob();
+  EA_NON_COPYABLE(ScopedParallelJob)
+};
+
 #undef QUERY_FAST_ASSERT
-#undef DECL_RESTRICT
 
 #if _ECS_CODEGEN
 #define ECS_UNUSED(a)                      a

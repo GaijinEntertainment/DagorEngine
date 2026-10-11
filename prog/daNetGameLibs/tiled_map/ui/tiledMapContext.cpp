@@ -18,6 +18,7 @@
 #include <util/dag_threadPool.h>
 #include <util/dag_delayedAction.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <osApiWrappers/dag_direct.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
 
 
@@ -657,6 +658,15 @@ static SQInteger blend_and_compress_fog_of_war_sq(HSQUIRRELVM vm)
   return 1;
 }
 
+static eastl::string resolve_tiles_ext(const eastl::string &tiles_path)
+{
+  const char *forcedExt = dgs_get_settings()->getStr("tiled_map_tiles_ext", "");
+  if (*forcedExt)
+    return forcedExt;
+  eastl::string combinedDdsx(eastl::string::CtorSprintf{}, "%s/combined.ddsx", tiles_path.c_str());
+  return dd_file_exists(combinedDdsx.c_str()) ? "ddsx" : "avif";
+}
+
 void TiledMapContext::setup(Sqrat::Object cfg)
 {
   TILEDMAP_DEBUG("TiledMapContext::setup");
@@ -670,7 +680,10 @@ void TiledMapContext::setup(Sqrat::Object cfg)
 
   tilesPath = newTilesPath;
   if (!tilesPath.empty())
+  {
     canLoadTiles = true;
+    tilesExt = resolve_tiles_ext(tilesPath);
+  }
 
   worldLeftTop = cfg.RawGetSlotValue<Point2>("leftTop", Point2(0, 0));
   worldRightBottom = cfg.RawGetSlotValue<Point2>("rightBottom", Point2(0, 0));
@@ -831,6 +844,8 @@ void TiledMapContext::setup(Sqrat::Object cfg)
       bool res = s_tiled_map_ctx->fogOfWarBitsetSb->updateData(0, fogOfWarWords * sizeof(uint32_t), newData.data(), VBLOCK_WRITEONLY);
       if (!res)
         logerr("%s: fogOfWarBitsetSb->updateData failed", __FUNCTION__);
+      else
+        s_tiled_map_ctx->fogOfWarBitsetLost = false;
     }
   }
   if (canLoadTiles && !tilesPath.empty())
@@ -884,8 +899,8 @@ void TiledMapContext::dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
       TileAsyncLoadRequest *req = new TileAsyncLoadRequest();
       req->quadKey = quadKey;
       req->generation = interlocked_relaxed_load(s_tile_load_generation);
-      eastl::string filename =
-        eastl::string(eastl::string::CtorSprintf{}, "%s/%s.avif", prefix.c_str(), quadKey.empty() ? "combined" : quadKey.c_str());
+      eastl::string filename = eastl::string(eastl::string::CtorSprintf{}, "%s/%s.%s", prefix.c_str(),
+        quadKey.empty() ? "combined" : quadKey.c_str(), tilesExt.c_str());
       int sync = PictureManager::get_picture_ex(filename.c_str(), tile.picId, tile.texId, tile.smpId, nullptr, nullptr, nullptr, cb,
         req, load_tile_confirm_cb);
       if (sync)
@@ -974,7 +989,7 @@ void TiledMapContext::updateVisibleTiles()
   eastl::vector<QuadKey> requiredTiles;
   requiredTiles.reserve(tiles.size());
   buildRequiredForZoom(z, requiredTiles);
-  // zlevel 0 ("combined.avif") is always kept as a background while higher-zoom tiles are loading.
+  // zlevel 0 ("combined") is always kept as a background while higher-zoom tiles are loading.
   if (z > 0)
     requiredTiles.push_back(QuadKey());
 
@@ -1084,6 +1099,8 @@ void tiled_map_fog_of_war_update_data(
     bool res = s_tiled_map_ctx->fogOfWarBitsetSb->updateData(0, words * sizeof(uint32_t), fog_of_war__data.data(), VBLOCK_WRITEONLY);
     if (!res)
       logerr("%s: fogOfWarBitsetSb->updateData failed", __FUNCTION__);
+    else
+      s_tiled_map_ctx->fogOfWarBitsetLost = false;
   }
 }
 
@@ -1091,7 +1108,7 @@ void tiled_map_fog_of_war_render_ui(const RenderEventUI &evt)
 {
   G_UNUSED(evt);
 
-  if (!s_tiled_map_ctx || !s_tiled_map_ctx->fogOfWarEnabled)
+  if (!s_tiled_map_ctx || !s_tiled_map_ctx->fogOfWarEnabled || s_tiled_map_ctx->fogOfWarBitsetLost)
     return;
 
   const int visibleRadius = s_tiled_map_ctx->getVisibleRadius();
@@ -1124,8 +1141,9 @@ void tiled_map_fog_of_war_after_reset()
 {
   if (!s_tiled_map_ctx)
     return;
-  s_tiled_map_ctx->fogOfWarDataGen = 1;
-  s_tiled_map_ctx->fogOfWarPrevDataGen = 0;
+  s_tiled_map_ctx->fogOfWarBitsetLost = true;
+  s_tiled_map_ctx->fogOfWarTexInited = false;
+  s_tiled_map_ctx->fogOfWarPrevDataGen = -1;
 }
 
 SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_classes, "tiledMap", sq::VM_UI_ALL)

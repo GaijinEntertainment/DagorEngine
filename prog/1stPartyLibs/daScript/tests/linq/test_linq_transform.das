@@ -251,7 +251,7 @@ def test_selectmany_collsel(t : T?) {
 }
 
 [test]
-def test_zip(t : T?) {
+def test_zip(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic zip") @(t : T?) {
         var query = zip(
             [iterator for(x in 0..5); x],
@@ -404,7 +404,7 @@ def test_zip3(t : T?) {
 }
 
 [test]
-def test_zip4(t : T?) {
+def test_zip4(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic zip 4 iterators") @(t : T?) {
         var query = zip(
             [iterator for(x in 0..3); x],
@@ -505,7 +505,7 @@ def test_zip4(t : T?) {
 }
 
 [test]
-def test_zip5(t : T?) {
+def test_zip5(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic zip 5 iterators") @(t : T?) {
         var query = zip(
             [iterator for(x in 0..3); x],
@@ -609,7 +609,7 @@ def test_zip5(t : T?) {
 }
 
 [test]
-def test_zip6(t : T?) {
+def test_zip6(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic zip 6 iterators") @(t : T?) {
         var query = zip(
             [iterator for(x in 0..3); x],
@@ -722,7 +722,7 @@ def test_zip6(t : T?) {
 }
 
 [test]
-def test_zip7(t : T?) {
+def test_zip7(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic zip 7 iterators") @(t : T?) {
         var query = zip(
             [iterator for(x in 0..3); x],
@@ -839,7 +839,7 @@ def test_zip7(t : T?) {
 }
 
 [test]
-def test_zip8(t : T?) {
+def test_zip8(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic zip 8 iterators") @(t : T?) {
         var query = zip(
             [iterator for(x in 0..3); x],

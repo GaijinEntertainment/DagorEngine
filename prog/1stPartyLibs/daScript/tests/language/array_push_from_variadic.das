@@ -5,9 +5,7 @@ require dastest/testing_boost public
 // Variadic + nested push_from / push_clone_from (builtin.das). The binary
 // single-source forms are covered by tests/language/array.das; this file
 // exercises the fixed-arity multi-source overloads and the recursive
-// arbitrary-depth flatten. Single-source-into-fresh-array lines carry
-// nolint:STYLE032 — they deliberately test push_from, which STYLE032 would
-// otherwise suggest rewriting to `:= src`.
+// arbitrary-depth flatten.
 
 [test]
 def test_variadic_push_from(t : T?) {
@@ -50,7 +48,7 @@ def test_variadic_push_from(t : T?) {
 def test_nested_push_from(t : T?) {
     // recursive nested flatten: array<array<int>> -> array<int>
     let nested <- [[100, 200], [300]]
-    var fl : array<int>                            // nolint:STYLE032 (deliberately testing push_from)
+    var fl : array<int>
     push_from(fl, nested)
     t |> equal(length(fl), 3)
     t |> equal(fl[0], 100)
@@ -58,7 +56,7 @@ def test_nested_push_from(t : T?) {
 
     // recursive deep flatten (any depth)
     let deep <- [[[7, 8], [9]]]
-    var fld : array<int>                           // nolint:STYLE032 (deliberately testing push_from)
+    var fld : array<int>
     push_from(fld, deep)
     t |> equal(length(fld), 3)
     t |> equal(fld[0], 7)
@@ -66,14 +64,14 @@ def test_nested_push_from(t : T?) {
 
     // recursive flatten via the CLONE variant: array<array<int>> -> array<int>
     let cnested <- [[11, 22], [33]]
-    var cfl : array<int>                           // nolint:STYLE032 (deliberately testing push_clone_from)
+    var cfl : array<int>
     push_clone_from(cfl, cnested)
     t |> equal(length(cfl), 3)
     t |> equal(cfl[0], 11)
     t |> equal(cfl[2], 33)
 
     let cdeep <- [[[5, 6], [7]]]
-    var cfld : array<int>                          // nolint:STYLE032 (deliberately testing push_clone_from)
+    var cfld : array<int>
     push_clone_from(cfld, cdeep)
     t |> equal(length(cfld), 3)
     t |> equal(cfld[0], 5)
@@ -81,7 +79,7 @@ def test_nested_push_from(t : T?) {
 
     // numT is itself an array: clone-append sub-arrays as elements (base, NOT flattened)
     let src <- [[1, 2], [3]]
-    var aoa : array<array<int>>                    // nolint:STYLE032 (deliberately testing push_clone_from)
+    var aoa : array<array<int>>                    // nolint:STYLE032 - push_clone_from is the tested construct
     push_clone_from(aoa, src)
     t |> equal(length(aoa), 2)
     t |> equal(aoa[0][1], 2)

@@ -20,7 +20,7 @@ def test_block_vs_local_block(t : T?) {
             g_bvl = localVar.a + arg
         }
         g_bvl = 0
-        radd_bvl(100) <| $(arg : int) {
+        radd_bvl(100) $(arg : int) {
             g_bvl = localVar.a + arg
         }
         t |> equal(g_bvl, 134)

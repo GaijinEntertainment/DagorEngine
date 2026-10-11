@@ -81,10 +81,12 @@ bool OutlineElement::operator<(const OutlineElement &rhs) const
 }
 
 OutlinedDynModel::OutlinedDynModel(vec4f clipBox, E3DCOLOR int_color, E3DCOLOR ext_color, float depthDiffBlendStart,
-  float depthDiffBlendEnd, const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *animcharAdditionalData) :
+  float depthDiffBlendEnd, const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *animcharAdditionalData,
+  const ecs::UInt8List *nodeFilter) :
   OutlineElement(clipBox, int_color, ext_color, depthDiffBlendStart, depthDiffBlendEnd),
   dynModel(dynModel),
-  animcharAdditionalData(animcharAdditionalData)
+  animcharAdditionalData(animcharAdditionalData),
+  nodeFilter(nodeFilter)
 {}
 
 OutlinedRendinst::OutlinedRendinst(vec4f clipBox, E3DCOLOR int_color, E3DCOLOR ext_color, float depthDiffBlendStart,
@@ -98,8 +100,8 @@ OutlinedBox::OutlinedBox(vec4f clipBox, E3DCOLOR int_color, E3DCOLOR ext_color, 
 {}
 
 void OutlineContext::addOutline(E3DCOLOR int_color, E3DCOLOR ext_color, mat44f_cref globtm, bbox3f_cref wbox,
-  const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *additional_data, float depthDiffBlendStart,
-  float depthDiffBlendEnd)
+  const DynamicRenderableSceneInstance *dynModel, const ecs::Point4List *additional_data, const ecs::UInt8List *node_filter,
+  float depthDiffBlendStart, float depthDiffBlendEnd)
 {
   vec4f clipScreenBox;
   if (outline_culling(globtm, wbox, clipScreenBox))
@@ -107,7 +109,7 @@ void OutlineContext::addOutline(E3DCOLOR int_color, E3DCOLOR ext_color, mat44f_c
     if (ext_color == 0)
       ext_color = int_color;
     dynModelElements.emplace_back(clipScreenBox, int_color, ext_color, depthDiffBlendStart, depthDiffBlendEnd, dynModel,
-      additional_data);
+      additional_data, node_filter);
   }
 }
 
@@ -200,10 +202,9 @@ void OutlineRenderer::updateScaleVar()
   ShaderGlobal::set_float4(outline_scaleVarId, clipLeft * wInv, clipTop * hInv, clipWidth * wInv, clipHeight * hInv);
 }
 
-void OutlineRenderer::setClippedViewport(float dynamic_resolution_scale)
+void OutlineRenderer::setClippedViewport()
 {
-  d3d::setview(floor(clipLeft * dynamic_resolution_scale), floor(clipTop * dynamic_resolution_scale),
-    ceil(clipWidth * dynamic_resolution_scale), ceil(clipHeight * dynamic_resolution_scale), 0, 1);
+  d3d::setview(viewOffsetX + clipLeft, viewOffsetY + clipTop, clipWidth, clipHeight, 0, 1);
 }
 
 shaders::OverrideStateId OutlineRenderer::create_override(int override_type)
@@ -259,6 +260,13 @@ void OutlineRenderer::changeResolution(int w, int h)
 {
   width = w;
   height = h;
+  setViewOffset(0, 0);
+}
+
+void OutlineRenderer::setViewOffset(int offset_x, int offset_y)
+{
+  viewOffsetX = offset_x;
+  viewOffsetY = offset_y;
 }
 
 void OutlineRenderer::initBlurWidth(float outline_blur_width, int display_width, int display_height)
@@ -383,6 +391,9 @@ static void add_box_to_outline_ctx(OutlineContext &outlineContext, mat44f_cref g
     outline__depthDiffBlendEnd);
 }
 
+// A node filter outlines only some nodes of the entity animchar, so its attaches are not outlined
+static bool has_node_filter(const ecs::UInt8List *node_filter) { return node_filter && !node_filter->empty(); }
+
 void outline_update_contexts(OutlineContexts &outline_ctxs, const TMatrix4 &globtm, const Occlusion *occlusion)
 {
   mat44f glob_tm;
@@ -399,16 +410,16 @@ void outline_update_contexts(OutlineContexts &outline_ctxs, const TMatrix4 &glob
       animchar_visbits_t &animchar_visbits ECS_REQUIRE(eastl::true_type outline__enabled, eastl::true_type outline__always_visible,
         eastl::true_type animchar_render__enabled = true),
       const bbox3f &animchar_bbox, const ecs::EidList *attaches_list, const ecs::Point4List *additional_data,
-      E3DCOLOR outline__color = 0xFFFFFFFF, E3DCOLOR outline__extcolor = 0) {
+      const ecs::UInt8List *outline__nodeFilter, E3DCOLOR outline__color = 0xFFFFFFFF, E3DCOLOR outline__extcolor = 0) {
       // ignores animchar_visbits
-      if (attaches_list)
+      if (attaches_list && !has_node_filter(outline__nodeFilter))
         outline_add_attaches(*g_entity_mgr, eid, *attaches_list,
           [&outline__color, &outline__extcolor, &glob_tm, &noZTestCtx](const AnimV20::AnimcharRendComponent &render,
             const bbox3f &bbox, const uint8_t &, const ecs::Point4List *additional_data) {
             noZTestCtx.addOutline(outline__color, outline__extcolor, glob_tm, bbox, render.getSceneInstance(), additional_data);
           });
       noZTestCtx.addOutline(outline__color, outline__extcolor, glob_tm, animchar_bbox, animchar_render.getSceneInstance(),
-        additional_data);
+        additional_data, outline__nodeFilter);
       animchar_visbits |= VISFLG_OUTLINE_RENDER;
     });
   outline_render_always_visible_ri_ecs_query(*g_entity_mgr,
@@ -439,10 +450,10 @@ void outline_update_contexts(OutlineContexts &outline_ctxs, const TMatrix4 &glob
         eastl::false_type outline__z_fail = false, eastl::false_type outline__always_visible = false,
         eastl::true_type animchar_render__enabled = true, eastl::true_type outline__isOccluded),
       const bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits, const ecs::EidList *attaches_list,
-      const ecs::Point4List *additional_data, E3DCOLOR outline__color = 0xFFFFFFFF, E3DCOLOR outline__extcolor = 0,
-      float outline__depthDiffBlendStart = 1, float outline__depthDiffBlendEnd = 0) {
+      const ecs::Point4List *additional_data, const ecs::UInt8List *outline__nodeFilter, E3DCOLOR outline__color = 0xFFFFFFFF,
+      E3DCOLOR outline__extcolor = 0, float outline__depthDiffBlendStart = 1, float outline__depthDiffBlendEnd = 0) {
       bool haveVisibleAttaches = false;
-      if (attaches_list)
+      if (attaches_list && !has_node_filter(outline__nodeFilter))
         outline_add_attaches(*g_entity_mgr, eid, *attaches_list,
           [&outline__color, &outline__extcolor, &glob_tm, &zTestCtx, &haveVisibleAttaches, &outline__depthDiffBlendStart,
             &outline__depthDiffBlendEnd](const AnimV20::AnimcharRendComponent &render, const bbox3f &bbox,
@@ -450,14 +461,14 @@ void outline_update_contexts(OutlineContexts &outline_ctxs, const TMatrix4 &glob
             if (!(visbits & (VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE)))
               return;
             haveVisibleAttaches = true;
-            zTestCtx.addOutline(outline__color, outline__extcolor, glob_tm, bbox, render.getSceneInstance(), additional_data,
+            zTestCtx.addOutline(outline__color, outline__extcolor, glob_tm, bbox, render.getSceneInstance(), additional_data, nullptr,
               outline__depthDiffBlendStart, outline__depthDiffBlendEnd);
           });
       if ((animchar_visbits & (VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE)) != 0 || haveVisibleAttaches)
       {
         animchar_visbits |= VISFLG_OUTLINE_RENDER;
         zTestCtx.addOutline(outline__color, outline__extcolor, glob_tm, animchar_bbox, animchar_render.getSceneInstance(),
-          additional_data, outline__depthDiffBlendStart, outline__depthDiffBlendEnd);
+          additional_data, outline__nodeFilter, outline__depthDiffBlendStart, outline__depthDiffBlendEnd);
       }
     });
 
@@ -495,12 +506,14 @@ void outline_update_contexts(OutlineContexts &outline_ctxs, const TMatrix4 &glob
   outline_render_z_fail_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId eid, const AnimV20::AnimcharRendComponent &animchar_render, const bbox3f &animchar_bbox,
       animchar_visbits_t &animchar_visbits, const ecs::EidList *attaches_list, const ecs::Point4List *additional_data,
+      const ecs::UInt8List *outline__nodeFilter,
       int &outline__frames_visible ECS_REQUIRE(eastl::true_type outline__enabled, eastl::true_type outline__z_fail,
         eastl::false_type outline__always_visible = false, eastl::true_type animchar_render__enabled = true),
       E3DCOLOR outline__color = 0xFFFFFFFF, E3DCOLOR outline__extcolor = 0, int outline__frames_history = 20) {
       auto add = [occlusion, &outline__color, &outline__extcolor, &glob_tm, &zTestFailCtx, &outline__frames_visible,
                    &outline__frames_history](const AnimV20::AnimcharRendComponent &animchar_render, const bbox3f &animchar_bbox,
-                   const animchar_visbits_t &visbits, const ecs::Point4List *additional_data) {
+                   const animchar_visbits_t &visbits, const ecs::Point4List *additional_data,
+                   const ecs::UInt8List *node_filter = nullptr) {
         if ((visbits & (VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE)))
         {
           if (outline__frames_visible <= 0)
@@ -516,12 +529,12 @@ void outline_update_contexts(OutlineContexts &outline_ctxs, const TMatrix4 &glob
           outline__frames_visible = outline__frames_history;
 
         zTestFailCtx.addOutline(outline__color, outline__extcolor, glob_tm, animchar_bbox, animchar_render.getSceneInstance(),
-          additional_data);
+          additional_data, node_filter);
       };
-      if (attaches_list)
+      if (attaches_list && !has_node_filter(outline__nodeFilter))
         outline_add_attaches(*g_entity_mgr, eid, *attaches_list, add);
       animchar_visbits |= VISFLG_OUTLINE_RENDER;
-      add(animchar_render, animchar_bbox, animchar_visbits, additional_data);
+      add(animchar_render, animchar_bbox, animchar_visbits, additional_data, outline__nodeFilter);
     });
 
   outline_render_z_fail_ri_ecs_query(*g_entity_mgr,
@@ -594,11 +607,11 @@ void outline_prepare(OutlineRenderer &outline_renderer, OutlineContexts &outline
   d3d::resource_barrier({outline_depth, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }
 
-void outline_apply(OutlineRenderer &outline_renderer, Texture *outline_depth, float dynamic_resolution_scale)
+void outline_apply(OutlineRenderer &outline_renderer, Texture *outline_depth)
 {
   TIME_D3D_PROFILE(apply_stencil_outlines);
 
-  outline_renderer.setClippedViewport(dynamic_resolution_scale);
+  outline_renderer.setClippedViewport();
 
   outline_depth->setReadStencil(true);
   static int outline_final_render_AllColors_const_no = ShaderGlobal::get_slot_by_name("outline_final_render_AllColors_const_no");

@@ -6,6 +6,7 @@
 /************************************************************************/
 
 #include "shsem.h"
+#include "subpassRead.h"
 #include "shsyn.h"
 #include "shlexterm.h"
 #include "shcode.h"
@@ -73,6 +74,11 @@ public:
   bool rtPipelineAllowOmm = false;
   bool rtPipelineMaxRecursionSet = false;
   int rtPipelineMaxRecursion = 1;
+
+  RenderPassOptIn activeOptIn;
+  bool optInUnresolved = false;
+
+  const ShaderTerminal::state_block_struct_decl *psOutputStructDecl = nullptr;
 
   PerHlslStage<HlslCompile> hlsls{};
   PreshaderCompilationInput preshaderSource{};
@@ -157,6 +163,12 @@ public:
   void eval_shader_locdecl(local_var_decl &s) override { preshaderSource.scalarStats.emplace_back(&s); }
 
   void eval_supports(supports_stat &s) override { preshaderSource.supportStats.emplace_back(&s); }
+  void eval_render_pass(render_pass_use_stat &s) override;
+  bool validateSubpassReads();
+  void evalPsOutputStruct(ShaderTerminal::state_block_struct_decl &s, ShaderStage stage);
+  void processPsOutputStruct();
+  shc::PsOutputStructCacheEntry buildPsOutputStruct(const ShaderTerminal::state_block_struct_decl &s);
+  eastl::string exportFormatPragmas(dag::ConstSpan<SemanticShaderPass::PsOutputField> field_by_slot, const char *src1_target);
 
   int is_debug_mode_enabled() override { return ctx.shCtx().isDebugModeEnabled(); }
 

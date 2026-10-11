@@ -143,7 +143,7 @@ void GatherVarShaderEvalCB::eval_interval_decl(interval &interv)
   add_interval(ctx.intervals(), interv, type, parser, ctx.tgtCtx());
 }
 
-ShVarBool GatherVarShaderEvalCB::addIntervalRef(const char *intervalName, Terminal *terminal, bool_value *e)
+ShVarBool GatherVarShaderEvalCB::addIntervalRef(const char *intervalName, Terminal *terminal, bool_value *e, IntervalRefKind kind)
 {
   // try to find registered interval
   int intervalNameId = ctx.tgtCtx().intervalNameMap().getNameId(intervalName);
@@ -162,7 +162,8 @@ ShVarBool GatherVarShaderEvalCB::addIntervalRef(const char *intervalName, Termin
     }
   }
 
-  ctx.typeTables().uniqueIntervalNameIdsReferencedInBoolExpressions.insert(intervalNameId);
+  if (kind == IntervalRefKind::BranchCondition)
+    ctx.typeTables().uniqueIntervalNameIdsReferencedInBoolExpressions.insert(intervalNameId);
 
   bool is_static = staticVars.getNameId(intervalName) != -1;
   bool is_dynamic = dynamicVars.getNameId(intervalName) != -1;
@@ -211,12 +212,12 @@ ShVarBool GatherVarShaderEvalCB::addIntervalRef(const char *intervalName, Termin
   // ok, found, adding variant flag
   if (interv->getVarType() != ShaderVariant::VARTYPE_INTERVAL || !is_static)
   {
-    dynState.hasFlag = true;
+    dynState.hasFlag |= kind == IntervalRefKind::BranchCondition;
     ctx.typeTables().allDynamicTypes.addType(interv->getVarType(), intervalIndex, true);
   }
   else
   {
-    staticState.hasFlag = true;
+    staticState.hasFlag |= kind == IntervalRefKind::BranchCondition;
     ctx.typeTables().allStaticTypes.addType(interv->getVarType(), intervalIndex, true);
   }
   return ShVarBool(true, false);
@@ -396,7 +397,7 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
   }
   else if (e.interval_ident)
   {
-    return addIntervalRef(e.interval_ident->text, e.interval_ident, &e);
+    return addIntervalRef(e.interval_ident->text, e.interval_ident, &e, IntervalRefKind::BranchCondition);
   }
   else if (e.texture_name)
   {
@@ -448,7 +449,7 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
 }
 int GatherVarShaderEvalCB::eval_interval_value(const char *ival_name)
 {
-  addIntervalRef(ival_name, NULL, NULL);
+  addIntervalRef(ival_name, NULL, NULL, IntervalRefKind::BranchCondition);
   return 0;
 }
 
@@ -522,6 +523,17 @@ void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
     addSourceCode(src, s.name[0], hlsl.c_str(), parser, ctx.tgtCtx().globMessages(), ctx.isDebugModeEnabled());
   });
 #endif
+}
+
+void GatherVarShaderEvalCB::eval_render_pass(render_pass_use_stat &s)
+{
+  const RenderPassOptIn optIn = resolve_render_pass_opt_in(s, parser, ctx.tgtCtx(), RenderPassOptInMode::Declare);
+  if (!optIn)
+    return;
+
+  // Both lowerings of the reads of an allow_split pass must be in the dump.
+  if (optIn.readsUnderAllowSplit() && render_pass_target_has_native_subpasses() && render_pass_split_mode_declared(ctx.tgtCtx()))
+    addIntervalRef(RENDER_PASS_SPLIT_MODE_INTERVAL, render_pass_opt_in_term(s), nullptr, IntervalRefKind::Statement);
 }
 
 void GatherVarShaderEvalCB::eval(immediate_const_block &s)

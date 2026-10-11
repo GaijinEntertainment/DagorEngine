@@ -96,7 +96,7 @@ void FsrWrapper::doScheduleGeneratedFrames(const amd::FSR::FrameGenPlatformArgs 
   pImpl->doScheduleGeneratedFrames(args, command_list);
 }
 
-int FsrWrapper::getPresentedFrameCount() { return pImpl->getPresentedFrameCount(); }
+int FsrWrapper::getPresentedFrameCount() { return pImpl ? pImpl->getPresentedFrameCount() : 1; }
 
 uint64_t FsrWrapper::getMemoryUsage() const
 {

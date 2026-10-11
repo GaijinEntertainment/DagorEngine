@@ -546,17 +546,57 @@ static const WavePresets def_waves_unified_directional = {{// Beaufort 0
       .scatter_intensity_pow = 5.0f,
       .scatter_intensity_skylight_mul = 9.0f})}};
 
-const WavePresets &defWaves(const Spectrum &spectrum)
+struct WaveDetail
 {
-  switch (spectrum)
+  float facetSize;
+  carray<float, MAX_NUM_CASCADES> amplitude;
+};
+
+static const carray<WaveDetail, BEAUFORT_SCALES_NUM> phillips_detail = {{
+  {0.03f, {0.01f, 0.01f, 0.01f, 0.01f, 0.01f}},
+  {0.05f, {1.0f, 1.0f, 1.0f, 0.7f, 0.7f}},
+  {0.05f, {1.0f, 1.0f, 1.0f, 0.7f, 0.7f}},
+  {0.05f, {1.0f, 1.0f, 1.0f, 0.7f, 0.7f}},
+  {0.05f, {1.0f, 1.0f, 1.0f, 0.7f, 0.7f}},
+  {0.05f, {1.0f, 1.0f, 1.0f, 0.7f, 0.7f}},
+  {0.05f, {1.0f, 1.0f, 1.0f, 0.7f, 0.7f}},
+}};
+
+// smallWaveFraction sets the cutoff w = fraction * wind^2 / g, so only a fraction that falls as 1 / wind^2 keeps
+// one detail size; the Phillips rows fall slower and reach 3.7x the Beaufort 1 cutoff at Beaufort 6
+static float detail_small_wave_fraction(const WavePreset &preset, const WavePreset &detail)
+{
+  return min(preset.smallWaveFraction, detail.smallWaveFraction * sqr(safediv(detail.wind, preset.wind)));
+}
+
+static WavePresets make_detail_presets(const WavePresets &waves, const carray<WaveDetail, BEAUFORT_SCALES_NUM> &details)
+{
+  WavePresets result = waves;
+  for (int i = 0; i < result.presets.size(); ++i)
   {
-    case Spectrum::PHILLIPS: return def_waves_phillips;
-    case Spectrum::UNIFIED_DIRECTIONAL: return def_waves_unified_directional;
+    result.presets[i].simulation.facetSize = details[i].facetSize;
+    result.presets[i].simulation.amplitude = details[i].amplitude;
+  }
+  return result;
+}
+
+static const WavePresets def_waves_phillips_detail = make_detail_presets(def_waves_phillips, phillips_detail);
+
+const WavePresets &defWaves(WavePresetTable table)
+{
+  switch (table)
+  {
+    case WavePresetTable::PHILLIPS: return def_waves_phillips;
+    case WavePresetTable::PHILLIPS_DETAIL: return def_waves_phillips_detail;
+    case WavePresetTable::UNIFIED_DIRECTIONAL: return def_waves_unified_directional;
   }
   return def_waves_phillips;
 }
 
-const WavePreset &defWaves(const Spectrum &spectrum, int def_preset_no) { return defWaves(spectrum)[def_preset_no]; }
+static WavePresetTable default_table(Spectrum spectrum)
+{
+  return spectrum == Spectrum::UNIFIED_DIRECTIONAL ? WavePresetTable::UNIFIED_DIRECTIONAL : WavePresetTable::PHILLIPS;
+}
 
 
 void load_wave_preset(const DataBlock *presetBlk, WavePreset &preset, int def_preset_no)
@@ -564,17 +604,18 @@ void load_wave_preset(const DataBlock *presetBlk, WavePreset &preset, int def_pr
   G_ASSERT(presetBlk);
 
   Spectrum spectrum = (Spectrum)lup(presetBlk->getStr("spectra", ""), spectrum_names, countof(spectrum_names), (int)Spectrum::DEFAULT);
+  const WavePreset &def = defWaves(default_table(spectrum))[def_preset_no];
 
   String blkName;
-  preset.period = presetBlk->getReal("period", defWaves(spectrum, def_preset_no).period);
-  preset.wind = presetBlk->getReal("wind", defWaves(spectrum, def_preset_no).wind);
-  preset.roughness = presetBlk->getReal("roughness", defWaves(spectrum, def_preset_no).roughness);
-  preset.smallWaveFraction = presetBlk->getReal("smallWaveFraction", defWaves(spectrum, def_preset_no).smallWaveFraction);
+  preset.period = presetBlk->getReal("period", def.period);
+  preset.wind = presetBlk->getReal("wind", def.wind);
+  preset.roughness = presetBlk->getReal("roughness", def.roughness);
+  preset.smallWaveFraction = presetBlk->getReal("smallWaveFraction", def.smallWaveFraction);
 
-  preset.simulation.choppiness = presetBlk->getReal("choppiness", defWaves(spectrum, def_preset_no).simulation.choppiness);
-  preset.simulation.facetSize = presetBlk->getReal("facetSize", defWaves(spectrum, def_preset_no).simulation.facetSize);
-  preset.simulation.windDependency = presetBlk->getReal("windDependency", defWaves(spectrum, def_preset_no).simulation.windDependency);
-  preset.simulation.windAlignment = presetBlk->getReal("windAlignment", defWaves(spectrum, def_preset_no).simulation.windAlignment);
+  preset.simulation.choppiness = presetBlk->getReal("choppiness", def.simulation.choppiness);
+  preset.simulation.facetSize = presetBlk->getReal("facetSize", def.simulation.facetSize);
+  preset.simulation.windDependency = presetBlk->getReal("windDependency", def.simulation.windDependency);
+  preset.simulation.windAlignment = presetBlk->getReal("windAlignment", def.simulation.windAlignment);
   preset.simulation.spectrum = spectrum;
 
   for (int ampNo = 0; ampNo < preset.simulation.amplitude.size(); ++ampNo)
@@ -583,29 +624,24 @@ void load_wave_preset(const DataBlock *presetBlk, WavePreset &preset, int def_pr
     const DataBlock *ampBlk = presetBlk->getBlockByName(blkName);
     if (!ampBlk)
     {
-      preset.simulation.amplitude[ampNo] = defWaves(spectrum, def_preset_no).simulation.amplitude[ampNo];
+      preset.simulation.amplitude[ampNo] = def.simulation.amplitude[ampNo];
       continue;
     }
-    preset.simulation.amplitude[ampNo] = ampBlk->getReal("amplitude", defWaves(spectrum, def_preset_no).simulation.amplitude[ampNo]);
+    preset.simulation.amplitude[ampNo] = ampBlk->getReal("amplitude", def.simulation.amplitude[ampNo]);
   }
 
-  preset.foam.generation_threshold =
-    presetBlk->getReal("foam_generation_threshold", defWaves(spectrum, def_preset_no).foam.generation_threshold);
-  preset.foam.generation_amount =
-    presetBlk->getReal("foam_generation_amount", defWaves(spectrum, def_preset_no).foam.generation_amount);
-  preset.foam.dissipation_speed =
-    presetBlk->getReal("foam_dissipation_speed", defWaves(spectrum, def_preset_no).foam.dissipation_speed);
-  preset.foam.falloff_speed = presetBlk->getReal("foam_falloff_speed", defWaves(spectrum, def_preset_no).foam.falloff_speed);
-  preset.foam.hats_mul = presetBlk->getReal("foam_hats_mul", defWaves(spectrum, def_preset_no).foam.hats_mul);
-  preset.foam.hats_threshold = presetBlk->getReal("foam_hats_threshold", defWaves(spectrum, def_preset_no).foam.hats_threshold);
-  preset.foam.hats_folding = presetBlk->getReal("foam_hats_folding", defWaves(spectrum, def_preset_no).foam.hats_folding);
-  preset.foam.surface_folding_foam_mul =
-    presetBlk->getReal("surface_folding_foam_mul", defWaves(spectrum, def_preset_no).foam.surface_folding_foam_mul);
-  preset.foam.surface_folding_foam_pow =
-    presetBlk->getReal("surface_folding_foam_pow", defWaves(spectrum, def_preset_no).foam.surface_folding_foam_pow);
+  preset.foam.generation_threshold = presetBlk->getReal("foam_generation_threshold", def.foam.generation_threshold);
+  preset.foam.generation_amount = presetBlk->getReal("foam_generation_amount", def.foam.generation_amount);
+  preset.foam.dissipation_speed = presetBlk->getReal("foam_dissipation_speed", def.foam.dissipation_speed);
+  preset.foam.falloff_speed = presetBlk->getReal("foam_falloff_speed", def.foam.falloff_speed);
+  preset.foam.hats_mul = presetBlk->getReal("foam_hats_mul", def.foam.hats_mul);
+  preset.foam.hats_threshold = presetBlk->getReal("foam_hats_threshold", def.foam.hats_threshold);
+  preset.foam.hats_folding = presetBlk->getReal("foam_hats_folding", def.foam.hats_folding);
+  preset.foam.surface_folding_foam_mul = presetBlk->getReal("surface_folding_foam_mul", def.foam.surface_folding_foam_mul);
+  preset.foam.surface_folding_foam_pow = presetBlk->getReal("surface_folding_foam_pow", def.foam.surface_folding_foam_pow);
 
   // ChopWaterProps
-  const ChopWaterProps &defChop = defWaves(spectrum, def_preset_no).chopWater;
+  const ChopWaterProps &defChop = def.chopWater;
   preset.chopWater.wind_speed = presetBlk->getReal("chop_wind_speed", defChop.wind_speed);
   preset.chopWater.amplitude_scale = presetBlk->getReal("chop_amplitude_scale", defChop.amplitude_scale);
   preset.chopWater.wind_spread = presetBlk->getReal("chop_wind_spread", defChop.wind_spread);
@@ -733,7 +769,7 @@ void load_wave_presets(const DataBlock &blk, WavePresets &out_waves)
     const DataBlock *presetBlk = blk.getBlockByName(blkName);
     if (!presetBlk)
     {
-      preset = defWaves(Spectrum::DEFAULT)[presetNo];
+      preset = defWaves(WavePresetTable::PHILLIPS)[presetNo];
       continue;
     }
 
@@ -753,7 +789,7 @@ void apply_wave_preset(FFTWater *water, const WavePreset &preset, const Point2 &
   reset_physics(water);
 }
 
-void apply_wave_preset(FFTWater *water, const WavePreset &preset1, const WavePreset &preset2, float alpha, const Point2 &wind_dir)
+static WavePreset lerp_wave_preset(const WavePreset &preset1, const WavePreset &preset2, float alpha)
 {
   G_STATIC_ASSERT(MAX_NUM_CASCADES == 5);
   WavePreset preset(lerp(preset1.period, preset2.period, alpha), lerp(preset1.wind, preset2.wind, alpha),
@@ -818,21 +854,27 @@ void apply_wave_preset(FFTWater *water, const WavePreset &preset1, const WavePre
   blended.scatter_intensity_skylight_mul =
     lerp(preset1.chopWater.scatter_intensity_skylight_mul, preset2.chopWater.scatter_intensity_skylight_mul, alpha);
   preset.chopWater = blended;
-  apply_wave_preset(water, preset, wind_dir);
+  return preset;
+}
+
+static WavePreset lerp_wave_presets(const WavePresets &waves, float bf_scale)
+{
+  int preset1 = clamp<int>(bf_scale, 0, waves.presets.size() - 1);
+  int preset2 = clamp<int>(bf_scale + 1, 0, waves.presets.size() - 1);
+  return lerp_wave_preset(waves.presets[preset1], waves.presets[preset2], bf_scale - preset1);
 }
 
 void apply_wave_preset(FFTWater *water, const WavePresets &waves, float bf_scale, const Point2 &wind_dir)
 {
-  int preset1 = clamp<int>(bf_scale, 0, waves.presets.size() - 1);
-  int preset2 = clamp<int>(bf_scale + 1, 0, waves.presets.size() - 1);
-  float presetAlpha = bf_scale - preset1;
-
-  apply_wave_preset(water, waves.presets[preset1], waves.presets[preset2], presetAlpha, wind_dir);
+  apply_wave_preset(water, lerp_wave_presets(waves, bf_scale), wind_dir);
 }
 
-void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, Spectrum spectrum)
+void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, WavePresetTable table)
 {
-  apply_wave_preset(water, defWaves(spectrum), bf_scale, wind_dir);
+  WavePreset preset = lerp_wave_presets(defWaves(table), bf_scale);
+  if (table == WavePresetTable::PHILLIPS_DETAIL)
+    preset.smallWaveFraction = detail_small_wave_fraction(preset, def_waves_phillips_detail[1]);
+  apply_wave_preset(water, preset, wind_dir);
 }
 
 void get_wave_preset(const FFTWater *water, WavePreset &out_preset)

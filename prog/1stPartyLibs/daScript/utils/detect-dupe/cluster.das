@@ -1,6 +1,5 @@
 options gen2
 
-require strings
 require math
 require minhash
 

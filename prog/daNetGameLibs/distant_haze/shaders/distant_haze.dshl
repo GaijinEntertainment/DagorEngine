@@ -37,7 +37,7 @@ shader distant_haze
 
   (ps)
   {
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     haze_radius_height_minh_maxh@f4 = (distant_haze_radius, distant_haze_height, distant_haze_minh, distant_haze_maxh);
     haze_density_strength_blur@f4 = (distant_haze_density, distant_haze_strength, distant_haze_blur, 1.0 / distant_haze_density);
     haze_fade@f4 = (distant_haze_fade_in, distant_haze_fade_out, 1.0 / distant_haze_fade_in, 1.0 / distant_haze_fade_out)
@@ -45,6 +45,10 @@ shader distant_haze
     inv_distortion_resolution@f2 = (inv_distortion_resolution);
     haze_scene_depth_tex@smp2d   = haze_scene_depth_tex;
     haze_scene_depth_tex_lod@f1  = (haze_scene_depth_tex_lod);
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   hlsl(vs)

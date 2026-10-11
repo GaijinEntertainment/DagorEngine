@@ -60,9 +60,11 @@ struct MemoryAllocationError
   {
     // All errors that where because of something else than OOM
     NoAllocationAttempt,
+    // Allocation failed most likely because the free page file space was too low to commit more memory, PC only
+    SystemCommitExhausted,
     // Allocation failed most likely because of the memory pool was exhausted and there was no way of providing it with paging
     PoolExhausted,
-    // It is not PoolExhausted and its most likely that the system is under high memory load with no way of paging to page file
+    // It is not PoolExhausted and its most likely that the system is under high memory load
     SystemLoad,
     // It is neither PoolExhausted nor SystemLoad, so from what we see it should have allocated memory but still failed anyways
     Unexpected,
@@ -74,6 +76,7 @@ struct MemoryAllocationError
   /// Min percentage value of system host memory load that is considered to be exhausted and possible cause for memory
   /// allocation failures.
   constexpr static uint32_t system_memory_min_load_percentage_as_exhaustion = 80;
+  constexpr static uint64_t page_file_min_space_as_exhaustion = uint64_t(1) << 30;
 
   Type getType() const
   {
@@ -81,16 +84,20 @@ struct MemoryAllocationError
     {
       return Type::NoAllocationAttempt;
     }
+#if _TARGET_PC_WIN
+    if (requestSize > 0 && (pageFileSpace < requestSize * requested_memory_size_pool_exhaustion_scale ||
+                             pageFileSpace < page_file_min_space_as_exhaustion))
+    {
+      return Type::SystemCommitExhausted;
+    }
+#endif
     if (poolAvail < requestSize * requested_memory_size_pool_exhaustion_scale)
     {
       return Type::PoolExhausted;
     }
     if (systemMemoryLoadPercentage > system_memory_min_load_percentage_as_exhaustion)
     {
-      if (pageFileSpace < requestSize * requested_memory_size_pool_exhaustion_scale)
-      {
-        return Type::SystemLoad;
-      }
+      return Type::SystemLoad;
     }
     return Type::Unexpected;
   }

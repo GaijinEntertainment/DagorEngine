@@ -204,6 +204,13 @@ struct DrawRequirements
     arguments;
 };
 
+struct CopyRequirements
+{
+  ResNameId source = ResNameId::Invalid;
+  ResNameId destination = ResNameId::Invalid;
+  bool sourceIsHistory = false;
+};
+
 struct Binding
 {
   BindingType type = BindingType::Invalid;
@@ -280,7 +287,7 @@ struct NodeData
   dag::FixedVectorMap<ResNameId, ResourceRequest, 16> historyResourceReadRequests;
 
   eastl::optional<VirtualPassRequirements> renderingRequirements;
-  eastl::variant<eastl::monostate, DispatchRequirements, DrawRequirements> executeRequirements;
+  eastl::variant<eastl::monostate, DispatchRequirements, DrawRequirements, CopyRequirements> executeRequirements;
   eastl::array<eastl::optional<VertexSource>, MAX_VERTEX_STREAMS> vertexSources;
   BindingsMap bindings;
   ShaderBlockLayersInfo shaderBlockLayers;

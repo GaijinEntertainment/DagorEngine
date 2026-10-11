@@ -137,6 +137,19 @@ namespace das {
         }
     }
 
+    bool VisitorAdapter::canVisitQuoteSubexpression(ExprQuote *expr) {
+        if ( auto fnCanVisit = get_canVisitQuoteSubexpression(classPtr) ) {
+            bool result = false;
+            runMacroFunction(context, "canVisitQuoteSubexpression", [&]() {
+                result = invoke_canVisitQuoteSubexpression(context,fnCanVisit,classPtr,expr);
+            });
+            return result;
+        } else {
+            // absent method means base Visitor behavior, which is NOT to descend into a quote body
+            return false;
+        }
+    }
+
     bool VisitorAdapter::canVisitWithAliasSubexpression(ExprAssume *expr) {
         if ( auto fnCanVisit = get_canVisitWithAliasSubexpression(classPtr) ) {
             bool result = true;
@@ -154,6 +167,42 @@ namespace das {
             bool result = true;
             runMacroFunction(context, "canVisitMakeBlockBody", [&]() {
                 result = invoke_canVisitMakeBlockBody(context,fnCanVisit,classPtr,expr);
+            });
+            return result;
+        } else {
+            return true;
+        }
+    }
+
+    bool VisitorAdapter::canVisitTryCatchBody(ExprTryCatch *expr) {
+        if ( auto fnCanVisit = get_canVisitTryCatchBody(classPtr) ) {
+            bool result = true;
+            runMacroFunction(context, "canVisitTryCatchBody", [&]() {
+                result = invoke_canVisitTryCatchBody(context,fnCanVisit,classPtr,expr);
+            });
+            return result;
+        } else {
+            return true;
+        }
+    }
+
+    bool VisitorAdapter::canVisitMakeArray(ExprMakeArray *expr) {
+        if ( auto fnCanVisit = get_canVisitMakeArray(classPtr) ) {
+            bool result = true;
+            runMacroFunction(context, "canVisitMakeArray", [&]() {
+                result = invoke_canVisitMakeArray(context,fnCanVisit,classPtr,expr);
+            });
+            return result;
+        } else {
+            return true;
+        }
+    }
+
+    bool VisitorAdapter::canVisitMakeArrayIndex(ExprMakeArray *expr, int index, Expression *init, bool lastIndex) {
+        if ( auto fnCanVisit = get_canVisitMakeArrayIndex(classPtr) ) {
+            bool result = true;
+            runMacroFunction(context, "canVisitMakeArrayIndex", [&]() {
+                result = invoke_canVisitMakeArrayIndex(context,fnCanVisit,classPtr,expr,index,init,lastIndex);
             });
             return result;
         } else {
@@ -1175,18 +1224,18 @@ namespace das {
         : FunctionAnnotation(n), AstBlockAnnotation_Adapter(info), classPtr(pClass), context(ctx) {
         }
         virtual bool apply ( const FunctionPtr &, ModuleGroup &,
-                            const AnnotationArgumentList &, string & err ) override {
+                            AnnotationArgumentList &, string & err ) override {
             err = "not a function annotation";
             return false;
         }
         virtual bool finalize ( const FunctionPtr &, ModuleGroup &,
-                               const AnnotationArgumentList &,
+                               AnnotationArgumentList &,
                                const AnnotationArgumentList &, string & err ) override {
             err = "not a function annotation";
             return false;
         }
         virtual bool apply ( ExprBlock * blk, ModuleGroup & group,
-                            const AnnotationArgumentList & args, string & errors ) override {
+                            AnnotationArgumentList & args, string & errors ) override {
             if ( auto fnApply = get_apply(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "apply", [&]() {
@@ -1198,7 +1247,7 @@ namespace das {
             }
         }
         virtual bool finalize ( ExprBlock * blk, ModuleGroup & group,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & errors ) override {
             if ( auto fnFinish = get_finish(classPtr) ) {
                 bool result = true;
@@ -1221,7 +1270,7 @@ namespace das {
         : FunctionAnnotation(n), AstFunctionAnnotation_Adapter(info), classPtr(pClass), context(ctx) {
         }
         virtual bool apply ( const FunctionPtr & func, ModuleGroup & group,
-                            const AnnotationArgumentList & args, string & errors ) override {
+                            AnnotationArgumentList & args, string & errors ) override {
             if ( auto fnApply = get_apply(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "apply", [&]() {
@@ -1233,7 +1282,7 @@ namespace das {
             }
         }
         virtual bool generic_apply ( const FunctionPtr & func, ModuleGroup & group,
-                            const AnnotationArgumentList & args, string & errors ) override {
+                            AnnotationArgumentList & args, string & errors ) override {
             if ( auto fnApply = get_generic_apply(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "generic_apply", [&]() {
@@ -1245,7 +1294,7 @@ namespace das {
             }
         }
         virtual bool finalize ( const FunctionPtr & func, ModuleGroup & group,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & errors ) override {
             if ( auto fnFinish = get_finish(classPtr) ) {
                 bool result = true;
@@ -1258,7 +1307,7 @@ namespace das {
             }
         }
         virtual bool lint ( const FunctionPtr & func, ModuleGroup & group,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & errors ) override {
             if ( auto fnLint = get_lint(classPtr) ) {
                 bool result = true;
@@ -1271,7 +1320,7 @@ namespace das {
             }
         }
         virtual bool patch ( const FunctionPtr & func, ModuleGroup & group,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & errors, bool & astChanged ) override {
             if ( auto fnPatch = get_patch(classPtr) ) {
                 bool result = true;
@@ -1284,7 +1333,7 @@ namespace das {
             }
         }
         virtual bool fixup ( const FunctionPtr & func, ModuleGroup & group,
-                               const AnnotationArgumentList & args,
+                               AnnotationArgumentList & args,
                                const AnnotationArgumentList & progArgs, string & errors ) override {
             if ( auto fnFixup = get_fixup(classPtr) ) {
                 bool result = true;
@@ -1297,12 +1346,12 @@ namespace das {
             }
         }
         virtual bool apply ( ExprBlock *, ModuleGroup &,
-                            const AnnotationArgumentList &, string & err ) override {
+                            AnnotationArgumentList &, string & err ) override {
             err = "not a block annotation";
             return false;
         }
         virtual bool finalize ( ExprBlock *, ModuleGroup &,
-                               const AnnotationArgumentList &,
+                               AnnotationArgumentList &,
                                const AnnotationArgumentList &, string & err ) override {
             err = "not a block annotation";
             return false;
@@ -1318,7 +1367,7 @@ namespace das {
                 return nullptr;
             }
         }
-        virtual bool verifyCall ( ExprCallFunc * call, const AnnotationArgumentList & args,
+        virtual bool verifyCall ( ExprCallFunc * call, AnnotationArgumentList & args,
                 const AnnotationArgumentList & progArgs, string & err ) override {
             if ( auto fnTransform = get_verifyCall(classPtr) ) {
                 bool result = true;
@@ -1394,7 +1443,7 @@ namespace das {
             : StructureAnnotation(n), AstStructureAnnotation_Adapter(info), classPtr(pClass), context(ctx) {
         }
         virtual bool touch ( const StructurePtr & st, ModuleGroup & group,
-                            const AnnotationArgumentList & args, string & errors ) override {
+                            AnnotationArgumentList & args, string & errors ) override {
             if ( auto fnApply = get_apply(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "apply", [&]() {
@@ -1406,7 +1455,7 @@ namespace das {
             }
         }
         virtual bool look (const StructurePtr & st, ModuleGroup & group,
-            const AnnotationArgumentList & args, string & errors ) override {
+            AnnotationArgumentList & args, string & errors ) override {
             if ( auto fnFinish = get_finish(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "finish", [&]() {
@@ -1418,7 +1467,7 @@ namespace das {
             }
         }
         virtual bool patch (const StructurePtr & st, ModuleGroup & group,
-            const AnnotationArgumentList & args, string & errors, bool & astChanged ) override {
+            AnnotationArgumentList & args, string & errors, bool & astChanged ) override {
             if ( auto fnPatch = get_patch(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "patch", [&]() {
@@ -1474,7 +1523,7 @@ namespace das {
             : EnumerationAnnotation(n), AstEnumerationAnnotation_Adapter(info), classPtr(pClass), context(ctx) {
         }
         virtual bool touch ( const EnumerationPtr & st, ModuleGroup & group,
-                            const AnnotationArgumentList & args, string & errors ) override {
+                            AnnotationArgumentList & args, string & errors ) override {
             if ( auto fnApply = get_apply(classPtr) ) {
                 bool result = true;
                 runMacroFunction(context, "apply", [&]() {
@@ -2216,6 +2265,7 @@ namespace das {
     }
 
     void addModuleReaderMacro ( Module * module, ReaderMacroPtr newM, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         if ( !module->addReaderMacro(newM, true) ) {
             context->throw_error_at(at, "can't add reader macro %s to module %s", newM->name.c_str(), module->name.c_str());
         }
@@ -2226,6 +2276,7 @@ namespace das {
     }
 
     void addModuleCommentReader ( Module * module, CommentReaderPtr newM, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         if ( !module->addCommentReader(newM, true) ) {
             context->throw_error_at(at, "can't add comment reader to module %s", module->name.c_str());
         }
@@ -2245,6 +2296,7 @@ namespace das {
     }
 
     void addModuleCallMacro ( Module * module, CallMacroPtr newM, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         module->ownedCallMacros.push_back(unique_ptr<CallMacro>(newM));
         if ( ! module->addCallMacro(newM->name, [=](const LineInfo & at) -> ExprLooksLikeCall * {
             auto ecm = new ExprCallMacro(at, newM->name);
@@ -2265,6 +2317,7 @@ namespace das {
     }
 
     void addModuleTypeInfoMacro ( Module * module, TypeInfoMacroPtr newM, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         if ( ! module->addTypeInfoMacro(newM,true) ) {
             context->throw_error_at(at, "can't add type info macro %s to module %s", newM->name.c_str(), module->name.c_str());
         }
@@ -2288,6 +2341,7 @@ namespace das {
     }
 
     void addModuleVariantMacro ( Module * module, VariantMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->variantMacros.push_back(unique_ptr<VariantMacro>(newM));
     }
 
@@ -2296,6 +2350,7 @@ namespace das {
     }
 
     void addModuleForLoopMacro ( Module * module, ForLoopMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->forLoopMacros.push_back(unique_ptr<ForLoopMacro>(newM));
     }
 
@@ -2304,6 +2359,7 @@ namespace das {
     }
 
     void addModuleCaptureMacro ( Module * module, CaptureMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->captureMacros.push_back(unique_ptr<CaptureMacro>(newM));
     }
 
@@ -2312,6 +2368,7 @@ namespace das {
     }
 
     void addModuleTypeMacro ( Module * module, TypeMacroPtr newM, Context * ctx, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         auto it = module->typeMacros.find(newM->name);
         if ( it != module->typeMacros.end() ) {
             ctx->throw_error_at(at, "type macro %s already exists in module %s", newM->name.c_str(), module->name.c_str());
@@ -2325,34 +2382,42 @@ namespace das {
     }
 
     void addModuleSimulateMacro ( Module * module, SimulateMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->simulateMacros.push_back(unique_ptr<SimulateMacro>(newM));
     }
 
     void addModuleInferMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->macros.push_back(unique_ptr<PassMacro>(newM));
     }
 
     void addModuleInferDirtyMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->inferMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
-    void addModulePreInferMacro ( Module * module, PassMacroPtr newM, Context * ) {
-        module->preInferMacros.push_back(unique_ptr<PassMacro>(newM));
+    void addModulePostRewriteMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
+        module->postRewriteMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
-    void addModulePostInferMacro ( Module * module, PassMacroPtr newM, Context * ) {
-        module->postInferMacros.push_back(unique_ptr<PassMacro>(newM));
+    void addModulePostCompileMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
+        module->postCompileMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
     void addModuleLintMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->lintMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
     void addModuleGlobalLintMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->globalLintMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
     void addModuleOptimizationMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->noteRegistrationAtCompile();
         module->optimizationMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
@@ -2361,6 +2426,7 @@ namespace das {
     }
 
     void addModuleEnumerationAnnotation ( Module * module, EnumerationAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         EnumerationAnnotationPtr ann = das::move(_ann);
         if ( !module->addAnnotation(ann, true) ) {
             context->throw_error_at(at, "can't add enumeration annotation %s to module %s",
@@ -2386,6 +2452,7 @@ namespace das {
     }
 
     void addModuleStructureAnnotation ( Module * module, StructureAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         StructureAnnotationPtr ann = das::move(_ann);
         if ( !module->addAnnotation(ann, true) ) {
             context->throw_error_at(at, "can't add structure annotation %s to module %s",
@@ -2397,7 +2464,8 @@ namespace das {
         StructureAnnotationPtr ann = das::move(_ann);
         string err;
         ModuleGroup dummy;
-        if ( !ann->touch(st, dummy, AnnotationArgumentList(), err) ) {
+        AnnotationArgumentList noArgs;
+        if ( !ann->touch(st, dummy, noArgs, err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to structure %s",
                 ann->name.c_str(), st->name.c_str());
         }
@@ -2415,6 +2483,7 @@ namespace das {
     }
 
     void addModuleFunctionAnnotation ( Module * module, FunctionAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
+        module->noteRegistrationAtCompile();
         FunctionAnnotationPtr ann = das::move(_ann);
         if ( !module->addAnnotation(ann, true) ) {
             context->throw_error_at(at, "can't add function annotation %s to module %s",
@@ -2426,7 +2495,8 @@ namespace das {
         FunctionAnnotationPtr ann = das::move(_ann);
         string err;
         ModuleGroup dummy;
-        if ( !ann->apply(func, dummy, AnnotationArgumentList(), err) ) {
+        AnnotationArgumentList noArgs;
+        if ( !ann->apply(func, dummy, noArgs, err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to function %s",
                 ann->name.c_str(), func->name.c_str());
         }
@@ -2439,7 +2509,8 @@ namespace das {
         FunctionAnnotationPtr ann = das::move(_ann);
         string err;
         ModuleGroup dummy;
-        if ( !ann->apply(blk, dummy, AnnotationArgumentList(), err) ) {
+        AnnotationArgumentList noArgs;
+        if ( !ann->apply(blk, dummy, noArgs, err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to block %s",
                 ann->name.c_str(), blk->at.describe().c_str());
         }
@@ -2528,6 +2599,17 @@ namespace das {
         program->visitModule(*adapter, module);
     }
 
+    void astVisitModuleWithSort ( smart_ptr_raw<Program> program, VisitorAdapter * adapter,
+                          Module* module, bool sortStructures, Context * context, LineInfoArg * line_info ) {
+        if (!adapter)
+            context->throw_error_at(line_info, "adapter is required");
+        if (!program)
+            context->throw_error_at(line_info, "program is required");
+        if (!module)
+            context->throw_error_at(line_info, "module is required");
+        program->visitModule(*adapter, module, false, sortStructures);
+    }
+
     void astVisitModulesInOrder ( smart_ptr_raw<Program> program, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
@@ -2598,6 +2680,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(astVisitModulesInOrder)>(*this, lib,  "visit_modules",
             SideEffects::accessExternal, "astVisitModulesInOrder")
                 ->args({"program","adapter","context","line"});
+        addExtern<DAS_BIND_FUN(astVisitModuleWithSort)>(*this, lib,  "visit_module",
+            SideEffects::accessExternal, "astVisitModuleWithSort")
+                ->args({"program","adapter","module","sortStructures","context","lineInfo"});
         addExtern<DAS_BIND_FUN(astVisitModule)>(*this, lib,  "visit_module",
             SideEffects::accessExternal, "astVisitModule")
                 ->args({"program","adapter","module","context","line"});
@@ -2680,11 +2765,11 @@ namespace das {
             SideEffects::modifyExternal, "addModuleInferDirtyMacro")
                 ->args({"module","annotation","context"});
         // lint macro
-        addExtern<DAS_BIND_FUN(addModulePreInferMacro)>(*this, lib,  "add_pre_infer_macro",
-            SideEffects::modifyExternal, "addModulePreInferMacro")
+        addExtern<DAS_BIND_FUN(addModulePostRewriteMacro)>(*this, lib,  "add_post_rewrite_macro",
+            SideEffects::modifyExternal, "addModulePostRewriteMacro")
                 ->args({"module","annotation","context"});
-        addExtern<DAS_BIND_FUN(addModulePostInferMacro)>(*this, lib,  "add_post_infer_macro",
-            SideEffects::modifyExternal, "addModulePostInferMacro")
+        addExtern<DAS_BIND_FUN(addModulePostCompileMacro)>(*this, lib,  "add_post_compile_macro",
+            SideEffects::modifyExternal, "addModulePostCompileMacro")
                 ->args({"module","annotation","context"});
         addExtern<DAS_BIND_FUN(addModuleLintMacro)>(*this, lib,  "add_lint_macro",
             SideEffects::modifyExternal, "addModuleLintMacro")

@@ -3,7 +3,7 @@ options gen2
 require dastest/testing_boost public
 
 [test]
-def test_while(t : T?) {
+def test_while(t : T?) { // nolint:STYLE038 one flat arm per while-loop form under test
     t |> run("plain") @(t : T?) {
         var i = 0
         var count = 0

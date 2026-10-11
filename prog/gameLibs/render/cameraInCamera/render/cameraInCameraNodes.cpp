@@ -42,8 +42,10 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> make_camera_nodes()
       lensCamera = srcCameraHndl.ref();
       lensCamera.jitterPersp.ox = camera.jitterPersp.ox;
       lensCamera.jitterPersp.oy = camera.jitterPersp.oy;
-      matrix_perspective_add_jitter(lensCamera.jitterProjTm, lensCamera.jitterPersp.ox, lensCamera.jitterPersp.oy);
+      const Point2 jitterNdc(camera.jitterOffsetUv.x * 2.0f, -camera.jitterOffsetUv.y * 2.0f);
+      matrix_perspective_add_jitter(lensCamera.jitterProjTm, jitterNdc.x, jitterNdc.y);
       lensCamera.jitterGlobtm = TMatrix4(lensCamera.viewTm) * lensCamera.jitterProjTm;
+      lensCamera.viewRotJitterProjTm = lensCamera.viewRotTm * lensCamera.jitterProjTm;
       lensCamera.jitterOffsetUv = camera.jitterOffsetUv;
       lensCamera.jitterOffset = camera.jitterOffset;
 

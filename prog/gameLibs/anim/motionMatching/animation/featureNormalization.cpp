@@ -13,7 +13,7 @@ void calculate_normalization(dag::Vector<AnimationClip> &clips, dag::Vector<vec3
   dag::Vector<vec3f, framemem_allocator> nInvArray(normalization_groups, v_zero());
 
   for (const AnimationClip &clip : clips)
-    totalCountPerGroup[clip.featuresNormalizationGroup] += clip.tickDuration;
+    totalCountPerGroup[clip.featuresNormalizationGroup] += clip.features.data.size() / features;
 
   for (int i = 0; i < normalization_groups; ++i)
     if (totalCountPerGroup[i] > 0)

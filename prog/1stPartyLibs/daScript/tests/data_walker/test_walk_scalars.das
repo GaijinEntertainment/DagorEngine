@@ -16,9 +16,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = 42
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Int:42\n")
         unsafe { delete walker; }
@@ -27,9 +25,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = 0xFF_u
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "UInt:0xff\n")
         unsafe { delete walker; }
@@ -38,9 +34,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = 100_000_000_000l
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Int64:100000000000\n")
         unsafe { delete walker; }
@@ -49,9 +43,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = 99ul
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "UInt64:0x63\n")
         unsafe { delete walker; }
@@ -60,9 +52,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = int8(127)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Int8:127\n")
         unsafe { delete walker; }
@@ -71,9 +61,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = uint8(200)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "UInt8:200\n")
         unsafe { delete walker; }
@@ -82,9 +70,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = int16(-1000)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Int16:-1000\n")
         unsafe { delete walker; }
@@ -93,9 +79,7 @@ def test_walk_int(t : T?) {
         var walker = new LogWalker()
         var x = uint16(60000)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "UInt16:60000\n")
         unsafe { delete walker; }
@@ -109,9 +93,7 @@ def test_walk_float_double(t : T?) {
         var walker = new LogWalker()
         var x = 3.14
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Float:3.14\n")
         unsafe { delete walker; }
@@ -120,9 +102,7 @@ def test_walk_float_double(t : T?) {
         var walker = new LogWalker()
         var x = 2.718281828lf
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Double:2.718281828\n")
         unsafe { delete walker; }
@@ -136,9 +116,7 @@ def test_walk_bool_string(t : T?) {
         var walker = new LogWalker()
         var x = true
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Bool:true\n")
         unsafe { delete walker; }
@@ -147,9 +125,7 @@ def test_walk_bool_string(t : T?) {
         var walker = new LogWalker()
         var x = false
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "Bool:false\n")
         unsafe { delete walker; }
@@ -158,9 +134,7 @@ def test_walk_bool_string(t : T?) {
         var walker = new LogWalker()
         var x = "hello world"
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "String:hello world\n")
         unsafe { delete walker; }
@@ -169,9 +143,7 @@ def test_walk_bool_string(t : T?) {
         var walker = new LogWalker()
         var x = ""
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
-            }
+            adapter |> walk_data(unsafe(addr(x)), typeinfo rtti_typeinfo(x))
         }
         t |> equal(walker.log, "String:\n")
         unsafe { delete walker; }
@@ -185,9 +157,7 @@ def test_walk_enum(t : T?) {
         var walker = new LogWalker()
         var c : Color = Color.Green
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(c), typeinfo rtti_typeinfo(c))
-            }
+            adapter |> walk_data(unsafe(addr(c)), typeinfo rtti_typeinfo(c))
         }
         t |> equal(walker.log, "Enum:Color:1\n")
         unsafe { delete walker; }
@@ -196,9 +166,7 @@ def test_walk_enum(t : T?) {
         var walker = new LogWalker()
         var c : Color = Color.Red
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(c), typeinfo rtti_typeinfo(c))
-            }
+            adapter |> walk_data(unsafe(addr(c)), typeinfo rtti_typeinfo(c))
         }
         t |> equal(walker.log, "Enum:Color:0\n")
         unsafe { delete walker; }
@@ -212,9 +180,7 @@ def test_walk_bitfield(t : T?) {
         var walker = new LogWalker()
         var p : Permissions = Permissions.read | Permissions.execute
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
-            }
+            adapter |> walk_data(unsafe(addr(p)), typeinfo rtti_typeinfo(p))
         }
         // read=bit0 (1), execute=bit2 (4) → 5 = 0x5
         t |> equal(walker.log, "Bitfield:0x5\n")
@@ -224,9 +190,7 @@ def test_walk_bitfield(t : T?) {
         var walker = new LogWalker()
         var p : Permissions
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
-            }
+            adapter |> walk_data(unsafe(addr(p)), typeinfo rtti_typeinfo(p))
         }
         t |> equal(walker.log, "Bitfield:0x0\n")
         unsafe { delete walker; }

@@ -323,10 +323,8 @@ bool A2dPlugin::begin(DagorAsset *srcAsset)
   selectedNode = -1;
   animTimeMul = safediv(1.0f, animTimeMax / (float)AnimV20::TIME_TicksPerSec);
 
-  // On plugin init these values are zeroed so we can check for zeroes here to set sane initial values.
+  // On plugin init this value is zeroed so we can check for a zero here to set a sane initial value.
   // Beging is also called on asset reload and we dont want to reload values in this case, just clamp if out of range.
-  if (selectedNodeTrajectoryTimeMin == 0)
-    selectedNodeTrajectoryTimeMin = animTimeMin;
   if (selectedNodeTrajectoryTimeMax == 0)
     selectedNodeTrajectoryTimeMax = animTimeMax;
 
@@ -387,7 +385,6 @@ void A2dPlugin::RefDynmodel::reset()
   if (ctrl)
     ctrl->setSkeletonForRender(nullptr);
   destroy_it(entity);
-  entity = nullptr;
   tree.clear();
   ctrl = nullptr;
   origTree = nullptr;
@@ -561,7 +558,7 @@ void A2dPlugin::RefDynmodel::updateTreeNodeFromAnimNode(const AnimNode &animNode
     blend_add_anim(node_tm, origTree->getNodeTm(animNode.skelIdx), tm);
     return;
   }
-  if (lengthSq(tm.getcol(3)) < 1e-4)
+  if (lengthSq(tm.getcol(3)) < 1e-4f)
     tm.setcol(3, as_point3(&node_tm.col3));
   tree.setNodeTmScalar(animNode.skelIdx, tm);
 }
@@ -736,7 +733,7 @@ void A2dPlugin::actObjects(float dt)
     TMatrix &tm = animNodes[selectedNode].tm;
     Point3 tmScale = Point3(length(tm.getcol(0)), length(tm.getcol(1)), length(tm.getcol(2)));
     float tmDet = tm.det();
-    if (tmDet < 0.0)
+    if (tmDet < 0.0f)
       tmScale.z *= -1.0f;
     Point3 tmAng;
     matrix_to_euler(tm, tmAng.x, tmAng.y, tmAng.z);
@@ -745,7 +742,7 @@ void A2dPlugin::actObjects(float dt)
     ref.tree.getNodeWtmScalar(animNodes[selectedNode].skelIdx, wtm);
     Point3 wtmScale = Point3(length(wtm.getcol(0)), length(wtm.getcol(1)), length(wtm.getcol(2)));
     float wtmDet = wtm.det();
-    if (wtmDet < 0.0)
+    if (wtmDet < 0.0f)
       wtmScale.z *= -1.0f;
     Point3 wtmAng;
     matrix_to_euler(tm, wtmAng.x, wtmAng.y, wtmAng.z);
@@ -1008,7 +1005,7 @@ void A2dPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   }
 }
 
-void A2dPlugin::renderTransObjects()
+void A2dPlugin::renderTransObjects(BaseTexture *)
 {
   if (!ref.ready())
     return;

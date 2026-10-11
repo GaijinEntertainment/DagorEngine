@@ -27,6 +27,7 @@
 #include "graph_document.h"
 #include "graph_gradient_value.h"
 #include "graph_panel.h"
+#include "graph_tab.h"
 #include "plugin.h"
 #include "pluginService/graph_tex_gen_service.h"
 
@@ -45,10 +46,19 @@ enum
   PID_GRAPH_TEX_HEIGHT = PID_GRAPH_BASE + 8,
   PID_GRAPH_TEX_DEPTH = PID_GRAPH_BASE + 9,
   PID_GRAPH_TEX_TYPE = PID_GRAPH_BASE + 10,
+  PID_SUBGRAPH_INPUTS = PID_GRAPH_BASE + 11,
+  PID_SUBGRAPH_OUTPUTS = PID_GRAPH_BASE + 12,
+  PID_SUBGRAPH_TEXTURES = PID_GRAPH_BASE + 13,
+  PID_SUBGRAPH_BOUNDARY = PID_GRAPH_BASE + 14, // every row of both lists: a static is never looked up
 
   PID_NODE_HEADER = 13100,
   PID_NODE_ID = 13101,
   PID_NODE_PLUGIN = 13102,
+  PID_NODE_DEFINITION = 13103,
+  PID_NODE_DEF_TYPE = 13104,
+  PID_NODE_DEF_LOCATION = 13105,
+  PID_NODE_GENERAL = 13106,
+  PID_NODE_TEXTURES = 13107,
 
   // A block of PIDs per property, so a type can add sub-controls without colliding with the next.
   PID_NODE_PROP_BASE = 13200,
@@ -60,6 +70,22 @@ enum
 int prop_pid_base(int pid) { return PID_NODE_PROP_BASE + ((pid - PID_NODE_PROP_BASE) / PID_NODE_PROP_STRIDE) * PID_NODE_PROP_STRIDE; }
 
 constexpr int HEIGHT_FLOAT_PREC = 4;
+
+// The Textures group holds these and shows them without the prefix.
+constexpr const char *TEXTURE_SETTINGS[] = {"texture width", "texture height", "texture depth", "texture type", "texture wrap"};
+constexpr size_t TEXTURE_SETTING_PREFIX_LEN = sizeof("texture ") - 1;
+
+const char *texture_setting_caption(const char *prop_name)
+{
+  for (const char *name : TEXTURE_SETTINGS)
+  {
+    if (!strcmp(name, prop_name))
+    {
+      return prop_name + TEXTURE_SETTING_PREFIX_LEN;
+    }
+  }
+  return nullptr;
+}
 
 bool parse_bool(const char *s)
 {
@@ -239,12 +265,16 @@ int build_combo_items(Tab<String> &out_items, const char *current, const char *c
 }
 } // namespace
 
-PropertiesPanel::PropertiesPanel(GraphEditorPlg &plg, GraphDocument &document) : plugin(plg), doc(document)
+PropertiesPanel::PropertiesPanel(GraphEditorPlg &plg) : plugin(plg)
 {
   panelWindow = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
 }
 
-PropertiesPanel::~PropertiesPanel() { IEditorCoreEngine::get()->deleteCustomPanel(panelWindow); }
+PropertiesPanel::~PropertiesPanel()
+{
+  editGesture.end();
+  IEditorCoreEngine::get()->deleteCustomPanel(panelWindow);
+}
 
 bool PropertiesPanel::shouldWarnOnce(int node_id, const char *prop_name)
 {
@@ -253,11 +283,45 @@ bool PropertiesPanel::shouldWarnOnce(int node_id, const char *prop_name)
 
 const GraphData::Node *PropertiesPanel::findNodeById(int id) const
 {
-  if (id < 0)
+  if (id < 0 || !doc)
   {
     return nullptr;
   }
-  return find_node_by_id(doc.getGraphData(), id);
+  return find_node_by_id(doc->getGraphData(), id);
+}
+
+void PropertiesPanel::commitPendingEdit()
+{
+  IEditorCoreEngine::get()->sendImmediateFocusLossNotification();
+  editGesture.end();
+}
+
+void PropertiesPanel::dropControls()
+{
+  // A destroyed control sends no change finish, so the open edit lands before they go.
+  commitPendingEdit();
+  if (currentMode == Mode::Subgraph)
+  {
+    inputsCollapsed = panelWindow->getBool(PID_SUBGRAPH_INPUTS);
+    outputsCollapsed = panelWindow->getBool(PID_SUBGRAPH_OUTPUTS);
+    texturesCollapsed = panelWindow->getBool(PID_SUBGRAPH_TEXTURES);
+  }
+  panelWindow->clear();
+  pidToPropertyName.clear();
+  curvePreviews.clear();
+}
+
+void PropertiesPanel::detachFromDocument(const GraphDocument &closing)
+{
+  if (doc != &closing)
+  {
+    return;
+  }
+  dropControls();
+  doc = nullptr;
+  currentMode = Mode::None;
+  lastRenderedNodeId = -1;
+  lastRenderedTabId = -1;
 }
 
 void PropertiesPanel::updateImgui()
@@ -267,14 +331,25 @@ void PropertiesPanel::updateImgui()
     return;
   }
 
-  GraphPanel *gp = plugin.getGraphPanel();
-  const int selId = gp ? gp->getSelectedNodeId() : -1;
+  GraphPanel &graphPanel = plugin.getGraphPanel();
+  // Taken before anything reads it. On the frame a tab switch lands, the document left behind would
+  // otherwise answer for the selected node and the values the controls are built from, and the next
+  // edit would write them into the graph now shown.
+  doc = &plugin.getActiveDocument();
+  const int selId = graphPanel.getSelectedNodeId();
+  const bool tabChanged = graphPanel.activeTabId() != lastRenderedTabId;
+  // A node selected anew, or found selected on the graph or window switched to, shows its properties.
+  if (selId >= 0 && (selId != lastSeenSelectedId || tabChanged))
+  {
+    graphView = false;
+  }
+  lastSeenSelectedId = selId;
 
   // Resolve target mode. A selected id that no longer maps to a live node (deleted while
-  // selected) collapses to graph mode -- safer than rendering stale fields.
-  Mode targetMode = Mode::Graph;
+  // selected) collapses to the graph-level view -- safer than rendering stale fields.
+  Mode targetMode = graphPanel.activeSurface().getHostWindow() != nullptr ? Mode::Subgraph : Mode::Graph;
   int targetNodeId = -1;
-  if (selId >= 0)
+  if (selId >= 0 && !graphView)
   {
     if (findNodeById(selId))
     {
@@ -284,18 +359,14 @@ void PropertiesPanel::updateImgui()
   }
 
   // Cheap path: nothing relevant has changed -> just pump the panel and return.
-  const GraphData &gd = doc.getGraphData();
-  const eastl::string &curSourcePath = gd.sourcePath;
-  const bool sourcePathChanged = (curSourcePath != lastRenderedSourcePath);
-
-  bool needRebuild = (targetMode != currentMode);
+  bool needRebuild = (targetMode != currentMode) || tabChanged;
   if (!needRebuild && targetMode == Mode::Node)
   {
     needRebuild = (targetNodeId != lastRenderedNodeId);
   }
-  if (!needRebuild && targetMode == Mode::Graph)
+  if (!needRebuild && targetMode == Mode::Subgraph)
   {
-    needRebuild = sourcePathChanged;
+    needRebuild = doc->getStructureRevision() != lastRenderedRevision || doc->getPositionsStamp() != lastRenderedPositionsStamp;
   }
   if (forceRebuild)
   {
@@ -305,12 +376,8 @@ void PropertiesPanel::updateImgui()
   if (needRebuild)
   {
     forceRebuild = false;
-    IEditorCoreEngine::get()->sendImmediateFocusLossNotification();
-
-    panelWindow->clear();
-    pidToPropertyName.clear();
-    curvePreviews.clear();
-    if (sourcePathChanged) // node ids restart per graph, so a stale key would mute a real warning
+    dropControls();
+    if (tabChanged) // node ids restart per graph, so a stale key would mute a real warning
     {
       warnedProperties.clear();
     }
@@ -319,6 +386,10 @@ void PropertiesPanel::updateImgui()
     {
       rebuildForNode(targetNodeId);
     }
+    else if (targetMode == Mode::Subgraph)
+    {
+      rebuildForSubgraph();
+    }
     else
     {
       rebuildForGraph();
@@ -326,7 +397,9 @@ void PropertiesPanel::updateImgui()
 
     currentMode = targetMode;
     lastRenderedNodeId = targetNodeId;
-    lastRenderedSourcePath = curSourcePath;
+    lastRenderedTabId = graphPanel.activeTabId();
+    lastRenderedRevision = doc->getStructureRevision();
+    lastRenderedPositionsStamp = doc->getPositionsStamp();
   }
 
   panelWindow->updateImgui();
@@ -339,7 +412,7 @@ void PropertiesPanel::rebuildForGraph()
     return;
   }
 
-  const GraphData &gd = doc.getGraphData();
+  const GraphData &gd = doc->getGraphData();
 
   const char *appDir = DAGORED2->getWorkspace().getAppDir();
   panelWindow->createFileEditBox(PID_GRAPH_RENDER_DIR, "Render dir", gd.renderDir.c_str());
@@ -360,36 +433,67 @@ void PropertiesPanel::rebuildForGraph()
     HEIGHT_FLOAT_PREC);
 
   panelWindow->createSeparator();
+  createTextureCombos(*panelWindow, /*in_group=*/false);
+}
+
+// The compile takes the main graph's dirs and heightmap, so a subgraph lists its pins.
+void PropertiesPanel::rebuildForSubgraph()
+{
+  const GraphData &gd = doc->getGraphData();
+  eastl::vector<const GraphData::Node *> boundaries;
+  collect_subgraph_boundaries(gd, /*with_separators=*/false, boundaries);
+  PropPanel::ContainerPropertyControl *inputs = panelWindow->createGroup(PID_SUBGRAPH_INPUTS, "Inputs");
+  inputs->setBoolValue(inputsCollapsed);
+  PropPanel::ContainerPropertyControl *outputs = panelWindow->createGroup(PID_SUBGRAPH_OUTPUTS, "Outputs");
+  outputs->setBoolValue(outputsCollapsed);
+  int inputCount = 0;
+  int outputCount = 0;
+  for (const GraphData::Node *n : boundaries)
+  {
+    const bool isInput = is_input_boundary(*n);
+    PropPanel::ContainerPropertyControl *list = isInput ? inputs : outputs;
+    const int number = isInput ? ++inputCount : ++outputCount;
+    const eastl::string name = effective_subgraph_boundary_name(gd, n->id);
+    list->createStatic(PID_SUBGRAPH_BOUNDARY, String(0, "%d. %s", number, name.empty() ? "<unnamed>" : name.c_str()));
+  }
+  PropPanel::ContainerPropertyControl *textures = panelWindow->createGroup(PID_SUBGRAPH_TEXTURES, "Textures");
+  textures->setBoolValue(texturesCollapsed);
+  createTextureCombos(*textures, /*in_group=*/true);
+}
+
+void PropertiesPanel::createTextureCombos(PropPanel::ContainerPropertyControl &container, bool in_group)
+{
+  const GraphData &gd = doc->getGraphData();
   {
     Tab<String> items;
     char buf[32];
     _snprintf(buf, sizeof(buf), "%d", gd.graphTextureWidth);
     const int sel = build_combo_items(items, buf, BASE_SIZES, "= ");
-    panelWindow->createCombo(PID_GRAPH_TEX_WIDTH, "Texture width", items, sel);
+    container.createCombo(PID_GRAPH_TEX_WIDTH, in_group ? "width" : "Texture width", items, sel);
   }
   {
     Tab<String> items;
     char buf[32];
     _snprintf(buf, sizeof(buf), "%d", gd.graphTextureHeight);
     const int sel = build_combo_items(items, buf, BASE_SIZES, "= ");
-    panelWindow->createCombo(PID_GRAPH_TEX_HEIGHT, "Texture height", items, sel);
+    container.createCombo(PID_GRAPH_TEX_HEIGHT, in_group ? "height" : "Texture height", items, sel);
   }
   {
     Tab<String> items;
     char buf[32];
     _snprintf(buf, sizeof(buf), "%d", gd.graphTextureDepth);
     const int sel = build_combo_items(items, buf, BASE_SIZES, "= ");
-    panelWindow->createCombo(PID_GRAPH_TEX_DEPTH, "Texture depth", items, sel);
+    container.createCombo(PID_GRAPH_TEX_DEPTH, in_group ? "depth" : "Texture depth", items, sel);
   }
   {
     Tab<String> items;
     const int sel = build_combo_items(items, gd.graphTextureType.c_str(), BASE_TYPES);
-    panelWindow->createCombo(PID_GRAPH_TEX_TYPE, "Texture type", items, sel);
+    container.createCombo(PID_GRAPH_TEX_TYPE, in_group ? "type" : "Texture type", items, sel);
   }
   {
     Tab<String> items;
     const int sel = build_combo_items(items, gd.graphTextureWrap.c_str(), BASE_WRAPS);
-    panelWindow->createCombo(PID_GRAPH_TEX_WRAP, "Texture wrap", items, sel);
+    container.createCombo(PID_GRAPH_TEX_WRAP, in_group ? "wrap" : "Texture wrap", items, sel);
   }
 }
 
@@ -424,21 +528,58 @@ void PropertiesPanel::rebuildForNode(int node_id)
 
   panelWindow->createSeparator();
 
-  int propIndex = 0;
+  if (is_subgraph_instance(*n))
+  {
+    PropPanel::ContainerPropertyControl *definition = panelWindow->createGroup(PID_NODE_DEFINITION, "Definition");
+    // The design names the root the file lives in "type", and the file "location".
+    definition->createEditBox(PID_NODE_DEF_TYPE, "type", nodeDesc->getStr("location", ""), /*enabled=*/false);
+    const char *sourcePath = nodeDesc->getStr("sourcePath", "");
+    definition->createEditBox(PID_NODE_DEF_LOCATION, "location", sourcePath, /*enabled=*/false);
+    definition->setTooltipId(PID_NODE_DEF_LOCATION, sourcePath); // the field clips a long path
+  }
+
+  // Classified once: a group exists exactly when something goes in it, General first in any descriptor order.
+  struct ShownProperty
+  {
+    const DataBlock *desc;
+    const char *name;
+    const char *textureCaption; // null for the node's own settings
+  };
+  eastl::vector<ShownProperty> shown;
+  bool hasOwnProperties = false;
+  bool hasTextureSettings = false;
   for (uint32_t i = 0; i < nodeDesc->blockCount(); ++i)
   {
     const DataBlock *propDesc = nodeDesc->getBlock(i);
-    if (strcmp(propDesc->getBlockName(), "property") != 0)
-    {
-      continue;
-    }
-
     const char *propName = propDesc->getStr("name", "");
-    if (!propName[0])
+    if (strcmp(propDesc->getBlockName(), "property") != 0 || !propName[0])
     {
       continue;
     }
+    const char *textureCaption = texture_setting_caption(propName);
+    if (textureCaption)
+    {
+      hasTextureSettings = true;
+    }
+    else
+    {
+      hasOwnProperties = true;
+    }
+    shown.push_back({propDesc, propName, textureCaption});
+  }
+  PropPanel::ContainerPropertyControl *general =
+    hasOwnProperties ? panelWindow->createGroup(PID_NODE_GENERAL, "General") : panelWindow;
+  PropPanel::ContainerPropertyControl *textures =
+    hasTextureSettings ? panelWindow->createGroup(PID_NODE_TEXTURES, "Textures") : panelWindow;
+
+  for (int propIndex = 0; propIndex < static_cast<int>(shown.size()); ++propIndex)
+  {
+    const DataBlock *propDesc = shown[propIndex].desc;
+    const char *propName = shown[propIndex].name;
+    const char *textureCaption = shown[propIndex].textureCaption;
     const char *propType = infer_prop_type(propDesc);
+    PropPanel::ContainerPropertyControl *container = textureCaption ? textures : general;
+    const char *caption = textureCaption ? textureCaption : propName;
 
     // Resolve the current value: live node value first, descriptor default second.
     eastl::string valStr;
@@ -456,11 +597,11 @@ void PropertiesPanel::rebuildForNode(int node_id)
 
     if (!strcmp(propType, "string"))
     {
-      panelWindow->createEditBox(pid, propName, valStr.c_str());
+      container->createEditBox(pid, caption, valStr.c_str());
     }
     else if (!strcmp(propType, "bool"))
     {
-      panelWindow->createCheckBox(pid, propName, parse_bool(valStr.c_str()));
+      container->createCheckBox(pid, caption, parse_bool(valStr.c_str()));
     }
     else if (!strcmp(propType, "int"))
     {
@@ -472,11 +613,11 @@ void PropertiesPanel::rebuildForNode(int node_id)
         const int mn = propDesc->getInt("minVal", 0);
         const int mx = propDesc->getInt("maxVal", 0);
         const int step = propDesc->getInt("step", 1);
-        panelWindow->createTrackInt(pid, propName, v, mn, mx, step <= 0 ? 1 : step);
+        container->createTrackInt(pid, caption, v, mn, mx, step <= 0 ? 1 : step);
       }
       else
       {
-        panelWindow->createEditInt(pid, propName, v);
+        container->createEditInt(pid, caption, v);
       }
     }
     else if (!strcmp(propType, "float"))
@@ -489,11 +630,11 @@ void PropertiesPanel::rebuildForNode(int node_id)
         const float mn = propDesc->getReal("minVal", 0.f);
         const float mx = propDesc->getReal("maxVal", 0.f);
         const float step = propDesc->getReal("step", 0.001f);
-        panelWindow->createTrackFloat(pid, propName, v, mn, mx, step <= 0.f ? 0.001f : step);
+        container->createTrackFloat(pid, caption, v, mn, mx, step <= 0.f ? 0.001f : step);
       }
       else
       {
-        panelWindow->createEditFloat(pid, propName, v);
+        container->createEditFloat(pid, caption, v);
       }
     }
     else if (!strcmp(propType, "combobox"))
@@ -525,36 +666,36 @@ void PropertiesPanel::rebuildForNode(int node_id)
       if (items.empty())
       {
         // Fall back to a disabled edit box so the value remains visible.
-        panelWindow->createEditBox(pid, propName, valStr.c_str(), false);
+        container->createEditBox(pid, caption, valStr.c_str(), false);
       }
       else
       {
-        panelWindow->createCombo(pid, propName, items, selectedIdx);
+        container->createCombo(pid, caption, items, selectedIdx);
       }
     }
     else if (!strcmp(propType, "color"))
     {
-      panelWindow->createColorBox(pid, propName, parse_color(valStr.c_str()));
+      container->createColorBox(pid, caption, parse_color(valStr.c_str()));
     }
     else if (!strcmp(propType, "filepath"))
     {
       // File picker based at the property's root (see filepath_base). Outputs (renderDir/entityDir)
       // use a save dialog, inputs/absolute an open dialog; an optional `mask` sets the file filter.
-      const String base = filepath_base(propDesc, doc.getGraphData());
+      const String base = filepath_base(propDesc, doc->getGraphData());
       const char *root = propDesc->getStr("root", "app");
       const bool isOutput = !strcmp(root, "renderDir") || !strcmp(root, "entityDir");
-      panelWindow->createFileEditBox(pid, propName, valStr.c_str());
+      container->createFileEditBox(pid, caption, valStr.c_str());
       if (!base.empty())
       {
-        panelWindow->setUserData(pid, base.str());
+        container->setUserData(pid, base.str());
       }
-      panelWindow->setInt(pid, isOutput ? PropPanel::FS_DIALOG_SAVE_FILE : PropPanel::FS_DIALOG_OPEN_FILE);
+      container->setInt(pid, isOutput ? PropPanel::FS_DIALOG_SAVE_FILE : PropPanel::FS_DIALOG_OPEN_FILE);
       const char *mask = propDesc->getStr("mask", "");
       if (mask[0])
       {
         Tab<String> masks;
         masks.push_back(String(mask));
-        panelWindow->setStrings(pid, masks);
+        container->setStrings(pid, masks);
       }
     }
     else if (!strcmp(propType, "gradient_editor"))
@@ -574,22 +715,22 @@ void PropertiesPanel::rebuildForNode(int node_id)
       {
         PropPanel::Gradient keys(tmpmem);
         gradient_stops_to_keys(stops, keys);
-        panelWindow->createGradientBox(pid, propName);
+        container->createGradientBox(pid, caption);
         // Bounds interactive adds, so the value can never grow past what fillGradientTexture takes.
-        if (PropPanel::PropertyControlBase *ctrl = panelWindow->getById(pid))
+        if (PropPanel::PropertyControlBase *ctrl = container->getById(pid))
         {
           ctrl->setGradientMinMaxPointCount(2, GRADIENT_MAX_STOPS);
         }
-        panelWindow->setGradient(pid, &keys);
-        panelWindow->setTooltipId(pid, "Double-click adds a key, right-click removes one, click picks its color, Ctrl+C / Ctrl+V "
-                                       "copy and paste.\nThe strip previews RGB only: alpha and 'nearest' are not drawn.");
-        panelWindow->createCheckBox(pid + PROP_SLOT_AUX, "nearest (no interpolation)", nearest);
+        container->setGradient(pid, &keys);
+        container->setTooltipId(pid, "Double-click adds a key, right-click removes one, click picks its color, Ctrl+C / Ctrl+V "
+                                     "copy and paste.\nThe strip previews RGB only: alpha and 'nearest' are not drawn.");
+        container->createCheckBox(pid + PROP_SLOT_AUX, "nearest (no interpolation)", nearest);
       }
       else
       {
         // Editing would drop keys and the generator refuses the value anyway, so show it as it is.
-        panelWindow->createStatic(pid, String(0, "%s: %s", propName, valStr.c_str()));
-        panelWindow->createStatic(pid + PROP_SLOT_AUX, String(0, "  (%d stops, too many to edit here)", storedStops));
+        container->createStatic(pid, String(0, "%s: %s", caption, valStr.c_str()));
+        container->createStatic(pid + PROP_SLOT_AUX, String(0, "  (%d stops, too many to edit here)", storedStops));
       }
     }
     else if (CurveKind curveKind; curve_kind_for_prop_type(propType, curveKind))
@@ -610,8 +751,8 @@ void PropertiesPanel::rebuildForNode(int node_id)
           DAEDITOR3.conWarning("GraphEditor: node %d property '%s' has no usable /*...*/ point list, shown read-only", n->id,
             propName);
         }
-        panelWindow->createStatic(pid, String(0, "%s: %s", propName, valStr.c_str()));
-        panelWindow->createStatic(pid + PROP_SLOT_AUX, "  (no control points to edit)");
+        container->createStatic(pid, String(0, "%s: %s", caption, valStr.c_str()));
+        container->createStatic(pid + PROP_SLOT_AUX, "  (no control points to edit)");
       }
       else
       {
@@ -621,36 +762,35 @@ void PropertiesPanel::rebuildForNode(int node_id)
           controlPoints.push_back(pt);
         }
 
-        panelWindow->createCurveEdit(pid, propName);
+        container->createCurveEdit(pid, caption);
         // setInt creates the approximator; every call below it is a no-op before that. The control
         // has no steps and no monotone mode, so all four kinds show their control polygon.
-        panelWindow->setInt(pid, PropPanel::CURVE_LINEAR_APP);
+        container->setInt(pid, PropPanel::CURVE_LINEAR_APP);
         // Locks the point order and pins the end points: a double-click adds its point at the end.
-        panelWindow->setBool(pid, true);
-        panelWindow->setMinMaxStep(pid, CURVE_MIN_POINTS, CURVE_MAX_POINTS, PropPanel::CURVE_MIN_MAX_POINTS);
+        container->setBool(pid, true);
+        container->setMinMaxStep(pid, CURVE_MIN_POINTS, CURVE_MAX_POINTS, PropPanel::CURVE_MIN_MAX_POINTS);
         // Both axes, or the control's auto zoom divides by a zero wide view box.
-        panelWindow->setMinMaxStep(pid, 0.f, 1.f, PropPanel::CURVE_MIN_MAX_X);
-        panelWindow->setMinMaxStep(pid, 0.f, 1.f, PropPanel::CURVE_MIN_MAX_Y);
-        panelWindow->setColor(pid, curve_style_color(propDesc->getStr("style", "gray")));
-        panelWindow->setControlPoints(pid, controlPoints);
-        panelWindow->setTooltipId(pid, "Drag to move a point, double-click to add one or to type its coordinates, right-click a "
-                                       "point to remove it.\nThe end points keep their x.");
+        container->setMinMaxStep(pid, 0.f, 1.f, PropPanel::CURVE_MIN_MAX_X);
+        container->setMinMaxStep(pid, 0.f, 1.f, PropPanel::CURVE_MIN_MAX_Y);
+        container->setColor(pid, curve_style_color(propDesc->getStr("style", "gray")));
+        container->setControlPoints(pid, controlPoints);
+        container->setTooltipId(pid, "Drag to move a point, double-click to add one or to type its coordinates, right-click a "
+                                     "point to remove it.\nThe end points keep their x.");
       }
     }
     else if (!strcmp(propType, "gradient_preview"))
     {
-      panelWindow->createStatic(pid + PROP_SLOT_AUX, propName);
-      curvePreviews.push_back(eastl::make_unique<CurvePreviewControl>(doc, node_id, nodeDesc, propDesc->getBlockByName("background")));
-      panelWindow->createCustomControlHolder(pid, curvePreviews.back().get());
+      container->createStatic(pid + PROP_SLOT_AUX, caption);
+      curvePreviews.push_back(
+        eastl::make_unique<CurvePreviewControl>(*doc, node_id, nodeDesc, propDesc->getBlockByName("background")));
+      container->createCustomControlHolder(pid, curvePreviews.back().get());
     }
     else
     {
       // Unknown type -- still show something rather than silently dropping the property.
-      String label(0, "%s [%s]: %s", propName, propType, valStr.c_str());
-      panelWindow->createStatic(pid, label);
+      String label(0, "%s [%s]: %s", caption, propType, valStr.c_str());
+      container->createStatic(pid, label);
     }
-
-    ++propIndex;
   }
 }
 
@@ -670,7 +810,7 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
       return;
     }
     GraphSettings s;
-    doc.getGraphSettings(s);
+    doc->getGraphSettings(s);
     if (pcb_id == PID_GRAPH_TEX_WIDTH)
     {
       s.graphTextureWidth = parse_graph_size(text, s.graphTextureWidth);
@@ -691,7 +831,9 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
     {
       s.graphTextureWrap = text;
     }
-    doc.setGraphSettings(s);
+    doc->setGraphSettings(s);
+    // Made in this panel, so the subgraph view must not rebuild under it.
+    lastRenderedRevision = doc->getStructureRevision();
     return;
   }
 
@@ -710,7 +852,7 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
   if (pcb_id == PID_GRAPH_HEIGHT_SCALE || pcb_id == PID_GRAPH_HEIGHT_MIN || pcb_id == PID_GRAPH_CELL_SIZE)
   {
     GraphSettings s;
-    doc.getGraphSettings(s);
+    doc->getGraphSettings(s);
     if (pcb_id == PID_GRAPH_HEIGHT_SCALE)
     {
       s.heightmapScale = panel->getFloat(pcb_id);
@@ -723,7 +865,7 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
     {
       s.heightmapCellSize = panel->getFloat(pcb_id);
     }
-    doc.setGraphSettings(s);
+    doc->setGraphSettings(s);
     return;
   }
 
@@ -740,7 +882,7 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
       wingw::message_box(wingw::MBS_EXCL, "Invalid folder",
         "'%s' is outside the application directory:\n%s\n\nChoose a folder inside it.", text.str(),
         DAGORED2->getWorkspace().getAppDir());
-      const GraphData &gd = doc.getGraphData();
+      const GraphData &gd = doc->getGraphData();
       const char *prev = pcb_id == PID_GRAPH_RENDER_DIR ? gd.renderDir.c_str() : gd.entityDir.c_str();
       panel->setText(pcb_id, prev);
       return;
@@ -752,7 +894,7 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
     }
 
     GraphSettings s;
-    doc.getGraphSettings(s);
+    doc->getGraphSettings(s);
     if (pcb_id == PID_GRAPH_RENDER_DIR)
     {
       s.renderDir = newValue;
@@ -761,11 +903,18 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
     {
       s.entityDir = newValue;
     }
-    doc.setGraphSettings(s);
+    doc->setGraphSettings(s);
     return;
   }
 
   commitNodeProperty(pcb_id, panel, /*finished=*/true);
+
+  // The value already arrived through onChange. Closing by id leaves a gesture another control opened
+  // in between alone, it is still being edited.
+  if (pcb_id >= PID_NODE_PROP_BASE)
+  {
+    editGesture.end(prop_pid_base(pcb_id));
+  }
 }
 
 void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropertyControl *panel, bool finished)
@@ -798,12 +947,12 @@ void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropert
 
   const char *t = infer_prop_type(propDesc);
 
-  // Discrete controls (checkbox / combobox / color) commit per onChange and have no onChangeFinished;
-  // continuous ones (editBox / spin / slider) commit on onChangeFinished (Enter / spin or slider
-  // release / focus loss) so typing or holding a button doesn't recompile every frame. So onChange
-  // (finished == false) handles only discrete, onChangeFinished (finished == true) only continuous.
-  const bool discrete = !strcmp(t, "bool") || !strcmp(t, "combobox") || !strcmp(t, "color");
-  if (finished == discrete)
+  // Text entry writes back only when the edit is committed (Enter, focus loss): createEditBox sends a
+  // change per keystroke, and a half typed value -- a path above all -- would reach the graph and regen.
+  // Everything else writes back per change too, so the preview follows a slider drag, a held spin button
+  // or an open color picker. A spin edit sends nothing while typing, so no half typed number gets here.
+  const bool textEntry = !strcmp(t, "string") || !strcmp(t, "filepath");
+  if (!finished && textEntry)
   {
     return;
   }
@@ -843,7 +992,7 @@ void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropert
   }
   else if (!strcmp(t, "filepath"))
   {
-    const String base = filepath_base(propDesc, doc.getGraphData());
+    const String base = filepath_base(propDesc, doc->getGraphData());
     const SimpleString raw = panel->getText(pid);
     const String stored = relativize_under(base.str(), raw.str());
     if (strcmp(stored.str(), raw.str()) != 0)
@@ -903,5 +1052,14 @@ void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropert
     return;
   }
 
-  doc.setNodeProperty(lastRenderedNodeId, it->second, eastl::move(newVal));
+  // The gesture opens here and not before the reads above, so only a write that really happens holds one
+  // open, and an open gesture is always one whose first write took the snapshot. That snapshot covers the
+  // whole property vector, so the rest of the edit undoes with it. Opening by pid also closes a gesture
+  // another property left open, which would otherwise swallow this write into that property's entry.
+  const bool firstOfEdit = !editGesture.isOpenFor(pid);
+  if (firstOfEdit)
+  {
+    editGesture.begin(*EDITORCORE->getUndoSystem(), pid, "Change property");
+  }
+  doc->setNodeProperty(lastRenderedNodeId, it->second, eastl::move(newVal), firstOfEdit);
 }

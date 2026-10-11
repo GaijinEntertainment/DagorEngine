@@ -102,7 +102,7 @@ The script window will appear with several key options:
 
 ### Running Test
 
-To test the loaded scene, select an object and press the start button {cnum}`7`.
+To test the loaded scene, select an object and click the start button {cnum}`7`.
 For example, if you select a simple object, the results will appear quickly:
 
 ```{eval-rst}

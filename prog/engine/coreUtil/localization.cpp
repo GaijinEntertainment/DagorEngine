@@ -21,6 +21,7 @@
 #include <util/dag_hash.h>
 #include <hash/wyhash.h>
 #include <EASTL/vector_set.h>
+#include <EASTL/sort.h>
 #include <ctype.h>
 #if _TARGET_C1 | _TARGET_C2
 
@@ -1569,15 +1570,21 @@ void get_all_localization(const LocKeyDump *key_dump, Tab<const char *> &loc_key
   LocReadLock lock(locRwLock);
   if (!locTable)
     return;
-  loc_keys.reserve(key_dump->hashToOffset.size());
-  loc_vals.reserve(key_dump->hashToOffset.size());
+  Tab<eastl::pair<uint32_t, uint32_t>> keyValOfs;
+  keyValOfs.reserve(key_dump->hashToOffset.size());
   key_dump->hashToOffset.iterate([&](uint64_t hash, const uint32_t &key_ofs) {
-    const uint32_t *val_ofs = locTable->main.hashToOffset.findVal(hash);
-    if (!val_ofs)
-      return;
-    loc_keys.push_back(key_dump->strings.getDataRawUnsafe(key_ofs));
-    loc_vals.push_back(locTable->main.strings.getDataRawUnsafe(*val_ofs));
+    if (const uint32_t *val_ofs = locTable->main.hashToOffset.findVal(hash))
+      keyValOfs.push_back({key_ofs, *val_ofs});
   });
+  // key offsets grow in load order
+  eastl::sort(keyValOfs.begin(), keyValOfs.end());
+  loc_keys.reserve(keyValOfs.size());
+  loc_vals.reserve(keyValOfs.size());
+  for (const auto &kv : keyValOfs)
+  {
+    loc_keys.push_back(key_dump->strings.getDataRawUnsafe(kv.first));
+    loc_vals.push_back(locTable->main.strings.getDataRawUnsafe(kv.second));
+  }
 }
 
 
@@ -1662,7 +1669,7 @@ static const char *get_default_lang_locked()
     case LANG_TURKISH: return "Turkish";
     case LANG_BELARUSIAN: return "Belarusian";
     case LANG_UKRAINIAN: return "Ukrainian";
-    case LANG_SERBIAN: return "Serbian";
+    case LANG_SERBIAN:
     case LANG_SERBIAN_NEUTRAL: return "Serbian";
     case LANG_HUNGARIAN: return "Hungarian";
     case LANG_ROMANIAN: return "Romanian";

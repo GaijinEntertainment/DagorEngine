@@ -37,13 +37,13 @@ resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(dafg::NameSp
 resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess() : nameSpace(dafg::root()), id(0), generation(0), isValid(false)
 {}
 
-resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(NodeHandleWithSlotsAccess &&h) :
+resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(NodeHandleWithSlotsAccess &&h) noexcept :
   nameSpace(h.nameSpace), id(h.id), generation(h.generation), isValid(h.isValid)
 {
   h.isValid = false;
 }
 
-resource_slot::NodeHandleWithSlotsAccess &resource_slot::NodeHandleWithSlotsAccess::operator=(NodeHandleWithSlotsAccess &&h)
+resource_slot::NodeHandleWithSlotsAccess &resource_slot::NodeHandleWithSlotsAccess::operator=(NodeHandleWithSlotsAccess &&h) noexcept
 {
   reset();
   nameSpace = h.nameSpace;

@@ -1,24 +1,14 @@
-//-file:plus-string
-local exp
-try {
-  exp = getroottable()["exp"]
-} catch (e) {
-  exp = require("math").exp
-}
+from "math" import exp
+from "string" import format
+from "profile.nut" import benchmark
+
+const N = 10000000
 
 function expLoop(n) {
-    local sum = 0
-    for (local i = 0; i < n; ++i)
-      sum += exp(1./(1.+i))
-    return sum
+  local sum = 0.0
+  for (local i = 0; i < n; i++)
+    sum += exp(1.0 / (1.0 + i))
+  return sum
 }
 
-
-local profile_it
-try {
-  profile_it = getroottable()["loadfile"]("profile.nut")()
-  if (profile_it == null)
-    throw "no loadfile"
-} catch(e) profile_it = require("profile.nut")
-
-print("\"exp loop\", " + profile_it(20, function() {expLoop(10000000)}) + ", 20\n");
+benchmark("exp loop", 20, @() format("%.6f", expLoop(N)))

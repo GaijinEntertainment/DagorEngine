@@ -109,7 +109,7 @@ void TexChecker::readAssetTextures(DagorAsset *asset)
     if (!cur_asset)
       continue;
 
-    if (strstr("tex", mAssetMgr.getAssetTypeName(cur_asset->getType())))
+    if (cur_asset->getType() == mAssetMgr.getTexAssetTypeId())
       mTexturesInAssetsList.push_back() = cur_asset->getName();
     else
       readAssetTextures(cur_asset);
@@ -151,7 +151,7 @@ void TexChecker::readAssetBaseTexList()
   for (int i = 0; i < assets.size(); i++)
   {
     DagorAsset *a = assets[i];
-    if (strstr("tex", mAssetMgr.getAssetTypeName(a->getType())))
+    if (a->getType() == mAssetMgr.getTexAssetTypeId())
     {
       mAssetTexturesList.push_back() = a->getName();
       mAssetTexturesPath.push_back() = a->getSrcFilePath();

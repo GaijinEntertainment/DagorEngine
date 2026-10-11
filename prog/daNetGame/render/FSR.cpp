@@ -55,7 +55,7 @@ FSR::FSR(const IPoint2 &outputResolution) : AntiAliasing(outputResolution, outpu
       registry.executionHas(dafg::SideEffects::External);
       auto beforeUINs = registry.root() / "before_ui";
       auto finalFrameHandle =
-        beforeUINs.readTexture("frame_done").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+        beforeUINs.readTexture("frame_done").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
       auto uiHandle = registry.readTexture("ui_tex").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
       auto depthHandle =
         registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();

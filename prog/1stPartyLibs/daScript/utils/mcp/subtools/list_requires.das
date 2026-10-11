@@ -26,6 +26,29 @@ def module_kind(mod : Module?) : string {
     return "builtin"
 }
 
+def private render_requires_text(direct_text : array<string>; transitive_text : array<string>) : string {
+    return build_string() $(var w) {
+        if (!empty(direct_text)) {
+            write(w, "Direct requires:\n")
+            for (d in direct_text) {
+                write(w, "{d}\n")
+            }
+        }
+        if (!empty(transitive_text)) {
+            if (!empty(direct_text)) {
+                write(w, "\n")
+            }
+            write(w, "Transitive dependencies ({length(transitive_text)}):\n")
+            for (t in transitive_text) {
+                write(w, "{t}\n")
+            }
+        }
+        if (empty(direct_text) && empty(transitive_text)) {
+            write(w, "No requires found.\n")
+        }
+    }
+}
+
 def run_list_requires(file : string; project : string = ""; json : bool = false) : string {
     let proj_err = validate_project_arg(project)
     if (!empty(proj_err)) return make_tool_result(proj_err, true)
@@ -85,26 +108,7 @@ def run_list_requires(file : string; project : string = ""; json : bool = false)
             return sprint_json(result, false)
         }
         sort(transitive_text)
-        return build_string() $(var w) {
-            if (!empty(direct_text)) {
-                write(w, "Direct requires:\n")
-                for (d in direct_text) {
-                    write(w, "{d}\n")
-                }
-            }
-            if (!empty(transitive_text)) {
-                if (!empty(direct_text)) {
-                    write(w, "\n")
-                }
-                write(w, "Transitive dependencies ({length(transitive_text)}):\n")
-                for (t in transitive_text) {
-                    write(w, "{t}\n")
-                }
-            }
-            if (empty(direct_text) && empty(transitive_text)) {
-                write(w, "No requires found.\n")
-            }
-        }
+        return render_requires_text(direct_text, transitive_text)
     }
 }
 

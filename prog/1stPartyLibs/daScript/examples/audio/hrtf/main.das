@@ -151,15 +151,17 @@ def draw_grid(line_program : uint; view, proj : float4x4) {
 // -- Audio file loading --
 
 def load_sound_data() {
-    let fname = "{get_das_root()}/examples/media/audio/music_cc0.mp3"
+    let fname = "{get_das_root()}/examples/media/audio/music.wav"
     var f = fopen(fname, "rb")
     if (f == null) {
         // Fallback: generate a 440Hz sine tone
+        delete sound_data
         sound_data <- [for (x in range(MA_SAMPLE_RATE * 2)); sin(2.0 * PI * 440.0 * float(x) / float(MA_SAMPLE_RATE))]
         sound_channels = 1
         sound_rate = MA_SAMPLE_RATE
         return
     }
+    delete sound_data
     fmap(f) $(data) {
         sound_data <- decode_audio(data, sound_channels, sound_rate)
     }
@@ -232,7 +234,7 @@ def init {
     // Mouse callbacks
     unsafe {
         glfwSetMouseButtonCallback(window) <| @(w, button, action, mods) {
-            if (button == int(GLFW_MOUSE_BUTTON_1) && action == int(GLFW_PRESS)) {
+            if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
                 cursor_captured = !cursor_captured
                 if (cursor_captured) {
                     glfwSetInputMode(window, int(GLFW_CURSOR), int(GLFW_CURSOR_DISABLED))

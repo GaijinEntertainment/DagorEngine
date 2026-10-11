@@ -288,6 +288,7 @@ bool conditional_render_enabled = false;
 StreamlineAdapter::InterposerHandleType streamlineInterposer = {nullptr, nullptr};
 eastl::optional<StreamlineAdapter> streamlineAdapter;
 HandlePointer waitableObject;
+int consecutive_waitable_object_timeouts = 0;
 
 decltype(g_render_state_val) g_render_state_val;
 decltype(g_driver_state_val) g_driver_state_val;
@@ -721,11 +722,6 @@ void release_dlss_feature()
     streamlineAdapter->releaseDlssFeature(1);
 }
 
-static bool is_flip_model(DXGI_SWAP_EFFECT swap_effect)
-{
-  return swap_effect == DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL || swap_effect == DXGI_SWAP_EFFECT_FLIP_DISCARD;
-}
-
 template <typename DeviceType, typename AdapterType, typename FactoryType>
 static HRESULT query_dxgi_factory(void **pp_idxg_ifactory)
 {
@@ -795,6 +791,25 @@ static HRESULT set_fullscreen_state(BOOL is_fullscreen, IDXGIOutput *new_target_
   return swap_chain->SetFullscreenState(is_fullscreen, new_target_output);
 }
 
+// The SL swapchain proxy lives strictly inside streamlineAdapter's lifetime.
+static void streamline_hook_swap_chain()
+{
+  if (!streamlineAdapter || !swap_chain)
+    return;
+  IDXGI_SWAP_CHAIN *hooked = StreamlineAdapter::hook(swap_chain);
+  swap_chain->Release();
+  swap_chain = hooked;
+}
+
+static void streamline_unhook_swap_chain()
+{
+  if (!streamlineAdapter || !swap_chain)
+    return;
+  IDXGI_SWAP_CHAIN *native = StreamlineAdapter::unhook(swap_chain);
+  swap_chain->Release();
+  swap_chain = native;
+}
+
 static bool recreate_swapchain(DXGI_SWAP_CHAIN_DESC &new_scd)
 {
   waitableObject.reset();
@@ -813,6 +828,7 @@ static bool recreate_swapchain(DXGI_SWAP_CHAIN_DESC &new_scd)
     G_ASSERT(SUCCEEDED(hres));
     if (SUCCEEDED(hres))
     {
+      streamline_hook_swap_chain();
       scd = new_scd;
 
       if (scd.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
@@ -1624,6 +1640,7 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
   if (streamlineAdapter)
   {
     streamlineAdapter->setAdapterAndDevice(targetAdapter, dx_device);
+    streamline_hook_swap_chain();
 
     if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
     {
@@ -2231,6 +2248,7 @@ static void close_device(bool is_reset)
   d3d::pcwin::set_present_wnd(NULL);
   for (int i = 0; i < swap_chain_pairs.size(); i++)
   {
+    discard_queued_swapchain_frames(swap_chain_pairs[i].sw);
     del_d3dres(swap_chain_pairs[i].buf);
     swap_chain_pairs[i].sw->Release();
   }
@@ -2240,6 +2258,7 @@ static void close_device(bool is_reset)
   {
     set_fullscreen_state(FALSE, nullptr); // switch to windowed mode
     int ts = get_time_msec();
+    discard_queued_swapchain_frames(swap_chain, scd.SwapEffect);
     swap_chain->Release();
     debug("release swap_chain done in %d msec", get_time_msec() - ts);
   }
@@ -2651,9 +2670,27 @@ bool d3d::reset_device()
     RaiiReset() { device_is_being_reset = true; }
     ~RaiiReset() { device_is_being_reset = false; }
   } raii_reset;
+
+  close_frame_callbacks();
+
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
   const DataBlock &blk_dx = *dgs_get_settings()->getBlockByNameEx("directx");
   const char *displayName = get_monitor_name_from_settings();
+
+  // Both paths need the window as it is now, and dx12 and vulkan refresh it before their branches
+  // too. The cached resolution is stale when a device loss lands in the same frame as a resize.
+  bool savedExecuteQuiet = dgs_execute_quiet;
+  dgs_execute_quiet = true; // don't show any window messages when we are in game
+  RenderWindowSettings wndSettings;
+  get_render_window_settings(wndSettings, stereo_config_callback);
+  dgs_execute_quiet = savedExecuteQuiet;
+
+  // set window params first to avoid glitches caused by changing swapchain output
+  if (!set_window_params(nullptr, nullptr, 0, main_window_hwnd, nullptr, nullptr, wndSettings))
+  {
+    DAG_FATAL("Error with set_window_params in reseting device");
+    return false;
+  }
 
   if (dagor_d3d_force_driver_reset)
   {
@@ -2703,21 +2740,6 @@ bool d3d::reset_device()
   }
   else if (dagor_d3d_force_driver_mode_reset)
   {
-    // don't show any window messages when we are in game
-    bool savedExecuteQuiet = dgs_execute_quiet;
-    dgs_execute_quiet = true;
-    RenderWindowSettings wndSettings;
-    get_render_window_settings(wndSettings, stereo_config_callback);
-    dgs_execute_quiet = savedExecuteQuiet;
-
-    // set window params first to avoid glitches
-    // caused by changing swapchain output
-    if (!set_window_params(nullptr, nullptr, 0, main_window_hwnd, nullptr, nullptr, wndSettings))
-    {
-      DAG_FATAL("Error with set_window_params in reseting device");
-      return false;
-    }
-
     RenderState &rs = g_render_state;
     DriverState &ds = g_driver_state;
 
@@ -2798,11 +2820,13 @@ bool d3d::reset_device()
 
     GpuLatency::teardown();
 
+    streamline_unhook_swap_chain();
     streamlineAdapter.reset();
     StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX11);
     if (streamlineAdapter)
     {
       streamlineAdapter->setAdapterAndDevice(get_active_adapter(dx_device), dx_device);
+      streamline_hook_swap_chain();
       if (streamlineAdapter->isDlssSupported() == nv::SupportState::Supported)
       {
         g_device_desc.caps.hasDLSS = true;
@@ -2824,6 +2848,8 @@ bool d3d::reset_device()
 
   dagor_d3d_force_driver_reset = false;
   dagor_d3d_force_driver_mode_reset = false;
+
+  consecutive_waitable_object_timeouts = 0;
 
   return true;
 }

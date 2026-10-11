@@ -530,7 +530,7 @@ macro USE_ENV_WETNESS_STAGE(stage)
           float3 biasedWorldPos = world_pos.xyz + vertical_normal;
           float depthVignette = 0;
 
-          ##if shader == deferred_shadow_to_buffer
+          ##if shader == deferred_shadow_to_buffer || shader == deferred_light
             const float lowFreqAmplitude = 0.5;
             const float highFreqAmplitude = 0.2;
             const float2 lowFreqAmplifier = float2(0.5, 0.5);

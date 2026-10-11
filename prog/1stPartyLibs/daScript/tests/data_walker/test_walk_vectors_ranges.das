@@ -10,14 +10,12 @@ require dw_common
 
 
 [test]
-def test_walk_vectors(t : T?) {
+def test_walk_vectors(t : T?) { // nolint:STYLE038 - flat list of independent walker arms
     t |> run("int2") @(t : T?) {
         var walker = new LogWalker()
         var v = int2(10, 20)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "Int2:{v}\n")
         unsafe { delete walker; }
@@ -26,9 +24,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = int3(1, 2, 3)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "Int3:{v}\n")
         unsafe { delete walker; }
@@ -37,9 +33,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = int4(1, 2, 3, 4)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "Int4:{v}\n")
         unsafe { delete walker; }
@@ -48,9 +42,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = float2(1.5, 2.5)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "Float2:{v}\n")
         unsafe { delete walker; }
@@ -59,9 +51,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = float3(1.0, 2.0, 3.0)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "Float3:{v}\n")
         unsafe { delete walker; }
@@ -70,9 +60,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = float4(1.0, 2.0, 3.0, 4.0)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "Float4:{v}\n")
         unsafe { delete walker; }
@@ -81,9 +69,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = uint2(1u, 2u)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "UInt2:{v}\n")
         unsafe { delete walker; }
@@ -92,9 +78,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = uint3(1u, 2u, 3u)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "UInt3:{v}\n")
         unsafe { delete walker; }
@@ -103,9 +87,7 @@ def test_walk_vectors(t : T?) {
         var walker = new LogWalker()
         var v = uint4(1u, 2u, 3u, 4u)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(v), typeinfo rtti_typeinfo(v))
-            }
+            adapter |> walk_data(unsafe(addr(v)), typeinfo rtti_typeinfo(v))
         }
         t |> equal(walker.log, "UInt4:{v}\n")
         unsafe { delete walker; }
@@ -119,9 +101,7 @@ def test_walk_ranges(t : T?) {
         var walker = new LogWalker()
         var r = range(0, 10)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(r), typeinfo rtti_typeinfo(r))
-            }
+            adapter |> walk_data(unsafe(addr(r)), typeinfo rtti_typeinfo(r))
         }
         t |> equal(walker.log, "Range:{r}\n")
         unsafe { delete walker; }
@@ -130,9 +110,7 @@ def test_walk_ranges(t : T?) {
         var walker = new LogWalker()
         var r = urange(5u, 15u)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(r), typeinfo rtti_typeinfo(r))
-            }
+            adapter |> walk_data(unsafe(addr(r)), typeinfo rtti_typeinfo(r))
         }
         t |> equal(walker.log, "URange:{r}\n")
         unsafe { delete walker; }
@@ -141,9 +119,7 @@ def test_walk_ranges(t : T?) {
         var walker = new LogWalker()
         var r = range64(0l, 100l)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(r), typeinfo rtti_typeinfo(r))
-            }
+            adapter |> walk_data(unsafe(addr(r)), typeinfo rtti_typeinfo(r))
         }
         t |> equal(walker.log, "Range64:{r}\n")
         unsafe { delete walker; }
@@ -152,9 +128,7 @@ def test_walk_ranges(t : T?) {
         var walker = new LogWalker()
         var r = urange64(10ul, 20ul)
         make_data_walker(walker) $(adapter) {
-            unsafe {
-                adapter |> walk_data(addr(r), typeinfo rtti_typeinfo(r))
-            }
+            adapter |> walk_data(unsafe(addr(r)), typeinfo rtti_typeinfo(r))
         }
         t |> equal(walker.log, "URange64:{r}\n")
         unsafe { delete walker; }

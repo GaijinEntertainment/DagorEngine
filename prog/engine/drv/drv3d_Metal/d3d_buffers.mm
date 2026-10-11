@@ -53,6 +53,8 @@ Sbuffer *d3d::create_vb(int size, int flg, const char* name, ResourceTagType)
 
 Sbuffer *d3d::create_ib(int size, int flg, const char *name, ResourceTagType)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(size % ((flg & SBCF_INDEX32) ? 4 : 2) == 0, nullptr,
+    "Metal: create_ib '%s' size %d is not a whole number of indices", name, size);
   flg |= SBCF_BIND_INDEX;
   validate_sbuffer_flags(flg, name);
   D3D_CONTRACT_ASSERT(((flg & SBCF_BIND_MASK) & ~(SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES)) == 0);

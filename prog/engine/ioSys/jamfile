@@ -83,6 +83,7 @@ if $(ProjectAllowsOodle) = yes && $(oodle_ver) {
         case x86 :    AddLibs += $(oodle_dir)/static_lib/oo2core_win32.lib ;
         case x86_64 : AddLibs += $(oodle_dir)/static_lib/oo2core_win64.lib ;
         case arm64 :  AddLibs += $(oodle_dir)/static_lib/oo2core_winuwparm64.lib ;
+        case arm64ec : AddLibs += $(oodle_dir)/lib/oo2core_win64.lib ; # constraint: static x64 code cannot call the ARM64EC CRT, so use the x64 dll (see copy_bundles.jam)
       }
     case macOS : AddLibs += $(oodle_dir)/lib/liboo2coremac64.a ;
     case linux : AddLibs += $(oodle_dir)/lib/liboo2corelinux64.a ;

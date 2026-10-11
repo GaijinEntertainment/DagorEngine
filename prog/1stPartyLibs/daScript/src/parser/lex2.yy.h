@@ -375,8 +375,8 @@ struct yy_buffer_state
     {
     FILE *yy_input_file;
 
-    char *yy_ch_buf;        /* input buffer */
-    char *yy_buf_pos;        /* current position in input buffer */
+    char *yy_ch_buf;     /* input buffer */
+    char *yy_buf_pos;   /* current position in input buffer */
 
     /* Size of input buffer in bytes, not including room for EOB
      * characters.
@@ -493,7 +493,7 @@ FILE *yyget_out ( yyscan_t yyscanner );
 
 void yyset_out  ( FILE * _out_str , yyscan_t yyscanner );
 
-            int yyget_leng ( yyscan_t yyscanner );
+         int yyget_leng ( yyscan_t yyscanner );
 
 char *yyget_text ( yyscan_t yyscanner );
 
@@ -720,7 +720,7 @@ extern int yylex \
 #undef yyTABLES_NAME
 #endif
 
-#line 927 "ds2_lexer.lpp"
+#line 944 "ds2_lexer.lpp"
 
 
 #line 726 "lex2.yy.h"

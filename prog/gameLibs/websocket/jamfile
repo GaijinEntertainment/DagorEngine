@@ -17,7 +17,12 @@ UseProgLibs += 3rdPartyLibs/eastl
                engine/crypto
 ;
 
-Sources = websocket.cpp ;
+Sources =
+  websocket.cpp
+  websocket_common.cpp
+  websocket_compat.cpp
+  websocket_io.cpp
+;
 
 if $(Platform) in nswitch {
   # nintendo switch uses internal libcurl library

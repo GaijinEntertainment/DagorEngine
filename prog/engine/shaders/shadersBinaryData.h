@@ -57,6 +57,8 @@ using ScriptedShadersBinDumpV2 = bindump::Mapper<shader_layout::ScriptedShadersB
 using ScriptedShadersBinDumpV3 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV3>;
 using ScriptedShadersBinDumpV4 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV4>;
 using ScriptedShadersBinDumpV5 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV5>;
+using ScriptedShadersBinDumpV6 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV6>;
+using RenderPass = bindump::Mapper<shader_layout::RenderPass>;
 using StrHolder = bindump::Mapper<bindump::StrHolder>;
 
 static constexpr uint32_t SHADERVAR_IDX_ABSENT = 0xFFFE;
@@ -95,6 +97,7 @@ struct ScriptedShadersBinDumpOwner
   ScriptedShadersBinDumpV3 *mShaderDumpV3 = nullptr;
   ScriptedShadersBinDumpV4 *mShaderDumpV4 = nullptr;
   ScriptedShadersBinDumpV5 *mShaderDumpV5 = nullptr;
+  ScriptedShadersBinDumpV6 *mShaderDumpV6 = nullptr;
   Tab<uint8_t> mSelfData;
   HashVal<64> mInitialDataHash;
 
@@ -141,6 +144,8 @@ struct ScriptedShadersBinDumpOwner
   const ScriptedShadersBinDumpV3 *getDumpV3() const { return getDumpChecked(mShaderDumpV3, "V3"); }
   const ScriptedShadersBinDumpV4 *getDumpV4() const { return getDumpChecked(mShaderDumpV4, "V4"); }
   const ScriptedShadersBinDumpV5 *getDumpV5() const { return getDumpChecked(mShaderDumpV5, "V5"); }
+  ScriptedShadersBinDumpV6 *getDumpV6() { return mShaderDumpV6; } // null on pre-V6 dumps
+  const ScriptedShadersBinDumpV6 *getDumpV6() const { return mShaderDumpV6; }
 
   auto getDecompressionDict() { return mDictionary.get(); }
 

@@ -162,7 +162,7 @@ protected:
   void connectVertexData(IGenericProgressIndicator &pbar, bool optimize_for_vertex_cache);
 
   void save(const char *scene_fname, unsigned target_code, int scene_format, LightingProvider &lighting, StdTonemapper &tonemapper,
-    int ltmap_count, const char *ltmap_ref_base, IGenericProgressIndicator &pbar);
+    int ltmap_count, const char *ltmap_ref_base, IGenericProgressIndicator &pbar, ILogWriter &log);
 
   /*
   void prebuildAndSaveSpacialDataForShadows(mkbindump::BinDumpSaveCB &cwr,
@@ -249,7 +249,7 @@ Color4 StaticSceneBuilder::StaticVisualScene::bumpDirAndSizeToColor4(const Point
   if (size > TWOPI)
     size = TWOPI;
   float angle = acosf(1.0f - size / TWOPI) * 2.0f;
-  float shininess = (1. - angle) * STATIC_BUMP_SHININESS_SCALE;
+  float shininess = (1.f - angle) * STATIC_BUMP_SHININESS_SCALE;
   if (shininess < MIN_SHININESS)
     shininess = MIN_SHININESS;
 
@@ -875,7 +875,7 @@ bool StaticSceneBuilder::StaticVisualScene::buildAndSave1(LightmappedScene &scen
   debug("lightmaps: scn=%d light=%d", scene.lightmaps.size(), lighting.getLightmapCount());
 
   save(scene_fname, target_code, scene_format, lighting, tonemapper, lighting.getLightmapCount(),
-    should_make_reference ? foldername : NULL, pbar);
+    should_make_reference ? foldername : NULL, pbar, log);
 
   for (int i = 0; i < objects.size(); ++i)
     del_it(objects[i].meshData);
@@ -894,8 +894,43 @@ bool StaticSceneBuilder::StaticVisualScene::buildAndSave(LightmappedScene &scene
   return true;
 }
 
+static bool remove_pointer_decorator(const SimpleString &src, String &dst)
+{
+  dst.clear();
+  dst.reserve(src.length());
+  int state = 0;
+  for (int i = 0; i < src.length(); ++i)
+  {
+    if (state == 0)
+    {
+      if (strncmp(&src[i], "&P(", 3) == 0)
+      {
+        state = 1;
+      }
+      else
+      {
+        dst.append(&src[i], 1);
+      }
+    }
+    else if (state == 1)
+    {
+      if (src[i] == ')')
+      {
+        state = 0;
+      }
+    }
+  }
+  if (state != 0)
+  {
+    logerr("remove_pointer_decorator: could not process %s", src.c_str());
+    dst = src;
+  }
+  return state == 0;
+}
+
 void StaticSceneBuilder::StaticVisualScene::save(const char *scene_fname, unsigned target_code, int scene_format,
-  LightingProvider &lighting, StdTonemapper &tonemapper, int ltmap_count, const char *ltmap_ref_base, IGenericProgressIndicator &pbar)
+  LightingProvider &lighting, StdTonemapper &tonemapper, int ltmap_count, const char *ltmap_ref_base, IGenericProgressIndicator &pbar,
+  ILogWriter &log)
 {
   ShaderMaterialsSaver matSaver;
   ShaderTexturesSaver texSaver;
@@ -1005,6 +1040,8 @@ void StaticSceneBuilder::StaticVisualScene::save(const char *scene_fname, unsign
       cwr_o.writeInt32e(0);
       cwr_o.writeInt32e(topObjInd.size());
 
+      int stableNamesCnt = 0;
+      String stableName;
       // first pass - write names & lods
       for (int ti = 0; ti < topObjInd.size(); ++ti)
       {
@@ -1014,13 +1051,23 @@ void StaticSceneBuilder::StaticVisualScene::save(const char *scene_fname, unsign
         ObjectTmpSaveData &tmp = obj_tmp[ti];
         if (to.name.length())
         {
+          // object names contain pointers which should be removed to keep the resulting binary deterministic
+          if (remove_pointer_decorator(to.name, stableName))
+            stableNamesCnt++;
           tmp.nameOfs = cwr_o.tell();
-          cwr_o.writeRaw(to.name.str(), to.name.length() + 1);
+          cwr_o.writeRaw(stableName.str(), stableName.length() + 1);
         }
         else
           tmp.nameOfs = -1;
       }
       cwr_o.align8();
+
+      if (stableNamesCnt != topObjInd.size())
+        log.addMessage(log.WARNING,
+          "Could not remove unstable part from %d/%d object names.\n"
+          "Resulting binary file is not deterministic.\nSee logerr for details.",
+          topObjInd.size() - stableNamesCnt, topObjInd.size());
+
       for (int ti = 0; ti < topObjInd.size(); ++ti)
       {
         pbar.incDone();

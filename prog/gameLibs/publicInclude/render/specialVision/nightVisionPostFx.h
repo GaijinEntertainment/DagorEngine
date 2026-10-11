@@ -7,7 +7,7 @@
 #include <generic/dag_carray.h>
 #include <math/dag_Point3.h>
 #include <math/dag_integer.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <render/specialVision/specialVision.h>
 
@@ -33,9 +33,9 @@ public:
   IPoint2 sourceResolution;
 
 protected:
-  carray<TextureIDHolder, 2> glowTex;
-  TextureIDHolder tempTex;
-  TextureIDHolder downsampleTex;
+  carray<UniqueTex, 2> glowTex;
+  UniqueTex tempTex;
+  UniqueTex downsampleTex;
 
   PostFxRenderer applyFullscreen;
   PostFxRenderer blur;

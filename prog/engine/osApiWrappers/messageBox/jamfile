@@ -26,6 +26,7 @@ if $(Platform) in windows {
     AddIncludes += $(_DEVTOOL)/fltk-1.3.3 ;
     AddLibs += -lX11 $(_DEVTOOL)/fltk-1.3.3/lib/libfltk-minimal.a ;
   } else {
+    AddIncludes += /usr/include/cairo ;
     AddLibs += -lX11 -lfltk ;
   }
   Sources += linuxMessageBox.cpp ;

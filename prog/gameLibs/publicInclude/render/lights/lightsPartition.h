@@ -19,25 +19,16 @@
 #include <3d/dag_resourceTags.h>
 #include <EASTL/array.h>
 
-class LightsPartition
+class LightsPartition final : public IDynLightsPipelineSection
 {
 public:
   using OmniLightsCB = ReallocatableLightsConstBuffer<sizeof(RenderOmniLight) / 16, true>;
   using SpotLightsCB = ReallocatableLightsConstBuffer<sizeof(RenderSpotLight) / 16, true>;
 
-  // At least on win7 we have a limit for 64k of cb buffer size
-  // But drivers requires to keep cb buffer size under 64k on all platforms.
-  // So we limit it for all platforms.
-  // Reserve one Point4 for the element count constant that ReallocatableLightsConstBuffer
-  // prepends when store_elems_count is true (see reallocate()).
-  static constexpr int MAX_VISIBLE_FAR_LIGHTS = (65536 - sizeof(Point4)) / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight));
-
-
   LightsPartition(OmniLightsManager &omni_lights, SpotLightsManager &spot_lights, const LightsResourcesManager *lights_res_mgr);
 
-  void init(bool use_gpu_partition);
-  bool isGPU() const;
-  bool isGPUSortAvailable() const;
+  void init(DynLightsFeatures requested_features) override;
+  DynLightsFeatures getRuntimeFeatures() const override;
   struct ExecuteLightsCPUPartitionParams
   {
     const LightsVisibilityChecker &checker;
@@ -55,17 +46,14 @@ public:
 
   void close();
 
-  void updateBuffersForVisibleFarLights(LightBufferSlot buffer_slot);
-  void updateBuffersForVisibleClusteredLights(LightBufferSlot buffer_slot, int omni_count, int spot_count);
+  void updateBuffersForVisibleLightsCPU(LightBufferSlot buffer_slot);
+  void updateBuffersForVisibleLightsGPU();
 
   const Tab<uint16_t> &getVisibleClusteredSpotLightsIds() const;
   const Tab<uint16_t> &getVisibleClusteredOmniLightsIds() const;
 
   const Tab<uint16_t> &getVisibleFarSpotLightsIds() const;
   const Tab<uint16_t> &getVisibleFarOmniLightsIds() const;
-
-  const Tab<RenderOmniLight> &getRenderOmniLightsFar() const;
-  const Tab<RenderSpotLight> &getRenderSpotLightsFar() const;
 
   const Tab<vec4f> &getVisibleClusteredSpotLightsBounds() const;
   const Tab<vec4f> &getVisibleClusteredOmniLightsBounds() const;
@@ -98,13 +86,14 @@ private:
 
   void handleVisibleLightsIdListsOverflowCPU(Tab<uint16_t> &clustered_lights, Tab<uint16_t> &far_lights, int max_clustered_count);
 
+  size_t getBufferSlotIndex(LightBufferSlot buffer_slot) const;
+
   OmniLightsManager *omniLights;
   SpotLightsManager *spotLights;
 
   const LightsResourcesManager *lightsResMgr;
 
   LightsSorter lightsSorter;
-  bool useGPUPartition = false;
 
   Tab<uint16_t> visibleClusteredSpotLightsIds;
   Tab<uint16_t> visibleClusteredOmniLightsIds;
@@ -128,9 +117,11 @@ private:
   UniqueBuf visibleClusteredOmniLightsMasksSB;
 
   ComputeShader partitionCS;
+  ComputeShader packConstantBuffersCS;
 
   UniqueBuf frustumPlanesCB;
 
   UniqueBuf visibleLightsDataBuffer;
   UniqueBuf visibleLightsCountsBuffer;
+  UniqueBuf visibleLightsTransitBuffer;
 };

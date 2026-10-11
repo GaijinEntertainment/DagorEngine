@@ -49,6 +49,7 @@ texStreaming {
     tag:t="nx_ny_0_0.5"
     idx:i=6
     color:c=128,128,0,128
+    gamma1:b=yes
   }
   stubTex {
     tag:t="mod2x"
@@ -59,5 +60,13 @@ texStreaming {
     tag:t="nx_ny_0_0"
     idx:i=8
     color:c=128,128,0,0
+    gamma1:b=yes
+  }
+  stubTex {
+    tag:t="vol_nx_ny_nx_ny" // two packed xy normals per texel, both flat
+    idx:i=9
+    type:t="vol"
+    color:c=128,128,128,128
+    gamma1:b=yes
   }
 }

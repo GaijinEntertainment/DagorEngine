@@ -80,14 +80,14 @@ def make_struct_with_field_call_to_cmres {
 }
 
 def make_struct_on_stack(which : bool) {
-    var a = Foo(a = 1, b = 2.0, c = "3", d = 4)
-    var b = Foo(a = 2, b = 3.0, c = "4", d = 5)
+    let a = Foo(a = 1, b = 2.0, c = "3", d = 4)
+    let b = Foo(a = 2, b = 3.0, c = "4", d = 5)
     return which ? a : b
 }
 
 def make_struct_with_substruct_on_stack(which : bool) {
-    var a = Bar(a = 1, foo = Foo(uninitialized a = 2, b = 3.), b = 4)
-    var b = Bar(a = 2, foo = Foo(uninitialized a = 3, b = 4.), b = 5)
+    let a = Bar(a = 1, foo = Foo(uninitialized a = 2, b = 3.), b = 4)
+    let b = Bar(a = 2, foo = Foo(uninitialized a = 3, b = 4.), b = 5)
     return which ? a : b
 }
 
@@ -103,16 +103,16 @@ def struct_field_move_init {
     var fb : FooBar
     var t <- [for (i in range(10)); i * i]
     fb <- FooBar(a <- t, b = 13)
-    assert(length(t) == 0)
+    assert(empty(t))
     return <- fb
 }
 
 [test]
-def test_struct(t : T?) {
+def test_struct(t : T?) {    // nolint:STYLE038 -- flat list of independent JIT arms, one per struct-construction shape
     t |> run("struct field") @(t : T?) {
         var f = Foo(d = 13)
         t |> success(!jit_enabled() || is_jit_function(@@struct_field))
-        var res = struct_field(f)
+        let res = struct_field(f)
         t |> equal(13, res)
         t |> equal(1, f.a)
         t |> equal(2.0, f.b)
@@ -121,14 +121,14 @@ def test_struct(t : T?) {
     t |> run("struct ptr field") @(t : T?) {
         var f = Foo(d = 14)
         t |> success(!jit_enabled() || is_jit_function(@@struct_ptr_field))
-        var res = struct_ptr_field(unsafe(addr(f)))
+        let res = struct_ptr_field(unsafe(addr(f)))
         t |> equal(14, res)
         t |> equal(11, f.a)
         t |> equal(22.0, f.b)
         t |> equal("hhello", f.c)
     }
     t |> run("struct ctor call") @(t : T?) {
-        var f = struct_ctor_call()
+        let f = struct_ctor_call()
         t |> success(!jit_enabled() || is_jit_function(@@struct_ctor_call))
         t |> equal(1234, f.a)
         t |> equal(1234.0, f.b)
@@ -136,7 +136,7 @@ def test_struct(t : T?) {
         t |> equal(1234, f.d)
     }
     t |> run("make struct cmres") @(t : T?) {
-        var f = make_struct_cmres()
+        let f = make_struct_cmres()
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_cmres))
         t |> equal(1, f.a)
         t |> equal(0.0, f.b)
@@ -144,7 +144,7 @@ def test_struct(t : T?) {
         t |> equal(0, f.d)
     }
     t |> run("make struct cmres with init") @(t : T?) {
-        var f = make_struct_cmres_with_init()
+        let f = make_struct_cmres_with_init()
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_cmres_with_init))
         t |> equal(1, f.a)
         t |> equal(1234.0, f.b)
@@ -152,7 +152,7 @@ def test_struct(t : T?) {
         t |> equal(1234, f.d)
     }
     t |> run("make struct with substruct cmres") @(t : T?) {
-        var f = make_struct_with_substruct_cmres()
+        let f = make_struct_with_substruct_cmres()
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_with_substruct_cmres))
         t |> equal(1, f.a)
         t |> equal(2, f.foo.a)
@@ -162,7 +162,7 @@ def test_struct(t : T?) {
         t |> equal(4, f.b)
     }
     t |> run("make struct with substruct cmres with init") @(t : T?) {
-        var f = make_struct_with_substruct_cmres_with_init()
+        let f = make_struct_with_substruct_cmres_with_init()
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_with_substruct_cmres_with_init))
         t |> equal(13, f.a)
         t |> equal(2, f.foo.a)
@@ -172,7 +172,7 @@ def test_struct(t : T?) {
         t |> equal(10, f.b)
     }
     t |> run("make struct with substruct equal to call to cmres") @(t : T?) {
-        var f = make_struct_with_field_call_to_cmres()
+        let f = make_struct_with_field_call_to_cmres()
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_with_field_call_to_cmres))
         t |> equal(1, f.a)
         t |> equal(1234,  f.foo.a)
@@ -182,8 +182,8 @@ def test_struct(t : T?) {
         t |> equal(4, f.b)
     }
     t |> run("make struct on stack") @(t : T?) {
-        var a = make_struct_on_stack(true)
-        var b = make_struct_on_stack(false)
+        let a = make_struct_on_stack(true)
+        let b = make_struct_on_stack(false)
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_on_stack))
         t |> equal(1,   a.a)
         t |> equal(2.,  a.b)
@@ -195,8 +195,8 @@ def test_struct(t : T?) {
         t |> equal(5,   b.d)
     }
     t |> run("make struct with substruct on stack") @(t : T?) {
-        var a = make_struct_with_substruct_on_stack(true)
-        var b = make_struct_with_substruct_on_stack(false)
+        let a = make_struct_with_substruct_on_stack(true)
+        let b = make_struct_with_substruct_on_stack(false)
         t |> success(!jit_enabled() || is_jit_function(@@make_struct_with_substruct_on_stack))
         t |> equal(1,  a.a)
         t |> equal(2,  a.foo.a)
@@ -272,7 +272,7 @@ def test_struct(t : T?) {
         t |> equal(10, f.b)
     }
     t |> run("move init") @(t : T?) {
-        var f <- struct_field_move_init()
+        let f <- struct_field_move_init()
         t |> success(!jit_enabled() || is_jit_function(@@struct_field_move_init))
         for (i in range(10)) {
             t |> equal(f.a[i], i * i)

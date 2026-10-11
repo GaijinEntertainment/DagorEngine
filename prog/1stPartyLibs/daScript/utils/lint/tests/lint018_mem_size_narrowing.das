@@ -3,7 +3,7 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 // LINT018: narrowing the size/position argument of a call that has a 64-bit overload
 //
 // Problem: int(n) truncates above 2^31, so the copy, compare, resize, or erase
-// silently covers the wrong count. memcpy/memcmp carry uint / int64 / uint64
+// silently covers the wrong count. memcpy/memmove/memcmp carry uint / int64 / uint64
 // size overloads; array resize / resize_no_init / resize_and_init / reserve /
 // erase and table reserve carry int64 overloads - the value passes straight through.
 //
@@ -15,18 +15,23 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 //   memcpy(dst, src, nbytes)
 //   arr |> resize(newSize)
 
-expect 50503:10
+expect 50503:11
 
 require daslib/lint
 
 // bad: int() narrowing of an int64 size (1 warning)
-def bad_memcpy_int64(dst, src : void?; nbytes : int64) {
+def bad_memcpy_int64(var dst : void?; src : void?; nbytes : int64) {
     unsafe(memcpy(dst, src, int(nbytes)))
 }
 
 // bad: int() narrowing of a uint64 size (1 warning)
-def bad_memcpy_uint64(dst, src : void?; nbytes : uint64) {
+def bad_memcpy_uint64(var dst : void?; src : void?; nbytes : uint64) {
     unsafe(memcpy(dst, src, int(nbytes)))
+}
+
+// bad: int() narrowing on memmove (1 warning)
+def bad_memmove_int64(var dst : void?; src : void?; nbytes : int64) {
+    unsafe(memmove(dst, src, int(nbytes)))
 }
 
 // bad: int() narrowing on memcmp (1 warning)
@@ -70,12 +75,12 @@ def bad_table_reserve(var tab : table<int; int>; newSize : int64) {
 }
 
 // good: the 64-bit size goes straight to the 64-bit overload
-def good_memcpy_int64(dst, src : void?; nbytes : int64) {
+def good_memcpy_int64(var dst : void?; src : void?; nbytes : int64) {
     unsafe(memcpy(dst, src, nbytes))
 }
 
 // good: an int-typed size needs no cast at all
-def good_memcpy_int(dst, src : void?; nbytes : int) {
+def good_memcpy_int(var dst : void?; src : void?; nbytes : int) {
     unsafe(memcpy(dst, src, nbytes))
 }
 

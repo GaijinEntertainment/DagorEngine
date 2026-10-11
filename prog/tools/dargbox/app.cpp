@@ -96,6 +96,7 @@
 #if _TARGET_PC || _TARGET_ANDROID || _TARGET_C3
 #include <startup/dag_inpDevClsDrv.h>
 #include <math/dag_bounds2.h>
+#include <osApiWrappers/dag_progGlobals.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiKeyboard.h>
@@ -411,6 +412,7 @@ public:
 
   void reloadScripts(bool full_reinit)
   {
+    lastPad = {};
     if (full_reinit)
     {
       // hard reload
@@ -610,6 +612,72 @@ public:
     reattachDevices(false);
   }
 
+  static constexpr float SONY_TOUCHPAD_WIDTH_MM = 43;
+  HumanInput::JoystickTouchpadState lastPad;
+  HumanInput::PointingRawState::Touch padTouches[2];
+  Point2 padOrigin, padAnchor, pointerRest = Point2(0, 0);
+
+#if _TARGET_PC_WIN
+  void padTouchAct()
+  {
+    HumanInput::JoystickTouchpadState pad;
+    HumanInput::CompositeJoystickClassDriver *drv = ::global_cls_composite_drv_joy;
+    HumanInput::IGenPointing *pnt = global_cls_drv_pnt ? global_cls_drv_pnt->getDevice(0) : nullptr;
+    if (!pnt || !darg_scene)
+      return;
+    // constraint: the composite skips the layout group pads not used last
+    bool havePad = false;
+    for (int i = 1, e = drv ? drv->getRealDeviceCount(true) + 1 : 0; i < e && !pad.points[0].down && !pad.points[1].down; i++)
+      havePad = drv->getDevice(i) && drv->getDevice(i)->getTouchpadState(pad);
+    if (!havePad || !dgs_app_active || !pad.width)
+      pad = {};
+    auto same = [&](int i) {
+      return lastPad.points[i].down && pad.points[i].down && pad.points[i].contactId == lastPad.points[i].contactId;
+    };
+    if (!same(0) && !same(1))
+      for (const HumanInput::JoystickTouchpadState::Point &p : pad.points)
+        if (p.down)
+        {
+          padOrigin = Point2(p.x, p.y);
+          padAnchor = darg_scene->activePointerPos();
+          break;
+        }
+    // constraint: the pointing driver owns touch indices below MAX_TOUCHES
+    for (int i = 0; i < countof(padTouches); i++)
+      if (lastPad.points[i].down && !same(i))
+        gmcTouchEnded(nullptr, HumanInput::MAX_TOUCHES + i, padTouches[i]);
+    for (int i = 0; i < countof(padTouches); i++)
+    {
+      const HumanInput::JoystickTouchpadState::Point &p = pad.points[i], &was = lastPad.points[i];
+      HumanInput::PointingRawState::Touch &t = padTouches[i];
+      const int touchIdx = HumanInput::MAX_TOUCHES + i;
+      if (!p.down)
+        continue;
+      Point2 pos = padAnchor + (Point2(p.x, p.y) - padOrigin) * (SONY_TOUCHPAD_WIDTH_MM / pad.width * win32_system_dpi / 25.4f);
+      bool moved = pos.x != t.x || pos.y != t.y;
+      if (same(i) && moved && !pad.points[1 - i].down)
+      {
+        Point2 step = Point2(p.x - was.x, p.y - was.y) * (StdGuiRender::real_screen_width() / float(pad.width)) + pointerRest;
+        IPoint2 px(lroundf(step.x), lroundf(step.y));
+        pointerRest = step - Point2(px.x, px.y);
+        Point2 from = darg_scene->activePointerPos();
+        IPoint2 to(int(from.x) + px.x, int(from.y) + px.y);
+        pnt->setPosition(to.x, to.y);
+        // constraint: daRg drops the move that switches it from the gamepad cursor
+        if (darg_scene->activePointerPos() != Point2(to.x, to.y))
+          pnt->setPosition(to.x, to.y);
+      }
+      t.x = pos.x;
+      t.y = pos.y;
+      if (!same(i))
+        gmcTouchBegan(nullptr, touchIdx, t);
+      else if (moved)
+        gmcTouchMoved(nullptr, touchIdx, t);
+    }
+    lastPad = pad;
+  }
+#endif
+
   void actScene() override
   {
     if (io_events_poll)
@@ -626,7 +694,12 @@ public:
     PictureManager::discard_unused_picture();
 
     if (::global_cls_drv_joy)
+    {
       joystickAct();
+#if _TARGET_PC_WIN
+      padTouchAct();
+#endif
+    }
 
     if (darg_scene)
     {
@@ -672,6 +745,7 @@ public:
       darg_scene->refreshVrCursorProjections();
 
       joystick_handler->processPendingBtnStack(darg_scene);
+      send_queued_touch_pad_gestures(darg_scene);
       darg_scene->update(::dagor_game_act_time);
     }
 

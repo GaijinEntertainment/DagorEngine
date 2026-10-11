@@ -46,5 +46,8 @@ struct Selection
 };
 void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::InternalRegistry &registry,
   const dafg::DependencyData &dep_data);
-void update_external_texture_visualization(dafg::InternalRegistry &registry, const dafg::DependencyData &dep_data);
+void update_external_texture_visualization();
+void apply_external_texture_visualization();
+void clear_external_texture_providers();
+void update_debug_copy_textures();
 void set_manual_showtex_params(const char *params);

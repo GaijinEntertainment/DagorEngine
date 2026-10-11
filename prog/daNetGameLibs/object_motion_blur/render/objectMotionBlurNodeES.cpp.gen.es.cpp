@@ -55,7 +55,7 @@ static ecs::EntitySystemDesc init_object_motion_blur_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__antialiasing_mode,render_settings__motionBlurRuntimeSwitch,render_settings__motionBlurStrength");
+,"render","render_settings__antialiasing_mode,render_settings__bare_minimum,render_settings__motionBlurRuntimeSwitch,render_settings__motionBlurStrength");
 static constexpr ecs::ComponentDesc close_object_motion_blur_es_comps[] =
 {
 //start of 1 rq components at [0]

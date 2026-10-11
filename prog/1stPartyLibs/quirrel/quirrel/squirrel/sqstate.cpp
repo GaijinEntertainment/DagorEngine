@@ -128,32 +128,14 @@ void SQSharedState::Init()
     _stringtable = (SQStringTable*)SQ_MALLOC(_alloc_ctx, sizeof(SQStringTable));
     new (_stringtable) SQStringTable(this);
     sq_new(_alloc_ctx, _metamethodnames, SQObjectPtrVec, _alloc_ctx);
-    sq_new(_alloc_ctx, _systemstrings, SQObjectPtrVec, _alloc_ctx);
     sq_new(_alloc_ctx, _types, SQObjectPtrVec, _alloc_ctx);
     _metamethodsmap = SQTable::Create(this,MT_NUM_METHODS);
 
-#define newsysstring(s) {   \
-    _systemstrings->push_back(SQObjectPtr(SQString::Create(this,s)));    \
-    }
-
-    //adding type strings to avoid memory trashing
-    //types names
-    newsysstring("null");
-    newsysstring("table");
-    newsysstring("array");
-    newsysstring("closure");
-    newsysstring("string");
-    newsysstring("userdata");
-    newsysstring("integer");
-    newsysstring("float");
-    newsysstring("userpointer");
-    newsysstring("function");
-    newsysstring("generator");
-    newsysstring("thread");
-    newsysstring("class");
-    newsysstring("instance");
-    newsysstring("bool");
-#undef newsysstring
+    for (int bit = 0; bit < int(sizeof(_typeNames) / sizeof(*_typeNames)); bit++)
+        if (const char *name = IdType2Name(SQObjectType(1 << bit)))
+            _typeNames[bit] = SQString::Create(this, name);
+    _trueString = SQString::Create(this, "true");
+    _falseString = SQString::Create(this, "false");
 
     //meta methods
 #define MM_IMPL(mm, name) {  \
@@ -175,11 +157,20 @@ void SQSharedState::Init()
     INIT_TKEY(gstate); INIT_TKEY(captured);
 #undef INIT_TKEY
 
+#define INIT_FKEY(k) _funcInfosSchema.k = SQString::Create(this, #k)
+    INIT_FKEY(native); INIT_FKEY(pure); INIT_FKEY(nodiscard); INIT_FKEY(fastcall); INIT_FKEY(name);
+    INIT_FKEY(freevars); INIT_FKEY(src); INIT_FKEY(line); INIT_FKEY(parameters); INIT_FKEY(defparams);
+    INIT_FKEY(required_params); INIT_FKEY(paramscheck); INIT_FKEY(varargs); INIT_FKEY(typecheck);
+    INIT_FKEY(return_type_mask); INIT_FKEY(varargs_type_mask); INIT_FKEY(doc); INIT_FKEY(num_params); INIT_FKEY(num_required);
+#undef INIT_FKEY
+    _funcInfosSchema.thisParam = SQString::Create(this, "this");
+
     _registry = SQTable::Create(this,0);
     _consts = SQTable::Create(this,0);
 #if SQ_STORE_DOC_OBJECTS
     sq_new(_alloc_ctx, _docstrings, sqvector<SQString *>, _alloc_ctx);
     _docstrings->push_back(NULL);
+    _docstringids = SQTable::Create(this,0);
 #endif
 
     _null_class     = CreateBuiltInTypeClass(this, "Null", _null_default_type_methods_funcz, OT_NULL);
@@ -213,16 +204,25 @@ SQSharedState::~SQSharedState()
     NULL_TKEY(name); NULL_TKEY(type); NULL_TKEY(value); NULL_TKEY(count);
     NULL_TKEY(gstate); NULL_TKEY(captured);
 #undef NULL_TKEY
+#define NULL_FKEY(k) _funcInfosSchema.k.Null()
+    NULL_FKEY(native); NULL_FKEY(pure); NULL_FKEY(nodiscard); NULL_FKEY(fastcall); NULL_FKEY(name);
+    NULL_FKEY(freevars); NULL_FKEY(src); NULL_FKEY(line); NULL_FKEY(parameters); NULL_FKEY(defparams);
+    NULL_FKEY(required_params); NULL_FKEY(paramscheck); NULL_FKEY(varargs); NULL_FKEY(typecheck); NULL_FKEY(doc);
+    NULL_FKEY(return_type_mask); NULL_FKEY(varargs_type_mask); NULL_FKEY(num_params); NULL_FKEY(num_required); NULL_FKEY(thisParam);
+#undef NULL_FKEY
     _table(_registry)->Finalize();
     _table(_consts)->Finalize();
     _table(_metamethodsmap)->Finalize();
     _registry.Null();
     _consts.Null();
     _metamethodsmap.Null();
-    while(!_systemstrings->empty()) {
-        _systemstrings->back().Null();
-        _systemstrings->pop_back();
-    }
+#if SQ_STORE_DOC_OBJECTS
+    _docstringids.Null();
+#endif
+    for (SQObjectPtr &name : _typeNames)
+        name.Null();
+    _trueString.Null();
+    _falseString.Null();
     _thread(_root_vm)->Finalize();
     _root_vm.Null();
 
@@ -264,7 +264,6 @@ SQSharedState::~SQSharedState()
 #endif
 
     sq_delete(_alloc_ctx, _types, SQObjectPtrVec);
-    sq_delete(_alloc_ctx, _systemstrings, SQObjectPtrVec);
     sq_delete(_alloc_ctx, _metamethodnames, SQObjectPtrVec);
 #if SQ_STORE_DOC_OBJECTS
     for (SQUnsignedInteger32 i = 1; i < _docstrings->size(); ++i)
@@ -279,12 +278,19 @@ SQSharedState::~SQSharedState()
 SQDocStringId SQSharedState::AddDocString(const char *text)
 {
 #if SQ_STORE_DOC_OBJECTS
-    if (!text || _docstrings->size() > SQ_MAX_DOCSTRING_ID)
+    if (!text)
         return 0;
-    SQString *str = SQString::Create(this, text);
-    __ObjAddRef(str);
-    _docstrings->push_back(str);
-    return SQDocStringId(_docstrings->size() - 1);
+    SQObjectPtr str(SQString::Create(this, text));
+    SQObjectPtr cached;
+    if (_table(_docstringids)->Get(str, cached))
+        return SQDocStringId(_integer(cached));
+    if (_docstrings->size() > SQ_MAX_DOCSTRING_ID)
+        return 0;
+    __ObjAddRef(_string(str));
+    _docstrings->push_back(_string(str));
+    SQDocStringId id = SQDocStringId(_docstrings->size() - 1);
+    _table(_docstringids)->NewSlot(str, SQObjectPtr(SQInteger(id)));
+    return id;
 #else
     (void)text;
     return 0;
@@ -294,11 +300,20 @@ SQDocStringId SQSharedState::AddDocString(const char *text)
 SQDocStringId SQSharedState::AddNativeStrings(const char *docstring, const char *declstring)
 {
 #if SQ_STORE_DOC_OBJECTS
-    if (_docstrings->size() >= SQ_MAX_DOCSTRING_ID)
-        return 0;
-
     SQString *doc = docstring ? SQString::Create(this, docstring) : NULL;
     SQString *decl = declstring ? SQString::Create(this, declstring) : NULL;
+
+    SQObjectPtr key(SQInteger((doc ? doc->_hash : 0) * 31 + (decl ? decl->_hash : 0)));
+    SQObjectPtr cached;
+    if (_table(_docstringids)->Get(key, cached)) {
+        SQDocStringId id = SQDocStringId(_integer(cached));
+        // Interned strings: equal pointers mean equal text
+        if ((*_docstrings)[id] == doc && (*_docstrings)[id + 1] == decl)
+            return id;
+    }
+
+    if (_docstrings->size() >= SQ_MAX_DOCSTRING_ID)
+        return 0;
     if (doc)
         __ObjAddRef(doc);
     if (decl)
@@ -307,6 +322,7 @@ SQDocStringId SQSharedState::AddNativeStrings(const char *docstring, const char 
     SQDocStringId id = SQDocStringId(_docstrings->size());
     _docstrings->push_back(doc);
     _docstrings->push_back(decl);
+    _table(_docstringids)->NewSlot(key, SQObjectPtr(SQInteger(id)));
     return id;
 #else
     (void)docstring;
@@ -339,6 +355,12 @@ SQString *SQSharedState::GetNativeDeclString(SQDocStringId id) const
     (void)id;
     return NULL;
 #endif
+}
+
+const SQObjectPtr &SQSharedState::TypeName(SQObjectType type) const
+{
+    // constraint: OT_NULL is 0, with no type bit
+    return _typeNames[sq_log2(_RAW_TYPE(type) | _RT_NULL)];
 }
 
 SQUnsignedInteger32 SQSharedState::GetDocStringRegistrySlotCount() const
@@ -391,6 +413,9 @@ void SQSharedState::RunMark(SQVM* SQ_UNUSED_ARG(vm),SQCollectable **tchain)
     MarkObject(_registry,tchain);
     MarkObject(_consts,tchain);
     MarkObject(_metamethodsmap,tchain);
+#if SQ_STORE_DOC_OBJECTS
+    MarkObject(_docstringids,tchain);
+#endif
 
     MarkObject(_null_class,tchain);
     MarkObject(_integer_class,tchain);

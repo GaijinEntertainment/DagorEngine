@@ -11,7 +11,6 @@
 #include <EASTL/fixed_string.h>
 #include <daNet/bitStream.h>
 #include <util/dag_simpleString.h>
-#include <generic/dag_tab.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_lsbVisitor.h>
 #include <limits.h>
@@ -21,7 +20,6 @@
 
 namespace ecs
 {
-extern const int MAX_STRING_LENGTH;
 extern const uint32_t MAX_RESERVED_EID_IDX;
 } // namespace ecs
 
@@ -167,14 +165,7 @@ bool BitstreamDeserializer::read(void *to, size_t sz_in_bits, ecs::component_typ
     return true;
   }
   else if (user_type == ecs::ComponentTypeInfo<ecs::string>::type)
-  {
-    Tab<char> tmp(framemem_ptr());
-    tmp.resize(ecs::MAX_STRING_LENGTH);
-    if (ecs::read_string(*this, tmp.data(), ecs::MAX_STRING_LENGTH) < 0)
-      return false;
-    *((ecs::string *)to) = tmp.data();
-    return true;
-  }
+    return ecs::read_string(*this, *(ecs::string *)to);
   else
     return bs.ReadBits((uint8_t *)to, sz_in_bits);
 }

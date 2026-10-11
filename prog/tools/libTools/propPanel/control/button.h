@@ -34,6 +34,15 @@ public:
 
   const char *getImguiTypeName() const override { return "Button"; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    // Same as the item size in ImGui::Button().
+    const ImGuiStyle &style = ImGui::GetStyle();
+    const ImVec2 labelSize = ImGui::CalcTextSize(controlCaption.begin(), controlCaption.end(), true);
+    const float width = mW > 0 ? (float)mW : (labelSize.x + style.FramePadding.x * 2.0f);
+    return Point2(min(width, max_width_px), labelSize.y + style.FramePadding.y * 2.0f);
+  }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);

@@ -18,9 +18,9 @@ import re
 # Keywords from the compiler lexer; kept in one list because the highlighter only
 # needs to tell a keyword from an identifier.
 KEYWORDS = """
-base break case catch class clone const constructor continue default delete do
-else enum extends false for foreach function global if in instanceof let local
-null resume return static switch this throw true try typeof while yield not
+base break case catch class clone const continue default delete do else enum
+false for foreach function global if in instanceof let local null resume
+return static switch this throw true try typeof while yield not
 """.split()
 
 _CODE_TOKEN = re.compile(r"""

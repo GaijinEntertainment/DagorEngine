@@ -872,7 +872,7 @@ bool rendinst::delRIGen(const RendInstDesc &desc, bool add_destr_data)
   return true;
 }
 
-bool rendinst::getDestrCellData(int layer_idx, const eastl::fixed_function<64, bool(const Tab<DestroyedCellData> &)> &callback)
+bool rendinst::getDestrCellData(int layer_idx, dag::FunctionRef<bool(const Tab<DestroyedCellData> &) const> callback)
 {
   RendInstGenData *rgl = getRgLayer(layer_idx);
   if (rgl && rgl->rtData)

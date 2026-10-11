@@ -19,6 +19,7 @@
 #include <atomic>
 #include <EASTL/string.h>
 #include "main/hostedServerLauncher.h"
+#include "main/workStatus.h"
 
 static std::atomic<void (*)()> on_server_loaded_callback{nullptr};
 // DNG default: scene entities alone. Eden sets Scripts (+ Entities for main-thread net).
@@ -37,6 +38,9 @@ DAG_DLL_EXPORT const char *hosted_server_get_uid()
     return s;
   return dll_his_uid.c_str();
 }
+
+// Same pattern as hosted_server_set_log_forwarder: Scope in HIS calls this host callback.
+DAG_DLL_EXPORT void hosted_server_set_work_status_callback(void *cb) { workstatus::set_callback((workstatus::Callback)cb); }
 static debug_log_callback_t prev_log_callback = nullptr;
 static std::atomic<bool> log_callback_armed{false};
 
@@ -50,7 +54,7 @@ static int hosted_server_log_callback(int lev_tag, const char *fmt, const void *
   {
     // Logging can arrive from threads without framemem; strmem is always safe.
     String buf(strmem);
-    buf.avprintf(0, fmt, (const DagorSafeArg *)arg, anum);
+    format_hosted_log_message(buf, fmt, arg, anum);
     if (HostedServerLogForwarder fwd = (HostedServerLogForwarder)log_forwarder.load(std::memory_order_acquire))
       fwd(lev_tag, buf.c_str(), ctx_file, ctx_line);
   }
@@ -145,15 +149,12 @@ void hosted_server_on_loaded(void *callback)
 }
 
 DAG_DLL_EXPORT
-void try_start_relay_and_subscribe(void(__cdecl *relay_status_subscribe)(bool enabled))
+void try_start_relay()
 {
-  if (dedicated_matching::state_data::try_start_relay_and_subscribe)
-    dedicated_matching::state_data::try_start_relay_and_subscribe(relay_status_subscribe);
-  else if (relay_status_subscribe)
-  {
+  if (dedicated_matching::state_data::try_start_relay)
+    dedicated_matching::state_data::try_start_relay();
+  else
     logwarn("%s not set", __FUNCTION__);
-    relay_status_subscribe(false);
-  }
 }
 
 static void hosted_server_tracking_loaded_local_scene_entities_es(const ecs::Event &__restrict, const ecs::QueryView &__restrict)

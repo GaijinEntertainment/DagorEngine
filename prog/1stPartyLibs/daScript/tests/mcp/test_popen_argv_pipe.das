@@ -32,20 +32,17 @@ def test_echo_roundtrip(t : T?) {
         let exe = resolved_das_exe()
         let echo = fixture_path("_fixture_echo.das")
         var responses : array<string>
-        var rc : int
-        unsafe {
-            rc = popen_argv_pipe([exe, "-dasroot", get_das_root(), echo]) $(stdin_w, stdout_r) {
-                return if (stdin_w == null || stdout_r == null)
-                fprint(stdin_w, "hello\n")
-                fflush(stdin_w)
-                let l1 = fgets(stdout_r)
-                responses |> push(clone_string(l1))
-                fprint(stdin_w, "world\n")
-                fflush(stdin_w)
-                let l2 = fgets(stdout_r)
-                responses |> push(clone_string(l2))
-            }
-        }
+        let rc = unsafe(popen_argv_pipe([exe, "-dasroot", get_das_root(), echo]) $(stdin_w, stdout_r) {
+            return if (stdin_w == null || stdout_r == null)
+            fprint(stdin_w, "hello\n")
+            fflush(stdin_w)
+            let l1 = fgets(stdout_r)
+            responses |> push(clone_string(l1))
+            fprint(stdin_w, "world\n")
+            fflush(stdin_w)
+            let l2 = fgets(stdout_r)
+            responses |> push(clone_string(l2))
+        })
         t |> equal(rc, 0, "subprocess exit code")
         t |> equal(length(responses), 2)
         return if (length(responses) != 2)
@@ -60,14 +57,11 @@ def test_exit_code_propagated(t : T?) {
     t |> run("subprocess exit code returned to caller") @(t : T?) {
         let exe = resolved_das_exe()
         let exit_script = fixture_path("_fixture_exit.das")
-        var rc : int
-        unsafe {
-            rc = popen_argv_pipe([exe, "-dasroot", get_das_root(), exit_script]) $(stdin_w, stdout_r) {
-                // No I/O. Block returns immediately; parent closes pipes,
-                // waits for the child (which returns 7), captures exit code.
-                pass
-            }
-        }
+        let rc = unsafe(popen_argv_pipe([exe, "-dasroot", get_das_root(), exit_script]) $(stdin_w, stdout_r) {
+            // No I/O. Block returns immediately; parent closes pipes,
+            // waits for the child (which returns 7), captures exit code.
+            pass
+        })
         t |> equal(rc, 7)
     }
 }
@@ -80,12 +74,9 @@ def test_stdin_eof_after_block(t : T?) {
         // Don't write anything — block returns, stdin closes, echo loop
         // sees feof, exits with 0. Verifies the parent-side close-stdin
         // path doesn't leave the child hanging.
-        var rc : int
-        unsafe {
-            rc = popen_argv_pipe([exe, "-dasroot", get_das_root(), echo]) $(stdin_w, stdout_r) {
-                pass
-            }
-        }
+        let rc = unsafe(popen_argv_pipe([exe, "-dasroot", get_das_root(), echo]) $(stdin_w, stdout_r) {
+            pass
+        })
         t |> equal(rc, 0)
     }
 }

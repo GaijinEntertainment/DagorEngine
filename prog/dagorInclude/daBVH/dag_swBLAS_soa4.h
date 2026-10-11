@@ -613,6 +613,20 @@ static __forceinline void fetchLeafTri(const uint8_t *data, LeafRef ref, int sub
   fetchLeafTri(data, decodeLeafRef(data, ref), subTri, vl, a, b, c);
 }
 
+// Unit world normal of a box-space geometric normal. Positions map world to box by a per-axis
+// scale, so the normal transforms by that same diagonal and not by its inverse (covariance of a
+// diagonal matrix).
+static __forceinline vec3f normalBoxToWorld(vec3f normalBox, vec4f blas_scale) { return v_norm3(v_mul(normalBox, blas_scale)); }
+
+// Unit world normal of a hit sub-triangle. Takes the walker's LeafRef, so a ray callback needs
+// nothing else.
+static __forceinline vec3f refNormalToWorld(const uint8_t *data, LeafRef ref, int subTri, vec4f blas_scale)
+{
+  vec3f a, b, c;
+  fetchLeafTri(data, ref, subTri, Vert21Loader{}, a, b, c);
+  return normalBoxToWorld(v_cross3(v_sub(b, a), v_sub(c, a)), blas_scale);
+}
+
 // Child lane box as float vec3fs (same integer box-space values the stackless decodeRaw yields).
 static __forceinline void laneBox(const uint8_t *n, int s2, int lane, vec3f &bmin, vec3f &bmax)
 {

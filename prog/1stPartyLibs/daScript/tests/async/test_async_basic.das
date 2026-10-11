@@ -22,7 +22,7 @@ def test_void_async(t : T?) {
     t |> run("void async produces iterator<bool>") @(t : T?) {
         var it <- void_task()
         var count = 0
-        for (v in it) {
+        for (_v in it) {
             count ++
         }
         // 2 await_next_frame + implicit yield on entry = at least 2 frames
@@ -112,7 +112,7 @@ def test_frame_counting(t : T?) {
     t |> run("await_next_frame suspends for exactly N frames") @(t : T?) {
         var it <- frame_counter(5)
         var frames = 0
-        for (v in it) {
+        for (_v in it) {
             frames ++
         }
         t |> equal(frames, 5)
@@ -136,7 +136,7 @@ def test_early_return(t : T?) {
     t |> run("return false exits early") @(t : T?) {
         var it <- early_return(true)
         var frames = 0
-        for (v in it) {
+        for (_v in it) {
             frames ++
         }
         // Should exit after 1 frame (the first await_next_frame before if)
@@ -145,7 +145,7 @@ def test_early_return(t : T?) {
     t |> run("no early return completes normally") @(t : T?) {
         var it <- early_return(false)
         var frames = 0
-        for (v in it) {
+        for (_v in it) {
             frames ++
         }
         t |> equal(frames, 3)
@@ -164,7 +164,7 @@ def test_empty_async(t : T?) {
     t |> run("empty async completes immediately") @(t : T?) {
         var it <- empty_async()
         var frames = 0
-        for (v in it) {
+        for (_v in it) {
             frames ++
         }
         t |> equal(frames, 0)
@@ -183,12 +183,7 @@ def multi_yield() : int {
 [test]
 def test_multi_yield(t : T?) {
     t |> run("typed async yields multiple values") @(t : T?) {
-        var vals : array<int>
-        for (v in multi_yield()) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in multi_yield()); v as res; where v is res]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], 10)
         t |> equal(vals[1], 20)
@@ -210,21 +205,11 @@ def get_or_default(x : int) : int {
 [test]
 def test_typed_early_return(t : T?) {
     t |> run("typed async with return false yields nothing") @(t : T?) {
-        var vals : array<int>
-        for (v in get_or_default(-1)) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in get_or_default(-1)); v as res; where v is res]
         t |> equal(length(vals), 0)
     }
     t |> run("typed async with valid input yields value") @(t : T?) {
-        var vals : array<int>
-        for (v in get_or_default(42)) {
-            if (v is res) {
-                vals |> push(v as res)
-            }
-        }
+        let vals <- [for (v in get_or_default(42)); v as res; where v is res]
         t |> equal(length(vals), 1)
         t |> equal(vals[0], 42)
     }

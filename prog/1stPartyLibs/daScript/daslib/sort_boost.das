@@ -76,8 +76,6 @@ def public partial_sort(var a : array<auto(TT)> | #; n : int; cmp : block<(x, y 
     }
 }
 
-// ---- nth_element ----
-
 //! Place the ``n``-th smallest element at position ``n``, with all earlier
 //! elements <= and all later elements >=. O(N) average on the kth element only.
 def public nth_element(var a : array<auto(TT)> | #; n : int) {
@@ -126,12 +124,6 @@ def public nth_element(var a : array<auto(TT)> | #; n : int; cmp : block<(x, y :
         }
     }
 }
-
-// ---- Heap operations ----
-//
-// make_heap turns the array into a binary max-heap.
-// push_heap assumes the new element was just appended at the end.
-// pop_heap moves the heap max to the end; the caller drops the last slot.
 
 //! Restructure ``a`` into a binary max-heap (using ``<``).
 def public make_heap(var a : array<auto(TT)> | #) {
@@ -279,12 +271,6 @@ def public pop_heap(var a : array<auto(TT)> | #; cmp : block<(x, y : TT) : bool>
     }
 }
 
-// ============================================================================
-// q*-prefixed dispatch macros — same shape as qsort. Each emits a call to the
-// matching user-facing wrapper above (which then dispatches to the right
-// __builtin_*). For handled vector types, wraps the source in temp_array.
-// ============================================================================
-
 [call_macro(name="qsort")]
 class QsortMacro : AstCallMacro {
     //! Implements `qsort` macro. It's `qsort(value,block)`.
@@ -293,7 +279,6 @@ class QsortMacro : AstCallMacro {
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting qsort(value, block)")
         if (expr.arguments[0]._type == null || expr.arguments[1]._type == null) return null
-        // todo: verify correct block type?
         macro_verify(expr.arguments[1]._type.baseType == Type.tBlock, prog, expr.at, "expecting 2nd argument to be block(<a,b:auto(TT)>:bool))")
         if (expr.arguments[0]._type.baseType == Type.tFixedArray || expr.arguments[0]._type.baseType == Type.tArray) {
             var call = new ExprCall(name := "sort", at = expr.at)
@@ -315,7 +300,6 @@ class QsortMacro : AstCallMacro {
     }
 }
 
-// Internal helper: build an ``opName(value [, n], block)`` call from the macro's call expression, wrapping ``value`` in temp_array for handled vectors.
 def private build_dispatch_call(prog : ProgramPtr; var expr : ExprCallMacro?; macroName, opName : string; takesN : bool) : ExpressionPtr {
     let expectedArgs = takesN ? 3 : 2
     let argShape = takesN ? "(value, n, block)" : "(value, block)"

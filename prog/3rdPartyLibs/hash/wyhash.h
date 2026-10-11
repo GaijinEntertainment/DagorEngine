@@ -27,7 +27,9 @@
 //includes
 #include <stdint.h>
 #include <string.h>
-#if defined(_MSC_VER) && defined(_M_X64)
+// Gaijin change
+#if defined(_MSC_VER) && defined(_M_X64) && !defined(_M_ARM64EC)
+// ~Gaijin change
   extern "C" unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64*);
   #pragma intrinsic(_umul128)
   #ifdef __clang__
@@ -78,7 +80,9 @@ static inline constexpr void _wymum_const(uint64_t *A, uint64_t *B){
 }
 
 static inline void _wymum(uint64_t *A, uint64_t *B){
-#if(WYHASH_32BIT_MUM) || !(defined(_MSC_VER) && defined(_M_X64))
+// Gaijin change
+#if(WYHASH_32BIT_MUM) || !(defined(_MSC_VER) && defined(_M_X64) && !defined(_M_ARM64EC))
+// ~Gaijin change
   _wymum_const(A, B);
 #else
   //this is the only part which is not constexpr, as msvc thinks _umul128 is not constexpr
@@ -315,7 +319,9 @@ static inline void make_secret(uint64_t seed, uint64_t *secret){
       for(size_t j=0;j<i;j++) {
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
         if(__builtin_popcountll(secret[j]^secret[i])!=32){ ok=0; break; }
-#elif defined(_MSC_VER) && defined(_M_X64)
+// Gaijin change
+#elif defined(_MSC_VER) && defined(_M_X64) && !defined(_M_ARM64EC)
+// ~Gaijin change
         if(_mm_popcnt_u64(secret[j]^secret[i])!=32){ ok=0; break; }
 #else
         //manual popcount

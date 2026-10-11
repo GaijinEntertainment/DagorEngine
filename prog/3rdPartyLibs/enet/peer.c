@@ -426,6 +426,7 @@ enet_peer_reset (ENetPeer * peer)
     peer -> totalWaitingData = 0;
     peer -> useStickyCompressionFlag = 0;
     peer -> stickyCompressionFlag = 0;
+    _DAGOR_ENET_INJECT_PEER_RESET
 
     memset (peer -> unsequencedWindow, 0, sizeof (peer -> unsequencedWindow));
     

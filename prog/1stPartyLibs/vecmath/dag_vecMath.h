@@ -798,6 +798,8 @@ VECTORCALL VECMATH_FINLINE bool v_test_xyzw_nan(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_test_xyz_nan(vec3f a);
 VECTORCALL VECMATH_FINLINE bool v_test_mat43_nan(mat44f m);
 VECTORCALL VECMATH_FINLINE bool v_test_mat44_nan(mat44f m);
+//! true when .xyz of all 4 columns are finite (no NaN, no Inf); .w is ignored
+VECTORCALL VECMATH_FINLINE bool v_test_mat43_finite(mat44f_cref m);
 //! check for finite value all selected components
 VECTORCALL VECMATH_FINLINE bool v_test_xyzw_finite(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_test_xyz_finite(vec3f a);
@@ -857,6 +859,16 @@ VECTORCALL VECMATH_FINLINE void v_mat44_ident_swapxz(mat44f &dest);
 VECTORCALL VECMATH_FINLINE void v_mat33_ident(mat33f &dest);
 //! identity matrix 4x4 with swapped X and Z columns
 VECTORCALL VECMATH_FINLINE void v_mat33_ident_swapxz(mat33f &dest);
+//! true when .xyz of all 4 columns equal the 4x3 identity exactly (float ==, so -0 passes);
+//! .w of the columns is ignored
+VECTORCALL VECMATH_FINLINE bool v_mat44_is_ident43(mat44f_cref m);
+//! true when .xyz of all 4 columns of a and b are equal (float ==, so -0 == 0 and NaN fails);
+//! .w of the columns is ignored
+VECTORCALL VECMATH_FINLINE bool v_mat44_is_equal43(mat44f_cref a, mat44f_cref b);
+//! true when .xyz of col0..col2 form an exact signed permutation: every element 0 or +-1 and one
+//! +-1 in each row and column (identity, axis-aligned rotations and reflections); NaN and Inf
+//! fail; .w of the columns and col3 are ignored
+VECTORCALL VECMATH_FINLINE bool v_mat44_is_signed_perm33(mat44f_cref m);
 
 //! make perspective matrix 4x4
 VECTORCALL VECMATH_FINLINE void v_mat44_make_persp_reverse(mat44f &dest, float wk, float hk, float zn, float zf);//zn - 1, zf - 0
@@ -987,12 +999,15 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43_sq(mat44f_cref tm);
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43(mat44f_cref tm);
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43_x(mat44f_cref tm);
 //! Gram matrix (m^T m) of three columns, held across lanes: diag = the squared column lengths,
-//! off = (c1.c2, c0.c2, c0.c1), each lane the off-diagonal outside its own row: the pairing
-//! v_mat33_gram_bound_x and a symmetric-3x3 determinant's mixed term want. Readers that only
-//! threshold all three lanes, or reduce them, do not care about it.
+//! off = (c1.c2, c0.c2, c0.c1), each lane the off-diagonal outside its own row, the pairing
+//! v_mat33_gram_bound_x and a symmetric-3x3 determinant's mixed term want; thresholds and
+//! reductions over all three lanes do not care. Sums run (x + z) + y: on SSE4.1 without FMA the
+//! lanes equal v_dot3_x of the column pairs bit for bit. diag.w = 0; off.w is unspecified, so
+//! reduce off with a 3-lane form.
 VECTORCALL VECMATH_FINLINE void v_mat33_gram(vec3f &diag, vec3f &off, vec3f col0, vec3f col1, vec3f col2);
 //! .x = Gershgorin bound on the largest eigenvalue of the Gram matrix above, that is on the
-//! SQUARED spectral norm. Needs off in v_mat33_gram's lane order. Exact for an orthogonal basis.
+//! SQUARED spectral norm. Needs off in v_mat33_gram's lane order. Exact for an orthogonal basis,
+//! a few ULP under the true value at worst elsewhere; an overflowed lane reads inf, never NaN.
 VECTORCALL VECMATH_FINLINE vec4f v_mat33_gram_bound_x(vec3f diag, vec3f off);
 //! .x = largest singular value of columns 0..2: the real maximum stretch, shear included, where
 //! v_mat44_max_scale43_x takes the longest column and so under-reads a sheared basis. Needs a
@@ -1001,11 +1016,11 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat33_gram_bound_x(vec3f diag, vec3f off);
 //! coincide: the closed form's acos is steep there and float carries about 1e-4 relative, either
 //! way, so a caller that needs a strict upper bound scales the result up past that.
 VECTORCALL VECMATH_INLINE vec4f v_mat44_spectral_norm43_x(mat44f_cref tm);
-//! .x = an upper bound on v_mat44_spectral_norm43_x off the Gershgorin row sums of the Gram
-//! matrix, about a third cheaper. Never under the true norm bar a few ULP, exact for an
-//! orthonormal basis, and measured up to 17% over elsewhere (3x is the algebraic worst case).
-//! For a conservative cull radius, where the exact form's 1e-4 is not an upper bound at all;
-//! needs a finite basis like it.
+//! .x = an upper bound on the true largest singular value off the Gershgorin row sums of the Gram
+//! matrix, about a third cheaper than the closed form, whose 1e-4 lands either side of it. Never
+//! under the true norm bar a few ULP, exact for an orthonormal basis, measured up to 17% over
+//! elsewhere (the row sums allow sqrt(3), the 3s fallback 3x). For a conservative cull radius;
+//! needs a finite basis like the closed form.
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_spectral_norm43_bound_x(mat44f_cref tm);
 //! .xyz = scales of 3 axes
 VECTORCALL VECMATH_FINLINE vec3f v_mat44_scale43_sq(mat44f_cref tm);

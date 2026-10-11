@@ -48,7 +48,7 @@
 #include <render/cameraPositions.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <render/cascadeShadows.h>
-#include <render/ssao.h>
+#include <ssao_public.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_cube_matrix.h>
 #include <math/dag_frustum.h>
@@ -489,7 +489,7 @@ public:
       fftWater.reset(fft_water::create_water(fft_water::RENDER_EXCELLENT, water_panel.fft_period, 7, false, false, false, 6,
         fft_water::RenderQuality::UNDEFINED, true, -1, true));
       fft_water::setWaterCell(fftWater.get(), 1.0f, true);
-      fft_water::apply_wave_preset(fftWater.get(), 3.0f, Point2(1.0f, 0.0f), fft_water::Spectrum::UNIFIED_DIRECTIONAL);
+      fft_water::apply_wave_preset(fftWater.get(), 3.0f, Point2(1.0f, 0.0f), fft_water::WavePresetTable::UNIFIED_DIRECTIONAL);
       reloadUiWaves();
     }
 
@@ -1396,7 +1396,7 @@ public:
       registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depth(depth_tex_name);
     });
 
-    result.deferredShading = dafg::register_node("deferred_shading", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+    result.deferredShading = dafg::register_node("deferred_shadow_to_buffer", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
 
       auto mainSkiesDataHndl = registry.read("main_cam_skies_data").blob<SkiesData *>().handle();
@@ -1420,7 +1420,7 @@ public:
       registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate");
       registry.read("csm").texture().atStage(dafg::Stage::PS).bindToShaderVar("shadow_cascade_depth_tex");
 
-      auto resShading = eastl::make_unique<ShadingResolver>("deferred_shading");
+      auto resShading = eastl::make_unique<ShadingResolver>("deferred_shadow_to_buffer");
       return [this, depthHandle, resolvedHandle, mainViewRes, camHndl, mainSkiesDataHndl, resolveShading = eastl::move(resShading)]() {
         auto res = mainViewRes.get();
         shvars::screen_pos_to_texcoord.set_float4(1.f / res.x, 1.f / res.y, 0, 0);
@@ -1570,9 +1570,9 @@ public:
 
       uint32_t fmt = 0;
       SSRQuality tmpQuality = SSRQuality::Low;
-      ScreenSpaceReflections::getRealQualityAndFmt(fmt, tmpQuality);
+      ssr_pass::get_real_quality_and_fmt(fmt, tmpQuality);
       fmt |= TEXCF_RTARGET;
-      const auto mipCount = static_cast<uint32_t>(ScreenSpaceReflections::getMipCount(SSRQuality::Low));
+      const auto mipCount = static_cast<uint32_t>(ssr_pass::get_mip_count(SSRQuality::Low));
 
       auto ssrTargetHndl = registry.create("ssr_target")
                              .texture({fmt, registry.getResolution<2>("main_view", 0.5f), mipCount})
@@ -1584,7 +1584,7 @@ public:
       auto ssrTargetHistHndl =
         registry.historyFor("ssr_target").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-      auto ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2, 1, fmt, SSRQuality::Low, SSRFlag::None);
+      auto ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2, 1, fmt, SSRQuality::Low, /*own_textures*/ false);
       return [camHndl, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
         const Camera &camera = camHndl.ref();
         const DPoint3 worldPos = DPoint3(camera.viewItm.getcol(3));
@@ -1604,7 +1604,7 @@ public:
                          .handle();
 
       const auto halfMainViewRes = registry.getResolution<2>("main_view", 0.5f);
-      const auto fmt = ssao_detail::creation_flags_to_format(SSAO_NONE);
+      const auto fmt = ao_common::creation_flags_to_format(SSAO_NONE);
 
       auto ssaoHndl = registry.create("ssao_tex")
                         .texture({fmt | TEXCF_RTARGET, halfMainViewRes})
@@ -3106,7 +3106,7 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     Point2 wind_dir = Point2(windDirX, windDirZ);
     if (argc > 3)
       wind_dir = normalize(Point2(atof(argv[2]), atof(argv[3])));
-    fft_water::apply_wave_preset(water, atof(argv[1]), wind_dir, fft_water::Spectrum::UNIFIED_DIRECTIONAL);
+    fft_water::apply_wave_preset(water, atof(argv[1]), wind_dir, fft_water::WavePresetTable::UNIFIED_DIRECTIONAL);
 
     fft_water::set_fft_resolution(water, 7);
     fft_water::setWaterCell(water, 1.0f, true);

@@ -631,9 +631,11 @@ bool init(const DataBlock &blk)
 
   delayed::init(blk);
 
-  if (blk.getBool("occlusionInit", false))
+  // a host that registers a backend before init asked for the blob layer, whatever the settings say
+  if (occlusion_gpu::has_backend())
+    occlusion_gpu::init(blk);
+  else if (blk.getBool("occlusionInit", false))
     occlusion::init(blk, g_low_level_system);
-
   else if (blk.getBool("occlusionGPUInit", false))
     occlusion_gpu::init(blk);
 

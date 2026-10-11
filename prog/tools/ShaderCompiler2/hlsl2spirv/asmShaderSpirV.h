@@ -26,6 +26,7 @@ struct SpirVCompileInputs
   bool dumpSpirvOnly = false;
   bool validateGlobalConstsOffsetOrder = false;
   bool noConversionWarnings = false;
+  bool warningsAsErrors = false;
   // Validate buffer layouts with Vulkan scalar block layout instead of the strict VULKAN_1_0 rules,
   // which demand 16-aligned float3. Requires the scalarBlockLayout device feature at runtime.
   bool useScalarLayout = false;

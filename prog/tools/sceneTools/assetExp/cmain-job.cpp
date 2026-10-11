@@ -24,7 +24,6 @@ static const char *dbg_name();
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_sharedMem.h>
-#include <osApiWrappers/dag_messageBox.h>
 #include <debug/dag_debug.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,9 +40,7 @@ extern "C" IDaBuildInterface *__stdcall get_dabuild_interface();
 class ConsoleLogWriterEx : public ConsoleLogWriter
 {
 public:
-  ConsoleLogWriterEx() : level(NOTE), errCount(0), impWarnCnt(0) {}
-  String impWarn;
-  int impWarnCnt;
+  ConsoleLogWriterEx() : level(NOTE), errCount(0) {}
 
   void addMessageFmt(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum) override
   {
@@ -51,16 +48,6 @@ public:
       return;
     if (type == IMPORTANT_NOTE)
       type = NOTE;
-    if (unsigned(type) == (WARNING | 0x100))
-    {
-      if (impWarnCnt < 20)
-      {
-        impWarn.avprintf(128, fmt, arg, anum);
-        impWarn += '\n';
-      }
-      impWarnCnt++;
-      type = WARNING;
-    }
     AtomicPrintfMutex::inst.lock();
     ConsoleLogWriter::addMessageFmt(type, fmt, arg, anum);
     AtomicPrintfMutex::inst.unlock(stdout, true);
@@ -68,7 +55,6 @@ public:
     char mark = ' ';
     switch (type)
     {
-      case NOTE: mark = ' '; break;
       case WARNING: mark = 'W'; break;
       case ERROR: mark = 'E'; break;
       case FATAL: mark = 'F'; break;
@@ -187,7 +173,6 @@ static int do_main(bool debugmode)
   dabuild_collapse_packs = jobMem->collapsePacks;
   dgs_report_fatal_error = dabuild_job_report_fatal;
 
-  bool show_important_warnings = jobMem->showImportantWarnings;
 
   ConsoleLogWriterEx log;
   ConsoleMsgPipe pipe(log);
@@ -329,11 +314,8 @@ static int do_main(bool debugmode)
   make_exp_types_mask(expTypesMask, mgr, exp_blk, log);
 
   DataBlock out_blk;
-  SimpleString lastProfile;
-  unsigned lastTargetCode = 0;
+  String desc_fname;
   unsigned last_flush_time = 0, last_idle_reported_time = 0, idle_report_interval = 2000;
-
-  DataBlock *patch_build_blk = out_blk.addBlock("patchBuild");
 
   dabuild_prepare_out_blk(out_blk, mgr, build_blk);
   while (jobMem->pid != 0xFFFFFFFFU)
@@ -364,16 +346,6 @@ static int do_main(bool debugmode)
     if (ctx.state == 1)
     {
       ctx.result = 0;
-      if (lastTargetCode != ctx.targetCode || strcmp(lastProfile, SimpleString((char *)ctx.profileName)) != 0)
-      {
-        if (lastTargetCode)
-        {
-          dabuild_finish_out_blk(out_blk, mgr, build_blk, exp_blk, app_dir, lastTargetCode, lastProfile);
-          dabuild_prepare_out_blk(out_blk, mgr, build_blk);
-        }
-        lastTargetCode = ctx.targetCode;
-        lastProfile = (char *)ctx.profileName;
-      }
 
       if (ctx.cmd == 1)
       {
@@ -399,8 +371,6 @@ static int do_main(bool debugmode)
         bool write_be = dagor_target_code_be(targetCode);
         bool upToDate = false;
         int i = ctx.packId;
-
-        patch_build_blk->setBool(pkid < 0 ? "main" : addPackages.getName(pkid), ctx.patchBuild);
 
         if (i < 0 || i >= tex_pack.size() || stricmp(tex_pack[i]->packName, ctx.data) != 0)
           for (i = 0; i < tex_pack.size() && stricmp(tex_pack[i]->packName, ctx.data) != 0; i++)
@@ -441,6 +411,7 @@ static int do_main(bool debugmode)
         ctx.szDiff = stat_tex_sz_diff;
         ctx.szChangedTotal = stat_changed_tex_total_sz;
         ctx.result = (stat_tex_unchanged != stu) ? 3 : (upToDate ? 2 : 1);
+        dabuild_make_tex_desc_entries(out_blk, mgr, asset_list, targetCode);
       }
       else if (ctx.cmd == 3)
       {
@@ -457,8 +428,6 @@ static int do_main(bool debugmode)
         bool write_be = dagor_target_code_be(targetCode);
         bool upToDate = false;
         int i = ctx.packId;
-
-        patch_build_blk->setBool(pkid < 0 ? "main" : addPackages.getName(pkid), ctx.patchBuild);
 
         if (i < 0 || i >= grp_pack.size() || stricmp(grp_pack[i]->packName, ctx.data) != 0)
           for (i = 0; i < grp_pack.size() && stricmp(grp_pack[i]->packName, ctx.data) != 0; i++)
@@ -525,11 +494,18 @@ static int do_main(bool debugmode)
     finish_procssing:
       if (!jobMem)
         break;
+      // the main process merges the entries of each built pack; other commands drop the entries they made
+      desc_fname.clear();
+      if ((ctx.cmd == 2 || ctx.cmd == 3) && ctx.result && !dabuild_dry_run)
+        dabuild_make_job_desc_fname(desc_fname, cache_base, jobMem->pid, ctx.cmd == 3, ctx.packId);
+      if (!dabuild_hand_over_out_blk(out_blk, mgr, desc_fname.empty() ? nullptr : desc_fname.str()))
+      {
+        logerr("cannot save the desc entries to %s", desc_fname);
+        ctx.result = 0;
+      }
       jobMem->changeCtxState(ctx, 3);
     }
   }
-  if (lastTargetCode)
-    dabuild_finish_out_blk(out_blk, mgr, build_blk, exp_blk, app_dir, lastTargetCode, lastProfile);
   clear_all_ptr_items(tex_pack);
   clear_all_ptr_items(grp_pack);
   DEBUG_CP();
@@ -547,10 +523,6 @@ static int do_main(bool debugmode)
   if (dabuild)
     dabuild->release();
 
-  if (show_important_warnings && log.impWarnCnt)
-    os_message_box(String(2048, "daBuild job%d registered %d serious warnings%s:\n\n%s", job_id, log.impWarnCnt,
-                     log.impWarnCnt > 20 ? ";\nfirst 20 assets are" : "", log.impWarn.str()),
-      "daBuild warnings", GUI_MB_OK | GUI_MB_ICON_ERROR);
   return 0;
 }
 

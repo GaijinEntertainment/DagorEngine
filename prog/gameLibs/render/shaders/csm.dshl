@@ -18,7 +18,7 @@ float4 shadow_cascade_0_tm[3];
 float4 shadow_cascade_relative_scale_and_near[6];
 float4 shadow_cascade_relative_offset_and_far[6];
 float4 shadow_cascade_tc_mul_offset[6];
-float4 shadow_cascade_rcp_basis_length_sq[6];
+float4 shadow_cascade_normal_tc_scale[6];
 int shadow_cascade_manual_cascade_count;
 
 float4 csm_world_view_pos;
@@ -80,7 +80,7 @@ macro INIT_CSM_SHADOW_STCODE_BASE(stage)
     shadow_cascade_relative_scale_and_near@f4[] = shadow_cascade_relative_scale_and_near;
     shadow_cascade_relative_offset_and_far@f4[] = shadow_cascade_relative_offset_and_far;
     shadow_cascade_tc_mul_offset@f4[] = shadow_cascade_tc_mul_offset;
-    shadow_cascade_rcp_basis_length_sq@f4[] = shadow_cascade_rcp_basis_length_sq;
+    shadow_cascade_normal_tc_scale@f4[] = shadow_cascade_normal_tc_scale;
     shadow_cascade_manual_cascade_count@i1 = shadow_cascade_manual_cascade_count;
   }
 endmacro
@@ -100,7 +100,7 @@ macro INIT_CSM_SHADOW_CBUF_BASE(stage)
         float4 shadow_cascade_relative_scale_and_near[6];
         float4 shadow_cascade_relative_offset_and_far[6];
         float4 shadow_cascade_tc_mul_offset[6];
-        float4 shadow_cascade_rcp_basis_length_sq[6];
+        float4 shadow_cascade_normal_tc_scale[6];
         int shadow_cascade_manual_cascade_count;
       };
     }
@@ -229,8 +229,8 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
       float2 radius2 = pcf_lerp.xy * radius_scale;
 
       // instead of matrix transform. same amount of ALU, easier to use later
-      float2 axis0 = float2(rotation.x, rotation.y) * radius2.x;
-      float2 axis1 = float2(-rotation.y, rotation.x) * radius2.y;
+      float2 axis0 = float2(rotation.x, rotation.y) * radius2;
+      float2 axis1 = float2(-rotation.y, rotation.x) * radius2;
 
       // To avoid additional local-world space calculations per sample, we transform worlds-space normal to cascade space.
       // We can't transform normals with ordinary transform when non uniform scale is involved.
@@ -244,13 +244,10 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
       // inv(M) = t(R) * inv(D) * inv(S)
       // t(inv(M)) = t(t(R) * inv(D) * inv(S)) = inv(S) * inv(D) * R
       // shadow_cascade_0_tm * shadow_cascade_relative_scale contains D * R. Transform by it.
-      float3 normalTcSpace = float3(dot(shadow_cascade_0_tm[0].xyz, normal), dot(shadow_cascade_0_tm[1].xyz, normal), dot(shadow_cascade_0_tm[2].xyz, normal)) * shadow_cascade_relative_scale_and_near[cascade_id].xyz;
-      // normalTcSpace now contains scale from D, so we have to divide by square of D coefficients to compensate.
-      float3 invDSq = shadow_cascade_rcp_basis_length_sq[cascade_id].xyz;
-      normalTcSpace = normalTcSpace * invDSq;
-      // Divide by S.
-      float2 tcMulOffsetRcp = rcp(shadow_cascade_tc_mul_offset[cascade_id].xy);
-      normalTcSpace.xy *= tcMulOffsetRcp;
+      // shadow_cascade_normal_tc_scale.xyz folds the relative D * R scale, 1/D^2 and 1/S of the cascade;
+      // .w is the kernel z range per unit of pcf radius (both computed on the CPU)
+      float4 normalTcScale = shadow_cascade_normal_tc_scale[cascade_id];
+      float3 normalTcSpace = float3(dot(shadow_cascade_0_tm[0].xyz, normal), dot(shadow_cascade_0_tm[1].xyz, normal), dot(shadow_cascade_0_tm[2].xyz, normal)) * normalTcScale.xyz;
 
       // (very) optimized version of bi-dir ray intersection, ray dir is -z (as it already in shadow tc space)
       float d = -normalTcSpace.z; // dot(normalTcSpace, float3(0,0,-1))
@@ -263,10 +260,8 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
       float zAxis0 = dot(normalTcSpace.xy, axis0) * d_rcp_half;
       float zAxis1 = dot(normalTcSpace.xy, axis1) * d_rcp_half;
 
-      // radius2 is half_texel * radius_of_kernel.
-      // Rescale it to cascade size.
       // Limit Z offset by maximum range of the kernel.
-      float maxZOfs = max(radius2.x * tcMulOffsetRcp.x, radius2.y * tcMulOffsetRcp.y);
+      float maxZOfs = radius_scale * normalTcScale.w;
 
       float shadow = 0;
 

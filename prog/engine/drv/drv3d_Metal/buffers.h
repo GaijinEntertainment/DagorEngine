@@ -24,12 +24,14 @@ public:
     int tid = -1;
     int flags = 0;
     bool initialized = false;
+    // the heap counts the persistent memory of a placed buffer
+    bool in_heap = false;
 
     BufTex(uint32_t bufsize, int flags) : bufsize(bufsize), flags(flags) {}
 
     void create(Buffer *buf, MTLResourceOptions storage, MTLTextureDescriptor *pTexDesc, int alignment, int tex_format,
       const char *name);
-    void create(id<MTLBuffer> mtl_buf, const char *name);
+    void create(id<MTLBuffer> mtl_buf, MTLTextureDescriptor *pTexDesc, int alignment, int tex_format, const char *name);
     void release();
 
     uint32_t getSize() { return bufsize; }
@@ -60,6 +62,9 @@ protected:
 
   Buffer();
 
+  // Creates pTexDesc and sets alignment, returns the padded buffer size
+  uint32_t createTexelViewDesc(uint32_t size);
+
 public:
   uint32_t bufSizeUnaligned = 0;
   uint32_t bufSize;
@@ -78,7 +83,10 @@ public:
   uint64_t last_locked_submit = ~0ull;
 
   Buffer(uint32_t bufsize, int ssize, int buf_flags, int tex_format, const char *name);
-  Buffer(id<MTLBuffer> buf, int buf_flags, const char *name);
+  Buffer(id<MTLBuffer> buf, int ssize, int buf_flags, int tex_format, const char *name);
+
+  // Returns the buffer size padded for a texel view of tex_format, and the view layout
+  static uint32_t getTexelViewLayout(uint32_t size, int tex_format, int &w, int &h, int &row_bytes);
   ~Buffer();
 
   uint32_t getSize() const override { return bufSize; }

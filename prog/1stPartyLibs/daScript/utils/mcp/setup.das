@@ -2,6 +2,10 @@ options gen2
 
 require daslib/clargs
 require daslib/fio
+require daslib/json_boost
+require daslib/strings_boost
+require strings
+require jobque
 
 // daslang MCP worktree bootstrap.
 //
@@ -13,9 +17,9 @@ require daslib/fio
 // built `bin/` binary, or the tree-sitter grammar shared lib — so a Claude
 // session there has zero daslang tools. This tool fixes that: it builds a
 // worktree-local daslang (+ tree-sitter grammar), copies the platform
-// `sgconfig.yml`, and points `.mcp.json` at the stdio supervisor
-// (mcp_supervisor.py, via `--emit-config`) — Claude Code spawns the supervisor,
-// which forwards to a daslang child and respawns it on death/rebuild.
+// `sgconfig.yml`, and points `.mcp.json` at the watchdog's stdio front over
+// that binary — Claude Code spawns the front, which forwards to a daslang child
+// and respawns it on death/rebuild.
 //
 // It adds no NEW secrets; an existing .mcp.json is rewritten with any other
 // server entries (e.g. github, including their env blocks) preserved as-is.
@@ -72,11 +76,30 @@ def shell_unsafe(s : string) : bool {
 // flag only takes effect on the INITIAL configure — a build/ that already has a
 // CMakeCache keeps its cached OPENSSL_ROOT_DIR (wipe build/ to change it). This
 // tool targets fresh worktrees, so that's the common case.
+//! The cmake generator of the tree running this setup (`build/CMakeCache.txt` under
+//! `get_das_root()`), or "" when that tree has no configured build. A worktree configured
+//! with the platform default lands on Unix Makefiles, whose `cmake --build --parallel`
+//! is unbounded `make -j`; matching the source tree keeps a bootstrapped worktree on the
+//! generator the box already builds with.
+def source_tree_generator : string {
+    let cache = path_join(get_das_root(), path_join("build", "CMakeCache.txt"))
+    if (!fexist(cache)) return ""
+    let key = "CMAKE_GENERATOR:INTERNAL="
+    for (line in fread(cache) |> split("\n")) {
+        if (starts_with(line, key)) return strip(slice(line, length(key), length(line)))
+    }
+    return ""
+}
+
 def build_worktree(root, openssl_dir : string) : bool {
     let build_dir = path_join(root, "build")
     if (!fexist(path_join(build_dir, "CMakeCache.txt"))) {
-        print("Configuring CMake in {build_dir} ...\n")
         var cfg_cmd = "cmake -S \"{root}\" -B \"{build_dir}\" -DCMAKE_BUILD_TYPE=Release"
+        let gen = source_tree_generator()
+        if (!empty(gen) && !shell_unsafe(gen)) {
+            cfg_cmd += " -G \"{gen}\""
+        }
+        print("Configuring CMake in {build_dir} (generator: {empty(gen) ? "platform default" : gen}) ...\n")
         if (!empty(openssl_dir)) {
             cfg_cmd += " -DOPENSSL_ROOT_DIR=\"{to_generic_path(openssl_dir)}\""
         }
@@ -87,7 +110,7 @@ def build_worktree(root, openssl_dir : string) : bool {
         }
     }
     print("Building daslang (this can take a while) ...\n")
-    let rc = run_visible("cmake --build \"{build_dir}\" --target daslang --config Release")
+    let rc = run_visible("cmake --build \"{build_dir}\" --target daslang --config Release --parallel {get_total_hw_threads()}")
     if (rc != 0) {
         print("ERROR: building daslang failed (exit {rc})\n")
         return false
@@ -154,13 +177,12 @@ def ensure_sgconfig(root : string) {
 
 // Stage the JIT backend files that a plain `--target daslang` build does NOT produce:
 // <root>/lib/LLVM.dll (the LLVM codegen backend, loaded by name from dasLLVM's bindings) and
-// <root>/bin/lld-link.exe (links each JIT-emitted .dll). Only the dasLLVM shared-lib CMake step
+// on Windows <root>/bin/lld-link.exe (links each JIT-emitted .dll). Only the dasLLVM shared-lib CMake step
 // stages these, and building just the `daslang` target skips it — so without this a fresh
 // worktree binary silently falls back to the interpreter (`-jit` fails: "can't load LLVM.dll").
 // Copy them from the source tree of the daslang running this setup (get_das_root()), which is a
 // JIT-capable build. When setup itself runs under the target worktree's binary, use DASLANG as a
 // fallback SDK binary: a worktree-local root cannot supply a backend file that it is missing.
-// Windows-only for now (the codegen dll name / linker differ on posix — staging there is TBD).
 def root_from_daslang_binary(binary : string) : string {
     let executable_dir = dir_name(get_full_file_name(binary))
     let leaf = base_name(executable_dir)
@@ -171,9 +193,6 @@ def root_from_daslang_binary(binary : string) : string {
 }
 
 def stage_jit_backend(root : string) {
-    if (get_platform_name() != "windows") {
-        return
-    }
     let src_root = get_das_root()
     var fallback_root = ""
     var fallback_source = "DASLANG is unset"
@@ -186,7 +205,12 @@ def stage_jit_backend(root : string) {
             fallback_source = "DASLANG does not name an existing binary"
         }
     }
-    let jit_files = ["lib/LLVM.dll", "bin/lld-link.exe"]
+    // lib/LLVM.dll is the codegen backend's name on every platform
+    // its .version stamp stages with it, or a later cmake configure refetches LLVM
+    var jit_files <- ["lib/LLVM.dll", "lib/LLVM.dll.version"]
+    if (get_platform_name() == "windows") {
+        jit_files |> push("bin/lld-link.exe")
+    }
     for (rel in jit_files) {
         let dst = path_join(root, rel)
         if (fexist(dst)) {
@@ -213,29 +237,127 @@ def stage_jit_backend(root : string) {
     }
 }
 
-// Point .mcp.json at the stdio supervisor (mcp_supervisor.py). The supervisor
-// owns the .mcp.json merge (preserving other servers like github), so setup
-// just invokes it. Probes `python3` first (a bare `python` can be Python 2 on
-// legacy boxes, and the supervisor is Python 3), then `python` (python.org
-// Windows installs ship no python3 alias); the supervisor emits whichever
-// launcher resolves into .mcp.json.
-def emit_mcp_config(root : string) : bool {
-    let script = path_join(root, "utils/mcp/mcp_supervisor.py")
-    if (!fexist(script)) {
-        print("ERROR: {script} not found\n")
-        return false
+//! the watchdog's stdio front for this tree, named `name`, over the program `program_args`
+//! spell (the daslang binary first): the watchdog exe beside the binary when it is built, else
+//! the interpreter host on the binary itself
+def stdio_front(root, binary, name : string; program_args : array<string>) : tuple<command : string; args : array<string>> {
+    let exe_suffix = get_platform_name() == "windows" ? ".exe" : ""
+    let binary_abs = path_join(root, binary)
+    let watchdog = path_join(dir_name(binary_abs), "watchdog{exe_suffix}")
+    var args : array<string>
+    var command = watchdog
+    if (!fexist(watchdog)) {
+        command = binary_abs
+        args |> push_from(["utils/watchdog/main.das", "--"])
     }
-    for (py in ["python3", "python"]) {
-        continue if (run_visible("{py} --version") != 0)
-        let rc = run_visible("{py} \"{script}\" --emit-config --repo-root \"{root}\"")
-        if (rc != 0) {
-            print("ERROR: emit-config failed (exit {rc})\n")
+    args |> push_from(["--stdio", "--name", name, "--cwd", root, "--program"], program_args)
+    return <- (command = command, args <- args)
+}
+
+//! the MCP server's front: Windows serves through the vcvars launcher so cpp_compile_check
+//! finds cl.exe, elsewhere the child is the binary on the server script
+def front_command(root, binary : string) : tuple<command : string; args : array<string>> {
+    if (get_platform_name() == "windows") {
+        let cmd_exe = path_join(get_env_variable("SystemRoot"), "System32/cmd.exe")
+        return <- stdio_front(root, binary, "daslang-mcp", [cmd_exe, "--", "/c", path_join(root, "utils/mcp/daslang-mcp-msvc.cmd")])
+    }
+    return <- stdio_front(root, binary, "daslang-mcp", [path_join(root, binary), "--", "-ignore-manifest", "utils/mcp/main.das"])
+}
+
+def private replace_server(var servers : table<string; JsonValue?>&; name, command : string; args : array<string>) {
+    var entry <- {"command" => JV(command), "args" => JV(args)}
+    var old = servers?[name] ?? null
+    if (old != null) {
+        let defer = old?["defer_loading"]
+        if (defer != null && defer.value is _bool) {
+            entry["defer_loading"] = JV(defer.value as _bool)
+        }
+        unsafe {
+            delete old
+        }
+    }
+    servers[name] = JV(entry)
+}
+
+//! the DAP bridge's front: the same stdio front over `utils/dap/main.das`, rooted at the tree
+//! and launching this tree's own binary
+def dap_command(root, binary : string) : tuple<command : string; args : array<string>> {
+    let binary_abs = path_join(root, binary)
+    return <- stdio_front(root, binary, "daslang-dap", [binary_abs, "--", "utils/dap/main.das", "--", "--repo-root", root, "--executable", binary_abs])
+}
+
+//! .mcp.json: the daslang entry spawns the watchdog's stdio front over this tree's own binary,
+//! the daslang-dap entry the DAP bridge over the same binary, every other server stays as it
+//! is, each entry's own defer_loading survives, and the das-herd shim rides along where the
+//! tree carries it. An unparseable file is left alone.
+def emit_mcp_config(root, binary : string) : bool {
+    let path = path_join(root, ".mcp.json")
+    var config : JsonValue?
+    if (fexist(path)) {
+        var err : string
+        config = read_json(fread(path), err)
+        if (config == null || !(config.value is _object)) {
+            print("  WARNING: {path} is not a JSON object ({err}); leaving it untouched\n")
             return false
         }
-        return true
+    } else {
+        var empty_root : table<string; JsonValue?>
+        config = JV(empty_root)
     }
-    print("ERROR: neither python3 nor python found on PATH\n")
-    return false
+    if (!((config.value as _object) |> key_exists("mcpServers"))) {
+        var empty_servers : table<string; JsonValue?>
+        (config.value as _object)["mcpServers"] = JV(empty_servers)
+    }
+    var servers_node = config?["mcpServers"]
+    if (servers_node == null || !(servers_node.value is _object)) {
+        print("  WARNING: {path} has a non-object 'mcpServers'; leaving it untouched\n")
+        unsafe {
+            delete config
+        }
+        return false
+    }
+    let front = front_command(root, binary)
+    replace_server(servers_node.value as _object, "daslang", front.command, front.args)
+    let dap = dap_command(root, binary)
+    replace_server(servers_node.value as _object, "daslang-dap", dap.command, dap.args)
+    if (fexist(path_join(root, "utils/internal/das-herd/mcp_main.das"))) {
+        replace_server(servers_node.value as _object, "dasherd", path_join(root, binary), ["-ignore-manifest", "utils/internal/das-herd/mcp_main.das"])
+    }
+    let text = write_json(config)
+    unsafe {
+        delete config
+    }
+    let tmp = "{path}.tmp"
+    var written = false
+    fopen(tmp, "wb") $(f) {
+        return if (f == null)
+        fwrite(f, text)
+        fwrite(f, "\n")
+        written = true
+    }
+    if (!written) {
+        print("ERROR: cannot write {tmp}\n")
+        return false
+    }
+    let kept = "{path}.bak"
+    let had = fexist(path)
+    if (had && !rename(path, kept)) {
+        print("ERROR: cannot move {path} aside; the new configuration is in {tmp}\n")
+        return false
+    }
+    if (!rename(tmp, path)) {
+        if (had) {
+            rename(kept, path)
+        }
+        print("ERROR: cannot replace {path}; the new configuration is in {tmp}\n")
+        return false
+    }
+    if (had) {
+        remove(kept)
+    }
+    print("wrote {path}: daslang -> {front.command} {join(front.args, " ")}\n")
+    print("  daslang-dap -> {dap.command} {join(dap.args, " ")}\n")
+    return true
 }
 
 [export]
@@ -304,14 +426,16 @@ def main() : int {
     ensure_grammar(root)
     ensure_sgconfig(root)
     stage_jit_backend(root)
-    if (!emit_mcp_config(root)) {
+    if (!emit_mcp_config(root, binary)) {
         return 1
     }
 
-    print("\nDone. Restart the Claude Code session in {root} to pick up the daslang MCP server.\n")
-    print("Claude Code spawns the stdio supervisor (utils/mcp/mcp_supervisor.py); no persistent process to keep running.\n")
+    print("\nDone. Restart the Claude Code session in {root} to pick up the daslang MCP and DAP servers.\n")
+    print("Claude Code spawns the watchdog's stdio front, which spawns the server on the first tool call\n")
+    print("and respawns it after a kill or a rebuild; no persistent process to keep running.\n")
+    print("The DAP bridge (daslang-dap) is the same front over utils/dap/main.das.\n")
     print("The daslang LSP plugin (.claude/skills/daslang-lsp, checked in) also loads automatically\n")
-    print("when the session starts at the worktree root — it uses the binary built above (needs python3 on PATH).\n")
+    print("when the session starts at the worktree root — it is the watchdog exe built above.\n")
     print("NOTE: the parse-aware tools (grep_usage/outline/cpp_*) also need the ast-grep `sg` CLI on PATH.\n")
     return 0
 }

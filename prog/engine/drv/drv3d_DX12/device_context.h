@@ -1237,13 +1237,13 @@ struct FrameInfo
   uint32_t frameIndex = 0;
   uint32_t frameSlot = 0;
 
-  void init(ID3D12Device *device, uint32_t frame_slot);
-  void initCommandStreams(ID3D12Device *device);
+  void init(D3DDevice *device, uint32_t frame_slot);
+  void initCommandStreams(D3DDevice *device);
   void shutdown(Device &device, DeviceQueueGroup &queue_group, PipelineManager &pipe_man);
   // returns ticks waiting for gpu
   int64_t beginFrame(DeviceQueueGroup &queue_group, PipelineManager &pipe_man, uint32_t frame_idx);
   void preRecovery(Device &device, DeviceQueueGroup &queue_group, PipelineManager &pipe_man);
-  void recover(ID3D12Device *device);
+  void recover(D3DDevice *device);
 };
 
 struct SignatureStore
@@ -1262,8 +1262,8 @@ struct SignatureStore
   dag::Vector<SignatureInfo> signatures;
   dag::Vector<SignatureInfoEx> signaturesEx;
 
-  ID3D12CommandSignature *getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type);
-  ID3D12CommandSignature *getSignatureForStride(ID3D12Device *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type,
+  ID3D12CommandSignature *getSignatureForStride(D3DDevice *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type);
+  ID3D12CommandSignature *getSignatureForStride(D3DDevice *device, uint32_t stride, D3D12_INDIRECT_ARGUMENT_TYPE type,
     GraphicsPipelineSignature &signature);
 
   void reset()
@@ -1361,6 +1361,12 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     GraphicsState graphicsState;
     ComputeState computeState;
     PipelineStageStateBase stageState[STAGE_MAX_EXT];
+#if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
+    ConstBufferNameTable constBufferNames;
+    const ConstBufferNameTable *getConstBufferNames() const { return &constBufferNames; }
+#else
+    constexpr const ConstBufferNameTable *getConstBufferNames() const { return nullptr; }
+#endif
 
     StatefulCommandBuffer cmdBuffer = {};
     uint32_t cmdBufferDebugUniqueIndex = 0;
@@ -1385,8 +1391,12 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
     debug::CommandListIdentifier getCommandListDebugIdentifier() const
     {
-      return debug::make_command_list_identfier(
-        (frames.getIndex() << 1) | (1u & (cmdBufferDebugFrameHistoryPingPong >> frames.getIndex())), cmdBufferDebugUniqueIndex);
+      G_STATIC_ASSERT(FRAME_FRAME_BACKLOG_LENGTH <= 4); // frame slot has 2 bits in the identifier
+      return debug::make_command_list_identifier({
+        .frameSlot = frames.getIndex(),
+        .historySet = 1u & (cmdBufferDebugFrameHistoryPingPong >> frames.getIndex()),
+        .commandListIndex = cmdBufferDebugUniqueIndex,
+      });
     }
 
     debug::CommandListIdentifier nextCommandListDebugIdentifier()
@@ -1684,21 +1694,16 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void addComputePipeline(ProgramID id, ComputeShaderModule *csm, CSPreloaded preloaded);
     void addGraphicsPipeline(GraphicsProgramID program, ShaderID vs, ShaderID ps);
 #if D3D_HAS_RAY_TRACING
-    void buildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
-      D3D12_RAYTRACING_GEOMETRY_DESC_ListRef::RangeType geometry_descriptions,
+    void buildBottomAccelerationStructures(D3D12_RAYTRACING_GEOMETRY_DESC_ListRef::RangeType geometry_descriptions,
       RaytraceGeometryDescriptionBufferResourceReferenceSetListRef::RangeType resource_refs,
-      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update, RaytraceAccelerationStructure *dst,
-      RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch_buffer,
-      BufferResourceReferenceAndAddress compacted_size);
+      RaytraceBottomAccelerationStructureBuildEntryListRef::RangeType builds);
 #if HAS_NVAPI
     void buildBottomAccelerationStructureNvidia(RaytraceAccelerationStructure *as, RaytraceBuildFlags flags, bool update,
       BufferResourceReferenceAndAddress scratch_buffer, BufferResourceReferenceAndAddress compacted_size,
       ExtraDataArray<const NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX>::RangeType descs,
       RaytraceGeometryDescriptionBufferResourceReferenceSetListRef::RangeType resource_refs);
 #endif
-    void buildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index, uint32_t instance_count,
-      BufferResourceReferenceAndAddress instance_buffer, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update,
-      RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch);
+    void buildTopAccelerationStructures(RaytraceTopAccelerationStructureBuildEntryListRef::RangeType builds);
     void copyRaytracingAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact,
       RaytraceAccelerationStructureType type);
     void buildOpacityMicroMapTriangleArrayBatchBegin(::raytrace::AccelerationStructureBuildMode mode,
@@ -2116,6 +2121,15 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   void waitForCommandFence();
 #endif
 
+#if D3D_HAS_RAY_TRACING
+#if HAS_NVAPI
+  void raytraceBuildBottomAccelerationStructureNvidia(RaytraceBottomAccelerationStructure *as,
+    const ::raytrace::BottomAccelerationStructureBuildInfo &basbi, uint32_t total_omm_descs);
+#endif
+  void pushRaytraceBottomAccelerationStructureBuilds(
+    eastl::span<const ::raytrace::BatchedBottomAccelerationStructureBuildInfo> builds);
+#endif
+
 public:
   DeviceContext() = delete;
   ~DeviceContext() = default;
@@ -2197,7 +2211,7 @@ public:
   void beginSurvey(int name);
   void endSurvey(int name);
   void destroyBuffer(BufferState buffer);
-  void discardBuffer(BufferState &to_discared_ref, DeviceMemoryClass memory_class, FormatStore format, uint32_t struct_size,
+  void discardBufferNoLock(BufferState &to_discared_ref, DeviceMemoryClass memory_class, FormatStore format, uint32_t struct_size,
     bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name);
   void checkFramebufferIntegrityNoLock(Image *img);
   void destroyImageNoLock(Image *img, bool is_rt);
@@ -2223,12 +2237,8 @@ public:
   void generateMipmaps(Image *img);
   void setFramebuffer(Image **image_list, ImageViewState *view_list, bool read_only_depth);
 #if D3D_HAS_RAY_TRACING
-  void raytraceBuildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index, RaytraceBottomAccelerationStructure *as,
-    const RaytraceGeometryDescription *descs, uint32_t count, RaytraceBuildFlags flags, bool update, Sbuffer *scratch_buffer,
-    uint32_t scratch_buffer_offset, Sbuffer *compacted_size_buffer, uint32_t compacted_size_offset);
-  void raytraceBuildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index, RaytraceTopAccelerationStructure *as,
-    Sbuffer *instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags, bool update, Sbuffer *scratch_buffer,
-    uint32_t scratch_buffer_offset);
+  void raytraceBuildBottomAccelerationStructures(eastl::span<const ::raytrace::BatchedBottomAccelerationStructureBuildInfo> builds);
+  void raytraceBuildTopAccelerationStructures(eastl::span<const ::raytrace::BatchedTopAccelerationStructureBuildInfo> builds);
   void buildOpacityMicroMapTriangleArray(eastl::span<const ::raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo> builds,
     bool auto_flush, ::raytrace::AccelerationStructureBuildMode mode);
   void raytraceCopyAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact,
@@ -2450,7 +2460,7 @@ public:
   void deactivateBuffer(const BufferReference &buffer, GpuPipeline gpu_pipeline);
   void deactivateTexture(Image *tex, GpuPipeline gpu_pipeline);
   void aliasFlush(GpuPipeline gpu_pipeline);
-  HostDeviceSharedMemoryRegion allocatePushMemory(uint32_t size, uint32_t alignment);
+  HostDeviceSharedMemoryRegion allocatePushMemoryNoLock(uint32_t size, uint32_t alignment);
 
   void moveBufferNoLock(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to);
   void twoPhaseMoveBufferNoLock(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to,

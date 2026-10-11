@@ -38,19 +38,13 @@ __forceinline void EntityManager::removeDataFromArchetype(const uint32_t archety
   }
 }
 
-#if defined(_MSC_VER) && !defined(__clang__)
-#define INLINE_LAMBDA
-#else
-#define INLINE_LAMBDA __attribute__((always_inline))
-#endif
-
 template <typename FilterUsed>
 inline void EntityManager::destroyComponents(const uint32_t archetype, const chunk_type_t chunkId, const uint32_t id,
   FilterUsed filter)
 {
   if (!(archetypes.getArchetypeCombinedTypeFlags(archetype) & COMPONENT_TYPE_NON_TRIVIAL_CREATE))
     return;
-  auto destructComponent = [&](component_index_t cIndex, auto ci) INLINE_LAMBDA {
+  auto destructComponent = [&](component_index_t cIndex, auto ci) DAGOR_FORCE_INLINE_LAMBDA {
     type_index_t tIndex = ci->typeIndex;
     ComponentType typeInfo = componentTypes.getTypeInfo(tIndex);
     if (!filter(ci->archComponentId, cIndex))

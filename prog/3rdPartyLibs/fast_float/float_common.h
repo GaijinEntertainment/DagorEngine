@@ -84,8 +84,10 @@ using parse_options = parse_options_t<char>;
   #endif
 #endif
 
+// Gaijin change
 #if ((defined(_WIN32) || defined(_WIN64)) && !defined(__clang__)) || \
-    (defined(_M_ARM64) && !defined(__MINGW32__))
+    ((defined(_M_ARM64) || defined(_M_ARM64EC)) && !defined(__MINGW32__))
+// ~Gaijin change
 #include <intrin.h>
 #endif
 
@@ -129,15 +131,18 @@ using parse_options = parse_options_t<char>;
 #endif
 #endif
 
+// Gaijin change
 #if defined(__SSE2__) || \
   (defined(FASTFLOAT_VISUAL_STUDIO) && \
-    (defined(_M_AMD64) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP == 2)))
+    (defined(_M_AMD64) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP == 2)) && \
+    !defined(_M_ARM64EC))
 #define FASTFLOAT_SSE2 1
 #endif
 
-#if defined(__aarch64__) || defined(_M_ARM64)
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
 #define FASTFLOAT_NEON 1
 #endif
+// ~Gaijin change
 
 #if defined(FASTFLOAT_SSE2) || defined(FASTFLOAT_NEON)
 #define FASTFLOAT_HAS_SIMD 1
@@ -327,7 +332,9 @@ value128 full_multiplication(uint64_t a, uint64_t b) {
     return answer;
   }
   value128 answer;
-#if defined(_M_ARM64) && !defined(__MINGW32__)
+// Gaijin change
+#if (defined(_M_ARM64) || defined(_M_ARM64EC)) && !defined(__MINGW32__)
+// ~Gaijin change
   // ARM64 has native support for 64-bit multiplications, no need to emulate
   // But MinGW on ARM64 doesn't have native support for 64-bit multiplications
   answer.high = __umulh(a, b);

@@ -213,7 +213,7 @@ def test_soa_swap(t : T?) {
         soa |> push <| SingleField(value = 10)
         soa |> push <| SingleField(value = 20)
         // bubble sort using swap
-        for (pass_idx in range(3)) {
+        for (_pass_idx in range(3)) {
             for (k in range(2)) {
                 if (soa[k].value > soa[k + 1].value) {
                     soa |> swap(k, k + 1)
@@ -234,10 +234,11 @@ def test_soa_swap(t : T?) {
 def test_soa_from_array(t : T?) {
     t |> run("from_array populates SOA") @(t : T?) {
         var soa : Particle`SOA
-        var arr : array<Particle>
-        arr |> push <| Particle(pos = float3(1.0), color = float4(10.0))
-        arr |> push <| Particle(pos = float3(2.0), color = float4(20.0))
-        arr |> push <| Particle(pos = float3(3.0), color = float4(30.0))
+        var arr <- [
+            Particle(pos = float3(1.0), color = float4(10.0)),
+            Particle(pos = float3(2.0), color = float4(20.0)),
+            Particle(pos = float3(3.0), color = float4(30.0))
+        ]
         soa |> from_array(arr)
         t |> equal(length(soa), 3)
         t |> equal(soa[0].pos, float3(1.0))
@@ -248,9 +249,7 @@ def test_soa_from_array(t : T?) {
     t |> run("from_array appends to existing") @(t : T?) {
         var soa : Particle`SOA
         soa |> push <| Particle(pos = float3(0.0))
-        var arr : array<Particle>
-        arr |> push <| Particle(pos = float3(1.0))
-        arr |> push <| Particle(pos = float3(2.0))
+        var arr <- [Particle(pos = float3(1.0)), Particle(pos = float3(2.0))]
         soa |> from_array(arr)
         t |> equal(length(soa), 3)
         t |> equal(soa[0].pos, float3(0.0))
@@ -266,9 +265,10 @@ def test_soa_from_array(t : T?) {
     }
     t |> run("from_array entity with strings") @(t : T?) {
         var soa : Entity`SOA
-        var arr : array<Entity>
-        arr |> push <| Entity(id = 1, name = "hero", health = 100.0, alive = true)
-        arr |> push <| Entity(id = 2, name = "npc", health = 50.0, alive = false)
+        var arr <- [
+            Entity(id = 1, name = "hero", health = 100.0, alive = true),
+            Entity(id = 2, name = "npc", health = 50.0, alive = false)
+        ]
         soa |> from_array(arr)
         t |> equal(length(soa), 2)
         t |> equal(soa[0].name, "hero")
@@ -287,7 +287,7 @@ def test_soa_to_array(t : T?) {
         var soa : Particle`SOA
         soa |> push <| Particle(pos = float3(1.0, 2.0, 3.0), color = float4(0.1, 0.2, 0.3, 0.4))
         soa |> push <| Particle(pos = float3(4.0, 5.0, 6.0), color = float4(0.5, 0.6, 0.7, 0.8))
-        var arr <- to_array(soa)
+        let arr <- to_array(soa)
         t |> equal(length(arr), 2)
         t |> equal(arr[0].pos, float3(1.0, 2.0, 3.0))
         t |> equal(arr[0].color, float4(0.1, 0.2, 0.3, 0.4))
@@ -295,28 +295,29 @@ def test_soa_to_array(t : T?) {
         t |> equal(arr[1].color, float4(0.5, 0.6, 0.7, 0.8))
     }
     t |> run("to_array empty SOA returns empty array") @(t : T?) {
-        var soa : Particle`SOA
-        var arr <- to_array(soa)
+        let soa : Particle`SOA
+        let arr <- to_array(soa)
         t |> equal(length(arr), 0)
     }
     t |> run("to_array entity with strings") @(t : T?) {
         var soa : Entity`SOA
         soa |> push <| Entity(id = 1, name = "a", health = 10.0, alive = true)
         soa |> push <| Entity(id = 2, name = "b", health = 20.0, alive = false)
-        var arr <- to_array(soa)
+        let arr <- to_array(soa)
         t |> equal(length(arr), 2)
         t |> equal(arr[0].id, 1)
         t |> equal(arr[0].name, "a")
         t |> equal(arr[1].alive, false)
     }
     t |> run("roundtrip from_array -> to_array") @(t : T?) {
-        var original : array<Particle>
-        original |> push <| Particle(pos = float3(10.0), color = float4(1.0))
-        original |> push <| Particle(pos = float3(20.0), color = float4(2.0))
-        original |> push <| Particle(pos = float3(30.0), color = float4(3.0))
+        var original <- [
+            Particle(pos = float3(10.0), color = float4(1.0)),
+            Particle(pos = float3(20.0), color = float4(2.0)),
+            Particle(pos = float3(30.0), color = float4(3.0))
+        ]
         var soa : Particle`SOA
         soa |> from_array(original)
-        var result <- to_array(soa)
+        let result <- to_array(soa)
         t |> equal(length(result), 3)
         for (idx in range(3)) {
             t |> equal(result[idx].pos, original[idx].pos)
@@ -324,12 +325,13 @@ def test_soa_to_array(t : T?) {
         }
     }
     t |> run("roundtrip entity with strings") @(t : T?) {
-        var original : array<Entity>
-        original |> push <| Entity(id = 1, name = "hero", health = 100.0, alive = true)
-        original |> push <| Entity(id = 2, name = "villain", health = 200.0, alive = false)
+        var original <- [
+            Entity(id = 1, name = "hero", health = 100.0, alive = true),
+            Entity(id = 2, name = "villain", health = 200.0, alive = false)
+        ]
         var soa : Entity`SOA
         soa |> from_array(original)
-        var result <- to_array(soa)
+        let result <- to_array(soa)
         t |> equal(length(result), 2)
         t |> equal(result[0].name, "hero")
         t |> equal(result[1].name, "villain")

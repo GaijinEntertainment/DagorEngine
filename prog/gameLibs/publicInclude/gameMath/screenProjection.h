@@ -25,7 +25,7 @@ inline bool project_world_to_screen(const float width, const float height, const
     out_screen_pos.x = -10000;
     out_screen_pos.y = -10000;
 
-    if (fabsf(pos.w) > 0.0001)
+    if (fabsf(pos.w) > 0.0001f)
     {
       pos *= safediv(sign(pos.z + zn), pos.w);
       out_screen_pos.x = width * (0.5f * pos.x + 0.5f);

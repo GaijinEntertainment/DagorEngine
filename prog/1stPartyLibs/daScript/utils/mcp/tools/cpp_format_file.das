@@ -69,7 +69,7 @@ def do_cpp_format_file(file : string) : string {
     if (empty(file)) return one_result(CppFormatResult(file = file, status = "error", message = "'file' argument is required"), true)
     let abs_file = resolve_path(file)
     if (!fexist(abs_file)) return one_result(CppFormatResult(file = file, status = "error", message = "file not found: {file}"), true)
-    let rel = make_relative_path(abs_file, get_das_root())
+    let rel = make_relative_path(abs_file, server_root())
     let cfg_path = find_clang_format_config(dir_name(abs_file))
     if (empty(cfg_path)) {
         return one_result(CppFormatResult(file = rel, status = "no_config",

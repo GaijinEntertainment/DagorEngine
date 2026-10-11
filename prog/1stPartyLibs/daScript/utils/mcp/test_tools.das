@@ -13,6 +13,7 @@ require tools/list_types public
 require tools/run_script public
 require tools/run_test public
 require tools/format_file public
+require daslib/das_source_formatter
 require tools/ast_dump public
 require tools/list_modules public
 require tools/find_symbol public
@@ -25,6 +26,8 @@ require tools/find_references public
 require tools/eval_expression public
 require tools/describe_type public
 require tools/grep_usage public
+require tools/common public
+require tools/cpp_common public
 require tools/outline public
 require tools/cpp_grep_usage public
 require tools/cpp_find_symbol public
@@ -39,14 +42,14 @@ require tools/program_log public
 require tools/live public
 require tools/detect_duplicates public
 require tools/export_corpus public
+require tools/arch_of public
+require tools/arch_sites public
+require tools/discover public
 
-// helper: parse tool result JSON, return (text, isError)
 def parse_result(result : string; var text : string&; var is_error : bool&) : bool {
     var err : string
     var parsed = read_json(result, err)
     if (parsed == null) return false
-    // result is {"content":[{"type":"text","text":"..."}],"isError":false}
-    // access content[0].text via JSON path
     let content = parsed?["content"]
     if (content == null) {
         unsafe { delete parsed; }
@@ -73,21 +76,12 @@ def fixture_path(name : string) : string {
     return "utils/mcp/tests/{name}"
 }
 
-// Guard for tests that go through ast-grep (grep_usage / outline / cpp_*).
-// Windows CI doesn't always have @ast-grep/cli installed; without this guard
-// every dependent assertion fails with `envelope: ast-grep not available`.
-// Returns true if available; otherwise logs a single notice and returns false
-// so the caller can early-out of the whole `[test]` body. The test then
-// completes with zero sub-asserts and is reported as PASS — the alternative
-// (`t->skip()`) would panic across the invoke_in_context boundary and resurface
-// in the parent test as a failure.
 def private require_ast_grep(t : T?) : bool {
     if (!empty(get_ast_grep_cmd())) return true
     t->log("ast-grep not installed — skipping test (install @ast-grep/cli to enable)")
     return false
 }
 
-// ── compile_check ────────────────────────────────────────────────────
 
 [test]
 def test_compile_check_valid(t : T?) {
@@ -131,7 +125,6 @@ def test_compile_check_missing(t : T?) {
     }
 }
 
-// ── compile_check batch ──────────────────────────────────────────────
 
 [test]
 def test_compile_check_batch_comma(t : T?) {
@@ -154,7 +147,6 @@ def test_compile_check_batch_glob(t : T?) {
         var text : string
         var is_error = false
         parse_result(do_compile_check("utils/mcp/tests/*.das"), text, is_error)
-        // At least the valid and error fixtures should be found
         t |> success(find(text, "PASS") >= 0, "should have at least one PASS")
         t |> success(find(text, "files") >= 0, "should have summary line")
     }
@@ -171,8 +163,6 @@ def test_compile_check_glob_no_match(t : T?) {
     }
 }
 
-// Locks the focused project-arg errors emitted by validate_project_arg so the
-// pre-#2622 misleading "missing prerequisite ''" failure mode can't return.
 [test]
 def test_compile_check_invalid_project(t : T?) {
     t |> run("missing project file reports focused error") <| @(t : T?) {
@@ -227,13 +217,6 @@ def test_eval_expression_invalid_project(t : T?) {
     }
 }
 
-// ── parse_file_list (smoke) ──────────────────────────────────────────
-// Canonical unit tests for `parse_file_list` and `expand_glob` live in
-// `tests/fio/expand_glob_test.das` (the helpers moved to `daslib/fio`).
-// Tools-side coverage of comma-list / glob / mixed inputs continues
-// further down via `do_format_file` / `do_compile_check` / `do_lint`
-// integration tests. This single subtest only confirms that the helper
-// is reachable through the MCP `require` chain after the move.
 
 def has_path(files : array<string>; suffix : string) : bool {
     for (f in files) {
@@ -252,7 +235,6 @@ def test_parse_file_list_smoke(t : T?) {
     }
 }
 
-// ── list_functions ───────────────────────────────────────────────────
 
 [test]
 def test_list_functions(t : T?) {
@@ -266,7 +248,6 @@ def test_list_functions(t : T?) {
     }
 }
 
-// ── list_types ───────────────────────────────────────────────────────
 
 [test]
 def test_list_types(t : T?) {
@@ -281,7 +262,6 @@ def test_list_types(t : T?) {
     }
 }
 
-// ── run_script ───────────────────────────────────────────────────────
 
 [test]
 def test_run_script_inline(t : T?) {
@@ -290,9 +270,7 @@ def test_run_script_inline(t : T?) {
         var is_error = false
         let code = "options gen2\n[export]\ndef main() \{\n    print(\"hello_mcp_test\\n\")\n\}\n"
         parse_result(do_run_script("", code), text, is_error)
-        // NOTE: popen stdout capture broken when run from dastest on Windows (see wip.das)
-        // t |> success(!is_error, "should not be error")
-        // t |> success(find(text, "hello_mcp_test") >= 0, "should contain output")
+        t->log("output assertions disabled: popen stdout capture is broken under dastest on Windows")
     }
 }
 
@@ -307,7 +285,6 @@ def test_run_script_error(t : T?) {
     }
 }
 
-// ── run_test ──────────────────────────────────────────────────────────
 
 [test]
 def test_run_test_passing(t : T?) {
@@ -315,9 +292,7 @@ def test_run_test_passing(t : T?) {
         var text : string
         var is_error = false
         parse_result(do_run_test(fixture_path("_fixture_test.das")), text, is_error)
-        // NOTE: popen stdout capture broken when run from dastest on Windows (see wip.das)
-        // t |> success(!is_error, "should not be error")
-        // t |> success(find(text, "passed") >= 0, "should contain 'passed'")
+        t->log("result assertions disabled: popen stdout capture is broken under dastest on Windows")
     }
 }
 
@@ -331,7 +306,6 @@ def test_run_test_bad_file(t : T?) {
     }
 }
 
-// ── ast_dump ─────────────────────────────────────────────────────────
 
 [test]
 def test_ast_dump_expression(t : T?) {
@@ -366,7 +340,6 @@ def test_ast_dump_file_source_mode(t : T?) {
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "def add") >= 0, "should contain function header")
         t |> success(find(text, "return") >= 0, "should contain return statement")
-        // source mode should NOT have ExprOp2 etc.
         t |> success(find(text, "ExprOp2") < 0, "should not contain S-expression nodes")
     }
 }
@@ -382,7 +355,6 @@ def test_ast_dump_export_all(t : T?) {
     }
 }
 
-// ── list_modules ─────────────────────────────────────────────────────
 
 [test]
 def test_list_modules(t : T?) {
@@ -400,9 +372,82 @@ def test_list_modules(t : T?) {
         parse_result(do_list_modules(), text, is_error)
         t |> success(find(text, "json") >= 0, "should list json module")
     }
+    t |> run("a module this program compiled from das is not a builtin, and the registered paths are a section") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_list_modules(true), text, is_error)
+        var err : string
+        var parsed = read_json(text, err)
+        t |> success(parsed != null, "json parses: {err}")
+        return if (parsed == null)
+        t |> success(json_array_has(parsed?["builtin"], "math"), "math is a builtin")
+        t |> success(!json_array_has(parsed?["builtin"], "json_boost"), "json_boost, which this program compiled, is not listed as a builtin")
+        t |> success(json_array_has(parsed?["daslib"], "json_boost"), "json_boost is a daslib module")
+        t |> success(parsed?["registered"] != null, "the registered require paths are listed")
+        unsafe { delete parsed; }
+    }
 }
 
-// ── find_symbol ──────────────────────────────────────────────────────
+def private json_array_has(arr : JsonValue?; wanted : string) : bool {
+    if (arr == null || !(arr.value is _array)) return false
+    for (m in arr.value as _array) {
+        if (m != null && m.value is _string && (m.value as _string) == wanted) return true
+    }
+    return false
+}
+
+def private project_root_fixture() : string {
+    return path_join(get_das_root(), "utils/mcp/tests/_pretend_root")
+}
+
+//! the pretend root's second module folder: its descriptor registers the tree's UnitTest C++ module
+//! and a require path of its own, and every tool asked with project_root sees both - as does a plain run
+[test]
+def test_project_root_fixture(t : T?) {
+    let root = project_root_fixture()
+    let script = path_join(root, "probe_consumer.das")
+    t |> run("list_modules with project_root lists the descriptor's C++ module and require path") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_list_modules(true, root), text, is_error)
+        t |> success(!is_error, "should not be error: {text}")
+        var err : string
+        var parsed = read_json(text, err)
+        t |> success(parsed != null, "json parses: {err}")
+        return if (parsed == null)
+        t |> success(json_array_has(parsed?["builtin"], "UnitTest"), "the C++ module the descriptor registered is a builtin")
+        t |> success(json_array_has(parsed?["registered"], "unit_probe/hello"), "the require path the descriptor registered is listed")
+        unsafe { delete parsed; }
+    }
+    t |> run("find_symbol with project_root finds a symbol from the project's own require path") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_symbol("probe_hello_value", "", script, "", root), text, is_error)
+        t |> success(!is_error, "should not be error: {text}")
+        t |> success(find(text, "probe_hello_value") >= 0, "should find the project's function")
+    }
+    t |> run("compile_check with project_root compiles a file requiring both") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_compile_check(script, "", root), text, is_error)
+        t |> success(!is_error, "should not be error: {text}")
+        t |> success(find(text, "Compilation OK") >= 0, "should compile: {text}")
+    }
+    t |> run("a plain run and an eager run of the file both reach the C++ module and the require path") <| @(t : T?) {
+        let exe = get_daslang_exe()
+        t |> success(!empty(exe), "daslang executable is known")
+        return if (empty(exe))
+        var plain_out : string
+        let plain_rc = run_and_capture([exe, "-project_root", root, script], plain_out, 120.0)
+        t |> equal(plain_rc, 0, "plain run exits 0: {plain_out}")
+        t |> success(find(plain_out, "probe 4242 1234") >= 0, "plain run prints the probe: {plain_out}")
+        var eager_out : string
+        let eager_rc = run_and_capture([exe, "-ignore-manifest", "-project_root", root, script], eager_out, 120.0)
+        t |> equal(eager_rc, 0, "eager run exits 0: {eager_out}")
+        t |> success(find(eager_out, "probe 4242 1234") >= 0, "eager run prints the probe: {eager_out}")
+    }
+}
+
 
 [test]
 def test_find_symbol(t : T?) {
@@ -438,7 +483,6 @@ def test_find_symbol(t : T?) {
     }
 }
 
-// ── list_module_api ──────────────────────────────────────────────────
 
 [test]
 def test_list_module_api(t : T?) {
@@ -467,7 +511,6 @@ def test_list_module_api(t : T?) {
     }
 }
 
-// ── list_module_api annotations ──────────────────────────────────────
 
 [test]
 def test_list_module_api_annotations(t : T?) {
@@ -512,7 +555,6 @@ def test_list_module_api_annotations(t : T?) {
     }
 }
 
-// ── format_file ──────────────────────────────────────────────────────
 
 def private parse_json_array(text : string; var parsed : JsonValue?&) : bool {
     var jerr : string
@@ -557,7 +599,7 @@ def test_format_file(t : T?) {
             return
         }
 
-        t |> success(length(parsed.value as _array) >= 1, "array should contain at least one result")
+        t |> success(!empty(parsed.value as _array), "array should contain at least one result")
         let first = (parsed.value as _array)[0]
         t |> success(first != null, "first result should exist")
         if (first != null) {
@@ -606,6 +648,10 @@ def test_format_file(t : T?) {
         unsafe { delete parsed; }
     }
 
+}
+
+[test]
+def test_format_file_batches(t : T?) {
     t |> run("glob pattern expands and returns matching file entry") <| @(t : T?) {
         var text : string
         var is_error = false
@@ -658,7 +704,220 @@ def test_format_file(t : T?) {
     }
 }
 
-// ── list_requires ────────────────────────────────────────────────────
+
+[test]
+def test_format_strip_comments_source(t : T?) {
+    t |> run("keeps header, docs, fmt directives, nolint; strips the rest") <| @(t : T?) {
+        let src = fread(fixture_path("_fixture_comments.das"))
+        t |> success(!empty(src), "fixture readable")
+        let stripped = format_source_string(src, true)
+        t |> success(find(stripped, "// header block stays") >= 0, "header block kept")
+        t |> success(find(stripped, "//! doc comment survives") >= 0, "doc comment kept")
+        t |> success(find(stripped, "nolint:STYLE005") >= 0, "nolint suppression kept with its why")
+        t |> success(find(stripped, "@nolint") >= 0, "@nolint form kept")
+        t |> success(find(stripped, "narration") < 0, "narration stripped")
+        t |> success(find(stripped, "trailing dies") < 0, "trailing comment stripped")
+        t |> success(find(stripped, "block dies") < 0, "block comment stripped")
+        t |> success(find(stripped, "let z = x + y") >= 0, "multi-line inline comment joins its expression")
+    }
+    t |> run("license comments survive the strip anywhere in the file") <| @(t : T?) {
+        let src = "options gen2\n\ndef mid \{\n    return 1\n\}\n\n// Copyright (c) 2008 Bjoern Hoehrmann\n// SPDX-License-Identifier: MIT\n// COPYRIGHT 2026 SHOUTING NOTICES TOO\ndef tail \{\n    return 2\n\}\n"
+        let stripped = format_source_string(src, true)
+        t |> success(find(stripped, "Copyright (c) 2008") >= 0, "Copyright line kept mid-file")
+        t |> success(find(stripped, "SPDX-License-Identifier: MIT") >= 0, "SPDX line kept mid-file")
+        t |> success(find(stripped, "COPYRIGHT 2026") >= 0, "match is case-insensitive")
+    }
+    t |> run("a fmt directive ends a kept continuation chain") <| @(t : T?) {
+        let src = "options gen2\n\ndef head \{\n    return 1\n\}\n\n//! documented contract\n//fmt:keep-blank-lines\n// narration dies here\ndef tail \{\n    return 2\n\}\n"
+        let stripped = format_source_string(src, true)
+        t |> success(find(stripped, "documented contract") >= 0, "doc kept")
+        t |> success(find(stripped, "fmt:keep-blank-lines") >= 0, "directive kept")
+        t |> success(find(stripped, "narration dies") < 0, "narration after the directive is not a continuation")
+    }
+    t |> run("strip-disabled path leaves every comment in place") <| @(t : T?) {
+        let src = fread(fixture_path("_fixture_comments.das"))
+        let formatted = format_source_string(src, false)
+        t |> success(find(formatted, "narration dies") >= 0, "narration kept when not stripping")
+        t |> success(find(formatted, "block dies") >= 0, "block comment kept when not stripping")
+    }
+    t |> run("//fmt:ignore-file opts out of stripping too") <| @(t : T?) {
+        let src = "//fmt:ignore-file\nlet X = 1\n// narration survives ignore\nlet Y = 2\n"
+        let out = format_source_string(src, true)
+        t |> success(find(out, "narration survives ignore") >= 0, "ignore-file blocks the strip")
+    }
+    t |> run("header under options survives; a stripped banner leaves no blank-line scar") <| @(t : T?) {
+        let src = "options gen2\n\n// header under options stays\n\nrequire strings // trailing narration dies\n\ndef a() \{\n    return\n\}\n\n\n// banner dies\n\n\ndef b() \{\n    return\n\}\n"
+        let out = format_source_string(src, true)
+        t |> success(find(out, "header under options stays") >= 0, "header kept below the options line")
+        t |> success(find(out, "trailing narration") < 0, "trailing narration on a require line is not header")
+        t |> success(find(out, "banner") < 0, "banner stripped")
+        t |> success(find(out, "\n\n\n\n") < 0, "no 3+ blank run at the strip site")
+    }
+    t |> run("//fmt: directives inside code survive a strip") <| @(t : T?) {
+        let src = "options gen2\n\ndef a() \{\n    //fmt:keep-alignment\n    // narration dies\n    return\n\}\n"
+        let out = format_source_string(src, true)
+        t |> success(find(out, "//fmt:keep-alignment") >= 0, "fmt directive kept")
+        t |> success(find(out, "narration") < 0, "narration stripped")
+    }
+    t |> run("a kept comment keeps its attached continuation lines, whole or not at all") <| @(t : T?) {
+        let src = "options gen2\n\ndef a() \{\n    // nolint:STYLE014 — the why starts here and\n    // continues on a second line without truncation\n    return\n\}\n\ndef b() \{\n    //! doc head\n    // doc continuation line\n    return\n\}\n"
+        let out = format_source_string(src, true)
+        t |> success(find(out, "continues on a second line") >= 0, "nolint why kept whole")
+        t |> success(find(out, "doc continuation line") >= 0, "//! continuation kept")
+    }
+    t |> run("the chain extends through a third line, and a block comment never continues it") <| @(t : T?) {
+        let src = "options gen2\n\ndef a() \{\n    // nolint:STYLE014 — line one of the why,\n    // line two of the why,\n    // line three of the why\n    return\n\}\n\ndef b() \{\n    //! doc head\n    /* block narration dies */\n    return\n\}\n"
+        let out = format_source_string(src, true)
+        t |> success(find(out, "line three of the why") >= 0, "third continuation line kept")
+        t |> success(find(out, "block narration") < 0, "a /* */ under a kept head is not a continuation")
+    }
+    t |> run("a blank line or code breaks the continuation chain") <| @(t : T?) {
+        let src = "options gen2\n\ndef a() \{\n    // nolint:STYLE014 — one-line why\n\n    // separate narration dies\n    return  // nolint:STYLE014 — trailing why\n    // not a continuation of a trailing head, dies\n\}\n"
+        let out = format_source_string(src, true)
+        t |> success(find(out, "one-line why") >= 0, "head kept")
+        t |> success(find(out, "separate narration") < 0, "blank line breaks the chain")
+        t |> success(find(out, "trailing why") >= 0, "trailing nolint kept")
+        t |> success(find(out, "not a continuation") < 0, "trailing head opens no chain")
+    }
+    t |> run("!is-prefixed identifiers survive formatting untouched") <| @(t : T?) {
+        let src = "options gen2\n\ndef check(f : bool) : bool \{\n    return !is_unary(f)\n\}\n"
+        let out = format_source_string(src, false)
+        t |> success(find(out, "!is_unary(f)") >= 0,
+            "template matching has no word boundary: a '!is'/'!as' entry in greedy_match_safe_tokens would eat the prefix of !is_unary-style unary-not calls - those two tokens must stay OUT of the list")
+    }
+}
+
+def private make_policy_dir(name, config : string; var err : string&) : string {
+    let dir = create_temp_directory(name, err)
+    return "" if (empty(dir))
+    mkdir(path_join(dir, ".git"))
+    if (!empty(config)) {
+        fwrite(path_join(dir, ".lint_config"), config)
+    }
+    return dir
+}
+
+[test]
+def test_format_file_comment_policy(t : T?) {
+    t |> run("force_clean_comments folder strips, and the compile verify passes") <| @(t : T?) {
+        var terr : string
+        let dir = make_policy_dir("mcp_strip_test", "[format]\nforce_clean_comments = true\n", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let dst = path_join(dir, "victim.das")
+        let original = fread(fixture_path("_fixture_comments.das"))
+        t |> success(fwrite(dst, original), "fixture copied")
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_format_file(dst), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(find(text, "comments stripped") >= 0, "opted-in folder stripped -- text={text}")
+        t |> success(find(text, "rescue_advisory") >= 0, "strip batch appends the rescue advisory -- text={text}")
+        t |> success(find(text, "harvester") >= 0, "advisory names the harvester agent")
+        let after = fread(dst)
+        t |> success(find(after, "narration") < 0, "comments removed on disk")
+        t |> success(find(after, "//! doc comment survives") >= 0, "docs kept on disk")
+        rmdir_rec(dir)
+    }
+    t |> run("a reformat that strips no comments raises no advisory") <| @(t : T?) {
+        var terr : string
+        let dir = make_policy_dir("mcp_nostrip_test", "[format]\nforce_clean_comments = true\n", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let dst = path_join(dir, "spacing.das")
+        fwrite(dst, "options gen2\n\ndef f() \{\n    let x=1\n    return x\n\}\n")
+        var text : string
+        var is_error = false
+        parse_result(do_format_file(dst), text, is_error)
+        t |> success(find(text, "\"status\":\"formatted\"") >= 0, "spacing-only file was reformatted -- text={text}")
+        t |> success(find(text, "rescue_advisory") < 0, "no comments deleted, no advisory")
+        rmdir_rec(dir)
+    }
+    t |> run("fail-closed: a strip whose compile_check fails restores the original bytes") <| @(t : T?) {
+        var terr : string
+        let dir = make_policy_dir("mcp_revert_test", "[format]\nforce_clean_comments = true\n", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let dst = path_join(dir, "broken.das")
+        let src = "options gen2\n\ndef broken() \{\n    // narration to strip\n    return undefined_symbol_xyz\n\}\n"
+        t |> success(fwrite(dst, src), "broken source written")
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_format_file(dst), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "reverted outcome reports as error")
+        t |> success(find(text, "reverted") >= 0, "status is reverted -- text={text}")
+        t |> success(find(text, "rescue_advisory") < 0, "a reverted strip keeps its comments — no rescue advisory")
+        t |> equal(fread(dst), src, "original bytes restored")
+        rmdir_rec(dir)
+    }
+    t |> run("no config: formats, comments stay") <| @(t : T?) {
+        var terr : string
+        let dir = make_policy_dir("mcp_keep_test", "", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let dst = path_join(dir, "victim.das")
+        fwrite(dst, fread(fixture_path("_fixture_comments.das")))
+        var text : string
+        var is_error = false
+        parse_result(do_format_file(dst), text, is_error)
+        t |> success(!is_error, "default run should not error")
+        t |> success(find(text, "rescue_advisory") < 0, "nothing stripped — no rescue advisory")
+        let after = fread(dst)
+        t |> success(find(after, "narration dies") >= 0, "comments intact on disk")
+        rmdir_rec(dir)
+    }
+}
+
+[test]
+def test_format_file_policy_scoping(t : T?) {
+    t |> run("format_enabled = false skips the file untouched") <| @(t : T?) {
+        var terr : string
+        let dir = make_policy_dir("mcp_skip_test", "[format]\nformat_enabled = false\n", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let dst = path_join(dir, "corpus.das")
+        let src = "options gen2\ndef f() \{\n    let x=1\n\}\n"
+        fwrite(dst, src)
+        var text : string
+        var is_error = false
+        parse_result(do_format_file(dst), text, is_error)
+        t |> success(find(text, "skipped") >= 0, "status is skipped -- text={text}")
+        t |> equal(fread(dst), src, "bytes untouched")
+        rmdir_rec(dir)
+    }
+    t |> run("nearest .lint_config wins per key") <| @(t : T?) {
+        var terr : string
+        let dir = make_policy_dir("mcp_cascade_test", "[format]\nforce_clean_comments = true\n", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let sub = path_join(dir, "teaching")
+        mkdir(sub)
+        fwrite(path_join(sub, ".lint_config"), "[format]\nforce_clean_comments = false\n")
+        let dst = path_join(sub, "victim.das")
+        fwrite(dst, fread(fixture_path("_fixture_comments.das")))
+        var text : string
+        var is_error = false
+        parse_result(do_format_file(dst), text, is_error)
+        t |> success(!is_error, "cascade run should not error")
+        let after = fread(dst)
+        t |> success(find(after, "narration dies") >= 0, "child override kept comments")
+        rmdir_rec(dir)
+    }
+}
+
 
 [test]
 def test_list_requires(t : T?) {
@@ -691,7 +950,6 @@ def test_list_requires(t : T?) {
     }
 }
 
-// ── convert_to_gen2 ─────────────────────────────────────────────────
 
 [test]
 def test_convert_to_gen2(t : T?) {
@@ -718,14 +976,12 @@ def test_convert_to_gen2(t : T?) {
     }
 }
 
-// ── goto_definition ──────────────────────────────────────────────────
 
 [test]
 def test_goto_definition_function(t : T?) {
     t |> run("resolves function call to definition") <| @(t : T?) {
         var text : string
         var is_error = false
-        // distance() call at line 33, col 13
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "33", "13"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "Kind: function") >= 0, "should be function kind")
@@ -739,7 +995,6 @@ def test_goto_definition_variable(t : T?) {
     t |> run("resolves variable reference to declaration") <| @(t : T?) {
         var text : string
         var is_error = false
-        // p1 variable at line 33, col 22
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "33", "22"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "Kind: variable") >= 0, "should be variable kind")
@@ -753,8 +1008,7 @@ def test_goto_definition_field(t : T?) {
     t |> run("resolves field access to struct field") <| @(t : T?) {
         var text : string
         var is_error = false
-        // a.x field at line 15, col 14
-        parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "15", "14"), text, is_error)
+        parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "15", "16"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "Kind: field") >= 0, "should be field kind")
         t |> success(find(text, "Point.x") >= 0, "should resolve to Point.x")
@@ -767,7 +1021,6 @@ def test_goto_definition_builtin(t : T?) {
     t |> run("resolves builtin function") <| @(t : T?) {
         var text : string
         var is_error = false
-        // print() at line 34, col 5
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "34", "5"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "Kind: builtin") >= 0, "should be builtin kind")
@@ -776,11 +1029,115 @@ def test_goto_definition_builtin(t : T?) {
 }
 
 [test]
+def test_goto_definition_declarations(t : T?) {
+    t |> run("a class name is the class, never the finalizer the compiler puts on its line") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "46", "8"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "Symbol: Square") >= 0 && find(text, "Kind: struct") >= 0, "the class: {text}")
+        t |> success(find(text, "__finalize") < 0, "not the synthesized finalizer: {text}")
+    }
+    t |> run("the parent named on a derived class line is the parent") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "46", "16"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "Symbol: Shape") >= 0 && find(text, "Line: 42") >= 0, "the parent's declaration: {text}")
+    }
+    t |> run("a for loop variable's use navigates to its header") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "69", "17"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "Symbol: i") >= 0 && find(text, "Line: 68") >= 0, "the header: {text}")
+    }
+    t |> run("a type name in an expression, a parameter and a constructor is the type") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "66", "21"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "Symbol: Square") >= 0 && find(text, "Line: 46") >= 0 && find(text, "Column: 6") >= 0, "new Square() names the class: {text}")
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "14", "24"), text, is_error)
+        t |> success(find(text, "Symbol: Point") >= 0 && find(text, "Line: 9") >= 0, "a parameter's type: {text}")
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "62", "14"), text, is_error)
+        t |> success(find(text, "Symbol: Value") >= 0 && find(text, "Kind: typedef") >= 0 && find(text, "Line: 31") >= 0, "a variant constructor's type lands on the typedef: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "66", "21", "file", ""), text, is_error)
+        t |> success(find(text, "structure 'Square'") >= 0 && find(text, ":66:20") >= 0, "references from the type name in new: {text}")
+        parse_result(do_type_of(fixture_path("_fixture_refs.das"), "66", "21"), text, is_error)
+        t |> success(find(text, "TypeDecl(Square) : Square") >= 0, "type_of on a type name: {text}")
+    }
+    t |> run("a function's own name is its definition") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "14", "6"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "Symbol: add_points") >= 0 && find(text, "Kind: function") >= 0 && find(text, "Line: 14") >= 0, "the definition: {text}")
+    }
+    t |> run("a global's own name, a for variable's header and a class line report the cursor's column") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "36", "5"), text, is_error)
+        t |> success(find(text, "Symbol: GLOBAL_SCALE") >= 0 && find(text, "Kind: variable") >= 0 && find(text, "Line: 36") >= 0, "the global: {text}")
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "68", "10"), text, is_error)
+        t |> success(find(text, "Symbol: i") >= 0 && find(text, "Kind: variable") >= 0 && find(text, "Line: 68") >= 0, "the for variable on its header: {text}")
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "46", "8"), text, is_error)
+        t |> success(find(text, "Column: 6") >= 0, "the class name's column on its own line: {text}")
+        parse_result(do_type_of(fixture_path("_fixture_refs.das"), "68", "10"), text, is_error)
+        t |> success(find(text, "Variable(i) : int") >= 0, "type_of on a for variable's header: {text}")
+        t |> equal(source_line(fixture_path("_fixture_refs.das"), 68), "    for (i in range(2)) \{", "the subtools' line reader is 1-based")
+        t |> equal(source_line(fixture_path("_fixture_refs.das"), 100000), "", "past the end of the file the line is empty")
+    }
+    t |> run("a CRLF file's lines come back without the carriage return") <| @(t : T?) {
+        var terr : string
+        let dir = create_temp_directory("mcp_source_line_crlf", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        let file = path_join(dir, "crlf.das")
+        fwrite(file, "let a = 1\r\nlet b = 2\r\nlet c = 3\r\n")
+        t |> equal(source_line(file, 2), "let b = 2", "the line, not the line plus \\r")
+        t |> equal(length(source_line(file, 3)), length("let c = 3"), "the last line too")
+        t |> equal(source_line(file, 5), "", "past the end of the file the line is empty")
+        rmdir_rec(dir)
+    }
+}
+
+[test]
+def test_goto_definition_members_and_types(t : T?) {
+    t |> run("a method call lands on the method the receiver's class runs, a field's own name is the field") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "78", "15"), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "Symbol: Square`area") >= 0 && find(text, "Kind: function") >= 0 && find(text, "Line: 47") >= 0, "s->area() is the override, not the class: {text}")
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "67", "20"), text, is_error)
+        t |> success(find(text, "Symbol: Square`area") >= 0 && find(text, "Line: 47") >= 0, "shape->area() too: {text}")
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "10", "5"), text, is_error)
+        t |> success(find(text, "Symbol: x") >= 0 && find(text, "Kind: field") >= 0 && find(text, "Line: 10") >= 0, "the field's declaration: {text}")
+        parse_result(do_type_of(fixture_path("_fixture_refs.das"), "78", "15"), text, is_error)
+        t |> success(text |> starts_with("ExprField(area)") && find(text, "ExprRef2Value") < 0, "type_of on a method call: the method field first, never the compiler's ref-to-value conversion: {text}")
+    }
+    t |> run("an enum type name in a parameter is the enum") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_goto_definition(fixture_path("_fixture_refs.das"), "73", "15"), text, is_error)
+        t |> success(find(text, "Symbol: Color") >= 0 && find(text, "Kind: enum") >= 0 && find(text, "Line: 3") >= 0, "the enum: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "73", "15", "file", "true"), text, is_error)
+        t |> success(find(text, "enumeration 'Color'") >= 0 && find(text, ":73:") >= 0 && find(text, ":60:") >= 0, "references from the parameter's type: the parameter and the constant's use (unoptimized, the folded let keeps its site): {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "3", "6", "file", "true"), text, is_error)
+        t |> success(find(text, "enumeration 'Color'") >= 0 && find(text, ":73:") >= 0 && find(text, ":60:") >= 0 && find(text, ":3:") < 0, "from the declaration's name: the same sites, never the declaration: {text}")
+        parse_result(do_type_of(fixture_path("_fixture_refs.das"), "73", "15"), text, is_error)
+        t |> success(find(text, "TypeDecl(Color) : Color") >= 0, "type_of on the enum type name: {text}")
+    }
+}
+
+[test]
 def test_goto_definition_no_expression(t : T?) {
     t |> run("reports no expression at empty position") <| @(t : T?) {
         var text : string
         var is_error = false
-        // line 1 col 1 — options gen2, no expression
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "1", "1"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "No expression found") >= 0, "should report no expression")
@@ -792,21 +1149,18 @@ def test_goto_definition_snippet(t : T?) {
     t |> run("includes source snippet") <| @(t : T?) {
         var text : string
         var is_error = false
-        // distance() at line 33
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "33", "13"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "def distance") >= 0, "snippet should contain function definition")
     }
 }
 
-// ── type_of ──────────────────────────────────────────────────────────
 
 [test]
 def test_type_of_call(t : T?) {
     t |> run("function call returns result type") <| @(t : T?) {
         var text : string
         var is_error = false
-        // distance() call at line 33 col 13
         parse_result(do_type_of(fixture_path("_fixture_goto.das"), "33", "13"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "ExprCall(distance)") >= 0, "should show ExprCall")
@@ -819,7 +1173,6 @@ def test_type_of_variable(t : T?) {
     t |> run("variable reference shows struct type with location") <| @(t : T?) {
         var text : string
         var is_error = false
-        // p1 at line 33 col 22
         parse_result(do_type_of(fixture_path("_fixture_goto.das"), "33", "22"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "ExprVar(p1)") >= 0, "should show ExprVar")
@@ -832,8 +1185,7 @@ def test_type_of_field(t : T?) {
     t |> run("field access shows field type") <| @(t : T?) {
         var text : string
         var is_error = false
-        // a.x at line 15 col 14
-        parse_result(do_type_of(fixture_path("_fixture_goto.das"), "15", "14"), text, is_error)
+        parse_result(do_type_of(fixture_path("_fixture_goto.das"), "15", "16"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "ExprField(x)") >= 0, "should show ExprField")
         t |> success(find(text, "float") >= 0, "should return float type")
@@ -851,15 +1203,13 @@ def test_type_of_no_expression(t : T?) {
     }
 }
 
-// ── find_references ──────────────────────────────────────────────────
 
 [test]
 def test_find_references_function(t : T?) {
     t |> run("finds function call and addr references") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on add_points call at line 46 col 14
-        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "46", "14", "file", ""), text, is_error)
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "57", "14", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "func") >= 0, "should identify as function")
         t |> success(find(text, "add_points") >= 0, "should name add_points")
@@ -873,8 +1223,7 @@ def test_find_references_variable(t : T?) {
     t |> run("finds variable references") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on p1 variable usage at line 46 col 25
-        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "46", "25", "file", ""), text, is_error)
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "57", "25", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "variable") >= 0, "should identify as variable")
         t |> success(find(text, "p1") >= 0, "should name p1")
@@ -887,8 +1236,7 @@ def test_find_references_field(t : T?) {
     t |> run("finds field references including safe field") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on a.x field at line 15 col 22
-        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "15", "22", "file", ""), text, is_error)
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "15", "24", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "Point.x") >= 0, "should identify as Point.x field")
         t |> success(find(text, "[field]") >= 0, "should find field references")
@@ -902,8 +1250,7 @@ def test_find_references_addr(t : T?) {
     t |> run("finds function from @@addr expression") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on @@add_points at line 48 col 30
-        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "48", "30", "file", ""), text, is_error)
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "59", "30", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "func") >= 0, "should identify as function")
         t |> success(find(text, "add_points") >= 0, "should name add_points")
@@ -917,7 +1264,6 @@ def test_find_references_invoke(t : T?) {
     t |> run("invoke resolves to function pointer variable") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on invoke(f, a, b) at line 23 col 12
         parse_result(do_find_references(fixture_path("_fixture_refs.das"), "23", "12", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "variable") >= 0, "should identify as variable")
@@ -930,7 +1276,6 @@ def test_find_references_from_declaration(t : T?) {
     t |> run("finds references from function definition") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on 'def add_points' at line 14
         parse_result(do_find_references(fixture_path("_fixture_refs.das"), "14", "5", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "func") >= 0, "should identify as function")
@@ -940,7 +1285,6 @@ def test_find_references_from_declaration(t : T?) {
     t |> run("finds references from struct definition") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on 'struct Point' at line 9
         parse_result(do_find_references(fixture_path("_fixture_refs.das"), "9", "1", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "structure") >= 0, "should identify as structure")
@@ -954,18 +1298,19 @@ def test_find_references_alias(t : T?) {
     t |> run("finds alias references from bitfield declaration") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on 'bitfield Flags' declaration at line 26
         parse_result(do_find_references(fixture_path("_fixture_refs.das"), "26", "1", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "alias") >= 0, "should identify as alias")
         t |> success(find(text, "Flags") >= 0, "should name Flags")
         t |> success(find(text, "[alias ref]") >= 0, "should find alias references")
+        t |> success(find(text, ":26:") < 0, "the declaration's own line is its binding, not a reference: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "26", "10", "file", ""), text, is_error)
+        t |> success(find(text, ":38:") >= 0 && find(text, ":26:") < 0, "from the name on the declaration: the parameter's type, not the declaration: {text}")
     }
     t |> run("finds alias references from variant usage") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on Value(i = 10) at line 51 col 13
-        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "51", "13", "file", ""), text, is_error)
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "62", "13", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "alias") >= 0, "should identify as alias")
         t |> success(find(text, "Value") >= 0, "should name Value")
@@ -977,12 +1322,83 @@ def test_find_references_global_variable(t : T?) {
     t |> run("finds global variable references from declaration") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cursor on 'let GLOBAL_SCALE' declaration at line 36 col 5, need no_opt to preserve ExprVar
         parse_result(do_find_references(fixture_path("_fixture_refs.das"), "36", "5", "file", "true"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "variable") >= 0, "should identify as variable")
         t |> success(find(text, "GLOBAL_SCALE") >= 0, "should name GLOBAL_SCALE")
         t |> success(find(text, "Found 1 reference") >= 0, "should find 1 reference (usage in main)")
+    }
+}
+
+[test]
+def test_find_references_class(t : T?) {
+    t |> run("a class name resolves the class, not the finalizer the compiler puts on its line") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "46", "8", "file", ""), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "structure 'Square'") >= 0, "should identify the class: {text}")
+        t |> success(find(text, "__finalize") < 0, "never the synthesized finalizer: {text}")
+        t |> success(find(text, "Found 2 reference") >= 0, "the new site and the parameter type, no implicit self: {text}")
+        t |> success(find(text, ":66:20 in main [type ref]") >= 0 && find(text, ":77:") >= 0, "the new site and the parameter's type: {text}")
+    }
+    t |> run("a method's sites reference its function, through -> and the implicit self; an override is its own method") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "47", "18", "file", ""), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "func 'Square`area'") >= 0, "the override's own function: {text}")
+        t |> success(find(text, ":67:") >= 0 && find(text, ":78:") >= 0 && find(text, "[method call]") >= 0, "shape->area() and s->area() call the override: {text}")
+        t |> success(find(text, ":47:") < 0, "never the declaration's own line: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "43", "9", "file", ""), text, is_error)
+        t |> success(find(text, "func 'Shape`area'") >= 0 && find(text, "Found 0 reference") >= 0, "the base method has no site of its own - every receiver is a Square: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "78", "15", "file", ""), text, is_error)
+        t |> success(find(text, "func 'Square`area'") >= 0 && find(text, ":67:") >= 0, "from a call site the same set: {text}")
+    }
+    t |> run("a field's declaration name references its accesses") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "10", "5", "file", ""), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "field 'Point.x'") >= 0, "the field: {text}")
+        t |> success(find(text, ":15:") >= 0 && find(text, ":19:") >= 0 && find(text, ":64:") >= 0, "a.x, p?.x and p3.x: {text}")
+        t |> success(find(text, ":10:") < 0, "never the declaration's own line: {text}")
+        t |> success(find(text, ":86:") < 0, "Other.x is a different field with the same name: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "86", "14", "file", ""), text, is_error)
+        t |> success(find(text, "field 'Other.x'") >= 0 && find(text, ":86:") >= 0 && find(text, ":15:") < 0, "from an access, the other field's own sites: {text}")
+    }
+    t |> run("a parent named on a derived class line references the parent") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "42", "8", "file", ""), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "structure 'Shape'") >= 0, "should identify the base class: {text}")
+        t |> success(find(text, "Found 1 reference") >= 0, "the derived class line only, no implicit self of its method: {text}")
+        t |> success(find(text, ":46:15 [parent]") >= 0, "the parent mention on the derived class line: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "46", "16", "file", ""), text, is_error)
+        t |> success(find(text, "structure 'Shape'") >= 0, "the cursor on the parent name resolves the parent: {text}")
+    }
+    t |> run("a user-written finalize is itself, with no synthesized caller") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "48", "11", "file", ""), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "func 'finalize'") >= 0, "should identify the user finalizer: {text}")
+        t |> success(find(text, "Found 0 reference") >= 0, "the synthesized finalizer chain is not a caller: {text}")
+    }
+}
+
+[test]
+def test_find_references_for_variable(t : T?) {
+    t |> run("a for loop variable in its header pairs with its body use") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "68", "10", "file", ""), text, is_error)
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "variable 'i'") >= 0, "should identify the loop variable: {text}")
+        t |> success(find(text, ":69:16 in main [variable]") >= 0, "the body use: {text}")
+        parse_result(do_find_references(fixture_path("_fixture_refs.das"), "69", "17", "file", ""), text, is_error)
+        t |> success(find(text, "variable 'i'") >= 0 && find(text, ":69:16") >= 0, "from the use, the same variable: {text}")
     }
 }
 
@@ -994,10 +1410,10 @@ def test_find_references_no_expression(t : T?) {
         parse_result(do_find_references(fixture_path("_fixture_refs.das"), "2", "1", "file", ""), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "No expression or declaration found") >= 0, "should report nothing found")
+        t |> success(find(text, ":2:1") >= 0, "the message echoes the caller's 1-based position: {text}")
     }
 }
 
-// ── eval_expression ─────────────────────────────────────────────────
 
 [test]
 def test_eval_expression(t : T?) {
@@ -1054,9 +1470,6 @@ def test_eval_expression(t : T?) {
     t |> run("retry skipped for non-module-resolution failures") <| @(t : T?) {
         var text : string
         var is_error = false
-        // Builtin module 'math' resolves fine, but the expression fails (undefined symbol).
-        // Retry must NOT fire — otherwise the user sees a misleading 'daslib/math' error
-        // instead of the actual undefined-symbol error.
         parse_result(do_eval_expression("undefined_func_xyz()", "math"), text, is_error)
         t |> success(is_error, "should be error")
         t |> success(find(text, "daslib/math") < 0,
@@ -1066,8 +1479,6 @@ def test_eval_expression(t : T?) {
     t |> run("mixed list rewrites only the missing token") <| @(t : T?) {
         var text : string
         var is_error = false
-        // 'math' is builtin (resolves), 'ast' needs daslib/. Retry must rewrite ONLY 'ast',
-        // leaving 'math' verbatim. Otherwise the retry would fail on 'daslib/math' missing.
         parse_result(do_eval_expression("1 + 2", "math, ast"), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "math, daslib/ast") >= 0, "should rewrite ast but keep math")
@@ -1076,7 +1487,6 @@ def test_eval_expression(t : T?) {
     }
 }
 
-// ── describe_type ───────────────────────────────────────────────────
 
 [test]
 def test_describe_type(t : T?) {
@@ -1122,7 +1532,6 @@ def test_describe_type(t : T?) {
     }
 }
 
-// ── grep_usage ──────────────────────────────────────────────────────
 
 [test]
 def test_grep_usage(t : T?) {
@@ -1140,7 +1549,6 @@ def test_grep_usage(t : T?) {
         var text : string
         var is_error = false
         parse_result(do_grep_usage("compile_program", "utils/mcp/tools", "", ""), text, is_error)
-        // line numbers should be > 1 (not all zeros)
         t |> success(find(text, "  1:") < 0 || find(text, "  38:") >= 0 || find(text, "  41:") >= 0, "should have real line numbers")
     }
     t |> run("no matches returns clean message") <| @(t : T?) {
@@ -1155,9 +1563,6 @@ def test_grep_usage(t : T?) {
         parse_result(do_grep_usage("", "", "", ""), text, is_error)
         t |> success(is_error, "should be error")
     }
-    // A glob containing `/` is anchored to the search root. Passing the root as
-    // `<root>/.` (what resolve_path(".") used to return) defeats ast-grep's path
-    // relativization, so every such filter silently matched nothing.
     t |> run("slash-anchored glob filters rather than zeroing") <| @(t : T?) {
         var text : string
         var is_error = false
@@ -1180,13 +1585,10 @@ def test_grep_usage(t : T?) {
 def test_grep_usage_parse_aware(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("skips comments and strings") <| @(t : T?) {
-        // search for 'compile_program' in tools — should only find code references,
-        // not occurrences inside comments or strings
         var text : string
         var is_error = false
         parse_result(do_grep_usage("compile_program", "utils/mcp/tools", "", ""), text, is_error)
         t |> success(!is_error, "should not be error")
-        // all matches should be actual code (compile_program function calls/defs)
         t |> success(find(text, "common.das") >= 0, "should find in common.das where it's defined")
     }
 }
@@ -1195,7 +1597,6 @@ def test_grep_usage_parse_aware(t : T?) {
 def test_grep_usage_glob_exclude(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("exclude glob filters out files") <| @(t : T?) {
-        // compile_program is defined in common.das — exclude it
         var text : string
         var is_error = false
         parse_result(do_grep_usage("compile_program", "utils/mcp/tools", "", "!**/common.das"), text, is_error)
@@ -1207,7 +1608,6 @@ def test_grep_usage_glob_exclude(t : T?) {
         var is_error = false
         parse_result(do_grep_usage("compile_program", "utils/mcp/tools", "", "common.das"), text, is_error)
         t |> success(!is_error, "should not be error")
-        // only common.das should appear
         t |> success(find(text, "common.das") >= 0, "should find in common.das")
         t |> success(find(text, "compile_check.das") < 0, "should not find in other files")
     }
@@ -1249,7 +1649,6 @@ def test_outline(t : T?) {
         var is_error = false
         parse_result(do_outline("utils/mcp/tests/_fixture_valid.das", ""), text, is_error)
         t |> success(!is_error, "should not be error")
-        // Point is defined before Color, which is before add
         let point_pos = find(text, "Point")
         let color_pos = find(text, "Color")
         let add_pos = find(text, "add")
@@ -1272,7 +1671,6 @@ def test_outline_glob(t : T?) {
         var is_error = false
         parse_result(do_outline("", "utils/mcp/tests/_fixture_*.das"), text, is_error)
         t |> success(!is_error, "should not be error")
-        // Should find declarations from multiple fixture files
         t |> success(find(text, "_fixture_valid.das") >= 0, "should include _fixture_valid.das")
     }
 }
@@ -1286,7 +1684,6 @@ def test_grep_usage_detect(t : T?) {
     }
 }
 
-// ── shared module caching ───────────────────────────────────────────
 
 [test]
 def test_shared_module_not_cached(t : T?) {
@@ -1294,22 +1691,17 @@ def test_shared_module_not_cached(t : T?) {
     let original = "options gen2\nmodule fixture_shared_mod shared\n\nstruct Foo \{\n    x : int = 0;\n\}\n"
     let modified = "options gen2\nmodule fixture_shared_mod shared\n\nstruct Foo \{\n    x : int = 0;\n\}\n\nstruct Bar \{\n    y : int = 0;\n\}\n"
     t |> run("sees new struct after shared module changes") <| @(t : T?) {
-        // 1. compile user1 — caches shared module with only Foo
         var text : string
         var is_error = false
         parse_result(do_compile_check(fixture_path("_fixture_shared_user.das")), text, is_error)
         t |> success(!is_error, "user1 should compile (Foo exists)")
-        // 2. add Bar to the shared module
         t |> success(fwrite(shared_mod, modified), "should write modified shared module")
-        // 3. compile user2 — uses Bar, must see the updated module
         parse_result(do_compile_check(fixture_path("_fixture_shared_user2.das")), text, is_error)
         t |> success(!is_error, "user2 should compile (Bar should be visible after module change)")
-        // 4. restore original
         fwrite(shared_mod, original)
     }
 }
 
-// ── aot ─────────────────────────────────────────────────────────────
 
 [test]
 def test_aot_full_file(t : T?) {
@@ -1334,7 +1726,6 @@ def test_aot_single_function(t : T?) {
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "inline") >= 0, "should contain inline keyword")
         t |> success(find(text, "helper") >= 0, "should contain helper function name")
-        // should NOT contain describe
         t |> success(find(text, "describe") < 0, "should not contain other functions")
     }
 }
@@ -1369,11 +1760,9 @@ def test_aot_multiple_matches(t : T?) {
 [test]
 def test_aot_select_by_aot_name(t : T?) {
     t |> run("select overload by mangled aot_name") <| @(t : T?) {
-        // first get the disambiguation list to find the aot_name
         var text : string
         var is_error = false
         parse_result(do_aot(fixture_path("_fixture_aot.das"), "describe"), text, is_error)
-        // extract an aot_name from the list (format: "describe(...) [describe_HEXHASH]")
         let bracket_pos = find(text, "[describe_")
         t |> success(bracket_pos >= 0, "should contain bracketed aot_name")
         if (bracket_pos < 0) return
@@ -1382,7 +1771,6 @@ def test_aot_select_by_aot_name(t : T?) {
         t |> success(name_end > name_start, "should have closing bracket")
         if (name_end <= name_start) return
         let aot_name = slice(text, name_start, name_end)
-        // now select by aot_name
         parse_result(do_aot(fixture_path("_fixture_aot.das"), aot_name), text, is_error)
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "inline") >= 0, "should contain inline function")
@@ -1400,7 +1788,6 @@ def test_aot_missing_file(t : T?) {
     }
 }
 
-// ── JSON output mode tests ──────────────────────────────────────────
 
 [test]
 def test_compile_check_json(t : T?) {
@@ -1425,7 +1812,6 @@ def test_compile_check_json(t : T?) {
         var is_error = false
         let batch = fixture_path("_fixture_valid.das") + "," + fixture_path("_fixture_error.das")
         parse_result(do_compile_check(batch, "", "", true), text, is_error)
-        // Should be a JSON array with 2 elements
         let arr_start = "[" + "\{"
         t |> success(find(text, arr_start) >= 0, "should start with array")
         t |> success(find(text, "\"success\":true") >= 0, "should have a passing result")
@@ -1440,11 +1826,6 @@ def test_run_test_json(t : T?) {
         var is_error = false
         let ok = parse_result(do_run_test(fixture_path("_fixture_test.das"), "", "", "", true), text, is_error)
         t |> success(ok, "parse result JSON")
-        // NOTE: popen stdout capture broken when run from dastest on Windows (see wip.das)
-        // t |> success(!is_error, "should not be error")
-        // t |> success(find(text, "\"success\":true") >= 0, "should contain success:true")
-        // t |> success(find(text, "\"total\":") >= 0, "should contain total field")
-        // t |> success(find(text, "\"tests\":") >= 0, "should contain tests array")
     }
 }
 
@@ -1475,7 +1856,6 @@ def test_list_requires_json(t : T?) {
     }
 }
 
-// ── perf_lint (merged into lint) ─────────────────────────────────────
 
 [test]
 def test_perf_lint_warnings(t : T?) {
@@ -1526,7 +1906,6 @@ def test_perf_lint_no_match(t : T?) {
     }
 }
 
-// ── lint ─────────────────────────────────────────────────────────────
 
 [test]
 def test_lint_issues(t : T?) {
@@ -1538,6 +1917,26 @@ def test_lint_issues(t : T?) {
         t |> success(!is_error, "should not be error")
         t |> success(find(text, "unused variable") >= 0, "should detect unused variable")
         t |> success(find(text, "unreachable code") >= 0, "should detect unreachable code")
+    }
+}
+
+[test]
+def test_lint_stale_nolint(t : T?) {
+    t |> run("stale nolint reported via LINT019") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_lint(fixture_path("_fixture_stale_nolint.das")), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "should not be error")
+        t |> success(find(text, "LINT019") >= 0, "should report the stale directive")
+        t |> success(find(text, "PERF006") >= 0, "should name the stale code")
+    }
+    t |> run("stale nolint reported in the multi-file path too") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_lint("{fixture_path("_fixture_stale_nolint.das")},{fixture_path("_fixture_valid.das")}"), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(find(text, "LINT019") >= 0, "batch path runs the stale scan too")
     }
 }
 
@@ -1570,14 +1969,20 @@ def test_lint_skip_expect(t : T?) {
     t |> run("file with `expect` directive is skipped via a VALID result envelope") <| @(t : T?) {
         var text : string
         var is_error = false
-        // Regression: the single-file SKIP path used to return a raw "SKIP ..." string, not a
-        // make_tool_result envelope — so the JSON-RPC `result` was invalid and the client hung.
-        // parse_result returning false (unparseable) is the pre-fix signature.
         let ok = parse_result(do_lint(fixture_path("_fixture_expect.das")), text, is_error)
         t |> success(ok, "SKIP result must be a valid envelope (was a raw string => invalid JSON-RPC)")
         t |> success(!is_error, "skip is not an error")
         t |> success(find(text, "SKIP") >= 0, "should report SKIP")
         t |> success(find(text, "intentional compile errors") >= 0, "should explain the skip reason")
+    }
+    t |> run("a `lint-skip-file` header skips instead of hard-failing on policy-conflicted files") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_lint("{get_das_root()}/tests/language/static_if.das"), text, is_error)
+        t |> success(ok, "skip result is a valid envelope")
+        t |> success(!is_error, "skip is not an error")
+        t |> success(find(text, "SKIP") >= 0, "should report SKIP: {text}")
+        t |> success(find(text, "lint-skip-file") >= 0, "should carry the directive reason: {text}")
     }
 }
 
@@ -1593,8 +1998,6 @@ def test_lint_no_match(t : T?) {
     }
 }
 
-// Same focused-error contract as test_compile_check_invalid_project, but for
-// run_lint's hoisted validate_project_arg call site.
 [test]
 def test_lint_invalid_project(t : T?) {
     t |> run("missing project file reports focused error") <| @(t : T?) {
@@ -1615,12 +2018,7 @@ def test_lint_invalid_project(t : T?) {
     }
 }
 
-// ── detect_duplicates ────────────────────────────────────────────────
 
-
-// Generic write-temp-file helper: creates a unique temp file with `prefix`
-// and `ext`, writes `body` to it, returns the path. Returns "" and calls
-// `t |> failure` on temp-file allocation failure.
 def make_temp_text_file(t : T?; prefix : string; ext : string; body : string) : string {
     let r = create_temp_file_result(prefix, ext)
     if (!(r is value)) {
@@ -1658,7 +2056,7 @@ def test_detect_duplicates_missing_corpus(t : T?) {
 [test]
 def test_detect_duplicates_missing_paths(t : T?) {
     t |> run("missing 'paths' arg returns error envelope") <| @(t : T?) {
-        let path = make_temp_corpus_file(t, "\{\"schema_version\":2,\"functions\":[]\}")
+        let path = make_temp_corpus_file(t, "\{\"schema_version\":3,\"functions\":[]\}")
         if (empty(path)) return
         var text : string
         var is_error = false
@@ -1674,9 +2072,6 @@ def test_detect_duplicates_missing_paths(t : T?) {
 [test]
 def test_detect_duplicates_corpus_not_found(t : T?) {
     t |> run("nonexistent corpus path is reported") <| @(t : T?) {
-        // Generate a portable temp path then immediately delete the file
-        // — the path is now guaranteed nonexistent and unique to this run,
-        // and works on Windows runners where /tmp doesn't exist.
         let bogus = make_temp_corpus_file(t, "")
         if (empty(bogus)) return
         remove(bogus)
@@ -1693,7 +2088,7 @@ def test_detect_duplicates_corpus_not_found(t : T?) {
 [test]
 def test_detect_duplicates_empty_corpus(t : T?) {
     t |> run("empty corpus + valid candidate yields envelope with embedded report") <| @(t : T?) {
-        let path = make_temp_corpus_file(t, "\{\"schema_version\":2,\"functions\":[]\}")
+        let path = make_temp_corpus_file(t, "\{\"schema_version\":3,\"functions\":[]\}")
         if (empty(path)) return
         var text : string
         var is_error = false
@@ -1724,9 +2119,6 @@ def test_detect_duplicates_bad_schema(t : T?) {
         remove(path)
     }
 }
-
-
-// ── export_corpus ────────────────────────────────────────────────────
 
 
 [test]
@@ -1776,9 +2168,6 @@ def test_export_corpus_writes_envelope(t : T?) {
             return
         }
         let out_path = unsafe(r.value)
-        // create_temp_file_result returns a path to a freshly-created temp
-        // file. write_export reopens it with "wb" and overwrites, so leaving
-        // the placeholder in place is the intended path.
         var text : string
         var is_error = false
         let ok = parse_result(do_export_corpus(fixture_path("_fixture_valid.das"), "", out_path, "", ""), text, is_error)
@@ -1787,7 +2176,6 @@ def test_export_corpus_writes_envelope(t : T?) {
         t |> success(find(text, "\"exit_code\":0") >= 0, "envelope has exit_code 0: {text}")
         t |> success(find(text, "\"out\":") >= 0, "envelope echoes out path: {text}")
         t |> success(find(text, "\"stdout\":") >= 0, "envelope has subprocess stdout: {text}")
-        // Confirm the file actually exists and is non-empty.
         let body = fread(out_path)
         t |> success(!empty(body), "corpus file is non-empty")
         t |> success(find(body, "\"schema_version\"") >= 0, "corpus has schema_version: {body}")
@@ -1796,9 +2184,6 @@ def test_export_corpus_writes_envelope(t : T?) {
 }
 
 
-// Helper: write `content` to a temp .txt and return its path. Used by
-// the paths_file / workers integration tests. Thin wrapper around
-// `make_temp_text_file` to keep the call sites readable.
 def make_temp_paths_file(t : T?; content : string) : string {
     return make_temp_text_file(t, "export_corpus_paths", ".txt", content)
 }
@@ -1835,10 +2220,6 @@ def test_export_corpus_paths_file(t : T?) {
 [test]
 def test_export_corpus_paths_and_paths_file_union(t : T?) {
     t |> run("paths and paths_file unioned (no duplicate records)") <| @(t : T?) {
-        // paths and paths_file each contribute one fixture; the union
-        // should compile both, with no (file, name, line) triple
-        // appearing twice — verifies the input dedup, not just that
-        // both filenames show up somewhere in the JSON text.
         let paths_body = "{fixture_path("_fixture_test.das")}\n"
         let paths_file = make_temp_paths_file(t, paths_body)
         if (empty(paths_file)) return
@@ -1918,15 +2299,6 @@ def test_export_corpus_paths_and_paths_file_union(t : T?) {
 [test]
 def test_export_corpus_workers_one(t : T?) {
     t |> run("workers param parses and runs the sequential path") <| @(t : T?) {
-        // Argv-plumbing test only. The fixture is a single file —
-        // far below `PARALLEL_THRESHOLD = 16` — so both `workers=""`
-        // (default) and `workers="1"` go through the same in-process
-        // sequential loop. There is no parallel-vs-sequential
-        // equivalence to verify here; that's covered by the
-        // multi-stage manual determinism check (sequential vs
-        // parallel byte-equality on daslib / tests/language). What
-        // we DO verify: the `--workers 1` argv reaches the child
-        // and the child produces a well-formed envelope.
         let r = create_temp_file_result("export_corpus_w1", ".json")
         if (!(r is value)) {
             t |> failure("create_temp_file_result failed")
@@ -1950,13 +2322,9 @@ def test_export_corpus_workers_one(t : T?) {
 
 
 [test]
-def test_export_corpus_workers_failure_propagates(t : T?) {
-    t |> run("compile error in input fails the run, even with workers") <| @(t : T?) {
-        // _fixture_error.das deliberately fails to compile. Whether the
-        // run goes parallel (large list) or sequential (small list),
-        // detect-dupe panics on compile failure → parent exit non-zero
-        // → MCP envelope reports is_error.
-        let paths_body = "{fixture_path("_fixture_error.das")}\n"
+def test_export_corpus_workers_parse_failure_still_exports(t : T?) {
+    t |> run("syntax error in input still exports the survivors, even with workers") <| @(t : T?) {
+        let paths_body = "{fixture_path("_fixture_syntax_error.das")}\n"
         let paths_file = make_temp_paths_file(t, paths_body)
         if (empty(paths_file)) return
         let r = create_temp_file_result("export_corpus_fail", ".json")
@@ -1972,18 +2340,15 @@ def test_export_corpus_workers_failure_propagates(t : T?) {
             do_export_corpus("", paths_file, out_path, "", "1"),
             text, is_error)
         t |> success(ok, "parse result JSON")
-        t |> success(is_error, "should be error: {text}")
-        t |> success(find(text, "exit code") >= 0, "envelope mentions exit code: {text}")
+        t |> success(!is_error, "a parse failure is not a failed run: {text}")
+        t |> success(find(text, "failed to parse") >= 0, "the envelope's stdout carries the failure count: {text}")
+        t |> success(stat(out_path).is_valid, "the corpus file is written")
         remove(paths_file)
         remove(out_path)
     }
 }
 
-// ── cpp_grep_usage ───────────────────────────────────────────────────
 
-// Diagnostic helper: when a cpp_* tool returns is_error=true unexpectedly the
-// CI log only shows the assertion message, not the envelope text. Embed a
-// truncated snapshot so a Windows-only failure surfaces what sg actually said.
 def private cpp_diag(text : string) : string {
     let trimmed = length(text) > 800 ? slice(text, 0, 800) : text
     return "envelope: {trimmed}"
@@ -2013,13 +2378,6 @@ def test_cpp_grep_usage(t : T?) {
     }
 }
 
-// ── cpp_grep_usage v2: multi-kind identifier matching ────────────────
-//
-// Each test below FAILS under the old `sg run -p Symbol` implementation
-// because that pattern only matches bare identifier expressions. The new
-// implementation generates a multi-kind YAML rule (identifier +
-// type_identifier + namespace_identifier + field_identifier) so usages in
-// type positions, qualified calls, base-class clauses, etc. are all caught.
 
 [test]
 def test_cpp_grep_usage_type_position(t : T?) {
@@ -2027,7 +2385,6 @@ def test_cpp_grep_usage_type_position(t : T?) {
     t |> run("finds Outer used as a return type") <| @(t : T?) {
         var text : string
         var is_error = false
-        // GrepDerived::makeOuter() returns Outer.
         parse_result(do_cpp_grep_usage("Outer", "utils/mcp/tests", "", ""), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
         t |> success(find(text, "Outer makeOuter()") >= 0,
@@ -2060,14 +2417,10 @@ def test_cpp_grep_usage_type_position(t : T?) {
 def test_cpp_grep_usage_dedup(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("a single source line appears at most once even if multiple AST nodes match") <| @(t : T?) {
-        // The destructor signature `TextWriter::~TextWriter()` produces both a
-        // namespace_identifier and a type_identifier hit; the line should
-        // appear exactly once in the output.
         var text : string
         var is_error = false
         parse_result(do_cpp_grep_usage("TextWriter", "src/misc/string_writer.cpp", "", ""), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
-        // count occurrences of the destructor line.
         var count = 0
         var pos = 0
         let needle = "TextWriter::~TextWriter()"
@@ -2081,7 +2434,6 @@ def test_cpp_grep_usage_dedup(t : T?) {
     }
 }
 
-// ── cpp_find_symbol ──────────────────────────────────────────────────
 
 [test]
 def test_cpp_find_symbol(t : T?) {
@@ -2089,7 +2441,6 @@ def test_cpp_find_symbol(t : T?) {
     t |> run("finds class in src/ast") <| @(t : T?) {
         var text : string
         var is_error = false
-        // narrowed from "src" (~144 files) to "src/ast" (~34 files); Module lives in src/ast
         parse_result(do_cpp_find_symbol("=Module", "class", "src/ast", ""), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
         t |> success(find(text, "Module") >= 0, "should find Module -- {cpp_diag(text)}")
@@ -2104,7 +2455,6 @@ def test_cpp_find_symbol(t : T?) {
     t |> run("no-match returns clean empty result") <| @(t : T?) {
         var text : string
         var is_error = false
-        // narrowed scope; absence-of-symbol is structural, not scope-dependent
         parse_result(do_cpp_find_symbol("zzznotarealsymbolzzz_xyzzy", "", "src/ast", ""), text, is_error)
         t |> success(!is_error, "should not be error on no-match -- {cpp_diag(text)}")
         t |> success(find(text, "No matches") >= 0, "should report no matches -- {cpp_diag(text)}")
@@ -2112,7 +2462,6 @@ def test_cpp_find_symbol(t : T?) {
     t |> run("kind filter rejects wrong kinds") <| @(t : T?) {
         var text : string
         var is_error = false
-        // addFunction is a method (not a class) in src/ast/; narrowed scope still proves the kind filter
         parse_result(do_cpp_find_symbol("=addFunction", "class", "src/ast", ""), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
         t |> success(find(text, "No matches") >= 0, "kind=class should reject methods named addFunction -- {cpp_diag(text)}")
@@ -2125,7 +2474,6 @@ def test_cpp_find_symbol(t : T?) {
     }
 }
 
-// ── cpp_outline ──────────────────────────────────────────────────────
 
 [test]
 def test_cpp_outline(t : T?) {
@@ -2151,7 +2499,6 @@ def test_cpp_outline(t : T?) {
     }
 }
 
-// ── cpp_outline v2 (signatures, nesting, anti-misparse, qualified names) ─
 
 let private CPP_OUTLINE_FIXTURE = "_fixture_cpp_outline.h"
 
@@ -2167,8 +2514,6 @@ def test_cpp_outline_signatures(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("multi-line function declaration collapsed into a single signature") <| @(t : T?) {
         let text = cpp_outline_text("")
-        // describe() is declared across 5 lines in the fixture; the renderer
-        // must show the full param list with default values on one output line.
         t |> success(find(text, "void describe( const char * name, int count = 0, bool verbose = false ) const") >= 0,
             "expected collapsed signature")
     }
@@ -2184,10 +2529,6 @@ def test_cpp_outline_class_misparse_filtered(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("class with macro prefix is reported as the class, not as a function") <| @(t : T?) {
         let text = cpp_outline_text("")
-        // The fixture has `class MY_EXPORT Outer { ... }`. tree-sitter-cpp emits
-        // both a class_specifier and a bogus function_definition for that line;
-        // the post-filter must drop the function. The class name must be Outer
-        // (not MY_EXPORT).
         t |> success(find(text, "[class] Outer") >= 0, "expected [class] Outer")
         t |> success(find(text, "[function] class MY_EXPORT") < 0,
             "must NOT emit a function entry for the misparsed class line")
@@ -2201,12 +2542,9 @@ def test_cpp_outline_anonymous_filtered(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("anonymous union/struct/enum entries are dropped") <| @(t : T?) {
         let text = cpp_outline_text("")
-        // The fixture has an anonymous union AND an anonymous enum inside Outer.
-        // Neither should appear as an unnamed entry.
         t |> success(find(text, "[union] union \{") < 0, "anonymous union must be dropped")
         t |> success(find(text, "[union]\n") < 0, "no bare [union] entries")
         t |> success(find(text, "[enum] enum \{") < 0, "anonymous enum must be dropped")
-        // kFlagA is an enumerator inside the anonymous enum — must NOT leak as a name.
         t |> success(find(text, "[enum] kFlagA") < 0, "anonymous enum's enumerators must not leak as the name")
     }
 }
@@ -2227,8 +2565,6 @@ def test_cpp_outline_nesting(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("methods nest under their enclosing class in tree mode") <| @(t : T?) {
         let text = cpp_outline_text("tree")
-        // Tree mode: Inner is a child of Outer (depth 2 from namespace).
-        // Methods of Inner are at depth 3, indented 6 spaces past the line-num column.
         t |> success(find(text, "    [class] Inner") >= 0, "Inner should be indented under Outer")
         t |> success(find(text, "      [function] void method()") >= 0,
             "Inner's method should be indented under Inner")
@@ -2245,7 +2581,6 @@ def test_cpp_outline_qualified_names(t : T?) {
     if (!require_ast_grep(t)) return
     t |> run("flat mode prefixes in-class methods with their ancestor chain") <| @(t : T?) {
         let text = cpp_outline_text("flat")
-        // In flat mode the indentation goes away; ancestors must show as :: prefix.
         t |> success(find(text, "fixns::Outer::describe") >= 0,
             "Outer::describe should be qualified with namespace + class")
         t |> success(find(text, "fixns::Outer::Inner::method") >= 0,
@@ -2253,14 +2588,11 @@ def test_cpp_outline_qualified_names(t : T?) {
     }
     t |> run("flat mode does not double-prefix already-qualified names") <| @(t : T?) {
         let text = cpp_outline_text("flat")
-        // The out-of-class definition `void Outer::describe(...)` already has ::;
-        // flat-mode injection must not produce `fixns::Outer::describe::Outer::describe`.
         t |> success(find(text, "fixns::Outer::describe::") < 0,
             "must not double-qualify out-of-class definition")
     }
 }
 
-// ── cpp_goto_definition ──────────────────────────────────────────────
 
 [test]
 def test_cpp_goto_definition_errors(t : T?) {
@@ -2284,7 +2616,6 @@ def test_cpp_goto_definition_errors(t : T?) {
     }
 }
 
-// ── with_cpp_source redirect on find_symbol / goto_definition ────────
 
 [test]
 def test_find_symbol_with_cpp_source(t : T?) {
@@ -2299,13 +2630,8 @@ def test_find_symbol_with_cpp_source(t : T?) {
     t |> run("redirect on — emits '→ cpp:' line for builtins") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cpp_dirs="src/builtin" narrows the C++ scan from full CPP_SEARCH_DIRS
-        // (~947 files) to ~33 files where `print` lives. Drops this test from
-        // ~19s to ~1s.
         parse_result(do_find_symbol("=print", "function", "", "", "", true, "src/builtin"), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
-        // Either we located print's cpp source OR we report (not located).
-        // Both prove the redirect path fired.
         t |> success(find(text, "→ cpp:") >= 0, "redirect line should appear when with_cpp_source=true -- {cpp_diag(text)}")
     }
 }
@@ -2315,7 +2641,6 @@ def test_goto_definition_with_cpp_source(t : T?) {
     t |> run("redirect off (default) — no C++: line") <| @(t : T?) {
         var text : string
         var is_error = false
-        // line 34 col 5 is the 'p' of print(...) on `print("{d}\n")` — resolves to a builtin
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "34", "5", "", "", "", false), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
         t |> success(find(text, "Kind: builtin") >= 0, "should resolve to a builtin -- {cpp_diag(text)}")
@@ -2323,7 +2648,6 @@ def test_goto_definition_with_cpp_source(t : T?) {
     t |> run("redirect on — appends C++: line for builtin") <| @(t : T?) {
         var text : string
         var is_error = false
-        // cpp_dirs="src/builtin" narrows the redirect lookup; drops this from ~17s to ~1s.
         parse_result(do_goto_definition(fixture_path("_fixture_goto.das"), "34", "5", "", "", "", true, "src/builtin"), text, is_error)
         t |> success(!is_error, "should not be error -- {cpp_diag(text)}")
         t |> success(find(text, "Kind: builtin") >= 0, "should still resolve to a builtin -- {cpp_diag(text)}")
@@ -2331,7 +2655,6 @@ def test_goto_definition_with_cpp_source(t : T?) {
     }
 }
 
-// ── cpp_search_config + staleness signature ──────────────────────────
 
 [test]
 def test_cpp_search_config(t : T?) {
@@ -2363,9 +2686,6 @@ def test_cpp_index_signature(t : T?) {
     }
 }
 
-// Direct unit tests for the filesystem-fallback walker live with the shared
-// module they exercise: utils/common/tests/test_git_signature.das. Behavioral
-// integration is covered by test_cpp_index_signature above.
 
 [test]
 def test_cpp_collect_git_excludes(t : T?) {
@@ -2373,7 +2693,6 @@ def test_cpp_collect_git_excludes(t : T?) {
         let modules_dir = path_join(get_das_root(), "modules")
         let cache_git = path_join(modules_dir, ".daspkg_cache/index/.git")
         if (!stat(cache_git).is_valid) {
-            // skip silently if cache not present (e.g. fresh checkout)
             return
         }
         var search_dirs : array<string>
@@ -2393,10 +2712,6 @@ def test_cpp_collect_git_excludes(t : T?) {
 [test]
 def test_cpp_function_declarations_visible(t : T?) {
     if (!require_ast_grep(t)) return
-    // Regression for Copilot review #1: function declarations in headers
-    // (no body, e.g. `void foo();`) must be findable. Without the
-    // cpp-outline-functions-decl rule + has:function_declarator constraint,
-    // these were silently invisible.
     t |> run("finds function declaration in ast.h header") <| @(t : T?) {
         var text : string
         var is_error = false
@@ -2409,9 +2724,6 @@ def test_cpp_function_declarations_visible(t : T?) {
 [test]
 def test_cpp_using_alias_visible(t : T?) {
     if (!require_ast_grep(t)) return
-    // Regression for Copilot review #2: `using X = Y;` aliases must surface
-    // under kind=typedef. Without the cpp-outline-typedefs-using rule, only
-    // the legacy `typedef X Y;` form was visible.
     t |> run("finds 'using' alias as typedef") <| @(t : T?) {
         var text : string
         var is_error = false
@@ -2421,14 +2733,6 @@ def test_cpp_using_alias_visible(t : T?) {
     }
 }
 
-// ── cpp_compile_check / cpp_build_info / cpp_format_file ──────────────
-//
-// These tools need a compile_commands.json (and, for the real check, a C++
-// compiler in the env). CI lanes that build with Ninja/Make emit the DB; the
-// Visual Studio generator does NOT — so every assertion that needs the DB is
-// gated on its presence (skip-as-pass), and the no-DB path is asserted too.
-// The "real check" assertion is deliberately loose (ran a check / OK / FAILED
-// are all fine) so a CI box without the toolchain in PATH stays green.
 
 def private has_compile_db(text : string) : bool {
     return find(text, "No compile_commands.json") < 0
@@ -2451,7 +2755,6 @@ def test_cpp_compile_check(t : T?) {
             t->log("no compile_commands.json — skipping cpp_compile_check assertions")
             return
         }
-        // Plumbing proven whether the verdict is OK, FAILED, or honest no-entry.
         t |> success(find(text, "Compile check") >= 0 || find(text, "no compile DB entry") >= 0,
                      "ran a check or reported no entry -- text={text}")
     }
@@ -2467,8 +2770,7 @@ def test_cpp_compile_check(t : T?) {
         var text : string
         var is_error = false
         parse_result(do_cpp_compile_check("src/misc/sysos.cpp", "", true), text, is_error)
-        if (!has_compile_db(text)) return
-        if (find(text, "no compile DB entry") >= 0) return  // DB present but TU absent (alt build dir)
+        if (!has_compile_db(text) || find(text, "no compile DB entry") >= 0) return
         t |> success(find(text, "\"success\"") >= 0, "json has success field -- text={text}")
         t |> success(find(text, "\"file\"") >= 0, "json has file field -- text={text}")
     }
@@ -2484,7 +2786,7 @@ def test_cpp_build_info(t : T?) {
             t->log("no compile_commands.json — skipping cpp_build_info assertions")
             return
         }
-        if (find(text, "no compile DB entry") >= 0) return  // DB present but sysos.cpp absent (alt build dir)
+        if (find(text, "no compile DB entry") >= 0) return
         t |> success(find(text, "compiler:") >= 0, "shows compiler -- text={text}")
         t |> success(find(text, "syntax-only command") >= 0, "shows derived syntax-only command -- text={text}")
         t |> success(find(text, "/Zs") >= 0 || find(text, "-fsyntax-only") >= 0, "appends a syntax-only flag -- text={text}")
@@ -2494,7 +2796,6 @@ def test_cpp_build_info(t : T?) {
         var is_error = false
         parse_result(do_cpp_build_info("src/misc/sysos.cpp", ""), text, is_error)
         if (!has_compile_db(text)) return
-        // protocol_core.das is a .das file — never a C++ translation unit in the DB.
         parse_result(do_cpp_build_info("utils/mcp/protocol_core.das", ""), text, is_error)
         t |> success(is_error, "non-cpp file -> error -- text={text}")
         t |> success(find(text, "no compile DB entry") >= 0, "reports no entry -- text={text}")
@@ -2521,8 +2822,6 @@ def test_cpp_format_file(t : T?) {
 
 [test]
 def test_cpp_status(t : T?) {
-    // Pure env detection — no compilation, no external deps required. Whatever the
-    // environment, the report (or JSON) is produced and is not an error.
     t |> run("text report names each diagnosed dependency") <| @(t : T?) {
         var text : string
         var is_error = false
@@ -2550,13 +2849,6 @@ def test_cpp_status(t : T?) {
     }
 }
 
-// ── run_mcp_subtool wiring tests ──────────────────────────────────────
-//
-// The 270 tool-level tests above already cover the wiring end-to-end via
-// `do_<tool>(...)`. These four pin down the four behaviors of the helper
-// itself: argv passthrough, missing-subtool, timeout, and non-zero exit.
-// Fixtures live alongside the real subtools at utils/mcp/subtools/_test_*.das
-// so they share the same require-chain shape (no behavioral surprises).
 
 [test]
 def test_run_mcp_subtool_passthrough(t : T?) {
@@ -2596,8 +2888,6 @@ def test_run_mcp_subtool_missing(t : T?) {
 [test]
 def test_run_mcp_subtool_timeout(t : T?) {
     t |> run("subtool exceeding timeout surfaces 'timed out'") <| @(t : T?) {
-        // Sleep 5s, allow 0.5s — guaranteed timeout. Wall clock cost ~0.5s
-        // (process is killed at the deadline, not after the full sleep).
         let raw = run_mcp_subtool("_test_sleep", ["5000"], [timeout_sec = 0.5])
         var text : string
         var is_error = false
@@ -2623,31 +2913,26 @@ def test_run_mcp_subtool_nonzero_exit(t : T?) {
     }
 }
 
-// ── project_root end-to-end coverage ────────────────────────────────
-// Tier 1: every MCP tool that accepts `project_root` should resolve the
-// pretend_mod fixture's `require pretend_mod/greet` chain when the arg is
-// set, and fail with `missing prerequisite 'pretend_mod` when it isn't.
-// Fixture: utils/mcp/tests/_pretend_root/{consumer.das, modules/pretend_mod/{.das_module, greet.das}}.
 
 let PROOT_CONSUMER = "_pretend_root/consumer.das"
 let PROOT = "_pretend_root"
 let PROOT_MISSING = "missing prerequisite 'pretend_mod"
 
-def assert_project_root_pair(t : T?; without_root, with_root : string) {
+def assert_prereq_pair(t : T?; what : string; without_it, with_it : string) {
     var t1 : string; var e1 = false
-    parse_result(without_root, t1, e1)
-    t |> success(e1, "without project_root: should be error -- text={t1}")
+    parse_result(without_it, t1, e1)
+    t |> success(e1, "without {what}: should be error -- text={t1}")
     t |> success(find(t1, PROOT_MISSING) >= 0,
-                 "without project_root: should mention missing prerequisite -- text={t1}")
+                 "without {what}: should mention missing prerequisite -- text={t1}")
     var t2 : string; var e2 = false
-    parse_result(with_root, t2, e2)
-    t |> success(!e2, "with project_root: should NOT be error -- text={t2}")
+    parse_result(with_it, t2, e2)
+    t |> success(!e2, "with {what}: should NOT be error -- text={t2}")
 }
 
 [test]
 def test_project_root_compile_check(t : T?) {
     t |> run("compile_check honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_compile_check(fixture_path(PROOT_CONSUMER)),
             do_compile_check(fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)))
     }
@@ -2656,7 +2941,7 @@ def test_project_root_compile_check(t : T?) {
 [test]
 def test_project_root_lint(t : T?) {
     t |> run("lint honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_lint(fixture_path(PROOT_CONSUMER)),
             do_lint(fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)))
     }
@@ -2665,7 +2950,7 @@ def test_project_root_lint(t : T?) {
 [test]
 def test_project_root_aot(t : T?) {
     t |> run("aot honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_aot(fixture_path(PROOT_CONSUMER), ""),
             do_aot(fixture_path(PROOT_CONSUMER), "", "", fixture_path(PROOT)))
     }
@@ -2674,7 +2959,7 @@ def test_project_root_aot(t : T?) {
 [test]
 def test_project_root_list_functions(t : T?) {
     t |> run("list_functions honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_list_functions(fixture_path(PROOT_CONSUMER)),
             do_list_functions(fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)))
     }
@@ -2683,7 +2968,7 @@ def test_project_root_list_functions(t : T?) {
 [test]
 def test_project_root_list_types(t : T?) {
     t |> run("list_types honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_list_types(fixture_path(PROOT_CONSUMER)),
             do_list_types(fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)))
     }
@@ -2692,7 +2977,7 @@ def test_project_root_list_types(t : T?) {
 [test]
 def test_project_root_list_requires(t : T?) {
     t |> run("list_requires honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_list_requires(fixture_path(PROOT_CONSUMER)),
             do_list_requires(fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)))
     }
@@ -2701,7 +2986,7 @@ def test_project_root_list_requires(t : T?) {
 [test]
 def test_project_root_program_log(t : T?) {
     t |> run("program_log honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_program_log(fixture_path(PROOT_CONSUMER), "main"),
             do_program_log(fixture_path(PROOT_CONSUMER), "main", "", fixture_path(PROOT)))
     }
@@ -2710,7 +2995,7 @@ def test_project_root_program_log(t : T?) {
 [test]
 def test_project_root_ast_dump(t : T?) {
     t |> run("ast_dump honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_ast_dump("", fixture_path(PROOT_CONSUMER), "main", "source", ""),
             do_ast_dump("", fixture_path(PROOT_CONSUMER), "main", "source", "", "", fixture_path(PROOT)))
     }
@@ -2719,7 +3004,7 @@ def test_project_root_ast_dump(t : T?) {
 [test]
 def test_project_root_find_references(t : T?) {
     t |> run("find_references honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_find_references(fixture_path(PROOT_CONSUMER), "7", "17", "file", ""),
             do_find_references(fixture_path(PROOT_CONSUMER), "7", "17", "file", "", "", fixture_path(PROOT)))
     }
@@ -2728,7 +3013,7 @@ def test_project_root_find_references(t : T?) {
 [test]
 def test_project_root_goto_definition(t : T?) {
     t |> run("goto_definition honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_goto_definition(fixture_path(PROOT_CONSUMER), "7", "17"),
             do_goto_definition(fixture_path(PROOT_CONSUMER), "7", "17", "", "", fixture_path(PROOT)))
     }
@@ -2737,7 +3022,7 @@ def test_project_root_goto_definition(t : T?) {
 [test]
 def test_project_root_type_of(t : T?) {
     t |> run("type_of honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_type_of(fixture_path(PROOT_CONSUMER), "7", "17"),
             do_type_of(fixture_path(PROOT_CONSUMER), "7", "17", "", "", fixture_path(PROOT)))
     }
@@ -2746,7 +3031,7 @@ def test_project_root_type_of(t : T?) {
 [test]
 def test_project_root_find_symbol(t : T?) {
     t |> run("find_symbol honors project_root") <| @(t : T?) {
-        assert_project_root_pair(t,
+        assert_prereq_pair(t, "project_root",
             do_find_symbol("hello", "", fixture_path(PROOT_CONSUMER)),
             do_find_symbol("hello", "", fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)))
     }
@@ -2755,8 +3040,6 @@ def test_project_root_find_symbol(t : T?) {
 [test]
 def test_project_root_list_module_api(t : T?) {
     t |> run("list_module_api honors project_root") <| @(t : T?) {
-        // list_module_api compiles a stub `require <module_name>`, so the
-        // missing-prereq error mentions the module key, not 'pretend_mod'.
         var t1 : string; var e1 = false
         parse_result(do_list_module_api("pretend_mod/greet"), t1, e1)
         t |> success(e1, "without project_root: should be error -- text={t1}")
@@ -2773,15 +3056,11 @@ def test_project_root_list_module_api(t : T?) {
 [test]
 def test_project_root_describe_type(t : T?) {
     t |> run("describe_type honors project_root") <| @(t : T?) {
-        // describe_type uses module_name in the stub require chain;
-        // without project_root the require fails to resolve.
         var t1 : string; var e1 = false
         parse_result(do_describe_type("FooBar", "pretend_mod/greet"), t1, e1)
         t |> success(e1, "without project_root: should be error -- text={t1}")
         t |> success(find(t1, "missing prerequisite 'pretend_mod/greet") >= 0,
                      "without project_root: should mention missing prereq -- text={t1}")
-        // FooBar doesn't exist; tool reports "Type 'FooBar' not found" but is_error=false
-        // because the compile itself succeeded — that's the project_root flow we're proving.
         var t2 : string; var e2 = false
         parse_result(do_describe_type("FooBar", "pretend_mod/greet", "", fixture_path(PROOT)), t2, e2)
         t |> success(!e2, "with project_root: should NOT be error -- text={t2}")
@@ -2791,8 +3070,6 @@ def test_project_root_describe_type(t : T?) {
 [test]
 def test_project_root_eval_expression(t : T?) {
     t |> run("eval_expression honors project_root") <| @(t : T?) {
-        // eval_expression has its own subprocess path (not via run_mcp_subtool),
-        // so this test exercises that separate argv construction path too.
         var t1 : string; var e1 = false
         parse_result(do_eval_expression("hello()", "pretend_mod/greet"), t1, e1)
         t |> success(e1, "without project_root: should be error -- text={t1}")
@@ -2807,11 +3084,6 @@ def test_project_root_eval_expression(t : T?) {
 [test]
 def test_project_root_run_script(t : T?) {
     t |> run("run_script honors project_root") <| @(t : T?) {
-        // Use INLINE code (not file path). daslang.exe auto-deduces project_root
-        // from files.front()'s directory (utils/daScript/main.cpp:390); when
-        // run_script is given a file path, that's the consumer's own directory
-        // which auto-resolves modules/. Inline code writes a temp stub at
-        // get_das_root(), whose modules tree doesn't include pretend_mod.
         let inline_code = "options gen2\nrequire pretend_mod/greet\n[export]\ndef main() \{\n    print(\"\{hello()\}\\n\")\n\}\n"
         var t1 : string; var e1 = false
         parse_result(do_run_script("", inline_code), t1, e1)
@@ -2827,8 +3099,6 @@ def test_project_root_run_script(t : T?) {
 [test]
 def test_project_root_run_test(t : T?) {
     t |> run("run_test honors project_root") <| @(t : T?) {
-        // consumer.das has no [test] funcs, but the compile-failure vs
-        // compile-succeed gate is what we're testing.
         var t1 : string; var e1 = false
         parse_result(do_run_test(fixture_path(PROOT_CONSUMER)), t1, e1)
         t |> success(e1, "without project_root: should be error -- text={t1}")
@@ -2836,22 +3106,11 @@ def test_project_root_run_test(t : T?) {
                      "without project_root: should mention missing prereq -- text={t1}")
         var t2 : string; var e2 = false
         parse_result(do_run_test(fixture_path(PROOT_CONSUMER), "", fixture_path(PROOT)), t2, e2)
-        // No [test] functions in consumer.das, so dastest reports "no tests"
-        // but the compile succeeded. Some implementations may mark "no tests"
-        // as is_error=true; assert based on actual observed behavior, not
-        // is_error. The key check: no missing-prereq message.
         t |> success(find(t2, PROOT_MISSING) < 0,
                      "with project_root: should NOT mention missing prereq -- text={t2}")
     }
 }
 
-// ── load_module end-to-end coverage ──────────────────────────────────
-// Tier-1 peer suite to the project_root suite above. Same pretend_mod
-// fixture, but exercised via `-load_module <pretend_mod_path>` instead
-// of `-project_root <_pretend_root>`. The two flags shadow each other
-// by basename, so pointing load_module directly at the module folder
-// (which contains `.das_module`) is the canonical alternative to the
-// `<DummyRoot>/modules/<name>` junction trick.
 
 let PRETEND_LM = "_pretend_root/modules/pretend_mod"
 
@@ -2861,21 +3120,10 @@ def make_lm_array(p : string) : array<string> {
     return <- arr
 }
 
-def assert_load_module_pair(t : T?; without_lm, with_lm : string) {
-    var t1 : string; var e1 = false
-    parse_result(without_lm, t1, e1)
-    t |> success(e1, "without load_module: should be error -- text={t1}")
-    t |> success(find(t1, PROOT_MISSING) >= 0,
-                 "without load_module: should mention missing prerequisite -- text={t1}")
-    var t2 : string; var e2 = false
-    parse_result(with_lm, t2, e2)
-    t |> success(!e2, "with load_module: should NOT be error -- text={t2}")
-}
-
 [test]
 def test_load_module_compile_check(t : T?) {
     t |> run("compile_check honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_compile_check(fixture_path(PROOT_CONSUMER)),
             do_compile_check(fixture_path(PROOT_CONSUMER), "", "", false, make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2884,7 +3132,7 @@ def test_load_module_compile_check(t : T?) {
 [test]
 def test_load_module_lint(t : T?) {
     t |> run("lint honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_lint(fixture_path(PROOT_CONSUMER)),
             do_lint(fixture_path(PROOT_CONSUMER), "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2893,7 +3141,7 @@ def test_load_module_lint(t : T?) {
 [test]
 def test_load_module_aot(t : T?) {
     t |> run("aot honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_aot(fixture_path(PROOT_CONSUMER), ""),
             do_aot(fixture_path(PROOT_CONSUMER), "", "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2902,7 +3150,7 @@ def test_load_module_aot(t : T?) {
 [test]
 def test_load_module_list_functions(t : T?) {
     t |> run("list_functions honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_list_functions(fixture_path(PROOT_CONSUMER)),
             do_list_functions(fixture_path(PROOT_CONSUMER), "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2911,7 +3159,7 @@ def test_load_module_list_functions(t : T?) {
 [test]
 def test_load_module_list_types(t : T?) {
     t |> run("list_types honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_list_types(fixture_path(PROOT_CONSUMER)),
             do_list_types(fixture_path(PROOT_CONSUMER), "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2920,7 +3168,7 @@ def test_load_module_list_types(t : T?) {
 [test]
 def test_load_module_list_requires(t : T?) {
     t |> run("list_requires honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_list_requires(fixture_path(PROOT_CONSUMER)),
             do_list_requires(fixture_path(PROOT_CONSUMER), "", "", false, make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2929,7 +3177,7 @@ def test_load_module_list_requires(t : T?) {
 [test]
 def test_load_module_program_log(t : T?) {
     t |> run("program_log honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_program_log(fixture_path(PROOT_CONSUMER), "main"),
             do_program_log(fixture_path(PROOT_CONSUMER), "main", "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2938,7 +3186,7 @@ def test_load_module_program_log(t : T?) {
 [test]
 def test_load_module_ast_dump(t : T?) {
     t |> run("ast_dump honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_ast_dump("", fixture_path(PROOT_CONSUMER), "main", "source", ""),
             do_ast_dump("", fixture_path(PROOT_CONSUMER), "main", "source", "", "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2947,7 +3195,7 @@ def test_load_module_ast_dump(t : T?) {
 [test]
 def test_load_module_find_references(t : T?) {
     t |> run("find_references honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_find_references(fixture_path(PROOT_CONSUMER), "7", "17", "file", ""),
             do_find_references(fixture_path(PROOT_CONSUMER), "7", "17", "file", "", "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2956,7 +3204,7 @@ def test_load_module_find_references(t : T?) {
 [test]
 def test_load_module_goto_definition(t : T?) {
     t |> run("goto_definition honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_goto_definition(fixture_path(PROOT_CONSUMER), "7", "17"),
             do_goto_definition(fixture_path(PROOT_CONSUMER), "7", "17", "", "", "", false, "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2965,7 +3213,7 @@ def test_load_module_goto_definition(t : T?) {
 [test]
 def test_load_module_type_of(t : T?) {
     t |> run("type_of honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_type_of(fixture_path(PROOT_CONSUMER), "7", "17"),
             do_type_of(fixture_path(PROOT_CONSUMER), "7", "17", "", "", "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -2974,7 +3222,7 @@ def test_load_module_type_of(t : T?) {
 [test]
 def test_load_module_find_symbol(t : T?) {
     t |> run("find_symbol honors load_module") <| @(t : T?) {
-        assert_load_module_pair(t,
+        assert_prereq_pair(t, "load_module",
             do_find_symbol("hello", "", fixture_path(PROOT_CONSUMER)),
             do_find_symbol("hello", "", fixture_path(PROOT_CONSUMER), "", "", false, "", make_lm_array(fixture_path(PRETEND_LM))))
     }
@@ -3054,11 +3302,6 @@ def test_load_module_run_test(t : T?) {
     }
 }
 
-// ── build_live_script_args unit tests ────────────────────────────────
-// Pins daslang-live script_args composition. Flag-ordering matters because
-// when both `-project` and `-project_root` are set, `-project_root` must end
-// up to the LEFT (prepended last by build_live_script_args). Slash-replace
-// only happens when is_windows=true.
 
 [test]
 def test_live_args_neither(t : T?) {
@@ -3109,9 +3352,7 @@ def test_live_args_load_module_only(t : T?) {
 [test]
 def test_live_args_load_module_multi(t : T?) {
     t |> run("two load_modules: both pairs preserved in source order") <| @(t : T?) {
-        var lm : array<string>
-        lm |> push("/p1")
-        lm |> push("/p2")
+        let lm <- ["/p1", "/p2"]
         let s = build_live_script_args("/path/foo.das", "", "", false, lm)
         t |> equal(s, "-load_module \"/p1\" -load_module \"/p2\" -cwd \"/path/foo.das\"",
                    "two load_module pairs preserved in source order")
@@ -3121,9 +3362,7 @@ def test_live_args_load_module_multi(t : T?) {
 [test]
 def test_live_args_all_set(t : T?) {
     t |> run("project_root + load_modules + project + cwd: ordered project_root → load_module → project → cwd") <| @(t : T?) {
-        var lm : array<string>
-        lm |> push("/m1")
-        lm |> push("/m2")
+        let lm <- ["/m1", "/m2"]
         let s = build_live_script_args("/path/foo.das", "/p.das_project", "/proj_root", false, lm)
         t |> equal(s,
                    "-project_root \"/proj_root\" -load_module \"/m1\" -load_module \"/m2\" -project \"/p.das_project\" -cwd \"/path/foo.das\"",
@@ -3156,12 +3395,6 @@ def test_live_args_windows_paths(t : T?) {
     }
 }
 
-// ── resolve_load_modules unit tests ──────────────────────────────────
-// Pins the abs-resolve invariant: every load_module path passed to
-// daslang-live MUST be absolute, because daslang-live's `-cwd` chdir's
-// before `require_dynamic_modules` runs (utils/daslang-live/main.cpp:696-707).
-// A relative -load_module would re-resolve against the new cwd and fail to
-// find the module folder — same hazard as -project_root.
 
 [test]
 def test_resolve_load_modules_empty(t : T?) {
@@ -3175,15 +3408,9 @@ def test_resolve_load_modules_empty(t : T?) {
 [test]
 def test_resolve_load_modules_absolutizes_relative(t : T?) {
     t |> run("relative paths become absolute") <| @(t : T?) {
-        var src : array<string>
-        src |> push("foo")
-        src |> push("./bar/baz")
+        let src <- ["foo", "./bar/baz"]
         let out <- resolve_load_modules(src)
         t |> equal(length(out), 2, "preserves entry count")
-        // resolve_path uses get_das_root() as the base for relative paths.
-        // The exact prefix is platform-specific; the invariant is that the
-        // output contains the das root as a prefix (or starts with a drive
-        // letter / leading slash on POSIX).
         let root = get_das_root()
         t |> success(find(out[0], root) >= 0,
                      "out[0] should contain das root prefix -- out[0]={out[0]} root={root}")
@@ -3208,10 +3435,6 @@ def test_resolve_load_modules_preserves_absolute(t : T?) {
     }
 }
 
-// ── build_subtool_argv unit tests ────────────────────────────────────
-// Pins the `-project_root <P>` argv invariant: flag MUST be inserted BEFORE
-// the subtool script path. Otherwise daslang treats it as a positional .das
-// file to load, which silently breaks dyn-module discovery.
 
 [test]
 def test_build_subtool_argv_no_project_root(t : T?) {
@@ -3230,8 +3453,6 @@ def test_build_subtool_argv_no_project_root(t : T?) {
 [test]
 def test_build_subtool_argv_with_project_root(t : T?) {
     t |> run("argv with project_root: flag inserted BEFORE script path") <| @(t : T?) {
-        // build_subtool_argv does pure string composition — the path doesn't
-        // need to exist on the test host, just be passed through verbatim.
         let args <- ["alpha"]
         let argv <- build_subtool_argv("daslang.exe", "sub.das", args, "/proj/root")
         t |> equal(length(argv), 6, "argv length should be 6")
@@ -3284,9 +3505,7 @@ def test_build_subtool_argv_with_load_module(t : T?) {
 def test_build_subtool_argv_with_load_modules_multi(t : T?) {
     t |> run("two load_module pairs preserved in source order") <| @(t : T?) {
         let args : array<string>
-        var lm : array<string>
-        lm |> push("/m1")
-        lm |> push("/m2")
+        let lm <- ["/m1", "/m2"]
         let argv <- build_subtool_argv("daslang.exe", "sub.das", args, "", lm)
         t |> equal(length(argv), 7, "argv length should be 7")
         t |> equal(argv[1], "-load_module", "argv[1]=first -load_module flag")
@@ -3314,9 +3533,6 @@ def test_build_subtool_argv_with_project_root_and_load_module(t : T?) {
     }
 }
 
-// ── program_log smoke tests ──────────────────────────────────────────
-// Pre-existing gap (no tests existed for program_log). Locks basic behavior
-// after the in-process-to-subprocess refactor in commit 8eb959ed5.
 
 [test]
 def test_program_log_basic(t : T?) {
@@ -3343,8 +3559,6 @@ def test_program_log_basic(t : T?) {
 [test]
 def test_program_log_missing_func(t : T?) {
     t |> run("program_log reports unfound function") <| @(t : T?) {
-        // program_log returns is_error=false but message text indicates failure.
-        // This is the current contract — pin it.
         var text : string
         var is_error = false
         parse_result(do_program_log(fixture_path("_fixture_valid.das"),
@@ -3358,11 +3572,6 @@ def test_program_log_missing_func(t : T?) {
 [test]
 def test_project_root_invalid_dir(t : T?) {
     t |> run("invalid project_root: pins current daslang behavior") <| @(t : T?) {
-        // Locks in whatever daslang.exe does when -project_root points at a
-        // nonexistent directory: today it silently no-ops the dyn-modules scan
-        // and the consumer compile fails with missing-prereq. If daslang ever
-        // changes to error explicitly on bad -project_root, this test catches
-        // the behavior shift.
         var text : string
         var is_error = false
         parse_result(do_compile_check(fixture_path(PROOT_CONSUMER), "",
@@ -3371,5 +3580,298 @@ def test_project_root_invalid_dir(t : T?) {
         t |> success(is_error, "should be error -- text={text}")
         t |> success(find(text, PROOT_MISSING) >= 0,
                      "should still report missing prereq -- text={text}")
+    }
+}
+
+// Every citation these fixtures plant is assembled from ARCH_ANN rather than spelled out: the
+// LINT026 forward pass reads source and skips only `//` comments, so a citation spelled out in
+// one of the string literals below would be a citation made by THIS file, against a document
+// utils/mcp does not carry.
+let ARCH_ANN = "arch"
+
+// A temp folder holding a document and the code citing it. Both sides have to live under one
+// root because arch_sites walks the subtree the DOCUMENT owns. `code.das` cites twice: once
+// into a section the document declares, once into an anchor it does not.
+def private plant_arch_fixture(name : string; var err : string&) : string {
+    let dir = create_temp_directory(name, err)
+    return "" if (empty(dir))
+    fwrite(path_join(dir, "ARCHITECTURE.md"), build_string() $(var w) {
+        w |> write("# Doc\n\n## Tokenizer \{#tokenizer\}\n\nThe tokenizer section body.\n\n")
+        w |> write("### Details \{#details\}\n\nA subsection stays inside its parent.\n\n")
+        w |> write("## Buffers \{#buffers\}\n\nThe buffers section body.\n")
+    })
+    fwrite(path_join(dir, "code.das"), build_string() $(var w) {
+        w |> write("options gen2\n\n")
+        w |> write("[{ARCH_ANN}(at=\"ARCHITECTURE.md#tokenizer\")]\ndef scan_tokens \{\n\}\n\n")
+        w |> write("[{ARCH_ANN}(at=\"ARCHITECTURE.md#gone\")]\ndef dangling \{\n\}\n")
+    })
+    return dir
+}
+
+[test]
+def test_arch_of(t : T?) {
+    t |> run("a resolving citation carries the cited section text") <| @(t : T?) {
+        var terr : string
+        let dir = plant_arch_fixture("mcp_arch_of_test", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_arch_of(path_join(dir, "code.das")), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "a readable file is not a tool failure -- text={text}")
+        t |> success(find(text, "code.das:3  scan_tokens  ->  ") >= 0,
+            "the citation is a locator: its own line, the annotated function, then where it lands -- text={text}")
+        t |> success(find(text, "ARCHITECTURE.md:3-9  #tokenizer") >= 0,
+            "the section is a line range from its heading through its last line - the deeper heading at 7 does not end it, the next same-level one at 11 does -- text={text}")
+        t |> success(find(text, "The tokenizer section body.") < 0,
+            "the text itself is the document's to show; the tool gives coordinates -- text={text}")
+        t |> success(find(text, "#buffers") < 0, "a section nothing cites is not in the answer -- text={text}")
+        rmdir_rec(dir)
+    }
+    t |> run("a dangling citation reports LINT026's reason") <| @(t : T?) {
+        var terr : string
+        let dir = plant_arch_fixture("mcp_arch_dangling_test", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        var text : string
+        var is_error = false
+        parse_result(do_arch_of(path_join(dir, "code.das")), text, is_error)
+        t |> success(find(text, "does not resolve - no such anchor") >= 0,
+            "lint's own wording, so one tool's answer reads as the other's -- text={text}")
+        t |> success(find(text, "code.das:7  dangling  ->  does not resolve") >= 0,
+            "the dangling citation still names its line and symbol -- text={text}")
+        rmdir_rec(dir)
+    }
+    t |> run("the symbol filter keeps one citation") <| @(t : T?) {
+        var terr : string
+        let dir = plant_arch_fixture("mcp_arch_symbol_test", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        var text : string
+        var is_error = false
+        parse_result(do_arch_of(path_join(dir, "code.das"), "scan_tokens"), text, is_error)
+        t |> success(find(text, "scan_tokens  ->  ") >= 0, "the named symbol's citation is kept -- text={text}")
+        t |> success(find(text, "dangling") < 0, "the other symbol's citation is dropped -- text={text}")
+        t |> success(find(text, "1 citation(s) shown.") >= 0, "and the tally says one -- text={text}")
+        rmdir_rec(dir)
+    }
+    t |> run("a missing file is a tool failure") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_arch_of("nonexistent_arch_file_12345.das"), text, is_error)
+        t |> success(is_error, "should be error -- text={text}")
+        t |> success(find(text, "not found") >= 0, "should mention file not found -- text={text}")
+    }
+    t |> run("a file citing nothing says so") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_arch_of(fixture_path("_fixture_valid.das")), text, is_error)
+        t |> success(!is_error, "no citations is not a failure -- text={text}")
+        t |> success(find(text, "No [arch] citations") >= 0, "should report an empty scan -- text={text}")
+    }
+}
+
+// The C++ arm of arch_of: a `// <doc>#<anchor>` pointer is read from a C++ source and located in
+// the same shape a .das citation is, with no symbol - the tool does not parse C++ declarations.
+[test]
+def test_arch_of_cpp(t : T?) {
+    t |> run("a C++ source is read for its pointers, and lands in the same shape") <| @(t : T?) {
+        var terr : string
+        let dir = plant_arch_fixture("mcp_arch_cpp_test", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        fwrite(path_join(dir, "code.cpp"), "// ARCHITECTURE.md#tokenizer - the pointer form\nvoid f() \{\}\n")
+        var text : string
+        var is_error = false
+        parse_result(do_arch_of(path_join(dir, "code.cpp")), text, is_error)
+        t |> success(!is_error, "a C++ file is a readable source -- text={text}")
+        t |> success(find(text, "code.cpp:1  ->  ") >= 0,
+            "the pointer is located at its line, with no symbol -- text={text}")
+        t |> success(find(text, "ARCHITECTURE.md:3-9  #tokenizer") >= 0, "and lands on the same section -- text={text}")
+        rmdir_rec(dir)
+    }
+}
+
+[test]
+def test_arch_sites(t : T?) {
+    t |> run("the census finds the citations planted in the document's subtree") <| @(t : T?) {
+        var terr : string
+        let dir = plant_arch_fixture("mcp_arch_sites_test", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_arch_sites(path_join(dir, "ARCHITECTURE.md")), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "an existing document is not a tool failure -- text={text}")
+        t |> success(find(text, "\{#tokenizer\} (lines 3-9) - 1 citation(s)") >= 0,
+            "the cited anchor is grouped with its section's line range -- text={text}")
+        t |> success(find(text, "code.das:3  scan_tokens") >= 0,
+            "the site names file, line and symbol -- text={text}")
+        t |> success(find(text, "\{#buffers\} (lines 11-13) - no citations") >= 0,
+            "an uncited anchor is part of the census -- text={text}")
+        t |> success(find(text, "searched: ") >= 0 && find(text, "searched: ") < find(text, "src"),
+            "the header names the document's own folder first, then the C++ homes -- text={text}")
+        t |> success(find(text, "\{#gone\}") >= 0,
+            "a citation naming an undeclared anchor is surfaced, not dropped -- text={text}")
+        t |> success(find(text, "2 citation(s) in 1 file(s).") >= 0, "the tally counts both -- text={text}")
+        rmdir_rec(dir)
+    }
+    t |> run("an anchor query narrows the census to that section") <| @(t : T?) {
+        var terr : string
+        let dir = plant_arch_fixture("mcp_arch_anchor_test", terr)
+        if (empty(dir)) {
+            t |> failure("temp dir: {terr}")
+            return
+        }
+        var text : string
+        var is_error = false
+        let doc = path_join(dir, "ARCHITECTURE.md")
+        parse_result(do_arch_sites("{doc}#tokenizer"), text, is_error)
+        t |> success(find(text, "code.das:3  scan_tokens") >= 0, "the section's own site is listed -- text={text}")
+        t |> success(find(text, "1 citation(s) in 1 file(s).") >= 0, "and only it -- text={text}")
+        t |> success(find(text, "\{#buffers\}") < 0, "other anchors stay out -- text={text}")
+        rmdir_rec(dir)
+    }
+    t |> run("a missing document is a tool failure") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_arch_sites("nonexistent_arch_doc_12345.md"), text, is_error)
+        t |> success(is_error, "should be error -- text={text}")
+        t |> success(find(text, "Document not found") >= 0, "should mention the missing document -- text={text}")
+    }
+}
+
+def private discover_lines(query, limit, module_filter : string; var is_error : bool&) : array<string> {
+    //! The tool's text split into lines: line 0 is the header, the rows follow in rank order.
+    var text : string
+    parse_result(do_discover(query, limit, module_filter), text, is_error)
+    return <- split(text, "\n")
+}
+
+def private top_symbol(lines : array<string>) : string {
+    //! The `module::name` of the top row - the text before its ` - description` or `  [group]` tail.
+    return "" if (length(lines) < 2)
+    var cut = length(lines[1])
+    for (tail in [" - ", "  ["]) {
+        let at = find(lines[1], tail)
+        if (at >= 0 && at < cut) {
+            cut = at
+        }
+    }
+    return trim(slice(lines[1], 0, cut))
+}
+
+[test]
+def test_discover(t : T?) {
+    t |> run("query word order ranks a name over its mirror, and the group tail names the manual's heading") <| @(t : T?) {
+        var is_error = false
+        let lines <- discover_lines("convert uri to file name", "5", "", is_error)
+        t |> success(!is_error, "should not be error -- {lines}")
+        t |> success(top_symbol(lines) == "uriparser::uri_to_file_name", "uri_to_file_name ranks first, its mirror file_name_to_uri does not -- {lines}")
+        t |> success(find(lines[1], "[File name conversions]") >= 0, "the row carries its group heading -- {lines}")
+        t |> success(find(lines[1], " - Converts a URI string") >= 0, "the row carries its description -- {lines}")
+    }
+    t |> run("a word found only in descriptions still ranks its symbol first") <| @(t : T?) {
+        var is_error = false
+        let lines <- discover_lines("percent-encodes reserved characters", "3", "", is_error)
+        t |> success(top_symbol(lines) == "uriparser::escape_uri", "description words rank escape_uri first -- {lines}")
+    }
+    t |> run("synonyms bridge the query's word to the name") <| @(t : T?) {
+        var is_error = false
+        let lines <- discover_lines("url to path", "8", "", is_error)
+        let text = join(lines, "\n")
+        t |> success(find(text, "uri_to_file_name") >= 0 || find(text, "uri_to_unix_file_name") >= 0, "url reaches the uri family -- {lines}")
+    }
+    t |> run("fts5 syntax filters before ranking") <| @(t : T?) {
+        var is_error = false
+        let lines <- discover_lines("uri* NOT windows", "50", "uriparser", is_error)
+        let text = join(lines, "\n")
+        t |> success(!is_error, "should not be error -- {lines}")
+        t |> success(find(text, "uri_to_file_name") >= 0, "prefix match survives -- {lines}")
+        t |> success(find(text, "uri_to_windows_file_name") < 0, "NOT excludes the windows twin -- {lines}")
+    }
+    t |> run("an exact name ranks first, and the module filter keeps other modules out") <| @(t : T?) {
+        var is_error = false
+        let in_fio <- discover_lines("base_name", "3", "fio", is_error)
+        t |> success(top_symbol(in_fio) == "fio::base_name", "exact name first in the named module -- {in_fio}")
+        let elsewhere <- discover_lines("base_name", "50", "uriparser", is_error)
+        t |> success(find(join(elsewhere, "\n"), "fio::") < 0, "another module's rows never appear -- {elsewhere}")
+    }
+    t |> run("limit defaults to 12 on an empty or unparsable value and is honored otherwise") <| @(t : T?) {
+        var is_error = false
+        t |> success(find(discover_lines("string", "", "", is_error)[0], "showing 12") >= 0, "empty limit shows 12")
+        t |> success(find(discover_lines("string", "abc", "", is_error)[0], "showing 12") >= 0, "garbage limit shows 12")
+        t |> success(find(discover_lines("string", "3", "", is_error)[0], "showing 3") >= 0, "a numeric limit is honored")
+    }
+    t |> run("a query no symbol matches says so without an error") <| @(t : T?) {
+        var is_error = false
+        let lines <- discover_lines("zzqqxxyy", "5", "", is_error)
+        t |> success(!is_error, "no match is not a tool failure -- {lines}")
+        t |> success(find(lines[0], "no symbol matches") >= 0, "names the outcome -- {lines}")
+    }
+    t |> run("an empty query and a bad fts5 query are tool failures") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_discover("  ", "", ""), text, is_error)
+        t |> success(is_error, "empty query should be error -- text={text}")
+        parse_result(do_discover("(uri", "", ""), text, is_error)
+        t |> success(is_error, "unbalanced fts5 query should be error -- text={text}")
+        t |> success(find(text, "invalid FTS5 query") >= 0, "names the cause -- text={text}")
+    }
+}
+
+[test]
+def test_served_tree_paths(t : T?) {
+    let here = getcwd()
+    let dir = path_join(get_das_root(), "utils/mcp/tests/_served_tree_{ref_time_ticks()}")
+    mkdir(dir)
+    t |> success(chdir(dir), "enter the served tree")
+    let served = to_generic_path(getcwd())
+    t |> run("a relative path joins the served tree, not the daslang root") @(t : T?) {
+        t |> equal(resolve_path("tests/x.das"), path_join(served, "tests/x.das"))
+        t |> equal(resolve_path(""), served)
+        t |> equal(resolve_path("."), served)
+        let abs = path_join(to_generic_path(get_das_root()), "abs/x.das")   //! a rooted path on every platform (a bare `/abs` is drive-relative on Windows and resolves to `D:/abs`)
+        t |> equal(resolve_path(abs), abs)
+    }
+    t |> run("a served tree with no project marker keeps the daslang C++ index roots") @(t : T?) {
+        var inscope dirs <- cpp_default_search_dirs()
+        t |> equal(length(dirs), length(CPP_SEARCH_DIRS))
+        t |> equal(dirs[0], path_join(get_das_root(), CPP_SEARCH_DIRS[0]))
+    }
+    t |> run("the C++ index roots are the served tree once it carries a project marker") @(t : T?) {
+        fwrite(path_join(served, "CMakeLists.txt"), "")
+        var inscope dirs <- cpp_default_search_dirs()
+        t |> equal(length(dirs), 1)
+        t |> equal(dirs[0], served)
+    }
+    t |> run("the compile database is looked up under the served tree") @(t : T?) {
+        mkdir(path_join(served, "build"))
+        let db = path_join(served, "build/compile_commands.json")
+        fwrite(db, "[]")
+        t |> equal(cpp_locate_compile_db(""), db)
+    }
+    t |> success(chdir(here), "leave the served tree")
+    rmdir_rec(dir)
+    t |> run("at the daslang root the C++ index roots are CPP_SEARCH_DIRS") @(t : T?) {
+        if (to_generic_path(getcwd()) != get_das_root()) {
+            t |> skip("the suite runs outside the daslang root")
+            return
+        }
+        var inscope dirs <- cpp_default_search_dirs()
+        t |> equal(length(dirs), length(CPP_SEARCH_DIRS))
+        t |> equal(dirs[0], path_join(get_das_root(), CPP_SEARCH_DIRS[0]))
     }
 }

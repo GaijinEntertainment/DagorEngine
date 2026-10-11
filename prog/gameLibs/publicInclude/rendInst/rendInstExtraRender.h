@@ -39,7 +39,7 @@ void renderRIGenExtraFromBuffer(Sbuffer *buffer, dag::ConstSpan<IPoint2> offsets
   Sbuffer *indirect_buffer = nullptr, Sbuffer *ofs_buffer = nullptr, bool use_external_per_draw_cb = false);
 
 void renderSortedTransparentRiExtraInstances(const RiGenVisibility &v, const TexStreamingContext &tex_ctx,
-  bool draw_partitioned_elems = false);
+  bool draw_partitioned_elems = false, const RiExtraRenderer *prebuilt = nullptr);
 
 void collectPixelsHistogramRIGenExtra(const RiGenVisibility *main_visibility, vec4f camera_fov, float histogram_scale,
   eastl::vector<eastl::vector_map<eastl::string_view, int>> &histogram);

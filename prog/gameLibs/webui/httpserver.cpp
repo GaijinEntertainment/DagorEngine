@@ -44,7 +44,7 @@
 
 #define debug(...) logmessage(_MAKE4C('HTTP'), __VA_ARGS__)
 
-#define RECEIVE_POST_DATA_TIMEOUT_MSEC (1000)
+#define RECEIVE_TIMEOUT_MSEC (1000)
 
 #define HTTP_PORT          23456
 #define BIND_PORT_ATTEMPTS 128
@@ -147,7 +147,7 @@ static void unescape_url(char *url)
   int i, j;
   for (i = 0, j = 0; url[j]; ++i, ++j)
   {
-    if ((url[i] = url[j]) == '%')
+    if ((url[i] = url[j]) == '%' && isxdigit((unsigned char)url[j + 1]) && isxdigit((unsigned char)url[j + 2]))
     {
       url[i] = x2c(&url[j + 1]);
       j += 2;
@@ -227,70 +227,34 @@ void *RequestInfo::read_POST_content() const
   if (!content_len || strcmp(request_method, "POST") != 0 || !content)
     return NULL;
   int headers_size = content - buf;
-  int already_readed = readedLen - headers_size;
+  int already_readed = min(readedLen - headers_size, content_len);
   if (already_readed < 0)
     return NULL;
-  void *ret = tmpmem->tryAlloc(content_len + 1);
+  char *ret = (char *)tmpmem->tryAlloc(content_len + 1);
   if (!ret)
     return NULL;
 
-  int totalWaitMsec = 0;
-
   // copy already readed from socket part
   memcpy(ret, content, already_readed);
-  // read from socket rest
-  if (already_readed < content_len)
+  const int64_t startTicks = ref_time_ticks();
+  for (char *ptr = ret + already_readed, *end = ret + content_len; ptr < end;)
   {
-    char *ptr = (char *)ret + already_readed;
-    int left = content_len - already_readed;
-    char *end = ptr + left;
-    int readed;
-
-    int waitNextRecvMsec = 0;
-
-    do
+    int readed = get_time_usec(startTicks) < RECEIVE_TIMEOUT_MSEC * 1000 ? os_socket_recvfrom(conn, ptr, end - ptr) : 0;
+    if (readed <= 0)
     {
-      readed = os_socket_recvfrom(conn, ptr, left);
-      if (readed < 0)
-      {
-        totalWaitMsec++;
-        waitNextRecvMsec++;
-        sleep_msec(1);
-
-        if (waitNextRecvMsec > RECEIVE_POST_DATA_TIMEOUT_MSEC)
-        {
-          debug("%s receive from socket failed", __FUNCTION__);
-          tmpmem->free(ret);
-          return NULL;
-        }
-      }
-      else if (readed > 0)
-      {
-        waitNextRecvMsec = 0;
-        ptr += readed;
-        left += readed;
-      }
-    } while (readed && ptr < end);
-    if (ptr != end)
-    {
+      debug("%s receive from socket timed out or failed", __FUNCTION__);
       tmpmem->free(ret);
       return NULL;
     }
+    ptr += readed;
   }
-
-  (void)totalWaitMsec;
-  if (totalWaitMsec > 1)
-    debug("read_POST_content() waited data for time = %d ms", totalWaitMsec);
-
-  ((char *)ret)[content_len] = 0;
-
+  ret[content_len] = 0;
   return ret;
 }
 
 class HttpServer : public DaThread
 {
 public:
-  WinCritSec updateCritSection;
   WinCritSec reqCrit;
   Tab<RequestInfo> requests;
   os_socket_t listenSocket;
@@ -350,6 +314,7 @@ public:
       debug("listen failed");
       goto ctor_fail;
     }
+    os_socket_set_option(listenSocket, OSO_NONBLOCK, 1); // constraint: a blocked accept may never wake
 
     listenPort = port;
 
@@ -372,20 +337,12 @@ public:
 
     interlocked_release_store(terminating, 1);
     // wake up thread (plaform specific way)
-#if _TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3
-    os_socket_close(listenSocket); // MS doesn't support waking thread via shutdown() as by docs it should be
-#else
+#if !(_TARGET_PC_WIN | _TARGET_XBOX | _TARGET_C3)
     ::shutdown(listenSocket, SHUT_RDWR);
 #endif
-    // ensure that thread is finished
-    if (!updateCritSection.timedLock(100)) // wait at most 100msec, to avoid long shutdown. better mem leak than shutdown.
-      logwarn("http game server couldn't wait for lock, mem leak possible");
-    else
-      updateCritSection.unlock();
-    this->terminate(true, 1000);
-#if !(_TARGET_PC_WIN | _TARGET_XBOX)
+    // close only after the wait: the thread selects and accepts on the handle until it ends
+    this->terminate(true, RECEIVE_TIMEOUT_MSEC * 3);
     os_socket_close(listenSocket);
-#endif
     listenSocket = OS_SOCKET_INVALID;
 
     for (int i = 0; i < requests.size(); ++i)
@@ -489,6 +446,9 @@ public:
     ri.from_host = os_ntohl(host);
     ri.from_port = os_socket_addr_get_port(from, sizeof(*from));
 
+    if (!strstr(req, "\r\n\r\n")) // the header block must fit one receive
+      REQUEST_FAIL(HTTP_BAD_REQUEST);
+
     char *p = req;
     for (; *p && isspace((unsigned char)*p); ++p) // skip initial spaces
       ;
@@ -544,14 +504,16 @@ public:
           if (content_length)
           {
             ri.content_len = strtol(content_length, NULL, 0);
-            if (ri.content_len == INT_MAX || ri.content_len == INT_MIN) // bad length
+            if (ri.content_len < 0 || ri.content_len == INT_MAX) // bad length
               REQUEST_FAIL(HTTP_BAD_REQUEST);
-            if (ri.content_len)
-              ri.content = p;
           }
           const char *content_type = ri.get_header("Content-Type", "");
           if (!strcmp(content_type, "application/x-www-form-urlencoded") && ri.content_len)
+          {
+            if (reqSize - (p - req) < ri.content_len)
+              REQUEST_FAIL(HTTP_BAD_REQUEST);
             ri.params = getcgivars(ri.content);
+          }
         }
 
         if (!ri.params && params_pos)
@@ -574,34 +536,28 @@ public:
 
   void update()
   {
+    if (os_socket_read_select(listenSocket, RECEIVE_TIMEOUT_MSEC / 1000) == 0)
+      return;
     os_socket_addr from;
     int fromLen = sizeof(from);
     os_socket_t conn = os_socket_accept(listenSocket, &from, &fromLen);
-    if (isThreadTerminating())
-      return;
-    else if (conn == OS_SOCKET_INVALID)
+    if (conn == OS_SOCKET_INVALID)
     {
-      sleep_msec(1000); // Recovery timeout to not overload the system with requests.
+      if (!isThreadTerminating())
+        sleep_msec(1000); // Recovery timeout to not overload the system with requests.
       return;
     }
 
-    constexpr int sz = 32 << 10;
+    constexpr int sz = 16 << 10;
     char stackTmp[sz];
+    os_socket_set_option(conn, OSO_NONBLOCK, 0); // constraint: some OSes copy it from listenSocket
+    os_socket_set_recv_timeout(conn, RECEIVE_TIMEOUT_MSEC / 1000);
     int readed = os_socket_recvfrom(conn, stackTmp, sz - 1);
-    if (readed < 0)
-    {
-      debug("socket receive failed");
-      return;
-    }
-    if (readed < 16)
+    if (readed < 16 || isThreadTerminating())
     {
       os_socket_close(conn);
       return;
     }
-    if (isThreadTerminating())
-      return;
-    // we can terminate update unil now.
-    updateCritSection.lock(); // ensure we dont leak mem on exit
     char *tmp_buf = (char *)memalloc(sz, tmpmem);
     memcpy(tmp_buf, stackTmp, readed);
     tmp_buf[readed] = 0;
@@ -611,7 +567,6 @@ public:
       os_socket_close(conn);
       memfree(tmp_buf, tmpmem);
     }
-    updateCritSection.unlock();
   }
 
   void execute()
@@ -671,16 +626,6 @@ void update()
 {
   if (http_server)
     http_server->processRequests();
-}
-
-void update_sync()
-{
-  if (http_server)
-  {
-    interlocked_release_store(http_server->terminating, 1);
-    http_server->update();
-    http_server->processRequests();
-  }
 }
 
 uint16_t get_binded_port() { return http_server ? http_server->listenPort : 0; }

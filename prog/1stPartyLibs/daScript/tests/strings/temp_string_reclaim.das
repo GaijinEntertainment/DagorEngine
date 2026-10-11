@@ -94,14 +94,8 @@ def test_temp_string_reclaim_correctness(t : T?) {
     }
 
     t |> run("capturing consumers keep their strings") @@(t) {
-        var tab : table<string; int>
-        for (i in range(100)) {
-            tab |> insert(string(i), i)
-        }
-        var arr : array<string>
-        for (i in range(100)) {
-            arr |> push(string(1000000 + i))
-        }
+        let tab <- {for (i in range(100)); string(i) => i}
+        let arr <- [for (i in range(100)); string(1000000 + i)]
         var churn = 0
         for (i in range(1000)) {
             churn += length(string(8888000 + i))
@@ -165,6 +159,51 @@ def test_temp_string_reclaim_propagation(t : T?) {
 }
 
 [test]
+def test_temp_string_reclaim_passthrough_alias(t : T?) {
+    t |> run("passthrough callee must not launder a queued slice temp (direct-arg)") @@(t) {
+        var stored : array<string>
+        stored |> reserve(6)
+        for (i in range(6)) {
+            let ln = "require mod_{i}/sub_{i}"
+            // wrap_pass returns its own argument; if slice's temp is queued here,
+            // stored aliases a freed cell
+            stored |> push(wrap_pass(slice(ln, length("require "))))
+        }
+        // same-size churn: the persistent shoe reissues a freed cell to the next
+        // allocation of the same size class, so the corruption is deterministic
+        var churn = 0
+        for (i in range(50)) {
+            churn += length(wrap_pass(slice("require xod_{i % 10}/yub_{i % 10}", 8)))
+        }
+        t |> success(churn > 0)
+        for (i in range(6)) {
+            let expected_elem = "mod_{i}/sub_{i}"
+            t |> equal(stored[i], expected_elem)
+        }
+    }
+
+    t |> run("passthrough callee must not launder a wrapped let-local slice (let-form)") @@(t) {
+        var stored : array<string>
+        stored |> reserve(6)
+        for (i in range(6)) {
+            let ln = "require mod_{i}/sub_{i}"
+            let sliced = slice(ln, 8)
+            let passed = wrap_pass(sliced)      // "safe" use of sliced that aliases it
+            stored |> push(passed)
+        }
+        var churn = 0
+        for (i in range(50)) {
+            churn += length(wrap_pass(slice("require xod_{i % 10}/yub_{i % 10}", 8)))
+        }
+        t |> success(churn > 0)
+        for (i in range(6)) {
+            let expected_elem = "mod_{i}/sub_{i}"
+            t |> equal(stored[i], expected_elem)
+        }
+    }
+}
+
+[test]
 def test_temp_string_reclaim_let_local(t : T?) {
     t |> run("f2s shape: let-local conversion is reclaimed") @@(t) {
         let before = string_heap_bytes_allocated()
@@ -202,6 +241,7 @@ def test_temp_string_reclaim_let_local(t : T?) {
 
     t |> run("escaping let-local is not wrapped") @@(t) {
         var arr : array<string>
+        arr |> reserve(100)
         for (i in range(100)) {
             let s = string(3000000 + i)
             arr |> push(s)

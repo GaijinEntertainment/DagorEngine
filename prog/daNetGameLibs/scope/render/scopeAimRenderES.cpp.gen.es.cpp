@@ -11,8 +11,14 @@ static constexpr ecs::component_t gunmod__lensLocalY_get_type();
 static ecs::LTComponentList gunmod__lensLocalY_component(ECS_HASH("gunmod__lensLocalY"), gunmod__lensLocalY_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 static constexpr ecs::component_t gunmod__lensLocalZ_get_type();
 static ecs::LTComponentList gunmod__lensLocalZ_component(ECS_HASH("gunmod__lensLocalZ"), gunmod__lensLocalZ_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
+static constexpr ecs::component_t gunmod__scopeExitPupilRadiusMul_get_type();
+static ecs::LTComponentList gunmod__scopeExitPupilRadiusMul_component(ECS_HASH("gunmod__scopeExitPupilRadiusMul"), gunmod__scopeExitPupilRadiusMul_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
+static constexpr ecs::component_t gunmod__scopeEyeRelief_get_type();
+static ecs::LTComponentList gunmod__scopeEyeRelief_component(ECS_HASH("gunmod__scopeEyeRelief"), gunmod__scopeEyeRelief_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 static constexpr ecs::component_t gunmod__scopeRadLen_get_type();
 static ecs::LTComponentList gunmod__scopeRadLen_component(ECS_HASH("gunmod__scopeRadLen"), gunmod__scopeRadLen_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
+static constexpr ecs::component_t gunmod__scopeVisibleFovAngle_get_type();
+static ecs::LTComponentList gunmod__scopeVisibleFovAngle_component(ECS_HASH("gunmod__scopeVisibleFovAngle"), gunmod__scopeVisibleFovAngle_get_type(), "prog/daNetGameLibs/scope/render/scopeAimRenderES.cpp.inl", "", 0);
 // Built with ECS codegen version 1.0
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
@@ -769,4 +775,7 @@ static constexpr ecs::component_t gunmod__lensBrightness_get_type(){return ecs::
 static constexpr ecs::component_t gunmod__lensLocalX_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
 static constexpr ecs::component_t gunmod__lensLocalY_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
 static constexpr ecs::component_t gunmod__lensLocalZ_get_type(){return ecs::ComponentTypeInfo<Point3>::type; }
+static constexpr ecs::component_t gunmod__scopeExitPupilRadiusMul_get_type(){return ecs::ComponentTypeInfo<float>::type; }
+static constexpr ecs::component_t gunmod__scopeEyeRelief_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t gunmod__scopeRadLen_get_type(){return ecs::ComponentTypeInfo<Point2>::type; }
+static constexpr ecs::component_t gunmod__scopeVisibleFovAngle_get_type(){return ecs::ComponentTypeInfo<float>::type; }

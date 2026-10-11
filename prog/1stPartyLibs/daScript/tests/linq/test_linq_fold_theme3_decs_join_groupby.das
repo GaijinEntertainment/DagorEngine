@@ -8,7 +8,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 3 Phase 1 (audit `history/linq_fold/linq_fold_chain_audit.md` probe C3): the
+// Theme 3 Phase 1 (probe C3): the
 // "killer demo" composition. plan_decs_group_by recognizes a trailing `join`
 // upstream of `group_by_lazy` and switches to the isDecsJoin adapter mode so
 // plan_decs_join's hashB-collect + srcA-probe + per-pair result-lam bind feeds
@@ -55,17 +55,15 @@ def c3e_make_result(carName, dealerRegion : string) : tuple<Region : string; Car
 def test_c3a_count_count(t : T?) {
     t |> run("C3a: _join + _group_by(_.Region) + _select(N=count()) + count() (bucket count)") @(tt : T?) {
         populate_c3_fixture()
-        unsafe {
-            let nBuckets = _fold(from_decs_template(type<C3Car>)
-                |> _join(from_decs_template(type<C3Dealer>),
-                         $(l, r) => l.dealer_id == r.id,
-                         $(l, r) => (Region = r.region, CarName = l.name))
-                |> _group_by(_.Region)
-                |> _select((R = _._0, N = _._1 |> count()))
-                |> count())
-            // 2 distinct regions across the 6 join pairs → 2 buckets.
-            tt |> equal(nBuckets, 2)
-        }
+        let nBuckets = _fold(from_decs_template(type<C3Car>)
+            |> _join(from_decs_template(type<C3Dealer>),
+                     $(l, r) => l.dealer_id == r.id,
+                     $(l, r) => (Region = r.region, CarName = l.name))
+            |> _group_by(_.Region)
+            |> _select((R = _._0, N = _._1 |> count()))
+            |> count())
+        // 2 distinct regions across the 6 join pairs → 2 buckets.
+        tt |> equal(nBuckets, 2)
         restart()
     }
 }
@@ -76,16 +74,14 @@ def test_c3a_count_count(t : T?) {
 def test_c3b_sum_count(t : T?) {
     t |> run("C3b: _join + _group_by(_.Region) + _select(S=sum(r.CarId)) + count()") @(tt : T?) {
         populate_c3_fixture()
-        unsafe {
-            let nBuckets = _fold(from_decs_template(type<C3Car>)
-                |> _join(from_decs_template(type<C3Dealer>),
-                         $(l, r) => l.dealer_id == r.id,
-                         $(l, r) => (Region = r.region, CarId = l.id))
-                |> _group_by(_.Region)
-                |> _select((R = _._0, S = _._1 |> select(@(r : tuple<Region : string; CarId : int>) => r.CarId) |> sum))
-                |> count())
-            tt |> equal(nBuckets, 2)
-        }
+        let nBuckets = _fold(from_decs_template(type<C3Car>)
+            |> _join(from_decs_template(type<C3Dealer>),
+                     $(l, r) => l.dealer_id == r.id,
+                     $(l, r) => (Region = r.region, CarId = l.id))
+            |> _group_by(_.Region)
+            |> _select((R = _._0, S = _._1 |> select(@(r : tuple<Region : string; CarId : int>) => r.CarId) |> sum))
+            |> count())
+        tt |> equal(nBuckets, 2)
         restart()
     }
 }
@@ -171,18 +167,16 @@ def test_c3e_result_lambda_called_once_per_pair(t : T?) {
     t |> run("C3e: result lambda fires exactly len(srcA)·matchesPerKey times (no double-eval)") @(tt : T?) {
         populate_c3_fixture()
         g_c3e_result_calls = 0
-        unsafe {
-            let nBuckets = _fold(from_decs_template(type<C3Car>)
-                |> _join(from_decs_template(type<C3Dealer>),
-                         $(l, r) => l.dealer_id == r.id,
-                         $(l, r) => c3e_make_result(l.name, r.region))
-                |> _group_by(_.Region)
-                |> _select((R = _._0, N = _._1 |> count()))
-                |> count())
-            tt |> equal(nBuckets, 2)
-            // 6 cars × 1 dealer match per car = 6 result-lam invocations.
-            tt |> equal(g_c3e_result_calls, 6)
-        }
+        let nBuckets = _fold(from_decs_template(type<C3Car>)
+            |> _join(from_decs_template(type<C3Dealer>),
+                     $(l, r) => l.dealer_id == r.id,
+                     $(l, r) => c3e_make_result(l.name, r.region))
+            |> _group_by(_.Region)
+            |> _select((R = _._0, N = _._1 |> count()))
+            |> count())
+        tt |> equal(nBuckets, 2)
+        // 6 cars × 1 dealer match per car = 6 result-lam invocations.
+        tt |> equal(g_c3e_result_calls, 6)
         restart()
     }
 }
@@ -193,20 +187,18 @@ def test_c3e_result_lambda_called_once_per_pair(t : T?) {
 def test_c3_anti_having_cascades(t : T?) {
     t |> run("C3-anti-having: _join + _group_by + _select + _where (HAVING) — v1 cascades, must produce correct result") @(tt : T?) {
         populate_c3_fixture()
-        unsafe {
-            let rows <- _fold(from_decs_template(type<C3Car>)
-                |> _join(from_decs_template(type<C3Dealer>),
-                         $(l, r) => l.dealer_id == r.id,
-                         $(l, r) => (Region = r.region, CarName = l.name))
-                |> _group_by(_.Region)
-                |> _select((R = _._0, N = _._1 |> count()))
-                |> _where(_.N >= 3)
-                |> to_array())
-            // Only "north" (4 cars) passes N>=3; "south" (2 cars) filtered out.
-            tt |> equal(length(rows), 1)
-            tt |> equal(rows[0].R, "north")
-            tt |> equal(rows[0].N, 4)
-        }
+        let rows <- _fold(from_decs_template(type<C3Car>)
+            |> _join(from_decs_template(type<C3Dealer>),
+                     $(l, r) => l.dealer_id == r.id,
+                     $(l, r) => (Region = r.region, CarName = l.name))
+            |> _group_by(_.Region)
+            |> _select((R = _._0, N = _._1 |> count()))
+            |> _where(_.N >= 3)
+            |> to_array())
+        // Only "north" (4 cars) passes N>=3; "south" (2 cars) filtered out.
+        tt |> equal(length(rows), 1)
+        tt |> equal(rows[0].R, "north")
+        tt |> equal(rows[0].N, 4)
         restart()
     }
 }
@@ -217,18 +209,16 @@ def test_c3_anti_having_cascades(t : T?) {
 def test_c3_anti_segment_cascades(t : T?) {
     t |> run("C3-anti-segment: _join + _where + _group_by — segment between join and group_by_lazy cascades, must produce correct result") @(tt : T?) {
         populate_c3_fixture()
-        unsafe {
-            let nBuckets = _fold(from_decs_template(type<C3Car>)
-                |> _join(from_decs_template(type<C3Dealer>),
-                         $(l, r) => l.dealer_id == r.id,
-                         $(l, r) => (Region = r.region, CarName = l.name))
-                |> _where(_.Region == "north")
-                |> _group_by(_.Region)
-                |> _select((R = _._0, N = _._1 |> count()))
-                |> count())
-            // After WHERE filter: only north (4 cars) survives → 1 bucket.
-            tt |> equal(nBuckets, 1)
-        }
+        let nBuckets = _fold(from_decs_template(type<C3Car>)
+            |> _join(from_decs_template(type<C3Dealer>),
+                     $(l, r) => l.dealer_id == r.id,
+                     $(l, r) => (Region = r.region, CarName = l.name))
+            |> _where(_.Region == "north")
+            |> _group_by(_.Region)
+            |> _select((R = _._0, N = _._1 |> count()))
+            |> count())
+        // After WHERE filter: only north (4 cars) survives → 1 bucket.
+        tt |> equal(nBuckets, 1)
         restart()
     }
 }

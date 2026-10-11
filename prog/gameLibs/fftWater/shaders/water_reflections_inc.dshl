@@ -55,11 +55,13 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
     prev_water_mask@tex2d = prev_water_mask;
   }
   INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
+  INIT_GLOBAL_POINT_CLAMP_SAMPLER(stage)
 
   hlsl(stage) {
     #include "fftWater/chop_water_reflections.hlsli"
     #define water_downsampled_normals_samplerstate global_linear_wrap_sampler
-    void getReflectionReprojection(float2 distortedTc, float2 fullResTexSize, float3 cameraToPoint, float worldDist, float ssrDepth, float4 newTarget, int mipLevel, float2 mipTexSize, out float4 prevTarget, out float weight)
+    #define prev_refl_tex_load_samplerstate global_point_clamp_sampler
+    void getReflectionReprojection(float2 distortedTc, float2 fullResTexSize, float3 cameraToPoint, float worldDist, float ssrDepth, float4 newTarget, int mipLevel, out float4 prevTarget, out float weight)
     {
       float4 reprojectedWorldPos = reprojected_world_view_pos;
       float3 prevViewVec = cameraToPoint;
@@ -93,10 +95,8 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
         weight = offscreen * defaultBlend * movement * disocclusionFactor;
       }
 
-      float2 sampleTexSize = mipLevel > 0 ? mipTexSize : fullResTexSize;
       prevTarget = tex2Dlod(prev_combined_reflection_tex, float4(oldUv, 0, mipLevel));
-      int2 prevTexel = int2(floor(oldUv * sampleTexSize));
-      prevTarget.a = prev_refl_tex_load.Load(int3(prevTexel, mipLevel)).a; // no filtering for decoding alpha
+      prevTarget.a = tex2Dlod(prev_refl_tex_load, float4(oldUv, 0, mipLevel)).a; // no filtering for decoding alpha
       if (DecodeReflAlpha(prevTarget.a).hole)
         weight = 0;
 

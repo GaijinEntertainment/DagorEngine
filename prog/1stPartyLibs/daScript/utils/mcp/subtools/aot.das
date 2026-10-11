@@ -19,7 +19,7 @@ def collect_aot_functions(program : smart_ptr<Program>) : array<AotFuncInfo> {
     var result : array<AotFuncInfo>
     let this_mod = program.getThisModule
     this_mod |> for_each_module_function($(fn) {
-        if (fn.flags.noAot || fn.moreFlags.isTemplate || !fn.flags.used || fn.flags.builtIn || fn.flags.generated) return
+        if (fn.flags.noAot || fn.moreFlags.isTemplate || !is_used(program, fn) || fn.flags.builtIn || fn.flags.generated) return
         let sig = build_string() $(var w) {
             write(w, fn.name)
             write(w, "(")

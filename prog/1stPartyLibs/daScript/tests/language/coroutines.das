@@ -7,7 +7,7 @@ require daslib/coroutines
 
 // Typed coroutine that yields int values
 [coroutine]
-def count_up(n : int) : int {
+def count_up(n : int) : int {   // nolint:STYLE038 - the length measured is the [coroutine] macro's generated state machine
     for (i in range(1, n + 1)) {
         yield i
     }
@@ -16,7 +16,7 @@ def count_up(n : int) : int {
 
 // Typed coroutine that counts down
 [coroutine]
-def count_down(n : int) : int {
+def count_down(n : int) : int {     // nolint:STYLE038 - the length measured is the [coroutine] macro's generated state machine
     var i = n
     while (i > 0) {
         yield i
@@ -28,30 +28,21 @@ def count_down(n : int) : int {
 [test]
 def test_typed_coroutine(t : T?) {
     t |> run("count_up via for loop") @(t : T?) {
-        var vals : array<int>
-        for (v in count_up(3)) {
-            vals |> push(v)
-        }
+        let vals <- [for (v in count_up(3)); v]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], 1)
         t |> equal(vals[1], 2)
         t |> equal(vals[2], 3)
     }
     t |> run("count_down via for loop") @(t : T?) {
-        var vals : array<int>
-        for (v in count_down(3)) {
-            vals |> push(v)
-        }
+        let vals <- [for (v in count_down(3)); v]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], 3)
         t |> equal(vals[1], 2)
         t |> equal(vals[2], 1)
     }
     t |> run("empty coroutine") @(t : T?) {
-        var vals : array<int>
-        for (v in count_up(0)) {
-            vals |> push(v)
-        }
+        let vals <- [for (v in count_up(0)); v]
         t |> equal(length(vals), 0)
     }
 }
@@ -67,10 +58,7 @@ def yielder() : int {
 [test]
 def test_yielder(t : T?) {
     t |> run("yielder produces exact values") @(t : T?) {
-        var vals : array<int>
-        for (v in yielder()) {
-            vals |> push(v)
-        }
+        let vals <- [for (v in yielder()); v]
         t |> equal(length(vals), 3)
         t |> equal(vals[0], 10)
         t |> equal(vals[1], 20)
@@ -124,9 +112,7 @@ def test_cr_run_all(t : T?) {
     t |> run("cr_run_all runs multiple coroutines") @(t : T?) {
         g_a_count = 0
         g_b_count = 0
-        var tasks : Coroutines
-        tasks |> emplace <| worker_a()
-        tasks |> emplace <| worker_b()
+        var tasks : Coroutines <- [worker_a(), worker_b()]
         cr_run_all(tasks)
         t |> equal(g_a_count, 2)
         t |> equal(g_b_count, 3)
@@ -152,10 +138,7 @@ def parent_gen() : int {
 [test]
 def test_yeild_from(t : T?) {
     t |> run("yeild_from delegates to sub-generator") @(t : T?) {
-        var vals : array<int>
-        for (v in parent_gen()) {
-            vals |> push(v)
-        }
+        let vals <- [for (v in parent_gen()); v]
         t |> equal(length(vals), 4)
         t |> equal(vals[0], 1)
         t |> equal(vals[1], 100)

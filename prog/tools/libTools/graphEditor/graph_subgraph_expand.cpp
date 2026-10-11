@@ -14,9 +14,17 @@
 #include <EASTL/vector.h>
 
 #include <cstring>
+#include <math.h>
 
 namespace
 {
+
+// What one splice did, for the editor's explode, which applies it as an edit.
+struct SpliceReport
+{
+  eastl::vector<int> addedNodeIds;
+  eastl::vector<int> transplantedEdgeIds; // parent edges into the instance whose source now feeds the body
+};
 
 // Per-compile cache of loaded children + a recursion stack. Owned by the top-level entry point
 // and threaded through `expand_recursive` so two instances of the same child file share a single
@@ -27,19 +35,18 @@ struct ExpandContext
   eastl::string rootDir; // ends with '/'
   eastl::hash_map<eastl::string, GraphData> cache;
   eastl::vector<eastl::string> stack;
+  // Top-level graph only; nulled while a child expands, whose ids are not in this id space yet.
+  eastl::hash_map<uint64_t, uint64_t> *instanceOutputSource = nullptr;
+  // constraint: never goes backwards. A splice that leaves nothing behind lets the graph max drop,
+  // and a reused instance id breaks instanceOutputSource.
+  int idFloor = 0;
+  bool recurse = true; // the editor's explode keeps nested instances as they are
+  // Top-level splice only, nulled while a child expands, like instanceOutputSource.
+  SpliceReport *report = nullptr;
+  eastl::vector<eastl::string> stackStems;
+  SubgraphExpandError *error = nullptr;
+  bool failed = false;
 };
-
-bool starts_with(const char *s, const char *prefix)
-{
-  while (*prefix)
-  {
-    if (*s++ != *prefix++)
-    {
-      return false;
-    }
-  }
-  return true;
-}
 
 // Looks up `<root>/<stem>.subgraph.blk` and returns its absolute path, or empty on miss.
 // Files outside `root_dir` are not searched.
@@ -59,7 +66,7 @@ eastl::string resolve_child_path(const eastl::string &root_dir, const char *stem
   return {};
 }
 
-bool expand_recursive(GraphData &gd, ExpandContext &ctx);
+void expand_recursive(GraphData &gd, ExpandContext &ctx);
 
 // Splices one subgraph instance node (identified by its stable Node::id, not a vector index
 // which can shift across prior splices in the same loop). Logs and bails on any
@@ -87,11 +94,22 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   const GraphData::Node instance = gd.nodes[instanceIdx];
   const eastl::string descName = instance.descName;
 
+  auto bail = [&](const String &msg) {
+    debug("graphEditor: %s", msg.str());
+    ctx.failed = true;
+    if (ctx.error && ctx.error->message.empty())
+    {
+      ctx.error->message = msg.str();
+      ctx.error->chain = ctx.stackStems;
+      ctx.error->chain.push_back(descName);
+    }
+  };
+
   eastl::string childPath = resolve_child_path(ctx.rootDir, descName.c_str());
   if (childPath.empty())
   {
-    debug("graphEditor: subgraph instance id=%d references missing file '%s.subgraph.blk' (under '%s')", instance_id, descName.c_str(),
-      ctx.rootDir.c_str());
+    bail(String(0, "subgraph instance id=%d references missing file '%s.subgraph.blk' (under '%s')", instance_id, descName.c_str(),
+      ctx.rootDir.c_str()));
     return;
   }
 
@@ -111,7 +129,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       }
       chain.append(" -> ");
       chain.append(childPath.c_str());
-      debug("graphEditor: subgraph recursion detected: %s", chain.c_str());
+      bail(String(0, "subgraph recursion detected: %s", chain.c_str()));
       return;
     }
   }
@@ -124,7 +142,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     GraphData child;
     if (!load_graph_data_blk(child, childPath.c_str(), "", &ctx.baseNodesBlk))
     {
-      debug("graphEditor: subgraph '%s' failed to load", childPath.c_str());
+      bail(String(0, "subgraph '%s' failed to load", childPath.c_str()));
       return;
     }
 
@@ -139,7 +157,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     {
       for (const SubgraphSchemaError &err : schemaErrors)
       {
-        debug("graphEditor: subgraph '%s' schema error: %s", childPath.c_str(), format_subgraph_schema_error(err).c_str());
+        bail(String(0, "subgraph '%s' schema error: %s", childPath.c_str(), format_subgraph_schema_error(err).c_str()));
       }
       return;
     }
@@ -155,9 +173,20 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   // Recurse FIRST so the spliced child is already flat -- otherwise nested subgraph
   // instances inside the child would survive into the parent post-splice and break
   // single-pass invariants downstream.
-  ctx.stack.push_back(childPath);
-  expand_recursive(working, ctx);
-  ctx.stack.pop_back();
+  if (ctx.recurse)
+  {
+    ctx.stack.push_back(childPath);
+    ctx.stackStems.push_back(descName);
+    eastl::hash_map<uint64_t, uint64_t> *const parentOutputSource = ctx.instanceOutputSource;
+    SpliceReport *const parentReport = ctx.report;
+    ctx.instanceOutputSource = nullptr;
+    ctx.report = nullptr;
+    expand_recursive(working, ctx);
+    ctx.instanceOutputSource = parentOutputSource;
+    ctx.report = parentReport;
+    ctx.stackStems.pop_back();
+    ctx.stack.pop_back();
+  }
 
   // ----- Boundary index -----
   // For each `subgraph in: TYPE` we capture its single out-pin (the side that drives interior
@@ -180,9 +209,8 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
 
   for (const GraphData::Node &n : working.nodes)
   {
-    const char *dn = n.descName.c_str();
-    const bool isIn = starts_with(dn, "subgraph in:");
-    const bool isOut = strcmp(dn, "subgraph out") == 0;
+    const bool isIn = is_input_boundary(n);
+    const bool isOut = is_output_boundary(n);
     if (!isIn && !isOut)
     {
       continue;
@@ -194,8 +222,8 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     eastl::string ifaceName = effective_subgraph_boundary_name(working, n.id);
     if (ifaceName.empty())
     {
-      debug("graphEditor: subgraph '%s' has a %s boundary with empty name and no edges to derive from", childPath.c_str(),
-        isIn ? "input" : "output");
+      bail(String(0, "subgraph '%s' has a %s boundary with empty name and no edges to derive from", childPath.c_str(),
+        isIn ? "input" : "output"));
       boundaryError = true;
       continue;
     }
@@ -203,7 +231,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     {
       if (inBoundaries.find(ifaceName) != inBoundaries.end())
       {
-        debug("graphEditor: subgraph '%s' has duplicate input boundary named '%s'", childPath.c_str(), ifaceName.c_str());
+        bail(String(0, "subgraph '%s' has duplicate input boundary named '%s'", childPath.c_str(), ifaceName.c_str()));
         boundaryError = true;
         continue;
       }
@@ -219,7 +247,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       }
       if (pinIdx < 0)
       {
-        debug("graphEditor: subgraph '%s' input boundary '%s' has no out-role pin", childPath.c_str(), ifaceName.c_str());
+        bail(String(0, "subgraph '%s' input boundary '%s' has no out-role pin", childPath.c_str(), ifaceName.c_str()));
         boundaryError = true;
         continue;
       }
@@ -229,7 +257,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     {
       if (outBoundaries.find(ifaceName) != outBoundaries.end())
       {
-        debug("graphEditor: subgraph '%s' has duplicate output boundary named '%s'", childPath.c_str(), ifaceName.c_str());
+        bail(String(0, "subgraph '%s' has duplicate output boundary named '%s'", childPath.c_str(), ifaceName.c_str()));
         boundaryError = true;
         continue;
       }
@@ -244,7 +272,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       }
       if (pinIdx < 0)
       {
-        debug("graphEditor: subgraph '%s' output boundary '%s' has no in-role pin", childPath.c_str(), ifaceName.c_str());
+        bail(String(0, "subgraph '%s' output boundary '%s' has no in-role pin", childPath.c_str(), ifaceName.c_str()));
         boundaryError = true;
         continue;
       }
@@ -257,9 +285,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   }
 
   // ----- ID remap -----
-  // Compute a single offset that exceeds every id currently in `gd` (nodes AND edges).
-  // Deterministic per splice -- two compiles of the same graph produce identical ids,
-  // which is required for stable `%graph_hash%` substitution downstream.
+  // constraint: deterministic, because `%graph_hash%` substitution downstream depends on the ids.
   int maxId = 0;
   for (const GraphData::Node &n : gd.nodes)
   {
@@ -275,14 +301,16 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       maxId = e.id;
     }
   }
-  const int idOffset = maxId + 1;
+  const int idOffset = eastl::max(maxId, ctx.idFloor) + 1;
   for (GraphData::Node &n : working.nodes)
   {
     n.id += idOffset;
+    ctx.idFloor = eastl::max(ctx.idFloor, n.id);
   }
   for (GraphData::Edge &e : working.edges)
   {
     e.id += idOffset;
+    ctx.idFloor = eastl::max(ctx.idFloor, e.id);
     e.elemA += idOffset;
     e.elemB += idOffset;
   }
@@ -331,7 +359,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       }
       if (!gd.edges[it->second].muted && !e.muted)
       {
-        debug("graphEditor: subgraph instance id=%d input pin '%s' has multiple sources -- rejected", instance_id, name.c_str());
+        bail(String(0, "subgraph instance id=%d input pin '%s' has multiple sources -- rejected", instance_id, name.c_str()));
         wiringError = true;
         break;
       }
@@ -384,6 +412,7 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       parentSrcPin = parentEdge.pinA;
     }
 
+    bool transplanted = false;
     for (GraphData::Edge &ie : working.edges)
     {
       if (ie.elemA == b.nodeId && ie.pinA == b.pinIdx)
@@ -391,13 +420,19 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
         ie.elemA = parentSrcElem;
         ie.pinA = parentSrcPin;
         ie.muted = ie.muted || parentEdge.muted;
+        transplanted = true;
       }
       if (ie.elemB == b.nodeId && ie.pinB == b.pinIdx)
       {
         ie.elemB = parentSrcElem;
         ie.pinB = parentSrcPin;
         ie.muted = ie.muted || parentEdge.muted;
+        transplanted = true;
       }
+    }
+    if (transplanted && ctx.report)
+    {
+      ctx.report->transplantedEdgeIds.push_back(parentEdge.id);
     }
   }
 
@@ -406,6 +441,18 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   // For every parent consumer of the matching named pin, rewrite the parent edge endpoint
   // to point at the producer. If the boundary has no upstream producer, drop the parent
   // consumer edges entirely -- nothing to wire.
+  // A pass-through child with an unwired input leaves its in-boundary as the producer, and cleanup
+  // below deletes it, so that counts as no producer.
+  eastl::hash_set<int> boundaryNodeIds;
+  for (const auto &kv : inBoundaries)
+  {
+    boundaryNodeIds.insert(kv.second.nodeId);
+  }
+  for (const auto &kv : outBoundaries)
+  {
+    boundaryNodeIds.insert(kv.second.nodeId);
+  }
+
   for (const auto &kv : outBoundaries)
   {
     const eastl::string &name = kv.first;
@@ -431,12 +478,27 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
       }
     }
 
+    // The pin index comes off the instance itself: an output nobody consumes has no parent edge to
+    // read it from. A muted producer feeds nothing once the parent edge is rewired.
+    for (int pi = 0; pi < static_cast<int>(instance.pins.size()); ++pi)
+    {
+      if (instance.pins[pi].role != PinRole::Out || instance.pins[pi].name != name)
+      {
+        continue;
+      }
+      if (ctx.instanceOutputSource && producerElem >= 0 && !producerMuted && boundaryNodeIds.count(producerElem) == 0)
+      {
+        (*ctx.instanceOutputSource)[make_pin_id(instance_id, pi)] = make_pin_id(producerElem, producerPin);
+      }
+      break;
+    }
+
     auto outIt = outgoingByName.find(name);
     if (outIt == outgoingByName.end())
     {
       continue;
     }
-    if (producerElem < 0)
+    if (producerElem < 0 || boundaryNodeIds.count(producerElem) > 0)
     {
       // No upstream -- leave the parent edges referring to the instance; the cleanup step
       // below removes them. Compile then sees the downstream consumer pins as unconnected
@@ -464,15 +526,6 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   // instance itself. The instance-touching parent edges are the unwired ones (no boundary
   // matched their pin name, or the boundary had no producer/source); they get dropped so
   // the downstream consumer pin falls back to def_val via substitute() at compile time.
-  eastl::hash_set<int> boundaryNodeIds;
-  for (const auto &kv : inBoundaries)
-  {
-    boundaryNodeIds.insert(kv.second.nodeId);
-  }
-  for (const auto &kv : outBoundaries)
-  {
-    boundaryNodeIds.insert(kv.second.nodeId);
-  }
   // `subgraph separator` is a pinless section-label boundary (pure UI, exposed by the JS
   // editor as a non-connectable divider pin) -- never splice it into the parent.
   for (const GraphData::Node &n : working.nodes)
@@ -496,6 +549,10 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   gd.nodes.reserve(gd.nodes.size() + working.nodes.size());
   for (GraphData::Node &n : working.nodes)
   {
+    if (ctx.report)
+    {
+      ctx.report->addedNodeIds.push_back(n.id);
+    }
     gd.nodes.push_back(eastl::move(n));
   }
   gd.edges.reserve(gd.edges.size() + working.edges.size());
@@ -515,14 +572,14 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
     gd.nodes.end());
 }
 
-bool expand_recursive(GraphData &gd, ExpandContext &ctx)
+void expand_recursive(GraphData &gd, ExpandContext &ctx)
 {
   // Snapshot ids first: each splice mutates gd.nodes (append + erase), and capturing indices
   // pre-loop would alias to wrong nodes after the first splice. Ids are stable across splices.
   eastl::vector<int> instanceIds;
   for (const GraphData::Node &n : gd.nodes)
   {
-    if (n.plugin == "subgraph")
+    if (is_subgraph_instance(n))
     {
       instanceIds.push_back(n.id);
     }
@@ -531,13 +588,101 @@ bool expand_recursive(GraphData &gd, ExpandContext &ctx)
   {
     splice_one(gd, id, ctx);
   }
-  return true;
 }
 
 } // namespace
 
-bool expand_subgraphs(GraphData &gd, const DataBlock &base_nodes_blk, const char *graphs_root_dir)
+bool expand_subgraphs(GraphData &gd, const DataBlock &base_nodes_blk, const char *graphs_root_dir,
+  eastl::hash_map<uint64_t, uint64_t> *out_instance_output_source, SubgraphExpandError *out_error)
 {
-  ExpandContext ctx{base_nodes_blk, eastl::string(graphs_root_dir ? graphs_root_dir : ""), {}, {}};
-  return expand_recursive(gd, ctx);
+  ExpandContext ctx{base_nodes_blk, eastl::string(graphs_root_dir ? graphs_root_dir : ""), {}, {}, out_instance_output_source};
+  if (out_error)
+  {
+    *out_error = SubgraphExpandError();
+  }
+  ctx.error = out_error;
+  expand_recursive(gd, ctx);
+  return !ctx.failed;
+}
+
+bool explode_subgraph_instance(const GraphData &gd, int instance_id, const DataBlock &base_nodes_blk, const char *graphs_root_dir,
+  float snap, ExplodeResult &out)
+{
+  out = ExplodeResult();
+  const GraphData::Node *const instance = find_node_by_id(gd, instance_id);
+  if (!instance || !is_subgraph_instance(*instance))
+  {
+    out.error = "not a subgraph instance";
+    return false;
+  }
+
+  // Nodes and edges only: all the splice reads, and the compiled BLKs belong to the texgen worker.
+  GraphData working;
+  working.nodes = gd.nodes;
+  working.edges = gd.edges;
+  SpliceReport report;
+  SubgraphExpandError failure;
+  ExpandContext ctx{base_nodes_blk, eastl::string(graphs_root_dir ? graphs_root_dir : "")};
+  ctx.recurse = false;
+  ctx.report = &report;
+  ctx.error = &failure;
+  splice_one(working, instance_id, ctx);
+  if (find_node_by_id(working, instance_id))
+  {
+    out.error = failure.message.empty() ? eastl::string("the subgraph could not be spliced") : failure.message;
+    return false;
+  }
+
+  // The body's centroid lands on the instance, so an instance Create placed explodes back in place.
+  const eastl::hash_set<int> added(report.addedNodeIds.begin(), report.addedNodeIds.end());
+  float cx = 0.0f;
+  float cy = 0.0f;
+  for (const GraphData::Node &n : working.nodes)
+  {
+    if (added.count(n.id))
+    {
+      cx += n.x;
+      cy += n.y;
+    }
+  }
+  const float count = static_cast<float>(eastl::max<size_t>(added.size(), 1));
+  auto snapped = [snap](float v) { return snap > 0.0f ? roundf(v / snap) * snap : v; };
+  // The centroid rounds as Create rounded the instance, so an unmoved one gives exactly 0 even at a half step.
+  const float dx = snapped(instance->x - snapped(cx / count));
+  const float dy = snapped(instance->y - snapped(cy / count));
+  for (GraphData::Node &n : working.nodes)
+  {
+    if (added.count(n.id))
+    {
+      n.x += dx;
+      n.y += dy;
+      out.addedNodes.push_back(n);
+    }
+  }
+
+  eastl::hash_set<int> instanceEdgeIds;
+  for (const GraphData::Edge &e : gd.edges)
+  {
+    if (e.elemA == instance_id || e.elemB == instance_id)
+    {
+      instanceEdgeIds.insert(e.id);
+    }
+  }
+  // A rewired parent edge keeps its id; through a pass-through it touches no body node at all.
+  for (const GraphData::Edge &e : working.edges)
+  {
+    if (added.count(e.elemA) || added.count(e.elemB) || instanceEdgeIds.count(e.id))
+    {
+      out.addedEdges.push_back(e);
+    }
+  }
+  const eastl::hash_set<int> transplanted(report.transplantedEdgeIds.begin(), report.transplantedEdgeIds.end());
+  for (const GraphData::Edge &e : gd.edges)
+  {
+    if (instanceEdgeIds.count(e.id) && !transplanted.count(e.id) && !find_edge_by_id(working, e.id))
+    {
+      out.droppedParentEdges.push_back(e);
+    }
+  }
+  return true;
 }

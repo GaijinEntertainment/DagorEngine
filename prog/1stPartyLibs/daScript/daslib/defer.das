@@ -27,33 +27,38 @@ def public nada() {
     pass
 }
 
+def private defer_scope(call : Expression?; macro_name : string) : ExprBlock? {
+    var scope : ExprBlock?
+    compiling_program() |> get_ast_context(call) $(valid, astc) {
+        if (!valid) {
+            compiling_program() |> macro_error(call.at, "can't get valid program context")
+        } elif (empty(astc.scopes)) {
+            compiling_program() |> macro_error(call.at, "{macro_name} needs to be in the scope")
+        } else {
+            var blk = astc.scopes[astc.scopes |> length - 1] as ExprBlock
+            if (blk.blockFlags.inTheLoop) {
+                compiling_program() |> macro_error(call.at, "{macro_name} can't be used in the loop. finally section of the loop only runs once. enclose in a bare `\{ \}` block to ensure scope")
+            } elif (blk.blockFlags.isLambdaBlock || blk.blockFlags.isGeneratorBlock) {
+                compiling_program() |> macro_sticky_error(call.at, "{macro_name} at the top level of a lambda or generator body would become its finalizer, not a per-call cleanup. enclose in a bare `\{ \}` block, or write the finalizer as an explicit `finally`")
+            } else {
+                scope = blk
+            }
+        }
+    }
+    return scope
+}
+
 [tag_function_macro(tag="defer_tag")]
 class DeferMacro : AstFunctionAnnotation {
     //! This macro converts defer() <| block expression
     //! into {}, and move block to the finally section of the current block
     def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
-        var success = true
-        compiling_program() |> get_ast_context(call) $(valid, astc) {
-            if (!valid) {
-                compiling_program() |> macro_error(call.at, "can't get valid program context")
-                success = false
-            } elif (empty(astc.scopes)) {
-                compiling_program() |> macro_error(call.at, "defer needs to be in the scope")
-                success = false
-            } else {
-                var scope = astc.scopes[astc.scopes |> length - 1] as ExprBlock
-                if (scope.blockFlags.inTheLoop) {
-                    compiling_program() |> macro_error(call.at, "defer can't be used in the loop. finally section of the loop only runs one. enclose in `if true` to ensure scope")
-                    success = false
-                } else {
-                    var c_arg = clone_expression(call.arguments[0])
-                    var from_block = move_unquote_block(c_arg)
-                    from_block.blockFlags ^= ExprBlockFlags.isClosure
-                    scope.finalList |> emplace(from_block, 0)
-                }
-            }
-        }
-        return null if (!success)
+        var scope = defer_scope(call, "defer")
+        return null if (scope == null)
+        var c_arg = clone_expression(call.arguments[0])
+        var from_block = move_unquote_block(c_arg)
+        from_block.blockFlags ^= ExprBlockFlags.isClosure
+        scope.finalList |> emplace(from_block, 0)
         return quote() <| nada()
     }
 }
@@ -65,27 +70,11 @@ class DeferDeleteMacro : AstCallMacro {
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : ExpressionPtr {
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting defer_delete(expr)")
         to_compiler_log("{describe(call.at)}: *warning* defer_delete is deprecated. use var inscope instead\n")
-        var success = true
-        prog |> get_ast_context(call) $(valid, astc) {
-            if (!valid) {
-                compiling_program() |> macro_error(call.at, "can't get valid program context")
-                success = false
-            } elif (empty(astc.scopes)) {
-                compiling_program() |> macro_error(call.at, "defer_delete needs to be in the scope")
-                success = false
-            } else {
-                var scope = astc.scopes[astc.scopes |> length - 1] as ExprBlock
-                if (scope.blockFlags.inTheLoop) {
-                    compiling_program() |> macro_error(call.at, "defer_delete can't be used in the loop. finally section of the loop only runs one. enclose in `if true` to ensure scope")
-                    success = false
-                } else {
-                    scope.finalList |> emplace_new <| new ExprDelete(at = call.at,
-                            subexpr = clone_expression(call.arguments[0])
-                        )
-                }
-            }
-        }
-        return null if (!success)
+        var scope = defer_scope(call, "defer_delete")
+        return null if (scope == null)
+        scope.finalList |> emplace_new <| new ExprDelete(at = call.at,
+                subexpr = clone_expression(call.arguments[0])
+            )
         return quote() <| nada()
     }
 }

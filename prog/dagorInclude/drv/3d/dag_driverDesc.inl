@@ -624,13 +624,13 @@ struct DeviceDriverCapabilitiesBase
   /**
    * \capbrief supports ray dispatch with its own ray tracing shader stage.
    * \someNYI
-   * \platformtable{hasRayDispatch,c,c,c,a,c,c,c,r,c,r,r}
+   * \platformtable{hasRayDispatch,r,r,c,a,c,c,c,r,c,r,r}
    */
   bool hasRayDispatch : 1;
   /**
    * \capbrief supports indirect dispatch for dispatch rays.
    * \someNYI
-   * \platformtable{hasIndirectRayDispatch,c,c,c,a,r,r,c,r,r,r,r}
+   * \platformtable{hasIndirectRayDispatch,r,r,c,a,r,r,c,r,r,r,r}
    */
   bool hasIndirectRayDispatch : 1;
   /**
@@ -772,6 +772,11 @@ struct DeviceDriverCapabilitiesBase
    * \platformtable{hasDepthConversionByTransfer,c,a,c,a,c,c,c,c,c,c,r}
    */
   bool hasDepthConversionByTransfer : 1;
+  /**
+   * \capbrief supports depth clamping of fragments past the near or far plane instead of clipping them.
+   * \platformtable{hasDepthClamp,c,a,c,a,c,c,c,r,c,c,c}
+   */
+  bool hasDepthClamp : 1;
   /* !!!!! TO ADD NEW VALUES, FOLOW THE STEPS DESCRIBED AT THE REMARK SECTION, KEEP THIS AT THE END OF THIS STRUCT !!!!! */
 };
 /**
@@ -896,10 +901,6 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayAccelerationStructure = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayQuery}
   static constexpr bool hasRayQuery = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayDispatch}
-  static constexpr bool hasRayDispatch = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
-  static constexpr bool hasIndirectRayDispatch = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
   static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
@@ -940,6 +941,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasEnhancedResourceBarriers = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBarycentrics}
   static constexpr bool hasBarycentrics = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -973,10 +976,6 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasRayQuery}
   //! \warning This is not directly supported, there is a software implementation available, see GDK documentation for details.
   static constexpr bool hasRayQuery = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasRayDispatch}
-  static constexpr bool hasRayDispatch = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasIndirectRayDispatch}
-  static constexpr bool hasIndirectRayDispatch = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasEmulatedRaytracing}
   static constexpr bool hasEmulatedRaytracing = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasGeometryIndexInRayAccelerationStructure}
@@ -987,8 +986,9 @@ struct DeviceDriverCapabilitiesScarlett : DeviceDriverCapabilitiesXboxOne
   static constexpr bool hasBaseVertexSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::castingFullyTypedFormatsSupported}
   static constexpr bool castingFullyTypedFormatsSupported = false;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion}
-  static constexpr bool hasNativeRayTracePipelineExpansion = true;
+  // Scarlett fails CreateStateObject with D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS so far
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRayTracePipelineExpansion}
+  static constexpr bool hasNativeRayTracePipelineExpansion = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasPersistentShaderHandles}
   static constexpr bool hasPersistentShaderHandles = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers}
@@ -1160,6 +1160,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasEnhancedResourceBarriers = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasBarycentrics}
   static constexpr bool hasBarycentrics = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1328,6 +1330,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasEnhancedResourceBarriers = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarycentrics}
   static constexpr bool hasBarycentrics = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1479,6 +1483,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasEnhancedResourceBarriers = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarycentrics}
   static constexpr bool hasBarycentrics = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1637,6 +1643,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1876,6 +1884,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasEnhancedResourceBarriers = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarycentrics}
   static constexpr bool hasBarycentrics = false;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1968,6 +1978,8 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasPipelineStatisticsQuery = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasEnhancedResourceBarriers }
   static constexpr bool hasEnhancedResourceBarriers = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1993,6 +2005,8 @@ struct DeviceDriverCapabilitiesWindows : DeviceDriverCapabilitiesBase
   static constexpr bool hasBaseVertexSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDualSourceBlending}
   static constexpr bool hasDualSourceBlending = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthClamp}
+  static constexpr bool hasDepthClamp = true;
 };
 #if _TARGET_XBOXONE
 using DeviceDriverCapabilities = DeviceDriverCapabilitiesXboxOne;

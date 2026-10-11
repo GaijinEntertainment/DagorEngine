@@ -94,7 +94,7 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
   rendinst::prepareRIGenExtraVisibility(globtm, cameraPos, *globalVisibility, false, nullptr);
   rendinst::prepareRIGenVisibility(Frustum(globtm), cameraPos, globalVisibility, false, nullptr);
 
-  rendinst::VisibilityExternalIdFilter ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
+  auto ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
     auto range = riElements.equal_range(ri_idx);
     for (auto it = range.first; it != range.second; ++it)
       if (it->second == tm)

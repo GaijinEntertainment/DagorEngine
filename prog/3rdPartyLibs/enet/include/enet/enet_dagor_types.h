@@ -20,7 +20,8 @@
 #define _DAGOR_ENET_INJECT_PROTOCOL_COMMANDS_AND_COUNT \
    ENET_PROTOCOL_COMMAND_DAGOR_PING_TARGET_PORT_FOR_RELAY = 13, \
    ENET_PROTOCOL_COMMAND_DAGOR_SEND_UNCONNECTED = 14,          \
-   ENET_PROTOCOL_COMMAND_COUNT              = 15
+   ENET_PROTOCOL_COMMAND_DAGOR_RELAY_PONG = 15,                \
+   ENET_PROTOCOL_COMMAND_COUNT              = 16
 #else
 #define _DAGOR_ENET_INJECT_PROTOCOL_COMMANDS_AND_COUNT \
    ENET_PROTOCOL_COMMAND_COUNT              = 13
@@ -41,7 +42,14 @@ typedef struct _ENetProtocolDagorSendUnconnected           \
    enet_uint16 dataLength;                                 \
    enet_uint16 portFrom;                                   \
    enet_uint32 hostFrom;                                   \
-} ENET_PACKED ENetProtocolDagorSendUnconnected;
+} ENET_PACKED ENetProtocolDagorSendUnconnected;            \
+/* Relay middlebox echo of a datagram header sentTime: does not retire reliable commands. */ \
+typedef struct _ENetProtocolDagorRelayPong                 \
+{                                                          \
+   ENetProtocolCommandHeader header;                       \
+   enet_uint16 receivedSentTime;                           \
+   enet_uint16 padding;                                    \
+} ENET_PACKED ENetProtocolDagorRelayPong;
 #else
 #define _DAGOR_ENET_EXT_PROTOCOL_TYPES
 #endif
@@ -49,11 +57,13 @@ typedef struct _ENetProtocolDagorSendUnconnected           \
 #if _DAGOR_ENET_EXT
 #define _DAGOR_ENET_INJECT_PROTOCOL_TYPES                               \
    ENetProtocolDagorPingTargetPortForRelay dagorPingTargetPortForRelay; \
-   ENetProtocolDagorSendUnconnected dagorSendUnconnected;
+   ENetProtocolDagorSendUnconnected dagorSendUnconnected;               \
+   ENetProtocolDagorRelayPong dagorRelayPong;
 
 #define _DAGOR_ENET_INJECT_PROTOCOL_TYPES_SIZES       \
     sizeof (ENetProtocolDagorPingTargetPortForRelay), \
-    sizeof (ENetProtocolDagorSendUnconnected)
+    sizeof (ENetProtocolDagorSendUnconnected),        \
+    sizeof (ENetProtocolDagorRelayPong)
 
 
 #define _DAGOR_ENET_INJECT_EVENTS                                                     \
@@ -77,7 +87,15 @@ typedef struct _ENetProtocolDagorSendUnconnected           \
 
 /** Extra fields injected into ENetHost. */
 #define _DAGOR_ENET_EXTEND_HOST_STRUCT \
-   ENetPeer *           dagorConnectPeerOverride; /**< when set, enet_host_connect uses this peer directly instead of searching */
+   ENetPeer *           dagorConnectPeerOverride; /**< when set, enet_host_connect uses this peer directly instead of searching */ \
+   enet_uint32          dagorLastRelayPongTime;
+
+/** Extra fields injected into ENetPeer (second RTT from relay-marked pong). */
+#define _DAGOR_ENET_EXTEND_PEER_STRUCT \
+   enet_uint32   relayRoundTripTime;
+
+#define _DAGOR_ENET_INJECT_PEER_RESET \
+    peer -> relayRoundTripTime = 0;
 
 #else
    #define _DAGOR_ENET_INJECT_PROTOCOL_TYPES
@@ -85,5 +103,7 @@ typedef struct _ENetProtocolDagorSendUnconnected           \
    #define _DAGOR_ENET_INJECT_EVENTS
    #define _DAGOR_ENET_EXTEND_EVENT_STRUCT
    #define _DAGOR_ENET_EXTEND_HOST_STRUCT
+   #define _DAGOR_ENET_EXTEND_PEER_STRUCT
+   #define _DAGOR_ENET_INJECT_PEER_RESET
 #endif
 #endif /* __ENET_DAGOR_TYPES_H__ */

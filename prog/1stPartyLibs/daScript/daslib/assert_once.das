@@ -30,7 +30,6 @@ class AssertOnceMacro : AstFunctionAnnotation {
             errors := "can't add global variable {once_name}"
             return null
         }
-        // if ..
         var qb = qmacro_block() {
             if ($i(once_name) && !$e(call.arguments[0])) {
                 $i(once_name) = false

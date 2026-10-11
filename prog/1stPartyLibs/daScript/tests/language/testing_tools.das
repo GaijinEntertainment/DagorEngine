@@ -6,7 +6,6 @@ options persistent_heap
 require dastest/testing_boost public
 require daslib/faker
 require daslib/fuzzer
-require strings
 
 [test]
 def test_faker_random_int(t : T?) {
@@ -59,7 +58,7 @@ def test_faker_any_file_name(t : T?) {
     t |> run("any_file_name produces alphanumeric string") @(t : T?) {
         var fake <- Faker()
         let name = fake |> any_file_name
-        t |> equal(length(name) > 0, true)
+        t |> equal(!empty(name), true)
         delete fake
     }
 }
@@ -80,7 +79,7 @@ def test_faker_day(t : T?) {
     t |> run("day produces a day name") @(t : T?) {
         var fake <- Faker()
         let d = fake |> day
-        t |> equal(length(d) > 0, true)
+        t |> equal(!empty(d), true)
         delete fake
     }
 }

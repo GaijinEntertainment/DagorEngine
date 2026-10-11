@@ -27,7 +27,7 @@ void Graph::pruneResources()
     for (const auto &req : node.resourceRequests)
       resourceStillUsed.set(req.resource, true);
 
-  for (auto [idx, used] : resourceStillUsed.enumerate())
+  for (const auto &[idx, used] : resourceStillUsed.enumerate())
     if (!used)
     {
       if (resources.isMapped(idx))
@@ -61,11 +61,11 @@ Mapping Graph::calculateMapping() const
 
   Mapping result{nodeNameIdExtents.get(), resNameIdExtents.get(), multiIdxExtents.get()};
 
-  for (auto [i, res] : resources.enumerate())
+  for (const auto &[i, res] : resources.enumerate())
     for (auto resNameId : res.frontendResources)
       result.mapRes(resNameId, res.multiplexingIndex) = i;
 
-  for (auto [i, node] : nodes.enumerate())
+  for (const auto &[i, node] : nodes.enumerate())
     if (node.frontendNode)
       result.mapNode(*node.frontendNode, node.multiplexingIndex) = i;
 
@@ -114,7 +114,7 @@ void Graph::validate() const
       G_ASSERTF(resources.isMapped(req.resource), "Inconsistent IR: missing resource with index %d", req.resource);
   }
 
-  for (auto [nodeIdx, state] : nodeStates.enumerate())
+  for (const auto &[nodeIdx, state] : nodeStates.enumerate())
   {
     const auto validateRes = [this, nodeIdx = nodeIdx](ResourceIndex res_idx) {
       G_ASSERTF_RETURN(resources.isMapped(res_idx), , "Inconsistent IR: missing resource with index %d", res_idx);
@@ -146,7 +146,7 @@ void Graph::validate() const
     }
   }
 
-  for (auto [resIdx, res] : resources.enumerate())
+  for (const auto &res : resources.values())
     G_ASSERT(!res.frontendResources.empty());
 #endif
 }
@@ -202,7 +202,7 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> remap_node_order(
 
   IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> desiredToSource(maxDesired, NODE_NOT_MAPPED);
   dag::Vector<uint32_t, framemem_allocator> desiredToPrev(maxDesired, NO_VALUE);
-  for (auto [source, pos] : source_to_desired.enumerate())
+  for (const auto &[source, pos] : source_to_desired.enumerate())
     if (pos != NODE_NOT_MAPPED)
     {
       G_ASSERTF(desiredToSource[pos] == NODE_NOT_MAPPED, "daFG: IR nodes %d and %d both want desired slot %d!",
@@ -247,7 +247,7 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> remap_node_order(
   }
 
 #if DAGOR_DBGLEVEL > 0
-  for (auto [source, pos] : source_to_desired.enumerate())
+  for (const auto &[source, pos] : source_to_desired.enumerate())
     G_ASSERT(pos == NODE_NOT_MAPPED || result[source] != NODE_NOT_MAPPED);
 #endif
 
@@ -260,7 +260,7 @@ using NodeFlagsFmem = IdIndexedFlags<NodeIndex, framemem_allocator>;
 void erase_moved_nodes(Graph &graph, const IdIndexedMapping<NodeIndex, NodeIndex> &source_to_prev_dst,
   const NodeFlagsFmem &kept_in_place)
 {
-  for (auto [source, prevDst] : source_to_prev_dst.enumerate())
+  for (const auto &[source, prevDst] : source_to_prev_dst.enumerate())
   {
     if (prevDst == NODE_NOT_MAPPED || kept_in_place.test(source, false))
       continue;
@@ -285,7 +285,7 @@ void emplace_moved_nodes(Graph &graph, const Graph &source_graph, const NodeMapp
       dstCount = eastl::max(dstCount, static_cast<size_t>(eastl::to_underlying(dst)) + 1);
   out_nodes_changed.resize(dstCount, false);
 
-  for (auto [source, dst] : source_to_dst.enumerate())
+  for (const auto &[source, dst] : source_to_dst.enumerate())
   {
     if (dst == NODE_NOT_MAPPED || kept_in_place.test(source, false))
       continue;
@@ -327,7 +327,7 @@ void refresh_predecessors(Graph &graph, const Graph &source_graph, const NodeMap
     return stored.size() != mappedPreds;
   };
 
-  for (auto [source, dst] : source_to_dst.enumerate())
+  for (const auto &[source, dst] : source_to_dst.enumerate())
   {
     if (dst == NODE_NOT_MAPPED)
       continue;
@@ -360,7 +360,7 @@ IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Grap
   auto sourceToDst = remap_node_order(source_to_desired, source_to_prev_dst);
 
   NodeFlagsFmem keptInPlace(source_to_prev_dst.totalKeys(), false);
-  for (auto [source, prevDst] : source_to_prev_dst.enumerate())
+  for (const auto &[source, prevDst] : source_to_prev_dst.enumerate())
     if (prevDst != NODE_NOT_MAPPED && !source_nodes_changed.test(source, false) && sourceToDst.isMapped(source) &&
         sourceToDst[source] == prevDst)
       keptInPlace.set(source, true);

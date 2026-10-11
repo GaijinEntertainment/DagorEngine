@@ -1,0 +1,41 @@
+// constraint: additional dumps reference these, so no initializers
+texture rtss_atlas always_referenced;
+buffer rtss_slots always_referenced;
+buffer rtss_levels always_referenced;
+float4 rtss_globals[5] always_referenced;
+sampler rtss_gather_sampler always_referenced; // constraint: no state, so an additional dump links it by name; the library sets it
+sampler static_shadow_tex_samplerstate always_referenced; // static_shadow_stcode.dshl gives its state
+
+macro INIT_RTSS(code)
+  (code) {
+    rtss_atlas@tex = rtss_atlas hlsl {
+      Texture2DArray<float> rtss_atlas@tex;
+    }
+    rtss_slots@buf = rtss_slots hlsl {
+      ByteAddressBuffer rtss_slots@buf;
+    }
+    rtss_levels@buf = rtss_levels hlsl {
+      ByteAddressBuffer rtss_levels@buf;
+    }
+    rtss_globals@f4[] = rtss_globals;
+  }
+  if (hardware.metal || hardware.vulkan)
+  {
+    (code) { rtss_gather_sampler@sampler = rtss_gather_sampler; }
+  }
+  else
+  {
+    (code) { rtss_cmp_sampler@cmpSampler = static_shadow_tex_samplerstate; }
+  }
+endmacro
+
+macro USE_RTSS(code)
+  hlsl(code) {
+    ##if hardware.metal
+      #define RTSS_HW_COMPARE 0 // constraint: Metal compares depth formats only
+    ##elif hardware.vulkan
+      #define RTSS_HW_COMPARE 0 // constraint: a Vulkan driver can report no depth compare on R16; the hardware does it
+    ##endif
+    #include <rtss_lookup.hlsl>
+  }
+endmacro

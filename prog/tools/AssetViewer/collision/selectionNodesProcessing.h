@@ -35,7 +35,6 @@ public:
   void getSelectedNodes(dag::Vector<String> &selected_nodes);
   bool rejectExportedCollisions(dag::Vector<String> &selected_nodes, bool is_replace);
   void checkReplacedNodes(const dag::Vector<String> &ref_nodes, DataBlock *nodes);
-  void rejectExportedNode(DataBlock *props, dag::Vector<String> &selected_nodes, dag::Vector<String> &add_ref_nodes, bool is_replace);
   bool checkNodeName(const char *node_name);
   void addCombinedSettings(const SelectedNodesSettings &settings);
   void addKdopSettings(const KdopSettings &settings);
@@ -64,4 +63,6 @@ private:
   dag::Vector<KdopSettings> exportedKdopsSettings;
   dag::Vector<ConvexComputerSettings> exportedConvexsComputerSettings;
   dag::Vector<ConvexVhacdSettings> exportedConvexsVhacdSettings;
+
+  const SelectedNodesSettings *moveNodeToSettings(DataBlock *props, DataBlock *nodes, bool reject);
 };

@@ -1,8 +1,6 @@
 options gen2
 require dastest/testing_boost
 
-require strings
-
 def abc_jit(a : int; b : float; c : string) {
     return "a = {a} b = {b} c = {c}"
 }

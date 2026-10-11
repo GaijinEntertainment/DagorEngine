@@ -519,10 +519,11 @@ void sort_culling_states(Context &ctx, CullingState &cull, const Point3 &view_po
           continue;
 
         vec4f v = v_ldu(&ctx.instances.groups.get<INST_POSITION>(sid).x);
-        int vi = v_extract_xi(v_cast_vec4i(v_add_x(v_length3_sq_x(v_sub(v, viewPos)), v_splat_w(v))));
+        vec4f distSq = v_length3_sq_x(v_sub(v, viewPos));
+        int vi = v_extract_xi(v_cast_vec4i(v_add_x(v_sqrt_x(distSq), v_splat_w(v))));
         reinterpret_cast<int &>(ctx.instances.groups.get<INST_VIEW_DIST>(sid)) = vi;
-        int &minDist = reinterpret_cast<int &>(ctx.instances.groups.get<INST_VIEW_DIST_MIN>(sid));
-        minDist = min(minDist, vi);
+        float &minDistSq = ctx.instances.groups.get<INST_VIEW_DIST_MIN>(sid);
+        minDistSq = min(minDistSq, v_extract_x(distSq));
       }
     }
 

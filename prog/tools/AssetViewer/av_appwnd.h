@@ -123,6 +123,8 @@ public:
   PropPanel::IMenu *getMainMenu() override;
   void deleteCustomPanel(PropPanel::ContainerPropertyControl *) override {}
   PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
+  PropPanel::DialogWindow *createAutoSizedDialog(const char *title, hdpi::Px min_width = hdpi::Px::ZERO,
+    hdpi::Px min_height = hdpi::Px::ZERO) override;
   void deleteDialog(PropPanel::DialogWindow *dlg) override;
   eastl::unique_ptr<PropPanel::IMenu> createContextMenu() override;
   bool renderContextMenu(PropPanel::IMenu &menu) override;
@@ -186,7 +188,7 @@ public:
   void beforeRenderObjects() override;
   void renderObjects() override;
   void renderIslDecalObjects() override {}
-  void renderTransObjects() override;
+  void renderTransObjects(BaseTexture *) override;
 
   void showSelectWindow(IObjectsList *obj_list, const char *obj_list_owner_name) override;
 
@@ -283,7 +285,10 @@ protected:
   void sortPlugins() {}
 
   void terminateInterface();
-  void switchToPlugin(int id);
+
+  // Returns false when the current plugin refuses to end (the user cancelled saving its changes).
+  bool switchToPlugin(int id);
+
   void splitProjectFilename(const char *filename, String &path, String &name);
 
   // ControlEventHandler

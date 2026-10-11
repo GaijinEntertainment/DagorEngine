@@ -1,0 +1,6 @@
+"@override:source" {
+  file:t = "../../../prog/gameLibs/render/rtdl/shaders/rtdl.dshl"
+}
+
+incDir:t="../../../prog/gameLibs/render/rtdl/shaders"
+incDir:t="../../../prog/gameLibs/render/rtsm/shaders"

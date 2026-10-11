@@ -27,7 +27,7 @@ class TextureDescriptorProvider : public ImageObjectProvider
 public:
   struct SetupInfo : BaseType::SetupInfo
   {
-    ID3D12Device *device;
+    D3DDevice *device;
   };
 
 protected:
@@ -66,7 +66,7 @@ protected:
 public:
   using DescriptorAllocationResult = dag::Expected<D3D12_CPU_DESCRIPTOR_HANDLE, MemoryAllocationError>;
 
-  DescriptorAllocationResult allocateTextureSRVDescriptor(ID3D12Device *device)
+  DescriptorAllocationResult allocateTextureSRVDescriptor(D3DDevice *device)
   {
     return srvHeap.allocate(device).or_else(
       [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
@@ -79,7 +79,7 @@ public:
       srvHeap.free(descriptor);
     }
   }
-  DescriptorAllocationResult allocateTextureRTVDescriptor(ID3D12Device *device)
+  DescriptorAllocationResult allocateTextureRTVDescriptor(D3DDevice *device)
   {
     return rtvHeap.allocate(device).or_else(
       [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
@@ -92,7 +92,7 @@ public:
       rtvHeap.free(descriptor);
     }
   }
-  DescriptorAllocationResult allocateTextureDSVDescriptor(ID3D12Device *device)
+  DescriptorAllocationResult allocateTextureDSVDescriptor(D3DDevice *device)
   {
     return dsvHeap.allocate(device).or_else(
       [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
@@ -148,7 +148,7 @@ protected:
 
   /// All or nothing: a half filled array would hand out null handles that are then used to create
   /// views against nothing.
-  BufferViewDescriptorsResult createBufferSRVs(ID3D12Device *device, ID3D12Resource *buffer, uint32_t count,
+  BufferViewDescriptorsResult createBufferSRVs(D3DDevice *device, ID3D12Resource *buffer, uint32_t count,
     D3D12_SHADER_RESOURCE_VIEW_DESC desc)
   {
     auto descriptors = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(count);
@@ -173,7 +173,7 @@ protected:
     return descriptors;
   }
 
-  BufferViewDescriptorsResult createBufferUAVs(ID3D12Device *device, ID3D12Resource *buffer, uint32_t count,
+  BufferViewDescriptorsResult createBufferUAVs(D3DDevice *device, ID3D12Resource *buffer, uint32_t count,
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc)
   {
     auto descriptors = eastl::make_unique<D3D12_CPU_DESCRIPTOR_HANDLE[]>(count);
@@ -199,7 +199,7 @@ protected:
   }
 
 public:
-  DescriptorAllocationResult allocateBufferSRVDescriptor(ID3D12Device *device)
+  DescriptorAllocationResult allocateBufferSRVDescriptor(D3DDevice *device)
   {
     return srvHeap.access()->allocate(device).or_else(
       [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
@@ -213,9 +213,9 @@ public:
     }
   }
 
-  BufferViewCreateResult createBufferTextureSRV(ID3D12Device *device, BufferState &buffer, FormatStore format)
+  BufferViewCreateResult createBufferTextureSRV(D3DDevice *device, BufferState &buffer, FormatStore format)
   {
-    G_ASSERTF(0 == (buffer.offset % format.getBytesPerPixelBlock()), "DX12: Offset %u has to be multiples of element size %u",
+    G_ASSERTF(0 == (buffer.offset % format.getBytesPerPixelBlock()), "DX12: Offset %llu has to be multiples of element size %u",
       buffer.offset, format.getBytesPerPixelBlock());
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = format.asDxGiFormat<true>();
@@ -230,9 +230,9 @@ public:
       .transform([&buffer](BufferViewDescriptorsResult::value_type &&descriptors) { buffer.srvs = eastl::move(descriptors); });
   }
 
-  BufferViewCreateResult createBufferStructureSRV(ID3D12Device *device, BufferState &buffer, uint32_t struct_size)
+  BufferViewCreateResult createBufferStructureSRV(D3DDevice *device, BufferState &buffer, uint32_t struct_size)
   {
-    G_ASSERTF(0 == (buffer.offset % struct_size), "DX12: Offset %u has to be multiples of element size %u", buffer.offset,
+    G_ASSERTF(0 == (buffer.offset % struct_size), "DX12: Offset %llu has to be multiples of element size %u", buffer.offset,
       struct_size);
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = DXGI_FORMAT_UNKNOWN;
@@ -247,14 +247,14 @@ public:
       .transform([&buffer](BufferViewDescriptorsResult::value_type &&descriptors) { buffer.srvs = eastl::move(descriptors); });
   }
 
-  BufferViewCreateResult createBufferRawSRV(ID3D12Device *device, BufferState &buffer)
+  BufferViewCreateResult createBufferRawSRV(D3DDevice *device, BufferState &buffer)
   {
     // RAW has a 16 byte offset alignment rule
     if (buffer.discardCount > 1)
     {
-      G_ASSERTF(0 == (buffer.size % 16), "DX12: Buffer size %u has to be multiples of 16", buffer.size);
+      G_ASSERTF(0 == (buffer.size % 16), "DX12: Buffer size %llu has to be multiples of 16", buffer.size);
     }
-    G_ASSERTF(0 == (buffer.offset % 16), "DX12: Offset %u has to be multiples of 16", buffer.offset);
+    G_ASSERTF(0 == (buffer.offset % 16), "DX12: Offset %llu has to be multiples of 16", buffer.offset);
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = DXGI_FORMAT_R32_TYPELESS;
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -268,7 +268,7 @@ public:
       .transform([&buffer](BufferViewDescriptorsResult::value_type &&descriptors) { buffer.srvs = eastl::move(descriptors); });
   }
 
-  BufferViewCreateResult createBufferTextureUAV(ID3D12Device *device, BufferState &buffer, FormatStore format)
+  BufferViewCreateResult createBufferTextureUAV(D3DDevice *device, BufferState &buffer, FormatStore format)
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
@@ -287,7 +287,7 @@ public:
       });
   }
 
-  BufferViewCreateResult createBufferStructureUAV(ID3D12Device *device, BufferState &buffer, uint32_t struct_size)
+  BufferViewCreateResult createBufferStructureUAV(D3DDevice *device, BufferState &buffer, uint32_t struct_size)
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
@@ -324,7 +324,7 @@ public:
       });
   }
 
-  BufferViewCreateResult createBufferRawUAV(ID3D12Device *device, BufferState &buffer)
+  BufferViewCreateResult createBufferRawUAV(D3DDevice *device, BufferState &buffer)
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;

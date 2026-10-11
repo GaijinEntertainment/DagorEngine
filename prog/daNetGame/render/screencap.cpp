@@ -32,6 +32,7 @@
 #include "captureGbuffer.h"
 #include <render/renderer.h>
 #include <ecs/camera/getActiveCameraSetup.h>
+#include <cameraManager/cameraManager_api.h>
 
 // Uncomment next line to automatically capture screenshot frames in RenderDoc/PIX
 // #define CAPTURE_SCREENSHOT_FRAMES 1
@@ -308,8 +309,11 @@ void screencap::make_screenshot(
   {
     if (dd_mkpath(fname.str()) && ScreenShotSystem::saveScreenShotTo(screen, fname))
     {
-      debug("screenshot saved to %s", fname.str());
-      clipboard::set_clipboard_file(fname.c_str());
+      if (!camera_manager::on_screenshot_saved(fname))
+      {
+        debug("screenshot saved to %s", fname.str());
+        clipboard::set_clipboard_file(fname.c_str());
+      }
     }
     else
     {

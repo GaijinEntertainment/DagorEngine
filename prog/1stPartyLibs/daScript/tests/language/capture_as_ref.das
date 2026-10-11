@@ -9,10 +9,9 @@ class CaptureRefFoo {
         i = 5
     }
     def kaboom : lambda<int> {
-        var counter <- @() {
+        return <- @() {
             return i++
         }
-        return <- counter
     }
 }
 

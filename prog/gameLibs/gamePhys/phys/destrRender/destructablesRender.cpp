@@ -16,6 +16,11 @@
 #include <daFracture/render/renderList.h>
 #include <phys/dag_physics.h>
 
+namespace rendinstdestr
+{
+void frx_preview_add_meshes(frx::MeshRenderList &list);
+}
+
 destructables::deform_create_instance_cb_type deform_create_instance_cb = nullptr;
 destructables::deform_before_render_cb_type deform_before_render_cb = nullptr;
 destructables::deform_destroy_instance_cb_type deform_destroy_instance_cb = nullptr;
@@ -95,6 +100,7 @@ void destructables::render_fractured_rendinst(frx::MeshRenderList &list, const F
         list.add(*obj.mesh, obj.tm, obj.prevTm);
     }
   }
+  rendinstdestr::frx_preview_add_meshes(list);
   list.prepare();
   list.finalizeForRi();
 }

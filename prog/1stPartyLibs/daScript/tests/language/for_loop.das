@@ -3,39 +3,39 @@ options gen2
 require dastest/testing_boost public
 
 def test_from_gte_to(t : T?) {
-    for (x in range(3, 2)) {
+    for (_x in range(3, 2)) {
         t |> failure("loop body should not execute")
     }
-    for (x in urange(3, 2)) {
+    for (_x in urange(3, 2)) {
         t |> failure("loop body should not execute")
     }
-    for (x in range(3, 2)) {
+    for (_x in range(3, 2)) {
         t |> failure("loop body should not execute")
     }
-    for (x in urange(3, 2)) {
+    for (_x in urange(3, 2)) {
         t |> failure("loop body should not execute")
     }
-    for (x in range(3, 2)) {
+    for (_x in range(3, 2)) {
         break
     }
-    for (x in urange(3, 2)) {
+    for (_x in urange(3, 2)) {
         break
     }
-    for (x in range(3, 2)) {
-        t |> failure("loop body should not execute")
-        break
-    }
-    for (x in urange(3, 2)) {
+    for (_x in range(3, 2)) {
         t |> failure("loop body should not execute")
         break
     }
-    for (x, y in range(3, 2), urange(3, 2)) {
+    for (_x in urange(3, 2)) {
+        t |> failure("loop body should not execute")
+        break
+    }
+    for (_x, _y in range(3, 2), urange(3, 2)) {
         t |> failure("loop body should not execute")
     }
-    for (x, y in urange(3, 2), urange(3, 2)) {
+    for (_x, _y in urange(3, 2), urange(3, 2)) {
         t |> failure("loop body should not execute")
     }
-    for (x in each(range(3, 2))) {
+    for (_x in each(range(3, 2))) {
         t |> failure("loop body should not execute")
     }
 }
@@ -61,7 +61,7 @@ def test_for64(t : T?) {
 }
 
 [test]
-def test_for_loop(t : T?) {
+def test_for_loop(t : T?) {     // nolint:STYLE038 - one flat arm per loop shape
     t |> run("1 variable fixed array") @(t : T?) {
         var a : int[10]
         var i = 0
@@ -149,7 +149,7 @@ def test_for_loop(t : T?) {
     t |> run("2 variables range hybrid") @(t : T?) {
         var b : int[10]
         var i = 0
-        for (l, r in range(10), b) {
+        for (_l, r in range(10), b) {
             r = i++ * 2 - 5
         }
         t |> equal(i, 10)

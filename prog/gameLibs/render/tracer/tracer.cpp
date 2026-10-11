@@ -675,7 +675,7 @@ void TracerManager::update(float dt)
 
   curTime += dt;
   float vibX = fmodf(curTime * headVibratingRate, 1.0f);
-  ShaderGlobal::set_float(tracer_beam_timeVarId, 0.5 + 0.5 * (int(curTime * headVibratingRate) % 2 ? 1.0 - vibX : vibX));
+  ShaderGlobal::set_float(tracer_beam_timeVarId, 0.5f + 0.5f * (int(curTime * headVibratingRate) % 2 ? 1.0f - vibX : vibX));
 
   PREFETCH_DATA(0, &tracers);
   const float decayInc = dt / tailLengthMeters;
@@ -844,7 +844,7 @@ void TracerManager::doJob()
       Point3 distVec = tracer->pos - viewPos;
       float eyeDist = distVec.length();
       float lerpStart = tracerType.amplifyDistanceStart;
-      float lerpEnd = tracerType.amplifyDistanceStart - tracerType.amplifyDistanceStart * 0.3;
+      float lerpEnd = tracerType.amplifyDistanceStart - tracerType.amplifyDistanceStart * 0.3f;
       float t = (lerpStart - eyeDist) / (lerpStart - lerpEnd);
       t = clamp(t, 0.0f, 1.0f);
 

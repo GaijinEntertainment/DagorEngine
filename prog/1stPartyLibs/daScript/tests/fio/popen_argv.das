@@ -56,6 +56,20 @@ def test_popen_argv_unknown_flag_nonzero_exit(t : T?) {
 }
 
 [test]
+def test_help_after_separator_reaches_the_script(t : T?) {
+    t |> run("--help and -h after -- are script arguments, not the driver's") @(t : T?) {
+        let fixture = path_join(get_das_root(), "tests/fio/_fixture_echo_args.das")
+        var output : string
+        let rc = run_argv([das_exe(), "-dasroot", get_das_root(), fixture, "--", "--help", "-h"], output)
+        t |> equal(rc, 0)
+        t |> success(find(output, "--help\n") >= 0, "the script should see --help: {output}")
+        t |> success(find(output, "-h\n") >= 0, "the script should see -h: {output}")
+        t |> success(find(output, "daslang version") < 0,
+            "the driver must not answer a help flag placed after --: {output}")
+    }
+}
+
+[test]
 def test_popen_argv_unix_dollar_paren_not_expanded(t : T?) {
     t |> run("argv with $(...) is passed literally, not expanded by a shell") @(t : T?) {
         // If popen_argv invoked /bin/sh, "$(echo SHOULDNOTAPPEAR)" would be
@@ -109,6 +123,27 @@ def test_popen_argv_arg_with_embedded_quote(t : T?) {
         t |> success(rc != 0, "expected non-zero exit")
         t |> success(find(output, "pre") >= 0 && find(output, "mid") >= 0 && find(output, "post") >= 0,
             "expected pre/mid/post tokens in output: {output}")
+    }
+}
+
+[test]
+def test_popen_argv_relative_forward_slash_exe(t : T?) {
+    t |> run("a relative argv[0] with forward slashes and no leading ./ spawns") @(t : T?) {
+        let exe = get_full_file_name(das_exe())
+        let exe_dir = dir_name(exe)
+        let rel = "{base_name(exe_dir)}/{base_name(exe)}"
+        let launch_dir = dir_name(exe_dir)
+        let saved_cwd = getcwd()
+        if (!chdir(launch_dir)) {
+            t |> failure("could not chdir to {launch_dir}")
+            return
+        }
+        var output : string
+        let rc = run_argv([rel, "--help"], output)
+        t |> success(chdir(saved_cwd), "could not restore the working directory {saved_cwd}")
+        t |> equal(rc, 0, "spawning {rel} from {launch_dir} failed")
+        t |> success(find(output, "daslang version") >= 0,
+            "expected 'daslang version' in output: {output}")
     }
 }
 

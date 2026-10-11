@@ -1,4 +1,4 @@
-# daspkg example — pure daslang
+# daspkg example - pure daslang
 
 Demonstrates installing packages from git via daspkg.
 
@@ -17,8 +17,8 @@ daslang main.das
 ## What happens
 
 1. `daspkg install` reads `.das_package` and installs two packages:
-   - `daspkg-test-pure` — a simple daslang module with `greet()` and `add()`
-   - `daspkg-test-deps` — a module that itself depends on `daspkg-test-pure` (transitive dependency)
+   - `daspkg-test-pure` - a simple daslang module with `greet()` and `add()`
+   - `daspkg-test-deps` - a module that itself depends on `daspkg-test-pure` (transitive dependency)
 
 2. Packages are cloned into `modules/` and recorded in `daspkg.lock`
 

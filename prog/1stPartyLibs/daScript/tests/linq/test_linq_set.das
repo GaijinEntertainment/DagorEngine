@@ -1,7 +1,6 @@
 options gen2
 require daslib/linq
 require dastest/testing_boost public
-require math
 
 require daslib/linq_boost
 
@@ -37,7 +36,7 @@ def test_distinct(t : T?) {
             empty(type<int>)
         )
         var found = false
-        for (it in qempty) {
+        for (_it in qempty) {
             found = true
         }
         t |> success(!found)
@@ -86,7 +85,7 @@ def test_distinctby(t : T?) {
             _
         )
         var found = false
-        for (it in qempty) {
+        for (_it in qempty) {
             found = true
         }
         t |> success(!found)
@@ -244,7 +243,7 @@ def test_except(t : T?) {
             [iterator for(x in 0..5); x]
         )
         var found = false
-        for (it in qempty) {
+        for (_it in qempty) {
             found = true
         }
         t |> success(!found)
@@ -345,7 +344,7 @@ def test_intersect(t : T?) {
             [iterator for(x in 0..5); x]
         )
         var found = false
-        for (it in qempty) {
+        for (_it in qempty) {
             found = true
         }
         t |> success(!found)

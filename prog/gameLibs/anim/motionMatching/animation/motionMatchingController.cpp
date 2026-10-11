@@ -165,7 +165,7 @@ void MotionMatchingController::updateAnimationSpeed(const Point3 &animchar_veloc
   if (curFrame == 0)
     curFrame = 1;
   vec3f posDelta = v_sub(curClip.rootMotion[curFrame].translation, curClip.rootMotion[curFrame - 1].translation);
-  float animationVelocity = v_extract_x(v_length3_x(v_mul(posDelta, V_TICKS_PER_SECOND)));
+  float animationVelocity = v_extract_x(v_length3_x(v_mul(posDelta, V_TICKS_PER_SECOND))) * animcharScale;
   float characterVelocity = length(animchar_velocity);
   float characterRotationSpeed = length(animchar_angular_velocity);
   if (animationVelocity > 0.001f)
@@ -225,6 +225,7 @@ void MotionMatchingController::updateNodeWeights(bool mm_enabled, float blend_ti
 void MotionMatchingController::updateRoot(float dt, mat44f_cref animchar_tm, const Point3 &animchar_velocity,
   const Point3 &animchar_angular_velocity, const Point3 &wish_root_direction)
 {
+  animcharScale = v_extract_x(v_length3_x(animchar_tm.col0));
   if (rootSynchronization || !hasActiveAnimation())
   {
     vec3f scale;

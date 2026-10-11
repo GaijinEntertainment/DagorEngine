@@ -70,6 +70,8 @@ bool updateRiExtraReqLod(uint32_t res_idx, unsigned lod);
 
 bbox3f riex_get_lbb(int res_idx);
 float riex_get_bsph_rad(int res_idx);
+// Pool value of rendinst_interaction_params.y in shaders, in resource space; -1 when indestructibleByNuke
+float riex_get_interaction_height(int res_idx);
 
 void setRiGenResMatId(uint32_t res_idx, int matId);
 void setRiGenResHp(uint32_t res_idx, float hp);
@@ -84,7 +86,7 @@ bool isNodeAlive(riex_handle_t id, vec4f &bsphere, float &pool_rad);
 bool isNodeAllocated(riex_handle_t id);
 bool isRIGenExtraPlacedInTiledScenes(int res_idx);
 
-float getCullDistSqMul();
+float getRiExtraDistSqScale();
 struct AllRendinstExtraScenesLockImpl;
 struct AllRendinstExtraScenesLock
 {

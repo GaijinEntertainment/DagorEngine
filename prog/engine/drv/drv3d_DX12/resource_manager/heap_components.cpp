@@ -191,6 +191,9 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
 
   processVirtualTotal = sysdtemMemoryStatus.ullTotalVirtual;
 
+  updateSystemCommitLevel();
+  systemCommitQueryTicks = ref_time_ticks();
+
   info.adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &poolStates[device_local_memory_pool]);
   info.adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &poolStates[host_local_memory_pool]);
 
@@ -309,6 +312,82 @@ void update_reservation(DXGIAdapter *adapter, DXGI_QUERY_VIDEO_MEMORY_INFO &info
 }
 } // namespace
 
+MemoryBudgetObserver::BudgetPressureLevels MemoryBudgetObserver::calculateSystemCommitLevel(uint64_t commit_avail,
+  uint64_t commit_limit, BudgetPressureLevels current_level)
+{
+  for (auto candidate : {BudgetPressureLevels::PANIC, BudgetPressureLevels::HIGH})
+  {
+    uint64_t threshold = getSystemCommitLevelThreshold(candidate, commit_limit);
+    if (current_level <= candidate)
+    {
+      threshold += threshold / system_commit_level_leave_divider;
+    }
+    if (commit_avail < threshold)
+    {
+      return candidate;
+    }
+  }
+  return BudgetPressureLevels::LOW;
+}
+
+MemoryBudgetObserver::BudgetPressureLevels MemoryBudgetObserver::updateSystemCommitLevel(const MEMORYSTATUSEX &status)
+{
+  auto previousLevel = systemCommitLevel.load(std::memory_order_relaxed);
+  BudgetPressureLevels level;
+  do
+  {
+    level = calculateSystemCommitLevel(status.ullAvailPageFile, status.ullTotalPageFile, previousLevel);
+  } while (!systemCommitLevel.compare_exchange_weak(previousLevel, level, std::memory_order_relaxed));
+
+  if (level != previousLevel)
+  {
+    ByteUnits commitAvail = status.ullAvailPageFile;
+    ByteUnits commitLimit = status.ullTotalPageFile;
+    if (level < previousLevel)
+    {
+      logwarn("DX12: System commit pressure %s -> %s (commit avail/limit %.2f %s / %.2f %s), scheduling texture memory trim",
+        as_string(previousLevel), as_string(level), commitAvail.units(), commitAvail.name(), commitLimit.units(), commitLimit.name());
+      tql::schedule_trim_discardable_tex_mem();
+    }
+    else
+    {
+      logdbg("DX12: System commit pressure %s -> %s (commit avail/limit %.2f %s / %.2f %s)", as_string(previousLevel),
+        as_string(level), commitAvail.units(), commitAvail.name(), commitLimit.units(), commitLimit.name());
+    }
+  }
+  return level;
+}
+
+MemoryBudgetObserver::BudgetPressureLevels MemoryBudgetObserver::updateSystemCommitLevel()
+{
+  MEMORYSTATUSEX systemMemoryStatus{sizeof(MEMORYSTATUSEX)};
+  if (!GlobalMemoryStatusEx(&systemMemoryStatus))
+  {
+    return getSystemCommitLevel();
+  }
+  return updateSystemCommitLevel(systemMemoryStatus);
+}
+
+void MemoryBudgetObserver::pollSystemCommitLevel()
+{
+  const int64_t now = ref_time_ticks();
+  if (ref_time_delta_to_usec(now - systemCommitQueryTicks) < system_commit_query_period_usec)
+  {
+    return;
+  }
+  systemCommitQueryTicks = now;
+
+  if (BudgetPressureLevels::PANIC != updateSystemCommitLevel())
+  {
+    return;
+  }
+  if (ref_time_delta_to_usec(now - systemCommitPanicTrimTicks) >= system_commit_panic_trim_period_usec)
+  {
+    systemCommitPanicTrimTicks = now;
+    tql::schedule_trim_discardable_tex_mem();
+  }
+}
+
 void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data)
 {
   BaseType::completeFrameExecution(info, data);
@@ -369,16 +448,6 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     processVirtualAddressUse = systemMemoryStatus.ullTotalVirtual - systemMemoryStatus.ullAvailVirtual;
     behaviorStatus.disableVirtualAddressSpaceStatusQuery = true;
 
-    constexpr uint64_t host_commit_panic_threshold = uint64_t(512) << 20;
-    const bool hostCommitAtPanic = systemMemoryStatus.ullAvailPageFile < host_commit_panic_threshold;
-    if (hostCommitAtPanic && !hostCommitPanicTrimScheduled)
-    {
-      logwarn("DX12: System commit charge reached PANIC level (avail page file %u MB), scheduling texture memory trim",
-        uint32_t(systemMemoryStatus.ullAvailPageFile >> 20));
-      tql::schedule_trim_discardable_tex_mem();
-    }
-    hostCommitPanicTrimScheduled = hostCommitAtPanic;
-
     if (behaviorStatus.printMemoryReports)
     {
       logdbg("DX12: GlobalMemoryStatusEx report:");
@@ -398,7 +467,7 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     }
   }
 
-  auto oldTrimFramePushRingBuffer = shouldTrimFramePushRingBuffer();
+  pollSystemCommitLevel();
 
   updateBudgetLevelStatus();
 
@@ -409,18 +478,6 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     tql::schedule_trim_discardable_tex_mem();
   }
   deviceLocalPanicTrimScheduled = deviceLocalAtPanic;
-
-  if (oldTrimFramePushRingBuffer != shouldTrimFramePushRingBuffer())
-  {
-    if (!oldTrimFramePushRingBuffer)
-    {
-      logdbg("DX12: Starting to trim FramePushRingBuffer");
-    }
-    else
-    {
-      logdbg("DX12: Stopped to trim FramePushRingBuffer");
-    }
-  }
 }
 
 uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, ResourceHeapProperties properties, AllocationFlags flags)
@@ -506,7 +563,10 @@ MemoryAllocationError MemoryBudgetObserver::makeMemoryAllocationError(HRESULT er
   const bool onDevice = properties.isOnDevice(getFeatureSet());
 
   MEMORYSTATUSEX systemMemoryStatus{sizeof(MEMORYSTATUSEX)};
-  GlobalMemoryStatusEx(&systemMemoryStatus);
+  if (GlobalMemoryStatusEx(&systemMemoryStatus))
+  {
+    updateSystemCommitLevel(systemMemoryStatus);
+  }
 
   // TODO: May call DXGI to get the current status and compare it what we think is the current status?
   const auto poolSize = onDevice ? getDeviceLocalPhysicalLimit() : getHostLocalPhysicalLimit();
@@ -601,21 +661,7 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     }
   }
 
-  auto oldTrimFramePushRingBuffer = shouldTrimFramePushRingBuffer();
-
   updateBudgetLevelStatus();
-
-  if (oldTrimFramePushRingBuffer != shouldTrimFramePushRingBuffer())
-  {
-    if (!oldTrimFramePushRingBuffer)
-    {
-      logdbg("DX12: Starting to trim FramePushRingBuffer");
-    }
-    else
-    {
-      logdbg("DX12: Stopped to trim FramePushRingBuffer");
-    }
-  }
 }
 
 void MemoryBudgetObserver::checkEnoughSizeForRender(uint64_t game_limit) const
@@ -904,8 +950,7 @@ ResourceMemoryHeapProvider::getInitialTextureResourceState(D3D12_RESOURCE_FLAGS 
 }
 
 ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(
-  ID3D12Device *device, ResourceHeapProperties heap_properties, AllocationFlags flags,
-  const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info)
+  D3DDevice *device, ResourceHeapProperties heap_properties, AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info)
 {
   eastl::optional<ResourceMemory> result;
   auto hasSpace = getHeapGroupFreeMemorySize(heap_properties.raw) >= alloc_info.SizeInBytes;
@@ -942,15 +987,26 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
 
     G_ASSERT(newHeapDesc.SizeInBytes >= alloc_info.SizeInBytes);
     ResourceHeap newHeap;
-    newHeap.totalSize = newHeapDesc.SizeInBytes;
-    newHeap.maxFreeRange = newHeapDesc.SizeInBytes;
-    G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
-    newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
-
     errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
+
+    const uint64_t minHeapSize = align_value(alloc_info.SizeInBytes, newHeapDesc.Alignment);
+    if (is_oom_error_code(errorCode) && minHeapSize < newHeapDesc.SizeInBytes)
+    {
+      logwarn("DX12: CreateHeap for %s with %.2f %s returned E_OUTOFMEMORY, trying again with the minimum size %.2f %s",
+        heap_properties.typeName(), ByteUnits{newHeapDesc.SizeInBytes}.units(), ByteUnits{newHeapDesc.SizeInBytes}.name(),
+        ByteUnits{minHeapSize}.units(), ByteUnits{minHeapSize}.name());
+      newHeapDesc.SizeInBytes = minHeapSize;
+      attemptedAllocationSize = minHeapSize;
+      errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
+    }
 
     if (SUCCEEDED(errorCode) && newHeap.heap)
     {
+      newHeap.totalSize = newHeapDesc.SizeInBytes;
+      newHeap.maxFreeRange = newHeapDesc.SizeInBytes;
+      G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
+      newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
+
       addHeapGroupFreeSpace(heap_properties.raw, newHeap.totalSize);
 
       HeapID heapID;
@@ -985,13 +1041,13 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
     else
     {
       logdbg("DX12: Allocation failed, D3D12_HEAP_DESC was:");
-      logdbg("DX12: .SizeInBytes: %u", newHeapDesc.SizeInBytes);
+      logdbg("DX12: .SizeInBytes: %llu", newHeapDesc.SizeInBytes);
       logdbg("DX12: .Properties.Type: %u", newHeapDesc.Properties.Type);
       logdbg("DX12: .Properties.CPUPageProperty: %u", newHeapDesc.Properties.CPUPageProperty);
       logdbg("DX12: .Properties.MemoryPoolPreference: %u", newHeapDesc.Properties.MemoryPoolPreference);
       logdbg("DX12: .Properties.CreationNodeMask: %08X", newHeapDesc.Properties.CreationNodeMask);
       logdbg("DX12: .Properties.VisibleNodeMask: %08X", newHeapDesc.Properties.VisibleNodeMask);
-      logdbg("DX12: .Alignment: %u", newHeapDesc.Alignment);
+      logdbg("DX12: .Alignment: %llu", newHeapDesc.Alignment);
       logdbg("DX12: .Flags: %08X", newHeapDesc.Flags);
     }
   }
@@ -1011,7 +1067,7 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
 }
 
 ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter,
-  ID3D12Device *device, ResourceHeapProperties properties, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags)
+  D3DDevice *device, ResourceHeapProperties properties, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags)
 {
   TIME_PROFILE_DEV(DX12_AllocateMemory);
   G_UNUSED(adapter);
@@ -1036,7 +1092,7 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
           auto newAllocationResult = tryAllocateFromMemoryWithProperties(device, currentProperties, flags, alloc_info);
           if (newAllocationResult)
           {
-            logwarn("DX12: Alternate heap allocation: size: %u, group: %u (requested group: %u)", alloc_info.SizeInBytes,
+            logwarn("DX12: Alternate heap allocation: size: %llu, group: %u (requested group: %u)", alloc_info.SizeInBytes,
               currentProperties.raw, properties.raw);
             return newAllocationResult;
           }

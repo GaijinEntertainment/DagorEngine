@@ -13,10 +13,10 @@
 #include <de3_huid.h>
 #include <de3_splineGenSrv.h>
 #include <de3_assetService.h>
-#include <de3_rendInstGen.h>
 #include <propPanel/control/container.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
+#include "../av_riGenArea.h"
 
 enum
 {
@@ -59,7 +59,7 @@ public:
     splineType = getTypeFromData(splineLen, adata);
     recreateGenObj();
 
-    if (spEditor && asset)
+    if (spEditor)
       spEditor->load(asset);
     return true;
   }
@@ -89,7 +89,7 @@ public:
   void actObjects(float dt) override {}
   void beforeRenderObjects() override {}
   void renderObjects() override {}
-  void renderTransObjects() override
+  void renderTransObjects(BaseTexture *) override
   {
     const BezierSpline3d *spline = nullptr;
     if (ISplineEntity *se = genObj ? genObj->queryInterface<ISplineEntity>() : nullptr)
@@ -427,8 +427,7 @@ protected:
   void recreateGenObj()
   {
     destroy_it(genObj);
-    if (IRendInstGenService *rigenSrv = EDITORCORE->queryEditorInterface<IRendInstGenService>())
-      rigenSrv->discardRIGenRect(0, 0, 64, 64);
+    av_discard_rigen_area();
 
     ISplineGenService *splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>();
     DataBlock splineBlk;

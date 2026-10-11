@@ -203,61 +203,34 @@ static ecs::EntitySystemDesc init_grass_ri_clipmap_es_es_desc
   ecs::EventSetBuilder<EventRendinstsLoaded>::build(),
   0
 );
-static constexpr ecs::ComponentDesc grass_quiality_es_comps[] =
-{
-//start of 2 ro components at [0]
-  {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("render_settings__grassQuality"), ecs::ComponentTypeInfo<ecs::string>()}
-};
-static void grass_quiality_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    grass_quiality_es(evt
-        , components.manager()
-    , ECS_RO_COMP(grass_quiality_es_comps, "render_settings__bare_minimum", bool)
-    , ECS_RO_COMP(grass_quiality_es_comps, "render_settings__grassQuality", ecs::string)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc grass_quiality_es_es_desc
-(
-  "grass_quiality_es",
-  "prog/daNetGame/render/grass/grassRenderES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, grass_quiality_es_all_events),
-  empty_span(),
-  make_span(grass_quiality_es_comps+0, 2)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
-  0
-,nullptr,"render_settings__bare_minimum,render_settings__grassQuality");
-static constexpr ecs::ComponentDesc track_anisotropy_change_es_comps[] =
+static constexpr ecs::ComponentDesc apply_grass_render_settings_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("grass_render"), ecs::ComponentTypeInfo<GrassRenderer>()},
-//start of 1 rq components at [1]
-  {ECS_HASH("render_settings__anisotropy"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("grass_render"), ecs::ComponentTypeInfo<GrassRenderer>()}
 };
-static void track_anisotropy_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void apply_grass_render_settings_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    track_anisotropy_change_es(evt
-        , ECS_RW_COMP(track_anisotropy_change_es_comps, "grass_render", GrassRenderer)
+    apply_grass_render_settings_es(evt
+        , components.manager()
+    , ECS_RW_COMP(apply_grass_render_settings_es_comps, "grass_render", GrassRenderer)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc track_anisotropy_change_es_es_desc
+static ecs::EntitySystemDesc apply_grass_render_settings_es_es_desc
 (
-  "track_anisotropy_change_es",
+  "apply_grass_render_settings_es",
   "prog/daNetGame/render/grass/grassRenderES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, track_anisotropy_change_es_all_events),
-  make_span(track_anisotropy_change_es_comps+0, 1)/*rw*/,
+  ecs::EntitySystemOps(nullptr, apply_grass_render_settings_es_all_events),
+  make_span(apply_grass_render_settings_es_comps+0, 1)/*rw*/,
   empty_span(),
-  make_span(track_anisotropy_change_es_comps+1, 1)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<>::build(),
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsUpdated,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"render_settings__anisotropy");
+);
 static constexpr ecs::ComponentDesc grass_change_set_ereaser_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -475,6 +448,36 @@ inline void init_grass_render_ecs_query(ecs::EntityManager &manager, Callable fu
             );
 
         }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc get_render_settings_ecs_query_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__grassQuality"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static ecs::CompileTimeQueryDesc get_render_settings_ecs_query_desc
+(
+  "get_render_settings_ecs_query",
+  empty_span(),
+  make_span(get_render_settings_ecs_query_comps+0, 2)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_render_settings_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, get_render_settings_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(get_render_settings_ecs_query_comps, "render_settings__bare_minimum", bool)
+            , ECS_RO_COMP(get_render_settings_ecs_query_comps, "render_settings__grassQuality", ecs::string)
+            );
+
+        }
     }
   );
 }

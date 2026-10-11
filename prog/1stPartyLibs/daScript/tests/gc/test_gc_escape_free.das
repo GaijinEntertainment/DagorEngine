@@ -59,7 +59,7 @@ def leak_into_global(i : int) {
 var g_lam : lambda<() : int>
 def capture_into_global(i : int) {
     var p = new Node(x = i, y = i)
-    g_lam <- @() : int { return p.x }
+    g_lam <- @() : int { return p.x }   // nolint:PERF030 - dropping the old lambda into the GC is the escape path under test
 }
 
 def make_node(i : int) : Node? {
@@ -102,7 +102,7 @@ def escape_via_script_transitive(i : int) {
 
 // a script callee that captures its argument into a lambda stored in a global -> the parameter
 // escapes through the capture frame
-def keep_node_capture(p : Node?) { g_lam <- @() : int { return p.x } }
+def keep_node_capture(p : Node?) { g_lam <- @() : int { return p.x } }   // nolint:PERF030 - the global store is the escape path under test
 def escape_via_script_capture(i : int) {
     var p = new Node(x = i, y = i)
     keep_node_capture(p)
@@ -127,14 +127,14 @@ def move_into_local_box_read(i : int) : int {
 [test]
 def test_escape_free_does_not_free_global(t : T?) {
     leak_into_global(42)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(g_kept.x, 42)
 }
 
 [test]
 def test_escape_free_does_not_free_returned(t : T?) {
     var n = make_node(7)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(n.x, 7)
     unsafe { delete n }
 }
@@ -144,7 +144,7 @@ def test_escape_free_does_not_free_pushed(t : T?) {
     g_list |> clear()
     push_into_global(11)
     push_into_global(22)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(length(g_list), 2)
     t |> equal(g_list[0].x, 11)
     t |> equal(g_list[1].x, 22)
@@ -153,7 +153,7 @@ def test_escape_free_does_not_free_pushed(t : T?) {
 [test]
 def test_escape_free_does_not_free_aliased(t : T?) {
     alias_then_escape(99)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(g_kept.x, 99)    // survived: neither p nor its alias q was statically freed
 }
 
@@ -162,7 +162,7 @@ def test_escape_free_does_not_free_aliased(t : T?) {
 [test]
 def test_escape_free_nested_sound(t : T?) {
     let s = churn_nested()
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(s, (500 - 1) * 500 / 2 + 500 * 10)
 }
 
@@ -171,7 +171,7 @@ def test_escape_free_nested_sound(t : T?) {
 [test]
 def test_escape_free_does_not_free_captured(t : T?) {
     capture_into_global(55)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(invoke(g_lam), 55)
 }
 
@@ -203,21 +203,21 @@ def test_escape_free_does_not_run_user_finalizer(t : T?) {
 [test]
 def test_escape_free_does_not_free_stored_by_script(t : T?) {
     escape_via_script(77)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(g_kept.x, 77)
 }
 
 [test]
 def test_escape_free_does_not_free_stored_by_script_transitive(t : T?) {
     escape_via_script_transitive(88)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(g_kept.x, 88)
 }
 
 [test]
 def test_escape_free_does_not_free_captured_by_script(t : T?) {
     escape_via_script_capture(66)
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(invoke(g_lam), 66)
 }
 
@@ -227,7 +227,7 @@ def test_escape_free_does_not_free_captured_by_script(t : T?) {
 def test_escape_free_move_into_escaping_struct_not_freed(t : T?) {
     g_boxes |> clear()
     move_into_escaping_box(55)
-    unsafe { heap_collect(true, true) }   // throws if the moved-in pointee was wrongly freed
+    unsafe(heap_collect(true, true))   // throws if the moved-in pointee was wrongly freed
     t |> equal(length(g_boxes), 1)
     t |> equal(g_boxes[0].node.x, 55)     // survived intact through move + escape
 }
@@ -238,6 +238,6 @@ def test_escape_free_move_into_escaping_struct_not_freed(t : T?) {
 def test_escape_free_move_into_local_struct_sound(t : T?) {
     var acc = 0
     for (i in range(100)) { acc += move_into_local_box_read(i) }
-    unsafe { heap_collect(true, true) }
+    unsafe(heap_collect(true, true))
     t |> equal(acc, (100 - 1) * 100 / 2)
 }

@@ -115,7 +115,6 @@ struct DataBreakpointInfoResponse {
     //! Response body for the dataBreakpointInfo request.
     dataId : string //! Identifier for the data, used when setting a data breakpoint.
     description : string //! Human-readable description of the data.
-    //accessTypes: DataBreakpointAccessType[];
 }
 
 

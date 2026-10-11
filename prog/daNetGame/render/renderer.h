@@ -154,6 +154,8 @@ void destroy_world_renderer();
 void update_world_renderer(float dt, float rdt, const TMatrix &itm, bool scene_loading);
 void close_world_renderer(); // after destroy, static shutdowns of factories
 
+void term_camera_manager_client();
+
 IRenderWorld *get_world_renderer();
 IRenderWorld *get_world_renderer_unsafe(); // UB if WR wasn't inited or already destroyed (i.e. can't return nullptr)
 Occlusion *get_main_occlusion_safe();      // null-safe wrapper for WorldRenderer::getMainCameraOcclusion

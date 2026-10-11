@@ -8,6 +8,7 @@
 #if _TARGET_PC_WIN
 #include <client/simulate_crash_win.h>
 #include <client/crash_report_database.h>
+#include <client/prune_crash_reports.h>
 #include <client/settings.h>
 #include <client/crashpad_info.h>
 #include <windows.h>
@@ -133,16 +134,13 @@ void init(Product &&prod, Configuration &&cfg_)
 
   if (auto dbPtr = CrashReportDatabase::Initialize(dumpDbPath))
   {
-    bool disableUpload = dgs_get_argv("crashpad-disable-upload") != nullptr;
-    // Not inited db or explicitly requested upload disable
-    if (_waccess((dumpDbPathStr + L"settings.dat").c_str(), 0) != 0 || disableUpload)
-    {
-      auto dbSettings = dbPtr->GetSettings();
-      G_ASSERT_RETURN(dbSettings, ); // Failed to create file?
-      bool uploadsEnabled = false;
-      if (!dbSettings->GetUploadsEnabled(&uploadsEnabled) || (!uploadsEnabled != disableUpload))
-        dbSettings->SetUploadsEnabled(!disableUpload);
-    }
+    const int cleaned = dbPtr->CleanDatabase(/*lockfile_ttl*/ 60 * 60 * 24);
+    const size_t pruned = PruneCrashReportDatabase(dbPtr.get(), PruneCondition::GetDefault().get());
+    if (cleaned || pruned)
+      debug("crashpad: removed %d orphaned and %zu pruned reports", cleaned, pruned);
+    auto dbSettings = dbPtr->GetSettings();
+    G_ASSERT_RETURN(dbSettings, ); // Failed to create file?
+    dbSettings->SetUploadsEnabled(dgs_get_argv("crashpad-disable-upload") == nullptr);
   }
   else
     logerr("Failed to init crashreports db at '%s'", wcs_to_utf8(dumpDbPath.value().c_str(), tmp, sizeof(tmp)));
@@ -163,11 +161,17 @@ void init(Product &&prod, Configuration &&cfg_)
   vector<string> aargs = {"--no-identify-client-via-url", "--no-periodic-tasks"};
   if (dgs_get_argv("crashpad-no-upload-gzip"))
     aargs.emplace_back("--no-upload-gzip");
-  crashpad_client.demandInit();
-  if (!crashpad_client->StartHandler(base::FilePath(exeDir + L"crashpad_handler.exe"), dumpDbPath, {},
-        "http://palvella.gaijin.net/submit", annotations, aargs, true, false, attachments))
+  const wstring handlerPath = exeDir + L"crashpad_handler.exe";
+  if (_waccess(handlerPath.c_str(), 0) != 0)
   {
-    logerr("Failed to init crashpad. Missing crashpad_handler.exe?");
+    logerr("Failed to init crashpad. Missing '%s'", wcs_to_utf8(handlerPath.c_str(), tmp, sizeof(tmp)));
+    return;
+  }
+  crashpad_client.demandInit();
+  if (!crashpad_client->StartHandler(base::FilePath(handlerPath), dumpDbPath, {}, "http://palvella.gaijin.net/submit", annotations,
+        aargs, true, /*asynchronous_start*/ true, attachments))
+  {
+    logerr("Failed to start crashpad handler thread");
     return;
   }
   wstring modPath = exeDir + L"crashpad_wer.dll";

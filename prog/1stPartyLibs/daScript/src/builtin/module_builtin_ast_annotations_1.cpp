@@ -62,6 +62,7 @@ namespace das {
             addProperty<DAS_BIND_MANAGED_PROP(canWrite)>("canWrite","canWrite");
             addProperty<DAS_BIND_MANAGED_PROP(isAotAlias)>("isAotAlias","isAotAlias");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::isShareable>("isShareable", "isShareable");
+            addProperty<int32_t (TypeDecl::*)() const, &ManagedType::gcFlags>("gcFlags", "gcFlags");
             addProperty<DAS_BIND_MANAGED_PROP(isIndex)>("isIndex","isIndex");
             addProperty<DAS_BIND_MANAGED_PROP(isBool)>("isBool","isBool");
             addProperty<DAS_BIND_MANAGED_PROP(isInteger)>("isInteger","isInteger");
@@ -121,6 +122,8 @@ namespace das {
             addProperty<DAS_BIND_MANAGED_PROP(isBitfield)>("isBitfield","isBitfield");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::isLocal>("isLocal", "isLocal");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::hasClasses>("hasClasses", "hasClasses");
+            addProperty<bool (TypeDecl::*)() const, &ManagedType::isSafeToDelete>("isSafeToDelete", "isSafeToDelete");
+            addProperty<bool (TypeDecl::*)() const, &ManagedType::needInScope>("needInScope", "needInScope");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::hasNonTrivialCtor>("hasNonTrivialCtor", "hasNonTrivialCtor");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::hasNonTrivialDtor>("hasNonTrivialDtor", "hasNonTrivialDtor");
             addProperty<bool (TypeDecl::*)() const, &ManagedType::hasNonTrivialCopy>("hasNonTrivialCopy", "hasNonTrivialCopy");
@@ -206,7 +209,6 @@ namespace das {
             this->template addField<DAS_BIND_MANAGED_FIELD(arguments)>("arguments");
             this->template addField<DAS_BIND_MANAGED_FIELD(result)>("result");
             this->template addField<DAS_BIND_MANAGED_FIELD(body)>("body");
-            this->template addField<DAS_BIND_MANAGED_FIELD(index)>("index");
             this->template addField<DAS_BIND_MANAGED_FIELD(totalStackSize)>("totalStackSize");
             this->template addField<DAS_BIND_MANAGED_FIELD(totalGenLabel)>("totalGenLabel");
             this->template addField<DAS_BIND_MANAGED_FIELD(at)>("at");
@@ -276,7 +278,6 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(source)>("source");
             addField<DAS_BIND_MANAGED_FIELD(loop_source)>("loop_source");
             addField<DAS_BIND_MANAGED_FIELD(at)>("at");
-            addField<DAS_BIND_MANAGED_FIELD(index)>("index");
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
             addField<DAS_BIND_MANAGED_FIELD(module)>("_module", "module");
             // addField<DAS_BIND_MANAGED_FIELD(useFunctions)>("useFunctions");

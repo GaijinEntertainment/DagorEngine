@@ -56,7 +56,7 @@ rule CheckParams
       case NT :     __Platform = windows xboxOne ps4 ps5 android nswitch scarlett ;
     }
 
-    local __windows_arch  = x86 x86_64 arm64 ;
+    local __windows_arch  = x86 x86_64 arm64 arm64ec ;
     local __linux_arch    = x86_64 e2k ;
     local __macOS_arch    = x86_64 arm64 ;
     local __iOS_arch      = i386 armv7 armv7s arm64 arm64e ;
@@ -136,6 +136,9 @@ rule SetupBuildEnv
 {
   SetupOutputDir ;
 
+  if $(Platform)-$(PlatformArch) = windows-arm64ec && ! $(PlatformSpec) in clang vc17 {
+    exit "FATAL: PlatformArch=arm64ec requires PlatformSpec=clang or vc17 ($(PlatformSpec) is set)" ;
+  }
   local _be = $(Platform)/$(PlatformSpec) ;
 
   if ! $(_BuildEnv) {
@@ -332,6 +335,7 @@ rule ProcessTargetVariables
 {
   OutDir          ?= $(_Output) ;
   StrictCompile   ?= no ;
+  StrictCompileFrameLimit ?= 32768 ;
 
   while $(ExternalJams) {
     BuildJam $(Location)/$($(ExternalJams[2])) : $(ExternalJams[1]) ;
@@ -618,6 +622,7 @@ rule ProcessTargetVariables
   RCopt = ;
   LINKopt = ;
   StrictCompile = ;
+  StrictCompileFrameLimit = ;
   ConsoleExe = ;
   EcsGenOpt = ;
 }
@@ -651,6 +656,7 @@ rule ClearTargetVariables
   RCopt = ;
   LINKopt = ;
   StrictCompile = ;
+  StrictCompileFrameLimit = ;
   UsePCH = ;
   PrecompiledName = ;
   EcsGenOpt = ;
@@ -1802,31 +1808,6 @@ if $(_COCOAPODS_RES_BUNDLES) || $(_COCOAPODS_EMBED_FRAMEWORKS) {
   }
 }
 
-rule CleanAndroidOutput
-{
-  if $(OS) = MACOSX {
-    actions together quietly clean_android_output
-    {
-      echo --- Clean $(2)/android
-      call rm -rf $(2)/android
-    }
-  } else {
-    actions together quietly clean_android_output
-    {
-      echo --- Clean $(2)/android
-      call $(ComSpec) /c pushd "$(2)" && rmdir /s /q android && popd
-    }
-  }
-  if [ GLOB $($(1)__TmpDir) : android ] {
-    NOTFILE $($(1)__TmpDir)/android ;
-    Depends clean-android-output : cao-$(1) ;
-    clean_android_output cao-$(1) : $($(1)__TmpDir) ;
-  } else {
-    NOTFILE clean-android-output ;
-    Echo nothing to clean, dir is missing: $($(1)__TmpDir)/android ;
-  }
-}
-
 rule CleanIOSOutput
 {
   actions together quietly clean_ios_output
@@ -1860,19 +1841,20 @@ if $(SkipLicenseBuild) != yes && $(lic_file_list) {
     if ! $($(t)__TargetType) in exe dll { continue ; }
 
     local lic_target = $($(t)__OutDir)/LICENSE-$(t:B) ;
-    if $(Platform) = macOS && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir)) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(t:B) ; }
+    if $(Platform) = macOS && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(t:B) ; }
     else if $(Platform) = android { lic_target = $($(t)__TmpDir)/android/assets/LICENSE-$(t:B) ; }
     else if $(Platform) = iOS { lic_target = $($(t)__OutDir)/game/LICENSE-$(t:B) ; }
 
     local lic_exe_name = $($(t)-BundleExe:E=$(t:D=)) ;
     local lic_target = $($(t)__OutDir)/LICENSE-$(lic_exe_name:B) ;
-    if $(Platform) = macOS && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir)) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(lic_exe_name:B) ; }
+    if $(Platform) = macOS && [ MATCH "(\.app/Contents/MacOS)" : $($(t)__OutDir) ] { lic_target = $($(t)__OutDir)/../Resources/LICENSE-$(lic_exe_name:B) ; }
     else if $(Platform) = android { lic_target = $($(t)__TmpDir)/android/assets/LICENSE-$(lic_exe_name:B) ; }
     else if $(Platform) = iOS { lic_target = $($(t)__OutDir)/game/LICENSE-$(lic_exe_name:B) ; }
 
     Depends all : $(lic_target) ;
     Depends $(lic_target) : $(lic_file_list) ;
-    MakeDirectory $(lic_target) : $(lic_target:D) ;
+    if $(Platform) = android { AndroidStageFile $(lic_target) : $($(t)__TmpDir)/android ; }
+    else { MakeDirectory $(lic_target) : $(lic_target:D) ; }
     ALWAYS $(lic_target) ;
     exec_cmd on $(lic_target) = call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/join_text_files.py $(lic_target) $(lic_exe_name) $(lic_file_list) ;
     cmd_caption on $(lic_target) = echo generated $(lic_target:B) ;
@@ -2249,7 +2231,7 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
       local aux_libs = ;
       local sys_libs = ;
 
-      if $(Platform) = android && clean-android-output in $(JAMTARGETS) { CleanAndroidOutput $(target) ; }
+      if $(Platform) = android && ( clean-android-output in $(JAMTARGETS) || $(AndroidCleanOutput) = yes ) { CleanAndroidOutput $(target) ; }
       if $(Platform) = iOS && clean-ios-output in $(JAMTARGETS) { CleanIOSOutput $(target) ; }
 
       for l in $($(target)__LINK_LIBS) {
@@ -2411,7 +2393,7 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
           CompileJamVarCpp $(obj_path) : $(src:B) : $(target) ;
         case .das : local stub = ; # just skip, AotCompileDAS was called earlier
         case * :
-          echo skip unknown source type $(src:S) (for $(src)) ;
+          echo "skip unknown source type $(src:S) (for $(src))" ;
       }
       opt on $(src) = ;
       pre_opt on $(src) = ;

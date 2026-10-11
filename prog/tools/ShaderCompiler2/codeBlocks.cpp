@@ -298,7 +298,7 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
         t = strchr(t, '\"');
         if (t && t < p)
         {
-          t2 = t ? strchr(t + 1, '\"') : NULL;
+          t2 = strchr(t + 1, '\"');
           if (!t2 || t2 > p)
           {
           err_bad_line:
@@ -367,7 +367,6 @@ bool CodeSourceBlocks::parseSourceCode(const char *stage, const char *src, Shade
 
           if (p[0] == '\n')
             p++;
-          code_end = p;
         }
       }
       code_end = p;

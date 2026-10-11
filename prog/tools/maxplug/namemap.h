@@ -17,10 +17,6 @@ public:
   /// Clear name list.
   void clear();
 
-  /// Number of names in list.
-  /// You can get them all by iterating from 0 to nameCount()-1.
-  int nameCount() const { return int(names.size()); }
-
   /// Returns NULL when name_id is invalid.
   const char *getName(int i) const;
 

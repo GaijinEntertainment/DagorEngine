@@ -13,7 +13,7 @@ def test_cast_binds_tight(t : T?) {
     unsafe {
         var p = reinterpret<uint8?>(addr(buf[0])) + 2
         *p = uint8(0xAB)
-        var praw = reinterpret<void?>(addr(buf[0]))
+        var praw = reinterpret<void?>(addr(buf[0]))     // nolint:STYLE034 - the reinterpret spelling is what this file pins
         var q = reinterpret<uint8?>(praw) + 3
         *q = uint8(0xCD)
     }
@@ -27,7 +27,7 @@ def test_cast_postfix_applies_outside(t : T?) {
     // postfix on the cast result — under the old grammar `[1]` would have extended the OPERAND
     var v = float3(1., 2., 3.)
     unsafe {
-        let py = reinterpret<float?>(addr(v))[1]   // (cast addr(v)) then index through the pointer
+        let py = reinterpret<float?>(addr(v))[1]   // nolint:STYLE034 - the reinterpret spelling is what this file pins; index applies to the cast result
         t |> equal(py, 2.0)
     }
 }

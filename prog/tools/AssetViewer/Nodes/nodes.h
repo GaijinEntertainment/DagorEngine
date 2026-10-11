@@ -57,7 +57,7 @@ public:
   void actObjects(float dt) override {}
   void beforeRenderObjects() override {}
   void renderObjects() override {}
-  void renderTransObjects() override;
+  void renderTransObjects(BaseTexture *) override;
 
   bool supportAssetType(const DagorAsset &asset) const override;
 

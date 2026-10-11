@@ -1,7 +1,6 @@
 options gen2
 options gc
 require dastest/testing_boost public
-require daslib/fio
 
 //! Regression: Boris's original failure case.
 //!

@@ -1,7 +1,7 @@
 options gen2
 
 require dastest/testing_boost
-require ../../modules/dasLLVM/daslib/f16_cvt.das
+require daslib/f16_cvt
 
 // f16_cvt intrinsic emission: under -jit on aarch64 / x64+F16C the module's f16_to_f32 /
 // f32_to_f16 lower to hardware half converts (fpext/fptrunc through half), while the ref_*

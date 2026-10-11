@@ -3,7 +3,6 @@
 #include <gameMath/interpolateTabUtils.h>
 
 #include <math/dag_Point2.h>
-#include <math/dag_Point3.h>
 
 template <typename T>
 static bool read_tab_float_p2(T &tab, const DataBlock &blk)
@@ -35,15 +34,4 @@ bool read_interpolate_2d_tab_float_p2(Interpolate2DTabFloat &tab, const DataBloc
       return true;
     },
     x_param_name);
-}
-
-bool read_interpolate_2d_tab_float_p3(Interpolate2DTabFloat &tab, const DataBlock &blk)
-{
-  return read_interpolate_2d_tab_p3(tab, blk, [](const DataBlock &blk, int i, float &x, float &y, float &z) -> bool {
-    Point3 p = blk.getPoint3(i);
-    x = p.x;
-    y = p.y;
-    z = p.z;
-    return true;
-  });
 }

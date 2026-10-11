@@ -265,6 +265,7 @@ bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, ch
   map_optional_extension(mShaderDumpV3, mSelfData.data(), "V3");
   map_optional_extension(mShaderDumpV4, mSelfData.data(), "V4");
   map_optional_extension(mShaderDumpV5, mSelfData.data(), "V5");
+  map_optional_extension(mShaderDumpV6, mSelfData.data(), "V6");
 
   mDictionary = eastl::unique_ptr<ZSTD_DDict_s, ZstdDictionaryDeleter>(
     zstd_create_ddict(dag::ConstSpan<char>(mShaderDump->dictionary.data(), mShaderDump->dictionary.size()), true));
@@ -338,6 +339,7 @@ void ScriptedShadersBinDumpOwner::clear()
   mShaderDumpV3 = nullptr;
   mShaderDumpV4 = nullptr;
   mShaderDumpV5 = nullptr;
+  mShaderDumpV6 = nullptr;
   mDictionary = nullptr;
   vprId.clear();
   fshId.clear();

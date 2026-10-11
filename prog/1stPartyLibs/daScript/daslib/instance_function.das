@@ -19,7 +19,7 @@ require daslib/defer
 [function_macro(name="instance_function")]
 class InstanceFunctionAnnotation : AstFunctionAnnotation {
     //! [instance_function(generic_name,type1=type1r,type2=type2r,...)] macro creates instance of the generic function with a particular set of types.
-    def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+    def override apply(var func : FunctionPtr; var group : ModuleGroup; var args : AnnotationArgumentList; var errors : das_string) : bool {
         var generic_name = ""
         var rules : Template
         for (argv in args) {

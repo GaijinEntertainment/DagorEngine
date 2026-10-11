@@ -230,6 +230,7 @@ def check_files_with_configs(files, cmdchecks = [], **kwargs):
 UNCHECKED_PREFIXES = (
     "prog/1stPartyLibs/quirrel/quirrel/testData",
     "prog/1stPartyLibs/quirrel/quirrel/doc/examples",
+    "prog/1stPartyLibs/quirrel/quirrel/bench/squirrel/",
     "prog/commonFx/",
     "skyquake/prog/scripts",
 )

@@ -4,7 +4,6 @@ options no_unused_function_arguments = false
 
 require dastest/testing_boost public
 require daslib/jsonrpc
-require strings
 
 // ===== End-to-end round-trip: client builds → server parses → server responds → client parses =====
 

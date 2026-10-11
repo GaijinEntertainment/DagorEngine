@@ -17,6 +17,8 @@ struct TextMarkRec
 };
 static Tab<TextMarkRec> text_marks(midmem);
 static RegionMemPool *mem = NULL;
+static Tab<DebugMultiTextLabel> multitext_labels(midmem);
+static RegionMemPool *multitext_label_mem = NULL;
 static TMatrix4 view_gtm;
 static int view_l, view_t, view_w, view_h;
 static bool view_inited = false; // set/reset once per frame
@@ -44,25 +46,33 @@ bool cvt_debug_text_pos(const Point3 &wp, float &out_cx, float &out_cy)
   out_cy = view_t + (-sp.y + 1.0f) * 0.5f * view_h;
   return true;
 }
+
+static constexpr int MAX_DEBUG_TEXT_LEN = 4096;
+
+static char *copy_debug_text(RegionMemPool *&pool, const char *str, int len)
+{
+  if (!pool)
+    pool = RegionMemPool::createPool(32 << 10);
+  char *copy = (char *)RegionMemPool::alloc(pool, len, 1, 32 << 10);
+  memcpy(copy, str, len); // -V575
+  copy[len - 1] = '\0';
+  return copy;
+}
+
 void add_debug_text_mark(float scr_cx, float scr_cy, const char *str, int length, float line_ofs, E3DCOLOR frame_color)
 {
   if (!str || !str[0])
     return;
   int len = length > -1 ? length + 1 : (int)strlen(str) + 1;
-  if (len > 4096)
+  if (len > MAX_DEBUG_TEXT_LEN)
     return;
-
-  if (!mem)
-    mem = RegionMemPool::createPool(32 << 10);
 
   TextMarkRec &r = text_marks.push_back();
   r.cx = scr_cx;
   r.cy = scr_cy;
   r.lofs = line_ofs;
   r.frameColor = frame_color;
-  r.str = (char *)RegionMemPool::alloc(mem, len, 1, 32 << 10);
-  memcpy(r.str, str, len); // -V575
-  r.str[len - 1] = '\0';
+  r.str = copy_debug_text(mem, str, len);
 }
 
 void add_debug_text_mark(const Point3 &wp, const char *str, int length, float line_ofs, E3DCOLOR frame_color)
@@ -70,6 +80,25 @@ void add_debug_text_mark(const Point3 &wp, const char *str, int length, float li
   float cx, cy;
   if (cvt_debug_text_pos(wp, cx, cy))
     add_debug_text_mark(cx, cy, str, length, line_ofs, frame_color);
+}
+
+void add_debug_multitext_label(const Point3 &pos, const char *name, E3DCOLOR accent_color)
+{
+  if (!name || !name[0])
+    return;
+  int len = (int)strlen(name) + 1;
+  if (len > MAX_DEBUG_TEXT_LEN)
+    return;
+
+  multitext_labels.push_back(DebugMultiTextLabel{copy_debug_text(multitext_label_mem, name, len), pos, accent_color});
+}
+
+dag::ConstSpan<DebugMultiTextLabel> get_debug_multitext_labels() { return make_span_const(multitext_labels); }
+
+void discard_debug_multitext_labels()
+{
+  multitext_labels.clear();
+  RegionMemPool::clear(multitext_label_mem);
 }
 
 static void reset_debug_text_marks()
@@ -154,4 +183,7 @@ void shutdown_debug_text_marks()
   clear_and_shrink(text_marks);
   RegionMemPool::deletePool(mem);
   mem = NULL;
+  clear_and_shrink(multitext_labels);
+  RegionMemPool::deletePool(multitext_label_mem);
+  multitext_label_mem = NULL;
 }

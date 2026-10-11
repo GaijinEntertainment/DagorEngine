@@ -338,7 +338,7 @@ public:
     guiContext->draw_prims(d3d_prim, num_prim, (const void *)ptr, NULL);
   }
 
-  typedef uint32_t TextBufferHandle;
+  typedef uint64_t TextBufferHandle;
   static TextBufferHandle HANDLE_STATIC;
 
   void renderText(int x, int y, int font_no, E3DCOLOR color, const char *text, int len = -1, TextBufferHandle *inout_handle = nullptr);
@@ -348,13 +348,11 @@ public:
     const char *texts, int len = -1, TextBufferHandle *inout_handle = nullptr);
 
   void renderTextFx(float x, float y, int font_no, E3DCOLOR color, const char *text, int len = -1, int align = -1, int fx_type = 0,
-    int fx_offset = 1, E3DCOLOR fx_color = E3DCOLOR_MAKE(0, 0, 0, 255), int fx_scale = 42, const char *font_tex_2 = NULL,
-    float scale = -1.f, int valign = -1, bool round_coords = true, Pivot pivot = Pivot{ZERO<Point2>(), 0.f},
-    TextBufferHandle *inout_handle = nullptr);
+    int fx_offset = 1, E3DCOLOR fx_color = E3DCOLOR_MAKE(0, 0, 0, 255), int fx_scale = 42, float scale = -1.f, int valign = -1,
+    bool round_coords = true, Pivot pivot = Pivot{ZERO<Point2>(), 0.f}, TextBufferHandle *inout_handle = nullptr);
 
   void renderColoredTextFx(int x, int y, int font_no, E3DCOLOR color, const char *text, float pixelLen, int len = -1, int align = -1,
-    int fx_type = 0, int fx_offset = 1, E3DCOLOR fx_color = E3DCOLOR_MAKE(0, 0, 0, 255), int fx_scale = 42,
-    const char *font_tex_2 = NULL);
+    int fx_type = 0, int fx_offset = 1, E3DCOLOR fx_color = E3DCOLOR_MAKE(0, 0, 0, 255), int fx_scale = 42);
 
   Point2 getColoredTextBBox(const char *text, int font_no);
 
@@ -432,15 +430,27 @@ protected:
     SmallTab<GuiVertex> qv;
     SmallTab<uint16_t> tex_qcnt;
     SmallTab<d3d::SamplerHandle> samplers;
+
+    TextBuffer &clear() // keeps capacity
+    {
+      qv.clear();
+      tex_qcnt.clear();
+      samplers.clear();
+      isReady = false;
+      return *this;
+    }
   };
-  ska::flat_hash_map<uint32_t, TextBuffer> textBuffers;
+  ska::flat_hash_map<uint64_t, TextBuffer> textBuffersCached;
+  TextBuffer scratchTextBuf;
+
+  template <typename... Args>
+  TextBuffer &getCachedTBuffer(TextBufferHandle *inout_handle, Args... args);
 
   inline void updateProjectedQuadVB(HudVertex *data, const E3DCOLOR &color, const Point4 &p0, const Point4 &p1, const Point4 &p2,
     const Point4 &p3, const Point2 &tc0, const Point2 &tc1, const Point2 &tc2, const Point2 &tc3, const E3DCOLOR *vertex_colors);
 
   void renderOrMeasureColoredTextFx(int x, int y, int font_no, E3DCOLOR color, const char *text, float pixelLen, int len = -1,
     int align = -1, int fx_type = 0, int fx_offset = 1, E3DCOLOR fx_color = E3DCOLOR_MAKE(0, 0, 0, 255), int fx_scale = 42,
-    const char *font_tex_2 = NULL,
     Point2 *out_size = NULL); // uses out_size to return text size or NULL to render it
 
 private:

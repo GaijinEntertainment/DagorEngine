@@ -8,6 +8,9 @@ include "glass_icon_render_inc.dshl"
 int assume_wt_scope_hack = 0;
 interval assume_wt_scope_hack: off < 0, on;
 
+int assume_crosshair_supersample = 0;
+interval assume_crosshair_supersample: off < 1, on;
+
 int lens_detail_level = 1;
 interval lens_detail_level: full_night_vision < 0, full < 1, only_reflections;
 int lens_render_mode = 0;
@@ -30,6 +33,11 @@ float4 scope_lens_local_x = (1, 0, 0, 0);
 float4 scope_lens_local_y = (0, 1, 0, 0);
 float4 scope_lens_local_z = (0, 0, 1, 0);
 
+float scope_eye_relief = 0.2;
+float scope_lens_radius = 0.1;
+float scope_fov_cos = 0;
+float scope_exit_pupil_radius_mul = 1.0;
+
 texture lens_frame_tex;
 texture scope_lens_mask;
 
@@ -38,13 +46,15 @@ float scope_reticle_size_mul = 1.0;
 
 float scope_reticle_radius = 0.02;
 
-int use_scope_cylinder_shadow = 1;
-interval use_scope_cylinder_shadow: no<1, yes;
-assume_if_not_assumed use_scope_cylinder_shadow = yes;
+int use_sniper_scope_precise_lens_shadow = 1;
+interval use_sniper_scope_precise_lens_shadow: no<1, yes;
+assume_if_not_assumed use_sniper_scope_precise_lens_shadow = no;
 
 float crosshair_scale = 1.0;
 
 float crosshair_parallax_distance = 50.0;
+
+float crosshair_coverage_sample_count = 8;
 
 macro SAMPLE_ENVI_PROBE_REFLECTIONS()
   USE_ROUGH_TO_MIP()
@@ -71,6 +81,7 @@ endmacro
 
 macro SCOPE_LENS_SHADER()
   assume_if_not_assumed assume_wt_scope_hack = off;
+  assume_if_not_assumed assume_crosshair_supersample = off;
 
   if (rendinst_transparent_gbuffer_pass == generate)
   {
@@ -97,8 +108,16 @@ macro SCOPE_LENS_SHADER()
 
     texture tex = material.texture.diffuse;
 
-    blend_src = sa;
-    blend_dst = isa;
+    if (assume_crosshair_supersample == on)
+    {
+      blend_src = one;
+      blend_dst = one;
+    }
+    else
+    {
+      blend_src = sa;
+      blend_dst = isa;
+    }
   }
 
   if (use_depth_val_as_mask == yes && (shader != scope_lens || lens_render_mode != render_mask)) {
@@ -220,7 +239,7 @@ macro SCOPE_LENS_SHADER()
       float3 worldNormal;
       float3 localNormal = input.normal.xyz;
 
-##if shader == scope_lens && (lens_render_mode == render_optics || lens_render_mode == render_frame || (lens_render_mode == render_mask && assume_wt_scope_hack == on))
+##if shader == scope_lens && ((lens_detail_level <= full && (lens_render_mode == render_optics || lens_render_mode == render_frame)) || (lens_render_mode == render_mask && assume_wt_scope_hack == on))
     //We need to move the lens further to increase depth-value
     //to be able to overwrite the antialiased pixels with non-lens depth
     //Otherwise a border around the lens area appears, where a depth test fails
@@ -325,26 +344,67 @@ macro SCOPE_LENS_SHADER()
         screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
         scope_lens_mask@tex2d = scope_lens_mask;
       }
+      if (assume_crosshair_supersample == on)
+      {
+        (ps) { crosshair_coverage_sample_count@f1 = crosshair_coverage_sample_count; }
+      }
       INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
       hlsl(ps) {
         #define scope_lens_mask_samplerstate global_linear_wrap_sampler
+        #define CROSSHAIR_SUBSAMPLE_COUNT 8
 
-        float4 crosshair_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+      ##if assume_crosshair_supersample == on
+        #define CROSSHAIR_COVERAGE_INPUT , uint coverage : SV_Coverage
+      ##else
+        #define CROSSHAIR_COVERAGE_INPUT
+      ##endif
+
+        float4 crosshair_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE CROSSHAIR_COVERAGE_INPUT) : SV_Target0
         {
           ##if assume_wt_scope_hack == on && dyn_model_render_pass != render_to_depth
+            const float lensMaskFadeMin = 0.05;
+            const float lensMaskFadeMax = 0.95;
             float4 screenpos = GET_SCREEN_POS(input.pos);
-            float2 uv = screenpos.xy * screen_pos_to_texcoord;
-            float value = tex2D(scope_lens_mask, uv.xy).r;
-            if (value < 0.5)
-              discard;
           ##endif
           #if SET_UP_MULTIDRAW
             INIT_MULTIDRAW(input);
             SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
           #endif
 
-          half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.texcoord);
+          ##if assume_crosshair_supersample == on
+            // D3D standard 8x pattern, in 1/16 pixel units, same order as SV_Coverage bits
+            static const float2 subsampleOffsets[CROSSHAIR_SUBSAMPLE_COUNT] = {float2(1, -3), float2(-1, 3), float2(5, 1),
+              float2(-3, -5), float2(-5, 5), float2(-7, -1), float2(3, 7), float2(7, -7)};
+            const float subsampleUnit = 1.0 / 16;
+            const float minAverageAlpha = 1.0 / 1024;
+            float2 texcoordDx = ddx(input.texcoord);
+            float2 texcoordDy = ddy(input.texcoord);
+            float4 premultSum = 0;
+            UNROLL
+            for (uint i = 0; i < CROSSHAIR_SUBSAMPLE_COUNT; ++i)
+            {
+              float2 offset = subsampleOffsets[i] * subsampleUnit;
+              float4 subsample = tex2DBindless(get_diffuse_tex(), input.texcoord + texcoordDx * offset.x + texcoordDy * offset.y);
+              ##if assume_wt_scope_hack == on && dyn_model_render_pass != render_to_depth
+                float maskValue = tex2D(scope_lens_mask, (screenpos.xy + offset) * screen_pos_to_texcoord).r;
+                subsample.a *= smoothstep(lensMaskFadeMin, lensMaskFadeMax, maskValue);
+              ##endif
+              float covered = (coverage >> i) & 1;
+              premultSum += covered * float4(subsample.rgb * subsample.a, subsample.a);
+            }
+            float4 average = premultSum / crosshair_coverage_sample_count;
+            if (average.a < minAverageAlpha)
+              discard;
+            half4 diffuseColor = half4(average.rgb / average.a, average.a);
+          ##else
+            ##if assume_wt_scope_hack == on && dyn_model_render_pass != render_to_depth
+              float value = tex2D(scope_lens_mask, screenpos.xy * screen_pos_to_texcoord).r;
+              if (value < 0.5)
+                discard;
+            ##endif
+            half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.texcoord);
+          ##endif
           diffuseColor.a *= get_transparency_mul();
 
           float emissiveMul = get_emissive_mul();
@@ -357,6 +417,10 @@ macro SCOPE_LENS_SHADER()
         #if CROSSHAIR_USE_EXPOSURE
           diffuseColor.rgb = pack_hdr(diffuseColor.rgb);
         #endif
+
+          ##if assume_crosshair_supersample == on
+            diffuseColor.rgb *= diffuseColor.a;
+          ##endif
 
           return float4((diffuseColor.rgb), diffuseColor.a);
         }
@@ -457,6 +521,15 @@ macro SCOPE_LENS_SHADER()
         lens_shading_params@f4 = lens_shading_params;
         lens_shading_params2@f3 = lens_shading_params2;
         crosshair_parallax_distance@f1 = crosshair_parallax_distance;
+      }
+
+      if (use_sniper_scope_precise_lens_shadow == yes) {
+        (ps) {
+          scope_eye_relief@f1 = scope_eye_relief;
+          scope_lens_radius@f1 = scope_lens_radius;
+          scope_fov_cos@f1 = scope_fov_cos;
+          scope_exit_pupil_radius_mul@f1 = scope_exit_pupil_radius_mul;
+        }
       }
 
       if (lens_detail_level <= full)
@@ -607,7 +680,7 @@ macro SCOPE_LENS_SHADER()
         half3 apply_lens_color(half3 color, half shade_factor)
         {
           ##if lens_detail_level != full_night_vision && special_vision != thermal_vision
-          shade_factor = min(shade_factor, lens_brighthness);
+          shade_factor *= lens_brighthness;
           ##endif
 
           return color * shade_factor;
@@ -640,6 +713,47 @@ macro SCOPE_LENS_SHADER()
           return color + reflections * get_scope_lens_albedo().rgb * reflectionAlpha;
         }
 
+        float3 intersect_plane(float3 plane_center, float3 plane_normal, float3 p, float3 view_dir)
+        {
+          float t = dot((plane_center - p), plane_normal) / dot(view_dir, plane_normal);
+          return p + t * view_dir;
+        }
+
+      ##if use_sniper_scope_precise_lens_shadow == yes
+        half calc_scope_shadow(VsOutput input, half3 stub, float3 lensNormal)
+        {
+        ##if special_vision == thermal_vision
+          return 1.0;
+        ##else
+
+          float3 eyeToPoint = -input.pointToEye;
+          float3 eyeToLens = input.eyeToLens;
+          float3 opticalAxis = dot(eyeToLens, lensNormal) < 0 ? lensNormal : -lensNormal;
+          opticalAxis = normalize(opticalAxis);
+          float3 viewDir = normalize(eyeToPoint);
+
+          float eyeRelief = scope_eye_relief;
+          float exitPupilRadius = scope_lens_radius * scope_exit_pupil_radius_mul;
+          float3 eyeToExitPupilCenter = eyeToLens + opticalAxis * eyeRelief;
+
+          float3 eyeExitPupilIntersection = intersect_plane(eyeToExitPupilCenter, opticalAxis, float3(0,0,0), viewDir);
+          float3 exitPupilPoint = eyeExitPupilIntersection - eyeToExitPupilCenter;
+          float exitPupilDist = length(exitPupilPoint);
+
+          const float exitPupilFadeBegin = 0.8;
+          float exitPupilDistNorm = exitPupilDist / (exitPupilRadius * exitPupilFadeBegin);
+          float exitPupilFade = exp(-pow(exitPupilDistNorm, 8));
+
+          float viewCos = saturate(dot(opticalAxis, -viewDir));
+          const float fovFadeBegin = 0.9;
+          float fovEdgeNorm = (1 - viewCos) / max(1 - scope_fov_cos, 1e-5);
+          fovEdgeNorm = fovEdgeNorm / pow2(fovFadeBegin);
+          float fovFade = exp(-pow(fovEdgeNorm, 32));
+
+          return fovFade * exitPupilFade;
+        ##endif
+        }
+      ##else
         half calc_scope_shadow(VsOutput input, half3 collimatorRFront, float3 lensNormal)
         {
           float3 eyeToPoint = -input.pointToEye;
@@ -647,12 +761,10 @@ macro SCOPE_LENS_SHADER()
           half scopeShadowStrength = 0.0;
 
         ##if special_vision != thermal_vision
-          ##if use_scope_cylinder_shadow == yes
           shadeFactor = raycastScopeCylinder(input.eyeToLens, eyeToPoint, lensNormal,
             lens_shading_params.x, lens_shading_params.y, lens_shading_params.z);
           shadeFactor *= raycastScopeCylinder(input.eyeToLens, eyeToPoint, -lensNormal,
             lens_shading_params2.x, lens_shading_params2.y, lens_shading_params2.z);
-          ##endif
 
           scopeShadowStrength = input.scopeShadowStrength;
         ##endif
@@ -670,6 +782,7 @@ macro SCOPE_LENS_SHADER()
 
           return shadeFactor;
         }
+      ##endif
 
         float4 scope_lens_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
         {

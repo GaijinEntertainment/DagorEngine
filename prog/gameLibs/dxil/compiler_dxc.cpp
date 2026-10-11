@@ -192,12 +192,12 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
 
   if (settings.pdbMode == PDBMode::FULL)
   {
-    compilerParams.emplace_back(L"-Zss");
+    compilerParams.emplace_back(L"-Zsb");
     compilerParams.emplace_back(L"-Zi");
   }
   else if (settings.pdbMode == PDBMode::SMALL)
   {
-    compilerParams.emplace_back(L"-Zss");
+    compilerParams.emplace_back(L"-Zsb");
     compilerParams.emplace_back(L"-Zs");
   }
 
@@ -430,10 +430,9 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
 
     auto &hlslPath = sharedPath;
     hlslPath.append(L".hlsl");
-    if (write_to_text_file(&blob, hlslPath))
-    {
-      compilerParams.emplace_back(hlslPath.begin() + basePathLength);
-    }
+    write_to_text_file(&blob, hlslPath);
+
+    compilerParams.emplace_back(hlslPath.begin() + basePathLength);
 
     pdbPathStorage.append(L".pdb");
 
@@ -989,11 +988,7 @@ class AsmParser
       auto bits = valueRange.substr(0, be);
       auto val = valueRange.find_first_not_of(' ', be);
       uint32_t bitCount = 1;
-      if ("1" == bits)
-      {
-        bitCount = 1;
-      }
-      else if ("8" == bits)
+      if ("8" == bits)
       {
         bitCount = 8;
       }

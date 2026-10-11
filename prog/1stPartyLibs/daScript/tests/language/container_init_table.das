@@ -88,7 +88,7 @@ def test_table_index_store_forms(t : T?) {
 def test_table_index_trivial_unchanged(t : T?) {
     t |> run("workhorse values") @(t : T?) {
         var inscope tab : table<string; int>
-        tab["z"] += 1
+        tab["z"] += 1   // nolint:PERF013 - read-modify-write on a fresh table slot is the tested shape
         t |> equal(tab["z"], 1)
     }
     t |> run("container values stay zero-fresh") @(t : T?) {

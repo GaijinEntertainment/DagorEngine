@@ -11,9 +11,7 @@ class AccumTime final : public ITimeManager
     return accum;
   }
   double getSeconds() const override { return accum; }
-  int getMillis() const override { return (int)(accum * 1000.0 + 0.5); }
-  int getAsyncMillis() const override { return getMillis(); }
-  int getType4CC() const override { return _MAKE4C('ACMT'); }
+  int getAsyncMillis() const override { return int(accum * 1000.0 + 0.5); }
   double accum = 0;
 };
 

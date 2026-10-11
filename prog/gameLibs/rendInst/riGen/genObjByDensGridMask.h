@@ -11,22 +11,22 @@
 namespace rendinst::gen
 {
 
-#define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word)                                                  \
+#define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word) /*                                            */ \
   float rndx, rndy;                                                                                              \
   rnd_fvec2(seed, rndx, rndy);                                                                                   \
   pos.x = (ou + rndx) * gstepx + (mx + pctx.entity_ofs_x);                                                       \
   pos.y = pctx.init_y0;                                                                                          \
   pos.z = (ov + rndy) * gstepy + (my + pctx.entity_ofs_z);                                                       \
   align_place_xz(pos);                                                                                           \
-  int mtx = int(floorf(pos.x * pctx.world2sampler) - floorf(pctx.world2sampler * pctx.entity_ofs_x));            \
-  int mtz = int(floorf(pos.z * pctx.world2sampler) - floorf(pctx.world2sampler * pctx.entity_ofs_z));            \
-  if ((rect_test && !(rect & Point2::xz(pos))) || !mask.getClamped(mtx, mtz) || !is_place_allowed(pos.x, pos.z)) \
+  if ((rect_test && !(rect & Point2::xz(pos))) || !plant_spot_allowed(pos, pctx, mask))                          \
   {                                                                                                              \
     skip6_rnd(seed);                                                                                             \
     rnd(seed);                                                                                                   \
     ret_word;                                                                                                    \
   }                                                                                                              \
-                                                                                                                 \
+  PLANT_ENTITY(ret_word)
+
+#define PLANT_ENTITY(ret_word) /*                                                                             */ \
   float w = floorf(frnd(seed) * sgeg.sumWeight * 8192.0f + 0.5f) / 8192.0f;                                      \
   int objId, entIdx = -1;                                                                                        \
   bool posInst = false;                                                                                          \
@@ -66,6 +66,7 @@ namespace rendinst::gen
       if (paletteRotation)                                                                                       \
         palette = get_rotation_palette_manager()->getPalette({layerIdx, int(pctx.ent_remap[entIdx])});           \
       calc_matrix_33(sgeg.obj[objId], rot_tm, seed, palette, paletteId);                                         \
+      pctx.walk.rotateTm(rot_tm);                                                                                \
       mppRec = sgeg.obj[objId].mpRec;                                                                            \
       place_multipoint(mppRec, pos, rot_tm, sgeg.aboveHt);                                                       \
     }                                                                                                            \
@@ -99,12 +100,15 @@ namespace rendinst::gen
       tm.setcol(1, norm);                                                                                        \
       tm.setcol(2, normalize(tm.getcol(0) % norm));                                                              \
     }                                                                                                            \
+    pctx.walk.rotateTmLocal(tm); /* the cluster yaw rides the basis: norm stays the up axis */                   \
     if (is_multi_place)                                                                                          \
       rotate_multipoint(tm, mppRec);                                                                             \
     RotationPaletteManager::Palette palette;                                                                     \
     if (paletteRotation)                                                                                         \
       palette = get_rotation_palette_manager()->getPalette({layerIdx, int(pctx.ent_remap[entIdx])});             \
     calc_matrix_33(sgeg.obj[objId], tm, seed, palette, paletteId);                                               \
+    if (pctx.walk.on() && paletteRotation) /* posInst packs the palette id only: re-pick the final axes */       \
+      RotationPaletteManager::clamp_euler_angles(palette, tm, &paletteId);                                       \
     pos.y += getRandom(seed, sgeg.obj[objId].yOffset);                                                           \
     tm.setcol(3, pos);                                                                                           \
     if (destrExcl.isMarked(pos.x, pos.z))                                                                        \
@@ -131,7 +135,21 @@ struct RiGenPlantedCtx
   BBox2 rect;
   float world2sampler = 0, entity_ofs_x = 0, entity_ofs_z = 0, init_y0 = 0;
   bool skip_test_rect = false;
+  land_detile::ClusterWalk walk; // off outside the de-tiled pass; planted rects are absolute metres
 };
+
+inline IPoint2 plant_mask_px(const Point2 &xz, const RiGenPlantedCtx &pctx)
+{
+  return IPoint2(int(floorf(xz.x * pctx.world2sampler) - floorf(pctx.world2sampler * pctx.entity_ofs_x)),
+    int(floorf(xz.y * pctx.world2sampler) - floorf(pctx.world2sampler * pctx.entity_ofs_z)));
+}
+
+template <class BitMask>
+inline bool plant_spot_allowed(const Point3 &pos, const RiGenPlantedCtx &pctx, const BitMask &mask)
+{
+  const IPoint2 m = plant_mask_px(Point2::xz(pos), pctx);
+  return mask.getClamped(m.x, m.y) && is_place_allowed(pos.x, pos.z);
+}
 
 template <class BitMask>
 struct GenObjCB
@@ -149,12 +167,6 @@ struct GenObjCB
     density = sgeg.density * sgeg.densMapCellSz.x * sgeg.densMapCellSz.y * 0.01f;
     gstepx = sgeg.densMapCellSz.x;
     gstepy = sgeg.densMapCellSz.y;
-  }
-
-  bool checkDensity() const
-  {
-    using namespace internal;
-    return CSZ * CSZ * density >= 1.f / 8192.f;
   }
 
   void onNonEmptyL1Block(const rendinst::gen::land::DensMapLeaf *l, int u0, int v0) const
@@ -328,8 +340,36 @@ inline void generatePlantedEntitiesInMaskedRect(rendinst::gen::RiGenCellCtx &ctx
     }
 
     GenObjCB<BitMask> cb(ctx, pctx, sgeg, mask, layerIdx);
-    if (!cb.checkDensity())
+    if (internal::CSZ * internal::CSZ * cb.density < 1.f / 8192.f)
       continue;
+
+    if (planted.detile->enabled())
+    {
+      if (sgeg.densityMap->getW() <= 0 || sgeg.densityMap->getH() <= 0)
+        continue;
+      const land_detile::PlantGrid grid{sgeg.densMapOfs + Point2(dens_map_pivot_x, dens_map_pivot_z), sgeg.densMapCellSz};
+      pctx.walk = land_detile::ClusterWalk(planted.detile, Point2(0, 0), planted.detileClusterTable);
+      const int mw = mask.getW() - 1, mh = mask.getH() - 1;
+      land_detile::plant_world(
+        pctx.walk, pctx.rect, *sgeg.densityMap, sgeg.densityLeaves, grid, cb.density, sgeg.rseed,
+        [&](const BBox2 &b) {
+          // the mask pixels any spot of the block can read, clamped like getClamped
+          const IPoint2 lo = plant_mask_px(b[0], pctx), hi = plant_mask_px(b[1], pctx);
+          const IBBox2 px(IPoint2(clamp(lo.x - 1, 0, mw), clamp(lo.y - 1, 0, mh)),
+            IPoint2(clamp(hi.x + 1, 0, mw), clamp(hi.y + 1, 0, mh)));
+          land_detile::AnyL1Block any;
+          mask.enumerateL1Blocks(any, px);
+          return any.any;
+        },
+        [&](Point3 &pos) {
+          pos.y = pctx.init_y0;
+          align_place_xz(pos);
+          return plant_spot_allowed(pos, pctx, mask);
+        },
+        [&](Point3 pos, int seed) { PLANT_ENTITY(return) });
+      pctx.walk = land_detile::ClusterWalk();
+      continue;
+    }
 
     real dx = sgeg.densMapSize.x;
     real dy = sgeg.densMapSize.y;
@@ -368,4 +408,5 @@ inline void generatePlantedEntitiesInMaskedRect(rendinst::gen::RiGenCellCtx &ctx
   }
 }
 #undef ADD_ENTITY_BYMASK
+#undef PLANT_ENTITY
 } // namespace rendinst::gen

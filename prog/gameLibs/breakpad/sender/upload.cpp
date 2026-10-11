@@ -37,14 +37,22 @@ bool upload(const Configuration &cfg, const std::string &url, std::string &respo
   struct curl_httppost *form = NULL;
   struct curl_httppost *last = NULL;
 
+  // the form API is deprecated for curl_mime, but the crash collector still expects
+  // what it builds, so the migration is a separate job
   typedef std::map<std::string, std::string>::const_iterator map_iter;
   for (map_iter it = cfg.params.begin(); it != cfg.params.end(); ++it)
-    curl_formadd(&form, &last, CURLFORM_COPYNAME, it->first.c_str(), CURLFORM_COPYCONTENTS, it->second.c_str(), CURLFORM_END);
+  {
+    CURL_IGNORE_DEPRECATION(
+      curl_formadd(&form, &last, CURLFORM_COPYNAME, it->first.c_str(), CURLFORM_COPYCONTENTS, it->second.c_str(), CURLFORM_END);)
+  }
 
   for (map_iter it = cfg.files.begin(); it != cfg.files.end(); ++it)
-    curl_formadd(&form, &last, CURLFORM_COPYNAME, it->first.c_str(), CURLFORM_FILE, it->second.c_str(), CURLFORM_END);
+  {
+    CURL_IGNORE_DEPRECATION(
+      curl_formadd(&form, &last, CURLFORM_COPYNAME, it->first.c_str(), CURLFORM_FILE, it->second.c_str(), CURLFORM_END);)
+  }
 
-  curl_easy_setopt(curl, CURLOPT_HTTPPOST, form);
+  CURL_IGNORE_DEPRECATION(curl_easy_setopt(curl, CURLOPT_HTTPPOST, form);)
   struct curl_slist *headerlist = NULL;
   headerlist = curl_slist_append(headerlist, "Expect:");
   headerlist = curl_slist_append(headerlist, "X-Breakpad-Epoch: 2");
@@ -67,7 +75,9 @@ bool upload(const Configuration &cfg, const std::string &url, std::string &respo
     curl_slist_free_all(headerlist);
 
   if (form)
-    curl_formfree(form);
+  {
+    CURL_IGNORE_DEPRECATION(curl_formfree(form);)
+  }
 
   curl_easy_cleanup(curl);
 

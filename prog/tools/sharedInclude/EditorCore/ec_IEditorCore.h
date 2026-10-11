@@ -29,7 +29,6 @@
 #include <osApiWrappers/dag_direct.h>
 #include <gameRes/dag_gameResources.h>
 #include <shaders/dag_overrideStateId.h>
-#include <sceneRay/dag_sceneRayDecl.h>
 
 #include <EASTL/vector.h>
 
@@ -89,7 +88,6 @@ class IStaticGeomResourcesService;
 class GeomResourcesHelper;
 class DynamicMemGeneralSaveCB;
 class IConsoleCmd;
-class FastRtDump;
 class DebugPrimitivesVbuffer;
 
 struct CompiledShaderChannelId;
@@ -271,9 +269,23 @@ public:
   virtual const char *geomObjectGetShaderName(const GeomObject &go, int idx) const = 0;
   virtual ShaderMesh *geomObjectGetShaderMesh(const GeomObject &go, int idx) const = 0;
 
-  virtual bool geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const = 0;
-  virtual bool geomObjectReloadRayTracer(GeomObject &go) const = 0;
-  virtual StaticSceneRayTracer *geomObjectGetRayTracer(GeomObject &go) const = 0;
+  // traces p + unnormalized_dir * t over [0, maxt)
+  // a non-finite p, unnormalized_dir or maxt, a zero-length unnormalized_dir and a maxt outside
+  // (0, BVH_MISS_T of daBVH/dag_swBLAS_leaf.h) answer false
+  // a hit writes its t into maxt and, when norm is not null, the unit hit normal in the space of p;
+  // a miss writes neither. nothing is culled, so a back face answers like any other, and the leaf
+  // test accepts a barycentric band of BVH_TRACE_EPSILON around each edge, so a ray near a shared
+  // edge can answer from either triangle
+  // it traces the faces of top-LOD collidable nodes. a face whose material slot is null is skipped
+  // quietly, a material index past the table reads the last slot, and a face that repeats a corner
+  // is dropped by the BLAS build quietly too; a face with a corner past its node's verts or a non-finite
+  // vertex is counted and logged; a node with no material table, or a collidable node with no mesh,
+  // is dropped whole and logged by name; a node with no face or no vertex is skipped quietly; an
+  // object the build refuses logs an error and traces nothing
+  // a trace builds the collision if nothing has; geomObjectReloadCollision rebuilds it from the geometry as it stands
+  virtual bool geomObjectTraceRay(GeomObject &go, const Point3 &p, const Point3 &unnormalized_dir, real &maxt, Point3 *norm) const = 0;
+  // rebuilds the collision from the geometry as it now stands, and answers whether it can trace
+  virtual bool geomObjectReloadCollision(GeomObject &go) const = 0;
 
 
   // StaticGeometryNode
@@ -521,9 +533,6 @@ public:
 class IDagorScene
 {
 public:
-  // FastRtDump
-  virtual int fastRtDumpTraceRay(FastRtDump &frt, int custom, const Point3 &p, const Point3 &dir, real &t, int &out_pmid) const = 0;
-
   // StaticSceneBuilder::StdTonemapper
   virtual StaticSceneBuilder::StdTonemapper *newStdTonemapper(IMemAlloc *alloc = NULL) const = 0;
   virtual StaticSceneBuilder::StdTonemapper *newStdTonemapper(const StaticSceneBuilder::StdTonemapper &from,

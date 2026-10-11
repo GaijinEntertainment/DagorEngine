@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options strict_smart_pointers = false
+options no_global_variables = false
 
 module llvm_jit_code shared private
 
@@ -8,8 +9,8 @@ require llvm/bindings/llvm_struct
 require llvm/daslib/llvm_jit_intrin
 require daslib/ast_boost
 
-//! JIT-side half of the `[llvm_code]` rail (the user-side annotation lives in
-//! `llvm/daslib/llvm_code.das`): a name-keyed registry of das generator functions that emit a
+//! JIT-side half of the `[llvm_code]` rail (the user-side annotation registers in
+//! `daslib/tune.das`, forwarding to `llvm_code_apply` in `llvm/daslib/llvm_code.das`): a name-keyed registry of das generator functions that emit a
 //! function's LLVM IR wholesale. Generator modules compile into the JIT's context via the
 //! require list in `llvm/daslib/llvm_user_modules.das` and register themselves from `[init]`.
 
@@ -18,10 +19,9 @@ struct public LlvmCodeCtx {
     jit : JitCtx
     //! the das function being generated: signature, argument types, annotations (read-only)
     fn : Function const?
-    //! the LLVM function to fill. ABI is already built: one typed parameter per das argument
-    //! (in order), then the context pointer, then — for by-memory results — the CMRES pointer.
-    //! The generator appends basic blocks and must terminate them; it must not touch `impl`
-    //! if it declines.
+    //! the LLVM function to fill; the ABI is already built — one typed parameter per das argument
+    //! in order, then the context pointer, then the CMRES pointer for by-memory results. A generator
+    //! must append and terminate its basic blocks, and must not touch `impl` if it declines.
     impl : LLVMOpaqueValue?
     impl_type : LLVMOpaqueType?
     //! the [llvm_code(...)] declaration; generator parameters live in `.arguments`
@@ -63,6 +63,14 @@ def public find_llvm_code_annotation(fn : FunctionPtr) : AnnotationDeclaration c
 def public llvm_code_generator_name(ann : AnnotationDeclaration const?) : string {
     for (arg in ann.arguments) {
         if (arg.name == "name" && arg.basicType == Type.tString) return string(arg.sValue)
+    }
+    return ""
+}
+
+//! The CPU class a fat-mode clone is stamped for (`tune_class=`), "" for every other function.
+def public llvm_code_class_name(ann : AnnotationDeclaration const?) : string {
+    for (arg in ann.arguments) {
+        if (arg.name == "tune_class" && arg.basicType == Type.tString) return string(arg.sValue)
     }
     return ""
 }

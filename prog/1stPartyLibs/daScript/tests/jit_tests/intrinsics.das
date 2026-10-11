@@ -1,8 +1,6 @@
 options gen2
 require dastest/testing_boost
 
-require jit
-
 require daslib/fuzzer
 require daslib/faker
 require daslib/math
@@ -58,6 +56,23 @@ def test_intrin_floor(t : T?) {
     var fake <- Faker()
     fuzz() {
         fuzz_float_or_float_vec_op1(t, fake, "test_floor")
+    }
+}
+
+def jit_fract(x) {
+    return fract(x)
+}
+
+def test_fract(t : T?; a : auto(TT)) {
+    t |> success(!jit_enabled() || is_jit_function(@@ < (a : TT) : void > jit_fract))
+    t |> strictEqual(fract(a), jit_fract(a), "fract(a)")
+}
+
+[test]
+def test_intrin_fract(t : T?) {
+    var fake <- Faker()
+    fuzz() {
+        fuzz_float_double_or_float_vec_op1(t, fake, "test_fract")
     }
 }
 
@@ -445,6 +460,10 @@ def jit_normalize_nonzero() {
 
 [test]
 def test_normalize(t : T?) {
+    if (HOST_FAST_MATH) {
+        t |> skip("host runtime is built -ffast-math: normalize goes through a reciprocal-sqrt estimate, so it is not bit-equal to the scalar reference")
+        return
+    }
     t |> success(!jit_enabled() || is_jit_function(@@ < () : float2 > jit_normalize_zero))
     t |> success(!jit_enabled() || is_jit_function(@@ < () : float2 > jit_normalize_nonzero))
     t |> equal(jit_normalize_nonzero(), float2(1.0 / sqrt(2.0), 1.0 / sqrt(2.0)))
@@ -514,19 +533,19 @@ def test_mat_ctor(t : T?) {
     t |> success(!jit_enabled() || is_jit_function(@@get_m_3x4))
     t |> success(!jit_enabled() || is_jit_function(@@get_m_4x4))
 
-    var m1 = get_m_3x3()
+    let m1 = get_m_3x3()
     for (x in 0..2) {
         for (y in 0..2) {
             t |> equal(0., m1[x][y])
         }
     }
-    var m2 = get_m_3x4()
+    let m2 = get_m_3x4()
     for (x in 0..2) {
         for (y in 0..3) {
             t |> equal(0., m2[x][y])
         }
     }
-    var m3 = get_m_4x4()
+    let m3 = get_m_4x4()
     for (x in 0..3) {
         for (y in 0..3) {
             t |> equal(0., m3[x][y])

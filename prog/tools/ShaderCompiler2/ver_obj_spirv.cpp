@@ -9,6 +9,7 @@ extern const int VER_OBJ_SPIRV_VAL = _MAKE4C('14.4');
 
 #if _CROSS_TARGET_SPIRV
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
+#include "renderPassObject.h"
 
 //
 // Assertions made to make sure cache version is up to date
@@ -19,6 +20,7 @@ G_STATIC_ASSERT(spirv::REGISTER_ENTRIES == 89);
 G_STATIC_ASSERT(spirv::B_REGISTER_INDEX_MAX == 12);
 G_STATIC_ASSERT(spirv::T_REGISTER_INDEX_MAX == 32);
 G_STATIC_ASSERT(spirv::U_REGISTER_INDEX_MAX == 13);
+G_STATIC_ASSERT(RenderPassObject::MAX_SUBPASS_READS <= spirv::T_INPUT_ATTACHMENT_INDEX_MAX);
 
 G_STATIC_ASSERT(spirv::WORK_GROUP_SIZE_X_CONSTANT_ID == 1);
 G_STATIC_ASSERT(spirv::WORK_GROUP_SIZE_Y_CONSTANT_ID == 2);

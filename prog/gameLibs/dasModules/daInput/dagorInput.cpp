@@ -22,6 +22,8 @@ struct AnalogStickActionAnnotation final : das::ManagedStructureAnnotation<dainp
     addField<DAS_BIND_MANAGED_FIELD(y)>("y");
     addField<DAS_BIND_MANAGED_FIELD(bActive)>("bActive");
     addField<DAS_BIND_MANAGED_FIELD(bActivePrev)>("bActivePrev");
+    addField<DAS_BIND_MANAGED_FIELD(gpadX)>("gpadX");
+    addField<DAS_BIND_MANAGED_FIELD(gpadY)>("gpadY");
   }
 };
 
@@ -107,7 +109,7 @@ public:
     addAnnotation(new AnalogStickActionBindingAnnotation(lib));
 
     G_STATIC_ASSERT(sizeof(dainput::action_handle_t) == sizeof(uint16_t));
-    auto pType = new das::TypeDecl(das::Type::tUInt16);
+    auto pType = new das::TypeDecl(das::Type::tUInt16, das::cppBindingLineInfo());
     pType->alias = "action_handle_t";
     addAlias(pType);
 

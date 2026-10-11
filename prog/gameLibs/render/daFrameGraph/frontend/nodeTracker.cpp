@@ -209,7 +209,7 @@ eastl::optional<NodeTracker::ResourceWipeSet> NodeTracker::wipeContextNodes(void
   NodeTracker::ResourceWipeSet result = eastl::move(deferredResourceWipeSets[context]);
   deferredResourceWipeSets[context].clear(); // moved-from state is valid but unspecified
 
-  for (auto [nodeId, ctx] : nodeToContext.enumerate())
+  for (auto &&[nodeId, ctx] : nodeToContext.enumerate())
   {
     if (ctx != context)
       continue;
@@ -525,6 +525,37 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, No
   };
 }
 
+static BaseTexture *get_provided_texture(const dafg::ResourceProvider &provider, ResNameId res_id, bool history)
+{
+  const auto &storage = history ? provider.providedHistoryResources : provider.providedResources;
+  const auto providedRes = storage.find(res_id);
+  G_ASSERT_RETURN(providedRes != storage.end(), nullptr);
+
+  const auto texture = eastl::get_if<BaseTexture *>(&providedRes->second);
+  G_ASSERT_RETURN(texture, nullptr);
+  return *texture;
+}
+
+static detail::ExecutionCallback get_builtin_execute(dafg::InternalRegistry &registry, const CopyRequirements &requirements)
+{
+  return [&registry, requirements](dafg::multiplexing::Index) {
+    const auto &provider = registry.resourceProviderReference;
+    BaseTexture *source = get_provided_texture(provider, requirements.source, requirements.sourceIsHistory);
+    BaseTexture *destination = get_provided_texture(provider, requirements.destination, false);
+    G_ASSERT_RETURN(source && destination, );
+
+    const D3DResourceType dstType = destination->getType();
+    if (DAGOR_UNLIKELY(dstType == D3DResourceType::ARRTEX || dstType == D3DResourceType::CUBEARRTEX))
+    {
+      logerr("daFG: Can't copy '%s' into array texture '%s', BaseTexture::update does not support array textures.",
+        source->getTexName(), destination->getTexName());
+      return;
+    }
+
+    destination->update(source);
+  };
+}
+
 void NodeTracker::updateNodeDeclaration(NodeNameId node_id)
 {
   auto &node = registry.nodes[node_id];
@@ -559,15 +590,20 @@ void NodeTracker::updateNodeDeclaration(NodeNameId node_id)
           logerr("daFG: Node %s has both execute request and execution callback! This is not allowed! Ignoring execution callback...",
             registry.knownNames.getName(node_id));
 
-        eastl::string_view shaderName = registry.knownShaders.getName(requirements.shaderId);
-        if (DAGOR_UNLIKELY(shaderName.empty()))
+        if constexpr (eastl::is_same_v<CopyRequirements, T>)
+          node.execute = get_builtin_execute(registry, requirements);
+        else
         {
-          logerr("daFG: Node %s execute request has no shader set!", registry.knownNames.getName(node_id));
-          return;
-        }
+          eastl::string_view shaderName = registry.knownShaders.getName(requirements.shaderId);
+          if (DAGOR_UNLIKELY(shaderName.empty()))
+          {
+            logerr("daFG: Node %s execute request has no shader set!", registry.knownNames.getName(node_id));
+            return;
+          }
 
-        eastl::visit([&](const auto &args) { node.execute = get_builtin_execute(shaderName.cbegin(), node_id, registry, args); },
-          requirements.arguments);
+          eastl::visit([&](const auto &args) { node.execute = get_builtin_execute(shaderName.cbegin(), node_id, registry, args); },
+            requirements.arguments);
+        }
       }
     },
     node.executeRequirements);
@@ -659,7 +695,7 @@ NodeTracker::Changes NodeTracker::updateNodeDeclarations()
 
 void NodeTracker::scheduleAllNodeRedeclaration()
 {
-  for (auto [nodeId, node] : registry.nodes.enumerate())
+  for (auto &&[nodeId, node] : registry.nodes.enumerate())
   {
     if (node.declare)
     {

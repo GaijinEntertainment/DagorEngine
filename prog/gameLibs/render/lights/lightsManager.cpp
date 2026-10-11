@@ -5,7 +5,11 @@
 
 BaseLightsManager::BaseLightsManager(const char *name) : name(name) { photometryTextures = IesTextureCollection::acquireRef(); }
 
-bool BaseLightsManager::isGPUManagementEnabled() const { return sceneManagedLightsBuffer && sceneRenderLightsBuffer; }
+DynLightsFeatures BaseLightsManager::getRuntimeFeatures() const
+{
+  return (sceneManagedLightsBuffer && sceneRenderLightsBuffer) ? DynLightsFeatures::GpuLightsManagerPersistentStorage
+                                                               : DynLightsFeatures::CpuOnly;
+}
 
 BaseLightsManager::~BaseLightsManager()
 {

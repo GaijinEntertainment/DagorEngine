@@ -16,13 +16,13 @@ def test_fixed_array_2d(t : T?) {
     t |> run("write and read 2D dim") @(t : T?) {
         for (y in range(2)) {
             for (x in range(3)) {
-                var f = float(y * 10 + x)
+                let f = float(y * 10 + x)
                 g_dim_a[y][x] = f
             }
         }
         for (y in range(2)) {
             for (x in range(3)) {
-                var f = float(y * 10 + x)
+                let f = float(y * 10 + x)
                 t |> equal(g_dim_a[y][x], f)
             }
         }
@@ -37,8 +37,8 @@ def test_fixed_array_2d(t : T?) {
             var pa = addr(g_dim_a[0][0])
             for (y in range(2)) {
                 for (x in range(3)) {
-                    var o = x + y * 3
-                    var f = float(y * 10 + x)
+                    let o = x + y * 3
+                    let f = float(y * 10 + x)
                     t |> equal(pa[o], f)
                 }
             }
@@ -51,9 +51,9 @@ def test_fixed_array_2d(t : T?) {
             }
         }
         t |> equal("{g_dim_a}", "[ [ 0, 1, 2], [ 10, 11, 12]]")
-        var a0 = g_dim_a[0]
+        let a0 = g_dim_a[0]
         t |> equal("{a0}", "[ 0, 1, 2]")
-        var a1 = g_dim_a[1]
+        let a1 = g_dim_a[1]
         t |> equal("{a1}", "[ 10, 11, 12]")
     }
 }

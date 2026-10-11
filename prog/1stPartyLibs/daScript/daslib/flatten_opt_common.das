@@ -33,17 +33,12 @@ def public is_walkable_node(e : ExpressionPtr) : bool {
         e is ExprMakeArray)
 }
 
-// Hard guard for a REAL OPTIMIZER GAP: the walk hit a node it doesn't recognize (not walkable, not
-// a leaf) and would silently under-traverse it. COMMENT OUT the guard_unhandled_node call in
-// rewrite_children to unlock your work (fail-safe: a missed opt, never a miscompile), then report it.
 def public guard_unhandled_node(e : ExpressionPtr) : void {
-    if (e == null || e is ExprVar || e |> is_expr_const()) return   // legit leaves — not a gap
+    if (e == null || e is ExprVar || e |> is_expr_const()) return
     macro_error(compiling_program(), e.at, "flatten optimizer reached an unhandled expression node '{e.__rtti}': this is a real gap in the optimizer (the pass silently skips it, so a uniform/mutable subtree inside escapes hoisting / CSE / safety analysis). Comment out guard_unhandled_node in daslib/flatten_opt_common.das to unlock your current work, then please report this node kind.")
 }
 
-// Replace each child slot of `e` in place with `fn(child)`; a known leaf is left alone, and an
-// UNRECOGNIZED node trips guard_unhandled_node (a real optimizer gap — see above).
-def public rewrite_children(var e : ExpressionPtr; fn : block<(var c : ExpressionPtr) : ExpressionPtr>) : void {
+def public rewrite_children(var e : ExpressionPtr; fn : block<(var c : ExpressionPtr) : ExpressionPtr>) : void {   // nolint:STYLE037 — one arm per walkable node class; the ladder IS the child enumeration
     if (e is ExprOp1) {
         var o = e as ExprOp1
         o.subexpr = invoke(fn, o.subexpr)
@@ -97,13 +92,13 @@ def public rewrite_children(var e : ExpressionPtr; fn : block<(var c : Expressio
         for (vi in range(length(o.values))) {
             o.values[vi] = invoke(fn, o.values[vi])
         }
+        o.constValues = false
     } else {
         guard_unhandled_node(e)
     }
 }
 
-// OR over `e`'s children (short-circuit); vacuous false on a leaf / unknown node.
-def public fold_children_or(e : ExpressionPtr; pred : block<(c : ExpressionPtr) : bool>) : bool {
+def public fold_children_or(e : ExpressionPtr; pred : block<(c : ExpressionPtr) : bool>) : bool {   // nolint:STYLE037 — one arm per walkable node class, mirroring rewrite_children
     if (e is ExprOp1) {
         return invoke(pred, (e as ExprOp1).subexpr)
     } elif (e is ExprOp2) {
@@ -152,24 +147,14 @@ def public is_flat_temp(name : das_string) : bool {
     return name |> starts_with("__flat_")
 }
 
-// An inlined-helper local (`__flat_loc_N`). Unlike the loop/live masks it must be SSA-renamed like
-// a user accumulator — else its self-referential `var` loses its live init to DSE, leaving a
-// null-init self-ref the shader backend rejects.
 def public is_flat_inlined_local(name : das_string) : bool {
     return name |> starts_with("__flat_loc_")
 }
-
-// ===== Copy propagation of single-assignment flatten temps =====
-// A single-def `__flat_*` temp whose source reads no later-reassigned var is a pure forward copy:
-// inline the source at every use, drop the temp (a risky call/index/divide source only at one use).
 
 class public FlatVarRef : AstVisitor {
     name  : string
     count : int
     def override preVisitExprVar(expr : ExprVar?) : void {
-        // das_string compares with string directly — never build a temp string here:
-        // count_refs walks the whole tree per candidate, so a per-ExprVar allocation
-        // is O(n^2) persistent strings on large bodies (the heap-overflow amplifier).
         if (expr.name == name) count ++
     }
 }
@@ -187,9 +172,6 @@ def public count_refs(var e : ExpressionPtr; name : string) : int {
     return c
 }
 
-// Per-pass reference index: name-hash -> referencing statement indices (deduped) + total count.
-// Built once per copy_prop pass, replacing the old per-candidate count_refs sweep that was
-// O(n^3) on large bodies.
 class public FlatUsesBuilder : AstVisitor {
     nameUses : table<uint64; array<int>>
     nameCount : table<uint64; int>
@@ -205,24 +187,20 @@ class public FlatUsesBuilder : AstVisitor {
     }
 }
 
-// ===== Numeric-const grid: typed-lane carrier =====
-// One extractor + one builder centralize the per-(element,width) ExprConst* ladder. Scope: the
-// 32-bit grid (float/int/uint, 1..4); int8/16/64, double, bool stay on the scalar predicates below.
-
 let public CK_NONE = 0
 let public CK_FLOAT = 1
 let public CK_INT = 2
 let public CK_UINT = 3
 
 struct public ConstLanes {
-    kind : int       // CK_*
-    dim  : int       // 1..4
-    f    : float4    // float lanes (CK_FLOAT)
-    i    : int4      // int/uint lanes (CK_INT signed; CK_UINT value as int)
+    kind : int
+    dim  : int
+    f    : float4
+    i    : int4
 }
 
 //! Extract a 32-bit-grid numeric const (float/int/uint scalar or 2/3/4 vector) into typed lanes; kind = CK_NONE otherwise.
-def public const_lanes(e : ExpressionPtr) : ConstLanes {
+def public const_lanes(e : ExpressionPtr) : ConstLanes {   // nolint:STYLE037 — one arm per (element, width) const class; the table IS the extractor
     var r : ConstLanes
     if (e == null) return r
     if (e is ExprConstFloat)  { r.kind = CK_FLOAT; r.dim = 1; r.f = float4((e as ExprConstFloat).value, 0.0, 0.0, 0.0); return r }
@@ -261,10 +239,7 @@ def public make_const_lanes(L : ConstLanes; at : LineInfo) : ExpressionPtr {
     return null
 }
 
-// A scalar zero/default literal (int 0, float 0.0, bool false, …). A `var x = <this>` init is
-// redundant with daslang's zero-init of a bare `var x : T`, so it can be dropped. Non-scalar
-// inits (vector/struct ctors) are not literals here and left alone.
-def public is_zero_const(e : ExpressionPtr) : bool {
+def public is_zero_const(e : ExpressionPtr) : bool {   // nolint:STYLE037 — one arm per scalar const class
     if (e == null) return false
     if (e is ExprConstInt) return (e as ExprConstInt).value == 0
     if (e is ExprConstInt8) return (e as ExprConstInt8).value == int8(0)
@@ -280,9 +255,6 @@ def public is_zero_const(e : ExpressionPtr) : bool {
     return false
 }
 
-// Extract an integer constant's value (widened to int64) and whether its type is
-// signed. Float/double/bool consts are NOT integers and return false — the algebraic
-// identities only hold for integer arithmetic.
 def public int_const(e : ExpressionPtr; var v : int64&; var signed : bool&) : bool {
     if (e == null) return false
     if (e is ExprConstInt) { v = int64((e as ExprConstInt).value); signed = true; return true }
@@ -303,15 +275,11 @@ def public is_int_val(e : ExpressionPtr; want : int64) : bool {
 }
 
 def public is_int_neg_one(e : ExpressionPtr) : bool {
-    // Signed only — an unsigned "-1" is a large positive, not a negation factor.
     var v = 0l
     var signed = false
     return int_const(e, v, signed) && signed && v == -1l
 }
 
-// A scalar float/double const equal to `want`. `want` is exact (0/1/-1) in both
-// float and double, so the widening compare is exact. Vector consts (ExprConstFloat3
-// …) are NOT scalars and return false — is_real_vec_val (below) is the vector form.
 def public is_real_val(e : ExpressionPtr; want : double) : bool {
     if (e == null) return false
     if (e is ExprConstFloat) return double((e as ExprConstFloat).value) == want
@@ -319,9 +287,6 @@ def public is_real_val(e : ExpressionPtr; want : double) : bool {
     return false
 }
 
-// An all-lanes-equal float vector const (ExprConstFloat2/3/4) equal to `want`. Extends scalar
-// is_real_val so the float identities fire for vector-const operands (`v * float3(1)`); `want`
-// is exact (0/1/-1) so the widening compare is exact.
 def public is_real_vec_val(e : ExpressionPtr; want : double) : bool {
     let L = const_lanes(e)
     if (L.kind != CK_FLOAT || L.dim < 2) return false
@@ -331,8 +296,6 @@ def public is_real_vec_val(e : ExpressionPtr; want : double) : bool {
     return true
 }
 
-// An all-lanes-equal int OR uint vector const equal to `want` (want >= 0). Mirrors is_int_val
-// covering both signed and unsigned scalar consts — uint vectors fold for 0/1 but not -1.
 def public is_int_vec_val(e : ExpressionPtr; want : int64) : bool {
     let L = const_lanes(e)
     if ((L.kind != CK_INT && L.kind != CK_UINT) || L.dim < 2) return false
@@ -342,9 +305,6 @@ def public is_int_vec_val(e : ExpressionPtr; want : int64) : bool {
     return true
 }
 
-// An all-lanes -1 signed int vector const (ExprConstInt2/3/4 only). Mirrors is_int_neg_one —
-// an unsigned vector "-1" is a large positive, never a negation factor (the "uint ≈ int,
-// almost" boundary).
 def public is_int_vec_neg_one(e : ExpressionPtr) : bool {
     let L = const_lanes(e)
     if (L.kind != CK_INT || L.dim < 2) return false
@@ -354,9 +314,6 @@ def public is_int_vec_neg_one(e : ExpressionPtr) : bool {
     return true
 }
 
-// Combined const-operand predicates for the algebraic identities: scalar OR all-lanes-equal
-// vector const. `*0`/`+0`/`-0` use is_zero_const_op, `*1` uses is_one_const_op, `*-1` uses
-// is_neg_one_const_op (signed/float only).
 def public is_zero_const_op(e : ExpressionPtr) : bool {
     return is_int_val(e, 0l) || is_real_val(e, 0.0lf) || is_int_vec_val(e, 0l) || is_real_vec_val(e, 0.0lf)
 }
@@ -369,8 +326,6 @@ def public is_neg_one_const_op(e : ExpressionPtr) : bool {
     return is_int_neg_one(e) || is_real_val(e, -1.0lf) || is_int_vec_neg_one(e) || is_real_vec_val(e, -1.0lf)
 }
 
-// A const bool equal to `want`. Backs the boolean algebraic identities
-// (`true && x → x`, `c ? true : false → c`, `!false → true`, …).
 def public is_bool_val(e : ExpressionPtr; want : bool) : bool {
     if (e == null) return false
     if (e is ExprConstBool) return (e as ExprConstBool).value == want
@@ -381,10 +336,7 @@ def public negate(var e : ExpressionPtr) : ExpressionPtr {
     return new ExprOp1(at = e.at, op := "-", subexpr = e)
 }
 
-// A fresh zero literal of `t` (the RESULT type of `X * 0`; also the lowering's materialized
-// implicit zero-init on bare decls), over the numeric scalar + vector family; null otherwise.
-// Keying on the result type lets both `v * 0.0` and `v * float3(0)` fold width-matched.
-def public zero_const_of(t : TypeDeclPtr; at : LineInfo) : ExpressionPtr {
+def public zero_const_of(t : TypeDeclPtr; at : LineInfo) : ExpressionPtr {   // nolint:STYLE037 — one match arm per numeric baseType
     if (t == null) return null
     match (t.baseType) {
         if (Type.tInt) { return new ExprConstInt(at = at, value = 0) }
@@ -414,7 +366,6 @@ def public expr_bt(e : ExpressionPtr) : Type {
     return (e == null || e._type == null) ? Type.none : e._type.baseType
 }
 
-// Scalar element of a vector baseType (tFloat3 → tFloat); Type.none for non-vectors.
 def public vec_elem_bt(bt : Type) : Type {
     if (bt == Type.tFloat2 || bt == Type.tFloat3 || bt == Type.tFloat4) return Type.tFloat
     if (bt == Type.tInt2 || bt == Type.tInt3 || bt == Type.tInt4) return Type.tInt
@@ -426,15 +377,11 @@ def public is_float_family(bt : Type) : bool {
     return bt == Type.tFloat || bt == Type.tFloat2 || bt == Type.tFloat3 || bt == Type.tFloat4
 }
 
-// Float-valued (float/double scalar or float vector) — the fast-math gates key on this:
-// integer/bool identities are exact, floating-point ones change inf/NaN/rounding behavior.
 def public is_float_valued(e : ExpressionPtr) : bool {
     let bt = expr_bt(e)
     return is_float_family(bt) || bt == Type.tDouble
 }
 
-// Full-arity float/int/uint vector ctor call (`float3(a,b,c)` — one scalar arg per lane):
-// returns the lane count; 0 for splats, mixed-arity ctors (`float3(v2,z)`) and non-ctor calls.
 def public ctor_dim_by_name(c : ExprCall?) : int {
     if (c == null) return 0
     let nm = simple_name("{c.name}")
@@ -453,7 +400,6 @@ def public is_float_vec(bt : Type) : bool {
     return bt == Type.tFloat2 || bt == Type.tFloat3 || bt == Type.tFloat4
 }
 
-// The scalar argument of a float splat ctor (`floatN(s)`); null otherwise.
 def public splat_scalar_arg(e : ExpressionPtr) : ExpressionPtr {
     if (e == null || !(e is ExprCall)) return null
     var c = e as ExprCall
@@ -462,7 +408,6 @@ def public splat_scalar_arg(e : ExpressionPtr) : ExpressionPtr {
     return expr_bt(c.arguments[0]) == Type.tFloat ? c.arguments[0] : null
 }
 
-// Bitmask of zero lanes of a const float/int/uint vector literal; 0 when none (or not one).
 def public const_vec_zero_mask(e : ExpressionPtr) : int {
     let L = const_lanes(e)
     if (L.kind == CK_NONE || L.dim < 2) return 0
@@ -477,30 +422,21 @@ def public const_vec_zero_mask(e : ExpressionPtr) : int {
 }
 
 
-// The (T,T,T) element family das `mad` covers: float/int/uint scalar+vector, double scalar.
 def public is_mad_elem(bt : Type) : bool {
     return (is_float_family(bt) || bt == Type.tDouble ||
         bt == Type.tInt || bt == Type.tInt2 || bt == Type.tInt3 || bt == Type.tInt4 ||
         bt == Type.tUInt || bt == Type.tUInt2 || bt == Type.tUInt3 || bt == Type.tUInt4)
 }
 
-// `mad(a, b, c)` overload shapes (das math): (T,T,T) over the numeric family, or the
-// vec-scalar-vec broadcast form (MadS). The single gate for expand, fuse AND residual.
 def public mad_shape(ta, tb, tc : Type) : bool {
     if (ta == tb && tb == tc) return is_mad_elem(ta)
     return ta == tc && tb != Type.none && vec_elem_bt(ta) == tb
 }
 
-// `lerp(a, b, t)` shapes safe to expand AND re-fuse: float family with scalar `t` only — the
-// one shape every provider has (das math AND the scalar-`t` backend DSL stubs). A vector-`t`
-// re-fusion of raw `(b-a)*tv + a` arithmetic would emit a call a DSL-only module can't resolve.
 def public lerp_shape(ta, tb, tt : Type) : bool {
     return ta == tb && is_float_family(ta) && tt == Type.tFloat
 }
 
-// True if `e` is built only from const literals and pure ops/builtins — no var/global read,
-// no user call. eval_single_expression runs in a bare context (no globals, no user functions),
-// so the tree must bottom out in literals and pure builtins. Unknown node → false.
 def public is_all_const(e : ExpressionPtr) : bool {
     if (e == null) return false
     if (e |> is_expr_const()) return true
@@ -516,7 +452,6 @@ def public is_all_const(e : ExpressionPtr) : bool {
     }
     if (e is ExprCall) {
         let c = e as ExprCall
-        // Reject a user/unresolved call (not evaluable) or any side-effecting builtin.
         if (c.func == null || !c.func.flags.builtIn || has_sideeffects(e)) return false
         for (a in c.arguments) {
             if (!is_all_const(a)) return false
@@ -526,9 +461,6 @@ def public is_all_const(e : ExpressionPtr) : bool {
     return false
 }
 
-// True if a constant of this type can be rebuilt as a literal by eval_to_const — the
-// float4-based evaluator covers the float/int/uint scalar + vector family. Gates the cycle-1
-// const-builtin allowance so only foldable-type calls bypass the whitelist.
 def public eval_to_const_supported(t : TypeDeclPtr) : bool {
     if (t == null) return false
     let bt = t.baseType
@@ -537,9 +469,6 @@ def public eval_to_const_supported(t : TypeDeclPtr) : bool {
         bt == Type.tUInt || bt == Type.tUInt2 || bt == Type.tUInt3 || bt == Type.tUInt4)
 }
 
-// True if every operator/call node in the subtree carries a settled type. eval_single_expression
-// assumes inference is complete (an un-inferred operator has null `.func` → crash), so this guards
-// eval against a not-yet-re-inferred subtree (a fold-built operand under an inferred all-const root).
 def public fully_inferred(e : ExpressionPtr) : bool {
     if (e == null) return false
     if (e is ExprOp1) {
@@ -567,16 +496,10 @@ def public fully_inferred(e : ExpressionPtr) : bool {
     return true
 }
 
-// Evaluate a literal-only (is_all_const) inferred expression to one const literal of
-// its type, via the exact runtime evaluator. Returns `e` unchanged if eval fails or
-// the type is unsupported. The fresh const is un-inferred; the macro re-infers it.
 def public eval_to_const(var e : ExpressionPtr) : ExpressionPtr {
     if (e == null || e._type == null || !fully_inferred(e)) return e
     var ok = false
-    var val : float4
-    unsafe {
-        val = eval_single_expression(e, ok)
-    }
+    let val = unsafe(eval_single_expression(e, ok))
     if (!ok) return e
     let bt = e._type.baseType
     if (bt == Type.tFloat) return new ExprConstFloat(at = e.at, value = val.x)
@@ -596,10 +519,6 @@ def public eval_to_const(var e : ExpressionPtr) : ExpressionPtr {
     return e
 }
 
-// ===== Generalized const-propagation of single-def user locals =====
-// Post-SSA-rename every user local is single-def, so a `var x = <const>` substitutes at all uses and
-// drops. One forward pass folds a whole accumulator chain; masks are copy_prop's job, globals never.
-
 def public reads_any(var e : ExpressionPtr; names : table<string; ExpressionPtr>) : bool {
     for (nm in keys(names)) {
         if (count_refs(e, nm) > 0) return true
@@ -611,7 +530,6 @@ def public subst_consts(var e : ExpressionPtr; constmap : table<string; Expressi
     if (e == null) return null
     var tmpl : Template
     for (nm in keys(constmap)) {
-        // ?[] yields a const view; const-strip the raw pointer (apply_template clones per use anyway).
         var ex = unsafe(reinterpret<Expression?>(constmap?[nm] ?? null))
         tmpl |> replaceVariable(nm, ex)
     }
@@ -620,18 +538,11 @@ def public subst_consts(var e : ExpressionPtr; constmap : table<string; Expressi
     return res
 }
 
-// ===== Constant reassociation =====
-// Gather scattered consts in `+`/`-`/`*` chains into one adjacent group (`0.5 + a + 0.6` → `a +
-// (0.5+0.6)`) for the all-const arm to fold; also sort var terms into a canonical order (for a later CSE).
-
 struct public ReTerm {
-    neg : bool          // subtracted (additive chains); always false for the `*` monoid
+    neg : bool
     e : ExpressionPtr
 }
 
-// Flatten a maximal additive chain into signed terms (left-to-right = source order). Descends
-// `+`/`-` ExprOp2 and unary `-`; everything else is a leaf. No same-base-type gate (vector±scalar
-// does not compile, so an additive chain is always same-type).
 def public collect_add(var e : ExpressionPtr; neg : bool; var terms : array<ReTerm>) {
     if (e == null) return
     if (e is ExprOp2) {
@@ -651,7 +562,6 @@ def public collect_add(var e : ExpressionPtr; neg : bool; var terms : array<ReTe
     terms |> push(ReTerm(neg = neg, e = e))
 }
 
-// Flatten a maximal `*` chain into factors (no `/` in v1). Descends `*` ExprOp2 only.
 def public collect_mul(var e : ExpressionPtr; var terms : array<ReTerm>) {
     if (e == null) return
     if (e is ExprOp2) {
@@ -665,9 +575,6 @@ def public collect_mul(var e : ExpressionPtr; var terms : array<ReTerm>) {
     terms |> push(ReTerm(neg = false, e = e))
 }
 
-// Build a left-leaning `<t0> op <t1> …` tree from non-empty `terms`, REUSING the operand nodes
-// (each leaf appears once, so it lands in one slot; the old chain wrappers drop when the visitor
-// replaces `that`). A negative first term becomes unary `-`; later terms pick addOp/subOp by sign.
 def public build_chain(var terms : array<ReTerm>; at : LineInfo; addOp, subOp : string) : ExpressionPtr {
     var acc = terms[0].neg ? negate(terms[0].e) : terms[0].e
     for (i in range(1, length(terms))) {
@@ -676,15 +583,10 @@ def public build_chain(var terms : array<ReTerm>; at : LineInfo; addOp, subOp : 
     return acc
 }
 
-// ===== Same-condition select-accumulation fusion =====
-// An invariant-guarded unrolled accumulation emits N selects on ONE condition `c`; hoist `c` out
-// (strip all but the last select; last's false arm := base). Op tree preserved → bit-exact, not fast-math.
-
 def public sel3(e : ExpressionPtr) : ExprOp3? {
-    return (e != null && e is ExprOp3) ? (e as ExprOp3) : null   // ExprOp3 is the ternary `?:`
+    return (e != null && e is ExprOp3) ? (e as ExprOp3) : null
 }
 
-// Bare ExprVar name under an optional ExprRef2Value wrap (a value-context local read), else "".
 def public ref_var_name(e : ExpressionPtr) : string {
     var x = e
     if (x != null && x is ExprRef2Value) {
@@ -692,10 +594,6 @@ def public ref_var_name(e : ExpressionPtr) : string {
     }
     return (x != null && x is ExprVar) ? "{(x as ExprVar).name}" : ""
 }
-
-// ===== Preshader extraction + CSE =====
-// Two pure-AST passes on the converged body: hoist maximal globals-only subtrees to top-of-body
-// `_preshader_N` lets, then CSE-dedup repeated subtrees. See flatten.rst / the plan for the why.
 
 def public simple_name(fullname : string) : string {
     let t1 = find(fullname, 96, 0)
@@ -705,12 +603,6 @@ def public simple_name(fullname : string) : string {
     return slice(fullname, t1 + 1, endp)
 }
 
-// ===== CSE (local value numbering) =====
-// The body is one basic block, so LVN is complete. Value-number pure subtrees by `describe()`, dedup
-// any computed >=2x into one shared let before its first use; uniform dups route to the preshader.
-
-// The base ExprVar of a store target, digging through index/field/swizzle/deref wrappers —
-// `G[i] = v` makes G's reads value-unstable exactly like `G = v` does.
 def public store_base(e : Expression const?) : ExpressionPtr {
     if (e == null) return null
     if (e is ExprAt) return store_base((e as ExprAt).subexpr)
@@ -721,15 +613,45 @@ def public store_base(e : Expression const?) : ExpressionPtr {
     return e is ExprVar ? unsafe(reinterpret<Expression?>(e)) : null
 }
 
-// Names reassigned somewhere in the block (live/loop masks `__flat_*`, any reassigned user `var`).
-// A subtree reading one of these is NOT value-stable — CSE must not share it (its value differs
-// per occurrence), so it is excluded from value numbering. Single-def `__ssa_*` / `let` are safe.
+def public writes_through_argument(fn : Function const?; argIndex : int) : bool {
+    if (fn == null || argIndex < 0 || argIndex >= length(fn.arguments)) return false
+    let at = fn.arguments[argIndex]._type
+    return at != null && !at.flags.constant && (at.flags.ref || at.isRefType)
+}
+
 class public MutCollect : AstVisitor {
     names : table<string>
-    def override preVisitExprCopy(expr : ExprCopy?) : void {
-        let base = store_base(expr.left)
+    def note_store(lhs : Expression const?) : void {
+        let base = store_base(lhs)
         if (base != null) {
             names |> insert("{(base as ExprVar).name}")
+        }
+    }
+    def override preVisitExprCopy(expr : ExprCopy?) : void {
+        note_store(expr.left)
+    }
+    def override preVisitExprMove(expr : ExprMove?) : void {
+        note_store(expr.left)
+        note_store(expr.right)
+    }
+    def override preVisitExprClone(expr : ExprClone?) : void {
+        note_store(expr.left)
+    }
+    def override preVisitExprOp1(expr : ExprOp1?) : void {
+        if (expr.op == "++" || expr.op == "--" || expr.op == "+++" || expr.op == "---") {
+            note_store(expr.subexpr)
+        }
+    }
+    def override preVisitExprOp2(expr : ExprOp2?) : void {
+        if (expr.op |> ends_with("=") && !(expr.op == "==" || expr.op == "!=" || expr.op == "<=" || expr.op == ">=")) {
+            note_store(expr.left)
+        }
+    }
+    def override preVisitExprCall(expr : ExprCall?) : void {
+        for (ai in range(length(expr.arguments))) {
+            if (writes_through_argument(expr.func, ai)) {
+                note_store(expr.arguments[ai])
+            }
         }
     }
 }
@@ -749,22 +671,13 @@ def public collect_mutable(blk : ExprBlock?) : table<string> {
     return <- r
 }
 
-// One structural walk (O(size)) over the closed post-flatten node set, replacing the old
-// O(#mutableVars * size) per-name count_refs loop. An unknown node kind is conservatively treated
-// as reading a mutable (never CSE through it) — correctness over completeness for this safety gate.
 def public reads_mutable(e : ExpressionPtr; mutableVars : table<string>) : bool {
     if (e == null || empty(mutableVars) || e |> is_expr_const()) return false
     if (e is ExprVar) return key_exists(mutableVars, "{(e as ExprVar).name}")
-    if (!is_walkable_node(e)) return true   // unknown node → conservatively reads a mutable
+    if (!is_walkable_node(e)) return true
     return fold_children_or(e) $(c) => reads_mutable(c, mutableVars)
 }
 
-// ===== mad/lerp re-fusion (PHASE_FUSED finishing pass) =====
-// The fold DISASSEMBLES lerp/mad into raw arithmetic (identities fold, reassoc/CSE see through);
-// this re-packs survivors: `a*b ± c` → mad, then `mad(b - a, t, a)` → lerp — one node each.
-
-// A reciprocal copy of a scalar/vector float const literal (`C` → `1/C`); null for any other
-// node or when any lane is zero (no inf literals). Backs the `x / C → x * (1/C)` fold arm.
 def public recip_const(e : ExpressionPtr) : ExpressionPtr {
     if (e is ExprConstDouble) {
         let v = (e as ExprConstDouble).value
@@ -774,20 +687,17 @@ def public recip_const(e : ExpressionPtr) : ExpressionPtr {
     var L = const_lanes(e)
     if (L.kind != CK_FLOAT) return null
     for (k in range(L.dim)) {
-        if (L.f[k] == 0.0) return null   // a zero lane keeps the div (no inf literal)
+        if (L.f[k] == 0.0) return null
     }
-    L.f = float4(1.0, 1.0, 1.0, 1.0) / L.f   // padding lanes (k >= dim) go inf but make_const_lanes drops them
+    L.f = float4(1.0, 1.0, 1.0, 1.0) / L.f
     return make_const_lanes(L, e.at)
 }
 
-// All-const lanes become a const VECTOR LITERAL (the fold phase is over by fuse time, so an
-// all-const ctor CALL would survive un-folded and trip the fold-residual oracle).
 def public make_float_ctor(d : int; at : LineInfo; var lanes : array<ExpressionPtr>) : ExpressionPtr {
     var c0 = 0.0
     var c1 = 0.0
     var c2 = 0.0
     var c3 = 0.0
-    // const-collapse needs one scalar arg per lane — the swizzle re-pack passes mixed-arity lists
     if (length(lanes) == d && scalar_float_const(lanes[0], c0) && scalar_float_const(lanes[1], c1) &&
             (d < 3 || scalar_float_const(lanes[2], c2)) && (d < 4 || scalar_float_const(lanes[3], c3))) {
         if (d == 2) return new ExprConstFloat2(at = at, value = float2(c0, c1))
@@ -802,8 +712,6 @@ def public make_float_ctor(d : int; at : LineInfo; var lanes : array<ExpressionP
     return c
 }
 
-// Single-component read (`b.x` … `b.w`) of a float vector — ExprSwizzle post-infer, ExprField
-// when freshly built. Yields the base, its describe key, and the component letter.
 def public component_read_of(var e : ExpressionPtr; var baseKey : string&; var base : ExpressionPtr&; var comp : string&) : bool {
     if (e == null) return false
     if (e is ExprRef2Value) return component_read_of((e as ExprRef2Value).subexpr, baseKey, base, comp)
@@ -835,19 +743,12 @@ def public scalar_float_const(e : ExpressionPtr; var v : float&) : bool {
     return true
 }
 
-// The ctor re-pack PHASE_FUSED applies (CLONE-built so the residual oracle probes with it
-// non-destructively): re-vectorize lanes / extract a shared factor or divisor (exact), or
-// compensate a majority const factor (fast-math, only when the multiply count strictly drops).
 def public make_float_splat(d : int; at : LineInfo; var sc : ExpressionPtr) : ExpressionPtr {
     let nm = d == 2 ? "float2" : (d == 3 ? "float3" : "float4")
     var c = new ExprCall(at = at, name := nm)
     emplace(c.arguments, sc)
     return c
 }
-
-// ===== horizontal add → dot re-pack =====
-// `v.x + v.y (+ v.z + v.w)` — and weighted/negated lanes `v.x * c` — collapse into `dot(v, mask)`: one
-// node where every lane read is an instruction. Fast-math (reorders adds, ×0 a dead-lane inf/NaN).
 
 def public float_vec_dim(bt : Type) : int {
     if (bt == Type.tFloat2) return 2
@@ -863,9 +764,8 @@ def public lane_index(comp : string) : int {
     return 3
 }
 
-// Partition M lanes into groups of width [minWidth..4]. A tail smaller than minWidth is NOT grouped (the caller leaves those lanes unpacked) — so sum(result) may be < M. A too-small tail is rebalanced by shrinking the previous take when that keeps both groups >= minWidth (so M=5,minWidth=2 -> [3,2], not [4]+1). Shared by the min/max reduction pack (minWidth=2) and the hadd fold (minWidth 2 or 3).
 def public plan_groups(M : int; minWidth : int = 2) : array<int> {
-    assert(minWidth >= 2 && minWidth <= 4, "plan_groups expects minWidth in [2..4]")   // minWidth<=0 would divide by zero below / never terminate
+    assert(minWidth >= 2 && minWidth <= 4, "plan_groups expects minWidth in [2..4]")
     var g : array<int>
     g |> reserve((M + minWidth - 1) / minWidth)
     var rem = M

@@ -37,6 +37,11 @@ net::msg_handler_t get_sync_vroms_done_msg_handler();
 String setup_log();
 bool init_statsd(const char *circuit_name); // return false if stubbed
 void statsd_report_ctrl_ploss(ControlsPlossCalc &ploss_calc, uint16_t &last_reported_ctrl_seq, uint16_t new_ctrl_seq);
+// HIS listen peer cap from --max_connections, else NET_MAX_PLAYERS.
+// Stub builds always return NET_MAX_PLAYERS (no argv parse).
+inline constexpr const char LISTEN_MAX_CONNECTIONS_ARG[] = "max_connections";
+inline constexpr const char LISTEN_MAX_CONNECTIONS_STAMP_FMT[] = "--max_connections=%d";
+int get_listen_max_connections();
 // TODO(net-api): params struct when a third call site appears.
 net::INetDriver *create_listen_net_driver(
   const char *url_override = nullptr, int max_connections = NET_MAX_PLAYERS, bool no_fatal_on_failure = false);

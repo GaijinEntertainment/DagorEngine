@@ -19,7 +19,9 @@ public:
   float getWeight() const;
   bool getUseTransformationMatrix() const;
   TMatrix getTransformationMatrix() const;
+  void getTransformationComponents(Point3 &position, Point3 &rotation, Point3 &scale) const;
   void setIdentityTransformationMatrix();
+  void updateTransformParamsFromMatrix();
   bool canTransform() const;
   bool tryGetPoint2Parameter(const char *name, Point2 &value) const;
   bool isEntBlock() const;

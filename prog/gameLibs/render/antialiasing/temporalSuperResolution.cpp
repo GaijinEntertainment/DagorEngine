@@ -38,6 +38,7 @@
   VAR(tsr_history_depth)                    \
   VAR(tsr_reactive_mask)                    \
   VAR(tsr_jitter_offset)                    \
+  VAR(tsr_frame_no)                         \
   VAR(tsr_input_resolution)                 \
   VAR(tsr_output_resolution)                \
   VAR(tsr_should_restart)                   \
@@ -73,6 +74,11 @@ static void init_shader_vars()
 #undef VAR
 }
 
+static bool is_tsr_debug_window_open();
+
+namespace render::antialiasing
+{
+
 namespace
 {
 bool tsr = true;
@@ -92,8 +98,6 @@ float tsr_scale_motion_steepness = 1e2f;
 float tsr_scale_motion_max = 0.1f;
 bool allow_precalculated_filter_weights = true;
 } // namespace
-
-static bool is_tsr_debug_window_open();
 
 TemporalSuperResolution::Preset TemporalSuperResolution::parse_preset(bool vr_mode)
 {
@@ -229,14 +233,18 @@ void TemporalSuperResolution::releaseShaderResources()
 
 unsigned int TemporalSuperResolution::getOutputTextureFormat() const { return TEXFMT_R11G11B10F; }
 
-dafg::NodeHandle TemporalSuperResolution::createApplierNode(const char *input_name)
+dafg::NodeHandle TemporalSuperResolution::createApplierNode(const char *input_name,
+  eastl::fixed_function<32, void(dafg::Registry)> declare_motion_vectors)
 {
-  return dafg::register_node("tsr", DAFG_PP_NODE_SRC, [this, input_name](dafg::Registry registry) {
+  return dafg::register_node("tsr", DAFG_PP_NODE_SRC, [this, input_name, declare_motion_vectors](dafg::Registry registry) {
     auto applyCtxHndl = registry.readBlob<render::antialiasing::ApplyContext>("aa_apply_context").handle();
+    if (declare_motion_vectors)
+      declare_motion_vectors(registry);
 
+    // No history here: the neural rendering passthrough renames this into frame_after_neural_rendering and
+    // requests the history under that name, which is what the read below consumes.
     unsigned int antialiasedTexFlags = getOutputTextureFormat() | TEXCF_UNORDERED | extraTexFlags;
     auto antialiasedHndl = registry.createTexture2d("frame_after_aa", {antialiasedTexFlags, outputResolution})
-                             .withHistory(dafg::History::ClearZeroOnFirstFrame)
                              .atStage(dafg::Stage::PS_OR_CS)
                              .useAs(dafg::Usage::SHADER_RESOURCE)
                              .handle();
@@ -248,10 +256,14 @@ dafg::NodeHandle TemporalSuperResolution::createApplierNode(const char *input_na
                                      .optional()
                                      .handle();
 
-    auto antialiasedHistHndl =
-      registry.readTextureHistory("frame_after_aa").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+    auto antialiasedHistHndl = registry.readTextureHistory("frame_after_neural_rendering")
+                                 .atStage(dafg::Stage::PS_OR_CS)
+                                 .useAs(dafg::Usage::SHADER_RESOURCE)
+                                 .handle();
 
-    auto depthHndl = registry.createTexture2d("tsr_depth", {TEXFMT_R16F | TEXCF_UNORDERED, outputResolution})
+    const unsigned depthFormat =
+      (d3d::get_texformat_usage(TEXFMT_R16F | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED) ? TEXFMT_R16F : TEXFMT_R32F;
+    auto depthHndl = registry.createTexture2d("tsr_depth", {depthFormat | TEXCF_UNORDERED, outputResolution})
                        .withHistory(dafg::History::ClearZeroOnFirstFrame)
                        .atStage(dafg::Stage::PS_OR_CS)
                        .useAs(dafg::Usage::SHADER_RESOURCE)
@@ -273,12 +285,15 @@ dafg::NodeHandle TemporalSuperResolution::createApplierNode(const char *input_na
 
     registry.readTexture("depth_after_transparency").atStage(dafg::Stage::COMPUTE).bindToShaderVar("depth_gbuf");
 
+    auto reactiveMaskHndl =
+      registry.readTexture("reactive_mask").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).optional().handle();
+
     auto resources = eastl::make_tuple(frameHndl, applyCtxHndl, antialiasedHndl, antialiasedHistHndl, antialiasedHistCopyHndl,
-      depthHndl, depthHistHndl, confidenceHndl, confidenceHistHndl);
+      depthHndl, depthHistHndl, confidenceHndl, confidenceHistHndl, reactiveMaskHndl);
 
     return [this, resources = eastl::make_unique<decltype(resources)>(resources)] {
       auto [frameHndl, applyCtxHndl, antialiasedHndl, antialiasedHistHndl, antialiasedHistCopyHndl, depthHndl, depthHistHndl,
-        confidenceHndl, confidenceHistHndl] = *resources;
+        confidenceHndl, confidenceHistHndl, reactiveMaskHndl] = *resources;
       const render::antialiasing::ApplyContext &applyCtx = applyCtxHndl.ref();
 
       ApplyTextures textures;
@@ -289,7 +304,7 @@ dafg::NodeHandle TemporalSuperResolution::createApplierNode(const char *input_na
       textures.historyDepth = depthHistHndl.get();
       textures.outConfidence = confidenceHndl.get();
       textures.historyConfidence = confidenceHistHndl.get();
-      textures.reactiveMask = applyCtx.reactiveTexture;
+      textures.reactiveMask = reactiveMaskHndl.get();
       textures.vrsMask = applyCtx.vrVrsMask;
       textures.debug = getDebugRenderTarget().getTex2D();
 
@@ -298,7 +313,7 @@ dafg::NodeHandle TemporalSuperResolution::createApplierNode(const char *input_na
   });
 }
 
-TextureIDPair TemporalSuperResolution::getDebugRenderTarget()
+ManagedTexView TemporalSuperResolution::getDebugRenderTarget()
 {
 #if DAGOR_DBGLEVEL > 0
   const bool isDebugWindowOpen = is_tsr_debug_window_open();
@@ -310,7 +325,7 @@ TextureIDPair TemporalSuperResolution::getDebugRenderTarget()
   if (!isDebugWindowOpen && debugTex.getTex2D())
     debugTex.close();
 
-  return {debugTex.getTex2D(), debugTex.getTexId()};
+  return ManagedTexView(debugTex);
 #else
   return {};
 #endif
@@ -332,6 +347,7 @@ void TemporalSuperResolution::apply(const ApplyTextures &textures, const Point4 
 
   ShaderGlobal::set_int(tsr_should_restart_var_id, static_cast<int>(reset));
   ShaderGlobal::set_float4(tsr_jitter_offset_var_id, jitterPixelOffset.x, jitterPixelOffset.y, 0, 0);
+  ShaderGlobal::set_float(tsr_frame_no_var_id, float(dagor_frame_no() & 0xFF)); // TODO: Unify frame number source in shaders.
   ShaderGlobal::set_float4(tsr_input_resolution_var_id, input_resolution.x, input_resolution.y, 0, 0);
   ShaderGlobal::set_float4(tsr_output_resolution_var_id, outputResolution.x, outputResolution.y, 0, 0);
 
@@ -421,6 +437,10 @@ void TemporalSuperResolution::apply(const ApplyTextures &textures, const Point4 
   ShaderGlobal::set_texture(tsr_vrs_mask_var_id, BAD_TEXTUREID);
 }
 
+} // namespace render::antialiasing
+
+using namespace render::antialiasing;
+
 #if DAGOR_DBGLEVEL > 0
 
 #include <imgui/imgui.h>
@@ -454,7 +474,7 @@ static void render_imgui()
   if (!tsrInstance)
     return;
 
-  TextureIDPair debugTex = tsrInstance->getDebugRenderTarget();
+  ManagedTexView debugTex = tsrInstance->getDebugRenderTarget();
   if (!debugTex.getTex2D())
     return;
 
@@ -466,7 +486,7 @@ static void render_imgui()
   else if (tsr_debug_view > debug_view_max)
     tsr_debug_view = debug_view_max;
   ImGui::SliderInt("Debug View", &tsr_debug_view, 0, debug_view_max, debug_view_labels[tsr_debug_view]);
-  ImGuiDagor::Image(debugTex.getId(), debugTex.getTex2D());
+  ImGuiDagor::Image(debugTex.getTexId(), debugTex.getTex2D());
 }
 
 REGISTER_IMGUI_WINDOW("Render", "TSR", render_imgui);

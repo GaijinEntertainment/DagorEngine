@@ -48,7 +48,7 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs, Sc
 
     case BF_VECPOW:
     {
-      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      const auto &arg0 = color4_reg(regs, in_regs[0]);
       float arg1 = ARG1;
       COLOROUT(powf(arg0.r, arg1), powf(arg0.g, arg1), powf(arg0.b, arg1), powf(arg0.a, arg1));
       break;
@@ -204,21 +204,21 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs, Sc
 
     case BF_INT2:
     {
-      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      const auto &arg0 = color4_reg(regs, in_regs[0]);
       COLOROUT(bitwise_cast<float, int32_t>(arg0.r), bitwise_cast<float, int32_t>(arg0.g), 1.0f, 1.0f);
       break;
     }
 
     case BF_INT3:
     {
-      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      const auto &arg0 = color4_reg(regs, in_regs[0]);
       COLOROUT(bitwise_cast<float, int32_t>(arg0.r), bitwise_cast<float, int32_t>(arg0.g), bitwise_cast<float, int32_t>(arg0.b), 1.0f);
       break;
     }
 
     case BF_INT4:
     {
-      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      const auto &arg0 = color4_reg(regs, in_regs[0]);
       COLOROUT(bitwise_cast<float, int32_t>(arg0.r), bitwise_cast<float, int32_t>(arg0.g), bitwise_cast<float, int32_t>(arg0.b),
         bitwise_cast<float, int32_t>(arg0.a));
       break;

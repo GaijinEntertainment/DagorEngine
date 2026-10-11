@@ -4,6 +4,7 @@ Location = prog/engine/gameRes ;
 TargetType  = lib ;
 Target      = engine/gameRes.lib ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -32,9 +33,11 @@ Sources =
   collisionFactory.cpp
   collisionGameRes.cpp
   collisionGameResLoad.cpp
+  collResDump.cpp
   collisionResourceBuilder.cpp
   collisionResourceInstance.cpp
   collisionTraceOOL.cpp
+  legacy_sceneray.cpp
 
   stubGameResFactories.cpp
 ;

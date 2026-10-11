@@ -57,6 +57,7 @@ void EnvironmentPlugin::ShaderGlobVarsPanel::fillPanel()
   getSchemeBlk(schemeBlk);
 
   scheme->load(schemeBlk, true);
+  propPanel->clear();
   scheme->setParams(propPanel, gameBlk);
 
   // for (int i = 0; i < params.getParamsCount(); ++i)

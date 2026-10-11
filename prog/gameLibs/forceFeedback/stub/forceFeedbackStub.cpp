@@ -12,4 +12,9 @@ void reset() {}
 
 void add_event(const EventParams &) {}
 } // namespace rumble
+
+namespace trigger_effect
+{
+void set(const HumanInput::TriggerEffectParam &) {}
+} // namespace trigger_effect
 }; // namespace force_feedback

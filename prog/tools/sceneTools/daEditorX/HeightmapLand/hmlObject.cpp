@@ -575,7 +575,7 @@ bool HmapLandObjectEditor::supportsRealtimeUpdate() const
 {
   if (inGizmo)
   {
-    for (auto obj : selection)
+    for (const auto &obj : selection)
     {
       auto *spline = RTTI_cast<SplineObject>(obj);
       if (!spline)
@@ -599,10 +599,32 @@ bool HmapLandObjectEditor::supportsRealtimeUpdate() const
   return true;
 }
 
+void HmapLandObjectEditor::logGameSplinesStats() const
+{
+  int spl = 0, plg = 0, blocked = 0, single_pt = 0;
+  for (int i = 0; i < objects.size(); i++)
+    if (const SplineObject *s = RTTI_cast<SplineObject>(objects[i]))
+    {
+      if (s->reachesGame())
+      {
+        (s->isPoly() ? plg : spl)++;
+        if (!s->hasCurve())
+          single_pt++;
+      }
+      else if (s->isGameExportBlocked())
+        blocked++;
+    }
+
+  DAGORED2->getConsole().addMessage(ILogWriter::NOTE,
+    "[SPL] game splines: %d splines, %d polygons, %d blocked by layer export, %d single-point", spl, plg, blocked, single_pt);
+}
+
 void HmapLandObjectEditor::render()
 {
   const bool curPlugin = DAGORED2->curPlugin() == HmapLandPlugin::self;
   const int st_mask = IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+  const bool gameView = st_mask & SplineObject::gameSplineSubtypeMask;
+  auto inGameView = [gameView](const SplineObject *s) { return gameView && s->isExportable(); };
   const bool hideSplines = hideSplinesAndPolygonsMode == CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS ||
                            hideSplinesAndPolygonsMode == CM_TOGGLE_SPLINE_DEBUG_CONTROLS;
   const bool hidePolygons = hideSplinesAndPolygonsMode == CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS ||
@@ -636,7 +658,7 @@ void HmapLandObjectEditor::render()
     for (int i = 0; i < splines.size(); ++i)
     {
       const bool showCurrentType = splines[i]->isPoly() ? !hidePolygons : !hideSplines;
-      if (showCurrentType || splines[i]->isSelected() || splines[i]->forceDebugDrawWhenHidden)
+      if (showCurrentType || splines[i]->isSelected() || splines[i]->forceDebugDrawWhenHidden || inGameView(splines[i]))
         splines[i]->renderLines(false, frustum);
     }
     dagRender->endLinesRender();
@@ -645,7 +667,7 @@ void HmapLandObjectEditor::render()
     for (int i = 0; i < splines.size(); ++i)
     {
       const bool showCurrentType = splines[i]->isPoly() ? !hidePolygons : !hideSplines;
-      if (showCurrentType || splines[i]->isSelected() || splines[i]->forceDebugDrawWhenHidden)
+      if (showCurrentType || splines[i]->isSelected() || splines[i]->forceDebugDrawWhenHidden || inGameView(splines[i]))
         splines[i]->renderLines(true, frustum);
     }
 
@@ -735,7 +757,7 @@ void HmapLandObjectEditor::render()
       dagRender->dynRenderBufferFlush(*ptDynBuf);
     }
   }
-  else if ((HmapLandPlugin::self->renderAllSplinesAlways || HmapLandPlugin::self->renderSelSplinesAlways))
+  else if (HmapLandPlugin::self->renderAllSplinesAlways || HmapLandPlugin::self->renderSelSplinesAlways || gameView)
   {
     const bool showAllSplines = HmapLandPlugin::self->renderAllSplinesAlways && !hideSplines;
     const bool showAllPolygons = HmapLandPlugin::self->renderAllSplinesAlways && !hidePolygons;
@@ -745,7 +767,7 @@ void HmapLandObjectEditor::render()
     for (int i = 0; i < splines.size(); ++i)
     {
       const bool showCurrentType = splines[i]->isPoly() ? showAllPolygons : showAllSplines;
-      if (showCurrentType || splines[i]->isSelected())
+      if (showCurrentType || splines[i]->isSelected() || inGameView(splines[i]))
         splines[i]->renderLines(false, frustum);
     }
     dagRender->endLinesRender();
@@ -755,7 +777,7 @@ void HmapLandObjectEditor::render()
     for (int i = 0; i < splines.size(); ++i)
     {
       const bool showCurrentType = splines[i]->isPoly() ? showAllPolygons : showAllSplines;
-      if (showCurrentType || splines[i]->isSelected())
+      if (showCurrentType || splines[i]->isSelected() || inGameView(splines[i]))
         splines[i]->renderLines(true, frustum);
     }
 
@@ -787,6 +809,28 @@ void HmapLandObjectEditor::render()
 
   if (objCreator)
     objCreator->render();
+}
+
+
+void HmapLandObjectEditor::renderGameSplines()
+{
+  TMatrix4 gtm;
+  d3d::getglobtm(gtm);
+  Frustum frustum;
+  frustum.construct(gtm);
+
+  dagRender->startLinesRender(true, false, true);
+  dagRender->setLinesTm(TMatrix::IDENT);
+  for (SplineObject *s : splines)
+    if (s->isExportable())
+      s->renderLines(false, frustum);
+  dagRender->endLinesRender();
+
+  dagRender->startLinesRender();
+  for (SplineObject *s : splines)
+    if (s->isExportable())
+      s->renderLines(true, frustum);
+  dagRender->endLinesRender();
 }
 
 
@@ -1282,7 +1326,7 @@ void HmapLandObjectEditor::fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IM
   int oneLayer = -1;
   int perTypeLayerCount = 0;
   bool enabledMoveToLayer = anySelected;
-  for (auto obj : selection)
+  for (const auto &obj : selection)
   {
     RenderableEditableObject *object = obj;
     if (SplinePointObject *p = RTTI_cast<SplinePointObject>(object))
@@ -1342,7 +1386,7 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
     int type = -1;
     const int destinationLayerIndex = id - CM_MOVE_TO_LAYER_FIRST;
     dag::Vector<RenderableEditableObject *> objectsToMove;
-    for (auto obj : selection)
+    for (const auto &obj : selection)
     {
       RenderableEditableObject *object = obj;
       if (SplinePointObject *p = RTTI_cast<SplinePointObject>(object))
@@ -1380,8 +1424,7 @@ int HmapLandObjectEditor::onMenuItemClick(unsigned id)
     {
       outlinerInterface->moveObjectsToLayer(make_span(objectsToMove), type, destinationLayerIndex);
 
-      eastl::unique_ptr<PropPanel::DialogWindow> dialog(
-        DAGORED2->createDialog(hdpi::_pxScaled(360), hdpi::_pxScaled(100), "Move to layer"));
+      eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createAutoSizedDialog("Move to layer"));
       dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
       PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
       const char *layerName = outlinerInterface->getLayerName(type, destinationLayerIndex);
@@ -1426,7 +1469,7 @@ void HmapLandObjectEditor::save(DataBlock &splBlk, DataBlock &polBlk, DataBlock 
   for (int i = 0; i < objects.size(); ++i)
     if (SplineObject *s = RTTI_cast<SplineObject>(objects[i]))
     {
-      if (s && s->getEditLayerIdx() == (layer < 0 ? s->lpIndex() : layer))
+      if (s->getEditLayerIdx() == (layer < 0 ? s->lpIndex() : layer))
       {
         if (s->isPoly())
           s->save(polBlk);
@@ -1652,10 +1695,7 @@ void HmapLandObjectEditor::getObjNames(Tab<String> &names, Tab<String> &sel_name
   if (showEnt)
     for (int i = 0; i < objects.size(); i++)
     {
-      RenderableEditableObject *o;
-
-      o = showEnt ? RTTI_cast<LandscapeEntityObject>(objects[i]) : NULL;
-      if (o)
+      if (RenderableEditableObject *o = RTTI_cast<LandscapeEntityObject>(objects[i]))
       {
         names.push_back() = o->getName();
 
@@ -2023,8 +2063,7 @@ void HmapLandObjectEditor::update(real dt)
     else
       del_it(objCreator);
 
-    if (!objCreator)
-      setEditMode(CM_OBJED_MODE_SELECT);
+    setEditMode(CM_OBJED_MODE_SELECT);
   }
 
   ObjectEditor::update(dt);

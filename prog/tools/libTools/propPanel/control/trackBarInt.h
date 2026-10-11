@@ -6,6 +6,7 @@
 #include <propPanel/imguiHelper.h>
 #include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/control/spinEditStandalone.h>
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
@@ -63,6 +64,11 @@ public:
 
   const char *getImguiTypeName() const override { return "TrackInt"; }
 
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    return ControlSizeHelper::getTrackBarPreferredSize(controlCaption.begin(), controlCaption.end(), max_width_px);
+  }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
@@ -70,7 +76,7 @@ public:
     separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     const float remainingWidthAfterTheLabel = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x;
-    const float spinEditWidth = ImguiHelper::getDefaultRightSideEditWidth();
+    const float spinEditWidth = ControlSizeHelper::getDefaultRightSideEditWidth();
     const float sliderWidth = remainingWidthAfterTheLabel - spinEditWidth;
     if (sliderWidth >= hdpi::_pxS(Constants::MINIMUM_TRACK_BAR_SLIDER_WIDTH_TO_SHOW))
     {

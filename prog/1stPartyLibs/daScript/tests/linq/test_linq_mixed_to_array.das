@@ -32,8 +32,8 @@ def fixture_r() : array<R> {
 def same_arr(t : T?; name : string; ref : array<int>; var got : array<int>) {
     t |> equal(length(got), length(ref), name)
     if (length(got) == length(ref)) {
-        for (i in range(length(ref))) {
-            t |> equal(got[i], ref[i], name)
+        for (gv, rv in got, ref) {
+            t |> equal(gv, rv, name)
         }
     }
     delete got

@@ -20,7 +20,9 @@
 
 #include "mem.h"
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+// Gaijin change
+#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #if defined(_MSC_VER) && !defined(__clang__)
 #include <intrin.h>
 #else
@@ -40,7 +42,9 @@ MEM_STATIC ZSTD_cpuid_t ZSTD_cpuid(void) {
     U32 f1d = 0;
     U32 f7b = 0;
     U32 f7c = 0;
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+// Gaijin change
+#if (defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #if defined(_MSC_VER) && !defined(__clang__)
     int reg[4];
     __cpuid((int*)reg, 0);

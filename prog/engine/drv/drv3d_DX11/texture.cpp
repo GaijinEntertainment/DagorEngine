@@ -1880,8 +1880,10 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int q_id, int
 
   if (stub_tex_idx >= 0)
   {
-    bt->tex.tex2D = bt->getStubTex()->tex.tex2D;
-    bt->tex.tex2D->AddRef();
+    BaseTex *stub = bt->getStubTex();
+    bt->tex.tex2D = stub ? stub->tex.tex2D : nullptr;
+    if (bt->tex.tex2D)
+      bt->tex.tex2D->AddRef();
     bt->ddsxNotLoaded = 0;
     return bt;
   }

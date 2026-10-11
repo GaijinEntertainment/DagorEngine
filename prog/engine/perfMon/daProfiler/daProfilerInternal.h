@@ -8,7 +8,7 @@
 #include "stl/daProfilerFwdStl.h"
 #include "stl/daProfilerString.h"  //for plugins
 #include "stl/daProfilerHashmap.h" //for plugins
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 #include "dag_chunkedStorage.h"
 #include "daProfilerUserSettings.h"
 #include "daProfilerTypes.h"
@@ -147,7 +147,7 @@ struct ProfilerData
   UniqueEventDataStorage uniqueEvents;
   uint32_t uniqueEventsFrames = 0;
   // thread data
-  mutable std::mutex threadsLock;
+  mutable dag::mutex threadsLock;
   vector<PerThreadInfo> threadsDataStor;
   vector<PerThreadInfo *> threadsData;
   uint32_t threadsGeneration = 0;
@@ -164,7 +164,7 @@ struct ProfilerData
 
   uint32_t samplingState = 0;
   uint32_t samplingThreadRun = 0;
-  mutable std::mutex samplingStateLock;
+  mutable dag::mutex samplingStateLock;
   volatile int sampling_spinlock = 0; // to allow emergency stop
   void stackSamplingFunction(const function<bool()> &is_terminating);
   bool startStackSampling(uint32_t new_mode); // should be called from addFrame

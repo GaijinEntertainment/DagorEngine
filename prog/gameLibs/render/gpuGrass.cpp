@@ -346,13 +346,6 @@ void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::h
     ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_a_samplerstate"), d3d::request_sampler(grassColorAlphaTexSampler));
     ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_samplerstate"), d3d::request_sampler(grassColorAlphaTexSampler));
   }
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    // intenionally no anisotropy on normalmap
-    smpInfo.anisotropic_max = 1;
-    ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_n_samplerstate"), d3d::request_sampler(smpInfo));
-  }
 
   for (auto name : diffuseList)
     textureNames.diffuse.push_back(name);

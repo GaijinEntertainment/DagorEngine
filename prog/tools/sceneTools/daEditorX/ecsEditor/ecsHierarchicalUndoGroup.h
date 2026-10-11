@@ -34,7 +34,7 @@ public:
   {
     // We need hierarchy_attached_entity_transform_es() to run to be able to get the final transform values.
     g_entity_mgr->tick(true);
-    g_entity_mgr->update(ecs::UpdateStageInfoAct(0.0f, 0.0f));
+    g_entity_mgr->update(ecs::UpdateStageInfoAct(0.0f, 0.0));
 
     for (UndoRedoData &undoRedoObject : directlyChangedObjects)
     {

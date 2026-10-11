@@ -9,7 +9,7 @@ struct DeferToActAnnotation : das::FunctionAnnotation
 {
   DeferToActAnnotation() : FunctionAnnotation("defer_to_act") {}
 
-  bool apply(const das::FunctionPtr &func, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
+  bool apply(const das::FunctionPtr &func, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override
   {
     if (!func->arguments.empty())
     {
@@ -22,7 +22,7 @@ struct DeferToActAnnotation : das::FunctionAnnotation
     return true;
   }
 
-  bool apply(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
+  bool apply(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, eastl::string &err) override
   {
     err = "not a block annotation";
     return false;
@@ -36,13 +36,13 @@ struct DeferToActAnnotation : das::FunctionAnnotation
     defer_to_act(context, func->name);
   }
 
-  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool finalize(const das::FunctionPtr &, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &) override
   {
     return true;
   }
 
-  bool finalize(das::ExprBlock *, das::ModuleGroup &, const das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
+  bool finalize(das::ExprBlock *, das::ModuleGroup &, das::AnnotationArgumentList &, const das::AnnotationArgumentList &,
     das::string &err) override
   {
     err = "not a block annotation";

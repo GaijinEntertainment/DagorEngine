@@ -3,7 +3,6 @@
 #include "node_drag_overlay.h"
 
 #include "graph_node_render.h"
-#include "graph_panel.h"
 #include "node_drag_payload.h"
 #include "plugin.h"
 
@@ -43,7 +42,7 @@ void NodeDragOverlay::resolveTemplate(GraphEditorPlg &plugin, const char *templa
   }
 }
 
-void NodeDragOverlay::draw(GraphEditorPlg &plugin, const GraphPanel *graph_panel)
+void NodeDragOverlay::draw(GraphEditorPlg &plugin, bool drop_target_hot)
 {
   // Null on the frame the canvas takes the drop: EndDragDropTarget clears the drag right after
   // delivery, so the ghost never overlaps the node it just created.
@@ -61,7 +60,7 @@ void NodeDragOverlay::draw(GraphEditorPlg &plugin, const GraphPanel *graph_panel
     resolveTemplate(plugin, templateUid);
   }
 
-  if (!graph_panel || !graph_panel->isBaseNodeDropTargetHot())
+  if (!drop_target_hot)
   {
     ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
   }

@@ -16,9 +16,9 @@ class PostFxRenderer
 public:
   PostFxRenderer();
   ~PostFxRenderer();
-  PostFxRenderer(PostFxRenderer &&other);
+  PostFxRenderer(PostFxRenderer &&other) noexcept;
   PostFxRenderer(const PostFxRenderer &other);
-  PostFxRenderer &operator=(PostFxRenderer &&other);
+  PostFxRenderer &operator=(PostFxRenderer &&other) noexcept;
   PostFxRenderer &operator=(const PostFxRenderer &other);
   explicit PostFxRenderer(const char *shader_name);
 

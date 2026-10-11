@@ -14,7 +14,7 @@
 #if _TARGET_SIMD_SSE
 #include <emmintrin.h> // _mm_pause
 #define cpu_yield _mm_pause
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__arm__) || defined(__aarch64__) || (defined(__clang__) && defined(_M_ARM64EC))
 #define cpu_yield() __asm__ __volatile__("yield")
 #else
 #define cpu_yield() ((void)0)

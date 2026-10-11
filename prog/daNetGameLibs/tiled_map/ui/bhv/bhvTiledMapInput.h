@@ -15,6 +15,7 @@ public:
     cstr, //
     tiledMapTouchData,
     panMouseButton,
+    minStickDeadZone,
     enableIsViewCenteredOnExit);
 
   BhvTiledMapInput();

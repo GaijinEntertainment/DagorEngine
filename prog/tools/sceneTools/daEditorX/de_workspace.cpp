@@ -132,6 +132,8 @@ bool DeWorkspace::loadAppSpecific(const DataBlock &blk)
   if (d3d::is_stub_driver())
     genFwdRadius = genBackRadius = 10;
 
+  bakeGeometryVertexLighting = blk.getBlockByNameEx("projectDefaults")->getBool("bakeGeometryVertexLighting", false);
+
   const DataBlock *enCollBlk = blk.getBlockByName("enabled_colliders");
   if (enCollBlk)
   {

@@ -17,8 +17,8 @@ def test_e_op2_children(t : T?) {
         let r = qmatch(expr, $e(left) + $e(right))
         t |> success(r.matched, "should capture left and right")
         if (r.matched) {
-            t |> equal(string(left.__rtti), "ExprVar")
-            t |> equal(string(right.__rtti), "ExprVar")
+            t |> equal(left.__rtti, "ExprVar")
+            t |> equal(right.__rtti, "ExprVar")
         }
     }
 }
@@ -31,7 +31,7 @@ def test_e_whole_expression(t : T?) {
         let r = qmatch(expr, $e(captured))
         t |> success(r.matched, "$e on any expression should match")
         if (r.matched) {
-            t |> equal(string(captured.__rtti), "ExprOp2")
+            t |> equal(captured.__rtti, "ExprOp2")
         }
     }
 }
@@ -57,7 +57,7 @@ def test_e_clone_independence(t : T?) {
         t |> success(r.matched, "capture should succeed")
         if (r.matched) {
             // Both should be ExprConstInt with value 42
-            t |> equal(string(captured.__rtti), "ExprConstInt")
+            t |> equal(captured.__rtti, "ExprConstInt")
             // Pointers should differ (it's a clone)
             t |> success(captured != expr, "clone should be different pointer")
         }
@@ -73,7 +73,7 @@ def test_e_mixed_with_fixed(t : T?) {
         let r = qmatch(expr, $e(left) + 5)
         t |> success(r.matched, "should match $e + fixed")
         if (r.matched) {
-            t |> equal(string(left.__rtti), "ExprVar")
+            t |> equal(left.__rtti, "ExprVar")
         }
     }
 }
@@ -89,7 +89,7 @@ def test_e_in_block(t : T?) {
         }
         t |> success(r.matched, "should capture return value in block")
         if (r.matched) {
-            t |> equal(string(captured.__rtti), "ExprOp2")
+            t |> equal(captured.__rtti, "ExprOp2")
         }
     }
 }

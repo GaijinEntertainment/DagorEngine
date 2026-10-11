@@ -181,7 +181,8 @@ static void fillPoint2Parameter(const ImVec2 captionSize, int index, const char 
   real tmValue, real def)
 {
   Point2 p2;
-  bool fill = treeDataNode.tryGetPoint2Parameter(paramName, p2);
+  const bool paramExists = treeDataNode.tryGetPoint2Parameter(paramName, p2);
+  bool fill = paramExists;
   if (!fill)
   {
     if (useTransformationMatrix)
@@ -199,8 +200,8 @@ static void fillPoint2Parameter(const ImVec2 captionSize, int index, const char 
   if (fill)
   {
     PropPanel::ContainerPropertyControl *extensible = createRemovableParameterContainer(index, group);
-    if (useTransformationMatrix)
-      extensible->setIntValue(0); // Disables the delete button
+    if (!paramExists)             // Not an existing parameter, it only shows the tm's value.
+      extensible->setIntValue(0); // Disable the delete button.
     extensible->setUseFixedWidthColumns();
     extensible->createStatic(0, paramName);
     extensible->setWidthById(0, hdpi::_pxActual(captionSize.x));
@@ -225,20 +226,6 @@ static void fillPoint2Parameter(const ImVec2 captionSize, int index, const char 
   }
 }
 
-static void getTransformationComponents(const CompositeEditorTreeDataNode &treeDataNode, Point3 &position, Point3 &rotation,
-  Point3 &scale)
-{
-  const TMatrix tm = treeDataNode.getTransformationMatrix();
-  position = tm.getcol(3);
-
-  ::matrix_to_euler(tm, rotation.y, rotation.z, rotation.x);
-  rotation.x = RadToDeg(rotation.x);
-  rotation.y = RadToDeg(rotation.y);
-  rotation.z = RadToDeg(rotation.z);
-
-  scale = Point3(::length(tm.getcol(0)), ::length(tm.getcol(1)), ::length(tm.getcol(2)));
-}
-
 void CompositeEditorPanel::fillGlobalParametersGroup(PropPanel::ContainerPropertyControl &group,
   const CompositeEditorTreeDataNode &treeDataNode)
 {
@@ -247,7 +234,7 @@ void CompositeEditorPanel::fillGlobalParametersGroup(PropPanel::ContainerPropert
   Point3 scale(1, 1, 1);
   const bool useTransformationMatrix = treeDataNode.getUseTransformationMatrix();
   if (useTransformationMatrix)
-    getTransformationComponents(treeDataNode, position, rotation, scale);
+    treeDataNode.getTransformationComponents(position, rotation, scale);
 
   fillGlobalParametersGroup(group, treeDataNode, useTransformationMatrix, position, rotation, scale);
 }
@@ -269,6 +256,8 @@ void CompositeEditorPanel::fillGlobalParametersGroup(PropPanel::ContainerPropert
   }
   captionSize.x += ImGui::GetStyle().ItemSpacing.x;
 
+  const Point3 rotationParams = composit_rotation_params(rotation);
+
   for (int index = 0; index < supportedNodeParameters.paramCount(); ++index)
   {
     const char *paramName = supportedNodeParameters.getParamName(index);
@@ -276,13 +265,13 @@ void CompositeEditorPanel::fillGlobalParametersGroup(PropPanel::ContainerPropert
     { // Randomized transform parameters.
       if (index == CMP_NODE_PARAM_IDX_ROT_X)
         fillPoint2Parameter(captionSize, index, paramName, ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_X, group, treeDataNode,
-          useTransformationMatrix, rotation[0], 0);
+          useTransformationMatrix, rotationParams[0], 0);
       if (index == CMP_NODE_PARAM_IDX_ROT_Y)
         fillPoint2Parameter(captionSize, index, paramName, ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_Y, group, treeDataNode,
-          useTransformationMatrix, rotation[1], 0);
+          useTransformationMatrix, rotationParams[1], 0);
       if (index == CMP_NODE_PARAM_IDX_ROT_Z)
         fillPoint2Parameter(captionSize, index, paramName, ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_Z, group, treeDataNode,
-          useTransformationMatrix, rotation[2], 0);
+          useTransformationMatrix, rotationParams[2], 0);
 
       if (index == CMP_NODE_PARAM_IDX_OFFSET_X)
         fillPoint2Parameter(captionSize, index, paramName, ID_COMPOSITE_EDITOR_NODE_PARAMETERS_OFFSET_X, group, treeDataNode,
@@ -299,7 +288,7 @@ void CompositeEditorPanel::fillGlobalParametersGroup(PropPanel::ContainerPropert
           useTransformationMatrix, scale[0], 1);
       if (index == CMP_NODE_PARAM_IDX_SCALE_Y)
         fillPoint2Parameter(captionSize, index, paramName, ID_COMPOSITE_EDITOR_NODE_PARAMETERS_SCALE_Y, group, treeDataNode,
-          useTransformationMatrix, scale[1], 1);
+          useTransformationMatrix, composit_y_scale_param(scale[0], scale[1]), 1);
     }
     else
     {
@@ -394,15 +383,8 @@ void CompositeEditorPanel::fillParametersGroup(PropPanel::ContainerPropertyContr
 
     if (useTransformationMatrix)
     {
-      const TMatrix tm = treeDataNode.getTransformationMatrix();
-      const Point3 position = tm.getcol(3);
-      const Point3 scale(::length(tm.getcol(0)), ::length(tm.getcol(1)), ::length(tm.getcol(2)));
-
-      Point3 rotation;
-      ::matrix_to_euler(tm, rotation.y, rotation.z, rotation.x);
-      rotation.x = RadToDeg(rotation.x);
-      rotation.y = RadToDeg(rotation.y);
-      rotation.z = RadToDeg(rotation.z);
+      Point3 position, rotation, scale;
+      treeDataNode.getTransformationComponents(position, rotation, scale);
 
       group.createPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_LOCATION, "Location", position);
       group.createPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_ROTATION, "Rotation, deg", rotation);
@@ -436,18 +418,24 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
   {
     PropPanel::ContainerPropertyControl *grpEntities = createGroup(ID_COMPOSITE_EDITOR_ENTITIES_GRP, "Entities");
     if (grpEntities)
+    {
+      grpEntities->setBoolValue(entitiesMinimized);
       fillEntitiesGroup(*grpEntities, treeDataNode, dropTargetHandler, treeDataNode.canEditRandomEntities(isRootNode));
-  }
+    }
 
-  PropPanel::ContainerPropertyControl *grpChildren = createGroup(ID_COMPOSITE_EDITOR_CHILDREN_GRP, "Children");
-  if (grpChildren)
-    fillChildrenGroup(*grpChildren, treeDataNode, dropTargetHandler, treeDataNode.canEditChildren());
+    PropPanel::ContainerPropertyControl *grpChildren = createGroup(ID_COMPOSITE_EDITOR_CHILDREN_GRP, "Children");
+    if (grpChildren)
+    {
+      grpChildren->setBoolValue(childrenMinimized);
+      fillChildrenGroup(*grpChildren, treeDataNode, dropTargetHandler, treeDataNode.canEditChildren());
+    }
 
-  PropPanel::ContainerPropertyControl *grpParameters = createGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP, "Node transforms");
-  if (grpParameters)
-  {
-    const bool canEditParameters = !isRootNode && !treeDataNode.isEntBlock();
-    fillParametersGroup(*grpParameters, treeDataNode, canEditParameters);
+    PropPanel::ContainerPropertyControl *grpParameters = createGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP, "Node transforms");
+    if (grpParameters)
+    {
+      grpParameters->setBoolValue(parametersMinimized);
+      fillParametersGroup(*grpParameters, treeDataNode, !isRootNode);
+    }
   }
 
   PropPanel::ContainerPropertyControl *grpComposit = createGroup(ID_COMPOSITE_EDITOR_COMPOSIT_GRP, "Composit");
@@ -519,6 +507,18 @@ int CompositeEditorPanel::saveState(DataBlock &datablk, bool by_name)
   if (grpSplit)
     splitMinimized = grpSplit->getBoolValue();
 
+  PropPanel::ContainerPropertyControl *grpEntities = getContainerById(ID_COMPOSITE_EDITOR_ENTITIES_GRP);
+  if (grpEntities)
+    entitiesMinimized = grpEntities->getBoolValue();
+
+  PropPanel::ContainerPropertyControl *grpChildren = getContainerById(ID_COMPOSITE_EDITOR_CHILDREN_GRP);
+  if (grpChildren)
+    childrenMinimized = grpChildren->getBoolValue();
+
+  PropPanel::ContainerPropertyControl *grpParameters = getContainerById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP);
+  if (grpParameters)
+    parametersMinimized = grpParameters->getBoolValue();
+
   return ContainerPropertyControl::saveState(datablk, by_name);
 }
 
@@ -564,15 +564,8 @@ void CompositeEditorPanel::updateTransformParams(const CompositeEditorTreeData &
   const bool useTransformationMatrix = selectedTreeDataNode->getUseTransformationMatrix();
   if (useTransformationMatrix)
   {
-    const TMatrix tm = selectedTreeDataNode->getTransformationMatrix();
-    const Point3 position = tm.getcol(3);
-    const Point3 scale(::length(tm.getcol(0)), ::length(tm.getcol(1)), ::length(tm.getcol(2)));
-
-    Point3 rotation;
-    ::matrix_to_euler(tm, rotation.y, rotation.z, rotation.x);
-    rotation.x = RadToDeg(rotation.x);
-    rotation.y = RadToDeg(rotation.y);
-    rotation.z = RadToDeg(rotation.z);
+    Point3 position, rotation, scale;
+    selectedTreeDataNode->getTransformationComponents(position, rotation, scale);
 
     setPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_ROTATION, rotation);
     setPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_LOCATION, position);
@@ -645,7 +638,7 @@ CompositeEditorRefreshType CompositeEditorPanel::onPasteNodeParametersClicked(Co
   return CompositeEditorRefreshType::EntityAndCompositeEditor;
 }
 
-class ScaleConflictDlg : public PropPanel::DialogWindow
+class ScaleConflictDlg final : public PropPanel::DialogWindow
 {
   enum
   {
@@ -653,7 +646,7 @@ class ScaleConflictDlg : public PropPanel::DialogWindow
   };
 
 public:
-  ScaleConflictDlg(void *phandle) : DialogWindow(phandle, _pxScaled(370), _pxScaled(140), "Scale inputs conflict", false)
+  ScaleConflictDlg(void *phandle) : DialogWindow(phandle, hdpi::Px::ZERO, hdpi::Px::ZERO, "Scale inputs conflict", false)
   {
     static const char *message = "The Z scale value will be discarded because it conflicts with the X scale value.\n\n"
                                  "Do you want to proceed with keeping only the X scale value?";
@@ -663,22 +656,19 @@ public:
 
     buttonsPanel->setText(PropPanel::DIALOG_ID_OK, "Proceed");
     setInitialFocus(PropPanel::DIALOG_ID_OK);
+    autoSize(/*auto_center = */ !hasEverBeenShown(), /*use_preferred_size = */ true);
   }
 };
 
-void CompositeEditorPanel::updateParameter(int index, real x, CompositeEditorTreeDataNode &treeDataNode)
+void CompositeEditorPanel::updateParameterControl(int index, real x, const CompositeEditorTreeDataNode &treeDataNode)
 {
-  const int id = supportedNodeParameterIds[index];
-  PropPanel::PropertyControlBase *ptr = getById(id);
-  if (ptr)
-  {
-    Point2 value = ptr->getPoint2Value();
-    value.x = x;
-    ptr->setPoint2Value(value);
-    const char *paramName = supportedNodeParameters.getParamName(index);
-    if (treeDataNode.params.paramExists(paramName))
-      treeDataNode.params.setPoint2(paramName, value);
-  }
+  PropPanel::PropertyControlBase *ptr = getById(supportedNodeParameterIds[index]);
+  if (!ptr)
+    return;
+
+  Point2 value(x, 0);
+  treeDataNode.tryGetPoint2Parameter(supportedNodeParameters.getParamName(index), value);
+  ptr->setPoint2Value(value);
 }
 
 void CompositeEditorPanel::addNonDefaultParam(int index, CompositeEditorTreeDataNode &treeDataNode, real tmValue, real def)
@@ -692,35 +682,59 @@ void CompositeEditorPanel::addNonDefaultParam(int index, CompositeEditorTreeData
   }
 }
 
-void CompositeEditorPanel::shouldRefillParam(bool &refill, int index, const CompositeEditorTreeDataNode &treeDataNode, real tmValue,
-  real def)
+void CompositeEditorPanel::removeTransformParamsWithoutRandomRange(CompositeEditorTreeDataNode &treeDataNode)
 {
-  if (!refill)
+  for (int i = CMP_NODE_PARAM_IDX_ROT_X; i <= CMP_NODE_PARAM_IDX_SCALE_Y; ++i)
   {
-    const char *paramName = supportedNodeParameters.getParamName(index);
-    bool exists = treeDataNode.params.paramExists(paramName);
-    if (!exists)
-    {
-      if (!is_relative_equal_float(tmValue, def))
-        refill = true;
-    }
+    const char *paramName = supportedNodeParameters.getParamName(i);
+    Point2 value;
+    if (treeDataNode.tryGetPoint2Parameter(paramName, value) && value.y == 0)
+      treeDataNode.params.removeParam(paramName);
   }
 }
 
-void CompositeEditorPanel::updateGlobalTransformParameters(CompositeEditorTreeDataNode &treeDataNode,
+void CompositeEditorPanel::shouldRefillParam(bool &refill, int index, const CompositeEditorTreeDataNode &treeDataNode, real tmValue,
+  real def)
+{
+  if (refill)
+    return;
+
+  const char *paramName = supportedNodeParameters.getParamName(index);
+  if (treeDataNode.params.paramExists(paramName))
+    return;
+
+  const bool needsRow = !is_relative_equal_float(tmValue, def);
+  const bool hasRow = getById(supportedNodeParameterIds[index]) != nullptr;
+  refill = needsRow != hasRow;
+}
+
+void CompositeEditorPanel::updateGlobalTransformParameters(const CompositeEditorTreeDataNode &treeDataNode,
   const bool useTransformationMatrix, const Point3 &position, Point3 const &rotation, const Point3 &scale)
 {
+  const Point3 rotationParams = composit_rotation_params(rotation);
+
   bool refill = false;
-  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_ROT_X, treeDataNode, rotation.x, 0);
-  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_ROT_Y, treeDataNode, rotation.y, 0);
-  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_ROT_Z, treeDataNode, rotation.z, 0);
+  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_ROT_X, treeDataNode, rotationParams.x, 0);
+  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_ROT_Y, treeDataNode, rotationParams.y, 0);
+  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_ROT_Z, treeDataNode, rotationParams.z, 0);
 
   shouldRefillParam(refill, CMP_NODE_PARAM_IDX_OFFSET_X, treeDataNode, position.x, 0);
   shouldRefillParam(refill, CMP_NODE_PARAM_IDX_OFFSET_Y, treeDataNode, position.y, 0);
   shouldRefillParam(refill, CMP_NODE_PARAM_IDX_OFFSET_Z, treeDataNode, position.z, 0);
 
   shouldRefillParam(refill, CMP_NODE_PARAM_IDX_SCALE, treeDataNode, scale.x, 1);
-  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_SCALE_Y, treeDataNode, scale.y, 1);
+  shouldRefillParam(refill, CMP_NODE_PARAM_IDX_SCALE_Y, treeDataNode, composit_y_scale_param(scale.x, scale.y), 1);
+
+  updateParameterControl(CMP_NODE_PARAM_IDX_ROT_X, rotationParams.x, treeDataNode);
+  updateParameterControl(CMP_NODE_PARAM_IDX_ROT_Y, rotationParams.y, treeDataNode);
+  updateParameterControl(CMP_NODE_PARAM_IDX_ROT_Z, rotationParams.z, treeDataNode);
+
+  updateParameterControl(CMP_NODE_PARAM_IDX_OFFSET_X, position.x, treeDataNode);
+  updateParameterControl(CMP_NODE_PARAM_IDX_OFFSET_Y, position.y, treeDataNode);
+  updateParameterControl(CMP_NODE_PARAM_IDX_OFFSET_Z, position.z, treeDataNode);
+
+  updateParameterControl(CMP_NODE_PARAM_IDX_SCALE, scale.x, treeDataNode);
+  updateParameterControl(CMP_NODE_PARAM_IDX_SCALE_Y, composit_y_scale_param(scale.x, scale.y), treeDataNode);
 
   if (refill)
   {
@@ -734,19 +748,6 @@ void CompositeEditorPanel::updateGlobalTransformParameters(CompositeEditorTreeDa
       }
     }
   }
-  else
-  {
-    updateParameter(CMP_NODE_PARAM_IDX_ROT_X, rotation.x, treeDataNode);
-    updateParameter(CMP_NODE_PARAM_IDX_ROT_Y, rotation.y, treeDataNode);
-    updateParameter(CMP_NODE_PARAM_IDX_ROT_Z, rotation.z, treeDataNode);
-
-    updateParameter(CMP_NODE_PARAM_IDX_OFFSET_X, position.x, treeDataNode);
-    updateParameter(CMP_NODE_PARAM_IDX_OFFSET_Y, position.y, treeDataNode);
-    updateParameter(CMP_NODE_PARAM_IDX_OFFSET_Z, position.z, treeDataNode);
-
-    updateParameter(CMP_NODE_PARAM_IDX_SCALE, scale.x, treeDataNode);
-    updateParameter(CMP_NODE_PARAM_IDX_SCALE_Y, scale.y, treeDataNode);
-  }
 }
 
 // TODO:
@@ -757,14 +758,13 @@ void CompositeEditorPanel::onChangeTransformationMatrixDelayed()
   if (!compositeEditorPanel)
     return;
 
-  // TODO:
   ScaleConflictDlg dlg(nullptr);
   if (dlg.showDialog() == PropPanel::DIALOG_ID_CANCEL)
   {
     PropPanel::PropertyControlBase *control =
       compositeEditorPanel->getById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_USE_TRANSFORMATION_MATRIX);
-    G_ASSERT(control);
-    control->setBoolValue(true);
+    if (control)
+      control->setBoolValue(true);
     return;
   }
 
@@ -774,20 +774,24 @@ void CompositeEditorPanel::onChangeTransformationMatrixDelayed()
   if (!treeDataNode)
     return;
 
-  const Point3 position = compositeEditorPanel->getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_LOCATION);
-  const Point3 rotation = compositeEditorPanel->getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_ROTATION);
-  const Point3 scale = compositeEditorPanel->getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_SCALE);
+  compositeEditorPanel->makeUndoForPropertyEditing();
 
-  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_X, *treeDataNode, rotation.x, 0);
-  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Y, *treeDataNode, rotation.y, 0);
-  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Z, *treeDataNode, rotation.z, 0);
+  Point3 position, rotation, scale;
+  treeDataNode->getTransformationComponents(position, rotation, scale);
+
+  treeDataNode->updateTransformParamsFromMatrix();
+
+  const Point3 rotationParams = composit_rotation_params(rotation);
+  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_X, *treeDataNode, rotationParams.x, 0);
+  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Y, *treeDataNode, rotationParams.y, 0);
+  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Z, *treeDataNode, rotationParams.z, 0);
 
   compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_OFFSET_X, *treeDataNode, position.x, 0);
   compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_OFFSET_Y, *treeDataNode, position.y, 0);
   compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_OFFSET_Z, *treeDataNode, position.z, 0);
 
   compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_SCALE, *treeDataNode, scale.x, 1);
-  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_SCALE_Y, *treeDataNode, scale.y, 1);
+  compositeEditorPanel->addNonDefaultParam(CMP_NODE_PARAM_IDX_SCALE_Y, *treeDataNode, composit_y_scale_param(scale.x, scale.y), 1);
 
   PropPanel::ContainerPropertyControl *grpParameters = compositeEditorPanel->getContainerById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP);
   if (grpParameters)
@@ -801,10 +805,7 @@ void CompositeEditorPanel::onChangeTransformationMatrixDelayed()
 
   G_VERIFY(treeDataNode->params.removeParam("tm"));
 
-  // TODO:
-  compositeEditor.beginUndo();
   compositeEditor.updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
-  compositeEditor.endUndo("Composit Editor: Property editing");
 }
 
 CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDataNode &treeDataNode, int pcb_id)
@@ -846,11 +847,11 @@ CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDat
 
         if (updateMatrix)
         {
-          // TODO:
-          Point3 rotation;
-          rotation[0] = getPoint2(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_X).x;
-          rotation[1] = getPoint2(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_Y).x;
-          rotation[2] = getPoint2(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_Z).x;
+          Point3 rotationParams;
+          rotationParams[0] = getPoint2(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_X).x;
+          rotationParams[1] = getPoint2(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_Y).x;
+          rotationParams[2] = getPoint2(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_Z).x;
+          const Point3 rotation = composit_matrix_rotation(rotationParams);
 
           Quat q;
           euler_to_quat(DegToRad(rotation.y), DegToRad(rotation.z), DegToRad(rotation.x), q);
@@ -868,9 +869,11 @@ CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDat
           PropPanel::PropertyControlBase *ptr = getById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_SCALE);
           if (ptr)
             scale[0] = scale[2] = ptr->getPoint2Value().x;
+          real yScaleParam = 1;
           ptr = getById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_SCALE_Y);
           if (ptr)
-            scale[1] = ptr->getPoint2Value().x;
+            yScaleParam = ptr->getPoint2Value().x;
+          scale[1] = composit_y_axis_scale(scale[0], yScaleParam);
 
           TMatrix scaleTm = TMatrix::IDENT;
           scaleTm[0][0] = scale.x;
@@ -883,31 +886,36 @@ CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDat
           if (paramIndex >= 0 && treeDataNode.params.getParamType(paramIndex) == DataBlock::TYPE_MATRIX)
             treeDataNode.params.setTm(paramIndex, tm);
         }
+
+        removeTransformParamsWithoutRandomRange(treeDataNode);
+        treeDataNode.updateTransformParamsFromMatrix();
       }
       else
       {
         // TODO:
-        const Point3 scale = getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_SCALE);
-        if (!is_relative_equal_float(scale.x, scale.z))
+        const Point3 controlScale = getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_SCALE);
+        if (!is_relative_equal_float(controlScale.x, controlScale.z))
         {
           delayed_call(&onChangeTransformationMatrixDelayed);
           return CompositeEditorRefreshType::Nothing;
         }
 
-        const Point3 position = getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_LOCATION);
-        const Point3 rotation = getPoint3(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_TM_ROTATION);
+        Point3 position, rotation, scale;
+        treeDataNode.getTransformationComponents(position, rotation, scale);
 
-        // TODO:
-        addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_X, treeDataNode, rotation.x, 0);
-        addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Y, treeDataNode, rotation.y, 0);
-        addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Z, treeDataNode, rotation.z, 0);
+        treeDataNode.updateTransformParamsFromMatrix();
+
+        const Point3 rotationParams = composit_rotation_params(rotation);
+        addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_X, treeDataNode, rotationParams.x, 0);
+        addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Y, treeDataNode, rotationParams.y, 0);
+        addNonDefaultParam(CMP_NODE_PARAM_IDX_ROT_Z, treeDataNode, rotationParams.z, 0);
 
         addNonDefaultParam(CMP_NODE_PARAM_IDX_OFFSET_X, treeDataNode, position.x, 0);
         addNonDefaultParam(CMP_NODE_PARAM_IDX_OFFSET_Y, treeDataNode, position.y, 0);
         addNonDefaultParam(CMP_NODE_PARAM_IDX_OFFSET_Z, treeDataNode, position.z, 0);
 
         addNonDefaultParam(CMP_NODE_PARAM_IDX_SCALE, treeDataNode, scale.x, 1);
-        addNonDefaultParam(CMP_NODE_PARAM_IDX_SCALE_Y, treeDataNode, scale.y, 1);
+        addNonDefaultParam(CMP_NODE_PARAM_IDX_SCALE_Y, treeDataNode, composit_y_scale_param(scale.x, scale.y), 1);
 
         PropPanel::ContainerPropertyControl *grpParameters = getContainerById(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP);
         if (grpParameters)
@@ -951,7 +959,11 @@ CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDat
     if (paramIndex >= 0 && treeDataNode.params.getParamType(paramIndex) == DataBlock::TYPE_MATRIX)
       treeDataNode.params.setTm(paramIndex, tm);
 
-    updateGlobalTransformParameters(treeDataNode, true, position, rotation, scale);
+    treeDataNode.updateTransformParamsFromMatrix();
+
+    Point3 tmPosition, tmRotation, tmScale;
+    treeDataNode.getTransformationComponents(tmPosition, tmRotation, tmScale);
+    updateGlobalTransformParameters(treeDataNode, true, tmPosition, tmRotation, tmScale);
   }
   else if (pcb_id == ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ROT_X)
   {
@@ -1136,7 +1148,6 @@ CompositeEditorRefreshType CompositeEditorPanel::onClick(CompositeEditorTreeData
 
     const int paramIndex = pcb_id - ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ADD;
     const char *variableName = supportedNodeParameters.getParamName(paramIndex);
-    G_ASSERT(paramIndex >= 0);
     G_ASSERT(treeDataNode.params.findParam(variableName) < 0);
     addOverrideParam(treeDataNode.params, supportedNodeParameters, paramIndex, false);
   }
@@ -1146,7 +1157,6 @@ CompositeEditorRefreshType CompositeEditorPanel::onClick(CompositeEditorTreeData
 
     const int paramIndex = pcb_id - ID_COMPOSITE_EDITOR_NODE_PARAMETERS_REMOVE;
     const char *variableName = supportedNodeParameters.getParamName(paramIndex);
-    G_ASSERT(paramIndex >= 0);
     G_VERIFY(treeDataNode.params.removeParam(variableName));
   }
   else if (pcb_id == ID_COMPOSITE_EDITOR_NODE_PARAMETERS_COPY)

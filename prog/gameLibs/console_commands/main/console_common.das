@@ -38,6 +38,11 @@ def is_probably_eid(str : string)
   return true
 
 
+def unquote_console_arg(arg : string) : string
+  let len = length(arg)
+  return len >= 2 && starts_with(arg, "\"") && ends_with(arg, "\"") ? slice(arg, 1, len - 1) : arg
+
+
 def find_console_hint_entities(str : string;
                                threshold_cam_distance_sq : float;
                                hints_count : int) : array<FindConsoleHintEntityResult>

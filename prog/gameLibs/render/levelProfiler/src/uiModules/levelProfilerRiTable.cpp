@@ -727,19 +727,19 @@ bool LpRiTable::isFilterActive(ColumnIndex column) const
       if (column >= dipsBase && column < dipsBase + lodCount)
       {
         int lod = static_cast<int>(column) - dipsBase;
-        return lod >= 0 && lod < static_cast<int>(lodDipsRangeFilters.size()) &&
+        return lod < static_cast<int>(lodDipsRangeFilters.size()) &&
                (lodDipsRangeFilters[lod].isUsingMin() || lodDipsRangeFilters[lod].isUsingMax());
       }
       if (column >= trisBase && column < trisBase + lodCount)
       {
         int lod = static_cast<int>(column) - trisBase;
-        return lod >= 0 && lod < static_cast<int>(lodTrisRangeFilters.size()) &&
+        return lod < static_cast<int>(lodTrisRangeFilters.size()) &&
                (lodTrisRangeFilters[lod].isUsingMin() || lodTrisRangeFilters[lod].isUsingMax());
       }
       if (column >= distBase && column < distBase + lodCount)
       {
         int lod = static_cast<int>(column) - distBase;
-        return lod >= 0 && lod < static_cast<int>(lodDistRangeFilters.size()) &&
+        return lod < static_cast<int>(lodDistRangeFilters.size()) &&
                (lodDistRangeFilters[lod].isUsingMin() || lodDistRangeFilters[lod].isUsingMax());
       }
 
@@ -747,7 +747,7 @@ bool LpRiTable::isFilterActive(ColumnIndex column) const
       if (column >= screenBase && column < screenBase + lodCount)
       {
         int lod = static_cast<int>(column) - screenBase;
-        return lod >= 0 && lod < static_cast<int>(lodScreenRangeFilters.size()) &&
+        return lod < static_cast<int>(lodScreenRangeFilters.size()) &&
                (lodScreenRangeFilters[lod].isUsingMin() || lodScreenRangeFilters[lod].isUsingMax());
       }
 
@@ -757,8 +757,7 @@ bool LpRiTable::isFilterActive(ColumnIndex column) const
       {
         int lod = (static_cast<int>(column) - shadersBase) + RiLayout::HEAVY_SHADERS_START_LOD;
         int filterIndex = lod - RiLayout::HEAVY_SHADERS_START_LOD;
-        return filterIndex >= 0 && filterIndex < static_cast<int>(heavyShaderFilters.size()) &&
-               !heavyShaderFilters[filterIndex].getOffList().empty();
+        return filterIndex < static_cast<int>(heavyShaderFilters.size()) && !heavyShaderFilters[filterIndex].getOffList().empty();
       }
       return false;
   }
@@ -809,19 +808,19 @@ void LpRiTable::clearColumnFilter(ColumnIndex column)
       if (column >= dipsBase && column < dipsBase + lodCount)
       {
         int lod = static_cast<int>(column) - dipsBase;
-        if (lod >= 0 && lod < static_cast<int>(lodDipsRangeFilters.size()))
+        if (lod < static_cast<int>(lodDipsRangeFilters.size()))
           lodDipsRangeFilters[lod].reset();
       }
       else if (column >= trisBase && column < trisBase + lodCount)
       {
         int lod = static_cast<int>(column) - trisBase;
-        if (lod >= 0 && lod < static_cast<int>(lodTrisRangeFilters.size()))
+        if (lod < static_cast<int>(lodTrisRangeFilters.size()))
           lodTrisRangeFilters[lod].reset();
       }
       else if (column >= distBase && column < distBase + lodCount)
       {
         int lod = static_cast<int>(column) - distBase;
-        if (lod >= 0 && lod < static_cast<int>(lodDistRangeFilters.size()))
+        if (lod < static_cast<int>(lodDistRangeFilters.size()))
           lodDistRangeFilters[lod].reset();
       }
       else
@@ -830,7 +829,7 @@ void LpRiTable::clearColumnFilter(ColumnIndex column)
         if (column >= screenBase && column < screenBase + lodCount)
         {
           int lod = static_cast<int>(column) - screenBase;
-          if (lod >= 0 && lod < static_cast<int>(lodScreenRangeFilters.size()))
+          if (lod < static_cast<int>(lodScreenRangeFilters.size()))
             lodScreenRangeFilters[lod].reset();
         }
         else
@@ -841,7 +840,7 @@ void LpRiTable::clearColumnFilter(ColumnIndex column)
           {
             int lod = (static_cast<int>(column) - shadersBase) + RiLayout::HEAVY_SHADERS_START_LOD;
             int filterIndex = lod - RiLayout::HEAVY_SHADERS_START_LOD;
-            if (filterIndex >= 0 && filterIndex < static_cast<int>(heavyShaderFilters.size()))
+            if (filterIndex < static_cast<int>(heavyShaderFilters.size()))
             {
               heavyShaderFilters[filterIndex].reset();
             }
@@ -1131,7 +1130,7 @@ bool LpRiTable::dynamicFiltersPass(const RiData &data_ref) const
     if (static_cast<int>(lodIndex) >= RiLayout::HEAVY_SHADERS_START_LOD)
     {
       int filterIndex = static_cast<int>(lodIndex) - RiLayout::HEAVY_SHADERS_START_LOD;
-      if (filterIndex >= 0 && filterIndex < static_cast<int>(heavyShaderFilters.size()))
+      if (filterIndex < static_cast<int>(heavyShaderFilters.size()))
       {
         if (!lod.heavyShaders.empty())
         {
@@ -1155,7 +1154,7 @@ bool LpRiTable::dynamicFiltersPass(const RiData &data_ref) const
     if (lod < RiLayout::HEAVY_SHADERS_START_LOD)
       continue;
     int filterIndex = lod - RiLayout::HEAVY_SHADERS_START_LOD;
-    if (filterIndex >= 0 && filterIndex < static_cast<int>(heavyShaderFilters.size()))
+    if (filterIndex < static_cast<int>(heavyShaderFilters.size()))
       if (!heavyShaderFilters[filterIndex].pass(EMPTY_SENTINEL))
         return false;
   }
@@ -1278,9 +1277,7 @@ int LpRiTable::compareRiItems(const void *item1, const void *item2, const ImGuiT
         return spec->SortDirection == ImGuiSortDirection_Ascending ? delta : -delta;
     }
   }
-  if (riItem1->data && riItem2->data)
-    return riItem1->data->name.compare(riItem2->data->name);
-  return UIConstants::EQUAL;
+  return riItem1->data->name.compare(riItem2->data->name);
 }
 
 int LpRiTable::sort_table_items_callback(const ImGuiTableSortSpecs *sort_specs, const void *a, const void *b, void *user_data)

@@ -54,9 +54,7 @@ def test_async_run(t : T?) {
 def test_async_run_all(t : T?) {
     t |> run("async_run_all drives multiple tasks") @(t : T?) {
         g_log |> clear()
-        var tasks : array<iterator<bool>>
-        tasks |> emplace <| logging_task("x", 2)
-        tasks |> emplace <| logging_task("y", 3)
+        var tasks <- [ <- logging_task("x", 2), <- logging_task("y", 3)]
         async_run_all(tasks)
         // Both tasks should have run to completion
         var x_count = 0

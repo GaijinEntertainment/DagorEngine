@@ -10,11 +10,13 @@ namespace drv3d_dx12::debug
 struct Configuration
 {
   bool enableGPUCapturers : 1 = false;
-  bool loadPIXCapturer : 1 = false;
+  bool usePIXCapturer : 1 = false;
   bool enableAftermath : 1 = false;
   bool enableShaderErrorReporting : 1 = false;
   bool enableGPUDumps : 1 = false;
   bool enableDRED : 1 = false;
+  bool enableDREDDumps : 1 = false;
+  bool dredMarkersOnly : 1 = false;
   bool ignoreDREDAvailability : 1 = false;
   bool trackPageFaults : 1 = false;
   bool enableDagorGPUTrace : 1 = false;
@@ -50,6 +52,7 @@ struct Configuration
     enableAftermath = true;
     enableGPUDumps = true;
     enableDRED = true;
+    dredMarkersOnly = true;
     trackPageFaults = true;
     enableDagorGPUTrace = true;
   }
@@ -61,17 +64,18 @@ struct Configuration
     enableShaderErrorReporting = true;
     enableGPUDumps = true;
     enableDRED = true;
+    dredMarkersOnly = false;
     ignoreDREDAvailability = false;
     trackPageFaults = true;
     enableDagorGPUTrace = true;
     enableCPUValidation = true;
   }
 
-  void applyPIXProfile() { enableGPUCapturers = loadPIXCapturer = true; }
+  void applyPIXProfile() { enableGPUCapturers = usePIXCapturer = true; }
 
   void applyRenderDocProfile() { loadRenderDoc = true; }
 
-  void applyGenericCaptureToolProfile() { enableGPUCapturers = loadPIXCapturer = true; }
+  void applyGenericCaptureToolProfile() { enableGPUCapturers = usePIXCapturer = true; }
 
   void applyShaderDebugProfile()
   {
@@ -79,6 +83,7 @@ struct Configuration
     enableShaderErrorReporting = true;
     enableGPUDumps = true;
     enableDRED = true;
+    dredMarkersOnly = false;
     trackPageFaults = true;
     enableDagorGPUTrace = true;
     enableGPUValidation = true;
@@ -91,6 +96,7 @@ struct Configuration
     enableShaderErrorReporting = true;
     enableGPUDumps = true;
     enableDRED = true;
+    dredMarkersOnly = false;
     trackPageFaults = true;
     enableDagorGPUTrace = true;
     enableAgsTrace = true;
@@ -107,6 +113,7 @@ struct Configuration
   void applyDREDProfile()
   {
     enableDRED = true;
+    dredMarkersOnly = false;
     ignoreDREDAvailability = true;
     trackPageFaults = true;
   }
@@ -201,7 +208,7 @@ struct Configuration
     trackPageFaults = settings->getBool("trackPageFaults", trackPageFaults || debugLevel > 0 || enableAftermath);
     enableDRED = settings->getBool("allowDRED", enableDRED);
     enableGPUCapturers = settings->getBool("enableGPUCapturers", enableGPUCapturers);
-    loadPIXCapturer = settings->getBool("loadPixCapturer", loadPIXCapturer);
+    usePIXCapturer = settings->getBool("loadPixCapturer", usePIXCapturer);
     enableDagorGPUTrace = settings->getBool("enableDagorGPUTrace", enableDagorGPUTrace);
     enableShaderErrorReporting = settings->getBool("enableShaderErrorReporting", enableShaderErrorReporting);
     ignoreDREDAvailability = settings->getBool("ignoreDREDAvailability", ignoreDREDAvailability);
@@ -227,8 +234,10 @@ struct Configuration
     enableAgsProfile = modernSettings->getBool("agsProfile", enableAgsProfile);
     trackPageFaults = modernSettings->getBool("pageFaults", trackPageFaults || debugLevel > 0 || enableAftermath);
     enableDRED = modernSettings->getBool("DRED", enableDRED);
+    enableDREDDumps = modernSettings->getBool("DREDDumps", enableDREDDumps);
+    dredMarkersOnly = modernSettings->getBool("DREDMarkersOnly", dredMarkersOnly);
     enableGPUCapturers = modernSettings->getBool("gpuCapturers", enableGPUCapturers);
-    loadPIXCapturer = modernSettings->getBool("loadPixCapturer", loadPIXCapturer);
+    usePIXCapturer = modernSettings->getBool("loadPixCapturer", usePIXCapturer);
     enableDagorGPUTrace = modernSettings->getBool("dagorGPUTrace", enableDagorGPUTrace);
     enableShaderErrorReporting = modernSettings->getBool("shaderErrorReporting", enableShaderErrorReporting);
     ignoreDREDAvailability = modernSettings->getBool("ignoreDREDAvailability", ignoreDREDAvailability);

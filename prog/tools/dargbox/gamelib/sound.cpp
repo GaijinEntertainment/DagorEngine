@@ -41,16 +41,12 @@ namespace gamelib
 namespace sound
 {
 
-static int playing_sound_count = 0;
 static int64_t total_samples_played = 0;
 static volatile double total_time_played = 0.0;
 
 static WinCritSec sound_cs;
-static volatile bool sound_cs_manual_entered = false;
 
 static float master_volume = 1.0f;
-
-static uint64_t memory_used = 0;
 
 
 struct PcmSound
@@ -62,21 +58,13 @@ public:
   int frequency;
   int samples;
   int channels;
-  unsigned memoryUsed;
 
   float *getData() const { return data; }
 
-  void newData(size_t size)
-  {
-    memoryUsed = size;
-    data = new float[(size + 3) / sizeof(float)];
-    memory_used += memoryUsed;
-  }
+  void newData(size_t size) { data = new float[(size + 3) / sizeof(float)]; }
 
   void deleteData()
   {
-    memory_used -= memoryUsed;
-
     delete[] data;
     data = nullptr;
   }
@@ -95,34 +83,16 @@ public:
 
   PcmSound()
   {
-    memoryUsed = 0;
     frequency = 44100;
     samples = 0;
     channels = 1;
     data = nullptr;
-    ++instance_count;
   }
 
-  PcmSound(const PcmSound &b)
-  {
-    memoryUsed = 0;
-    frequency = b.frequency;
-    samples = b.samples;
-    channels = b.channels;
-    newData(getDataMemorySize());
-    memcpy(data, b.data, getDataMemorySize());
-    ++instance_count;
-  }
-
-  PcmSound &operator=(const PcmSound &b);
-  PcmSound(PcmSound &&b);
-  PcmSound &operator=(PcmSound &&b);
+  PcmSound(const PcmSound &) = delete;
+  PcmSound &operator=(const PcmSound &) = delete;
   ~PcmSound();
-
-  static int instance_count;
 };
-
-int PcmSound::instance_count = 0;
 
 
 struct PlayingSound
@@ -195,7 +165,7 @@ struct PlayingSound
     float wishVolumeR = master_volume * volume * ::min(1.0f - pan, 1.0f);
     float *__restrict sndData = sound ? sound->getData() : nullptr;
 
-    double advance = sound ? double(sound->frequency) * inv_frequency * pitch : 1.0;
+    double advance = sound ? sound->frequency * inv_frequency * double(pitch) : 1.0;
 
     if (!stopMode && !waitingStart && sound && volumeL > 0.0f && volumeR > 0.0f && wishVolumeL == volumeL && wishVolumeR == volumeR &&
         pos + advance * count < stopPos && sndData != nullptr)
@@ -410,10 +380,6 @@ struct PlayingSound
 
 static array<PlayingSound, MAX_PLAYING_SOUNDS> playing_sounds;
 
-int get_total_sound_count() { return PcmSound::instance_count; }
-
-int get_playing_sound_count() { return int(playing_sound_count); }
-
 static int allocate_playing_sound()
 {
   for (int i = 1; i < MAX_PLAYING_SOUNDS; i++)
@@ -460,7 +426,6 @@ static void apply_limiter(float *__restrict buf, int count)
 
 static void fill_buffer_cb(float *__restrict out_buf, int frequency, int channels, int samples)
 {
-  int cnt = 0;
   double total_time_played_ = total_time_played;
   {
     WinAutoLock lock(sound_cs);
@@ -473,13 +438,9 @@ static void fill_buffer_cb(float *__restrict out_buf, int frequency, int channel
 
     while (samplesLeft > 0)
     {
-      cnt = 0;
       for (auto &&s : playing_sounds)
         if (!s.isEmpty())
-        {
-          cnt++;
           s.mixTo(mixCursor, ::min(samplesLeft, step), frequency, invFrequency, ::min(samplesLeft, step) * invFrequency);
-        }
 
       samplesLeft -= step;
       mixCursor += step * channels;
@@ -488,7 +449,6 @@ static void fill_buffer_cb(float *__restrict out_buf, int frequency, int channel
     }
   }
   apply_limiter(out_buf, samples * channels);
-  playing_sound_count = cnt;
 
   total_time_played = total_time_played_;
 }
@@ -723,6 +683,7 @@ static SQInteger set_sound_data(HSQUIRRELVM vm)
     return sq_throwerror(vm, "PcmSound instance expected");
 
   const PcmSound *pcm = Sqrat::Var<const PcmSound *>(vm, 1).value;
+  WinAutoLock lock(sound_cs);
 
   SQUserPointer blobData = nullptr;
   if (SQ_SUCCEEDED(sqstd_getblob(vm, 2, &blobData)))
@@ -731,7 +692,7 @@ static SQInteger set_sound_data(HSQUIRRELVM vm)
     int pcmSize = pcm->getDataMemorySize();
     int usedSize = ::min<int>(pcmSize, blobSize);
     memcpy(pcm->getData(), blobData, usedSize);
-    memset((char *)(pcm->getData()) + pcmSize, 0, pcmSize - usedSize);
+    memset((char *)(pcm->getData()) + usedSize, 0, pcmSize - usedSize);
   }
   else if (sq_gettype(vm, 2) == OT_ARRAY)
   {
@@ -816,7 +777,7 @@ static SQInteger play_sound(HSQUIRRELVM vm)
   s.stopPos = stop;
   s.loop = loop;
   s.stopMode = false;
-  s.timeToStart = ::max(defer_time_sec, 0.0f);
+  s.timeToStart = double(::max(defer_time_sec, 0.0f));
   s.waitingStart = (s.timeToStart != 0.0);
 
   PlayingSoundHandle res = idx | s.version;
@@ -889,7 +850,7 @@ void set_sound_play_pos(PlayingSoundHandle handle, float pos_seconds)
   if (!playing_sounds[idx].sound || playing_sounds[idx].stopMode)
     return;
 
-  double p = floor(playing_sounds[idx].sound->frequency * pos_seconds);
+  double p = floor(double(playing_sounds[idx].sound->frequency * pos_seconds));
   playing_sounds[idx].pos = ::clamp(p, playing_sounds[idx].startPos, playing_sounds[idx].stopPos);
 }
 
@@ -916,24 +877,6 @@ void stop_all_sounds()
       s.setStopMode();
 }
 
-void enter_sound_critical_section()
-{
-  if (sound_cs_manual_entered)
-    return;
-
-  sound_cs.lock();
-  sound_cs_manual_entered = true;
-}
-
-void leave_sound_critical_section()
-{
-  if (sound_cs_manual_entered)
-  {
-    sound_cs_manual_entered = false;
-    sound_cs.unlock();
-  }
-}
-
 void set_master_volume(float volume)
 {
   WinAutoLock lock(sound_cs);
@@ -945,75 +888,6 @@ float get_output_sample_rate() { return OUTPUT_SAMPLE_RATE; }
 int64_t get_total_samples_played() { return total_samples_played; }
 
 double get_total_time_played() { return total_time_played; }
-
-double get_memory_used() { return double(memory_used); }
-
-
-PcmSound::PcmSound(PcmSound &&b)
-{
-  WinAutoLock lock(sound_cs);
-
-  for (auto &&s : playing_sounds)
-    if (s.sound == this || s.sound == &b)
-      if (!s.isEmpty())
-        s.setStopMode();
-
-  frequency = b.frequency;
-  samples = b.samples;
-  channels = b.channels;
-  memoryUsed = b.memoryUsed;
-  data = b.data;
-
-  b.memoryUsed = 0;
-  b.data = nullptr;
-
-  ++instance_count;
-}
-
-PcmSound &PcmSound::operator=(const PcmSound &b)
-{
-  if (this == &b)
-    return *this;
-
-  WinAutoLock lock(sound_cs);
-
-  for (auto &&s : playing_sounds)
-    if (s.sound == this)
-      if (!s.isEmpty())
-        s.setStopMode();
-
-  deleteData();
-  frequency = b.frequency;
-  samples = b.samples;
-  channels = b.channels;
-  newData(getDataMemorySize());
-  memcpy(data, b.data, getDataMemorySize());
-  return *this;
-}
-
-PcmSound &PcmSound::operator=(PcmSound &&b)
-{
-  if (this == &b)
-    return *this;
-
-  WinAutoLock lock(sound_cs);
-
-  for (auto &&s : playing_sounds)
-    if (s.sound == this || s.sound == &b)
-      if (!s.isEmpty())
-        s.setStopMode();
-
-  frequency = b.frequency;
-  samples = b.samples;
-  channels = b.channels;
-  data = b.data;
-  memoryUsed = b.memoryUsed;
-
-  b.data = nullptr;
-  b.memoryUsed = 0;
-
-  return *this;
-}
 
 
 PcmSound::~PcmSound()
@@ -1030,7 +904,6 @@ PcmSound::~PcmSound()
 
   deleteData();
   samples = 0;
-  --instance_count;
 }
 
 

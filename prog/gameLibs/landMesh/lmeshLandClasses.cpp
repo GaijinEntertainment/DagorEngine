@@ -38,6 +38,7 @@
 #include <EASTL/hash_map.h>
 #include <EASTL/type_traits.h>
 #include <landMesh/landClass.h>
+#include <landMesh/landDetile.h>
 #include <landMesh/riLandClass.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <scene/dag_physMat.h>
@@ -113,8 +114,9 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
   strncpy(&land.name[0], &name[0], sizeof(land.name));
   land.name[sizeof(land.name) - 1] = '\0';
   land.offset = -blk.getPoint2("offset", Point2(0, 0));
-  Point2 size = blk.getPoint2("size", Point2(1, 1));
-  land.tile = safediv(1.0f, size.x);
+  if (String err_msg; !land.detile.load(blk, &err_msg))
+    logerr("landclass <%s>: %s", name, err_msg);
+  land.tile = safediv(1.0f, land.detile.size); // one parse of the size key: the tap math relies on tile == 1 / detile.size
 
   land.lcDetailParamsVS.resize(1);
   land.lcDetailParamsVS[0] = Point4(1, 1, 1, 1);
@@ -128,7 +130,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
   land.flowmapMask = Point4(1, 1, 1, 1);
   float detailSize = blk.getReal("detailSize", 16.13);
   float detailTile = safediv(1.0f, detailSize);
-  float flowmapTiling = safediv(size.x, detailSize);
+  float flowmapTiling = safediv(land.detile.size, detailSize);
   land.lcDetailParamsVS[0] = Point4(detailTile, detailTile, detailTile, detailTile);
 
   String colorName;
@@ -427,7 +429,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
       land.physmatIds.z = PhysMat::getMaterialId(blk.getStr("physMatBlue", defaultPhysmat));
       land.physmatIds.w = PhysMat::getMaterialId(blk.getStr("physMatBlack", defaultPhysmat));
 
-      flowmapTiling = safediv(size.x, max(max(detailSizeRed, detailSizeGreen), max(detailSizeBlue, detailSizeBlack)));
+      flowmapTiling = safediv(land.detile.size, max(max(detailSizeRed, detailSizeGreen), max(detailSizeBlue, detailSizeBlack)));
 
       for (int dType = 0; dType < NUM_TEXTURES_STACK; ++dType)
       {
@@ -458,6 +460,13 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
   }
   return ret;
 }
+
+void land_detile::set_noise_size(float metres)
+{
+  set_noise_size_cpu(metres);
+  ShaderGlobal::set_float(get_shader_variable_id("land_detile_noise_size", true), noise_size);
+}
+
 static bool ends_with(const char *str, const char *end)
 {
   return strlen(str) > strlen(end) && strcmp(str + strlen(str) - strlen(end), end) == 0;

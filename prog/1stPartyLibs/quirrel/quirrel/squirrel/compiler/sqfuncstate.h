@@ -101,7 +101,6 @@ struct SQFuncState
     SQInteger _traps; //contains number of nested exception traps
     SQInteger _outers;
     SQInteger _hoistLevel;
-    SQInteger _staticmemos_count;
     bool _optimization;
     SQSharedState *_sharedstate;
     sqvector<SQFuncState*> _childstates;

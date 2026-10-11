@@ -80,7 +80,7 @@ public:
     data.reset();
   }
 
-  DescriptorHandleAllocationResult allocate(ID3D12Device *device)
+  DescriptorHandleAllocationResult allocate(D3DDevice *device)
   {
     for (auto &&heap : heaps)
     {
@@ -182,7 +182,7 @@ struct BasicBlockHeap
     void freeAll() { freeMap.set(); }
   };
 
-  static DescriptorHeapAllocationResult allocateHeap(ID3D12Device *device, const HeapData &, SubHeapData &)
+  static DescriptorHeapAllocationResult allocateHeap(D3DDevice *device, const HeapData &, SubHeapData &)
   {
     D3D12_DESCRIPTOR_HEAP_DESC desc = {
       .Type = Type,
@@ -312,7 +312,7 @@ struct BasicFreeListHeap
     }
   };
 
-  static DescriptorHeapAllocationResult allocateHeap(ID3D12Device *device, const HeapData &, SubHeapData &heap)
+  static DescriptorHeapAllocationResult allocateHeap(D3DDevice *device, const HeapData &, SubHeapData &heap)
   {
     D3D12_DESCRIPTOR_HEAP_DESC desc = {
       .Type = Type,
@@ -348,7 +348,7 @@ class ManagedDescriptorHeapBase
   uint32_t entrySize = 0;
 
 protected:
-  ManagedDescriptorHeapBase(ID3D12Device *device, uint32_t entry_size, uint32_t heap_size, D3D12_DESCRIPTOR_HEAP_TYPE type) :
+  ManagedDescriptorHeapBase(D3DDevice *device, uint32_t entry_size, uint32_t heap_size, D3D12_DESCRIPTOR_HEAP_TYPE type) :
     entrySize{entry_size}
   {
     D3D12_DESCRIPTOR_HEAP_DESC desc;
@@ -375,7 +375,7 @@ public:
   ID3D12DescriptorHeap *getHandle() { return heap.Get(); }
   D3D12_GPU_DESCRIPTOR_HANDLE getGpuAddress(uint32_t index) const { return gpuBaseAddress + (index * entrySize); }
   D3D12_CPU_DESCRIPTOR_HANDLE getCpuAddress(uint32_t index) const { return cpuBaseAddress + (index * entrySize); }
-  void updateDescriptors(ID3D12Device *device, uint32_t dst_offset, const D3D12_CPU_DESCRIPTOR_HANDLE *desc, uint32_t count,
+  void updateDescriptors(D3DDevice *device, uint32_t dst_offset, const D3D12_CPU_DESCRIPTOR_HANDLE *desc, uint32_t count,
     D3D12_DESCRIPTOR_HEAP_TYPE type)
   {
     auto dstStart = getCpuAddress(dst_offset);
@@ -384,13 +384,13 @@ public:
   }
   // copies 'count' successive from a different heap, starting at 'heap_ptr'
   // This variant is much faster as its a straight memcpy instead of a scatter/gather
-  void updateDescriptors(ID3D12Device *device, uint32_t dst_offset, const D3D12_CPU_DESCRIPTOR_HANDLE heap_ptr, uint32_t count,
+  void updateDescriptors(D3DDevice *device, uint32_t dst_offset, const D3D12_CPU_DESCRIPTOR_HANDLE heap_ptr, uint32_t count,
     D3D12_DESCRIPTOR_HEAP_TYPE type)
   {
     auto dstStart = getCpuAddress(dst_offset);
     device->CopyDescriptorsSimple(count, dstStart, heap_ptr, type);
   }
-  void updateDescriptor(ID3D12Device *device, uint32_t dst_offset, D3D12_CPU_DESCRIPTOR_HANDLE desc, D3D12_DESCRIPTOR_HEAP_TYPE type)
+  void updateDescriptor(D3DDevice *device, uint32_t dst_offset, D3D12_CPU_DESCRIPTOR_HANDLE desc, D3D12_DESCRIPTOR_HEAP_TYPE type)
   {
     device->CopyDescriptorsSimple(1, getCpuAddress(dst_offset), desc, type);
   }
@@ -511,7 +511,7 @@ class ShaderResourceViewDescriptorHeapManager
     Heap(Heap &&) = default;
     Heap &operator=(Heap &&) = default;
 
-    Heap(ID3D12Device *device, uint32_t entry_size) :
+    Heap(D3DDevice *device, uint32_t entry_size) :
       ManagedDescriptorHeapBase{device, entry_size, SRV_HEAP_SIZE, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV}
     {}
 
@@ -525,7 +525,7 @@ class ShaderResourceViewDescriptorHeapManager
       allocationCount = ::bindless::MAX_RESOURCE_INDEX_COUNT;
     }
 
-    DescriptorHeapIndex append(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+    DescriptorHeapIndex append(D3DDevice *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
     {
       auto index = allocationCount;
       allocationCount += count;
@@ -534,14 +534,14 @@ class ShaderResourceViewDescriptorHeapManager
       return DescriptorHeapIndex::make(index);
     }
 
-    DescriptorHeapIndex append(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+    DescriptorHeapIndex append(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
     {
       auto index = allocationCount++;
       device->CopyDescriptorsSimple(1, getCpuAddress(index), descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
       return DescriptorHeapIndex::make(index);
     }
 
-    DescriptorHeapIndex append(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t count)
+    DescriptorHeapIndex append(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t count)
     {
       auto index = allocationCount;
       allocationCount += count;
@@ -560,7 +560,7 @@ class ShaderResourceViewDescriptorHeapManager
     /// returns true when enough space is available
     bool reserveSpace(uint32_t size) const { return (SRV_HEAP_SIZE - allocationCount) >= size; }
 
-    void updateBindlessSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t rev)
+    void updateBindlessSegment(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t rev)
     {
       if (bindlessRev == rev)
       {
@@ -574,7 +574,7 @@ class ShaderResourceViewDescriptorHeapManager
   uint32_t activeHeapIndex = 0;
   uint32_t entrySize = 0;
 
-  void nextHeap(ID3D12Device *device)
+  void nextHeap(D3DDevice *device)
   {
     ++activeHeapIndex;
     if (activeHeapIndex >= heaps.size())
@@ -593,7 +593,7 @@ public:
   ShaderResourceViewDescriptorHeapManager(ShaderResourceViewDescriptorHeapManager &&) = default;
   ShaderResourceViewDescriptorHeapManager &operator=(ShaderResourceViewDescriptorHeapManager &&) = default;
 
-  ShaderResourceViewDescriptorHeapManager(ID3D12Device *device, uint32_t entry_size) : entrySize{entry_size}
+  ShaderResourceViewDescriptorHeapManager(D3DDevice *device, uint32_t entry_size) : entrySize{entry_size}
   {
     // create initial heap so we never have zero
     heaps.emplace_back(device, entry_size);
@@ -639,12 +639,12 @@ public:
 
   DescriptorHeapIndex findInUAVScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE) const { return DescriptorHeapIndex::make_invalid(); }
 
-  DescriptorHeapIndex appendToUAVScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+  DescriptorHeapIndex appendToUAVScratchSegment(D3DDevice *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptors, count), activeHeapIndex);
   }
 
-  DescriptorHeapIndex appendToUAVScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+  DescriptorHeapIndex appendToUAVScratchSegment(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptor), activeHeapIndex);
   }
@@ -658,17 +658,17 @@ public:
 
   DescriptorHeapIndex findInSRVScratchSegment(D3D12_CPU_DESCRIPTOR_HANDLE) const { return DescriptorHeapIndex::make_invalid(); }
 
-  DescriptorHeapIndex appendToSRVScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+  DescriptorHeapIndex appendToSRVScratchSegment(D3DDevice *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptors, count), activeHeapIndex);
   }
 
-  DescriptorHeapIndex appendToSRVScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+  DescriptorHeapIndex appendToSRVScratchSegment(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptor), activeHeapIndex);
   }
 
-  void flushBindlessToHeaps(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t rev)
+  void flushBindlessToHeaps(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t rev)
   {
     // with size of 0, GDK will crash, as MS decided to implemented it with a do while loop that copies in revers which
     // breaks when supplied with 0.
@@ -685,7 +685,7 @@ public:
     }
   }
 
-  DescriptorHeapIndex appendToConstScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptors, uint32_t count)
+  DescriptorHeapIndex appendToConstScratchSegment(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptors, uint32_t count)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].append(device, descriptors, count), activeHeapIndex);
   }
@@ -695,7 +695,7 @@ public:
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].allocateDescriptors(count), activeHeapIndex);
   }
 
-  DescriptorReservationResult reserveSpace(ID3D12Device *device, uint32_t slot_count)
+  DescriptorReservationResult reserveSpace(D3DDevice *device, uint32_t slot_count)
   {
     if (heaps[activeHeapIndex].reserveSpace(slot_count))
     {
@@ -728,7 +728,7 @@ class SamplerDescriptorHeapManager
     Heap(Heap &&) = default;
     Heap &operator=(Heap &&) = default;
 
-    Heap(ID3D12Device *device, uint32_t entry_size) :
+    Heap(D3DDevice *device, uint32_t entry_size) :
       ManagedDescriptorHeapBase{device, entry_size, SAMPLER_HEAP_SIZE, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER}
     {}
 
@@ -744,7 +744,7 @@ class SamplerDescriptorHeapManager
       return DescriptorHeapIndex::make(at != to, scratch_space_offset + (at - cpuDescriptorTable));
     }
 
-    DescriptorHeapIndex appendToScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+    DescriptorHeapIndex appendToScratchSegment(D3DDevice *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
     {
       // we allocate from back to front, so free count after allocate is the start point of the allocated range
       auto loc = allocationCount;
@@ -757,7 +757,7 @@ class SamplerDescriptorHeapManager
       return DescriptorHeapIndex::make(scratch_space_offset + loc);
     }
 
-    void updateBindlessSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t)
+    void updateBindlessSegment(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size, uint32_t)
     {
       if (bindlessSamplersCommitted == size)
       {
@@ -784,7 +784,7 @@ public:
   SamplerDescriptorHeapManager(SamplerDescriptorHeapManager &&) = default;
   SamplerDescriptorHeapManager &operator=(SamplerDescriptorHeapManager &&) = default;
 
-  SamplerDescriptorHeapManager(ID3D12Device *device, uint32_t entry_size) : entrySize{entry_size}
+  SamplerDescriptorHeapManager(D3DDevice *device, uint32_t entry_size) : entrySize{entry_size}
   {
     // create initial heap so we never have zero
     heaps.emplace_back(device, entry_size);
@@ -806,12 +806,12 @@ public:
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].findInScratchSegment(descriptors, count), activeHeapIndex);
   }
-  DescriptorHeapIndex appendToScratchSegment(ID3D12Device *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
+  DescriptorHeapIndex appendToScratchSegment(D3DDevice *device, const D3D12_CPU_DESCRIPTOR_HANDLE *descriptors, uint32_t count)
   {
     return DescriptorHeapIndex::set_heap(heaps[activeHeapIndex].appendToScratchSegment(device, descriptors, count), activeHeapIndex);
   }
 
-  DescriptorHeapRange migrateToActiveScratchSegment(ID3D12Device *device, DescriptorHeapRange range)
+  DescriptorHeapRange migrateToActiveScratchSegment(D3DDevice *device, DescriptorHeapRange range)
   {
     G_ASSERT(static_cast<bool>(range));
     auto count = range.count;
@@ -840,7 +840,7 @@ public:
     activeHeapIndex = 0;
   }
 
-  bool ensureScratchSegmentSpace(ID3D12Device *device, uint32_t size)
+  bool ensureScratchSegmentSpace(D3DDevice *device, uint32_t size)
   {
     G_ASSERTF(size < SAMPLER_HEAP_SIZE, "Can not reserve %u descriptors, because its more than a single "
                                         "heap can provide");
@@ -855,7 +855,7 @@ public:
     return oldActiveHeapIndex != activeHeapIndex;
   }
 
-  void flushBindlessToHeaps(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size)
+  void flushBindlessToHeaps(D3DDevice *device, D3D12_CPU_DESCRIPTOR_HANDLE base_ptr, uint32_t size)
   {
     if (bindlessSamplersCommitted != size)
     {

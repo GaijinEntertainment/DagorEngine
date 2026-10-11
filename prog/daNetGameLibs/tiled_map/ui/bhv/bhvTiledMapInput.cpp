@@ -4,14 +4,12 @@
 #include "bhvTiledMapInput.h"
 #include <daRg/dag_element.h>
 #include <daRg/dag_guiScene.h>
-#include <drv/hid/dag_hiComposite.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <EASTL/fixed_vector.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include <perfMon/dag_statDrv.h>
-#include <startup/dag_inpDevClsDrv.h>
 
 #include <ecs/scripts/sqBindEvent.h>
 
@@ -28,16 +26,6 @@ SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvTiledMapInput, bhv_tiled_map_input, cs
 
 bool BhvTiledMapInput::isActionInited = false;
 dainput::action_handle_t BhvTiledMapInput::aZoomIn, BhvTiledMapInput::aZoomOut;
-
-
-static HumanInput::IGenJoystick *get_joystick()
-{
-  if (::global_cls_composite_drv_joy)
-    return ::global_cls_composite_drv_joy->getDefaultJoystick();
-  else if (::global_cls_drv_joy)
-    return ::global_cls_drv_joy->getDefaultJoystick();
-  return nullptr;
-}
 
 
 struct TiledMapInputTouchData
@@ -247,8 +235,8 @@ int BhvTiledMapInput::update(UpdateStage /*stage*/, Element *elem, float dt)
 
   using namespace HumanInput;
 
-  IGenJoystick *joy = get_joystick();
-  if (!joy)
+  IGuiScene *scene = get_scene_from_sqvm(elem->getVM());
+  if (!scene->getJoystick())
     return 0;
 
   if (!(elem->getStateFlags() & Element::S_HOVER))
@@ -276,10 +264,12 @@ int BhvTiledMapInput::update(UpdateStage /*stage*/, Element *elem, float dt)
     const float visRadius = tiledMapContext->getVisibleRadius();
     const float moveSpeed = 10.0f * (maxVisibleRadius > 0.f ? (visRadius / maxVisibleRadius) : 1.f);
 
-    float axisValueX = float(joy->getAxisPosRaw(JOY_XINPUT_REAL_AXIS_R_THUMB_H)) / JOY_XINPUT_MAX_AXIS_VAL;
-    float axisValueY = float(joy->getAxisPosRaw(JOY_XINPUT_REAL_AXIS_R_THUMB_V)) / JOY_XINPUT_MAX_AXIS_VAL;
-    float worldDx = visRadius * axisValueX * dt * moveSpeed;
-    float worldDy = -visRadius * axisValueY * dt * moveSpeed;
+    auto strings = cstr.resolveVm(elem->getVM());
+    G_ASSERT_RETURN(strings, 0);
+    const Point2 stick = scene->getGamepadStick(JOY_XINPUT_REAL_AXIS_R_THUMB_H, JOY_XINPUT_REAL_AXIS_R_THUMB_V,
+      elem->props.scriptDesc.RawGetSlotValue<float>(strings->minStickDeadZone, 0.f));
+    float worldDx = visRadius * stick.x * dt * moveSpeed;
+    float worldDy = -visRadius * stick.y * dt * moveSpeed;
     TMatrix itm;
     tiledMapContext->calcItmFromView(itm);
     Point3 delta;

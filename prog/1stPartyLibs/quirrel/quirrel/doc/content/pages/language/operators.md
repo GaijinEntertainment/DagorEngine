@@ -176,42 +176,6 @@ fallback. An instance that defines `_add` but not `_sub` cannot be subtracted.
 receives, which operand supplies it, and what the VM does with the returned
 value.
 
-## The static memoisation operator
-
-`static` has two unrelated meanings. Inside a class body it declares a shared
-member, described in
-[Classes and instances](page:language/classes#static-members). In an expression it
-is the memoisation operator described here.
-
-`static expr` evaluates `expr` the first time control reaches it and caches the
-result. Every later pass over the same place in the code reuses the cached value
-and evaluates nothing. It binds like the other unary operators (`typeof`,
-`clone`, unary `-`), so it takes the whole postfix expression after it.
-
-Two consequences follow from "the same place in the code":
-
-- **The cache belongs to the code location, not to the call.** A `static` inside a
-  loop body evaluates on the first pass only, and every later iteration gets that
-  first value. Two calls to the same function share one cache, because it is one
-  location. Two identical `static` expressions written in two places have two
-  separate caches.
-- **A cached container is frozen.** An `array`, `table`, `instance`, `class` or
-  `userdata` result is made immutable, as [freeze](sym:freeze) does, so a later
-  write throws `trying to modify immutable 'table'`. This makes the shared value
-  safe to hand out. A number, string or bool has nothing to freeze and is cached
-  as is.
-
-{{example:language/operators-static}}
-
-Use it for work that is expensive and gives the same answer every time: a parsed
-table, a lookup built from constants, a colour palette. Do not use it for
-anything that depends on state the expression does not name, because nothing
-re-runs it when that state changes.
-
-[modules.reset_static_memos](sym:modules.reset_static_memos) empties every cache
-in the VM. It is the only way to force re-evaluation. It exists for events like a
-script reload or a resolution change, and it is too expensive to call often.
-
 ## Precedence traps
 
 - `??` binds looser than the comparison operators, so `a ?? b > c`

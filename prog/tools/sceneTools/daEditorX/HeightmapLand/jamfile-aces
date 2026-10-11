@@ -94,7 +94,7 @@ UseProgLibs =
   tools/libTools/staticGeom
   tools/libTools/dagFileRW
   gameLibs/landMesh
-  engine/sceneRay
+  engine/daBVH
   engine/image
   engine/perfMon/daProfilerStub
 

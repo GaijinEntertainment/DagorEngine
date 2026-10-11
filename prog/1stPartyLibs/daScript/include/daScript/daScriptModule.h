@@ -45,6 +45,8 @@ DAS_CC_API void register_fusion ();
 // Pull a module through its global C-linkage registration entry point. Built-in
 // modules are declared above. A separately compiled custom module must first be
 // declared with DECLARE_MODULE at file scope.
+// dagor: pull through das_pull_##ClassName (emitted by REGISTER_MODULE), which the macro declares
+// itself - the game's module list has no DECLARE_MODULE for each entry.
 #define NEED_MODULE(ClassName) \
     extern DAS_API das::Module * das_pull_##ClassName (); \
     *das::ModuleKarma += unsigned(intptr_t(das_pull_##ClassName()));

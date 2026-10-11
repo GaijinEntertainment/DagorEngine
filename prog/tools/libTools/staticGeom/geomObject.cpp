@@ -114,7 +114,7 @@ GeomObject::GeomObject() :
   allmats(tmpmem),
   shaderNameIds(midmem),
   useNodeVisRange(0),
-  rayTracer(NULL),
+  collision(NULL),
   doNotChangeVertexColors(0),
   hasReflection(0),
   localBoundBox(0)
@@ -132,7 +132,7 @@ GeomObject::~GeomObject()
 {
   if (hasReflection && stat_geom_on_remove)
     stat_geom_on_remove(this);
-  delRayTracer();
+  delCollision();
 
   if (!externalGeomContainer)
     del_it(geom);
@@ -175,7 +175,7 @@ void GeomObject::initStaticMembers()
 //==============================================================================
 void GeomObject::clear()
 {
-  delRayTracer();
+  delCollision();
 
   if (externalGeomContainer)
   {
@@ -236,7 +236,7 @@ void GeomObject::connectToGeomContainer(StaticGeometryContainer *new_geom)
     del_it(geom);
   }
 
-  delRayTracer();
+  delCollision();
 
   geom = new_geom;
   externalGeomContainer = 1;
@@ -260,7 +260,7 @@ void GeomObject::createFromGeomContainer(const StaticGeometryContainer *cont, bo
     geom = new (midmem) StaticGeometryContainer;
     externalGeomContainer = 0;
   }
-  delRayTracer();
+  delCollision();
 
   eraseAllMats(false);
 
@@ -1313,6 +1313,7 @@ void GeomObject::RenderObject::render()
       ShaderGlobal::set_float4(landCellShortDecodeYVarId, LAND_SHORT_DECODE_NORM, 0, 0, 0);
     }
   }
+  SCENE_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
   if (filter_class_name)
   {
     for (int mi = 0; mi < lods[curLod].mesh->getAllElems().size(); ++mi)
@@ -1378,6 +1379,7 @@ void GeomObject::RenderObject::renderTrans()
       ShaderGlobal::set_float4(landCellShortDecodeYVarId, LAND_SHORT_DECODE_NORM, 0, 0, 0);
     }
   }
+  SCENE_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
   ShaderGlobal::set_float(hdrLightmapScaleId, LIGHTMAP_SCALE);
 
   lods[curLod].mesh->render_trans();

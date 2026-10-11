@@ -8,6 +8,10 @@
 
 #include <stdlib.h>
 
+#if !DAS_TARGET_PS && !defined(_WIN32)
+extern "C" char ** environ;
+#endif
+
 namespace das {
 
     const char * das_getenv ( const char * name ) {
@@ -29,6 +33,16 @@ namespace das {
 #endif
     }
 
+    char * const * das_environ () {
+#if DAS_TARGET_PS
+        return nullptr;
+#elif defined(_WIN32)
+        return _environ;
+#else
+        return environ;
+#endif
+    }
+
     const char * get_dasenv_gc_stage_report ()         { return das_getenv("DAS_GC_STAGE_REPORT"); }
     const char * get_dasenv_gc_break_on_id ()          { return das_getenv("DAS_GC_BREAK_ON_ID"); }
     const char * get_dasenv_jobque_threads ()          { return das_getenv("DAS_JOBQUE_THREADS"); }
@@ -38,6 +52,11 @@ namespace das {
     const char * get_dasenv_jobque_team_eager_exit ()  { return das_getenv("DAS_JOBQUE_TEAM_EAGER_EXIT"); }
     const char * get_dasenv_team_prof ()               { return das_getenv("DAS_TEAM_PROF"); }
     const char * get_dasenv_trace_module_load ()       { return das_getenv("DAS_TRACE_MODULE_LOAD"); }
+    const char * get_dasenv_module_cache_limit ()      { return das_getenv("DAS_MODULE_CACHE_LIMIT"); }
+    const char * get_dasenv_log_level ()               { return das_getenv("DAS_LOG_LEVEL"); }
+    const char * get_dasenv_depfile ()                 { return das_getenv("DAS_DEPFILE"); }
+    const char * get_dasenv_depfile_target ()          { return das_getenv("DAS_DEPFILE_TARGET"); }
+    const char * get_dasenv_depfile_exclude ()         { return das_getenv("DAS_DEPFILE_EXCLUDE"); }
 
     const char * get_columns ()                     { return das_getenv("COLUMNS"); }
 }

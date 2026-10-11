@@ -99,14 +99,15 @@ public:
 
           const unsigned llm = riPool->lodLimits >> ((ri_game_render_mode + 1) * 8);
           const unsigned min_lod = llm & 0xF, max_lod = (llm >> 4) & 0xF;
-          if (riPool->distSqLOD[max_lod] <= distSqScaledNormalized * rendinst::render::riExtraLodsShiftDistMulForCulling)
+          if (riPool->distSqLOD[max_lod] <= distSqScaledNormalized * rendinst::render::riExtraCullCompareMul)
             return;
 
           unsigned lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool->distSqLOD, distSqScaledNormalized);
           lod = clamp(lod, min_lod, max_lod);
+          auto &dataBucket = v.riexData[lod].data()[poolId];
           int cnt_idx = poolId * rendinst::RiExtraPool::MAX_LODS + lod;
           int new_sz = riexDataCnt[cnt_idx].fetch_add(RIEXTRA_VECS_COUNT) + RIEXTRA_VECS_COUNT;
-          if (new_sz > v.riexData[lod].data()[poolId].size())
+          if (new_sz > dataBucket.capacity()) // testing capacity, size is not up to date, we are writing directly to the array
           {
             if (sortLarge && lod < LARGE_LOD_CNT && (scene::check_node_flags(m, RendinstTiledScene::LARGE_OCCLUDER)))
               riexLargeCnt[poolId * LARGE_LOD_CNT + lod].fetch_add(1);
@@ -128,22 +129,22 @@ public:
             // used only for texture lod selection so, even a bit randomly it should work with relaxed load/store
             interlocked_relaxed_store(*(uint32_t *)(v.minSqDistances[lod].data() + poolId), distI);
           }
-          vec4f *addData = v.riexData[lod].data()[poolId].data() + (new_sz - RIEXTRA_VECS_COUNT);
+          vec4f *addData = dataBucket.data() + (new_sz - RIEXTRA_VECS_COUNT);
           rendinst::render::write_ri_extra_per_instance_data(addData, tiled_scene, poolId, ni, m, riPool->isDynamic);
 
           const uint32_t id = new_sz / RIEXTRA_VECS_COUNT - 1;
           if (sortLarge && lod < LARGE_LOD_CNT && (scene::check_node_flags(m, RendinstTiledScene::LARGE_OCCLUDER)))
           {
+            auto &largeBucket = v.riexLarge[lod].data()[poolId];
             cnt_idx = poolId * LARGE_LOD_CNT + lod;
             new_sz = riexLargeCnt[cnt_idx].fetch_add(1) + 1;
-            if (new_sz > v.riexLarge[lod].data()[poolId].size())
-              return;
             // this is almost as fast as using dist2 and is technically more correct.
             // however, since large occluders are usually not scaled, their radius is constant, and
             //  v_dot3_x(sphere, sort_dir) isn't that much different from projected dist
             // vec4f sphere = scene::get_node_bsphere(m);
             // float sdist = v_extract_x(v_sub(v_dot3_x(sphere, sort_dir), v_splat_w(sphere)));
-            v.riexLarge[lod].data()[poolId][new_sz - 1] = {bitwise_cast<int, float>(sdist), id};
+            if (new_sz <= largeBucket.capacity()) // testing capacity, size is not up to date, we are writing directly to the array
+              largeBucket.data()[new_sz - 1] = {bitwise_cast<int, float>(sdist), id};
           }
 
           auto &minDist = info->perPoolMinDist->data()[poolId + poolInfo.size() * job_idx];

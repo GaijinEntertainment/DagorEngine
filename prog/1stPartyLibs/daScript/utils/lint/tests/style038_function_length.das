@@ -16,7 +16,7 @@ options _function_length = 10           // keep fixture functions small
 // style038_function_length_off.das).
 // Suppress a deliberate keep with '// nolint:STYLE038' on the def line.
 
-expect 31209:2
+expect 31209:3
 
 require daslib/style_lint
 
@@ -56,6 +56,23 @@ def bad_long_closure(x : int) : int {                   // STYLE038
 
 def with_it(x : int; blk : block<(y : int) : void>) {
     invoke(blk, x)
+}
+
+// the host (15 lines) fires; the over-limit lambda CARRIER must not double-report -
+// generated carriers stay unmetered (is_user_authored_body admits them to other rules only)
+def bad_long_function_with_lambda(x : int) : int {      // STYLE038 (the host only)
+    var l = @(v : int) : int {
+        var r = v
+        r += 1
+        r += 2
+        r += 3
+        r += 4
+        r += 5
+        r += 6
+        r += 7
+        return r
+    }
+    return invoke(l, x)
 }
 
 // exactly at the limit: 10 physical lines, silent

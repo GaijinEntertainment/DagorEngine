@@ -8,10 +8,10 @@
 #error This file is for MSVC only! Not even clang-cl!
 #endif
 
-#if defined(_M_IX86) || defined(_M_X64)
-#include <supp/dag_msvc_atomics_x86.h>
-#elif defined(_M_ARM64)
+#if defined(_M_ARM64) || defined(_M_ARM64EC)
 #include <supp/dag_msvc_atomics_arm.h>
+#elif defined(_M_IX86) || defined(_M_X64)
+#include <supp/dag_msvc_atomics_x86.h>
 #else
 #error "Unsupported architecture!"
 #endif

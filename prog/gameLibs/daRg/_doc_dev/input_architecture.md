@@ -19,7 +19,7 @@ Host App (daguiManager.cpp)
   v
 IGuiScene interface (dag_guiScene.h)
   |  onMouseEvent, onTouchEvent, onKbdEvent,
-  |  onJoystickBtnEvent, onVrInputEvent,
+  |  onJoystickBtnEvent, onVrInputEvent, onTouchPadGesture,
   |  setVrStickScroll, updateSpatialElements
   v
 GuiScene (guiScene.cpp)
@@ -73,7 +73,7 @@ written with this in mind, however in daRg core it is not always like this.
 ### Behavior class (dag_behavior.h)
 
 Every UI element can have zero or more `Behavior` instances. Behaviors declare their
-capabilities via flag bitmasks and receive input through three virtual methods:
+capabilities via flag bitmasks and receive input through four virtual methods:
 
 ```cpp
 // Pointing devices: mouse, touch, VR, gamepad-as-mouse
@@ -88,6 +88,9 @@ int kbdEvent(ElementTree*, Element*, InputEvent event, int key_idx,
 int joystickBtnEvent(ElementTree*, Element*, const IGenJoystick*,
                      InputEvent event, int key_idx, int device_number,
                      const ButtonBits& buttons, int accum_res);
+
+// Gamepad touch pad gestures, only the types of getTouchPadGestures(elem) (section 10)
+int touchPadGestureEvent(ElementTree*, Element*, int state, const TouchPadGesture&, int accum_res);
 ```
 
 ### Key Behavior Flags
@@ -104,6 +107,7 @@ int joystickBtnEvent(ElementTree*, Element*, const IGenJoystick*,
 | `F_INTERNALLY_HANDLE_GAMEPAD_R_STICK` | 0x0040 | Suppresses gamepad cursor on R stick |
 | `F_FOCUS_ON_CLICK` | 0x0200 | Gets keyboard focus on click release |
 | `F_ALLOW_AUTO_SCROLL` | 0x0800 | Eligible for auto-scroll in XMB navigation |
+| `F_HANDLE_TOUCH_PAD_GESTURE` | 0x1000 | Receives `touchPadGestureEvent` (gamepad touch pad, see 10) |
 
 ### BehaviorResult flags (dag_guiConstants.h)
 
@@ -145,12 +149,15 @@ class Screen {
   InputStack cursorStack;   // cursor-eligible elements
   InputStack eventHandlersStack;
   Panel *panel = nullptr;   // non-null for VR panel screens
-  bool isMainScreen;        // true for the primary screen (id=0)
+  bool isMainScreen;        // true for the primary screen (MAIN_SCREEN_ID)
 };
 ```
 
 `GuiScene` manages multiple screens via `eastl::vector_map<int, unique_ptr<Screen>>`.
-One screen is the `focusedScreen` which receives most input. The main screen (id 0)
+The map key is the screen id. The main screen has the id `MAIN_SCREEN_ID` (999, also
+a global script constant). A panel screen has the id of its panel, the index given to
+`gui_scene.addPanel()`, so panel 0 is not the main screen.
+One screen is the `focusedScreen` which receives most input. The main screen
 gets mouse hover processing; panel screens get VR pointer hover processing.
 
 ### InputStack
@@ -361,6 +368,19 @@ to all screens with `DEVID_JOYSTICK` — bypassing the HID mouse driver entirely
 
 Gamepad button press in `onJoystickBtnEvent()` also triggers a switch to
 `DEVID_JOYSTICK`.
+
+### Dead Zone
+
+`gamepadCursorDeadZone` is the UI dead zone as an absolute stick deflection.
+The joystick driver has already cut its own dead zone and rescaled the rest
+(`getStickDeadZoneAbs()`, or none when `isStickDeadZoneSetupSupported()` is false),
+so the cursor, the stick scroll and `IGuiScene::getGamepadStick()` cut only the
+part above it: the effective dead zone is the larger of the driver one and
+`gamepadCursorDeadZone` (and, for `getGamepadStick()`, the caller's minimum).
+Behaviors outside daRg that read a stick (a map pan) call
+`getGamepadStick(axis_h, axis_v, min_dead_zone)` so that they share this dead
+zone. It reads the scene's joystick and returns the axis pair in -1..1, in the
+joystick's orientation, scaled from the edge of the dead zone, or zero inside it.
 
 ### Computation Pipeline
 
@@ -585,6 +605,59 @@ onTouchEvent(event, pointing_device, touch_idx, touch)
 `TouchPointers` tracks active touch points as a vector of `{id, pos}` pairs.
 Touch events are always dispatched to the focused screen only.
 
+### Touch Pad Gestures
+
+A gamepad touch pad has no screen position, so its points never go in as touches. The
+pad driver recognizes the gestures, and the host sends each one with
+`IGuiScene::onTouchPadGesture(state, gesture)` on the main thread: a
+`HumanInput::Gesture` with its `State`, positions and moves in pad pixels.
+
+| Type | States |
+|------|--------|
+| TAP | BEGIN at once, then END (a single tap) or CANCELLED (a DOUBLE_TAP follows) |
+| DOUBLE_TAP | one DOUBLE_TAP event with state ACTIVE (SystemGesture sends it so); daRg reads it as END |
+| HOLD | BEGIN when the hold time is over, END on release (SystemGesture also sends ACTIVE) |
+| DRAG, PINCH, ROTATE | BEGIN, ACTIVE..., END or CANCELLED |
+
+FLICK is not used in the UI. The gesture is the cursor position, so a touch pad gesture
+works as the mouse wheel does:
+
+```
+onTouchPadGesture(state, gesture)
+  |
+  +-- BEGIN: cancel an old capture of the same type
+  |   hit test at activePointerPos() on the focused screen: the first hit element of
+  |   the input stack with F_HANDLE_MOUSE, F_HANDLE_TOUCH_PAD_GESTURE or F_STOP_POINTING
+  |   send to that element, then to its parents, until R_PROCESSED or R_STOPPED
+  |   the element that returns R_PROCESSED captures the gesture
+  |
+  +-- ACTIVE / END / CANCELLED: send to the capturing element only;
+  |   END and CANCELLED release the capture; with no capture the event is dropped
+  |
+  +-- DOUBLE_TAP (not CANCELLED): no capture, sent to the hit chain as END
+  |
+  +-- callScriptHandlers(), rebuildInvalidatedParts()
+```
+
+- The capture is one element per gesture type, so PINCH and ROTATE can run together.
+  When the capturing element is detached (`onElementDetached`, before its behaviors
+  detach), the focused screen changes or the scene input becomes inactive, it gets
+  CANCELLED.
+- A behavior with `F_HANDLE_TOUCH_PAD_GESTURE` gets `touchPadGestureEvent` only for the
+  types of its `getTouchPadGestures(elem)`, a mask of `GestureDetector::Type` bits.
+  `ProcessGesture` returns the `touchPadGestures` property; a native behavior returns
+  its own types.
+- `TouchPadGesture` is in the screen pixels of the element screen: `pos` is the cursor,
+  `delta` and `drag` are the pad moves times `touchPadWidthInScreenHeights * screen
+  height / 1920` (a scene config value; the pads are 1920 pad pixels wide). daRg gives
+  `deltaScale` and `deltaAngle`, the change since the last event of the capture.
+- `IGuiScene::getTouchPadGesturesAtPointer()` gives the OR of the masks along the hit
+  chain. The host uses it to delay a tap click over an element that takes DOUBLE_TAP.
+- dargbox has `dargbox.send_touch_pad_gesture(type, state, params)`. It queues a gesture,
+  and the next act sends it before the scene update, as a pad driver would. A `cursor`
+  in `params` first moves the mouse pointer there, so a test does not depend on the
+  real mouse. `samples_prog/benchmarks/test_touch_pad_gestures.ui.nut` uses it.
+
 ---
 
 ## 11. VR Input
@@ -684,8 +757,8 @@ This should be unified in future - both shoud send DEVID_VR, and share the same 
 ### HotkeyCombo
 
 Elements can declare hotkey combinations in their script description. A `HotkeyCombo`
-contains a set of `HotkeyButton` (device + button pairs) and fires when all buttons
-in the combo are simultaneously pressed.
+contains a set of `HotkeyButton` (device + button pairs) and fires when an input event
+of one of its buttons, or app activation, finds all buttons in the combo pressed.
 
 ```cpp
 struct HotkeyButton {

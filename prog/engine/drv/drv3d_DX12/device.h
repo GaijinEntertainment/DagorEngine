@@ -36,7 +36,7 @@ struct TextureSubresourceInfo
 {
   D3D12_SUBRESOURCE_FOOTPRINT footprint{};
   uint32_t rowCount{};
-  // basically footprint.RowPitch not aligned to D3D12_TEXTURE_DATA_PITCH_ALIGNMENT
+  // basically footprint.RowPitch before the format dependent pitch alignment
   uint32_t rowByteSize{};
   // RowPitch * rowCount * Depth * Arrays aligned to D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT
   uint64_t totalByteSize{};
@@ -444,7 +444,7 @@ struct FeatureID<D3D12_FEATURE_DATA_TIGHT_ALIGNMENT>
 // Pulls the D3D12_FEATURE value from FeatureID<T>::value
 // This makes it very simple to query feature, just auto name = check_feature_support<type>(device, <optional init>);
 template <typename T, typename... As>
-inline T check_feature_support(ID3D12Device *device, As &&...as)
+inline T check_feature_support(D3DDevice *device, As &&...as)
 {
   T result{eastl::forward<As>(as)...};
   if (S_OK != device->CheckFeatureSupport(FeatureID<T>::value, &result, sizeof(result)))
@@ -456,7 +456,7 @@ inline T check_feature_support(ID3D12Device *device, As &&...as)
 
 // wrapper to query for available shader model version, this need some probing to properly support OS versions without Agility SDK
 // support.
-inline D3D12_FEATURE_DATA_SHADER_MODEL get_shader_model(ID3D12Device *device)
+inline D3D12_FEATURE_DATA_SHADER_MODEL get_shader_model(D3DDevice *device)
 {
   auto RaytraceMinSM = 6.5_sm;
   auto OmmMin = 6.9_sm;
@@ -550,7 +550,6 @@ private:
   dag::Vector<DeviceResetEventHandler *> deviceResetEventHandlers;
   RenderStateSystem renderStateSystem;
   PipelineManager pipeMan;
-  PipelineCache pipelineCache{};
   FrontendQueryManager frontendQueryManager;
   DeviceContext context;
   ResourceMemoryHeap resources;
@@ -1022,6 +1021,14 @@ public:
     return config.features.test(DeviceFeaturesConfig::USE_COMMITTED_RESOURCES_FOR_TEXTURES);
   }
 
+#if _TARGET_SCARLETT
+  bool isDispatchRaysFeatureInited() const { return config.features.test(DeviceFeaturesConfig::ALLOCATE_DXR_STACK_BUFFER); }
+#elif _TARGET_XBOXONE
+  constexpr bool isDispatchRaysFeatureInited() const { return false; }
+#else
+  constexpr bool isDispatchRaysFeatureInited() const { return true; }
+#endif
+
   template <typename... Args>
   TextureInterfaceBase *newTextureObject(Args &&...args)
   {
@@ -1281,9 +1288,9 @@ inline void PipelineStageStateBase::enumerateUAVResources(uint32_t uav_mask, T c
   }
 }
 
-inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
+inline void PipelineStageStateBase::pushConstantBuffers(D3DDevice *device, ShaderResourceViewDescriptorHeapManager &heap,
   D3D12_CONSTANT_BUFFER_VIEW_DESC default_const_buffer, uint32_t cb_mask, StatefulCommandBuffer &cmd, uint32_t stage,
-  ConstantBufferPushMode mode, uint32_t frame_idx)
+  ConstantBufferPushMode mode, [[maybe_unused]] uint32_t frame_idx, [[maybe_unused]] const ConstBufferNameTable *cb_names)
 {
   const uint32_t count = ConstantBufferPushMode::DESCRIPTOR_HEAP == mode ? __popcount(cb_mask) : 0;
   if (bRegisterValidMask == cb_mask)
@@ -1310,15 +1317,14 @@ inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, Sh
     return;
   }
 
-  G_UNUSED(frame_idx);
 #if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
   for (auto i : LsbVisitor{cb_mask})
   {
     const auto &info = bRegisterBuffers[i];
     if (info.isStreamBuffer && info.lastDiscardFrameIdx != frame_idx)
     {
-      D3D_CONTRACT_ERROR("DX12: Framem buffer '%s' is used without initialization (frame: %u, discard frame: %u)", info.name,
-        frame_idx, info.lastDiscardFrameIdx);
+      D3D_CONTRACT_ERROR("DX12: Framemem buffer '%s' is used without initialization (frame: %u, discard frame: %u)",
+        info.nameId >= 0 ? cb_names->getName(info.nameId) : "<unnamed>", frame_idx, info.lastDiscardFrameIdx);
     }
   }
 #endif
@@ -1356,7 +1362,7 @@ inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, Sh
 }
 
 
-inline void PipelineStageStateBase::pushSamplers(ID3D12Device *device, SamplerDescriptorHeapManager &heap,
+inline void PipelineStageStateBase::pushSamplers(D3DDevice *device, SamplerDescriptorHeapManager &heap,
   D3D12_CPU_DESCRIPTOR_HANDLE default_sampler, D3D12_CPU_DESCRIPTOR_HANDLE default_cmp_sampler, uint32_t sampler_mask,
   uint32_t cmp_sampler_mask)
 {
@@ -1385,7 +1391,7 @@ inline void PipelineStageStateBase::pushSamplers(ID3D12Device *device, SamplerDe
   sRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
 }
 
-inline void PipelineStageStateBase::pushUnorderedViews(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
+inline void PipelineStageStateBase::pushUnorderedViews(D3DDevice *device, ShaderResourceViewDescriptorHeapManager &heap,
   const NullResourceTable &null_table, uint32_t uav_mask, const uint8_t *uav_types)
 {
   if (uRegisterValidMask == uav_mask)
@@ -1417,7 +1423,7 @@ inline void PipelineStageStateBase::pushUnorderedViews(ID3D12Device *device, Sha
   uRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
 }
 
-inline void PipelineStageStateBase::pushShaderResourceViews(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &heap,
+inline void PipelineStageStateBase::pushShaderResourceViews(D3DDevice *device, ShaderResourceViewDescriptorHeapManager &heap,
   const NullResourceTable &null_table, uint32_t srv_mask, const uint8_t *srv_types)
 {
   if (tRegisterValidMask == srv_mask)
@@ -1456,7 +1462,7 @@ inline void PipelineStageStateBase::pushShaderResourceViews(ID3D12Device *device
   tRegisterDescriptorRange = DescriptorHeapRange::make(index, count);
 }
 
-inline void PipelineStageStateBase::migrateAllSamplers(ID3D12Device *device, SamplerDescriptorHeapManager &heap)
+inline void PipelineStageStateBase::migrateAllSamplers(D3DDevice *device, SamplerDescriptorHeapManager &heap)
 {
   if (!sRegisterDescriptorRange)
   {
@@ -1472,28 +1478,36 @@ inline void PipelineStageStateBase::migrateAllSamplers(ID3D12Device *device, Sam
 
 inline Extent2D FramebufferInfo::makeDrawArea(Extent2D def /*= {}*/) const
 {
-  // if swapchain for 0 is used we need to check depth stencil use,
-  // in some cases depth stencil was used with swapchain where it
-  // was smaller than the swapchain images and crashes.
-  if ((attachmentMask.colorAttachmentMask & 1) && (colorAttachments[0].image))
+  // if swapchain for 0 is used we need to check depth stencil use, in some cases depth stencil was used with swapchain where it was
+  // smaller than the swapchain images and crashes.
+
+  auto mask = attachmentMask.getRenderTargetMask();
+
+  // is slot 0 set and uses a non swapchain target? Then use that.
+  if (mask.testAndUnset(0) && colorAttachments[0].image)
   {
     return colorAttachments[0].image->getMipExtents2D(colorAttachments[0].view.getMipBase());
   }
-  else if (auto mask = attachmentMask.colorAttachmentMask >> 1)
+
+  // Now try slots 1-7, if any is set then use that.
+  for (auto i : mask.visit())
   {
-    // Need to add 1 as we shifted one down
-    auto index = __bsf_unsafe(mask) + 1;
-    return colorAttachments[index].image->getMipExtents2D(colorAttachments[index].view.getMipBase());
+    // This will take the lowest bit set and use it, if there is none this will never be hit.
+    // Writing it as a loop is much compacter than other options.
+    return colorAttachments[i].image->getMipExtents2D(colorAttachments[i].view.getMipBase()); // -V612
   }
 
-  if (attachmentMask.hasDepthStencilAttachment && depthStencilAttachment.image)
+  // Final step, either when only slot 0 is set with swapchain or all slots were empty and depth is the only set.
+  if (attachmentMask.hasDepthStencilAttachment() && depthStencilAttachment.image)
   {
     return depthStencilAttachment.image->getMipExtents2D(depthStencilAttachment.view.getMipBase());
   }
+
+  // Either swapchain on slot 0 only or totally empty
   return def;
 }
 
-inline bool FrontendQueryManager::createPredicateHeapResources(HeapPredicate &heap, Device &device, ID3D12Device *dx_device)
+inline bool FrontendQueryManager::createPredicateHeapResources(HeapPredicate &heap, Device &device, D3DDevice *dx_device)
 {
   D3D12_QUERY_HEAP_DESC desc{
     .Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION,
@@ -1517,7 +1531,7 @@ inline bool FrontendQueryManager::createPredicateHeapResources(HeapPredicate &he
   return static_cast<bool>(heap.buffer);
 }
 
-inline FrontendQueryManager::PredicateHeapId FrontendQueryManager::newPredicateHeap(Device &device, ID3D12Device *dx_device)
+inline FrontendQueryManager::PredicateHeapId FrontendQueryManager::newPredicateHeap(Device &device, D3DDevice *dx_device)
 {
   FrontendQueryManager::HeapPredicate newHeap;
   if (!createPredicateHeapResources(newHeap, device, dx_device))
@@ -1543,7 +1557,7 @@ inline void FrontendQueryManager::shutdownPredicate(DeviceContext &ctx)
 }
 
 #if _TARGET_PC_WIN
-inline bool FrontendQueryManager::postRecovery(Device &device, ID3D12Device *dx_device)
+inline bool FrontendQueryManager::postRecovery(Device &device, D3DDevice *dx_device)
 {
   for (auto &heap : predicateHeaps)
   {
@@ -1814,7 +1828,8 @@ inline void PlatformBufferInterfaceConfig::discardBuffer(GenericBufferInterface 
     current_buffer_ref = {};
     return;
   }
-  device.getContext().discardBuffer(current_buffer_ref, memory_class, view_format, structure_size, self->usesRawView(),
+  ScopedCommitLock lock(device.getContext());
+  device.getContext().discardBufferNoLock(current_buffer_ref, memory_class, view_format, structure_size, self->usesRawView(),
     self->usesStructuredView(), getResourceFlags(buf_flags), buf_flags, name);
   // notify state system, that it has to mark all uses as dirty
   notify_discard(self, self->usableAsVertexBuffer(), self->usableAsConstantBuffer(), self->hasShaderResourceView(),
@@ -1991,13 +2006,14 @@ inline BufferInterfaceConfigCommon::TemporaryMemoryType BufferInterfaceConfigCom
   G_UNUSED(struct_size);
   G_UNUSED(prev_memory);
   G_UNUSED(name);
+  ScopedCommitLock lock(get_device().getContext());
   notify_discard(self, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, self->hasShaderResourceView(),
     SBCF_BIND_UNORDERED & flags);
   uint32_t alignment = (SBCF_BIND_CONSTANT & flags) ? D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT : sizeof(uint32_t);
   // Const buffers size must be aligned
   uint32_t alignedSize =
     (SBCF_BIND_CONSTANT & flags) ? align_value<uint32_t>(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) : size;
-  return get_device().getContext().allocatePushMemory(alignedSize, alignment);
+  return get_device().getContext().allocatePushMemoryNoLock(alignedSize, alignment);
 }
 
 inline bool BufferInterfaceConfigCommon::allowsStreamBuffer(uint32_t flags)

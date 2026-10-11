@@ -11,11 +11,9 @@ inline const Expr *deparen(const Expr *e) {
   return e;
 }
 
-inline const Expr *deparenStatic(const Expr *e) {
-  if (!e) return nullptr;
-
-  if (e->op() == TO_PAREN || e->op() == TO_STATIC_MEMO)
-    return deparen(static_cast<const UnExpr *>(e)->argument());
+inline const Expr *deparenInlineConst(const Expr *e) {
+  while (e && (e->op() == TO_PAREN || e->op() == TO_INLINE_CONST))
+    e = static_cast<const UnExpr *>(e)->argument();
   return e;
 }
 
@@ -132,7 +130,7 @@ inline const Id *extractReceiver(const Expr *e) {
   const Expr *last = e;
 
   for (;;) {
-    e = deparenStatic(e);
+    e = deparen(e);
 
     if (e->op() == TO_CALL) { // -V522
       const CallExpr *c = e->asCallExpr();

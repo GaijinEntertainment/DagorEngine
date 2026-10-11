@@ -33,8 +33,8 @@ struct QuadPrim
   bool bFwd = true;   // quad: triB winds v0->v2 across the shared edge (false: v2->v0). encodeQuad turns
                       // this into the leaf's flipSecond so triB keeps its source winding even when the mesh
                       // is not consistently wound. Unused for singles. Default true = manifold-consistent.
-  uint8_t user = 0;   // per-leaf user bits (QUAD_LEAF_USER_*), opaque to daBVH: prims that disagree are
-                      // never combined. Rides on the prim because prim order is not face order.
+  uint8_t user = 0;   // per-leaf user bits (QUAD_LEAF_USER_*, opaque to daBVH) plus QUAD_LEAF_USER_TRANSPARENT:
+                      // prims that disagree are never combined. Rides on the prim because prim order is not face order.
   uint32_t v0() const { return v[0]; }
   uint32_t v1() const { return v[1]; }
   uint32_t v2() const { return v[2]; }
@@ -83,9 +83,9 @@ bool writeDoubleQuadBLAS(dag::Vector<uint8_t> &out_data, bbox3f box, const bbox3
 // Instantiated for IdxT = uint16_t and uint32_t; QuadPrim::v[] is uint32 internally either way.
 // `prims` uses Tab<T> (MemPtrAllocator) so callers can back it with framemem_ptr() for
 // transient per-worker builds, or the default (midmem) for long-lived storage.
-// face_user (optional, one QUAD_LEAF_USER_BITS value per SOURCE face, index-aligned with optIdx --
-// leafOrderVertexFetch renumbers vertices but never moves faces): two faces pair into a quad only
-// when their values match, and the value rides on the prim. nullptr = every prim gets 0, which
+// face_user (optional, one value per SOURCE face: the QUAD_LEAF_USER_BITS user bits plus QUAD_LEAF_USER_TRANSPARENT,
+// index-aligned with optIdx -- leafOrderVertexFetch renumbers vertices but never moves faces): two faces pair
+// into a quad only when their values match, and the value rides on the prim. nullptr = every prim gets 0, which
 // reproduces the pre-user-bits build byte for byte.
 template <typename IdxT>
 void buildQuadPrims(Tab<QuadPrim> &prims, int &quadCount, int &singleCount, const IdxT *optIdx, int faceCount, const vec4f *verts4,

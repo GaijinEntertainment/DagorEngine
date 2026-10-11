@@ -74,9 +74,7 @@ def test_aot_signed_underlying_unchanged(t : T?) {
 [test]
 def test_aot_runtime_iteration(t : T?) {
     t |> run("aot: runtime for-loop sum of uint8 enums") @(t : T?) {
-        var arr : array<Opcode>
-        arr |> push(Opcode.PING)
-        arr |> push(Opcode.HEARTBEAT)
+        var arr <- [Opcode.PING, Opcode.HEARTBEAT]
         var sum = 0u
         for (op in arr) {
             sum += uint(op)
@@ -84,9 +82,7 @@ def test_aot_runtime_iteration(t : T?) {
         t |> equal(sum, 250u)
     }
     t |> run("aot: runtime uint64 enum cast (top bit set)") @(t : T?) {
-        var arr : array<Wide64>
-        arr |> push(Wide64.LOW)
-        arr |> push(Wide64.HIGH_BIT)
+        var arr <- [Wide64.LOW, Wide64.HIGH_BIT]
         var hit_high = false
         for (w in arr) {
             if (w == Wide64.HIGH_BIT) {

@@ -158,6 +158,11 @@ CScintillaWindow::~CScintillaWindow()
 {
   if (updateTimer)
     del_it(updateTimer);
+
+  // The Scintilla window keeps this object in GWLP_USERDATA, and its subclass proc reads it on every message.
+  if (hwndScParent)
+    ::DestroyWindow((HWND)hwndScParent);
+  hwndScParent = hwndScintilla = nullptr;
 }
 
 

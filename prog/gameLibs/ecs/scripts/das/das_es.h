@@ -97,6 +97,7 @@ struct EsQueryDesc
   ecs::QueryId query;
   BaseEsDesc base;
   ecs::EntityManager *mgr = nullptr;
+  uint32_t registrySlot = 0; // slot of the handle query blocks resolve through, 0 while unregistered
   bool shared = false;
   EsQueryDesc(ecs::EntityManager *mgr_) : mgr(mgr_) {}
   ~EsQueryDesc()
@@ -104,20 +105,18 @@ struct EsQueryDesc
     if ((bool)query && mgr)
       mgr->destroyQuery(query);
   }
-  EsQueryDesc(EsQueryDesc &&a) : base(eastl::move(a.base)), query(a.query), shared(a.shared), mgr(a.mgr) { a.query = ecs::QueryId(); }
-  EsQueryDesc &operator=(EsQueryDesc &&a)
-  {
-    shared = a.shared;
-    base = eastl::move(a.base);
-    query = a.query;
-    a.query = ecs::QueryId();
-    mgr = a.mgr;
-    a.mgr = nullptr;
-    return *this;
-  }
+  // the registry slot and the query user data hold this address
+  EsQueryDesc(EsQueryDesc &&) = delete;
+  EsQueryDesc &operator=(EsQueryDesc &&) = delete;
   EsQueryDesc(const EsQueryDesc &) = delete;
   EsQueryDesc &operator=(const EsQueryDesc &) = delete;
 };
+
+// null when the handle is not a query descriptor handle or its descriptor was freed
+EsQueryDesc *find_query_desc(uint64_t handle);
+// a deserialized module the reader did not re-finalize keeps the handles of the writing process, and its
+// query blocks throw at the call site: logerr such a module now, with its name
+void check_deserialized_query_desc_handles(das::Program &program, const char *fname);
 
 struct EsDescDeleter
 {

@@ -1,50 +1,38 @@
-// Public domain, ported from lua
-//-file:plus-string
+// Public domain, ported from Lua
+from "profile.nut" import benchmark
 
-function create_rng(seed) {
-    local Rm = array(17, 0);  // Initialize an array of 17 zeros
-    local Rj = 1;
+const COUNT = 100000
 
-    for (local i = 17; i >= 1; i--) {
-        seed = (seed * 9069) % (1 << 31);
-        Rm[i - 1] = seed;  // Adjusted index for Squirrel (0-based)
-    }
-
-    return function() {
-        local j = Rj;
-        local m = Rm;
-        local h = j - 5;
-        if (h < 0) h += 17;
-        local k = m[h] - m[j - 1];  // Adjusted index for Squirrel (0-based)
-        if (k < 0) k += 2147483647;
-        m[j - 1] = k;  // Adjusted index for Squirrel (0-based)
-        Rj = (j < 17) ? j + 1 : 1;
-        return k;
-    }
+// lagged Fibonacci, same numbers in every port
+function createRng(seed) {
+  let ring = array(17, 0)
+  for (local i = 16; i >= 0; i--) {
+    seed = (seed * 9069) % 0x80000000
+    ring[i] = seed
+  }
+  local j = 0
+  return function() {
+    local h = j - 5
+    if (h < 0)
+      h += 17
+    local k = ring[h] - ring[j]
+    if (k < 0)
+      k += 2147483647
+    ring[j] = k
+    j = j < 16 ? j + 1 : 0
+    return k
+  }
 }
 
-local rand = create_rng(12345);
+let rand = createRng(12345)
+let data = array(COUNT)
+for (local i = 0; i < COUNT; i++)
+  data[i] = rand()
 
-local n = 100000;  // No direct `arg` equivalent in Squirrel; set manually
-local t = array(n);
-for (local i = 0; i < n; i++) {
-    t[i] = rand();
+function sortCopy() {
+  let arr = clone data
+  arr.sort(@(a, b) b <=> a)
+  return arr[0]
 }
 
-function cmp(lhs, rhs) {
-  return rhs - lhs
-}
-
-local profile_it
-try {
-  profile_it = getroottable()["loadfile"]("profile.nut")()
-  if (profile_it == null)
-    throw "no loadfile"
-} catch(e) profile_it = require("profile.nut")
-
-function test(){
-  local arr = clone t
-  arr.sort(cmp)
-}
-
-print("\"sort\", " + profile_it(10, test) + ", 10\n");
+benchmark("sort", 10, sortCopy)

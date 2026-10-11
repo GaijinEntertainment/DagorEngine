@@ -120,7 +120,9 @@
 #pragma warning(pop)
 #endif
 
-#if (defined(__clang__) || defined(__GNUC__)) && (__x86_64__ || __i386__)
+// Gaijin change
+#if (defined(__clang__) || defined(__GNUC__)) && (__x86_64__ || __i386__) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #include <cpuid.h>
 #endif
 

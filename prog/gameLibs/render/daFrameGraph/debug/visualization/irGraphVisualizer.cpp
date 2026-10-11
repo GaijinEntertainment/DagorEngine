@@ -706,11 +706,8 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
 
         if (stateDelta.pass)
         {
-          bool firstInPass = false;
-
           if (eastl::holds_alternative<sd::PassChange>(*stateDelta.pass))
           {
-            firstInPass = true;
             bottomPos = deltaBlockStart.y;
             middlePos = deltaBlockStart.y - PASS_BRACKET_OFFSET;
             topPos = middlePos - PASS_BRACKET_WIDTH / 2.f;
@@ -800,7 +797,6 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
           }
           else
           {
-            firstInPass = true;
             bottomPos = deltaBlockStart.y;
             middlePos = deltaBlockStart.y - PASS_BRACKET_OFFSET;
             topPos = middlePos - PASS_BRACKET_OFFSET;
@@ -809,8 +805,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
             passLabel = NODE_NEXT_SUBPASS_TAG;
           }
 
-          if (firstInPass)
-            drawBracket();
+          drawBracket();
         }
 
         {
@@ -1385,7 +1380,7 @@ void Visualizer::updateNodes()
   PassColor previousPassColor = UNKNOWN_PASS_COLOR;
   uint32_t curExecTime = 0;
 
-  for (const auto [irNodeIndex, irNode] : intermediateGraph.nodes.enumerate())
+  for (auto irNodeIndex : intermediateGraph.nodes.keys())
     if (intermediateGraph.nodes.isMapped(irNodeIndex))
     {
       auto [newNodeId, newNode] = nodes.appendNew();
@@ -1425,7 +1420,7 @@ void Visualizer::updateResourses()
   presIrResNames.reserve(irResCount);
 
 
-  for (const auto [irResourceIndex, irResource] : intermediateGraph.resources.enumerate())
+  for (auto irResourceIndex : intermediateGraph.resources.keys())
     if (intermediateGraph.resources.isMapped(irResourceIndex))
     {
       auto [newResId, newResourse] = resources.appendNew();
@@ -1515,7 +1510,7 @@ void Visualizer::placeNodesByPasses(CanvasLayout &layout)
 
   const auto &style = ImGui::GetStyle();
   const float lineHeight = ImGui::GetFrameHeight();
-  for (auto [nodeId, node] : nodes.enumerate())
+  for (auto &&[nodeId, node] : nodes.enumerate())
   {
     const auto &state = intermediateGraph.nodeStates[node.irIndex];
 
@@ -1585,14 +1580,14 @@ void Visualizer::placeNodesByPasses(CanvasLayout &layout)
   dag::Vector<float, framemem_allocator> passesWidths(passesCount, 0.f);
   for (const auto &node : nodes)
     passesWidths[node.renderPassNumber] += 2.f * USAGES_MARGIN + 3.f * USAGE_WIDTH * node.resourceUsages.size();
-  for (auto [nodeId, node] : nodes.enumerate())
+  for (auto &&[nodeId, node] : nodes.enumerate())
     passesWidths[node.renderPassNumber] = max(passesWidths[node.renderPassNumber], layout.nodes[nodeId].size.x);
 
 
   float horOffset = 0.f;
   float vertOffset = 0.f;
   uint32_t currentPassNumber = nodes.front().renderPassNumber;
-  for (auto [nodeId, node] : nodes.enumerate())
+  for (auto &&[nodeId, node] : nodes.enumerate())
   {
     if (node.renderPassNumber != currentPassNumber)
     {
@@ -1681,7 +1676,7 @@ void Visualizer::placeResourcesByLines(CanvasLayout &layout)
 
     dag::Vector<Lifetime, framemem_allocator> times;
     times.reserve(resCount);
-    for (auto [resId, resource] : resources.enumerate())
+    for (auto &&[resId, resource] : resources.enumerate())
       times.push_back(Lifetime{nodes[resource.firstUser].renderPassNumber, nodes[resource.lastUser].renderPassNumber, resId});
 
     eastl::sort(times.begin(), times.end(), [](const Lifetime &a, const Lifetime &b) {
@@ -1704,7 +1699,7 @@ void Visualizer::placeResourcesByLines(CanvasLayout &layout)
     }
   }
 
-  for (auto [resId, resource] : resources.enumerate())
+  for (auto &&[resId, resource] : resources.enumerate())
   {
     const auto &firstNodeRect = layout.nodes[resource.firstUser];
     const auto &lastNodeRect = layout.nodes[resource.lastUser];
@@ -1733,7 +1728,7 @@ void Visualizer::placeOrderings(CanvasLayout &layout)
 
   layout.orderings.resize(orderingsCount, {});
 
-  for (auto [orderingId, ordering] : orderings.enumerate())
+  for (auto &&[orderingId, ordering] : orderings.enumerate())
   {
     const auto &fromNode = nodes[ordering.from];
     const auto &toNode = nodes[ordering.to];
@@ -1773,7 +1768,7 @@ void Visualizer::placeUsages(CanvasLayout &layout)
 
   const uint32_t passesCount = nodes.back().renderPassNumber + 1;
   dag::Vector<dag::Vector<NodeId, framemem_allocator>, framemem_allocator> nodesByPasses(passesCount);
-  for (auto [nodeId, node] : dag::ReverseView{nodes.enumerate()})
+  for (auto &&[nodeId, node] : dag::ReverseView{nodes.enumerate()})
     nodesByPasses[node.renderPassNumber].push_back(nodeId);
 
 

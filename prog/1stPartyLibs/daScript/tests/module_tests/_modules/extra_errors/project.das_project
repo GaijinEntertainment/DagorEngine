@@ -1,0 +1,51 @@
+// Resolver for the extra-module diagnostic tests: sibling/daslib resolution as in
+// common.das_project, plus the hooks the tests trip.
+
+options gen2
+require strings
+require daslib/strings_boost
+
+typedef module_info = tuple<string; string; string> const
+
+var {
+    DAS_PAK_ROOT = "./"
+}
+
+def module_default(req, from : string) : module_info {
+    let rs <- split_by_chars(req, "./")
+    var fr <- split_by_chars(from, "/")
+    let mod_name = rs[length(rs) - 1]
+    if (length(rs) == 0) {
+        return (mod_name, req + ".das", "")
+    } elif (length(rs) == 1 && rs[0] == "daslib") {
+        return (mod_name, "{get_das_root()}/daslib/{mod_name}.das", "")
+    } else {
+        pop(fr)
+        for (se in rs) {
+            push(fr, se)
+        }
+        let path_name = join(fr, "/") + ".das"
+        return (mod_name, path_name, "")
+    }
+}
+
+[export]
+def module_get(req, from : string) : module_info {
+    if (req == "ghost") {
+        var fr <- split_by_chars(from, "/")
+        pop(fr)
+        push(fr, "ghost")
+        return ("", join(fr, "/") + ".das", "")
+    }
+    return module_default(req, from)
+}
+
+[export]
+def can_module_be_required(mod : string; fname : string; isPublic : bool) : bool {
+    return mod != "private_mod"
+}
+
+[export]
+def module_allowed(mod, filename : string) {
+    return mod != "strings_boost" && mod != "rtti_core"
+}

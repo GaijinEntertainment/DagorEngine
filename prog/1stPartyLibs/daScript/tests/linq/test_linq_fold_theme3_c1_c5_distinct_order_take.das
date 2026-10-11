@@ -8,7 +8,7 @@ require daslib/decs
 require daslib/decs_boost
 require dastest/testing_boost public
 
-// Theme 3 Phase 3 (audit `history/linq_fold/linq_fold_chain_audit.md` probes C1 + C5):
+// Theme 3 Phase 3 (probes C1 + C5):
 // the "top-K distinct" composition family. Two arm pairs in mirror order:
 //   C1: `_distinct_by(K1) |> _order_by(K2) |> take(N) |> to_array()`
 //   C5: `_order_by(K1) |> distinct() |> take(N) |> to_array()`
@@ -193,9 +193,9 @@ def test_c1_parity_handwritten(t : T?) {
             |> to_array())
         let hand <- c1_handwritten(items)
         tt |> equal(length(spliced), length(hand))
-        for (i in range(length(spliced))) {
-            tt |> equal(spliced[i].user, hand[i].user)
-            tt |> equal(spliced[i].ts, hand[i].ts)
+        for (s, h in spliced, hand) {
+            tt |> equal(s.user, h.user)
+            tt |> equal(s.ts, h.ts)
         }
     }
 }
@@ -219,24 +219,22 @@ def populate_c1_decs() {
 def test_c1_decs_distinct_by_order_take(t : T?) {
     t |> run("C1-decs: from_decs_template + _distinct_by(_.user) + _order_by(_.ts) + take + to_array — decs lane bounded-heap with set-gate") @(tt : T?) {
         populate_c1_decs()
-        unsafe {
-            let rows <- _fold(from_decs_template(type<C1User>)
-                |> _distinct_by(_.user)
-                |> _order_by(_.ts)
-                |> take(5)
-                |> to_array())
-            tt |> equal(length(rows), 5)
-            tt |> equal(rows[0].user, "U0")
-            tt |> equal(rows[0].ts, 0)
-            tt |> equal(rows[1].user, "U8")
-            tt |> equal(rows[1].ts, 4)
-            tt |> equal(rows[2].user, "U1")
-            tt |> equal(rows[2].ts, 13)
-            tt |> equal(rows[3].user, "U9")
-            tt |> equal(rows[3].ts, 17)
-            tt |> equal(rows[4].user, "U2")
-            tt |> equal(rows[4].ts, 26)
-        }
+        let rows <- _fold(from_decs_template(type<C1User>)
+            |> _distinct_by(_.user)
+            |> _order_by(_.ts)
+            |> take(5)
+            |> to_array())
+        tt |> equal(length(rows), 5)
+        tt |> equal(rows[0].user, "U0")
+        tt |> equal(rows[0].ts, 0)
+        tt |> equal(rows[1].user, "U8")
+        tt |> equal(rows[1].ts, 4)
+        tt |> equal(rows[2].user, "U1")
+        tt |> equal(rows[2].ts, 13)
+        tt |> equal(rows[3].user, "U9")
+        tt |> equal(rows[3].ts, 17)
+        tt |> equal(rows[4].user, "U2")
+        tt |> equal(rows[4].ts, 26)
         restart()
     }
 }
@@ -269,24 +267,22 @@ def populate_c5_decs() {
 def test_c5_decs_order_distinct_take(t : T?) {
     t |> run("C5-decs: from_decs_template + _order_by(_.score) + distinct() + take + to_array — decs lane with whole-tuple set") @(tt : T?) {
         populate_c5_decs()
-        unsafe {
-            let rows <- _fold(from_decs_template(type<C5Score>)
-                |> _order_by(_.score)
-                |> distinct()
-                |> take(3)
-                |> to_array())
-            tt |> equal(length(rows), 3)
-            // 3 distinct TUPLES with smallest scores: (a,10), (b,10), (c,20). Track uniqueness by combined key so a buggy name-only dedup wouldn't pass.
-            var seenWhole : table<string>
-            for (r in rows) {
-                seenWhole |> insert("{r.name}:{r.score}")
-                tt |> equal(r.score <= 20, true)
-            }
-            tt |> equal(length(seenWhole), 3)
-            tt |> equal(key_exists(seenWhole, "a:10"), true)
-            tt |> equal(key_exists(seenWhole, "b:10"), true)
-            tt |> equal(key_exists(seenWhole, "c:20"), true)
+        let rows <- _fold(from_decs_template(type<C5Score>)
+            |> _order_by(_.score)
+            |> distinct()
+            |> take(3)
+            |> to_array())
+        tt |> equal(length(rows), 3)
+        // 3 distinct TUPLES with smallest scores: (a,10), (b,10), (c,20). Track uniqueness by combined key so a buggy name-only dedup wouldn't pass.
+        var seenWhole : table<string>
+        for (r in rows) {
+            seenWhole |> insert("{r.name}:{r.score}")
+            tt |> equal(r.score <= 20, true)
         }
+        tt |> equal(length(seenWhole), 3)
+        tt |> equal(key_exists(seenWhole, "a:10"), true)
+        tt |> equal(key_exists(seenWhole, "b:10"), true)
+        tt |> equal(key_exists(seenWhole, "c:20"), true)
         restart()
     }
 }

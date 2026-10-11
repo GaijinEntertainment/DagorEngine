@@ -5,6 +5,7 @@ options no_unused_function_arguments = false
 
 require dastest/testing_boost public
 require daslib/soa
+require strings
 
 // ===========================
 // Struct with a non-copyable field (array)
@@ -20,9 +21,7 @@ struct Group {
 // Helper: build a Group with some scores
 def make_group(n : string; vals : array<int>; act : bool) : Group {
     var g = Group(name = n, active = act)
-    for (v in vals) {
-        g.scores |> push(v)
-    }
+    g.scores |> push_from(vals)
     return <- g
 }
 
@@ -125,11 +124,13 @@ def test_noncopyable_iteration(t : T?) {
         var soa : Group`SOA
         soa |> push <| make_group("x", [100], true)
         soa |> push <| make_group("y", [200, 300], false)
-        var names = ""
         var score_count = 0
-        for (it in soa) {
-            names += it.name + ";"
-            score_count += length(it.scores)
+        let names = build_string() $(var writer) {
+            for (it in soa) {
+                writer |> write(it.name)
+                writer |> write(";")
+                score_count += length(it.scores)
+            }
         }
         t |> equal(names, "x;y;")
         t |> equal(score_count, 3)
@@ -347,9 +348,7 @@ def test_noncopyable_modify_array_field(t : T?) {
 [test]
 def test_noncopyable_from_array(t : T?) {
     t |> run("from_array clones non-copyable fields") @(t : T?) {
-        var arr : array<Group>
-        arr |> emplace <| make_group("a", [1, 2], true)
-        arr |> emplace <| make_group("b", [3, 4, 5], false)
+        var arr <- [make_group("a", [1, 2], true), make_group("b", [3, 4, 5], false)]
         var soa : Group`SOA
         soa |> from_array(arr)
         t |> equal(length(soa), 2)
@@ -385,7 +384,7 @@ def test_noncopyable_to_array(t : T?) {
         var soa : Group`SOA
         soa |> push <| make_group("a", [1, 2], true)
         soa |> push <| make_group("b", [3, 4, 5], false)
-        var result <- to_array(soa)
+        let result <- to_array(soa)
         t |> equal(length(result), 2)
         t |> equal(result[0].name, "a")
         t |> equal(result[1].name, "b")

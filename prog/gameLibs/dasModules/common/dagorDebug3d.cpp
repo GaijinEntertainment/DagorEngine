@@ -126,6 +126,8 @@ public:
       "add_debug_text_mark", das::SideEffects::modifyExternal, "::add_debug_text_mark");
     das::addExtern<void (*)(float, float, const char *, int, float, E3DCOLOR), &::add_debug_text_mark>(*this, lib,
       "add_debug_text_mark_screen", das::SideEffects::modifyExternal, "::add_debug_text_mark");
+    das::addExtern<DAS_BIND_FUN(::add_debug_multitext_label)>(*this, lib, "add_debug_multitext_label",
+      das::SideEffects::modifyExternal, "::add_debug_multitext_label");
 
 #undef ADD_EXTERN
     compileBuiltinModule("dagorDebug3d.das", (unsigned char *)dagorDebug3d_das, sizeof(dagorDebug3d_das));

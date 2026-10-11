@@ -253,15 +253,10 @@ def f_parallel_nested(x : int) : int {
 
 // ----- driver -----
 
-var GRID : array<int>
-
-[init]
-def fill_grid {
-    GRID <- [-7, -1, 0, 1, 3, 10, 42]
-}
+var GRID <- [-7, -1, 0, 1, 3, 10, 42]
 
 [test]
-def test_flatten_loops(t : T?) {
+def test_flatten_loops(t : T?) {    // nolint:STYLE038 -- flat list of independent differential arms, one per loop shape
     t |> run("compound assignment + increment (+= -= *= ++ --)") @(t : T?) {
         for (v in GRID) {
             t |> equal(f_compound_flat(v), f_compound(v))

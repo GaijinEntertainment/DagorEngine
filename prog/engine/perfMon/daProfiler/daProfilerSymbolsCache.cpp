@@ -8,7 +8,7 @@ namespace da_profiler
 
 size_t SymbolsCache::memAllocated() const
 {
-  std::lock_guard<std::mutex> glock(lock);
+  dag::lock_guard glock(lock);
   return symbolMap.bucket_count() * (sizeof(uint64_t) + sizeof(uint32_t)) + modules.capacity() * sizeof(ModuleInfo) +
          symbols.capacity() * sizeof(SymbolInfo) + strings.totalAllocated();
 }

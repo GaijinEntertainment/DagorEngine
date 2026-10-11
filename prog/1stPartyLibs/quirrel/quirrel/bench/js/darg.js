@@ -1,17 +1,21 @@
-const rand = Math.random;
-const RAND_MAX = Math.RAND_MAX;
+import { benchmark } from "./profile.js";
 
-const CompsToUpdateEachFrame = 30;
+const { isArray } = Array;
 const ROBJ_TEXT = 0;
 const ROBJ_FRAME = 1;
 const ROBJ_SOLID = 2;
 const ALIGN_CENTER = 0;
-
-const Behaviors = {
-  Button: 0,
-};
-
 const FLOW_VERTICAL = 0;
+const Behaviors = Object.freeze({
+  Button: 0,
+});
+
+const SCREEN_WIDTH = 1920.0;
+const SCREEN_HEIGHT = 1080.0;
+const COMPONENTS = 2000;
+const FRAMES = 100;
+const BORDERS = true;
+const DEF_FLEX = {};
 
 class Watched {
   constructor(value = null) {
@@ -22,151 +26,101 @@ class Watched {
     return this.value;
   }
 
-  modify(callback) {
-    this.value = callback(this.value);
+  modify(f) {
+    this.value = f(this.value);
   }
 }
 
+let seed = 42;
 function rint(max) {
-  return Math.floor((rand() / RAND_MAX) * max);
+  seed = seed * 16807 % 2147483647;
+  return seed % max;
 }
 
-const screenWidth = 1920.0;
-const screenHeight = 1080.0;
+const sw = (val) => Math.trunc(val / 100.0 * SCREEN_WIDTH);
+const sh = (val) => Math.trunc(val / 100.0 * SCREEN_HEIGHT);
+const Color = (r, g, b, a = 255) => ((a << 24) >>> 0) + (r << 16) + (g << 8) + b;
+const hdpx = (val) => val * SCREEN_HEIGHT / sh(100);
+const flex = (val = null) => (val === null ? DEF_FLEX : { val });
 
-function sw(val) {
-  return Math.floor((val / 100.0) * screenWidth);
-}
+const BORDER_WIDTH = [1, 1, 1, 1];
+const PADDING = [hdpx(4), hdpx(5)];
+const MARGIN = [hdpx(5), hdpx(3)];
+const BLACK = Color(0, 0, 0);
 
-function sh(val) {
-  return Math.floor((val / 100.0) * screenHeight);
-}
-
-function Color(r, g, b, a = 255) {
-  return ((a << 24) >>> 0) + (r << 16) + (g << 8) + b;
-}
-
-function hdpx(val) {
-  return (val / sh(100)) * screenHeight;
-}
-
-const defflex = {};
-
-function flex(val = null) {
-  return val == null ? defflex : { val: val };
-}
-
-const componentsNum = 2000; // amount of components
-const borders = true; // show borders on each element
+let withText = 0;
 
 function simpleComponent(i, watch) {
-  const pos = [sw(rand() * 80 / RAND_MAX), sh(rand() * 80 / RAND_MAX)];
-  const size = [sh(rand() * 15 / RAND_MAX + 2), sh(rand() * 15 / RAND_MAX + 2)];
-  const color = Color(rand() * 255 / RAND_MAX, rand() * 255 / RAND_MAX, rand() * 255 / RAND_MAX);
+  const pos = [sw(rint(80)), sh(rint(80))];
+  const size = [sh(rint(15) + 2), sh(rint(15) + 2)];
+  const color = Color(rint(256), rint(256), rint(256));
   const textCanBePlaced = size[0] > hdpx(150);
   const addText = rint(5) === 1;
-  const text = textCanBePlaced ? () => ({
-    watch: watch,
-    rendObj: ROBJ_TEXT,
-    text: addText || !watch.get() ? ("" + i + watch.get()) : null
-  }) : null;
-
   const children = [];
-
-  if (borders) {
+  if (BORDERS) {
     children.push(() => ({
-      borderWidth: [1, 1, 1, 1],
+      borderWidth: BORDER_WIDTH,
       rendObj: ROBJ_FRAME,
-      size: flex()
+      size: flex(),
     }));
-    if (text) children.push(text);
+    if (textCanBePlaced) {
+      withText++;
+      children.push(() => ({
+        watch,
+        rendObj: ROBJ_TEXT,
+        text: addText || !watch.get() ? `${i}${watch.get()}` : null,
+      }));
+    }
   }
-
   return () => ({
     rendObj: ROBJ_SOLID,
-    size: size,
+    size,
     key: {},
-    pos: pos,
+    pos,
     valign: ALIGN_CENTER,
     halign: ALIGN_CENTER,
-    padding: [hdpx(4), hdpx(5)],
-    margin: [hdpx(5), hdpx(3)],
-    color: watch.get() ? color : Color(0, 0, 0),
+    padding: PADDING,
+    margin: MARGIN,
+    color: watch.get() ? color : BLACK,
     behavior: Behaviors.Button,
     onClick: () => watch.modify((v) => !v),
-    watch: watch,
-    children: children,
+    watch,
+    children,
   });
 }
 
-let num = 0;
-const children = [];
-for (let i = 0; i < componentsNum; ++i) {
-  children.push(simpleComponent(i, new Watched(i % 3 === 0)));
-}
+const components = Array.from({ length: COMPONENTS }, (_, i) => simpleComponent(i, new Watched(i % 3 === 0)));
 
-function benchmark() {
-  return {
-    size: flex(),
-    flow: FLOW_VERTICAL,
-    children: children,
-  };
-}
+const root = () => ({
+  size: flex(),
+  flow: FLOW_VERTICAL,
+  children: components,
+});
 
 function testUi(entry) {
-  if (entry == null) return true;
-  if (typeof entry === "function") entry = entry();
-  const t = typeof entry;
-  if (t === "object") {
-    if (!("children" in entry)) return true;
-    if (Array.isArray(entry.children)) {
-      for (const child of entry.children) {
-        if (!testUi(child)) return false;
-      }
+  if (entry == null)
+    return true;
+  if (typeof entry === "function")
+    entry = entry();
+  if (entry !== null && typeof entry === "object" && !isArray(entry)) {
+    if (!("children" in entry))
+      return true;
+    const { children } = entry;
+    if (isArray(children)) {
+      for (let i = 0, n = children.length; i < n; i++)
+        if (!testUi(children[i]))
+          return false;
       return true;
     }
-    return testUi(entry.children);
+    return testUi(children);
   }
   return false;
 }
 
-
-///tests
-const Frames = 100; // offline only
-const testsNum = 10; // offline only
-
-function timeStamp() {
-   return Date.now();
+function frames() {
+  for (let f = 0; f < FRAMES; f++)
+    testUi(root);
+  return withText;
 }
 
-function profile(tname,cnt,testFn) {
-	var t = 100500;
-	var count = cnt
-	while ( count>0 ) {
-		var t0 = timeStamp();
-		testFn();
-		var t1 = timeStamp();
-		var dt = t1 - t0;
-		t = Math.min(dt, t);
-		count --;
-	}
-	t /= 1000.0;
-	var msg = '"'+tname+'", '+t+', '+cnt;
-   print(msg)
-}
-
-const testf = function () {
-  let frames = Frames;
-  while (--frames) {
-    testUi(benchmark);
-  }
-};
-
-function performance_tests() {
-	{
-		profile("profile darg ui", testsNum, testf);
-	}
-	timeStamp();
-}
-
-performance_tests();
+benchmark("profile darg ui", 20, frames);

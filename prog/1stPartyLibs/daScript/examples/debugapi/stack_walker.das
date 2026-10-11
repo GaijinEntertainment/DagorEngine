@@ -112,7 +112,7 @@ class StackWalkAgent : DapiDebugAgent {
     }
 }
 
-[export]
+[export, unused_argument(ctx)]
 def install_stack_agent(ctx : Context) {
     assert(this_context().category.debug_context)
     install_new_debug_agent(new StackWalkAgent(), "stack_agent")
@@ -199,14 +199,12 @@ class DiagnosticAgent : DapiDebugAgent {
 
     def override onVariable(var ctx : Context; category, name : string;
                             info : TypeInfo; data : void?) : void {
-        unsafe {
-            let value = sprint_data(data, addr(info), print_flags.singleLine)
-            print("  reported {category}: {name} = {value}\n")
-        }
+        let value = sprint_data(data, unsafe(addr(info)), print_flags.singleLine)
+        print("  reported {category}: {name} = {value}\n")
     }
 }
 
-[export]
+[export, unused_argument(ctx)]
 def install_diagnostic_agent(ctx : Context) {
     install_new_debug_agent(new DiagnosticAgent(), "diagnostics")
 }

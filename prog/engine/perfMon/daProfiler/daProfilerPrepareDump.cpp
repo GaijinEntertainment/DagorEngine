@@ -166,7 +166,7 @@ size_t ProfilerData::prepareDump(unique_ptr<Dump> &&dump_)
   const uint64_t timeEnd = dump.frames.back().end;
   dump.board = interlocked_increment(boardNumber);
   {
-    std::lock_guard<std::mutex> lock(threadsLock);
+    dag::lock_guard lock(threadsLock);
     copyCpuEvents(timeStart, timeEnd, dump.threads);
 
     copyGpuEvents(timeStart, timeEnd, dump.gpuEvents, dump.cpuGpuClock);

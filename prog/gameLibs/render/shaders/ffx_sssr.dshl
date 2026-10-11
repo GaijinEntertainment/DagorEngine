@@ -1,8 +1,8 @@
-int ffxMinTraversalOccupancy = 4;
+float ffxMinTraversalOccupancyRatio = 0.125;
 
 macro FFX_RAYMARCH_INIT(code)
   (code) {
-    ffxMinTraversalOccupancy@i1 = ffxMinTraversalOccupancy;
+    ffxMinTraversalOccupancyRatio@f1 = ffxMinTraversalOccupancyRatio;
   }
 endmacro
 
@@ -13,6 +13,13 @@ macro FFX_RAYMARCH_USE(code)
     #if WAVE_INTRINSICS
       #define FFX_WAVE
       #define FFW_WAVE 1
+      ##if hardware.ps4 // TODO: predefines_ps4.hlsl has buggy WaveGetLaneCount() macro, so we need to use a workaround
+        int get_traversal_occupancy() { return wave::GetLaneCount() * ffxMinTraversalOccupancyRatio; }
+      ##else
+        int get_traversal_occupancy() { return WaveGetLaneCount() * ffxMinTraversalOccupancyRatio; }
+      ##endif
+    #else
+      int get_traversal_occupancy() { return 1; }
     #endif
     #define FFX_HLSL
     #define FFX_HLSL_SM 61
@@ -42,7 +49,7 @@ macro FFX_RAYMARCH_USE(code)
 
     FFX_RaymarchResult FFX_Raymarch(FfxFloat32x3 origin, FfxFloat32x3 direction, FfxBoolean is_mirror, FfxFloat32x2 screen_size, FfxInt32 most_detailed_mip, FfxUInt32 max_traversal_intersections)
     {
-      FFX_RaymarchResult hit = FFX_SSSR_HierarchicalRaymarch(origin, direction, is_mirror, screen_size, most_detailed_mip, ffxMinTraversalOccupancy, max_traversal_intersections);
+      FFX_RaymarchResult hit = FFX_SSSR_HierarchicalRaymarch(origin, direction, is_mirror, screen_size, most_detailed_mip, get_traversal_occupancy(), max_traversal_intersections);
       return hit;
     }
   }

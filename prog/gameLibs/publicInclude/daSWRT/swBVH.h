@@ -34,7 +34,7 @@ struct BuiltBLAS
   bbox3f box = {};
   // FP16 tree bytes, then the GPU vertex payload (12 B float3 or 8 B fp16 per `vertsFp16`). Verts are
   // reached through each leaf's relative base, NOT at data+treeBytes: a padded producer (the collision
-  // single-node chunk splice) 8-aligns the pool, so padding can sit between the tree and the vertex payload.
+  // chunk splice) 8-aligns the pool, so padding can sit between the tree and the vertex payload.
   dag::Vector<uint8_t> data;
   uint32_t treeBytes = 0; // tree-walk span in bytes (GPU traversal bound), not the vertex offset; 0 iff pure box
   float dimAsBoxDist = 0;
@@ -45,6 +45,11 @@ struct BuiltBLAS
   // genuine-box sentinel) -- addBuiltModel returns -1 (no model) instead of registering the AABB,
   // which would cast phantom occlusion.
   bool noGeometry = false;
+  // Every face is light transparent: the shadow walk (swTLAS.dshl, SWRT_SHADOW_SKIP_LEAF) skips the instance whole,
+  // a box too. A mixed model carries it per leaf instead (QUAD_LEAF_USER_TRANSPARENT).
+  bool lightTransparent = false;
+  // A box model's leaf user value (QUAD_LEAF_USER_MASK), kept in its TLAS box leaf when RenderSWRT::tlasBoxUser.
+  uint8_t boxUser = 0;
   bool isBox() const { return data.empty(); }
 };
 } // namespace daSWRT
@@ -66,7 +71,11 @@ struct RenderSWRT
   // callers without such a consumer leave it off. Set before buildBottomLevelStructures.
   bool buildBlasLeafTables = false;
 
-  int addBoxModel(vec4f bmin, vec4f bmax);
+  // Opt-in: each box TLAS leaf keeps its model's BuiltBLAS::boxUser (+4 B). Set before adding models.
+  // A shader that reads a box hit's leaf user value needs it on and must define SWRT_TLAS_BOX_USER.
+  bool tlasBoxUser = false;
+
+  int addBoxModel(vec4f bmin, vec4f bmax, bool light_transparent = false);
 
   // Builds a BuiltBLAS from a raw index/vertex mesh. Detects pure axis-aligned boxes
   // automatically (the returned BuiltBLAS is isBox() in that case). Thread-safe: does not
@@ -95,13 +104,6 @@ struct RenderSWRT
   // stays outside the critical section.
   int addModel(const uint16_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
     float threshold_to_dim_as_box = 0);
-
-  // Legacy entry for callers that still produce externally-serialized uint16-quantized BLAS
-  // bytes (see build_bvh::writeDoubleQuadBLAS). Re-encodes to FP16 and registers. New code should
-  // build a BuiltBLAS directly and use addBuiltModel. Validation runs before any side
-  // effects; rejected input leaves SWRT state unchanged.
-  int addPreBuiltModel(bbox3f box, dag::Vector<uint8_t> &&blas_data, int verts_count, int tree_nodes_count, int prims_count,
-    float dim_as_box_dist = 0);
 
   inline void addInstance(int model_index, const mat43f &tm)
   {
@@ -165,6 +167,8 @@ protected:
   // model's bytes from blasBytes -- blasDataInfo only gives tree span, not the full range.
   dag::Vector<build_bvh::BLASDataInfo> blasDataInfo;
   dag::Vector<uint16_t> blasDimAsBox;
+  dag::Vector<uint8_t> blasLightTransparent;
+  dag::Vector<uint8_t> blasBoxUser;
   dag::Vector<bbox3f> blasBoxes;
   dag::Vector<uint32_t> blasTotalSizeInfo;
 

@@ -49,6 +49,7 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
   DAGI_RAD_GRID_LOAD(code)
   DAGI_MEDIA_SCENE_SAMPLE(code)
   PROJECT_TRACE(code, false)
+  PROJECT_GET_SKY_RADIANCE_AT(code)
   hlsl(code) {
     #include <dagi_rad_grid_math.hlsl>
     float3 radiance_grid_trace_probe(uint startSDF, int3 probeWorldCoordClip, uint radiance_grid_clip, uint2 octCoord, uint frameId, uint radiance_res, out float encoded_dist, float maxT, float biasK)

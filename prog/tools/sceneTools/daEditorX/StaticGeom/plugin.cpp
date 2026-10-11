@@ -199,14 +199,11 @@ void StaticGeometryPlugin::renderGeometry(Stage stage)
   switch (stage)
   {
     case STG_RENDER_STATIC_OPAQUE:
+    case STG_RENDER_SHADOWS:
     case STG_RENDER_TO_CLIPMAP: dagGeom->geomObjectRender(*geom); break;
 
     case STG_RENDER_STATIC_TRANS: dagGeom->geomObjectRenderTrans(*geom); break;
 
-    case STG_RENDER_SHADOWS:
-      dagGeom->geomObjectRender(*geom);
-      // dagGeom->geomObjectRenderTrans(*geom);
-      break;
     default: break;
   }
 }

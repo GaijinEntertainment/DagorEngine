@@ -1,8 +1,6 @@
 options gen2
 options _no_linq_perf_warn = true
 
-require math
-require strings
 require daslib/linq
 require daslib/linq_boost
 require daslib/linq_fold
@@ -22,7 +20,7 @@ struct Theme6SilencedRow {
 
 def populate(n : int) {
     restart()
-    create_entities(n) $(eid : EntityId; i : int; var cmp : ComponentMap) {
+    create_entities(n) $(_eid : EntityId; i : int; var cmp : ComponentMap) {
         apply_decs_template(cmp, Theme6SilencedRow(val = i))
     }
 }
@@ -31,10 +29,8 @@ def populate(n : int) {
 def test_theme6_silenced_no_warn_cascade_correct(t : T?) {
     t |> run("Theme 6: `_no_linq_perf_warn` suppresses warning, cascade still correct") @(tt : T?) {
         populate(20)
-        unsafe {
-            let c = _fold(from_decs_template(type<Theme6SilencedRow>)._select(_.val)._skip_while(_ < 5).count())
-            tt |> equal(c, 15)
-        }
+        let c = _fold(from_decs_template(type<Theme6SilencedRow>)._select(_.val)._skip_while(_ < 5).count())
+        tt |> equal(c, 15)
         restart()
     }
 }

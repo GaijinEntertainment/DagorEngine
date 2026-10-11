@@ -49,8 +49,8 @@ namespace das {
                 auto fcb = (SimNode_CallBase *) fn->code;
                 fn->aotFunction = fcb->aotFunction;
             } else if (!fn->builtin) {
-                // Can't fill noAot functions.
-                DAS_ASSERT(false);
+                DAS_FATAL_ERROR("standalone context: no AOT body for %s (hash 0x%llx)\n",
+                    fn->mangledName ? fn->mangledName : "?", (unsigned long long)semHash);
             }
         }
     }

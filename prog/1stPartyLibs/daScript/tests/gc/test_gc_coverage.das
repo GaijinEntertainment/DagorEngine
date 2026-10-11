@@ -28,9 +28,7 @@ var g_big : array<int>
 var g_garbage_sink : Holder?
 
 def collect() {
-    unsafe {
-        heap_collect(true, true)
-    }
+    unsafe(heap_collect(true, true))
 }
 
 def make_garbage(n : int) {
@@ -44,7 +42,7 @@ def make_garbage(n : int) {
 [test]
 def test_gc_frees_garbage(t : T?) {
     g_holder = new Holder()
-    g_holder.name := "live"
+    g_holder.name = "live"
     g_holder.vals <- [for (x in range(16)); x * 2]
     collect()
     let live = heap_bytes_allocated()
@@ -94,7 +92,7 @@ def test_gc_reachable_cycle_survives(t : T?) {
 [test]
 def test_gc_table_keys_values(t : T?) {
     g_holder = new Holder()
-    g_holder.name := "tbl"
+    g_holder.name = "tbl"
     for (i in range(64)) {
         g_holder.tags |> insert("key_{i}", i * i)
     }
@@ -107,6 +105,7 @@ def test_gc_table_keys_values(t : T?) {
 // large array routes through bigStuff (>256B); must survive a GC alongside churn
 [test]
 def test_gc_big_allocation(t : T?) {
+    delete g_big
     g_big <- [for (x in range(2000)); x]
     make_garbage(1000)
     collect()
@@ -118,7 +117,7 @@ def test_gc_big_allocation(t : T?) {
 [test]
 def test_gc_repeated_stable(t : T?) {
     g_holder = new Holder()
-    g_holder.name := "stable"
+    g_holder.name = "stable"
     g_holder.vals <- [for (x in range(64)); x]
     for (i in range(64)) {
         g_holder.tags |> insert("k_{i}", i)

@@ -1,0 +1,23 @@
+Root    ?= ../../.. ;
+Location = prog/samples/levelCollision ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType = lib ;
+Target     = samples/levelCollision.lib ;
+
+Sources =
+  levelCollision.cpp
+  lruCollisionHooks.cpp
+;
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/sharedInclude
+;
+
+UseProgLibs =
+  engine/gameRes
+  engine/scene
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

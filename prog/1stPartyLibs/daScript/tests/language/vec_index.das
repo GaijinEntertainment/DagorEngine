@@ -7,7 +7,7 @@ require dastest/testing_boost public
 
 def test_vec2(tt : T?; a : auto(vec2) -const -&) {
     var f2_x = vec2()
-    let x : auto(numT) = f2_x[0]
+    let _x : auto(numT) = f2_x[0]
     tt |> equal(f2_x[0], numT(0))
     tt |> equal(f2_x[1], numT(0))
     tt |> equal(f2_x?[0] ?? numT(-1), numT(0))
@@ -40,14 +40,14 @@ def test_vec2(tt : T?; a : auto(vec2) -const -&) {
     }
     tt |> success(oor)
     // array of vectors
-    var v2_vec : array<vec2> = [vec2(numT(1), numT(2)), vec2(numT(4), numT(5))]
+    let v2_vec : array<vec2> = [vec2(numT(1), numT(2)), vec2(numT(4), numT(5))]
     tt |> equal(v2_vec[0][0], numT(1))
     tt |> equal(v2_vec[1][1], numT(5))
 }
 
 def test_vec3(tt : T?; a : auto(vec3) -const -&) {
     var f3_x = vec3()
-    let x : auto(numT) = f3_x[0]
+    let _x : auto(numT) = f3_x[0]
     tt |> equal(f3_x[0], numT(0))
     tt |> equal(f3_x[1], numT(0))
     tt |> equal(f3_x[2], numT(0))
@@ -89,7 +89,7 @@ def test_vec3(tt : T?; a : auto(vec3) -const -&) {
 
 def test_vec4(tt : T?; a : auto(vec4) -const -&) {
     var f4_x = vec4()
-    let x : auto(numT) = f4_x[0]
+    let _x : auto(numT) = f4_x[0]
     tt |> equal(f4_x[0], numT(0))
     tt |> equal(f4_x[1], numT(0))
     tt |> equal(f4_x[2], numT(0))

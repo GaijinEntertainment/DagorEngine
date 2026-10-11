@@ -86,15 +86,9 @@ void draw_status_donut(ImDrawList *dl, const ImVec2 &center, float outer_radius,
 
 float graph_status_bar_height() { return static_cast<float>(hdpi::_pxS(STATUS_BAR_HEIGHT)); }
 
-void draw_graph_status_bar(const GraphData &graph_data, IGraphTexGenService *tex_gen_service, int selected_object_count,
+void draw_graph_status_bar(const GraphData &graph_data, const TexGenPipelineStatus &pipeline, int selected_object_count,
   float bar_height)
 {
-  TexGenPipelineStatus pipeline;
-  if (tex_gen_service)
-  {
-    pipeline = tex_gen_service->getPipelineStatus();
-  }
-
   const float padX = static_cast<float>(hdpi::_pxS(STATUS_BAR_PADDING));
   const float blockGap = static_cast<float>(hdpi::_pxS(STATUS_BAR_BLOCK_GAP));
   const float iconGap = static_cast<float>(hdpi::_pxS(STATUS_BAR_ICON_GAP));

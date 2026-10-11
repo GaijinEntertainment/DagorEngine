@@ -38,7 +38,10 @@ shader water_gradient, water_foam_blur
   {
     if (support_texture_array == on)
     {
-      (ps) { water_displacement_texture0@smpArray = water_displacement_texture0; }
+      (ps) {
+        water_displacement_texture0@texArray = water_displacement_texture0;
+        water_displacement_texture0_samplerstate@sampler = global_linear_wrap_sampler;
+      }
     }
     else
     {
@@ -169,7 +172,10 @@ shader water_gradient, water_foam_blur
     {
       if (support_texture_array == on)
       {
-        (ps) { water_foam_texture0@smpArray = water_foam_texture0; }
+        (ps) {
+          water_foam_texture0@texArray = water_foam_texture0;
+          water_foam_texture0_samplerstate@sampler = water_foam_texture0_samplerstate;
+        }
       }
       else
       {
@@ -205,7 +211,10 @@ shader water_gradient, water_foam_blur
     }
     else
     {
-      (ps) { water_foam_texture0@smpArray = water_foam_texture0; }
+      (ps) {
+        water_foam_texture0@texArray = water_foam_texture0;
+        water_foam_texture0_samplerstate@sampler = water_foam_texture0_samplerstate;
+      }
 
       hlsl(ps) {
         struct PsOut
@@ -345,7 +354,10 @@ shader water_gradient_mip
 
   POSTFX_VS_TEXCOORD(1, tc)
 
-  (ps) { water_gradients_tex0@smpArray = water_gradients_tex0; }
+  (ps) {
+    water_gradients_tex0@texArray = water_gradients_tex0;
+    water_gradients_tex0_samplerstate@sampler = water_gradients_tex0_samplerstate;
+  }
 
   hlsl(ps) {
     struct PsOut

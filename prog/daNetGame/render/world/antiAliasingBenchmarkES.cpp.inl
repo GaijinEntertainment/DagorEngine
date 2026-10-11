@@ -425,14 +425,16 @@ static void aa_benchmark_update_nodes(bool enabled)
 // accumulation, and (re)creates the benchmark nodes accordingly. Only kicks in
 // when neither super- nor sub-sampling is active, since it commandeers that
 // dimension; rendering with antialiasing off is not handled (undefined) - this
-// is a debug feature. State is process-lifetime, mirroring the once-per-process
-// WorldRenderer construction that used to own it.
+// is a debug feature. Also excluded during camera-in-camera: tsr's Viewport-only
+// reads then fail daFG's multiplexing check against a raised subSamples extent.
+// State is process-lifetime, mirroring the once-per-process WorldRenderer
+// construction that used to own it.
 ECS_TAG(render)
 static void aa_benchmark_multiplexing_es(const QueryMultiplexingExtents &evt)
 {
   static bool nodesBuilt = false;
   const int subsamples = get_aa_benchmark_params().subsamples;
-  const bool active = subsamples > 1 && evt.extents->superSamples == 1 && evt.extents->subSamples == 1;
+  const bool active = subsamples > 1 && evt.extents->superSamples == 1 && evt.extents->subSamples == 1 && evt.extents->subCameras == 1;
   if (active != nodesBuilt)
   {
     debug("aa_benchmark: %s (subsamples=%d)", active ? "enabled" : "disabled", subsamples);

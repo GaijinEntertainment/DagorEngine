@@ -235,7 +235,7 @@ bool GenericBuffer::createUav()
     HRESULT hr = dx_device->CreateUnorderedAccessView(buffer, &descView, &uav);
     if (FAILED(hr))
     {
-      if (!device_should_reset(last_hres, "CreateUnorderedAccessView"))
+      if (!device_should_reset(hr, "CreateUnorderedAccessView"))
       {
         DXFATAL(hr, "CreateUnorderedAccessView");
         return false;

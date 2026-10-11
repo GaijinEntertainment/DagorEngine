@@ -17,20 +17,13 @@ def test_dynamic_array(t : T?) { // nolint:STYLE038 — flat list of independent
         t |> equal(capacity(arr), 16)
     }
     t |> run("pass array by ref") @(t : T?) {
-        var arr : array<int>
-        push(arr, 1)
-        push(arr, 2)
-        push(arr, 3)
+        var arr <- [1, 2, 3]
         pass_array_helper(arr)
         t |> equal(length(arr), 4)
         t |> equal(arr[3], 4)
     }
     t |> run("resize and reserve") @(t : T?) {
-        var arr : array<int>
-        push(arr, 1)
-        push(arr, 2)
-        push(arr, 3)
-        push(arr, 4)
+        var arr <- [1, 2, 3, 4]
         resize(arr, 6)
         t |> equal(length(arr), 6)
         resize(arr, 17)
@@ -60,46 +53,33 @@ def test_dynamic_array(t : T?) { // nolint:STYLE038 — flat list of independent
         t |> equal(capacity(exact), 1000)
     }
     t |> run("move semantics") @(t : T?) {
-        var arr : array<int>
-        push(arr, 1)
-        push(arr, 2)
-        push(arr, 3)
-        push(arr, 4)
+        var arr <- [1, 2, 3, 4]
         var arr2 : array<int>
-        arr2 <- arr
+        arr2 <- arr     // nolint:STYLE011,PERF030 - move-assign into an existing array is what this arm covers
         t |> equal(length(arr), 0)
         t |> equal(length(arr2), 4)
         var index = 0
         while (index < 4) {
             arr2[index++]++
         }
-        arr <- arr2
+        arr <- arr2     // nolint:PERF030 - arr was emptied by the move above; the round trip is the tested construct
         t |> equal(length(arr2), 0)
         t |> equal(length(arr), 4)
         // let-move
-        var a : array<int>
-        push(a, 1)
-        push(a, 2)
+        var a <- [1, 2]
         let b <- a
         t |> equal(length(a), 0)
         t |> equal(length(b), 2)
     }
     t |> run("resize zeroes new elements") @(t : T?) {
-        var arr : array<int>
-        push(arr, 1)
-        push(arr, 2)
-        push(arr, 3)
-        push(arr, 4)
+        var arr <- [1, 2, 3, 4]
         resize(arr, 3)
         t |> equal(arr[2], 3)
         resize(arr, 4)
         t |> equal(arr[3], 0)
     }
     t |> run("insert and erase") @(t : T?) {
-        var arr : array<int>
-        push(arr, 2)
-        push(arr, 3)
-        push(arr, 4)
+        var arr <- [2, 3, 4]
         // insert at front
         push(arr, 1, 0)
         for (i in range(1, 5)) {
@@ -120,6 +100,29 @@ def test_dynamic_array(t : T?) { // nolint:STYLE038 — flat list of independent
         for (i in range(2, 4)) {
             t |> equal(arr[i - 2], i)
         }
+    }
+}
+
+[test]
+def test_subarray(t : T?) {
+    t |> run("subarray range64 of a const array") @(t : T?) {
+        let arr <- [0, 10, 20, 30]
+        let got <- subarray(arr, range64(1l, 3l))
+        t |> equal(length(got), 2)
+        t |> equal(got[0], 10)
+        t |> equal(got[1], 20)
+    }
+    t |> run("subarray range64 of a var array") @(t : T?) {
+        var arr <- [0, 10, 20, 30]
+        let got <- subarray(arr, range64(2l, 4l))
+        t |> equal(length(got), 2)
+        t |> equal(got[0], 20)
+        t |> equal(got[1], 30)
+    }
+    t |> run("subarray empty range64") @(t : T?) {
+        var arr <- [0, 10, 20, 30]
+        let got <- subarray(arr, range64(3l, 3l))
+        t |> equal(length(got), 0)
     }
 }
 

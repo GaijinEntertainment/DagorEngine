@@ -5,6 +5,7 @@
 #include <shaders/dag_shaderBlock.h>
 #define GLOBAL_VARS_LIST                \
   VAR(dissolve_frame_counter)           \
+  VAR(special_vision)                   \
   VAR(sun_color_0)                      \
   VAR(sun_light_color)                  \
   VAR(zn_zfar)                          \
@@ -56,7 +57,6 @@
   VAR(solid_color)                      \
   VAR(envi_probe_specular)              \
   VAR(underwater_fade)                  \
-  VAR(small_sampled_buffers)            \
   VAR(chromatic_aberration_params)      \
   VAR(film_grain_params)
 
@@ -106,7 +106,6 @@
   VAR(prev_world_view_pos)                    \
   VAR(pixel_scale)                            \
   VAR(sky_color)                              \
-  VAR(matrices_stride)                        \
   VAR(has_motion_vectors)                     \
   VAR(mip_bias)                               \
   VAR(dgs_tex_anisotropy)                     \

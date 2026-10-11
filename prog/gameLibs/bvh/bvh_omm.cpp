@@ -25,6 +25,7 @@ static bool bvh_strict_asset_checks = false;
 static uint32_t bvh_omm_data_array_budget = 0xFFFFFFFFu;
 static uint32_t bvh_omm_cache_retention_frames = 900;
 static uint64_t bvh_omm_cache_idle_budget = 64 << 20;
+static uint32_t bvh_omm_texture_wait_attempts = 1000;
 
 void set_omm_settings(const AdditionalSettings &settings)
 {
@@ -34,6 +35,7 @@ void set_omm_settings(const AdditionalSettings &settings)
   bvh_strict_asset_checks = settings.strictAssetChecks;
   bvh_omm_cache_retention_frames = max(settings.ommCacheRetentionFrames, 0);
   bvh_omm_cache_idle_budget = max(settings.ommCacheIdleBudget, 0);
+  bvh_omm_texture_wait_attempts = max(settings.ommTextureWaitAttempts, 0);
 }
 
 bool init_omm_context(ContextId context_id)
@@ -437,7 +439,7 @@ OmmTextureWait should_wait_for_omm_texture(ContextId context_id, uint64_t object
     return OmmTextureWait::Ready;
 
   auto &waits = context_id->ommTextureWaitsByObject[object_id];
-  if (++waits.attempts <= MAX_OMM_TEXTURE_WAIT_ATTEMPTS)
+  if (++waits.attempts <= bvh_omm_texture_wait_attempts)
     return OmmTextureWait::Wait;
 
   String textureNames;
@@ -456,7 +458,7 @@ OmmTextureWait wait_for_grass_omm_texture(TEXTUREID alpha_tex_id, uint32_t &wait
     return OmmTextureWait::Ready;
 
   request_omm_texture(alpha_tex_id);
-  if (++wait_attempts <= MAX_OMM_TEXTURE_WAIT_ATTEMPTS)
+  if (++wait_attempts <= bvh_omm_texture_wait_attempts)
     return OmmTextureWait::Wait;
 
   give_up_reason.printf(0, "its alpha texture '%s' never reached full quality", get_managed_texture_name(alpha_tex_id));
@@ -630,7 +632,7 @@ static OmmBakeAdvance advance_unbaked_omm_entry(ContextId context_id, uint64_t o
       ++entry.textureWaitAttempts;
       request_omm_texture(bake_tex_id);
     }
-    if (entry.textureWaitAttempts <= MAX_OMM_TEXTURE_WAIT_ATTEMPTS)
+    if (entry.textureWaitAttempts <= bvh_omm_texture_wait_attempts)
       return OmmBakeAdvance::Waiting;
     fail_omm_entry(context_id, entry, OmmFailure::AlphaTextureNeverLoaded);
     entry.debugPublished = true;
@@ -1156,7 +1158,7 @@ static String describe_omm_bake_attempt(const OmmCacheEntry *entry)
   return desc;
 }
 
-String describe_missing_omm(ContextId context_id, const Mesh &mesh)
+String describe_missing_omm(ContextId context_id, const Mesh &mesh, const OmmBakeSource &source)
 {
   const TEXTUREID texId = get_omm_texture_id(mesh);
   const char *texName = texId != BAD_TEXTUREID ? get_managed_texture_name(texId) : nullptr;
@@ -1165,10 +1167,16 @@ String describe_missing_omm(ContextId context_id, const Mesh &mesh)
   if (!mesh_wants_omm(context_id, mesh))
     return String(0, "%s", omm_failure_text(OmmFailure::NoAlphaSource));
 
+  if (!source.texCoordBuffer)
+    return String(0,
+      "the OMM bake found no texcoords to read (the mesh has no texcoord channel, or an impostor's vertex "
+      "processing never ran); %s",
+      texDesc.c_str());
+
   render::omm::TexCoordFormat unusedFormat;
-  if (!get_omm_texcoord_format(mesh.texcoordFormat, unusedFormat))
+  if (!get_omm_texcoord_format(source.texCoordFormat, unusedFormat))
     return String(0, "%s (%s); %s", omm_failure_text(OmmFailure::UnsupportedTexcoordFormat),
-      bvh_texcoord_format_desc(mesh.texcoordFormat).c_str(), texDesc.c_str());
+      bvh_texcoord_format_desc(source.texCoordFormat).c_str(), texDesc.c_str());
 
   String failures;
   for (int slotId = OMM_PRIMARY_SLOT; slotId <= OMM_SECONDARY_SLOT; ++slotId)

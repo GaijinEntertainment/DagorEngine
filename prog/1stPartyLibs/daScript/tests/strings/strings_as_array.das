@@ -22,7 +22,7 @@ def test_string_as_array(t : T?) {
         }
     }
 
-    var SST = "123"
+    let SST = "123"
     let SSTR = modify_data(SST) $(arr) {
         t |> equal(length(arr), 3)
         t |> equal(arr[0], uint8('1'))
@@ -36,7 +36,7 @@ def test_string_as_array(t : T?) {
     t |> run("fuzz modify_data") @@(t : T?) {
         var fake <- Faker()
         fuzz() {
-            var st = fake |> any_string
+            let st = fake |> any_string
             modify_data(st) $(arr) {
                 t |> equal(length(st), length(arr))
                 for (Ch in arr) {

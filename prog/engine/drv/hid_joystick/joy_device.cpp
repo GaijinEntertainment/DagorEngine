@@ -389,6 +389,21 @@ void Di8JoystickDevice::poll()
 }
 
 
+static void apply_stick_dead_zone(int &x, int &y, float dead_zone)
+{
+  float fx = float(x) / JOY_XINPUT_MAX_AXIS_VAL, fy = float(y) / JOY_XINPUT_MAX_AXIS_VAL;
+  float d = sqrtf(fx * fx + fy * fy);
+  if (d <= dead_zone || dead_zone >= 1.f)
+  {
+    x = y = 0;
+    return;
+  }
+  float s = min((d - dead_zone) / (1.f - dead_zone), 1.f) / d * JOY_XINPUT_MAX_AXIS_VAL;
+  x = (int)roundf(fx * s);
+  y = (int)roundf(fy * s);
+}
+
+
 bool Di8JoystickDevice::updateState(int dt_msec, bool def)
 {
   TIME_PROFILE(HID_DI8_updateState);
@@ -516,6 +531,10 @@ bool Di8JoystickDevice::updateState(int dt_msec, bool def)
           state.buttons.orWord0(JOY_XINPUT_REAL_MASK_R_THUMB_DOWN);
       }
     }
+
+    for (int s = 0; s < 2; s++)
+      if (isActualGamepad && stickDeadZoneScale[s] > 0 && (int)axes.size() > s * 2 + 1)
+        apply_stick_dead_zone(*axes[s * 2].valStorage, *axes[s * 2 + 1].valStorage, getStickDeadZoneAbs(s));
 
     if (state.getKeysPressed().hasAny()) // Little trick to avoid new static bool isFirstTimePressed
       lastKeyPressedTime = ctime + (stg_joy.keyFirstRepeatDelay - stg_joy.keyRepeatDelay);

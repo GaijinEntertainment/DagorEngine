@@ -186,6 +186,7 @@ bool SplineEntity::SplineData::load(const DataBlock &blk)
   poly.maxStep = blk.getReal("polyMaxStep", 1000);
   poly.tiledObjsWorldAnchor = blk.getBool("tiledObjsWorldAnchor", true);
   poly.plantedObjsWorldAnchor = blk.getBool("plantedObjsWorldAnchor", false);
+  poly.objsFollowDetile = blk.getBool("objsFollowDetile", true);
 
   int nid = blk.getNameId("point");
   pt.reserve(blk.blockCount());
@@ -364,7 +365,7 @@ void SplineEntity::generateData()
   for (int i = 0; i <= sd->ptAttr.size(); i++)
     splineScales.push_back(sd->ptAttr[i % sd->ptAttr.size()].attr);
 
-  String name(0, "s%p", this);
+  String name(0, "s&P(%p)", this);
   if (IPolygonGenObj *gen = polyGen ? polyGen->queryInterface<IPolygonGenObj>() : nullptr)
   {
     Tab<Point3> poly_pts;

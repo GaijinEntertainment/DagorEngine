@@ -191,7 +191,7 @@ static void dumpVariantTable(ScriptedShadersBinDump const &dump, const shaderbin
       for (int i = 0; i < vt.mapData.size() / 2; i++)
       {
         debug_("%*s%4d..%-4d -> %5d:   ", indent + 2, "", vt.mapData[i],
-          i < vt.mapData.size() / 2 ? vt.mapData[i + 1] - 1 : vt.mapData[i], vt.mapData[i + vt.mapData.size() / 2]);
+          (i + 1 < vt.mapData.size() / 2 ? vt.mapData[i + 1] : total_variants) - 1, vt.mapData[i + vt.mapData.size() / 2]);
         decodeVariant(dump, vt, vt.mapData[i]);
         vdump.dump(vt.mapData[i + vt.mapData.size() / 2]);
       }

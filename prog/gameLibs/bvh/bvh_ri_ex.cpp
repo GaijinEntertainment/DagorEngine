@@ -316,7 +316,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
           if (rangeCheckSq < distSq)
             continue;
 
-        distCheckSq = distSq * rendinst::getCullDistSqMul();
+        distCheckSq = distSq * rendinst::getRiExtraDistSqScale();
         worldBsphereForAnimation = v_perm_xyzd(center, approxRadius);
       }
       else
@@ -573,8 +573,8 @@ struct RiExtraBVHJob : public cpujobs::IJob
     } doJobWrapper;
 
 
-    float distSqMul = safediv(rendinst::getCullDistSqMul(), dist_mul * dist_mul);
-    float distSqMulOOC = override_dist_sq_mul_ooc ? saved_ooc_cull_dist_sq_mul : rendinst::getCullDistSqMul();
+    float distSqMul = safediv(rendinst::getRiExtraDistSqScale(), dist_mul * dist_mul);
+    float distSqMulOOC = override_dist_sq_mul_ooc ? saved_ooc_cull_dist_sq_mul : rendinst::getRiExtraDistSqScale();
     bool cullDistIncreased = distSqMul != distSqMulOOC;
     bool riBaked = contextId->hasAny(Features::RIBaked);
     const bool useMinLod = bvh::ri::get_ri_lod_dist_bias() > 0;

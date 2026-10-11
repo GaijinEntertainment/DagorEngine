@@ -82,6 +82,8 @@ struct SQWeakRef : SQRefCounted
     void Release();
     SQObject _obj;
     SQAllocContext _alloc_ctx;
+    // An object has one weakref per handle flags value, so ref() keeps the flags
+    SQWeakRef *_next;
 };
 
 #define _realval(o) (sq_type((o)) != OT_WEAKREF?(SQObject)o:_weakref(o)->_obj)

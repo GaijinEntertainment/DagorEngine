@@ -135,46 +135,7 @@ bool read_interpolate_2d_tab_p2(Interpolate2D &tab, const DataBlock &blk, ReadXF
   return done;
 }
 
-template <class Interpolate2D, class ReadFunc>
-bool read_interpolate_2d_tab_p3(Interpolate2D &tab, const DataBlock &blk, ReadFunc read)
-{
-  bool done = true;
-  float x = 0;
-  typename Interpolate2D::Interpolator1DL2 *y = nullptr;
-  for (int i = 0; i < blk.paramCount(); ++i)
-  {
-    float curX = 0;
-    float curY = 0;
-    typename Interpolate2D::Value curZ = ZERO<typename Interpolate2D::Value>();
-    if (!read(blk, i, curX, curY, curZ))
-      continue;
-
-    if (i == 0 || curX != x)
-    {
-      y = tab.add(x);
-      if (!y)
-      {
-        done = false;
-        debug("Interpolate tab '%s', value 'x' in row %d less than in previous row", blk.getBlockName(), i);
-        continue;
-      }
-
-      x = curX;
-    }
-
-    if (!y->add(curY, curX))
-    {
-      done = false;
-      debug("Interpolate tab '%s', value 'y' in row %d less than in previous row", blk.getBlock(i)->getBlockName(), i);
-    }
-  }
-
-  return done;
-}
-
-
 bool read_interpolate_tab_float_p2(InterpolateTabFloat &tab, const DataBlock &blk);
 bool read_interpolate_tab_float_p2(InterpolateTabMemPtrFloat &tab, const DataBlock &blk);
 
 bool read_interpolate_2d_tab_float_p2(Interpolate2DTabFloat &tab, const DataBlock &blk, const char *x_param_name);
-bool read_interpolate_2d_tab_float_p3(Interpolate2DTabFloat &tab, const DataBlock &blk);

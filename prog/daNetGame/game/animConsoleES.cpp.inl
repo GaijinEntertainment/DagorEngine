@@ -6,12 +6,17 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include <osApiWrappers/dag_clipboard.h>
+#include <osApiWrappers/dag_files.h>
+#include <anim/dag_animBlend.h>
+#include <anim/dag_animChannels.h>
+#include <gameRes/dag_gameResSystem.h>
+#include <util/dag_oaHashNameMap.h>
 
 #include "game/player.h"
 #include "camera/sceneCam.h"
 
 template <typename Callable>
-inline void set_irq_pos_ecs_query(ecs::EntityManager &manager, Callable c);
+inline void animchar_eid_ecs_query(ecs::EntityManager &manager, Callable c);
 
 using namespace console;
 static bool anim_console_handler(const char *argv[], int argc)
@@ -51,10 +56,42 @@ static bool anim_console_handler(const char *argv[], int argc)
   {
     const char *name = argv[1];
     float relPos = console::to_real(argv[2]);
-    set_irq_pos_ecs_query(*g_entity_mgr, [&](AnimV20::AnimcharBaseComponent &animchar) {
+    animchar_eid_ecs_query(*g_entity_mgr, [&](AnimV20::AnimcharBaseComponent &animchar) {
       if (auto ag = animchar.getAnimGraph())
         ag->debugSetIrqPosInAllNodes(name, relPos);
     });
+  }
+  CONSOLE_CHECK_NAME("anim", "dump_a2d_list", 1, 2)
+  {
+    const char *fn = argc > 1 ? argv[1] : "a2d_list.txt";
+    OAHashNameMap<false> names;
+    animchar_eid_ecs_query(*g_entity_mgr, [&](AnimV20::AnimcharBaseComponent &animchar) {
+      AnimV20::AnimationGraph *ag = animchar.getAnimGraph();
+      if (!ag)
+        return;
+      for (int i = 0, n = ag->getAnimNodeCount(); i < n; i++)
+      {
+        AnimV20::IAnimBlendNode *bn = ag->getBlendNodePtr(i);
+        if (!bn || !bn->isSubOf(AnimV20::AnimBlendNodeLeafCID))
+          continue;
+        AnimV20::AnimData *a = static_cast<AnimV20::AnimBlendNodeLeaf *>(bn)->anim;
+        if (a && a->resId == -1 && a->getSourceAnimData())
+          a = a->getSourceAnimData();
+        if (!a || a->resId == -1)
+          continue;
+        String resName;
+        get_game_resource_name(a->resId, resName);
+        names.addNameId(resName.str());
+      }
+    });
+    if (file_ptr_t fp = df_open(fn, DF_WRITE | DF_CREATE))
+    {
+      iterate_names(names, [&](int, const char *name) { df_printf(fp, "%s\n", name); });
+      df_close(fp);
+      console::print_d("%d a2d names written to %s", names.nameCount(), fn);
+    }
+    else
+      console::print_d("cannot open %s", fn);
   }
   CONSOLE_CHECK_NAME("anim", "debug_anim_param", 1, 2)
   {

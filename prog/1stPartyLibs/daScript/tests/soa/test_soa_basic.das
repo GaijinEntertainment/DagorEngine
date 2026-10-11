@@ -36,15 +36,15 @@ struct SingleField {
 [test]
 def test_soa_struct_exists(t : T?) {
     t |> run("particle SOA type is created") @(t : T?) {
-        var soa : Particle`SOA
+        let soa : Particle`SOA
         t |> equal(length(soa), 0)
     }
     t |> run("entity SOA type is created") @(t : T?) {
-        var soa : Entity`SOA
+        let soa : Entity`SOA
         t |> equal(length(soa), 0)
     }
     t |> run("single field SOA type is created") @(t : T?) {
-        var soa : SingleField`SOA
+        let soa : SingleField`SOA
         t |> equal(length(soa), 0)
     }
 }
@@ -56,7 +56,7 @@ def test_soa_struct_exists(t : T?) {
 [test]
 def test_soa_push_and_length(t : T?) {
     t |> run("empty SOA has length 0") @(t : T?) {
-        var soa : Particle`SOA
+        let soa : Particle`SOA
         t |> equal(length(soa), 0)
     }
     t |> run("push increases length") @(t : T?) {

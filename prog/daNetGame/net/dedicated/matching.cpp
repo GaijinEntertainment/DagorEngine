@@ -86,7 +86,7 @@ static eastl::string room_secret;
 static eastl::unordered_map<matching::UserId, Json::Value> room_members;
 static int group_size = 0; // 0 = unlimited
 bool (*generate_peer_auth)(matching::UserId, void const *, size_t, matching::AuthKey &) = nullptr;
-void (*try_start_relay_and_subscribe)(void(__cdecl *)(bool)) = nullptr;
+void (*try_start_relay)() = nullptr;
 } // namespace state_data
 
 static void merge_json(Json::Value const &what, Json::Value &where)
@@ -240,6 +240,11 @@ void shutdown() { g_entity_mgr->broadcastEventImmediate(NetMatchingEventOnTerm{}
 void on_level_loaded() { g_entity_mgr->broadcastEventImmediate(NetMatchingEventOnLevelLoaded{}); }
 
 void player_kick_from_room(matching::UserId user_id) { g_entity_mgr->broadcastEventImmediate(NetMatchingKickPlayerEvent{user_id}); }
+
+void player_remove_from_room(matching::UserId user_id)
+{
+  g_entity_mgr->broadcastEventImmediate(NetMatchingRemovePlayerEvent{user_id});
+}
 
 void ban_player_in_room(matching::UserId user_id) { g_entity_mgr->broadcastEventImmediate(NetMatchingBanPlayerEvent{user_id}); }
 

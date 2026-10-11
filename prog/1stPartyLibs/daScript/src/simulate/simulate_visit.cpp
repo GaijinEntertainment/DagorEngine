@@ -120,6 +120,13 @@ namespace das {
         V_END();
     }
 
+    SimNode* SimNode_FastCallCheckedAny::visit(SimVisitor& vis) {
+        V_BEGIN();
+        V_OP(FastCallChecked);
+        V_CALL();
+        V_END();
+    }
+
     SimNode * SimNode_CallAny::visit(SimVisitor& vis) {
         V_BEGIN();
         V_OP(Call);

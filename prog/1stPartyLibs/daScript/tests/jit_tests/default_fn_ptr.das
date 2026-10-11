@@ -1,7 +1,7 @@
 options gen2
 require dastest/testing_boost
 
-def noop_handler(msg : string) {
+def noop_handler(_msg : string) {
     pass
 }
 

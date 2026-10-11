@@ -3,7 +3,6 @@ from "%darg/ui_imports.nut" import *
 from "types" import Integer
 
 let entity_editor = require_optional("entity_editor")
-let { selectedEntity, selectedCompName } = require("state.nut")
 let ecs = require("%sqstd/ecs.nut")
 
 // DO NOT add extra components here as this code is not game specific.
@@ -22,10 +21,6 @@ let {
   get_entity_extra_name = @(eid) defaultGetEntityExtraNameQuery(eid, @(_eid, comp) comp.ri_extra__name)
 } = require_optional("das.daeditor")
 
-
-selectedEntity.subscribe_with_nasty_disregard_of_frp_update(function(_eid) {
-  selectedCompName.set(null)
-})
 
 function getEntityExtraName(eid): string|null {
   let extraName = get_entity_extra_name?(eid) ?? ""

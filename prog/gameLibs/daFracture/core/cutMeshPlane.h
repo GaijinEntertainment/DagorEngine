@@ -108,7 +108,7 @@ DAGOR_NOINLINE inline static void cut_mesh_plane_impl(const DestrContext &ctx, c
   constexpr uint32_t CUT_VERT_FLAG = 0x80000000u;
   ska::flat_hash_map<uint64_t, uint32_t, eastl::hash<uint64_t>, eastl::equal_to<uint64_t>, framemem_allocator> cutEdges;
   dag::Vector<DestrMesh::Vertex, framemem_allocator> cutVerts;
-  const auto reindexVert = [&](bool up, uint32_t idx) FORCE_INLINE_LAMBDA {
+  const auto reindexVert = [&](bool up, uint32_t idx) DAGOR_FORCE_INLINE_LAMBDA {
     uint32_t &__restrict remap = (up ? old2newUpPtr : old2newDownPtr)[idx];
     // vertex is most likely already put in the appropriate mesh during vertex classify pass
     if (DAGOR_UNLIKELY(remap == uint32_t(-1)))
@@ -119,7 +119,7 @@ DAGOR_NOINLINE inline static void cut_mesh_plane_impl(const DestrContext &ctx, c
     }
     return remap;
   };
-  const auto makeCutVert = [&](uint32_t i1, uint32_t i2, vec4f tttt) FORCE_INLINE_LAMBDA -> uint32_t {
+  const auto makeCutVert = [&](uint32_t i1, uint32_t i2, vec4f tttt) DAGOR_FORCE_INLINE_LAMBDA -> uint32_t {
     const uint64_t edgeKey = i1 < i2 ? (uint64_t(i1) << 32u) | i2 : (uint64_t(i2) << 32u) | i1;
     uint32_t &slot = cutEdges[edgeKey];
     if (!slot)
@@ -248,7 +248,7 @@ DAGOR_NOINLINE inline static void cut_mesh_plane_impl(const DestrContext &ctx, c
     }
   }
 
-  const auto finalizeCutFaces = [&](DestrMesh &dst_mesh, uint32_t cut_faces_start) FORCE_INLINE_LAMBDA {
+  const auto finalizeCutFaces = [&](DestrMesh &dst_mesh, uint32_t cut_faces_start) DAGOR_FORCE_INLINE_LAMBDA {
     DestrMesh::Face *__restrict faces = dst_mesh.faces.data();
     const uint32_t facesEnd = dst_mesh.faces.size();
     const uint32_t cutOfs = dst_mesh.verts.size();

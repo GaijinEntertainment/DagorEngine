@@ -218,6 +218,8 @@ DAS_MOD_API void test_das_string(const das::Block & block, das::Context * contex
 DAS_MOD_API uint64_t testBlockAnnotationData(const das::Block & blk, das::Context * context, das::LineInfoArg * at);
 DAS_MOD_API uint64_t testBlockAnnotationDataPayload();
 DAS_MOD_API void testPipedDefaults(int32_t a, float b, const das::TBlock<void, int32_t, float> & blk, das::Context * context, das::LineInfoArg * at);
+DAS_MOD_API int64_t testFourStrings ( const char * a, const char * b, const char * c, const char * d );
+DAS_MOD_API int64_t testFourPointers ( void * a, void * b, void * c, void * d );
 DAS_MOD_API vec4f new_and_init ( das::Context & context, das::SimNode_CallBase * call, vec4f * );
 
 struct CppS1 {
@@ -335,8 +337,8 @@ namespace das {
     };
     template <> struct WrapType<BigEntityId> {
         enum { value = true };
-        typedef vec4f type;
-        typedef vec4f rettype;
+        using type = float4;
+        using rettype = float4;
     };
 }
 
@@ -447,3 +449,13 @@ DAS_MOD_API inline void deleteFancyClassDummy(FancyClass& ) {  } // this one in 
 DAS_MOD_API void test_abi_lambda_and_function ( das::Lambda lambda, das::Func fn, int32_t lambdaSize, das::Context * context, das::LineInfoArg * lineinfo );
 
 DAS_MOD_API bool testBindEnumFunction ( das::Context * context, das::LineInfoArg * at );
+
+//! CRT reference twins - benchmarks/core/math A/Bs these against the math builtins.
+inline float crt_expf ( float a ) { return expf(a); }
+inline float crt_exp2f ( float a ) { return exp2f(a); }
+inline float crt_logf ( float a ) { return logf(a); }
+inline float crt_log2f ( float a ) { return log2f(a); }
+inline float crt_powf ( float a, float b ) { return powf(a, b); }
+inline float crt_sinf ( float a ) { return sinf(a); }
+inline float crt_cosf ( float a ) { return cosf(a); }
+inline float crt_tanf ( float a ) { return tanf(a); }

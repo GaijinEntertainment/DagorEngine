@@ -2,7 +2,6 @@
 
 #include "plugin_scn.h"
 #include "strmlevel.h"
-#include <sceneRay/dag_sceneRay.h>
 #include <rendInst/rendInstGen.h>
 #include <heightmap/heightmapHandler.h>
 #include <pathFinder/pathFinder.h>
@@ -22,7 +21,6 @@
 #include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_wndPublic.h>
 #include <winGuiWrapper/wgw_dialogs.h>
-#include <perfMon/dag_visClipMesh.h>
 #include <scene/dag_physMat.h>
 #include <osApiWrappers/dag_direct.h>
 #include <drv/3d/dag_info.h>
@@ -447,20 +445,12 @@ bool BinSceneViewPlugin::catchEvent(unsigned ev_huid, void *userData)
   else if (ev_huid == HUID_PostRenderObjects && isVisible && showFrt && PhysMat::physMatCount() && streamingScene &&
            streamingScene->hasStaticScene())
   {
-    float prev_rad = get_vcm_rad();
-    bool prev_vis = is_vcm_visible();
-    int prev_type = set_vcm_draw_type(showFrtWire);
-    set_vcm_rad(maxFrtVisDist);
-    set_vcm_visible(true);
     if (IGenViewportWnd *vp = DAGORED2->getRenderViewport())
     {
       TMatrix cameraTm;
       vp->getCameraTransform(cameraTm);
-      streamingScene->drawStaticSceneClip(cameraTm.getcol(3), maxFrtVisDist);
+      streamingScene->drawStaticSceneClip(cameraTm.getcol(3), maxFrtVisDist, showFrtWire);
     }
-    set_vcm_rad(prev_rad);
-    set_vcm_visible(prev_vis);
-    set_vcm_draw_type(prev_type);
   }
   else if (ev_huid == HUID_AfterProjectLoad && isVisible)
   {
@@ -651,9 +641,8 @@ void BinSceneViewPlugin::updateImgui()
     if (propPanel)
     {
       bool open = true;
-      DAEDITOR3.imguiBegin(*propPanel, &open);
-      propPanel->updateImgui();
-      DAEDITOR3.imguiEnd();
+      if (auto window = IDaEditor3Engine::ScopedImguiWindow(*propPanel, &open); window.canSubmitContents())
+        propPanel->updateImgui();
 
       if (!open && propPanel)
       {
@@ -883,16 +872,9 @@ bool BinSceneViewPlugin::traceRay(const Point3 &p, const Point3 &dir, real &maxt
   bool _result = false;
   if (streamingScene->lmeshMgr)
     _result = streamingScene->lmeshMgr->traceray(p, dir, maxt, norm);
-  // the scene traces a unit direction; maxt is in units of dir here
-  if (const float len = length(dir))
-  {
-    float t = maxt * len;
-    if (streamingScene->tracerayNormalizedStaticScene(p, dir / len, t, nullptr, norm))
-    {
-      maxt = t / len;
-      _result = true;
-    }
-  }
+  if (trace_via_unit_dir(dir, maxt,
+        [&](const Point3 &unit_dir, real &t) { return streamingScene->tracerayNormalizedStaticScene(p, unit_dir, t, nullptr, norm); }))
+    _result = true;
   return _result;
 }
 

@@ -10,6 +10,7 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 //     type/pass/capture/simulate) — fires by syntax / installs a pass, leaving
 //     no traceable symbol reference
 //   * X has an [init] function (side effects on load)
+//   * a lifecycle hook is reachable only through X (dropping X drops it)
 //   * builtin facade re-exports (no source file) don't count as "used"
 //
 // Without a recompile-verify (which a lint pass can't do), the macro guard is
@@ -19,8 +20,11 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 expect 31209:1
 
 require daslib/style_lint       // [lint_macro] module — pass-macro guard must NOT flag it
+require daslib/ast_verify       // [post_rewrite_macro]/[post_compile_macro]/[simulate_macro] module — the pass-macro guard covers those lists too, must NOT flag it
 require _style030_unused        // genuinely unused source module (FIRES)
 require _style029_direct        // used directly — must NOT fire
+require _style030_finalize_only // lifecycle-hook-only module ([finalize]) — must NOT fire
+require _style030_hook_umbrella // nothing referenced, but its [init] dependency is reached only through it — must NOT fire
 
 [export]
 def use_them() : int {

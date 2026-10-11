@@ -53,6 +53,7 @@ struct NetContext
   ServerFlags srvFlags = ServerFlags::None;
 
   DisconnectionCause lastClientDc = DC_CONNECTION_CLOSED;
+  eastl::string disconnectDetails; // from DisconnectDetails msg, consumed by on_client_disconnected
   int timeToSwitchServerAddr = 0;
 
   eastl::fixed_vector<eastl::string, 16> serverUrls;
@@ -88,8 +89,8 @@ struct NetGlobals
 {
   int connectGen = 0;
 
-  DummyTimeManager dummyTime;
-  ITimeManager *timeMgr = &dummyTime;
+  bool isDefaultTimeMgr = true;
+  ITimeManager *timeMgr = create_accum_time();
 
   ~NetGlobals();
 };

@@ -2,7 +2,7 @@
 
 #include "canvas_clipboard.h"
 
-#include "graph_panel.h"
+#include "graph_tab.h"
 
 #include <EASTL/algorithm.h>
 #include <EASTL/hash_map.h>
@@ -12,7 +12,7 @@
 
 namespace ne = ax::NodeEditor;
 
-void CanvasClipboard::captureSelection(const GraphPanel &panel, const GraphData &graph, bool with_input_edges)
+void CanvasClipboard::captureSelection(const GraphTab &graph_tab, const GraphData &graph, bool with_input_edges)
 {
   const int objCount = ne::GetSelectedObjectCount();
   if (objCount == 0)
@@ -44,7 +44,7 @@ void CanvasClipboard::captureSelection(const GraphPanel &panel, const GraphData 
     if (node->descName == "block")
     {
       eastl::vector<int> children;
-      panel.collectNodesInsideBlock(node_id, children);
+      graph_tab.collectNodesInsideBlock(node_id, children);
       for (int c : children)
       {
         ids.insert(c);
@@ -100,7 +100,7 @@ void CanvasClipboard::captureSelection(const GraphPanel &panel, const GraphData 
   }
 }
 
-void CanvasClipboard::paste(GraphPanel &panel, const GraphData &graph, const ImVec2 &paste_origin_canvas,
+void CanvasClipboard::paste(GraphTab &graph_tab, const GraphData &graph, const ImVec2 &paste_origin_canvas,
   eastl::vector<GraphData::Node> &out_nodes, eastl::vector<GraphData::Edge> &out_edges) const
 {
   if (nodes.empty())
@@ -117,10 +117,10 @@ void CanvasClipboard::paste(GraphPanel &panel, const GraphData &graph, const ImV
     minX = eastl::min(minX, nd.x);
     minY = eastl::min(minY, nd.y);
   }
-  pasteShifted(panel, graph, ImVec2(paste_origin_canvas.x - minX, paste_origin_canvas.y - minY), out_nodes, out_edges);
+  pasteShifted(graph_tab, graph, ImVec2(paste_origin_canvas.x - minX, paste_origin_canvas.y - minY), out_nodes, out_edges);
 }
 
-void CanvasClipboard::pasteShifted(GraphPanel &panel, const GraphData &graph, const ImVec2 &delta,
+void CanvasClipboard::pasteShifted(GraphTab &graph_tab, const GraphData &graph, const ImVec2 &delta,
   eastl::vector<GraphData::Node> &out_nodes, eastl::vector<GraphData::Edge> &out_edges) const
 {
   out_nodes.clear();
@@ -135,7 +135,7 @@ void CanvasClipboard::pasteShifted(GraphPanel &panel, const GraphData &graph, co
 
   // One consecutive id block for the whole paste batch -- allocateNodeId returns
   // max(existing) + 1 once; we increment locally for each subsequent node.
-  const int baseId = panel.allocateNodeId();
+  const int baseId = graph_tab.allocateNodeId();
   eastl::hash_map<int, int> idRemap;
   idRemap.reserve(nodes.size());
   for (int i = 0; i < static_cast<int>(nodes.size()); ++i)
@@ -152,8 +152,8 @@ void CanvasClipboard::pasteShifted(GraphPanel &panel, const GraphData &graph, co
     copy.x += dx;
     copy.y += dy;
     pasted.push_back(copy.id);
-    out_nodes.push_back(copy);        // snapshot for the paste undo entry
-    panel.addNode(eastl::move(copy)); // also pushes the new id into pendingPositionIds
+    out_nodes.push_back(copy);            // snapshot for the paste undo entry
+    graph_tab.addNode(eastl::move(copy)); // also pushes the new id into pendingPositionIds
   }
 
   // An id the remap does not know belongs to a node that already exists -- the producer of an input
@@ -172,10 +172,10 @@ void CanvasClipboard::pasteShifted(GraphPanel &panel, const GraphData &graph, co
     copy.elemA = remapEnd(copy.elemA);
     copy.elemB = remapEnd(copy.elemB);
     out_edges.push_back(copy); // snapshot for the paste undo entry
-    panel.addEdge(eastl::move(copy));
+    graph_tab.addEdge(eastl::move(copy));
   }
 
   GraphSelection justPasted;
   justPasted.nodes = eastl::move(pasted);
-  panel.setPendingSelection(justPasted);
+  graph_tab.setPendingSelection(justPasted);
 }

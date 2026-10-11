@@ -3,6 +3,8 @@
 
 #include <drv/hid/dag_hiJoystick.h>
 #include <drv/hid/dag_hiDeclDInput.h>
+#include <drv/hid/dag_hiXInputMappings.h>
+#include <debug/dag_assert.h>
 #include <util/dag_string.h>
 #include <generic/dag_tab.h>
 
@@ -92,11 +94,29 @@ public:
   void setLight(bool set, unsigned char r, unsigned char g, unsigned char b) {}
   bool isConnected();
   bool isXinputCompatible() const override { return shouldRemapAsX360(); }
+  bool isGamepadLayout() const override { return shouldRemapAsX360(); }
 
   int getPairedButtonForAxis(int axis_idx) const override;
   int getPairedAxisForButton(int btn_idx) const override;
 
   int getJointAxisForAxis(int axis_idx) const override;
+
+  // XInput's left stick default, the scale 1
+  static constexpr float NOMINAL_STICK_DEAD_ZONE = 7849.f / JOY_XINPUT_MAX_AXIS_VAL;
+
+  // updateState cuts only a gamepad's sticks
+  bool isStickDeadZoneSetupSupported() const override { return isActualGamepad; }
+  float getStickDeadZoneScale(int stick_idx) const override
+  {
+    G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, 0);
+    return stickDeadZoneScale[stick_idx];
+  }
+  void setStickDeadZoneScale(int stick_idx, float scale) override
+  {
+    G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, );
+    stickDeadZoneScale[stick_idx] = scale;
+  }
+  float getStickDeadZoneAbs(int stick_idx) const override { return getStickDeadZoneScale(stick_idx) * NOMINAL_STICK_DEAD_ZONE; }
 
 protected:
   IDirectInputDevice8 *device;
@@ -129,6 +149,7 @@ protected:
   Tab<PovHatData> povHats;
   String name;
   char devID[34];
+  float stickDeadZoneScale[2] = {0, 0};
 
   static constexpr int MAX_BUTTONS = JoystickRawState::MAX_BUTTONS - 16;
 

@@ -55,7 +55,12 @@ public:
   bool canSelectAsset(const DagorAsset *next_asset);
   bool canClose();
   void onAssetSelectionChanged(const DagorAsset *asset);
-  void updateImgui() override;
+
+  // can_submit_contents: the result of the caller's ImGui::Begin().
+  // Call this function even when ImGui::Begin() returns false.
+  // This also completes the debounced parse of the parameters text, which the viewport uses.
+  void updateImgui(bool can_submit_contents);
+
   void customControlUpdate(int id) override;
   const char *getViewportFxAssetName() const;
   bool getViewportCanopyParams(ViewportCanopyParams &params) const;
@@ -73,6 +78,7 @@ private:
 
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void updateImgui() override;
 
   void reloadSelectedBlk();
   void updateCurrentAssetParameters();

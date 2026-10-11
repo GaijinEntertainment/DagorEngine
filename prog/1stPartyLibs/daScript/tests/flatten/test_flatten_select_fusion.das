@@ -117,14 +117,8 @@ def sf_intdiv(s : float; d : int) : int {
 
 // ----- driver -----
 
-var SG : array<float>
-var NG : array<float>
-
-[init]
-def fill_grids {
-    SG <- [-1.0, 0.0, 0.4, 0.5, 0.6, 1.0, 2.5]   // straddles the guard threshold 0.5
-    NG <- [-3.0, -0.5, 0.0, 1.0, 2.5, 7.0]
-}
+var SG <- [-1.0, 0.0, 0.4, 0.5, 0.6, 1.0, 2.5]   // straddles the guard threshold 0.5
+var NG <- [-3.0, -0.5, 0.0, 1.0, 2.5, 7.0]
 
 def cmp3(t : T?; a, b : float3) {
     t |> equal(a.x, b.x); t |> equal(a.y, b.y); t |> equal(a.z, b.z)

@@ -1,6 +1,6 @@
 options gen2
 options disable_auto_inline    // this test pins lint diagnostics; splicing would reshape them
-expect 30500:3, 30508, 30510, 30512:2, 30513
+expect 30500:3, 30508, 30510, 30512:3, 30513
 
 require dastest/testing_boost public
 require daslib/lpipe
@@ -30,6 +30,7 @@ def test_invalid_types(t : T?) {
     feint("a = {a}\n")
     var p = new Foo()               // 30109: can't new to a type that is too big
     var pp = new Foo()            // 30109: can't ascend type which is too big
+    debug(default<foo>)             // 30512: can't make a value of a type that is too big
 }
 
     // this one happens during infer, and not lint. so we can't have it in the test

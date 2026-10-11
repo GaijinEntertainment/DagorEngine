@@ -66,6 +66,9 @@ public:
     const IPoint2 &rendering_resolution,
     const ShadowVisibilityContext &shadow_ctx);
 
+  void startLodsByDistance(const Point3 &view_pos) { lodsByDistanceJob.start(view_pos); }
+  void waitLodsByDistance();
+
   void startGroundVisibility(
     LandMeshManager *lmesh_mgr, const int displacement_sub_div, const float displacement_radius, const CameraParams &cur_frame_camera);
 
@@ -90,6 +93,8 @@ public:
   void prepareToStartAsyncRIGenExtraOpaqueRender(const int frame_stblk, const TexStreamingContext texCtx, const bool enable);
   void waitAsyncRIGenExtraOpaqueRenderVbFill();
   rendinst::render::RiExtraRenderer *waitAsyncRIGenExtraOpaqueRender();
+  void startAsyncRIGenExtraTransparentRender();
+  rendinst::render::RiExtraRenderer *waitAsyncRIGenExtraTransparentRender(bool partitioned);
 
   const LandMeshCullingData &getLandMeshCullingData() const { return lmeshCullingData; }
   const LandMeshCullingData &getLandMeshReflectionCullingData() const { return lmeshReflectionCullingData; }

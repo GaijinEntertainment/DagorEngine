@@ -10,7 +10,7 @@ require daslib/linq_fold
 require _common
 
 [test]
-def test_join(t : T?) {
+def test_join(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic join") @(t : T?) {
         var query = join(
             persons.to_sequence(),
@@ -110,7 +110,7 @@ def test_join(t : T?) {
 }
 
 [test]
-def test_left_join(t : T?) {
+def test_left_join(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("left join — numeric keys") @(t : T?) {
         let arr1 = [1, 2, 3, 4, 5]
         let arr2 = [2, 3, 3, 4]   // 1 & 5 have no match; 3 has two
@@ -224,7 +224,7 @@ def test_left_join(t : T?) {
             $(pet : Pet) => pet.owner.name,
             $(p : Person, pet : Option<Pet>) => (p.name, pet |> is_some)
         )
-        t |> success(arr |> length > 0)
+        t |> success(!empty(arr))
         for (row in arr) {
             t |> success(row._1)  // every _common person has at least one pet
         }
@@ -232,7 +232,7 @@ def test_left_join(t : T?) {
 }
 
 [test]
-def test_groupjoin(t : T?) {
+def test_groupjoin(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("basic group join") @(t : T?) {
         var query = group_join(
             persons.to_sequence(),
@@ -391,10 +391,7 @@ def test_groupby(t : T?) {
                 return (baseAge, aa.length(), aa.to_sequence().min(), aa.to_sequence().max())
             }
         )
-        var got : array<tuple<float; int; float; float>>
-        for (c in query) {
-            got |> push(c)
-        }
+        var got <- [for (c in query); c]
         check_pet_age_groups(t, got)
         delete got
     }
@@ -429,10 +426,7 @@ def test_groupby(t : T?) {
                 return (baseAge, aa.length(), aa.to_sequence().min(), aa.to_sequence().max())
             }
         )
-        var got : array<tuple<float; int; float; float>>
-        for (c in query) {
-            got |> push(c)
-        }
+        var got <- [for (c in query); c]
         check_pet_age_groups(t, got)
         delete got
     }
@@ -446,10 +440,7 @@ def test_groupby(t : T?) {
                 return (baseAge, aa.length(), aa.to_sequence().min(), aa.to_sequence().max())
             }
         )
-        var got : array<tuple<float; int; float; float>>
-        for (c in query) {
-            got |> push(c)
-        }
+        var got <- [for (c in query); c]
         check_pet_age_groups(t, got)
         delete got
     }
@@ -463,10 +454,7 @@ def test_groupby(t : T?) {
                 return (baseAge, aa.length(), aa.to_sequence().min(), aa.to_sequence().max())
             }
         ).to_sequence()
-        var got : array<tuple<float; int; float; float>>
-        for (c in query) {
-            got |> push(c)
-        }
+        var got <- [for (c in query); c]
         check_pet_age_groups(t, got)
         delete got
     }
@@ -664,7 +652,7 @@ struct AJKey {
 }
 
 [test]
-def test_array_join_splice(t : T?) {
+def test_array_join_splice(t : T?) { // nolint:STYLE038 flat list of independent run arms
     t |> run("_join + count — int key, 4 matches (orphan dropped)") @(t : T?) {
         let cars <- aj_cars()
         let dealers <- aj_dealers()

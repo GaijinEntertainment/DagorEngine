@@ -6,7 +6,7 @@
 //==============================================================================
 void ObjCreator3d::generateRing(Tab<Point3> &vert, Tab<Point2> &tvert, int segments, real y)
 {
-  const real radius = 0.5 * sqrtf(1 - y * y * 4);
+  const real radius = 0.5f * sqrtf(1 - y * y * 4);
 
   vert.resize(segments);
   tvert.resize(segments + 1);
@@ -52,7 +52,7 @@ Mesh *ObjCreator3d::generateSphereMesh(int segments, Color4 col)
 
   for (int ring = 0; ring < endRing; ++ring)
   {
-    real y = 0.5 * cosf(segAngle * ring);
+    real y = 0.5f * cosf(segAngle * ring);
     // north pole
     if (!ring)
     {

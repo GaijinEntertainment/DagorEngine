@@ -135,7 +135,8 @@ TEMPLATE_PHYS_ACTOR
 void PHYS_ACTOR::initRole() const // FIXME: why const?
 {
   G_ASSERTF(!(is_server() && clientSideOnly), "Client-side only entity created on server");
-  auto role = (is_server() || clientSideOnly) ? ROLE_LOCALLY_CONTROLLED_AUTHORITY : ROLE_REMOTELY_CONTROLLED_SHADOW;
+  auto role =
+    ((is_server() && !externalSnapshots) || clientSideOnly) ? ROLE_LOCALLY_CONTROLLED_AUTHORITY : ROLE_REMOTELY_CONTROLLED_SHADOW;
   const_cast<PHYS_ACTOR *>(this)->setRoleAndTickrateType(role, tickrateType);
 }
 
@@ -472,12 +473,8 @@ bool PHYS_ACTOR::serializePhysSnapshotBase(danet::BitStream &bs, PhysSnapSeriali
 }
 
 TEMPLATE_PHYS_ACTOR
-/*static*/ bool PHYS_ACTOR::deserializeBasePhysSnapshot(const danet::BitStream &bs,
-  PhysSnapSerializeType pst,
-  BasePhysSnapshot &snap,
-  net::IConnection &,
-  bool *out_in_motion,
-  bool *out_quat_ext2_bit)
+/*static*/ bool PHYS_ACTOR::deserializeBasePhysSnapshot(
+  const danet::BitStream &bs, PhysSnapSerializeType pst, BasePhysSnapshot &snap, bool *out_in_motion, bool *out_quat_ext2_bit)
 {
   bool isOk = true;
   bs.AlignReadToByteBoundary();
@@ -762,6 +759,8 @@ PHYS_ACTOR::PhysActor(ecs::EntityManager &mgr, ecs::EntityId in_eid) :
   }
 
   clientSideOnly = mgr.has(in_eid, ECS_HASH("clientSide"));
+  // the game pushes snapshots in local sessions
+  externalSnapshots = !has_network() && mgr.has(in_eid, ECS_HASH("phys__externalSnapshots"));
 
   initRole();
 

@@ -25,7 +25,7 @@
 #include <render/specialVision/specialVision.h>
 #include <render/cascadeShadows.h>
 #include <render/lightCube.h>
-#include <render/ssao.h>
+#include <ssao_public.h>
 #include <screenSpaceReflections_api.h>
 #include <render/downsampleDepth.h>
 #include <render/motionVectorAccess.h>
@@ -36,7 +36,6 @@
 #include <render/dag_cur_view.h>
 #include <render/dynmodelRenderer.h>
 #include <startup/dag_globalSettings.h>
-#include <3d/dag_textureIDHolder.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_draw.h>
@@ -59,6 +58,7 @@
 #include <de3_waterSrv.h>
 #include <de3_landmesh.h>
 #include <EditorCore/ec_interface_ex.h>
+#include <EditorCore/ec_testSystem.h>
 
 #include <scene/dag_visibility.h>
 #include <shaders/dag_renderScene.h>
@@ -759,7 +759,7 @@ public:
     }
 
     IEditorCoreEngine::get()->renderObjects();
-    IEditorCoreEngine::get()->renderTransObjects();
+    IEditorCoreEngine::get()->renderTransObjects(finalRt);
 
     if (::grs_draw_wire)
       d3d::setwire(0);
@@ -939,7 +939,7 @@ public:
       }
 
       IEditorCoreEngine::get()->renderObjects();
-      IEditorCoreEngine::get()->renderTransObjects();
+      IEditorCoreEngine::get()->renderTransObjects(rt.getColor(0).tex);
       ec_camera_elem::freeCameraElem->render();
       ec_camera_elem::maxCameraElem->render();
       ec_camera_elem::fpsCameraElem->render();
@@ -1307,13 +1307,8 @@ public:
       deferredTarget->setVar();
       eastl::swap(downsampledFarDepth, downsampledFarDepthPrev);
       ShaderGlobal::set_texture(downsampledFarDepthTexVarId, downsampledFarDepth.getTexId());
-      TextureIDPair fullDepthPair = TextureIDPair(deferredTarget->getDepthAll().getTex2D(), deferredTarget->getDepthAll().getTexId());
-      TextureIDPair farDepthPair = TextureIDPair(downsampledFarDepth.getTex2D(), downsampledFarDepth.getTexId());
-      TextureIDPair normalPair = TextureIDPair(downsampledNormals.getTex2D(), downsampledNormals.getTexId());
-      TextureIDPair checkerDepthPair = TextureIDPair(checkerboardDepth.getTex2D(), checkerboardDepth.getTexId());
-
-      downsample_depth::downsamplePS(fullDepthPair.getTex2D(), deferredTarget->getWidth(), deferredTarget->getHeight(),
-        farDepthPair.getTex2D(), nullptr, normalPair.getTex2D(), nullptr, nullptr, checkerDepthPair.getTex2D());
+      downsample_depth::downsamplePS(deferredTarget->getDepthAll().getTex2D(), deferredTarget->getWidth(), deferredTarget->getHeight(),
+        downsampledFarDepth.getTex2D(), nullptr, downsampledNormals.getTex2D(), nullptr, nullptr, checkerboardDepth.getTex2D());
       downsampledNormals.setVar();
       checkerboardDepth.setVar();
       if (upscaleSamplingRenderer)
@@ -1651,6 +1646,7 @@ public:
     renderingService->updateImgui();
 
     editor_core_render_dag_imgui_windows();
+    editor_core_test_runtime_end_frame();
     imgui_endframe();
     imgui_render();
   }
@@ -1903,6 +1899,8 @@ public:
     // A device reset leaves preIntegratedGF blank, and every environment lit surface loses its ambient light.
     if (preIntegratedGF.getTex2D())
       render_preintegrated_fresnel_GGX(preIntegratedGF.getTex2D(), nullptr, 0, 1);
+    // constraint: a device reset loses the exposure buffer content, and writeExposure() runs only on a value change.
+    writtenExposure = -1.0f;
     if (ssao)
       ssao->reset();
     if (enviProbe)
@@ -2623,7 +2621,7 @@ private:
     Texture *finalRt = resolvePostProcessing(use_postfx, true);
 
     IEditorCoreEngine::get()->renderObjects();
-    IEditorCoreEngine::get()->renderTransObjects();
+    IEditorCoreEngine::get()->renderTransObjects(finalRt);
 
     d3d_err(d3d::stretch_rect(finalRt, target.getTex2D(), NULL, NULL));
 

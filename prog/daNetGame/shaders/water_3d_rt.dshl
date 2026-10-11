@@ -48,7 +48,7 @@ shader raytraced_water_reflections
   INIT_PACK_UNPACK_DYNSTCODE(cs)
   PACK_UNPACK_GBUFFER_BASE(cs)
   USE_ADAPTIVE_RAY_OFFSET(cs)
-  INIT_RT_LIGHTING(cs, true, false, true, rtr_shadow == on, false)
+  INIT_RT_LIGHTING(cs, true, false, true, rtr_shadow == on)
   USE_RT_LIGHTING(cs, 1, false)
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
@@ -193,7 +193,7 @@ shader raytraced_water_reflections
       if (isHit)
       {
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -reflectionVec, worldDist);
-        reflectionColor = light_hit_surface(hitSurface, -reflectionVec, worldDist + hitInfo.t, hit_dist_params.x);
+        reflectionColor = light_hit_surface(hitSurface, -reflectionVec, worldDist + hitInfo.t, hitInfo.t, hit_dist_params.x);
         if (above_water)
           calc_atmosphere(reflectionColor, hitInfo.position, hitInfo.t);
         else

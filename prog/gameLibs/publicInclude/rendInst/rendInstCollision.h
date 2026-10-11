@@ -144,6 +144,9 @@ uint32_t setMaxNumRiCollisionCb(uint32_t new_max_num);
 
 // Non-owning: the callable must outlive the call, do not bind a temporary.
 using TraceRayIgnoreRiExtraCbType = dag::FunctionRef<bool(riex_handle_t) const>;
+// Non-owning as well: the walker keeps the reference until the batch returns.
+using VisitedRiBoundsCbType =
+  dag::FunctionRef<void(int ray_idx, const RendInstDesc &ri_desc, bbox3f_cref resource_bbox, mat44f_cref tm) const>;
 
 bool traceRayRendInstsNormalized(const Point3 &from, const Point3 &dir, float &tout, Point3 &norm, bool extend_bbox = false,
   bool trace_meshes = false, rendinst::RendInstDesc *ri_desc = nullptr, bool trace_trees = false, int ray_mat_id = -1,
@@ -161,6 +164,15 @@ struct TraceRendInstParams
   bool traceTransparencyAllLayers = false;
   float transparencyThreshold = 0.1f;
   bool checkCanopy = false;
+  // No record of a non-triangle answer survives: a box, sphere or capsule node and a pos instance answer once and not
+  // as a crossing, so a caller pairing hits into solid intervals could never close them; none of them shortens the ray.
+  bool triangleHitsOnly = false;
+  // Every resource bound the walk reached, once per (ray, instance) and before that instance's own
+  // hits, with the desc they carry. Silent for a mesh-less resource under triangleHitsOnly (its bound
+  // would read as a miss) and for a canopy record whose trunk box the ray missed (never a crossing).
+  // Called under the rendinst layer read lock on the riGen path; the riExtra one copies the
+  // transforms first and holds no lock.
+  VisitedRiBoundsCbType visitedBoundsCb = {};
 };
 bool traceRayRendInstsRayBatchAllIntersections(dag::Span<Trace> traces, RendInstsIntersectionsListExt &ri_data,
   const TraceRendInstParams &params);

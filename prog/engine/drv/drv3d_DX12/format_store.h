@@ -4,6 +4,7 @@
 #include "bitfield.h"
 #include "driver.h"
 #include "tagged_types.h"
+#include "render_target_mask_util.h"
 
 #include <drv/3d/dag_tex3d.h>
 
@@ -154,9 +155,9 @@ struct FormatStore
   const char *getNameString() const;
   // returns true if the format can be represented with this storage
   static bool canBeStored(DXGI_FORMAT fmt);
-  static void configureFormatTable(ID3D12Device *device, uint32_t vendor = 0);
+  static void configureFormatTable(D3DDevice *device, uint32_t vendor = 0);
   FormatPlaneCount getPlanes() const;
-  uint32_t getChannelMask() const;
+  ColorChannelMask getChannelMask() const;
   // isSupported section
   bool isSupported(D3D12_FORMAT_SUPPORT1 flags) const;
   bool isSupported(D3D12_FORMAT_SUPPORT2 flags) const;

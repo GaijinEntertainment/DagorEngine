@@ -346,8 +346,39 @@ static int get_or_synth_static_mat_tex_var_id(int slot, shc::VariantContext &ctx
   return vi;
 }
 
+eastl::optional<SubpassReadSourceRef> parse_subpass_read_source_ref(const state_block_stat &state_block, Terminal *var_term,
+  Parser &parser)
+{
+  if (state_block.arr || state_block.reg_arr || (state_block.var && state_block.var->par))
+  {
+    report_error(parser, var_term, "@subpass_read cannot be an array");
+    return eastl::nullopt;
+  }
+  external_var_value_single *val = state_block.var ? state_block.var->val : nullptr;
+  arithmetic_operand *op = nullptr;
+  if (val && val->expr && val->expr->rhs.empty() && val->expr->lhs && val->expr->lhs->rhs.empty() && val->expr->lhs->lhs &&
+      !val->expr->lhs->lhs->unary_op)
+    op = val->expr->lhs->lhs;
+  if (!op || !op->var_name)
+  {
+    report_error(parser, var_term,
+      "@subpass_read initializer must be a render_pass target name: explicit pass.target, or a bare target name resolved from "
+      "the active render_pass opt-in");
+    return eastl::nullopt;
+  }
+  SubpassReadSourceRef ref;
+  if (op->cmask)
+  {
+    ref.passTerm = op->var_name;
+    ref.targetTerm = op->cmask->channel;
+  }
+  else
+    ref.targetTerm = op->var_name;
+  return ref;
+}
+
 eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_block_stat &state_block, ShaderStage stage,
-  VariableType vt, shc::VariantContext &ctx, IMemAlloc *tmp_memory)
+  VariableType vt, shc::VariantContext &ctx, IMemAlloc *tmp_memory, SubpassReadResolution presolved)
 {
 #define TMPMEM_ALLOC(t_)           (tmp_memory ? new (tmp_memory) t_{} : new t_{})
 #define TMPMEM_ALLOC_N(t_, count_) (tmp_memory ? new (tmp_memory) t_[count_]{} : new t_[count_]{})
@@ -411,6 +442,7 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
   else
     G_ASSERTF(0, "Invalid/unsupported state_block_stat type");
 
+  G_ASSERT(def.varTerm);
   def.baseName = def.varTerm->text;
   def.mangledName = String{def.baseName};
 
@@ -419,7 +451,6 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
 
   // Check for same-name redeclaration @TODO: this does not validate same expressions for static cbuf stage overlap names. Should be
   // validated somewhere
-  G_ASSERT(def.varTerm);
   int conflict_blk_num = 0;
   for (int i = 0; i < ctx.namedConstTable().suppBlk.size(); i++)
   {
@@ -595,6 +626,7 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       def.regSpace = HLSL_RSPACE_U;
       break;
     }
+    case VariableType::subpass_read: def.regSpace = HLSL_RSPACE_T; break;
     default: G_ASSERTF(0, "unhandled type <%s>", def.nameSpaceTerm->text);
   }
 
@@ -602,7 +634,7 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
   // (this takes place for @smp2d... vars). This feature should be inevitably removed in favor of explicit
   // @tex... + @sampler combinations
   auto addPairSampler = [&] {
-    def.pairSamplerName = String{0, "%s_samplerstate", def.shaderVarTerm->text};
+    def.pairSamplerName = String{0, "%s_samplerstate", def.shaderVarTerm ? def.shaderVarTerm->text : def.baseName};
     def.pairSamplerTmpDecl = TMPMEM_ALLOC(sampler_decl);
     def.pairSamplerTmpDecl->name = TMPMEM_ALLOC(SHTOK_ident);
     def.pairSamplerTmpDecl->name->text = def.pairSamplerName.c_str();
@@ -663,6 +695,19 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     if (needPairSampler)
       addPairSampler();
 
+    return def;
+  }
+
+  if (vt_is_subpass_read(def.type))
+  {
+    const SubpassReadResolution resolved = presolved;
+    G_ASSERT_RETURN(resolved.readPos >= 0, eastl::nullopt);
+
+    def.registerSize = 1;
+    def.arrayElemCount = 1;
+    def.subpassRead = resolved;
+    // isDynamic only routes it through the resource declaration path
+    def.isDynamic = true;
     return def;
   }
 
@@ -871,7 +916,10 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
   else if (state_block.var && state_block.var->par)
   {
     if (!def.shaderVarTerm)
+    {
       report_error(parser, def.varTerm, "Wrong named const array syntax. And array must be assigned from a single array shadervar.");
+      return eastl::nullopt;
+    }
     auto [vi, vt, isGlobal] = lookup_state_var(*def.shaderVarTerm, ctx);
     if (!registerInitShvarType(ShaderVarType(vt)))
       return eastl::nullopt;
@@ -918,8 +966,10 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       }
     }
   }
-  else
+  else if (state_block.var)
     processInitializerElem(*state_block.var->val);
+  else
+    G_ASSERTF(0, "Invalid/unsupported state_block_stat type");
 
   if (def.initializer.empty())
     return eastl::nullopt;

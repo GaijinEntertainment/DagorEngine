@@ -61,7 +61,7 @@ static inline bool is_render_feature_enabled_by_default(FeatureRenderFlags f)
 
 bool load_render_feature(const DataBlock *blk, const FeatureRenderFlags feature);
 FeatureRenderFlagMask load_render_features(const DataBlock *blk);
-FeatureRenderFlagMask apply_render_features_override(const FeatureRenderFlagMask &cur, ecs::Object overrides);
+FeatureRenderFlagMask apply_render_features_override(const FeatureRenderFlagMask &cur, const ecs::Object &overrides);
 String render_features_to_string(FeatureRenderFlagMask val);
 FeatureRenderFlagMask parse_render_features(const char *str);
 bool renderer_has_feature(FeatureRenderFlags feature);

@@ -144,6 +144,14 @@
         size_t getExecutablePathName(char* pathName, size_t pathNameCapacity) {
             return GetModuleFileNameA(NULL, pathName, (DWORD)pathNameCapacity);
         }
+        string getExecutablePathUtf8() {
+            wchar_t wide[4096];
+            DWORD len = GetModuleFileNameW(NULL, wide, 4096);
+            if ( !len || len >= 4096 ) return "";
+            char utf8[4096 * 4];
+            int n = WideCharToMultiByte(CP_UTF8, 0, wide, int(len), utf8, int(sizeof(utf8)), nullptr, nullptr);
+            return n > 0 ? string(utf8, n) : string();
+        }
         void * loadDynamicLibrary ( const char * fileName ) {
             // Bare names (e.g. "msvcrt") need to flow through unchanged so
             // LOAD_LIBRARY_SEARCH_DEFAULT_DIRS resolves them via system32.
@@ -635,9 +643,16 @@
 
 namespace das {
     string getExecutableFileName ( void ) {
-        char buffer[1024];
-        return getExecutablePathName(buffer,1024) ? buffer : "";
+        char buffer[4096];
+        size_t len = getExecutablePathName(buffer, sizeof(buffer));
+        return len ? string(buffer, len) : string();
     }
+
+#if !(defined(_WIN32) && !defined(_GAMING_XBOX) && !defined(_DURANGO))
+    string getExecutablePathUtf8 ( void ) {
+        return getExecutableFileName();
+    }
+#endif
 
     string get_prefix ( const string & req ) {
         auto np = req.find_last_of("\\/");
@@ -661,6 +676,8 @@ namespace das {
 
     void setDasRoot ( const string & dr ) {
         g_dasRoot = dr;
+        // same normalization the derived root gets below - callers concatenate with '/'
+        replace(g_dasRoot.begin(), g_dasRoot.end(), '\\', '/');
     }
 
     string getDasRoot ( void ) {

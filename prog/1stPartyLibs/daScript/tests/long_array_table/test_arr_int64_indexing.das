@@ -40,5 +40,6 @@ def test_mixed_width_indexing(t : T?) {
     arr[1_l] = 20
     arr[2_ul] = 30
     arr[uint(3)] = 40
-    t |> equal(arr[int(0)] + arr[int64(1)] + arr[uint64(2)] + arr[uint(3)], 100)
+    // spelling every index width explicitly is what this arm checks
+    t |> equal(arr[int(0)] + arr[int64(1)] + arr[uint64(2)] + arr[uint(3)], 100)   // nolint:PERF020
 }

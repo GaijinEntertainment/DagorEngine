@@ -214,12 +214,13 @@ const char *formatActiveExecutionStage(ActiveExecutionStage stage);
 const char *formatShaderStage(ShaderStage stage);
 
 template <typename T>
-static uint32_t get_binary_size_unit_prefix_index(T size)
+static uint32_t get_binary_size_unit_prefix_index(T size, uint32_t max_power)
 {
-  uint32_t power = 0;
+  const uint64_t usize = uint64_t(size);
   const uint32_t shift = 10;
-  for (;; ++power)
-    if (0 == (size / (1ull << ((power + 1) * shift))))
+  uint32_t power = 0;
+  for (; power < max_power; ++power)
+    if (0 == (usize >> ((power + 1) * shift)))
       break;
   return power;
 }
@@ -227,8 +228,8 @@ static uint32_t get_binary_size_unit_prefix_index(T size)
 template <typename T>
 static String byte_size_unit(T size)
 {
-  static const char *suffix[] = {"", "Ki", "Mi", "Gi"};
-  uint32_t power = get_binary_size_unit_prefix_index(size);
+  static const char *suffix[] = {"", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"};
+  uint32_t power = get_binary_size_unit_prefix_index(size, countof(suffix) - 1);
   return String(128, "%0.2f %sB", double(size) / (1ull << (power * 10)), suffix[power]);
 }
 

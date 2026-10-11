@@ -89,10 +89,10 @@ struct AnimDasPostBlendControlerAnnotation : das::StructureAnnotation
   AnimDasPostBlendControlerAnnotation() : das::StructureAnnotation("anim_post_blend_controller") {}
   static bool internalField(const eastl::string &field_name);
 
-  bool touch(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, const das::AnnotationArgumentList &args,
+  bool touch(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, das::AnnotationArgumentList &args,
     das::string &err) override;
 
-  bool look(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, const das::AnnotationArgumentList &args,
+  bool look(const das::StructurePtr &st, das::ModuleGroup & /*libGroup*/, das::AnnotationArgumentList &args,
     das::string & /*err*/) override;
 
   void complete(das::Context *context, const das::StructurePtr &) override;

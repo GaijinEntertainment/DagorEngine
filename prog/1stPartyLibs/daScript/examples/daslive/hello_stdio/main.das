@@ -5,7 +5,7 @@ options gc
 require live/glfw_live
 require opengl/opengl_boost
 require live/live_commands
-require live/live_api_stdio // nolint:STYLE030 — load-bearing for stdio JSON-RPC transport agent
+require live/live_api_stdio // load-bearing for stdio JSON-RPC transport agent
 require daslib/json
 require daslib/json_boost
 require live_host

@@ -136,7 +136,7 @@ static void dumpVariantTable(ScriptedShadersBinDump const &dump, const shaderbin
         {
           APPLY_BRAKE();
           debug_("%*s%4d..%-4d -> %5d:   ", indent, "", vt.mapData[i],
-            i < vt.mapData.size() / 2 ? vt.mapData[i + 1] - 1 : vt.mapData[i], vt.mapData[i + vt.mapData.size() / 2]);
+            (i + 1 < vt.mapData.size() / 2 ? vt.mapData[i + 1] : total_variants) - 1, vt.mapData[i + vt.mapData.size() / 2]);
           decodeVariant(dump, vt, vt.mapData[i]);
           vdump.dump(vt.mapData[i + vt.mapData.size() / 2], vt, vt.mapData[i]);
         }
@@ -428,7 +428,7 @@ dag::ConstSpan<unsigned> shaderbindump::getVariantCodesForIdx(ScriptedShadersBin
     case VariantTable::MAPTYPE_QINTERVAL:
       for (int i = 0; i < half_cnt; i++)
         if (vt.mapData[i + half_cnt] == code_idx)
-          for (int j = vt.mapData[i]; j <= (i < half_cnt ? vt.mapData[i + 1] - 1 : vt.mapData[i]); j++)
+          for (int j = vt.mapData[i]; j < (i + 1 < half_cnt ? vt.mapData[i + 1] : total_variants); j++)
             tmp.push_back(j);
       break;
   }

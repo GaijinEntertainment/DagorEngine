@@ -386,8 +386,8 @@ void ImpostorTextureManager::render_slice_voxels(const TMatrix &view_to_world, f
     d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
 
   // Hack to render desired mesh lod with rendinst
-  const uint32_t zeroLodOffsets[8] = {};
-  const auto zeroLodCount = uint32_t(eastl::min(lod + 1, 8));
+  const uint32_t zeroLodOffsets[rendinst::RI_MAX_LODS] = {};
+  const auto zeroLodCount = uint32_t(eastl::min(lod + 1, rendinst::RI_MAX_LODS));
 
   SCENE_LAYER_GUARD(block_id);
   set_single_res_consts(res);
@@ -467,8 +467,8 @@ void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &v
     const auto riIdx = uint16_t(res->getRiExtraId());
 
     // Hack to render desired mesh lod with rendinst
-    const uint32_t zeroLodOffsets[8] = {};
-    const auto zeroLodCount = uint32_t(std::min(lod + 1, 8));
+    const uint32_t zeroLodOffsets[rendinst::RI_MAX_LODS] = {};
+    const auto zeroLodCount = uint32_t(std::min(lod + 1, rendinst::RI_MAX_LODS));
 
     SCENE_LAYER_GUARD(block_id);
     set_single_res_consts(res);

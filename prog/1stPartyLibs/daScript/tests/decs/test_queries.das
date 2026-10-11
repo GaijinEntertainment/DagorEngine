@@ -82,7 +82,7 @@ def test_contracts(t : T?) {
     commit()
     t |> run("require not") @(t : T?) {
         var count_nc = 0
-        query <| $ [REQUIRE_NOT(col)] (var pos : float3&) {
+        query() $ [REQUIRE_NOT(col)] (var pos : float3&) {
             pos = float3(13)
             count_nc ++
         }
@@ -90,7 +90,7 @@ def test_contracts(t : T?) {
     }
     t |> run("require") @(t : T?) {
         var count_c = 0
-        query <| $ [REQUIRE(col)] (var pos : float3&) {
+        query() $ [REQUIRE(col)] (var pos : float3&) {
             pos = float3(13)
             count_c ++
         }

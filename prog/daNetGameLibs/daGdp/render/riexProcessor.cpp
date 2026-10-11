@@ -5,12 +5,16 @@
 namespace dagdp
 {
 
-const RiexProcessor::ResourceState *RiexProcessor::ask(RenderableInstanceResource *res)
+const RiexProcessor::ResourceState *RiexProcessor::find(RenderableInstanceResource *res) const
 {
   const auto result = resources.find(res);
+  return result == resources.end() ? nullptr : &result->second;
+}
 
-  if (result != resources.end())
-    return &result->second;
+const RiexProcessor::ResourceState *RiexProcessor::ask(RenderableInstanceResource *res)
+{
+  if (const auto *state = find(res))
+    return state;
 
   if (!nextToProcess)
   {

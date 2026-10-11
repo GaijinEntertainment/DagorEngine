@@ -23,7 +23,7 @@ options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; s
 // Vector magnitude `length(float3_var)` (math module) is NOT flagged —
 // different semantics and there's no `empty` for vectors.
 
-expect 31208:15
+expect 31208:16
 
 require daslib/perf_lint
 require strings
@@ -92,6 +92,17 @@ def bad_yoda_gt_one(a : array<int>) : bool {
 
 def bad_table_eq(t : table<string; int>) : bool {
     return length(t) == 0                      // PERF017 — empty
+}
+
+// --- Bad: inside a lambda body ---
+// lambdas lower into generated carrier functions, but the body is user-typed
+// code - the rule must reach it (is_user_authored_body)
+
+def bad_in_lambda(s : string) : bool {
+    var l = @(x : string) : bool {
+        return length(x) == 0                  // PERF017 — empty (fires inside a lambda body)
+    }
+    return invoke(l, s)
 }
 
 // --- Good patterns (no warnings) ---

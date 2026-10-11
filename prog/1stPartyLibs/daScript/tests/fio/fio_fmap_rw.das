@@ -9,7 +9,7 @@ require daslib/fio
 def private rw_pattern(i : int) : uint8 => uint8((i * 11 + 5) % 256)
 
 [test]
-def test_fmap_rw(t : T?) {
+def test_fmap_rw(t : T?) { // nolint:STYLE038 - flat list of independent mapping arms
     t |> run("writes through the mapping persist to the file") @(t : T?) {
         var terr : string
         let tmp = temp_directory(terr)   // portable (no /tmp on Windows); cwd as a last resort
@@ -48,14 +48,10 @@ def test_fmap_rw(t : T?) {
         t |> success(intact, "mapped content matches what was written")
         var at = 0
         while (at < n) {
-            unsafe {
-                bp[at] = uint8(255 - int(rw_pattern(at)))
-            }
+            unsafe(bp[at]) = uint8(255 - int(rw_pattern(at)))
             at += 4099
         }
-        unsafe {
-            fmap_close(base, msize)
-        }
+        unsafe(fmap_close(base, msize))
         // reopen READ-ONLY: the flips must have landed in the file itself
         var persisted = false
         fopen(fname, "rb") $(f) {

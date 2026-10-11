@@ -9,6 +9,8 @@
 #include <shaders/dag_overrideStates.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/deque.h>
+#include <dag/dag_vector.h>
+#include <generic/dag_functionRef.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <3d/dag_ringCPUQueryLock.h>
 
@@ -54,12 +56,11 @@ public:
 
   // The following methods should be called every frame.
   // If there aren't any objects in the queue, just nothing will happen.
-  void getVisibilityTestResults(const eastl::function<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/)> &tested_fn);
+  void getVisibilityTestResults(dag::FunctionRef<void(bool /*isVisible*/, const TestObjectData & /*testedObject*/) const> tested_fn);
   // Caller is responsible for saving,restoring Render Target, Viewport, Globtm states
   void doTestsOnGpu(Texture *tex);
   // Remove groups with objects that can't be tested by current depth tex
-  void removeOutdatedObjectGroups(
-    const eastl::fixed_function<sizeof(void *) * 2, bool(const ViewTransformData & /*group_view*/)> &is_group_outdated);
+  void removeOutdatedObjectGroups(dag::FunctionRef<bool(const ViewTransformData & /*group_view*/) const> is_group_outdated);
 
   // Clears all objects added for testing, including already issued.
   void clearObjectsToTest();
@@ -89,9 +90,9 @@ protected:
   // obejects to remove will be <= MAX_OBJECTS_PER_FRAME (and mostly ==).
   // (with default size the time for erasing is ~10 times slower in most cases)
   eastl::deque<TestObjectData, EASTLAllocatorType, MAX_OBJECTS_PER_FRAME> objectsToTest;
-  eastl::deque<GroupInfo> objectGroups;
+  dag::Vector<GroupInfo> objectGroups;
   int curObjectToTestId = 0;
   int curGroupId = 0;
   int reservedSpaceForTestObjects = 0;
-  eastl::deque<TestInfo> curTestsIssued;
+  dag::Vector<TestInfo> curTestsIssued;
 };

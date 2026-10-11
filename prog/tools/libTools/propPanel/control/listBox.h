@@ -4,6 +4,7 @@
 #include <EASTL/optional.h>
 #include <propPanel/control/propertyControlBase.h>
 #include "listBoxStandalone.h"
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
@@ -75,6 +76,17 @@ public:
   }
 
   void setDefaultValue(Variant var) override { defaultValue = var.convert<int>(); }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const Point2 labelSize = ControlSizeHelper::getSeparateLineLabelPreferredSize(controlCaption.begin(), controlCaption.end());
+    const float listWidth = mW > 0 ? (float)mW : ControlSizeHelper::getListBoxPreferredWidth(listBox.getValues());
+    const float width = min(max(labelSize.x, listWidth), max_width_px);
+
+    // A list box filling the remaining height has no height to report.
+    const float listHeight = ControlSizeHelper::getListBoxPreferredHeight(mH);
+    return Point2(width, listHeight > 0.0f ? (labelSize.y + listHeight) : 0.0f);
+  }
 
   void updateImgui() override
   {

@@ -629,7 +629,6 @@ void SplineExporter::savePaths(mkbindump::BinDumpSaveCB &cwr)
           const IntersectionEdge &edge = inter.pfInfo.prevEdge;
           const IntersectionEdge &prevEdge = intersections[edge.interId].pfInfo.prevEdge;
           IntersectionTableRecord &rec = table[edge.interId + j * size];
-          bool overwrite = true;
           if (rec.nextPoint.isValid())
           {
             if (rec.nextPoint.nodeId != nodeId)
@@ -643,12 +642,9 @@ void SplineExporter::savePaths(mkbindump::BinDumpSaveCB &cwr)
               }
             }
           }
-          if (overwrite)
-          {
-            rec.dist = totalDist - prevEdge.distance;
-            rec.nextPoint.nodeId = nodeId;
-            rec.nextPoint.nodePointId = edge.fromPointId;
-          }
+          rec.dist = totalDist - prevEdge.distance;
+          rec.nextPoint.nodeId = nodeId;
+          rec.nextPoint.nodePointId = edge.fromPointId;
           nodeId = edge.interId;
           step++;
         }
@@ -774,16 +770,28 @@ void SplineExporter::exportSplines(mkbindump::BinDumpSaveCB &cwr, const Tab<Spli
 
 void HmapLandPlugin::exportSplines(mkbindump::BinDumpSaveCB &cwr)
 {
+  CoolConsole &con = DAGORED2->getConsole();
+  con.startLog();
+
   Tab<SplineObject *> splines(tmpmem);
   for (int i = 0; i < objEd.objectCount(); i++)
   {
     SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i));
-    if (o && EditLayerProps::layerProps[o->getEditLayerIdx()].exp && o->getProps().exportable && !o->points.empty())
+    if (!o)
+      continue;
+    if (o->reachesGame())
+    {
       splines.push_back(o);
+      if (!o->hasCurve())
+        con.addMessage(ILogWriter::WARNING, "[SPL] '%s' is exported with a single point, so it has no curve", o->getName());
+    }
+    else if (o->isGameExportBlocked())
+      con.addMessage(ILogWriter::WARNING, "[SPL] '%s' has \"Export to game\" on, but layer '%s' is not exported", o->getName(),
+        EditLayerProps::layerName(o->getEditLayerIdx()));
+    else if (o->isExportable())
+      con.addMessage(ILogWriter::WARNING, "[SPL] '%s' has \"Export to game\" on, but no points", o->getName());
   }
 
-  CoolConsole &con = DAGORED2->getConsole();
-  con.startLog();
   con.addMessage(ILogWriter::REMARK, "[SPL] spline objects %d", splines.size());
   con.endLog();
 

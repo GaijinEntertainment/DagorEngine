@@ -35,5 +35,8 @@ public:
   bool isComposite;
 
 private:
+  static bool isSavedToDataBlock(const CompositeEditorTreeDataNode &treeDataNode);
+  static bool hasParamInSubtree(const CompositeEditorTreeDataNode &treeDataNode);
+  static void invalidateDataBlockIds(CompositeEditorTreeDataNode &treeDataNode);
   static void setDataBlockIdsInternal(CompositeEditorTreeDataNode &treeDataNode, int &nextDataBlockId);
 };

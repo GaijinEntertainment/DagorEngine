@@ -39,7 +39,7 @@ struct TInt8 {
 def test_hash_int8(t : T?) {
     var fake <- Faker()
     fuzz() $ {
-        var a = fake |> random_int8()
+        let a = fake |> random_int8()
         t.equal(hash(a), hash(TInt8(a = a)))
         t.not_empty_hash(a)
         t.not_empty_hash(TInt8(a = a))
@@ -54,7 +54,7 @@ struct TUint8 {
 def test_hash_uint8(t : T?) {
     var fake <- Faker()
     fuzz() $ {
-        var a = fake |> random_uint8()
+        let a = fake |> random_uint8()
         t.equal(hash(a), hash(TUint8(a = a)))
         t.not_empty_hash(a)
         t.not_empty_hash(TUint8(a = a))
@@ -75,7 +75,7 @@ struct TInt8_8 {
 def test_hash_int16(t : T?) {
     var fake <- Faker()
     fuzz() $ {
-        var a = fake |> random_int16()
+        let a = fake |> random_int16()
         t.equal(hash(a), hash(TInt16(a = a)))
         t.not_empty_hash(a)
         t.not_empty_hash(TInt16(a = a))
@@ -90,7 +90,7 @@ struct TUint16 {
 def test_hash_uint16(t : T?) {
     var fake <- Faker()
     fuzz() $ {
-        var a = fake |> random_uint16()
+        let a = fake |> random_uint16()
         t.equal(hash(a), hash(TUint16(a = a)))
         t.not_empty_hash(a)
         t.not_empty_hash(TUint16(a = a))
@@ -106,12 +106,12 @@ struct TFunction {
 
 [test]
 def test_hash_function(t : T?) {
-    var a : function<void>
+    let a : function<void>
     t.equal(hash(a), hash(TFunction(a = a)))
     t.empty_hash(a)
     t.empty_hash(TFunction(a = a))
 
-    var b = @@nada
+    let b = @@nada
     t.equal(hash(b), hash(TFunction(a = b)))
     t.not_empty_hash(b)
     t.not_empty_hash(TFunction(a = b))
@@ -129,7 +129,7 @@ struct TEnum {
 def test_hash_enum(t : T?) {
     var fake <- Faker()
     fuzz() $ {
-        var a = fake |> any_enum(TEnumValue.A)
+        let a = fake |> any_enum(TEnumValue.A)
         t.equal(hash(a), hash(TEnum(a = a)))
         t.not_empty_hash(a)
         t.not_empty_hash(TEnum(a = a))

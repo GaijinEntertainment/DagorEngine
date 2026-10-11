@@ -2,6 +2,7 @@
 
 #define __UNLIMITED_BASE_PATH 1
 #define __DEBUG_FILEPATH      NULL
+#include <string> // std::stoi below; the bump no longer pulls <string> in transitively
 #include <startup/dag_mainCon.inc.cpp>
 #include <dasModules/dasFsFileAccess.h>
 #include <ecs/scripts/dasEs.h>

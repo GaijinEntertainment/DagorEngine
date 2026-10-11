@@ -9,6 +9,7 @@ include "cloudsDensity.dshl"
 include "cloudsLighting.dshl"
 include "clouds_sun_light.dshl"
 include "panorama.dshl"
+include "clouds_panorama_rp.dshl"
 include "skies_special_vision.dshl"
 include "renderSkiesInc.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
@@ -418,9 +419,9 @@ macro RAYCAST_CLOUDS(code)
   hlsl(code) {
     static const float EPS = 1e-9;
 
-    float get_scattering_tc_long_z(float dist)
+    float get_scattering_tc_long_z(float2 tc, float dist)
     {
-      float tcZ = sqrt(dist*skies_panoramic_scattering__inv_distance.y);
+      float tcZ = get_scattering_tc_z(tc, dist);
       FLATTEN if (tcZ > skies_panoramic_scattering__inv_distance.w)
         tcZ = saturate(dist*infinite_skies_madd.x + infinite_skies_madd.y);
       return tcZ;
@@ -793,9 +794,9 @@ macro RAYCAST_CLOUDS(code)
 
       float tcZ;
       if (use_inf_fog)
-        tcZ = get_scattering_tc_long_z(d);
+        tcZ = get_scattering_tc_long_z(scattering_tc, d);
       else
-        tcZ = get_scattering_tc_z(d);
+        tcZ = get_scattering_tc_z(scattering_tc, d);
       float4 combined = tex3Dlod(skies_frustum_scattering, float4(scattering_tc, tcZ, 0));
       insc.rgb = combined.rgb;
       float3 colored_transmittance = get_fog_prepared_tc(long_get_prepared_scattering_tc(v .y, d, preparedScatteringDistToTc));
@@ -1426,6 +1427,7 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
 
   USE_POSTFX_VERTEX_POSITIONS()
   USE_AND_INIT_VIEW_VEC(vs)
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
   RAYCAST_CLOUDS(ps)
 
   hlsl(vs) {
@@ -1457,7 +1459,7 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
       float2 texcoord = input.tc;//fixme: remove me in panoram
 
       float3 viewVect = input.viewVect;
-      CLOUDS_RET tr = trace_clouds(viewVect, texcoord, uint2(screenpos.xy), texcoord);
+      CLOUDS_RET tr = trace_clouds(viewVect, texcoord, uint2(screenpos.xy), remap_to_main_view_uv(texcoord));
       ##if shader == clouds2_direct
         tr.target0.rgb *= apply_sky_polarization_filter();
         applySpecialVision(tr.target0);
@@ -1561,10 +1563,6 @@ float4 clouds_panorama_temp_res;
 float4 clouds_panorama_tex_res;
 float clouds_panorama_blend;
 
-// Register for the non-render-pass MRT fallback below; unrelated to the render pass path, which is
-// bound top-down from the last T register.
-int subpassTrace0_reg_no = 11;
-
 shader clouds_panorama, clouds_alpha_panorama
 {
   cull_mode=none;
@@ -1626,22 +1624,38 @@ shader clouds_panorama, clouds_alpha_panorama
     FULL_TONEMAP_LUT_APPLY(ps)
   }
 
-  if (clouds_panorama_split == blend && shader == clouds_panorama)
+  if (clouds_panorama_split == off)
   {
-    USE_SUBPASS_LOADS()
+    hlsl(ps) {
+      struct PS_CLOUDS_RET
+      {
+        float4 target0            : SV_Target0;
 
-    // @TODO: make SUBPASS_RESOURCE a dshl macro which uses the new syntax for hardcoding vars
-    if (hardware.vulkan || hardware.metaliOS)
-    {
-      hlsl(ps) {
-        // Emulated backends bind read N at MAX_T_REGISTERS - 1 - N.
-        SUBPASS_RESOURCE(subpassTrace0, t31, 0);
+        // for clouds_panorama_depth_out contains dist data
+        ##if shader != clouds_alpha_panorama && clouds_panorama_depth_out == on
+          float4 target1          : SV_Target1;
+        ##endif
+      };
+    }
+  }
+  else if (clouds_panorama_split == trace)
+  {
+    pass clouds_panorama_multipass.trace;
+    (ps) {
+      PS_CLOUDS_RET@ps_output
+      {
+        float4 target0 : trace_scratch;
       }
     }
-    else
-    {
-      (ps) {
-        subpassTrace0@tex2d : register(subpassTrace0_reg_no);
+  }
+  else
+  {
+    pass clouds_panorama_multipass.blend;
+    (ps) {
+      subpassTrace0@subpass_read = trace_scratch;
+      PS_CLOUDS_RET@ps_output
+      {
+        float4 target0 : panorama;
       }
     }
   }
@@ -1660,17 +1674,6 @@ shader clouds_panorama, clouds_alpha_panorama
   }
 
   hlsl(ps) {
-    struct PS_CLOUDS_RET
-    {
-      float4 target0            : SV_Target0;
-
-      // for clouds_panorama_depth_out contains dist data
-      // for clouds_panorama_split metal path it contains final color data
-      ##if (shader != clouds_alpha_panorama && clouds_panorama_depth_out == on) || (hardware.metal && (shader == clouds_panorama) && (clouds_panorama_split == blend))
-        float4 target1            : SV_Target1;
-      ##endif
-    };
-
     PS_CLOUDS_RET clouds_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
@@ -1708,9 +1711,7 @@ shader clouds_panorama, clouds_alpha_panorama
 
       ##if (clouds_panorama_split == blend) && (shader == clouds_panorama)
         CLOUDS_RET tr;
-        tr.target0 = SUBPASS_LOAD(subpassTrace0, texcoord);
-        //not used as for now, implement on demand
-        tr.dist = 0;//SUBPASS_LOAD(subpassTrace1, texcoord);
+        tr.target0 = pixelLocalLoad(subpassTrace0, texcoord);
       ##else
         CLOUDS_RET tr = trace_clouds(viewVect, texcoord, screenposi, scatteringTc);
       ##endif
@@ -1765,18 +1766,11 @@ shader clouds_panorama, clouds_alpha_panorama
 
         float4 result = float4(resultRGB, resultAlpha);
 
-        // for metal all targets are bound so here we have to
-        // explicitly write to second target
-        ##if hardware.metal && (shader == clouds_panorama) && (clouds_panorama_split == blend)
-          ret.target0 = float4(0, 0, 0, 0);
-          ret.target1 = result;
-        ##else
-          ret.target0 = result;
+        ret.target0 = result;
 
-          ##if clouds_panorama_depth_out == on
-            ret.target1 = tr.dist;
-            ret.target1.a = current_frame_info.y;
-          ##endif
+        ##if clouds_panorama_split == off && clouds_panorama_depth_out == on
+          ret.target1 = tr.dist;
+          ret.target1.a = current_frame_info.y;
         ##endif
       ##endif // tied to shader == clouds_alpha_panorama
       return ret;

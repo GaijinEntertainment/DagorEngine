@@ -38,4 +38,12 @@ half EnvBRDFApproxNonmetal( half linear_roughness, half NoV )
   return min( r.x * r.x, exp2( -9.28h * NoV ) ) * r.x + r.y;
 }
 
+// [ Fdez-Aguera 2019, "A Multiple-Scattering Microfacet Model for Real-Time Image-based Lighting" ]
+// Gain on single-scatter specular; F0 unoccluded, env_ab from GF table.
+half3 EnvBRDFMultiScatter( half3 F0, half2 env_ab )
+{
+  half3 Favg = lerp( F0, saturate( INV_MIN_IOR * F0.g ).xxx, 1.h / 21 );
+  return 1.h / ( 1 - Favg * ( 1 - env_ab.x - env_ab.y ) );
+}
+
 #endif

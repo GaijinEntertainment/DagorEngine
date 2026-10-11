@@ -12,11 +12,11 @@ def testF(arg : tuple<i : int; f : float>) {
     return arg.f == 3.14
 }
 
-def overload_pick(x : tuple<int; float>) {
+def overload_pick(_x : tuple<int; float>) {
     return 1
 }
 
-def overload_pick(x : tuple<x : int; y : float>) {
+def overload_pick(_x : tuple<x : int; y : float>) {
     return 2
 }
 
@@ -33,7 +33,7 @@ def make_hit_locals() : tuple<eid : int; distSq : float> {
 }
 
 [test]
-def test_tuple(t : T?) {
+def test_tuple(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     t |> run("basic creation and named fields") @(t : T?) {
         let ttt = (i = 1, f = 3.14)
         t |> equal(testI(ttt), true)
@@ -48,7 +48,7 @@ def test_tuple(t : T?) {
         tp._0 = 1
         tp._1 = 2.0
         tp._2 = "3"
-        var q = tp
+        let q = tp
         t |> equal(q._0, 1)
         t |> equal(q._1, 2.0)
         t |> equal(q._2, "3")
@@ -58,15 +58,13 @@ def test_tuple(t : T?) {
         tp._0 = 1
         tp._1 = 2.0
         tp._2 = "3"
-        unsafe {
-            var pq = addr(tp)
-            t |> equal(pq._0, 1)
-            t |> equal(pq._1, 2.0)
-            t |> equal(pq._2, "3")
-            t |> equal(pq?._0 ?? 0, 1)
-            t |> equal(pq?._1 ?? 0.0, 2.0)
-            t |> equal(pq?._2 ?? "nothing", "3")
-        }
+        var pq = unsafe(addr(tp))
+        t |> equal(pq._0, 1)
+        t |> equal(pq._1, 2.0)
+        t |> equal(pq._2, "3")
+        t |> equal(pq?._0 ?? 0, 1)
+        t |> equal(pq?._1 ?? 0.0, 2.0)
+        t |> equal(pq?._2 ?? "nothing", "3")
     }
     t |> run("heap allocated tuple") @(t : T?) {
         var qq = new <tuple<int; float>>
@@ -94,13 +92,13 @@ def test_tuple(t : T?) {
     }
     t |> run("shorthand named single element") @(t : T?) {
         let eid = 9
-        var tup : tuple<eid : int> = (eid,)
+        let tup : tuple<eid : int> = (eid,)
         t |> equal(tup.eid, 9)
     }
     t |> run("shorthand named via typed var init") @(t : T?) {
         let eid = 11
         let distSq = 4.5
-        var tup : tuple<eid : int; distSq : float> = (eid, distSq)
+        let tup : tuple<eid : int; distSq : float> = (eid, distSq)
         t |> equal(tup.eid, 11)
         t |> equal(tup.distSq, 4.5)
     }
@@ -113,8 +111,8 @@ def test_tuple(t : T?) {
         t |> equal(arr[0]._1, 4.5)
     }
     t |> run("overload resolution prefers unnamed tuple when both present") @(t : T?) {
-        var x = 123
-        var y = 321.
+        let x = 123
+        let y = 321.
         // both `overload_pick(tuple<int;float>)` and `overload_pick(tuple<x:int;y:float>)` visible.
         // `(x, y)` is unnamed `tuple<int;float>` — exact match unnamed overload.
         // shorthand-to-named promotion is fallback-only (fires when no candidate matches),
@@ -122,8 +120,8 @@ def test_tuple(t : T?) {
         t |> equal(overload_pick((x, y)), 1)
     }
     t |> run("explicit named tuple literal picks named overload") @(t : T?) {
-        var x = 123
-        var y = 321.
+        let x = 123
+        let y = 321.
         // `(x=x, y=y)` parser tag as named tuple `tuple<x:int;y:float>` directly.
         // Exact match named overload → returns 2.
         t |> equal(overload_pick((x = x, y = y)), 2)
@@ -171,7 +169,7 @@ def test_tuple(t : T?) {
         x._0 = 1
         x._1 = 2.0
         x._2 <- [for (xx in range(10)); xx]
-        var y := x
+        let y := x
         t |> equal(y._0, 1)
         t |> equal(y._1, 2.0)
         for (i in range(10)) {

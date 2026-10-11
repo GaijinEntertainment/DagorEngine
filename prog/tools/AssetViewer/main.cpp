@@ -6,6 +6,7 @@
 #include <EditorCore/ec_input.h>
 #include <EditorCore/ec_mainWindow.h>
 #include <EditorCore/ec_startup.h>
+#include <EditorCore/ec_testSystem.h>
 #include <libTools/util/strUtil.h>
 #include <workCycle/dag_gameSettings.h>
 #include <startup/dag_globalSettings.h>
@@ -32,6 +33,7 @@ public:
     G_ASSERT(manager);
     const char *useWorkspace = nullptr;
     const char *asyncBatch = nullptr;
+    const char *testScript = nullptr;
     for (int i = 1; i < ::dgs_argc; ++i)
       if (::dgs_argv[i][0] != '/' && ::dgs_argv[i][0] != '-')
         continue;
@@ -39,6 +41,8 @@ public:
         useWorkspace = ::dgs_argv[i] + 4;
       else if (strnicmp(dgs_argv[i], "-async_batch:", 13) == 0)
         asyncBatch = dgs_argv[i] + 13;
+      else if (strnicmp(dgs_argv[i], "-test_script:", 13) == 0)
+        testScript = dgs_argv[i] + 13;
 
     app = new AssetViewerApp(manager, open_app_blk);
     ::dgs_pre_shutdown_handler = &clearBusy;
@@ -47,7 +51,22 @@ public:
     if (asyncBatch)
     {
       ConBatch batch;
-      batch.runBatch(asyncBatch, true);
+      if (!batch.runBatch(asyncBatch, true))
+      {
+        logerr("Failed to load batch file \"%s\".", asyncBatch);
+        quit_game(1);
+      }
+
+      set_cmd_queue_abort_handler([] { quit_game(1); });
+    }
+
+    if (testScript)
+    {
+      if (!editor_core_test_runtime_run_script(testScript, [](bool any_failed) { quit_game(any_failed ? 1 : 0); }))
+      {
+        logerr("Failed to load test script \"%s\".", testScript);
+        quit_game(1);
+      }
     }
   }
 

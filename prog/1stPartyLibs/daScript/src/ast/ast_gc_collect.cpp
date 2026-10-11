@@ -81,6 +81,7 @@ namespace das {
         for ( auto & arg : arguments ) if ( arg ) arg->gc_collect(target, from);
         if ( body ) body->gc_collect(target, from);
         for ( auto & ann : annotations ) if ( ann ) ann->gc_collect(target, from);
+        if ( fromGeneric ) fromGeneric->gc_collect(target, from);
     }
 
     // ---- leaf expressions (no extra fields beyond Expression) ----

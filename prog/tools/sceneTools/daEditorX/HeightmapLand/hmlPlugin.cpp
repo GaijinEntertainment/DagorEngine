@@ -2782,7 +2782,7 @@ bool HmapLandPlugin::importTileTex()
 bool HmapLandPlugin::createMask(int bpp, String *name)
 {
   static const int INPUT_STRING_EDIT_ID = 222;
-  PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create mask");
+  PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Create mask");
   dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
   PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
   panel->createEditBox(INPUT_STRING_EDIT_ID, "Enter mask name:");
@@ -2793,6 +2793,7 @@ bool HmapLandPlugin::createMask(int bpp, String *name)
   for (bool nameValid = false; !nameValid;)
   {
     nameValid = true;
+    dialog->autoSize(/*auto_center = */ !dialog->hasEverBeenShown(), /*use_preferred_size = */ true);
     int ret = dialog->showDialog();
     if (ret == PropPanel::DIALOG_ID_OK)
     {
@@ -3151,7 +3152,7 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   }
   else if (pcb_id == PID_ADDLAYER)
   {
-    PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create generation layer");
+    PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Create generation layer");
     dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
     PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
     panel->createEditBox(0, "Enter generation layer name:");
@@ -3201,7 +3202,7 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   }
   else if (pcb_id == PID_GRASS_ADDLAYER)
   {
-    PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create grass layer");
+    PropPanel::DialogWindow *dialog = DAGORED2->createAutoSizedDialog("Create grass layer");
     dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
     PropPanel::ContainerPropertyControl *panel = dialog->getPanel();
     panel->createEditBox(0, "Enter grass layer name:");

@@ -59,7 +59,7 @@ macro GET_SKY_GROUND_COLOR()
       //float3 roughReflection = getRoughReflectionVec(reflectSampleDir, float3(0,1,0), envi_roughness);
       float3 roughReflection = reflectSampleDir.xyz;
       land_lit_color += getSkyReflection(linearRoughness, roughReflection, NoV, 0.02);
-      return land_lit_color;
+      return getSpecialVisionColor(land_lit_color);
 
       //half3 land_lit_color = standardBRDF(NoV, max(0, to_sun_direction.y), diffuseColor.rgb, roughness, linearRoughness, specularColor, -from_sun_direction, -view, half3(0,1,0))*sun_color_0;
       //half3 land_lit_color = standardBRDF(NoV, max(0, to_sun_direction.y), diffuseColor.rgb, roughness, linearRoughness, specularColor, -from_sun_direction, -view, half3(0,1,0))*sun_color_0;

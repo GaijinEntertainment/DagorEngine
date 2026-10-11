@@ -46,13 +46,11 @@ struct public Fts5Query {
     root : int = -1
 }
 
-// ===== Parser =====
-
 struct private ParseState {
-    src : array<uint>          // UTF-32 codepoints
+    codepoints : array<uint>
     pos : int = 0
     err : string
-    nodes : array<Fts5Node>    // accumulator for the AST
+    nodes : array<Fts5Node>
 }
 
 def private _push_node(var st : ParseState; var n : Fts5Node) : int {
@@ -66,15 +64,15 @@ def private _is_space(cp : int) : bool {
 }
 
 def private _skip_ws(var st : ParseState) {
-    let n = length(st.src)
-    while (st.pos < n && _is_space(int(st.src[st.pos]))) {
+    let n = length(st.codepoints)
+    while (st.pos < n && _is_space(int(st.codepoints[st.pos]))) {
         st.pos++
     }
 }
 
 def private _peek(st : ParseState) : int {
-    if (st.pos >= length(st.src)) return 0
-    return int(st.src[st.pos])
+    if (st.pos >= length(st.codepoints)) return 0
+    return int(st.codepoints[st.pos])
 }
 
 def private _is_word_cp(cp : int) : bool {
@@ -83,27 +81,25 @@ def private _is_word_cp(cp : int) : bool {
 
 def private _consume_name(var st : ParseState) : string {
     var bytes : array<uint8>
-    let n = length(st.src)
-    while (st.pos < n && _is_word_cp(int(st.src[st.pos]))) {
-        bytes |> utf8_encode(utf32_to_lower(st.src[st.pos]))
+    let n = length(st.codepoints)
+    while (st.pos < n && _is_word_cp(int(st.codepoints[st.pos]))) {
+        bytes |> utf8_encode(utf32_to_lower(st.codepoints[st.pos]))
         st.pos++
     }
     return string(bytes)
 }
 
 def private _peek_keyword(var st : ParseState; kw : string) : bool {
-    // True iff next token (after ws) is the case-sensitive keyword `kw` (FTS5 keywords are uppercase).
     _skip_ws(st)
-    let n = length(st.src)
+    let n = length(st.codepoints)
     let kw_codepoints = utf8_decode(kw)
     let m = length(kw_codepoints)
     if (st.pos + m > n) return false
     for (i in range(m)) {
-        if (st.src[st.pos + i] != kw_codepoints[i]) return false
+        if (st.codepoints[st.pos + i] != kw_codepoints[i]) return false
     }
-    // Boundary: kw must be followed by non-word char or EOF.
     let after = st.pos + m
-    return !(after < n && _is_word_cp(int(st.src[after])))
+    return !(after < n && _is_word_cp(int(st.codepoints[after])))
 }
 
 def private _consume_keyword(var st : ParseState; kw : string) {
@@ -118,18 +114,16 @@ def private _set_err(var st : ParseState; msg : string) {
 }
 
 def private _parse_phrase(var st : ParseState) : int {
-    // Caller has already verified next char is '"'.
-    st.pos++   // skip opening "
+    st.pos++
     var n = Fts5Node(kind = Fts5NodeKind.Phrase)
-    let len = length(st.src)
+    let len = length(st.codepoints)
     while (st.pos < len) {
         _skip_ws(st)
         if (st.pos >= len) break
-        let cp = int(st.src[st.pos])
+        let cp = int(st.codepoints[st.pos])
         if (cp == '"') {
             st.pos++
-            // optional trailing *
-            if (st.pos < len && int(st.src[st.pos]) == '*') {
+            if (st.pos < len && int(st.codepoints[st.pos]) == '*') {
                 n.is_prefix = true
                 st.pos++
             }
@@ -146,7 +140,6 @@ def private _parse_phrase(var st : ParseState) : int {
 }
 
 def private _parse_near(var st : ParseState) : int {   // nolint:STYLE038 - one linear NEAR() production; the arms share the parse cursor
-    // Caller verified next is "NEAR" keyword. Consume it.
     _consume_keyword(st, "NEAR")
     _skip_ws(st)
     if (_peek(st) != '(') {
@@ -155,7 +148,7 @@ def private _parse_near(var st : ParseState) : int {   // nolint:STYLE038 - one 
     }
     st.pos++
     var n = Fts5Node(kind = Fts5NodeKind.NearOp, near_k = 10)
-    let len = length(st.src)
+    let len = length(st.codepoints)
     var closed_paren = false
     while (st.pos < len) {
         _skip_ws(st)
@@ -168,11 +161,10 @@ def private _parse_near(var st : ParseState) : int {   // nolint:STYLE038 - one 
         if (cp == ',') {
             st.pos++
             _skip_ws(st)
-            // parse k as integer
             var k = 0
             var any_digit = false
             while (st.pos < len) {
-                let dc = int(st.src[st.pos])
+                let dc = int(st.codepoints[st.pos])
                 if (!is_number(dc)) break
                 k = k * 10 + dc - '0'
                 any_digit = true
@@ -193,7 +185,6 @@ def private _parse_near(var st : ParseState) : int {   // nolint:STYLE038 - one 
             break
         }
         if (cp == '"') {
-            // FTS5 NEAR can take phrases too — flatten by taking the words.
             st.pos++
             var closed_quote = false
             while (st.pos < len) {
@@ -235,7 +226,7 @@ def private _parse_near(var st : ParseState) : int {   // nolint:STYLE038 - one 
 def private _parse_term(var st : ParseState) : int {
     var n = Fts5Node(kind = Fts5NodeKind.Term)
     n.words |> push(_consume_name(st))
-    if (st.pos < length(st.src) && int(st.src[st.pos]) == '*') {
+    if (st.pos < length(st.codepoints) && int(st.codepoints[st.pos]) == '*') {
         n.is_prefix = true
         st.pos++
     }
@@ -258,13 +249,12 @@ def private _parse_col_filter_inner(var st : ParseState; var columns : array<str
 
 def private _parse_unary(var st : ParseState) : int {
     _skip_ws(st)
-    let len = length(st.src)
+    let len = length(st.codepoints)
     if (st.pos >= len) {
         _set_err(st, "unexpected end of query")
         return -1
     }
-    let cp = int(st.src[st.pos])
-    // Parenthesized subexpr
+    let cp = int(st.codepoints[st.pos])
     if (cp == '(') {
         st.pos++
         let inner = _parse_or_expr(st)
@@ -276,9 +266,7 @@ def private _parse_unary(var st : ParseState) : int {
         st.pos++
         return inner
     }
-    // Quoted phrase
     if (cp == '"') return _parse_phrase(st)
-    // Column-set filter: { col1 col2 ... } : expr
     if (cp == '{') {
         st.pos++
         var cols : array<string>
@@ -297,29 +285,25 @@ def private _parse_unary(var st : ParseState) : int {
         }
         return _parse_col_filter_inner(st, cols)
     }
-    // NEAR keyword
     if (_peek_keyword(st, "NEAR")) return _parse_near(st)
-    // Bare name — term, operator keyword (caller's job), or "name : expr" (single-column filter).
     if (!_is_word_cp(cp)) {
         _set_err(st, "unexpected character")
         return -1
     }
     let save = st.pos
     let name = _consume_name(st)
-    // If immediately followed by ':' (no whitespace), treat as col-filter.
     if (_peek(st) == ':') {
         var cols : array<string>
         cols |> push(name)
         return _parse_col_filter_inner(st, cols)
     }
-    // Otherwise it's a term — back up and reparse to also catch '*'.
     st.pos = save
     return _parse_term(st)
 }
 
 def private _at_expr_terminator(var st : ParseState) : bool {
     _skip_ws(st)
-    if (st.pos >= length(st.src)) return true
+    if (st.pos >= length(st.codepoints)) return true
     let cp = _peek(st)
     return cp == ')' || cp == '}' || cp == ','
 }
@@ -367,20 +351,18 @@ def private _parse_or_expr(var st : ParseState) : int {
     return left
 }
 
-// ===== Public API =====
-
 def public try_compile_text_match(query : string) : Result<Fts5Query; string> {
     //! Parse an FTS5 query into an `Fts5Query`. Empty / whitespace-only is
     //! valid and yields `root == -1` (matches everything). `Err` carries
     //! the position of the first parse error.
     var st = default<ParseState>
-    st.src <- utf8_decode(query)
+    st.codepoints <- utf8_decode(query)
     _skip_ws(st)
-    if (st.pos >= length(st.src)) return ok(default<Fts5Query>, type<string>)
+    if (st.pos >= length(st.codepoints)) return ok(default<Fts5Query>, type<string>)
     let root_idx = _parse_or_expr(st)
     if (!empty(st.err)) return err(st.err, type<Fts5Query>)
     _skip_ws(st)
-    if (st.pos < length(st.src)) return err("trailing input at position {st.pos}", type<Fts5Query>)
+    if (st.pos < length(st.codepoints)) return err("trailing input at position {st.pos}", type<Fts5Query>)
     var q <- Fts5Query(nodes <- st.nodes, root = root_idx) // nolint:LINT003,LINT019 - move_ok consumes q, so it must stay var; LINT003 fires only in downstream compiles
     return move_ok(q, type<string>)
 }
@@ -393,8 +375,6 @@ def public compile_text_match(query : string) : Fts5Query {
     }
     return <- move_unwrap(r)
 }
-
-// ===== Evaluator =====
 
 def private _term_matches_token(term : string; is_prefix : bool; tok : string) : bool {
     if (is_prefix) return tok |> starts_with(term)
@@ -427,7 +407,6 @@ def private _phrase_match(words : array<string>; is_prefix : bool;
 }
 
 def private _near_match(words : array<string>; k : int; tokens : array<string>) : bool {
-    // FTS5 NEAR: every word appears within k tokens of every other.
     let m = length(words)
     if (m == 0) return true
     var positions : array<array<int>>

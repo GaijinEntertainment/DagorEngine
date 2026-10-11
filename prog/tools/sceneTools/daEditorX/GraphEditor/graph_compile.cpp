@@ -2,6 +2,7 @@
 
 #include "graph_compile.h"
 #include "graph_dead_paths.h"
+#include "graph_resolutions.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
@@ -220,15 +221,6 @@ struct PinCompileState
   bool final = false;
   eastl::vector<PinFinalEntry> finalList;
   eastl::string customTextureName;
-
-  // Set by propagate_external_stuff for downstream input pins: what the upstream
-  // node has resolved as its propagatedStuff. Only meaningful for input pins.
-  bool hasExternalStuff = false;
-  int extWidth = 0;
-  int extHeight = 0;
-  int extDepth = 0;
-  eastl::string extType;
-  eastl::string extWrap;
 };
 
 struct NodeSidecar
@@ -247,22 +239,11 @@ struct NodeSidecar
   // everything behind it produce no data, so the compile drops them entirely.
   bool dead = false;
 
-  // propagate_external_stuff result -- what THIS node produces. outTexDimension is
-  // 0 for non-producing nodes (e.g. `result`), 1/2/3 for 1D/2D/3D texture / particles.
-  bool hasPropagated = false;
-  int outTexDimension = 0;
-  int propWidth = 0;
-  int propHeight = 0;
-  int propDepth = 0;
-  eastl::string propType;
-  eastl::string propWrap;
+  // Null for a node that produces no texture.
+  const NodeResolution *resolution = nullptr;
 
-  // Cached descriptor pointers. find_descriptor / find_pin_in_desc are linear
-  // scans through base_nodes.blk and its pin sub-blocks; called millions of
-  // times during the fixed-point propagation loop. Populated once at the start
-  // of compile_graph_to_blks. nullptr means descriptor / pin descriptor missing.
+  // nullptr when base_nodes.blk has no template by this uid.
   const DataBlock *descriptor = nullptr;
-  eastl::vector<const DataBlock *> pinDescriptors;
   // Effective per-pin data block: per-instance Pin::data when non-empty,
   // otherwise descriptor pin's `data` sub-block. nullptr when neither exists.
   // This is what the compile actually reads for blk_code / customParam /
@@ -307,68 +288,7 @@ const PinCompileState *get_pin_state(const NodeStates &states, int node_idx, int
 // the same indexed form (elemA / elemB are vector indices, since elems[] is sparse-but-
 // indexed-by-id in the JS object model). We need a stable id -> index map so we can
 // translate edges into sidecar indices.
-struct NodeIndex
-{
-  eastl::hash_map<int, int> idToIdx;
-  void build(const GraphData &g)
-  {
-    idToIdx.clear();
-    for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
-    {
-      idToIdx[g.nodes[i].id] = i;
-    }
-  }
-  int find(int id) const
-  {
-    auto it = idToIdx.find(id);
-    return it == idToIdx.end() ? -1 : it->second;
-  }
-};
 
-// Descriptor lookup by stable templateUid. Lazy linear scan matches base_nodes.blk's
-// existing access pattern (see resolve_node_pins). Bounded (~100 entries), runs once
-// per compile per node.
-const DataBlock *find_descriptor(const DataBlock &base_nodes_blk, const eastl::string &template_uid)
-{
-  if (template_uid.empty())
-  {
-    return nullptr;
-  }
-  for (uint32_t i = 0; i < base_nodes_blk.blockCount(); ++i)
-  {
-    const DataBlock *b = base_nodes_blk.getBlock(i);
-    if (strcmp(b->getBlockName(), "node") != 0)
-    {
-      continue;
-    }
-    if (strcmp(b->getStr("templateUid", ""), template_uid.c_str()) == 0)
-    {
-      return b;
-    }
-  }
-  return nullptr;
-}
-
-const DataBlock *find_pin_in_desc(const DataBlock *desc, const eastl::string &pin_name)
-{
-  if (!desc || pin_name.empty())
-  {
-    return nullptr;
-  }
-  for (uint32_t i = 0; i < desc->blockCount(); ++i)
-  {
-    const DataBlock *b = desc->getBlock(i);
-    if (strcmp(b->getBlockName(), "pin") != 0)
-    {
-      continue;
-    }
-    if (strcmp(b->getStr("name", ""), pin_name.c_str()) == 0)
-    {
-      return b;
-    }
-  }
-  return nullptr;
-}
 
 const DataBlock *find_pin_data(const DataBlock *desc_pin)
 {
@@ -379,119 +299,64 @@ const DataBlock *find_pin_data(const DataBlock *desc_pin)
   return desc_pin->getBlockByName("data");
 }
 
-// Property value lookup on a node instance. Returns empty string if missing.
+// The raw stored value; an absent key is "". Only the texture properties fall back to the
+// descriptor default, through texture_property_value.
 eastl::string get_property(const GraphData::Node &n, const char *prop_name)
 {
-  if (!prop_name)
-  {
-    return eastl::string();
-  }
-  for (const auto &p : n.propertyValues)
-  {
-    if (p.first == prop_name)
-    {
-      return p.second;
-    }
-  }
-  return eastl::string();
+  const eastl::string *const v = find_property_value(n, prop_name);
+  return v ? *v : eastl::string();
 }
 
 // ---------------- Connectivity pass (mainNodes.js:2228-2281) ----------------
 
-void build_connectivity(const GraphData &g, const NodeIndex &index, const DeadPaths &dead, NodeStates &states)
+void build_connectivity(const GraphData &g, const eastl::hash_map<int, int> &node_index, const DeadPaths &dead,
+  const PinConnectivity &conn, NodeStates &states)
 {
   states.clear();
   states.resize(g.nodes.size());
   for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
   {
     states[i].pins.resize(g.nodes[i].pins.size());
+    for (int j = 0; j < static_cast<int>(g.nodes[i].pins.size()); ++j)
+    {
+      states[i].pins[j].connected = conn.connected[conn.pinBase[i] + j] != 0;
+    }
   }
 
-  for (int e = 0; e < static_cast<int>(g.edges.size()); ++e)
-  {
-    if (dead.isDeadEdge(e))
-    {
-      continue;
-    }
-    const GraphData::Edge &edge = g.edges[e];
-    const int a = index.find(edge.elemA);
-    const int b = index.find(edge.elemB);
-    if (a < 0 || b < 0)
-    {
-      continue;
-    }
-    const GraphData::Node &na = g.nodes[a];
-    const GraphData::Node &nb = g.nodes[b];
-    if (edge.pinA < 0 || edge.pinA >= static_cast<int>(na.pins.size()))
-    {
-      continue;
-    }
-    if (edge.pinB < 0 || edge.pinB >= static_cast<int>(nb.pins.size()))
-    {
-      continue;
-    }
-    const GraphData::Pin &pa = na.pins[edge.pinA];
-    const GraphData::Pin &pb = nb.pins[edge.pinB];
-
-    PinCompileState *sa = get_pin_state(states, a, edge.pinA);
-    PinCompileState *sb = get_pin_state(states, b, edge.pinB);
+  for_each_live_edge(g, dead, node_index, [&](const LiveEdge &e) {
+    const GraphData::Pin &pa = g.nodes[e.nodeA].pins[e.pinA];
+    const GraphData::Pin &pb = g.nodes[e.nodeB].pins[e.pinB];
+    PinCompileState *sa = get_pin_state(states, e.nodeA, e.pinA);
+    PinCompileState *sb = get_pin_state(states, e.nodeB, e.pinB);
 
     // JS path 1 (mainNodes.js:2237-2258): pinA is an input. Wire sa -> b/pinB.
     if (pa.role == PinRole::In)
     {
-      sa->connectElem = b;
-      sa->connectPin = edge.pinB;
+      sa->connectElem = e.nodeB;
+      sa->connectPin = e.pinB;
       sa->connectFromType = pb.types.empty() ? PinType::Unknown : pb.types.front();
       sa->connectToType = pa.types.empty() ? PinType::Unknown : pa.types.front();
-      sa->connected = true;
-      sb->connected = true;
-
-      // data.final propagation: if the input pin's descriptor data has final:b=yes,
-      // mark the upstream pin as final and record this as a finalList entry on it.
     }
     // JS path 2 (mainNodes.js:2259-2280): pinB is an input. Wire sb -> a/pinA.
     if (pb.role == PinRole::In)
     {
-      sb->connectElem = a;
-      sb->connectPin = edge.pinA;
+      sb->connectElem = e.nodeA;
+      sb->connectPin = e.pinA;
       sb->connectFromType = pa.types.empty() ? PinType::Unknown : pa.types.front();
       sb->connectToType = pb.types.empty() ? PinType::Unknown : pb.types.front();
-      sb->connected = true;
-      sa->connected = true;
     }
-  }
+  });
 }
 
 // Second connectivity pass: walk edges again and apply the data.final propagation,
 // because final-tracking needs the *descriptor* data of the *input* pin (which lives
 // in base_nodes.blk). Done as a separate pass for clarity.
-void propagate_final(const GraphData &g, const NodeIndex &index, const DeadPaths &dead, const DataBlock &base_nodes_blk,
-  NodeStates &states)
+void propagate_final(const GraphData &g, const eastl::hash_map<int, int> &node_index, const DeadPaths &dead,
+  const DataBlock &base_nodes_blk, NodeStates &states)
 {
-  for (int e = 0; e < static_cast<int>(g.edges.size()); ++e)
-  {
-    if (dead.isDeadEdge(e))
-    {
-      continue;
-    }
-    const GraphData::Edge &edge = g.edges[e];
-    const int a = index.find(edge.elemA);
-    const int b = index.find(edge.elemB);
-    if (a < 0 || b < 0)
-    {
-      continue;
-    }
-    const GraphData::Node &na = g.nodes[a];
-    const GraphData::Node &nb = g.nodes[b];
-    if (edge.pinA < 0 || edge.pinA >= static_cast<int>(na.pins.size()))
-    {
-      continue;
-    }
-    if (edge.pinB < 0 || edge.pinB >= static_cast<int>(nb.pins.size()))
-    {
-      continue;
-    }
-
+  for_each_live_edge(g, dead, node_index, [&](const LiveEdge &edge) {
+    const GraphData::Node &na = g.nodes[edge.nodeA];
+    const GraphData::Node &nb = g.nodes[edge.nodeB];
     auto mark_final = [&](int input_node, int input_pin_idx, int upstream_node, int upstream_pin_idx) {
       const DataBlock *descData = states[input_node].pinDataPtrs[input_pin_idx];
       if (!descData || !descData->getBool("final", false))
@@ -512,13 +377,13 @@ void propagate_final(const GraphData &g, const NodeIndex &index, const DeadPaths
 
     if (na.pins[edge.pinA].role == PinRole::In)
     {
-      mark_final(a, edge.pinA, b, edge.pinB);
+      mark_final(edge.nodeA, edge.pinA, edge.nodeB, edge.pinB);
     }
     if (nb.pins[edge.pinB].role == PinRole::In)
     {
-      mark_final(b, edge.pinB, a, edge.pinA);
+      mark_final(edge.nodeB, edge.pinB, edge.nodeA, edge.pinA);
     }
-  }
+  });
 }
 
 // ---------------- Substitute (mainNodes.js:2407-2468) ----------------
@@ -680,8 +545,9 @@ eastl::string substitute(const char *code, int elem_idx, const GraphData &g, con
       // JS uses `elem.uid + "-" + width + "-" + height + "-" + type`
       // (mainNodes.js:2456); our port substitutes int id for uid.
       char buf[128];
-      const NodeSidecar &s = states[elem_idx];
-      snprintf(buf, sizeof(buf), "%d-%d-%d-%s", elem.id, s.propWidth, s.propHeight, s.propType.c_str());
+      // A node that produces no texture never resolves, and its hash uses zero/empty for that.
+      const NodeResolution *const r = states[elem_idx].resolution;
+      snprintf(buf, sizeof(buf), "%d-%d-%d-%s", elem.id, r ? r->width : 0, r ? r->height : 0, r ? r->type.c_str() : "");
       toVal = buf;
     }
     else if (toVal == "%graph_hash%")
@@ -693,335 +559,6 @@ eastl::string substitute(const char *code, int elem_idx, const GraphData &g, con
   }
 
   return out;
-}
-
-// ---------------- Propagation pass (mainNodes.js:3023-3202 + graphEditor.js:1588-1648) ----------------
-// The JS attaches GE_propagateExternalStuff to each descriptor; the driver in
-// graphEditor.js calls it per-node and walks edges to push results into
-// downstream externalStuffOnPins. Iterate to fixed point. Here we collapse all
-// of that into a single C++ helper since the descriptor-attachment indirection
-// adds no value once we're not driving a JS prototype chain.
-
-// Reads "= N" / "x N" / "/ N" style prefixed-int property values. Returns true
-// and `out_n` on a match; false for tokens like "parent size" / "graph size" /
-// "width" / "parent type" etc. The JS uses parseInt(value.slice(1), 10) which
-// ignores leading whitespace -- mirror that here.
-bool parse_prefixed_int(const eastl::string &value, char prefix, int &out_n)
-{
-  if (value.empty() || value[0] != prefix)
-  {
-    return false;
-  }
-  const char *p = value.c_str() + 1;
-  while (*p == ' ' || *p == '\t')
-  {
-    ++p;
-  }
-  if (*p == 0)
-  {
-    return false;
-  }
-  char *end = nullptr;
-  long n = strtol(p, &end, 10);
-  if (end == p)
-  {
-    return false;
-  }
-  out_n = static_cast<int>(n);
-  return true;
-}
-
-int clamp_dim(int v) { return eastl::max(eastl::min(v, 8192), 1); }
-
-// Returns true when this call succeeded in resolving propagatedStuff for `elem_idx`.
-// Returns false if the node is not a texture producer (no out-pin with texture or
-// particles type), or if it's waiting for upstream propagation. Idempotent: a node
-// already propagated is left alone and returns false (so the fixed-point driver
-// doesn't count it as "changed").
-bool propagate_external_stuff(int elem_idx, const GraphData &g, const DataBlock &base_nodes_blk, NodeStates &states)
-{
-  NodeSidecar &sc = states[elem_idx];
-  if (sc.hasPropagated)
-  {
-    return false;
-  }
-
-  const GraphData::Node &e = g.nodes[elem_idx];
-
-  // Find the "main" connected input pin (descriptor pin with main:b=yes), falling
-  // back to the first connected texture-typed in-pin. Mirrors mainNodes.js:3042-3068.
-  int mainInputIndex = -1;
-  int outTexDimension = 0;
-  for (int i = 0; i < static_cast<int>(e.pins.size()); ++i)
-  {
-    const GraphData::Pin &p = e.pins[i];
-    const PinCompileState *pst = get_pin_state(states, elem_idx, i);
-    if (p.role == PinRole::In)
-    {
-      const DataBlock *descPin = states[elem_idx].pinDescriptors[i];
-      const bool isMain = descPin && descPin->getBool("main", false);
-      const bool isTexFirstType =
-        !p.types.empty() &&
-        (p.types.front() == PinType::Texture1D || p.types.front() == PinType::Texture2D || p.types.front() == PinType::Texture3D ||
-          p.types.front() == PinType::Texture2DArray || p.types.front() == PinType::Texture2DShdArray);
-      if (isMain && pst && pst->connected)
-      {
-        mainInputIndex = i;
-      }
-      if (mainInputIndex == -1 && pst && pst->connected && isTexFirstType)
-      {
-        mainInputIndex = i;
-      }
-    }
-    else if (p.role == PinRole::Out)
-    {
-      if (!p.types.empty())
-      {
-        const PinType t = p.types.front();
-        if (t == PinType::Particles)
-        {
-          outTexDimension = 2;
-        }
-        else if (t == PinType::Texture1D)
-        {
-          outTexDimension = 1;
-        }
-        else if (t == PinType::Texture2D)
-        {
-          outTexDimension = 2;
-        }
-        else if (t == PinType::Texture3D)
-        {
-          outTexDimension = 3;
-        }
-      }
-    }
-  }
-
-  if (outTexDimension == 0)
-  {
-    return false;
-  }
-
-  // Waiting for upstream propagation: the main-input pin is connected but no upstream
-  // node has filled externalStuffOnPins[mainInputIndex] yet.
-  if (mainInputIndex != -1)
-  {
-    const PinCompileState *mst = get_pin_state(states, elem_idx, mainInputIndex);
-    if (mst && mst->connected && !mst->hasExternalStuff)
-    {
-      return false;
-    }
-  }
-
-  // Property string accessors with the JS-side fallback defaults.
-  auto prop = [&](const char *name, const char *fallback) -> eastl::string {
-    eastl::string v = get_property(e, name);
-    return v.empty() ? eastl::string(fallback) : v;
-  };
-  eastl::string w = prop("texture width", "parent size");
-  eastl::string h = prop("texture height", "width");
-  eastl::string d = prop("texture depth", "width");
-  eastl::string t = prop("texture type", "parent type");
-  eastl::string a = prop("texture wrap", "parent wrap");
-
-  int width = g.graphTextureWidth;
-  int height = g.graphTextureHeight;
-  int depth = g.graphTextureDepth;
-  eastl::string type = g.graphTextureType;
-  eastl::string wrap = g.graphTextureWrap;
-
-  const PinCompileState *mst = mainInputIndex >= 0 ? get_pin_state(states, elem_idx, mainInputIndex) : nullptr;
-  const bool fromExternal = (mst && mst->hasExternalStuff);
-
-  if (!fromExternal)
-  {
-    int parsed = 0;
-    if (parse_prefixed_int(w, '=', parsed))
-    {
-      width = parsed;
-    }
-    if (parse_prefixed_int(h, '=', parsed))
-    {
-      height = parsed;
-    }
-    if (parse_prefixed_int(d, '=', parsed))
-    {
-      depth = parsed;
-    }
-    if (h == "width")
-    {
-      height = width;
-    }
-    if (d == "width")
-    {
-      depth = width;
-    }
-    if (t != "parent type")
-    {
-      type = t;
-    }
-    if (a != "parent wrap")
-    {
-      wrap = a;
-    }
-  }
-  else
-  {
-    width = mst->extWidth;
-    height = mst->extHeight;
-    depth = mst->extDepth;
-    type = mst->extType;
-    wrap = mst->extWrap;
-    int parsed = 0;
-    if (parse_prefixed_int(w, 'x', parsed))
-    {
-      width *= parsed;
-    }
-    if (parse_prefixed_int(h, 'x', parsed))
-    {
-      height *= parsed;
-    }
-    if (parse_prefixed_int(d, 'x', parsed))
-    {
-      depth *= parsed;
-    }
-    if (parse_prefixed_int(w, '/', parsed) && parsed != 0)
-    {
-      width /= parsed;
-    }
-    if (parse_prefixed_int(h, '/', parsed) && parsed != 0)
-    {
-      height /= parsed;
-    }
-    if (parse_prefixed_int(d, '/', parsed) && parsed != 0)
-    {
-      depth /= parsed;
-    }
-    if (parse_prefixed_int(w, '=', parsed))
-    {
-      width = parsed;
-    }
-    if (parse_prefixed_int(h, '=', parsed))
-    {
-      height = parsed;
-    }
-    if (parse_prefixed_int(d, '=', parsed))
-    {
-      depth = parsed;
-    }
-    if (w == "graph size")
-    {
-      width = g.graphTextureWidth;
-    }
-    if (h == "graph size")
-    {
-      height = g.graphTextureHeight;
-    }
-    if (d == "graph size")
-    {
-      depth = g.graphTextureDepth;
-    }
-    if (h == "width")
-    {
-      height = width;
-    }
-    if (d == "width")
-    {
-      depth = width;
-    }
-    if (t != "parent type")
-    {
-      type = t;
-    }
-    if (t == "graph type")
-    {
-      type = g.graphTextureType;
-    }
-    if (a != "parent wrap")
-    {
-      wrap = a;
-    }
-    if (a == "graph wrap")
-    {
-      wrap = g.graphTextureWrap;
-    }
-    width = clamp_dim(width);
-    height = clamp_dim(height);
-    depth = clamp_dim(depth);
-  }
-
-  sc.hasPropagated = true;
-  sc.outTexDimension = outTexDimension;
-  sc.propWidth = width;
-  sc.propHeight = height;
-  sc.propDepth = depth;
-  sc.propType = type;
-  sc.propWrap = wrap;
-  return true;
-}
-
-// Walks every edge once, pushing the upstream node's propagatedStuff into the
-// downstream input pin's externalStuffOnPins fields. Mirrors graphEditor.js:1636-1648.
-// Returns true if any pin was newly populated.
-bool propagate_edges(const GraphData &g, const NodeIndex &index, const DeadPaths &dead, NodeStates &states)
-{
-  bool changed = false;
-  for (int e = 0; e < static_cast<int>(g.edges.size()); ++e)
-  {
-    if (dead.isDeadEdge(e))
-    {
-      continue;
-    }
-    const GraphData::Edge &edge = g.edges[e];
-    const int a = index.find(edge.elemA);
-    const int b = index.find(edge.elemB);
-    if (a < 0 || b < 0)
-    {
-      continue;
-    }
-    const GraphData::Node &na = g.nodes[a];
-    const GraphData::Node &nb = g.nodes[b];
-    if (edge.pinA < 0 || edge.pinA >= static_cast<int>(na.pins.size()))
-    {
-      continue;
-    }
-    if (edge.pinB < 0 || edge.pinB >= static_cast<int>(nb.pins.size()))
-    {
-      continue;
-    }
-
-    auto push = [&](int from_node, int to_node, int to_pin) {
-      if (!states[from_node].hasPropagated)
-      {
-        return;
-      }
-      PinCompileState *toSt = get_pin_state(states, to_node, to_pin);
-      if (!toSt || toSt->hasExternalStuff)
-      {
-        return;
-      }
-      toSt->hasExternalStuff = true;
-      toSt->extWidth = states[from_node].propWidth;
-      toSt->extHeight = states[from_node].propHeight;
-      toSt->extDepth = states[from_node].propDepth;
-      toSt->extType = states[from_node].propType;
-      toSt->extWrap = states[from_node].propWrap;
-      changed = true;
-    };
-
-    // Edge direction: whichever side is an out-pin is the upstream. The JS check is
-    // `from.desc.pins[c.pinFrom].role === "out"`; mirror by role.
-    if (na.pins[edge.pinA].role == PinRole::Out && nb.pins[edge.pinB].role == PinRole::In)
-    {
-      push(a, b, edge.pinB);
-    }
-    if (nb.pins[edge.pinB].role == PinRole::Out && na.pins[edge.pinA].role == PinRole::In)
-    {
-      push(b, a, edge.pinA);
-    }
-  }
-  return changed;
 }
 
 // Splice out bypass nodes from the compile view, re-routing each consumer pin past the
@@ -1073,11 +610,9 @@ void apply_bypass_removal(const GraphData &g, const DataBlock &base_nodes_blk, N
     // `JSON.stringify(propagatedStuff)` equality; we compare the same fields.
     const NodeSidecar &sb = states[b];
     const NodeSidecar &ss = states[srcElem];
-    if (sb.hasPropagated && ss.hasPropagated)
+    if (sb.resolution && ss.resolution && !same_texture_result(*sb.resolution, *ss.resolution))
     {
-      if (sb.propWidth != ss.propWidth || sb.propHeight != ss.propHeight || sb.propDepth != ss.propDepth ||
-          sb.propType != ss.propType || sb.propWrap != ss.propWrap)
-        continue;
+      continue;
     }
 
     // Re-route every consumer pin reading from this bypass to the upstream source.
@@ -1135,36 +670,36 @@ void apply_bypass_removal(const GraphData &g, const DataBlock &base_nodes_blk, N
 
 int texture_width(int elem_idx, const GraphData &g, const NodeStates &states)
 {
-  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].hasPropagated)
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
   {
-    return states[elem_idx].propWidth;
+    return states[elem_idx].resolution->width;
   }
   return g.graphTextureWidth;
 }
 
 int texture_height(int elem_idx, const GraphData &g, const NodeStates &states)
 {
-  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].hasPropagated)
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
   {
-    return states[elem_idx].propHeight;
+    return states[elem_idx].resolution->height;
   }
   return g.graphTextureHeight;
 }
 
 const char *texture_type(int elem_idx, const GraphData &g, const NodeStates &states)
 {
-  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].hasPropagated)
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
   {
-    return states[elem_idx].propType.c_str();
+    return states[elem_idx].resolution->type.c_str();
   }
   return g.graphTextureType.c_str();
 }
 
 const char *texture_wrap(int elem_idx, const GraphData &g, const NodeStates &states)
 {
-  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].hasPropagated)
+  if (elem_idx >= 0 && elem_idx < static_cast<int>(states.size()) && states[elem_idx].resolution)
   {
-    return states[elem_idx].propWrap.c_str();
+    return states[elem_idx].resolution->wrap.c_str();
   }
   return g.graphTextureWrap.c_str();
 }
@@ -1202,8 +737,8 @@ eastl::string make_input_name(int elem_idx, int pin_idx, const GraphData &g, con
       // The combobox "texture width"/"texture height" values carry a leading "= "
       // expression prefix that JS strips with .slice(2) (mainNodes.js:2515-2516); the
       // remaining props are used verbatim.
-      eastl::string w = get_property(n, "texture width");
-      eastl::string h = get_property(n, "texture height");
+      eastl::string w = texture_property_value(n, states[elem_idx].descriptor, "texture width");
+      eastl::string h = texture_property_value(n, states[elem_idx].descriptor, "texture height");
       if (w.size() >= 2)
       {
         w.erase(0, 2);
@@ -1220,7 +755,7 @@ eastl::string make_input_name(int elem_idx, int pin_idx, const GraphData &g, con
       res += ";offset:i=";
       res += get_property(n, "header (bytes)");
       res += ";fmt:t=\"";
-      res += get_property(n, "texture type");
+      res += texture_property_value(n, states[elem_idx].descriptor, "texture type");
       res += "\";ch_order:t=\"";
       res += get_property(n, "channels order");
       res += "\";name:t=";
@@ -2057,7 +1592,8 @@ void describe_blocked_nodes(const GraphData &g, const NodeStates &states, const 
 
 bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
   DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
-  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message)
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names, eastl::string *out_message,
+  GraphResolutions *out_node_resolutions, DeadPaths *out_dead)
 {
   out_main_graph_blk.reset();
   out_shader_list_blk.reset();
@@ -2067,36 +1603,36 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
     out_message->clear();
   }
 
-  NodeIndex index;
-  index.build(g);
+  eastl::hash_map<int, int> nodeIndex;
+  build_node_index(g, nodeIndex);
 
-  DeadPaths dead;
-  compute_dead_paths(g, dead);
+  DeadPaths localDead;
+  DeadPaths &dead = out_dead ? *out_dead : localDead;
+  compute_dead_paths(g, nodeIndex, dead);
+
+  PinConnectivity connectivity;
+  build_pin_connectivity(g, dead, nodeIndex, connectivity);
 
   NodeStates states;
-  build_connectivity(g, index, dead, states);
+  build_connectivity(g, nodeIndex, dead, connectivity, states);
   for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
   {
     states[i].dead = dead.isDeadNode(i);
   }
 
-  // Descriptor / pin-descriptor cache. Each find_descriptor call linear-scans
-  // base_nodes.blk (~100 entries); each find_pin_in_desc scans a descriptor's
-  // pin sub-blocks. Without caching this dominates compile time for graphs
-  // with 1000+ nodes -- the propagation loop alone does ~30M strcmp.
-  // Also pre-resolves the effective per-pin data block: prefer per-instance
+  // Pre-resolves the effective per-pin data block: prefer per-instance
   // Pin::data (only populated for shader_editor sub-graph nodes whose
   // descriptor isn't in base_nodes.blk), fall back to the descriptor's pin
   // data sub-block. Compile call sites read from pinDataPtrs directly.
+  eastl::vector<const DataBlock *> nodeDescriptors(g.nodes.size(), nullptr);
   for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
   {
     const GraphData::Node &n = g.nodes[i];
-    states[i].descriptor = find_descriptor(base_nodes_blk, n.templateUid);
-    states[i].pinDescriptors.resize(n.pins.size());
+    nodeDescriptors[i] = find_node_desc(&base_nodes_blk, n.templateUid.c_str());
+    states[i].descriptor = nodeDescriptors[i];
     states[i].pinDataPtrs.resize(n.pins.size());
     for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
     {
-      states[i].pinDescriptors[j] = find_pin_in_desc(states[i].descriptor, n.pins[j].name);
       const DataBlock &instData = n.pins[j].data;
       if (instData.paramCount() > 0 || instData.blockCount() > 0)
       {
@@ -2104,43 +1640,20 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
       }
       else
       {
-        states[i].pinDataPtrs[j] = find_pin_data(states[i].pinDescriptors[j]);
+        states[i].pinDataPtrs[j] = find_pin_data(find_pin_desc(states[i].descriptor, n.pins[j].name.c_str()));
       }
     }
   }
 
-  propagate_final(g, index, dead, base_nodes_blk, states);
+  propagate_final(g, nodeIndex, dead, base_nodes_blk, states);
 
-  // Propagation pass: iterate to a fixed point. Each iteration tries to resolve
-  // every node's propagatedStuff via propagate_external_stuff, then walks edges
-  // to push results into downstream input pins' externalStuffOnPins. Nodes that
-  // depend on upstream propagation just stay un-propagated until the next
-  // iteration sees their upstream's result available. Same 400-iter guard as
-  // the topo-sort loop below.
+  // constraint: the emitters reach this through `states`, which holds pointers into `resolutions`.
+  // It outlives them, and the out parameter takes a copy.
+  GraphResolutions resolutions;
+  compute_graph_resolutions(g, nodeDescriptors, nodeIndex, dead, connectivity, nullptr, resolutions);
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
   {
-    int propIteration = 0;
-    bool propChanged = false;
-    do
-    {
-      propChanged = false;
-      for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
-      {
-        if (propagate_external_stuff(i, g, base_nodes_blk, states))
-        {
-          propChanged = true;
-        }
-      }
-      if (propagate_edges(g, index, dead, states))
-      {
-        propChanged = true;
-      }
-      ++propIteration;
-      if (propIteration > 400)
-      {
-        debug("compile_graph_to_blks: propagation loop hit 400-iteration guard");
-        break;
-      }
-    } while (propChanged);
+    states[i].resolution = resolutions.byIndex(i);
   }
 
   // Pre-emit bypass splicing (graphEditor.js:3214/5648). Bypass descriptors (e.g.
@@ -2239,9 +1752,9 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
       }
     }
     ++iteration;
-    if (iteration > 400)
+    if (iteration > MAX_GRAPH_CHAIN_PASSES)
     {
-      debug("compile_graph_to_blks: topo-sort fixed-point loop hit 400-iteration guard");
+      debug("compile_graph_to_blks: topo-sort fixed-point loop hit %d-pass guard", MAX_GRAPH_CHAIN_PASSES);
       hitIterationGuard = true;
       break;
     }
@@ -2268,12 +1781,15 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
       {
         // `processed` is a mid-convergence snapshot, so the count is all that can be claimed --
         // naming nodes would name ones merely not reached yet.
-        msg.printf(0, "graph compile stopped: the topo-sort pass hit its 400-pass limit with %d node(s) unresolved", unresolved);
+        msg.printf(0, "graph compile stopped: the topo-sort pass hit its %d-pass limit with %d node(s) unresolved",
+          MAX_GRAPH_CHAIN_PASSES, unresolved);
       }
       else
       {
-        msg.printf(0, "the topo-sort pass reached its 400-pass limit and every node still resolved; the graph has a dependency "
-                      "chain that deep, so it stops compiling if it grows");
+        msg.printf(0,
+          "the topo-sort pass reached its %d-pass limit and every node still resolved; the graph has a dependency "
+          "chain that deep, so it stops compiling if it grows",
+          MAX_GRAPH_CHAIN_PASSES);
       }
       *out_message = msg.str();
     }
@@ -2285,7 +1801,7 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
 
   // Snapshot PinCompileState::customTextureName into the output parameter so the
   // caller can apply it onto GraphData::Pin::customTextureName from the main
-  // thread. The texture-preview panel (graph_panel.cpp) reads that Pin field
+  // thread. The texture-preview panel (graph_tab.cpp) reads that Pin field
   // without taking graphMutex; writing it from the worker thread (compile runs
   // here, plugin.cpp:84) would race against those reads. Bypassed nodes get an
   // empty inner vector since they never run emit_pass_block.
@@ -2325,5 +1841,10 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
   // The guard trips one pass after the last productive one, so a chain exactly as deep as the limit
   // converges and still hits it -- that is not a failure. A loop never trips it at all: the pass
   // stops changing and exits, returning true so the rest of the graph still emits.
+  if (out_node_resolutions)
+  {
+    *out_node_resolutions = resolutions;
+  }
+
   return !hitIterationGuard || unresolved == 0;
 }

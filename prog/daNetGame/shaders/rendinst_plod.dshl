@@ -3,6 +3,7 @@ include "gbuffer.dshl"
 include "rendinst_simple_inc.dshl"
 include "rendinst_plod_inc.dshl"
 include "unpack_unit_vector_inc.dshl"
+include "rendinst_voxelize_albedo_inc.dshl"
 
 shader rendinst_plod_simple
 {
@@ -22,6 +23,7 @@ shader rendinst_plod_simple
   }
 
   RENDINST_BLOCK()
+  RI_NO_VOXELIZE()
   RENDINST_INSTANCING()
   USE_UNPACK_UNIT_VECTOR_VS()
 

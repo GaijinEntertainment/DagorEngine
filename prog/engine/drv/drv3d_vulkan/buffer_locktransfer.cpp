@@ -150,9 +150,10 @@ void GenericBufferInterface::lockStaging(void **ptr)
 void GenericBufferInterface::unlockWriteStaging()
 {
   auto &ctx = Globals::ctx;
+  const uint32_t stageOffset = stagingLockOffset();
 
-  stagingBuffer->markNonCoherentRangeLoc(0, lockRange.size(), true);
-  ctx.uploadBuffer(BufferRef{stagingBuffer}, ref, 0, lockRange.front(), lockRange.size());
+  stagingBuffer->markNonCoherentRangeLoc(stageOffset, lockRange.size(), true);
+  ctx.uploadBuffer(BufferRef{stagingBuffer}, ref, stageOffset, lockRange.front(), lockRange.size());
 }
 
 // Push path - for ordered update of device visible buffers

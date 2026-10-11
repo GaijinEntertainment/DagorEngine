@@ -79,6 +79,11 @@ static void remove_mat_script_param(MaterialData &mat, const char *name)
   mat.matScript = script.c_str();
 }
 
+static bool is_impostor_shader(const char *class_name)
+{
+  return strstr(class_name, "rendinst_impostor") || strstr(class_name, "rendinst_baked_impostor");
+}
+
 
 void RenderableInstanceLodsResSrc::splitRealTwoSided(Mesh &m, Bitarray &is_material_real_two_sided_array)
 {
@@ -106,8 +111,7 @@ void RenderableInstanceLodsResSrc::addMeshNode(int lod_no, Lod &lod, Node *n_, N
       Mesh &mesh = *mh.mesh;
 
       for (unsigned int materialNo = 0; materialNo < n.mat->subMatCount(); materialNo++)
-        if (strstr(n.mat->getSubMat(materialNo)->className, "rendinst_impostor") || //-V522
-            strstr(n.mat->getSubMat(materialNo)->className, "rendinst_baked_impostor"))
+        if (is_impostor_shader(n.mat->getSubMat(materialNo)->className)) //-V522
           hasImpostor = true;
 
       if (hasImpostor)
@@ -1331,6 +1335,25 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk, voxelcache::Cache
     }
 
     const int lodNum = lods.size();
+
+    // constraint: without use_cross_dissolve > 0, RendInstGenData::prepareRtData() takes a transition LOD impostor as a
+    // regular mesh and asserts on its missing normal channel.
+    const int useCrossDissolveVarId = VariableMap::getVariableId("use_cross_dissolve", true);
+    for (const Lod *srcLod : {&lods[lodNum - 2], &lods[lodNum - 1]})
+      for (const ShaderMeshData::RElem &elem : srcLod->rigid.meshData.elems)
+      {
+        const char *shaderName = elem.mat->getShaderClassName();
+        if (!is_impostor_shader(shaderName))
+          continue;
+        int crossDissolve = 0;
+        if (!elem.mat->getIntVariable(useCrossDissolveVarId, crossDissolve) || crossDissolve <= 0)
+        {
+          ISSUE_FATAL("%s: impostor <%s> in the transition LOD needs use_cross_dissolve > 0", srcLod->fileName.c_str(), shaderName);
+          clear_all_ptr_items(curScenes);
+          return false;
+        }
+      }
+
     Lod tmpImpostorLod = eastl::move(lods[lodNum - 3]);
     Lod &transitionLod = lods[lodNum - 3];
     Lod &impostorLod = lods[lodNum - 2];

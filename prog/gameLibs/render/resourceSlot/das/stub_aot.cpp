@@ -40,14 +40,14 @@ const char *bind_dascript::resourceToCreateFor(const resource_slot::State &state
   G_ASSERT_RETURN(false, nullptr);
 }
 
-resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(resource_slot::NodeHandleWithSlotsAccess &&) :
+resource_slot::NodeHandleWithSlotsAccess::NodeHandleWithSlotsAccess(resource_slot::NodeHandleWithSlotsAccess &&) noexcept :
   nameSpace(dafg::root())
 {
   G_ASSERT(false);
 }
 
 resource_slot::NodeHandleWithSlotsAccess &resource_slot::NodeHandleWithSlotsAccess::operator=(
-  resource_slot::NodeHandleWithSlotsAccess &&)
+  resource_slot::NodeHandleWithSlotsAccess &&) noexcept
 {
   G_ASSERT_RETURN(false, *this);
 }

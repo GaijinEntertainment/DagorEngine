@@ -132,7 +132,7 @@ private:
   struct ThreadLocalData // Note: deliberately not `alignas(64)` as manual aligment is more then enough
   {
     VecType data;
-#if defined(__aarch64__) || defined(_M_ARM64)
+#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
     char theRestOfCacheLineToAvoidFalseSharing[(sizeof(VecType) < 64) ? (64 - sizeof(VecType)) : 0];
 #else
     char theRestOfCacheLineToAvoidFalseSharing[(sizeof(VecType) < 128) ? (128 - sizeof(VecType)) : 0];

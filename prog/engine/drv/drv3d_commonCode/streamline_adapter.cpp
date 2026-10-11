@@ -593,12 +593,16 @@ StreamlineAdapter::~StreamlineAdapter()
 
 void *StreamlineAdapter::hook(IUnknown *object)
 {
+  // The caller always owns the returned reference: slUpgradeInterface hands out a new proxy
+  // and leaves the caller's own reference untouched, so AddRef when returning the object itself.
+
   if (object == nullptr)
     return nullptr;
 
   if (!sl_funcs::slUpgradeInterface)
   {
     logdbg("sl: Hook isn't available");
+    object->AddRef();
     return object;
   }
 
@@ -606,6 +610,7 @@ void *StreamlineAdapter::hook(IUnknown *object)
   if (SL_FAILED(result, sl_funcs::slUpgradeInterface(&proxy)))
   {
     D3D_ERROR("sl: Failed to hook device: %s", getResultAsStr(result));
+    object->AddRef();
     return object;
   }
 
@@ -645,6 +650,7 @@ void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D11Device
   G_ASSERT(result == sl::Result::eOk);
 
   sl_funcs::load_all_available_features();
+  cacheDlssGSupport();
 }
 
 void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D12Device5 *device)
@@ -654,13 +660,19 @@ void StreamlineAdapter::setAdapterAndDevice(IDXGIAdapter1 *adapter, ID3D12Device
   G_ASSERT(result == sl::Result::eOk);
 
   sl_funcs::load_all_available_features();
+  cacheDlssGSupport();
 }
 
-void StreamlineAdapter::setVulkan() { sl_funcs::load_all_available_features(); }
+void StreamlineAdapter::setVulkan()
+{
+  sl_funcs::load_all_available_features();
+  cacheDlssGSupport();
+}
 
 void StreamlineAdapter::preRecover()
 {
   adapter.Reset();
+  dlssGSupport.store(nv::SupportState::NotSupported, dag::mo::relaxed);
   G_ASSERT(sl_funcs::slShutdown);
   sl_funcs::unload_all_available_features();
   sl::Result result = sl_funcs::slShutdown();
@@ -722,9 +734,11 @@ nv::SupportState StreamlineAdapter::isDlssSupported() const
   return isFeatureSupported(sl::kFeatureDLSS, adapter.Get(), supportOverride);
 }
 
-nv::SupportState StreamlineAdapter::isDlssGSupported() const
+nv::SupportState StreamlineAdapter::isDlssGSupported() const { return dlssGSupport.load(dag::mo::relaxed); }
+
+void StreamlineAdapter::cacheDlssGSupport()
 {
-  return isFeatureSupported(sl::kFeatureDLSS_G, adapter.Get(), supportOverride);
+  dlssGSupport.store(isFeatureSupported(sl::kFeatureDLSS_G, adapter.Get(), supportOverride), dag::mo::relaxed);
 }
 
 nv::SupportState StreamlineAdapter::isDlssRRSupported() const
@@ -968,7 +982,9 @@ static void api_error_callback(const sl::APIError &lastError) { logwarn("DLSSG: 
 
 DLSSFrameGeneration::DLSSFrameGeneration(int viewport_id, void *command_buffer, FrameTracker &frame_tracker) :
   viewportId(viewport_id), frameTracker(frame_tracker)
-{}
+{
+  getFrameGenerationCapabilities();
+}
 
 DLSSFrameGeneration::~DLSSFrameGeneration() { G_VERIFY(sl_funcs::slFreeResources(sl::kFeatureDLSS_G, viewportId) == sl::Result::eOk); }
 
@@ -992,37 +1008,38 @@ static sl::DLSSGOptions make_dlssg_options(bool retain_resources, int frames_to_
   return options;
 }
 
-// Runs on the render backend thread. Optionally returns the queried state so the caller can cache the
+// Runs on the render backend thread. Returns the queried state so the caller can cache the
 // parts the main thread needs (slDLSSGGetState is not thread safe, so the main thread must not call it).
 static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames_to_generate, IPoint2 display_resolution,
-  IPoint2 render_resolution, sl::DLSSGState *out_state = nullptr)
+  IPoint2 render_resolution, bool set_options, bool request_vram_estimate, sl::DLSSGState &out_state)
 {
   auto options = make_dlssg_options(retain_resources, frames_to_generate, display_resolution, render_resolution);
-  if (SL_FAILED(result, sl_funcs::slDLSSGSetOptions(viewport_id, options)))
+  if (set_options)
   {
-    if (result == sl::Result::eWarnOutOfVRAM)
+    if (SL_FAILED(result, sl_funcs::slDLSSGSetOptions(viewport_id, options)))
     {
-      logwarn("sl: DLSS-G ran out of VRAM. We can still continue but expects severe performance degradation.");
-    }
-    else
-    {
-      D3D_ERROR("sl: Failed to change DLSS-G mode. Result: %s", getResultAsStr(result));
-      return false;
+      if (result == sl::Result::eWarnOutOfVRAM)
+      {
+        logwarn("sl: DLSS-G ran out of VRAM. We can still continue but expects severe performance degradation.");
+      }
+      else
+      {
+        D3D_ERROR("sl: Failed to change DLSS-G mode. Result: %s", getResultAsStr(result));
+        return false;
+      }
     }
   }
 
-  sl::DLSSGState state;
   // Request the VRAM estimate on the state query only (not on slDLSSGSetOptions) so getMemorySize can be
   // served from the cached state instead of an extra main-thread query.
   auto stateOptions = options;
-  stateOptions.flags |= sl::DLSSGFlags::eRequestVRAMEstimate;
-  sl::Result stateQueryResult = sl_funcs::slDLSSGGetState(viewport_id, state, &stateOptions);
-  G_ASSERT(stateQueryResult == sl::Result::eOk || stateQueryResult == sl::Result::eWarnOutOfVRAM);
-  if (out_state)
-    *out_state = state;
-  if (state.status != sl::DLSSGStatus::eOk)
+  if (request_vram_estimate)
+    stateOptions.flags |= sl::DLSSGFlags::eRequestVRAMEstimate;
+  sl::Result stateQueryResult = sl_funcs::slDLSSGGetState(viewport_id, out_state, &stateOptions);
+  G_ASSERT_RETURN(stateQueryResult == sl::Result::eOk || stateQueryResult == sl::Result::eWarnOutOfVRAM, false);
+  if (out_state.status != sl::DLSSGStatus::eOk)
     D3D_ERROR("DLSSG: failed to set to %s state", frames_to_generate != 0 ? "enabled" : "disabled");
-  return state.status == sl::DLSSGStatus::eOk ? frames_to_generate : 0;
+  return true;
 }
 
 dag::AtomicPod<nv::DLSSFrameGenerationCapabilities> DLSSFrameGeneration::cachedFrameGenerationCapabilities{};
@@ -1030,10 +1047,25 @@ dag::AtomicPod<nv::DLSSFrameGenerationCapabilities> DLSSFrameGeneration::cachedF
 void DLSSFrameGeneration::updateCachedState(const sl::DLSSGState &state)
 {
   lastPresentedFrames = state.numFramesActuallyPresented;
-  cachedMemorySize.store(state.estimatedVRAMUsageInBytes, dag::mo::relaxed);
   cachedFrameGenerationCapabilities.store(
     nv::DLSSFrameGenerationCapabilities{state.numFramesToGenerateMax, static_cast<uint32_t>(state.bIsDynamicMFGSupported), true},
     dag::mo::relaxed);
+}
+
+void DLSSFrameGeneration::applyOptions(const Options &options, bool force_set_options)
+{
+  const bool optionsChanged = appliedOptions != options;
+  sl::DLSSGState state;
+  if (!change_dlssg_mode(viewportId, options.retainResources, options.framesToGenerate, options.displayResolution,
+        options.renderResolution, optionsChanged || force_set_options, optionsChanged, state))
+  {
+    appliedOptions.reset();
+    return;
+  }
+  appliedOptions = options;
+  updateCachedState(state);
+  if (optionsChanged)
+    cachedMemorySize.store(state.estimatedVRAMUsageInBytes, dag::mo::relaxed);
 }
 
 void DLSSFrameGeneration::setEnabled(int frames_to_generate)
@@ -1044,10 +1076,9 @@ void DLSSFrameGeneration::setEnabled(int frames_to_generate)
   }
   else
   {
-    sl::DLSSGState state;
     // The mode is off here, so the resolution hints are unused.
-    this->framesToGenerate = change_dlssg_mode(viewportId, false, frames_to_generate, {}, {}, &state);
-    updateCachedState(state);
+    applyOptions({false, frames_to_generate, {}, {}}, false);
+    this->framesToGenerate = 0;
   }
 }
 
@@ -1060,18 +1091,15 @@ bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *co
   const IPoint2 displayResolution = get_native_texture_resolution(params.inHUDless);
   const IPoint2 renderResolution = get_native_texture_resolution(params.inDepth);
 
-  sl::DLSSGState state;
   if (params.suppressed)
   {
     // this is a workaround to a bug causing DLSS-G to only retain resources when options are passed in each frame
-    change_dlssg_mode(viewportId, true, 0, displayResolution, renderResolution, &state);
-    updateCachedState(state);
+    applyOptions({true, 0, displayResolution, renderResolution}, true);
     return true;
   }
   else
   {
-    change_dlssg_mode(viewportId, true, framesToGenerate, displayResolution, renderResolution, &state);
-    updateCachedState(state);
+    applyOptions({true, framesToGenerate, displayResolution, renderResolution}, false);
   }
 
   auto &currentFrameToken = frameTracker.getFrameToken(params.frameId);
@@ -1277,7 +1305,7 @@ static bool dlssd_set_options(int viewport_id, nv::DLSS::Mode mode, IPoint2 outp
   options.worldToCameraView = toFloat4x4(worldToView);
   options.cameraViewToWorld = toFloat4x4(viewToWorld);
   options.dlaaPreset = options.qualityPreset = options.balancedPreset = options.performancePreset = options.ultraPerformancePreset =
-    options.ultraQualityPreset = sl::DLSSDPreset::ePresetE;
+    options.ultraQualityPreset = sl::DLSSDPreset::ePresetF;
 
   return sl_funcs::slDLSSDSetOptions(viewport_id, options) == sl::Result::eOk;
 }
@@ -1452,8 +1480,8 @@ bool DLSSNeuralRendering::evaluate(const nv::DlssNRParams<void> &params, void *c
       process_vk_image(inControlMask);
   }
 
-  // Only depth and motion vectors need an extent: they come at render resolution, while the
-  // uplifted color pair is at output resolution and covers its whole resource.
+  // Depth, motion vectors and the control mask come at render resolution, while the uplifted color
+  // pair is at output resolution and covers its whole resource.
   const sl::Extent renderExtent = {0, 0, params.inWidth, params.inHeight};
 
   eastl::fixed_vector<sl::ResourceTag, 5> tags = {
@@ -1463,7 +1491,8 @@ bool DLSSNeuralRendering::evaluate(const nv::DlssNRParams<void> &params, void *c
     {&inMotionVectors, sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &renderExtent}};
 
   if (params.inControlMask)
-    tags.push_back(sl::ResourceTag{&inControlMask, sl::kBufferTypeUpliftControlMask, sl::ResourceLifecycle::eValidUntilEvaluate});
+    tags.push_back(
+      sl::ResourceTag{&inControlMask, sl::kBufferTypeUpliftControlMask, sl::ResourceLifecycle::eValidUntilEvaluate, &renderExtent});
 
   sl::Result result = sl_funcs::slSetTagForFrame(currentFrameToken, viewportId, tags.data(), tags.size(), command_buffer);
   G_ASSERT(result == sl::Result::eOk);

@@ -22,9 +22,9 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <generic/dag_functionRef.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_e3dColor.h>
-#include <EASTL/fixed_function.h>
 #include <EASTL/unique_ptr.h> // completes CollisionResourceInstancePtr for createInstance callers
 #include <dag/dag_vector.h>
 #include <daBVH/dag_swBLAS_soa4.h> // SoA4 BLAS walkers (iterateLeafRefs) + vert21 unpack for the chunk blocks
@@ -92,9 +92,15 @@ struct DegenerativeNodeData
   dag::Vector<uint32_t> indices;
 };
 
-typedef dag::RelocatableFixedVector<vec4f, 8, true, framemem_allocator> all_collres_nodes_t;
-typedef dag::RelocatableFixedVector<tri_ref_t, 8, true, framemem_allocator> all_collres_tri_refs_t;
-typedef dag::RelocatableFixedVector<int, 32, /*bEnableOverflow*/ true, framemem_allocator> CollResHitNodesType;
+struct CollResChunkHit
+{
+  vec4f normT; // xyz: unnormalized normal, w: node-local t
+  tri_ref_t triRef;
+};
+typedef dag::RelocatableFixedVector<CollResChunkHit, 8, true, framemem_allocator> all_collres_hits_t;
+// heap overflow: grown while framemem scratch lives
+typedef dag::RelocatableFixedVector<int, 32, /*bEnableOverflow*/ true> CollResHitNodesType;
+typedef dag::RelocatableFixedVector<uint16_t, 63, /*bEnableOverflow*/ true, MidmemAlloc, uint16_t> CollResNodeIndicesType; // 128 bytes
 // Candidate node ids out of an all-nodes TLAS walk (segment collectors, tlasBoxCandidates); unordered.
 typedef dag::RelocatableFixedVector<uint16_t, 32, /*bEnableOverflow*/ true, framemem_allocator> CollResTlasCandidates;
 
@@ -264,6 +270,7 @@ static_assert(sizeof(CollisionNode) == 64, "one node per cache line");
 class GeomNodeTree;
 class CollisionResource;
 class CollisionResourceTraceAdapter;
+class String;
 
 // Caller-owned pose of a CollisionResource. Two owning forms plus a wrapper-internal view:
 // tree-backed (bound to a GeomNodeTree; matrices are read live from the tree, derived state
@@ -272,19 +279,11 @@ class CollisionResourceTraceAdapter;
 // against traces; the lazy refresh itself is internally locked. Concurrent traces must
 // agree on entity_tm: derived state is entity-relative, and a changed entity placement
 // is a pose change under the same serialization rule.
-// Contract of the tree-backed form: driven node wtms are rotation+translation only (no
-// scale/shear), so bind-pose metadata stays conservative for every live pose (a dev canary
-// checks a 2e-3 band; release does not enforce). A mirrored driven wtm hides its node until
-// the wtm recovers. Staleness assumes the tree pose generation cannot revisit a stamped
-// value un-refreshed (a full 2^32 wrap landing exactly on the stamp is out of contract).
-// Bit-exact identity of a 4x3 matrix. The POSE_IS_IDENTITY writers and their re-checks share
-// this one definition so the compare cannot drift per site (the trace shortcut trusts the bit).
-inline bool collres_is_exact_identity_43(mat44f_cref tm)
-{
-  return v_check_xyz_all_true(v_cmp_eq(tm.col0, V_C_UNIT_1000)) && v_check_xyz_all_true(v_cmp_eq(tm.col1, V_C_UNIT_0100)) &&
-         v_check_xyz_all_true(v_cmp_eq(tm.col2, V_C_UNIT_0010)) && v_check_xyz_all_true(v_cmp_eq(tm.col3, v_zero()));
-}
-
+// Driven node wtms of the tree-backed form may carry scale and shear: the bind meta holds while a wtm stays in the rigid band,
+// and the refresh classifies a wtm outside it from the live pose. A wtm with an axis scale of 1e-9 or less hides its node.
+// Handedness is not gated: a driven placement of either handedness traces the stored winding, as
+// the legacy tree overloads do. Staleness assumes the tree pose generation cannot revisit a
+// stamped value un-refreshed (a full 2^32 wrap landing exactly on the stamp is out of contract).
 // TLAS uint16 quant frame: the span maps interior values onto [1, 65534] and the encoders keep
 // one bin of wall slack on each side (min floors one bin below the mapped value, max ceils one
 // above), so a frame-edge box quantizes OUTWARD into the physical [0, 65535] instead of clamping
@@ -398,9 +397,9 @@ struct CollisionResourceInstance
   {
     enum StatusBits : uint8_t
     {
-      // The builder's authored gate accepts mirrored placements (|det|), the live gate
-      // (recomputePoseMeta) rejects them (signed det).
-      TRACEABLE = 1,      // cleared for singular and live-mirrored poses
+      // The builder's authored gate and the tree-backed refresh accept mirrored placements
+      // (|det|), the owned live gate (recomputePoseMeta) rejects them (signed det).
+      TRACEABLE = 1,      // cleared for singular poses and owned live-mirrored ones
       GEOMETRY_BAKED = 2, // singular authored primitive kept its exporter bake
       DISABLED = 4,       // structural hide, applied before filters
 
@@ -409,7 +408,7 @@ struct CollisionResourceInstance
       // unlike the singular bake above. Always set together with GEOMETRY_BAKED.
       RETAINED_BAKE = 8,
       // Finite pose with a finite inverse: accessors may compose it. Superset of TRACEABLE (a
-      // finite mirrored pose is composable but hidden from traces).
+      // finite owned live-mirrored pose is composable but hidden from traces).
       COMPOSABLE = 16,
       // The STORED matrix is bit-exactly identity, so composing it is a no-op. This is not the
       // IDENT transform class: that one is an epsilon classification the loader may keep for a
@@ -418,8 +417,12 @@ struct CollisionResourceInstance
       // shortcut rather than taking it wrongly.
       POSE_IS_IDENTITY = 32,
       // Tree-backed seed gate result (rel-tm det floor): the lazy refresh re-derives TRACEABLE
-      // as BIND_TRACEABLE && driven-wtm det > 0, so a mirrored bone hides and can return.
+      // as BIND_TRACEABLE && a finite driven pose above the det floor, so a degenerate bone
+      // hides and can return.
       BIND_TRACEABLE = 64,
+      // Tree-backed: the pose class and scale come from a driven wtm outside the rigid band;
+      // the refresh restores the bind meta when the wtm is rigid again.
+      LIVE_CLASSIFIED = 128,
     };
     float maxTmScale = 1.f;
     uint8_t flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED; // NodeFlag transform-class bits
@@ -434,6 +437,7 @@ struct CollisionResourceInstance
     bool isComposable() const { return (status & COMPOSABLE) != 0; }
     bool isPoseIdentity() const { return (status & POSE_IS_IDENTITY) != 0; }
     bool isBindTraceable() const { return (status & BIND_TRACEABLE) != 0; }
+    bool isLiveClassified() const { return (status & LIVE_CLASSIFIED) != 0; }
     bool checkBehaviorFlags(uint16_t f) const { return (behaviorFlags & f) == f; }
     void setTraceable(bool on) { status = uint8_t(on ? status | TRACEABLE : status & ~TRACEABLE); }
     void setGeometryBaked(bool on) { status = uint8_t(on ? status | GEOMETRY_BAKED : status & ~GEOMETRY_BAKED); }
@@ -442,6 +446,7 @@ struct CollisionResourceInstance
     void setComposable(bool on) { status = uint8_t(on ? status | COMPOSABLE : status & ~COMPOSABLE); }
     void setPoseIdentity(bool on) { status = uint8_t(on ? status | POSE_IS_IDENTITY : status & ~POSE_IS_IDENTITY); }
     void setBindTraceable(bool on) { status = uint8_t(on ? status | BIND_TRACEABLE : status & ~BIND_TRACEABLE); }
+    void setLiveClassified(bool on) { status = uint8_t(on ? status | LIVE_CLASSIFIED : status & ~LIVE_CLASSIFIED); }
     // Out-of-range read fallback: bind-default compose state (IDENT class, scale 1, enabled)
     // but NOT traceable, matching isNodeTraceable's safe skip of absent slots.
     static const PoseMeta absent_slot;
@@ -464,7 +469,7 @@ struct CollisionResourceInstance
   {
     return (uint32_t)node_index >= metaCount() || !metaData()[(uint32_t)node_index].isDisabled();
   }
-  // Singular and live-mirrored poses are not traceable; an absent slot is not traceable
+  // Singular poses and owned live-mirrored ones are not traceable; an absent slot is not traceable
   // either (dev asserts, release degrades to the safe answer -- the node is skipped).
   bool isNodeTraceable(int node_index) const
   {
@@ -647,26 +652,32 @@ protected:
   // Reclassifies the STORED pose nodeTm[node_index] (write it first).
   void recomputePoseMeta(int node_index);
   // Lazy derived-state rebuild for the tree-backed form; entity_tm is the trace's instance tm.
-  void refreshIfStale(mat44f_cref entity_tm) const;
+  // with_tlas: the trace may take the TLAS, so the same node walk refits it.
+  void refreshIfStale(mat44f_cref entity_tm, bool with_tlas) const;
   // Flags-only mirror of the default, keyed on liveFlagsGen; both owning forms take it per trace.
   void mirrorLiveFlagsIfStale() const;
-  DAGOR_NOINLINE void refreshFromTree(mat44f_cref entity_tm) const;
-  // TLAS freshness is separate from the pose refresh and runs AFTER it (the refit composes
-  // from poseMeta): rebuilt lazily by the first candidate-eligible query of a pose generation,
-  // so other queries never pay it. O(leaves). Call under the same serialization as traces.
-  DAGOR_NOINLINE void refreshTlasFromTree(mat44f_cref entity_tm) const;
+  // One walk for the stale parts: the pose, and the TLAS when with_tlas is set, which only non-capsule traces of an
+  // all-nodes-TLAS resource ask for, so other queries never pay it. O(nodes).
+  DAGOR_NOINLINE void refreshFromTree(mat44f_cref entity_tm, bool with_tlas) const;
   void refreshTlasIfStale(mat44f_cref entity_tm) const;
   // Resource-local posed matrix of one tree-driven node; unbound nodes read the default pose.
-  // canary_*: first dev no-scale violation, emitted by the caller after releasing refreshLock.
-  mat44f treePosedNodeTm(uint32_t node_index, mat44f_cref inv_entity, vec3f rel_ofs, int &canary_node, float &canary_err) const;
+  mat44f treePosedNodeTm(uint32_t node_index, mat44f_cref inv_entity, vec3f rel_ofs) const;
+  // The rel tm of a driven node, identity when the resource has none for it (an appended node has no slot).
+  mat44f drivenRelTm(uint32_t node_index) const;
+  // Pose class and scale bound of a driven node: live from wtm * rel, or the bind meta from the rel tm, padded for a rigid-band wtm.
+  void setDrivenPoseClass(uint32_t node_index, mat44f_cref node_tm, bool live) const;
 
   // Full refit: re-derive the quant frame, re-encode every leaf, re-union inner boxes; the
   // topology is never touched. Owned entry composes from the stored poses; frame_headroom
   // inflates the frame for escape-triggered refits.
-  void refitAllTlasLeaves(float frame_headroom = 0.f) const { refitAllTlasLeaves(nullptr, 0.f, 1.f, frame_headroom); }
-  // Tree entry: posed leaf boxes (tlasLeafNodes order) with the refresh-wide scale and
-  // conditioning maxima; also the shared impl of the owned entry.
-  void refitAllTlasLeaves(const bbox3f *posed_boxes, float posed_scale, float posed_ampl, float frame_headroom = 0.f) const;
+  void refitAllTlasLeaves(float frame_headroom = 0.f) const;
+  // Commit of a composed pose on an all-nodes-TLAS resource, shared by the owned entry and the tree refresh: the leaf boxes,
+  // their union and the error budget's operand and conditioning maxima, all from one walk.
+  // leaf_rows: per TLAS node 6 rows of 4 lanes (box min xyz, max xyz); row_masks: leaf lanes | valid lanes << 4.
+  void refitAllTlasLeaves(const float *leaf_rows, const uint8_t *row_masks, bbox3f_cref leaf_union, float max_node_op, float ampl_max,
+    float frame_headroom = 0.f) const;
+  // True after declining: a leafless node the pose makes traceable has no leaf to visit.
+  bool declineForLeaflessRecovery() const;
   // Single leaf in the existing frame plus a parent-chain grow; a leaf escaping the frame falls
   // back to a full refit. geom_tm/posed_box reuse the caller's compose.
   void refitTlasLeaf(int node_index, const mat44f *geom_tm = nullptr, const bbox3f *posed_box = nullptr) const;
@@ -824,6 +835,7 @@ public:
   // a fatal where exceptions are off). res_name is the diagnostics name (null: resolved from
   // res_id); resolve_phmat maps a persisted material name to an id (null: the PhysMat table).
   CollisionResource(IGenLoad & crd, int res_id, const char *res_name = nullptr, int (*resolve_phmat)(const char *) = nullptr);
+  ~CollisionResource() { delete[] liveBoundWords; }
   // Live flags of the default instance: what every trace and query honours;
   // CollisionNode::behaviorFlags keeps the authored value. Out of range reads as
   // no flags set (dev asserts) - the skip answer.
@@ -837,6 +849,9 @@ public:
   // Shares the immutable Data with the source (a per-entity copy is pose-sized) and takes its
   // current pose.
   CollisionResource *deepCopy(void *inplace_mem_ptr = nullptr) const;
+  // The pack resource name, for dev diagnostics: "<null>" when not loaded from a pack, "unknown" in a dynamic-kernel build;
+  // a release build keeps no id and answers an empty name.
+  String getGameResName() const;
 
   // Current pose used by tree-less APIs.
   const CollisionResourceInstance &getDefaultInstance() const { return defaultInstance; }
@@ -890,8 +905,8 @@ public:
   // The leaf prune carries a one-quant-unit pad, so a box-touching triangle is never missed;
   // each visited triangle's own decoded bbox intersects the box.
   // node_index is the node's allNodesList position: getAllNodes()[node_index] is the node.
-  using BoxTriVisitor = eastl::fixed_function<sizeof(void *) * 4, bool(vec3f v0, vec3f v1, vec3f v2, int phys_mat_id, int node_index)>;
-  bool visitTrianglesInBox(bbox3f_cref box, uint16_t behavior_filter, const BoxTriVisitor &visitor) const;
+  using BoxTriVisitor = dag::FunctionRef<bool(vec3f v0, vec3f v1, vec3f v2, int phys_mat_id, int node_index) const>;
+  bool visitTrianglesInBox(bbox3f_cref box, uint16_t behavior_filter, BoxTriVisitor visitor) const;
 
   CollisionNode *getNode(uint32_t index);
   const CollisionNode *getNode(uint32_t index) const;
@@ -1079,6 +1094,21 @@ public:
     float bsphere_scale = 1.f, const CollisionNodeMask *collision_node_mask = nullptr, int *out_mat_id = nullptr,
     TraceTmCache *tm_cache = nullptr) const;
 
+  bool rayHitHullBothWays(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
+    float in_t) const
+  {
+    return rayHit(instance_tm, geom_node_tree, from, dir, in_t) || rayHit(instance_tm, geom_node_tree, from + dir * in_t, -dir, in_t);
+  }
+
+  bool rayHitHullBothWays(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir) const
+  {
+    const float maxScale = max(length(instance_tm.getcol(0)), max(length(instance_tm.getcol(1)), length(instance_tm.getcol(2))));
+    const float posedScale = geom_node_tree ? sqrtf(3.f) : 1.f;
+    const float t =
+      length(getWorldBoundingSphere(instance_tm, geom_node_tree) - from) + getBoundingSphereRad() * maxScale * posedScale;
+    return rayHitHullBothWays(instance_tm, geom_node_tree, from, dir, t);
+  }
+
   VECTORCALL bool traceQuad(vec3f a00, vec3f a01, vec3f a10, vec3f a11, Point3 & out_point, int &out_node_index) const;
 
   struct DebugDrawData
@@ -1113,11 +1143,11 @@ public:
   // Tree-less forms use both resources' current poses.
   static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionNodeFilter &filter1,
     const CollisionResource *res2, const TMatrix &tm2, const CollisionNodeFilter &filter2, Point3 &collisionPoint1,
-    Point3 &collisionPoint2, uint16_t *nodeIndex1 = NULL, uint16_t *nodeIndex2 = NULL, Tab<uint16_t> *node_indices1 = NULL);
+    Point3 &collisionPoint2, uint16_t *nodeIndex1 = NULL, uint16_t *nodeIndex2 = NULL, CollResNodeIndicesType *node_indices1 = NULL);
   static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionNodeFilter &filter1,
     const CollisionResourceInstance &instance1, const CollisionResource *res2, const TMatrix &tm2, const CollisionNodeFilter &filter2,
     const CollisionResourceInstance &instance2, Point3 &collisionPoint1, Point3 &collisionPoint2, uint16_t *nodeIndex1 = NULL,
-    uint16_t *nodeIndex2 = NULL, Tab<uint16_t> *node_indices1 = NULL);
+    uint16_t *nodeIndex2 = NULL, CollResNodeIndicesType *node_indices1 = NULL);
   // This function is more readable and contains new primitives for checking.
   // It does full dispatching for collision primitives.
   // This eliminetes the ordering problem:
@@ -1385,12 +1415,19 @@ public:
   static constexpr uint32_t alignVert21StreamOfs(uint32_t tree_bytes) { return (tree_bytes + 7u) & ~7u; }
   // Read-only decode view over a node's per-node vert21 stream. The pointers are resource-stable
   // (the chunks never move), which is what lets async consumers (SW occluder tasks) reference the
-  // stream directly. Decode is v_madd(unpackVert21(p), invScale, bmin).
+  // stream directly. vert(i) decodes through Vert21MetricLoader.
   struct PackedVerts21
   {
     const uint8_t *verts21; // node's vert21 stream (8 B/vert, verticesCount entries)
     vec3f invScale;         // per-axis decode scale; w lane is undefined
     vec3f bmin;             // quantization frame origin (node-slice bbox min, stored space); w lane undefined
+    vec3f vert(uint32_t i) const
+    {
+      Vert21MetricLoader unq;
+      unq.invScale = invScale;
+      unq.bmin = bmin;
+      return unq(verts21, 0, (int)i);
+    }
   };
   // Per-node BLAS chunk prologue (chunk = [header][SoA4 tree][pad to 8][vert21 stream]). `scale` is
   // the EXACT pack scale the stream was quantized with (not rcp(invScale)), so the trace ray transform
@@ -1556,7 +1593,7 @@ public:
     // owning mode: verts live in the node's per-node BLAS chunk (vert21 block)
     const PackedVerts21 p = getPackedNodeVerts21(*n);
     for (uint32_t i = 0; i < vertCount; ++i)
-      cb((int)i, v_madd(RayData::unpackVert21(p.verts21 + i * 8u), p.invScale, p.bmin));
+      cb((int)i, p.vert(i));
   }
 
   template <class CB> // void(int face_idx, vec4f v0, vec4f v1, vec4f v2)
@@ -1568,8 +1605,8 @@ public:
     // owning mode: faces + verts both live in the per-node chunk (tree gives the face list, the
     // vert21 stream the positions)
     const PackedVerts21 p = getPackedNodeVerts21(*n);
-    auto unq = [&p](uint32_t vi) -> vec3f { return v_madd(RayData::unpackVert21(p.verts21 + vi * 8u), p.invScale, p.bmin); };
-    walkNodeChunkLeavesForFaces(*n, [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) { cb(fi, unq(i0), unq(i1), unq(i2)); });
+    walkNodeChunkLeavesForFaces(*n,
+      [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) { cb(fi, p.vert(i0), p.vert(i1), p.vert(i2)); });
   }
 
 
@@ -1896,8 +1933,8 @@ private:
   // Each hit carries a BLAS tri_ref (opaque soa4::LeafRef leaf token + sub-tri), the identity the
   // closest-hit chunk arm emits; getNodeFaceVertsByRef decodes it.
   DAGOR_NOINLINE bool traceAllHitsNodeChunk(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t,
-    bool calc_normal, bool force_no_cull, bool force_cull, all_collres_nodes_t &ret_array, all_collres_tri_refs_t &ret_refs,
-    leaf_accept_t accept_leaf, void *accept_ctx) const;
+    bool calc_normal, bool force_no_cull, bool force_cull, all_collres_hits_t &ret_hits, leaf_accept_t accept_leaf, void *accept_ctx)
+    const;
 
   // Same verts_base / idx_base convention as traceCapsuleMeshNodeLocalCullCCW above.
   DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const Point3_vec4 *verts_base, const uint32_t *idx_base,
@@ -2142,6 +2179,10 @@ protected:
   // frame); a tree-backed mesh-only trace composes per-node inverses instead.
   template <class pose_t>
   bool traceReadsInstanceInverse(const pose_t &instance, bool orthonormal_tm, bool capsule, bool single_ray) const;
+  // One tree-driven ray against meshNodes() spheres [first, first + 64), four at a time, with a meta_src slot per node:
+  // the returned bits are a superset of what the per-node sphere test passes.
+  uint64_t preCullTreeMeshSpheres(const CollisionTrace &trace, const CollisionResourceInstance &meta_src, const GeomNodeTree &tree,
+    vec3f woffset, uint32_t first, bool authored_meta, bool live_bound) const;
   // Largest singular value (see mat33_spectral_norm); shared with the loader's un-bake divisor.
   static float mat33SpectralNorm(mat44f_cref tm);
   // Scale-free singularity floor (max-element-normalized, overflow-proof); out_ndet is the
@@ -2149,6 +2190,20 @@ protected:
   static bool relativeDetAboveFloor(mat44f_cref tm, float &out_ndet);
 
   bool geomNodeTreeBound = false; // initializeWithGeomNodeTree ran at least once
+  // Mesh nodes a legacy tree trace sizes by the live wtm: scaled or sheared at any tree stamp, or remapped per node.
+  // constraint: the first mark publishes the words once, as stamps mark while other threads trace
+  mutable uint32_t *volatile liveBoundWords = nullptr;
+  bool isLiveBoundNode(uint32_t node_index) const
+  {
+    const uint32_t *words = interlocked_acquire_load_ptr(liveBoundWords);
+    return words && ((interlocked_relaxed_load(words[node_index / 32]) >> (node_index % 32)) & 1);
+  }
+  bool hasLiveBoundNodes() const { return interlocked_acquire_load_ptr(liveBoundWords) != nullptr; }
+  uint32_t liveBoundWordCount() const { return (getAllNodes().size() + 31) / 32; }
+  void markLiveBoundNode(uint32_t node_index);
+#if DAGOR_DBGLEVEL > 0
+  int gameResId = -1;
+#endif
   // Bumped by default-pose mutations: tree-backed instances read unbound nodes from the
   // default pose live, so their lazy refresh keys on this beside the tree generation.
   // Mutable because instances hold const resource pointers; writes ride the pose-write

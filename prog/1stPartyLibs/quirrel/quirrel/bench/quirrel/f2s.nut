@@ -1,35 +1,18 @@
-//-file:plus-string
-const TOTAL_NUMBERS = 10000;
-const TOTAL_TIMES = 100;
+from "profile.nut" import benchmark
 
-function mk_float(i) {
-    return i + (i / TOTAL_NUMBERS);
+const COUNT = 10000
+const PASSES = 100
+
+let floats = array(COUNT)
+for (local i = 0; i < COUNT; i++)
+  floats[i] = (i + 1) * 1.0001
+
+// no result: each language formats floats differently
+function totalLength(nums) {
+  local total = 0
+  for (local pass = 0; pass < PASSES; pass++)
+    foreach (x in nums)
+      total += x.tostring().len()
 }
 
-function update(nums) {
-    local summ = 0;
-    for (local i = 0; i < TOTAL_TIMES; i++) {
-        foreach (num in nums) {
-            summ += num.tofloat();
-        }
-    }
-    return summ;
-}
-
-local nums = [];
-for (local i = 1; i <= TOTAL_NUMBERS; i++) {
-    nums.append(mk_float(i).tostring());
-}
-
-// Equivalent of loadfile("profile.lua")() in Squirrel would depend on context.
-// Here we assume you might execute some script or perform profiling.
-
-local profile_it
-try {
-  profile_it = getroottable()["loadfile"]("profile.nut")()
-  if (profile_it == null)
-    throw "no loadfile"
-} catch(e) profile_it = require("profile.nut")
-
-// Output string
-print("\"float2string\", " + profile_it(20, @() update(nums) ) + ", 20\n");
+benchmark("float2string", 20, @() totalLength(floats))

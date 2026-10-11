@@ -251,8 +251,12 @@ bool RayTriangleIntersectInf(
 //     Shared edges/vertices can crack or double-hit by a pixel; acceptable for SWRT shadows
 //     because soft-sun-disk sampling and blue-noise dither mask it.
 //   * The XZ heightmap path (RayTriangleIntersectInfXZ, and RayTriangleIntersectInf under
-//     USE_WATERTIGHT_TRACE) uses an edge-function test that admits exactly-zero edges, so it is
-//     crack-free along shared edges -- required for terrain height queries.
+//     USE_WATERTIGHT_TRACE) uses an edge-function test that admits exactly-zero edges. A vertical
+//     ray on a shared edge answers from both triangles, which terrain height queries need. A
+//     sheared ray rounds the shared lane, one value on both triangles up to sign while the build
+//     rounds each product of a lane before their subtraction: it answers from at least one triangle
+//     where the third corners lie on opposite sides of the edge, and from both or neither where
+//     they lie on the same side.
 
 //Adapted from https://github.com/kayru/RayTracedShadows/blob/master/Source/Shaders/RayTracedShadows.comp
 bool RayTriangleIntersect(

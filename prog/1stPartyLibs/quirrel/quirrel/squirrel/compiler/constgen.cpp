@@ -24,6 +24,14 @@ void ConstGenVisitor::throwGeneralError(Node *n, const char *msg)
     _ctx.throwError(n, "%s", msg);
 }
 
+void ConstGenVisitor::throwDuplicateKey(Node *n, const SQObjectPtr &key)
+{
+    SQObjectPtr str;
+    bool hasStableText = sq_isstring(key) || !ISREFCOUNTED(sq_type(key));
+    const char *keyName = hasStableText && _vm->ToString(key, str) ? _stringval(str) : GetTypeName(key);
+    _ctx.throwError(n, "duplicate key '%s'", keyName);
+}
+
 void ConstGenVisitor::throwGeneralErrorFmt(Node *n, const char *fmt, ...)
 {
     va_list args;
@@ -94,6 +102,8 @@ void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
     SQTable *table = SQTable::Create(_ss(_vm), tblExpr->members().size());
 
     const auto &members = tblExpr->members();
+    SQObjectPtr explicitKeys(SQTable::Create(_ss(_vm), members.size()));
+
     for (SQUnsignedInteger i = 0; i < members.size(); ++i) {
         const TableMember &m = members[i];
 
@@ -119,6 +129,11 @@ void ConstGenVisitor::visitTableExpr(TableExpr *tblExpr)
 
         m.key->visit(this);
         SQObjectPtr key(_result);
+
+        SQObjectPtr seen;
+        if (_table(explicitKeys)->Get(key, seen))
+            throwDuplicateKey(m.key, key);
+        _table(explicitKeys)->NewSlot(key, SQObjectPtr(true));
 
         m.value->visit(this);
         SQObjectPtr value(_result);
@@ -162,7 +177,7 @@ void ConstGenVisitor::visitCallExpr(CallExpr *expr)
     if (!sq_is_pure_function(&func))
         throwGeneralError(expr, "Only calls to pure functions are allowed in constant expressions");
 
-    sqvector<SQObjectPtr> argValues(nullptr);
+    sqvector<SQObjectPtr> argValues(_ss(_vm)->_alloc_ctx);
     argValues.reserve(expr->arguments().size());
 
     auto &argExprs = expr->arguments();
@@ -204,32 +219,24 @@ void ConstGenVisitor::visitGetFieldExpr(GetFieldExpr *expr)
 
     SQObjectPtr slotName = _fs->CreateString(expr->fieldName());
 
-    SQInteger prevTop = sq_gettop(_vm);
-    sq_pushobject(_vm, container);
-    sq_pushobject(_vm, slotName);
-    bool hasSlot = SQ_SUCCEEDED(sq_get(_vm, -2));
-    if (hasSlot) {
-        HSQOBJECT value;
-        sq_getstackobj(_vm, -1, &value);
-        value._flags = SQOBJ_FLAG_IMMUTABLE;
-        _result = SQObjectPtr(value);
+    const SQUnsignedInteger flags = GET_FLAG_DO_NOT_RAISE_ERROR | (expr->isTypeMethod() ? GET_FLAG_TYPE_METHODS_ONLY : 0);
+    SQObjectPtr value;
+    if (_vm->Get(container, slotName, value, flags)) {
+        _result = value;
+        _result._flags = SQOBJ_FLAG_IMMUTABLE;
     }
     else if (expr->isNullable()) {
         if (!sq_isnull(_vm->_lasterror)) {
             SQObjectPtr err = _vm->_lasterror;
             sq_reseterror(_vm);
-            sq_settop(_vm, prevTop);
             throwGeneralErrorFmt(expr, "error in get operation: %s",
                 sq_isstring(err) ? _stringval(err) : "<unknown>");
         }
         _result.Null();
     }
     else {
-        sq_settop(_vm, prevTop);
         _ctx.throwError(expr, "Field '%s' not found in constant object", _stringval(slotName));
     }
-
-    sq_settop(_vm, prevTop);
 }
 
 

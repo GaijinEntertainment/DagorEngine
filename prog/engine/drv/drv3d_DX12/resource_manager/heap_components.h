@@ -6,6 +6,8 @@
 #include <driver.h>
 #include <pipeline.h>
 #include <resource_memory.h>
+#include <atomic>
+#include <cinttypes>
 
 #include <debug/dag_log.h>
 #include <drv/3d/dag_heap.h>
@@ -491,9 +493,16 @@ private:
   uint64_t poolBudgetLevels[total_memory_pool_count][static_cast<uint32_t>(BudgetPressureLevels::LOW)]{};
   BudgetPressureLevels poolBudgetLevelstatus[total_memory_pool_count]{};
   bool deviceLocalPanicTrimScheduled = false;
-  bool hostCommitPanicTrimScheduled = false;
   uint64_t processVirtualAddressUse = 0;
   uint64_t processVirtualTotal = 0;
+  static constexpr int64_t system_commit_query_period_usec = 250000;
+  static constexpr int64_t system_commit_panic_trim_period_usec = 1000000;
+  static constexpr uint64_t system_commit_level_min_avail[] = {uint64_t(1) << 30, uint64_t(2) << 30};
+  static constexpr uint64_t system_commit_level_limit_divider[] = {64, 32};
+  static constexpr uint64_t system_commit_level_leave_divider = 4;
+  std::atomic<BudgetPressureLevels> systemCommitLevel{BudgetPressureLevels::LOW};
+  int64_t systemCommitQueryTicks = 0;
+  int64_t systemCommitPanicTrimTicks = 0;
   struct BehaviorStatus
   {
     bool disableHostMemoryStatusQuery : 1 = false;
@@ -505,6 +514,17 @@ private:
   BehaviorStatus behaviorStatus;
   // offsets are used to artificially shrink the available budget value we use for further calculations
   uint64_t heapBudgetOffset[total_memory_pool_count]{};
+
+  static uint64_t getSystemCommitLevelThreshold(BudgetPressureLevels level, uint64_t commit_limit)
+  {
+    return max(system_commit_level_min_avail[as_uint(level)], commit_limit / system_commit_level_limit_divider[as_uint(level)]);
+  }
+
+  static BudgetPressureLevels calculateSystemCommitLevel(uint64_t commit_avail, uint64_t commit_limit,
+    BudgetPressureLevels current_level);
+  BudgetPressureLevels updateSystemCommitLevel(const MEMORYSTATUSEX &status);
+  BudgetPressureLevels updateSystemCommitLevel();
+  void pollSystemCommitLevel();
 
 protected:
   uint64_t getDeviceLocalRawBudget() const { return poolStates[device_local_memory_pool].Budget; }
@@ -549,6 +569,8 @@ public:
 
 protected:
   BudgetPressureLevels getHostLocalBudgetLevel() const { return poolBudgetLevelstatus[host_local_memory_pool]; }
+
+  BudgetPressureLevels getSystemCommitLevel() const { return systemCommitLevel.load(std::memory_order_relaxed); }
 
   uint64_t getHostLocalBudgetLimit(BudgetPressureLevels level) const
   {
@@ -641,12 +663,6 @@ protected:
   }
 
   void setup(const SetupInfo &info);
-
-  bool shouldTrimFramePushRingBuffer() const
-  {
-    auto level = getFeatureSet().isUMA ? getDeviceLocalBudgetLevel() : getHostLocalBudgetLevel();
-    return level < BudgetPressureLevels::HIGH;
-  }
 
   // Checks current memory status of the system and updates the behavior of the memory manager depending on
   // the memory usage pressure.
@@ -1194,6 +1210,16 @@ protected:
   }
 
   using ResourceMemoryAllocationResult = dag::Expected<ResourceMemory, MemoryAllocationError>;
+
+public:
+  MemoryAllocationError makeResourceCreationError(HRESULT error_code, uint64_t size, ResourceHeapProperties properties)
+  {
+    if (is_oom_error_code(error_code))
+    {
+      return makeMemoryAllocationError(error_code, size, properties);
+    }
+    return memory_allocation_error(error_code);
+  }
 };
 
 #if _TARGET_XBOX
@@ -1284,7 +1310,7 @@ protected:
     void visitHeapFreeRange(ValueRange<uint64_t> range)
     {
       ByteUnits sizeBytes{range.size()};
-      logdbg("DX12: Free segment at %016X with %6.2f %7s", range.front(), sizeBytes.units(), sizeBytes.name());
+      logdbg("DX12: Free segment at 0x%016" PRIX64 " with %6.2f %7s", range.front(), sizeBytes.units(), sizeBytes.name());
     }
   };
 
@@ -1370,7 +1396,7 @@ public:
 
   bool preAllocateHeap(ResourceHeapProperties properties, size_t heap_size);
 
-  ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
+  ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, D3DDevice *device, ResourceHeapProperties props,
     const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
   /// Allocates from a free range that the caller has already selected, so a failure to fit means
   /// the caller and the heap disagree; it is reported as E_INVALIDARG, not as an allocation failure.
@@ -1587,7 +1613,7 @@ public:
     OSSpinlockScopedLock lock{heapGroupMutex};
     for (ResourceHeapProperties props = {.raw = 0}; props.raw < ResourceHeapProperties::group_count; props.raw++)
     {
-      if (props.getMemoryPool(getFeatureSet()) != D3D12_MEMORY_POOL_L1)
+      if (!props.isOnDevice(getFeatureSet()))
         continue;
       if (getHeapGroupGeneration(props.raw) == getHeapGroupPrioritiesUpdateGeneration(props.raw))
         continue;
@@ -1613,7 +1639,7 @@ public:
 
   static D3D12_RESOURCE_STATES getInitialTextureResourceState(D3D12_RESOURCE_FLAGS flags);
 
-  ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
+  ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, D3DDevice *device, ResourceHeapProperties props,
     const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
   /// Allocates from a free range that the caller has already selected, so a failure to fit means
   /// the caller and the heap disagree; it is reported as E_INVALIDARG, not as an allocation failure.
@@ -1682,7 +1708,7 @@ public:
   }
 
 private:
-  ResourceMemoryAllocationResult tryAllocateFromMemoryWithProperties(ID3D12Device *device, ResourceHeapProperties heap_properties,
+  ResourceMemoryAllocationResult tryAllocateFromMemoryWithProperties(D3DDevice *device, ResourceHeapProperties heap_properties,
     AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info);
 
 #if DX12_SET_HEAP_RESIDENCY_PRIORITY

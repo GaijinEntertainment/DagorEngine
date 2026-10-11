@@ -24,6 +24,64 @@ namespace das {
         vector<tuple<VariablePtr,LineInfo,bool>> locals;
     };
 
+    // numbers the FINAL tree in dense preorder; a local's interval opens after its own
+    // init subtree and closes with its scope
+    class FramePositionStamp : public Visitor {
+    public:
+        FramePositionStamp ( das_hash_map<Variable *, FramePosInterval> & vfp,
+                das_hash_map<const Expression *, uint32_t> & efp )
+            : intervals(vfp), positions(efp) {}
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
+        virtual void preVisitExpression ( Expression * expr ) override {
+            Visitor::preVisitExpression(expr);
+            pos ++;
+            positions[expr] = pos;
+        }
+        virtual void preVisit ( ExprBlock * block ) override {
+            Visitor::preVisit(block);
+            scopes.emplace_back();
+        }
+        virtual ExpressionPtr visit ( ExprBlock * block ) override {
+            for ( auto v : scopes.back() ) intervals[v].close = pos;
+            scopes.pop_back();
+            return Visitor::visit(block);
+        }
+        virtual void preVisitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
+            Visitor::preVisitLet(let,var,last);
+            // a no-init declaration opens right here; visitLetInit below moves the open
+            // point past the init for initialized ones
+            intervals[var].open = pos;
+            if ( !scopes.empty() ) scopes.back().push_back(var);
+            bodyVars.push_back(var);
+        }
+        virtual ExpressionPtr visitLetInit ( ExprLet * let, const VariablePtr & var, Expression * that ) override {
+            intervals[var].open = pos;
+            return Visitor::visitLetInit(let,var,that);
+        }
+        virtual void preVisitForBody ( ExprFor * expr, Expression * body ) override {
+            Visitor::preVisitForBody(expr,body);
+            for ( auto & var : expr->iteratorVariables ) {
+                intervals[var].open = pos;
+                bodyVars.push_back(var);
+            }
+        }
+        virtual ExpressionPtr visit ( ExprFor * expr ) override {
+            for ( auto & var : expr->iteratorVariables ) intervals[var].close = pos;
+            return Visitor::visit(expr);
+        }
+        virtual void preVisit ( ExprLabel * expr ) override {
+            Visitor::preVisit(expr);
+            sawLabel = true;    // a goto can enter an interval past its open point
+        }
+    public:
+        das_hash_map<Variable *, FramePosInterval> & intervals;
+        das_hash_map<const Expression *, uint32_t> & positions;
+        vector<vector<Variable *>> scopes;
+        vector<Variable *> bodyVars;
+        uint32_t pos = 0;
+        bool sawLabel = false;
+    };
+
     void DebugInfoHelper::logMemInfo ( TextWriter & tw ) {
         tw << "DEBUG INFO IS:\n";
         tw << "\tStructInfo " << (int(smn2s.size() * sizeof(StructInfo))) << " = " << int(smn2s.size()) << " x " << int(sizeof(StructInfo)) << "\n";
@@ -45,6 +103,32 @@ namespace das {
         }
     }
 
+    void DebugInfoHelper::stampFramePositions ( ExpressionPtr body, uint32_t spaceId ) {
+        // this function's consumers (its own appendLocalVariables + per-block appends
+        // during its simulate) all run before the next stamp - no need to keep the rest
+        varFramePos.clear();
+        exprFramePos.clear();
+        framePosStamping = true;
+        currentSpaceId = spaceId;
+        FramePositionStamp stamp(varFramePos, exprFramePos);
+        body->visit(stamp);
+        if ( stamp.sawLabel ) {
+            // a labeled body (generator lowering) admits jumps into intervals - keep every
+            // local conservatively always-live rather than gating on entry order. belt only:
+            // today's lowering erases generator lets into capture fields, so no test can
+            // reach this valve - it guards future label-emitting transforms
+            for ( auto v : stamp.bodyVars ) varFramePos[v] = { 0u, ~0u };
+        }
+    }
+
+    void DebugInfoHelper::stampSimNode ( const Expression * expr, LineInfo & nodeAt ) {
+        if ( !framePosStamping ) return;
+        auto it = exprFramePos.find(expr);
+        if ( it == exprFramePos.end() ) return;
+        nodeAt.last_line = LINEINFO_FRAME_POS_TAG | currentSpaceId;
+        nodeAt.last_column = it->second;
+    }
+
     void DebugInfoHelper::appendLocalVariables ( FuncInfo * info, ExpressionPtr body ) {
         CollectLocalVariables lv;
         body->visit(lv);
@@ -62,6 +146,16 @@ namespace das {
             lvar->visibility = get<1>(var_vis);
             lvar->localFlags = 0;
             lvar->cmres = var->aliasCMRES;
+            auto ivIt = varFramePos.find(var);
+            if ( ivIt != varFramePos.end() ) {
+                lvar->openPos = ivIt->second.open;
+                lvar->closePos = ivIt->second.close;
+            } else {
+                // untracked - conservatively always live. no suite reaches this arm today
+                // (instrumented run: 0 hits); belt for producers the stamp never visited
+                lvar->openPos = 0;
+                lvar->closePos = ~0u;
+            }
             i ++ ;
         }
     }
@@ -128,10 +222,12 @@ namespace das {
         return eni;
     }
 
-    FuncInfo * DebugInfoHelper::makeFunctionDebugInfo ( const Function & fn ) {
+    FuncInfo * DebugInfoHelper::makeFunctionDebugInfo ( const Function & fn, bool unique ) {
         string mangledName = fn.getMangledName();
-        auto it = fmn2f.find(mangledName);
-        if ( it!=fmn2f.end() ) return it->second;
+        if ( !unique ) {
+            auto it = fmn2f.find(mangledName);
+            if ( it!=fmn2f.end() ) return it->second;
+        }
         FuncInfo * fni = debugInfo->makeNode<FuncInfo>();
         fni->name = debugInfo->allocateCachedName(fn.name);
         if ( fn.builtIn ) {
@@ -160,18 +256,19 @@ namespace das {
         fni->result = makeTypeInfo(nullptr, fn.result);
         fni->locals = nullptr;
         fni->localCount = 0;
+        fni->spaceId = 0;
         fni->annotations = makeAnnotationList(fn.annotations, fni->annotation_count);
         fni->hash = hash_blockz64((uint8_t *)mangledName.c_str());
-        fmn2f[mangledName] = fni;
+        if ( !unique ) fmn2f[mangledName] = fni;
         return fni;
     }
 
-    FuncInfo * DebugInfoHelper::makeInvokeableTypeDebugInfo ( const TypeDeclPtr & blk, const LineInfo & at ) {
+    FuncInfo * DebugInfoHelper::makeInvokeableTypeDebugInfo ( const TypeDeclPtr & blk, const LineInfo & at, bool unique ) {
         gc_local<Function> fakeFuncPtr(new Function());
         Function & fakeFunc = *fakeFuncPtr;
         fakeFunc.name = "invoke " + blk->describe();
         fakeFunc.at = at;
-        gc_local<TypeDecl> voidType(new TypeDecl(Type::tVoid));
+        gc_local<TypeDecl> voidType(new TypeDecl(Type::tVoid, at));
         fakeFunc.result = blk->firstType ? blk->firstType : (TypeDecl*)voidType;
         fakeFunc.totalStackSize = sizeof(Prologue);
         for ( size_t ai=0, ais=blk->argTypes.size(); ai!=ais; ++ ai ) {
@@ -181,7 +278,7 @@ namespace das {
             argV->type = blk->argTypes[ai];
             fakeFunc.arguments.push_back(argV);
         }
-        return makeFunctionDebugInfo(fakeFunc);
+        return makeFunctionDebugInfo(fakeFunc, unique);
     }
 
     StructInfo * DebugInfoHelper::makeStructureDebugInfo ( const Structure & st ) {
@@ -201,7 +298,7 @@ namespace das {
         if ( gcf & TypeDecl::gcFlag_stringHeap ) sti->flags |= StructInfo::flag_stringHeapGC;
         sti->count = (uint32_t) st.fields.size();
         sti->size = st.getSizeOf();
-        s2cppTypeName[sti] = describeCppType(tdecl, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
+        if ( collectCppNames ) s2cppTypeName[sti] = describeCppType(tdecl, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
         sti->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti->count );
         for ( uint32_t i=0, is=sti->count; i!=is; ++i ) {
             auto & var = st.fields[i];
@@ -345,7 +442,7 @@ namespace das {
         }
         info->argNames = nullptr;
         auto argNamesCount = uint32_t(elemType->argNames.size());
-        t2cppTypeName[info] = describeCppType(type, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
+        if ( collectCppNames ) t2cppTypeName[info] = describeCppType(type, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
         if ( argNamesCount ) {
             DAS_ASSERT(info->argCount == 0 || info->argCount == argNamesCount);
             info->argCount = argNamesCount;

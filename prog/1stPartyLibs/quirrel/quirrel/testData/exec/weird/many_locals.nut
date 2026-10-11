@@ -41,7 +41,7 @@ try {
   let v4_fn = function() {
     local u0 = v1
     u0++  // [postfix_inc]
-    let u1 = static({x = -2147483649, y = -32768})  // [static_table]
+    let u1 = const({x = -2147483649, y = -32768})  // [const_table]
     let u2 = v3.len() > 2 ? v3.slice(-2) : v3  // [string_slice_neg]
     const u3 = -1  // [const_int]
     local u4_val = 0

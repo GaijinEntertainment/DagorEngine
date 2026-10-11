@@ -8,6 +8,7 @@
 #include <math/dag_color.h>
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
+#include <math/integer/dag_IPoint4.h>
 #include <math/dag_Point4.h>
 #include <memory/dag_framemem.h>
 #include <sqmodules/sqmodules.h>
@@ -101,6 +102,47 @@ static SQInteger blk_get_param_type_annotation(HSQUIRRELVM v)
   return 1;
 }
 
+static const char blk_owner_field[] = "__blkOwner";
+
+// the root DataBlock owns the child memory
+static void push_child_block(HSQUIRRELVM v, const DataBlock *child)
+{
+  if (child == &DataBlock::emptyBlock)
+  {
+    Sqrat::PushVar(v, DataBlock::emptyBlock); // by value: a script write must not change the shared block
+    return;
+  }
+  Sqrat::PushVar(v, child);
+  if (!child)
+    return;
+  sq_pushstring(v, blk_owner_field, sizeof(blk_owner_field) - 1);
+  sq_push(v, 1);
+  G_VERIFY(SQ_SUCCEEDED(sq_rawset(v, -3)));
+}
+
+static SQInteger blk_get_block(HSQUIRRELVM v)
+{
+  if (!Sqrat::check_signature<DataBlock *>(v))
+    return SQ_ERROR;
+
+  Sqrat::Var<DataBlock *> self(v, 1);
+  Sqrat::Var<SQInteger> index(v, 2);
+  push_child_block(v, self.value->getBlock(uint32_t(index.value)));
+  return 1;
+}
+
+template <const DataBlock *(*get_child)(DataBlock *, const char *)>
+static SQInteger blk_child_by_name(HSQUIRRELVM v)
+{
+  if (!Sqrat::check_signature<DataBlock *>(v))
+    return SQ_ERROR;
+
+  Sqrat::Var<DataBlock *> self(v, 1);
+  Sqrat::Var<const char *> name(v, 2);
+  push_child_block(v, get_child(self.value, name.value));
+  return 1;
+}
+
 static SQInteger blk_get(HSQUIRRELVM v)
 {
   if (!Sqrat::check_signature<DataBlock *>(v))
@@ -127,7 +169,7 @@ static SQInteger blk_get(HSQUIRRELVM v)
 
   const DataBlock *blk = self->getBlockByName(nameId);
   if (blk)
-    Sqrat::PushVar(v, (DataBlock *)blk);
+    push_child_block(v, blk);
   else
   {
     int paramIndex = self->findParam(nameId);
@@ -142,7 +184,8 @@ static SQInteger blk_get(HSQUIRRELVM v)
   return 1;
 }
 
-static SQInteger blk_set(HSQUIRRELVM v)
+template <bool add>
+static SQInteger blk_store(HSQUIRRELVM v)
 {
   if (!Sqrat::check_signature<DataBlock *>(v))
     return SQ_ERROR;
@@ -156,6 +199,7 @@ static SQInteger blk_set(HSQUIRRELVM v)
   DataBlock *self = selfSq.value;
   const char *key = keySq.value;
 
+#define BLK_STORE(Type, ...) (add ? (void)self->add##Type(key, __VA_ARGS__) : (void)self->set##Type(key, __VA_ARGS__))
   switch (sq_type(valObj))
   {
     case OT_NULL: self->removeParam(key); break;
@@ -163,18 +207,18 @@ static SQInteger blk_set(HSQUIRRELVM v)
     {
       SQInteger value = sq_objtointeger(&valObj);
       if (value != (int32_t)value)
-        self->setInt64(key, value);
+        BLK_STORE(Int64, value);
       else
-        self->setInt(key, value);
+        BLK_STORE(Int, value);
       break;
     }
-    case OT_FLOAT: self->setReal(key, sq_objtofloat(&valObj)); break;
-    case OT_BOOL: self->setBool(key, sq_obj_is_true(&valObj)); break;
+    case OT_FLOAT: BLK_STORE(Real, sq_objtofloat(&valObj)); break;
+    case OT_BOOL: BLK_STORE(Bool, sq_obj_is_true(&valObj)); break;
     case OT_STRING:
     {
       const char *s = nullptr;
       G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 3, &s)));
-      self->setStr(key, s);
+      BLK_STORE(Str, s);
       break;
     }
     case OT_INSTANCE:
@@ -182,49 +226,31 @@ static SQInteger blk_set(HSQUIRRELVM v)
       if (Sqrat::ClassType<DataBlock>::IsObjectOfClass(&valObj))
       {
         Sqrat::Var<const DataBlock *> blkVal(v, 3);
-        self->addBlock(key)->setFrom(blkVal.value);
+        (add ? self->addNewBlock(key) : self->addBlock(key))->setFrom(blkVal.value);
       }
       else if (Sqrat::ClassType<IPoint2>::IsObjectOfClass(&valObj))
-      {
-        IPoint2 *p2Val = Sqrat::Var<IPoint2 *>(v, 3).value;
-        self->addIPoint2(key, *p2Val);
-      }
+        BLK_STORE(IPoint2, *Sqrat::Var<IPoint2 *>(v, 3).value);
       else if (Sqrat::ClassType<IPoint3>::IsObjectOfClass(&valObj))
-      {
-        IPoint3 *p3Val = Sqrat::Var<IPoint3 *>(v, 3).value;
-        self->addIPoint3(key, *p3Val);
-      }
+        BLK_STORE(IPoint3, *Sqrat::Var<IPoint3 *>(v, 3).value);
+      else if (Sqrat::ClassType<IPoint4>::IsObjectOfClass(&valObj))
+        BLK_STORE(IPoint4, *Sqrat::Var<IPoint4 *>(v, 3).value);
       else if (Sqrat::ClassType<Point2>::IsObjectOfClass(&valObj))
-      {
-        Point2 *p2Val = Sqrat::Var<Point2 *>(v, 3).value;
-        self->setPoint2(key, *p2Val);
-      }
+        BLK_STORE(Point2, *Sqrat::Var<Point2 *>(v, 3).value);
       else if (Sqrat::ClassType<Point3>::IsObjectOfClass(&valObj))
-      {
-        Point3 *p3Val = Sqrat::Var<Point3 *>(v, 3).value;
-        self->setPoint3(key, *p3Val);
-      }
+        BLK_STORE(Point3, *Sqrat::Var<Point3 *>(v, 3).value);
       else if (Sqrat::ClassType<Point4>::IsObjectOfClass(&valObj))
-      {
-        Point4 *p4Val = Sqrat::Var<Point4 *>(v, 3).value;
-        self->setPoint4(key, *p4Val);
-      }
+        BLK_STORE(Point4, *Sqrat::Var<Point4 *>(v, 3).value);
       else if (Sqrat::ClassType<TMatrix>::IsObjectOfClass(&valObj))
-      {
-        TMatrix *tmVal = Sqrat::Var<TMatrix *>(v, 3).value;
-        self->setTm(key, *tmVal);
-      }
+        BLK_STORE(Tm, *Sqrat::Var<TMatrix *>(v, 3).value);
       else if (Sqrat::ClassType<Color4>::IsObjectOfClass(&valObj))
-      {
-        Color4 *col4Val = Sqrat::Var<Color4 *>(v, 3).value;
-        self->setE3dcolor(key, e3dcolor(*col4Val));
-      }
+        BLK_STORE(E3dcolor, e3dcolor(*Sqrat::Var<Color4 *>(v, 3).value));
       else
         LOGERR_CTX("Invalid instance type passed as value of '%s'", key);
       break;
     }
     default: LOGERR_CTX("Invalid type %X passed as value of '%s'", sq_type(valObj), key);
   }
+#undef BLK_STORE
 
   return 0;
 }
@@ -235,7 +261,8 @@ static SQInteger blk_len(HSQUIRRELVM v)
     return SQ_ERROR;
   Sqrat::Var<DataBlock *> selfSq(v, 1);
   DataBlock *self = selfSq.value;
-  return self->blockCount() + self->paramCount();
+  sq_pushinteger(v, self->blockCount() + self->paramCount());
+  return 1;
 }
 
 // Order-sensitive structural compare: params and sub-blocks must match by
@@ -371,7 +398,7 @@ static SQInteger blk_modulo(HSQUIRRELVM v)
         DataBlock *blk = self->getBlock(i);
         if (blk->getBlockNameId() == nameId)
         {
-          Sqrat::PushVar(v, blk);
+          push_child_block(v, blk);
           G_VERIFY(SQ_SUCCEEDED(sq_arrayappend(v, -2)));
         }
       }
@@ -379,93 +406,6 @@ static SQInteger blk_modulo(HSQUIRRELVM v)
   }
 
   return 1;
-}
-
-static SQInteger blk_newslot(HSQUIRRELVM v)
-{
-  if (!Sqrat::check_signature<DataBlock *>(v))
-    return SQ_ERROR;
-
-  Sqrat::Var<DataBlock *> selfSq(v, 1);
-  Sqrat::Var<const char *> keySq(v, 2);
-
-  HSQOBJECT valObj;
-  sq_getstackobj(v, 3, &valObj);
-
-  DataBlock *self = selfSq.value;
-  const char *key = keySq.value;
-
-  switch (sq_type(valObj))
-  {
-    case OT_NULL: self->removeParam(key); break;
-    case OT_INTEGER:
-    {
-      SQInteger value = sq_objtointeger(&valObj);
-      if (value != (int32_t)value)
-        self->addInt64(key, value);
-      else
-        self->addInt(key, value);
-      break;
-    }
-    case OT_FLOAT: self->addReal(key, sq_objtofloat(&valObj)); break;
-    case OT_BOOL: self->addBool(key, sq_obj_is_true(&valObj)); break;
-    case OT_STRING:
-    {
-      const char *s = nullptr;
-      G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 3, &s)));
-      self->addStr(key, s);
-      break;
-    }
-    case OT_INSTANCE:
-    {
-      if (Sqrat::ClassType<DataBlock>::IsObjectOfClass(&valObj))
-      {
-        Sqrat::Var<const DataBlock *> blkVal(v, 3);
-        self->addNewBlock(key)->setFrom(blkVal.value);
-      }
-      else if (Sqrat::ClassType<IPoint2>::IsObjectOfClass(&valObj))
-      {
-        IPoint2 *p2Val = Sqrat::Var<IPoint2 *>(v, 3).value;
-        self->addIPoint2(key, *p2Val);
-      }
-      else if (Sqrat::ClassType<IPoint3>::IsObjectOfClass(&valObj))
-      {
-        IPoint3 *p3Val = Sqrat::Var<IPoint3 *>(v, 3).value;
-        self->addIPoint3(key, *p3Val);
-      }
-      else if (Sqrat::ClassType<Point2>::IsObjectOfClass(&valObj))
-      {
-        Point2 *p2Val = Sqrat::Var<Point2 *>(v, 3).value;
-        self->addPoint2(key, *p2Val);
-      }
-      else if (Sqrat::ClassType<Point3>::IsObjectOfClass(&valObj))
-      {
-        Point3 *p3Val = Sqrat::Var<Point3 *>(v, 3).value;
-        self->addPoint3(key, *p3Val);
-      }
-      else if (Sqrat::ClassType<Point4>::IsObjectOfClass(&valObj))
-      {
-        Point4 *p4Val = Sqrat::Var<Point4 *>(v, 3).value;
-        self->setPoint4(key, *p4Val);
-      }
-      else if (Sqrat::ClassType<TMatrix>::IsObjectOfClass(&valObj))
-      {
-        TMatrix *tmVal = Sqrat::Var<TMatrix *>(v, 3).value;
-        self->addTm(key, *tmVal);
-      }
-      else if (Sqrat::ClassType<Color4>::IsObjectOfClass(&valObj))
-      {
-        Color4 *col4Val = Sqrat::Var<Color4 *>(v, 3).value;
-        self->setE3dcolor(key, e3dcolor(*col4Val));
-      }
-      else
-        LOGERR_CTX("Invalid instance type passed as value of '%s'", key);
-      break;
-    }
-    default: LOGERR_CTX("Invalid type %X passed as value of '%s'", sq_type(valObj), key);
-  }
-
-  return 0;
 }
 
 static bool check_name_for_bad_nexti(int id, eastl::set<int> &all_name_ids)
@@ -567,9 +507,13 @@ static bool param_exists(const DataBlock *blk, const char *param) { return blk->
 
 static bool block_exists(const DataBlock *blk, const char *name) { return blk->blockExists(name); }
 
-static const DataBlock *get_block_by_name(const DataBlock *blk, const char *param) { return blk->getBlockByName(param); }
+static const DataBlock *get_block_by_name(DataBlock *blk, const char *param) { return blk->getBlockByName(param); }
 
-static const DataBlock *get_block_by_name_ex(const DataBlock *blk, const char *param) { return blk->getBlockByNameEx(param); }
+static const DataBlock *get_block_by_name_ex(DataBlock *blk, const char *param) { return blk->getBlockByNameEx(param); }
+
+static const DataBlock *add_block(DataBlock *blk, const char *name) { return blk->addBlock(name); }
+
+static const DataBlock *add_new_block(DataBlock *blk, const char *name) { return blk->addNewBlock(name); }
 
 static void set_param_from(DataBlock *dst, const char *dst_name, const DataBlock *src, int src_index)
 {
@@ -880,13 +824,18 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
 #define FUNC(f) Func(#f, &DataBlock::f)
   ///@class DataBlock=DataBlock
   Sqrat::Class<DataBlock> sqDataBlock(vm, "DataBlock");
+  sq_pushobject(vm, sqDataBlock.GetObject());
+  sq_pushstring(vm, blk_owner_field, sizeof(blk_owner_field) - 1);
+  sq_pushnull(vm);
+  G_VERIFY(SQ_SUCCEEDED(sq_newslot(vm, -3, SQFalse)));
+  sq_pop(vm, 1);
   (void)sqDataBlock //
     .SquirrelCtor(datablock_ctor, -1, "xx")
     .SquirrelFuncDeclString(blk_formatAsString,
       "instance.formatAsString([opts: table|number, max_level_depth: int, max_out_line_num: int]): string")
-    .Func("getBlock", (const DataBlock *(DataBlock::*)(uint32_t) const) & DataBlock::getBlock)
-    .Func("addBlock", (DataBlock * (DataBlock::*)(const char *)) & DataBlock::addBlock)
-    .Func("addNewBlock", (DataBlock * (DataBlock::*)(const char *)) & DataBlock::addNewBlock)
+    .SquirrelFuncDeclString(blk_get_block, "instance.getBlock(idx: int): instance|null")
+    .SquirrelFuncDeclString(blk_child_by_name<add_block>, "instance.addBlock(name: string): instance")
+    .SquirrelFuncDeclString(blk_child_by_name<add_new_block>, "instance.addNewBlock(name: string): instance")
     // Safe get/set with type-mismatch detection (log + coerce)
     .GlobalFunc("getStr", safe_get_Str)
     .GlobalFunc("getBool", safe_get_Bool)
@@ -933,8 +882,8 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .GlobalFunc("findParam", find_param)
     .GlobalFunc("paramExists", param_exists)
     .GlobalFunc("blockExists", block_exists)
-    .GlobalFunc("getBlockByName", get_block_by_name)
-    .GlobalFunc("getBlockByNameEx", get_block_by_name_ex)
+    .SquirrelFuncDeclString(blk_child_by_name<get_block_by_name>, "instance.getBlockByName(name: string): instance|null")
+    .SquirrelFuncDeclString(blk_child_by_name<get_block_by_name_ex>, "instance.getBlockByNameEx(name: string): instance")
     .GlobalFunc("setParamFrom", set_param_from)
     .GlobalFunc("setParamsFrom", set_params_from)
     .GlobalFunc("setFrom", set_from)
@@ -959,10 +908,10 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .SquirrelFuncDeclString(blk_get_param_type_annotation, "instance.getParamTypeAnnotation(idx: int): string|null")
     .SquirrelFuncDeclString(blk_get_param_value, "instance.getParamValue(idx: int): any")
 
-    .SquirrelFuncDeclString(blk_set, "instance._set(key: string, value: any): null")
+    .SquirrelFuncDeclString(blk_store<false>, "instance._set(key: string, value: any): null")
     .SquirrelFuncDeclString(blk_get, "instance._get(key: any): any")
     .SquirrelFuncDeclString(blk_modulo, "instance._modulo(other: string): any")
-    .SquirrelFuncDeclString(blk_newslot, "instance._newslot(key: string, value: any): null")
+    .SquirrelFuncDeclString(blk_store<true>, "instance._newslot(key: string, value: any): null")
     .SquirrelFuncDeclString(blk_nexti, "instance._nexti(prev: any): any")
     .SquirrelFuncDeclString(blk_load_from_text, "instance.loadFromText(text: string, [text_length: int]): bool")
 

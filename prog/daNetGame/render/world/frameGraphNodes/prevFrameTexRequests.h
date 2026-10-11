@@ -22,7 +22,5 @@ inline eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, fals
     registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate").optional();
   }
   registry.read(prevFrameSamplerName).blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate").optional();
-  if (prevFrameTexName)
-    return registry.root().read(prevFrameTexName).texture().atStage(stage).bindToShaderVar("prev_frame_tex").handle();
-  return eastl::nullopt;
+  return registry.root().read(prevFrameTexName).texture().atStage(stage).bindToShaderVar("prev_frame_tex").handle();
 }

@@ -35,6 +35,9 @@ void BadResolutionTracker::filterOutBadResolutions(DynamicResolutionUpdates &upd
   for (auto &[_, correction] : correctedSizes)
     correction.forFrame[nextFrame] = max(correction.forFrame[nextFrame], correction.forFrame[current_frame]);
 
+  if (updates.empty())
+    return;
+
   for (auto [idx, res] : graph.resources.enumerate())
   {
     if (!is_autoresolution_resource(res))
@@ -78,6 +81,12 @@ void BadResolutionTracker::filterOutBadResolutions(DynamicResolutionUpdates &upd
     updates[resolutionType->id] = NoDynamicResolutionUpdate{};
     reschedulingCountdown = SCHEDULE_FRAME_WINDOW;
   }
+
+  for (const auto &update : updates)
+    if (!eastl::holds_alternative<NoDynamicResolutionUpdate>(update))
+      return;
+
+  updates.clear();
 }
 
 size_t BadResolutionTracker::sizeFor(const ResourceDescription &desc)

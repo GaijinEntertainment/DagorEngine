@@ -53,7 +53,8 @@ void build_stcode_for_pair_sampler(const char *const_name, const char *var_name,
 void build_cpp_declarations_for_used_local_vars(StcodePass &out_cppstcode, const shc::VariantContext &ctx);
 void build_cpp_declarations_for_used_bool_vars(StcodePass &out_cppstcode, const shc::VariantContext &ctx);
 
-eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType vt);
+eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType vt,
+  const semantic::SubpassReadResolution &subpass_read = {});
 
 eastl::string build_placement_specifier(int dest_reg, bool is_array, int elem_count, HlslRegisterSpace rspace, bool is_inside_cbuffer,
   bool is_dynamic);

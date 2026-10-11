@@ -177,11 +177,11 @@ static VkAccessFlags enhanced_access_to_vk(d3d::AccessFlags access)
   if (access & d3d::AccessFlag::RenderTargetRead)
     out |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
   if (access & d3d::AccessFlag::RenderTargetWrite)
-    out |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    out |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   if (access & d3d::AccessFlag::UnorderedAccess)
     out |= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
   if (access & d3d::AccessFlag::DepthStencilWrite)
-    out |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    out |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
   if (access & d3d::AccessFlag::DepthStencilRead)
     out |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
   if (access & d3d::AccessFlag::InputAttachment)

@@ -815,14 +815,13 @@ void ShaderMaterialProperties::patchNonSharedData(void *base, dag::Span<TEXTUREI
 
   dumpHandle = MAIN_BINDUMP_HANDLE; // @NOTE: Loaded assets are assumed to reference the main shaderbindump
 
-  auto const &dumpOwner = shBinDumpOwner();
-  auto const &dump = *dumpOwner.getDump();
+  auto const *dump = shBinDumpOwner().getDump();
 
-  sclass = dump.findShaderClass(shname);
+  sclass = dump ? dump->findShaderClass(shname) : nullptr;
 
   if (!sclass)
   {
-    if (dumpOwner.getDump())
+    if (dump)
     {
       logerr("shader <%s> not found!", shname);
       sclass = &shaderbindump::null_shader_class(false);

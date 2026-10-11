@@ -11,18 +11,22 @@
 #include <gamePhys/collision/collisionType.h>
 #include <gamePhys/collision/physLayers.h>
 #include <scene/dag_physMat.h>
-#include <sceneRay/dag_sceneRayDecl.h>
 
 #include <math/dag_Point3.h>
+#include <math/dag_bounds3.h>
 #include <rendInst/traceUtils.h>
 #include <generic/dag_enumBitMask.h>
 #include <phys/dag_physShapeQueryResult.h>
 #include <rendInst/constants.h>
 #include <daECS/core/ecsHash.h>
 
-#include <EASTL/fixed_function.h>
+#include <generic/dag_functionRef.h>
 
 class PhysWorld;
+template <typename FI>
+class StaticSceneRayTracerT;
+struct SceneRayI24F8;
+typedef StaticSceneRayTracerT<SceneRayI24F8> StaticSceneRayTracer;
 
 namespace gamephys
 {
@@ -45,7 +49,7 @@ struct PhysShapeQueryOutput;
 namespace dacoll
 {
 typedef ::PhysShapeQueryResult ShapeQueryOutput;
-typedef eastl::fixed_function<64, bool(const rendinst::RendInstDesc &, float)> RIFilterCB;
+typedef dag::FunctionRef<bool(const rendinst::RendInstDesc &, float) const> RIFilterCB;
 
 enum class InitFlags
 {
@@ -97,8 +101,6 @@ bool load_water_collision(IGenLoad &crd);
 bool append_static_collision_tris(bbox3f_cref box, vec4f *out_tris, int &left);
 int resolve_static_cache_tri_mat(int packed_w);
 void add_collision_hmap(LandMeshManager *land, float restitution, float margin);
-void add_collision_hmap_custom(const Point3 &collision_pos, const BBox3 &collision_box, const Point2 &hmap_offset, float hmap_scale,
-  int hmap_step);
 void add_collision_landmesh(LandMeshManager *land, const char *name, float restitution = 0.f);
 void update_lmesh_phys_bodies(float dt);
 void set_landmesh_mirroring(int cells_x_pos, int cells_x_neg, int cells_z_pos, int cells_z_neg);
@@ -123,9 +125,10 @@ bool traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t, int *ou
   const TraceMeshFaces *handle = nullptr, rendinst::riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
 bool traceray_normalized_coll_type(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm,
   int flags = ETF_DEFAULT, rendinst::RendInstDesc *out_desc = nullptr, int *out_coll_type = nullptr, int ray_mat_id = -1,
-  const TraceMeshFaces *handle = nullptr);
+  const TraceMeshFaces *handle = nullptr, rendinst::riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
 bool traceray_normalized(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm, int flags = ETF_DEFAULT,
-  rendinst::RendInstDesc *out_desc = nullptr, int ray_mat_id = -1, const TraceMeshFaces *handle = nullptr);
+  rendinst::RendInstDesc *out_desc = nullptr, int ray_mat_id = -1, const TraceMeshFaces *handle = nullptr,
+  rendinst::riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
 
 bool rayhit_normalized_frt(const Point3 &p, const Point3 &dir, real t);
 bool rayhit_normalized_lmesh(const Point3 &p, const Point3 &dir, real t);
@@ -160,7 +163,7 @@ bool trace_game_objects(const Point3 &from, const Point3 &dir, float &t, Point3 
 bool trace_game_objects_with_grid_filter(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel, int ignore_game_obj_id,
   int ray_mat_id, const dag::ConstSpan<uint32_t> grid_types);
 
-using GameObjectsCollisionsCb = eastl::fixed_function<6 * sizeof(void *), void(CollisionObject obj)>;
+using GameObjectsCollisionsCb = dag::FunctionRef<void(CollisionObject obj) const>;
 typedef void (*gather_game_objects_collision_on_ray_cb)(const Point3 &from, const Point3 &to, float radius,
   GameObjectsCollisionsCb coll_cb);
 void set_gather_game_objects_on_ray_cb(gather_game_objects_collision_on_ray_cb cb);
@@ -263,8 +266,8 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
 bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<gamephys::CollisionContactData> &out_contacts,
   const TraceMeshFaces *trace_cache, int mat_id);
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
-  bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache = NULL, int mat_id = -1,
-  bool process_tree_behaviour = true);
+  bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache = NULL, int mat_id = -1, bool process_tree_behaviour = true,
+  bool process_bush_behaviour = true);
 bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<gamephys::CollisionContactData> &out_contacts,
   bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache = NULL, int mat_id = -1,
   bool process_tree_behaviour = true);
@@ -292,8 +295,6 @@ bool test_pair_collision(dag::ConstSpan<CollisionObject> co_a, uint64_t cof_a, c
 bool test_pair_collision_continuous(dag::ConstSpan<CollisionObject> co_a, uint64_t cof_a, const TMatrix &tm_a,
   const TMatrix &tm_a_prev, dag::ConstSpan<CollisionObject> co_b, uint64_t cof_b, const TMatrix &tm_b, const TMatrix &tm_b_prev,
   Tab<gamephys::CollisionContactData> &out_contacts);
-
-PhysBody *get_convex_shape(CollisionObject co);
 
 void shape_query_frt(const PhysSphereCollision &shape, const TMatrix &from, const TMatrix &to, ShapeQueryOutput &out);
 void shape_query_lmesh(const PhysSphereCollision &shape, const TMatrix &from, const TMatrix &to, ShapeQueryOutput &out);

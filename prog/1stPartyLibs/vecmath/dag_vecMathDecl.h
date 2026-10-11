@@ -53,7 +53,7 @@ typedef const struct bsph3f& bsph3f_cref;
     #define _TARGET_SIMD_SSE 4
   #elif __SSSE3__
     #define _TARGET_SIMD_SSE 3
-  #elif defined(__SSE2__) || defined(_M_AMD64) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP>=1)
+  #elif (defined(__SSE2__) || defined(_M_AMD64) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP>=1)) && !defined(_M_ARM64EC)
     #define _TARGET_SIMD_SSE 2
   #endif
 #endif
@@ -233,7 +233,7 @@ namespace eastl
 {
   template <typename Count> inline void uninitialized_value_construct_n(vec4f* , Count){}
   template <typename Count> inline void uninitialized_value_construct_n(vec4d* , Count){}
-#if !(defined(_M_ARM64) && defined(_MSC_VER) && !defined(__clang__))
+#if !((defined(_M_ARM64) || defined(_M_ARM64EC)) && defined(_MSC_VER) && !defined(__clang__))
   template <typename Count> inline void uninitialized_value_construct_n(vec4i* , Count){}
 #endif
   template <typename Count> inline void uninitialized_value_construct_n(bsph3f*, Count){}

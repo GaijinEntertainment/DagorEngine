@@ -700,7 +700,7 @@ def _vm_bench_table(site):
     the same convention the harness prints.
     """
     if not site.vm_bench:
-        return _missing_bench("VM acceptance numbers", "python bench/run_vm_bench.py")
+        return _missing_bench("Lua and Luau comparison numbers", "python bench/run_vm_bench.py")
     results = site.vm_bench["results"]
     vms = []
     for rows in results.values():

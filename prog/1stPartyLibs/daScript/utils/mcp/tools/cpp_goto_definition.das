@@ -16,7 +16,7 @@ require math
 // preference order (same file > same dir > shorter path). For substring or
 // usage searches, prefer `cpp_grep_usage`. For precise resolution, wait for the
 // clangd-backed v2.
-def do_cpp_goto_definition(file, line_str, column_str : string) : string {
+def do_cpp_goto_definition(file, line_str, column_str : string) : string { // nolint:STYLE038 — one linear request pipeline: validate, read, extract identifier, look up, rank, format
     if (empty(file) || empty(line_str) || empty(column_str)) return make_tool_result("'file', 'line', and 'column' are all required", true)
     let line_num = to_int(line_str)
     let col_num = to_int(column_str)
@@ -27,13 +27,12 @@ def do_cpp_goto_definition(file, line_str, column_str : string) : string {
     var lines : array<string>
     while (!feof(f)) {
         var ln = fgets(f)
-        while (!empty(ln)) {
-            let last_ch = character_at(ln, length(ln) - 1) // nolint:PERF003
-            if (last_ch == '\n' || last_ch == '\r') {
-                ln = slice(ln, 0, length(ln) - 1)
-            } else {
-                break
+        peek_data(ln) $(d) {
+            var keep = length(d)
+            while (keep > 0 && (int(d[keep - 1]) == '\n' || int(d[keep - 1]) == '\r')) {
+                keep--
             }
+            ln = slice(d, 0, keep)
         }
         lines |> push(ln)
     }
@@ -79,7 +78,7 @@ def do_cpp_goto_definition(file, line_str, column_str : string) : string {
         return make_tool_result("No definition found for '{ident}'")
     }
     // Rank: same file > same dir > shorter path
-    let cursor_rel = make_relative_path(abs_path, get_das_root())
+    let cursor_rel = make_relative_path(abs_path, server_root())
     let cursor_dir = dir_name(cursor_rel)
     sort(candidates) $(a, b) {
         let af = a.file == cursor_rel ? 0 : 1

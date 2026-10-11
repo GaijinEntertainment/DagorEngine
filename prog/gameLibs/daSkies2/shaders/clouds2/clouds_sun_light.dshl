@@ -6,7 +6,11 @@ macro CLOUDS_SUN_SKY_LIGHT_COLOR(code)
   TOTAL_CLOUDS_MIN_MAX()
   (code) {
     alt_pos_to_clouds_light_alt@f2 = (0.001/maxCloudsThickness, -minCloudsAlt/maxCloudsThickness, 0, 0);
-    clouds_light_color@smp3d = clouds_light_color;
+    clouds_light_color@tex3d = clouds_light_color;
+  }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
+  hlsl(code) {
+    #define clouds_light_color_samplerstate global_linear_clamp_sampler
   }
   hlsl(code) {
     #include <cloud_settings.hlsli>

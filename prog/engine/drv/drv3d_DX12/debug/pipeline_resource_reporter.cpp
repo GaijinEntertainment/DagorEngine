@@ -3,6 +3,7 @@
 #include "pipeline_resource_reporter.h"
 #include <pipeline.h>
 #include <resource_manager/image.h>
+#include <cinttypes>
 
 using namespace drv3d_dx12;
 
@@ -12,7 +13,7 @@ namespace
 void report_resource(ID3D12Resource *resource)
 {
   D3D12_RESOURCE_DESC desc = resource->GetDesc();
-  logdbg("DX12: [resource] type=%s, format=%s, extent=%dx%dx%d, mips=%d, layout=%d, flags=0x%x, gpuaddr=0x%lx",
+  logdbg("DX12: [resource] type=%s, format=%s, extent=%dx%dx%d, mips=%d, layout=%d, flags=0x%x, gpuaddr=0x%" PRIX64,
     to_string(desc.Dimension), dxgi_format_name(desc.Format), (uint32_t)desc.Width, desc.Height, (uint32_t)desc.DepthOrArraySize,
     (uint32_t)desc.MipLevels, (uint32_t)desc.Layout, (uint32_t)desc.Flags, resource->GetGPUVirtualAddress());
 }
@@ -32,8 +33,8 @@ void report_detailed_image_srv(const PipelineStageStateBase::TRegister &t_regist
     report_resource(resource);
 
   auto memory = image->getMemory();
-  logdbg("DX12: [memory] heapID=0x%x, memofs=%ld, memsize=%ld, aliased=%d, reserved=%d, heapalloced=%d", memory.getHeapID().raw,
-    memory.getOffset(), memory.size(), (image->isAliased() ? 1 : 0), (image->isReserved() ? 1 : 0),
+  logdbg("DX12: [memory] heapID=0x%x, memofs=%" PRIu64 ", memsize=%" PRIu64 ", aliased=%d, reserved=%d, heapalloced=%d",
+    memory.getHeapID().raw, memory.getOffset(), memory.size(), (image->isAliased() ? 1 : 0), (image->isReserved() ? 1 : 0),
     (image->isHeapAllocated() ? 1 : 0));
 
   auto view = t_register.imageView;
@@ -71,7 +72,7 @@ void report_resources_impl(const PipelineStageStateBase &state, uint32_t b_reg_m
     {
       auto &bufferResource = state.bRegisterBuffers[i].buffer;
       D3D12_GPU_VIRTUAL_ADDRESS bufferBaseAddress = bufferResource.buffer ? bufferResource.buffer->GetGPUVirtualAddress() : 0;
-      logdbg("DX12: ...B register slot %u with %p / %p / %u @ %llu...", i, gpuPointer, bufferResource.buffer,
+      logdbg("DX12: ...B register slot %u with 0x%" PRIX64 " / %p / %u @ %" PRIu64 "...", i, gpuPointer, bufferResource.buffer,
         bufferResource.resourceId, gpuPointer - bufferBaseAddress);
     }
     else if (i == 0)

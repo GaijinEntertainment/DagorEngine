@@ -51,6 +51,14 @@ void CompositeEditorTreeData::convertDataBlockToTreeData(const DataBlock &block,
     treeDataNode.params.changeBlockName(blockName);
 }
 
+void CompositeEditorTreeData::invalidateDataBlockIds(CompositeEditorTreeDataNode &treeDataNode)
+{
+  treeDataNode.dataBlockId = IDataBlockIdHolder::invalid_id;
+
+  for (eastl::unique_ptr<CompositeEditorTreeDataNode> &childNode : treeDataNode.nodes)
+    invalidateDataBlockIds(*childNode);
+}
+
 void CompositeEditorTreeData::setDataBlockIdsInternal(CompositeEditorTreeDataNode &treeDataNode, int &nextDataBlockId)
 {
   // NOTE: the logic in CompositeEditorTreeData::setDataBlockIds and in CompositEntityPool::loadAssetData must match,
@@ -64,10 +72,22 @@ void CompositeEditorTreeData::setDataBlockIdsInternal(CompositeEditorTreeDataNod
         strcmp(subBlockName, "polygon") == 0)
       continue;
 
+    // Skip the same blocks as CompositEntityPool::loadAssetData().
+    if (!hasParamInSubtree(treeDataSubNode))
+      continue;
+
+    bool hasName = false;
     for (int j = 0; j < treeDataSubNode.params.paramCount(); ++j)
       if (treeDataSubNode.params.getParamType(j) == DataBlock::TYPE_STRING &&
           strcmp(treeDataSubNode.params.getParamName(j), "name") == 0)
+      {
         treeDataSubNode.dataBlockId = nextDataBlockId++;
+        hasName = true;
+      }
+
+    // A node without a name also gets an ID, so the editor can refer to it (for example in undo).
+    if (!hasName)
+      treeDataSubNode.dataBlockId = nextDataBlockId++;
 
     for (int j = 0; j < treeDataSubNode.nodes.size(); j++)
       if (strcmp(treeDataSubNode.nodes[j]->params.getBlockName(), "ent") == 0)
@@ -80,6 +100,9 @@ void CompositeEditorTreeData::setDataBlockIdsInternal(CompositeEditorTreeDataNod
 void CompositeEditorTreeData::setDataBlockIds()
 {
   G_STATIC_ASSERT(IDataBlockIdHolder::invalid_id == 0);
+
+  invalidateDataBlockIds(rootNode);
+
   int nextDataBlockId = 1;
   setDataBlockIdsInternal(rootNode, nextDataBlockId);
 }
@@ -103,7 +126,7 @@ void CompositeEditorTreeData::convertTreeDataToDataBlock(const CompositeEditorTr
   {
     const CompositeEditorTreeDataNode &treeDataSubNode = *treeDataNode.nodes[nodeIndex];
 
-    if (treeDataSubNode.params.paramCount() == 0 && treeDataSubNode.nodes.empty())
+    if (!isSavedToDataBlock(treeDataSubNode))
       continue;
 
     DataBlock *subBlock = block.addNewBlock((const char *)nullptr);
@@ -115,6 +138,26 @@ void CompositeEditorTreeData::convertTreeDataToDataBlock(const CompositeEditorTr
   const char *blockName = treeDataNode.params.getBlockName();
   if (blockName && *blockName)
     block.changeBlockName(blockName);
+}
+
+bool CompositeEditorTreeData::isSavedToDataBlock(const CompositeEditorTreeDataNode &treeDataNode)
+{
+  // CompositeEditorTreeData::setDataBlockIds() and CompositEntityPool::loadAssetData() skip a node without a parameter
+  // in its subtree, thus this must keep every node with a parameter in its subtree, or the data block IDs get out of
+  // sync. An empty ent block is a random entity slot that places no entity, so it is data too.
+  return treeDataNode.params.paramCount() > 0 || !treeDataNode.nodes.empty() || treeDataNode.isEntBlock();
+}
+
+bool CompositeEditorTreeData::hasParamInSubtree(const CompositeEditorTreeDataNode &treeDataNode)
+{
+  if (treeDataNode.params.paramCount() > 0)
+    return true;
+
+  for (const eastl::unique_ptr<CompositeEditorTreeDataNode> &childNode : treeDataNode.nodes)
+    if (hasParamInSubtree(*childNode))
+      return true;
+
+  return false;
 }
 
 bool CompositeEditorTreeData::isCompositeAsset(const DagorAsset *asset)

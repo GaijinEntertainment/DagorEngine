@@ -97,7 +97,7 @@ def test_parallel_for_more_jobs_than_items(t : T?) {
 def test_parallel_for_empty_range(t : T?) {
     t |> run("empty range does nothing") @(t : T?) {
         with_job_que() {
-            var called = false
+            var called = false   // nolint:LINT003 written by the block below; LINT003 misses block-argument captures
             parallel_for(5, 5, 4) $(job_begin, job_end, wg) {
                 called = true
             }
@@ -110,7 +110,7 @@ def test_parallel_for_empty_range(t : T?) {
 def test_parallel_for_negative_range(t : T?) {
     t |> run("inverted range does nothing") @(t : T?) {
         with_job_que() {
-            var called = false
+            var called = false   // nolint:LINT003 written by the block below; LINT003 misses block-argument captures
             parallel_for(10, 5, 4) $(job_begin, job_end, wg) {
                 called = true
             }
@@ -204,10 +204,7 @@ def test_parallel_for_done(t : T?) {
 def test_parallel_for_each_basic(t : T?) {
     t |> run("partitions array indices into chunks") @(t : T?) {
         with_job_que() {
-            var input : array<int>
-            for (i in range(8)) {
-                input |> push(i)
-            }
+            let input <- [for (i in range(8)); i]
             let num_jobs = 3
             with_channel(num_jobs) $(ch) {
                 parallel_for_each(input, num_jobs) $(job_begin, job_end, wg) {
@@ -235,8 +232,8 @@ def test_parallel_for_each_basic(t : T?) {
 def test_parallel_for_each_empty(t : T?) {
     t |> run("empty array does nothing") @(t : T?) {
         with_job_que() {
-            var input : array<int>
-            var called = false
+            let input : array<int>
+            var called = false   // nolint:LINT003 written by the block below; LINT003 misses block-argument captures
             parallel_for_each(input, 4) $(job_begin, job_end, wg) {
                 called = true
             }
@@ -251,10 +248,7 @@ def test_parallel_for_each_empty(t : T?) {
 def test_parallel_map_basic(t : T?) {
     t |> run("collects indexed results via channel") @(t : T?) {
         with_job_que() {
-            var input : array<int>
-            for (i in range(10)) {
-                input |> push(i)
-            }
+            let input <- [for (i in range(10)); i]
             let num_jobs = 3
             with_channel(num_jobs) $(results_ch) {
                 parallel_map(input, num_jobs, results_ch) $(job_begin, job_end, ch, wg) {
@@ -281,9 +275,9 @@ def test_parallel_map_basic(t : T?) {
 def test_parallel_map_empty(t : T?) {
     t |> run("empty array does nothing") @(t : T?) {
         with_job_que() {
-            var input : array<int>
+            let input : array<int>
             with_channel(0) $(ch) {
-                var called = false
+                var called = false   // nolint:LINT003 written by the block below; LINT003 misses block-argument captures
                 parallel_map(input, 4, ch) $(job_begin, job_end, results_ch, wg) {
                     called = true
                 }
@@ -297,10 +291,7 @@ def test_parallel_map_empty(t : T?) {
 def test_parallel_map_order(t : T?) {
     t |> run("results reordered by index") @(t : T?) {
         with_job_que() {
-            var input : array<int>
-            for (i in range(5)) {
-                input |> push(i)
-            }
+            let input <- [for (i in range(5)); i]
             let num_jobs = 3
             with_channel(num_jobs) $(results_ch) {
                 parallel_map(input, num_jobs, results_ch) $(job_begin, job_end, ch, wg) {

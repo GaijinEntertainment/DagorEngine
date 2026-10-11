@@ -11,6 +11,8 @@ bool HmapLandPlugin::preferZstdPacking = false;
 bool HmapLandPlugin::allowOodlePacking = false;
 bool HmapLandPlugin::pcPreferASTC = false;
 bool HmapLandPlugin::includeHiddenLayersInExportedNavMesh = false;
+bool HmapLandPlugin::exportLastclip = false;
+int HmapLandPlugin::exportLastclipSize = 512;
 static HmapLandPlugin *plugin = nullptr;
 
 DE3_DLL_PLUGIN_LINKAGE int DE3_DLL_PLUGIN_CALLCONV get_plugin_version() { return IGenEditorPlugin::VERSION_1_1; }
@@ -59,6 +61,14 @@ DE3_DLL_PLUGIN_LINKAGE IGenEditorPlugin *DE3_DLL_PLUGIN_CALLCONV register_plugin
   {
     HmapLandPlugin::includeHiddenLayersInExportedNavMesh = true;
     debug("Hidden layers will be included in the exported nav mesh.");
+  }
+
+  if (app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getBool("exportLastclip", false))
+  {
+    HmapLandPlugin::exportLastclip = true;
+    HmapLandPlugin::exportLastclipSize =
+      app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getInt("exportLastclipSize", 512);
+    debug("Lastclip texture (%d x %d) will be exported", HmapLandPlugin::exportLastclipSize, HmapLandPlugin::exportLastclipSize);
   }
 
   ::plugin = ::new (inimem) HmapLandPlugin;

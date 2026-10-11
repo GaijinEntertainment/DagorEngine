@@ -46,9 +46,13 @@ shader single_pass_blur11
   }
 
   (ps) {
-    tex0@smpArray = depth_ao_tex_to_blur;
+    tex0@texArray = depth_ao_tex_to_blur;
     blur_layer@i1 = depth_above_blur_layer;
     ofs@f1 = (depth_ao_texture_size_inv, 0, 0, 0);
+  }
+  INIT_GLOBAL_POINT_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define tex0_samplerstate global_point_wrap_sampler
   }
 
   PS4_DEF_TARGET_FMT_UNORM16_ABGR()

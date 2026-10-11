@@ -11,7 +11,7 @@ void damage_ri_in_sphere(const Point3 &, float, const Point2 &, float, float, bo
 {
   G_ASSERT(0);
 }
-void doRIExtraDamageInBox(const BBox3 &, float, bool, const Point3 &, calc_expl_damage_cb, const BSphere3 *, const TMatrix *,
+void doRIExtraDamageInBox(const BBox3 &, float, bool, const Point3 &, calc_expl_damage_cb_t, const BSphere3 *, const TMatrix *,
   rendinst::DestrOptionFlags)
 {
   G_ASSERT(0);

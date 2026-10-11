@@ -427,6 +427,8 @@ shader copy_grass_decals
 texture grass_texture;
 texture grass_texture_n;
 texture grass_texture_a;
+sampler grass_texture_samplerstate;
+sampler grass_texture_a_samplerstate;
 int grass_pass = 0;
 interval grass_pass:prepass_off<1, depth_prepass<2, prepass_on<3, visibility_pass;
 
@@ -658,14 +660,22 @@ shader grass_render_billboards
   (ps) {mip_bias@f1 = (mip_bias);}
   if (grass_pass != prepass_on)
   {
-    (ps) { grass_texture_a@smpArray = grass_texture_a; }
+    (ps) {
+      grass_texture_a@texArray = grass_texture_a;
+      grass_texture_a_samplerstate@sampler = grass_texture_a_samplerstate;
+    }
   }
   if (grass_pass != depth_prepass)
   {
     (ps) {
-      grass_texture@smpArray = grass_texture;
-      grass_texture_n@smpArray = grass_texture_n;
+      grass_texture@texArray = grass_texture;
+      grass_texture_samplerstate@sampler = grass_texture_samplerstate;
+      grass_texture_n@texArray = grass_texture_n;
       smoothnessfadeParams@f2 = (grass_smoothness_fade_params.x, 1.0 / max(grass_smoothness_fade_params.y - grass_smoothness_fade_params.x, 0.001) );
+    }
+    INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
+    hlsl(ps) {
+      #define grass_texture_n_samplerstate global_linear_clamp_sampler
     }
 
     USE_PIXEL_TANGENT_SPACE()

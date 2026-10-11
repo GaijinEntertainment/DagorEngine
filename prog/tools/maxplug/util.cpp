@@ -10,7 +10,6 @@
 #include <mnmath.h>
 #include <splshape.h>
 #include <ilayer.h>
-#include <ILayerProperties.h>
 #include <modstack.h>
 #include <iskin.h>
 #include <dummy.h>
@@ -40,8 +39,6 @@
 #include "layout.h"
 
 namespace fs = std::filesystem;
-
-#define ERRMSG_DELAY 3000
 
 static const wchar_t *ENUMERATE_MATERIALS_FILENAME = L"d:/materials.txt";
 static const wchar_t *CONVERT_MATERIALS_FILENAME = L"d:/materials_conv.txt";
@@ -250,14 +247,14 @@ public:
   HWND uvUtilsRoll;
   int tc_srcch, tc_dstch, tc_mapach, sel_fid;
   float tc_uk, tc_vk, tc_uo, tc_vo;
-  ICustEdit *edsrctc, *edmapatc, *eddsttc, *etc_uk, *etc_vk, *etc_uo, *etc_vo, *edfid;
+  ControlPtr<ICustEdit> edsrctc, edmapatc, eddsttc, etc_uk, etc_vk, etc_uo, etc_vo, edfid;
   char tc_facesel;
   MappingInfo chanelbuf[MAX_MESHMAPS];
 
   // scatter
   HWND scatterRoll;
-  ICustEdit *egs_seed, *egs_objnum, *egs_sname, *egs_slope;
-  ICustEdit *egs_xydiap[2], *egs_zdiap[2];
+  ControlPtr<ICustEdit> egs_seed, egs_objnum, egs_sname, egs_slope;
+  ControlPtr<ICustEdit> egs_xydiap[2], egs_zdiap[2];
   char gs_set2norm, gs_usesmgr, gs_rotatez, gs_selfaces, gs_scalexy, gs_scalez;
   float gs_xydiap[2], gs_zdiap[2];
   float gs_slope;
@@ -267,8 +264,8 @@ public:
   // splines & smooth
   HWND splinesAndSmoothRoll;
   char mesh_smoothtu, use_smooth_grps, turn_edge, smooth_selected;
-  ICustEdit *egrassht, *egrasstile, *egrassg, *egrasssegs, *egrasssteps, *epjs_maxseglen, *epjs_optseglen, *epjs_optang, *edaround,
-    *edsharp, *edsmthiterations;
+  ControlPtr<ICustEdit> egrassht, egrasstile, egrassg, egrasssegs, egrasssteps, epjs_maxseglen, epjs_optseglen, epjs_optang, edaround,
+    edsharp, edsmthiterations;
   float grass_ht, grass_tile, grass_g, pjspl_maxseglen, pjspl_optseglen, pjspl_optang;
   int grass_segs, grass_steps;
   char grass_up, grass_usetang;
@@ -278,7 +275,7 @@ public:
   // materials
   HWND materialsRoll;
   WStr clsname;
-  ICustEdit *eclsname;
+  ControlPtr<ICustEdit> eclsname;
 
   // export to json (UE5)
   HWND exportToJsonRoll;
@@ -698,12 +695,14 @@ BOOL DagUtil::selection_brightness_dlg_proc(HWND hWnd, UINT msg, WPARAM wParam, 
       SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pThis);
       pThis->hBrightness = hWnd;
       CenterWindow(hWnd, GetParent(hWnd));
-      ICustEdit *iEdit = GetICustEdit(GetDlgItem(hWnd, IDC_CUSTOM));
+      ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hWnd, IDC_CUSTOM)));
       iEdit->SetText(30);
-      ReleaseICustEdit(iEdit);
     }
     break;
-    case WM_DESTROY: return FALSE;
+    case WM_DESTROY:
+      GetCOREInterface()->UnRegisterDlgWnd(hWnd);
+      pThis->hBrightness = NULL;
+      return FALSE;
 
     case WM_COMMAND:
       switch (LOWORD(wParam))
@@ -722,7 +721,7 @@ BOOL DagUtil::selection_brightness_dlg_proc(HWND hWnd, UINT msg, WPARAM wParam, 
       PAINTSTRUCT ps;
       HDC hdc;
       hdc = BeginPaint(hWnd, &ps);
-      ICustEdit *iEdit = GetICustEdit(GetDlgItem(hWnd, IDC_CUSTOM));
+      ControlPtr<ICustEdit> iEdit(GetICustEdit(GetDlgItem(hWnd, IDC_CUSTOM)));
       real alfa = iEdit->GetInt() * DEG_TO_RAD;
       if (alfa > 0.01 && alfa < HALFPI)
       {
@@ -756,18 +755,11 @@ BOOL DagUtil::selection_brightness_dlg_proc(HWND hWnd, UINT msg, WPARAM wParam, 
         _stprintf(buf, _T("%.6f>%.6f"), br, part);
         TextOut(hdc, 150, 220 + 40, buf, (int)_tcslen(buf));
       }
-      ReleaseICustEdit(iEdit);
       EndPaint(hWnd, &ps);
     }
     break;
 
-    case WM_CLOSE:
-    {
-      EndDialog(pThis->hBrightness, FALSE);
-      pThis->ip->UnRegisterDlgWnd(pThis->hBrightness);
-      pThis->hBrightness = NULL;
-    }
-    break;
+    case WM_CLOSE: DestroyWindow(hWnd); break;
 
     default: return FALSE;
   }
@@ -781,12 +773,6 @@ static INT_PTR CALLBACK selection_brightness_dlg_proc(HWND hw, UINT msg, WPARAM 
 
 BOOL DagUtil::dagor_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
   switch (msg)
   {
     case WM_INITDIALOG: dagor_util_update_ui(hw); break;
@@ -855,7 +841,6 @@ BOOL DagUtil::dagor_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lPara
     default: return FALSE;
   }
   return TRUE;
-#undef reled
 }
 
 
@@ -866,22 +851,16 @@ static INT_PTR CALLBACK materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPA
 
 BOOL DagUtil::materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
   switch (msg)
   {
     case WM_INITDIALOG:
-      eclsname = GetICustEdit(GetDlgItem(hw, IDC_CLSNAME));
+      eclsname.reset(GetICustEdit(GetDlgItem(hw, IDC_CLSNAME)));
       materials_update_ui(hw);
       break;
 
     case WM_DESTROY:
       materials_update_vars(hw);
-      reled(eclsname);
+      eclsname.reset();
       break;
 
     case WM_COMMAND:
@@ -953,7 +932,6 @@ BOOL DagUtil::materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam
     default: return FALSE;
   }
   return TRUE;
-#undef reled
 }
 
 static INT_PTR CALLBACK export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -1017,7 +995,6 @@ BOOL DagUtil::export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM l
     default: return FALSE;
   }
   return TRUE;
-#undef reled
 }
 
 static INT_PTR CALLBACK uv_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -1027,36 +1004,30 @@ static INT_PTR CALLBACK uv_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARA
 
 BOOL DagUtil::uv_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
   switch (msg)
   {
     case WM_INITDIALOG:
-      edfid = GetICustEdit(GetDlgItem(hw, IDC_FID));
-      edmapatc = GetICustEdit(GetDlgItem(hw, IDC_TCMAPA));
-      edsrctc = GetICustEdit(GetDlgItem(hw, IDC_TCSRC));
-      eddsttc = GetICustEdit(GetDlgItem(hw, IDC_TCDST));
-      etc_uk = GetICustEdit(GetDlgItem(hw, IDC_TCUK));
-      etc_vk = GetICustEdit(GetDlgItem(hw, IDC_TCVK));
-      etc_uo = GetICustEdit(GetDlgItem(hw, IDC_TCUO));
-      etc_vo = GetICustEdit(GetDlgItem(hw, IDC_TCVO));
+      edfid.reset(GetICustEdit(GetDlgItem(hw, IDC_FID)));
+      edmapatc.reset(GetICustEdit(GetDlgItem(hw, IDC_TCMAPA)));
+      edsrctc.reset(GetICustEdit(GetDlgItem(hw, IDC_TCSRC)));
+      eddsttc.reset(GetICustEdit(GetDlgItem(hw, IDC_TCDST)));
+      etc_uk.reset(GetICustEdit(GetDlgItem(hw, IDC_TCUK)));
+      etc_vk.reset(GetICustEdit(GetDlgItem(hw, IDC_TCVK)));
+      etc_uo.reset(GetICustEdit(GetDlgItem(hw, IDC_TCUO)));
+      etc_vo.reset(GetICustEdit(GetDlgItem(hw, IDC_TCVO)));
       uv_utils_update_ui(hw);
       break;
 
     case WM_DESTROY:
       uv_utils_update_vars(hw);
-      reled(edfid);
-      reled(edmapatc);
-      reled(edsrctc);
-      reled(eddsttc);
-      reled(etc_uk);
-      reled(etc_vk);
-      reled(etc_uo);
-      reled(etc_vo);
+      edfid.reset();
+      edmapatc.reset();
+      edsrctc.reset();
+      eddsttc.reset();
+      etc_uk.reset();
+      etc_vk.reset();
+      etc_uo.reset();
+      etc_vo.reset();
       break;
 
     case WM_COMMAND:
@@ -1138,7 +1109,6 @@ BOOL DagUtil::uv_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
     default: return FALSE;
   }
   return TRUE;
-#undef reled
 }
 
 
@@ -1149,42 +1119,36 @@ static INT_PTR CALLBACK spline_and_smooth_dlg_proc(HWND hw, UINT msg, WPARAM wPa
 
 BOOL DagUtil::spline_and_smooth_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
   switch (msg)
   {
     case WM_INITDIALOG:
-      egrassht = GetICustEdit(GetDlgItem(hw, IDC_GRASSHT));
-      egrasstile = GetICustEdit(GetDlgItem(hw, IDC_GRASSTILE));
-      egrassg = GetICustEdit(GetDlgItem(hw, IDC_GRASSGRAVITY));
-      egrasssegs = GetICustEdit(GetDlgItem(hw, IDC_GRASSSEGS));
-      epjs_optang = GetICustEdit(GetDlgItem(hw, IDC_PJS_OPTANGLE));
-      epjs_optseglen = GetICustEdit(GetDlgItem(hw, IDC_PJS_OPTSEGLEN));
-      epjs_maxseglen = GetICustEdit(GetDlgItem(hw, IDC_PJS_MAXSEGLEN));
-      egrasssteps = GetICustEdit(GetDlgItem(hw, IDC_GRASSSTEPS));
-      edsharp = GetICustEdit(GetDlgItem(hw, IDC_SHARPNESS));
-      edsmthiterations = GetICustEdit(GetDlgItem(hw, IDC_SMTHITERATIONS));
-      edaround = GetICustEdit(GetDlgItem(hw, IDC_AROUND));
+      egrassht.reset(GetICustEdit(GetDlgItem(hw, IDC_GRASSHT)));
+      egrasstile.reset(GetICustEdit(GetDlgItem(hw, IDC_GRASSTILE)));
+      egrassg.reset(GetICustEdit(GetDlgItem(hw, IDC_GRASSGRAVITY)));
+      egrasssegs.reset(GetICustEdit(GetDlgItem(hw, IDC_GRASSSEGS)));
+      epjs_optang.reset(GetICustEdit(GetDlgItem(hw, IDC_PJS_OPTANGLE)));
+      epjs_optseglen.reset(GetICustEdit(GetDlgItem(hw, IDC_PJS_OPTSEGLEN)));
+      epjs_maxseglen.reset(GetICustEdit(GetDlgItem(hw, IDC_PJS_MAXSEGLEN)));
+      egrasssteps.reset(GetICustEdit(GetDlgItem(hw, IDC_GRASSSTEPS)));
+      edsharp.reset(GetICustEdit(GetDlgItem(hw, IDC_SHARPNESS)));
+      edsmthiterations.reset(GetICustEdit(GetDlgItem(hw, IDC_SMTHITERATIONS)));
+      edaround.reset(GetICustEdit(GetDlgItem(hw, IDC_AROUND)));
       splines_and_smooth_update_ui(hw);
       break;
 
     case WM_DESTROY:
       splines_and_smooth_update_vars(hw);
-      reled(edaround);
-      reled(edsmthiterations);
-      reled(edsharp);
-      reled(egrassht);
-      reled(egrasstile);
-      reled(egrassg);
-      reled(egrasssegs);
-      reled(egrasssteps);
-      reled(epjs_maxseglen);
-      reled(epjs_optseglen);
-      reled(epjs_optang);
+      edaround.reset();
+      edsmthiterations.reset();
+      edsharp.reset();
+      egrassht.reset();
+      egrasstile.reset();
+      egrassg.reset();
+      egrasssegs.reset();
+      egrasssteps.reset();
+      epjs_maxseglen.reset();
+      epjs_optseglen.reset();
+      epjs_optang.reset();
       break;
 
     case WM_COMMAND:
@@ -1211,7 +1175,6 @@ BOOL DagUtil::spline_and_smooth_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARA
     default: return FALSE;
   }
   return TRUE;
-#undef reled
 }
 
 
@@ -1222,36 +1185,30 @@ static INT_PTR CALLBACK scatter_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARA
 
 BOOL DagUtil::scatter_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
   switch (msg)
   {
     case WM_INITDIALOG:
-      egs_objnum = GetICustEdit(GetDlgItem(hw, IDC_OBJNUM));
-      egs_seed = GetICustEdit(GetDlgItem(hw, IDC_OBJGENSEED));
-      egs_sname = GetICustEdit(GetDlgItem(hw, IDC_SELSET));
-      egs_slope = GetICustEdit(GetDlgItem(hw, IDC_GS_SLOPE));
-      egs_xydiap[0] = GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEXYS));
-      egs_xydiap[1] = GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEXYE));
-      egs_zdiap[0] = GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEZS));
-      egs_zdiap[1] = GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEZE));
+      egs_objnum.reset(GetICustEdit(GetDlgItem(hw, IDC_OBJNUM)));
+      egs_seed.reset(GetICustEdit(GetDlgItem(hw, IDC_OBJGENSEED)));
+      egs_sname.reset(GetICustEdit(GetDlgItem(hw, IDC_SELSET)));
+      egs_slope.reset(GetICustEdit(GetDlgItem(hw, IDC_GS_SLOPE)));
+      egs_xydiap[0].reset(GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEXYS)));
+      egs_xydiap[1].reset(GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEXYE)));
+      egs_zdiap[0].reset(GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEZS)));
+      egs_zdiap[1].reset(GetICustEdit(GetDlgItem(hw, IDC_GS_SCALEZE)));
       scatter_update_ui(hw);
       break;
 
     case WM_DESTROY:
       scatter_update_vars(hw);
-      reled(egs_objnum);
-      reled(egs_seed);
-      reled(egs_sname);
-      reled(egs_slope);
-      reled(egs_xydiap[0]);
-      reled(egs_xydiap[1]);
-      reled(egs_zdiap[0]);
-      reled(egs_zdiap[1]);
+      egs_objnum.reset();
+      egs_seed.reset();
+      egs_sname.reset();
+      egs_slope.reset();
+      egs_xydiap[0].reset();
+      egs_xydiap[1].reset();
+      egs_zdiap[0].reset();
+      egs_zdiap[1].reset();
       break;
 
     case WM_COMMAND:
@@ -1268,7 +1225,6 @@ BOOL DagUtil::scatter_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
     default: return FALSE;
   }
   return TRUE;
-#undef reled
 }
 
 
@@ -1285,7 +1241,6 @@ DagUtil::DagUtil()
 
   // uv utils
   uvUtilsRoll = NULL;
-  edsrctc = edmapatc = eddsttc = etc_uk = etc_vk = etc_uo = etc_vo = edfid = NULL;
   tc_mapach = tc_srcch = tc_dstch = 1;
   tc_uk = tc_vk = 2;
   tc_uo = tc_vo = .5f;
@@ -1294,9 +1249,6 @@ DagUtil::DagUtil()
 
   // scatter
   scatterRoll = NULL;
-  egs_seed = egs_objnum = egs_sname = egs_slope = NULL;
-  egs_xydiap[0] = egs_xydiap[1] = NULL;
-  egs_zdiap[0] = egs_zdiap[1] = NULL;
   gs_set2norm = true;
   gs_usesmgr = false;
   gs_selfaces = false;
@@ -1311,8 +1263,6 @@ DagUtil::DagUtil()
 
   // splines & smooth
   splinesAndSmoothRoll = NULL;
-  egrassht = egrasstile = egrassg = egrasssegs = egrasssteps = NULL;
-  epjs_maxseglen = epjs_optang = epjs_optseglen = NULL;
   grass_ht = 1;
   grass_tile = 3;
   grass_g = 0;
@@ -1330,11 +1280,9 @@ DagUtil::DagUtil()
   use_smooth_grps = 1;
   mesh_smoothtu = 0;
   merge_around = 0.000001f;
-  edaround = edsharp = edsmthiterations = NULL;
 
   // materials
   materialsRoll = NULL;
-  eclsname = NULL;
 
   // export to json
   exportToJsonRoll = NULL;
@@ -1346,13 +1294,13 @@ void DagUtil::BeginEditParams(Interface *ip, IUtil *iu)
   this->iu = iu;
 
   dagorUtilRoll = add_rollup_page(ip, IDD_DAGUTIL, ::dagor_util_dlg_proc, GetString(IDS_DAGUTIL_ROLL));
-  materialsRoll = add_rollup_page(ip, IDD_MATERIALS, ::materials_dlg_proc, GetString(IDS_MATERIALS_ROLL), 0, APPENDROLL_CLOSED);
+  materialsRoll = add_rollup_page(ip, IDD_MATERIALS, ::materials_dlg_proc, GetString(IDS_MATERIALS_ROLL), APPENDROLL_CLOSED);
   exportToJsonRoll =
-    add_rollup_page(ip, IDD_EXPORT_MAT_TO_JSON, ::export_to_json_dlg_proc, GetString(IDS_EXPORT_TO_JSON), 0, APPENDROLL_CLOSED);
-  uvUtilsRoll = add_rollup_page(ip, IDD_UV_UTILS, ::uv_util_dlg_proc, GetString(IDS_UV_UTILS_ROLL), 0, APPENDROLL_CLOSED);
+    add_rollup_page(ip, IDD_EXPORT_MAT_TO_JSON, ::export_to_json_dlg_proc, GetString(IDS_EXPORT_TO_JSON), APPENDROLL_CLOSED);
+  uvUtilsRoll = add_rollup_page(ip, IDD_UV_UTILS, ::uv_util_dlg_proc, GetString(IDS_UV_UTILS_ROLL), APPENDROLL_CLOSED);
   splinesAndSmoothRoll = add_rollup_page(ip, IDD_SPLINES_AND_SMOOTH, ::spline_and_smooth_dlg_proc,
-    GetString(IDS_SPLINES_AND_SMOOTH_ROLL), 0, APPENDROLL_CLOSED);
-  scatterRoll = add_rollup_page(ip, IDD_SCATTER, ::scatter_dlg_proc, GetString(IDS_SCATTER_ROLL), 0, APPENDROLL_CLOSED);
+    GetString(IDS_SPLINES_AND_SMOOTH_ROLL), APPENDROLL_CLOSED);
+  scatterRoll = add_rollup_page(ip, IDD_SCATTER, ::scatter_dlg_proc, GetString(IDS_SCATTER_ROLL), APPENDROLL_CLOSED);
 }
 
 void DagUtil::EndEditParams(Interface *ip, IUtil *iu)
@@ -1368,11 +1316,7 @@ void DagUtil::EndEditParams(Interface *ip, IUtil *iu)
   delete_rollup_page(ip, &scatterRoll);
 
   if (hBrightness)
-  {
-    EndDialog(hBrightness, FALSE);
-    ip->UnRegisterDlgWnd(hBrightness);
-    hBrightness = NULL;
-  }
+    DestroyWindow(hBrightness);
 }
 
 void DagUtil::dagor_util_update_ui(HWND hw)
@@ -1420,14 +1364,14 @@ void DagUtil::uv_utils_update_ui(HWND hw)
 
 void DagUtil::uv_utils_update_vars(HWND hw)
 {
-  get_edint(edfid, sel_fid);
-  get_edint(edmapatc, tc_mapach);
-  get_edint(edsrctc, tc_srcch);
-  get_edint(eddsttc, tc_dstch);
-  get_edfloat(etc_uk, tc_uk);
-  get_edfloat(etc_vk, tc_vk);
-  get_edfloat(etc_uo, tc_uo);
-  get_edfloat(etc_vo, tc_vo);
+  get_edint(edfid.get(), sel_fid);
+  get_edint(edmapatc.get(), tc_mapach);
+  get_edint(edsrctc.get(), tc_srcch);
+  get_edint(eddsttc.get(), tc_dstch);
+  get_edfloat(etc_uk.get(), tc_uk);
+  get_edfloat(etc_vk.get(), tc_vk);
+  get_edfloat(etc_uo.get(), tc_uo);
+  get_edfloat(etc_vo.get(), tc_vo);
 
   if (hw)
     get_chkbool(IDC_APPLYSELECTEDFACES, tc_facesel, hw);
@@ -1481,14 +1425,14 @@ void DagUtil::splines_and_smooth_update_vars(HWND hw)
     iterations = 1;
   if (edsmthiterations)
     edsmthiterations->SetText(iterations);
-  get_edfloat(egrassht, grass_ht);
-  get_edfloat(egrasstile, grass_tile);
-  get_edfloat(egrassg, grass_g);
-  get_edint(egrasssegs, grass_segs);
-  get_edint(egrasssteps, grass_steps);
-  get_edfloat(epjs_maxseglen, pjspl_maxseglen);
-  get_edfloat(epjs_optseglen, pjspl_optseglen);
-  get_edfloat(epjs_optang, pjspl_optang);
+  get_edfloat(egrassht.get(), grass_ht);
+  get_edfloat(egrasstile.get(), grass_tile);
+  get_edfloat(egrassg.get(), grass_g);
+  get_edint(egrasssegs.get(), grass_segs);
+  get_edint(egrasssteps.get(), grass_steps);
+  get_edfloat(epjs_maxseglen.get(), pjspl_maxseglen);
+  get_edfloat(epjs_optseglen.get(), pjspl_optseglen);
+  get_edfloat(epjs_optang.get(), pjspl_optang);
 
   if (hw)
   {
@@ -1535,13 +1479,13 @@ void DagUtil::scatter_update_vars(HWND hw)
 {
   if (egs_sname)
     egs_sname->GetText(gs_sname);
-  get_edfloat(egs_xydiap[0], gs_xydiap[0]);
-  get_edfloat(egs_xydiap[1], gs_xydiap[1]);
-  get_edfloat(egs_zdiap[0], gs_zdiap[0]);
-  get_edfloat(egs_zdiap[1], gs_zdiap[1]);
-  get_edfloat(egs_slope, gs_slope);
-  get_edint(egs_seed, gs_seed);
-  get_edint(egs_objnum, gs_objnum);
+  get_edfloat(egs_xydiap[0].get(), gs_xydiap[0]);
+  get_edfloat(egs_xydiap[1].get(), gs_xydiap[1]);
+  get_edfloat(egs_zdiap[0].get(), gs_zdiap[0]);
+  get_edfloat(egs_zdiap[1].get(), gs_zdiap[1]);
+  get_edfloat(egs_slope.get(), gs_slope);
+  get_edint(egs_seed.get(), gs_seed);
+  get_edint(egs_objnum.get(), gs_objnum);
 
   if (hw)
   {
@@ -1984,6 +1928,8 @@ public:
   {
     bool same = false;
     IDagorMat *d = (IDagorMat *)mf->GetInterface(I_DAGORMAT);
+    if (!d)
+      return NULL;
 
     for (int pos = 0; pos < mats.Count(); pos++)
     {
@@ -2067,17 +2013,6 @@ public:
     return ECB_CONT;
   }
 };
-
-void collapse_materials(Interface *ip)
-{
-  if (!ip)
-    return;
-
-  Dag2UniqueCB cbv;
-  enum_nodes(ip->GetRootNode(), &cbv);
-  ip->RedrawViews(ip->GetTime());
-}
-
 
 class Dag2DagCB : public ENodeCB
 {
@@ -3210,9 +3145,23 @@ void DagUtil::selectFloorFaces()
 }
 
 
+static bool is_map_channel_valid(int ch) { return ch >= -NUM_HIDDENMAPS && ch < MAX_MESHMAPS; }
+
+static void prompt_bad_map_channel(Interface *ip, int ch, const wchar_t *field)
+{
+  WStr s;
+  s.printf(L"Map channel %d in \"%s\" is out of range", ch, field);
+  ip->DisplayTempPrompt(s);
+}
+
 void DagUtil::copy_tch()
 {
   update_vars();
+  if (tc_srcch >= MAX_MESHMAPS)
+  {
+    prompt_bad_map_channel(ip, tc_srcch, L"from");
+    return;
+  }
   TimeValue time = ip->GetTime();
   int n = ip->GetSelNodeCount();
   int i;
@@ -3263,6 +3212,16 @@ void DagUtil::copy_tch()
 void DagUtil::paste_tch()
 {
   update_vars();
+  if (tc_dstch >= MAX_MESHMAPS)
+  {
+    prompt_bad_map_channel(ip, tc_dstch, L"to");
+    return;
+  }
+  if (tc_dstch >= 0 && (tc_srcch < 0 || tc_srcch >= MAX_MESHMAPS))
+  {
+    prompt_bad_map_channel(ip, tc_srcch, L"from");
+    return;
+  }
   TimeValue time = ip->GetTime();
   int n = ip->GetSelNodeCount();
   for (int i = 0; i < n; ++i)
@@ -3320,6 +3279,24 @@ void DagUtil::paste_tch()
 void DagUtil::copy_tch(TCCOPY tc)
 {
   update_vars();
+  const bool usesFromTo = tc == CTC_COPY || tc == CTC_MOVE || tc == CTC_SWAP;
+  const bool usesFrom = usesFromTo || tc == CTC_KILL;
+  const bool usesCh = !usesFrom && tc != CTC_INFO;
+  if (usesFrom && !is_map_channel_valid(tc_srcch))
+  {
+    prompt_bad_map_channel(ip, tc_srcch, L"from");
+    return;
+  }
+  if (usesFromTo && !is_map_channel_valid(tc_dstch))
+  {
+    prompt_bad_map_channel(ip, tc_dstch, L"to");
+    return;
+  }
+  if (usesCh && !is_map_channel_valid(tc_mapach))
+  {
+    prompt_bad_map_channel(ip, tc_mapach, L"ch");
+    return;
+  }
   TimeValue time = ip->GetTime();
   int n = ip->GetSelNodeCount();
   bool result = n ? true : false;
@@ -3644,11 +3621,11 @@ void DagUtil::make_grass()
     ip->DisplayTempPrompt(GetString(IDS_SEL_1_OBJ));
     return;
   }
-  get_edfloat(egrassht, grass_ht);
-  get_edfloat(egrasstile, grass_tile);
-  get_edfloat(egrassg, grass_g);
-  get_edint(egrasssegs, grass_segs);
-  get_edint(egrasssteps, grass_steps);
+  get_edfloat(egrassht.get(), grass_ht);
+  get_edfloat(egrasstile.get(), grass_tile);
+  get_edfloat(egrassg.get(), grass_g);
+  get_edint(egrasssegs.get(), grass_segs);
+  get_edint(egrasssteps.get(), grass_steps);
   get_chkbool(IDC_GRASSUP, grass_up, splinesAndSmoothRoll);
   get_chkbool(IDC_GRASSUSETANG, grass_usetang, splinesAndSmoothRoll);
   TimeValue time = ip->GetTime();
@@ -3701,9 +3678,9 @@ void DagUtil::project_spline()
     ip->DisplayTempPrompt(GetString(IDS_SEL_1_OBJ));
     return;
   }
-  get_edfloat(epjs_maxseglen, pjspl_maxseglen);
-  get_edfloat(epjs_optseglen, pjspl_optseglen);
-  get_edfloat(epjs_optang, pjspl_optang);
+  get_edfloat(epjs_maxseglen.get(), pjspl_maxseglen);
+  get_edfloat(epjs_optseglen.get(), pjspl_optseglen);
+  get_edfloat(epjs_optang.get(), pjspl_optang);
   TimeValue time = ip->GetTime();
   INode *node = ip->GetSelNode(0);
   Object *obj = node->EvalWorldState(time).obj;
@@ -4230,8 +4207,7 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
         mesh_face_sel(m).Clear(f1);
         continue;
       }
-      int v1, v2, v3, v4;
-      v1 = mesh.faces[f1].v[(he == 0) ? 2 : (he - 1)];
+      int v2, v3, v4;
       v2 = mesh.faces[f1].v[he];
       v3 = mesh.faces[f1].v[(he == 2) ? 0 : (he + 1)];
       int me = ae.FindEdge(v2, v3);
@@ -4404,7 +4380,6 @@ void DagUtil::smooth_mesh(INode *node, Mesh &m)
       }
   }
 
-  Tab<int> todel;
   Tab<int> fcsedg[2];
   fcsedg[0].Resize(m.getNumFaces());
   fcsedg[0].SetCount(m.getNumFaces());
@@ -4797,20 +4772,6 @@ int enum_nodes(INode *node, ENodeCB *cb)
     }
   }
   return 1;
-}
-
-void enum_layer_nodes(ILayer *layer, ENodeCB *cb)
-{
-  if (!layer)
-    return;
-  ILayerProperties *layerProp = (ILayerProperties *)layer->GetInterface(LAYERPROPERTIES_INTERFACE);
-  Tab<INode *> nodes;
-  layerProp->Nodes(nodes);
-  for (int i = 0; i < nodes.Count(); ++i)
-  {
-    cb->proc(nodes[i]);
-    enum_nodes(nodes[i], cb);
-  }
 }
 
 void enum_nodes_by_node(INode *node, ENodeCB *cb)

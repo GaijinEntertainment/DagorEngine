@@ -13,18 +13,19 @@
 
 static void handle_plural_form(String &string_to_handle, int64_t num, const char *const num_name)
 {
-  String tmpKey;
+  String tmpKey(framemem_ptr());
   tmpKey.printf(32, "{%s=", num_name);
-  const char *tokenStart = NULL, *tokenEnd = NULL;
+  int searchOfs = 0;
   while (true)
   {
-    tokenStart = string_to_handle.find(tmpKey, tokenStart);
-    tokenEnd = string_to_handle.find("}", tokenStart);
+    const char *tokenStart = string_to_handle.find(tmpKey, string_to_handle.str() + searchOfs);
+    const char *tokenEnd = string_to_handle.find("}", tokenStart);
     if (!tokenStart || !tokenEnd)
       return;
     tokenEnd += 1;
+    searchOfs = int(tokenStart - string_to_handle.str());
 
-    String pluralStr;
+    String pluralStr(framemem_ptr());
     pluralStr.setSubStr(tokenStart, tokenEnd);
     int formId = get_plural_form_id(num);
 
@@ -47,7 +48,8 @@ static void handle_plural_form(String &string_to_handle, int64_t num, const char
     if (tmpPos)
       wordEnd = tmpPos;
 
-    String word = String::mk_sub_str(wordStart, wordEnd);
+    String word(framemem_ptr());
+    word.setSubStr(wordStart, wordEnd);
     string_to_handle.replace(pluralStr.str(), word);
   }
 }
@@ -88,7 +90,7 @@ static void read_loc_params(HSQUIRRELVM v, int tbl_idx, Tab<LocParam> &out)
 
 static void apply_loc_params(String &text, const Tab<LocParam> &params)
 {
-  String token;
+  String token(framemem_ptr());
   for (const LocParam &p : params)
   {
     token.printf(32, "{%s}", p.name);
@@ -250,7 +252,7 @@ void register_dagor_localization_module(SqModules *module_mgr)
   Sqrat::Table exports(vm);
   ///@module dagor.localize
   exports //
-    .SquirrelFuncDeclString(&localize, "pure loc(key: string|null, ...): string")
+    .SquirrelFuncDeclString(&localize, "pure loc(key: string|null, ...): string|null")
     .SquirrelFuncDeclString(&localize_for_lang, "pure getLocTextForLang(key: string, lang: string|null, ...): string")
     .SquirrelFuncDeclString(process_chinese_string_with_tab, "pure processHypenationsCN(str: string): string")
     .SquirrelFuncDeclString(process_japanese_string_with_tab, "pure processHypenationsJP(str: string): string")

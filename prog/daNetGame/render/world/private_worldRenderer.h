@@ -594,6 +594,7 @@ protected:
   // should be called after startVisibility
   void startLightsCullingJob();
   void waitAllJobs();
+  void waitRiCullJobsAtFrameEnd();
 
   // optional heightmap
   void updateDistantHeightmap();

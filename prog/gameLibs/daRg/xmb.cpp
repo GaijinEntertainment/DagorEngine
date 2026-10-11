@@ -5,6 +5,7 @@
 #include "inputStack.h"
 #include "dirPadNav.h"
 #include <daRg/dag_element.h>
+#include <daRg/dag_stringKeys.h>
 #include <math/integer/dag_IPoint2.h>
 
 namespace darg
@@ -45,7 +46,7 @@ BBox2 calc_xmb_viewport(Element *node, Element **nearest_xmb_viewport)
     return viewport;
   for (Element *e = node->xmb->xmbParent; e; e = e->parent)
   {
-    bool isXmbViewport = e->xmb && e->xmb->nodeDesc.RawGetSlotValue("isViewport", false);
+    bool isXmbViewport = e->xmb && e->xmb->nodeDesc.RawGetSlotValue(e->csk->isViewport, false);
 
     if (isXmbViewport && nearest_xmb_viewport && !*nearest_xmb_viewport)
       *nearest_xmb_viewport = e;

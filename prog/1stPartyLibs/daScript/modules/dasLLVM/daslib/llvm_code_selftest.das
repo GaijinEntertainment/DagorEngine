@@ -47,9 +47,8 @@ def private add_plus_k_gen(var gc : LlvmCodeCtx) : bool {
 }
 
 // companion worked example (the [tune_companion] self-test vehicle): emits `return k` for a
-// `() : int` stub — the same perm arg the main generator gets, observable on the sibling.
-// Declines in lockstep with add_plus_k_gen (the same decline=true rail), which is the
-// two-function-stamp coherence contract.
+// `() : int` stub — the same perm arg the main generator gets, observable on the sibling. Declines
+// in lockstep with add_plus_k_gen (decline=true), which is the two-function-stamp coherence contract.
 def private k_value_gen(var gc : LlvmCodeCtx) : bool {
     if (!empty(gc.fn.arguments) || gc.fn.result.baseType != Type.tInt) return false
     let dv = find_arg(gc.ann.arguments, "decline")
@@ -74,6 +73,29 @@ def private host_features_gen(var gc : LlvmCodeCtx) : bool {
     return true
 }
 
+// bakes the emitter's tier gates into a `() : int` stub as a bitmask (bit 0 avx2, 1 f16c,
+// 2 vnni256, 3 avx512bw, 4 avx512vnni, 5 avx512vbmi, 6 vnniint8, 7 amx, 8 arm dotprod, 9 i8mm,
+// 10 fullfp16) — the artifact-side witness of which class a build emitted for.
+def private tier_bits_gen(var gc : LlvmCodeCtx) : bool {
+    if (!empty(gc.fn.arguments) || gc.fn.result.baseType != Type.tInt) return false
+    var bits = 0ul
+    bits |= g_target_x64_avx2 ? 1ul : 0ul
+    bits |= g_target_x64_f16c ? 2ul : 0ul
+    bits |= g_target_x64_vnni256 ? 4ul : 0ul
+    bits |= g_target_x64_avx512bw ? 8ul : 0ul
+    bits |= g_target_x64_avx512vnni ? 16ul : 0ul
+    bits |= g_target_x64_avx512vbmi ? 32ul : 0ul
+    bits |= g_target_x64_vnniint8 ? 64ul : 0ul
+    bits |= g_target_x64_amx ? 128ul : 0ul
+    bits |= g_target_arm64_dotprod ? 256ul : 0ul
+    bits |= g_target_arm64_i8mm ? 512ul : 0ul
+    bits |= g_target_arm64_fullfp16 ? 1024ul : 0ul
+    var entry = LLVMAppendBasicBlockInContext(gc.jit.ctx, gc.impl, "entry")
+    LLVMPositionBuilderAtEnd(gc.jit.builder, entry)
+    LLVMBuildRet(gc.jit.builder, gc.jit.types->ConstI32(bits))
+    return true
+}
+
 // Called from llvm_user_modules::register_user_llvm_code_generators — the JIT invokes that
 // in the context that reads the registry, so the direct call lands in the right table copy.
 [macro_function]
@@ -82,4 +104,5 @@ def public register_selftest {
     register_llvm_code_generator("llvm_code_selftest::add_plus_k", @@add_plus_k_gen)
     register_llvm_code_generator("llvm_code_selftest::k_value", @@k_value_gen)
     register_llvm_code_generator("llvm_code_selftest::host_features", @@host_features_gen)
+    register_llvm_code_generator("llvm_code_selftest::tier_bits", @@tier_bits_gen)
 }

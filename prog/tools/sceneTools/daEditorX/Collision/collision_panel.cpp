@@ -8,7 +8,6 @@
 #include <libTools/dagFileRW/dagUtil.h>
 
 #include <scene/dag_physMat.h>
-#include <perfMon/dag_visClipMesh.h>
 #include <osApiWrappers/dag_direct.h>
 #include <coolConsole/coolConsole.h>
 
@@ -73,7 +72,7 @@ void CollisionPropPanelClient::setCollisionParams()
 
   PropPanel::ContainerPropertyControl *maxGroup = mPanelWindow->createGroup(CM_PID_EDITOR_GRP, "Collision parameters");
 
-  maxGroup->createEditFloat(CM_PID_EDITOR_VCM_RAD, "Visibility radius:", get_vcm_rad());
+  maxGroup->createEditFloat(CM_PID_EDITOR_VCM_RAD, "Visibility radius:", plugin->vcmRad);
   maxGroup->createStatic(0, "Preview");
   maxGroup->createCheckBox(CM_PID_SHOW_GAME_FRT, "Game", plugin->showGameFrt, true, false);
   maxGroup->createCheckBox(CM_PID_SHOW_ED_FRT, "Editor", !plugin->showGameFrt, true, false);
@@ -82,7 +81,7 @@ void CollisionPropPanelClient::setCollisionParams()
   maxGroup->createSeparator(0);
   maxGroup->createCheckBox(CM_PID_SHOW_DAGS, "Show DAGs collision", plugin->showDags);
   maxGroup->createSeparator(0);
-  maxGroup->createPoint3(CM_PID_EDITOR_LEAF_SIZE, "Leaf size:", stg.leafSize());
+  maxGroup->createPoint3(CM_PID_EDITOR_LEAF_SIZE, "Leaf size:", stg.leafSize);
   maxGroup->createEditInt(CM_PID_EDITOR_LEVELS_COUNT, "Levels count:", stg.levels);
   maxGroup->createIndent();
 
@@ -101,24 +100,20 @@ void CollisionPropPanelClient::fillPanel() { setCollisionParams(); }
 
 void CollisionPropPanelClient::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  bool changed = false;
-
   switch (pcb_id)
   {
     case CM_PID_EDITOR_VCM_RAD:
-      set_vcm_rad(panel->getFloat(pcb_id));
-      changed = true;
+      plugin->vcmRad = panel->getFloat(pcb_id);
+      DAGORED2->repaint();
       break;
 
     case CM_PID_SHOW_VCM:
       plugin->showVcm = panel->getBool(pcb_id);
-      ::set_vcm_visible(plugin->getVisible() ? plugin->showVcm : false);
       DAGORED2->invalidateViewportCache();
       break;
 
     case CM_PID_SHOW_VCM_WIRE:
       plugin->showVcmWire = panel->getBool(pcb_id);
-      ::set_vcm_draw_type(plugin->showVcmWire);
       DAGORED2->invalidateViewportCache();
       break;
 
@@ -134,15 +129,9 @@ void CollisionPropPanelClient::onChange(int pcb_id, PropPanel::ContainerProperty
       panel->setBool(CM_PID_SHOW_GAME_FRT, plugin->showGameFrt);
       break;
 
-    case CM_PID_EDITOR_LEAF_SIZE:
-      stg.leafSize() = panel->getPoint3(pcb_id);
-      changed = true;
-      break;
+    case CM_PID_EDITOR_LEAF_SIZE: stg.leafSize = panel->getPoint3(pcb_id); break;
 
-    case CM_PID_EDITOR_LEVELS_COUNT:
-      stg.levels = panel->getInt(pcb_id);
-      changed = true;
-      break;
+    case CM_PID_EDITOR_LEVELS_COUNT: stg.levels = panel->getInt(pcb_id); break;
   }
 
 
@@ -153,12 +142,6 @@ void CollisionPropPanelClient::onChange(int pcb_id, PropPanel::ContainerProperty
   {
     int index = (pcb_id - CM_PID_MATERIAL_COLOR_BASE) / MATER_PARAMS_NUM;
     changeColor(index, panel->getColor(pcb_id));
-    changed = true;
-  }
-
-  if (changed)
-  {
-    plugin->initCollision(false);
     DAGORED2->repaint();
   }
 }

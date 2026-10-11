@@ -53,7 +53,7 @@ require test_stages_extra
 [test]
 def test_two_stage(t : T?) {
     restart()
-    for (i in range(3)) {
+    for (_i in range(3)) {
         create_entity() @(eid, cmp) {
             cmp.visible := false
         }

@@ -130,16 +130,22 @@ public:
     // test switches
     for (int i = 1; i < dgs_argc; ++i)
     {
-      if (dgs_argv[i][0] != '/' && dgs_argv[i][0] != '-')
+      if (dgs_argv[i][0] != '-')
       {
         const char *ext = ::get_file_ext(dgs_argv[i]);
 
         if (ext && !stricmp(ext, "dcmd"))
         {
           if (::dd_file_exist(dgs_argv[i]))
+          {
             batchFname = dgs_argv[i];
+          }
           else
-            logwarn("Batch file \"%s\" does not exist!", dgs_argv[i]);
+          {
+            logerr("Batch file \"%s\" does not exist!", dgs_argv[i]);
+            flush_debug_file();
+            _exit(1);
+          }
         }
       }
       if (strnicmp(dgs_argv[i], "-ws:", 4) == 0)
@@ -168,15 +174,19 @@ public:
     int pc = ddsx::load_plugins(::make_full_path(sgg::get_exe_path_full(), "plugins/ddsx"));
     debug("loaded %d DDSx export plugin(s)", pc);
 
+    if (batchFname)
+    {
+      if (d3d::get_driver_code().is(!d3d::stub))
+        dgs_report_fatal_error = quiet_report_fatal_error;
+      global_batch_fn = ::make_full_path(sgg::get_start_path(), batchFname);
+      on_batch_exit = &on_global_batch_exit;
+      global_batch = get_cmd_queue_batch();
+    }
+
     if (batchFname && !asyncBatch)
     {
       ConBatch batch;
-      if (d3d::get_driver_code().is(!d3d::stub))
-        dgs_report_fatal_error = quiet_report_fatal_error;
-
-      global_batch_fn = ::make_full_path(sgg::get_start_path(), batchFname);
       global_batch = &batch;
-      on_batch_exit = &on_global_batch_exit;
 
       debug("start batch: %s", global_batch_fn.str());
       SplashScreen::kill();
@@ -213,15 +223,9 @@ public:
     if (batchFname && asyncBatch)
     {
       ConBatch batch;
-      if (d3d::get_driver_code().is(!d3d::stub))
-        dgs_report_fatal_error = quiet_report_fatal_error;
-
-      global_batch_fn = ::make_full_path(sgg::get_start_path(), batchFname);
-      global_batch = get_cmd_queue_batch();
-      on_batch_exit = &on_global_batch_exit;
-
       debug("start async batch: %s", global_batch_fn.str());
-      batch.runBatch(global_batch_fn, true);
+      if (batch.runBatch(global_batch_fn, true))
+        set_cmd_queue_abort_handler([] { DAGORED2->getConsole().runCommand("exit no"); });
     }
   }
 

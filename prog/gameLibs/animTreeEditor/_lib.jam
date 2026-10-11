@@ -1,0 +1,5 @@
+# Links tools/libTools propPanel and winGuiWrapper. A game is to get this lib
+# through animgraphPropPanel, whose _lib.jam holds the game gate for that link.
+if $(BuildingTools) = yes {
+  UseProgLibs += gameLibs/animTreeEditor ;
+}

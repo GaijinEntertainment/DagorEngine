@@ -741,9 +741,6 @@ int LpTextureTable::compareTextureItems(const void *item1, const void *item2, co
   const TextureTableItem *texItem1 = static_cast<const TextureTableItem *>(item1);
   const TextureTableItem *texItem2 = static_cast<const TextureTableItem *>(item2);
 
-  if (!texItem1 || !texItem2)
-    return 0;
-
   for (int i = 0; i < sort_specs->SpecsCount; i++)
   {
     const ImGuiTableColumnSortSpecs *spec = &sort_specs->Specs[i];

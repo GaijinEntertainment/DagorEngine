@@ -77,7 +77,7 @@ const char *image_view_state_type_to_cstr(const int type)
   return "INVALID";
 }
 
-void append_arg(String &target, Query *const &arg, const char *) { target.aprintf(32, "%d:Query", arg->getRaw()); }
+void append_arg(String &target, Query *const &arg, const char *) { target.aprintf(32, "%llu:Query", arg->getRaw()); }
 
 void append_arg(String &target, Image *const &arg, const char *)
 {
@@ -146,12 +146,12 @@ void append_arg(String &target, RaytraceAccelerationStructureType const &arg, co
 
 void append_arg(String &target, BufferResourceReferenceAndRange const &arg, const char *)
 {
-  target.aprintf(64, "{buffer: 0x%p, offset: %d, size: %d}", arg.buffer, arg.offset, arg.size);
+  target.aprintf(64, "{buffer: 0x%p, offset: %llu, size: %llu}", arg.buffer, arg.offset, arg.size);
 }
 
 void append_arg(String &target, HostDeviceSharedMemoryRegion const &arg, const char *)
 {
-  target.aprintf(64, "HostDeviceSharedMemoryRegion{buffer: 0x%p, source: %s, range:%d-%d}", arg.buffer,
+  target.aprintf(64, "HostDeviceSharedMemoryRegion{buffer: 0x%p, source: %s, range:%llu-%llu}", arg.buffer,
     host_device_shader_memory_region_source_to_cstr(arg.source), arg.range.start, arg.range.stop);
 }
 
@@ -206,13 +206,13 @@ void append_arg(String &target, GpuPipeline const &arg, const char *)
   }
 }
 
-void append_arg(String &target, uint64_t const &arg, const char *) { target.aprintf(32, "%d", arg); }
+void append_arg(String &target, uint64_t const &arg, const char *) { target.aprintf(32, "%llu", arg); }
 
 void append_arg(String &target, uint32_t const &arg, const char *) { target.aprintf(32, "%d", arg); }
 
 void append_arg(String &target, uint8_t const &arg, const char *) { target.aprintf(32, "%d", arg); }
 
-void append_arg(String &target, int64_t const &arg, const char *) { target.aprintf(32, "%d", arg); }
+void append_arg(String &target, int64_t const &arg, const char *) { target.aprintf(32, "%lld", arg); }
 
 void append_arg(String &target, int32_t const &arg, const char *) { target.aprintf(32, "%d", arg); }
 
@@ -276,7 +276,7 @@ void append_arg(String &target, BufferGlobalId const &arg, const char *)
 
 void append_arg(String &target, BufferReference const &arg, const char *)
 {
-  target.aprintf(128, "BufferReference{buffer: 0x%p, offset: %d, size: %d, resourceId: ", arg.buffer, arg.offset, arg.size);
+  target.aprintf(128, "BufferReference{buffer: 0x%p, offset: %llu, size: %llu, resourceId: ", arg.buffer, arg.offset, arg.size);
   append_arg(target, arg.resourceId, nullptr);
   target.aprintf(128, ", srv: 0x%p, uav: 0x%p, clearview: 0x%p, gpuPointer: 0x%p, cpuPointer: 0x%p}", arg.srv.ptr, arg.uav.ptr,
     arg.clearView.ptr, arg.gpuPointer(), arg.cpuPointer());
@@ -300,14 +300,14 @@ void append_arg(String &target, BufferResourceReferenceAndAddressRange const &ar
 {
   target.aprintf(64, "BufferResourceReferenceAndAddressRange{buffer: 0x%p, resourceId: ", arg.buffer);
   append_arg(target, arg.resourceId, nullptr);
-  target.aprintf(32, ", gpuPointer: 0x%p, size: %d}", arg.gpuPointer, arg.size);
+  target.aprintf(32, ", gpuPointer: 0x%p, size: %llu}", arg.gpuPointer, arg.size);
 }
 
 void append_arg(String &target, BufferResourceReferenceAndOffset const &arg, const char *)
 {
   target.aprintf(64, "BufferResourceReferenceAndOffset{buffer: 0x%p, resourceId: ", arg.buffer);
   append_arg(target, arg.resourceId, nullptr);
-  target.aprintf(32, ", offset: %d}", arg.offset);
+  target.aprintf(32, ", offset: %llu}", arg.offset);
 }
 
 void append_arg(String &target, BufferResourceReferenceAndShaderResourceView const &arg, const char *)
@@ -622,6 +622,30 @@ void append_arg(String &target, DXGI_FORMAT const &arg, const char *)
     APPEND_ENUM_AS_STRING(target, , DXGI_FORMAT_FORCE_UINT)
     APPEND_ENUM_DEFAULT(target, "INVALID")
   }
+}
+
+void append_arg(String &target, ResourceBarrier barrier, const char *type)
+{
+  target += type;
+  target += "{";
+  bool hasFlag = false;
+  auto leftOver = decode_to_strings(barrier, [&](auto name) {
+    if (hasFlag)
+    {
+      target.append(" | ", 3);
+    }
+    target.append(name.data(), name.length());
+    hasFlag = true;
+  });
+  if (RB_NONE != leftOver)
+  {
+    if (hasFlag)
+    {
+      target.append(" | ", 3);
+    }
+    target.aprintf(128, "<unknown flags with %016llX>", static_cast<uint64_t>(leftOver));
+  }
+  target.aprintf(128, " = %016llX}", static_cast<uint64_t>(barrier));
 }
 
 template <typename T>

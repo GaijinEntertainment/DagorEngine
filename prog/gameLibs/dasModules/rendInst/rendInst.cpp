@@ -93,7 +93,7 @@ public:
     das::addUsing<rendinst::CollisionInfo>(*this, lib, " ::rendinst::CollisionInfo");
 
     G_STATIC_ASSERT(sizeof(rendinst::riex_handle_t) == sizeof(uint64_t));
-    auto pType = new das::TypeDecl(das::Type::tUInt64);
+    auto pType = new das::TypeDecl(das::Type::tUInt64, das::cppBindingLineInfo());
     pType->alias = "riex_handle_t";
     addAlias(pType);
 

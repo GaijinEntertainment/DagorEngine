@@ -6,6 +6,7 @@
 
 #include <generic/dag_carray.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_functionRef.h>
 #include <drv/3d/dag_resId.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_lockTexture.h>
@@ -52,6 +53,16 @@ enum class Spectrum : uint8_t
 
 G_STATIC_ASSERT((int)fft_water::Spectrum::LAST == 1);
 static const char *spectrum_names[(int)Spectrum::LAST + 1] = {"phillips", "unified_directional"};
+
+enum class WavePresetTable : uint8_t
+{
+  PHILLIPS = 0,
+  UNIFIED_DIRECTIONAL = 1,
+  PHILLIPS_DETAIL = 2, // the Phillips presets with the ripple of Beaufort 1 from Beaufort 1 up
+  LAST = PHILLIPS_DETAIL
+};
+G_STATIC_ASSERT((int)WavePresetTable::LAST == 2);
+static const char *wave_preset_table_names[(int)WavePresetTable::LAST + 1] = {"phillips", "unified_directional", "phillips_detail"};
 
 struct SimulationParams
 {
@@ -325,7 +336,7 @@ void set_render_quad(FFTWater *water, const BBox2 &quad);
 void render(const FFTWater *water, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, Occlusion *occlusion,
   const Driver3dPerspective &persp, int geom_lod_quality = GEOM_LOD_NORMAL, int survey_id = -1,
   IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER,
-  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {});
+  dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb = {});
 float getGridLod0AreaSize(const FFTWater *water);
 void setGridLod0AdditionalTesselation(FFTWater *water, float additional_tesselation);
 void setAnisotropy(FFTWater *water, int aniso, float mip_bias = 0.f);
@@ -455,9 +466,8 @@ void load_wave_presets(const DataBlock &blk, WavePresets &out_waves);
 void save_wave_preset(DataBlock *presetBlk, WavePreset &preset);
 
 void apply_wave_preset(FFTWater *water, const WavePreset &preset, const Point2 &wind_dir);
-void apply_wave_preset(FFTWater *water, const WavePreset &preset1, const WavePreset &preset2, float alpha, const Point2 &wind_dir);
 void apply_wave_preset(FFTWater *water, const WavePresets &waves, float bf_scale, const Point2 &wind_dir);
-void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, Spectrum spectrum);
+void apply_wave_preset(FFTWater *water, float bf_scale, const Point2 &wind_dir, WavePresetTable table);
 
 void get_wave_preset(const FFTWater *water, WavePreset &out_preset);
 void set_wind(FFTWater *water, float bf_scale, const Point2 &wind_dir);

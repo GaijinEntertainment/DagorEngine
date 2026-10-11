@@ -30,7 +30,7 @@ def checkSeq(t : T?; var gen : iterator<int>; expected : array<int>) {
 }
 
 def test_yield(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         yield 0
         yield 1
         yield 2
@@ -47,7 +47,7 @@ def test_yield(t : T?) {
 }
 
 def test_local(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         yield t++
         yield t++
@@ -65,7 +65,7 @@ def test_local(t : T?) {
 }
 
 def test_local_ref(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         var T : int& = t
         yield t++
@@ -84,7 +84,7 @@ def test_local_ref(t : T?) {
 }
 
 def test_if(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         yield t++
         if (t == 1) {
@@ -122,7 +122,7 @@ def test_if(t : T?) {
 }
 
 def test_while(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         while (t < 10) {
             yield t ++
@@ -133,7 +133,7 @@ def test_while(t : T?) {
 }
 
 def test_while_break(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         while (t < 100) {
             if (t == 10) {
@@ -147,7 +147,7 @@ def test_while_break(t : T?) {
 }
 
 def test_while_continue(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         while (t < 100) {
             if (t >= 10) {
@@ -162,7 +162,7 @@ def test_while_continue(t : T?) {
 }
 
 def test_while_nested(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var q = 0
         while (q < 2) {
             var t = 0
@@ -180,7 +180,7 @@ def test_while_finally(t : T?) {
     // per-iteration semantics: finally runs at the end of every iteration of the body,
     // NOT once after the loop. `yield 9` fires interleaved after each body yield.
     // cond becomes false -> finally does NOT run for that phantom iteration.
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         while (t < 9) {
             yield t ++
@@ -194,7 +194,7 @@ def test_while_finally(t : T?) {
 
 def test_while_finally_break(t : T?) {
     // break routes through finally once (current iteration's finally), then exits
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         while (t < 100) {
             yield t ++
@@ -214,7 +214,7 @@ def test_while_finally_break(t : T?) {
 
 def test_while_finally_continue(t : T?) {
     // continue routes through finally (same as normal end of iter), then loops back
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         var t = 0
         while (t < 5) {
             t ++
@@ -238,7 +238,7 @@ def test_while_finally_continue(t : T?) {
 
 def test_while_finally_empty(t : T?) {
     // empty loop: body never enters, finally never runs
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         while (false) {
             yield 1
         } finally {
@@ -250,7 +250,7 @@ def test_while_finally_empty(t : T?) {
 }
 
 def test_for(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(10)) {
             yield t
         }
@@ -260,7 +260,7 @@ def test_for(t : T?) {
 }
 
 def test_for_break(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(100)) {
             if (t == 10) {
                 break
@@ -273,7 +273,7 @@ def test_for_break(t : T?) {
 }
 
 def test_for_continue(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(100)) {
             if (t >= 10) {
                 continue
@@ -286,7 +286,7 @@ def test_for_continue(t : T?) {
 }
 
 def test_for_nested(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (q in range(2)) {
             for (t in range(5)) {
                 yield q * 5 + t
@@ -301,7 +301,7 @@ def test_for_finally(t : T?) {
     // per-iteration semantics: finally runs at mid_loop (after body, before iterator_next)
     // for N iterations we get N body yields and N finally yields, interleaved.
     // On iterator exhaustion: initial !loop check jumps past finally (skipped for empty or post-last).
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(9)) {
             yield t
         } finally {
@@ -313,7 +313,7 @@ def test_for_finally(t : T?) {
 }
 
 def test_for_finally_break(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(100)) {
             yield t
             if (t == 2) {
@@ -331,7 +331,7 @@ def test_for_finally_break(t : T?) {
 }
 
 def test_for_finally_continue(t : T?) {
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(5)) {
             if (t % 2 == 0) {
                 continue
@@ -350,9 +350,45 @@ def test_for_finally_continue(t : T?) {
     checkSeq(t, gen, [99, 1, 99, 99, 3, 99, 99])
 }
 
+def test_for_range_flavors(t : T?) {
+    var gen <- generator<int> {
+        for (u in urange(3u)) {
+            yield int(u)
+        }
+        for (l in range64(3l, 7l)) {
+            yield int(l)
+        }
+        for (ul in urange64(7ul, 10ul)) {
+            yield int(ul)
+        }
+        return false
+    }
+    checkIt(t, gen)
+}
+
+def test_for_two_ranges(t : T?) {
+    var gen <- generator<int> {
+        for (a, _b in range(10), range(100, 200)) {
+            yield a
+        }
+        return false
+    }
+    checkIt(t, gen)
+}
+
+def test_for_range_and_iterator(t : T?) {
+    var gen <- generator<int> {
+        for (c, _i in "0123456789", range(10)) {
+            yield c - 48
+        }
+        return false
+    }
+    checkIt(t, gen)
+}
+
 def test_for_finally_empty(t : T?) {
     // empty iterator: body never enters, finally never runs
-    var gen <- generator<int>() <| $() {
+    var gen <- generator<int> {
         for (t in range(0)) {
             yield t
         } finally {
@@ -385,4 +421,7 @@ def test_generators(t : T?) {
     t |> run("for finally + break in generator") @(t : T?) { test_for_finally_break(t); }
     t |> run("for finally + continue in generator") @(t : T?) { test_for_finally_continue(t); }
     t |> run("for finally empty in generator") @(t : T?) { test_for_finally_empty(t); }
+    t |> run("for over every range flavor") @(t : T?) { test_for_range_flavors(t); }
+    t |> run("for over two ranges") @(t : T?) { test_for_two_ranges(t); }
+    t |> run("for over range and iterator") @(t : T?) { test_for_range_and_iterator(t); }
 }

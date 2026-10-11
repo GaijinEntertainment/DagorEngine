@@ -2,6 +2,7 @@ include "land_block_inc.dshl"
 include "water_heightmap.dshl"
 include "rendinst_heightmap_ofs.dshl"
 include "vtex.dshl"
+include "clipmap_decals_common.dshl"
 
 int clipmap_decal_array_tex = 0;
 interval clipmap_decal_array_tex: off<1, on;
@@ -26,16 +27,21 @@ macro CLIPMAP_DECALS_COMMON()
   if (clipmap_decal_array_tex == off)
   {
     (ps) {
-      d_tex@smp2d = clipmap_decal_diffuse_tex;
-      n_tex@smp2d = clipmap_decal_normal_tex;
+      d_tex@tex2d = clipmap_decal_diffuse_tex;
+      n_tex@tex2d = clipmap_decal_normal_tex;
     }
   }
   else
   {
     (ps) {
-      d_tex@smpArray = clipmap_decal_diffuse_tex;
-      n_tex@smpArray = clipmap_decal_normal_tex;
+      d_tex@texArray = clipmap_decal_diffuse_tex;
+      n_tex@texArray = clipmap_decal_normal_tex;
     }
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define d_tex_samplerstate global_linear_wrap_sampler
+    #define n_tex_samplerstate global_linear_wrap_sampler
   }
   USE_CLIPMAP_MRT_OUTPUT()
 
@@ -75,72 +81,33 @@ macro CLIPMAP_DECALS_COMMON()
     }
   }
 
+  USE_CLIPMAP_DECALS_DEFAULT_VERTEX_SHADING(vs, clipmap_decal_array_tex == on)
   hlsl(vs) {
-
-    #define NUM_CONSTS_PER_INST 3
-
     VsOutput landmesh_decal_clipmap_vs(uint vertexId : SV_VertexID)
     {
+      DecalsVertexData data = clipmap_decals_default_vertex_shading(decal_params, vertexId, decal_size_scale);
+
       VsOutput output;
-      uint instanceId = vertexId/4;
-      uint vertex = vertexId%4;
+      output.pos.xy = mul(float4(data.worldPosXZ.x, 0, data.worldPosXZ.y, 1), globtm).xy;
+      output.pos.zw = float2(0.5, 1.0);
 
-      float2 pos = int2(vertex % 2, vertex / 2);
-      FLATTEN
-      if ((vertex/2)%2 == 1)
-        pos.x = 1-pos.x;
+      output.diffuseTexcoord.xyz = data.diffuseTexcoord;
+      output.diffuseTexcoord.w = data.maxBaseLen;
 
-      pos = 2*pos-1;
+      output.tangent = data.tangent;
+      output.worldPosXZ = data.worldPosXZ;
+      ##if clipmap_decal_use_displacement_mask == yes
+        output.displacementMaskParams = data.displacementMaskParams;
+      ##endif
 
       ##if clipmap_decals_displacement_falloff_radius == yes
-        output.vertexPos = pos;
+        output.vertexPos = data.vertexPos;
       ##endif
-
-      float4 pData1 = loadBuffer(decal_params, instanceId*NUM_CONSTS_PER_INST+0);
-      float4 pData2 = loadBuffer(decal_params, instanceId*NUM_CONSTS_PER_INST+1);
-      float4 pData3 = loadBuffer(decal_params, instanceId*NUM_CONSTS_PER_INST+2);
-
-      float3 localX = float3(pData1.x, 0, pData1.y) * decal_size_scale;
-      float3 localZ = float3(pData1.z, 0, pData1.w) * decal_size_scale;
-      float decalSize = length(localX);
-
-      ##if clipmap_decal_use_displacement_mask == yes
-        uint displacementMaskSize = pData3.z;
-        // Displacement mask is not scaled by decal_size_scale and not rotated.
-        float2 displacementMaskCoord = pos * displacementMaskSize * decal_size_scale;
-        displacementMaskCoord = (displacementMaskCoord.x * normalize(localX.xz) +
-                                 displacementMaskCoord.y * normalize(localZ.xz) +
-                                 displacementMaskSize - 1) * 0.5;
-        output.displacementMaskParams = float4(displacementMaskCoord.xy,
-                                               instanceId, displacementMaskSize);
-      ##endif
-
-      float3 worldPos = float3(pData3.x, 0, pData3.y) + pos.x*localX + pos.y*localZ;
-
-      output.pos = mul(float4(worldPos, 1), globtm);
-      output.pos.z = 1.0;
-
-      output.diffuseTexcoord.xy = 0.5*(pos.xy+1);
-
-      output.diffuseTexcoord.x = lerp(pData2.x, pData2.z, output.diffuseTexcoord.x);
-      ##if clipmap_decal_array_tex == off
-        output.diffuseTexcoord.y = lerp(pData2.y, pData2.w, output.diffuseTexcoord.y);
-        output.diffuseTexcoord.z = 0;
-      ##else
-        output.diffuseTexcoord.y = output.diffuseTexcoord.y;
-        output.diffuseTexcoord.z = pData2.y;
-      ##endif
-      output.diffuseTexcoord.w = decalSize;
-
-      output.tangent.xy = normalize(localX.xz);
-      // for mirrored decals
-      output.tangent.xy = pData2.x > pData2.z ? -output.tangent.xy : output.tangent.xy;
-      output.tangent.zw = normalize(localZ.xz);
-      output.worldPosXZ = worldPos.xz;
 
       return output;
     }
   }
+
 
   hlsl(ps) {
     ##if clipmap_decal_array_tex == off

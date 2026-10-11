@@ -1,7 +1,6 @@
 options gen2
 require dastest/testing_boost
 
-require daslib/math_boost
 require UnitTest
 
 def operator [] (arr : Point3Array; ind : int) {

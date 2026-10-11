@@ -17,7 +17,7 @@
 #include <android/sensor.h>
 #include <sys/system_properties.h>
 
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 constexpr int SENSOR_REFRESH_RATE_HZ = 100;
 constexpr int32_t SENSOR_REFRESH_PERIOD_US = int32_t(1000000 / SENSOR_REFRESH_RATE_HZ);
@@ -41,12 +41,12 @@ struct AndroidResources
   ALooper *looper = nullptr;
 } android_resources;
 
-std::mutex android_resources_mutex;
+dag::mutex android_resources_mutex;
 } // namespace
 
 void AndroidSensor::cleanupAndroidResources()
 {
-  std::lock_guard<std::mutex> lock(android_resources_mutex);
+  dag::lock_guard lock(android_resources_mutex);
 
   debug("android:sensors: cleanup of android resources");
   if (android_resources.gyroEventQueue)
@@ -208,7 +208,7 @@ static int get_gyro_events(int fd, int events, void *data)
 {
   SensorsPollingData::PendingData pending;
   {
-    std::lock_guard<std::mutex> lock(android_resources_mutex);
+    dag::lock_guard lock(android_resources_mutex);
 
     ASensorEvent event;
     if (android_resources.gyroEventQueue)
@@ -233,7 +233,7 @@ static int get_gravity_events(int fd, int events, void *data)
 {
   SensorsPollingData::PendingData pending;
   {
-    std::lock_guard<std::mutex> lock(android_resources_mutex);
+    dag::lock_guard lock(android_resources_mutex);
 
     ASensorEvent event;
     if (android_resources.gravityEventQueue)

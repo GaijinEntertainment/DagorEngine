@@ -5,6 +5,7 @@
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_variableRateShading.h>
 #include <drv/3d/dag_dispatchMesh.h>
 #include <drv/3d/dag_dispatch.h>
 #include <drv/3d/dag_draw.h>
@@ -214,6 +215,7 @@ bool d3d::set_render_target() { return false; }
 void d3d::get_render_target(Driver3dRenderTarget &out_rt) {}
 bool d3d::set_render_target(const Driver3dRenderTarget &rt) { return false; }
 void d3d::set_render_target(RenderTarget, DepthAccess, dag::ConstSpan<RenderTarget>) {}
+void d3d::set_variable_rate_shading_texture(BaseTexture *) {}
 bool d3d::get_target_size(int &w, int &h) { return false; }
 bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level) { return false; }
 

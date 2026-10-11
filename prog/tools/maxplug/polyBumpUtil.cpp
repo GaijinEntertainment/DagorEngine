@@ -17,8 +17,6 @@
 
 namespace fs = std::filesystem;
 
-#define ERRMSG_DELAY 3000
-
 #define MAX_CLSNAME 64
 
 typedef int FaceNGr[3];
@@ -36,8 +34,8 @@ public:
   IUtil *iu = NULL;
   Interface *ip = NULL;
   HWND hPolyPanel = NULL;
-  ICustEdit *forwdist_p_eid = NULL;
-  ICustEdit *backdist_p_eid = NULL;
+  ControlPtr<ICustEdit> forwdist_p_eid;
+  ControlPtr<ICustEdit> backdist_p_eid;
   int antialias = 0;
   int poly_width = 256, poly_height = 256;
   int highpolyid = 0, lowpolyid = 0;
@@ -428,8 +426,8 @@ void PolyBumpUtil::update_poly_vars()
   map_channel = _ttoi(get_window_text(GetDlgItem(hPolyPanel, IDC_MAPCHANNEL)).c_str());
   get_chkbool(IDC_SELFACES, selected_faces, hPolyPanel);
   get_chkbool(IDC_LATEST, latest_hit, hPolyPanel);
-  get_edfloat(forwdist_p_eid, forwdist_p);
-  get_edfloat(backdist_p_eid, backdist_p);
+  get_edfloat(forwdist_p_eid.get(), forwdist_p);
+  get_edfloat(backdist_p_eid.get(), backdist_p);
   back_weight = SendMessage(GetDlgItem(hPolyPanel, IDC_BACK_WEIGHT), TBM_GETPOS, (WPARAM)0, (LPARAM)0) / 1000.0;
 }
 
@@ -462,8 +460,8 @@ void PolyBumpUtil::InitPoly(HWND hw)
   _stprintf_s(buf, _countof(buf), _T("%d"), 2048);
   SendMessage(GetDlgItem(hw, IDC_EXPAND), CB_ADDSTRING, 0, (LPARAM)buf);
 
-  forwdist_p_eid = GetICustEdit(GetDlgItem(hw, IDC_FDIST_PERCENT));
-  backdist_p_eid = GetICustEdit(GetDlgItem(hw, IDC_BDIST_PERCENT));
+  forwdist_p_eid.reset(GetICustEdit(GetDlgItem(hw, IDC_FDIST_PERCENT)));
+  backdist_p_eid.reset(GetICustEdit(GetDlgItem(hw, IDC_BDIST_PERCENT)));
 
   SendMessage(GetDlgItem(hPolyPanel, IDC_BACK_WEIGHT), TBM_SETRANGE, (WPARAM)TRUE, (LPARAM)MAKELONG(0, 1000));
   SendMessage(GetDlgItem(hPolyPanel, IDC_BACK_WEIGHT), TBM_SETTIC, (WPARAM)0, (LPARAM)500);
@@ -473,15 +471,8 @@ void PolyBumpUtil::InitPoly(HWND hw)
 void PolyBumpUtil::DestroyPoly(HWND hw)
 {
   update_poly_vars();
-#define reled(e)         \
-  if (e)                 \
-  {                      \
-    ReleaseICustEdit(e); \
-    e = NULL;            \
-  }
-  reled(forwdist_p_eid);
-  reled(backdist_p_eid);
-#undef reled
+  forwdist_p_eid.reset();
+  backdist_p_eid.reset();
 }
 
 struct FaceArea
@@ -821,6 +812,14 @@ static DWORD WINAPI dummyprogressfn(LPVOID arg) { return 0; }
 void PolyBumpUtil::build_normal_map()
 {
   update_poly_vars();
+  constexpr int MAX_MAP_SIZE = 8192;
+  if (poly_width < 1 || poly_height < 1 || poly_width > MAX_MAP_SIZE || poly_height > MAX_MAP_SIZE)
+  {
+    WStr s;
+    s.printf(L"Normal map size %dx%d is out of range 1..%d", poly_width, poly_height, MAX_MAP_SIZE);
+    ip->DisplayTempPrompt(s);
+    return;
+  }
   TimeValue time = ip->GetTime();
   INode *lownode = NULL, *highnode = NULL;
   if (lowpolyid)
@@ -1583,7 +1582,7 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
           else if (t > 1)
           {
             t = 1;
-            d = -length(Point2(real(u), real(v)) - tp[i == 3 ? 0 : i + 1]);
+            d = -length(dp - tedir[i]);
           }
           if (d > bed)
           {
@@ -1680,6 +1679,8 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
           continue;
         }
         Texmap *btex = submtl->GetSubTexmap(ID_BU);
+        if (!btex)
+          continue;
         btex->Update(time, lv_FOREVER);
         btex->LoadMapFiles(time);
       }
@@ -1689,9 +1690,11 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
       Class_ID cid = mtl->ClassID();
       if (cid != Class_ID(DMTL_CLASS_ID, 0) || ((StdMat *)mtl)->MapEnabled(ID_BU))
       {
-        Texmap *btex = mtl->GetSubTexmap(ID_BU);
-        btex->Update(time, lv_FOREVER);
-        btex->LoadMapFiles(time);
+        if (Texmap *btex = mtl->GetSubTexmap(ID_BU))
+        {
+          btex->Update(time, lv_FOREVER);
+          btex->LoadMapFiles(time);
+        }
       }
     }
   }
@@ -1700,7 +1703,7 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
   {
     if (!(i % wd))
     {
-      ip->ProgressUpdate(i * 100 / (wd * ht));
+      ip->ProgressUpdate((i / wd) * 100 / ht);
       if (ip->GetCancel())
       {
         int retval = MessageBox(ip->GetMAXHWnd(), _T("Stop Normal Map Calculating?"), _T("Question"), MB_ICONQUESTION | MB_YESNO);
@@ -1808,11 +1811,13 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
       if (mtl)
       {
         Texmap *btex = NULL;
+        float bumpAmount = 1.0f;
 
         Mtl *submtl = mtl;
         if (mtl->IsMultiMtl())
         {
-          submtl = mtl->GetSubMtl(hm.faces[fi].getMatID());
+          int numSubMtls = mtl->NumSubMtls();
+          submtl = numSubMtls ? mtl->GetSubMtl(hm.faces[fi].getMatID() % numSubMtls) : NULL;
         }
         if (submtl)
         {
@@ -1821,6 +1826,8 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
           {
             btex = submtl->GetSubTexmap(ID_BU);
           }
+          if (cid == Class_ID(DMTL_CLASS_ID, 0))
+            bumpAmount = ((StdMat *)submtl)->GetTexmapAmt(ID_BU, time);
         }
         if (btex)
         {
@@ -1832,7 +1839,7 @@ void PolyBumpUtil::build_normal_map(BitArray *facesel, Face *face, int numf, Poi
             sc.setface(fi, mapch);
             UVVert uv = bary.x * tv[tf[fi].t[0]] + bary.y * tv[tf[fi].t[1]] + bary.z * tv[tf[fi].t[2]];
             sc.setpt(uv.x, uv.y, 1.0f / wd, 1.0f / ht);
-            Point3 bn = btex->EvalNormalPerturb(sc) * ((StdMat *)submtl)->GetTexmapAmt(ID_BU, time);
+            Point3 bn = btex->EvalNormalPerturb(sc) * bumpAmount;
             releasenrm[i] += bn;
             releasenrm[i] = Normalize(releasenrm[i]);
           }

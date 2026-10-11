@@ -3,8 +3,6 @@
 #include "daScript/simulate/name_lookup.h"
 #include "daScript/misc/anyhash.h"
 
-#include <algorithm>
-
 namespace das {
 
     static const uint32_t g_emptyDisp[1] = { 0 };
@@ -57,8 +55,8 @@ namespace das {
 
     bool NameLookup::PerfectHash::build ( const vector<uint64_t> & keys, vector<uint32_t> & dispOut, uint32_t slack ) {
         uint32_t n = uint32_t(keys.size());
-        nbuckets = das::max(1u, (n + 4) / 5);
-        nslots = n + das::max(1u, n / 20) * slack;
+        nbuckets = das::max(uint32_t(1), (n + 4) / 5);
+        nslots = n + das::max(uint32_t(1), n / 20) * slack;
         vector<uint64_t> scrambled(n);
         vector<uint32_t> bucketOf(n);
         vector<uint32_t> bucketSize(nbuckets, 0);
@@ -76,7 +74,7 @@ namespace das {
         }
         vector<uint32_t> order(nbuckets);
         for ( uint32_t b=0; b!=nbuckets; ++b ) order[b] = b;
-        std::stable_sort(order.begin(), order.end(), [&](uint32_t a, uint32_t b) {
+        das::stable_sort(order.begin(), order.end(), [&](uint32_t a, uint32_t b) {
             return bucketSize[a] > bucketSize[b];
         });
         dispOut.assign(nbuckets, 0);
@@ -112,7 +110,7 @@ namespace das {
             if ( failure ) *failure = "sealed twice";
             return false;
         }
-        std::sort(staged.begin(), staged.end(), [](const Staged & a, const Staged & b) {
+        das::sort(staged.begin(), staged.end(), [](const Staged & a, const Staged & b) {
             return a.mnh < b.mnh;
         });
         for ( size_t i=1; i<staged.size(); ++i ) {
@@ -137,7 +135,7 @@ namespace das {
         for ( auto & s : staged ) {
             builtEntries[byMnh.slotOf(s.mnh)] = Entry{s.mnh, s.value, s.index, -1, 0};
         }
-        std::sort(staged.begin(), staged.end(), [](const Staged & a, const Staged & b) {
+        das::sort(staged.begin(), staged.end(), [](const Staged & a, const Staged & b) {
             return a.nameHash!=b.nameHash ? a.nameHash < b.nameHash : a.index < b.index;
         });
         keys.clear();

@@ -446,7 +446,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/assimp/include
   $(Root)/prog/3rdPartyLibs/pugixml
   $(Root)/prog/3rdPartyLibs/rapidjson/include
-  (Root)/prog/3rdPartyLibs/eastl/include
+  $(Root)/prog/3rdPartyLibs/eastl/include
   $(Root)/prog/3rdPartyLibs/arc/unzip
   $(Root)/prog/3rdPartyLibs/arc/zlib-ng
 ;

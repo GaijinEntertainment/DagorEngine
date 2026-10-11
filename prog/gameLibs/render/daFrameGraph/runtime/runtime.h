@@ -69,6 +69,7 @@ public:
   NodeTracker &getNodeTracker() { return nodeTracker; }
   TypeDb &getTypeDb() { return typeDb; }
   InternalRegistry &getInternalRegistry() { return registry; }
+  const NameResolver &getNameResolver() const { return nameResolver; }
   intermediate::Graph &getIntermediateGraph() { return intermediateGraph; }
   sd::NodeStateDeltas &getNodeStateDeltas() { return perNodeStateDeltas; }
   visualization::IVisualizationManager *getVisualizerPtr() { return fgVisManager.get(); }
@@ -96,6 +97,8 @@ public:
   }
 
   void beforeDeviceReset();
+
+  const ResourceAllocator::Stats &lastAllocatorStats() const;
 
   // Should be called for emergency wiping of blobs when some outer
   // system is destroyed and we might have dangling references.
@@ -169,6 +172,10 @@ private:
   eastl::optional<NodeExecutor> nodeExec;
 
   uint32_t frameIndex = 0;
+  size_t irNodesAtLastSchedule = 0;
+  static constexpr uint32_t NO_FRAME = ~0u;
+  uint32_t nodeDropFrame = NO_FRAME;
+  bool isFrameAfterNodeDrop() const { return nodeDropFrame != NO_FRAME && frameIndex == nodeDropFrame + 1; }
 
   eastl::unique_ptr<visualization::IVisualizationManager> fgVisManager;
 
@@ -180,6 +187,9 @@ private:
   void recompile();
   void debugDanglingReferences();
   void testIncrementality();
+
+  uint32_t historyFrameResourcesTotal = 0;
+  uint32_t historyFrameResourcesKept = 0;
 
   void updateDynamicResolution(int curr_frame);
 
@@ -204,9 +214,10 @@ private:
   void cacheUntrackedReleaseBarriers();
   void recalculateStateDeltas(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged,
     const IrResourcesChanged &resourceRequestsChanged);
-  void updateAutoResolutions();
-  void scheduleResources(const IrResourcesChanged &lifetimeChangedResources);
-  void applyAliasSyncStages(const ResourceSchedule &schedule, const BadResolutionTracker::Corrections &corrections);
+  void updateAutoResolutions(IrResourcesChanged &resources_changed);
+  void scheduleResources(const IrResourcesChanged &resources_changed, const IrResourcesChanged &lifetimeChangedResources,
+    const intermediate::HistoryPairing &history_pairing);
+  void applyAliasSyncStages(const Layout &layout);
   void updateHistory();
   void updateVisualization(const NodesChanged &nodes_changed);
   BlockProviderMap applyRefinedBlockBindings(int curr_frame, int prev_frame);

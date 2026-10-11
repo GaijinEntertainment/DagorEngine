@@ -2,9 +2,13 @@ options gen2
 options auto_inline_functions = false   // lint fixtures assert SOURCE shapes; splices rewrite them
 options _comment_hygiene = true
 
-//! STYLE015: comment block longer than 1 line inside a `def private`.
-//! Reason: private functions don't get public docs, so multi-line prose
-//! there is dead weight.
+//! STYLE015: comment block inside a `def private` over its cap.
+//! A `//!` contract doc caps at 3 lines like a public doc; a plain `//`
+//! block caps at one WHY line.
+
+expect 31209:3
+
+require daslib/style_lint
 
 // good: 1-line `//` inside `def private` is at the cap (== 1, not >).
 def private good_one_liner() {
@@ -26,6 +30,23 @@ def private bad_long_block() {
     // third line
     // fourth line
     // fifth line
+    let _ = 1
+}
+
+// good: 3-line `//!` contract doc inside `def private` is at the doc cap (== 3, not >).
+def private good_private_contract_doc() {
+    //! Returns nothing.
+    //! Takes nothing.
+    //! Never fails.
+    let _ = 1
+}
+
+// bad: 4-line `//!` contract doc inside `def private` — over the 3-line doc cap.
+def private bad_private_contract_doc() {
+    //! Returns nothing.
+    //! Takes nothing.
+    //! Never fails.
+    //! Fourth line — exceeds the doc cap.
     let _ = 1
 }
 

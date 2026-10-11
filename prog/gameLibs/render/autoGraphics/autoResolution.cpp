@@ -12,12 +12,12 @@
 namespace auto_graphics::auto_resolution
 {
 
-static const char *validate_upscaling(const char *method, const char *upscaling)
+static const char *validate_upscaling(const char *method, const char *upscaling, IPoint2 output_resolution)
 {
   // antialiasing lib proposes a list of available upscaling options for each method with ; separator
   // they are sorted in descending quality order, so we will search our selected option in this string
   // or fallback to last available option
-  const char *availableUpscalingOptions = render::antialiasing::get_available_upscaling_options(method);
+  const char *availableUpscalingOptions = render::antialiasing::get_available_upscaling_options(method, output_resolution);
   G_FAST_ASSERT(availableUpscalingOptions);
 
   if (!strstr(availableUpscalingOptions, upscaling))
@@ -73,7 +73,7 @@ static eastl::optional<AntialiasingMethod> get_method_from_string(const char *an
   return method;
 }
 
-DataBlock get_antialiasing_settings(const char *antialiasing_method, IPoint2 rendering_resolution)
+DataBlock get_antialiasing_settings(const char *antialiasing_method, IPoint2 rendering_resolution, IPoint2 output_resolution)
 {
   DataBlock autoResolutionSettingsBlk{};
 
@@ -106,8 +106,9 @@ DataBlock get_antialiasing_settings(const char *antialiasing_method, IPoint2 ren
   // if (useDPIBasedScaling)
   //   overriddenVideo.setBool("overrideAAforAutoResolution", true);
 
-  int w, h;
-  d3d::get_screen_size(w, h);
+  int w = output_resolution.x, h = output_resolution.y;
+  if (w <= 0 || h <= 0)
+    d3d::get_screen_size(w, h);
   const float screenArea = static_cast<float>(w * h);
 
   float perDimensionScaleFactor = 1.f; // no scaling by default
@@ -184,7 +185,7 @@ DataBlock get_antialiasing_settings(const char *antialiasing_method, IPoint2 ren
         upscalingStr = "performance";
       }
 
-      upscalingStr = validate_upscaling(antialiasing_method, upscalingStr);
+      upscalingStr = validate_upscaling(antialiasing_method, upscalingStr, IPoint2(w, h));
     }
     overriddenVideo.setStr("antialiasing_upscaling", upscalingStr);
   }

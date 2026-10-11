@@ -1,18 +1,13 @@
-local function fibR(n : number)
+--!strict
+local profile = require("./profile")
 
-    if (n < 2) then return n end
-    return (fibR(n-2) + fibR(n-1))
-end
-
-function profile_it(profiles, fn)
-  local res
-  for i = 1, profiles do
-    local start = os.clock()
-    fn()
-    local measured = os.clock() - start
-    if i == 1 or res > measured then res = measured end
+local function fib(n: number): number
+  if n < 2 then
+    return n
   end
-  return res
+  return fib(n - 2) + fib(n - 1)
 end
 
-print(string.format("\"fibonacci recursive\", %.8f, 20", profile_it(20, function () fibR(31) end)))
+profile.benchmark("fibonacci recursive", 20, function()
+  return fib(31)
+end)

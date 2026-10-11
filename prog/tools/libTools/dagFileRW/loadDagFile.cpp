@@ -196,10 +196,10 @@ int MyLoadCB::load_material(ImpMat &m)
   if (flags & LASF_MATNAMES)
     ma->matName = m.name;
   if (m.script)
+  {
     ma->matScript = m.script;
-
-  if (m.script)
     memfree(m.script, strmem);
+  }
 
   mat.push_back(ma);
   return 1;

@@ -130,8 +130,6 @@ public:
     p.phase = interlocked_relaxed_load(phaseVal);
     p.packDone = interlocked_relaxed_load(packDoneVal);
     p.packTotal = interlocked_relaxed_load(packTotalVal);
-    p.assetDone = 0;
-    p.assetTotal = 0;
     return p;
   }
 };
@@ -565,10 +563,6 @@ void export_queue()
   {
     DaBuildPostParams params;
     params.consoleWasOpen = consoleWasOpen;
-    params.hideConsoleOnSuccess = true;
-    params.checkTex = true;
-    params.checkRes = true;
-    params.emptyPacksForUpToDateCheck = false;
     params.tc = eastl::move(g.tcs);
 
     params.ids.assign(g.ids.begin(), g.ids.end());
@@ -1550,10 +1544,8 @@ void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> 
 
   DaBuildPostParams params;
   params.consoleWasOpen = ::get_app().getConsole().isVisible();
-  params.hideConsoleOnSuccess = true;
   params.checkTex = tex;
   params.checkRes = res;
-  params.emptyPacksForUpToDateCheck = false;
   getPackForFolder(params.ids, folders_idx, tex, res);
   params.tc.assign(tc.begin(), tc.end());
 
@@ -1627,10 +1619,6 @@ void build_assets(dag::ConstSpan<unsigned> tc, dag::ConstSpan<DagorAsset *> asse
 
   DaBuildPostParams params;
   params.consoleWasOpen = ::get_app().getConsole().isVisible();
-  params.hideConsoleOnSuccess = true;
-  params.checkTex = true;
-  params.checkRes = true;
-  params.emptyPacksForUpToDateCheck = false;
 
   for (DagorAsset *a : assets)
     add_asset_id(params.ids, *a);
@@ -1662,10 +1650,6 @@ static bool is_tc_building(dag::ConstSpan<unsigned> buildingTcs, unsigned tc)
 
 void render_dabuild_imgui()
 {
-  uint32_t queuePackCount = 0;
-  for (const auto &[unused, queueEntry] : queueMap)
-    queuePackCount += queueEntry.tcs.size();
-
   if (pendingBringToFront)
   {
     pendingBringToFront = false;
@@ -1676,8 +1660,14 @@ void render_dabuild_imgui()
       ImGui::SetNextWindowFocus();
   }
 
-  DAEDITOR3.imguiBegin(daBuildPanelName, &dabuildWindowVisible, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+  if (auto window = IDaEditor3Engine::ScopedImguiWindow(daBuildPanelName, &dabuildWindowVisible,
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+      window.canSubmitContents())
   {
+    uint32_t queuePackCount = 0;
+    for (const auto &[unused, queueEntry] : queueMap)
+      queuePackCount += queueEntry.tcs.size();
+
     bool running = ::is_dabuild_running();
 
     if (::get_dabuild_max_jobs() > 0)
@@ -1754,7 +1744,7 @@ void render_dabuild_imgui()
     bool jobMode = running && ::get_dabuild_current_build_uses_jobs();
     const char *phaseLabel = progress.phase == 1 ? "Tex" : progress.phase == 2 ? "Res" : "Pack";
     static const char spinChars[] = "|/-\\";
-    char spin = running ? spinChars[(int)(ImGui::GetTime() * 6.0f) % 4] : ' ';
+    char spin = running ? spinChars[(int)(ImGui::GetTime() * 6.0) % 4] : ' ';
     if (jobMode)
       ImGui::Text("%s %d / %d (dispatched) %c", phaseLabel, progress.packDone, progress.packTotal, spin);
     else
@@ -2072,7 +2062,6 @@ void render_dabuild_imgui()
       }
     }
   }
-  DAEDITOR3.imguiEnd();
 
   if (::is_dabuild_running())
   {

@@ -3,6 +3,7 @@
 
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/imguiHelper.h>
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 #include <propPanel/control/filteredComboBoxStandalone.h>
 #include <EASTL/sort.h>
@@ -92,6 +93,20 @@ public:
   void setDefaultValue(Variant var) override { defaultValue = var.convert<int>(); }
 
   const char *getImguiTypeName() const override { return "ComboBox"; }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    const Point2 labelSize = ControlSizeHelper::getSeparateLineLabelPreferredSize(controlCaption.begin(), controlCaption.end());
+
+    float comboWidth = (float)mW;
+    if (mW == 0)
+    {
+      // Fits the longest item, the frame padding and the arrow button, like ImGui::BeginCombo().
+      comboWidth = ControlSizeHelper::getLongestTextWidth(values) + ImGui::GetStyle().FramePadding.x * 2.0f + ImGui::GetFrameHeight();
+    }
+
+    return Point2(min(max(labelSize.x, comboWidth), max_width_px), labelSize.y + ImGui::GetFrameHeight());
+  }
 
   void updateImgui() override
   {

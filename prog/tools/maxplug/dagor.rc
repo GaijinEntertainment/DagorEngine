@@ -138,86 +138,6 @@ BEGIN
     CONTROL         "Selected faces",IDC_SELFACES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,51,59,12,WS_EX_RIGHT
 END
 
-IDD_DIALOG1 DIALOG 10, 10, 97, 29
-STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE | WS_BORDER
-FONT 10, "Arial Black"
-BEGIN
-    RTEXT           "Test",IDC_STATIC,7,12,21,8
-END
-
-IDD_OBJECT_PROPERTIES_EDITOR DIALOGEX 0, 0, 176, 238
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-EXSTYLE WS_EX_TOOLWINDOW
-CAPTION "Object Properties"
-FONT 8, "MS Sans Serif", 400, 0, 0xCC
-BEGIN
-    CONTROL         "`",IDC_WORLD_NORMAL_X,"CustEdit",WS_TABSTOP,83,7,22,10
-    CONTROL         "",IDC_WORLD_NORMAL_Y,"CustEdit",WS_TABSTOP,107,7,22,10
-    CONTROL         "",IDC_WORLD_NORMAL_Z,"CustEdit",WS_TABSTOP,131,7,22,10
-    CONTROL         "",IDC_LOCAL_NORMAL_X,"CustEdit",WS_TABSTOP,83,18,22,10
-    CONTROL         "",IDC_LOCAL_NORMAL_Y,"CustEdit",WS_TABSTOP,107,18,22,10
-    CONTROL         "",IDC_LOCAL_NORMAL_Z,"CustEdit",WS_TABSTOP,131,18,22,10
-    CONTROL         "Force VSS",IDC_FORCE_VSS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,135,12
-    CONTROL         "",IDC_VSS_SAMPLE_STEP,"CustEdit",WS_TABSTOP,83,49,40,10
-    CONTROL         "",IDC_VSS_SAMPLE_SCALE,"CustEdit",WS_TABSTOP,83,60,40,10
-    CONTROL         "",IDC_LIGHTMAP_SAMPLE_SIZE,"CustEdit",WS_TABSTOP,83,72,40,10
-    CONTROL         "",IDC_VISIBILITY_RANGE,"CustEdit",WS_TABSTOP,83,92,40,10
-    CONTROL         "Self shadowing",IDC_SELF_SHADOWING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,110,135,12
-    CONTROL         "",IDC_FLARE_ANGLE_FROM,"CustEdit",WS_TABSTOP,83,133,22,10
-    CONTROL         "",IDC_FLARE_ANGLE_TO,"CustEdit",WS_TABSTOP,121,133,22,10
-    CONTROL         "",IDC_FLARE_SIZE,"CustEdit",WS_TABSTOP,83,144,40,10
-    CONTROL         "",IDC_FLARE_FAR_SIZE,"CustEdit",WS_TABSTOP,83,155,40,10
-    CONTROL         "",IDC_FLARE_RANGE,"CustEdit",WS_TABSTOP,83,166,40,10
-    CONTROL         "",IDC_FLARE_FAR_RANGE,"CustEdit",WS_TABSTOP,83,177,40,10
-    LTEXT           "World normal (x, y, z):",IDC_STATIC,7,8,72,8
-    LTEXT           "VSS sample step:",IDC_STATIC,7,50,72,8
-    LTEXT           "VSS sample scale:",IDC_STATIC,8,61,72,8
-    LTEXT           "Lightmap sample size:",IDC_STATIC,8,74,72,8
-    LTEXT           "Visibility range:",IDC_STATIC,7,94,72,8
-    LTEXT           "Flare angles (from, to):",IDC_STATIC,7,134,72,8
-    LTEXT           "Flare size:",IDC_STATIC,7,146,72,8
-    LTEXT           "Flare far size:",IDC_STATIC,7,157,72,8
-    LTEXT           "Flare far range:",IDC_STATIC,7,179,72,8
-    LTEXT           "Flare range:",IDC_STATIC,7,168,72,8
-    LTEXT           "Physical material:",IDC_STATIC,7,221,62,8
-    CONTROL         "",IDC_VSS_SAMPLE_STEP_SPIN,"SpinnerControl",0x0,124,49,7,10
-    CONTROL         "",IDC_VSS_SAMPLE_SCALE_SPIN,"SpinnerControl",0x0,124,60,7,10
-    CONTROL         "",IDC_LIGHTMAP_SAMPLE_SIZE_SPIN,"SpinnerControl",0x0,124,72,7,10
-    CONTROL         "",IDC_VISIBILITY_RANGE_SPIN,"SpinnerControl",0x0,124,92,7,10
-    CONTROL         "",IDC_FLARE_SIZE_SPIN,"SpinnerControl",0x0,124,144,7,10
-    CONTROL         "",IDC_FLARE_FAR_SIZE_SPIN,"SpinnerControl",0x0,124,155,7,10
-    CONTROL         "",IDC_FLARE_RANGE_SPIN,"SpinnerControl",0x0,124,166,7,10
-    CONTROL         "",IDC_FLARE_FAR_RANGE_SPIN,"SpinnerControl",0x0,124,177,7,10
-    LTEXT           "*Diff.",IDC_IDC_WORLD_NORMAL_DIFF,156,7,19,8
-    LTEXT           "*Diff.",IDC_LOCAL_NORMAL_DIFF,156,18,19,8
-    LTEXT           "Local normal (x, y, z):",IDC_STATIC,7,19,72,8
-    LTEXT           "*Diff.",IDC_VSS_SAMPLE_STEP_DIFF,156,48,19,8
-    LTEXT           "*Diff.",IDC_VSS_SAMPLE_SCALE_DIFF,156,60,19,8
-    LTEXT           "*Diff.",IDC_LIGHTMAP_SAMPLE_SIZE_DIFF,156,72,19,8
-    LTEXT           "*Diff.",IDC_VISIBILITY_RANGE_DIFF,156,92,19,8
-    LTEXT           "*Diff.",IDC_FLARE_ANGLE_DIFF,156,133,19,8
-    LTEXT           "*Diff.",IDC_FLARE_SIZE_DIFF,156,142,19,8
-    LTEXT           "*Diff.",IDC_FORCE_VSS_DIFF,156,34,19,8
-    LTEXT           "*Diff.",IDC_SELF_SHADOWING_DIFF,156,111,19,8
-    LTEXT           "*Diff.",IDC_FLARE_FAR_SIZE_DIFF,156,154,19,8
-    LTEXT           "*Diff.",IDC_FLARE_RANGE_DIFF,156,166,19,8
-    LTEXT           "*Diff.",IDC_FLARE_FAR_RANGE_DIFF,156,178,19,8
-    LTEXT           "*Diff.",IDC_PHYSICAL_MATERIAL_DIFF,156,220,19,8
-    CONTROL         "`",IDC_FLARE_COLOR_R,"CustEdit",WS_TABSTOP,83,188,17,10
-    CONTROL         "",IDC_FLARE_COLOR_G,"CustEdit",WS_TABSTOP,101,188,17,10
-    CONTROL         "",IDC_FLARE_COLOR_B,"CustEdit",WS_TABSTOP,119,188,17,10
-    LTEXT           "Flare color (r, g, b):",IDC_STATIC,7,189,72,8
-    LTEXT           "*Diff.",IDC_FLARE_COLOR_DIFF,156,188,19,8
-    CONTROL         "",IDC_FLARE_Z_OFFSET,"CustEdit",WS_TABSTOP,83,199,40,10
-    LTEXT           "Flare Z offset:",IDC_STATIC,7,201,72,8
-    CONTROL         "",IDC_FLARE_Z_OFFSET_SPIN,"SpinnerControl",0x0,124,199,7,10
-    LTEXT           "*Diff.",IDC_FLARE_Z_OFFSET_DIFF,156,199,19,8
-    CONTROL         "",IDC_FLARE_ANGLE_FROM_SPIN,"SpinnerControl",0x0,106,133,7,10
-    CONTROL         "",IDC_FLARE_ANGLE_TO_SPIN,"SpinnerControl",0x0,144,133,7,10
-    CONTROL         "",IDC_PHYSICAL_MATERIAL,"CustEdit",WS_TABSTOP,64,220,90,10
-    CONTROL         "Custom1",IDC_FLARE_COLOR,"ColorSwatch",WS_TABSTOP,137,188,15,10
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -242,22 +162,6 @@ BEGIN
     BEGIN
         RIGHTMARGIN, 106
         BOTTOMMARGIN, 263
-    END
-
-    IDD_DIALOG1, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 28
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 20
-    END
-
-    IDD_OBJECT_PROPERTIES_EDITOR, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 175
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 231
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -786,24 +690,6 @@ BEGIN
     CONTROL         "",IDC_TAB1,"SysTabControl32",TCS_MULTILINE | TCS_TOOLTIPS,0,3,108,207
 END
 
-IDD_IMPUTIL_WILDCARD DIALOGEX 0, 0, 99, 187
-STYLE DS_SETFONT | WS_CHILD
-FONT 8, "MS Sans Serif", 0, 0, 0x0
-BEGIN
-    EDITTEXT        IDC_DAGORPATH,3,12,75,14,ES_AUTOHSCROLL,WS_EX_ACCEPTFILES
-    PUSHBUTTON      "...",IDC_SET_DAGORPATH,81,12,15,12
-    LTEXT           "Dir path",IDC_STATIC,3,3,90,8
-    GROUPBOX        "Includes",IDC_GROUP_INCL,2,48,96,66
-    GROUPBOX        "Excludes",IDC_GROUP_EXCL,2,117,96,66
-    PUSHBUTTON      "Add",IDC_PATHLIST_ADD_INCL,6,57,62,12
-    PUSHBUTTON      "Del",IDC_PATHLIST_DEL_INCL,68,57,25,12
-    CONTROL         "",IDC_PATHLIST_INCL,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_EDITLABELS | LVS_NOCOLUMNHEADER,6,69,87,42
-    PUSHBUTTON      "Add",IDC_PATHLIST_ADD_EXCL,6,126,62,12
-    PUSHBUTTON      "Del",IDC_PATHLIST_DEL_EXCL,68,126,25,12
-    CONTROL         "",IDC_PATHLIST_EXCL,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_EDITLABELS | LVS_NOCOLUMNHEADER,6,138,87,42
-    PUSHBUTTON      "Open import directory",IDC_OPENDIR,3,30,93,12
-END
-
 IDD_IMPUTIL_REGEX DIALOGEX 0, 0, 99, 187
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x0
@@ -830,15 +716,6 @@ BEGIN
     CONTROL         "Reimport existing",IDC_REIMPORT_EXISTING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,15,99,10
 END
 
-IDD_DIALOG5 DIALOGEX 0, 0, 310, 176
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,199,155,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,253,155,50,14
-END
-
 IDD_IMPUTIL_HELP DIALOGEX 0, 0, 105, 73
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x0
@@ -859,6 +736,35 @@ BEGIN
     PUSHBUTTON      "Export Physics",IDC_EXPORT_PHYS,6,18,93,15
     PUSHBUTTON      "Calc masses",IDC_CALC_MOMJ,6,54,93,15
     CONTROL         "Calc masses on export",IDC_CALC_MOMJ_ON_EXPORT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,36,87,15
+END
+
+IDD_EXPANIM DIALOGEX 0, 0, 108, 145
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_AEND,"CustEdit",WS_TABSTOP,75,24,27,10
+    CONTROL         "",IDC_ASTART,"CustEdit",WS_TABSTOP,39,24,27,10
+    CTEXT           "-",IDC_STATIC3,67,24,8,10,SS_CENTERIMAGE
+    CONTROL         "range:",IDC_ARANGE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,24,33,10
+    CONTROL         "",IDC_POSEPS,"CustEdit",WS_TABSTOP,27,39,27,10
+    RTEXT           "~pos:",IDC_STATIC,3,39,23,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_SCLEPS,"CustEdit",WS_TABSTOP,27,51,27,10
+    RTEXT           "~scl:",IDC_STATIC,3,51,23,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_ROTEPS,"CustEdit",WS_TABSTOP,75,39,27,10
+    RTEXT           "~rot:",IDC_STATIC5,54,39,21,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_ORTEPS,"CustEdit",WS_TABSTOP,75,51,27,10
+    RTEXT           "~ort:",IDC_STATIC6,54,51,21,10,SS_CENTERIMAGE
+    PUSHBUTTON      "Export Anim v2 (rev 1.8)",IDC_EXPORT_ANIM2,3,6,99,15
+    CONTROL         "Pos",IDC_REDUCE_POS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,81,27,10
+    CONTROL         "Rot",IDC_REDUCE_ROT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,81,27,10
+    CONTROL         "Scale",IDC_REDUCE_SCL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,69,81,30,10
+    CONTROL         "Loop",IDC_LOOP_ANIM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,99,30,10
+    CONTROL         "",IDC_ORIGIN_LINVEL_EPS,"CustEdit",WS_TABSTOP,27,126,27,10
+    RTEXT           "~pos:",IDC_STATIC,6,126,20,10,SS_CENTERIMAGE
+    CONTROL         "",IDC_ORIGIN_ANGVEL_EPS,"CustEdit",WS_TABSTOP,72,126,27,10
+    RTEXT           "~rot:",IDC_STATIC4,54,126,17,10,SS_CENTERIMAGE
+    GROUPBOX        "Origin velocity accuracy",IDC_STATIC1,3,114,99,27
+    GROUPBOX        "Optimize",IDC_STATIC,3,69,99,27
 END
 
 IDD_DAGORPAR_POINT2 DIALOGEX 0, 0, 216, 16
@@ -1186,13 +1092,6 @@ BEGIN
         BOTTOMMARGIN, 198
     END
 
-    IDD_IMPUTIL_WILDCARD, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 88
-    END
-
     IDD_IMPUTIL_REGEX, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -1202,14 +1101,6 @@ BEGIN
 
     IDD_IMPUTIL_PARAM, DIALOG
     BEGIN
-    END
-
-    IDD_DIALOG5, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 303
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 169
     END
 
     IDD_IMPUTIL_HELP, DIALOG
@@ -1222,6 +1113,13 @@ BEGIN
         LEFTMARGIN, 1
         RIGHTMARGIN, 106
         BOTTOMMARGIN, 129
+    END
+
+    IDD_EXPANIM, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 106
+        BOTTOMMARGIN, 143
     END
 
     IDD_DAGORPAR_POINT2, DIALOG
@@ -1454,23 +1352,6 @@ BEGIN
     0, 0, 100, 0
 END
 
-IDD_IMPUTIL_WILDCARD AFX_DIALOG_LAYOUT
-BEGIN
-    0,
-    0, 0, 100, 0,
-    100, 0, 0, 0,
-    0, 0, 0, 0,
-    0, 0, 100, 0,
-    0, 0, 100, 0,
-    0, 0, 100, 0,
-    100, 0, 0, 0,
-    0, 0, 100, 0,
-    0, 0, 100, 0,
-    100, 0, 0, 0,
-    0, 0, 100, 0,
-    0, 0, 100, 0
-END
-
 IDD_IMPUTIL_REGEX AFX_DIALOG_LAYOUT
 BEGIN
     0,
@@ -1493,11 +1374,6 @@ BEGIN
     0
 END
 
-IDD_DIALOG5 AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 IDD_IMPUTIL_HELP AFX_DIALOG_LAYOUT
 BEGIN
     0,
@@ -1516,6 +1392,34 @@ BEGIN
     0, 0, 100, 0,
     0, 0, 100, 0,
     0, 0, 100, 0
+END
+
+IDD_EXPANIM AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    50, 0, 50, 0,
+    0, 0, 50, 0,
+    50, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 50, 0,
+    0, 0, 0, 0,
+    0, 0, 50, 0,
+    0, 0, 0, 0,
+    50, 0, 50, 0,
+    50, 0, 0, 0,
+    50, 0, 50, 0,
+    50, 0, 0, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 100, 0,
+    0, 0, 50, 0,
+    0, 0, 0, 0,
+    50, 0, 50, 0,
+    50, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 0
 END
 
 IDD_FONTUTIL AFX_DIALOG_LAYOUT
@@ -1655,7 +1559,6 @@ BEGIN
     IDS_PARAM_CHANGE        "parameter change"
     IDS_DAGORMAT_LONG       "Dagor Dagorrat Material"
     IDS_EXPUTIL_NAME        "Dagor Scene Export"
-    IDS_EXPUTIL_ROLL        "dag Exporter"
     IDS_SCENE_FILES         "Dagor Scene (*.dag)"
     IDS_SAVE_SCENE_TITLE    "Save Dagor Scene"
     IDS_FILE_WRITE_ERR      "Error writing output file"
@@ -1678,10 +1581,8 @@ BEGIN
     IDS_Dummy               "DHelper"
     IDS_DUMMY_ROLL          "Dagor Helper"
     IDS_DAGOR_CAT           "Dagor"
-    IDS_WARNING             "Warning"
     IDS_EXPLOG_ROLL         "Dagor Log"
     IDS_DAGORMAT2_LONG      "Dagor Dagorrat Material 2"
-    IDS_DAGORPAR_TEXT_LONG  "Text parameter"
 END
 
 STRINGTABLE
@@ -1694,10 +1595,9 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_DAGORPAR_REAL_LONG  "Real parameter"
-    IDS_DAGORPAR_RANGE_LONG "Range parameter"
-    IDS_DAGORPAR_ENUM_LONG  "Enum parameter"
     IDS_DAGORMAT2           "DagorMat2"
+    IDS_SAVE_ANIM2_TITLE2   "Save Dagor Anim v2 data..."
+    IDS_ANIM2_FILES         "Dagor Anim v2 (*.a2d)"
     IDS_MatConvUtil_NAME    "Convert to Dagor Material"
     IDS_MatConvUtil_ROLL    "Convert to Dagor Material"
     IDS_RBHelper            "DagorRBody"
@@ -1710,21 +1610,13 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_DAGEXP_LONG         "Dagor Reseditor export file"
-    IDS_DAGEXP_SHORT        "Dagor grp"
     IDS_DAGEXP              "Dagor export"
-    IDS_DAGORPAR_COLOR_LONG "Color parameter"
 END
 
 STRINGTABLE
 BEGIN
     IDS_SEL_1_OBJ           "Please select 1 object"
     IDS_MUST_BE_EDMESH      "Please select editable mesh with no modifiers"
-    IDS_LTMAP_ERR           "Error applying map"
-    IDS_LTMAP_OK            "OK , %d%% of map area used."
-    IDS_OBJS_RENDERED       "%d objects rendered."
-    IDS_CANT_SAVE_BITMAP    "Can't save bitmap."
-    IDS_NO_SEL              "No objects selected."
     IDS_FREECAM             "Free! Camera"
     IDS_FREE_FORW           "Forward"
     IDS_FREE_BACKW          "Backward"
@@ -1787,7 +1679,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_ABSOLUTE_PATHS      "There are textures with absolute path in the scene, see export log."
     IDS_OBJECT_PROPERTIES_EDITOR_NAME "Object Properties Editor"
     IDS_PHYS_FILES          "Dagor Physical System (*.dphys)"
     IDS_SAVE_PHYS_TITLE     "Save Dagor Physical System..."

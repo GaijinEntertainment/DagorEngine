@@ -355,6 +355,36 @@ inline void swapLists(T &a, T &b)
   eastl::swap(a, b);
 }
 
+template <typename T>
+struct HasSharedChildComponent : eastl::false_type
+{};
+template <>
+struct HasSharedChildComponent<ecs::Object> : eastl::true_type
+{};
+template <>
+struct HasSharedChildComponent<ecs::Array> : eastl::true_type
+{};
+#define DECL_LIST_TYPE(lt, t)                                \
+  template <>                                                \
+  struct HasSharedChildComponent<ecs::lt> : eastl::true_type \
+  {};
+ECS_DECL_LIST_TYPES
+#undef DECL_LIST_TYPE
+
+template <typename T>
+inline const T *getChildComponentPlainOrShared(const ecs::ChildComponent &o)
+{
+  if constexpr (HasSharedChildComponent<T>::value)
+  {
+    if (const T *plain = o.getNullable<T>())
+      return plain;
+    const ecs::SharedComponent<T> *shared = o.getNullable<ecs::SharedComponent<T>>();
+    return shared ? shared->get() : nullptr;
+  }
+  else
+    return o.getNullable<T>();
+}
+
 
 #define TYPE(type)                                                                                                                    \
   inline void setChildComponent##type(ecs::ChildComponent &o, typename DasTypeParamAlias<type>::cparam_alias to)                      \
@@ -363,11 +393,11 @@ inline void swapLists(T &a, T &b)
   }                                                                                                                                   \
   inline const typename DasTypeAlias<type>::alias *getChildComponent##type(const ecs::ChildComponent &o)                              \
   {                                                                                                                                   \
-    return (const typename DasTypeAlias<type>::alias *)o.getNullable<type>();                                                         \
+    return (const typename DasTypeAlias<type>::alias *)getChildComponentPlainOrShared<type>(o);                                       \
   }                                                                                                                                   \
   inline const typename DasTypeAlias<type>::alias *getChildComponentPtr##type(const ecs::ChildComponent *o)                           \
   {                                                                                                                                   \
-    return o ? ((const typename DasTypeAlias<type>::alias *)o->getNullable<type>()) : nullptr;                                        \
+    return o ? ((const typename DasTypeAlias<type>::alias *)getChildComponentPlainOrShared<type>(*o)) : nullptr;                      \
   }                                                                                                                                   \
   inline typename DasTypeAlias<type>::alias *getChildComponentRW##type(ecs::ChildComponent &o)                                        \
   {                                                                                                                                   \

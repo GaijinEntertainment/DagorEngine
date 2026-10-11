@@ -72,7 +72,7 @@ void TileMapperAccel::clear()
 
 TileMapperAccel DeviceQueue::tileMapperAccel;
 
-bool DeviceQueueGroup::init(ID3D12Device *device, debug::DeviceState &debug)
+bool DeviceQueueGroup::init(D3DDevice *device, debug::DeviceState &debug)
 {
   ComPtr<ID3D12CommandQueue> graphicsQueue, computeQueue, uploadQueue, readBackQueue;
 #if _TARGET_PC

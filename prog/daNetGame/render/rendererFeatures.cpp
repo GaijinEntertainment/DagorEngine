@@ -76,7 +76,7 @@ static bool get_render_feature_by_name(const char *name, FeatureRenderFlags &res
   return false;
 }
 
-FeatureRenderFlagMask apply_render_features_override(const FeatureRenderFlagMask &cur, ecs::Object overrides)
+FeatureRenderFlagMask apply_render_features_override(const FeatureRenderFlagMask &cur, const ecs::Object &overrides)
 {
   FeatureRenderFlagMask overriden = cur;
   for (const auto &override : overrides)

@@ -199,7 +199,7 @@ void dgs_filter_saved_config(DataBlock &config_blk)
   remove_disallowed_params(config_blk, *aco, true, false);
 }
 
-void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy,
+void dgs_apply_config_blk_ex(DataBlock &settings_blk, DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy,
   bool save_order)
 {
   if (store_cfg_copy)
@@ -211,11 +211,21 @@ void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_bl
   ignore_excludes = config_blk.getBool("__ignore_override_excludes", ignore_excludes);
 #endif
   const DataBlock *aco = settings_blk.getBlockByNameEx("__allowedConfigOverrides");
-  remove_disallowed_params(const_cast<DataBlock &>(config_blk), *aco, force_apply_all, ignore_excludes);
+  remove_disallowed_params(config_blk, *aco, force_apply_all, ignore_excludes);
   if (save_order)
     merge_data_block_and_save_order(settings_blk, config_blk);
   else
     merge_data_block(settings_blk, config_blk);
+}
+void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy,
+  bool save_order)
+{
+  DataBlock cfg(config_blk);
+  dgs_apply_config_blk_ex(settings_blk, cfg, force_apply_all, store_cfg_copy, save_order);
+}
+void dgs_apply_config_blk(DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy, bool save_order)
+{
+  dgs_apply_config_blk_ex(stg, config_blk, force_apply_all, store_cfg_copy, save_order);
 }
 void dgs_apply_config_blk(const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy, bool save_order)
 {

@@ -85,6 +85,7 @@ struct InitializeResult {
     protocolVersion : string
     capabilities : Capabilities
     serverInfo : ServerInfo
+    @optional instructions : string
 }
 
 // The server configuration threaded through dispatch. `info` is the advertised
@@ -100,6 +101,9 @@ struct McpServer {
     // Directory for per-call progress files. Empty disables progress: a tool's
     // wants_progress is honoured only when the server also names a dir here.
     progress_dir : string
+    // Advertised in the initialize result when non-empty: what the client's model
+    // should know before calling the tools.
+    instructions : string
 }
 
 // Optional post-processing applied to every tool result before it is wrapped
@@ -115,11 +119,12 @@ def install_tool_result_filter(f : function<(result : string; args : JsonValue?)
 // ── MCP protocol handlers ─────────────────────────────────────────────
 // JSON-RPC envelope helpers (response, error, serialize_id) live in daslib/jsonrpc.
 
-def handle_initialize(server_info : ServerInfo; id_json : string) : string {
+def handle_initialize(server : McpServer; id_json : string) : string {
     let result = InitializeResult(
         protocolVersion = "2025-11-25",
         capabilities = Capabilities(),
-        serverInfo = server_info
+        serverInfo = server.info,
+        instructions = server.instructions
     )
     return jsonrpc::response(id_json, sprint_json(result, false))
 }
@@ -170,6 +175,10 @@ def make_tool(name, description : string; var props : table<string; PropertySche
 
 typedef ToolHandler = function<(arg1 : string; arg2 : string; arg3 : string; arg4 : string; arg5 : string; arg6 : string; extra1 : string; extra2 : string; extra_list : array<string>) : string>
 
+//! a handler that takes the call's `arguments` object whole; it always runs on the main
+//! thread, so a stateful server keeps its state in its own context
+typedef JsonToolHandler = function<(name : string; args : JsonValue?) : string>
+
 struct ToolDef {
     tool : MakeFileTool                 // advertised name + description + inputSchema
     required : array<string>            // every name here must be non-empty, else -32602
@@ -179,6 +188,8 @@ struct ToolDef {
     main_thread : bool                  // run on the main thread (live_* / shutdown), not a worker
     wants_progress : bool               // stream notifications/progress when the client sends a token
     handler : ToolHandler
+    json_handler : JsonToolHandler      // when set, replaces handler: the whole arguments object, main thread
+    tool_json : string                  // when non-empty, advertised verbatim by tools/list instead of `tool`
 }
 
 def find_tool(reg : array<ToolDef>; name : string) : int {
@@ -200,7 +211,7 @@ def handle_tools_list(reg : array<ToolDef>; id_json : string) : string {
             if (td.needs_ast_grep && !ast_grep_available) continue
             if (!first) w |> write(",")
             first = false
-            w |> write(sprint_json(td.tool, false))
+            w |> write(empty(td.tool_json) ? sprint_json(td.tool, false) : td.tool_json)
         }
         w |> write("]\}")
     }
@@ -238,9 +249,7 @@ def get_string_array_arg(args : JsonValue?; name : string) : array<string> {
     let v = (args.value as _object)?[name] ?? null
     if (v == null || !(v.value is _array)) return <- result
     result |> reserve(length(v.value as _array))
-    // Filter out non-string and empty-string elements so callers don't have
-    // to re-validate. Empty path entries would otherwise resolve to das_root
-    // downstream (resolve_path("") -> get_das_root()) and load it as a module.
+    //! Drops empty and non-string entries: `resolve_path("")` is the served tree, which a caller would load as a module
     for (elem in v.value as _array) {
         if (elem != null && elem.value is _string) {
             let s = elem.value as _string
@@ -376,9 +385,7 @@ def emit_progress_from_file() {
 // Run an external command, streaming progress when the current call set one up.
 // A worker runs the blocking capture; the main thread polls the progress file
 // every PROGRESS_POLL_MS, emitting a tick each interval, then takes the worker's
-// result. Popping that single result is the whole teardown — the worker's
-// notify_and_release already balanced its channel ref, so an extra release here
-// would under-count and abort the run.
+// result and joins it before the channel scope closes.
 def run_with_progress(argv : array<string>; timeout_sec : float; var output : string&) : int {
     if (empty(current_progress_file) || empty(current_progress_token)) {
         return run_and_capture(argv, output, timeout_sec)
@@ -408,13 +415,17 @@ def run_with_progress(argv : array<string>; timeout_sec : float; var output : st
                 emit_progress_from_file()
             }
         }
+        // The worker releases its channel reference after the push, so the pop
+        // that takes the result can return while that reference is still out —
+        // and a scope closing on a channel in use panics the process mid-call.
+        ch |> join()
     }
     output = captured
     remove(current_progress_file, err)
     return code
 }
 
-def handle_tools_call(server : McpServer; reg : array<ToolDef>; id_json : string; params : JsonValue?) : string {
+def handle_tools_call(server : McpServer; reg : array<ToolDef>; id_json : string; params : JsonValue?) : string {   // nolint:STYLE037 - flat tool-call validation and argument extraction, no seam to split
     let tool_name_val = params?.name
     let args = params?.arguments
     if (tool_name_val == null || !(tool_name_val.value is _string)) return jsonrpc::error(id_json, -32602, "missing or non-string tool name")
@@ -424,6 +435,14 @@ def handle_tools_call(server : McpServer; reg : array<ToolDef>; id_json : string
     // ast-grep tools are hidden from tools/list when ast-grep is missing; reject
     // a direct call too, rather than letting do_* build a command off an empty path.
     if (reg[idx].needs_ast_grep && !ast_grep_available) return jsonrpc::error(id_json, -32602, "tool '{name}' requires ast-grep (sg), which was not found on PATH")
+    if (reg[idx].json_handler != null) {
+        log_tool(name, "")
+        let t0 = get_clock()
+        let resp = invoke(reg[idx].json_handler, name, args)
+        log_tool_done(name, get_clock() - t0, find(resp, "\"isError\":true") >= 0)
+        let filtered_resp = tool_result_filter != null ? invoke(tool_result_filter, resp, args) : resp
+        return jsonrpc::response(id_json, filtered_resp)
+    }
     // AND-required: every listed arg must be present.
     for (rn in reg[idx].required) {
         if (empty(get_string_arg(args, rn))) return jsonrpc::error(id_json, -32602, "missing '{rn}' argument")
@@ -454,10 +473,7 @@ def handle_tools_call(server : McpServer; reg : array<ToolDef>; id_json : string
     let ns = length(server.str_extra_args)
     let extra1 = ns > 0 ? get_string_arg(args, server.str_extra_args[0]) : ""
     let extra2 = ns > 1 ? get_string_arg(args, server.str_extra_args[1]) : ""
-    var extra_list : array<string>
-    if (!empty(server.arr_extra_arg)) {
-        extra_list <- get_string_array_arg(args, server.arr_extra_arg)
-    }
+    var extra_list <- get_string_array_arg(args, server.arr_extra_arg)
     // Universal progress: armed only when the tool opts in, the server names a
     // progress dir, and the client supplied a scalar _meta.progressToken. The
     // handler reads these back through mcp_progress_path / run_with_progress.
@@ -483,10 +499,9 @@ def handle_tools_call(server : McpServer; reg : array<ToolDef>; id_json : string
 // ── JSON-RPC dispatcher ──────────────────────────────────────────────
 
 def dispatch_one(server : McpServer; reg : array<ToolDef>; req : jsonrpc::ParsedRequest; body : string) : string {
-    // Malformed entry — parser already built the envelope. Notifications skip the wire.
     if (!empty(req.error_envelope)) {
-        if (!req.is_notification) log_error(req.error_envelope)
-        return req.is_notification ? "" : req.error_envelope
+        log_error(req.error_envelope)
+        return req.error_envelope
     }
     let id_json = req.id_str
     let method = req.method
@@ -494,7 +509,7 @@ def dispatch_one(server : McpServer; reg : array<ToolDef>; req : jsonrpc::Parsed
     let t0 = get_clock()
     var result : string
     if (method == "initialize") {
-        result = handle_initialize(server.info, id_json)
+        result = handle_initialize(server, id_json)
     } elif (method == "notifications/initialized" || method == "initialized") {
         return ""
     } elif (method == "tools/list") {
@@ -511,15 +526,14 @@ def dispatch_one(server : McpServer; reg : array<ToolDef>; req : jsonrpc::Parsed
     return req.is_notification ? "" : result
 }
 
-def dispatch_jsonrpc(server : McpServer; reg : array<ToolDef>; body : string) : string {
-    let pb = jsonrpc::parse_batch(body)
+def dispatch_parsed(server : McpServer; reg : array<ToolDef>; pb : jsonrpc::ParsedBatch; body : string) : string {
     if (!empty(pb.framing_error)) {
         log_error(pb.framing_error)
         return pb.framing_error
     }
     if (!pb.is_batch) return dispatch_one(server, reg, pb.requests[0], body)
     // §6 batch: collect non-empty per-entry responses, wrap as JSON array; "" if all-notifications.
-    var parts : array<string>
+    var inscope parts : array<string>
     parts |> reserve(length(pb.requests))
     for (req in pb.requests) {
         let r = dispatch_one(server, reg, req, body)
@@ -538,16 +552,42 @@ def dispatch_jsonrpc(server : McpServer; reg : array<ToolDef>; body : string) : 
     }
 }
 
+def dispatch_jsonrpc(server : McpServer; reg : array<ToolDef>; body : string) : string {
+    var pb <- jsonrpc::parse_batch(body)
+    let wire = dispatch_parsed(server, reg, pb, body)
+    jsonrpc::free_batch(pb)
+    return wire
+}
+
 // ── stdio server loop ────────────────────────────────────────────────
 //
 // Shared by every entry point: read newline-delimited JSON-RPC from stdin,
 // dispatch against `reg`, write one-line responses to stdout. The entry point
 // owns logger_init + ast-grep detection + registry assembly, then calls this.
 
+//! a stateful server's between-requests work: set, it runs every IDLE_POLL_MS while stdin is quiet
+var idle_hook : function<() : void>
+let IDLE_POLL_MS = 20
+
 def serve_stdio(server : McpServer; reg : array<ToolDef>) {
+    // From here stdout carries frames and nothing else: a leak dump or a fatal
+    // landing between them is read as a frame, and the client drops the
+    // connection mid-call rather than showing the text.  It goes to the log's
+    // own directory rather than to stderr because a client keeps no record of
+    // that stream, which leaves a death rattle nowhere.
+    logger_capture_diagnostics()
     let sin = fstdin()
     let sout = fstdout()
+    fbinary(sin)
+    fbinary(sout)
+    if (idle_hook != null) {
+        funbuffered(sin)
+    }
     while (!feof(sin)) {
+        if (idle_hook != null && !fpoll(sin, IDLE_POLL_MS)) {
+            invoke(idle_hook)
+            continue
+        }
         // read one line (up to 16KB per fgets call; loop for longer messages)
         let msg = build_string() $(var w) {
             while (!feof(sin)) {
@@ -593,9 +633,7 @@ def serve_stdio(server : McpServer; reg : array<ToolDef>) {
         let str_used = string_heap_bytes_allocated()
         if (heap_used > HEAP_COLLECT_THRESHOLD || str_used > HEAP_COLLECT_THRESHOLD) {
             logger_info("mcp.heap", "collecting — heap: {int(heap_used)}, string heap: {int(str_used)}")
-            unsafe {
-                heap_collect(str_used > HEAP_COLLECT_THRESHOLD, false)
-            }
+            unsafe(heap_collect(str_used > HEAP_COLLECT_THRESHOLD, false))
         }
     }
     logger_info("mcp", "stdin closed, shutting down")

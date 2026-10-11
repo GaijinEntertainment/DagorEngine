@@ -10,6 +10,7 @@
 #include <generic/dag_span.h>
 #include <EASTL/unique_ptr.h>
 #include <EditorCore/ec_interface.h>
+#include <libTools/util/undo.h>
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/messageQueue.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
@@ -76,6 +77,14 @@ public:
   void applyPendingUniqueAssetSwap();
   bool isEditingSubComposite() const { return !subCompositeStack.isEmpty(); }
   bool isModified() const { return modified; }
+
+  // Returns false if the composite is still modified (save failed or the user declined it).
+  // If the method returns false, then do not save the metadata of getEditedAsset(). It would write the unsaved edits to the
+  // composite file.
+  bool saveIfModified();
+
+  const DagorAsset *getEditedAsset() const { return editedAsset; }
+
   const DagorAsset *getParentCompositeAsset() const
   {
     return subCompositeStack.isEmpty() ? nullptr : subCompositeStack.back().parentAsset;
@@ -104,11 +113,10 @@ public:
 
   CompositeEditorToolbar &getToolbar() { return toolbar; }
 
-  void beginUndo(bool save_selection = false);
+  void beginUndo();
   void endUndo(const char *operation_name, bool accept = true);
-  void saveForUndo(DataBlock &dataBlock) const;
-  void loadFromUndo(const DataBlock &dataBlock, unsigned selected_tree_node_data_block_id,
-    const dag::Vector<unsigned> &multi_selected_tree_node_data_block_ids);
+  void saveForUndo(DataBlock &dataBlock, unsigned &primary_data_block_id, dag::Vector<unsigned> &data_block_ids) const;
+  void loadFromUndo(const DataBlock &dataBlock, unsigned primary_data_block_id, const dag::Vector<unsigned> &data_block_ids);
 
   eastl::unique_ptr<CompositeEditorTree> compositeTreeView;
   eastl::unique_ptr<CompositeEditorPanel> compositePropPanel;
@@ -134,6 +142,7 @@ private:
   // ControlEventHandler
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   // IMenuEventHandler
   int onMenuItemClick(unsigned id) override;
@@ -154,6 +163,8 @@ private:
   bool canSwitchToAnotherAsset();
   void updateGizmo();
   void updateToolbarVisibility();
+
+  CompositeEditorTreeDataNode *getTreeDataNodeForUndo(unsigned data_block_id);
 
   bool isTreeDataNodeSelected(CompositeEditorTreeDataNode *treeDataNode);
   void getSelectedTreeDataNodes(dag::Vector<CompositeEditorTreeDataNode *> &selectTreeDataNodes);
@@ -179,6 +190,9 @@ private:
 
   static void focusViewport();
 
+  // Data block IDs count up from 1, so this value never refers to a regular node.
+  static constexpr unsigned ROOT_NODE_UNDO_ID = ~0u;
+
   IEntityViewPluginInterface *entityViewPluginInterface = nullptr;
   DagorAsset *editedAsset = nullptr;
   CompositeEditorSubStack subCompositeStack;
@@ -200,6 +214,8 @@ private:
 
   eastl::unique_ptr<EntityTreeDropHandler> treeDropHandler;
   eastl::unique_ptr<ChildEntityDragAndDropHandler> childDropHandler;
+
+  UndoEditGesture undoEditGesture;
 };
 
 class EntityTreeDropHandler : public PropPanel::ITreeDropHandler

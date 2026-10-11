@@ -27,7 +27,9 @@
 #define CPU_FEATURES_ARCH_X86_32
 #endif
 
-#if (defined(_M_X64) || defined(__x86_64__)) && !defined(CPU_FEATURES_ARCH_VM)
+// Gaijin change
+#if (defined(_M_X64) || defined(__x86_64__)) && !defined(CPU_FEATURES_ARCH_VM) && !defined(_M_ARM64EC)
+// ~Gaijin change
 #define CPU_FEATURES_ARCH_X86_64
 #endif
 
@@ -39,7 +41,9 @@
 #define CPU_FEATURES_ARCH_ARM
 #endif
 
-#if (defined(__aarch64__) || defined(_M_ARM64))
+// Gaijin change
+#if (defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC))
+// ~Gaijin change
 #define CPU_FEATURES_ARCH_AARCH64
 #endif
 

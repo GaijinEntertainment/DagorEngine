@@ -59,6 +59,8 @@ bool ShaderBytecodeCache::post(ShaderCacheLevelIds c, const CompileResult &resul
     ++codeCounts.all[stage];
     if (item_is_in(stage, {HLSL_CS, HLSL_AS, HLSL_MS}))
       cachedShader.computeShaderInfo = result.computeShaderInfo;
+    if (stage == HLSL_PS)
+      cachedShader.psOutputInfo = result.psOutputInfo;
     if (!result.bytecode.empty())
       eastl::copy(result.bytecode.begin(), result.bytecode.end(), (uint8_t *)&cachedShader.relCode[0]);
     for (size_t i = result.bytecode.size(); i < size_in_unsigned * sizeof(unsigned); ++i)
@@ -132,4 +134,6 @@ void apply_shader_from_cache(SemanticShaderPass &pass, HlslCompilationStage stag
     pass.scarlettWave32 = cachedShader.getComputeShaderInfo().scarlettWave32;
 #endif
   }
+  if (stage == HLSL_PS)
+    pass.psOutputInfo = cachedShader.psOutputInfo;
 }

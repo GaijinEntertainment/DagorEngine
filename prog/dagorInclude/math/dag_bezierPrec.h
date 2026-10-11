@@ -23,7 +23,7 @@ public:
     float startT = 0.0f, endT = 1.0f;
     float ts = BezierSplineInt<P>::getLength(t), delta = s - ts;
 
-    while (fabsf(delta) > 0.02)
+    while (fabsf(delta) > 0.02f)
     {
       if (delta > 0)
       {
@@ -36,7 +36,7 @@ public:
         t = (startT + t) * 0.5f;
       }
 
-      if ((endT - startT) < 1e-7)
+      if ((endT - startT) < 1e-7f)
         return t;
 
       ts = BezierSplineInt<P>::getLength(t);

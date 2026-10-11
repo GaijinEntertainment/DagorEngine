@@ -284,21 +284,21 @@ inline float inStep(float p) { return p > 0.5f ? 1.f : 0.f; }
 
 inline float outStep(float p) { return p < 0.5f ? 1.f : 0.f; }
 
-inline float blink(float p) { return (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9; }
-inline float doubleBlink(float p) { return 0.5 - 0.5 * cosf(4 * PI * p); }
+inline float blink(float p) { return (p < 0.1f) ? 10.0f * p : 1.0f - (p - 0.1f) / 0.9f; }
+inline float doubleBlink(float p) { return 0.5f - 0.5f * cosf(4 * PI * p); }
 
 inline float blinkSin(float p)
 {
-  float val = (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9;
-  if (p < 0.5)
-    val *= 0.75 + 0.25 * sin((p * 80.0 - 0.5) * PI);
+  float val = blink(p);
+  if (p < 0.5f)
+    val *= 0.75f + 0.25f * sinf((p * 80.0f - 0.5f) * PI);
   return val;
 }
 
 inline float blinkCos(float p)
 {
-  float val = (p < 0.1) ? 10.0 * p : 1.0 - (p - 0.1) / 0.9;
-  if (p < 0.5)
-    val *= 0.75 + 0.25 * cosf((p * 40.0 - 0.5) * PI);
+  float val = blink(p);
+  if (p < 0.5f)
+    val *= 0.75f + 0.25f * cosf((p * 40.0f - 0.5f) * PI);
   return val;
 }

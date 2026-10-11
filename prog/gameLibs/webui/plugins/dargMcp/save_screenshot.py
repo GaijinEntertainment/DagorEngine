@@ -1,10 +1,4 @@
-"""Call the daRg MCP make_screenshot tool and save the result to a JPEG file.
-
-Uses a raw socket to send the entire HTTP request in a single send() call.
-Python's urllib sends headers and body separately, which triggers a TCP RST
-from the webui server (it does a single recvfrom, so the unsent body remains
-unread in the socket buffer, causing closesocket to RST).
-"""
+"""Call the daRg MCP make_screenshot tool and save the result to a PNG file."""
 
 import json
 import base64

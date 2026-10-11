@@ -189,8 +189,8 @@ void LandWeightAtlas::writeRecord(int index, const uint8_t *det_tex_ids, int num
     }
     *rec |= uint32_t(page) << (p * LAND_WEIGHT_PAGE1_SHIFT);
   }
-  // the packed-level loader reads these for the cells' landclass lists; the
-  // shader will bind the landclass textures with them once it does so itself
+  // the packed-level loader reads these for the cells' landclass lists and
+  // land_weight_cell_slot_id() resolves a slot's de-tiling record from them
   for (int ch = 0; ch < DET_NUM; ch++)
     recordLandclassIds(rec)[ch] = ch < count && det_tex_ids ? det_tex_ids[ch] : 0xFF;
 }

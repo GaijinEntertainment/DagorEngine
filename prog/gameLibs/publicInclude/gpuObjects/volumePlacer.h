@@ -140,6 +140,7 @@ public:
     eastl::vector<uint16_t> &ri_ids, bool use_bvh_connection);
   int getNumInstancesToDraw(int layer) { return numInstancesToDraw[layer]; }
   void resetReadbackEntity(ecs::EntityId eid);
+  void afterDeviceReset();
   void updateDistanceEmitterMatrices(const ecs::EntityId changed_distance_emitter_id,
     const TMatrix &changed_distance_emitter_transform);
   void updateDistanceEmitterMatrix(int gpu_object_placer__buffer_offset, int gpu_object_placer__distance_emitter_buffer_size,

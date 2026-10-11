@@ -26,3 +26,4 @@ add_test(
 # Label `small` is what CI's `ctest -L small` step picks up (.github/workflows/build.yml).
 # `exe-paths` / `integration` are descriptive — useful for local `ctest -L exe-paths`.
 set_tests_properties(exe_paths_module_resolve PROPERTIES LABELS "small;exe-paths;integration")
+add_dependencies(test-small daslang dasModuleSQLITE libDaScriptDyn_runtime libDaScriptDyn)

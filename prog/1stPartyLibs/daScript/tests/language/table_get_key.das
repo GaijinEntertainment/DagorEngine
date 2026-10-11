@@ -5,10 +5,7 @@ require dastest/testing_boost public
 [test]
 def test_get_key_int_float(t : T?) {
     t |> run("basic int->float table") @(t : T?) {
-        var tab : table<int; float>
-        tab[10] = 1.0
-        tab[20] = 2.0
-        tab[30] = 3.0
+        var tab <- {10 => 1.0, 20 => 2.0, 30 => 3.0}
         var sum_keys = 0
         var sum_vals = 0.0
         for (v in values(tab)) {
@@ -24,9 +21,7 @@ def test_get_key_int_float(t : T?) {
 [test]
 def test_get_key_string_int(t : T?) {
     t |> run("string->int table") @(t : T?) {
-        var tab : table<string; int>
-        tab["alpha"] = 1
-        tab["beta"] = 2
+        var tab <- {"alpha" => 1, "beta" => 2}
         var found : table<string; int>
         for (v in values(tab)) {
             let k = get_key(tab, v)
@@ -57,10 +52,7 @@ def check_const(t : T?; tab : table<int; int>) {
 [test]
 def test_get_key_after_erase(t : T?) {
     t |> run("tombstones after erase") @(t : T?) {
-        var tab : table<int; int>
-        for (i in range(10)) {
-            tab[i] = i * 10
-        }
+        var tab <- {for (i in range(10)); i => i * 10}
         // Erase some entries to create tombstones
         tab |> erase(3)
         tab |> erase(5)

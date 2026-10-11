@@ -181,6 +181,7 @@ int ShadowSystem::allocateVolume(ShadowCastersFlag casters, bool hint_dynamic, u
   volume.priority = min(priority, (uint8_t)MAX_PRIORITY);
   volume.renderGPUObjects = render_gpu_objects;
   volume.invalidate();
+  markShadowUpdated(id);
   return id;
 }
 
@@ -201,6 +202,7 @@ void ShadowSystem::destroyVolume(uint32_t id)
   volumes[id].invalidate();
   volumes[id].lastFrameUsed = 0;
   volumesToUpdate.erase(id);
+  markShadowUpdated(id);
 }
 
 bool ShadowSystem::getShadowProperties(uint32_t id, ShadowCastersFlag &casters, bool &hint_dynamic, uint16_t &quality,
@@ -296,6 +298,7 @@ void ShadowSystem::setShadowVolume(uint32_t id, mat44f_cref viewITM, float zn, f
   volume.wk = wk;
   volume.lastFrameChanged = currentFrame; // may be check is set same params
   volume.flags &= ~volume.OCTAHEDRAL;
+  markShadowUpdated(id);
 
   // wk is 1/tan(halfAngle)
   float tanHalfAngle = 1. / wk;
@@ -341,6 +344,7 @@ void ShadowSystem::setOctahedralShadowVolume(uint32_t id, vec3f pos, float zn, f
   volume.wk = 1;
   volume.lastFrameChanged = currentFrame; // may be check is set same params
   volume.flags |= volume.OCTAHEDRAL;
+  markShadowUpdated(id);
 
 
   vec4f pos_radius = v_perm_xyzd(pos, v_rot_1(v_set_x(M_SQRT2 * zf)));
@@ -652,9 +656,14 @@ uint32_t ShadowSystem::startRenderVolume(uint32_t id, mat44f &proj, RenderFlags 
     else
       texTM = buildTexTM(volume.shadow.x, volume.shadow.y, volume.shadow.width, volume.shadow.height, atlasWidth, atlasHeight);
 
-    mat44f valumeTexTM;
+    mat44f valumeTexTM, transposedTexTM;
     v_mat44_mul(valumeTexTM, texTM, viewproj);
-    v_mat44_transpose(volumesTexTM[id], valumeTexTM);
+    v_mat44_transpose(transposedTexTM, valumeTexTM);
+    if (memcmp(&volumesTexTM[id], &transposedTexTM, sizeof(transposedTexTM)) != 0)
+    {
+      volumesTexTM[id] = transposedTexTM;
+      markShadowUpdated(id);
+    }
     G_ASSERTF(uint32_t(volume.shadow.x) < uint32_t(atlasWidth) && uint32_t(volume.shadow.y) < atlasHeight &&
                 volume.shadow.x + volume.shadow.width <= atlasWidth && volume.shadow.y + volume.shadow.height <= atlasHeight,
       "rect %dx%d %dx%d", volume.shadow.x, volume.shadow.y, volume.shadow.width, volume.shadow.height);
@@ -681,8 +690,13 @@ uint32_t ShadowSystem::startRenderVolume(uint32_t id, mat44f &proj, RenderFlags 
     }
     G_ASSERTF(OMNI_SHADOW_MARGIN * 2 < sizeX && OMNI_SHADOW_MARGIN * 2 < sizeY, "The margin is larger than the texture itself");
     int margin = min(OMNI_SHADOW_MARGIN, min(sizeX, sizeY) / 2);
-    volumesOctahedralData[id] = Point4(float(offsetX + margin) / atlasWidth, float(offsetY + margin) / atlasHeight,
+    const Point4 octahedralData(float(offsetX + margin) / atlasWidth, float(offsetY + margin) / atlasHeight,
       float(sizeX - margin * 2) / atlasWidth, float(sizeY - margin * 2) / atlasHeight);
+    if (volumesOctahedralData[id] != octahedralData)
+    {
+      volumesOctahedralData[id] = octahedralData;
+      markShadowUpdated(id);
+    }
   }
   if (!volume.isValidContent() || volume.isDynamicOrOnlyStaticCasters())
   {
@@ -879,6 +893,8 @@ void ShadowSystem::endRenderVolume(uint32_t id)
     }
   }
 
+  if (!volume.hasEverBeenRendered())
+    markShadowUpdated(id);
   volume.lastFrameUpdated = currentFrame;
   volumesToUpdate.erase(id);
 }
@@ -977,7 +993,10 @@ void ShadowSystem::invalidateAllVolumes()
   atlas.init(atlasWidth / maxShadow, atlasHeight / maxShadow, maxShadow / minShadow);
   for (int i = 0; i < volumes.size(); ++i)
     if (!volumes[i].isDestroyed())
+    {
       volumes[i].invalidate();
+      markShadowUpdated(i);
+    }
 }
 
 void ShadowSystem::startPrepareShadows()
@@ -1137,6 +1156,7 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::FrameVolumeData &vol
         {
           if (volume.shadow.width != volume.dynamicShadow.width) // we have to allocate exactly same size
           {
+            markShadowUpdated(id);
             atlasFree(volume.dynamicShadow);
             volume.dynamicShadow = atlasInsert(volume.shadow.width);
             if (volume.dynamicShadow.isEmpty()) // remove unused
@@ -1153,6 +1173,13 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::FrameVolumeData &vol
           }
         }
 
+        if (!volume.isStaticLightWithDynamicContent(currentFrame) && !volume.dynamicShadow.isEmpty())
+        {
+          setStaticShadowTexData(id);
+          atlasFree(volume.dynamicShadow); // free space
+          volume.dynamicShadow.reset();
+        }
+
         if (volume.shouldBeRendered(currentFrame))
         {
           const int staticViews = (getVolumeRenderFlags(id) & RENDER_STATIC) ? (int)volume.getNumViews() : 0;
@@ -1161,31 +1188,6 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::FrameVolumeData &vol
           totalUpdateArea -= volume.shadow.width * volume.shadow.width;
           if (volumesToRender.size() >= max_shadow_volumes_to_update || staticViewsLeft <= 0 || totalUpdateArea < 0)
             break;
-        }
-        else if (!volume.dynamicShadow.isEmpty())
-        {
-          if (!volume.isOctahedral())
-          {
-            mat44f texTM =
-              buildTexTM(volume.shadow.x, volume.shadow.y, volume.shadow.width, volume.shadow.height, atlasWidth, atlasHeight);
-            mat44f viewProj;
-            volume.buildViewProj(viewProj, 0);
-            mat44f valumeTexTM;
-            v_mat44_mul(valumeTexTM, texTM, viewProj); // todo: do that only if last time was different matrix
-            v_mat44_transpose(volumesTexTM[id], valumeTexTM);
-          }
-          else
-          {
-            G_ASSERTF(OMNI_SHADOW_MARGIN * 2 < volume.shadow.width && OMNI_SHADOW_MARGIN * 2 < volume.shadow.height,
-              "The margin is larger than the texture itself");
-            int margin = min(OMNI_SHADOW_MARGIN, min(volume.shadow.width, volume.shadow.height) / 2);
-            volumesOctahedralData[id] =
-              Point4(float(volume.shadow.x + margin) / atlasWidth, float(volume.shadow.y + margin) / atlasHeight,
-                float(volume.shadow.width - margin * 2) / atlasWidth, float(volume.shadow.height - margin * 2) / atlasHeight);
-          }
-
-          atlasFree(volume.dynamicShadow); // free space
-          volume.dynamicShadow.reset();
         }
       }
       else
@@ -1248,6 +1250,8 @@ bool ShadowSystem::insertToAtlas(uint16_t id, uint16_t targetSize)
     return true;
 
   AtlasRect oldRect = volume.shadow;
+  markShadowUpdated(id);
+  const bool hadDynamicShadow = !volume.dynamicShadow.isEmpty();
 
   atlasFree(volume.dynamicShadow);
   atlasFree(volume.shadow);
@@ -1303,6 +1307,8 @@ bool ShadowSystem::insertToAtlas(uint16_t id, uint16_t targetSize)
     memset(&volumesTexTM[id], 0, sizeof(volumesTexTM[id]));
     memset(&volumesOctahedralData[id], 0, sizeof(volumesOctahedralData[id]));
   }
+  else if (hadDynamicShadow)
+    setStaticShadowTexData(id);
 
   if (volume.shadow.isEmpty())
   {
@@ -1366,6 +1372,37 @@ bool ShadowSystem::upgradeQuality(float predicted_upgraded_occupancy)
   return false;
 }
 
+void ShadowSystem::setStaticShadowTexData(uint16_t id)
+{
+  markShadowUpdated(id);
+  const Volume &volume = volumes[id];
+  if (volume.shadow.isEmpty())
+  {
+    memset(&volumesTexTM[id], 0, sizeof(volumesTexTM[id]));
+    memset(&volumesOctahedralData[id], 0, sizeof(volumesOctahedralData[id]));
+    return;
+  }
+  if (!volume.isOctahedral())
+  {
+    if (!volume.isValidContent())
+      return;
+    mat44f texTM = buildTexTM(volume.shadow.x, volume.shadow.y, volume.shadow.width, volume.shadow.height, atlasWidth, atlasHeight);
+    mat44f viewProj;
+    volume.buildViewProj(viewProj, 0);
+    mat44f valumeTexTM;
+    v_mat44_mul(valumeTexTM, texTM, viewProj); // todo: do that only if last time was different matrix
+    v_mat44_transpose(volumesTexTM[id], valumeTexTM);
+  }
+  else
+  {
+    G_ASSERTF(OMNI_SHADOW_MARGIN * 2 < volume.shadow.width && OMNI_SHADOW_MARGIN * 2 < volume.shadow.height,
+      "The margin is larger than the texture itself");
+    int margin = min(OMNI_SHADOW_MARGIN, min(volume.shadow.width, volume.shadow.height) / 2);
+    volumesOctahedralData[id] = Point4(float(volume.shadow.x + margin) / atlasWidth, float(volume.shadow.y + margin) / atlasHeight,
+      float(volume.shadow.width - margin * 2) / atlasWidth, float(volume.shadow.height - margin * 2) / atlasHeight);
+  }
+}
+
 bool ShadowSystem::freeUnusedDynamicDataForStaticLights()
 {
   if (lastFrameStaticLightsOptimized == currentFrame)
@@ -1378,6 +1415,7 @@ bool ShadowSystem::freeUnusedDynamicDataForStaticLights()
     Volume &volume = volumes[i];
     if (!volume.isStaticLightWithDynamicContent(currentFrame) && !volume.dynamicShadow.isEmpty())
     {
+      setStaticShadowTexData(i);
       atlasFree(volume.dynamicShadow);
       volume.dynamicShadow.reset();
       ret = true;
@@ -1434,6 +1472,9 @@ ShadowSystem::AtlasRect ShadowSystem::replaceUnused(uint16_t targetShadowSize)
     const int id = lruList[bestIndex].id;
     retRect = volumes[id].shadow;
     volumes[id].shadow.reset();
+    atlasFree(volumes[id].dynamicShadow);
+    volumes[id].dynamicShadow.reset();
+    setStaticShadowTexData(id);
     volumes[id].valid = false;          // actually not important, it will be invalidated on insert
     erase_items(lruList, bestIndex, 1); // nothing to remove
     return retRect;
@@ -1451,6 +1492,7 @@ ShadowSystem::AtlasRect ShadowSystem::replaceUnused(uint16_t targetShadowSize)
       continue;
     atlasFree(volumes[id].shadow);
     volumes[id].shadow.reset();
+    setStaticShadowTexData(id);
     volumes[id].valid = false; // actually not important, it will be invalidated on insert
   }
   debugValidate();
@@ -1469,6 +1511,7 @@ int ShadowSystem::appendVolume()
   G_VERIFY(append_items(volumesTexTM, 1) == id);
   G_VERIFY(append_items(volumesOctahedralData, 1) == id);
   G_VERIFY(append_items(volumesSphere, 1) == id);
+  updatedShadows.push_back(false);
   return id;
 }
 
@@ -1480,6 +1523,29 @@ void ShadowSystem::resizeVolumes(int cnt)
   volumesTexTM.resize(cnt);
   volumesOctahedralData.resize(cnt);
   volumesSphere.resize(cnt);
+  updatedShadows.resize(cnt, false);
+}
+
+void ShadowSystem::markShadowUpdated(uint32_t id)
+{
+  if (id < updatedShadows.size())
+    updatedShadows[id] = true;
+}
+
+void ShadowSystem::forEachUpdatedShadow(UpdatedShadowCallback callback) const
+{
+  for (uint32_t id = 0, n = updatedShadows.size(); id < n; ++id)
+    if (updatedShadows[id])
+      callback(id);
+}
+
+void ShadowSystem::clearUpdatedShadows() { eastl::fill(updatedShadows.begin(), updatedShadows.end(), false); }
+
+void ShadowSystem::markAllShadowsUpdated()
+{
+  for (uint32_t id = 0, n = volumes.size(); id < n; ++id)
+    if (!volumes[id].isDestroyed())
+      markShadowUpdated(id);
 }
 
 void ShadowSystem::afterReset()

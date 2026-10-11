@@ -1,0 +1,11 @@
+Instance, plain first: false true
+Instance, frozen first: false true
+Table, frozen first: false true
+Same handle, same weakref: true true
+Plain and frozen weakrefs equal: false
+bindenv frozen: rejected
+bindenv plain: 1
+Generator this: true
+Release plain first: true false
+Release frozen first: false true
+Dead object: null null

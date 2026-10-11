@@ -35,19 +35,15 @@ static bool exportDbldFields(BinDumpReader &crd, unsigned exp_tag, const char *e
 {
   int tag;
 
-  if (crd.readFourCC() != _MAKE4C('DBLD'))
+  if (crd.readFourCC() != _MAKE4C('DBLD') || crd.readFourCC() != DBLD_Version)
+  {
+    printf("ERROR: invalid DBLD <%s>\n", crd.getRawReader().getTargetName());
+    unlink(exp_fname);
     return false;
-  if (crd.readFourCC() != DBLD_Version)
-    return false;
+  }
   crd.readInt32e(); // total tex number
 
-  FullFileSaveCB exp_cwr(exp_fname);
-  if (!exp_cwr.fileHandle)
-  {
-    printf("ERROR: cannot open output file for export <%s>\n", exp_fname);
-    return true;
-  }
-
+  MemorySaveCB exp_data(64 << 10);
   for (;;)
   {
     tag = crd.beginTaggedBlock();
@@ -56,19 +52,27 @@ static bool exportDbldFields(BinDumpReader &crd, unsigned exp_tag, const char *e
     {
       // valid end of binary dump
       crd.endBlock();
-      return true;
+      break;
     }
     else if (tag == exp_tag)
     {
       int sz = crd.getBlockRest() + 8;
       crd.endBlock();
       crd.seekto(crd.tell() - sz);
-      copy_stream_to_stream(crd.getRawReader(), exp_cwr, sz);
+      copy_stream_to_stream(crd.getRawReader(), exp_data, sz);
       continue;
     }
 
     crd.endBlock();
   }
+
+  FullFileSaveCB exp_cwr(exp_fname);
+  if (!exp_cwr.fileHandle)
+  {
+    printf("ERROR: cannot open output file for export <%s>\n", exp_fname);
+    return false;
+  }
+  exp_data.copyDataTo(exp_cwr);
   return true;
 }
 
@@ -130,8 +134,6 @@ static bool importDbldFields(BinDumpReader &crd, unsigned imp_tag, const char *i
 
     crd.endBlock();
   }
-  printf("ERROR: unexpected EOF");
-  return false;
 }
 
 static bool dbldStripGfxFields(BinDumpReader &crd, mkbindump::BinDumpSaveCB &cwr)
@@ -250,8 +252,6 @@ static bool dbldStripGfxFields(BinDumpReader &crd, mkbindump::BinDumpSaveCB &cwr
 
     crd.endBlock();
   }
-  printf("ERROR: unexpected EOF");
-  return false;
 }
 
 static void copy_stream_to_stream_h(IGenLoad &crd, IGenSave &cwr, int size, String &out_hash)
@@ -387,11 +387,7 @@ int DagorWinMain(bool debugmode)
       targetStr++;
     }
     if (!exportDbldFields(crd, tag, __argv[4]))
-    {
-      printf("ERROR: invalid DBLD <%s>\n", __argv[2]);
-      unlink(__argv[4]);
       return 13;
-    }
   }
   else if (strnicmp(__argv[3], "-imp:", 5) == 0 && __argc > 4)
   {

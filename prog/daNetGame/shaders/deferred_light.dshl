@@ -25,13 +25,17 @@ shader deferredLight
 
   USE_AND_INIT_VIEW_VEC(vs)
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
+  }
   INIT_AND_USE_DEFERRED_LIGHT_COMMON(ps)
 
   POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewVect)
 
   (ps) {
     frame@f1 = (shadow_frame, 0, 0, 0);
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     current_time@f1 = (time_phase(0, 0));
   }
 

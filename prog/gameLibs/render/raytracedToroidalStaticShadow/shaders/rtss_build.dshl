@@ -1,0 +1,27 @@
+include "rtss_trace_common.dshl"
+
+buffer rtss_raster_tiles;
+
+shader rtss_resolve_cs
+{
+  RTSS_ATLAS_WRITE(cs)
+  (cs) {
+    rtss_raster_tiles@buf = rtss_raster_tiles hlsl {
+      StructuredBuffer<uint> rtss_raster_tiles@buf;
+    }
+    rtss_raster_scratch@tex = rtss_raster_scratch hlsl {
+      Texture2D<float> rtss_raster_scratch@tex;
+    }
+  }
+  hlsl(cs) {
+    [numthreads(8, 8, 1)]
+    void rtss_resolve(uint3 id : SV_DispatchThreadID)
+    {
+      uint S = uint(rtss_params_i.z);
+      RtssJob job = rtss_jobs[rtss_raster_tiles[id.z]];
+      float depth = rtss_raster_scratch[rtss_raster_texel(job.rasterTile, id.xy, S)];
+      rtss_store(job, id.xy, depth);
+    }
+  }
+  compile("target_cs", "rtss_resolve");
+}

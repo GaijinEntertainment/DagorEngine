@@ -11,6 +11,29 @@
 
 #include "shaderSave.h"
 #include "shaderVariant.h"
+
+// Part of the pass identity: identical bytecode with different opt-ins must stay distinct.
+struct RenderPassOptInRef
+{
+  int passId = -1;
+  int subpassIdx = -1;
+  int groupId = -1;
+
+  bool hasOptIn() const { return passId >= 0 || groupId >= 0; }
+  bool isGroup() const { return groupId >= 0; }
+  void setPass(int pass_id, int subpass_idx)
+  {
+    passId = pass_id;
+    subpassIdx = subpass_idx;
+    groupId = -1;
+  }
+  void setGroup(int group_id)
+  {
+    groupId = group_id;
+    passId = subpassIdx = -1;
+  }
+  bool operator==(const RenderPassOptInRef &) const = default;
+};
 #include "varMap.h"
 #include "namedConst.h"
 #include <shaders/dag_shaderCommon.h>
@@ -61,6 +84,7 @@ public:
     int branchedCppStcodeTableOffset = -1;
     int branchedCppStblkcodeTableOffset = -1; // @TODO: remove, as it can't be used
     int renderStateNo = -1;
+    RenderPassOptInRef renderPassOptIn;
     eastl::array<uint16_t, 3> threadGroupSizes = {};
     bool scarlettWave32 = false;
   };

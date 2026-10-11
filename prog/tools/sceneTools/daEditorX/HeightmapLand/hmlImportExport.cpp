@@ -385,7 +385,7 @@ void HmapLandObjectEditor::exportToDag()
         mem_set_0(sel_obj_st);
         for (int i = 0; i < exp_obj.size(); i++)
           if (LandscapeEntityObject *ent_obj = RTTI_cast<LandscapeEntityObject>(exp_obj[i]))
-            if (IObjEntity *e = ent_obj ? ent_obj->getEntity() : NULL)
+            if (IObjEntity *e = ent_obj->getEntity())
             {
               sel_obj_st[i] = e->getSubtype();
               e->setSubtype(ST_EXPORTABLE);
@@ -511,7 +511,7 @@ void HmapLandObjectEditor::exportToDag()
       if (exp_selected && sel_obj_st.size())
         for (int i = 0; i < exp_obj.size(); i++)
           if (LandscapeEntityObject *ent_obj = RTTI_cast<LandscapeEntityObject>(exp_obj[i]))
-            if (IObjEntity *e = ent_obj ? ent_obj->getEntity() : NULL)
+            if (IObjEntity *e = ent_obj->getEntity())
               e->setSubtype(sel_obj_st[i]);
 
       cont->writeNodes(save);
@@ -616,7 +616,7 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
         // ImportDlg importDlg(this, newName, choosed, for_all);
         // if (!importDlg.execute(DAGORED2->getMainWnd()))
         //   needToImport = false;
-        PropPanel::DialogWindow *myDlg = DAGORED2->createDialog(_pxScaled(320), _pxScaled(250), "Import objects");
+        PropPanel::DialogWindow *myDlg = DAGORED2->createAutoSizedDialog("Import objects");
         PropPanel::ContainerPropertyControl *myPanel = myDlg->getPanel();
 
         // fill panel
@@ -649,18 +649,15 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
         DAGORED2->deleteDialog(myDlg);
       }
 
-      if (needToImport)
+      if (choosed == 1)
       {
-        if (choosed == 1)
-        {
-          while (getObjectByName(newName))
-            ::make_next_numbered_name(newName, 2);
-        }
-        if (choosed == 2)
-          removeObject(getObjectByName(node->name));
-        else if (choosed == 3)
-          needToImport = false;
+        while (getObjectByName(newName))
+          ::make_next_numbered_name(newName, 2);
       }
+      else if (choosed == 2)
+        removeObject(getObjectByName(node->name));
+      else if (choosed == 3)
+        needToImport = false;
     }
 
     if (needToImport)

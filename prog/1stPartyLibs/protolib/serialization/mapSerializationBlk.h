@@ -2,7 +2,7 @@
 #ifndef __GAIJIN_PROTOIO_MAPSERIALIZATIONBLK__
 #define __GAIJIN_PROTOIO_MAPSERIALIZATIONBLK__
 
-#include "blkSerialization.h"
+#include "blkValueWrapper.h"
 #include "containersUtil.h"
 
 namespace proto

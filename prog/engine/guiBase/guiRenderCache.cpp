@@ -428,10 +428,22 @@ void BufferedRenderer::resetBuffers()
   {
     GuiVertexData &buf = buffers[i];
     // If data from a single frame takes up less than half of the buffer, discard it less frequently, if more than half, discard each
-    // frame.
-    buffersDiscard[i] = (buf.startVertex > buf.verticesTotal / 2 || buf.startIndex > buf.indicesTotal / 2);
+    // frame. A discard that no lock() consumed yet stays pending.
+    buffersDiscard[i] = buffersDiscard[i] || buf.startVertex > buf.verticesTotal / 2 || buf.startIndex > buf.indicesTotal / 2;
     if (buffersDiscard[i])
       buf.reset();
+  }
+}
+
+void BufferedRenderer::abandonFrame()
+{
+  isInChunk = false;
+  isInLock = false;
+  resetBuffers();
+  for (int i = 0; i < buffers.size(); i++)
+  {
+    buffers[i].reset();
+    buffersDiscard[i] = true;
   }
 }
 

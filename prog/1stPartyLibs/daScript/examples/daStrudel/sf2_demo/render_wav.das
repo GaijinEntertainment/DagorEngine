@@ -6,11 +6,10 @@ options indenting = 4
 require strudel/strudel
 require strudel/strudel_player
 require strudel/strudel_sf2
-require strudel/strudel_sf2_voice
 require audio/audio_wav
 require audio/audio_boost
-require audio
 require daslib/fio
+require daslib/clargs
 
 def find_sf2() : string {
     let dir = "{get_das_root()}/examples/daStrudel/midi_sf2_demo"
@@ -78,13 +77,12 @@ def main() {
     print("Rendering {duration} seconds...\n")
     while (wall_time < duration) {
         tick(sched, pat, bank, wall_time, chunk_sec)
-        for (s in g_master_pcm) {
-            output |> push(s)
-        }
+        output |> push_from(g_master_pcm)
         wall_time += double(chunk_sec)
     }
 
-    let wav_path = "E:/sf2_demo.wav"
+    let args <- get_user_args()
+    let wav_path = !empty(args) ? args[0] : "sf2_demo.wav"
     print("Writing {wav_path} ({length(output) / 2} frames)\n")
     write_wav(wav_path, output, [sample_rate = 48000u, channels = 2])
     print("Done!\n")

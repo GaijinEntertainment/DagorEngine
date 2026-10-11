@@ -76,8 +76,8 @@ void set_params(const Point4 &envi_cover_intensity_map_left_top_right_bottom, co
   ShaderGlobal::set_float4(var::thresholds, thresholds);
 
   Point4 intensity_map_scale_offset(
-    1.0 / (envi_cover_intensity_map_left_top_right_bottom.z - envi_cover_intensity_map_left_top_right_bottom.x),
-    1.0 / (envi_cover_intensity_map_left_top_right_bottom.w - envi_cover_intensity_map_left_top_right_bottom.y),
+    1.0f / (envi_cover_intensity_map_left_top_right_bottom.z - envi_cover_intensity_map_left_top_right_bottom.x),
+    1.0f / (envi_cover_intensity_map_left_top_right_bottom.w - envi_cover_intensity_map_left_top_right_bottom.y),
     -envi_cover_intensity_map_left_top_right_bottom.x /
       (envi_cover_intensity_map_left_top_right_bottom.z - envi_cover_intensity_map_left_top_right_bottom.x),
     -envi_cover_intensity_map_left_top_right_bottom.y /

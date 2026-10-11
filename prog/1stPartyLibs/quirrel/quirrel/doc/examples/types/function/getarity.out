@@ -1,0 +1,4 @@
+add: num_params=2 num_required=1 varargs=false
+log: num_params=1 varargs=true
+10
+15

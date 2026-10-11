@@ -29,14 +29,14 @@ def make_tuple_with_field_call_to_cmres : BarT {
 }
 
 def make_tuple_on_stack(which : bool) : FooT {
-    var a : FooT = (a = 1, b = 2.0, c = "3", d = 4)
-    var b : FooT = (a = 2, b = 3.0, c = "4", d = 5)
+    let a : FooT = (a = 1, b = 2.0, c = "3", d = 4)
+    let b : FooT = (a = 2, b = 3.0, c = "4", d = 5)
     return which ? a : b
 }
 
 def make_tuple_with_subtuple_on_stack(which : bool) : BarT {
-    var a : BarT = (a = 1, foo = (a = 2, b = 3., c = "", d = 0), b = 4)
-    var b : BarT = (a = 2, foo = (a = 3, b = 4., c = "", d = 0), b = 5)
+    let a : BarT = (a = 1, foo = (a = 2, b = 3., c = "", d = 0), b = 4)
+    let b : BarT = (a = 2, foo = (a = 3, b = 4., c = "", d = 0), b = 5)
     return which ? a : b
 }
 
@@ -46,14 +46,14 @@ def test_tuple(t : T?) {
         var f : FooT
         f.d = 13
         t |> success(!jit_enabled() || is_jit_function(@@tuple_field))
-        var res = tuple_field(f)
+        let res = tuple_field(f)
         t |> equal(13, res)
         t |> equal(1, f.a)
         t |> equal(2.0, f.b)
         t |> equal("hello", f.c)
     }
     t |> run("make tuple cmres") @(t : T?) {
-        var f = make_tuple_cmres()
+        let f = make_tuple_cmres()
         t |> success(!jit_enabled() || is_jit_function(@@make_tuple_cmres))
         t |> equal(1, f.a)
         t |> equal(0.0, f.b)
@@ -61,7 +61,7 @@ def test_tuple(t : T?) {
         t |> equal(0, f.d)
     }
     t |> run("make struct with substruct cmres") @(t : T?) {
-        var f = make_tuple_with_subtuple_cmres()
+        let f = make_tuple_with_subtuple_cmres()
         t |> success(!jit_enabled() || is_jit_function(@@make_tuple_with_subtuple_cmres))
         t |> equal(1, f.a)
         t |> equal(2, f.foo.a)
@@ -71,7 +71,7 @@ def test_tuple(t : T?) {
         t |> equal(4, f.b)
     }
     t |> run("make struct with substruct equal to call to cmres") @(t : T?) {
-        var f = make_tuple_with_field_call_to_cmres()
+        let f = make_tuple_with_field_call_to_cmres()
         t |> success(!jit_enabled() || is_jit_function(@@make_tuple_with_field_call_to_cmres))
         t |> equal(1, f.a)
         t |> equal(1234,  f.foo.a)
@@ -81,8 +81,8 @@ def test_tuple(t : T?) {
         t |> equal(4, f.b)
     }
     t |> run("make struct on stack") @(t : T?) {
-        var a = make_tuple_on_stack(true)
-        var b = make_tuple_on_stack(false)
+        let a = make_tuple_on_stack(true)
+        let b = make_tuple_on_stack(false)
         t |> success(!jit_enabled() || is_jit_function(@@make_tuple_on_stack))
         t |> equal(1,   a.a)
         t |> equal(2.,  a.b)
@@ -94,8 +94,8 @@ def test_tuple(t : T?) {
         t |> equal(5,   b.d)
     }
     t |> run("make struct with substruct on stack") @(t : T?) {
-        var a = make_tuple_with_subtuple_on_stack(true)
-        var b = make_tuple_with_subtuple_on_stack(false)
+        let a = make_tuple_with_subtuple_on_stack(true)
+        let b = make_tuple_with_subtuple_on_stack(false)
         t |> success(!jit_enabled() || is_jit_function(@@make_tuple_with_subtuple_on_stack))
         t |> equal(1,  a.a)
         t |> equal(2,  a.foo.a)

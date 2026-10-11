@@ -25,6 +25,7 @@ bool glob_input_process_top_level_key(bool, int, unsigned) { return false; }
 void controls::bind_script_api(SqModules *) {}
 void controls::init_drivers() {}
 void controls::init_control(const char *) {}
+void controls::reinit_control() {}
 void controls::process_input(double) {}
 void controls::destroy() {}
 void controls::global_init() {}
@@ -34,6 +35,8 @@ void controls::check_system_keys() {}
 void uiinput::mask_dainput_buttons(dag::ConstSpan<darg::HotkeyButton>, bool, int) {}
 void uiinput::mask_dainput_pointers(int, int) {}
 void uiinput::update_joystick_input() {}
+void uiinput::call_dainput(eastl::function<void()> &&f) { f(); }
+void uiinput::flush_dainput_calls() {}
 
 void TouchInput::setStickValue(dainput::action_handle_t, const Point2 &) {}
 void TouchInput::releaseButton(dainput::action_handle_t) {}

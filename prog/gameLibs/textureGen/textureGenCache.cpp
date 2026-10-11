@@ -27,7 +27,7 @@ static class TextureGenCache : public TextureGenShader
 private:
   int h, w;
 
-  void readTextureFromGPU(BaseTexture *src_texture, eastl::vector<uint8_t> &dest_array)
+  bool readTextureFromGPU(BaseTexture *src_texture, eastl::vector<uint8_t> &dest_array)
   {
     TextureInfo texInfo;
     src_texture->getinfo(texInfo);
@@ -37,20 +37,21 @@ private:
     size_t map_byte_size = w * h * bytesPerPixel;
 
     dest_array.resize(sizeof(format) + map_byte_size);
+    memcpy(dest_array.data(), &format, sizeof(format));
 
     if (texInfo.h != h || texInfo.w != w)
     {
-      memset(dest_array.data(), 0, sizeof(format) + map_byte_size);
-      return;
+      memset(dest_array.data() + sizeof(format), 0, map_byte_size);
+      return true;
     }
     void *mapData = nullptr;
     int stride = 0;
-    if (!src_texture->lockimg(&mapData, stride, 0, TEXLOCK_READ) && mapData)
-      return;
-
-    memcpy(dest_array.data() + sizeof(format), mapData, map_byte_size);
-    memcpy(dest_array.data(), &format, sizeof(format));
-    src_texture->unlockimg();
+    const bool locked = src_texture->lockimg(&mapData, stride, 0, TEXLOCK_READ);
+    if (locked && mapData)
+      memcpy(dest_array.data() + sizeof(format), mapData, map_byte_size);
+    if (locked)
+      src_texture->unlockimg();
+    return locked && mapData;
   }
 
   void writeTextureToGPU(Texture *dest_texture, const eastl::vector<uint8_t> &src_array, Texture *temp_tex, int format)
@@ -72,24 +73,25 @@ private:
     dest_texture->update(temp_tex);
   }
 
-  void cpu_algorithm(dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs, const char *id,
+  bool cpu_algorithm(dag::ConstSpan<TextureInput> &inputs, dag::ConstSpan<D3dResource *> &outputs, const char *id,
     bool read_data_from_cache)
   {
     if (!inputs[0].tex)
-      return;
+      return false;
 
     eastl::vector<uint8_t> textureData;
 
     if (!read_data_from_cache)
     {
-      readTextureFromGPU(inputs[0].tex, textureData);
+      if (!readTextureFromGPU(inputs[0].tex, textureData))
+        return false;
       regcache::set_record_data(id, textureData.data(), textureData.size());
     }
 
 
     void *cached_data = regcache::get_record_data_ptr(id);
     if (!cached_data)
-      return;
+      return false;
 
     int32_t format = 0;
     memcpy(&format, cached_data, sizeof(format));
@@ -108,6 +110,7 @@ private:
       writeTextureToGPU((Texture *)outputs[0], textureData, temp_tex, format);
       del_d3dres(temp_tex);
     }
+    return true;
   }
 
 
@@ -150,8 +153,7 @@ public:
     const char *id = data.params.getStr("preceding_subgraph_hash", "");
     bool useDataFromCache = data.params.getBool("use_data_from_cache", false);
 
-    cpu_algorithm(inputs, outputs, id, useDataFromCache);
-    return true;
+    return cpu_algorithm(inputs, outputs, id, useDataFromCache);
   }
 } texgen_cache;
 

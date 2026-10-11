@@ -596,7 +596,7 @@ public:
 
   struct SetupParameters : ShutdownParameters
   {
-    ID3D12Device1 *device;
+    D3DDevice *device;
     D3D12_SHADER_CACHE_SUPPORT_FLAGS allowedModes;
 #if _TARGET_PC_WIN
     bool recordBuildInCache;
@@ -625,10 +625,10 @@ public:
     D3D12_CACHED_PIPELINE_STATE &blob_target);
 
   void preRecovery();
-  void recover(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes);
+  void recover(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes);
 
   /// \returns True when the cache matches the hashes, otherwise false and the cache data is reset.
-  bool onBindumpLoad(ID3D12Device1 *device, eastl::span<const dxil::HashValue> all_shader_hashes);
+  bool onBindumpLoad(D3DDevice *device, eastl::span<const dxil::HashValue> all_shader_hashes);
 
   // Format based build in pipelines are pipelines with "build in" (eg byte code is part of the executable) shaders that only
   // differ in their output format of a single render target.
@@ -857,7 +857,7 @@ private:
   void loadBuildInPipelineLibraryFile(const SetupParameters &params);
   void storeBuildInPipelineLibraryFile(const ShutdownParameters &params);
   void preRecoveryBuildInPipelineLibrary();
-  void recoverBuildInPipelineLibrary(ID3D12Device1 *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes);
+  void recoverBuildInPipelineLibrary(D3DDevice *device, D3D12_SHADER_CACHE_SUPPORT_FLAGS allowed_modes);
   void shutdownBuildInPipelineLibrary();
 #endif
 };

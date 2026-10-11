@@ -203,18 +203,18 @@ public:
 
 
   //=========================================================================================
-  int convert()
+  bool convert()
   {
     if (dstName == "" || dstName == srcName)
-      return -1;
+      return false;
 
     if (!overwrite && ::dd_file_exist(dstName))
-      return -1;
+      return false;
 
     if (!volTexDepth && type == typeVolume)
     {
       printf("depth (required for typeVolume) is not specifed or invalid: %d\n", volTexDepth);
-      return -1;
+      return false;
     }
 
     printf("Convert to file [%s]\n", (char *)dstName);
@@ -223,27 +223,27 @@ public:
     {
       FILE *src = ::fopen(srcName, "rb");
       if (!src)
-        return -1;
+        return false;
 
       FILE *dst = ::fopen(dstName, "wb");
       if (!dst)
-        return -1;
+      {
+        fclose(src);
+        return false;
+      }
 
       const int buffer_size = 0x10000;
       char buffer[buffer_size];
-      while (int read = fread(buffer, 1, buffer_size, src))
-        if (read < 0 || fwrite(buffer, 1, read, dst) == 0)
-        {
-          printf("Can't copy from [%s] to [%s]\n", (char *)srcName, (char *)dstName);
-          fclose(src);
-          fclose(dst);
-          return -1;
-        }
-
+      bool ok = true;
+      while (size_t read = fread(buffer, 1, buffer_size, src))
+        if (!(ok = fwrite(buffer, 1, read, dst) == read))
+          break;
+      ok = ok && !ferror(src);
       fclose(src);
-      fclose(dst);
-
-      return 0;
+      ok = fclose(dst) == 0 && ok;
+      if (!ok)
+        printf("Can't copy from [%s] to [%s]\n", (char *)srcName, (char *)dstName);
+      return ok;
     }
 
     if (format == fmtASTC4 || format == fmtASTC8 || format == fmtRGBA4444 || format == fmtRGBA5551 || format == fmtRGB565 ||
@@ -257,17 +257,13 @@ public:
         return false;
       }
       FullFileSaveCB cwr(dstName);
+      bool ok = false;
       if (!cwr.fileHandle)
-      {
         printf("Can't open output file [%s]\n", dstName.str());
-        return false;
-      }
-      if (!Converter::convertImage(cwr, img->getPixels(), img->w, img->h, img->w * 4, false, pow2))
-      {
+      else if (!(ok = Converter::convertImage(cwr, img->getPixels(), img->w, img->h, img->w * 4, false, pow2)))
         printf("Can't convert image to fmt=%d\n", format);
-        return false;
-      }
-      return true;
+      memfree(img, tmpmem);
+      return ok;
     }
 
     return Converter::convert(srcName, dstName, overwrite, false, pow2);
@@ -359,11 +355,7 @@ int DagorWinMain(bool debugmode)
   }
 
   CmdLineOptions opt(dgs_argc, dgs_argv);
-  int result = opt.convert();
-  if (result > 0)
-    printf("done\n");
-  else
-    printf("failed\n");
-
-  return result;
+  const bool ok = opt.convert();
+  printf(ok ? "done\n" : "failed\n");
+  return ok ? 0 : 1;
 }

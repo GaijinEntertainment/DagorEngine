@@ -28,7 +28,7 @@ inline bool check_nan(const TMatrix &m)
 inline Point3 normalizeDef(const Point3 &a, const Point3 &def)
 {
   real l = length(a);
-  if (l > 1e-9)
+  if (l > 1e-9f)
   {
     real il = 1.f / l;
     return Point3(a.x * il, a.y * il, a.z * il);
@@ -40,7 +40,7 @@ inline Point3 normalizeDef(const Point3 &a, const Point3 &def)
 inline void normalizeDef(Point3 &a, const Point3 &def)
 {
   real l = length(a);
-  if (l > 1e-9)
+  if (l > 1e-9f)
   {
     real il = 1.f / l;
     a = Point3(a.x * il, a.y * il, a.z * il);
@@ -55,7 +55,7 @@ inline void normalizeDef(Point3 &a, const Point3 &def)
 inline Point2 normalizeDef(const Point2 &a, const Point2 &def)
 {
   real l = length(a);
-  if (l > 1e-9)
+  if (l > 1e-9f)
   {
     real il = 1.f / l;
     return Point2(a.x * il, a.y * il);
@@ -67,7 +67,7 @@ inline Point2 normalizeDef(const Point2 &a, const Point2 &def)
 inline void normalizeDef(Point2 &a, const Point2 &def)
 {
   real l = length(a);
-  if (l > 1e-9)
+  if (l > 1e-9f)
   {
     real il = 1.f / l;
     a = Point2(a.x * il, a.y * il);
@@ -434,34 +434,34 @@ inline bool test_segment_sphere_intersection(const Point3 &p0, const Point3 &p1,
 // Returns closest point (not first one) and ignores intersections if origin is inside bbox.
 inline bool rayIntersectWaBoxIgnoreInside(const Point3 &p0, const Point3 &dir, const Point3 &box_sz, float &out_t, Point3 &outNorm)
 {
-#define TEST_PLANES(NX, NY, NZ, X, Y, Z)                                           \
-  den = dir.x * NX + dir.y * NY + dir.z * NZ;                                      \
-  if (float_nonzero(den))                                                          \
-  {                                                                                \
-    t = -(p0.x * NX + p0.y * NY + p0.z * NZ) / den;                                \
-    if (t > 0)                                                                     \
-    {                                                                              \
-      float Y = p0.Y + dir.Y * t;                                                  \
-      float Z = p0.Z + dir.Z * t;                                                  \
-      if (Y >= -1e-3 && Y <= box_sz.Y && Z >= -1e-3 && Z <= box_sz.Z && t < out_t) \
-      {                                                                            \
-        out_t = t;                                                                 \
-        outNorm.set(-NX, -NY, -NZ);                                                \
-        contact = true;                                                            \
-      }                                                                            \
-    }                                                                              \
-    t = t + box_sz.X / den;                                                        \
-    if (t > 0)                                                                     \
-    {                                                                              \
-      float Y = p0.Y + dir.Y * t;                                                  \
-      float Z = p0.Z + dir.Z * t;                                                  \
-      if (Y >= -1e-3 && Y <= box_sz.Y && Z >= -1e-3 && Z <= box_sz.Z && t < out_t) \
-      {                                                                            \
-        out_t = t;                                                                 \
-        outNorm.set(NX, NY, NZ);                                                   \
-        contact = true;                                                            \
-      }                                                                            \
-    }                                                                              \
+#define TEST_PLANES(NX, NY, NZ, X, Y, Z)                                             \
+  den = dir.x * NX + dir.y * NY + dir.z * NZ;                                        \
+  if (float_nonzero(den))                                                            \
+  {                                                                                  \
+    t = -(p0.x * NX + p0.y * NY + p0.z * NZ) / den;                                  \
+    if (t > 0)                                                                       \
+    {                                                                                \
+      float Y = p0.Y + dir.Y * t;                                                    \
+      float Z = p0.Z + dir.Z * t;                                                    \
+      if (Y >= -1e-3f && Y <= box_sz.Y && Z >= -1e-3f && Z <= box_sz.Z && t < out_t) \
+      {                                                                              \
+        out_t = t;                                                                   \
+        outNorm.set(-NX, -NY, -NZ);                                                  \
+        contact = true;                                                              \
+      }                                                                              \
+    }                                                                                \
+    t = t + box_sz.X / den;                                                          \
+    if (t > 0)                                                                       \
+    {                                                                                \
+      float Y = p0.Y + dir.Y * t;                                                    \
+      float Z = p0.Z + dir.Z * t;                                                    \
+      if (Y >= -1e-3f && Y <= box_sz.Y && Z >= -1e-3f && Z <= box_sz.Z && t < out_t) \
+      {                                                                              \
+        out_t = t;                                                                   \
+        outNorm.set(NX, NY, NZ);                                                     \
+        contact = true;                                                              \
+      }                                                                              \
+    }                                                                                \
   }
 
   float den, t;
@@ -796,7 +796,7 @@ inline Quat matrix_to_quat(const TMatrix &m)
 
   // check the diagonal
 
-  if (tr > 0.0)
+  if (tr > 0.f)
   {
     s = sqrtf(tr + 1.f);
 
@@ -954,7 +954,7 @@ template <>
 inline double poly_impl<0>(const double *tab, double v)
 {
   tab += 0;
-  return v * 0.0f;
+  return v * 0.0;
 }
 
 template <unsigned int size>

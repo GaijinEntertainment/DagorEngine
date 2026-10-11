@@ -1,0 +1,21 @@
+texture swrt_shadow_target;
+int4 swrt_shadow_target_size;
+int rtss_reference = 0;
+
+macro PROJECT_RTSS_REFERENCE(code)
+  (code) {
+    rtss_ref_target@tex2d = swrt_shadow_target;
+    rtss_ref_size@i4 = swrt_shadow_target_size;
+    rtss_ref_on@i1 = rtss_reference;
+  }
+  hlsl(code) {
+    bool project_rtss_reference(float2 tc, out float visibility)
+    {
+      visibility = 1;
+      if (rtss_ref_on == 0 || rtss_ref_size.x == 0)
+        return false;
+      visibility = texelFetch(rtss_ref_target, min(uint2(tc * (rtss_ref_size.zw + 1)), uint2(rtss_ref_size.zw)), 0).x;
+      return true;
+    }
+  }
+endmacro

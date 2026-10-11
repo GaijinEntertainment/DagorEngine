@@ -7,6 +7,7 @@
 #include <de3_objEntity.h>
 #include <de3_interface.h>
 #include <de3_multiPointData.h>
+#include <landMesh/landDetile.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_carray.h>
@@ -53,6 +54,9 @@ public:
   IObjEntity *csgGen;
   int layerIdx;
   bool editableMasks;
+  LandDetile detile; // the tile texture's de-tiling; tiled, planted and color images follow it
+  // the rule a polygon's objects and the AssetViewer's final look follow: one that draws its own surface keeps the plain tile
+  bool followsDetile() const;
 
   SimpleString splineClassAssetName;
   carray<int, 1 + 4> physMatId;     // physmat for whole landclass and for each subchannel of splatting mask
@@ -222,6 +226,7 @@ public:
   bool useYpos;
   bool riOnly;
   bool setSeedToEntities = false;
+  const LandDetile *detile = nullptr; // the owning AssetData's; null or off = the plain tile grid
 };
 
 
@@ -246,6 +251,7 @@ public:
   Tab<IObjEntity *> ent;
   Tab<DensityMap *> dmPool;
   bool riOnly;
+  const LandDetile *detile = nullptr; // the owning AssetData's; null or off = the plain density grid
 };
 
 
@@ -325,3 +331,6 @@ public:
   int stage;
   bool foundationGeom;
 };
+
+// a water polygon builds no surface of its own: the landmesh shows through it
+inline bool landclass::AssetData::followsDetile() const { return detile.enabled() && (!genGeom || genGeom->waterSurface); }

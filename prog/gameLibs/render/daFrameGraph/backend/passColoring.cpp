@@ -125,7 +125,7 @@ void PassColorer::recalcFbLabels(const intermediate::Graph &graph)
   using MaybePass = eastl::optional<intermediate::RenderPass>;
   ska::flat_hash_map<MaybePass, FbLabel, eastl::hash<MaybePass>, eastl::equal_to<MaybePass>, framemem_allocator> passes;
   passes.reserve(graph.nodeStates.totalKeys());
-  for (auto [idx, state] : graph.nodeStates.enumerate())
+  for (const auto &[idx, state] : graph.nodeStates.enumerate())
     if (auto it = passes.find(state.pass); it != passes.end())
       fbLabels[idx] = it->second;
     else
@@ -149,7 +149,7 @@ void PassColorer::performSubpassColoring(const intermediate::Graph &graph, const
 
   // Needed for framemem tricks
   IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> inDegree(graph.nodes.totalKeys());
-  for (auto [nodeId, node] : graph.nodes.enumerate())
+  for (const auto &node : graph.nodes.values())
     for (auto pred : node.predecessors)
       ++inDegree[pred];
 
@@ -157,7 +157,7 @@ void PassColorer::performSubpassColoring(const intermediate::Graph &graph, const
   IdIndexedMapping<intermediate::NodeIndex, FmemNodeSet, framemem_allocator> successors(graph.nodes.totalKeys());
   for (auto nodeId : dag::ReverseView(graph.nodes.keys()))
     successors[nodeId].reserve(inDegree[nodeId]);
-  for (auto [nodeId, node] : graph.nodes.enumerate())
+  for (const auto &[nodeId, node] : graph.nodes.enumerate())
     for (auto pred : node.predecessors)
       successors[pred].insert(nodeId);
 
@@ -176,7 +176,7 @@ void PassColorer::performSubpassColoring(const intermediate::Graph &graph, const
   FRAMEMEM_VALIDATE;
 
   IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> outDegree(graph.nodes.totalKeys());
-  for (auto [nodeId, node] : graph.nodes.enumerate())
+  for (const auto &[nodeId, node] : graph.nodes.enumerate())
     outDegree[nodeId] = node.predecessors.size();
 
   // The frontier contains all nodes with out-degree 0

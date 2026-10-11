@@ -130,7 +130,7 @@ static void dump_net_stat(eastl::vector_set<NetStatRecord> &netstat, const char 
     size_t ebytes = r.effectiveBytes();
     debug("  #%2d %c %*s %5u %5u %5u %7u(%5.2f%%) %7u(%5.2f%%) %02.2f", i + 1, r.isCompressed() ? 'C' : ' ', maxNameLen, r.name(),
       ebytes / r.packets, r.minMsgSize, r.maxMsgSize, ebytes >> 10, double(ebytes) / totalBytes * 100., r.packets,
-      double(r.packets) / totalPackets * 100., r.isCompressed() ? (r.cbytes / double(r.bytes) * 100.f) : 0.);
+      double(r.packets) / totalPackets * 100., r.isCompressed() ? (r.cbytes / double(r.bytes) * 100.) : 0.);
   }
 }
 
@@ -215,7 +215,7 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
     else if (totalLogCount == MAX_TOTAL_LOG_COUNT)
     {
       ++totalLogCount;
-      logerr("network: too many routing failures, further warnings will be suppressed");
+      logwarn("network: too many routing failures, further warnings will be suppressed");
     }
   }
   msg.reset();
@@ -820,8 +820,16 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
     case ID_STUN_INFO:
     {
       auto ctrlIface = static_cast<DaNetPeerInterface *>(drv->getControlIface());
-      // STUN replies come only from the trusted relay peer; a game client must not clobber the relay address.
-      if (!ctrlIface || !ctrlIface->IsRelayConnection(pkt->systemIndex))
+      if (!ctrlIface)
+        break;
+      const bool fromRelayPeer = ctrlIface->IsRelayConnection(pkt->systemIndex);
+      const SystemAddress relayAddr = ctrlIface->GetPeerSystemAddress(ctrlIface->GetRelayConnection());
+      // Peerless STUN is accepted from the relay host. A prior attempt's reply (or a
+      // client punch forwarded by the relay) can share that host; for STUN that is
+      // fine - any mapped address from this host is usable for invite.
+      const bool dedicPeerless = isServer() && pkt->systemIndex == UNASSIGNED_SYSTEM_INDEX && ctrlIface->HasRelayConnection() &&
+                                 pkt->systemAddress.host == relayAddr.host;
+      if (!fromRelayPeer && !dedicPeerless)
         break;
       bs.Read(stunSystemAddress.host);
       bs.Read(stunSystemAddress.port);

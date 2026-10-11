@@ -104,7 +104,7 @@ shader bvh_debug
 
   USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_RT_LIGHTING(cs, false, true, true, rt_debug_rt_shadow == on, false)
+  INIT_RT_LIGHTING(cs, false, true, true, rt_debug_rt_shadow == on)
   USE_RT_LIGHTING(cs, 0, false)
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
@@ -223,7 +223,7 @@ shader bvh_debug
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
         if (bvh_debug_mode == BVH_DEBUG_MODE_LIT || bvh_debug_mode == BVH_DEBUG_MODE_NAN)
         {
-          result = light_hit_surface(hitSurface, -direction, hitInfo.t, 100000);
+          result = light_hit_surface(hitSurface, -direction, hitInfo.t, hitInfo.t, 100000);
           if (bvh_debug_mode == BVH_DEBUG_MODE_NAN)
             result = select(isfinite(result), 1, 0);
         }

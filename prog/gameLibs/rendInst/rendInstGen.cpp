@@ -8,6 +8,7 @@
 #include "riGen/riGenExtra.h"
 #include "riGen/riRotationPalette.h"
 #include "riGen/riGenData.h"
+#include "riGen/riUtil.h"
 #include "riGen/riGenRenderer.h"
 
 #include <generic/dag_sort.h>
@@ -16,6 +17,7 @@
 #include <rendInst/gpuObjects.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderResUnitedData.h>
+#include <shaders/shUtils.h>
 #include <regExp/regExp.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResources.h>
@@ -75,7 +77,6 @@ static bool rendinstExtraAutoSubst = false;
 static int riExtraSubstFaceThres = 4000;
 static float riExtraSubstFaceDensThres = 1e6;
 static int riExtraSubstPregenThres = 32;
-static rendinst::ri_added_from_rigendata_cb_t riExtraAddFromGenDataCb;
 static Tab<rendinst::ri_gen_cell_loaded_cb> riGenCellLoadedCallback;
 
 static FastNameMap riFullLodsNames, riHideNames, riHideMode0Names, riHideMode1Names;
@@ -755,7 +756,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
               plodMask |= 1 << elemNo;
 
             if ((rtData->riRes[i]->hasImpostor() &&
-                  (/*impostor lod*/ l == rtData->riRes[i]->lods.size() - 1 ||
+                  (/*impostor lod*/ l == rtData->riResLodCount(i) - 1 ||
                     /*transition lod*/ (
                       elems[elemNo].mat->getIntVariable(use_cross_dissolve_variable_id, crossDissolve) && crossDissolve > 0))) ||
                 strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_voxel"))
@@ -775,6 +776,12 @@ void RendInstGenData::prepareRtData(int layer_idx)
 #if DAGOR_DBGLEVEL > 0
             if (rendinst::shader_material_validation_cb)
               rendinst::shader_material_validation_cb(elems[elemNo].mat, rtData->riResName[i]);
+
+            G_ASSERTF(!strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_impostor") &&
+                        !strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_baked_impostor"),
+              "RI[%d]=%s lod=%d elem=%d: impostor material <%s> outside the impostor LOD: mismatched versions of *.grp and "
+              "riDesc.bin, re-export the asset",
+              i, rtData->riResName[i], l, elemNo, elems[elemNo].mat->getShaderClassName());
 
             if (!(mask & (1 << elemNo)) && elems[elemNo].e)
             {
@@ -799,9 +806,10 @@ void RendInstGenData::prepareRtData(int layer_idx)
               }
               if (pos_offset != 0 || pos_type != SCTYPE_FLOAT3)
               {
-                G_ASSERTF(pos_type == SCTYPE_FLOAT3, "shader <%s> has invalid type", elems[elemNo].mat->getInfo().str());
-                G_ASSERTF(pos_offset == 0, "shader <%s> has position with offset %d and not 0", elems[elemNo].mat->getInfo().str(),
-                  pos_offset);
+                G_ASSERTF(pos_type == SCTYPE_FLOAT3, "RI[%d]=%s lod=%d elem=%d: shader <%s> has invalid position type %s", i,
+                  rtData->riResName[i], l, elemNo, elems[elemNo].mat->getInfo().str(), ShUtils::channel_type_name(pos_type));
+                G_ASSERTF(pos_offset == 0, "RI[%d]=%s lod=%d elem=%d: shader <%s> has position with offset %d and not 0", i,
+                  rtData->riResName[i], l, elemNo, elems[elemNo].mat->getInfo().str(), pos_offset);
               }
               // normal check is actually NOT needed, as we should be rendering opaque only with position.
               // however, it is not so YET
@@ -812,11 +820,14 @@ void RendInstGenData::prepareRtData(int layer_idx)
                   (normal_type != SCTYPE_SHORT4N && normal_type != SCTYPE_E3DCOLOR))
               {
                 G_ASSERTF((normal_type == SCTYPE_SHORT4N || normal_type == SCTYPE_E3DCOLOR),
-                  "shader <%s> has invalid normal type: should be either short4n or color", elems[elemNo].mat->getInfo().str());
-                G_ASSERTF(normal_type == rendinst::render::normal_type, "shader <%s> has different normal type than other RI shaders",
-                  elems[elemNo].mat->getInfo().str());
-                G_ASSERTF(normal_offset == 12, "shader <%s> has normal with offset %d and not 12", elems[elemNo].mat->getInfo().str(),
-                  normal_offset);
+                  "RI[%d]=%s lod=%d elem=%d: shader <%s> has invalid normal type %s: should be either short4n or color", i,
+                  rtData->riResName[i], l, elemNo, elems[elemNo].mat->getInfo().str(), ShUtils::channel_type_name(normal_type));
+                G_ASSERTF(normal_type == rendinst::render::normal_type,
+                  "RI[%d]=%s lod=%d elem=%d: shader <%s> has normal type %s, but other RI shaders have %s", i, rtData->riResName[i], l,
+                  elemNo, elems[elemNo].mat->getInfo().str(), ShUtils::channel_type_name(normal_type),
+                  ShUtils::channel_type_name(rendinst::render::normal_type));
+                G_ASSERTF(normal_offset == 12, "RI[%d]=%s lod=%d elem=%d: shader <%s> has normal with offset %d and not 12", i,
+                  rtData->riResName[i], l, elemNo, elems[elemNo].mat->getInfo().str(), normal_offset);
               }
             }
 #endif
@@ -882,7 +893,6 @@ void RendInstGenData::prepareRtData(int layer_idx)
       rtData->riCollResBb[i] = rtData->riResBb[i];
 
 #if RI_VERBOSE_OUTPUT
-    G_STATIC_ASSERT(rendinst::MAX_LOD_COUNT == 9);
     if (!rendinst::is_ri_verbose_dump_expected())
       continue;
     BBox3 riResBb, riCollResBb;
@@ -1115,7 +1125,7 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
 
       if (land.tiled)
         rendinst::gen::generateTiledEntitiesInMaskedRect(ctx, *land.tiled, make_span(pools), *landCls[cls_idx].mask, world2grid, x0,
-          z0, box_sz, world0x(), world0z(), landCls[cls_idx].riResMap, densMapPivotX, densMapPivotZ);
+          z0, box_sz, world0x(), world0z(), landCls[cls_idx].riResMap, densMapPivotX, densMapPivotZ, land.layerIdx);
 
       if (land.planted)
         rendinst::gen::generatePlantedEntitiesInMaskedRect(ctx, *land.planted, land.layerIdx, make_span(pools), *landCls[cls_idx].mask,
@@ -1545,7 +1555,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
         if (land.tiled)
           rendinst::gen::generateTiledEntitiesInMaskedRect(ctx, *land.tiled, make_span(pools), *landCls[cls_idx].mask, world2grid, x0,
-            z0, box_sz, world0x(), world0z(), landCls[cls_idx].riResMap, densMapPivotX, densMapPivotZ);
+            z0, box_sz, world0x(), world0z(), landCls[cls_idx].riResMap, densMapPivotX, densMapPivotZ, land.layerIdx);
 
         if (land.planted)
           rendinst::gen::generatePlantedEntitiesInMaskedRect(ctx, *land.planted, land.layerIdx, make_span(pools),
@@ -1832,8 +1842,6 @@ void RendInstGenData::generateRiExFromPregenData(rendinst::gen::RiGenCellCtx &ct
       constexpr bool hasColl = true, onLoad = true;
       auto riH = rendinst::addRIGenExtra44(eff_riex_idx, tm, hasColl, cur_cell_id, cur_ri_extra_ord, ndw, per_inst_data, onLoad);
       cur_ri_extra_ord += 16 * (rendinst::riExtra[eff_riex_idx].destrDepth + 1);
-      if (auto cb = interlocked_acquire_load_ptr(riExtraAddFromGenDataCb))
-        cb(riH);
       if (store)
         crt.riexHandles[ctx.ri_extra_counter++] = riH;
     }
@@ -2414,7 +2422,6 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
         unloadedCellData = eastl::move((RendInstGenData::CellRtDataLoaded &)*crt);
       rgl->rtData->loaded.delInt(idx);
       rgl->rtData->toUnload.delInt(idx);
-      // rendinst::onRiGenCellLoaded(rgl->rtData->layerIdx, idx, idx % rgl->cellNumW, idx / rgl->cellNumW, false, false);
       if (wasReady)
       {
         int cell_stride = rgl->cellNumW;
@@ -2439,6 +2446,8 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
       }
       if (crt)
         crt->clearAllWithRiEx();
+      if (wasReady)
+        riutil::world_version_inc(unloadedCellData.bbox[0]);
       return riex;
     }
 
@@ -3131,11 +3140,6 @@ bool RendInstGenData::updateLClassColors(const char *name, E3DCOLOR from, E3DCOL
 }
 
 
-rendinst::ri_added_from_rigendata_cb_t rendinst::setRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb_t cb)
-{
-  return interlocked_exchange_ptr(riExtraAddFromGenDataCb, cb);
-}
-
 void rendinst::registerRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb)
 {
   if (find_value_idx(riGenCellLoadedCallback, cb) == -1)
@@ -3151,8 +3155,7 @@ void rendinst::onRiGenCellLoaded(int layer_idx, int cell_idx, int cx, int cz, bo
 }
 
 
-void rendinst::get_ri_color_infos(
-  eastl::fixed_function<sizeof(void *) * 4, void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name)> cb)
+void rendinst::get_ri_color_infos(dag::FunctionRef<void(E3DCOLOR colorFrom, E3DCOLOR colorTo, const char *name) const> cb)
 {
   FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
   {
@@ -3214,7 +3217,7 @@ bool rendinst::should_init_ri_damage_model()
   return rgPrimaryLayers > 0 && rgLayer[0] != nullptr;
 }
 
-void rendinst::dm_iter_all_ri_layers(eastl::fixed_function<20, void(int, const dag::ConstSpan<const char *> &)> cb)
+void rendinst::dm_iter_all_ri_layers(dag::FunctionRef<void(int, const dag::ConstSpan<const char *> &) const> cb)
 {
   for (int i = 0; i < rendinst::rgPrimaryLayers; i++)
     if (const RendInstGenData *layer = rendinst::rgLayer[i])

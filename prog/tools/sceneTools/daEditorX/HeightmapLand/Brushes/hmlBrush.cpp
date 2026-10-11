@@ -96,20 +96,8 @@ bool HmapLandBrush::updateFromPanelRef(PropPanel::ContainerPropertyControl &pane
 
   switch (pid)
   {
-    case PID_BRUSH_APPLY_ONCE:
-    {
-      int ar = panel.getBool(pid);
-      if (ar < 2)
-        applyOnlyOnce = (bool)ar;
-      return true;
-    }
-    case PID_BRUSH_AUTO_ANGLE:
-    {
-      int ar = panel.getBool(pid);
-      if (ar < 2)
-        useAutoAngle = (bool)ar;
-      return true;
-    }
+    case PID_BRUSH_APPLY_ONCE: applyOnlyOnce = panel.getBool(pid); return true;
+    case PID_BRUSH_AUTO_ANGLE: useAutoAngle = panel.getBool(pid); return true;
     case PID_BRUSH_ANGLE:
     {
       currentAngle = DegToRad(panel.getFloat(pid));

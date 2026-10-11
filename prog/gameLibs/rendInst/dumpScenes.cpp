@@ -103,7 +103,8 @@ static void dump_all_scenes_locked(IGenSave &cb)
     m.collBb = p.collBb;
     m.fullWabb = p.fullWabb;
     m.bsphXYZR = p.bsphXYZR;
-    memcpy(m.distSqLOD, p.distSqLOD, sizeof(m.distSqLOD));
+    G_STATIC_ASSERT(sizeof(m.distSqLOD) >= sizeof(p.distSqLOD)); // dump format keeps 8 slots, unused ones stay zero
+    memcpy(m.distSqLOD, p.distSqLOD, sizeof(p.distSqLOD));
     m.lodLimits = p.lodLimits;
     m.tsIndex = p.tsIndex;
     m.flags = pack_pool_meta_flags(p);

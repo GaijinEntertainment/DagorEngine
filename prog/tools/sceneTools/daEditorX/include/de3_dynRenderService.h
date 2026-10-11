@@ -122,6 +122,8 @@ public:
   virtual void onGrassCreated(const DataBlock *) {}
 
   virtual bool isThermalVisionActive() const { return false; }
+
+  virtual void beforeProjectSceneReset() {}
 };
 
 class IRenderHelperService

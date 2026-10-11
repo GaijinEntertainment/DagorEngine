@@ -257,6 +257,8 @@ public:
   void deleteCustomPanel(PropPanel::ContainerPropertyControl *panel) override;
 
   PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
+  PropPanel::DialogWindow *createAutoSizedDialog(const char *title, hdpi::Px min_width = hdpi::Px::ZERO,
+    hdpi::Px min_height = hdpi::Px::ZERO) override;
   void deleteDialog(PropPanel::DialogWindow *dlg) override;
   void sendImmediateFocusLossNotification() override;
 
@@ -333,7 +335,7 @@ public:
   void actObjects(float dt) override;
   void beforeRenderObjects() override;
   void renderObjects() override;
-  void renderTransObjects() override;
+  void renderTransObjects(BaseTexture *) override;
   void renderIslDecalObjects() override {}
 
   void *queryEditorInterfacePtr(unsigned huid) override;

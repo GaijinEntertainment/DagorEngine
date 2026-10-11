@@ -1,0 +1,5 @@
+derived: 1 2
+method type: function
+member key in a class body: 3
+param: arg!
+names: local key local

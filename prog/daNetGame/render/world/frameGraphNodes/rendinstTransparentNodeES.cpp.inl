@@ -51,6 +51,8 @@ dafg::NodeHandle makeRendinstTransparentNode(bool is_early, bool is_triangle_deb
       registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depth("depth");
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     auto cameraHndl = use_camera_in_camera(registry).handle();
+    if (!is_triangle_debug)
+      registry.root().readBlob<OrderingToken>("async_rendinst_transparent_started_token");
 
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_RENDINST);
 
@@ -87,7 +89,10 @@ dafg::NodeHandle makeRendinstTransparentNode(bool is_early, bool is_triangle_deb
 
       if (sort_transparent_riex_instances)
       {
-        rendinst::render::renderSortedTransparentRiExtraInstances(*riMainVisibility, strmCtxHndl.ref(), is_early);
+        // the debug pass changes the shader variant, so its list cannot come prebuilt from the job
+        const rendinst::render::RiExtraRenderer *prebuilt =
+          is_triangle_debug ? nullptr : cameraHndl.ref().jobsMgr->waitAsyncRIGenExtraTransparentRender(is_early);
+        rendinst::render::renderSortedTransparentRiExtraInstances(*riMainVisibility, strmCtxHndl.ref(), is_early, prebuilt);
       }
       else
       {
@@ -105,12 +110,28 @@ dafg::NodeHandle makeRendinstTransparentNode(MainNodeRenderPass mode)
 
 dafg::NodeHandle makeRendinstTransparentEarlyNode() { return makeRendinstTransparentNode(true, false); }
 
+static dafg::NodeHandle makeAsyncRendinstTransparentStartNode()
+{
+  return dafg::register_node("async_rendinst_transparent_start_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+    registry.readBlob<OrderingToken>("after_prepare_lights_node_token");
+    (registry.root() / "indoor_probes").readBlob("probes_ready_token").optional(); // for indoor_probes_to_use interval
+    registry.createBlob<OrderingToken>("async_rendinst_transparent_started_token");
+    auto cameraHndl = read_camera_in_camera(registry).handle();
+    return [cameraHndl](const dafg::multiplexing::Index &multiplexing_index) {
+      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+      cameraHndl.ref().jobsMgr->startAsyncRIGenExtraTransparentRender();
+    };
+  });
+}
+
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnCameraNodeConstruction)
 static void create_transparent_nodes_es(const OnCameraNodeConstruction &evt)
 {
   evt.nodes->push_back(makeRendinstTransparentNode(MainNodeRenderPass::MainColorPass));
+  evt.nodes->push_back(makeAsyncRendinstTransparentStartNode());
 }
 
 

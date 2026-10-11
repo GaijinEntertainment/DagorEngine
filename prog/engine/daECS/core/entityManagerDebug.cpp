@@ -11,7 +11,7 @@
 #include <EASTL/array.h>
 #include <EASTL/vector_map.h>
 
-#include <mutex>
+#include <osApiWrappers/dag_mutex.h>
 
 namespace ecs
 {
@@ -321,9 +321,9 @@ struct hash<Callstack>
 
 struct TrackAccessRecordRAIILock
 {
-  std::recursive_mutex *mtx;
+  dag::recursive_mutex *mtx;
 
-  TrackAccessRecordRAIILock(std::recursive_mutex &_mtx, bool constrained_mt) : mtx(constrained_mt ? &_mtx : nullptr)
+  TrackAccessRecordRAIILock(dag::recursive_mutex &_mtx, bool constrained_mt) : mtx(constrained_mt ? &_mtx : nullptr)
   {
     if (DAGOR_UNLIKELY(mtx != nullptr))
       mtx->lock();
@@ -374,7 +374,7 @@ using HashedTrackAccessRecordList = dag::Vector<HashedTrackAccessRecord>;
 // fixme: should be part of EntityManager
 static HashedKeyMap<TrackAccessRecord::hash_t, TrackAccessRecord> records_by_hash;
 static dag::VectorMap<ecs::component_t, HashedTrackAccessRecordList> records_by_component;
-static std::recursive_mutex track_mutex;
+static dag::recursive_mutex track_mutex;
 
 void ecs::EntityManager::startTrackComponent(ecs::component_t comp)
 {

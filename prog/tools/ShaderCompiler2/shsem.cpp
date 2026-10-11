@@ -187,6 +187,7 @@ bool SemanticShaderPass::equal(SemanticShaderPass &p)
   COMPARE_V(force_noablend);
   COMPARE_V(vs30);
   COMPARE_V(ps30);
+  COMPARE_V(renderPassOptIn);
 #undef COMPARE_V
 
   return true;
@@ -316,6 +317,8 @@ static void eval_shader_stat(shader_stat &s, ShaderEvalCB &cb)
     cb.eval_hlsl_decl(*s.hlsl_decl_var);
   else if (s.supports)
     cb.eval_supports(*s.supports);
+  else if (s.render_pass_use)
+    cb.eval_render_pass(*s.render_pass_use);
   else if (s.external_block)
     cb.eval_external_block(*s.external_block);
   else if (s.imm_const_block)
@@ -811,6 +814,18 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
       sh_process_errors();
       ctx.bytecodeCache().resolvePendingPasses();
 
+      for (int pi = 0; pi < ssc->passes.size(); ++pi)
+      {
+        auto &passTab = ssc->passes[pi];
+        if (!passTab || !passTab->pass || !passTab->pass->renderPassOptIn.hasOptIn())
+          continue;
+        bool reported = false;
+        for (int pj = 0; pj < pi && !reported; ++pj)
+          reported = ssc->passes[pj] && ssc->passes[pj]->pass && ssc->passes[pj]->pass->equal(*passTab->pass);
+        if (!reported)
+          ShaderParser::validate_render_pass_writes(*passTab->pass, ctx, parser);
+      }
+
       if (!validate_cs(sclass, ssc.get(), staticVariantCount))
         break;
 
@@ -868,15 +883,11 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
 
               for (auto &&[pass, table] : data.passRegisterTables)
               {
-                if (sc->branchedCppStcodeId == -1)
-                  pass->target->branchedCppStcodeTableOffset = ctx.cppStcode().addRegisterTableWithIndex(eastl::move(table));
+                pass->target->branchedCppStcodeTableOffset = ctx.cppStcode().addRegisterTableWithIndex(eastl::move(table));
               }
 
-              if (sc->branchedCppStcodeId == -1)
-              {
-                sc->branchedCppStcodeId =
-                  ctx.cppStcode().addCode(eastl::move(cppcode.cppStcode), data.commonPsOrCsConstRange, data.commonVsConstRange);
-              }
+              sc->branchedCppStcodeId =
+                ctx.cppStcode().addCode(eastl::move(cppcode.cppStcode), data.commonPsOrCsConstRange, data.commonVsConstRange);
             }
           }
           else
@@ -1124,7 +1135,7 @@ void add_block(block_decl *bl, Parser &parser, shc::TargetContext &ctx)
   collectedScript.merge(eastl::move((StcodeRoutine &)compiledPreshader.cppStcode.cppStblkcode));
 
   ShaderStateBlock *blk = new ShaderStateBlock(bl->name->text, level, eastl::move(compiledPreshader.namedConstTable),
-    make_span(stcode), &collectedScript, compiledPreshader.requiredRegCount, ctx);
+    make_span(stcode), collectedScript, compiledPreshader.requiredRegCount, ctx);
 
   if (!ctx.blocks().registerBlock(blk))
   {

@@ -13,6 +13,7 @@ require bench_args
 require benchstat
 require utils
 require table_fmt
+require bench_stand
 
 def print_usage() {
     print("benchctl - benchmark database management tool\n\n")
@@ -23,17 +24,27 @@ def print_usage() {
     print("  insert   Insert benchmark JSON output files into the database\n")
     print("  query    Display benchmark records (filter by --commit / --tag)\n")
     print("  compare  Compare two sets of results statistically\n")
+    print("  run      Benchmark a tree into one run record (the nightly stand)\n")
+    print("  report   Turn run records into the viewer's data.json, with a verdict exit code\n")
     print("  help     Show this help message\n\n")
     print_benchctl_help()
 }
 
-[export]
-def main : int {
+// The tool's own arguments: whatever follows daslang's `--`, or the whole command line
+// when there is none. get_command_line_arguments() borrows the process argv array — it is
+// size-locked, so the tail is a fresh copy rather than an in-place erase.
+def script_argv() : array<string> {
     var argv <- get_command_line_arguments()
     let dash_idx = find_index(argv, "--")
-    if (dash_idx != -1) {
-        argv <- subarray(argv, (dash_idx + 1)..length(argv))
-    }
+    if (dash_idx == -1) return <- argv
+    return <- subarray(argv, (dash_idx + 1)..length(argv))
+}
+
+[export]
+def main : int {
+    let argv <- script_argv()
+
+    if (!empty(argv) && (argv[0] == "run" || argv[0] == "report")) return stand_main()
 
     if (empty(argv) || find_index(argv, "--help") != -1 || find_index(argv, "-h") != -1) {
         print_usage()
@@ -195,6 +206,143 @@ def run_query_cmd(db : SqlRunner; parsed : ParsedArgs) : string {
     return ""
 }
 
+def fmt_variation(variation : double) : string {
+    let percent = variation * 100.0lf
+    let s = "{percent:.0f}"
+    if (percent < 5.0lf) return "±{s}%"
+    return "±{yellow_str(s)}%"
+}
+
+def fmt_delta(old_v, new_v : double) : string {
+    if (old_v > 0.0lf && new_v <= 0.01lf) return green_str("-100%")
+    if (old_v == 0.0lf && new_v >= 1.0lf) return red_str("+inf%")
+    let delta_percent = (new_v - old_v) / old_v * 100.0lf
+    let sign = delta_percent >= 0.0lf ? "+" : ""
+    let delta_fmt = "{sign}{delta_percent:.2f}%"
+    if (delta_percent < 0.0lf) return green_str(delta_fmt)
+    if (delta_percent > 0.0lf) return red_str(delta_fmt)
+    return delta_fmt
+}
+
+def fill_all_sample_stats(var samples : table<string; BenchmarkSampleSet?>; which : string) {
+    for (s in values(samples)) {
+        let err = fill_sample_stats(s)
+        if (err != "") {
+            warning("{which}: {blue_str(s.key)}: calc stats: {err}")
+        }
+    }
+}
+
+// One row per metric that differs enough to report; accumulates the per-metric geomean input
+def compare_metric_rows(var s_old : BenchmarkSampleSet?; var s_new : BenchmarkSampleSet?;
+                        var old_total_values : table<string; array<double>>;
+                        var new_total_values : table<string; array<double>>) : array<TableRow?> {
+    var table_rows : array<TableRow?>
+    for (stat_old, stat_new in as_list(s_old.stats), as_list(s_new.stats)) {
+        if ((stat_old.metric.is_alloc && stat_old.mean_avg == 0.0lf && stat_new.mean_avg == 0.0lf)
+            || (stat_old.metric.is_alloc && abs(stat_old.mean_avg - stat_new.mean_avg) < 1.0lf)
+            || empty(stat_old.values) || empty(stat_new.values)) continue
+
+        old_total_values[stat_old.metric.name] |> push(stat_old.mean_avg)
+        new_total_values[stat_new.metric.name] |> push(stat_new.mean_avg)
+
+        let p = welch_p_value(stat_old, stat_new)
+        let n_str = "{length(stat_old.values)}+{length(stat_new.values)}"
+        var p_str = ""
+        if (p < 0.001lf) {
+            p_str = "p<0.001"
+        } elif (p < 0.005lf) {
+            p_str = "p={p:.3f}"
+        } elif (p < 0.010lf) {
+            p_str = "p=" + yellow_str("{p:.3f}")
+        } else {
+            p_str = "p=" + red_str("{p:.3f}")
+        }
+        let cmp_str = "({p_str} n={n_str})"
+
+        let metric_name = stat_old.metric.name
+        let old_v = "{stat_old.mean_avg:.1f}"
+        let new_v = "{stat_new.mean_avg:.1f}"
+
+        var delta_str = "~"
+        if (p < 0.05lf) {
+            delta_str = fmt_delta(stat_old.mean_avg, stat_new.mean_avg)
+        }
+
+        table_rows |> push(new TableRow(columns <- [
+            "{yellow_str(old_v)} {metric_name}/op {fmt_variation(stat_old.variation_coeff)}",
+            "{yellow_str(new_v)} {metric_name}/op {fmt_variation(stat_new.variation_coeff)}",
+            delta_str,
+            cmp_str,
+        ]))
+    }
+    return <- table_rows
+}
+
+def print_bench_comparisons(bench_order : array<string>;
+                            var old_samples : table<string; BenchmarkSampleSet?>;
+                            var new_samples : table<string; BenchmarkSampleSet?>;
+                            key_map : lambda<(x : string) : string>;
+                            var old_total_values : table<string; array<double>>;
+                            var new_total_values : table<string; array<double>>) {
+    for (k in bench_order) {
+        var s_old = unsafe(old_samples[k])
+        // The stats are null if an error occured when analyzing it.
+        if (s_old.stats == null) continue
+        let mapped_k = key_map(k)
+        if (!key_exists(new_samples, mapped_k)) {
+            if (k != mapped_k) {
+                warning("no pair found for {k} ({mapped_k})\n")
+            } else {
+                warning("no pair found for {k}\n")
+            }
+            continue
+        }
+
+        var s_new = unsafe(new_samples[mapped_k])
+        if (s_new.stats == null) continue
+
+        if (k != mapped_k) {
+            print("{blue_str(k)} vs {blue_str(mapped_k)}\n")
+        } else {
+            print("{blue_str(k)}\n")
+        }
+        var tabspec = new TableData(
+            rows <- compare_metric_rows(s_old, s_new, old_total_values, new_total_values),
+            col_gap = 4,
+            indent = "    ",
+        )
+        print(format_table(tabspec))
+    }
+}
+
+def print_geomean_table(var old_total_values : table<string; array<double>>;
+                        var new_total_values : table<string; array<double>>) {
+    var table_rows : array<TableRow?>
+    for (k, old_values in keys(old_total_values), values(old_total_values)) {
+        let new_values & = unsafe(new_total_values[k])
+        if (empty(old_values) && empty(new_values)) continue
+        let gm_old = geomean(old_values)
+        let gm_new = geomean(new_values)
+        let gm_old_s = "{gm_old:.1f}"
+        let gm_new_s = "{gm_new:.1f}"
+        table_rows |> push(new TableRow(columns <- [
+            "{yellow_str(gm_old_s)} {k}",
+            "{yellow_str(gm_new_s)} {k}",
+            fmt_delta(gm_old, gm_new),
+        ]))
+    }
+    if (empty(table_rows)) return
+    print("\n")
+    print("GEOMEAN:\n\n")
+    var tabspec = new TableData(
+        rows <- table_rows,
+        col_gap = 4,
+        indent = "    ",
+    )
+    print(format_table(tabspec))
+}
+
 def run_compare_cmd(db : SqlRunner; parsed : ParsedArgs) : string {
     let old_tag_err = validate_tag_chars(parsed.old_tag)
     if (old_tag_err != "") return old_tag_err
@@ -232,8 +380,8 @@ def run_compare_cmd(db : SqlRunner; parsed : ParsedArgs) : string {
         }
     }
 
-    var old_samples = make_sample_sets(old_entries)
-    var new_samples = make_sample_sets(new_entries)
+    var old_samples = make_sample_sets(to_run_stats(old_entries))
+    var new_samples = make_sample_sets(to_run_stats(new_entries))
 
     var bench_order <- [for (k in keys(old_samples)); k]
     sort(bench_order) $(x, y) {
@@ -255,132 +403,12 @@ def run_compare_cmd(db : SqlRunner; parsed : ParsedArgs) : string {
         "strings" => array<double>(),
     }
 
-    for (s in values(old_samples)) {
-        let err2 = fill_sample_stats(s)
-        if (err2 != "") {
-            warning("old_samples: {blue_str(s.key)}: calc stats: {err2}")
-        }
-    }
-    for (s in values(new_samples)) {
-        let err2 = fill_sample_stats(s)
-        if (err2 != "") {
-            warning("new_samples: {blue_str(s.key)}: calc stats: {err2}")
-        }
-    }
+    fill_all_sample_stats(old_samples, "old_samples")
+    fill_all_sample_stats(new_samples, "new_samples")
 
-    let fmt_variation <- @(variation : double) : string {
-        let percent = variation * 100.0lf
-        let s = "{percent:.0f}"
-        if (percent < 5.0lf) return "±{s}%"
-        return "±{yellow_str(s)}%"
-    }
-    let fmt_delta <- @(old_v, new_v : double) : string {
-        if (old_v > 0.0lf && new_v <= 0.01lf) return green_str("-100%")
-        if (old_v == 0.0lf && new_v >= 1.0lf) return red_str("+inf%")
-        let delta_percent = (new_v - old_v) / old_v * 100.0lf
-        let sign = delta_percent >= 0.0lf ? "+" : ""
-        let delta_fmt = "{sign}{delta_percent:.2f}%"
-        if (delta_percent < 0.0lf) {
-            return green_str(delta_fmt)
-        } elif (delta_percent > 0.0lf) {
-            return red_str(delta_fmt)
-        } else {
-            return delta_fmt
-        }
-    }
-    for (k in bench_order) {
-        var s_old = unsafe(old_samples[k])
-        // The stats are null if an error occured when analyzing it.
-        if (s_old.stats == null) continue
-        let mapped_k = key_map(k)
-        if (!key_exists(new_samples, mapped_k)) {
-            if (k != mapped_k) {
-                warning("no pair found for {k} ({mapped_k})\n")
-            } else {
-                warning("no pair found for {k}\n")
-            }
-            continue
-        }
-
-        var s_new = unsafe(new_samples[mapped_k])
-        if (s_new.stats == null) continue
-
-        if (k != mapped_k) {
-            print("{blue_str(k)} vs {blue_str(mapped_k)}\n")
-        } else {
-            print("{blue_str(k)}\n")
-        }
-        var table_rows : array<TableRow?>
-        for (stat_old, stat_new in as_list(s_old.stats), as_list(s_new.stats)) {
-            if ((stat_old.metric.is_alloc && stat_old.mean_avg == 0.0lf && stat_new.mean_avg == 0.0lf)
-                || (stat_old.metric.is_alloc && abs(stat_old.mean_avg - stat_new.mean_avg) < 1.0lf)
-                || empty(stat_old.values) || empty(stat_new.values)) continue
-
-            old_total_values[stat_old.metric.name] |> push(stat_old.mean_avg)
-            new_total_values[stat_new.metric.name] |> push(stat_new.mean_avg)
-
-            let p = welch_p_value(stat_old, stat_new)
-            let n_str = "{length(stat_old.values)}+{length(stat_new.values)}"
-            var p_str = ""
-            if (p < 0.001lf) {
-                p_str = "p<0.001"
-            } elif (p < 0.005lf) {
-                p_str = "p={p:.3f}"
-            } elif (p < 0.010lf) {
-                p_str = "p=" + yellow_str("{p:.3f}")
-            } else {
-                p_str = "p=" + red_str("{p:.3f}")
-            }
-            let cmp_str = "({p_str} n={n_str})"
-
-            let metric_name = stat_old.metric.name
-            let old_v = "{stat_old.mean_avg:.1f}"
-            let new_v = "{stat_new.mean_avg:.1f}"
-
-            var delta_str = "~"
-            if (p < 0.05lf) {
-                delta_str = fmt_delta(stat_old.mean_avg, stat_new.mean_avg)
-            }
-
-            table_rows |> push(new TableRow(columns <- [
-                "{yellow_str(old_v)} {metric_name}/op {fmt_variation(stat_old.variation_coeff)}",
-                "{yellow_str(new_v)} {metric_name}/op {fmt_variation(stat_new.variation_coeff)}",
-                delta_str,
-                cmp_str,
-            ]))
-        }
-        var tabspec = new TableData(
-            rows <- table_rows,
-            col_gap = 4,
-            indent = "    ",
-        )
-        print(format_table(tabspec))
-    }
-
-    var table_rows : array<TableRow?>
-    for (k, old_values in keys(old_total_values), values(old_total_values)) {
-        let new_values & = unsafe(new_total_values[k])
-        if (empty(old_values) && empty(new_values)) continue
-        let gm_old = geomean(old_values)
-        let gm_new = geomean(new_values)
-        let gm_old_s = "{gm_old:.1f}"
-        let gm_new_s = "{gm_new:.1f}"
-        table_rows |> push(new TableRow(columns <- [
-            "{yellow_str(gm_old_s)} {k}",
-            "{yellow_str(gm_new_s)} {k}",
-            fmt_delta(gm_old, gm_new),
-        ]))
-    }
-    if (!empty(table_rows)) {
-        print("\n")
-        print("GEOMEAN:\n\n")
-        var tabspec = new TableData(
-            rows <- table_rows,
-            col_gap = 4,
-            indent = "    ",
-        )
-        print(format_table(tabspec))
-    }
+    print_bench_comparisons(bench_order, old_samples, new_samples, key_map,
+                            old_total_values, new_total_values)
+    print_geomean_table(old_total_values, new_total_values)
 
     return ""
 }

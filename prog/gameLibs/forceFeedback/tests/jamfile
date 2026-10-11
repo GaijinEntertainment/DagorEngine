@@ -1,0 +1,40 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+ConsoleExe = yes ;
+PlatformSpec_windows_x86_64 = clang ;
+CheckedContainers ?= yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/forceFeedback/tests ;
+
+TargetType  = exe ;
+OutDir      = $(Root)/$(Location)/bin/$(LegacyPlatformSuffix) ;
+Target      = forceFeedback-tests ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/catch2/src
+;
+
+Sources =
+  main.cpp
+  rumbleScaleTests.cpp
+;
+
+UseProgLibs =
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+  engine/startup
+  engine/perfMon/daProfilerStub
+  gameLibs/forceFeedback
+
+  3rdPartyLibs/eastl
+  3rdPartyLibs/catch2
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,4 +1,5 @@
 options gen2
+options _dasllama_internal = true
 
 require dastest/testing_boost public
 require dasllama/dasllama_tune
@@ -20,8 +21,8 @@ struct GridDot {}
 
 def private reference(a, b : array<float>) : float {
     var s = 0f
-    for (i in range(length(a))) {
-        s += a[i] * b[i]
+    for (av, bv in a, b) {
+        s += av * bv
     }
     return s
 }
@@ -33,7 +34,7 @@ def test_grid_registry(t : T?) {
     let want = reference(a, b)
 
     let vs <- grid_dot_template_variants()
-    t |> equal(length(vs), 20, "grid emits all 20 permutations")
+    t |> equal(length(vs), 7, "grid emits all 7 permutations (plain, u2, vec8, vec8_u2, vec16, vec16_u2, vec4_u4)")
 
     // Every emitted variant is callable and numerically correct (vectorize reassociates FP,
     // so compare within tolerance rather than bit-exact).
@@ -64,7 +65,7 @@ struct GridScale {}
 [test]
 def test_grid_void_registry(t : T?) {
     let vs <- grid_scale_template_variants()
-    t |> equal(length(vs), 20, "void-template grid emits all 20 permutations")
+    t |> equal(length(vs), 7, "void-template grid emits all 7 permutations")
 
     var d : array<float>
     d |> resize(8)

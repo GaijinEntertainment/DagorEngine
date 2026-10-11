@@ -14,8 +14,8 @@ function ComputedImmediate(...) {
   return c
 }
 
-let isComputed = @(v) v instanceof Computed
-let isObservable = @(v) v instanceof Watched // also matches Computed, as inherited from Watched
+let isComputed = @[pure](v): bool v instanceof Computed
+let isObservable = @[pure](v): bool v instanceof Watched // also matches Computed, as inherited from Watched
 
 function watchedTable2TableOfWatched(state, fieldsList = null) {
   assert(isObservable(state), "state has to be Watched")

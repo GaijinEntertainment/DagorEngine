@@ -68,7 +68,7 @@ def postfix_if_split_across_lines(a : int) : int {
     // followed by `if (a < 10) return a` (prefix-if, body on next line).
     // Compiles cleanly now; always returns 13.
     return 13
-        if (a < 10)
+        if (a < 10)     // nolint:LINT001 - the dead tail is exactly what this function pins
     return a
 }
 
@@ -111,7 +111,7 @@ def test_prefix_if_oneliner(t : T?) {
 def test_prefix_if_oneliner_body(t : T?) {
     t |> run("executes body when true") @(t : T?) {
         var x = 0
-        if (true) { x = 42; }
+        if (true) { x = 42; }   // nolint:STYLE010 - the literal-true one-liner body is the tested construct
         t |> equal(x, 42)
     }
     t |> run("skips body when false") @(t : T?) {

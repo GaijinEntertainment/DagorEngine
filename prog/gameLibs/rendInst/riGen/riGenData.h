@@ -245,7 +245,6 @@ struct RendInstGenData
     void setDistMul(float lod_mul, float cull_mul, bool scale_lod1 = true, bool set_preload_dist = true, bool no_mul_limit = false,
       float impostors_far_dist_additional_mul = 1.f);
     inline void setImpostorsDistAddMul(float add_mul) { impostorsDistAdditionalMul = add_mul; }
-    inline void setImpostorsFarDistAddMul(float add_mul) { impostorsFarDistAdditionalMul = add_mul; }
     inline void setImpostorsMinRange(float min_range) { impostorsMinRange = min_range; }
 
     enum class GlobalShadowRet
@@ -310,7 +309,7 @@ struct RendInstGenData
     inline float riResLodRange(int ri_idx, int lod, const DataBlock *ri_ovr)
     {
       static const char *lod_nm[] = {"lod0", "lod1", "lod2", "lod3", "lod4", "lod5", "lod6", "lod7"};
-      G_STATIC_ASSERT(countof(lod_nm) == rendinst::RI_MAX_LODS);
+      G_STATIC_ASSERT(countof(lod_nm) >= rendinst::RI_MAX_LODS);
       if (lod < riRes[ri_idx]->getQlMinAllowedLod())
         return -1; // lod = riRes[ri_idx]->getQlBestLod();
 
@@ -392,6 +391,9 @@ struct RendInstGenData
       fullSize = offset = 0;
     }
     uint32_t size() const { return eastl::max(fullSize, uint16_t(data.size())); }
+    // Every pool outside [spanBegin(), spanEnd()) has empty slices in all subcells
+    uint32_t spanBegin() const { return offset; }
+    uint32_t spanEnd() const { return offset + uint32_t(data.size()); }
 
   private:
     dag::Vector<EntPool> data;

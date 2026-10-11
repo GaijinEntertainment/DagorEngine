@@ -6,6 +6,8 @@ Future tools for the daslang MCP server, organized by priority and difficulty.
 
 | Tool | Description |
 |---|---|
+| `arch_of` | A .das file's [arch] citations, each with the cited section's text |
+| `arch_sites` | An architecture document's citation census - every citing symbol, dead anchors and dangling citations included |
 | `compile_check` | Compile file(s), return errors or success. Supports single file, comma-separated list, or glob pattern |
 | `list_functions` | List all functions after macro expansion |
 | `list_types` | List structs, classes, enums, type aliases |
@@ -29,9 +31,9 @@ Future tools for the daslang MCP server, organized by priority and difficulty.
 
 ### Cross-cutting features
 
-- **`.das_project` support** — all file-based tools accept an optional `project` parameter pointing to a `.das_project` file for custom module resolution and sandboxing
-- **Request logging** — file-based logging with timestamps for debugging
-- **Unified file utilities** — `resolve_path()` and `make_relative_path()` live in `tools/common.das`; `expand_glob()` and `parse_file_list()` were promoted to `daslib/fio` so any CLI tool can use them, not just MCP. Glob patterns: `*` / `?` / `**` / `[abc]` / `[!abc]`. (`!pattern` gitignore-style exclusion is not implemented; use `glob_filtered` with explicit excludes)
+- **`.das_project` support** - all file-based tools accept an optional `project` parameter pointing to a `.das_project` file for custom module resolution and sandboxing
+- **Request logging** - file-based logging with timestamps for debugging
+- **Unified file utilities** - `resolve_path()` and `make_relative_path()` live in `tools/common.das`; `expand_glob()` and `parse_file_list()` were promoted to `daslib/fio` so any CLI tool can use them, not just MCP. Glob patterns: `*` / `?` / `**` / `[abc]` / `[!abc]`. (`!pattern` gitignore-style exclusion is not implemented; use `glob_filtered` with explicit excludes)
 
 ### Cursor-based tools implementation notes
 
@@ -42,7 +44,7 @@ Future tools for the daslang MCP server, organized by priority and difficulty.
 - **Fields:** `ExprField`, `ExprSafeField` (`.field`, `?.field`)
 - **Enums:** `ExprConstEnumeration` (enum values like `Color.Red`)
 - **Bitfields:** `ExprConstBitfield` (bitfield values like `Flags.readable`)
-- **Aliases:** `TypeDecl.alias` — covers `typedef`, `bitfield`, `variant`, `tuple` declarations
+- **Aliases:** `TypeDecl.alias` - covers `typedef`, `bitfield`, `variant`, `tuple` declarations
 - **Structs/Classes:** type references via `TypeDecl.structType`
 - **Builtins:** built-in function signatures (no source location)
 
@@ -54,25 +56,25 @@ The `no_opt` parameter disables compiler optimizations (`CodeOfPolicies.no_optim
 
 ## Urgent: Developer Experience Gaps
 
-### ~~describe_type~~ ✅
+### ~~describe_type~~ DONE
 
 Implemented as a standalone tool. Searches all modules for a type by name and describes its fields, methods, values, base type. Supports structs, classes, handled types, enums, bitfields, variants, tuples, and typedefs. Optional `module` parameter to limit search scope.
 
-### ~~grep_usage~~ ✅
+### ~~grep_usage~~ DONE
 
-Implemented using ast-grep + tree-sitter for parse-aware identifier search. Finds symbol occurrences excluding comments and strings — no compilation needed. Conditionally available when `sg` (ast-grep) CLI is installed. Server prints install instructions if missing.
+Implemented using ast-grep + tree-sitter for parse-aware identifier search. Finds symbol occurrences excluding comments and strings - no compilation needed. Conditionally available when `sg` (ast-grep) CLI is installed. Server prints install instructions if missing.
 
 Parameters: `symbol` (required), `directory` (optional), `glob` (optional file filter), `context_lines` (optional). Output grouped by file with line numbers.
 
-### ~~batch_compile~~ ✅
+### ~~batch_compile~~ DONE
 
-Merged into `compile_check` — supports comma-separated file lists and glob patterns (e.g., `utils/mcp/tools/*.das`). Reports per-file pass/fail with summary.
+Merged into `compile_check` - supports comma-separated file lists and glob patterns (e.g., `utils/mcp/tools/*.das`). Reports per-file pass/fail with summary.
 
-### ~~list_annotations~~ ✅
+### ~~list_annotations~~ DONE
 
 Merged into `list_module_api` as the `annotations` section. Lists function annotations, structure annotations, call macros, reader macros, variant macros, typeinfo macros, for-loop macros, and type macros.
 
-### ~~eval_expression~~ ✅
+### ~~eval_expression~~ DONE
 
 Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaffold. Supports comma-separated `require` parameter for module imports. Works with `typeinfo`, complex expressions, and library functions.
 
@@ -100,11 +102,11 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 - Should refuse to rename builtins (no source to modify).
 
 **Parameters:**
-- `file` (required) — file containing the symbol definition
-- `symbol` (required) — current name
-- `new_name` (required) — desired new name
-- `scope` (optional) — `"file"` or `"project"`
-- `dry_run` (optional, default true) — if true, return diff without modifying files
+- `file` (required) - file containing the symbol definition
+- `symbol` (required) - current name
+- `new_name` (required) - desired new name
+- `scope` (optional) - `"file"` or `"project"`
+- `dry_run` (optional, default true) - if true, return diff without modifying files
 
 **Output:** List of changes `(file, line, old_text, new_text)` and compilation check result.
 
@@ -118,12 +120,12 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 
 **Implementation approach:**
 - Parse the selected code range to identify:
-  - Variables read but not defined in the selection → become function parameters
-  - Variables defined in the selection and used after it → become return values
-  - Variables defined and only used within the selection → stay local
+  - Variables read but not defined in the selection -> become function parameters
+  - Variables defined in the selection and used after it -> become return values
+  - Variables defined and only used within the selection -> stay local
 - Generate the function signature with proper types (from the compiled AST).
 - Replace the selected code with a call to the new function.
-- Handle `var` (mutable) parameters correctly — if the selection modifies a variable used later, it needs `var` parameter.
+- Handle `var` (mutable) parameters correctly - if the selection modifies a variable used later, it needs `var` parameter.
 
 **Challenges:**
 - daslang's move semantics: if the selection moves a value (`<-`), the extraction must preserve that.
@@ -131,10 +133,10 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 - Control flow: `return`, `break`, `continue` inside the selection complicate extraction.
 
 **Parameters:**
-- `file` (required) — source file
-- `start_line` (required) — first line of selection
-- `end_line` (required) — last line of selection
-- `function_name` (required) — name for the new function
+- `file` (required) - source file
+- `start_line` (required) - first line of selection
+- `end_line` (required) - last line of selection
+- `function_name` (required) - name for the new function
 - `dry_run` (optional, default true)
 
 **Output:** The new function definition, the modified call site, and a compilation check.
@@ -145,7 +147,7 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 
 **What:** Replace a function call with the function's body, substituting parameters.
 
-**Why:** The inverse of extract — useful for removing unnecessary abstraction.
+**Why:** The inverse of extract - useful for removing unnecessary abstraction.
 
 **Difficulty:** Hard. Needs parameter substitution, handling of return statements, variable name conflicts.
 
@@ -168,8 +170,8 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 - Could maintain a knowledge base of error patterns (similar to Rust's error index).
 
 **Parameters:**
-- `file` (required) — file with the error
-- `error_text` (optional) — specific error message to explain (if not provided, compile and explain all errors)
+- `file` (required) - file with the error
+- `error_text` (optional) - specific error message to explain (if not provided, compile and explain all errors)
 
 **Output:** Structured explanation per error: what it means, why it happens, how to fix it.
 
@@ -179,7 +181,7 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 
 **What:** Search for functions by their type signature (like Haskell's Hoogle or Gleam's Gloogle).
 
-**Why:** "I have a `string` and want an `int` — what function does that?" This is incredibly useful for discovering API.
+**Why:** "I have a `string` and want an `int` - what function does that?" This is incredibly useful for discovering API.
 
 **Implementation approach:**
 - Index all functions across registered modules by parameter types and return type.
@@ -188,8 +190,8 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 - Rank by relevance: exact matches first, then partial matches.
 
 **Parameters:**
-- `query` (required) — type signature query (e.g., `string -> int`, `float, float -> float`)
-- `module` (optional) — limit search to a specific module
+- `query` (required) - type signature query (e.g., `string -> int`, `float, float -> float`)
+- `module` (optional) - limit search to a specific module
 
 **Output:** List of matching functions with their full signatures and module names.
 
@@ -204,15 +206,15 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 **Implementation approach:**
 - Compile the file, collect errors.
 - For each error, apply pattern-matched fixes:
-  - "expecting T, got U" → insert cast or conversion
-  - "undefined symbol X" → add `require` for the module containing X (using `find_symbol`)
-  - "variable not found" → suggest `var` declaration
-  - "can't copy" → suggest `:=` or `<-`
+  - "expecting T, got U" -> insert cast or conversion
+  - "undefined symbol X" -> add `require` for the module containing X (using `find_symbol`)
+  - "variable not found" -> suggest `var` declaration
+  - "can't copy" -> suggest `:=` or `<-`
 - Re-compile after each fix to verify it works.
 - Iterate until no more auto-fixable errors remain.
 
 **Parameters:**
-- `file` (required) — file to fix
+- `file` (required) - file to fix
 - `dry_run` (optional, default true)
 - `max_iterations` (optional, default 5)
 
@@ -252,9 +254,9 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
   - Show which deps are direct vs transitive
 
 **Parameters:**
-- `file` or `root` — starting point
-- `format` — `"text"`, `"json"`, or `"dot"`
-- `depth` (optional) — max depth to traverse
+- `file` or `root` - starting point
+- `format` - `"text"`, `"json"`, or `"dot"`
+- `depth` (optional) - max depth to traverse
 
 **Difficulty:** Medium. Building on `list_requires` infrastructure.
 
@@ -262,7 +264,7 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 
 **What:** Search a package registry for daslang packages by name, description, or functionality.
 
-**Status:** **Deferred** — waiting for the daslang package manager to be implemented.
+**Status:** **Deferred** - waiting for the daslang package manager to be implemented.
 
 ### scaffold
 
@@ -271,10 +273,10 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 **Why:** Ensures generated code follows project conventions (correct `options`, `require`s, annotations).
 
 **Templates:**
-- `module` — new daslib module with proper header
-- `test` — test file with `[test]` functions and fixture setup
-- `binding` — C++ module binding skeleton (`.das_module` + C++ stub)
-- `tutorial` — tutorial .das file with comments
+- `module` - new daslib module with proper header
+- `test` - test file with `[test]` functions and fixture setup
+- `binding` - C++ module binding skeleton (`.das_module` + C++ stub)
+- `tutorial` - tutorial .das file with comments
 
 **Difficulty:** Easy-medium. Template-based generation. The AI already does this well, so the value-add is mainly in ensuring conventions.
 
@@ -284,28 +286,28 @@ Evaluates a daslang expression via `let _res_ = <expr>; print("{_res_}\n")` scaf
 
 Recommended order based on value/effort ratio:
 
-1. ~~**goto_definition**~~ ✅ Implemented
-2. ~~**type_of**~~ ✅ Implemented
-3. ~~**find_references**~~ ✅ Implemented (file + all-modules scope, declaration lookup)
-4. ~~**program_log**~~ ✅ Implemented (full program text, optional function filter)
-5. ~~**ast_dump with LineInfo**~~ ✅ Implemented (`lineinfo` parameter, shows `atEnclosure`)
-6. ~~**dot-call LineInfo fix**~~ ✅ Fixed (`atEnclosure` on dot-call/arrow-call expressions in parser + inference)
-7. ~~**.das_project support**~~ ✅ Implemented (per-tool `project` parameter)
-8. ~~**describe_type**~~ ✅ Implemented (fields, methods, values, base types for all type kinds)
-9. ~~**grep_usage**~~ ✅ Implemented (ast-grep + tree-sitter, conditional on `sg` CLI)
-9b. ~~**outline**~~ ✅ Implemented (tree-sitter kind-based rules, conditional on `sg` CLI)
-10. ~~**batch_compile**~~ ✅ Implemented (merged into `compile_check` with comma-separated and glob support)
-11. ~~**list_annotations**~~ ✅ Implemented (merged into `list_module_api` as `annotations` section)
-12. ~~**eval_expression**~~ ✅ Implemented (expression eval with `require` support)
-13. **explain_error** — high value, relatively easy
-14. **dependency_graph** — medium value, easy (extends `list_requires`)
-15. **type_search** — high value for API discovery, medium-hard effort
-16. **rename_symbol** — high value, depends on goto_definition + find_references (both done)
-17. **try_fix** — medium-high value, hard
-18. **extract_function** — medium value, very hard
-19. **workspace_index** — enabler for cross-file tools at scale
-20. **scaffold** — low priority (AI already generates good code)
-21. **package_search** — deferred until package manager exists
+1. ~~**goto_definition**~~ DONE Implemented
+2. ~~**type_of**~~ DONE Implemented
+3. ~~**find_references**~~ DONE Implemented (file + all-modules scope, declaration lookup)
+4. ~~**program_log**~~ DONE Implemented (full program text, optional function filter)
+5. ~~**ast_dump with LineInfo**~~ DONE Implemented (`lineinfo` parameter, shows `atEnclosure`)
+6. ~~**dot-call LineInfo fix**~~ DONE Fixed (`atEnclosure` on dot-call/arrow-call expressions in parser + inference)
+7. ~~**.das_project support**~~ DONE Implemented (per-tool `project` parameter)
+8. ~~**describe_type**~~ DONE Implemented (fields, methods, values, base types for all type kinds)
+9. ~~**grep_usage**~~ DONE Implemented (ast-grep + tree-sitter, conditional on `sg` CLI)
+9b. ~~**outline**~~ DONE Implemented (tree-sitter kind-based rules, conditional on `sg` CLI)
+10. ~~**batch_compile**~~ DONE Implemented (merged into `compile_check` with comma-separated and glob support)
+11. ~~**list_annotations**~~ DONE Implemented (merged into `list_module_api` as `annotations` section)
+12. ~~**eval_expression**~~ DONE Implemented (expression eval with `require` support)
+13. **explain_error** - high value, relatively easy
+14. **dependency_graph** - medium value, easy (extends `list_requires`)
+15. **type_search** - high value for API discovery, medium-hard effort
+16. **rename_symbol** - high value, depends on goto_definition + find_references (both done)
+17. **try_fix** - medium-high value, hard
+18. **extract_function** - medium value, very hard
+19. **workspace_index** - enabler for cross-file tools at scale
+20. **scaffold** - low priority (AI already generates good code)
+21. **package_search** - deferred until package manager exists
 
 ## Architecture Notes
 
@@ -332,3 +334,12 @@ Many complex tools are compositions of simpler ones:
 - `extract_function` = AST analysis + code generation + `compile_check`
 
 Building the foundational tools well creates a platform for everything else.
+
+## Follow-ups
+
+- **Back to an exe form.** `tests/_pretend_root` carries a descriptor that registers a C++
+  module and a require path, and `test_tools.das` proves `list_modules`, `find_symbol` and
+  `compile_check` see both under `project_root`, eager and plain; the watchdog's `--stdio` front
+  is what `.mcp.json` spawns, so an exe form of the server would be the front's child and run
+  every session. What remains is the build: the server as a `-exe` target beside the other
+  shipped utilities, and `setup.das` naming it as `--program` where it is built.

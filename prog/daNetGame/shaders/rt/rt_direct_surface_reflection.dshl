@@ -1,0 +1,99 @@
+include "rtr_probes_use.dshl"
+
+float rtr_sky_probe_ray_length_threshold = 200;
+float rtr_probe_weight_offset_factor = -0.2;
+
+macro INIT_RT_DIRECT_SURFACE_REFLECTION(stage)
+  INIT_RTR_PROBES(stage, true)
+  (stage) {
+    rtr_sky_probe_ray_length_threshold@f1 = rtr_sky_probe_ray_length_threshold;
+    rtr_probe_weight_offset_factor@f1 = rtr_probe_weight_offset_factor;
+  }
+endmacro
+
+// Expand after USE_RT_LIGHTING, it calls the environment helpers from there
+macro USE_RT_DIRECT_SURFACE_REFLECTION(stage)
+  USE_RTR_PROBES(stage)
+  hlsl(stage)
+  {
+    static const int borderCount = 1;
+    float calc_probe_weight(float distance, float w)
+    {
+      const float minW = 2; // To accept probes near camera
+      w = max(w, minW);
+      float weightOffset = 1.0 / (rtr_probe_weight_offset_factor * w);
+      const float resolutionFactor = 1.0 / 40.0; // Probes are further away from each other on low resolution
+      weightOffset *= usable_probe_count.x * resolutionFactor;
+      const float minDistance = 1e-5;
+      return max(0, weightOffset + 1.0 / max(distance, minDistance));
+    }
+
+    bool rtr_probes_cover_miss(float max_reflection_distance)
+    {
+      return max_reflection_distance <= rtr_sky_probe_ray_length_threshold;
+    }
+
+    half3 calc_direct_surface_reflection(float3 worldPos, float3 normal, float roughness, float3 surfaceToCamera, float w, float viewDist, float3 sampleDir, float maxReflectionDistance, uint2 tci, inout float depth)
+    {
+      if (maxReflectionDistance > rtr_sky_probe_ray_length_threshold)
+        return texCUBElod(envi_probe_specular, float4(sampleDir, 0)).rgb * apply_sky_polarization_filter();
+
+      if (rtr_probes_bindless_enabled())
+      {
+        int2 probeIndex = tci / PROBE_AREA;
+        int2 probeCountI = usable_probe_count;
+        float3 colorAccum = 0;
+        float depthAccum = 0;
+        float weightSum = 0;
+        for (int y = max(probeIndex.y - borderCount, 0); y < min(probeIndex.y + borderCount + 1, probeCountI.y); ++y)
+        {
+          for (int x = max(probeIndex.x - borderCount, 0); x < min(probeIndex.x + borderCount + 1, probeCountI.x); ++x)
+          {
+            uint cellIndex = x + y * probe_count.x;
+            float4 frontProbeData = asfloat(loadBuffer4(rtr_probe_locations, cellIndex * PROBE_SLOT_STRIDE));
+            float4 backProbeData = asfloat(loadBuffer4(rtr_probe_locations, cellIndex * PROBE_SLOT_STRIDE + PROBE_SIZE));
+
+            BRANCH
+            if (frontProbeData.w != 0)
+            {
+              float4 frontSample = sample_probe(uint2(x, y), 0, sampleDir);
+              float4 backSample;
+              if (backProbeData.w != 0)
+                backSample = sample_probe(uint2(x, y), 1, sampleDir);
+              else
+              {
+                backSample = frontSample;
+                backProbeData = frontProbeData;
+              }
+
+              float frontDistance = distance(worldPos, frontProbeData.xyz);
+              float backDistance = distance(worldPos, backProbeData.xyz);
+
+              float t = frontDistance / (frontDistance + backDistance + 1e-5);
+              float4 lerpedSample = lerp(frontSample, backSample, t);
+              float3 lerpedPos = lerp(frontProbeData.xyz, backProbeData.xyz, t);
+
+              float probeWeight = calc_probe_weight(distance(lerpedPos, worldPos), w);
+              weightSum += probeWeight;
+              colorAccum += lerpedSample.rgb * probeWeight;
+              depthAccum += lerpedSample.a * probeWeight;
+            }
+          }
+        }
+
+        if (weightSum > 0)
+        {
+          colorAccum /= weightSum;
+          depthAccum /= weightSum;
+          depth = depthAccum;
+          return colorAccum;
+        }
+      }
+
+      depth = maxReflectionDistance;
+      float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normal, roughness, surfaceToCamera, w);
+      float indoorProbeWeight;
+      return calc_environment_specular_reflection(worldPos, normal, roughness, surfaceToCamera, viewDist, luminance(ambient), indoorProbeWeight);
+    }
+  }
+endmacro

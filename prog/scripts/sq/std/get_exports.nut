@@ -10,7 +10,7 @@ function get_all_exports_for_file(fpath){
 function getClassOfInstanceName(v){
   if (type(v)=="instance" && typeof(v)!="instance")
     return typeof(v)
-  return v?.__name__ ?? v?.__name ?? v?.name ?? v?.getName()
+  return v?.__name__ ?? v?.__name ?? v?.name ?? (type(v)=="class" ? null : v?.getName())
 }
 
 function isNativeClassOrInstance(v): bool {

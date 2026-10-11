@@ -59,6 +59,7 @@ float water_reflection_margin_inv = 1;
 
 texture water_reflection_tex;
 texture water_refraction_tex;
+texture perlin_noise;
 
 texture water_foam_tex;
 float4 world_to_foam_x1;

@@ -131,6 +131,7 @@ void initialize(bool half_res)
 
   // The game recreates the persistent textures around initialize.
   validation_texture_ptr = nullptr;
+  denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
 
   denoiser::resolution_config.initPTGI(half_res);
   ShaderGlobal::set_int(ptgi_res_mulVarId, half_res ? 2 : 1);
@@ -163,6 +164,7 @@ void turn_off()
   ShaderGlobal::set_int(ptgi_bindless_slotVarId, -1);
   // The texture is owned by the game; drop the reference until the next render.
   validation_texture_ptr = nullptr;
+  denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
 }
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
@@ -195,7 +197,8 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
   }
   else
   {
-    denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
+    // Just display the noisy texture as-is
+    denoised_gi_for_debug = decoded_denoised_gi_for_debug = basetex_or_null(gi_value);
     validation_texture_ptr = nullptr;
   }
 
@@ -284,23 +287,26 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
   ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
 
 #if DAGOR_DBGLEVEL > 0
-  if (!decode)
-    decode = new_compute_shader("rt_gi_decode");
+  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
+  {
+    if (!decode)
+      decode = new_compute_shader("rt_gi_decode");
 
-  static int ptgi_decode_srcVarId = get_shader_variable_id("ptgi_decode_src");
-  static int ptgi_decode_dstVarId = get_shader_variable_id("ptgi_decode_dst");
-  static int ptgi_decode_albedo_mulVarId = get_shader_variable_id("ptgi_decode_albedo_mul");
-  static int ptgi_decode_tonemapVarId = get_shader_variable_id("ptgi_decode_tonemap");
+    static int ptgi_decode_srcVarId = get_shader_variable_id("ptgi_decode_src");
+    static int ptgi_decode_dstVarId = get_shader_variable_id("ptgi_decode_dst");
+    static int ptgi_decode_albedo_mulVarId = get_shader_variable_id("ptgi_decode_albedo_mul");
+    static int ptgi_decode_tonemapVarId = get_shader_variable_id("ptgi_decode_tonemap");
 
-  ShaderGlobal::set_texture(ptgi_decode_srcVarId, denoised_gi_for_debug);
-  ShaderGlobal::set_texture(ptgi_decode_dstVarId, decoded_denoised_gi_for_debug);
-  ShaderGlobal::set_int(ptgi_decode_albedo_mulVarId, mul_debug_by_albedo ? 1 : 0);
-  ShaderGlobal::set_int(ptgi_decode_tonemapVarId, decode_tonemap ? 1 : 0);
+    ShaderGlobal::set_texture(ptgi_decode_srcVarId, denoised_gi_for_debug);
+    ShaderGlobal::set_texture(ptgi_decode_dstVarId, decoded_denoised_gi_for_debug);
+    ShaderGlobal::set_int(ptgi_decode_albedo_mulVarId, mul_debug_by_albedo ? 1 : 0);
+    ShaderGlobal::set_int(ptgi_decode_tonemapVarId, decode_tonemap ? 1 : 0);
 
-  decode->dispatchThreads(resolution.x, resolution.y, 1);
+    decode->dispatchThreads(resolution.x, resolution.y, 1);
 
-  ShaderGlobal::set_texture(ptgi_decode_srcVarId, nullptr);
-  ShaderGlobal::set_texture(ptgi_decode_dstVarId, nullptr);
+    ShaderGlobal::set_texture(ptgi_decode_srcVarId, nullptr);
+    ShaderGlobal::set_texture(ptgi_decode_dstVarId, nullptr);
+  }
 #endif
 }
 
@@ -325,17 +331,23 @@ static void imguiWindow()
   if (!denoised_gi_for_debug)
     return;
 
-  ImGui::Checkbox("Multiply by albedo", &mul_debug_by_albedo);
-  ImGui::Checkbox("Tonemap", &decode_tonemap);
+  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
+  {
+    ImGui::Checkbox("Multiply by albedo", &mul_debug_by_albedo);
+    ImGui::Checkbox("Tonemap", &decode_tonemap);
+  }
   ImGui::SliderFloat("Boost", &boost, 0, 2);
   ImGui::SliderFloat("Boost range", &boost_range, 0, 10);
   ImGui::SliderFloat("Ray length", &ray_length, ray_length_min, ray_length_max);
-  ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
-  ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
-  ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
-  ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM);
-  ImGui::Checkbox("Anti firefly", &anti_firefly);
-  ImGui::Checkbox("Show validation layer", &show_validation);
+  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
+  {
+    ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
+    ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
+    ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
+    ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM);
+    ImGui::Checkbox("Anti firefly", &anti_firefly);
+    ImGui::Checkbox("Show validation layer", &show_validation);
+  }
 
   if (decoded_denoised_gi_for_debug)
   {

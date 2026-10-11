@@ -10,7 +10,7 @@
 
 struct Hlsl2SpirvResult
 {
-  bool failed;
+  bool failed = false;
 
   std::vector<unsigned int> byteCode;
 

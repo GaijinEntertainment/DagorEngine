@@ -59,5 +59,6 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   EditorMainWindow mainWindow(appManager);
   mainWindow.run();
 
+  quit_game(0);
   return 0;
 }

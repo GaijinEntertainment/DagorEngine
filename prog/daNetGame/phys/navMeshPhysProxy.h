@@ -14,6 +14,7 @@ class NavMeshPhysProxy final : public IPhysBase
   float mass;
   Point3 velocity;
   Point3 pseudoVelDelta;
+  Point3 capsuleOffset;
   float radius;
   float height;
   float timeStep;

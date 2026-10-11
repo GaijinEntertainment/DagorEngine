@@ -23,7 +23,7 @@ static bool compare_helper(const IndicesSortHelper &l, const IndicesSortHelper &
 
 static void push_to_plane_vertices(PlaneDefinition &plane_definition, const Point3 &p, int idx, float epsilon)
 {
-  auto isNear = [p, epsilon](const Point3 &vert) { return lengthSq(p - vert) < pow(epsilon, 2); };
+  auto isNear = [p, epsilon](const Point3 &vert) { return lengthSq(p - vert) < sqr(epsilon); };
 
   if (eastl::find_if(plane_definition.vertices.begin(), plane_definition.vertices.end(), isNear) == plane_definition.vertices.end())
   {
@@ -166,7 +166,7 @@ void Kdop::setupCustomKdop(int seg1, int seg2)
     {
       n = normalize(Point3{n.x * cosSeg1 + n.z * sinSeg1, n.y, n.x * -sinSeg1 + n.z * cosSeg1});
       float epsilon = 0.001f;
-      auto isNear = [n, epsilon](const PlaneDefinition &p) { return lengthSq(n - p.planeNormal) < pow(epsilon, 2); };
+      auto isNear = [n, epsilon](const PlaneDefinition &p) { return lengthSq(n - p.planeNormal) < sqr(epsilon); };
       if (!(eastl::find_if(planeDefinitions.begin(), planeDefinitions.end(), isNear) != planeDefinitions.end()))
       {
         n.normalize();
@@ -272,9 +272,7 @@ void Kdop::calcPlanes()
         if (isPointInside(planeIntersection))
         {
           float epsilon = 10.0f * eps;
-          auto isNear = [planeIntersection, epsilon](const Point3 &vert) {
-            return lengthSq(planeIntersection - vert) < pow(epsilon, 2);
-          };
+          auto isNear = [planeIntersection, epsilon](const Point3 &vert) { return lengthSq(planeIntersection - vert) < sqr(epsilon); };
 
           auto it = eastl::find_if(vertices.begin(), vertices.end(), isNear);
           int idx = it - vertices.begin();
@@ -376,7 +374,7 @@ void Kdop::calcArea()
       const Point3 &p1 = planeDefinition.vertices[0];
       const Point3 &p2 = planeDefinition.vertices[i - 1];
       const Point3 &p3 = planeDefinition.vertices[i];
-      planeDefinition.area += 0.5 * length(cross(p2 - p1, p3 - p1));
+      planeDefinition.area += 0.5f * length(cross(p2 - p1, p3 - p1));
       if (planeDefinition.area > areaLimit)
       {
         areaLimit = planeDefinition.area;

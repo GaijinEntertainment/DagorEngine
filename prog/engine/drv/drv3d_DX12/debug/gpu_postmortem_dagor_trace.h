@@ -120,6 +120,7 @@ public:
 #endif
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
   bool sendGPUCrashDump(const char *, const void *, uintptr_t);
+  void onDeviceRecovery();
   void onDeviceShutdown();
   bool onDeviceSetup(D3DDevice *, const Configuration &, const Direct3D12Enviroment &);
   template <typename K>

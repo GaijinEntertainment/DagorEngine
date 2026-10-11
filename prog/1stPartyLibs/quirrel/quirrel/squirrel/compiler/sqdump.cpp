@@ -195,29 +195,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 break;
             }
 
-            case _OP_DATA_NOP: {
-                    int saveInstr = i + ((inst._arg2 << 8) + inst._arg3);
-                    if ((inst._arg0 || inst._arg1 || inst._arg2 || inst._arg3) && saveInstr > 0 && saveInstr < i_count &&
-                        ii[saveInstr].op == _OP_SAVE_STATIC_MEMO)
-                    {
-                        int loadInstr = saveInstr + 1 - ((ii[saveInstr]._arg2 << 8) + ii[saveInstr]._arg3);
-                        if (loadInstr == i) {
-                            streamprintf(stream, "  // LOAD_STATIC_MEMO: staticmemo[%d] -> r%d, jump to %d%s",
-                                int(inst._arg1 & STATIC_MEMO_IDX_MASK), int(inst._arg0), saveInstr + 1,
-                                (inst._arg1 & STATIC_MEMO_AUTO_FLAG) ? " (auto)" : "");
-                        }
-                    }
-                }
-                break;
-
-            case _OP_SAVE_STATIC_MEMO: {
-                    int loadInstr = i + 1 - ((inst._arg2 << 8) + inst._arg3);
-                    streamprintf(stream, "  // r%d -> staticmemo[%d], r%d -> r%d, modify instr at %d%s",
-                        int(inst._arg0), int(inst._arg1 & STATIC_MEMO_IDX_MASK), int(inst._arg0), int(ii[loadInstr]._arg0), loadInstr,
-                        (inst._arg1 & STATIC_MEMO_AUTO_FLAG) ? " (auto)" : "");
-                }
-                break;
-
             case _OP_CALL:
                 streamprintf(stream, "  // (call r%d) -> r%d", int(inst._arg1), int(inst._arg0));
                 break;
@@ -591,10 +568,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, "  // if iter r%d dead jump to %d", int(inst._arg0), i + inst._arg1 + 1);
                 break;
 
-            case _OP_FREEZE:
-                streamprintf(stream, "  // freeze r%d -> r%d", int(inst._arg1), int(inst._arg0));
-                break;
-
             case _OP_CHECK_TYPE:
                 streamprintf(stream, "  // check r%d type mask=0x%X", int(inst._arg0), int(inst._arg1));
                 break;
@@ -670,10 +643,6 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 break;
             }
 
-            case _OP_LOAD_STATIC_MEMO:
-                streamprintf(stream, "  // staticmemo[%d] -> r%d, jump to %d", int(inst._arg1), int(inst._arg0), i + (inst._arg2 << 8) + inst._arg3 + 1);
-                break;
-
             case _OP_PUSHTRAP:
                 streamprintf(stream, "  // catch -> r%d, jump to %d", int(inst._arg0), i + inst._arg1 + 1);
                 break;
@@ -700,16 +669,6 @@ static void DumpLiterals(const StreamCB &stream, const SQObjectPtr *_literals, S
     for (SQInt32 i = 0; i < _nliterals; ++i) {
         streamprintf(stream, "[%d] ", (SQInt32)i);
         DumpLiteral(stream, _literals[i]);
-        streamprintf(stream, "\n");
-    }
-}
-
-static void DumpStaticMemos(const StreamCB &stream, const SQObjectPtr *_staticmemos, SQInt32 _nstaticmemos)
-{
-    streamprintf(stream, "-----STATIC MEMOS\n");
-    for (SQInt32 i = 0; i < _nstaticmemos; ++i) {
-        streamprintf(stream, "[%d] ", (SQInt32)i);
-        DumpLiteral(stream, _staticmemos[i]);
         streamprintf(stream, "\n");
     }
 }
@@ -762,7 +721,6 @@ static void DumpImpl(const StreamCB &stream, SQFunctionProto *func, bool deep, i
     streamprintf(stream, "--------------------------------------------------------------------\n");
     streamprintf(stream, "*****FUNCTION [%s]\n", sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : "unknown");
     DumpLiterals(stream, func->_literals, func->_nliterals);
-    DumpStaticMemos(stream, func->_staticmemos, func->_nstaticmemos);
     streamprintf(stream, "-----RESULT TYPE MASK = 0x%X\n", func->_result_type_mask);
     if (func->_isAsync)
         streamprintf(stream, "-----ASYNC\n");

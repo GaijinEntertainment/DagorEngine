@@ -144,13 +144,11 @@ def compile_to_exe(t : T?; src : string; out : string) : bool {
 
 def run_exe(exe : string) : string {
     var output = ""
-    unsafe {
-        popen("{exe}.exe") $(f) {
-            while (!feof(f)) {
-                output += fgets(f)
-            }
+    unsafe(popen("{exe}.exe") $(f) {
+        while (!feof(f)) {
+            output += fgets(f)
         }
-    }
+    })
     return output
 }
 

@@ -239,7 +239,7 @@ void VisualConsoleDriver::render()
 
     StdGuiRender::set_font(fontId);
 
-    lineHeight = int(StdGuiRender::get_font_cell_size().y * 1.15) + 1;
+    lineHeight = int(StdGuiRender::get_font_cell_size().y * 1.15f) + 1;
 
     StdGuiRender::set_color(255, 0, 255, 255);
     StdGuiRender::set_ablend(true);

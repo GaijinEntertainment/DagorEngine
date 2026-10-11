@@ -54,7 +54,7 @@ MainAssetSelector::MainAssetSelector(IAssetBaseViewClient &in_client, IAssetSele
   client(in_client), menuEventHandler(asset_menu_handler), mainAllAssetsTab(*this), assetBrowser(*this)
 {}
 
-MainAssetSelector::~MainAssetSelector() {}
+MainAssetSelector::~MainAssetSelector() { PropPanel::remove_delayed_callback(*this); }
 
 void MainAssetSelector::setAssetMgr(DagorAssetMgr &asset_mgr)
 {
@@ -82,6 +82,29 @@ void MainAssetSelector::goToAsset(const DagorAsset &asset)
   setActiveTab(ActiveTab::All);
 }
 
+void MainAssetSelector::setSelectedAssetInActiveTab(const DagorAsset &asset)
+{
+  lastSelectedAsset = &asset;
+
+  // The tree selection fires its selection change event.
+  G_ASSERT(notifyClientOnSelection);
+  notifyClientOnSelection = false;
+
+  if (activeTab == ActiveTab::All)
+  {
+    // Keep the user's filter. If it hides the asset, select nothing rather than the asset that was not opened.
+    AllAssetsTree &tree = mainAllAssetsTab.getTree();
+    if (!tree.selectAsset(&asset))
+      tree.setSelectedItem(nullptr);
+  }
+  else if (activeTab == ActiveTab::Favorites)
+    favoritesTab->setSelectedAsset(&asset);
+  else if (activeTab == ActiveTab::RecentlyUsed)
+    recentlyUsedTab->setSelectedAsset(&asset);
+
+  notifyClientOnSelection = true;
+}
+
 void MainAssetSelector::addAssetToRecentlyUsed(const DagorAsset &asset)
 {
   bool added = false;
@@ -99,6 +122,8 @@ void MainAssetSelector::selectNextItemInActiveTree(bool forward) { mainAllAssets
 void MainAssetSelector::onAssetRemoved()
 {
   lastSelectedAsset = nullptr;
+  pendingSelectedAsset = nullptr;
+  PropPanel::remove_delayed_callback(*this);
   mainAllAssetsTab.refillTree();
 }
 
@@ -184,19 +209,36 @@ void MainAssetSelector::onAvAssetDblClick(DagorAsset *asset, const char *asset_n
   client.onAvAssetDblClick(asset, asset_name);
 }
 
-void MainAssetSelector::onAvSelectAsset(DagorAsset *asset, const char *asset_name)
+void MainAssetSelector::onAvSelectAsset(DagorAsset *asset, const char *)
 {
   if (asset)
   {
     lastSelectedAsset = asset;
 
-    client.onAvSelectAsset(asset, asset_name);
+    if (notifyClientOnSelection)
+    {
+      // The client can show a save confirmation message box, and the ImGui-based one cannot open during an ImGui frame.
+      if (!pendingSelectedAsset)
+        PropPanel::request_delayed_callback(*this);
+
+      pendingSelectedAsset = asset;
+    }
 
     if (allowChangingRecentlyUsedList)
       addAssetToRecentlyUsed(*asset);
   }
 
   assetBrowserFill();
+}
+
+void MainAssetSelector::onImguiDelayedCallback(void *)
+{
+  DagorAsset *asset = pendingSelectedAsset;
+  if (!asset)
+    return;
+
+  client.onAvSelectAsset(asset, asset->getNameTypified());
+  pendingSelectedAsset = nullptr;
 }
 
 void MainAssetSelector::onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name)
@@ -369,52 +411,52 @@ void MainAssetSelector::loadAssetBrowserSettings(DataBlock &blk)
   assetBrowserOpen = blk.getBool("open", assetBrowserOpen);
 }
 
-void MainAssetSelector::updateImgui()
+void MainAssetSelector::updateImgui(bool can_submit_contents)
 {
-  if (!ImGui::BeginTabBar("TabBar"))
-    return;
-
-  if (tabPage("All", activeTab == ActiveTab::All))
-    setActiveTab(ActiveTab::All);
-  else if (tabPage("Favorites", activeTab == ActiveTab::Favorites))
-    setActiveTab(ActiveTab::Favorites);
-  else if (tabPage("Recently used", activeTab == ActiveTab::RecentlyUsed))
-    setActiveTab(ActiveTab::RecentlyUsed);
-
-  if (activeTab == ActiveTab::All)
+  if (can_submit_contents && ImGui::BeginTabBar("TabBar"))
   {
-    mainAllAssetsTab.updateImgui();
-  }
-  else if (activeTab == ActiveTab::Favorites)
-  {
-    if (favoritesFilledGenerationId != AssetSelectorGlobalState::getFavoritesGenerationId())
+    if (tabPage("All", activeTab == ActiveTab::All))
+      setActiveTab(ActiveTab::All);
+    else if (tabPage("Favorites", activeTab == ActiveTab::Favorites))
+      setActiveTab(ActiveTab::Favorites);
+    else if (tabPage("Recently used", activeTab == ActiveTab::RecentlyUsed))
+      setActiveTab(ActiveTab::RecentlyUsed);
+
+    if (activeTab == ActiveTab::All)
     {
-      favoritesFilledGenerationId = AssetSelectorGlobalState::getFavoritesGenerationId();
+      mainAllAssetsTab.updateImgui();
+    }
+    else if (activeTab == ActiveTab::Favorites)
+    {
+      if (favoritesFilledGenerationId != AssetSelectorGlobalState::getFavoritesGenerationId())
+      {
+        favoritesFilledGenerationId = AssetSelectorGlobalState::getFavoritesGenerationId();
 
-      G_ASSERT(allowChangingRecentlyUsedList);
-      allowChangingRecentlyUsedList = false;
+        G_ASSERT(allowChangingRecentlyUsedList);
+        allowChangingRecentlyUsedList = false;
 
-      favoritesTab->fillTree(lastSelectedAsset);
+        favoritesTab->fillTree(lastSelectedAsset);
 
-      G_ASSERT(!allowChangingRecentlyUsedList); //-V547 Ignore expression is always true.
-      allowChangingRecentlyUsedList = true;
+        G_ASSERT(!allowChangingRecentlyUsedList); //-V547 Ignore expression is always true.
+        allowChangingRecentlyUsedList = true;
+      }
+
+      favoritesTab->updateImgui();
+    }
+    else if (activeTab == ActiveTab::RecentlyUsed)
+    {
+      refreshRecentlyUsedIfSafe();
+
+      recentlyUsedTab->updateImgui();
     }
 
-    favoritesTab->updateImgui();
-  }
-  else if (activeTab == ActiveTab::RecentlyUsed)
-  {
-    refreshRecentlyUsedIfSafe();
-
-    recentlyUsedTab->updateImgui();
+    ImGui::EndTabBar();
   }
 
-  ImGui::EndTabBar();
-
+  // The Asset Browser is a separate window, there is no need to check can_submit_contents.
   if (assetBrowserOpen)
   {
-    DAEDITOR3.imguiBegin("Asset Browser", &assetBrowserOpen);
-    assetBrowser.updateImgui();
-    DAEDITOR3.imguiEnd();
+    IDaEditor3Engine::ScopedImguiWindow window("Asset Browser", &assetBrowserOpen);
+    assetBrowser.updateImgui(window.canSubmitContents());
   }
 }

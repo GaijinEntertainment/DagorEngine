@@ -57,7 +57,7 @@ using texmgr_internal::RMGR;
 
 static void load_tex_on_usage(dag::ConstSpan<TEXTUREID> tid);
 static void free_up_sys_mem(int mem_to_free_tb, bool force_report = false);
-static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should_evict_unused = false);
+static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool force_trim = false);
 
 static uint32_t get_total_used_persistent_mem_kb()
 {
@@ -542,7 +542,7 @@ static void free_up_sys_mem(int mem_to_free_kb, bool force_report)
     last_fc = frame - 2, log_hide_cnt = 0;
   }
 }
-static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should_evict_unused)
+static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool force_trim)
 {
   TIME_PROFILE(free_up_gpu_mem);
   static constexpr unsigned total_budget_in_usec = 20u;
@@ -566,9 +566,9 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should
     return;
 
   int target_tex_size = RMGR.getTotalUsedTexSzKB() + RMGR.getTotalAddMemNeededSzKB() - mem_to_free_kb, removed = 0, downgraded = 0;
-#define BREAK_WHEN_CLEANED_ENOUGH_GPUMEM()                                              \
-  if ((RMGR.getTotalUsedTexSzKB() + mem_quota_reserve_kb / 2 < actual_quota_kb) ||      \
-      (RMGR.getTotalUsedTexSzKB() + RMGR.getTotalAddMemNeededSzKB() < target_tex_size)) \
+#define BREAK_WHEN_CLEANED_ENOUGH_GPUMEM(CHECK_QUOTA)                                               \
+  if (((CHECK_QUOTA) && RMGR.getTotalUsedTexSzKB() + mem_quota_reserve_kb / 2 < actual_quota_kb) || \
+      (RMGR.getTotalUsedTexSzKB() + RMGR.getTotalAddMemNeededSzKB() < target_tex_size))             \
   break
   uint64_t reft = profile_ref_ticks();
   if (RMGR.getReadyForDiscardTexSzKB() > RMGR.getReadyForDiscardTexCount() * 4 || mem_to_free_kb < RMGR.getReadyForDiscardTexSzKB() ||
@@ -579,7 +579,7 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should
     if (RMGR.getReadyForDiscardTexSzKB() > RMGR.getReadyForDiscardTexCount() * 4 || mem_to_free_kb < RMGR.getReadyForDiscardTexSzKB())
     {
       bool evict_unused = RMGR.getReadyForDiscardTexSzKB() < RMGR.getReadyForDiscardTexCount() * 12 ||
-                          d3d::get_driver_code().is(d3d::metal) || should_evict_unused;
+                          d3d::get_driver_code().is(d3d::metal) || force_trim;
       for (unsigned i = startDowngrade, ie = endDowngrade; i < ie; i++)
       {
         if (!(RMGR.getResLFU(i) + 3 < frame && RMGR.getRefCount(i) == 0 && RMGR.getFactory(i) && RMGR.getD3dResRelaxed(i)))
@@ -605,7 +605,7 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should
           else
             continue; // nothing to remove
           removed++;
-          BREAK_WHEN_CLEANED_ENOUGH_GPUMEM();
+          BREAK_WHEN_CLEANED_ENOUGH_GPUMEM(!force_trim);
         }
         else if (RMGR.texDesc[i].packRecIdx[TQL_base].pack < 0)
         {
@@ -626,7 +626,7 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should
           //   RMGR.getName(i), size_kb, RMGR.getTotalUsedTexSzKB()>>10, RMGR.getTotalAddMemNeededSzKB()>>10,
           //   mem_used_persistent_kb>>10, target_tex_size>>10, frame);
           removed++;
-          BREAK_WHEN_CLEANED_ENOUGH_GPUMEM();
+          BREAK_WHEN_CLEANED_ENOUGH_GPUMEM(!force_trim);
         }
       }
     }
@@ -646,7 +646,7 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should
               // debug("GPUMEM- down tex: %s  rc=%d now=%dM+%dM thres=%dM @%u", RMGR.getName(i), RMGR.getRefCount(i),
               //   RMGR.getTotalUsedTexSzKB()>>10, RMGR.getTotalAddMemNeededSzKB()>>10, target_tex_size>>10, frame);
               removed++;
-              BREAK_WHEN_CLEANED_ENOUGH_GPUMEM();
+              BREAK_WHEN_CLEANED_ENOUGH_GPUMEM(true);
             }
         }
         else if (downgraded < 10 && max<unsigned>(RMGR.resQS[i].getLdLev(), RMGR.getTexAllocLev(i)) > RMGR.resQS[i].getMaxLev() &&

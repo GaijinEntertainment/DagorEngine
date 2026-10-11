@@ -52,7 +52,7 @@ def test_invoke_block2cmres(blk : block<(a : int; b : float) : Foo>) {
 }
 
 [test]
-def test_ref(t : T?) {
+def test_ref(t : T?) {    // nolint:STYLE038 -- flat list of independent JIT arms, one per invoke shape
     t |> run("invoke call") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@test_invoke_call))
         g_A = 0

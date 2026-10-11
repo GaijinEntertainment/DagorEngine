@@ -12,7 +12,7 @@
 // simulate diagnostics (only on a broken build) are buffered and flushed to
 // stderr — never stdout.
 //
-// Teardown mirrors the daslang tool's main (utils/daScript/main.cpp): the
+// Teardown mirrors the daslang tool's main (utils/daslang/main.cpp): the
 // context is a heap ContextPtr destroyed *before* Module::Shutdown, which
 // drains the jobque worker threads. Matching that order is what keeps the
 // jobque + persistent_heap teardown crash-free.

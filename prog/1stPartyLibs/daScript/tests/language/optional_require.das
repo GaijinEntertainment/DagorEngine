@@ -11,17 +11,16 @@ require dastest/testing_boost public
 // expressible as a cant_ test).
 require ?math math                                  // nolint:STYLE030 — the guarded-load mechanics ARE the test: guard present (math is a core builtin) -> target loaded
 require ?no_such_guard_xyz no_such_target_also_xyz  // guard absent, target unresolvable -> skipped
-require ?no_such_guard_pkg optional_require_fixture // nolint:STYLE030 — guard absent -> SKIPPED even though the target resolves (strict plain guards); the non-load IS the test
+require ?no_such_guard_pkg optional_require_fixture // guard absent -> SKIPPED even though the target resolves (strict plain guards); the non-load IS the test
 // PATH guard (contains '/'): availability = the guard's OWN file resolves; the rail for
-// pure-das packages (nothing C++ to guard on) and cross-package dependency witnesses — the
-// target may live in an always-present package while depending on an optional one (e.g.
-// dasllama_math_gen guarding on llvm/daslib/llvm_tune).
+// pure-das packages (nothing C++ to guard on) and cross-package dependency witnesses.
 require ?daslib/fio optional_require_fixture_pathguard        // path guard resolves -> target loaded
 require ?daslib/no_such_file_xyz optional_require_fixture_skipme  // path guard unresolvable -> SKIPPED even though the target file resolves
 // %/-rooted guards: grammar-legal require_module_name forms the pre-parse require scanner must
 // scan identically to ast_requireModule (it once stopped at '%', mangling guard AND target)
 require ?%/tests/language/optional_require_fixture.das optional_require_fixture_pctguard  // nolint:STYLE030 — %/ guard resolves -> target loaded; referenced only under static_if
 require ?%/tests/language/no_such_file_xyz.das optional_require_fixture_pctskip  // %/ guard unresolvable -> SKIPPED, target file resolves
+require optional_require_fixture_private   // requires optional_require_fixture_hidden PRIVATELY: the module_exists visibility pin below
 
 [test]
 def test_optional_require_guard(t : T?) {
@@ -43,6 +42,26 @@ def test_optional_require_path_guard(t : T?) {
     // path guard resolved (daslib/fio is always mounted): the target loaded and its symbols work
     t |> equal(optional_require_fixture_pathguard::pathguard_marker(), 43)
     t |> success(typeinfo builtin_module_exists(optional_require_fixture_pathguard))
+    //! module_exists is scoped to what THIS module can see, not the process registry - a loaded das target and a required builtin answer true, a skipped target and an unrequired name answer false
+    t |> success(typeinfo module_exists(optional_require_fixture_pathguard))
+    t |> success(typeinfo module_exists(math))
+    t |> success(!typeinfo module_exists(optional_require_fixture_skipme))
+    t |> success(!typeinfo module_exists(no_such_guard_xyz))
+    static_if (typeinfo module_exists(optional_require_fixture_pathguard)) {
+        t |> equal(optional_require_fixture_pathguard::pathguard_marker(), 43)
+    } else {
+        this_symbol_must_never_resolve_module_exists_xyz()
+    }
+    //! the half that separates module_exists from builtin_module_exists: a module another module
+    //! requires privately is IN the program (the registry says so) and NOT visible from here
+    t |> equal(optional_require_fixture_private::private_marker(), 46)
+    t |> success(typeinfo builtin_module_exists(optional_require_fixture_hidden), "a privately required module is in the process registry")
+    t |> success(!typeinfo module_exists(optional_require_fixture_hidden), "and module_exists answers for THIS module's view, where it is not visible")
+    static_if (typeinfo module_exists(optional_require_fixture_hidden)) {
+        this_symbol_must_never_resolve_hidden_xyz()
+    } else {
+        t |> success(true)
+    }
     // path guard unresolvable: the require was SKIPPED even though the target file exists on disk —
     // the pin for path-guard semantics (a plain-name guard would have loaded it via the fallback)
     t |> success(!typeinfo builtin_module_exists(optional_require_fixture_skipme))

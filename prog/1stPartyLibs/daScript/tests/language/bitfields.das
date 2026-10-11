@@ -16,10 +16,9 @@ bitfield BazAllFields { // this is to test all 32 bits (if they compile)
 [test]
 def test_bitfield_32(t : T?) {
     t |> run("regular 32-bit bitfield") @(t : T?) {
-        var a : Baz
+        var a = Baz.bit0
         static_assert(typeinfo sizeof(type<Baz>) == 4, "regular bitfield size is 32 bits")
         static_assert(typeinfo alignof(type<Baz>) == 4, "regular bitfield alignment is 32 bits")
-        a = Baz.bit0
         t |> equal(bitfield(0x1), a)
         // eq and neq
         t |> success(a == Baz.bit0)
@@ -28,11 +27,11 @@ def test_bitfield_32(t : T?) {
         a = a | Baz.bit2
         t |> equal(bitfield(0x5), a)
         t |> equal(Baz.bit0 | Baz.bit2, a)
-        a |= Baz.bit1
+        a |= Baz.bit1                   // nolint:STYLE022 - set-or on a bitfield is the tested operator
         t |> equal(bitfield(0x7), a)
         t |> equal(Baz.bit0 | Baz.bit1 | Baz.bit2, a)
         // not(~), and and set and
-        a &= ~Baz.bit1
+        a &= ~Baz.bit1                  // nolint:STYLE022 - set-and with ~ is the tested operator
         t |> equal(bitfield(0x5), a)
         t |> equal(Baz.bit0 | Baz.bit2, a)
         a = a & Baz.bit0
@@ -78,10 +77,9 @@ bitfield BazAllFields8 : uint8 { // this is to test all 8 bits (if they compile)
 [test]
 def test_bitfield_8(t : T?) {
     t |> run("8-bit bitfield") @(t : T?) {
-        var a : Baz8
+        var a = Baz8.bit0
         static_assert(typeinfo sizeof(type<Baz8>) == 1, "8-bit bitfield size is 8 bits")
         static_assert(typeinfo alignof(type<Baz8>) == 1, "8-bit bitfield alignment is 8 bits")
-        a = Baz8.bit0
         t |> equal(bitfield8(0x1), a)
         // eq and neq
         t |> success(a == Baz8.bit0)
@@ -141,10 +139,9 @@ bitfield BazAllFields16 : uint16 { // this is to test all 16 bits (if they compi
 [test]
 def test_bitfield_16(t : T?) {
     t |> run("16-bit bitfield") @(t : T?) {
-        var a : Baz16
+        var a = Baz16.bit0
         static_assert(typeinfo sizeof(type<Baz16>) == 2, "16-bit bitfield size is 16 bits")
         static_assert(typeinfo alignof(type<Baz16>) == 2, "16-bit bitfield alignment is 16 bits")
-        a = Baz16.bit0
         t |> equal(bitfield16(0x1), a)
         // eq and neq
         t |> success(a == Baz16.bit0)
@@ -210,10 +207,9 @@ bitfield BazAllFields64 : uint64 { // this is to test all 64 bits (if they compi
 [test]
 def test_bitfield_64(t : T?) {
     t |> run("64-bit bitfield") @(t : T?) {
-        var a : Baz64
+        var a = Baz64.bit0
         static_assert(typeinfo sizeof(type<Baz64>) == 8, "64-bit bitfield size is 64 bits")
         static_assert(typeinfo alignof(type<Baz64>) == 8, "64-bit bitfield alignment is 64 bits")
-        a = Baz64.bit0
         t |> equal(bitfield64(0x1), a)
         // eq and neq
         t |> success(a == Baz64.bit0)

@@ -121,7 +121,7 @@ def jit_set_oror_false_false {
 }
 
 [test]
-def test_bool_arithmetics(t : T?) {
+def test_bool_arithmetics(t : T?) {    // nolint:STYLE038 -- flat list of independent JIT arms, one per boolean operator
     t |> run("!") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@jit_not))
         t |> equal(true, jit_not(false))
@@ -142,89 +142,89 @@ def test_bool_arithmetics(t : T?) {
     t |> run("&&") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@jit_andand_true_true))
         monad_test = 0
-        var tt = jit_andand_true_true()
-        t |> success(tt == true)
+        let tt = jit_andand_true_true()
+        t |> success(tt)
         t |> success(monad_test == 3)
         t |> success(!jit_enabled() || is_jit_function(@@jit_andand_true_false))
         monad_test = 0
-        var tf = jit_andand_true_false()
-        t |> success(tf == false)
+        let tf = jit_andand_true_false()
+        t |> success(!tf)
         t |> success(monad_test == 5)
         t |> success(!jit_enabled() || is_jit_function(@@jit_andand_false_true))
         monad_test = 0
-        var ft = jit_andand_false_true()
-        t |> success(ft == false)
+        let ft = jit_andand_false_true()
+        t |> success(!ft)
         t |> success(monad_test == 0)
         t |> success(!jit_enabled() || is_jit_function(@@jit_andand_false_false))
         monad_test = 0
-        var ff = jit_andand_false_false()
-        t |> success(ff == false)
+        let ff = jit_andand_false_false()
+        t |> success(!ff)
         t |> success(monad_test == 0)
     }
     t |> run("&&=") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_andand_true_true))
         monad_test = 0
-        var tt = jit_set_andand_true_true()
-        t |> success(tt == true)
+        let tt = jit_set_andand_true_true()
+        t |> success(tt)
         t |> success(monad_test == 3)
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_andand_true_false))
         monad_test = 0
-        var tf = jit_set_andand_true_false()
-        t |> success(tf == false)
+        let tf = jit_set_andand_true_false()
+        t |> success(!tf)
         t |> success(monad_test == 5)
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_andand_false_true))
         monad_test = 0
-        var ft = jit_set_andand_false_true()
-        t |> success(ft == false)
+        let ft = jit_set_andand_false_true()
+        t |> success(!ft)
         t |> success(monad_test == 0)
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_andand_false_false))
         monad_test = 0
-        var ff = jit_set_andand_false_false()
-        t |> success(ff == false)
+        let ff = jit_set_andand_false_false()
+        t |> success(!ff)
         t |> success(monad_test == 0)
     }
     t |> run("||") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@jit_oror_true_true))
         monad_test = 0
-        var tt = jit_oror_true_true()
-        t |> success(tt == true)
+        let tt = jit_oror_true_true()
+        t |> success(tt)
         t |> success(monad_test == 1)
         t |> success(!jit_enabled() || is_jit_function(@@jit_oror_true_false))
         monad_test = 0
-        var tf = jit_oror_true_false()
-        t |> success(tf == true)
+        let tf = jit_oror_true_false()
+        t |> success(tf)
         t |> success(monad_test == 1)
         t |> success(!jit_enabled() || is_jit_function(@@jit_oror_false_true))
         monad_test = 0
-        var ft = jit_oror_false_true()
-        t |> success(ft == true)
+        let ft = jit_oror_false_true()
+        t |> success(ft)
         t |> success(monad_test == 2)
         t |> success(!jit_enabled() || is_jit_function(@@jit_oror_false_false))
         monad_test = 0
-        var ff = jit_oror_false_false()
-        t |> success(ff == false)
+        let ff = jit_oror_false_false()
+        t |> success(!ff)
         t |> success(monad_test == 4)
     }
     t |> run("||=") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_oror_true_true))
         monad_test = 0
-        var tt = jit_set_oror_true_true()
-        t |> success(tt == true)
+        let tt = jit_set_oror_true_true()
+        t |> success(tt)
         t |> success(monad_test == 1)
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_oror_true_false))
         monad_test = 0
-        var tf = jit_set_oror_true_false()
-        t |> success(tf == true)
+        let tf = jit_set_oror_true_false()
+        t |> success(tf)
         t |> success(monad_test == 1)
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_oror_false_true))
         monad_test = 0
-        var ft = jit_set_oror_false_true()
-        t |> success(ft == true)
+        let ft = jit_set_oror_false_true()
+        t |> success(ft)
         t |> success(monad_test == 2)
         t |> success(!jit_enabled() || is_jit_function(@@jit_set_oror_false_false))
         monad_test = 0
-        var ff = jit_set_oror_false_false()
-        t |> success(ff == false)
+        let ff = jit_set_oror_false_false()
+        t |> success(!ff)
         t |> success(monad_test == 4)
     }
 }

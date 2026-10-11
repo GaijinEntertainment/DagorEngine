@@ -71,7 +71,15 @@ namespace das {
 
     void das_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr );
     void das2_yyerror ( yyscan_t scanner, const string & error, const LineInfo & at, CompilationError cerr );
+    ReaderMacro * das_unknown_reader_macro ();
     void das_checkName ( yyscan_t scanner, const string & name, const LineInfo &at );
+
+    template <typename ConstT, typename ValueT>
+    ConstT * newConstLiteral ( const LineInfo & at, ValueT value ) {
+        auto ec = new ConstT(at, value);
+        ec->isConstLiteral = true;
+        return ec;
+    }
 
     vector<ExpressionPtr> sequenceToList ( Expression * arguments );
     vector<ExpressionPtr> typesAndSequenceToList  ( vector<Expression *> * declL, Expression * arguments );
@@ -113,6 +121,7 @@ namespace das {
     Function * ast_functionDeclarationHeader ( yyscan_t scanner, string * name, vector<VariableDeclaration*> * list,
         TypeDecl * result, const LineInfo & nameAt );
     void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName, string * guard = nullptr );
+    void ast_requireModuleGroup ( yyscan_t scanner, string * group, bool pub, const LineInfo & atName, string * guard );
     Expression * ast_forLoop ( yyscan_t scanner,  vector<VariableNameAndPosition> * iters, Expression * srcs,
         Expression * block, const LineInfo & locAt, const LineInfo & blockAt,
         AnnotationArgumentList * annL = nullptr );

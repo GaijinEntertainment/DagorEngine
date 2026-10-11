@@ -151,7 +151,7 @@ void end_update(float dt)
   streams::update(dt);
 
   occlusion::update(g_cur_time, get_3d_listener_pos());
-  occlusion_gpu::update(g_cur_time, get_3d_listener_pos());
+  occlusion_gpu::update(g_cur_time, dt, get_3d_listener());
   steam_audio::update();
 
   SOUND_VERIFY(get_studio_system()->update());

@@ -129,8 +129,9 @@ public:
   ecs::EntityId eid = ecs::INVALID_ENTITY_ID;
   const PhysType physType;
   PhysTickRateType tickrateType;
-  int16_t netPhysId = -1;      // index in physEidsList
-  bool clientSideOnly = false; // if true, this Phys Actor exists exclusively on the client
+  int16_t netPhysId = -1;         // index in physEidsList
+  bool clientSideOnly = false;    // if true, this Phys Actor exists exclusively on the client
+  bool externalSnapshots = false; // set once: it chooses the union half
 
   static StaticTab<phys_eids_list_t *, (int)PhysType::NUM> allPhysActorsLists;
   static phys_sync_states_packed_t *allSyncStates[(int)PhysType::NUM];
@@ -346,9 +347,17 @@ public:
   static bool deserializeBasePhysSnapshot(const danet::BitStream &from,
     PhysSnapSerializeType pst,
     BasePhysSnapshot &snap,
-    net::IConnection &conn,
     bool *in_motion = nullptr,
     bool *out_quat_ext2_bit = nullptr);
+  static bool deserializeBasePhysSnapshot(const danet::BitStream &from,
+    PhysSnapSerializeType pst,
+    BasePhysSnapshot &snap,
+    net::IConnection &,
+    bool *in_motion = nullptr,
+    bool *out_quat_ext2_bit = nullptr)
+  {
+    return deserializeBasePhysSnapshot(from, pst, snap, in_motion, out_quat_ext2_bit);
+  }
   static bool deserializePhysSnapshot(
     const danet::BitStream &from, PhysSnapSerializeType pst, BasePhysSnapshot &snap, net::IConnection &conn)
   {

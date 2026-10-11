@@ -20,12 +20,14 @@ if $(CLangVer) >= 16 { # Lex cmp
 }
 _CLANG_DIR = $(_DEVTOOL)/LLVM-$(CLangVer) ;
 
-if ! [ GLOB $(_CLANG_DIR) : * ] { exit FATAL\: \"$(_CLANG_DIR)\" not found! ; }
-if ! [ GLOB $(_VC_DIR)    : * ] { exit FATAL\: \"$(_VC_DIR)\" not found! ; }
+if ! [ GLOB $(_CLANG_DIR) : * ] { exit "FATAL: \"$(_CLANG_DIR)\" not found!" ; }
+if ! [ GLOB $(_VC_DIR)    : * ] { exit "FATAL: \"$(_VC_DIR)\" not found!" ; }
 
 _VC_CRT_TYPE = -MT ;
 if $(PlatformArch) = x86_64 { _WIN_SDK_TARGET_SUFFIX = x64 ; }
-if $(PlatformArch) = arm64 { _WIN_SDK_TARGET_SUFFIX = arm64 ; }
+if $(PlatformArch) in arm64 arm64ec { _WIN_SDK_TARGET_SUFFIX = arm64 ; }
+if $(PlatformArch) = arm64ec && $(CLangVer) < 20 { exit "FATAL: PlatformArch=arm64ec requires CLangVer 20+ ($(CLangVer) is set)" ; }
+if $(PlatformArch) = arm64ec && ! [ GLOB $(_VC_DIR)/lib : arm64ec ] { exit "FATAL: \"$(_VC_DIR)\" has no ARM64EC libs, update DEVTOOLS" ; }
 
 if $(UseGDK) = yes {
   _VC_CRT_TYPE = -MD ;
@@ -39,7 +41,7 @@ local _VC_HOST_DIR = Hostx64 ;
 if $(WindowsHostArch) = arm64 && [ GLOB $(_VC_DIR)/bin : Hostarm64 ] { _VC_HOST_DIR = Hostarm64 ; }
 _VC_DIR_BIN = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/$(_WIN_SDK_TARGET_SUFFIX) ;
 
-if ! [ GLOB $(_DEVTOOL)/nasm : * ] { exit FATAL\: \"$(_DEVTOOL)/nasm\" not found!  Please, update DEVTOOLS ; }
+if ! [ GLOB $(_DEVTOOL)/nasm : * ] { exit "FATAL: \"$(_DEVTOOL)/nasm\" not found!  Please, update DEVTOOLS" ; }
 
 local _DEF_C_CMDLINE =
   -fms-compatibility-version=$(_MSC_VER)
@@ -86,6 +88,7 @@ switch $(PlatformArch) {
   case x86 :    _DEF_C_CMDLINE += -DWIN32 -D__IA32__ -D_TARGET_ARCH_X86 -m32 ;
   case x86_64 : _DEF_C_CMDLINE += -DWIN64 -D_TARGET_64BIT -D_TARGET_ARCH_X86_64 ;
   case arm64 :  _DEF_C_CMDLINE =  -DWIN64 -D_TARGET_64BIT -D_TARGET_ARCH_ARM64 --target=aarch64-pc-windows-msvc [ StripStrings $(_DEF_C_CMDLINE) : -D_TARGET_SIMD_SSE=$(SSEVersion) ] -D_TARGET_SIMD_NEON  -Wno-pointer-to-int-cast ;
+  case arm64ec : _DEF_C_CMDLINE = -DWIN64 -D_TARGET_64BIT -D_TARGET_ARCH_ARM64 --target=arm64ec-pc-windows-msvc [ StripStrings $(_DEF_C_CMDLINE) : -D_TARGET_SIMD_SSE=$(SSEVersion) ] -D_TARGET_SIMD_NEON -D_DISABLE_SOFTINTRIN_ -Wno-pointer-to-int-cast ;
 }
 if $(Analyze) = yes { _DEF_C_CMDLINE += --analyze -Werror ; }
 
@@ -114,7 +117,7 @@ if $(VCMathOption) = -fp:fast && $(CLangVer) >= 18 { # Note: lex compare
 
 if $(StrictAliasing) = yes { _DEF_C_CMDLINE += /clang:-fstrict-aliasing ; }
 
-if $(PlatformArch) = arm64 {
+if $(PlatformArch) in arm64 arm64ec {
 } else if $(SSEVersion) = 4  {
   _DEF_C_CMDLINE += -msse4.1 -mpopcnt -mcx16 ;
 } else {
@@ -168,10 +171,22 @@ switch $(PlatformArch) {
     _GAS_COMPILER = $(CompilerWrapper) $(_CLANG_DIR)/bin/clang.exe --target=aarch64-pc-windows-msvc -g -c ;
     _DEP_COMPILER += -D_TARGET_ARCH_ARM64 -DWIN64 ;
     _CVTRES_EXE   += /MACHINE:arm64 ;
+
+  case arm64ec :
+    _LINK += /machine:arm64ec ;
+    _LIB  += /machine:arm64ec ;
+    # constraint: x64 objects link into ARM64EC images and run emulated
+    _ASM_COMPILER  = $(_DEVTOOL)/nasm/nasm.exe -f win64 ;
+    _MASM_COMPILER = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/x64/ml64.exe -c -nologo ;
+    _DEP_COMPILER += -D_TARGET_ARCH_ARM64 -DWIN64 ;
+    _CVTRES_EXE   += /MACHINE:arm64ec ;
 }
 
+local _VC_LIB_DIRS = $(_VC_DIR)/lib/$(_WIN_SDK_TARGET_SUFFIX) ;
+if $(PlatformArch) = arm64ec { _VC_LIB_DIRS = $(_VC_DIR)/lib/arm64ec $(_VC_LIB_DIRS) ; } # constraint: hybrid CRT libs stay in lib/arm64
+
 _INCLUDE = $(GDK_INCLUDES) $(_UCRT_INC) $(_WIN_SDK_INC) $(_VC_DIR)/include ;
-_LIBPATH = $(GDK_LIBPATHS) $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_CLANG_DIR)/lib/clang/$(_CLANG_LIB_FOLDER)/lib/windows $(_VC_DIR)/lib/$(_WIN_SDK_TARGET_SUFFIX) $(_UM_LIB) ;
+_LIBPATH = $(GDK_LIBPATHS) $(_UCRT_LIB) $(_WIN_SDK_LIB) $(_CLANG_DIR)/lib/clang/$(_CLANG_LIB_FOLDER)/lib/windows $(_VC_LIB_DIRS) $(_UM_LIB) ;
 
 # make linker cmd-line ###
 for lib in $(_LIBPATH) {

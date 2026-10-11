@@ -24,6 +24,8 @@
 #define LAND_WEIGHT_BORDER                 2 // texels of neighbour weights on each page side
 
 #define LAND_WEIGHT_CELL_STRIDE            12 // bytes: the pages dword, then DET_NUM landclass ids
+#define LAND_WEIGHT_CELL_IDS_OFS           4  // the landclass id bytes after the pages dword
+#define LAND_WEIGHT_CELL_LC_ID_RANGE       256 // ids are one byte; a free slot holds 0xFF, whose record stays zeroed (so 255 landclasses de-tile at most)
 #define LAND_WEIGHT_PAGE_MASK              0x3FFFU
 #define LAND_WEIGHT_PAGE1_SHIFT            14
 #define LAND_WEIGHT_COUNT_SHIFT            28

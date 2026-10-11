@@ -987,7 +987,7 @@ int makeAtlas(dag::ConstSpan<String> texNames, Tab<String> &outNames, short widt
         inplace_max(max_err_y, tc0y * imOut->h - y0);
         inplace_max(max_err_y, tc1y * imOut->h - y1);
       }
-      if (!__quietMode || min_err_y < -1e-2 || max_err_y > 1e-2)
+      if (!__quietMode || min_err_y < -1e-2f || max_err_y > 1e-2f)
         printf("Cropped texture to %dx%d (%d scanlines used), TC inaccuracy [%g .. %g] pix\n", imOut->w, imOut->h, usedH, min_err_y,
           max_err_y);
     }

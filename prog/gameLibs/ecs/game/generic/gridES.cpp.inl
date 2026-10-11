@@ -123,7 +123,7 @@ GridHolder *find_grid_holder(ecs::HashedConstString grid_name_hash)
   return nullptr;
 }
 
-void for_each_grid_holder(const eastl::function<void(const GridHolder &)> &cb)
+void for_each_grid_holder(dag::FunctionRef<void(const GridHolder &) const> cb)
 {
   all_grid_holders_ecs_query(*g_entity_mgr, [&](const GridHolder &grid_holder) { cb(grid_holder); });
 }
@@ -438,7 +438,7 @@ static void save_grid_map(FILE *fp, const GridHolder &grid_holder, const ecs::st
   double avgObjectSize = 0.0;
   BBox3 maxBox(Point3(-FLT_MAX, -FLT_MAX, -FLT_MAX), Point3(FLT_MAX, FLT_MAX, FLT_MAX));
   grid_find_entity(grid_holder, maxBox, GridEntCheck::POS, [&](ecs::EntityId, vec3f pos) {
-    avgObjectSize += v_extract_w(pos);
+    avgObjectSize += double(v_extract_w(pos));
     return false;
   });
   avgObjectSize = safediv(avgObjectSize, (double)stats.totalObjects);

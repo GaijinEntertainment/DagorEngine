@@ -132,7 +132,14 @@ bool get_default_display_name(char (&displayName)[sizeof(DEVMODE::dmDeviceName)]
 
 bool get_display_settings(const char *displayName, DEVMODE *devMode)
 {
-  return displayName ? EnumDisplaySettings(displayName, ENUM_CURRENT_SETTINGS, devMode) > 0 : get_default_display_settings(devMode);
+  auto hasMode = [devMode] { return devMode->dmPelsWidth > 0 && devMode->dmPelsHeight > 0; };
+  if (displayName)
+  {
+    if (EnumDisplaySettings(displayName, ENUM_CURRENT_SETTINGS, devMode) && hasMode())
+      return true;
+    logwarn("video/monitor '%s' has no active display mode, try the primary display", displayName);
+  }
+  return get_default_display_settings(devMode) && hasMode();
 }
 
 void get_current_display_screen_mode(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height)
@@ -150,8 +157,7 @@ void get_current_display_screen_mode(int &out_def_left, int &out_def_top, int &o
   DEVMODE devMode = {0};
   devMode.dmSize = sizeof(DEVMODE);
 
-  // Returns 0 x 0 on RDP connection.
-  if (get_display_settings(displayName, &devMode) && devMode.dmPelsWidth > 0 && devMode.dmPelsHeight > 0)
+  if (get_display_settings(displayName, &devMode))
   {
     userDisplayWidth = static_cast<int>(devMode.dmPelsWidth);
     userDisplayHeight = static_cast<int>(devMode.dmPelsHeight);
@@ -198,6 +204,68 @@ static uint32_t get_window_style(WindowMode mode)
   return style;
 }
 
+namespace
+{
+// Every frame bit the driver owns in any mode, so that get_window_style() stays the only place
+// that lists them. The resizable style is the superset.
+DWORD driver_style_mask() { return get_window_style(WindowMode::WINDOWED_RESIZABLE); }
+
+// True while the frame the driver owns is already the wanted one. A style change moves the client
+// area, so a live client rect predicts the coming one only then, and set_render_window_params()
+// has to rewrite the frame exactly when this is false.
+bool driver_frame_matches(DWORD current_style, uint32_t wanted_style)
+{
+  const DWORD mask = driver_style_mask();
+  return (current_style & mask) == (wanted_style & mask);
+}
+
+bool main_window_frame_matches(uint32_t wanted_style)
+{
+  HWND wnd = static_cast<HWND>(win32_get_main_wnd());
+  if (!wnd)
+  {
+    return false;
+  }
+
+  return driver_frame_matches(static_cast<DWORD>(GetWindowLong(wnd, GWL_STYLE)), wanted_style);
+}
+
+// The WM_SIZE flag and the live window state can disagree for a frame with a threaded window, so
+// treat either source as minimized. This is the same test get_main_window_client_size() makes.
+bool is_main_window_iconic()
+{
+  HWND wnd = static_cast<HWND>(win32_get_main_wnd());
+  return is_window_minimized() || (wnd && IsIconic(wnd));
+}
+
+// Client size of the main window, or false when it has none: iconic, gone, or collapsed to nothing.
+bool get_main_window_client_size(int &out_w, int &out_h)
+{
+  HWND wnd = static_cast<HWND>(win32_get_main_wnd());
+  if (!wnd || is_main_window_iconic())
+  {
+    return false;
+  }
+
+  RECT clientRect = {};
+  if (!GetClientRect(wnd, &clientRect))
+  {
+    return false;
+  }
+
+  const int w = clientRect.right - clientRect.left;
+  const int h = clientRect.bottom - clientRect.top;
+  if (w <= 0 || h <= 0)
+  {
+    return false;
+  }
+
+  out_w = w;
+  out_h = h;
+  return true;
+}
+} // namespace
+
 void get_current_main_window_rect(int &out_def_left, int &out_def_top, int &out_def_width, int &out_def_height)
 {
   out_def_left = 0;
@@ -211,7 +279,7 @@ void get_current_main_window_rect(int &out_def_left, int &out_def_top, int &out_
     return;
   }
   debug("get_current_display_screen_mode - GetWindowRect: %d,%d-%d,%d", rect.left, rect.top, rect.right, rect.bottom);
-  if (is_window_minimized())
+  if (is_main_window_iconic())
   {
     int resW, resH;
     get_unminimized_window_resolution(resW, resH);
@@ -249,18 +317,29 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
 
   debug("base_scr = %dx%d", base_scr_wdt, base_scr_hgt);
 
-  bool isAutoResolution = false, isRetina = false;
-  G_VERIFY(get_settings_resolution(scr_wdt, scr_hgt, isRetina, base_scr_wdt, base_scr_hgt, isAutoResolution));
+  p.winStyle = get_window_style(windowMode);
 
-  bool verifyResolution = blk_video.getBool("verifyResolution", true);
-  if (verifyResolution && cb)
-    cb->verifyResolutionSettings(scr_wdt, scr_hgt, base_scr_wdt, base_scr_hgt,
-      windowMode == WindowMode::WINDOWED || windowMode == WindowMode::WINDOWED_RESIZABLE);
+  // check_and_handle_window_resize() compares the backbuffer with the client rect, so read that
+  // same rect and let it own the resolution: a derived value could leave the two disagreeing
+  // forever. It only predicts the coming client area while the frame stays as it is, so a mode
+  // change falls through to the branch below, which accounts for the new frame.
+  const bool useClientRect = windowMode == WindowMode::WINDOWED_RESIZABLE && main_window_frame_matches(p.winStyle) &&
+                             get_main_window_client_size(scr_wdt, scr_hgt);
+
+  bool isAutoResolution = false, isRetina = false;
+  if (!useClientRect)
+  {
+    G_VERIFY(get_settings_resolution(scr_wdt, scr_hgt, isRetina, base_scr_wdt, base_scr_hgt, isAutoResolution));
+
+    bool verifyResolution = blk_video.getBool("verifyResolution", true);
+    if (verifyResolution && cb)
+      cb->verifyResolutionSettings(scr_wdt, scr_hgt, base_scr_wdt, base_scr_hgt,
+        windowMode == WindowMode::WINDOWED || windowMode == WindowMode::WINDOWED_RESIZABLE);
+  }
 
   bool force_window_caption_visible = blk_video.getBool("force_window_caption_visible", false);
 
   RECT wr = {0}, cr = {0};
-  p.winStyle = get_window_style(windowMode);
   if (windowMode == WindowMode::WINDOWED_RESIZABLE && !win32_get_main_wnd() && isAutoResolution)
     p.winStyle |= WS_MAXIMIZE; // In windowed resizable mode by default we use work area size. So it is better to use maximized
                                // window.
@@ -285,14 +364,10 @@ void get_render_window_settings(RenderWindowSettings &p, Driver3dInitCallback *c
     wr.bottom = base_scr_top + base_scr_hgt;
     cr = wr;
   }
-  else if (windowMode == WindowMode::WINDOWED_RESIZABLE && win32_get_main_wnd() && is_current_main_window_maximized())
+  else if (useClientRect)
   {
-    // If the resizable window is maximized then do not try to adjust the window's size to the requested client resolution
-    // because it will not work. It will result in a continuous device reset in every frame. Adjust the resolution instead.
     GetWindowRect((HWND)win32_get_main_wnd(), &wr);
-    GetClientRect((HWND)win32_get_main_wnd(), &cr);
-    scr_wdt = cr.right - cr.left;
-    scr_hgt = cr.bottom - cr.top;
+    cr = {0, 0, scr_wdt, scr_hgt};
   }
   else if (windowMode != WindowMode::FULLSCREEN_EXCLUSIVE)
   {
@@ -453,10 +528,30 @@ bool set_render_window_params(RenderWindowParams &p, const RenderWindowSettings 
   }
   else if (!is_window_resizing_by_mouse())
   {
-    bool isVisible = IsWindowVisible((HWND)p.hwnd);
-    SetWindowLong((HWND)p.hwnd, GWL_STYLE, s.winStyle);
-    SetWindowPos((HWND)p.hwnd, HWND_TOP, s.winRectLeft, s.winRectTop, s.winRectRight - s.winRectLeft, s.winRectBottom - s.winRectTop,
-      isVisible ? SWP_SHOWWINDOW : 0); // don't change visibility for hidden windows
+    HWND hwnd = static_cast<HWND>(p.hwnd);
+    const bool isVisible = IsWindowVisible(hwnd) != 0;
+
+    // Rewrite only the frame bits the driver owns: the rest is the user's window state, which the
+    // editor saves, or Win32's own, which forces WS_CLIPSIBLINGS and would always compare different.
+    const DWORD driverStyleMask = driver_style_mask();
+    const DWORD currentStyle = static_cast<DWORD>(GetWindowLong(hwnd, GWL_STYLE));
+
+    UINT flags = isVisible ? SWP_SHOWWINDOW : 0; // don't change visibility for hidden windows
+    if (!driver_frame_matches(currentStyle, s.winStyle))
+    {
+      // Drop WS_MAXIMIZE with the old mode, its rect does not survive the switch.
+      const DWORD newStyle = ((currentStyle & ~driverStyleMask) | (s.winStyle & driverStyleMask)) & ~WS_MAXIMIZE;
+      SetWindowLong(hwnd, GWL_STYLE, static_cast<LONG>(newStyle));
+      flags |= SWP_FRAMECHANGED; // without it the non client area keeps the old size and the client rect goes stale
+    }
+    else if (is_restoring_3d_device())
+    {
+      // A device reset that changes nothing must not raise the window or steal activation. Device
+      // creation still raises it, because there only ShowWindow has placed the window.
+      flags |= SWP_NOZORDER | SWP_NOACTIVATE;
+    }
+
+    SetWindowPos(hwnd, HWND_TOP, s.winRectLeft, s.winRectTop, s.winRectRight - s.winRectLeft, s.winRectBottom - s.winRectTop, flags);
   }
 
   return true;

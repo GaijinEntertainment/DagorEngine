@@ -221,14 +221,8 @@ static bool startsWithLowercaseAscii(const char *name) {
   return name && 'a' <= name[0] && name[0] <= 'z';
 }
 
-static const Expr *deparenStaticInline(const Expr *e) {
-  while (e && (e->op() == TO_PAREN || e->op() == TO_STATIC_MEMO || e->op() == TO_INLINE_CONST))
-    e = static_cast<const UnExpr *>(e)->argument();
-  return e;
-}
-
 static const LiteralExpr *findDirectStringLiteral(const Expr *e) {
-  e = deparenStaticInline(e);
+  e = deparenInlineConst(e);
   if (!e || e->op() != TO_LITERAL)
     return nullptr;
 
@@ -464,7 +458,7 @@ static bool cannotBeNull(const Expr *e) {
 }
 
 static bool isMutableDefaultValue(const Expr *e) {
-  e = deparenStatic(e);
+  e = deparen(e);
   if (!e)
     return false;
 
@@ -505,12 +499,12 @@ class ContainerFillOrTestFinder : public Visitor {
   bool found;
 
   bool isContainer(const Expr *e) const {
-    e = deparenStatic(e);
+    e = deparen(e);
     return e && eq.check(container, e);
   }
 
   bool isContainerAccess(const Expr *e) const {
-    e = deparenStatic(e);
+    e = deparen(e);
     return e && e->isAccessExpr() && isContainer(e->asAccessExpr()->receiver());
   }
 
@@ -605,7 +599,7 @@ public:
 };
 
 const ParamDecl *CheckerVisitor::findMutatedSharedDefaultParam(const Expr *receiver) {
-  receiver = deparenStatic(receiver);
+  receiver = deparen(receiver);
   if (!receiver || receiver->op() != TO_ID)
     return nullptr;
 
@@ -742,20 +736,20 @@ void CheckerVisitor::checkForgotSubst(const LiteralExpr *l) {
   bool ok = false;
 
   if (candidate) {
-    const Expr *callee = deparenStatic(candidate->callee());
+    const Expr *callee = deparen(candidate->callee());
     const auto &arguments = candidate->arguments();
     if (callee->op() == TO_GETFIELD) { // -V522
       const GetFieldExpr *f = callee->asGetField();
       const char *funcName = f->fieldName();
-      if (deparenStatic(f->receiver()) == l) {
+      if (deparen(f->receiver()) == l) {
         ok = strcmp(funcName, "subst") == 0;
       } else if (strcmp(funcName, "split") == 0) {
-        ok = arguments.size() >= 1 && deparenStatic(arguments[0]) == l;;
+        ok = arguments.size() >= 1 && deparen(arguments[0]) == l;;
       }
     }
     else if (callee->op() == TO_ID) { // -V522
       if (strcmp("loc", callee->asId()->name()) == 0) {
-        ok = arguments.size() >= 2 && deparenStatic(arguments[1]) == l;
+        ok = arguments.size() >= 2 && deparen(arguments[1]) == l;
       }
     }
   }
@@ -785,7 +779,7 @@ void CheckerVisitor::checkMutatingSharedDefault(const UnExpr *u) {
   if (u->op() != TO_DELETE)
     return;
 
-  const Expr *arg = deparenStatic(u->argument());
+  const Expr *arg = deparen(u->argument());
   if (!arg || !arg->isAccessExpr())
     return;
 
@@ -894,7 +888,7 @@ void CheckerVisitor::checkMutatingSharedDefault(const BinExpr *expr) {
   if (expr->op() != TO_NEWSLOT && !isAssignOp(expr->op()))
     return;
 
-  const Expr *lhs = deparenStatic(expr->lhs());
+  const Expr *lhs = deparen(expr->lhs());
   if (!lhs || !lhs->isAccessExpr())
     return;
 
@@ -902,7 +896,7 @@ void CheckerVisitor::checkMutatingSharedDefault(const BinExpr *expr) {
 }
 
 void CheckerVisitor::checkMutatingSharedDefault(const IncExpr *expr) {
-  const Expr *arg = deparenStatic(expr->argument());
+  const Expr *arg = deparen(expr->argument());
   if (!arg || !arg->isAccessExpr())
     return;
 
@@ -1052,7 +1046,7 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
   TreeOp op = bin->op();
   if (op == TO_EQ || op == TO_NE) {
     auto getLiteralKind = [&](const Expr *expr, LiteralKind &kind) {
-      expr = deparenStaticInline(maybeEval(expr));
+      expr = deparenInlineConst(maybeEval(expr));
       if (!expr || expr->op() != TO_LITERAL)
         return false;
       kind = expr->asLiteral()->kind();
@@ -1060,7 +1054,7 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
     };
 
     auto getKnownExpressionKind = [&](const Expr *expr, LiteralKind &kind) {
-      expr = deparenStaticInline(maybeEval(expr));
+      expr = deparenInlineConst(maybeEval(expr));
       if (!expr)
         return false;
 
@@ -1078,7 +1072,7 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
     };
 
     auto getKnownTruthValue = [&](auto &&self, const Expr *expr, bool &value) -> bool {
-      expr = deparenStaticInline(maybeEval(expr));
+      expr = deparenInlineConst(maybeEval(expr));
       if (!expr)
         return false;
 
@@ -1235,8 +1229,8 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
     return;
 
   auto evaluateKnownEquality = [&](const BinExpr *comparison, bool &value) {
-    const Expr *left = deparenStaticInline(maybeEval(comparison->lhs()));
-    const Expr *right = deparenStaticInline(maybeEval(comparison->rhs()));
+    const Expr *left = deparenInlineConst(maybeEval(comparison->lhs()));
+    const Expr *right = deparenInlineConst(maybeEval(comparison->rhs()));
     if (!left || !right || left->op() != TO_LITERAL || right->op() != TO_LITERAL)
       return false;
 
@@ -1420,8 +1414,8 @@ void CheckerVisitor::checkRelativeCompareWithBool(const BinExpr *expr) {
   const Expr *l = expr->lhs();
   const Expr *r = expr->rhs();
 
-  const Expr *dl = deparenStatic(l);
-  const Expr *dr = deparenStatic(r);
+  const Expr *dl = deparen(l);
+  const Expr *dr = deparen(r);
 
   const Expr *el = maybeEval(dl);
   const Expr *er = maybeEval(dr);
@@ -1673,7 +1667,7 @@ void CheckerVisitor::checkBoolToStrangePosition(const BinExpr *bin) {
 
 bool CheckerVisitor::isTypeFunctionResult(const Expr *e) {
   e = maybeEval(e);
-  e = deparenStaticInline(e);
+  e = deparenInlineConst(e);
   if (!e || e->op() != TO_CALL)
     return false;
 
@@ -1682,7 +1676,7 @@ bool CheckerVisitor::isTypeFunctionResult(const Expr *e) {
     return false;
 
   const Expr *callee = maybeEval(call->callee());
-  callee = deparenStaticInline(callee);
+  callee = deparenInlineConst(callee);
   if (!callee || callee->op() != TO_ID || strcmp(callee->asId()->name(), "type") != 0)
     return false;
 
@@ -1692,13 +1686,13 @@ bool CheckerVisitor::isTypeFunctionResult(const Expr *e) {
 
 bool CheckerVisitor::isTypeofResult(const Expr *e) {
   e = maybeEval(e);
-  e = deparenStaticInline(e);
+  e = deparenInlineConst(e);
   return e && e->op() == TO_TYPEOF;
 }
 
 const LiteralExpr *CheckerVisitor::findStringLiteral(const Expr *e) {
   e = maybeEval(e);
-  e = deparenStaticInline(e);
+  e = deparenInlineConst(e);
   if (!e || e->op() != TO_LITERAL)
     return nullptr;
 
@@ -1719,7 +1713,7 @@ void CheckerVisitor::checkRuntimeTypeLiteral(const LiteralExpr *lit) {
 
 void CheckerVisitor::checkRuntimeTypeLiteralContainer(const Expr *e) {
   e = maybeEval(e);
-  e = deparenStaticInline(e);
+  e = deparenInlineConst(e);
   if (!e)
     return;
 
@@ -1742,7 +1736,7 @@ void CheckerVisitor::checkRuntimeTypeLiteralContainer(const Expr *e) {
     if (!call->arguments().empty())
       return;
 
-    const Expr *callee = deparenStaticInline(call->callee());
+    const Expr *callee = deparenInlineConst(call->callee());
     if (!callee || callee->op() != TO_GETFIELD)
       return;
 
@@ -1766,7 +1760,7 @@ void CheckerVisitor::checkRuntimeTypeofLiteral(const LiteralExpr *lit) {
 }
 
 void CheckerVisitor::checkRuntimeTypeofLiteralContainer(const Expr *e) {
-  e = deparenStaticInline(e);
+  e = deparenInlineConst(e);
   if (!e)
     return;
 
@@ -1789,7 +1783,7 @@ void CheckerVisitor::checkRuntimeTypeofLiteralContainer(const Expr *e) {
     if (!call->arguments().empty())
       return;
 
-    const Expr *callee = deparenStaticInline(call->callee());
+    const Expr *callee = deparenInlineConst(call->callee());
     if (!callee || callee->op() != TO_GETFIELD)
       return;
 
@@ -1908,7 +1902,7 @@ void CheckerVisitor::checkBindingNameMismatch(const VarDecl *decl) {
   if (decl->isDestructured())
     return;
 
-  const Expr *init = deparenStatic(decl->initializer());
+  const Expr *init = deparen(decl->initializer());
   if (!init || init->op() != TO_FUNCTION)
     return;
 
@@ -2355,7 +2349,7 @@ void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
   const auto &arguments = call->arguments();
 
   for (int32_t i = 0; i < arguments.size(); ++i) {
-    const Expr *arg = deparenStatic(arguments[i]);
+    const Expr *arg = deparen(arguments[i]);
     if (arg->op() == TO_LITERAL && arg->asLiteral()->kind() == LK_STRING) { // -V522
       int32_t formatsCount = 0;
       for (const char *s = arg->asLiteral()->s(); *s; ++s) {
@@ -2388,7 +2382,7 @@ void CheckerVisitor::checkSubstArguments(const CallExpr *call) {
   if (isEffectsGatheringPass)
     return;
 
-  const Expr *callee = deparenStatic(call->callee());
+  const Expr *callee = deparen(call->callee());
   if (callee->op() != TO_GETFIELD) // -V522
     return;
 
@@ -2396,7 +2390,7 @@ void CheckerVisitor::checkSubstArguments(const CallExpr *call) {
   if (strcmp(f->fieldName(), "subst") != 0)
     return;
 
-  const Expr *recv = deparenStatic(f->receiver());
+  const Expr *recv = deparen(f->receiver());
   if (recv->op() != TO_LITERAL) // -V522
     return;
 
@@ -2691,7 +2685,7 @@ void CheckerVisitor::checkMutatingSharedDefault(const CallExpr *call) {
   if (!nameLooksLikeModifiesObject(name))
     return;
 
-  const Expr *callee = deparenStatic(call->callee());
+  const Expr *callee = deparen(call->callee());
   if (!callee || !callee->isAccessExpr())
     return;
 
@@ -2700,19 +2694,19 @@ void CheckerVisitor::checkMutatingSharedDefault(const CallExpr *call) {
 
 // Detect ambiguous expressions that may modify either a temporary or a persistent object
 static bool hasMixedLifetime(const Expr *e) {
-  e = deparenStatic(e);
+  e = deparen(e);
 
   const Expr *expr0 = nullptr, *expr1 = nullptr;
 
   if (e->op() == TO_NULLC) { //-V522
     const BinExpr *nullc = static_cast<const BinExpr *>(e);
-    expr0 = deparenStatic(nullc->lhs()); //-V522
-    expr1 = deparenStatic(nullc->rhs()); //-V522
+    expr0 = deparen(nullc->lhs()); //-V522
+    expr1 = deparen(nullc->rhs()); //-V522
   }
   else if (e->op() == TO_TERNARY) { //-V522
     const TerExpr *ter = static_cast<const TerExpr *>(e);
-    expr0 = deparenStatic(ter->b()); //-V522
-    expr1 = deparenStatic(ter->c()); //-V522
+    expr0 = deparen(ter->b()); //-V522
+    expr1 = deparen(ter->c()); //-V522
   }
   else
     return false;
@@ -2780,7 +2774,7 @@ void CheckerVisitor::checkBooleanLambda(const CallExpr *call) {
   if (call->arguments().size() < 1)
     return;
 
-  const Expr *arg = deparenStatic(call->arguments()[0]);
+  const Expr *arg = deparen(call->arguments()[0]);
 
   if (arg->op() != TO_FUNCTION) // -V522
     return;
@@ -3123,7 +3117,7 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
 void CheckerVisitor::visitIncExpr(IncExpr *expr) {
   checkMutatingSharedDefault(expr);
 
-  const char *name = computeNameRef(deparenStatic(expr->argument()), nullptr, 0);
+  const char *name = computeNameRef(deparen(expr->argument()), nullptr, 0);
   if (name) {
     ValueRef *v = findValueInScopes(name);
 
@@ -3689,7 +3683,7 @@ void CheckerVisitor::checkVariableMismatchForLoop(ForStatement *loop) {
 
 int CheckerVisitor::getNumericExpressionDirection(const Expr *expr) {
   expr = maybeEval(expr);
-  expr = deparenStatic(expr);
+  expr = deparen(expr);
   if (!expr)
     return 0;
 
@@ -4453,7 +4447,7 @@ void CheckerVisitor::visitContinueStatement(ContinueStatement *continueStmt) {
 
 bool CheckerVisitor::detectTypeOfPattern(const Expr *expr, const Expr *&res_checkee, const LiteralExpr *&res_lit) {
   // Either of 'typeof checkee ==/!= "lit"' or 'type(checkee) ==/!= "lit"
-  expr = deparenStatic(expr);
+  expr = deparen(expr);
 
   TreeOp op = expr->op(); // -V522
 
@@ -4462,8 +4456,8 @@ bool CheckerVisitor::detectTypeOfPattern(const Expr *expr, const Expr *&res_chec
 
   const BinExpr *bin = expr->asBinExpr();
 
-  const Expr *lhs = deparenStatic(bin->lhs());
-  const Expr *rhs = deparenStatic(bin->rhs());
+  const Expr *lhs = deparen(bin->lhs());
+  const Expr *rhs = deparen(bin->rhs());
 
   const LiteralExpr *l_lit = lhs->op() == TO_LITERAL ? lhs->asLiteral() : nullptr; // -V522
   const LiteralExpr *r_lit = rhs->op() == TO_LITERAL ? rhs->asLiteral() : nullptr; // -V522
@@ -4483,7 +4477,7 @@ bool CheckerVisitor::detectTypeOfPattern(const Expr *expr, const Expr *&res_chec
 
   if (checkExpr->op() == TO_TYPEOF) { // -V522
     const UnExpr *typeOf = static_cast<const UnExpr *>(checkExpr);
-    res_checkee = deparenStatic(typeOf->argument()); // -V522
+    res_checkee = deparen(typeOf->argument()); // -V522
     res_lit = lit;
     return true;
   }
@@ -4501,7 +4495,7 @@ bool CheckerVisitor::detectTypeOfPattern(const Expr *expr, const Expr *&res_chec
     if (call->arguments().size() != 1)
       return false;
 
-    res_checkee = deparenStatic(call->arguments()[0]);
+    res_checkee = deparen(call->arguments()[0]);
     res_lit = lit;
     return true;
   }
@@ -4526,16 +4520,16 @@ bool CheckerVisitor::detectNullCPattern(TreeOp op, const Expr *cond, const Expr 
 
   const BinExpr *bin = cond->asBinExpr();
 
-  const Expr *lhs = deparenStatic(bin->lhs());
-  const Expr *rhs = deparenStatic(bin->rhs());
+  const Expr *lhs = deparen(bin->lhs());
+  const Expr *rhs = deparen(bin->rhs());
 
   if (lhs->op() != TO_NULLC && rhs->op() != TO_NULLC) // -V522
     return false;
 
   const BinExpr *nullc = lhs->op() == TO_NULLC ? lhs->asBinExpr() : rhs->asBinExpr();
   const Expr *V = lhs == nullc ? rhs : lhs;
-  const Expr *D = deparenStatic(nullc->rhs());
-  const Expr *candidate = deparenStatic(nullc->lhs());
+  const Expr *D = deparen(nullc->rhs());
+  const Expr *candidate = deparen(nullc->lhs());
 
   const Expr *reciever = extractReceiver(candidate);
 
@@ -4560,7 +4554,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 #define NULL_CHECK_F 1
 
 void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *thenScope, VarScope *elseScope, std::unordered_set<const Expr *> &visited, int32_t evalId, unsigned flags, bool inv) {
-  cond = deparenStatic(cond);
+  cond = deparen(cond);
 
   if (visited.find(cond) != visited.end()) {
     return;
@@ -4625,8 +4619,8 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     // o?.f ?? false
     // o?.f ?? true
     const BinExpr *bin = cond->asBinExpr();
-    const Expr *lhs = deparenStatic(bin->lhs());
-    const Expr *rhs = deparenStatic(bin->rhs());
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
 
     if (rhs->op() != TO_LITERAL) { // -V522
       return;
@@ -4692,7 +4686,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     currentScope = thenScope;
     const CallExpr *call = cond->asCallExpr();
     for (auto parg : call->arguments()) {
-      auto arg = deparenStatic(parg);
+      auto arg = deparen(parg);
       if (arg->op() == TO_ID) { // -V522
         setValueFlags(arg, 0, RT_NULL);
       }
@@ -4739,7 +4733,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
   if (op == TO_GETSLOT || op == TO_GETFIELD) {
     // x?[y]
     const AccessExpr *acc = static_cast<const AccessExpr *>(cond);
-    const Expr *reciever = extractReceiver(deparenStatic(acc->receiver()));
+    const Expr *reciever = extractReceiver(deparen(acc->receiver()));
 
     if (reciever && thenScope) {
       currentScope = thenScope;
@@ -4747,7 +4741,7 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
     }
 
     if (op == TO_GETSLOT) {
-      const Expr *key = deparenStatic(acc->asGetSlot()->key());
+      const Expr *key = deparen(acc->asGetSlot()->key());
       if (thenScope) {
         currentScope = thenScope;
         setValueFlags(key, 0, RT_NULL);
@@ -4761,8 +4755,8 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 
   if (op == TO_EQ) {
     const BinExpr *bin = cond->asBinExpr();
-    const Expr *lhs = deparenStatic(bin->lhs());
-    const Expr *rhs = deparenStatic(bin->rhs());
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
 
     const LiteralExpr *lhs_lit = lhs->op() == TO_LITERAL ? lhs->asLiteral() : nullptr; // -V522
     const LiteralExpr *rhs_lit = rhs->op() == TO_LITERAL ? rhs->asLiteral() : nullptr; // -V522
@@ -4790,8 +4784,8 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 
   if (isRelationOperator(op)) {
     const BinExpr *bin = cond->asBinExpr();
-    const Expr *lhs = deparenStatic(bin->lhs());
-    const Expr *rhs = deparenStatic(bin->rhs());
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
 
     const Id *lhs_id = lhs->op() == TO_ID ? lhs->asId() : nullptr; // -V522
     const Id *rhs_id = rhs->op() == TO_ID ? rhs->asId() : nullptr; // -V522
@@ -5233,7 +5227,7 @@ void CheckerVisitor::checkAccessNullable(const AccessExpr *acc) {
 }
 
 const Expr *CheckerVisitor::findEmptyContainerValue(const Expr *e, std::unordered_set<const Expr *> &visited, bool conditional) {
-  e = deparenStatic(e);
+  e = deparen(e);
 
   if (!e || visited.find(e) != visited.end())
     return nullptr;
@@ -5252,7 +5246,7 @@ const Expr *CheckerVisitor::findEmptyContainerValue(const Expr *e, std::unordere
     return r ? r : findEmptyContainerValue(t->c(), visited, true);
   }
 
-  const Expr *ev = deparenStatic(maybeEval(e));
+  const Expr *ev = deparen(maybeEval(e));
 
   if (ev && ev != e)
     return findEmptyContainerValue(ev, visited, false);
@@ -5325,7 +5319,7 @@ void CheckerVisitor::checkAccessPotentiallyEmpty(const AccessExpr *acc) {
       return;
   }
 
-  const Expr *r = deparenStatic(acc->receiver());
+  const Expr *r = deparen(acc->receiver());
   if (!r)
     return;
 
@@ -5378,11 +5372,11 @@ void CheckerVisitor::checkRedundantSpreadGuard(const Expr *spread, bool intoTabl
   if (isEffectsGatheringPass)
     return;
 
-  const Expr *source = deparenStaticInline(spreadSourceOf(const_cast<Expr *>(spread)));
+  const Expr *source = deparenInlineConst(spreadSourceOf(const_cast<Expr *>(spread)));
   if (!source || source->op() != TO_NULLC)
     return;
 
-  const Expr *fallback = deparenStaticInline(source->asBinExpr()->rhs());
+  const Expr *fallback = deparenInlineConst(source->asBinExpr()->rhs());
   if (!fallback)
     return;
 
@@ -5646,7 +5640,7 @@ void CheckerVisitor::setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf)
 }
 
 const ValueRef *CheckerVisitor::findValueForExpr(const Expr *e) {
-  e = deparenStatic(e);
+  e = deparen(e);
   if (!e) return nullptr;
 
   if (auto it = astValues.find(e); it != astValues.end())
@@ -5684,7 +5678,7 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e) {
 
 bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<const Expr *> &visited) {
 
-  e = deparenStatic(e);
+  e = deparen(e);
 
   auto existed = visited.find(e);
   if (existed != visited.end()) {
@@ -5760,16 +5754,16 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
     // Null-check narrowing: in `x != null ? x : y`, `x == null ? y : x`,
     // `x ? x : y` and `x instanceof T ? x : y` the checked arm cannot
     // produce the null.
-    const Expr *cond = deparenStatic(t->a());
+    const Expr *cond = deparen(t->a());
     const Expr *checkee = cond;
     bool nonNullArmIsB = true;
     if (cond && cond->op() == TO_INSTANCEOF) {
-      checkee = deparenStatic(cond->asBinExpr()->lhs());
+      checkee = deparen(cond->asBinExpr()->lhs());
     }
     else if (cond && (cond->op() == TO_NE || cond->op() == TO_EQ)) {
       const BinExpr *bin = cond->asBinExpr();
-      const Expr *l = deparenStatic(bin->lhs());
-      const Expr *r = deparenStatic(bin->rhs());
+      const Expr *l = deparen(bin->lhs());
+      const Expr *r = deparen(bin->rhs());
       if (l && l->op() == TO_LITERAL && l->asLiteral()->kind() == LK_NULL)
         checkee = r;
       else if (r && r->op() == TO_LITERAL && r->asLiteral()->kind() == LK_NULL)
@@ -5779,9 +5773,9 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
       nonNullArmIsB = cond->op() == TO_NE;
     }
     if (checkee) {
-      if (nonNullArmIsB && bNullable && _equalChecker.check(checkee, deparenStatic(t->b())))
+      if (nonNullArmIsB && bNullable && _equalChecker.check(checkee, deparen(t->b())))
         bNullable = false;
-      else if (!nonNullArmIsB && cNullable && _equalChecker.check(checkee, deparenStatic(t->c())))
+      else if (!nonNullArmIsB && cNullable && _equalChecker.check(checkee, deparen(t->c())))
         cNullable = false;
     }
 
@@ -5808,7 +5802,7 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
   if (!e)
     return false;
 
-  e = deparenStatic(e);
+  e = deparen(e);
 
   if (e->op() == TO_LITERAL) { // -V522
     return e->asLiteral()->kind() == LK_STRING;
@@ -5867,7 +5861,7 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unord
 
   visited.emplace(e);
 
-  e = deparenStatic(e);
+  e = deparen(e);
   const ValueRef *v = findValueForExpr(e);
 
   if (!v) {
@@ -5935,7 +5929,7 @@ void CheckerVisitor::computeNameRef(const GetFieldExpr *access, char *b, int32_t
 }
 
 const ExternalValue *CheckerVisitor::findExternalValue(const Expr *e) {
-  e = deparenStatic(e);
+  e = deparen(e);
   if (!e) return nullptr;
 
   if (const ValueRef *v = findValueForExpr(e); v && v->externalValue)
@@ -6045,7 +6039,7 @@ void CheckerVisitor::applyUnknownInvocationToScope() {
 }
 
 void CheckerVisitor::applyCallToScope(const CallExpr *call) {
-  const Expr *callee = deparenStatic(call->callee());
+  const Expr *callee = deparen(call->callee());
 
   if (callee->op() == TO_ID) { // -V522
     const Id *calleeId = callee->asId();
@@ -6159,7 +6153,7 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
   SymbolInfo *info = makeSymbolInfo(decl->isAssignable() ? SK_VAR : SK_BINDING);
   ValueRef *v = makeValueRef(info);
   const Expr *init = decl->initializer();
-  const Expr *origInit = deparenStatic(init);
+  const Expr *origInit = deparen(init);
 
   // Carry the external value across an alias declaration: `let mod = require(...)`,
   // `let foo = mod.foo`, `let f = imported_fn`. Resolved against the original
@@ -6392,6 +6386,7 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
                 import->moduleAlias ? import->moduleAlias : import->moduleName);
   }
   else {
+    std::string moduleName(import->moduleName);
     bool hasWildcard = false;
     bool hasNamedSlot = false;
     const SQModuleImportSlot *firstWildcard = nullptr;
@@ -6409,13 +6404,12 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
       if (!firstNamedSlot)
         firstNamedSlot = &slot;
 
-      if (!importedModuleSlots.insert(std::string(slot.name)).second) {
+      if (!importedModuleSlots.insert(moduleName + ':' + slot.name).second) {
         report(slot.line, slot.column, (int)strlen(slot.name),
           DiagnosticsId::DI_DUPLICATE_IMPORT, slot.name);
       }
     }
 
-    std::string moduleName(import->moduleName);
     bool hadWildcard = wildcardImportedModules.find(moduleName) != wildcardImportedModules.end();
     bool hadNamedSlot = namedSlotImportedModules.find(moduleName) != namedSlotImportedModules.end();
 

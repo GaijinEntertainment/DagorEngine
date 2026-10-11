@@ -92,6 +92,7 @@ private:
     void throwUnsupported(Node *n, const char *type);
     void throwGeneralError(Node *n, const char *msg);
     void throwGeneralErrorFmt(Node *n, const char *fmt, ...);
+    void throwDuplicateKey(Node *n, const SQObjectPtr &key);
     SQObjectPtr convertLiteral(LiteralExpr *lit);
 };
 

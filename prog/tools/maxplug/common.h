@@ -2,6 +2,7 @@
 #pragma once
 
 #include <charconv>
+#include <memory>
 #include <vector>
 #include <string>
 #include <string_view>
@@ -26,8 +27,22 @@ public:
 };
 
 
+// one owner for a custom control interface: every Get* has to be paired with its own Release*
+struct ControlReleaser
+{
+  void operator()(ICustEdit *c) const { ReleaseICustEdit(c); }
+  void operator()(ICustButton *c) const { ReleaseICustButton(c); }
+  void operator()(ISpinnerControl *c) const { ReleaseISpinner(c); }
+  void operator()(IColorSwatch *c) const { ReleaseIColorSwatch(c); }
+  void operator()(IRollupWindow *c) const { ReleaseIRollup(c); }
+};
+
+template <typename T>
+using ControlPtr = std::unique_ptr<T, ControlReleaser>;
+
+
 // add rollup page with layout
-HWND add_rollup_page(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param = 0, DWORD flags = 0);
+HWND add_rollup_page(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, DWORD flags = 0);
 
 // delete rollup page and reset hw
 void delete_rollup_page(Interface *ip, HWND *hw);
@@ -67,6 +82,10 @@ bool get_open_filename(HWND owner, const TCHAR *title, FilterList &filter, const
 bool get_open_filename(HWND owner, std::filesystem::path &imp_fname);
 
 std::filesystem::path get_cfg_filename(const TCHAR *cfg);
+
+// true while an export runs with prompts suppressed, or while Max runs in quiet mode (3dsmaxbatch,
+// network rendering), where no one can answer a dialog
+bool are_prompts_suppressed();
 
 // the full path of a texture named in a dag or a proxymat
 std::filesystem::path resolve_tex_path(const wchar_t *name);

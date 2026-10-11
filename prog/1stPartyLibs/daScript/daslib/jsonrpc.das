@@ -23,6 +23,11 @@ module jsonrpc shared public
 //! Pass ``strict=true`` to ``parse_request`` / ``parse_batch`` /
 //! ``dispatch_line`` for full §4 compliance (missing or non-"2.0" yields
 //! INVALID_REQUEST).
+//!
+//! Request parsing is request-scoped: ``parse_request`` / ``parse_batch`` hand
+//! back the parsed document in the ``document`` field, and the caller MUST end
+//! the scope with ``free_request`` / ``free_batch`` — nothing else frees it.
+//! ``dispatch_line`` owns the whole scope and needs no free from its caller.
 
 require daslib/json
 require daslib/json_boost
@@ -38,25 +43,23 @@ let public INVALID_PARAMS   = -32602  //!< Invalid method params.
 let public INTERNAL_ERROR   = -32603  //!< Internal JSON-RPC error.
 
 
-// ===== Parsed request shape (server side) =====
-
 struct public ParsedRequest {
     id_str          : string       //!< Serialized id ("null" / "7" / "\"abc\"") — embed verbatim into responses.
     method          : string       //!< Method name. Empty when the request was malformed.
     params_json     : string       //!< Raw serialized ``params`` value (e.g. ``"null"``, ``"[1,2]"``, ``"{\"x\":1}"``).
-    params          : JsonValue?   //!< Pre-parsed ``params`` JsonValue; null when absent. Saves callers a second ``read_json``.
-    is_notification : bool         //!< True when the request omits ``id`` (spec §4.1 — MUST NOT send a response).
+    params          : JsonValue?   //!< Pre-parsed ``params`` JsonValue; null when absent. Saves callers a second ``read_json``. A view into ``document`` — dangling once the request is freed.
+    is_notification : bool         //!< True when a WELL-FORMED request omits ``id`` (spec §4.1 — MUST NOT send a response). Never true alongside ``error_envelope``: malformed input is answered with ``"id":null`` (spec §5), so test ``error_envelope`` first and this only after it is empty.
     error_envelope  : string       //!< Pre-built error response for malformed input. Empty when the request was well-formed.
+    document        : JsonValue?   //!< Parse tree this request owns; free it with ``free_request``. Null in a batch entry — ``ParsedBatch`` owns the batch document.
 }
 
 struct public ParsedBatch {
     is_batch        : bool                   //!< True when the wire body was a JSON array.
     requests        : array<ParsedRequest>   //!< One entry per array element (or one for a single request).
     framing_error   : string                 //!< Top-level error envelope to send as-is (parse failure, empty array). Mutually exclusive with ``requests``.
+    document        : JsonValue?             //!< Parse tree every entry's ``params`` points into; free it with ``free_batch``.
 }
 
-
-// ===== Parsed response shape (client side) =====
 
 struct public ParsedResponse {
     id_str       : string         //!< Echoed id from the response.
@@ -75,24 +78,30 @@ struct public ParsedResponseBatch {
 }
 
 
-// ===== Envelope builders (responses + errors) =====
-
 def public response(id_str : string; result_json : string) : string {
     //! Wrap ``result_json`` in a JSON-RPC 2.0 success response envelope.
     //! ``id_str`` and ``result_json`` are embedded verbatim — both must be valid JSON.
     return "\{\"jsonrpc\":\"2.0\",\"id\":{id_str},\"result\":{result_json}}"
 }
 
+def public quoted(s : string) : string {
+    //! ``s`` as a JSON string literal, quotes and escapes included.
+    var jsv = JV(s)
+    let text = write_json(jsv)
+    delete_json(jsv)
+    return text
+}
+
 def public error(id_str : string; code : int; message : string) : string {
     //! Wrap ``code`` + ``message`` in a JSON-RPC 2.0 error response envelope.
-    let msg_json = write_json(JV(message))
+    let msg_json = quoted(message)
     return "\{\"jsonrpc\":\"2.0\",\"id\":{id_str},\"error\":\{\"code\":{code},\"message\":{msg_json}}}"
 }
 
 def public error_with_data(id_str : string; code : int; message, data_json : string) : string {
     //! Like ``error``, but also includes the optional ``data`` field (spec §5.1).
     //! ``data_json`` is embedded verbatim — must be valid JSON.
-    let msg_json = write_json(JV(message))
+    let msg_json = quoted(message)
     return "\{\"jsonrpc\":\"2.0\",\"id\":{id_str},\"error\":\{\"code\":{code},\"message\":{msg_json},\"data\":{data_json}}}"
 }
 
@@ -103,25 +112,23 @@ def public serialize_id(id_val : JsonValue?) : string {
 }
 
 
-// ===== Outgoing request builders (client side) =====
-
 def public make_request(method : string; params_json : string; id : int) : string {
     //! Build a JSON-RPC 2.0 request with an integer id.
     //! ``params_json`` is the pre-serialized params value (``"null"``, ``"[1,2]"``, ``"{\"x\":1}"``).
-    let method_str = write_json(JV(method))
+    let method_str = quoted(method)
     return "\{\"jsonrpc\":\"2.0\",\"id\":{id},\"method\":{method_str},\"params\":{params_json}}"
 }
 
 def public make_request(method : string; params_json : string; id : string) : string {
     //! Build a JSON-RPC 2.0 request with a string id.
-    let method_str = write_json(JV(method))
-    let id_str = write_json(JV(id))
+    let method_str = quoted(method)
+    let id_str = quoted(id)
     return "\{\"jsonrpc\":\"2.0\",\"id\":{id_str},\"method\":{method_str},\"params\":{params_json}}"
 }
 
 def public make_notification(method : string; params_json : string) : string {
     //! Build a JSON-RPC 2.0 notification (no id — server MUST NOT respond).
-    let method_str = write_json(JV(method))
+    let method_str = quoted(method)
     return "\{\"jsonrpc\":\"2.0\",\"method\":{method_str},\"params\":{params_json}}"
 }
 
@@ -140,8 +147,6 @@ def public make_batch(messages : array<string>) : string {
 }
 
 
-// ===== Server-side parsers =====
-
 def private parse_one_request(body_value : JsonValue?; strict : bool) : ParsedRequest {
     var result = ParsedRequest(id_str = "null")
     if (body_value == null || !(body_value.value is _object)) {
@@ -151,20 +156,16 @@ def private parse_one_request(body_value : JsonValue?; strict : bool) : ParsedRe
     let body & = unsafe(body_value.value as _object)
     let id_v = body?["id"] ?? null
     let method_v = body?["method"] ?? null
-    // params_v needs the reinterpret: it's assigned to `result.params : JsonValue?`, and `?[]` on a const view returns `JsonValue? const` — assignment to a non-const field would fail. id_v / method_v above are read-only and don't need it.
     var params_v = unsafe(reinterpret<JsonValue?>(body?["params"] ?? null))
-    // §4: id MUST be string, number, or null. Reject objects/arrays/booleans — they'd also break framing since write_json would pretty-print across lines.
     if (id_v != null && !(id_v.value is _string) && !(id_v.value is _number) && !(id_v.value is _longint) && !(id_v.value is _null)) {
         result.error_envelope = error("null", INVALID_REQUEST, "invalid request: id must be string, number, or null")
         return result
     }
     result.id_str = serialize_id(id_v)
     if (method_v == null || !(method_v.value is _string)) {
-        // Don't flag as notification before method validation — `{}` or `{"method":42}` without id would otherwise swallow the envelope per spec §5.1.
         result.error_envelope = error(result.id_str, INVALID_REQUEST, "invalid request: missing or non-string method")
         return result
     }
-    // Strict-mode jsonrpc field enforcement
     if (strict) {
         let jsonrpc_v = body?["jsonrpc"] ?? null
         if (jsonrpc_v == null || !(jsonrpc_v.value is _string) || (jsonrpc_v.value as _string) != "2.0") {
@@ -172,7 +173,6 @@ def private parse_one_request(body_value : JsonValue?; strict : bool) : ParsedRe
             return result
         }
     }
-    // §4.2: params, if present, MUST be Array or Object. Reject scalars.
     if (params_v != null && !(params_v.value is _object) && !(params_v.value is _array) && !(params_v.value is _null)) {
         result.error_envelope = error(result.id_str, INVALID_PARAMS, "invalid params: must be array or object")
         return result
@@ -186,6 +186,7 @@ def private parse_one_request(body_value : JsonValue?; strict : bool) : ParsedRe
 
 def public parse_request(line : string; strict : bool = false) : ParsedRequest {
     //! Parse a single JSON-RPC 2.0 request line. Pure function — testable in isolation.
+    //! The result owns its parse tree: end the request scope with ``free_request``.
     var result = ParsedRequest(id_str = "null")
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -193,11 +194,24 @@ def public parse_request(line : string; strict : bool = false) : ParsedRequest {
         result.error_envelope = error("null", PARSE_ERROR, "parse error: {parse_error_msg}")
         return result
     }
-    return parse_one_request(parsed, strict)
+    result = parse_one_request(parsed, strict)
+    result.document = parsed
+    return result
+}
+
+def public free_request(var req : ParsedRequest) {
+    //! End a ``parse_request`` scope: free the owned document and clear the ``params`` view.
+    //! The ``id_str`` / ``method`` / ``params_json`` / ``error_envelope`` strings outlive it.
+    //! No-op on a batch entry — ``free_batch`` owns those.
+    req.params = null
+    delete_json(req.document)
+    req.document = null
 }
 
 def public parse_batch(line : string; strict : bool = false) : ParsedBatch {
     //! Parse a JSON-RPC 2.0 wire body that may be a single request or a §6 batch array.
+    //! The result owns the parse tree every entry's ``params`` points into: end the
+    //! request scope with ``free_batch``.
     var result : ParsedBatch
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -205,6 +219,7 @@ def public parse_batch(line : string; strict : bool = false) : ParsedBatch {
         result.framing_error = error("null", PARSE_ERROR, "parse error: {parse_error_msg}")
         return <- result
     }
+    result.document = parsed
     if (parsed.value is _array) {
         result.is_batch = true
         let arr & = unsafe(parsed.value as _array)
@@ -219,14 +234,25 @@ def public parse_batch(line : string; strict : bool = false) : ParsedBatch {
         }
         return <- result
     }
-    // Single request — wrap in a one-element ParsedBatch
     result.is_batch = false
     result.requests |> push(parse_one_request(parsed, strict))
     return <- result
 }
 
+def public free_batch(var pb : ParsedBatch) {
+    //! End a ``parse_batch`` scope: free the owned document and release the entry array.
+    //! Read every entry before calling this; afterwards ``requests`` is empty. The
+    //! ``framing_error`` string outlives it.
+    for (req in pb.requests) {
+        req.params = null
+    }
+    delete_json(pb.document)
+    pb.document = null
+    unsafe {
+        delete pb.requests
+    }
+}
 
-// ===== Client-side response parsers =====
 
 def private parse_one_response(body_value : JsonValue?) : ParsedResponse {
     var result = ParsedResponse(id_str = "null", is_success = false)
@@ -267,7 +293,8 @@ def private parse_one_response(body_value : JsonValue?) : ParsedResponse {
 }
 
 def public parse_response(line : string) : ParsedResponse {
-    //! Parse a single JSON-RPC 2.0 response line.
+    //! Parse a single JSON-RPC 2.0 response line. Every field is a fresh string, so
+    //! the parse tree is freed before returning — the caller owns nothing.
     var result = ParsedResponse(id_str = "null", is_success = false)
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -275,11 +302,14 @@ def public parse_response(line : string) : ParsedResponse {
         result.parse_error = "parse error: {parse_error_msg}"
         return result
     }
-    return parse_one_response(parsed)
+    result = parse_one_response(parsed)
+    delete_json(parsed)
+    return result
 }
 
 def public parse_response_batch(line : string) : ParsedResponseBatch {
     //! Parse a JSON-RPC 2.0 response wire body that may be a single response or a §6 batch array.
+    //! Like ``parse_response``, the parse tree is freed before returning.
     var result : ParsedResponseBatch
     var parse_error_msg = ""
     var parsed = read_json(line, parse_error_msg)
@@ -295,15 +325,14 @@ def public parse_response_batch(line : string) : ParsedResponseBatch {
             let ev = unsafe(reinterpret<JsonValue?>(entry))
             result.responses |> push(parse_one_response(ev))
         }
-        return <- result
+    } else {
+        result.is_batch = false
+        result.responses |> push(parse_one_response(parsed))
     }
-    result.is_batch = false
-    result.responses |> push(parse_one_response(parsed))
+    delete_json(parsed)
     return <- result
 }
 
-
-// ===== Framing helper =====
 
 def public compact_json_whitespace(s : string) : string {
     //! Strip JSON pretty-printer whitespace (spaces, tabs, newlines, carriage returns) that appears outside string literals. Whitespace inside ``"..."`` is preserved verbatim, including backslash-escaped quotes. Used to flatten ``write_json`` output for one-message-per-line wire framing.
@@ -336,20 +365,16 @@ def public compact_json_whitespace(s : string) : string {
 }
 
 
-// ===== High-level dispatch convenience =====
-
 def private dispatch_one(req : ParsedRequest; dispatcher : block<(method : string; params_json : string) : string>) : string {
-    if (!empty(req.error_envelope)) return req.is_notification ? "" : req.error_envelope
+    if (!empty(req.error_envelope)) return req.error_envelope
     let result_json = invoke(dispatcher, req.method, req.params_json)
     return req.is_notification ? "" : response(req.id_str, result_json)
 }
 
-def public dispatch_line(line : string; strict : bool; dispatcher : block<(method : string; params_json : string) : string>) : string {
-    //! Dispatch a JSON-RPC 2.0 wire line (single or §6 batch) through ``dispatcher``, returning the response string ready for the wire (or ``""`` for all-notifications).
-    let pb = parse_batch(line, strict)
+def private dispatch_parsed(pb : ParsedBatch; dispatcher : block<(method : string; params_json : string) : string>) : string {
     if (!empty(pb.framing_error)) return pb.framing_error
     if (!pb.is_batch) return dispatch_one(pb.requests[0], dispatcher)
-    var parts : array<string>
+    var inscope parts : array<string>
     for (req in pb.requests) {
         let r = dispatch_one(req, dispatcher)
         if (!empty(r)) parts |> push(r)
@@ -365,4 +390,13 @@ def public dispatch_line(line : string; strict : bool; dispatcher : block<(metho
         }
         write_char(w, ']')
     }
+}
+
+def public dispatch_line(line : string; strict : bool; dispatcher : block<(method : string; params_json : string) : string>) : string {
+    //! Dispatch a JSON-RPC 2.0 wire line (single or §6 batch) through ``dispatcher``, returning the response string ready for the wire (or ``""`` for all-notifications).
+    //! Owns the whole request scope: the parse tree is freed once ``dispatcher`` has run over every entry, so the caller frees nothing.
+    var pb <- parse_batch(line, strict)
+    let wire = dispatch_parsed(pb, dispatcher)
+    free_batch(pb)
+    return wire
 }

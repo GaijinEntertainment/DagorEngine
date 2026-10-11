@@ -38,13 +38,28 @@ class TerminalChatClient : HvWebSocketClient {
     }
 }
 
+let CONNECT_TIMEOUT_MS = 3000
+let POLL_STEP_MS = 10
+
 [export]
-def main() {
+def main() : int {
     var client = new TerminalChatClient()
-    let rc = client->init(SERVER_URL)
-    if (rc != 0) {
-        print("Failed to connect to {SERVER_URL}\n")
-        return
+    let init_ok = client->init(SERVER_URL) == 0
+    // init() only starts the handshake — pump until connected or the window elapses;
+    // otherwise a missing server looks like a clean exit.
+    var waited = 0
+    while (init_ok && !client->is_connected() && waited < CONNECT_TIMEOUT_MS) {
+        client->process_event_que()
+        sleep(uint(POLL_STEP_MS))
+        waited += POLL_STEP_MS
+    }
+    if (!init_ok || !client->is_connected()) {
+        print("Failed to connect to {SERVER_URL} — is the server running? (daslang examples/hv/ws_chat_server.das)\n")
+        client->cleanup()
+        unsafe {
+            delete client
+        }
+        return 1
     }
     // Main loop: read stdin + pump WebSocket events
     while (client->is_connected()) {
@@ -69,4 +84,5 @@ def main() {
     unsafe {
         delete client
     }
+    return 0
 }

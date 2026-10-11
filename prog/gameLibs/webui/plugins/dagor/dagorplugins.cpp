@@ -28,6 +28,9 @@
 #include <debug/dag_debug.h>
 
 #include <startup/dag_globalSettings.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <util/dag_safeArg.h>
+#include <EASTL/string.h>
 
 using namespace webui;
 
@@ -589,6 +592,75 @@ void console_gen(RequestInfo *params)
   }
 }
 
+#if _TARGET_PC || _TARGET_TVOS
+static int console_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line);
+
+static struct ConsoleLogCapture
+{
+  eastl::string text;
+  int64_t threadId = -1;
+  debug_log_callback_t prevCallback = nullptr;
+} console_log_capture{};
+
+static void console_log(RequestInfo *params)
+{
+  char **commandParam = webui::lupval(params->params, "concmd");
+  // form-urlencoded body is rewritten in place by getcgivars
+  if (!commandParam && !strcmp(params->get_header("Content-Type", ""), "application/x-www-form-urlencoded"))
+    return html_response(params->conn, "Form-encoded POST requires 'concmd' parameter; send raw command as text/plain.",
+      HTTP_BAD_REQUEST);
+  void *postContent = commandParam ? nullptr : params->read_POST_content();
+  const char *command = commandParam ? commandParam[1] : (const char *)postContent;
+  if (!command || !*command)
+  {
+    if (postContent)
+      tmpmem->free(postContent);
+    return html_response(params->conn, "Missing command in POST body or 'concmd' parameter.", HTTP_BAD_REQUEST);
+  }
+
+  console_log_capture.text.clear();
+  console_log_capture.threadId = get_current_thread_id();
+  console_log_capture.prevCallback = debug_set_log_callback(console_log_callback);
+  console::command(command);
+  console_log_capture.threadId = -1;
+  debug_set_log_callback(console_log_capture.prevCallback);
+  if (postContent)
+    tmpmem->free(postContent);
+
+  const eastl::string &text = console_log_capture.text;
+  text_response(params->conn, text.c_str(), (int)text.size());
+  console_log_capture.text = {};
+}
+
+static int console_log_callback(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+{
+  debug_log_callback_t prevCallback = console_log_capture.prevCallback;
+  int ret = prevCallback ? prevCallback(lev_tag, fmt, arg, anum, ctx_file, ctx_line) : 1;
+  if (console_log_capture.threadId != get_current_thread_id())
+    return ret;
+
+  eastl::string &text = console_log_capture.text;
+  if ((uint32_t)lev_tag <= LOGLEVEL_REMARK && lev_tag != LOGLEVEL_DEBUG)
+    text.append_sprintf("[%c] ", ("FEWDR")[lev_tag]);
+  int len;
+  if (anum >= 0)
+    len = DagorSafeArg::count_len(fmt, (const DagorSafeArg *)arg, anum);
+  else
+  {
+    DAG_VACOPY(args_copy, *(va_list *)arg);
+    len = vsnprintf(nullptr, 0, fmt, args_copy);
+    DAG_VACOPYEND(args_copy);
+  }
+  const int start = (int)text.size();
+  // resize reserves the terminator slot, so len + 1 fits
+  text.resize(start + len);
+  text.resize(start + DagorSafeArg::mixed_print_fmt(text.data() + start, len + 1, fmt, arg, anum));
+  if (text.empty() || text.back() != '\n')
+    text.push_back('\n');
+  return ret;
+}
+#endif
+
 
 struct VromFile
 {
@@ -767,6 +839,7 @@ extern void memory_map(RequestInfo *);
 webui::HttpPlugin webui::dagor_http_plugins[] = {{"quit", "quit from game", NULL, on_quit},
 #if _TARGET_PC || _TARGET_TVOS
   {"log", "show debug log (currently pc only)", NULL, show_log},
+  {"console_log", "execute a command and return its debug log output", NULL, console_log},
 #endif
   {"console", "execute commands", NULL, console_gen},
   {"vromfs", "show content of virtual file systems (vromfs)", NULL, vromfs_enumerator},

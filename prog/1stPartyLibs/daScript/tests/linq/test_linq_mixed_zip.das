@@ -23,9 +23,9 @@ def fixture_b() : array<int> {
 def same_pairs(t : T?; name : string; refArr : array<auto(TT)>; gotArr : array<TT>) {
     t |> equal(length(gotArr), length(refArr), name)
     if (length(gotArr) == length(refArr)) {
-        for (i in range(length(refArr))) {
-            t |> equal(gotArr[i]._0, refArr[i]._0, name)
-            t |> equal(gotArr[i]._1, refArr[i]._1, name)
+        for (gv, rv in gotArr, refArr) {
+            t |> equal(gv._0, rv._0, name)
+            t |> equal(gv._1, rv._1, name)
         }
     }
 }
@@ -33,8 +33,8 @@ def same_pairs(t : T?; name : string; refArr : array<auto(TT)>; gotArr : array<T
 def same_ints(t : T?; name : string; refArr : array<int>; gotArr : array<int>) {
     t |> equal(length(gotArr), length(refArr), name)
     if (length(gotArr) == length(refArr)) {
-        for (i in range(length(refArr))) {
-            t |> equal(gotArr[i], refArr[i], name)
+        for (gv, rv in gotArr, refArr) {
+            t |> equal(gv, rv, name)
         }
     }
 }

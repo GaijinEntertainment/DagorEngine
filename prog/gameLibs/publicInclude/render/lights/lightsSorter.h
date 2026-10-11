@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <render/lights/lightsBase.h>
 #include <render/lights/omniLightsManager.h>
 #include <render/lights/spotLightsManager.h>
 #include <generic/dag_tab.h>
@@ -15,18 +16,16 @@
 class Sbuffer;
 class LightsPartition;
 
-class LightsSorter
+class LightsSorter final : public IDynLightsPipelineSection
 {
   friend class LightsPartition;
 
 public:
   LightsSorter(OmniLightsManager &omni_lights, SpotLightsManager &spot_lights);
-  void initGpuMode();
+  void init(DynLightsFeatures requested_features) override;
+  DynLightsFeatures getRuntimeFeatures() const override;
   void sortLightsCPU(Tab<uint16_t> &omni_visible_ids, Tab<uint16_t> &spot_visible_ids, vec4f cur_view_pos);
-
-  void sortLightsGPU(Sbuffer *data_buf, Sbuffer *counts_buf, int max_far_lights_count, bool update_variables = true);
-
-  bool isGPUSortAvailable() const;
+  void sortLightsGPU(Sbuffer *data_buf, Sbuffer *counts_buf, bool update_variables = true);
 
 private:
   void bindStageBuffers();
@@ -34,7 +33,7 @@ private:
 
   void dispatchPrepareSort();
   void dispatchSortImpl(Sbuffer *data_buf);
-  void dispatchFinalizeSort(int max_far_lights_count);
+  void dispatchFinalizeSort();
 
   OmniLightsManager *omniLights;
   SpotLightsManager *spotLights;

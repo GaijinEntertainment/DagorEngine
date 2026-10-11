@@ -66,6 +66,19 @@ private:
 };
 
 
+// Gets the dialog's color at every change while the dialog is still open, and the color it settled on
+// when hide() closed it: its own on OK, the one it started from on Cancel. A handler that applies every
+// report therefore lands on the result and needs no snapshot of its own.
+// Two gaps in that: picking from the screen samples the cursor pixel without reporting it, so that
+// color arrives only at the middle-button commit; and a dialog destroyed while it is still visible
+// never reaches hide(), so it sends no settled report at all.
+class IColorDialogChangeHandler
+{
+public:
+  virtual void onColorDialogChange(E3DCOLOR color) = 0;
+};
+
+
 class ColorDialog : public DialogWindow, public ICustomControl
 {
 public:
@@ -75,12 +88,15 @@ public:
 
   // DialogWindow
   void show() override;
+  void hide(int result = DIALOG_ID_NONE) override;
   void onChange(int pcb_id, ContainerPropertyControl *panel) override;
   void onClick(int pcb_id, ContainerPropertyControl *panel) override;
   void updateImguiDialog(const PropPanel::DialogWindow::DialogFrameSizing &sizing) override;
 
   void fillPanel(ContainerPropertyControl *panel);
   E3DCOLOR getColor() const { return mColor; }
+  // The handler has to outlive the dialog.
+  void setChangeHandler(IColorDialogChangeHandler *handler) { changeHandler = handler; }
 
   //! convenient static routine for color selection
   static bool select_color(void *hwnd, const char *caption, E3DCOLOR &color)
@@ -98,9 +114,10 @@ private:
   // ICustomControl
   void customControlUpdate(int id) override;
 
-  void setColor(E3DCOLOR color) { mOldColor = mColor = color; }
+  void setColor(E3DCOLOR color) { mOldColor = mColor = reportedColor = color; }
   void updatePalette();
   void pickFromScreen();
+  void reportColor(E3DCOLOR color);
 
   eastl::unique_ptr<GradientPlotControl> mainGradientPlotControl;
   eastl::unique_ptr<GradientPlotControl> lineGradientPlotControl;
@@ -108,6 +125,8 @@ private:
   eastl::unique_ptr<PaletteCellControl> paletteCellsControls[PALETTE_COLOR_NUM];
   E3DCOLOR mColor, mOldColor;
   Point3 mP3Color;
+  IColorDialogChangeHandler *changeHandler = nullptr;
+  E3DCOLOR reportedColor;
   bool pickingFromScreen = false;
 
   static CPPalette palette;

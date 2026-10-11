@@ -14,12 +14,15 @@ typedef struct SQVM *HSQUIRRELVM;
 namespace darg
 {
 #define DARG_STRING_KEYS_LIST    \
+  KEY(accumRes)                  \
   KEY(action)                    \
   KEY(active)                    \
   KEY(allowTags)                 \
+  KEY(altKey)                    \
   KEY(angle)                     \
   KEY(animations)                \
   KEY(attach)                    \
+  KEY(b)                         \
   KEY(behavior)                  \
   KEY(bgColor)                   \
   KEY(bindProps)                 \
@@ -43,6 +46,7 @@ namespace darg
   KEY(commands)                  \
   KEY(counterAct)                \
   KEY(counterBeforeRender)       \
+  KEY(ctrlKey)                   \
   KEY(curAngle)                  \
   KEY(curSector)                 \
   KEY(cursor)                    \
@@ -108,6 +112,7 @@ namespace darg
   KEY(hangingIndent)             \
   KEY(hiFreq)                    \
   KEY(hint)                      \
+  KEY(hit)                       \
   KEY(hold)                      \
   KEY(hotkeys)                   \
   KEY(hotspot)                   \
@@ -135,6 +140,7 @@ namespace darg
   KEY(key)                       \
   KEY(kineticScrollOnTouchEnd)   \
   KEY(knob)                      \
+  KEY(l)                         \
   KEY(last)                      \
   KEY(lastT)                     \
   KEY(lastX)                     \
@@ -216,11 +222,13 @@ namespace darg
   KEY(pivot)                     \
   KEY(play)                      \
   KEY(playFadeOut)               \
+  KEY(pointerId)                 \
   KEY(pos)                       \
   KEY(preformatted)              \
   KEY(priority)                  \
   KEY(priorityOffset)            \
   KEY(prop)                      \
+  KEY(r)                         \
   KEY(rendObj)                   \
   KEY(rotate)                    \
   KEY(rtAlwaysUpdate)            \
@@ -248,6 +256,7 @@ namespace darg
   KEY(shaderName)                \
   KEY(shaderParams)              \
   KEY(shaderSource)              \
+  KEY(shiftKey)                  \
   KEY(size)                      \
   KEY(skipDirPadNav)             \
   KEY(sortChildren)              \
@@ -268,6 +277,7 @@ namespace darg
   KEY(stopHover)                 \
   KEY(stopMouse)                 \
   KEY(subPixel)                  \
+  KEY(t)                         \
   KEY(tagsTable)                 \
   KEY(target)                    \
   KEY(targetSize)                \
@@ -282,6 +292,7 @@ namespace darg
   KEY(to)                        \
   KEY(touchHoldTime)             \
   KEY(touchMarginPriority)       \
+  KEY(touchPadGestures)          \
   KEY(transform)                 \
   KEY(transitions)               \
   KEY(translate)                 \
@@ -302,11 +313,29 @@ namespace darg
   KEY(w)                         \
   KEY(waitForChildrenFadeOut)    \
   KEY(watch)                     \
+  KEY(wheelScrollRemainder)      \
+  KEY(x)                         \
   KEY(xmbNode)                   \
+  KEY(y)                         \
   KEY(zOrder)
 
 
 // ^ Please keep this list sorted alphabetically for easier navigation
+
+// Keep sorted; constraint: ':' keeps them apart from property overrides
+#define DARG_STORAGE_KEYS_LIST                           \
+  STORAGE_KEY(browserData, "browser:data")               \
+  STORAGE_KEY(btnData, "btn:data")                       \
+  STORAGE_KEY(gestureData, "gesture:data")               \
+  STORAGE_KEY(marqueeData, "marquee:data")               \
+  STORAGE_KEY(moveResizeData, "moveresize:data")         \
+  STORAGE_KEY(pannable2TouchData, "pannable2touch:data") \
+  STORAGE_KEY(pannableData, "pannable:data")             \
+  STORAGE_KEY(parallaxData, "parallax:data")             \
+  STORAGE_KEY(pieMenuData, "pie_menu:data")              \
+  STORAGE_KEY(sizeTransData, "size_trans:data")          \
+  STORAGE_KEY(sliderData, "slider:data")                 \
+  STORAGE_KEY(virtualListData, "virtualList:data")
 
 class StringKeys
 {
@@ -314,6 +343,9 @@ public:
 #define KEY(x) Sqrat::Object x;
   DARG_STRING_KEYS_LIST
 #undef KEY
+#define STORAGE_KEY(name, str) Sqrat::Object name;
+  DARG_STORAGE_KEYS_LIST
+#undef STORAGE_KEY
 
 public:
   void init(HSQUIRRELVM vm);

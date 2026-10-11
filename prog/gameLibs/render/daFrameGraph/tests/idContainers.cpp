@@ -49,7 +49,7 @@ TEST_CASE("Fill up", "[idSparseIndexedMapping]")
     ++i;
   }
 
-  for (auto [i, v] : mapping.enumerate())
+  for (auto &&[i, v] : mapping.enumerate())
     REQUIRE(v == static_cast<uint32_t>(i) * 10);
 }
 
@@ -255,7 +255,7 @@ TEST_CASE("Iterate with holes", "[idSparseIndexedMapping]")
   SECTION("Pairs")
   {
     dag::Vector<bool> found(itemCount, false);
-    for (auto [k, v] : mapping.enumerate())
+    for (auto &&[k, v] : mapping.enumerate())
       found[static_cast<uint32_t>(k)] = true;
 
     for (IdType i : IdRange<IdType>(itemCount))

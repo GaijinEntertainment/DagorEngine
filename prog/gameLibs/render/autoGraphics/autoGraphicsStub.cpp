@@ -13,7 +13,11 @@ bool should_use_upscaling_method(IPoint2 /* rendering_resolution */) { return fa
 
 namespace auto_resolution
 {
-DataBlock get_antialiasing_settings(const char * /* antialiasing_method */, IPoint2 /* rendering_resolution */) { return {}; }
+DataBlock get_antialiasing_settings(const char * /* antialiasing_method */, IPoint2 /* rendering_resolution */,
+  IPoint2 /* output_resolution */)
+{
+  return {};
+}
 } // namespace auto_resolution
 
 namespace auto_quality_preset

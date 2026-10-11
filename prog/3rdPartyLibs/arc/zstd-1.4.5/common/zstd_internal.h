@@ -19,7 +19,9 @@
 /*-*************************************
 *  Dependencies
 ***************************************/
-#ifdef __aarch64__
+// Gaijin change
+#if defined(__aarch64__) || defined(_M_ARM64EC)
+// ~Gaijin change
 #include <arm_neon.h>
 #endif
 #include "compiler.h"
@@ -228,7 +230,9 @@ static const U32 OF_defaultNormLog = OF_DEFAULTNORMLOG;
 *  Shared functions to include for inlining
 *********************************************/
 static void ZSTD_copy8(void* dst, const void* src) {
-#ifdef __aarch64__
+// Gaijin change
+#if defined(__aarch64__) || defined(_M_ARM64EC)
+// ~Gaijin change
     vst1_u8((uint8_t*)dst, vld1_u8((const uint8_t*)src));
 #else
     memcpy(dst, src, 8);
@@ -237,7 +241,9 @@ static void ZSTD_copy8(void* dst, const void* src) {
 
 #define COPY8(d,s) { ZSTD_copy8(d,s); d+=8; s+=8; }
 static void ZSTD_copy16(void* dst, const void* src) {
-#ifdef __aarch64__
+// Gaijin change
+#if defined(__aarch64__) || defined(_M_ARM64EC)
+// ~Gaijin change
     vst1q_u8((uint8_t*)dst, vld1q_u8((const uint8_t*)src));
 #else
     memcpy(dst, src, 16);
@@ -284,7 +290,9 @@ void ZSTD_wildcopy(void* dst, const void* src, ptrdiff_t length, ZSTD_overlap_e 
          * one COPY16() in the first call. Then, do two calls per loop since
          * at that point it is more likely to have a high trip count.
          */
-#ifndef __aarch64__
+// Gaijin change
+#if !defined(__aarch64__) && !defined(_M_ARM64EC)
+// ~Gaijin change
         do {
             COPY16(op, ip);
         }

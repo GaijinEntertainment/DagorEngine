@@ -14,7 +14,7 @@
 #include <render/preIntegratedGF.h>
 #include <render/scopeRenderTarget.h>
 #include <render/viewVecs.h>
-#include <render/ssao.h>
+#include <ssao_public.h>
 #include <render/downsampleDepth.h>
 #include <screenSpaceReflections_api.h>
 #include <render/set_reprojection.h>
@@ -323,8 +323,7 @@ private:
     // SSR consumes the depth pyramid and G-buffer normals/roughness; writes ssr_target
     // shader global internally. Own textures keyed at half-res; the "_landscape_preview"
     // tag keeps the managed texture name distinct from the host dynRenderSrv's SSR.
-    ssr =
-      eastl::make_unique<ScreenSpaceReflections>(halfW, halfH, 1, 0, SSRQuality::Low, SSRFlag::CreateTextures, "_landscape_preview");
+    ssr = eastl::make_unique<ScreenSpaceReflections>(halfW, halfH, 1, 0, SSRQuality::Low, /*own_textures*/ true, "_landscape_preview");
 
     int renderingResVarId = get_shader_variable_id("rendering_res", true);
     if (renderingResVarId >= 0)

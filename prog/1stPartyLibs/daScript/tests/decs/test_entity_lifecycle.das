@@ -11,6 +11,7 @@ require dastest/testing_boost public
 def test_entity_id_uniqueness(t : T?) {
     restart()
     var ids : array<EntityId>
+    ids |> reserve(10)
     for (i in range(10)) {
         let eid = create_entity() @(eid, cmp) {
             cmp.value := i
@@ -34,7 +35,7 @@ def test_entity_id_uniqueness(t : T?) {
 def test_invalid_entity_id(t : T?) {
     restart()
     t |> run("default is invalid") @(t : T?) {
-        var eid : EntityId
+        let eid : EntityId
         t |> equal(eid, INVALID_ENTITY_ID)
     }
     t |> run("invalid entity id equality") @(t : T?) {

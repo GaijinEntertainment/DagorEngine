@@ -83,7 +83,7 @@ namespace das {
             if (!aT) {
                 auto bT = nameToBasicType(decl->alias);
                 if (bT != Type::none) {
-                    aT = new TypeDecl(bT);
+                    aT = new TypeDecl(bT, decl->at);
                 }
             }
             if (!aT) {
@@ -367,16 +367,7 @@ namespace das {
                 bool isPrivate = missFn->privateFunction && !canCallPrivate(missFn, inWhichModule, thisModule);
                 if (!reportPrivateFunctions && isPrivate)
                     continue;
-                ss << "\t";
-                if (missFn->module && !missFn->module->name.empty() && !(missFn->module->name == "builtin"))
-                    ss << missFn->module->name << "::";
-                ss << describeFunction(missFn);
-                if (missFn->builtIn) {
-                    ss << " // builtin";
-                } else {
-                    ss << " at " << missFn->at.describe();
-                }
-                ss << "\n";
+                ss << "\t" << describeCandidate(missFn) << "\n";
                 if (missFn->name != funcName) {
                     ss << "\t\tname is similar, typo?\n";
                 }
@@ -456,16 +447,7 @@ namespace das {
                 bool isPrivate = missFn->privateFunction && !canCallPrivate(missFn, inWhichModule, thisModule);
                 if (!reportPrivateFunctions && isPrivate)
                     continue;
-                ss << "\t";
-                if (missFn->module && !missFn->module->name.empty() && !(missFn->module->name == "builtin"))
-                    ss << missFn->module->name << "::";
-                ss << describeFunction(missFn);
-                if (missFn->builtIn) {
-                    ss << " // builtin";
-                } else {
-                    ss << " at " << missFn->at.describe();
-                }
-                ss << "\n";
+                ss << "\t" << describeCandidate(missFn) << "\n";
                 if (missFn->name != funcName) {
                     ss << "\t\tname is similar, typo?\n";
                 }
@@ -529,16 +511,7 @@ namespace das {
                 bool isPrivate = missFn->privateFunction && !canCallPrivate(missFn, inWhichModule, thisModule);
                 if (!reportPrivateFunctions && isPrivate)
                     continue;
-                ss << "\t";
-                if (missFn->module && !missFn->module->name.empty() && !(missFn->module->name == "builtin"))
-                    ss << missFn->module->name << "::";
-                ss << describeFunction(missFn);
-                if (missFn->builtIn) {
-                    ss << " // builtin";
-                } else if (missFn->at.line) {
-                    ss << " at " << missFn->at.describe();
-                }
-                ss << "\n";
+                ss << "\t" << describeCandidate(missFn) << "\n";
                 if (reportDetails) {
                     ss << describeMismatchingFunction(missFn, nonNamedTypes, arguments, inferAuto, inferBlocks);
                 }
@@ -608,7 +581,6 @@ namespace das {
             }
             string moduleName, funcName;
             splitTypeName(expr->target, moduleName, funcName);
-            MatchingFunctions result;
             auto inWhichModule = getSearchModule(moduleName);
             auto hFuncName = hash64z(funcName.c_str());
             program->library.foreach ([&](Module *mod) -> bool {
@@ -621,16 +593,7 @@ namespace das {
                             if ( !reportInvisibleFunctions  && !isVisible ) continue;
                             bool isPrivate = missFn->privateFunction && !canCallPrivate(missFn,inWhichModule,thisModule);
                             if ( !reportPrivateFunctions && isPrivate ) continue;
-                            ss << "\t";
-                            if ( missFn->module && !missFn->module->name.empty() && !(missFn->module->name=="builtin") )
-                                ss << missFn->module->name << "::";
-                            ss << describeFunction(missFn);
-                            if ( missFn->builtIn ) {
-                                ss << " // builtin";
-                            } else {
-                                ss << " at " << missFn->at.describe();
-                            }
-                            ss << "\n";
+                            ss << "\t" << describeCandidate(missFn) << "\n";
                             if ( !isVisible ) {
                                 ss << "\t\tmodule " << visM->name << " is not visible directly from ";
                                 if ( inWhichModule->name.empty()) {
@@ -867,6 +830,18 @@ namespace das {
             return true;
         }
         return false;
+    }
+    string InferTypes::describeCandidate(const Function *fun) const {
+        TextWriter ss;
+        if (fun->module && !fun->module->name.empty() && fun->module->name != "builtin")
+            ss << fun->module->name << "::";
+        ss << describeFunction(fun);
+        if (fun->builtIn) {
+            ss << " // builtin";
+        } else if (fun->at.line) {
+            ss << " at " << fun->at.describe();
+        }
+        return ss.str();
     }
     void InferTypes::collectMissingOperators(const string &opN, MatchingFunctions &mf, bool identicalName) {
         auto opName = "_::" + opN;

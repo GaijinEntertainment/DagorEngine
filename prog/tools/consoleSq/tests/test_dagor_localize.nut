@@ -87,6 +87,16 @@ assert(r6 == "Hello world", $"loc param substitution: {r6}")
 let r6plural = loc("definitely/missing/key", "{count} {count=item/items}", {count = 5})
 assert(r6plural == "5 items", $"loc plural form: {r6plural}")
 
+let r6multi = loc("definitely/missing/key", "{a}{a}{b} {a} {{a}} {ab} {c}", {a = "x", b = ""})
+assert(r6multi == "xx x {0}x{1} {0}ab{1} {0}c{1}".subst("{", "}"),
+  $"loc replaces every token, keeps unknown ones: {r6multi}")
+
+let r6grow = loc("definitely/missing/key", "{a}-{a}", {a = "longer than the token"})
+assert(r6grow == "longer than the token-longer than the token", $"loc value longer than the token: {r6grow}")
+
+let r6plural2 = loc("definitely/missing/key", "{n=one} {n=a/b/c}! {n=broken", {n = 1})
+assert(r6plural2 == "one c! {n=broken", $"loc plural forms, unterminated token kept: {r6plural2}")
+
 println("Section 6 PASSED")
 
 

@@ -17,13 +17,17 @@ namespace das {
     DAS_API const char * get_module_file_name ( const char * name, Context * context );
     DAS_API void setCommandLineArguments ( int argc, char * argv[] );
     DAS_API void getCommandLineArguments( Array & arr );
+    DAS_API string commandLineArgumentOccurrences ( const string & flag );    // every `flag` / `flag=...` argument, the value after a bare `flag` included
 
     DAS_API bool is_compiling ( );
     DAS_API bool is_compiling_macros ( );
     DAS_API bool is_standalone_exe ( );
+    DAS_API bool das_is_jit_function ( const Func func );
+    DAS_API bool das_is_aot_function ( const Func func );
     DAS_API uint64_t get_context_share_counter ( Context * context );
 
     DAS_API char * builtin_das_root ( Context * context, LineInfoArg * at );
+    DAS_API char * builtin_executable_path ( Context * context, LineInfoArg * at );
     DAS_API char * builtin_get_das_version ( Context * context, LineInfoArg * at );
     DAS_API void builtin_throw ( char * text, Context * context, LineInfoArg * at );
     DAS_API void builtin_print ( char * text, Context * context, LineInfoArg * at );
@@ -53,7 +57,20 @@ namespace das {
     DAS_API int64_t builtin_table_long_capacity ( const Table & arr );
     DAS_API void builtin_table_clear ( Table & arr, Context * context, LineInfoArg * at );
     DAS_API vec4f builtin_table_reserve ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API uint64_t native_thread_stack_size();
+    DAS_API urange64 native_allocator_stats();
+    DAS_API urange64 native_allocator_extent();
+    DAS_API urange64 context_memory_sizes(Context * context);
+    DAS_API urange64 context_idle_fork_memory(int kind, Context * context);
     DAS_API void heap_stats ( Context & context, uint64_t * bytes );
+    DAS_API bool heap_collect_if_needed(Context * context, LineInfoArg * at);
+    DAS_API urange64 heap_operation_counts(bool strings, Context * context);
+    DAS_API urange64 gc_collection_stats(Context * context);
+    DAS_API urange64 gc_pause_stats(Context * context);
+    DAS_API urange64 gc_reclaimed_stats(Context * context);
+    DAS_API int64_t gc_last_collection_tick(Context * context);
+    DAS_API urange64 gc_allocation_budget(Context * context);
+    DAS_API void set_gc_allocation_budget(uint64_t heapBytes, uint64_t stringBytes, Context * context, LineInfoArg * at);
     DAS_API urange64 heap_allocation_stats ( Context * context );
     DAS_API uint64_t heap_allocation_count ( Context * context );
     DAS_API urange64 string_heap_allocation_stats ( Context * context );
@@ -69,6 +86,7 @@ namespace das {
     DAS_API void string_heap_report ( Context * context, LineInfoArg * info );
     DAS_API bool is_intern_strings ( Context * context );
     DAS_API void heap_collect ( bool stringHeap, bool validate, Context * context, LineInfoArg * info );
+    DAS_API int32_t builtin_frame_position ( Context * context, LineInfoArg * info );
     DAS_API void heap_report ( Context * context, LineInfoArg * info );
     DAS_API void memory_report ( bool errorsOnly, Context * context, LineInfoArg * info );
     DAS_API uint64_t gc_thread_root_count();
@@ -129,6 +147,8 @@ namespace das {
     DAS_API vec4f builtin_scope_free ( Context & context, SimNode_CallBase * call, vec4f * args );
 
     DAS_API void toLog ( int level, const char * text, Context * context, LineInfoArg * at );
+    DAS_API void diagnosticsToStderr();
+    DAS_API bool diagnosticsToFile ( const char * path );
     void toCompilerLog ( const char * text, Context * context, LineInfoArg * at );
 
     DAS_API bool builtin_iterator_first ( Sequence & it, void * data, Context * context, LineInfoArg * at );
@@ -252,6 +272,7 @@ namespace das {
             if ( newCapacity > uint64_t(INT64_MAX) ) newCapacity = uint64_t(INT64_MAX);
             array_reserve(context, arr, newCapacity, stride, at);
         }
+        DAS_ASAN_ANNOTATE_ARRAY(arr, stride, arr.size, newSize);
         arr.size = newSize;
     }
 
@@ -295,8 +316,10 @@ namespace das {
     vec4f _builtin_hash ( Context & context, SimNode_CallBase * call, vec4f * args );
 
     const char * das_get_platform_name();
-    const char * das_get_cross_platform_name();
+    DAS_API const char * das_get_cross_platform_name();
     const char * das_get_architecture_name();
+    DAS_API const char * das_get_target_triple();
+    const char * das_get_target_architecture_name();
     DAS_API bool das_cpu_supports ( const char * feature );
 
     DAS_API char * fmt_i8 ( const char * fmt, int8_t value, Context * context, LineInfoArg * at );

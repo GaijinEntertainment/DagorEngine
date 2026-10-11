@@ -2,11 +2,13 @@
 
 #include <debug/dag_debug.h>
 #include <math/dag_mathBase.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <perfMon/dag_perfTimer2.h>
 #include <util/dag_stdint.h>
 #include <util/dag_finally.h>
 #include <generic/dag_span.h>
+#include <util/dag_string.h>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/vector.h>
@@ -23,18 +25,17 @@
 #include <rnnoise.h>
 
 #include "helpers.h"
-#include "voiceRecorder.h"
+#include "voiceCapture.h"
+#include "voiceFramer.h"
+#include "voiceLoopback.h"
+#include "voiceMetrics.h"
 #include "voiceSourceControl.h"
+#include "voiceSwitchVar.h"
 
-#define VOICE_TRACE_ENABLED 0
-
-#if VOICE_TRACE_ENABLED
-#define TRACE_FRAME(fmt, ...) debug("[VC] " fmt, __VA_ARGS__)
-#else
-#define TRACE_FRAME(...) \
-  {}
-#endif
-
+static VoiceSwitchVar stats_enabled("voice.stats_enabled", false);
+static VoiceSwitchVar test_enabled("voice.test", false, "plays the processed mic back, as SoundSettings::voiceTest does");
+// constraint: the console test plays through one communicator only; for voiceTest of the settings the game makes that choice
+static voicechat::VoiceCommunicator *volatile console_test_owner = nullptr;
 
 namespace voicechat
 {
@@ -43,7 +44,13 @@ class VoiceCommunicatorImpl final : public VoiceCommunicator
 {
 public:
   VoiceCommunicatorImpl(IVoiceSink *sink, SoundSettings const &settings);
-  ~VoiceCommunicatorImpl() = default;
+  // a communicator that sent nothing also reports once, so the log tells an idle sink from one never attached
+  ~VoiceCommunicatorImpl() override
+  {
+    interlocked_compare_exchange_ptr(console_test_owner, (VoiceCommunicator *)nullptr, (VoiceCommunicator *)this);
+    if (syncStatsSwitch())
+      reportSinkStats("communicator removed", true);
+  }
 
   bool init() override;
 
@@ -68,94 +75,130 @@ public:
   void removeVoiceSource(IVoiceSource *source) override;
   void updateSourceVolume(IVoiceSource *source) override;
 
+  MicLevel getMicLevel() const override { return capture.micLevel(); }
+
   void registerThreadIdentity(const thread::Identity &id) override { threadIdentity = &id; };
 
 private:
+  // the creating thread sets the communicator up alone, then hands it to the registered thread
+  bool isOwnerThread() const
+  {
+    return threadIdentity ? thread::Identity::check(threadIdentity) : get_current_thread_id() == creatorThreadId;
+  }
   void updatePlayback(FMOD::System *fmod_sys);
-  void updateRecord(FMOD::System *fmod_sys);
-  void sendToSinks(const int16_t *buf, unsigned int buf_size_samples, int64_t timestampUsec);
+  void publishPlaybackMetrics(int session);
+  void updateRecord();
+  bool isSending() const { return isRecording && soundSettings.micEnabled; }
+  bool isVoiceTest() const { return soundSettings.voiceTest || consoleVoiceTest; }
+  void updateMicWanted() { capture.setMicWanted(isSending() || isVoiceTest()); }
+  void updateVoiceTest();
+  bool syncConsoleTest();
   void sendToRawSinks(const int16_t *buf, unsigned int buf_size_samples, int64_t timestampUsec);
-
-  bool startRecord();
-  void stopRecord();
-
-  int64_t samplesToMcs(int num_samples);
+  // reads voice.stats_enabled for a report; the switch to on drops the frames counted while off
+  bool syncStatsSwitch();
+  void reportSinkStats(const char *reason, bool even_if_idle);
 
 private:
-  FMOD::ChannelGroup *masterChannelGroup = nullptr;
-  dag::RelocatableFixedVector<IVoiceSink *, 2, true> sinks;
+  eastl::vector<VoiceFramer> framers;
   dag::RelocatableFixedVector<IVoiceSink *, 2, true> rawSinks;
   const thread::Identity *threadIdentity = nullptr;
+  const int64_t creatorThreadId = get_current_thread_id();
 
+  // constraint: declared before sourceControlMap, whose control of it must end first
+  eastl::unique_ptr<VoiceLoopback> loopback;
   using VoiceSourceControlPtr = eastl::unique_ptr<VoiceSourceControl>;
   ska::flat_hash_map<IVoiceSource *, VoiceSourceControlPtr> sourceControlMap;
+  eastl::vector<VoiceSourceControl::Metrics> playbackMetrics;
 
   const unsigned int chanSampleRate = 0;
-  unsigned int chanFrameSamples = 0;
-  unsigned int chanFrameBytes = 0;
-  int64_t chanFrameMcs = 0;
 
   SoundSettings soundSettings;
   bool isRecording = false;
   bool isPortAttached = false;
+  bool consoleVoiceTest = false;
 
-  eastl::vector<int16_t> remainderBuf;
-  dag::Span<int16_t> remainderSamplesToSend;
-  int64_t remainderSendDeadline = 0;
-  int64_t lastSentSamplesTime = 0;
-  int64_t lastObtainedSamplesTime = 0;
-  int64_t lastCheckForSamplesTime = 0;
-
-  VoiceRecorder recorder;
+  eastl::vector<int16_t> pcmBuf;
+  eastl::vector<int16_t> rawBuf;
+  VoiceCaptureClient capture;
   DagorRefTimeSource timeSource;
+  int64_t sinkStatsStartUsec = 0;
+  bool statsEnabled = false;
 };
+
+static constexpr int64_t sink_stats_period_usec = 300'000'000;
+static constexpr int loopback_frame_ms = 10;
+static constexpr int loopback_max_queued_ms = 500;
 
 bool VoiceCommunicatorImpl::init()
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
   if (!sndsys::is_inited())
     return false;
-  FMOD::System *fmodSys = sndsys::fmodapi::get_system();
-  G_ASSERT_RETURN(!sinks.empty(), false);
+  G_ASSERT_RETURN(!framers.empty(), false);
+  if (!capture.init(soundSettings))
+    return false;
+  updateMicWanted();
+  updateVoiceTest();
+  return true;
+}
 
-  FMOD_RESULT fmodRes = fmodSys->getMasterChannelGroup(&masterChannelGroup);
-  CHECK_FMOD_RETURN_VAL(fmodRes, "getMasterChannelGroup", false);
+bool VoiceCommunicatorImpl::syncConsoleTest()
+{
+  VoiceCommunicator *self = this;
+  if (!test_enabled.load())
+  {
+    interlocked_compare_exchange_ptr(console_test_owner, (VoiceCommunicator *)nullptr, self);
+    return false;
+  }
+  VoiceCommunicator *owner = interlocked_compare_exchange_ptr(console_test_owner, self, (VoiceCommunicator *)nullptr);
+  return !owner || owner == self;
+}
 
-  return recorder.init(fmodSys, masterChannelGroup);
+void VoiceCommunicatorImpl::updateVoiceTest()
+{
+  if (isVoiceTest() == bool(loopback))
+    return;
+  if (loopback)
+  {
+    removeVoiceSource(loopback.get());
+    loopback.reset();
+    return;
+  }
+  loopback = eastl::make_unique<VoiceLoopback>(chanSampleRate, ms_to_samples(loopback_frame_ms, chanSampleRate),
+    ms_to_samples(loopback_max_queued_ms, chanSampleRate));
+  if (addVoiceSource(loopback.get()))
+    return;
+  logwarn("[VC] the voice test cannot play the mic back");
+  // a later settings update tries again
+  removeVoiceSource(loopback.get());
+  loopback.reset();
 }
 
 VoiceCommunicatorImpl::VoiceCommunicatorImpl(IVoiceSink *sink, SoundSettings const &ss) :
-  soundSettings(ss), chanSampleRate(sink->getSampleRate()), chanFrameSamples(sink->getFrameSamples()), recorder(chanSampleRate)
+  soundSettings(ss), chanSampleRate(sink->getSampleRate()), capture(chanSampleRate)
 {
-  sinks.push_back(sink);
-  chanFrameBytes = chanFrameSamples * sample_size;
-  chanFrameMcs = samplesToMcs(chanFrameSamples);
-  debug("[VC] Voice channel sample rate %uhz, frame of %u samples", chanSampleRate, chanFrameSamples);
-  remainderBuf.resize(chanFrameSamples);
+  framers.emplace_back(*sink);
+  debug("[VC] Voice channel sample rate %uhz, first sink frame of %u samples", chanSampleRate, sink->getFrameSamples());
 }
 
 void VoiceCommunicatorImpl::addVoiceSink(IVoiceSink *sink)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
   G_ASSERT_RETURN(sink, );
   G_ASSERT_RETURN(sink->getSampleRate() == chanSampleRate, );
-  G_ASSERT_RETURN(sink->getFrameSamples() == chanFrameSamples, );
-  sinks.push_back(sink);
+  framers.emplace_back(*sink);
 }
 
 void VoiceCommunicatorImpl::removeVoiceSink(IVoiceSink *sink)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
-  auto it = eastl::find(sinks.begin(), sinks.end(), sink);
-  if (it != sinks.end())
-    sinks.erase(it);
-}
-
-void VoiceCommunicatorImpl::sendToSinks(const int16_t *buf, unsigned int buf_size_samples, int64_t timestampUsec)
-{
-  for (IVoiceSink *sink : sinks)
-    sink->sendAudioFrame(buf, buf_size_samples, timestampUsec);
+  G_ASSERT(isOwnerThread());
+  auto it = eastl::find_if(framers.begin(), framers.end(), [sink](const VoiceFramer &framer) { return framer.getSink() == sink; });
+  if (it == framers.end())
+    return;
+  if (syncStatsSwitch())
+    reportSinkStats(String(0, "sink %p removed", sink), true);
+  framers.erase(it);
 }
 
 void VoiceCommunicatorImpl::sendToRawSinks(const int16_t *buf, unsigned int buf_size_samples, int64_t timestampUsec)
@@ -166,35 +209,40 @@ void VoiceCommunicatorImpl::sendToRawSinks(const int16_t *buf, unsigned int buf_
 
 void VoiceCommunicatorImpl::addRawVoiceSink(IVoiceSink *sink)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
   G_ASSERT_RETURN(sink, );
   G_ASSERT_RETURN(sink->getSampleRate() == chanSampleRate, );
-  G_ASSERT_RETURN(sink->getFrameSamples() == chanFrameSamples, );
   rawSinks.push_back(sink);
 }
 
 void VoiceCommunicatorImpl::removeRawVoiceSink(IVoiceSink *sink)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
   auto it = eastl::find(rawSinks.begin(), rawSinks.end(), sink);
   if (it != rawSinks.end())
     rawSinks.erase(it);
 }
 
-void VoiceCommunicatorImpl::setRawOutputEnabled(bool enabled) { recorder.setRawOutputEnabled(enabled); }
+void VoiceCommunicatorImpl::setRawOutputEnabled(bool enabled) { capture.setRawWanted(enabled); }
 
 bool VoiceCommunicatorImpl::addVoiceSource(IVoiceSource *source)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
   G_ASSERT_RETURN(source, false);
   auto emplaceResult = sourceControlMap.emplace(source, nullptr);
   G_ASSERT_RETURN(emplaceResult.second, false);
 
+  int mixerRate = 0;
+  if (sndsys::is_inited())
+  {
+    FMOD_RESULT fmodRes = sndsys::fmodapi::get_system()->getSoftwareFormat(&mixerRate, nullptr, nullptr);
+    CHECK_FMOD_RETURN_VAL(fmodRes, "getSoftwareFormat", false);
+  }
   VoiceSourceControlPtr &control = emplaceResult.first->second;
-  control = eastl::make_unique<VoiceSourceControl>();
+  control = eastl::make_unique<VoiceSourceControl>(*source, mixerRate);
 
-  if (!control->init(*source, soundSettings.soundEnabled ? soundSettings.playbackVolume : 0.0f))
+  if (!control->init(soundSettings.soundEnabled ? soundSettings.playbackVolume : 0.0f))
   {
     control.reset();
     logwarn("[VC] VoiceSourceControl::init() failed");
@@ -206,7 +254,7 @@ bool VoiceCommunicatorImpl::addVoiceSource(IVoiceSource *source)
 
 void VoiceCommunicatorImpl::removeVoiceSource(IVoiceSource *source)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
   auto it = sourceControlMap.find(source);
   if (it == sourceControlMap.end())
@@ -214,12 +262,14 @@ void VoiceCommunicatorImpl::removeVoiceSource(IVoiceSource *source)
     logwarn("[VC] attempt to remove an unknown voice source");
     return;
   }
+  if (it->second)
+    it->second->stop();
   sourceControlMap.erase(it);
 }
 
 void VoiceCommunicatorImpl::updateSourceVolume(IVoiceSource *source)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
   auto it = sourceControlMap.find(source);
   if (it == sourceControlMap.end())
@@ -239,148 +289,111 @@ void VoiceCommunicatorImpl::updatePlayback(FMOD::System *fmod_sys)
   }
 }
 
-void VoiceCommunicatorImpl::updateRecord(FMOD::System *fmod_sys)
+void VoiceCommunicatorImpl::publishPlaybackMetrics(int session)
 {
-  int64_t curTime = timeSource.getTimeUsec();
-  dag::ConstSpan<int16_t> rawStream;
-  dag::ConstSpan<int16_t> pcmStream = recorder.readMicData(fmod_sys, soundSettings, rawSinks.empty() ? nullptr : &rawStream);
+  playbackMetrics.clear();
+  for (auto &[source, sourceControl] : sourceControlMap)
+    if (sourceControl)
+      playbackMetrics.push_back(sourceControl->metrics(session));
+  metrics::publish_playback(this, session, make_span_const(playbackMetrics));
+}
 
-  // if deadline hit fill remainder with zeroes to full frame and send to voice
-  if (pcmStream.empty())
+void VoiceCommunicatorImpl::updateRecord()
+{
+  const int64_t curTime = timeSource.getTimeUsec();
+  capture.read(pcmBuf, rawBuf);
+  dag::ConstSpan<int16_t> pcmStream = make_span_const(pcmBuf);
+  dag::ConstSpan<int16_t> rawStream = make_span_const(rawBuf);
+
+  if (loopback)
+    loopback->push(pcmStream);
+  // the voice test alone records the mic; the sinks see such a capture as no capture
+  if (!isSending())
+    pcmStream = rawStream = {};
+
+  if (!pcmStream.empty() && !rawStream.empty())
+    sendToRawSinks(rawStream.data(), rawStream.size(), framers.front().streamTimeUsec(curTime));
+
+  for (VoiceFramer &framer : framers)
+    framer.push(pcmStream, curTime);
+}
+
+bool VoiceCommunicatorImpl::syncStatsSwitch()
+{
+  const bool statsOn = are_stats_enabled();
+  if (statsOn && !statsEnabled)
   {
-    if (!remainderSamplesToSend.empty())
-    {
-      if (remainderSendDeadline < curTime)
-      {
-        unsigned remSamplesCnt = remainderSamplesToSend.size();
-        dag::Span<int16_t> zeroBuf = make_span(remainderSamplesToSend.data() + remSamplesCnt, chanFrameSamples - remSamplesCnt);
-        mem_set_0(zeroBuf);
-        TRACE_FRAME("fill remainder %d with %d zeroes and send", remSamplesCnt, zeroBuf.size());
-        sendToSinks(remainderBuf.data(), remainderBuf.size(), lastSentSamplesTime);
-        remainderSamplesToSend.reset();
-        remainderSendDeadline = 0;
-        lastObtainedSamplesTime = 0;
-        lastSentSamplesTime = 0;
-      }
-    }
-    else if (lastObtainedSamplesTime > 0 && lastCheckForSamplesTime > 0)
-    {
-      int64_t checkedIntervalMcs = lastCheckForSamplesTime - lastObtainedSamplesTime;
-      if (checkedIntervalMcs > chanFrameMcs)
-      {
-        lastObtainedSamplesTime = 0;
-        lastSentSamplesTime = 0;
-      }
-    }
+    for (VoiceFramer &framer : framers)
+      framer.takeFramesSent();
+    sinkStatsStartUsec = timeSource.getTimeUsec();
   }
+  statsEnabled = statsOn;
+  return statsOn;
+}
 
-  lastCheckForSamplesTime = curTime;
-
-  if (pcmStream.empty())
-    return;
-
-  if (!lastSentSamplesTime)
-    lastSentSamplesTime = curTime;
-
-  lastObtainedSamplesTime = curTime;
-
-  // Send raw (pre-denoise) audio directly to raw sinks (no remainder framing needed;
-  // the sink's ring buffer absorbs the bounded <=1 frame drift vs processed stream).
-  if (!rawStream.empty())
-    sendToRawSinks(rawStream.data(), rawStream.size(), lastSentSamplesTime);
-
-  // part1. send remainder frame to voice
-  if (!remainderSamplesToSend.empty())
+void VoiceCommunicatorImpl::reportSinkStats(const char *reason, bool even_if_idle)
+{
+  const int64_t now = timeSource.getTimeUsec();
+  const int seconds = (now - sinkStatsStartUsec) / 1000000;
+  sinkStatsStartUsec = now;
+  String sinks;
+  int total = 0;
+  // a sink is named by its address, since a removed sink shifts the positions of the others
+  for (VoiceFramer &framer : framers)
   {
-    unsigned remSamplesCnt = remainderSamplesToSend.size();
-    unsigned remPart2SamplesCnt = eastl::min(chanFrameSamples - remSamplesCnt, pcmStream.size());
-    dag::Span<int16_t> buf2 = make_span(remainderSamplesToSend.data() + remSamplesCnt, remPart2SamplesCnt);
-
-    // we can eliminate this copy if sendAudioFrame accepts two buffers
-    mem_copy_from(buf2, pcmStream.data());
-    remainderSamplesToSend = make_span(remainderBuf.data(), remSamplesCnt + remPart2SamplesCnt);
-    pcmStream = pcmStream.subspan(remPart2SamplesCnt);
-    if (remainderSamplesToSend.size() == chanFrameSamples)
-    {
-      TRACE_FRAME("send remainder frame %d + %d at %ld", remSamplesCnt, remPart2SamplesCnt, lastSentSamplesTime / 1000);
-      sendToSinks(remainderSamplesToSend.data(), remainderSamplesToSend.size(), lastSentSamplesTime);
-      lastSentSamplesTime += chanFrameMcs;
-      remainderSamplesToSend.reset();
-    }
+    const int frames = framer.takeFramesSent();
+    total += frames;
+    sinks.aprintf(0, "%ssink %p %d", sinks.empty() ? "" : ", ", framer.getSink(), frames);
   }
-
-  // part2. send whole frames to voice
-  while (pcmStream.size() >= chanFrameSamples)
-  {
-    TRACE_FRAME("send full frame at %ld", lastSentSamplesTime / 1000);
-    sendToSinks(pcmStream.data(), chanFrameSamples, lastSentSamplesTime);
-    lastSentSamplesTime += chanFrameMcs;
-    pcmStream = pcmStream.subspan(chanFrameSamples);
-  }
-
-  // part3. fill remainder buffer
-  if (!pcmStream.empty())
-  {
-    remainderSamplesToSend = make_span(remainderBuf.data(), pcmStream.size());
-    mem_copy_from(remainderSamplesToSend, pcmStream.data());
-    remainderSendDeadline = lastSentSamplesTime + chanFrameMcs;
-  }
+  if (even_if_idle || total > 0)
+    debug("[VC] sink stats, %s, %d s: frames sent to %s", reason, seconds, sinks.str());
 }
 
 void VoiceCommunicatorImpl::process()
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
   if (!sndsys::is_inited())
     return;
-  FMOD::System *fmodSys = sndsys::fmodapi::get_system();
-  if (isRecording && soundSettings.recordDeviceId >= 0)
+
+  if (syncConsoleTest() != consoleVoiceTest)
   {
-    bool isRealRecording = false;
-    fmodSys->isRecording(soundSettings.recordDeviceId, &isRealRecording);
-    if (!isRealRecording)
-    {
-      stopRecord();
-      if (!startRecord())
-      {
-        // device not connected
-        soundSettings.recordDeviceId = -1;
-        return;
-      }
-    }
+    consoleVoiceTest = !consoleVoiceTest;
+    updateMicWanted();
+    updateVoiceTest();
   }
+  // before the push, so the first line after the switch keeps the frames of this call
+  const bool statsOn = syncStatsSwitch();
+  if (!framers.empty())
+    updateRecord();
 
-  if (!sinks.empty())
-    updateRecord(fmodSys);
+  updatePlayback(sndsys::fmodapi::get_system());
+  if (const int metricsSession = metrics::active_session())
+    publishPlaybackMetrics(metricsSession);
 
-  updatePlayback(fmodSys);
+  if (statsOn && timeSource.getTimeUsec() - sinkStatsStartUsec >= sink_stats_period_usec)
+    reportSinkStats("periodic", false);
 }
 
 void VoiceCommunicatorImpl::enableRecording()
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
-  if (!isRecording)
-  {
-    isRecording = true;
-    startRecord();
-  }
+  isRecording = true;
+  updateMicWanted();
 }
 
 void VoiceCommunicatorImpl::disableRecording()
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
-  if (isRecording)
-  {
-    isRecording = false;
-    stopRecord();
-  }
+  isRecording = false;
+  updateMicWanted();
 }
 
 void VoiceCommunicatorImpl::updateSoundSettings(SoundSettings const &settings)
 {
-  G_ASSERT(thread::Identity::check(threadIdentity));
+  G_ASSERT(isOwnerThread());
 
   if (!sndsys::is_inited())
     return;
@@ -397,31 +410,12 @@ void VoiceCommunicatorImpl::updateSoundSettings(SoundSettings const &settings)
   soundSettings.soundEnabled = settings.soundEnabled;
   soundSettings.playbackVolume = settings.playbackVolume;
   soundSettings.recordVolume = settings.recordVolume;
-
-  if (soundSettings.recordDeviceId != settings.recordDeviceId)
-  {
-    stopRecord();
-    soundSettings.recordDeviceId = settings.recordDeviceId;
-    if (isRecording)
-      startRecord();
-  }
+  soundSettings.recordDeviceId = settings.recordDeviceId;
+  soundSettings.voiceTest = settings.voiceTest;
+  capture.updateSettings(soundSettings);
+  updateMicWanted();
+  updateVoiceTest();
 }
-
-bool VoiceCommunicatorImpl::startRecord()
-{
-  if (!sndsys::is_inited() || soundSettings.recordDeviceId < 0)
-    return false;
-  return recorder.startRecord(sndsys::fmodapi::get_system(), soundSettings);
-}
-
-void VoiceCommunicatorImpl::stopRecord()
-{
-  if (!sndsys::is_inited() || soundSettings.recordDeviceId < 0)
-    return;
-  recorder.stopRecord(sndsys::fmodapi::get_system(), soundSettings);
-}
-
-int64_t VoiceCommunicatorImpl::samplesToMcs(int num_samples) { return int64_t(num_samples) * 1000000 / chanSampleRate; }
 
 void VoiceCommunicatorAtomicGuard::init(eastl::unique_ptr<VoiceCommunicator> &&value)
 {
@@ -444,5 +438,7 @@ eastl::unique_ptr<VoiceCommunicator> create_voice_communicator(IVoiceSink *sink,
 {
   return eastl::make_unique<VoiceCommunicatorImpl>(sink, settings);
 }
+
+bool are_stats_enabled() { return stats_enabled.load(); }
 
 } // namespace voicechat

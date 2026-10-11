@@ -19,7 +19,9 @@
 #endif
 
 // GCC 4.9+ and clang 3.8+ support targeting SIMD ISA from individual functions; we use a cpuid-based scalar fallback
-#if !defined(SIMD_SSE) && ((defined(__clang__) && __clang_major__ * 100 + __clang_minor__ >= 308) || (defined(__GNUC__) && __GNUC__ * 100 + __GNUC_MINOR__ >= 409)) && (defined(__i386__) || defined(__x86_64__))
+// Gaijin change
+#if !defined(SIMD_SSE) && ((defined(__clang__) && __clang_major__ * 100 + __clang_minor__ >= 308) || (defined(__GNUC__) && __GNUC__ * 100 + __GNUC_MINOR__ >= 409)) && (defined(__i386__) || (defined(__x86_64__) && !defined(_M_ARM64EC)))
+// ~Gaijin change
 #define SIMD_SSE
 #define SIMD_FALLBACK
 #define SIMD_TARGET __attribute__((target("sse4.1")))

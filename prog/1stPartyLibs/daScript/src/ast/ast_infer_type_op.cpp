@@ -26,7 +26,7 @@ namespace das {
         return false;
     }
 
-    ExpressionPtr InferTypes::tryPromoteConstInt(const ExpressionPtr & expr, const TypeDeclPtr & targetType, bool & rangeError) {
+    ExpressionPtr InferTypes::tryPromoteConstInt(const ExpressionPtr & expr, const TypeDeclPtr & targetType, bool & rangeError, bool requireConstLiteral) {
         rangeError = false;
         if (!expr) return nullptr;
         if (!targetType) return nullptr;
@@ -44,6 +44,7 @@ namespace das {
         }
         if (!constExpr->rtti_isConstant()) return nullptr;
         auto srcConst = static_cast<ExprConst *>(constExpr);
+        if (requireConstLiteral && !srcConst->isConstLiteral) return nullptr;
         int64_t value = 0;
         if (srcConst->baseType == Type::tInt) {
             value = static_cast<int64_t>(static_cast<ExprConstInt *>(srcConst)->getValue());
@@ -145,6 +146,7 @@ namespace das {
             return nullptr;
         }
         newNode->promotedFromInt = true;
+        newNode->isConstLiteral = srcConst->isConstLiteral;
         return newNode;
     }
     ExpressionPtr InferTypes::visit(ExprOp1 *expr) {
@@ -347,6 +349,7 @@ namespace das {
                 if ( !eat->subexpr->type || eat->subexpr->type->isExprType() ) {
                     return nullptr;
                 }
+                if ( eat->no_promotion ) return nullptr;    // a![i] op= v - the write path bypasses too
                 auto complexName = "[]" + expr->name;
                 if (auto atComplex = inferGenericOperator3(complexName, eat->at, eat->subexpr, eat->index, expr->right)) {
                     atComplex->alwaysSafe = eat->alwaysSafe | expr->alwaysSafe;
@@ -356,7 +359,11 @@ namespace das {
                     atGet->alwaysSafe = eat->alwaysSafe | expr->alwaysSafe;
                     auto opRight = new ExprOp2(expr->at, opName, atGet, expr->right);
                     opRight->type = new TypeDecl(*expr->right->type);
-                    if (auto atSet = inferGenericOperator3("[]=", eat->at, eat->subexpr, eat->index, opRight)) {
+                    // the get half already owns subexpr and index; the set half needs its
+                    // own copies, or both operators share one subtree and every later pass
+                    // edits it twice
+                    if (auto atSet = inferGenericOperator3("[]=", eat->at, eat->subexpr->clone(),
+                                                           eat->index->clone(), opRight)) {
                         atSet->alwaysSafe = eat->alwaysSafe | expr->alwaysSafe;
                         removeR2v(atSet);
                         return atSet;
@@ -457,7 +464,7 @@ namespace das {
         // try promoting int literal on either side to match the other side's type
         {
             bool rangeError = false;
-            if (auto promoted = tryPromoteConstInt(expr->right, expr->left->type, rangeError)) {
+            if (auto promoted = tryPromoteConstInt(expr->right, expr->left->type, rangeError, true)) {
                 reportAstChanged();
                 expr->right = promoted;
                 return Visitor::visit(expr);
@@ -466,7 +473,7 @@ namespace das {
                 expr->type = new TypeDecl(); // suppress downstream mismatching_numeric_type
                 return Visitor::visit(expr);
             }
-            if (auto promoted = tryPromoteConstInt(expr->left, expr->right->type, rangeError)) {
+            if (auto promoted = tryPromoteConstInt(expr->left, expr->right->type, rangeError, true)) {
                 reportAstChanged();
                 expr->left = promoted;
                 return Visitor::visit(expr);
@@ -476,25 +483,27 @@ namespace das {
                 return Visitor::visit(expr);
             }
         }
-        // distinct types borrow == and != (language-level, not overridable): lower to a compare
-        // of the underlyings. Both sides must be the SAME distinct type; Foo == int stays an error
-        if ((expr->op == "==" || expr->op == "!=") && expr->left->type->isDistinct() &&
-            expr->left->type->isSameType(*expr->right->type, RefMatters::no, ConstMatters::no, TemporaryMatters::no)) {
-            reportAstChanged();
-            return new ExprOp2(expr->at, expr->op,
-                new ExprPtr2Ref(expr->left->at, expr->left),
-                new ExprPtr2Ref(expr->right->at, expr->right));
-        }
+        // distinct types borrow == and != from the underlying type when no operator is defined for them
+        bool canBorrowDistinct = (expr->op == "==" || expr->op == "!=") && expr->left->type->isDistinct() &&
+            expr->left->type->isSameType(*expr->right->type, RefMatters::no, ConstMatters::no, TemporaryMatters::no);
         auto opName = "_::" + expr->op;
         auto tempCall = new ExprLooksLikeCall(expr->at, opName);
         tempCall->arguments.push_back(expr->left);
         tempCall->arguments.push_back(expr->right);
-        expr->func = inferFunctionCall(tempCall, InferCallError::operatorOp2);
+        auto errorsBeforeLookup = program->errors.size();
+        expr->func = inferFunctionCall(tempCall, canBorrowDistinct ? InferCallError::operatorOp2Borrow : InferCallError::operatorOp2);
         if (opName != tempCall->name) { // this happens when the operator gets instanced
             reportAstChanged();
             auto opCall = new ExprCall(expr->at, tempCall->name);
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
+        }
+        if (!expr->func && canBorrowDistinct && program->errors.size()==errorsBeforeLookup) {
+            gc_free_now(tempCall);
+            reportAstChanged();
+            return new ExprOp2(expr->at, expr->op,
+                new ExprPtr2Ref(expr->left->at, expr->left),
+                new ExprPtr2Ref(expr->right->at, expr->right));
         }
         if (expr->func) {
             if (expr->func->firstArgReturnType) {
@@ -643,7 +652,7 @@ namespace das {
     ExpressionPtr InferTypes::visit(ExprMove *expr) {
         if (expr->right->type && !expr->right->type->isAutoOrAlias() && expr->left->rtti_isAt()) {
             ExprAt *eat = (ExprAt *)(expr->left);
-            if (eat->subexpr->type && !eat->subexpr->type->isExprType()) {
+            if (!eat->no_promotion && eat->subexpr->type && !eat->subexpr->type->isExprType()) {    // a![i] <- v - the write path bypasses too
                 // lets find []<- operator
                 if (auto opAtMove = inferGenericOperator3("[]<-", expr->at, eat->subexpr, eat->index, expr->right)) {
                     opAtMove->alwaysSafe = eat->alwaysSafe | expr->alwaysSafe;
@@ -660,6 +669,11 @@ namespace das {
         }
         if (!expr->left->type || !expr->right->type)
             return Visitor::visit(expr);
+        if (!expr->no_promotion && !expr->right->type->isAutoOrAlias()) {
+            if (auto opMove = inferAssignOperator("<-", expr)) {
+                return opMove;
+            }
+        }
         // infer
         if (!canCopyOrMoveType(expr->left->type, expr->right->type, TemporaryMatters::no, expr->right,
                                "can only move compatible type", CompilationError::cant_move, expr->at)) {
@@ -720,7 +734,7 @@ namespace das {
             pLet->generated = true;
             auto pVar = new Variable();
             pVar->at = expr->left->at;
-            pVar->type = new TypeDecl(Type::autoinfer);
+            pVar->type = new TypeDecl(Type::autoinfer, pVar->at);
             pVar->type->ref = true;
             pVar->name = "_pod_inscope_temp_" + to_string(pVar->at.line) + "_" + to_string(pVar->at.column);
             pVar->init = expr->left->clone();
@@ -730,7 +744,7 @@ namespace das {
             pCall->alwaysSafe = true;
             pCall->arguments.push_back(new ExprVar(expr->at, pVar->name));
             pCall->arguments.push_back(new ExprConstUInt(expr->at, expr->left->type->getSizeOf()));
-            auto pMove = new ExprMove(expr->at, new ExprVar(expr->at, pVar->name), expr->right->clone());
+            auto pMove = new ExprMove(expr->at, new ExprVar(expr->at, pVar->name), expr->right->clone(), expr->no_promotion);
             pMove->podDelete = true;
             pBlock->list.push_back(pLet);
             pBlock->list.push_back(pCall);
@@ -746,6 +760,26 @@ namespace das {
         } else {
             return "";
         }
+    }
+    string InferTypes::privateSetterInfo(ExprOp2 *expr) const {
+        if (!verbose || !reportPrivateFunctions) return "";
+        if (!expr->left->rtti_isCall()) return "";
+        auto getter = static_cast<ExprCall *>(expr->left);
+        if (getter->name.compare(0, 2, ".`") != 0 || getter->arguments.size() != 1) return "";
+        vector<TypeDeclPtr> types = { getter->arguments[0]->type, expr->right->type };
+        auto setterName = "_::" + getter->name + "`clone";
+        MatchingFunctions setters, generics;
+        findMatchingFunctionsAndGenerics(setters, generics, setterName, types, false, false);
+        string moduleName, funcName;
+        splitTypeName(setterName, moduleName, funcName);
+        auto inWhichModule = getSearchModule(moduleName);
+        TextWriter ss;
+        for (auto &setter : setters) {
+            if (setter->privateFunction && !canCallPrivate(setter, inWhichModule, thisModule)) {
+                ss << "property setter " << describeCandidate(setter) << " is private\n";
+            }
+        }
+        return ss.str();
     }
     void InferTypes::preVisit(ExprCopy *expr) {
         Visitor::preVisit(expr);
@@ -763,6 +797,44 @@ namespace das {
             }
         }
         markNoDiscard(expr->right);
+    }
+    // src/ast/ARCHITECTURE_INFER.md#assign-operator-lookup
+    static bool assignOperandResolved(const ExpressionPtr &side) {
+        return side->type && !side->type->isAutoOrAlias() && !side->type->isVoid() && !side->type->isExprType();
+    }
+    static bool assignOperandsResolved(const ExprOp2 *expr) {
+        return assignOperandResolved(expr->left) && assignOperandResolved(expr->right);
+    }
+    ExpressionPtr InferTypes::inferAssignOperator(const string &opName, ExprOp2 *expr) {
+        if (!assignOperandsResolved(expr)) return nullptr;
+        if (!program->library.hasFunctionOrGenericNamed(opName)) return nullptr;
+        auto qualifiedName = "_::" + opName;
+        auto tempCall = new ExprLooksLikeCall(expr->at, qualifiedName);
+        tempCall->arguments.push_back(expr->left);
+        tempCall->arguments.push_back(expr->right);
+        auto ffunc = inferFunctionCall(tempCall, InferCallError::tryOperator);
+        if (ffunc || qualifiedName != tempCall->name) {
+            reportAstChanged();
+            auto opCall = new ExprCall(expr->at, tempCall->name);
+            opCall->alwaysSafe = expr->alwaysSafe;
+            opCall->arguments = das::move(tempCall->arguments);
+            return opCall;
+        }
+        gc_free_now(tempCall);
+        return nullptr;
+    }
+    // src/ast/ARCHITECTURE_INFER.md#assign-operator-lookup
+    bool InferTypes::userCloneReplacesBuiltin(ExprClone *expr) const {
+        MatchingFunctions fns, generics;
+        vector<TypeDeclPtr> argTypes = { expr->left->type, expr->right->type };
+        findMatchingFunctionsAndGenerics(fns, generics, "_::clone", argTypes, false, true);
+        for (auto & list : { &fns, &generics }) {
+            for (auto & fn : *list) {
+                const bool builtinClone = fn->builtIn || fn->generated || fn->module->name == "$" || fn->module->name == "builtin";
+                if (!builtinClone) return true;
+            }
+        }
+        return false;
     }
     ExpressionPtr InferTypes::visit(ExprCopy *expr) {
         if (auto nExpr = promoteAssignmentToProperty(expr)) {
@@ -784,11 +856,16 @@ namespace das {
                 return Visitor::visit(expr);
             }
         }
+        if (!expr->no_promotion) {
+            if (auto opCopy = inferAssignOperator("=", expr)) {
+                return opCopy;
+            }
+        }
         // infer
         if (!canCopyOrMoveType(expr->left->type, expr->right->type, TemporaryMatters::no, expr->right,
                                "can only copy compatible type", CompilationError::cant_copy, expr->at)) {
         } else if (!expr->left->type->isRef()) {
-            error("can only copy to a reference" + copyErrorInfo(expr), "", "",
+            error("can only copy to a reference" + copyErrorInfo(expr), privateSetterInfo(expr), "",
                   expr->at, CompilationError::cant_copy);
         } else if (!expr->allowConstantLValue && expr->left->type->constant) {
             error("can't write to a constant value" + copyErrorInfo(expr), "", "",
@@ -805,7 +882,7 @@ namespace das {
                   "", "use move (<-) or clone (:=) instead", expr->at, CompilationError::cant_type);
             if (canRelaxAssign(expr->right)) {
                 reportAstChanged();
-                return new ExprMove(expr->at, expr->left->clone(), expr->right->clone());
+                return new ExprMove(expr->at, expr->left->clone(), expr->right->clone(), expr->no_promotion);
             }
         }
         expr->type = new TypeDecl(); // we return nothing
@@ -868,6 +945,7 @@ namespace das {
                 }
             } else if (expr->left->rtti_isAt()) {
                 ExprAt *eat = (ExprAt *)(expr->left);
+                if ( eat->no_promotion ) return nullptr;    // a![i] = v - the write path bypasses too
                 // lets find []= operator
                 auto opName = "[]" + expr->name;
                 if (auto opAtEq = inferGenericOperator3(opName, expr->at, eat->subexpr, eat->index, expr->right)) {
@@ -910,23 +988,26 @@ namespace das {
             }
         }
         // lets infer clone call (and instance generic if need be)
-        auto opName = "_::clone";
-        auto tempCall = new ExprLooksLikeCall(expr->at, opName);
-        tempCall->arguments.push_back(expr->left);
-        tempCall->arguments.push_back(expr->right);
-        expr->func = inferFunctionCall(tempCall, InferCallError::tryOperator);
-        if (expr->func || opName != tempCall->name) { // this happens when the clone gets instanced
-            reportAstChanged();
-            auto opCall = new ExprCall(expr->at, tempCall->name);
-            opCall->arguments = das::move(tempCall->arguments);
-            return opCall;
+        bool rawCloneOfCopyable = false;
+        if (expr->no_promotion && expr->left->type && expr->right->type && userCloneReplacesBuiltin(expr)) {
+            rawCloneOfCopyable = expr->left->type->canCopy(expr->right->type->isTemp() || multiContext);
+            if (!rawCloneOfCopyable) {
+                error("raw clone !:= of " + describeType(expr->left->type) + ": an operator := on this pair replaces its built-in clone, and nothing else can clone it; clone the fields instead", "", "",
+                      expr->at, CompilationError::cant_clone);
+                return Visitor::visit(expr);
+            }
+        }
+        if (!rawCloneOfCopyable) {
+            if (auto opClone = inferAssignOperator("clone", expr)) {
+                return opClone;
+            }
         }
         // infer
         if (!isSameSmartPtrType(expr->left->type, expr->right->type, true)) {
             error("can only clone the same type " + describeType(expr->left->type) + " vs " + describeType(expr->right->type), "", "",
                   expr->at, CompilationError::mismatching_clone_type);
         } else if (!expr->left->type->isRef()) {
-            error("can only clone to a reference", "", "",
+            error("can only clone to a reference", privateSetterInfo(expr), "",
                   expr->at, CompilationError::cant_clone);
         } else if (expr->left->type->constant) {
             error("can't write to a constant value " + expr->left->describe(), "type " + describeType(expr->left->type), "",
@@ -946,7 +1027,9 @@ namespace das {
                 reportAstChanged();
                 auto cloneFn = new ExprCall(expr->at, "clone_string");
                 cloneFn->arguments.push_back(expr->right->clone());
-                return new ExprCopy(expr->at, expr->left->clone(), cloneFn);
+                auto eCopy = new ExprCopy(expr->at, expr->left->clone(), cloneFn);
+                eCopy->no_promotion = expr->no_promotion;
+                return eCopy;
             } else if (cloneType->isPointer() && cloneType->smartPtr) {
                 if ( !cloneType->firstType || !cloneType->firstType->annotation ) {
                     error("can only clone smart pointer to handled type", "", "",
@@ -978,6 +1061,7 @@ namespace das {
                 reportAstChanged();
                 auto eCopy = new ExprCopy(expr->at, expr->left->clone(), expr->right->clone());
                 eCopy->allowCopyTemp = true;
+                eCopy->no_promotion = expr->no_promotion;
                 return eCopy;
             } else if (cloneType->isGoodArrayType() || cloneType->isGoodTableType()) {
                 reportAstChanged();
@@ -1058,19 +1142,6 @@ namespace das {
         Visitor::preVisit(expr);
         if (func)
             func->hasTryRecover = true;
-    }
-    ExpressionPtr InferTypes::visit(ExprTryCatch *expr) {
-        if (jitEnabled()) {
-            auto tryBlock = new ExprMakeBlock(expr->try_block->at, expr->try_block);
-            ((ExprBlock *)tryBlock->block)->returnType = new TypeDecl(Type::autoinfer);
-            auto catchBlock = new ExprMakeBlock(expr->catch_block->at, expr->catch_block);
-            ((ExprBlock *)catchBlock->block)->returnType = new TypeDecl(Type::autoinfer);
-            auto ccall = new ExprCall(expr->at, "builtin_try_recover");
-            ccall->arguments.push_back(tryBlock);
-            ccall->arguments.push_back(catchBlock);
-            return ccall;
-        }
-        return Visitor::visit(expr);
     }
 
 }

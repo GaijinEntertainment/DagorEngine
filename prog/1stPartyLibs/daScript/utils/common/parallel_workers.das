@@ -19,12 +19,6 @@ require math
 require strings
 
 
-// Below this many work items, the daslang startup cost dominates over
-// parallel speedup. Tuned for detect-dupe's per-file compile cost;
-// re-validate if a tool with cheaper-per-item work adopts this module.
-let private PARALLEL_THRESHOLD = 16
-
-
 struct public ChunkResult {
     index : int
     exit_code : int
@@ -32,21 +26,24 @@ struct public ChunkResult {
 }
 
 
-// Decide whether parallel fan-out is worthwhile. Callers should fall
-// back to a serial in-process loop when this returns false (or when
-// workers_setting == 1 explicitly).
-def public should_parallelize(n_items : int; workers_setting : int) : bool {
+// Below `threshold` items the child processes' startup outweighs the split; the default
+// suits a per-item compile (utils/lint), and a tool whose item is a bare parse passes its
+// own measured break-even. Callers fall back to a serial in-process loop when this
+// returns false, and `workers_setting == 1` is always serial.
+def public should_parallelize(n_items : int; workers_setting : int; threshold : int = 16) : bool {
     return false if (workers_setting == 1)
-    return n_items >= PARALLEL_THRESHOLD
+    return n_items >= threshold
 }
 
 
-// Map `workers_setting` to an actual worker count. 0 => hardware
-// threads. Clamps to [1, n_items].
+// Auto ceiling: a worker is a whole daslang process compiling its own module graph - one per core costs memory, not time.
+let public MAX_AUTO_WORKERS = 16
+
+// 0 means the box's physical cores capped at MAX_AUTO_WORKERS - get_total_hw_threads is the jobque's worker count, not the box.
 def public compute_worker_count(n_items : int; workers_setting : int) : int {
     var w = workers_setting
     if (w == 0) {
-        w = get_total_hw_threads()
+        w = min(get_total_hw_cores(), MAX_AUTO_WORKERS)
         if (w < 1) {
             w = 1
         }

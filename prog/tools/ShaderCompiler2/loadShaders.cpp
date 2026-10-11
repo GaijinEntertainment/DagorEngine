@@ -316,6 +316,11 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
   out_ctx.samplers().emplaceSamplers(eastl::move(shaders.static_samplers), eastl::move(shaders.immutable_samplers));
 
   out_ctx.blocks().link(shaders.state_blocks, {}, {});
+  const RenderPassLinkTables rpTbls = link_render_pass_tables(shaders, out_ctx);
+  for (int i = 0; i < rpTbls.passes.size(); ++i)
+    G_ASSERT(rpTbls.passes[i] == i);
+  for (int i = 0; i < rpTbls.groups.size(); ++i)
+    G_ASSERT(rpTbls.groups[i] == i);
 
   out_ctx.cppStcode().dynamicRoutineHashes = eastl::move(shaders.dynamicCppcodeHashes);
   out_ctx.cppStcode().staticRoutineHashes = eastl::move(shaders.staticCppcodeHashes);

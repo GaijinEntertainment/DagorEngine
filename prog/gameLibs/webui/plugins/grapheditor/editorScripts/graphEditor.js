@@ -1012,6 +1012,7 @@ function GraphEditor()
   this.lastMouseY = 100;
 
   this.changedTimerId = null;
+  this.saveGraphError = null;
 
   this.elems = [];
   this.edges = [];
@@ -1390,6 +1391,15 @@ function GraphEditor()
     return res;
   }
 
+  this.getSubgraphPinTargets = function(descPin)
+  {
+    if (descPin.subgraphPins)
+      return descPin.subgraphPins;
+
+    return descPin.subgraphElem !== undefined
+      ? [{elem: descPin.subgraphElem, pin: descPin.subgraphPin, uid: descPin.subgraphPinUid}] : [];
+  }
+
   this.getOppositeConnection = function(edgeIndex, elemIndex)
   {
     var e = this.edges[edgeIndex];
@@ -1418,37 +1428,20 @@ function GraphEditor()
       return null;
   }
 
+  this.hideSingleConnectionAt = function(elem, pin)
+  {
+    if (!this.elems[elem] || !this.elems[elem].desc.pins[pin] || !this.elems[elem].desc.pins[pin].singleConnect)
+      return;
+
+    var idx = this.findConnection(elem, pin);
+    if (idx >= 0)
+      this.edges[idx].hidden = true;
+  }
+
   this.hideSingleConnections = function(elemFrom, pinFrom, elemTo, pinTo)
   {
-    var res = false;
-
-    if (this.elems[elemFrom] && this.elems[elemFrom].desc.pins.length <= pinFrom)
-      return;
-
-    if (this.elems[elemFrom] && this.elems[elemFrom].desc.pins[pinFrom].singleConnect)
-    {
-      var idx = this.findConnection(elemFrom, pinFrom);
-      if (idx >= 0)
-      {
-        this.edges[idx].hidden = true;
-        res = true;
-      }
-    }
-
-    if (this.elems[elemTo] && this.elems[elemTo].desc.pins.length <= pinTo)
-      return;
-
-    if (this.elems[elemTo] && this.elems[elemTo].desc.pins[pinTo].singleConnect)
-    {
-      var idx = this.findConnection(elemTo, pinTo);
-      if (idx >= 0)
-      {
-        this.edges[idx].hidden = true;
-        res = true;
-      }
-    }
-
-    return res;
+    this.hideSingleConnectionAt(elemFrom, pinFrom);
+    this.hideSingleConnectionAt(elemTo, pinTo);
   }
 
   this.killHiddenConnections = function()
@@ -3177,7 +3170,9 @@ function GraphEditor()
       for (var i = 0; i < editor.elems.length; i++)
       {
         var e = editor.elems[i];
-        if (!e || !e.desc.isExternal || e.desc.pins.length != 1 || !leaveCond(e))
+        // a boundary marker is external so that its name reaches the shader, but two boundaries are
+        // two inputs whatever they are called, so they never merge
+        if (!e || !e.desc.isExternal || e.desc.inOutMarker || e.desc.pins.length != 1 || !leaveCond(e))
           continue;
 
         var hash = hasher(e);
@@ -3979,6 +3974,8 @@ function GraphEditor()
     var idx = this.addElem(cx, cy, desc, -1);
     var newElem = this.elems[idx];
 
+    var reconnected = {};
+
     for (var i = 0; i < this.edges.length; i++)
     {
       var c = this.edges[i];
@@ -3987,32 +3984,37 @@ function GraphEditor()
 
       if (this.elems[c.elemTo]._toSubgraph != this.elems[c.elemFrom]._toSubgraph)
       {
-        if (this.elems[c.elemTo]._toSubgraph)
+        var toInside = this.elems[c.elemTo]._toSubgraph;
+        var insideElem = toInside ? c.elemTo : c.elemFrom;
+        var insidePin = toInside ? c.pinTo : c.pinFrom;
+        var outside = this.getOppositeConnection(i, insideElem);
+
+        for (var j = 0; j < newElem.desc.pins.length; j++)
         {
-          for (var j = 0; j < newElem.desc.pins.length; j++)
-          {
-            var p = newElem.desc.pins[j];
-            if (p.subgraphElem === c.elemTo && p.subgraphPin === c.pinTo)
+          var targets = this.getSubgraphPinTargets(newElem.desc.pins[j]);
+          var matched = false;
+          for (var k = 0; k < targets.length; k++)
+            if (targets[k].elem === insideElem && targets[k].pin === insidePin)
             {
-              this.addConnection(c.elemFrom, c.pinFrom, idx, j, -1, null, null);
+              var key = outside.elem + ":" + outside.pin + ":" + j;
+              if (!reconnected[key])
+              {
+                reconnected[key] = true;
+                // only the new node's pin may lose a wire here; the crossing edge dies with its element
+                this.hideSingleConnectionAt(idx, j);
+                this.addConnectionOnLoad(outside.elem, outside.pin, idx, j, -1, null, null);
+              }
+              matched = true;
               break;
             }
-          }
-        }
-        else if (this.elems[c.elemFrom]._toSubgraph)
-        {
-          for (var j = 0; j < newElem.desc.pins.length; j++)
-          {
-            var p = newElem.desc.pins[j];
-            if (p.subgraphElem === c.elemFrom && p.subgraphPin === c.pinFrom)
-            {
-              this.addConnection(c.elemTo, c.pinTo, idx, j, -1, null, null);
-              break;
-            }
-          }
+
+          if (matched)
+            break;
         }
       }
     }
+
+    this.killHiddenConnections();
 
     for (var i = this.elems.length - 1; i >= 0; i--)
     {
@@ -4329,7 +4331,8 @@ function GraphEditor()
                 for (var k = 0; k < conns.length; k++)
                 {
                   var opp = this.getOppositeConnection(conns[k], i);
-                  subgraphPins.push({elem: opp.elem, pin: opp.pin, uid: (e.desc.pins[opp.pin] ? e.desc.pins[opp.pin].uid : undefined) });
+                  var oppPin = this.elems[opp.elem] ? this.elems[opp.elem].desc.pins[opp.pin] : null;
+                  subgraphPins.push({elem: opp.elem, pin: opp.pin, uid: oppPin ? oppPin.uid : undefined});
                 }
               }
 
@@ -4380,6 +4383,7 @@ function GraphEditor()
         {
           var makeExternal = false;
           var createSubgraphNode = true;
+          var markerElem = undefined;
 
           var connectionName = e.getPinComment(j);
 
@@ -4410,6 +4414,7 @@ function GraphEditor()
               {
                 makeExternal = true;
                 createSubgraphNode = false;
+                markerElem = oppositeElem;
                 if (this.elems[oppositeElem].propValues[0].trim().length > 0)
                 {
                   connectionName = this.elems[oppositeElem].propValues[0].trim();
@@ -4437,7 +4442,7 @@ function GraphEditor()
               expectedDescName = "subgraph out";
               graphDesc = nodeDescriptions.findDescriptionByName("subgraph out");
             }
-            else if (p.role === "in")
+            else if (p.role === "in" || p.role === "ctrl")
             {
               var typeName = e.pinTypes[j][0];
               graphDesc = nodeDescriptions.findDescriptionByName("subgraph in: " + typeName);
@@ -4518,17 +4523,22 @@ function GraphEditor()
             var group = p.typeGroup;
             var singleType = group && graph.elems[i].groupTypes ? graph.elems[i].groupTypes[group] : null;
 
+            var marker = this.elems[markerElem];
+            if (marker && marker.pinTypes[0] && marker.pinTypes[0].length === 1)
+              singleType = marker.pinTypes[0][0];
+
             var externalPin = {
               name: connectionName,
               yPos: overrideY !== null ? overrideY : e.y + j * 0.01,
               uid: "in-out-uid--" + connectionName,
               types: singleType ? [singleType] : e.pinTypes[j].slice(0),
               role: p.role,
-              singleConnect: p.singleConnect,
+              singleConnect: p.role !== "out",
 
               subgraphElem: i,
               subgraphPin: j,
               subgraphPinUid: e.desc.pins[j].uid ? e.desc.pins[j].uid : undefined, // optional
+              markerElem: markerElem,
 
               data: {},
             };
@@ -4572,15 +4582,75 @@ function GraphEditor()
       }
 
 
-      // tie-break on element/pin index: duktape sort is unstable (randomized
-      // qsort), equal yPos must not reorder pins between runs
+      // tie-break on push order: duktape sort is unstable (randomized qsort),
+      // equal yPos must not reorder pins between runs
+      for (var i = 0; i < externals.length; i++)
+        externals[i].sortOrder = i;
+
       externals.sort(function(a, b){
         if (a.yPos !== b.yPos)
           return a.yPos - b.yPos;
-        if (a.subgraphElem !== b.subgraphElem)
-          return a.subgraphElem - b.subgraphElem;
-        return a.subgraphPin - b.subgraphPin;
+        return a.sortOrder - b.sortOrder;
       });
+
+      for (var i = 0; i < externals.length; i++)
+        delete externals[i].sortOrder;
+
+      // constraint: keys on equal uids, so it runs before the pass below renames a repeat
+      for (var i = 0; i < externals.length; i++)
+      {
+        var markerOf = externals[i].markerElem;
+        delete externals[i].markerElem;
+        if (markerOf === undefined)
+          continue;
+
+        var merged = externals[i];
+        var pins = [{elem: merged.subgraphElem, pin: merged.subgraphPin, uid: merged.subgraphPinUid}];
+
+        for (var j = i + 1; j < externals.length; )
+          if (externals[j].markerElem === markerOf &&
+              externals[j].uid === merged.uid &&
+              externals[j].role === merged.role)
+          {
+            pins.push({elem: externals[j].subgraphElem, pin: externals[j].subgraphPin, uid: externals[j].subgraphPinUid});
+            externals.splice(j, 1);
+          }
+          else
+            j++;
+
+        if (pins.length < 2)
+          continue;
+
+        merged.subgraphPins = pins;
+      }
+
+      // an auto-named boundary takes its name from the interior pin, so two interior pins that share a
+      // name give one uid; each member of such a group takes its interior element and pin instead, or
+      // a number where it has no interior pin of its own
+      var uidUses = {};
+      for (var i = 0; i < externals.length; i++)
+        uidUses[externals[i].uid] = (uidUses[externals[i].uid] || 0) + 1;
+
+      for (var i = 0; i < externals.length; i++)
+      {
+        var uid = externals[i].uid;
+        if (uidUses[uid] < 2)
+          continue;
+
+        var owner = this.elems[externals[i].subgraphElem];
+        var suffix = owner ? owner.uid + "-" + externals[i].subgraphPin : null;
+
+        if (!suffix || uidUses[uid + "-" + suffix])
+        {
+          var n = 1;
+          while (uidUses[uid + "-" + n])
+            n++;
+          suffix = n;
+        }
+
+        externals[i].uid = uid + "-" + suffix;
+        uidUses[externals[i].uid] = true;
+      }
 
       graph.description = {
         name: "[[description-name]]",
@@ -5383,7 +5453,10 @@ function GraphEditor()
           if (text.indexOf(">>>>>>") >= 0 && text.indexOf("======") >= 0 && text.indexOf("<<<<<<") >= 0)
             console.log("\nLOOKS LIKE JSON FILE HAS MERGE CONFLICTS\n");
 
-          throw e;
+          console.log("ERROR: cannot parse '" + fileNames + "': " + e);
+          alert("Cannot parse '" + fileNames + "'");
+          finishCb(false);
+          return;
         }
 
 
@@ -5477,6 +5550,8 @@ function GraphEditor()
         }
 
 
+        var rewire = [];
+
         for (var i = 0; i < editor.edges.length; i++)
         {
           var c = editor.edges[i];
@@ -5487,40 +5562,50 @@ function GraphEditor()
           {
             var pinIdx = editor.getConnectionPin(i, explodeId);
             var descPin = explode.desc.pins[pinIdx];
-            if (descPin.subgraphElem !== undefined)
+            var targets = editor.getSubgraphPinTargets(descPin);
+            var opp = editor.getOppositeConnection(i, explodeId);
+            for (var j = 0; j < targets.length; j++)
             {
-              var opp = editor.getOppositeConnection(i, explodeId);
-              editor.addConnectionOnLoad(opp.elem, opp.pin, remap[descPin.subgraphElem], descPin.subgraphPin, -1,
-                null, descPin.subgraphPinUid);
-            }
-            else
-            {
-              if (descPin.subgraphPins)
-              {
-                var opp = editor.getOppositeConnection(i, explodeId);
+              var targetElem = remap[targets[j].elem];
+              var targetPin = targetElem >= 0 && editor.elems[targetElem]
+                ? editor.elems[targetElem].desc.pins[targets[j].pin] : null;
+              if (!targetPin)
+                continue;
 
-                for (var j = 0; j < descPin.subgraphPins.length; j++)
-                {
-                  var p = descPin.subgraphPins[j];
-                  editor.addConnection(opp.elem, opp.pin, remap[p.elem], p.pin, -1, null, p.uid);
-                }
-              }
+              // the parent replaces the driver of an in or control pin; on an out pin it only adds
+              // one more consumer
+              if (targetPin.role === "in" || targetPin.role === "ctrl")
+                editor.hideSingleConnectionAt(targetElem, targets[j].pin);
+
+              rewire.push({from: opp, elem: targetElem, pin: targets[j].pin, uid: targets[j].uid});
             }
 
             c.kill();
           }
         }
 
+        for (var i = 0; i < rewire.length; i++)
+          editor.addConnectionOnLoad(rewire[i].from.elem, rewire[i].from.pin, rewire[i].elem, rewire[i].pin, -1,
+            null, rewire[i].uid);
+
         if (editor.specialSelected === explodeId)
         {
           for (var i = 0; i < explode.desc.pins.length; i++)
           {
             var descPin = explode.desc.pins[i];
-            if (descPin.role === "out" && descPin.subgraphElem != undefined)
-            {
-              editor.specialSelected = remap[descPin.subgraphElem];
-              break;
-            }
+            if (descPin.role !== "out")
+              continue;
+
+            var targets = editor.getSubgraphPinTargets(descPin);
+            if (targets.length === 0)
+              continue;
+
+            var selected = remap[targets[0].elem];
+            if (selected < 0 || !editor.elems[selected])
+              continue;
+
+            editor.specialSelect(selected);
+            break;
           }
         }
 
@@ -5530,11 +5615,24 @@ function GraphEditor()
         editor.propagateTypes();
         editor.updateAllPinColors();
 
-        if (toExplode.length === 0)
-          finishCb(true);
-        else
-          for (var i = 0; i < toExplode.length; i++)
-            editor.explodeSubgraph(toExplode[i], explodeHistory, onfinish);
+        var explodeNested = function(i)
+        {
+          if (i >= toExplode.length)
+          {
+            finishCb(true);
+            return;
+          }
+
+          editor.explodeSubgraph(toExplode[i], explodeHistory, function(ok)
+            {
+              if (ok)
+                explodeNested(i + 1);
+              else
+                finishCb(false);
+            });
+        }
+
+        explodeNested(0);
       },
       fileNames);
   }
@@ -5832,7 +5930,7 @@ function GraphEditor()
               obj.description = editor.lastDesc;
             var buf = JSON.stringify(obj, null, "  ");
             buf = buf.replace("[[generated_graph_hint]]", "/*__INESSENTIAL_CHANGE*/");
-            query("save_graph&" + clientId, null, buf);
+            editor.saveGraph(buf);
           }
           else
           {
@@ -5853,6 +5951,17 @@ function GraphEditor()
 
     if (renderEnabled)
       this.statusElemCount.innerText = this.countElems();
+  }
+
+  this.saveGraph = function(graphStr)
+  {
+    query("save_graph&" + clientId, function(text)
+      {
+        var error = text.indexOf("error:") == 0 ? text : null;
+        if (editor.saveGraphError && !error && lastErrorString == editor.saveGraphError)
+          lastErrorString = "";
+        editor.saveGraphError = error;
+      }, graphStr);
   }
 
   this.setWarningHighlights = function(warnings)
@@ -5897,7 +6006,7 @@ function GraphEditor()
         editor.rollBackAndEndCodegen();
         editor.setWarningHighlights(lastGraphWarnings); // after rollback: parseGraph clears warningUids
 
-        query("save_graph&" + clientId, null, rootBuf);
+        editor.saveGraph(rootBuf);
         query("compile_graph&" + clientId, null, explodedBuf)
       }
     );
@@ -5945,7 +6054,7 @@ function GraphEditor()
         restore();
         editor.setWarningHighlights(lastGraphWarnings);
 
-        query("save_graph&" + clientId, null, permBuf);
+        editor.saveGraph(permBuf);
         query("compile_graph&" + clientId, null, compileBuf);
       }
     );

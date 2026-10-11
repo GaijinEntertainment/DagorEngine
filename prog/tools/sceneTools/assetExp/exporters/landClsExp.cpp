@@ -332,12 +332,13 @@ public:
         if (b.getBlockNameId() == nid_obj_plant_generate)
         {
           const char *densMap = b.getStr("densityMap", NULL);
-          if (!add_asset_ref(other_refs, amgr, densMap, false, false, tifmask_atype, false))
+          if (!densMap)
             continue;
+          add_asset_ref(other_refs, amgr, densMap, false, false, tifmask_atype, true);
 
           if (!cleanup)
             continue;
-          if (DagorAsset *tm_a = other_refs.back().getAsset())
+          if (DagorAsset *tm_a = get_asset_by_name(amgr, densMap, tifmask_atype))
             b.setStr("densityMap", sdkRoot.mkRelPath(tm_a->getTargetFilePath(), tmp_stor));
           else
             b.removeParam("densityMap");

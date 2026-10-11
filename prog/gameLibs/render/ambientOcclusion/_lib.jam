@@ -1,0 +1,4 @@
+if $(HaveRenderer) != no {
+  UseProgLibs += gameLibs/render/ambientOcclusion ;
+}
+AddIncludes += $(Root)/prog/gameLibs/render/ambientOcclusion ;

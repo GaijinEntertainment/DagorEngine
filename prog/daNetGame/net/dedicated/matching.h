@@ -2,9 +2,15 @@
 #pragma once
 
 #include <EASTL/string.h>
+#include <EASTL/vector.h>
 #include <EASTL/unordered_map.h>
 #include <matching/types.h>
 #include <json/json.h>
+
+namespace matching
+{
+class Client;
+}
 
 namespace dedicated_matching
 {
@@ -22,6 +28,8 @@ const Json::Value &get_mode_info();
 const eastl::string &get_room_secret();
 void on_player_team_changed(matching::UserId user_id, int team);
 void player_kick_from_room(matching::UserId user_id);
+// Reports a member the server lost as a leave: no blacklist, so it can rejoin to reconnect.
+void player_remove_from_room(matching::UserId user_id);
 void ban_player_in_room(matching::UserId user_id);
 void leave_room();
 void on_level_loaded();
@@ -30,6 +38,10 @@ const char *get_player_custom_info(matching::UserId uid);
 bool has_player_penalty(matching::UserId uid, const char *penalty);
 matching::RoomId get_current_room_id();
 eastl::string get_current_cluster();
+matching::Client *get_client();
+// Matching client owns these RPCs so reply lifetime follows matching, not the relay ES.
+void request_start_relay(int gen);
+void set_urls(const eastl::vector<eastl::string> &extra_urls, const eastl::string &stun_request, int pub_gen);
 
 const eastl::unordered_map<matching::UserId, Json::Value> &get_session_players();
 

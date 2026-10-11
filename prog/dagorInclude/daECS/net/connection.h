@@ -101,6 +101,7 @@ class Connection : public IConnection
 {
 public:
   typedef eastl::fixed_function<sizeof(void *) * 2, void(Connection &conn, ecs::entity_id_t serverEid)> on_object_constructed_cb_t;
+  typedef dag::FunctionRef<void(Connection &conn, ecs::entity_id_t serverEid) const> on_object_destroyed_cb_t;
 
   Connection(ecs::EntityManager &mgr, ConnectionId id_, scope_query_cb_t &&scope_query = scope_query_cb_t());
   ~Connection();
@@ -138,8 +139,8 @@ public:
                                                                                                // written
   bool readReplicationPacket(const danet::BitStream &bs);
   bool readConstructionPacket(const danet::BitStream &bs, float compression_ratio,
-    const on_object_constructed_cb_t &obj_constructed_cb);                                                    // delayed call
-  bool readDestructionPacket(const danet::BitStream &bs, const on_object_constructed_cb_t &obj_destroyed_cb); // cb called immediately
+    const on_object_constructed_cb_t &obj_constructed_cb);                                           // delayed call
+  bool readDestructionPacket(const danet::BitStream &bs, on_object_destroyed_cb_t obj_destroyed_cb); // cb called immediately
 
   void sendAckedPacket(const danet::BitStream &bs, int cur_time, int timeout_ms, uint8_t channel);
 

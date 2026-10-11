@@ -217,7 +217,7 @@ class StepIrqSoundHandler : public ecs::AnimIrqHandler
     if (it != map.end())
     {
       if (should_play(*mgr, eid, irq_id, p1, p2, p3, it->second.second /*direction*/))
-        mgr->sendEvent(eid, CmdSoundStepIrq(it->second.first));
+        mgr->sendEventImmediate(eid, CmdSoundStepIrq(it->second.first));
     }
     return 0;
   }

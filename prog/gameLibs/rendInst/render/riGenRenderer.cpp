@@ -169,11 +169,11 @@ inline bool updateRiDrawDataAtIdx(RendInstGenData::RtData &rt_data, dag::Vector<
     const auto defaultTransitionLodRange = rt_data.riResLodRange(ri_idx, transitionLodNum, nullptr);
     const auto transitionRange = defaultTransitionLodRange - rt_data.riResLodRange(ri_idx, lastMeshLodNum, nullptr);
     const auto transitionStart = rt_data.get_trees_range(rt_data.rtPoolData[ri_idx]->lodRange[impostorLodNum]) - transitionRange;
-    riDrawData.setCrossDissolveRange(safediv(transitionStart, rendinst::render::lodsShiftDistMul));
+    riDrawData.setCrossDissolveRange(safediv(transitionStart, rendinst::render::distMulInputs.lodsShiftMul));
   }
   if (rt_data.rtPoolData[ri_idx]->hasImpostor())
     rt_data.rtPoolData[ri_idx]->setShadowImpostorBoundingSphere(riDrawData);
-  riDrawData.setOpacity(-deltaRcp, rt_data.transparencyDeltaRcp);
+  riDrawData.setOpacity(-deltaRcp, rt_data.transparencyDeltaRcp, 0.f, RI_CBUFFER_OPACITY__SCALE_BY_RI_DIST_MUL);
   riDrawData.setRandomColors(&rt_data.riColPair[ri_idx * 2]);
   riDrawData.setInstancing(0, vectorsCnt, flags,
     rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rt_data.layerIdx, ri_idx},
@@ -260,7 +260,7 @@ static void addLodInstances(RendInstGenData::RtData &rt_data, const RiGenVisibil
 
       const PackedDrawOrder drawOrder{elem, (unsigned int)stage, draw_order_var_id};
       const auto baseRecord = RiGenRenderRecord(elem.e, dynVarState, INVALID, drawOrder, stage, (uint16_t)elem.vertexData->getStride(),
-        (uint8_t)elem.vertexData->getVbIdx(), INVALID, INVALID, ri_idx, elem.si, elem.numf, elem.baseVertex, elem.numv, elem.numf,
+        (uint8_t)elem.vertexData->getVbIdx(), INVALID, INVALID, ri_idx, elem.si, elem.numf, elem.baseVertex, elem.numv, elem.sv,
         elem.getPrimitive(), RiGenRenderRecord::INVALID, INVALID, meshDebugValue, plodMask & 1);
 
       add_record_cb(baseRecord);
@@ -328,7 +328,7 @@ void RiGenRenderer::addCellVisibleObjects(RendInstGenData::RtData &rt_data, cons
 
   const bool isNormalDecalPass = renderPass == rendinst::RenderPass::Normal && layerFlags == rendinst::LayerFlag::Decals;
   const auto &riResOrder =
-    isNormalDecalPass ? rt_data.riResIdxPerStage[get_layer_index(rendinst::LayerFlag::Decals)] : rt_data.riResOrder;
+    isNormalDecalPass ? rt_data.riResIdxPerStage[get_layer_index(rendinst::LayerFlag::Decals)] : visibility.visiblePools;
 
   for (size_t poolOrder = 0; poolOrder < riResOrder.size(); ++poolOrder)
   {
@@ -543,7 +543,7 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
     if (record.count == 0)
       continue;
 
-    const IPoint2 ofsAndVertexByteStart = {static_cast<int>(record.offset), record.startVertex * record.vstride};
+    const IPoint2 ofsAndVertexByteStart = {static_cast<int>(record.offset), record.baseVertex * record.vstride};
     if (eastl::exchange(curOfsAndVertexByteStart, ofsAndVertexByteStart) != ofsAndVertexByteStart)
       d3d::set_immediate_const(STAGE_VS, (uint32_t *)&ofsAndVertexByteStart.x, 2);
 

@@ -139,13 +139,8 @@ Ptr<MaterialData> MaterialRec::getMaterial() const
 
   for (int ti = 0; ti < MAXMATTEXNUM; ++ti)
   {
-    bool badTex = false;
-
     if (ti < textures.size() && textures[ti])
       ret->mtex[ti] = ::add_managed_texture(String(64, "%s*", textures[ti]->getName()));
-
-    if (badTex)
-      ret->mtex[ti] = BAD_TEXTUREID;
   }
 
   return ret;

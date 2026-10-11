@@ -1,43 +1,33 @@
-function bxor (a,b)
-  local floor = math.floor
-  local r = 0
-  for i = 0, 31 do
-    local x = a / 2 + b / 2
-    if x ~= floor (x) then
-      r = r + 2^i
+local benchmark <const> = require("profile").benchmark
+
+local KEYS <const> = 500000
+local PASSES <const> = 10
+
+local wordList <const> = table.create(KEYS)
+for i = 0, KEYS - 1 do
+  wordList[i + 1] = "_" .. (271828183 ~ (i * 119)) % KEYS
+end
+
+local function maxCount(words)
+  local counts = {}
+  local best = 0
+  for i = 1, #words do
+    local w = words[i]
+    local n = (counts[w] or 0) + 1
+    counts[w] = n
+    if n > best then
+      best = n
     end
-    a = floor (a / 2)
-    b = floor (b / 2)
   end
-  return r
+  return best
 end
 
-local function clear(tab)
-  for k,v in pairs(tab) do tab[k]=nil end--clear
-end
-
-local function dict(tab, src)
-  local max = 0
-  local n = 0
-  for i,l in ipairs(src) do
-    local tabL
-  	if (tab[l]) then tabL = tab[l] + 1; tab[l] = tabL
-  	else n, tab[l], tabL = n + 1, 1,1 end
-  	max = max > tabL and max or tabL
+local function passes()
+  local best = 0
+  for _ = 1, PASSES do
+    best = maxCount(wordList)
   end
-  return max
+  return best
 end
 
-local PASSES = 10
-local tab = {}
-local src = {}
-local n = 500000
-local modn = n
-for i = 1, n do
-    --local num = math.random(1,modn) * 271828183
-    local num = bxor(271828183, i*119)%modn
-    table.insert(src, string.format("_%d", num))
-end
-
-loadfile("profile.lua")()
-io.write(string.format("\"dictionary\", %.8f, 20\n", profile_it(20, function () for r = 1, PASSES do clear(tab); dict(tab, src) end end)))
+benchmark("dictionary", 20, passes)

@@ -111,12 +111,7 @@ def h_mixed(a, b, c : float) : float {
     return sin(a) + cos(b) + sin(c)
 }
 
-var GRID : array<float>
-
-[init]
-def fill_grid {
-    GRID <- [-100.0, -3.5, -1.0, 0.0, 1.0, 2.5, 7.0, 100.0]
-}
+var GRID <- [-100.0, -3.5, -1.0, 0.0, 1.0, 2.5, 7.0, 100.0]
 
 def fapprox(t : T?; a, b : float) {
     let m = max(max(abs(a), abs(b)), 1.0)

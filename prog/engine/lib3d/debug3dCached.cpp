@@ -877,7 +877,7 @@ void draw_cached_debug_solid_box(const mat43f *__restrict tm, const bbox3f *__re
 {
   push_blocks();
   cdld.setStates();
-  static constexpr int MAX_BOXES = 64;
+  static constexpr int MAX_BOXES = 32;
   carray<CachedDebugLinesData::Vertex, 12 * 3 * MAX_BOXES> vertices;
   CachedDebugLinesData::Vertex *vert = vertices.data();
   for (int i = 0; i < vertices.size(); ++i)
@@ -948,9 +948,10 @@ void draw_cached_debug_solid_box(const mat43f *__restrict tm, const bbox3f *__re
       vert = vertices.data();
     }
   }
-  cdld.vertexBuffer->updateData(0, sizeof(*vert) * count * 36, vertices.data(), VBLOCK_DISCARD);
+  const int lastBatchVerts = int(vert - vertices.data());
+  cdld.vertexBuffer->updateData(0, sizeof(*vert) * lastBatchVerts, vertices.data(), VBLOCK_DISCARD);
   d3d::setvsrc(0, cdld.vertexBuffer.getBuf(), sizeof(*vert));
-  d3d::draw(PRIM_TRILIST, 0, (count % MAX_BOXES) * 12);
+  d3d::draw(PRIM_TRILIST, 0, lastBatchVerts / 3);
   d3d::setvsrc(0, nullptr, 0);
   cdld.resetStates();
   pop_blocks();

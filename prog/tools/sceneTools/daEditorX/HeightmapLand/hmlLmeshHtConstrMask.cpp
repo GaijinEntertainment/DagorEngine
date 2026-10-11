@@ -5,7 +5,6 @@
 #include <de3_splineClassData.h>
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
-// #include <sceneRay/dag_sceneRay.h>
 #include <math/dag_bezierPrec.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_debug.h>

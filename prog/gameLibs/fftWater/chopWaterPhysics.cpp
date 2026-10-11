@@ -11,6 +11,7 @@
 #include <math/dag_hlsl_floatx.h>
 #include <fftWater/chop_water_distort_uv.hlsli>
 #include <math/integer/dag_IPoint3.h>
+#include <memory/dag_framemem.h>
 #include <FFT_CPU_Simulation.h>
 
 namespace convar
@@ -247,7 +248,7 @@ int ChopWaterPhysics::getDisplaceData(int destFifo, int start, int count)
   const int totalRowsPerStage = domainsUsed * N;
   float allFifoMaxZLocal = allFifoMaxZ.load();
 
-  SmallTab<uint16_t, MidmemAlloc> tmpLine;
+  SmallTab<uint16_t, framemem_allocator> tmpLine;
   tmpLine.resize(N * 3);
 
   int localStart = start;

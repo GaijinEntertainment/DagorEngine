@@ -3,15 +3,17 @@
 #include "das_scripts.h"
 #include "das_serialization.h"
 #include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <memory/dag_dbgMem.h>
 #include <dasModules/dasAotErrorsLog.h>
-#include <util/dag_finally.h>
 #if _TARGET_PC_WIN
 #include <direct.h> // getcwd
 #elif _TARGET_PC_LINUX || _TARGET_PC_MACOSX
 #include <unistd.h> // getcwd
 #endif
+
+extern bool das_jit_runtime_enabled();
 
 namespace bind_dascript
 {
@@ -62,7 +64,6 @@ bool Scripts::unloadScript(const char *fname, bool strict)
   }
 
   debug("daScript: unload %s", fname);
-  preserveSharedQueries(it->second);
   it->second.unload();
   scripts.erase(it);
 
@@ -108,11 +109,6 @@ void Scripts::unloadTemporaryScript()
 #if DAS_HAS_DIRECTORY_WATCH
 static void ClearSharedModules(const ska::flat_hash_set<eastl::string> &changedFiles)
 {
-  if (enable_das_rtti())
-  {
-    return;
-  }
-
   // Attempt a selective clear instead of killing the entirety of shared modules.
   // To do that, we would build a transitive closure of dependencies and
   // evict only the modules that were affected by the change
@@ -168,14 +164,6 @@ static void ClearSharedModules(const ska::flat_hash_set<eastl::string> &changedF
   }
 }
 #endif
-
-static void ClearSharedModules()
-{
-  if (!enable_das_rtti())
-  {
-    das::Module::ClearSharedModules();
-  }
-}
 
 ReloadResult Scripts::reloadAllChanged(AotMode aot_mode, LogAotErrors log_aot_errors)
 {
@@ -282,7 +270,7 @@ void Scripts::cleanupMemoryUsage()
 {
   freeSourceData();
   das::clearGlobalAotLibrary();
-  ClearSharedModules();
+  das::Module::ClearSharedModules();
 }
 void Scripts::thisThreadDone()
 {
@@ -318,22 +306,6 @@ int Scripts::getPendingQueriesNum(das::ModuleGroup &group) const
   return (int)mgd->unresolvedQueries.size();
 }
 
-void Scripts::storeSharedQueries(das::ModuleGroup &group)
-{
-  ESModuleGroupData *mgd = (ESModuleGroupData *)group.getUserData("es");
-  eastl::erase_if(mgd->unresolvedQueries, [&](QueryData &queryData) {
-    const bool isShared = queryData.desc->shared;
-    if (isShared)
-      sharedQueries.emplace_back(eastl::move(queryData));
-    return isShared;
-  });
-}
-
-void Scripts::preserveSharedQueries(LoadedScript &script)
-{
-  if (script.moduleGroup)
-    storeSharedQueries(*script.moduleGroup);
-}
 static bool contains_all_tags(const ecs::TagsSet &src, const ecs::TagsSet &filter_data)
 {
   for (unsigned tag : src)
@@ -422,7 +394,6 @@ bool Scripts::processLoadedScript(LoadedScript &script, const das::string &fname
 
   ecs::EntityManager *scriptMgr = script.ctx->mgr;
 
-  storeSharedQueries(group);
   script.queries = eastl::move(mgd->unresolvedQueries);
 
   if (scriptMgr)
@@ -711,7 +682,7 @@ void Scripts::gatherDependencies(const das::string &fname, das::smart_ptr<DagFil
     memcpy(buf, realName, fnameExt - realName - 1);
     buf[fnameExt - realName - 1] = 0;
     dd_simplify_fname_c(buf);
-    das::lock_guard<das::recursive_mutex> guard(mutex); // dirsOpened
+    das::lock_guard guard(mutex); // dirsOpened
     if (dirsOpened.find_as((const char *)buf) != dirsOpened.end())
       continue;
     bool hasUpperPath = false;
@@ -790,14 +761,6 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
   DebugPrinter tout;
   auto dummyLibGroup = eastl::make_unique<das::ModuleGroup>();
   processModuleGroupUserData(fname, *dummyLibGroup);
-  // promoted modules keep pointers to these descs
-  FINALLY([&] {
-    if (dummyLibGroup)
-    {
-      das::lock_guard<das::recursive_mutex> guard(mutex);
-      storeSharedQueries(*dummyLibGroup);
-    }
-  });
   das::CodeOfPolicies policies;
   policies.aot = ldr_ctx.aotMode == AotMode::AOT;
   policies.fail_on_lack_of_aot_export = true;
@@ -808,16 +771,10 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
   policies.very_safe_context = ldr_ctx.verySafeContext;
   policies.force_inscope_pod = ldr_ctx.forceInscopePod;
   policies.no_aliasing = true;
-  // ClearSharedModules can't be used with rtti, so we heed to reload shared modules on reload in this case
-  // (it's slower then just clearing them)
-  const bool forceReloadWithRtti = enable_das_rtti() && ldr_ctx.reload;
-  policies.ignore_shared_modules = forceReloadWithRtti;
-  // force rtti to prevent crashes on reload when rtti is enabled in one of the scripts
-  policies.rtti = forceReloadWithRtti;
   policies.strict_unsafe_delete = true;
-#if defined(DAS_LLVM_AOT)
-  policies.jit_enabled = true;
-#endif
+  policies.jit_enabled = das_jit_runtime_enabled();
+  const DataBlock *dgsSettings = ::dgs_get_settings();
+  policies.jit_jit_all_functions = dgsSettings && dgsSettings->getBool("llvm_jit_all_functions", false);
   policies.gen2_make_syntax = ldr_ctx.syntax == DasSyntax::V1_5;
   policies.version_2_syntax = ldr_ctx.syntax == DasSyntax::V2_0;
   policies.heap_size_hint = DAS_INITIAL_HEAP_SIZE;
@@ -828,6 +785,9 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
 
   das::ProgramPtr program;
 
+  if (policies.jit_enabled)
+    access->addExtraModule("just_in_time", das::getDasRoot() + "/daslib/just_in_time.das");
+
   if (enableSerialization && serializationReading)
   {
     program = das::make_smart<das::Program>();
@@ -835,6 +795,8 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
       initDeserializer->thisModuleGroup = dummyLibGroup.get();
     if (initDeserializer && initDeserializer->serializeScript(program))
     {
+      program->access = access;
+      check_deserialized_query_desc_handles(*program, fname.c_str());
       populateDummyLibGroup(program, dummyLibGroup.get());
     }
     else
@@ -865,7 +827,7 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
         logerr("%s", das::reportError(err.at, err.what, err.extra, err.fixme, err.cerr).c_str());
         compileErrorsCount++;
       }
-      das::lock_guard<das::recursive_mutex> guard(mutex); // scripts
+      das::lock_guard guard(mutex); // scripts
       auto it = scripts.find(fname);
       if (it == scripts.end())
       {
@@ -982,10 +944,11 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
 
     if (!script.ctx->persistent)
     {
+      const das::Program *prog = script.program.get();
       script.program->library.foreach(
-        [&fname](das::Module *mod) {
-          mod->globals.foreach([&fname](auto globVar) {
-            if (globVar && globVar->used && !globVar->type->isNoHeapType())
+        [&fname, prog](das::Module *mod) {
+          mod->globals.foreach([&fname, prog](auto globVar) {
+            if (globVar && prog->isUsed(globVar) && !globVar->type->isNoHeapType())
             {
               const auto ignoreMark = globVar->annotation.find("ignore_heap_usage", das::Type::tBool);
               if (ignoreMark == nullptr || !ignoreMark->bValue)
@@ -1015,7 +978,7 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
 #endif
 
 
-    das::lock_guard<das::recursive_mutex> guard(mutex); // scripts
+    das::lock_guard guard(mutex); // scripts
 
     if (!script.ctx->persistent)
     {
@@ -1037,7 +1000,6 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
     if (it != scripts.end())
     {
       debug("daScript: unload %s", fname.c_str());
-      preserveSharedQueries(it->second);
       it->second.unload();
     }
 

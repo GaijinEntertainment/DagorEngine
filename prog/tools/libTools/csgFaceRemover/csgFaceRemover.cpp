@@ -18,7 +18,13 @@
 #define REMOVE_OPEN_WITH_TRACE 1
 
 #if REMOVE_OPEN_WITH_TRACE
-#include <sceneRay/dag_sceneRay.h>
+#include <daBVH/dag_meshBLAS.h>
+#include <daBVH/dag_swBLAS_leaf.h>
+#include <daBVH/dag_swBLAS_ray.h>
+#include <dag/dag_vector.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
+#include <EASTL/sort.h>
 #endif
 
 
@@ -28,139 +34,165 @@ typedef carve_poly_t::mesh_t mesh_t;
 typedef carve::geom::vector<3> vector3;
 typedef carve::math::Matrix matrix;
 #if REMOVE_OPEN_WITH_TRACE
-template <class T>
-__forceinline void swap(T &a, T &b)
+// every point enters one local frame in carve's doubles, so the pack's rounding is the extent's, not the world position's
+static Point3 local_point(const vector3 &v, const vector3 &origin)
 {
-  T c = a;
-  a = b;
-  b = c;
+  return Point3(float(v.v[0] - origin.v[0]), float(v.v[1] - origin.v[1]), float(v.v[2] - origin.v[2]));
+}
+
+// the build drops the verts no face reaches, so the whole poly's list goes in unremapped
+static bool build_carve_mesh_blas(MeshBLAS &out, dag::ConstSpan<Point3> poly_verts, const carve_poly_t *poly, const mesh_t *mesh)
+{
+  const mesh_t::vertex_t *const baseVert = &poly->vertex_storage[0];
+  dag::Vector<uint32_t, framemem_allocator> idx;
+  idx.reserve(mesh->faces.size() * 3);
+
+  std::vector<mesh_t::vertex_t *> fverts;
+  for (int fi = 0; fi < mesh->faces.size(); ++fi)
+  {
+    fverts.resize(0);
+    mesh->faces[fi]->getVertices(fverts);
+    G_ASSERT(fverts.size() == 3);
+    for (int vi = 0; vi < 3; ++vi)
+      idx.push_back((uint32_t)(fverts[vi] - baseVert));
+  }
+  return build_mesh_blas(out, poly_verts, make_span_const(idx));
+}
+
+// watertight kernel: RayTriangleIntersectInfXZ is sign-exact, so only a crossed triangle answers
+// constraint: top and bottom_y are in the frame the BLAS was built from, and top is above the mesh
+// constraint: a closed surface alternates facing along a line, so a same-facing run is one crossing;
+// the hits at one height are one contact, a touch when their facings differ
+static bool inside_by_parity(const MeshBLAS &blas, const Point3 &top, float bottom_y)
+{
+  const vec3f org = v_ldu_p3_safe(&top.x);
+  const float len = top.y - bottom_y;
+  const BlasBoxRay boxRay = BlasBoxRay::make(org, v_make_vec4f(0.f, -1.f, 0.f, 0.f), blas.scale, blas.ofs);
+  dag::RelocatableFixedVector<Point2, 32, true, framemem_allocator> hits; // height, facing along -y
+  BLASTraverse<>::iterateFilteredVerts(
+    blas.data.data(), 0, blas.blasSize, [&](vec3f bmn, vec3f bmx) { return boxRay.admits(bmn, bmx, len); },
+    [&](vec3f v0, vec3f v1, vec3f v2, int) {
+      float y;
+      Point2 bc;
+      if (RayTriangleIntersectInfXZ(org, v0, v1, v2, y, bc) && y > bottom_y) // top is above the mesh, so no hit lies above it
+        hits.push_back(Point2(y, v_extract_y(v_cross3(v_sub(v1, v0), v_sub(v2, v0))) > 0.f ? -1.f : 1.f));
+      return false; // every leaf, so no crossing is missed
+    },
+    Vert21MetricLoader::fromPack(blas.scale, blas.ofs));
+  eastl::sort(hits.begin(), hits.end(), [](const Point2 &a, const Point2 &b) { return a.x < b.x; });
+  int crossings = 0;
+  float runFacing = 0.f;
+  for (int i = 0, j; i < hits.size(); i = j)
+  {
+    bool touch = false;
+    for (j = i + 1; j < hits.size() && hits[j].x == hits[i].x; ++j)
+      touch |= hits[j].y != hits[i].y;
+    if (!touch && hits[i].y != runFacing)
+      ++crossings, runFacing = hits[i].y;
+  }
+  return crossings & 1;
+}
+
+// watertight kernel: RayTriangleIntersectWT holds a shared edge's lane as one exact value on both faces,
+// up to the sign their windings give, so a segment past an edge answers from at least one face where the
+// third corners lie on opposite sides of it, and from both or neither where they lie on the same side,
+// crossing two faces or none
+// constraint: from and len are in the frame the BLAS was built from, and dir is unit, so the
+// kernel's t reads as a length against len
+static bool any_crossing(const MeshBLAS &blas, const Point3 &from, const Point3 &dir, float len)
+{
+  const vec3f org = v_ldu_p3_safe(&from.x), d = v_ldu_p3_safe(&dir.x); // from can be the last heap Point3
+  const BlasBoxRay boxRay = BlasBoxRay::make(org, d, blas.scale, blas.ofs);
+  return BLASTraverse<>::iterateFilteredVerts(
+    blas.data.data(), 0, blas.blasSize, [&](vec3f bmn, vec3f bmx) { return boxRay.admits(bmn, bmx, len); },
+    [&](vec3f v0, vec3f v1, vec3f v2, int) { return RayTriangleIntersectWT(org, d, len, v0, v1, v2); },
+    Vert21MetricLoader::fromPack(blas.scale, blas.ofs));
 }
 
 static bool classify_scene_ray(carve_poly_t *poly, carve_poly_t *open, Bitarray *&openSkip)
 {
-  SmallTab<unsigned int, TmpmemAlloc> face;
-  SmallTab<Point3, TmpmemAlloc> verts;
-
-  clear_and_resize(verts, poly->vertex_storage.size());
-  for (int vi = 0; vi < verts.size(); ++vi)
-    verts[vi] = Point3(poly->vertex_storage[vi].v.v[0], poly->vertex_storage[vi].v.v[1], poly->vertex_storage[vi].v.v[2]);
-
   int openFacesCount = 0;
   for (int i = 0; i < open->meshes.size(); ++i)
     openFacesCount += open->meshes[i]->faces.size();
-  int removeFaces = 0;
+
+  const vector3 origin = poly->getAABB().pos;
+  dag::Vector<Point3, framemem_allocator> polyVerts, openVerts;
+  polyVerts.resize_noinit(poly->vertex_storage.size());
+  for (int vi = 0; vi < poly->vertex_storage.size(); ++vi)
+    polyVerts[vi] = local_point(poly->vertex_storage[vi].v, origin);
+  openVerts.resize_noinit(open->vertex_storage.size());
+  for (int vi = 0; vi < open->vertex_storage.size(); ++vi)
+    openVerts[vi] = local_point(open->vertex_storage[vi].v, origin);
 
   for (int i = 0; i < poly->meshes.size(); ++i)
   {
-    mesh_t::aabb_t aabb = poly->meshes[i]->getAABB();
-    mesh_t::aabb_t::vector_t width = aabb.max() - aabb.min();
-    Point3 meshWidth(width.v[0], width.v[1], width.v[2]);
-    BuildableStaticSceneRayTracer *brt = create_buildable_staticmeshscene_raytracer(meshWidth / 16.f, 8);
-
-    clear_and_resize(face, poly->meshes[i]->faces.size() * 3);
-    std::vector<mesh_t::vertex_t *> fverts;
-    const mesh_t::vertex_t *const baseVert = &poly->vertex_storage[0];
-    for (int fi = 0; fi < poly->meshes[i]->faces.size(); ++fi)
-    {
-      fverts.resize(0);
-      poly->meshes[i]->faces[fi]->getVertices(fverts);
-      G_ASSERT(fverts.size() == 3);
-      face[fi * 3 + 0] = fverts[0] - baseVert;
-      face[fi * 3 + 1] = fverts[1] - baseVert;
-      face[fi * 3 + 2] = fverts[2] - baseVert;
-    }
-    brt->addmesh(verts.data(), verts.size(), face.data(), sizeof(int) * 3, face.size() / 3, NULL, true);
-    brt->setCullFlags(brt->CULL_BOTH);
-
+    MeshBLAS blas;
+    if (!build_carve_mesh_blas(blas, make_span_const(polyVerts), poly, poly->meshes[i]))
+      continue;
+    const BBox3 &box = blas.box;
 
     Bitarray vertsIn;
     vertsIn.resize(open->vertex_storage.size());
     vertsIn.reset();
     bool thereVertsIn = false;
-    float maxHeight = brt->getBox()[1].y + 0.5f;
+    float maxHeight = box[1].y + 0.5f;
     for (int vi = 0; vi < open->vertex_storage.size(); ++vi)
     {
-      Point3 v(open->vertex_storage[vi].v.v[0], open->vertex_storage[vi].v.v[1], open->vertex_storage[vi].v.v[2]);
-      if (!(brt->getBox() & v))
+      const Point3 &v = openVerts[vi];
+      if (!(box & v))
         continue;
-      int intersections = 0;
-      Point3 startV = Point3::xVz(v, maxHeight);
-      float t = startV.y - v.y;
-      int lastIntersectFace = -1;
-      for (int iteration = 0; iteration < 128; ++iteration) // maxiteration limit!
-      {
-        int fi;
-        // if ((fi = brt->getHeightBelow(startV, ht)) >= 0)//classify with raytracer
-        if ((fi = brt->tracerayNormalized(startV, Point3(0, -1, 0), t, lastIntersectFace)) >= 0) // classify with raytracer
-        {
-          if (lastIntersectFace != fi)
-          {
-            intersections++;
-            lastIntersectFace = fi;
-          }
-          startV.y -= t;
-          t = startV.y - v.y;
-        }
-        else
-          break;
-      }
-
-      if (intersections & 1)
+      if (inside_by_parity(blas, Point3::xVz(v, maxHeight), v.y))
       {
         vertsIn.set(vi);
         thereVertsIn = true;
       }
     }
-    if (thereVertsIn)
+    if (!thereVertsIn)
+      continue;
+
+    std::vector<mesh_t::vertex_t *> fverts;
+    const mesh_t::vertex_t *const baseVert = &open->vertex_storage[0];
+    for (int openAll = 0, j = 0; j < open->meshes.size(); ++j)
     {
-      for (int openAll = 0, j = 0; j < open->meshes.size(); ++j)
+      for (int fi = 0; fi < open->meshes[j]->faces.size(); ++fi, ++openAll)
       {
-        std::vector<mesh_t::vertex_t *> fverts;
-        const mesh_t::vertex_t *const baseVert = &open->vertex_storage[0];
-        for (int fi = 0; fi < open->meshes[j]->faces.size(); ++fi, ++openAll)
+        fverts.resize(0);
+        open->meshes[j]->faces[fi]->getVertices(fverts);
+        bool vertOut = false;
+        for (int vi = 0; vi < fverts.size(); ++vi)
+          if (!vertsIn.get(fverts[vi] - baseVert))
+          {
+            vertOut = true;
+            break;
+          }
+        if (!vertOut)
         {
-          fverts.resize(0);
-          open->meshes[j]->faces[fi]->getVertices(fverts);
-          bool vertOut = false;
-          for (int vi = 0; vi < fverts.size(); ++vi)
-            if (!vertsIn.get(fverts[vi] - baseVert))
+          for (int ei = 0; ei < 3; ++ei)
+          {
+            const Point3 &v0 = openVerts[fverts[ei] - baseVert], &v1 = openVerts[fverts[(ei + 1) % 3] - baseVert];
+            const Point3 edge = v1 - v0;
+            float len = edge.length();
+            if (len > 0.f && any_crossing(blas, v0, edge / len, len * 1.0001f))
             {
               vertOut = true;
               break;
             }
-          if (!vertOut)
-          {
-            for (int ei = 0; ei < 3; ++ei) // check edges
-            {
-              Point3 v0(fverts[ei]->v.v[0], fverts[ei]->v.v[1], fverts[ei]->v.v[1]),
-                v1(fverts[(ei + 1) % 3]->v.v[0], fverts[(ei + 1) % 3]->v.v[1], fverts[(ei + 1) % 3]->v.v[1]);
-              float t = 1.0001f;
-              if (brt->traceray(v0, v1 - v0, t) >= 0)
-              {
-                vertOut = true;
-                break;
-              }
-            }
           }
-          if (!vertOut)
+        }
+        if (!vertOut)
+        {
+          if (!openSkip)
           {
-            if (!openSkip)
-            {
-              openSkip = new Bitarray();
-              openSkip->resize(openFacesCount);
-              openSkip->reset();
-            }
-            openSkip->set(openAll);
-            removeFaces++;
+            openSkip = new Bitarray();
+            openSkip->resize(openFacesCount);
+            openSkip->reset();
           }
+          openSkip->set(openAll);
         }
       }
     }
-    delete brt;
   }
-  if (!removeFaces)
-    del_it(openSkip);
-  return removeFaces > 0;
+  return openSkip != nullptr;
 }
 #endif
 
@@ -182,9 +214,6 @@ public:
     carve_poly_t *poly;      // closed poly
     carve_poly_t *open_poly; // open
     Bitarray *openSkip;
-#if REMOVE_OPEN_WITH_TRACE
-    SmallTab<StaticSceneRayTracer *, TmpmemAlloc> sceneRay;
-#endif
     bool hasOpenNodes;
     bool isResultOfOp;
     bool sliced;
@@ -195,10 +224,6 @@ public:
     {
       delete_mesh(poly);
       delete_mesh(open_poly);
-#if REMOVE_OPEN_WITH_TRACE
-      for (int i = 0; i < sceneRay.size(); ++i)
-        destroy_it(sceneRay[i]);
-#endif
       del_it(openSkip);
     }
   };

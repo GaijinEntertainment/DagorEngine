@@ -63,7 +63,7 @@ protected:
   }
 
   void freeView(const ImageViewInfo &view);
-  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_texture_desc_allocation_info(ID3D12Device *device,
+  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_texture_desc_allocation_info(D3DDevice *device,
     Image *original);
 
 public:
@@ -122,10 +122,10 @@ public:
 
   /// Empty when no memory could be found for the copy, which is how defragmentation learns that a
   /// heap group is full. A rejected request or a failed resource creation is an error.
-  ImageCloneResult tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initialState,
+  ImageCloneResult tryCloneTexture(DXGIAdapter *adapter, D3DDevice *device, Image *original, D3D12_RESOURCE_STATES initialState,
     AllocationFlags allocation_flags);
   /// The memory is provided by the caller, so this either creates the texture or fails hard.
-  ImageResult tryCloneTextureToMemory(ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initial_state,
+  ImageResult tryCloneTextureToMemory(D3DDevice *device, Image *original, D3D12_RESOURCE_STATES initial_state,
     const D3D12_RESOURCE_DESC &desc, const ResourceMemory &memory, ImagePoolState::AccessToken &access);
 
 protected:
@@ -240,17 +240,17 @@ public:
   UserHeapResult newUserHeap(DXGIAdapter *adapter, Device &device, ::ResourceHeapGroup *group, size_t size,
     ResourceHeapCreateFlags flags, ResourceTagType tag);
   // assumes mutex is locked
-  void freeUserHeap(ID3D12Device *device, ::ResourceHeap *ptr);
+  void freeUserHeap(D3DDevice *device, ::ResourceHeap *ptr);
   using ResourceAllocationPropertiesResult = dag::Expected<ResourceAllocationProperties, MemoryAllocationError>;
 
   /// Fails with E_INVALIDARG when the runtime rejects the description, no allocation is attempted.
-  ResourceAllocationPropertiesResult getResourceAllocationProperties(ID3D12Device *device, const ResourceDescription &desc);
+  ResourceAllocationPropertiesResult getResourceAllocationProperties(D3DDevice *device, const ResourceDescription &desc);
   /// How placeTextureInHeap, placeBufferInHeap and aliasTexture classify a failure: E_INVALIDARG for
   /// a request the caller got wrong, like a heap handle the table does not know, E_UNEXPECTED for the
   /// handle of an ill device, and the HRESULT of the call that failed for a resource creation.
   using ImageCreateResultOrError = dag::Expected<ImageCreateResult, MemoryAllocationError>;
 
-  ImageCreateResultOrError placeTextureInHeap(DXGIAdapter *adapter, ID3D12Device *device, ::ResourceHeap *heap,
+  ImageCreateResultOrError placeTextureInHeap(DXGIAdapter *adapter, D3DDevice *device, ::ResourceHeap *heap,
     const ResourceDescription &desc, size_t offset, const ResourceAllocationProperties &alloc_info, const char *name);
   ResourceHeapGroupProperties getResourceHeapGroupProperties(::ResourceHeapGroup *heap_group);
 
@@ -262,13 +262,12 @@ protected:
 
 public:
   /// Fails as described on ImageCreateResultOrError.
-  BufferAllocationResult placeBufferInHeap(DXGIAdapter *adapter, ID3D12Device *device, ::ResourceHeap *heap,
+  BufferAllocationResult placeBufferInHeap(DXGIAdapter *adapter, D3DDevice *device, ::ResourceHeap *heap,
     const ResourceDescription &desc, size_t offset, const ResourceAllocationProperties &alloc_info, const char *name);
   bool detachBuffer(const BufferState &buf);
 
   /// Fails as described on ImageCreateResultOrError.
-  ImageCreateResultOrError aliasTexture(DXGIAdapter *adapter, ID3D12Device *device, const ImageInfo &ii, Image *base,
-    const char *name);
+  ImageCreateResultOrError aliasTexture(DXGIAdapter *adapter, D3DDevice *device, const ImageInfo &ii, Image *base, const char *name);
 
   void freeUserHeapOnFrameCompletion(::ResourceHeap *ptr)
   {
@@ -312,7 +311,7 @@ protected:
 
     /// Every way this can fail carries a reason, either from the heap allocator or from the
     /// resource creation, so there is no plain "did not grow" answer.
-    dag::Expected<void, MemoryAllocationError> ensureSize(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment,
+    dag::Expected<void, MemoryAllocationError> ensureSize(DXGIAdapter *adapter, D3DDevice *device, size_t size, size_t alignment,
       ScratchBufferProvider *heap)
     {
       auto spaceNeeded = align_value(allocatedSpace, alignment) + size;
@@ -365,7 +364,7 @@ protected:
           if (DX12_CHECK_FAIL(errorCode))
           {
             heap->free(memory);
-            return unexpected_memory_allocation_error(errorCode);
+            return dag::Unexpected{heap->makeResourceCreationError(errorCode, memory.size(), memoryProperties)};
           }
 
           heap->recordScratchBufferAllocated(desc.Width);
@@ -375,8 +374,7 @@ protected:
         });
     }
 
-    ScratchBufferResult getSpace(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment,
-      ScratchBufferProvider *heap)
+    ScratchBufferResult getSpace(DXGIAdapter *adapter, D3DDevice *device, size_t size, size_t alignment, ScratchBufferProvider *heap)
     {
       return ensureSize(adapter, device, size, alignment, heap).and_then([&, this]() -> ScratchBufferResult {
         if (!buffer)
@@ -392,7 +390,7 @@ protected:
       });
     }
 
-    ScratchBufferResult getPersistentSpace(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment,
+    ScratchBufferResult getPersistentSpace(DXGIAdapter *adapter, D3DDevice *device, size_t size, size_t alignment,
       ScratchBufferProvider *heap)
     {
       return getSpace(adapter, device, size, alignment, heap).transform([&, this](auto space) {
@@ -444,8 +442,8 @@ protected:
   /// Empty for the two ordinary answers defragmentation has to live with: no memory is left for a
   /// second scratch buffer, or the attempt was refused because the defragmentation generation moved
   /// on. A failed resource creation is an error.
-  dag::Expected<eastl::optional<BasicBuffer>, MemoryAllocationError> allocateNewScratchBuffer(DXGIAdapter *adapter,
-    ID3D12Device *device, uint32_t size, AllocationFlags allocation_flags)
+  dag::Expected<eastl::optional<BasicBuffer>, MemoryAllocationError> allocateNewScratchBuffer(DXGIAdapter *adapter, D3DDevice *device,
+    uint32_t size, AllocationFlags allocation_flags)
   {
     const auto [desc, allocInfo] = get_scratch_buffer_desc_alloc_info(size);
 
@@ -468,7 +466,7 @@ protected:
     if (DX12_CHECK_FAIL(errorCode))
     {
       free(memory);
-      return unexpected_memory_allocation_error(errorCode);
+      return dag::Unexpected{makeResourceCreationError(errorCode, memory.size(), memoryProperties)};
     }
 
     recordScratchBufferAllocated(desc.Width);
@@ -478,7 +476,7 @@ protected:
     return eastl::optional<BasicBuffer>{eastl::move(newBuffer)};
   }
 
-  bool tryMoveScratchBuffer(ScratchBufferWrapper::AccessToken &scratchBufferAccess, DXGIAdapter *adapter, ID3D12Device *device,
+  bool tryMoveScratchBuffer(ScratchBufferWrapper::AccessToken &scratchBufferAccess, DXGIAdapter *adapter, D3DDevice *device,
     AllocationFlags allocation_flags, HeapID heap_id, bool is_emergency_defragmentation)
   {
     auto allocationResult =
@@ -565,7 +563,7 @@ class SamplerDescriptorProvider : public ScratchBufferProvider
     /// Nothing is stored when the descriptor can not be allocated. Sampler entries live as long as
     /// the driver does and their index is the handle, so a null descriptor stored here would be
     /// handed out for the rest of the run.
-    SamplerLookupResult get(ID3D12Device *device, SamplerState state)
+    SamplerLookupResult get(D3DDevice *device, SamplerState state)
     {
       auto ref = eastl::find_if(begin(samplers), end(samplers), [state](auto &info) { return state == info.state; });
       if (ref != end(samplers))
@@ -648,7 +646,7 @@ protected:
   using SamplerHandleResult = dag::Expected<d3d::SamplerHandle, MemoryAllocationError>;
   using SamplerDescriptorResult = dag::Expected<D3D12_CPU_DESCRIPTOR_HANDLE, MemoryAllocationError>;
 
-  SamplerHandleResult createSampler(ID3D12Device *device, SamplerState state)
+  SamplerHandleResult createSampler(D3DDevice *device, SamplerState state)
   {
     state.normalizeSelf();
 
@@ -664,7 +662,7 @@ protected:
     accessSampler(handle, [&descriptor](auto &info) { descriptor = info.sampler; });
     return descriptor;
   }
-  SamplerDescriptorResult getSampler(ID3D12Device *device, SamplerState state)
+  SamplerDescriptorResult getSampler(D3DDevice *device, SamplerState state)
   {
     state.normalizeSelf();
 
@@ -715,13 +713,13 @@ public:
   void processDefragmentationForGroup(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
     uint32_t group);
 
-  DefragmentationState processGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  DefragmentationState processGroup(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, uint32_t index, bool is_emergency_defragmentation);
 
-  DefragmentationState tryDefragmentHeap(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  DefragmentationState tryDefragmentHeap(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, uint32_t index, bool is_emergency_defragmentation);
 
-  DefragmentationState recomposeGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  DefragmentationState recomposeGroup(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, uint32_t group_index);
 
   void beforeEmergencyDefragmentation(uint32_t group_index);
@@ -752,42 +750,42 @@ private:
   BudgetPressureLevels getMemoryBudgetPressureLevel(ResourceHeapProperties props);
 
   void moveBufferDeviceObject(GenericBufferInterface *buffer_object, BufferGlobalId moved_buffer,
-    frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
+    frontend::BindlessManager &bindless_manager, DeviceContext &ctx, D3DDevice *device,
     BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation);
   void findBufferOwnersAndReplaceDeviceObjects(BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
-    frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
+    frontend::BindlessManager &bindless_manager, DeviceContext &ctx, D3DDevice *device,
     BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation, uint64_t buffer_resource_size,
     const ScratchBuffer &scratch = {});
   bool hasLockedOwners(BufferGlobalId buffer_id);
 
-  ResourceMoveResolution moveResourceAway(DeviceContext &, DXGIAdapter *, ID3D12Device *, frontend::BindlessManager &, HeapID,
+  ResourceMoveResolution moveResourceAway(DeviceContext &, DXGIAdapter *, D3DDevice *, frontend::BindlessManager &, HeapID,
     eastl::monostate, AllocationFlags, bool)
   {
     return ResourceMoveResolution::STAYING;
   }
 
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, Image *texture, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, BufferGlobalId buffer_id, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, AliasHeapReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, ScratchBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, TempUploadBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentUploadBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentReadBackBufferReference ref,
     AllocationFlags allocation_flags, bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentBidirectionalBufferReference ref,
     AllocationFlags allocation_flags, bool is_emergency_defragmentation);
 
@@ -812,7 +810,7 @@ private:
   {
     DeviceContext *ctx;
     DXGIAdapter *adapter;
-    ID3D12Device *device;
+    D3DDevice *device;
     frontend::BindlessManager *bindlessManager;
   };
 
@@ -842,16 +840,15 @@ private:
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PersistentBidirectionalBufferReference ref,
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
 
-  uint64_t getAlignmentRequirement(eastl::monostate, ID3D12Device *, DefragmentationAccessTokens &) { return 0; }
-  uint64_t getAlignmentRequirement(Image *texture, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(BufferGlobalId buffer_id, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(AliasHeapReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(ScratchBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(TempUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(PersistentUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(PersistentReadBackBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(PersistentBidirectionalBufferReference ref, ID3D12Device *device,
-    DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(eastl::monostate, D3DDevice *, DefragmentationAccessTokens &) { return 0; }
+  uint64_t getAlignmentRequirement(Image *texture, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(BufferGlobalId buffer_id, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(AliasHeapReference ref, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(ScratchBufferReference ref, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(TempUploadBufferReference ref, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PersistentUploadBufferReference ref, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PersistentReadBackBufferReference ref, D3DDevice *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PersistentBidirectionalBufferReference ref, D3DDevice *device, DefragmentationAccessTokens &access);
 
   using HeapIterator = dag::Vector<ResourceHeap>::iterator;
   using RangeIterator = ResourceHeap::FreeRangeSetType::iterator;
@@ -861,7 +858,7 @@ private:
   void lockRangesBeforeDefragmentationStep(uint32_t group_index);
   void unlockRangesAfterDefragmentationStep(uint32_t group_index);
 
-  bool processDefragmentationStep(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+  bool processDefragmentationStep(DeviceContext &ctx, DXGIAdapter *adapter, D3DDevice *device,
     frontend::BindlessManager &bindless_manager, HeapID srcId, ValueRange<uint64_t> selectedRange, bool is_emergency_defragmentation);
 
   uint32_t groupOffset = 0;
@@ -1291,7 +1288,7 @@ private:
 #if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
   eastl::array<ComPtr<ID3D12Heap>, ResourceHeapProperties::group_count> debugAllocations{};
 
-  void processDebugAllocations(ID3D12Device1 *device);
+  void processDebugAllocations(D3DDevice *device);
   void clearDebugAllocations();
 #endif
 
@@ -1541,6 +1538,6 @@ public:
   using BaseType::getSampler;
   using BaseType::getSamplerInfo;
 
-  void visitTaggedResources(ID3D12Device *device, const ResourceTypeFilter &filter, const ResourceVisitor &visitor);
+  void visitTaggedResources(D3DDevice *device, const ResourceTypeFilter &filter, const ResourceVisitor &visitor);
 };
 } // namespace drv3d_dx12

@@ -126,6 +126,18 @@ inline Point3 angles_to_dir(Point2 angles)
   return Point3(xCos * yCos, ySine, xSine * yCos);
 }
 
+inline DPoint2 dir_to_angles_precise(DPoint3 dir)
+{
+  const double x = dir.x, y = dir.y, z = dir.z;
+  return DPoint2(-atan2(z, x), atan2(y, sqrt(x * x + z * z)));
+}
+
+inline DPoint3 angles_to_dir_precise(DPoint2 angles)
+{
+  const double yCos = cos(angles.y);
+  return DPoint3(float(cos(-angles.x) * yCos), float(sin(angles.y)), float(sin(-angles.x) * yCos));
+}
+
 inline float dir_to_yaw(Point2 dir) { return atan2f(dir.y, dir.x); }
 
 inline float dir_to_yaw(Point3 dir) { return atan2f(dir.z, dir.x); }

@@ -86,7 +86,7 @@ static void create_tree_leaf_from_node(const SelectedNodesSettings &selected_nod
   TLeafHandle leaf = tree->createTreeLeaf(0, nodeName, icon_name);
   tree->setCheckboxEnable(leaf, false);
 
-  for (const auto refNode : selected_nodes.refNodes)
+  for (const auto &refNode : selected_nodes.refNodes)
   {
     TLeafHandle childLeaf = tree->createTreeLeaf(leaf, refNode, LEAF_ICON);
     tree->setCheckboxEnable(childLeaf, false);
@@ -349,13 +349,37 @@ static void insertRefNodes(const SelectedNodesSettings &settings, dag::Vector<St
   add_ref_nodes.insert(add_ref_nodes.end(), settings.refNodes.begin(), settings.refNodes.end());
 }
 
+static const SelectedNodesSettings &selected_nodes_of(const SelectedNodesSettings &settings) { return settings; }
+
 template <typename T>
-static void fill_props_to_settings(T &settings, DataBlock *props, DataBlock *nodes, bool &calc_collisions_after_reject)
+static const SelectedNodesSettings &selected_nodes_of(const T &settings)
 {
-  settings.readProps(props);
-  settings.removeProps(props);
-  nodes->removeBlock(props->getBlockName());
-  calc_collisions_after_reject = true;
+  return settings.selectedNodes;
+}
+
+const SelectedNodesSettings *SelectionNodesProcessing::moveNodeToSettings(DataBlock *props, DataBlock *nodes, bool reject)
+{
+  auto move = [&](auto &exported, auto &rejected) -> const SelectedNodesSettings * {
+    auto &settings = exported.push_back();
+    settings.readProps(props);
+    settings.removeProps(props);
+    nodes->removeBlock(props->getBlockName());
+    calcCollisionAfterReject = true;
+    if (reject)
+      rejected.push_back(settings);
+    return &selected_nodes_of(settings);
+  };
+  const char *collision = props->getStr("collision", nullptr);
+  switch (get_export_type_by_name(collision))
+  {
+    case ExportCollisionNodeType::MESH:
+    case ExportCollisionNodeType::BOX:
+    case ExportCollisionNodeType::SPHERE: return move(exportedCombinedNodesSettings, rejectedCombinedNodesSettings);
+    case ExportCollisionNodeType::KDOP: return move(exportedKdopsSettings, rejectedKdopsSettings);
+    case ExportCollisionNodeType::CONVEX_VHACD: return move(exportedConvexsVhacdSettings, rejectedConvexsVhacdSettings);
+    case ExportCollisionNodeType::CONVEX_COMPUTER: return move(exportedConvexsComputerSettings, rejectedConvexsComputerSettings);
+    default: debug("unknown collision node type %s", collision); return nullptr;
+  }
 }
 
 static void replace_selected_node(const SelectedNodesSettings &settings, dag::Vector<String> &add_ref_nodes,
@@ -378,46 +402,9 @@ bool SelectionNodesProcessing::rejectExportedCollisions(dag::Vector<String> &sel
   if (DataBlock *nodes = curAsset->props.getBlockByName("nodes"))
   {
     for (int i = 0; i < selected_nodes.size(); ++i)
-    {
       if (DataBlock *props = nodes->getBlockByName(selected_nodes[i]))
-      {
-        const char *collision = props->getStr("collision", nullptr);
-        const ExportCollisionNodeType nodeType = get_export_type_by_name(collision);
-        if (nodeType == ExportCollisionNodeType::MESH || nodeType == ExportCollisionNodeType::BOX ||
-            nodeType == ExportCollisionNodeType::SPHERE)
-        {
-          SelectedNodesSettings &settings = rejectedCombinedNodesSettings.push_back();
-          fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-          replace_selected_node(settings, addRefNodes, selected_nodes, i, deleteNodesCandidats, is_replace);
-          exportedCombinedNodesSettings.push_back(settings);
-        }
-        else if (nodeType == ExportCollisionNodeType::KDOP)
-        {
-          KdopSettings &settings = rejectedKdopsSettings.push_back();
-          fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-          replace_selected_node(settings.selectedNodes, addRefNodes, selected_nodes, i, deleteNodesCandidats, is_replace);
-          exportedKdopsSettings.push_back(settings);
-        }
-        else if (nodeType == ExportCollisionNodeType::CONVEX_VHACD)
-        {
-          ConvexVhacdSettings &settings = rejectedConvexsVhacdSettings.push_back();
-          fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-          replace_selected_node(settings.selectedNodes, addRefNodes, selected_nodes, i, deleteNodesCandidats, is_replace);
-          exportedConvexsVhacdSettings.push_back(settings);
-        }
-        else if (nodeType == ExportCollisionNodeType::CONVEX_COMPUTER)
-        {
-          ConvexComputerSettings &settings = rejectedConvexsComputerSettings.push_back();
-          fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-          replace_selected_node(settings.selectedNodes, addRefNodes, selected_nodes, i, deleteNodesCandidats, is_replace);
-          exportedConvexsComputerSettings.push_back(settings);
-        }
-        else
-        {
-          debug("unknown node type for reject %s", collision);
-        }
-      }
-    }
+        if (const SelectedNodesSettings *settings = moveNodeToSettings(props, nodes, true))
+          replace_selected_node(*settings, addRefNodes, selected_nodes, i, deleteNodesCandidats, is_replace);
     if (calcCollisionAfterReject)
     {
       selected_nodes.insert(selected_nodes.end(), addRefNodes.begin(), addRefNodes.end());
@@ -428,59 +415,27 @@ bool SelectionNodesProcessing::rejectExportedCollisions(dag::Vector<String> &sel
   return calcCollisionAfterReject;
 }
 
+static bool refers_to_any(const DataBlock &props, const dag::Vector<String> &node_names)
+{
+  if (const DataBlock *refNodes = props.getBlockByName("refNodes"))
+    for (int j = 0; j < refNodes->blockCount(); ++j)
+      if (contains_node(node_names, refNodes->getBlock(j)->getBlockName()))
+        return true;
+  return false;
+}
+
 void SelectionNodesProcessing::checkReplacedNodes(const dag::Vector<String> &ref_nodes, DataBlock *nodes)
 {
   dag::Vector<String> newRefNodes;
   for (int i = 0; i < nodes->blockCount(); ++i)
   {
     DataBlock *props = nodes->getBlock(i);
-    if (props->getBool("replaceNodes"))
+    if (!props->getBool("replaceNodes") || !refers_to_any(*props, ref_nodes))
+      continue;
+    if (const SelectedNodesSettings *settings = moveNodeToSettings(props, nodes, true))
     {
-      const DataBlock *refNodes = props->getBlockByName("refNodes");
-      for (const auto refNode : ref_nodes)
-      {
-        for (int j = 0; j < refNodes->blockCount(); ++j)
-        {
-          if (refNode == refNodes->getBlock(j)->getBlockName())
-          {
-            const char *collision = props->getStr("collision", nullptr);
-            const ExportCollisionNodeType nodeType = get_export_type_by_name(collision);
-            if (nodeType == ExportCollisionNodeType::MESH || nodeType == ExportCollisionNodeType::BOX ||
-                nodeType == ExportCollisionNodeType::SPHERE)
-            {
-              SelectedNodesSettings &settings = rejectedCombinedNodesSettings.push_back();
-              fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-              insertRefNodes(settings, newRefNodes);
-              exportedCombinedNodesSettings.push_back(settings);
-            }
-            else if (nodeType == ExportCollisionNodeType::KDOP)
-            {
-              KdopSettings &settings = rejectedKdopsSettings.push_back();
-              fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-              insertRefNodes(settings.selectedNodes, newRefNodes);
-              exportedKdopsSettings.push_back(settings);
-            }
-            else if (nodeType == ExportCollisionNodeType::CONVEX_VHACD)
-            {
-              ConvexVhacdSettings &settings = rejectedConvexsVhacdSettings.push_back();
-              fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-              insertRefNodes(settings.selectedNodes, newRefNodes);
-              exportedConvexsVhacdSettings.push_back(settings);
-            }
-            else if (nodeType == ExportCollisionNodeType::CONVEX_COMPUTER)
-            {
-              ConvexComputerSettings &settings = rejectedConvexsComputerSettings.push_back();
-              fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-              insertRefNodes(settings.selectedNodes, newRefNodes);
-              exportedConvexsComputerSettings.push_back(settings);
-            }
-            else
-            {
-              debug("unknown node type for check replaced nodes %s", collision);
-            }
-          }
-        }
-      }
+      insertRefNodes(*settings, newRefNodes);
+      --i;
     }
   }
   if (newRefNodes.size() > 0)
@@ -566,33 +521,7 @@ bool SelectionNodesProcessing::deleteNodeFromBlk(const String &name)
   {
     if (DataBlock *props = nodes->getBlockByName(name))
     {
-      const char *collision = props->getStr("collision", nullptr);
-      const ExportCollisionNodeType nodeType = get_export_type_by_name(collision);
-      if (nodeType == ExportCollisionNodeType::MESH || nodeType == ExportCollisionNodeType::BOX ||
-          nodeType == ExportCollisionNodeType::SPHERE)
-      {
-        SelectedNodesSettings &settings = exportedCombinedNodesSettings.push_back();
-        fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-      }
-      else if (nodeType == ExportCollisionNodeType::KDOP)
-      {
-        KdopSettings &settings = exportedKdopsSettings.push_back();
-        fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-      }
-      else if (nodeType == ExportCollisionNodeType::CONVEX_VHACD)
-      {
-        ConvexVhacdSettings &settings = exportedConvexsVhacdSettings.push_back();
-        fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-      }
-      else if (nodeType == ExportCollisionNodeType::CONVEX_COMPUTER)
-      {
-        ConvexComputerSettings &settings = exportedConvexsComputerSettings.push_back();
-        fill_props_to_settings(settings, props, nodes, calcCollisionAfterReject);
-      }
-      else
-      {
-        debug("unknown node type for check replaced nodes %s", collision);
-      }
+      moveNodeToSettings(props, nodes, false);
       return true;
     }
   }

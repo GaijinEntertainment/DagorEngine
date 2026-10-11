@@ -1,5 +1,8 @@
 # Code coverage
 
+dascov ships in the SDK as a prebuilt exe - the `DAS_UTILS_SHIPPED_EXES` entry in `utils/CMakeLists.txt`
+(repo root); `utils/REVIEW.das` reads this line as the record of that decision.
+
 A command-line tool for measuring code coverage of das code.
 
 ## Overview

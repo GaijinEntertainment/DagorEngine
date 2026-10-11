@@ -11,12 +11,12 @@ def test_erase_if(t : T?; var arr : array<int>) {
         maxVal = max(maxVal, v)
     }
 
-    arr |> erase_if() <| $(v : int) {
+    arr |> erase_if() $(v : int) {
         return v < 0
     }
 
     var ok = true
-    for (i, v in count(), arr) {
+    for (v in arr) {
         if (v < 0) {
             ok = false
         }

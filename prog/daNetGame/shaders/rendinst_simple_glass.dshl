@@ -104,13 +104,13 @@ shader rendinst_simple_glass
   }
   else if (rendinst_transparent_gbuffer_pass == generate)
   {
-    if (use_rt_glass_reflection)
+    if (allow_rt_glass_reflection == yes && !use_rt_glass_reflection)
     {
-      GENERATE_TRANSPARENT_GBUFFER_PS()
+      dont_render;
     }
     else
     {
-      dont_render;
+      GENERATE_TRANSPARENT_GBUFFER_PS()
     }
   }
   else if (rendinst_reactive_mask_pass == yes)

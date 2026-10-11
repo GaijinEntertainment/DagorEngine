@@ -217,7 +217,7 @@ public:
 #endif
 
 #if _TARGET_XBOX
-    workcycle_internal::is_window_in_thread = true;
+    workcycle_internal::is_window_in_thread = !d3d::is_stub_driver();
 #else
     bool allowThreadedWindow = !d3d::is_stub_driver();
     // allow disabling threaded window per driver and per driver for exclusive fullscreen mode

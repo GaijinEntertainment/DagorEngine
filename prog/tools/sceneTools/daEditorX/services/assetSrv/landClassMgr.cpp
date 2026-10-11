@@ -244,6 +244,7 @@ bool SharedLandClassAssetData::loadAsset(const DataBlock &blk)
   if (blk.getBlockByName("resources"))
   {
     tiled = new (midmem) landclass::TiledEntities;
+    tiled->detile = &detile;
     if (!loadTiledEntities(*tiled, blk))
       ok = false;
   }
@@ -251,6 +252,7 @@ bool SharedLandClassAssetData::loadAsset(const DataBlock &blk)
   if (blk.getBlockByName("obj_plant_generate"))
   {
     planted = new (midmem) landclass::PlantedEntities;
+    planted->detile = &detile;
     if (!loadPlantedEntities(*planted, blk))
       ok = false;
   }
@@ -286,6 +288,8 @@ bool SharedLandClassAssetData::loadAsset(const DataBlock &blk)
     }
   }
 
+  if (String err_msg; !detile.load(*blk.getBlockByNameEx("detail"), &err_msg))
+    DAEDITOR3.conError("landclass <%s>: %s", loadingAssetFname, err_msg);
   b = blk.getBlockByName("detail");
   if (b)
   {
@@ -773,8 +777,7 @@ bool SharedLandClassAssetData::loadGrassDensity(landclass::GrassDensity &gd, con
     return false;
   }
 
-  if (gd.entity)
-    gd.entity->setSubtype(IDaEditor3Engine::get().registerEntitySubTypeId("mask_tile"));
+  gd.entity->setSubtype(IDaEditor3Engine::get().registerEntitySubTypeId("mask_tile"));
 
   if (densmap)
   {

@@ -292,9 +292,7 @@ int getDefaultPhys()
 static bool initPhys(int phys_type)
 {
   int newPhys = (phys_type == PHYS_DEFAULT) ? getDefaultPhys() : phys_type;
-  if (newPhys == PHYS_DEFAULT)
-    return false;
-  else if (newPhys == physType)
+  if (newPhys == physType)
     return true;
   else if (physType != PHYS_DEFAULT)
     phys_close_all();

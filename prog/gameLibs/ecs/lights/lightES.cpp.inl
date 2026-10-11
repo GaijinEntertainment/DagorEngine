@@ -217,7 +217,7 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light, const TMat
   const Point3 &light__offset, const Point3 &light__direction, const ecs::string &light__texture_name, const E3DCOLOR light__color,
   float light__brightness, LightHasShadows omni_light__shadows, LightHasDynamicCasters omni_light__dynamic_obj_shadows,
   int omni_light__shadow_quality, int omni_light__priority, int omni_light__shadow_shrink, float light__radius_scale,
-  float light__max_radius, Point2 omni_light__shadow_near_far_planes,
+  float light__max_radius, float light__source_radius, Point2 omni_light__shadow_near_far_planes,
   LightDynamicLight light__dynamic_light, // TODO: use a shared one with spot lights
   LightContactShadows light__contact_shadows, LightApproximateStatic light__approximate_static_shadows,
   LightAffectVolumes light__affect_volumes, LightRenderGpuObjects light__render_gpu_objects, LightLensFlares light__enable_lens_flares,
@@ -306,6 +306,7 @@ static __forceinline void omni_light_set(OmniLightEntity &omni_light, const TMat
   color = bool(omni_light__shadows) ? color : -color;
   OmniLight omniLight = OmniLight(position, direction, color, radius, bool(contact_shadows) ? 1.0f : 0.f, tex_idx, data.zoom,
     data.rotated, light__box, omni_light__shadow_near_far_planes);
+  omniLight.setSourceRadius(light__source_radius);
   OmniLightMaskType mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE;
   if (light__dynamic_light == LightDynamicLight::Off && light__affect_volumes == LightAffectVolumes::On)
   {
@@ -348,7 +349,7 @@ static __forceinline void update_omni_light_es(const ecs::Event &, ecs::EntityId
   TMatrix &light__box, const Point3 &light__offset, const Point3 &light__direction, const ecs::string &light__texture_name,
   const E3DCOLOR light__color, float light__brightness, bool omni_light__shadows, bool omni_light__dynamic_obj_shadows,
   bool light__use_clip = false, bool light__nightly = false, int omni_light__shadow_quality = 0, int omni_light__priority = 0,
-  int omni_light__shadow_shrink = 0, float light__radius_scale = 1, float light__max_radius = -1,
+  int omni_light__shadow_shrink = 0, float light__radius_scale = 1, float light__max_radius = -1, float light__source_radius = 0,
   Point2 omni_light__shadow_near_far_planes = Point2(0, 0), bool light__dynamic_light = false, bool light__contact_shadows = true,
   bool light__affect_volumes = true, bool light__render_gpu_objects = false, bool light__is_paused = false,
   bool light_switch__on = true, bool light__enable_lens_flares = false, bool light__approximate_static = false,
@@ -367,8 +368,8 @@ static __forceinline void update_omni_light_es(const ecs::Event &, ecs::EntityId
   omni_light_set(omni_light, tm, LightUseBox(light__use_box), LightUseClip(light__use_clip), light__automatic_box,
     light__force_max_light_radius, light__box, light__offset, light__direction, light__texture_name, light__color, light__brightness,
     LightHasShadows(omni_light__shadows), LightHasDynamicCasters(omni_light__dynamic_obj_shadows), omni_light__shadow_quality,
-    omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius, omni_light__shadow_near_far_planes,
-    LightDynamicLight(light__dynamic_light), LightContactShadows(light__contact_shadows),
+    omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius, light__source_radius,
+    omni_light__shadow_near_far_planes, LightDynamicLight(light__dynamic_light), LightContactShadows(light__contact_shadows),
     LightApproximateStatic(light__approximate_static), LightAffectVolumes(light__affect_volumes),
     LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__shadow_two_sided,
     light__force_affect_volfog);
@@ -383,7 +384,7 @@ static __forceinline void update_high_priority_omni_light_es(const ecs::Event &,
   bool &light__force_max_light_radius, TMatrix &light__box, const Point3 &light__offset, const Point3 &light__direction,
   const ecs::string &light__texture_name, const E3DCOLOR light__color, float light__brightness, bool omni_light__shadows,
   bool omni_light__dynamic_obj_shadows, int omni_light__shadow_quality = 0, int omni_light__priority = 0,
-  int omni_light__shadow_shrink = 0, float light__radius_scale = 1, float light__max_radius = -1,
+  int omni_light__shadow_shrink = 0, float light__radius_scale = 1, float light__max_radius = -1, float light__source_radius = 0,
   Point2 omni_light__shadow_near_far_planes = Point2(0, 0), bool light__dynamic_light = false, bool light__contact_shadows = true,
   bool light__affect_volumes = true, bool light__render_gpu_objects = false, bool light__enable_lens_flares = false,
   bool light__approximate_static = false, bool light__shadow_two_sided = false, bool light__force_affect_volfog = false,
@@ -394,8 +395,8 @@ static __forceinline void update_high_priority_omni_light_es(const ecs::Event &,
   omni_light_set(omni_light, tm, LightUseBox(light__use_box), LightUseClip(light__use_clip), light__automatic_box,
     light__force_max_light_radius, light__box, light__offset, light__direction, light__texture_name, light__color, light__brightness,
     LightHasShadows(omni_light__shadows), LightHasDynamicCasters(omni_light__dynamic_obj_shadows), omni_light__shadow_quality,
-    omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius, omni_light__shadow_near_far_planes,
-    LightDynamicLight(light__dynamic_light), LightContactShadows(light__contact_shadows),
+    omni_light__priority, omni_light__shadow_shrink, light__radius_scale, light__max_radius, light__source_radius,
+    omni_light__shadow_near_far_planes, LightDynamicLight(light__dynamic_light), LightContactShadows(light__contact_shadows),
     LightApproximateStatic(light__approximate_static), LightAffectVolumes(light__affect_volumes),
     LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__shadow_two_sided,
     light__force_affect_volfog);
@@ -410,7 +411,7 @@ static __forceinline void omni_light_es(const ecs::UpdateStageInfoAct &, OmniLig
   AnimV20::AnimcharBaseComponent &animchar, const TMatrix &lightModTm, const Point3 &light__offset, const Point3 &light__direction,
   const ecs::string &light__texture_name, bool &light__force_max_light_radius, const E3DCOLOR light__color, float light__brightness,
   bool omni_light__shadows, bool omni_light__dynamic_obj_shadows, int omni_light__shadow_quality = 0, int omni_light__priority = 0,
-  int omni_light__shadow_shrink = 0, float light__radius_scale = 1, float light__max_radius = -1,
+  int omni_light__shadow_shrink = 0, float light__radius_scale = 1, float light__max_radius = -1, float light__source_radius = 0,
   Point2 omni_light__shadow_near_far_planes = Point2(0, 0), bool light__dynamic_light = false, bool light__contact_shadows = true,
   bool animchar_render__enabled = true, bool light__affect_volumes = true, bool light__render_gpu_objects = false,
   bool light__enable_lens_flares = false, bool light__approximate_static = false, bool light__shadow_two_sided = false,
@@ -425,7 +426,7 @@ static __forceinline void omni_light_es(const ecs::UpdateStageInfoAct &, OmniLig
     emptyBoxDummy, light__offset, light__direction, light__texture_name, light__color,
     animchar_render__enabled ? light__brightness : 0.f, LightHasShadows(omni_light__shadows),
     LightHasDynamicCasters(omni_light__dynamic_obj_shadows), omni_light__shadow_quality, omni_light__priority,
-    omni_light__shadow_shrink, light__radius_scale, light__max_radius, omni_light__shadow_near_far_planes,
+    omni_light__shadow_shrink, light__radius_scale, light__max_radius, light__source_radius, omni_light__shadow_near_far_planes,
     LightDynamicLight(light__dynamic_light), LightContactShadows(light__contact_shadows),
     LightApproximateStatic(light__approximate_static), LightAffectVolumes(light__affect_volumes),
     LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__shadow_two_sided,
@@ -438,7 +439,7 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light, const TMat
   LightHasDynamicCasters spot_light__dynamic_obj_shadows, bool &light__force_max_light_radius, int spot_light__shadow_quality,
   int spot_light__priority, int spot_light__shadow_shrink, float spot_light__cone_angle, float spot_light__illuminating_disc_radius,
   float spot_light__inner_attenuation, float spot_light__shadow_cone_angle, float spot_light__shadow_frustum_offset,
-  Point2 spot_light__shadow_near_far_planes, float light__radius_scale, float light__max_radius,
+  Point2 spot_light__shadow_near_far_planes, float light__radius_scale, float light__max_radius, float light__source_radius,
   LightAffectVolumes light__affect_volumes, LightContactShadows spot_light__contact_shadows,
   LightApproximateStatic light__approximate_static_shadows, LightRenderGpuObjects light__render_gpu_objects,
   LightLensFlares light__enable_lens_flares, bool light__shadow_two_sided, bool light__force_affect_volfog,
@@ -480,7 +481,7 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light, const TMat
 
   if (spot_light__cone_angle >= 0)
   {
-    float angle = spot_light__cone_angle * PI / 180.0;
+    float angle = spot_light__cone_angle * PI / 180.0f;
     halfTan = tanf(angle / 2);
   }
   float attCos = cosf(spot_light__inner_attenuation * atanf(halfTan));
@@ -513,6 +514,7 @@ static __forceinline void spot_light_set(SpotLightEntity &spot_light, const TMat
   spotLight.shadowTanHalfAngle = spot_light__shadow_cone_angle > 0.f ? tanf(spot_light__shadow_cone_angle * PI / 180.f / 2.f) : -1.f;
   spotLight.shadowFrustumOffset = spot_light__shadow_frustum_offset;
   spotLight.requiresCullRadiusOptimization = spot_light__cull_radius_optimization;
+  spotLight.setSourceRadius(light__source_radius);
   SpotLightMaskType mask = SpotLightMaskType::SPOT_LIGHT_MASK_NONE;
   if (spot_light__dynamic_light == LightDynamicLight::Off && light__affect_volumes == LightAffectVolumes::On)
   {
@@ -602,9 +604,9 @@ static void update_spot_light_es(const ecs::Event &, ecs::EntityId eid, const ec
   float spot_light__cone_angle = -1.0, float spot_light__illuminating_disc_radius = 0.0, float spot_light__inner_attenuation = 0.95,
   float spot_light__shadow_cone_angle = -1.f, float spot_light__shadow_frustum_offset = 0.f,
   Point2 spot_light__shadow_near_far_planes = Point2::ZERO, float light__radius_scale = 1, float light__max_radius = -1,
-  bool light__affect_volumes = true, bool spot_light__contact_shadows = false, bool light__render_gpu_objects = false,
-  bool light__is_paused = false, bool light_switch__on = true, const TMatrix *transform = nullptr,
-  const AnimV20::AnimcharBaseComponent *animchar = nullptr, const TMatrix *lightModTm = nullptr,
+  float light__source_radius = 0, bool light__affect_volumes = true, bool spot_light__contact_shadows = false,
+  bool light__render_gpu_objects = false, bool light__is_paused = false, bool light_switch__on = true,
+  const TMatrix *transform = nullptr, const AnimV20::AnimcharBaseComponent *animchar = nullptr, const TMatrix *lightModTm = nullptr,
   bool light__enable_lens_flares = false, bool light__approximate_static = false, bool light__shadow_two_sided = false,
   bool light__force_affect_volfog = false, bool spot_light__cull_radius_optimization = true)
 {
@@ -622,10 +624,11 @@ static void update_spot_light_es(const ecs::Event &, ecs::EntityId eid, const ec
     LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius, spot_light__shadow_quality,
     spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__illuminating_disc_radius,
     spot_light__inner_attenuation, spot_light__shadow_cone_angle, spot_light__shadow_frustum_offset,
-    spot_light__shadow_near_far_planes, light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
-    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
-    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__shadow_two_sided,
-    light__force_affect_volfog, spot_light__cull_radius_optimization);
+    spot_light__shadow_near_far_planes, light__radius_scale, light__max_radius, light__source_radius,
+    LightAffectVolumes(light__affect_volumes), LightContactShadows(spot_light__contact_shadows),
+    LightApproximateStatic(light__approximate_static), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares), light__shadow_two_sided, light__force_affect_volfog,
+    spot_light__cull_radius_optimization);
 }
 
 ECS_TAG(render)
@@ -639,10 +642,11 @@ static __forceinline void update_high_priority_spot_light_es(const ecs::Event &,
   int spot_light__shadow_shrink = 0, float spot_light__cone_angle = -1.0, float spot_light__illuminating_disc_radius = 0.0,
   float spot_light__inner_attenuation = 0.95, float spot_light__shadow_frustum_offset = 0.f,
   float spot_light__shadow_cone_angle = -1.f, Point2 spot_light__shadow_near_far_planes = Point2::ZERO, float light__radius_scale = 1,
-  float light__max_radius = -1, bool light__affect_volumes = true, bool spot_light__contact_shadows = false,
-  bool light__render_gpu_objects = false, const TMatrix *transform = nullptr, const AnimV20::AnimcharBaseComponent *animchar = nullptr,
-  const TMatrix *lightModTm = nullptr, bool light__enable_lens_flares = false, bool light__approximate_static = false,
-  bool light__shadow_two_sided = false, bool light__force_affect_volfog = false, bool spot_light__cull_radius_optimization = true)
+  float light__max_radius = -1, float light__source_radius = 0, bool light__affect_volumes = true,
+  bool spot_light__contact_shadows = false, bool light__render_gpu_objects = false, const TMatrix *transform = nullptr,
+  const AnimV20::AnimcharBaseComponent *animchar = nullptr, const TMatrix *lightModTm = nullptr,
+  bool light__enable_lens_flares = false, bool light__approximate_static = false, bool light__shadow_two_sided = false,
+  bool light__force_affect_volfog = false, bool spot_light__cull_radius_optimization = true)
 {
   const TMatrix tm = light_tm(eid, manager, transform, animchar, lightModTm);
 
@@ -651,10 +655,11 @@ static __forceinline void update_high_priority_spot_light_es(const ecs::Event &,
     LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius, spot_light__shadow_quality,
     spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__illuminating_disc_radius,
     spot_light__inner_attenuation, spot_light__shadow_cone_angle, spot_light__shadow_frustum_offset,
-    spot_light__shadow_near_far_planes, light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
-    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
-    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__shadow_two_sided,
-    light__force_affect_volfog, spot_light__cull_radius_optimization);
+    spot_light__shadow_near_far_planes, light__radius_scale, light__max_radius, light__source_radius,
+    LightAffectVolumes(light__affect_volumes), LightContactShadows(spot_light__contact_shadows),
+    LightApproximateStatic(light__approximate_static), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares), light__shadow_two_sided, light__force_affect_volfog,
+    spot_light__cull_radius_optimization);
 }
 
 ECS_TAG(render)
@@ -668,9 +673,10 @@ static __forceinline void spot_light_es(const ecs::UpdateStageInfoAct &, SpotLig
   float spot_light__inner_attenuation = 0.95, float spot_light__cone_angle = -1.0, float spot_light__illuminating_disc_radius = 0.0,
   float spot_light__shadow_frustum_offset = 0.f, float spot_light__shadow_cone_angle = -1.f,
   Point2 spot_light__shadow_near_far_planes = Point2::ZERO, float light__radius_scale = 1, float light__max_radius = -1,
-  bool animchar_render__enabled = true, bool light__affect_volumes = true, bool spot_light__contact_shadows = false,
-  bool light__render_gpu_objects = false, bool light__enable_lens_flares = false, bool light__approximate_static = false,
-  bool light__shadow_two_sided = false, bool light__force_affect_volfog = false, bool spot_light__cull_radius_optimization = true)
+  float light__source_radius = 0, bool animchar_render__enabled = true, bool light__affect_volumes = true,
+  bool spot_light__contact_shadows = false, bool light__render_gpu_objects = false, bool light__enable_lens_flares = false,
+  bool light__approximate_static = false, bool light__shadow_two_sided = false, bool light__force_affect_volfog = false,
+  bool spot_light__cull_radius_optimization = true)
 {
   TMatrix transform = TMatrix::IDENT;
   animchar.getTm(transform);
@@ -681,10 +687,11 @@ static __forceinline void spot_light_es(const ecs::UpdateStageInfoAct &, SpotLig
     LightHasShadows(spot_light__shadows), LightHasDynamicCasters(spot_light__dynamic_obj_shadows), light__force_max_light_radius,
     spot_light__shadow_quality, spot_light__priority, spot_light__shadow_shrink, spot_light__cone_angle, spot_light__inner_attenuation,
     spot_light__illuminating_disc_radius, spot_light__shadow_cone_angle, spot_light__shadow_frustum_offset,
-    spot_light__shadow_near_far_planes, light__radius_scale, light__max_radius, LightAffectVolumes(light__affect_volumes),
-    LightContactShadows(spot_light__contact_shadows), LightApproximateStatic(light__approximate_static),
-    LightRenderGpuObjects(light__render_gpu_objects), LightLensFlares(light__enable_lens_flares), light__shadow_two_sided,
-    light__force_affect_volfog, spot_light__cull_radius_optimization);
+    spot_light__shadow_near_far_planes, light__radius_scale, light__max_radius, light__source_radius,
+    LightAffectVolumes(light__affect_volumes), LightContactShadows(spot_light__contact_shadows),
+    LightApproximateStatic(light__approximate_static), LightRenderGpuObjects(light__render_gpu_objects),
+    LightLensFlares(light__enable_lens_flares), light__shadow_two_sided, light__force_affect_volfog,
+    spot_light__cull_radius_optimization);
 }
 
 ECS_TAG(render)

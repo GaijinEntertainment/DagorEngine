@@ -32,6 +32,8 @@ options no_unused_block_arguments = false
 
 require daslib/ast
 require daslib/debugger
+require daslib/rtti
+require strings
 require dastest/testing_boost public
 
 
@@ -55,9 +57,7 @@ def run_module_test(base_path, main_file : string; use_project : bool) : bool {
                     if (!sok) {
                         return
                     }
-                    unsafe {
-                        invoke_in_context(context, "test")
-                    }
+                    unsafe(invoke_in_context(context, "test"))
                     result = true
                 }
             }
@@ -125,9 +125,7 @@ def run_module_test_option_ignored(base_path, main_file, ignored_opt, applied_op
                     if (!sok) {
                         return
                     }
-                    unsafe {
-                        invoke_in_context(context, "test")
-                    }
+                    unsafe(invoke_in_context(context, "test"))
                     result = true
                 }
             }
@@ -278,5 +276,119 @@ def test_module_filepath_escape(t : T?) {
     let base = "{get_das_root()}/tests/module_tests/_modules/filepath"
     t |> run("%/ require with .. cannot escape get_das_root") @(t : T?) {
         t |> success(expect_compile_failure_default(base, "main_escape.das"))
+    }
+}
+
+//! the diagnostic text when compiling main_ok.das with the named extra modules fails, "" when it compiles
+def extra_module_diagnostic(base : string; extras : array<string>) : string {
+    var text = ""
+    let project_path = "{base}/project.das_project"
+    let main_path = "{base}/main_ok.das"
+    var inscope access <- make_file_access(project_path)
+    for (extra in extras) {
+        access |> add_extra_module(extra, "{base}/{extra}.das")
+    }
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
+            cop.threadlock_context = true
+            compile_file(main_path, access, unsafe(addr(mg)), cop) $(ok, _program, issues) {
+                if (!ok) {
+                    text = "{issues}"
+                }
+            }
+        }
+    }
+    return text
+}
+
+def reports_readably(text, must_contain : string) : bool {
+    return !empty(text) && find(text, must_contain) >= 0 && find(text, "internal error") < 0
+}
+
+[test]
+def test_extra_module_missing(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module with a missing require reports it readably") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["req_missing"]),
+            "missing prerequisite 'no_such_module'; file not found"))
+    }
+}
+
+[test]
+def test_extra_module_circular(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module with a circular require reports it readably") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["circ_a"]),
+            "circular dependency 'circ_b'"))
+    }
+}
+
+[test]
+def test_extra_module_private(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module requiring a non-requirable module reports it readably") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_private"]),
+            "module 'private_mod' can't be required here"))
+    }
+}
+
+[test]
+def test_extra_module_blocked(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module requiring a blocked module reports it readably") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_blocked"]),
+            "module not allowed 'strings_boost'"))
+    }
+    t |> run("a blocked dependency of a native module is named, not lost") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_ast"]),
+            "module not allowed 'rtti_core'"))
+    }
+}
+
+[test]
+def test_extra_module_wrong_name(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module requiring a mis-named module suggests the real name") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_wrongname"]),
+            "wrong module name 'wrongref'; did you mean 'the_actual_name'?"))
+    }
+}
+
+[test]
+def test_extra_module_duplicate(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module pulling two files of the same module name reports both") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_dup"]),
+            "several modules with the same name"))
+    }
+}
+
+[test]
+def test_extra_module_case_conflict(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module requiring one nameless file under two casings conflicts") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_case"]),
+            "module name case conflict"))
+    }
+}
+
+// The trailing newline in the expected text is load-bearing: it pins the
+// no-suggestion module-info-not-found phrase to end cleanly, with no stray quote.
+[test]
+def test_extra_module_module_info(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("extra module requiring a blank-name resolution reports module info not found") @(t : T?) {
+        t |> success(reports_readably(extra_module_diagnostic(base, ["uses_ghost"]),
+            "module info not found\n"))
+    }
+}
+
+[test]
+def test_extra_module_shared_failed_dependency(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/extra_errors"
+    t |> run("a dependency that failed for one extra module is not circular for the next") @(t : T?) {
+        let text = extra_module_diagnostic(base, ["usex1", "usex2"])
+        t |> success(reports_readably(text, "missing prerequisite 'no_such_module'; file not found"))
+        t |> success(find(text, "circular dependency") < 0)
     }
 }

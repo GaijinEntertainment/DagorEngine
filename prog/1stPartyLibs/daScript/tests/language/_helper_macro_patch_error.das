@@ -17,7 +17,7 @@ require daslib/templates_boost
 [function_macro(name = "patch_error_after_mutate")]
 class PatchErrorAfterMutate : AstFunctionAnnotation {
     def override patch(var func : FunctionPtr; var group : ModuleGroup;
-                       args, progArgs : AnnotationArgumentList; var errors : das_string;
+                       var args : AnnotationArgumentList; progArgs : AnnotationArgumentList; var errors : das_string;
                        var astChanged : bool&) : bool {
         let sentinel = "_pe_sentinel_{func.name}"
         var glob <- find_variable(compiling_module(), sentinel)

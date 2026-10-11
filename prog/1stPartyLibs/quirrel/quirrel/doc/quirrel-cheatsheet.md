@@ -33,8 +33,6 @@ verified against csq 1.0.37 behavior, not just docs.
   must define it exactly once. Reading it earlier is an error except from a
   nested closure, which sees null until the definition runs.
 - Declare functions as `function foo() {}`. This is a non-reassignable declaration.
-- `static <expr>` evaluates once and memoizes; expression must be const-like
-  (w316, w317).
 - Mark side-effect-free functions `function [pure] f()` / `@[pure](x) ...`:
   enables const folding and use in constant context.
 - Classes: `class Baz(Bar)`, not `extends`. Do not add methods via
@@ -88,9 +86,8 @@ verified against csq 1.0.37 behavior, not just docs.
   `t.__merge({})` (w318), and not `t.clone()`, which also carries the delegate. `.indexof()`, not `.find()`.
 - `{ ...src, k = v }` and `[ ...src, v ]` spread into a literal: a table takes
   a table, a class or an instance, an array takes an array, `null` adds nothing,
-  a later key wins, and the result is a new container even when `src` is frozen
-  (mutable unless the module sets `#allow-auto-freeze`, which freezes every
-  literal). Literals only: no `f(...args)`, no rest in destructuring.
+  a later key wins, and the result is a new mutable container even when `src`
+  is frozen. Literals only: no `f(...args)`, no rest in destructuring.
 - Membership: `x in t`, `x not in t`, `arr.contains(v)`.
 - Do not modify a container inside its own foreach (w292).
 - `delete` operator is deprecated: use `t.$rawdelete(key)` (`$` = type-method

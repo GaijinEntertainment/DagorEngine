@@ -1,61 +1,81 @@
 {
  "info": {
-  "platform": "Windows-10-10.0.26200-SP0 (10)",
+  "platform": "Windows-10-10.0.19045-SP0 (10)",
   "arch": "AMD64",
-  "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
-  "when": "2026-08-31"
+  "cpu": "AMD64 Family 23 Model 49 Stepping 0, AuthenticAMD",
+  "when": "2026-10-03"
  },
  "runs": 3,
  "results": {
   "fib": {
-   "quirrel": 61.0,
-   "lua55": 30.0,
-   "luau": 27.077299999291427
+   "quirrel": 115.0,
+   "lua": 55.0,
+   "luau-O0": 55.445,
+   "luau-O1": 52.357,
+   "luau-O2": 52.345
   },
   "binarytrees": {
-   "quirrel": 20.0,
-   "lua55": 25.0,
-   "luau": 8.055399999648216
+   "quirrel": 36.0,
+   "lua": 48.0,
+   "luau-O0": 18.847,
+   "luau-O1": 14.269,
+   "luau-O2": 14.604
   },
   "life": {
-   "quirrel": 76.0,
-   "lua55": 39.99999999999999,
-   "luau": 36.00869999900169
+   "quirrel": 105.0,
+   "lua": 55.0,
+   "luau-O0": 50.61,
+   "luau-O1": 37.859,
+   "luau-O2": 37.88
   },
   "mandel": {
-   "quirrel": 39.0,
-   "lua55": 18.999999999999996,
-   "luau": 15.627999999196618
+   "quirrel": 85.0,
+   "lua": 30.0,
+   "luau-O0": 28.742,
+   "luau-O1": 26.773,
+   "luau-O2": 25.783
   },
   "strings": {
-   "quirrel": 48.0,
-   "lua55": 47.0,
-   "luau": 45.40310000083991
+   "quirrel": 100.0,
+   "lua": 96.0,
+   "luau-O0": 89.486,
+   "luau-O1": 84.976,
+   "luau-O2": 85.025
   },
   "desc_churn": {
-   "quirrel": 68.0,
-   "lua55": 94.99999999999997,
-   "luau": 27.2941000002902
+   "quirrel": 141.0,
+   "lua": 227.0,
+   "luau-O0": 81.693,
+   "luau-O1": 55.055,
+   "luau-O2": 53.963
   },
   "probe_storm": {
-   "quirrel": 61.0,
-   "lua55": 43.0,
-   "luau": 39.59500000019034
+   "quirrel": 99.0,
+   "lua": 95.0,
+   "luau-O0": 62.853,
+   "luau-O1": 63.077,
+   "luau-O2": 63.001
   },
   "nullable_probe": {
-   "quirrel": 65.0,
-   "lua55": 20.0,
-   "luau": 15.1120999998966
+   "quirrel": 109.0,
+   "lua": 38.0,
+   "luau-O0": 24.779,
+   "luau-O1": 24.588,
+   "luau-O2": 24.751
   },
   "closure_storm": {
-   "quirrel": 64.0,
-   "lua55": 102.0,
-   "luau": 20.540500001516193
+   "quirrel": 149.0,
+   "lua": 251.0,
+   "luau-O0": 68.305,
+   "luau-O1": 55.474,
+   "luau-O2": 37.325
   },
   "method_calls": {
-   "quirrel": 259.0,
-   "lua55": 207.0,
-   "luau": 162.57190000033006
+   "quirrel": 579.0,
+   "lua": 367.0,
+   "luau-O0": 239.884,
+   "luau-O1": 238.759,
+   "luau-O2": 239.895
   }
  }
 }

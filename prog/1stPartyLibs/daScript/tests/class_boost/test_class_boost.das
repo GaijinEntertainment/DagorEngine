@@ -23,7 +23,7 @@ class Dog : Animal {
 
     [class_method]
     def static bark() : int {
-        bark_count += 1
+        bark_count++
         return bark_count
     }
 }
@@ -41,7 +41,7 @@ class GenericAnimal {
 
     [class_method]
     def static eat(var food : auto ?) : void {
-        meals += 1
+        meals++
     }
 
     def drink() : int {
@@ -63,7 +63,7 @@ class Counter {
 
     [explicit_const_class_method]
     def static touch() : int {
-        value += 1
+        value++
         return value
     }
 

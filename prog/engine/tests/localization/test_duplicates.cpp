@@ -50,14 +50,14 @@ struct DuplicateCounterScope
 // Wraps text in an InPlaceMemLoadCB. parseCsvV2 tolerates an unterminated last
 // row, but the file-backed loader pads with '\n' -- mirror that here so test
 // inputs match the production path.
-bool load_csv_text(Tab<char> &storage, const char *text)
+bool load_csv_text(Tab<char> &storage, const char *text, LocKeyDump *dump = nullptr)
 {
   const int n = (int)strlen(text);
   storage.resize(n + 1);
   memcpy(storage.data(), text, n);
   storage[n] = '\n';
   InPlaceMemLoadCB cb(storage.data(), storage.size());
-  return load_localization_table_from_csv(&cb, /*lang_col=*/0);
+  return load_localization_table_from_csv(&cb, /*lang_col=*/0, dump);
 }
 } // namespace
 
@@ -178,6 +178,38 @@ TEST_CASE("Caller-supplied LocKeyDump accumulates keys across files", "[localiza
   }
   CHECK(sawFoo);
   CHECK(sawBar);
+
+  destroy_loc_key_dump(dump);
+}
+
+// csvUtil writes merged csv rows in this order.
+TEST_CASE("get_all_localization returns keys in load order", "[localization][keydump]")
+{
+  DuplicateCounterScope scope;
+
+  LocKeyDump *dump = make_loc_key_dump();
+  REQUIRE(dump != nullptr);
+
+  const int keyCount = 64;
+  eastl::string csvA, csvB = "key_0;b";
+  for (int i = 0; i < keyCount / 2; i++)
+    csvA.append_sprintf("%skey_%d;a", i ? "\n" : "", i);
+  for (int i = keyCount / 2; i < keyCount; i++)
+    csvB.append_sprintf("\nkey_%d;b", i);
+
+  Tab<char> bufA, bufB;
+  REQUIRE(load_csv_text(bufA, csvA.c_str(), dump));
+  REQUIRE(load_csv_text(bufB, csvB.c_str(), dump));
+
+  Tab<const char *> keys, vals;
+  get_all_localization(dump, keys, vals);
+  REQUIRE((int)keys.size() == keyCount);
+  for (int i = 0; i < keyCount; i++)
+  {
+    eastl::string expected(eastl::string::CtorSprintf(), "key_%d", i);
+    CHECK(strcmp(keys[i], expected.c_str()) == 0);
+    CHECK(strcmp(vals[i], (i == 0 || i >= keyCount / 2) ? "b" : "a") == 0);
+  }
 
   destroy_loc_key_dump(dump);
 }

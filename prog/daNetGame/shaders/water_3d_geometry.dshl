@@ -67,8 +67,6 @@ bool simplify_subsurf_scattering = shader == water_distant;
 
 int water_quality = 0;
 hlsl {
-  #define water_quality_low 0
-  #define water_quality_medium 1
   #define water_quality_high 2
 }
 
@@ -337,12 +335,6 @@ macro WATER_3D_DEFERRED_COMMON_PS()
   if (has_water_flowmap)
   {
     USE_WATER_FLOWMAP_FOAM()
-  }
-  if (water_tech == wt && compatibility_mode == compatibility_mode_off)
-  {
-    // TODO need to make perlin noise intialization logic unified between
-    // WT, DNG and GET_UNDERWATER_FOG
-    (ps) { perlin_noise@smp2d = perlin_noise; }
   }
   (ps) {
     shore_heightmap_min_max@f4 = shore_heightmap_min_max;

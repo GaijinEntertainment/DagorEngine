@@ -35,10 +35,9 @@ dumps it as `(table|userdata|instance|class|null).constructor(arg1)`, a
 generic fallback receiver used for every binding with no declared parameter
 types, not the real receiver.
 
-`constructor` is a reserved word (it also introduces a class's constructor
-method), but the parser special-cases it after a dot, so `x.constructor`
-reads like any other field access. `types.String.clone` has no such
-exception; see its Notes.
+`constructor` is an ordinary name, so `x.constructor` reads like any other
+field access. The same name declares a class's constructor method.
+`types.String.clone` is a reserved word; see its Notes.
 
 ## Example
 

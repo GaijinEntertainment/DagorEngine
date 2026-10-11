@@ -183,7 +183,7 @@ shader water_blur_reflection_mips
 
       float4 prevTarget;
       float weight;
-      getReflectionReprojection(input.texcoord00.xy, ssr_target_size.xy, cameraToPoint, worldDist, worldDist, result, mip_target_level, mip_target_size.xy, prevTarget, weight);
+      getReflectionReprojection(input.texcoord00.xy, ssr_target_size.xy, cameraToPoint, worldDist, worldDist, result, mip_target_level, prevTarget, weight);
 
       ReflAlphaDecoded currAlpha = DecodeReflAlpha(result.a);
       ReflAlphaDecoded prevAlphaDecoded = DecodeReflAlpha(prevTarget.a);

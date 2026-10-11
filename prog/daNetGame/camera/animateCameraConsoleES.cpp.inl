@@ -3,10 +3,14 @@
 #include <drv/3d/dag_decl.h>
 #include <3d/dag_render.h>
 #include <ioSys/dag_dataBlock.h>
+#include <math/dag_check_nan.h>
 #include <math/dag_TMatrix.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_direct.h>
+#include <perfMon/dag_cpuFreq.h>
+#include <render/cameraPositions.h>
 #include <util/dag_console.h>
+#include <util/dag_delayedAction.h>
 #include <util/dag_string.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/entityManager.h>
@@ -105,6 +109,72 @@ static void camera_path_animator_update_es(const ecs::UpdateStageInfoAct &info,
   }
 }
 
+static void set_cam_itm_with_roll(const TMatrix &itm)
+{
+  set_cam_itm(itm);
+  if (Point3 *upVector = g_entity_mgr->getNullableRW<Point3>(get_cur_cam_entity(), ECS_HASH("free_camera__upVector")))
+    *upVector = itm.getcol(1);
+}
+
+static bool camera_moved_by_user(const TMatrix &expected)
+{
+  const TMatrix &camTm = get_cam_itm();
+  return lengthSq(camTm.getcol(3) - expected.getcol(3)) > sqr(0.0001f) ||
+         lengthSq(camTm.getcol(2) - expected.getcol(2)) > sqr(0.00001f);
+}
+
+static TMatrix lerp_camera_tm(const TMatrix &from, const TMatrix &to, float t)
+{
+  TMatrix tm;
+  tm.makeTM(normalize(qinterp(Quat(from), Quat(to), t)));
+  tm.setcol(3, lerp(from.getcol(3), to.getcol(3), t));
+  return tm;
+}
+
+ECS_NO_ORDER
+static void camera_lerp_animator_update_es(const ecs::UpdateStageInfoAct &,
+  ecs::EntityManager &manager,
+  ecs::EntityId eid,
+  const TMatrix &camera_lerp_animator__from,
+  const TMatrix &camera_lerp_animator__to,
+  float camera_lerp_animator__duration,
+  int camera_lerp_animator__startTime,
+  TMatrix &camera_animator__prev_transform)
+{
+  if (camera_moved_by_user(camera_animator__prev_transform))
+  {
+    manager.destroyEntity(eid);
+    return;
+  }
+
+  const float progress = (get_time_msec() - camera_lerp_animator__startTime) * 0.001f / camera_lerp_animator__duration;
+  const bool finished = progress >= 1.f;
+  camera_animator__prev_transform =
+    finished ? camera_lerp_animator__to : lerp_camera_tm(camera_lerp_animator__from, camera_lerp_animator__to, progress);
+  set_cam_itm_with_roll(camera_animator__prev_transform);
+  if (finished)
+    manager.destroyEntity(eid);
+}
+
+static void start_camera_move_between(const TMatrix &from, const TMatrix &to, float duration)
+{
+  enable_free_camera();
+  if (duration <= 0)
+  {
+    set_cam_itm_with_roll(to);
+    return;
+  }
+  set_cam_itm_with_roll(from);
+  ecs::ComponentsInitializer attrs;
+  ECS_INIT(attrs, camera_lerp_animator__from, from);
+  ECS_INIT(attrs, camera_lerp_animator__to, to);
+  ECS_INIT(attrs, camera_lerp_animator__duration, duration);
+  ECS_INIT(attrs, camera_lerp_animator__startTime, get_time_msec());
+  g_entity_mgr->createEntitySync("camera_lerp_animator", eastl::move(attrs));
+}
+
+static bool is_finite_pos(const Point3 &p) { return check_finite(p.x) && check_finite(p.y) && check_finite(p.z); }
+
 static bool animate_camera_console_handler(const char *argv[], int argc)
 {
   if (argc < 1)
@@ -117,8 +187,8 @@ static bool animate_camera_console_handler(const char *argv[], int argc)
 
     const TMatrix &camTm = get_cam_itm();
     float distance = 10;
-    float angle = static_cast<float>(2.0 * PI) * 1000;
-    float speed = static_cast<float>(2.0 * PI) * 0.1;
+    float angle = TWOPI * 1000;
+    float speed = TWOPI * 0.1f;
 
     if (argc > 1)
       distance = console::to_real(argv[1]);
@@ -187,6 +257,41 @@ static bool animate_camera_console_handler(const char *argv[], int argc)
       ECS_INIT(attrs, camera_path_animator__transforms, eastl::move(transforms));
       ECS_INIT(attrs, camera_path_animator__distance, distance);
       g_entity_mgr->createEntitySync("camera_path_animator", eastl::move(attrs));
+    }
+  }
+  CONSOLE_CHECK_NAME("camera", "move_between", 1, 8)
+  {
+    const float duration = argc > 1 ? console::to_real(argv[1]) : 0.f;
+    if (argc > 1 && !check_finite(duration))
+      console::print_d("Number of seconds must be finite: %s", argv[1]);
+    else if (argc == 4)
+    {
+      TMatrix from, to;
+      if (!load_camera_position("cameraPositions.blk", argv[2], from))
+        console::print_d("Can not read camera slot from cameraPositions.blk: %s", argv[2]);
+      else if (!load_camera_position("cameraPositions.blk", argv[3], to))
+        console::print_d("Can not read camera slot from cameraPositions.blk: %s", argv[3]);
+      else
+        delayed_call([=] { start_camera_move_between(from, to, duration); });
+    }
+    else if (argc == 8)
+    {
+      const Point3 fromPos(console::to_real(argv[2]), console::to_real(argv[3]), console::to_real(argv[4]));
+      const Point3 toPos(console::to_real(argv[5]), console::to_real(argv[6]), console::to_real(argv[7]));
+      if (!is_finite_pos(fromPos) || !is_finite_pos(toPos))
+        console::print("camera.move_between: coordinates must be finite");
+      else
+        delayed_call([=] {
+          TMatrix from = get_cam_itm(), to = from;
+          from.setcol(3, fromPos);
+          to.setcol(3, toPos);
+          start_camera_move_between(from, to, duration);
+        });
+    }
+    else
+    {
+      console::print("camera.move_between <seconds> <from_slot> <to_slot>  (slots saved by camera.save)");
+      console::print("camera.move_between <seconds> <x0> <y0> <z0> <x1> <y1> <z1>");
     }
   }
   return found;

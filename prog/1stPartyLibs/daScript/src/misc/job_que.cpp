@@ -1,6 +1,7 @@
 #include "daScript/misc/platform.h"
 
 #include "daScript/misc/job_que.h"
+#include "job_que_spin.h"
 #include "daScript/misc/performance_time.h"
 #include "daScript/simulate/debug_info.h"
 #include "daScript/simulate/aot_builtin_jobque.h"
@@ -14,9 +15,9 @@
 #include <emscripten/threading.h>   // emscripten_num_logical_cores
 #endif
 
-#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)) && !defined(_M_ARM64EC)
 #include <emmintrin.h>  // _mm_pause
-#elif defined(_MSC_VER) && defined(_M_ARM64)
+#elif defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
 #include <intrin.h>     // __yield
 #endif
 
@@ -24,9 +25,9 @@ namespace das {
     // A single CPU spin-wait hint — the poll-loop relax (one PAUSE/YIELD, the ggml
     // ggml_thread_cpu_relax shape; the loop itself is a counted number of these).
     static inline void jobque_spin_relax() {
-#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)) && !defined(_M_ARM64EC)
         _mm_pause();
-#elif defined(_MSC_VER) && defined(_M_ARM64)
+#elif defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
         __yield();
 #elif defined(__x86_64__) || defined(__i386__)
         __builtin_ia32_pause();
@@ -38,19 +39,28 @@ namespace das {
     }
 
     // One short burst of the CPU's spin-wait hint (worker spin-before-park, see JobQue::job).
+    // src/misc/ARCHITECTURE.md#spin-window-clock-stride
     static inline void jobque_spin_pause() {
-#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)) && !defined(_M_ARM64EC)
         for ( int i = 0; i != 64; ++i ) _mm_pause();
-#elif defined(_MSC_VER) && defined(_M_ARM64)
+#elif defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM64EC))
         for ( int i = 0; i != 64; ++i ) __yield();
 #elif defined(__x86_64__) || defined(__i386__)
         for ( int i = 0; i != 64; ++i ) __builtin_ia32_pause();
 #elif defined(__aarch64__)
         for ( int i = 0; i != 64; ++i ) __asm__ __volatile__("yield");
+#elif defined(__EMSCRIPTEN__)
+        for ( volatile int i = 0; i != 64; ++i ) {}
 #else
         this_thread::yield();
 #endif
     }
+
+#if defined(__EMSCRIPTEN__)
+    constexpr uint32_t JOBQUE_SPIN_DEADLINE_STRIDE = 16u;
+#else
+    constexpr uint32_t JOBQUE_SPIN_DEADLINE_STRIDE = 1u;
+#endif
 }
 
 // Feature tracking statics
@@ -69,13 +79,23 @@ namespace das {
         if ( sysctlbyname("hw.perflevel0.logicalcpu", &good, &len, nullptr, 0) != 0 ) return 0;
         return good;
     }
+
+    static bool apple_slow_tier_is_compute() {
+        char name[64] = {}; size_t len = sizeof(name) - 1;
+        if ( sysctlbyname("hw.perflevel1.name", name, &len, nullptr, 0) != 0 ) return false;
+        static const char * const computeTiers[] = { "Performance", "Super" };
+        for ( const char * tier : computeTiers ) {
+            if ( strcmp(name, tier) == 0 ) return true;
+        }
+        return false;
+    }
 #endif
 
     // Worker count. Generic rule: logical cores - 1, capped at DAS_MAX_HW_JOBS — parallel_for's
     // CALLING (main) thread now executes queued chunks itself (jobque_try_run_one), so it IS a
     // compute thread and occupies a core; cores-1 workers + main == cores avoids the oversubscription
     // that otherwise makes the surplus thread "trickle in" over the first ~37% of every matmul.
-    // DAS_MAX_HW_JOBS (4 on wasm so a web build doesn't spawn one Web Worker per logical core;
+    // DAS_MAX_HW_JOBS (8 on wasm so a web build doesn't spawn one Web Worker per logical core;
     // effectively uncapped elsewhere). On heterogeneous Apple Silicon the same -1 applies to the
     // PERFORMANCE-core count: P-1 workers + the computing main == P. Landing any compute thread on a
     // slow E-core stalls every parallel_for on its straggler chunk (measured ~1.6x slower on an
@@ -98,11 +118,26 @@ namespace das {
             return v;
         }();
         if ( forced > 0 ) return forced - 1;
+        if ( int req = JobQue::get_default_threads(); req > 1 ) {
+            int workers = min(req, hw) - 1;
+            if ( int cap = JobQue::get_default_threads_cap() ) workers = min(workers, cap);
+            return max(1, workers);
+        }
         int def = 0;
 #if defined(__APPLE__)
         if ( int good = apple_perf_core_count() ) def = max(1, good - 1);
 #endif
+#if defined(__EMSCRIPTEN__)
+#if DAS_MIN_WEB_JOBS > DAS_MAX_HW_JOBS
+#error "DAS_MIN_WEB_JOBS above DAS_MAX_HW_JOBS: the wasm pool's floor cannot exceed its cap"
+#endif
+#if DAS_MIN_WEB_JOBS < 2
+#error "DAS_MIN_WEB_JOBS below 2: the floor counts lanes, the computing main among them, and a pool needs one worker"
+#endif
+        if ( def == 0 ) def = max(DAS_MIN_WEB_JOBS, min(DAS_MAX_HW_JOBS, hw)) - 1;   // lanes floored and capped, the computing main among them: platform.h beside DAS_MAX_HW_JOBS
+#else
         if ( def == 0 ) def = max(1, min(DAS_MAX_HW_JOBS, hw - 1));
+#endif
         if ( int cap = JobQue::get_default_threads_cap() ) def = max(1, min(def, cap));
         return def;
     }
@@ -114,6 +149,26 @@ namespace das {
     static atomic<int> g_jobqueDefaultThreadsCap{0};
     void JobQue::set_default_threads_cap(int cap) { g_jobqueDefaultThreadsCap = max(cap, 0); }
     int JobQue::get_default_threads_cap() { return g_jobqueDefaultThreadsCap.load(); }
+
+    static atomic<int> g_jobqueDefaultThreads{0};
+    void JobQue::set_default_threads(int total) { g_jobqueDefaultThreads = total <= 1 ? 0 : total; }
+    int JobQue::get_default_threads() { return g_jobqueDefaultThreads.load(); }
+
+    int JobQue::get_num_perf_cores() {
+#if defined(__APPLE__)
+        return apple_perf_core_count();
+#else
+        return 0;
+#endif
+    }
+
+    bool JobQue::is_slow_tier_compute() {
+#if defined(__APPLE__)
+        return apple_perf_core_count() > 0 && apple_slow_tier_is_compute();
+#else
+        return false;
+#endif
+    }
 
     // App-declared affinity mode of a future JobQue (das set_jobque_affinity — apps expose it in
     // their config next to threads). -1 = unset (off). Applied at thread spawn, so it must be set
@@ -185,6 +240,12 @@ namespace das {
         if ( mode <= 0 ) return;
         int hw = static_cast<int>(thread::hardware_concurrency());
         if ( hw <= 1 ) return;
+#if defined(__APPLE__)
+        if ( int perf = apple_perf_core_count(); perf > 0 && perf < hw ) {
+            SetCurrentThreadAffinityCpu(slot, mode >= 2 && slot < perf);
+            return;
+        }
+#endif
         int half = hw / 2;
         int cpu;
         if ( half > 0 && slot < half ) cpu = slot * 2;               // distinct cores first
@@ -406,7 +467,7 @@ namespace das {
     void JobQue::join() {
         {
             // Set the flag and wake every parked worker under the lock so none misses the wakeup.
-            lock_guard<mutex> lock(mFifoMutex);
+            lock_guard lock(mFifoMutex);
             mShutdown = true;
             mCond.notify_all();
             mLimitCond.notify_all();   // dormant over-limit workers wait on their own condvar
@@ -421,7 +482,7 @@ namespace das {
     }
 
     bool JobQue::isEmpty ( bool includingMainThreadJobs ) {
-        lock_guard<mutex> lock(mFifoMutex);
+        lock_guard lock(mFifoMutex);
         bool queue_is_empty = (mJobsRunning == 0) && (mFifo.size() == 0);
         if ( includingMainThreadJobs ) {
             lock_guard<mutex> mainThreadLock(mEvalMainThreadMutex);
@@ -431,7 +492,7 @@ namespace das {
     }
 
     bool JobQue::areJobsPending(JobCategory category) {
-        lock_guard<mutex> lock(mFifoMutex);
+        lock_guard lock(mFifoMutex);
         if (find_if(mFifo.begin(), mFifo.end(), [=](const JobEntry& jobEntry) {
                 return jobEntry.category == category; }) != mFifo.end()) {
             return true;
@@ -448,7 +509,7 @@ namespace das {
     }
 
     int JobQue::getNumberOfQueuedJobs() {
-        lock_guard<mutex> lock(mFifoMutex);
+        lock_guard lock(mFifoMutex);
         return int(mFifo.size());
     }
 
@@ -460,14 +521,14 @@ namespace das {
     }
 
     void JobQue::push(Job && job, JobCategory category, JobPriority priority) {
-        lock_guard<mutex> lock(mFifoMutex);
+        lock_guard lock(mFifoMutex);
         submit(das::move(job), category, priority);
         mCond.notify_one();
     }
 
     void JobQue::pushBatch(vector<Job> && jobs, JobCategory category, JobPriority priority) {
         {
-            lock_guard<mutex> lock(mFifoMutex);
+            lock_guard lock(mFifoMutex);
             for ( auto & j : jobs ) {
                 submit(das::move(j), category, priority);
             }
@@ -488,7 +549,7 @@ namespace das {
         Job job;
         size_t moreWork = 0;
         {
-            lock_guard<mutex> lock(mFifoMutex);
+            lock_guard lock(mFifoMutex);
             if ( mFifo.empty() ) return false;
             job = das::move(mFifo.front().function);
             mFifo.pop_front();
@@ -531,7 +592,7 @@ namespace das {
             // notifies; the limit is re-checked HERE on every wake, so a wake that raced a
             // lower re-parks us dormant.
             if ( limitRank >= mWorkerLimit.load(std::memory_order_relaxed) ) {
-                unique_lock<mutex> lock(mFifoMutex);
+                unique_lock lock(mFifoMutex);
                 mLimitCond.wait(lock, [&]() {
                     return mShutdown.load()
                         || limitRank < mWorkerLimit.load(std::memory_order_seq_cst);
@@ -553,10 +614,14 @@ namespace das {
             // Team mode extends the same window: poll the team slot too. The window stays BOUNDED
             // (the ggml hybrid poll/park shape) — after it expires the worker parks, and a team
             // publish that finds parked workers notifies (see teamParallelFor's wake gate).
+            // src/misc/ARCHITECTURE.md#spin-window-clock-stride
             int spinUs = mSpinUs.load(std::memory_order_relaxed);
             bool teamMode = mTeamMode.load(std::memory_order_relaxed) != 0;
             if ( (spinUs > 0 || teamMode) && !mShutdown.load(std::memory_order_relaxed) ) {
-                auto deadline = std::chrono::steady_clock::now() + std::chrono::microseconds(spinUs);
+                detail::JobQueSpinDeadline<detail::JobQueSpinClock> deadline(spinUs);
+                const uint32_t deadlineStride = spinUs > 0 ? JOBQUE_SPIN_DEADLINE_STRIDE : 1u;
+                uint32_t spinPasses = 0;
+                bool sawTeamOp = false;
                 for (;;) {
                     if ( mShutdown.load(std::memory_order_relaxed) ) break;
                     // limit drift-out: exit the spin window; the dormant branch at the top of the
@@ -567,11 +632,9 @@ namespace das {
                     }
                     teamMode = mTeamMode.load(std::memory_order_relaxed) != 0;
                     if ( teamMode && runTeamChunks(threadIndex, limitRank, teamSeqSeen) ) {
-                        // saw a new team op (served it, or was rank-gated past it) — fresh spin
-                        // window, same as a fifo raid restarting the loop. Team activity keeps
-                        // the worker hot even when the gate starves it of chunks, so a decode
-                        // stream of gated tiny ops never drains the pool into parked/wake churn.
-                        deadline = std::chrono::steady_clock::now() + std::chrono::microseconds(spinUs);
+                        // served it, or was rank-gated past it: either keeps the worker hot, so a
+                        // decode stream of gated tiny ops never drains the pool into parked/wake churn.
+                        sawTeamOp = true;
                     }
                     // try_lock, NOT lock: every spinner that sees the same count blip races here, and
                     // blocking losers would queue on the mutex — a convoy the dispatcher's next push
@@ -580,7 +643,7 @@ namespace das {
                     // rest of the burst still finds it awake.
                     if ( mFifoCount.load(std::memory_order_relaxed) != 0 && mFifoMutex.try_lock() ) {
                         {
-                            lock_guard<mutex> lock(mFifoMutex, std::adopt_lock);
+                            lock_guard lock(mFifoMutex, std::adopt_lock);
                             if ( !mFifo.empty() ) {
                                 job = das::move(mFifo.front().function);
                                 mThreads[threadIndex].currentPriority = mFifo.front().priority;
@@ -595,12 +658,15 @@ namespace das {
                         if ( gotJob ) break;
                     }
                     jobque_spin_pause();
-                    if ( std::chrono::steady_clock::now() >= deadline ) break;
+                    if ( ++spinPasses % deadlineStride == 0 ) {
+                        if ( deadline.expired(sawTeamOp) ) break;
+                        sawTeamOp = false;
+                    }
                 }
             }
             if ( goDormant ) continue;   // top-of-loop dormant branch parks us
             if ( !gotJob ) {
-                unique_lock<mutex> lock(mFifoMutex);
+                unique_lock lock(mFifoMutex);
                 // Block until a job is available or we're shutting down. A plain wait (no periodic
                 // timeout) means idle workers stay parked instead of waking every mSleepMs to grab
                 // mFifoMutex and yield — that periodic wakeup contended on exactly the lock the
@@ -656,7 +722,7 @@ namespace das {
                 job();
             }
             {
-                unique_lock<mutex> lock(mFifoMutex);
+                unique_lock lock(mFifoMutex);
                 mThreads[threadIndex].currentPriority = JobPriority::Inactive;
                 mJobsRunning--;
             }
@@ -678,7 +744,7 @@ namespace das {
             // check and cond_wait holds mFifoMutex, so this notify can't slip into that window.
             // Lowering never notifies: workers drift out at their next spin-loop check (or
             // re-park dormant on their next wake).
-            lock_guard<mutex> guard(mFifoMutex);
+            lock_guard guard(mFifoMutex);
             mLimitCond.notify_all();
         }
     }
@@ -819,7 +885,7 @@ namespace das {
         // we see it parked and pay the wake. No mutex touched while everyone spins.
         uint32_t chainSeq = mTeamSeq.fetch_add(1, std::memory_order_seq_cst) + 1;
         if ( mParkedWorkers.load(std::memory_order_seq_cst) > 0 ) {
-            lock_guard<mutex> lock(mFifoMutex);
+            lock_guard lock(mFifoMutex);
             mCond.notify_all();
         }
         if ( mTeamProf ) tp = uint64_t(ref_time_ticks());
@@ -874,7 +940,7 @@ namespace das {
         int onThreads  = numChunks - onMainThread;
         status.Clear(onThreads);
         {
-            lock_guard<mutex> lock(mFifoMutex);
+            lock_guard lock(mFifoMutex);
             for (int ch = 0; ch < onThreads; ++ch) {
                 int i0 = from + ch * step;
                 int i1 = i0 + step;
@@ -906,17 +972,17 @@ namespace das {
             return;
         }
         deque<Job> producerFifoJobs;
-        mutex producerFifoMutex;
+        std::mutex producerFifoMutex;
         condition_variable condition;
         {
-            lock_guard<mutex> lock(mFifoMutex);
+            lock_guard lock(mFifoMutex);
             for (int ch = 0; ch < numChunks; ++ch) {
                 int i0 = from + ch * step;
                 int i1 = min(i0 + step, to);
                 submit([=, &chunk, &producerFifoJobs, &producerFifoMutex, &condition]() {
                     chunk(i0, i1);
                     {
-                        lock_guard<mutex> producerFifoLock(producerFifoMutex);
+                        lock_guard producerFifoLock(producerFifoMutex);
                         producerFifoJobs.push_back(([=]() { consume(i0, i1); }));
                         condition.notify_one();
                     }
@@ -929,7 +995,7 @@ namespace das {
             while (chunksRemaining > 0) {
                 deque<Job> consumerFifoJobs;
                 {
-                    unique_lock<mutex> producerFifoLock(producerFifoMutex);
+                    unique_lock producerFifoLock(producerFifoMutex);
                     if (condition.wait_for(producerFifoLock, std::chrono::milliseconds(mSleepMs), [&]() {return producerFifoJobs.size() > 0; })) {
                         consumerFifoJobs.swap(producerFifoJobs);
                     } else {
@@ -1009,7 +1075,7 @@ namespace das {
     }
 
     bool JobStatus::Notify() {
-        lock_guard<mutex> guard(mCompleteMutex);
+        lock_guard guard(mCompleteMutex);
         if ( mRemaining == 0 ) return false;
         --mRemaining;
         if ( mRemaining==0 ) {
@@ -1019,7 +1085,7 @@ namespace das {
     }
 
     bool JobStatus::NotifyAndRelease( LineInfo * at ) {
-        lock_guard<mutex> guard(mCompleteMutex);
+        lock_guard guard(mCompleteMutex);
         trackEvent(at, false);
         mRef--;
         if ( mRemaining == 0 ) return false;
@@ -1060,11 +1126,11 @@ namespace das {
                 // Callers destroy the JobStatus right after Wait returns (with_wait_group holds it
                 // on the stack), so take the lock once to wait the notifier out of its locked
                 // region. Uncontended in the common case — the notifier is nanoseconds from done.
-                lock_guard<mutex> guard(mCompleteMutex);
+                lock_guard guard(mCompleteMutex);
                 return;
             }
         }
-        unique_lock<mutex> lock(mCompleteMutex);
+        unique_lock lock(mCompleteMutex);
         mCond.wait(lock, [this] {
             return mRemaining==0;
         });
@@ -1087,11 +1153,11 @@ namespace das {
                 if ( std::chrono::steady_clock::now() >= deadline ) break;
             }
             if ( mRemaining.load() == 0 ) {
-                lock_guard<mutex> guard(mCompleteMutex);
+                lock_guard guard(mCompleteMutex);
                 return true;
             }
         }
-        unique_lock<mutex> lock(mCompleteMutex);
+        unique_lock lock(mCompleteMutex);
         return mCond.wait_until(lock, deadline, [this] {
             return mRemaining==0;
         });
@@ -1099,12 +1165,12 @@ namespace das {
     }
 
     bool JobStatus::isReady() {
-        lock_guard<mutex> guard(mCompleteMutex);
+        lock_guard guard(mCompleteMutex);
         return mRemaining==0;
     }
 
     void JobStatus::Clear(uint32_t count) {
-        lock_guard<mutex> guard(mCompleteMutex);
+        lock_guard guard(mCompleteMutex);
         mRemaining = count;
     }
 
@@ -1306,6 +1372,10 @@ namespace das {
         // scheduler honors across blocks; the hint mode biases, the hard mode takes the top class
         pthread_set_qos_class_self_np(hard ? QOS_CLASS_USER_INTERACTIVE : QOS_CLASS_USER_INITIATED, 0);
     }
+
+    int GetCurrentProcessorIndex () {
+        return -1;
+    }
 }
 
 #elif defined(_MSC_VER)
@@ -1357,6 +1427,10 @@ namespace das {
         if ( hard ) SetThreadAffinityMask(GetCurrentThread(), 1ull << cpu);
         else SetThreadIdealProcessor(GetCurrentThread(), DWORD(cpu));
     }
+
+    int GetCurrentProcessorIndex () {
+        return int(GetCurrentProcessorNumber());
+    }
 }
 
 #elif defined(__linux__) || defined __HAIKU__
@@ -1385,7 +1459,7 @@ namespace das
     void SetCurrentThreadAffinityCpu ( int, bool ) {}
 #else
     void SetCurrentThreadAffinityCpu ( int cpu, bool hard ) {
-        if ( !hard ) return;   // linux has no soft "ideal CPU" hint — only the hard-mask mode pins
+        if ( !hard || cpu < 0 || cpu >= int(CPU_SETSIZE) ) return;   // linux has no soft "ideal CPU" hint - only the hard-mask mode pins; a negative cpu is GetCurrentProcessorIndex's unsupported value, and CPU_SET past CPU_SETSIZE writes off the set
         cpu_set_t cs;
         CPU_ZERO(&cs);
         CPU_SET(cpu, &cs);
@@ -1393,6 +1467,12 @@ namespace das
         // which bionic does not declare
         sched_setaffinity(0, sizeof(cs), &cs);
     }
+#endif
+
+#if defined(__HAIKU__)
+    int GetCurrentProcessorIndex () { return -1; }
+#else
+    int GetCurrentProcessorIndex () { return sched_getcpu(); }
 #endif
 }
 
@@ -1403,6 +1483,7 @@ namespace das
     void SetCurrentThreadName ( const string & ) {}
     void SetCurrentThreadPriority ( JobPriority ) {}
     void SetCurrentThreadAffinityCpu ( int, bool ) {}
+    int GetCurrentProcessorIndex () { return -1; }
 }
 
 #endif

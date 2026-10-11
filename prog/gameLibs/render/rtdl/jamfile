@@ -1,0 +1,30 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/rtdl ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/rtdl.lib ;
+
+BVHSupport ?= no ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+if $(BVHSupport) = yes {
+  Sources =
+    rtdl.cpp
+  ;
+} else {
+  Sources =
+    rtdl_stub.cpp
+  ;
+  Target = $(Target:S=-stub.lib) ;
+}
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

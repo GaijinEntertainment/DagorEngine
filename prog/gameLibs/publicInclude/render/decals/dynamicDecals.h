@@ -87,6 +87,7 @@ void update_buffer(int params_id, const DecalsData &decals);
 void remove_from_buffer(int decals_param_set_id);
 void after_reset_device();
 void clear_atlas();
+void set_before_atlas_reset_callback(void (*cb)());
 Point4 get_atlas_uv(TEXTUREID texId);
 bool is_pending_update(TEXTUREID texId);
 bool are_decals_ready(const DecalsData &decals);

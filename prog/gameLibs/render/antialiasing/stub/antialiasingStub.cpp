@@ -51,7 +51,7 @@ void apply_fxaa(AntialiasingMethod, TEXTUREID, TEXTUREID, const Point4 &) {}
 void apply_mobile_aa(Texture *, Texture *, Texture *, const ApplyContext &) {}
 
 const char *get_available_methods(bool, bool) { return "off"; }
-const char *get_available_upscaling_options(const char *) { return "native"; }
+const char *get_available_upscaling_options(const char *, IPoint2) { return "native"; }
 
 int process_console_cmd(const char *[], int) { return 0; }
 

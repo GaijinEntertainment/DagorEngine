@@ -462,25 +462,6 @@ void SQOptimizer::optimize()
                     jumps.push_back({i, i, i + instr[i]._arg1, i + instr[i]._arg1, false, JumpArg::JUMP_ARG1});
                     break;
 
-                case _OP_DATA_NOP: {
-                        int saveInstr = i + ((instr[i]._arg2 << 8) + instr[i]._arg3);
-                        if ((instr[i]._arg0 || instr[i]._arg1 || instr[i]._arg2 || instr[i]._arg3) && saveInstr > 0 && saveInstr < instr.size() &&
-                            instr[saveInstr].op == _OP_SAVE_STATIC_MEMO)
-                        {
-                            int loadInstr = saveInstr + 1 - ((instr[saveInstr]._arg2 << 8) + instr[saveInstr]._arg3);
-                            if (loadInstr == i)
-                                jumps.push_back({i, i, saveInstr + 1, saveInstr + 1, false, JumpArg::JUMP_ARG_PLUS_23});
-                        }
-                    }
-                    break;
-
-                case _OP_SAVE_STATIC_MEMO: {
-                        int loadInstr = i + 1 - ((instr[i]._arg2 << 8) + instr[i]._arg3);
-                        jumps.push_back({i, i, loadInstr, loadInstr, false, JumpArg::JUMP_ARG_MINUS_23});
-                    }
-                    break;
-
-
                 default:
                     break;
             }
@@ -513,22 +494,6 @@ void SQOptimizer::optimize()
                               assert(0);//todo: we need to convert back to OP_JCMP, and we need to generate load instruction for that
                         } else
                           assert(0);//todo: we need to convert back to OP_JCMP, and we need to generate load instruction for that
-                    }
-                    else if (jumps[i].jumpArg == JumpArg::JUMP_ARG_PLUS_23) {
-                        SQInstruction & ci = instr[jumps[i].instructionIndex];
-                        int jmp = (ci._arg2 << 8) + ci._arg3;
-                        jmp += change;
-                        assert(jmp > 0 && jmp < 0xFFFF);
-                        ci._arg2 = jmp >> 8;
-                        ci._arg3 = jmp & 0xFF;
-                    }
-                    else if (jumps[i].jumpArg == JumpArg::JUMP_ARG_MINUS_23) {
-                        SQInstruction & ci = instr[jumps[i].instructionIndex];
-                        int jmp = (ci._arg2 << 8) + ci._arg3;
-                        jmp -= change;
-                        assert(jmp > 0 && jmp < 0xFFFF);
-                        ci._arg2 = jmp >> 8;
-                        ci._arg3 = jmp & 0xFF;
                     }
                     else
                       assert(0);

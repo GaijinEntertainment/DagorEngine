@@ -11,7 +11,6 @@
 
 #include <shaders/dag_shaderMesh.h>
 #include <scene/dag_visibility.h>
-#include <sceneRay/dag_sceneRayDecl.h>
 
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/containers/dag_StrMap.h>
@@ -19,6 +18,7 @@
 
 // forward declarations for external classes
 class StaticGeometryContainer;
+struct MeshSoa4BLAS;
 class DynRenderBuffer;
 class Bitarray;
 class StaticGeometryMaterial;
@@ -111,10 +111,10 @@ public:
 
   void setDefNodeVis();
 
-  StaticSceneRayTracer *getRayTracer();
-  bool reloadRayTracer();
-  bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm);
-  bool hasCollision();
+  bool reloadCollision(); // rebuilds it, and answers what hasCollision would
+  // traces p + unnormalized_dir * t over [0, maxt); IDagorGeom states the rest
+  bool traceRay(const Point3 &p, const Point3 &unnormalized_dir, real &maxt, Point3 *norm);
+  bool hasCollision(); // there is something to trace, not a node count; builds it if nothing has
 
 protected:
   StaticGeometryContainer *geom;
@@ -122,8 +122,7 @@ protected:
   void compileRenderData();
 
 private:
-  class SceneRayTracer;
-  SceneRayTracer *rayTracer;
+  MeshSoa4BLAS *collision;
 
   static StaticSceneBuilder::StdTonemapper *toneMapper;
 
@@ -245,8 +244,8 @@ private:
   ShaderMesh *getMesh(int node_id) const;
   bool isNodeInVisRange(int idx) const;
 
-  void delRayTracer();
-  void initRayTracer();
+  void delCollision();
+  void initCollision();
 
   static bool fatalHandler(const char *msg, const char *stack_msg, const char *file, int line);
   static void initStaticMembers();

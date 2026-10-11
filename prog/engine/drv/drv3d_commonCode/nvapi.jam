@@ -1,6 +1,6 @@
 if $(Platform) in windows && $(PlatformArch) in x86 x86_64 arm64 {
   local NvApiDir = $(_DEVTOOL)/nvapi-$(NvApiVer) ;
-  if ! [ GLOB $(NvApiDir) : * ] { exit FATAL\: \"$(NvApiDir)\" not found!  Please, update DEVTOOLS ; }
+  if ! [ GLOB $(NvApiDir) : * ] { exit "FATAL: \"$(NvApiDir)\" not found!  Please, update DEVTOOLS" ; }
 
   local lib_x86    = $(NvApiDir)/x86/nvapi.lib ;
   local lib_x86_64 = $(NvApiDir)/amd64/nvapi64.lib ;

@@ -40,3 +40,5 @@ half dynamicAO = (gbuffer.ao*dynamic_lights_ao_effect.x + dynamic_lights_ao_effe
 half pointLightsFinalAO = (enviAO*dynamic_lights_ao_effect.x + dynamic_lights_ao_effect.y);//we use ssao, since we use it in point_lights.dshl (works slow, but not much lights are there)
 half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, gbuffer.linearRoughness*gbuffer.linearRoughness);// dice spec occlusion
 half3 specularColor = gbuffer.specularColor*(specularAOcclusion*gbuffer.extracted_albedo_ao);
+half3 specularMS = EnvBRDFMultiScatter(gbuffer.specularColor, getEnviBRDF_AB_LinearRoughness(gbuffer.linearRoughness, NoV).xy);
+specularColor *= specularMS;

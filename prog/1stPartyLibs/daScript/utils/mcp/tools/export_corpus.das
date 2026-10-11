@@ -20,6 +20,26 @@ struct ExportCorpusEnvelope {
 }
 
 
+// Appends `--flag N` for a non-negative integer argument. Returns "" when the
+// argument is absent or valid, else the error envelope (temp file removed first).
+def private push_nonneg_int_arg(var argv : array<string>; flag, arg_name, raw, temp_paths_file : string) : string {
+    if (empty(raw)) return ""
+    let parsed = try_to_int(raw)
+    if (is_err(parsed)) {
+        remove(temp_paths_file)
+        return make_tool_result("export_corpus: '{arg_name}' must be a non-negative integer (got '{raw}')", true)
+    }
+    let n = unwrap(parsed)
+    if (n < 0) {
+        remove(temp_paths_file)
+        return make_tool_result("export_corpus: '{arg_name}' must be >= 0 (got {n})", true)
+    }
+    argv |> push(flag)
+    argv |> push("{n}")
+    return ""
+}
+
+
 def public do_export_corpus(paths : string; paths_file : string; out : string;
                             min_tokens_str : string; workers_str : string) : string {
     let exe = get_daslang_exe()
@@ -67,34 +87,10 @@ def public do_export_corpus(paths : string; paths_file : string; out : string;
         "--paths-from", temp_paths_file,
         "--export-functions", resolved_out
     ]
-    if (!empty(min_tokens_str)) {
-        let parsed = try_to_int(min_tokens_str)
-        if (is_err(parsed)) {
-            remove(temp_paths_file)
-            return make_tool_result("export_corpus: 'min_tokens' must be a non-negative integer (got '{min_tokens_str}')", true)
-        }
-        let n = unwrap(parsed)
-        if (n < 0) {
-            remove(temp_paths_file)
-            return make_tool_result("export_corpus: 'min_tokens' must be >= 0 (got {n})", true)
-        }
-        argv |> push("--min-tokens")
-        argv |> push("{n}")
-    }
-    if (!empty(workers_str)) {
-        let parsed = try_to_int(workers_str)
-        if (is_err(parsed)) {
-            remove(temp_paths_file)
-            return make_tool_result("export_corpus: 'workers' must be a non-negative integer (got '{workers_str}')", true)
-        }
-        let n = unwrap(parsed)
-        if (n < 0) {
-            remove(temp_paths_file)
-            return make_tool_result("export_corpus: 'workers' must be >= 0 (got {n})", true)
-        }
-        argv |> push("--workers")
-        argv |> push("{n}")
-    }
+    let min_tokens_err = push_nonneg_int_arg(argv, "--min-tokens", "min_tokens", min_tokens_str, temp_paths_file)
+    if (!empty(min_tokens_err)) return min_tokens_err
+    let workers_err = push_nonneg_int_arg(argv, "--workers", "workers", workers_str, temp_paths_file)
+    if (!empty(workers_err)) return workers_err
     var output : string
     let exit_code = run_and_capture(argv, output, 0.0)
     remove(temp_paths_file)

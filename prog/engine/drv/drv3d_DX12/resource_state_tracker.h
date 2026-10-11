@@ -479,7 +479,12 @@ inline D3D12_RESOURCE_STATES translate_buffer_barrier_to_state(ResourceBarrier b
 
   if (RB_NONE != (RB_RO_INDIRECT_BUFFER & barrier))
   {
+#if _TARGET_PC_WIN
+    // attempt to fix a nvidia bug with uav -> indirect arg transition not properly working
+    return D3D12_RESOURCE_STATE_COMMON;
+#else
     result |= D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+#endif
   }
 
   if (RB_NONE != (RB_RO_COPY_SOURCE & barrier))
@@ -1265,7 +1270,8 @@ public:
       }
     }
 
-    if (DAGOR_UNLIKELY(ref->Transition.StateAfter != from))
+    const bool autoPromotedFromCommon = D3D12_RESOURCE_STATE_COMMON == ref->Transition.StateAfter;
+    if (DAGOR_UNLIKELY(ref->Transition.StateAfter != from && !autoPromotedFromCommon))
     {
       [&] {
         for (auto [i, b] : enumerate(dataSet))
@@ -2111,6 +2117,13 @@ public:
   // assumes base has no write states
   static D3D12_RESOURCE_STATES combine_with_static_states(BufferGlobalId buffer, D3D12_RESOURCE_STATES base)
   {
+#if _TARGET_PC_WIN
+    // do not override common when the buffer may be used as indirect arg buffer, otherwise this disables a intentional flush to common
+    if (D3D12_RESOURCE_STATE_COMMON == base && buffer.isUsedAsIndirectBuffer())
+    {
+      return D3D12_RESOURCE_STATE_COMMON;
+    }
+#endif
     if (buffer.isUsedAsVertexOrConstBuffer())
     {
       base |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -2917,6 +2930,18 @@ public:
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
       texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
   }
+
+#if _TARGET_SCARLETT
+  void transitionTextureToCommon(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
+  {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
+    transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
+      texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_COMMON);
+  }
+#endif
 
   void useTextureAsResolveDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
@@ -4638,6 +4663,13 @@ public:
     BaseType::useTextureAsResolveSource(barriers, stt, texture);
   }
 
+#if _TARGET_SCARLETT
+  void transitionTextureToCommon(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
+  {
+    BaseType::transitionTextureToCommon(barriers, stt, texture);
+  }
+#endif
+
   void useTextureAsResolveDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
     BaseType::useTextureAsResolveDestination(barriers, stt, texture);
@@ -5121,7 +5153,7 @@ public:
   }
 
   void activateBuffer(BufferResourceReferenceAndAddressRangeWithClearView buffer, const ResourceMemoryRange &memory,
-    ResourceActivationAction action, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb, ID3D12Device *device,
+    ResourceActivationAction action, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb, D3DDevice *device,
     ShaderResourceViewDescriptorHeapManager &descriptors, StatefulCommandBuffer &cmd)
   {
     auto beforeBatchSize = bb.batchSize();
@@ -5210,8 +5242,8 @@ public:
 
   void activateTexture(Image *tex, ResourceActivationAction action, const ResourceClearValue &value, ImageViewState view_state,
     D3D12_CPU_DESCRIPTOR_HANDLE view, ResourceUsageManagerWithHistory &rst, BarrierBatcher &bb, SplitTransitionTracker &stt,
-    ID3D12Device2 *device, ShaderResourceViewDescriptorHeapManager &descriptors, PipelineManager &pipeMan, PipelineCache &cache,
-    StatefulCommandBuffer &cmd, Device &device_obj)
+    D3DDevice *device, ShaderResourceViewDescriptorHeapManager &descriptors, PipelineManager &pipeMan, StatefulCommandBuffer &cmd,
+    Device &device_obj)
   {
     auto beforeBatchSize = bb.batchSize();
     // we do only the memory overlap, aliasing barrier and state barriers on mip level 0 and array
@@ -5344,7 +5376,7 @@ public:
             cmd.discardResource(tex->getHandle(), nullptr);
 
             cmd.setResourceHeap(descriptors.getActiveHandle(), descriptors.getBindlessGpuAddress());
-            auto clearPipeline = pipeMan.getClearPipeline(device_obj, cache, tex->getFormat().asDxGiFormat<false>());
+            auto clearPipeline = pipeMan.getClearPipeline(device_obj, tex->getFormat().asDxGiFormat<false>());
 
             if (!clearPipeline)
               return;

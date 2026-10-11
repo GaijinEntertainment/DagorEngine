@@ -37,13 +37,13 @@ AtlasBlockManager::Config::Config(const DataBlock &hints_blk)
 void AtlasBlockManager::setHints(const DataBlock &hints_blk)
 {
   Config cfg{hints_blk};
-  std::lock_guard guard{configMutex};
+  dag::lock_guard guard{configMutex};
   config = cfg;
 }
 
 AtlasBlockManager::Config AtlasBlockManager::getConfig() const
 {
-  std::lock_guard guard{configMutex};
+  dag::lock_guard guard{configMutex};
   return config;
 }
 
@@ -90,7 +90,7 @@ AtlasBlockManager::Chunk AtlasBlockManager::allocateChunk(uint32_t block_count)
     return {};
   }
 
-  std::lock_guard guard(poolMutex);
+  dag::lock_guard guard(poolMutex);
   for (auto &pool : pools)
   {
     for (int ci = 0, cn = pool.freeChunks.size(); ci < cn; ci++)
@@ -191,7 +191,7 @@ void AtlasBlockManager::releaseChunk(Chunk chunk)
   if (chunk.empty() or !chunk.valid())
     return;
 
-  std::lock_guard guard(poolMutex);
+  dag::lock_guard guard(poolMutex);
   G_ASSERT_RETURN(chunk.pool < pools.size(), );
   auto &pool = pools[chunk.pool];
   G_ASSERT_RETURN(chunk.firstBlock < pool.numBlocks and chunk.firstBlock + chunk.blockCount <= pool.numBlocks, );
@@ -232,7 +232,7 @@ void AtlasBlockManager::releaseChunk(Chunk chunk)
 
 void AtlasBlockManager::clear()
 {
-  std::lock_guard guard(poolMutex);
+  dag::lock_guard guard(poolMutex);
   clear_and_shrink(pools);
 }
 
@@ -247,7 +247,7 @@ bool AtlasBlockManager::loadChunkData(Chunk chunk, IGenLoad &source)
   if (chunk.empty())
     return true;
 
-  std::lock_guard guard(poolMutex);
+  dag::lock_guard guard(poolMutex);
   G_ASSERT_RETURN(chunk.pool < pools.size(), false);
   auto &pool = pools[chunk.pool];
   G_ASSERT_RETURN(chunk.firstBlock < pool.numBlocks and chunk.firstBlock + chunk.blockCount <= pool.numBlocks, false);
@@ -346,7 +346,7 @@ eastl::pair<BaseTexture *, uint32_t> AtlasBlockManager::getChunkPosition(ChunkLo
   if (!chunk.valid())
     return INVALID;
 
-  std::lock_guard guard(poolMutex);
+  dag::lock_guard guard(poolMutex);
   G_ASSERT_RETURN(chunk.pool < pools.size(), INVALID);
   auto &pool = pools[chunk.pool];
   G_ASSERT_RETURN(chunk.firstBlock < pool.numBlocks, INVALID);

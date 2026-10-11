@@ -66,6 +66,14 @@ struct NetControlClient final : public net::INetworkObserver
     g_entity_mgr->broadcastEventImmediate(OnNetControlClientDestroyed{});
   }
 
+  static void onDisconnectDetailsMsg(const net::IMessage *msgraw)
+  {
+    auto msg = msgraw->cast<DisconnectDetails>();
+    G_ASSERT(msg);
+    if (net_context)
+      net_context->disconnectDetails = msg->get<0>();
+  }
+
   static void onServerInfoMsg(const net::IMessage *msgraw)
   {
     using namespace net;
@@ -143,6 +151,15 @@ ECS_NET_IMPL_MSG(ServerInfo,
   net::MF_DONT_COMPRESS,
   ECS_NET_NO_DUP,
   &NetControlClient::onServerInfoMsg);
+
+ECS_NET_IMPL_MSG(DisconnectDetails,
+  net::ROUTING_SERVER_TO_CLIENT,
+  &net::direct_connection_rcptf,
+  RELIABLE_ORDERED,
+  NC_DEFAULT,
+  net::MF_DEFAULT_FLAGS,
+  ECS_NET_NO_DUP,
+  &NetControlClient::onDisconnectDetailsMsg);
 
 
 net::CNetwork &net_ctx_init_client(ecs::EntityManager &mgr, net::INetDriver *drv)

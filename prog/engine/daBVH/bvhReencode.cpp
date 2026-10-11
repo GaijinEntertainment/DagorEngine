@@ -35,6 +35,21 @@ void reencodeBoxNodeToFP16(uint8_t *nodeData)
   memcpy(nodeData, mm, 12); // -V1086 preserve skip word
 }
 
+void reencodeBoxNodeToFP16(uint8_t *nodeData, mat44f_cref to_norm)
+{
+  alignas(16) uint32_t mm[4];
+  memcpy(mm, nodeData, 16);
+  const vec4i raw = v_ldi((const int *)mm);
+  bbox3f q, n;
+  q.bmin = v_cvt_vec4f(v_andi(raw, v_splatsi(0xFFFF)));
+  q.bmax = v_cvt_vec4f(v_srli(raw, 16));
+  v_bbox3_init(n, to_norm, q);
+  // The map's float error is not monotonic across a box and its verts.
+  const vec4f slack = v_splats(1e-5f);
+  write_pair_halves(mm, v_float_to_half_down(v_sub(n.bmin, slack)), v_float_to_half_up(v_add(n.bmax, slack)));
+  memcpy(nodeData, mm, 12); // -V1086 preserve skip word
+}
+
 // Map source float3 verts ([0,65535]) to [-1,1] and write them back in the requested GPU format.
 // Source stride is always 12; the destination stride is blasGpuVertStride(fp16) (8 when fp16). When
 // the destination is smaller the loop compacts in place forward (dst[v] starts before src[v] and each

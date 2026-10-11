@@ -92,8 +92,14 @@ shader bvh_process_skinned_vertices_batched
 
       float4 packedBoneIndices;
       float4 boneWeights;
+      ##if cor_skinning_support == on
+        float4 corOffset;
+      ##endif
     };
     #define viewProjTm float4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
+    ##if cor_skinning_support == on
+      #define HAS_COR_SKINNING 1
+    ##endif
   }
 
   HAS_SKINNING_BASE(cs)
@@ -227,6 +233,12 @@ shader bvh_process_skinned_vertices_batched
       input.normal.xyz        = input.normal.xyz * 2 - 1;
       input.packedBoneIndices = float4((packedIndices >> INPUT_ENCODING_OFFSET) & 255) / 255;
       input.boneWeights       = float4((packedWeights >> INPUT_ENCODING_OFFSET) & 255) / 255;
+      #if HAS_COR_SKINNING
+      BRANCH
+      if (params.cor_offset != 0xFFFFFFFFu)
+        input.corOffset = BGRA_SWIZZLE(
+          float4((loadBuffer(source, vertexStart + params.cor_offset) >> INPUT_ENCODING_OFFSET) & 255) / 255);
+      #endif
 
       ##if bvh_process_skinned_vertices_cloth == yes
         if (params.color_offset != 0xFFFFFFFFu)

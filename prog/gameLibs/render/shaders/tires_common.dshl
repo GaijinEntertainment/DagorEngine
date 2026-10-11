@@ -8,16 +8,17 @@ int tires_frame_count = 0;
 float tires_texture_width;
 
 float4 track_smoothness_reflectance = (0, 0, 0, 0);
-float tires_base_y = 200;
 
 float tires_tcY_step = 200;
 
-macro TIRES_COMMON()
-  (vs) {
+macro INIT_TIRES_COMMON(code)
+  (code) {
     tires_tcY_step@f1 = (tires_tcY_step);
   }
+endmacro
 
-  hlsl(vs) {
+macro USE_TIRES_COMMON(code)
+  hlsl(code) {
     static const int TIRE_TRACK_NODE_SIZE = 2; // See `TireTrackNode` struct
 
     float2 decode_float2(uint value)
@@ -50,6 +51,80 @@ macro TIRES_COMMON()
     {
       if (current_tcY > next_tcY)
         current_tcY -= tires_tcY_step;
+    }
+  }
+endmacro
+
+macro TIRES_COMMON()
+  INIT_TIRES_COMMON(vs)
+  USE_TIRES_COMMON(vs)
+endmacro
+
+macro USE_TIRES_DEFAULT_VERTEX_SHADING(code)
+  USE_TIRES_COMMON(code)
+  hlsl(code)
+  {
+    struct TiresVertexData
+    {
+      bool isValid;
+      float2 worldPosXZ;
+      float2 texcoords;
+      float omniblend;
+      float opacity;
+      float2 nextTexcoords;
+      float lerpFactor;
+      float wetness;
+    };
+
+    TiresVertexData tires_default_vertex_shading(Buffer<float4> buf, uint node_idx, uint vertex_id, float tires_texture_width)
+    {
+      int2 vpos = int2(vertex_id < 2 ? 0 : 1,
+                      vertex_id % 3 == 0 ? 1 : -1);
+
+      int currentNodeOffset = node_idx * TIRE_TRACK_NODE_SIZE;
+      int nextNodeOffset = currentNodeOffset + TIRE_TRACK_NODE_SIZE;
+
+      float4 curNodeData0 = loadBuffer(buf, currentNodeOffset + 0);
+      float4 curNodeData1 = loadBuffer(buf, currentNodeOffset + 1);
+
+      float4 nextNodeData0 = loadBuffer(buf, nextNodeOffset + 0);
+      float4 nextNodeData1 = loadBuffer(buf, nextNodeOffset + 1);
+
+      float2 currentNodePos = curNodeData0.xz;
+      float2 currentNodeSideVec = decode_side_vector(curNodeData0.w);
+
+      float2 nextNodePos = nextNodeData0.xz;
+      float2 nextNodeSideVec = decode_side_vector(nextNodeData0.w);
+
+      float curNodeTcX = decode_tcX(curNodeData1.x);
+      float2 curNodeOmnidirBlendOpacity = decode_omnidirblend_opacity(curNodeData1.z);
+      float2 curNodeTcYWetness = decode_tcY_wetness(curNodeData1.w);
+
+      float nextNodeTcX = decode_tcX(nextNodeData1.x);
+      float2 nextNodeOmnidirBlendOpacity = decode_omnidirblend_opacity(nextNodeData1.z);
+      float2 nextNodeTcYWetness = decode_tcY_wetness(nextNodeData1.w);
+
+      TiresVertexData data;
+      data.isValid = !(curNodeOmnidirBlendOpacity.y <= 0 && nextNodeOmnidirBlendOpacity.y <= 0);
+
+      data.worldPosXZ = vpos.x == 0 ? currentNodePos.xy : nextNodePos.xy;
+      data.worldPosXZ += vpos.y * (vpos.x == 0 ? currentNodeSideVec * sign(dot(currentNodeSideVec, nextNodeSideVec)) : nextNodeSideVec);
+
+      float texEdgeDisplacement = vpos.y * tires_texture_width;
+      fixTcYMapping(curNodeTcYWetness.x,  nextNodeTcYWetness.x);
+
+      data.texcoords.x = curNodeTcX + texEdgeDisplacement;
+      data.texcoords.y = vpos.x == 0 ? curNodeTcYWetness.x : nextNodeTcYWetness.x;
+      data.omniblend   = vpos.x == 0 ? curNodeOmnidirBlendOpacity.x : nextNodeOmnidirBlendOpacity.x;
+      data.opacity     = vpos.x == 0 ? curNodeOmnidirBlendOpacity.y : nextNodeOmnidirBlendOpacity.y;
+
+      data.nextTexcoords.x = nextNodeTcX + texEdgeDisplacement;
+      data.nextTexcoords.y = data.texcoords.y;
+      data.lerpFactor = vpos.x;
+
+      data.wetness = vpos.x == 0 ? curNodeTcYWetness.y : nextNodeTcYWetness.y;
+
+      return data;
     }
   }
 endmacro

@@ -134,7 +134,10 @@ bool drv3d_vulkan::WindowState::setRenderWindowParams()
       currentResolutionY == settings.resolutionY && ownsWindow)
     return true;
 
-  closeWindow();
+  // wayland reconfigures window without recreation properly
+  // and closing it may even trigger issues if compositor attaches some components on it
+  if (!linux_GUI::is_wayland())
+    closeWindow();
 
   linux_GUI::WindowCreationOptions windowCreationOptions{
     .position = settings.position,

@@ -794,7 +794,7 @@ void splash_slots::bind_clamp_samplers(unsigned stage, int linear_reg, int point
 // twin of dshl splash_exit_*; keep in step
 SplashExitPacing splash_exit_pacing(float t, float slow_at, float rush_at, float slow_seconds, float rush_seconds)
 {
-  const float WHITE_FULL = 2.f, DOOR_SHARE = 0.5f;
+  const float EXIT_END = 2.f, DOOR_SHARE = 0.5f;
   // the degenerate shape is 0/0, not x/0
   auto ramp = [](float num, float den) { return den > 0.f ? clamp(num / den, 0.f, 1.f) : 1.f; };
   const float slowPace = slow_at > 0.f && slow_seconds > 0.f ? 1.f / slow_seconds : 0.f;
@@ -802,9 +802,9 @@ SplashExitPacing splash_exit_pacing(float t, float slow_at, float rush_at, float
   SplashExitPacing p;
   if (rush_at > 0.f && t >= rush_at)
   {
-    const float a0 = clamp((rush_at - slow_at) * slowPace, 0.f, WHITE_FULL);
+    const float a0 = clamp((rush_at - slow_at) * slowPace, 0.f, EXIT_END);
     p.elapsed = t - (slow_at > 0.f ? slow_at : rush_at);
-    p.approach = a0 + (WHITE_FULL - a0) * ramp(t - rush_at, DOOR_SHARE * rush_seconds);
+    p.approach = a0 + (EXIT_END - a0) * ramp(t - rush_at, DOOR_SHARE * rush_seconds);
     p.portal = ramp(t - rush_at, rush_seconds);
   }
   // a scene that declared no duration, or a preview standing before the stamp,
@@ -812,7 +812,7 @@ SplashExitPacing splash_exit_pacing(float t, float slow_at, float rush_at, float
   else if (slowPace > 0.f && t >= slow_at)
   {
     p.elapsed = t - slow_at;
-    p.approach = min((t - slow_at) * slowPace, WHITE_FULL);
+    p.approach = min((t - slow_at) * slowPace, EXIT_END);
   }
   return p;
 }

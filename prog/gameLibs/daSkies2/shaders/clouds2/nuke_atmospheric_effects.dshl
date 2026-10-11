@@ -36,7 +36,7 @@ macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
     }
   }
   (code) {
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
 
     clouds_origin_offset@f3 = clouds_origin_offset;
     nuke_atmospheric_effects_count@i1 = nuke_atmospheric_effects_count;
@@ -48,6 +48,10 @@ macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
     nuke_atmospheric_light_effects@buf = nuke_atmospheric_light_effects hlsl {
       Buffer<uint4> nuke_atmospheric_light_effects@buf;
     }
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+  hlsl(code) {
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
 
   hlsl(code) {

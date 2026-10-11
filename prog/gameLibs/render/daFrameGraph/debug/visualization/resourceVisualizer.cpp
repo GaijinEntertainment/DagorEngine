@@ -8,6 +8,7 @@
 #include <gui/dag_imgui.h>
 #include <memory/dag_framemem.h>
 #include <util/dag_convar.h>
+#include <EASTL/sort.h>
 
 #include <math.h>
 
@@ -366,6 +367,13 @@ static void format_size(char *buf, size_t buf_size, int size_bytes, SizeFormat f
   snprintf(buf, buf_size, "%d B", size_bytes);
 }
 
+static void format_heap_label(char *buf, size_t buf_size, int heap_idx, int heap_size, SizeFormat fmt, bool untracked)
+{
+  char sizeBuf[32];
+  format_size(sizeBuf, sizeof(sizeBuf), heap_size, fmt);
+  snprintf(buf, buf_size, "%sheap %i (%s)", untracked ? "untracked " : "", heap_idx, sizeBuf);
+}
+
 constexpr float JAGGED_AMP = 5.0f;
 constexpr float JAGGED_STEP = 8.0f;
 
@@ -505,6 +513,29 @@ ResourseVisualizer::ResourseVisualizer(const InternalRegistry &intRegistry, cons
   registry(intRegistry), nameResolver(nameRes), intermediateGraph(irGraph)
 {
   REGISTER_IMGUI_WINDOW(IMGUI_WINDOW_GROUP_FG2, IMGUI_RES_WIN_NAME, [&]() { this->draw(); });
+  REGISTER_IMGUI_WINDOW(IMGUI_WINDOW_GROUP_FG2, IMGUI_UNTRACKED_WIN_NAME, [&]() { this->drawUntrackedList(); });
+}
+
+void ResourseVisualizer::drawUntrackedList()
+{
+  if (ImGui::IsWindowCollapsed())
+    return;
+
+  dag::Vector<const intermediate::DebugResourceName *, framemem_allocator> untrackedNames;
+  int gpuResourceCount = 0;
+  for (const auto &[resIdx, res] : intermediateGraph.resources.enumerate())
+    if (res.isScheduled() && res.asScheduled().isGpuResource())
+    {
+      ++gpuResourceCount;
+      if (res.isUntracked())
+        untrackedNames.push_back(&intermediateGraph.resourceNames[resIdx]);
+    }
+  eastl::sort(untrackedNames.begin(), untrackedNames.end(), [](const auto *a, const auto *b) { return *a < *b; });
+
+  ImGui::Text("%d of %d GPU resources are untracked", (int)untrackedNames.size(), gpuResourceCount);
+  ImGui::Separator();
+  for (const auto *name : untrackedNames)
+    ImGui::TextUnformatted(name->c_str());
 }
 
 void ResourseVisualizer::draw()
@@ -524,7 +555,7 @@ void ResourseVisualizer::draw()
 
   dag::Vector<HeapIndex, framemem_allocator> gpuHeapIndices;
   dag::Vector<HeapIndex, framemem_allocator> cpuHeapIndices;
-  for (auto [hi, _] : resourceHeapSizes.enumerate())
+  for (auto hi : resourceHeapSizes.keys())
   {
     if (cpuHeapFlags.isMapped(hi) && cpuHeapFlags[hi])
       cpuHeapIndices.push_back(hi);
@@ -649,10 +680,9 @@ void ResourseVisualizer::drawHeapLabels(ImDrawList *drawList, eastl::span<const 
       ImVec2(initialPos.x + panelWidth, heapBottomY), LINE_COLOR);
 
     // Build label text
-    char sizeBuf[32];
-    format_size(sizeBuf, sizeof(sizeBuf), resourceHeapSizes[heapIdx], sizeFormat);
     char labelBuf[64];
-    snprintf(labelBuf, sizeof(labelBuf), "heap %i (%s)", eastl::to_underlying(heapIdx), sizeBuf);
+    format_heap_label(labelBuf, sizeof(labelBuf), eastl::to_underlying(heapIdx), resourceHeapSizes[heapIdx], sizeFormat,
+      untrackedHeapFlags[heapIdx]);
     const float labelWidth = ImGui::CalcTextSize(labelBuf).x;
 
     // Sticky label Y: anchored to heap top, slides down when scrolled under header, stops at bottom.
@@ -848,10 +878,8 @@ void ResourseVisualizer::drawCanvas(eastl::span<const HeapIndex> heapIndicesToDi
   IdIndexedMapping<HeapIndex, float> heapVisualHeight(resourceHeapSizes.size(), 0.f);
   for (HeapIndex hi : heapIndicesToDisplay)
   {
-    char sizeBuf[32];
-    format_size(sizeBuf, sizeof(sizeBuf), resourceHeapSizes[hi], sizeFormat);
     char labelBuf[64];
-    snprintf(labelBuf, sizeof(labelBuf), "heap %i (%s)", eastl::to_underlying(hi), sizeBuf);
+    format_heap_label(labelBuf, sizeof(labelBuf), eastl::to_underlying(hi), resourceHeapSizes[hi], sizeFormat, untrackedHeapFlags[hi]);
     const float labelMinBytes = vScale > 0.f ? (ImGui::CalcTextSize(labelBuf).x + 2.0f * NODE_WINDOW_PADDING) / vScale : 0.f;
     const float effectiveHeapSize = eastl::max((float)resourceHeapSizes[hi], labelMinBytes);
     heapVisualHeight[hi] = effectiveHeapSize * vScale;
@@ -1408,7 +1436,7 @@ void ResourseVisualizer::updateVisualization()
 
   nodeNames.clear();
   nodeNames.resize(nodeCount);
-  for (auto [nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+  for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
   {
     if (irNode.frontendNode)
       nodeNames[nodeIdx] = registry.knownNames.getName(*irNode.frontendNode);
@@ -1418,12 +1446,13 @@ void ResourseVisualizer::updateVisualization()
 
   resourceHeapSizes.clear();
   cpuHeapFlags.clear();
+  untrackedHeapFlags.clear();
 
   // Step 1: Compute IR resource lifetimes from the IR graph
   irResourceInfos.clear();
   irResourceInfos.resize(intermediateGraph.resources.totalKeys());
 
-  for (auto [nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+  for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
   {
     const int nodeExecIdx = eastl::to_underlying(nodeIdx);
 
@@ -1441,7 +1470,7 @@ void ResourseVisualizer::updateVisualization()
 
   // Step 2: Build reverse mapping ResNameId -> ResourceIndex, process placements
   ska::flat_hash_map<ResNameId, ResourceIndex> resNameToIR;
-  for (auto [resIdx, res] : intermediateGraph.resources.enumerate())
+  for (const auto &[resIdx, res] : intermediateGraph.resources.enumerate())
     for (auto resId : res.frontendResources)
       resNameToIR[resId] = resIdx;
 
@@ -1463,9 +1492,11 @@ void ResourseVisualizer::updateVisualization()
     {
       resourceHeapSizes.resize(heap + 1, 0);
       cpuHeapFlags.resize(heap + 1, false);
+      untrackedHeapFlags.resize(heap + 1, false);
     }
     resourceHeapSizes[HeapIndex(heap)] = eastl::max(resourceHeapSizes[HeapIndex(heap)], offset + size);
     cpuHeapFlags[HeapIndex(heap)] = is_cpu;
+    untrackedHeapFlags[HeapIndex(heap)] = intermediateGraph.resources[it->second].isUntracked();
   }
 
   // Process barriers
@@ -1513,7 +1544,7 @@ void ResourseVisualizer::updateVisualization()
     }
 
     // Compute per-frontend logical lifetimes from the registry
-    for (auto [nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+    for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
     {
       if (!irNode.frontendNode)
         continue;
@@ -1578,7 +1609,7 @@ void ResourseVisualizer::updateVisualization()
     }
 
     // Step 4: Populate usage timelines
-    for (auto [nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
+    for (const auto &[nodeIdx, irNode] : intermediateGraph.nodes.enumerate())
     {
       if (!irNode.frontendNode)
         continue;

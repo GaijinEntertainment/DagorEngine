@@ -31,14 +31,10 @@
 #include "layout.h"
 #include "enumnode.h"
 
-#include <d3dx9.h>
 #include <d3d9types.h>
 #include <ihardwarematerial.h>
 
 namespace fs = std::filesystem;
-
-// defined in expUtil.cpp, true while an export runs with prompts suppressed
-bool are_prompts_suppressed();
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -677,14 +673,14 @@ private:
   void GetValue();
   void SetValue(const std::wstring &v);
 
-  ICustEdit *edit;
+  ControlPtr<ICustEdit> edit;
 };
 
 class WidgetColor : public AbstractWidget
 {
 public:
   WidgetColor(const ParamInfo &pinfo, Dagormat2Dialog *p);
-  ~WidgetColor() override;
+  ~WidgetColor() override = default;
 
   INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -692,7 +688,7 @@ private:
   void GetValue();
   void SetValue(const std::wstring &v);
 
-  IColorSwatch *col;
+  ControlPtr<IColorSwatch> col;
 };
 
 class WidgetBool : public AbstractWidget
@@ -727,8 +723,8 @@ private:
   bool is_color_ui;
   bool is_spinner_used;
   int size;
-  ISpinnerControl *spinner[4];
-  IColorSwatch *col;
+  ControlPtr<ISpinnerControl> spinner[4];
+  ControlPtr<IColorSwatch> col;
   HPEN hFramePen;
 };
 
@@ -757,12 +753,13 @@ public:
   bool valid;
   bool isActive;
   bool paramsMirrorScript; // false until RestoreParams() has built the widgets out of the script
-  IColorSwatch *csa, *csd, *css, *cse;
+  ControlPtr<IColorSwatch> csa, csd, css, cse;
   TexDADMgr dadmgr;
 
-  std::array<ICustButton *, NUMTEXMAPS> texbut;
+  std::array<ControlPtr<ICustButton>, NUMTEXMAPS> texbut;
   POINT paramOrg;
   HPEN hFramePen;
+  ToolTipExtender tooltip;
 
   std::vector<std::unique_ptr<AbstractWidget>> parameters;
 
@@ -789,6 +786,7 @@ public:
   void RemParamGroup(std::wstring_view group_name);
   void SetScript(const std::wstring &script);
   void MarkUnknownParams(const DataBlock *dataBlk);
+  void setToolTip(HWND hWnd, const std::wstring &hint, HWND hExclude);
   std::vector<RECT> GetParamGroupRectangles() const;
 
   void Invalidate();
@@ -848,7 +846,6 @@ public:
   Sides twosided;
   std::wstring classname, script;
   DagorMat2PostLoadCallback postLoadCallback;
-  static ToolTipExtender tooltip;
 
   DagorMat2(BOOL loading);
   ~DagorMat2() override;
@@ -858,6 +855,7 @@ public:
     if (dlg == d)
       dlg = NULL;
   }
+  void RestoreDialogParams();
   void fill_texmap_slot(int i, Texmap *m);
 
   void *GetInterface(ULONG) override;
@@ -949,14 +947,12 @@ public:
   bool hasAlpha();
 };
 
-ToolTipExtender DagorMat2::tooltip;
-
-static void setToolTip(HWND hWnd, const std::wstring &hint, HWND hExclude)
+void Dagormat2Dialog::setToolTip(HWND hWnd, const std::wstring &hint, HWND hExclude)
 {
   if (hWnd == hExclude)
     return;
 
-  DagorMat2::tooltip.SetToolTip(hWnd, hint.data());
+  tooltip.SetToolTip(hWnd, hint.data());
   for (HWND hChild = GetWindow(hWnd, GW_CHILD); hChild; hChild = GetWindow(hChild, GW_HWNDNEXT))
     setToolTip(hChild, hint, hExclude);
 }
@@ -1102,7 +1098,7 @@ static INT_PTR CALLBACK TexDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     case WM_INITDIALOG:
       for (size_t i = 0; i < dlg->texbut.size(); ++i)
       {
-        dlg->texbut[i] = GetICustButton(GetDlgItem(hWnd, texidc[i]));
+        dlg->texbut[i].reset(GetICustButton(GetDlgItem(hWnd, texidc[i])));
         dlg->texbut[i]->SetDADMgr(&dlg->dadmgr);
       }
       break;
@@ -1238,10 +1234,10 @@ static INT_PTR CALLBACK PhongDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
   switch (msg)
   {
     case WM_INITDIALOG:
-      dlg->csa = GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), dlg->theMtl->cola, GetString(IDS_AMB_COLOR));
-      dlg->csd = GetIColorSwatch(GetDlgItem(hWnd, IDC_DIFF), dlg->theMtl->cold, GetString(IDS_DIFF_COLOR));
-      dlg->css = GetIColorSwatch(GetDlgItem(hWnd, IDC_SPEC), dlg->theMtl->cols, GetString(IDS_SPEC_COLOR));
-      dlg->cse = GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), dlg->theMtl->cole, GetString(IDS_EMIS_COLOR));
+      dlg->csa.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), dlg->theMtl->cola, GetString(IDS_AMB_COLOR)));
+      dlg->csd.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_DIFF), dlg->theMtl->cold, GetString(IDS_DIFF_COLOR)));
+      dlg->css.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_SPEC), dlg->theMtl->cols, GetString(IDS_SPEC_COLOR)));
+      dlg->cse.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), dlg->theMtl->cole, GetString(IDS_EMIS_COLOR)));
       break;
 
     case WM_PAINT:
@@ -1268,22 +1264,22 @@ static INT_PTR CALLBACK PhongDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
       switch (id)
       {
         case IDC_AMB:
-          cs = dlg->csa;
+          cs = dlg->csa.get();
           pbid = PB_AMB;
           break;
 
         case IDC_DIFF:
-          cs = dlg->csd;
+          cs = dlg->csd.get();
           pbid = PB_DIFF;
           break;
 
         case IDC_SPEC:
-          cs = dlg->css;
+          cs = dlg->css.get();
           pbid = PB_SPEC;
           break;
 
         case IDC_EMIS:
-          cs = dlg->cse;
+          cs = dlg->cse.get();
           pbid = PB_EMIS;
           break;
 
@@ -1382,8 +1378,7 @@ HWND Dagormat2Dialog::AddPage(int res_id, DLGPROC proc, const wchar_t *title)
   return page;
 }
 
-Dagormat2Dialog::Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m) :
-  isActive(false), paramsMirrorScript(false), csa(0), csd(0), css(0), cse(0)
+Dagormat2Dialog::Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m) : isActive(false), paramsMirrorScript(false)
 {
   dadmgr.Init(this);
   hwmedit = hwMtlEdit;
@@ -1395,7 +1390,6 @@ Dagormat2Dialog::Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m) 
   filterList.Append(_T("Proxymat (proxymat.blk)"));
   filterList.Append(_T("*.proxymat.blk"));
 
-  std::fill(texbut.begin(), texbut.end(), nullptr);
   hShader = AddPage(IDD_DAGORMAT2_SHADER, ShaderDlgProc, L"Shader class");
   AddPage(IDD_DAGORMAT2_PHONG, PhongDlgProc, L"Phong parameters");
   AddPage(IDD_DAGORMAT2_TEX, TexDlgProc, L"Texture slots");
@@ -1411,13 +1405,6 @@ Dagormat2Dialog::~Dagormat2Dialog()
     SetWindowLongPtr(page, GWLP_USERDATA, NULL);
   theMtl->ClearDlg(this);
   SaveParams();
-  ReleaseIColorSwatch(csa);
-  ReleaseIColorSwatch(csd);
-  ReleaseIColorSwatch(css);
-  ReleaseIColorSwatch(cse);
-  for (ICustButton *cb : texbut)
-    ReleaseICustButton(cb);
-
   DeleteObject(hFramePen);
 }
 
@@ -1445,11 +1432,11 @@ void Dagormat2Dialog::MarkUnknownParams(const DataBlock *dataBlk)
 
     if (p->param.is_group)
     {
-      DagorMat2::tooltip.SetToolTip(hDel, (L"Delete group " + p->param.name).data());
+      tooltip.SetToolTip(hDel, (L"Delete group " + p->param.name).data());
       continue;
     }
     else
-      DagorMat2::tooltip.SetToolTip(hDel, (L"Delete parameter " + p->param.name).data());
+      tooltip.SetToolTip(hDel, (L"Delete parameter " + p->param.name).data());
 
     auto it = std::ranges::find_if(params, [&p](ParamInfo &p_i) { return iequal(p_i.name, p->param.name); });
 
@@ -1653,7 +1640,7 @@ void Dagormat2Dialog::RestoreParams()
 {
   parameters.clear();
   paramsMirrorScript = false;
-  DagorMat2::tooltip.RemoveToolTips();
+  tooltip.RemoveToolTips();
 
   std::wstring shader_name = theMtl->classname.data();
   if (shader_name.empty())
@@ -1745,7 +1732,7 @@ void Dagormat2Dialog::UpdateShaderNameWidget()
 {
   HWND hwnd = GetDlgItem(hShader, IDC_CLASSNAME);
   SetWindowText(hwnd, theMtl->classname.data());
-  DagorMat2::tooltip.SetToolTip(hwnd, theMtl->classname.data());
+  tooltip.SetToolTip(hwnd, theMtl->classname.data());
 }
 
 void Dagormat2Dialog::ChangeShaderName()
@@ -2029,6 +2016,7 @@ void DagorMat2::Reset()
   classname = DEFAULT_SHADER_NAME;
   script = _T("");
   updateViewportTexturesState();
+  RestoreDialogParams();
 }
 
 ParamDlg *DagorMat2::CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp)
@@ -2079,7 +2067,6 @@ void DagorMat2::Shade(ShadeContext &sc)
       }
     }
   }
-  Color dc, ac;
   if (texmaps->texmap[0])
   {
     AColor mc = texmaps->texmap[0]->EvalColor(sc);
@@ -2353,10 +2340,12 @@ RefResult DagorMat2::NotifyRefChanged(const Interval &changeInt, RefTargetHandle
   switch (message)
   {
     case REFMSG_CHANGE:
+    case REFMSG_TARGET_DELETED:
       if (hTarget == pblock)
         ivalid.SetEmpty();
       if (dlg && dlg->theMtl == this && !dlg->isActive)
         dlg->Invalidate();
+      DiscardTexHandles();
       break;
 
     case REFMSG_GET_PARAM_DIM:
@@ -2370,7 +2359,6 @@ RefResult DagorMat2::NotifyRefChanged(const Interval &changeInt, RefTargetHandle
         case PB_SPEC:
         case PB_EMIS: gpd->dim = stdColor255Dim; break;
       }
-      DiscardTexHandles();
       return REF_STOP;
     }
 
@@ -2378,12 +2366,10 @@ RefResult DagorMat2::NotifyRefChanged(const Interval &changeInt, RefTargetHandle
     {
       GetParamName *gpn = (GetParamName *)partID;
       gpn->name.printf(_T("param#%d"), gpn->index);
-      DiscardTexHandles();
       return REF_STOP;
     }
   }
 
-  DiscardTexHandles();
   return REF_SUCCEED;
 }
 
@@ -2662,6 +2648,7 @@ void DagorMat2::set_classname(const TCHAR *s)
   else
     classname = DEFAULT_SHADER_NAME;
   NotifyChanged();
+  RestoreDialogParams();
 }
 
 void DagorMat2::set_script(const TCHAR *s)
@@ -2671,6 +2658,13 @@ void DagorMat2::set_script(const TCHAR *s)
   else
     script = _T("");
   NotifyChanged();
+  RestoreDialogParams();
+}
+
+void DagorMat2::RestoreDialogParams()
+{
+  if (dlg && dlg->theMtl == this)
+    dlg->RestoreParams();
 }
 
 void DagorMat2::set_texname(int i, const TCHAR *s)
@@ -3047,7 +3041,7 @@ static INT_PTR CALLBACK widget_dlg_proc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
 
 //////////////////////////////////////////////////////////////////////
 
-WidgetText::WidgetText(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p), edit(NULL)
+WidgetText::WidgetText(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p)
 {
   p->AppendDialog(IDD_DAGORPAR_TEXT, this);
 }
@@ -3057,7 +3051,7 @@ INT_PTR WidgetText::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   switch (msg)
   {
     case WM_INITDIALOG:
-      edit = ::GetICustEdit(GetDlgItem(hWnd, IDC_PAR_TEXT_VALUE));
+      edit.reset(::GetICustEdit(GetDlgItem(hWnd, IDC_PAR_TEXT_VALUE)));
       ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       SetValue(param.value);
       break;
@@ -3094,15 +3088,9 @@ void WidgetText::SetValue(const std::wstring &v)
 
 //////////////////////////////////////////////////////////////////////
 
-WidgetColor::WidgetColor(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p), col(NULL)
+WidgetColor::WidgetColor(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p)
 {
   p->AppendDialog(IDD_DAGORPAR_COLOR, this);
-}
-
-WidgetColor::~WidgetColor()
-{
-  if (col)
-    ReleaseIColorSwatch(col);
 }
 
 INT_PTR WidgetColor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -3112,7 +3100,7 @@ INT_PTR WidgetColor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_INITDIALOG:
     {
       AColor c;
-      col = GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter"));
+      col.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter")));
       ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       SetValue(param.value);
     }
@@ -3155,9 +3143,8 @@ void WidgetColor::SetValue(const std::wstring &v)
 {
   float r = 0, g = 0, b = 0, a = 0;
   if (parse_nums(wideToStr(v), r, g, b, a) != 4)
-    col->SetAColor(AColor(0, 0, 0, 0), TRUE);
-  else
-    col->SetAColor(AColor(r, g, b, a), TRUE);
+    r = g = b = a = 0;
+  col->SetAColor(AColor(r, g, b, a), FALSE);
 
   param.value = v;
 }
@@ -3216,10 +3203,8 @@ static long widget_p4_idc[4][2] = {
 };
 
 WidgetNumeric::WidgetNumeric(const ParamInfo &param, Dagormat2Dialog *p) :
-  AbstractWidget(param, p), is_float(true), is_color_ui(false), is_spinner_used(false), size(4), col(0)
+  AbstractWidget(param, p), is_float(true), is_color_ui(false), is_spinner_used(false), size(4)
 {
-  memset(spinner, 0, 4 * sizeof(*spinner));
-
   long idd = 0;
 
   if (param.type == DataBlock::ParamType::TYPE_POINT4)
@@ -3267,12 +3252,7 @@ WidgetNumeric::WidgetNumeric(const ParamInfo &param, Dagormat2Dialog *p) :
   hFramePen = (HPEN)CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
 }
 
-WidgetNumeric::~WidgetNumeric()
-{
-  if (is_color_ui && col)
-    ReleaseIColorSwatch(col);
-  DeleteObject(hFramePen);
-}
+WidgetNumeric::~WidgetNumeric() { DeleteObject(hFramePen); }
 
 bool WidgetNumeric::isOutOfRange() const
 {
@@ -3293,16 +3273,16 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
       if (is_color_ui)
       {
         AColor c;
-        col = GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter"));
+        col.reset(GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter")));
       }
       for (int i = 0; i < size; ++i)
       {
         long idc_spin = widget_p4_idc[i][0];
         long idc_edit = widget_p4_idc[i][1];
         if (is_float)
-          spinner[i] = ::SetupFloatSpinner(hWnd, idc_spin, idc_edit, -FLT_MAX, +FLT_MAX, 0);
+          spinner[i].reset(::SetupFloatSpinner(hWnd, idc_spin, idc_edit, -FLT_MAX, +FLT_MAX, 0));
         else
-          spinner[i] = ::SetupIntSpinner(hWnd, idc_spin, idc_edit, -INT_MAX, +INT_MAX, 0);
+          spinner[i].reset(::SetupIntSpinner(hWnd, idc_spin, idc_edit, -INT_MAX, +INT_MAX, 0));
       }
       ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
       SetValue(param.value);
@@ -3341,9 +3321,9 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
             f = param.soft_max;
 
           if (is_float)
-            spinner[i]->SetValue(f, true);
+            spinner[i]->SetValue(f, FALSE);
           else
-            spinner[i]->SetValue(int(f), true);
+            spinner[i]->SetValue(int(f), FALSE);
         }
         GetValue();
         InvalidateRect(hWnd, NULL, TRUE);
@@ -3375,7 +3355,7 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
       spinner[0]->SetValue(c.r, FALSE);
       spinner[1]->SetValue(c.g, FALSE);
       spinner[2]->SetValue(c.b, FALSE);
-      spinner[3]->SetValue(c.a, TRUE);
+      spinner[3]->SetValue(c.a, FALSE);
       GetValue();
       if (buttonUp)
         theHold.Accept(GetString(IDS_COLOR_CHANGE));
@@ -3440,13 +3420,13 @@ void WidgetNumeric::SetValue(const std::wstring &v)
     if (is_float)
     {
       str >> f[i];
-      spinner[i]->SetValue(f[i], TRUE);
+      spinner[i]->SetValue(f[i], FALSE);
     }
     else
     {
       int d;
       str >> d;
-      spinner[i]->SetValue(d, TRUE);
+      spinner[i]->SetValue(d, FALSE);
     }
     while (str.peek() == L' ' || str.peek() == L',')
       str.ignore();

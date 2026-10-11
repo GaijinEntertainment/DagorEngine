@@ -317,7 +317,7 @@ void fast_grass_baker_on_render()
   for (auto &a : impostor_to_bake->assets)
   {
     if (a.model)
-      sum += a.weight;
+      sum += double(a.weight);
     a.weight = sum;
   }
   if (sum != 0)

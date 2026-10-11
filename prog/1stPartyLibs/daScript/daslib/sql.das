@@ -23,9 +23,6 @@ require strings
 
 typedef SqlError = Option<string>
 
-// SQL quoting — pure string helpers, shared by every provider and by the
-// neutral macro layer (daslib/sql_boost) without pulling in any provider.
-
 def sql_quote_id(s : string) : string {
     //! Wraps ``s`` in double quotes (portable identifier quoting); embedded ``"`` doubled.
     let escaped = s |> replace("\"", "\"\"")
@@ -38,8 +35,6 @@ def sql_quote_lit(s : string) : string {
     let escaped = s |> replace("'", "''")
     return "'{escaped}'"
 }
-
-// Schema introspection — surfaced by `column_info(type<T>)` over a `[sql_table]`-tagged struct. The data here is the cross-provider subset:
 
 enum SqlType {
     Integer            //!< INTEGER (SQLite) / INT (MySQL, MSSQL) / INT4 (PG)

@@ -34,6 +34,7 @@ motion_matching_animchar_component{
   motion_matching__presetBlendTimeLeft:r=0.0
   "motion_matching__goalFeature:FrameFeatures"{}
   "motion_matching__goalNodesIdx:list<i>"{}
+  "motion_matching__goalNodesPrevWpos:list<p3>"{}
 
 
   motion_matching__updateProgress:r=0.0

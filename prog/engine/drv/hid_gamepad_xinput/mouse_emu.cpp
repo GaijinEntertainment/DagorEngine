@@ -16,7 +16,7 @@
 
 
 #define LOW_THRES   2000
-#define MOUSE_SPEED 0.01
+#define MOUSE_SPEED 0.01f
 
 using namespace HumanInput;
 

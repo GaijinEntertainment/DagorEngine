@@ -683,7 +683,11 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       mesh_params@f4 = gpu_objects_rendinst_mesh_params;
       instance_offset__counts@f2 = (gpu_objects_rendinst_offset, gpu_objects_num_per_rendinst, 0, 0);
       placing_params@f4 = gpu_objects_on_ri_placing_params;
-      perlin_noise3d@smp3d = perlin_noise3d;
+      perlin_noise3d@tex3d = perlin_noise3d;
+    }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+    hlsl(cs) {
+      #define perlin_noise3d_samplerstate global_linear_wrap_sampler
     }
   }
   if(shader == gpu_objects_cs)

@@ -1691,17 +1691,17 @@ BRICKS: list[Brick] = [
           [Slot("out0", BOOL)],
           "let $out0 = $in0.is_frozen()"),
 
-    # ---- static keyword ----
-    Brick("static_value",
+    # ---- inline const ----
+    Brick("const_value",
           [],
           [Slot("out0", INT)],
-          "let $out0_fn = function() { return static($INT) }\n"
+          "let $out0_fn = function() { return const($INT) }\n"
           "  let $out0 = $out0_fn() + $out0_fn()"),
 
-    Brick("static_table",
+    Brick("const_table",
           [],
           [Slot("out0", TABLE)],
-          "let $out0 = static({x = $INT, y = $INT})"),
+          "let $out0 = const({x = $INT, y = $INT})"),
 
     # ---- float operations ----
     Brick("float_sub",
@@ -2545,16 +2545,16 @@ BRICKS: list[Brick] = [
           "  let $out0_res = $out0_fn($in0)\n"
           "  let $out0 = $out0_res.a + $out0_res.b"),
 
-    # ---- more const / static ----
+    # ---- more const ----
     Brick("const_in_expr",
           [Slot("in0", INT)], [Slot("out0", INT)],
           "const $out0_BASE = $INT\n"
           "  const $out0_SCALE = $INT\n"
           "  let $out0 = $in0 * $out0_SCALE + $out0_BASE"),
-    Brick("static_complex",
+    Brick("const_complex",
           [Slot("in0", INT)], [Slot("out0", INT)],
           "let $out0_fn = function(x) {\n"
-          "    local cached = static({v = $INT * $INT})\n"
+          "    local cached = const({v = $INT * $INT})\n"
           "    return x + cached.v\n"
           "  }\n"
           "  let $out0 = $out0_fn($in0)"),
@@ -3696,9 +3696,9 @@ BRICKS: list[Brick] = [
 
 
     # ===========================================================================
-    # Round 4: LOADCALLEE, FREEZE opcode, dynamic-key Set/Get, RelocateOuters,
+    # Round 4: LOADCALLEE, dynamic-key Set/Get, RelocateOuters,
     #          AAT_FLOAT, table Set via _OP_SET, NewSlot delegate path
-    # Target: sqvm.cpp lines 1395-1401, 1729-1732, 1495-1498, 2222-2224,
+    # Target: sqvm.cpp lines 1395-1401, 1495-1498, 2222-2224,
     #         2225-2227, 2241-2244, 2332-2347, 2575-2581
     # ===========================================================================
 
@@ -3723,12 +3723,6 @@ BRICKS: list[Brick] = [
           "    }\n"
           "  }\n"
           "  let $out0 = $out0_C().fact($in0 % 7 + 1)", weight=0.5),
-
-    # ---- _OP_FREEZE opcode: auto-freeze with pragma (lines 1729-1732) ----
-    # Requires #allow-auto-freeze pragma; 'let' with table/array/class literal
-    # Since we can't add pragmas mid-script, we use the freeze() function instead
-    # which is already covered. _OP_FREEZE is only via auto-freeze pragma.
-    # Skip - not coverable from our test harness without pragma support.
 
     # ---- AAT_FLOAT in _OP_APPENDARRAY (lines 1495-1498) ----
     # Compiler may emit AAT_FLOAT for float literals in array construction
@@ -3891,8 +3885,8 @@ BRICKS: list[Brick] = [
 
     # ===========================================================================
     # Round 5: DerefInc on instance, wrong-arg-count errors, _OP_GETBASE null,
-    #          static memo auto for mutable container, misc error paths
-    # Target: sqvm.cpp lines 665-671, 522-528, 558-565, 1665-1667, 1701-1707
+    #          misc error paths
+    # Target: sqvm.cpp lines 665-671, 522-528, 558-565, 1665-1667
     # ===========================================================================
 
     # ---- DerefInc on instance field (lines 665-671) ----
@@ -4013,17 +4007,6 @@ BRICKS: list[Brick] = [
           "  let $out0_inst = $out0_C([\"a\", \"b\"], [$in0, $in0 + 1])\n"
           "  local $out0 = 0\n"
           "  foreach (k, v in $out0_inst) { $out0 += v }", weight=0.5),
-
-    # ---- Static memo with auto-memoize on mutable container (lines 1701-1707) ----
-    # static(someArray) should hit the auto-memo rejection path
-    Brick("static_memo_mutable_container",
-          [Slot("in0", INT)],
-          [Slot("out0", INT)],
-          "let $out0_fn = function() {\n"
-          "    let $out0_arr = static [1, 2, 3]\n"
-          "    return $out0_arr.len()\n"
-          "  }\n"
-          "  let $out0 = $out0_fn() + $out0_fn()", weight=0.5),
 
     # ---- _OP_YIELD outside generator (line 1599) ----
     Brick("yield_outside_generator",
@@ -4199,16 +4182,6 @@ BRICKS: list[Brick] = [
           "let $out0_t = {val = $in0}\n"
           "  let $out0_wr = $out0_t.weakref()\n"
           "  let $out0 = $out0_wr.val"),
-
-    # ---- Static memo hit path (second call) (lines 1689-1692) ----
-    Brick("static_memo_hit",
-          [Slot("in0", INT)],
-          [Slot("out0", INT)],
-          "let $out0_fn = function() {\n"
-          "    return static ($INT + $INT)\n"
-          "  }\n"
-          "  let $out0_a = $out0_fn()\n"
-          "  let $out0 = $out0_fn()"),
 
     # ===========================================================================
     # Round 7: ObjCmpF error, string vs float literal, bool vs float literal,

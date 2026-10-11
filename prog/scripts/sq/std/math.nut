@@ -1,5 +1,4 @@
 import "math" as math
-from "types" import Integer, Float
 
 const GOLDEN_RATIO = 1.618034
 
@@ -90,14 +89,14 @@ function interpolateArray(arr, value) {
 * with a closer table size to golden ratio
 * <widthToHeight> is a item size ratio (width / height)
 */
-function calc_golden_ratio_columns(total, widthToHeight: number = 1.0): int {
+function [pure] calc_golden_ratio_columns(total, widthToHeight: number = 1.0): int {
   let rows = (math.sqrt(total.tofloat() / GOLDEN_RATIO * widthToHeight) + 0.5).tointeger()
   return math.ceil(total.tofloat() / math.max(rows, 1)).tointeger()
 }
 
 let color2uint = @[pure](r: number, g: number, b: number, a: number = 255): number math.clamp(r + g * 256 + b * 65536 + a * 16777216, 0, 4294967295)
 
-let romanNumeralLookup = [
+const romanNumeralLookup = [
   "","I","II","III","IV","V","VI","VII","VIII","IX",
   "","X","XX","XXX","XL","L","LX","LXX","LXXX","XC",
   "","C","CC","CCC","CD","D","DC","DCC","DCCC","CM"
@@ -105,8 +104,8 @@ let romanNumeralLookup = [
 const maxRomanDigit = 3
 
 //Function from http://blog.stevenlevithan.com/archives/javascript-roman-numeral-converter
-function getRomanNumeral(num): string {
-  if (!(num instanceof Integer || num instanceof Float) || num < 0)
+function [pure] getRomanNumeral(num:number): string {
+  if (num < 0)
     return ""
 
   num = num.tointeger()
@@ -127,7 +126,7 @@ function getRomanNumeral(num): string {
   return "".join(thousands.extend(roman).filter(@(v) v!=null))
 }
 
-function splitThousands(val, spacer = " "): string {
+function [pure] splitThousands(val, spacer = " "): string {
   val = val.tostring()
   local sign = ""
   if (val.startswith("-")) {
@@ -165,7 +164,7 @@ function median(sortedList): float|null {
     : (sortedList[(n / 2) - 1] + sortedList[n / 2]) / 2.0
 }
 
-function truncateToMultiple(number, multiple: number): number {
+function [pure] truncateToMultiple(number, multiple: number): number {
   if (multiple == 0)
     return -1
   return math.floor(number.tofloat() / multiple) * multiple

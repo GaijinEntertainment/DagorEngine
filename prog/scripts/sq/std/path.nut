@@ -18,7 +18,7 @@ from "types" import String, Array
  *   normalize("a/.b/./c")            > "a/.b/c"
  *   normalize("/a/b///c\\d")         > "/a/b/c/d"
  */
-function normalize(path): string {
+function [pure] normalize(path: string): string {
   let pathSegments = split_by_chars(path, "\\/")
   local isAbsolutePath = false
 
@@ -59,7 +59,7 @@ function normalize(path): string {
 /**
  * Check is path already normalized
  */
-function isNormalized(path): bool {
+function [pure] isNormalized(path: string): bool {
   return path == normalize(path)
 }
 
@@ -67,7 +67,7 @@ function isNormalized(path): bool {
 /**
  * Get last slash separator index in past string
  */
-function getLastSeparatorIndex(path): int {
+function [pure] getLastSeparatorIndex(path:string): int {
   for (local j = path.len() - 1; j >= 0; j--)
     if (path[j] == '/')
       return j
@@ -86,7 +86,7 @@ function getLastSeparatorIndex(path): int {
  *   parentPath("a")              > null
  *   parentPath("a/b")            > "a"
  */
-function parentPath(path) {
+function [pure] parentPath(path:string): string|null {
   if (path == "/")
     return null
 
@@ -111,7 +111,7 @@ function parentPath(path) {
  *   parentPath("a")              > "a"
  *   parentPath("a/b")            > "b"
  */
-function fileName(path) {
+function [pure] fileName(path:string): string {
   if (path == "/")
     return "/"
 
@@ -187,10 +187,9 @@ function join(...) {
  *   splitToArray("")           > []
  *   splitToArray("/")          > ["/"]
  */
-function splitToArray(path): array {
+function [pure] splitToArray(path: string): array {
   if (path == "")
     return []
-  assert(path instanceof String, @() $"path type is not string ({type(path)})")
   let segments = split_by_chars(path, "/")
   if (path[0] == '/')
     segments.insert(0, "/")

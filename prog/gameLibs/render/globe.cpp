@@ -57,7 +57,6 @@ GlobeRenderer::GlobeRenderer(Parameters &&parameters) : params(eastl::move(param
   }
 
   drawProg.init("globe_model");
-  applyLowProg.init("globe_model_apply_low");
 
   static int globeSliceTexSizeVarId = ::get_shader_glob_var_id("globe_slice_tex_size");
   static int globeSaturateColorVarId = ::get_shader_glob_var_id("globe_saturate_color");
@@ -135,7 +134,7 @@ void GlobeRenderer::renderEnv(DaSkies &skies, RenderSun render_sun, RenderMoon r
 }
 
 void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, DaSkies &skies,
-  RenderSun render_sun, RenderMoon render_moon, const Point3 &view_pos, const TextureIDPair &low_res_tex)
+  RenderSun render_sun, RenderMoon render_moon, const Point3 &view_pos)
 {
   TIME_D3D_PROFILE(applyGlobeSkies);
 
@@ -145,26 +144,11 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
   static int globeCloudsOceanTexVarId = ::get_shader_variable_id("globe_clouds_ocean_tex");
   static int globeUVWindowVarId = ::get_shader_variable_id("globe_uv_window");
   static int globe_tsize_wk_hkVarId = ::get_shader_glob_var_id("globe_tsize_wk_hk");
-  static int sourceTexVarId = ::get_shader_glob_var_id("source_tex");
 
   {
     SCOPE_RENDER_TARGET;
-    if (low_res_tex.getTex())
-    {
-      d3d::set_render_target({}, DepthAccess::RW, {{low_res_tex.getTex(), 0, 0}});
-      d3d::clearview(CLEAR_TARGET, 0, 1, 0);
-    }
-
     int targetWidthForShader, targetHeightForShader;
     d3d::get_target_size(targetWidthForShader, targetHeightForShader);
-
-#if _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
-    if (low_res_tex.getTex())
-    {
-      targetWidthForShader *= 2; // Don't degrade sampling quality on low-res.
-      targetHeightForShader *= 2;
-    }
-#endif
 
     ShaderGlobal::set_float4(globe_tsize_wk_hkVarId, targetWidthForShader, targetHeightForShader, persp.wk, persp.hk);
     SCOPED_SET_TEXTURE(globeShadowsTexVarId, shadowsTex);
@@ -193,8 +177,7 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
 
     set_viewvecs_to_shader(view_tm, proj_tm);
 
-    if (!low_res_tex.getTex())
-      renderEnv(skies, render_sun, render_moon, persp, view_pos);
+    renderEnv(skies, render_sun, render_moon, persp, view_pos);
 
     int numTiles = floor(sqrtf(textureSlices.size()) + 0.5f);
     for (int sliceNo = 0; sliceNo < textureSlices.size(); ++sliceNo)
@@ -214,12 +197,5 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
       SCOPED_SET_TEXTURE(globeNormalsTexVarId, slice.normalsTex);
       drawProg.render();
     }
-  }
-
-  if (low_res_tex.getTex())
-  {
-    renderEnv(skies, render_sun, render_moon, persp, view_pos);
-    ShaderGlobal::set_texture(sourceTexVarId, low_res_tex.getId());
-    applyLowProg.render();
   }
 }

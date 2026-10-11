@@ -4,7 +4,6 @@ options indenting = 4
 module testing shared
 
 require daslib/rtti
-require strings // to compare strings/das_strings
 require daslib/math_bits
 require math
 require daslib/unroll
@@ -91,6 +90,24 @@ class T : Asserter {
     }
 }
 
+let private BENCH_UNROLL = 10
+let private BENCH_UNROLL_MIN_BATCH = 100 * BENCH_UNROLL
+
+struct private AllocSnapshot {
+    allocs : uint64
+    heap_bytes : uint64
+    string_allocs : uint64
+    string_heap_bytes : uint64
+}
+
+def private alloc_snapshot() : AllocSnapshot {
+    return AllocSnapshot(
+        allocs = heap_allocation_count(),
+        heap_bytes = heap_allocation_stats()[0],
+        string_allocs = string_heap_allocation_count(),
+        string_heap_bytes = string_heap_allocation_stats()[0])
+}
+
 class B : Asserter {
     name : string
     current_sub_name : string
@@ -98,6 +115,7 @@ class B : Asserter {
     finished : bool = false
 
     on_fail : lambda<(now : bool) : void>
+    //! called after the benchmark's first batch, so a benchmark that fails fast never announces its name
     on_start : lambda<(sub_name : string) : void>
     on_finished : lambda<(stats : BenchmarkRunStats) : void>
     on_log : lambda<(msg : string; at : LineInfo) : void>
@@ -365,94 +383,69 @@ def run(b : B?, name : string; chunk_size : int; op : block) {
 }
 
 
-def private run_impl(b : B?, name : string; chunk_size : int64; op : block) {
-    let min_runs = 1
-    let max_runs = 1_000_000_000
-
-    // The first run serves two purposes: it will
-    // find the appropriate N (num_runs) for the op,
-    // plus it allows a warmup before we start measuring it.
-    let run1_start = ref_time_ticks()
-    op()
-    let op1_time_ns = max(double(get_time_nsec(run1_start)), 1.0lf)
-
-    // Make on_start run after the first op execution.
-    // We don't want to print the benchmark name if it is
-    // going to fail fast.
-    b.on_start(name)
-
-    let op_time_approx = op1_time_ns / 1000000000.0lf // In seconds
-
-    let n_probe = int64(1.0lf / op_time_approx)
-    var num_runs = int(clamp(n_probe, int64(min_runs), int64(max_runs)))
-
-    // We will unroll fast-running (small) benchmarks
-    // to decrease the loop's own time contribution.
-    // A value of 5 gives good results, 10 should be very safe.
-    let unroll_count = 10
-    let unroll_threshold = 100 * unroll_count
-
-    // Pre-compute all the stuff before the timer has started.
-    let do_unroll = num_runs > unroll_threshold
-    var loop_runs = num_runs
-    if (do_unroll) {
-        num_runs = int(round(float(num_runs) / float(unroll_count)) * float(unroll_count))
-        loop_runs = num_runs / unroll_count
-    }
-
-    // We could use a builtin profile() function here
-    // instead of doing loops in das directly.
-    // At any rate, the auto-inferred N (count) can be useful
-    // and even profile() can benefit from the unrolled statements.
-
-    let heap_stats_start = heap_allocation_stats()
-    let heap_bytes_start = heap_stats_start[0]
-    let num_allocs_start = heap_allocation_count()
-
-    let string_stats_start = string_heap_allocation_stats()
-    let string_bytes_start = string_stats_start[0]
-    let string_num_allocs_start = string_heap_allocation_count()
-
-    var time_total = 0l
-    if (do_unroll) {
-        // A fast/small benchmarking func - run the timers
-        // once, unroll the body to minimize the noise.
+[arch(at="README.md#benchmark-measurement")]
+def private run_batch_ns(num_runs : int; op : block) : int64 {
+    if (num_runs >= BENCH_UNROLL_MIN_BATCH) {
+        let loop_runs = num_runs / BENCH_UNROLL
         let start = ref_time_ticks()
         for (_i in range(loop_runs)) {
             unroll() $ {
-                for (_ in range(unroll_count)) {
+                for (_ in range(BENCH_UNROLL)) {
                     op()
                 }
             }
         }
-        time_total = get_time_nsec(start)
-    } else {
-        // A long-running benchmark that should not be unrolled.
-        // Its run time will not be dominated by the loop anyway.
-        for (_i in range(loop_runs)) {
-            let start = ref_time_ticks()
-            op()
-            time_total += get_time_nsec(start)
-        }
+        return get_time_nsec(start)
     }
+    var time_total = 0l
+    for (_i in range(num_runs)) {
+        let start = ref_time_ticks()
+        op()
+        time_total += get_time_nsec(start)
+    }
+    return time_total
+}
 
-    let heap_stats_end = heap_allocation_stats()
-    let heap_bytes_end = heap_stats_end[0]
-    let num_allocs_end = heap_allocation_count()
-
-    let string_stats_end = string_heap_allocation_stats()
-    let string_bytes_end = string_stats_end[0]
-    let string_num_allocs_end = string_heap_allocation_count()
+[arch(at="README.md#benchmark-measurement")]
+def private run_impl(b : B?, name : string; chunk_size : int64; op : block) {
+    let budget_ns = 1_000_000_000l
+    let max_runs = 1_000_000_000l
+    var num_runs = 1
+    var time_total = 0l
+    var name_announced = false
+    var before : AllocSnapshot
+    var after : AllocSnapshot
+    while (true) {
+        before = alloc_snapshot()
+        time_total = run_batch_ns(num_runs, op)
+        after = alloc_snapshot()
+        if (!name_announced) {
+            b.on_start(name)
+            name_announced = true
+        }
+        if (time_total >= budget_ns || int64(num_runs) >= max_runs) {
+            break
+        }
+        let per_run_ns = max(double(time_total) / double(num_runs), 1.0lf)
+        var next = int64(double(budget_ns) / per_run_ns * 1.2lf)
+        next = min(next, 100l * int64(num_runs))
+        next = max(next, int64(num_runs) + 1l)
+        next = min(next, max_runs)
+        if (next >= int64(BENCH_UNROLL_MIN_BATCH)) {
+            next = (next / int64(BENCH_UNROLL)) * int64(BENCH_UNROLL)
+        }
+        num_runs = int(next)
+    }
 
     var stats = BenchmarkRunStats(
         name = b.name,
         sub_name = name,
         n = num_runs,
         time_ns = time_total,
-        allocs = num_allocs_end - num_allocs_start,
-        heap_bytes = heap_bytes_end - heap_bytes_start,
-        string_allocs = string_num_allocs_end - string_num_allocs_start,
-        string_heap_bytes = string_bytes_end - string_bytes_start,
+        allocs = after.allocs - before.allocs,
+        heap_bytes = after.heap_bytes - before.heap_bytes,
+        string_allocs = after.string_allocs - before.string_allocs,
+        string_heap_bytes = after.string_heap_bytes - before.string_heap_bytes,
     )
 
     if (chunk_size > 1l) {

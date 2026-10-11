@@ -9,6 +9,7 @@
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IPoint2.h>
 #include <generic/dag_tab.h>
+#include <osApiWrappers/dag_rwLock.h>
 #include <EASTL/bitvector.h>
 
 class HeightmapHandler;
@@ -57,11 +58,15 @@ public:
   bool check(const Point2 &posXZ) const;
   bool approximateCheckBBox(const BBox2 &bbox);
   BBox2 getBbox() const { return emptyHolesRegion ? BBox2{} : holesRegion; }
+  // Written by a rewrite; shared across off-thread checks, never across dacoll::traceht_hmap, which takes it too (not reentrant).
+  OSReadWriteLock &rewriteLock() const { return rewriteMutex; }
 
 private:
   IPoint2 getCellPosition(const Point2 &point) const;
   uint32_t getCellIndex(const Point2 &point) const;
+  void clearCells();
 
+  mutable OSReadWriteLock rewriteMutex;
   uint16_t holeCellsCount;
   bool emptyHolesRegion = true;
   BBox2 holesRegion;  // Undefined if `emptyHolesRegion` is true

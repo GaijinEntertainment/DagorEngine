@@ -24,7 +24,6 @@ Sources =
 UseProgLibs =
   tools/libTools/winGuiWrapper
   tools/libTools/staticGeom
-#  engine/sceneRay
   3rdPartyLibs/math/carve
 ;
 

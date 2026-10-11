@@ -23,6 +23,7 @@ public:
   void updateIRGraphVisualization() override;
   void updateResourceVisualization() override;
   void updateTextureVisualization() override;
+  void updateDebugNodes() override;
 
   void sendBlobData(NodeNameId node_id, ResNameId res_id, const BlobView &view) override;
 

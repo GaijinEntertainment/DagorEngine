@@ -24,6 +24,33 @@ struct RenderSpotLight
   float4 texId_scale_illuminatingplane_packedDataBits;
 };
 
+#define RENDER_OMNI_LIGHT_STRIDE_SIZE 128
+#define RENDER_SPOT_LIGHT_STRIDE_SIZE 64
+
+#define RENDER_OMNI_LIGHT_POS_RADIUS_OFFSET 0
+#define RENDER_OMNI_LIGHT_POS_REL_TO_ORIGIN_CULL_RADIUS_OFFSET 96
+
+#define RENDER_SPOT_LIGHT_POS_HALF_RADIUS_HALF_CULL_RADIUS_OFFSET 0
+#define RENDER_SPOT_LIGHT_COLOR_ANGLE_SCALE_OFFSET 16
+#define RENDER_SPOT_LIGHT_DIRECTION_ANGLE_OFFSET_OFFSET 32
+
+#ifdef __cplusplus
+  static_assert(RENDER_OMNI_LIGHT_STRIDE_SIZE == sizeof(RenderOmniLight), "RENDER_OMNI_LIGHT_STRIDE_SIZE has invalid size, please update");
+  static_assert(RENDER_SPOT_LIGHT_STRIDE_SIZE == sizeof(RenderSpotLight), "RENDER_SPOT_LIGHT_STRIDE_SIZE has invalid size, please update");
+
+  static_assert(RENDER_OMNI_LIGHT_POS_RADIUS_OFFSET == offsetof(RenderOmniLight, posRadius),
+    "RENDER_OMNI_LIGHT_POS_RADIUS_OFFSET has invalid offset, please update");
+  static_assert(RENDER_OMNI_LIGHT_POS_REL_TO_ORIGIN_CULL_RADIUS_OFFSET == offsetof(RenderOmniLight, posRelToOrigin_cullRadius),
+    "RENDER_OMNI_LIGHT_POS_REL_TO_ORIGIN_CULL_RADIUS_OFFSET has invalid offset, please update");
+
+  static_assert(RENDER_SPOT_LIGHT_POS_HALF_RADIUS_HALF_CULL_RADIUS_OFFSET == offsetof(RenderSpotLight, lightPos_halfRadius_halfCullRadius),
+    "RENDER_SPOT_LIGHT_POS_HALF_RADIUS_HALF_CULL_RADIUS_OFFSET has invalid offset, please update");
+  static_assert(RENDER_SPOT_LIGHT_COLOR_ANGLE_SCALE_OFFSET == offsetof(RenderSpotLight, lightColorAngleScale),
+    "RENDER_SPOT_LIGHT_COLOR_ANGLE_SCALE_OFFSET has invalid offset, please update");
+  static_assert(RENDER_SPOT_LIGHT_DIRECTION_ANGLE_OFFSET_OFFSET == offsetof(RenderSpotLight, lightDirectionAngleOffset),
+    "RENDER_SPOT_LIGHT_DIRECTION_ANGLE_OFFSET_OFFSET has invalid offset, please update");
+#endif
+
 #ifndef __cplusplus
 float decode_light_roll_angle(RenderSpotLight sl)
 {
@@ -48,11 +75,6 @@ bool spot_light_needs_contact_shadows(uint shadow_data_bits)
 float2 decode_spot_light_radius_and_culling_radius(float encoded_value)
 {
   return float2(f16tof32(asuint(encoded_value)), f16tof32(asuint(encoded_value) >> 16));
-}
-
-float2 decode_spot_light_radius_and_culling_radius(RenderSpotLight sl)
-{
-  return decode_spot_light_radius_and_culling_radius(sl.lightPos_halfRadius_halfCullRadius.w);
 }
 
 float4 decode_spot_light_pos_radius(float4 encoded_value)
@@ -109,6 +131,17 @@ float get_spot_light_source_radius(RenderSpotLight sl)
 {
   return float((asuint(sl.texId_scale_illuminatingplane_packedDataBits.w) >> SPOT_LIGHT_SOURCE_RADIUS_BIT_OFFSET) & LIGHT_SOURCE_RADIUS_MASK) / LIGHT_SOURCE_RADIUS_CM_PER_M;
 }
+
+#else
+
+// At least on win7 we have a limit for 64k of cb buffer size
+// But drivers requires to keep cb buffer size under 64k on all platforms.
+// So we limit it for all platforms.
+// Reserve one Point4 for the element count constant that ReallocatableLightsConstBuffer
+// prepends when store_elems_count is true (see reallocate()).
+static_assert(MAX_VISIBLE_FAR_LIGHTS <= (65536 - 16) / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight)), "MAX_VISIBLE_FAR_LIGHTS has too high value - please update const");
+
+
 #endif
 
 //Implemented here, to avoid needing to pass these two values in a buffer

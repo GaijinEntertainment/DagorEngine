@@ -78,15 +78,15 @@ SMAA::SMAA(const IPoint2 &resolution) : resolution(resolution)
 
   if (depthTexFormat != 0)
   {
-    depthStencilTex.set(
-      d3d::create_tex(nullptr, resolution.x, resolution.y, depthTexFormat | TEXCF_RTARGET, 1, "smaa_depth_stencil", RESTAG_AA));
+    depthStencilTex =
+      dag::create_tex(nullptr, resolution.x, resolution.y, depthTexFormat | TEXCF_RTARGET, 1, "smaa_depth_stencil", RESTAG_AA);
   }
 }
 
 void SMAA::apply(Texture *source, Texture *destination)
 {
   TIME_D3D_PROFILE(smaa);
-  bool stencil = depthStencilTex.getTex() != nullptr && useStencil;
+  bool stencil = depthStencilTex.getBaseTex() != nullptr && useStencil;
   ShaderGlobal::set_int(smaa_stencil_test_var_id, stencil);
   ShaderGlobal::set_texture_unsafe(smaa_color_tex_var_id, source);
   {

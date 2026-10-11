@@ -327,12 +327,8 @@ bool FastPhysPlugin::getSelectionBox(BBox3 &box) const
 
 void FastPhysPlugin::updateImgui()
 {
-  DAEDITOR3.imguiBegin("Actions Tree");
-
-  if (mActionTree)
+  if (auto window = IDaEditor3Engine::ScopedImguiWindow("Actions Tree"); window.canSubmitContents() && mActionTree)
     mActionTree->updateImgui();
-
-  DAEDITOR3.imguiEnd();
 }
 
 

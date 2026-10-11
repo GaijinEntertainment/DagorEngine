@@ -9,7 +9,8 @@ int water_gradient_mip_cs_color_uav_slot = 0 always_referenced;
 shader water_gradient_cs
 {
   (cs) {
-    water_displacement_texture0@smpArray = water_displacement_texture0;
+    water_displacement_texture0@texArray = water_displacement_texture0;
+    water_displacement_texture0_samplerstate@sampler = global_linear_wrap_sampler;
     texsz_consts@f4 = water_texture_size;
     water_gradient_scales0@f2 = water_gradient_scales0;
     water_gradient_scales1@f2 = water_gradient_scales1;
@@ -96,7 +97,8 @@ shader water_foam_blur_cs
   (cs) {
     foam_blur_extents0123@f4 = foam_blur_extents0123;
     texsz_consts@f4 = water_texture_size;
-    water_foam_texture0@smpArray = water_foam_texture0;
+    water_foam_texture0@texArray = water_foam_texture0;
+    water_foam_texture0_samplerstate@sampler = water_foam_texture0_samplerstate;
     foam_dissipation@f3 = (foam_dissipation.x * 0.25, foam_dissipation.y / 0.25, foam_dissipation.z);
     color0@uav : register(0) hlsl {
       RWTexture2DArray<float4> color0@uav;
@@ -173,8 +175,10 @@ shader water_gradient_foam_combine_cs
     foam_blur_extents0123@f4 = foam_blur_extents0123;
     texsz_consts@f4 = water_texture_size;
 
-    water_displacement_texture0@smpArray = water_displacement_texture0;
-    water_foam_texture0@smpArray = water_foam_texture0;
+    water_displacement_texture0@texArray = water_displacement_texture0;
+    water_displacement_texture0_samplerstate@sampler = global_linear_wrap_sampler;
+    water_foam_texture0@texArray = water_foam_texture0;
+    water_foam_texture0_samplerstate@sampler = water_foam_texture0_samplerstate;
 
     water_gradient_scales0@f2 = water_gradient_scales0;
     water_gradient_scales1@f2 = water_gradient_scales1;
@@ -338,7 +342,8 @@ shader water_gradient_foam_combine_cs
 shader water_gradient_mip_cs
 {
   (cs) {
-    water_gradients_tex0@smpArray = water_gradients_tex0
+    water_gradients_tex0@texArray = water_gradients_tex0;
+    water_gradients_tex0_samplerstate@sampler = water_gradients_tex0_samplerstate;
     texsz_consts@f4 = water_texture_size_mip;
     color0@uav : register(0) hlsl {
       RWTexture2DArray<float4> color0@uav;

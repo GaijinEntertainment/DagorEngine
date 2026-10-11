@@ -17,8 +17,9 @@ options _allow_imgui_legacy = true
 // daslang-live harness so it live-reloads on desktop and runs in the wasm examples pipeline + the
 // playground. The path tracer header is reused by relative require.
 //
-// (No JobQue mode: with_job_que creates a worker pool whose pthread spawn can't be serviced while
-// main() is busy in the wasm interpreter, and it is perf-equivalent to the Threads mode here anyway.)
+// The band passes run on a persistent job queue created in init(): with_job_que cannot span an
+// externally-driven frame loop, and a per-pass new_thread pays a pthread create/exit round trip
+// through the main thread on every band of every frame.
 
 require math
 require strings
@@ -55,13 +56,16 @@ enum Mode {
 }
 
 // ----- render state (all main-thread-owned; update() drives the passes) -----
-// Threading is dispatched FROM update() (the main thread), never from a background coordinator:
-// emscripten can't service worker-initiated thread creation while main() is busy, so dispatching the
-// band threads from a background worker would deadlock. The main thread yields between frames (harness
-// rAF), so it can both create threads and stay responsive. Band threads share the surface by raw
-// pointer (shared wasm memory under -pthread; shared address space on desktop).
+// Bands are dispatched FROM update() (the main thread), never from a background coordinator:
+// emscripten cannot service worker-initiated dispatch while main() is busy. The que's workers are
+// created once in init() and only signalled per pass, so a frame costs a signal rather than a
+// pthread create/exit. Band jobs share the surface by raw pointer (shared wasm memory under
+// -pthread; shared address space on desktop).
 
-var g_mode = int(Mode.SingleThread)   // UI render mode
+// Opens on the multi-band jobque path, not SingleThread: both CPU modes dispatch through
+// new_job, but only this one exercises N-way dispatch per frame, so the lab (and the sample
+// verifier that drives it unattended) puts the queue under real load without a UI click.
+var g_mode = int(Mode.Threads)        // UI render mode
 var g_epoch = 0                       // bumped on mode switch; resets the pass
 var g_render_epoch = -1               // epoch the render state machine is synced to (detects switches)
 var g_pass = -1                       // completed accumulation passes (frameCount-1)
@@ -90,6 +94,9 @@ var vao, vbo, ebo : uint
 var texture : uint                    // CPU modes upload the accumulation surface here
 var accum_tex : uint[2]               // GPU mode: ping-pong RGBA32F accumulation textures
 var accum_fbo : uint                  // GPU mode: render-to-texture target
+var g_fb_status_reported = false
+var g_gpu_draw_error_reported = false
+var g_gpu_refusal_reason = ""
 var g_accum_idx = 0                   // index of accum_tex holding the latest accumulation (the one we display)
 
 // ----- display shader: textured fullscreen quad, linear -> sRGB -----
@@ -203,9 +210,7 @@ def render_rows(var pbb : array<float3>?; var pepoch : int?; my_epoch, pidx, ymi
             break
         }
         var rc = 0
-        unsafe {
-            draw(pidx, TRACE_W, TRACE_H, y, y + 1, *pbb, rc)
-        }
+        draw(pidx, TRACE_W, TRACE_H, y, y + 1, *pbb, rc)
         rays += rc
     }
     return rays
@@ -215,9 +220,7 @@ def render_rows(var pbb : array<float3>?; var pepoch : int?; my_epoch, pidx, ymi
 // race; read only after join). The captured wait-group handle is released by the lambda itself.
 def worker_band(var pbb : array<float3>?; var pepoch, pray : int?; my_epoch, pidx, ymin, ymax : int) {
     let rays = render_rows(pbb, pepoch, my_epoch, pidx, ymin, ymax)
-    unsafe {
-        *pray += rays
-    }
+    *pray += rays
 }
 
 // Threads mode: dispatch n band-threads from the main thread and return immediately — the threads
@@ -242,7 +245,10 @@ def start_threads_pass(pidx, n : int) {
         let ymin = c * chunk
         let ymax = min((c + 1) * chunk, TRACE_H)
         var st = status
-        new_thread() <| @capture(= pbb, = pepoch, = pray, = my_epoch, = pidx, = ymin, = ymax, = st) {
+        // new_job over the persistent que, NOT a per-pass new_thread: a thread created per band per
+        // frame costs a pthread create/exit round trip through the main thread on emscripten, where
+        // the que's workers are created once and then only signalled.
+        new_job() <| @capture(= pbb, = pepoch, = pray, = my_epoch, = pidx, = ymin, = ymax, = st) {
             worker_band(pbb, pepoch, pray, my_epoch, pidx, ymin, ymax)
             st |> notify_and_release
         }
@@ -264,9 +270,7 @@ def advance_render {
             g_last_pass_us = get_time_usec(g_threads_t0)
         }
         var st = g_threads_status
-        unsafe {
-            job_status_remove(st)
-        }
+        unsafe(job_status_remove(st))
         g_threads_status = null
     }
     // 2. Mode/epoch switch → reset the accumulation (watch it clear, then fill).
@@ -293,9 +297,7 @@ def upload_surface {
         upload_rgba[i] = float4(backbuffer[i], 1.0)
     }
     glBindTexture(GL_TEXTURE_2D, texture)
-    unsafe {
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TRACE_W, TRACE_H, GL_RGBA, GL_FLOAT, addr(upload_rgba[0]))
-    }
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, TRACE_W, TRACE_H, GL_RGBA, GL_FLOAT, unsafe(addr(upload_rgba[0])))
 }
 
 // GPU mode: one fragment-shader pass per frame traces a sample per pixel into the ping-pong
@@ -309,12 +311,32 @@ def run_gpu_pass {
     glBindFramebuffer(GL_FRAMEBUFFER, accum_fbo)
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accum_tex[dst], 0)
     glViewport(0, 0, TRACE_W, TRACE_H)
+    glDisable(GL_BLEND)
     glUseProgram(pt_program)
     pt_prev := accum_tex[src]
     pt_effect_bind_uniform(pt_program)
     glBindVertexArray(vao)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+    if (!g_fb_status_reported) {
+        g_fb_status_reported = true
+        for (_i in range(64)) {             // drain what earlier calls left, so the draw's own error is the one read below
+            break if (glGetError() == 0u)
+        }
+        let status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            g_gpu_refusal_reason = "float framebuffer incomplete (status {status})"
+            to_log(LOG_ERROR, "path tracer: the accumulation framebuffer is not complete (status {status})\n")
+        }
+    }
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null)
+    if (!g_gpu_draw_error_reported) {
+        g_gpu_draw_error_reported = true
+        let err = glGetError()
+        if (err != 0u) {
+            g_gpu_refusal_reason = "GL error {err} on the GPU pass"
+            to_log(LOG_ERROR, "path tracer: the GPU pass left GL error {err}\n")
+        }
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0u)
     if (g_gpu_prev_tick != 0l) {
         g_gpu_us = get_time_usec(g_gpu_prev_tick)
@@ -354,10 +376,16 @@ def build_ui {
     RadioButton("CPU - single thread", safe_addr(g_mode), int(Mode.SingleThread))
     RadioButton("CPU - threads", safe_addr(g_mode), int(Mode.Threads))
     RadioButton("OpenGL (GPU)", safe_addr(g_mode), int(Mode.OpenGL))
+    if (g_mode == int(Mode.OpenGL) && !empty(g_gpu_refusal_reason)) {
+        g_mode = int(Mode.Threads)
+    }
     if (g_mode != prev) {
         g_epoch++            // tell advance_render to abort + clear + restart in the new mode
         g_smooth_rps = 0.0lf // rays/sec magnitude differs wildly per mode — ramp fresh, don't lag-blend
         g_gpu_prev_tick = 0l // no previous GPU frame to delta against after a switch
+    }
+    if (!empty(g_gpu_refusal_reason)) {
+        TextWrapped("this browser refused the GPU pass: {g_gpu_refusal_reason} - CPU threads instead")
     }
     Separator()
 
@@ -398,9 +426,7 @@ def save_screenshot(fname : string) {
     }
     var pixels : array<uint8>
     pixels |> resize(w * h * 4)
-    unsafe {
-        glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, addr(pixels[0]))
-    }
+    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, unsafe(addr(pixels[0])))
     let row_bytes = w * 4
     var temp : array<uint8>
     temp |> resize(row_bytes)
@@ -413,9 +439,7 @@ def save_screenshot(fname : string) {
             memcpy(addr(pixels[bot]), addr(temp[0]), row_bytes)
         }
     }
-    unsafe {
-        stbi_write_png(fname, w, h, 4, addr(pixels[0]), w * 4)
-    }
+    stbi_write_png(fname, w, h, 4, unsafe(addr(pixels[0])), w * 4)
     print("wrote {fname} ({w}x{h})\n")
 }
 
@@ -442,6 +466,9 @@ def init() {
     // that clamps navigator.hardwareConcurrency (e.g. Vivaldi -> 2 -> get_total_hw_threads() == 1),
     // and capped at the MAX_BANDS ceiling. Drag the slider up to MAX_BANDS to oversubscribe.
     g_max_threads = clamp(get_total_hw_threads(), 4, MAX_BANDS)
+    // Persistent job queue for the band passes (start_threads_pass uses new_job). Created once here
+    // so it spans the externally-driven frame loop (emscripten set_main_loop) — a with_job_que block can't.
+    create_job_que()
 }
 
 [export]
@@ -471,16 +498,15 @@ def shutdown() {
     g_epoch++       // make any in-flight band threads bail via the epoch check, then drain them
     if (g_threads_status != null) {
         g_threads_status |> join
-        unsafe {
-            job_status_remove(g_threads_status)
-        }
+        unsafe(job_status_remove(g_threads_status))
         g_threads_status = null
     }
+    destroy_job_que()
     harness_shutdown()
 }
 
-[export]
-def main {
+[never_inline]   //! inlined, its args array would sit in main's frame across the loop's collect
+def parse_max_frames() : int {
     var max_frames = 0
     let args <- get_command_line_arguments()
     for (i in range(length(args) - 1)) {
@@ -488,6 +514,12 @@ def main {
             max_frames = to_int(args[i + 1])
         }
     }
+    return max_frames
+}
+
+[export]
+def main {
+    let max_frames = parse_max_frames()
     init()
     var frame = 0
     while (!exit_requested()) {

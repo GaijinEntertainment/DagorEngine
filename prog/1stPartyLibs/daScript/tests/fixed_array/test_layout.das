@@ -112,9 +112,7 @@ def test_composite_layout(t : T?) {
     t |> run("variant with FA arm") @(t : T?) {
         var vf : VarFA
         t |> equal(typeinfo sizeof(vf), 20)     // 16 payload + index
-        unsafe {
-            vf.ints[1] = 7
-        }
+        unsafe(vf.ints)[1] = 7
         t |> success(vf is ints)
         t |> equal((vf as ints)[1], 7)
     }

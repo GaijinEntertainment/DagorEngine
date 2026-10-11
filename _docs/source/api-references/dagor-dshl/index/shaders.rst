@@ -189,6 +189,10 @@ Acceptable types:
 +-----------------+--------------------------------------------+
 | @tlas           | Top-level acceleration structure (RT)      |
 +-----------------+--------------------------------------------+
+| @ps_output      | PS output struct, see Render passes        |
++-----------------+--------------------------------------------+
+| @subpass_read   | Subpass input attachment (Render passes)   |
++-----------------+--------------------------------------------+
 
 .. note::
   All variables declared in ``(vs)`` stage are also visible for ``hlsl(<gs, hs, ds>){...}`` blocks.

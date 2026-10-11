@@ -22,6 +22,7 @@ Sources =
   joltDbgRender.cpp
   joltRayCar.cpp
   shapes/HeightField16Shape.cpp
+  shapes/FastCollideConvexVsTriangles.cpp
   shapes/CollisionBlasShape.cpp
 ;
 

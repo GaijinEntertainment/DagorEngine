@@ -6,6 +6,7 @@
 #include <math/dag_sdf_edt.h>
 #include <perfMon/dag_perfTimer.h>
 #include <supp/dag_alloca.h>
+#include <util/dag_parallelFor.h>
 #include "heightmapMetricsErr.h"
 #include "riverMasks/hmapCriticalPath.h"
 #include "riverMasks/hmapLodMaskBuild.h"
@@ -420,42 +421,53 @@ static inline HeightBounds combine(const HeightBounds &a, const HeightBounds &b)
 }
 
 static void calc_lod_error(const HeightmapHandler &h, uint16_t level, uint16_t dim, hmap_err_t *dest_err, const hmap_err_t *higher_err,
-  const hmap_err_t *highest_err, uint8_t *dest_order, uint8_t *exact_order, int si, float water_level, hmap_err_t shore_error,
+  const hmap_err_t *highest_err, uint8_t *dest_order, uint8_t *exact_order, float water_level, hmap_err_t shore_error,
   const LodsRiverMasks &river_masks)
 {
   const float szx = float(h.getHeightmapSizeX()) / (1 << level), szy = float(h.getHeightmapSizeY()) / (1 << level);
-  HeightmapErrorRet best, actual;
   const uint32_t bytesPerPatch = exact_order ? ((dim * dim) >> 3) : 0;
   if (exact_order)
     memset(exact_order, 0, (bytesPerPatch << (level + level)));
-  hmap_err_t minErr = 65535, maxErr = 0;
   debug_quad_level = level == DEBUG_QUAD_LEVEL;
   const int dimLod = get_log2i(dim);
-  int riverPatches = 0;
 
-  for (int y = 0, ye = 1 << level; y < ye; y++)
-    for (int x = 0, xe = 1 << level; x < xe; x++, ++si)
+  // Patches are independent: each reads the heightmap and the finer levels
+  // already written, and writes only its own entries. The sums are per thread.
+  struct alignas(64) Totals
+  {
+    HeightmapErrorRet best, actual;
+    hmap_err_t minErr = 65535, maxErr = 0;
+    int riverPatches = 0;
+  };
+  const uint32_t jobs = min<uint32_t>(threadpool::get_num_workers(), threadpool::MAX_WORKER_COUNT);
+  Totals totals[threadpool::MAX_WORKER_COUNT + 1];
+  const uint32_t patchCount = 1u << (level + level);
+  const int xe = 1 << level, ye = 1 << level;
+  const Point2 patchSz(szx * h.hmapCellSize, szy * h.hmapCellSize);
+  auto patchRange = [&](uint32_t begin, uint32_t end, uint32_t thread_id) {
+    Totals &tot = totals[thread_id];
+    for (uint32_t pi = begin; pi < end; ++pi)
     {
-      // should_d = level == 2 && x == 1 && y == 1;
+      const int x = pi & (xe - 1), y = pi >> level;
       Point2 p(x, y);
-      Point2 patchSz(szx * h.hmapCellSize, szy * h.hmapCellSize), lt = h.worldPosOfs + mul(patchSz, p);
-      debug_patch = debug_position && (BBox2(lt, lt + patchSz) & debug_point);
+      Point2 lt = h.worldPosOfs + mul(patchSz, p);
+      if (debug_position)
+        debug_patch = BBox2(lt, lt + patchSz) & debug_point;
       HeightmapErrorRet quadOrderErr, exactOrderErr;
-      const uint8_t order = calc_patch_error(exact_order, h, szx, szy, p.x, p.y, dim, quadOrderErr, exactOrderErr, water_level);
-      if (exact_order)
-        exact_order += bytesPerPatch;
-      add_error(actual, quadOrderErr);
-      add_error(best, exactOrderErr);
+      const uint8_t order = calc_patch_error(exact_order ? exact_order + pi * bytesPerPatch : nullptr, h, szx, szy, p.x, p.y, dim,
+        quadOrderErr, exactOrderErr, water_level);
+      add_error(tot.actual, quadOrderErr);
+      add_error(tot.best, exactOrderErr);
 
       auto &useErr = exact_order ? exactOrderErr : quadOrderErr;
       if (dest_order)
-        *(dest_order++) = order;
+        dest_order[pi] = order;
       if (dest_err)
       {
         auto cErr = useErr.maxError;                      //+ rms?
         if (river_masks.isRiverCriticalPath(x, y, level)) // if (useErr.isShore())
         {
-          ++riverPatches;
+          ++tot.riverPatches;
           cErr += shore_error;
         }
 
@@ -497,16 +509,31 @@ static void calc_lod_error(const HeightmapHandler &h, uint16_t level, uint16_t d
           writeErr = max<hmap_err_t>(writeErr, err);
         }
 #endif
-        *(dest_err++) = writeErr;
-        minErr = min(minErr, writeErr);
-        maxErr = max(maxErr, writeErr);
+        dest_err[pi] = writeErr;
+        tot.minErr = min(tot.minErr, writeErr);
+        tot.maxErr = max(tot.maxErr, writeErr);
       }
       if (debug_position && debug_patch)
-        debug("%d:%dx%d error %d (%g) order %d %@", level, x, y, useErr.maxError, dest_err ? dest_err[-1] : -1, order,
+        debug("%d:%dx%d error %d (%g) order %d %@", level, x, y, useErr.maxError, dest_err ? dest_err[pi] : -1, order,
           BBox2(lt, lt + patchSz));
     }
-  debug("lod %d: patch_size %@ %@ error %f (%f) best %f (%f) minErr = %@ / %@, rivers %d", level, szx, szy, actual.maxError,
-    actual.getRMS(), best.maxError, best.getRMS(), minErr, maxErr, riverPatches);
+  };
+  // debug_patch is one global, so a debug run walks in order.
+  if (debug_position)
+    patchRange(0, patchCount, 0);
+  else
+    threadpool::parallel_for(0, patchCount, max(1u, patchCount / ((jobs + 1) * 8)), patchRange, jobs);
+  Totals &all = totals[0];
+  for (uint32_t t = 1; t <= jobs; ++t)
+  {
+    add_error(all.actual, totals[t].actual);
+    add_error(all.best, totals[t].best);
+    all.minErr = min(all.minErr, totals[t].minErr);
+    all.maxErr = max(all.maxErr, totals[t].maxErr);
+    all.riverPatches += totals[t].riverPatches;
+  }
+  debug("lod %d: patch_size %@ %@ error %f (%f) best %f (%f) minErr = %@ / %@, rivers %d", level, szx, szy, all.actual.maxError,
+    all.actual.getRMS(), all.best.maxError, all.best.getRMS(), all.minErr, all.maxErr, all.riverPatches);
 }
 
 static inline bool not_equal(const HeightBounds &a, const HeightBounds &b) { return a.hMin != b.hMin || a.hMax != b.hMax; }
@@ -605,7 +632,7 @@ void MetricsErrors::recalc_lod_errors(const HeightmapHandler &h, uint16_t min_le
     const float shoreMeters = shore_error_meters_at_best * (is - i);
     const hmap_err_t fixedShoreError = shoreMeters / h.getHeightScaleRaw();
     calc_lod_error(h, i, dim, err, prevErr, highestOfs + highestSz <= data.size() ? data.data() + highestOfs : nullptr, pOrder,
-      pOrder ? exactOrder.data() + ofs * bytesPerPatch : nullptr, ofs, water_level_, fixedShoreError, lodsRiverMasks);
+      pOrder ? exactOrder.data() + ofs * bytesPerPatch : nullptr, water_level_, fixedShoreError, lodsRiverMasks);
     prevErr = err;
     debug("level %d in %fms hasErr=%d hasHighErr= %d, shore error %f (%d)", i, profile_time_usec(reft) / 1000.f, bool(err),
       highestOfs + highestSz <= data.size(), shoreMeters, fixedShoreError);

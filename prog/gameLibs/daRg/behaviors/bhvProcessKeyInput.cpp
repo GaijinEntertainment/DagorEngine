@@ -42,8 +42,8 @@ int BhvProcessKeyInput::sendKeyEvent(Element *elem, InputEvent event, InputDevic
   Sqrat::Table evt(vm);
   evt.SetValue(csk->devId, dev_id);
   evt.SetValue(csk->eventId, event);
-  evt.SetValue("btnId", btn_idx);
-  evt.SetValue("accumRes", accum_res);
+  evt.SetValue(csk->btnId, btn_idx);
+  evt.SetValue(csk->accumRes, accum_res);
   evt.SetValue(csk->target, elem->getRef(vm));
 
   auto sqRes = handler.Eval<Sqrat::Object>(evt);

@@ -1,5 +1,6 @@
 Root    ?= ../../.. ;
 StrictCompile = yes ;
+StrictCompileFrameLimit = 262144 ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 Location = prog/gameLibs/rendInst ;
@@ -11,6 +12,7 @@ HaveRenderer ?= yes ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/sharedInclude
   $(Root)/$(Location)
 ;
 

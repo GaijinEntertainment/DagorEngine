@@ -42,27 +42,13 @@ bool HmapAlignLandBrush::updateFromPanelRef(PropPanel::ContainerPropertyControl 
   {
     case PID_BRUSH_ALIGN_SGEOMETRY:
     {
-      int ar = panel.getBool(pid);
-      if (ar < 2)
-        alignCollision = ((bool)ar);
+      alignCollision = panel.getBool(pid);
       panel.setEnabledById(PID_BRUSH_ALIGN_TOP, alignCollision);
       return true;
     }
-    case PID_BRUSH_ALIGN_TOP:
-    {
-      int ar = panel.getBool(pid);
-      if (ar < 2)
-        alignCollisionTop = ((bool)ar);
-      return true;
-    }
+    case PID_BRUSH_ALIGN_TOP: alignCollisionTop = panel.getBool(pid); return true;
     case PID_BRUSH_ALIGN_OFFSET: collisionOffset = panel.getFloat(pid); return true;
-    case PID_BRUSH_CONTINUOS:
-    {
-      int ar = panel.getBool(pid);
-      if (ar < 2)
-        continuos = !((bool)ar);
-      return true;
-    }
+    case PID_BRUSH_CONTINUOS: continuos = !panel.getBool(pid); return true;
     case PID_BRUSH_TRAIL: trail = panel.getInt(pid) / 100.0; return true;
     case PID_BRUSH_SIGMA:
     {

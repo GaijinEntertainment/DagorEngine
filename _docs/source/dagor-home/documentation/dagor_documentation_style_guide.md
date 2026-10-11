@@ -37,10 +37,10 @@ other languages.
 
 ## Word List
 
-3ds Max
+[3ds Max]{#word-list-3ds-max} {ilink}`word-list-3ds-max`
 : Always capitalize *Max*.
 
-add-on vs. add on
+[add-on vs. add on]{#word-list-add-on} {ilink}`word-list-add-on`
 : Not *addon*.
 
   Use *add-on* as a noun or adjective.
@@ -51,103 +51,113 @@ add-on vs. add on
 
   {octicon}`check;1.4em` The developer plans to add on more content next update.
 
-Asset Viewer
+[Asset Viewer]{#word-list-asset-viewer} {ilink}`word-list-asset-viewer`
 : Capitalize each word.
 
-Blender
+[Blender]{#word-list-blender} {ilink}`word-list-blender`
 : Always capitalize.
 
-BLK format
+[BLK format]{#word-list-blk-format} {ilink}`word-list-blk-format`
 : When referring to a format in general.
 
-`.blk` files
+[`.blk` files]{#word-list-blk-files} {ilink}`word-list-blk-files`
 : When referring to specific files with the BLK format. File extensions are
   formatted with a [code font](#code-font).
 
-Building Resources
+[Building Resources]{#word-list-building-resources} {ilink}`word-list-building-resources`
 : Use *Building Resources* when referring to the title or heading.
 
   Use *resource building process* (or similar) when describing the act of
   compiling resources.
 
-button
+[button]{#word-list-button} {ilink}`word-list-button`
 : You *click* on-screen buttons and mouse buttons, and *press* keys on the
   keyboard.
 
-changelog
+[changelog]{#word-list-changelog} {ilink}`word-list-changelog`
 : Not *changeLog* or *ChangeLog*.
 
   Lowercase except at the beginning of a sentence, heading, or list item.
 
-checkbox
-: Use *check*/*uncheck* for clear and specific checkbox actions.
+[checkbox]{#word-list-checkbox} {ilink}`word-list-checkbox`
+: Use *select*/*clear* for checkbox actions. Not *check*/*uncheck*.
 
-  {octicon}`check;1.4em` Check the **Enable Ray Tracing** box to activate
-advanced lighting effects in your scene.
+  Use *checkbox* as one word, not *check box*.
 
-  {octicon}`check;1.4em` Uncheck the **Enable Shadows** box to disable shadow
-rendering and improve performance.
+  {octicon}`check;1.4em` Select the **Enable Ray Tracing** checkbox to
+activate advanced lighting effects in your scene.
+
+  {octicon}`check;1.4em` Clear the **Enable Shadows** checkbox to disable
+shadow rendering and improve performance.
 
   Avoid ambiguity by clarifying the checkbox's effect.
 
-  {octicon}`check;1.4em` Check the **Dynamic Lighting** box to apply real-time
-lighting changes during gameplay.
+  {octicon}`check;1.4em` Select the **Dynamic Lighting** checkbox to apply
+real-time lighting changes during gameplay.
 
-  {octicon}`x;1.4em` Enable the box for dynamic lighting. (Unclear: What does
-"enable the box" mean? Does it turn on the feature or just make the checkbox
-switchable?)
+  {octicon}`x;1.4em` Enable the checkbox for dynamic lighting. (Unclear: What
+does "enable the checkbox" mean? Does it turn on the feature or just make the
+checkbox switchable?)
 
-D3D, Direct3D, DirectX
+[D3D, Direct3D, DirectX]{#word-list-d3d-direct3d-directx} {ilink}`word-list-d3d-direct3d-directx`
 : Always capitalize.
 
-daBuild
+[daBuild]{#word-list-dabuild} {ilink}`word-list-dabuild`
 : Retain the exact casing as defined by the development team. If possible,
   revise the sentence to avoid starting with a lowercase
   [product name](dagor_documentation_style_guide.md#product-names).
 
-daEditor, daEditorX
+[daEditor, daEditorX]{#word-list-daeditor} {ilink}`word-list-daeditor`
 : Retain the exact casing as defined by the development team. If possible,
   revise the sentence to avoid starting with a lowercase
   [product name](dagor_documentation_style_guide.md#product-names).
 
-daGI
+[daGI]{#word-list-dagi} {ilink}`word-list-dagi`
 : Expand the abbreviation on first mention: Dagor Global Illumination (daGI).
 
-Dagor Engine
+[Dagor Engine]{#word-list-dagor-engine} {ilink}`word-list-dagor-engine`
 : Capitalize each word.
 
-daNetGame
+[daNetGame]{#word-list-danetgame} {ilink}`word-list-danetgame`
 : Retain the exact casing as defined by the development team. If possible,
   revise the sentence to avoid starting with a lowercase
   [product name](dagor_documentation_style_guide.md#product-names).
 
-daNetGame-based, daNetGame-like
+[daNetGame-based, daNetGame-like]{#word-list-danetgame-based} {ilink}`word-list-danetgame-based`
 : Not *daNetGame based* or *daNetGame like*.
 
-daRG
+[daRG]{#word-list-darg} {ilink}`word-list-darg`
 : Expand the abbreviation on first mention: Dagor Reactive GUI (daRG).
 
-dynmodel
+[daScript]{#word-list-dascript} {ilink}`word-list-dascript`
+: Retain the exact casing as defined by the development team. If possible,
+  revise the sentence to avoid starting with a lowercase
+  [product name](dagor_documentation_style_guide.md#product-names).
+
+[daslang]{#word-list-daslang} {ilink}`word-list-daslang`
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-ECS
+[dynmodel]{#word-list-dynmodel} {ilink}`word-list-dynmodel`
+: Lowercase except at the beginning of a sentence, heading, or list item.
+
+[ECS]{#word-list-ecs} {ilink}`word-list-ecs`
 : All caps. Expand the abbreviation on first mention: Entity-Component-System
   (ECS). When expanded, capitalize each word and hyphenate to form a compound
   noun.
 
-FAR
+[FAR]{#word-list-far} {ilink}`word-list-far`
 : All caps.
 
-gameobj
+[gameobj]{#word-list-gameobj} {ilink}`word-list-gameobj`
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-ID
+[ID]{#word-list-id} {ilink}`word-list-id`
 : Not *Id* or *id*, except in string literals or enums.
 
-Impostor Baker
+[Impostor Baker]{#word-list-impostor-baker} {ilink}`word-list-impostor-baker`
 : Capitalize each word.
 
-in-game vs. in game
+[in-game vs. in game]{#word-list-in-game} {ilink}`word-list-in-game`
 : Not *ingame*.
 
   Use *in-game* as an adjective.
@@ -158,13 +168,13 @@ in-game vs. in game
 
   {octicon}`check;1.4em` That feature isn't available in game.
 
-internet
+[internet]{#word-list-internet} {ilink}`word-list-internet`
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-LOD, LODs
+[LOD, LODs]{#word-list-lod} {ilink}`word-list-lod`
 : All caps. Expand the abbreviation on first mention: Level of Detail (LOD).
 
-login vs. log in
+[login vs. log in]{#word-list-login} {ilink}`word-list-login`
 : Not *log-in*.
 
   Use *login* as a noun or adjective.
@@ -175,25 +185,28 @@ login vs. log in
 
   {octicon}`check;1.4em` You need to log in to view your achievements.
 
-microdetails
+[microdetails]{#word-list-microdetails} {ilink}`word-list-microdetails`
 : Not *micro-details*.
 
   Lowercase except at the beginning of a sentence, heading, or list item.
 
-parent-child or parent/child
+[Outer Space]{#word-list-outer-space} {ilink}`word-list-outer-space`
+: Always capitalize each word. Not *OuterSpace*.
+
+[parent-child or parent/child]{#word-list-parent-child} {ilink}`word-list-parent-child`
 : Not *parent – child* or *parent—child*.
 
-per
+[per]{#word-list-per} {ilink}`word-list-per`
 : To express a rate, use *per* instead of the division slash (`/`).
 
-please
+[please]{#word-list-please} {ilink}`word-list-please`
 : Do not use *please* in the normal course of explaining how to use a product.
 
   Use *please* only when you're asking for permission or forgiveness. For
   example, when what you're asking for inconveniences a reader, or suggests a
   potential issue with a product.
 
-plugin vs. plug-in vs. plug in
+[plugin vs. plug-in vs. plug in]{#word-list-plugin} {ilink}`word-list-plugin`
 : Use *plugin* as a noun.
 
   {octicon}`check;1.4em` This audio plugin improves spatial sound processing.
@@ -206,23 +219,34 @@ plugin vs. plug-in vs. plug in
 
   {octicon}`check;1.4em` Please plug in the VR headset to continue.
 
-pop-up window, pop-up menu
+[pop-up window, pop-up menu]{#word-list-pop-up} {ilink}`word-list-pop-up`
 : Use *pop-up window* to describe a window that appears over the main interface
   to provide additional information, request input, or display notifications.
 
   Use *pop-up menu* to describe the menu that appears when a user right-clicks
   an item.
 
-prebuilt
+[prebuilt]{#word-list-prebuilt} {ilink}`word-list-prebuilt`
 : Not *pre-built*.
 
-prefab
+[prefab]{#word-list-prefab} {ilink}`word-list-prefab`
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-read-only
+[ray-tracing vs. ray tracing]{#word-list-ray-tracing} {ilink}`word-list-ray-tracing`
+: Use *ray-tracing* with a hyphen when used as an adjective:
+
+  {octicon}`check;1.4em` ray-tracing hardware, ray-tracing support
+
+  Use *ray tracing* without a hyphen when used as a noun.
+
+  {octicon}`check;1.4em` The renderer relies on ray tracing.
+
+  Not *raytracing*.
+
+[read-only]{#word-list-read-only} {ilink}`word-list-read-only`
 : Not *read only*.
 
-real-time vs. real time
+[real-time vs. real time]{#word-list-real-time} {ilink}`word-list-real-time`
 : Use *real-time* with a hyphen when used as an adjective:
 
   {octicon}`check;1.4em` real-time updates, real-time communication
@@ -231,17 +255,28 @@ real-time vs. real time
 
   {octicon}`check;1.4em` The system operates in real time.
 
-rendinst
+[rendinst]{#word-list-rendinst} {ilink}`word-list-rendinst`
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-riExtra
+[riExtra]{#word-list-riextra} {ilink}`word-list-riextra`
 : Lowercase except at the beginning of a sentence, heading, or list item. Always
   capitalize *Extra*.
 
-screenshot
+[runtime]{#word-list-runtime} {ilink}`word-list-runtime`
+: Not *run-time*.
+
+  Use *runtime* for both the noun and the adjective.
+
+  {octicon}`check;1.4em` The plugin loads its config at runtime.
+
+  {octicon}`check;1.4em` A runtime error stopped the build.
+
+  {octicon}`x;1.4em` A run time error stopped the build.
+
+[screenshot]{#word-list-screenshot} {ilink}`word-list-screenshot`
 : Not *screen shot*.
 
-sign-in vs. sign in
+[sign-in vs. sign in]{#word-list-sign-in} {ilink}`word-list-sign-in`
 : Use *sign-in* as a noun or adjective.
 
   {octicon}`check;1.4em` The sign-in process includes two-factor authentication.
@@ -251,7 +286,7 @@ sign-in vs. sign in
   {octicon}`check;1.4em` Players must sign in with their account before
   accessing online services.
 
-sign-out vs. sign out
+[sign-out vs. sign out]{#word-list-sign-out} {ilink}`word-list-sign-out`
 : Use *sign-out* as a noun or adjective.
 
   {octicon}`check;1.4em` The sign-out option is in the settings menu.
@@ -260,25 +295,25 @@ sign-out vs. sign out
 
   {octicon}`check;1.4em` The game automatically signs out inactive users.
 
-subdirectory
+[subdirectory]{#word-list-subdirectory} {ilink}`word-list-subdirectory`
 : Not *sub-directory*.
 
-toolkit
+[toolkit]{#word-list-toolkit} {ilink}`word-list-toolkit`
 : Not *tool-kit* or *tool kit*.
 
-utilize
+[utilize]{#word-list-utilize} {ilink}`word-list-utilize`
 : Do not use *utilize* when you mean *use*.
 
   Use *utilize* or *utilization* when referring to the quantity of a resource
   being used.
 
-vromfs
+[vromfs]{#word-list-vromfs} {ilink}`word-list-vromfs`
 : Lowercase except at the beginning of a sentence, heading, or list item.
 
-War Thunder
+[War Thunder]{#word-list-war-thunder} {ilink}`word-list-war-thunder`
 : Capitalize each word.
 
-War Thunder-based, War Thunder-like
+[War Thunder-based, War Thunder-like]{#word-list-war-thunder-based} {ilink}`word-list-war-thunder-based`
 : Not *WarThunder-based* or *War-Thunder-based*.
 
 ## Product Names
@@ -337,7 +372,6 @@ Use code font for:
 - Placeholder variables
 - Text input
 - Console output
-- Key names and mouse button labels
 - Code in text, inline code, and code samples
 
 **Items to put in ordinary (non-code) font:**
@@ -346,6 +380,35 @@ Use code font for:
 - URLs
 - Domain names
 - Names of products, services, and organizations
+
+### Key and Mouse Button Badges
+
+Use the {bdg-dark-line}`...` badge for a keyboard key, a mouse button, or
+a mouse action, not code font or bold. Write `` {bdg-dark-line}`Ctrl+Z` ``
+to get {bdg-dark-line}`Ctrl+Z`.
+
+{octicon}`check;1.4em` Press {bdg-dark-line}`Ctrl+Z` to undo.
+
+{octicon}`x;1.4em` Press `Ctrl+Z` to undo.
+
+Do not use `{bdg-dark-line}` for a UI element (a button, a checkbox, a menu
+item, or similar). Use bold instead.
+
+{octicon}`check;1.4em` Click **Export** to save the file.
+
+{octicon}`x;1.4em` Click {bdg-dark-line}`Export` to save the file.
+
+### Markers
+
+Use the {cnum}`...` role to add a marker (a number or a letter) that
+refers to a callout in an accompanying screenshot or diagram. Write
+`` {cnum}`1` `` to get {cnum}`1`.
+
+{octicon}`check;1.4em` Click **Export** {cnum}`1` to save the file.
+
+Do not use `{bdg-dark-line}` for this. For more information about its
+scope, see the [Key and Mouse Button Badges](#key-and-mouse-button-badges)
+section of this document.
 
 ### Font Type, Size, and Color
 
@@ -400,6 +463,18 @@ Use code font for:
   follow a sequential order, without skipping any levels.
 - If the main heading of an article is defined using other tools, section
   headings within the file should begin at the second level.
+- A word ending in *-ing* can read as a verb, a noun, or an adjective.
+  Rephrase or otherwise disambiguate a heading where this is ambiguous.
+
+  {octicon}`x;1.4em` Meeting Requirements (Is this about satisfying
+  requirements, or about the requirements for a meeting?)
+
+  {octicon}`check;1.4em` Requirements for the Meeting
+
+  The kept article follows the exception in [Omitting Articles in
+  Headings and Titles](#omitting-articles-in-headings-and-titles). A term
+  fixed in the [Word List](#word-list), such as *Building Resources*,
+  keeps its form regardless.
 
 ### Capitalization
 
@@ -667,10 +742,25 @@ name is treated as a proper noun or a general noun phrase.
 
 #### Omitting Articles in Headings and Titles
 
-It is acceptable to omit articles (such as *a*, *an*, and *the*) in headings and
-titles for brevity and clarity. This helps maintain a clean and concise
-presentation of content, especially when space is limited or when the title
-needs to be more direct.
+Omit articles (*a*, *an*, *the*) in a heading or title.
+
+{octicon}`check;1.4em` Add New Package
+
+{octicon}`x;1.4em` Add a New Package
+
+Exception: keep the article where omitting it would read awkwardly or
+become ambiguous.
+
+{octicon}`check;1.4em` When to Spell Out a Term
+
+{octicon}`check;1.4em` Determining the Number of LODs
+
+This departs from Google's
+[Articles (a, an, the)](https://developers.google.com/style/articles)
+guidance (which keeps all articles for readability and
+translation). This departure applies to headings and titles only, for
+readability in the navigation sidebar, where headings are scanned as a
+list rather than read as prose.
 
 ## Linking
 

@@ -1,6 +1,7 @@
 include "normaldetail.dshl"
 
 texture character_micro_details;
+sampler character_micro_details_samplerstate;
 int character_micro_details_count always_referenced; // CPU R/W caching
 
 int need_character_microdetails_texture_check = 0;
@@ -55,12 +56,11 @@ endmacro
 macro INIT_USE_CHARACTER_MICRODETAIL_IMPL(has_sampler)
   if (has_sampler)
   {
-    (ps) { character_micro_details@smpArray = character_micro_details; }
+    (ps) {
+      character_micro_details_samplerstate@sampler = character_micro_details_samplerstate;
+    }
   }
-  else
-  {
-    (ps) { character_micro_details@texArray = character_micro_details; }
-  }
+  (ps) { character_micro_details@texArray = character_micro_details; }
 endmacro
 
 macro INIT_USE_CHARACTER_MICRODETAIL()

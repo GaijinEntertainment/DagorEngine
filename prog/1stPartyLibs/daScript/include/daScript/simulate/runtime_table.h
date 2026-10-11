@@ -12,17 +12,36 @@ namespace das
 
     DAS_API extern const char * rts_null;
 
+    // what the interpreter's table node hashes for this key type - ARCHITECTURE.md, "Table key hashing"
+    template <typename KeyType>
+    struct KeyHash {
+        __forceinline uint64_t operator () ( Context & context, const KeyType & key ) {
+            using workhorse = typename WrapType<KeyType>::type;
+            if constexpr ( is_same<KeyType, workhorse>::value || WrapsBuiltinValue<KeyType>::value ) {
+                return hash_function(context, key);
+            } else {
+                return hash_function(context, cast<workhorse>::to(cast<KeyType>::from(key)));
+            }
+        }
+    };
+
     template <typename KeyType>
     struct KeyCompare {
         __forceinline bool operator () ( const KeyType & a, const KeyType & b ) {
-            return a == b;
+            using workhorse = typename WrapType<KeyType>::type;
+            if constexpr ( is_same<KeyType, workhorse>::value ) {
+                return a == b;
+            } else {
+                return KeyCompare<workhorse>()( cast<workhorse>::to(cast<KeyType>::from(a)),
+                                                cast<workhorse>::to(cast<KeyType>::from(b)) );
+            }
         }
     };
 
     template <>
     struct KeyCompare <vec4f> {
         __forceinline bool operator () ( const vec4f & a, const vec4f & b ) {
-            return v_signmask(v_cmp_eq(a, b)) == 0xF;
+            return v_signmask(v_cmp_eqi(a, b)) == 0xF;
         }
     };
 
@@ -146,7 +165,7 @@ namespace das
         static __forceinline void clearHash ( Table &, uint64_t ) {}
         // No stored hash: re-derive it from the key to re-bucket into the large target on promotion.
         static __forceinline uint64_t promoteHash ( const Table &, uint64_t, const KeyType & key, Context * ctx ) {
-            return hash_function(*ctx, key);
+            return KeyHash<KeyType>()(*ctx, key);
         }
     };
 
@@ -554,7 +573,7 @@ namespace das
                     auto pOldCtrl = (const uint8_t *) tab.hashes;
                     for ( uint64_t i=0, is=tab.capacity; i!=is; ++i ) {
                         if ( pOldCtrl[i] > CTRL_TOMBSTONE ) {
-                            uint64_t hash = hash_function(*context, pOldKeys[i]);
+                            uint64_t hash = KeyHash<KeyType>()(*context, pOldKeys[i]);
                             int64_t index = insertNew(newTab, hash);
                             ((uint8_t *) newTab.hashes)[index] = CTRL_OCCUPIED;
                             pKeys[index] = pOldKeys[i];

@@ -7,7 +7,6 @@
 #include <de3_interface.h>
 #include <de3_entityFilter.h>
 #include <de3_genHmapData.h>
-#include <sceneRay/dag_sceneRay.h>
 
 
 #define CHECK_DET_VERT_TRACE(PT, NORM, MAXT)                                \

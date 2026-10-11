@@ -7,6 +7,7 @@
 
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -69,14 +70,17 @@ namespace controls
 {
 static eastl::unique_ptr<uiinput::MouseKbdHandler> ui_input_handler_val;
 static String user_setup_fname;
+static String ugm_input_cfg_fn;
 
 #if _TARGET_PC_WIN
 static bool is_print_screen_key_down = false;
 #endif
 
-static bool input_controls_were_reset = false;
-static bool controls_were_reset() { return input_controls_were_reset; }
-static void clear_controls_were_reset() { input_controls_were_reset = false; }
+#if _TARGET_PC
+static bool touch_pad_always_mouse = false; // the PC touch pad mouse is opt-in
+#else
+static bool touch_pad_always_mouse = true;
+#endif
 
 class OnlineStorageControlsExchange : public online_storage::DataExchangeBLK
 {
@@ -93,8 +97,8 @@ DataBlock OnlineStorageControlsExchange::loadedConfigOnInit;
 
 void global_init()
 {
-  HumanInput::stg_pnt.allowEmulatedLMB = false;    // disable xbox gamepad click emulation
-  HumanInput::stg_pnt.emuMouseWithTouchPad = true; // use PS4 touchpad in legacy mode for now
+  HumanInput::stg_pnt.allowEmulatedLMB = false; // disable xbox gamepad click emulation
+  touch_pad_always_mouse = ::dgs_get_settings()->getBlockByNameEx("input")->getBool("touchPadAlwaysMouse", touch_pad_always_mouse);
   ui_input_handler_val.reset(new uiinput::MouseKbdHandler);
   eastl::unique_ptr<online_storage::DataExchangeBLK> exchange(new OnlineStorageControlsExchange);
   g_entity_mgr->broadcastEventImmediate(OnlineStorageAddExchangeEvent{&exchange});
@@ -140,7 +144,11 @@ void init_drivers()
   dainput::reapply_stick_dead_zones();
 }
 
-void destroy() { ecs::term_input(); }
+void destroy()
+{
+  clear_console_actions();
+  ecs::term_input();
+}
 
 static bool load_config()
 {
@@ -203,6 +211,14 @@ static void reset_to_default()
   g_entity_mgr->broadcastEventImmediate(OnInputControlsLoadConfig{&dainput::get_user_props()});
 }
 
+static void reset_to_preset(const char *preset, bool move_changes)
+{
+  if (move_changes) // constraint: the moved props must hold the game values
+    g_entity_mgr->broadcastEventImmediate(OnInputControlsSaveConfig{&dainput::get_user_props()});
+  dainput::reset_user_config_to_preset(preset, move_changes);
+  g_entity_mgr->broadcastEventImmediate(OnInputControlsLoadConfig{&dainput::get_user_props()});
+}
+
 static void restore_saved_config()
 {
   if (!OnlineStorageControlsExchange::loadedConfigOnInit.isEmpty())
@@ -219,9 +235,6 @@ static void restore_saved_config()
 
 bool OnlineStorageControlsExchange::applyGeneralBlk(const DataBlock &container) const
 {
-  if (container.isEmpty() && ::dgs_get_settings()->getInt("launchCnt", 0) > 1)
-    input_controls_were_reset = true;
-
   loadedConfigOnInit = container;
 
   // compatibility for previous layout
@@ -253,6 +266,7 @@ void OnlineStorageControlsExchange::loadConfig()
 
 void init_control(const char *user_game_mode_input_cfg_fn)
 {
+  ugm_input_cfg_fn = user_game_mode_input_cfg_fn;
   const DataBlock *inputBlk = ::dgs_get_settings()->getBlockByNameEx("input");
   const char *controls_config_prefix = inputBlk->getStr("controlsConfigPrefix", "config/controlsConfig");
   const char *controls_preset_base_prefix = inputBlk->getStr("controlsPresetBasePrefix", "config/");
@@ -345,6 +359,13 @@ void init_control(const char *user_game_mode_input_cfg_fn)
 #endif
 }
 
+void reinit_control()
+{
+  const String lastUgmInputCfgFn(ugm_input_cfg_fn);
+  destroy();
+  init_control(lastUgmInputCfgFn.empty() ? nullptr : lastUgmInputCfgFn.str());
+}
+
 
 void process_input(double /*dt*/)
 {
@@ -394,13 +415,16 @@ void process_input(double /*dt*/)
     sqeventbus::send_event("input.devices_num_changed", data);
   }
 
+  interlocked_relaxed_store(HumanInput::stg_pnt.emuMouseWithTouchPad,
+    touch_pad_always_mouse || (uiinput::is_mouse_used_by_ui() && !interlocked_relaxed_load(HumanInput::stg_pnt.mousePresent)));
   dainput::process_actions_tick();
+  send_console_actions();
 }
 
 void check_system_keys()
 {
 #if _TARGET_PC_WIN
-  if (dgs_app_active && GetAsyncKeyState(VK_SNAPSHOT)) // PrintScreen
+  if (dgs_app_active && GetAsyncKeyState(VK_SNAPSHOT)) // constraint: bit 0 records presses between frames
   {
     if (!is_print_screen_key_down)
     {
@@ -409,8 +433,9 @@ void check_system_keys()
       // registered without a modifier mask, so modified combos still reach
       // the normal key dispatch); firing here too would produce a duplicate
       // screenshot on every Shift+PrintScreen press.
-      const bool anyModifier = GetAsyncKeyState(VK_SHIFT) || GetAsyncKeyState(VK_CONTROL) || GetAsyncKeyState(VK_MENU) ||
-                               GetAsyncKeyState(VK_LWIN) || GetAsyncKeyState(VK_RWIN);
+      auto isKeyDown = [](int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; };
+      const bool anyModifier =
+        isKeyDown(VK_SHIFT) || isKeyDown(VK_CONTROL) || isKeyDown(VK_MENU) || isKeyDown(VK_LWIN) || isKeyDown(VK_RWIN);
       if (!anyModifier)
         screencap::schedule_screenshot(true);
     }
@@ -431,9 +456,16 @@ void bind_script_api(SqModules *moduleMgr)
   controlTable //
     .Func("save_config", save_config)
     .Func("reset_to_default", reset_to_default)
+    .Func("reset_to_preset", reset_to_preset)
     .Func("restore_saved_config", restore_saved_config)
-    .Func("controls_were_reset", controls_were_reset)
-    .Func("clear_controls_were_reset", clear_controls_were_reset)
+    .Func("set_rumble_scale", force_feedback::rumble::set_scale)
+    .Func("rumble",
+      [](float freq, int duration_msec) {
+        using namespace force_feedback::rumble;
+        add_event({EventParams::LO, freq, duration_msec});
+        add_event({EventParams::HI, freq, duration_msec});
+      })
+    .Func("set_touch_pad_always_mouse", [](bool on) { uiinput::call_dainput([on] { touch_pad_always_mouse = on; }); })
     /**/;
   g_entity_mgr->broadcastEventImmediate(OnInputControlsBindSq{moduleMgr, &controlTable});
   moduleMgr->addNativeModule("control", controlTable);

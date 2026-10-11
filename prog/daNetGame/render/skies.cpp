@@ -250,7 +250,7 @@ void load_daskies_from_blk_int(
     DECLARE_INT_SLIDER(skies_panel, year, 1940, 1946, blk.getInt("year", skies_data.year)),
     DECLARE_INT_SLIDER(skies_panel, month, 1, 12, blk.getInt("month", skies_data.month)),
     DECLARE_INT_SLIDER(skies_panel, day, 1, 31, blk.getInt("day", skies_data.day)),
-    DECLARE_FLOAT_SLIDER(skies_panel, time, 0, 24.0, blk.getReal("time", skies_data.time), 0.01),
+    DECLARE_FLOAT_SLIDER(skies_panel, time, 0, 24.0, skies_data.time, 0.01),
     DECLARE_FLOAT_SLIDER(skies_panel, latitude, -90, 90,
       skies_data.latitude >= -90 ? skies_data.latitude : blk.getReal("latitude", 55), 0.01),
     DECLARE_FLOAT_SLIDER(skies_panel, longtitude, -180, 180,
@@ -403,13 +403,21 @@ int get_daskies_seed() { return skies_panel.seed; }
 
 void set_daskies_seed(int seed) { skies_panel.seed = seed; }
 
-DPoint2 get_clouds_origin() { return daSkies->getCloudsOrigin(); }
+DPoint2 get_clouds_origin() { return daSkies ? daSkies->getCloudsOrigin() : DPoint2(0, 0); }
 
-DPoint2 get_strata_clouds_origin() { return daSkies->getStrataCloudsOrigin(); }
+DPoint2 get_strata_clouds_origin() { return daSkies ? daSkies->getStrataCloudsOrigin() : DPoint2(0, 0); }
 
-void set_clouds_origin(DPoint2 pos) { daSkies->setCloudsOrigin(pos.x, pos.y); }
+void set_clouds_origin(DPoint2 pos)
+{
+  if (daSkies)
+    daSkies->setCloudsOrigin(pos.x, pos.y);
+}
 
-void set_strata_clouds_origin(DPoint2 pos) { daSkies->setStrataCloudsOrigin(pos.x, pos.y); }
+void set_strata_clouds_origin(DPoint2 pos)
+{
+  if (daSkies)
+    daSkies->setStrataCloudsOrigin(pos.x, pos.y);
+}
 
 namespace skies_utils
 {

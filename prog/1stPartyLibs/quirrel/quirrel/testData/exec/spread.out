@@ -22,6 +22,7 @@ table: dims=2 len=overridden x=10
 function
 array: 0 1 2 3 
 table: a=1 b=20 c=3 
+table: a=1 b=20 c=3 
 array: 1 2 
 table: a=1 
 array: 1 2 
@@ -44,3 +45,4 @@ trying to modify immutable 'table'
 trying to modify immutable 'table'
 table: x=1 y=2 
 table: lead=0 x=1 y=2 
+table: shorthand=0 x=1 y=2 

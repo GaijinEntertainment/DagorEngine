@@ -25,17 +25,7 @@ public:
     other.startQuery = nullptr;
     other.endQuery = nullptr;
   }
-  GPUWatchMs &operator=(GPUWatchMs &&other)
-  {
-    if (this != &other)
-    {
-      startQuery = other.startQuery;
-      endQuery = other.endQuery;
-      other.startQuery = nullptr;
-      other.endQuery = nullptr;
-    }
-    return *this;
-  }
+  GPUWatchMs &operator=(GPUWatchMs &&other) noexcept;
   ~GPUWatchMs();
 
   void start();

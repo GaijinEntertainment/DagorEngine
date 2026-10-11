@@ -57,7 +57,9 @@ CONSOLE_BOOL_VAL("gi", gi_auto_invalidation, true);
 
 #define GLOBAL_VARS_LIST VAR(world_view_pos)
 
-#define GLOBAL_VARS_OPT_LIST VAR(dagi_warp64_irradiance)
+#define GLOBAL_VARS_OPT_LIST  \
+  VAR(dagi_warp64_irradiance) \
+  VAR(dagi_voxel_lit_scene_only_emission)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a);
 GLOBAL_VARS_LIST
@@ -110,6 +112,10 @@ struct DaGIImpl final : public DaGI
   DaGIImpl()
   {
     unoderedTypedLoad = !is_only_low_gi_supported();
+    {
+      int varId = get_shader_variable_id("dagi_voxel_lit_scene_emission_only_supported", true);
+      voxelSceneEmissionOnlySupported = ShaderGlobal::is_var_assumed(varId) && ShaderGlobal::get_interval_assumed_value(varId) > 0;
+    }
 
     debug("waveOps %d, warpSize %d %d", d3d::get_driver_desc().caps.hasWaveOps, d3d::get_driver_desc().minWarpSize,
       d3d::get_driver_desc().maxWarpSize);
@@ -150,6 +156,7 @@ struct DaGIImpl final : public DaGI
   bool unoderedTypedLoad = true;
   bool positionUpdated = false;
   bool pendingUpdateAfterDeviceReset = false;
+  bool voxelSceneEmissionOnlySupported = false;
 
   struct RadianceInvalidation
   {
@@ -613,7 +620,8 @@ void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_upda
   if (!positionUpdated)
     return;
   DA_PROFILE_GPU;
-  if (allowUpdate == RadianceUpdate::Off)
+  // TODO: We could actually update just emission instead of disabling completely.
+  if (allowUpdate == RadianceUpdate::Off || currentSettings.voxelScene.onlyEmission)
     frame_featues = FrameData(frame_featues & ~FrameHasLitScene);
   if (gi_update_from_gbuf && allow_update_from_gbuf)
   {
@@ -697,6 +705,10 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
     voxelScene->setTemporalSpeedFromGbuf(currentSettings.voxelScene.temporalSpeed);
     voxelScene->setTemporalFromGbufStable(gi_update_from_gbuf_stable); // fixme:should be setting
     voxelScene->doPendingClear();
+    if (voxelSceneEmissionOnlySupported)
+      ShaderGlobal::set_int(dagi_voxel_lit_scene_only_emissionVarId, currentSettings.voxelScene.onlyEmission);
+    else
+      G_ASSERT(!currentSettings.voxelScene.onlyEmission);
   }
   if (currentSettings.skyVisibility.clipW && !skyVisibility)
     skyVisibility = eastl::make_unique<SkyVisibility>();

@@ -43,7 +43,8 @@ namespace ecs
   LIST_TYPE(i64, int64_t, Int64, )
 
 
-inline void component_to_blk_param(const char *paramName, const ecs::EntityComponentRef &comp, DataBlock *currBlk)
+inline void component_to_blk_param(const char *paramName, const ecs::EntityComponentRef &comp, DataBlock *currBlk,
+  bool logerr_unsupported = true)
 {
   uint32_t ctype = comp.getUserType();
 #define PROC_COMP(Type, type_name)                        \
@@ -90,7 +91,8 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
       String blkName(0, "%s:object", paramName);
       DataBlock *objBlk = currBlk->addNewBlock(blkName.str());
       for (auto &child : comp.get<ecs::Object>())
-        component_to_blk_param(ecs::get_key_string(child.first).data(), child.second.getEntityComponentRef(), objBlk);
+        component_to_blk_param(ecs::get_key_string(child.first).data(), child.second.getEntityComponentRef(), objBlk,
+          logerr_unsupported);
       return;
     }
     case ComponentTypeInfo<ecs::Array>::type:
@@ -98,7 +100,7 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
       String blkName(0, "%s:array", paramName);
       DataBlock *vecBlk = currBlk->addNewBlock(blkName.str());
       for (auto &child : comp.get<ecs::Array>())
-        component_to_blk_param(paramName, child.getEntityComponentRef(), vecBlk);
+        component_to_blk_param(paramName, child.getEntityComponentRef(), vecBlk, logerr_unsupported);
       return;
     }
     case ComponentTypeInfo<ecs::EntityId>::type:
@@ -121,7 +123,7 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
       String blkName(0, "%s:shared:array", paramName);
       DataBlock *vecBlk = currBlk->addNewBlock(blkName.str());
       for (auto &child : *arr)
-        component_to_blk_param(paramName, child.getEntityComponentRef(), vecBlk);
+        component_to_blk_param(paramName, child.getEntityComponentRef(), vecBlk, logerr_unsupported);
 
       return;
     }
@@ -133,7 +135,8 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
       String blkName(0, "%s:object", paramName);
       DataBlock *objBlk = currBlk->addNewBlock(blkName.str());
       for (auto &child : *obj)
-        component_to_blk_param(ecs::get_key_string(child.first).data(), child.second.getEntityComponentRef(), objBlk);
+        component_to_blk_param(ecs::get_key_string(child.first).data(), child.second.getEntityComponentRef(), objBlk,
+          logerr_unsupported);
 
       return;
     }
@@ -144,8 +147,16 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
       return;
     }
     default:
-      logerr("Unsupported component type %s <%d> for comp %s", ecs::EntityManager::shared_component_types().findTypeName(ctype), ctype,
-        paramName);
+    {
+      const char *typeName = ecs::EntityManager::shared_component_types().findTypeName(ctype);
+      if (logerr_unsupported)
+        logerr("Unsupported component type %s <%d> for comp %s", typeName, ctype, paramName);
+      else
+      {
+        String blkName(0, "%s:%s", paramName, typeName);
+        currBlk->addNewBlock(blkName.str());
+      }
+    }
   }
 #undef PROC_COMP
 #undef PROC_BLOCK_COMP

@@ -91,7 +91,7 @@ if $(Platform) in windows &&
 }
 
 if $(Platform) in windows xboxOne scarlett ps5 linux &&
-   $(PlatformArch) in x86_64 arm64 &&
+   $(PlatformArch) in x86_64 arm64 arm64ec &&
    $(UseD3DMultiList) != stub && $(Dedicated) != yes && $(UseStubDriver) != yes {
   Sources += amdFsr.cpp ;
 

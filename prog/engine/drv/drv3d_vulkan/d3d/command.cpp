@@ -221,7 +221,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::TIMESTAMPFREQ:
       if (Globals::cfg.has.gpuTimestamps)
       {
-        *reinterpret_cast<uint64_t *>(par1) = uint64_t(1000000000.0 / Globals::VK::phy.properties.limits.timestampPeriod);
+        *reinterpret_cast<uint64_t *>(par1) = uint64_t(1000000000.0 / double(Globals::VK::phy.properties.limits.timestampPeriod));
         return 1;
       }
       break;

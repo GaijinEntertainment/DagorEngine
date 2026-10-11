@@ -82,6 +82,7 @@ macro USE_VOXEL_PS(use_overlay_map)
     depth_proj@f4 = voxel_depth_projection;
     camera_base_offset@f3 = camera_base_offset;
     paint_details_tex@smp2d = paint_details_tex;
+    screen_noise_frame@f1 = shadow_frame + 23; // frame offset so it's not correlated
   }
 
   if (use_overlay_map)
@@ -99,16 +100,34 @@ macro USE_VOXEL_PS(use_overlay_map)
 
   hlsl(ps) {
     #include <octahedral.hlsl>
-
-    struct WooRay3d
-    {
-      float3 p, wdir;
-      int3 pt, stepCell;
-      float3 tMax, tDelta;
-    };
+    #include <interleavedGradientNoise.hlsl>
 
     #define VOXEL_DEPTH_BITS 14
     #define VOXEL_PALETTE_SIZE 16
+
+    bool testSegmentBox(uint2 bitmap, float3 ray_pos, float3 ray_dir, float t0, float t1)
+    {
+      const float3 p0 = ray_pos + ray_dir * t0;
+      const float3 p1 = ray_pos + ray_dir * t1;
+      const int3 b0 = clamp(int3(floor(min(p0, p1) - 0.01)), 0, 3);
+      const int3 b1 = clamp(int3(ceil (max(p0, p1) + 0.01)), 1, 4);
+      const int3 size = b1 - b0;
+
+      uint2 mask = 0;
+      for (int y = b0.y; y < b1.y; y++)
+      {
+        const uint2 m = uint2(1u << ((y & 1) * 4 * 4 + b0.z * 4 + b0.x), 0);
+        mask |= y < 2 ? m : m.yx;
+      }
+
+      mask |= mask << (size.x > 1 ? 1 : 0);
+      mask |= mask << (size.x <= 2 ? 0 : size.x - 2);
+
+      mask |= mask << ((size.z > 1 ? 1 : 0) * 4);
+      mask |= mask << ((size.z <= 2 ? 0 : size.z - 2) * 4);
+
+      return any((bitmap & mask) != 0);
+    }
 
     ##if hardware.fsh_5_0
       #define DEPTH_SEMANTIC SV_DepthLessEqual
@@ -201,106 +220,97 @@ macro USE_VOXEL_PS(use_overlay_map)
       const float3 boxMin = asfloat(loadBuffer3(voxel_data, mipOfs + 4 * 4));
       pos = (pos - boxMin) / voxelSize;
 
-      float3 startPos = pos;
-      float3 dir = normalize(localRay);
-      WooRay3d ray;
-      ray.p = pos;
-      ray.wdir = dir;
-      ray.pt = int3(floor(pos));
-      ray.stepCell = dir >= 0 ? 1 : -1;
-      int3 rayLimit = dir >= 0 ? numBlocks * 4 - 1 : 0;
-      int3 nextPt = ray.pt + max(0, ray.stepCell);
-      float3 absDir = abs(dir);
-      ray.tDelta = absDir > 1e-9 ? 1.0 / absDir : 0;
-      ray.tMax = absDir > 1e-9 ? (nextPt - pos) / dir : 1e15;
+      const float3 dir = normalize(localRay);
+      const float3 absDir = abs(dir);
+      const int3 dirSign = dir >= 0 ? 1 : -1;
+      const float3 rayOrigin = pos;
+      int3 blockPos = int3(floor(pos)) >> 2;
+      const int3 rayLimit = dir >= 0 ? numBlocks - 1 : 0;
+      const float3 blockTDelta = absDir > 1e-9 ? 4.0 / absDir : 0;
+      const int3 nextPt = blockPos + max(0, dirSign);
+      float3 blockTMax = absDir > 1e-9 ? ((nextPt << 2) - rayOrigin) / dir : 1e15;
 
       bool hit = false;
-      uint hitFace = 0;
+      int hitAxis = -1;
       float t = 0;
+      int3 ipos;
 
-      float3 tPrev = ray.tMax - ray.tDelta;
-      if (tPrev.x > tPrev.y)
-      {
-        if (tPrev.x > tPrev.z)
-          hitFace = dir.x >= 0 ? 0 : 1;
-        else
-          hitFace = dir.z >= 0 ? 4 : 5;
-      }
-      else
-      {
-        if (tPrev.y > tPrev.z)
-          hitFace = dir.y >= 0 ? 2 : 3;
-        else
-          hitFace = dir.z >= 0 ? 4 : 5;
-      }
+      uint numSteps = numBlocks.x + numBlocks.y + numBlocks.z;
+      uint2 bitmap = 0;
 
-      uint numSteps = (numBlocks.x + numBlocks.y + numBlocks.z) * 4;
-
-      // trace ray
+      // walk block grid
       for (; numSteps > 0; numSteps--)
       {
-        int3 ip = ray.pt;
-        uint3 bp = uint3(ip >> 2);
+        const float nextBlockT = min(blockTMax.x, min(blockTMax.y, blockTMax.z));
+
+        uint3 bp = uint3(blockPos);
         if (any(bp >= numBlocks))
         {
-          if (any(ip * ray.stepCell > rayLimit)) break;
+          if (any(blockPos * dirSign > rayLimit)) break;
         }
         else
         {
-          uint voxelIndex = (ip.y & 3) * 4 * 4 + (ip.z & 3) * 4 + (ip.x & 3);
-          uint data = loadBuffer(voxel_data, (((bp.y * numBlocks.z + bp.z) * numBlocks.x + bp.x) * 2 + (voxelIndex >> 5) + 7) * 4 + mipOfs);
-          if ((data & (1u << (voxelIndex & 31))) != 0)
+          bitmap = loadBuffer2(voxel_data, (((bp.y * numBlocks.z + bp.z) * numBlocks.x + bp.x) * 2 + 7) * 4 + mipOfs);
+          if (all(bitmap == 0)) {}
+          else if (!testSegmentBox(bitmap, rayOrigin - (blockPos << 2), dir, t, nextBlockT)) {}
+          else
           {
-            pos = ray.p + ray.wdir * t;
-            hit = true;
-            // do one extra step for shadow to get backface depth
-            ##if rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth
+            // compute tmax for voxel instead of block
+            int3 lp = int3(floor(rayOrigin + dir * t));
+            float3 tmax = absDir > 1e-9 ? (lp + max(0, dirSign) - rayOrigin) / dir : 1e15;
+
+            // walk voxels in the block
+            lp -= bp << 2;
+            float vt = t;
+
+            for (uint iter = 0; iter < 4 * 3; iter++)
+            {
+              if (all(uint3(lp) < 4))
+              {
+                uint voxelIndex = lp.y * 4 * 4 + lp.z * 4 + lp.x;
+                if ((bitmap[voxelIndex >= 32 ? 1 : 0] & (1u << (voxelIndex & 31))) != 0)
+                {
+                  hit = true;
+                  break;
+                }
+              }
+              else if (iter > 0) break; // could be outside initially because of rounding
+
+              vt = min(tmax.x, min(tmax.y, tmax.z));
+              bool3 nextAxes = tmax == vt;
+              lp += nextAxes ? dirSign : 0;
+              tmax += nextAxes ? blockTDelta * (1.0/4) : 0;
+              hitAxis = nextAxes.x ? 0 : (nextAxes.y ? 1 : 2);
+            }
+
+            if (hit)
+            {
+              ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
+                const float mainDelta = rcp(max(absDir.x, max(absDir.y, absDir.z)));
+                t = vt + mainDelta * 1.5;
+                ipos = int3(round(rayOrigin + dir * t));
+              ##else
+                t = vt;
+                ipos = lp + (bp << 2);
+              ##endif
               break;
-            ##endif
+            }
           }
         }
 
-        if (ray.tMax.x < ray.tMax.y) {
-          if (ray.tMax.x < ray.tMax.z) {
-            ray.pt.x += ray.stepCell.x;
-            t = ray.tMax.x;
-            ray.tMax.x += ray.tDelta.x;
-            hitFace = dir.x >= 0 ? 0 : 1;
-          } else {
-            ray.pt.z += ray.stepCell.z;
-            t = ray.tMax.z;
-            ray.tMax.z += ray.tDelta.z;
-            hitFace = dir.z >= 0 ? 4 : 5;
-          }
-        } else {
-          if (ray.tMax.y < ray.tMax.z) {
-            ray.pt.y += ray.stepCell.y;
-            t = ray.tMax.y;
-            ray.tMax.y += ray.tDelta.y;
-            hitFace = dir.y >= 0 ? 2 : 3;
-          } else {
-            ray.pt.z += ray.stepCell.z;
-            t = ray.tMax.z;
-            ray.tMax.z += ray.tDelta.z;
-            hitFace = dir.z >= 0 ? 4 : 5;
-          }
-        }
-
-        ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
-          if (hit)
-          {
-            pos = ray.p + ray.wdir * (t + 1.8);
-            break;
-          }
-        ##endif
+        t = nextBlockT;
+        bool3 nextAxes = blockTMax == t;
+        blockPos += nextAxes ? dirSign : 0;
+        blockTMax += nextAxes ? blockTDelta : 0;
+        hitAxis = nextAxes.x ? 0 : (nextAxes.y ? 1 : 2);
       }
 
       if (!hit) discard;
 
       // world pos
-      t = dot(pos * voxelSize + boxMin - IN.localPos, localRay) / lengthSq(localRay);
+      float wt = t * voxelSize / length(localRay);
       float3 worldRay = localRay.x * IN.worldLocalX + localRay.y * IN.worldLocalY + localRay.z * IN.worldLocalZ;
-      float3 worldPos = worldRay * t + IN.worldPos;
+      float3 worldPos = worldRay * wt + IN.worldPos;
 
       float2 pzw = mulPointTm(worldPos + camera_base_offset, globtm).zw;
       depth = pzw.x * rcp(pzw.y);
@@ -308,8 +318,51 @@ macro USE_VOXEL_PS(use_overlay_map)
       ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
         return 0;
       ##else
-        const uint faceId = hitFace;
-        const uint faceAxis = faceId >> 1;
+        if (!hit)
+          return encode_gbuffer(result, p2e.xyz, screenpos);
+
+        bool solidNeighbor[3];
+        for (uint axis = 0; axis < 3; axis++)
+        {
+          if (axis == hitAxis)
+          {
+            solidNeighbor[axis] = false;
+            continue;
+          }
+
+          int3 lp = ipos - (blockPos << 2) - (uint3(0, 1, 2) == axis ? dirSign : 0);
+          if (all(uint3(lp) < 4))
+          {
+            // use last block
+            uint voxelIndex = lp.y * 4 * 4 + lp.z * 4 + lp.x;
+            solidNeighbor[axis] = (bitmap[voxelIndex >= 32 ? 1 : 0] & (1u << (voxelIndex & 31))) != 0;
+          }
+          else
+          {
+            // fetch neighbor block
+            uint3 bp = ((blockPos << 2) + lp) >> 2;
+            uint2 bm = 0;
+            if (all(bp < numBlocks))
+              bm = loadBuffer2(voxel_data, (((bp.y * numBlocks.z + bp.z) * numBlocks.x + bp.x) * 2 + 7) * 4 + mipOfs);
+            uint voxelIndex = (lp.y & 3) * 4 * 4 + (lp.z & 3) * 4 + (lp.x & 3);
+            solidNeighbor[axis] = (bm[voxelIndex >= 32 ? 1 : 0] & (1u << (voxelIndex & 31))) != 0;
+          }
+        }
+
+        const half3 rawWeights = dir * dir;
+        half3 weights = bool3(solidNeighbor[0], solidNeighbor[1], solidNeighbor[2]) ? 0 : rawWeights;
+        float sumWeight = dot(1, weights);
+        if (sumWeight < 1e-6)
+        {
+          weights = rawWeights;
+          sumWeight = dot(1, weights);
+        }
+
+        const float rng = interleavedGradientNoiseFramed(screenpos.xy, screen_noise_frame) * sumWeight;
+        hitAxis = rng < weights.x ? 0 : (rng < weights.x + weights.y ? 1 : 2);
+
+        const uint faceId = (hitAxis << 1) | ((1 - dirSign[hitAxis]) >> 1);
+        const uint faceAxis = hitAxis;
         const bool faceNeg = (faceId & 1) != 0;
 
         // face data offset
@@ -322,9 +375,8 @@ macro USE_VOXEL_PS(use_overlay_map)
         faceOffset += faceId <= 4 ? 0 : numBlocks.x * numBlocks.y * 8 * numLayers;
 
         // get surface block indices from face map
-        const int3 ipos = ray.pt;
         const uint2 itc = uint2(faceAxis == 0 ? ipos.zy : (faceAxis == 1 ? ipos.zx : ipos.xy));
-        const uint blockDepth = (faceAxis == 0 ? ipos.x : (faceAxis == 1 ? ipos.y : ipos.z)) >> 2;
+        const int blockDepth = (faceAxis == 0 ? ipos.x : (faceAxis == 1 ? ipos.y : ipos.z)) >> 2;
         const uint2 faceSize = faceAxis == 0 ? numBlocks.zy : (faceAxis == 1 ? numBlocks.zx : numBlocks.xy);
         const bool inFace = all((itc >> 2) < faceSize);
 
@@ -334,7 +386,7 @@ macro USE_VOXEL_PS(use_overlay_map)
         for (uint li = 0; li < numLayers; li++)
         {
           const uint2 s = inFace ? loadBuffer2(voxel_data, dataOffset + 8 * li) : uint2(0, 0);
-          const uint d = (s.x >> (32 - VOXEL_DEPTH_BITS / 2)) | (s.y >> (32 - VOXEL_DEPTH_BITS / 2) << (VOXEL_DEPTH_BITS / 2));
+          const int d = (s.x >> (32 - VOXEL_DEPTH_BITS / 2)) | (s.y >> (32 - VOXEL_DEPTH_BITS / 2) << (VOXEL_DEPTH_BITS / 2));
           const bool sel = li == 0 || (faceNeg ? d > blockDepth : d <= blockDepth);
           surfData = sel ? s : surfData;
           surfLayer = sel ? li : surfLayer;

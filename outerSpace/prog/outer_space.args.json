@@ -1763,6 +1763,10 @@
           "Command": "-config:debug/devmodeEnabled:b=yes"
         },
         {
+          "Id": "a7b64d38-02d1-4324-915f-fb3ee57be867",
+          "Command": "-config:debug/fatalOnLogerrOnExit:b=no"
+        },
+        {
           "Id": "7aa6e4aa-4049-4f0b-b19f-1bc53e7f0e4e",
           "Command": "-config:debug/offlineBinaries:b=yes"
         },

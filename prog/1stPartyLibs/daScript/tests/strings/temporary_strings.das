@@ -25,7 +25,7 @@ def test_temps_strings(t : T?) {
 
         t |> equal(string_heap_bytes_allocated(), 0ul)
 
-        var arr <- [ uint8('h'), uint8('e'), uint8('l'), uint8('l'), uint8('o')]
+        let arr <- [ uint8('h'), uint8('e'), uint8('l'), uint8('l'), uint8('o')]
         temp_string(arr) $(s) {
             t |> equal(s, "hello")
         }
@@ -38,7 +38,7 @@ def test_temps_strings(t : T?) {
         feint("long long str {payload}\n")
         t |> equal(string_heap_bytes_allocated(), 0x18ul)
 
-        var str = build_string() $(sb) {
+        let str = build_string() $(sb) {
             sb |> write("long builder str ")
             sb |> write(payload)
             sb |> write("\n")

@@ -4,6 +4,7 @@
 #include <daScript/daScript.h>
 #include <EASTL/vector.h>
 #include <osApiWrappers/dag_watchDir.h>
+#include <osApiWrappers/dag_mutex.h>
 #include "das_loaded_script.h"
 #include "das_file_access_container.h"
 #include "das_ecs.h"
@@ -32,7 +33,7 @@ struct LoadScriptCtx
 
 struct Scripts
 {
-  das::recursive_mutex mutex;
+  dag::recursive_mutex mutex;
   ecs::EntityManager *mgr = nullptr;
 #if DAS_HAS_DIRECTORY_WATCH
   struct DirWatchHandleDeleter
@@ -112,6 +113,7 @@ struct Scripts
   void cleanupMemoryUsage();
 
   LoadingContainer<das::DebugInfoHelper> helper;
+  // a query block of a promoted module resolves its desc here for the life of the process
   eastl::vector<QueryData> sharedQueries;
   DasEcsStatistics statistics; // thread safe data
 #if DAGOR_DBGLEVEL > 0
@@ -125,10 +127,6 @@ struct Scripts
   int getPendingSystemsNum(das::ModuleGroup &group) const;
 
   int getPendingQueriesNum(das::ModuleGroup &group) const;
-
-  void storeSharedQueries(das::ModuleGroup &group);
-
-  void preserveSharedQueries(LoadedScript &script);
 
   bool postProcessModuleGroupUserData(const das::string &fname, das::ModuleGroup &group);
 

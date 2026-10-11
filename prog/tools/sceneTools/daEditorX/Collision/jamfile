@@ -16,10 +16,10 @@ AddIncludes =
 
 
 Sources =
+  collision_builder.cpp
   collision_panel.cpp
   collisionPlugin.cpp
   dagListDlg.cpp
-  dagor_rt_write.cpp
   main.cpp
 ;
 

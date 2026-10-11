@@ -80,7 +80,6 @@ if $(Platform) in linux {
     idleCycle.cpp
     initKeybWin.cpp
     initMouseWin.cpp
-    initJoystickSteam.cpp
   ;
   if $(LinuxUseGUI) = yes {
     UseProgLibs += engine/osApiWrappers/linuxGUI ;

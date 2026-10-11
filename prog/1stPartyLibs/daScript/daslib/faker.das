@@ -150,67 +150,102 @@ def public random_float(var faker : Faker) : float {
 
 def public random_int2(var faker : Faker) : int2 {
     //! Generates random int2.
-    return int2(faker |> random_int, faker |> random_int)
+    let x = faker |> random_int
+    let y = faker |> random_int
+    return int2(x, y)
 }
 
 def public random_range(var faker : Faker) : range {
     //! Generates random range.
-    return range(faker |> random_int, faker |> random_int)
+    let lo = faker |> random_int
+    let hi = faker |> random_int
+    return range(lo, hi)
 }
 
 def public random_range64(var faker : Faker) : range64 {
     //! Generates random range64.
-    return range64(faker |> random_int64, faker |> random_int64)
+    let lo = faker |> random_int64
+    let hi = faker |> random_int64
+    return range64(lo, hi)
 }
 
 def public random_int3(var faker : Faker) : int3 {
     //! Generates random int3.
-    return int3(faker |> random_int, faker |> random_int, faker |> random_int)
+    let x = faker |> random_int
+    let y = faker |> random_int
+    let z = faker |> random_int
+    return int3(x, y, z)
 }
 
 def public random_int4(var faker : Faker) : int4 {
     //! Generates random int4.
-    return int4(faker |> random_int, faker |> random_int, faker |> random_int, faker |> random_int)
+    let x = faker |> random_int
+    let y = faker |> random_int
+    let z = faker |> random_int
+    let w = faker |> random_int
+    return int4(x, y, z, w)
 }
 
 def public random_uint2(var faker : Faker) : uint2 {
     //! Generates random uint2.
-    return uint2(faker |> random_uint, faker |> random_uint)
+    let x = faker |> random_uint
+    let y = faker |> random_uint
+    return uint2(x, y)
 }
 
 def public random_urange(var faker : Faker) : urange {
     //! Generates random urange.
-    return urange(faker |> random_uint, faker |> random_uint)
+    let lo = faker |> random_uint
+    let hi = faker |> random_uint
+    return urange(lo, hi)
 }
 
 def public random_urange64(var faker : Faker) : urange64 {
     //! Generates random urange64.
-    return urange64(faker |> random_uint64, faker |> random_uint64)
+    let lo = faker |> random_uint64
+    let hi = faker |> random_uint64
+    return urange64(lo, hi)
 }
 
 def public random_uint3(var faker : Faker) : uint3 {
     //! Generates random uint3.
-    return uint3(faker |> random_uint, faker |> random_uint, faker |> random_uint)
+    let x = faker |> random_uint
+    let y = faker |> random_uint
+    let z = faker |> random_uint
+    return uint3(x, y, z)
 }
 
 def public random_uint4(var faker : Faker) : uint4 {
     //! Generates random uint4.
-    return uint4(faker |> random_uint, faker |> random_uint, faker |> random_uint, faker |> random_uint)
+    let x = faker |> random_uint
+    let y = faker |> random_uint
+    let z = faker |> random_uint
+    let w = faker |> random_uint
+    return uint4(x, y, z, w)
 }
 
 def public random_float2(var faker : Faker) : float2 {
     //! Generates random float2.
-    return float2(faker |> random_float, faker |> random_float)
+    let x = faker |> random_float
+    let y = faker |> random_float
+    return float2(x, y)
 }
 
 def public random_float3(var faker : Faker) : float3 {
     //! Generates random float3.
-    return float3(faker |> random_float, faker |> random_float, faker |> random_float)
+    let x = faker |> random_float
+    let y = faker |> random_float
+    let z = faker |> random_float
+    return float3(x, y, z)
 }
 
 def public random_float4(var faker : Faker) : float4 {
     //! Generates random float4.
-    return float4(faker |> random_float, faker |> random_float, faker |> random_float, faker |> random_float)
+    let x = faker |> random_float
+    let y = faker |> random_float
+    let z = faker |> random_float
+    let w = faker |> random_float
+    return float4(x, y, z, w)
 }
 
 def public random_float3x3(var faker : Faker) : float3x3 {
@@ -251,19 +286,25 @@ variant BitRepresentation64 { //! 64-bit representation of a float
 
 def public random_int64(var faker : Faker) : int64 {
     //! Generates random int64
-    let b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
+    let lo = faker |> random_uint
+    let hi = faker |> random_uint
+    let b = BitRepresentation64(ui2 = fixed_array<uint>(lo, hi))
     return unsafe(b.i64)
 }
 
 def public random_uint64(var faker : Faker) : uint64 {
     //! Generates random uint64
-    let b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
+    let lo = faker |> random_uint
+    let hi = faker |> random_uint
+    let b = BitRepresentation64(ui2 = fixed_array<uint>(lo, hi))
     return unsafe(b.u64)
 }
 
 def public random_double(var faker : Faker) : double {
     //! Generates random double.
-    let b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
+    let lo = faker |> random_uint
+    let hi = faker |> random_uint
+    let b = BitRepresentation64(ui2 = fixed_array<uint>(lo, hi))
     return unsafe(b.d)
 }
 
@@ -347,12 +388,12 @@ def public is_leap_year(year : uint) {
 }
 
 def public week_day(year, month, day : uint) {
-    //! Returns week day for given date.
+    //! Returns week day for given date. `month` and `day` are 1-based; the result counts from 0 = Sunday.
     return week_day(int(year), int(month), int(day))
 }
 
 def public week_day(year, month, day : int) {
-    //! Returns week day for given date.
+    //! Returns week day for given date. `month` and `day` are 1-based; the result counts from 0 = Sunday.
     static_let() {
         let offset <- [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
     }
@@ -361,14 +402,10 @@ def public week_day(year, month, day : int) {
         afterFeb = 0
     }
     let aux = year - 1700 - afterFeb
-    // dayOfWeek for 1700/1/1 = 5, Friday
     var dayOfWeek  = 5
-    // partial sum of days betweem current date and 1700/1/1
     dayOfWeek += (aux + afterFeb) * 365
-    // leap year correction
     dayOfWeek += aux / 4 - aux / 100 + (aux + 100) / 400
-    // sum monthly and day offsets
-    dayOfWeek += offset[month] + (day - 1)
+    dayOfWeek += offset[month - 1] + (day - 1)
     dayOfWeek %= 7
     return dayOfWeek
 }
@@ -388,6 +425,6 @@ def public date(var faker : Faker) {
         max_days = 29u
     }
     day = 1u + (day % max_days)
-    let dow = week_day(year, month, day)
+    let dow = week_day(year, month + 1u, day)
     return "{g_days[dow]}, {g_months[month].name} {int(day)}, {int(year)}"
 }

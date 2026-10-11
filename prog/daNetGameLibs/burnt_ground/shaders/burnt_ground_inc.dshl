@@ -16,7 +16,11 @@ int4 burnt_ground_allowed_biomes_2;
 macro INIT_BURNT_GROUND_COMMON(need_perlin_noise)
   if (need_perlin_noise)
   {
-    (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+    (ps) { perlin_noise3d@tex3d = perlin_noise3d; }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+    hlsl(ps) {
+      #define perlin_noise3d_samplerstate global_linear_wrap_sampler
+    }
   }
   (ps) {
     burnt_ground_tiling_scale@f4 = (burnt_ground_tiling_scale.x, burnt_ground_tiling_scale.y, 1.0/burnt_ground_tiling_scale.x, 1.0/burnt_ground_tiling_scale.y);

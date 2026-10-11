@@ -129,5 +129,8 @@ if $(Platform) in nswitch {
   Copt += -DARM_ACLE_CRC_HASH ;
 }
 
+# constraint: a binary that links system OpenSSL loads the system zlib, so it must not export ours
+if $(Platform) = linux && zlib in $(ExcludeStaticLibSymbols) { AddLibs += --exclude-libs,$(Target:D=) ; }
+
 include $(Root)/prog/_jBuild/add_null_include.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

@@ -4,18 +4,19 @@ Location = prog/tools/libTools/csgFaceRemover ;
 TargetType  = lib ;
 Target      = tools/libTools/csgFaceRemover.lib ;
 
-AddIncludes = 
-  $(Root)/prog/tools/sharedInclude 
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
 ;
 
 Sources =
   csgFaceRemover.cpp
-  geomContainerRemover.cpp 
+  geomContainerRemover.cpp
 ;
 
 
 UseProgLibs =
   tools/libTools/staticGeom
+  engine/daBVH
   3rdPartyLibs/math/carve
 ;
 

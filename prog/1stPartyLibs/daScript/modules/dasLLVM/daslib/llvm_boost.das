@@ -183,27 +183,6 @@ def StructType(types : PrimitiveTypes?; var fields : array<LLVMOpaqueType?>) {
 }
 
 
-def LLVMBuildSRemInt32(builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; lhs, rhs : LLVMOpaqueValue?; name : string) {
-    // convert lhs % rhs to lhs - int(double(lhs)/double(rhs))*rhs
-    let l = LLVMBuildSIToFP(builder, lhs, types.t_double, "")
-    let r = LLVMBuildSIToFP(builder, rhs, types.t_double, "")
-    let d = LLVMBuildFDiv(builder, l, r, "")
-    let i = LLVMBuildFPToSI(builder, d, types.t_int32, "")
-    let m = LLVMBuildMul(builder, i, rhs, "")
-    return LLVMBuildSub(builder, lhs, m, name)
-}
-
-
-def LLVMBuildURemUInt32(builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; lhs, rhs : LLVMOpaqueValue?; name : string) {
-    // convert lhs % rhs to lhs - uint(double(lhs)/double(rhs))*rhs
-    let l = LLVMBuildUIToFP(builder, lhs, types.t_double, "")
-    let r = LLVMBuildUIToFP(builder, rhs, types.t_double, "")
-    let d = LLVMBuildFDiv(builder, l, r, "")
-    let i = LLVMBuildFPToUI(builder, d, types.t_int32, "")
-    let m = LLVMBuildMul(builder, i, rhs, "")
-    return LLVMBuildSub(builder, lhs, m, name)
-}
-
 def LLVMIsVector3(typ : LLVMOpaqueType?) : bool {
     return (LLVMGetTypeKind(typ) == LLVMTypeKind.LLVMVectorTypeKind) && (LLVMGetVectorSize(typ) == 3u)
 }
@@ -257,9 +236,10 @@ def LLVMGetEnumAttribute(ctx : LLVMContextRef; attr_name : string) : LLVMOpaqueA
         return attr if (attr != null)
     }
     if (attr_name == "nocapture") {
-        let v = "none"
-        return LLVMCreateStringAttribute(ctx, "captures", uint(length("captures")),
-                                              v, uint(length(v)))
+        let captures_id = LLVMGetEnumAttributeKindForName("captures")
+        if (captures_id != 0u) {
+            return LLVMCreateEnumAttribute(ctx, captures_id, 0ul)   // CaptureComponents::None
+        }
     }
     panic("{attr_name} attribute not found")
     return null
@@ -307,12 +287,12 @@ def LLVMAddIncoming(phi : LLVMOpaqueValue?; var phi_vals : array<LLVMOpaqueValue
     LLVMAddIncoming(phi, array_data_ptr(phi_vals), array_data_ptr(phi_blocks), uint(length(phi_vals)))
 }
 
+[arch(at = "../ARCHITECTURE.md#gep-constant-fold")]
 def LLVMBuildGEP2(builder : LLVMOpaqueBuilder?; ty : LLVMOpaqueType?; ptr : LLVMOpaqueValue?; var index : LLVMOpaqueValue?; name : string; inbounds : bool = true) {
-    var gep = LLVMBuildGEP2(builder, ty, ptr, unsafe(addr(index)), 1u, name)
     if (inbounds) {
-        LLVMSetIsInBounds(gep, 1)
+        return LLVMBuildInBoundsGEP2(builder, ty, ptr, unsafe(addr(index)), 1u, name)
     }
-    return gep
+    return LLVMBuildGEP2(builder, ty, ptr, unsafe(addr(index)), 1u, name)
 }
 
 def LLVMFunctionType(ret_type : LLVMTypeRef; var param_types : LLVMTypeRef[]; isVariadic : bool = false) {
@@ -446,7 +426,16 @@ def LLVMLookupIntrinsicID(name : string) {
     return LLVMLookupIntrinsicID(name, uint64(long_length(name)))
 }
 
-def LLVMGetIntrinsicDeclaration(mod : LLVMOpaqueModule?; id : uint; var argTypes : array<LLVMOpaqueType?>) {
+//! Looks up an intrinsic name the emitter BUILT, and panics naming it when LLVM has none. A built name that does not resolve is an emitter defect - a table row, a stem, or a type suffix - and no caller can recover from it. A target-specific literal a trimmed LLVM may genuinely lack keeps the raw lookup and its own fallback.
+def public intrinsic_id(name : string) : uint {
+    let id = LLVMLookupIntrinsicID(name, uint64(long_length(name)))
+    panic("no LLVM intrinsic named '{name}'") if (id == 0u)
+    return id
+}
+
+//! Panics on intrinsic id 0. LLVMLookupIntrinsicID answers 0 only for a name that is no intrinsic - an emitter that built the name wrongly, never a target LLVM lacks - and the C API dereferences the id.
+def LLVMGetIntrinsicDeclaration(mod : LLVMOpaqueModule?; id : uint; var argTypes : array<LLVMOpaqueType?>) : LLVMOpaqueValue? {
+    panic("LLVM intrinsic id is 0 - the emitter asked for a name LLVM has no intrinsic for") if (id == 0u)
     return LLVMGetIntrinsicDeclaration(mod, id, array_data_ptr(argTypes), uint64(long_length(argTypes)))
 }
 

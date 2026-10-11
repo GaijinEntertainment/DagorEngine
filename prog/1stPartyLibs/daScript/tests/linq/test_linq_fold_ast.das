@@ -4040,3 +4040,37 @@ def test_order_with_cmp_first_bails_no_min_max(t : T?) {
     }
 }
 
+
+[export, marker(no_coverage)]
+def target_min_max_fold() : tuple<int; int> {
+    return _fold([5, 1, 9]._where(_ > 0) |> min_max())
+}
+
+[export, marker(no_coverage)]
+def target_min_by_fold() : int {
+    return _fold([5, 1, 9] |> _min_by(_ % 5))
+}
+
+[test]
+def test_min_max_family_splice_shape(t : T?) {
+    ast_gc_guard() {
+        var func = find_module_function_via_rtti(compiling_module(), @@target_min_max_fold)
+        if (func == null) return
+        var body_expr : ExpressionPtr
+        let r = qmatch_function(func) $() {
+            return $e(body_expr)
+        }
+        t |> success(r.matched && body_expr is ExprInvoke, "expected splice invoke wrapper")
+        t |> equal(count_inner_for_loops(body_expr), 1, "min_max fuses the where into one loop")
+        t |> equal(count_call(body_expr, "min_max"), 0, "min_max call must be inlined")
+        var func2 = find_module_function_via_rtti(compiling_module(), @@target_min_by_fold)
+        if (func2 == null) return
+        var body2 : ExpressionPtr
+        let r2 = qmatch_function(func2) $() {
+            return $e(body2)
+        }
+        t |> success(r2.matched && body2 is ExprInvoke, "expected splice invoke wrapper (min_by)")
+        t |> equal(count_inner_for_loops(body2), 1, "min_by walks once")
+        t |> equal(count_call(body2, "min_by"), 0, "min_by call must be inlined")
+    }
+}

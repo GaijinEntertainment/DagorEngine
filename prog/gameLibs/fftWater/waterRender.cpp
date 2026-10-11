@@ -484,7 +484,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
     texName.printf(128, "water_displacement_texture%d", cascadeNo);
     water_displacement_textureVarId[cascadeNo] = get_shader_variable_id(texName, cascadeNo != 0);
     texName.printf(128, "water_displacement_texture%d_samplerstate", cascadeNo);
-    ShaderGlobal::set_sampler(get_shader_variable_id(texName, cascadeNo != 0), d3d::request_sampler({}));
+    ShaderGlobal::set_sampler(get_shader_variable_id(texName, true), d3d::request_sampler({}));
     texName.printf(128, "water_foam_texture%d", cascadeNo);
     water_foam_textureVarId[cascadeNo] = get_shader_variable_id(texName, cascadeNo != 0);
     texName.printf(128, "water_foam_texture%d_samplerstate", cascadeNo);
@@ -1228,7 +1228,7 @@ WaterRenderCommon::SavedStates WaterNVRender::setStates(const WaterRenderCommon 
 void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
   Occlusion *occlusion, const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon,
   IWaterDecalsRenderHelper *decals_renderer, fft_water::RenderMode render_mode,
-  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb)
+  dag::FunctionRef<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB) const> cullCb)
 {
   d3d::insert_wait_on_fence(async_compute_gradients_fence, GpuPipeline::GRAPHICS);
   // We cannot have fence between begin_survey and end_survey.

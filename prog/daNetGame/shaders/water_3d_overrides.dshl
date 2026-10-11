@@ -396,7 +396,7 @@ macro USE_UNDERWATER_SCATTERING(code)
     UnderWaterScattering getUnderWaterScattering(const ViewData vd, const DeepnessData deepnessData, const half perlinWaterColor)
     {
       float4 oceanColor = get_ocean_color_perlin(vd.worldPos.xz, 0, perlinWaterColor);
-      float waterVolumeFog = exp2(oceanColor.w*deepnessData.waterDepth);
+      float waterVolumeFog = exp2(-oceanColor.w*deepnessData.waterDepth);
       UnderWaterScattering underWaterScattering;
       underWaterScattering.loss = waterVolumeFog;
       underWaterScattering.inscatter = (oceanColor.rgb/4)*(1-waterVolumeFog);

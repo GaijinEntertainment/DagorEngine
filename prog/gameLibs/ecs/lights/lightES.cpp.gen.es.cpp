@@ -15,7 +15,7 @@ static constexpr ecs::ComponentDesc omni_light_es_comps[] =
   {ECS_HASH("omni_light"), ecs::ComponentTypeInfo<OmniLightEntity>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 23 ro components at [3]
+//start of 24 ro components at [3]
   {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__direction"), ecs::ComponentTypeInfo<Point3>()},
@@ -29,6 +29,7 @@ static constexpr ecs::ComponentDesc omni_light_es_comps[] =
   {ECS_HASH("omni_light__shadow_shrink"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__radius_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__max_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__source_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("omni_light__shadow_near_far_planes"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__dynamic_light"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -39,7 +40,7 @@ static constexpr ecs::ComponentDesc omni_light_es_comps[] =
   {ECS_HASH("light__approximate_static"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__shadow_two_sided"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__force_affect_volfog"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 3 no components at [26]
+//start of 3 no components at [27]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("light__use_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__use_clip"), ecs::ComponentTypeInfo<bool>()}
@@ -65,6 +66,7 @@ static void omni_light_es_all(const ecs::UpdateStageInfo &__restrict info, const
     , ECS_RO_COMP_OR(omni_light_es_comps, "omni_light__shadow_shrink", int(0))
     , ECS_RO_COMP_OR(omni_light_es_comps, "light__radius_scale", float(1))
     , ECS_RO_COMP_OR(omni_light_es_comps, "light__max_radius", float(-1))
+    , ECS_RO_COMP_OR(omni_light_es_comps, "light__source_radius", float(0))
     , ECS_RO_COMP_OR(omni_light_es_comps, "omni_light__shadow_near_far_planes", Point2(Point2(0, 0)))
     , ECS_RO_COMP_OR(omni_light_es_comps, "light__dynamic_light", bool(false))
     , ECS_RO_COMP_OR(omni_light_es_comps, "light__contact_shadows", bool(true))
@@ -84,9 +86,9 @@ static ecs::EntitySystemDesc omni_light_es_es_desc
   "prog/gameLibs/ecs/lights/lightES.cpp.inl",
   ecs::EntitySystemOps(omni_light_es_all),
   make_span(omni_light_es_comps+0, 3)/*rw*/,
-  make_span(omni_light_es_comps+3, 23)/*ro*/,
+  make_span(omni_light_es_comps+3, 24)/*ro*/,
   empty_span(),
-  make_span(omni_light_es_comps+26, 3)/*no*/,
+  make_span(omni_light_es_comps+27, 3)/*no*/,
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"render",nullptr,"*");
@@ -116,7 +118,7 @@ static constexpr ecs::ComponentDesc spot_light_es_comps[] =
   {ECS_HASH("spot_light"), ecs::ComponentTypeInfo<SpotLightEntity>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 28 ro components at [3]
+//start of 29 ro components at [3]
   {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__texture_name"), ecs::ComponentTypeInfo<ecs::string>()},
@@ -136,6 +138,7 @@ static constexpr ecs::ComponentDesc spot_light_es_comps[] =
   {ECS_HASH("spot_light__shadow_near_far_planes"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__radius_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__max_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__source_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__affect_volumes"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("spot_light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -145,7 +148,7 @@ static constexpr ecs::ComponentDesc spot_light_es_comps[] =
   {ECS_HASH("light__shadow_two_sided"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__force_affect_volfog"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("spot_light__cull_radius_optimization"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 no components at [31]
+//start of 1 no components at [32]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()}
 };
 static void spot_light_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
@@ -175,6 +178,7 @@ static void spot_light_es_all(const ecs::UpdateStageInfo &__restrict info, const
     , ECS_RO_COMP_OR(spot_light_es_comps, "spot_light__shadow_near_far_planes", Point2(Point2::ZERO))
     , ECS_RO_COMP_OR(spot_light_es_comps, "light__radius_scale", float(1))
     , ECS_RO_COMP_OR(spot_light_es_comps, "light__max_radius", float(-1))
+    , ECS_RO_COMP_OR(spot_light_es_comps, "light__source_radius", float(0))
     , ECS_RO_COMP_OR(spot_light_es_comps, "animchar_render__enabled", bool(true))
     , ECS_RO_COMP_OR(spot_light_es_comps, "light__affect_volumes", bool(true))
     , ECS_RO_COMP_OR(spot_light_es_comps, "spot_light__contact_shadows", bool(false))
@@ -193,9 +197,9 @@ static ecs::EntitySystemDesc spot_light_es_es_desc
   "prog/gameLibs/ecs/lights/lightES.cpp.inl",
   ecs::EntitySystemOps(spot_light_es_all),
   make_span(spot_light_es_comps+0, 3)/*rw*/,
-  make_span(spot_light_es_comps+3, 28)/*ro*/,
+  make_span(spot_light_es_comps+3, 29)/*ro*/,
   empty_span(),
-  make_span(spot_light_es_comps+31, 1)/*no*/,
+  make_span(spot_light_es_comps+32, 1)/*no*/,
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,"render",nullptr,"*");
@@ -266,7 +270,7 @@ static constexpr ecs::ComponentDesc update_omni_light_es_comps[] =
   {ECS_HASH("light__automatic_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__box"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 30 ro components at [4]
+//start of 31 ro components at [4]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("light__use_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
@@ -283,6 +287,7 @@ static constexpr ecs::ComponentDesc update_omni_light_es_comps[] =
   {ECS_HASH("omni_light__shadow_shrink"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__radius_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__max_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__source_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("omni_light__shadow_near_far_planes"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__dynamic_light"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -323,6 +328,7 @@ static void update_omni_light_es_all_events(const ecs::Event &__restrict evt, co
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "omni_light__shadow_shrink", int(0))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__radius_scale", float(1))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__max_radius", float(-1))
+    , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__source_radius", float(0))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "omni_light__shadow_near_far_planes", Point2(Point2(0, 0)))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__dynamic_light", bool(false))
     , ECS_RO_COMP_OR(update_omni_light_es_comps, "light__contact_shadows", bool(true))
@@ -346,7 +352,7 @@ static ecs::EntitySystemDesc update_omni_light_es_es_desc
   "prog/gameLibs/ecs/lights/lightES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_omni_light_es_all_events),
   make_span(update_omni_light_es_comps+0, 4)/*rw*/,
-  make_span(update_omni_light_es_comps+4, 30)/*ro*/,
+  make_span(update_omni_light_es_comps+4, 31)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<CmdRecreateAllLights,
@@ -362,7 +368,7 @@ static constexpr ecs::ComponentDesc update_high_priority_omni_light_es_comps[] =
   {ECS_HASH("light__automatic_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__box"), ecs::ComponentTypeInfo<TMatrix>()},
-//start of 27 ro components at [4]
+//start of 28 ro components at [4]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("light__use_box"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("light__use_clip"), ecs::ComponentTypeInfo<bool>()},
@@ -378,6 +384,7 @@ static constexpr ecs::ComponentDesc update_high_priority_omni_light_es_comps[] =
   {ECS_HASH("omni_light__shadow_shrink"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__radius_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__max_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__source_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("omni_light__shadow_near_far_planes"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__dynamic_light"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -390,7 +397,7 @@ static constexpr ecs::ComponentDesc update_high_priority_omni_light_es_comps[] =
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("lightModTm"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [31]
+//start of 1 rq components at [32]
   {ECS_HASH("light__high_priority_update"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void update_high_priority_omni_light_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -417,6 +424,7 @@ static void update_high_priority_omni_light_es_all_events(const ecs::Event &__re
     , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "omni_light__shadow_shrink", int(0))
     , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "light__radius_scale", float(1))
     , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "light__max_radius", float(-1))
+    , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "light__source_radius", float(0))
     , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "omni_light__shadow_near_far_planes", Point2(Point2(0, 0)))
     , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "light__dynamic_light", bool(false))
     , ECS_RO_COMP_OR(update_high_priority_omni_light_es_comps, "light__contact_shadows", bool(true))
@@ -438,8 +446,8 @@ static ecs::EntitySystemDesc update_high_priority_omni_light_es_es_desc
   "prog/gameLibs/ecs/lights/lightES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_high_priority_omni_light_es_all_events),
   make_span(update_high_priority_omni_light_es_comps+0, 4)/*rw*/,
-  make_span(update_high_priority_omni_light_es_comps+4, 27)/*ro*/,
-  make_span(update_high_priority_omni_light_es_comps+31, 1)/*rq*/,
+  make_span(update_high_priority_omni_light_es_comps+4, 28)/*ro*/,
+  make_span(update_high_priority_omni_light_es_comps+32, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<CmdUpdateHighPriorityLights>::build(),
   0
@@ -511,7 +519,7 @@ static constexpr ecs::ComponentDesc update_spot_light_es_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("spot_light"), ecs::ComponentTypeInfo<SpotLightEntity>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 33 ro components at [2]
+//start of 34 ro components at [2]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__texture_name"), ecs::ComponentTypeInfo<ecs::string>()},
@@ -532,6 +540,7 @@ static constexpr ecs::ComponentDesc update_spot_light_es_comps[] =
   {ECS_HASH("spot_light__shadow_near_far_planes"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__radius_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__max_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__source_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__affect_volumes"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("spot_light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__render_gpu_objects"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -573,6 +582,7 @@ static void update_spot_light_es_all_events(const ecs::Event &__restrict evt, co
     , ECS_RO_COMP_OR(update_spot_light_es_comps, "spot_light__shadow_near_far_planes", Point2(Point2::ZERO))
     , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__radius_scale", float(1))
     , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__max_radius", float(-1))
+    , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__source_radius", float(0))
     , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__affect_volumes", bool(true))
     , ECS_RO_COMP_OR(update_spot_light_es_comps, "spot_light__contact_shadows", bool(false))
     , ECS_RO_COMP_OR(update_spot_light_es_comps, "light__render_gpu_objects", bool(false))
@@ -595,7 +605,7 @@ static ecs::EntitySystemDesc update_spot_light_es_es_desc
   "prog/gameLibs/ecs/lights/lightES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_spot_light_es_all_events),
   make_span(update_spot_light_es_comps+0, 2)/*rw*/,
-  make_span(update_spot_light_es_comps+2, 33)/*ro*/,
+  make_span(update_spot_light_es_comps+2, 34)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<CmdRecreateAllLights,
@@ -609,7 +619,7 @@ static constexpr ecs::ComponentDesc update_high_priority_spot_light_es_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("spot_light"), ecs::ComponentTypeInfo<SpotLightEntity>()},
   {ECS_HASH("light__force_max_light_radius"), ecs::ComponentTypeInfo<bool>()},
-//start of 30 ro components at [2]
+//start of 31 ro components at [2]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("light__offset"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("light__texture_name"), ecs::ComponentTypeInfo<ecs::string>()},
@@ -629,6 +639,7 @@ static constexpr ecs::ComponentDesc update_high_priority_spot_light_es_comps[] =
   {ECS_HASH("spot_light__shadow_near_far_planes"), ecs::ComponentTypeInfo<Point2>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__radius_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__max_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("light__source_radius"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__affect_volumes"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("spot_light__contact_shadows"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__render_gpu_objects"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -640,7 +651,7 @@ static constexpr ecs::ComponentDesc update_high_priority_spot_light_es_comps[] =
   {ECS_HASH("light__shadow_two_sided"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("light__force_affect_volfog"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("spot_light__cull_radius_optimization"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [32]
+//start of 1 rq components at [33]
   {ECS_HASH("light__high_priority_update"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void update_high_priority_spot_light_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -669,6 +680,7 @@ static void update_high_priority_spot_light_es_all_events(const ecs::Event &__re
     , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "spot_light__shadow_near_far_planes", Point2(Point2::ZERO))
     , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "light__radius_scale", float(1))
     , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "light__max_radius", float(-1))
+    , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "light__source_radius", float(0))
     , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "light__affect_volumes", bool(true))
     , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "spot_light__contact_shadows", bool(false))
     , ECS_RO_COMP_OR(update_high_priority_spot_light_es_comps, "light__render_gpu_objects", bool(false))
@@ -689,8 +701,8 @@ static ecs::EntitySystemDesc update_high_priority_spot_light_es_es_desc
   "prog/gameLibs/ecs/lights/lightES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_high_priority_spot_light_es_all_events),
   make_span(update_high_priority_spot_light_es_comps+0, 2)/*rw*/,
-  make_span(update_high_priority_spot_light_es_comps+2, 30)/*ro*/,
-  make_span(update_high_priority_spot_light_es_comps+32, 1)/*rq*/,
+  make_span(update_high_priority_spot_light_es_comps+2, 31)/*ro*/,
+  make_span(update_high_priority_spot_light_es_comps+33, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<CmdUpdateHighPriorityLights>::build(),
   0

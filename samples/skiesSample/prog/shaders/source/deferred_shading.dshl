@@ -18,6 +18,7 @@ hlsl(ps) {
 }
 include "clouds_vars.dshl"
 include "sq_clouds_shadow.dshl"
+include "use_downsampled_checkerboard_depth_tex.dshl"
 int shadow_cascade_tm_const_no = 28;
 int shadow_cascade_tc_mul_offset_const_no = 46;
 
@@ -27,6 +28,7 @@ macro INIT_SUN_LIGHT()
   (ps) {
     from_sun_direction@f3 = from_sun_direction;
     sun_light_color@f3 = sun_light_color;
+    downsampled_checkerboard_depth_tex@smp2d = downsampled_checkerboard_depth_tex;
   }
   hlsl (ps) {
     #define to_sun_direction (-from_sun_direction)
@@ -36,7 +38,7 @@ endmacro
 texture near_depth;
 texture far_depth;
 
-shader deferred_shading
+shader deferred_shadow_to_buffer
 {
   no_ablend;
   INIT_USE_SSR()

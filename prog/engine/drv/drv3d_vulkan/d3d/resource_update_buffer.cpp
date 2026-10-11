@@ -72,8 +72,8 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
   rub->cpuShadow = Globals::cfg.bits.stageRubThroughCpu ? memalloc(size, tmpmem) : nullptr;
   rub->pitch = fmt.calculateRowPitch(width);
   rub->slicePitch = slicePitch;
-  rub->uploadInfo =
-    make_copy_info(fmt, dest_mip, dest_slice, 1, {uint32_t(width), uint32_t(height), uint32_t(depth)}, stagingBuffer->bufOffsetLoc(0));
+  rub->uploadInfo = make_copy_info(fmt, dest_mip, dest_slice, 1, {base_ti.w, base_ti.h, base_ti.d}, stagingBuffer->bufOffsetLoc(0));
+  rub->uploadInfo.imageExtent = {width, height, depth};
   rub->uploadInfo.imageOffset.x = offset_x;
   rub->uploadInfo.imageOffset.y = offset_y;
   rub->uploadInfo.imageOffset.z = offset_z;

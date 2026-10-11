@@ -82,6 +82,7 @@ let gui_scene = {
     dirPadRepeatDelay = 0.6
     dirPadRepeatTime = 0.2
     allScreensAcceptInput = false
+    touchPadWidthInScreenHeights = 1.0
   }
   cursorOverStickScroll = Watched(true)
   cursorOverClickable = Watched(true)
@@ -161,12 +162,12 @@ let darg = {
     }
   }()
   move_mouse_cursor = @(_where, _useTransform = true) null
-  calc_comp_size = @[pure](_comp) [0,0]
-  calc_content_size = @[pure](_comp) [0,0]
-  calc_str_box = @[pure](_txt, _params = null) [0,0]
-  getFontDefHt = function[pure](fontname) { assert(type(fontname)=="string"); return 0; }
-  getFontInitialHt = function[pure](fontname) { assert(type(fontname)=="string"); return 0; }
-  setFontDefHt = function[pure](fontname, height) { assert(type(fontname)=="string" && type(height) =="integer") }
+  calc_comp_size = @(_comp) [0,0]
+  calc_content_size = @(_comp) [0,0]
+  calc_str_box = @(_txt, _params = null) [0,0]
+  getFontDefHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
+  getFontInitialHt = function(fontname) { assert(type(fontname)=="string"); return 0; }
+  setFontDefHt = function(fontname, height) { assert(type(fontname)=="string" && type(height) =="integer") }
   locate_element_source = @(_elem) null
   get_element_info = @(_elem) null
   load_das = function(filename) { assert(type(filename)=="string"); return {}; }
@@ -197,9 +198,9 @@ let darg = {
   sh = @[pure](val) val*1080/100
   pw = @[pure](val) val
   ph = @[pure](val) val
-  elemw = @(val) val
-  elemh = @(val) val
-  get_font_metrics = function[pure](fontId, fontSize=null) {
+  elemw = @[pure](val) val
+  elemh = @[pure](val) val
+  get_font_metrics = function(fontId, fontSize=null) {
     assert(type(fontId)=="integer")
     assert(fontSize==null || type(fontSize)=="float" || type(fontSize)=="integer")
     return {
@@ -308,6 +309,12 @@ global const FFT_OUTLINE="FFT_OUTLINE"
 global const O_HORIZONTAL="O_HORIZONTAL"
 global const O_VERTICAL="O_VERTICAL"
 
+global const SAMPLER_DEFAULT = 0
+global const SAMPLER_LINEAR_CLAMP = 1
+global const SAMPLER_LINEAR_WRAP = 2
+global const SAMPLER_POINT_CLAMP = 3
+global const SAMPLER_POINT_WRAP = 4
+
 global const TEXFMT_SRGB_IN_UNORM = 0
 global const TEXFMT_UNORM = 1
 global const TEXFMT_SRGB_DECAL = 2
@@ -319,9 +326,12 @@ global const TOVERFLOW_LINE="TOVERFLOW_LINE"
 global const EVENT_BREAK = "EVENT_BREAK"
 global const EVENT_CONTINUE= "EVENT_CONTINUE"
 
-global const GESTURE_DETECTOR_DRAG = "GESTURE_DETECTOR_DRAG"
-global const GESTURE_DETECTOR_PINCH = "GESTURE_DETECTOR_PINCH"
-global const GESTURE_DETECTOR_ROTATE = "GESTURE_DETECTOR_ROTATE"
+global const GESTURE_DETECTOR_PINCH = 0x1
+global const GESTURE_DETECTOR_ROTATE = 0x2
+global const GESTURE_DETECTOR_DRAG = 0x4
+global const GESTURE_DETECTOR_TAP = 0x8
+global const GESTURE_DETECTOR_DOUBLE_TAP = 0x10
+global const GESTURE_DETECTOR_HOLD = 0x20
 
 global const Linear = "Linear"
 

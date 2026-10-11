@@ -14,8 +14,8 @@ def move_jit(var a, b) {
 def test_move(t : T?) {
     t |> run("move") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@ < (var a, b : Foo) : void > move_jit))
-        var a, b : Foo
-        b = Foo(a = 1, b = 2.0)
+        var a : Foo
+        var b = Foo(a = 1, b = 2.0)
         move_jit(a, b)
         t |> equal(1, a.a)
         t |> equal(2.0, a.b)

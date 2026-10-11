@@ -261,6 +261,8 @@ protected:
     ShaderVariableInfo prev_volfog_weight = ShaderVariableInfo("prev_volfog_weight");
     ShaderVariableInfo prev_volfog_weight_samplerstate = ShaderVariableInfo("prev_volfog_weight_samplerstate");
     ShaderVariableInfo static_shadows_cascades = ShaderVariableInfo("static_shadows_cascades");
+    ShaderVariableInfo force_rtss_shadows = ShaderVariableInfo("force_rtss_shadows");
+    ShaderVariableInfo nbs_rtss_static_shadow = ShaderVariableInfo("nbs_rtss_static_shadow", true);
     ShaderVariableInfo froxel_fog_use_experimental_offscreen_reprojection =
       ShaderVariableInfo("froxel_fog_use_experimental_offscreen_reprojection");
     ShaderVariableInfo volfog_occlusion_rw = ShaderVariableInfo("volfog_occlusion_rw");

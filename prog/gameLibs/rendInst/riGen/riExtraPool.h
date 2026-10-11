@@ -237,6 +237,7 @@ struct RiExtraPool
     return {tsData >> 30u, tsData & 0x3fffffffu};
   }
   float bsphRad() const { return v_extract_w(bsphXYZR); }
+  bool isTallCombined() const { return rendinstHeight > 2.f * fabsf(bsphRad()); } // a piece of a stack: a shadow size filter passes it
 
   void validateLodLimits();
 

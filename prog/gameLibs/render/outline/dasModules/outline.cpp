@@ -13,6 +13,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     addEnumeration(new EnumerationOutlineMode());
+    das::addConstant(*this, "OUTLINE_NODE_FILTER_MASK", OUTLINE_NODE_FILTER_MASK);
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

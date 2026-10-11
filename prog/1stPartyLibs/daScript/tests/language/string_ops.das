@@ -38,7 +38,7 @@ def so_failAll(val : string) {
 }
 
 [test]
-def test_string_ops(t : T?) {
+def test_string_ops(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     t |> run("case conversion and reverse") @(t : T?) {
         let s : string = "hello, world!"
         t |> equal(to_upper(s), "HELLO, WORLD!")
@@ -58,8 +58,8 @@ def test_string_ops(t : T?) {
         t |> success(starts_with(s, "hello"))
         t |> success(starts_with(s, ""))
         t |> success(ends_with(s, ""))
-        t |> success(starts_with(s, "a") == false)
-        t |> success(ends_with(s, "b") == false)
+        t |> success(!starts_with(s, "a"))
+        t |> success(!ends_with(s, "b"))
     }
     t |> run("strip and slice") @(t : T?) {
         let s : string = "hello, world!"
@@ -102,7 +102,7 @@ def test_string_ops(t : T?) {
         t |> equal(to_int(""), 0)
         t |> equal(to_float(""), 0.)
         t |> equal(to_int("11abc"), 11)
-        t |> equal(to_float("11.1abc"), float(11.1))
+        t |> equal(to_float("11.1abc"), 11.1)
     }
     t |> run("escape and multiline") @(t : T?) {
         let a_slash_slash = "ab\\xy"
@@ -120,9 +120,12 @@ multi line string"
         t |> equal(fmt(":.2f", 1.234), "1.23")
         var failed = false
         try {
+            // the invalid format must reach RUNTIME fmt: a const-foldable format string moves
+            // the throw into the compiler's const-folder, where the longjmp-out-of-catch panic
+            // path leaks the exception object - CI's LeakSanitizer fails the AOT generator on it
             var ft : string
-            ft = "blah"
-            var x = fmt(ft, 13)
+            ft = "blah"     // nolint:STYLE011 - init-at-decl (or let) makes the bad format foldable
+            let x = fmt(ft, 13)
             assert(x == "13")
         } recover {
             failed = true
@@ -130,7 +133,7 @@ multi line string"
         t |> success(failed)
     }
     t |> run("build_string and string iterator") @(t : T?) {
-        let st = build_string() <| $(var writer : StringBuilderWriter) {
+        let st = build_string() $(var writer : StringBuilderWriter) {
             write(writer, "255 hex is ")
             write(writer, fmt(":2x", 255))
         }
@@ -141,21 +144,27 @@ multi line string"
             if (ch == '5') {
                 count ++
             }
-            let chAt = character_at(st, index)
+            let chAt = character_at(st, index)  // nolint:PERF003 - character_at is the tested construct
             t |> equal(ch, chAt)
             index ++
         }
         t |> equal(count, 2)
     }
     t |> run("build_string large and delete") @(t : T?) {
-        var zzs = build_string() <| $(writer) {
+        var zzs = build_string() $(writer) {
             for (zzx in range(100500)) {
                 write(writer, zzx)
             }
         }
-        unsafe {
-            delete_string(zzs)
-        }
+        unsafe(delete_string(zzs))
         t |> success(true)
+    }
+}
+
+[test]
+def test_unicode_null_escape(t : T?) {
+    t |> run("\\u0000 and \\U00000000 decode to a null byte, not to nothing") @(t : T?) {
+        t |> equal(length("a\u0000b"), 1)
+        t |> equal(length("a\U00000000b"), 1)
     }
 }

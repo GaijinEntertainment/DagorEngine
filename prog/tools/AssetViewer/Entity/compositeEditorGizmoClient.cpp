@@ -283,7 +283,7 @@ void CompositeEditorGizmoClient::gizmoStarted()
   expectedPositionSet = true;
   cloning = ec_is_shift_key_down() && IEditorCoreEngine::get()->getGizmoModeType() == IEditorCoreEngine::MODE_Move;
 
-  compositeEditor.beginUndo(/*save_selection = */ cloning);
+  compositeEditor.beginUndo();
 
   G_ASSERTF_ONCE(!compositeEditor.getPreventUiUpdatesWhileUsingGizmo(), "gizmoEnded has not been called. (Non-fatal error.)");
   compositeEditor.setPreventUiUpdatesWhileUsingGizmo(true);

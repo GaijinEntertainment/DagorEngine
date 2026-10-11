@@ -69,6 +69,10 @@ texture skies_transmittance_texture;
 
 float volfog_multi_scatter_ao_weight = 1.0;
 
+float volfog_multi_scatter_ao_surface_bias = 0.05; // depth below the top surface down to which the sky haze is still fully applied
+float volfog_multi_scatter_ao_half_visibility_depth = 2.0; // cover depth at which the haze above the floor is halved; it falls off as 1 / (1 + depth / this)
+float volfog_multi_scatter_ao_floor = 0.15; // minimum fraction of the sky haze, reached under deep cover
+
 float skies_scattering_effect = 1.; // it's only purpose is cuisine royale eclipse.
 
 int4 channel_swizzle_indices = (1, 0, 0, 0);
@@ -319,6 +323,9 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     volumelight_reprojection_factors@f2 = (volumelight_reprojection_factors.x, volumelight_reprojection_factors.y, 0, 0);
     volfog_froxel_volume_res_z@f1 = volfog_froxel_volume_res.z;
     volfog_multi_scatter_ao_weight@f1 = (max(min(volfog_multi_scatter_ao_weight, 1), 0), 0, 0, 0);
+    volfog_multi_scatter_ao_surface_bias@f1 = volfog_multi_scatter_ao_surface_bias;
+    volfog_multi_scatter_ao_inv_half_visibility_depth@f1 = (1.0 / max(volfog_multi_scatter_ao_half_visibility_depth, 0.001), 0, 0, 0);
+    volfog_multi_scatter_ao_floor@f1 = volfog_multi_scatter_ao_floor;
     skies_primary_sun_light_dir@f3 = (skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.y, skies_primary_sun_light_dir.z, 0);
     volfog_prev_range_ratio@f1 = volfog_prev_range_ratio;
 
@@ -441,10 +448,9 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     {
       half vignetteEffect;
       float depthHt = get_depth_above_fast(worldPos, vignetteEffect);
-      const float height_bias = 0.05;
-      const float height_scale = 0.5f;
-      half occlusion = half(rcp((max(0.01, (depthHt - height_bias - worldPos.y)*(height_scale)+1))));
-      half ao = saturate(occlusion)*0.85h + 0.15h;
+      float depthBelowTop = max(depthHt - worldPos.y - volfog_multi_scatter_ao_surface_bias, 0.0);
+      float visibility = rcp(1.0 + depthBelowTop * volfog_multi_scatter_ao_inv_half_visibility_depth);
+      half ao = half(lerp(volfog_multi_scatter_ao_floor, 1.0, visibility));
       return lerp(ao, 1, vignetteEffect);
     }
 

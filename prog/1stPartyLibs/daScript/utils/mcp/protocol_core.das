@@ -78,7 +78,7 @@ def register_shutdown(var reg : array<ToolDef>) {
             []),
         main_thread = true,
         handler = @@(arg1, arg2, arg3, arg4, arg5, arg6, project, project_root : string; load_modules : array<string>) : string {
-            unsafe { exit(0); }
+            unsafe(exit(0))
             return make_tool_result("shutting down")
         }))
 }

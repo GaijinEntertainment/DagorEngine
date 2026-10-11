@@ -44,7 +44,7 @@ def test_packed_int_basic(t : T?) {
     t |> equal(key_exists(tab, 3), true)
     t |> equal(key_exists(tab, 99), false)
     check_keys(t, tab, [0, 1, 2, 3, 4, 5])
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -58,7 +58,7 @@ def test_packed_string(t : T?) {
     }
     t |> equal(tab?[dkey("k", 99)] ?? -1, -1)
     t |> equal(key_exists(tab, dkey("k", 2)), true)
-    unsafe { delete tab; }
+    delete tab
 }
 
 // "k1832" and "k16303" share the same 32-bit table hashKey (0xf9102e8c) but are different
@@ -76,7 +76,7 @@ def test_packed_string_hashkey32_collision(t : T?) {
     t |> equal(key_exists(tab, kcopy(1832)), true)
     t |> equal(key_exists(tab, kcopy(16303)), true)
     t |> equal(tab?[kcopy(9999)] ?? -1, -1)
-    unsafe { delete tab; }
+    delete tab
 }
 
 // False-positive guard: a single-entry packed table whose only key shares a 32-bit hashKey with
@@ -89,7 +89,7 @@ def test_packed_string_hashkey32_miss(t : T?) {
     t |> equal(tab?[kcopy(16303)] ?? -777, -777)   // 32-bit hashKey clash, distinct 64-bit hash -> miss
     t |> equal(key_exists(tab, kcopy(16303)), false)
     t |> equal(tab?[kcopy(1832)] ?? -1, 111)       // the real key still hits
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -104,7 +104,7 @@ def test_packed_promote(t : T?) {
         t |> equal(tab?[i] ?? -1, i * 10)
     }
     t |> equal(tab?[100] ?? -1, -1)
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -126,7 +126,7 @@ def test_packed_erase_swap(t : T?) {
     t |> equal(key_exists(tab, 2), false)
     t |> equal(key_exists(tab, 5), false)
     check_keys(t, tab, [1, 3, 4])
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -142,7 +142,7 @@ def test_packed_erase_reinsert(t : T?) {
     t |> equal(tab?[10] ?? -1, 100)
     t |> equal(tab?[1] ?? -1, -1)
     check_keys(t, tab, [0, 2, 3, 10])
-    unsafe { delete tab; }
+    delete tab
 }
 
 [test]
@@ -159,7 +159,7 @@ def test_packed_grow_then_shrink(t : T?) {
     t |> equal(tab?[18] ?? -1, 18)
     t |> equal(tab?[19] ?? -1, 19)
     t |> equal(key_exists(tab, 0), false)
-    unsafe { delete tab; }
+    delete tab
 }
 
 struct PackVal {
@@ -191,5 +191,5 @@ def test_packed_struct_value(t : T?) {
         t |> equal(v4.c, 12)
     }
     t |> equal(key_exists(tab, 2), false)
-    unsafe { delete tab; }
+    delete tab
 }

@@ -52,7 +52,7 @@ inline void SWAP_RB(E3DCOLOR &c)
 }
 
 // NTSC brightness Weights: r=.299 g=.587 b=.114
-inline float brightness(E3DCOLOR c) { return (c.r * .299f + c.g * .587f + c.b * .114) / 255.0f; }
+inline float brightness(E3DCOLOR c) { return (c.r * .299f + c.g * .587f + c.b * .114f) / 255.0f; }
 
 /// @}
 

@@ -1,0 +1,116 @@
+include "shader_global.dshl"
+include "rtss_lookup.dshl"
+
+int rtss_build_augment;
+texture rtss_raster_scratch;
+buffer rtss_jobs;
+buffer rtss_groups;
+int rtss_job_count;
+int rtss_group_offset;
+
+macro RTSS_ATLAS_WRITE(code)
+  (code) {
+    rtss_globals@f4[] = rtss_globals;
+    rtss_jobs@buf = rtss_jobs hlsl {
+      #include <rtss_common.hlsli>
+      StructuredBuffer<RtssJob> rtss_jobs@buf;
+    }
+    rtss_atlas_uav@uav = rtss_atlas hlsl {
+      RWTexture2DArray<float> rtss_atlas_uav@uav;
+    }
+  }
+  hlsl(code) {
+    #include <rtss_common.hlsli>
+
+    // z: the atlas value, the depth over the range of the job, RTSS_MISS for no hit
+    void rtss_store(RtssJob job, uint2 t, float z)
+    {
+      uint2 slot = uint2(job.levelSlot & 0xff, (job.levelSlot >> 8) & 0xff);
+      rtss_atlas_uav[uint3(slot * uint(rtss_params_i.z) + t, job.levelSlot >> 16)] = z;
+    }
+  }
+endmacro
+
+// a tracer thread: rtss_trace_texel, its traces, then rtss_trace_store
+macro RTSS_TRACE_TEXEL(code)
+  RTSS_ATLAS_WRITE(code)
+  (code) {
+    rtss_levels@buf = rtss_levels hlsl {
+      ByteAddressBuffer rtss_levels@buf;
+    }
+    rtss_job_count@i1 = rtss_job_count;
+    rtss_group_offset@i1 = rtss_group_offset;
+    rtss_groups@buf = rtss_groups hlsl {
+      StructuredBuffer<uint> rtss_groups@buf;
+    }
+    rtss_build_augment@i1 = rtss_build_augment;
+    rtss_raster_scratch@tex = rtss_raster_scratch hlsl {
+      Texture2D<float> rtss_raster_scratch@tex;
+    }
+  }
+  hlsl(code) {
+    struct RtssTraceTexel
+    {
+      RtssJob job;
+      uint2 texel;
+      float3 origin, dir;
+      float maxT;
+      float t; // the ray end, or the raster hit of an Augment job
+    };
+
+    // the build ray of slot texel t: from the start plane of the job along d
+    void rtss_job_ray(uint level, RtssJob job, uint2 t, out float3 origin, out float3 dir, out float max_t)
+    {
+      uint row = (job.flags & RTSS_JOB_BIT) * 3;
+      float4 ex = rtss_level_row(level, row), ey = rtss_level_row(level, row + 1), d = rtss_level_row(level, row + 2);
+      int2 pageRel = job.page - int2(rtss_level_window(level).xy);
+      float border = (rtss_params_i.z - rtss_params_i.w) >> 1;
+      float2 xy = (float2(pageRel * rtss_params_i.w) + float2(t) - border + 0.5) * rtss_texel(level);
+      float3 lsMinusK = float3(xy, job.zStart) - float3(ex.w, ey.w, d.w);
+      origin = rtss_origin + ex.xyz * lsMinusK.x + ey.xyz * (lsMinusK.y / dot(ey.xyz, ey.xyz)) + d.xyz * lsMinusK.z;
+      dir = d.xyz;
+      max_t = job.zEnd - job.zStart;
+    }
+
+    // a rect of whole 8 x 8 tiles gives each group of rays one tile, so their prism is compact; other rects walk rows
+    uint2 rtss_group_texel(uint4 rect, uint idx)
+    {
+      uint w = rect.z - rect.x;
+      if ((w | (rect.w - rect.y)) % 8 == 0)
+      {
+        uint tile = idx / RTSS_BUILD_GROUP, i = idx % RTSS_BUILD_GROUP;
+        return rect.xy + uint2(tile % (w / 8) * 8 + i % 8, tile / (w / 8) * 8 + i / 8);
+      }
+      return rect.xy + uint2(idx % w, idx / w);
+    }
+
+    bool rtss_trace_texel(uint group, uint tid, out RtssTraceTexel tx)
+    {
+      uint entry = rtss_groups[uint(rtss_group_offset) + group];
+      uint jobIndex = entry >> 16;
+      ##assert(jobIndex < uint(rtss_job_count), "rtss: job %d of %d", jobIndex, rtss_job_count);
+      tx.job = rtss_jobs[jobIndex];
+      uint level = tx.job.levelSlot >> 16;
+      ##assert(level < uint(rtss_params_i.x), "rtss: level %d of %d", level, rtss_params_i.x);
+      uint S = uint(rtss_params_i.z);
+      uint4 rect = (tx.job.rect >> uint4(0, 8, 16, 24)) & 0xff;
+      ##assert(all(rect.xy < rect.zw) && all(rect.zw <= S), "rtss: rect %d %d %d %d", rect.x, rect.y, rect.z, rect.w);
+      uint idx = (entry & 0xffff) * RTSS_BUILD_GROUP + tid;
+      if (idx >= (rect.z - rect.x) * (rect.w - rect.y))
+        return false;
+      tx.texel = rtss_group_texel(rect, idx);
+      rtss_job_ray(level, tx.job, tx.texel, tx.origin, tx.dir, tx.maxT);
+      tx.t = tx.maxT;
+      BRANCH
+      if (rtss_build_augment)
+      {
+        float depth = rtss_raster_scratch[rtss_raster_texel(tx.job.rasterTile, tx.texel, S)];
+        tx.t = depth < 1 ? depth * tx.maxT : tx.maxT;
+      }
+      return true;
+    }
+
+    // the range as rtss_find_tap clamps it
+    void rtss_trace_store(RtssTraceTexel tx, float t) { rtss_store(tx.job, tx.texel, t < tx.maxT ? t / max(tx.maxT, 1e-6) : RTSS_MISS); }
+  }
+endmacro

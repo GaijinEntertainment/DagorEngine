@@ -33,6 +33,12 @@ void notify_window_resized(int w, int h)
   window_width = w;
   window_height = h;
 }
+bool is_window_resize_pending()
+{
+  int scrW, scrH;
+  d3d::get_screen_size(scrW, scrH);
+  return scrW != window_width || scrH != window_height;
+}
 void get_unminimized_window_resolution(int &w, int &h)
 {
   w = window_width;
@@ -81,14 +87,21 @@ void zero_reset_3d_device_counter()
 
 bool check_and_handle_window_resize()
 {
+#if _TARGET_IOS
+  // Metal on iOS applies the new size in reset_device() without restart procs
+  // game reset handler rebuilds the targets sized from the screen
+  if (!ext_drv3d_reset_handler || DAGOR_LIKELY(!is_window_resize_pending()))
+    return false;
+  if (d3d::reset_device())
+    ext_drv3d_reset_handler->windowResized();
+  return false;
+#endif
 #if !_TARGET_ANDROID
   if (dgs_get_window_mode() != WindowMode::WINDOWED_RESIZABLE)
     return false;
 #endif
 
-  int scrW, scrH;
-  d3d::get_screen_size(scrW, scrH);
-  if (DAGOR_LIKELY(scrW == window_width && scrH == window_height))
+  if (DAGOR_LIKELY(!is_window_resize_pending()))
     return false;
 
   window_resize_handling_in_progress = true;

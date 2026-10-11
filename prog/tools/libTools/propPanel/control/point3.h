@@ -7,6 +7,7 @@
 #include <propPanel/imguiHelper.h>
 #include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/control/spinEditStandalone.h>
+#include "../controlSizeHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel
@@ -96,6 +97,11 @@ public:
   void setDefaultValue(Variant var) override { defaultValue = var.convert<Point3>(); }
 
   const char *getImguiTypeName() const override { return "Point3"; }
+
+  Point2 getPreferredSize(float max_width_px) const override
+  {
+    return ControlSizeHelper::getSpinEditRowPreferredSize(controlCaption.begin(), controlCaption.end(), 3, max_width_px);
+  }
 
   void updateImgui() override
   {

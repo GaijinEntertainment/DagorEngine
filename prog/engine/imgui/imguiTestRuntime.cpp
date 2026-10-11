@@ -37,6 +37,7 @@ struct ImGuiTestItemNode
   ImGuiID parentId = NO_PARENT;
   Tab<ImGuiID> children;
 
+  bool isWindow = false;
   bool hasData = false;
   ImGuiItemFlags flags = ImGuiItemFlags_None;
   ImGuiItemStatusFlags status = ImGuiItemStatusFlags_None;
@@ -56,6 +57,26 @@ struct ImGuiTestItemNode
   bool matchesName(const char *name) const
   {
     return (external.displayName && strcmp(name, external.displayName) == 0) || (label && strcmp(name, label) == 0);
+  }
+
+  ImGuiTestItemState getState(bool current_frame) const
+  {
+    ImGuiTestItemState result;
+    result.visible = (status & ImGuiItemStatusFlags_Visible) != 0;
+    result.toggledOpen = (status & ImGuiItemStatusFlags_ToggledOpen) != 0;
+    result.isWindow = isWindow;
+
+    // HoveredWindow and ActiveId can still name an item that only the previous frame submitted, so compare only the
+    // items of the current frame.
+    const ImGuiContext *g = ImGui::GetCurrentContext();
+    if (current_frame && g)
+    {
+      // HoveredId never holds a window ID, ImGui keeps the hovered window apart.
+      result.hovered = isWindow ? (g->HoveredWindow && g->HoveredWindow->ID == id) : g->HoveredId == id;
+      // Some controls set ActiveId to a window ID only to hold the mouse (see PanelWindowPropertyControl).
+      result.active = !isWindow && g->ActiveId == id;
+    }
+    return result;
   }
 };
 
@@ -228,7 +249,7 @@ public:
     return current;
   }
 
-  int queryChildren(const char *path, OnTestChildItemInfoFoundFunc func) const
+  int queryChildren(const char *path, OnTestChildItemInfoFoundFunc func, bool current_frame) const
   {
     if (path == nullptr)
       return -1;
@@ -254,7 +275,8 @@ public:
       auto it = nodes.find(child_id);
       if (it != nodes.end())
       {
-        func(it->second.label, it->second.id, it->second.bb, it->second.parentId, it->second.external);
+        func(it->second.label, it->second.id, it->second.bb, it->second.parentId, it->second.external,
+          it->second.getState(current_frame));
         ++count;
       }
     }
@@ -402,6 +424,8 @@ void ImGuiTestEngineHook_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb
   ::ImGuiTestItemNode *node = ::treeCurr->getNode(id);
   if (node == nullptr)
     node = ::treeCurr->createNode(id, parentId, nullptr, bb);
+  if (window != nullptr && id == window->ID)
+    node->isWindow = true;
 
   if (ctx != nullptr && window != nullptr)
   {
@@ -433,6 +457,10 @@ void ImGuiTestEngineHook_ItemAdd(ImGuiContext *ctx, ImGuiID id, const ImRect &bb
       node->bbFull = item_data->Rect;
       node->bbNav = item_data->NavRect;
       node->bbDisplay = item_data->DisplayRect;
+
+      // ImGui::ItemAdd() sets Visible after this hook, and some items call no ItemInfo hook. Same test as ItemAdd().
+      if (window && item_data->Rect.Overlaps(window->ClipRect))
+        node->status |= ImGuiItemStatusFlags_Visible;
     }
   }
 
@@ -455,6 +483,8 @@ void ImGuiTestEngineHook_ItemInfo(ImGuiContext *ctx, ImGuiID id, const char *lab
       ImGui::DebugHookIdInfo(id, ImGuiDataType_String, label, nullptr);
 
     ::pending->label = label;
+    // Widgets set ToggledOpen after ImGui::ItemAdd().
+    ::pending->status |= flags & ImGuiItemStatusFlags_ToggledOpen;
     ::pending = nullptr;
   }
 }
@@ -501,6 +531,8 @@ void ImGui_TestRuntime_EndFrame()
   ImGuiContext *ctx = ImGui::GetCurrentContext();
   ImGuiTestRuntimeOptions *options =
     ctx && ctx->TestEngine ? static_cast<ImGuiTestRuntimeOptions *>(ctx->TestEngine) : &runtime_options;
+
+  options->hoveredPath.clear();
 
   ImGuiID id = 0;
   if (options->drawItemId != 0)
@@ -561,6 +593,9 @@ void ImGui_TestRuntime_EndFrame()
         pos.x += pad;
         pos.y += pad;
         drawList->AddText(pos, colGreen, label);
+
+        if (runtime_options.copyHoveredPath || options->copyHoveredPath)
+          options->hoveredPath = label;
       }
     }
   }
@@ -640,9 +675,10 @@ void imgui_test_runtime_set_last_item_info(const ImGuiTestItemExternalInfo &ext)
 }
 
 bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, uint32_t &parent_id, const char **label,
-  ImGuiTestItemExternalInfo *ext)
+  ImGuiTestItemExternalInfo *ext, ImGuiTestItemState *state)
 {
   const ::ImGuiTestItemNode *node = ::treeCurr->query(path);
+  const bool currentFrame = node != nullptr;
   if (node == nullptr)
     node = ::treePrev->query(path);
 
@@ -652,6 +688,8 @@ bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, u
       *label = node->label;
     if (ext)
       *ext = node->external;
+    if (state)
+      *state = node->getState(currentFrame);
     id = node->id;
     bb = node->bb;
     parent_id = node->parentId;
@@ -662,9 +700,9 @@ bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, u
 
 int imgui_test_runtime_query_children(const char *path, OnTestChildItemInfoFoundFunc func)
 {
-  int count = ::treeCurr->queryChildren(path, func);
+  int count = ::treeCurr->queryChildren(path, func, /*current_frame*/ true);
   if (count < 0)
-    count = ::treePrev->queryChildren(path, func);
+    count = ::treePrev->queryChildren(path, func, /*current_frame*/ false);
   return count;
 }
 
@@ -743,8 +781,11 @@ static bool imgui_test_runtime_console_handler(const char *argv[], int argc)
     ImGuiID parentId;
     ImRect bb;
     ImGuiTestItemExternalInfo ext;
-    if (imgui_test_runtime_query_item(path.c_str(), id, bb, parentId, &label, &ext))
+    ImGuiTestItemState state;
+    if (imgui_test_runtime_query_item(path.c_str(), id, bb, parentId, &label, &ext, &state))
     {
+      auto optionalStr = [](const eastl::optional<bool> &v) { return v ? (*v ? "1" : "0") : "<none>"; };
+
       console::print("Id = 0x%08X", id);
       console::print("BB = [%f, %f, %f, %f]", bb.Min.x, bb.Min.y, bb.GetWidth(), bb.GetHeight());
       console::print("Label = %s", label != nullptr ? label : "<NULL>");
@@ -752,6 +793,8 @@ static bool imgui_test_runtime_console_handler(const char *argv[], int argc)
       console::print("Control Type = %s", ext.controlType != nullptr ? ext.controlType : "<NULL>");
       console::print("Control Id = %d", ext.controlId);
       console::print("Parent Id = 0x%08X", parentId);
+      console::print("Hovered = %s, Active = %s, Visible = %d, Toggled Open = %d, Window = %d", optionalStr(state.hovered),
+        optionalStr(state.active), state.visible, state.toggledOpen, state.isWindow);
     }
   }
   CONSOLE_CHECK_NAME("imgui", "draw_hovered", 2, 2) { runtime_options.drawHovered = console::to_bool(argv[1]); }

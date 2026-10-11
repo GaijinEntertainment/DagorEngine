@@ -21,6 +21,8 @@ MAKE_TYPE_FACTORY(Prologue,Prologue)
 
 namespace das
 {
+    void debuggerThreadContextDestroyed ( Context & context );
+
     struct PrologueAnnotation : ManagedStructureAnnotation<Prologue,false> {
         PrologueAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("Prologue", ml) {
             addField<DAS_BIND_MANAGED_FIELD(info)>("info");
@@ -49,26 +51,28 @@ namespace debugger {
     struct DebugAgentAdapter : DebugAgent, DapiDebugAgent_Adapter {
         DebugAgentAdapter ( char * pClass, const StructInfo * info, Context * ctx )
             : DapiDebugAgent_Adapter(info), classPtr(pClass), classInfo(info), context(ctx) {
+            if ( !context->contextMutex ) context->contextMutex = new recursive_mutex;
         }
         virtual void onBeforeGC ( Context * ctx ) override {
             if ( auto fnOnBeforeGC = get_onBeforeGC(classPtr) ) {
-                context->lock();
-                invoke_onBeforeGC(context,fnOnBeforeGC,classPtr,*ctx);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onBeforeGC(context,fnOnBeforeGC,classPtr,*ctx);
+                });
             }
         }
         virtual void onAfterGC ( Context * ctx ) override {
             if ( auto fnOnAfterGC = get_onAfterGC(classPtr) ) {
-                context->lock();
-                invoke_onAfterGC(context,fnOnAfterGC,classPtr,*ctx);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onAfterGC(context,fnOnAfterGC,classPtr,*ctx);
+                });
             }
         }
         virtual bool onUserCommand ( const char * cmd ) override {
             if ( auto fnOnUserCommand = get_onUserCommand(classPtr) ) {
-                context->lock();
-                auto res = invoke_onUserCommand(context,fnOnUserCommand,classPtr,(char *)cmd);
-                context->unlock();
+                bool res = false;
+                context->threadlock_context([&](){
+                    res = invoke_onUserCommand(context,fnOnUserCommand,classPtr,(char *)cmd);
+                });
                 return res;
             } else {
                 return false;
@@ -76,95 +80,97 @@ namespace debugger {
         }
         virtual void onInstall ( DebugAgent * agent ) override {
             if ( auto fnOnInstall = get_onInstall(classPtr) ) {
-                context->lock();
-                invoke_onInstall(context,fnOnInstall,classPtr,agent);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onInstall(context,fnOnInstall,classPtr,agent);
+                });
             }
         }
         virtual void onUninstall ( DebugAgent * agent ) override {
             if ( auto fnOnUninstall = get_onUninstall(classPtr) ) {
-                context->lock();
-                invoke_onUninstall(context,fnOnUninstall,classPtr,agent);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onUninstall(context,fnOnUninstall,classPtr,agent);
+                });
             }
         }
         virtual void onCreateContext ( Context * ctx ) override {
             if ( auto fnOnCreateContext = get_onCreateContext(classPtr)) {
-                context->lock();
-                invoke_onCreateContext(context,fnOnCreateContext,classPtr,*ctx);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onCreateContext(context,fnOnCreateContext,classPtr,*ctx);
+                });
             }
         }
         virtual void onDestroyContext ( Context * ctx ) override {
+            debuggerThreadContextDestroyed(*ctx);
             if ( auto fnOnDestroyContext = get_onDestroyContext(classPtr) ) {
-                context->lock();
-                invoke_onDestroyContext(context,fnOnDestroyContext,classPtr,*ctx);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onDestroyContext(context,fnOnDestroyContext,classPtr,*ctx);
+                });
             }
         }
         virtual void onSimulateContext ( Context * ctx ) override {
             if ( auto fnOnSimulateContext = get_onSimulateContext(classPtr)) {
-                context->lock();
-                invoke_onSimulateContext(context,fnOnSimulateContext,classPtr,*ctx);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onSimulateContext(context,fnOnSimulateContext,classPtr,*ctx);
+                });
             }
         }
         virtual void onSingleStep ( Context * ctx, const LineInfo & at ) override {
             if ( auto fnOnSingleStep = get_onSingleStep(classPtr) ) {
-                context->lock();
-                invoke_onSingleStep(context,fnOnSingleStep,classPtr,*ctx,at);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onSingleStep(context,fnOnSingleStep,classPtr,*ctx,at);
+                });
             }
         }
         virtual void onInstrument ( Context * ctx, const LineInfo & at ) override {
             if ( ctx==context ) return; // do not step into the same context
             if ( auto fnOnInstrument = get_onInstrument(classPtr) ) {
-                context->lock();
-                invoke_onInstrument(context,fnOnInstrument,classPtr,*ctx,at);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onInstrument(context,fnOnInstrument,classPtr,*ctx,at);
+                });
             }
         }
         virtual void onInstrumentFunction ( Context * ctx, SimFunction * sim, bool entering, uint64_t userData ) override {
             if ( ctx==context ) return;  // do not step into the same context
             if ( auto fnOnInstrumentFunction = get_onInstrumentFunction(classPtr) ) {
-                context->lock();
-                invoke_onInstrumentFunction(context,fnOnInstrumentFunction,classPtr,*ctx,sim,entering,userData);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onInstrumentFunction(context,fnOnInstrumentFunction,classPtr,*ctx,sim,entering,userData);
+                });
             }
         }
         virtual void onBreakpoint ( Context * ctx, const LineInfo & at, const char * reason, const char * text ) override {
             if ( auto fnOnBreakpoint = get_onBreakpoint(classPtr) ) {
-                context->lock();
-                invoke_onBreakpoint(context,fnOnBreakpoint,classPtr,*ctx,at,(char *)reason,(char *)text);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onBreakpoint(context,fnOnBreakpoint,classPtr,*ctx,at,(char *)reason,(char *)text);
+                });
             }
         }
         virtual void onVariable ( Context * ctx, const char * category, const char * name, TypeInfo * info, void * data ) override {
             if ( auto fnOnVariable = get_onVariable(classPtr) ) {
-                context->lock();
-                invoke_onVariable(context,fnOnVariable,classPtr,*ctx,(char *)category,(char *)name,*info,data);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onVariable(context,fnOnVariable,classPtr,*ctx,(char *)category,(char *)name,*info,data);
+                });
             }
         }
         virtual void onTick () override {
             if ( auto fnOnTick = get_onTick(classPtr) ) {
-                context->lock();
-                invoke_onTick(context,fnOnTick,classPtr);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onTick(context,fnOnTick,classPtr);
+                });
             }
         }
         virtual void onCollect ( Context * ctx, const LineInfo & at ) override {
             if ( auto fnOnCollect = get_onCollect(classPtr) ) {
-                context->lock();
-                invoke_onCollect(context,fnOnCollect,classPtr,*ctx,at);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onCollect(context,fnOnCollect,classPtr,*ctx,at);
+                });
             }
         }
         virtual bool onLog ( Context * ctx, const LineInfo * at, int level, const char * text ) override {
             if ( auto fnOnLog = get_onLog(classPtr) ) {
-                context->lock();
-                auto res = invoke_onLog(context,fnOnLog,classPtr,ctx,at,level,(char *)text);
-                context->unlock();
+                bool res = false;
+                context->threadlock_context([&](){
+                    res = invoke_onLog(context,fnOnLog,classPtr,ctx,at,level,(char *)text);
+                });
                 return res;
             } else {
                 return false;
@@ -172,9 +178,9 @@ namespace debugger {
         }
         virtual void onBreakpointsReset ( const char * file, int breakpointsNum ) override {
             if ( auto fnOnBreakpointsReset = get_onBreakpointsReset(classPtr) ) {
-                context->lock();
-                invoke_onBreakpointsReset(context,fnOnBreakpointsReset,classPtr,(char *)file, breakpointsNum);
-                context->unlock();
+                context->threadlock_context([&](){
+                    invoke_onBreakpointsReset(context,fnOnBreakpointsReset,classPtr,(char *)file, breakpointsNum);
+                });
             }
         }
         virtual void onAllocate ( Context * ctx, void * data, uint64_t size, const LineInfo & at ) override {
@@ -908,22 +914,74 @@ namespace debugger {
         return make_smart<DebugAgentAdapter>((char *)pClass,info,context);
     }
 
-    atomic<bool>          stopped;
     atomic<bool>          stop_requested;
-    atomic<bool>          debugger_started;
-    mutex                 debugger_mutex;
+    std::mutex            debugger_mutex;
+    condition_variable    debugger_ready;
     condition_variable    debugger_stopped;
+    bool                  debugger_started = false;
+    bool                  debugger_context_ready = false;
+    Context *             debugger_wait_context = nullptr;
+    uint64_t              debugger_generation = 0;
 
     bool debuggerStopRequested ( ) {
         return stop_requested.load();
     }
 
     void shutdownDebuggers ( ) {
-        if (debugger_started.load()) {
-            das::unique_lock lock(das::debugger_mutex);
-            stop_requested.store(1);
-            debugger_stopped.wait(lock, []() { return stopped.load(); });
+        das::unique_lock lock(das::debugger_mutex);
+        if ( !debugger_started ) return;
+        stop_requested.store(true);
+        debugger_ready.notify_all();
+        debugger_stopped.wait(lock, []() { return !debugger_started; });
+    }
+
+    void debuggerThreadContextReady ( Context & context ) {
+        {
+            lock_guard guard{debugger_mutex};
+            if ( !debugger_started || debugger_wait_context != &context ) return;
+            debugger_context_ready = true;
         }
+        debugger_ready.notify_all();
+    }
+
+    uint64_t debuggerThreadStarted ( Context & context ) {
+        lock_guard guard{debugger_mutex};
+        if ( debugger_started ) return 0;
+        stop_requested.store(false);
+        debugger_wait_context = &context;
+        debugger_context_ready = false;
+        debugger_started = true;
+        return ++debugger_generation;
+    }
+
+    void debuggerThreadContextDestroyed ( Context & context ) {
+        {
+            lock_guard guard{debugger_mutex};
+            if ( !debugger_started || debugger_wait_context != &context ) return;
+            debugger_wait_context = nullptr;
+            stop_requested.store(true);
+        }
+        debugger_ready.notify_all();
+    }
+
+    bool debuggerThreadWait ( uint64_t generation ) {
+        das::unique_lock lock(das::debugger_mutex);
+        debugger_ready.wait(lock, [generation]() {
+            return generation != debugger_generation || debugger_context_ready || stop_requested.load();
+        });
+        return generation == debugger_generation && debugger_context_ready && !stop_requested.load();
+    }
+
+    void debuggerThreadFinished ( uint64_t generation ) {
+        {
+            lock_guard guard{debugger_mutex};
+            if ( generation != debugger_generation ) return;
+            debugger_wait_context = nullptr;
+            debugger_context_ready = false;
+            stop_requested.store(false);
+            debugger_started = false;
+        }
+        debugger_stopped.notify_all();
     }
 
     void debuggerSetContextSingleStep ( Context & context, bool step ) {
@@ -1002,7 +1060,7 @@ namespace debugger {
     void dapiStackWalk ( StackWalkerPtr walker, Context & context, const LineInfo & at ) {
     #if DAS_ENABLE_STACK_WALK
         char * sp = context.stack.ap();
-        const LineInfo * lineAt = &at;
+        const LineInfo * handoff = &at;
         while ( sp < context.stack.top() ) {
             Prologue * pp = (Prologue *) sp;
             Block * block = nullptr;
@@ -1046,9 +1104,10 @@ namespace debugger {
             if ( info && info->locals ) {
                 if ( walker->canWalkVariables() ) {
                     walker->onBeforeVariables();
+                    uint32_t framePos = lineFramePos(handoff, info->spaceId);
                     for ( uint32_t i=0, is=info->localCount; i!=is; ++i ) {
                         auto lv = info->locals[i];
-                        bool inScope = lineAt ? lineAt->inside(lv->visibility) : false;
+                        bool inScope = isLiveAt(lv, framePos);
                         if ( !walker->canWalkOutOfScopeVariables() && !inScope ) {
                             continue;
                         }
@@ -1066,7 +1125,7 @@ namespace debugger {
                     }
                 }
             }
-            lineAt = info ? pp->line : nullptr;
+            handoff = info ? pp->line : nullptr;
             sp += incr;
             if ( sp > context.stack.top() ) {
                 walker->onCorruptStack(pp);
@@ -1081,20 +1140,35 @@ namespace debugger {
 
     // pinvoke(context,"function",....)
 
-    vec4f pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+    // src/builtin/ARCHITECTURE.md#message-crosses-panic-jump
+    DAS_NORETURN_PREFIX static void throw_pinvoke_error ( Context & context, const LineInfo & at, string & text ) DAS_NORETURN_SUFFIX;
+    static void throw_pinvoke_error ( Context & context, const LineInfo & at, string & text ) {
+        char message[8192];
+        snprintf(message, sizeof(message), "%s", text.c_str());
+        string().swap(text);
+        context.throw_error_at(at, "%s", message);
+    }
+
+    static bool pinvoke_named ( Context & context, SimNode_CallBase * call, vec4f * args, vec4f & res, bool tryLock ) {
         auto invCtx = cast<Context *>::to(args[0]);
         if ( !invCtx ) context.throw_error_at(call->debugInfo, "pinvoke with null context");
         auto fn = cast<const char *>::to(args[1]);
         if ( !fn ) context.throw_error_at(call->debugInfo, "can't pinvoke empty string");
         if ( !invCtx->contextMutex ) context.throw_error_at(call->debugInfo,"threadlock_context is not set");
-        vec4f res = v_zero();
+        if ( tryLock && !invCtx->contextMutex->try_lock() ) return false;
         LineInfo exAt;
         string exText;
-        invCtx->threadlock_context([&](){
-            auto simFn = invCtx->findFunction(fn);
+        auto body = [&](){
+            bool isUnique = false;
+            auto simFn = invCtx->findFunction(fn, isUnique);
             if ( !simFn ) {
                 exAt = call->debugInfo;
                 exText = string("pinvoke can't find '") + fn + "' function";
+                return;
+            }
+            if ( !isUnique ) {
+                exAt = call->debugInfo;
+                exText = string("pinvoke '") + fn + "' is ambiguous - the context has more than one function of that name";
                 return;
             }
             if ( simFn->debugInfo->count!=uint32_t(call->nArguments-2) ) {
@@ -1119,9 +1193,28 @@ namespace debugger {
                 exAt = invCtx->exceptionAt;
                 exText = invCtx->exception;
             }
-        });
-        if ( !exText.empty() ) context.throw_error_at(exAt, "%s", exText.c_str());
+        };
+        if ( tryLock ) {
+            lock_guard<recursive_mutex> guard(*invCtx->contextMutex, std::adopt_lock);
+            invCtx->lock();
+            body();
+            invCtx->unlock();
+        } else {
+            invCtx->threadlock_context(body);
+        }
+        if ( !exText.empty() ) throw_pinvoke_error(context, exAt, exText);
+        return true;
+    }
+
+    vec4f pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        vec4f res = v_zero();
+        pinvoke_named(context, call, args, res, false);
         return res;
+    }
+
+    vec4f try_pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        vec4f res = v_zero();
+        return cast<bool>::from(pinvoke_named(context, call, args, res, true));
     }
 
     vec4f pinvoke_impl2_core ( Context & context, SimNode_CallBase * call, vec4f * args, int32_t nUserArgs ) {
@@ -1130,7 +1223,6 @@ namespace debugger {
         auto fn = cast<Func>::to(args[1]);
         if ( !fn.PTR ) context.throw_error_at(call->debugInfo, "pnvoke can't invoke null function");
         auto simFn = fn.PTR;
-        if ( !simFn ) context.throw_error_at(call->debugInfo, "pinvoke can't find function #%p", (void *)simFn);
         if ( !invCtx->contextMutex ) context.throw_error_at(call->debugInfo,"threadlock_context is not set");
         if ( simFn->debugInfo->count!=uint32_t(nUserArgs) ) context.throw_error_at(call->debugInfo,
             "pinvoke function expects %u arguments, but %u provided", simFn->debugInfo->count, nUserArgs);
@@ -1155,7 +1247,7 @@ namespace debugger {
                 exText = invCtx->exception;
             }
         });
-        if ( !exText.empty() ) context.throw_error_at(exAt, "%s", exText.c_str());
+        if ( !exText.empty() ) throw_pinvoke_error(context, exAt, exText);
         return res;
     }
 
@@ -1195,7 +1287,7 @@ namespace debugger {
                 exText = invCtx->exception;
             }
         });
-        if ( !exText.empty() ) context.throw_error_at(exAt, "%s", exText.c_str());
+        if ( !exText.empty() ) throw_pinvoke_error(context, exAt, exText);
         return res;
     }
 
@@ -1209,12 +1301,13 @@ namespace debugger {
     vec4f invokeInDebugAgent ( Context & context, SimNode_CallBase * call, vec4f * args ) {
         if ( call->nArguments>=MAX_DEBUG_AGENT_ARGS-3 ) context.throw_error_at(call->debugInfo, "too many arguments");
         const char * category = cast<char *>::to(args[0]);
+        if ( !category ) category = "";
         const char * function_name = cast<char *>::to(args[1]);
         if ( !function_name ) context.throw_error_at(call->debugInfo, "need to specify method name");
         g_DebugAgentMutex.lock();
         Context * invCtx = nullptr;
         DebugAgentAdapter * adapter = nullptr;
-        if ( !category || category[0] == '\0' ) {
+        if ( !*category ) {
             if ( *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
                 invCtx = (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgentContext.get();
                 adapter = (DebugAgentAdapter *)(*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent.get();
@@ -1264,12 +1357,13 @@ namespace debugger {
     vec4f invokeInDebugAgent2 ( Context & context, SimNode_CallBase * call, vec4f * args ) {
         if ( call->nArguments>=MAX_DEBUG_AGENT_ARGS-3 ) context.throw_error_at(call->debugInfo, "too many arguments");
         const char * category = cast<char *>::to(args[0]);
+        if ( !category ) category = "";
         const char * function_name = cast<char *>::to(args[1]);
         if ( !function_name ) context.throw_error_at(call->debugInfo, "need to specify function name");
         g_DebugAgentMutex.lock();
         Context * invCtx = nullptr;
         DebugAgentAdapter * adapter = nullptr;
-        if ( !category || category[0] == '\0' ) {
+        if ( !*category ) {
             if ( *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
                 invCtx = (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgentContext.get();
                 adapter = (DebugAgentAdapter *)(*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent.get();
@@ -1482,6 +1576,9 @@ namespace debugger {
             addExtern<DAS_BIND_FUN(debuggerSetContextSingleStep)>(*this, lib,  "set_single_step",
                 SideEffects::modifyExternal, "debuggerSetContextSingleStep")
                     ->args({"context","enabled"});
+            addExtern<DAS_BIND_FUN(debuggerThreadContextReady)>(*this, lib, "debugger_thread_context_ready",
+                SideEffects::modifyExternal, "debuggerThreadContextReady")
+                    ->arg("context");
             addExtern<DAS_BIND_FUN(debuggerStackWalk)>(*this, lib, "stackwalk",
                 SideEffects::modifyExternal, "debuggerStackWalk")
                     ->args({"context","line"});
@@ -1582,6 +1679,28 @@ namespace debugger {
             addInterop<pinvoke_impl,void,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"invoke_in_context",
                 SideEffects::worstDefault,"pinvoke_impl")->unsafeOperation = true;
             // pinvoke2
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
+            addInterop<try_pinvoke_impl,bool,vec4f,const char *,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f,vec4f>(*this,lib,"try_invoke_in_context",
+                SideEffects::worstDefault,"try_pinvoke_impl")->unsafeOperation = true;
             addInterop<pinvoke_impl2,void,vec4f,Func>(*this,lib,"invoke_in_context",
                 SideEffects::worstDefault,"pinvoke_impl2")->unsafeOperation = true;
             addInterop<pinvoke_impl2,void,vec4f,Func,vec4f>(*this,lib,"invoke_in_context",
@@ -1713,4 +1832,3 @@ namespace debugger {
 }
 
 REGISTER_MODULE_IN_NAMESPACE(Module_Debugger,das);
-

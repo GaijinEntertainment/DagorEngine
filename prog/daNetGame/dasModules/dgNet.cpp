@@ -59,6 +59,10 @@ struct LocSnapshotAnnotation final : das::ManagedStructureAnnotation<LocSnapshot
     addField<DAS_BIND_MANAGED_FIELD(atTime)>("atTime");
     addField<DAS_BIND_MANAGED_FIELD(blink)>("blink");
     addField<DAS_BIND_MANAGED_FIELD(interval)>("interval");
+    addField<DAS_BIND_MANAGED_FIELD(wishVelocityYaw)>("wishVelocityYaw");
+    addField<DAS_BIND_MANAGED_FIELD(wishSpeed)>("wishSpeed");
+    addField<DAS_BIND_MANAGED_FIELD(wishLookYaw)>("wishLookYaw");
+    addField<DAS_BIND_MANAGED_FIELD(hasWish)>("hasWish");
   }
 };
 

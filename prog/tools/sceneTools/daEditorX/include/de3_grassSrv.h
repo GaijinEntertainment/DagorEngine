@@ -40,4 +40,5 @@ public:
   virtual void resetGrassMask(LandMeshRenderer &landMeshRenderer, int index, const DataBlock &grassBlk, const String &colorMapId,
     const String &maskName) const = 0;
   virtual void resetLayersVB() = 0;
+  virtual void afterD3DReset(bool full_reset) = 0;
 };

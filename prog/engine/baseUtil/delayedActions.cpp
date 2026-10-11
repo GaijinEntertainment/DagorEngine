@@ -92,6 +92,7 @@ struct DelayedRecord
   bool isValid() const { return action || cb; }
 };
 
+#if _TARGET_PC && (DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS)
 // ACTION_DEBUG_NAMES_LOC embeds a newline+tab, which would split the line and hide the site from a grep
 static const char *one_line_name(const char *src, char *buf, size_t buf_size)
 {
@@ -108,8 +109,9 @@ static void warn_dropped(const Tab<DelayedRecord> &list, const char *list_name)
 {
   char name[192];
   for (const DelayedRecord &rec : list)
-    logwarn("delayed %s <%s> in %s list dropped, never performed", rec.action ? "action" : "callback",
-      one_line_name(rec.debugName, name, sizeof(name)), list_name);
+    if (rec.isValid()) // constraint: exit() can run inside a pass
+      logwarn("delayed %s <%s> in %s list dropped, never performed", rec.action ? "action" : "callback",
+        one_line_name(rec.debugName, name, sizeof(name)), list_name);
 }
 
 // once teardown started no drain reads the lists again, so free the record instead of queueing it into a dead one
@@ -120,6 +122,10 @@ static void drop_posted_at_teardown(DelayedAction *action, const char *debug_nam
     one_line_name(debug_name, name, sizeof(name)));
   delete action;
 }
+#else
+static void warn_dropped(const Tab<DelayedRecord> &, const char *) {}
+static void drop_posted_at_teardown(DelayedAction *action, const char *) { delete action; }
+#endif
 
 static struct DelayedActionsContext
 {
@@ -128,6 +134,7 @@ static struct DelayedActionsContext
   int quotaUsec = 40000;
   uint32_t postCount = 0;   //< bumped on every post, so flush() can tell a fresh record from a precondition-blocked one
   bool tearingDown = false; //< set once in the destructor and never cleared
+  int runningPasses = 0;    //< run() can reenter perform(); outermost compacts
 
   DelayedActionsContext() { delayed_actions.reserve(8); }
   ~DelayedActionsContext()
@@ -181,20 +188,28 @@ static struct DelayedActionsContext
 
   bool remove(DelayedAction *action)
   {
-    bool ret;
     {
       WinAutoLock lock(delayedCrit);
-      ret = erase_item_by_value(delayed_actions, DelayedRecord(action, NULL, NULL, NULL));
+      auto it = eastl::find(delayed_actions.begin(), delayed_actions.end(), DelayedRecord(action, NULL, NULL, NULL));
+      if (it == delayed_actions.end())
+        return false;
+      if (runningPasses && it != delayed_actions.end() - 1)
+        *it = {}; // keep the indices of a running pass
+      else
+        delayed_actions.erase(it);
     }
-    if (ret)
-      delete action;
-    return ret;
+    delete action;
+    return true;
   }
 
   void move_buffered_actions()
   {
     append_items(delayed_actions, delayed_actions_buffered.size(), delayed_actions_buffered.data());
     delayed_actions_buffered.clear();
+  }
+  int queuedCount() const
+  {
+    return eastl::count_if(delayed_actions.begin(), delayed_actions.end(), [](const DelayedRecord &rec) { return rec.isValid(); });
   }
   // returns how many actions ran; 0 means none could and only buffered records were promoted, which is what flush()
   // stops on. a positive count can still be a pass the quota truncated, leaving runnable records queued
@@ -208,48 +223,34 @@ static struct DelayedActionsContext
       return 0;
     }
     DA_PROFILE_EVENT("perform_delayed_actions");
-    int i = 0, actionsLeft = 0, cnt = 0;
-    auto getNextAction = [&, this]() {
-      DelayedRecord act;
-      for (; i < delayed_actions.size(); ++i)
-        if (delayed_actions[i].precondition())
-        {
-          act = delayed_actions[i];
-          erase_items(delayed_actions, i, 1);
-          actionsLeft = delayed_actions.size();
-          break;
-        }
-      return act;
-    };
-    DelayedRecord action = getNextAction();
-    if (!action.isValid())
-    {
-      move_buffered_actions();
-      delayedCrit.unlock();
-      return 0;
-    }
-    delayedCrit.unlock();
-
+    runningPasses++;
+    int cnt = 0;
+    bool quotaHit = false;
     int64_t t_start = ref_time_ticks_qpc();
-    do
+    for (int i = 0; i < delayed_actions.size() && !quotaHit; ++i)
     {
+      if (!delayed_actions[i].isValid() || !delayed_actions[i].precondition())
+        continue;
+      DelayedRecord action = eastl::exchange(delayed_actions[i], {});
+      delayedCrit.unlock();
       action.run();
       action.destroy();
       cnt++;
-      if (DAGOR_UNLIKELY(get_time_usec_qpc(t_start) > quotaUsec))
-      {
-        logwarn("stop perform_delayed_actions() after %d actions performed for %d usec; quota is %d usec;"
-                " actions left in list: %d normal and %d buffered",
-          cnt, get_time_usec_qpc(t_start), quotaUsec, actionsLeft, delayed_actions_buffered.size());
-        // Note: we _want_ to break here regadless of debugger presense to avoid altering program behaviour
-        break;
-      }
-      WinAutoLock lock(delayedCrit);
-      action = getNextAction();
-    } while (action.isValid());
-
-    WinAutoLock lock(delayedCrit);
+      // Note: we _want_ to break here regardless of debugger presence to avoid altering program behaviour
+      quotaHit = get_time_usec_qpc(t_start) > quotaUsec;
+      delayedCrit.lock();
+    }
+    if (--runningPasses == 0)
+      delayed_actions.erase(
+        eastl::remove_if(delayed_actions.begin(), delayed_actions.end(), [](const DelayedRecord &rec) { return !rec.isValid(); }),
+        delayed_actions.end());
+    const int actionsLeft = quotaHit ? queuedCount() : 0, bufferedLeft = delayed_actions_buffered.size();
     move_buffered_actions();
+    delayedCrit.unlock();
+    if (DAGOR_UNLIKELY(quotaHit))
+      logwarn("stop perform_delayed_actions() after %d actions performed for %d usec; quota is %d usec;"
+              " actions left in list: %d normal and %d buffered",
+        cnt, get_time_usec_qpc(t_start), quotaUsec, actionsLeft, bufferedLeft);
     return cnt;
   }
 
@@ -280,7 +281,7 @@ static struct DelayedActionsContext
     int left;
     {
       WinAutoLock lock(delayedCrit);
-      left = delayed_actions.size() + delayed_actions_buffered.size();
+      left = queuedCount() + delayed_actions_buffered.size();
     }
     if (left)
       logwarn("flush_delayed_actions() left %d action(s) queued (%s)", left,
@@ -413,7 +414,7 @@ void perform_regular_actions_for_idle_cycle(bool is_work_cycle)
   else                                  // we allow addition within delayed action but do not allow removal
   {
     for (auto &act : regular_actions) // append newly added
-      localActions.push_back(RegularActionRecord{act.cb, act.cbArg});
+      localActions.push_back(act);
     regular_actions.swap(localActions);
   }
 }

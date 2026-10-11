@@ -252,6 +252,14 @@ public:
   static bool always_load_last_tree_geom_lod;
   static bool disable_voxel_lods;
 
+#if _TARGET_PC | _TARGET_C2 | _TARGET_SCARLETT
+  static constexpr int LOAD_MAX_LODS = 0; // no limit
+#else
+  // max mesh lods kept on load, must match rendinst::RI_MAX_LODS: tessellated lod0 is dropped, then lods 0..LOAD_MAX_LODS-2
+  // and the tail (last lod, or transition+impostor) are kept, so impostor assets keep up to LOAD_MAX_LODS+1 lods in total
+  static constexpr int LOAD_MAX_LODS = 4;
+#endif
+
   static constexpr short int qlReqLodInitialValue = 16;
   unsigned getQlReqLod() const { return interlocked_relaxed_load(qlReqLod); }
   unsigned getQlReqLodEff() const
@@ -445,7 +453,7 @@ protected:
   RenderableInstanceLodsResource(const RenderableInstanceLodsResource &);
   ~RenderableInstanceLodsResource() { clearData(); }
 
-  void patchAndLoadData(int res_sz, IGenLoad &crd, int srl_flags, const char *name);
+  void patchAndLoadData(int res_sz, IGenLoad &crd, int srl_flags, const char *name, const DataBlock *desc);
 
   ImpostorRtData *impRtdPtr() const
   {

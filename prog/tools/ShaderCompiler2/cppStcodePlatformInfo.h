@@ -18,6 +18,7 @@ enum class StcodeTargetArch : uint8_t
   I386,
   E2K,
   MAC_X86_64_ARM64_UNIVERSAL,
+  ARM64_EC,
 };
 
 enum class StcodeTargetPlatform : uint8_t
@@ -46,6 +47,7 @@ inline constexpr StcodeTargetArch ALL_STCODE_ARCHS[] = {
   StcodeTargetArch::I386,
   StcodeTargetArch::E2K,
   StcodeTargetArch::MAC_X86_64_ARM64_UNIVERSAL,
+  StcodeTargetArch::ARM64_EC,
 };
 inline constexpr StcodeTargetPlatform ALL_STCODE_PLATFORMS[] = {
   StcodeTargetPlatform::DEFAULT,

@@ -6,6 +6,7 @@
 
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_Point3.h>
+#include <math/dag_bounds2.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/unique_ptr.h>
 
@@ -15,7 +16,8 @@ class ComputeShaderElement;
 // heightmap_max_grid.dshl marches it to complete a trace with the terrain.
 // Content is position derived only: any window jump refills, no history.
 // The owner calls close() after a device reset and after an in place
-// heightfield change, like the heightmap handler's own recovery
+// heightfield change, like the heightmap handler's own recovery, or
+// invalidateBox() when it knows the box of the change
 class HeightmapMaxGrid
 {
 public:
@@ -26,10 +28,14 @@ public:
   void close();
   // toroidal update around the position, cheap when nothing scrolled
   void update(const Point3 &view_pos);
+  // the heightfield changed in place under the world xz box: the next update() refills its cells, not the window;
+  // on a mirrored map a change near its edge also changes cells past the edge, which only close() refills
+  void invalidateBox(const BBox2 &box) { pending += box; }
 
 private:
   void dispatchRect(const IPoint2 &rect_lt, const IPoint2 &rect_size);
   static constexpr int INVALID_COORD = -0x40000000;
+  BBox2 pending;
   UniqueBufWithShaderVar buf;
   eastl::unique_ptr<ComputeShaderElement> updateCs;
   IPoint2 lt{INVALID_COORD, INVALID_COORD};

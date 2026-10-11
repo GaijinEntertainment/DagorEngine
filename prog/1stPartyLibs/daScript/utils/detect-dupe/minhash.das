@@ -1,35 +1,28 @@
 options gen2
 
-require strings
-
-
 // MinHash signature length and shingle width. K=64 keeps the all-pairs
 // dot product cheap; N=5 is the usual choice for code-token shingles.
 let public K_HASHES = 64
 let public N_GRAM = 5
 
-let FNV_PRIME : uint64 = 0x100000001b3ul
-let FNV_OFFSET : uint64 = 0xcbf29ce484222325ul
-let MIX_MULT : uint64 = 0xbf58476d1ce4e5b9ul
-let SEED_BASE : uint64 = 0x9E3779B97F4A7C15ul
+let SHINGLE_SEED : uint64 = 0xcbf29ce484222325ul
 let MAX_U64 : uint64 = 0xFFFFFFFFFFFFFFFFul
 
 
-// Combine n consecutive token hashes into a single shingle hash via
-// FNV-style polynomial folding (sequence-order-sensitive).
+// Combine n consecutive token hashes into one shingle hash. `hash_combine64` is the builtin
+// wyhash fold, so this stays sequence-order-sensitive without a hand-rolled mixer.
 def shingle_hash(token_hashes : array<uint64>; start, n : int) : uint64 {
-    var sh = FNV_OFFSET
+    var sh = SHINGLE_SEED
     for (j in range(n)) {
-        sh = (sh * FNV_PRIME) ^ token_hashes[start + j]
+        sh = hash_combine64(sh, token_hashes[start + j])
     }
     return sh
 }
 
 
-// Apply the k-th hash function to a base shingle hash.
+// Apply the k-th hash function of the MinHash family to a base shingle hash.
 def hash_with_seed(sh : uint64; k : int) : uint64 {
-    let seed = (uint64(k) + 1ul) * SEED_BASE
-    return (sh ^ seed) * MIX_MULT
+    return hash_combine64(sh, uint64(k))
 }
 
 
@@ -72,8 +65,8 @@ def public minhash_signature(tokens : array<string>) : array<uint64> {
 def public jaccard_estimate(sig_a, sig_b : array<uint64>) : float {
     if (length(sig_a) != length(sig_b) || empty(sig_a)) return 0.0f
     var matches = 0
-    for (i in range(length(sig_a))) {
-        if (sig_a[i] == sig_b[i]) {
+    for (a, b in sig_a, sig_b) {
+        if (a == b) {
             matches++
         }
     }

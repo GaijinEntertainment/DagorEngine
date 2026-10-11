@@ -1,0 +1,13 @@
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(Platform)-$(PlatformArch) = windows-arm64ec && $(ProjectAllowsOodle) = yes && $(KernelLinkage) != dynamic {
+  local OodleDir = $(_DEVTOOL)/oodle.2.9 ;
+  local VcRedistDir = $(_DEVTOOL)/vc2022_17.14.4/redist/arm64/Microsoft.VC143.CRT ; # ARM64X, serves the x64 Oodle dll too
+  if ! [ GLOB $(VcRedistDir) : vcruntime140.dll ] { exit "FATAL: \"$(VcRedistDir)\" not found!  Please, update DEVTOOLS" ; }
+
+  BundleCopy +=
+    @$(OodleDir)/redist/oo2core_9_win64.dll oo2core_9_win64.dll
+    @$(VcRedistDir)/vcruntime140.dll        vcruntime140.dll
+    @$(VcRedistDir)/vcruntime140_1.dll      vcruntime140_1.dll
+  ;
+}

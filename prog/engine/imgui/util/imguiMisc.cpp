@@ -10,7 +10,7 @@ void ImGuiDagor::HelpMarker(const char *desc, float text_wrap_pos_in_pixels)
   if (ImGui::IsItemHovered())
   {
     ImGui::BeginTooltip();
-    ImGui::PushTextWrapPos(text_wrap_pos_in_pixels > 0.0 ? text_wrap_pos_in_pixels : (ImGui::GetFontSize() * 35.0f));
+    ImGui::PushTextWrapPos(text_wrap_pos_in_pixels > 0.0f ? text_wrap_pos_in_pixels : (ImGui::GetFontSize() * 35.0f));
     ImGui::TextUnformatted(desc);
     ImGui::PopTextWrapPos();
     ImGui::EndTooltip();

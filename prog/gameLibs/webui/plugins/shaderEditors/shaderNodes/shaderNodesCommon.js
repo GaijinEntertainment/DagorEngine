@@ -2288,6 +2288,129 @@ var GE_nodeDescriptionsCommon = [
   },
 ]
 
+// constraint: a single-type pin proves this editor's shaders define the type, a multi-type one does not
+function GE_collectSubgraphPinTypes()
+{
+  var lists = [GE_nodeDescriptionsCommon, GE_nodeDescriptionsAdditional];
+
+  var types = [];
+  var add = function(t)
+  {
+    if (types.indexOf(t) < 0)
+      types.push(t);
+  }
+
+  for (var l = 0; l < lists.length; l++)
+    for (var d = 0; d < lists[l].length; d++)
+    {
+      var pins = lists[l][d].pins ? lists[l][d].pins : [];
+      for (var p = 0; p < pins.length; p++)
+      {
+        if (pins[p].types && pins[p].types.length === 1)
+          add(pins[p].types[0]);
+
+        for (var key in pins[p].selectableTypes)
+          add(pins[p].selectableTypes[key]);
+      }
+    }
+
+  return types;
+}
+var GE_subgraphPinTypes = GE_collectSubgraphPinTypes();
+
+// constraint: graphEditor.js finds these markers by exact name, "subgraph out" and "subgraph in: <pin type>"
+GE_nodeDescriptionsCommon.push({
+  name:"subgraph out",
+  category:"Subgraph",
+  synonyms:"output,exit,result,pin,subgraph",
+  pins:[
+    {name:"subgraph out", caption:"(%name%)", types:GE_subgraphPinTypes.slice(0), singleConnect:true, role:"in", data:{}},
+  ],
+  properties:[
+    {name:"name", type:"string", val:""},
+  ],
+  inOutMarker:true,
+  allowLoop:false,
+  width:320,
+  dynSizeToRight:true,
+});
+
+(function()
+{
+  // constraint: editing a subgraph alone compiles its markers, so an input marker has to emit a value
+  var previewScalar = {
+    "bool":  {type:"bool", val:"true"},
+    "int":   {type:"int", minVal:"-65535", maxVal:"65535", step:"1", val:"1"},
+    "uint":  {type:"int", minVal:"0", maxVal:"65535", step:"1", val:"1"},
+    "float": {type:"float", minVal:"-1e10", maxVal:"1e10", step:"0.001", val:"1.0"},
+  };
+  var componentNames = ["x", "y", "z", "w"];
+  // constraint: materialDict belongs to the editor addon file, which shaderEditors.cpp concatenates before this one
+  var materials = typeof materialDict !== "undefined" ? materialDict : ["SHADING_NORMAL"];
+  var previewByType = {
+    "NBSGbuffer": {code:"nbsGbuffer"},
+    "Layer_t":    {code:GE_defaultValuesZero["Layer_t"]},
+    "mask_t":     {code:GE_defaultValuesZero["mask_t"]},
+    "BiomeData":  {code:"getBiomeData(world_pos.xyz)"},
+    "ctrl_t":     {prop:{name:"preview value", type:"bool", val:"true"}},
+    "material_t": {prop:{name:"preview value", type:"combobox", items:materials, val:materials[0]}},
+    "polynom4":   {code:"float4(%preview value%)",
+                   prop:{name:"preview value", type:"polynom4", val:"1, 0, 0, 0 /* 0,1, 0.333,1, 0.666,1, 1,1 */",
+                         style:"gray", background:[]}},
+  };
+  var scalarAndWidth = /^(bool|int|uint|float)([234])?$/;
+
+  for (var typeIdx = 0; typeIdx < GE_subgraphPinTypes.length; typeIdx++)
+  {
+    var pinType = GE_subgraphPinTypes[typeIdx];
+    // constraint: graphEditor.js reads the external pin name as properties[0]
+    var props = [{name:"name", type:"string", val:""}];
+    var preview = previewByType[pinType];
+    var previewCode = preview ? (preview.code ? preview.code : "%" + preview.prop.name + "%") : null;
+
+    if (preview && preview.prop)
+      props.push(preview.prop);
+    else if (!preview && !texTypes[pinType])
+    {
+      var parsed = scalarAndWidth.exec(pinType);
+      var scalar = parsed ? previewScalar[parsed[1]] : null;
+      if (!scalar)
+      {
+        alert("ERROR: no subgraph input value for pin type '" + pinType + "'");
+        continue;
+      }
+
+      var width = parsed[2] ? parseInt(parsed[2]) : 1;
+      var names = [];
+      for (var c = 0; c < width; c++)
+      {
+        var propName = width > 1 ? "preview " + componentNames[c] : "preview value";
+        names.push("%" + propName + "%");
+        props.push({name:propName, type:scalar.type, minVal:scalar.minVal, maxVal:scalar.maxVal,
+                    step:scalar.step, val:scalar.val});
+      }
+      previewCode = width > 1 ? pinType + "(" + names.join(", ") + ")" : names[0];
+    }
+
+    GE_nodeDescriptionsCommon.push({
+      name:"subgraph in: " + pinType,
+      category:"Subgraph",
+      synonyms:"input,enter,pin,subgraph",
+      pins:[
+        {name:"subgraph in", caption:"(%name%)", types:[pinType], singleConnect:false, role:"out",
+         data:previewCode ? {code:previewCode} : {}},
+      ],
+      properties:props,
+      // constraint: a texture has no hlsl literal; isExternal makes the name a sampler input, as external texture does
+      isExternal:!previewCode,
+      inOutMarker:true,
+      allowLoop:false,
+      width:320,
+      dynSizeToLeft:true,
+    });
+  }
+})();
+
 var GE_defaultExternalsCommon =
 [
   // type - int, float, float2, float3, float4
@@ -2958,6 +3081,10 @@ function generateAdditionalText(graph, useVarPool)
 
           if (!foundInExternals)
           {
+            // constraint: a gvar name is a dshl identifier, and "texture", the name of every texture pin, is not
+            if (e.descName && e.descName.indexOf("subgraph in: ") === 0)
+              name = "subgraph_" + makeSafeFilename(name) + "_" + i;
+
             if (isTextureType(pinType))
               p.customVarName = "sampler_" + pinType + "_" + inputs[pinType].length;
 

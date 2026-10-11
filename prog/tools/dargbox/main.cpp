@@ -337,7 +337,6 @@ static void dagor_main(int nCmdShow)
       mount_vrom(::dgs_get_settings()->getBlock(i)->getStr("vromfs"), ::dgs_get_settings()->getBlock(i)->getStr("mnt"));
 
 
-  bindquirrel::udp::init();
   run_init_script("initScript");
 
   bool drawFps = ::dgs_get_settings()->getBool("drawFps", false);
@@ -373,6 +372,7 @@ static void dagor_main(int nCmdShow)
   ::dargbox_init_joystick();
   HumanInput::stg_pnt.touchScreen = ::dgs_get_settings()->getBool("touchScreen", false);
   HumanInput::stg_pnt.emuTouchScreenWithMouse = ::dgs_get_settings()->getBool("emuTouchScreenWithMouse", false);
+  HumanInput::stg_pnt.touchpadAsTouch = ::dgs_get_settings()->getBool("touchpadAsTouch", false);
 
   ::startup_game(RESTART_ALL);
   shaders_register_console(true);

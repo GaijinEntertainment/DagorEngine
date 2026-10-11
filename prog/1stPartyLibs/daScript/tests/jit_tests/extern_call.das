@@ -1,8 +1,6 @@
 options gen2
 require dastest/testing_boost
 
-require strings
-
 def length_jit(a : string) {
     return length(a)
 }

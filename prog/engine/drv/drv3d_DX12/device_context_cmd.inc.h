@@ -354,20 +354,11 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetStreamOutputBuffer)
 DX12_END_CONTEXT_COMMAND
 
 #if D3D_HAS_RAY_TRACING
-DX12_BEGIN_CONTEXT_COMMAND(true, RaytraceBuildTopAccelerationStructure)
+DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, RaytraceBuildTopAccelerationStructures, RaytraceTopAccelerationStructureBuildEntry, builds)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, scratchBuffer)
-  DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, instanceBuffer)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, instanceCount)
-  DX12_CONTEXT_COMMAND_PARAM(RaytraceBuildFlags, flags)
-  DX12_CONTEXT_COMMAND_PARAM(bool, update)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, batchSize)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, batchIndex)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.buildTopAccelerationStructure(batchSize, batchIndex, instanceCount, instanceBuffer,
-    to_acceleration_structure_build_flags(flags, update), update, as, nullptr, scratchBuffer);
+  ctx.buildTopAccelerationStructures(builds);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -919,20 +910,12 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetRaytraceAccelerationStructure)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND_EXT_2(true, RaytraceBuildBottomAccelerationStructure, D3D12_RAYTRACING_GEOMETRY_DESC, geometryDescriptions,
-  RaytraceGeometryDescriptionBufferResourceReferenceSet, resourceReferences)
+DX12_BEGIN_CONTEXT_COMMAND_EXT_3(true, RaytraceBuildBottomAccelerationStructures, D3D12_RAYTRACING_GEOMETRY_DESC, geometryDescriptions,
+  RaytraceGeometryDescriptionBufferResourceReferenceSet, resourceReferences, RaytraceBottomAccelerationStructureBuildEntry, builds)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, scratchBuffer)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, compactedSize)
-  DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
-  DX12_CONTEXT_COMMAND_PARAM(RaytraceBuildFlags, flags)
-  DX12_CONTEXT_COMMAND_PARAM(bool, update)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, batchSize)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, batchIndex)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.buildBottomAccelerationStructure(batchSize, batchIndex, geometryDescriptions, resourceReferences,
-    to_acceleration_structure_build_flags(flags, update), update, as, nullptr, scratchBuffer, compactedSize);
+  ctx.buildBottomAccelerationStructures(geometryDescriptions, resourceReferences, builds);
 #endif
 DX12_END_CONTEXT_COMMAND
 

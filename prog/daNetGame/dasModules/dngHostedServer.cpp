@@ -28,6 +28,9 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::request_start_hosted_server");
     das::addExtern<DAS_BIND_FUN(request_stop_hosted_server)>(*this, lib, "request_stop_hosted_server",
       das::SideEffects::modifyExternal, "bind_dascript::request_stop_hosted_server");
+    das::addExtern<DAS_BIND_FUN(for_each_work_status)>(*this, lib, "for_each_work_status", das::SideEffects::invokeAndAccessExternal,
+      "bind_dascript::for_each_work_status")
+      ->args({"block", "context", "at"});
 
     verifyAotReady();
   }

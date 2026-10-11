@@ -20,7 +20,7 @@ enum
 CopyDlg::CopyDlg(String &clone_name, int &clone_count, bool &clone_seed) :
   cloneName(clone_name), cloneCount(clone_count), cloneSeed(clone_seed), mDialog(NULL)
 {
-  mDialog = DAGORED2->createDialog(hdpi::_pxScaled(290), hdpi::_pxScaled(200), "Clone object");
+  mDialog = DAGORED2->createAutoSizedDialog("Clone object");
 
   PropPanel::ContainerPropertyControl &panel = *mDialog->getPanel();
 

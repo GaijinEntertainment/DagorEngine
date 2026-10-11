@@ -9,6 +9,7 @@
 #include <DetourNavMeshBuilder.h>
 #include <DetourNavMesh.h>
 #include <DetourNavMeshQuery.h>
+#include <DetourNode.h>
 #include <string.h>
 #include <startup/dag_globalSettings.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -31,6 +32,7 @@
 #include <debug/dag_debug3d.h>
 #include <memory/dag_framemem.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/sort.h>
 #include <EASTL/tuple.h>
 #include <EASTL/fixed_function.h>
 #include <math/random/dag_random.h>
@@ -72,6 +74,9 @@ struct NavMeshData
   TileCacheMeshProcess tcMeshProc;
   dtNavMesh *navMesh = nullptr;
   dtNavMeshQuery *navQuery = nullptr;
+  // The walk distance flood's own, so it may run on a worker while a route is found on navQuery,
+  // and so its node pool is sized for a flood rather than for a route.
+  dtNavMeshQuery *walkQuery = nullptr;
 #if !_TARGET_PC_TOOLS_BUILD
   Tab<uint8_t> navData;
 #else
@@ -318,6 +323,9 @@ void clear_nav_mesh(int nav_mesh_idx, bool clear_nav_data)
   if (nmData.navQuery)
     dtFreeNavMeshQuery(nmData.navQuery);
   nmData.navQuery = NULL;
+  if (nmData.walkQuery)
+    dtFreeNavMeshQuery(nmData.walkQuery);
+  nmData.walkQuery = NULL;
   if (nav_mesh_idx == NM_MAIN)
     tilecache_cleanup();
 }
@@ -333,31 +341,46 @@ void clear(bool clear_nav_data)
   clear_and_shrink(navDebugBoxes);
 }
 
-static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t tile_check_cb, Tab<uint8_t> &out_buff)
+static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t tile_check_cb, Tab<uint8_t> &out_buff,
+  unsigned nav_data_size)
 {
-  G_ASSERT(type == NMT_TILECACHED);
-  G_UNUSED(type);
+  G_ASSERT(type == NMT_TILECACHED || type == NMT_TILED);
   // Reserve large buffer to avoid frequent re-allocations. 15 megs is pretty good.
   out_buff.reserve(15 * 1024 * 1024);
   uint32_t curOff;
-#define READ_TYPE(typ, name)                \
-  curOff = out_buff.size();                 \
-  out_buff.resize(curOff + sizeof(typ));    \
-  crd.read(&out_buff[curOff], sizeof(typ)); \
-  typ name;                                 \
-  memcpy(&name, &out_buff[curOff], sizeof(typ));
-#define READ_BYTES(cnt)            \
-  curOff = out_buff.size();        \
-  out_buff.resize(curOff + (cnt)); \
-  crd.read(&out_buff[curOff], (cnt));
+  unsigned consumed = 0;
+#define READ_INTO(name)                      \
+  curOff = out_buff.size();                  \
+  out_buff.resize(curOff + sizeof(name));    \
+  crd.read(&out_buff[curOff], sizeof(name)); \
+  consumed += sizeof(name);                  \
+  memcpy(&name, &out_buff[curOff], sizeof(name));
+#define READ_TYPE(typ, name) \
+  typ name;                  \
+  READ_INTO(name)
+#define READ_BYTES(cnt)               \
+  curOff = out_buff.size();           \
+  out_buff.resize(curOff + (cnt));    \
+  crd.read(&out_buff[curOff], (cnt)); \
+  consumed += (cnt);
   READ_TYPE(dtNavMeshParams, nmParams);
-  READ_TYPE(dtTileCacheParams, tcParams);
   G_UNUSED(nmParams);
+  dtTileCacheParams tcParams = {};
+  if (type == NMT_TILECACHED)
+  {
+    READ_INTO(tcParams);
+  }
   READ_TYPE(int, numTiles);
   uint32_t numTilesOff = curOff;
-  READ_TYPE(int, numTCTiles);
-  uint32_t numTCTilesOff = curOff;
-  READ_TYPE(int, numObsResNameHashes);
+  int numTCTiles = 0;
+  int numObsResNameHashes = 0;
+  uint32_t numTCTilesOff = 0;
+  if (type == NMT_TILECACHED)
+  {
+    READ_INTO(numTCTiles);
+    numTCTilesOff = curOff;
+    READ_INTO(numObsResNameHashes);
+  }
   int actualNumTiles = 0;
   int actualNumTCTiles = 0;
   for (int i = 0; i < numTiles; ++i)
@@ -391,6 +414,7 @@ static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t 
     else
     {
       crd.seekrel(tileDataSize - sizeof(dtMeshHeader));
+      consumed += tileDataSize - sizeof(dtMeshHeader);
       out_buff.resize(tileOff);
     }
   }
@@ -424,18 +448,29 @@ static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t 
     else
     {
       crd.seekrel(tileDataSize - sizeof(dtTileCacheLayerHeader));
+      consumed += tileDataSize - sizeof(dtTileCacheLayerHeader);
       out_buff.resize(tileOff);
     }
   }
-  READ_BYTES(numObsResNameHashes * sizeof(uint32_t));
-  if (crd.getBlockRest() >= sizeof(TileCacheDetailSettings))
+  if (type == NMT_TILECACHED)
   {
-    READ_BYTES(sizeof(TileCacheDetailSettings));
+    READ_BYTES(numObsResNameHashes * sizeof(uint32_t));
+    if (crd.getBlockRest() >= sizeof(TileCacheDetailSettings))
+    {
+      READ_BYTES(sizeof(TileCacheDetailSettings));
+    }
+    *(int *)&out_buff[numTCTilesOff] = actualNumTCTiles;
+  }
+  else if (consumed < nav_data_size)
+  {
+    // bounded by the dump: past it sits block padding the decoder takes for another frame
+    const unsigned tailSize = min(nav_data_size - consumed, (unsigned)sizeof(TiledNavMeshBuildSettings));
+    READ_BYTES(tailSize);
   }
 #undef READ_TYPE
+#undef READ_INTO
 #undef READ_BYTES
   *(int *)&out_buff[numTilesOff] = actualNumTiles;
-  *(int *)&out_buff[numTCTilesOff] = actualNumTCTiles;
   return true;
 }
 
@@ -903,17 +938,14 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
   unsigned navDataSize = _crd.readInt();
   bool isBucketFormat = (type == NMT_TILECACHED) && (navDataSize == 0x80000000);
 
-  // Tile cached navmesh and we have tile check callback, probably we can cut out a lot of
-  // the navmesh, this means we don't need to make huge allocations, just read out tiles as needed,
-  // check them, copy them to temp storage and finally use dtAlloc to create final navmesh.
-  bool useChunkedRead = ((type == NMT_TILECACHED) && tile_check_cb) || isBucketFormat;
+  bool useChunkedRead = ((type == NMT_TILECACHED || type == NMT_TILED) && tile_check_cb) || isBucketFormat;
 
   Tab<uint8_t> chunkedReadBuf;
   eastl::unique_ptr<IGenLoad, PlacementFreer<IGenLoad>> crd;
   if (isBucketFormat)
   {
-    // TODO: Bucket format for tile cached navmesh should be the only one,
-    // remove loadNavMeshChunked later.
+    // TODO: Bucket format for tile cached navmesh should be the only one, remove the tile
+    // cached half of loadNavMeshChunked later. The tiled read below needs the function.
     loadNavMeshBucketFormat(nmData.tcComp, _crd, type, tile_check_cb, chunkedReadBuf);
     navDataSize = chunkedReadBuf.size();
   }
@@ -929,11 +961,13 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
                          : (IGenLoad *)new (alloca(sizeof(LzmaLoadCB)), _NEW_INPLACE) LzmaLoadCB(_crd, _crd.getBlockRest()));
     if (useChunkedRead)
     {
-      bool res = loadNavMeshChunked(*crd, type, tile_check_cb, chunkedReadBuf);
+      bool res = loadNavMeshChunked(*crd, type, tile_check_cb, chunkedReadBuf, navDataSize);
       crd->ceaseReading();
       if (!res)
         return false;
+      chunkedReadBuf.shrink_to_fit(); // the buffer stays alive for the navmesh lifetime
       navDataSize = chunkedReadBuf.size();
+      tile_check_cb = nullptr; // already filtered: the tiled path below adds tiles in place
     }
     else
       chunkedReadBuf.resize(navDataSize);
@@ -985,6 +1019,7 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
   }
   else if (type == NMT_TILED)
   {
+    G_ASSERT(!tile_check_cb); // tiles are pre-filtered by the chunked read
     unsigned char *curPtr = &navDataLocal[0];
     const unsigned char *endPtr = curPtr + navDataSize;
 #define INIT_BY_PTR(typ, name) \
@@ -1028,26 +1063,10 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
       INIT_BY_PTR(int, tileDataSize);
       if (!*tileRef || !*tileDataSize)
         break;
-      const dtMeshHeader *header = (const dtMeshHeader *)curPtr;
-      auto addTile = [&](uint8_t *td) {
-        int flags = (td == curPtr) ? 0 : DT_TILE_FREE_DATA;
-        if (dtStatusFailed(nmData.navMesh->addTile(td, *tileDataSize, flags, *tileRef, nullptr))) [[unlikely]]
-        {
-          LOGERR_CTX("navMesh->addTile(%d) fails", i);
-          return false;
-        }
-        return true;
-      };
-      if (!tile_check_cb)
+      if (dtStatusFailed(nmData.navMesh->addTile(curPtr, *tileDataSize, 0, *tileRef, nullptr))) [[unlikely]]
       {
-        if (!addTile(curPtr))
-          return false;
-      }
-      else if (tile_check_cb(BBox3(Point3(header->bmin[0], header->bmin[1], header->bmin[2]),
-                 Point3(header->bmax[0], header->bmax[1], header->bmax[2]))))
-      {
-        if (!addTile((uint8_t *)memcpy(dtAlloc(*tileDataSize, DT_ALLOC_PERM), curPtr, *tileDataSize)))
-          return false;
+        LOGERR_CTX("navMesh->addTile(%d) fails", i);
+        return false;
       }
       curPtr += *tileDataSize;
     }
@@ -1062,8 +1081,6 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
       }
     }
     nmData.tiledBuildSettings.size = sizeof(nmData.tiledBuildSettings);
-    if (tile_check_cb) // Free whole data since we added only needed tiles `DT_TILE_FREE_DATA`
-      navDataLocal = eastl::remove_cvref_t<decltype(navDataLocal)>{};
     nmData.navMesh->reconstructFreeList();
 #undef INIT_BY_PTR
   }
@@ -3098,6 +3115,110 @@ bool find_polys_in_circle_ex(int nav_mesh_idx, dag::Vector<dtPolyRef, framemem_a
 bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius, float height_half_offset)
 {
   return find_polys_in_circle_ex(NM_MAIN, polys, pos, radius, height_half_offset);
+}
+
+// Plain dtQueryFilter over what findPath crosses: every poly, a jump link or a ladder included, costs its own length.
+static dtQueryFilter make_walk_distance_filter()
+{
+  dtQueryFilter filter;
+  filter.setIncludeFlags(POLYFLAGS_WALK | POLYFLAG_JUMP | POLYFLAG_LADDER);
+  filter.setExcludeFlags(POLYFLAG_BLOCKED);
+  return filter;
+}
+
+// Detour indexes pool nodes with a dtNodeIndex, so no query can hold more than this many, and no
+// flood can visit more polys than that however many it is asked for.
+static const int WALK_QUERY_MAX_NODES = DT_NULL_IDX;
+static const int WALK_QUERY_MIN_NODES = 2048;
+
+// init keeps a pool already large enough. Not reentrant.
+static dtNavMeshQuery *get_walk_distance_query(NavMeshData &nm_data, int want_nodes)
+{
+  if (!nm_data.navMesh)
+    return nullptr;
+  if (!nm_data.walkQuery)
+    nm_data.walkQuery = dtAllocNavMeshQuery();
+  if (!nm_data.walkQuery)
+    return nullptr;
+  const int nodes = clamp(want_nodes, WALK_QUERY_MIN_NODES, WALK_QUERY_MAX_NODES);
+  if (dtStatusFailed(nm_data.walkQuery->init(nm_data.navMesh, nodes)))
+  {
+    dtFreeNavMeshQuery(nm_data.walkQuery);
+    nm_data.walkQuery = nullptr;
+    return nullptr;
+  }
+  return nm_data.walkQuery;
+}
+
+bool find_walk_distance_poly_ex(int nav_mesh_idx, Point3 &pos, const Point3 &extents, dtPolyRef &out_poly)
+{
+  dtNavMeshQuery *navQueryUsed = get_nav_mesh_data(nav_mesh_idx).navQuery;
+  out_poly = 0;
+  if (!navQueryUsed)
+    return false;
+  const dtQueryFilter filter = make_walk_distance_filter();
+  Point3 resPos;
+  if (dtStatusFailed(navQueryUsed->findNearestPoly(&pos.x, &extents.x, &filter, &out_poly, &resPos.x)) || out_poly == 0)
+    return false;
+  pos = resPos;
+  return true;
+}
+
+bool find_walk_distance_poly(Point3 &pos, const Point3 &extents, dtPolyRef &out_poly)
+{
+  return find_walk_distance_poly_ex(NM_MAIN, pos, extents, out_poly);
+}
+
+bool flood_walk_distance_ex(int nav_mesh_idx, Point3 &origin, const Point3 &extents, float radius, int max_polys,
+  dag::Vector<NavMeshWalkDist> &out_polys, bool &out_truncated)
+{
+  out_polys.clear();
+  out_truncated = false;
+  if (max_polys <= 0)
+    return false;
+
+  // The pool is what stops the flood, so a buffer larger than it would only ever be part filled
+  // and out_truncated would be blaming the wrong one of the two.
+  max_polys = min(max_polys, WALK_QUERY_MAX_NODES);
+  dtNavMeshQuery *navQueryUsed = get_walk_distance_query(get_nav_mesh_data(nav_mesh_idx), max_polys);
+  if (!navQueryUsed)
+    return false;
+
+  dtPolyRef startRef = 0;
+  if (!find_walk_distance_poly_ex(nav_mesh_idx, origin, extents, startRef))
+    return false;
+
+  const dtQueryFilter filter = make_walk_distance_filter();
+  dag::Vector<dtPolyRef, framemem_allocator> refs(max_polys);
+  int count = 0;
+  const dtStatus status =
+    navQueryUsed->findPolysAroundCircle(startRef, &origin.x, radius, &filter, refs.data(), nullptr, nullptr, &count, max_polys);
+  if (dtStatusFailed(status))
+    return false;
+  out_truncated = dtStatusDetail(status, DT_BUFFER_TOO_SMALL) || dtStatusDetail(status, DT_OUT_OF_NODES);
+
+  // Every poly returned was popped and closed, so the pool holds its node with the parent and the
+  // cost the flood settled on; a made up point would read as a route.
+  dtNodePool *nodes = navQueryUsed->getNodePool();
+  out_polys.resize(count);
+  for (int i = 0; i < count; ++i)
+  {
+    NavMeshWalkDist &walk = out_polys[i];
+    walk.ref = refs[i];
+    const dtNode *node = nodes->findNode(walk.ref, 0);
+    const dtNode *parent = nodes->getNodeAtIdx(node->pidx);
+    walk.parent = parent ? parent->id : 0;
+    walk.dist = node->total;
+    walk.pos = Point3(node->pos, Point3::CTOR_FROM_PTR);
+  }
+  eastl::sort(out_polys.begin(), out_polys.end(), [](const NavMeshWalkDist &a, const NavMeshWalkDist &b) { return a.ref < b.ref; });
+  return true;
+}
+
+bool flood_walk_distance(Point3 &origin, const Point3 &extents, float radius, int max_polys, dag::Vector<NavMeshWalkDist> &out_polys,
+  bool &out_truncated)
+{
+  return flood_walk_distance_ex(NM_MAIN, origin, extents, radius, max_polys, out_polys, out_truncated);
 }
 
 bool is_navmesh_position_suitable_ex(int nav_mesh_idx, const Point3 &pos, float horz_extents, float vert_extents, int min_polys,

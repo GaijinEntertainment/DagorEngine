@@ -39,7 +39,9 @@ namespace var
   VAR(decals_detail_overrideSampler) \
   VAR(bottom)                        \
   VAR(skip_detail_lod_calculation)   \
-  VAR(landmesh_debug_cells_scale)
+  VAR(landmesh_debug_cells_scale)    \
+  VAR(land_detile_on)                \
+  VAR(noise_64_tex_l8)
 #define VAR(a) extern ShaderVariableInfo a;
 LMESH_VAR_LIST
 #undef VAR
@@ -58,6 +60,8 @@ LMESH_VAR_LIST
   VAR(lmesh_ps_weight_params, -1)                  \
   VAR(lmesh_ps_const__weight, 30)                  \
   VAR(lmesh_ps_const__invtexturesizes, 28)         \
+  VAR(land_detile_params_const_no, -1)             \
+  VAR(land_detile_noise_tex_const_no, -1)          \
   VAR(lmesh_ps_const__lcdetailstexsizes, -1)       \
   VAR(lmesh_ps_const__lctexsizes, -1)              \
   VAR(lmesh_ps_const__detailarraytexsizes, -1)     \

@@ -39,6 +39,9 @@ namespace das {
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) { return false; }
         virtual bool canVisitWithAliasSubexpression ( ExprAssume * ) { return false; }
         virtual bool canVisitMakeBlockBody ( ExprMakeBlock * expr ) { return true; }
+        virtual bool canVisitTryCatchBody ( ExprTryCatch * expr ) { return true; }
+        virtual bool canVisitMakeArray ( ExprMakeArray * expr ) { return true; }
+        virtual bool canVisitMakeArrayIndex ( ExprMakeArray * expr, int index, Expression * init, bool lastIndex ) { return true; }
         virtual bool canVisitCall ( ExprCall * expr ) { return true; }
         virtual bool canVisitNamedCall ( ExprNamedCall * /*expr*/ ) { return true; }
         virtual bool canVisitLooksLikeCall ( ExprLooksLikeCall * /*expr*/ ) { return true; }
@@ -342,6 +345,10 @@ namespace das {
         Function *  func = nullptr;
     };
 
+    // a call the folder may evaluate in place: no side effects, native, and its result is a
+    // value a constant can hold
+    DAS_CC_API bool isConstExprFunc ( Function * fun );
+
     class DAS_CC_API FoldingVisitor : public PassVisitor {
     public:
         FoldingVisitor(const ProgramPtr & prog, int32_t round = 0)
@@ -350,17 +357,23 @@ namespace das {
             ctx.thisHelper = &helper;
             ctx.heap = make_unique<LinearHeapAllocator>();
             ctx.stringHeap = make_unique<LinearStringAllocator>();
-            ctx.category = uint32_t(ContextCategory::folding_context);
+            ctx.category = Bitfield(uint32_t(ContextCategory::folding_context));
         }
     protected:
         Context         ctx;
         DebugInfoHelper helper;
+        das_set<Variable *> constExprFolding;            // globals whose init is mid-fold, which is what breaks a cycle of consts defined off each other
+        das_map<Variable *, ExpressionPtr> constExprFolded;  // what each global folded to, so a const read N times is folded once rather than N times over its whole init
+        bool            demandFoldConstInit = false;    // evaluate an initializer the policy left unfolded, where a constant is demanded of it
+        bool            recordConstAccess = true;       // a recorded fold silences the unused-variable and dead-store lints on that global, so asking what a const is worth must not record one
     protected:
         DAS_EVAL_ABI vec4f eval ( Expression * expr, bool & failed );
         ExpressionPtr evalAndFold ( Expression * expr );
         ExpressionPtr evalAndFoldString ( Expression * expr );
         ExpressionPtr evalAndFoldStringBuilder ( ExprStringBuilder * expr );
         ExpressionPtr cloneWithType ( ExpressionPtr expr );
+        ExpressionPtr getConstExpr ( Expression * expr );
+        ExpressionPtr foldConstInit ( Expression * expr );
         bool isSameFoldValue ( const TypeDeclPtr & t, vec4f a, vec4f b ) const {
             return memcmp(&a,&b,t->getSizeOf()) == 0;
         }

@@ -215,14 +215,13 @@ static LevelBinData *load_level_bin(BinDumpReader &crd)
 }
 static DxpBinData *load_tex_pack(BinDumpReader &crd)
 {
-  DxpBinData *dxp = new DxpBinData;
-
   unsigned hdr[4];
   crd.read32ex(hdr, sizeof(hdr));
 
   if (hdr[0] != _MAKE4C('DxP2') || (hdr[1] != 2 && hdr[1] != 3))
     return NULL;
 
+  DxpBinData *dxp = new DxpBinData;
   dxp->data = (DxpBinData::Dump *)memalloc(hdr[3], tmpmem);
   crd.getRawReader().read(dxp->data, hdr[3]);
   crd.convert32(dxp->data, 8 * 3);

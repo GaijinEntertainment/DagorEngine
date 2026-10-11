@@ -8,6 +8,7 @@ struct LcmFoo {
 
 var g_lcm_counter = 0
 
+[unused_argument(f)]
 def operator delete(f : LcmFoo) {
     g_lcm_counter++
 }

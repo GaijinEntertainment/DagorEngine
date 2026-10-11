@@ -45,7 +45,7 @@ macro COMMON_UI_DOWNSAMPLE()
 
   (vs) {
     texSize@f4 = (blur_dst_tex_size.x, blur_dst_tex_size.y, blur_dst_tex_size.x * 2.0, blur_dst_tex_size.y * -2.0);
-    quads@i4[4078] : register(16);
+    quads@i4[256] : register(16);
   }
 
   hlsl(vs) {

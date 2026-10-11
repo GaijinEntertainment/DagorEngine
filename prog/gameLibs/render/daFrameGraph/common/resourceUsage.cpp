@@ -3,6 +3,7 @@
 #include "resourceUsage.h"
 
 #include <debug/dag_assert.h>
+#include <drv/3d/dag_driverDesc.h>
 
 #include <EASTL/utility.h>
 #include <EASTL/span.h>
@@ -444,7 +445,8 @@ ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before,
   if ((usage_after.type & Usage::CONSTANT_BUFFER) != Usage::UNKNOWN)
     resource_barrier = resource_barrier | RB_RO_CONSTANT_BUFFER | map_stage_flags_dest(usage_after.stage);
 
-  if ((((usage_after.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN) ||
+  const bool inputAttachment = (usage_after.type & Usage::INPUT_ATTACHMENT) == Usage::INPUT_ATTACHMENT;
+  if ((((usage_after.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN && !inputAttachment) ||
         ((usage_after.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN))
       // No barrier needed when changing access
       && usage_before.type != usage_after.type)
@@ -534,17 +536,29 @@ d3d::BufferBarrier enhanced_buffer_barrier_for_activation(intermediate::Resource
   return {{sync_before, enhanced_stages_for_usage(first_usage)}, {{}, enhanced_accesses_for_usage(first_usage)}};
 }
 
+static bool native_render_pass() { return d3d::get_driver_desc().caps.hasNativeRenderPassSubPasses; }
+
 static d3d::AccessFlags enhanced_texture_accesses_for_usage(intermediate::ResourceUsage usage)
 {
   d3d::AccessFlags result{};
   const bool rw = usage.access == Access::READ_WRITE;
 
   if ((usage.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN)
-    result |= rw ? d3d::AccessFlag::RenderTargetWrite : d3d::AccessFlag::RenderTargetRead;
+  {
+    if ((usage.type & Usage::INPUT_ATTACHMENT) == Usage::INPUT_ATTACHMENT)
+      result |= d3d::AccessFlag::InputAttachment;
+    else
+      result |= rw ? d3d::AccessFlag::RenderTargetWrite : d3d::AccessFlag::RenderTargetRead;
+  }
   if ((usage.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN)
     result |= rw ? d3d::AccessFlag::DepthStencilWrite : d3d::AccessFlag::DepthStencilRead;
   if ((usage.type & Usage::RESOLVE_ATTACHMENT) != Usage::UNKNOWN)
-    result |= rw ? d3d::AccessFlag::ResolveWrite : d3d::AccessFlag::ResolveRead;
+  {
+    if (native_render_pass())
+      result |= rw ? d3d::AccessFlag::RenderTargetWrite : d3d::AccessFlag::RenderTargetRead;
+    else
+      result |= rw ? d3d::AccessFlag::ResolveWrite : d3d::AccessFlag::ResolveRead;
+  }
   if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
     result |= rw ? d3d::AccessFlag::UnorderedAccess : d3d::AccessFlag::ShaderResource;
   if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
@@ -573,7 +587,11 @@ static d3d::TextureLayout enhanced_texture_layout_for_usage(intermediate::Resour
   if ((usage.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN)
     return rw ? d3d::TextureLayout::DepthRw : d3d::TextureLayout::DepthRo;
   if ((usage.type & Usage::RESOLVE_ATTACHMENT) != Usage::UNKNOWN)
+  {
+    if (native_render_pass())
+      return d3d::TextureLayout::RenderTarget;
     return rw ? d3d::TextureLayout::ResolveDest : d3d::TextureLayout::ResolveSource;
+  }
   if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
     return rw ? d3d::TextureLayout::UnorderedAccess : d3d::TextureLayout::ShaderResource;
   if ((usage.type & Usage::BLIT) != Usage::UNKNOWN)
@@ -586,21 +604,16 @@ static d3d::TextureLayout enhanced_texture_layout_for_usage(intermediate::Resour
   return d3d::TextureLayout::GenericRead;
 }
 
-static bool enhanced_texture_layout_differs(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after)
-{
-  return enhanced_texture_layout_for_usage(usage_before) != enhanced_texture_layout_for_usage(usage_after);
-}
-
 static d3d::PipelineStageFlags enhanced_texture_stages_for_usage(intermediate::ResourceUsage usage)
 {
   d3d::PipelineStageFlags result{};
 
-  if ((usage.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN)
+  if ((usage.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN && (usage.type & Usage::INPUT_ATTACHMENT) != Usage::INPUT_ATTACHMENT)
     result |= d3d::PipelineStageFlag::OutputMerging;
   if ((usage.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN)
     result |= d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests;
   if ((usage.type & Usage::RESOLVE_ATTACHMENT) != Usage::UNKNOWN)
-    result |= d3d::PipelineStageFlag::Resolve;
+    result |= native_render_pass() ? d3d::PipelineStageFlag::OutputMerging : d3d::PipelineStageFlag::Resolve;
   if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
     result |= enhanced_shading_stages_for_usage(usage);
   if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
@@ -613,43 +626,92 @@ static d3d::PipelineStageFlags enhanced_texture_stages_for_usage(intermediate::R
   return result;
 }
 
-static d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::ResourceUsage usage_before,
-  intermediate::ResourceUsage usage_after)
+struct EnhancedTextureState
 {
-  return {{enhanced_texture_stages_for_usage(usage_before), enhanced_texture_stages_for_usage(usage_after)},
-    {enhanced_texture_accesses_for_usage(usage_before), enhanced_texture_accesses_for_usage(usage_after)},
-    {enhanced_texture_layout_for_usage(usage_before), enhanced_texture_layout_for_usage(usage_after)},
-    ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+  d3d::PipelineStageFlags stages;
+  d3d::AccessFlags access;
+  d3d::TextureLayout layout;
+};
+
+static bool native_depth_resolve_source(ResolveRole role) { return role == ResolveRole::DepthSource && native_render_pass(); }
+
+static EnhancedTextureState enhanced_texture_state_for_usage(intermediate::ResourceUsage usage, ResolveRole role)
+{
+  EnhancedTextureState state{
+    enhanced_texture_stages_for_usage(usage), enhanced_texture_accesses_for_usage(usage), enhanced_texture_layout_for_usage(usage)};
+  if (!native_render_pass())
+    return state;
+
+  if (role == ResolveRole::DepthSource)
+  {
+    state.stages |= d3d::PipelineStageFlag::OutputMerging;
+    state.access |= d3d::AccessFlag::RenderTargetRead;
+  }
+  else if (role == ResolveRole::DepthDest)
+  {
+    state.stages |= d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests;
+    state.access |= d3d::AccessFlag::DepthStencilWrite;
+    state.layout = d3d::TextureLayout::DepthRw;
+  }
+  return state;
 }
 
-intermediate::EnhancedBarrier enhanced_barrier_for_transition(intermediate::ResourceUsage usage_before,
-  intermediate::ResourceUsage usage_after, ResourceType res_type)
+static EnhancedTextureState enhanced_texture_state_after_usage(intermediate::ResourceUsage usage, ResolveRole role)
+{
+  const bool resolveSource = role == ResolveRole::ColorSource || role == ResolveRole::DepthSource;
+  if (resolveSource && !native_render_pass())
+    return {d3d::PipelineStageFlag::Resolve, d3d::AccessFlag::ResolveRead, d3d::TextureLayout::ResolveSource};
+  return enhanced_texture_state_for_usage(usage, role);
+}
+
+static bool enhanced_texture_layout_differs(intermediate::ResourceUsage usage_before, ResolveRole role_before,
+  intermediate::ResourceUsage usage_after, ResolveRole role_after)
+{
+  return enhanced_texture_state_after_usage(usage_before, role_before).layout !=
+         enhanced_texture_state_for_usage(usage_after, role_after).layout;
+}
+
+static d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::ResourceUsage usage_before, ResolveRole role_before,
+  intermediate::ResourceUsage usage_after, ResolveRole role_after)
+{
+  const auto before = enhanced_texture_state_after_usage(usage_before, role_before);
+  const auto after = enhanced_texture_state_for_usage(usage_after, role_after);
+  return {
+    {before.stages, after.stages}, {before.access, after.access}, {before.layout, after.layout}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+}
+
+intermediate::EnhancedBarrier enhanced_barrier_for_transition(intermediate::ResourceUsage usage_before, ResolveRole role_before,
+  intermediate::ResourceUsage usage_after, ResolveRole role_after, ResourceType res_type)
 {
   G_ASSERT(res_type == ResourceType::Texture || res_type == ResourceType::Buffer);
   const bool isTexture = res_type == ResourceType::Texture;
 
   const bool needsBarrier = barrier_for_transition(usage_before, usage_after) != RB_NONE || usage_after.access == Access::READ_WRITE ||
-                            (isTexture && enhanced_texture_layout_differs(usage_before, usage_after));
+                            (isTexture && (enhanced_texture_layout_differs(usage_before, role_before, usage_after, role_after) ||
+                                            native_depth_resolve_source(role_before) != native_depth_resolve_source(role_after)));
 
   if (!needsBarrier)
     return {};
 
   if (isTexture)
-    return enhanced_texture_barrier_for_transition(usage_before, usage_after);
+    return enhanced_texture_barrier_for_transition(usage_before, role_before, usage_after, role_after);
   return enhanced_buffer_barrier_for_transition(usage_before, usage_after);
 }
 
-d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage, d3d::PipelineStageFlags sync_after)
+d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage, ResolveRole role,
+  d3d::PipelineStageFlags sync_after)
 {
-  return {{enhanced_texture_stages_for_usage(last_usage), sync_after}, {enhanced_texture_accesses_for_usage(last_usage), {}},
-    {enhanced_texture_layout_for_usage(last_usage), d3d::TextureLayout::Undefined}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+  const auto last = enhanced_texture_state_after_usage(last_usage, role);
+  return {
+    {last.stages, sync_after}, {last.access, {}}, {last.layout, d3d::TextureLayout::Undefined}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
 }
 
-d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage,
+d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage, ResolveRole role,
   d3d::PipelineStageFlags sync_before)
 {
-  return {{sync_before, enhanced_texture_stages_for_usage(first_usage)}, {{}, enhanced_texture_accesses_for_usage(first_usage)},
-    {d3d::TextureLayout::Undefined, enhanced_texture_layout_for_usage(first_usage)}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+  const auto first = enhanced_texture_state_for_usage(first_usage, role);
+  return {
+    {sync_before, first.stages}, {{}, first.access}, {d3d::TextureLayout::Undefined, first.layout}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
 }
 
 eastl::optional<ResourceActivationAction> get_activation_from_usage(DesiredActivationBehaviour behavior,

@@ -32,8 +32,8 @@ public:
 
   ID3D12Resource *getResourcePtr() const { return buffer.Get(); }
 
-  HRESULT create(ID3D12Device *device, const D3D12_RESOURCE_DESC &desc, ResourceMemory mem, D3D12_RESOURCE_STATES initial_state,
-    bool map, eastl::string_view name)
+  HRESULT create(D3DDevice *device, const D3D12_RESOURCE_DESC &desc, ResourceMemory mem, D3D12_RESOURCE_STATES initial_state, bool map,
+    eastl::string_view name)
   {
     HRESULT errorCode = S_OK;
 #if _TARGET_XBOX

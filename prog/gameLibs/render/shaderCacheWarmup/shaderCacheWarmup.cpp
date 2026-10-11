@@ -618,7 +618,7 @@ private:
 
     const ShaderStateBlockId variantStateIndex = el.passes[variant_id].id.v.load();
     if (variantStateIndex != ShaderStateBlockId::Invalid &&
-        variantStateIndex != ScriptedShaderElement::PackedPassId::DELETED_STATE_BLOCK_ID)
+        variantStateIndex != ScriptedShaderElement::PackedPassId::NOT_INITED_STATE_BLOCK_ID)
       shaders::render_states::set(ShaderStateBlock::blocks[variantStateIndex].stateIdx);
 
     const uintptr_t pipelineType = STAGE_PS;

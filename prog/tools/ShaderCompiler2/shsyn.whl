@@ -129,6 +129,11 @@ terminal
          "assume_if_not_assumed" (SHTOK_assume_if_not_assumed),
          "shader" (SHTOK_shader),
          "block" (SHTOK_block),
+         "render_pass" (SHTOK_render_pass),
+         "multi_render_pass" (SHTOK_multi_render_pass),
+         "subpass" (SHTOK_subpass),
+         "pass" (SHTOK_pass),
+         "framebuffer_layout" (SHTOK_framebuffer_layout),
          "supports" (SHTOK_supports),
          "short2" (SHTOK_short2),
          "short4" (SHTOK_short4),
@@ -203,6 +208,9 @@ code_in_class          = {
   protected:
     virtual void add_shader(shader_decl *d) {}
     virtual void add_block(block_decl *d) {}
+    virtual void add_render_pass(render_pass_decl *d) {}
+    virtual void add_render_pass_group(render_pass_group_decl *d) {}
+    virtual void add_framebuffer_layout(framebuffer_layout_decl *d) {}
     virtual void add_global_var(global_var_decl *d) {}
     virtual void add_sampler(sampler_decl *d) {}
     virtual void add_global_interval(interval &i) {}
@@ -249,6 +257,9 @@ S -> (declaration=decl)*;
 declaration(declaration) ->
   shader-decl=shader |
   block-decl=block |
+  render-pass-decl=render_pass_v |
+  subpass-group-decl=render_pass_group_v |
+  framebuffer-layout-decl=framebuffer_layout_v |
   global-decl=global_decl |
   sampler-decl=smp_decl |
   (interval-decl=inteval_decl {add_global_interval(*(n->inteval_decl));}) |
@@ -268,6 +279,77 @@ block-decl(block_decl) ->
   "{"=nothing (block-stat=stat)* "}"=nothing
   {add_block(n);};
 
+render-pass-decl(render_pass_decl) ->
+  ("render_pass"=simple_kw | "multi_render_pass"=nothing) ident=name
+    "{"=nothing (render-pass-stat=stat)* "}"=nothing {add_render_pass(n);};
+
+subpass-group-decl(render_pass_group_decl) ->
+  ("subpass"=nothing ident=name "="=nothing any-of-members=list ";"=nothing {add_render_pass_group(n);}) |
+  (("render_pass"|"multi_render_pass")=old_kw ident=name "="=nothing any-of-members=list ";"=nothing {add_render_pass_group(n);});
+
+framebuffer-layout-decl(framebuffer_layout_decl) ->
+  ("framebuffer_layout"=nothing ident=name
+    "{"=nothing (framebuffer-layout-stat=stat)* "}"=nothing {add_framebuffer_layout(n);}) |
+  ("framebuffer_layout"=nothing ident=name "="=nothing framebuffer-layout-any-of=list ";"=nothing {add_framebuffer_layout(n);});
+
+framebuffer-layout-any-of(framebuffer_layout_any_of) ->
+  ident=kw "("=nothing iteration_pair(ident=member, ","=nothing) ")"=nothing;
+
+framebuffer-layout-stat(framebuffer_layout_stat) ->
+  framebuffer-layout-if-stat=if_stat |
+  (ident=target_name "="=nothing ident=format [ident=samples] ";"=nothing);
+
+framebuffer-layout-if-stat(framebuffer_layout_if) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
+  "{"=nothing (framebuffer-layout-stat=true_stat)* "}"=nothing
+  [ "else"=nothing (
+    ( "{"=nothing (framebuffer-layout-stat=false_stat)* "}"=nothing ) |
+    ( framebuffer-layout-if-stat=else_if )
+  ) ];
+
+any-of-members(any_of_members) ->
+  ident=kw "("=nothing iteration_pair(subpass-ref=member, ","=nothing) ")"=nothing;
+
+subpass-ref(subpass_ref) -> ident=pass_name ["."=nothing ident=subpass_name];
+
+render-pass-stat(render_pass_stat) ->
+  render-pass-if-stat=if_stat |
+  (ident=kw ";"=nothing) |
+  (ident=kw ident=name [target-decl-tail=tail] ";"=nothing) |
+  (ident=qual ident=kw ident=name [target-decl-tail=tail] ";"=nothing) |
+  (ident=kw ident=name "{"=nothing (subpass-stat=sp_stat)* "}"=nothing) |
+  ("subpass"=sp_kw ident=name ";"=nothing) |
+  ("subpass"=sp_kw ident=name "{"=nothing (subpass-stat=sp_stat)* "}"=nothing) |
+  (ident=op "("=nothing iteration_pair(subpass-bind=bind, ","=nothing) ")"=nothing ";"=nothing);
+
+render-pass-if-stat(render_pass_if) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
+  "{"=nothing (render-pass-stat=true_stat)* "}"=nothing
+  [ "else"=nothing (
+    ( "{"=nothing (render-pass-stat=false_stat)* "}"=nothing ) |
+    ( render-pass-if-stat=else_if )
+  ) ];
+
+subpass-stat(subpass_stat) ->
+  subpass-if-stat=if_stat |
+  (ident=op "("=nothing iteration_pair(subpass-bind=bind, ","=nothing) ")"=nothing ";"=nothing);
+
+subpass-if-stat(subpass_if) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
+  "{"=nothing (subpass-stat=true_stat)* "}"=nothing
+  [ "else"=nothing (
+    ( "{"=nothing (subpass-stat=false_stat)* "}"=nothing ) |
+    ( subpass-if-stat=else_if )
+  ) ];
+
+subpass-bind(subpass_bind) ->
+  [ident=qual] ident=target_name [target-decl-tail=tail];
+
+// One production: `xN` and `resolve` are both bare idents, one token of lookahead cannot tell them apart.
+target-decl-tail(target_decl_tail) ->
+  ("="=nothing ident=format [ident=samples] [target-resolve=resolve]) |
+  (target-resolve=resolve);
+
+target-resolve(target_resolve) ->
+  ident=kw "("=nothing ident=target_name ["="=nothing ident=format [ident=samples]] ")"=nothing;
+
 shader-stat(shader_stat) ->
   sh-if-stat=if_stat |
   bool-decl=boolean_decl |
@@ -275,6 +357,7 @@ shader-stat(shader_stat) ->
   external-state-block = external_block |
   immediate-const-block = imm_const_block |
   supports-stat=supports |
+  subpass-use-stat=render_pass_use |
   render-stage-stat=render_stage |
   raytrace-pipeline-stat=rt_pipeline |
   assume-stat=assume |
@@ -548,7 +631,16 @@ external-state-block(external_state_block) -> "("=nothing ident=scope ")"=nothin
 
 state-block-stat(state_block_stat) ->
   state-block-if-stat=stblock_if_stat |
-  (external-variable = var) | (external-variable-array = arr) | (external-register = reg) | (external-register-array = reg_arr);
+  (external-variable = var) | (external-variable-array = arr) | (external-register = reg) | (external-register-array = reg_arr) |
+  (state-block-struct = out_struct);
+
+state-block-struct(state_block_struct_decl) ->
+  external-var-name=var
+  "{"=nothing (state-block-struct-field=field)* "}"=nothing [";"=nothing];
+
+state-block-struct-field(state_block_struct_field) ->
+  (ident|"float"|"float1"|"float2"|"float3"|"float4"|"int"|"int4"|"half2"|"half4")=type ident=name
+  ":"=nothing ident=sem1 [ident=sem2] ";"=nothing;
 
 state-block-if-stat(state_block_if_stat) -> "if"=nothing "("=nothing bool-expr=expr ")"=nothing
   "{"=nothing (state-block-stat=true_stat)* "}"=nothing
@@ -589,8 +681,18 @@ error-stat(error_stat) ->
 supports-stat(supports_stat) ->
   "supports"=nothing iteration_pair((ident|"none")=name, ","=nothing) ";"=nothing ;
 
+subpass-use-stat(render_pass_use_stat) ->
+  ("pass"=nothing ident=pass_name ["."=nothing ident=subpass_name] ";"=nothing) |
+  ("pass"=nothing any-of-members=list ";"=nothing) |
+  (("subpass"|"render_pass")=old_kw ident=pass_name ["."=nothing ident=subpass_name] ";"=nothing) ;
+
 code_in_class[bool_decl]={
   int resolvedNid = -1;
+};
+
+code_in_class[render_pass_use_stat]={
+  // Declared by the first walk over the shader, reused by later ones so errors are reported once.
+  int inlineGroupNid = -1;
 };
 
 // @TODO(boolvar_opt): add separate production for top level bool expr -- so as not to store redundant fields

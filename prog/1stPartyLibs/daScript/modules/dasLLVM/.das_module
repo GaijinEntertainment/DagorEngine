@@ -7,19 +7,24 @@ def initialize(project_path : string) {
     let daslib_paths = [
         "llvm_boost", "llvm_debug", "llvm_jit", "llvm_targets",
         "llvm_dsl",
-        "llvm_jit_intrin", "llvm_jit_common", "llvm_dll_utils",
-        "llvm_exe", "llvm_macro", "llvm_jit_cli", "llvm_jit_run", "llvm_aot",
-        "aarch64_neon", // public NEON-intrinsic header (portable fallbacks + name-based JIT recognition)
-        "x64_avx",      // public x86-64-intrinsic header (same contract, x64 mirror)
-        "f16_cvt",      // public f16<->f32 convert header (same contract, aarch64 + x64/F16C)
+        "llvm_jit_intrin", "llvm_jit_common", "ir_dsl", "llvm_jit_runtime", "llvm_jit_lower", "llvm_dll_utils",
+        "llvm_jit_di",
+        "llvm_exe", "jit_standalone", "llvm_macro", "llvm_jit_cli", "llvm_jit_run", "llvm_aot",
+        "llvm_jit_plan",      // the emitter-free half of the driver: plan, DLL key, probe, install
+        "llvm_jit_link",      // the JIT entry: a DLL cache hit binds here, a miss brings llvm_macro in
+        "llvm_jit_finalizer",
+        "llvm_env",     // [EnvConfig] environment-knob registry (ENVIRONMENT.md generates from it)
+        "llvm_cpu_class",     // the CPU classes profiles are keyed by, and the DAS_JIT_BASELINE target
         "llvm_code",          // [llvm_code] user-side annotation
+        "llvm_code_shell",    // the [llvm_code] spelling for dasLLVM's own daslib (llvm_tune's fat-word stubs)
         "llvm_jit_code",      // [llvm_code] JIT-side generator registry
         "llvm_user_modules",  // user-extensible require list for generator modules
         "llvm_code_selftest", // worked-example generator + self-test vehicle
+        "llvm_tune_fat_word", // the fat dispatch mask as an LLVM-side word (load/store generators)
         "llvm_tune"           // [tune] framework: perm grids, three modes, the manifest
     ]
     let bindings_paths = [
-        "llvm_const", "llvm_enum", "llvm_func", "llvm_struct",
+        "llvm_const", "llvm_enum", "llvm_func", "llvm_host", "llvm_struct",
     ]
     for (path in daslib_paths) {
         register_native_path("llvm", "daslib/{path}", "{project_path}/daslib/{path}.das")
@@ -27,4 +32,12 @@ def initialize(project_path : string) {
     for (path in bindings_paths) {
         register_native_path("llvm", "bindings/{path}", "{project_path}/bindings/{path}.das")
     }
+    if (das_is_dll_build()) {
+        // the `llvm` witness module (src/dasLLVM.cpp) exists only in a build configured with
+        // dasLLVM; the 2-arg form skips silently when the .shared_module was never built, and
+        // that silence is what `require ?llvm` reads as "this build has no LLVM"
+        register_dynamic_module("{project_path}/dasModuleLLVM.shared_module", "Module_LLVM")
+    }
+    // guarded on the witness, so the member expands exactly where `require ?llvm` would take it
+    register_module_group("tune_framework", "llvm/daslib/llvm_tune", "llvm")
 }

@@ -59,6 +59,10 @@ Sources =
   backend/passColoring.cpp
   backend/nodeScheduler.cpp
   backend/resourceScheduling/resourceLifetimes.cpp
+  backend/resourceScheduling/heapLayout.cpp
+  backend/resourceScheduling/layoutOptimizer.cpp
+  backend/resourceScheduling/layoutUpdate.cpp
+  backend/resourceScheduling/heapPolicy.cpp
   backend/resourceScheduling/barrierScheduler.cpp
   backend/resourceScheduling/resourceScheduler.cpp
   backend/resourceScheduling/resourceAllocator.cpp
@@ -96,11 +100,6 @@ if $(DAFG_ENABLE_DAECS_INTEGRATION) = yes {
   ;
   for s in $(SourceES) { GenESSourceFile $(s) ; }
 }
-AllSrcFolder_CPP =
-  backend/resourceScheduling/packers
-;
-
-
 if $(Config) in dbg dev {
   Sources +=
     debug/resourceValidation.cpp
@@ -145,5 +144,4 @@ if $(Config) in dbg dev && $(CheckedContainers) = yes {
   Sources += debug/stub/globalStatesValidationStub.cpp ;
 }
 
-AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
 include $(Root)/prog/_jBuild/build.jam ;

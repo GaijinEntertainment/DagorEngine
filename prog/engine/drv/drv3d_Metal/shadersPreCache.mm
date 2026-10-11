@@ -18,7 +18,7 @@ namespace drv3d_metal
 {
   extern DriverDesc g_device_desc;
 
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.17');
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.18');
 
   std::thread g_saver;
   std::thread g_compiler;
@@ -184,7 +184,7 @@ namespace drv3d_metal
     return pipelineStateDescriptor;
   }
 
-  static uint64_t buildRenderStateHash(const Program::RenderState& rstate, uint32_t output_mask)
+  static uint64_t buildRenderStateHash(const Program::RenderState& rstate, uint32_t output_mask, uint32_t buffer_mask)
   {
     uint64_t hash = 0;
 
@@ -198,8 +198,9 @@ namespace drv3d_metal
     hash_combine(hash, std::hash<uint32_t>{}(rstate.depthFormat));
     hash_combine(hash, std::hash<uint32_t>{}(rstate.stencilFormat));
 
-    for (int i = 0; i < BUFFER_POINT_COUNT; i++)
-      hash_combine(hash, std::hash<uint32_t>{}(rstate.vbuffer_stride[i]));
+    for (int i = 0; i < GEOM_BUFFER_COUNT; i++)
+      if (buffer_mask & (1 << i))
+        hash_combine(hash, std::hash<uint32_t>{}(rstate.vbuffer_stride[i]));
     hash_combine(hash, std::hash<uint32_t>{}(rstate.sample_count));
     hash_combine(hash, std::hash<uint32_t>{}(rstate.is_volume));
 
@@ -321,8 +322,9 @@ namespace drv3d_metal
     #else
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *dir = [paths objectAtIndex:0];
-    snprintf(shdCachePath, sizeof(shdCachePath), "%s%s/%u", [dir UTF8String], bindless, cache_version);
-    cache_root.printf(sizeof(shdCachePath), "%s%s", [dir UTF8String], bindless);
+    // own subdir: clearCache() removes every sibling of the current version (Caches also holds Breakpad dumps)
+    snprintf(shdCachePath, sizeof(shdCachePath), "%s/metal_shader_cache%s/%u", [dir UTF8String], bindless, cache_version);
+    cache_root.printf(sizeof(shdCachePath), "%s/metal_shader_cache%s", [dir UTF8String], bindless);
     #endif
 
     dd_mkdir(shdCachePath);
@@ -1026,15 +1028,14 @@ namespace drv3d_metal
     return desc.descriptor;
   }
 
-  MTLVertexDescriptor* ShadersPreCache::buildDescriptor(Shader* vshader, VDecl* vdecl, const Program::RenderState& rstate, uint64_t& hash)
+  ShadersPreCache::CachedVertexDescriptor ShadersPreCache::buildDescriptor(Shader* vshader, VDecl* vdecl, const Program::RenderState& rstate, uint64_t& hash, uint32_t &buffer_mask)
   {
     G_ASSERT(vshader);
     G_ASSERT(vdecl);
     CachedVertexDescriptor desc;
 
     hash = 0;
-
-    uint32_t buffer_mask = 0;
+    buffer_mask = 0;
     for (int i = 0; i < vshader->num_va; i++)
     {
       Shader::VA& va = vshader->va[i];
@@ -1085,11 +1086,7 @@ namespace drv3d_metal
       hash_combine(hash, std::hash<uint8_t>{}(stream.step));
     }
 
-    auto it = descriptor_cache.find(hash);
-    if (it != end(descriptor_cache))
-      return it->second->descriptor;
-
-    return compileDescriptor(hash, desc);
+    return desc;
   }
 
   void ShadersPreCache::pushNewPipeline(uint64_t hash, CachedPipelineState *pso)
@@ -1242,12 +1239,19 @@ namespace drv3d_metal
 
     uint64_t hash = 0;
     uint64_t decl_hash = !mesh_pipeline && vshader->num_va > 0 ? vdecl->hash : 0;
+    uint64_t metal_decl_hash = 0;
     uint64_t vs_hash = !mesh_pipeline ? vshader->shader_hash : 0;
     uint64_t ps_hash = pshader ? pshader->shader_hash : 0;
     uint64_t ms_hash = mshader ? mshader->shader_hash : 0;
     uint64_t as_hash = ashader ? ashader->shader_hash : 0;
     uint32_t output_mask = pshader ? pshader->output_mask : 0;
-    uint64_t rstate_hash = buildRenderStateHash(rstate, output_mask);
+
+    uint32_t buffer_mask = 0;
+    CachedVertexDescriptor cachedVertexDescriptor;
+    if (decl_hash)
+      cachedVertexDescriptor = buildDescriptor(vshader, vdecl, rstate, metal_decl_hash, buffer_mask);
+
+    uint64_t rstate_hash = buildRenderStateHash(rstate, output_mask, buffer_mask);
 
     if (mesh_pipeline)
     {
@@ -1266,16 +1270,14 @@ namespace drv3d_metal
     if (it != end(pso_cache))
       return it->second->pso;
 
-    MTLVertexDescriptor* vertexDescriptor = nil;
     CachedPipelineState* pso = nullptr;
     {
       std::unique_lock<std::mutex> l(g_cache_mutex);
-      if (!mesh_pipeline && vshader->num_va > 0)
-        vertexDescriptor = buildDescriptor(vshader, vdecl, rstate, decl_hash);
-      else
-        decl_hash = 0;
+      if (decl_hash && descriptor_cache.find(metal_decl_hash) == end(descriptor_cache))
+        compileDescriptor(metal_decl_hash, cachedVertexDescriptor);
       pso = (CachedPipelineState*)pso_cache_objects.allocateOneBlock();
     }
+
     if (mesh_pipeline)
     {
       pso->ms_hash = ms_hash;
@@ -1284,7 +1286,7 @@ namespace drv3d_metal
     else
     {
       pso->vs_hash = vs_hash;
-      pso->descriptor_hash = decl_hash;
+      pso->descriptor_hash = metal_decl_hash;
     }
     pso->ps_hash = ps_hash;
     pso->rstate = rstate;

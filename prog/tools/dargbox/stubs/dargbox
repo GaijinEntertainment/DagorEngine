@@ -1,0 +1,4 @@
+return {
+  reload_scripts = @(_full_reinit) null
+  send_touch_pad_gesture = @(_type, _state, _params) null
+}

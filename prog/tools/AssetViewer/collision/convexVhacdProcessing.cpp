@@ -19,7 +19,7 @@ void ConvexVhacdProcessing::VhacdProgress::Update(const double overallProgress, 
 void ConvexVhacdProcessing::VhacdProgress::NotifyVHACDComplete()
 {
   add_delayed_action(make_delayed_action([&]() {
-    processing->printCalcProgress(100.f);
+    processing->printCalcProgress(100.0);
     processing->checkComputedInterface();
     isComputed = true;
   }));

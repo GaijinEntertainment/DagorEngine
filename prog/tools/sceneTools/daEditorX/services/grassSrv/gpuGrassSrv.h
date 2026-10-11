@@ -22,7 +22,6 @@ struct RandomGPUGrassRenderHelper : IRandomGrassRenderHelper
 class GPUGrassService : public IGPUGrassService
 {
   eastl::unique_ptr<GPUGrass> grass;
-  bool enabled = false;
   RandomGPUGrassRenderHelper grassHelper;
   eastl::vector<GPUGrassType> grassTypes;
   eastl::vector<GPUGrassDecal> grassDecals;
@@ -31,10 +30,12 @@ class GPUGrassService : public IGPUGrassService
   void enumerateGrassDecals(DataBlock &grassBlk);
   int findFreeDecalId() const;
 
+  bool enabled = false;
   bool smallGrass = false;
 
 public:
-  bool srvEnabled;
+  bool srvEnabled = false;
+
   void createGrass(DataBlock &grassBlk) override;
   void closeGrass() override;
   DataBlock *createDefaultGrass() override;
@@ -60,7 +61,10 @@ public:
   bool findDecalId(int id) const override;
 
   void invalidate() override;
+  void afterD3DReset(bool full_reset) override;
 
   void setIsSmallGrass(bool flag) override;
   bool isSmallGrass() const override;
+
+  IRandomGrassRenderHelper *getGrassRenderHelper() override { return &grassHelper; }
 };

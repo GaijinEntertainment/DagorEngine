@@ -198,7 +198,9 @@ size_t ZSTD_compressBlock_doubleFast_generic(
         }   }
 
         ip += ((ip-anchor) >> kSearchStrength) + 1;
-#if defined(__aarch64__)
+// Gaijin change
+#if defined(__aarch64__) || defined(_M_ARM64EC)
+// ~Gaijin change
         PREFETCH_L1(ip+256);
 #endif
         continue;

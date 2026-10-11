@@ -825,7 +825,7 @@ void frontend::BindlessManager::removeReferences(DeviceContext &ctx, D3D12_CPU_D
   removeReferencesNoLock<SlotType>(ctx, nullDescriptor, checker);
 }
 
-void backend::BindlessSetManager::init(ID3D12Device *device)
+void backend::BindlessSetManager::init(D3DDevice *device)
 {
   D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
   heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -864,7 +864,7 @@ void backend::BindlessSetManager::preRecovery()
   samplerHeap.Reset();
 }
 
-void backend::BindlessSetManager::recover(ID3D12Device *device, const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &bindless_samplers)
+void backend::BindlessSetManager::recover(D3DDevice *device, const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &bindless_samplers)
 {
   init(device);
   // not very optimal, but good enough for now
@@ -874,7 +874,7 @@ void backend::BindlessSetManager::recover(ID3D12Device *device, const dag::Vecto
   }
 }
 
-void backend::BindlessSetManager::setResourceDescriptor(ID3D12Device *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+void backend::BindlessSetManager::setResourceDescriptor(D3DDevice *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
   if (!resourceDescriptorHeap)
   {
@@ -884,7 +884,7 @@ void backend::BindlessSetManager::setResourceDescriptor(ID3D12Device *device, ui
   ++resourceDescriptorHeapRevision;
   device->CopyDescriptorsSimple(1, resourceDescriptorStart + slot * resourceDescriptorWidth, descriptor,
     D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  BINDLESS_REPORT("Bindless resource copied from %u to %u -> %u[%u]", descriptor.ptr,
+  BINDLESS_REPORT("Bindless resource copied from %llu to %llu -> %llu[%u]", descriptor.ptr,
     (resourceDescriptorStart + slot * resourceDescriptorWidth).ptr, resourceDescriptorStart.ptr, slot);
 }
 
@@ -893,7 +893,7 @@ void backend::BindlessSetManager::deferResourceDescriptor(uint32_t slot, D3D12_C
   deferredResourceDescriptors.push_back({slot, descriptor});
 }
 
-void backend::BindlessSetManager::applyDeferredResourceDescriptors(ID3D12Device *device)
+void backend::BindlessSetManager::applyDeferredResourceDescriptors(D3DDevice *device)
 {
   for (auto &[slot, descriptor] : deferredResourceDescriptors)
     setResourceDescriptor(device, slot, descriptor);
@@ -901,7 +901,7 @@ void backend::BindlessSetManager::applyDeferredResourceDescriptors(ID3D12Device 
 }
 
 
-void backend::BindlessSetManager::pushToResourceHeap(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &target)
+void backend::BindlessSetManager::pushToResourceHeap(D3DDevice *device, ShaderResourceViewDescriptorHeapManager &target)
 {
   if (!resourceDescriptorHeap)
   {
@@ -910,7 +910,7 @@ void backend::BindlessSetManager::pushToResourceHeap(ID3D12Device *device, Shade
   target.flushBindlessToHeaps(device, resourceDescriptorStart, resourceDescriptorSize, resourceDescriptorHeapRevision);
 }
 
-void backend::BindlessSetManager::setSamplerDescriptor(ID3D12Device *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+void backend::BindlessSetManager::setSamplerDescriptor(D3DDevice *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
   if (!samplerHeap)
   {
@@ -918,11 +918,11 @@ void backend::BindlessSetManager::setSamplerDescriptor(ID3D12Device *device, uin
   }
   samplerDescriptorSize = max(samplerDescriptorSize, slot + 1);
   device->CopyDescriptorsSimple(1, samplerHeapStart + slot * samplerDescriptorWidth, descriptor, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-  BINDLESS_REPORT("Bindless sampler copied from %u to %u -> %u[%u]", descriptor.ptr,
+  BINDLESS_REPORT("Bindless sampler copied from %llu to %llu -> %llu[%u]", descriptor.ptr,
     (samplerHeapStart + slot * samplerDescriptorWidth).ptr, samplerHeapStart.ptr, slot);
 }
 
-void backend::BindlessSetManager::pushToSamplerHeaps(ID3D12Device *device, SamplerDescriptorHeapManager &target)
+void backend::BindlessSetManager::pushToSamplerHeaps(D3DDevice *device, SamplerDescriptorHeapManager &target)
 {
   if (!samplerHeap)
   {

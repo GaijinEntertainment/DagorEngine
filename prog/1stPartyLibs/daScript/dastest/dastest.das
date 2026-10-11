@@ -21,6 +21,7 @@ require dastest_clargs
 require worker_policy
 
 options multiple_contexts
+options threadlock_context = true   // suite.das's sub_test_any_func / sub_test_any_lambda invoke back into this context from a test file's context
 
 // BBATKIN:
 //  temporary: disables persistent heap, because this crashes /tests/dastest
@@ -28,6 +29,8 @@ options multiple_contexts
 options persistent_heap = false
 
 let private jsonResultPrefix = "##dastest##\n"
+
+let TIMEOUT_EXIT_CODE = 124   // the exit code of a suite that ran past --timeout, GNU timeout's convention
 
 struct FileTiming {
     uri : string
@@ -55,6 +58,7 @@ var private fileTimings : array<FileTiming>
 var private failedFiles : array<FailedFile>
 var private timingOutliers : int = 0
 var private maxFileTime : float = 0.0
+var private g_stderr_seq : int = 0   //! with the spawn tick, names each isolated child's stderr file
 var private jsonFilePath : string
 var private jsonTestFile : string
 
@@ -191,12 +195,16 @@ def private run_iso_subprocess(cmd : string; timeoutSec : float; var br : BatchR
     // stack — to stderr. Redirect stderr to a temp file (overrides both paths,
     // and avoids the timeout>0 interleave) and, on abnormal exit, fold it into
     // the crashed file's log so the stack is surfaced under the failing test.
-    let tfRes = create_temp_file_result("dastest_stderr_", ".txt")
-    let errPath = (tfRes is value) ? (tfRes as value) : ""
+    //! the path is minted, never pre-created: a file created and closed here draws a scanner's open on
+    //! Windows, and the shell's `2>` then fails with a sharing violation - the child reads as crashed.
+    //! cmd carries the file and --worker-index, so its hash keeps two workers spawned in one tick apart
+    let tdRes = temp_directory_result()
+    g_stderr_seq++
+    let errPath = (tdRes is value) ? path_join(tdRes as value, "dastest_stderr_{hash(cmd)}_{ref_time_ticks()}_{g_stderr_seq}.txt") : ""
     if (empty(errPath)) {
         // The point of this is to NOT silently lose crash diagnostics, so make
-        // the temp-file failure visible rather than quietly dropping stderr.
-        br.err |> push("dastest: could not create a temp file for subprocess stderr capture ({tfRes as error}); stderr (crash stacks, etc.) will not be surfaced")
+        // the temp-dir failure visible rather than quietly dropping stderr.
+        br.err |> push("dastest: no temp directory for subprocess stderr capture ({tdRes as error}); stderr (crash stacks, etc.) will not be surfaced")
     }
     let runCmd = empty(errPath) ? cmd : "{cmd} 2>\"{errPath}\""
     unsafe {
@@ -298,6 +306,7 @@ def private run_iso_batch(input : IsoInput#; t : int; perTestTimeout : float; ou
     // Batch timeout: per-test budget scaled by batch size (<=0 means none).
     let batchTimeout = perTestTimeout <= 0.0 ? perTestTimeout : perTestTimeout * float(nFiles)
     var br : BatchRun
+    log::started("worker {t + 1} starts: {join(input.uris, " ")}")
     run_iso_subprocess("{input.batchCmd}{widx}", batchTimeout, br)
     let k = min(length(br.results), nFiles)
     // Reported files (a prefix of the batch). The per-file JSON is authoritative,
@@ -379,7 +388,7 @@ def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
                     cop.aot = ctx.use_aot
                     cop.fail_on_no_aot = ctx.use_aot
                     cop.threadlock_context = true
-                    cop.jit_enabled = jit_enabled()
+                    cop.jit_enabled = tests_jit_enabled()
                     compile_file(file, access, unsafe(addr(mg)), cop) $(ok, program, output) {
                         if (!ok) {
                             log::error("Failed to compile {file}\n{output}")
@@ -421,22 +430,21 @@ def deserialize_path(var ctx : SuiteCtx, _files : array<string>, in_file : strin
             return
         }
         var count = 0
-        unsafe {
-            _builtin_read(f, addr(count), typeinfo sizeof(count))
-        }
+        _builtin_read(f, unsafe(addr(count)), typeinfo sizeof(count))
         var sz = 0l
-        unsafe {
-            _builtin_read(f, addr(sz), typeinfo sizeof(sz))
-        }
+        _builtin_read(f, unsafe(addr(sz)), typeinfo sizeof(sz))
         var data : array<uint8>
         data |> reserve(sz)   // the blob size is known: exact reserve, and the resize never grows
         data |> resize(sz)
         fread(f, data)
         log::info("Deserializing {count:d} programs from {in_file}")
         var ser = create_ast_deserializer(data)
-        using() $(var _mg : ModuleGroup) {
+        // the reader's access: a stream carries none, and a program's late require takes its program's
+        var inscope access <- make_file_access(ctx.projectPath)
+        access |> add_file_access_root("dastest", ctx.dastestRoot)
+        using() $(var mg : ModuleGroup) {
             for (i in range(count)) {
-                deserialize_program(ser) $(ok, program, error) {
+                deserialize_program(ser, access, unsafe(addr(mg))) $(ok, program, error) {
                     if (!ok) {
                         log::error("Deserialization failed at program {i}: {error}")
                         res.errors++
@@ -444,6 +452,9 @@ def deserialize_path(var ctx : SuiteCtx, _files : array<string>, in_file : strin
                         return
                     }
                     return if (program._options |> find_arg("rtti") ?as tBool ?? false)
+                    let program_module = program |> get_this_module()
+                    let program_file = program_module != null ? string(program_module.fileName) : "<no module>"
+                    to_log(LOG_INFO, "deser {i + 1:d}/{count:d}: {program_file}\n")
                     simulate(program) $(sok, context, serrors) {
                         if (!sok) {
                             log::error("Failed to simulate program {i}\n{serrors}")
@@ -460,6 +471,7 @@ def deserialize_path(var ctx : SuiteCtx, _files : array<string>, in_file : strin
             }
         }
         delete_ast_serializer(ser)
+        log::info("Deserialized run finished: {count:d} programs, {res.total:d} tests, {res.errors:d} error(s)")
     }
     return res
 }
@@ -523,8 +535,7 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
     let timeout = test_args.timeout
     if (timeout > 0.) {
         unsafe {
-            var mainCtx & = this_context()
-            new_thread <| @capture(& res, & mainCtx) {
+            new_thread() @() {
                 // Polled sleep: chunk into 100ms slices and watch for jobque
                 // shutdown so a clean main-return does not have to wait for
                 // the full timeout. ~Module_JobQue busy-waits on the thread
@@ -537,9 +548,10 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
                     slept += chunk
                 }
                 if (slept >= total_ms) {
-                    unsafe {
-                        mainCtx |> invoke_in_context("timeout_tests", res, startTime, timeout)
-                    }
+                    log::error("dastest: the suite ran past its --timeout of {timeout}s; the process ends here with exit code {TIMEOUT_EXIT_CODE} and no summary")
+                    // not fio::exit - it runs the job queue teardown, which busy-waits on this very thread;
+                    // and nothing here invokes into the main context, which the main thread is still running
+                    unsafe(fio::exit_now(TIMEOUT_EXIT_CODE))
                 }
             }
         }
@@ -548,6 +560,29 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
     var inputPaths := test_args.test_files
     var files : array<string>
     return 1 if (!collect_files(inputPaths, files))
+    if (!empty(test_args.test_list)) {
+        var keep : table<string>
+        fopen(test_args.test_list, "rb") $(fr) {
+            return if (fr == null)
+            fmap(fr) $(data) {
+                for (line in string(data) |> split("\n")) {
+                    let one = line |> strip() |> replace("\\", "/")
+                    keep |> insert(one) if (!empty(one))
+                }
+            }
+        }
+        if (keep |> empty()) {
+            log::error("dastest: --test-list {test_args.test_list} is empty or unreadable")
+            return 1
+        }
+        files |> erase_if() $(f) => !(keep |> key_exists(f |> replace("\\", "/")))
+    }
+    if (!empty(test_args.test_only)) {
+        files |> erase_if() $(f) {
+            let one = f |> replace("\\", "/")
+            return (find_index_if(test_args.test_only) $(p) => p |> replace("\\", "/") == one) < 0
+        }
+    }
     if (!empty(test_args.exclude_files)) {
         files |> erase_if() $(f) {
             let base = base_name(f)
@@ -587,9 +622,12 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
     } elif (!empty(deser_file)) {
         res = deserialize_path(ctx, files, deser_file)
     } elif (!isolatedMode) {
+        var fileIndex = 0
         for (file in files) {
             let uri = ctx.uriPaths ? file_name_to_uri(file) : file
             let fileTime = ref_time_ticks()
+            fileIndex ++
+            log::started("run {fileIndex}/{length(files)}: {uri}")
             let status = suite::test_file(file, ctx)
             let fileDt = get_time_nsec(fileTime) / 1000
             if (status.errors + status.failed == 0) {
@@ -610,7 +648,7 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
         let totalFiles = length(files)
         var totalThreads = test_args.isolated_mode_threads
         if (totalThreads == 0) {
-            totalThreads = (jit_enabled()
+            totalThreads = (tests_jit_enabled()
                 ? default_jit_isolated_threads(get_total_hw_threads())
                 : max(1, get_total_hw_threads() * 2))
         }
@@ -641,7 +679,7 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
                 if (needs_quote) w |> write("\"")
             }
         }
-        let jitstr = jit_enabled() ? "-jit" : ""
+        let jitstr = tests_jit_enabled() ? "-jit" : ""
         let aotstr = is_in_aot() ? "-use-aot" : ""
         let benchstr = ctx.bench_enabled ? "--bench" : ""
         // Forward --stack-on-exception to each worker: the flag sets the test
@@ -650,8 +688,19 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
         // Forward --failures-only so workers suppress per-test PASS lines at the
         // source instead of streaming them all through the captured pipe.
         let failuresOnlyFlag = test_args.failures_only ? " --failures-only" : ""
-        let cmdPrefix = "{launchPrefix} {jitstr} {aotstr} --"
-        let cmdSuffix = " {benchstr}{log::useTtyColors ? " --color" : ""}{headlessFlag}{stackExcFlag}{failuresOnlyFlag}"
+        let useAotFlag = test_args.use_aot ? " --use-aot" : ""
+        let persistentHeapFlag = test_args.persistent_heap ? " --persistent-heap" : ""
+        //! the JIT reads its --jit-* flags off the worker's own command line, so each one crosses to the worker
+        let jitFlags = build_string() $(var w) {
+            for (i in range(dashdash + 1, length(raw_args))) {
+                if (dashdash >= 0 && raw_args[i] |> starts_with("--jit-")) {
+                    w |> write(" ")
+                    w |> write(raw_args[i])
+                }
+            }
+        }
+        let cmdPrefix = "{launchPrefix} {jitstr} {aotstr} --{persistentHeapFlag}"
+        let cmdSuffix = " {benchstr}{log::useTtyColors ? " --color" : ""}{headlessFlag}{stackExcFlag}{failuresOnlyFlag}{useAotFlag}{jitFlags}"
         let batchSize = max(1, test_args.batch)
         // Group files into batches of batchSize. Each batch is run by one worker
         // subprocess (batchCmd); per-file singleCmds are kept so a crash can be
@@ -675,7 +724,7 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
                 bSingles |> push(build_iso_cmd([clone_string(file)], cmdPrefix, cmdSuffix))
             }
             let bCmd = build_iso_cmd(bFiles, cmdPrefix, cmdSuffix)
-            unsafe { delete bFiles }
+            delete bFiles
             batches |> emplace(IsoInput(uris <- bUris, batchCmd = clone_string(bCmd), singleCmds <- bSingles))
             bidx = hi
         }
@@ -744,7 +793,7 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
                                 log::info("to get more information, run the test manually\n> {isoRes.cmd}")
                             } elif (!isoRes.parsedResult) {
                                 reason = "crashed (exit status {isoRes.exitCode})"
-                                log::red("`{isoRes.uri}` execution was interrupted, crashed for example")
+                                log::red("`{isoRes.uri}` ended without a result: the child exited with status {isoRes.exitCode} before printing its summary - a crash, an abort, or a panic outside any test")
                                 log::info("to get more information, run the test manually\n> {isoRes.cmd}")
                             } else {
                                 reason = "{isoRes.status.failed} failed, {isoRes.status.errors} errors"
@@ -762,19 +811,6 @@ def main() : int {  // nolint:STYLE037,STYLE038 - CLI dispatch, one arm per mode
         }
     }
     return finish_tests(res, startTime)
-}
-
-
-[export, pinvoke]
-def timeout_tests(var res : SuiteResult; start_time : int64; timeout_sec : float) {
-    res.errors++
-    res.total++
-    log::error("Test timed out after {timeout_sec}s")
-    // timeout fires from a worker thread; fio::exit is the cross-thread
-    // cancellation mechanism (bypasses shutdown dump — acceptable for this path).
-    unsafe {
-        fio::exit(finish_tests(res, start_time))
-    }
 }
 
 

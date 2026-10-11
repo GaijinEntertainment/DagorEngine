@@ -78,7 +78,7 @@ def test_chain_prefix_of_alias_equality(t : T?) {
     }
 }
 
-def null_emit(var c : Captures; var ctx : EmitCtx; at : LineInfo) : Expression? {
+def null_emit(var _c : Captures; var _ctx : EmitCtx; _at : LineInfo) : Expression? {
     return null
 }
 
@@ -125,23 +125,24 @@ def test_slots_structurally_match_distinguishes_c_chain(t : T?) {
 [test]
 def test_check_pattern_table_reachable_accepts_c_chain(t : T?) {
     t |> run("check_pattern_table_reachable: c_chain head + distinct trailers stay reachable (no shadow)") @(tt : T?) {
-        var patterns : array<SplicePattern>
-        patterns |> emplace <| SplicePattern(
-            name = "chain_then_take",
-            chain <- [
-                slot_chain_of(["where_", "select"], "head"),
-                Slot(matcher = m_literal("take"), cardinality = c_opt(), capture_name = "take")
-            ],
-            emit = @@ < EmitFn > null_emit
-        )
-        patterns |> emplace <| SplicePattern(
-            name = "chain_then_count",
-            chain <- [
-                slot_chain_of(["where_", "select"], "head"),
-                Slot(matcher = m_literal("count"), cardinality = c_opt(), capture_name = "term")
-            ],
-            emit = @@ < EmitFn > null_emit
-        )
+        var patterns <- [
+            SplicePattern(
+                name = "chain_then_take",
+                chain <- [
+                    slot_chain_of(["where_", "select"], "head"),
+                    Slot(matcher = m_literal("take"), cardinality = c_opt(), capture_name = "take")
+                ],
+                emit = @@ < EmitFn > null_emit
+            ),
+            SplicePattern(
+                name = "chain_then_count",
+                chain <- [
+                    slot_chain_of(["where_", "select"], "head"),
+                    Slot(matcher = m_literal("count"), cardinality = c_opt(), capture_name = "term")
+                ],
+                emit = @@ < EmitFn > null_emit
+            )
+        ]
         tt |> equal(check_pattern_table_reachable("synthetic-c_chain-trailers", patterns), true)
     }
 }
@@ -149,22 +150,23 @@ def test_check_pattern_table_reachable_accepts_c_chain(t : T?) {
 [test]
 def test_check_pattern_table_reachable_catches_shadow(t : T?) {
     t |> run("check_pattern_table_reachable: returns false for a table with a strict-prefix shadow") @(tt : T?) {
-        var bad : array<SplicePattern>
-        bad |> emplace <| SplicePattern(
-            name = "short",
-            chain <- [
-                Slot(matcher = m_literal("reverse"), cardinality = c_one())
-            ],
-            emit = @@ < EmitFn > null_emit
-        )
-        bad |> emplace <| SplicePattern(
-            name = "long_shadowed",
-            chain <- [
-                Slot(matcher = m_literal("reverse"), cardinality = c_one()),
-                Slot(matcher = m_literal("take"), cardinality = c_opt())
-            ],
-            emit = @@ < EmitFn > null_emit
-        )
+        var bad <- [
+            SplicePattern(
+                name = "short",
+                chain <- [
+                    Slot(matcher = m_literal("reverse"), cardinality = c_one())
+                ],
+                emit = @@ < EmitFn > null_emit
+            ),
+            SplicePattern(
+                name = "long_shadowed",
+                chain <- [
+                    Slot(matcher = m_literal("reverse"), cardinality = c_one()),
+                    Slot(matcher = m_literal("take"), cardinality = c_opt())
+                ],
+                emit = @@ < EmitFn > null_emit
+            )
+        ]
         tt |> equal(check_pattern_table_reachable("synthetic-shadowed", bad), false)
     }
 }

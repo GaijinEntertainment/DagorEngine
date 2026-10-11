@@ -11,6 +11,7 @@
 #include <math/dag_mathBase.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_adjpow2.h>
+#include <memory/dag_framemem.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlock.h>
@@ -380,10 +381,11 @@ static void process_actions(uint32_t t)
   {
     a.bActivePrev = a.bActive;
     a.bActive = false;
+    a.gpadX = a.gpadY = 0;
   }
 
-  Tab<DigitalActionProgress> daProgress;
-  Tab<uint32_t> pendingEvents;
+  Tab<DigitalActionProgress> daProgress(framemem_ptr());
+  Tab<uint32_t> pendingEvents(framemem_ptr());
   UsedControlsMask umask, next_umask;
   umask = start_umask;
   next_umask = umask;
@@ -750,6 +752,7 @@ static void process_actions(uint32_t t)
           uint16_t type = get_action_type(a);
           float new_x = 0, new_y = 0;
           float new_vx = 0, new_vy = 0;
+          float new_gx = 0, new_gy = 0;
           if (dev5_vr && dev5_vr->isInUsableState())
           {
             auto vra = dev5_vr->getStickActionState(a);
@@ -770,21 +773,21 @@ static void process_actions(uint32_t t)
 
             // compute stick state
             float x = 0, y = 0;
+            float raw_x = 0, raw_y = 0;
             bool x_max_btn_p = false, x_min_btn_p = false, y_max_btn_p = false, y_min_btn_p = false;
 
             if (!is_binding_axis_masked(umask, b))
             {
               x = get_axis_state(b.devId, b.axisXId);
               y = get_axis_state(b.devId, b.axisYId);
-              if (type == TYPE_STICK && (b.devId == dainput::DEV_gamepad || b.devId == dainput::DEV_joy))
+              if (b.devId == dainput::DEV_gamepad || b.devId == dainput::DEV_joy)
               {
                 float d2 = x * x + y * y;
-                if (d2 > 1)
-                {
-                  float d = sqrtf(d2);
-                  x /= d;
-                  y /= d;
-                }
+                float d = d2 > 1 ? sqrtf(d2) : 1.0f;
+                raw_x = x / d;
+                raw_y = y / d;
+                if (type == TYPE_STICK)
+                  x = raw_x, y = raw_y;
               }
             }
             if (type == TYPE_SYSMOUSE && b.devId == DEV_pointing)
@@ -812,19 +815,19 @@ static void process_actions(uint32_t t)
               y_max_btn_p = !is_single_button_masked(umask, b.maxYBtn) && get_btn_state(b.maxYBtn.devId, b.maxYBtn.btnId);
               y_min_btn_p = !is_single_button_masked(umask, b.minYBtn) && get_btn_state(b.minYBtn.devId, b.minYBtn.btnId);
               if (x_max_btn_p)
-                x = min(x + b.maxVal, b.maxVal);
+                x = min(x + b.maxVal, b.maxVal), raw_x = min(raw_x + b.maxVal, b.maxVal);
               if (x_min_btn_p)
-                x = max(x - b.maxVal, -b.maxVal);
+                x = max(x - b.maxVal, -b.maxVal), raw_x = max(raw_x - b.maxVal, -b.maxVal);
 
               if (y_max_btn_p)
-                y = min(y + b.maxVal, b.maxVal);
+                y = min(y + b.maxVal, b.maxVal), raw_y = min(raw_y + b.maxVal, b.maxVal);
               if (y_min_btn_p)
-                y = max(y - b.maxVal, -b.maxVal);
+                y = max(y - b.maxVal, -b.maxVal), raw_y = max(raw_y - b.maxVal, -b.maxVal);
 
               if (b.axisXinv)
-                x = -x;
+                x = -x, raw_x = -raw_x;
               if (b.axisYinv)
-                y = -y;
+                y = -y, raw_y = -raw_y;
             }
             if (b.devId == DEV_pointing && (b.axisXId | b.axisYId) < 2)
               x *= s.mmScaleX, y *= s.mmScaleY;
@@ -835,6 +838,8 @@ static void process_actions(uint32_t t)
             {
               new_vx += x * b.sensScale;
               new_vy += y * b.sensScale;
+              if (b.devId == DEV_gamepad || b.devId == DEV_joy)
+                new_gx += raw_x, new_gy += raw_y;
             }
             else
             {
@@ -861,6 +866,8 @@ static void process_actions(uint32_t t)
               s.y += new_y;
               s.vx = new_vx;
               s.vy = new_vy;
+              s.gpadX = clamp(new_gx, -1.0f, 1.0f);
+              s.gpadY = clamp(new_gy, -1.0f, 1.0f);
             }
             else if (type == TYPE_SYSMOUSE)
             {
@@ -1073,11 +1080,11 @@ void dainput::mouse_wheel_event_occurs(int64_t t_usec, int wheel_inc)
   cwr->endBlock();
   input_queue.endWrite();
 }
-void dainput::mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int scr_x, int scr_y)
+void dainput::mouse_move_event_occurs(int64_t t_usec, float dx, float dy, int scr_x, int scr_y, bool injected)
 {
 #if !(_TARGET_C1 | _TARGET_C2)
   // gamepad's touchpad is reported as a pointing device here, so moving over it must not count as mouse usage
-  if (dx != 0.f || dy != 0.f)
+  if ((dx != 0.f || dy != 0.f) && !injected)
     dev_mouse_lastInputOnFrameNo = dagor_frame_no();
 #endif
   last_queued_t_us.store(t_usec);
@@ -1533,13 +1540,14 @@ bool dainput::finish_recording_bindings(DataBlock &out_binding)
 
 void dainput::set_initial_usage_mask(dag::ConstSpan<SingleButtonId> disable_used_buttons, int ord_idx)
 {
-  if (!disable_used_buttons.size() || interlocked_acquire_load(pending_cnt_start_ubtn[ord_idx]))
+  G_ASSERTF(on_control_thread(), "%s off the daInput control thread", __FUNCTION__);
+  if (!disable_used_buttons.size() || pending_cnt_start_ubtn[ord_idx])
   {
     // delay usage mask clear (or subsequent re-init) to next frame
-    interlocked_increment(pending_cnt_start_ubtn[ord_idx]);
+    pending_cnt_start_ubtn[ord_idx]++;
     add_delayed_action_buffered(make_delayed_action([dub = Tab<SingleButtonId>(disable_used_buttons, tmpmem), ord_idx]() {
       set_initial_usage_mask_immediate(dub, ord_idx);
-      interlocked_decrement(pending_cnt_start_ubtn[ord_idx]);
+      pending_cnt_start_ubtn[ord_idx]--;
     }));
   }
   else

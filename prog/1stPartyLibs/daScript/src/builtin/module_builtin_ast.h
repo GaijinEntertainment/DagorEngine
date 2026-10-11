@@ -190,6 +190,7 @@ namespace das {
     TypeDeclPtr makeVariableAccessInfoFlags();
     TypeDeclPtr makeExprCopyFlags();
     TypeDeclPtr makeExprMoveFlags();
+    TypeDeclPtr makeExprCloneFlags();
     TypeDeclPtr makeExprIfFlags();
     TypeDeclPtr makeExprStringBuilderFlags();
 
@@ -302,6 +303,7 @@ namespace das {
             this->template addField<DAS_BIND_MANAGED_FIELD(values)>("values");
             this->template addField<DAS_BIND_MANAGED_FIELD(gen2)>("gen2");
             this->template addField<DAS_BIND_MANAGED_FIELD(makeArrayOnHeap)>("makeArrayOnHeap");
+            this->template addField<DAS_BIND_MANAGED_FIELD(constValues)>("constValues");
         }
     };
 
@@ -336,6 +338,7 @@ namespace das {
             this->template addField<DAS_BIND_MANAGED_FIELD(baseType)>("baseType");
             this->template addField<DAS_BIND_MANAGED_FIELD(promotedFromInt)>("promotedFromInt");
             this->template addField<DAS_BIND_MANAGED_FIELD(inexactFloatPromotion)>("inexactFloatPromotion");
+            this->template addField<DAS_BIND_MANAGED_FIELD(isConstLiteral)>("isConstLiteral");
         }
         template <typename TT>
         void init( ModuleLibrary & ml ) {

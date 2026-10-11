@@ -214,7 +214,7 @@ bool StaticSceneBuilder::LightmappedScene::calcLightmapMapping(int lm_size, int 
       return false;
     }
 
-    if (cur_num <= 1 && cur_ratio < 1e-3)
+    if (cur_num <= 1 && cur_ratio < 1e-3f)
       break;
 
     if (cur_num == target_lm_num && cur_ratio >= pack_fidelity_ratio * cur_num)
@@ -232,7 +232,7 @@ bool StaticSceneBuilder::LightmappedScene::calcLightmapMapping(int lm_size, int 
     else
       upper_s = lm_scale;
 
-    if (upper_s - lower_s < 1.0e-3 * lm_scale)
+    if (upper_s - lower_s < 1.0e-3f * lm_scale)
     {
       lm_scale = upper_s;
       if (cur_num != target_lm_num)

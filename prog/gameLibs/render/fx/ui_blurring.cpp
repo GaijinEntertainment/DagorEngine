@@ -31,8 +31,19 @@ GLOBAL_VARS_LIST
 
 const int FIRST_GAUSS_SIZE = 3, SECOND_GAUSS_SIZE = 3 * 7 + 1;
 constexpr int FIRST_REG = 16; // same as in shader
-constexpr int CB_SIZE = 4078;
+constexpr int CB_SIZE = 256;
 d3d::SamplerHandle clamp_sampler;
+
+// constraint: the quads array in ui_blur.dshl holds CB_SIZE entries
+static void draw_quads(const int4 *quads, uint32_t count)
+{
+  for (uint32_t i = 0; i < count; i += CB_SIZE)
+  {
+    const uint32_t n = min(count - i, (uint32_t)CB_SIZE);
+    d3d::set_vs_const(FIRST_REG, quads + i, n);
+    d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, n);
+  }
+}
 
 static void init_blur_shader_vars()
 {
@@ -90,8 +101,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
 
   blur.getElem()->setStates();
   const uint32_t quadCount = quad - quad_buffer;
-  d3d::set_vs_const(FIRST_REG, quad_buffer, quadCount);
-  d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+  draw_quads(quad_buffer, quadCount);
 
   d3d::set_render_target({}, DepthAccess::RW, {{tex.getTex2D(), uint32_t(tex_mip), 0}});
   d3d::resource_barrier({interm_texture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(interm_texture_mip), 1});
@@ -99,7 +109,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
   ShaderGlobal::set_float4(blur_pixel_offsetVarId, 0, 1.0f / h, 0, 0);
 
   blur.getElem()->setStates();
-  d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+  draw_quads(quad_buffer, quadCount);
 
   interm_texture.getTex2D()->texmiplevel(-1, -1);
   tex.getTex2D()->texmiplevel(-1, -1);
@@ -136,12 +146,8 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
   TextureInfo ui_info;
   ui_mip.getTex2D()->getinfo(ui_info, 0);
   TextureInfo dinfo;
-  if (end - begin > CB_SIZE)
-  {
-    logerr("Too many ui elements for bluring, count: %d, max: %d", end - begin, CB_SIZE);
-    end = begin + CB_SIZE;
-  }
-  int4 quadBuffer[CB_SIZE];
+  dag::Vector<int4, framemem_allocator> quadBufferMem(end - begin);
+  int4 *quadBuffer = quadBufferMem.data();
   int downsampled_frame_mip = intermediate.getTex2D()->level_count() - 1;
   for (int l = 0, e = intermediate.getTex2D()->level_count(); l < e; ++l)
   {
@@ -188,8 +194,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
     if (quadCount > 0)
     {
       downsample_first_step.getElem()->setStates();
-      d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
-      d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+      draw_quads(quadBuffer, quadCount);
     }
   }
   // then downsample without border
@@ -252,8 +257,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       if (quadCount > 0)
       {
         downsample_4.getElem()->setStates();
-        d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
-        d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
+        draw_quads(quadBuffer, quadCount);
       }
 
       if (!mipBoxes.empty()) // blur even more

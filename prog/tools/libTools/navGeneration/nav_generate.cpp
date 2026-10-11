@@ -1030,8 +1030,6 @@ void CNavMesh::BeginGeneration(real generation_step_size, bool reset_hint_points
 extern void addDebugNode(Point3 pt);
 bool CNavMesh::UpdateGeneration(IGenericProgressIndicator *progress_ind /*, float maxTime*/)
 {
-  double startTime = Plat_FloatTime();
-
   switch (m_generationState)
   {
       //---------------------------------------------------------------------------

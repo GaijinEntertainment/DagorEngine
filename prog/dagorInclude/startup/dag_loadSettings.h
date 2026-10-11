@@ -40,9 +40,14 @@ void dgs_apply_command_line_arg_to_blk(DataBlock *target, const char *value, con
 const char *dgs_cli_arg_value_for_log(const char *arg, char *buf, int buf_size);
 
 // applies settings from config_blk to settings blk (using scheme in settings blk for Config=rel or direct merge for Config=dev)
+// non-const config_blk is filtered in place, a const one is copied and the copy is filtered
+void dgs_apply_config_blk(DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy, bool save_order = false);
 void dgs_apply_config_blk(const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy, bool save_order = false);
 
 // applies settings from config_blk to settings_blk (using scheme in settings_blk for Config=rel or direct merge for Config=dev)
+// non-const config_blk is filtered in place, a const one is copied and the copy is filtered
+void dgs_apply_config_blk_ex(DataBlock &settings_blk, DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy,
+  bool save_order = false);
 void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy,
   bool save_order = false);
 

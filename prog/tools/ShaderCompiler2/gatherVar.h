@@ -65,6 +65,7 @@ public:
   void eval_render_stage(render_stage_stat &) override {}
   void eval_command(shader_directive &) override {}
   void eval_supports(supports_stat &) override;
+  void eval_render_pass(render_pass_use_stat &) override;
 
   void eval_shader_locdecl(local_var_decl &s) override {}
 
@@ -82,7 +83,12 @@ public:
   void eval(immediate_const_block &) override;
 
 private:
-  ShVarBool addIntervalRef(const char *intervalName, Terminal *terminal, bool_value *e);
+  enum class IntervalRefKind
+  {
+    BranchCondition,
+    Statement
+  };
+  ShVarBool addIntervalRef(const char *intervalName, Terminal *terminal, bool_value *e, IntervalRefKind kind);
   ShVarBool addTextureIntervalRef(const char *textureName, Terminal *terminal, bool_value &e);
 };
 } // namespace ShaderParser

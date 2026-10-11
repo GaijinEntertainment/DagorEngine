@@ -168,6 +168,10 @@ typedef struct {
   __m128i lo;
   __m128i hi;
 } mm256i_emu;
+#ifdef __AVX__
+/* the real AVX type, taken before the macro below hides its name */
+typedef __m256i real_m256i;
+#endif
 #define __m256i mm256i_emu
 
 static inline mm256i_emu mm256_setzero_si256(void) {
@@ -252,7 +256,6 @@ static inline mm256i_emu mm256_maddubs_epi16(mm256i_emu a, mm256i_emu b) {
    So we need to make a special when only AVX is available. */
 #ifdef __AVX__
 
-typedef __m256i real_m256i;
 typedef union {
   mm256i_emu fake;
   real_m256i real;

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <3d/dag_picMgr.h>
+#include <daRg/dag_guiConstants.h>
 #include <gui/dag_stdGuiRender.h>
 #include <squirrel.h>
 #include <util/dag_string.h>
@@ -46,12 +47,18 @@ public:
   const PictureManager::PicDesc &getPic();
   bool prefetch(); //> starts pending load, returns true if it is in flight
   BlendMode getBlendMode() const { return blendMode; }
+  // Replaces the texture's own sampler for this picture only, so two pictures on one
+  // texture may be drawn with different filtering.
+  // to be called once per picture instance for avoiding
+  // sampler table lookup and extra caching of original picture sampler
+  void setSamplerOverrideOnce(PicSampler s);
   const char *getName() const { return srcName; }
   Point2 getLoadedPicSize();
 
 protected:
   bool load(const char *name); //> return true if loaded, false if requested to load asynchronously
   void finishPrefetch();
+  void applySampler();
 
 public:
   static constexpr TexFormat def_tex_format = TexFormat::SRGB_IN_UNORM;
@@ -63,6 +70,7 @@ protected:
 
   PictureManager::PicDesc pic;
   BlendMode blendMode = PREMULTIPLIED;
+  d3d::SamplerHandle samplerOverride = d3d::INVALID_SAMPLER_HANDLE;
 
   bool lazy = true;
   bool prefetchPending = false;

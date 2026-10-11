@@ -61,6 +61,6 @@ shader dynamic_emissive_zombie
       #define IS_DYNAMIC 1
     }
     USE_PROJECTIVE_WOUNDS()
-    EMISSIVE_PS()
+    EMISSIVE_PS(GBUFFER_ORDER_DYNAMIC)
   }
 }

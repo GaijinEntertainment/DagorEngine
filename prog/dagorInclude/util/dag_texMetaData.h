@@ -125,11 +125,11 @@ struct TextureMetaData
   bool isValid() const
   {
 #ifndef __GNUC__
-    if (addrU < ADDR_WRAP || addrU > ADDR_MIRRORONCE)
+    if (addrU > ADDR_MIRRORONCE)
       return false;
-    if (addrV < ADDR_WRAP || addrV > ADDR_MIRRORONCE)
+    if (addrV > ADDR_MIRRORONCE)
       return false;
-    if (addrW < ADDR_WRAP || addrW > ADDR_MIRRORONCE)
+    if (addrW > ADDR_MIRRORONCE)
       return false;
 #endif
     if (anisoFunc > AFUNC_ABS)

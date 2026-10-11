@@ -81,7 +81,7 @@ static void normalize2(float v[2])
 {
   float s;
 
-  s = sqrt(v[0] * v[0] + v[1] * v[1]);
+  s = sqrtf(v[0] * v[0] + v[1] * v[1]);
   v[0] = v[0] / s;
   v[1] = v[1] / s;
 }
@@ -90,7 +90,7 @@ static void normalize3(float v[3])
 {
   float s;
 
-  s = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  s = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   v[0] = v[0] / s;
   v[1] = v[1] / s;
   v[2] = v[2] / s;

@@ -198,24 +198,8 @@ void DagExporter::saveBigMeshNodes(Node *rootNode, const PtrTab<MaterialData> &m
 
 static void writeMeshToDag(DagSaver &dagSaver, Mesh &mesh, bool saveNormals)
 {
-  DagBigMapChannel mapChannel[NUMMESHTCH];
-  int mapChannelCount = 0;
-  TVertTab tvert[NUMMESHTCH];
-  memset(mapChannel, 0, sizeof(mapChannel));
-  for (int mapChannelId = 0; mapChannelId < NUMMESHTCH; ++mapChannelId)
-  {
-    if (!mesh.getTFace(mapChannelId).size())
-      continue;
-    mapChannel[mapChannelCount].numtv = mesh.getTVert(mapChannelId).size();
-    mapChannel[mapChannelCount].num_tv_coords = 2;
-    mapChannel[mapChannelCount].channel_id = mapChannelCount + 1;
-    tvert[mapChannelCount] = mesh.getTVert(mapChannelId);
-    for (int tvertId = tvert[mapChannelCount].size(); --tvertId >= 0;)
-      tvert[mapChannelCount][tvertId].y = -tvert[mapChannelCount][tvertId].y;
-    mapChannel[mapChannelCount].tverts = &tvert[mapChannelCount][0].x;
-    mapChannel[mapChannelCount].tface = (DagBigTFace *)&mesh.getTFace(mapChannelId)[0];
-    ++mapChannelCount;
-  }
+  DagMapChannels mapChannel;
+  mapChannel.fill(mesh.getMeshData());
 
   dag::ConstSpan<Face> face = mesh.getFace();
   Tab<DagBigFace> dagBigFace(tmpmem);
@@ -232,8 +216,8 @@ static void writeMeshToDag(DagSaver &dagSaver, Mesh &mesh, bool saveNormals)
 
   if (!saveNormals)
   {
-    dagSaver.save_dag_bigmesh(mesh.getVert().size(), &mesh.getVert()[0], dagBigFace.size(), &dagBigFace[0], mapChannelCount,
-      mapChannel);
+    dagSaver.save_dag_bigmesh(mesh.getVert().size(), &mesh.getVert()[0], dagBigFace.size(), &dagBigFace[0], mapChannel.count,
+      mapChannel.channel);
   }
   else
   {
@@ -246,8 +230,8 @@ static void writeMeshToDag(DagSaver &dagSaver, Mesh &mesh, bool saveNormals)
         tFace[i].t[j] = f[j];
     }
 
-    dagSaver.save_dag_bigmesh(mesh.getVert().size(), &mesh.getVert()[0], dagBigFace.size(), &dagBigFace[0], mapChannelCount,
-      mapChannel, NULL, &tFace[0], &mesh.getVertNorm()[0], mesh.getVertNorm().size());
+    dagSaver.save_dag_bigmesh(mesh.getVert().size(), &mesh.getVert()[0], dagBigFace.size(), &dagBigFace[0], mapChannel.count,
+      mapChannel.channel, NULL, &tFace[0], &mesh.getVertNorm()[0], mesh.getVertNorm().size());
   }
 }
 

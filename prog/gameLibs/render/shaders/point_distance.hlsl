@@ -169,29 +169,34 @@
     return p - (dot(PA, N) * N)/length_sq(N);
   }
 
+  // Ericson's edge test (0 <= num <= len, outside the edge); len > 0 keeps a zero-length edge of a
+  // degenerate triangle from claiming the point that the other two edges own
+  bool closestPointOnEdgeRegion(float num, float len, float area) { return num >= 0 && num <= len && area <= 0 && len > 0; }
+
+  // Closest point to p on triangle ABC by Ericson's Voronoi regions (RTCD 5.1.5), slivers included.
+  // constraint: dag_swBLAS_leaf.h closestPointOnTriVec picks the same regions, but answers a sliver by its nearest edge
   float3 closestPointOnTriangleBarycentric(float3 p, float3 A, float3 B, float3 C)
   {
-    float3 BA = B - A, PA = p - A;
-    float3 CB = C - B, PB = p - B;
-    float3 AC = A - C, PC = p - C;
+    float3 AB = B - A, AC = C - A, BC = C - B;
+    float3 PA = p - A, PB = p - B;
+    float3 N = cross(AB, AC);
+    // per edge (AB and AC from A, BC from B): numerator, squared length, and the area on the far
+    // side of the edge as a triple product, whose error scales with |N| and stays exact for slivers
+    float3 num = float3(dot(AB, PA), dot(AC, PA), dot(BC, PB));
+    float3 len = float3(dot(AB, AB), dot(AC, AC), dot(BC, BC));
+    float3 area = float3(dot(cross(N, AB), PA), dot(cross(AC, N), PA), dot(cross(N, BC), PB));
+    float3 t = num / max(len, 1e-37);
+    bool3 lo = num <= 0, hi = num >= len;
 
-    float3 N = cross( BA, AC );
-    float3 q = cross( N, PA );
-    float d = rcp(length_sq(N));
-    float u = d*dot( q, AC );
-    float v = d*dot( q, BA );
-    float w = 1.0-u-v;
-
-    FLATTEN
-         if( u<0.0 ) { w = saturate( dot(PC, AC) / length_sq(AC)); u = 0.0; v = 1.0-w; }
-    else
-    FLATTEN
-    if( v<0.0 ) { u = saturate( dot(PA, BA) / length_sq(BA)); v = 0.0; w = 1.0-u; }
-	else
-    FLATTEN
-	if( w<0.0 ) { v = saturate( dot(PB, CB) / length_sq(CB)); w = 0.0; u = 1.0-v; }
-
-    return u*B + v*C + w*A;
+    // lowest priority first, so each later select overrides, in Ericson's test order
+    float2 vw = float2(area.y, area.x) * rcp(max(dot(N, N), 1e-37)); // weights of B and C
+    vw = closestPointOnEdgeRegion(num.z, len.z, area.z) ? float2(1 - t.z, t.z) : vw;
+    vw = closestPointOnEdgeRegion(num.y, len.y, area.y) ? float2(0, t.y) : vw;
+    vw = hi.y && hi.z ? float2(0, 1) : vw;
+    vw = closestPointOnEdgeRegion(num.x, len.x, area.x) ? float2(t.x, 0) : vw;
+    vw = hi.x && lo.z ? float2(1, 0) : vw;
+    vw = lo.x && lo.y ? float2(0, 0) : vw;
+    return A + AB * vw.x + AC * vw.y;
   }
 
 #endif

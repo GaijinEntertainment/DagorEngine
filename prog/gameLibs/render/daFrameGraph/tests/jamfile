@@ -72,8 +72,6 @@ AddIncludes =
 Sources =
   main.cpp
   benchmark.cpp
-  packer.cpp
-  performance.cpp
   runtime.cpp
   multiplexing.cpp
   idContainers.cpp
@@ -84,8 +82,14 @@ Sources =
   nodeStateDeltas.cpp
   nodeRemap.cpp
   resourceScheduler.cpp
+  heapLayout.cpp
+  layoutUpdate.cpp
+  heapPolicy.cpp
+  layoutOptimizer.cpp
   virtualPassRequest.cpp
   refinedBlock.cpp
+  resourceLruCache.cpp
+  resourceLruCacheBenchmark.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

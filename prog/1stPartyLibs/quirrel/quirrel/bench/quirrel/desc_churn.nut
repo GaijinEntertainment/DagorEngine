@@ -1,6 +1,6 @@
 // component-description churn: build and discard small string-keyed tables
 // with nested arrays, the shape of a daRg builder re-evaluation
-let { clock } = require("datetime")
+from "profile.nut" import vmBench
 
 const N = 100000
 
@@ -28,18 +28,19 @@ function mkDesc(i) {
     opacity = 0.5
     zOrder = i % 10
     clipChildren = true
-    behavior = null
-    hotkeys = null
+    behavior = false
+    hotkeys = false
     children = [mkChild(i), mkChild(i + 1), mkChild(i + 2)]
   }
 }
 
-for (local rep = 0; rep < 5; rep++) {
-  local t0 = clock()
+function churn() {
   local sum = 0
   for (local i = 0; i < N; i++) {
     let d = mkDesc(i)
     sum += d.zOrder + d.children.len()
   }
-  println("BENCH desc_churn", ((clock() - t0) * 1000), $"ms (r={sum })")
+  return sum
 }
+
+vmBench("desc_churn", churn)

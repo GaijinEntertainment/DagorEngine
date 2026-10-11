@@ -14,8 +14,17 @@
 #include <shaders/dag_computeShaders.h>
 
 #include <EASTL/optional.h>
+#include <EASTL/fixed_function.h>
 
 class TextureIDPair;
+
+namespace dafg
+{
+class Registry;
+}
+
+namespace render::antialiasing
+{
 
 class TemporalSuperResolution
 {
@@ -31,7 +40,8 @@ public:
   TemporalSuperResolution(const IPoint2 &input_resolution, const IPoint2 &output_resolution, bool vr_mode = false);
   void releaseShaderResources();
   void setExtraTexFlags(unsigned int flags) { extraTexFlags = flags; }
-  dafg::NodeHandle createApplierNode(const char *input_name);
+  dafg::NodeHandle createApplierNode(const char *input_name,
+    eastl::fixed_function<32, void(dafg::Registry)> declare_motion_vectors = nullptr);
 
   struct ApplyTextures
   {
@@ -50,7 +60,7 @@ public:
   void apply(const ApplyTextures &textures, const Point4 &uv_transform, bool reset = false, Point2 jitterPixelOffset = Point2::ZERO,
     IPoint2 input_resolution = IPoint2::ZERO);
 
-  TextureIDPair getDebugRenderTarget();
+  ManagedTexView getDebugRenderTarget();
   unsigned int getOutputTextureFormat() const;
 
   bool isValid() const { return true; }
@@ -75,3 +85,5 @@ private:
 
   Preset preset;
 };
+
+} // namespace render::antialiasing

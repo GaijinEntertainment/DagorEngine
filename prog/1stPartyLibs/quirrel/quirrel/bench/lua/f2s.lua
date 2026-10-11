@@ -1,26 +1,22 @@
-TOTAL_NUMBERS = 10000
-TOTAL_TIMES = 100
+local tostring <const> = tostring
+local benchmark <const> = require("profile").benchmark
 
-function mk_float(i)
-    return i + (i/TOTAL_NUMBERS)
+local COUNT <const> = 10000
+local PASSES <const> = 100
+
+local floats <const> = table.create(COUNT)
+for i = 0, COUNT - 1 do
+  floats[i + 1] = (i + 1) * 1.0001
 end
 
-function update(nums)
-    local summ = 0
-    for i = 1, TOTAL_TIMES do
-        for i,num in ipairs(nums) do
-            summ = summ + #(tostring(num))
-        end
+-- no result: float formats differ per language
+local function totalLength(nums)
+  local total = 0
+  for _ = 1, PASSES do
+    for i = 1, #nums do
+      total = total + #tostring(nums[i])
     end
-    return summ
+  end
 end
 
-nums = {}
-for i = 1, TOTAL_NUMBERS do
-table.insert(nums, mk_float(i))
-end
-
-loadfile("profile.lua")()
----
-io.write(string.format("\"float2string\", %.8f, 20\n", profile_it(20, function () update(nums) end)))
-
+benchmark("float2string", 20, function() totalLength(floats) end)

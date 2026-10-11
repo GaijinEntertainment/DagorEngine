@@ -19,6 +19,13 @@ using namespace hdpi;
 namespace PropPanel
 {
 
+namespace
+{
+// The color picker runs a modal loop, so at most one is open in the process. The control that opened it
+// clears this when it dies, which is how the frame under that loop learns that it is gone.
+GradientControlStandalone *control_with_open_picker = nullptr;
+} // namespace
+
 // -----------------Track Gradient Button --------------------------
 
 TrackGradientButton::TrackGradientButton(WindowControlEventHandler *event_handler, E3DCOLOR color, bool moveable,
@@ -36,30 +43,56 @@ TrackGradientButton::TrackGradientButton(WindowControlEventHandler *event_handle
   updateTooltipText();
 }
 
-void TrackGradientButton::showColorPicker()
+void TrackGradientButton::onColorDialogChange(E3DCOLOR color) { applyColor(color); }
+
+// One onWcChanging per picker session, then onWcChange per step: the same shape as onDrag. The dialog
+// drops a report equal to the last one it sent, so every report that arrives here is a real change.
+void TrackGradientButton::applyColor(E3DCOLOR new_color)
 {
-  if (!moving)
+  if (!colorChangeStarted)
   {
-    E3DCOLOR _color = mColor;
-    String name;
-    static int i = 1;
-    name.printf(32, "Select color %d", i++);
-    if (ColorDialog::select_color(nullptr, name, _color))
+    colorChangeStarted = true;
+    if (mEventHandler)
     {
-      if (mEventHandler)
-        mEventHandler->onWcChanging(windowBaseForEventHandler);
-
-      mColor = _color;
-      mOwner->updateCycled(this);
-
-      if (mEventHandler)
-        mEventHandler->onWcChange(windowBaseForEventHandler);
+      mEventHandler->onWcChanging(windowBaseForEventHandler);
     }
   }
 
+  mColor = new_color;
+  updateTooltipText();
+  mOwner->updateCycled(this); // the mirrored end key of a cycled gradient follows and reverts too
+
+  if (mEventHandler)
+  {
+    mEventHandler->onWcChange(windowBaseForEventHandler);
+  }
+}
+
+void TrackGradientButton::showColorPicker()
+{
+  // The drag state is reset up front because showDialog() below pumps the host's frames, and the host
+  // can delete this key in one of them: nothing may run after that call.
+  const bool wasMoving = moving;
   moving = false;
   firstDragMsg = true;
   updateTooltipText();
+
+  if (wasMoving)
+  {
+    return;
+  }
+
+  String name;
+  static int i = 1;
+  name.printf(32, "Select color %d", i++);
+
+  // The key follows the dialog, so the gradient and its consumers show the color in context. The dialog
+  // reports the color it settled on too, so OK and Cancel both arrive as a report.
+  colorChangeStarted = false;
+  ColorDialog dialog(nullptr, name, mColor);
+  dialog.setChangeHandler(this);
+  mOwner->beginColorPicker(dialog);
+  dialog.showDialog();
 }
 
 intptr_t TrackGradientButton::onDrag(int new_x, int new_y)
@@ -201,8 +234,20 @@ GradientControlStandalone::GradientControlStandalone(WindowControlEventHandler *
 
 GradientControlStandalone::~GradientControlStandalone()
 {
+  if (control_with_open_picker == this)
+  {
+    control_with_open_picker = nullptr;
+  }
   cancelColorPickerShowRequest();
+  detachOpenColorPicker();
   clear_all_ptr_items(mKeys);
+}
+
+
+void GradientControlStandalone::beginColorPicker(ColorDialog &dialog)
+{
+  openColorPicker = &dialog;
+  control_with_open_picker = this;
 }
 
 
@@ -215,9 +260,10 @@ void GradientControlStandalone::draw()
       if (mEventHandler)
         mEventHandler->onWcChanging(windowBaseForEventHandler);
 
+      cancelColorPickerShowRequest();
+      detachOpenColorPicker();
       delete mKeys[i];
       erase_items(mKeys, i, 1);
-      cancelColorPickerShowRequest();
       mouseClickKeyIndex = -1;
 
       if (mEventHandler)
@@ -423,8 +469,9 @@ void GradientControlStandalone::setValue(PGradient source)
       return;
   }
 
-  clear_all_ptr_items(mKeys);
   cancelColorPickerShowRequest();
+  detachOpenColorPicker();
+  clear_all_ptr_items(mKeys);
   mouseClickKeyIndex = -1;
 
   TrackGradientButton *left = new TrackGradientButton(mEventHandler, value[0].color, false, this, minValue);
@@ -504,8 +551,9 @@ float GradientControlStandalone::getValueFromNormalized(float normalized_value) 
 
 void GradientControlStandalone::reset()
 {
-  clear_all_ptr_items(mKeys);
   cancelColorPickerShowRequest();
+  detachOpenColorPicker();
+  clear_all_ptr_items(mKeys);
   mouseClickKeyIndex = -1;
 
   TrackGradientButton *left = new TrackGradientButton(mEventHandler, E3DCOLOR(255, 255, 255), false, this, minValue);
@@ -555,6 +603,17 @@ void GradientControlStandalone::cancelColorPickerShowRequest()
   showColorPickerForKeyIndex = -1;
 }
 
+// The dialog reports into the key that opened it, so it has to stop before that key is deleted. Every
+// path that deletes keys calls this first.
+void GradientControlStandalone::detachOpenColorPicker()
+{
+  if (openColorPicker)
+  {
+    openColorPicker->setChangeHandler(nullptr);
+    openColorPicker = nullptr;
+  }
+}
+
 void GradientControlStandalone::handleKeyPresses(unsigned canvas_id)
 {
   if (mEventHandler && ImguiHelper::isKeyChordPressedOwned(ImGuiMod_Ctrl | ImGuiKey_C, canvas_id))
@@ -590,6 +649,14 @@ void GradientControlStandalone::onImguiDelayedCallback(void *user_data)
     return;
 
   mKeys[showColorPickerForKeyIndex]->showColorPicker();
+
+  // The picker ran a modal loop that pumps the host's frames, and the host can delete this control in
+  // one of them. The destructor clears the marker, so a mismatch means there is nothing left to clear.
+  if (control_with_open_picker != this)
+    return;
+
+  control_with_open_picker = nullptr;
+  openColorPicker = nullptr;
   showColorPickerForKeyIndex = -1;
 }
 

@@ -30,6 +30,9 @@ struct WindowCreationOptions
   bool maximized = true; // Only when windowMode is WindowMode::WINDOWED_RESIZABLE.
 };
 
+// Output modes, display and window sizes, window rects and cursor positions in this API are in physical pixels
+// at any desktop scale.
+
 // Init linux GUI system, X11 or Wayland, depending on underlying conditions
 KRNLIMP bool init();
 KRNLIMP bool is_wayland();
@@ -38,6 +41,8 @@ KRNLIMP void shutdown();
 
 KRNLIMP bool change_gamma(float value);
 KRNLIMP void get_display_size(int &width, int &height, bool for_primary_output = false);
+// Returns resolutions ("W x H"). Wayland has no mode switching, so there the list holds the current and preferred modes
+// of the default output and the standard window sizes that fit the current mode.
 KRNLIMP void get_video_mode_list(Tab<String> &list);
 
 // Returns unique, identifiable names of active (connected) monitors.
@@ -45,7 +50,8 @@ KRNLIMP void get_monitors(Tab<String> &monitor_names);
 // Returns user-friendly info about a monitor. monitor_name == nullptr/empty selects the primary/default monitor.
 // friendly_name and monitor_index are optional (may be nullptr). Returns false if the monitor was not found.
 KRNLIMP bool get_monitor_info(const char *monitor_name, String *friendly_name, int *monitor_index);
-// Returns available resolutions ("W x H") for a single monitor. monitor_name == nullptr/empty selects the primary/default monitor.
+// Returns available resolutions ("W x H") for a single monitor, on Wayland with the same standard window sizes.
+// monitor_name == nullptr/empty selects the primary/default monitor.
 KRNLIMP void get_resolutions_from_monitor(const char *monitor_name, Tab<String> &resolutions);
 
 KRNLIMP void *get_main_window_ptr_handle();
@@ -77,6 +83,8 @@ KRNLIMP bool get_last_cursor_pos(int *cx, int *cy, void *w);
 KRNLIMP void set_cursor(void *w, const char *cursor_name);
 KRNLIMP void set_cursor_position(int cx, int cy, void *w);
 KRNLIMP void get_absolute_cursor_position(int &cx, int &cy);
+// Gives unaccelerated pointer motion, not a difference of cursor positions, so it does not follow the desktop scale.
+// Returns false when the backend has no relative motion; the caller then takes the cursor position difference.
 KRNLIMP bool get_cursor_delta(int &cx, int &cy, void *w);
 KRNLIMP void clip_cursor();
 KRNLIMP void unclip_cursor();

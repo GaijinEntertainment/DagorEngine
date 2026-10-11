@@ -323,10 +323,10 @@ public:
       _snprintf(strName, sizeof(strName), formatStr, fp.funcName.str());
       strName[sizeof(strName) - 1] = 0;
 
-      int allTimePct = int((fp.allTime / (double)all_time) * 10000.0f);
-      int selfTimePct = int((selfTime / (double)all_time) * 10000.0f);
-      double allRelativePct = (allTime / (double)testTimeMsec) * 100.0f / 1000.0;   // usec->msec
-      double selfRelativePct = (selfTime / (double)testTimeMsec) * 100.0f / 1000.0; // usec->msec
+      int allTimePct = int((fp.allTime / (double)all_time) * 10000.0);
+      int selfTimePct = int((selfTime / (double)all_time) * 10000.0);
+      double allRelativePct = (allTime / (double)testTimeMsec) * 100.0 / 1000.0;   // usec->msec
+      double selfRelativePct = (selfTime / (double)testTimeMsec) * 100.0 / 1000.0; // usec->msec
 
       res.aprintf(512, "%s;%s;%4d.%03d;%4d.%03d;%3d.%02d%%;%3d.%02d%%;%5d;%4d.%03d;%4d.%03d;%9.4f%%;%9.4f%%; %s:%d\n",
         fp.bNative ? "native" : "script", strName, int(allTime) / 1000, int(allTime) % 1000, int(selfTime) / 1000,

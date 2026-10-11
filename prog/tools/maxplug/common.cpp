@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-HWND add_rollup_page(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param, DWORD flags)
+HWND add_rollup_page(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, DWORD flags)
 {
   const WCHAR *tpl = MAKEINTRESOURCE(resource_id);
   HWND hw = ip->AddRollupPage(hInstance, tpl, proc, title, 0, flags);

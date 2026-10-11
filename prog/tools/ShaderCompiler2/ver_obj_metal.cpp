@@ -6,7 +6,7 @@
 #include "util/dag_globDef.h"
 
 // Increase this number if changes in the compiler invalidate .obj for metal
-extern const int VER_OBJ_METAL_VAL = _MAKE4C('13.7');
+extern const int VER_OBJ_METAL_VAL = _MAKE4C('13.8');
 
 #if _CROSS_TARGET_METAL
 #include <drv/shadersMetaData/metal/register_limits.h>

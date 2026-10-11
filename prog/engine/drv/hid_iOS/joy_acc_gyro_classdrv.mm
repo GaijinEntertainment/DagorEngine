@@ -367,7 +367,7 @@ static iOSJoystickClassDriver *iosJoystickClassDriver = nullptr;
 namespace HumanInput
 {
 extern JoystickSettings stg_joy;
-IGenJoystickClassDrv *createJoystickClassDriver(bool, bool)
+IGenJoystickClassDrv *createJoystickClassDriver(bool, bool, bool)
 {
   if (!iosJoystickClassDriver)
     iosJoystickClassDriver = new iOSJoystickClassDriver();

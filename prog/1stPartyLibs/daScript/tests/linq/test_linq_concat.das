@@ -1,7 +1,6 @@
 options gen2
 require daslib/linq
 require dastest/testing_boost public
-require math
 
 require daslib/linq
 
@@ -29,7 +28,7 @@ def test_append(t : T?) {
         }
     }
     t |> run("append to array") @(t : T?) {
-        var qarray = append_to_array(
+        let qarray = append_to_array(
             [iterator for(x in 0..5); x],
             5
         )
@@ -42,7 +41,7 @@ def test_append(t : T?) {
     }
     t |> run("append from array") @(t : T?) {
         let arr = [for (x in 0..5); x]
-        var result = append(arr, 5)
+        let result = append(arr, 5)
         t |> success(result.Equal([0, 1, 2, 3, 4, 5]))
     }
 }
@@ -68,7 +67,7 @@ def test_prepend(t : T?) {
         }
     }
     t |> run("prepend to array") @(t : T?) {
-        var qarray = prepend_to_array(
+        let qarray = prepend_to_array(
             [iterator for(x in 0..5); x],
             -1
         )
@@ -81,7 +80,7 @@ def test_prepend(t : T?) {
     }
     t |> run("prepend from array") @(t : T?) {
         let arr = [for (x in 0..5); x]
-        var result = prepend(arr, -1)
+        let result = prepend(arr, -1)
         t |> success(result.Equal([-1, 0, 1, 2, 3, 4]))
     }
 }
@@ -107,7 +106,7 @@ def test_concat(t : T?) {
         }
     }
     t |> run("concat to array") @(t : T?) {
-        var qarray = concat_to_array(
+        let qarray = concat_to_array(
             [iterator for(x in 0..5); x],
             [iterator for(x in 5..10); x]
         )
@@ -121,7 +120,7 @@ def test_concat(t : T?) {
     t |> run("concat from arrays") @(t : T?) {
         let a = [for (x in 0..5); x]
         let b = [for (x in 5..10); x]
-        var result = concat(a, b)
+        let result = concat(a, b)
         t |> success(result.Equal([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
     }
 }

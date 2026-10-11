@@ -48,7 +48,7 @@ variant Foo {
 [test]
 def test_logical_ops(t : T?) {
     t |> run("!") @(t : T?) {
-        var a : int[3]
+        let a : int[3]
         t |> equal(1, take_not(a))
         t |> equal(2, take_not(13))
     }
@@ -101,10 +101,10 @@ def test_builtin_contracts(t : T?) {
         var a = 1
         t |> equal(true, take_i(a))
         t |> equal(false, take_i(1))
-        var A <- tam(1)
+        let A <- tam(1)
         t |> equal(1, length(A))
         t |> equal(2, A[0])
-        var B <- tam(a)
+        let B <- tam(a)
         t |> equal(1, length(B))
         t |> equal(1, B[0])
         t |> equal(0, a)

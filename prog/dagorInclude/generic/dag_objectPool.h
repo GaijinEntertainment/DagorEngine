@@ -130,6 +130,7 @@ class ObjectPool
                        DestructorHandler<eastl::is_trivially_destructible<T>::value, false>
   {};
 
+protected:
   class Block : public Policy::template BlockData<T, BlockSize>
   {
     using StorageUnit = typename eastl::aligned_storage<sizeof(T), alignof(T)>::type;

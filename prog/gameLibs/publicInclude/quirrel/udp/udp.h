@@ -9,7 +9,6 @@ class SqModules;
 namespace bindquirrel::udp
 {
 
-void init();
 void shutdown();
 void bind(SqModules *module_mgr);
 

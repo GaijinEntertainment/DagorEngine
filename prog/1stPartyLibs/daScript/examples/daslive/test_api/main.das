@@ -8,13 +8,13 @@ require live_host
 
 var spawn_count : int = 0
 
-[live_command]
+[live_command, unused_argument(input)]
 def spawn(input : JsonValue?) : JsonValue? {
     spawn_count++
     return JV(spawn_count)
 }
 
-[live_command]
+[live_command, unused_argument(input)]
 def get_status(input : JsonValue?) : JsonValue? {
     return JV("alive")
 }

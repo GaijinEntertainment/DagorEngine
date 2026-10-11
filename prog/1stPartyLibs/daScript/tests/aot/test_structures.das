@@ -16,7 +16,7 @@ def distance(a, b : Point) : float {
 [test]
 def test_struct_basics(t : T?) {
     t |> run("struct creation and access") @(t : T?) {
-        var p = Point(x = 3.0, y = 4.0)
+        let p = Point(x = 3.0, y = 4.0)
         t |> equal(p.x, 3.0)
         t |> equal(p.y, 4.0)
     }
@@ -32,7 +32,7 @@ struct Counter {
 }
 
 def inc(var c : Counter) {
-    c.value += 1
+    c.value++
 }
 
 def get_value(c : Counter) : int {
@@ -88,6 +88,7 @@ def test_classes(t : T?) {
 def test_arrays(t : T?) {
     t |> run("array operations") @(t : T?) {
         var arr : array<int>
+        arr |> reserve(5)
         for (i in range(5)) {
             arr |> push(i * i)
         }

@@ -246,19 +246,19 @@ function [pure] mul_color(color: int, mult: number, alpha_mult: number=1) {
                  colorPart(((color >> 24) & 0xff) * mult * alpha_mult))
 }
 
-function [pure] XmbNode(params={}) {
+function XmbNode(params={}) {
   return clone params
 }
 
-function [pure] XmbContainer(params={}) {
+function XmbContainer(params={}) {
   return XmbNode({
     canFocus = false
   }.__merge(params))
 }
 
-function mkWatched(persistFunc, persistKey, defVal=null, observableInitArg=null){
+function mkWatched(persistFunc, persistKey, defVal=null){
   let container = persistFunc(persistKey, @() {v=defVal})
-  let watch = observableInitArg==null ? Watched(container.v) : Watched(container.v, observableInitArg)
+  let watch = Watched(container.v)
   watch.subscribe(@(v) container.v=v)
   return watch
 }

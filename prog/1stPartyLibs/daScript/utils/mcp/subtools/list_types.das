@@ -6,6 +6,24 @@ require ../tools/common.das public
 
 //! Subprocess form of `list_types`. Argv: <file> <project>.
 
+// parent, source line and one row per documented field. Classes additionally skip methods,
+// which are listed separately.
+def private write_type_body(var w : StringBuilderWriter; value : StructurePtr; skip_methods : bool) : void {
+    if (value.parent != null) {
+        write(w, " : {value.parent.name}")
+    }
+    write(w, "  // line {int(value.at.line)}\n")
+    for (fld in value.fields) {
+        if (fld.flags.generated || !fld.flags.implemented || fld.flags.parentType
+            || fld.name == "__rtti" || (skip_methods && fld.flags.classMethod)) continue
+        write(w, "    {fld.name} : {describe(fld._type)}")
+        if (fld.init != null) {
+            write(w, " = {describe(fld.init)}")
+        }
+        write(w, "\n")
+    }
+}
+
 def write_type_list(var writer : StringBuilderWriter; program : smart_ptr<Program>) {
     let thisMod = get_this_module(program)
     var structs : array<string>
@@ -17,32 +35,10 @@ def write_type_list(var writer : StringBuilderWriter; program : smart_ptr<Progra
         let entry = build_string() $(var w) {
             if (value.flags.isClass) {
                 write(w, "  class {value.name}")
-                if (value.parent != null) {
-                    write(w, " : {value.parent.name}")
-                }
-                write(w, "  // line {int(value.at.line)}\n")
-                for (fld in value.fields) {
-                    if (fld.flags.classMethod || fld.flags.generated || !fld.flags.implemented || fld.flags.parentType || fld.name == "__rtti") continue
-                    write(w, "    {fld.name} : {describe(fld._type)}")
-                    if (fld.init != null) {
-                        write(w, " = {describe(fld.init)}")
-                    }
-                    write(w, "\n")
-                }
+                write_type_body(w, value, true)
             } else {
                 write(w, "  struct {value.name}")
-                if (value.parent != null) {
-                    write(w, " : {value.parent.name}")
-                }
-                write(w, "  // line {int(value.at.line)}\n")
-                for (fld in value.fields) {
-                    if (fld.flags.generated || !fld.flags.implemented || fld.flags.parentType || fld.name == "__rtti") continue
-                    write(w, "    {fld.name} : {describe(fld._type)}")
-                    if (fld.init != null) {
-                        write(w, " = {describe(fld.init)}")
-                    }
-                    write(w, "\n")
-                }
+                write_type_body(w, value, false)
             }
         }
         if (value.flags.isClass) {

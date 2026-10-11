@@ -778,6 +778,18 @@ namespace d3d _MULTI_INTERFACE
 int driver_command(Drv3dCommand command, void *par1 = nullptr, void *par2 = nullptr, void *par3 = nullptr);
 } // namespace d3d _MULTI_INTERFACE
 
+namespace d3d
+{
+// RAII helper to delay sync until scope exit
+struct DelaySyncScope
+{
+  DelaySyncScope() { d3d::driver_command(Drv3dCommand::DELAY_SYNC); }
+  ~DelaySyncScope() { d3d::driver_command(Drv3dCommand::CONTINUE_SYNC); }
+  DelaySyncScope(const DelaySyncScope &) = delete;
+  DelaySyncScope &operator=(const DelaySyncScope &) = delete;
+};
+} // namespace d3d
+
 #if _TARGET_D3D_MULTI
 #include <drv/3d/dag_interface_table.h>
 namespace d3d

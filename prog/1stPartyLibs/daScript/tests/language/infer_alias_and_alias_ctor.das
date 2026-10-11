@@ -14,9 +14,7 @@ def iaac_join(a : array<auto(numt)>) : numt {
 def iaac_findObject(objects : table<string; auto(TVal)>; guid : string) : TVal? {
     var foundObj : TVal?
     get(objects, guid) $(obj) {
-        unsafe {
-            foundObj = reinterpret<TVal?>(addr(obj))
-        }
+        foundObj = unsafe(addr<TVal?>(obj))
     }
     return foundObj
 }
@@ -24,10 +22,7 @@ def iaac_findObject(objects : table<string; auto(TVal)>; guid : string) : TVal? 
 [test]
 def test_infer_alias_and_alias_ctor(t : T?) {
     t |> run("generic join with auto alias") @(t : T?) {
-        var a : array<float>
-        push(a, 1.0)
-        push(a, 2.0)
-        push(a, 3.0)
+        let a <- [1.0, 2.0, 3.0]
         t |> equal(iaac_join(a), 6.0)
     }
     t |> run("generic findObject with auto alias") @(t : T?) {

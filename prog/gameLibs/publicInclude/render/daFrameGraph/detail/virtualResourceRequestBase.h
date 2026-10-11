@@ -57,6 +57,8 @@ struct VirtualResourceRequestBase
 
   void atStage(Stage stage);
   void useAs(Usage type);
+  void copyTo(const char *destination);
+  void copyTo(ResNameId destination);
   void withHistory(History history);
   void clear(const ResourceClearValue &clear_value, ResourceClearFlags flags);
   void clear(ResourceSubtypeTag projectee, const char *blob_name, detail::TypeErasedProjector projector, ResourceClearFlags flags);

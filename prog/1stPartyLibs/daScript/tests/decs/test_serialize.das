@@ -21,10 +21,10 @@ def test_serialize(var t : T?) {
         }
     }
     commit()
-    var check_it <- $() {
+    var check_it <- $ {
         var num = 0
         query() $(i : int) {
-            num += 1
+            num ++
             if (i < 0 || i >= 3) {
                 t->fatal("wrong size")
             }
@@ -32,7 +32,7 @@ def test_serialize(var t : T?) {
         t |> equal(num, entitiesNum + entitiesNum)
         num = 0
         query() $(i : int; s : string) {
-            num += 1
+            num ++
             t |> equal(s, "__{i}__")
         }
         t |> equal(num, entitiesNum)

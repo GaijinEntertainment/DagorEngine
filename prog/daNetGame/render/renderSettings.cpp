@@ -118,7 +118,7 @@ bool update_settings_entity(const DataBlock *level_override)
     {
       if (!*render_settings__inited)
       {
-        g_entity_mgr->broadcastEvent(OnRenderSettingsReady());
+        g_entity_mgr->broadcastEventImmediate(OnRenderSettingsReady());
         *render_settings__inited = true;
       }
     }

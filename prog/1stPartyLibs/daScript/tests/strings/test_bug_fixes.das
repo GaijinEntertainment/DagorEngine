@@ -60,7 +60,7 @@ def test_hex_conversion_with_whitespace(t : T?) {
     t |> run("hex with 0x prefix") @@(t : T?) {
         var err : ConversionResult
         var ofs : int
-        var res = int("0xFF", err, ofs, true)
+        let res = int("0xFF", err, ofs, true)
         t |> equal(res, 255)
         t |> equal(err, ConversionResult.ok)
         t |> equal(ofs, 4)
@@ -69,7 +69,7 @@ def test_hex_conversion_with_whitespace(t : T?) {
     t |> run("hex with 0x prefix and spaces") @@(t : T?) {
         var err : ConversionResult
         var ofs : int
-        var res = int("  0xFF", err, ofs, true)
+        let res = int("  0xFF", err, ofs, true)
         t |> equal(res, 255)
         t |> equal(err, ConversionResult.ok)
         t |> equal(ofs, 6)
@@ -78,7 +78,7 @@ def test_hex_conversion_with_whitespace(t : T?) {
     t |> run("hex with 0X prefix and spaces") @@(t : T?) {
         var err : ConversionResult
         var ofs : int
-        var res = int("  0XAB", err, ofs, true)
+        let res = int("  0XAB", err, ofs, true)
         t |> equal(res, int(0xAB))
         t |> equal(err, ConversionResult.ok)
         t |> equal(ofs, 6)
@@ -87,7 +87,7 @@ def test_hex_conversion_with_whitespace(t : T?) {
     t |> run("hex without prefix") @@(t : T?) {
         var err : ConversionResult
         var ofs : int
-        var res = int("FF", err, ofs, true)
+        let res = int("FF", err, ofs, true)
         t |> equal(res, int(0xFF))
         t |> equal(err, ConversionResult.ok)
         t |> equal(ofs, 2)
@@ -96,7 +96,7 @@ def test_hex_conversion_with_whitespace(t : T?) {
     t |> run("hex without prefix with spaces") @@(t : T?) {
         var err : ConversionResult
         var ofs : int
-        var res = int("  FF  ", err, ofs, true)
+        let res = int("  FF  ", err, ofs, true)
         t |> equal(res, int(0xFF))
         t |> equal(err, ConversionResult.ok)
         t |> equal(ofs, 4)
@@ -106,15 +106,15 @@ def test_hex_conversion_with_whitespace(t : T?) {
         var err : ConversionResult
         var ofs : int
         // int64
-        var res64 = int64("  0xFF", err, ofs, true)
+        let res64 = int64("  0xFF", err, ofs, true)
         t |> equal(res64, 255l)
         t |> equal(ofs, 6)
         // uint
-        var resu = uint("  0xFF", err, ofs, true)
+        let resu = uint("  0xFF", err, ofs, true)
         t |> equal(resu, 0xffu)
         t |> equal(ofs, 6)
         // uint64
-        var resu64 = uint64("  0xFF", err, ofs, true)
+        let resu64 = uint64("  0xFF", err, ofs, true)
         t |> equal(resu64, 0xfful)
         t |> equal(ofs, 6)
     }

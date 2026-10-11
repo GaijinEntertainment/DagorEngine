@@ -7,6 +7,7 @@ HumanInput::CompositeJoystickClassDriver *global_cls_composite_drv_joy = NULL;
 
 HumanInput::CompositeJoystickClassDriver *HumanInput::CompositeJoystickClassDriver::create() { return NULL; }
 void HumanInput::CompositeJoystickClassDriver::addClassDrv(IGenJoystickClassDrv *, bool) {}
+void HumanInput::CompositeJoystickClassDriver::setGamepadLayoutGroup(bool) {}
 bool HumanInput::CompositeJoystickClassDriver::isAxisDigital(int) const { return false; }
 int HumanInput::CompositeJoystickClassDriver::getRealDeviceCount(bool) const { return 0; }
 const char *HumanInput::CompositeJoystickClassDriver::getRealDeviceName(int) const { return NULL; }

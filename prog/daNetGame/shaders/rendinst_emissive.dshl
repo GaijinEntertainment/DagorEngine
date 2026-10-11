@@ -110,7 +110,7 @@ shader rendinst_emissive
   }
   else
   {
-    EMISSIVE_PS()
+    EMISSIVE_PS(GBUFFER_ORDER_STATIC)
   }
 
   compile("target_vs", "simple_vs");

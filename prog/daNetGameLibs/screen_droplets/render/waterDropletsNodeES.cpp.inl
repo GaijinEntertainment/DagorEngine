@@ -5,6 +5,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
+#include <render/resourceSlot/ecs/nodeHandleWithSlotsAccess.h>
 #include <render/renderEvent.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/screenDroplets.h>
@@ -17,8 +18,10 @@ static ShaderVariableInfo screen_droplets_renderedVarId;
 
 ECS_TAG(render)
 ECS_ON_EVENT(UpdateStageInfoBeforeRender)
-inline void update_water_droplets_node_es(
-  ecs::Event, ecs::EntityManager &manager, dafg::NodeHandle &water_droplets_node, bool &screen_droplets__visible)
+inline void update_water_droplets_node_es(ecs::Event,
+  ecs::EntityManager &manager,
+  resource_slot::NodeHandleWithSlotsAccess &water_droplets_node,
+  bool &screen_droplets__visible)
 {
   bool found = find_water_droplets_needs_ecs_query(manager, [](ecs::Tag needsWaterDroplets) {
     G_UNUSED(needsWaterDroplets);
@@ -26,8 +29,7 @@ inline void update_water_droplets_node_es(
   }) == ecs::QueryCbResult::Stop;
   if (!found)
   {
-    if (water_droplets_node)
-      water_droplets_node = {};
+    water_droplets_node.reset();
     return;
   }
   const bool wasVisible = screen_droplets__visible;
@@ -37,7 +39,7 @@ inline void update_water_droplets_node_es(
     if (screen_droplets__visible)
       water_droplets_node = makeWaterDropletsNode();
     else
-      water_droplets_node = {};
+      water_droplets_node.reset();
   }
   ShaderGlobal::set_int(screen_droplets_renderedVarId, screen_droplets__visible);
 }

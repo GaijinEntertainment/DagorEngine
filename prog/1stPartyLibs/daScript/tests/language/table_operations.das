@@ -36,21 +36,21 @@ def ta_check(var tc : TaTableContainer; deletedEntries : array<int>) {
 [sideeffects]
 def ta_test_find(t : T?) {
     let const_tab <- { "one" => 1, "two" => 2 }
-    get(const_tab, "one") <| $(num) {
+    get(const_tab, "one") $(num) {
         t |> equal(num, 1)
     }
     t |> equal(const_tab?["one"] ?? 100500, 1)
     var tab <- { "one" => 1, "two" => 2 }
-    get(tab, "one") <| $(var num) {
+    get(tab, "one") $(var num) {
         num = 3
     }
     t |> equal(tab?["one"] ?? 100500, 3)
-    get(tab, "one") <| $(var num) {
+    get(tab, "one") $(var num) {
         t |> equal(num, 3)
         num = 4
     }
     t |> equal(tab?["one"] ?? 100500, 4)
-    get(tab, "one") <| $(var num) {
+    get(tab, "one") $(var num) {
         t |> equal(num, 4)
         num = 5
     }
@@ -66,14 +66,12 @@ def ta_test_find(t : T?) {
 [sideeffects]
 def ta_test_erase_collision(t : T?) {
     var tc : TaTableContainer
-    var names : array<string>
-    for (i in range(1, TA_TOTAL)) {
-        push(names, "name_{i}")
-    }
+    var names <- [for (i in range(1, TA_TOTAL)); "name_{i}"]
     for (n in names) {
         tc.t |> emplace(n, TaTestStruct(test = n))
     }
     var deletedEntries : array<int>
+    deletedEntries |> reserve(TA_TOTAL)
     verify(ta_check(tc, deletedEntries))
     for (i in range(1, TA_TOTAL)) {
         let x = "name_{i}"
@@ -89,7 +87,7 @@ def ta_test_lock_panic(t : T?) {
     var tab <- { "one" => 1, "two" => 2 }
     var failed = false
     try {
-        get(tab, "one") <| $(lv) {
+        get(tab, "one") $(_lv) {
             tab |> insert("three", 3)
         }
     } recover {
@@ -99,7 +97,7 @@ def ta_test_lock_panic(t : T?) {
     t |> success(!key_exists(tab, "three"))
     failed = false
     try {
-        get(tab, "three") <| $(lv) {
+        get(tab, "three") $(_lv) {
             erase(tab, "three")
         }
     } recover {
@@ -128,9 +126,9 @@ def ta_test_insert_default(t : T?) {
     tmap |> emplace_default(3)
     verify(length(tmap) == 4)
     for (i in range(0, 4)) {
-        let found = get(tmap, i) <| $(val) {
+        let found = get(tmap, i) $(val) {
             if (i == 0 || i == 3) {
-                assert(length(val) == 0)
+                assert(empty(val))
             } elif (i == 1) {
                 assert(length(val) == 1 && val[0] == 1)
             } elif (i == 2) {
@@ -145,16 +143,16 @@ def ta_test_insert_default(t : T?) {
 [sideeffects]
 def ta_test_get_with_default(t : T?) {
     var tab <- { 1 => "1", 2 => "2", 3 => "3" }
-    get_with_default(tab, 2) <| $(val) {
+    get_with_default(tab, 2) $(val) {
         verify(val == "2")
     }
-    get_with_default(tab, 1) <| $(val) {
+    get_with_default(tab, 1) $(val) {
         verify(val == "1")
         val += " modified"
     }
     t |> equal(tab?[1] ?? "", "1 modified")
     // add new entry with default value
-    get_with_default(tab, 4) <| $(val) {
+    get_with_default(tab, 4) $(val) {
         verify(val == "")
         val += "four"
     }
@@ -169,7 +167,7 @@ def ta_test_get_with_default(t : T?) {
 }
 
 [test]
-def test_table_operations(t : T?) {
+def test_table_operations(t : T?) {  // nolint:STYLE038 - flat list of independent test arms
     t |> run("table find and get") @(t : T?) {
         ta_test_find(t)
     }
@@ -200,7 +198,7 @@ def test_table_operations(t : T?) {
         t |> equal(length(tab), total - del)
         i = 0
         while (i < total) {
-            let found = get(tab, string(i)) <| $(pValue) {
+            let found = get(tab, string(i)) $(pValue) {
                 assert(pValue == i)
             }
             assert(!found == (i % 7 == 0))
@@ -211,7 +209,7 @@ def test_table_operations(t : T?) {
             var k = 0
             i = 0
             while (i < total) {
-                get(tab, string(i)) <| $(pVal) {
+                get(tab, string(i)) $(pVal) {
                     j += pVal
                 }
                 if (i % 7 != 0) {
@@ -253,7 +251,7 @@ def test_table_operations(t : T?) {
         tab_bool |> insert(false, -1)
         t |> success(key_exists(tab_bool, false))
 
-        var tab_rng = {0 .. 5}
+        let tab_rng = {0 .. 5}
         t |> success(key_exists(tab_rng, 0 .. 5))
 
         var tab_int : table<int; int>

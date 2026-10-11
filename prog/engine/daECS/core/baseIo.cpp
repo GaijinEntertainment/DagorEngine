@@ -3,6 +3,8 @@
 #include <daECS/core/baseIo.h>
 #include <daECS/core/entityManager.h>
 #include <EASTL/optional.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
 
 namespace ecs
 {
@@ -43,18 +45,43 @@ void write_string(ecs::SerializerCb &cb, const char *pStr, uint32_t max_string_l
   cb.write(&c, sizeof(c) * CHAR_BIT, 0);
 }
 
+template <typename StoreChar>
+static int read_string_chars(const ecs::DeserializerCb &cb, uint32_t max_len, StoreChar store_char)
+{
+  uint32_t len = 0;
+  for (char c;;)
+  {
+    if (!cb.read(&c, CHAR_BIT, 0))
+      return -1;
+    if (!c)
+      return len;
+    // dropping, not stopping, keeps the stream aligned
+    if (len < max_len)
+    {
+      store_char(c);
+      len++;
+    }
+  }
+}
+
 int read_string(const ecs::DeserializerCb &cb, char *buf, uint32_t buf_size)
 {
-  buf_size--;
-  char *str = buf;
-  do
-  {
-    if (!cb.read(str, 8, 0))
-      return -1;
-    if (str == buf + buf_size)
-      *str = 0;
-  } while (*(str++));
-  return str - buf;
+  char *end = buf;
+  const int len = read_string_chars(cb, buf_size - 1, [&end](char c) { *end++ = c; });
+  if (len < 0)
+    return -1;
+  buf[len] = 0;
+  return len + 1;
+}
+
+bool read_string(const ecs::DeserializerCb &cb, ecs::string &str)
+{
+  dag::RelocatableFixedVector<char, 128, true, framemem_allocator, uint32_t, false> buf;
+  const int len = read_string_chars(cb, MAX_STRING_LENGTH - 1, [&buf](char c) { buf.push_back(c); });
+  if (len < 0)
+    return false;
+  str.assign(buf.data(), len);
+  return true;
 }
 
 void serialize_entity_component_ref_typeless(const void *comp_data, component_index_t cidx, component_type_t type_name,

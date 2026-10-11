@@ -40,6 +40,7 @@ class FrameTimeMetricsAggregator
   float lastAverageLatencyA = 0.f;
   float lastAverageLatencyR = 0.f;
   PerfDisplayMode displayMode = PerfDisplayMode::OFF;
+  bool detailGrowsWithMode;
   bool achtung = false;
   bool isBackgroundShadersProcessingInProgress = false;
   eastl::optional<bool> isPixCapturerLoaded;
@@ -48,6 +49,7 @@ class FrameTimeMetricsAggregator
   eastl::optional<float> dynamicResolutionRate;
 
 public:
+  explicit FrameTimeMetricsAggregator(bool detail_grows_with_mode = false) : detailGrowsWithMode(detail_grows_with_mode) {}
   void update(float current_time_msec, uint32_t frame_no, float dt, PerfDisplayMode display_mode, uint32_t last_frame_count = 1);
   const auto &getFpsInfoString() const { return fpsText; }
   const auto &getLatencyInfoString() const { return latencyText; }

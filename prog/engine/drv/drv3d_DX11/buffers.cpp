@@ -351,6 +351,8 @@ Vbuffer *d3d::create_vb(int size, int flg, const char *name, ResourceTagType)
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagType)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(size % ((flg & SBCF_INDEX32) ? 4 : 2) == 0, nullptr,
+    "DX11: create_ib '%s' size %d is not a whole number of indices", stat_name, size);
   GenericBuffer *buf = new GenericBuffer();
   flg |= SBCF_BIND_INDEX;
   validate_sbuffer_flags(flg, stat_name);
@@ -388,6 +390,8 @@ Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsi
 
 bool d3d::setvsrc_ex(int slot, Sbuffer *vb, int ofs, int stride)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(slot >= 0 && slot < MAX_VERTEX_STREAMS, false,
+    "DX11: setvsrc_ex slot %d is outside the %d vertex streams", slot, MAX_VERTEX_STREAMS);
   D3D_CONTRACT_ASSERTF_RETURN(!vb || (vb->getFlags() & SBCF_BIND_VERTEX), false,
     "DX11: setvsrc_ex vb '%s' in slot %d does not have the SBCF_BIND_VERTEX flag", vb->getBufName(), slot);
   if (vb)

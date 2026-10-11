@@ -394,6 +394,7 @@ LandVtexRenderer::~LandVtexRenderer()
     ShaderGlobal::set_texture(*v, BAD_TEXTUREID);
   del_d3dres(one_quad);
   del_d3dres(physmatIdsBuf);
+  closeDetileParams();
   landclassShader.clear();
   landclassShaderFailed.clear();
 }
@@ -522,6 +523,10 @@ void LandMeshRenderer::resetTextures() { vtex->resetTextures(); }
 
 // Forwarders to the land-class / virtual-texture renderer held in `vtex`.
 Tab<LandClassDetailTextures> &LandMeshRenderer::getLandClasses() { return vtex->getLandClasses(); }
+int LandMeshRenderer::applyDetileOverride(const char *name, int clusters, float angle_rad, float spread_rad)
+{
+  return vtex->applyDetileOverride(name, clusters, angle_rad, spread_rad);
+}
 TEXTUREID LandMeshRenderer::getDetailTileTex() { return vtex->getDetailTileTex(); }
 d3d::SamplerHandle LandMeshRenderer::getDetailTileSmp() const { return vtex->getDetailTileSmp(); }
 void LandMeshRenderer::setCustomLcTextures() { vtex->setCustomLcTextures(); }
@@ -551,6 +556,8 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const HmapOrigin &orig
     // per-pass heightmap draw decision now lives in LandMeshCullingData::hmapDrawType (set by the cull/render()).
     provider.cullingState.useExclBox = provider.mayRenderHmap && provider.getHmapHandler()->prepare(origin.pos, origin.distanceMul);
   }
+
+  vtex->uploadDetileParams(provider.getWeightAtlas() != nullptr); // dirty-gated; every prepare, not only the cellStates rebuild
 
   if (!cellStates && !provider.getDetailMap().cells.empty())
   {
@@ -1730,6 +1737,7 @@ void LandMeshRenderer::renderCulledImpl(LandMeshManager &provider, RenderType rt
     wa->bindCells();
     wa->setCellMapping(provider.getLandCellSize(), provider.getGridCellSize(), provider.getOffset(), provider.getCellOrigin());
   }
+  vtex->bindDetileParams();
 
   ShaderGlobal::set_float4(var::world_view_pos, view_pos.x, view_pos.y, view_pos.z, 1.f);
 

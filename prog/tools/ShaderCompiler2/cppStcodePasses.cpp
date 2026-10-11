@@ -257,7 +257,6 @@ void StcodeBranchedBuildEvalCB::buildConditionBoolValue(const bool_value &val, S
     switch (val.cmpop->op->num)
     {
       case SHADER_TOKENS::SHTOK_eq: out.emplaceBack(makeEqNeq(true).c_str()); break;
-      case SHADER_TOKENS::SHTOK_assign: out.emplaceBack(makeEqNeq(true).c_str()); break;
       case SHADER_TOKENS::SHTOK_greater: out.emplaceBack(makeG().c_str()); break;
       case SHADER_TOKENS::SHTOK_greatereq: out.emplaceBack(makeGe().c_str()); break;
       case SHADER_TOKENS::SHTOK_smaller: out.emplaceBack(makeL().c_str()); break;
@@ -274,8 +273,7 @@ void StcodeBranchedBuildEvalCB::buildConditionBoolValue(const bool_value &val, S
     const char *op;
     switch (val.cmpop->op->num)
     {
-      case SHADER_TOKENS::SHTOK_eq:
-      case SHADER_TOKENS::SHTOK_assign: op = "=="; break;
+      case SHADER_TOKENS::SHTOK_eq: op = "=="; break;
       case SHADER_TOKENS::SHTOK_noteq: op = "!="; break;
       default: G_ASSERT(0);
     }
