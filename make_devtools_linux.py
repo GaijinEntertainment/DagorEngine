@@ -46,6 +46,7 @@ is_rosa_linux = (linux_release_id == 'rosa')
 is_astra_linux = "Astra Linux" in linux_release_name
 is_ubuntu = ("Ubuntu" in linux_release_name)
 is_centos = ('centos' in linux_release_id)
+is_rocky  = ('rocky' in linux_release_id)
 is_altlinux = (linux_release_id == 'altlinux')
 is_elbrus_linux = ('elbrus' in linux_release_id)
 print('Detected linux: {0} {1}  ({2}) arch={3}'.format(linux_release_name, linux_release_ver, linux_release_id, linux_arch_type))
@@ -116,12 +117,13 @@ pkg_install_cmd = ''
 if is_rosa_linux:
   pkg_install_cmd = 'dnf install'
   pkg_to_install += ['python3-pip', 'gcc', 'gcc-c++', 'clang', 'lib64ubsan-devel']
-  pkg_to_install += ['lib64x11-devel', 'lib64xrandr-devel', 'lib64xi-devel', 'lib64fltk-devel', 'lib64xkbfile-devel', 'lib64udev-devel', 'lib64pulseaudio-devel', 'lib64alsa-oss-devel']
+  pkg_to_install += ['lib64x11-devel', 'lib64xrandr-devel', 'lib64xi-devel', 'lib64fltk-devel', 'lib64xkbfile-devel', 'lib64udev-devel',
+                     'lib64pulseaudio-devel', 'lib64alsa-oss-devel', 'lib64curl-devel']
 elif is_altlinux:
   pkg_install_cmd = 'apt-get install'
   pkg_to_install += ['python3-module-pip', 'clang21.1', 'libclang21', 'libasan-devel-static']
   pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libXi-devel', 'libXcursor-devel', 'libfltk-devel', 'libxkbfile-devel', 'libxkbcommon-devel',
-                     'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel', 'libdbus-devel']
+                     'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel', 'libdbus-devel', 'libcurl-devel']
 elif is_elbrus_linux:
   pkg_install_cmd = 'apt install'
   pkg_to_install  = ['python3-pip']
@@ -129,18 +131,27 @@ elif is_elbrus_linux:
 elif is_ubuntu:
   pkg_install_cmd = 'apt install'
   pkg_to_install += ['python3-pip', 'gcc', 'clang']
-  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libxi-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev', 'uuid-dev']
+  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libxi-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev',
+                     'libpulse-dev', 'uuid-dev', 'libcurl4-openssl-dev']
 elif is_astra_linux:
   pkg_install_cmd = 'apt install'
   pkg_to_install += ['python3-pip', 'gcc-mozilla', 'clang-10']
-  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libxi-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev', 'uuid-dev']
+  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libxi-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev',
+                     'libpulse-dev', 'uuid-dev', 'libcurl4-openssl-dev']
 elif is_centos:
   pkg_install_cmd = 'yum install'
   pkg_to_install += ['python3-pip', 'devtoolset-11', 'llvm-toolset-7.0']
-  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libXi-devel', 'libfltk-devel', 'libxkbfile-devel', 'libgudev1-devel', 'pulseaudio-libs-devel', 'alsa-lib-devel']
+  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libXi-devel', 'libfltk-devel', 'libxkbfile-devel', 'libgudev1-devel',
+                     'pulseaudio-libs-devel', 'alsa-lib-devel', 'libcurl-devel']
+elif is_rocky:
+  pkg_install_cmd = 'yum install'
+  pkg_to_install += ['python3-pip', 'gcc', 'gcc-c++', 'clang']
+  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libXi-devel', 'libfltk-devel', 'libxkbfile-devel', 'libgudev1-devel',
+                     'pulseaudio-libs-devel', 'alsa-lib-devel', 'libcurl-devel']
 else:
   pkg_to_install += ['python3-pip', 'gcc', 'gcc-c++', 'clang']
-  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libxi-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev', 'libalsa-devel']
+  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libxi-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev',
+                     'libpulse-dev', 'libalsa-dev', 'libcurl-dev']
 
 if pkg_install_cmd != '':
   print('--- will try to install required packages:\n  '+' '.join(pkg_to_install))
