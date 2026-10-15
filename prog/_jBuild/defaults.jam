@@ -152,9 +152,10 @@ if ! $(__DEFAULTS_INCLUDED) {
   } else {
     SSEVersion ?= 2 ;
   }
-  VCMathOption ?= -fp:fast ;
-  # TBAA (-fstrict-aliasing): on everywhere but non fast math (tools) builds
-  if $(VCMathOption) != -fp:fast { StrictAliasing ?= no ; } else { StrictAliasing ?= yes ; }
+  if $(Platform) in windows xboxOne scarlett { VCMathOption ?= -fp:fast ; }
+  # TBAA (-fstrict-aliasing): everywhere but non-fast-math (tools) builds for windows/xbox
+  if $(Platform) in windows xboxOne scarlett && $(VCMathOption) != -fp:fast { StrictAliasing ?= no ; }
+  StrictAliasing ?= yes ;
 
   if $(FullOOPEnabled) = yes {
     Exceptions ?= yes ;
