@@ -83,13 +83,29 @@ def run(cmd):
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
+def is_valid_zip(file):
+  try:
+    with zipfile.ZipFile(file, 'r') as zip_file:
+      return zip_file.testzip() is None
+  except (zipfile.BadZipFile, OSError):
+    return False
+
 def download_url2(url, file):
   file = "{0}/.packages/{1}".format(dest_dir, file)
-  if not pathlib.Path(file).exists():
-    print("Downloading '{0}' to '{1}' ...".format(url, file));
-    response = request.urlretrieve(url, file)
-  else:
-    print("Package '{0}' already exists".format(file));
+  is_zip = file.lower().endswith('.zip')
+  if pathlib.Path(file).exists():
+    if not is_zip or is_valid_zip(file):
+      print("Package '{0}' already exists".format(file));
+      return
+    print("Package '{0}' is corrupted, downloading again".format(file));
+    os.remove(file)
+  print("Downloading '{0}' to '{1}' ...".format(url, file));
+  # download to temp file so that interrupted download doesn't leave broken package behind
+  request.urlretrieve(url, file+'.tmp')
+  if is_zip and not is_valid_zip(file+'.tmp'):
+    os.remove(file+'.tmp')
+    raise RuntimeError("Downloaded package '{0}' is corrupted".format(url))
+  os.replace(file+'.tmp', file)
 
 def download_url(url):
   path, file = os.path.split(os.path.normpath(url))
