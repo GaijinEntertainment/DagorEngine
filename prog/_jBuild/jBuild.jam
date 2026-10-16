@@ -1647,7 +1647,7 @@ actions together quietly compile_asm
 {
 #async
   echo $(2:D=:G=)
-  echo $(2):>$(1:S=.d)
+  echo $(1:G=:D=): $(2)>$(1:S=.d)
   call $(_ASM_COMPILER) $(asm_opt) -o $(1) $(2)
   if not exist $(1) set ERRORLEVEL=13
 }
@@ -1657,7 +1657,7 @@ actions together quietly compile_masm
 {
 #async
   echo $(2:D=:G=)
-  echo $(2):>$(1:S=.d)
+  echo $(1:G=:D=): $(2)>$(1:S=.d)
   call $(_MASM_COMPILER) /Fo$(1) $(2)
   if not exist $(1) set ERRORLEVEL=13
 }
@@ -1667,7 +1667,7 @@ actions together quietly compile_gas
 {
 #async
   echo $(2:D=:G=)
-  echo $(2):>$(1:S=.d)
+  echo $(1:G=:D=): $(2)>$(1:S=.d)
   call $(_GAS_COMPILER) $(asm_opt) -o $(1) $(2)
   if not exist $(1) set ERRORLEVEL=13
 }
