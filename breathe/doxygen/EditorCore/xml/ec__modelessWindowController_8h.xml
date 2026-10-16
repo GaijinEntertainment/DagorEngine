@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__modelessWindowController_8h" kind="file" language="C++">
+    <compoundname>ec_modelessWindowController.h</compoundname>
+    <includedby refid="ec__modelessDialogWindowController_8h" local="no">ec_modelessDialogWindowController.h</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>ec_modelessDialogWindowController.h</label>
+        <link refid="ec__modelessDialogWindowController_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_modelessWindowController.h</label>
+        <link refid="ec__modelessWindowController_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIModelessWindowController" prot="public">IModelessWindowController</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="classIModelessWindowController" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIModelessWindowController" kindref="compound">IModelessWindowController</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Must<sp/>consist<sp/>of<sp/>identifier<sp/>characters:<sp/>a-z,<sp/>A-Z,<sp/>0-9,<sp/>&apos;_&apos;,<sp/>&apos;-&apos;,<sp/>&apos;.&apos;<sp/>and<sp/>&apos;~&apos;.<sp/>See<sp/>dblk::is_ident_char().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="classIModelessWindowController_1a4e46b284404fcd1bfc0046949321c809" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classIModelessWindowController_1a4e46b284404fcd1bfc0046949321c809" kindref="member">getWindowId</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>It<sp/>must<sp/>release<sp/>the<sp/>window.<sp/>Caller<sp/>when<sp/>resetting<sp/>the<sp/>layout<sp/>and<sp/>when<sp/>exiting<sp/>the<sp/>application.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="classIModelessWindowController_1a2f64f99c58949d3328966d1f6c24c656" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIModelessWindowController_1a2f64f99c58949d3328966d1f6c24c656" kindref="member">releaseWindow</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>It<sp/>must<sp/>either<sp/>show<sp/>or<sp/>hide<sp/>the<sp/>window.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>When<sp/>showing<sp/>is<sp/>requested<sp/>for<sp/>the<sp/>first<sp/>time<sp/>then<sp/>the<sp/>window<sp/>must<sp/>be<sp/>created.<sp/>Hiding<sp/>should<sp/>not<sp/>release<sp/>the<sp/>window.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="classIModelessWindowController_1a5e9f4aa2c0662c13c78d1d5a2f848858" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIModelessWindowController_1a5e9f4aa2c0662c13c78d1d5a2f848858" kindref="member">showWindow</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>show<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Must<sp/>return<sp/>true<sp/>if<sp/>the<sp/>window<sp/>has<sp/>been<sp/>created<sp/>and<sp/>visible.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classIModelessWindowController_1abbea131727462873649da63d6ab90384" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIModelessWindowController_1abbea131727462873649da63d6ab90384" kindref="member">isWindowShown</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_modelessWindowController.h"/>
+  </compounddef>
+</doxygen>

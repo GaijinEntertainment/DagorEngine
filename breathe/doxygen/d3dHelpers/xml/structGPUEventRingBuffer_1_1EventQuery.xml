@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGPUEventRingBuffer_1_1EventQuery" kind="struct" language="C++" prot="public">
+    <compoundname>GPUEventRingBuffer::EventQuery</compoundname>
+    <includes refid="dag__gpuEventRingBuffer_8h" local="no">dag_gpuEventRingBuffer.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" prot="public" static="no" mutable="no">
+        <type>D3dEventQuery *</type>
+        <definition>D3dEventQuery* GPUEventRingBuffer::EventQuery::q</definition>
+        <argsstring></argsstring>
+        <name>q</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::q</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="19" column="19" bodyfile="dag_gpuEventRingBuffer.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGPUEventRingBuffer_1_1EventQuery_1a25c86e625af435c041b95208423d26a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GPUEventRingBuffer::EventQuery::EventQuery</definition>
+        <argsstring>(D3dEventQuery *a=nullptr)</argsstring>
+        <name>EventQuery</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::EventQuery</qualifiedname>
+        <param>
+          <type>D3dEventQuery *</type>
+          <declname>a</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="20" column="5" bodyfile="dag_gpuEventRingBuffer.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="structGPUEventRingBuffer_1_1EventQuery_1a1dfd170f3e23916e7a6dab1e0980d07e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GPUEventRingBuffer::EventQuery::~EventQuery</definition>
+        <argsstring>()</argsstring>
+        <name>~EventQuery</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::~EventQuery</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="22" column="5" bodyfile="dag_gpuEventRingBuffer.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structGPUEventRingBuffer_1_1EventQuery_1a48ae72341f0d913cc03e810b41a1282e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GPUEventRingBuffer::EventQuery::EventQuery</definition>
+        <argsstring>(EventQuery &amp;&amp;a)</argsstring>
+        <name>EventQuery</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::EventQuery</qualifiedname>
+        <param>
+          <type><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &amp;&amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="23" column="5" bodyfile="dag_gpuEventRingBuffer.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structGPUEventRingBuffer_1_1EventQuery_1a93e1dbbdb160a4ebf0c53fdd387b6306" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &amp;</type>
+        <definition>EventQuery &amp; GPUEventRingBuffer::EventQuery::operator=</definition>
+        <argsstring>(EventQuery &amp;&amp;a)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &amp;&amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="24" column="16" bodyfile="dag_gpuEventRingBuffer.h" bodystart="24" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structGPUEventRingBuffer_1_1EventQuery_1a489f8a39df91246c25940ac476131d78" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GPUEventRingBuffer::EventQuery::EventQuery</definition>
+        <argsstring>(const EventQuery &amp;a)=delete</argsstring>
+        <name>EventQuery</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::EventQuery</qualifiedname>
+        <param>
+          <type>const <ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="29" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structGPUEventRingBuffer_1_1EventQuery_1a0450ef3b54c1f172dc0719316cabf6c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &amp;</type>
+        <definition>EventQuery &amp; GPUEventRingBuffer::EventQuery::operator=</definition>
+        <argsstring>(const EventQuery &amp;a)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>GPUEventRingBuffer::EventQuery::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structGPUEventRingBuffer_1_1EventQuery" kindref="compound">EventQuery</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_gpuEventRingBuffer.h" line="30" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_gpuEventRingBuffer.h" line="17" column="3" bodyfile="dag_gpuEventRingBuffer.h" bodystart="18" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1a25c86e625af435c041b95208423d26a9" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>EventQuery</name></member>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1a48ae72341f0d913cc03e810b41a1282e" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>EventQuery</name></member>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1a489f8a39df91246c25940ac476131d78" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>EventQuery</name></member>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1a93e1dbbdb160a4ebf0c53fdd387b6306" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>operator=</name></member>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1a0450ef3b54c1f172dc0719316cabf6c8" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>operator=</name></member>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1ab4cefbea2e738d4e05c7db84579b19d1" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>q</name></member>
+      <member refid="structGPUEventRingBuffer_1_1EventQuery_1a1dfd170f3e23916e7a6dab1e0980d07e" prot="public" virt="non-virtual"><scope>GPUEventRingBuffer::EventQuery</scope><name>~EventQuery</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classmkbindump_1_1StrCollector" kind="class" language="C++" prot="public">
+    <compoundname>mkbindump::StrCollector</compoundname>
+    <includes refid="binDumpUtil_8h" local="no">binDumpUtil.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" prot="protected" static="no" mutable="no">
+        <type>FastNameMapEx</type>
+        <definition>FastNameMapEx mkbindump::StrCollector::str</definition>
+        <argsstring></argsstring>
+        <name>str</name>
+        <qualifiedname>mkbindump::StrCollector::str</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="48" column="17" bodyfile="binDumpUtil.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" prot="protected" static="no" mutable="no">
+        <type>SmallTab&lt; int, TmpmemAlloc &gt;</type>
+        <definition>SmallTab&lt;int, TmpmemAlloc&gt; mkbindump::StrCollector::ofs</definition>
+        <argsstring></argsstring>
+        <name>ofs</name>
+        <qualifiedname>mkbindump::StrCollector::ofs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="49" column="12" bodyfile="binDumpUtil.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a144356203a23297ea2f91e1df491c60f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>mkbindump::StrCollector::StrCollector</definition>
+        <argsstring>()</argsstring>
+        <name>StrCollector</name>
+        <qualifiedname>mkbindump::StrCollector::StrCollector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="17" column="3" bodyfile="binDumpUtil.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a4515e6f265ca6245722a65f3223265dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::StrCollector::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>mkbindump::StrCollector::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="19" column="8" bodyfile="binDumpUtil.h" bodystart="19" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a45e6ac5852eb1c73712a3a145c700f5c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * mkbindump::StrCollector::addString</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>addString</name>
+        <qualifiedname>mkbindump::StrCollector::addString</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="25" column="14" bodyfile="binDumpUtil.h" bodystart="25" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a58e0c79477d82d4c05e4fdab135252f8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::StrCollector::strCount</definition>
+        <argsstring>() const</argsstring>
+        <name>strCount</name>
+        <qualifiedname>mkbindump::StrCollector::strCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="32" column="7" bodyfile="binDumpUtil.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a982d864e1f7d05ceef11242fc8ca52b7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::StrCollector::writeStrings</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr)</argsstring>
+        <name>writeStrings</name>
+        <qualifiedname>mkbindump::StrCollector::writeStrings</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="34" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a12ce141a58c15d2a62586d0a85d03dc9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::StrCollector::writeStringsEx</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr, dag::Span&lt; StrCollector &gt; written_str)</argsstring>
+        <name>writeStringsEx</name>
+        <qualifiedname>mkbindump::StrCollector::writeStringsEx</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; <ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref> &gt;</type>
+          <declname>written_str</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="35" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a1e91d7a0f3bb69390a0ea1a87c5c39be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::StrCollector::getOffset</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>getOffset</name>
+        <qualifiedname>mkbindump::StrCollector::getOffset</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="37" column="7" bodyfile="binDumpUtil.h" bodystart="37" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1StrCollector_1a12e4a6eab22c652d205de9d518eed8aa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const FastNameMapEx &amp;</type>
+        <definition>const FastNameMapEx &amp; mkbindump::StrCollector::getMap</definition>
+        <argsstring>() const</argsstring>
+        <name>getMap</name>
+        <qualifiedname>mkbindump::StrCollector::getMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="45" column="23" bodyfile="binDumpUtil.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="binDumpUtil.h" line="14" column="1" bodyfile="binDumpUtil.h" bodystart="15" bodyend="50"/>
+    <listofallmembers>
+      <member refid="classmkbindump_1_1StrCollector_1a45e6ac5852eb1c73712a3a145c700f5c" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>addString</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a12e4a6eab22c652d205de9d518eed8aa" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>getMap</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a1e91d7a0f3bb69390a0ea1a87c5c39be" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>getOffset</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1aad66c55bf6c24af432fd3ee519aa816e" prot="protected" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>ofs</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a4515e6f265ca6245722a65f3223265dd" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>reset</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1ab89c9a0472c2f3d6eaa6d0b7aa30d29e" prot="protected" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>str</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a144356203a23297ea2f91e1df491c60f" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>StrCollector</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a58e0c79477d82d4c05e4fdab135252f8" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>strCount</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a982d864e1f7d05ceef11242fc8ca52b7" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>writeStrings</name></member>
+      <member refid="classmkbindump_1_1StrCollector_1a12ce141a58c15d2a62586d0a85d03dc9" prot="public" virt="non-virtual"><scope>mkbindump::StrCollector</scope><name>writeStringsEx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

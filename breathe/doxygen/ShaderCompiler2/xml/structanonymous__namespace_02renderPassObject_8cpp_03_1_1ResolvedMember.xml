@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{renderPassObject.cpp}::ResolvedMember</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember_1a49132e3ffc44bff70a05df55740955c0" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref> *</type>
+        <definition>const RenderPassObject* anonymous_namespace{renderPassObject.cpp}::ResolvedMember::pass</definition>
+        <argsstring></argsstring>
+        <name>pass</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::ResolvedMember::pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1326" column="26" bodyfile="renderPassObject.cpp" bodystart="1326" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember_1af56d22dc17253305acaabf478e1c4b6d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int anonymous_namespace{renderPassObject.cpp}::ResolvedMember::subpassIdx</definition>
+        <argsstring></argsstring>
+        <name>subpassIdx</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::ResolvedMember::subpassIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1327" column="7" bodyfile="renderPassObject.cpp" bodystart="1327" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember_1a5dfd756ec9d24c57ecd6a79431b75b92" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* anonymous_namespace{renderPassObject.cpp}::ResolvedMember::at</definition>
+        <argsstring></argsstring>
+        <name>at</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::ResolvedMember::at</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1328" column="12" bodyfile="renderPassObject.cpp" bodystart="1328" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="2">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="9">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="7">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+      <node id="1">
+        <label>anonymous_namespace{renderPassObject.cpp}::ResolvedMember</label>
+        <link refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.cpp" line="1324" column="1" bodyfile="renderPassObject.cpp" bodystart="1325" bodyend="1329"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember_1a5dfd756ec9d24c57ecd6a79431b75b92" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::ResolvedMember</scope><name>at</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember_1a49132e3ffc44bff70a05df55740955c0" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::ResolvedMember</scope><name>pass</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember_1af56d22dc17253305acaabf478e1c4b6d" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::ResolvedMember</scope><name>subpassIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFramebufferFormatInfo" kind="struct" language="C++" prot="public">
+    <compoundname>FramebufferFormatInfo</compoundname>
+    <includes refid="framebufferLayout_8h" local="no">framebufferLayout.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFramebufferFormatInfo_1aa0c02c832ba80adb89cac9d83c446736" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* FramebufferFormatInfo::token</definition>
+        <argsstring></argsstring>
+        <name>token</name>
+        <qualifiedname>FramebufferFormatInfo::token</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="129" column="14" bodyfile="framebufferLayout.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferFormatInfo_1aa71c088f03538334142bc118eab9c3a2" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t FramebufferFormatInfo::texfmt</definition>
+        <argsstring></argsstring>
+        <name>texfmt</name>
+        <qualifiedname>FramebufferFormatInfo::texfmt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="130" column="12" bodyfile="framebufferLayout.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferFormatInfo_1aca83e07bebbdd6a331cee3c186a6138f" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref></type>
+        <definition>FramebufferFormatClass FramebufferFormatInfo::cls</definition>
+        <argsstring></argsstring>
+        <name>cls</name>
+        <qualifiedname>FramebufferFormatInfo::cls</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="131" column="26" bodyfile="framebufferLayout.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferFormatInfo_1a74cf4f4f5db39be6de6dc770671bc4f8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FramebufferFormatInfo::channels</definition>
+        <argsstring></argsstring>
+        <name>channels</name>
+        <qualifiedname>FramebufferFormatInfo::channels</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="132" column="7" bodyfile="framebufferLayout.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferFormatInfo_1a8ee037e826ef5a06da48089a15199b1c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FramebufferFormatInfo::hasAlpha</definition>
+        <argsstring></argsstring>
+        <name>hasAlpha</name>
+        <qualifiedname>FramebufferFormatInfo::hasAlpha</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="133" column="8" bodyfile="framebufferLayout.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferFormatInfo_1a56ddfbdc944db05e4669d7da01bacdbb" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FramebufferFormatInfo::isDepth</definition>
+        <argsstring></argsstring>
+        <name>isDepth</name>
+        <qualifiedname>FramebufferFormatInfo::isDepth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="134" column="8" bodyfile="framebufferLayout.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="framebufferLayout.h" line="127" column="1" bodyfile="framebufferLayout.h" bodystart="128" bodyend="135"/>
+    <listofallmembers>
+      <member refid="structFramebufferFormatInfo_1a74cf4f4f5db39be6de6dc770671bc4f8" prot="public" virt="non-virtual"><scope>FramebufferFormatInfo</scope><name>channels</name></member>
+      <member refid="structFramebufferFormatInfo_1aca83e07bebbdd6a331cee3c186a6138f" prot="public" virt="non-virtual"><scope>FramebufferFormatInfo</scope><name>cls</name></member>
+      <member refid="structFramebufferFormatInfo_1a8ee037e826ef5a06da48089a15199b1c" prot="public" virt="non-virtual"><scope>FramebufferFormatInfo</scope><name>hasAlpha</name></member>
+      <member refid="structFramebufferFormatInfo_1a56ddfbdc944db05e4669d7da01bacdbb" prot="public" virt="non-virtual"><scope>FramebufferFormatInfo</scope><name>isDepth</name></member>
+      <member refid="structFramebufferFormatInfo_1aa71c088f03538334142bc118eab9c3a2" prot="public" virt="non-virtual"><scope>FramebufferFormatInfo</scope><name>texfmt</name></member>
+      <member refid="structFramebufferFormatInfo_1aa0c02c832ba80adb89cac9d83c446736" prot="public" virt="non-virtual"><scope>FramebufferFormatInfo</scope><name>token</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

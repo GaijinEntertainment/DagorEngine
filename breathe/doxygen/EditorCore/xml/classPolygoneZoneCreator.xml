@@ -1,0 +1,668 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPolygoneZoneCreator" kind="class" language="C++" prot="public">
+    <compoundname>PolygoneZoneCreator</compoundname>
+    <basecompoundref refid="classIObjectCreator" prot="public" virt="non-virtual">IObjectCreator</basecompoundref>
+    <includes refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includes>
+      <sectiondef kind="protected-type">
+      <memberdef kind="enum" id="classPolygoneZoneCreator_1aef22f8739f989a9fcbb80ead24d2503e" prot="protected" static="no" strong="yes">
+        <type></type>
+        <name>Stages</name>
+        <qualifiedname>PolygoneZoneCreator::Stages</qualifiedname>
+        <enumvalue id="classPolygoneZoneCreator_1aef22f8739f989a9fcbb80ead24d2503ea920b56bfb4946ee9be03df2e7d2ba0cf" prot="protected">
+          <name>SetPoints</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classPolygoneZoneCreator_1aef22f8739f989a9fcbb80ead24d2503ea765cafa86facc76d71c9bd3b2053d724" prot="protected">
+          <name>SetHeight</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="482" column="3" bodyfile="ec_ObjectCreator.h" bodystart="483" bodyend="486"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1a83e96889c78545e4bfb9415b7756eccf" prot="protected" static="no" mutable="no">
+        <type><ref refid="classPolygoneZoneCreator_1aef22f8739f989a9fcbb80ead24d2503e" kindref="member">Stages</ref></type>
+        <definition>Stages PolygoneZoneCreator::stageNo</definition>
+        <argsstring></argsstring>
+        <name>stageNo</name>
+        <qualifiedname>PolygoneZoneCreator::stageNo</qualifiedname>
+        <initializer>= <ref refid="classPolygoneZoneCreator_1aef22f8739f989a9fcbb80ead24d2503ea920b56bfb4946ee9be03df2e7d2ba0cf" kindref="member">Stages::SetPoints</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="490" column="10" bodyfile="ec_ObjectCreator.h" bodystart="490" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1a84a985bd5b97dfb1b3df32aba7bd241f" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 PolygoneZoneCreator::cursorWorldPos</definition>
+        <argsstring></argsstring>
+        <name>cursorWorldPos</name>
+        <qualifiedname>PolygoneZoneCreator::cursorWorldPos</qualifiedname>
+        <initializer>= Point3(0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="491" column="10" bodyfile="ec_ObjectCreator.h" bodystart="491" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1a9ddfb73c449685bd840bea57acd5ac96" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolygoneZoneCreator::nearestPointIndex</definition>
+        <argsstring></argsstring>
+        <name>nearestPointIndex</name>
+        <qualifiedname>PolygoneZoneCreator::nearestPointIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="492" column="7" bodyfile="ec_ObjectCreator.h" bodystart="492" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1a3688166f6faefd120f7a897c0611b677" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolygoneZoneCreator::secondNearestPointIndex</definition>
+        <argsstring></argsstring>
+        <name>secondNearestPointIndex</name>
+        <qualifiedname>PolygoneZoneCreator::secondNearestPointIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="493" column="7" bodyfile="ec_ObjectCreator.h" bodystart="493" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1a4c21af1abd5a964d7af8d5dad6a94917" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PolygoneZoneCreator::selectedPointIndex</definition>
+        <argsstring></argsstring>
+        <name>selectedPointIndex</name>
+        <qualifiedname>PolygoneZoneCreator::selectedPointIndex</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="494" column="7" bodyfile="ec_ObjectCreator.h" bodystart="494" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1af1a4f0ac74375967d24dd3202052e2f4" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PolygoneZoneCreator::isMovingPoint</definition>
+        <argsstring></argsstring>
+        <name>isMovingPoint</name>
+        <qualifiedname>PolygoneZoneCreator::isMovingPoint</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="495" column="8" bodyfile="ec_ObjectCreator.h" bodystart="495" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1a2381c4fa1766297e71e6fc31f1d9db3d" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PolygoneZoneCreator::canEditHeight</definition>
+        <argsstring></argsstring>
+        <name>canEditHeight</name>
+        <qualifiedname>PolygoneZoneCreator::canEditHeight</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="496" column="8" bodyfile="ec_ObjectCreator.h" bodystart="496" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPolygoneZoneCreator_1ae784443f0eb23c09e383643a27910e90" prot="protected" static="no" mutable="no">
+        <type><ref refid="structPolygoneZone" kindref="compound">PolygoneZone</ref></type>
+        <definition>PolygoneZone PolygoneZoneCreator::poly</definition>
+        <argsstring></argsstring>
+        <name>poly</name>
+        <qualifiedname>PolygoneZoneCreator::poly</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="498" column="16" bodyfile="ec_ObjectCreator.h" bodystart="498" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a07157178d65ba09a167e05931c4a6bf2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PolygoneZoneCreator::PolygoneZoneCreator</definition>
+        <argsstring>()</argsstring>
+        <name>PolygoneZoneCreator</name>
+        <qualifiedname>PolygoneZoneCreator::PolygoneZoneCreator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="469" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a1611c4d23a8b4f12c91a517dd192b13b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolygoneZoneCreator::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate=true) override</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>PolygoneZoneCreator::handleMouseMove</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b">handleMouseMove</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>rotate</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse move event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">rotate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if <bold>false</bold>, then box sides will be parallel to world coordinate axes <linebreak/>
+ - if <bold>true</bold>, then box base will be set as pointed by user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="471" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1aa0c4bb439918afa3822f6a820191dfa7" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolygoneZoneCreator::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>PolygoneZoneCreator::handleMouseLBPress</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a">handleMouseLBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button press event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="472" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a4ab835621135019949e29295ef67fc52" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolygoneZoneCreator::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>PolygoneZoneCreator::handleMouseLBRelease</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb">handleMouseLBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button release event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="473" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a0c7c9561962d77c548ad53faf378f2b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool PolygoneZoneCreator::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>PolygoneZoneCreator::handleMouseRBPress</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50">handleMouseRBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse right button press event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="474" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a5c241a04f8d7b81defc0974932818f2a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void PolygoneZoneCreator::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>PolygoneZoneCreator::render</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="475" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1ade2eb4e272fcc6db12be786320613ba9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structPolygoneZone" kindref="compound">PolygoneZone</ref> &amp;</type>
+        <definition>const PolygoneZone &amp; PolygoneZoneCreator::getPolygoneZone</definition>
+        <argsstring>()</argsstring>
+        <name>getPolygoneZone</name>
+        <qualifiedname>PolygoneZoneCreator::getPolygoneZone</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="477" column="22" bodyfile="ec_ObjectCreator.h" bodystart="477" bodyend="477"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a44cb2db354723aa3756b74bd4f38c8fc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolygoneZoneCreator::setPolygoneZone</definition>
+        <argsstring>(const PolygoneZone &amp;p)</argsstring>
+        <name>setPolygoneZone</name>
+        <qualifiedname>PolygoneZoneCreator::setPolygoneZone</qualifiedname>
+        <param>
+          <type>const <ref refid="structPolygoneZone" kindref="compound">PolygoneZone</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="478" column="8" bodyfile="ec_ObjectCreator.h" bodystart="478" bodyend="478"/>
+      </memberdef>
+      <memberdef kind="function" id="classPolygoneZoneCreator_1ae742cf7c0211b1dc6601ac4a93ea5920" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolygoneZoneCreator::setEditHeight</definition>
+        <argsstring>(bool enable)</argsstring>
+        <name>setEditHeight</name>
+        <qualifiedname>PolygoneZoneCreator::setEditHeight</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>enable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="479" column="8" bodyfile="ec_ObjectCreator.h" bodystart="479" bodyend="479"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classPolygoneZoneCreator_1a6e29a5921be89a129be6e0c0757ba10b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void PolygoneZoneCreator::switchStages</definition>
+        <argsstring>()</argsstring>
+        <name>switchStages</name>
+        <qualifiedname>PolygoneZoneCreator::switchStages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="488" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="1">
+        <label>PolygoneZoneCreator</label>
+        <link refid="classPolygoneZoneCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="3">
+        <label>PolygoneZone</label>
+        <link refid="structPolygoneZone"/>
+      </node>
+      <node id="1">
+        <label>PolygoneZoneCreator</label>
+        <link refid="classPolygoneZoneCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>poly</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectCreator.h" line="466" column="1" bodyfile="ec_ObjectCreator.h" bodystart="467" bodyend="499"/>
+    <listofallmembers>
+      <member refid="classPolygoneZoneCreator_1a2381c4fa1766297e71e6fc31f1d9db3d" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>canEditHeight</name></member>
+      <member refid="classPolygoneZoneCreator_1a84a985bd5b97dfb1b3df32aba7bd241f" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>cursorWorldPos</name></member>
+      <member refid="classPolygoneZoneCreator_1ade2eb4e272fcc6db12be786320613ba9" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>getPolygoneZone</name></member>
+      <member refid="classPolygoneZoneCreator_1aa0c4bb439918afa3822f6a820191dfa7" prot="public" virt="virtual"><scope>PolygoneZoneCreator</scope><name>handleMouseLBPress</name></member>
+      <member refid="classPolygoneZoneCreator_1a4ab835621135019949e29295ef67fc52" prot="public" virt="virtual"><scope>PolygoneZoneCreator</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classPolygoneZoneCreator_1a1611c4d23a8b4f12c91a517dd192b13b" prot="public" virt="virtual"><scope>PolygoneZoneCreator</scope><name>handleMouseMove</name></member>
+      <member refid="classPolygoneZoneCreator_1a0c7c9561962d77c548ad53faf378f2b3" prot="public" virt="virtual"><scope>PolygoneZoneCreator</scope><name>handleMouseRBPress</name></member>
+      <member refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>IObjectCreator</name></member>
+      <member refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>isFinished</name></member>
+      <member refid="classPolygoneZoneCreator_1af1a4f0ac74375967d24dd3202052e2f4" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>isMovingPoint</name></member>
+      <member refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>isOk</name></member>
+      <member refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>matrix</name></member>
+      <member refid="classPolygoneZoneCreator_1a9ddfb73c449685bd840bea57acd5ac96" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>nearestPointIndex</name></member>
+      <member refid="classPolygoneZoneCreator_1ae784443f0eb23c09e383643a27910e90" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>poly</name></member>
+      <member refid="classPolygoneZoneCreator_1a07157178d65ba09a167e05931c4a6bf2" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>PolygoneZoneCreator</name></member>
+      <member refid="classPolygoneZoneCreator_1a5c241a04f8d7b81defc0974932818f2a" prot="public" virt="virtual"><scope>PolygoneZoneCreator</scope><name>render</name></member>
+      <member refid="classPolygoneZoneCreator_1a3688166f6faefd120f7a897c0611b677" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>secondNearestPointIndex</name></member>
+      <member refid="classPolygoneZoneCreator_1a4c21af1abd5a964d7af8d5dad6a94917" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>selectedPointIndex</name></member>
+      <member refid="classPolygoneZoneCreator_1ae742cf7c0211b1dc6601ac4a93ea5920" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>setEditHeight</name></member>
+      <member refid="classPolygoneZoneCreator_1a44cb2db354723aa3756b74bd4f38c8fc" prot="public" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>setPolygoneZone</name></member>
+      <member refid="classPolygoneZoneCreator_1a83e96889c78545e4bfb9415b7756eccf" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>stageNo</name></member>
+      <member refid="classPolygoneZoneCreator_1aef22f8739f989a9fcbb80ead24d2503e" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>Stages</name></member>
+      <member refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>stateFinished</name></member>
+      <member refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>stateOk</name></member>
+      <member refid="classPolygoneZoneCreator_1a6e29a5921be89a129be6e0c0757ba10b" prot="protected" virt="non-virtual"><scope>PolygoneZoneCreator</scope><name>switchStages</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

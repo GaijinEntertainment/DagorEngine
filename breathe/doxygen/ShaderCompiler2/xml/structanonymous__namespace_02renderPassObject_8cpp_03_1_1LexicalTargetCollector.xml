@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1aac30f058d7d71db082bbbfc6b6843fc6" prot="public" static="no" mutable="no">
+        <type><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+        <definition>VarNameMap&amp; anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::names</definition>
+        <argsstring></argsstring>
+        <name>names</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1207" column="14" bodyfile="renderPassObject.cpp" bodystart="1207" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a2faeb0eb88a6e5c43e98b8c77c582872" prot="public" static="no" mutable="no">
+        <type>dag::VectorSet&lt; int &gt; &amp;</type>
+        <definition>dag::VectorSet&lt;int&gt;&amp; anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::out</definition>
+        <argsstring></argsstring>
+        <name>out</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::out</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1208" column="18" bodyfile="renderPassObject.cpp" bodystart="1208" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a92963aba441b00614c45055f6a610526" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::add</definition>
+        <argsstring>(const char *n)</argsstring>
+        <name>add</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::add</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1210" column="8" bodyfile="renderPassObject.cpp" bodystart="1210" bodyend="1210"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1aa548ddb156e7a8534a89b3e5217aa6a8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::resolve</definition>
+        <argsstring>(target_resolve &amp;tr)</argsstring>
+        <name>resolve</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::resolve</qualifiedname>
+        <param>
+          <type>target_resolve &amp;</type>
+          <declname>tr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1212" column="8" bodyfile="renderPassObject.cpp" bodystart="1212" bodyend="1216"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a69c9f6af7ac26a197404ead32e7f77ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::binds</definition>
+        <argsstring>(dag::ConstSpan&lt; subpass_bind * &gt; list)</argsstring>
+        <name>binds</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::binds</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; subpass_bind * &gt;</type>
+          <declname>list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1218" column="8" bodyfile="renderPassObject.cpp" bodystart="1218" bodyend="1227"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a039064c0ac2177a4fe65f75fc3440efe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::subpassStats</definition>
+        <argsstring>(dag::ConstSpan&lt; subpass_stat * &gt; stats)</argsstring>
+        <name>subpassStats</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::subpassStats</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; subpass_stat * &gt;</type>
+          <declname>stats</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1229" column="8" bodyfile="renderPassObject.cpp" bodystart="1229" bodyend="1244"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a12b7038ed6c4a0186379d8ff62632299" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::passStats</definition>
+        <argsstring>(dag::ConstSpan&lt; render_pass_stat * &gt; stats)</argsstring>
+        <name>passStats</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector::passStats</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; render_pass_stat * &gt;</type>
+          <declname>stats</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1247" column="8" bodyfile="renderPassObject.cpp" bodystart="1247" bodyend="1280"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>VarNameMap</label>
+        <link refid="classVarNameMap"/>
+      </node>
+      <node id="1">
+        <label>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</label>
+        <link refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>names</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.cpp" line="1205" column="1" bodyfile="renderPassObject.cpp" bodystart="1206" bodyend="1281"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a92963aba441b00614c45055f6a610526" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>add</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a69c9f6af7ac26a197404ead32e7f77ad" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>binds</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1aac30f058d7d71db082bbbfc6b6843fc6" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>names</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a2faeb0eb88a6e5c43e98b8c77c582872" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>out</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a12b7038ed6c4a0186379d8ff62632299" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>passStats</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1aa548ddb156e7a8534a89b3e5217aa6a8" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>resolve</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector_1a039064c0ac2177a4fe65f75fc3440efe" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</scope><name>subpassStats</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

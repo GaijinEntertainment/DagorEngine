@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassObject_1_1Target" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassObject::Target</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassObject_1_1Target_1a50a129ff3283153f053dd396a8b9661f" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId RenderPassObject::Target::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderPassObject::Target::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="47" column="22" bodyfile="renderPassObject.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Target_1aacc610a9ed74e0d97d706b76e663aaf6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassObject::Target::multisampled</definition>
+        <argsstring></argsstring>
+        <name>multisampled</name>
+        <qualifiedname>RenderPassObject::Target::multisampled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="48" column="10" bodyfile="renderPassObject.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Target_1a846756401a7cd9379d71696faff26372" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassObject::Target::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>RenderPassObject::Target::format</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="50" column="14" bodyfile="renderPassObject.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Target_1ab1edd722dde100106b80edce1189f0e8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassObject::Target::formatSamples</definition>
+        <argsstring></argsstring>
+        <name>formatSamples</name>
+        <qualifiedname>RenderPassObject::Target::formatSamples</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="51" column="9" bodyfile="renderPassObject.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassObject::Target</label>
+        <link refid="structRenderPassObject_1_1Target"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="45" column="3" bodyfile="renderPassObject.h" bodystart="46" bodyend="52"/>
+    <listofallmembers>
+      <member refid="structRenderPassObject_1_1Target_1a846756401a7cd9379d71696faff26372" prot="public" virt="non-virtual"><scope>RenderPassObject::Target</scope><name>format</name></member>
+      <member refid="structRenderPassObject_1_1Target_1ab1edd722dde100106b80edce1189f0e8" prot="public" virt="non-virtual"><scope>RenderPassObject::Target</scope><name>formatSamples</name></member>
+      <member refid="structRenderPassObject_1_1Target_1aacc610a9ed74e0d97d706b76e663aaf6" prot="public" virt="non-virtual"><scope>RenderPassObject::Target</scope><name>multisampled</name></member>
+      <member refid="structRenderPassObject_1_1Target_1a50a129ff3283153f053dd396a8b9661f" prot="public" virt="non-virtual"><scope>RenderPassObject::Target</scope><name>name</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

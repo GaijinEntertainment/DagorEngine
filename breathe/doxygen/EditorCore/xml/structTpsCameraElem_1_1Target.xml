@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTpsCameraElem_1_1Target" kind="struct" language="C++" prot="protected">
+    <compoundname>TpsCameraElem::Target</compoundname>
+    <includes refid="ec__camera__elem_8h" local="no">ec_camera_elem.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Target_1a0441f124ac249e4b09acd04ac3f94840" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TpsCameraElem::Target::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>TpsCameraElem::Target::pos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="239" column="12" bodyfile="ec_camera_elem.h" bodystart="239" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Target_1aad30b894e291614ed392ccf28760366f" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TpsCameraElem::Target::prevPos</definition>
+        <argsstring></argsstring>
+        <name>prevPos</name>
+        <qualifiedname>TpsCameraElem::Target::prevPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="239" column="16" bodyfile="ec_camera_elem.h" bodystart="239" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Target_1a3eedf132f67133c1f60fd01eeafc1836" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TpsCameraElem::Target::vel</definition>
+        <argsstring></argsstring>
+        <name>vel</name>
+        <qualifiedname>TpsCameraElem::Target::vel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="240" column="12" bodyfile="ec_camera_elem.h" bodystart="240" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Target_1a02479fc9d1230abf4ff77d66ac9b5844" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TpsCameraElem::Target::acc</definition>
+        <argsstring></argsstring>
+        <name>acc</name>
+        <qualifiedname>TpsCameraElem::Target::acc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="240" column="16" bodyfile="ec_camera_elem.h" bodystart="240" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTpsCameraElem_1_1Target_1a9b49806f660abac14abe8abc71dc5ebc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool TpsCameraElem::Target::mayJump</definition>
+        <argsstring></argsstring>
+        <name>mayJump</name>
+        <qualifiedname>TpsCameraElem::Target::mayJump</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="241" column="10" bodyfile="ec_camera_elem.h" bodystart="241" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_camera_elem.h" line="237" column="3" bodyfile="ec_camera_elem.h" bodystart="238" bodyend="242"/>
+    <listofallmembers>
+      <member refid="structTpsCameraElem_1_1Target_1a02479fc9d1230abf4ff77d66ac9b5844" prot="public" virt="non-virtual"><scope>TpsCameraElem::Target</scope><name>acc</name></member>
+      <member refid="structTpsCameraElem_1_1Target_1a9b49806f660abac14abe8abc71dc5ebc" prot="public" virt="non-virtual"><scope>TpsCameraElem::Target</scope><name>mayJump</name></member>
+      <member refid="structTpsCameraElem_1_1Target_1a0441f124ac249e4b09acd04ac3f94840" prot="public" virt="non-virtual"><scope>TpsCameraElem::Target</scope><name>pos</name></member>
+      <member refid="structTpsCameraElem_1_1Target_1aad30b894e291614ed392ccf28760366f" prot="public" virt="non-virtual"><scope>TpsCameraElem::Target</scope><name>prevPos</name></member>
+      <member refid="structTpsCameraElem_1_1Target_1a3eedf132f67133c1f60fd01eeafc1836" prot="public" virt="non-virtual"><scope>TpsCameraElem::Target</scope><name>vel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

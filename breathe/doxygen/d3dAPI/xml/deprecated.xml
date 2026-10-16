@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="deprecated" kind="page">
+    <compoundname>deprecated</compoundname>
+    <title>Deprecated List</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><variablelist>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1ac5e71bdc7ce784e94a94b0669c9cbc4b" kindref="member">_MULTI_INTERFACE::alias_tex</ref>  (<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *baseTexture, TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name=nullptr)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000014"/>Always prefer higher-level APIs for saving memory (e.g. frame graph, ResizableTex). Avoid using this as much as possible, it will be removed in favor of using heaps via a frame graph system.  </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1a3cada7a2c5dfecff508e1145da53f506" kindref="member">_MULTI_INTERFACE::get_render_target</ref>  (<ref refid="structDriver3dRenderTarget" kindref="compound">Driver3dRenderTarget</ref> &amp;out_rt)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000011"/>Don&apos;t use it since the method relies on a global state. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1ac99c4dc4e2344d60599388164b500218" kindref="member">_MULTI_INTERFACE::get_render_target_size</ref>  (int &amp;w, int &amp;h, <ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *rt_tex, uint8_t level=0)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000013"/>If you need to use the method, it seems that you are doing something wrong. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1ae3da688106c2623676e84311ffdae1f8" kindref="member">_MULTI_INTERFACE::get_target_size</ref>  (int &amp;w, int &amp;h)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000012"/>If you need to use the method, it seems that you are doing something wrong. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1a63d0fc8a366768296ea0643c89427074" kindref="member">_MULTI_INTERFACE::getglobtm</ref>  (Matrix44 &amp;out)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000006"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1abf22cae7cea3153e8912cbb56fcf7a81" kindref="member">_MULTI_INTERFACE::getglobtm</ref>  (mat44f &amp;out)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000007"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1a9001353198094e814cdcb766eed81274" kindref="member">_MULTI_INTERFACE::getm2vtm</ref>  (TMatrix &amp;out_m2v)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000005"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1a4abebe9c75f05331da0c5c743c2bc520" kindref="member">_MULTI_INTERFACE::getpersp</ref>  (<ref refid="structDriver3dPerspective" kindref="compound">Driver3dPerspective</ref> &amp;p)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000008"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1ae89f3de55a69be019634d93c4e9f91b6" kindref="member">_MULTI_INTERFACE::gettm</ref>  (int which, Matrix44 *out_tm)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000001"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1ad16c77b0ffa9032ed0d3282774bc32a5" kindref="member">_MULTI_INTERFACE::gettm</ref>  (int which, TMatrix &amp;out_tm)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000002"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1ac7e1a84b02344a46afd5716b1a468479" kindref="member">_MULTI_INTERFACE::gettm</ref>  (int which, mat44f &amp;out_tm)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000003"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1a7bd5296904d7551bafb551c5a6e8f534" kindref="member">_MULTI_INTERFACE::gettm_cref</ref>  (int which)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000004"/> </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1afab550411d59d67ae994bf656a81fb35" kindref="member">_MULTI_INTERFACE::getview</ref>  (int &amp;x, int &amp;y, int &amp;w, int &amp;h, float &amp;minz, float &amp;maxz)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000015"/>Don&apos;t use it since this method relies on the global state. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1aa07cb9373bac5b870fd3b54e1e1187b7" kindref="member">_MULTI_INTERFACE::set_depth</ref>  (<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *tex, DepthAccess access)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000009"/>Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors) instead. set_depth modifies only the depth attachment and silently keeps any previously-bound color slots, which makes render-pass state hard to reason about. The unified set_render_target call binds the full RT set atomically. </para>
+</listitem>
+<varlistentry><term>Member <ref refid="namespace__MULTI__INTERFACE_1a8f6fb024b63427e35e839333603ccc27" kindref="member">_MULTI_INTERFACE::set_depth</ref>  (<ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *tex, int layer, DepthAccess access)</term></varlistentry>
+<listitem><para><anchor id="deprecated_1_deprecated000010"/>Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan&lt;RenderTarget&gt; colors) instead.</para>
+</listitem>
+</variablelist>
+</para>
+    </detaileddescription>
+    <location file="deprecated"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagColor" kind="struct" language="C++" prot="public">
+    <compoundname>DagColor</compoundname>
+    <includes refid="dagfmt_8h" local="no">dagfmt.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char DagColor::b</definition>
+        <argsstring></argsstring>
+        <name>b</name>
+        <qualifiedname>DagColor::b</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="55" column="17" bodyfile="dagfmt.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char DagColor::g</definition>
+        <argsstring></argsstring>
+        <name>g</name>
+        <qualifiedname>DagColor::g</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="55" column="19" bodyfile="dagfmt.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char DagColor::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>DagColor::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="55" column="21" bodyfile="dagfmt.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagColor_1a597c74c9f07d4bd83f3c8a4e88246ba5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DagColor::DagColor</definition>
+        <argsstring>()</argsstring>
+        <name>DagColor</name>
+        <qualifiedname>DagColor::DagColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagfmt.h" line="81" column="3" bodyfile="dagfmt.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagfmt.h" line="53" column="1" bodyfile="dagfmt.h" bodystart="54" bodyend="83"/>
+    <listofallmembers>
+      <member refid="structDagColor_1a14c2f1b89f0abe06ea67aef005eea9f8" prot="public" virt="non-virtual"><scope>DagColor</scope><name>b</name></member>
+      <member refid="structDagColor_1a597c74c9f07d4bd83f3c8a4e88246ba5" prot="public" virt="non-virtual"><scope>DagColor</scope><name>DagColor</name></member>
+      <member refid="structDagColor_1a8b00f6e92d63c5e9a12cdba1400c99aa" prot="public" virt="non-virtual"><scope>DagColor</scope><name>g</name></member>
+      <member refid="structDagColor_1a8c56f7579360de70b69dd90c4e14dc1e" prot="public" virt="non-virtual"><scope>DagColor</scope><name>r</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

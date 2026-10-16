@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTextureIdSet" kind="class" language="C++" prot="public">
+    <compoundname>TextureIdSet</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">BaseTextureIdSet</basecompoundref>
+    <includes refid="dag__texIdSet_8h" local="no">dag_texIdSet.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTextureIdSet_1a1ba92add0af0eeaf281edcce3781e7ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>TextureIdSet::TextureIdSet</definition>
+        <argsstring>()=default</argsstring>
+        <name>TextureIdSet</name>
+        <qualifiedname>TextureIdSet::TextureIdSet</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="17" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIdSet_1a856275abfa63d0dc7fe287d2d4236a98" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TextureIdSet::TextureIdSet</definition>
+        <argsstring>(IMemAlloc *m)</argsstring>
+        <name>TextureIdSet</name>
+        <qualifiedname>TextureIdSet::TextureIdSet</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="18" column="3" bodyfile="dag_texIdSet.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIdSet_1a202645c5f18fd3497a141f303c299e6a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TextureIdSet::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>TextureIdSet::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="20" column="8" bodyfile="dag_texIdSet.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIdSet_1a3853368a26f2246bda409934681062c1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIdSet::add</definition>
+        <argsstring>(TEXTUREID tid)</argsstring>
+        <name>add</name>
+        <qualifiedname>TextureIdSet::add</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="22" column="8" bodyfile="dag_texIdSet.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIdSet_1af948f1a47b19af8e421f06163d1fe5db" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIdSet::del</definition>
+        <argsstring>(TEXTUREID tid)</argsstring>
+        <name>del</name>
+        <qualifiedname>TextureIdSet::del</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="23" column="8" bodyfile="dag_texIdSet.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classTextureIdSet_1a6fbefd2082c8352009fa0b763c81fbba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool TextureIdSet::has</definition>
+        <argsstring>(TEXTUREID tid) const</argsstring>
+        <name>has</name>
+        <qualifiedname>TextureIdSet::has</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="24" column="8" bodyfile="dag_texIdSet.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BaseTextureIdSet</label>
+      </node>
+      <node id="1">
+        <label>TextureIdSet</label>
+        <link refid="classTextureIdSet"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTextureIdSet</label>
+      </node>
+      <node id="1">
+        <label>TextureIdSet</label>
+        <link refid="classTextureIdSet"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_texIdSet.h" line="14" column="1" bodyfile="dag_texIdSet.h" bodystart="15" bodyend="25"/>
+    <listofallmembers>
+      <member refid="classTextureIdSet_1a3853368a26f2246bda409934681062c1" prot="public" virt="non-virtual"><scope>TextureIdSet</scope><name>add</name></member>
+      <member refid="classTextureIdSet_1af948f1a47b19af8e421f06163d1fe5db" prot="public" virt="non-virtual"><scope>TextureIdSet</scope><name>del</name></member>
+      <member refid="classTextureIdSet_1a6fbefd2082c8352009fa0b763c81fbba" prot="public" virt="non-virtual"><scope>TextureIdSet</scope><name>has</name></member>
+      <member refid="classTextureIdSet_1a202645c5f18fd3497a141f303c299e6a" prot="public" virt="non-virtual"><scope>TextureIdSet</scope><name>reset</name></member>
+      <member refid="classTextureIdSet_1a1ba92add0af0eeaf281edcce3781e7ba" prot="public" virt="non-virtual"><scope>TextureIdSet</scope><name>TextureIdSet</name></member>
+      <member refid="classTextureIdSet_1a856275abfa63d0dc7fe287d2d4236a98" prot="public" virt="non-virtual"><scope>TextureIdSet</scope><name>TextureIdSet</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdefer_1_1detail_1_1Defer" kind="class" language="C++" prot="public">
+    <compoundname>defer::detail::Defer</compoundname>
+    <includes refid="defer_8h" local="no">defer.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename TCallable</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classdefer_1_1detail_1_1Defer_1aadb0146b9835ce1f88c5c75fdb555c57" prot="private" static="no" mutable="no">
+        <type>TCallable</type>
+        <definition>TCallable defer::detail::Defer&lt; TCallable &gt;::callable</definition>
+        <argsstring></argsstring>
+        <name>callable</name>
+        <qualifiedname>defer::detail::Defer::callable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="defer.h" line="19" column="13" bodyfile="defer.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdefer_1_1detail_1_1Defer_1a5113825de9467520162b1cca0e5b8aa5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>defer::detail::Defer&lt; TCallable &gt;::Defer</definition>
+        <argsstring>(TCallable &amp;&amp;a_callable)</argsstring>
+        <name>Defer</name>
+        <qualifiedname>defer::detail::Defer::Defer</qualifiedname>
+        <param>
+          <type>TCallable &amp;&amp;</type>
+          <declname>a_callable</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="defer.h" line="15" column="3" bodyfile="defer.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classdefer_1_1detail_1_1Defer_1ab6797c7a229471b85328d96e94b9e3c7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>defer::detail::Defer&lt; TCallable &gt;::~Defer</definition>
+        <argsstring>()</argsstring>
+        <name>~Defer</name>
+        <qualifiedname>defer::detail::Defer::~Defer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="defer.h" line="16" column="3" bodyfile="defer.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="defer.h" line="12" column="1" bodyfile="defer.h" bodystart="13" bodyend="20"/>
+    <listofallmembers>
+      <member refid="classdefer_1_1detail_1_1Defer_1aadb0146b9835ce1f88c5c75fdb555c57" prot="private" virt="non-virtual"><scope>defer::detail::Defer</scope><name>callable</name></member>
+      <member refid="classdefer_1_1detail_1_1Defer_1a5113825de9467520162b1cca0e5b8aa5" prot="public" virt="non-virtual"><scope>defer::detail::Defer</scope><name>Defer</name></member>
+      <member refid="classdefer_1_1detail_1_1Defer_1ab6797c7a229471b85328d96e94b9e3c7" prot="public" virt="non-virtual"><scope>defer::detail::Defer</scope><name>~Defer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

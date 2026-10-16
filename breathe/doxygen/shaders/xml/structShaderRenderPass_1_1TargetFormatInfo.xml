@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderRenderPass_1_1TargetFormatInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::TargetFormatInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderRenderPass_1_1TargetFormatInfo_1a62de83d46e1a4da16b741b45d5bda779" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderRenderPass::TargetFormatInfo::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>ShaderRenderPass::TargetFormatInfo::format</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="79" column="12" bodyfile="dag_shaderRenderPass.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1TargetFormatInfo_1a8507227dfad806ab800f8306ac2e52f8" prot="public" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t ShaderRenderPass::TargetFormatInfo::samples</definition>
+        <argsstring></argsstring>
+        <name>samples</name>
+        <qualifiedname>ShaderRenderPass::TargetFormatInfo::samples</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="80" column="11" bodyfile="dag_shaderRenderPass.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="77" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="78" bodyend="81"/>
+    <listofallmembers>
+      <member refid="structShaderRenderPass_1_1TargetFormatInfo_1a62de83d46e1a4da16b741b45d5bda779" prot="public" virt="non-virtual"><scope>ShaderRenderPass::TargetFormatInfo</scope><name>format</name></member>
+      <member refid="structShaderRenderPass_1_1TargetFormatInfo_1a8507227dfad806ab800f8306ac2e52f8" prot="public" virt="non-virtual"><scope>ShaderRenderPass::TargetFormatInfo</scope><name>samples</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

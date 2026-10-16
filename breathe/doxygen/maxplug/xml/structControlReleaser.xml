@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structControlReleaser" kind="struct" language="C++" prot="public">
+    <compoundname>ControlReleaser</compoundname>
+    <includes refid="common_8h" local="no">common.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structControlReleaser_1a4580e06bda6f684d4cf1dc8db9a037c1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ControlReleaser::operator()</definition>
+        <argsstring>(ICustEdit *c) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ControlReleaser::operator()</qualifiedname>
+        <param>
+          <type>ICustEdit *</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="33" column="8" bodyfile="common.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="structControlReleaser_1a10af1e3607bb8447e144c937895a0ebe" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ControlReleaser::operator()</definition>
+        <argsstring>(ICustButton *c) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ControlReleaser::operator()</qualifiedname>
+        <param>
+          <type>ICustButton *</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="34" column="8" bodyfile="common.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="structControlReleaser_1a2c4c3be51fe4ba7d40adc08778499f99" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ControlReleaser::operator()</definition>
+        <argsstring>(ISpinnerControl *c) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ControlReleaser::operator()</qualifiedname>
+        <param>
+          <type>ISpinnerControl *</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="35" column="8" bodyfile="common.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="structControlReleaser_1afb34cd5fcfecdaa6bf3d3cb41a77bcb4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ControlReleaser::operator()</definition>
+        <argsstring>(IColorSwatch *c) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ControlReleaser::operator()</qualifiedname>
+        <param>
+          <type>IColorSwatch *</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="36" column="8" bodyfile="common.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="structControlReleaser_1a76a045eef6141a74960a83aa2a9674c6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ControlReleaser::operator()</definition>
+        <argsstring>(IRollupWindow *c) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ControlReleaser::operator()</qualifiedname>
+        <param>
+          <type>IRollupWindow *</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="common.h" line="37" column="8" bodyfile="common.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="common.h" line="31" column="1" bodyfile="common.h" bodystart="32" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structControlReleaser_1a4580e06bda6f684d4cf1dc8db9a037c1" prot="public" virt="non-virtual"><scope>ControlReleaser</scope><name>operator()</name></member>
+      <member refid="structControlReleaser_1a10af1e3607bb8447e144c937895a0ebe" prot="public" virt="non-virtual"><scope>ControlReleaser</scope><name>operator()</name></member>
+      <member refid="structControlReleaser_1a2c4c3be51fe4ba7d40adc08778499f99" prot="public" virt="non-virtual"><scope>ControlReleaser</scope><name>operator()</name></member>
+      <member refid="structControlReleaser_1afb34cd5fcfecdaa6bf3d3cb41a77bcb4" prot="public" virt="non-virtual"><scope>ControlReleaser</scope><name>operator()</name></member>
+      <member refid="structControlReleaser_1a76a045eef6141a74960a83aa2a9674c6" prot="public" virt="non-virtual"><scope>ControlReleaser</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

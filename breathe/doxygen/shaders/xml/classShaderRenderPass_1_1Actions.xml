@@ -1,0 +1,159 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderRenderPass_1_1Actions" kind="class" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::Actions</compoundname>
+    <includes refid="dag__shaderRenderPass_8h" local="no">dag_shaderRenderPass.h</includes>
+    <innerclass refid="structShaderRenderPass_1_1Actions_1_1Entry" prot="private">ShaderRenderPass::Actions::Entry</innerclass>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderRenderPass_1_1Actions_1a3dcef6908bba76672fc23993a0ab298f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Pass</definition>
+        <argsstring></argsstring>
+        <name>Pass</name>
+        <qualifiedname>ShaderRenderPass::Actions::Pass</qualifiedname>
+        <param>
+          <type><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="170" column="16" bodyfile="dag_shaderRenderPass.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderRenderPass_1_1Actions_1ab2b505737030f129c17a9d28c94600d4" prot="private" static="no" mutable="no">
+        <type>Entry</type>
+        <definition>Entry ShaderRenderPass::Actions::entries[MAX_TARGETS]</definition>
+        <argsstring>[MAX_TARGETS]</argsstring>
+        <name>entries</name>
+        <qualifiedname>ShaderRenderPass::Actions::entries</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="180" column="9" bodyfile="dag_shaderRenderPass.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderRenderPass_1_1Actions_1a15cf6bdc720d9a8dd201663710466a1c" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::Actions::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>ShaderRenderPass::Actions::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="181" column="7" bodyfile="dag_shaderRenderPass.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Actions_1aea5bfa40cbae07ad224a5f6d962afe7c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref> &amp;</type>
+        <definition>Actions &amp; ShaderRenderPass::Actions::load</definition>
+        <argsstring>(const char *target, RpLoad a)</argsstring>
+        <name>load</name>
+        <qualifiedname>ShaderRenderPass::Actions::load</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" kindref="member">RpLoad</ref></type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="165" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Actions_1a6b77677be2834fb9b052631bfaed4a4a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref> &amp;</type>
+        <definition>Actions &amp; ShaderRenderPass::Actions::clear</definition>
+        <argsstring>(const char *target)</argsstring>
+        <name>clear</name>
+        <qualifiedname>ShaderRenderPass::Actions::clear</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="166" column="11" bodyfile="dag_shaderRenderPass.h" bodystart="166" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Actions_1a12e6f362987f92c4aec3fd0c45a42a65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref> &amp;</type>
+        <definition>Actions &amp; ShaderRenderPass::Actions::store</definition>
+        <argsstring>(const char *target, RpStore a)</argsstring>
+        <name>store</name>
+        <qualifiedname>ShaderRenderPass::Actions::store</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" kindref="member">RpStore</ref></type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="167" column="11"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Actions_1a07066420083ff5fd340d6d2d073bffad" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Entry *</type>
+        <definition>Entry * ShaderRenderPass::Actions::entryFor</definition>
+        <argsstring>(const char *target)</argsstring>
+        <name>entryFor</name>
+        <qualifiedname>ShaderRenderPass::Actions::entryFor</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="178" column="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Specifies what happens with the contents of targets at the start and end of a render pass. On non-mobile platforms, the only choice that must be made is whether to clear or load the contents at the start of the pass. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>A target without an entry loads and stores its contents. A resolve source loads its contents and discards them at the end. A resolve destination, a vrs attachment and a target that no subpass writes take no entry, because their actions are fixed. An entry for one of them is fatal.</para>
+<para>On mobile devices, careful use of DontCare can avoid unnecessary memory traffic and improve both performance and thermals. Use with caution, as undefined contents are truly undefined and can lead to visual artifacts. </para>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="162" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="163" bodyend="182"/>
+    <listofallmembers>
+      <member refid="classShaderRenderPass_1_1Actions_1a6b77677be2834fb9b052631bfaed4a4a" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>clear</name></member>
+      <member refid="classShaderRenderPass_1_1Actions_1a15cf6bdc720d9a8dd201663710466a1c" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>count</name></member>
+      <member refid="classShaderRenderPass_1_1Actions_1ab2b505737030f129c17a9d28c94600d4" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>entries</name></member>
+      <member refid="classShaderRenderPass_1_1Actions_1a07066420083ff5fd340d6d2d073bffad" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>entryFor</name></member>
+      <member refid="classShaderRenderPass_1_1Actions_1aea5bfa40cbae07ad224a5f6d962afe7c" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>load</name></member>
+      <member refid="classShaderRenderPass_1_1Actions_1a3dcef6908bba76672fc23993a0ab298f" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>Pass</name></member>
+      <member refid="classShaderRenderPass_1_1Actions_1a12e6f362987f92c4aec3fd0c45a42a65" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions</scope><name>store</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

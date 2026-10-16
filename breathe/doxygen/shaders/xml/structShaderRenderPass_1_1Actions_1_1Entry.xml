@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderRenderPass_1_1Actions_1_1Entry" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderRenderPass::Actions::Entry</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Actions_1_1Entry_1a066d0aa10d6c1271f990f0b3bdd5090b" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderRenderPass::Actions::Entry::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderRenderPass::Actions::Entry::name</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="173" column="16" bodyfile="dag_shaderRenderPass.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Actions_1_1Entry_1a68759ee5883d37a66795acd906ef95ba" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" kindref="member">RpLoad</ref></type>
+        <definition>RpLoad ShaderRenderPass::Actions::Entry::load</definition>
+        <argsstring></argsstring>
+        <name>load</name>
+        <qualifiedname>ShaderRenderPass::Actions::Entry::load</qualifiedname>
+        <initializer>= <ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0daf19dbf2edb3a0bd74b0524d960ff21eb" kindref="member">RpLoad::Load</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="174" column="12" bodyfile="dag_shaderRenderPass.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Actions_1_1Entry_1afa492a87ddd1ad9e01254d9e87a9dfff" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" kindref="member">RpStore</ref></type>
+        <definition>RpStore ShaderRenderPass::Actions::Entry::store</definition>
+        <argsstring></argsstring>
+        <name>store</name>
+        <qualifiedname>ShaderRenderPass::Actions::Entry::store</qualifiedname>
+        <initializer>= <ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526bafdb0c388de01d545017cdf9ccf00eb72" kindref="member">RpStore::Store</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="175" column="13" bodyfile="dag_shaderRenderPass.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Actions_1_1Entry_1afee7b8678987f26d71f2b451fcb0bb13" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::Actions::Entry::hasLoad</definition>
+        <argsstring></argsstring>
+        <name>hasLoad</name>
+        <qualifiedname>ShaderRenderPass::Actions::Entry::hasLoad</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="176" column="10" bodyfile="dag_shaderRenderPass.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Actions_1_1Entry_1a585dfc3f67cc407cb31b3302549248cf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::Actions::Entry::hasStore</definition>
+        <argsstring></argsstring>
+        <name>hasStore</name>
+        <qualifiedname>ShaderRenderPass::Actions::Entry::hasStore</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="176" column="19" bodyfile="dag_shaderRenderPass.h" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="171" column="3" bodyfile="dag_shaderRenderPass.h" bodystart="172" bodyend="177"/>
+    <listofallmembers>
+      <member refid="structShaderRenderPass_1_1Actions_1_1Entry_1afee7b8678987f26d71f2b451fcb0bb13" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions::Entry</scope><name>hasLoad</name></member>
+      <member refid="structShaderRenderPass_1_1Actions_1_1Entry_1a585dfc3f67cc407cb31b3302549248cf" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions::Entry</scope><name>hasStore</name></member>
+      <member refid="structShaderRenderPass_1_1Actions_1_1Entry_1a68759ee5883d37a66795acd906ef95ba" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions::Entry</scope><name>load</name></member>
+      <member refid="structShaderRenderPass_1_1Actions_1_1Entry_1a066d0aa10d6c1271f990f0b3bdd5090b" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions::Entry</scope><name>name</name></member>
+      <member refid="structShaderRenderPass_1_1Actions_1_1Entry_1afa492a87ddd1ad9e01254d9e87a9dfff" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Actions::Entry</scope><name>store</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

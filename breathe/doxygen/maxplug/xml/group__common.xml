@@ -1,0 +1,587 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__common" kind="group">
+    <compoundname>common</compoundname>
+    <title>Common</title>
+    <innerfile refid="math3d_8h">math3d.h</innerfile>
+    <innerclass refid="classMatrix33" prot="public">Matrix33</innerclass>
+    <innerclass refid="classTMatrix" prot="public">TMatrix</innerclass>
+    <innerclass refid="classBBox2" prot="public">BBox2</innerclass>
+    <innerclass refid="classBBox3" prot="public">BBox3</innerclass>
+    <innerclass refid="classStaticMeshRayTracer" prot="public">StaticMeshRayTracer</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="group__common_1ga031f8951175b43076c2084a6c2173410" prot="public" static="no">
+        <type>float</type>
+        <definition>typedef float real</definition>
+        <argsstring></argsstring>
+        <name>real</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="16" column="15" bodyfile="math3d.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" prot="public" static="no" mutable="no">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real Matrix33::m[3][3]</definition>
+        <argsstring>[3][3]</argsstring>
+        <name>m</name>
+        <qualifiedname>Matrix33::m</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="25" column="8" bodyfile="math3d.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="group__common_1ga30439c9be7994b5038d65159659f08ca" prot="public" static="no" mutable="no">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real TMatrix::m[4][3]</definition>
+        <argsstring>[4][3]</argsstring>
+        <name>m</name>
+        <qualifiedname>TMatrix::m</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="92" column="8" bodyfile="math3d.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" prot="public" static="yes" mutable="no">
+        <type><ref refid="classTMatrix" kindref="compound">TMatrix</ref></type>
+        <definition>TMatrix TMatrix::IDENT</definition>
+        <argsstring></argsstring>
+        <name>IDENT</name>
+        <qualifiedname>TMatrix::IDENT</qualifiedname>
+        <briefdescription>
+<para>identity constant matrix </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="95" column="18" bodyfile="math3d.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 BBox2::lim[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>lim</name>
+        <qualifiedname>BBox2::lim</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="111" column="10" bodyfile="math3d.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="group__common_1ga889656955bcb1a2a94630173e9263879" prot="public" static="no" mutable="no">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 BBox3::lim[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>lim</name>
+        <qualifiedname>BBox3::lim</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="141" column="10" bodyfile="math3d.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="group__common_1ga1469e3f4431dc0f01f79ca4f5f5e3913" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>__forceinline <ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>__forceinline real rabs</definition>
+        <argsstring>(real a)</argsstring>
+        <name>rabs</name>
+        <param>
+          <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="20" column="20" bodyfile="math3d.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga70acb6647b172d017cc4265a29a7d263" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Matrix33::Matrix33</definition>
+        <argsstring>()</argsstring>
+        <name>Matrix33</name>
+        <qualifiedname>Matrix33::Matrix33</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="26" column="10" bodyfile="math3d.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga6cbda1f223b4fb1767e738289adfea89" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 Matrix33::operator*</definition>
+        <argsstring>(const Point3 &amp;p) const</argsstring>
+        <name>operator*</name>
+        <qualifiedname>Matrix33::operator*</qualifiedname>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="28" column="17" bodyfile="math3d.h" bodystart="28" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real Matrix33::det</definition>
+        <argsstring>() const</argsstring>
+        <name>det</name>
+        <qualifiedname>Matrix33::det</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="37" column="15" bodyfile="math3d.h" bodystart="48" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Matrix33::setcol</definition>
+        <argsstring>(int i, const Point3 &amp;v)</argsstring>
+        <name>setcol</name>
+        <qualifiedname>Matrix33::setcol</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="39" column="15" bodyfile="math3d.h" bodystart="39" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gac94266011945877c5639b5fedd2fd9d9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 Matrix33::getcol</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getcol</name>
+        <qualifiedname>Matrix33::getcol</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="45" column="17" bodyfile="math3d.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga994d67c1d22e9a18cd833a052e892da6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classMatrix33" kindref="compound">Matrix33</ref></type>
+        <definition>Matrix33 inverse</definition>
+        <argsstring>(const Matrix33 &amp;a)</argsstring>
+        <name>inverse</name>
+        <param>
+          <type>const <ref refid="classMatrix33" kindref="compound">Matrix33</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="54" column="17" bodyfile="math3d.h" bodystart="54" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gaf6eb2a5a5fc4673d96c8ca43ace9e354" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned real2uchar</definition>
+        <argsstring>(float p)</argsstring>
+        <name>real2uchar</name>
+        <param>
+          <type>float</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="70" column="17" bodyfile="math3d.h" bodystart="70" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TMatrix::TMatrix</definition>
+        <argsstring>(real)</argsstring>
+        <name>TMatrix</name>
+        <qualifiedname>TMatrix::TMatrix</qualifiedname>
+        <param>
+          <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <defname>a</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="97" column="10" bodyfile="math3d.h" bodystart="102" bodyend="106"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 TMatrix::getcol</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getcol</name>
+        <qualifiedname>TMatrix::getcol</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="99" column="17" bodyfile="math3d.h" bodystart="99" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga53871bc5f647af456ec9cb42c095fa8a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BBox2::BBox2</definition>
+        <argsstring>()</argsstring>
+        <name>BBox2</name>
+        <qualifiedname>BBox2::BBox2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="112" column="10" bodyfile="math3d.h" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga7e366b8f277b32f0348cc843d49825ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BBox2::setempty</definition>
+        <argsstring>()</argsstring>
+        <name>setempty</name>
+        <qualifiedname>BBox2::setempty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="114" column="15" bodyfile="math3d.h" bodystart="114" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga01413a7ce728ca8da007bb02511f9e4e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point2 &amp;</type>
+        <definition>Point2 &amp; BBox2::operator[]</definition>
+        <argsstring>(int i)</argsstring>
+        <name>operator[]</name>
+        <qualifiedname>BBox2::operator[]</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="120" column="17" bodyfile="math3d.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga51a72dd8407d342256fbd9815523fe0d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classBBox2" kindref="compound">BBox2</ref> &amp;</type>
+        <definition>BBox2 &amp; BBox2::operator+=</definition>
+        <argsstring>(const Point2 &amp;p)</argsstring>
+        <name>operator+=</name>
+        <qualifiedname>BBox2::operator+=</qualifiedname>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="122" column="16" bodyfile="math3d.h" bodystart="122" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gaaff3fa783c7ad74aa0e9656ef3eda330" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real lengthSq</definition>
+        <argsstring>(const Point3 &amp;a)</argsstring>
+        <name>lengthSq</name>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="136" column="13" bodyfile="math3d.h" bodystart="136" bodyend="136"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gadc592d5a014057332e0b733bb3237c00" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BBox3::BBox3</definition>
+        <argsstring>()</argsstring>
+        <name>BBox3</name>
+        <qualifiedname>BBox3::BBox3</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="142" column="10" bodyfile="math3d.h" bodystart="142" bodyend="142"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gaafbb1b9222d90b6821db3f6832f71612" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BBox3::setempty</definition>
+        <argsstring>()</argsstring>
+        <name>setempty</name>
+        <qualifiedname>BBox3::setempty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="144" column="15" bodyfile="math3d.h" bodystart="144" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 BBox3::center</definition>
+        <argsstring>() const</argsstring>
+        <name>center</name>
+        <qualifiedname>BBox3::center</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="149" column="17" bodyfile="math3d.h" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga34f6664227f8531a0708a69314c9eb21" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref></type>
+        <definition>Point3 BBox3::width</definition>
+        <argsstring>() const</argsstring>
+        <name>width</name>
+        <qualifiedname>BBox3::width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="150" column="17" bodyfile="math3d.h" bodystart="150" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classBBox3" kindref="compound">BBox3</ref> &amp;</type>
+        <definition>BBox3 &amp; BBox3::operator+=</definition>
+        <argsstring>(const Point3 &amp;p)</argsstring>
+        <name>operator+=</name>
+        <qualifiedname>BBox3::operator+=</qualifiedname>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="152" column="16" bodyfile="math3d.h" bodystart="152" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga5a030e780d5804ef3360e73f8b6717ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual StaticMeshRayTracer::~StaticMeshRayTracer</definition>
+        <argsstring>()=default</argsstring>
+        <name>~StaticMeshRayTracer</name>
+        <qualifiedname>StaticMeshRayTracer::~StaticMeshRayTracer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="173" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga6b9807257a4afe97f271a126deefe836" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool StaticMeshRayTracer::traceray</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;dir, real &amp;t, int &amp;fi, Point3 &amp;bc)=0</argsstring>
+        <name>traceray</name>
+        <qualifiedname>StaticMeshRayTracer::traceray</qualifiedname>
+        <reimplementedby refid="classStaticMeshRTracer_1a2ffd4d56b1d9f45d16629dd680cfecb5">traceray</reimplementedby>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>bc</declname>
+        </param>
+        <briefdescription>
+<para>Tests ray hit to object and returns parameters of hit (if happen) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="175" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1gac8b67a396f83c5ccf220ce197839e8d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool StaticMeshRayTracer::traceray_back</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;dir, real &amp;t, int &amp;fi, Point3 &amp;bc)=0</argsstring>
+        <name>traceray_back</name>
+        <qualifiedname>StaticMeshRayTracer::traceray_back</qualifiedname>
+        <reimplementedby refid="classStaticMeshRTracer_1aa180b29b99047f7889cb92bfca9b663b">traceray_back</reimplementedby>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>dir</declname>
+        </param>
+        <param>
+          <type><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> &amp;</type>
+          <declname>bc</declname>
+        </param>
+        <briefdescription>
+<para>trace backfaces </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="178" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="group__common_1ga675c99833b9746f8164a3cacbd6ec6ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void StaticMeshRayTracer::build</definition>
+        <argsstring>(Mesh &amp;m)=0</argsstring>
+        <name>build</name>
+        <qualifiedname>StaticMeshRayTracer::build</qualifiedname>
+        <reimplementedby refid="classStaticMeshRTracer_1a30034ef5921f81041e76eb9639f1d913">build</reimplementedby>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+<para>Builds (or rebuilds) object for given mesh. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="180" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" prot="public" static="no">
+        <name>INLINE</name>
+        <initializer>__forceinline</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="15" column="13" bodyfile="math3d.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="group__common_1gaddbad2bc626a64a9917c2224de315b6c" prot="public" static="no">
+        <name>MAX_REAL</name>
+        <initializer>FLT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="17" column="9" bodyfile="math3d.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="group__common_1ga9eddad11c4bf0260599c228291c1443a" prot="public" static="no">
+        <name>MIN_REAL</name>
+        <initializer>(-FLT_MAX)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="18" column="9" bodyfile="math3d.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="group__common_1gaebb5e6716e06431296af4d1a71744dec" prot="public" static="no">
+        <name>REAL_EPS</name>
+        <initializer>FLT_EPSILON</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="math3d.h" line="19" column="9" bodyfile="math3d.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSha1BinRecordTail" kind="struct" language="C++" prot="public">
+    <compoundname>Sha1BinRecordTail</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSha1BinRecordTail_1ae6ac3d4f10ba12feae3f464f4ab3ef12" prot="public" static="no" mutable="no">
+        <type><ref refid="structComputeShaderInfo" kindref="compound">ComputeShaderInfo</ref></type>
+        <definition>ComputeShaderInfo Sha1BinRecordTail::computeShaderInfo</definition>
+        <argsstring></argsstring>
+        <name>computeShaderInfo</name>
+        <qualifiedname>Sha1BinRecordTail::computeShaderInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="2235" column="21" bodyfile="assemblyShader.cpp" bodystart="2235" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSha1BinRecordTail_1a6153671b76e5376f65674ea7e835d734" prot="public" static="no" mutable="no">
+        <type>PixelShaderOutputInfo</type>
+        <definition>PixelShaderOutputInfo Sha1BinRecordTail::psOutputInfo</definition>
+        <argsstring></argsstring>
+        <name>psOutputInfo</name>
+        <qualifiedname>Sha1BinRecordTail::psOutputInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="assemblyShader.cpp" line="2236" column="25" bodyfile="assemblyShader.cpp" bodystart="2236" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ComputeShaderInfo</label>
+        <link refid="structComputeShaderInfo"/>
+      </node>
+      <node id="1">
+        <label>Sha1BinRecordTail</label>
+        <link refid="structSha1BinRecordTail"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>computeShaderInfo</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="assemblyShader.cpp" line="2233" column="1" bodyfile="assemblyShader.cpp" bodystart="2234" bodyend="2237"/>
+    <listofallmembers>
+      <member refid="structSha1BinRecordTail_1ae6ac3d4f10ba12feae3f464f4ab3ef12" prot="public" virt="non-virtual"><scope>Sha1BinRecordTail</scope><name>computeShaderInfo</name></member>
+      <member refid="structSha1BinRecordTail_1a6153671b76e5376f65674ea7e835d734" prot="public" virt="non-virtual"><scope>Sha1BinRecordTail</scope><name>psOutputInfo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

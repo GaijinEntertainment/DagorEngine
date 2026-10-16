@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceShaderVariant" kind="namespace" language="C++">
+    <compoundname>ShaderVariant</compoundname>
+    <innerclass refid="classShaderVariant_1_1CombinedValues" prot="public">ShaderVariant::CombinedValues</innerclass>
+    <innerclass refid="classShaderVariant_1_1PartialSearchInfo" prot="public">ShaderVariant::PartialSearchInfo</innerclass>
+    <innerclass refid="classShaderVariant_1_1SearchInfo" prot="public">ShaderVariant::SearchInfo</innerclass>
+    <innerclass refid="classShaderVariant_1_1TypeTable" prot="public">ShaderVariant::TypeTable</innerclass>
+    <innerclass refid="structShaderVariant_1_1Variant" prot="public">ShaderVariant::Variant</innerclass>
+    <innerclass refid="structShaderVariant_1_1VariantInfo" prot="public">ShaderVariant::VariantInfo</innerclass>
+    <innerclass refid="classShaderVariant_1_1VariantSrc" prot="public">ShaderVariant::VariantSrc</innerclass>
+    <innerclass refid="classShaderVariant_1_1VariantTable" prot="public">ShaderVariant::VariantTable</innerclass>
+    <innerclass refid="classShaderVariant_1_1VariantTableSrc" prot="public">ShaderVariant::VariantTableSrc</innerclass>
+    <innerclass refid="structShaderVariant_1_1VariantType" prot="public">ShaderVariant::VariantType</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" prot="public" static="no" strong="no">
+        <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+        <name>VarType</name>
+        <qualifiedname>ShaderVariant::VarType</qualifiedname>
+        <enumvalue id="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa4d49e14b2742d348bc6aff506284e60b" prot="public">
+          <name>VARTYPE_MODE</name>
+          <initializer>= (BaseType)1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa9315b7bd780786690166d34c4a9841ac" prot="public">
+          <name>VARTYPE_INTERVAL</name>
+          <initializer>= (BaseType)2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfa7f3628fe65b99b6d908e5238c40bc485" prot="public">
+          <name>VARTYPE_GLOBAL_INTERVAL</name>
+          <initializer>= (BaseType)3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cfac22d8297449dcba859360b19c391cd08" prot="public">
+          <name>VARTYPE_GL_OVERRIDE_INTERVAL</name>
+          <initializer>= (BaseType)4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="40" column="1" bodyfile="varTypes.h" bodystart="41" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27" prot="public" static="no" strong="no">
+        <type></type>
+        <name>VarTypeModeID</name>
+        <qualifiedname>ShaderVariant::VarTypeModeID</qualifiedname>
+        <enumvalue id="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27a0869757dbb6efe5a2870cbc7b2df5a38" prot="public">
+          <name>TWO_SIDED</name>
+          <initializer>= (ExtType)5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderVariant_1acba053c05d6132228610c748ab655e27a68463dca0990df6b3c699d05b2272845" prot="public">
+          <name>REAL_TWO_SIDED</name>
+          <initializer>= (ExtType)6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="52" column="1" bodyfile="varTypes.h" bodystart="53" bodyend="56"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" prot="public" static="no">
+        <type>int</type>
+        <definition>typedef unsigned char ShaderVariant::BaseType</definition>
+        <argsstring></argsstring>
+        <name>BaseType</name>
+        <qualifiedname>ShaderVariant::BaseType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="26" column="13" bodyfile="varTypes.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" prot="public" static="no">
+        <type>int</type>
+        <definition>typedef unsigned short ShaderVariant::ExtType</definition>
+        <argsstring></argsstring>
+        <name>ExtType</name>
+        <qualifiedname>ShaderVariant::ExtType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="27" column="13" bodyfile="varTypes.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" prot="public" static="no">
+        <type>int</type>
+        <definition>typedef signed char ShaderVariant::ValueType</definition>
+        <argsstring></argsstring>
+        <name>ValueType</name>
+        <qualifiedname>ShaderVariant::ValueType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="28" column="13" bodyfile="varTypes.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceShaderVariant_1a30542012bafd43dafa933051e8c289c3" prot="public" static="no">
+        <type>Range&lt; <ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref> &gt;</type>
+        <definition>typedef Range&lt;ValueType&gt; ShaderVariant::ValueRange</definition>
+        <argsstring></argsstring>
+        <name>ValueRange</name>
+        <qualifiedname>ShaderVariant::ValueRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="varTypes.h" line="34" column="15" bodyfile="varTypes.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderVariant.cpp" line="11" column="1"/>
+  </compounddef>
+</doxygen>

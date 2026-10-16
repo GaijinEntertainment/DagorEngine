@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBoolExprEvalCbResult" kind="struct" language="C++" prot="public">
+    <compoundname>BoolExprEvalCbResult</compoundname>
+    <includes refid="boolExpr_8h" local="no">boolExpr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBoolExprEvalCbResult_1ad2e83c5b2442dd76cffb795cbe04778b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BoolExprEvalCbResult::res</definition>
+        <argsstring></argsstring>
+        <name>res</name>
+        <qualifiedname>BoolExprEvalCbResult::res</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="129" column="8" bodyfile="boolExpr.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprEvalCbResult_1a2b0d569cc057ce7c3350379b3378af54" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BoolExprEvalCbResult::erred</definition>
+        <argsstring></argsstring>
+        <name>erred</name>
+        <qualifiedname>BoolExprEvalCbResult::erred</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="130" column="8" bodyfile="boolExpr.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="boolExpr.h" line="127" column="1" bodyfile="boolExpr.h" bodystart="128" bodyend="131"/>
+    <listofallmembers>
+      <member refid="structBoolExprEvalCbResult_1a2b0d569cc057ce7c3350379b3378af54" prot="public" virt="non-virtual"><scope>BoolExprEvalCbResult</scope><name>erred</name></member>
+      <member refid="structBoolExprEvalCbResult_1ad2e83c5b2442dd76cffb795cbe04778b" prot="public" virt="non-virtual"><scope>BoolExprEvalCbResult</scope><name>res</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

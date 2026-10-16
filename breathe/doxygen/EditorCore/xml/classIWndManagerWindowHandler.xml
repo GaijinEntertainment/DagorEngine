@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIWndManagerWindowHandler" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IWndManagerWindowHandler</compoundname>
+    <derivedcompoundref refid="classObjectEditor" prot="public" virt="non-virtual">ObjectEditor</derivedcompoundref>
+    <includes refid="ec__wndPublic_8h" local="no">ec_wndPublic.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIWndManagerWindowHandler_1a865fba33d1ebff3cabfc2632dd7b0af5" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void *</type>
+        <definition>virtual void * IWndManagerWindowHandler::onWmCreateWindow</definition>
+        <argsstring>(int type)=0</argsstring>
+        <name>onWmCreateWindow</name>
+        <qualifiedname>IWndManagerWindowHandler::onWmCreateWindow</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a22d1d9ae4e916aca3676ae927de9e51d">onWmCreateWindow</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="31" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManagerWindowHandler_1a0544cf22f55b82be59fb0850d0dfdfde" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IWndManagerWindowHandler::onWmDestroyWindow</definition>
+        <argsstring>(void *window)=0</argsstring>
+        <name>onWmDestroyWindow</name>
+        <qualifiedname>IWndManagerWindowHandler::onWmDestroyWindow</qualifiedname>
+        <reimplementedby refid="classObjectEditor_1a586321103d357916ce14cc0147a25d96">onWmDestroyWindow</reimplementedby>
+        <param>
+          <type>void *</type>
+          <declname>window</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="32" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>IWndManagerWindowHandler</label>
+        <link refid="classIWndManagerWindowHandler"/>
+      </node>
+      <node id="2">
+        <label>ObjectEditor</label>
+        <link refid="classObjectEditor"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_wndPublic.h" line="28" column="1" bodyfile="ec_wndPublic.h" bodystart="29" bodyend="33"/>
+    <listofallmembers>
+      <member refid="classIWndManagerWindowHandler_1a865fba33d1ebff3cabfc2632dd7b0af5" prot="public" virt="pure-virtual"><scope>IWndManagerWindowHandler</scope><name>onWmCreateWindow</name></member>
+      <member refid="classIWndManagerWindowHandler_1a0544cf22f55b82be59fb0850d0dfdfde" prot="public" virt="pure-virtual"><scope>IWndManagerWindowHandler</scope><name>onWmDestroyWindow</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

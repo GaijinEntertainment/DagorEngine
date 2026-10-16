@@ -1,0 +1,339 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dagor Decal Projector Tool</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Dagor Editing Normals Tool" href="editing_normals_tool.html" />
+    <link rel="prev" title="Dagor Damages Setup Tool" href="damages_setup_tool.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Add-ons for Blender and 3ds Max</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../blender/index.html">Add-ons for Blender</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../index.html">Add-ons for 3ds Max</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../dagor-max-tools/index.html">Dagor Max Tools</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="index.html">Dagor MaxScript Toolbox</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="ambient_occlusion_baker.html">Dagor Ambient Occlusion Baker</a></li>
+<li class="toctree-l5"><a class="reference internal" href="check_degenerated_faces_tool.html">Dagor Check Degenerated Faces Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="custom_groups_export_tool.html">Dagor Custom Groups Export Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="damages_setup_tool.html">Dagor Damages Setup Tool</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">Dagor Decal Projector Tool</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#first-start">First Start</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#main-window-controls">Main Window Controls</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#bitmap-pickers">Bitmap Pickers</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#convex-bitmap-picker">Convex Bitmap Picker</a></li>
+<li class="toctree-l7"><a class="reference internal" href="#rectangle-bitmap-picker">Rectangle Bitmap Picker</a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#usage-example">Usage Example</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#support">Support</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="editing_normals_tool.html">Dagor Editing Normals Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fast_editor_user_properties.html">Dagor Fast Editor User Properties</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fix_normal_orientation_tool.html">Dagor Fix Normal Orientation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="fixing_illegal_characters.html">Dagor Fixing Illegal Characters Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="lods_and_collisions_generator.html">Dagor LODs and Collisions Generator</a></li>
+<li class="toctree-l5"><a class="reference internal" href="pivot_painter_vegetation_tool.html">Dagor Pivot Painter Vegetation Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="simple_cmp_editor.html">Dagor Simple CMP Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="transfer_vertex_position_to_vertex_color_tool.html">Dagor Transfer Vertex Position to Vertex Color Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="unwrap_me_tool.html">Dagor UnwrapMe Tool</a></li>
+<li class="toctree-l5"><a class="reference internal" href="volume_normal_transfer_tool.html">Dagor Volume Normals Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../dagormat/index.html">DagorMat</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Add-ons for Blender and 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Add-ons for 3ds Max</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Dagor MaxScript Toolbox</a></li>
+      <li class="breadcrumb-item active">Dagor Decal Projector Tool</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/dagor-tools/addons/3ds-max/dagor-maxscript-toolbox/decal_projector_tool.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="dagor-decal-projector-tool">
+<h1>Dagor Decal Projector Tool<a class="headerlink" href="#dagor-decal-projector-tool" title="Link to this heading"></a></h1>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="installation.html"><span class="std std-doc">Install the script</span></a> following the provided instructions.</p>
+<div class="warning admonition">
+<p class="admonition-title">3ds Max Version Requirement</p>
+<p>This script requires <strong>3ds Max 2025 or later</strong>.</p>
+</div>
+</section>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Dagor Decal Projector Tool places rectangular and convex decals on a mesh.
+It can place many decals in one session.
+The tool uses much memory, so it is a separate script.</p>
+</section>
+<section id="first-start">
+<h2>First Start<a class="headerlink" href="#first-start" title="Link to this heading"></a></h2>
+<p>Open <strong>GaijinTools &gt; Dagor Decal Projector…</strong>.</p>
+<p>The main window has the controls shown below.</p>
+<img alt="Dagor Decal Projector Tool" class="align-center" src="../../../../_images/decal_projector_00.png" />
+<a class="reference internal image-reference" href="../../../../_images/decal_projector_01.png"><img alt="Dagor Decal Projector Tool" class="align-center" src="../../../../_images/decal_projector_01.png" style="width: 50em;" />
+</a>
+</section>
+<section id="main-window-controls">
+<h2>Main Window Controls<a class="headerlink" href="#main-window-controls" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Pick Object</strong> button selects the mesh where the tool places decals.</p></li>
+<li><p><strong>Presets</strong> drop-down menu selects a test preset. This control is for test use.</p></li>
+<li><p><strong>Rectangle Bitmap</strong> button opens the bitmap picker for a rectangular decal.</p></li>
+<li><p><strong>Convex Bitmap</strong> button opens the bitmap picker for a convex decal.</p></li>
+<li><p><strong>Open Material Preview</strong> button opens the Material Editor for the current decal material.</p></li>
+</ul>
+<img alt="Dagor Decal Projector Tool" class="align-center" src="../../../../_images/decal_projector_02.png" />
+<p>This field shows the selected decal.
+It can show a preset or a decal selected with <strong>Rectangle Bitmap</strong> or <strong>Convex Bitmap</strong>.</p>
+<ul class="simple">
+<li><p><strong>Scale</strong> spinner sets the decal size.</p></li>
+<li><p><strong>Rotate</strong> spinner sets the decal rotation around its center.</p></li>
+<li><p><strong>Push</strong> spinner sets the distance between the decal and its parent surface.</p></li>
+<li><p><strong>Start</strong> button starts decal placement. It is active after you select a mesh and a decal.</p></li>
+<li><p><strong>Delete Back Faces</strong> checkbox removes triangles that face away from the current view.</p></li>
+<li><p><strong>Weld Threshold</strong> spinner sets the vertex weld distance. Use it when a decal crosses a Smooth Group boundary.</p></li>
+<li><p><strong>Distance Cull</strong> spinner sets the maximum placement distance from the camera. Use it on complex meshes to limit decal placement depth.</p></li>
+<li><p><strong>Scale Random %</strong> spinner adds random scale changes to placed decals.</p></li>
+<li><p><strong>Rotate Random</strong> spinner adds random rotation changes to placed decals.</p></li>
+<li><p><strong>Tile X</strong> spinner sets the horizontal tile count for <strong>Rectangle Bitmap</strong> mode.</p></li>
+<li><p><strong>Tile Y</strong> spinner sets the vertical tile count for <strong>Rectangle Bitmap</strong> mode.</p></li>
+<li><p><strong>Delete All Decals</strong> button removes all scene nodes named <code class="docutils literal notranslate"><span class="pre">DecalMaster_*</span></code> and <code class="docutils literal notranslate"><span class="pre">dpLine*</span></code>.</p></li>
+<li><p><strong>Save Settings</strong> button saves settings to an INI file beside the script.</p></li>
+</ul>
+</section>
+<section id="bitmap-pickers">
+<h2>Bitmap Pickers<a class="headerlink" href="#bitmap-pickers" title="Link to this heading"></a></h2>
+<p>Both bitmap pickers have these controls:</p>
+<ul class="simple">
+<li><p><strong>OK</strong> button confirms the selected decal.</p></li>
+<li><p><strong>Cancel</strong> button stops the current action. It selects a rectangle that covers the full texture.</p></li>
+<li><p><strong>Background Color</strong> picker sets the background color for alpha editing.</p></li>
+</ul>
+<section id="convex-bitmap-picker">
+<h3>Convex Bitmap Picker<a class="headerlink" href="#convex-bitmap-picker" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Clear</strong> button removes the current convex decal.</p></li>
+<li><p><strong>Create Convex</strong> button starts convex decal creation.</p></li>
+<li><p><strong>Select Existing Convex</strong> button selects a saved convex decal.</p></li>
+<li><p><strong>Delete Selected Convex</strong> button removes the selected convex decal.</p></li>
+</ul>
+</section>
+<section id="rectangle-bitmap-picker">
+<h3>Rectangle Bitmap Picker<a class="headerlink" href="#rectangle-bitmap-picker" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Create Rectangle</strong> button starts rectangular decal creation.</p></li>
+<li><p><strong>Select Existing Rectangle</strong> button selects a saved rectangular decal.</p></li>
+<li><p><strong>Delete Selected Rectangle</strong> button removes the selected rectangular decal.</p></li>
+</ul>
+<p>The tool saves decals beside the script in JSON files.
+Each JSON file has the same base name as its texture.
+For example, <code class="docutils literal notranslate"><span class="pre">wall_stucco_damaged_decal_a_tex_m.tif</span></code> uses
+<code class="docutils literal notranslate"><span class="pre">wall_stucco_damaged_decal_a_tex_m.json</span></code>.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"texture"</span><span class="p">:</span><span class="w"> </span><span class="s2">"wall_stucco_damaged_decal_a_tex_m.tif"</span><span class="p">,</span>
+
+<span class="w">  </span><span class="nt">"rectangles"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">[</span><span class="mf">0.00309023</span><span class="p">,</span><span class="w"> </span><span class="mf">0.00494438</span><span class="p">,</span><span class="w"> </span><span class="mf">0.663164</span><span class="p">,</span><span class="w"> </span><span class="mf">0.325093</span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span><span class="mf">0.0216316</span><span class="p">,</span><span class="w"> </span><span class="mf">0.331273</span><span class="p">,</span><span class="w"> </span><span class="mf">0.57293</span><span class="p">,</span><span class="w"> </span><span class="mf">0.709518</span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span><span class="mf">0.0302843</span><span class="p">,</span><span class="w"> </span><span class="mf">0.724351</span><span class="p">,</span><span class="w"> </span><span class="mf">0.529666</span><span class="p">,</span><span class="w"> </span><span class="mf">0.983931</span><span class="p">]</span>
+<span class="w">  </span><span class="p">],</span>
+
+<span class="w">  </span><span class="nt">"convexes"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">[[</span><span class="mf">0.026576</span><span class="p">,</span><span class="w"> </span><span class="mf">0.411619</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.124227</span><span class="p">,</span><span class="w"> </span><span class="mf">0.317676</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.366502</span><span class="p">,</span><span class="w"> </span><span class="mf">0.309023</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.539555</span><span class="p">,</span><span class="w"> </span><span class="mf">0.347342</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.584054</span><span class="p">,</span><span class="w"> </span><span class="mf">0.489493</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.535847</span><span class="p">,</span><span class="w"> </span><span class="mf">0.625464</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.329419</span><span class="p">,</span><span class="w"> </span><span class="mf">0.719407</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.220643</span><span class="p">,</span><span class="w"> </span><span class="mf">0.741656</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.026576</span><span class="p">,</span><span class="w"> </span><span class="mf">0.598269</span><span class="p">]]</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The JSON file stores rectangles and convex shapes separately.
+Use <strong>Delete Selected Convex</strong> to remove the selected decal.</p>
+</section>
+</section>
+<section id="usage-example">
+<h2>Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
+<p>For this example, use a decal texture with an alpha channel.</p>
+<ol class="arabic">
+<li><p>Create a sphere and select it with <strong>Pick Object</strong>. Use a mesh with fewer
+triangles if the tool runs slowly.</p></li>
+<li><p>Choose a decal texture. Click <strong>Rectangle Bitmap</strong> for a rectangular decal
+or <strong>Convex Bitmap</strong> for a convex decal.</p></li>
+<li><p>In the bitmap picker, create a decal or select an existing one.</p>
+<a class="reference internal image-reference" href="../../../../_images/decal_projector_03.png"><img alt="Dagor Decal Projector Tool bitmap picker" class="align-center" src="../../../../_images/decal_projector_03.png" style="width: 50em;" />
+</a>
+<a class="reference internal image-reference" href="../../../../_images/decal_projector_04.png"><img alt="Dagor Decal Projector Tool bitmap picker" class="align-center" src="../../../../_images/decal_projector_04.png" style="width: 50em;" />
+</a>
+</li>
+<li><p>In the convex picker, use <strong>Select Existing Convex</strong> to load a saved decal,
+<strong>Create Convex</strong> to make a new decal, or <strong>Clear</strong> to remove decals from
+the picker.</p></li>
+<li><p>Click <strong>OK</strong> to confirm the decal. With no decal selected, <strong>OK</strong> and
+<strong>Cancel</strong> both create a rectangle that covers the full texture.</p></li>
+<li><p>Click <strong>Start</strong> and place decals on the sphere. Hold <code class="docutils literal notranslate"><span class="pre">Shift</span></code> to scale a
+decal or <code class="docutils literal notranslate"><span class="pre">Ctrl</span></code> to rotate it. Click <strong>Start</strong> again to stop placement.</p></li>
+<li><p>Select another bitmap and click <strong>Start</strong> to continue. New decals use a
+Standard material. Select them in Object Inspector to set another material.</p></li>
+</ol>
+</section>
+<section id="support">
+<h2>Support<a class="headerlink" href="#support" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Open Local Documentation</strong> button opens this page.</p></li>
+<li><p><strong>Contact with Developer</strong> button opens the developer page.</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If you have questions, contact the author directly at
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-mail sd-text-info" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M1.75 2A1.75 1.75 0 000 3.75v.736a.75.75 0 000 .027v7.737C0 13.216.784 14 1.75 14h12.5A1.75 1.75 0 0016 12.25v-8.5A1.75 1.75 0 0014.25 2H1.75zM14.5 4.07v-.32a.25.25 0 00-.25-.25H1.75a.25.25 0 00-.25.25v.32L8 7.88l6.5-3.81zm-13 1.74v6.441c0 .138.112.25.25.25h12.5a.25.25 0 00.25-.25V5.809L8.38 9.397a.75.75 0 01-.76 0L1.5 5.809z"></path></svg> <a class="reference external" href="mailto:a&#46;vlasov&#37;&#52;&#48;gaijin&#46;team">a<span>&#46;</span>vlasov<span>&#64;</span>gaijin<span>&#46;</span>team</a>.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="damages_setup_tool.html" class="btn btn-neutral float-left" title="Dagor Damages Setup Tool" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="editing_normals_tool.html" class="btn btn-neutral float-right" title="Dagor Editing Normals Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2026.
+      <span class="lastupdated">Last updated on Oct 16, 2026.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

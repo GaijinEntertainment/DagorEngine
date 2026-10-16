@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGenericBuildCache_1_1FileDataHash" kind="struct" language="C++" prot="protected">
+    <compoundname>GenericBuildCache::FileDataHash</compoundname>
+    <includes refid="genericCache_8h" local="no">genericCache.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGenericBuildCache_1_1FileDataHash_1a984138a66c8c6b1c6ff8b156181df852" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char GenericBuildCache::FileDataHash::hash[HASH_SZ]</definition>
+        <argsstring>[HASH_SZ]</argsstring>
+        <name>hash</name>
+        <qualifiedname>GenericBuildCache::FileDataHash::hash</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="genericCache.h" line="61" column="19" bodyfile="genericCache.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericBuildCache_1_1FileDataHash_1ab8663d0c3e6d67b62238f0584872132e" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned GenericBuildCache::FileDataHash::timeStamp</definition>
+        <argsstring></argsstring>
+        <name>timeStamp</name>
+        <qualifiedname>GenericBuildCache::FileDataHash::timeStamp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="genericCache.h" line="62" column="14" bodyfile="genericCache.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGenericBuildCache_1_1FileDataHash_1abb4f7f719c18441ed50b4a45299b29ea" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned GenericBuildCache::FileDataHash::changed</definition>
+        <argsstring></argsstring>
+        <name>changed</name>
+        <qualifiedname>GenericBuildCache::FileDataHash::changed</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="genericCache.h" line="63" column="14" bodyfile="genericCache.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="genericCache.h" line="59" column="3" bodyfile="genericCache.h" bodystart="60" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structGenericBuildCache_1_1FileDataHash_1abb4f7f719c18441ed50b4a45299b29ea" prot="public" virt="non-virtual"><scope>GenericBuildCache::FileDataHash</scope><name>changed</name></member>
+      <member refid="structGenericBuildCache_1_1FileDataHash_1a984138a66c8c6b1c6ff8b156181df852" prot="public" virt="non-virtual"><scope>GenericBuildCache::FileDataHash</scope><name>hash</name></member>
+      <member refid="structGenericBuildCache_1_1FileDataHash_1ab8663d0c3e6d67b62238f0584872132e" prot="public" virt="non-virtual"><scope>GenericBuildCache::FileDataHash</scope><name>timeStamp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

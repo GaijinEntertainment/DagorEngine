@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassGroupMemberRef" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassGroupMemberRef</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassGroupMemberRef_1acdc13abbdc3378b35e5987463b0adb92" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref> *</type>
+        <definition>const RenderPassObject* RenderPassGroupMemberRef::pass</definition>
+        <argsstring></argsstring>
+        <name>pass</name>
+        <qualifiedname>RenderPassGroupMemberRef::pass</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="160" column="26" bodyfile="renderPassObject.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassGroupMemberRef_1a7ca8e96af36e3210550f4a3739ed3736" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref> *</type>
+        <definition>const RenderPassObject::Subpass* RenderPassGroupMemberRef::subpass</definition>
+        <argsstring></argsstring>
+        <name>subpass</name>
+        <qualifiedname>RenderPassGroupMemberRef::subpass</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="161" column="35" bodyfile="renderPassObject.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderPassGroupMemberRef_1a7b39a519d84eb054b51d739e55e0afa2" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderPassGroupMemberRef::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>RenderPassGroupMemberRef::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="163" column="12" bodyfile="renderPassObject.h" bodystart="163" bodyend="163"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassGroupMemberRef</label>
+        <link refid="structRenderPassGroupMemberRef"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>subpass</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="12">
+        <label>RenderPassObject::Subpass</label>
+        <link refid="structRenderPassObject_1_1Subpass"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>colors</edgelabel>
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SerializableTab&lt; int &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="9">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="7">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+      <node id="14">
+        <label>Tab&lt; int &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="158" column="1" bodyfile="renderPassObject.h" bodystart="159" bodyend="164"/>
+    <listofallmembers>
+      <member refid="structRenderPassGroupMemberRef_1a7b39a519d84eb054b51d739e55e0afa2" prot="public" virt="non-virtual"><scope>RenderPassGroupMemberRef</scope><name>operator bool</name></member>
+      <member refid="structRenderPassGroupMemberRef_1acdc13abbdc3378b35e5987463b0adb92" prot="public" virt="non-virtual"><scope>RenderPassGroupMemberRef</scope><name>pass</name></member>
+      <member refid="structRenderPassGroupMemberRef_1a7ca8e96af36e3210550f4a3739ed3736" prot="public" virt="non-virtual"><scope>RenderPassGroupMemberRef</scope><name>subpass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

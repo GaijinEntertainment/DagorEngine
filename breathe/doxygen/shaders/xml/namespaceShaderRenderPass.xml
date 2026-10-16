@@ -1,0 +1,601 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceShaderRenderPass" kind="namespace" language="C++">
+    <compoundname>ShaderRenderPass</compoundname>
+    <innerclass refid="classShaderRenderPass_1_1Actions" prot="public">ShaderRenderPass::Actions</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1ActivePass" prot="public">ShaderRenderPass::ActivePass</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Marker" prot="public">ShaderRenderPass::Marker</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Pass" prot="public">ShaderRenderPass::Pass</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1ResolvePair" prot="public">ShaderRenderPass::ResolvePair</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Scope" prot="public">ShaderRenderPass::Scope</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1SubpassInfo" prot="public">ShaderRenderPass::SubpassInfo</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1TargetFormatInfo" prot="public">ShaderRenderPass::TargetFormatInfo</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Targets" prot="public">ShaderRenderPass::Targets</innerclass>
+      <sectiondef kind="user-defined">
+      <header>Low-level bindump queries</header>
+      <description><para>Should not be used by game code directly. A dump load or reload makes every returned span and name invalid, so query again after it. </para>
+</description>
+      <memberdef kind="enum" id="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9a" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>DepthUse</name>
+        <qualifiedname>ShaderRenderPass::DepthUse</qualifiedname>
+        <enumvalue id="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9aa1129c0e4d43f2d121652a7302712cff6" prot="public">
+          <name>Write</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9aa7a1a5f3e79fdc91edf2f5ead9d66abb4" prot="public">
+          <name>Read</name>
+          <briefdescription>
+<para>read-only, and listed in reads </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9aa4c1d10948179163c80a7b8d23542074b" prot="public">
+          <name>Sampled</name>
+          <briefdescription>
+<para>read-only, sampled through a register the caller binds </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="49" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="50" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a094279ff20e8b829283198b9c7ef2d38" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderRenderPass::get_target_count</definition>
+        <argsstring>(Id id)</argsstring>
+        <name>get_target_count</name>
+        <qualifiedname>ShaderRenderPass::get_target_count</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="69" column="5" declfile="dag_shaderRenderPass.h" declline="69" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a6414eba8b94a9cff6a04cb6203097cc2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderRenderPass::get_target_name</definition>
+        <argsstring>(Id id, int i)</argsstring>
+        <name>get_target_name</name>
+        <qualifiedname>ShaderRenderPass::get_target_name</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="70" column="12" declfile="dag_shaderRenderPass.h" declline="70" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a63aaaa854c1eac391737a87f17c29173" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderRenderPass::get_target_slot</definition>
+        <argsstring>(Id id, const char *name)</argsstring>
+        <name>get_target_slot</name>
+        <qualifiedname>ShaderRenderPass::get_target_slot</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="71" column="5" declfile="dag_shaderRenderPass.h" declline="71" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1ad0d57812428d878fd95f2754ead5382e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::is_target_multisampled</definition>
+        <argsstring>(Id id, int i)</argsstring>
+        <name>is_target_multisampled</name>
+        <qualifiedname>ShaderRenderPass::is_target_multisampled</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="72" column="6" declfile="dag_shaderRenderPass.h" declline="72" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a11ae7821b30447c6928d4eacdb15ff6a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="structShaderRenderPass_1_1ResolvePair" kindref="compound">ResolvePair</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; ResolvePair &gt; ShaderRenderPass::get_resolves</definition>
+        <argsstring>(Id id)</argsstring>
+        <name>get_resolves</name>
+        <qualifiedname>ShaderRenderPass::get_resolves</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="73" column="16" declfile="dag_shaderRenderPass.h" declline="73" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1af4d7efdb6df253710711b79d7d4b2005" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderRenderPass::get_subpass_count</definition>
+        <argsstring>(Id id)</argsstring>
+        <name>get_subpass_count</name>
+        <qualifiedname>ShaderRenderPass::get_subpass_count</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="74" column="5" declfile="dag_shaderRenderPass.h" declline="74" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a5db4d5b72fd5964ccd8a92e82f1fae97" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderRenderPass_1_1SubpassInfo" kindref="compound">SubpassInfo</ref></type>
+        <definition>SubpassInfo ShaderRenderPass::get_subpass_info</definition>
+        <argsstring>(Id id, int subpass)</argsstring>
+        <name>get_subpass_info</name>
+        <qualifiedname>ShaderRenderPass::get_subpass_info</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>subpass</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="75" column="13" declfile="dag_shaderRenderPass.h" declline="75" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1aea71ce547efcfebdd7121f2a2aa11b86" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; <ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt; FramebufferId &gt; ShaderRenderPass::get_pass_framebuffers</definition>
+        <argsstring>(Id id)</argsstring>
+        <name>get_pass_framebuffers</name>
+        <qualifiedname>ShaderRenderPass::get_pass_framebuffers</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="82" column="16" declfile="dag_shaderRenderPass.h" declline="82" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a2b7cf8fb237d63a9b621a04b798bf752" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref></type>
+        <definition>FramebufferId ShaderRenderPass::get_only_framebuffer</definition>
+        <argsstring>(Id id)</argsstring>
+        <name>get_only_framebuffer</name>
+        <qualifiedname>ShaderRenderPass::get_only_framebuffer</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="83" column="15" declfile="dag_shaderRenderPass.h" declline="83" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a88e9754e9dddc6e9095abf884c42d259" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderRenderPass::get_framebuffer_name</definition>
+        <argsstring>(FramebufferId fb)</argsstring>
+        <name>get_framebuffer_name</name>
+        <qualifiedname>ShaderRenderPass::get_framebuffer_name</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref></type>
+          <declname>fb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="84" column="12" declfile="dag_shaderRenderPass.h" declline="84" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1aa23e3639f5aed8200311e1a27b5d15e9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderRenderPass_1_1TargetFormatInfo" kindref="compound">TargetFormatInfo</ref></type>
+        <definition>TargetFormatInfo ShaderRenderPass::get_framebuffer_target_format</definition>
+        <argsstring>(Id id, FramebufferId fb, int target)</argsstring>
+        <name>get_framebuffer_target_format</name>
+        <qualifiedname>ShaderRenderPass::get_framebuffer_target_format</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref></type>
+          <declname>fb</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="85" column="18" declfile="dag_shaderRenderPass.h" declline="85" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>Id</name>
+        <qualifiedname>ShaderRenderPass::Id</qualifiedname>
+        <enumvalue id="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37ca4bbb8f967da6d1a610596d7257179c2b" prot="public">
+          <name>Invalid</name>
+          <initializer>= ~0u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>A render_pass shape. The value is the hash of its name, so it survives a dump reload. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="24" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="25" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>FramebufferId</name>
+        <qualifiedname>ShaderRenderPass::FramebufferId</qualifiedname>
+        <enumvalue id="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41a4bbb8f967da6d1a610596d7257179c2b" prot="public">
+          <name>Invalid</name>
+          <initializer>= ~0u</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>A framebuffer layout. The value is the hash of its name, so it survives a dump reload. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="31" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="32" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>ExecutionConstraint</name>
+        <qualifiedname>ShaderRenderPass::ExecutionConstraint</qualifiedname>
+        <enumvalue id="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7aa1a7ccec3ad83bf70f2f1818a034905f" prot="public">
+          <name>NativeOnly</name>
+          <briefdescription>
+<para>only real pixel-local reads permitted </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7a3221711269a28faf85b3cdf0793093c9" prot="public">
+          <name>SplitOnly</name>
+          <briefdescription>
+<para>only T-register reads permitted </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7aed36a1ef76a59ee3f15180e0441188ad" prot="public">
+          <name>Any</name>
+          <briefdescription>
+<para>any of the above </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="88" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="89" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>RpLoad</name>
+        <qualifiedname>ShaderRenderPass::RpLoad</qualifiedname>
+        <enumvalue id="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0daf19dbf2edb3a0bd74b0524d960ff21eb" prot="public">
+          <name>Load</name>
+          <briefdescription>
+<para>Target contents are loaded from the texture. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0dadc30bc0c7914db5918da4263fce93ad2" prot="public">
+          <name>Clear</name>
+          <briefdescription>
+<para>Target is fast-cleared to the clear value. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0da60a3629ef6a8f991f45d7a85f2458544" prot="public">
+          <name>DontCare</name>
+          <briefdescription>
+<para>Target contents are undefined/discarded. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>How the contents of a target enter the pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="136" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="137" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>RpStore</name>
+        <qualifiedname>ShaderRenderPass::RpStore</qualifiedname>
+        <enumvalue id="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526bafdb0c388de01d545017cdf9ccf00eb72" prot="public">
+          <name>Store</name>
+          <briefdescription>
+<para>Results of the render pass are saved to the texture. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526ba60a3629ef6a8f991f45d7a85f2458544" prot="public">
+          <name>DontCare</name>
+          <briefdescription>
+<para>Results of the render pass are discarded and texture contents are <bold>undefined</bold>. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>How the contents of a target leave the pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="144" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="145" bodyend="148"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceShaderRenderPass_1a0b660c42cb00e90691fa332d8a6b5943" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int ShaderRenderPass::MAX_TARGETS</definition>
+        <argsstring></argsstring>
+        <name>MAX_TARGETS</name>
+        <qualifiedname>ShaderRenderPass::MAX_TARGETS</qualifiedname>
+        <initializer>= RENDER_PASS_MAX_TARGETS</initializer>
+        <briefdescription>
+<para>Target capacity of a shape, of <ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> and of <ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="20" column="22" bodyfile="dag_shaderRenderPass.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a5a9c93a0788bec1fca20104f45f6ae20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+        <definition>Id ShaderRenderPass::find_id</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>find_id</name>
+        <qualifiedname>ShaderRenderPass::find_id</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>Id::Invalid for an unknown name. A subpass group name is not a pass. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="38" column="4" declfile="dag_shaderRenderPass.h" declline="38" declcolumn="4"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a244725e8facbfaf520136bebfa1ad95e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref></type>
+        <definition>FramebufferId ShaderRenderPass::find_framebuffer_id</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>find_framebuffer_id</name>
+        <qualifiedname>ShaderRenderPass::find_framebuffer_id</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>FramebufferId::Invalid for an unknown name. A layout group and an anonymous layout have no id. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="42" column="15" declfile="dag_shaderRenderPass.h" declline="42" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a7027e35e92be339e2c95d775b01de6b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7" kindref="member">ExecutionConstraint</ref></type>
+        <definition>ExecutionConstraint ShaderRenderPass::get_execution_constraint</definition>
+        <argsstring>(Id id)</argsstring>
+        <name>get_execution_constraint</name>
+        <qualifiedname>ShaderRenderPass::get_execution_constraint</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>How this device is allowed to execute the render pass <computeroutput>id</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="96" column="21" declfile="dag_shaderRenderPass.h" declline="96" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a37a0c072094bbfa7273b4afc9e57b560" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::device_breaks_subpass_reads</definition>
+        <argsstring>()</argsstring>
+        <name>device_breaks_subpass_reads</name>
+        <qualifiedname>ShaderRenderPass::device_breaks_subpass_reads</qualifiedname>
+        <briefdescription>
+<para>True if pixel-local reads are broken on this device and T-register reads must be used instead. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="99" column="6" declfile="dag_shaderRenderPass.h" declline="99" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1acaf7d4214bb4badf5930384a748815a5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderRenderPass::begin</definition>
+        <argsstring>(const Pass &amp;p, const Targets &amp;t, const RenderPassArea *area=nullptr)</argsstring>
+        <name>begin</name>
+        <qualifiedname>ShaderRenderPass::begin</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const RenderPassArea *</type>
+          <declname>area</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+<para>Begins the specified render pass <computeroutput>p</computeroutput>, binding the targets <computeroutput>t</computeroutput>, performing the necessary clears and setting the render area to <computeroutput>area</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>if <computeroutput>area</computeroutput> is nullptr, the render area is set to the full resolution of the render targets </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="228" column="6" declfile="dag_shaderRenderPass.h" declline="228" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1ab60c99e85dd466125df6cc6da2beca9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderRenderPass::next_subpass</definition>
+        <argsstring>()</argsstring>
+        <name>next_subpass</name>
+        <qualifiedname>ShaderRenderPass::next_subpass</qualifiedname>
+        <briefdescription>
+<para>Advances the current render-pass to the next subpass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="230" column="6" declfile="dag_shaderRenderPass.h" declline="230" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1a7597924c1001699b3ee988cb98dd995d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderRenderPass::end</definition>
+        <argsstring>()</argsstring>
+        <name>end</name>
+        <qualifiedname>ShaderRenderPass::end</qualifiedname>
+        <briefdescription>
+<para>Ends the current render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="232" column="6" declfile="dag_shaderRenderPass.h" declline="232" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceShaderRenderPass_1ad6ff5ffe3d87b5eb4d9978d1549403a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structShaderRenderPass_1_1ActivePass" kindref="compound">ActivePass</ref></type>
+        <definition>ActivePass ShaderRenderPass::get_active_pass</definition>
+        <argsstring>()</argsstring>
+        <name>get_active_pass</name>
+        <qualifiedname>ShaderRenderPass::get_active_pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="284" column="12" declfile="dag_shaderRenderPass.h" declline="284" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Runtime of the DSHL render_pass objects. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>A render_pass declared in DSHL is a shape: targets, subpasses, reads, resolves and the framebuffer layouts it supports, stored in the shader dump. This API turns a shape into a live d3d render pass and drives it. Shapes and layouts are looked up in the main dump only. </para>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="17" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1555 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBrush" kind="class" language="C++" prot="public">
+    <compoundname>Brush</compoundname>
+    <includes refid="ec__brush_8h" local="no">ec_brush.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Property Panel functions.</header>
+      <memberdef kind="variable" id="classBrush_1a5514c6628e045087ca683ec64c3c2035" prot="protected" static="no" mutable="no">
+        <type><ref refid="classIBrushClient" kindref="compound">IBrushClient</ref> *</type>
+        <definition>IBrushClient* Brush::client</definition>
+        <argsstring></argsstring>
+        <name>client</name>
+        <qualifiedname>Brush::client</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="330" column="16" bodyfile="ec_brush.h" bodystart="330" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1aae9e15f871eb9dd0c13d9dadeb000163" prot="protected" static="no" mutable="no">
+        <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+        <definition>IGenViewportWnd* Brush::repeatWnd</definition>
+        <argsstring></argsstring>
+        <name>repeatWnd</name>
+        <qualifiedname>Brush::repeatWnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="332" column="19" bodyfile="ec_brush.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a5c9032d511236e71d548dc92f5eb9302" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::repeatBtns</definition>
+        <argsstring></argsstring>
+        <name>repeatBtns</name>
+        <qualifiedname>Brush::repeatBtns</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="333" column="7" bodyfile="ec_brush.h" bodystart="333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1ad5b286a2170d45cd9cbfef5711b52e4e" prot="protected" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR Brush::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <qualifiedname>Brush::color</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="334" column="12" bodyfile="ec_brush.h" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a3a8a8b70ffcee40d86604dcba43ff70c" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 Brush::coord</definition>
+        <argsstring></argsstring>
+        <name>coord</name>
+        <qualifiedname>Brush::coord</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="336" column="10" bodyfile="ec_brush.h" bodystart="336" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a4ec95c7c2e00c70088dfcb73c3872338" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 Brush::prevCoord</definition>
+        <argsstring></argsstring>
+        <name>prevCoord</name>
+        <qualifiedname>Brush::prevCoord</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="337" column="10" bodyfile="ec_brush.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a7d3b63cc4e770debb1a2f464aa6a0518" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 Brush::center</definition>
+        <argsstring></argsstring>
+        <name>center</name>
+        <qualifiedname>Brush::center</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="338" column="10" bodyfile="ec_brush.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a82fabfbbd787e45129048de9900d3f6d" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 Brush::prevCenter</definition>
+        <argsstring></argsstring>
+        <name>prevCenter</name>
+        <qualifiedname>Brush::prevCenter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="339" column="10" bodyfile="ec_brush.h" bodystart="339" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a38b85110e0b7282440a65fa93a720a7e" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 Brush::normal</definition>
+        <argsstring></argsstring>
+        <name>normal</name>
+        <qualifiedname>Brush::normal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="340" column="10" bodyfile="ec_brush.h" bodystart="340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a1ac0744bf1e1c759533816d91d07c656" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 Brush::ignoreStepDirection</definition>
+        <argsstring></argsstring>
+        <name>ignoreStepDirection</name>
+        <qualifiedname>Brush::ignoreStepDirection</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="341" column="10" bodyfile="ec_brush.h" bodystart="341" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1ab3a3122c8ef394f4fac6686ed4162a3c" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::viewDownDist</definition>
+        <argsstring></argsstring>
+        <name>viewDownDist</name>
+        <qualifiedname>Brush::viewDownDist</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="343" column="7" bodyfile="ec_brush.h" bodystart="343" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a29b20891e9a074f375e2cac124c320ea" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Brush::drawing</definition>
+        <argsstring></argsstring>
+        <name>drawing</name>
+        <qualifiedname>Brush::drawing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="345" column="8" bodyfile="ec_brush.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a66d72fd1208716fdf8e14cd068f5a2fb" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Brush::rightDrawing</definition>
+        <argsstring></argsstring>
+        <name>rightDrawing</name>
+        <qualifiedname>Brush::rightDrawing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="346" column="8" bodyfile="ec_brush.h" bodystart="346" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a438ff9d18a7860d756b4f18ad7b9f3d2" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Brush::paintLen</definition>
+        <argsstring></argsstring>
+        <name>paintLen</name>
+        <qualifiedname>Brush::paintLen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="348" column="8" bodyfile="ec_brush.h" bodystart="348" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1aa236040d8fe97924e0d9cba284174c50" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 Brush::lastPaint</definition>
+        <argsstring></argsstring>
+        <name>lastPaint</name>
+        <qualifiedname>Brush::lastPaint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="349" column="10" bodyfile="ec_brush.h" bodystart="349" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a87957bd712074f87c4c018cd1e31a286" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Brush::radius</definition>
+        <argsstring></argsstring>
+        <name>radius</name>
+        <qualifiedname>Brush::radius</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="352" column="8" bodyfile="ec_brush.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a0de326984493383d6ed591e65dc7de4a" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Brush::step</definition>
+        <argsstring></argsstring>
+        <name>step</name>
+        <qualifiedname>Brush::step</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="353" column="8" bodyfile="ec_brush.h" bodystart="353" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1afa3335f61710fc8ba808dec87ec6c71b" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Brush::stepDiv</definition>
+        <argsstring></argsstring>
+        <name>stepDiv</name>
+        <qualifiedname>Brush::stepDiv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="354" column="8" bodyfile="ec_brush.h" bodystart="354" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a7c068274a8ebf0e7e1870333dea93a96" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::opacity</definition>
+        <argsstring></argsstring>
+        <name>opacity</name>
+        <qualifiedname>Brush::opacity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="355" column="7" bodyfile="ec_brush.h" bodystart="355" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a1c40073dbfa5abf4c5cfea049282884d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::hardness</definition>
+        <argsstring></argsstring>
+        <name>hardness</name>
+        <qualifiedname>Brush::hardness</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="356" column="7" bodyfile="ec_brush.h" bodystart="356" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a6224da15b0cd4b38106a146185a66452" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Brush::autorepeat</definition>
+        <argsstring></argsstring>
+        <name>autorepeat</name>
+        <qualifiedname>Brush::autorepeat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="357" column="8" bodyfile="ec_brush.h" bodystart="357" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a744b92596376d192c940e53c99af5311" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::radiusPid</definition>
+        <argsstring></argsstring>
+        <name>radiusPid</name>
+        <qualifiedname>Brush::radiusPid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="360" column="7" bodyfile="ec_brush.h" bodystart="360" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a3a24b7bfe84ecec5632c198b7f4422dd" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::opacityPid</definition>
+        <argsstring></argsstring>
+        <name>opacityPid</name>
+        <qualifiedname>Brush::opacityPid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="361" column="7" bodyfile="ec_brush.h" bodystart="361" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a0b915ac774e0bc1042bd251d0b1040d5" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::hardnessPid</definition>
+        <argsstring></argsstring>
+        <name>hardnessPid</name>
+        <qualifiedname>Brush::hardnessPid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="362" column="7" bodyfile="ec_brush.h" bodystart="362" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a5eb8ec7e0a4ad9505af6993439cdcc0e" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::autorepeatPid</definition>
+        <argsstring></argsstring>
+        <name>autorepeatPid</name>
+        <qualifiedname>Brush::autorepeatPid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="363" column="7" bodyfile="ec_brush.h" bodystart="363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1a0622b59fb4e26502f196665a1a2932a0" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Brush::stepPid</definition>
+        <argsstring></argsstring>
+        <name>stepPid</name>
+        <qualifiedname>Brush::stepPid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="364" column="7" bodyfile="ec_brush.h" bodystart="364" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBrush_1aa5322a1a6e75c76a5e042b7edb75bdb2" prot="protected" static="yes" mutable="no">
+        <type>real</type>
+        <definition>real Brush::maxR</definition>
+        <argsstring></argsstring>
+        <name>maxR</name>
+        <qualifiedname>Brush::maxR</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="366" column="15" bodyfile="ec_brush.h" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a6693f6b4f9e9b49c1bf99320fb3de3ff" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::fillCommonParams</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;group, int radius_pid, int opacity_pid, int hardness_pid, int autorepeat_pid, int step_pid=-1)</argsstring>
+        <name>fillCommonParams</name>
+        <qualifiedname>Brush::fillCommonParams</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>radius_pid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>opacity_pid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>hardness_pid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>autorepeat_pid</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>step_pid</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Used to place brush properties on Property Panel. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">group</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- group where brush properties to be placed </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">radius_pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- property ID on Property Panel for brush radius </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">opacity_pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- property ID on Property Panel for brush opacity </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">hardness_pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- property ID on Property Panel for brush hardness </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">autorepeat_pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- property ID on Property Panel for brush autorepeat </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="293" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1aabeb70538bac4ff239fa905e534af370" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Brush::updateFromPanel</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl *panel, int pid)</argsstring>
+        <name>updateFromPanel</name>
+        <qualifiedname>Brush::updateFromPanel</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>pid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Force brush to update its property with value from Property Panel. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to Property Panel </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">pid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- property ID on Property Panel </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if update is successful </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="304" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1aec2d05877803d40b043801c04e1d43e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::updateToPanel</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel)</argsstring>
+        <name>updateToPanel</name>
+        <qualifiedname>Brush::updateToPanel</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Force brush to update its property to Property Panel. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">panel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to Property Panel </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="308" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1ac72632e4d615e3a5bc52873af44381f6" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::draw</definition>
+        <argsstring>()</argsstring>
+        <name>draw</name>
+        <qualifiedname>Brush::draw</qualifiedname>
+        <briefdescription>
+<para><ref refid="classBrush" kindref="compound">Brush</ref> draws itself. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="312" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a3ddbef1a3f83465fa599f4a6877561af" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::repeat</definition>
+        <argsstring>()</argsstring>
+        <name>repeat</name>
+        <qualifiedname>Brush::repeat</qualifiedname>
+        <briefdescription>
+<para>Called by Editor Core on every timer event if brush is in autorepeat mode. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="315" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1abf2b4fee1afd264880b709b8f9f96a0c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR Brush::getColor</definition>
+        <argsstring>() const</argsstring>
+        <name>getColor</name>
+        <qualifiedname>Brush::getColor</qualifiedname>
+        <briefdescription>
+<para>Get Color of brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="318" column="12" bodyfile="ec_brush.h" bodystart="318" bodyend="318"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a290ec5f5b2fb9965ad4adf94f41abea9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setColor</definition>
+        <argsstring>(E3DCOLOR col)</argsstring>
+        <name>setColor</name>
+        <qualifiedname>Brush::setColor</qualifiedname>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>col</declname>
+        </param>
+        <briefdescription>
+<para>Set Color of brush. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="321" column="8" bodyfile="ec_brush.h" bodystart="321" bodyend="321"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1ad1df5f9128a512b5a705a0664bc8d630" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setStepIgnoreDirection</definition>
+        <argsstring>(const Point3 &amp;ignore_step_direction)</argsstring>
+        <name>setStepIgnoreDirection</name>
+        <qualifiedname>Brush::setStepIgnoreDirection</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ignore_step_direction</declname>
+        </param>
+        <briefdescription>
+<para>Set ignore step direction (default is 0,0,0) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="324" column="8" bodyfile="ec_brush.h" bodystart="324" bodyend="324"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a21d243558c92b01bf5adde73b66d75fe" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void Brush::addMaskList</definition>
+        <argsstring>(int pid, PropPanel::ContainerPropertyControl &amp;params, const char *def=NULL)</argsstring>
+        <name>addMaskList</name>
+        <qualifiedname>Brush::addMaskList</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pid</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>def</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Used to place list of brush masks on Property Panel. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">params</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- ObjectParameters where masks list will be placed </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="298" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1ad5106d519b1c94f6d58a0759f287d90c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>SimpleString</type>
+        <definition>static SimpleString Brush::getMaskPath</definition>
+        <argsstring>(const char *mask)</argsstring>
+        <name>getMaskPath</name>
+        <qualifiedname>Brush::getMaskPath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>mask</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="327" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1aab7c2f716bfc567e0736ff9641e93ea1" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Brush::calcCenter</definition>
+        <argsstring>(IGenViewportWnd *wnd)</argsstring>
+        <name>calcCenter</name>
+        <qualifiedname>Brush::calcCenter</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="369" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a424f768a0f0a6102ebe26bf32b27e0d8" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool Brush::traceDown</definition>
+        <argsstring>(const Point3 &amp;pos, Point3 &amp;clip_pos, IGenViewportWnd *wnd)</argsstring>
+        <name>traceDown</name>
+        <qualifiedname>Brush::traceDown</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>clip_pos</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="372" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1afeebc32e59e87aa0591c04b52bfc885d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::sendPaintMessage</definition>
+        <argsstring>(IGenViewportWnd *wnd, int btns, int keys, bool moved)</argsstring>
+        <name>sendPaintMessage</name>
+        <qualifiedname>Brush::sendPaintMessage</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>btns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>keys</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>moved</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="376" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Methods to get / set brush properties.</header>
+      <memberdef kind="function" id="classBrush_1abcb65104c9ccff7723fd2ec35eb9ec89" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real Brush::getRadius</definition>
+        <argsstring>() const</argsstring>
+        <name>getRadius</name>
+        <qualifiedname>Brush::getRadius</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush radius. <simplesect kind="return"><para>brush radius </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="147" column="15" bodyfile="ec_brush.h" bodystart="147" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a21fb0507f2cccecd6bca7ac3c3eb796a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real Brush::getRadiusSq</definition>
+        <argsstring>() const</argsstring>
+        <name>getRadiusSq</name>
+        <qualifiedname>Brush::getRadiusSq</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush square radius. <simplesect kind="return"><para>square of brush radius </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="151" column="15" bodyfile="ec_brush.h" bodystart="151" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1ae32ab46a6df2f56e3eb205f9f323c57d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real Brush::getStep</definition>
+        <argsstring>() const</argsstring>
+        <name>getStep</name>
+        <qualifiedname>Brush::getStep</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush step. <simplesect kind="return"><para>brush step (step = radius / step divider) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="155" column="15" bodyfile="ec_brush.h" bodystart="155" bodyend="155"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a36e01316ef6b7610529552eecd1fddbf" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real Brush::getStepDiv</definition>
+        <argsstring>() const</argsstring>
+        <name>getStepDiv</name>
+        <qualifiedname>Brush::getStepDiv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush step divider (used to calculate brush step). <simplesect kind="return"><para>brush step devider </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="159" column="15" bodyfile="ec_brush.h" bodystart="159" bodyend="159"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a606d6c023ba251197d1f33459669dd2a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Brush::getOpacity</definition>
+        <argsstring>() const</argsstring>
+        <name>getOpacity</name>
+        <qualifiedname>Brush::getOpacity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush opacity. <simplesect kind="return"><para>brush opacity (0-100) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="163" column="14" bodyfile="ec_brush.h" bodystart="163" bodyend="163"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a0e30b91410a9790db6737377ee731708" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Brush::getHardness</definition>
+        <argsstring>() const</argsstring>
+        <name>getHardness</name>
+        <qualifiedname>Brush::getHardness</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush hardness. <simplesect kind="return"><para>brush hardness (0-100) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="167" column="14" bodyfile="ec_brush.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a928aa3c3f9173978253c44306ca3d449" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float Brush::getHardnessFromDistance</definition>
+        <argsstring>(real dist) const</argsstring>
+        <name>getHardnessFromDistance</name>
+        <qualifiedname>Brush::getHardnessFromDistance</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>dist</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Get brush hardness from distance. <simplesect kind="return"><para>brush hardness (0-100) </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="171" column="16" bodyfile="ec_brush.h" bodystart="171" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1ab73ab7ff66cec388da5c82586fd8c381" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Brush::isRepeat</definition>
+        <argsstring>() const</argsstring>
+        <name>isRepeat</name>
+        <qualifiedname>Brush::isRepeat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Tests whether brush is in repeat mode. In repeat mode pressed left mouse button will call periodically an event <ref refid="classIBrushClient_1aabb36498e7c657732de1b82c35fa6424" kindref="member">IBrushClient::onBrushPaint()</ref>. <simplesect kind="return"><para><bold>true</bold> if brush is in repeat mode </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="189" column="15" bodyfile="ec_brush.h" bodystart="189" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a92026cf39e0a7439c0216f0afa77814b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool Brush::isDrawingInProgress</definition>
+        <argsstring>() const</argsstring>
+        <name>isDrawingInProgress</name>
+        <qualifiedname>Brush::isDrawingInProgress</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Tests whether the brush is currently drawing (either with the left or the right mouse button). <simplesect kind="return"><para><bold>true</bold> if drawing </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="193" column="8" bodyfile="ec_brush.h" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a1167dfab12ea9f1c54a74e173f879d7f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real Brush::setRadius</definition>
+        <argsstring>(real r)</argsstring>
+        <name>setRadius</name>
+        <qualifiedname>Brush::setRadius</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set brush radius. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- brush radius </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="197" column="15" bodyfile="ec_brush.h" bodystart="197" bodyend="208"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1affe6a4e34249d74c3473f6ef9728e85d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setMaxRadius</definition>
+        <argsstring>(real r)</argsstring>
+        <name>setMaxRadius</name>
+        <qualifiedname>Brush::setMaxRadius</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>r</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="210" column="15" bodyfile="ec_brush.h" bodystart="210" bodyend="210"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a18dddeea9262ac9ce0d4a6854c1e0169" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setStepDiv</definition>
+        <argsstring>(real div)</argsstring>
+        <name>setStepDiv</name>
+        <qualifiedname>Brush::setStepDiv</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>div</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set brush step divider. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">div</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- step divider </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="214" column="15" bodyfile="ec_brush.h" bodystart="381" bodyend="388"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a79c7bb2b835385bbdd3e3d58962e97da" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setOpacity</definition>
+        <argsstring>(int o)</argsstring>
+        <name>setOpacity</name>
+        <qualifiedname>Brush::setOpacity</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set brush opacity. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">o</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- brush opacity </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="218" column="15" bodyfile="ec_brush.h" bodystart="218" bodyend="222"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a41cdc36a98a522e3ca64e3049f6c3121" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setHardness</definition>
+        <argsstring>(int h)</argsstring>
+        <name>setHardness</name>
+        <qualifiedname>Brush::setHardness</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set brush hardness. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">h</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- brush hardness </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="226" column="15" bodyfile="ec_brush.h" bodystart="226" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a666e1628738e5482f1c75be80316bba1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Brush::setRepeat</definition>
+        <argsstring>(bool repeat)</argsstring>
+        <name>setRepeat</name>
+        <qualifiedname>Brush::setRepeat</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>repeat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Set brush autorepeat. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">repeat</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true / false</bold> - set autorepeat <bold>on / off</bold> </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="234" column="15" bodyfile="ec_brush.h" bodystart="234" bodyend="234"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Mouse events.</header>
+      <memberdef kind="function" id="classBrush_1ad65f9e45f9c856f592da835cf3b37cc8" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::mouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int btns, int keys)</argsstring>
+        <name>mouseMove</name>
+        <qualifiedname>Brush::mouseMove</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>btns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>keys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Notify the brush about mouse move. Called by Editor Core. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> of the viewport window that generated the event </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> mouse coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">btns</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">keys</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="247" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1aaea71fa8020a06582ebec207f075ffd7" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::mouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int btns, int keys)</argsstring>
+        <name>mouseLBPress</name>
+        <qualifiedname>Brush::mouseLBPress</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>btns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>keys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Notify the brush that left mouse button is pressed. Called by Editor Core. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> of the viewport window that generated the event </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> mouse coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">btns</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">keys</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="255" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a8e3a36a99eecb6b298e8af3456ad6374" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::mouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int btns, int keys)</argsstring>
+        <name>mouseLBRelease</name>
+        <qualifiedname>Brush::mouseLBRelease</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>btns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>keys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Notify the brush that left mouse button is released. Called by Editor Core. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> of the viewport window that generated the event </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> mouse coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">btns</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">keys</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="263" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1afe914a265cb2c359af97d28727b11c28" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::mouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int btns, int keys)</argsstring>
+        <name>mouseRBPress</name>
+        <qualifiedname>Brush::mouseRBPress</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>btns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>keys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Notify the brush that right mouse button is pressed. Called by Editor Core. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> of the viewport window that generated the event </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> mouse coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">btns</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">keys</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="271" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classBrush_1a48d48182a29194dc3344402b04bdf306" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void Brush::mouseRBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int btns, int keys)</argsstring>
+        <name>mouseRBRelease</name>
+        <qualifiedname>Brush::mouseRBRelease</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>btns</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>keys</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Notify the brush that right mouse button is released. Called by Editor Core. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> of the viewport window that generated the event </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x, y</bold> mouse coordinates </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">btns</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">keys</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="279" column="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classBrush_1a08b1f65cc61eb97a0419ce414db12778" prot="public" static="yes" mutable="no">
+        <type>const int</type>
+        <definition>const int Brush::MAX_TRACE_DIST</definition>
+        <argsstring></argsstring>
+        <name>MAX_TRACE_DIST</name>
+        <qualifiedname>Brush::MAX_TRACE_DIST</qualifiedname>
+        <initializer>= 2700</initializer>
+        <briefdescription>
+<para>Maximum raytrace distance which brushes use by default. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="133" column="20" bodyfile="ec_brush.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBrush_1a987c9aa5fe3d4305afc8c0238ca65db3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Brush::Brush</definition>
+        <argsstring>(IBrushClient *bc)</argsstring>
+        <name>Brush</name>
+        <qualifiedname>Brush::Brush</qualifiedname>
+        <param>
+          <type><ref refid="classIBrushClient" kindref="compound">IBrushClient</ref> *</type>
+          <declname>bc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">bc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to interface <ref refid="classIBrushClient" kindref="compound">IBrushClient</ref> by means of which client code will be notified about brush events </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_brush.h" line="139" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para><ref refid="classBrush" kindref="compound">Brush</ref>. </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>Brush</label>
+        <link refid="classBrush"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>repeatWnd</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IBrushClient</label>
+        <link refid="classIBrushClient"/>
+      </node>
+      <node id="3">
+        <label>IGenViewportWnd</label>
+        <link refid="classIGenViewportWnd"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_brush.h" line="129" column="1" bodyfile="ec_brush.h" bodystart="130" bodyend="377"/>
+    <listofallmembers>
+      <member refid="classBrush_1a21d243558c92b01bf5adde73b66d75fe" prot="public" virt="non-virtual"><scope>Brush</scope><name>addMaskList</name></member>
+      <member refid="classBrush_1a6224da15b0cd4b38106a146185a66452" prot="protected" virt="non-virtual"><scope>Brush</scope><name>autorepeat</name></member>
+      <member refid="classBrush_1a5eb8ec7e0a4ad9505af6993439cdcc0e" prot="protected" virt="non-virtual"><scope>Brush</scope><name>autorepeatPid</name></member>
+      <member refid="classBrush_1a987c9aa5fe3d4305afc8c0238ca65db3" prot="public" virt="non-virtual"><scope>Brush</scope><name>Brush</name></member>
+      <member refid="classBrush_1aab7c2f716bfc567e0736ff9641e93ea1" prot="protected" virt="virtual"><scope>Brush</scope><name>calcCenter</name></member>
+      <member refid="classBrush_1a7d3b63cc4e770debb1a2f464aa6a0518" prot="protected" virt="non-virtual"><scope>Brush</scope><name>center</name></member>
+      <member refid="classBrush_1a5514c6628e045087ca683ec64c3c2035" prot="protected" virt="non-virtual"><scope>Brush</scope><name>client</name></member>
+      <member refid="classBrush_1ad5b286a2170d45cd9cbfef5711b52e4e" prot="protected" virt="non-virtual"><scope>Brush</scope><name>color</name></member>
+      <member refid="classBrush_1a3a8a8b70ffcee40d86604dcba43ff70c" prot="protected" virt="non-virtual"><scope>Brush</scope><name>coord</name></member>
+      <member refid="classBrush_1ac72632e4d615e3a5bc52873af44381f6" prot="public" virt="virtual"><scope>Brush</scope><name>draw</name></member>
+      <member refid="classBrush_1a29b20891e9a074f375e2cac124c320ea" prot="protected" virt="non-virtual"><scope>Brush</scope><name>drawing</name></member>
+      <member refid="classBrush_1a6693f6b4f9e9b49c1bf99320fb3de3ff" prot="public" virt="virtual"><scope>Brush</scope><name>fillCommonParams</name></member>
+      <member refid="classBrush_1abf2b4fee1afd264880b709b8f9f96a0c" prot="public" virt="non-virtual"><scope>Brush</scope><name>getColor</name></member>
+      <member refid="classBrush_1a0e30b91410a9790db6737377ee731708" prot="public" virt="non-virtual"><scope>Brush</scope><name>getHardness</name></member>
+      <member refid="classBrush_1a928aa3c3f9173978253c44306ca3d449" prot="public" virt="non-virtual"><scope>Brush</scope><name>getHardnessFromDistance</name></member>
+      <member refid="classBrush_1ad5106d519b1c94f6d58a0759f287d90c" prot="public" virt="non-virtual"><scope>Brush</scope><name>getMaskPath</name></member>
+      <member refid="classBrush_1a606d6c023ba251197d1f33459669dd2a" prot="public" virt="non-virtual"><scope>Brush</scope><name>getOpacity</name></member>
+      <member refid="classBrush_1abcb65104c9ccff7723fd2ec35eb9ec89" prot="public" virt="non-virtual"><scope>Brush</scope><name>getRadius</name></member>
+      <member refid="classBrush_1a21fb0507f2cccecd6bca7ac3c3eb796a" prot="public" virt="non-virtual"><scope>Brush</scope><name>getRadiusSq</name></member>
+      <member refid="classBrush_1ae32ab46a6df2f56e3eb205f9f323c57d" prot="public" virt="non-virtual"><scope>Brush</scope><name>getStep</name></member>
+      <member refid="classBrush_1a36e01316ef6b7610529552eecd1fddbf" prot="public" virt="non-virtual"><scope>Brush</scope><name>getStepDiv</name></member>
+      <member refid="classBrush_1a1c40073dbfa5abf4c5cfea049282884d" prot="protected" virt="non-virtual"><scope>Brush</scope><name>hardness</name></member>
+      <member refid="classBrush_1a0b915ac774e0bc1042bd251d0b1040d5" prot="protected" virt="non-virtual"><scope>Brush</scope><name>hardnessPid</name></member>
+      <member refid="classBrush_1a1ac0744bf1e1c759533816d91d07c656" prot="protected" virt="non-virtual"><scope>Brush</scope><name>ignoreStepDirection</name></member>
+      <member refid="classBrush_1a92026cf39e0a7439c0216f0afa77814b" prot="public" virt="non-virtual"><scope>Brush</scope><name>isDrawingInProgress</name></member>
+      <member refid="classBrush_1ab73ab7ff66cec388da5c82586fd8c381" prot="public" virt="non-virtual"><scope>Brush</scope><name>isRepeat</name></member>
+      <member refid="classBrush_1aa236040d8fe97924e0d9cba284174c50" prot="protected" virt="non-virtual"><scope>Brush</scope><name>lastPaint</name></member>
+      <member refid="classBrush_1a08b1f65cc61eb97a0419ce414db12778" prot="public" virt="non-virtual"><scope>Brush</scope><name>MAX_TRACE_DIST</name></member>
+      <member refid="classBrush_1aa5322a1a6e75c76a5e042b7edb75bdb2" prot="protected" virt="non-virtual"><scope>Brush</scope><name>maxR</name></member>
+      <member refid="classBrush_1aaea71fa8020a06582ebec207f075ffd7" prot="public" virt="virtual"><scope>Brush</scope><name>mouseLBPress</name></member>
+      <member refid="classBrush_1a8e3a36a99eecb6b298e8af3456ad6374" prot="public" virt="virtual"><scope>Brush</scope><name>mouseLBRelease</name></member>
+      <member refid="classBrush_1ad65f9e45f9c856f592da835cf3b37cc8" prot="public" virt="virtual"><scope>Brush</scope><name>mouseMove</name></member>
+      <member refid="classBrush_1afe914a265cb2c359af97d28727b11c28" prot="public" virt="virtual"><scope>Brush</scope><name>mouseRBPress</name></member>
+      <member refid="classBrush_1a48d48182a29194dc3344402b04bdf306" prot="public" virt="virtual"><scope>Brush</scope><name>mouseRBRelease</name></member>
+      <member refid="classBrush_1a38b85110e0b7282440a65fa93a720a7e" prot="protected" virt="non-virtual"><scope>Brush</scope><name>normal</name></member>
+      <member refid="classBrush_1a7c068274a8ebf0e7e1870333dea93a96" prot="protected" virt="non-virtual"><scope>Brush</scope><name>opacity</name></member>
+      <member refid="classBrush_1a3a24b7bfe84ecec5632c198b7f4422dd" prot="protected" virt="non-virtual"><scope>Brush</scope><name>opacityPid</name></member>
+      <member refid="classBrush_1a438ff9d18a7860d756b4f18ad7b9f3d2" prot="protected" virt="non-virtual"><scope>Brush</scope><name>paintLen</name></member>
+      <member refid="classBrush_1a82fabfbbd787e45129048de9900d3f6d" prot="protected" virt="non-virtual"><scope>Brush</scope><name>prevCenter</name></member>
+      <member refid="classBrush_1a4ec95c7c2e00c70088dfcb73c3872338" prot="protected" virt="non-virtual"><scope>Brush</scope><name>prevCoord</name></member>
+      <member refid="classBrush_1a87957bd712074f87c4c018cd1e31a286" prot="protected" virt="non-virtual"><scope>Brush</scope><name>radius</name></member>
+      <member refid="classBrush_1a744b92596376d192c940e53c99af5311" prot="protected" virt="non-virtual"><scope>Brush</scope><name>radiusPid</name></member>
+      <member refid="classBrush_1a3ddbef1a3f83465fa599f4a6877561af" prot="public" virt="virtual"><scope>Brush</scope><name>repeat</name></member>
+      <member refid="classBrush_1a5c9032d511236e71d548dc92f5eb9302" prot="protected" virt="non-virtual"><scope>Brush</scope><name>repeatBtns</name></member>
+      <member refid="classBrush_1aae9e15f871eb9dd0c13d9dadeb000163" prot="protected" virt="non-virtual"><scope>Brush</scope><name>repeatWnd</name></member>
+      <member refid="classBrush_1a66d72fd1208716fdf8e14cd068f5a2fb" prot="protected" virt="non-virtual"><scope>Brush</scope><name>rightDrawing</name></member>
+      <member refid="classBrush_1afeebc32e59e87aa0591c04b52bfc885d" prot="private" virt="non-virtual"><scope>Brush</scope><name>sendPaintMessage</name></member>
+      <member refid="classBrush_1a290ec5f5b2fb9965ad4adf94f41abea9" prot="public" virt="non-virtual"><scope>Brush</scope><name>setColor</name></member>
+      <member refid="classBrush_1a41cdc36a98a522e3ca64e3049f6c3121" prot="public" virt="non-virtual"><scope>Brush</scope><name>setHardness</name></member>
+      <member refid="classBrush_1affe6a4e34249d74c3473f6ef9728e85d" prot="public" virt="non-virtual"><scope>Brush</scope><name>setMaxRadius</name></member>
+      <member refid="classBrush_1a79c7bb2b835385bbdd3e3d58962e97da" prot="public" virt="non-virtual"><scope>Brush</scope><name>setOpacity</name></member>
+      <member refid="classBrush_1a1167dfab12ea9f1c54a74e173f879d7f" prot="public" virt="non-virtual"><scope>Brush</scope><name>setRadius</name></member>
+      <member refid="classBrush_1a666e1628738e5482f1c75be80316bba1" prot="public" virt="non-virtual"><scope>Brush</scope><name>setRepeat</name></member>
+      <member refid="classBrush_1a18dddeea9262ac9ce0d4a6854c1e0169" prot="public" virt="non-virtual"><scope>Brush</scope><name>setStepDiv</name></member>
+      <member refid="classBrush_1ad1df5f9128a512b5a705a0664bc8d630" prot="public" virt="non-virtual"><scope>Brush</scope><name>setStepIgnoreDirection</name></member>
+      <member refid="classBrush_1a0de326984493383d6ed591e65dc7de4a" prot="protected" virt="non-virtual"><scope>Brush</scope><name>step</name></member>
+      <member refid="classBrush_1afa3335f61710fc8ba808dec87ec6c71b" prot="protected" virt="non-virtual"><scope>Brush</scope><name>stepDiv</name></member>
+      <member refid="classBrush_1a0622b59fb4e26502f196665a1a2932a0" prot="protected" virt="non-virtual"><scope>Brush</scope><name>stepPid</name></member>
+      <member refid="classBrush_1a424f768a0f0a6102ebe26bf32b27e0d8" prot="protected" virt="virtual"><scope>Brush</scope><name>traceDown</name></member>
+      <member refid="classBrush_1aabeb70538bac4ff239fa905e534af370" prot="public" virt="virtual"><scope>Brush</scope><name>updateFromPanel</name></member>
+      <member refid="classBrush_1aec2d05877803d40b043801c04e1d43e8" prot="public" virt="virtual"><scope>Brush</scope><name>updateToPanel</name></member>
+      <member refid="classBrush_1ab3a3122c8ef394f4fac6686ed4162a3c" prot="protected" virt="non-virtual"><scope>Brush</scope><name>viewDownDist</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

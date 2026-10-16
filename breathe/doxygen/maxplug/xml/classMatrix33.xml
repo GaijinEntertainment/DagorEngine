@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMatrix33" kind="class" language="C++" prot="public">
+    <compoundname>Matrix33</compoundname>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <member refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kind="variable"><name>m</name></member>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1ga70acb6647b172d017cc4265a29a7d263" kind="function"><name>Matrix33</name></member>
+      <member refid="group__common_1ga6cbda1f223b4fb1767e738289adfea89" kind="function"><name>operator*</name></member>
+      <member refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" kind="function"><name>det</name></member>
+      <member refid="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" kind="function"><name>setcol</name></member>
+      <member refid="group__common_1gac94266011945877c5639b5fedd2fd9d9" kind="function"><name>getcol</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="math3d.h" line="22" column="1" bodyfile="math3d.h" bodystart="23" bodyend="46"/>
+    <listofallmembers>
+      <member refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>det</name></member>
+      <member refid="group__common_1gac94266011945877c5639b5fedd2fd9d9" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>getcol</name></member>
+      <member refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>m</name></member>
+      <member refid="group__common_1ga70acb6647b172d017cc4265a29a7d263" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>Matrix33</name></member>
+      <member refid="group__common_1ga6cbda1f223b4fb1767e738289adfea89" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>operator*</name></member>
+      <member refid="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" prot="public" virt="non-virtual"><scope>Matrix33</scope><name>setcol</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

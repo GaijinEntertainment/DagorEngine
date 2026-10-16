@@ -1,0 +1,204 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFramebufferLayoutRef" kind="struct" language="C++" prot="public">
+    <compoundname>FramebufferLayoutRef</compoundname>
+    <includes refid="framebufferLayout_8h" local="no">framebufferLayout.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFramebufferLayoutRef_1a6580fc150a975a27cd0c240fc94f794b" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref> *</type>
+        <definition>const RenderPassObject* FramebufferLayoutRef::pass</definition>
+        <argsstring></argsstring>
+        <name>pass</name>
+        <qualifiedname>FramebufferLayoutRef::pass</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="152" column="26" bodyfile="framebufferLayout.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFramebufferLayoutRef_1a41e476182f2af9c92e3c26d7a37a105f" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref> *</type>
+        <definition>const FramebufferLayoutObject* FramebufferLayoutRef::layout</definition>
+        <argsstring></argsstring>
+        <name>layout</name>
+        <qualifiedname>FramebufferLayoutRef::layout</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="153" column="33" bodyfile="framebufferLayout.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structFramebufferLayoutRef_1a7c5dd8873adcefe8754ba98dac62b20e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * FramebufferLayoutRef::name</definition>
+        <argsstring>() const</argsstring>
+        <name>name</name>
+        <qualifiedname>FramebufferLayoutRef::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="155" column="14" bodyfile="framebufferLayout.cpp" bodystart="128" bodyend="128"/>
+      </memberdef>
+      <memberdef kind="function" id="structFramebufferLayoutRef_1a8a9c1f58735a991bdb2caad7bb784430" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FramebufferLayoutRef::targetFormat</definition>
+        <argsstring>(int target_name_id, uint32_t &amp;out_format, int &amp;out_samples) const</argsstring>
+        <name>targetFormat</name>
+        <qualifiedname>FramebufferLayoutRef::targetFormat</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_name_id</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>out_format</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_samples</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="156" column="8" bodyfile="framebufferLayout.cpp" bodystart="130" bodyend="147"/>
+      </memberdef>
+      <memberdef kind="function" id="structFramebufferLayoutRef_1a4acf1b228b0a6481dcc212aff93b2fe3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structFramebufferFormatInfo" kindref="compound">FramebufferFormatInfo</ref> *</type>
+        <definition>const FramebufferFormatInfo * FramebufferLayoutRef::targetFormatInfo</definition>
+        <argsstring>(int target_name_id) const</argsstring>
+        <name>targetFormatInfo</name>
+        <qualifiedname>FramebufferLayoutRef::targetFormatInfo</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="157" column="31" bodyfile="framebufferLayout.cpp" bodystart="149" bodyend="154"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="12">
+        <label>FramebufferLayoutObject</label>
+        <link refid="classFramebufferLayoutObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>entries</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>FramebufferLayoutRef</label>
+        <link refid="structFramebufferLayoutRef"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>layout</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="2">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SerializableTab&lt; FramebufferLayoutObject::Entry &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>Tab&lt; FramebufferLayoutObject::Entry &gt;</label>
+      </node>
+      <node id="11">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="9">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="7">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="framebufferLayout.h" line="150" column="1" bodyfile="framebufferLayout.h" bodystart="151" bodyend="158"/>
+    <listofallmembers>
+      <member refid="structFramebufferLayoutRef_1a41e476182f2af9c92e3c26d7a37a105f" prot="public" virt="non-virtual"><scope>FramebufferLayoutRef</scope><name>layout</name></member>
+      <member refid="structFramebufferLayoutRef_1a7c5dd8873adcefe8754ba98dac62b20e" prot="public" virt="non-virtual"><scope>FramebufferLayoutRef</scope><name>name</name></member>
+      <member refid="structFramebufferLayoutRef_1a6580fc150a975a27cd0c240fc94f794b" prot="public" virt="non-virtual"><scope>FramebufferLayoutRef</scope><name>pass</name></member>
+      <member refid="structFramebufferLayoutRef_1a8a9c1f58735a991bdb2caad7bb784430" prot="public" virt="non-virtual"><scope>FramebufferLayoutRef</scope><name>targetFormat</name></member>
+      <member refid="structFramebufferLayoutRef_1a4acf1b228b0a6481dcc212aff93b2fe3" prot="public" virt="non-virtual"><scope>FramebufferLayoutRef</scope><name>targetFormatInfo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

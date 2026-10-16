@@ -1,0 +1,132 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="resourceView_8h" kind="file" language="C++">
+    <compoundname>resourceView.h</compoundname>
+    <includes local="no">3d/dag_resPtr.h</includes>
+    <includedby refid="virtualResourceHandle_8h" local="no">virtualResourceHandle.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>resourceView.h</label>
+        <link refid="resourceView_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="4">
+        <label>dispatchRequest.h</label>
+        <link refid="dispatchRequest_8h"/>
+      </node>
+      <node id="5">
+        <label>drawRequest.h</label>
+        <link refid="drawRequest_8h"/>
+      </node>
+      <node id="10">
+        <label>nameSpaceRequest.h</label>
+        <link refid="nameSpaceRequest_8h"/>
+      </node>
+      <node id="1">
+        <label>resourceView.h</label>
+        <link refid="resourceView_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>virtualPassRequest.h</label>
+        <link refid="virtualPassRequest_8h"/>
+      </node>
+      <node id="7">
+        <label>virtualResourceCreationSemiRequest.h</label>
+        <link refid="virtualResourceCreationSemiRequest_8h"/>
+      </node>
+      <node id="2">
+        <label>virtualResourceHandle.h</label>
+        <link refid="virtualResourceHandle_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>virtualResourceRegistrationSemiRequest.h</label>
+        <link refid="virtualResourceRegistrationSemiRequest_8h"/>
+      </node>
+      <node id="3">
+        <label>virtualResourceRequest.h</label>
+        <link refid="virtualResourceRequest_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>virtualResourceSemiRequest.h</label>
+        <link refid="virtualResourceSemiRequest_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classdafg_1_1TextureView" prot="public">dafg::TextureView</innerclass>
+    <innerclass refid="classdafg_1_1BufferView" prot="public">dafg::BufferView</innerclass>
+    <innernamespace refid="namespacedafg">dafg</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5<sp/>-<sp/>Game<sp/>Libraries</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;3d/dag_resPtr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedafg" kindref="compound">dafg</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="classdafg_1_1TextureView" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1TextureView" kindref="compound">TextureView</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>Texture<sp/>*tex;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="classdafg_1_1TextureView_1a5197a38092549f48250074b5ddc9bef4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1TextureView_1a5197a38092549f48250074b5ddc9bef4" kindref="member">TextureView</ref>(Texture<sp/>*t)<sp/>:<sp/>tex(t)<sp/>{};</highlight></codeline>
+<codeline lineno="18" refid="classdafg_1_1TextureView_1a1bc32c209ce6b36981af140a06c6ff9e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1TextureView_1a1bc32c209ce6b36981af140a06c6ff9e" kindref="member">TextureView</ref>()<sp/>:<sp/>tex(nullptr)<sp/>{};</highlight></codeline>
+<codeline lineno="19" refid="classdafg_1_1TextureView_1ac8bdc6887b8a983a381d769671e8bc14" refkind="member"><highlight class="normal"><sp/><sp/>BaseTexture<sp/>*<ref refid="classdafg_1_1TextureView_1ac8bdc6887b8a983a381d769671e8bc14" kindref="member">operator-&gt;</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tex;<sp/>};</highlight></codeline>
+<codeline lineno="20" refid="classdafg_1_1TextureView_1a77c41f4168f9958653d06b965639a0db" refkind="member"><highlight class="normal"><sp/><sp/>BaseTexture<sp/>*<ref refid="classdafg_1_1TextureView_1a77c41f4168f9958653d06b965639a0db" kindref="member">getBaseTex</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tex;<sp/>};</highlight></codeline>
+<codeline lineno="21" refid="classdafg_1_1TextureView_1a8ce45267cee22ad6cb44879ce431cafe" refkind="member"><highlight class="normal"><sp/><sp/>Texture<sp/>*<ref refid="classdafg_1_1TextureView_1a8ce45267cee22ad6cb44879ce431cafe" kindref="member">getTex2D</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tex;<sp/>};</highlight></codeline>
+<codeline lineno="22" refid="classdafg_1_1TextureView_1af058dbf162ed1d5e79bfe54a5911c9cb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(tex);<sp/>};</highlight></codeline>
+<codeline lineno="23" refid="classdafg_1_1TextureView_1a8460685666cfa87f9fc5f9ad97c33ecd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classdafg_1_1TextureView_1a8460685666cfa87f9fc5f9ad97c33ecd" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classdafg_1_1TextureView" kindref="compound">TextureView</ref><sp/>&amp;lhs,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classdafg_1_1TextureView" kindref="compound">TextureView</ref><sp/>&amp;rhs)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lhs.tex<sp/>==<sp/>rhs.tex;<sp/>};</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="classdafg_1_1BufferView" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classdafg_1_1BufferView" kindref="compound">BufferView</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*buf;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="32" refid="classdafg_1_1BufferView_1a76e9c3e891a73991b5cd306413dcfd98" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1BufferView_1a76e9c3e891a73991b5cd306413dcfd98" kindref="member">BufferView</ref>(Sbuffer<sp/>*b)<sp/>:<sp/>buf(b)<sp/>{};</highlight></codeline>
+<codeline lineno="33" refid="classdafg_1_1BufferView_1ac0a63f224e30764d84cbba65a13f49e6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classdafg_1_1BufferView_1ac0a63f224e30764d84cbba65a13f49e6" kindref="member">BufferView</ref>()<sp/>:<sp/>buf(nullptr)<sp/>{};</highlight></codeline>
+<codeline lineno="34" refid="classdafg_1_1BufferView_1aea3348d01f03b230e5c596e9cd79cc3d" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classdafg_1_1BufferView_1aea3348d01f03b230e5c596e9cd79cc3d" kindref="member">operator-&gt;</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buf;<sp/>};</highlight></codeline>
+<codeline lineno="35" refid="classdafg_1_1BufferView_1a476ee5e40bb07c5a299953f20fa1e863" refkind="member"><highlight class="normal"><sp/><sp/>Sbuffer<sp/>*<ref refid="classdafg_1_1BufferView_1a476ee5e40bb07c5a299953f20fa1e863" kindref="member">getBuf</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buf;<sp/>};</highlight></codeline>
+<codeline lineno="36" refid="classdafg_1_1BufferView_1ab44da802d81777cfc3057de6137a968f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">operator</highlight><highlight class="normal"><sp/>bool()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">bool</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(buf);<sp/>};</highlight></codeline>
+<codeline lineno="37" refid="classdafg_1_1BufferView_1a13aace64fe727e5cb7955f7b0111b442" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classdafg_1_1BufferView_1a13aace64fe727e5cb7955f7b0111b442" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classdafg_1_1BufferView" kindref="compound">BufferView</ref><sp/>&amp;lhs,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classdafg_1_1BufferView" kindref="compound">BufferView</ref><sp/>&amp;rhs)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lhs.buf<sp/>==<sp/>rhs.buf;<sp/>};</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>Texture<sp/>*get_tex2d(<ref refid="classdafg_1_1TextureView" kindref="compound">dafg::TextureView</ref><sp/>tex)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>tex.<ref refid="classdafg_1_1TextureView_1a8ce45267cee22ad6cb44879ce431cafe" kindref="member">getTex2D</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>Sbuffer<sp/>*get_buf(<ref refid="classdafg_1_1BufferView" kindref="compound">dafg::BufferView</ref><sp/>buf)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>buf.<ref refid="classdafg_1_1BufferView_1a476ee5e40bb07c5a299953f20fa1e863" kindref="member">getBuf</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dafg</highlight></codeline>
+    </programlisting>
+    <location file="resourceView.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structAsyncTextureLoadingState" kind="struct" language="C++" prot="public">
+    <compoundname>AsyncTextureLoadingState</compoundname>
+    <includes refid="dag__buildOnDemandTexFactory_8h" local="no">dag_buildOnDemandTexFactory.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAsyncTextureLoadingState_1a8cca46aacf18a4118272f8d2fae1a9b4" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned AsyncTextureLoadingState::pendingLdCount[TQL__COUNT]</definition>
+        <argsstring>[TQL__COUNT]</argsstring>
+        <name>pendingLdCount</name>
+        <qualifiedname>AsyncTextureLoadingState::pendingLdCount</qualifiedname>
+        <initializer>= {0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="52" column="12" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAsyncTextureLoadingState_1a96d116afbddab5b29e4a6c40289f859c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned AsyncTextureLoadingState::pendingLdTotal</definition>
+        <argsstring></argsstring>
+        <name>pendingLdTotal</name>
+        <qualifiedname>AsyncTextureLoadingState::pendingLdTotal</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="52" column="28" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAsyncTextureLoadingState_1a0585175386e370135bbafd49149267a3" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned AsyncTextureLoadingState::totalLoadedCount</definition>
+        <argsstring></argsstring>
+        <name>totalLoadedCount</name>
+        <qualifiedname>AsyncTextureLoadingState::totalLoadedCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="53" column="12" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAsyncTextureLoadingState_1a9a8f417ac10ce99f9fa79d12b1f7c412" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned AsyncTextureLoadingState::totalLoadedSizeKb</definition>
+        <argsstring></argsstring>
+        <name>totalLoadedSizeKb</name>
+        <qualifiedname>AsyncTextureLoadingState::totalLoadedSizeKb</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="53" column="30" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAsyncTextureLoadingState_1aa0a819a98882f3abb50f5ad8f1fdc11c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned AsyncTextureLoadingState::totalCacheUpdated</definition>
+        <argsstring></argsstring>
+        <name>totalCacheUpdated</name>
+        <qualifiedname>AsyncTextureLoadingState::totalCacheUpdated</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_buildOnDemandTexFactory.h" line="53" column="49" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>state of current async loading (reported by texture factory) </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_buildOnDemandTexFactory.h" line="50" column="1" bodyfile="dag_buildOnDemandTexFactory.h" bodystart="51" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structAsyncTextureLoadingState_1a8cca46aacf18a4118272f8d2fae1a9b4" prot="public" virt="non-virtual"><scope>AsyncTextureLoadingState</scope><name>pendingLdCount</name></member>
+      <member refid="structAsyncTextureLoadingState_1a96d116afbddab5b29e4a6c40289f859c" prot="public" virt="non-virtual"><scope>AsyncTextureLoadingState</scope><name>pendingLdTotal</name></member>
+      <member refid="structAsyncTextureLoadingState_1aa0a819a98882f3abb50f5ad8f1fdc11c" prot="public" virt="non-virtual"><scope>AsyncTextureLoadingState</scope><name>totalCacheUpdated</name></member>
+      <member refid="structAsyncTextureLoadingState_1a0585175386e370135bbafd49149267a3" prot="public" virt="non-virtual"><scope>AsyncTextureLoadingState</scope><name>totalLoadedCount</name></member>
+      <member refid="structAsyncTextureLoadingState_1a9a8f417ac10ce99f9fa79d12b1f7c412" prot="public" virt="non-virtual"><scope>AsyncTextureLoadingState</scope><name>totalLoadedSizeKb</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

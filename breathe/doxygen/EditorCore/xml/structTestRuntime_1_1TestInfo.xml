@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTestRuntime_1_1TestInfo" kind="struct" language="C++" prot="public">
+    <compoundname>TestRuntime::TestInfo</compoundname>
+    <includes refid="ec__testSystem_8h" local="no">ec_testSystem.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTestRuntime_1_1TestInfo_1af5c428463c4ea2d997c4fba664dab515" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestRuntime::TestInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>TestRuntime::TestInfo::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="186" column="12" bodyfile="ec_testSystem.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTestRuntime_1_1TestInfo_1a939f78cc009155dacd6ff9887925144f" prot="public" static="no" mutable="no">
+        <type><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" kindref="member">TestState</ref></type>
+        <definition>TestState TestRuntime::TestInfo::state</definition>
+        <argsstring></argsstring>
+        <name>state</name>
+        <qualifiedname>TestRuntime::TestInfo::state</qualifiedname>
+        <initializer>= <ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8aa5daf7f2ebbba4975d61dab1c40188c7" kindref="member">TestState::IDLE</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="187" column="15" bodyfile="ec_testSystem.h" bodystart="187" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTestRuntime_1_1TestInfo_1ac1d1d0b3c2d73957d0076617a01d06d0" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestRuntime::TestInfo::filePath</definition>
+        <argsstring></argsstring>
+        <name>filePath</name>
+        <qualifiedname>TestRuntime::TestInfo::filePath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="189" column="12" bodyfile="ec_testSystem.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTestRuntime_1_1TestInfo_1a9adbc7781e2db7c01036239807e69868" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TestRuntime::TestInfo::sourceLine</definition>
+        <argsstring></argsstring>
+        <name>sourceLine</name>
+        <qualifiedname>TestRuntime::TestInfo::sourceLine</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="190" column="9" bodyfile="ec_testSystem.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTestRuntime_1_1TestInfo_1a18ab943e8325f232df6d93e51fce8365" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String TestRuntime::TestInfo::failReason</definition>
+        <argsstring></argsstring>
+        <name>failReason</name>
+        <qualifiedname>TestRuntime::TestInfo::failReason</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="191" column="12" bodyfile="ec_testSystem.h" bodystart="191" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_testSystem.h" line="184" column="3" bodyfile="ec_testSystem.h" bodystart="185" bodyend="192"/>
+    <listofallmembers>
+      <member refid="structTestRuntime_1_1TestInfo_1a18ab943e8325f232df6d93e51fce8365" prot="public" virt="non-virtual"><scope>TestRuntime::TestInfo</scope><name>failReason</name></member>
+      <member refid="structTestRuntime_1_1TestInfo_1ac1d1d0b3c2d73957d0076617a01d06d0" prot="public" virt="non-virtual"><scope>TestRuntime::TestInfo</scope><name>filePath</name></member>
+      <member refid="structTestRuntime_1_1TestInfo_1af5c428463c4ea2d997c4fba664dab515" prot="public" virt="non-virtual"><scope>TestRuntime::TestInfo</scope><name>name</name></member>
+      <member refid="structTestRuntime_1_1TestInfo_1a9adbc7781e2db7c01036239807e69868" prot="public" virt="non-virtual"><scope>TestRuntime::TestInfo</scope><name>sourceLine</name></member>
+      <member refid="structTestRuntime_1_1TestInfo_1a939f78cc009155dacd6ff9887925144f" prot="public" virt="non-virtual"><scope>TestRuntime::TestInfo</scope><name>state</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

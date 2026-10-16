@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLockTextureReturnTypeTrait_3_01ImageRawBytes_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>LockTextureReturnTypeTrait&lt; ImageRawBytes &gt;</compoundname>
+    <includes refid="dag__lockTexture_8h" local="no">dag_lockTexture.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structLockTextureReturnTypeTrait_3_01ImageRawBytes_01_4_1af293e9eea266881526b56ee43d456427" prot="public" static="no">
+        <type><ref refid="dag__lockTexture_8h_1add8634302ec115022a9a28230fbf9d22" kindref="member">LockedImageRawBytes</ref></type>
+        <definition>using LockTextureReturnTypeTrait&lt; ImageRawBytes &gt;::type =  LockedImageRawBytes</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>LockTextureReturnTypeTrait&lt; ImageRawBytes &gt;::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="413" column="3" bodyfile="dag_lockTexture.h" bodystart="413" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_lockTexture.h" line="411" column="1" bodyfile="dag_lockTexture.h" bodystart="412" bodyend="414"/>
+    <listofallmembers>
+      <member refid="structLockTextureReturnTypeTrait_3_01ImageRawBytes_01_4_1af293e9eea266881526b56ee43d456427" prot="public" virt="non-virtual"><scope>LockTextureReturnTypeTrait&lt; ImageRawBytes &gt;</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

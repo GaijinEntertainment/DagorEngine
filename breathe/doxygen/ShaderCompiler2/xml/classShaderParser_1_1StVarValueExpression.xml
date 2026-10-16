@@ -1,0 +1,436 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1StVarValueExpression" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::StVarValueExpression</compoundname>
+    <basecompoundref refid="classShaderParser_1_1Expression" prot="public" virt="non-virtual">ShaderParser::Expression</basecompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1StVarValueExpression_1a5530ac0d8db07ce7edfe2acd25ff8bc2" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::StVarValueExpression::varId</definition>
+        <argsstring></argsstring>
+        <name>varId</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::varId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="595" column="7" bodyfile="shExpr.h" bodystart="595" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1StVarValueExpression_1afbdbe219154add1847255fd860f14d9a" prot="private" static="no" mutable="no">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::StVarValueExpression::valueType</definition>
+        <argsstring></argsstring>
+        <name>valueType</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::valueType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="596" column="21" bodyfile="shExpr.h" bodystart="596" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1StVarValueExpression_1ab1484bf239633cf1e8afea033d585a4a" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::StVarValueExpression::isDynamicFlag</definition>
+        <argsstring></argsstring>
+        <name>isDynamicFlag</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::isDynamicFlag</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="597" column="8" bodyfile="shExpr.h" bodystart="597" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1StVarValueExpression_1aae550698cfd5c610ec4d9994478161f5" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::StVarValueExpression::isGlobalFlag</definition>
+        <argsstring></argsstring>
+        <name>isGlobalFlag</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::isGlobalFlag</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="598" column="8" bodyfile="shExpr.h" bodystart="598" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1StVarValueExpression_1aff4953a5884334b7762d7c48ccdc737c" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::StVarValueExpression::isInteger</definition>
+        <argsstring></argsstring>
+        <name>isInteger</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::isInteger</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="599" column="8" bodyfile="shExpr.h" bodystart="599" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1af7c67db1d336641f686a2359847aef09" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StVarValueExpression::StVarValueExpression</definition>
+        <argsstring>(Terminal *s, int var_id, shexpr::ValueType vt, bool is_dynamic, bool is_global, bool is_int)</argsstring>
+        <name>StVarValueExpression</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::StVarValueExpression</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_dynamic</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_global</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_int</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="555" column="3" bodyfile="shExpr.cpp" bodystart="1260" bodyend="1268"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a2eb317f90ea45e38ad4b37606ee7d62c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>StVarValueExpression::~StVarValueExpression</definition>
+        <argsstring>() override</argsstring>
+        <name>~StVarValueExpression</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::~StVarValueExpression</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="557" column="3" bodyfile="shExpr.cpp" bodystart="1271" bodyend="1271"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1ab4e9a88ae316cc6a97ec050219d24a70" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::StVarValueExpression::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="560" column="23" bodyfile="shExpr.h" bodystart="560" bodyend="560"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a9f996d2995866eb138d273fa85f95019" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::StVarValueExpression::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d">getValueType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="563" column="28" bodyfile="shExpr.h" bodystart="563" bodyend="563"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1aec6340a071ff4cce2b0962644738384b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StVarValueExpression::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0">assembleBytecode</reimplements>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="566" column="8" bodyfile="shExpr.cpp" bodystart="1275" bodyend="1350"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a4a7bf1ddd4f8f4cb3cf5e63d6b9a6e7b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StVarValueExpression::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2">assembleCpp</reimplements>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="567" column="8" bodyfile="shExpr.cpp" bodystart="1352" bodyend="1369"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1ae117b9df5454b41d947b3423820f4b48" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::StVarValueExpression::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a5cd845a298cd30bc29c1d6176d90d7a5">isConst</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="570" column="8" bodyfile="shExpr.h" bodystart="570" bodyend="570"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a4558073b696ec879a4b82482fd41558d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::StVarValueExpression::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6670e4cb77f145766d8e787075ed7da9">isDynamic</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="573" column="8" bodyfile="shExpr.h" bodystart="573" bodyend="573"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a0a837b4215cbf2e18fdf57a1b3f2f12b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool StVarValueExpression::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf">evaluate</reimplements>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="576" column="8" bodyfile="shExpr.cpp" bodystart="1373" bodyend="1373"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a62becd87c911a33d8731c10ad4f8ad36" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool StVarValueExpression::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f">evaluate</reimplements>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="579" column="8" bodyfile="shExpr.cpp" bodystart="1377" bodyend="1377"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1af2db04305a753533783ea661e167a2b2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::StVarValueExpression::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="582" column="12" bodyfile="shExpr.h" bodystart="582" bodyend="582"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a87d67152a7ee7b12b8461abf8d9f9d9a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::StVarValueExpression::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="585" column="8" bodyfile="shExpr.h" bodystart="585" bodyend="585"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a76695c661161f292b30bd445b008456d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ShaderParser::StVarValueExpression::getChannels</definition>
+        <argsstring>() const override</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::getChannels</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536">getChannels</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="587" column="7" bodyfile="shExpr.h" bodystart="587" bodyend="587"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1StVarValueExpression_1a0a552f1b4936efbd505d39ddc76718b8" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void StVarValueExpression::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::StVarValueExpression::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb">dump_internal</reimplements>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="592" column="8" bodyfile="shExpr.cpp" bodystart="1380" bodyend="1386"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::StVarValueExpression</label>
+        <link refid="classShaderParser_1_1StVarValueExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::StVarValueExpression</label>
+        <link refid="classShaderParser_1_1StVarValueExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="551" column="1" bodyfile="shExpr.h" bodystart="552" bodyend="600"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1aec6340a071ff4cce2b0962644738384b" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a4a7bf1ddd4f8f4cb3cf5e63d6b9a6e7b" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a87d67152a7ee7b12b8461abf8d9f9d9a" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a0a552f1b4936efbd505d39ddc76718b8" prot="protected" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a0a837b4215cbf2e18fdf57a1b3f2f12b" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a62becd87c911a33d8731c10ad4f8ad36" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a76695c661161f292b30bd445b008456d" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1af2db04305a753533783ea661e167a2b2" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1ab4e9a88ae316cc6a97ec050219d24a70" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a9f996d2995866eb138d273fa85f95019" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a20844e4f958c20d70cc4824650652f67" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1ae117b9df5454b41d947b3423820f4b48" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a4558073b696ec879a4b82482fd41558d" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1ab1484bf239633cf1e8afea033d585a4a" prot="private" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>isDynamicFlag</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1aae550698cfd5c610ec4d9994478161f5" prot="private" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>isGlobalFlag</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1aff4953a5884334b7762d7c48ccdc737c" prot="private" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>isInteger</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1af7c67db1d336641f686a2359847aef09" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>StVarValueExpression</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1afbdbe219154add1847255fd860f14d9a" prot="private" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>valueType</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a5530ac0d8db07ce7edfe2acd25ff8bc2" prot="private" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>varId</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::StVarValueExpression</scope><name>~Expression</name></member>
+      <member refid="classShaderParser_1_1StVarValueExpression_1a2eb317f90ea45e38ad4b37606ee7d62c" prot="public" virt="non-virtual"><scope>ShaderParser::StVarValueExpression</scope><name>~StVarValueExpression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

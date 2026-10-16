@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__renderStateId_8h" kind="file" language="C++">
+    <compoundname>dag_renderStateId.h</compoundname>
+    <includes local="no">util/dag_generationRefId.h</includes>
+    <includedby refid="dag__interface__table_8h" local="no">dag_interface_table.h</includedby>
+    <includedby refid="dag__renderStates_8h" local="no">dag_renderStates.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_renderStateId.h</label>
+        <link refid="dag__renderStateId_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_generationRefId.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_renderStateId.h</label>
+        <link refid="dag__renderStateId_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>dag_renderStates.h</label>
+        <link refid="dag__renderStates_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classshaders_1_1DriverRenderStateIdDummy" prot="public">shaders::DriverRenderStateIdDummy</innerclass>
+    <innernamespace refid="namespaceshaders">shaders</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_generationRefId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="namespaceshaders" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshaders" kindref="compound">shaders</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshaders_1_1RenderState" kindref="compound">RenderState</ref>;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029" kindref="member">RenderStateId</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><ref refid="namespaceshaders_1a735d1a3cb2bc85a77c7e3b5edadda029a4bbb8f967da6d1a610596d7257179c2b" kindref="member">Invalid</ref><sp/>=<sp/>0</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classshaders_1_1DriverRenderStateIdDummy" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classshaders_1_1DriverRenderStateIdDummy" kindref="compound">DriverRenderStateIdDummy</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{};</highlight></codeline>
+<codeline lineno="20" refid="namespaceshaders_1a18d95bd7603b031ab4919fb4e4ad8022" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaceshaders_1a18d95bd7603b031ab4919fb4e4ad8022" kindref="member">DriverRenderStateId</ref><sp/>=<sp/>GenerationRefId&lt;8,<sp/>DriverRenderStateIdDummy&gt;;<sp/></highlight><highlight class="comment">//<sp/>weak<sp/>reference</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_renderStateId.h"/>
+  </compounddef>
+</doxygen>

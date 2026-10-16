@@ -1,0 +1,416 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1FunctionExpression" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::FunctionExpression</compoundname>
+    <basecompoundref refid="classShaderParser_1_1ComplexExpression" prot="public" virt="non-virtual">ShaderParser::ComplexExpression</basecompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1FunctionExpression_1ade8f2a319af8abc24560b88748053b68" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::FunctionExpression::func</definition>
+        <argsstring></argsstring>
+        <name>func</name>
+        <qualifiedname>ShaderParser::FunctionExpression::func</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="654" column="7" bodyfile="shExpr.h" bodystart="654" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a874e9d212bca1fb7f84c9daf33a31260" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FunctionExpression::FunctionExpression</definition>
+        <argsstring>(Terminal *s, int function_id, int channel=-1)</argsstring>
+        <name>FunctionExpression</name>
+        <qualifiedname>ShaderParser::FunctionExpression::FunctionExpression</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>function_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="612" column="3" bodyfile="shExpr.cpp" bodystart="1398" bodyend="1402"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1aa41f7dc5faf4a8bb2a5b9389fac62c60" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::FunctionExpression::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::FunctionExpression::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1abaeea49f74548b46fcc38a0d09b146bb">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="615" column="23" bodyfile="shExpr.h" bodystart="615" bodyend="615"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a1622d2723f187b292cfdfb2b4138bb97" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType FunctionExpression::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::FunctionExpression::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a7f8f55c1b66662f2dd471784d111309a">getValueType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="618" column="21" bodyfile="shExpr.cpp" bodystart="1638" bodyend="1638"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a087cca97677a843023cd102267bc741b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::FunctionExpression::canConvert</definition>
+        <argsstring>(shexpr::ValueType vt) const override</argsstring>
+        <name>canConvert</name>
+        <qualifiedname>ShaderParser::FunctionExpression::canConvert</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a1f6ee737b43f1de2ecbb05f5bbe49ec5">canConvert</reimplements>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="621" column="8" bodyfile="shExpr.h" bodystart="621" bodyend="621"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a79b6ac1aeae30ee663e736910c5f0871" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool FunctionExpression::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::FunctionExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a17a106337e194f2f9768a8e2a45abb8d">evaluate</reimplements>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="624" column="8" bodyfile="shExpr.cpp" bodystart="1405" bodyend="1449"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a51cde9f4f336f129343d1332232c7321" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool FunctionExpression::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::FunctionExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1ad680203c116d37d80cef50b2b7fe4a2d">evaluate</reimplements>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="627" column="8" bodyfile="shExpr.cpp" bodystart="1453" bodyend="1507"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1aa94a57ffeced2cfd2afdab32478af185" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::FunctionExpression::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::FunctionExpression::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="630" column="12" bodyfile="shExpr.h" bodystart="630" bodyend="630"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1ad3c04213cfb60f770eab5a25e585a9f2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FunctionExpression::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::FunctionExpression::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a6ea797735f195ab719d1df1e22f4d562">assembleBytecode</reimplements>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="633" column="8" bodyfile="shExpr.cpp" bodystart="1521" bodyend="1551"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a5f41ffb739d74300e4da96ff6b4ef28f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FunctionExpression::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::FunctionExpression::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a01dc2bc138b372bde6ed31372e4d6cbf">assembleCpp</reimplements>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="634" column="8" bodyfile="shExpr.cpp" bodystart="1553" bodyend="1559"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a2d8cf9662e55e5ab14fc506ee8887432" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool FunctionExpression::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::FunctionExpression::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a16fa3be80484ab01a7e1bbc713c53b68">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="637" column="8" bodyfile="shExpr.cpp" bodystart="1563" bodyend="1608"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a549eb3d23dffc63e274162806bfcfb8e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool FunctionExpression::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::FunctionExpression::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a7194e5c6d1440272d923f2a43f91b323">isConst</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="640" column="8" bodyfile="shExpr.cpp" bodystart="1611" bodyend="1616"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a7b71c9d3661f883523f9db8167959ed3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool FunctionExpression::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::FunctionExpression::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a16bdebae479907f7361ce4fbfaa6f05e">isDynamic</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="643" column="8" bodyfile="shExpr.cpp" bodystart="1618" bodyend="1623"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a4969d3a58c0d567357c230dae020e979" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>int</type>
+        <definition>int FunctionExpression::getChannels</definition>
+        <argsstring>() const override</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderParser::FunctionExpression::getChannels</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1ac2fe7fc73b1e22177129c4465a6609eb">getChannels</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="645" column="7" bodyfile="shExpr.cpp" bodystart="1626" bodyend="1634"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a3d4cfd107ee053faec5ed52af60240e5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::FunctionExpression::validate</definition>
+        <argsstring>(Parser &amp;parser) const override</argsstring>
+        <name>validate</name>
+        <qualifiedname>ShaderParser::FunctionExpression::validate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a695de7886520cd4b45f36355857a6674">validate</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="647" column="8" bodyfile="shExpr.h" bodystart="647" bodyend="647"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1FunctionExpression_1a4daace2187e4e109925beec6295d90a2" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FunctionExpression::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::FunctionExpression::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1ComplexExpression_1a297558e23345f9282e9d9b75ac44ecf2">dump_internal</reimplements>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="651" column="8" bodyfile="shExpr.cpp" bodystart="1511" bodyend="1517"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderParser::ComplexExpression</label>
+        <link refid="classShaderParser_1_1ComplexExpression"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::FunctionExpression</label>
+        <link refid="classShaderParser_1_1FunctionExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderParser::ComplexExpression</label>
+        <link refid="classShaderParser_1_1ComplexExpression"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::FunctionExpression</label>
+        <link refid="classShaderParser_1_1FunctionExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="608" column="1" bodyfile="shExpr.h" bodystart="609" bodyend="655"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a493d9259f604e81c3545d2c8e88b0727" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>addOperand</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1ad3c04213cfb60f770eab5a25e585a9f2" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a5f41ffb739d74300e4da96ff6b4ef28f" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a087cca97677a843023cd102267bc741b" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a2d8cf9662e55e5ab14fc506ee8887432" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a79c0cc4e14d090a32ba465f694dbfa64" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a4daa1ff85fc33616df59dfa334f2d285" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a4daace2187e4e109925beec6295d90a2" prot="protected" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a79b6ac1aeae30ee663e736910c5f0871" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a51cde9f4f336f129343d1332232c7321" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1ade8f2a319af8abc24560b88748053b68" prot="private" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>func</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a874e9d212bca1fb7f84c9daf33a31260" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>FunctionExpression</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1d01b970349ba568a83f6bfac7abf2ae" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1aa47d915c83255c627dcaee961085fef7" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getBinOperator</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a4969d3a58c0d567357c230dae020e979" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a64324bc6708bb2c23085c7e26439e940" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getCurrentChannel</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a09025279d6667970b8562d9b5f35cabf" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getOperand</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a5b6822895ad0240bfade8d320d455e0f" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getOperand</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a30afe78dd5ce4f77ff127d91ca0fa9e4" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getOperandCount</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1aa94a57ffeced2cfd2afdab32478af185" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1aa41f7dc5faf4a8bb2a5b9389fac62c60" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a1622d2723f187b292cfdfb2b4138bb97" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a7d82b28b4591cd98358adaf95cb62164" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a549eb3d23dffc63e274162806bfcfb8e" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a7b71c9d3661f883523f9db8167959ed3" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a60faa0e90cdf70dbe209bdaf52089424" prot="protected" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>resizeOperands</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1af8b4d5be02c293d55ebf28f396ef582d" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>setBinOperator</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1ac2d7c6dc761850ca65206441da5b880e" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>setChannels</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a4e909ce00fe124c5200e02e48e2bd41c" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>setLastBinOp</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a1cfcdaf2ee0204346bde3a7961720734" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>setOperand</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1FunctionExpression_1a3d4cfd107ee053faec5ed52af60240e5" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>validate</name></member>
+      <member refid="classShaderParser_1_1ComplexExpression_1a793b5ef8b46b2d5c032d111d5a57b2bc" prot="public" virt="non-virtual"><scope>ShaderParser::FunctionExpression</scope><name>~ComplexExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::FunctionExpression</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

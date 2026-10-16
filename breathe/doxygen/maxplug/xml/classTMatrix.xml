@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTMatrix" kind="class" language="C++" prot="public">
+    <compoundname>TMatrix</compoundname>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <member refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kind="variable"><name>m</name></member>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <member refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" kind="variable"><name>IDENT</name></member>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" kind="function"><name>TMatrix</name></member>
+      <member refid="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" kind="function"><name>getcol</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>4x3 transformation matrix. last column (3rd, counting from zero) is translation <simplesect kind="see"><para>Matrix3 TMatrix4 <ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref> Point2 Point4 </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>TMatrix</label>
+        <link refid="classTMatrix"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>IDENT</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="math3d.h" line="89" column="1" bodyfile="math3d.h" bodystart="90" bodyend="100"/>
+    <listofallmembers>
+      <member refid="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>getcol</name></member>
+      <member refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>IDENT</name></member>
+      <member refid="group__common_1ga30439c9be7994b5038d65159659f08ca" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>m</name></member>
+      <member refid="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" prot="public" virt="non-virtual"><scope>TMatrix</scope><name>TMatrix</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

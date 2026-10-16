@@ -1,0 +1,1650 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGizmoEventFilter" kind="class" language="C++" prot="public">
+    <compoundname>GizmoEventFilter</compoundname>
+    <basecompoundref refid="classIGenEventHandler" prot="public" virt="non-virtual">IGenEventHandler</basecompoundref>
+    <includes refid="ec__gizmofilter_8h" local="no">ec_gizmofilter.h</includes>
+    <innerclass refid="structGizmoEventFilter_1_1GizmoParams" prot="protected">GizmoEventFilter::GizmoParams</innerclass>
+    <innerclass refid="structGizmoEventFilter_1_1VpInfo" prot="protected">GizmoEventFilter::VpInfo</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903" prot="public" static="no" strong="no">
+        <type></type>
+        <name>SelectedAxes</name>
+        <qualifiedname>GizmoEventFilter::SelectedAxes</qualifiedname>
+        <enumvalue id="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903aa80ef59a2b213e8d3f2e0c61ffb77ab6" prot="public">
+          <name>AXIS_X</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a98d7ec44f8c442b5f08023eaa583ce42" prot="public">
+          <name>AXIS_Y</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a81cd7e2ca8cca72516fda79e5a8035f7" prot="public">
+          <name>AXIS_Z</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="21" column="3" bodyfile="ec_gizmofilter.h" bodystart="22" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="enum" id="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>Style</name>
+        <qualifiedname>GizmoEventFilter::Style</qualifiedname>
+        <enumvalue id="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186ad35b51b639528d580362ca7042de6a0e" prot="public">
+          <name>Classic</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186a03c2e7e41ffc181a4e84080b4710e81e" prot="public">
+          <name>New</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="28" column="3" bodyfile="ec_gizmofilter.h" bodystart="29" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" prot="protected" static="no" mutable="no">
+        <type>struct <ref refid="structGizmoEventFilter_1_1GizmoParams" kindref="compound">GizmoEventFilter::GizmoParams</ref></type>
+        <definition>struct GizmoEventFilter::GizmoParams GizmoEventFilter::gizmo</definition>
+        <argsstring></argsstring>
+        <name>gizmo</name>
+        <qualifiedname>GizmoEventFilter::gizmo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="133" column="9"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" prot="protected" static="no" mutable="no">
+        <type><ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref> &amp;</type>
+        <definition>GeneralEditorData&amp; GizmoEventFilter::ged</definition>
+        <argsstring></argsstring>
+        <name>ged</name>
+        <qualifiedname>GizmoEventFilter::ged</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="135" column="21" bodyfile="ec_gizmofilter.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1aed0297b81971376cfa8cb8783a67f713" prot="protected" static="no" mutable="no">
+        <type>const <ref refid="classGridObject" kindref="compound">GridObject</ref> &amp;</type>
+        <definition>const GridObject&amp; GizmoEventFilter::grid</definition>
+        <argsstring></argsstring>
+        <name>grid</name>
+        <qualifiedname>GizmoEventFilter::grid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="136" column="20" bodyfile="ec_gizmofilter.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a38b10c82e277476e96faf0a3c6334d6f" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structGizmoEventFilter_1_1VpInfo" kindref="compound">VpInfo</ref> &gt;</type>
+        <definition>Tab&lt;VpInfo&gt; GizmoEventFilter::vp</definition>
+        <argsstring></argsstring>
+        <name>vp</name>
+        <qualifiedname>GizmoEventFilter::vp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="142" column="7" bodyfile="ec_gizmofilter.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a2fb5bdb9c05fcb438c66432964137e55" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structGizmoEventFilter_1_1VpInfo" kindref="compound">VpInfo</ref> &gt;</type>
+        <definition>Tab&lt;VpInfo&gt; GizmoEventFilter::s_vp</definition>
+        <argsstring></argsstring>
+        <name>s_vp</name>
+        <qualifiedname>GizmoEventFilter::s_vp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="142" column="10" bodyfile="ec_gizmofilter.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1ae991e5dbe2cceeb40b8917f1f986b3fe" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 GizmoEventFilter::scale</definition>
+        <argsstring></argsstring>
+        <name>scale</name>
+        <qualifiedname>GizmoEventFilter::scale</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="144" column="10" bodyfile="ec_gizmofilter.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a6f7ec6065655e244ab27c6bef8817891" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::gizmoDelta</definition>
+        <argsstring></argsstring>
+        <name>gizmoDelta</name>
+        <qualifiedname>GizmoEventFilter::gizmoDelta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="145" column="10" bodyfile="ec_gizmofilter.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1ac31fcb42fdd8d1754988a6a7a9a641fd" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::mousePos</definition>
+        <argsstring></argsstring>
+        <name>mousePos</name>
+        <qualifiedname>GizmoEventFilter::mousePos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="146" column="10" bodyfile="ec_gizmofilter.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1aee42fa77b6035a96946c869a22b09f46" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::mouseCurrentPos</definition>
+        <argsstring></argsstring>
+        <name>mouseCurrentPos</name>
+        <qualifiedname>GizmoEventFilter::mouseCurrentPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="147" column="10" bodyfile="ec_gizmofilter.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1ae66dbc91cdc8d131edeff0739284182a" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 GizmoEventFilter::startPos</definition>
+        <argsstring></argsstring>
+        <name>startPos</name>
+        <qualifiedname>GizmoEventFilter::startPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="148" column="10" bodyfile="ec_gizmofilter.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a06c76758f06f9a0b5014a548a9aaf044" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; Point2 &gt;</type>
+        <definition>Tab&lt;Point2&gt; GizmoEventFilter::startPos2d</definition>
+        <argsstring></argsstring>
+        <name>startPos2d</name>
+        <qualifiedname>GizmoEventFilter::startPos2d</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="149" column="7" bodyfile="ec_gizmofilter.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a66a8ef66ae4474a9f291ad97df51c9d7" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GizmoEventFilter::rotAngle</definition>
+        <argsstring></argsstring>
+        <name>rotAngle</name>
+        <qualifiedname>GizmoEventFilter::rotAngle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="150" column="8" bodyfile="ec_gizmofilter.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1ac74b8f7989ef3665d1da7a34b537d46a" prot="protected" static="no" mutable="no">
+        <type>real</type>
+        <definition>real GizmoEventFilter::startRotAngle</definition>
+        <argsstring></argsstring>
+        <name>startRotAngle</name>
+        <qualifiedname>GizmoEventFilter::startRotAngle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="150" column="17" bodyfile="ec_gizmofilter.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a2c463917924f3cbbb31a5e91b38d4367" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GizmoEventFilter::deltaX</definition>
+        <argsstring></argsstring>
+        <name>deltaX</name>
+        <qualifiedname>GizmoEventFilter::deltaX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="151" column="7" bodyfile="ec_gizmofilter.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a3ff01921f7511fd5d769e6ede36fee63" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GizmoEventFilter::deltaY</definition>
+        <argsstring></argsstring>
+        <name>deltaY</name>
+        <qualifiedname>GizmoEventFilter::deltaY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="151" column="14" bodyfile="ec_gizmofilter.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1a5413046e16619fc4db9ae06ef3901f85" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 GizmoEventFilter::movedDelta</definition>
+        <argsstring></argsstring>
+        <name>movedDelta</name>
+        <qualifiedname>GizmoEventFilter::movedDelta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="153" column="10" bodyfile="ec_gizmofilter.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1acd986b424011b7c5624da2e38d36e945" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 GizmoEventFilter::planeNormal</definition>
+        <argsstring></argsstring>
+        <name>planeNormal</name>
+        <qualifiedname>GizmoEventFilter::planeNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="154" column="10" bodyfile="ec_gizmofilter.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1ae6fab05a71669bdb7592881918ffcecd" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::moveStarted</definition>
+        <argsstring></argsstring>
+        <name>moveStarted</name>
+        <qualifiedname>GizmoEventFilter::moveStarted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="156" column="8" bodyfile="ec_gizmofilter.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1aa5cd2677f5ae4ab9b9604a71b9d7c6b0" prot="protected" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 GizmoEventFilter::rotateDir</definition>
+        <argsstring></argsstring>
+        <name>rotateDir</name>
+        <qualifiedname>GizmoEventFilter::rotateDir</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="157" column="10" bodyfile="ec_gizmofilter.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGizmoEventFilter_1accf349f4f10c78a827cd982ccf9a55e5" prot="protected" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; IGizmoRenderer &gt;</type>
+        <definition>eastl::unique_ptr&lt;IGizmoRenderer&gt; GizmoEventFilter::renderer</definition>
+        <argsstring></argsstring>
+        <name>renderer</name>
+        <qualifiedname>GizmoEventFilter::renderer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="158" column="21" bodyfile="ec_gizmofilter.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGizmoEventFilter_1abdb44810d813b10a94e17dd66235084f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>GizmoEventFilter::GizmoEventFilter</definition>
+        <argsstring>(GeneralEditorData &amp;ged, const GridObject &amp;grid)</argsstring>
+        <name>GizmoEventFilter</name>
+        <qualifiedname>GizmoEventFilter::GizmoEventFilter</qualifiedname>
+        <param>
+          <type><ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref> &amp;</type>
+          <declname>ged</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classGridObject" kindref="compound">GridObject</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Constructor. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">ged</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- reference to Editor&apos;s <ref refid="classGeneralEditorData" kindref="compound">GeneralEditorData</ref> </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">grid</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- reference to Editor grid </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="37" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a9cbbb0c2be6573a826ef22faf0ef7688" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::endGizmo</definition>
+        <argsstring>(bool apply)</argsstring>
+        <name>endGizmo</name>
+        <qualifiedname>GizmoEventFilter::endGizmo</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>apply</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>End the currently onging gizmo operation the same way as if the user finished it by releasing the left mouse button or canceled it by pressing the right mouse button. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">apply</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- whether the apply or cancel the onging operation </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="42" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a559fedbc2351f47277cab52019f645fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>GizmoEventFilter::handleMouseMove</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a46164eba137560a326038e89a9240ffe">handleMouseMove</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse move. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="45" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a0cb830d610e098826c390b8872e00e3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>GizmoEventFilter::handleMouseLBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a76d3042ca31425d226f0f72362e2dd56">handleMouseLBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse left button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="47" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a471078422b09419371d9eca22b51a494" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>GizmoEventFilter::handleMouseLBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a0d282a84127069635a1fae4b454a8d3b">handleMouseLBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse left button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="49" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a81c41a36a3c16b48af1ba6ab756ef160" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>GizmoEventFilter::handleMouseRBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a5efed76d47bfdd603d2c031553b8d64a">handleMouseRBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse right button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="52" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a8d680f9ca5634e82520d547ccda32460" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseRBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseRBRelease</name>
+        <qualifiedname>GizmoEventFilter::handleMouseRBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a2e35e2b69f623dd8f9ea4289bad0f809">handleMouseRBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse right button release<linebreak/>
+The function just passes event to Editor&apos;s event handler.</para>
+<para>Handle mouse right button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="57" column="8" bodyfile="ec_gizmofilter.h" bodystart="57" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a0e0a1fdd9d64f63484ef9ea1f9b9f3e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseCBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseCBPress</name>
+        <qualifiedname>GizmoEventFilter::handleMouseCBPress</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a39911163de6ae644a30da1c40886cd56">handleMouseCBPress</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse center button press<linebreak/>
+The function just passes event to Editor&apos;s event handler.</para>
+<para>Handle mouse center button press <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="67" column="8" bodyfile="ec_gizmofilter.h" bodystart="67" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a8f2096de452928c0e7bc7d4330a371e3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseCBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override</argsstring>
+        <name>handleMouseCBRelease</name>
+        <qualifiedname>GizmoEventFilter::handleMouseCBRelease</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a611babe0c85315bb93ce54c4986ef80a">handleMouseCBRelease</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse center button release<linebreak/>
+The function just passes event to Editor&apos;s event handler.</para>
+<para>Handle mouse center button release <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if an event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="76" column="8" bodyfile="ec_gizmofilter.h" bodystart="76" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1ab77d285d24c9377cd64789d0dc68dd19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseWheel</definition>
+        <argsstring>(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>GizmoEventFilter::handleMouseWheel</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1ae8879b99e9cf470abb70e4320e38de8c">handleMouseWheel</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>wheel_d</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse scroll wheel<linebreak/>
+The function just passes event to Editor&apos;s event handler.</para>
+<para>Handle mouse scroll wheel <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wheel_d</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- scroll wheel steps </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="85" column="8" bodyfile="ec_gizmofilter.h" bodystart="85" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a7b0d766b594add7b068c9933fc0fe611" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::handleMouseDoubleClick</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int key_modif) override</argsstring>
+        <name>handleMouseDoubleClick</name>
+        <qualifiedname>GizmoEventFilter::handleMouseDoubleClick</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a320e9235759aacd382f71d66d8138b15">handleMouseDoubleClick</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handles mouse double-click<linebreak/>
+The function just passes event to Editor&apos;s event handler.</para>
+<para>Handle mouse double-click <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if an event successfully processed, <bold>false</bold> in other case   </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="94" column="8" bodyfile="ec_gizmofilter.h" bodystart="94" bodyend="99"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1abce2dfcc5c82b41bd4ab7bda0497fc92" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::handleViewportPaint</definition>
+        <argsstring>(IGenViewportWnd *wnd) override</argsstring>
+        <name>handleViewportPaint</name>
+        <qualifiedname>GizmoEventFilter::handleViewportPaint</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1a7f3ce10fef24468691cfb20b568f8f9a">handleViewportPaint</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render Gizmo.</para>
+<para>Viewport CTL window redraw <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">dc</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- viewport&apos;s device context   </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="103" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a615e4678313f5499f3842d834f6a6873" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::handleViewChange</definition>
+        <argsstring>(IGenViewportWnd *wnd) override</argsstring>
+        <name>handleViewChange</name>
+        <qualifiedname>GizmoEventFilter::handleViewChange</qualifiedname>
+        <reimplements refid="classIGenEventHandler_1af0e97cbbdf5fdeb07f09707ad80e8334">handleViewChange</reimplements>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Rerender Gizmo in accordance with its new view in viewport.</para>
+<para>Viewport view change notification <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message   </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="107" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a911ac09053fd292f0d2e71a43e0c2028" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::setGizmoStyle</definition>
+        <argsstring>(Style style)</argsstring>
+        <name>setGizmoStyle</name>
+        <qualifiedname>GizmoEventFilter::setGizmoStyle</qualifiedname>
+        <param>
+          <type><ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" kindref="member">Style</ref></type>
+          <declname>style</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="109" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a43dd2cd1183a4a5141f2fd9135bd41ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::setGizmoType</definition>
+        <argsstring>(IEditorCoreEngine::ModeType type)</argsstring>
+        <name>setGizmoType</name>
+        <qualifiedname>GizmoEventFilter::setGizmoType</qualifiedname>
+        <param>
+          <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="110" column="8" bodyfile="ec_gizmofilter.h" bodystart="110" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a590dc936484f6677c67d32958cb1fce9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::setGizmoClient</definition>
+        <argsstring>(IGizmoClient *client)</argsstring>
+        <name>setGizmoClient</name>
+        <qualifiedname>GizmoEventFilter::setGizmoClient</qualifiedname>
+        <param>
+          <type><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> *</type>
+          <declname>client</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="111" column="8" bodyfile="ec_gizmofilter.h" bodystart="111" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1adbc3fe3180213afddc8c3cb1e12d1918" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::zeroOverAndSelected</definition>
+        <argsstring>()</argsstring>
+        <name>zeroOverAndSelected</name>
+        <qualifiedname>GizmoEventFilter::zeroOverAndSelected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="112" column="8" bodyfile="ec_gizmofilter.h" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a6c60cb541237de194485e74156762703" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" kindref="member">Style</ref></type>
+        <definition>Style GizmoEventFilter::getGizmoStyle</definition>
+        <argsstring>() const</argsstring>
+        <name>getGizmoStyle</name>
+        <qualifiedname>GizmoEventFilter::getGizmoStyle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="114" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a3967b86ef07c8d01fe25dcce885c0259" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+        <definition>IEditorCoreEngine::ModeType GizmoEventFilter::getGizmoType</definition>
+        <argsstring>() const</argsstring>
+        <name>getGizmoType</name>
+        <qualifiedname>GizmoEventFilter::getGizmoType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="115" column="38" bodyfile="ec_gizmofilter.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1adffb194146f3ae74daa92a4a8a706d22" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> *</type>
+        <definition>IGizmoClient * GizmoEventFilter::getGizmoClient</definition>
+        <argsstring>() const</argsstring>
+        <name>getGizmoClient</name>
+        <qualifiedname>GizmoEventFilter::getGizmoClient</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="116" column="23" bodyfile="ec_gizmofilter.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a3403f91294ab8acfe6dd0b6473a22f74" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 GizmoEventFilter::getMoveDelta</definition>
+        <argsstring>() const</argsstring>
+        <name>getMoveDelta</name>
+        <qualifiedname>GizmoEventFilter::getMoveDelta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="117" column="17" bodyfile="ec_gizmofilter.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1aee2f83e146540c46899e5972b86960d5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::correctCursorInSurfMove</definition>
+        <argsstring>(const Point3 &amp;delta)</argsstring>
+        <name>correctCursorInSurfMove</name>
+        <qualifiedname>GizmoEventFilter::correctCursorInSurfMove</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>delta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="119" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a3397e594c2347e54253ba7261981eb6c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::isStarted</definition>
+        <argsstring>() const</argsstring>
+        <name>isStarted</name>
+        <qualifiedname>GizmoEventFilter::isStarted</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="120" column="8" bodyfile="ec_gizmofilter.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classGizmoEventFilter_1aad35efcface430103dc6663271bc1fb4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::startGizmo</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y)</argsstring>
+        <name>startGizmo</name>
+        <qualifiedname>GizmoEventFilter::startGizmo</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="160" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1abb35b1e02ce46fb35a897adcad976600" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::drawGizmo</definition>
+        <argsstring>(IGenViewportWnd *w)</argsstring>
+        <name>drawGizmo</name>
+        <qualifiedname>GizmoEventFilter::drawGizmo</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>w</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="162" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a65c226b17b31173595bf747d46f399f6" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::recalcViewportGizmo</definition>
+        <argsstring>()</argsstring>
+        <name>recalcViewportGizmo</name>
+        <qualifiedname>GizmoEventFilter::recalcViewportGizmo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="163" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a62e70ef1f643fe5d4b789fa077752078" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GizmoEventFilter::checkGizmo</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y)</argsstring>
+        <name>checkGizmo</name>
+        <qualifiedname>GizmoEventFilter::checkGizmo</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="165" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classGizmoEventFilter_1ad63467a02e272db999a0f2e6b51aeb58" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::repaint</definition>
+        <argsstring>()</argsstring>
+        <name>repaint</name>
+        <qualifiedname>GizmoEventFilter::repaint</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="168" column="15" bodyfile="ec_gizmofilter.h" bodystart="168" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="classGizmoEventFilter_1a8e9eaa9ffec689bc0be3b16e5002b177" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void GizmoEventFilter::surfaceMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, int vp_i, const Point3 &amp;pos, Point3 &amp;move_delta)</argsstring>
+        <name>surfaceMove</name>
+        <qualifiedname>GizmoEventFilter::surfaceMove</qualifiedname>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vp_i</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>move_delta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="174" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Gizmo implementation. The class renders Gizmo, handles Gizmo events, calls proper functions of linked Gizmo client (see <ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref>). </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>GizmoEventFilter</label>
+        <link refid="classGizmoEventFilter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="5">
+        <label>GeneralEditorData</label>
+        <link refid="classGeneralEditorData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>curEH</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>tbManager</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>GizmoEventFilter</label>
+        <link refid="classGizmoEventFilter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>gizmo</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>ged</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>grid</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>GizmoEventFilter::GizmoParams</label>
+        <link refid="structGizmoEventFilter_1_1GizmoParams"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>GridObject</label>
+        <link refid="classGridObject"/>
+      </node>
+      <node id="2">
+        <label>IGenEventHandler</label>
+        <link refid="classIGenEventHandler"/>
+      </node>
+      <node id="4">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+      <node id="6">
+        <label>ToolBarManager</label>
+        <link refid="classToolBarManager"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_gizmofilter.h" line="18" column="1" bodyfile="ec_gizmofilter.h" bodystart="19" bodyend="175"/>
+    <listofallmembers>
+      <member refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903aa80ef59a2b213e8d3f2e0c61ffb77ab6" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>AXIS_X</name></member>
+      <member refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a98d7ec44f8c442b5f08023eaa583ce42" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>AXIS_Y</name></member>
+      <member refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903a81cd7e2ca8cca72516fda79e5a8035f7" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>AXIS_Z</name></member>
+      <member refid="classGizmoEventFilter_1a62e70ef1f643fe5d4b789fa077752078" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>checkGizmo</name></member>
+      <member refid="classGizmoEventFilter_1aee2f83e146540c46899e5972b86960d5" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>correctCursorInSurfMove</name></member>
+      <member refid="classGizmoEventFilter_1a2c463917924f3cbbb31a5e91b38d4367" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>deltaX</name></member>
+      <member refid="classGizmoEventFilter_1a3ff01921f7511fd5d769e6ede36fee63" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>deltaY</name></member>
+      <member refid="classGizmoEventFilter_1abb35b1e02ce46fb35a897adcad976600" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>drawGizmo</name></member>
+      <member refid="classGizmoEventFilter_1a9cbbb0c2be6573a826ef22faf0ef7688" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>endGizmo</name></member>
+      <member refid="classGizmoEventFilter_1a3f80feb11e3b2908084b4ad52aac8891" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>ged</name></member>
+      <member refid="classGizmoEventFilter_1adffb194146f3ae74daa92a4a8a706d22" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>getGizmoClient</name></member>
+      <member refid="classGizmoEventFilter_1a6c60cb541237de194485e74156762703" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>getGizmoStyle</name></member>
+      <member refid="classGizmoEventFilter_1a3967b86ef07c8d01fe25dcce885c0259" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>getGizmoType</name></member>
+      <member refid="classGizmoEventFilter_1a3403f91294ab8acfe6dd0b6473a22f74" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>getMoveDelta</name></member>
+      <member refid="classGizmoEventFilter_1a96e67cfab6f73e4f4846d454e6d56399" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>gizmo</name></member>
+      <member refid="classGizmoEventFilter_1a6f7ec6065655e244ab27c6bef8817891" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>gizmoDelta</name></member>
+      <member refid="classGizmoEventFilter_1abdb44810d813b10a94e17dd66235084f" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>GizmoEventFilter</name></member>
+      <member refid="classGizmoEventFilter_1aed0297b81971376cfa8cb8783a67f713" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>grid</name></member>
+      <member refid="classGizmoEventFilter_1a0e0a1fdd9d64f63484ef9ea1f9b9f3e9" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseCBPress</name></member>
+      <member refid="classGizmoEventFilter_1a8f2096de452928c0e7bc7d4330a371e3" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseCBRelease</name></member>
+      <member refid="classGizmoEventFilter_1a7b0d766b594add7b068c9933fc0fe611" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseDoubleClick</name></member>
+      <member refid="classGizmoEventFilter_1a0cb830d610e098826c390b8872e00e3c" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseLBPress</name></member>
+      <member refid="classGizmoEventFilter_1a471078422b09419371d9eca22b51a494" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classGizmoEventFilter_1a559fedbc2351f47277cab52019f645fe" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseMove</name></member>
+      <member refid="classGizmoEventFilter_1a81c41a36a3c16b48af1ba6ab756ef160" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseRBPress</name></member>
+      <member refid="classGizmoEventFilter_1a8d680f9ca5634e82520d547ccda32460" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseRBRelease</name></member>
+      <member refid="classGizmoEventFilter_1ab77d285d24c9377cd64789d0dc68dd19" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleMouseWheel</name></member>
+      <member refid="classGizmoEventFilter_1a615e4678313f5499f3842d834f6a6873" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleViewChange</name></member>
+      <member refid="classGizmoEventFilter_1abce2dfcc5c82b41bd4ab7bda0497fc92" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>handleViewportPaint</name></member>
+      <member refid="classGizmoEventFilter_1a3397e594c2347e54253ba7261981eb6c" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>isStarted</name></member>
+      <member refid="classGizmoEventFilter_1aee42fa77b6035a96946c869a22b09f46" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>mouseCurrentPos</name></member>
+      <member refid="classGizmoEventFilter_1ac31fcb42fdd8d1754988a6a7a9a641fd" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>mousePos</name></member>
+      <member refid="classGizmoEventFilter_1a5413046e16619fc4db9ae06ef3901f85" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>movedDelta</name></member>
+      <member refid="classGizmoEventFilter_1ae6fab05a71669bdb7592881918ffcecd" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>moveStarted</name></member>
+      <member refid="classGizmoEventFilter_1acd986b424011b7c5624da2e38d36e945" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>planeNormal</name></member>
+      <member refid="classGizmoEventFilter_1a65c226b17b31173595bf747d46f399f6" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>recalcViewportGizmo</name></member>
+      <member refid="classGizmoEventFilter_1accf349f4f10c78a827cd982ccf9a55e5" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>renderer</name></member>
+      <member refid="classGizmoEventFilter_1ad63467a02e272db999a0f2e6b51aeb58" prot="private" virt="non-virtual"><scope>GizmoEventFilter</scope><name>repaint</name></member>
+      <member refid="classGizmoEventFilter_1a66a8ef66ae4474a9f291ad97df51c9d7" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>rotAngle</name></member>
+      <member refid="classGizmoEventFilter_1aa5cd2677f5ae4ab9b9604a71b9d7c6b0" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>rotateDir</name></member>
+      <member refid="classGizmoEventFilter_1a2fb5bdb9c05fcb438c66432964137e55" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>s_vp</name></member>
+      <member refid="classGizmoEventFilter_1ae991e5dbe2cceeb40b8917f1f986b3fe" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>scale</name></member>
+      <member refid="classGizmoEventFilter_1a51253ff387eac4c7e3d3de80f5aa7903" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>SelectedAxes</name></member>
+      <member refid="classGizmoEventFilter_1a590dc936484f6677c67d32958cb1fce9" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>setGizmoClient</name></member>
+      <member refid="classGizmoEventFilter_1a911ac09053fd292f0d2e71a43e0c2028" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>setGizmoStyle</name></member>
+      <member refid="classGizmoEventFilter_1a43dd2cd1183a4a5141f2fd9135bd41ee" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>setGizmoType</name></member>
+      <member refid="classGizmoEventFilter_1aad35efcface430103dc6663271bc1fb4" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>startGizmo</name></member>
+      <member refid="classGizmoEventFilter_1ae66dbc91cdc8d131edeff0739284182a" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>startPos</name></member>
+      <member refid="classGizmoEventFilter_1a06c76758f06f9a0b5014a548a9aaf044" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>startPos2d</name></member>
+      <member refid="classGizmoEventFilter_1ac74b8f7989ef3665d1da7a34b537d46a" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>startRotAngle</name></member>
+      <member refid="classGizmoEventFilter_1a54351f4ed3042769034d02464e466186" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>Style</name></member>
+      <member refid="classGizmoEventFilter_1a8e9eaa9ffec689bc0be3b16e5002b177" prot="private" virt="non-virtual"><scope>GizmoEventFilter</scope><name>surfaceMove</name></member>
+      <member refid="classGizmoEventFilter_1a38b10c82e277476e96faf0a3c6334d6f" prot="protected" virt="non-virtual"><scope>GizmoEventFilter</scope><name>vp</name></member>
+      <member refid="classGizmoEventFilter_1adbc3fe3180213afddc8c3cb1e12d1918" prot="public" virt="non-virtual"><scope>GizmoEventFilter</scope><name>zeroOverAndSelected</name></member>
+      <member refid="classIGenEventHandler_1adb70e764e4b90c0937dd7dc47261606b" prot="public" virt="virtual"><scope>GizmoEventFilter</scope><name>~IGenEventHandler</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

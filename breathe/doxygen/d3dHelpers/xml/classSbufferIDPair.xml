@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSbufferIDPair" kind="class" language="C++" prot="public">
+    <compoundname>SbufferIDPair</compoundname>
+    <derivedcompoundref refid="classSbufferIDHolder" prot="public" virt="non-virtual">SbufferIDHolder</derivedcompoundref>
+    <derivedcompoundref refid="classSbufferIDHolderWithVar" prot="public" virt="non-virtual">SbufferIDHolderWithVar</derivedcompoundref>
+    <includes refid="dag__sbufferIDHolder_8h" local="no">dag_sbufferIDHolder.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" prot="protected" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* SbufferIDPair::buf</definition>
+        <argsstring></argsstring>
+        <name>buf</name>
+        <qualifiedname>SbufferIDPair::buf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="12" column="11" bodyfile="dag_sbufferIDHolder.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" prot="protected" static="no" mutable="no">
+        <type>D3DRESID</type>
+        <definition>D3DRESID SbufferIDPair::bufId</definition>
+        <argsstring></argsstring>
+        <name>bufId</name>
+        <qualifiedname>SbufferIDPair::bufId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="13" column="12" bodyfile="dag_sbufferIDHolder.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSbufferIDPair_1af2b2297b2893f48f7e57d41abf975154" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SbufferIDPair::SbufferIDPair</definition>
+        <argsstring>(Sbuffer *t=NULL, D3DRESID id=BAD_D3DRESID)</argsstring>
+        <name>SbufferIDPair</name>
+        <qualifiedname>SbufferIDPair::SbufferIDPair</qualifiedname>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>t</declname>
+          <defval>NULL</defval>
+        </param>
+        <param>
+          <type>D3DRESID</type>
+          <declname>id</declname>
+          <defval>BAD_D3DRESID</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="16" column="3" bodyfile="dag_sbufferIDHolder.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDPair_1a51c95bf83d62c23d05071ec918c6d7d3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>D3DRESID</type>
+        <definition>D3DRESID SbufferIDPair::getId</definition>
+        <argsstring>() const</argsstring>
+        <name>getId</name>
+        <qualifiedname>SbufferIDPair::getId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="18" column="12" bodyfile="dag_sbufferIDHolder.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classSbufferIDPair_1a585441494f9b458cec8b3d378023f535" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer * SbufferIDPair::getBuf</definition>
+        <argsstring>() const</argsstring>
+        <name>getBuf</name>
+        <qualifiedname>SbufferIDPair::getBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_sbufferIDHolder.h" line="19" column="11" bodyfile="dag_sbufferIDHolder.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>SbufferIDHolder</label>
+        <link refid="classSbufferIDHolder"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>SbufferIDHolderWithVar</label>
+        <link refid="classSbufferIDHolderWithVar"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>SbufferIDPair</label>
+        <link refid="classSbufferIDPair"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_sbufferIDHolder.h" line="9" column="1" bodyfile="dag_sbufferIDHolder.h" bodystart="10" bodyend="20"/>
+    <listofallmembers>
+      <member refid="classSbufferIDPair_1a56a1f7f581be238699889ccc62e63195" prot="protected" virt="non-virtual"><scope>SbufferIDPair</scope><name>buf</name></member>
+      <member refid="classSbufferIDPair_1ae2c370aaaf81ac520551bb1ed16e4f65" prot="protected" virt="non-virtual"><scope>SbufferIDPair</scope><name>bufId</name></member>
+      <member refid="classSbufferIDPair_1a585441494f9b458cec8b3d378023f535" prot="public" virt="non-virtual"><scope>SbufferIDPair</scope><name>getBuf</name></member>
+      <member refid="classSbufferIDPair_1a51c95bf83d62c23d05071ec918c6d7d3" prot="public" virt="non-virtual"><scope>SbufferIDPair</scope><name>getId</name></member>
+      <member refid="classSbufferIDPair_1af2b2297b2893f48f7e57d41abf975154" prot="public" virt="non-virtual"><scope>SbufferIDPair</scope><name>SbufferIDPair</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

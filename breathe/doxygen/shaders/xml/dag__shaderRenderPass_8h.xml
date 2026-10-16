@@ -1,0 +1,269 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shaderRenderPass_8h" kind="file" language="C++">
+    <compoundname>dag_shaderRenderPass.h</compoundname>
+    <includes local="no">drv/3d/dag_renderPass.h</includes>
+    <includes local="no">drv/shadersMetaData/renderPassLowering.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_shaderRenderPass.h</label>
+        <link refid="dag__shaderRenderPass_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_renderPass.h</label>
+      </node>
+      <node id="3">
+        <label>drv/shadersMetaData/renderPassLowering.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_span.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structShaderRenderPass_1_1SubpassInfo" prot="public">ShaderRenderPass::SubpassInfo</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1ResolvePair" prot="public">ShaderRenderPass::ResolvePair</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1TargetFormatInfo" prot="public">ShaderRenderPass::TargetFormatInfo</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Targets" prot="public">ShaderRenderPass::Targets</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1Targets_1_1Entry" prot="private">ShaderRenderPass::Targets::Entry</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Actions" prot="public">ShaderRenderPass::Actions</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1Actions_1_1Entry" prot="private">ShaderRenderPass::Actions::Entry</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Pass" prot="public">ShaderRenderPass::Pass</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Scope" prot="public">ShaderRenderPass::Scope</innerclass>
+    <innerclass refid="classShaderRenderPass_1_1Marker" prot="public">ShaderRenderPass::Marker</innerclass>
+    <innerclass refid="structShaderRenderPass_1_1ActivePass" prot="public">ShaderRenderPass::ActivePass</innerclass>
+    <innernamespace refid="namespaceShaderRenderPass">ShaderRenderPass</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_renderPass.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/shadersMetaData/renderPassLowering.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="namespaceShaderRenderPass" refkind="compound"><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderRenderPass" kindref="compound">ShaderRenderPass</ref></highlight></codeline>
+<codeline lineno="18"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20" refid="namespaceShaderRenderPass_1a0b660c42cb00e90691fa332d8a6b5943" refkind="member"><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a0b660c42cb00e90691fa332d8a6b5943" kindref="member">MAX_TARGETS</ref><sp/>=<sp/>RENDER_PASS_MAX_TARGETS;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>Invalid<sp/>=<sp/>~0u</highlight></codeline>
+<codeline lineno="27"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/>Invalid<sp/>=<sp/>~0u</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="namespaceShaderRenderPass_1a5a9c93a0788bec1fca20104f45f6ae20" refkind="member"><highlight class="normal"><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/><ref refid="namespaceShaderRenderPass_1a5a9c93a0788bec1fca20104f45f6ae20" kindref="member">find_id</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="namespaceShaderRenderPass_1a244725e8facbfaf520136bebfa1ad95e" refkind="member"><highlight class="normal"><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref><sp/><ref refid="namespaceShaderRenderPass_1a244725e8facbfaf520136bebfa1ad95e" kindref="member">find_framebuffer_id</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9a" kindref="member">DepthUse</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>Write,</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9aa7a1a5f3e79fdc91edf2f5ead9d66abb4" kindref="member">Read</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9aa4c1d10948179163c80a7b8d23542074b" kindref="member">Sampled</ref><sp/></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="structShaderRenderPass_1_1SubpassInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderRenderPass_1_1SubpassInfo" kindref="compound">SubpassInfo</ref></highlight></codeline>
+<codeline lineno="57"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;int&gt;<sp/>colors;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>depth<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a5c31573a371867d9ca58991daf2d7d9a" kindref="member">DepthUse</ref><sp/>depthUse<sp/>=<sp/>DepthUse::Write;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;int&gt;<sp/>reads;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>vrs<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="structShaderRenderPass_1_1ResolvePair" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderRenderPass_1_1ResolvePair" kindref="compound">ResolvePair</ref></highlight></codeline>
+<codeline lineno="66"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>src,<sp/>dst;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_target_count(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_target_name(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_target_slot(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_target_multisampled(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i);</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">dag::ConstSpan&lt;ResolvePair&gt;<sp/>get_resolves(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>get_subpass_count(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><ref refid="structShaderRenderPass_1_1SubpassInfo" kindref="compound">SubpassInfo</ref><sp/>get_subpass_info(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>subpass);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="structShaderRenderPass_1_1TargetFormatInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderRenderPass_1_1TargetFormatInfo" kindref="compound">TargetFormatInfo</ref></highlight></codeline>
+<codeline lineno="78"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>uint32_t<sp/>format<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>uint8_t<sp/>samples<sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal">dag::ConstSpan&lt;FramebufferId&gt;<sp/>get_pass_framebuffers(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref><sp/>get_only_framebuffer(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*get_framebuffer_name(<ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref><sp/>fb);</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><ref refid="structShaderRenderPass_1_1TargetFormatInfo" kindref="compound">TargetFormatInfo</ref><sp/>get_framebuffer_target_format(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref><sp/>fb,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7" kindref="member">ExecutionConstraint</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7aa1a7ccec3ad83bf70f2f1818a034905f" kindref="member">NativeOnly</ref>,<sp/></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7a3221711269a28faf85b3cdf0793093c9" kindref="member">SplitOnly</ref>,<sp/><sp/></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7aed36a1ef76a59ee3f15180e0441188ad" kindref="member">Any</ref>,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="93"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="namespaceShaderRenderPass_1a7027e35e92be339e2c95d775b01de6b9" refkind="member"><highlight class="normal"><ref refid="namespaceShaderRenderPass_1a8c8cbaf649f193aecad48a463fcbcca7" kindref="member">ExecutionConstraint</ref><sp/><ref refid="namespaceShaderRenderPass_1a7027e35e92be339e2c95d775b01de6b9" kindref="member">get_execution_constraint</ref>(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="namespaceShaderRenderPass_1a37a0c072094bbfa7273b4afc9e57b560" refkind="member"><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a37a0c072094bbfa7273b4afc9e57b560" kindref="member">device_breaks_subpass_reads</ref>();</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110" refid="classShaderRenderPass_1_1Targets" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref></highlight></codeline>
+<codeline lineno="111"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;tex(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target,<sp/>BaseTexture<sp/>*t,<sp/>uint8_t<sp/>mip<sp/>=<sp/>0,<sp/>uint16_t<sp/>layer<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;clear(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target,<sp/>ResourceClearValue<sp/>v);</highlight></codeline>
+<codeline lineno="116" refid="classShaderRenderPass_1_1Targets_1a15d293c8d53ff42ec0705190580ae1ac" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;<ref refid="classShaderRenderPass_1_1Targets_1a15d293c8d53ff42ec0705190580ae1ac" kindref="member">tex</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slot,<sp/>BaseTexture<sp/>*t,<sp/>uint8_t<sp/>mip<sp/>=<sp/>0,<sp/>uint16_t<sp/>layer<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;clear(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slot,<sp/>ResourceClearValue<sp/>v);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Entry</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>RenderPassTarget<sp/>target{};</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slot<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasClear<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/>Entry<sp/>*entryFor(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/>Entry<sp/>*entryFor(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>slot);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/>Entry<sp/>entries[<ref refid="namespaceShaderRenderPass_1a0b660c42cb00e90691fa332d8a6b5943" kindref="member">MAX_TARGETS</ref>];</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" kindref="member">RpLoad</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="137"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0daf19dbf2edb3a0bd74b0524d960ff21eb" kindref="member">Load</ref>,<sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0dadc30bc0c7914db5918da4263fce93ad2" kindref="member">Clear</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0da60a3629ef6a8f991f45d7a85f2458544" kindref="member">DontCare</ref><sp/></highlight></codeline>
+<codeline lineno="141"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144" refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" refkind="member"><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" kindref="member">RpStore</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526bafdb0c388de01d545017cdf9ccf00eb72" kindref="member">Store</ref>,<sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0da60a3629ef6a8f991f45d7a85f2458544" kindref="member">DontCare</ref><sp/></highlight></codeline>
+<codeline lineno="148"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="162" refid="classShaderRenderPass_1_1Actions" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref></highlight></codeline>
+<codeline lineno="163"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref><sp/>&amp;load(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target,<sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" kindref="member">RpLoad</ref><sp/>a);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref><sp/>&amp;clear(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>load(target,<sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0dadc30bc0c7914db5918da4263fce93ad2" kindref="member">RpLoad::Clear</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref><sp/>&amp;store(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target,<sp/><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" kindref="member">RpStore</ref><sp/>a);</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>;</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Entry</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0d" kindref="member">RpLoad</ref><sp/>load<sp/>=<sp/><ref refid="namespaceShaderRenderPass_1abe45820819b257c12a18087e14ceac0daf19dbf2edb3a0bd74b0524d960ff21eb" kindref="member">RpLoad::Load</ref>;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526b" kindref="member">RpStore</ref><sp/>store<sp/>=<sp/><ref refid="namespaceShaderRenderPass_1a41a310fa73265fe5d0d9ea2386b3526bafdb0c388de01d545017cdf9ccf00eb72" kindref="member">RpStore::Store</ref>;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hasLoad<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>hasStore<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/>Entry<sp/>*entryFor(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target);</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/>Entry<sp/>entries[<ref refid="namespaceShaderRenderPass_1a0b660c42cb00e90691fa332d8a6b5943" kindref="member">MAX_TARGETS</ref>];</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>count<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="182"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="192" refid="classShaderRenderPass_1_1Pass" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref></highlight></codeline>
+<codeline lineno="193"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="195" refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7ea" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7ea" kindref="member">Execution</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7eaa06b9281e396db002010bde1de57262eb" kindref="member">Auto</ref>,<sp/><sp/><sp/><sp/><sp/><sp/></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7eaa8a8f99dcc0b75b5fc00ad2a68563e9ef" kindref="member">ForceSplit</ref><sp/></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref><sp/>fb,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*debug_name<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref><sp/>*plan<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7ea" kindref="member">Execution</ref><sp/>execution<sp/>=<sp/><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7eaa06b9281e396db002010bde1de57262eb" kindref="member">Execution::Auto</ref>);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>(<ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;&amp;o)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;operator=(<ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;&amp;o)<sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">~Pass</ref>();</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;operator=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>valid()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>impl<sp/>!=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>targetSlot(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>runsSplit()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>vrsEnabled()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Impl;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="218" refid="classShaderRenderPass_1_1Pass_1abd1020d696bc85a91aea887bd0250713" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass_1abd1020d696bc85a91aea887bd0250713" kindref="member">begin</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;t,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderPassArea<sp/>*area);</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>resolveTargets(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Impl<sp/>&amp;p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;t,<sp/>RenderPassTarget<sp/>*out,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>*clear_set,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>**bad_name,</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*bad_slot);</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>Impl<sp/>*impl<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="223"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228" refid="namespaceShaderRenderPass_1acaf7d4214bb4badf5930384a748815a5" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1acaf7d4214bb4badf5930384a748815a5" kindref="member">begin</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;t,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderPassArea<sp/>*area<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="230" refid="namespaceShaderRenderPass_1ab60c99e85dd466125df6cc6da2beca9a" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1ab60c99e85dd466125df6cc6da2beca9a" kindref="member">next_subpass</ref>();</highlight></codeline>
+<codeline lineno="232" refid="namespaceShaderRenderPass_1a7597924c1001699b3ee988cb98dd995d" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderRenderPass_1a7597924c1001699b3ee988cb98dd995d" kindref="member">end</ref>();</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235" refid="classShaderRenderPass_1_1Scope" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref></highlight></codeline>
+<codeline lineno="236"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref><sp/>&amp;p,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref><sp/>&amp;t,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>RenderPassArea<sp/>*area<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">~Scope</ref>();</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;operator=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>nextSubpass();</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>subpassCount<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255" refid="classShaderRenderPass_1_1Marker" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref></highlight></codeline>
+<codeline lineno="256"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref>(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>subpass<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">~Marker</ref>();</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref>(<ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref>,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>=<sp/>0)<sp/>{}</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref><sp/>&amp;operator=(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"></highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>DAGOR_DBGLEVEL<sp/>&gt;<sp/>0</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/>uint32_t<sp/>prevNameHash<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/>uint32_t<sp/>prevShapeHash<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>prevSubpass<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*prevName<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="274"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="277" refid="structShaderRenderPass_1_1ActivePass" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderRenderPass_1_1ActivePass" kindref="compound">ActivePass</ref></highlight></codeline>
+<codeline lineno="278"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref><sp/>passNameHash<sp/>=<sp/>Id::Invalid;</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/>uint32_t<sp/>shapeHash<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>subpass<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*passName<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="283"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><ref refid="structShaderRenderPass_1_1ActivePass" kindref="compound">ActivePass</ref><sp/>get_active_pass();</highlight></codeline>
+<codeline lineno="285"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderRenderPass</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_shaderRenderPass.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorMat2" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorMat2</compoundname>
+    <basecompoundref refid="classIDagorMat" prot="public" virt="non-virtual">IDagorMat</basecompoundref>
+    <derivedcompoundref refid="classDagorMat2" prot="public" virt="non-virtual">DagorMat2</derivedcompoundref>
+    <includes refid="mater_8h" local="no">mater.h</includes>
+    <innerclass refid="structIDagorMat2_1_1EnumParamCB" prot="public">IDagorMat2::EnumParamCB</innerclass>
+    <innerclass refid="structIDagorMat2_1_1EnumTexCB" prot="public">IDagorMat2::EnumTexCB</innerclass>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorMat2_1af7a52d90d5c1cb3869d9c7489198c398" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat2::enumerate_textures</definition>
+        <argsstring>(EnumTexCB &amp;cb)=0</argsstring>
+        <name>enumerate_textures</name>
+        <qualifiedname>IDagorMat2::enumerate_textures</qualifiedname>
+        <reimplementedby refid="classDagorMat2_1a032cb6be18227c8d43fca7333016111e">enumerate_textures</reimplementedby>
+        <param>
+          <type><ref refid="structIDagorMat2_1_1EnumTexCB" kindref="compound">EnumTexCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="49" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorMat2_1a7c881d9155ba3c87f01c8f7d611b185e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorMat2::enumerate_parameters</definition>
+        <argsstring>(EnumParamCB &amp;cb)=0</argsstring>
+        <name>enumerate_parameters</name>
+        <qualifiedname>IDagorMat2::enumerate_parameters</qualifiedname>
+        <reimplementedby refid="classDagorMat2_1ab70610b2e117274034873a090f72ed0b">enumerate_parameters</reimplementedby>
+        <param>
+          <type><ref refid="structIDagorMat2_1_1EnumParamCB" kindref="compound">EnumParamCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="56" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="1">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="1">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater.h" line="41" column="1" bodyfile="mater.h" bodystart="42" bodyend="57"/>
+    <listofallmembers>
+      <member refid="classIDagorMat2_1a7c881d9155ba3c87f01c8f7d611b185e" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>enumerate_parameters</name></member>
+      <member refid="classIDagorMat2_1af7a52d90d5c1cb3869d9c7489198c398" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>enumerate_textures</name></member>
+      <member refid="classIDagorMat_1a8d93be97a06dcd377a24e9fa47055d13" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_2sided</name></member>
+      <member refid="classIDagorMat_1a87ba4f21930b96625725ef197be7f358" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_amb</name></member>
+      <member refid="classIDagorMat_1a41d2a95db7399aa0a504416e5a300c65" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_classname</name></member>
+      <member refid="classIDagorMat_1a619315422c7471fc3865590e4f288d48" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_diff</name></member>
+      <member refid="classIDagorMat_1a1b3ec43de86ca25d121b61b2ec38d7e4" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_emis</name></member>
+      <member refid="classIDagorMat_1a527d73c3c814c58c7edb159889577f1d" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_param</name></member>
+      <member refid="classIDagorMat_1a915c33b5c5b998e4cb05bebb3770543f" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_power</name></member>
+      <member refid="classIDagorMat_1ac93f0f9f28724d6ab4ddc83319888a88" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_script</name></member>
+      <member refid="classIDagorMat_1a7bd1940bef3e2436cf26e447e1cbf693" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_spec</name></member>
+      <member refid="classIDagorMat_1a26c96873fd833ac5cee96482b6f99383" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>get_texname</name></member>
+      <member refid="classIDagorMat_1ab9a123a1bfa48a9c034865411fddf1e2" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_2sided</name></member>
+      <member refid="classIDagorMat_1a3d3d99ddfd74b9097aee8182d703aab5" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_amb</name></member>
+      <member refid="classIDagorMat_1a5ecda33097873e6feb6e22326c1fd482" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_classname</name></member>
+      <member refid="classIDagorMat_1acd05e9a7c199e6ca8e12f8479ae733c4" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_diff</name></member>
+      <member refid="classIDagorMat_1aa80fad171c33a42412edb879d64b5528" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_emis</name></member>
+      <member refid="classIDagorMat_1a4b4604f7c5f2687a2b949f205d221ef8" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_param</name></member>
+      <member refid="classIDagorMat_1ac2fc4570c8981f75760921925db1b6e1" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_power</name></member>
+      <member refid="classIDagorMat_1ab727afb93e454029978bcec8bbb6f893" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_script</name></member>
+      <member refid="classIDagorMat_1a12f0adb00b6c0862ab4d004f196c54bd" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_spec</name></member>
+      <member refid="classIDagorMat_1a7295ecd78b9f54d0991dc3b689edb989" prot="public" virt="pure-virtual"><scope>IDagorMat2</scope><name>set_texname</name></member>
+      <member refid="classIDagorMat_1aa9e1f9b3ca95a6715f15fe27fbfa732a" prot="public" virt="non-virtual"><scope>IDagorMat2</scope><name>Sides</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

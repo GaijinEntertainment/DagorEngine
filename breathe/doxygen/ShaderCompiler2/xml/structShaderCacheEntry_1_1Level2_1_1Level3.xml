@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCacheEntry_1_1Level2_1_1Level3" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCacheEntry::Level2::Level3</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCacheEntry_1_1Level2_1_1Level3_1aa56aa6f95ebe81ffb5c421d3204b4f50" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString ShaderCacheEntry::Level2::Level3::entry</definition>
+        <argsstring></argsstring>
+        <name>entry</name>
+        <qualifiedname>ShaderCacheEntry::Level2::Level3::entry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="38" column="20" bodyfile="shaderBytecodeCache.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCacheEntry_1_1Level2_1_1Level3_1a29f42f86b6da218178e00b9665f84f1a" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString ShaderCacheEntry::Level2::Level3::profile</definition>
+        <argsstring></argsstring>
+        <name>profile</name>
+        <qualifiedname>ShaderCacheEntry::Level2::Level3::profile</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="38" column="26" bodyfile="shaderBytecodeCache.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCacheEntry_1_1Level2_1_1Level3_1ad64657643b23af50318376f80a4e4550" prot="public" static="no" mutable="no">
+        <type><ref refid="shaderBytecodeCache_8h_1a6718db94551d267a6848c7a6ecaa9697" kindref="member">ShaderCacheIndex</ref></type>
+        <definition>ShaderCacheIndex ShaderCacheEntry::Level2::Level3::codeIdx</definition>
+        <argsstring></argsstring>
+        <name>codeIdx</name>
+        <qualifiedname>ShaderCacheEntry::Level2::Level3::codeIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="39" column="24" bodyfile="shaderBytecodeCache.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderBytecodeCache.h" line="36" column="5" bodyfile="shaderBytecodeCache.h" bodystart="37" bodyend="40"/>
+    <listofallmembers>
+      <member refid="structShaderCacheEntry_1_1Level2_1_1Level3_1ad64657643b23af50318376f80a4e4550" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2::Level3</scope><name>codeIdx</name></member>
+      <member refid="structShaderCacheEntry_1_1Level2_1_1Level3_1aa56aa6f95ebe81ffb5c421d3204b4f50" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2::Level3</scope><name>entry</name></member>
+      <member refid="structShaderCacheEntry_1_1Level2_1_1Level3_1a29f42f86b6da218178e00b9665f84f1a" prot="public" virt="non-virtual"><scope>ShaderCacheEntry::Level2::Level3</scope><name>profile</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

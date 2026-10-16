@@ -1,0 +1,493 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structOutliner_1_1OutlinerWindow_1_1Icons" kind="struct" language="C++" prot="private">
+    <compoundname>Outliner::OutlinerWindow::Icons</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a45608a13f384a195afc46d168c458697" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::settings</definition>
+        <argsstring></argsstring>
+        <name>settings</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::settings</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="81" column="23" bodyfile="ec_outliner.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a2dae197f3662770040229cbdb035a389" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::settingsOpen</definition>
+        <argsstring></argsstring>
+        <name>settingsOpen</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::settingsOpen</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="82" column="23" bodyfile="ec_outliner.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a68cb8e5993e30c4fa8d52f4769640d89" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::search</definition>
+        <argsstring></argsstring>
+        <name>search</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::search</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="83" column="23" bodyfile="ec_outliner.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1afa589400c5ee55e8771c0d884b29ef16" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::typeEntity</definition>
+        <argsstring></argsstring>
+        <name>typeEntity</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::typeEntity</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="84" column="23" bodyfile="ec_outliner.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1ab110c2dbf7eee89c32a0a9ef26bec5b9" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::typeSpline</definition>
+        <argsstring></argsstring>
+        <name>typeSpline</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::typeSpline</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="85" column="23" bodyfile="ec_outliner.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a8cc146f8c81c91d7eafdb9c7c4627ee7" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::typePolygon</definition>
+        <argsstring></argsstring>
+        <name>typePolygon</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::typePolygon</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="86" column="23" bodyfile="ec_outliner.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1ac346564bbf1a9011bf02cd652c5941bb" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::layerDefault</definition>
+        <argsstring></argsstring>
+        <name>layerDefault</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::layerDefault</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="87" column="23" bodyfile="ec_outliner.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1af444021d0a8773dc1e16899c89dbf14e" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::layerActive</definition>
+        <argsstring></argsstring>
+        <name>layerActive</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::layerActive</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="88" column="23" bodyfile="ec_outliner.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1abcd82a09b1fb9143ff8de0baeb36d973" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::layerActiveLocked</definition>
+        <argsstring></argsstring>
+        <name>layerActiveLocked</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::layerActiveLocked</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="89" column="23" bodyfile="ec_outliner.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1af3a8b6b86a6bd02e80ca9bb1958cf902" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::layerLocked</definition>
+        <argsstring></argsstring>
+        <name>layerLocked</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::layerLocked</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="90" column="23" bodyfile="ec_outliner.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a4b4aef94b71387d3a626882ff592c041" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::layerAdd</definition>
+        <argsstring></argsstring>
+        <name>layerAdd</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::layerAdd</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="91" column="23" bodyfile="ec_outliner.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1aafaebb51089c27a6d697e636b1013100" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::layerCreate</definition>
+        <argsstring></argsstring>
+        <name>layerCreate</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::layerCreate</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="92" column="23" bodyfile="ec_outliner.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a7919146c11cc79f86c4c12b3c3e0e51f" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::selectAll</definition>
+        <argsstring></argsstring>
+        <name>selectAll</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::selectAll</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="93" column="23" bodyfile="ec_outliner.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1aed21974ddbf66bc9cdeab6753522eb2c" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::selectPartial</definition>
+        <argsstring></argsstring>
+        <name>selectPartial</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::selectPartial</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="94" column="23" bodyfile="ec_outliner.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1aedca539ebeb21f91e7abd8babed76259" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::selectNone</definition>
+        <argsstring></argsstring>
+        <name>selectNone</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::selectNone</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="95" column="23" bodyfile="ec_outliner.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a299d7635fe2e8a2a2fc8faba2717055c" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::visibilityVisible</definition>
+        <argsstring></argsstring>
+        <name>visibilityVisible</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::visibilityVisible</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="96" column="23" bodyfile="ec_outliner.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1ac649074a8d76d8b61c1e5cc0871de399" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::visibilityHidden</definition>
+        <argsstring></argsstring>
+        <name>visibilityHidden</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::visibilityHidden</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="97" column="23" bodyfile="ec_outliner.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a4b8eb80472d71001549ddabff5ff0205" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::lockOpen</definition>
+        <argsstring></argsstring>
+        <name>lockOpen</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::lockOpen</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="98" column="23" bodyfile="ec_outliner.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a2963fbb454f3399f98491bfe599e59b0" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::lockClosed</definition>
+        <argsstring></argsstring>
+        <name>lockClosed</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::lockClosed</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="99" column="23" bodyfile="ec_outliner.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a9cf3f61499f833d5c43847bba290776c" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::applyToMask</definition>
+        <argsstring></argsstring>
+        <name>applyToMask</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::applyToMask</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="100" column="23" bodyfile="ec_outliner.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a2acdc0d3b8dca3c34cdd0012ff840602" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::applyToMaskDisabled</definition>
+        <argsstring></argsstring>
+        <name>applyToMaskDisabled</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::applyToMaskDisabled</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="101" column="23" bodyfile="ec_outliner.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a79680798e8b65c2f02d4d4bd77aceaab" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::exportLayer</definition>
+        <argsstring></argsstring>
+        <name>exportLayer</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::exportLayer</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="102" column="23" bodyfile="ec_outliner.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a2d63e850dfcb3d741b4bb501a2e6c245" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::exportLayerDisabled</definition>
+        <argsstring></argsstring>
+        <name>exportLayerDisabled</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::exportLayerDisabled</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="103" column="23" bodyfile="ec_outliner.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a61e4177d84b570932393545d72d27100" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::alert</definition>
+        <argsstring></argsstring>
+        <name>alert</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::alert</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="104" column="23" bodyfile="ec_outliner.h" bodystart="104" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structOutliner_1_1OutlinerWindow_1_1Icons_1addb628b90ca283c130b5d7c8b99b29d4" prot="public" static="no" mutable="no">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::close</definition>
+        <argsstring></argsstring>
+        <name>close</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::close</qualifiedname>
+        <initializer>= PropPanel::IconId::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="105" column="23" bodyfile="ec_outliner.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structOutliner_1_1OutlinerWindow_1_1Icons_1ae0400d3f3463ceab75195f352419ebc1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::getForType</definition>
+        <argsstring>(int type) const</argsstring>
+        <name>getForType</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::getForType</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="76" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a0ea0f4d4d55f39882b024f701e559539" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::getSelectionIcon</definition>
+        <argsstring>(OutlinerSelectionState selection_state) const</argsstring>
+        <name>getSelectionIcon</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::getSelectionIcon</qualifiedname>
+        <param>
+          <type>OutlinerSelectionState</type>
+          <declname>selection_state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="77" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a9a9507bfb5426a25835b9c9a689756f7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::getVisibilityIcon</definition>
+        <argsstring>(bool visible) const</argsstring>
+        <name>getVisibilityIcon</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::getVisibilityIcon</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>visible</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="78" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structOutliner_1_1OutlinerWindow_1_1Icons_1a70cf3b46bf3f9d0cfbc50411cfe9fb2c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>PropPanel::IconId</type>
+        <definition>PropPanel::IconId Outliner::OutlinerWindow::Icons::getLockIcon</definition>
+        <argsstring>(bool locked) const</argsstring>
+        <name>getLockIcon</name>
+        <qualifiedname>Outliner::OutlinerWindow::Icons::getLockIcon</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>locked</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_outliner.h" line="79" column="23"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_outliner.h" line="74" column="3" bodyfile="ec_outliner.h" bodystart="75" bodyend="106"/>
+    <listofallmembers>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a61e4177d84b570932393545d72d27100" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>alert</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a9cf3f61499f833d5c43847bba290776c" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>applyToMask</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a2acdc0d3b8dca3c34cdd0012ff840602" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>applyToMaskDisabled</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1addb628b90ca283c130b5d7c8b99b29d4" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>close</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a79680798e8b65c2f02d4d4bd77aceaab" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>exportLayer</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a2d63e850dfcb3d741b4bb501a2e6c245" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>exportLayerDisabled</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1ae0400d3f3463ceab75195f352419ebc1" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>getForType</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a70cf3b46bf3f9d0cfbc50411cfe9fb2c" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>getLockIcon</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a0ea0f4d4d55f39882b024f701e559539" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>getSelectionIcon</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a9a9507bfb5426a25835b9c9a689756f7" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>getVisibilityIcon</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1af444021d0a8773dc1e16899c89dbf14e" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>layerActive</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1abcd82a09b1fb9143ff8de0baeb36d973" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>layerActiveLocked</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a4b4aef94b71387d3a626882ff592c041" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>layerAdd</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1aafaebb51089c27a6d697e636b1013100" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>layerCreate</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1ac346564bbf1a9011bf02cd652c5941bb" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>layerDefault</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1af3a8b6b86a6bd02e80ca9bb1958cf902" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>layerLocked</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a2963fbb454f3399f98491bfe599e59b0" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>lockClosed</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a4b8eb80472d71001549ddabff5ff0205" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>lockOpen</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a68cb8e5993e30c4fa8d52f4769640d89" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>search</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a7919146c11cc79f86c4c12b3c3e0e51f" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>selectAll</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1aedca539ebeb21f91e7abd8babed76259" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>selectNone</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1aed21974ddbf66bc9cdeab6753522eb2c" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>selectPartial</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a45608a13f384a195afc46d168c458697" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>settings</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a2dae197f3662770040229cbdb035a389" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>settingsOpen</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1afa589400c5ee55e8771c0d884b29ef16" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>typeEntity</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a8cc146f8c81c91d7eafdb9c7c4627ee7" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>typePolygon</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1ab110c2dbf7eee89c32a0a9ef26bec5b9" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>typeSpline</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1ac649074a8d76d8b61c1e5cc0871de399" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>visibilityHidden</name></member>
+      <member refid="structOutliner_1_1OutlinerWindow_1_1Icons_1a299d7635fe2e8a2a2fc8faba2717055c" prot="public" virt="non-virtual"><scope>Outliner::OutlinerWindow::Icons</scope><name>visibilityVisible</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

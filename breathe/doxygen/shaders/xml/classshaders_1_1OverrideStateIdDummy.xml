@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshaders_1_1OverrideStateIdDummy" kind="class" language="C++" prot="public">
+    <compoundname>shaders::OverrideStateIdDummy</compoundname>
+    <includes refid="dag__overrideStateId_8h" local="no">dag_overrideStateId.h</includes>
+    <briefdescription>
+<para>A helper class used to declare <computeroutput>OverrideStateId</computeroutput> type. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_overrideStateId.h" line="14" column="1" bodyfile="dag_overrideStateId.h" bodystart="15" bodyend="15"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

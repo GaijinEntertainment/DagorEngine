@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBBox3" kind="class" language="C++" prot="public">
+    <compoundname>BBox3</compoundname>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <member refid="group__common_1ga889656955bcb1a2a94630173e9263879" kind="variable"><name>lim</name></member>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1gadc592d5a014057332e0b733bb3237c00" kind="function"><name>BBox3</name></member>
+      <member refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" kind="function"><name>setempty</name></member>
+      <member refid="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" kind="function"><name>center</name></member>
+      <member refid="group__common_1ga34f6664227f8531a0708a69314c9eb21" kind="function"><name>width</name></member>
+      <member refid="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" kind="function"><name>operator+=</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="math3d.h" line="138" column="1" bodyfile="math3d.h" bodystart="139" bodyend="168"/>
+    <listofallmembers>
+      <member refid="group__common_1gadc592d5a014057332e0b733bb3237c00" prot="public" virt="non-virtual"><scope>BBox3</scope><name>BBox3</name></member>
+      <member refid="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" prot="public" virt="non-virtual"><scope>BBox3</scope><name>center</name></member>
+      <member refid="group__common_1ga889656955bcb1a2a94630173e9263879" prot="public" virt="non-virtual"><scope>BBox3</scope><name>lim</name></member>
+      <member refid="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator+=</name></member>
+      <member refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" prot="public" virt="non-virtual"><scope>BBox3</scope><name>setempty</name></member>
+      <member refid="group__common_1ga34f6664227f8531a0708a69314c9eb21" prot="public" virt="non-virtual"><scope>BBox3</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

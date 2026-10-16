@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1SubpassReadSourceRef" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::SubpassReadSourceRef</compoundname>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1SubpassReadSourceRef_1a64db6a27dc666fd698317ed0547ec3a2" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::SubpassReadSourceRef::passTerm</definition>
+        <argsstring></argsstring>
+        <name>passTerm</name>
+        <qualifiedname>semantic::SubpassReadSourceRef::passTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="510" column="12" bodyfile="variantSemantic.h" bodystart="510" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1SubpassReadSourceRef_1ad713594d67253e413e3f2012f8f84bc9" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* semantic::SubpassReadSourceRef::targetTerm</definition>
+        <argsstring></argsstring>
+        <name>targetTerm</name>
+        <qualifiedname>semantic::SubpassReadSourceRef::targetTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="511" column="12" bodyfile="variantSemantic.h" bodystart="511" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantSemantic.h" line="508" column="1" bodyfile="variantSemantic.h" bodystart="509" bodyend="512"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1SubpassReadSourceRef_1a64db6a27dc666fd698317ed0547ec3a2" prot="public" virt="non-virtual"><scope>semantic::SubpassReadSourceRef</scope><name>passTerm</name></member>
+      <member refid="structsemantic_1_1SubpassReadSourceRef_1ad713594d67253e413e3f2012f8f84bc9" prot="public" virt="non-virtual"><scope>semantic::SubpassReadSourceRef</scope><name>targetTerm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

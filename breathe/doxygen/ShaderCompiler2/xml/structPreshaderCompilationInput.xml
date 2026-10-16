@@ -1,0 +1,281 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPreshaderCompilationInput" kind="struct" language="C++" prot="public">
+    <compoundname>PreshaderCompilationInput</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ShaderTerminal::supports_stat * &gt;</type>
+        <definition>Tab&lt;ShaderTerminal::supports_stat *&gt; PreshaderCompilationInput::supportStats</definition>
+        <argsstring></argsstring>
+        <name>supportStats</name>
+        <qualifiedname>PreshaderCompilationInput::supportStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="42" column="7" bodyfile="preshaderCompilation.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" prot="public" static="no" mutable="no">
+        <type>Tab&lt; eastl::variant&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref>, ShaderTerminal::local_var_decl * &gt; &gt;</type>
+        <definition>Tab&lt;eastl::variant&lt;PreshaderStat, ShaderTerminal::local_var_decl *&gt; &gt; PreshaderCompilationInput::scalarStats</definition>
+        <argsstring></argsstring>
+        <name>scalarStats</name>
+        <qualifiedname>PreshaderCompilationInput::scalarStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="43" column="7" bodyfile="preshaderCompilation.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::staticTextureStats</definition>
+        <argsstring></argsstring>
+        <name>staticTextureStats</name>
+        <qualifiedname>PreshaderCompilationInput::staticTextureStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="44" column="7" bodyfile="preshaderCompilation.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::dynamicResourceStats</definition>
+        <argsstring></argsstring>
+        <name>dynamicResourceStats</name>
+        <qualifiedname>PreshaderCompilationInput::dynamicResourceStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="45" column="7" bodyfile="preshaderCompilation.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::hardcodedStats</definition>
+        <argsstring></argsstring>
+        <name>hardcodedStats</name>
+        <qualifiedname>PreshaderCompilationInput::hardcodedStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="46" column="7" bodyfile="preshaderCompilation.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a96a5692c961f48b11f555c4e5d78bdd1" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::subpassReadStats</definition>
+        <argsstring></argsstring>
+        <name>subpassReadStats</name>
+        <qualifiedname>PreshaderCompilationInput::subpassReadStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="47" column="7" bodyfile="preshaderCompilation.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PreshaderCompilationInput::isCompute</definition>
+        <argsstring></argsstring>
+        <name>isCompute</name>
+        <qualifiedname>PreshaderCompilationInput::isCompute</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="48" column="8" bodyfile="preshaderCompilation.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1aa8c3b5d9c3a6aa09330ba78e9a54f7fd" prot="public" static="no" mutable="no">
+        <type><ref refid="structRenderPassOptIn" kindref="compound">RenderPassOptIn</ref></type>
+        <definition>RenderPassOptIn PreshaderCompilationInput::subpassReadWindow</definition>
+        <argsstring></argsstring>
+        <name>subpassReadWindow</name>
+        <qualifiedname>PreshaderCompilationInput::subpassReadWindow</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="50" column="19" bodyfile="preshaderCompilation.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ShaderTerminal::static_var_decl * &gt;</type>
+        <definition>Tab&lt;ShaderTerminal::static_var_decl *&gt; PreshaderCompilationInput::staticVarDecls</definition>
+        <argsstring></argsstring>
+        <name>staticVarDecls</name>
+        <qualifiedname>PreshaderCompilationInput::staticVarDecls</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="54" column="7" bodyfile="preshaderCompilation.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>PreshaderCompilationInput</label>
+        <link refid="structPreshaderCompilationInput"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>subpassReadWindow</edgelabel>
+        </childnode>
+      </node>
+      <node id="13">
+        <label>RenderPassGroup</label>
+        <link refid="classRenderPassGroup"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>colorSlots</edgelabel>
+        </childnode>
+        <childnode refid="18" relation="usage">
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassOptIn</label>
+        <link refid="structRenderPassOptIn"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>pass</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>group</edgelabel>
+        </childnode>
+      </node>
+      <node id="11">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>SerializableTab&lt; RenderPassGroup::ColorSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="17" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>SerializableTab&lt; RenderPassGroup::Member &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="15" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>SerializableTab&lt; RenderPassGroup::ReadSlot &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="19" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="17">
+        <label>Tab&lt; RenderPassGroup::ColorSlot &gt;</label>
+      </node>
+      <node id="15">
+        <label>Tab&lt; RenderPassGroup::Member &gt;</label>
+      </node>
+      <node id="19">
+        <label>Tab&lt; RenderPassGroup::ReadSlot &gt;</label>
+      </node>
+      <node id="10">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="6">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="preshaderCompilation.h" line="40" column="1" bodyfile="preshaderCompilation.h" bodystart="41" bodyend="55"/>
+    <listofallmembers>
+      <member refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>dynamicResourceStats</name></member>
+      <member refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>hardcodedStats</name></member>
+      <member refid="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>isCompute</name></member>
+      <member refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>scalarStats</name></member>
+      <member refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>staticTextureStats</name></member>
+      <member refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>staticVarDecls</name></member>
+      <member refid="structPreshaderCompilationInput_1a96a5692c961f48b11f555c4e5d78bdd1" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>subpassReadStats</name></member>
+      <member refid="structPreshaderCompilationInput_1aa8c3b5d9c3a6aa09330ba78e9a54f7fd" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>subpassReadWindow</name></member>
+      <member refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>supportStats</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

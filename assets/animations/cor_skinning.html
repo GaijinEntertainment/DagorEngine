@@ -1,0 +1,407 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Centers of Rotation Skinning</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/js/hoverxref.js"></script>
+      <script src="../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../_static/js/micromodal.min.js"></script>
+      <script src="../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Collisions" href="../collisions/index.html" />
+    <link rel="prev" title="Animation Export" href="animation_export.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Assets and Assets Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../about-assets/index.html">Assets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../all-about-blk/index.html">All About <code class="docutils literal notranslate"><span class="pre">.blk</span></code> Files</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Animations</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="animation_export.html">Animation Export</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Centers of Rotation Skinning</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#what-is-in-the-engine">What Is in the Engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-enable-in-a-project">How to Enable in a Project</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cost">Cost</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#known-limits">Known Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#validation">Validation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../collisions/index.html">Collisions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lighting/index.html">Lighting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../materials/index.html">Materials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../shaders/index.html">Shaders</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Assets and Assets Management</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Animations</a></li>
+      <li class="breadcrumb-item active">Centers of Rotation Skinning</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/assets/animations/cor_skinning.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="centers-of-rotation-skinning">
+<h1>Centers of Rotation Skinning<a class="headerlink" href="#centers-of-rotation-skinning" title="Link to this heading"></a></h1>
+<p>The centers of rotation skinning is in the engine and off by default. This page
+is for the project that turns it on and for the render team that owns it: what
+is in the engine, how to enable it, what it costs, where it stops and how to
+check it.</p>
+<p>Le and Hodgins, “Real-time Skeletal Skinning with Optimized Centers of
+Rotation”, SIGGRAPH 2016. A per-vertex center <code class="docutils literal notranslate"><span class="pre">c</span></code> is precomputed from the rest
+pose and the weights. At runtime the vertex rotates by the weighted blend of
+the bone rotations <code class="docutils literal notranslate"><span class="pre">q</span></code> around <code class="docutils literal notranslate"><span class="pre">c</span></code>, and <code class="docutils literal notranslate"><span class="pre">c</span></code> itself moves with linear blend
+skinning (LBS): <code class="docutils literal notranslate"><span class="pre">v'</span> <span class="pre">=</span> <span class="pre">R(q)</span> <span class="pre">(v</span> <span class="pre">-</span> <span class="pre">c)</span> <span class="pre">+</span> <span class="pre">LBS(c)</span></code>. A vertex whose center offset is
+zero (one bone, or no triangle shares two of its bones) keeps its LBS
+position; its normal takes the blended rotation, which equals the LBS one for
+a single bone.</p>
+<section id="what-is-in-the-engine">
+<h2>What Is in the Engine<a class="headerlink" href="#what-is-in-the-engine" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Project switch:</strong> <code class="docutils literal notranslate"><span class="pre">cor_skinning_support</span></code>, an interval in
+<code class="docutils literal notranslate"><span class="pre">prog/daNetGame/shaders/skinning_inc2.dshl</span></code> that each shader build assumes.
+<code class="docutils literal notranslate"><span class="pre">assume_if_not_assumed</span></code> keeps it off, so a project that does nothing gets the
+shaders, the variants and the vertex channels it had before. A project turns
+it on with <code class="docutils literal notranslate"><span class="pre">cor_skinning_support:i=1</span></code> in the <code class="docutils literal notranslate"><span class="pre">assume_vars</span></code> of every shader
+build that compiles the dynamic shaders: the game dumps, the Asset Viewer
+dump and the exporter (tools) dump.
+All three must agree, because cooked vertex data is matched against the shader
+channel list (<code class="docutils literal notranslate"><span class="pre">ScriptedShaderMaterial::checkChannels</span></code>): the exporter dump
+decides whether the builder writes the channel, the game dump whether the
+shaders read it.</p></li>
+<li><p><strong>Shaders:</strong> with the switch on, every daNetGame dynamic shader that expands
+<code class="docutils literal notranslate"><span class="pre">DYNAMIC_SIMPLE_VS_INPUT</span></code> (the character shaders <code class="docutils literal notranslate"><span class="pre">dynamic_skin</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dynamic_masked_chrome_bump</span></code>, <code class="docutils literal notranslate"><span class="pre">dynamic_hair</span></code>, <code class="docutils literal notranslate"><span class="pre">dynamic_painted_by_mask</span></code>
+among them) declares the <code class="docutils literal notranslate"><span class="pre">color8</span> <span class="pre">tc[8]</span> <span class="pre">=</span> <span class="pre">extra[60]</span></code> channel in its skinned
+variant (<code class="docutils literal notranslate"><span class="pre">num_bones</span> <span class="pre">==</span> <span class="pre">four_bones</span></code>,
+<code class="docutils literal notranslate"><span class="pre">prog/daNetGame/shaders/dynamic_simple_inc.dshl</span></code>). A dynamic shader with its
+own channel list, such as <code class="docutils literal notranslate"><span class="pre">dynamic_layered</span></code>, does not take part.
+<code class="docutils literal notranslate"><span class="pre">skinning_inc2.dshl</span></code> blends the four bone quaternions (antipodal sign fixed
+against the heaviest bone) and applies the formula for the current and the
+previous frame. A zero scale bone gives no rotation to the blend, and a
+vertex with a weight on it stays on LBS. A part the node collapser hides
+vanishes whole through the collapser bits. No shader gets a new variant:
+the project switch is assumed.</p></li>
+<li><p><strong>Bone rows:</strong> with the switch on, dynrend
+(<code class="docutils literal notranslate"><span class="pre">prog/gameLibs/render/dynmodelRenderer</span></code>), which fills the bone rows of
+daNetGame and of War Thunder, sends a bone as three rows of rotation
+quaternion, position and scale, not as the rows of its 3x4 matrix
+(<code class="docutils literal notranslate"><span class="pre">calc_bone_tm</span></code>). The row count does not change, and the animation pipeline
+keeps its matrices: dynrend decomposes each bone matrix when it fills the
+rows. The daNetGame animchar update builds the rows of a skin once in a
+frame (<code class="docutils literal notranslate"><span class="pre">cache_animchar_skin_bone_rows</span></code>) and keeps them in the scene
+instance; each pass copies them. A node write after that drops the kept
+rows, and the passes decompose again. Every skinned shader of the project
+reads this form. A skinned shader without the channel takes the same path
+with a zero center, and the code that needs a skinning matrix (cloth, eyes,
+eight-bone skins, the non-batched ray tracing prepass) builds it from the
+three rows.</p></li>
+<li><p><strong>War Thunder:</strong> its own dynamic shaders in <code class="docutils literal notranslate"><span class="pre">skyquake/prog/shaders/source</span></code>
+(<code class="docutils literal notranslate"><span class="pre">dynamic_simple_inc.dshl</span></code>, <code class="docutils literal notranslate"><span class="pre">skinning_inc2.dshl</span></code> and the classes that expand
+its <code class="docutils literal notranslate"><span class="pre">DYNAMIC_SIMPLE_VS_INPUT</span></code> with <code class="docutils literal notranslate"><span class="pre">use_skinning</span></code>) take the same project
+switch, channel, bone rows and formula. Both projects share the math in
+<code class="docutils literal notranslate"><span class="pre">prog/gameLibs/render/shaders/cor_skinning.hlsl</span></code>.</p></li>
+<li><p><strong>Builder:</strong> <code class="docutils literal notranslate"><span class="pre">prog/tools/libTools/shaderResBuilder/corSkinning.cpp</span></code> computes the
+centers (similarity sigma 0.1, edge subdivision by weight distance 0.1, up to
+3 levels, sub triangles grouped by quantized weight vector). The builder in
+<code class="docutils literal notranslate"><span class="pre">shSkinMeshData.cpp</span></code> runs it for every skin whose material declares
+<code class="docutils literal notranslate"><span class="pre">extra[60]</span></code> in the exporter dump, on every Level of Detail (LOD), with the
+same quantized 4-bone weights the shader sees, and writes <code class="docutils literal notranslate"><span class="pre">extra[60]</span></code> per
+mesh vertex as four bytes: <code class="docutils literal notranslate"><span class="pre">c</span> <span class="pre">-</span> <span class="pre">v</span></code> as three signed bytes, times the scale
+<code class="docutils literal notranslate"><span class="pre">2^((w</span> <span class="pre">-</span> <span class="pre">200)</span> <span class="pre">/</span> <span class="pre">8)</span></code> of the fourth byte (<code class="docutils literal notranslate"><span class="pre">encode_cor_offset</span></code>; the shaders
+read it with <code class="docutils literal notranslate"><span class="pre">cor_offset_decode</span></code>). No option in <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>, in the
+asset properties or in a DAG node selects it: the exporter dump does.</p></li>
+<li><p><strong>Channel ID:</strong> <code class="docutils literal notranslate"><span class="pre">prog/dagorInclude/shaders/dag_corSkinningChannel.h</span></code>.</p></li>
+<li><p><strong>Ray tracing:</strong> the batched bounding volume hierarchy (BVH) skinned
+prepasses of daNetGame and War Thunder read the same channel
+(<code class="docutils literal notranslate"><span class="pre">prog/gameLibs/bvh/bvh.cpp</span></code> channel parser, <code class="docutils literal notranslate"><span class="pre">bvh_processors.cpp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">prog/daNetGame/shaders/rt/bvh_process_skinned_vertices.dshl</span></code>,
+<code class="docutils literal notranslate"><span class="pre">skyquake/prog/shaders/source/bvh_process_skinned_vertices_batched.dshl</span></code>), so
+the bottom-level acceleration structure (BLAS) matches the raster mesh.</p></li>
+</ul>
+</section>
+<section id="how-to-enable-in-a-project">
+<h2>How to Enable in a Project<a class="headerlink" href="#how-to-enable-in-a-project" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>Turn the project switch on in <code class="docutils literal notranslate"><span class="pre">assume_vars</span></code> that every shader build of the
+project includes, the game, Asset Viewer and exporter dumps alike, so that
+they agree: <code class="docutils literal notranslate"><span class="pre">game_common_override.blk</span></code> in Active Matter and Enlisted,
+<code class="docutils literal notranslate"><span class="pre">common_assumes_wt.blk</span></code> in War Thunder:</p>
+<div class="highlight-blk notranslate"><div class="highlight"><pre><span></span><span class="no">cor_skinning_support</span><span class="nt">:i=</span><span class="m">1</span>
+</pre></div>
+</div>
+<p>The Enlisted Oculus dump (<code class="docutils literal notranslate"><span class="pre">shaders_spirv_oculus.blk</span></code>) does not include
+<code class="docutils literal notranslate"><span class="pre">game_common_override.blk</span></code>, so it takes the line in its own file.</p>
+<p>Three War Thunder game dumps do not include <code class="docutils literal notranslate"><span class="pre">common_assumes_wt.blk</span></code>: the
+PS5 compatibility dump (<code class="docutils literal notranslate"><span class="pre">shaders_ps5_compatibility.blk</span></code>), the iOS
+compatibility dump (<code class="docutils literal notranslate"><span class="pre">shaders_metal_ios_compatibility_wt.blk</span></code>) and the Xbox
+One dump (<code class="docutils literal notranslate"><span class="pre">shaders_xboxOne.blk</span></code>). They take their assumes from
+<code class="docutils literal notranslate"><span class="pre">common_assumes_compatibility.blk</span></code> or <code class="docutils literal notranslate"><span class="pre">common_assumes.blk</span></code>, which War
+Thunder Mobile or VR Tanks share, so each takes the line in its own file.
+The VR Tanks Scarlett dump (<code class="docutils literal notranslate"><span class="pre">shaders_dx12xs_vrt.blk</span></code>) includes
+<code class="docutils literal notranslate"><span class="pre">shaders_xboxOne.blk</span></code>, so it removes the line again with
+<code class="docutils literal notranslate"><span class="pre">&quot;&#64;delete:cor_skinning_support&quot;:i=0</span></code> in its <code class="docutils literal notranslate"><span class="pre">common_assume_vars</span></code> override.</p>
+</li>
+<li><p>Recompile the game shaders, the Asset Viewer dump and the exporter dump.</p></li>
+<li><p>Rebuild every skinned dynmodel: <code class="docutils literal notranslate"><span class="pre">daBuild-dev.exe</span> <span class="pre">-target:PC</span> <span class="pre">-rebuild:dynModel</span> <span class="pre">application.blk</span></code>. Land the rebuilt assets together with
+the game shaders: a skin cooked without the channel does not match a
+shader that declares it.</p></li>
+</ol>
+<p>Rollout: Active Matter first (fewer outfits), then Enlisted and War Thunder.
+A project that does not need it (War Thunder Mobile, for example) does
+nothing. Owner: render.</p>
+</section>
+<section id="cost">
+<h2>Cost<a class="headerlink" href="#cost" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Vertex data:</strong> +4 bytes per vertex on every skinned LOD whose material
+declares the channel.</p></li>
+<li><p><strong>Vertex shader:</strong> per application, one offset decode, one quaternion
+blend, one quaternion to matrix and four vector rotations. The skinned
+<code class="docutils literal notranslate"><span class="pre">dynamic_simple</span></code> vertex shader of Active Matter grows from 413 to 621 DXIL
+operations. The normal pass applies it twice, for the current and the
+previous frame (motion vectors); the depth and shadow passes once.</p></li>
+<li><p><strong>Bone rows on the CPU:</strong> the decomposition takes 12 ns for a bone,
+against 6 ns for its matrix rows (clang, SSE4.1, one thread). The
+daNetGame animchar update (<code class="docutils literal notranslate"><span class="pre">animchar_before_render_es</span></code>) decomposes a bone
+once in a frame (twice in a frame that has no previous rows of the skin
+mesh: the first frame, a LOD switch) and each pass copies the rows: in the
+benchmark the bone rows of a character (3.1 passes of 69 bones) take 7.8k
+CPU cycles in a frame, against 7.2k for matrix rows and 14.1k when each
+pass decomposes. The kept rows take 96 bytes for each bone of a
+skinned animchar. An animchar that another system updates (the damage model
+animchar, for example) and War Thunder decompose in each pass.</p></li>
+<li><p><strong>Build:</strong> well under a second per LOD. The similarity of a sub triangle to a
+vertex depends on the weights alone, so the builder sums the sub triangles of
+one quantized weight vector into one group. Measured on the Active Matter
+trooper LOD0: the 10k-vertex torso skin takes about 0.2 s, the whole
+character LOD0 plus LOD1 under 0.5 s.
+The builder logs <code class="docutils literal notranslate"><span class="pre">cor</span> <span class="pre">skinning:</span> <span class="pre">N</span> <span class="pre">of</span> <span class="pre">M</span> <span class="pre">verts</span> <span class="pre">have</span> <span class="pre">a</span> <span class="pre">non-zero</span> <span class="pre">center</span> <span class="pre">offset,</span> <span class="pre">max/avg,</span> <span class="pre">weight</span> <span class="pre">groups,</span> <span class="pre">seconds</span></code> per skin.</p></li>
+<li><p><strong>Resource size in Active Matter:</strong> with the switch on, every skinned
+dynmodel carries the channel on every LOD, and the PC resource packs that
+hold them grow by 37 MB, from 1.88 to 1.92 GB (+2.0%), of about
+6.4 GB of resource packs in all. The 413 <code class="docutils literal notranslate"><span class="pre">am_*</span></code> character packs take
+35 MB of it (+10% of their 341 MB); the rest are weapon, gear and
+loot models and destructible cloth props (<code class="docutils literal notranslate"><span class="pre">*_destr</span></code>). The LODs after LOD1
+add little, because a far LOD has few vertices. The dedicated server packs
+do not change, because the server export skips dynmodels.</p></li>
+<li><p><strong>Measured frame cost:</strong> the MotionMatching benchmark
+(<code class="docutils literal notranslate"><span class="pre">gamedata/scenes/cor_skinning_bench.blk</span></code>, launcher
+<code class="docutils literal notranslate"><span class="pre">samples/MotionMatching/game/motion_matching_cor_bench.bat</span></code>) renders 100
+survivors (14k mesh vertices at LOD0; the grid mixes LOD0 and LOD1) at
+1920x1080 and writes the GPU time of the passes to the log, for the build it
+runs in: an A/B compares a sample build with the switch on against one with
+it off. Each phase gives the profiler <code class="docutils literal notranslate"><span class="pre">avg</span></code> of a pass (GPU columns) and the
+mean CPU animation time of its 6 s measure. The table is the median of
+the six phases of a build from three runs, with the run order off, on, on,
+off, off, on, on an RTX 5070 Ti Laptop GPU, DX11:</p></li>
+</ul>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th>Build</th>
+<th>GPU frame</th>
+<th>G-buffer dynamics</th>
+<th>Shadow cascades</th>
+<th>CPU animation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Switch off (linear blend)</td>
+<td>2.432&nbsp;ms</td>
+<td>0.341&nbsp;ms</td>
+<td>0.587&nbsp;ms</td>
+<td>0.147&nbsp;ms</td>
+</tr>
+<tr>
+<td>Switch on (centers of rotation)</td>
+<td>2.409&nbsp;ms</td>
+<td>0.333&nbsp;ms</td>
+<td>0.597&nbsp;ms</td>
+<td>0.141&nbsp;ms</td>
+</tr>
+</tbody>
+</table>
+<p>The GPU cost of the centers is inside the noise of the runs (about 3%) for
+100 characters. CPU animation does not change. The survivor resource grows
+by 12% (87 KB: 4 bytes for each of the 21.6k vertices of LOD0 and
+LOD1, more than the mesh vertices because of the UV and normal seams), and
+by 14% (60 KB) as the zstd-compressed resource on disk.</p>
+</section>
+<section id="known-limits">
+<h2>Known Limits<a class="headerlink" href="#known-limits" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>A bone goes to the shaders as rotation, position and scale, so a bone
+matrix with shear loses the shear, in every skinned shader of a project
+with the switch on. Bones carry no shear.</p></li>
+<li><p>The four-byte offset keeps seven bits and a sign for each axis, against
+the largest axis of the offset: the stored center is off by 0.3% of the
+offset length on average and by 0.8% at most (0.16 mm at 6 cm,
+up to 1.6 mm at 23 cm). The skinned position moves by that
+times the difference between the blended matrix and the blended rotation,
+which is zero in the bind pose.</p></li>
+<li><p>A non-uniform bone scale affects only the LBS part (the center), not the
+rotated offset. Characters do not scale bones non-uniformly.</p></li>
+<li><p>Projective wounds rewrite the bone weights of cut vertices at runtime. The
+precomputed center stays, so the cut region is an approximation. Those
+vertices lie inside the wound geometry.</p></li>
+<li><p>Adds no volume. Deltoid or pectoral bulge needs helper bones or corrective
+shapes, which is out of scope.</p></li>
+<li><p>A skin with more than 4 bones per vertex (<code class="docutils literal notranslate"><span class="pre">setBonePerVertex</span></code> above 4) gets
+zero offsets, so it keeps the LBS position; the builder logs a warning for it.</p></li>
+<li><p>No runtime off switch: a project checks the centers before it ships them.
+Turning them off takes the project switch off and an asset rebuild.</p></li>
+<li><p>Only the batched BVH skinned prepasses read the channel. The non-batched
+prepass keeps LBS for the ray-traced copy.</p></li>
+</ul>
+</section>
+<section id="validation">
+<h2>Validation<a class="headerlink" href="#validation" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>The MotionMatching sample, scene <code class="docutils literal notranslate"><span class="pre">gamedata/scenes/cor_skinning_test.blk</span></code>
+(<code class="docutils literal notranslate"><span class="pre">samples/MotionMatching/game/motion_matching_cor_skinning.bat</span></code>): the
+survivor with the centers, looping one clip under a long-lens camera. The
+ImGui panel “CoR skinning” (F2 to click it) picks the clip (reload, rifle
+sprint, sprint, crouch walk, injured walk, rifle idle; each bends other
+joints) and sets the time speed; F8 pauses and resumes, Shift+F8 switches
+slow motion, F9 takes a screenshot, F10 frees the camera (WASD, mouse, E
+and C, Z and Q). Compare the shots with a sample build that has the switch
+off in <code class="docutils literal notranslate"><span class="pre">sample_shaders_override.blk</span></code>, with its game, Asset Viewer and
+exporter dumps recompiled and its skinned dynmodels rebuilt. Keep the
+shots of each build in their own folder: a shot’s file name holds only the
+capture time.</p></li>
+<li><p>Asset Viewer with the project’s <code class="docutils literal notranslate"><span class="pre">application.blk</span></code>: open a soldier
+dynmodel, bend the arm with an animation, compare elbow, shoulder and knee
+with a build that has the project switch off.</p></li>
+<li><p><strong>In game:</strong> the same comparison, plus motion vectors (temporal
+anti-aliasing ghosting on moving characters) and ray-traced shadows or
+reflections on characters.</p></li>
+<li><p>Compare the built resource sizes and the build log of a full dynmodel
+rebuild before and after enabling, for size and time; the vertex count does
+not change, the channel adds 4 bytes per vertex.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="animation_export.html" class="btn btn-neutral float-left" title="Animation Export" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../collisions/index.html" class="btn btn-neutral float-right" title="Collisions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2026.
+      <span class="lastupdated">Last updated on Oct 16, 2026.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

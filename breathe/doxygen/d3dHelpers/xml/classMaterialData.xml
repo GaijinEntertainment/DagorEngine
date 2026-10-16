@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaterialData" kind="class" language="C++" prot="public">
+    <compoundname>MaterialData</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+    <includes refid="dag__materialData_8h" local="no">dag_materialData.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMaterialData_1a091f10e6fda9bbecf01ee68b2f0f4c5d" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString MaterialData::matName</definition>
+        <argsstring></argsstring>
+        <name>matName</name>
+        <qualifiedname>MaterialData::matName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="38" column="16" bodyfile="dag_materialData.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterialData_1a57c653ee40c6829de8d3776425a5a0cd" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString MaterialData::className</definition>
+        <argsstring></argsstring>
+        <name>className</name>
+        <qualifiedname>MaterialData::className</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="38" column="24" bodyfile="dag_materialData.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterialData_1af5ce9d92ca3531975169d1e38f4e3f09" prot="public" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString MaterialData::matScript</definition>
+        <argsstring></argsstring>
+        <name>matScript</name>
+        <qualifiedname>MaterialData::matScript</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="38" column="34" bodyfile="dag_materialData.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterialData_1ab5e605bc6f894f233bb2e0555f2d81f3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t MaterialData::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>MaterialData::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="40" column="12" bodyfile="dag_materialData.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterialData_1a8751e526404247e7ffc30f917522c2af" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID MaterialData::mtex[MAXMATTEXNUM]</definition>
+        <argsstring>[MAXMATTEXNUM]</argsstring>
+        <name>mtex</name>
+        <qualifiedname>MaterialData::mtex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="42" column="13" bodyfile="dag_materialData.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMaterialData_1a00b52bfe422a378cea88af5940ba23b2" prot="public" static="no" mutable="no">
+        <type><ref refid="structD3dMaterial" kindref="compound">D3dMaterial</ref></type>
+        <definition>D3dMaterial MaterialData::mat</definition>
+        <argsstring></argsstring>
+        <name>mat</name>
+        <qualifiedname>MaterialData::mat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="43" column="15" bodyfile="dag_materialData.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaterialData_1a454dcc3112e82c9a12631c2cf1c39ab2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MaterialData::MaterialData</definition>
+        <argsstring>()</argsstring>
+        <name>MaterialData</name>
+        <qualifiedname>MaterialData::MaterialData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="46" column="3" bodyfile="dag_materialData.h" bodystart="46" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterialData_1a8f14bdfad82dda06ea0f68aaed7fa457" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MaterialData::freeTextures</definition>
+        <argsstring>()</argsstring>
+        <name>freeTextures</name>
+        <qualifiedname>MaterialData::freeTextures</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="54" column="8" bodyfile="dag_materialData.h" bodystart="54" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterialData_1a09afefee0180e7ab734fe30b826f016f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool MaterialData::isEqual</definition>
+        <argsstring>(const MaterialData &amp;d) const</argsstring>
+        <name>isEqual</name>
+        <qualifiedname>MaterialData::isEqual</qualifiedname>
+        <param>
+          <type>const <ref refid="classMaterialData" kindref="compound">MaterialData</ref> &amp;</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="64" column="8" bodyfile="dag_materialData.h" bodystart="64" bodyend="72"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>MaterialData</label>
+        <link refid="classMaterialData"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dMaterial</label>
+        <link refid="structD3dMaterial"/>
+      </node>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>MaterialData</label>
+        <link refid="classMaterialData"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>mat</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_materialData.h" line="33" column="1" bodyfile="dag_materialData.h" bodystart="34" bodyend="73"/>
+    <listofallmembers>
+      <member refid="classMaterialData_1a57c653ee40c6829de8d3776425a5a0cd" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>className</name></member>
+      <member refid="classMaterialData_1ab5e605bc6f894f233bb2e0555f2d81f3" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>flags</name></member>
+      <member refid="classMaterialData_1a8f14bdfad82dda06ea0f68aaed7fa457" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>freeTextures</name></member>
+      <member refid="classMaterialData_1a09afefee0180e7ab734fe30b826f016f" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>isEqual</name></member>
+      <member refid="classMaterialData_1a00b52bfe422a378cea88af5940ba23b2" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>mat</name></member>
+      <member refid="classMaterialData_1a454dcc3112e82c9a12631c2cf1c39ab2" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>MaterialData</name></member>
+      <member refid="classMaterialData_1a091f10e6fda9bbecf01ee68b2f0f4c5d" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>matName</name></member>
+      <member refid="classMaterialData_1af5ce9d92ca3531975169d1e38f4e3f09" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>matScript</name></member>
+      <member refid="classMaterialData_1a8751e526404247e7ffc30f917522c2af" prot="public" virt="non-virtual"><scope>MaterialData</scope><name>mtex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

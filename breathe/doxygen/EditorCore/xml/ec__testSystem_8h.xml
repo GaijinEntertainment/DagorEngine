@@ -1,0 +1,698 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__testSystem_8h" kind="file" language="C++">
+    <compoundname>ec_testSystem.h</compoundname>
+    <includes local="no">osApiWrappers/dag_atomic.h</includes>
+    <includes local="no">osApiWrappers/dag_threads.h</includes>
+    <includes local="no">osApiWrappers/dag_critSec.h</includes>
+    <includes local="no">osApiWrappers/dag_events.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">math/dag_Point2.h</includes>
+    <includes local="no">gui/dag_imgui.h</includes>
+    <includes local="no">EASTL/functional.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <includes local="no">EASTL/shared_ptr.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_testSystem.h</label>
+        <link refid="ec__testSystem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>EASTL/functional.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/shared_ptr.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="8">
+        <label>gui/dag_imgui.h</label>
+      </node>
+      <node id="7">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="2">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="4">
+        <label>osApiWrappers/dag_critSec.h</label>
+      </node>
+      <node id="5">
+        <label>osApiWrappers/dag_events.h</label>
+      </node>
+      <node id="3">
+        <label>osApiWrappers/dag_threads.h</label>
+      </node>
+      <node id="6">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classTestCallback" prot="public">TestCallback</innerclass>
+    <innerclass refid="classTestCase" prot="public">TestCase</innerclass>
+    <innerclass refid="classTestInput" prot="public">TestInput</innerclass>
+    <innerclass refid="classTestScriptModule" prot="public">TestScriptModule</innerclass>
+    <innerclass refid="classTestWindow" prot="public">TestWindow</innerclass>
+    <innerclass refid="classTestRuntime" prot="public">TestRuntime</innerclass>
+    <innerclass refid="structTestRuntime_1_1TestInfo" prot="public">TestRuntime::TestInfo</innerclass>
+    <innerclass refid="classTestRuntime_1_1TestThread" prot="private">TestRuntime::TestThread</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="ec__testSystem_8h_1ab08099e2be42e6c404b92f0880d10730" prot="public" static="no">
+        <name>EDITOR_CORE_REGISTER_TEST</name>
+        <param><defname>runtime</defname></param>
+        <param><defname>name</defname></param>
+        <param><defname>func</defname></param>
+        <initializer>  (runtime).registerTestEx((name), eastl::make_shared&lt;<ref refid="classTestCallback" kindref="compound">TestCallback</ref>&gt;(func), __FILE__, __LINE__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="171" column="9" bodyfile="ec_testSystem.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="ec__testSystem_8h_1a22cd3ed3084b7f20e9458438572a58fb" prot="public" static="no">
+        <name>EDITOR_CORE_TEST_FAIL</name>
+        <param><defname>runtime</defname></param>
+        <param><defname>reason</defname></param>
+        <initializer>(runtime).markFailed(__FILE__, __LINE__, (reason))</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="175" column="9" bodyfile="ec_testSystem.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="ec__testSystem_8h_1a3b54dc6ad795146cb907c86d297b699b" prot="public" static="no">
+        <name>EDITOR_CORE_MOUSE_MOVE_ITEM</name>
+        <param><defname>input</defname></param>
+        <param><defname>path</defname></param>
+        <param><defname>over_seconds</defname></param>
+        <initializer>(input).mouseMoveItem((path), (over_seconds), __FILE__, __LINE__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="178" column="9" bodyfile="ec_testSystem.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="ec__testSystem_8h_1ac37bd97c06d321ab76204102e9d1a835" prot="public" static="no">
+        <name>EDITOR_CORE_MOUSE_CLICK_ITEM</name>
+        <param><defname>input</defname></param>
+        <param><defname>path</defname></param>
+        <param><defname>button</defname></param>
+        <initializer>(input).mouseClickItem((path), (button), __FILE__, __LINE__)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="179" column="9" bodyfile="ec_testSystem.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" prot="public" static="no" strong="yes">
+        <type>int</type>
+        <name>TestState</name>
+        <enumvalue id="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8aa5daf7f2ebbba4975d61dab1c40188c7" prot="public">
+          <name>IDLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8a43491564ebcfd38568918efbd6e840fd" prot="public">
+          <name>RUNNING</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8a269f3d1562cbd15624e7d2c4b10122e3" prot="public">
+          <name>PASSED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8ab9e14d9b2886bcff408b85aefa780419" prot="public">
+          <name>FAILED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="23" column="1" bodyfile="ec_testSystem.h" bodystart="24" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="enum" id="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>TestFilter</name>
+        <enumvalue id="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827a5fb1f955b45e38e31789286a1790398d" prot="public">
+          <name>ALL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827aa5daf7f2ebbba4975d61dab1c40188c7" prot="public">
+          <name>IDLE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827a269f3d1562cbd15624e7d2c4b10122e3" prot="public">
+          <name>PASSED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827ab9e14d9b2886bcff408b85aefa780419" prot="public">
+          <name>FAILED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="137" column="1" bodyfile="ec_testSystem.h" bodystart="138" bodyend="143"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" prot="public" static="no">
+        <type>struct SQVM *</type>
+        <definition>typedef struct SQVM* HSQUIRRELVM</definition>
+        <argsstring></argsstring>
+        <name>HSQUIRRELVM</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="21" column="19" bodyfile="ec_testSystem.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__testSystem_8h_1a71561cc05b8d4713735217abfcdf9c8b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_initialize_test_runtime</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_initialize_test_runtime</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="324" column="6" declfile="ec_testSystem.h" declline="324" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a9ec842b943449822986f7fd2ab72c948" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_shutdown_test_runtime</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_shutdown_test_runtime</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="328" column="6" declfile="ec_testSystem.h" declline="328" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a31924ea0b4e094dd627a71fae1aa65b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref> *</type>
+        <definition>TestRuntime * editor_core_test_runtime_get_instance</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_test_runtime_get_instance</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="330" column="13" declfile="ec_testSystem.h" declline="330" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a473a11f3a59ff901c49258701a13ab3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_test_runtime_begin_frame</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_test_runtime_begin_frame</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="332" column="6" declfile="ec_testSystem.h" declline="332" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a6929b89627f1772b36a60db604a434d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_test_runtime_end_frame</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_test_runtime_end_frame</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="333" column="6" declfile="ec_testSystem.h" declline="333" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a634cf4ca3786513317a6f005d800c3be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool editor_core_test_runtime_run_script</definition>
+        <argsstring>(const char *script_path, eastl::function&lt; void(bool any_failed)&gt; on_complete)</argsstring>
+        <name>editor_core_test_runtime_run_script</name>
+        <param>
+          <type>const char *</type>
+          <declname>script_path</declname>
+        </param>
+        <param>
+          <type>eastl::function&lt; void(bool any_failed)&gt;</type>
+          <declname>on_complete</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="338" column="6" declfile="ec_testSystem.h" declline="338" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a53b705b77cab373cc798261aed0699ba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void editor_core_test_runtime_set_window</definition>
+        <argsstring>(bool visible)</argsstring>
+        <name>editor_core_test_runtime_set_window</name>
+        <param>
+          <type>bool</type>
+          <declname>visible</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="340" column="6" declfile="ec_testSystem.h" declline="340" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__testSystem_8h_1a55febca7fd49aac65de5aca45504fba0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool editor_core_test_runtime_window_is_visible</definition>
+        <argsstring>()</argsstring>
+        <name>editor_core_test_runtime_window_is_visible</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_testSystem.h" line="341" column="6" declfile="ec_testSystem.h" declline="341" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_atomic.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_threads.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_critSec.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_events.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;gui/dag_imgui.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/functional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/shared_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestInput" kindref="compound">TestInput</ref>;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">SqModules;</highlight></codeline>
+<codeline lineno="21" refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">SQVM<sp/>*<ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" kindref="member">TestState</ref><sp/>:<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8aa5daf7f2ebbba4975d61dab1c40188c7" kindref="member">IDLE</ref>,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8a43491564ebcfd38568918efbd6e840fd" kindref="member">RUNNING</ref>,</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8a269f3d1562cbd15624e7d2c4b10122e3" kindref="member">PASSED</ref>,</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8ab9e14d9b2886bcff408b85aefa780419" kindref="member">FAILED</ref>,</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="classTestCallback" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestCallback" kindref="compound">TestCallback</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="34" refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestFunc</ref><sp/>=<sp/>eastl::function&lt;void(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;)&gt;;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classTestCallback_1a0489ec2e3c8cbcceaabfdd559d202639" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestCallback_1a0489ec2e3c8cbcceaabfdd559d202639" kindref="member">TestCallback</ref>(<ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestFunc</ref><sp/>test_func);</highlight></codeline>
+<codeline lineno="37" refid="classTestCallback_1a641c8d6d0a35a2ed0af7687d0cfb3443" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="classTestCallback_1a641c8d6d0a35a2ed0af7687d0cfb3443" kindref="member">~TestCallback</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classTestCallback_1a6999f1b38938078bf0e05076c1d5b15a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCallback_1a6999f1b38938078bf0e05076c1d5b15a" kindref="member">run</ref>(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestFunc</ref><sp/>testFunc;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="classTestCase" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestCase" kindref="compound">TestCase</ref></highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="48" refid="classTestCase_1a2ea6265718b21bf697758a6ab85a1f96" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestCase_1a2ea6265718b21bf697758a6ab85a1f96" kindref="member">TestCase</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classTestCase_1af502896392a5e14e24fedeecb44954bd" kindref="member">name</ref>,<sp/>eastl::shared_ptr&lt;TestCallback&gt;<sp/>test_callback,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filepath<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="classTestCase_1af502896392a5e14e24fedeecb44954bd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="classTestCase_1af502896392a5e14e24fedeecb44954bd" kindref="member">name</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>testName;<sp/>}</highlight></codeline>
+<codeline lineno="51" refid="classTestCase_1afcc593e0885945abf1b0501d1c1ffb4f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="classTestCase_1afcc593e0885945abf1b0501d1c1ffb4f" kindref="member">getFilePath</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>filePath;<sp/>}</highlight></codeline>
+<codeline lineno="52" refid="classTestCase_1a6a5f6b7f1cd437c39c8733bae3eddd3d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1a6a5f6b7f1cd437c39c8733bae3eddd3d" kindref="member">getSourceLine</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>line;<sp/>}</highlight></codeline>
+<codeline lineno="53" refid="classTestCase_1a4c56a3fb3e112174c403354fa5f68847" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" kindref="member">TestState</ref><sp/><ref refid="classTestCase_1a4c56a3fb3e112174c403354fa5f68847" kindref="member">lastState</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" kindref="member">TestState</ref>)interlocked_acquire_load(state);<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classTestCase_1afe647670fa7433018c6c1130987d4aff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1afe647670fa7433018c6c1130987d4aff" kindref="member">resetState</ref>();</highlight></codeline>
+<codeline lineno="56" refid="classTestCase_1af8d6fed4d9587f3f86043ff075bfc365" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1af8d6fed4d9587f3f86043ff075bfc365" kindref="member">markPassed</ref>()<sp/>{<sp/>interlocked_release_store(state,<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8a269f3d1562cbd15624e7d2c4b10122e3" kindref="member">TestState::PASSED</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="57" refid="classTestCase_1ab0dc2e6a02f56ae48a3afe5b3a223d57" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1ab0dc2e6a02f56ae48a3afe5b3a223d57" kindref="member">markFailed</ref>()<sp/>{<sp/>interlocked_release_store(state,<sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">)<ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8ab9e14d9b2886bcff408b85aefa780419" kindref="member">TestState::FAILED</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Keeps<sp/>only<sp/>the<sp/>first<sp/>reason<sp/>of<sp/>a<sp/>run,<sp/>because<sp/>later<sp/>failures<sp/>are<sp/>usually<sp/>caused<sp/>by<sp/>the<sp/>first<sp/>one.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="classTestCase_1ab8748be379f242c7a91ab5e936420e18" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1ab8748be379f242c7a91ab5e936420e18" kindref="member">markFailed</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*reason);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Empty<sp/>if<sp/>the<sp/>test<sp/>did<sp/>not<sp/>fail,<sp/>or<sp/>failed<sp/>without<sp/>a<sp/>reason.<sp/>Thread-safe.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="classTestCase_1ac5d41350ac1557bd093a441a334b86c3" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classTestCase_1ac5d41350ac1557bd093a441a334b86c3" kindref="member">getFailReason</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Clears<sp/>the<sp/>fail<sp/>reason,<sp/>sets<sp/>state<sp/>to<sp/>running,<sp/>then<sp/>invokes<sp/>the<sp/>test<sp/>function.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="classTestCase_1a3ef3e8a59d48e17efd4dd0dad877c488" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1a3ef3e8a59d48e17efd4dd0dad877c488" kindref="member">run</ref>(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="classTestCase_1ae44f88cbf91d0ff3dc08ca91af52ce3f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestCase_1ae44f88cbf91d0ff3dc08ca91af52ce3f" kindref="member">register_script_class</ref>(<ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref><sp/>vm);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>String<sp/>testName;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>eastl::shared_ptr&lt;TestCallback&gt;<sp/>testCallback;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>state;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>test<sp/>thread<sp/>writes<sp/>the<sp/>reason,<sp/>the<sp/>main<sp/>thread<sp/>reads<sp/>it<sp/>for<sp/>the<sp/>Tests<sp/>tab.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">mutable</highlight><highlight class="normal"><sp/>WinCritSec<sp/>reasonMutex;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>String<sp/>reasonText;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>String<sp/>filePath;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="comment">//<sp/>A<sp/>test<sp/>can<sp/>end,<sp/>or<sp/>fail,<sp/>while<sp/>it<sp/>holds<sp/>a<sp/>mouse<sp/>button<sp/>or<sp/>a<sp/>key.<sp/>The<sp/>test<sp/>runtime<sp/>releases<sp/>it,<sp/>so<sp/>the<sp/>next<sp/>test<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="comment">//<sp/>the<sp/>user<sp/>do<sp/>not<sp/>get<sp/>input<sp/>they<sp/>did<sp/>not<sp/>make.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="classTestInput" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestInput" kindref="compound">TestInput</ref></highlight></codeline>
+<codeline lineno="86"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="88" refid="classTestInput_1aad9154f76c05fa6de5bff6a2082e95ad" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestInput_1aad9154f76c05fa6de5bff6a2082e95ad" kindref="member">TestInput</ref>(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;runtime);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Direct<sp/>input<sp/>event<sp/>control</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="classTestInput_1a5d47206c0fa73c00bbe79983d2330708" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a5d47206c0fa73c00bbe79983d2330708" kindref="member">mouseButtonDown</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button);</highlight></codeline>
+<codeline lineno="92" refid="classTestInput_1af2b732701929f001aefe3d08af2d1ebe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1af2b732701929f001aefe3d08af2d1ebe" kindref="member">mouseButtonUp</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button);</highlight></codeline>
+<codeline lineno="93" refid="classTestInput_1a5eecdb5103a34d28bb2e0d57a0b6bc53" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a5eecdb5103a34d28bb2e0d57a0b6bc53" kindref="member">mouseClick</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button);</highlight></codeline>
+<codeline lineno="94" refid="classTestInput_1a712e2a5d17e2c99babd3741daa4799ef" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a712e2a5d17e2c99babd3741daa4799ef" kindref="member">mouseClickModifier</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>modifier);</highlight></codeline>
+<codeline lineno="95" refid="classTestInput_1a3adbc0ba60b6985d4b92ec731928909d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a3adbc0ba60b6985d4b92ec731928909d" kindref="member">mousePosition</ref>(Point2<sp/>at);</highlight></codeline>
+<codeline lineno="96" refid="classTestInput_1a20bf2c7abe0bf260d2a1453375a73c57" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a20bf2c7abe0bf260d2a1453375a73c57" kindref="member">mouseMove</ref>(Point2<sp/>from,<sp/>Point2<sp/>to,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>over_seconds<sp/>=<sp/>1.0f);</highlight></codeline>
+<codeline lineno="97" refid="classTestInput_1ab63f39f23b18426c4b8c133c7a6dacfa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1ab63f39f23b18426c4b8c133c7a6dacfa" kindref="member">keyDown</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key);</highlight></codeline>
+<codeline lineno="98" refid="classTestInput_1ac95cdc3f92fc2c2e1dee5dabb42261ff" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1ac95cdc3f92fc2c2e1dee5dabb42261ff" kindref="member">keyUp</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key);</highlight></codeline>
+<codeline lineno="99" refid="classTestInput_1a67f5fba9a849730a7b7807b904832eae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a67f5fba9a849730a7b7807b904832eae" kindref="member">keyPress</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key);</highlight></codeline>
+<codeline lineno="100" refid="classTestInput_1a9451211d018fbb39aa68f799329937b5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a9451211d018fbb39aa68f799329937b5" kindref="member">keyPressModifier</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>modifier);</highlight></codeline>
+<codeline lineno="101" refid="classTestInput_1ac6cb1e02721a9689160df16ede964132" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1ac6cb1e02721a9689160df16ede964132" kindref="member">keyHeld</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>over_seconds<sp/>=<sp/>1.0f);</highlight></codeline>
+<codeline lineno="102" refid="classTestInput_1a06d659b802ad2d29851a4b860a2feb9e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a06d659b802ad2d29851a4b860a2feb9e" kindref="member">keyHeldModifier</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>modifier,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>over_seconds<sp/>=<sp/>1.0f);</highlight></codeline>
+<codeline lineno="103" refid="classTestInput_1a11c9358e09a80d96d4f927e5d43fbc06" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a11c9358e09a80d96d4f927e5d43fbc06" kindref="member">characterInput</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*text,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>between_seconds<sp/>=<sp/>0.0f);</highlight></codeline>
+<codeline lineno="104" refid="classTestInput_1af2267bd2012025c68cc88459ea53757d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1af2267bd2012025c68cc88459ea53757d" kindref="member">mouseDrag</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button,<sp/>Point2<sp/>from,<sp/>Point2<sp/>to,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>over_seconds<sp/>=<sp/>1.0f);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Query<sp/>GUI<sp/>item<sp/>based<sp/>input<sp/>control<sp/>(filepath/line<sp/>is<sp/>the<sp/>call<sp/>site<sp/>for<sp/>diagnostics).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>A<sp/>path<sp/>that<sp/>is<sp/>not<sp/>found<sp/>fails<sp/>the<sp/>running<sp/>test<sp/>when<sp/>failOnInvalidInputQuery<sp/>is<sp/>set,<sp/>then<sp/>returns<sp/>false.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classTestInput_1acaed6ee631b30480afeaeef3619f2904" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1acaed6ee631b30480afeaeef3619f2904" kindref="member">mouseMoveItem</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>over_seconds<sp/>=<sp/>1.0f,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filepath<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="109" refid="classTestInput_1ac202eb69140f69e408fc01cf2ce1dfcd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1ac202eb69140f69e408fc01cf2ce1dfcd" kindref="member">mouseClickItem</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>button,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filepath<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111" refid="classTestInput_1a00d65ef6068a6671b18b4cc46f63f0ad" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestInput_1a00d65ef6068a6671b18b4cc46f63f0ad" kindref="member">register_script_class</ref>(<ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref><sp/>vm);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;runtime;</highlight></codeline>
+<codeline lineno="115"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="classTestScriptModule" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestScriptModule" kindref="compound">TestScriptModule</ref></highlight></codeline>
+<codeline lineno="118"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="120" refid="classTestScriptModule_1aaef02ffabfdd0b91eb507775ea13a74c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestScriptModule_1aaef02ffabfdd0b91eb507775ea13a74c" kindref="member">TestScriptModule</ref>(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="121" refid="classTestScriptModule_1a769cca65ff1a646c6f56384818ad51b6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestScriptModule_1a769cca65ff1a646c6f56384818ad51b6" kindref="member">~TestScriptModule</ref>();</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="classTestScriptModule_1ab6de748f9fb21aa1f0e3d236866b415d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestScriptModule_1ab6de748f9fb21aa1f0e3d236866b415d" kindref="member">bindScript</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*script_filename);</highlight></codeline>
+<codeline lineno="124" refid="classTestScriptModule_1aef68d4436e31d600e2465a73efa650b5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestScriptModule_1aef68d4436e31d600e2465a73efa650b5" kindref="member">reloadScript</ref>();</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight></codeline>
+<codeline lineno="126" refid="classTestScriptModule_1a6ed81944aae88673285ea8d47b412969" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>String<sp/>&amp;<ref refid="classTestScriptModule_1a6ed81944aae88673285ea8d47b412969" kindref="member">getScriptFilename</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>scriptFilename;<sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;runtime;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>init();</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>String<sp/>scriptFilename;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>SqModules<sp/>*moduleMgr<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137" refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" kindref="member">TestFilter</ref></highlight></codeline>
+<codeline lineno="138"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827a5fb1f955b45e38e31789286a1790398d" kindref="member">ALL</ref>,</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8aa5daf7f2ebbba4975d61dab1c40188c7" kindref="member">IDLE</ref>,</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8a269f3d1562cbd15624e7d2c4b10122e3" kindref="member">PASSED</ref>,</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8ab9e14d9b2886bcff408b85aefa780419" kindref="member">FAILED</ref>,</highlight></codeline>
+<codeline lineno="143"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145" refid="classTestWindow" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestWindow" kindref="compound">TestWindow</ref></highlight></codeline>
+<codeline lineno="146"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="148" refid="classTestWindow_1a149c97326618857762efb8631ff37066" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestWindow_1a149c97326618857762efb8631ff37066" kindref="member">TestWindow</ref>(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;rt);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150" refid="classTestWindow_1a2114d85778a49b4c3514691475d14c9d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestWindow_1a2114d85778a49b4c3514691475d14c9d" kindref="member">updateImgui</ref>();</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="classTestWindow_1a39dba7254821f310a632e3277430201c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestWindow_1a39dba7254821f310a632e3277430201c" kindref="member">drawFakeMousePointerDuringRun</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153" refid="classTestWindow_1a4b4cedb2302e86ff283f37c1110b9ef3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestWindow_1a4b4cedb2302e86ff283f37c1110b9ef3" kindref="member">hideDuringRun</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;runtime;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" kindref="member">TestFilter</ref><sp/>filterSelection<sp/>=<sp/><ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827a5fb1f955b45e38e31789286a1790398d" kindref="member">TestFilter::ALL</ref>;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>runOnlyNameFiltered<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>String<sp/>filterText;</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>textInputFocused<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>String<sp/>runStatusText;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>String<sp/>scriptFilenameText;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>scriptInputFocused<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>String<sp/>currentScriptText;</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Registers<sp/>a<sp/>test<sp/>and<sp/>records<sp/>the<sp/>call<sp/>site<sp/>(file<sp/>and<sp/>line)<sp/>for<sp/>diagnostics.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171" refid="ec__testSystem_8h_1ab08099e2be42e6c404b92f0880d10730" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EDITOR_CORE_REGISTER_TEST(runtime,<sp/>name,<sp/>func)<sp/>\</highlight></codeline>
+<codeline lineno="172"><highlight class="preprocessor"><sp/><sp/>(runtime).registerTestEx((name),<sp/>eastl::make_shared&lt;TestCallback&gt;(func),<sp/>__FILE__,<sp/>__LINE__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Marks<sp/>the<sp/>currently<sp/>running<sp/>test<sp/>as<sp/>failed<sp/>and<sp/>logs<sp/>the<sp/>reason<sp/>with<sp/>the<sp/>call<sp/>site.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="ec__testSystem_8h_1a22cd3ed3084b7f20e9458438572a58fb" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EDITOR_CORE_TEST_FAIL(runtime,<sp/>reason)<sp/>(runtime).markFailed(__FILE__,<sp/>__LINE__,<sp/>(reason))</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Input<sp/>helpers<sp/>that<sp/>record<sp/>the<sp/>call<sp/>site<sp/>on<sp/>failure.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="ec__testSystem_8h_1a3b54dc6ad795146cb907c86d297b699b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EDITOR_CORE_MOUSE_MOVE_ITEM(input,<sp/>path,<sp/>over_seconds)<sp/>(input).mouseMoveItem((path),<sp/>(over_seconds),<sp/>__FILE__,<sp/>__LINE__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="179" refid="ec__testSystem_8h_1ac37bd97c06d321ab76204102e9d1a835" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>EDITOR_CORE_MOUSE_CLICK_ITEM(input,<sp/>path,<sp/>button)<sp/><sp/><sp/><sp/><sp/><sp/>(input).mouseClickItem((path),<sp/>(button),<sp/>__FILE__,<sp/>__LINE__)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight></codeline>
+<codeline lineno="181" refid="classTestRuntime" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref></highlight></codeline>
+<codeline lineno="182"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="184" refid="structTestRuntime_1_1TestInfo" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTestRuntime_1_1TestInfo" kindref="compound">TestInfo</ref></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="186" refid="structTestRuntime_1_1TestInfo_1af5c428463c4ea2d997c4fba664dab515" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/><ref refid="structTestRuntime_1_1TestInfo_1af5c428463c4ea2d997c4fba664dab515" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="187" refid="structTestRuntime_1_1TestInfo_1a939f78cc009155dacd6ff9887925144f" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8" kindref="member">TestState</ref><sp/><ref refid="structTestRuntime_1_1TestInfo_1a939f78cc009155dacd6ff9887925144f" kindref="member">state</ref><sp/>=<sp/><ref refid="ec__testSystem_8h_1a022ae1b25ef5783bcf0cb11dcc08dbe8aa5daf7f2ebbba4975d61dab1c40188c7" kindref="member">TestState::IDLE</ref>;</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Empty<sp/>filePath<sp/>means<sp/>no<sp/>call<sp/>site<sp/>was<sp/>recorded;<sp/>sourceLine<sp/>is<sp/>0<sp/>in<sp/>that<sp/>case.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189" refid="structTestRuntime_1_1TestInfo_1ac1d1d0b3c2d73957d0076617a01d06d0" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/><ref refid="structTestRuntime_1_1TestInfo_1ac1d1d0b3c2d73957d0076617a01d06d0" kindref="member">filePath</ref>;</highlight></codeline>
+<codeline lineno="190" refid="structTestRuntime_1_1TestInfo_1a9adbc7781e2db7c01036239807e69868" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structTestRuntime_1_1TestInfo_1a9adbc7781e2db7c01036239807e69868" kindref="member">sourceLine</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="191" refid="structTestRuntime_1_1TestInfo_1a18ab943e8325f232df6d93e51fce8365" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/><ref refid="structTestRuntime_1_1TestInfo_1a18ab943e8325f232df6d93e51fce8365" kindref="member">failReason</ref>;</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194" refid="classTestRuntime_1ae21cc3d80dd98008bdbe1b06bceb6d8d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestRuntime_1ae21cc3d80dd98008bdbe1b06bceb6d8d" kindref="member">TestRuntime</ref>();</highlight></codeline>
+<codeline lineno="195" refid="classTestRuntime_1a8bcd9755b86882ecf9c8290455a44d24" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestRuntime_1a8bcd9755b86882ecf9c8290455a44d24" kindref="member">~TestRuntime</ref>();</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"></highlight></codeline>
+<codeline lineno="197" refid="classTestRuntime_1a79a12c7e25721fd611aa19e776484a3c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a79a12c7e25721fd611aa19e776484a3c" kindref="member">start</ref>();</highlight></codeline>
+<codeline lineno="198" refid="classTestRuntime_1a81ed900013b078123623d7bc9742db04" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a81ed900013b078123623d7bc9742db04" kindref="member">stop</ref>();</highlight></codeline>
+<codeline lineno="199" refid="classTestRuntime_1a77e0161c9b36a6d47aef5f8cf3485530" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a77e0161c9b36a6d47aef5f8cf3485530" kindref="member">isRunning</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(running);<sp/>}</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"></highlight></codeline>
+<codeline lineno="201" refid="classTestRuntime_1a6487fdaae6aac152f1c17b51e3db2f3f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestCase" kindref="compound">TestCase</ref><sp/>&amp;<ref refid="classTestRuntime_1a6487fdaae6aac152f1c17b51e3db2f3f" kindref="member">registerTest</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/><ref refid="classTestCallback_1af190a8321e22c186d3333d6c3dac8a27" kindref="member">TestCallback::TestFunc</ref><sp/>test_func);</highlight></codeline>
+<codeline lineno="202" refid="classTestRuntime_1a23d3594ab1bb28be80f008154cfe24d6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestCase" kindref="compound">TestCase</ref><sp/>&amp;<ref refid="classTestRuntime_1a23d3594ab1bb28be80f008154cfe24d6" kindref="member">registerTestEx</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>eastl::shared_ptr&lt;TestCallback&gt;<sp/>&amp;test_callback,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filepath<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line<sp/>=<sp/>0);</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"></highlight></codeline>
+<codeline lineno="205" refid="classTestRuntime_1a9575a6601554fe71c890145445b65cd5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a9575a6601554fe71c890145445b65cd5" kindref="member">testCount</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>registry.size();<sp/>}</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"></highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Both<sp/>assert<sp/>and<sp/>do<sp/>nothing<sp/>if<sp/>tests<sp/>are<sp/>running<sp/>(queue<sp/>holds<sp/>raw<sp/>pointers<sp/>into<sp/>the<sp/>registry).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="208" refid="classTestRuntime_1a56e89f60bcb28b406a332f5b06a7a9b3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a56e89f60bcb28b406a332f5b06a7a9b3" kindref="member">deleteTest</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="209" refid="classTestRuntime_1aefc321155f3fa224891c23419142901e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1aefc321155f3fa224891c23419142901e" kindref="member">deleteAllTests</ref>();</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211" refid="classTestRuntime_1a4e690f2eebbe33ca07839c8574b0b0d5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a4e690f2eebbe33ca07839c8574b0b0d5" kindref="member">enqueue</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="212" refid="classTestRuntime_1acab64a5ebc2ec013fbdc7c5816db3cf4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1acab64a5ebc2ec013fbdc7c5816db3cf4" kindref="member">enqueueAll</ref>(<ref refid="ec__testSystem_8h_1af512c4e954ce432df4eced92186df827" kindref="member">TestFilter</ref><sp/>state,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Removes<sp/>all<sp/>pending<sp/>tests<sp/>from<sp/>the<sp/>queue<sp/>(currently<sp/>running<sp/>test<sp/>finishes<sp/>naturally).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214" refid="classTestRuntime_1a4f8903012e95f57e003880eb81ff76d0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a4f8903012e95f57e003880eb81ff76d0" kindref="member">clearQueue</ref>();</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Snapshot<sp/>of<sp/>every<sp/>registered<sp/>test&apos;s<sp/>name,<sp/>state,<sp/>call<sp/>site<sp/>and<sp/>fail<sp/>reason.<sp/>Thread-safe.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="217" refid="classTestRuntime_1a2f0591046445d0ce033290791b558266" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;TestInfo&gt;<sp/><ref refid="classTestRuntime_1a2f0591046445d0ce033290791b558266" kindref="member">testInfos</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"></highlight></codeline>
+<codeline lineno="219" refid="classTestRuntime_1a149e8797602b5edfbbe9ce011fa90e2e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestInput" kindref="compound">TestInput</ref><sp/>&amp;<ref refid="classTestRuntime_1a149e8797602b5edfbbe9ce011fa90e2e" kindref="member">input</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>inputSystem;<sp/>}</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Call<sp/>from<sp/>the<sp/>main<sp/>thread,<sp/>between<sp/>ImGui::NewFrame()<sp/>and<sp/>the<sp/>first<sp/>submitted<sp/>widget.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>It<sp/>is<sp/>the<sp/>only<sp/>place<sp/>that<sp/>releases<sp/>the<sp/>input<sp/>a<sp/>test<sp/>holds<sp/>and<sp/>enables<sp/>accepting<sp/>user<sp/>input<sp/>again,<sp/>thus<sp/>a<sp/>stopped</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>run<sp/>needs<sp/>this<sp/>call<sp/>too.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="224" refid="classTestRuntime_1a49e76405c4be1b2dbceca88672001e54" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a49e76405c4be1b2dbceca88672001e54" kindref="member">frameBegin</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>dt);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Call<sp/>from<sp/>the<sp/>main<sp/>thread,<sp/>after<sp/>the<sp/>last<sp/>widget<sp/>is<sp/>submitted<sp/>and<sp/>before<sp/>imgui_endframe().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>A<sp/>test<sp/>runs<sp/>only<sp/>inside<sp/>this<sp/>call.<sp/>It<sp/>wakes<sp/>a<sp/>waiting<sp/>test,<sp/>then<sp/>waits<sp/>until<sp/>the<sp/>test<sp/>yields<sp/>again.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>If<sp/>the<sp/>test<sp/>does<sp/>not<sp/>yield<sp/>in<sp/>time<sp/>(see<sp/>TIMEOUT_MSEC),<sp/>it<sp/>fails,<sp/>the<sp/>main<sp/>thread<sp/>stops<sp/>waiting<sp/>for<sp/>it,<sp/>and<sp/>the<sp/>test</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>runs<sp/>outside<sp/>this<sp/>call<sp/>until<sp/>it<sp/>ends.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="230" refid="classTestRuntime_1ac413583544fa17c7e70d15e35fa6d67e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1ac413583544fa17c7e70d15e35fa6d67e" kindref="member">frameEnd</ref>();</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Call<sp/>from<sp/>inside<sp/>a<sp/>TestCase<sp/>function<sp/>(test<sp/>thread<sp/>only).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>main<sp/>thread<sp/>waits<sp/>while<sp/>a<sp/>test<sp/>runs,<sp/>thus<sp/>a<sp/>test<sp/>must<sp/>not<sp/>wait<sp/>for<sp/>the<sp/>main<sp/>thread<sp/>other<sp/>than<sp/>with<sp/>these<sp/>calls.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="234" refid="classTestRuntime_1ac35f95d8496d2e5a6d5bd10ce6631c57" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1ac35f95d8496d2e5a6d5bd10ce6631c57" kindref="member">yieldFrame</ref>();</highlight></codeline>
+<codeline lineno="235" refid="classTestRuntime_1a73508679be2819c4ff2ff23a61bc2b78" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a73508679be2819c4ff2ff23a61bc2b78" kindref="member">yieldTime</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>seconds);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="237" refid="classTestRuntime_1a4ba6add5f0d4690bbcb97c80e75e4244" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a4ba6add5f0d4690bbcb97c80e75e4244" kindref="member">lastFrameDelta</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>frameDeltaSeconds;<sp/>}</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Callable<sp/>from<sp/>inside<sp/>a<sp/>test<sp/>to<sp/>signal<sp/>failure<sp/>without<sp/>throwing.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Logs<sp/>one<sp/>failure<sp/>record<sp/>when<sp/>a<sp/>location<sp/>or<sp/>a<sp/>reason<sp/>is<sp/>given,<sp/>then<sp/>fails<sp/>the<sp/>running<sp/>test<sp/>with<sp/>that<sp/>record<sp/>as<sp/>its</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>fail<sp/>reason.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="242" refid="classTestRuntime_1a8862fd18cf21bdcd3647e0fd9ce08b1d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a8862fd18cf21bdcd3647e0fd9ce08b1d" kindref="member">markFailed</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*filepath<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>line<sp/>=<sp/>0,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*reason<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244" refid="classTestRuntime_1abe5e03b3ee6ffde93745047d22c86dc4" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1abe5e03b3ee6ffde93745047d22c86dc4" kindref="member">failOnInvalidInputQuery</ref><sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight></codeline>
+<codeline lineno="246" refid="classTestRuntime_1a5aab65e5be1bc4762fd3315cbb3c0e4d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a5aab65e5be1bc4762fd3315cbb3c0e4d" kindref="member">testsRunning</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(anyTestRunning);<sp/>}</highlight></codeline>
+<codeline lineno="247" refid="classTestRuntime_1a651686940fb960a3951885c8ff95d381" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestCase" kindref="compound">TestCase</ref><sp/>*<ref refid="classTestRuntime_1a651686940fb960a3951885c8ff95d381" kindref="member">currentlyRunningTest</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load_ptr(runningTest);<sp/>}</highlight></codeline>
+<codeline lineno="248" refid="classTestRuntime_1ac3ea6175649d0fef3d8bb57f83ae9fbe" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1ac3ea6175649d0fef3d8bb57f83ae9fbe" kindref="member">getRemainingCount</ref>();</highlight></codeline>
+<codeline lineno="249" refid="classTestRuntime_1a875a07b74b00ec6221ada56fbebab1dc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1a875a07b74b00ec6221ada56fbebab1dc" kindref="member">getTotalEnqueued</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>interlocked_acquire_load(totalEnqueued);<sp/>}</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="251" refid="classTestRuntime_1aacbc79ae13f0afe43f7f0226198560af" refkind="member"><highlight class="normal"><sp/><sp/>ImGuiTestRuntimeOptions<sp/>&amp;<ref refid="classTestRuntime_1aacbc79ae13f0afe43f7f0226198560af" kindref="member">options</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>debugOptions;<sp/>}</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"></highlight></codeline>
+<codeline lineno="253" refid="classTestRuntime_1a845361b6a1de752fe504937b895806fd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestScriptModule" kindref="compound">TestScriptModule</ref><sp/>&amp;<ref refid="classTestRuntime_1a845361b6a1de752fe504937b895806fd" kindref="member">testScripts</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>scriptModule;<sp/>}</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"></highlight></codeline>
+<codeline lineno="255" refid="classTestRuntime_1a44ca18b67bd16f6404e3499f9984edbd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTestWindow" kindref="compound">TestWindow</ref><sp/>&amp;<ref refid="classTestRuntime_1a44ca18b67bd16f6404e3499f9984edbd" kindref="member">window</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>debugWindow;<sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257" refid="classTestRuntime_1ad36f54deb03f3a3abb5925f9963cd211" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTestRuntime_1ad36f54deb03f3a3abb5925f9963cd211" kindref="member">register_script_class</ref>(<ref refid="ec__testSystem_8h_1a9118df9c000fff034a7b410b6de3443c" kindref="member">HSQUIRRELVM</ref><sp/>vm);</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"></highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>threadLoop();</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>waitInputClear();</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>waitNextFrame(WinAutoLock<sp/>&amp;frame_lock);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TestThread<sp/>final<sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DaThread</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/>TestThread(<ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;rt)<sp/>:<sp/>DaThread(</highlight><highlight class="stringliteral">&quot;TestThread&quot;</highlight><highlight class="normal">,<sp/>256<sp/>&lt;&lt;<sp/>10,<sp/>0,<sp/>0),<sp/>runtime(rt)<sp/>{}</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"></highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>execute()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/>runtime.threadLoop();<sp/>}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>&amp;runtime;</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"></highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>TestThreadState</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/>Idle,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>No<sp/>test<sp/>step<sp/>runs<sp/>or<sp/>waits<sp/>for<sp/>frameEnd().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/>WaitingToRun,<sp/></highlight><highlight class="comment">//<sp/>The<sp/>test<sp/>waits<sp/>until<sp/>frameEnd()<sp/>wakes<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/>Running,<sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>A<sp/>test<sp/>step<sp/>runs,<sp/>frameEnd()<sp/>waits<sp/>until<sp/>it<sp/>yields.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/>TestThread<sp/>thread{*</highlight><highlight class="keyword">this</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"></highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>ordered<sp/>by<sp/>registration,<sp/>name-searchable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/>Tab&lt;eastl::unique_ptr&lt;TestCase&gt;&gt;<sp/>registry;</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"></highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/>WinCritSec<sp/>queueMutex;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/>Tab&lt;TestCase<sp/>*&gt;<sp/>testQueue;</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"></highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/>WinCritSec<sp/>frameMutex;</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>frameCount<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>frameInProgress<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>frameDeltaSeconds<sp/>=<sp/>0.0f;</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>inputClearFrame<sp/>=<sp/>-1;<sp/></highlight><highlight class="comment">//<sp/>The<sp/>frame<sp/>in<sp/>which<sp/>frameBegin()<sp/>cleared<sp/>the<sp/>input.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>state<sp/>and<sp/>the<sp/>flag<sp/>are<sp/>written<sp/>under<sp/>frameMutex,<sp/>except<sp/>in<sp/>start(),<sp/>which<sp/>runs<sp/>while<sp/>no<sp/>test<sp/>thread<sp/>exists.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>two<sp/>threads<sp/>do<sp/>not<sp/>run<sp/>in<sp/>parallel,<sp/>except<sp/>when<sp/>a<sp/>test<sp/>does<sp/>not<sp/>yield<sp/>in<sp/>time.<sp/>Then<sp/>they<sp/>run<sp/>in<sp/>parallel<sp/>until</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>the<sp/>test<sp/>ends.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/>os_event_t<sp/>testThreadCanRun,<sp/>mainThreadCanRun;</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/>TestThreadState<sp/>testThreadState<sp/>=<sp/>TestThreadState::Idle;</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>mainThreadWaitTimedOut<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"></highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inputClearPending<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>running<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"></highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Written<sp/>under<sp/>queueMutex;<sp/>read<sp/>lock-free<sp/>via<sp/>interlocked_acquire_load.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>runningTest<sp/>is<sp/>also<sp/>cleared<sp/>without<sp/>the<sp/>mutex<sp/>after<sp/>a<sp/>test<sp/>finishes<sp/>(single<sp/>writer).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>anyTestRunning<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>totalEnqueued<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><ref refid="classTestCase" kindref="compound">TestCase</ref><sp/>*</highlight><highlight class="keyword">volatile</highlight><highlight class="normal"><sp/>runningTest<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"></highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/>ImGuiTestRuntimeOptions<sp/>debugOptions{</highlight><highlight class="keyword">this</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/>0,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>drawFakeMousePointer<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"></highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><ref refid="classTestInput" kindref="compound">TestInput</ref><sp/>inputSystem{*</highlight><highlight class="keyword">this</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><ref refid="classTestInput" kindref="compound">TestInput</ref><sp/>*inputPtr()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;inputSystem;<sp/>}<sp/></highlight><highlight class="comment">//<sp/>for<sp/>sq</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="318"><highlight class="normal"></highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><ref refid="classTestWindow" kindref="compound">TestWindow</ref><sp/>debugWindow{*</highlight><highlight class="keyword">this</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"></highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><ref refid="classTestScriptModule" kindref="compound">TestScriptModule</ref><sp/>scriptModule{*</highlight><highlight class="keyword">this</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="322"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"></highlight></codeline>
+<codeline lineno="324" refid="ec__testSystem_8h_1a71561cc05b8d4713735217abfcdf9c8b" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a71561cc05b8d4713735217abfcdf9c8b" kindref="member">editor_core_initialize_test_runtime</ref>();</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"></highlight></codeline>
+<codeline lineno="326"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Call<sp/>before<sp/>imgui_shutdown(),<sp/>because<sp/>while<sp/>shutting<sp/>down<sp/>the<sp/>tests,<sp/>a<sp/>test<sp/>can<sp/>call<sp/>dag_imgui,<sp/>it<sp/>can<sp/>make<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="327"><highlight class="normal"></highlight><highlight class="comment">//<sp/>&quot;Test<sp/>Runtime&quot;<sp/>window<sp/>visible<sp/>again.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="328" refid="ec__testSystem_8h_1a9ec842b943449822986f7fd2ab72c948" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a9ec842b943449822986f7fd2ab72c948" kindref="member">editor_core_shutdown_test_runtime</ref>();</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"></highlight></codeline>
+<codeline lineno="330" refid="ec__testSystem_8h_1a31924ea0b4e094dd627a71fae1aa65b0" refkind="member"><highlight class="normal"><ref refid="classTestRuntime" kindref="compound">TestRuntime</ref><sp/>*<ref refid="ec__testSystem_8h_1a31924ea0b4e094dd627a71fae1aa65b0" kindref="member">editor_core_test_runtime_get_instance</ref>();</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"></highlight></codeline>
+<codeline lineno="332" refid="ec__testSystem_8h_1a473a11f3a59ff901c49258701a13ab3c" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a473a11f3a59ff901c49258701a13ab3c" kindref="member">editor_core_test_runtime_begin_frame</ref>();</highlight></codeline>
+<codeline lineno="333" refid="ec__testSystem_8h_1a6929b89627f1772b36a60db604a434d6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a6929b89627f1772b36a60db604a434d6" kindref="member">editor_core_test_runtime_end_frame</ref>();</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"></highlight></codeline>
+<codeline lineno="335"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Load<sp/>script_path,<sp/>start<sp/>the<sp/>runtime,<sp/>enqueue<sp/>all<sp/>tests.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight><highlight class="comment">//<sp/>on_complete(any_failed)<sp/>fires<sp/>on<sp/>the<sp/>main<sp/>thread<sp/>when<sp/>the<sp/>run<sp/>finishes.<sp/>Instantly<sp/>if<sp/>the<sp/>script<sp/>registered<sp/>no<sp/>tests.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Returns<sp/>false<sp/>if<sp/>the<sp/>script<sp/>failed<sp/>to<sp/>load;<sp/>on_complete<sp/>is<sp/>not<sp/>called<sp/>in<sp/>that<sp/>case.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="338" refid="ec__testSystem_8h_1a634cf4ca3786513317a6f005d800c3be" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a634cf4ca3786513317a6f005d800c3be" kindref="member">editor_core_test_runtime_run_script</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*script_path,<sp/>eastl::function&lt;</highlight><highlight class="keywordtype">void</highlight><highlight class="normal">(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>any_failed)&gt;<sp/>on_complete);</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"></highlight></codeline>
+<codeline lineno="340" refid="ec__testSystem_8h_1a53b705b77cab373cc798261aed0699ba" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a53b705b77cab373cc798261aed0699ba" kindref="member">editor_core_test_runtime_set_window</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>visible);</highlight></codeline>
+<codeline lineno="341" refid="ec__testSystem_8h_1a55febca7fd49aac65de5aca45504fba0" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__testSystem_8h_1a55febca7fd49aac65de5aca45504fba0" kindref="member">editor_core_test_runtime_window_is_visible</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="ec_testSystem.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,228 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassObject_1_1Subpass" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassObject::Subpass</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassObject_1_1Subpass_1acb6b2917f2d18eb606b13995f6f43b2f" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId RenderPassObject::Subpass::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderPassObject::Subpass::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="62" column="22" bodyfile="renderPassObject.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Subpass_1acc5b0d47ffbd8e5c505c3d97d6d60fad" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; int &gt;</type>
+        <definition>SerializableTab&lt;int&gt; RenderPassObject::Subpass::colors</definition>
+        <argsstring></argsstring>
+        <name>colors</name>
+        <qualifiedname>RenderPassObject::Subpass::colors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="63" column="21" bodyfile="renderPassObject.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Subpass_1aa7902db54e8ce8f6e4b94e9b78663f27" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; int &gt;</type>
+        <definition>SerializableTab&lt;int&gt; RenderPassObject::Subpass::reads</definition>
+        <argsstring></argsstring>
+        <name>reads</name>
+        <qualifiedname>RenderPassObject::Subpass::reads</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="64" column="21" bodyfile="renderPassObject.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Subpass_1a9a3ff221e9e79775800ddb06e3340d73" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassObject::Subpass::depthTargetIdx</definition>
+        <argsstring></argsstring>
+        <name>depthTargetIdx</name>
+        <qualifiedname>RenderPassObject::Subpass::depthTargetIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="65" column="9" bodyfile="renderPassObject.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Subpass_1a370a397063f1a30c8acc741c0660922d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassObject::Subpass::vrsTargetIdx</definition>
+        <argsstring></argsstring>
+        <name>vrsTargetIdx</name>
+        <qualifiedname>RenderPassObject::Subpass::vrsTargetIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="66" column="9" bodyfile="renderPassObject.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Subpass_1ac8b988b21bd05ae421fbe5310d89383a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassObject::Subpass::depthSampled</definition>
+        <argsstring></argsstring>
+        <name>depthSampled</name>
+        <qualifiedname>RenderPassObject::Subpass::depthSampled</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="67" column="10" bodyfile="renderPassObject.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderPassObject_1_1Subpass_1a953203b6bc7f81eeaf228e188138b90d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderPassObject::Subpass::readPos</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>readPos</name>
+        <qualifiedname>RenderPassObject::Subpass::readPos</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="69" column="9" bodyfile="renderPassObject.cpp" bodystart="26" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassObject_1_1Subpass_1a4cdc7064573ed7a172f692b6d56b9b97" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderPassObject::Subpass::colorPos</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>colorPos</name>
+        <qualifiedname>RenderPassObject::Subpass::colorPos</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="70" column="9" bodyfile="renderPassObject.cpp" bodystart="34" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassObject_1_1Subpass_1a849e2ca0069db2377bc651a5b4a00f9e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::Subpass::depthReadOnly</definition>
+        <argsstring>() const</argsstring>
+        <name>depthReadOnly</name>
+        <qualifiedname>RenderPassObject::Subpass::depthReadOnly</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="71" column="10" bodyfile="renderPassObject.cpp" bodystart="43" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassObject_1_1Subpass_1af478bd502a64657db0e6f5b27464b324" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::Subpass::writes</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>writes</name>
+        <qualifiedname>RenderPassObject::Subpass::writes</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="72" column="10" bodyfile="renderPassObject.cpp" bodystart="45" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassObject_1_1Subpass_1a5bd2d6de5df9cd1cb3bb6ad14894e28e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::Subpass::binds</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>binds</name>
+        <qualifiedname>RenderPassObject::Subpass::binds</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="73" column="10" bodyfile="renderPassObject.cpp" bodystart="50" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassObject::Subpass</label>
+        <link refid="structRenderPassObject_1_1Subpass"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>colors</edgelabel>
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>SerializableTab&lt; int &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Tab&lt; int &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="60" column="3" bodyfile="renderPassObject.h" bodystart="61" bodyend="74"/>
+    <listofallmembers>
+      <member refid="structRenderPassObject_1_1Subpass_1a5bd2d6de5df9cd1cb3bb6ad14894e28e" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>binds</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1a4cdc7064573ed7a172f692b6d56b9b97" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>colorPos</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1acc5b0d47ffbd8e5c505c3d97d6d60fad" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>colors</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1a849e2ca0069db2377bc651a5b4a00f9e" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>depthReadOnly</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1ac8b988b21bd05ae421fbe5310d89383a" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>depthSampled</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1a9a3ff221e9e79775800ddb06e3340d73" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>depthTargetIdx</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1acb6b2917f2d18eb606b13995f6f43b2f" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>name</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1a953203b6bc7f81eeaf228e188138b90d" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>readPos</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1aa7902db54e8ce8f6e4b94e9b78663f27" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>reads</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1a370a397063f1a30c8acc741c0660922d" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>vrsTargetIdx</name></member>
+      <member refid="structRenderPassObject_1_1Subpass_1af478bd502a64657db0e6f5b27464b324" prot="public" virt="non-virtual"><scope>RenderPassObject::Subpass</scope><name>writes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

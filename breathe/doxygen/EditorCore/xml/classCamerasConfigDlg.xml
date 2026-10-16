@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCamerasConfigDlg" kind="class" language="C++" prot="public">
+    <compoundname>CamerasConfigDlg</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__camera__dlg_8h" local="no">ec_camera_dlg.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classCamerasConfigDlg_1a534869b955d055f9caf1b8df4f1484c4" prot="protected" static="no" mutable="no">
+        <type>PropPanel::ContainerPropertyControl *</type>
+        <definition>PropPanel::ContainerPropertyControl* CamerasConfigDlg::mTabPage</definition>
+        <argsstring></argsstring>
+        <name>mTabPage</name>
+        <qualifiedname>CamerasConfigDlg::mTabPage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="192" column="39" bodyfile="ec_camera_dlg.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCamerasConfigDlg_1a9a020964b864329e3cbc8c660184fbff" prot="protected" static="no" mutable="no">
+        <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+        <definition>CameraConfig* CamerasConfigDlg::mConfig</definition>
+        <argsstring></argsstring>
+        <name>mConfig</name>
+        <qualifiedname>CamerasConfigDlg::mConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="193" column="16" bodyfile="ec_camera_dlg.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCamerasConfigDlg_1a80229ca4d9649cbba0c42b18cbff5c9a" prot="protected" static="no" mutable="no">
+        <type><ref refid="classFreeCameraTab" kindref="compound">FreeCameraTab</ref> *</type>
+        <definition>FreeCameraTab* CamerasConfigDlg::mFreeCameraTab</definition>
+        <argsstring></argsstring>
+        <name>mFreeCameraTab</name>
+        <qualifiedname>CamerasConfigDlg::mFreeCameraTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="195" column="17" bodyfile="ec_camera_dlg.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCamerasConfigDlg_1a1e684fb79605c4ee081add734a4c322c" prot="protected" static="no" mutable="no">
+        <type><ref refid="classFPSCameraTab" kindref="compound">FPSCameraTab</ref> *</type>
+        <definition>FPSCameraTab* CamerasConfigDlg::mFPSCameraTab</definition>
+        <argsstring></argsstring>
+        <name>mFPSCameraTab</name>
+        <qualifiedname>CamerasConfigDlg::mFPSCameraTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="196" column="16" bodyfile="ec_camera_dlg.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCamerasConfigDlg_1a0dea236e212e5e84f9abe4e955700ec6" prot="protected" static="no" mutable="no">
+        <type><ref refid="classTPSCameraTab" kindref="compound">TPSCameraTab</ref> *</type>
+        <definition>TPSCameraTab* CamerasConfigDlg::mTPSCameraTab</definition>
+        <argsstring></argsstring>
+        <name>mTPSCameraTab</name>
+        <qualifiedname>CamerasConfigDlg::mTPSCameraTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="197" column="16" bodyfile="ec_camera_dlg.h" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCamerasConfigDlg_1ac8676a3eb5f66aa14544fe2dfebc2fd0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CamerasConfigDlg::CamerasConfigDlg</definition>
+        <argsstring>(void *phandle, CameraConfig *max_cc, CameraConfig *free_cc, CameraConfig *fps_cc, CameraConfig *tps_cc)</argsstring>
+        <name>CamerasConfigDlg</name>
+        <qualifiedname>CamerasConfigDlg::CamerasConfigDlg</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>phandle</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>max_cc</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>free_cc</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>fps_cc</declname>
+        </param>
+        <param>
+          <type><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref> *</type>
+          <declname>tps_cc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="184" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCamerasConfigDlg_1adfee3333c6f890799185250e60c0dd07" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CamerasConfigDlg::~CamerasConfigDlg</definition>
+        <argsstring>() override</argsstring>
+        <name>~CamerasConfigDlg</name>
+        <qualifiedname>CamerasConfigDlg::~CamerasConfigDlg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="185" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCamerasConfigDlg_1a867cd138aa4c31fb788d4ed23ca5fdb5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CamerasConfigDlg::fill</definition>
+        <argsstring>()</argsstring>
+        <name>fill</name>
+        <qualifiedname>CamerasConfigDlg::fill</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="187" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classCamerasConfigDlg_1a8f09ec772af5330caf7895d39ceefcc6" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CamerasConfigDlg::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>CamerasConfigDlg::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_dlg.h" line="190" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CamerasConfigDlg</label>
+        <link refid="classCamerasConfigDlg"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>CamerasConfigDlg</label>
+        <link refid="classCamerasConfigDlg"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>mConfig</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>mFreeCameraTab</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>mFPSCameraTab</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>mTPSCameraTab</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>FPSCameraTab</label>
+        <link refid="classFPSCameraTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>FreeCameraTab</label>
+        <link refid="classFreeCameraTab"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>mConfig</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+      <node id="7">
+        <label>TPSCameraTab</label>
+        <link refid="classTPSCameraTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_dlg.h" line="181" column="1" bodyfile="ec_camera_dlg.h" bodystart="182" bodyend="198"/>
+    <listofallmembers>
+      <member refid="classCamerasConfigDlg_1ac8676a3eb5f66aa14544fe2dfebc2fd0" prot="public" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>CamerasConfigDlg</name></member>
+      <member refid="classCamerasConfigDlg_1a867cd138aa4c31fb788d4ed23ca5fdb5" prot="public" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>fill</name></member>
+      <member refid="classCamerasConfigDlg_1a9a020964b864329e3cbc8c660184fbff" prot="protected" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>mConfig</name></member>
+      <member refid="classCamerasConfigDlg_1a1e684fb79605c4ee081add734a4c322c" prot="protected" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>mFPSCameraTab</name></member>
+      <member refid="classCamerasConfigDlg_1a80229ca4d9649cbba0c42b18cbff5c9a" prot="protected" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>mFreeCameraTab</name></member>
+      <member refid="classCamerasConfigDlg_1a534869b955d055f9caf1b8df4f1484c4" prot="protected" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>mTabPage</name></member>
+      <member refid="classCamerasConfigDlg_1a0dea236e212e5e84f9abe4e955700ec6" prot="protected" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>mTPSCameraTab</name></member>
+      <member refid="classCamerasConfigDlg_1a8f09ec772af5330caf7895d39ceefcc6" prot="protected" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>onChange</name></member>
+      <member refid="classCamerasConfigDlg_1adfee3333c6f890799185250e60c0dd07" prot="public" virt="non-virtual"><scope>CamerasConfigDlg</scope><name>~CamerasConfigDlg</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

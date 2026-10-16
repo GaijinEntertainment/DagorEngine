@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTexTagInfo" kind="struct" language="C++" prot="public">
+    <compoundname>TexTagInfo</compoundname>
+    <includes refid="dag__texMgrTags_8h" local="no">dag_texMgrTags.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTexTagInfo_1aa816b3be19841181d39f84d8d1374712" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TexTagInfo::texCount</definition>
+        <argsstring></argsstring>
+        <name>texCount</name>
+        <qualifiedname>TexTagInfo::texCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="23" column="7" bodyfile="dag_texMgrTags.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTexTagInfo_1ace52422a6757a9157c8fc1a06dbd0748" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TexTagInfo::loadGeneration</definition>
+        <argsstring></argsstring>
+        <name>loadGeneration</name>
+        <qualifiedname>TexTagInfo::loadGeneration</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texMgrTags.h" line="24" column="7" bodyfile="dag_texMgrTags.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_texMgrTags.h" line="21" column="1" bodyfile="dag_texMgrTags.h" bodystart="22" bodyend="25"/>
+    <listofallmembers>
+      <member refid="structTexTagInfo_1ace52422a6757a9157c8fc1a06dbd0748" prot="public" virt="non-virtual"><scope>TexTagInfo</scope><name>loadGeneration</name></member>
+      <member refid="structTexTagInfo_1aa816b3be19841181d39f84d8d1374712" prot="public" virt="non-virtual"><scope>TexTagInfo</scope><name>texCount</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

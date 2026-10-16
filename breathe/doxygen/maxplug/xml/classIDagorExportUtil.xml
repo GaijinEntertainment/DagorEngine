@@ -1,0 +1,312 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorExportUtil" kind="class" language="C++" prot="public">
+    <compoundname>IDagorExportUtil</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">FPStaticInterface</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classIDagorExportUtil_1a15d5db5a9cddca4bf3434f0d630eda22" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP</type>
+        <definition>BEGIN_FUNCTION_MAP IDagorExportUtil::Interval</definition>
+        <argsstring></argsstring>
+        <name>Interval</name>
+        <qualifiedname>IDagorExportUtil::Interval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4236" column="14" bodyfile="expUtil.cpp" bodystart="4236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1ad9a00c365da97e893f6207864869afa7" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool IDagorExportUtil::selectedOnly</definition>
+        <argsstring></argsstring>
+        <name>selectedOnly</name>
+        <qualifiedname>IDagorExportUtil::selectedOnly</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4236" column="29" bodyfile="expUtil.cpp" bodystart="4236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1aed4bf5d43faca6bb6436e885a8e1c038" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool IDagorExportUtil::suppressPrompts</definition>
+        <argsstring></argsstring>
+        <name>suppressPrompts</name>
+        <qualifiedname>IDagorExportUtil::suppressPrompts</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4236" column="47" bodyfile="expUtil.cpp" bodystart="4236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1a1b4123ca253e17058fca1cd6cd34cbf4" prot="public" static="no" mutable="no">
+        <type>BEGIN_FUNCTION_MAP bool bool bool</type>
+        <definition>BEGIN_FUNCTION_MAP bool bool bool IDagorExportUtil::separateLayers</definition>
+        <argsstring></argsstring>
+        <name>separateLayers</name>
+        <qualifiedname>IDagorExportUtil::separateLayers</qualifiedname>
+        <initializer>{
+    const int bkExpflg = util.expflg</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4236" column="68" bodyfile="expUtil.cpp" bodystart="4237" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1a451b7cef79055cfee5112c2277c68cb6" prot="public" static="no" mutable="no">
+        <type>else util <ref refid="classIDagorExportUtil_1ac68c3a6aee9759097474089e463f0176" kindref="member">expflg</ref> &amp;util</type>
+        <definition>else util expflg&amp; util IDagorExportUtil::exp_fname</definition>
+        <argsstring></argsstring>
+        <name>exp_fname</name>
+        <qualifiedname>IDagorExportUtil::exp_fname</qualifiedname>
+        <initializer>= fn</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4247" column="9" bodyfile="expUtil.cpp" bodystart="4247" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1a0245519ee64015ab91cdda203c732c4a" prot="public" static="no" mutable="no">
+        <type>util</type>
+        <definition>util IDagorExportUtil::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>IDagorExportUtil::ip</qualifiedname>
+        <initializer>= GetCOREInterface()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4248" column="9" bodyfile="expUtil.cpp" bodystart="4248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1ab90366a6a340ad5ccbfbe80c78cb0239" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL IDagorExportUtil::result</definition>
+        <argsstring></argsstring>
+        <name>result</name>
+        <qualifiedname>IDagorExportUtil::result</qualifiedname>
+        <initializer>= util.export_dag()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4250" column="10" bodyfile="expUtil.cpp" bodystart="4250" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1ac68c3a6aee9759097474089e463f0176" prot="public" static="no" mutable="no">
+        <type>util</type>
+        <definition>util IDagorExportUtil::expflg</definition>
+        <argsstring></argsstring>
+        <name>expflg</name>
+        <qualifiedname>IDagorExportUtil::expflg</qualifiedname>
+        <initializer>= bkExpflg</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4252" column="9" bodyfile="expUtil.cpp" bodystart="4252" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIDagorExportUtil_1a1ec36318c2353d5d0850ac69cd97df50" prot="public" static="no" mutable="no">
+        <type><ref refid="polyBumpUtil_8cpp_1a9717e7bbecb906637e86cef6da3d83c2" kindref="member">return</ref></type>
+        <definition>return IDagorExportUtil::result</definition>
+        <argsstring></argsstring>
+        <name>result</name>
+        <qualifiedname>IDagorExportUtil::result</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4255" column="12" bodyfile="expUtil.cpp" bodystart="4255" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorExportUtil_1a874fc85e77b3666bc6192b9dbbe78c7d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>BEGIN_FUNCTION_MAP</type>
+        <definition>BEGIN_FUNCTION_MAP IDagorExportUtil::FN_5</definition>
+        <argsstring>(fun_export, TYPE_BOOL, export_dag, TYPE_STRING, TYPE_INTERVAL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL) END_FUNCTION_MAP BOOL export_dag(const TCHAR *fn</argsstring>
+        <name>FN_5</name>
+        <qualifiedname>IDagorExportUtil::FN_5</qualifiedname>
+        <param>
+          <type><ref refid="expUtil_8cpp_1a63446b230c177c997637df55fe9df08aa1d2c95c28c53e6ea88888ceeb07c4395" kindref="member">fun_export</ref></type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>export_dag</type>
+        </param>
+        <param>
+          <type>TYPE_STRING</type>
+        </param>
+        <param>
+          <type>TYPE_INTERVAL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <param>
+          <type>TYPE_BOOL</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4231" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorExportUtil_1a9086db678f17fc3cde2489f17fe946e2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref></type>
+        <definition>Autotoggle IDagorExportUtil::suppressPromptsGuard</definition>
+        <argsstring>(util.suppressPrompts, suppressPrompts)</argsstring>
+        <name>suppressPromptsGuard</name>
+        <qualifiedname>IDagorExportUtil::suppressPromptsGuard</qualifiedname>
+        <param>
+          <type>util.</type>
+          <declname>suppressPrompts</declname>
+        </param>
+        <param>
+          <type><ref refid="classIDagorExportUtil_1aed4bf5d43faca6bb6436e885a8e1c038" kindref="member">suppressPrompts</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4239" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorExportUtil_1a5f937c4f1449d2f5de5364298d9990be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classAutotoggle" kindref="compound">Autotoggle</ref></type>
+        <definition>Autotoggle IDagorExportUtil::separateLayersGuard</definition>
+        <argsstring>(util.separateLayers, separateLayers)</argsstring>
+        <name>separateLayersGuard</name>
+        <qualifiedname>IDagorExportUtil::separateLayersGuard</qualifiedname>
+        <param>
+          <type>util.</type>
+          <declname>separateLayers</declname>
+        </param>
+        <param>
+          <type><ref refid="classIDagorExportUtil_1a1b4123ca253e17058fca1cd6cd34cbf4" kindref="member">separateLayers</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4240" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorExportUtil_1a14ccd8521785145c92ebf8cef515112a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>IDagorExportUtil::if</definition>
+        <argsstring>(selectedOnly) util.expflg|</argsstring>
+        <name>if</name>
+        <qualifiedname>IDagorExportUtil::if</qualifiedname>
+        <param>
+          <type><ref refid="classIDagorExportUtil_1ad9a00c365da97e893f6207864869afa7" kindref="member">selectedOnly</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4242" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorExportUtil_1a75c2578296c6e795e5b9ea3d87595863" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>util</type>
+        <definition>util IDagorExportUtil::update_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_ui</name>
+        <qualifiedname>IDagorExportUtil::update_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4249" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorExportUtil_1a75c2578296c6e795e5b9ea3d87595863" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>util</type>
+        <definition>util IDagorExportUtil::update_ui</definition>
+        <argsstring>()</argsstring>
+        <name>update_ui</name>
+        <qualifiedname>IDagorExportUtil::update_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="4253" column="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>FPStaticInterface</label>
+      </node>
+      <node id="1">
+        <label>IDagorExportUtil</label>
+        <link refid="classIDagorExportUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>FPStaticInterface</label>
+      </node>
+      <node id="1">
+        <label>IDagorExportUtil</label>
+        <link refid="classIDagorExportUtil"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="expUtil.cpp" line="4227" column="1" bodyfile="expUtil.cpp" bodystart="4228" bodyend="4257"/>
+    <listofallmembers>
+      <member refid="classIDagorExportUtil_1a451b7cef79055cfee5112c2277c68cb6" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>exp_fname</name></member>
+      <member refid="classIDagorExportUtil_1ac68c3a6aee9759097474089e463f0176" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>expflg</name></member>
+      <member refid="classIDagorExportUtil_1a874fc85e77b3666bc6192b9dbbe78c7d" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>FN_5</name></member>
+      <member refid="classIDagorExportUtil_1a14ccd8521785145c92ebf8cef515112a" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>if</name></member>
+      <member refid="classIDagorExportUtil_1a15d5db5a9cddca4bf3434f0d630eda22" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>Interval</name></member>
+      <member refid="classIDagorExportUtil_1a0245519ee64015ab91cdda203c732c4a" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>ip</name></member>
+      <member refid="classIDagorExportUtil_1ab90366a6a340ad5ccbfbe80c78cb0239" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>result</name></member>
+      <member refid="classIDagorExportUtil_1a1ec36318c2353d5d0850ac69cd97df50" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>result</name></member>
+      <member refid="classIDagorExportUtil_1ad9a00c365da97e893f6207864869afa7" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>selectedOnly</name></member>
+      <member refid="classIDagorExportUtil_1a1b4123ca253e17058fca1cd6cd34cbf4" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>separateLayers</name></member>
+      <member refid="classIDagorExportUtil_1a5f937c4f1449d2f5de5364298d9990be" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>separateLayersGuard</name></member>
+      <member refid="classIDagorExportUtil_1aed4bf5d43faca6bb6436e885a8e1c038" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>suppressPrompts</name></member>
+      <member refid="classIDagorExportUtil_1a9086db678f17fc3cde2489f17fe946e2" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>suppressPromptsGuard</name></member>
+      <member refid="classIDagorExportUtil_1a75c2578296c6e795e5b9ea3d87595863" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>update_ui</name></member>
+      <member refid="classIDagorExportUtil_1a75c2578296c6e795e5b9ea3d87595863" prot="public" virt="non-virtual"><scope>IDagorExportUtil</scope><name>update_ui</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

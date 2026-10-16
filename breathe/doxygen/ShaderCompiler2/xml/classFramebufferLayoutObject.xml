@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFramebufferLayoutObject" kind="class" language="C++" prot="public">
+    <compoundname>FramebufferLayoutObject</compoundname>
+    <includes refid="framebufferLayout_8h" local="no">framebufferLayout.h</includes>
+    <innerclass refid="structFramebufferLayoutObject_1_1Entry" prot="public">FramebufferLayoutObject::Entry</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classFramebufferLayoutObject_1a3670ea093611f470b061b2055543ea80" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId FramebufferLayoutObject::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>FramebufferLayoutObject::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="48" column="20" bodyfile="framebufferLayout.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFramebufferLayoutObject_1ace79be106af498988040ff7db7a7eb25" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FramebufferLayoutObject::tableIdx</definition>
+        <argsstring></argsstring>
+        <name>tableIdx</name>
+        <qualifiedname>FramebufferLayoutObject::tableIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="49" column="7" bodyfile="framebufferLayout.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFramebufferLayoutObject_1a935f7028287b2fa03129f70df7c2195e" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structFramebufferLayoutObject_1_1Entry" kindref="compound">Entry</ref> &gt;</type>
+        <definition>SerializableTab&lt;Entry&gt; FramebufferLayoutObject::entries</definition>
+        <argsstring></argsstring>
+        <name>entries</name>
+        <qualifiedname>FramebufferLayoutObject::entries</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="50" column="19" bodyfile="framebufferLayout.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFramebufferLayoutObject_1acda7a9906ffc52aecaa0c8410befc4bf" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref> &gt;</type>
+        <definition>SerializableTab&lt;RenderPassNameId&gt; FramebufferLayoutObject::members</definition>
+        <argsstring></argsstring>
+        <name>members</name>
+        <qualifiedname>FramebufferLayoutObject::members</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="51" column="19" bodyfile="framebufferLayout.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFramebufferLayoutObject_1a0594523682cac9009560618302a4f6ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FramebufferLayoutObject::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(const VarNameMap *names=nullptr;)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>FramebufferLayoutObject::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> *</type>
+          <declname>names</declname>
+          <defval>nullptr;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="53" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFramebufferLayoutObject_1af48c7d565b1c48348a768352fcf32626" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * FramebufferLayoutObject::str</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>str</name>
+        <qualifiedname>FramebufferLayoutObject::str</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="55" column="14" bodyfile="framebufferLayout.h" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classFramebufferLayoutObject_1ae41537aca8be7c582b7f0b8ef7fbac18" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * FramebufferLayoutObject::nameStr</definition>
+        <argsstring>() const</argsstring>
+        <name>nameStr</name>
+        <qualifiedname>FramebufferLayoutObject::nameStr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="56" column="14" bodyfile="framebufferLayout.h" bodystart="56" bodyend="56"/>
+      </memberdef>
+      <memberdef kind="function" id="classFramebufferLayoutObject_1ac66117ba3fb6690c457f81623915d08d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FramebufferLayoutObject::isGroup</definition>
+        <argsstring>() const</argsstring>
+        <name>isGroup</name>
+        <qualifiedname>FramebufferLayoutObject::isGroup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="57" column="8" bodyfile="framebufferLayout.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classFramebufferLayoutObject_1a9f4b9abe7004f6c8ff2e9d4592bb2d36" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structFramebufferLayoutObject_1_1Entry" kindref="compound">Entry</ref> *</type>
+        <definition>const FramebufferLayoutObject::Entry * FramebufferLayoutObject::findEntry</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>findEntry</name>
+        <qualifiedname>FramebufferLayoutObject::findEntry</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="58" column="15" bodyfile="framebufferLayout.cpp" bodystart="209" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="classFramebufferLayoutObject_1a148c2eda5654c8aa965c0c5b289315c0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string FramebufferLayoutObject::shapeDesc</definition>
+        <argsstring>() const</argsstring>
+        <name>shapeDesc</name>
+        <qualifiedname>FramebufferLayoutObject::shapeDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="59" column="17" bodyfile="framebufferLayout.cpp" bodystart="217" bodyend="229"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>FramebufferLayoutObject</label>
+        <link refid="classFramebufferLayoutObject"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>entries</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>members</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="3">
+        <label>SerializableTab&lt; FramebufferLayoutObject::Entry &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Tab&lt; FramebufferLayoutObject::Entry &gt;</label>
+      </node>
+      <node id="6">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="framebufferLayout.h" line="38" column="1" bodyfile="framebufferLayout.h" bodystart="39" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classFramebufferLayoutObject_1a0594523682cac9009560618302a4f6ef" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classFramebufferLayoutObject_1a935f7028287b2fa03129f70df7c2195e" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>entries</name></member>
+      <member refid="classFramebufferLayoutObject_1a9f4b9abe7004f6c8ff2e9d4592bb2d36" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>findEntry</name></member>
+      <member refid="classFramebufferLayoutObject_1ac66117ba3fb6690c457f81623915d08d" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>isGroup</name></member>
+      <member refid="classFramebufferLayoutObject_1acda7a9906ffc52aecaa0c8410befc4bf" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>members</name></member>
+      <member refid="classFramebufferLayoutObject_1a3670ea093611f470b061b2055543ea80" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>name</name></member>
+      <member refid="classFramebufferLayoutObject_1ae41537aca8be7c582b7f0b8ef7fbac18" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>nameStr</name></member>
+      <member refid="classFramebufferLayoutObject_1a148c2eda5654c8aa965c0c5b289315c0" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>shapeDesc</name></member>
+      <member refid="classFramebufferLayoutObject_1af48c7d565b1c48348a768352fcf32626" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>str</name></member>
+      <member refid="classFramebufferLayoutObject_1ace79be106af498988040ff7db7a7eb25" prot="public" virt="non-virtual"><scope>FramebufferLayoutObject</scope><name>tableIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

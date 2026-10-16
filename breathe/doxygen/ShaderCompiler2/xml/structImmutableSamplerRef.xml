@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImmutableSamplerRef" kind="struct" language="C++" prot="public">
+    <compoundname>ImmutableSamplerRef</compoundname>
+    <includes refid="samplers_8h" local="no">samplers.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImmutableSamplerRef_1a4a47016a71acc64c3a935ee3eac5b0c7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ImmutableSamplerRef::samplerId</definition>
+        <argsstring></argsstring>
+        <name>samplerId</name>
+        <qualifiedname>ImmutableSamplerRef::samplerId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="49" column="7" bodyfile="samplers.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImmutableSamplerRef_1a61861b9de95dc607d64659c62fb069c3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ImmutableSamplerRef::globalVarId</definition>
+        <argsstring></argsstring>
+        <name>globalVarId</name>
+        <qualifiedname>ImmutableSamplerRef::globalVarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="50" column="7" bodyfile="samplers.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structImmutableSamplerRef_1abea3cd2c4b51af5f3a3d354365ea0f00" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(ImmutableSamplerRef r1, ImmutableSamplerRef r2)=default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>ImmutableSamplerRef::operator==</qualifiedname>
+        <param>
+          <type><ref refid="structImmutableSamplerRef" kindref="compound">ImmutableSamplerRef</ref></type>
+          <declname>r1</declname>
+        </param>
+        <param>
+          <type><ref refid="structImmutableSamplerRef" kindref="compound">ImmutableSamplerRef</ref></type>
+          <declname>r2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="52" column="22"/>
+      </memberdef>
+      <memberdef kind="friend" id="structImmutableSamplerRef_1a6936ef527943afcd5fe3f45987fe9d20" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator!=</definition>
+        <argsstring>(ImmutableSamplerRef r1, ImmutableSamplerRef r2)=default</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ImmutableSamplerRef::operator!=</qualifiedname>
+        <param>
+          <type><ref refid="structImmutableSamplerRef" kindref="compound">ImmutableSamplerRef</ref></type>
+          <declname>r1</declname>
+        </param>
+        <param>
+          <type><ref refid="structImmutableSamplerRef" kindref="compound">ImmutableSamplerRef</ref></type>
+          <declname>r2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="samplers.h" line="53" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="samplers.h" line="47" column="1" bodyfile="samplers.h" bodystart="48" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structImmutableSamplerRef_1a61861b9de95dc607d64659c62fb069c3" prot="public" virt="non-virtual"><scope>ImmutableSamplerRef</scope><name>globalVarId</name></member>
+      <member refid="structImmutableSamplerRef_1a6936ef527943afcd5fe3f45987fe9d20" prot="public" virt="non-virtual"><scope>ImmutableSamplerRef</scope><name>operator!=</name></member>
+      <member refid="structImmutableSamplerRef_1abea3cd2c4b51af5f3a3d354365ea0f00" prot="public" virt="non-virtual"><scope>ImmutableSamplerRef</scope><name>operator==</name></member>
+      <member refid="structImmutableSamplerRef_1a4a47016a71acc64c3a935ee3eac5b0c7" prot="public" virt="non-virtual"><scope>ImmutableSamplerRef</scope><name>samplerId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

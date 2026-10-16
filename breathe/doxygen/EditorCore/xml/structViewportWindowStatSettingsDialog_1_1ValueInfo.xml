@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportWindowStatSettingsDialog_1_1ValueInfo" kind="struct" language="C++" prot="private">
+    <compoundname>ViewportWindowStatSettingsDialog::ValueInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportWindowStatSettingsDialog_1_1ValueInfo_1a398e892c6c466427fe9ad2ae400c9a6b" prot="public" static="no" mutable="no">
+        <type>PropPanel::TLeafHandle</type>
+        <definition>PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::ValueInfo::handle</definition>
+        <argsstring></argsstring>
+        <name>handle</name>
+        <qualifiedname>ViewportWindowStatSettingsDialog::ValueInfo::handle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindowStatSettingsDialog.h" line="35" column="28" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindowStatSettingsDialog_1_1ValueInfo_1a587c9ad5413093023bbf42ce6e8b07dd" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindowStatSettingsDialog::ValueInfo::defaultValue</definition>
+        <argsstring></argsstring>
+        <name>defaultValue</name>
+        <qualifiedname>ViewportWindowStatSettingsDialog::ValueInfo::defaultValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindowStatSettingsDialog.h" line="36" column="10" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindowStatSettingsDialog.h" line="33" column="3" bodyfile="ec_ViewportWindowStatSettingsDialog.h" bodystart="34" bodyend="37"/>
+    <listofallmembers>
+      <member refid="structViewportWindowStatSettingsDialog_1_1ValueInfo_1a587c9ad5413093023bbf42ce6e8b07dd" prot="public" virt="non-virtual"><scope>ViewportWindowStatSettingsDialog::ValueInfo</scope><name>defaultValue</name></member>
+      <member refid="structViewportWindowStatSettingsDialog_1_1ValueInfo_1a398e892c6c466427fe9ad2ae400c9a6b" prot="public" virt="non-virtual"><scope>ViewportWindowStatSettingsDialog::ValueInfo</scope><name>handle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

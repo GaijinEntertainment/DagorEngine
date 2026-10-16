@@ -1,0 +1,234 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderRenderPass_1_1Targets" kind="class" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::Targets</compoundname>
+    <includes refid="dag__shaderRenderPass_8h" local="no">dag_shaderRenderPass.h</includes>
+    <innerclass refid="structShaderRenderPass_1_1Targets_1_1Entry" prot="private">ShaderRenderPass::Targets::Entry</innerclass>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderRenderPass_1_1Targets_1a3dcef6908bba76672fc23993a0ab298f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class Pass</definition>
+        <argsstring></argsstring>
+        <name>Pass</name>
+        <qualifiedname>ShaderRenderPass::Targets::Pass</qualifiedname>
+        <param>
+          <type><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="120" column="16" bodyfile="dag_shaderRenderPass.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderRenderPass_1_1Targets_1a47026753a25a9640e03a851105cb494f" prot="private" static="no" mutable="no">
+        <type>Entry</type>
+        <definition>Entry ShaderRenderPass::Targets::entries[MAX_TARGETS]</definition>
+        <argsstring>[MAX_TARGETS]</argsstring>
+        <name>entries</name>
+        <qualifiedname>ShaderRenderPass::Targets::entries</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="131" column="9" bodyfile="dag_shaderRenderPass.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderRenderPass_1_1Targets_1ac3c48578d00109b1eae348dc043a041f" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::Targets::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>ShaderRenderPass::Targets::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="132" column="7" bodyfile="dag_shaderRenderPass.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Targets_1aaa3910378a66306aeb552a33c8d52754" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+        <definition>Targets &amp; ShaderRenderPass::Targets::tex</definition>
+        <argsstring>(const char *target, BaseTexture *t, uint8_t mip=0, uint16_t layer=0)</argsstring>
+        <name>tex</name>
+        <qualifiedname>ShaderRenderPass::Targets::tex</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>mip</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>layer</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="113" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Targets_1a050cd40f228349390a1d5f70b3f074cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+        <definition>Targets &amp; ShaderRenderPass::Targets::clear</definition>
+        <argsstring>(const char *target, ResourceClearValue v)</argsstring>
+        <name>clear</name>
+        <qualifiedname>ShaderRenderPass::Targets::clear</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type>ResourceClearValue</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="114" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Targets_1a15d293c8d53ff42ec0705190580ae1ac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+        <definition>Targets &amp; ShaderRenderPass::Targets::tex</definition>
+        <argsstring>(int slot, BaseTexture *t, uint8_t mip=0, uint16_t layer=0)</argsstring>
+        <name>tex</name>
+        <qualifiedname>ShaderRenderPass::Targets::tex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>mip</declname>
+          <defval>0</defval>
+        </param>
+        <param>
+          <type>uint16_t</type>
+          <declname>layer</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>slot</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The target index, from Pass::targetSlot() or get_target_slot(). </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="116" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Targets_1ae10258d37ad0b2193a1506a83a8cf552" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+        <definition>Targets &amp; ShaderRenderPass::Targets::clear</definition>
+        <argsstring>(int slot, ResourceClearValue v)</argsstring>
+        <name>clear</name>
+        <qualifiedname>ShaderRenderPass::Targets::clear</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type>ResourceClearValue</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="117" column="11"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Targets_1a688cfa7792333ac2b4ac8b07688a04c1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Entry *</type>
+        <definition>Entry * ShaderRenderPass::Targets::entryFor</definition>
+        <argsstring>(const char *target)</argsstring>
+        <name>entryFor</name>
+        <qualifiedname>ShaderRenderPass::Targets::entryFor</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>target</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="128" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Targets_1a68d8e4837084c17db2e839a7b04213b0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Entry *</type>
+        <definition>Entry * ShaderRenderPass::Targets::entryFor</definition>
+        <argsstring>(int slot)</argsstring>
+        <name>entryFor</name>
+        <qualifiedname>ShaderRenderPass::Targets::entryFor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>slot</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="129" column="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>The textures bound to the targets for one execution. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Every declared target is bound exactly once, except a vrs target Pass::vrsEnabled() rejects, and a clear value is given exactly for the targets the plan clears. Names are kept by pointer until <ref refid="namespaceShaderRenderPass_1acaf7d4214bb4badf5930384a748815a5" kindref="member">begin()</ref>. A sampled_depth target gets only its read-only depth bind here; the caller binds the same texture to the register the shader samples. </para>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="110" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="111" bodyend="133"/>
+    <listofallmembers>
+      <member refid="classShaderRenderPass_1_1Targets_1a050cd40f228349390a1d5f70b3f074cd" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>clear</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1ae10258d37ad0b2193a1506a83a8cf552" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>clear</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1ac3c48578d00109b1eae348dc043a041f" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>count</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1a47026753a25a9640e03a851105cb494f" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>entries</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1a688cfa7792333ac2b4ac8b07688a04c1" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>entryFor</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1a68d8e4837084c17db2e839a7b04213b0" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>entryFor</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1a3dcef6908bba76672fc23993a0ab298f" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>Pass</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1aaa3910378a66306aeb552a33c8d52754" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>tex</name></member>
+      <member refid="classShaderRenderPass_1_1Targets_1a15d293c8d53ff42ec0705190580ae1ac" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets</scope><name>tex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLightingObjectData" kind="struct" language="C++" prot="public">
+    <compoundname>LightingObjectData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structLightingObjectData_1a7f64393e635e66ef3bb0a79d0d429cf7" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int LightingObjectData::uniqueId</definition>
+        <argsstring></argsstring>
+        <name>uniqueId</name>
+        <qualifiedname>LightingObjectData::uniqueId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="32" column="16" bodyfile="dag_renderScene.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLightingObjectData_1a71cecf7615ad8c10f699f52282741b75" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 LightingObjectData::position</definition>
+        <argsstring></argsstring>
+        <name>position</name>
+        <qualifiedname>LightingObjectData::position</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="33" column="10" bodyfile="dag_renderScene.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLightingObjectData_1ab2461dc5e55dda9a5d478fd88cfcf96d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float LightingObjectData::farRange</definition>
+        <argsstring></argsstring>
+        <name>farRange</name>
+        <qualifiedname>LightingObjectData::farRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="34" column="9" bodyfile="dag_renderScene.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLightingObjectData_1a0a6e6df540675021338be454b58f601e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float LightingObjectData::stationaryRadius</definition>
+        <argsstring></argsstring>
+        <name>stationaryRadius</name>
+        <qualifiedname>LightingObjectData::stationaryRadius</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="35" column="9" bodyfile="dag_renderScene.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLightingObjectData_1a7ffb02c193ed83d2745c59610ba68c06" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 LightingObjectData::direction</definition>
+        <argsstring></argsstring>
+        <name>direction</name>
+        <qualifiedname>LightingObjectData::direction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="36" column="10" bodyfile="dag_renderScene.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLightingObjectData_1a738042e3a3d1f6af3ccc466cfe7089ae" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float LightingObjectData::stationaryAngle</definition>
+        <argsstring></argsstring>
+        <name>stationaryAngle</name>
+        <qualifiedname>LightingObjectData::stationaryAngle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="37" column="9" bodyfile="dag_renderScene.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structLightingObjectData_1a859c15048c5e45feedaffd63b1203dd5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LightingObjectData::LightingObjectData</definition>
+        <argsstring>()</argsstring>
+        <name>LightingObjectData</name>
+        <qualifiedname>LightingObjectData::LightingObjectData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="39" column="3" bodyfile="dag_renderScene.h" bodystart="39" bodyend="46"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderScene.h" line="30" column="1" bodyfile="dag_renderScene.h" bodystart="31" bodyend="47"/>
+    <listofallmembers>
+      <member refid="structLightingObjectData_1a7ffb02c193ed83d2745c59610ba68c06" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>direction</name></member>
+      <member refid="structLightingObjectData_1ab2461dc5e55dda9a5d478fd88cfcf96d" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>farRange</name></member>
+      <member refid="structLightingObjectData_1a859c15048c5e45feedaffd63b1203dd5" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>LightingObjectData</name></member>
+      <member refid="structLightingObjectData_1a71cecf7615ad8c10f699f52282741b75" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>position</name></member>
+      <member refid="structLightingObjectData_1a738042e3a3d1f6af3ccc466cfe7089ae" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>stationaryAngle</name></member>
+      <member refid="structLightingObjectData_1a0a6e6df540675021338be454b58f601e" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>stationaryRadius</name></member>
+      <member refid="structLightingObjectData_1a7f64393e635e66ef3bb0a79d0d429cf7" prot="public" virt="non-virtual"><scope>LightingObjectData</scope><name>uniqueId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

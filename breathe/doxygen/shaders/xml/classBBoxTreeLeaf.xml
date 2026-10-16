@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBBoxTreeLeaf" kind="class" language="C++" prot="public">
+    <compoundname>BBoxTreeLeaf</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">BBox3</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classBBoxTreeLeaf_1ac18f5d15e1b32c9b8bfb6b0a607942fd" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="classBBoxTreeRenderElement" kindref="compound">BBoxTreeRenderElement</ref> &gt;</type>
+        <definition>Tab&lt;BBoxTreeRenderElement&gt; BBoxTreeLeaf::relemList</definition>
+        <argsstring></argsstring>
+        <name>relemList</name>
+        <qualifiedname>BBoxTreeLeaf::relemList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="51" column="7" bodyfile="dag_bboxTreeRElem.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBBoxTreeLeaf_1a73fd1440d4a130aaa347e03280fd4891" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BBoxTreeLeaf::BBoxTreeLeaf</definition>
+        <argsstring>()</argsstring>
+        <name>BBoxTreeLeaf</name>
+        <qualifiedname>BBoxTreeLeaf::BBoxTreeLeaf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="48" column="3" bodyfile="dag_bboxTreeRElem.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BBox3</label>
+      </node>
+      <node id="1">
+        <label>BBoxTreeLeaf</label>
+        <link refid="classBBoxTreeLeaf"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BBox3</label>
+      </node>
+      <node id="1">
+        <label>BBoxTreeLeaf</label>
+        <link refid="classBBoxTreeLeaf"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_bboxTreeRElem.h" line="45" column="1" bodyfile="dag_bboxTreeRElem.h" bodystart="46" bodyend="52"/>
+    <listofallmembers>
+      <member refid="classBBoxTreeLeaf_1a73fd1440d4a130aaa347e03280fd4891" prot="public" virt="non-virtual"><scope>BBoxTreeLeaf</scope><name>BBoxTreeLeaf</name></member>
+      <member refid="classBBoxTreeLeaf_1ac18f5d15e1b32c9b8bfb6b0a607942fd" prot="public" virt="non-virtual"><scope>BBoxTreeLeaf</scope><name>relemList</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

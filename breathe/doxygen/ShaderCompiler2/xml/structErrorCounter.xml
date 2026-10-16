@@ -1,0 +1,176 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structErrorCounter" kind="struct" language="C++" prot="public">
+    <compoundname>ErrorCounter</compoundname>
+    <includes refid="shLog_8h" local="no">shLog.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structErrorCounter_1ab283c399f4e862a8a02b0c684af1bc9b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ErrorCounter::err</definition>
+        <argsstring></argsstring>
+        <name>err</name>
+        <qualifiedname>ErrorCounter::err</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="41" column="7" bodyfile="shLog.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structErrorCounter_1a1d92b341c7ea5c6908a819e3a48f3696" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ErrorCounter::warn</definition>
+        <argsstring></argsstring>
+        <name>warn</name>
+        <qualifiedname>ErrorCounter::warn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="42" column="7" bodyfile="shLog.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="structErrorCounter_1a6022e84e6eda9c46176f5e50b69ad709" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ErrorCounter::prefix</definition>
+        <argsstring></argsstring>
+        <name>prefix</name>
+        <qualifiedname>ErrorCounter::prefix</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="54" column="14" bodyfile="shLog.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structErrorCounter_1a36e07b31e8bf5e20b5c765974269d109" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ErrorCounter::ErrorCounter</definition>
+        <argsstring>(const char *_prefix)</argsstring>
+        <name>ErrorCounter</name>
+        <qualifiedname>ErrorCounter::ErrorCounter</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>_prefix</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="44" column="10" bodyfile="shLog.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="structErrorCounter_1ad8248b42e27a526ddd06e3789a44da4e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ErrorCounter::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>ErrorCounter::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="45" column="15" bodyfile="shLog.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="structErrorCounter_1acf46b2f01622d87794f341c074ec35f7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ErrorCounter::isEmpty</definition>
+        <argsstring>() const</argsstring>
+        <name>isEmpty</name>
+        <qualifiedname>ErrorCounter::isEmpty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="46" column="15" bodyfile="shLog.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structErrorCounter_1ab1b9b0bb91181fa7f9c030df30326f0a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ErrorCounter::dumpInfo</definition>
+        <argsstring>()</argsstring>
+        <name>dumpInfo</name>
+        <qualifiedname>ErrorCounter::dumpInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="47" column="8" bodyfile="shLog.cpp" bodystart="32" bodyend="38"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structErrorCounter_1a16e83af848da6b273387e7f9078aff89" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref> &amp;</type>
+        <definition>ErrorCounter &amp; ErrorCounter::curShader</definition>
+        <argsstring>()</argsstring>
+        <name>curShader</name>
+        <qualifiedname>ErrorCounter::curShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="49" column="23" bodyfile="shLog.cpp" bodystart="12" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structErrorCounter_1a0d2712090dcb5df49be0c244026e048a" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref> &amp;</type>
+        <definition>ErrorCounter &amp; ErrorCounter::allShaders</definition>
+        <argsstring>()</argsstring>
+        <name>allShaders</name>
+        <qualifiedname>ErrorCounter::allShaders</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="50" column="23" bodyfile="shLog.cpp" bodystart="19" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structErrorCounter_1aa46ade65761e3575cd41be7fa765975f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structErrorCounter" kindref="compound">ErrorCounter</ref> &amp;</type>
+        <definition>ErrorCounter &amp; ErrorCounter::allCompilations</definition>
+        <argsstring>()</argsstring>
+        <name>allCompilations</name>
+        <qualifiedname>ErrorCounter::allCompilations</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLog.h" line="51" column="23" bodyfile="shLog.cpp" bodystart="26" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shLog.h" line="39" column="1" bodyfile="shLog.h" bodystart="40" bodyend="55"/>
+    <listofallmembers>
+      <member refid="structErrorCounter_1aa46ade65761e3575cd41be7fa765975f" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>allCompilations</name></member>
+      <member refid="structErrorCounter_1a0d2712090dcb5df49be0c244026e048a" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>allShaders</name></member>
+      <member refid="structErrorCounter_1a16e83af848da6b273387e7f9078aff89" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>curShader</name></member>
+      <member refid="structErrorCounter_1ab1b9b0bb91181fa7f9c030df30326f0a" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>dumpInfo</name></member>
+      <member refid="structErrorCounter_1ab283c399f4e862a8a02b0c684af1bc9b" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>err</name></member>
+      <member refid="structErrorCounter_1a36e07b31e8bf5e20b5c765974269d109" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>ErrorCounter</name></member>
+      <member refid="structErrorCounter_1acf46b2f01622d87794f341c074ec35f7" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>isEmpty</name></member>
+      <member refid="structErrorCounter_1a6022e84e6eda9c46176f5e50b69ad709" prot="private" virt="non-virtual"><scope>ErrorCounter</scope><name>prefix</name></member>
+      <member refid="structErrorCounter_1ad8248b42e27a526ddd06e3789a44da4e" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>reset</name></member>
+      <member refid="structErrorCounter_1a1d92b341c7ea5c6908a819e3a48f3696" prot="public" virt="non-virtual"><scope>ErrorCounter</scope><name>warn</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

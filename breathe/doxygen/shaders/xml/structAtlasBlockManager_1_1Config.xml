@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structAtlasBlockManager_1_1Config" kind="struct" language="C++" prot="protected">
+    <compoundname>AtlasBlockManager::Config</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Config_1a3339f942270e5e1b22d4e62d7914fa04" prot="public" static="no" mutable="no">
+        <type>dag::RelocatableFixedVector&lt; IPoint2, 4 &gt;</type>
+        <definition>dag::RelocatableFixedVector&lt;IPoint2, 4&gt; AtlasBlockManager::Config::texSizes</definition>
+        <argsstring></argsstring>
+        <name>texSizes</name>
+        <qualifiedname>AtlasBlockManager::Config::texSizes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="63" column="33" bodyfile="dag_atlasBlockManager.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAtlasBlockManager_1_1Config_1a33c43884459ad14e857b667698bad888" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool AtlasBlockManager::Config::exactSize</definition>
+        <argsstring></argsstring>
+        <name>exactSize</name>
+        <qualifiedname>AtlasBlockManager::Config::exactSize</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="64" column="10" bodyfile="dag_atlasBlockManager.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Config_1a02fe21086eef89838c63a6541a139c8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::Config::Config</definition>
+        <argsstring>()</argsstring>
+        <name>Config</name>
+        <qualifiedname>AtlasBlockManager::Config::Config</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="66" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structAtlasBlockManager_1_1Config_1a0b78bf14d841f4afb66184dddd86cd25" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::Config::Config</definition>
+        <argsstring>(const DataBlock &amp;hints_blk)</argsstring>
+        <name>Config</name>
+        <qualifiedname>AtlasBlockManager::Config::Config</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>hints_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="67" column="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_atlasBlockManager.h" line="61" column="3" bodyfile="dag_atlasBlockManager.h" bodystart="62" bodyend="68"/>
+    <listofallmembers>
+      <member refid="structAtlasBlockManager_1_1Config_1a02fe21086eef89838c63a6541a139c8e" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Config</scope><name>Config</name></member>
+      <member refid="structAtlasBlockManager_1_1Config_1a0b78bf14d841f4afb66184dddd86cd25" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Config</scope><name>Config</name></member>
+      <member refid="structAtlasBlockManager_1_1Config_1a33c43884459ad14e857b667698bad888" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Config</scope><name>exactSize</name></member>
+      <member refid="structAtlasBlockManager_1_1Config_1a3339f942270e5e1b22d4e62d7914fa04" prot="public" virt="non-virtual"><scope>AtlasBlockManager::Config</scope><name>texSizes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

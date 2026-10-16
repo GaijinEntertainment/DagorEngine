@@ -1,0 +1,216 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagFreeCamUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>DagFreeCamUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1a0f878cece1d4ff9ce68cd5aaf4a0e2a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagFreeCamUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>DagFreeCamUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="412" column="7" bodyfile="freecam.cpp" bodystart="412" bodyend="412"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1abe56f8f438498e721a34843e050c6226" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * DagFreeCamUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>DagFreeCamUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="413" column="8" bodyfile="freecam.cpp" bodystart="413" bodyend="413"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1aed61a0293ee984a2da9b94b9c6088570" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagFreeCamUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>DagFreeCamUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="414" column="15" bodyfile="freecam.cpp" bodystart="414" bodyend="414"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1a3271f11ec7283078298263f59718a259" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const MCHAR *</type>
+        <definition>const MCHAR * DagFreeCamUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>DagFreeCamUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="415" column="15" bodyfile="freecam.cpp" bodystart="415" bodyend="415"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1abfbfb56e6450b9fb4d5856f0e9218437" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID DagFreeCamUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>DagFreeCamUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="416" column="13" bodyfile="freecam.cpp" bodystart="416" bodyend="416"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1a3965ef502a6c64b84da994b398acbbb5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID DagFreeCamUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>DagFreeCamUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="417" column="12" bodyfile="freecam.cpp" bodystart="417" bodyend="417"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1adb75bd8666e783eba9ef5e7106e76cf9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * DagFreeCamUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>DagFreeCamUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="418" column="15" bodyfile="freecam.cpp" bodystart="418" bodyend="418"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1a8cb76a4ea871bfec675e8ecbae7eac90" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL DagFreeCamUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>DagFreeCamUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="419" column="8" bodyfile="freecam.cpp" bodystart="419" bodyend="419"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1ae2065d38735e455d9fab80ba38403be9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult DagFreeCamUtilDesc::Save</definition>
+        <argsstring>(ISave *) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>DagFreeCamUtilDesc::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="420" column="12" bodyfile="freecam.cpp" bodystart="431" bodyend="450"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1abc524326a13995083a9aa0673ab13dd8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult DagFreeCamUtilDesc::Load</definition>
+        <argsstring>(ILoad *) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>DagFreeCamUtilDesc::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="421" column="12" bodyfile="freecam.cpp" bodystart="452" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagFreeCamUtilDesc_1a6e7ac15f770a803563207ec2ba52cdcb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DagFreeCamUtilDesc::NumActionTables</definition>
+        <argsstring>() override</argsstring>
+        <name>NumActionTables</name>
+        <qualifiedname>DagFreeCamUtilDesc::NumActionTables</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="422" column="7" bodyfile="freecam.cpp" bodystart="422" bodyend="426"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagFreeCamUtilDesc</label>
+        <link refid="classDagFreeCamUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>DagFreeCamUtilDesc</label>
+        <link refid="classDagFreeCamUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="freecam.cpp" line="409" column="1" bodyfile="freecam.cpp" bodystart="410" bodyend="427"/>
+    <listofallmembers>
+      <member refid="classDagFreeCamUtilDesc_1adb75bd8666e783eba9ef5e7106e76cf9" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>Category</name></member>
+      <member refid="classDagFreeCamUtilDesc_1a3965ef502a6c64b84da994b398acbbb5" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classDagFreeCamUtilDesc_1aed61a0293ee984a2da9b94b9c6088570" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classDagFreeCamUtilDesc_1abe56f8f438498e721a34843e050c6226" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>Create</name></member>
+      <member refid="classDagFreeCamUtilDesc_1a0f878cece1d4ff9ce68cd5aaf4a0e2a3" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classDagFreeCamUtilDesc_1abc524326a13995083a9aa0673ab13dd8" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>Load</name></member>
+      <member refid="classDagFreeCamUtilDesc_1a8cb76a4ea871bfec675e8ecbae7eac90" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classDagFreeCamUtilDesc_1a3271f11ec7283078298263f59718a259" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classDagFreeCamUtilDesc_1a6e7ac15f770a803563207ec2ba52cdcb" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>NumActionTables</name></member>
+      <member refid="classDagFreeCamUtilDesc_1ae2065d38735e455d9fab80ba38403be9" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>Save</name></member>
+      <member refid="classDagFreeCamUtilDesc_1abfbfb56e6450b9fb4d5856f0e9218437" prot="public" virt="non-virtual"><scope>DagFreeCamUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

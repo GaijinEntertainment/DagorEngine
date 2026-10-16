@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceanonymous__namespace_02framebufferLayout_8cpp_03" kind="namespace" language="C++">
+    <compoundname>anonymous_namespace{framebufferLayout.cpp}</compoundname>
+    <innerclass refid="structanonymous__namespace_02framebufferLayout_8cpp_03_1_1ExplicitLayoutBuilder" prot="public">anonymous_namespace{framebufferLayout.cpp}::ExplicitLayoutBuilder</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceanonymous__namespace_02framebufferLayout_8cpp_03_1abae6f485e957ea26806ac3f5e3bbcf6e" prot="public" static="no">
+        <type><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref></type>
+        <definition>using anonymous_namespace{framebufferLayout.cpp}::FC = typedef FramebufferFormatClass</definition>
+        <argsstring></argsstring>
+        <name>FC</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::FC</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="21" column="1" bodyfile="framebufferLayout.cpp" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceanonymous__namespace_02framebufferLayout_8cpp_03_1a7e9c3bdc090b31c84de9652be29f4642" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structFramebufferFormatInfo" kindref="compound">FramebufferFormatInfo</ref></type>
+        <definition>const FramebufferFormatInfo anonymous_namespace{framebufferLayout.cpp}::FORMAT_TOKENS[]</definition>
+        <argsstring>[]</argsstring>
+        <name>FORMAT_TOKENS</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::FORMAT_TOKENS</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="23" column="29" bodyfile="framebufferLayout.cpp" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceanonymous__namespace_02framebufferLayout_8cpp_03_1a9bbafffa4f8a3d7d364214a8a5406525" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool anonymous_namespace{framebufferLayout.cpp}::build_explicit_layout</definition>
+        <argsstring>(FramebufferLayoutObject &amp;obj, framebuffer_layout_decl &amp;fl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>build_explicit_layout</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::build_explicit_layout</qualifiedname>
+        <param>
+          <type><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref> &amp;</type>
+          <declname>obj</declname>
+        </param>
+        <param>
+          <type>framebuffer_layout_decl &amp;</type>
+          <declname>fl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="308" column="6" bodyfile="framebufferLayout.cpp" bodystart="308" bodyend="320"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceanonymous__namespace_02framebufferLayout_8cpp_03_1acbdbed62e5ceebe672a2aea932fe55a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool anonymous_namespace{framebufferLayout.cpp}::build_layout_group</definition>
+        <argsstring>(FramebufferLayoutObject &amp;obj, framebuffer_layout_decl &amp;fl, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>build_layout_group</name>
+        <qualifiedname>anonymous_namespace{framebufferLayout.cpp}::build_layout_group</qualifiedname>
+        <param>
+          <type><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref> &amp;</type>
+          <declname>obj</declname>
+        </param>
+        <param>
+          <type>framebuffer_layout_decl &amp;</type>
+          <declname>fl</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.cpp" line="322" column="6" bodyfile="framebufferLayout.cpp" bodystart="322" bodyend="360"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="framebufferLayout.cpp" line="19" column="1"/>
+  </compounddef>
+</doxygen>

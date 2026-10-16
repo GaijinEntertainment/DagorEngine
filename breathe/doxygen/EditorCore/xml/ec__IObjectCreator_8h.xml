@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__IObjectCreator_8h" kind="file" language="C++">
+    <compoundname>ec_IObjectCreator.h</compoundname>
+    <includes local="no">math/dag_TMatrix.h</includes>
+    <includedby refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_IObjectCreator.h</label>
+        <link refid="ec__IObjectCreator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>math/dag_TMatrix.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>ec_IObjectCreator.h</label>
+        <link refid="ec__IObjectCreator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ec_ObjectCreator.h</label>
+        <link refid="ec__ObjectCreator_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classIObjectCreator" prot="public">IObjectCreator</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_TMatrix.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classIObjectCreator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIObjectCreator" kindref="compound">IObjectCreator</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="13" refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" refkind="member"><highlight class="normal"><sp/><sp/>TMatrix<sp/><ref refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" kindref="member">matrix</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" kindref="member">IObjectCreator</ref>()<sp/>:<sp/><ref refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" kindref="member">matrix</ref>(TMatrix::IDENT),<sp/><ref refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" kindref="member">stateFinished</ref>(false),<sp/><ref refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" kindref="member">stateOk</ref>(false)<sp/>{}</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" kindref="member">isFinished</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" kindref="member">stateFinished</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" kindref="member">isOk</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" kindref="member">stateOk</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"></codeline>
+<codeline lineno="32"></codeline>
+<codeline lineno="44" refid="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b" kindref="member">handleMouseMove</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>rotate<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a" kindref="member">handleMouseLBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb" kindref="member">handleMouseLBRelease</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50" kindref="member">handleMouseRBPress</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*wnd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>inside,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buttons,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>key_modif)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="79"></codeline>
+<codeline lineno="82" refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00" kindref="member">render</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="85" refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" kindref="member">stateFinished</ref>;</highlight></codeline>
+<codeline lineno="86" refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" kindref="member">stateOk</ref>;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_IObjectCreator.h"/>
+  </compounddef>
+</doxygen>

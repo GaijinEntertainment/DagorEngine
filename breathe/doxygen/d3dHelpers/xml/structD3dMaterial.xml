@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structD3dMaterial" kind="struct" language="C++" prot="public">
+    <compoundname>D3dMaterial</compoundname>
+    <includes refid="dag__materialData_8h" local="no">dag_materialData.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structD3dMaterial_1a87d55c17b4e0b79cbfcc9dbb22f9a4ab" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__materialData_8h_1a0d5a37360853a86334c4f6cd37699ea2" kindref="member">D3dColor</ref></type>
+        <definition>D3dColor D3dMaterial::diff</definition>
+        <argsstring></argsstring>
+        <name>diff</name>
+        <qualifiedname>D3dMaterial::diff</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="25" column="12" bodyfile="dag_materialData.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structD3dMaterial_1a727b5b663b91fde9e263036c87cfd69b" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__materialData_8h_1a0d5a37360853a86334c4f6cd37699ea2" kindref="member">D3dColor</ref></type>
+        <definition>D3dColor D3dMaterial::amb</definition>
+        <argsstring></argsstring>
+        <name>amb</name>
+        <qualifiedname>D3dMaterial::amb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="25" column="17" bodyfile="dag_materialData.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structD3dMaterial_1a83986542e726257a9895b682dd45a084" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__materialData_8h_1a0d5a37360853a86334c4f6cd37699ea2" kindref="member">D3dColor</ref></type>
+        <definition>D3dColor D3dMaterial::spec</definition>
+        <argsstring></argsstring>
+        <name>spec</name>
+        <qualifiedname>D3dMaterial::spec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="25" column="21" bodyfile="dag_materialData.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structD3dMaterial_1a6251975e6a98176413d39b4a076cb673" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__materialData_8h_1a0d5a37360853a86334c4f6cd37699ea2" kindref="member">D3dColor</ref></type>
+        <definition>D3dColor D3dMaterial::emis</definition>
+        <argsstring></argsstring>
+        <name>emis</name>
+        <qualifiedname>D3dMaterial::emis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="25" column="26" bodyfile="dag_materialData.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structD3dMaterial_1a80135c80e6e854b789f266d31c30fa85" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float D3dMaterial::power</definition>
+        <argsstring></argsstring>
+        <name>power</name>
+        <qualifiedname>D3dMaterial::power</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="26" column="9" bodyfile="dag_materialData.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structD3dMaterial_1adc57f2ce20282ca1cc64ead619810b1a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool D3dMaterial::operator==</definition>
+        <argsstring>(const D3dMaterial &amp;m) const</argsstring>
+        <name>operator==</name>
+        <qualifiedname>D3dMaterial::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structD3dMaterial" kindref="compound">D3dMaterial</ref> &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="28" column="15" bodyfile="dag_materialData.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="structD3dMaterial_1a67d66ac1f40d0cbce28a4ce7c3040eb3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool D3dMaterial::operator!=</definition>
+        <argsstring>(const D3dMaterial &amp;m) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>D3dMaterial::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structD3dMaterial" kindref="compound">D3dMaterial</ref> &amp;</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="29" column="15" bodyfile="dag_materialData.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_materialData.h" line="23" column="1" bodyfile="dag_materialData.h" bodystart="24" bodyend="30"/>
+    <listofallmembers>
+      <member refid="structD3dMaterial_1a727b5b663b91fde9e263036c87cfd69b" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>amb</name></member>
+      <member refid="structD3dMaterial_1a87d55c17b4e0b79cbfcc9dbb22f9a4ab" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>diff</name></member>
+      <member refid="structD3dMaterial_1a6251975e6a98176413d39b4a076cb673" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>emis</name></member>
+      <member refid="structD3dMaterial_1a67d66ac1f40d0cbce28a4ce7c3040eb3" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>operator!=</name></member>
+      <member refid="structD3dMaterial_1adc57f2ce20282ca1cc64ead619810b1a" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>operator==</name></member>
+      <member refid="structD3dMaterial_1a80135c80e6e854b789f266d31c30fa85" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>power</name></member>
+      <member refid="structD3dMaterial_1a83986542e726257a9895b682dd45a084" prot="public" virt="non-virtual"><scope>D3dMaterial</scope><name>spec</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

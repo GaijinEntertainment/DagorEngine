@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSemanticShaderPass_1_1PsOutput" kind="struct" language="C++" prot="public">
+    <compoundname>SemanticShaderPass::PsOutput</compoundname>
+    <includes refid="shSemCode_8h" local="no">shSemCode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1a7360582646f172b1619bec50684e28ae" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string SemanticShaderPass::PsOutput::structHlsl</definition>
+        <argsstring></argsstring>
+        <name>structHlsl</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::structHlsl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="106" column="19" bodyfile="shSemCode.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1a6ba30a17cc4291327d4e4679ecdd60f8" prot="public" static="no" mutable="no">
+        <type>eastl::vector&lt; <ref refid="structSemanticShaderPass_1_1PsOutputField" kindref="compound">PsOutputField</ref> &gt;</type>
+        <definition>eastl::vector&lt;PsOutputField&gt; SemanticShaderPass::PsOutput::fieldBySlot</definition>
+        <argsstring></argsstring>
+        <name>fieldBySlot</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::fieldBySlot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="107" column="19" bodyfile="shSemCode.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1af87b78dc96f6bda83b19bf84315e65b8" prot="public" static="no" mutable="no">
+        <type>eastl::vector&lt; eastl::pair&lt; eastl::string, eastl::string &gt; &gt;</type>
+        <definition>eastl::vector&lt;eastl::pair&lt;eastl::string, eastl::string&gt; &gt; SemanticShaderPass::PsOutput::droppedFields</definition>
+        <argsstring></argsstring>
+        <name>droppedFields</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::droppedFields</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="109" column="19" bodyfile="shSemCode.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1a782c1df4a27571fab940cfa20424a5e4" prot="public" static="no" mutable="no">
+        <type>Terminal *</type>
+        <definition>Terminal* SemanticShaderPass::PsOutput::structTerm</definition>
+        <argsstring></argsstring>
+        <name>structTerm</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::structTerm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="110" column="14" bodyfile="shSemCode.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1a2c7004f913be1241b26fdf03204a583b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t SemanticShaderPass::PsOutput::structMask</definition>
+        <argsstring></argsstring>
+        <name>structMask</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::structMask</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="111" column="14" bodyfile="shSemCode.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1a974695a9d6913651e9b53efd955b575b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::PsOutput::hasSrc1</definition>
+        <argsstring></argsstring>
+        <name>hasSrc1</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::hasSrc1</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="112" column="10" bodyfile="shSemCode.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSemanticShaderPass_1_1PsOutput_1a73685cdb5abc561f8c6de9b11ed549da" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::PsOutput::hasCoverage</definition>
+        <argsstring></argsstring>
+        <name>hasCoverage</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::hasCoverage</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="113" column="10" bodyfile="shSemCode.h" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structSemanticShaderPass_1_1PsOutput_1a80bf76cfac7f977239941968070e3aae" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SemanticShaderPass::PsOutput::declared</definition>
+        <argsstring>() const</argsstring>
+        <name>declared</name>
+        <qualifiedname>SemanticShaderPass::PsOutput::declared</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shSemCode.h" line="114" column="10" bodyfile="shSemCode.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shSemCode.h" line="104" column="3" bodyfile="shSemCode.h" bodystart="105" bodyend="115"/>
+    <listofallmembers>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a80bf76cfac7f977239941968070e3aae" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>declared</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1af87b78dc96f6bda83b19bf84315e65b8" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>droppedFields</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a6ba30a17cc4291327d4e4679ecdd60f8" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>fieldBySlot</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a73685cdb5abc561f8c6de9b11ed549da" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>hasCoverage</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a974695a9d6913651e9b53efd955b575b" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>hasSrc1</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a7360582646f172b1619bec50684e28ae" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>structHlsl</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a2c7004f913be1241b26fdf03204a583b" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>structMask</name></member>
+      <member refid="structSemanticShaderPass_1_1PsOutput_1a782c1df4a27571fab940cfa20424a5e4" prot="public" virt="non-virtual"><scope>SemanticShaderPass::PsOutput</scope><name>structTerm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

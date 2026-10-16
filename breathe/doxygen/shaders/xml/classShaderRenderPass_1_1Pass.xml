@@ -1,0 +1,350 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderRenderPass_1_1Pass" kind="class" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::Pass</compoundname>
+    <includes refid="dag__shaderRenderPass_8h" local="no">dag_shaderRenderPass.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7ea" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>Execution</name>
+        <qualifiedname>ShaderRenderPass::Pass::Execution</qualifiedname>
+        <enumvalue id="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7eaa06b9281e396db002010bde1de57262eb" prot="public">
+          <name>Auto</name>
+          <briefdescription>
+<para>Native preferred. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7eaa8a8f99dcc0b75b5fc00ad2a68563e9ef" prot="public">
+          <name>ForceSplit</name>
+          <briefdescription>
+<para>Force T-register reads. Requires allow_split on the render pass in DSHL. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="195" column="3" bodyfile="dag_shaderRenderPass.h" bodystart="196" bodyend="199"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderRenderPass_1_1Pass_1a8bd1baed6c8dc8f7f5bb0891c4ae131a" prot="private" static="no" mutable="no">
+        <type>Impl *</type>
+        <definition>Impl* ShaderRenderPass::Pass::impl</definition>
+        <argsstring></argsstring>
+        <name>impl</name>
+        <qualifiedname>ShaderRenderPass::Pass::impl</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="222" column="8" bodyfile="dag_shaderRenderPass.h" bodystart="222" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1a04dd86ab18875de528315865ef0dd4c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Pass::Pass</definition>
+        <argsstring>()=default</argsstring>
+        <name>Pass</name>
+        <qualifiedname>ShaderRenderPass::Pass::Pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="201" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1a4e94b8c72033dabd1975122b217755c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Pass::Pass</definition>
+        <argsstring>(Id id, FramebufferId fb, const char *debug_name=nullptr, const Actions *plan=nullptr, Execution execution=Execution::Auto)</argsstring>
+        <name>Pass</name>
+        <qualifiedname>ShaderRenderPass::Pass::Pass</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1ab350909302fdc42ed1f678aef773ba41" kindref="member">FramebufferId</ref></type>
+          <declname>fb</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>debug_name</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Actions" kindref="compound">Actions</ref> *</type>
+          <declname>plan</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7ea" kindref="member">Execution</ref></type>
+          <declname>execution</declname>
+          <defval><ref refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7eaa06b9281e396db002010bde1de57262eb" kindref="member">Execution::Auto</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="202" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1ae27a26568a351bfb2529f217372d5e7b" prot="public" static="no" const="no" explicit="no" inline="no" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Pass::Pass</definition>
+        <argsstring>(Pass &amp;&amp;o) noexcept</argsstring>
+        <name>Pass</name>
+        <qualifiedname>ShaderRenderPass::Pass::Pass</qualifiedname>
+        <param>
+          <type><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;&amp;</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="204" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1ad605ac943bcfa882f3dfa2c96549a530" prot="public" static="no" const="no" explicit="no" inline="no" noexcept="yes" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+        <definition>Pass &amp; ShaderRenderPass::Pass::operator=</definition>
+        <argsstring>(Pass &amp;&amp;o) noexcept</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderRenderPass::Pass::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;&amp;</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="205" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1ae1c9106e80f50e79ce79aadee6763c29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Pass::~Pass</definition>
+        <argsstring>()</argsstring>
+        <name>~Pass</name>
+        <qualifiedname>ShaderRenderPass::Pass::~Pass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="206" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1aec3c116489bcf9b9f44f991d5561ce5a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Pass::Pass</definition>
+        <argsstring>(const Pass &amp;)=delete</argsstring>
+        <name>Pass</name>
+        <qualifiedname>ShaderRenderPass::Pass::Pass</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="207" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1a83bb8b512847d311cb9dadbc64975da5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+        <definition>Pass &amp; ShaderRenderPass::Pass::operator=</definition>
+        <argsstring>(const Pass &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderRenderPass::Pass::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="208" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1a85373c0fceeeb7f4ebcde654207bb50d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::Pass::valid</definition>
+        <argsstring>() const</argsstring>
+        <name>valid</name>
+        <qualifiedname>ShaderRenderPass::Pass::valid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="210" column="8" bodyfile="dag_shaderRenderPass.h" bodystart="210" bodyend="210"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1ac057811dca76930f35fc479cdde71c4a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderRenderPass::Pass::targetSlot</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>targetSlot</name>
+        <qualifiedname>ShaderRenderPass::Pass::targetSlot</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="211" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1ad8da143808229890640a8d64a35a0efb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::Pass::runsSplit</definition>
+        <argsstring>() const</argsstring>
+        <name>runsSplit</name>
+        <qualifiedname>ShaderRenderPass::Pass::runsSplit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="212" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1a8dcfafe9c50c44ba7877f41c6e667de7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::Pass::vrsEnabled</definition>
+        <argsstring>() const</argsstring>
+        <name>vrsEnabled</name>
+        <qualifiedname>ShaderRenderPass::Pass::vrsEnabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="213" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderRenderPass_1_1Pass_1abd1020d696bc85a91aea887bd0250713" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void begin</definition>
+        <argsstring>(const Pass &amp;p, const Targets &amp;t, const RenderPassArea *area)</argsstring>
+        <name>begin</name>
+        <qualifiedname>ShaderRenderPass::Pass::begin</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const RenderPassArea *</type>
+          <declname>area</declname>
+        </param>
+        <briefdescription>
+<para>Begins the specified render pass <computeroutput>p</computeroutput>, binding the targets <computeroutput>t</computeroutput>, performing the necessary clears and setting the render area to <computeroutput>area</computeroutput>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>if <computeroutput>area</computeroutput> is nullptr, the render area is set to the full resolution of the render targets </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="218" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Pass_1a25039234209d882814fd82a6e3bb70f2" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool ShaderRenderPass::Pass::resolveTargets</definition>
+        <argsstring>(const Impl &amp;p, const Targets &amp;t, RenderPassTarget *out, bool *clear_set, const char **bad_name, int *bad_slot)</argsstring>
+        <name>resolveTargets</name>
+        <qualifiedname>ShaderRenderPass::Pass::resolveTargets</qualifiedname>
+        <param>
+          <type>const Impl &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>RenderPassTarget *</type>
+          <declname>out</declname>
+        </param>
+        <param>
+          <type>bool *</type>
+          <declname>clear_set</declname>
+        </param>
+        <param>
+          <type>const char **</type>
+          <declname>bad_name</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>bad_slot</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="219" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A runtime render pass object that can begin a render pass. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>fixes a render pass shape and a framebuffer layout as specified in DSHL, as well as start/end actions, execution mode (true subpass reads or emulated T-register reads) and a debug name.</para>
+<para><simplesect kind="note"><para>Survives device resets and best-efforts bindump reloads. If a pass or framebuffer changes or disappears after a reload, <ref refid="classShaderRenderPass_1_1Pass_1abd1020d696bc85a91aea887bd0250713" kindref="member">begin()</ref> is fatal until the instance is recreated. </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="192" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="193" bodyend="223"/>
+    <listofallmembers>
+      <member refid="classShaderRenderPass_1_1Pass_1abd1020d696bc85a91aea887bd0250713" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>begin</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a422c4d641fcf80ab090ba70b2dd4f7ea" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>Execution</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a8bd1baed6c8dc8f7f5bb0891c4ae131a" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>impl</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1ad605ac943bcfa882f3dfa2c96549a530" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>operator=</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a83bb8b512847d311cb9dadbc64975da5" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>operator=</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a04dd86ab18875de528315865ef0dd4c9" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>Pass</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a4e94b8c72033dabd1975122b217755c2" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>Pass</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1ae27a26568a351bfb2529f217372d5e7b" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>Pass</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1aec3c116489bcf9b9f44f991d5561ce5a" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>Pass</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a25039234209d882814fd82a6e3bb70f2" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>resolveTargets</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1ad8da143808229890640a8d64a35a0efb" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>runsSplit</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1ac057811dca76930f35fc479cdde71c4a" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>targetSlot</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a85373c0fceeeb7f4ebcde654207bb50d" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>valid</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1a8dcfafe9c50c44ba7877f41c6e667de7" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>vrsEnabled</name></member>
+      <member refid="classShaderRenderPass_1_1Pass_1ae1c9106e80f50e79ce79aadee6763c29" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Pass</scope><name>~Pass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

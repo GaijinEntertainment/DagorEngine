@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIDagorMat2_1_1EnumTexCB" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorMat2::EnumTexCB</compoundname>
+    <derivedcompoundref refid="structExpEnumTexCB" prot="public" virt="non-virtual">ExpEnumTexCB</derivedcompoundref>
+    <includes refid="mater_8h" local="no">mater.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structIDagorMat2_1_1EnumTexCB_1abdffd6a3ab2bebe6749b05002191a74b" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorMat2::EnumTexCB::proc</definition>
+        <argsstring>(const TCHAR *name, const TCHAR *path)=0</argsstring>
+        <name>proc</name>
+        <qualifiedname>IDagorMat2::EnumTexCB::proc</qualifiedname>
+        <reimplementedby refid="structExpEnumTexCB_1a09b44d0eb35bf79ff746800a02994be8">proc</reimplementedby>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="46" column="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ExpEnumTexCB</label>
+        <link refid="structExpEnumTexCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IDagorMat2::EnumTexCB</label>
+        <link refid="structIDagorMat2_1_1EnumTexCB"/>
+      </node>
+    </inheritancegraph>
+    <location file="mater.h" line="44" column="3" bodyfile="mater.h" bodystart="45" bodyend="47"/>
+    <listofallmembers>
+      <member refid="structIDagorMat2_1_1EnumTexCB_1abdffd6a3ab2bebe6749b05002191a74b" prot="public" virt="pure-virtual"><scope>IDagorMat2::EnumTexCB</scope><name>proc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

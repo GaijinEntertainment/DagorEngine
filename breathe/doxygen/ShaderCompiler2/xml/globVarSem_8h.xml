@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="globVarSem_8h" kind="file" language="C++">
+    <compoundname>globVarSem.h</compoundname>
+    <includedby refid="globVarSem_8cpp" local="yes">globVarSem.cpp</includedby>
+    <includedby refid="samplers_8cpp" local="yes">samplers.cpp</includedby>
+    <includedby refid="shlexterm_8cpp" local="yes">shlexterm.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>globVarSem.cpp</label>
+        <link refid="globVarSem_8cpp"/>
+      </node>
+      <node id="1">
+        <label>globVarSem.h</label>
+        <link refid="globVarSem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>samplers.cpp</label>
+        <link refid="samplers_8cpp"/>
+      </node>
+      <node id="4">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innernamespace refid="namespaceShaderTerminal">ShaderTerminal</innernamespace>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">/************************************************************************</highlight></codeline>
+<codeline lineno="5"><highlight class="comment"><sp/><sp/>global<sp/>variables<sp/>-<sp/>semantic</highlight></codeline>
+<codeline lineno="6"><highlight class="comment"></highlight><highlight class="comment">/************************************************************************/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="varTypes_8h" kindref="compound">varTypes.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shTargetContext_8h" kindref="compound">shTargetContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shShaderContext_8h" kindref="compound">shShaderContext.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;parser/base_par.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIntervalList" kindref="compound">IntervalList</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderTerminal" kindref="compound">ShaderTerminal</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">global_var_decl;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">default_shader_decl;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">interval;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">assume_stat;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">assume_if_not_assumed_stat;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">sampler_decl;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderTerminal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structParser" kindref="compound">Parser</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>new<sp/>global<sp/>variable<sp/>to<sp/>a<sp/>global<sp/>variable<sp/>list</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="namespaceShaderParser_1a31bbcd12ff4bebef8d8d3d786dda16f8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a10671c559a54843a5f0fbfc2337ad6da" kindref="member">add_global_var</ref>(ShaderTerminal::global_var_decl<sp/>*decl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>new<sp/>sampler<sp/>object</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="namespaceShaderParser_1a7b62ca3a859e964270c2241752921297" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a74499c9c84544475e78a6f1c5cef0b24" kindref="member">add_sampler</ref>(ShaderTerminal::sampler_decl<sp/>*decl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>new<sp/>global<sp/>variable<sp/>interval</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a3a609923c411d04789c30e49f564e7ff" kindref="member">add_global_interval</ref>(ShaderTerminal::interval<sp/>&amp;interv,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>new<sp/>interval<sp/>to<sp/>intervals</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="namespaceShaderParser_1a18790dcf08d20559accf3d651c200519" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1afc2603df5d94963150dadf1c94c46be6" kindref="member">add_interval</ref>(<ref refid="classIntervalList" kindref="compound">IntervalList</ref><sp/>&amp;intervals,<sp/>ShaderTerminal::interval<sp/>&amp;interv,<sp/><ref refid="namespaceShaderVariant_1a4cc81bf315e35fb912c2033de934e6cf" kindref="member">ShaderVariant::VarType</ref><sp/>type,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>global<sp/>assume<sp/>for<sp/>interval</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a3694aa6c4ff0bd461c5d54c42339bd16" kindref="member">add_global_assume</ref>(ShaderTerminal::assume_stat<sp/>&amp;assume,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>global<sp/>assume<sp/>for<sp/>interval<sp/>if<sp/>it<sp/>was<sp/>not<sp/>already<sp/>assumed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a055504365a173c54c1335ecec383cdc0" kindref="member">add_global_assume_if_not_assumed</ref>(ShaderTerminal::assume_if_not_assumed_stat<sp/>&amp;assume,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>assume<sp/>for<sp/>interval<sp/>to<sp/>blk</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="namespaceShaderParser_1ae7469ccff0ddcef76b3c6a342486e4c1" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a902443a4c7749a22da19ef6406a3ef37" kindref="member">add_shader_assume</ref>(ShaderTerminal::assume_stat<sp/>&amp;assume,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="comment">//<sp/>add<sp/>a<sp/>assume<sp/>for<sp/>interval<sp/>to<sp/>blk<sp/>if<sp/>it<sp/>was<sp/>not<sp/>already<sp/>assumed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1a746c1d89a06e7cfcf4dcf303deace014" kindref="member">add_shader_assume_if_not_assumed</ref>(ShaderTerminal::assume_if_not_assumed_stat<sp/>&amp;assume,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1ShaderContext" kindref="compound">shc::ShaderContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">};<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>ShaderParser</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="globVarSem.h"/>
+  </compounddef>
+</doxygen>

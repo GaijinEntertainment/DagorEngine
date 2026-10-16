@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaterialDataList" kind="class" language="C++" prot="public">
+    <compoundname>MaterialDataList</compoundname>
+    <includes refid="dag__materialData_8h" local="no">dag_materialData.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMaterialDataList_1acca3cd5fbd5a59733a764ede2a115ea0" prot="public" static="no" mutable="no">
+        <type>PtrTab&lt; <ref refid="classMaterialData" kindref="compound">MaterialData</ref> &gt;</type>
+        <definition>PtrTab&lt;MaterialData&gt; MaterialDataList::list</definition>
+        <argsstring></argsstring>
+        <name>list</name>
+        <qualifiedname>MaterialDataList::list</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="79" column="10" bodyfile="dag_materialData.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaterialDataList_1a4163e3ab6bb9b1a5d308d07c57c3ca24" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MaterialDataList::MaterialDataList</definition>
+        <argsstring>()</argsstring>
+        <name>MaterialDataList</name>
+        <qualifiedname>MaterialDataList::MaterialDataList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="82" column="3" bodyfile="dag_materialData.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterialDataList_1a7c8d6e45332f696d24e8bfd155403010" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterialDataList::subMatCount</definition>
+        <argsstring>() const</argsstring>
+        <name>subMatCount</name>
+        <qualifiedname>MaterialDataList::subMatCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="84" column="7" bodyfile="dag_materialData.h" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterialDataList_1a08622ae1a33923b6faa13e09e7771ee3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classMaterialData" kindref="compound">MaterialData</ref> *</type>
+        <definition>MaterialData * MaterialDataList::getSubMat</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getSubMat</name>
+        <qualifiedname>MaterialDataList::getSubMat</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="86" column="16" bodyfile="dag_materialData.h" bodystart="86" bodyend="91"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterialDataList_1a6d52d2b6b014dea03bcd85cb2ddea70d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterialDataList::addSubMat</definition>
+        <argsstring>(MaterialData *md)</argsstring>
+        <name>addSubMat</name>
+        <qualifiedname>MaterialDataList::addSubMat</qualifiedname>
+        <param>
+          <type><ref refid="classMaterialData" kindref="compound">MaterialData</ref> *</type>
+          <declname>md</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_materialData.h" line="93" column="7" bodyfile="dag_materialData.h" bodystart="93" bodyend="97"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_materialData.h" line="76" column="1" bodyfile="dag_materialData.h" bodystart="77" bodyend="98"/>
+    <listofallmembers>
+      <member refid="classMaterialDataList_1a6d52d2b6b014dea03bcd85cb2ddea70d" prot="public" virt="non-virtual"><scope>MaterialDataList</scope><name>addSubMat</name></member>
+      <member refid="classMaterialDataList_1a08622ae1a33923b6faa13e09e7771ee3" prot="public" virt="non-virtual"><scope>MaterialDataList</scope><name>getSubMat</name></member>
+      <member refid="classMaterialDataList_1acca3cd5fbd5a59733a764ede2a115ea0" prot="public" virt="non-virtual"><scope>MaterialDataList</scope><name>list</name></member>
+      <member refid="classMaterialDataList_1a4163e3ab6bb9b1a5d308d07c57c3ca24" prot="public" virt="non-virtual"><scope>MaterialDataList</scope><name>MaterialDataList</name></member>
+      <member refid="classMaterialDataList_1a7c8d6e45332f696d24e8bfd155403010" prot="public" virt="non-virtual"><scope>MaterialDataList</scope><name>subMatCount</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

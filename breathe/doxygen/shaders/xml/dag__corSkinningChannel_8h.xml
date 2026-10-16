@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__corSkinningChannel_8h" kind="file" language="C++">
+    <compoundname>dag_corSkinningChannel.h</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__corSkinningChannel_8h_1a251b361511613a47c7fff2a1142fec83" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int COR_SKINNING_EXTRA_CHANNEL</definition>
+        <argsstring></argsstring>
+        <name>COR_SKINNING_EXTRA_CHANNEL</name>
+        <initializer>= 60</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_corSkinningChannel.h" line="10" column="22" bodyfile="dag_corSkinningChannel.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>constraint:<sp/>must<sp/>equal<sp/>the<sp/>cor<sp/>channel<sp/>in<sp/>dynamic_simple_inc.dshl<sp/>and<sp/>the<sp/>BVH<sp/>skinned<sp/>prepass.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>value<sp/>is<sp/>(center<sp/>of<sp/>rotation<sp/>-<sp/>vertex<sp/>position)<sp/>in<sp/>bind<sp/>space<sp/>as<sp/>color8:<sp/>three<sp/>signed<sp/>bytes<sp/>times</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>2^((w<sp/>-<sp/>200)<sp/>/<sp/>8).<sp/>Zero<sp/>keeps<sp/>the<sp/>linear<sp/>blend<sp/>skinning<sp/>position.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>COR_SKINNING_EXTRA_CHANNEL<sp/>=<sp/>60;</highlight></codeline>
+    </programlisting>
+    <location file="dag_corSkinningChannel.h"/>
+  </compounddef>
+</doxygen>

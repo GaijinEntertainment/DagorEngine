@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structAnimChanQuat" kind="struct" language="C++" prot="public">
+    <compoundname>AnimChanQuat</compoundname>
+    <includes refid="expanim2_8h" local="no">expanim2.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAnimChanQuat_1acef9a120f4d3869e91b94a026106207d" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structRotKey" kindref="compound">RotKey</ref> &gt;</type>
+        <definition>Tab&lt;RotKey&gt; AnimChanQuat::key</definition>
+        <argsstring></argsstring>
+        <name>key</name>
+        <qualifiedname>AnimChanQuat::key</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim2.h" line="11" column="7" bodyfile="expanim2.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expanim2.h" line="9" column="1" bodyfile="expanim2.h" bodystart="10" bodyend="12"/>
+    <listofallmembers>
+      <member refid="structAnimChanQuat_1acef9a120f4d3869e91b94a026106207d" prot="public" virt="non-virtual"><scope>AnimChanQuat</scope><name>key</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

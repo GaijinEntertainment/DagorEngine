@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynamicRenderableSceneInstance_1_1SkinBoneRows" kind="struct" language="C++" prot="protected">
+    <compoundname>DynamicRenderableSceneInstance::SkinBoneRows</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynamicRenderableSceneInstance_1_1SkinBoneRows_1ae3bcd010c42c4877b242047375c20e7f" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; vec4f, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;vec4f, MidmemAlloc&gt; DynamicRenderableSceneInstance::SkinBoneRows::rows[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>rows</name>
+        <qualifiedname>DynamicRenderableSceneInstance::SkinBoneRows::rows</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="787" column="14" bodyfile="dag_dynSceneRes.h" bodystart="787" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicRenderableSceneInstance_1_1SkinBoneRows_1aaab91906d772ceaa8a9196968d66a302" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classShaderSkinnedMesh" kindref="compound">ShaderSkinnedMesh</ref> *</type>
+        <definition>const ShaderSkinnedMesh* DynamicRenderableSceneInstance::SkinBoneRows::mesh[2]</definition>
+        <argsstring>[2]</argsstring>
+        <name>mesh</name>
+        <qualifiedname>DynamicRenderableSceneInstance::SkinBoneRows::mesh</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="788" column="29" bodyfile="dag_dynSceneRes.h" bodystart="788" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynamicRenderableSceneInstance_1_1SkinBoneRows_1a895ab8e2d2280ab870fa0c56cc37f4a8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::SkinBoneRows::cur</definition>
+        <argsstring></argsstring>
+        <name>cur</name>
+        <qualifiedname>DynamicRenderableSceneInstance::SkinBoneRows::cur</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="789" column="9" bodyfile="dag_dynSceneRes.h" bodystart="789" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>DynamicRenderableSceneInstance::SkinBoneRows</label>
+        <link refid="structDynamicRenderableSceneInstance_1_1SkinBoneRows"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>mesh</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderSkinnedMesh</label>
+        <link refid="classShaderSkinnedMesh"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_dynSceneRes.h" line="785" column="3" bodyfile="dag_dynSceneRes.h" bodystart="786" bodyend="790"/>
+    <listofallmembers>
+      <member refid="structDynamicRenderableSceneInstance_1_1SkinBoneRows_1a895ab8e2d2280ab870fa0c56cc37f4a8" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::SkinBoneRows</scope><name>cur</name></member>
+      <member refid="structDynamicRenderableSceneInstance_1_1SkinBoneRows_1aaab91906d772ceaa8a9196968d66a302" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::SkinBoneRows</scope><name>mesh</name></member>
+      <member refid="structDynamicRenderableSceneInstance_1_1SkinBoneRows_1ae3bcd010c42c4877b242047375c20e7f" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance::SkinBoneRows</scope><name>rows</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

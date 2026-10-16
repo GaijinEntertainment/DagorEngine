@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__texIdSet_8h" kind="file" language="C++">
+    <compoundname>dag_texIdSet.h</compoundname>
+    <includes local="no">drv/3d/dag_resId.h</includes>
+    <includes local="no">EASTL/vector_set.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_texIdSet.h</label>
+        <link refid="dag__texIdSet_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="2">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_tab.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classTextureIdSet" prot="public">TextureIdSet</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__texIdSet_8h_1a1a4762447d3904d89ecd9ad73934ef05" prot="public" static="no">
+        <type>eastl::vector_set&lt; TEXTUREID, eastl::less&lt; TEXTUREID &gt;, dag::MemPtrAllocator, dag::Vector&lt; TEXTUREID, dag::MemPtrAllocator &gt; &gt;</type>
+        <definition>using BaseTextureIdSet =  eastl::vector_set&lt;TEXTUREID, eastl::less&lt;TEXTUREID&gt;, dag::MemPtrAllocator, dag::Vector&lt;TEXTUREID, dag::MemPtrAllocator&gt; &gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseTextureIdSet</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_texIdSet.h" line="11" column="1" bodyfile="dag_texIdSet.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_resId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/vector_set.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="dag__texIdSet_8h_1a1a4762447d3904d89ecd9ad73934ef05" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="dag__texIdSet_8h_1a1a4762447d3904d89ecd9ad73934ef05" kindref="member">BaseTextureIdSet</ref><sp/>=</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/>eastl::vector_set&lt;TEXTUREID,<sp/>eastl::less&lt;TEXTUREID&gt;,<sp/>dag::MemPtrAllocator,<sp/>dag::Vector&lt;TEXTUREID,<sp/>dag::MemPtrAllocator&gt;&gt;;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classTextureIdSet" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTextureIdSet" kindref="compound">TextureIdSet</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="dag__texIdSet_8h_1a1a4762447d3904d89ecd9ad73934ef05" kindref="member">BaseTextureIdSet</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17" refid="classTextureIdSet_1a1ba92add0af0eeaf281edcce3781e7ba" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIdSet_1a1ba92add0af0eeaf281edcce3781e7ba" kindref="member">TextureIdSet</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="18" refid="classTextureIdSet_1a856275abfa63d0dc7fe287d2d4236a98" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classTextureIdSet_1a856275abfa63d0dc7fe287d2d4236a98" kindref="member">TextureIdSet</ref>(IMemAlloc<sp/>*m)<sp/>:<sp/><ref refid="dag__texIdSet_8h_1a1a4762447d3904d89ecd9ad73934ef05" kindref="member">BaseTextureIdSet</ref>(<ref refid="namespacedag" kindref="compound">dag</ref>::MemPtrAllocator(m))<sp/>{}</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classTextureIdSet_1a202645c5f18fd3497a141f303c299e6a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classTextureIdSet_1a202645c5f18fd3497a141f303c299e6a" kindref="member">reset</ref>()<sp/>{<sp/>clear();<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="classTextureIdSet_1a3853368a26f2246bda409934681062c1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIdSet_1a3853368a26f2246bda409934681062c1" kindref="member">add</ref>(TEXTUREID<sp/>tid)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>insert(tid).second;<sp/>}</highlight></codeline>
+<codeline lineno="23" refid="classTextureIdSet_1af948f1a47b19af8e421f06163d1fe5db" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIdSet_1af948f1a47b19af8e421f06163d1fe5db" kindref="member">del</ref>(TEXTUREID<sp/>tid)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>erase(tid);<sp/>}</highlight></codeline>
+<codeline lineno="24" refid="classTextureIdSet_1a6fbefd2082c8352009fa0b763c81fbba" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classTextureIdSet_1a6fbefd2082c8352009fa0b763c81fbba" kindref="member">has</ref>(TEXTUREID<sp/>tid)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>find(tid)<sp/>!=<sp/>end();<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_texIdSet.h"/>
+  </compounddef>
+</doxygen>

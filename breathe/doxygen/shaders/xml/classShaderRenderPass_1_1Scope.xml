@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderRenderPass_1_1Scope" kind="class" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::Scope</compoundname>
+    <includes refid="dag__shaderRenderPass_8h" local="no">dag_shaderRenderPass.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderRenderPass_1_1Scope_1a909aa2de4ae1c0af6cc8ed5b2aa3823d" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::Scope::subpassCount</definition>
+        <argsstring></argsstring>
+        <name>subpassCount</name>
+        <qualifiedname>ShaderRenderPass::Scope::subpassCount</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="246" column="7" bodyfile="dag_shaderRenderPass.h" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Scope_1a063b1f576d82f55622e3a3601fb3b389" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Scope::Scope</definition>
+        <argsstring>(const Pass &amp;p, const Targets &amp;t, const RenderPassArea *area=nullptr)</argsstring>
+        <name>Scope</name>
+        <qualifiedname>ShaderRenderPass::Scope::Scope</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Pass" kindref="compound">Pass</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Targets" kindref="compound">Targets</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const RenderPassArea *</type>
+          <declname>area</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="238" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Scope_1a3cf7536e692808f5523975e7ba4848e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Scope::~Scope</definition>
+        <argsstring>()</argsstring>
+        <name>~Scope</name>
+        <qualifiedname>ShaderRenderPass::Scope::~Scope</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="239" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Scope_1a5b8b6cc6259bc0286b3430cab565b4c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Scope::Scope</definition>
+        <argsstring>(const Scope &amp;)=delete</argsstring>
+        <name>Scope</name>
+        <qualifiedname>ShaderRenderPass::Scope::Scope</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="240" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Scope_1afee972a59a4fb3f07b2f842fc350f9a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref> &amp;</type>
+        <definition>Scope &amp; ShaderRenderPass::Scope::operator=</definition>
+        <argsstring>(const Scope &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderRenderPass::Scope::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Scope" kindref="compound">Scope</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="241" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Scope_1a1698c0b5cb6fad6b7812dda01429833f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderRenderPass::Scope::nextSubpass</definition>
+        <argsstring>()</argsstring>
+        <name>nextSubpass</name>
+        <qualifiedname>ShaderRenderPass::Scope::nextSubpass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="243" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>RAII <ref refid="namespaceShaderRenderPass_1acaf7d4214bb4badf5930384a748815a5" kindref="member">begin()</ref>/end(). The destructor asserts on a skipped subpass. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="235" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="236" bodyend="247"/>
+    <listofallmembers>
+      <member refid="classShaderRenderPass_1_1Scope_1a1698c0b5cb6fad6b7812dda01429833f" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Scope</scope><name>nextSubpass</name></member>
+      <member refid="classShaderRenderPass_1_1Scope_1afee972a59a4fb3f07b2f842fc350f9a0" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Scope</scope><name>operator=</name></member>
+      <member refid="classShaderRenderPass_1_1Scope_1a063b1f576d82f55622e3a3601fb3b389" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Scope</scope><name>Scope</name></member>
+      <member refid="classShaderRenderPass_1_1Scope_1a5b8b6cc6259bc0286b3430cab565b4c9" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Scope</scope><name>Scope</name></member>
+      <member refid="classShaderRenderPass_1_1Scope_1a909aa2de4ae1c0af6cc8ed5b2aa3823d" prot="private" virt="non-virtual"><scope>ShaderRenderPass::Scope</scope><name>subpassCount</name></member>
+      <member refid="classShaderRenderPass_1_1Scope_1a3cf7536e692808f5523975e7ba4848e8" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Scope</scope><name>~Scope</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

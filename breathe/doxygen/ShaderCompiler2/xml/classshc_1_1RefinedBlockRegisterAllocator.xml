@@ -1,0 +1,233 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1RefinedBlockRegisterAllocator" kind="class" language="C++" prot="public">
+    <compoundname>shc::RefinedBlockRegisterAllocator</compoundname>
+    <includes refid="refinedBlockRegisterAllocator_8h" local="no">refinedBlockRegisterAllocator.h</includes>
+    <innerclass refid="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation" prot="private">shc::RefinedBlockRegisterAllocator::Allocation</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockRegisterAllocator_1a1c86792ea4b6d1f00bbd1b2d6252e053" prot="private" static="no" mutable="no">
+        <type><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref></type>
+        <definition>HlslRegAllocator shc::RefinedBlockRegisterAllocator::cRegAllocator</definition>
+        <argsstring></argsstring>
+        <name>cRegAllocator</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::cRegAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="40" column="20" bodyfile="refinedBlockRegisterAllocator.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockRegisterAllocator_1a49f9f6c530f0f355f6ee711350018a9c" prot="private" static="no" mutable="no">
+        <type>eastl::array&lt; <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref>, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HlslRegisterSpace::HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>eastl::array&lt;HlslRegAllocator, HlslRegisterSpace::HLSL_RSPACE_COUNT&gt; shc::RefinedBlockRegisterAllocator::vsSlotAllocator</definition>
+        <argsstring></argsstring>
+        <name>vsSlotAllocator</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::vsSlotAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="41" column="16" bodyfile="refinedBlockRegisterAllocator.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockRegisterAllocator_1aac6a994fc95efb2c2602b4f7eb7cde26" prot="private" static="no" mutable="no">
+        <type>eastl::array&lt; <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref>, <ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9baa1b0c0ad8683cfcb48d3ad7402e41ca3" kindref="member">HlslRegisterSpace::HLSL_RSPACE_COUNT</ref> &gt;</type>
+        <definition>eastl::array&lt;HlslRegAllocator, HlslRegisterSpace::HLSL_RSPACE_COUNT&gt; shc::RefinedBlockRegisterAllocator::psOrCsSlotAllocator</definition>
+        <argsstring></argsstring>
+        <name>psOrCsSlotAllocator</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::psOrCsSlotAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="42" column="16" bodyfile="refinedBlockRegisterAllocator.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockRegisterAllocator_1acd6d1f6438d6e7b02bd4c46434290ef6" prot="private" static="no" mutable="no">
+        <type>eastl::fixed_list&lt; Allocation, 128 &gt;</type>
+        <definition>eastl::fixed_list&lt;Allocation, 128&gt; shc::RefinedBlockRegisterAllocator::cbufFreeAllocations</definition>
+        <argsstring></argsstring>
+        <name>cbufFreeAllocations</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::cbufFreeAllocations</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="51" column="21" bodyfile="refinedBlockRegisterAllocator.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1a6b61beaa9b75b0853982afadaf457cf2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>shc::RefinedBlockRegisterAllocator::RefinedBlockRegisterAllocator</definition>
+        <argsstring>()</argsstring>
+        <name>RefinedBlockRegisterAllocator</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::RefinedBlockRegisterAllocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="24" column="3" bodyfile="refinedBlockRegisterAllocator.cpp" bodystart="13" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1a83a7c380a0984789831f62fb007a7d19" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int shc::RefinedBlockRegisterAllocator::allocCbufSlot</definition>
+        <argsstring>(uint32_t slotCount)</argsstring>
+        <name>allocCbufSlot</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::allocCbufSlot</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>slotCount</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="27" column="7" bodyfile="refinedBlockRegisterAllocator.cpp" bodystart="24" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1aa9f9ea0124824166cf71e0451550597d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockRegisterAllocator::reserveCbufSlot</definition>
+        <argsstring>(uint32_t offset, uint32_t count)</argsstring>
+        <name>reserveCbufSlot</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::reserveCbufSlot</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="28" column="8" bodyfile="refinedBlockRegisterAllocator.cpp" bodystart="55" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1a8e62a159cbb8760cf3a6370d576578a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int shc::RefinedBlockRegisterAllocator::allocSlot</definition>
+        <argsstring>(ShaderStage stage, HlslRegisterSpace space)</argsstring>
+        <name>allocSlot</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::allocSlot</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>space</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="32" column="7" bodyfile="refinedBlockRegisterAllocator.cpp" bodystart="67" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1acf7475c49efff694ba046bd3ad133015" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockRegisterAllocator::reserveSlot</definition>
+        <argsstring>(ShaderStage stage, HlslRegisterSpace space, HlslSlotSemantic semantic, uint32_t slot, uint32_t count=1)</argsstring>
+        <name>reserveSlot</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::reserveSlot</qualifiedname>
+        <param>
+          <type>ShaderStage</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>space</declname>
+        </param>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref></type>
+          <declname>semantic</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>slot</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>count</declname>
+          <defval>1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="33" column="8" bodyfile="refinedBlockRegisterAllocator.cpp" bodystart="73" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1a33a0159610f58e338fabc419ddfa7a4e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;</type>
+        <definition>const HlslRegAllocator &amp; shc::RefinedBlockRegisterAllocator::vsAllocator</definition>
+        <argsstring>(HlslRegisterSpace space) const</argsstring>
+        <name>vsAllocator</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::vsAllocator</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>space</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="36" column="26" bodyfile="refinedBlockRegisterAllocator.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockRegisterAllocator_1ab14b42205261a04b1c61f5dcffc68c00" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref> &amp;</type>
+        <definition>const HlslRegAllocator &amp; shc::RefinedBlockRegisterAllocator::psOrCsAllocator</definition>
+        <argsstring>(HlslRegisterSpace space) const</argsstring>
+        <name>psOrCsAllocator</name>
+        <qualifiedname>shc::RefinedBlockRegisterAllocator::psOrCsAllocator</qualifiedname>
+        <param>
+          <type><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref></type>
+          <declname>space</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockRegisterAllocator.h" line="37" column="26" bodyfile="refinedBlockRegisterAllocator.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="refinedBlockRegisterAllocator.h" line="21" column="1" bodyfile="refinedBlockRegisterAllocator.h" bodystart="22" bodyend="52"/>
+    <listofallmembers>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1a83a7c380a0984789831f62fb007a7d19" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>allocCbufSlot</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1a8e62a159cbb8760cf3a6370d576578a9" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>allocSlot</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1acd6d1f6438d6e7b02bd4c46434290ef6" prot="private" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>cbufFreeAllocations</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1a1c86792ea4b6d1f00bbd1b2d6252e053" prot="private" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>cRegAllocator</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1ab14b42205261a04b1c61f5dcffc68c00" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>psOrCsAllocator</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1aac6a994fc95efb2c2602b4f7eb7cde26" prot="private" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>psOrCsSlotAllocator</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1a6b61beaa9b75b0853982afadaf457cf2" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>RefinedBlockRegisterAllocator</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1aa9f9ea0124824166cf71e0451550597d" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>reserveCbufSlot</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1acf7475c49efff694ba046bd3ad133015" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>reserveSlot</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1a33a0159610f58e338fabc419ddfa7a4e" prot="public" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>vsAllocator</name></member>
+      <member refid="classshc_1_1RefinedBlockRegisterAllocator_1a49f9f6c530f0f355f6ee711350018a9c" prot="private" virt="non-virtual"><scope>shc::RefinedBlockRegisterAllocator</scope><name>vsSlotAllocator</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

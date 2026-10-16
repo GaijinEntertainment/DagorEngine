@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structGizmoEventFilter_1_1GizmoParams" kind="struct" language="C++" prot="protected">
+    <compoundname>GizmoEventFilter::GizmoParams</compoundname>
+    <includes refid="ec__gizmofilter_8h" local="no">ec_gizmofilter.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1GizmoParams_1acd1dac4800222c035ede15e1c14ff7b6" prot="public" static="no" mutable="no">
+        <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+        <definition>IEditorCoreEngine::ModeType GizmoEventFilter::GizmoParams::prevMode</definition>
+        <argsstring></argsstring>
+        <name>prevMode</name>
+        <qualifiedname>GizmoEventFilter::GizmoParams::prevMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="125" column="33" bodyfile="ec_gizmofilter.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1GizmoParams_1ac4ba58a2d1dc52c03fe5bf9d40796b6a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GizmoEventFilter::GizmoParams::over</definition>
+        <argsstring></argsstring>
+        <name>over</name>
+        <qualifiedname>GizmoEventFilter::GizmoParams::over</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="127" column="9" bodyfile="ec_gizmofilter.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1GizmoParams_1a1e961c879b80e86414de98c651170f1a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int GizmoEventFilter::GizmoParams::selected</definition>
+        <argsstring></argsstring>
+        <name>selected</name>
+        <qualifiedname>GizmoEventFilter::GizmoParams::selected</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="128" column="9" bodyfile="ec_gizmofilter.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1GizmoParams_1a2e04573aae50731bfe49565196062678" prot="public" static="no" mutable="no">
+        <type><ref refid="classIGizmoClient" kindref="compound">IGizmoClient</ref> *</type>
+        <definition>IGizmoClient* GizmoEventFilter::GizmoParams::client</definition>
+        <argsstring></argsstring>
+        <name>client</name>
+        <qualifiedname>GizmoEventFilter::GizmoParams::client</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="130" column="18" bodyfile="ec_gizmofilter.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGizmoEventFilter_1_1GizmoParams_1ae363b7e6e42ccce6cd2b3906995091ee" prot="public" static="no" mutable="no">
+        <type><ref refid="classIEditorCoreEngine_1ac0d075ac36ece35fd29aa489e2542d06" kindref="member">IEditorCoreEngine::ModeType</ref></type>
+        <definition>IEditorCoreEngine::ModeType GizmoEventFilter::GizmoParams::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>GizmoEventFilter::GizmoParams::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gizmofilter.h" line="132" column="33" bodyfile="ec_gizmofilter.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>GizmoEventFilter::GizmoParams</label>
+        <link refid="structGizmoEventFilter_1_1GizmoParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>client</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IGizmoClient</label>
+        <link refid="classIGizmoClient"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_gizmofilter.h" line="123" column="3" bodyfile="ec_gizmofilter.h" bodystart="124" bodyend="133"/>
+    <listofallmembers>
+      <member refid="structGizmoEventFilter_1_1GizmoParams_1a2e04573aae50731bfe49565196062678" prot="public" virt="non-virtual"><scope>GizmoEventFilter::GizmoParams</scope><name>client</name></member>
+      <member refid="structGizmoEventFilter_1_1GizmoParams_1ac4ba58a2d1dc52c03fe5bf9d40796b6a" prot="public" virt="non-virtual"><scope>GizmoEventFilter::GizmoParams</scope><name>over</name></member>
+      <member refid="structGizmoEventFilter_1_1GizmoParams_1acd1dac4800222c035ede15e1c14ff7b6" prot="public" virt="non-virtual"><scope>GizmoEventFilter::GizmoParams</scope><name>prevMode</name></member>
+      <member refid="structGizmoEventFilter_1_1GizmoParams_1a1e961c879b80e86414de98c651170f1a" prot="public" virt="non-virtual"><scope>GizmoEventFilter::GizmoParams</scope><name>selected</name></member>
+      <member refid="structGizmoEventFilter_1_1GizmoParams_1ae363b7e6e42ccce6cd2b3906995091ee" prot="public" virt="non-virtual"><scope>GizmoEventFilter::GizmoParams</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

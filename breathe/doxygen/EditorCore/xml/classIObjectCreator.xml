@@ -1,0 +1,639 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIObjectCreator" kind="class" language="C++" prot="public">
+    <compoundname>IObjectCreator</compoundname>
+    <derivedcompoundref refid="classBoxCreator" prot="public" virt="non-virtual">BoxCreator</derivedcompoundref>
+    <derivedcompoundref refid="classCylinderCreator" prot="public" virt="non-virtual">CylinderCreator</derivedcompoundref>
+    <derivedcompoundref refid="classPlaneCreator" prot="public" virt="non-virtual">PlaneCreator</derivedcompoundref>
+    <derivedcompoundref refid="classPointCreator" prot="public" virt="non-virtual">PointCreator</derivedcompoundref>
+    <derivedcompoundref refid="classPolyMeshCreator" prot="public" virt="non-virtual">PolyMeshCreator</derivedcompoundref>
+    <derivedcompoundref refid="classPolygoneZoneCreator" prot="public" virt="non-virtual">PolygoneZoneCreator</derivedcompoundref>
+    <derivedcompoundref refid="classSphereCreator" prot="public" virt="non-virtual">SphereCreator</derivedcompoundref>
+    <derivedcompoundref refid="classSplineCreator" prot="public" virt="non-virtual">SplineCreator</derivedcompoundref>
+    <derivedcompoundref refid="classSurfaceMoveCreator" prot="public" virt="non-virtual">SurfaceMoveCreator</derivedcompoundref>
+    <derivedcompoundref refid="classTargetCreator" prot="public" virt="non-virtual">TargetCreator</derivedcompoundref>
+    <includes refid="ec__IObjectCreator_8h" local="no">ec_IObjectCreator.h</includes>
+      <sectiondef kind="user-defined">
+      <header>Mouse events handlers.</header>
+      <memberdef kind="variable" id="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool IObjectCreator::stateFinished</definition>
+        <argsstring></argsstring>
+        <name>stateFinished</name>
+        <qualifiedname>IObjectCreator::stateFinished</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="85" column="8" bodyfile="ec_IObjectCreator.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool IObjectCreator::stateOk</definition>
+        <argsstring></argsstring>
+        <name>stateOk</name>
+        <qualifiedname>IObjectCreator::stateOk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="86" column="8" bodyfile="ec_IObjectCreator.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IObjectCreator::handleMouseMove</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif, bool rotate=true)</argsstring>
+        <name>handleMouseMove</name>
+        <qualifiedname>IObjectCreator::handleMouseMove</qualifiedname>
+        <reimplementedby refid="classBoxCreator_1a9816d644d519f3bcef8e2751bcd50e0b">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classSphereCreator_1ae2c0676ba3b23271744cc4c8bf3eb585">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classPointCreator_1a794616784d6db570850727a3cef8373e">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classTargetCreator_1a9e39add572372ca1e61fc819bc07d601">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classPlaneCreator_1a020760c301655de0db5d7065b7fb9536">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classSurfaceMoveCreator_1a6634826738f691e6b17a920563443df1">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classCylinderCreator_1ae7f97dec9f4d503df765c8b1296f7b1c">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classPolygoneZoneCreator_1a1611c4d23a8b4f12c91a517dd192b13b">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classPolyMeshCreator_1af1b929cd21ef5ea2d077267e235a8496">handleMouseMove</reimplementedby>
+        <reimplementedby refid="classSplineCreator_1a9fb18335a6fe73a0e9451f767b9424e2">handleMouseMove</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>rotate</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse move event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">rotate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if <bold>false</bold>, then box sides will be parallel to world coordinate axes <linebreak/>
+ - if <bold>true</bold>, then box base will be set as pointed by user </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="44" column="16" bodyfile="ec_IObjectCreator.h" bodystart="44" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IObjectCreator::handleMouseLBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)</argsstring>
+        <name>handleMouseLBPress</name>
+        <qualifiedname>IObjectCreator::handleMouseLBPress</qualifiedname>
+        <reimplementedby refid="classBoxCreator_1abfc42f36931faf858715dc2709a0e39f">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classSphereCreator_1ac8a69535d474046a0c6a9126a323fe16">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classPointCreator_1a2ca577217e5013f832db2e47b6f458b2">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classTargetCreator_1aa957e98a4dcedb99b3772b5c25e8b8ef">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classPlaneCreator_1a5d1df45af21ab496fe7f0a466fbc4dce">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classSurfaceMoveCreator_1a1c5bcacdbcab35393e970f356700b428">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classCylinderCreator_1acccfda8fc474702fd2639c54f253de67">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classPolygoneZoneCreator_1aa0c4bb439918afa3822f6a820191dfa7">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classPolyMeshCreator_1a095dadced20d54424121715f70eb994b">handleMouseLBPress</reimplementedby>
+        <reimplementedby refid="classSplineCreator_1a855f360ab4a5bdac23974ae0404e7f9e">handleMouseLBPress</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button press event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="57" column="16" bodyfile="ec_IObjectCreator.h" bodystart="57" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IObjectCreator::handleMouseLBRelease</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)</argsstring>
+        <name>handleMouseLBRelease</name>
+        <qualifiedname>IObjectCreator::handleMouseLBRelease</qualifiedname>
+        <reimplementedby refid="classBoxCreator_1a9583b6b162a164efe8d3fee11e6e0a97">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classSphereCreator_1a6d423bd66301e4a2801c354e32788b45">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classPointCreator_1ac3f1f6e907eb9a284587464a478df044">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classTargetCreator_1a33e5e2d2ff65c984d642a53b9524efce">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classPlaneCreator_1af92de80088ee408f6aebe0c9b30f7b54">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classSurfaceMoveCreator_1a08b7fd72348c4d37278a0e59116f626e">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classCylinderCreator_1a976800126decf1cbfba27c105c68ae47">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classPolygoneZoneCreator_1a4ab835621135019949e29295ef67fc52">handleMouseLBRelease</reimplementedby>
+        <reimplementedby refid="classPolyMeshCreator_1ac4df67187deb36d6e6d432d9ed835ed0">handleMouseLBRelease</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse left button release event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="67" column="16" bodyfile="ec_IObjectCreator.h" bodystart="67" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool IObjectCreator::handleMouseRBPress</definition>
+        <argsstring>(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)</argsstring>
+        <name>handleMouseRBPress</name>
+        <qualifiedname>IObjectCreator::handleMouseRBPress</qualifiedname>
+        <reimplementedby refid="classBoxCreator_1a798b0cf47a96cddcb5a09f8f7532ea0a">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classSphereCreator_1aaec8f53252f8fc9f03216e7b6c729ee5">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classPointCreator_1a1da2d4807af7425dc9b9a271802c967d">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classTargetCreator_1a295898ae90a9a1c5d66c687d63a78ef0">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classPlaneCreator_1af8dccd52409367c94e783a2519003198">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classSurfaceMoveCreator_1a40264bda0a87438f371912e4773c832e">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classCylinderCreator_1a3dddb26b305a27d31185557df924f201">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classPolygoneZoneCreator_1a0c7c9561962d77c548ad53faf378f2b3">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classPolyMeshCreator_1a99b68815dca4e7ba39aeccf86e5964f3">handleMouseRBPress</reimplementedby>
+        <reimplementedby refid="classSplineCreator_1a6786280a74d8b969876962d3086df888">handleMouseRBPress</reimplementedby>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>inside</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>buttons</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key_modif</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Mouse right button press event handler. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window that generated the message </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">x</parametername>
+<parametername direction="in">y</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>x,y</bold> coordinates inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">inside</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true</bold> if the event occurred inside viewport </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">buttons</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- mouse buttons state flags </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key_modif</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>shift keys</bold> state (see #CtlShiftKeys) </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if event handling successful, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="77" column="16" bodyfile="ec_IObjectCreator.h" bodystart="77" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void IObjectCreator::render</definition>
+        <argsstring>()</argsstring>
+        <name>render</name>
+        <qualifiedname>IObjectCreator::render</qualifiedname>
+        <reimplementedby refid="classBoxCreator_1a6cc226d9e0d2d57715988d20493e9e28">render</reimplementedby>
+        <reimplementedby refid="classSphereCreator_1a3aa8150328fe3a88ed6de513062703cf">render</reimplementedby>
+        <reimplementedby refid="classPointCreator_1a91a5944fdaf0ed00fbb14f96ef35036c">render</reimplementedby>
+        <reimplementedby refid="classTargetCreator_1a6492eca1fbf0dfb38e023b49cf9597bb">render</reimplementedby>
+        <reimplementedby refid="classPlaneCreator_1a095e5291816a707c292b182d4186fdc1">render</reimplementedby>
+        <reimplementedby refid="classCircleCreator_1ac3e30c49c60d6eb46380ab03916628bf">render</reimplementedby>
+        <reimplementedby refid="classCylinderCreator_1a96564a3c793c36471b0b5c5a0e93cb43">render</reimplementedby>
+        <reimplementedby refid="classPolygoneZoneCreator_1a5c241a04f8d7b81defc0974932818f2a">render</reimplementedby>
+        <reimplementedby refid="classCapsuleCreator_1a1786c6c00621c4a5bb3c4d2a1050d747">render</reimplementedby>
+        <reimplementedby refid="classPolyMeshCreator_1a5d6cd529199c96382f53d135a6b01ee5">render</reimplementedby>
+        <reimplementedby refid="classSplineCreator_1a3fda1c8d71b12dbef2e2b32c478f123a">render</reimplementedby>
+        <reimplementedby refid="classStairCreator_1a734591d6321a5264fdbfc4f676bcc90d">render</reimplementedby>
+        <reimplementedby refid="classSpiralStairCreator_1ae6095daca12124f48f0048268091c7be">render</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="82" column="16" bodyfile="ec_IObjectCreator.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix IObjectCreator::matrix</definition>
+        <argsstring></argsstring>
+        <name>matrix</name>
+        <qualifiedname>IObjectCreator::matrix</qualifiedname>
+        <briefdescription>
+<para>Matrix defining box parameters. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="13" column="11" bodyfile="ec_IObjectCreator.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>IObjectCreator::IObjectCreator</definition>
+        <argsstring>()</argsstring>
+        <name>IObjectCreator</name>
+        <qualifiedname>IObjectCreator::IObjectCreator</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="16" column="3" bodyfile="ec_IObjectCreator.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IObjectCreator::isFinished</definition>
+        <argsstring>()</argsstring>
+        <name>isFinished</name>
+        <qualifiedname>IObjectCreator::isFinished</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether drawing of plane is finished. <simplesect kind="return"><para><bold>true</bold> if drawing of plane is finished - plane is finished or drawing canceled (user clicked on right mouse button),<linebreak/>
+ <bold>false</bold> if drawing is not finished yet </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="22" column="15" bodyfile="ec_IObjectCreator.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IObjectCreator::isOk</definition>
+        <argsstring>()</argsstring>
+        <name>isOk</name>
+        <qualifiedname>IObjectCreator::isOk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether plane creation is successful. <simplesect kind="return"><para><bold>true</bold> if plane creation is successful - user clicked 2 times and defined length,width of the plane,<linebreak/>
+ <bold>false</bold> if plane creation is not successful </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IObjectCreator.h" line="28" column="15" bodyfile="ec_IObjectCreator.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BoxCreator</label>
+        <link refid="classBoxCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>CapsuleCreator</label>
+        <link refid="classCapsuleCreator"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>CircleCreator</label>
+        <link refid="classCircleCreator"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>CylinderCreator</label>
+        <link refid="classCylinderCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="7">
+        <label>PlaneCreator</label>
+        <link refid="classPlaneCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>PointCreator</label>
+        <link refid="classPointCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>PolyMeshCreator</label>
+        <link refid="classPolyMeshCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>PolygoneZoneCreator</label>
+        <link refid="classPolygoneZoneCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>SphereCreator</label>
+        <link refid="classSphereCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SpiralStairCreator</label>
+        <link refid="classSpiralStairCreator"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>SplineCreator</label>
+        <link refid="classSplineCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>StairCreator</label>
+        <link refid="classStairCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>SurfaceMoveCreator</label>
+        <link refid="classSurfaceMoveCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>TargetCreator</label>
+        <link refid="classTargetCreator"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="ec_IObjectCreator.h" line="9" column="1" bodyfile="ec_IObjectCreator.h" bodystart="10" bodyend="87"/>
+    <listofallmembers>
+      <member refid="classIObjectCreator_1a09ec2ee738ee050be9cc3efa1cdc190a" prot="public" virt="virtual"><scope>IObjectCreator</scope><name>handleMouseLBPress</name></member>
+      <member refid="classIObjectCreator_1a5424963405a354e4d3d3dbd186dcdbfb" prot="public" virt="virtual"><scope>IObjectCreator</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classIObjectCreator_1a82310296dee9c4c0c75950969a8d928b" prot="public" virt="virtual"><scope>IObjectCreator</scope><name>handleMouseMove</name></member>
+      <member refid="classIObjectCreator_1a673bf26b31164117f1d028c82abeae50" prot="public" virt="virtual"><scope>IObjectCreator</scope><name>handleMouseRBPress</name></member>
+      <member refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" virt="non-virtual"><scope>IObjectCreator</scope><name>IObjectCreator</name></member>
+      <member refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" virt="non-virtual"><scope>IObjectCreator</scope><name>isFinished</name></member>
+      <member refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" virt="non-virtual"><scope>IObjectCreator</scope><name>isOk</name></member>
+      <member refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" virt="non-virtual"><scope>IObjectCreator</scope><name>matrix</name></member>
+      <member refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00" prot="public" virt="virtual"><scope>IObjectCreator</scope><name>render</name></member>
+      <member refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" virt="non-virtual"><scope>IObjectCreator</scope><name>stateFinished</name></member>
+      <member refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" virt="non-virtual"><scope>IObjectCreator</scope><name>stateOk</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

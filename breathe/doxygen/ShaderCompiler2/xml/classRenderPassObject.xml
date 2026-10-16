@@ -1,0 +1,493 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRenderPassObject" kind="class" language="C++" prot="public">
+    <compoundname>RenderPassObject</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+    <innerclass refid="structRenderPassObject_1_1Resolve" prot="public">RenderPassObject::Resolve</innerclass>
+    <innerclass refid="structRenderPassObject_1_1Subpass" prot="public">RenderPassObject::Subpass</innerclass>
+    <innerclass refid="structRenderPassObject_1_1Target" prot="public">RenderPassObject::Target</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" prot="public" static="no" mutable="no">
+        <type><ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref></type>
+        <definition>RenderPassNameId RenderPassObject::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>RenderPassObject::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="76" column="20" bodyfile="renderPassObject.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1ac4ba48d4872e80937e16d5b0e3500eef" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassObject::tableIdx</definition>
+        <argsstring></argsstring>
+        <name>tableIdx</name>
+        <qualifiedname>RenderPassObject::tableIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="77" column="7" bodyfile="renderPassObject.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1aaf11bde712c312d7e3261da431acb10c" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structRenderPassObject_1_1Target" kindref="compound">Target</ref> &gt;</type>
+        <definition>SerializableTab&lt;Target&gt; RenderPassObject::targets</definition>
+        <argsstring></argsstring>
+        <name>targets</name>
+        <qualifiedname>RenderPassObject::targets</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="78" column="19" bodyfile="renderPassObject.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1af327840123ad7699df3326b1a8a58d81" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structRenderPassObject_1_1Subpass" kindref="compound">Subpass</ref> &gt;</type>
+        <definition>SerializableTab&lt;Subpass&gt; RenderPassObject::subpasses</definition>
+        <argsstring></argsstring>
+        <name>subpasses</name>
+        <qualifiedname>RenderPassObject::subpasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="79" column="19" bodyfile="renderPassObject.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1ab17613a478e26e0296fd44ea64d5ff0b" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structRenderPassObject_1_1Resolve" kindref="compound">Resolve</ref> &gt;</type>
+        <definition>SerializableTab&lt;Resolve&gt; RenderPassObject::resolves</definition>
+        <argsstring></argsstring>
+        <name>resolves</name>
+        <qualifiedname>RenderPassObject::resolves</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="80" column="19" bodyfile="renderPassObject.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1a521d23c706601e4507342323bafb3ffa" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassObject::allowSplit</definition>
+        <argsstring></argsstring>
+        <name>allowSplit</name>
+        <qualifiedname>RenderPassObject::allowSplit</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="81" column="8" bodyfile="renderPassObject.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1a4c4e981f97cc9f3db921607e92fc6a04" prot="public" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" kindref="member">RenderPassNameId</ref> &gt;</type>
+        <definition>SerializableTab&lt;RenderPassNameId&gt; RenderPassObject::framebuffers</definition>
+        <argsstring></argsstring>
+        <name>framebuffers</name>
+        <qualifiedname>RenderPassObject::framebuffers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="82" column="19" bodyfile="renderPassObject.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classRenderPassObject_1a3c706ca609fb9c1bf733366e405a9f4d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int RenderPassObject::MAX_SUBPASS_READS</definition>
+        <argsstring></argsstring>
+        <name>MAX_SUBPASS_READS</name>
+        <qualifiedname>RenderPassObject::MAX_SUBPASS_READS</qualifiedname>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="88" column="24" bodyfile="renderPassObject.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classRenderPassObject_1ac184dd50009cb766554dcfcba61d229e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int RenderPassObject::MAX_COLOR_SLOTS</definition>
+        <argsstring></argsstring>
+        <name>MAX_COLOR_SLOTS</name>
+        <qualifiedname>RenderPassObject::MAX_COLOR_SLOTS</qualifiedname>
+        <initializer>= Driver3dRenderTarget::MAX_SIMRT</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="89" column="24" bodyfile="renderPassObject.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRenderPassObject_1a183e5050c4c7e1dcc0a2a5e73ed5d8b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderPassObject::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(dag::VectorSet&lt; int &gt; lexicalTargetNames;const VarNameMap *names=nullptr;)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>RenderPassObject::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type>dag::VectorSet&lt; int &gt; lexicalTargetNames;const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> *</type>
+          <declname>names</declname>
+          <defval>nullptr;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="84" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassObject::str</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>str</name>
+        <qualifiedname>RenderPassObject::str</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="93" column="14" bodyfile="renderPassObject.h" bodystart="93" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1ae4d4edd34248aa274791a8f90b799f4b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassObject::nameStr</definition>
+        <argsstring>() const</argsstring>
+        <name>nameStr</name>
+        <qualifiedname>RenderPassObject::nameStr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="94" column="14" bodyfile="renderPassObject.h" bodystart="94" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a0c7ee7dfedd1d340dd3e974f56115c06" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderPassObject::targetIndex</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>targetIndex</name>
+        <qualifiedname>RenderPassObject::targetIndex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="95" column="7" bodyfile="renderPassObject.cpp" bodystart="79" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a446b3ac9357f63d3b93420c5bd6852b8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassObject::targetName</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>targetName</name>
+        <qualifiedname>RenderPassObject::targetName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="96" column="14" bodyfile="renderPassObject.h" bodystart="96" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a97468c0f79f7824c1318409d4faaf985" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::targetIsMs</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>targetIsMs</name>
+        <qualifiedname>RenderPassObject::targetIsMs</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="97" column="8" bodyfile="renderPassObject.h" bodystart="97" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1af35c95ae3dff8531da2c80b42fd06b83" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int RenderPassObject::subpassIndex</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>subpassIndex</name>
+        <qualifiedname>RenderPassObject::subpassIndex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="98" column="7" bodyfile="renderPassObject.cpp" bodystart="87" bodyend="93"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1ac1e43c0737df57ea4f8cb374381a2d69" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string RenderPassObject::subpassList</definition>
+        <argsstring>() const</argsstring>
+        <name>subpassList</name>
+        <qualifiedname>RenderPassObject::subpassList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="99" column="17" bodyfile="renderPassObject.cpp" bodystart="95" bodyend="101"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a3f5214f4fcb5738bcc70b5a0ee6b3ebf" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * RenderPassObject::subpassName</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>subpassName</name>
+        <qualifiedname>RenderPassObject::subpassName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="100" column="14" bodyfile="renderPassObject.h" bodystart="100" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a561d8e6de109e9ac6a3a2b30b5ea6c7d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::isResolveDst</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>isResolveDst</name>
+        <qualifiedname>RenderPassObject::isResolveDst</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="101" column="8" bodyfile="renderPassObject.cpp" bodystart="55" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1acdb807c24be6a61cdcf425bec3c98017" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::isResolveSrc</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>isResolveSrc</name>
+        <qualifiedname>RenderPassObject::isResolveSrc</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="102" column="8" bodyfile="renderPassObject.cpp" bodystart="63" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a810f93fb29a7d19a491e3053c87a4c0c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::isVrsTarget</definition>
+        <argsstring>(int target_idx) const</argsstring>
+        <name>isVrsTarget</name>
+        <qualifiedname>RenderPassObject::isVrsTarget</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="103" column="8" bodyfile="renderPassObject.cpp" bodystart="71" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1aff608b4be0c669cd0f7cd42fe8be3fbd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::hasLexicalTarget</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>hasLexicalTarget</name>
+        <qualifiedname>RenderPassObject::hasLexicalTarget</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="104" column="8" bodyfile="renderPassObject.h" bodystart="104" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a631d3e707f81d5eed6305f627e53027f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassObject::hasInlineFormats</definition>
+        <argsstring>() const</argsstring>
+        <name>hasInlineFormats</name>
+        <qualifiedname>RenderPassObject::hasInlineFormats</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="105" column="8" bodyfile="renderPassObject.cpp" bodystart="103" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="classRenderPassObject_1a2c7d0d21062800379903f51dcf6f64ec" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string RenderPassObject::shapeDesc</definition>
+        <argsstring>() const</argsstring>
+        <name>shapeDesc</name>
+        <qualifiedname>RenderPassObject::shapeDesc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="106" column="17" bodyfile="renderPassObject.cpp" bodystart="111" bodyend="130"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="1">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="8">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="6">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="4">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.h" line="42" column="1" bodyfile="renderPassObject.h" bodystart="43" bodyend="107"/>
+    <listofallmembers>
+      <member refid="classRenderPassObject_1a521d23c706601e4507342323bafb3ffa" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>allowSplit</name></member>
+      <member refid="classRenderPassObject_1a183e5050c4c7e1dcc0a2a5e73ed5d8b5" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classRenderPassObject_1a4c4e981f97cc9f3db921607e92fc6a04" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>framebuffers</name></member>
+      <member refid="classRenderPassObject_1a631d3e707f81d5eed6305f627e53027f" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>hasInlineFormats</name></member>
+      <member refid="classRenderPassObject_1aff608b4be0c669cd0f7cd42fe8be3fbd" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>hasLexicalTarget</name></member>
+      <member refid="classRenderPassObject_1a561d8e6de109e9ac6a3a2b30b5ea6c7d" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>isResolveDst</name></member>
+      <member refid="classRenderPassObject_1acdb807c24be6a61cdcf425bec3c98017" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>isResolveSrc</name></member>
+      <member refid="classRenderPassObject_1a810f93fb29a7d19a491e3053c87a4c0c" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>isVrsTarget</name></member>
+      <member refid="classRenderPassObject_1ac184dd50009cb766554dcfcba61d229e" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>MAX_COLOR_SLOTS</name></member>
+      <member refid="classRenderPassObject_1a3c706ca609fb9c1bf733366e405a9f4d" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>MAX_SUBPASS_READS</name></member>
+      <member refid="classRenderPassObject_1a759f493c21f053df7463422c853aa59b" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>name</name></member>
+      <member refid="classRenderPassObject_1ae4d4edd34248aa274791a8f90b799f4b" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>nameStr</name></member>
+      <member refid="classRenderPassObject_1ab17613a478e26e0296fd44ea64d5ff0b" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>resolves</name></member>
+      <member refid="classRenderPassObject_1a2c7d0d21062800379903f51dcf6f64ec" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>shapeDesc</name></member>
+      <member refid="classRenderPassObject_1af5b91a4ed18ad24b9c92b07f4ab84530" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>str</name></member>
+      <member refid="classRenderPassObject_1af327840123ad7699df3326b1a8a58d81" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>subpasses</name></member>
+      <member refid="classRenderPassObject_1af35c95ae3dff8531da2c80b42fd06b83" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>subpassIndex</name></member>
+      <member refid="classRenderPassObject_1ac1e43c0737df57ea4f8cb374381a2d69" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>subpassList</name></member>
+      <member refid="classRenderPassObject_1a3f5214f4fcb5738bcc70b5a0ee6b3ebf" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>subpassName</name></member>
+      <member refid="classRenderPassObject_1ac4ba48d4872e80937e16d5b0e3500eef" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>tableIdx</name></member>
+      <member refid="classRenderPassObject_1a0c7ee7dfedd1d340dd3e974f56115c06" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>targetIndex</name></member>
+      <member refid="classRenderPassObject_1a97468c0f79f7824c1318409d4faaf985" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>targetIsMs</name></member>
+      <member refid="classRenderPassObject_1a446b3ac9357f63d3b93420c5bd6852b8" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>targetName</name></member>
+      <member refid="classRenderPassObject_1aaf11bde712c312d7e3261da431acb10c" prot="public" virt="non-virtual"><scope>RenderPassObject</scope><name>targets</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,91 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structresptr__detail_1_1Helper_3_01ExternalBufWrapper_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</compoundname>
+    <basecompoundref refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4" prot="public" virt="non-virtual">resptr_detail::Helper&lt; Sbuffer &gt;</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01ExternalBufWrapper_01_4_1ac715528c0950d752d389c8d6e226f1a8" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; ExternalBufWrapper &gt;::release</definition>
+        <argsstring>(resid_t &amp;res_id, Sbuffer *)</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::Helper&lt; ExternalBufWrapper &gt;::release</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" kindref="member">resid_t</ref> &amp;</type>
+          <declname>res_id</declname>
+        </param>
+        <param>
+          <type>Sbuffer *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="146" column="15" bodyfile="dag_resPtr.h" bodystart="146" bodyend="155"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>resptr_detail::Helper&lt; D3dResource &gt;</label>
+        <link refid="structresptr__detail_1_1Helper"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01ExternalBufWrapper_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>resptr_detail::Helper&lt; Sbuffer &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>resptr_detail::Helper&lt; D3dResource &gt;</label>
+        <link refid="structresptr__detail_1_1Helper"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01ExternalBufWrapper_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>resptr_detail::Helper&lt; Sbuffer &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="144" column="1" bodyfile="dag_resPtr.h" bodystart="145" bodyend="156"/>
+    <listofallmembers>
+      <member refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4_1acb92074568547de6d27581bb74e5f3f6" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>acquire</name></member>
+      <member refid="structresptr__detail_1_1Helper_1ad50a6f67486c3c840b2f1d30e188b0ab" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>BAD_ID</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4_1a6edbd8490d33bae5772455601b0ea763" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>can_bind</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a4ecfd0b2967326207108721a5061b1c1" prot="public" virt="non-virtual" ambiguityscope="Helper&lt; D3dResource &gt;::"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>can_bind</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a1e6302014516ebdbf2aa1cb8e74b1414" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>getManagedRefCount</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4_1a7f265f02204f0095485a351f8eb592d5" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>getName</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a5a1cedef815e8da840d01fb0f5ff09c9" prot="public" virt="non-virtual" ambiguityscope="Helper&lt; D3dResource &gt;::"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>getName</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a5329906c772617310ed58e537d68a92e" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>getNameById</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a622baf98dc34b7c8f50f727a8c3b54fb" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>isManagedFactorySet</name></member>
+      <member refid="structresptr__detail_1_1Helper_1a47c1969e2c15ae710a68bcf863113a33" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>registerRes</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01ExternalBufWrapper_01_4_1ac715528c0950d752d389c8d6e226f1a8" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>release</name></member>
+      <member refid="structresptr__detail_1_1Helper_1aab06b9e870de7d5829200027fc25a9fc" prot="public" virt="non-virtual" ambiguityscope="Helper&lt; D3dResource &gt;::"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>release</name></member>
+      <member refid="structresptr__detail_1_1Helper_1af525791f1802a8ec65f8141af67544a6" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>resid_t</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4_1ab5b5f537d702fd71d2f133dfb2abb14e" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>setVar</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01Sbuffer_01_4_1aa908020a4d56025f9d28a1f624d141b2" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalBufWrapper &gt;</scope><name>valid_use_mask</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

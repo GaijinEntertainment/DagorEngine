@@ -1,0 +1,403 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ConstRealValue" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::ConstRealValue</compoundname>
+    <basecompoundref refid="classShaderParser_1_1Expression" prot="public" virt="non-virtual">ShaderParser::Expression</basecompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1ConstRealValue_1a1c7d71b548419dcfddea543baf015e77" prot="private" static="no" mutable="no">
+        <type>real</type>
+        <definition>real ShaderParser::ConstRealValue::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ShaderParser::ConstRealValue::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="383" column="8" bodyfile="shExpr.h" bodystart="383" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a6b6828800fccb510cdbc52d8526392e4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ConstRealValue::ConstRealValue</definition>
+        <argsstring>(Terminal *s, real v=0)</argsstring>
+        <name>ConstRealValue</name>
+        <qualifiedname>ShaderParser::ConstRealValue::ConstRealValue</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>v</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="338" column="3" bodyfile="shExpr.cpp" bodystart="889" bodyend="889"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a100b77607372a4189c6c3bd5937cbefb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::ConstRealValue::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::ConstRealValue::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="341" column="23" bodyfile="shExpr.h" bodystart="341" bodyend="341"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a57ee112e12d4b11cebcf34e8e71d0b71" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType ShaderParser::ConstRealValue::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::ConstRealValue::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d">getValueType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="344" column="28" bodyfile="shExpr.h" bodystart="344" bodyend="344"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a11150a1ddef4090a113bb510bae6d994" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConstRealValue::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::ConstRealValue::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0">assembleBytecode</reimplements>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="347" column="8" bodyfile="shExpr.cpp" bodystart="893" bodyend="896"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a278ba5a03fa343b8bbb37b86b8ac9072" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConstRealValue::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::ConstRealValue::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2">assembleCpp</reimplements>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="348" column="8" bodyfile="shExpr.cpp" bodystart="898" bodyend="901"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a4e52237639942403c7ec30fa73fc9a1d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real ShaderParser::ConstRealValue::getReal</definition>
+        <argsstring>() const</argsstring>
+        <name>getReal</name>
+        <qualifiedname>ShaderParser::ConstRealValue::getReal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="351" column="15" bodyfile="shExpr.h" bodystart="351" bodyend="351"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1aeb3cee6868d60a27d051c3b8da6d4013" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ConstRealValue::setValue</definition>
+        <argsstring>(const real v, bool validate_nan, Parser &amp;parser)</argsstring>
+        <name>setValue</name>
+        <qualifiedname>ShaderParser::ConstRealValue::setValue</qualifiedname>
+        <param>
+          <type>const real</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>validate_nan</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="354" column="8" bodyfile="shExpr.cpp" bodystart="905" bodyend="911"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a048a6444ff7ef8270d593ad96756ec20" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const Color4 &amp;</type>
+        <definition>const Color4 &amp; ConstRealValue::getConvertedColor</definition>
+        <argsstring>() const</argsstring>
+        <name>getConvertedColor</name>
+        <qualifiedname>ShaderParser::ConstRealValue::getConvertedColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="357" column="16" bodyfile="shExpr.cpp" bodystart="915" bodyend="923"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1ac3012515df60c9cabbc36e173eb77aec" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const real</type>
+        <definition>const real ConstRealValue::getConvertedReal</definition>
+        <argsstring>() const</argsstring>
+        <name>getConvertedReal</name>
+        <qualifiedname>ShaderParser::ConstRealValue::getConvertedReal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="358" column="14" bodyfile="shExpr.cpp" bodystart="926" bodyend="926"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1ac6cef603cabb406eb363ea35e2499896" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ConstRealValue::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::ConstRealValue::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a5cd845a298cd30bc29c1d6176d90d7a5">isConst</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="361" column="8" bodyfile="shExpr.h" bodystart="361" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a773ff3e880c3c623beae143dcbc87dd6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ConstRealValue::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::ConstRealValue::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6670e4cb77f145766d8e787075ed7da9">isDynamic</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="364" column="8" bodyfile="shExpr.h" bodystart="364" bodyend="364"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a1a2c9c9229d16753369a7327de7d927b" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ConstRealValue::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ConstRealValue::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf">evaluate</reimplements>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="367" column="8" bodyfile="shExpr.cpp" bodystart="930" bodyend="939"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1ad90f8c0f6e9bd30ab7797f92473d062a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool ConstRealValue::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::ConstRealValue::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f">evaluate</reimplements>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="370" column="8" bodyfile="shExpr.cpp" bodystart="942" bodyend="951"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a20d924abd6279d99bc43da6a71ad8e83" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::ConstRealValue::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::ConstRealValue::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="373" column="12" bodyfile="shExpr.h" bodystart="373" bodyend="373"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1ae8f55034acde026abb34233b2a021174" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::ConstRealValue::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::ConstRealValue::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="376" column="8" bodyfile="shExpr.h" bodystart="376" bodyend="376"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1ConstRealValue_1a95383f2702bc96cf6713c0b908d09a17" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ConstRealValue::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::ConstRealValue::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb">dump_internal</reimplements>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="380" column="8" bodyfile="shExpr.cpp" bodystart="955" bodyend="963"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderParser::ConstRealValue</label>
+        <link refid="classShaderParser_1_1ConstRealValue"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ShaderParser::ConstRealValue</label>
+        <link refid="classShaderParser_1_1ConstRealValue"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="334" column="1" bodyfile="shExpr.h" bodystart="335" bodyend="384"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a11150a1ddef4090a113bb510bae6d994" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a278ba5a03fa343b8bbb37b86b8ac9072" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1ae8f55034acde026abb34233b2a021174" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a6b6828800fccb510cdbc52d8526392e4" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>ConstRealValue</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a95383f2702bc96cf6713c0b908d09a17" prot="protected" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a1a2c9c9229d16753369a7327de7d927b" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1ad90f8c0f6e9bd30ab7797f92473d062a" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a048a6444ff7ef8270d593ad96756ec20" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>getConvertedColor</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1ac3012515df60c9cabbc36e173eb77aec" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>getConvertedReal</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a4e52237639942403c7ec30fa73fc9a1d" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>getReal</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a20d924abd6279d99bc43da6a71ad8e83" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a100b77607372a4189c6c3bd5937cbefb" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a57ee112e12d4b11cebcf34e8e71d0b71" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a20844e4f958c20d70cc4824650652f67" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1ac6cef603cabb406eb363ea35e2499896" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a773ff3e880c3c623beae143dcbc87dd6" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1aeb3cee6868d60a27d051c3b8da6d4013" prot="public" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>setValue</name></member>
+      <member refid="classShaderParser_1_1ConstRealValue_1a1c7d71b548419dcfddea543baf015e77" prot="private" virt="non-virtual"><scope>ShaderParser::ConstRealValue</scope><name>value</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::ConstRealValue</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

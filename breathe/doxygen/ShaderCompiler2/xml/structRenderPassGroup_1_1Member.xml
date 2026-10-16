@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassGroup_1_1Member" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassGroup::Member</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassGroup_1_1Member_1ae5a1c11e155926d9ea3e9aad2eb4ee08" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassGroup::Member::passIdx</definition>
+        <argsstring></argsstring>
+        <name>passIdx</name>
+        <qualifiedname>RenderPassGroup::Member::passIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="116" column="9" bodyfile="renderPassObject.h" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassGroup_1_1Member_1aa1dbd37cd6ab2e397df85eecde6e0a8b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassGroup::Member::subpassIdx</definition>
+        <argsstring></argsstring>
+        <name>subpassIdx</name>
+        <qualifiedname>RenderPassGroup::Member::subpassIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="117" column="9" bodyfile="renderPassObject.h" bodystart="117" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="renderPassObject.h" line="114" column="3" bodyfile="renderPassObject.h" bodystart="115" bodyend="118"/>
+    <listofallmembers>
+      <member refid="structRenderPassGroup_1_1Member_1ae5a1c11e155926d9ea3e9aad2eb4ee08" prot="public" virt="non-virtual"><scope>RenderPassGroup::Member</scope><name>passIdx</name></member>
+      <member refid="structRenderPassGroup_1_1Member_1aa1dbd37cd6ab2e397df85eecde6e0a8b" prot="public" virt="non-virtual"><scope>RenderPassGroup::Member</scope><name>subpassIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

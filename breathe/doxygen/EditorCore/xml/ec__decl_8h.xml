@@ -1,0 +1,222 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__decl_8h" kind="file" language="C++">
+    <compoundname>ec_decl.h</compoundname>
+    <includedby refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includedby>
+    <includedby refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includedby>
+    <includedby refid="ec__interface_8h" local="no">ec_interface.h</includedby>
+    <includedby refid="ec__object_8h" local="no">ec_object.h</includedby>
+    <includedby refid="ec__selwindow_8h" local="no">ec_selwindow.h</includedby>
+    <invincdepgraph>
+      <node id="9">
+        <label>ec_IEditorCore.h</label>
+        <link refid="ec__IEditorCore_8h"/>
+      </node>
+      <node id="7">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="10">
+        <label>ec_ObjectCreator.h</label>
+        <link refid="ec__ObjectCreator_8h"/>
+      </node>
+      <node id="11">
+        <label>ec_ObjectEditor.h</label>
+        <link refid="ec__ObjectEditor_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>ec_brushfilter.h</label>
+        <link refid="ec__brushfilter_8h"/>
+      </node>
+      <node id="13">
+        <label>ec_camera_elem.h</label>
+        <link refid="ec__camera__elem_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="4">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>ec_interface.h</label>
+        <link refid="ec__interface_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>ec_interface_ex.h</label>
+        <link refid="ec__interface__ex_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>ec_object.h</label>
+        <link refid="ec__object_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>ec_rendEdObject.h</label>
+        <link refid="ec__rendEdObject_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>ec_selwindow.h</label>
+        <link refid="ec__selwindow_8h"/>
+      </node>
+      <node id="17">
+        <label>ec_status_bar.h</label>
+        <link refid="ec__status__bar_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="ec__decl_8h_1aff7b9791938dfa200a20af9ead56fdda" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned HUID_IEditorCore</definition>
+        <argsstring></argsstring>
+        <name>HUID_IEditorCore</name>
+        <initializer>= 0xB59C93E8u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_decl.h" line="32" column="27" bodyfile="ec_decl.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="ec__decl_8h_1aadca12a7263dd29154a142faf08b651a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned HUID_IRenderingService</definition>
+        <argsstring></argsstring>
+        <name>HUID_IRenderingService</name>
+        <initializer>= 0x80C30E29u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_decl.h" line="33" column="27" bodyfile="ec_decl.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="ec__decl_8h_1a55053bf74fcee4082ccc7a2019144a38" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned HUID_IHDRChangeSettingsClient</definition>
+        <argsstring></argsstring>
+        <name>HUID_IHDRChangeSettingsClient</name>
+        <initializer>= 0x006003ABu</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_decl.h" line="34" column="27" bodyfile="ec_decl.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>forward<sp/>declarations<sp/>for<sp/>classes<sp/>used<sp/>in<sp/>DagorEditor</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>general<sp/>interfaces</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classEditableObject" kindref="compound">EditableObject</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref>;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIGenEventHandler" kindref="compound">IGenEventHandler</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIGenEditorPluginBase" kindref="compound">IGenEditorPluginBase</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">IGenEditorPlugin;<sp/></highlight><highlight class="comment">//&lt;<sp/>defined<sp/>by<sp/>app,<sp/>must<sp/>be<sp/>inherited<sp/>from<sp/>IGenEditorPluginBase</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIEditorCoreEngine" kindref="compound">IEditorCoreEngine</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>other<sp/>interfaces</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classIObjectsList" kindref="compound">IObjectsList</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classICustomCameras" kindref="compound">ICustomCameras</ref>;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>interface<sp/>windows</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGenericEditorAppWindow" kindref="compound">GenericEditorAppWindow</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classViewportWindow" kindref="compound">ViewportWindow</ref>;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">UndoSystem;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classGizmoEventFilter" kindref="compound">GizmoEventFilter</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBrushEventFilter" kindref="compound">BrushEventFilter</ref>;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="comment">//<sp/>helper<sp/>classes</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCameraConfig" kindref="compound">CameraConfig</ref>;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Hashed-Unique-IDs<sp/>for<sp/>common<sp/>interfaces</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>HUID_IEditorCore<sp/>=<sp/>0xB59C93E8u;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>IEditorCore</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>HUID_IRenderingService<sp/>=<sp/>0x80C30E29u;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>IRenderingService</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>HUID_IHDRChangeSettingsClient<sp/>=<sp/>0x006003ABu;<sp/></highlight><highlight class="comment">//<sp/>IHDRChangeSettingsClient</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="ec_decl.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,306 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="math3d_8h" kind="file" language="C++">
+    <compoundname>math3d.h</compoundname>
+    <includes local="no">math.h</includes>
+    <includes local="no">stdlib.h</includes>
+    <includes local="no">float.h</includes>
+    <includes local="no">max.h</includes>
+    <includedby refid="datablk_8h" local="yes">datablk.h</includedby>
+    <includedby refid="meshtrace_8cpp" local="yes">meshtrace.cpp</includedby>
+    <includedby refid="objectPropertiesEditor_8cpp" local="yes">objectPropertiesEditor.cpp</includedby>
+    <includedby refid="polyBumpUtil_8cpp" local="yes">polyBumpUtil.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>math3d.h</label>
+        <link refid="math3d_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>float.h</label>
+      </node>
+      <node id="2">
+        <label>math.h</label>
+      </node>
+      <node id="5">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>stdlib.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>datablk.cpp</label>
+        <link refid="datablk_8cpp"/>
+      </node>
+      <node id="2">
+        <label>datablk.h</label>
+        <link refid="datablk_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="5">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="1">
+        <label>math3d.h</label>
+        <link refid="math3d_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>meshtrace.cpp</label>
+        <link refid="meshtrace_8cpp"/>
+      </node>
+      <node id="8">
+        <label>objectPropertiesEditor.cpp</label>
+        <link refid="objectPropertiesEditor_8cpp"/>
+      </node>
+      <node id="11">
+        <label>polyBumpUtil.cpp</label>
+        <link refid="polyBumpUtil_8cpp"/>
+      </node>
+      <node id="6">
+        <label>rolluppanel.cpp</label>
+        <link refid="rolluppanel_8cpp"/>
+      </node>
+      <node id="7">
+        <label>rolluppanel.h</label>
+        <link refid="rolluppanel_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classMatrix33" prot="public">Matrix33</innerclass>
+    <innerclass refid="classTMatrix" prot="public">TMatrix</innerclass>
+    <innerclass refid="classBBox2" prot="public">BBox2</innerclass>
+    <innerclass refid="classBBox3" prot="public">BBox3</innerclass>
+    <innerclass refid="classStaticMeshRayTracer" prot="public">StaticMeshRayTracer</innerclass>
+      <sectiondef kind="define">
+      <member refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kind="define"><name>INLINE</name></member>
+      <member refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" kind="define"><name>MAX_REAL</name></member>
+      <member refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" kind="define"><name>MIN_REAL</name></member>
+      <member refid="group__common_1gaebb5e6716e06431296af4d1a71744dec" kind="define"><name>REAL_EPS</name></member>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <member refid="group__common_1ga031f8951175b43076c2084a6c2173410" kind="typedef"><name>real</name></member>
+      </sectiondef>
+      <sectiondef kind="func">
+      <member refid="group__common_1ga1469e3f4431dc0f01f79ca4f5f5e3913" kind="function"><name>rabs</name></member>
+      <member refid="group__common_1ga994d67c1d22e9a18cd833a052e892da6" kind="function"><name>inverse</name></member>
+      <member refid="group__common_1gaf6eb2a5a5fc4673d96c8ca43ace9e354" kind="function"><name>real2uchar</name></member>
+      <member refid="group__common_1gaaff3fa783c7ad74aa0e9656ef3eda330" kind="function"><name>lengthSq</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>common classes and functions for 2D, 3D and 4D math </para>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdlib.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;float.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>INLINE<sp/>__forceinline</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="group__common_1ga031f8951175b43076c2084a6c2173410" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref>;</highlight></codeline>
+<codeline lineno="17" refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MAX_REAL<sp/>FLT_MAX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>MIN_REAL<sp/>(-FLT_MAX)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="group__common_1gaebb5e6716e06431296af4d1a71744dec" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>REAL_EPS<sp/>FLT_EPSILON</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="group__common_1ga1469e3f4431dc0f01f79ca4f5f5e3913" refkind="member"><highlight class="normal">__forceinline<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="group__common_1ga1469e3f4431dc0f01f79ca4f5f5e3913" kindref="member">rabs</ref>(<ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>a)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>fabsf(a);<sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="classMatrix33" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMatrix33" kindref="compound">Matrix33</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="25" refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[3][3];</highlight></codeline>
+<codeline lineno="26" refid="group__common_1ga70acb6647b172d017cc4265a29a7d263" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1ga70acb6647b172d017cc4265a29a7d263" kindref="member">Matrix33</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="group__common_1ga6cbda1f223b4fb1767e738289adfea89" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="group__common_1ga6cbda1f223b4fb1767e738289adfea89" kindref="member">operator*</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="29"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>r;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><sp/><sp/>r[0]<sp/>=<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2];</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>r[1]<sp/>=<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2];</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/><sp/><sp/>r[2]<sp/>=<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[0]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[1]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>*<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>[2];</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>r;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" kindref="member">det</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga85eb647b8096cc0fdf7c23b0b26e4f79" kindref="member">setcol</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;v)</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[i][0]<sp/>=<sp/>v[0];</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[i][1]<sp/>=<sp/>v[1];</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[i][2]<sp/>=<sp/>v[2];</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="45" refid="group__common_1gac94266011945877c5639b5fedd2fd9d9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="group__common_1gac94266011945877c5639b5fedd2fd9d9" kindref="member">getcol</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[i][0],<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[i][1],<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[i][2]);<sp/>}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" refkind="member"><highlight class="normal"><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" kindref="member">Matrix33::det</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="49"><highlight class="keyword"></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>+<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2]<sp/>-<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>-</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>-<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>*<sp/><ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0];</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="group__common_1ga994d67c1d22e9a18cd833a052e892da6" refkind="member"><highlight class="normal"><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="classMatrix33" kindref="compound">Matrix33</ref><sp/><ref refid="group__common_1ga994d67c1d22e9a18cd833a052e892da6" kindref="member">inverse</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classMatrix33" kindref="compound">Matrix33</ref><sp/>&amp;a)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><ref refid="classMatrix33" kindref="compound">Matrix33</ref><sp/>r;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>d<sp/>=<sp/>a.<ref refid="group__common_1gaf75cf4aa11d17aac99e98f87072ebd73" kindref="member">det</ref>();</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>=<sp/>(a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>-<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1]<sp/>=<sp/>(-a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>+<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2]<sp/>=<sp/>(a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2]<sp/>-<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>=<sp/>(-a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>+<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>=<sp/>(a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>-<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2]<sp/>=<sp/>(-a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][2]<sp/>+<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][2])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>=<sp/>(a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>-<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>=<sp/>(-a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][1]<sp/>+<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/>r.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[2][2]<sp/>=<sp/>(a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][1]<sp/>-<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[1][0]<sp/>*<sp/>a.<ref refid="group__common_1ga38d5e5742c4c37aa4a8e63b7ba859c58" kindref="member">m</ref>[0][1])<sp/>/<sp/>d;</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>r;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="group__common_1gaf6eb2a5a5fc4673d96c8ca43ace9e354" refkind="member"><highlight class="normal"><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/><ref refid="group__common_1gaf6eb2a5a5fc4673d96c8ca43ace9e354" kindref="member">real2uchar</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>)</highlight></codeline>
+<codeline lineno="71"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>_n<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>+<sp/>1.0f;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>*(</highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/>*)&amp;_n;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&gt;=<sp/>0x40000000)</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>i<sp/>=<sp/>0xFF;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i<sp/>&lt;=<sp/>0x3F800000)</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>i<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>i<sp/>=<sp/>(i<sp/>&gt;&gt;<sp/>15)<sp/>&amp;<sp/>0xFF;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="classTMatrix" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classTMatrix" kindref="compound">TMatrix</ref></highlight></codeline>
+<codeline lineno="90"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="92" refid="group__common_1ga30439c9be7994b5038d65159659f08ca" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[4][3];</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classTMatrix" kindref="compound">TMatrix</ref><sp/><ref refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" kindref="member">IDENT</ref>;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="classTMatrix" kindref="compound">TMatrix</ref>(<ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref>);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="group__common_1ga83e0b4a3ffa3c4bfb00b28409cc819fa" kindref="member">getcol</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(<ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[i][0],<sp/><ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[i][1],<sp/><ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[i][2]);<sp/>}</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102" refid="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" refkind="member"><highlight class="normal"><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1ga6e3960adc28d1e63fa96dded9bf1bc43" kindref="member">TMatrix::TMatrix</ref>(<ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>a)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/>memset(<ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>,<sp/>0,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>));</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[0][0]<sp/>=<sp/><ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[1][1]<sp/>=<sp/><ref refid="group__common_1ga30439c9be7994b5038d65159659f08ca" kindref="member">m</ref>[2][2]<sp/>=<sp/>a;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108" refid="classBBox2" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBBox2" kindref="compound">BBox2</ref></highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="111" refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" refkind="member"><highlight class="normal"><sp/><sp/>Point2<sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[2];</highlight></codeline>
+<codeline lineno="112" refid="group__common_1ga53871bc5f647af456ec9cb42c095fa8a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1ga53871bc5f647af456ec9cb42c095fa8a" kindref="member">BBox2</ref>()<sp/>{<sp/><ref refid="group__common_1ga7e366b8f277b32f0348cc843d49825ed" kindref="member">setempty</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114" refid="group__common_1ga7e366b8f277b32f0348cc843d49825ed" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga7e366b8f277b32f0348cc843d49825ed" kindref="member">setempty</ref>()</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[0]<sp/>=<sp/>Point2(<ref refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" kindref="member">MAX_REAL</ref>,<sp/><ref refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" kindref="member">MAX_REAL</ref>);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[1]<sp/>=<sp/>Point2(<ref refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" kindref="member">MIN_REAL</ref>,<sp/><ref refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" kindref="member">MIN_REAL</ref>);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120" refid="group__common_1ga01413a7ce728ca8da007bb02511f9e4e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/>Point2<sp/>&amp;<ref refid="group__common_1ga01413a7ce728ca8da007bb02511f9e4e" kindref="member">operator[]</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[i];<sp/>}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122" refid="group__common_1ga51a72dd8407d342256fbd9815523fe0d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="classBBox2" kindref="compound">BBox2</ref><sp/>&amp;<ref refid="group__common_1ga51a72dd8407d342256fbd9815523fe0d" kindref="member">operator+=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>)</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x<sp/>&lt;<sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[0].x)</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[0].x<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x<sp/>&gt;<sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[1].x)</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[1].x<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y<sp/>&lt;<sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[0].y)</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[0].y<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y<sp/>&gt;<sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[1].y)</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga32ccf8de0dee6a3a7dde9b43dd371ea7" kindref="member">lim</ref>[1].y<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="134"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="group__common_1gaaff3fa783c7ad74aa0e9656ef3eda330" refkind="member"><highlight class="normal"><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/><ref refid="group__common_1gaaff3fa783c7ad74aa0e9656ef3eda330" kindref="member">lengthSq</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;a)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>LengthSquared(a);<sp/>}</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="classBBox3" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBBox3" kindref="compound">BBox3</ref></highlight></codeline>
+<codeline lineno="139"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="141" refid="group__common_1ga889656955bcb1a2a94630173e9263879" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[2];</highlight></codeline>
+<codeline lineno="142" refid="group__common_1gadc592d5a014057332e0b733bb3237c00" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="group__common_1gadc592d5a014057332e0b733bb3237c00" kindref="member">BBox3</ref>()<sp/>{<sp/><ref refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" kindref="member">setempty</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144" refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" kindref="member">setempty</ref>()</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0]<sp/>=<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(<ref refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" kindref="member">MAX_REAL</ref>,<sp/><ref refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" kindref="member">MAX_REAL</ref>,<sp/><ref refid="group__common_1gaddbad2bc626a64a9917c2224de315b6c" kindref="member">MAX_REAL</ref>);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1]<sp/>=<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref>(<ref refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" kindref="member">MIN_REAL</ref>,<sp/><ref refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" kindref="member">MIN_REAL</ref>,<sp/><ref refid="group__common_1ga9eddad11c4bf0260599c228291c1443a" kindref="member">MIN_REAL</ref>);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="149" refid="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" kindref="member">center</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(<ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0]<sp/>+<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1])<sp/>*<sp/>0.5f;<sp/>}</highlight></codeline>
+<codeline lineno="150" refid="group__common_1ga34f6664227f8531a0708a69314c9eb21" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/><ref refid="group__common_1ga34f6664227f8531a0708a69314c9eb21" kindref="member">width</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1]<sp/>-<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0];<sp/>}</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="group__common_1ga2eb6f9e0395b47b8d5e3eeae4fe0c116" kindref="member">INLINE</ref><sp/><ref refid="classBBox3" kindref="compound">BBox3</ref><sp/>&amp;<ref refid="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" kindref="member">operator+=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>)</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x<sp/>&lt;<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0].x)</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0].x<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x<sp/>&gt;<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1].x)</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1].x<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.x;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y<sp/>&lt;<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0].y)</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0].y<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y;</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y<sp/>&gt;<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1].y)</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1].y<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.y;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.z<sp/>&lt;<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0].z)</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[0].z<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.z;</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.z<sp/>&gt;<sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1].z)</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="group__common_1ga889656955bcb1a2a94630173e9263879" kindref="member">lim</ref>[1].z<sp/>=<sp/><ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>.z;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>*</highlight><highlight class="keyword">this</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170" refid="classStaticMeshRayTracer" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classStaticMeshRayTracer" kindref="compound">StaticMeshRayTracer</ref></highlight></codeline>
+<codeline lineno="171"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="173" refid="group__common_1ga5a030e780d5804ef3360e73f8b6717ae" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga5a030e780d5804ef3360e73f8b6717ae" kindref="member">~StaticMeshRayTracer</ref>()<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="175" refid="group__common_1ga6b9807257a4afe97f271a126deefe836" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga6b9807257a4afe97f271a126deefe836" kindref="member">traceray</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;dir,<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>&amp;t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;fi,<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;bc)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="178" refid="group__common_1gac8b67a396f83c5ccf220ce197839e8d5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="group__common_1gac8b67a396f83c5ccf220ce197839e8d5" kindref="member">traceray_back</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;dir,<sp/><ref refid="group__common_1ga031f8951175b43076c2084a6c2173410" kindref="member">real</ref><sp/>&amp;t,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;fi,<sp/><ref refid="rolluppanel_8h_1aa3daa2f428c6be2b1cb394f3a525833dace7952f9a96e365badec9acf7e6990bf" kindref="member">Point3</ref><sp/>&amp;bc)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="180" refid="group__common_1ga675c99833b9746f8164a3cacbd6ec6ea" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="group__common_1ga675c99833b9746f8164a3cacbd6ec6ea" kindref="member">build</ref>(Mesh<sp/>&amp;m)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="math3d.h"/>
+  </compounddef>
+</doxygen>

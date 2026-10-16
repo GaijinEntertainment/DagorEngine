@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1PsOutputStructKeyHash" kind="struct" language="C++" prot="public">
+    <compoundname>shc::PsOutputStructKeyHash</compoundname>
+    <includes refid="shShaderContext_8h" local="no">shShaderContext.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1PsOutputStructKeyHash_1ad741ba0818050fd86a1593052f9583d1" prot="public" static="no" const="yes" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t shc::PsOutputStructKeyHash::operator()</definition>
+        <argsstring>(const PsOutputStructKey &amp;k) const noexcept</argsstring>
+        <name>operator()</name>
+        <qualifiedname>shc::PsOutputStructKeyHash::operator()</qualifiedname>
+        <param>
+          <type>const <ref refid="structshc_1_1PsOutputStructKey" kindref="compound">PsOutputStructKey</ref> &amp;</type>
+          <declname>k</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shShaderContext.h" line="42" column="10" bodyfile="shShaderContext.h" bodystart="42" bodyend="50"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shShaderContext.h" line="40" column="1" bodyfile="shShaderContext.h" bodystart="41" bodyend="51"/>
+    <listofallmembers>
+      <member refid="structshc_1_1PsOutputStructKeyHash_1ad741ba0818050fd86a1593052f9583d1" prot="public" virt="non-virtual"><scope>shc::PsOutputStructKeyHash</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

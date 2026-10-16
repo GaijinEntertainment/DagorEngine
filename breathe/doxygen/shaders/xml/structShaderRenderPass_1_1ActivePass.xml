@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderRenderPass_1_1ActivePass" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::ActivePass</compoundname>
+    <includes refid="dag__shaderRenderPass_8h" local="no">dag_shaderRenderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderRenderPass_1_1ActivePass_1abe06ddefc04863dff926fe3e95ce4f39" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+        <definition>Id ShaderRenderPass::ActivePass::passNameHash</definition>
+        <argsstring></argsstring>
+        <name>passNameHash</name>
+        <qualifiedname>ShaderRenderPass::ActivePass::passNameHash</qualifiedname>
+        <initializer>= Id::Invalid</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="279" column="6" bodyfile="dag_shaderRenderPass.h" bodystart="279" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1ActivePass_1a85611d19ebc02f0847a9d2649ff09f64" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderRenderPass::ActivePass::shapeHash</definition>
+        <argsstring></argsstring>
+        <name>shapeHash</name>
+        <qualifiedname>ShaderRenderPass::ActivePass::shapeHash</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="280" column="12" bodyfile="dag_shaderRenderPass.h" bodystart="280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1ActivePass_1a2e84ab2d014bc9e8147b7786a36704b5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::ActivePass::subpass</definition>
+        <argsstring></argsstring>
+        <name>subpass</name>
+        <qualifiedname>ShaderRenderPass::ActivePass::subpass</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="281" column="7" bodyfile="dag_shaderRenderPass.h" bodystart="281" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1ActivePass_1a2b50441f1c41df51ee1e10d802ac05e0" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderRenderPass::ActivePass::passName</definition>
+        <argsstring></argsstring>
+        <name>passName</name>
+        <qualifiedname>ShaderRenderPass::ActivePass::passName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="282" column="14" bodyfile="dag_shaderRenderPass.h" bodystart="282" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Interface for the shader system to validate the shader render pass opt-in. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="277" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="278" bodyend="283"/>
+    <listofallmembers>
+      <member refid="structShaderRenderPass_1_1ActivePass_1a2b50441f1c41df51ee1e10d802ac05e0" prot="public" virt="non-virtual"><scope>ShaderRenderPass::ActivePass</scope><name>passName</name></member>
+      <member refid="structShaderRenderPass_1_1ActivePass_1abe06ddefc04863dff926fe3e95ce4f39" prot="public" virt="non-virtual"><scope>ShaderRenderPass::ActivePass</scope><name>passNameHash</name></member>
+      <member refid="structShaderRenderPass_1_1ActivePass_1a85611d19ebc02f0847a9d2649ff09f64" prot="public" virt="non-virtual"><scope>ShaderRenderPass::ActivePass</scope><name>shapeHash</name></member>
+      <member refid="structShaderRenderPass_1_1ActivePass_1a2e84ab2d014bc9e8147b7786a36704b5" prot="public" virt="non-virtual"><scope>ShaderRenderPass::ActivePass</scope><name>subpass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

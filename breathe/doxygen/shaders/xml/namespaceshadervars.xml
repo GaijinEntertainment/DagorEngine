@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshadervars" kind="namespace" language="C++">
+    <compoundname>shadervars</compoundname>
+    <innerclass refid="structshadervars_1_1Node" prot="public">shadervars::Node</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__linkedListOfShadervars_8h_1a6931f4901802583b353a6424fc1dbb20" prot="public" static="no" mutable="no">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref> *</type>
+        <definition>Node* shadervars::head_node_ptr</definition>
+        <argsstring></argsstring>
+        <name>head_node_ptr</name>
+        <qualifiedname>shadervars::head_node_ptr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="34" column="6" bodyfile="dag_linkedListOfShadervars.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__linkedListOfShadervars_8h_1a958cb3ddcae58a2e1b1df1fe850beff8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>struct <ref refid="structshadervars_1_1Node" kindref="compound">Node</ref> *&amp;</type>
+        <definition>Node *&amp; shadervars::head</definition>
+        <argsstring>()</argsstring>
+        <name>head</name>
+        <qualifiedname>shadervars::head</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="36" column="13" bodyfile="dag_linkedListOfShadervars.h" bodystart="36" bodyend="36" declfile="dag_linkedListOfShadervars.h" declline="19" declcolumn="18"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__linkedListOfShadervars_8h_1a81b29e7193e87882c55de2557b251a9a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shadervars::resolve_shadervars</definition>
+        <argsstring>()</argsstring>
+        <name>resolve_shadervars</name>
+        <qualifiedname>shadervars::resolve_shadervars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="38" column="13" bodyfile="dag_linkedListOfShadervars.h" bodystart="38" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_linkedListOfShadervars.h" line="16" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,746 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</compoundname>
+    <innerclass refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve" prot="public">anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a4d6b574bce73b2d468000ba25760db7b" prot="public" static="no" mutable="no">
+        <type><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref> &amp;</type>
+        <definition>RenderPassObject&amp; anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::obj</definition>
+        <argsstring></argsstring>
+        <name>obj</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::obj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="447" column="20" bodyfile="renderPassObject.cpp" bodystart="447" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a3eca59f6e559cc0697325230b85e6012" prot="public" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="448" column="10" bodyfile="renderPassObject.cpp" bodystart="448" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a1b89418d14df798aad0e78048f454a98" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+        <definition>shc::TargetContext&amp; anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::ctx</definition>
+        <argsstring></argsstring>
+        <name>ctx</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::ctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="449" column="22" bodyfile="renderPassObject.cpp" bodystart="449" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a2bd6671928590b77cb6cd632d5eb60f1" prot="public" static="no" mutable="no">
+        <type>bool &amp;</type>
+        <definition>bool&amp; anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::hadError</definition>
+        <argsstring></argsstring>
+        <name>hadError</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::hadError</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="450" column="8" bodyfile="renderPassObject.cpp" bodystart="450" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ad26efa7ffc9a48005910ee542e2b4b68" prot="public" static="no" mutable="no">
+        <type>const Terminal *</type>
+        <definition>const Terminal* anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::passAt</definition>
+        <argsstring></argsstring>
+        <name>passAt</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::passAt</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="451" column="18" bodyfile="renderPassObject.cpp" bodystart="451" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a9ddc01088e41e44815544fbe7ad5e778" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::simplifiedForm</definition>
+        <argsstring></argsstring>
+        <name>simplifiedForm</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::simplifiedForm</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="453" column="8" bodyfile="renderPassObject.cpp" bodystart="453" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1aa6de312d9fff977a08d97074bde8ad30" prot="public" static="no" mutable="no">
+        <type><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref></type>
+        <definition>RenderPassObject::Subpass anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::implicitSubpass</definition>
+        <argsstring></argsstring>
+        <name>implicitSubpass</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::implicitSubpass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="454" column="29" bodyfile="renderPassObject.cpp" bodystart="454" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ade6f5e0910af0eaa5596161d51a171ee" prot="public" static="no" mutable="no">
+        <type>const Terminal *</type>
+        <definition>const Terminal* anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::implicitSubpassAt</definition>
+        <argsstring></argsstring>
+        <name>implicitSubpassAt</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::implicitSubpassAt</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="455" column="18" bodyfile="renderPassObject.cpp" bodystart="455" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a2ef19569f63928d0bf0ff3381bf849ac" prot="public" static="no" mutable="no">
+        <type>Tab&lt; const Terminal * &gt;</type>
+        <definition>Tab&lt;const Terminal *&gt; anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::formatAt</definition>
+        <argsstring></argsstring>
+        <name>formatAt</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::formatAt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="456" column="7" bodyfile="renderPassObject.cpp" bodystart="456" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a2647541f184d9a2826e5c0f9e5b2624a" prot="public" static="no" mutable="no">
+        <type>const Terminal *</type>
+        <definition>const Terminal* anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::framebufferStatAt</definition>
+        <argsstring></argsstring>
+        <name>framebufferStatAt</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::framebufferStatAt</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="457" column="18" bodyfile="renderPassObject.cpp" bodystart="457" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a7a287ab7466dacb421a5420bdb64ee98" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve" kindref="compound">PendingResolve</ref> &gt;</type>
+        <definition>Tab&lt;PendingResolve&gt; anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::pendingResolves</definition>
+        <argsstring></argsstring>
+        <name>pendingResolves</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::pendingResolves</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="522" column="7" bodyfile="renderPassObject.cpp" bodystart="522" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a5e8ab7ca37583db8f6712e7548f74cb5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr char</type>
+        <definition>constexpr char anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::IMPLICIT_SUBPASS_NAME[]</definition>
+        <argsstring>[]</argsstring>
+        <name>IMPLICIT_SUBPASS_NAME</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::IMPLICIT_SUBPASS_NAME</qualifiedname>
+        <initializer>= &quot;main&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="459" column="25" bodyfile="renderPassObject.cpp" bodystart="459" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a69b4a5b82f367c742511f165d447e7c1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::intern</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>intern</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::intern</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="461" column="7" bodyfile="renderPassObject.cpp" bodystart="461" bodyend="461"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1addad9f5f20837f5b3182e625e3cfb2ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::reportErr</definition>
+        <argsstring>(const BaseParNamespace::Symbol *t, const char *msg)</argsstring>
+        <name>reportErr</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::reportErr</qualifiedname>
+        <param>
+          <type>const BaseParNamespace::Symbol *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="463" column="8" bodyfile="renderPassObject.cpp" bodystart="463" bodyend="467"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a64bb63c1deea6080315e45e022fd9248" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename...</type>
+            <declname>A</declname>
+            <defname>A</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::reportErrf</definition>
+        <argsstring>(const BaseParNamespace::Symbol *t, const char *fmt, const A &amp;...a)</argsstring>
+        <name>reportErrf</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::reportErrf</qualifiedname>
+        <param>
+          <type>const BaseParNamespace::Symbol *</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const A &amp;...</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="470" column="8" bodyfile="renderPassObject.cpp" bodystart="470" bodyend="474"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a3099772d323e1b0e18a158e1ab2bd8e1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::addTarget</definition>
+        <argsstring>(const Terminal *at, const char *name, bool ms)</argsstring>
+        <name>addTarget</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::addTarget</qualifiedname>
+        <param>
+          <type>const Terminal *</type>
+          <declname>at</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>ms</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="476" column="7" bodyfile="renderPassObject.cpp" bodystart="476" bodyend="494"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1afe45f44ad6036f5334f09ce073523041" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::applyFormat</definition>
+        <argsstring>(int target_idx, SHTOK_ident *fmt_tok, SHTOK_ident *samples_tok, const Terminal *at)</argsstring>
+        <name>applyFormat</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::applyFormat</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <param>
+          <type>SHTOK_ident *</type>
+          <declname>fmt_tok</declname>
+        </param>
+        <param>
+          <type>SHTOK_ident *</type>
+          <declname>samples_tok</declname>
+        </param>
+        <param>
+          <type>const Terminal *</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="496" column="8" bodyfile="renderPassObject.cpp" bodystart="496" bodyend="514"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a9e672cd5e1d59f2f4cdc15887a5f5eb0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::addResolve</definition>
+        <argsstring>(int src, int dst, const Terminal *at)</argsstring>
+        <name>addResolve</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::addResolve</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>const Terminal *</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="524" column="8" bodyfile="renderPassObject.cpp" bodystart="524" bodyend="545"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ae044471c69e9a63ab91c51c410507634" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::applyResolve</definition>
+        <argsstring>(int target_idx, target_resolve &amp;tr, const Terminal *at, bool implicit)</argsstring>
+        <name>applyResolve</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::applyResolve</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>target_idx</declname>
+        </param>
+        <param>
+          <type>target_resolve &amp;</type>
+          <declname>tr</declname>
+        </param>
+        <param>
+          <type>const Terminal *</type>
+          <declname>at</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>implicit</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="547" column="8" bodyfile="renderPassObject.cpp" bodystart="547" bodyend="571"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1afffac4f4f00102f063600280e3d50998" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalSubpassStat</definition>
+        <argsstring>(subpass_stat &amp;s, RenderPassObject::Subpass &amp;sp)</argsstring>
+        <name>evalSubpassStat</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalSubpassStat</qualifiedname>
+        <param>
+          <type>subpass_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref> &amp;</type>
+          <declname>sp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="573" column="8" bodyfile="renderPassObject.cpp" bodystart="573" bodyend="582"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ab493c2d7323ed39e9338f9f59045737f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalBindList</definition>
+        <argsstring>(SHTOK_ident &amp;op_tok, dag::ConstSpan&lt; subpass_bind * &gt; binds, RenderPassObject::Subpass &amp;sp, bool implicit)</argsstring>
+        <name>evalBindList</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalBindList</qualifiedname>
+        <param>
+          <type>SHTOK_ident &amp;</type>
+          <declname>op_tok</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; subpass_bind * &gt;</type>
+          <declname>binds</declname>
+        </param>
+        <param>
+          <type><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref> &amp;</type>
+          <declname>sp</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>implicit</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="584" column="8" bodyfile="renderPassObject.cpp" bodystart="584" bodyend="692"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a3cbf3e4f664efd6c452ca9bb79184494" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalFramebufferStat</definition>
+        <argsstring>(SHTOK_ident &amp;op_tok, dag::ConstSpan&lt; subpass_bind * &gt; binds)</argsstring>
+        <name>evalFramebufferStat</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalFramebufferStat</qualifiedname>
+        <param>
+          <type>SHTOK_ident &amp;</type>
+          <declname>op_tok</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; subpass_bind * &gt;</type>
+          <declname>binds</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="694" column="8" bodyfile="renderPassObject.cpp" bodystart="694" bodyend="740"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a98f88bb35ea91c684157fda7ea35eefb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalSubpassIf</definition>
+        <argsstring>(subpass_if &amp;s, RenderPassObject::Subpass &amp;sp)</argsstring>
+        <name>evalSubpassIf</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalSubpassIf</qualifiedname>
+        <param>
+          <type>subpass_if &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref> &amp;</type>
+          <declname>sp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="742" column="8" bodyfile="renderPassObject.cpp" bodystart="742" bodyend="745"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a8070bbc5a3b090eda92545ed2e3e0b24" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalStat</definition>
+        <argsstring>(render_pass_stat &amp;s)</argsstring>
+        <name>evalStat</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalStat</qualifiedname>
+        <param>
+          <type>render_pass_stat &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="747" column="8" bodyfile="renderPassObject.cpp" bodystart="747" bodyend="843"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1aa1f7af4072f365db1e79b0fa5383ace4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::finish</definition>
+        <argsstring>()</argsstring>
+        <name>finish</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::finish</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="845" column="8" bodyfile="renderPassObject.cpp" bodystart="845" bodyend="865"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a817f09b009edf65bac34e605df57972c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateLayoutShapes</definition>
+        <argsstring>()</argsstring>
+        <name>validateLayoutShapes</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateLayoutShapes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="867" column="8" bodyfile="renderPassObject.cpp" bodystart="867" bodyend="965"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a8768dfebb7654570231070223fd3533c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateMetalShape</definition>
+        <argsstring>()</argsstring>
+        <name>validateMetalShape</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateMetalShape</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="967" column="8" bodyfile="renderPassObject.cpp" bodystart="967" bodyend="1036"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1acb298a130cbca54062ff06f84c9288e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateFramebuffers</definition>
+        <argsstring>()</argsstring>
+        <name>validateFramebuffers</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateFramebuffers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1038" column="8" bodyfile="renderPassObject.cpp" bodystart="1038" bodyend="1078"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1af6186725bcff89e8cd9d868f054afcae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validatePass</definition>
+        <argsstring>()</argsstring>
+        <name>validatePass</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validatePass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1080" column="8" bodyfile="renderPassObject.cpp" bodystart="1080" bodyend="1133"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ac80f509c3a9dbc405091eb71ff84079b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateSubpass</definition>
+        <argsstring>(RenderPassObject::Subpass &amp;sp, const Terminal *at)</argsstring>
+        <name>validateSubpass</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::validateSubpass</qualifiedname>
+        <param>
+          <type><ref refid="structRenderPassObject_1_1Subpass" kindref="compound">RenderPassObject::Subpass</ref> &amp;</type>
+          <declname>sp</declname>
+        </param>
+        <param>
+          <type>const Terminal *</type>
+          <declname>at</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1135" column="8" bodyfile="renderPassObject.cpp" bodystart="1135" bodyend="1172"/>
+      </memberdef>
+      <memberdef kind="function" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a81907055b6a11c2896fac01dfa5ba8c3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalIf</definition>
+        <argsstring>(render_pass_if &amp;s)</argsstring>
+        <name>evalIf</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::evalIf</qualifiedname>
+        <param>
+          <type>render_pass_if &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1174" column="8" bodyfile="renderPassObject.cpp" bodystart="1174" bodyend="1177"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>NameId&lt; RenderPassNameAdapter &gt;</label>
+        <link refid="classNameId"/>
+      </node>
+      <node id="12">
+        <label>Parser</label>
+        <link refid="structParser"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>RenderPassObject</label>
+        <link refid="classRenderPassObject"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>targets</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>subpasses</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>resolves</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>framebuffers</edgelabel>
+        </childnode>
+      </node>
+      <node id="15">
+        <label>RenderPassObject::Subpass</label>
+        <link refid="structRenderPassObject_1_1Subpass"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>colors</edgelabel>
+          <edgelabel>reads</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; RenderPassObject::Resolve &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>SerializableTab&lt; RenderPassObject::Subpass &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>SerializableTab&lt; RenderPassObject::Target &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>SerializableTab&lt; int &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="17" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>ShaderTerminal::GeneratedParser</label>
+      </node>
+      <node id="11">
+        <label>Tab&lt; NameId&lt; RenderPassNameAdapter &gt; &gt;</label>
+      </node>
+      <node id="9">
+        <label>Tab&lt; RenderPassObject::Resolve &gt;</label>
+      </node>
+      <node id="7">
+        <label>Tab&lt; RenderPassObject::Subpass &gt;</label>
+      </node>
+      <node id="5">
+        <label>Tab&lt; RenderPassObject::Target &gt;</label>
+      </node>
+      <node id="17">
+        <label>Tab&lt; int &gt;</label>
+      </node>
+      <node id="1">
+        <label>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</label>
+        <link refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>obj</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>parser</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>ctx</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>implicitSubpass</edgelabel>
+        </childnode>
+      </node>
+      <node id="14">
+        <label>shc::TargetContext</label>
+        <link refid="classshc_1_1TargetContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="renderPassObject.cpp" line="445" column="1" bodyfile="renderPassObject.cpp" bodystart="446" bodyend="1178"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a9e672cd5e1d59f2f4cdc15887a5f5eb0" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>addResolve</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a3099772d323e1b0e18a158e1ab2bd8e1" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>addTarget</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1afe45f44ad6036f5334f09ce073523041" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>applyFormat</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ae044471c69e9a63ab91c51c410507634" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>applyResolve</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a1b89418d14df798aad0e78048f454a98" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>ctx</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ab493c2d7323ed39e9338f9f59045737f" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>evalBindList</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a3cbf3e4f664efd6c452ca9bb79184494" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>evalFramebufferStat</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a81907055b6a11c2896fac01dfa5ba8c3" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>evalIf</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a8070bbc5a3b090eda92545ed2e3e0b24" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>evalStat</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a98f88bb35ea91c684157fda7ea35eefb" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>evalSubpassIf</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1afffac4f4f00102f063600280e3d50998" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>evalSubpassStat</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1aa1f7af4072f365db1e79b0fa5383ace4" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>finish</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a2ef19569f63928d0bf0ff3381bf849ac" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>formatAt</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a2647541f184d9a2826e5c0f9e5b2624a" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>framebufferStatAt</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a2bd6671928590b77cb6cd632d5eb60f1" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>hadError</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a5e8ab7ca37583db8f6712e7548f74cb5" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>IMPLICIT_SUBPASS_NAME</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1aa6de312d9fff977a08d97074bde8ad30" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>implicitSubpass</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ade6f5e0910af0eaa5596161d51a171ee" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>implicitSubpassAt</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a69b4a5b82f367c742511f165d447e7c1" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>intern</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a4d6b574bce73b2d468000ba25760db7b" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>obj</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a3eca59f6e559cc0697325230b85e6012" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>parser</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ad26efa7ffc9a48005910ee542e2b4b68" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>passAt</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a7a287ab7466dacb421a5420bdb64ee98" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>pendingResolves</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1addad9f5f20837f5b3182e625e3cfb2ec" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>reportErr</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a64bb63c1deea6080315e45e022fd9248" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>reportErrf</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a9ddc01088e41e44815544fbe7ad5e778" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>simplifiedForm</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1acb298a130cbca54062ff06f84c9288e8" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>validateFramebuffers</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a817f09b009edf65bac34e605df57972c" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>validateLayoutShapes</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1a8768dfebb7654570231070223fd3533c" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>validateMetalShape</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1af6186725bcff89e8cd9d868f054afcae" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>validatePass</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1ac80f509c3a9dbc405091eb71ff84079b" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</scope><name>validateSubpass</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

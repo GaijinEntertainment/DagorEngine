@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSourceExt" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderSourceExt</compoundname>
+    <basecompoundref refid="structShaderSource" prot="public" virt="non-virtual">ShaderSource</basecompoundref>
+    <includes refid="dag__shader_8h" local="no">dag_shader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSourceExt_1a1127ca04eb34c64a0b85900835df5bae" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderSourceExt::debugNameLen</definition>
+        <argsstring></argsstring>
+        <name>debugNameLen</name>
+        <qualifiedname>ShaderSourceExt::debugNameLen</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="42" column="12" bodyfile="dag_shader.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSourceExt_1add59930ddd331e1a9ad191a90a6a2f0b" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderSourceExt::debugName</definition>
+        <argsstring></argsstring>
+        <name>debugName</name>
+        <qualifiedname>ShaderSourceExt::debugName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="43" column="14" bodyfile="dag_shader.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderSourceExt_1a6dc6e4f06352ff060f7438a92c7976dd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string_view</type>
+        <definition>eastl::string_view ShaderSourceExt::getDebugName</definition>
+        <argsstring>() const</argsstring>
+        <name>getDebugName</name>
+        <qualifiedname>ShaderSourceExt::getDebugName</qualifiedname>
+        <briefdescription>
+<para>Get the string view of the debug name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>String view from debugName/debugNameLen.</para>
+</simplesect>
+The user guarantees the debugName pointer to be alive only for the duration of the <ref refid="namespaced3d" kindref="compound">d3d</ref>:: call where the <ref refid="structShaderSource" kindref="compound">ShaderSource</ref> is passed The driver guarantees to copy the string if it needs it, and not retain the pointer The name is not stored as string_view initially to allow to put more data in the padding in the future </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="54" column="22" bodyfile="dag_shader.h" bodystart="54" bodyend="57"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Extends <ref refid="structShaderSource" kindref="compound">ShaderSource</ref> with an optional debug name pointer+len, must be null terminated Unlike the base structure, the user only guarantees debugName to be valid during shader creation call, so drivers may store only the spliced out base <ref refid="structShaderSource" kindref="compound">ShaderSource</ref>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderSource</label>
+        <link refid="structShaderSource"/>
+      </node>
+      <node id="1">
+        <label>ShaderSourceExt</label>
+        <link refid="structShaderSourceExt"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderSource</label>
+        <link refid="structShaderSource"/>
+      </node>
+      <node id="1">
+        <label>ShaderSourceExt</label>
+        <link refid="structShaderSourceExt"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shader.h" line="40" column="1" bodyfile="dag_shader.h" bodystart="41" bodyend="58"/>
+    <listofallmembers>
+      <member refid="structShaderSource_1afec1bc45228f9f41473c12a37e3eeb09" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>compressedData</name></member>
+      <member refid="structShaderSourceExt_1add59930ddd331e1a9ad191a90a6a2f0b" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>debugName</name></member>
+      <member refid="structShaderSourceExt_1a1127ca04eb34c64a0b85900835df5bae" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>debugNameLen</name></member>
+      <member refid="structShaderSource_1a5782756301f297b8826356447b50ef9a" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>dictionary</name></member>
+      <member refid="structShaderSourceExt_1a6dc6e4f06352ff060f7438a92c7976dd" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>getDebugName</name></member>
+      <member refid="structShaderSource_1a0c3ed997a9d7162d7500a1c6783f54c6" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>metadata</name></member>
+      <member refid="structShaderSource_1af63837f02a03b6f29e3c633f3aba1f87" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>uncompress</name></member>
+      <member refid="structShaderSource_1a36f969a47a64bdebf98e4e7b715ced0e" prot="public" virt="non-virtual"><scope>ShaderSourceExt</scope><name>uncompressedSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

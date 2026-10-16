@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__render_8h" kind="file" language="C++">
+    <compoundname>dag_render.h</compoundname>
+    <includes local="no">supp/dag_define_KRNLIMP.h</includes>
+    <includes local="no">supp/dag_undef_KRNLIMP.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_render.h</label>
+        <link refid="dag__render_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>supp/dag_define_KRNLIMP.h</label>
+      </node>
+      <node id="3">
+        <label>supp/dag_undef_KRNLIMP.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__render_8h_1ae7748b819a7bbb25312c1a7067660895" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool grs_draw_wire</definition>
+        <argsstring></argsstring>
+        <name>grs_draw_wire</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_render.h" line="10" column="13" declfile="dag_render.h" declline="10" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__render_8h_1a1a4b2a26886b2a6add0ea16e19915a14" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_gamma_shadervar</definition>
+        <argsstring>(float p)</argsstring>
+        <name>set_gamma_shadervar</name>
+        <param>
+          <type>float</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_render.h" line="13" column="6" declfile="dag_render.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__render_8h_1ae9c56330ada2ea229e31a73638a1f809" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>float</type>
+        <definition>float get_current_gamma</definition>
+        <argsstring>()</argsstring>
+        <name>get_current_gamma</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_render.h" line="16" column="7" declfile="dag_render.h" declline="16" declcolumn="7"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;supp/dag_define_KRNLIMP.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>global<sp/>render<sp/>states</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="dag__render_8h_1ae7748b819a7bbb25312c1a7067660895" kindref="member">grs_draw_wire</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>compute<sp/>and<sp/>set<sp/>gamma<sp/>correction</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="dag__render_8h_1a1a4b2a26886b2a6add0ea16e19915a14" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="dag__render_8h_1a1a4b2a26886b2a6add0ea16e19915a14" kindref="member">set_gamma_shadervar</ref>(</highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>p);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>returns<sp/>current<sp/>gamma</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="dag__render_8h_1ae9c56330ada2ea229e31a73638a1f809" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/><ref refid="dag__render_8h_1ae9c56330ada2ea229e31a73638a1f809" kindref="member">get_current_gamma</ref>();</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;supp/dag_undef_KRNLIMP.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_render.h"/>
+  </compounddef>
+</doxygen>

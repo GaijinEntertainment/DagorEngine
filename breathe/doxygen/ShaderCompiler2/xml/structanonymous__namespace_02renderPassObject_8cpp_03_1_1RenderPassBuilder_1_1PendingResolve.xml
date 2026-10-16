@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve" kind="struct" language="C++" prot="public">
+    <compoundname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve_1a97c271cf894b0b16def88b052db8b8d1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve::src</definition>
+        <argsstring></argsstring>
+        <name>src</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve::src</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="518" column="9" bodyfile="renderPassObject.cpp" bodystart="518" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve_1a9856b072a159c20ed4ce07016595169d" prot="public" static="no" mutable="no">
+        <type>SHTOK_ident *</type>
+        <definition>SHTOK_ident* anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve::dstName</definition>
+        <argsstring></argsstring>
+        <name>dstName</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve::dstName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="519" column="17" bodyfile="renderPassObject.cpp" bodystart="519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve_1a3b2a28e9ed0f4bce9353f203ac7dac84" prot="public" static="no" mutable="no">
+        <type>const Terminal *</type>
+        <definition>const Terminal* anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve::at</definition>
+        <argsstring></argsstring>
+        <name>at</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve::at</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="520" column="20" bodyfile="renderPassObject.cpp" bodystart="520" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="renderPassObject.cpp" line="516" column="3" bodyfile="renderPassObject.cpp" bodystart="517" bodyend="521"/>
+    <listofallmembers>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve_1a3b2a28e9ed0f4bce9353f203ac7dac84" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve</scope><name>at</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve_1a9856b072a159c20ed4ce07016595169d" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve</scope><name>dstName</name></member>
+      <member refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder_1_1PendingResolve_1a97c271cf894b0b16def88b052db8b8d1" prot="public" virt="non-virtual"><scope>anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder::PendingResolve</scope><name>src</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

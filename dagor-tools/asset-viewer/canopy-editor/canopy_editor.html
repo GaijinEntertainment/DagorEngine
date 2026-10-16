@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canopy Editor</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/js/hoverxref.js"></script>
+      <script src="../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Collision Generation for Assets in Asset Viewer" href="../collision-generation/index.html" />
+    <link rel="prev" title="Canopy Editor" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Dagor Tools</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../addons/index.html">Add-ons for Blender and 3ds Max</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Asset Viewer</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../asset-viewer/index.html">Asset Viewer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../asset_viewer_command_line_reference.html">Asset Viewer Command-Line Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../asset-viewer-comp-editor/index.html">Asset Viewer Composite Editor</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html">Canopy Editor</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Canopy Editor</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#open-canopy-editor">Open Canopy Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#visual-editor">Visual Editor</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#add-parameters">Add Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#text-editor">Text Editor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#preview-destruction-effects">Preview Destruction Effects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#save-changes">Save Changes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../collision-generation/index.html">Collision Generation for Assets in Asset Viewer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../blk/index.html">BLK File Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../building-resources/index.html">Building Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../daeditor/index.html">daEditor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dag2rires/index.html">dag2riRes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dascript-code-formatter/index.html">daScript Code Formatter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dear-imgui/index.html">Dear ImGui and ImPlot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../impostor-baker/index.html">Impostor Baker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../levels-deps/index.html">levels.deps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../performance-rate-stat-panel/index.html">Performance Rating Statistics Panel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../shader-compiler/index.html">Shader Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../substance-designer/index.html">Substance Designer Mip Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api-references/index.html">API References and Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Tools</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Asset Viewer</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Canopy Editor</a></li>
+      <li class="breadcrumb-item active">Canopy Editor</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/dagor-tools/asset-viewer/canopy-editor/canopy_editor.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="canopy-editor">
+<h1>Canopy Editor<a class="headerlink" href="#canopy-editor" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Canopy Editor is an <a class="reference internal" href="../asset-viewer/asset_viewer.html"><span class="std std-doc">Asset Viewer</span></a> panel for
+editing canopy destruction data in a <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. It edits the record for the
+asset selected in the <strong>Asset Tree</strong>, shows the canopy volume in the viewport,
+and can show the linked destruction effect.</p>
+<p>The editor updates the selected record in its source <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. Saving
+serializes the source document again, so do not rely on its original text
+formatting.</p>
+<a class="reference internal image-reference" href="../../../_images/canopy_editor_01_overview.jpg"><img alt="Canopy Editor with a canopy volume preview" class="align-center" src="../../../_images/canopy_editor_01_overview.jpg" style="width: 45em;" />
+</a>
+</section>
+<section id="open-canopy-editor">
+<h2>Open Canopy Editor<a class="headerlink" href="#open-canopy-editor" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>In Asset Viewer, select <strong>View</strong> &gt; <strong>Canopy Editor</strong>.</p></li>
+<li><p>In <strong>Canopy BLK</strong>, select the <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file that contains the canopy records.</p></li>
+<li><p>In the <strong>Asset Tree</strong>, select the asset to edit.</p></li>
+</ol>
+<p>The editor finds a record by the selected asset name. For an asset whose name
+ends with <code class="docutils literal notranslate"><span class="pre">.lodN</span></code>, the editor searches for the record by the base asset name.
+For example, <code class="docutils literal notranslate"><span class="pre">tree_oak.lod1</span></code> uses the <code class="docutils literal notranslate"><span class="pre">tree_oak</span></code> record. The editor supports
+both record layouts:</p>
+<ul class="simple">
+<li><p>Legacy records use a <code class="docutils literal notranslate"><span class="pre">dmg</span></code> block with a <code class="docutils literal notranslate"><span class="pre">name:t</span></code> parameter.</p></li>
+<li><p>Named records use the asset name as the block name. The block must contain
+canopy data or recognizable canopy FX or damage data.</p></li>
+</ul>
+<p>If the record is in an included <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, the editor opens that source file and
+saves the change there. If no record exists, the editor uses a suitable canopy
+record as a template when one is available. Otherwise, it creates an empty
+record when you save.</p>
+<p>Do not mix legacy and named records in one source <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. If the file
+contains a legacy record, the editor uses the legacy layout for the file.</p>
+<p>For an asset with a <code class="docutils literal notranslate"><span class="pre">tree</span></code> or <code class="docutils literal notranslate"><span class="pre">bush</span></code> name token, the template search first
+looks for a record with the same size token: <code class="docutils literal notranslate"><span class="pre">small</span></code>, <code class="docutils literal notranslate"><span class="pre">medium</span></code>, <code class="docutils literal notranslate"><span class="pre">large</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">tall</span></code>. It then looks for the same asset type without a size token. A <code class="docutils literal notranslate"><span class="pre">bush</span></code>
+asset can use a <code class="docutils literal notranslate"><span class="pre">tree</span></code> template if no bush template exists.</p>
+</section>
+<section id="visual-editor">
+<h2>Visual Editor<a class="headerlink" href="#visual-editor" title="Link to this heading"></a></h2>
+<p>The <strong>Parameters</strong> group is the visual editor. It displays the parameters and
+nested blocks in the current record as controls. Use the controls to change
+values, the delete button to remove a parameter or block, and <strong>Add params</strong>
+to copy a parameter or block from a record in the selected <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file.</p>
+<p>Use the visual editor when you need to inspect the record structure or change
+individual values. It shows type-aware controls for points, colors, matrices,
+and Boolean values. A valid change updates the canopy and effect previews in
+the viewport without the need to write BLK syntax. If a parameter has no
+editable visual control, use <strong>Parameters Text Editor</strong>.</p>
+<p>The <strong>CanopyType</strong> list changes the canopy volume:</p>
+<ul class="simple">
+<li><p><strong>Box</strong> removes <code class="docutils literal notranslate"><span class="pre">canopyTriangle</span></code> and <code class="docutils literal notranslate"><span class="pre">canopySphere</span></code>.</p></li>
+<li><p><strong>Triangle</strong> writes <code class="docutils literal notranslate"><span class="pre">canopyTriangle:b=yes</span></code>.</p></li>
+<li><p><strong>Sphere</strong> writes <code class="docutils literal notranslate"><span class="pre">canopySphere:b=yes</span></code>.</p></li>
+</ul>
+<p>Only one of the type parameters can be active. Changing to a non-triangle type
+also removes <code class="docutils literal notranslate"><span class="pre">forcePyramidCanopy</span></code>.</p>
+<p>The following are examples of parameters that affect the canopy volume preview:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">canopyTopOffset:r</span></code> sets the offset from the top of the asset bounds.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">canopyTopPart:r</span></code> sets the height of the volume.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">canopyWidthPart:r</span></code> sets the width of the volume.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">canopyOpacity:r</span></code> enables the preview when its value is greater than zero. A
+value less than or equal to zero hides it.</p></li>
+</ul>
+<a class="reference internal image-reference" href="../../../_images/canopy_editor_02_viewport_preview.jpg"><img alt="Sphere canopy volume preview" class="align-center" src="../../../_images/canopy_editor_02_viewport_preview.jpg" style="width: 24em;" />
+</a>
+<p>Canopy records can contain additional parameters and nested blocks. You can
+add a project-specific parameter in <strong>Parameters Text Editor</strong>. After you save
+and reload the record, the visual editor displays the parameter when its type
+is supported.</p>
+<p>The viewport preview is a debug aid. It does not change the asset geometry.</p>
+<section id="add-parameters">
+<h3>Add Parameters<a class="headerlink" href="#add-parameters" title="Link to this heading"></a></h3>
+<p>Click <strong>Add params</strong> to add a parameter or an available top-level block from a
+recognized record in the selected <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. The dialog lists available
+parameters and top-level blocks.</p>
+<p>The editor copies a parameter only when its parent block already exists in the
+current record. It adds a selected block as an empty top-level block. After you
+select an item, edit or remove it in the visual editor.</p>
+<a class="reference internal image-reference" href="../../../_images/canopy_editor_03_add_params.jpg"><img alt="Add parameters dialog" class="align-center" src="../../../_images/canopy_editor_03_add_params.jpg" style="width: 14em;" />
+</a>
+</section>
+</section>
+<section id="text-editor">
+<h2>Text Editor<a class="headerlink" href="#text-editor" title="Link to this heading"></a></h2>
+<p>The <strong>Parameters Text Editor</strong> is the text editor. It contains the current
+record as BLK text. The visual editor and the text editor describe the same
+record. A valid text change updates the controls and the viewport preview.</p>
+<p>Use the text editor when you need to enter exact BLK data, edit several values
+at once, or copy and paste a parameter or block. It is useful when the source
+data is easier to edit as text than as individual controls.</p>
+<a class="reference internal image-reference" href="../../../_images/canopy_editor_04_text_editor.jpg"><img alt="BLK syntax in the text editor" class="align-center" src="../../../_images/canopy_editor_04_text_editor.jpg" style="width: 25em;" />
+</a>
+<p>The editor reports <strong>Invalid BLK syntax</strong> and disables saving until the text is
+valid. It parses text after a short pause in typing. Until the text is valid,
+the visual editor, <strong>Show FX</strong>, and <strong>Add params</strong> are unavailable. Use the
+visual editor if you do not need direct BLK text editing.</p>
+<p>To create data for an asset that has no canopy record, copy the text from a
+similar asset, select the new asset, and paste the data in <strong>Parameters Text
+Editor</strong>. Then update the parameters for the new asset. This gives you a
+starting point with known parameters instead of an empty record.</p>
+<p>If <strong>Add params</strong> does not list the parameter you need, add it as valid BLK
+text in <strong>Parameters Text Editor</strong>. The parameter appears in the visual editor
+after the text is valid. After you save and reload the record, it is also
+available in the <strong>Add params</strong> list.</p>
+<a class="reference internal image-reference" href="../../../_images/canopy_editor_05_new_parameter.jpg"><img alt="New Boolean parameter in the visual editor" class="align-center" src="../../../_images/canopy_editor_05_new_parameter.jpg" style="width: 25em;" />
+</a>
+</section>
+<section id="preview-destruction-effects">
+<h2>Preview Destruction Effects<a class="headerlink" href="#preview-destruction-effects" title="Link to this heading"></a></h2>
+<p>Select <strong>Show FX</strong> to show the effect referenced by <code class="docutils literal notranslate"><span class="pre">fx:t</span></code> or <code class="docutils literal notranslate"><span class="pre">fxTemplate:t</span></code>
+in the selected record. If both parameters exist, <code class="docutils literal notranslate"><span class="pre">fx:t</span></code> takes priority. The
+checkbox is available only when Asset Viewer can resolve the effect to an <code class="docutils literal notranslate"><span class="pre">fx</span></code>
+or <code class="docutils literal notranslate"><span class="pre">efx</span></code> asset. The preview restarts about every three seconds.</p>
+</section>
+<section id="save-changes">
+<h2>Save Changes<a class="headerlink" href="#save-changes" title="Link to this heading"></a></h2>
+<p>Click <strong>Save parameters to BLK</strong> to update the current record in its source
+<code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. The button is available only when there are valid unsaved changes.</p>
+<p>When you select another asset, select a different <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file, or close Canopy
+Editor with unsaved changes, Asset Viewer asks whether to save or discard them.
+Click <strong>Cancel</strong> to continue editing.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Canopy Editor writes to the source <code class="docutils literal notranslate"><span class="pre">.blk</span></code> file. Use the project version-control
+workflow to review and submit the change.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Canopy Editor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../collision-generation/index.html" class="btn btn-neutral float-right" title="Collision Generation for Assets in Asset Viewer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2026.
+      <span class="lastupdated">Last updated on Oct 16, 2026.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

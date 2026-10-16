@@ -1,0 +1,379 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1LVarValueExpression" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::LVarValueExpression</compoundname>
+    <basecompoundref refid="classShaderParser_1_1Expression" prot="public" virt="non-virtual">ShaderParser::Expression</basecompoundref>
+    <includes refid="shExpr_8h" local="no">shExpr.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1LVarValueExpression_1ab5adee9afd39e54dca618920def7db95" prot="private" static="no" mutable="no">
+        <type>const <ref refid="structLocalVar" kindref="compound">LocalVar</ref> &amp;</type>
+        <definition>const LocalVar&amp; ShaderParser::LVarValueExpression::var</definition>
+        <argsstring></argsstring>
+        <name>var</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="542" column="18" bodyfile="shExpr.h" bodystart="542" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1abd77075af3d375b0293a121f2d86b62d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>LVarValueExpression::LVarValueExpression</definition>
+        <argsstring>(Terminal *s, const LocalVar &amp;var)</argsstring>
+        <name>LVarValueExpression</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::LVarValueExpression</qualifiedname>
+        <param>
+          <type>Terminal *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structLocalVar" kindref="compound">LocalVar</ref> &amp;</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="500" column="3" bodyfile="shExpr.cpp" bodystart="1173" bodyend="1173"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a74ca390d1f6c25e2cc018fdd7d031ec8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>shexpr::Type</type>
+        <definition>shexpr::Type ShaderParser::LVarValueExpression::getType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::getType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ab8876717d35f647420a5c3bfd7c1c50c">getType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="503" column="23" bodyfile="shExpr.h" bodystart="503" bodyend="503"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1abddd6c7a42162921b169c2d5c57485be" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>shexpr::ValueType</type>
+        <definition>shexpr::ValueType LVarValueExpression::getValueType</definition>
+        <argsstring>() const override</argsstring>
+        <name>getValueType</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::getValueType</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1acc2906c41ab9f1277d513f3c2c97096d">getValueType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="506" column="21" bodyfile="shExpr.cpp" bodystart="1236" bodyend="1236"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a8db294081e3dfc8d66e0d4c042066fd7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void LVarValueExpression::assembleBytecode</definition>
+        <argsstring>(CodeTable &amp;code, Register &amp;dest_reg, StcodeVMRegisterAllocator &amp;reg_allocator, bool is_integer) const override</argsstring>
+        <name>assembleBytecode</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::assembleBytecode</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1adf4dc5757229bb9e7a7d50d3cc6d82f0">assembleBytecode</reimplements>
+        <param>
+          <type><ref refid="namespaceShaderParser_1a732af6cbcecefe1051d9165d3718d702" kindref="member">CodeTable</ref> &amp;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type><ref refid="classRegister" kindref="compound">Register</ref> &amp;</type>
+          <declname>dest_reg</declname>
+        </param>
+        <param>
+          <type><ref refid="classStcodeVMRegisterAllocator" kindref="compound">StcodeVMRegisterAllocator</ref> &amp;</type>
+          <declname>reg_allocator</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="509" column="8" bodyfile="shExpr.cpp" bodystart="1177" bodyend="1195"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a8e477ea0da64c00d95bdf925c9d42d64" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void LVarValueExpression::assembleCpp</definition>
+        <argsstring>(StcodeExpression &amp;cpp_expr, bool is_integer) const override</argsstring>
+        <name>assembleCpp</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::assembleCpp</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a9487371df0a50670438cc4343d06cdb2">assembleCpp</reimplements>
+        <param>
+          <type><ref refid="structStcodeExpression" kindref="compound">StcodeExpression</ref> &amp;</type>
+          <declname>cpp_expr</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_integer</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="510" column="8" bodyfile="shExpr.cpp" bodystart="1197" bodyend="1201"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a0f49a4d29619519ebc68f81492f9d1c3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool LVarValueExpression::canConvert</definition>
+        <argsstring>(shexpr::ValueType vt) const override</argsstring>
+        <name>canConvert</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::canConvert</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ac19dd34018b4470ad166a8ab244f981d">canConvert</reimplements>
+        <param>
+          <type>shexpr::ValueType</type>
+          <declname>vt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="513" column="8" bodyfile="shExpr.cpp" bodystart="1205" bodyend="1208"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a00f0120434dc1f9136cec143b8d9118c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool LVarValueExpression::isConst</definition>
+        <argsstring>() const override</argsstring>
+        <name>isConst</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::isConst</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a5cd845a298cd30bc29c1d6176d90d7a5">isConst</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="516" column="8" bodyfile="shExpr.cpp" bodystart="1240" bodyend="1240"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a931670ebd73affa517160b77c98bbe6c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool LVarValueExpression::isDynamic</definition>
+        <argsstring>() const override</argsstring>
+        <name>isDynamic</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::isDynamic</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6670e4cb77f145766d8e787075ed7da9">isDynamic</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="519" column="8" bodyfile="shExpr.cpp" bodystart="1243" bodyend="1243"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a2e94316249c1db7d1427118a3c6f14ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool LVarValueExpression::evaluate</definition>
+        <argsstring>(real &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a8941f97eca15c43e1ecd37d5c7dc3caf">evaluate</reimplements>
+        <param>
+          <type>real &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="522" column="8" bodyfile="shExpr.cpp" bodystart="1212" bodyend="1216"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a51942e3f8712796b62906c8691887cfe" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>bool</type>
+        <definition>bool LVarValueExpression::evaluate</definition>
+        <argsstring>(Color4 &amp;out_value, Parser &amp;parser) override</argsstring>
+        <name>evaluate</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::evaluate</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1af8c5f003ef7d6a21c423c741f3587a1f">evaluate</reimplements>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>out_value</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="525" column="8" bodyfile="shExpr.cpp" bodystart="1220" bodyend="1224"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a4fa703c29696a8451f705b613b34c9c8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>Terminal *</type>
+        <definition>Terminal * ShaderParser::LVarValueExpression::getTerminal</definition>
+        <argsstring>() const override</argsstring>
+        <name>getTerminal</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::getTerminal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a63e9f75ae1b742c5ffcbd7aa65b1963a">getTerminal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="528" column="12" bodyfile="shExpr.h" bodystart="528" bodyend="528"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1a3470ba2d32c293b696e5cdbd98135255" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool ShaderParser::LVarValueExpression::collapseNumbers</definition>
+        <argsstring>(Parser &amp;parser) override</argsstring>
+        <name>collapseNumbers</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::collapseNumbers</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a6504a6f642f08f1cf420bebda197efaf">collapseNumbers</reimplements>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="531" column="8" bodyfile="shExpr.h" bodystart="531" bodyend="531"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1aa4c83faa60dd239c1f36de3a96d13327" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ShaderParser::LVarValueExpression::getChannels</definition>
+        <argsstring>() const override</argsstring>
+        <name>getChannels</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::getChannels</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a624688ee88ace66f0cafa9481d4e4536">getChannels</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="533" column="7" bodyfile="shExpr.h" bodystart="533" bodyend="533"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1aebd84483be176f31106ba922d3ae5fd0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>Symbol *</type>
+        <definition>Symbol * LVarValueExpression::hasDynamicAndMaterialTermsAt</definition>
+        <argsstring>() const override</argsstring>
+        <name>hasDynamicAndMaterialTermsAt</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::hasDynamicAndMaterialTermsAt</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1a20844e4f958c20d70cc4824650652f67">hasDynamicAndMaterialTermsAt</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="535" column="10" bodyfile="shExpr.cpp" bodystart="1245" bodyend="1248"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderParser_1_1LVarValueExpression_1ae89787d21775ed39ad324ed43b63ea2b" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void LVarValueExpression::dump_internal</definition>
+        <argsstring>(int level, const char *tabs) const override</argsstring>
+        <name>dump_internal</name>
+        <qualifiedname>ShaderParser::LVarValueExpression::dump_internal</qualifiedname>
+        <reimplements refid="classShaderParser_1_1Expression_1ae3261bc8b45356c6090bd84db2508fcb">dump_internal</reimplements>
+        <param>
+          <type>int</type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tabs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExpr.h" line="539" column="8" bodyfile="shExpr.cpp" bodystart="1227" bodyend="1233"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::LVarValueExpression</label>
+        <link refid="classShaderParser_1_1LVarValueExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderParser::Expression</label>
+        <link refid="classShaderParser_1_1Expression"/>
+      </node>
+      <node id="1">
+        <label>ShaderParser::LVarValueExpression</label>
+        <link refid="classShaderParser_1_1LVarValueExpression"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shExpr.h" line="496" column="1" bodyfile="shExpr.h" bodystart="497" bodyend="543"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1Expression_1a68e771cf9c1584e59c0f5c5e298d3eea" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1aaec5897d85a74cfadd26bf18752a23f1" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a633bdaee53233d1474dacd39ab7e2d89" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>__getName</name></member>
+      <member refid="classShaderParser_1_1Expression_1a77ed6f7aab61c1f6367d6c1f5fcfdbb1" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>allocateRegForResult</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a8db294081e3dfc8d66e0d4c042066fd7" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>assembleBytecode</name></member>
+      <member refid="classShaderParser_1_1Expression_1a7cc153456d29d1e3e52ec2d20563b5d1" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1ac03d00732e3242385f7c5efca77f5d3f" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>assembleBytecodeForConstant</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a8e477ea0da64c00d95bdf925c9d42d64" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>assembleCpp</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4037bf3eee8071bba8ab6886455769e1" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1Expression_1a56f313f3547738e55c1aada81a1dca07" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>assembleCppForConstant</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a0f49a4d29619519ebc68f81492f9d1c3" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>canConvert</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a3470ba2d32c293b696e5cdbd98135255" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>collapseNumbers</name></member>
+      <member refid="classShaderParser_1_1Expression_1a08d3c7f008450499ebf2ce26a8f346d5" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>dump</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1ae89787d21775ed39ad324ed43b63ea2b" prot="protected" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>dump_internal</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a2e94316249c1db7d1427118a3c6f14ee" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a51942e3f8712796b62906c8691887cfe" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>evaluate</name></member>
+      <member refid="classShaderParser_1_1Expression_1a4aeeda4b23b0d2b14c2ad2caab0390c5" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>Expression</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1aa4c83faa60dd239c1f36de3a96d13327" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getChannels</name></member>
+      <member refid="classShaderParser_1_1Expression_1a21b42b73baa2d365e975d950b60a613d" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a066eed5146bd48cfcc3acb30a50e9068" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getParserSymbol</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a4fa703c29696a8451f705b613b34c9c8" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getTerminal</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a74ca390d1f6c25e2cc018fdd7d031ec8" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getType</name></member>
+      <member refid="classShaderParser_1_1Expression_1a1ab07814f1b27a6786d043da4e080c44" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1abddd6c7a42162921b169c2d5c57485be" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>getValueType</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1aebd84483be176f31106ba922d3ae5fd0" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>hasDynamicAndMaterialTermsAt</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a00f0120434dc1f9136cec143b8d9118c" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>isConst</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1a931670ebd73affa517160b77c98bbe6c" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>isDynamic</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1abd77075af3d375b0293a121f2d86b62d" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>LVarValueExpression</name></member>
+      <member refid="classShaderParser_1_1Expression_1a85fe9b97eae19d91e0affe293d3eefdf" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>SetParent</name></member>
+      <member refid="classShaderParser_1_1Expression_1a6438a4e71937292586b86d9e3e1202f9" prot="public" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>setUnaryOperator</name></member>
+      <member refid="classShaderParser_1_1LVarValueExpression_1ab5adee9afd39e54dca618920def7db95" prot="private" virt="non-virtual"><scope>ShaderParser::LVarValueExpression</scope><name>var</name></member>
+      <member refid="classShaderParser_1_1Expression_1a9e01aa5ac9dd2e26fa87d4cdd7a042ca" prot="public" virt="virtual"><scope>ShaderParser::LVarValueExpression</scope><name>~Expression</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceanonymous__namespace_02renderPassObject_8cpp_03" kind="namespace" language="C++">
+    <compoundname>anonymous_namespace{renderPassObject.cpp}</compoundname>
+    <innerclass refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1LexicalTargetCollector" prot="public">anonymous_namespace{renderPassObject.cpp}::LexicalTargetCollector</innerclass>
+    <innerclass refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1RenderPassBuilder" prot="public">anonymous_namespace{renderPassObject.cpp}::RenderPassBuilder</innerclass>
+    <innerclass refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember" prot="public">anonymous_namespace{renderPassObject.cpp}::ResolvedMember</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceanonymous__namespace_02renderPassObject_8cpp_03_1a2d3f7f26648672f9976cfe929567ad4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool anonymous_namespace{renderPassObject.cpp}::resolve_group_members</definition>
+        <argsstring>(const any_of_members &amp;list, const char *decl_name, Parser &amp;parser, shc::TargetContext &amp;ctx, Tab&lt; ResolvedMember &gt; &amp;out)</argsstring>
+        <name>resolve_group_members</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::resolve_group_members</qualifiedname>
+        <param>
+          <type>const any_of_members &amp;</type>
+          <declname>list</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>decl_name</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember" kindref="compound">ResolvedMember</ref> &gt; &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1331" column="6" bodyfile="renderPassObject.cpp" bodystart="1331" bodyend="1420"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceanonymous__namespace_02renderPassObject_8cpp_03_1a88ff1968cc09702eb169500562187780" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::unique_ptr&lt; <ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> &gt;</type>
+        <definition>eastl::unique_ptr&lt; RenderPassGroup &gt; anonymous_namespace{renderPassObject.cpp}::build_group</definition>
+        <argsstring>(const char *name, dag::ConstSpan&lt; ResolvedMember &gt; resolved, Parser &amp;parser, shc::TargetContext &amp;ctx)</argsstring>
+        <name>build_group</name>
+        <qualifiedname>anonymous_namespace{renderPassObject.cpp}::build_group</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structanonymous__namespace_02renderPassObject_8cpp_03_1_1ResolvedMember" kindref="compound">ResolvedMember</ref> &gt;</type>
+          <declname>resolved</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.cpp" line="1422" column="19" bodyfile="renderPassObject.cpp" bodystart="1422" bodyend="1649"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="renderPassObject.cpp" line="443" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,965 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="framebufferLayout_8h" kind="file" language="C++">
+    <compoundname>framebufferLayout.h</compoundname>
+    <includes refid="shaderSave_8h" local="yes">shaderSave.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">generic/dag_tab.h</includes>
+    <includes local="no">ska_hash_map/flat_hash_map2.hpp</includes>
+    <includedby refid="framebufferLayout_8cpp" local="yes">framebufferLayout.cpp</includedby>
+    <includedby refid="renderPassObject_8cpp" local="yes">renderPassObject.cpp</includedby>
+    <includedby refid="renderPassObject_8h" local="yes">renderPassObject.h</includedby>
+    <includedby refid="shTargetContext_8h" local="yes">shTargetContext.h</includedby>
+    <includedby refid="shlexterm_8cpp" local="yes">shlexterm.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>framebufferLayout.h</label>
+        <link refid="framebufferLayout_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="9">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="7">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="8">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="7">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="10">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="28">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="16">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="15">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="31">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>framebufferLayout.cpp</label>
+        <link refid="framebufferLayout_8cpp"/>
+      </node>
+      <node id="1">
+        <label>framebufferLayout.h</label>
+        <link refid="framebufferLayout_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+      </node>
+      <node id="33">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="37">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="36">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="39">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="24">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="5">
+        <label>preshaderCompilation.cpp</label>
+        <link refid="preshaderCompilation_8cpp"/>
+      </node>
+      <node id="29">
+        <label>refinedBlockLayout.cpp</label>
+        <link refid="refinedBlockLayout_8cpp"/>
+      </node>
+      <node id="3">
+        <label>renderPassObject.cpp</label>
+        <link refid="renderPassObject_8cpp"/>
+      </node>
+      <node id="4">
+        <label>renderPassObject.h</label>
+        <link refid="renderPassObject_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="49">
+        <label>semUtils.cpp</label>
+        <link refid="semUtils_8cpp"/>
+      </node>
+      <node id="44">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="12">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="20">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="18">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="13">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="14">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="34">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="19">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="41">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="17">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="47">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+      </node>
+      <node id="25">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="26">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="23">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="27">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structRenderPassNameAdapter" prot="public">RenderPassNameAdapter</innerclass>
+    <innerclass refid="classFramebufferLayoutObject" prot="public">FramebufferLayoutObject</innerclass>
+    <innerclass refid="structFramebufferLayoutObject_1_1Entry" prot="public">FramebufferLayoutObject::Entry</innerclass>
+    <innerclass refid="classRenderPassNamedTable" prot="public">RenderPassNamedTable</innerclass>
+    <innerclass refid="classFramebufferLayoutTable" prot="public">FramebufferLayoutTable</innerclass>
+    <innerclass refid="structFramebufferFormatInfo" prot="public">FramebufferFormatInfo</innerclass>
+    <innerclass refid="structFramebufferLayoutRef" prot="public">FramebufferLayoutRef</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <innernamespace refid="namespaceBaseParNamespace">BaseParNamespace</innernamespace>
+    <innernamespace refid="namespaceShaderTerminal">ShaderTerminal</innernamespace>
+    <innernamespace refid="namespaceShaderParser">ShaderParser</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>FramebufferFormatClass</name>
+        <enumvalue id="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbca22ae0e2b89e5e3d477f988cc36d3272b" prot="public">
+          <name>Float</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbcafa28cf323a8d44edbf80f68165f4f75b" prot="public">
+          <name>Uint</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbcae232c9ecc22a92822331f09ab1e55f97" prot="public">
+          <name>Sint</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="120" column="1" bodyfile="framebufferLayout.h" bodystart="121" bodyend="125"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" prot="public" static="no">
+        <type><ref refid="classNameId" kindref="compound">NameId</ref>&lt; <ref refid="structRenderPassNameAdapter" kindref="compound">RenderPassNameAdapter</ref> &gt;</type>
+        <definition>using RenderPassNameId =  NameId&lt;RenderPassNameAdapter&gt;</definition>
+        <argsstring></argsstring>
+        <name>RenderPassNameId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="36" column="1" bodyfile="framebufferLayout.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="framebufferLayout_8h_1a2af4a16d489f28bb5a890f5d3970ed3e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool framebuffer_format_by_token</definition>
+        <argsstring>(const char *token, uint32_t &amp;out_texfmt)</argsstring>
+        <name>framebuffer_format_by_token</name>
+        <param>
+          <type>const char *</type>
+          <declname>token</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>out_texfmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="137" column="6" bodyfile="framebufferLayout.cpp" bodystart="67" bodyend="76" declfile="framebufferLayout.h" declline="137" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a89b14de139c8905194ddbdadbe0d3b93" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structFramebufferFormatInfo" kindref="compound">FramebufferFormatInfo</ref> *</type>
+        <definition>const FramebufferFormatInfo * framebuffer_format_info</definition>
+        <argsstring>(uint32_t texfmt)</argsstring>
+        <name>framebuffer_format_info</name>
+        <param>
+          <type>uint32_t</type>
+          <declname>texfmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="138" column="29" bodyfile="framebufferLayout.cpp" bodystart="78" bodyend="84" declfile="framebufferLayout.h" declline="138" declcolumn="29"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a97c5282b1e946f89ab534966fd4f682f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * framebuffer_format_class_name</definition>
+        <argsstring>(FramebufferFormatClass c)</argsstring>
+        <name>framebuffer_format_class_name</name>
+        <param>
+          <type><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref></type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="139" column="12" bodyfile="framebufferLayout.cpp" bodystart="86" bodyend="94" declfile="framebufferLayout.h" declline="139" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a467360421efdfa12ec9844c786a8ad92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool framebuffer_hlsl_type_class</definition>
+        <argsstring>(const char *type, FramebufferFormatClass &amp;out_cls, int &amp;out_components)</argsstring>
+        <name>framebuffer_hlsl_type_class</name>
+        <param>
+          <type>const char *</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref> &amp;</type>
+          <declname>out_cls</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_components</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="140" column="6" bodyfile="framebufferLayout.cpp" bodystart="96" bodyend="126" declfile="framebufferLayout.h" declline="140" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1aeac1ddd7353303e1fb7973181098a69b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool framebuffer_samples_by_token</definition>
+        <argsstring>(const char *token, int &amp;out_samples)</argsstring>
+        <name>framebuffer_samples_by_token</name>
+        <param>
+          <type>const char *</type>
+          <declname>token</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_samples</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="141" column="6" bodyfile="framebufferLayout.cpp" bodystart="190" bodyend="199" declfile="framebufferLayout.h" declline="141" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a6bac8dede34a7333a89290d2c91cec95" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool framebuffer_resolve_format_tokens</definition>
+        <argsstring>(const char *owner_kind, const char *owner_name, const char *target_name, const BaseParNamespace::Terminal *fmt_tok, const BaseParNamespace::Terminal *samples_tok, Parser &amp;parser, uint32_t &amp;out_format, int &amp;out_samples)</argsstring>
+        <name>framebuffer_resolve_format_tokens</name>
+        <param>
+          <type>const char *</type>
+          <declname>owner_kind</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>owner_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>target_name</declname>
+        </param>
+        <param>
+          <type>const BaseParNamespace::Terminal *</type>
+          <declname>fmt_tok</declname>
+        </param>
+        <param>
+          <type>const BaseParNamespace::Terminal *</type>
+          <declname>samples_tok</declname>
+        </param>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>out_format</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_samples</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="142" column="6" bodyfile="framebufferLayout.cpp" bodystart="363" bodyend="381" declfile="framebufferLayout.h" declline="142" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a000e8bf072b70dd3df7003d2c71e88e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string framebuffer_format_token_list</definition>
+        <argsstring>()</argsstring>
+        <name>framebuffer_format_token_list</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="145" column="15" bodyfile="framebufferLayout.cpp" bodystart="201" bodyend="207" declfile="framebufferLayout.h" declline="145" declcolumn="15"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1ae857fb16f8fe24d9261efc68f28504b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void framebuffer_layout_flatten</definition>
+        <argsstring>(const FramebufferLayoutObject &amp;l, Tab&lt; int &gt; &amp;out)</argsstring>
+        <name>framebuffer_layout_flatten</name>
+        <param>
+          <type>const <ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref> &amp;</type>
+          <declname>l</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="147" column="6" bodyfile="framebufferLayout.cpp" bodystart="231" bodyend="244" declfile="framebufferLayout.h" declline="147" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a61b1f2a8688f100bc2904bd69eb958cd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void framebuffer_sort_names_by_text</definition>
+        <argsstring>(Tab&lt; int &gt; &amp;name_ids, const VarNameMap &amp;names)</argsstring>
+        <name>framebuffer_sort_names_by_text</name>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>name_ids</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <declname>names</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="148" column="6" bodyfile="framebufferLayout.cpp" bodystart="246" bodyend="249" declfile="framebufferLayout.h" declline="148" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1adf373ef50391e8a73b8b324ee3b9e16c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void framebuffer_layouts_of_pass</definition>
+        <argsstring>(const RenderPassObject &amp;rp, const FramebufferLayoutTable &amp;layouts, Tab&lt; FramebufferLayoutRef &gt; &amp;out)</argsstring>
+        <name>framebuffer_layouts_of_pass</name>
+        <param>
+          <type>const <ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref> &amp;</type>
+          <declname>rp</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classFramebufferLayoutTable" kindref="compound">FramebufferLayoutTable</ref> &amp;</type>
+          <declname>layouts</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structFramebufferLayoutRef" kindref="compound">FramebufferLayoutRef</ref> &gt; &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="160" column="6" bodyfile="framebufferLayout.cpp" bodystart="175" bodyend="179" declfile="framebufferLayout.h" declline="160" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="framebufferLayout_8h_1a5571547635779702aff7b2ffdf928162" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void framebuffer_layouts_of_group</definition>
+        <argsstring>(const RenderPassGroup &amp;grp, const RenderPassTable &amp;passes, const FramebufferLayoutTable &amp;layouts, Tab&lt; FramebufferLayoutRef &gt; &amp;out)</argsstring>
+        <name>framebuffer_layouts_of_group</name>
+        <param>
+          <type>const <ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref> &amp;</type>
+          <declname>grp</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref> &amp;</type>
+          <declname>passes</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classFramebufferLayoutTable" kindref="compound">FramebufferLayoutTable</ref> &amp;</type>
+          <declname>layouts</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structFramebufferLayoutRef" kindref="compound">FramebufferLayoutRef</ref> &gt; &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="framebufferLayout.h" line="161" column="6" bodyfile="framebufferLayout.cpp" bodystart="181" bodyend="188" declfile="framebufferLayout.h" declline="161" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderSave_8h" kindref="compound">shaderSave.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ska_hash_map/flat_hash_map2.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TargetContext;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structParser" kindref="compound">Parser</ref>;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="namespaceBaseParNamespace" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceBaseParNamespace" kindref="compound">BaseParNamespace</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Terminal;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderTerminal" kindref="compound">ShaderTerminal</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">framebuffer_layout_decl;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref>;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassGroupTable" kindref="compound">RenderPassGroupTable</ref>;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref>;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref>;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="structRenderPassNameAdapter" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRenderPassNameAdapter" kindref="compound">RenderPassNameAdapter</ref></highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structRenderPassNameAdapter_1ac25fb20587771988df1254e12139dc2f" kindref="member">getName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structRenderPassNameAdapter_1a7121e84f1a907cc05c88ed66229d006a" kindref="member">addName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="36" refid="framebufferLayout_8h_1ab6b3adbc14beff35a070d9d938e112ce" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/>=<sp/><ref refid="classNameId" kindref="compound">NameId&lt;RenderPassNameAdapter&gt;</ref>;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="classFramebufferLayoutObject" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="41" refid="structFramebufferLayoutObject_1_1Entry" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structFramebufferLayoutObject_1_1Entry" kindref="compound">Entry</ref></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="43" refid="structFramebufferLayoutObject_1_1Entry_1a1935e7eaff3247df315f0f74911cf86d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="structFramebufferLayoutObject_1_1Entry_1a1935e7eaff3247df315f0f74911cf86d" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="44" refid="structFramebufferLayoutObject_1_1Entry_1ab3a3346446c8203e9429ccfb32f5932d" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/><ref refid="structFramebufferLayoutObject_1_1Entry_1ab3a3346446c8203e9429ccfb32f5932d" kindref="member">format</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="45" refid="structFramebufferLayoutObject_1_1Entry_1ab3bb205576cc385e6d90f9c4d61e652a" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structFramebufferLayoutObject_1_1Entry_1ab3bb205576cc385e6d90f9c4d61e652a" kindref="member">samples</ref><sp/>=<sp/>1;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="classFramebufferLayoutObject_1a3670ea093611f470b061b2055543ea80" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classNameId" kindref="compound">RenderPassNameId</ref><sp/><ref refid="classFramebufferLayoutObject_1a3670ea093611f470b061b2055543ea80" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="49" refid="classFramebufferLayoutObject_1ace79be106af498988040ff7db7a7eb25" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutObject_1ace79be106af498988040ff7db7a7eb25" kindref="member">tableIdx</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="50" refid="classFramebufferLayoutObject_1a935f7028287b2fa03129f70df7c2195e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;Entry&gt;</ref><sp/><ref refid="classFramebufferLayoutObject_1a935f7028287b2fa03129f70df7c2195e" kindref="member">entries</ref>;</highlight></codeline>
+<codeline lineno="51" refid="classFramebufferLayoutObject_1acda7a9906ffc52aecaa0c8410befc4bf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">SerializableTab&lt;RenderPassNameId&gt;</ref><sp/><ref refid="classFramebufferLayoutObject_1acda7a9906ffc52aecaa0c8410befc4bf" kindref="member">members</ref>;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classFramebufferLayoutObject_1a0594523682cac9009560618302a4f6ef" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classFramebufferLayoutObject_1a0594523682cac9009560618302a4f6ef" kindref="member">BINDUMP_NON_SERIALIZABLE</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>*names<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;);</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="classFramebufferLayoutObject_1af48c7d565b1c48348a768352fcf32626" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classFramebufferLayoutObject_1af48c7d565b1c48348a768352fcf32626" kindref="member">str</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>names-&gt;getName(name_id);<sp/>}</highlight></codeline>
+<codeline lineno="56" refid="classFramebufferLayoutObject_1ae41537aca8be7c582b7f0b8ef7fbac18" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classFramebufferLayoutObject_1ae41537aca8be7c582b7f0b8ef7fbac18" kindref="member">nameStr</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutObject_1af48c7d565b1c48348a768352fcf32626" kindref="member">str</ref>(<ref refid="classFramebufferLayoutObject_1a3670ea093611f470b061b2055543ea80" kindref="member">name</ref>);<sp/>}</highlight></codeline>
+<codeline lineno="57" refid="classFramebufferLayoutObject_1ac66117ba3fb6690c457f81623915d08d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutObject_1ac66117ba3fb6690c457f81623915d08d" kindref="member">isGroup</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>!<ref refid="classFramebufferLayoutObject_1acda7a9906ffc52aecaa0c8410befc4bf" kindref="member">members</ref>.empty();<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Entry<sp/>*<ref refid="classFramebufferLayoutObject_1a9f4b9abe7004f6c8ff2e9d4592bb2d36" kindref="member">findEntry</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="classFramebufferLayoutObject_1a148c2eda5654c8aa965c0c5b289315c0" kindref="member">shapeDesc</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="63" refid="classRenderPassNamedTable" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref></highlight></codeline>
+<codeline lineno="64"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="66" refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>&amp;<ref refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" kindref="member">mNames</ref>;</highlight></codeline>
+<codeline lineno="67" refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;T<sp/>*&gt;<sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>;</highlight></codeline>
+<codeline lineno="68" refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" refkind="member"><highlight class="normal"><sp/><sp/>ska::flat_hash_map&lt;int,<sp/>T<sp/>*&gt;<sp/><ref refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" kindref="member">mByName</ref>;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="classRenderPassNamedTable_1a3a83085c5607c97cacf57a429b59d3ac" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable_1a3a83085c5607c97cacf57a429b59d3ac" kindref="member">adopt</ref>(T<sp/>*o)</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>o-&gt;names<sp/>=<sp/>&amp;<ref refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" kindref="member">mNames</ref>;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>o-&gt;tableIdx<sp/>=<sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>.size();</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" kindref="member">mByName</ref>.emplace(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(o-&gt;name),<sp/>o);</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>.push_back(o);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="79" refid="classRenderPassNamedTable_1a70c2f69ea0ed32f1ce7b427134170779" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable_1a70c2f69ea0ed32f1ce7b427134170779" kindref="member">RenderPassNamedTable</ref>(<ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>&amp;names)<sp/>:<sp/><ref refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" kindref="member">mNames</ref>{names}<sp/>{}</highlight></codeline>
+<codeline lineno="80" refid="classRenderPassNamedTable_1ac625175be3fdd37000d1e841050817d1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassNamedTable_1ac625175be3fdd37000d1e841050817d1" kindref="member">~RenderPassNamedTable</ref>()</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(T<sp/>*o<sp/>:<sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>)</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/>o;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85" refid="classRenderPassNamedTable_1ade2b4cadb6239cabfdd4246ab8b4f950" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassNamedTable_1ade2b4cadb6239cabfdd4246ab8b4f950" kindref="member">RenderPassNamedTable</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="86" refid="classRenderPassNamedTable_1a9b113c11cce13e5b09c0d30b14c0654d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref><sp/>&amp;<ref refid="classRenderPassNamedTable_1a9b113c11cce13e5b09c0d30b14c0654d" kindref="member">operator=</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="classRenderPassNamedTable_1a1eaba2f8c80bb099afa9669e0c52c609" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>*<ref refid="classRenderPassNamedTable_1a1eaba2f8c80bb099afa9669e0c52c609" kindref="member">findByName</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>name_id)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="89"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>it<sp/>=<sp/><ref refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" kindref="member">mByName</ref>.find(name_id);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>it<sp/>!=<sp/><ref refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" kindref="member">mByName</ref>.end()<sp/>?<sp/>it-&gt;second<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="93" refid="classRenderPassNamedTable_1a6b806ef7053a4e63a09a6f870bf8b6ae" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>*<ref refid="classRenderPassNamedTable_1a6b806ef7053a4e63a09a6f870bf8b6ae" kindref="member">findByName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable_1a6b806ef7053a4e63a09a6f870bf8b6ae" kindref="member">findByName</ref>(<ref refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" kindref="member">mNames</ref>.<ref refid="classVarNameMap_1a8a6529882641e8945737456483807f7b" kindref="member">getVarId</ref>(name));<sp/>}</highlight></codeline>
+<codeline lineno="94" refid="classRenderPassNamedTable_1a3b03d44beec432445f94b4958c57e7f9" refkind="member"><highlight class="normal"><sp/><sp/>T<sp/>*<ref refid="classRenderPassNamedTable_1a3b03d44beec432445f94b4958c57e7f9" kindref="member">byId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>&gt;=<sp/>0<sp/>&amp;&amp;<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>&lt;<sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>.size()<sp/>?<sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>[id]<sp/>:<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="95" refid="classRenderPassNamedTable_1aaee0a562dc9d31bfea075f6a29beabb5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;T<sp/>*&gt;<sp/>&amp;<ref refid="classRenderPassNamedTable_1aaee0a562dc9d31bfea075f6a29beabb5" kindref="member">all</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="96" refid="classRenderPassNamedTable_1a8f6081beb5e971d5e705184c12203dda" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable_1a8f6081beb5e971d5e705184c12203dda" kindref="member">bindNames</ref>(dag::ConstSpan&lt;T<sp/>*&gt;<sp/>loaded)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="97"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(T<sp/>*o<sp/>:<sp/>loaded)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>o-&gt;names<sp/>=<sp/>&amp;<ref refid="classRenderPassNamedTable_1a84768e7bf2cba6a67b550168845ff89b" kindref="member">mNames</ref>;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="101" refid="classRenderPassNamedTable_1ab58b1a32425ec8c9436fdafa197b54ea" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;T<sp/>*&gt;<sp/><ref refid="classRenderPassNamedTable_1ab58b1a32425ec8c9436fdafa197b54ea" kindref="member">release</ref>()</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;T<sp/>*&gt;<sp/>out<sp/>=<sp/>eastl::move(<ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderPassNamedTable_1a59afae5dc0c2272c6bfd1adcf8c79448" kindref="member">mItems</ref>.clear();</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRenderPassNamedTable_1a7082ddc242ac5c3b3e5a3dddb1bd452a" kindref="member">mByName</ref>.clear();</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>out;</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="108"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110" refid="classFramebufferLayoutTable" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classFramebufferLayoutTable" kindref="compound">FramebufferLayoutTable</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classRenderPassNamedTable" kindref="compound">RenderPassNamedTable</ref>&lt;FramebufferLayoutObject&gt;</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="classRenderPassNamedTable_1a70c2f69ea0ed32f1ce7b427134170779" kindref="member">RenderPassNamedTable::RenderPassNamedTable</ref>;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115" refid="classFramebufferLayoutTable_1a67031e9713e8c006e0b3f24a8e931a10" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutTable_1a67031e9713e8c006e0b3f24a8e931a10" kindref="member">registerLayout</ref>(<ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref><sp/>*l)<sp/>{<sp/><ref refid="classRenderPassNamedTable_1a3a83085c5607c97cacf57a429b59d3ac" kindref="member">adopt</ref>(l);<sp/>}</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutTable_1a55a61395215ba9fc636f8a1f90d9076a" kindref="member">link</ref>(Tab&lt;FramebufferLayoutObject<sp/>*&gt;<sp/>&amp;loaded_layouts);</highlight></codeline>
+<codeline lineno="118"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight></codeline>
+<codeline lineno="120" refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref></highlight></codeline>
+<codeline lineno="121"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbca22ae0e2b89e5e3d477f988cc36d3272b" kindref="member">Float</ref>,</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbcafa28cf323a8d44edbf80f68165f4f75b" kindref="member">Uint</ref>,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbcae232c9ecc22a92822331f09ab1e55f97" kindref="member">Sint</ref>,</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="structFramebufferFormatInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structFramebufferFormatInfo" kindref="compound">FramebufferFormatInfo</ref></highlight></codeline>
+<codeline lineno="128"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="129" refid="structFramebufferFormatInfo_1aa0c02c832ba80adb89cac9d83c446736" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structFramebufferFormatInfo_1aa0c02c832ba80adb89cac9d83c446736" kindref="member">token</ref>;</highlight></codeline>
+<codeline lineno="130" refid="structFramebufferFormatInfo_1aa71c088f03538334142bc118eab9c3a2" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structFramebufferFormatInfo_1aa71c088f03538334142bc118eab9c3a2" kindref="member">texfmt</ref>;</highlight></codeline>
+<codeline lineno="131" refid="structFramebufferFormatInfo_1aca83e07bebbdd6a331cee3c186a6138f" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref><sp/><ref refid="structFramebufferFormatInfo_1aca83e07bebbdd6a331cee3c186a6138f" kindref="member">cls</ref>;</highlight></codeline>
+<codeline lineno="132" refid="structFramebufferFormatInfo_1a74cf4f4f5db39be6de6dc770671bc4f8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structFramebufferFormatInfo_1a74cf4f4f5db39be6de6dc770671bc4f8" kindref="member">channels</ref>;</highlight></codeline>
+<codeline lineno="133" refid="structFramebufferFormatInfo_1a8ee037e826ef5a06da48089a15199b1c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structFramebufferFormatInfo_1a8ee037e826ef5a06da48089a15199b1c" kindref="member">hasAlpha</ref>;</highlight></codeline>
+<codeline lineno="134" refid="structFramebufferFormatInfo_1a56ddfbdc944db05e4669d7da01bacdbb" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structFramebufferFormatInfo_1a56ddfbdc944db05e4669d7da01bacdbb" kindref="member">isDepth</ref>;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1a2af4a16d489f28bb5a890f5d3970ed3e" kindref="member">framebuffer_format_by_token</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*token,<sp/>uint32_t<sp/>&amp;out_texfmt);</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structFramebufferFormatInfo" kindref="compound">FramebufferFormatInfo</ref><sp/>*<ref refid="framebufferLayout_8h_1a89b14de139c8905194ddbdadbe0d3b93" kindref="member">framebuffer_format_info</ref>(uint32_t<sp/>texfmt);</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="framebufferLayout_8h_1a97c5282b1e946f89ab534966fd4f682f" kindref="member">framebuffer_format_class_name</ref>(<ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref><sp/>c);</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1a467360421efdfa12ec9844c786a8ad92" kindref="member">framebuffer_hlsl_type_class</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*type,<sp/><ref refid="framebufferLayout_8h_1a2baf81f7923801303308128f808cbfbc" kindref="member">FramebufferFormatClass</ref><sp/>&amp;out_cls,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;out_components);</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1aeac1ddd7353303e1fb7973181098a69b" kindref="member">framebuffer_samples_by_token</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*token,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;out_samples);</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1a6bac8dede34a7333a89290d2c91cec95" kindref="member">framebuffer_resolve_format_tokens</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*owner_kind,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*owner_name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*target_name,</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BaseParNamespace::Terminal<sp/>*fmt_tok,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>BaseParNamespace::Terminal<sp/>*samples_tok,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/>uint32_t<sp/>&amp;out_format,</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;out_samples);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal">eastl::string<sp/><ref refid="framebufferLayout_8h_1a000e8bf072b70dd3df7003d2c71e88e1" kindref="member">framebuffer_format_token_list</ref>();</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1ae857fb16f8fe24d9261efc68f28504b1" kindref="member">framebuffer_layout_flatten</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref><sp/>&amp;l,<sp/>Tab&lt;int&gt;<sp/>&amp;out);</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1a61b1f2a8688f100bc2904bd69eb958cd" kindref="member">framebuffer_sort_names_by_text</ref>(Tab&lt;int&gt;<sp/>&amp;name_ids,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classVarNameMap" kindref="compound">VarNameMap</ref><sp/>&amp;names);</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"></highlight></codeline>
+<codeline lineno="150" refid="structFramebufferLayoutRef" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structFramebufferLayoutRef" kindref="compound">FramebufferLayoutRef</ref></highlight></codeline>
+<codeline lineno="151"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="152" refid="structFramebufferLayoutRef_1a6580fc150a975a27cd0c240fc94f794b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref><sp/>*<ref refid="structFramebufferLayoutRef_1a6580fc150a975a27cd0c240fc94f794b" kindref="member">pass</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153" refid="structFramebufferLayoutRef_1a41e476182f2af9c92e3c26d7a37a105f" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutObject" kindref="compound">FramebufferLayoutObject</ref><sp/>*<ref refid="structFramebufferLayoutRef_1a41e476182f2af9c92e3c26d7a37a105f" kindref="member">layout</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;<sp/></highlight><highlight class="comment">//<sp/>null:<sp/>the<sp/>pass&apos;s<sp/>inline<sp/>layout</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structFramebufferLayoutRef_1a7c5dd8873adcefe8754ba98dac62b20e" kindref="member">name</ref>()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structFramebufferLayoutRef_1a8a9c1f58735a991bdb2caad7bb784430" kindref="member">targetFormat</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id,<sp/>uint32_t<sp/>&amp;out_format,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;out_samples)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structFramebufferFormatInfo" kindref="compound">FramebufferFormatInfo</ref><sp/>*<ref refid="structFramebufferLayoutRef_1a4acf1b228b0a6481dcc212aff93b2fe3" kindref="member">targetFormatInfo</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>target_name_id)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1adf373ef50391e8a73b8b324ee3b9e16c" kindref="member">framebuffer_layouts_of_pass</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassObject" kindref="compound">RenderPassObject</ref><sp/>&amp;rp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutTable" kindref="compound">FramebufferLayoutTable</ref><sp/>&amp;layouts,<sp/>Tab&lt;FramebufferLayoutRef&gt;<sp/>&amp;out);</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="framebufferLayout_8h_1a5571547635779702aff7b2ffdf928162" kindref="member">framebuffer_layouts_of_group</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassGroup" kindref="compound">RenderPassGroup</ref><sp/>&amp;grp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classRenderPassTable" kindref="compound">RenderPassTable</ref><sp/>&amp;passes,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classFramebufferLayoutTable" kindref="compound">FramebufferLayoutTable</ref><sp/>&amp;layouts,</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/>Tab&lt;FramebufferLayoutRef&gt;<sp/>&amp;out);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceShaderParser" kindref="compound">ShaderParser</ref></highlight></codeline>
+<codeline lineno="165"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="166" refid="namespaceShaderParser_1ac5dda349d0ee26e946c7ec7a8124b95b" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaceShaderParser_1ac5dda349d0ee26e946c7ec7a8124b95b" kindref="member">add_framebuffer_layout</ref>(ShaderTerminal::framebuffer_layout_decl<sp/>*fl,<sp/><ref refid="structParser" kindref="compound">Parser</ref><sp/>&amp;parser,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="framebufferLayout.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassOptInRef" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassOptInRef</compoundname>
+    <includes refid="shcode_8h" local="no">shcode.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassOptInRef_1a7009d7677c4289fc9ac9c21b2ef060db" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassOptInRef::passId</definition>
+        <argsstring></argsstring>
+        <name>passId</name>
+        <qualifiedname>RenderPassOptInRef::passId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="18" column="7" bodyfile="shcode.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassOptInRef_1aba82dd3a424b4f7a56039f31e76fd162" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassOptInRef::subpassIdx</definition>
+        <argsstring></argsstring>
+        <name>subpassIdx</name>
+        <qualifiedname>RenderPassOptInRef::subpassIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="19" column="7" bodyfile="shcode.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassOptInRef_1a8ccb04cdf80165a5374fd6514a517668" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassOptInRef::groupId</definition>
+        <argsstring></argsstring>
+        <name>groupId</name>
+        <qualifiedname>RenderPassOptInRef::groupId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="20" column="7" bodyfile="shcode.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderPassOptInRef_1a0a911c45ca06f5e1d4e2a05161a4432c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassOptInRef::hasOptIn</definition>
+        <argsstring>() const</argsstring>
+        <name>hasOptIn</name>
+        <qualifiedname>RenderPassOptInRef::hasOptIn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="22" column="8" bodyfile="shcode.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassOptInRef_1a82d45fbb28a35339e9a4ecd358dfd728" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassOptInRef::isGroup</definition>
+        <argsstring>() const</argsstring>
+        <name>isGroup</name>
+        <qualifiedname>RenderPassOptInRef::isGroup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="23" column="8" bodyfile="shcode.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassOptInRef_1acb72f287821d8b570ceefaa2e39ab1f6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderPassOptInRef::setPass</definition>
+        <argsstring>(int pass_id, int subpass_idx)</argsstring>
+        <name>setPass</name>
+        <qualifiedname>RenderPassOptInRef::setPass</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pass_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>subpass_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="24" column="8" bodyfile="shcode.h" bodystart="24" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassOptInRef_1a0ce9c7aeef8d0de7f335eecfbe125dde" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderPassOptInRef::setGroup</definition>
+        <argsstring>(int group_id)</argsstring>
+        <name>setGroup</name>
+        <qualifiedname>RenderPassOptInRef::setGroup</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>group_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="30" column="8" bodyfile="shcode.h" bodystart="30" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderPassOptInRef_1a871a0a3619ad04b2aa98d76bf833ccf0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderPassOptInRef::operator==</definition>
+        <argsstring>(const RenderPassOptInRef &amp;) const =default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>RenderPassOptInRef::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structRenderPassOptInRef" kindref="compound">RenderPassOptInRef</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shcode.h" line="35" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shcode.h" line="16" column="1" bodyfile="shcode.h" bodystart="17" bodyend="36"/>
+    <listofallmembers>
+      <member refid="structRenderPassOptInRef_1a8ccb04cdf80165a5374fd6514a517668" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>groupId</name></member>
+      <member refid="structRenderPassOptInRef_1a0a911c45ca06f5e1d4e2a05161a4432c" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>hasOptIn</name></member>
+      <member refid="structRenderPassOptInRef_1a82d45fbb28a35339e9a4ecd358dfd728" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>isGroup</name></member>
+      <member refid="structRenderPassOptInRef_1a871a0a3619ad04b2aa98d76bf833ccf0" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>operator==</name></member>
+      <member refid="structRenderPassOptInRef_1a7009d7677c4289fc9ac9c21b2ef060db" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>passId</name></member>
+      <member refid="structRenderPassOptInRef_1a0ce9c7aeef8d0de7f335eecfbe125dde" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>setGroup</name></member>
+      <member refid="structRenderPassOptInRef_1acb72f287821d8b570ceefaa2e39ab1f6" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>setPass</name></member>
+      <member refid="structRenderPassOptInRef_1aba82dd3a424b4f7a56039f31e76fd162" prot="public" virt="non-virtual"><scope>RenderPassOptInRef</scope><name>subpassIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

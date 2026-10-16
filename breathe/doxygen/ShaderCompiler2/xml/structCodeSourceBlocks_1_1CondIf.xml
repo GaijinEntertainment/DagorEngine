@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCodeSourceBlocks_1_1CondIf" kind="struct" language="C++" prot="public">
+    <compoundname>CodeSourceBlocks::CondIf</compoundname>
+    <includes refid="codeBlocks_8h" local="no">codeBlocks.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1CondIf_1a1299b58ae55209d2f265065a5ca7b33d" prot="public" static="no" mutable="no">
+        <type>ShaderTerminal::bool_expr *</type>
+        <definition>ShaderTerminal::bool_expr* CodeSourceBlocks::CondIf::expr</definition>
+        <argsstring></argsstring>
+        <name>expr</name>
+        <qualifiedname>CodeSourceBlocks::CondIf::expr</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="31" column="31" bodyfile="codeBlocks.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1CondIf_1a58c8ba4d4d6bc35ad86517d1ecd1f236" prot="public" static="no" mutable="no">
+        <type><ref refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3c" kindref="member">ExprValue</ref></type>
+        <definition>ExprValue CodeSourceBlocks::CondIf::constExprVal</definition>
+        <argsstring></argsstring>
+        <name>constExprVal</name>
+        <qualifiedname>CodeSourceBlocks::CondIf::constExprVal</qualifiedname>
+        <initializer>= <ref refid="classCodeSourceBlocks_1a32e3a067a09b1c3c6b13a9a95e5c7a3ca6267ef339fe3b5e7cc5d6160917ca593" kindref="member">ExprValue::NonConst</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="32" column="15" bodyfile="codeBlocks.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCodeSourceBlocks_1_1CondIf_1a5082e17e70d2a47f60493eb097d995ed" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structCodeSourceBlocks_1_1Fragment" kindref="compound">Fragment</ref> &gt;</type>
+        <definition>Tab&lt;Fragment&gt; CodeSourceBlocks::CondIf::onTrue</definition>
+        <argsstring></argsstring>
+        <name>onTrue</name>
+        <qualifiedname>CodeSourceBlocks::CondIf::onTrue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="codeBlocks.h" line="33" column="9" bodyfile="codeBlocks.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="codeBlocks.h" line="29" column="3" bodyfile="codeBlocks.h" bodystart="30" bodyend="34"/>
+    <listofallmembers>
+      <member refid="structCodeSourceBlocks_1_1CondIf_1a58c8ba4d4d6bc35ad86517d1ecd1f236" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::CondIf</scope><name>constExprVal</name></member>
+      <member refid="structCodeSourceBlocks_1_1CondIf_1a1299b58ae55209d2f265065a5ca7b33d" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::CondIf</scope><name>expr</name></member>
+      <member refid="structCodeSourceBlocks_1_1CondIf_1a5082e17e70d2a47f60493eb097d995ed" prot="public" virt="non-virtual"><scope>CodeSourceBlocks::CondIf</scope><name>onTrue</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

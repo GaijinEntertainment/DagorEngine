@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassObject_1_1Resolve" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassObject::Resolve</compoundname>
+    <includes refid="renderPassObject_8h" local="no">renderPassObject.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassObject_1_1Resolve_1aa4541d2977283347d2ffe7c94b117302" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassObject::Resolve::srcTargetIdx</definition>
+        <argsstring></argsstring>
+        <name>srcTargetIdx</name>
+        <qualifiedname>RenderPassObject::Resolve::srcTargetIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="56" column="9" bodyfile="renderPassObject.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassObject_1_1Resolve_1a80ec9a8928ae6a7c2df65c07796ff3f9" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RenderPassObject::Resolve::dstTargetIdx</definition>
+        <argsstring></argsstring>
+        <name>dstTargetIdx</name>
+        <qualifiedname>RenderPassObject::Resolve::dstTargetIdx</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="renderPassObject.h" line="57" column="9" bodyfile="renderPassObject.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="renderPassObject.h" line="54" column="3" bodyfile="renderPassObject.h" bodystart="55" bodyend="58"/>
+    <listofallmembers>
+      <member refid="structRenderPassObject_1_1Resolve_1a80ec9a8928ae6a7c2df65c07796ff3f9" prot="public" virt="non-virtual"><scope>RenderPassObject::Resolve</scope><name>dstTargetIdx</name></member>
+      <member refid="structRenderPassObject_1_1Resolve_1aa4541d2977283347d2ffe7c94b117302" prot="public" virt="non-virtual"><scope>RenderPassObject::Resolve</scope><name>srcTargetIdx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

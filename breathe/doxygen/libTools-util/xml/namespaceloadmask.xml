@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceloadmask" kind="namespace" language="C++">
+    <compoundname>loadmask</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceloadmask_1a342689e2b2f4c4ed81e9d2e4563ad4a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool loadmask::loadMaskFromTga</definition>
+        <argsstring>(const char *filename, SmallTab&lt; float, TmpmemAlloc &gt; &amp;hmap, int &amp;w, int &amp;h)</argsstring>
+        <name>loadMaskFromTga</name>
+        <qualifiedname>loadmask::loadMaskFromTga</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>SmallTab&lt; float, TmpmemAlloc &gt; &amp;</type>
+          <declname>hmap</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="fileMask.h" line="11" column="6" declfile="fileMask.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceloadmask_1aefdecbe1fae24b2f8d36efd7e96a15cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool loadmask::loadMaskFromRaw32</definition>
+        <argsstring>(const char *filename, SmallTab&lt; float, TmpmemAlloc &gt; &amp;hmap, int &amp;w, int &amp;h)</argsstring>
+        <name>loadMaskFromRaw32</name>
+        <qualifiedname>loadmask::loadMaskFromRaw32</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>SmallTab&lt; float, TmpmemAlloc &gt; &amp;</type>
+          <declname>hmap</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="fileMask.h" line="12" column="6" declfile="fileMask.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceloadmask_1a2978489198d99e82840739744c049f00" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool loadmask::loadMaskFromRaw16</definition>
+        <argsstring>(const char *filename, SmallTab&lt; float, TmpmemAlloc &gt; &amp;hmap, int &amp;w, int &amp;h)</argsstring>
+        <name>loadMaskFromRaw16</name>
+        <qualifiedname>loadmask::loadMaskFromRaw16</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>SmallTab&lt; float, TmpmemAlloc &gt; &amp;</type>
+          <declname>hmap</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="fileMask.h" line="13" column="6" declfile="fileMask.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceloadmask_1a48f7dec31dd98b50377df35ea4e41bfa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool loadmask::loadMaskFromFile</definition>
+        <argsstring>(const char *filename, SmallTab&lt; float, TmpmemAlloc &gt; &amp;hmap, int &amp;w, int &amp;h)</argsstring>
+        <name>loadMaskFromFile</name>
+        <qualifiedname>loadmask::loadMaskFromFile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>SmallTab&lt; float, TmpmemAlloc &gt; &amp;</type>
+          <declname>hmap</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="fileMask.h" line="14" column="6" declfile="fileMask.h" declline="14" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="fileMask.h" line="9" column="1"/>
+  </compounddef>
+</doxygen>

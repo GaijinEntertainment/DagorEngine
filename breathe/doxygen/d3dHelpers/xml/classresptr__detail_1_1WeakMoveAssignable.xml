@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1WeakMoveAssignable" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::WeakMoveAssignable</compoundname>
+    <derivedcompoundref refid="classresptr__detail_1_1UniqueRes" prot="public" virt="non-virtual">resptr_detail::UniqueRes&lt; ManagedBuf &gt;</derivedcompoundref>
+    <derivedcompoundref refid="classresptr__detail_1_1UniqueRes" prot="public" virt="non-virtual">resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;</derivedcompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classresptr__detail_1_1WeakMoveAssignable_1ab6af4cdd799f3fa49395ea369342133f" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Type</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>static bool resptr_detail::WeakMoveAssignable::isValidForMoveAssignment</definition>
+        <argsstring>(const Type &amp;left, const Type &amp;right)</argsstring>
+        <name>isValidForMoveAssignment</name>
+        <qualifiedname>resptr_detail::WeakMoveAssignable::isValidForMoveAssignment</qualifiedname>
+        <param>
+          <type>const Type &amp;</type>
+          <declname>left</declname>
+        </param>
+        <param>
+          <type>const Type &amp;</type>
+          <declname>right</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="242" column="15" bodyfile="dag_resPtr.h" bodystart="242" bodyend="245"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>resptr_detail::UniqueRes&lt; ManagedBuf &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>resptr_detail::UniqueRes&lt; ManagedResType, Deleter &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resptr_detail::WeakMoveAssignable</label>
+        <link refid="classresptr__detail_1_1WeakMoveAssignable"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_resPtr.h" line="238" column="1" bodyfile="dag_resPtr.h" bodystart="239" bodyend="246"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1WeakMoveAssignable_1ab6af4cdd799f3fa49395ea369342133f" prot="protected" virt="non-virtual"><scope>resptr_detail::WeakMoveAssignable</scope><name>isValidForMoveAssignment</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

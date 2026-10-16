@@ -1,0 +1,17 @@
+{
+    "meta": {
+        "api_url": "https://readthedocs.org/api/v2/"
+    },
+    "banner": {
+        "html": "\n    <div id=\"version-warning-banner\" class=\"admonition warning\">\n        <p class=\"first admonition-title\">Warning</p>\n            <p class=\"last\">\n                You are not reading the most up to date version of this documentation. <a href=\"#\"></a> is the newest version.\n            </p>\n    </div>",
+        "id_div": "version-warning-banner",
+        "body_selector": "div.body",
+        "custom": false
+    },
+    "project": {
+        "slug": null
+    },
+    "version": {
+        "slug": null
+    }
+}

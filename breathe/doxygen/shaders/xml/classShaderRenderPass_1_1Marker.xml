@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderRenderPass_1_1Marker" kind="class" language="C++" prot="public">
+    <compoundname>ShaderRenderPass::Marker</compoundname>
+    <includes refid="dag__shaderRenderPass_8h" local="no">dag_shaderRenderPass.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderRenderPass_1_1Marker_1a23382618d8adf05df5eaaa62cc856bd0" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Marker::Marker</definition>
+        <argsstring>(Id, int=0)</argsstring>
+        <name>Marker</name>
+        <qualifiedname>ShaderRenderPass::Marker::Marker</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderRenderPass_1a5a9ce6e4a682a8baba0dd30c4465c37c" kindref="member">Id</ref></type>
+        </param>
+        <param>
+          <type>int</type>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="262" column="12" bodyfile="dag_shaderRenderPass.h" bodystart="262" bodyend="262"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Marker_1a410236926cd2714fc242221b72a42232" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderRenderPass::Marker::Marker</definition>
+        <argsstring>(const Marker &amp;)=delete</argsstring>
+        <name>Marker</name>
+        <qualifiedname>ShaderRenderPass::Marker::Marker</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="264" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderRenderPass_1_1Marker_1a159c6d8f4a9caad0d47fe4549a21dd1b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref> &amp;</type>
+        <definition>Marker &amp; ShaderRenderPass::Marker::operator=</definition>
+        <argsstring>(const Marker &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ShaderRenderPass::Marker::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderRenderPass_1_1Marker" kindref="compound">Marker</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="265" column="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Helper for migration. Publishes a (pass, subpass) for code that draws a shape with plain set_render_target, so dev builds check the drawn shaders opt-ins against it. A no-op in release. </para>
+    </briefdescription>
+    <detaileddescription>
+<para><simplesect kind="warning"><para>Binds no reads and sets no interval, so using with a render pass w/ pixel-local reads is a fatal. </para>
+</simplesect>
+</para>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="255" column="1" bodyfile="dag_shaderRenderPass.h" bodystart="256" bodyend="274"/>
+    <listofallmembers>
+      <member refid="classShaderRenderPass_1_1Marker_1a23382618d8adf05df5eaaa62cc856bd0" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Marker</scope><name>Marker</name></member>
+      <member refid="classShaderRenderPass_1_1Marker_1a410236926cd2714fc242221b72a42232" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Marker</scope><name>Marker</name></member>
+      <member refid="classShaderRenderPass_1_1Marker_1a159c6d8f4a9caad0d47fe4549a21dd1b" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Marker</scope><name>operator=</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

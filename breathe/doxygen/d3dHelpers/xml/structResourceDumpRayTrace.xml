@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceDumpRayTrace" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceDumpRayTrace</compoundname>
+    <basecompoundref refid="structResourceDumpBase" prot="public" virt="non-virtual">ResourceDumpBase</basecompoundref>
+    <includes refid="dag__resourceDump_8h" local="no">dag_resourceDump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceDumpRayTrace_1ab6a44eca5ceab9a2c9bc5c896fd7b134" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDumpRayTrace::memSize</definition>
+        <argsstring></argsstring>
+        <name>memSize</name>
+        <qualifiedname>ResourceDumpRayTrace::memSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="67" column="12" bodyfile="dag_resourceDump.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpRayTrace_1a599c13deee33d0d3b65e7e73ec2803c4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceDumpRayTrace::top</definition>
+        <argsstring></argsstring>
+        <name>top</name>
+        <qualifiedname>ResourceDumpRayTrace::top</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="68" column="8" bodyfile="dag_resourceDump.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpRayTrace_1a119ca655ea14ad78ba8dfb81bebce246" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceDumpRayTrace::canDifferentiate</definition>
+        <argsstring></argsstring>
+        <name>canDifferentiate</name>
+        <qualifiedname>ResourceDumpRayTrace::canDifferentiate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="69" column="8" bodyfile="dag_resourceDump.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="1">
+        <label>ResourceDumpRayTrace</label>
+        <link refid="structResourceDumpRayTrace"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="1">
+        <label>ResourceDumpRayTrace</label>
+        <link refid="structResourceDumpRayTrace"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resourceDump.h" line="65" column="1" bodyfile="dag_resourceDump.h" bodystart="66" bodyend="70"/>
+    <listofallmembers>
+      <member refid="structResourceDumpRayTrace_1a119ca655ea14ad78ba8dfb81bebce246" prot="public" virt="non-virtual"><scope>ResourceDumpRayTrace</scope><name>canDifferentiate</name></member>
+      <member refid="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" prot="public" virt="non-virtual"><scope>ResourceDumpRayTrace</scope><name>gpuAddress</name></member>
+      <member refid="structResourceDumpBase_1af8a4e6b6711232665ec91c0a3c1c20d5" prot="public" virt="non-virtual"><scope>ResourceDumpRayTrace</scope><name>heapId</name></member>
+      <member refid="structResourceDumpBase_1abca6d33bbc67e481aa88b05882f3a48d" prot="public" virt="non-virtual"><scope>ResourceDumpRayTrace</scope><name>heapOffset</name></member>
+      <member refid="structResourceDumpRayTrace_1ab6a44eca5ceab9a2c9bc5c896fd7b134" prot="public" virt="non-virtual"><scope>ResourceDumpRayTrace</scope><name>memSize</name></member>
+      <member refid="structResourceDumpRayTrace_1a599c13deee33d0d3b65e7e73ec2803c4" prot="public" virt="non-virtual"><scope>ResourceDumpRayTrace</scope><name>top</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

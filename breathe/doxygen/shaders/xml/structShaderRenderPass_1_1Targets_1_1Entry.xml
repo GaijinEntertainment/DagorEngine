@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderRenderPass_1_1Targets_1_1Entry" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderRenderPass::Targets::Entry</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Targets_1_1Entry_1a640c7ca819f2d56ecc00cddd9272e48f" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderRenderPass::Targets::Entry::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderRenderPass::Targets::Entry::name</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="123" column="16" bodyfile="dag_shaderRenderPass.h" bodystart="123" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Targets_1_1Entry_1a81b9aae6d35a100bb5777552ba9b9c29" prot="public" static="no" mutable="no">
+        <type>RenderPassTarget</type>
+        <definition>RenderPassTarget ShaderRenderPass::Targets::Entry::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>ShaderRenderPass::Targets::Entry::target</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="124" column="22" bodyfile="dag_shaderRenderPass.h" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Targets_1_1Entry_1a2357a4f857a8a893302101b033393bf5" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderRenderPass::Targets::Entry::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>ShaderRenderPass::Targets::Entry::slot</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="125" column="9" bodyfile="dag_shaderRenderPass.h" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderRenderPass_1_1Targets_1_1Entry_1a02d74a737b0593a684b8d5b5687b621c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderRenderPass::Targets::Entry::hasClear</definition>
+        <argsstring></argsstring>
+        <name>hasClear</name>
+        <qualifiedname>ShaderRenderPass::Targets::Entry::hasClear</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderRenderPass.h" line="126" column="10" bodyfile="dag_shaderRenderPass.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderRenderPass.h" line="121" column="3" bodyfile="dag_shaderRenderPass.h" bodystart="122" bodyend="127"/>
+    <listofallmembers>
+      <member refid="structShaderRenderPass_1_1Targets_1_1Entry_1a02d74a737b0593a684b8d5b5687b621c" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets::Entry</scope><name>hasClear</name></member>
+      <member refid="structShaderRenderPass_1_1Targets_1_1Entry_1a640c7ca819f2d56ecc00cddd9272e48f" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets::Entry</scope><name>name</name></member>
+      <member refid="structShaderRenderPass_1_1Targets_1_1Entry_1a2357a4f857a8a893302101b033393bf5" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets::Entry</scope><name>slot</name></member>
+      <member refid="structShaderRenderPass_1_1Targets_1_1Entry_1a81b9aae6d35a100bb5777552ba9b9c29" prot="public" virt="non-virtual"><scope>ShaderRenderPass::Targets::Entry</scope><name>target</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
